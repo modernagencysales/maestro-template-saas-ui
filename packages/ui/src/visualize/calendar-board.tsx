@@ -1,4 +1,4 @@
-import { Badge } from "@notion-kit/ui/primitives";
+import { Badge } from "../primitives";
 import { VisualShell, type VisualState } from "./shared";
 
 export type CalendarEvent = {

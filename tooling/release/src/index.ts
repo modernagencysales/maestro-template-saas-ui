@@ -479,7 +479,8 @@ const readinessClaims = [
   {
     id: "hosted-reference-app",
     evidence: [
-      "apps/web/src/sample/App.tsx",
+      "apps/web/src/routes/index.tsx",
+      "apps/web/src/saas-ui/business-shell.tsx",
       "tests/e2e/hosted-reference-app.spec.ts",
       "tests/e2e/hosted-reference-app.visual.spec.ts",
     ],
@@ -574,7 +575,8 @@ const completionRequirements = [
     requirement:
       "The repo contains a clear, useful sample app that demonstrates Brain, workflow, capability, agent, integration, and safety surfaces.",
     evidence: [
-      "apps/web/src/sample/App.tsx",
+      "apps/web/src/routes/index.tsx",
+      "apps/web/src/saas-ui/business-shell.tsx",
       "apps/web/src/sample/templateData.ts",
       "apps/web/src/sample/templateData.test.ts",
       "examples/generic-ai-ops/seed/workspace.json",

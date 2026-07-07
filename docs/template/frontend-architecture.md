@@ -73,20 +73,19 @@ Provider rules:
   components.
 - Fake/local provider mode remains the default for template quickstarts.
 
-## Notion Kit And Blocks
+## Saas UI And Blocks
 
-The shell should use Notion Kit primitives where possible:
+The web shell should use Saas UI primitives where possible:
 
-- `SidebarProvider`, `Sidebar`, `SidebarHeader`, `SidebarContent`,
-  `SidebarFooter`, `SidebarRail`, `SidebarInset`, `SidebarClose`, `SidebarOpen`.
-- `Navbar` for topbar surfaces.
-- `@notion-kit/settings-panel` for settings surfaces.
+- `SuiProvider` with the Saas UI Pro default system for the web app provider.
+- Saas UI layout, card, page, table, badge, button, input, and stack primitives
+  for business-app surfaces.
+- Local `packages/ui` primitives for reusable template package components that
+  must stay independent of app-specific routes.
 - lucide icons for commands and navigation affordances.
 
 CSS rules:
 
-- Load `@notion-kit/ui/style.css` through `apps/web/src/notion.css`.
-- Keep Notion Kit CSS scoped to app shell/workspace routes.
 - Use `apps/web/src/index.css` for semantic tokens, font stack, density, focus,
   motion, and workflow categorical colors.
 - Do not copy Maestro-specific product color names or route names into template
@@ -98,11 +97,9 @@ Block rules:
 - `packages/ui/src/shell/*` contains reusable shell primitives.
 - Feature code composes blocks; it should not invent route-local layout systems.
 
-Notion Kit package note: `@notion-kit/settings-panel` depends on
-`@notion-kit/i18n`, which is vendored at `vendor/notion-kit-i18n-1.0.0.tgz` and
-resolved through `pnpm-workspace.yaml`. Keep this private artifact internal to
-the template and update it only when the Notion Kit package set is intentionally
-upgraded.
+Saas UI package note: the app pins Saas UI, Saas UI Pro, Chakra, and Emotion as
+an aligned set. Do not loosen those pins independently; update them together
+after a focused compatibility check against TanStack Start, React, and Confect.
 
 ## Platform Primitives
 

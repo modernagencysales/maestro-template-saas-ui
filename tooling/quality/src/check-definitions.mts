@@ -223,10 +223,11 @@ export const checkDescriptors = {
           '"@tanstack/react-query"',
           '"@convex-dev/react-query"',
           '"@workos/authkit-tanstack-react-start"',
-          '"@notion-kit/ui"',
+          '"@saas-ui/react"',
+          '"@saas-ui-pro/react"',
         ],
         message:
-          "web package must include the committed TanStack Start and Notion Kit runtime dependencies",
+          "web package must include the committed TanStack Start and Saas UI runtime dependencies",
       },
     ],
   },

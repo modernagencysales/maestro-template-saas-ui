@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Button, Input } from "@notion-kit/ui/primitives";
+import { Button, Input } from "../primitives";
 
 export type PlatformCommandKind = "route" | "action";
 

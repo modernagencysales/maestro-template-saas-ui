@@ -1,10 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { ReferenceDocumentRoute } from "../sample/reference-document-route";
+import { BusinessSectionRoute } from "../saas-ui/business-shell";
 
 export const Route = createFileRoute("/_workspace/capabilities")({
   component: CapabilitiesRoute,
 });
 
 function CapabilitiesRoute() {
-  return <ReferenceDocumentRoute routeKey="capabilities" />;
+  return <BusinessSectionRoute section="capabilities" />;
 }

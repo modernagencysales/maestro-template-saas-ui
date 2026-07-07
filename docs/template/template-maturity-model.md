@@ -15,8 +15,9 @@ handoff evidence, and production operations.
 **Meaning:** the repo renders a hosted reference app with fake providers and a
 typed architectural direction.
 
-**Required evidence:** hosted URL, `apps/web/src/sample/App.tsx`, visual smoke
-snapshots, `docs/template/investor-reviewer-packet.md`.
+**Required evidence:** hosted URL, `apps/web/src/routes/index.tsx`,
+`apps/web/src/saas-ui/business-shell.tsx`, visual smoke snapshots,
+`docs/template/investor-reviewer-packet.md`.
 
 **Required commands:** `pnpm check:format`, `pnpm smoke:web-static`,
 `pnpm smoke:hosted:browser`, `pnpm smoke:hosted:a11y`,

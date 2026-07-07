@@ -36,14 +36,14 @@
 - `agent-patterns/`: future local references for Effect, Confect, and workflow
   graph idioms.
 - `repos/`: future vendored read-only source references for Effect and Confect.
-- `vendor/`: private package artifacts required by the internal template, such
-  as the Notion Kit i18n tarball used by `@notion-kit/settings-panel`.
+- `vendor/`: private package artifacts required by the internal template. This
+  fork currently does not require private UI tarballs.
 
 ## Apps
 
 - `apps/web`: the hostable TanStack Start reference workspace app, preserving
   the Maestro frontend direction with Convex/Confect data access, WorkOS-ready
-  auth, PostHog-ready analytics, Notion Kit shell primitives, and React Flow
+  auth, PostHog-ready analytics, Saas UI shell primitives, and React Flow
   workflow inspection.
 - `apps/cli`: typed CLI projection over generated Confect manifest metadata and
   generated refs.
@@ -132,7 +132,6 @@
 - `/admin`: support, audit, data lifecycle, and operator tools.
 
 Every path listed in workspace navigation has a route file under
-`apps/web/src/routes`. Generic reference routes render the corresponding
-document page through `ReferenceDocumentRoute`; routes with live/fake Confect
-behavior, such as `/notifications` and `/data-lifecycle`, own dedicated feature
-surfaces.
+`apps/web/src/routes`. Workspace routes render the Saas UI business shell or a
+Saas UI section page, with Confect-backed business behavior kept behind feature
+and adapter boundaries.

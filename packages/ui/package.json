@@ -20,8 +20,6 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
-    "@notion-kit/settings-panel": "1.0.0",
-    "@notion-kit/ui": "1.0.0",
     "react": "19.1.0",
     "react-dom": "19.1.0"
   },

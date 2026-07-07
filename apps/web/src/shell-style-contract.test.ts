@@ -7,26 +7,33 @@ const appRoot = fileURLToPath(new URL("..", import.meta.url));
 const read = (path: string): string =>
   readFileSync(resolve(appRoot, path), "utf8");
 
-describe("Notion Kit shell style contract", () => {
-  it("loads Notion Kit style.css through the template notion stylesheet", () => {
-    expect(read("src/notion.css")).toContain(
-      '@import "@notion-kit/ui/style.css"',
-    );
+describe("Saas UI shell style contract", () => {
+  it("installs Saas UI as the visible app shell provider", () => {
+    const root = read("src/routes/__root.tsx");
+    const provider = read("src/saas-ui/provider.tsx");
+
+    expect(root).toContain("MaestroSaasUiProvider");
+    expect(provider).toContain("SuiProvider");
+    expect(provider).toContain("defaultSystem");
   });
 
-  it("loads notion.css and index.css from the root route head", () => {
+  it("loads only the app and workflow styles from the root route head", () => {
     const root = read("src/routes/__root.tsx");
 
-    expect(root).toContain("../notion.css?url");
+    expect(root).not.toContain("../notion.css?url");
     expect(root).toContain("../index.css?url");
+    expect(root).toContain("@xyflow/react/dist/style.css?url");
   });
 
-  it("uses the reusable Notion Kit shell instead of the old sample stylesheet shell", () => {
-    const app = read("src/sample/App.tsx");
+  it("uses the Saas UI business shell instead of the old reference app route", () => {
+    const index = read("src/routes/index.tsx");
+    const shell = read("src/saas-ui/business-shell.tsx");
 
-    expect(app).toContain("TemplateWorkspaceShell");
-    expect(app).not.toContain("AppFrame");
-    expect(app).not.toContain("./sample/styles.css");
+    expect(index).toContain("BusinessDashboardRoute");
+    expect(index).not.toContain("TemplateReferenceApp");
+    expect(shell).toContain("@saas-ui/react");
+    expect(shell).toContain("BusinessAppShell");
+    expect(shell).toContain("BusinessSectionRoute");
   });
 
   it("owns global route UX wiring at the root route", () => {
@@ -62,13 +69,13 @@ describe("Notion Kit shell style contract", () => {
     expect(router).not.toContain("<main>Not Found</main>");
   });
 
-  it("keeps nested sidebar route links inside the Notion Kit menu row hit target", () => {
-    const css = read("src/index.css");
+  it("keeps workspace route links inside the Saas UI business shell", () => {
+    const shell = read("src/saas-ui/business-shell.tsx");
 
-    expect(css).toContain(".template-sidebar-menuitem");
-    expect(css).toContain("overflow: hidden");
-    expect(css).toContain("height: 100%");
-    expect(css).toContain("min-height: 0");
+    expect(shell).toContain("navItems");
+    expect(shell).toContain('to: "/workflows"');
+    expect(shell).toContain('to: "/documents"');
+    expect(shell).toContain('to: "/settings"');
   });
 
   it("defines UX safety classes and reduced-motion behavior", () => {

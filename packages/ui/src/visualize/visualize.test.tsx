@@ -122,7 +122,8 @@ describe("visualization primitives", () => {
     ].map((file) => read(`src/visualize/${file}`));
 
     for (const source of files) {
-      expect(source).toContain("@notion-kit/ui/primitives");
+      expect(source).not.toContain("@notion-kit");
+      expect(source).toContain("../primitives");
       expect(source).not.toContain("convex/");
       expect(source).not.toContain("@confect/");
       expect(source).not.toContain("@tanstack/react-router");

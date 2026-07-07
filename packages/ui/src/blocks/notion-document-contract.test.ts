@@ -13,14 +13,15 @@ describe("Notion document block contract", () => {
 
   it("keeps markdown-style page rendering out of route-local sample code", () => {
     const blocks = read("src/blocks/notion-document.tsx");
-    const app = read("../../apps/web/src/sample/App.tsx");
+    const route = read("../../apps/web/src/routes/index.tsx");
 
     expect(blocks).toContain("NotionDocumentPage");
     expect(blocks).toContain("renderInlineMarkdown");
     expect(blocks).toContain("NotionDocumentDiagram");
-    expect(app).toContain("NotionDocumentPage");
-    expect(app).not.toContain("renderInlineMarkdown");
-    expect(app).not.toContain("MarkdownLine");
+    expect(route).toContain("BusinessDashboardRoute");
+    expect(route).not.toContain("NotionDocumentPage");
+    expect(route).not.toContain("renderInlineMarkdown");
+    expect(route).not.toContain("MarkdownLine");
   });
 
   it("keeps accessibility and resilience blocks reusable", () => {

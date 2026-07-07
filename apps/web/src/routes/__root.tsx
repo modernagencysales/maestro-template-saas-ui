@@ -12,6 +12,7 @@ import type { QueryClient } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { TemplateToastProvider } from "@maestro-template/ui";
 
+import { MaestroSaasUiProvider } from "../saas-ui/provider";
 import {
   createBrowserWorkspaceStorage,
   WorkspaceProvider,
@@ -22,7 +23,6 @@ import { CookieConsentBoundary } from "../providers/cookie-consent";
 import { WebRouteUxBoundary } from "../navigation/route-ux-boundary";
 import { buildTemplateRouteHead } from "../adapters/route-head";
 import appCssUrl from "../index.css?url";
-import notionCssUrl from "../notion.css?url";
 import xyflowCssUrl from "@xyflow/react/dist/style.css?url";
 
 export type RouterContext = {
@@ -35,7 +35,6 @@ export const Route = createRootRouteWithContext<RouterContext>()({
   head: () =>
     buildTemplateRouteHead({
       stylesheets: [
-        { rel: "stylesheet", href: notionCssUrl },
         { rel: "stylesheet", href: xyflowCssUrl },
         { rel: "stylesheet", href: appCssUrl },
       ],
@@ -74,9 +73,11 @@ function RootComponent() {
                     href={location.href}
                     pathname={location.pathname}
                   >
-                    <TemplateToastProvider>
-                      <Outlet />
-                    </TemplateToastProvider>
+                    <MaestroSaasUiProvider>
+                      <TemplateToastProvider>
+                        <Outlet />
+                      </TemplateToastProvider>
+                    </MaestroSaasUiProvider>
                   </WebRouteUxBoundary>
                 </RootDocument>
               </PostHogWebProvider>

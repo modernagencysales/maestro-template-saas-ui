@@ -44,11 +44,12 @@ describe("TanStack Start runtime contract", () => {
     expect(source).toContain("Scripts");
   });
 
-  it("keeps the investor reference document as a Start route", () => {
+  it("keeps the Saas UI business dashboard as a Start route", () => {
     const source = read("src/routes/index.tsx");
 
     expect(source).toContain('createFileRoute("/")');
-    expect(source).toContain("TemplateReferenceApp");
+    expect(source).toContain("BusinessDashboardRoute");
+    expect(source).not.toContain("TemplateReferenceApp");
   });
 
   it("keeps route loaders out of feature view-model shaping", () => {

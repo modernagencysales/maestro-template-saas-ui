@@ -1,25 +1,32 @@
 import { useState } from "react";
-import {
-  createMockAdapters,
-  SettingsContent,
-  SettingsPanel,
-  SettingsProvider,
-  SettingsRule,
-  SettingsSection,
-  SettingsSidebar,
-  SettingsSidebarGroup,
-  SettingsSidebarTitle,
-  SettingsTab,
-  type AccountStore,
-  type SettingsAdapters,
-  type TabType,
-  type WorkspaceStore,
-} from "@notion-kit/settings-panel";
 
-export type TemplateSettingsTab = Extract<
-  TabType,
-  "general" | "people" | "billing" | "notifications" | "security"
->;
+export type TemplateSettingsTab =
+  "general" | "people" | "billing" | "notifications" | "security";
+
+export type TemplateSettingsAccount = {
+  readonly id: string;
+  readonly name: string;
+  readonly email: string;
+};
+
+export type TemplateSettingsWorkspace = {
+  readonly id: string;
+  readonly name: string;
+  readonly slug: string;
+  readonly plan: "free" | "business" | "enterprise";
+  readonly role: "owner" | "admin" | "member";
+};
+
+export type TemplateSettingsAdapters = {
+  readonly account: TemplateSettingsAccount;
+  readonly workspace: TemplateSettingsWorkspace;
+  readonly sessions: readonly {
+    readonly id: string;
+    readonly device: string;
+    readonly lastActive: number;
+    readonly location: string;
+  }[];
+};
 
 const templateSettingsTabs: readonly {
   readonly key: TemplateSettingsTab;
@@ -36,87 +43,94 @@ const templateSettingsTabs: readonly {
 export function createTemplateSettingsMockAdapters(options?: {
   readonly appName?: string;
   readonly workspaceSlug?: string;
-}): SettingsAdapters {
+}): TemplateSettingsAdapters {
   const workspaceName = options?.appName ?? "Maestro Template";
-  const account: AccountStore = {
-    id: "user_template_operator",
-    name: "Template Operator",
-    preferredName: "Template Operator",
-    email: "operator@example.test",
-    avatarUrl: "",
-    hasPassword: true,
-    currentSessionId: "session_template_local",
-  };
-  const workspace: WorkspaceStore = {
-    id: "workspace_template",
-    name: workspaceName,
-    icon: { type: "text", src: workspaceName.slice(0, 1) },
-    slug: options?.workspaceSlug ?? "maestro-template",
-    inviteLink: "https://example.test/invite/template",
-    plan: "business" as WorkspaceStore["plan"],
-    role: "owner" as WorkspaceStore["role"],
-  };
 
-  return createMockAdapters({
-    account,
-    workspace,
+  return {
+    account: {
+      id: "user_template_operator",
+      name: "Template Operator",
+      email: "operator@example.test",
+    },
+    workspace: {
+      id: "workspace_template",
+      name: workspaceName,
+      slug: options?.workspaceSlug ?? "maestro-template",
+      plan: "business",
+      role: "owner",
+    },
     sessions: [
       {
         id: "session_template_local",
-        token: "local",
         device: "Local browser",
-        type: "laptop",
         lastActive: 1782921600000,
         location: "Local fake mode",
       },
     ],
-  });
+  };
 }
 
 export function TemplateSettingsPanel({
   adapters = createTemplateSettingsMockAdapters(),
   initialTab = "general",
 }: {
-  readonly adapters?: SettingsAdapters;
+  readonly adapters?: TemplateSettingsAdapters;
   readonly initialTab?: TemplateSettingsTab;
 }) {
   const [activeTab, setActiveTab] = useState<TemplateSettingsTab>(initialTab);
 
   return (
-    <SettingsProvider adapters={adapters}>
-      <SettingsPanel className="template-settings-panel">
-        <SettingsSidebar className="template-settings-sidebar">
-          <SettingsSidebarTitle>Settings</SettingsSidebarTitle>
-          <SettingsSidebarGroup>
-            {templateSettingsTabs.map((tab) => (
-              <SettingsTab
-                Icon={<span aria-hidden="true">{tab.icon}</span>}
-                isActive={activeTab === tab.key}
-                key={tab.key}
-                name={tab.label}
-                onClick={() => setActiveTab(tab.key)}
-              />
-            ))}
-          </SettingsSidebarGroup>
-        </SettingsSidebar>
-        <SettingsContent className="template-settings-content">
-          <SettingsSection title={activeTabLabel(activeTab)}>
-            <SettingsRule
-              description="Fake/local adapters are active until this client fork explicitly enables live providers."
-              title="Provider posture"
+    <section className="template-settings-panel" aria-label="Settings">
+      <aside className="template-settings-sidebar">
+        <h2>Settings</h2>
+        <nav aria-label="Settings sections">
+          {templateSettingsTabs.map((tab) => (
+            <button
+              aria-current={activeTab === tab.key ? "page" : undefined}
+              className={
+                activeTab === tab.key
+                  ? "template-settings-tab is-active"
+                  : "template-settings-tab"
+              }
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              type="button"
             >
-              <span>Fake mode</span>
-            </SettingsRule>
-            <SettingsRule
-              description="WorkOS, PostHog, billing, email, storage, and AI provider setup stay behind typed adapters."
-              title="Client setup"
-            >
-              <span>Adapter-backed</span>
-            </SettingsRule>
-          </SettingsSection>
-        </SettingsContent>
-      </SettingsPanel>
-    </SettingsProvider>
+              <span aria-hidden="true">{tab.icon}</span>
+              {tab.label}
+            </button>
+          ))}
+        </nav>
+      </aside>
+      <div className="template-settings-content">
+        <section className="template-settings-section">
+          <h3>{activeTabLabel(activeTab)}</h3>
+          <dl>
+            <div className="template-settings-rule">
+              <dt>Provider posture</dt>
+              <dd>
+                Fake/local adapters are active until this client fork explicitly
+                enables live providers.
+              </dd>
+              <dd>Fake mode</dd>
+            </div>
+            <div className="template-settings-rule">
+              <dt>Client setup</dt>
+              <dd>
+                WorkOS, PostHog, billing, email, storage, and AI provider setup
+                stay behind typed adapters.
+              </dd>
+              <dd>Adapter-backed</dd>
+            </div>
+            <div className="template-settings-rule">
+              <dt>Workspace</dt>
+              <dd>{adapters.workspace.name}</dd>
+              <dd>{adapters.account.email}</dd>
+            </div>
+          </dl>
+        </section>
+      </div>
+    </section>
   );
 }
 

@@ -32,7 +32,8 @@ describe("frontend platform primitives", () => {
 
     const source = read("src/platform/command-palette.tsx");
 
-    expect(source).toContain("@notion-kit/ui/primitives");
+    expect(source).not.toContain("@notion-kit");
+    expect(source).toContain("../primitives");
     expect(source).not.toContain("convex/");
     expect(source).not.toContain("@confect/");
   });
@@ -54,7 +55,8 @@ describe("frontend platform primitives", () => {
   it("declares notification center empty, fake, test, and live delivery states", () => {
     const source = read("src/platform/notification-center.tsx");
 
-    expect(source).toContain("@notion-kit/ui/primitives");
+    expect(source).not.toContain("@notion-kit");
+    expect(source).toContain("../primitives");
     expect(source).toContain("No notifications yet");
     expect(source).toContain("fake");
     expect(source).toContain("test");
@@ -115,7 +117,8 @@ describe("frontend platform primitives", () => {
   it("declares onboarding checklist and missing live provider setup states", () => {
     const source = read("src/platform/onboarding.tsx");
 
-    expect(source).toContain("@notion-kit/ui/primitives");
+    expect(source).not.toContain("@notion-kit");
+    expect(source).toContain("../primitives");
     expect(source).toContain("TemplateOnboardingChecklist");
     expect(source).toContain("missingEnv");
     expect(source).toContain("onContinue");

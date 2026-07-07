@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { App as TemplateReferenceApp } from "../sample/App";
+import { BusinessDashboardRoute } from "../saas-ui/business-shell";
 
 export const Route = createFileRoute("/")({
-  component: TemplateReferenceApp,
+  component: BusinessDashboardRoute,
 });

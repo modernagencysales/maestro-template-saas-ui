@@ -11,26 +11,8 @@ import {
   safetyChecklist,
   starterReadiness,
 } from "./templateData";
-import { navItems } from "./navItems";
-import { overviewPage } from "./sampleDocumentData";
 
 describe("template sample data", () => {
-  it("keeps navigation ids unique and backed by sample sections", () => {
-    const ids = navItems.map((item) => item.id);
-
-    expect(new Set(ids).size).toBe(ids.length);
-    expect(ids).toEqual([
-      "overview",
-      "brain",
-      "workflows",
-      "capabilities",
-      "agents",
-      "headless",
-      "integrations",
-      "safety",
-    ]);
-  });
-
   it("uses workflow edges that reference declared nodes", () => {
     const nodeIds = new Set(durableWorkflowGraph.nodes.map((node) => node.id));
 
@@ -106,15 +88,16 @@ describe("template sample data", () => {
     );
   });
 
-  it("renders a starter console on the overview page", () => {
-    const sectionText = overviewPage.sections
-      .flatMap((section) => [section.heading, ...section.body])
-      .join(" ");
+  it("keeps starter console proof points in structured sample data", () => {
+    const proofText = [
+      ...starterReadiness.statuses.map((status) => status.label),
+      ...starterReadiness.proofPoints.map((point) => point.label),
+      ...starterReadiness.dayZeroCommands,
+    ].join(" ");
 
-    expect(sectionText).toContain("Starter console");
-    expect(sectionText).toContain("Hosted reference app");
-    expect(sectionText).toContain("pnpm template:quickstart");
-    expect(sectionText).toContain("API / CLI / MCP registry");
-    expect(sectionText).toContain("Live provider setup");
+    expect(proofText).toContain("Hosted reference app");
+    expect(proofText).toContain("pnpm template:quickstart");
+    expect(proofText).toContain("API / CLI / MCP registry");
+    expect(proofText).toContain("Live provider setup");
   });
 });

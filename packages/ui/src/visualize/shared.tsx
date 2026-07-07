@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Badge } from "@notion-kit/ui/primitives";
+import { Badge } from "../primitives";
 
 export type VisualState = "loading" | "empty" | "ready" | "error";
 export type VisualTone = "neutral" | "good" | "warn" | "critical";

@@ -50,84 +50,23 @@ describe("frontend platform routes", () => {
       existsSync(resolve(appRoot, "src/routes/_workspace.data-lifecycle.tsx")),
     ).toBe(true);
     expect(read("src/routes/_workspace.legal.tsx")).toContain(
-      "Replace this client-specific legal draft before launch",
-    );
-    expect(read("src/routes/_workspace.legal.tsx")).toContain(
-      "Cookie and analytics review draft",
+      'section="legal"',
     );
     expect(read("src/routes/_workspace.legal.tsx")).not.toContain(
-      "placeholder",
-    );
-    expect(read("src/routes/_workspace.legal.tsx")).toContain(
-      "before enabling live telemetry",
+      "ReferenceDocumentRoute",
     );
     expect(read("src/routes/_workspace.onboarding.tsx")).toContain(
-      "TemplateOnboardingChecklist",
+      'section="onboarding"',
     );
-    expect(read("src/routes/_workspace.onboarding.tsx")).toContain(
-      "buildOnboardingChecklistSteps",
-    );
-    expect(read("src/routes/_workspace.onboarding.tsx")).toContain(
-      "toastForOnboardingContinue",
-    );
-    expect(read("src/routes/_workspace.onboarding.tsx")).toContain(
-      "useTemplateToast",
-    );
-    expect(read("src/routes/_workspace.onboarding.tsx")).toContain(
-      "OnboardingWorkspaceBriefForm",
-    );
-    expect(
-      read("src/features/setup/onboarding-workspace-brief-form.tsx"),
-    ).toContain("useForm");
-    expect(
-      read("src/features/setup/onboarding-workspace-brief-form.tsx"),
-    ).toContain("useStarterDirtyRouteGuard");
-    expect(
-      read("src/features/setup/onboarding-workspace-brief-form.tsx"),
-    ).toContain("useStarterAutosave");
     expect(read("src/routes/_workspace.notifications.tsx")).toContain(
-      "NotificationCenterSurface",
+      'section="notifications"',
     );
-    expect(
-      read("src/features/notifications/notification-center-surface.tsx"),
-    ).toContain("buildNotificationCenterView");
-    expect(
-      read("src/features/notifications/notification-center-surface.tsx"),
-    ).toContain("markNotificationRead");
-    expect(
-      read("src/features/notifications/notification-center-surface.tsx"),
-    ).toContain("defaultNotificationPreferences");
-    expect(
-      read("src/features/notifications/notification-center-surface.tsx"),
-    ).toContain("templateConfectRefs.public.ops.notifications.list");
-    expect(
-      read("src/features/notifications/notification-center-surface.tsx"),
-    ).toContain("templateConfectRefs.public.ops.notifications.markRead");
-    expect(
-      read("src/features/notifications/notification-center-surface.tsx"),
-    ).toContain("notifyTemplateMutation");
-    expect(
-      read("src/features/notifications/notification-center-surface.tsx"),
-    ).toContain("useTemplateToast");
     expect(read("src/routes/_workspace.data-lifecycle.tsx")).toContain(
-      "DataLifecycleSurface",
+      'section="dataLifecycle"',
     );
-    expect(
-      read("src/features/data-lifecycle/data-lifecycle-surface.tsx"),
-    ).toContain(
-      "templateConfectRefs.public.ops.dataLifecycle.listDsarRequests",
+    expect(read("src/saas-ui/business-shell.tsx")).toContain(
+      "BusinessSectionRoute",
     );
-    expect(
-      read("src/features/data-lifecycle/data-lifecycle-surface.tsx"),
-    ).toContain(
-      "templateConfectRefs.public.ops.dataLifecycle.createDsarRequest",
-    );
-    expect(
-      read("src/features/data-lifecycle/data-lifecycle-surface.tsx"),
-    ).toContain("notifyTemplateMutation");
-    expect(
-      read("src/features/data-lifecycle/data-lifecycle-surface.tsx"),
-    ).toContain("useTemplateToast");
   });
 
   it("has a route file for every advertised workspace navigation path", () => {
@@ -137,16 +76,13 @@ describe("frontend platform routes", () => {
         `${item.path} should be backed by ${routeFileForPath(item.path)}`,
       ).toBe(true);
     }
-    expect(read("src/sample/App.tsx")).toContain("href: item.path");
-    expect(read("src/sample/App.tsx")).not.toContain(
-      "referenceAppRouteHashForKey",
+    expect(read("src/routes/index.tsx")).toContain("BusinessDashboardRoute");
+    expect(read("src/routes/_workspace.health.tsx")).toContain(
+      'section="health"',
     );
-    expect(read("src/routes/_workspace.health.tsx")).toContain("HealthSurface");
-    expect(read("src/features/health/health-surface.tsx")).toContain(
-      "TemplateHealthBoard",
-    );
-    expect(read("src/features/health/health-surface.tsx")).toContain(
-      "providerConfigReport",
+    expect(read("src/saas-ui/business-shell.tsx")).toContain("@saas-ui/react");
+    expect(read("src/saas-ui/business-shell.tsx")).not.toContain(
+      "ReferenceDocumentRoute",
     );
   });
 

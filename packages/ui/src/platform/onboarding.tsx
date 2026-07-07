@@ -1,4 +1,4 @@
-import { Badge, Button } from "@notion-kit/ui/primitives";
+import { Badge, Button } from "../primitives";
 
 export type OnboardingStepStatus = "complete" | "ready" | "blocked";
 

@@ -118,7 +118,7 @@ pnpm template:private-package:import -- --fixture examples/generic-ai-ops --writ
 The intended layer law is:
 
 ```text
-web routes -> screens -> features -> blocks -> Notion Kit
+web routes -> Saas UI shell -> features -> blocks -> local primitives
 client hooks -> @confect/react refs -> Confect specs -> Convex functions
 agents -> workflows -> capabilities -> domain/checks -> schema
 API/CLI/MCP/OpenAPI/Scalar -> generated Confect manifest/exposure metadata
@@ -129,11 +129,13 @@ admin/support/privacy -> audited capabilities -> narrow operator surfaces
 
 Concrete files to inspect:
 
-- `apps/web/src/sample/App.tsx`: hosted reference app.
+- `apps/web/src/routes/index.tsx`: hosted Saas UI dashboard route.
+- `apps/web/src/saas-ui/business-shell.tsx`: Saas UI business shell and section
+  pages.
 - `docs/design-intake/2026-07-01-template-frontend-stack-source.md`: frontend
   source audit from Maestro into the template.
 - `docs/template/frontend-architecture.md`: frontend layer law, provider tree,
-  Notion Kit boundary, and TanStack Start acceptance criteria.
+  Saas UI boundary, and TanStack Start acceptance criteria.
 - `tests/e2e/hosted-reference-app.spec.ts`: hosted desktop/mobile browser smoke.
 - `tests/e2e/hosted-reference-app.accessibility.spec.ts`: hosted desktop/mobile
   landmark, route-announcement, and axe WCAG smoke.

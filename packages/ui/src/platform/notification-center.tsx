@@ -1,4 +1,4 @@
-import { Badge } from "@notion-kit/ui/primitives";
+import { Badge } from "../primitives";
 
 export type NotificationDeliveryState = "fake" | "test" | "live-ready";
 export type NotificationCategory =
