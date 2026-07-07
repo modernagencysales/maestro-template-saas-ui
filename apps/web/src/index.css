@@ -529,8 +529,8 @@ a {
   overflow: hidden;
 }
 
-/* The anchor/button child is the entire row; Notion Kit's own icon/body
-   slots stay empty and must not reserve any width. */
+/* The anchor/button child is the entire row; empty icon/body slots must not
+   reserve any width. */
 .template-sidebar-menuitem > [data-slot="menu-item-icon"]:empty,
 .template-sidebar-menuitem > [data-slot="menu-item-body"]:empty {
   display: none;

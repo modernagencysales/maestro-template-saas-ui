@@ -19,8 +19,8 @@ seam to fill in.
   us stand up a bespoke "custom brain" application for a client quickly: bring a
   client's brain/knowledge sources, add their business logic, author and modify
   workflows and capabilities, wire the providers, and ship. It is the reusable
-  skeleton, not the product. The current hosted reference app is a calm
-  Notion-style TanStack Start shell that explains the template in investor- and
+  skeleton, not the product. The current hosted reference app is a plain Saas UI
+  business-app shell that explains the template in investor- and
   go-to-market-friendly language while keeping the reusable UI primitives in the
   repo.
 
@@ -70,7 +70,7 @@ Be honest with yourself and with reviewers about the current state:
 | ---------------------------------------- | ------------------------------------------------------------------------------------------------- |
 | Architecture / layering / vocabulary     | Real, mirrors maestro                                                                             |
 | Confect/Effect typed contracts           | Real, and the intended default going forward                                                      |
-| Hosted reference app                     | Real Notion-style TanStack Start shell                                                            |
+| Hosted reference app                     | Real Saas UI TanStack Start business shell                                                        |
 | Code generators and app-factory commands | Real — they write checked scaffolds, demo seed data, and handoff artifacts                        |
 | Provider adapters                        | Fake/test/live-ready seams; real SDK calls are enabled per client fork after env setup            |
 | Workflow/agent execution                 | Real minimum slice exists; broader scheduling, replay, and advanced autonomy remain backlog items |

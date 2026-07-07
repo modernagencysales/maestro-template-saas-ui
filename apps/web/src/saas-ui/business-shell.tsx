@@ -525,7 +525,66 @@ function BusinessAppShell({
   readonly children: React.ReactNode;
 }) {
   return (
-    <Flex minH="100vh" bg="gray.50">
+    <Flex minH="100vh" bg="gray.50" direction={{ base: "column", lg: "row" }}>
+      <Box
+        bg="white"
+        borderBottomColor="gray.200"
+        borderBottomWidth="1px"
+        display={{ base: "block", lg: "none" }}
+      >
+        <HStack justify="space-between" px="4" py="3">
+          <HStack gap="3">
+            <Flex
+              align="center"
+              bg="black"
+              borderRadius="md"
+              color="white"
+              h="9"
+              justify="center"
+              w="9"
+            >
+              <Icon as={Activity} boxSize="5" />
+            </Flex>
+            <Box>
+              <Text fontWeight="bold">Maestro</Text>
+              <Text color="gray.500" fontSize="xs">
+                Business app
+              </Text>
+            </Box>
+          </HStack>
+          <Badge colorPalette="gray">Workspace</Badge>
+        </HStack>
+        <HStack
+          as="nav"
+          aria-label="Mobile workspace navigation"
+          gap="2"
+          overflowX="auto"
+          px="4"
+          pb="3"
+        >
+          {navItems.map((item) => {
+            const isActive = item.to === activePath;
+            return (
+              <Link key={item.label} to={item.to}>
+                <HStack
+                  bg={isActive ? "gray.900" : "gray.100"}
+                  borderRadius="md"
+                  color={isActive ? "white" : "gray.700"}
+                  flex="0 0 auto"
+                  gap="2"
+                  px="3"
+                  py="2"
+                >
+                  <Icon as={item.icon} boxSize="4" />
+                  <Text fontSize="sm" fontWeight="medium" whiteSpace="nowrap">
+                    {item.label}
+                  </Text>
+                </HStack>
+              </Link>
+            );
+          })}
+        </HStack>
+      </Box>
       <Box
         as="aside"
         bg="white"

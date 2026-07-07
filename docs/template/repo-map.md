@@ -10,7 +10,7 @@
 - `docs/template/investor-reviewer-packet.md`: first-stop technical diligence
   packet for investors and review agents.
 - `docs/template/frontend-architecture.md`: frontend layer law, TanStack Start
-  direction, Notion Kit shell rules, data-loading rules, and deploy acceptance
+  direction, Saas UI shell rules, data-loading rules, and deploy acceptance
   criteria.
 - `docs/template/knowledge-model.md`: source-backed Brain concepts, claims,
   citations, context packs, markdown codecs, and OKF export.
@@ -52,8 +52,8 @@
 ## Packages
 
 - `packages/convex`: Confect specs/impls, Convex components, schema, and tests.
-- `packages/ui`: Notion-style app shell, blocks, layout primitives, and
-  settings-ready controls, including the optional co-editing document shell.
+- `packages/ui`: shared app shell, blocks, layout primitives, and settings-ready
+  controls, including the optional co-editing document shell.
 - `packages/workflow-ui`: React Flow graph editor primitive and future command
   reducers.
 - `packages/template-core`: shared template registry for sample/reviewer data,

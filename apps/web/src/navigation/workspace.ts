@@ -139,7 +139,7 @@ export const TEMPLATE_ROUTE_ITEMS: readonly TemplateRouteItem[] = [
     label: "Settings",
     path: "/settings",
     icon: "T",
-    description: "Workspace settings, Notion-style preferences, and tenancy.",
+    description: "Workspace settings, business preferences, and tenancy.",
   },
   {
     key: "legal",

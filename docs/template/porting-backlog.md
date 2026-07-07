@@ -10,7 +10,7 @@ two repos differ.
 > **Execution note:** this file is the exhaustive inventory. Use
 > [`porting-roadmap.md`](./porting-roadmap.md) for execution order, dependency
 > sequencing, and "do not start yet" guardrails. The current `main` app shell,
-> fake seed fixtures, hosted Notion-style reference app, and visual tests are
+> fake seed fixtures, hosted Saas UI business app, and visual tests are
 > authoritative over older app files from the backlog branch.
 
 Current readiness commands and the maturity model are authoritative for the
@@ -666,18 +666,17 @@ Convex component wiring (M).
      `providers/auth.tsx` (`AuthGate`), routes `sign-in|sign-up|callback`.
      Server middleware, cookie session, protected-route loader, client auth
      gate.
-122. **App shell composition (sidebar/topbar/search)** — HIGH — partial
-     (static). `apps/web/src/components/shell/*`. Theme scope → providers →
-     sidebar + command search + inset topbar. Template `AppFrame` is a static
-     `<aside>`.
-123. **NK theme scope + dark mode** — HIGH — no.
-     `apps/web/src/components/shell/theme-scope.tsx`,
-     `foundations/nk-workspace-*`, `theme/workspace.ts`. Notion palette +
-     `.dark` via next-themes, portal-safe.
-124. **Reusable layout/block library** — HIGH — partial (static).
-     `apps/web/src/components/blocks/*` (~60 files). The real design-system
-     layer on Notion Kit (`DashboardPage`, `PageFrame`, `BlockStack`,
-     `SplitPanel`, `MetricRow`, …). Exclude maestro-named blocks.
+122. **App shell composition (sidebar/topbar/search)** — HIGH — partial.
+     `apps/web/src/saas-ui/business-shell.tsx` now owns the starter business
+     shell. Remaining work is to deepen the shell with real command search,
+     route registry state, and authenticated workspace context.
+123. **Theme scope + dark mode** — HIGH — no. Replace the old evaluated Notion
+     palette idea with a Saas UI/Chakra color mode policy that is portal-safe
+     and verified against TanStack Start SSR.
+124. **Reusable layout/block library** — HIGH — partial.
+     `packages/ui/src/blocks/*` and Saas UI primitives are the approved
+     direction. Remaining work is to promote repeated business-shell patterns
+     into reusable blocks without reintroducing route-local UI systems.
 125. **Empty / loading / skeleton states** — MED — no.
      `apps/web/src/components/blocks/{empty-state,skeleton-grid,skeleton-stack, surface-skeleton,progress-bar}.tsx`.
 126. **Route-level error boundary** — MED — no.
@@ -692,23 +691,20 @@ Convex component wiring (M).
      `components/panels/*` (uses `@dnd-kit/*` + `@dagrejs/dagre`). Drag-to-add,
      per-node/edge config forms, validation, auto-layout.
 129. **Collaborative document editor (prosemirror-sync + BlockNote)** — HIGH —
-     no. `apps/web/src/features/documents/*`, `features/editor/*`, `notion.css`.
+     no. `apps/web/src/features/documents/*`, `features/editor/*`.
      `@blocknote/react` synced via `@convex-dev/prosemirror-sync/blocknote`.
      _(The full human+agent tracked-proposal surface built on this is Section N,
      items 139–175.)_
-130. **NK design-system canon + boundary guards** — MED — no.
-     `apps/web/src/checks/{notion-ui-primitives,ui-copy-boundaries}.test.ts`,
-     `features/nk-gallery/STYLE-RULES.md`. AST tests forbidding hand-rolled
-     `text-[13px]`/link-buttons; enforce `typography()` + NK `style.css`.
-     (Backend analogue: `tooling/quality/check-canonical-nk-boundaries.mts`.)
-131. **Design-system / component gallery screen** — MED — partial (static).
-     `apps/web/src/routes/design-system.tsx`,
-     `screens/design-system-screen.tsx`, `features/nk-gallery/*`. The live
-     interactive version of what the template's `sample/App.tsx` mimics
-     statically.
-132. **NK settings surface** — MED — no.
-     `apps/web/src/features/settings/settings-dashboard.tsx` (on
-     `@notion-kit/settings-panel` + table-view + code-block).
+130. **Saas UI design-system canon + boundary guards** — MED — no. Add
+     AST/source tests that forbid route-local one-off layout systems and require
+     Saas UI/shared primitives for business-app surfaces.
+131. **Design-system / component gallery screen** — MED — no. Add a live gallery
+     for the Saas UI/shared primitive set once enough reusable blocks exist to
+     justify it.
+132. **Saas UI settings surface** — MED — partial.
+     `apps/web/src/saas-ui/business-shell.tsx` includes a plain settings route.
+     Remaining work is to extract reusable settings sections and wire durable
+     settings mutations.
 133. **Navigation / sidebar route registry** — MED — partial (static).
      `apps/web/src/navigation/*`, `components/shell/workspace-sidebar-icons.ts`.
      Declarative nav model (ids/labels/icons/app-modes). Template nav is a
@@ -1117,9 +1113,9 @@ values lean GTM). Shared editor deps: `checks/blockNoteSchema.ts`,
 ## Q. Visualize & act primitives (edit/visualize + act)
 
 Reusable presentation and action surfaces — charts/boards/tables to _see_
-knowledge and publish/approve/schedule surfaces to _act_ on it. All the
-visualize primitives are hand-rolled on Notion Kit (no chart lib dependency);
-the act primitives keep a pluggable provider/destination seam.
+knowledge and publish/approve/schedule surfaces to _act_ on it. The visualize
+primitives use local/shared primitives without chart library dependencies; the
+act primitives keep a pluggable provider/destination seam.
 
 ### Visualize
 
@@ -1374,11 +1370,8 @@ repos**.
      Remaining work: add digest scheduling and provider-backed delivery in
      client forks.
 261. **Form library + validation / dirty-state / autosave** — HIGH — partial.
-     `@tanstack/react-form` is installed in the web app, and
      `apps/web/src/forms/starter-form.ts` provides the reusable starter
      validation, dirty-state detection, route leave guard, and autosave planner.
-     `apps/web/src/features/setup/onboarding-workspace-brief-form.tsx` is the
-     first schema-backed workspace brief form reference implementation.
      Remaining work: promote the primitive into every generated client form,
      connect autosave to durable mutations, and add fork-specific axe coverage
      as real form-heavy routes land.

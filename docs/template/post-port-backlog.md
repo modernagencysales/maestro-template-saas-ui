@@ -25,7 +25,7 @@ options and diligence findings so they are not lost.
 | No provenance/history                   | Resolved | `how-this-relates-to-maestro.md`, maturity model, threat model, do-not-port register, 1,383-line porting backlog.                                                                                               |
 | 35MB vendored `repos/` bloat            | Resolved | Kept by decision (P8): agents code better with upstream source present; history retains blobs regardless.                                                                                                       |
 | Misleading gate names                   | Resolved | Every descriptor-backed gate prints `ok (pin-only)`; rule-coverage.md maps each rule to its enforcement tier.                                                                                                   |
-| Reference app is a static brochure      | Resolved | The Start SPA shell is the only entry; the reference document is a route inside it. 17/17 browser smoke + accessibility + visual tests pass locally against `wrangler pages dev`.                               |
+| Reference app is a static brochure      | Resolved | The Start app is the only entry, and the visible shell is now a Saas UI business-app surface instead of the old static reference document. Browser smoke covers the business shell locally.                     |
 | Packages with zero tests                | Resolved | `packages/search` is a tested workspace-scoped retrieval seam; every workspace package has tests.                                                                                                               |
 
 ## Priority 1 — Correctness and honesty
@@ -45,9 +45,9 @@ options and diligence findings so they are not lost.
    ratchet. Port Maestro's `check-coverage-ratchet.mts` + checked-in
    `coverage-baseline.json` (refuses to lower, `--update` only raises) across
    workspace packages.
-3. **Mount the real app shell — DONE.** `apps/web/src/main.tsx` still renders
-   `sample/App`. Mount the router/providers shell as the app; keep the reference
-   document as a calm route inside it.
+3. **Mount the real app shell — DONE.** The TanStack Start router/provider shell
+   is mounted as the app, and the visible route surface now uses the Saas UI
+   business shell instead of the old static reference document.
 4. **`packages/search` — DONE** (tested workspace-scoped seam). Implement the
    search seam (Maestro: `convex/capabilities/brain/retrievalSearch.ts` shape,
    genericized) or delete the package until needed. An exported package name

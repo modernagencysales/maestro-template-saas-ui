@@ -796,7 +796,7 @@ ${name} is generated from the ${blueprintConfig.label} blueprint. It demonstrate
 
 ## Architecture
 
-- Frontend: TanStack Start direction, Notion Kit/block UI, React Flow for workflow interaction.
+- Frontend: TanStack Start direction, Saas UI/shared block UI, React Flow for workflow interaction.
 - Backend: Convex with Confect/Effect contracts, typed errors, and generated refs.
 - Brain: source-backed markdown, links, notes, context packs, and Trust Receipts by default.
 - Headless: API, CLI, and MCP surfaces share generated capability/workflow contracts.

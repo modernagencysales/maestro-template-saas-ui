@@ -117,7 +117,8 @@ Use the generated implementation brief as the discovery map:
    `template:promote-workflow` only for older reviewed or private-package
    workflow artifacts. `template:add-workflow -- --write` already writes the
    production-target workflow paths.
-5. Wire the generated refs into the Notion-style UI, API, CLI, and MCP surfaces.
+5. Wire the generated refs into the Saas UI business surfaces, API, CLI, and MCP
+   surfaces.
 6. Add focused tests for the capability, workflow graph, provider posture, and
    Trust Receipt.
 7. Run `pnpm review:readiness` before handoff.
@@ -131,7 +132,7 @@ generated implementation brief.
 
 - TanStack Start is the frontend direction; Convex, Confect, and Effect own
   durable backend contracts.
-- Notion Kit and the template block layer own UI primitives.
+- Saas UI and the template block layer own UI primitives.
 - React Flow is only the workflow interaction layer; durable workflow graphs
   stay outside React Flow node and edge arrays.
 - The Brain is source-backed by default. RAG is an optional extension, not the

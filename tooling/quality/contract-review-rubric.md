@@ -29,7 +29,7 @@ For each substantive changed file, ask:
 The repo layer law (AGENTS.md) is blocking contract:
 
 ```text
-web routes -> screens -> features -> blocks -> Notion Kit
+web routes -> screens -> features -> blocks -> Saas UI/shared primitives
 client hooks -> @confect/react refs -> Confect specs -> Convex functions
 agents -> workflows -> capabilities -> domain/checks -> schema
 API/CLI/MCP -> headless registry -> same capabilities/workflows as web

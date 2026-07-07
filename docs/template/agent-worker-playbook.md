@@ -37,7 +37,7 @@ Choose generators before hand-writing modules:
 Preserve this flow:
 
 ```text
-web routes -> screens -> features -> blocks -> Notion Kit
+web routes -> screens -> features -> blocks -> Saas UI/shared primitives
 client hooks -> @confect/react refs -> Confect specs -> Convex functions
 agents -> workflows -> capabilities -> domain/checks -> schema
 API/CLI/MCP/OpenAPI/Scalar -> generated Confect manifest/exposure metadata

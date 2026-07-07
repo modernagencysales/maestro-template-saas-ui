@@ -56,7 +56,7 @@ atomic transaction.
 
 ## UI
 
-- Do not handroll primitives covered by Notion Kit or the template UI package.
+- Do not handroll primitives covered by Saas UI or the template UI package.
 - Blocks are reusable and provider-free.
 - Feature components adapt data; blocks render data.
 

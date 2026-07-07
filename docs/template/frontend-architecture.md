@@ -2,8 +2,8 @@
 
 The frontend is an opinionated app-factory shell for custom AI Brain, workflow,
 agent, and go-to-market implementation software. It should feel like a working
-product surface, while keeping the current investor/reviewer document route
-available until the richer app surfaces have equivalent smoke coverage.
+product surface with a plain Saas UI business-app shell as the default visible
+experience.
 
 ## Layer Law
 
@@ -11,7 +11,7 @@ Use this dependency direction:
 
 ```text
 web routes -> screens -> features -> adapters -> Confect/Convex refs
-features -> blocks -> Notion Kit
+features -> blocks -> Saas UI/shared primitives
 workflow feature surfaces -> packages/workflow-ui -> React Flow
 ```
 
@@ -44,9 +44,9 @@ Required router/provider shape:
 
 Deployment decision:
 
-- Keep the current Vite static Cloudflare Pages app as the hosted reference
-  deploy until TanStack Start static output passes equivalent local static
-  smoke, hosted HTTP smoke, hosted browser smoke, and hosted visual smoke.
+- Keep TanStack Start as the committed runtime and prove any hosting change with
+  local static smoke, hosted HTTP smoke, hosted browser smoke, and hosted visual
+  smoke.
 - Prefer TanStack Start static output on Cloudflare Pages first.
 - Use Cloudflare Workers SSR only after explicit env mapping, rollback command,
   and smoke tests are documented.
@@ -131,8 +131,8 @@ Brain, workflow, billing, operations, and support surfaces.
   components render.
 - Visualization components must not import Convex, Confect refs, TanStack route
   modules, WorkOS, PostHog, provider SDKs, or persistence code.
-- Keep visual layouts Notion-like: dense, readable, centered where appropriate,
-  and built from Notion Kit primitives rather than a second design system.
+- Keep visual layouts dense, readable, centered where appropriate, and built
+  from Saas UI/shared primitives rather than route-local UI systems.
 
 ## Data Loading Rules
 
@@ -197,8 +197,7 @@ The first app experience must support the default factory loop without making a
 reviewer understand the whole codebase. The app should expose one clear route
 for each step: Brain sources and context pack, workflow graph/run, capability
 catalog, agent/tool grants, Trust Receipt, provider posture, and handoff or API
-docs. Keep the investor document route calm and separate from these operational
-routes.
+docs. Keep the visible route surfaces operational and business-app shaped.
 
 Generated or client-specific UI should start with feature adapters and block
 composition. It should not fork the shell, introduce a second sidebar, or
@@ -228,14 +227,13 @@ the source of truth.
 
 ## Migration Acceptance Criteria
 
-Before the TanStack Start runtime replaces the current static app path:
+Before frontend migration work is considered complete:
 
 - `pnpm --dir apps/web test` passes.
 - `pnpm check:route-tree` passes.
 - `pnpm smoke:web-static` passes.
 - Hosted browser and visual smoke pass for desktop and mobile.
-- The investor/reviewer document route remains readable.
-- The Notion sidebar stays mounted during navigation.
+- The Saas UI business shell remains readable on desktop and mobile.
 - The route tree is generated at `apps/web/src/routeTree.gen.ts` and checked for
   freshness.
 - The deployment guide documents Cloudflare Pages static output or Workers SSR

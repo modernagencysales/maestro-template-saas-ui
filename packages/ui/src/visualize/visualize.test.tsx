@@ -109,7 +109,7 @@ describe("visualization primitives", () => {
     ).toContain("New claim");
   });
 
-  it("keeps visualization components on Notion Kit and away from backend imports", () => {
+  it("keeps visualization components on local primitives and away from backend imports", () => {
     const files = [
       "data-grid.tsx",
       "kanban-board.tsx",

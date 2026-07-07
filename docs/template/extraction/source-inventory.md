@@ -53,8 +53,7 @@ git history.
   and investor-sensitive launch docs.
 - Secrets, API keys, webhook payloads, raw provider logs, and support artifacts.
 - Legacy prototype routes with no reusable value.
-- Duplicated frontend systems superseded by Notion Kit and the current block
-  layer.
+- Duplicated frontend systems superseded by Saas UI and the current block layer.
 - Product-specific LinkedIn, creator, launch, or agency assumptions unless they
   are converted into generic examples.
 
@@ -75,8 +74,9 @@ Primary architecture sources:
 
 Representative reusable streams to mine deliberately:
 
-- Frontend and Notion Kit: PR #1385, #1400, #1390, #1397, #1383, #1384, #1259,
-  #1249, #1254, and the `canonical-nk-*` stream.
+- Historical frontend shell streams: PR #1385, #1400, #1390, #1397, #1383,
+  #1384, #1259, #1249, #1254, and the `canonical-nk-*` stream. Treat these as
+  source history, not the active frontend target for this fork.
 - Workflow builder and React Flow: PR #869, #1374, and #1370.
 - Living Knowledge: PR #1031, #1035, #1038, #1039, #1040, #1047, #1048, #1053,
   #1057, #1063, #1069, #1072, #1073, #1104, #1151, #1167, #1172, and #1195.

@@ -23,7 +23,7 @@ flexible AI Brain without defaulting to RAG or Maestro-specific GTM logic.
    the result.
 9. **API/CLI/MCP exposure:** the same capability can be described and invoked
    headlessly through generated surfaces.
-10. **Reference app page:** the Notion-style app explains the slice through
+10. **Reference app page:** the Saas UI business app explains the slice through
     Brain, workflow, receipt, provider, and settings sections.
 
 ## Non-Goals

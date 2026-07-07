@@ -120,7 +120,7 @@ contract family.
 
 As of 2026-07-05, the current `main` branch is a good SaaS-starter baseline for
 new client work: it has the Effect/Confect contract spine, typed error doctrine,
-headless surface generation, guarded CI, app shell, Notion Kit-based frontend,
+headless surface generation, guarded CI, app shell, Saas UI-based frontend,
 generator scaffolds, and core UX/a11y primitives. It is not yet a complete
 generic SaaS product. Treat the remaining backlog as selectable product
 acceleration work, not as proof that the existing starter baseline is fake.
