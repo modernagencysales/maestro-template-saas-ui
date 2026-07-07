@@ -24,12 +24,10 @@ const recordUsage = FunctionImpl.make(
       const idempotencyKey = validateCallerIdempotencyKey(input.idempotencyKey);
 
       if (!idempotencyKey.ok) {
-        return yield* Effect.fail(
-          new BillingError.ValidationFailed({
-            field: "idempotencyKey",
-            message: idempotencyKey.error.message,
-          }),
-        );
+        return yield* new BillingError.ValidationFailed({
+          field: "idempotencyKey",
+          message: idempotencyKey.error.message,
+        });
       }
 
       yield* unsafeAssumeClockProvided(
@@ -55,13 +53,11 @@ const recordUsage = FunctionImpl.make(
         const payloadMismatch = usagePayloadMismatch(existingUsage, input);
 
         if (payloadMismatch !== null) {
-          return yield* Effect.fail(
-            new BillingError.ValidationFailed({
-              field: payloadMismatch,
-              message:
-                "idempotencyKey was already used for a different billing usage payload.",
-            }),
-          );
+          return yield* new BillingError.ValidationFailed({
+            field: payloadMismatch,
+            message:
+              "idempotencyKey was already used for a different billing usage payload.",
+          });
         }
 
         const existingLedger = yield* exactlyOneOrDie(
@@ -100,22 +96,18 @@ const recordUsage = FunctionImpl.make(
       );
 
       if (entitlement === null || entitlement.status !== "active") {
-        return yield* Effect.fail(
-          new BillingError.InsufficientCredits({
-            availableCredits: 0,
-            requestedCredits: input.costCredits,
-          }),
-        );
+        return yield* new BillingError.InsufficientCredits({
+          availableCredits: 0,
+          requestedCredits: input.costCredits,
+        });
       }
 
       const availableCredits = entitlement.limit - entitlement.used;
       if (input.costCredits > availableCredits) {
-        return yield* Effect.fail(
-          new BillingError.InsufficientCredits({
-            availableCredits,
-            requestedCredits: input.costCredits,
-          }),
-        );
+        return yield* new BillingError.InsufficientCredits({
+          availableCredits,
+          requestedCredits: input.costCredits,
+        });
       }
 
       const usageEventId = yield* writer
@@ -236,15 +228,13 @@ const applyWebhook = FunctionImpl.make(
       const dedupeKey = validateCallerIdempotencyKey(input.dedupeKey);
 
       if (!dedupeKey.ok) {
-        return yield* Effect.fail(
-          new BillingError.ValidationFailed({
-            field: "dedupeKey",
-            message: dedupeKey.error.message.replace(
-              "idempotencyKey",
-              "dedupeKey",
-            ),
-          }),
-        );
+        return yield* new BillingError.ValidationFailed({
+          field: "dedupeKey",
+          message: dedupeKey.error.message.replace(
+            "idempotencyKey",
+            "dedupeKey",
+          ),
+        });
       }
 
       const reader = yield* DatabaseReader;
@@ -265,13 +255,11 @@ const applyWebhook = FunctionImpl.make(
         });
 
         if (payloadMismatch !== null) {
-          return yield* Effect.fail(
-            new BillingError.ValidationFailed({
-              field: payloadMismatch,
-              message:
-                "dedupeKey was already used for a different billing webhook payload.",
-            }),
-          );
+          return yield* new BillingError.ValidationFailed({
+            field: payloadMismatch,
+            message:
+              "dedupeKey was already used for a different billing webhook payload.",
+          });
         }
 
         return webhookReturn(existingWebhook, "duplicate");

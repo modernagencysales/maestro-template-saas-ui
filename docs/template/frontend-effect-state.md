@@ -18,6 +18,17 @@ bundle size.
 - Workflow status, stage rows, and Trust Receipts should subscribe through
   Convex/Confect live queries because Convex is already reactive.
 
+## Labels
+
+| Label                | Status       | What it means                                                                                                                                        |
+| -------------------- | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Confect React hooks  | default      | Use generated refs through `@confect/react` and normalize them with `apps/web/src/adapters/confect-state.ts`.                                        |
+| Convex React Query   | router-only  | `@convex-dev/react-query` and TanStack Query are installed for router/query-client integration, SSR query wiring, and existing cache infrastructure. |
+| Frontend Effect run  | adapter-only | `Effect.runPromise` and related runtime execution APIs are allowed only in `apps/web/src/adapters/effectBoundary.ts`.                                |
+| Effect Atom          | candidate    | Not installed in this fork. Add it only behind `apps/web/src/effect-atom/*` or `packages/frontend-effect/*` with bundle-size and metadata evidence.  |
+| Effect RPC           | not default  | Not installed as a frontend data layer. Confect/Convex generated refs are the current RPC/data contract.                                             |
+| Generic Effect Query | rejected     | Do not wrap arbitrary Effect programs in TanStack Query as the template default. Use typed Confect/Convex boundaries first.                          |
+
 ## Why Not Generic Effect In TanStack Query
 
 TanStack Query models failures as rejected promises. Effect models expected
@@ -35,7 +46,9 @@ internal cancellation semantics are not an Effect API.
   empty, ready, typed_failure, transport_failure, parse_failure, and defect
   states.
 - Use `apps/web/src/adapters/effectBoundary.ts` only for rare isolated frontend
-  actions that already need an Effect program.
+  actions that already need an Effect program. This adapter converts typed
+  failures into `typed_failure`, defects into `defect`, and aborts into
+  `transport_failure`.
 - For complex local-first, worker-backed, streaming, optimistic, or
   Effect-runtime-aware frontend state, introduce Effect Atom behind
   `apps/web/src/effect-atom/*` or `packages/frontend-effect/*`. Start from the
@@ -49,5 +62,8 @@ internal cancellation semantics are not an Effect API.
 - Client code imports Effect submodules such as `effect/Effect`,
   `effect/Schema`, and `effect/Either`.
 - Client code does not import from the `effect` barrel.
+- Client code does not call `Effect.runPromise`, `Effect.runSync`,
+  `Effect.runFork`, or related runtime execution APIs outside the approved
+  boundary adapter.
 - Effect Atom is opt-in and must land with a bundle-size note before becoming a
   template default.

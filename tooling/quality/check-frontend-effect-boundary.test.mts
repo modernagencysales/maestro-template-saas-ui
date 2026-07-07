@@ -30,13 +30,14 @@ async function evaluateFixture(files: FixtureFiles) {
 }
 
 describe("check:frontend-effect-boundary", () => {
-  it("rejects Effect.runPromise outside the effect boundary adapter", async () => {
+  it("rejects Effect runtime execution outside the effect boundary adapter", async () => {
     const result = await evaluateFixture({
       "apps/web/src/components/Bad.tsx": `
         import * as Effect from "effect/Effect";
 
         export const Bad = () => {
           void Effect.runPromise(Effect.succeed("leaked"));
+          void Effect.runSync(Effect.succeed("also leaked"));
           return null;
         };
       `,
@@ -46,9 +47,10 @@ describe("check:frontend-effect-boundary", () => {
     expect(result.findings).toContainEqual(
       expect.objectContaining({
         file: "apps/web/src/components/Bad.tsx",
-        message: expect.stringContaining("Effect.runPromise"),
+        message: expect.stringContaining("Effect runtime execution"),
       }),
     );
+    expect(result.findings).toHaveLength(2);
   });
 
   it("allows Effect.runPromise inside the effect boundary adapter", async () => {

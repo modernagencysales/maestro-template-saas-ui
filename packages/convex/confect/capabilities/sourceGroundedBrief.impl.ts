@@ -27,7 +27,7 @@ const runSourceGroundedBrief = (input: SourceGroundedBriefInput) =>
 
     const normalized = normalizeSourceGroundedBriefInput(input);
     if (normalized instanceof Error) {
-      return yield* Effect.fail(normalized);
+      return yield* normalized;
     }
 
     return runFakeSourceGroundedBrief({

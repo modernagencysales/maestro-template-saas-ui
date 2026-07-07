@@ -21,7 +21,7 @@ const scannedRoots = [
   "packages/workflow-ui/src",
 ] as const;
 
-const approvedRunPromiseFile = "apps/web/src/adapters/effectBoundary.ts";
+const approvedEffectRuntimeFile = "apps/web/src/adapters/effectBoundary.ts";
 const approvedEffectAtomPrefixes = [
   "apps/web/src/effect-atom/",
   "packages/frontend-effect/",
@@ -85,13 +85,13 @@ export function evaluateFrontendEffectBoundarySource(
 ): readonly FrontendEffectBoundaryFinding[] {
   const findings: FrontendEffectBoundaryFinding[] = [];
 
-  if (file !== approvedRunPromiseFile) {
+  if (file !== approvedEffectRuntimeFile) {
     findings.push(
       ...collectPatternFindings(
         source,
-        /\bEffect\.runPromise\b/g,
+        /\bEffect\.run(?:Promise|PromiseExit|Sync|SyncExit|Fork|Callback)\b/g,
         file,
-        "Effect.runPromise is only allowed in apps/web/src/adapters/effectBoundary.ts.",
+        "Effect runtime execution is only allowed in apps/web/src/adapters/effectBoundary.ts.",
       ),
     );
   }
