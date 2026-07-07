@@ -65,6 +65,7 @@ describe("presentLiveRuns", () => {
     expect(view).toMatchObject({
       kind: "ready",
       workspaceName: "Maestro Template Demo",
+      runCount: 3,
     });
     if (view.kind === "ready") {
       expect(view.rows.map((row) => row.key)).toEqual([
@@ -72,6 +73,7 @@ describe("presentLiveRuns", () => {
         "middle",
         "older",
       ]);
+      expect(view.rows[0]?.startedAtLabel).toBe("1970-01-01T00:00:00.003Z");
     }
   });
 });

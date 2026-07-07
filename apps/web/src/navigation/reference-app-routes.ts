@@ -38,8 +38,8 @@ export const REFERENCE_APP_ROUTES: readonly ReferenceAppRoute[] = [
   {
     key: "health",
     pageId: "safety",
-    navigationLabel: "Safety",
-    announcementTitle: "Safety",
+    navigationLabel: "Health",
+    announcementTitle: "Health",
   },
   { key: "admin", pageId: "admin" },
 ] as const satisfies readonly ReferenceAppRoute[];

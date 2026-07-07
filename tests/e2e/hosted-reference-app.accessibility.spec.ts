@@ -3,30 +3,6 @@ import { expect, test } from "@playwright/test";
 
 const wcagTags = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"] as const;
 
-const openPrimaryNav = async (page: import("@playwright/test").Page) => {
-  const nav = page.getByRole("navigation", { name: "Primary" });
-
-  // Wait for hydration to settle on either the docked sidebar or the
-  // hamburger (which only exists while the sidebar is hidden) instead of
-  // sampling isVisible() mid-hydration.
-  const openButton = page.getByRole("button", { name: "Open sidebar" });
-  await expect(nav.or(openButton).first()).toBeVisible();
-
-  if (await nav.isVisible()) {
-    return nav;
-  }
-
-  await page.evaluate(() => {
-    if (document.activeElement instanceof HTMLElement) {
-      document.activeElement.blur();
-    }
-  });
-  await openButton.click();
-  await expect(nav).toBeVisible();
-
-  return nav;
-};
-
 const expectNoAxeViolations = async (
   page: import("@playwright/test").Page,
   label: string,
@@ -53,36 +29,35 @@ test.describe("hosted reference app accessibility", () => {
     await skipLink.focus();
     await expect(skipLink).toBeFocused();
     await expect(skipLink).toHaveAttribute("href", "#template-main-content");
-    await expect(await openPrimaryNav(page)).toBeVisible();
-    const viewport = page.viewportSize();
-    if (!viewport || viewport.width >= 768) {
-      await expect(
-        page.getByRole("navigation", { name: "Workspace" }),
-      ).toBeVisible();
-    } else {
-      await page.getByRole("button", { name: "Close sidebar" }).click();
-      await expect(
-        page.getByRole("button", { name: "Open sidebar" }),
-      ).toBeVisible();
-    }
-    await expect(page.getByRole("status")).toContainText("Viewing Overview");
+    await expect(
+      page.getByRole("navigation", { name: "Primary" }),
+    ).toBeVisible();
+    await expect(page.locator("#template-main-content")).toHaveAttribute(
+      "id",
+      "template-main-content",
+    );
+    await expect(
+      page.locator(".template-live-region", { hasText: "Viewing Overview" }),
+    ).toBeAttached();
     await expectNoAxeViolations(page, "Overview");
   });
 
-  test("keeps mobile navigation operable and announces route changes", async ({
+  test("keeps route navigation operable and announces route changes", async ({
     page,
   }) => {
     await page.goto("/");
-    const nav = await openPrimaryNav(page);
+    const nav = page.getByRole("navigation", { name: "Primary" });
 
-    await nav.getByRole("link", { name: /Brain/ }).click();
+    await nav.getByRole("link", { name: "Data Lifecycle" }).click();
     await expect(
-      page.getByRole("heading", {
-        name: "The Brain turns company knowledge into usable AI context",
-      }),
+      page.getByRole("heading", { name: "Data lifecycle" }),
     ).toBeVisible();
-    await expect(page.getByRole("status")).toContainText("Viewing Brain");
+    await expect(
+      page.locator(".template-live-region", {
+        hasText: "Viewing Data Lifecycle",
+      }),
+    ).toBeAttached();
     await expect(page.locator("#template-main-content")).toBeFocused();
-    await expectNoAxeViolations(page, "Brain");
+    await expectNoAxeViolations(page, "Data lifecycle");
   });
 });

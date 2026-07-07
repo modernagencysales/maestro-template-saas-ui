@@ -11,7 +11,7 @@ describe("route announcements", () => {
     expect(describeRouteAnnouncement("/onboarding")).toBe("Viewing Onboarding");
     expect(describeRouteAnnouncement("/legal")).toBe("Viewing Legal");
     expect(describeRouteAnnouncement("/billing")).toBe("Viewing Billing");
-    expect(describeRouteAnnouncement("/health")).toBe("Viewing Safety");
+    expect(describeRouteAnnouncement("/health")).toBe("Viewing Health");
     expect(describeRouteAnnouncement("/data-lifecycle")).toBe(
       "Viewing Data Lifecycle",
     );

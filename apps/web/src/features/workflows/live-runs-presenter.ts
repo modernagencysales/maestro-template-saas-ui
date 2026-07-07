@@ -23,6 +23,7 @@ export type LiveRunRow = {
   readonly workflowId: string;
   readonly workflowVersion: number;
   readonly status: string;
+  readonly startedAtLabel: string;
 };
 
 export type LiveRunsView =
@@ -33,6 +34,7 @@ export type LiveRunsView =
   | {
       readonly kind: "ready";
       readonly workspaceName: string;
+      readonly runCount: number;
       readonly rows: readonly LiveRunRow[];
     };
 
@@ -58,6 +60,7 @@ export const presentLiveRuns = (
       return {
         kind: "ready",
         workspaceName: state.data.workspace.name,
+        runCount: state.data.workflowRuns.length,
         rows: [...state.data.workflowRuns]
           .sort((a, b) => b.startedAt - a.startedAt)
           .map((run) => ({
@@ -65,6 +68,7 @@ export const presentLiveRuns = (
             workflowId: run.workflowId,
             workflowVersion: run.workflowVersion,
             status: run.status,
+            startedAtLabel: new Date(run.startedAt).toISOString(),
           })),
       };
     }

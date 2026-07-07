@@ -1,5 +1,19 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import type { Ref } from "@confect/core";
+import {
+  Badge,
+  Box,
+  Button,
+  Card,
+  Flex,
+  Heading,
+  HStack,
+  Icon,
+  SimpleGrid,
+  Stack,
+  Text,
+} from "@saas-ui/react";
+import { AlertTriangle, FileDown, ShieldCheck, Trash2 } from "lucide-react";
 import {
   templateConfectRefs,
   type TemplateConfectRefs,
@@ -314,96 +328,241 @@ export function DataLifecycleSurface() {
   };
 
   return (
-    <section className="template-data-lifecycle" aria-label="DSAR requests">
-      {view.status === "loading" ? (
-        <p className="template-platform-empty">
-          Loading data lifecycle requests...
-        </p>
-      ) : null}
-      {view.status === "waiting_for_workspace" ? (
-        <p className="template-platform-empty">
-          Preparing workspace data lifecycle posture...
-        </p>
-      ) : null}
-      {view.status === "unavailable" && view.detail ? (
-        <p className="template-platform-empty">
-          Data lifecycle backend unavailable: {view.detail}
-        </p>
-      ) : null}
-      <header className="template-data-lifecycle-header">
-        <div>
-          <h2>DSAR request plans</h2>
-          <p>
+    <Stack as="section" aria-label="DSAR request plans" gap="4">
+      <LifecycleStatusNotice view={view} />
+      <Flex
+        align={{ base: "flex-start", md: "center" }}
+        direction={{ base: "column", md: "row" }}
+        gap="4"
+        justify="space-between"
+      >
+        <Box>
+          <Heading size="md">DSAR request plans</Heading>
+          <Text color="gray.600" fontSize="sm">
             Dry-run export and delete plans stay auditable before a client fork
             enables destructive fulfillment.
-          </p>
-        </div>
-        <div className="template-data-lifecycle-actions">
-          <button onClick={() => requestDryRun("export")} type="button">
+          </Text>
+        </Box>
+        <HStack gap="2">
+          <Button onClick={() => requestDryRun("export")} type="button">
+            <Icon as={FileDown} boxSize="4" />
             Plan export
-          </button>
-          <button onClick={() => requestDryRun("delete")} type="button">
+          </Button>
+          <Button
+            colorPalette="red"
+            onClick={() => requestDryRun("delete")}
+            type="button"
+            variant="outline"
+          >
+            <Icon as={Trash2} boxSize="4" />
             Plan delete
-          </button>
-        </div>
-      </header>
-      <dl className="template-data-lifecycle-summary">
-        <div>
-          <dt>Total</dt>
-          <dd>{view.summary.total}</dd>
-        </div>
-        <div>
-          <dt>Exports</dt>
-          <dd>{view.summary.exportRequests}</dd>
-        </div>
-        <div>
-          <dt>Deletes</dt>
-          <dd>{view.summary.deleteRequests}</dd>
-        </div>
-        <div>
-          <dt>Legal holds</dt>
-          <dd>{view.summary.blockedByLegalHold}</dd>
-        </div>
-      </dl>
+          </Button>
+        </HStack>
+      </Flex>
+
+      <SimpleGrid columns={{ base: 1, sm: 2, xl: 4 }} gap="4">
+        <LifecycleMetric label="Total" value={view.summary.total} />
+        <LifecycleMetric label="Exports" value={view.summary.exportRequests} />
+        <LifecycleMetric label="Deletes" value={view.summary.deleteRequests} />
+        <LifecycleMetric
+          label="Legal holds"
+          value={view.summary.blockedByLegalHold}
+        />
+      </SimpleGrid>
+
       {view.requests.length === 0 ? (
-        <p className="template-platform-empty">
-          No DSAR request plans have been recorded yet.
-        </p>
+        <Card.Root borderRadius="md">
+          <Card.Body>
+            <HStack align="flex-start" gap="3">
+              <Icon as={ShieldCheck} boxSize="5" color="green.500" mt="0.5" />
+              <Box>
+                <Text fontWeight="semibold">
+                  No DSAR request plans recorded
+                </Text>
+                <Text color="gray.600" fontSize="sm">
+                  Use Plan export or Plan delete to exercise the mutation path
+                  in fake mode or against a configured Convex deployment.
+                </Text>
+              </Box>
+            </HStack>
+          </Card.Body>
+        </Card.Root>
       ) : (
-        <div className="template-data-lifecycle-list">
+        <Stack gap="3">
           {view.requests.map((request) => (
-            <article className="template-data-lifecycle-row" key={request.id}>
-              <header>
-                <div>
-                  <h3>{request.id}</h3>
-                  <p>{request.subject}</p>
-                </div>
-                <span>{request.kind}</span>
-              </header>
-              <dl>
-                <div>
-                  <dt>Status</dt>
-                  <dd>{request.status}</dd>
-                </div>
-                <div>
-                  <dt>Export resources</dt>
-                  <dd>{request.exportResources}</dd>
-                </div>
-                <div>
-                  <dt>Delete resources</dt>
-                  <dd>{request.deleteResources}</dd>
-                </div>
-                <div>
-                  <dt>Planned</dt>
-                  <dd>{request.plannedAt}</dd>
-                </div>
-              </dl>
-            </article>
+            <Card.Root borderRadius="md" key={request.id}>
+              <Card.Body>
+                <Flex
+                  align={{ base: "flex-start", md: "center" }}
+                  direction={{ base: "column", md: "row" }}
+                  gap="4"
+                  justify="space-between"
+                >
+                  <Box>
+                    <HStack gap="2">
+                      <Heading size="sm">{request.id}</Heading>
+                      <Badge
+                        colorPalette={
+                          request.kind === "export" ? "blue" : "red"
+                        }
+                      >
+                        {request.kind}
+                      </Badge>
+                    </HStack>
+                    <Text color="gray.600" fontSize="sm">
+                      Subject: {request.subject}
+                    </Text>
+                  </Box>
+                  <Badge colorPalette={lifecycleStatusTone(request.status)}>
+                    {request.status}
+                  </Badge>
+                </Flex>
+                <SimpleGrid columns={{ base: 1, md: 3 }} gap="3" mt="4">
+                  <LifecycleDetail
+                    label="Export resources"
+                    value={request.exportResources}
+                  />
+                  <LifecycleDetail
+                    label="Delete resources"
+                    value={request.deleteResources}
+                  />
+                  <LifecycleDetail label="Planned" value={request.plannedAt} />
+                </SimpleGrid>
+              </Card.Body>
+            </Card.Root>
           ))}
-        </div>
+        </Stack>
       )}
-    </section>
+    </Stack>
   );
+}
+
+function LifecycleStatusNotice({
+  view,
+}: {
+  readonly view: DataLifecycleViewModel;
+}) {
+  if (view.status === "loading") {
+    return (
+      <LifecycleNotice tone="blue" title="Loading data lifecycle requests">
+        The Confect query is waiting for live DSAR request rows.
+      </LifecycleNotice>
+    );
+  }
+
+  if (view.status === "waiting_for_workspace") {
+    return (
+      <LifecycleNotice tone="yellow" title="Preparing workspace posture">
+        The surface is waiting for the active workspace provider.
+      </LifecycleNotice>
+    );
+  }
+
+  if (view.status === "unavailable" && view.detail) {
+    return (
+      <LifecycleNotice tone="red" title="Data lifecycle backend unavailable">
+        {view.detail}
+      </LifecycleNotice>
+    );
+  }
+
+  if (!view.live) {
+    return (
+      <LifecycleNotice tone="gray" title="Fake-safe local mode">
+        Buttons update local state unless a real Convex URL and workspace are
+        configured.
+      </LifecycleNotice>
+    );
+  }
+
+  return null;
+}
+
+function LifecycleNotice({
+  children,
+  title,
+  tone,
+}: {
+  readonly children: ReactNode;
+  readonly title: string;
+  readonly tone: "blue" | "gray" | "red" | "yellow";
+}) {
+  return (
+    <HStack
+      align="flex-start"
+      bg={`${tone}.50`}
+      borderColor={`${tone}.200`}
+      borderRadius="md"
+      borderWidth="1px"
+      gap="3"
+      p="4"
+    >
+      <Icon as={AlertTriangle} boxSize="5" color={`${tone}.600`} mt="0.5" />
+      <Box>
+        <Text fontWeight="semibold">{title}</Text>
+        <Text color="gray.700" fontSize="sm" mt="1">
+          {children}
+        </Text>
+      </Box>
+    </HStack>
+  );
+}
+
+function LifecycleMetric({
+  label,
+  value,
+}: {
+  readonly label: string;
+  readonly value: number;
+}) {
+  return (
+    <Card.Root borderRadius="md">
+      <Card.Body gap="2">
+        <Text color="gray.600" fontSize="sm" fontWeight="medium">
+          {label}
+        </Text>
+        <Heading size="xl">{value}</Heading>
+      </Card.Body>
+    </Card.Root>
+  );
+}
+
+function LifecycleDetail({
+  label,
+  value,
+}: {
+  readonly label: string;
+  readonly value: number | string;
+}) {
+  return (
+    <Box
+      bg="gray.50"
+      borderColor="gray.200"
+      borderRadius="md"
+      borderWidth="1px"
+      p="3"
+    >
+      <Text color="gray.600" fontSize="xs" fontWeight="medium">
+        {label}
+      </Text>
+      <Text fontSize="sm" fontWeight="semibold" mt="1">
+        {value}
+      </Text>
+    </Box>
+  );
+}
+
+function lifecycleStatusTone(
+  status: DataLifecycleRequest["status"],
+): "blue" | "green" | "red" | "yellow" {
+  switch (status) {
+    case "ready-for-review":
+      return "green";
+    case "needs-confirmation":
+      return "yellow";
+    case "blocked-by-legal-hold":
+      return "red";
+  }
 }
 
 const dataLifecycleCreateToastCopy = {

@@ -31,7 +31,8 @@ Commands without `--write` are dry-run previews.
 
 1. Install dependencies with `pnpm install`.
 2. Review `.env.example` and [env-manifest.md](./env-manifest.md). Keep the fake
-   defaults unless this is a test/live provider setup.
+   defaults unless this is a test/live provider setup. Leave `VITE_CONVEX_URL`
+   blank for fake-safe local web mode.
 3. Generate the default client fork scaffold:
    `pnpm template:quickstart -- --name "Client Brain" --write`.
 4. Generate the first discovery brief with
@@ -46,6 +47,14 @@ Commands without `--write` are dry-run previews.
    `docs/template/generated/implementation-brief.md`.
 10. Preview the handoff packet with
     `pnpm template:handoff -- --mode fake --write`.
+
+Expected first screen: the Saas UI dashboard at `/`, with priority-account
+cards, a live workflow-runs card, and a golden-path architecture card. With
+`VITE_CONVEX_URL` blank, the workflow-runs card must say Convex is not
+configured rather than attempting a fake network call. The `/data-lifecycle`
+route is the first copyable mutation slice: `Plan export` and `Plan delete`
+update local fake-safe state until a real Convex URL and workspace are
+configured.
 
 Expected local URL: `http://127.0.0.1:5173/` unless Vite selects another free
 port. Expected generated files:

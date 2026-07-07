@@ -11,7 +11,7 @@ const routeTitles = new Map<string, string>([
   ["/data-lifecycle", "Data Lifecycle"],
   ["/data-map", "Data map"],
   ["/documents", "Documents"],
-  ["/health", "Safety"],
+  ["/health", "Health"],
   ["/integrations", "Integrations"],
   ["/legal", "Legal"],
   ["/notifications", "Notifications"],

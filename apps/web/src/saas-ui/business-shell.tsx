@@ -1,3 +1,4 @@
+import type { ComponentType, ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 import {
   Badge,
@@ -17,6 +18,12 @@ import {
   Text,
 } from "@saas-ui/react";
 import {
+  TEMPLATE_NAV_CATEGORIES,
+  type TemplateRouteKey,
+} from "../navigation/workspace";
+import { DataLifecycleSurface } from "../features/data-lifecycle/data-lifecycle-surface";
+import { LiveWorkflowRunsPanel } from "../features/workflows/live-runs-panel";
+import {
   Activity,
   BarChart3,
   Bell,
@@ -25,27 +32,46 @@ import {
   CreditCard,
   Database,
   FileCode2,
+  FileDown,
   FileText,
   HeartPulse,
-  LayoutDashboard,
+  Home,
+  KeyRound,
   LifeBuoy,
   Lock,
+  Map,
   Plug,
+  Scale,
   Search,
   Settings,
   ShieldCheck,
+  UserRoundCheck,
   Users,
   Workflow,
 } from "lucide-react";
 
-const navItems = [
-  { label: "Dashboard", to: "/", icon: LayoutDashboard },
-  { label: "Accounts", to: "/sources", icon: Building2 },
-  { label: "Workflows", to: "/workflows", icon: Workflow },
-  { label: "Documents", to: "/documents", icon: FileText },
-  { label: "Team", to: "/agents", icon: Users },
-  { label: "Settings", to: "/settings", icon: Settings },
-] as const;
+const navIconByKey = {
+  admin: ShieldCheck,
+  agents: Users,
+  analytics: BarChart3,
+  api: FileCode2,
+  billing: CreditCard,
+  brain: FileText,
+  capabilities: KeyRound,
+  dataLifecycle: FileDown,
+  dataMap: Map,
+  documents: FileText,
+  health: HeartPulse,
+  home: Home,
+  integrations: Plug,
+  legal: Scale,
+  notifications: Bell,
+  onboarding: UserRoundCheck,
+  runs: Activity,
+  settings: Settings,
+  sources: Building2,
+  workflows: Workflow,
+} as const satisfies Record<TemplateRouteKey, ComponentType>;
 
 const metrics = [
   { label: "Pipeline", value: "$428K", delta: "+12.4%" },
@@ -79,6 +105,13 @@ const tasks = [
   "Review proposal edits for Northstar Labs",
   "Approve enrichment workflow changes",
   "Send onboarding plan to Fieldwire Systems",
+] as const;
+
+const goldenPath = [
+  "TanStack Start owns routing and SSR query wiring.",
+  "Confect React hooks own Convex server state.",
+  "Effect runtime execution stays inside approved adapters.",
+  "Saas UI owns the visible business app surface.",
 ] as const;
 
 const sectionDetails = {
@@ -123,8 +156,7 @@ const sectionDetails = {
   },
   brain: {
     title: "Brain",
-    description:
-      "Organize shared knowledge without the old document demo shell.",
+    description: "Organize shared knowledge and approved source context.",
     icon: FileText,
     metric: "42 notes",
     status: "Indexed",
@@ -133,14 +165,14 @@ const sectionDetails = {
     title: "Capabilities",
     description:
       "Catalog approved enrichment, routing, and execution capabilities.",
-    icon: ShieldCheck,
+    icon: KeyRound,
     metric: "18 approved",
     status: "Reviewed",
   },
   dataLifecycle: {
     title: "Data lifecycle",
     description: "Monitor retention, sync status, and governed data movement.",
-    icon: Database,
+    icon: FileDown,
     metric: "99.9% sync",
     status: "Compliant",
   },
@@ -227,13 +259,13 @@ export type BusinessSectionKey = keyof typeof sectionDetails;
 export function BusinessDashboardRoute() {
   return (
     <BusinessAppShell>
-      <Page.Root minH="100vh" bg="gray.50">
+      <BusinessPageRoot>
         <Page.Header
           title="Revenue workspace"
-          description="Clean revenue operations."
+          description="A plain Saas UI business app with live Convex/Confect data boundaries."
           actions={
             <HStack gap="2">
-              <Button variant="ghost">
+              <Button aria-label="Open notifications" variant="ghost">
                 <Icon as={Bell} boxSize="4" />
               </Button>
               <Button variant="solid">
@@ -297,7 +329,11 @@ export function BusinessDashboardRoute() {
                   </Flex>
                 </Card.Header>
                 <Card.Body pt="0">
-                  <Box overflowX="auto">
+                  <Box
+                    aria-label="Priority accounts table"
+                    overflowX="auto"
+                    tabIndex={0}
+                  >
                     <Table.Root minW="680px">
                       <Table.Header>
                         <Table.Row>
@@ -358,9 +394,39 @@ export function BusinessDashboardRoute() {
                 </Card.Body>
               </Card.Root>
             </SimpleGrid>
+
+            <SimpleGrid columns={{ base: 1, xl: 3 }} gap="4">
+              <Box gridColumn={{ xl: "span 2" }}>
+                <LiveWorkflowRunsPanel />
+              </Box>
+              <Card.Root borderRadius="md">
+                <Card.Header>
+                  <Heading size="md">Golden path</Heading>
+                  <Text color="gray.600" fontSize="sm">
+                    The starter demonstrates the intended frontend stack without
+                    installing extra state libraries by default.
+                  </Text>
+                </Card.Header>
+                <Card.Body>
+                  <Stack gap="3">
+                    {goldenPath.map((item) => (
+                      <HStack key={item} align="flex-start" gap="3">
+                        <Icon
+                          as={CheckCircle2}
+                          boxSize="5"
+                          color="green.500"
+                          mt="0.5"
+                        />
+                        <Text fontSize="sm">{item}</Text>
+                      </HStack>
+                    ))}
+                  </Stack>
+                </Card.Body>
+              </Card.Root>
+            </SimpleGrid>
           </Stack>
         </Page.Body>
-      </Page.Root>
+      </BusinessPageRoot>
     </BusinessAppShell>
   );
 }
@@ -368,7 +434,7 @@ export function BusinessDashboardRoute() {
 export function BusinessSettingsRoute() {
   return (
     <BusinessAppShell activePath="/settings">
-      <Page.Root minH="100vh" bg="gray.50">
+      <BusinessPageRoot>
         <Page.Header
           title="Settings"
           description="Workspace controls."
@@ -422,7 +488,7 @@ export function BusinessSettingsRoute() {
             </Card.Root>
           </SimpleGrid>
         </Page.Body>
-      </Page.Root>
+      </BusinessPageRoot>
     </BusinessAppShell>
   );
 }
@@ -438,10 +504,10 @@ export function BusinessSectionRoute({
 
   return (
     <BusinessAppShell activePath={activePath}>
-      <Page.Root minH="100vh" bg="gray.50">
+      <BusinessPageRoot>
         <Page.Header
           title={details.title}
-          description="Manage workspace operations."
+          description={details.description}
           actions={
             <HStack justify="flex-end">
               <Button variant="solid">
@@ -480,8 +546,8 @@ export function BusinessSectionRoute({
               <Card.Header>
                 <Heading size="md">Operating queue</Heading>
                 <Text color="gray.600" fontSize="sm">
-                  A simple Saas UI business-app surface replacing the old
-                  reference document route.
+                  Starter business-app states for this route. Replace these rows
+                  with the first client-specific workflow or data model.
                 </Text>
               </Card.Header>
               <Card.Body>
@@ -512,7 +578,28 @@ export function BusinessSectionRoute({
             </Card.Root>
           </SimpleGrid>
         </Page.Body>
-      </Page.Root>
+      </BusinessPageRoot>
+    </BusinessAppShell>
+  );
+}
+
+export function BusinessDataLifecycleRoute() {
+  return (
+    <BusinessAppShell activePath="/data-lifecycle">
+      <BusinessPageRoot>
+        <Page.Header
+          title="Data lifecycle"
+          description="A visible Confect query and mutation slice with fake-safe local behavior."
+          actions={
+            <HStack justify="flex-end">
+              <Badge colorPalette="blue">Confect-backed</Badge>
+            </HStack>
+          }
+        />
+        <Page.Body px={{ base: "4", md: "6" }} pb="8">
+          <DataLifecycleSurface />
+        </Page.Body>
+      </BusinessPageRoot>
     </BusinessAppShell>
   );
 }
@@ -522,7 +609,7 @@ function BusinessAppShell({
   children,
 }: {
   readonly activePath?: string;
-  readonly children: React.ReactNode;
+  readonly children: ReactNode;
 }) {
   return (
     <Flex minH="100vh" bg="gray.50" direction={{ base: "column", lg: "row" }}>
@@ -533,56 +620,31 @@ function BusinessAppShell({
         display={{ base: "block", lg: "none" }}
       >
         <HStack justify="space-between" px="4" py="3">
-          <HStack gap="3">
-            <Flex
-              align="center"
-              bg="black"
-              borderRadius="md"
-              color="white"
-              h="9"
-              justify="center"
-              w="9"
-            >
-              <Icon as={Activity} boxSize="5" />
-            </Flex>
-            <Box>
-              <Text fontWeight="bold">Maestro</Text>
-              <Text color="gray.500" fontSize="xs">
-                Business app
-              </Text>
-            </Box>
-          </HStack>
+          <BrandMark />
           <Badge colorPalette="gray">Workspace</Badge>
         </HStack>
         <HStack
           as="nav"
-          aria-label="Mobile workspace navigation"
+          aria-label="Primary"
           gap="2"
           overflowX="auto"
           px="4"
           pb="3"
+          tabIndex={0}
         >
-          {navItems.map((item) => {
-            const isActive = item.to === activePath;
-            return (
-              <Link key={item.label} to={item.to}>
-                <HStack
-                  bg={isActive ? "gray.900" : "gray.100"}
-                  borderRadius="md"
-                  color={isActive ? "white" : "gray.700"}
-                  flex="0 0 auto"
-                  gap="2"
-                  px="3"
-                  py="2"
-                >
-                  <Icon as={item.icon} boxSize="4" />
-                  <Text fontSize="sm" fontWeight="medium" whiteSpace="nowrap">
-                    {item.label}
-                  </Text>
-                </HStack>
-              </Link>
-            );
-          })}
+          {TEMPLATE_NAV_CATEGORIES.flatMap((category) => category.items).map(
+            (item) => (
+              <BusinessNavLink
+                isActive={item.path === activePath}
+                key={item.key}
+                layout="mobile"
+                routeKey={item.key}
+                to={item.path}
+              >
+                {item.label}
+              </BusinessNavLink>
+            ),
+          )}
         </HStack>
       </Box>
       <Box
@@ -591,53 +653,40 @@ function BusinessAppShell({
         borderRightColor="gray.200"
         borderRightWidth="1px"
         display={{ base: "none", lg: "block" }}
-        flex="0 0 256px"
+        flex="0 0 272px"
         minH="100vh"
+        overflowY="auto"
         px="4"
         py="5"
       >
         <Stack gap="5">
-          <HStack gap="3">
-            <Flex
-              align="center"
-              bg="black"
-              borderRadius="md"
-              color="white"
-              h="9"
-              justify="center"
-              w="9"
-            >
-              <Icon as={Activity} boxSize="5" />
-            </Flex>
-            <Box>
-              <Text fontWeight="bold">Maestro</Text>
-              <Text color="gray.500" fontSize="xs">
-                Business app
-              </Text>
-            </Box>
-          </HStack>
+          <BrandMark />
           <Separator />
-          <Stack as="nav" gap="1">
-            {navItems.map((item) => {
-              const isActive = item.to === activePath;
-              return (
-                <Link key={item.label} to={item.to}>
-                  <HStack
-                    bg={isActive ? "gray.100" : "transparent"}
-                    borderRadius="md"
-                    color={isActive ? "black" : "gray.700"}
-                    gap="3"
-                    px="3"
-                    py="2"
+          <Stack as="nav" aria-label="Primary" gap="4">
+            {TEMPLATE_NAV_CATEGORIES.map((category) => (
+              <Stack gap="1" key={category.label}>
+                <Text
+                  color="gray.500"
+                  fontSize="xs"
+                  fontWeight="semibold"
+                  px="3"
+                  textTransform="uppercase"
+                >
+                  {category.label}
+                </Text>
+                {category.items.map((item) => (
+                  <BusinessNavLink
+                    isActive={item.path === activePath}
+                    key={item.key}
+                    layout="desktop"
+                    routeKey={item.key}
+                    to={item.path}
                   >
-                    <Icon as={item.icon} boxSize="4" />
-                    <Text fontSize="sm" fontWeight="medium">
-                      {item.label}
-                    </Text>
-                  </HStack>
-                </Link>
-              );
-            })}
+                    {item.label}
+                  </BusinessNavLink>
+                ))}
+              </Stack>
+            ))}
           </Stack>
         </Stack>
       </Box>
@@ -645,6 +694,90 @@ function BusinessAppShell({
         {children}
       </Box>
     </Flex>
+  );
+}
+
+function BusinessPageRoot({ children }: { readonly children: ReactNode }) {
+  return (
+    <Page.Root
+      bg="gray.50"
+      className="template-shell-content"
+      id="template-main-content"
+      minH="100vh"
+      tabIndex={-1}
+    >
+      {children}
+    </Page.Root>
+  );
+}
+
+function BusinessNavLink({
+  children,
+  isActive,
+  layout,
+  routeKey,
+  to,
+}: {
+  readonly children: ReactNode;
+  readonly isActive: boolean;
+  readonly layout: "desktop" | "mobile";
+  readonly routeKey: TemplateRouteKey;
+  readonly to: string;
+}) {
+  const IconComponent = navIconByKey[routeKey];
+
+  return (
+    <Link
+      aria-current={isActive ? "page" : undefined}
+      className="template-sidebar-row"
+      style={layout === "mobile" ? { width: "auto" } : undefined}
+      to={to}
+    >
+      <HStack
+        bg={isActive ? "gray.100" : "transparent"}
+        borderRadius="md"
+        color={isActive ? "black" : "gray.700"}
+        flex={layout === "mobile" ? "0 0 auto" : undefined}
+        gap="3"
+        minH="9"
+        px="3"
+        py="2"
+      >
+        <Icon as={IconComponent} boxSize="4" />
+        <Text
+          className="template-sidebar-label"
+          fontSize="sm"
+          fontWeight="medium"
+          whiteSpace="nowrap"
+        >
+          {children}
+        </Text>
+      </HStack>
+    </Link>
+  );
+}
+
+function BrandMark() {
+  return (
+    <HStack gap="3">
+      <Flex
+        align="center"
+        bg="black"
+        borderRadius="md"
+        color="white"
+        h="9"
+        justify="center"
+        w="9"
+      >
+        <Icon as={Activity} boxSize="5" />
+      </Flex>
+      <Box>
+        <Text fontWeight="bold">Maestro</Text>
+        <Text color="gray.500" fontSize="xs">
+          Business app
+        </Text>
+      </Box>
+    </HStack>
   );
 }
 

@@ -93,10 +93,10 @@
       "visibility": "browser-public",
       "requiredFor": ["fake", "test", "live"],
       "fakeExampleAllowed": true,
-      "fakeExample": "https://acme-demo.example.test/convex",
+      "fakeExample": "",
       "owner": "Backend owner",
       "rotation": "Regenerate when the Convex deployment URL changes.",
-      "notes": "Browser-visible Convex URL baked into the static app."
+      "notes": "Browser-visible Convex URL baked into the static app. Leave blank in fake local web mode so Confect-backed UI renders skipped/fake-safe states."
     },
     {
       "name": "CONVEX_SITE_URL",

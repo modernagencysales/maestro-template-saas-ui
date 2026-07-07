@@ -34,6 +34,9 @@ describe("Saas UI shell style contract", () => {
     expect(shell).toContain("@saas-ui/react");
     expect(shell).toContain("BusinessAppShell");
     expect(shell).toContain("BusinessSectionRoute");
+    expect(shell).toContain("BusinessPageRoot");
+    expect(shell).toContain('id="template-main-content"');
+    expect(shell).toContain("LiveWorkflowRunsPanel");
   });
 
   it("owns global route UX wiring at the root route", () => {
@@ -72,10 +75,28 @@ describe("Saas UI shell style contract", () => {
   it("keeps workspace route links inside the Saas UI business shell", () => {
     const shell = read("src/saas-ui/business-shell.tsx");
 
-    expect(shell).toContain("navItems");
-    expect(shell).toContain('to: "/workflows"');
-    expect(shell).toContain('to: "/documents"');
-    expect(shell).toContain('to: "/settings"');
+    expect(shell).toContain("TEMPLATE_NAV_CATEGORIES");
+    expect(shell).toContain('aria-label="Primary"');
+    expect(shell).toContain("template-sidebar-row");
+  });
+
+  it("surfaces a visible Confect query and mutation slice", () => {
+    const shell = read("src/saas-ui/business-shell.tsx");
+    const route = read("src/routes/_workspace.data-lifecycle.tsx");
+    const surface = read(
+      "src/features/data-lifecycle/data-lifecycle-surface.tsx",
+    );
+    const liveRuns = read("src/features/workflows/live-runs-panel.tsx");
+
+    expect(shell).toContain("BusinessDataLifecycleRoute");
+    expect(route).toContain("BusinessDataLifecycleRoute");
+    expect(surface).toContain("useTemplateMutation");
+    expect(surface).toContain("useTemplateQuery");
+    expect(surface).toContain("@saas-ui/react");
+    expect(liveRuns).toContain("useTemplateQuery");
+    expect(liveRuns).toContain(
+      "templateConfectRefs.public.demo.showcase.overview",
+    );
   });
 
   it("defines UX safety classes and reduced-motion behavior", () => {

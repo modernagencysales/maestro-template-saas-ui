@@ -1,10 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { BusinessSectionRoute } from "../saas-ui/business-shell";
+import { BusinessDataLifecycleRoute } from "../saas-ui/business-shell";
 
 export const Route = createFileRoute("/_workspace/data-lifecycle")({
   component: DataLifecycleRoute,
 });
 
 function DataLifecycleRoute() {
-  return <BusinessSectionRoute section="dataLifecycle" />;
+  return <BusinessDataLifecycleRoute />;
 }

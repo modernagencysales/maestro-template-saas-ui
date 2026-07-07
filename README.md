@@ -82,7 +82,7 @@ receipt path is
 ## Architecture
 
 ```text
-web routes -> screens -> features -> blocks -> Notion Kit
+web routes -> screens -> features -> blocks -> Saas UI/shared primitives
 client hooks -> @confect/react refs -> Confect specs -> Convex functions
 agents -> workflows -> capabilities -> domain/checks -> schema
 API/CLI/MCP -> headless registry -> same capabilities/workflows as web
@@ -112,6 +112,11 @@ The reference app converges on these default surfaces:
 - Analytics
 - Health
 - Admin/Support
+
+The default first screen is a plain Saas UI business dashboard. It demonstrates
+the intended frontend path with a live `demo.showcase.overview` Confect query,
+and `/data-lifecycle` demonstrates the fake-safe Confect query/mutation pattern
+that client forks should copy first.
 
 ## Verification
 
@@ -145,3 +150,5 @@ pnpm verify
   [docs/template/extraction-redaction-guide.md](./docs/template/extraction-redaction-guide.md)
 - Confect/Effect guide:
   [docs/template/confect-effect-guide.md](./docs/template/confect-effect-guide.md)
+- Golden path business slice:
+  [docs/template/golden-path-business-slice.md](./docs/template/golden-path-business-slice.md)

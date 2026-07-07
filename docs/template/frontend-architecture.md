@@ -203,6 +203,11 @@ Generated or client-specific UI should start with feature adapters and block
 composition. It should not fork the shell, introduce a second sidebar, or
 construct provider clients inside route components.
 
+The concrete copyable implementation lives in
+[golden-path-business-slice.md](./golden-path-business-slice.md). The dashboard
+shows the read path with `demo.showcase.overview`; `/data-lifecycle` shows the
+fake-safe query/mutation path.
+
 ## Workflow UI Rules
 
 - Durable graph data is the source of truth.

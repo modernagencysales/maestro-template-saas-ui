@@ -172,6 +172,17 @@ a {
   color: var(--template-bg);
 }
 
+.sui-page__header,
+.sui-page__header > * {
+  min-width: 0;
+}
+
+.sui-page__description {
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
 .template-empty-state {
   border: 1px solid var(--template-border);
   border-radius: 8px;
@@ -918,6 +929,38 @@ a {
 }
 
 @media (max-width: 720px) {
+  .template-cookie-banner {
+    right: 12px;
+    bottom: 12px;
+    left: 12px;
+    width: auto;
+  }
+
+  .template-cookie-banner-actions {
+    justify-content: stretch;
+  }
+
+  .template-cookie-banner-actions button {
+    flex: 1 1 0;
+  }
+
+  .sui-page__header {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    align-items: flex-start !important;
+    gap: 8px;
+  }
+
+  .sui-page__heading {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .sui-page__header > .chakra-stack {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
   .template-data-lifecycle-header,
   .template-data-lifecycle-row header {
     display: grid;
@@ -927,73 +970,6 @@ a {
   .template-data-lifecycle-row > dl {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-}
-
-.notion-page {
-  width: min(100%, 820px);
-  margin: 0 auto;
-  padding: 72px 24px 96px;
-}
-
-.notion-eyebrow {
-  margin: 0 0 10px;
-  color: var(--template-muted);
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.notion-page h1 {
-  margin: 0;
-  color: var(--template-text);
-  font-size: 40px;
-  line-height: 1.12;
-  letter-spacing: 0;
-}
-
-.notion-intro {
-  margin: 18px 0 34px;
-  color: #37352f;
-  font-size: 18px;
-  line-height: 1.58;
-}
-
-.notion-section {
-  margin-top: 36px;
-}
-
-.notion-section h2 {
-  margin: 0 0 12px;
-  color: var(--template-text);
-  font-size: 23px;
-  line-height: 1.25;
-  letter-spacing: 0;
-}
-
-.notion-section p,
-.notion-section li {
-  color: #37352f;
-  font-size: 16px;
-}
-
-.notion-section p {
-  margin: 10px 0;
-}
-
-.notion-section ul {
-  margin: 10px 0 0;
-  padding-left: 24px;
-}
-
-.notion-section code {
-  border-radius: 4px;
-  background: #f1f1ef;
-  padding: 0 4px;
-  color: #9f2f2f;
-  font-size: 0.9em;
-}
-
-.notion-page a[target="_blank"] {
-  color: #4f4e49;
 }
 
 .workflow-canvas {
@@ -1022,20 +998,6 @@ a {
 
 .workflow-node.output {
   border-color: var(--template-output);
-}
-
-@media (max-width: 760px) {
-  .notion-page {
-    padding: 46px 20px 72px;
-  }
-
-  .notion-page h1 {
-    font-size: 32px;
-  }
-
-  .notion-intro {
-    font-size: 16px;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {

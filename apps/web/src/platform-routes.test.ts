@@ -62,7 +62,7 @@ describe("frontend platform routes", () => {
       'section="notifications"',
     );
     expect(read("src/routes/_workspace.data-lifecycle.tsx")).toContain(
-      'section="dataLifecycle"',
+      "BusinessDataLifecycleRoute",
     );
     expect(read("src/saas-ui/business-shell.tsx")).toContain(
       "BusinessSectionRoute",
@@ -79,6 +79,9 @@ describe("frontend platform routes", () => {
     expect(read("src/routes/index.tsx")).toContain("BusinessDashboardRoute");
     expect(read("src/routes/_workspace.health.tsx")).toContain(
       'section="health"',
+    );
+    expect(read("src/routes/_workspace.data-lifecycle.tsx")).toContain(
+      "BusinessDataLifecycleRoute",
     );
     expect(read("src/saas-ui/business-shell.tsx")).toContain("@saas-ui/react");
     expect(read("src/saas-ui/business-shell.tsx")).not.toContain(

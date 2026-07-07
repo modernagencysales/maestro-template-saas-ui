@@ -8,7 +8,7 @@ inspect and extend.
 ## Layer Law
 
 ```text
-web routes -> screens -> features -> blocks -> Notion Kit
+web routes -> screens -> features -> blocks -> Saas UI/shared primitives
 client hooks -> @confect/react refs -> Confect specs -> Convex functions
 agents -> workflows -> capabilities -> domain/checks -> schema
 API/CLI/MCP -> headless registry -> same capabilities/workflows as web
@@ -40,7 +40,8 @@ layers, add the missing boundary instead.
 ## Frontend Rules
 
 - Keep reusable UI in blocks and package UI primitives.
-- Use Notion Kit primitives when they cover the need.
+- Use Saas UI primitives for the visible business-app shell when they cover the
+  need.
 - Feature components may use feature adapters; blocks may not import Convex,
   Confect refs, route modules, provider SDKs, or workspace auth internals.
 - React Flow belongs in workflow UI and workflow feature surfaces only.
