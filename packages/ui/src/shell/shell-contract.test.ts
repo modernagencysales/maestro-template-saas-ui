@@ -41,6 +41,7 @@ describe("local reusable shell contract", () => {
     const shell = read("src/shell/template-workspace-shell.tsx");
 
     expect(shell).toContain("onClose?.()");
-    expect(shell).toContain("onClose: () => setSidebarOpen(false)");
+    expect(shell).toContain("const closeSidebar = () => setSidebarOpen(false)");
+    expect(shell).toContain("onClose={closeSidebar}");
   });
 });

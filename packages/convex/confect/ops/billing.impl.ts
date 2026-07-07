@@ -184,14 +184,14 @@ const usagePayloadMismatch = (
     readonly entitlementKey: string;
   },
 ): "provider" | "units" | "costCredits" | "entitlementKey" | null => {
-  if (existingUsage.provider !== input.provider) return "provider";
-  if (existingUsage.units !== input.units) return "units";
-  if (existingUsage.costCredits !== input.costCredits) return "costCredits";
-  if (existingUsage.entitlementKey !== input.entitlementKey) {
-    return "entitlementKey";
-  }
+  const usageFields = [
+    "provider",
+    "units",
+    "costCredits",
+    "entitlementKey",
+  ] as const;
 
-  return null;
+  return firstPayloadMismatch(usageFields, existingUsage, input);
 };
 
 const usageReturn = (
@@ -317,17 +317,24 @@ const webhookPayloadMismatch = (
   | "signatureTimestamp"
   | "dedupeKey"
   | null => {
-  if (existingWebhook.workspaceId !== input.workspaceId) return "workspaceId";
-  if (existingWebhook.provider !== input.provider) return "provider";
-  if (existingWebhook.eventId !== input.eventId) return "eventId";
-  if (existingWebhook.eventType !== input.eventType) return "eventType";
-  if (existingWebhook.signatureTimestamp !== input.signatureTimestamp) {
-    return "signatureTimestamp";
-  }
-  if (existingWebhook.dedupeKey !== input.dedupeKey) return "dedupeKey";
+  const webhookFields = [
+    "workspaceId",
+    "provider",
+    "eventId",
+    "eventType",
+    "signatureTimestamp",
+    "dedupeKey",
+  ] as const;
 
-  return null;
+  return firstPayloadMismatch(webhookFields, existingWebhook, input);
 };
+
+const firstPayloadMismatch = <const Field extends string>(
+  fields: readonly Field[],
+  existing: Record<Field, unknown>,
+  input: Record<Field, unknown>,
+): Field | null =>
+  fields.find((field) => existing[field] !== input[field]) ?? null;
 
 const webhookReturn = (
   webhook: {

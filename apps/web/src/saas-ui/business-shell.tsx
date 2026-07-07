@@ -19,6 +19,7 @@ import {
 } from "@saas-ui/react";
 import {
   TEMPLATE_NAV_CATEGORIES,
+  TEMPLATE_ROUTE_ITEMS,
   type TemplateRouteKey,
 } from "../navigation/workspace";
 import { DataLifecycleSurface } from "../features/data-lifecycle/data-lifecycle-surface";
@@ -255,6 +256,10 @@ const sectionDetails = {
 } as const;
 
 export type BusinessSectionKey = keyof typeof sectionDetails;
+
+const routePathByKey = Object.fromEntries(
+  TEMPLATE_ROUTE_ITEMS.map((item) => [item.key, item.path]),
+) as Record<TemplateRouteKey, string>;
 
 export function BusinessDashboardRoute() {
   return (
@@ -500,7 +505,7 @@ export function BusinessSectionRoute({
 }) {
   const details = sectionDetails[section];
   const IconComponent = details.icon;
-  const activePath = sectionToPath(section);
+  const activePath = routePathByKey[section];
 
   return (
     <BusinessAppShell activePath={activePath}>
@@ -796,45 +801,4 @@ function SettingsField({
       <Input defaultValue={value} />
     </Box>
   );
-}
-
-function sectionToPath(section: BusinessSectionKey) {
-  switch (section) {
-    case "admin":
-      return "/admin";
-    case "agents":
-      return "/agents";
-    case "analytics":
-      return "/analytics";
-    case "api":
-      return "/api";
-    case "billing":
-      return "/billing";
-    case "brain":
-      return "/brain";
-    case "capabilities":
-      return "/capabilities";
-    case "dataLifecycle":
-      return "/data-lifecycle";
-    case "dataMap":
-      return "/data-map";
-    case "documents":
-      return "/documents";
-    case "health":
-      return "/health";
-    case "integrations":
-      return "/integrations";
-    case "legal":
-      return "/legal";
-    case "notifications":
-      return "/notifications";
-    case "onboarding":
-      return "/onboarding";
-    case "runs":
-      return "/runs";
-    case "sources":
-      return "/sources";
-    case "workflows":
-      return "/workflows";
-  }
 }

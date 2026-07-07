@@ -1,4 +1,5 @@
 import { useMemo, useState, type ReactNode } from "react";
+import type { ReactMutation } from "@confect/react";
 import type { Ref } from "@confect/core";
 import {
   Badge,
@@ -18,8 +19,8 @@ import {
   templateConfectRefs,
   type TemplateConfectRefs,
 } from "@maestro-template/convex/refs";
-import { useTemplateToast } from "@maestro-template/ui";
-import * as Either from "effect/Either";
+import { useTemplateToast, type TemplateToastApi } from "@maestro-template/ui";
+import { describeTypedFailure } from "../../adapters/failure-message";
 import {
   classifyConfectMutationResult,
   normalizeMutationError,
@@ -30,11 +31,13 @@ import {
 } from "../../adapters/confect-state";
 import { isConvexConfigured } from "../../env";
 import { useWorkspace } from "../../providers/workspace";
+import { StatusNotice } from "../../saas-ui/status-notice";
 
 type ListDsarRequestsRef =
   TemplateConfectRefs["public"]["ops"]["dataLifecycle"]["listDsarRequests"];
 type CreateDsarRequestRef =
   TemplateConfectRefs["public"]["ops"]["dataLifecycle"]["createDsarRequest"];
+type CreateDsarRequestMutation = ReactMutation<CreateDsarRequestRef>;
 type DsarRequestListData = Ref.Returns<ListDsarRequestsRef>;
 type DsarRequestListError = Ref.Error<ListDsarRequestsRef>;
 type DsarRequestData = DsarRequestListData["requests"][number];
@@ -72,6 +75,15 @@ type DataLifecycleViewModel = {
     | "unavailable";
   readonly detail?: string;
 };
+
+type LifecycleNoticeConfig = {
+  readonly body: ReactNode;
+  readonly icon: typeof AlertTriangle;
+  readonly title: string;
+  readonly tone: "blue" | "gray" | "red" | "yellow";
+};
+type LifecycleNoticeStatus =
+  "loading" | "unconfigured" | "waiting_for_workspace";
 
 const fakeRequests: readonly DsarRequestData[] = [
   {
@@ -177,6 +189,26 @@ const summarizeRequests = (
   ).length,
 });
 
+const emptyDataLifecycleView = (): DataLifecycleViewModel => ({
+  requests: [],
+  summary: summarizeRequests([]),
+  live: true,
+  status: "empty",
+});
+
+const liveDataLifecycleView = (
+  requestData: readonly DsarRequestData[],
+): DataLifecycleViewModel => {
+  const requests = requestData.map(toRequestView);
+
+  return {
+    requests,
+    summary: summarizeRequests(requests),
+    live: true,
+    status: "ready",
+  };
+};
+
 export const fakeDataLifecycleView = (): DataLifecycleViewModel => {
   const requests = fakeRequests.map(toRequestView);
 
@@ -188,144 +220,213 @@ export const fakeDataLifecycleView = (): DataLifecycleViewModel => {
   };
 };
 
+const unavailableDataLifecycleView = (
+  detail: string,
+): DataLifecycleViewModel => ({
+  ...fakeDataLifecycleView(),
+  status: "unavailable",
+  detail,
+});
+
+const staticDataLifecycleViewByStatus = {
+  empty: emptyDataLifecycleView,
+  loading: () => ({
+    ...fakeDataLifecycleView(),
+    status: "loading",
+  }),
+  skipped: fakeDataLifecycleView,
+} as const satisfies Record<
+  "empty" | "loading" | "skipped",
+  () => DataLifecycleViewModel
+>;
+
 export const presentDataLifecycleRequests = (
   state: TemplateDataState<DsarRequestListData, DsarRequestListError>,
 ): DataLifecycleViewModel => {
-  if (state.status === "skipped") return fakeDataLifecycleView();
-
-  if (state.status === "loading") {
-    return {
-      ...fakeDataLifecycleView(),
-      status: "loading",
-    };
-  }
-
-  if (state.status === "empty") {
-    return {
-      requests: [],
-      summary: summarizeRequests([]),
-      live: true,
-      status: "empty",
-    };
-  }
-
   if (state.status === "ready") {
-    const requests = state.data.requests.map(toRequestView);
-
-    return {
-      requests,
-      summary: summarizeRequests(requests),
-      live: true,
-      status: "ready",
-    };
+    return liveDataLifecycleView(state.data.requests);
   }
+
+  if (
+    state.status === "empty" ||
+    state.status === "loading" ||
+    state.status === "skipped"
+  ) {
+    return staticDataLifecycleViewByStatus[state.status]();
+  }
+
+  const detail =
+    state.status === "typed_failure"
+      ? dataLifecycleFailureMessage(state.error)
+      : state.message;
+
+  return unavailableDataLifecycleView(detail);
+};
+
+const dsarConfirmationPhraseByKind = {
+  delete: "CONFIRM DSAR DELETE",
+  export: "CONFIRM DSAR EXPORT",
+} as const satisfies Record<DsarRequestKind, string>;
+
+const fakeDsarStatusByKind = {
+  delete: "needs-confirmation",
+  export: "ready-for-review",
+} as const satisfies Record<DsarRequestKind, DsarRequestData["status"]>;
+
+const makeFakeDsarRequest = ({
+  kind,
+  plannedAt,
+  requestId,
+}: {
+  readonly kind: DsarRequestKind;
+  readonly plannedAt: number;
+  readonly requestId: string;
+}): DsarRequestData => ({
+  workspaceId: "workspace_template" as DsarRequestData["workspaceId"],
+  requestId,
+  requestedByUserId:
+    "user_template_admin" as DsarRequestData["requestedByUserId"],
+  subjectId: "customer-template",
+  kind,
+  status: fakeDsarStatusByKind[kind],
+  dryRunOnly: true,
+  plannedAt,
+  confirmationPhrase: dsarConfirmationPhraseByKind[kind],
+  confirmation: {
+    required: true,
+    phrase: dsarConfirmationPhraseByKind[kind],
+    reason: "Dry-run planning requires human review before fulfillment.",
+  },
+  exportManifest: fakeRequests[0]?.exportManifest ?? [],
+  deletePlan: fakeRequests[0]?.deletePlan ?? [],
+});
+
+const notifyFakeDsarRequest = (toast: TemplateToastApi) => {
+  toast.notify({
+    title: "DSAR dry-run planned",
+    description: "The fake-safe request was added to the local audit view.",
+    tone: "success",
+    announcement: "DSAR dry-run planned.",
+  });
+};
+
+const submitLiveDsarRequest = ({
+  createDsarRequest,
+  kind,
+  requestId,
+  toast,
+  workspaceId,
+}: {
+  readonly createDsarRequest: CreateDsarRequestMutation;
+  readonly kind: DsarRequestKind;
+  readonly requestId: string;
+  readonly toast: TemplateToastApi;
+  readonly workspaceId: WorkspaceId;
+}) => {
+  void createDsarRequest({
+    workspaceId,
+    requestId,
+    kind,
+    subjectId: "customer-template",
+    confirmationPhrase: dsarConfirmationPhraseByKind[kind],
+  })
+    .then((result) => {
+      notifyTemplateMutation({
+        copy: dataLifecycleCreateToastCopy,
+        state: classifyConfectMutationResult(result),
+        toast,
+      });
+    })
+    .catch((error: unknown) => {
+      notifyTemplateMutation({
+        copy: dataLifecycleCreateToastCopy,
+        state: normalizeMutationError(error),
+        toast,
+      });
+    });
+};
+
+type DataLifecycleController = {
+  readonly requestDryRun: (kind: DsarRequestKind) => void;
+  readonly view: DataLifecycleViewModel;
+};
+
+const workspaceIdForState = (
+  workspace: ReturnType<typeof useWorkspace>,
+): WorkspaceId | null =>
+  workspace.status === "ready"
+    ? (workspace.activeWorkspaceId as WorkspaceId)
+    : null;
+
+const fakeDataLifecycleViewForRows = (
+  rows: readonly DsarRequestData[],
+  workspaceStatus: ReturnType<typeof useWorkspace>["status"],
+): DataLifecycleViewModel => {
+  const requests = rows.map(toRequestView);
 
   return {
-    ...fakeDataLifecycleView(),
-    status: "unavailable",
-    detail:
-      state.status === "typed_failure"
-        ? dataLifecycleFailureMessage(state.error)
-        : state.message,
+    requests,
+    summary: summarizeRequests(requests),
+    live: false,
+    status:
+      workspaceStatus === "ready" ? "unconfigured" : "waiting_for_workspace",
   };
 };
 
-export function DataLifecycleSurface() {
+const dataLifecycleQueryArgs = (
+  workspaceId: WorkspaceId | null,
+): Ref.Args<ListDsarRequestsRef> | "skip" =>
+  isConvexConfigured() && workspaceId !== null ? { workspaceId } : "skip";
+
+function useDataLifecycleController(): DataLifecycleController {
   const workspace = useWorkspace();
   const toast = useTemplateToast();
   const [fakeRequestRows, setFakeRequestRows] =
     useState<readonly DsarRequestData[]>(fakeRequests);
-  const workspaceId =
-    workspace.status === "ready"
-      ? (workspace.activeWorkspaceId as WorkspaceId)
-      : null;
-  const liveQueryEnabled = isConvexConfigured() && workspaceId !== null;
+  const workspaceId = workspaceIdForState(workspace);
+  const queryArgs = dataLifecycleQueryArgs(workspaceId);
   const createDsarRequest = useTemplateMutation(
     templateConfectRefs.public.ops.dataLifecycle.createDsarRequest,
   );
   const liveState = useTemplateQuery(
     templateConfectRefs.public.ops.dataLifecycle.listDsarRequests,
-    liveQueryEnabled && workspaceId !== null ? { workspaceId } : "skip",
+    queryArgs,
     {
       isEmpty: (data) => data.requests.length === 0,
     },
   );
-  const fakeView = useMemo(() => {
-    const requests = fakeRequestRows.map(toRequestView);
-
-    return {
-      requests,
-      summary: summarizeRequests(requests),
-      live: false,
-      status:
-        workspace.status === "ready" ? "unconfigured" : "waiting_for_workspace",
-    } satisfies DataLifecycleViewModel;
-  }, [fakeRequestRows, workspace.status]);
-  const view = liveQueryEnabled
-    ? presentDataLifecycleRequests(liveState)
-    : fakeView;
+  const fakeView = useMemo(
+    () => fakeDataLifecycleViewForRows(fakeRequestRows, workspace.status),
+    [fakeRequestRows, workspace.status],
+  );
+  const view =
+    queryArgs !== "skip" ? presentDataLifecycleRequests(liveState) : fakeView;
 
   const requestDryRun = (kind: DsarRequestKind) => {
     const requestId = `dsar_${kind}_${Date.now()}`;
     if (view.live && workspaceId !== null) {
-      void createDsarRequest({
-        workspaceId,
-        requestId,
+      submitLiveDsarRequest({
+        createDsarRequest,
         kind,
-        subjectId: "customer-template",
-        confirmationPhrase:
-          kind === "delete" ? "CONFIRM DSAR DELETE" : "CONFIRM DSAR EXPORT",
-      })
-        .then((result) => {
-          const state = classifyConfectMutationResult(result);
-          notifyTemplateMutation({
-            copy: dataLifecycleCreateToastCopy,
-            state,
-            toast,
-          });
-        })
-        .catch((error: unknown) => {
-          notifyTemplateMutation({
-            copy: dataLifecycleCreateToastCopy,
-            state: normalizeMutationError(error),
-            toast,
-          });
-        });
+        requestId,
+        toast,
+        workspaceId,
+      });
       return;
     }
 
-    const plannedAt = Date.now();
     setFakeRequestRows((current) => [
-      {
-        workspaceId: "workspace_template" as DsarRequestData["workspaceId"],
-        requestId,
-        requestedByUserId:
-          "user_template_admin" as DsarRequestData["requestedByUserId"],
-        subjectId: "customer-template",
-        kind,
-        status: kind === "delete" ? "needs-confirmation" : "ready-for-review",
-        dryRunOnly: true,
-        plannedAt,
-        confirmationPhrase:
-          kind === "delete" ? "CONFIRM DSAR DELETE" : "CONFIRM DSAR EXPORT",
-        confirmation: {
-          required: true,
-          phrase:
-            kind === "delete" ? "CONFIRM DSAR DELETE" : "CONFIRM DSAR EXPORT",
-          reason: "Dry-run planning requires human review before fulfillment.",
-        },
-        exportManifest: fakeRequests[0]?.exportManifest ?? [],
-        deletePlan: fakeRequests[0]?.deletePlan ?? [],
-      },
+      makeFakeDsarRequest({ kind, plannedAt: Date.now(), requestId }),
       ...current,
     ]);
-    toast.notify({
-      title: "DSAR dry-run planned",
-      description: "The fake-safe request was added to the local audit view.",
-      tone: "success",
-      announcement: "DSAR dry-run planned.",
-    });
+    notifyFakeDsarRequest(toast);
   };
+
+  return { requestDryRun, view };
+}
+
+export function DataLifecycleSurface() {
+  const { requestDryRun, view } = useDataLifecycleController();
 
   return (
     <Stack as="section" aria-label="DSAR request plans" gap="4">
@@ -442,71 +543,69 @@ function LifecycleStatusNotice({
 }: {
   readonly view: DataLifecycleViewModel;
 }) {
-  if (view.status === "loading") {
-    return (
-      <LifecycleNotice tone="blue" title="Loading data lifecycle requests">
-        The Confect query is waiting for live DSAR request rows.
-      </LifecycleNotice>
-    );
-  }
-
-  if (view.status === "waiting_for_workspace") {
-    return (
-      <LifecycleNotice tone="yellow" title="Preparing workspace posture">
-        The surface is waiting for the active workspace provider.
-      </LifecycleNotice>
-    );
-  }
-
   if (view.status === "unavailable" && view.detail) {
     return (
-      <LifecycleNotice tone="red" title="Data lifecycle backend unavailable">
+      <StatusNotice
+        icon={AlertTriangle}
+        title="Data lifecycle backend unavailable"
+        tone="red"
+      >
         {view.detail}
-      </LifecycleNotice>
+      </StatusNotice>
     );
   }
 
   if (!view.live) {
-    return (
-      <LifecycleNotice tone="gray" title="Fake-safe local mode">
-        Buttons update local state unless a real Convex URL and workspace are
-        configured.
-      </LifecycleNotice>
-    );
+    const notice = lifecycleNoticeForStatus(view.status);
+
+    return <StatusNotice {...notice}>{notice.body}</StatusNotice>;
   }
 
   return null;
 }
 
-function LifecycleNotice({
-  children,
-  title,
-  tone,
-}: {
-  readonly children: ReactNode;
-  readonly title: string;
-  readonly tone: "blue" | "gray" | "red" | "yellow";
-}) {
-  return (
-    <HStack
-      align="flex-start"
-      bg={`${tone}.50`}
-      borderColor={`${tone}.200`}
-      borderRadius="md"
-      borderWidth="1px"
-      gap="3"
-      p="4"
-    >
-      <Icon as={AlertTriangle} boxSize="5" color={`${tone}.600`} mt="0.5" />
-      <Box>
-        <Text fontWeight="semibold">{title}</Text>
-        <Text color="gray.700" fontSize="sm" mt="1">
-          {children}
-        </Text>
-      </Box>
-    </HStack>
-  );
-}
+const lifecycleNoticeForStatus = (
+  status: DataLifecycleViewModel["status"],
+): LifecycleNoticeConfig =>
+  isLifecycleNoticeStatus(status)
+    ? lifecycleNoticeByStatus[status]
+    : lifecycleNoticeByStatus.unconfigured;
+
+const isLifecycleNoticeStatus = (
+  status: DataLifecycleViewModel["status"],
+): status is LifecycleNoticeStatus =>
+  status === "loading" ||
+  status === "unconfigured" ||
+  status === "waiting_for_workspace";
+
+const lifecycleNoticeByStatus: Record<
+  LifecycleNoticeStatus,
+  LifecycleNoticeConfig
+> = {
+  loading: {
+    icon: AlertTriangle,
+    tone: "blue",
+    title: "Loading data lifecycle requests",
+    body: <>The Confect query is waiting for live DSAR request rows.</>,
+  },
+  unconfigured: {
+    icon: AlertTriangle,
+    tone: "gray",
+    title: "Fake-safe local mode",
+    body: (
+      <>
+        Buttons update local state unless a real Convex URL and workspace are
+        configured.
+      </>
+    ),
+  },
+  waiting_for_workspace: {
+    icon: AlertTriangle,
+    tone: "yellow",
+    title: "Preparing workspace posture",
+    body: <>The surface is waiting for the active workspace provider.</>,
+  },
+} as const;
 
 function LifecycleMetric({
   label,
@@ -581,21 +680,5 @@ const dataLifecycleCreateToastCopy = {
 };
 
 function dataLifecycleFailureMessage(error: unknown): string {
-  if (Either.isEither(error)) {
-    return Either.isLeft(error)
-      ? dataLifecycleFailureMessage(error.left)
-      : "DSAR planning failed.";
-  }
-
-  if (typeof error === "object" && error !== null && "message" in error) {
-    const message = error.message;
-    if (typeof message === "string") return message;
-  }
-
-  if (typeof error === "object" && error !== null && "_tag" in error) {
-    const tag = error._tag;
-    if (typeof tag === "string") return tag;
-  }
-
-  return "DSAR planning failed.";
+  return describeTypedFailure(error, "DSAR planning failed.");
 }
