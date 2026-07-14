@@ -6,6 +6,9 @@ import {
 } from "./billing";
 export * from "./llm";
 export * from "./llmResponse";
+export * from "./llmStructured";
+export * from "./llmReceipt";
+export * from "./llmEgressPolicy";
 export * from "./spend";
 export * from "./billing";
 export * from "./dodo";
