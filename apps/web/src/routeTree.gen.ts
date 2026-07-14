@@ -22,6 +22,8 @@ import { Route as WorkspaceHealthRouteImport } from './routes/_workspace.health'
 import { Route as WorkspaceDocumentsRouteImport } from './routes/_workspace.documents'
 import { Route as WorkspaceDataMapRouteImport } from './routes/_workspace.data-map'
 import { Route as WorkspaceDataLifecycleRouteImport } from './routes/_workspace.data-lifecycle'
+import { Route as WorkspaceConnectionsRouteImport } from './routes/_workspace.connections'
+import { Route as WorkspaceClientsRouteImport } from './routes/_workspace.clients'
 import { Route as WorkspaceCapabilitiesRouteImport } from './routes/_workspace.capabilities'
 import { Route as WorkspaceBrainRouteImport } from './routes/_workspace.brain'
 import { Route as WorkspaceBillingRouteImport } from './routes/_workspace.billing'
@@ -95,6 +97,16 @@ const WorkspaceDataLifecycleRoute = WorkspaceDataLifecycleRouteImport.update({
   path: '/data-lifecycle',
   getParentRoute: () => rootRouteImport,
 } as any)
+const WorkspaceConnectionsRoute = WorkspaceConnectionsRouteImport.update({
+  id: '/_workspace/connections',
+  path: '/connections',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WorkspaceClientsRoute = WorkspaceClientsRouteImport.update({
+  id: '/_workspace/clients',
+  path: '/clients',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const WorkspaceCapabilitiesRoute = WorkspaceCapabilitiesRouteImport.update({
   id: '/_workspace/capabilities',
   path: '/capabilities',
@@ -140,6 +152,8 @@ export interface FileRoutesByFullPath {
   '/billing': typeof WorkspaceBillingRoute
   '/brain': typeof WorkspaceBrainRoute
   '/capabilities': typeof WorkspaceCapabilitiesRoute
+  '/clients': typeof WorkspaceClientsRoute
+  '/connections': typeof WorkspaceConnectionsRoute
   '/data-lifecycle': typeof WorkspaceDataLifecycleRoute
   '/data-map': typeof WorkspaceDataMapRoute
   '/documents': typeof WorkspaceDocumentsRoute
@@ -162,6 +176,8 @@ export interface FileRoutesByTo {
   '/billing': typeof WorkspaceBillingRoute
   '/brain': typeof WorkspaceBrainRoute
   '/capabilities': typeof WorkspaceCapabilitiesRoute
+  '/clients': typeof WorkspaceClientsRoute
+  '/connections': typeof WorkspaceConnectionsRoute
   '/data-lifecycle': typeof WorkspaceDataLifecycleRoute
   '/data-map': typeof WorkspaceDataMapRoute
   '/documents': typeof WorkspaceDocumentsRoute
@@ -185,6 +201,8 @@ export interface FileRoutesById {
   '/_workspace/billing': typeof WorkspaceBillingRoute
   '/_workspace/brain': typeof WorkspaceBrainRoute
   '/_workspace/capabilities': typeof WorkspaceCapabilitiesRoute
+  '/_workspace/clients': typeof WorkspaceClientsRoute
+  '/_workspace/connections': typeof WorkspaceConnectionsRoute
   '/_workspace/data-lifecycle': typeof WorkspaceDataLifecycleRoute
   '/_workspace/data-map': typeof WorkspaceDataMapRoute
   '/_workspace/documents': typeof WorkspaceDocumentsRoute
@@ -209,6 +227,8 @@ export interface FileRouteTypes {
     | '/billing'
     | '/brain'
     | '/capabilities'
+    | '/clients'
+    | '/connections'
     | '/data-lifecycle'
     | '/data-map'
     | '/documents'
@@ -231,6 +251,8 @@ export interface FileRouteTypes {
     | '/billing'
     | '/brain'
     | '/capabilities'
+    | '/clients'
+    | '/connections'
     | '/data-lifecycle'
     | '/data-map'
     | '/documents'
@@ -253,6 +275,8 @@ export interface FileRouteTypes {
     | '/_workspace/billing'
     | '/_workspace/brain'
     | '/_workspace/capabilities'
+    | '/_workspace/clients'
+    | '/_workspace/connections'
     | '/_workspace/data-lifecycle'
     | '/_workspace/data-map'
     | '/_workspace/documents'
@@ -276,6 +300,8 @@ export interface RootRouteChildren {
   WorkspaceBillingRoute: typeof WorkspaceBillingRoute
   WorkspaceBrainRoute: typeof WorkspaceBrainRoute
   WorkspaceCapabilitiesRoute: typeof WorkspaceCapabilitiesRoute
+  WorkspaceClientsRoute: typeof WorkspaceClientsRoute
+  WorkspaceConnectionsRoute: typeof WorkspaceConnectionsRoute
   WorkspaceDataLifecycleRoute: typeof WorkspaceDataLifecycleRoute
   WorkspaceDataMapRoute: typeof WorkspaceDataMapRoute
   WorkspaceDocumentsRoute: typeof WorkspaceDocumentsRoute
@@ -383,6 +409,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WorkspaceDataLifecycleRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_workspace/connections': {
+      id: '/_workspace/connections'
+      path: '/connections'
+      fullPath: '/connections'
+      preLoaderRoute: typeof WorkspaceConnectionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_workspace/clients': {
+      id: '/_workspace/clients'
+      path: '/clients'
+      fullPath: '/clients'
+      preLoaderRoute: typeof WorkspaceClientsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_workspace/capabilities': {
       id: '/_workspace/capabilities'
       path: '/capabilities'
@@ -444,6 +484,8 @@ const rootRouteChildren: RootRouteChildren = {
   WorkspaceBillingRoute: WorkspaceBillingRoute,
   WorkspaceBrainRoute: WorkspaceBrainRoute,
   WorkspaceCapabilitiesRoute: WorkspaceCapabilitiesRoute,
+  WorkspaceClientsRoute: WorkspaceClientsRoute,
+  WorkspaceConnectionsRoute: WorkspaceConnectionsRoute,
   WorkspaceDataLifecycleRoute: WorkspaceDataLifecycleRoute,
   WorkspaceDataMapRoute: WorkspaceDataMapRoute,
   WorkspaceDocumentsRoute: WorkspaceDocumentsRoute,

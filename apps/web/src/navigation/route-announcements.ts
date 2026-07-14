@@ -1,35 +1,16 @@
-import { referenceAppAnnouncementTitleForPageId } from "./reference-app-routes";
+import { TEMPLATE_ROUTE_ITEMS } from "./workspace";
 
-const routeTitles = new Map<string, string>([
-  ["/", "Overview"],
-  ["/agents", "Agents"],
-  ["/analytics", "Analytics"],
-  ["/api", "API and MCP"],
-  ["/billing", "Billing"],
-  ["/brain", "Brain"],
-  ["/capabilities", "Capabilities"],
-  ["/data-lifecycle", "Data Lifecycle"],
-  ["/data-map", "Data map"],
-  ["/documents", "Documents"],
-  ["/health", "Health"],
-  ["/integrations", "Integrations"],
-  ["/legal", "Legal"],
-  ["/notifications", "Notifications"],
-  ["/onboarding", "Onboarding"],
-  ["/runs", "Workflow runs"],
-  ["/settings", "Settings"],
-  ["/sources", "Sources"],
-  ["/workflows", "Workflows"],
-]);
+const routeTitles = new Map<string, string>(
+  TEMPLATE_ROUTE_ITEMS.map((item) => [item.path, item.label]),
+);
 
 export function describeRouteAnnouncement(pathname: string, hash = ""): string {
-  const hashPageId = hash.replace(/^#/, "");
-  const title =
-    (pathname === "/"
-      ? referenceAppAnnouncementTitleForPageId(hashPageId)
-      : undefined) ??
-    routeTitles.get(pathname) ??
-    "Unknown route";
+  const normalizedHash = hash.replace(/^#/, "");
+  const hashTitle = normalizedHash
+    ? TEMPLATE_ROUTE_ITEMS.find((item) => item.path === `/${normalizedHash}`)
+        ?.label
+    : undefined;
+  const title = hashTitle ?? routeTitles.get(pathname) ?? "Unknown route";
 
   return `Viewing ${title}`;
 }

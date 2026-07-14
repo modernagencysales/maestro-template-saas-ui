@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
   activeTemplateRouteKey,
+  REFERENCE_ROUTE_ITEMS,
   TEMPLATE_ROUTE_ITEMS,
 } from "./navigation/workspace";
 
@@ -16,27 +17,29 @@ const routeFileForPath = (path: string): string =>
     : `src/routes/_workspace.${path.slice(1).replaceAll("/", ".")}.tsx`;
 
 describe("frontend platform routes", () => {
-  it("registers legal, onboarding, data lifecycle, and notification workspace routes in navigation", () => {
-    expect(TEMPLATE_ROUTE_ITEMS.map((item) => item.key)).toContain("legal");
-    expect(TEMPLATE_ROUTE_ITEMS.map((item) => item.key)).toContain(
-      "dataLifecycle",
+  it("registers only the Maestro Brain V1 product shell routes in navigation", () => {
+    expect(TEMPLATE_ROUTE_ITEMS.map((item) => item.key)).toEqual([
+      "clients",
+      "brain",
+      "connections",
+      "settings",
+    ]);
+    expect(TEMPLATE_ROUTE_ITEMS.find((item) => item.key === "clients")).toEqual(
+      expect.objectContaining({ label: "Clients", path: "/clients" }),
     );
-    expect(TEMPLATE_ROUTE_ITEMS.map((item) => item.key)).toContain(
-      "notifications",
+    expect(TEMPLATE_ROUTE_ITEMS.find((item) => item.key === "brain")).toEqual(
+      expect.objectContaining({ label: "Agency Brain", path: "/brain" }),
     );
-    expect(TEMPLATE_ROUTE_ITEMS.find((item) => item.key === "legal")).toEqual(
-      expect.objectContaining({
-        label: "Legal",
-        path: "/legal",
-      }),
-    );
-    expect(activeTemplateRouteKey("/legal/privacy")).toBe("legal");
-    expect(activeTemplateRouteKey("/onboarding")).toBe("onboarding");
-    expect(activeTemplateRouteKey("/data-lifecycle")).toBe("dataLifecycle");
-    expect(activeTemplateRouteKey("/notifications")).toBe("notifications");
+    expect(activeTemplateRouteKey("/clients/acme")).toBe("clients");
+    expect(activeTemplateRouteKey("/connections/slack")).toBe("connections");
+    expect(activeTemplateRouteKey("/legal/privacy")).toBeNull();
   });
 
-  it("defines legal, onboarding, data lifecycle, and notification route files as starter-ready surfaces", () => {
+  it("keeps reference route files available but outside product navigation", () => {
+    expect(REFERENCE_ROUTE_ITEMS.map((item) => item.path)).toContain("/legal");
+    expect(REFERENCE_ROUTE_ITEMS.map((item) => item.path)).toContain(
+      "/data-lifecycle",
+    );
     expect(
       existsSync(resolve(appRoot, "src/routes/_workspace.legal.tsx")),
     ).toBe(true);
@@ -55,17 +58,8 @@ describe("frontend platform routes", () => {
     expect(read("src/routes/_workspace.legal.tsx")).not.toContain(
       "ReferenceDocumentRoute",
     );
-    expect(read("src/routes/_workspace.onboarding.tsx")).toContain(
-      'section="onboarding"',
-    );
-    expect(read("src/routes/_workspace.notifications.tsx")).toContain(
-      'section="notifications"',
-    );
     expect(read("src/routes/_workspace.data-lifecycle.tsx")).toContain(
       "BusinessDataLifecycleRoute",
-    );
-    expect(read("src/saas-ui/business-shell.tsx")).toContain(
-      "BusinessSectionRoute",
     );
   });
 
@@ -76,12 +70,11 @@ describe("frontend platform routes", () => {
         `${item.path} should be backed by ${routeFileForPath(item.path)}`,
       ).toBe(true);
     }
-    expect(read("src/routes/index.tsx")).toContain("BusinessDashboardRoute");
-    expect(read("src/routes/_workspace.health.tsx")).toContain(
-      'section="health"',
+    expect(read("src/routes/_workspace.clients.tsx")).toContain(
+      "ClientsScreen",
     );
-    expect(read("src/routes/_workspace.data-lifecycle.tsx")).toContain(
-      "BusinessDataLifecycleRoute",
+    expect(read("src/routes/_workspace.connections.tsx")).toContain(
+      "ConnectionsScreen",
     );
     expect(read("src/saas-ui/business-shell.tsx")).toContain("@saas-ui/react");
     expect(read("src/saas-ui/business-shell.tsx")).not.toContain(
