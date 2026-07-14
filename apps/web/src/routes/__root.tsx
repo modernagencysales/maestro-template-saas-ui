@@ -1,4 +1,3 @@
-import { ConvexProvider, type ConvexReactClient } from "convex/react";
 import {
   createRootRouteWithContext,
   HeadContent,
@@ -6,12 +5,14 @@ import {
   Scripts,
   useRouterState,
 } from "@tanstack/react-router";
-import { AuthKitProvider } from "@workos/authkit-tanstack-react-start/client";
 import type { ConvexQueryClient } from "@convex-dev/react-query";
+import type { ConvexReactClient } from "convex/react";
 import type { QueryClient } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { TemplateToastProvider } from "@maestro-template/ui";
 
+import { AuthKitProviderWithConvexProviderWithAuth } from "../auth/authkit-client";
+import { getAuthSnapshot, type AuthSnapshot } from "../auth/authkit-server";
 import { MaestroSaasUiProvider } from "../saas-ui/provider";
 import {
   createBrowserWorkspaceStorage,
@@ -39,53 +40,46 @@ export const Route = createRootRouteWithContext<RouterContext>()({
         { rel: "stylesheet", href: appCssUrl },
       ],
     }),
+  ["loader"]: async (): Promise<{ readonly authSnapshot: AuthSnapshot }> => ({
+    authSnapshot: await getAuthSnapshot(),
+  }),
   component: RootComponent,
 });
 
-const fakeInitialAuth = { user: null } as const;
-
-function ConvexProviderWithAuth({
-  children,
-  client,
-}: {
-  readonly children: ReactNode;
-  readonly client: ConvexReactClient;
-}) {
-  return <ConvexProvider client={client}>{children}</ConvexProvider>;
-}
-
 function RootComponent() {
   const { convexClient } = Route.useRouteContext();
+  const { authSnapshot } = Route.useLoaderData();
   const location = useRouterState({ select: (state) => state.location });
 
   return (
-    <AuthKitProvider initialAuth={fakeInitialAuth}>
-      <ConvexProviderWithAuth client={convexClient}>
-        <WorkspaceProvider
-          operations={createFakeWorkspaceOperations()}
-          storage={createBrowserWorkspaceStorage()}
-        >
-          <CookieConsentBoundary>
-            {(analyticsConsent) => (
-              <PostHogWebProvider analyticsConsent={analyticsConsent}>
-                <RootDocument>
-                  <WebRouteUxBoundary
-                    href={location.href}
-                    pathname={location.pathname}
-                  >
-                    <MaestroSaasUiProvider>
-                      <TemplateToastProvider>
-                        <Outlet />
-                      </TemplateToastProvider>
-                    </MaestroSaasUiProvider>
-                  </WebRouteUxBoundary>
-                </RootDocument>
-              </PostHogWebProvider>
-            )}
-          </CookieConsentBoundary>
-        </WorkspaceProvider>
-      </ConvexProviderWithAuth>
-    </AuthKitProvider>
+    <AuthKitProviderWithConvexProviderWithAuth
+      client={convexClient}
+      initialAuthSnapshot={authSnapshot}
+    >
+      <WorkspaceProvider
+        operations={createFakeWorkspaceOperations()}
+        storage={createBrowserWorkspaceStorage()}
+      >
+        <CookieConsentBoundary>
+          {(analyticsConsent) => (
+            <PostHogWebProvider analyticsConsent={analyticsConsent}>
+              <RootDocument>
+                <WebRouteUxBoundary
+                  href={location.href}
+                  pathname={location.pathname}
+                >
+                  <MaestroSaasUiProvider>
+                    <TemplateToastProvider>
+                      <Outlet />
+                    </TemplateToastProvider>
+                  </MaestroSaasUiProvider>
+                </WebRouteUxBoundary>
+              </RootDocument>
+            </PostHogWebProvider>
+          )}
+        </CookieConsentBoundary>
+      </WorkspaceProvider>
+    </AuthKitProviderWithConvexProviderWithAuth>
   );
 }
 

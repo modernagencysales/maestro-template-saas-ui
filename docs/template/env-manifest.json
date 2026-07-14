@@ -205,6 +205,30 @@
       "notes": "Server-only WorkOS API credential."
     },
     {
+      "name": "WORKOS_AUTHKIT_ISSUER",
+      "group": "workos",
+      "services": ["web", "convex"],
+      "visibility": "server-config",
+      "requiredFor": ["test", "live"],
+      "fakeExampleAllowed": true,
+      "fakeExample": "https://api.workos.com",
+      "owner": "Security owner",
+      "rotation": "Review when AuthKit issuer settings change.",
+      "notes": "Issuer trusted by Convex customJwt validation for WorkOS AuthKit access tokens. Required outside explicit fake mode."
+    },
+    {
+      "name": "WORKOS_AUTHKIT_JWKS_URL",
+      "group": "workos",
+      "services": ["web", "convex"],
+      "visibility": "server-config",
+      "requiredFor": ["test", "live"],
+      "fakeExampleAllowed": true,
+      "fakeExample": "https://api.workos.com/sso/jwks/org_acme_demo",
+      "owner": "Security owner",
+      "rotation": "Review when WorkOS organization/application JWT settings change.",
+      "notes": "JWKS endpoint trusted by Convex customJwt validation for WorkOS AuthKit access tokens. Required outside explicit fake mode."
+    },
+    {
       "name": "POSTHOG_PROJECT_TOKEN",
       "group": "posthog",
       "services": ["web", "convex"],
