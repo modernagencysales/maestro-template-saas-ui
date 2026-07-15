@@ -42,7 +42,10 @@ const LANE_SHA = "4".repeat(40);
 const INTEGRATION_COMMIT_SHA = "5".repeat(40);
 const SOURCE_RUN_ID = "01KXHDXG8A8751TZ3HY4CQJKBD";
 const REPAIR_RUN_ID = "01KXHE00000000000000000000";
-const RESERVATION_TOKEN = "12345678-1234-4123-8123-123456789abc";
+const testUuid = (seed: string): string =>
+  `${seed.repeat(8)}-${seed.repeat(4)}-4${seed.repeat(3)}-8${seed.repeat(3)}-${seed.repeat(12)}`;
+const RESERVATION_TOKEN = testUuid("1");
+const ALTERNATE_RESERVATION_TOKEN = testUuid("8");
 
 type LaunchIdentity = Omit<RepairLaunchReceiptInput, "runId">;
 const foundCreatedRun = (identity: LaunchIdentity, runId = REPAIR_RUN_ID) => ({
@@ -953,7 +956,7 @@ describe("legacy integration recovery", () => {
       const receipt = buildRepairLaunchReceipt({
         ...fixture.identity,
         ...(field === "reservationToken"
-          ? { reservationToken: "87654321-4321-4321-8321-cba987654321" }
+          ? { reservationToken: ALTERNATE_RESERVATION_TOKEN }
           : {}),
         ...(field === "attempt" ? { attempt: 2 } : {}),
         ...(field === "taskIds" ? { taskIds: ["S00-T01"] } : {}),
@@ -1037,7 +1040,7 @@ describe("legacy integration recovery", () => {
     const [swappedRun] = swapped;
     if (!swappedRun) throw new Error("missing inspection fixture");
     swappedRun.run_spec.settings.run.metadata.recovery_token =
-      "87654321-4321-4321-8321-cba987654321";
+      ALTERNATE_RESERVATION_TOKEN;
     expect(() => verifyRepairLaunchInspection(swapped, identity)).toThrow(
       "labels or inputs do not match reservation",
     );
