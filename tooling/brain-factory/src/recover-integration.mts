@@ -3,6 +3,8 @@ import { resolve } from "node:path";
 
 import {
   acquireIntegrationOwnership,
+  fabroRunId,
+  gitSha,
   integrationLockPath,
   persistLegacyIntegrationRecovery,
   planLegacyIntegrationRecovery,
@@ -10,6 +12,7 @@ import {
   readJsonRecord,
   repairWorkflowArgs,
   reserveRepairLaunch,
+  safeAbsolutePath,
 } from "./integration-recovery.js";
 import { gitIsAncestor, runRtk } from "./process.js";
 
@@ -31,7 +34,17 @@ if (!/^[A-Za-z0-9][A-Za-z0-9-]*$/.test(tranche)) {
 }
 
 const root = process.cwd();
-const state = resolve(valueAfter("--state") ?? ".fabro/state/maestro-brain");
+const state = safeAbsolutePath(
+  resolve(valueAfter("--state") ?? ".fabro/state/maestro-brain"),
+  "state path",
+);
+const gitCommonDirectory = safeAbsolutePath(
+  resolve(
+    root,
+    runRtk(["git", "rev-parse", "--git-common-dir"], { quiet: true }),
+  ),
+  "Git common directory",
+);
 const evidenceDirectory = resolve(state, "evidence");
 const resultPath = resolve(
   evidenceDirectory,
@@ -67,16 +80,27 @@ for (const [label, path] of [
     throw new Error(`${tranche}: missing ${label} ${path}`);
 }
 const manifest = readJsonRecord(manifestPath);
-if (
-  !Array.isArray(manifest.tasks) ||
-  !manifest.tasks.some(
-    (task) =>
-      typeof task === "object" &&
-      task !== null &&
-      !Array.isArray(task) &&
-      (task as { readonly tranche?: unknown }).tranche === tranche,
-  )
-) {
+if (manifest.schemaVersion !== "maestro-brain-task-manifest/v1") {
+  throw new Error(`${tranche}: unexpected task manifest schema`);
+}
+const manifestTaskIds = Array.isArray(manifest.tasks)
+  ? manifest.tasks.flatMap((task) => {
+      if (
+        typeof task !== "object" ||
+        task === null ||
+        Array.isArray(task) ||
+        (task as { readonly tranche?: unknown }).tranche !== tranche
+      ) {
+        return [];
+      }
+      const taskId = (task as { readonly taskId?: unknown }).taskId;
+      if (typeof taskId !== "string" || !/^S\d{2}-T\d{2}$/.test(taskId)) {
+        throw new Error(`${tranche}: manifest tranche has an invalid task ID`);
+      }
+      return [taskId];
+    })
+  : [];
+if (manifestTaskIds.length === 0) {
   throw new Error(`${tranche}: tranche is absent from the task manifest`);
 }
 if (existsSync(repairRecordPath)) {
@@ -86,7 +110,7 @@ if (existsSync(repairRecordPath)) {
 }
 
 const releaseOwnership = acquireIntegrationOwnership({
-  lockPath: integrationLockPath(state, tranche),
+  lockPath: integrationLockPath(gitCommonDirectory, tranche),
   owner: {
     action: "recover-legacy-integration",
     at: new Date().toISOString(),
@@ -98,8 +122,7 @@ const releaseOwnership = acquireIntegrationOwnership({
 try {
   const runRecord = readJsonRecord(runRecordPath);
   const integrationResult = readJsonRecord(resultPath);
-  const runId = String(runRecord.runId ?? "");
-  if (!runId) throw new Error(`${tranche}: run record has no runId`);
+  const runId = fabroRunId(runRecord.runId, "run record runId");
   const inspection = JSON.parse(
     runRtk(["fabro", "inspect", runId, "--json", "--quiet"], {
       quiet: true,
@@ -115,24 +138,33 @@ try {
   }
 
   const worktreePath = realpathSync(expectedWorkdir);
-  const worktreeHead = runRtk(["git", "rev-parse", "HEAD"], {
-    cwd: worktreePath,
-    quiet: true,
-  });
+  const worktreeHead = gitSha(
+    runRtk(["git", "rev-parse", "HEAD"], {
+      cwd: worktreePath,
+      quiet: true,
+    }),
+    "worktree HEAD",
+  );
   const branch = `fabro/brain-${tranche.toLowerCase()}`;
-  const branchHead = runRtk(["git", "rev-parse", `refs/heads/${branch}`], {
-    cwd: root,
-    quiet: true,
-  });
+  const branchHead = gitSha(
+    runRtk(["git", "rev-parse", `refs/heads/${branch}`], {
+      cwd: root,
+      quiet: true,
+    }),
+    "branch head",
+  );
   const worktreeClean =
     runRtk(["proxy", "git", "status", "--porcelain"], {
       cwd: worktreePath,
       quiet: true,
     }) === "";
-  const controlHead = runRtk(["git", "rev-parse", "HEAD"], {
-    cwd: root,
-    quiet: true,
-  });
+  const controlHead = gitSha(
+    runRtk(["git", "rev-parse", "HEAD"], {
+      cwd: root,
+      quiet: true,
+    }),
+    "control HEAD",
+  );
   const now = new Date().toISOString();
   const plan = planLegacyIntegrationRecovery({
     branchHead,
@@ -141,6 +173,7 @@ try {
     integrationResult,
     isAncestor: (ancestor, descendant) =>
       gitIsAncestor(ancestor, descendant, root),
+    manifestTaskIds,
     now,
     reason: recoveryReason,
     runRecord,
@@ -149,30 +182,31 @@ try {
     worktreeHead,
     worktreePath,
   });
-  persistLegacyIntegrationRecovery({ auditPath, plan, resultPath });
-  reserveRepairLaunch(repairRecordPath, {
+  const workflowArgs = repairWorkflowArgs({
+    controlRoot: root,
+    evidenceDirectory,
+    recoveryAuditPath: auditPath,
+    repairBaseSha: plan.repairBaseSha,
+    sourceReviewRun: plan.sourceReviewRun,
+    tranche,
+    workdir: worktreePath,
+    workflow,
+  });
+  const reservationToken = reserveRepairLaunch(repairRecordPath, {
     baseSha: plan.repairBaseSha,
     sourceReviewRun: plan.sourceReviewRun,
     status: "preparing",
     tranche,
     workdir: worktreePath,
   });
-  const output = runRtk(
-    repairWorkflowArgs({
-      controlRoot: root,
-      evidenceDirectory,
-      repairBaseSha: plan.repairBaseSha,
-      sourceReviewRun: plan.sourceReviewRun,
-      tranche,
-      workdir: worktreePath,
-      workflow,
-    }),
-    { quiet: true },
-  );
+  persistLegacyIntegrationRecovery({ auditPath, plan, resultPath });
+  const output = runRtk(workflowArgs, { quiet: true });
   const parsed = JSON.parse(output) as { run_id?: string; runId?: string };
-  const repairRunId = parsed.run_id ?? parsed.runId;
-  if (!repairRunId) throw new Error(`Fabro did not return a run ID: ${output}`);
-  promoteRepairLaunch(repairRecordPath, {
+  const repairRunId = fabroRunId(
+    parsed.run_id ?? parsed.runId,
+    "repair Fabro run ID",
+  );
+  promoteRepairLaunch(repairRecordPath, reservationToken, {
     baseSha: plan.repairBaseSha,
     runId: repairRunId,
     sourceReviewRun: plan.sourceReviewRun,

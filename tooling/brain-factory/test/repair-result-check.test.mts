@@ -14,16 +14,8 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { validateRepairResult } from "../src/repair-result-check.mjs";
 
-const findingIds = [
-  "api-key-server-derived-scope",
-  "eval-external-run-artifacts",
-  "eval-mechanical-answer-scoring",
-  "export-lifecycle-fencing",
-  "llm-exact-provider-request",
-  "model-receipt-tenant-lifecycle",
-  "provider-server-client-boundary",
-  "workspace-explicit-fake-mode",
-];
+const recoveryFindingId = "legacy-integration-run-failed";
+const sourceReviewRun = "01KXHDXG8A8751TZ3HY4CQJKBD";
 
 const temporaryDirectories: string[] = [];
 
@@ -74,8 +66,42 @@ const fixture = () => {
     status: "lane_green",
   });
   const resultPath = resolve(integrationDirectory, "integration-result.json");
+  const auditPath = resolve(evidence, "recovery-audit.jsonl");
+  const recovery = {
+    at: "2026-07-15T00:00:00.000Z",
+    legacyBaseHeadSha: baseSha,
+    legacyIncludedTaskIds: ["S01-T01"],
+    legacyIntegrationHeadSha: baseSha,
+    legacyWorktree: realpathSync(workdir),
+    previousReviewVerdict: "pass",
+    previousStatus: "passed",
+    reason: "legacy run failed its full gate",
+    schemaVersion: "maestro-brain-integration-recovery/v1",
+    sourceRunStatus: "failed",
+    sourceReviewRun,
+  };
+  writeFileSync(
+    auditPath,
+    `${JSON.stringify({
+      action: "recover-legacy-integration",
+      at: recovery.at,
+      baseSha,
+      headSha: baseSha,
+      legacyIncludedTaskIds: ["S01-T01"],
+      previousReviewVerdict: "pass",
+      previousStatus: "passed",
+      reason: recovery.reason,
+      schemaVersion: "maestro-brain-integration-recovery-audit/v1",
+      sourceRunStatus: "failed",
+      sourceReviewRun,
+      tranche: "C1-contract-spine",
+    })}\n`,
+  );
   writeJson(resultPath, {
     schemaVersion: "maestro-brain-integration-result/v1",
+    baseSha,
+    integrationId: "C1-contract-spine",
+    manifestTranche: "C1-contract-spine",
     tranche: "C1-contract-spine",
     status: "ready_for_review",
     reviewVerdict: "pass",
@@ -83,10 +109,28 @@ const fixture = () => {
     headSha,
     includedTasks: [{ taskId: "S01-T01", laneHeadSha }],
     remainingFindings: [],
-    resolvedFindings: findingIds.map((id) => ({ id })),
+    resolvedFindings: [{ id: recoveryFindingId }],
+    recovery,
+    sourceRunStatus: "failed",
+    sourceReviewRun,
   });
-  return { baseSha, evidence, resultPath, workdir };
+  return { auditPath, baseSha, evidence, resultPath, workdir };
 };
+
+const validate = (
+  value: ReturnType<typeof fixture>,
+  overrides: Partial<Parameters<typeof validateRepairResult>[0]> = {},
+): void =>
+  validateRepairResult({
+    auditPath: value.auditPath,
+    baseSha: value.baseSha,
+    evidenceDirectory: value.evidence,
+    expectedWorkdir: value.workdir,
+    sourceReviewRun,
+    stage: "review",
+    tranche: "C1-contract-spine",
+    ...overrides,
+  });
 
 afterEach(() => {
   for (const directory of temporaryDirectories.splice(0))
@@ -96,15 +140,7 @@ afterEach(() => {
 describe("Brain repair result check", () => {
   it("accepts a clean reviewed head with resolved findings and lane proof", () => {
     const value = fixture();
-    expect(() =>
-      validateRepairResult({
-        baseSha: value.baseSha,
-        evidenceDirectory: value.evidence,
-        expectedWorkdir: value.workdir,
-        stage: "review",
-        tranche: "C1-contract-spine",
-      }),
-    ).not.toThrow();
+    expect(() => validate(value)).not.toThrow();
   });
 
   it("rejects a mutable pass claim with a remaining high finding", () => {
@@ -115,34 +151,59 @@ describe("Brain repair result check", () => {
     >;
     result.remainingFindings = [{ id: "still-open", severity: "high" }];
     writeJson(value.resultPath, result);
-    expect(() =>
-      validateRepairResult({
-        baseSha: value.baseSha,
-        evidenceDirectory: value.evidence,
-        expectedWorkdir: value.workdir,
-        stage: "review",
-        tranche: "C1-contract-spine",
-      }),
-    ).toThrow(/findings remain/);
+    expect(() => validate(value)).toThrow(/findings remain/);
   });
 
-  it("uses evidence-owned required finding IDs for non-C1 repairs", () => {
+  it("uses verifier-owned recovery findings despite mutable result claims", () => {
     const value = fixture();
     const result = JSON.parse(readFileSync(value.resultPath, "utf8")) as Record<
       string,
       unknown
     >;
-    result.requiredFindingIds = ["legacy-integration-run-failed"];
-    result.resolvedFindings = [{ id: "legacy-integration-run-failed" }];
+    result.requiredFindingIds = ["attacker-chosen-finding"];
+    result.resolvedFindings = [{ id: "attacker-chosen-finding" }];
     writeJson(value.resultPath, result);
-    expect(() =>
-      validateRepairResult({
-        baseSha: value.baseSha,
-        evidenceDirectory: value.evidence,
-        expectedWorkdir: value.workdir,
-        stage: "review",
-        tranche: "C1-contract-spine",
-      }),
-    ).not.toThrow();
+    expect(() => validate(value)).toThrow(
+      `missing resolved finding ${recoveryFindingId}`,
+    );
+  });
+
+  it("requires exact failed-run provenance and matching recovery audit", () => {
+    const value = fixture();
+    const result = JSON.parse(readFileSync(value.resultPath, "utf8")) as Record<
+      string,
+      unknown
+    >;
+    result.sourceRunStatus = "passed";
+    writeJson(value.resultPath, result);
+    expect(() => validate(value)).toThrow("source run status is not failed");
+
+    result.sourceRunStatus = "failed";
+    result.sourceReviewRun = "01KXHE00000000000000000000";
+    writeJson(value.resultPath, result);
+    expect(() => validate(value)).toThrow("source review run mismatch");
+
+    result.sourceReviewRun = sourceReviewRun;
+    result.baseSha = "f".repeat(40);
+    writeJson(value.resultPath, result);
+    expect(() => validate(value)).toThrow("recovery base history mismatch");
+
+    result.baseSha = value.baseSha;
+    writeJson(value.resultPath, result);
+    writeFileSync(value.auditPath, `${JSON.stringify({ action: "other" })}\n`);
+    expect(() => validate(value)).toThrow("matching recovery audit event");
+  });
+
+  it("cannot bypass recovery provenance by deleting mutable result history", () => {
+    const value = fixture();
+    const result = JSON.parse(readFileSync(value.resultPath, "utf8")) as Record<
+      string,
+      unknown
+    >;
+    delete result.recovery;
+    delete result.sourceRunStatus;
+    delete result.sourceReviewRun;
+    writeJson(value.resultPath, result);
+    expect(() => validate(value)).toThrow("source run status is not failed");
   });
 });

@@ -3,19 +3,11 @@ import { isAbsolute, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 
 import { changedHandAuthoredSourceLines } from "./source-budget.js";
+import { fabroRunId, gitSha } from "./integration-recovery.js";
 
 type JsonRecord = Record<string, unknown>;
 
-const legacyRequiredFindingIds = new Set([
-  "api-key-server-derived-scope",
-  "eval-external-run-artifacts",
-  "eval-mechanical-answer-scoring",
-  "export-lifecycle-fencing",
-  "llm-exact-provider-request",
-  "model-receipt-tenant-lifecycle",
-  "provider-server-client-boundary",
-  "workspace-explicit-fake-mode",
-]);
+const recoveryRequiredFindingIds = new Set(["legacy-integration-run-failed"]);
 
 const record = (value: unknown, label: string): JsonRecord => {
   if (typeof value !== "object" || value === null || Array.isArray(value))
@@ -40,9 +32,11 @@ const git = (workdir: string, args: readonly string[]): string => {
 };
 
 export interface RepairCheckInput {
+  readonly auditPath: string;
   readonly baseSha: string;
   readonly evidenceDirectory: string;
   readonly expectedWorkdir: string;
+  readonly sourceReviewRun: string;
   readonly stage: "record" | "review";
   readonly tranche: string;
 }
@@ -50,10 +44,15 @@ export interface RepairCheckInput {
 export const validateRepairResult = (input: RepairCheckInput): void => {
   if (
     !isAbsolute(input.expectedWorkdir) ||
-    !isAbsolute(input.evidenceDirectory)
+    !isAbsolute(input.evidenceDirectory) ||
+    !isAbsolute(input.auditPath)
   )
-    throw new Error("workdir and evidence directory must be absolute");
+    throw new Error(
+      "workdir, evidence directory, and audit path must be absolute",
+    );
   const workdir = realpathSync(input.expectedWorkdir);
+  const repairBaseSha = gitSha(input.baseSha, "repair baseSha");
+  const sourceReviewRun = fabroRunId(input.sourceReviewRun, "sourceReviewRun");
   const resultPath = resolve(
     input.evidenceDirectory,
     "integration",
@@ -61,7 +60,7 @@ export const validateRepairResult = (input: RepairCheckInput): void => {
     "integration-result.json",
   );
   const result = readJson(resultPath);
-  const headSha = git(workdir, ["rev-parse", "HEAD"]);
+  const headSha = gitSha(git(workdir, ["rev-parse", "HEAD"]), "worktree HEAD");
   if (
     string(result.schemaVersion, "schemaVersion") !==
     "maestro-brain-integration-result/v1"
@@ -69,18 +68,96 @@ export const validateRepairResult = (input: RepairCheckInput): void => {
     throw new Error("unexpected integration result schema");
   if (string(result.tranche, "tranche") !== input.tranche)
     throw new Error("tranche mismatch");
+  if (string(result.integrationId, "integrationId") !== input.tranche)
+    throw new Error("integration ID mismatch");
+  if (string(result.manifestTranche, "manifestTranche") !== input.tranche)
+    throw new Error("manifest tranche mismatch");
+  const resultBaseSha = gitSha(result.baseSha, "baseSha");
   if (
     realpathSync(string(result.integrationWorkdir, "integrationWorkdir")) !==
     workdir
   )
     throw new Error("integration workdir mismatch");
-  if (string(result.headSha, "headSha") !== headSha)
+  if (gitSha(result.headSha, "headSha") !== headSha)
     throw new Error("evidence head does not match HEAD");
   if (result.reviewVerdict !== "pass")
     throw new Error("review verdict is not pass");
   if (git(workdir, ["status", "--porcelain"]) !== "")
     throw new Error("integration worktree is not clean");
-  git(workdir, ["merge-base", "--is-ancestor", input.baseSha, headSha]);
+  git(workdir, ["merge-base", "--is-ancestor", repairBaseSha, headSha]);
+
+  if (result.sourceRunStatus !== "failed")
+    throw new Error("source run status is not failed");
+  if (
+    fabroRunId(result.sourceReviewRun, "result sourceReviewRun") !==
+    sourceReviewRun
+  )
+    throw new Error("source review run mismatch");
+  const recovery = record(result.recovery, "recovery");
+  if (
+    recovery.schemaVersion !== "maestro-brain-integration-recovery/v1" ||
+    recovery.sourceRunStatus !== "failed" ||
+    fabroRunId(recovery.sourceReviewRun, "recovery sourceReviewRun") !==
+      sourceReviewRun
+  )
+    throw new Error("invalid recovery history");
+  const recoveryAt = string(recovery.at, "recovery at");
+  const recoveryReason = string(recovery.reason, "recovery reason");
+  const legacyBaseHeadSha = gitSha(
+    recovery.legacyBaseHeadSha,
+    "recovery legacyBaseHeadSha",
+  );
+  if (resultBaseSha !== legacyBaseHeadSha)
+    throw new Error("recovery base history mismatch");
+  if (!Array.isArray(recovery.legacyIncludedTaskIds))
+    throw new Error("recovery included-task history is missing");
+  const recoveryTaskIds = recovery.legacyIncludedTaskIds
+    .map((taskId, index) =>
+      string(taskId, `recovery legacyIncludedTaskIds[${index}]`),
+    )
+    .sort();
+  if (new Set(recoveryTaskIds).size !== recoveryTaskIds.length)
+    throw new Error("recovery included-task history has duplicates");
+  if (
+    recovery.previousStatus !== "passed" ||
+    recovery.previousReviewVerdict !== "pass"
+  )
+    throw new Error("recovery does not preserve contradictory pass history");
+  if (
+    gitSha(
+      recovery.legacyIntegrationHeadSha,
+      "recovery legacyIntegrationHeadSha",
+    ) !== repairBaseSha
+  )
+    throw new Error("recovery integration head mismatch");
+  if (
+    realpathSync(string(recovery.legacyWorktree, "recovery legacyWorktree")) !==
+    workdir
+  )
+    throw new Error("recovery worktree mismatch");
+  const auditEvents = readFileSync(input.auditPath, "utf8")
+    .split("\n")
+    .filter(Boolean)
+    .map((line, index) =>
+      record(JSON.parse(line), `recovery audit line ${index + 1}`),
+    );
+  const hasMatchingAudit = auditEvents.some(
+    (event) =>
+      event.schemaVersion === "maestro-brain-integration-recovery-audit/v1" &&
+      event.action === "recover-legacy-integration" &&
+      event.at === recoveryAt &&
+      event.baseSha === legacyBaseHeadSha &&
+      event.headSha === repairBaseSha &&
+      JSON.stringify(event.legacyIncludedTaskIds) ===
+        JSON.stringify(recoveryTaskIds) &&
+      event.previousReviewVerdict === recovery.previousReviewVerdict &&
+      event.previousStatus === recovery.previousStatus &&
+      event.reason === recoveryReason &&
+      event.sourceRunStatus === "failed" &&
+      event.sourceReviewRun === sourceReviewRun &&
+      event.tranche === input.tranche,
+  );
+  if (!hasMatchingAudit) throw new Error("no matching recovery audit event");
 
   const remaining = Array.isArray(result.remainingFindings)
     ? result.remainingFindings.map((item, index) =>
@@ -93,20 +170,13 @@ export const validateRepairResult = (input: RepairCheckInput): void => {
     )
   )
     throw new Error("critical/high findings remain");
-  const requiredFindingIds = Array.isArray(result.requiredFindingIds)
-    ? new Set(
-        result.requiredFindingIds.map((value, index) =>
-          string(value, `requiredFindingIds[${index}]`),
-        ),
-      )
-    : legacyRequiredFindingIds;
   const resolved = new Set(
     (Array.isArray(result.resolvedFindings) ? result.resolvedFindings : []).map(
       (item, index) =>
         string(record(item, `resolvedFindings[${index}]`).id, "finding id"),
     ),
   );
-  for (const id of requiredFindingIds)
+  for (const id of recoveryRequiredFindingIds)
     if (!resolved.has(id)) throw new Error(`missing resolved finding ${id}`);
 
   const included = Array.isArray(result.includedTasks)
@@ -117,7 +187,7 @@ export const validateRepairResult = (input: RepairCheckInput): void => {
   for (const [index, value] of included.entries()) {
     const task = record(value, `includedTasks[${index}]`);
     const taskId = string(task.taskId, "taskId");
-    const laneHeadSha = string(task.laneHeadSha, `${taskId} laneHeadSha`);
+    const laneHeadSha = gitSha(task.laneHeadSha, `${taskId} laneHeadSha`);
     if (seenTasks.has(taskId))
       throw new Error(`duplicate included task ${taskId}`);
     seenTasks.add(taskId);
@@ -137,23 +207,26 @@ export const validateRepairResult = (input: RepairCheckInput): void => {
     const gate = readJson(resolve(laneDirectory, "lane-gate-report.json"));
     const lane = readJson(resolve(laneDirectory, "lane-result.json"));
     if (
-      proof.headSha !== laneHeadSha ||
-      gate.headSha !== laneHeadSha ||
-      lane.headSha !== laneHeadSha
+      gitSha(proof.headSha, `${taskId} proof headSha`) !== laneHeadSha ||
+      gitSha(gate.headSha, `${taskId} gate headSha`) !== laneHeadSha ||
+      gitSha(lane.headSha, `${taskId} lane headSha`) !== laneHeadSha
     )
       throw new Error(`${taskId}: lane proof/head mismatch`);
     if (gate.status !== "passed")
       throw new Error(`${taskId}: lane gate is not passed`);
   }
+  if (JSON.stringify([...seenTasks].sort()) !== JSON.stringify(recoveryTaskIds))
+    throw new Error("included tasks do not match recovery history");
 
   const commits = git(workdir, [
     "rev-list",
     "--reverse",
-    `${input.baseSha}..${headSha}`,
+    `${repairBaseSha}..${headSha}`,
   ])
     .split("\n")
     .filter(Boolean);
   for (const commit of commits) {
+    gitSha(commit, "repair commit");
     const numstat = git(workdir, ["show", "--numstat", "--format=", commit]);
     const lines = changedHandAuthoredSourceLines(numstat);
     if (lines > 300)
@@ -168,7 +241,10 @@ export const validateRepairResult = (input: RepairCheckInput): void => {
   if (result.status !== "passed")
     throw new Error("record result is not passed");
   const broadGate = record(result.broadGate, "broadGate");
-  if (broadGate.status !== "passed" || broadGate.headSha !== headSha)
+  if (
+    broadGate.status !== "passed" ||
+    gitSha(broadGate.headSha, "broad gate headSha") !== headSha
+  )
     throw new Error("broad gate receipt does not prove this head");
   for (const taskId of seenTasks) {
     const lane = readJson(
@@ -181,7 +257,10 @@ export const validateRepairResult = (input: RepairCheckInput): void => {
     );
     if (!new Set(["integrated", "accepted"]).has(String(lane.status)))
       throw new Error(`${taskId}: lane result not integrated`);
-    if (lane.integrationHeadSha !== headSha)
+    if (
+      gitSha(lane.integrationHeadSha, `${taskId} integrationHeadSha`) !==
+      headSha
+    )
       throw new Error(`${taskId}: integration head mismatch`);
   }
 };
@@ -194,23 +273,29 @@ const valueAfter = (flag: string): string | undefined => {
 if (process.argv[1]?.endsWith("repair-result-check.mts")) {
   const workdir = valueAfter("--workdir");
   const evidence = valueAfter("--evidence");
+  const auditPath = valueAfter("--audit");
   const tranche = valueAfter("--tranche");
   const baseSha = valueAfter("--base");
+  const sourceReviewRun = valueAfter("--source-run");
   const stage = valueAfter("--stage");
   if (
     !workdir ||
     !evidence ||
+    !auditPath ||
     !tranche ||
     !baseSha ||
+    !sourceReviewRun ||
     !new Set(["review", "record"]).has(stage ?? "")
   )
     throw new Error(
-      "usage: repair-result-check --workdir ... --evidence ... --tranche ... --base ... --stage review|record",
+      "usage: repair-result-check --workdir ... --evidence ... --audit ... --tranche ... --base ... --source-run ... --stage review|record",
     );
   validateRepairResult({
+    auditPath,
     baseSha,
     evidenceDirectory: evidence,
     expectedWorkdir: workdir,
+    sourceReviewRun,
     stage: stage as "review" | "record",
     tranche,
   });

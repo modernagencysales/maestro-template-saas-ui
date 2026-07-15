@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import {
   appendFileSync,
   existsSync,
@@ -6,10 +7,12 @@ import {
   closeSync,
   readFileSync,
   renameSync,
+  rmdirSync,
   rmSync,
+  unlinkSync,
   writeFileSync,
 } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { dirname, isAbsolute, resolve } from "node:path";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -24,16 +27,57 @@ const string = (value: unknown, label: string): string => {
   if (typeof value !== "string" || value.trim().length === 0) {
     throw new Error(`${label} must be a non-empty string`);
   }
-  return value.trim();
+  return value;
 };
 
-export const integrationLockPath = (state: string, tranche: string): string =>
-  resolve(state, "locks", `integration-${tranche}.lock`);
+export const gitSha = (value: unknown, label: string): string => {
+  const parsed = string(value, label);
+  if (!/^[0-9a-f]{40}$/.test(parsed)) {
+    throw new Error(`${label} must be a 40-character Git SHA`);
+  }
+  return parsed;
+};
+
+export const fabroRunId = (value: unknown, label: string): string => {
+  const parsed = string(value, label);
+  if (!/^[0-9A-HJKMNP-TV-Z]{26}$/.test(parsed)) {
+    throw new Error(`${label} must be a ULID`);
+  }
+  return parsed;
+};
+
+const safeTranche = (value: unknown, label: string): string => {
+  const parsed = string(value, label);
+  if (!/^[A-Za-z0-9][A-Za-z0-9-]*$/.test(parsed)) {
+    throw new Error(`${label} is invalid`);
+  }
+  return parsed;
+};
+
+export const safeAbsolutePath = (value: unknown, label: string): string => {
+  const parsed = string(value, label);
+  if (!isAbsolute(parsed)) throw new Error(`${label} must be absolute`);
+  if (!/^[A-Za-z0-9_./@+=:-]+$/.test(parsed)) {
+    throw new Error(`${label} contains shell-unsafe characters`);
+  }
+  return resolve(parsed);
+};
+
+export const integrationLockPath = (
+  gitCommonDirectory: string,
+  tranche: string,
+): string =>
+  resolve(
+    safeAbsolutePath(gitCommonDirectory, "Git common directory"),
+    "maestro-brain-factory",
+    `integration-${safeTranche(tranche, "tranche")}.lock`,
+  );
 
 export const acquireIntegrationOwnership = (input: {
   readonly lockPath: string;
   readonly owner: JsonRecord;
 }): (() => void) => {
+  const ownershipToken = randomUUID();
   mkdirSync(dirname(input.lockPath), { recursive: true });
   try {
     mkdirSync(input.lockPath);
@@ -50,11 +94,30 @@ export const acquireIntegrationOwnership = (input: {
     }
     throw error;
   }
-  writeFileSync(
-    resolve(input.lockPath, "owner.json"),
-    `${JSON.stringify(input.owner, null, 2)}\n`,
-  );
-  return () => rmSync(input.lockPath, { recursive: true });
+  const ownerPath = resolve(input.lockPath, "owner.json");
+  const ownerContent = `${JSON.stringify(
+    { ...input.owner, ownershipToken },
+    null,
+    2,
+  )}\n`;
+  writeFileSync(ownerPath, ownerContent, { flag: "wx" });
+  return () => {
+    if (readFileSync(ownerPath, "utf8") !== ownerContent) {
+      throw new Error(
+        `integration ownership changed at ${input.lockPath}; refusing release`,
+      );
+    }
+    const claimedPath = `${input.lockPath}.release-${ownershipToken}`;
+    renameSync(input.lockPath, claimedPath);
+    const claimedOwnerPath = resolve(claimedPath, "owner.json");
+    if (readFileSync(claimedOwnerPath, "utf8") !== ownerContent) {
+      throw new Error(
+        `integration ownership changed at ${input.lockPath}; refusing release`,
+      );
+    }
+    unlinkSync(claimedOwnerPath);
+    rmdirSync(claimedPath);
+  };
 };
 
 export interface LegacyIntegrationRecoveryPlan {
@@ -70,6 +133,7 @@ export const planLegacyIntegrationRecovery = (input: {
   readonly failedRun: unknown;
   readonly integrationResult: unknown;
   readonly isAncestor: (ancestor: string, descendant: string) => boolean;
+  readonly manifestTaskIds: readonly string[];
   readonly now: string;
   readonly reason: string | undefined;
   readonly runRecord: unknown;
@@ -79,11 +143,15 @@ export const planLegacyIntegrationRecovery = (input: {
   readonly worktreePath: string;
 }): LegacyIntegrationRecoveryPlan => {
   const reason = string(input.reason, "recovery reason");
-  const tranche = string(input.tranche, "tranche");
+  const tranche = safeTranche(input.tranche, "tranche");
+  const branchHead = gitSha(input.branchHead, "branch head");
+  const controlHead = gitSha(input.controlHead, "control HEAD");
+  const worktreeHead = gitSha(input.worktreeHead, "worktree HEAD");
+  const worktreePath = safeAbsolutePath(input.worktreePath, "worktree path");
   const run = record(input.runRecord, "run record");
   const result = record(input.integrationResult, "integration result");
-  const runId = string(run.runId, "run record runId");
-  const baseSha = string(run.baseSha, "run record baseSha");
+  const runId = fabroRunId(run.runId, "run record runId");
+  const baseSha = gitSha(run.baseSha, "run record baseSha");
   const expectedBranch = `fabro/brain-${tranche.toLowerCase()}`;
   if (string(run.tranche, "run record tranche") !== tranche) {
     throw new Error(`${tranche}: run record tranche mismatch`);
@@ -103,9 +171,7 @@ export const planLegacyIntegrationRecovery = (input: {
   if (string(run.branch, "run record branch") !== expectedBranch) {
     throw new Error(`${tranche}: run record branch mismatch`);
   }
-  if (
-    resolve(string(run.workdir, "run record workdir")) !== input.worktreePath
-  ) {
+  if (safeAbsolutePath(run.workdir, "run record workdir") !== worktreePath) {
     throw new Error(`${tranche}: run record worktree mismatch`);
   }
 
@@ -116,7 +182,7 @@ export const planLegacyIntegrationRecovery = (input: {
       `${tranche}: source Fabro run is ${String(failedRunStatus ?? "unknown")}; only a verified failed run may be recovered`,
     );
   }
-  if (string(failedRun.run_id, "Fabro run ID") !== runId) {
+  if (fabroRunId(failedRun.run_id, "Fabro run ID") !== runId) {
     throw new Error(`${tranche}: Fabro run ID does not match run record`);
   }
   const failedRunSettings = record(
@@ -131,15 +197,15 @@ export const planLegacyIntegrationRecovery = (input: {
     failedRunConfiguration.inputs,
     "Fabro run inputs",
   );
-  if (string(failedRunInputs.base_sha, "Fabro run base") !== baseSha) {
+  if (gitSha(failedRunInputs.base_sha, "Fabro run base") !== baseSha) {
     throw new Error(`${tranche}: Fabro run base mismatch`);
   }
   if (string(failedRunInputs.tranche, "Fabro run tranche") !== tranche) {
     throw new Error(`${tranche}: Fabro run tranche mismatch`);
   }
   if (
-    resolve(string(failedRunInputs.workdir, "Fabro run workdir")) !==
-    input.worktreePath
+    safeAbsolutePath(failedRunInputs.workdir, "Fabro run workdir") !==
+    worktreePath
   ) {
     throw new Error(`${tranche}: Fabro run worktree mismatch`);
   }
@@ -158,31 +224,53 @@ export const planLegacyIntegrationRecovery = (input: {
   if (!input.worktreeClean) {
     throw new Error(`${tranche}: integration worktree is not clean`);
   }
-  if (input.branchHead !== input.worktreeHead) {
+  if (branchHead !== worktreeHead) {
     throw new Error(`${tranche}: branch and worktree heads differ`);
   }
-  if (!input.isAncestor(baseSha, input.worktreeHead)) {
+  if (!input.isAncestor(baseSha, worktreeHead)) {
     throw new Error(
       `${tranche}: integration base is not an ancestor of its head`,
     );
   }
-  if (!input.isAncestor(input.worktreeHead, input.controlHead)) {
+  if (!input.isAncestor(worktreeHead, controlHead)) {
     throw new Error(
       `${tranche}: integration head is not an ancestor of control HEAD`,
     );
   }
 
-  const modernFields = [
-    result.baseSha,
-    result.headSha,
-    result.integrationId,
-    result.integrationWorkdir,
-    result.manifestTranche,
-  ];
+  if (result.recovery !== undefined) {
+    throw new Error(
+      `${tranche}: integration evidence already has recovery history`,
+    );
+  }
   if (
-    modernFields.every((value) => typeof value === "string" && value.length > 0)
+    string(result.schemaVersion, "legacy evidence schemaVersion") !==
+    "maestro-brain-integration-result/v1"
   ) {
-    throw new Error(`${tranche}: integration evidence is already versioned`);
+    throw new Error(`${tranche}: unexpected legacy evidence schema`);
+  }
+  if (string(result.tranche, "legacy evidence tranche") !== tranche) {
+    throw new Error(`${tranche}: legacy evidence tranche mismatch`);
+  }
+  if (gitSha(result.baseHeadSha, "legacy evidence baseHeadSha") !== baseSha) {
+    throw new Error(`${tranche}: legacy evidence base mismatch`);
+  }
+  if (
+    gitSha(result.integrationHeadSha, "legacy evidence integrationHeadSha") !==
+    worktreeHead
+  ) {
+    throw new Error(`${tranche}: legacy evidence head mismatch`);
+  }
+  if (
+    safeAbsolutePath(result.worktree, "legacy evidence worktree") !==
+    worktreePath
+  ) {
+    throw new Error(`${tranche}: legacy evidence worktree mismatch`);
+  }
+  if (result.status !== "passed" || result.reviewVerdict !== "pass") {
+    throw new Error(
+      `${tranche}: legacy evidence is not contradictory pass evidence`,
+    );
   }
   if (
     !Array.isArray(result.includedTasks) ||
@@ -191,16 +279,82 @@ export const planLegacyIntegrationRecovery = (input: {
     throw new Error(`${tranche}: legacy evidence has no included tasks`);
   }
 
+  const manifestTaskIds = new Set(
+    input.manifestTaskIds.map((taskId, index) =>
+      string(taskId, `manifestTaskIds[${index}]`),
+    ),
+  );
+  if (manifestTaskIds.size !== input.manifestTaskIds.length) {
+    throw new Error(`${tranche}: manifest tranche has duplicate task IDs`);
+  }
+  const seenTaskIds = new Set<string>();
   const includedTasks = result.includedTasks.map((value, index) => {
     const task = record(value, `includedTasks[${index}]`);
-    const laneHeadSha = string(
+    const taskId = string(task.taskId, `includedTasks[${index}] taskId`);
+    if (!manifestTaskIds.has(taskId)) {
+      throw new Error(`${taskId}: task is outside manifest tranche ${tranche}`);
+    }
+    if (seenTaskIds.has(taskId)) {
+      throw new Error(`${tranche}: duplicate included task ${taskId}`);
+    }
+    seenTaskIds.add(taskId);
+    if (string(task.tranche, `${taskId} tranche`) !== tranche) {
+      throw new Error(`${taskId}: task tranche mismatch`);
+    }
+    const laneHeadSha = gitSha(
       task.laneHeadSha ?? task.taskHeadSha,
       `includedTasks[${index}] lane head`,
     );
-    return { ...task, laneHeadSha };
+    const integrationCommitSha = gitSha(
+      task.integrationCommitSha,
+      `${taskId} integrationCommitSha`,
+    );
+    if (!input.isAncestor(integrationCommitSha, worktreeHead)) {
+      throw new Error(
+        `${taskId}: integration commit is not on the integration head`,
+      );
+    }
+    return { ...task, integrationCommitSha, laneHeadSha, taskId };
+  });
+  const includedByTaskId = new Map(
+    includedTasks.map((task) => [task.taskId as string, task]),
+  );
+  if (
+    !Array.isArray(result.commits) ||
+    result.commits.length !== includedTasks.length
+  ) {
+    throw new Error(
+      `${tranche}: legacy commit list does not match included tasks`,
+    );
+  }
+  const seenCommitTaskIds = new Set<string>();
+  const commits = result.commits.map((value, index) => {
+    const commit = record(value, `commits[${index}]`);
+    const taskId = string(commit.taskId, `commits[${index}] taskId`);
+    const included = includedByTaskId.get(taskId);
+    if (!included || seenCommitTaskIds.has(taskId)) {
+      throw new Error(`${tranche}: legacy commit task mismatch ${taskId}`);
+    }
+    seenCommitTaskIds.add(taskId);
+    const sourceCommitSha = gitSha(
+      commit.sourceCommitSha,
+      `${taskId} commit sourceCommitSha`,
+    );
+    const integrationCommitSha = gitSha(
+      commit.integrationCommitSha,
+      `${taskId} commit integrationCommitSha`,
+    );
+    if (
+      sourceCommitSha !== included.laneHeadSha ||
+      integrationCommitSha !== included.integrationCommitSha
+    ) {
+      throw new Error(`${taskId}: legacy commit does not match included task`);
+    }
+    return { ...commit, integrationCommitSha, sourceCommitSha, taskId };
   });
   const previousStatus = result.status ?? null;
   const previousReviewVerdict = result.reviewVerdict ?? null;
+  const legacyIncludedTaskIds = [...seenTaskIds].sort();
   const recoveryFinding = {
     id: "legacy-integration-run-failed",
     severity: "high",
@@ -212,50 +366,50 @@ export const planLegacyIntegrationRecovery = (input: {
         record(value, `remainingFindings[${index}]`),
       )
     : [];
-  const requiredFindingIds = new Set<string>(
-    Array.isArray(result.requiredFindingIds)
-      ? result.requiredFindingIds.map((value, index) =>
-          string(value, `requiredFindingIds[${index}]`),
-        )
-      : [],
-  );
-  for (const [index, finding] of previousRemainingFindings.entries()) {
-    if (/^(?:critical|high|no-merge)$/i.test(String(finding.severity ?? ""))) {
-      requiredFindingIds.add(
-        string(finding.id, `remainingFindings[${index}] id`),
-      );
-    }
-  }
-  requiredFindingIds.add(recoveryFinding.id);
+  const previousResolvedFindings = Array.isArray(result.resolvedFindings)
+    ? result.resolvedFindings
+        .map((value, index) => record(value, `resolvedFindings[${index}]`))
+        .filter((finding) => finding.id !== recoveryFinding.id)
+    : [];
   const legacy: JsonRecord = { ...result };
   for (const key of [
+    "baseHeadSha",
     "baseSha",
     "broadGate",
     "headSha",
+    "integrationHeadSha",
     "integrationId",
     "integrationWorkdir",
     "manifestTranche",
+    "requiredFindingIds",
+    "worktree",
   ]) {
     delete legacy[key];
   }
   const normalizedResult: JsonRecord = {
     ...legacy,
     baseSha,
-    headSha: input.worktreeHead,
+    headSha: worktreeHead,
+    commits,
     includedTasks,
     integrationId: tranche,
-    integrationWorkdir: input.worktreePath,
+    integrationWorkdir: worktreePath,
     manifestTranche: tranche,
     recovery: {
       at: input.now,
+      legacyBaseHeadSha: baseSha,
+      legacyIncludedTaskIds,
+      legacyIntegrationHeadSha: worktreeHead,
+      legacyWorktree: worktreePath,
       previousReviewVerdict,
       previousStatus,
       reason,
+      schemaVersion: "maestro-brain-integration-recovery/v1",
       sourceRunStatus: "failed",
       sourceReviewRun: runId,
     },
     remainingFindings: [...previousRemainingFindings, recoveryFinding],
-    requiredFindingIds: [...requiredFindingIds].sort(),
+    resolvedFindings: previousResolvedFindings,
     reviewVerdict: "rework",
     schemaVersion: "maestro-brain-integration-result/v1",
     sourceRunStatus: "failed",
@@ -267,16 +421,19 @@ export const planLegacyIntegrationRecovery = (input: {
     auditEvent: {
       action: "recover-legacy-integration",
       at: input.now,
-      headSha: input.worktreeHead,
+      baseSha,
+      headSha: worktreeHead,
+      legacyIncludedTaskIds,
       previousReviewVerdict,
       previousStatus,
       reason,
+      schemaVersion: "maestro-brain-integration-recovery-audit/v1",
       sourceRunStatus: "failed",
       sourceReviewRun: runId,
       tranche,
     },
     normalizedResult,
-    repairBaseSha: input.worktreeHead,
+    repairBaseSha: worktreeHead,
     sourceReviewRun: runId,
   };
 };
@@ -312,7 +469,8 @@ export const persistLegacyIntegrationRecovery = (input: {
 export const reserveRepairLaunch = (
   path: string,
   reservation: JsonRecord,
-): void => {
+): string => {
+  const reservationToken = randomUUID();
   mkdirSync(dirname(path), { recursive: true });
   let descriptor: number;
   try {
@@ -331,55 +489,96 @@ export const reserveRepairLaunch = (
     throw error;
   }
   try {
-    writeFileSync(descriptor, `${JSON.stringify(reservation, null, 2)}\n`);
+    writeFileSync(
+      descriptor,
+      `${JSON.stringify({ ...reservation, reservationToken }, null, 2)}\n`,
+    );
   } finally {
     closeSync(descriptor);
   }
+  return reservationToken;
 };
 
 export const promoteRepairLaunch = (
   path: string,
+  reservationToken: string,
   recordValue: JsonRecord,
 ): void => {
   const temporary = `${path}.next`;
+  if (existsSync(temporary)) {
+    throw new Error(
+      `repair launch staging file already exists at ${temporary}`,
+    );
+  }
+  const reservationContent = readFileSync(path, "utf8");
+  const reservation = record(JSON.parse(reservationContent), "reservation");
+  if (
+    reservation.reservationToken !== reservationToken ||
+    reservation.status !== "preparing"
+  ) {
+    throw new Error(`repair launch reservation changed at ${path}`);
+  }
   writeFileSync(temporary, `${JSON.stringify(recordValue, null, 2)}\n`, {
     flag: "wx",
   });
+  if (readFileSync(path, "utf8") !== reservationContent) {
+    rmSync(temporary);
+    throw new Error(`repair launch reservation changed at ${path}`);
+  }
   renameSync(temporary, path);
 };
 
 export const repairWorkflowArgs = (input: {
   readonly controlRoot: string;
   readonly evidenceDirectory: string;
+  readonly recoveryAuditPath: string;
   readonly repairBaseSha: string;
   readonly sourceReviewRun: string;
   readonly tranche: string;
   readonly workdir: string;
   readonly workflow: string;
-}): readonly string[] => [
-  "fabro",
-  "run",
-  input.workflow,
-  "--detach",
-  "--json",
-  "--no-upgrade-check",
-  "--environment",
-  "local",
-  "--label",
-  `tranche=${input.tranche}`,
-  "-I",
-  `workdir=${input.workdir}`,
-  "-I",
-  `evidence_dir=${input.evidenceDirectory}`,
-  "-I",
-  `tranche=${input.tranche}`,
-  "-I",
-  `base_sha=${input.repairBaseSha}`,
-  "-I",
-  `source_review_run=${input.sourceReviewRun}`,
-  "-I",
-  `control_root=${input.controlRoot}`,
-];
+}): readonly string[] => {
+  const controlRoot = safeAbsolutePath(input.controlRoot, "controlRoot");
+  const evidenceDirectory = safeAbsolutePath(
+    input.evidenceDirectory,
+    "evidenceDirectory",
+  );
+  const recoveryAuditPath = safeAbsolutePath(
+    input.recoveryAuditPath,
+    "recoveryAuditPath",
+  );
+  const repairBaseSha = gitSha(input.repairBaseSha, "repairBaseSha");
+  const sourceReviewRun = fabroRunId(input.sourceReviewRun, "sourceReviewRun");
+  const tranche = safeTranche(input.tranche, "tranche");
+  const workdir = safeAbsolutePath(input.workdir, "workdir");
+  const workflow = safeAbsolutePath(input.workflow, "workflow");
+  return [
+    "fabro",
+    "run",
+    workflow,
+    "--detach",
+    "--json",
+    "--no-upgrade-check",
+    "--environment",
+    "local",
+    "--label",
+    `tranche=${tranche}`,
+    "-I",
+    `workdir=${workdir}`,
+    "-I",
+    `evidence_dir=${evidenceDirectory}`,
+    "-I",
+    `recovery_audit=${recoveryAuditPath}`,
+    "-I",
+    `tranche=${tranche}`,
+    "-I",
+    `base_sha=${repairBaseSha}`,
+    "-I",
+    `source_review_run=${sourceReviewRun}`,
+    "-I",
+    `control_root=${controlRoot}`,
+  ];
+};
 
 export const readJsonRecord = (path: string): JsonRecord =>
   record(JSON.parse(readFileSync(path, "utf8")), path);

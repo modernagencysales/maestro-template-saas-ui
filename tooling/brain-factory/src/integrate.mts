@@ -7,7 +7,10 @@ import {
 } from "./factory-state.js";
 import {
   acquireIntegrationOwnership,
+  fabroRunId,
+  gitSha,
   integrationLockPath,
+  safeAbsolutePath,
 } from "./integration-recovery.js";
 import { gitBranchExists, gitIsAncestor, runRtk } from "./process.js";
 
@@ -24,16 +27,29 @@ if (!/^[A-Za-z0-9][A-Za-z0-9-]*$/.test(manifestTranche)) {
   throw new Error(`invalid tranche ${manifestTranche}`);
 }
 const root = process.cwd();
-const state = resolve(valueAfter("--state") ?? ".fabro/state/maestro-brain");
+const state = safeAbsolutePath(
+  resolve(valueAfter("--state") ?? ".fabro/state/maestro-brain"),
+  "state path",
+);
 const evidence = resolve(state, "evidence");
 const runs = resolve(state, "runs");
 const workflow = resolve(
   ".fabro/workflows/brain-integrate-tranche/workflow.fabro",
 );
 const worktreeRoot = resolve(root, "..", ".maestro-brain-fabro-workdirs");
-const baseSha = runRtk(["git", "rev-parse", "HEAD"], { quiet: true });
+const baseSha = gitSha(
+  runRtk(["git", "rev-parse", "HEAD"], { quiet: true }),
+  "control HEAD",
+);
+const gitCommonDirectory = safeAbsolutePath(
+  resolve(
+    root,
+    runRtk(["git", "rev-parse", "--git-common-dir"], { quiet: true }),
+  ),
+  "Git common directory",
+);
 const releaseOwnership = acquireIntegrationOwnership({
-  lockPath: integrationLockPath(state, manifestTranche),
+  lockPath: integrationLockPath(gitCommonDirectory, manifestTranche),
   owner: {
     action: "launch-integration",
     at: new Date().toISOString(),
@@ -61,7 +77,11 @@ try {
           readonly status?: string;
         })
       : undefined;
-    const headSha = result?.headSha ?? result?.integrationHeadSha;
+    const rawHeadSha = result?.headSha ?? result?.integrationHeadSha;
+    const headSha =
+      rawHeadSha === undefined
+        ? undefined
+        : gitSha(rawHeadSha, `${integrationId} evidence head`);
     return {
       existingArtifacts: [
         ...(existsSync(integrationResult)
@@ -119,8 +139,10 @@ try {
     { quiet: true },
   );
   const parsed = JSON.parse(output) as { run_id?: string; runId?: string };
-  const runId = parsed.run_id ?? parsed.runId;
-  if (!runId) throw new Error(`Fabro did not return a run ID: ${output}`);
+  const runId = fabroRunId(
+    parsed.run_id ?? parsed.runId,
+    "integration Fabro run ID",
+  );
   mkdirSync(runs, { recursive: true });
   writeFileSync(
     runRecord,
