@@ -1030,7 +1030,9 @@ export const inspectRepairRunPhase = (
           record(inspected.status, "Fabro repair status").kind,
           "Fabro repair status kind",
         );
-  if (new Set(["created", "pending"]).has(status)) return "startable";
+  if (new Set(["created", "pending", "submitted"]).has(status)) {
+    return "startable";
+  }
   if (
     new Set([
       "blocked",

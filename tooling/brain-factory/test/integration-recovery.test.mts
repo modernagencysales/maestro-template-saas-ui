@@ -939,6 +939,71 @@ describe("legacy integration recovery", () => {
     expect(startCalls).toBe(1);
   });
 
+  it("starts a submitted durable run without allocating another run ID", () => {
+    const fixtureRoot = root();
+    const resultPath = resolve(
+      fixtureRoot,
+      "submitted-integration-result.json",
+    );
+    const auditPath = resolve(fixtureRoot, "submitted-recovery-audit.jsonl");
+    const repairRecordPath = resolve(fixtureRoot, "submitted-repair.json");
+    const authority = validInput();
+    const plan = planLegacyIntegrationRecovery(authority);
+    writeFileSync(
+      resultPath,
+      `${JSON.stringify(authority.integrationResult, null, 2)}\n`,
+    );
+    let createCalls = 0;
+    let startCalls = 0;
+    let started = false;
+    const run = () =>
+      reconcileLegacyIntegrationRecovery({
+        auditPath,
+        create: (identity) => {
+          createCalls += 1;
+          return foundCreatedRun(identity).receipt;
+        },
+        discoverCreatedRun: () => {
+          if (createCalls > 0) {
+            throw new Error("submitted run must not be rediscovered");
+          }
+          return { kind: "absent" };
+        },
+        inspectRun: (identity) =>
+          inspectRepairRunPhase(
+            repairInspection(identity, {
+              status: started ? "running" : "submitted",
+            }),
+            identity,
+          ),
+        identity: {
+          baseSha: plan.repairBaseSha,
+          sourceReviewRun: plan.sourceReviewRun,
+          tranche: authority.tranche,
+          workdir: authority.worktreePath,
+        },
+        plan,
+        repairRecordPath,
+        resultPath,
+        start: (identity) => {
+          startCalls += 1;
+          expect(identity.runId).toBe(REPAIR_RUN_ID);
+          started = true;
+        },
+      });
+
+    expect(run()).toEqual({ runId: REPAIR_RUN_ID, status: "launched" });
+    expect(run()).toEqual({ runId: REPAIR_RUN_ID, status: "launched" });
+    expect(createCalls).toBe(1);
+    expect(startCalls).toBe(1);
+    expect(JSON.parse(readFileSync(repairRecordPath, "utf8"))).toMatchObject({
+      createdRunId: REPAIR_RUN_ID,
+      launchAttempt: 1,
+      runId: REPAIR_RUN_ID,
+      status: "launched",
+    });
+  });
+
   it.each(["reservationToken", "attempt", "taskIds", "receiptSha256"] as const)(
     "rejects a durable launch receipt with tampered %s",
     (field) => {
@@ -1065,6 +1130,12 @@ describe("legacy integration recovery", () => {
     expect(
       inspectRepairRunPhase(
         repairInspection(identity, { status: "pending" }),
+        identity,
+      ),
+    ).toBe("startable");
+    expect(
+      inspectRepairRunPhase(
+        repairInspection(identity, { status: "submitted" }),
         identity,
       ),
     ).toBe("startable");
