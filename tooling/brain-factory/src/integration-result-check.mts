@@ -13,7 +13,7 @@ import {
   type IntegrationWaveSelection,
   validateIntegrationWaveSelection,
 } from "./integration-wave.js";
-import { isIntegrationOwnedGeneratedFile } from "./lane-ownership.js";
+import { integrationGeneratedFileAllowlist } from "./lane-ownership.js";
 import { changedHandAuthoredSourceLines } from "./source-budget.js";
 
 export interface IntegrationResultCheckInput {
@@ -94,6 +94,12 @@ export const validateIntegrationResult = (
     ) {
       throw new Error("v2 integration selection identity mismatch");
     }
+    if (
+      !Array.isArray(result.remainingFindings) ||
+      result.remainingFindings.length !== 0
+    ) {
+      throw new Error("v2 passed integration has remaining findings");
+    }
   }
   if (
     realpathSync(string(result.integrationWorkdir, "integrationWorkdir")) !==
@@ -159,7 +165,14 @@ export const validateIntegrationResult = (
       );
     }
     const generatedFiles = changedFiles.filter((file) => !laneFiles.has(file));
-    if (generatedFiles.some((file) => !isIntegrationOwnedGeneratedFile(file))) {
+    const baseFiles = git(workdir, ["ls-tree", "-r", "--name-only", baseSha])
+      .split("\n")
+      .filter(Boolean);
+    const generatedAllowlist = integrationGeneratedFileAllowlist({
+      baseFiles,
+      laneFiles: [...laneFiles],
+    });
+    if (generatedFiles.some((file) => !generatedAllowlist.has(file))) {
       throw new Error(
         "wave integration contains non-lane, non-generated files",
       );
@@ -188,7 +201,7 @@ export const validateIntegrationResult = (
         .filter(Boolean);
       if (
         commitFiles.length > 0 &&
-        commitFiles.every(isIntegrationOwnedGeneratedFile)
+        commitFiles.every((file) => generatedAllowlist.has(file))
       ) {
         continue;
       }

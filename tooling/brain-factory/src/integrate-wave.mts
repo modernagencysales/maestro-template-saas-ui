@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import {
   existsSync,
   mkdirSync,
@@ -16,6 +16,7 @@ import {
 import {
   acquireIntegrationOwnership,
   fabroRunId,
+  GLOBAL_INTEGRATION_LOCK,
   gitSha,
   integrationLockPath,
   safeAbsolutePath,
@@ -26,6 +27,7 @@ import {
   type IntegrationWaveCandidate,
 } from "./integration-wave.js";
 import {
+  materializeImmutableWaveSelection,
   replaceWaveRunRecord,
   verifyWaveRunInspection,
   waveWorkflowArgs,
@@ -75,7 +77,7 @@ const gitCommonDirectory = safeAbsolutePath(
   "Git common directory",
 );
 const releaseOwnership = acquireIntegrationOwnership({
-  lockPath: integrationLockPath(gitCommonDirectory, "wave-v2"),
+  lockPath: integrationLockPath(gitCommonDirectory, GLOBAL_INTEGRATION_LOCK),
   owner: {
     action: "launch-integration-wave-v2",
     at: new Date().toISOString(),
@@ -235,15 +237,15 @@ try {
     const recordPath = resolve(runs, `integration-${integrationId}.json`);
     const rawPath = `${recordPath}.launch-1.raw`;
     const outcomePath = `${rawPath}.outcome.json`;
-    writeFileSync(selectionPath, `${JSON.stringify(selection, null, 2)}\n`, {
-      flag: "wx",
-    });
+    const reservationToken = randomUUID();
     const reservation = {
       attempt: 0,
       baseSha,
       branch,
       integrationId,
+      reservationToken,
       schemaVersion: "maestro-brain-integration-wave-run/v2",
+      selection,
       selectionPath,
       selectionSha256: selection.selectionSha256,
       status: "preparing",
@@ -252,12 +254,15 @@ try {
     writeFileSync(recordPath, `${JSON.stringify(reservation, null, 2)}\n`, {
       flag: "wx",
     });
+    materializeImmutableWaveSelection(selectionPath, selection);
     runRtk(["git", "worktree", "add", "-B", branch, workdir, baseSha]);
     hydrateWorktreeDependencies(root, workdir);
     const identity = {
+      attempt: 1,
       baseSha,
       integrationId,
       mode: "integrate" as const,
+      reservationToken,
       selectionPath,
       selectionSha256: selection.selectionSha256,
       workdir,

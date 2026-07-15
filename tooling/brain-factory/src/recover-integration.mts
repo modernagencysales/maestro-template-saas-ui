@@ -6,6 +6,7 @@ import {
   discoverCreatedRepairRun,
   dispatchIntegrationRecovery,
   fabroRunId,
+  GLOBAL_INTEGRATION_LOCK,
   gitSha,
   inspectRepairRunPhase,
   integrationLockPath,
@@ -136,7 +137,7 @@ if (manifestTaskIds.length === 0) {
   throw new Error(`${tranche}: tranche is absent from the task manifest`);
 }
 const releaseOwnership = acquireIntegrationOwnership({
-  lockPath: integrationLockPath(gitCommonDirectory, tranche),
+  lockPath: integrationLockPath(gitCommonDirectory, GLOBAL_INTEGRATION_LOCK),
   owner: {
     action: "recover-legacy-integration",
     at: new Date().toISOString(),

@@ -128,4 +128,18 @@ describe("Fabro workflow prompt contracts", () => {
     );
     expect(wave).toContain("--wave-selection");
   });
+
+  it("serializes legacy and wave integration through one global lock", () => {
+    for (const file of [
+      "integrate.mts",
+      "integrate-wave.mts",
+      "promote-integration-wave.mts",
+      "recover-integration.mts",
+      "recover-integration-wave.mts",
+    ]) {
+      expect(
+        readFileSync(resolve(import.meta.dirname, "../src", file), "utf8"),
+      ).toContain("GLOBAL_INTEGRATION_LOCK");
+    }
+  });
 });
