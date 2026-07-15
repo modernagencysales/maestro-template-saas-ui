@@ -46,6 +46,27 @@ describe("brain lane gate profiles", () => {
     ).toEqual([]);
   });
 
+  it("runs repository config drift for release-profile lanes", () => {
+    expect(commandsForProfiles(["release"])).toEqual([
+      {
+        program: "pnpm",
+        args: ["--dir", "tooling/release", "typecheck"],
+      },
+      {
+        program: "host-test-slot",
+        args: [
+          "--class",
+          "focused",
+          "pnpm",
+          "--dir",
+          "tooling/release",
+          "test",
+        ],
+      },
+      { program: "pnpm", args: ["check:config-drift"] },
+    ]);
+  });
+
   it("lints changed source without passing docs or env files", () => {
     expect(
       lintCommandForFiles([

@@ -62,7 +62,13 @@ describe("Maestro Brain execution manifest", () => {
     const manifest = buildManifest();
     const isolation = manifest.tasks.find((task) => task.taskId === "S00-T03");
     const migrations = manifest.tasks.find((task) => task.taskId === "S00-T04");
-    expect(isolation?.fileLocks).toContain(".buildkite/pipeline.yml");
+    expect(isolation?.fileLocks).toEqual(
+      expect.arrayContaining([
+        ".buildkite/pipeline.yml",
+        "tooling/quality/check-config-drift.test.mts",
+        "tooling/quality/src/check-definitions.mts",
+      ]),
+    );
     expect(migrations?.codeStartAfter).toEqual(["S00-T03"]);
   });
 
@@ -82,7 +88,7 @@ describe("Maestro Brain execution manifest", () => {
     const manifest = buildManifest();
     const deployment = manifest.tasks.find((task) => task.taskId === "S00-T03");
     const generator = manifest.tasks.find((task) => task.taskId === "S08-T02");
-    expect(deployment?.gateProfiles).toEqual(["release"]);
+    expect(deployment?.gateProfiles).toEqual(["release", "tooling"]);
     expect(generator?.gateProfiles).toEqual(["generators"]);
     expect(generator?.fileLocks).not.toContain("@dependencies");
   });

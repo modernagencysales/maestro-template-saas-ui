@@ -1,6 +1,6 @@
 {
   "planPath": "docs/superpowers/plans/2026-07-14-maestro-brain-agency-context-os-implementation-plan.md",
-  "planSha256": "89805a0df2d8dfbda2c9b95ba21ffc53351d248aec5b4197a9cebf73e46f2045",
+  "planSha256": "170d8a05e319c03da6add871f43dbab3b48da86fd53c4f5246261d3ec6823f4e",
   "schemaVersion": "maestro-brain-task-manifest/v1",
   "tasks": [
     {
@@ -62,16 +62,18 @@
         "docs/template/env-manifest.json",
         "docs/template/env-manifest.md",
         "project.config.json",
+        "tooling/quality/check-config-drift.test.mts",
+        "tooling/quality/src/check-definitions.mts",
         "tooling/release/src/index.test.ts",
         "tooling/release/src/index.ts",
         "tooling/release/src/project-config.ts"
       ],
-      "gateProfiles": ["release"],
+      "gateProfiles": ["release", "tooling"],
       "kind": "product",
       "lane": "foundation",
       "requirements": ["FND-02", "REL-04"],
       "sourceSliceBudget": 300,
-      "taskBlockHash": "fb9f521406e350fb8892e16faea885a14893c8d46ae8649cbb811861f7b5b32d",
+      "taskBlockHash": "42193b160bc04a7d9bc3ef7f883545c8eaeb4506f9f848f6b02ba801d08410ac",
       "taskId": "S00-T03",
       "title": "Isolate Staging And Production Deployments",
       "tranche": "F0-foundation"

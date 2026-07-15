@@ -194,10 +194,13 @@ const inferProfiles = (
   if (files.includes("tooling/generators")) profiles.add("generators");
   if (
     lane === "operations" ||
-    (files.includes("tooling/") &&
-      !files.includes("tooling/evals") &&
-      !files.includes("tooling/generators") &&
-      !files.includes("tooling/release"))
+    fileLocks.some(
+      (file) =>
+        file.startsWith("tooling/") &&
+        !file.startsWith("tooling/evals/") &&
+        !file.startsWith("tooling/generators/") &&
+        !file.startsWith("tooling/release/"),
+    )
   )
     profiles.add("tooling");
   if (files.includes(".buildkite") || files.includes("tooling/release"))

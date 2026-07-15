@@ -351,14 +351,17 @@ manifest.
   `.buildkite/scripts/staging-deploy.sh`,
   `.buildkite/scripts/production-promote.sh`, `tooling/release/src/index.ts`,
   `tooling/release/src/index.test.ts`, `.env.example`,
-  `docs/template/env-manifest.md`, and `docs/template/env-manifest.json`; create
+  `docs/template/env-manifest.md`, `docs/template/env-manifest.json`,
+  `tooling/quality/src/check-definitions.mts`, and
+  `tooling/quality/check-config-drift.test.mts`; create
   `tooling/release/src/project-config.ts` and
   `docs/superpowers/receipts/maestro-brain/deployment-isolation.md`.
 - **Failure-first tests:** current config fails because staging/production
   `convexUrl` values match; current scripts fail because they invoke
   `demo/showcase:seed`; staging credentials cannot deploy production and vice
   versa; promotion of an unstaged SHA and rollback to an incompatible schema
-  fail closed.
+  fail closed. `rtk pnpm check:config-drift` must fail while its static
+  descriptor still requires `sharedConvexBackendNote` and `demo/showcase:seed`.
 - **Implementation:** provision/configure distinct deployment names, URLs and
   namespaced deploy-key environment names and callback-origin slots; later
   provider tasks populate the WorkOS/Nango callback registrations. Remove demo
@@ -369,7 +372,10 @@ manifest.
   exact packet and never defaults a missing staged SHA to the current SHA. Add
   `rollback-plan <current-release-packet> <candidate-release-packet>`; it
   selects only a prior binary whose schema/manifest contract is
-  forward-compatible and never performs a data down-migration.
+  forward-compatible and never performs a data down-migration. Update the
+  config-drift descriptor in the same slice to require the isolated deployment,
+  key, callback, and release-packet shape and to forbid the shared-backend note
+  and tenant demo seeding.
 - **Typed errors / state:** environment is
   `unconfigured -> isolated -> staged -> promoted | rollback_ready`; errors are
   `SharedBackendForbidden`, `EnvironmentCredentialMismatch`,
@@ -380,14 +386,15 @@ manifest.
   tenant environment.
 - **Focused verification:** lane-local gates are
   `rtk host-test-slot --class focused pnpm --dir tooling/release test`,
-  `rtk pnpm --dir tooling/release typecheck`, script/config fixture tests
-  proving distinct URL/deployment/key names, required callback origins, no
-  `demo/showcase:seed`, no missing-receipt promotion fallback, staged
-  schema/manifest matching, incompatible rollback rejection, and
-  `rtk pnpm check:env-boundary`. Provider-backed
-  `rtk pnpm deploy:doctor staging` and `rtk pnpm deploy:doctor production` are
-  acceptance gates when credentials are available; broad verification belongs to
-  tranche integration.
+  `rtk pnpm --dir tooling/release typecheck`,
+  `rtk host-test-slot --class focused pnpm --dir tooling/quality test check-config-drift`,
+  `rtk pnpm check:config-drift`, script/config fixture tests proving distinct
+  URL/deployment/key names, required callback origins, no `demo/showcase:seed`,
+  no missing-receipt promotion fallback, staged schema/manifest matching,
+  incompatible rollback rejection, and `rtk pnpm check:env-boundary`.
+  Provider-backed `rtk pnpm deploy:doctor staging` and
+  `rtk pnpm deploy:doctor production` are acceptance gates when credentials are
+  available; broad verification belongs to tranche integration.
 - **Completion receipt:** redacted deployment names/URL hashes, distinct-key
   owner metadata, negative cross-deploy attempts, staged/promotion/rollback-plan
   results, and no-demo-seed scan.

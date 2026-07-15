@@ -88,7 +88,13 @@ export const commandsForProfiles = (
                     : profile === "template-core"
                       ? packageGate("packages/template-core")
                       : profile === "release"
-                        ? packageGate("tooling/release")
+                        ? [
+                            ...packageGate("tooling/release"),
+                            {
+                              program: "pnpm",
+                              args: ["check:config-drift"],
+                            },
+                          ]
                         : profile === "tooling"
                           ? []
                           : [];
