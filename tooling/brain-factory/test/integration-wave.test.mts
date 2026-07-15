@@ -1,3 +1,7 @@
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { resolve } from "node:path";
+
 import { describe, expect, it } from "vitest";
 
 import {
@@ -7,6 +11,11 @@ import {
   type IntegrationWaveCandidate,
 } from "../src/integration-wave.js";
 import type { BrainTaskContract } from "../src/manifest.js";
+import {
+  promotionAction,
+  replaceWaveRunRecord,
+  verifyWaveRunInspection,
+} from "../src/integration-wave-launch.js";
 
 const task = (
   taskId: string,
@@ -142,5 +151,81 @@ describe("integration wave planner", () => {
         tasks: [value],
       }),
     ).toThrow("proof/gate head mismatch");
+  });
+
+  it("fails closed on control divergence and recovers a post-merge crash", () => {
+    expect(promotionAction("base", "base", "head")).toBe("fast-forward");
+    expect(promotionAction("head", "base", "head")).toBe("record-after-crash");
+    expect(() => promotionAction("other", "base", "head")).toThrow(
+      "rebuild the wave and rerun full verify",
+    );
+  });
+
+  it("atomically replaces only the exact durable run record", () => {
+    const root = mkdtempSync(resolve(tmpdir(), "brain-wave-record-"));
+    const path = resolve(root, "run.json");
+    const current = '{"status":"preparing"}\n';
+    writeFileSync(path, current);
+    replaceWaveRunRecord(path, current, { status: "launched" });
+    expect(JSON.parse(readFileSync(path, "utf8"))).toEqual({
+      status: "launched",
+    });
+    expect(() =>
+      replaceWaveRunRecord(path, current, { status: "drifted" }),
+    ).toThrow("wave run record changed");
+    rmSync(root, { recursive: true });
+  });
+
+  it("binds recovery to exact Fabro labels and inputs", () => {
+    const identity = {
+      baseSha: "a".repeat(40),
+      integrationId: "wave-000001",
+      mode: "recover" as const,
+      runId: "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+      selectionPath: "/tmp/wave-selection.json",
+      selectionSha256: "b".repeat(64),
+      workdir: "/tmp/wave-workdir",
+    };
+    const inspection = {
+      run_id: identity.runId,
+      run_spec: {
+        settings: {
+          run: {
+            inputs: {
+              base_sha: identity.baseSha,
+              integration_id: identity.integrationId,
+              mode: identity.mode,
+              selection_path: identity.selectionPath,
+              selection_sha256: identity.selectionSha256,
+              workdir: identity.workdir,
+            },
+            metadata: {
+              integration: identity.integrationId,
+              "integration-mode": "wave-v2",
+            },
+          },
+        },
+      },
+    };
+    expect(() => verifyWaveRunInspection(inspection, identity)).not.toThrow();
+    expect(() =>
+      verifyWaveRunInspection(
+        {
+          ...inspection,
+          run_spec: {
+            settings: {
+              run: {
+                ...inspection.run_spec.settings.run,
+                inputs: {
+                  ...inspection.run_spec.settings.run.inputs,
+                  selection_sha256: "c".repeat(64),
+                },
+              },
+            },
+          },
+        },
+        identity,
+      ),
+    ).toThrow("identity mismatch");
   });
 });

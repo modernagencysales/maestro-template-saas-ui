@@ -60,6 +60,14 @@ export const archiveIntegrationEvidence = (
   ) {
     throw new Error("integration archive has no manifest tranche identity");
   }
+  const legacyIdentity =
+    integrationResult.schemaVersion === "maestro-brain-integration-result/v1";
+  if (legacyIdentity && !input.manifestTranche) {
+    throw new Error("legacy integration archive has no manifest tranche");
+  }
+  const trancheIdentity = legacyIdentity
+    ? { manifestTranche: input.manifestTranche }
+    : { manifestTranches };
   const laneEvidence = taskIds.map((taskId) => {
     const laneDirectory = resolve(
       input.evidenceDirectory,
@@ -77,7 +85,7 @@ export const archiveIntegrationEvidence = (
     {
       schemaVersion: "maestro-brain-evidence-archive/v1",
       integrationId,
-      manifestTranches,
+      ...trancheIdentity,
       integrationResult,
       laneEvidence,
     },
@@ -99,8 +107,10 @@ export const archiveIntegrationEvidence = (
     if (
       manifest.schemaVersion !== "maestro-brain-evidence-archive-manifest/v1" ||
       manifest.integrationId !== integrationId ||
-      JSON.stringify(manifest.manifestTranches) !==
-        JSON.stringify(manifestTranches) ||
+      (legacyIdentity
+        ? manifest.manifestTranche !== input.manifestTranche
+        : JSON.stringify(manifest.manifestTranches) !==
+          JSON.stringify(manifestTranches)) ||
       manifest.contentSha256 !== contentSha256 ||
       manifest.artifactFile !== `${contentSha256}.json` ||
       !existsSync(artifactPath) ||
@@ -125,7 +135,7 @@ export const archiveIntegrationEvidence = (
       {
         schemaVersion: "maestro-brain-evidence-archive-manifest/v1",
         integrationId,
-        manifestTranches,
+        ...trancheIdentity,
         contentSha256,
         artifactFile: `${contentSha256}.json`,
       },

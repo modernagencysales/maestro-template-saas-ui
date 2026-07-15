@@ -276,6 +276,12 @@ describe("normal integration result check", () => {
         selectionPath: value.selectionPath,
       }),
     ).not.toThrow();
+    expect(
+      archiveIntegrationEvidence({
+        evidenceDirectory: value.evidence,
+        integrationId: value.integrationId,
+      }).contentSha256,
+    ).toMatch(/^[a-f0-9]{64}$/);
     const result = readRecord(value.resultPath);
     result.includedTasks = [];
     writeJson(value.resultPath, result);
@@ -324,6 +330,41 @@ describe("normal integration result check", () => {
         selectionPath: value.selectionPath,
       }),
     ).toThrow("non-lane, non-generated files");
+  });
+  it("accepts exact integration-owned generated output", () => {
+    const value = waveFixture();
+    const generatedFile = "packages/convex/convex/generated.ts";
+    mkdirSync(resolve(value.workdir, "packages/convex/convex"), {
+      recursive: true,
+    });
+    writeFileSync(
+      resolve(value.workdir, generatedFile),
+      "export const generated = true;\n",
+    );
+    command(value.workdir, "add", generatedFile);
+    command(value.workdir, "commit", "-qm", "test: add generated output");
+    const headSha = command(value.workdir, "rev-parse", "HEAD");
+    const result = readRecord(value.resultPath);
+    result.headSha = headSha;
+    result.generatedFiles = [generatedFile];
+    result.broadGate = {
+      status: "passed",
+      headSha,
+      command: "rtk host-test-slot --class full pnpm verify",
+    };
+    writeJson(value.resultPath, result);
+    const lane = readRecord(value.lanePath);
+    lane.integrationHeadSha = headSha;
+    writeJson(value.lanePath, lane);
+    expect(() =>
+      validateIntegrationResult({
+        controlRoot: value.controlRoot,
+        evidenceDirectory: value.evidence,
+        expectedWorkdir: value.workdir,
+        integrationId: value.integrationId,
+        selectionPath: value.selectionPath,
+      }),
+    ).not.toThrow();
   });
   it("accepts an exact passed head and integrated lane", () => {
     const value = fixture();
