@@ -56,4 +56,22 @@ describe("brain factory process helpers", () => {
       }),
     ).toThrow();
   });
+
+  it("retains partial child output when the child exits nonzero", () => {
+    const root = mkdtempSync(resolve(tmpdir(), "brain-process-partial-"));
+    roots.push(root);
+    const receipt = resolve(root, "launch.raw");
+    expect(() =>
+      runRtkToFile(
+        [
+          "proxy",
+          "node",
+          "-e",
+          "process.stdout.write('partial');process.exit(1)",
+        ],
+        receipt,
+      ),
+    ).toThrow("failed (1)");
+    expect(readFileSync(receipt, "utf8")).toBe("partial");
+  });
 });

@@ -13,6 +13,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import {
   acquireIntegrationOwnership,
+  buildRepairLaunchReceipt,
   integrationLockPath,
   persistLegacyIntegrationRecovery,
   planLegacyIntegrationRecovery,
@@ -22,6 +23,8 @@ import {
   repairWorkflowArgs,
   reserveRepairLaunch,
   safeAbsolutePath,
+  verifyRepairLaunchInspection,
+  type RepairLaunchReceiptInput,
 } from "../src/integration-recovery.js";
 
 const BASE_SHA = "1".repeat(40);
@@ -32,6 +35,12 @@ const INTEGRATION_COMMIT_SHA = "5".repeat(40);
 const SOURCE_RUN_ID = "01KXHDXG8A8751TZ3HY4CQJKBD";
 const REPAIR_RUN_ID = "01KXHE00000000000000000000";
 const RESERVATION_TOKEN = "12345678-1234-4123-8123-123456789abc";
+
+type LaunchIdentity = Omit<RepairLaunchReceiptInput, "runId">;
+const foundRepairRun = (identity: LaunchIdentity, runId = REPAIR_RUN_ID) => ({
+  kind: "found" as const,
+  receipt: buildRepairLaunchReceipt({ ...identity, runId }),
+});
 
 const roots: string[] = [];
 const root = (): string => {
@@ -111,6 +120,47 @@ const validInput = () => {
     worktreeClean: true,
     worktreeHead: HEAD_SHA,
     worktreePath,
+  } as const;
+};
+
+const durableFixture = () => {
+  const authority = validInput();
+  const fixtureRoot = resolve(authority.worktreePath, "..");
+  const plan = planLegacyIntegrationRecovery(authority);
+  const resultPath = resolve(fixtureRoot, "durable-integration-result.json");
+  const auditPath = resolve(fixtureRoot, "durable-recovery-audit.jsonl");
+  const repairRecordPath = resolve(fixtureRoot, "durable-repair.json");
+  writeFileSync(resultPath, `${JSON.stringify(plan.normalizedResult)}\n`);
+  writeFileSync(auditPath, `${JSON.stringify(plan.auditEvent)}\n`);
+  const reservationToken = reserveRepairLaunch(repairRecordPath, {
+    baseSha: plan.repairBaseSha,
+    integrationBaseSha: authority.runRecord.baseSha,
+    launchAttempt: 1,
+    recoveryAt: authority.now,
+    recoveryReason: authority.reason,
+    schemaVersion: "maestro-brain-repair-reservation/v1",
+    sourceReviewRun: authority.runRecord.runId,
+    status: "preparing",
+    taskIds: ["S00-T02"],
+    tranche: authority.tranche,
+    transitionHash: "a".repeat(64),
+    workdir: authority.worktreePath,
+  });
+  return {
+    auditPath,
+    authority,
+    expected: {
+      baseSha: plan.repairBaseSha,
+      integrationBaseSha: authority.runRecord.baseSha,
+      sourceReviewRun: authority.runRecord.runId,
+      tranche: authority.tranche,
+      workdir: authority.worktreePath,
+    },
+    manifestTaskIds: authority.manifestTaskIds,
+    plan,
+    repairRecordPath,
+    reservationToken,
+    resultPath,
   } as const;
 };
 
@@ -489,6 +539,7 @@ describe("legacy integration recovery", () => {
 
   it.each([
     "after-reservation",
+    "after-recovery-stage",
     "after-audit-append",
     "after-normalization",
     "after-launch",
@@ -504,12 +555,15 @@ describe("legacy integration recovery", () => {
       resultPath,
       `${JSON.stringify(authority.integrationResult, null, 2)}\n`,
     );
-    const liveRuns = new Map<number, string>();
+    const liveRuns = new Set<number>();
     let launchCalls = 0;
-    const run = (fault?: typeof faultPoint) =>
+    const run = (fault?: typeof faultPoint, candidatePlan = plan) =>
       reconcileLegacyIntegrationRecovery({
         auditPath,
-        discoverLaunchedRun: ({ attempt }) => liveRuns.get(attempt),
+        discoverLaunchedRun: (launchIdentity) =>
+          liveRuns.has(launchIdentity.attempt)
+            ? foundRepairRun(launchIdentity)
+            : { kind: "absent" },
         ...(fault
           ? {
               fault: (point) => {
@@ -523,14 +577,15 @@ describe("legacy integration recovery", () => {
           tranche: authority.tranche,
           workdir: authority.worktreePath,
         },
-        launch: ({ attempt }) => {
+        launch: (launchIdentity) => {
           launchCalls += 1;
-          liveRuns.set(attempt, REPAIR_RUN_ID);
-          return REPAIR_RUN_ID;
+          liveRuns.add(launchIdentity.attempt);
+          return foundRepairRun(launchIdentity).receipt;
         },
-        plan,
+        plan: candidatePlan,
         repairRecordPath,
         resultPath,
+        verifyLaunchedRun: () => undefined,
       });
 
     expect(() => run(faultPoint)).toThrow(`crash:${faultPoint}`);
@@ -548,6 +603,11 @@ describe("legacy integration recovery", () => {
       expect(durableResult.recovery).toBeUndefined();
       expect(existsSync(`${resultPath}.next`)).toBe(true);
     }
+    if (faultPoint === "after-recovery-stage") {
+      expect(existsSync(auditPath)).toBe(false);
+      expect(durableResult.recovery).toBeUndefined();
+      expect(existsSync(`${resultPath}.next`)).toBe(true);
+    }
     if (faultPoint === "after-normalization") {
       expect(durableResult.recovery).toBeDefined();
       expect(launchCalls).toBe(0);
@@ -560,8 +620,18 @@ describe("legacy integration recovery", () => {
       expect(durableReservation.status).toBe("preparing");
       expect(existsSync(`${repairRecordPath}.next`)).toBe(true);
     }
-    expect(run()).toEqual({ runId: REPAIR_RUN_ID, status: "launched" });
-    expect(run()).toEqual({ runId: REPAIR_RUN_ID, status: "launched" });
+    const freshPlan = planLegacyIntegrationRecovery({
+      ...authority,
+      now: "2026-07-15T00:00:01.000Z",
+    });
+    expect(run(undefined, freshPlan)).toEqual({
+      runId: REPAIR_RUN_ID,
+      status: "launched",
+    });
+    expect(run(undefined, freshPlan)).toEqual({
+      runId: REPAIR_RUN_ID,
+      status: "launched",
+    });
     expect(launchCalls).toBe(1);
     expect(
       readFileSync(auditPath, "utf8").split("\n").filter(Boolean),
@@ -587,26 +657,30 @@ describe("legacy integration recovery", () => {
       `${JSON.stringify(authority.integrationResult, null, 2)}\n`,
     );
     let launchCalls = 0;
-    const liveRuns = new Map<number, string>();
+    const liveRuns = new Set<number>();
     const run = () =>
       reconcileLegacyIntegrationRecovery({
         auditPath,
-        discoverLaunchedRun: ({ attempt }) => liveRuns.get(attempt),
+        discoverLaunchedRun: (launchIdentity) =>
+          liveRuns.has(launchIdentity.attempt)
+            ? foundRepairRun(launchIdentity)
+            : { kind: "absent" },
         identity: {
           baseSha: plan.repairBaseSha,
           sourceReviewRun: plan.sourceReviewRun,
           tranche: authority.tranche,
           workdir: authority.worktreePath,
         },
-        launch: ({ attempt }) => {
+        launch: (launchIdentity) => {
           launchCalls += 1;
           if (launchCalls === 1) throw new Error("definite launch failure");
-          liveRuns.set(attempt, REPAIR_RUN_ID);
-          return REPAIR_RUN_ID;
+          liveRuns.add(launchIdentity.attempt);
+          return foundRepairRun(launchIdentity).receipt;
         },
         plan,
         repairRecordPath,
         resultPath,
+        verifyLaunchedRun: () => undefined,
       });
     expect(run).toThrow("definite launch failure");
     expect(JSON.parse(readFileSync(repairRecordPath, "utf8"))).toMatchObject({
@@ -623,30 +697,438 @@ describe("legacy integration recovery", () => {
   });
 
   it("promotes a durable live-run receipt without rereading mutable evidence", () => {
-    const repairRecordPath = resolve(root(), "repair-F0-foundation.json");
-    reserveRepairLaunch(repairRecordPath, {
-      baseSha: HEAD_SHA,
+    const fixtureRoot = root();
+    const repairRecordPath = resolve(fixtureRoot, "repair-F0-foundation.json");
+    const resultPath = resolve(fixtureRoot, "integration-result.json");
+    const auditPath = resolve(fixtureRoot, "recovery-audit.jsonl");
+    const authority = validInput();
+    const plan = planLegacyIntegrationRecovery(authority);
+    writeFileSync(resultPath, `${JSON.stringify(plan.normalizedResult)}\n`);
+    writeFileSync(auditPath, `${JSON.stringify(plan.auditEvent)}\n`);
+    const token = reserveRepairLaunch(repairRecordPath, {
+      baseSha: plan.repairBaseSha,
+      integrationBaseSha: authority.runRecord.baseSha,
       launchAttempt: 1,
+      recoveryAt: "2026-07-15T00:00:00.000Z",
+      recoveryReason: "legacy run failed its full gate",
       schemaVersion: "maestro-brain-repair-reservation/v1",
       sourceReviewRun: SOURCE_RUN_ID,
       status: "preparing",
+      taskIds: ["S00-T02"],
       tranche: "F0-foundation",
-      workdir: "/workdir",
+      transitionHash: "a".repeat(64),
+      workdir: authority.worktreePath,
     });
+    const durableInput = {
+      auditPath,
+      expected: {
+        baseSha: plan.repairBaseSha,
+        integrationBaseSha: authority.runRecord.baseSha,
+        sourceReviewRun: SOURCE_RUN_ID,
+        tranche: authority.tranche,
+        workdir: authority.worktreePath,
+      },
+      manifestTaskIds: authority.manifestTaskIds,
+      repairRecordPath,
+      resultPath,
+      verifyLaunchedRun: () => undefined,
+    } as const;
     expect(
       reconcileDurableRepairLaunch({
-        discoverLaunchedRun: () => REPAIR_RUN_ID,
-        repairRecordPath,
+        ...durableInput,
+        discoverLaunchedRun: (identity) => {
+          expect(identity.reservationToken).toBe(token);
+          return foundRepairRun(identity);
+        },
       }),
     ).toEqual({ runId: REPAIR_RUN_ID, status: "launched" });
     expect(
       reconcileDurableRepairLaunch({
+        ...durableInput,
         discoverLaunchedRun: () => {
           throw new Error("must not rediscover an already promoted run");
         },
-        repairRecordPath,
       }),
     ).toEqual({ runId: REPAIR_RUN_ID, status: "launched" });
+  });
+
+  it.each(["reservationToken", "attempt", "taskIds", "receiptSha256"] as const)(
+    "rejects a launch receipt with tampered %s",
+    (field) => {
+      const fixture = durableFixture();
+      expect(() =>
+        reconcileDurableRepairLaunch({
+          ...fixture,
+          discoverLaunchedRun: (identity) => {
+            const receipt = buildRepairLaunchReceipt({
+              ...identity,
+              ...(field === "reservationToken"
+                ? { reservationToken: "87654321-4321-4321-8321-cba987654321" }
+                : {}),
+              ...(field === "attempt" ? { attempt: 2 } : {}),
+              ...(field === "taskIds" ? { taskIds: ["S00-T01"] } : {}),
+              runId: REPAIR_RUN_ID,
+            });
+            if (field === "receiptSha256") {
+              receipt.receiptSha256 = "b".repeat(64);
+            }
+            return { kind: "found", receipt };
+          },
+          verifyLaunchedRun: () => {
+            throw new Error("tampered receipt must not reach inspection");
+          },
+        }),
+      ).toThrow("receipt identity or digest mismatch");
+    },
+  );
+
+  it("verifies the exact inspected run before durable promotion", () => {
+    const fixture = durableFixture();
+    let verificationCalls = 0;
+    expect(
+      reconcileDurableRepairLaunch({
+        ...fixture,
+        discoverLaunchedRun: foundRepairRun,
+        verifyLaunchedRun: (identity) => {
+          verificationCalls += 1;
+          expect(identity.runId).toBe(REPAIR_RUN_ID);
+          expect(
+            JSON.parse(readFileSync(fixture.repairRecordPath, "utf8")),
+          ).toMatchObject({ status: "preparing" });
+        },
+      }),
+    ).toEqual({ runId: REPAIR_RUN_ID, status: "launched" });
+    expect(verificationCalls).toBe(1);
+    expect(
+      JSON.parse(readFileSync(fixture.repairRecordPath, "utf8")),
+    ).toMatchObject({ status: "launched" });
+  });
+
+  it("records an exact-run inspection failure as an unknown launch", () => {
+    const fixture = durableFixture();
+    expect(() =>
+      reconcileDurableRepairLaunch({
+        ...fixture,
+        discoverLaunchedRun: foundRepairRun,
+        verifyLaunchedRun: () => {
+          throw new Error("Fabro inspect failed");
+        },
+      }),
+    ).toThrow("repair launch outcome is ambiguous");
+    expect(
+      JSON.parse(readFileSync(fixture.repairRecordPath, "utf8")),
+    ).toMatchObject({ launchAttempt: 1, status: "launch_unknown" });
+  });
+
+  it("records ambiguous durable discovery without launching again", () => {
+    const fixture = durableFixture();
+    expect(() =>
+      reconcileDurableRepairLaunch({
+        ...fixture,
+        discoverLaunchedRun: () => ({
+          kind: "ambiguous",
+          reason: "partial raw output",
+        }),
+        verifyLaunchedRun: () => {
+          throw new Error("ambiguous discovery must not be verified");
+        },
+      }),
+    ).toThrow("repair launch outcome is ambiguous");
+    expect(
+      JSON.parse(readFileSync(fixture.repairRecordPath, "utf8")),
+    ).toMatchObject({ launchAttempt: 1, status: "launch_unknown" });
+  });
+
+  it("checks Fabro workflow, labels, and inputs against the receipt identity", () => {
+    const identity = {
+      attempt: 1,
+      baseSha: HEAD_SHA,
+      integrationBaseSha: BASE_SHA,
+      reservationToken: RESERVATION_TOKEN,
+      runId: REPAIR_RUN_ID,
+      sourceReviewRun: SOURCE_RUN_ID,
+      taskIds: ["S00-T02"],
+      tranche: "F0-foundation",
+      workdir: "/workdir",
+    } as const;
+    const inspection = [
+      {
+        run_id: REPAIR_RUN_ID,
+        run_spec: {
+          graph: { name: "BrainRepairTranche" },
+          settings: {
+            run: {
+              inputs: {
+                base_sha: HEAD_SHA,
+                source_review_run: SOURCE_RUN_ID,
+                tranche: "F0-foundation",
+                workdir: "/workdir",
+              },
+              metadata: {
+                launch_attempt: "1",
+                recovery_token: RESERVATION_TOKEN,
+                tranche: "F0-foundation",
+              },
+            },
+          },
+        },
+      },
+    ];
+    expect(() =>
+      verifyRepairLaunchInspection(inspection, identity),
+    ).not.toThrow();
+    const swapped = structuredClone(inspection);
+    const [swappedRun] = swapped;
+    if (!swappedRun) throw new Error("missing inspection fixture");
+    swappedRun.run_spec.settings.run.metadata.recovery_token =
+      "87654321-4321-4321-8321-cba987654321";
+    expect(() => verifyRepairLaunchInspection(swapped, identity)).toThrow(
+      "labels or inputs do not match reservation",
+    );
+  });
+
+  it.each(["empty raw output", "partial raw output"])(
+    "blocks %s as ambiguous without a duplicate launch",
+    (reason) => {
+      const authority = validInput();
+      const fixtureRoot = resolve(authority.worktreePath, "..");
+      const plan = planLegacyIntegrationRecovery(authority);
+      const resultPath = resolve(fixtureRoot, "ambiguous-result.json");
+      const auditPath = resolve(fixtureRoot, "ambiguous-audit.jsonl");
+      const repairRecordPath = resolve(fixtureRoot, "ambiguous-repair.json");
+      writeFileSync(
+        resultPath,
+        `${JSON.stringify(authority.integrationResult)}\n`,
+      );
+      let discoveryCalls = 0;
+      let launchCalls = 0;
+      const run = () =>
+        reconcileLegacyIntegrationRecovery({
+          auditPath,
+          discoverLaunchedRun: () => {
+            discoveryCalls += 1;
+            return discoveryCalls === 1
+              ? { kind: "absent" }
+              : { kind: "ambiguous", reason };
+          },
+          identity: {
+            baseSha: plan.repairBaseSha,
+            sourceReviewRun: plan.sourceReviewRun,
+            tranche: authority.tranche,
+            workdir: authority.worktreePath,
+          },
+          launch: () => {
+            launchCalls += 1;
+            throw new Error("launcher exited nonzero");
+          },
+          plan,
+          repairRecordPath,
+          resultPath,
+          verifyLaunchedRun: () => undefined,
+        });
+      expect(run).toThrow("repair launch outcome is ambiguous");
+      expect(run).toThrow("repair launch outcome is ambiguous");
+      expect(launchCalls).toBe(1);
+      expect(JSON.parse(readFileSync(repairRecordPath, "utf8"))).toMatchObject({
+        launchAttempt: 1,
+        status: "launch_unknown",
+      });
+    },
+  );
+
+  it("promotes a run accepted before a nonzero launcher exit", () => {
+    const authority = validInput();
+    const fixtureRoot = resolve(authority.worktreePath, "..");
+    const plan = planLegacyIntegrationRecovery(authority);
+    const resultPath = resolve(fixtureRoot, "accepted-result.json");
+    const auditPath = resolve(fixtureRoot, "accepted-audit.jsonl");
+    const repairRecordPath = resolve(fixtureRoot, "accepted-repair.json");
+    writeFileSync(
+      resultPath,
+      `${JSON.stringify(authority.integrationResult)}\n`,
+    );
+    let accepted = false;
+    let launchCalls = 0;
+    const result = reconcileLegacyIntegrationRecovery({
+      auditPath,
+      discoverLaunchedRun: (identity) =>
+        accepted ? foundRepairRun(identity) : { kind: "absent" },
+      identity: {
+        baseSha: plan.repairBaseSha,
+        sourceReviewRun: plan.sourceReviewRun,
+        tranche: authority.tranche,
+        workdir: authority.worktreePath,
+      },
+      launch: () => {
+        launchCalls += 1;
+        accepted = true;
+        throw new Error("launcher lost connection after acceptance");
+      },
+      plan,
+      repairRecordPath,
+      resultPath,
+      verifyLaunchedRun: () => undefined,
+    });
+    expect(result).toEqual({ runId: REPAIR_RUN_ID, status: "launched" });
+    expect(launchCalls).toBe(1);
+  });
+
+  it("retries only after authoritative absence resolves an unknown launch", () => {
+    const authority = validInput();
+    const fixtureRoot = resolve(authority.worktreePath, "..");
+    const plan = planLegacyIntegrationRecovery(authority);
+    const resultPath = resolve(fixtureRoot, "absent-result.json");
+    const auditPath = resolve(fixtureRoot, "absent-audit.jsonl");
+    const repairRecordPath = resolve(fixtureRoot, "absent-repair.json");
+    writeFileSync(
+      resultPath,
+      `${JSON.stringify(authority.integrationResult)}\n`,
+    );
+    let discoveryCalls = 0;
+    let launchCalls = 0;
+    let authoritativeAbsent = false;
+    const run = () =>
+      reconcileLegacyIntegrationRecovery({
+        auditPath,
+        discoverLaunchedRun: () => {
+          discoveryCalls += 1;
+          if (authoritativeAbsent || discoveryCalls === 1) {
+            return { kind: "absent" };
+          }
+          return { kind: "ambiguous", reason: "partial raw output" };
+        },
+        identity: {
+          baseSha: plan.repairBaseSha,
+          sourceReviewRun: plan.sourceReviewRun,
+          tranche: authority.tranche,
+          workdir: authority.worktreePath,
+        },
+        launch: (identity) => {
+          launchCalls += 1;
+          if (launchCalls === 1) throw new Error("nonzero launch");
+          return foundRepairRun(identity).receipt;
+        },
+        plan,
+        repairRecordPath,
+        resultPath,
+        verifyLaunchedRun: () => undefined,
+      });
+    expect(run).toThrow("repair launch outcome is ambiguous");
+    authoritativeAbsent = true;
+    expect(run()).toEqual({ runId: REPAIR_RUN_ID, status: "launched" });
+    expect(launchCalls).toBe(2);
+    expect(JSON.parse(readFileSync(repairRecordPath, "utf8"))).toMatchObject({
+      launchAttempt: 2,
+      status: "launched",
+    });
+  });
+
+  it.each(["attempt", "priorStatus", "tasks"] as const)(
+    "rejects same-token .next residue with illegal %s",
+    (tamper) => {
+      const authority = validInput();
+      const fixtureRoot = resolve(authority.worktreePath, "..");
+      const plan = planLegacyIntegrationRecovery(authority);
+      const resultPath = resolve(fixtureRoot, `next-${tamper}-result.json`);
+      const auditPath = resolve(fixtureRoot, `next-${tamper}-audit.jsonl`);
+      const repairRecordPath = resolve(fixtureRoot, `next-${tamper}.json`);
+      writeFileSync(
+        resultPath,
+        `${JSON.stringify(authority.integrationResult)}\n`,
+      );
+      const reconcile = () =>
+        reconcileLegacyIntegrationRecovery({
+          auditPath,
+          discoverLaunchedRun: () => ({ kind: "absent" }),
+          fault: (point) => {
+            if (point === "after-reservation") throw new Error("reserved");
+          },
+          identity: {
+            baseSha: plan.repairBaseSha,
+            sourceReviewRun: plan.sourceReviewRun,
+            tranche: authority.tranche,
+            workdir: authority.worktreePath,
+          },
+          launch: (identity) => foundRepairRun(identity).receipt,
+          plan,
+          repairRecordPath,
+          resultPath,
+          verifyLaunchedRun: () => undefined,
+        });
+      expect(reconcile).toThrow("reserved");
+      const current = JSON.parse(
+        readFileSync(repairRecordPath, "utf8"),
+      ) as Record<string, unknown>;
+      const staged = {
+        ...current,
+        launchAttempt: tamper === "attempt" ? 2 : 1,
+        priorLaunchAttempt: 1,
+        priorStatus: tamper === "priorStatus" ? "launch_failed" : "preparing",
+        status: "launch_failed",
+        taskIds: tamper === "tasks" ? ["S00-T01"] : current.taskIds,
+      };
+      writeFileSync(
+        `${repairRecordPath}.next`,
+        `${JSON.stringify(staged, null, 2)}\n`,
+      );
+      expect(reconcile).toThrow(/exact owned transition|illegal transition/);
+      expect(JSON.parse(readFileSync(repairRecordPath, "utf8"))).toEqual(
+        current,
+      );
+      expect(existsSync(`${repairRecordPath}.next`)).toBe(true);
+    },
+  );
+
+  it.each([
+    "source",
+    "tranche",
+    "integrationBase",
+    "head",
+    "worktree",
+    "tasks",
+    "audit",
+    "result",
+  ] as const)("rejects durable fast-path %s swaps", (tamper) => {
+    const fixture = durableFixture();
+    const expected = {
+      ...fixture.expected,
+      ...(tamper === "source" ? { sourceReviewRun: REPAIR_RUN_ID } : {}),
+      ...(tamper === "tranche" ? { tranche: "F1-foundation" } : {}),
+      ...(tamper === "integrationBase"
+        ? { integrationBaseSha: "8".repeat(40) }
+        : {}),
+      ...(tamper === "head" ? { baseSha: "9".repeat(40) } : {}),
+      ...(tamper === "worktree"
+        ? { workdir: resolve(fixture.authority.worktreePath, "..", "swapped") }
+        : {}),
+    };
+    if (tamper === "audit") {
+      writeFileSync(
+        fixture.auditPath,
+        `${JSON.stringify({ ...fixture.plan.auditEvent, headSha: CONTROL_SHA })}\n`,
+      );
+    }
+    if (tamper === "result") {
+      const result = structuredClone(fixture.plan.normalizedResult);
+      (result.recovery as Record<string, unknown>).legacyWorktree = resolve(
+        fixture.authority.worktreePath,
+        "..",
+        "swapped",
+      );
+      writeFileSync(fixture.resultPath, `${JSON.stringify(result)}\n`);
+    }
+    expect(() =>
+      reconcileDurableRepairLaunch({
+        ...fixture,
+        expected,
+        manifestTaskIds:
+          tamper === "tasks" ? ["S00-T01"] : fixture.manifestTaskIds,
+        discoverLaunchedRun: () => {
+          throw new Error("swapped evidence must fail before discovery");
+        },
+        verifyLaunchedRun: () => undefined,
+      }),
+    ).toThrow();
   });
 
   it("uses exact repair workflow inputs and rejects shell-hostile values", () => {
