@@ -37,16 +37,29 @@ export const runRtkToFile = (
   }
   if (options.outcomePath) {
     const outputContent = readFileSync(outputPath, "utf8");
+    const spawnError = result.error as NodeJS.ErrnoException | undefined;
+    const kind = spawnError
+      ? "spawn_error"
+      : result.signal !== null
+        ? "signaled"
+        : result.status === null
+          ? "indeterminate"
+          : "exited";
     writeFileSync(
       options.outcomePath,
       `${JSON.stringify(
         {
-          kind: result.status === null ? "spawn_failed" : "exited",
+          errorCode:
+            typeof spawnError?.code === "string" ? spawnError.code : null,
+          errorSyscall:
+            typeof spawnError?.syscall === "string" ? spawnError.syscall : null,
+          kind,
           outputPath: resolve(outputPath),
           outputSha256: createHash("sha256")
             .update(outputContent)
             .digest("hex"),
-          schemaVersion: "maestro-rtk-file-outcome/v1",
+          schemaVersion: "maestro-rtk-file-outcome/v2",
+          signal: result.signal,
           status: result.status,
         },
         null,

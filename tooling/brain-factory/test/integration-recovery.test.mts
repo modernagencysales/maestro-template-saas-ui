@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import {
+  chmodSync,
   existsSync,
   mkdirSync,
   mkdtempSync,
@@ -1148,18 +1149,26 @@ describe("legacy integration recovery", () => {
       tranche: "F0-foundation",
       workdir: "/workdir",
     };
-    const output = "";
-    writeFileSync(rawPath, output);
-    writeFileSync(
-      outcomePath,
-      `${JSON.stringify({
-        kind: "spawn_failed",
-        outputPath: rawPath,
-        outputSha256: createHash("sha256").update(output).digest("hex"),
-        schemaVersion: "maestro-rtk-file-outcome/v1",
-        status: null,
-      })}\n`,
-    );
+    const originalPath = process.env.PATH;
+    process.env.PATH = fixtureRoot;
+    try {
+      expect(() =>
+        runRtkToFile(["fabro", "create", "ignored"], rawPath, {
+          outcomePath,
+        }),
+      ).toThrow("failed (unknown)");
+    } finally {
+      if (originalPath === undefined) delete process.env.PATH;
+      else process.env.PATH = originalPath;
+    }
+    expect(JSON.parse(readFileSync(outcomePath, "utf8"))).toMatchObject({
+      errorCode: "ENOENT",
+      errorSyscall: "spawnSync rtk",
+      kind: "spawn_error",
+      schemaVersion: "maestro-rtk-file-outcome/v2",
+      signal: null,
+      status: null,
+    });
     expect(
       discoverCreatedRepairRun({
         identity,
@@ -1193,10 +1202,13 @@ describe("legacy integration recovery", () => {
     writeFileSync(
       outcomePath,
       `${JSON.stringify({
-        kind: "spawn_failed",
+        errorCode: "ENOENT",
+        errorSyscall: "spawnSync rtk",
+        kind: "spawn_error",
         outputPath: rawPath,
         outputSha256: createHash("sha256").update(output).digest("hex"),
-        schemaVersion: "maestro-rtk-file-outcome/v1",
+        schemaVersion: "maestro-rtk-file-outcome/v2",
+        signal: null,
         status: null,
       })}\n`,
     );
@@ -1273,6 +1285,92 @@ describe("legacy integration recovery", () => {
       });
     expect(run).toThrow("repair create outcome is ambiguous");
     expect(run).toThrow("repair create outcome is ambiguous");
+    expect(createCalls).toBe(1);
+    expect(JSON.parse(readFileSync(repairRecordPath, "utf8"))).toMatchObject({
+      launchAttempt: 1,
+      status: "launch_unknown",
+    });
+  });
+
+  it("fails closed when an accepted create is signaled before stdout", () => {
+    const authority = validInput();
+    const fixtureRoot = resolve(authority.worktreePath, "..");
+    const plan = planLegacyIntegrationRecovery(authority);
+    const resultPath = resolve(fixtureRoot, "create-signaled-result.json");
+    const auditPath = resolve(fixtureRoot, "create-signaled-audit.jsonl");
+    const repairRecordPath = resolve(fixtureRoot, "create-signaled.json");
+    const rawPath = `${repairRecordPath}.create-1.raw`;
+    const outcomePath = `${rawPath}.outcome.json`;
+    const receiptPath = `${repairRecordPath}.create-1.json`;
+    const accepted = resolve(fixtureRoot, "create-signaled-accepted.marker");
+    const fakeBin = resolve(fixtureRoot, "create-signaled-bin");
+    const fakeRtk = resolve(fakeBin, "rtk");
+    mkdirSync(fakeBin, { recursive: true });
+    writeFileSync(
+      fakeRtk,
+      `#!/bin/sh\nprintf accepted > ${JSON.stringify(accepted)}\nkill -TERM $$\n`,
+    );
+    chmodSync(fakeRtk, 0o755);
+    writeFileSync(
+      resultPath,
+      `${JSON.stringify(authority.integrationResult)}\n`,
+    );
+    let createCalls = 0;
+    const discoveryKinds: string[] = [];
+    const discover = (identity: LaunchIdentity) => {
+      const discovery = discoverCreatedRepairRun({
+        identity,
+        inspect: () => {
+          throw new Error("no exact ID is available");
+        },
+        outcomePath,
+        rawPath,
+        receiptPath,
+      });
+      discoveryKinds.push(discovery.kind);
+      return discovery;
+    };
+    const run = () =>
+      reconcileLegacyIntegrationRecovery({
+        auditPath,
+        create: () => {
+          createCalls += 1;
+          const originalPath = process.env.PATH;
+          process.env.PATH = `${fakeBin}:${originalPath ?? ""}`;
+          try {
+            return runRtkToFile(
+              ["fabro", "create", "accepted-then-signaled"],
+              rawPath,
+              { outcomePath },
+            );
+          } finally {
+            if (originalPath === undefined) delete process.env.PATH;
+            else process.env.PATH = originalPath;
+          }
+        },
+        discoverCreatedRun: discover,
+        identity: {
+          baseSha: plan.repairBaseSha,
+          sourceReviewRun: plan.sourceReviewRun,
+          tranche: authority.tranche,
+          workdir: authority.worktreePath,
+        },
+        inspectRun: () => {
+          throw new Error("no created run may be inspected");
+        },
+        plan,
+        repairRecordPath,
+        resultPath,
+        start: () => {
+          throw new Error("no created run may be started");
+        },
+      });
+
+    expect(run).toThrow("repair create outcome is ambiguous");
+    expect(existsSync(accepted)).toBe(true);
+    expect(run).toThrow("repair create outcome is ambiguous");
+    expect(discoveryKinds).toEqual(["absent", "ambiguous", "ambiguous"]);
+    expect(discoveryKinds.slice(1)).not.toContain("absent");
     expect(createCalls).toBe(1);
     expect(JSON.parse(readFileSync(repairRecordPath, "utf8"))).toMatchObject({
       launchAttempt: 1,

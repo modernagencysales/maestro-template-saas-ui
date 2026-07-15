@@ -1081,12 +1081,18 @@ export const discoverCreatedRepairRun = (input: {
     if (!existsSync(input.outcomePath)) return false;
     try {
       const outcome = readJsonRecord(input.outcomePath);
+      const rawOutput = readFileSync(input.rawPath, "utf8");
+      // ENOENT from spawnSync is the one recorded outcome that proves the rtk
+      // child never began; signals and every other null-status case are ambiguous.
       return (
-        outcome.schemaVersion === "maestro-rtk-file-outcome/v1" &&
-        outcome.kind === "spawn_failed" &&
+        outcome.schemaVersion === "maestro-rtk-file-outcome/v2" &&
+        outcome.kind === "spawn_error" &&
+        outcome.errorCode === "ENOENT" &&
+        outcome.errorSyscall === "spawnSync rtk" &&
         outcome.outputPath === resolve(input.rawPath) &&
-        outcome.outputSha256 ===
-          hashText(readFileSync(input.rawPath, "utf8")) &&
+        rawOutput.length === 0 &&
+        outcome.outputSha256 === hashText(rawOutput) &&
+        outcome.signal === null &&
         outcome.status === null
       );
     } catch {

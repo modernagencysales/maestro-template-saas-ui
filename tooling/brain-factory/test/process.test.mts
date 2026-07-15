@@ -1,6 +1,13 @@
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  chmodSync,
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -77,11 +84,53 @@ describe("brain factory process helpers", () => {
     ).toThrow("failed (1)");
     expect(readFileSync(receipt, "utf8")).toBe("partial");
     expect(JSON.parse(readFileSync(outcome, "utf8"))).toEqual({
+      errorCode: null,
+      errorSyscall: null,
       kind: "exited",
       outputPath: receipt,
       outputSha256: createHash("sha256").update("partial").digest("hex"),
-      schemaVersion: "maestro-rtk-file-outcome/v1",
+      schemaVersion: "maestro-rtk-file-outcome/v2",
+      signal: null,
       status: 1,
+    });
+  });
+
+  it("records a spawned child signal separately from a pre-exec error", () => {
+    const root = mkdtempSync(resolve(tmpdir(), "brain-process-signal-"));
+    roots.push(root);
+    const receipt = resolve(root, "launch.raw");
+    const outcome = resolve(root, "launch.raw.outcome.json");
+    const accepted = resolve(root, "accepted.marker");
+    const fakeRtk = resolve(root, "rtk");
+    writeFileSync(
+      fakeRtk,
+      `#!/bin/sh\nprintf accepted > ${JSON.stringify(accepted)}\nkill -TERM $$\n`,
+    );
+    chmodSync(fakeRtk, 0o755);
+    const originalPath = process.env.PATH;
+    process.env.PATH = `${root}:${originalPath ?? ""}`;
+    try {
+      expect(() =>
+        runRtkToFile(["fabro", "create", "ignored"], receipt, {
+          outcomePath: outcome,
+        }),
+      ).toThrow("failed (unknown)");
+    } finally {
+      if (originalPath === undefined) delete process.env.PATH;
+      else process.env.PATH = originalPath;
+    }
+
+    expect(existsSync(accepted)).toBe(true);
+    expect(readFileSync(receipt, "utf8")).toBe("");
+    expect(JSON.parse(readFileSync(outcome, "utf8"))).toEqual({
+      errorCode: null,
+      errorSyscall: null,
+      kind: "signaled",
+      outputPath: receipt,
+      outputSha256: createHash("sha256").update("").digest("hex"),
+      schemaVersion: "maestro-rtk-file-outcome/v2",
+      signal: "SIGTERM",
+      status: null,
     });
   });
 });
