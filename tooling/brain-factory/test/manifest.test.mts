@@ -225,6 +225,7 @@ describe("Maestro Brain execution manifest", () => {
     expect(stableIdentity?.codeStartAfter).toEqual(["S00-T04", "S01-T01"]);
     expect(providerSetup?.codeStartAfter).toEqual(["S00-T03", "S01-T02"]);
     expect(providerSetup?.sourceSliceLimit).toBe(5);
+    expect(providerSetup?.estimatedSourceLines).toBe(1_287);
     expect(providerSetup?.fileLocks).toContain(
       "packages/convex/confect/tables/providerConnections.ts",
     );
@@ -273,6 +274,16 @@ describe("Maestro Brain execution manifest", () => {
         ),
       }),
     ).toContain("S00-T04: only S04-T01 may use five source slices");
+    expect(
+      validateManifest({
+        ...manifest,
+        tasks: manifest.tasks.map((task) => {
+          if (task.taskId !== "S04-T01") return task;
+          const { sourceSliceLimit: _, ...withoutLimit } = task;
+          return withoutLimit;
+        }),
+      }),
+    ).toContain("S04-T01: source slice limit must be five");
   });
 
   it("keeps S13 lane proofs behind their real product dependencies", () => {

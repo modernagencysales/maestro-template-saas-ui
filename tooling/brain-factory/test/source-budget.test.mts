@@ -48,4 +48,15 @@ describe("Brain task source budgets", () => {
     expect(validSourceSlices([280, 272, 229, 57, 301], 300, 5)).toBe(false);
     expect(validSourceSlices([1, 2, 3, 4, 5, 6], 300, 5)).toBe(false);
   });
+
+  it("counts the source endpoint of an excluded-path rename", () => {
+    expect(
+      changedHandAuthoredSourceLines(
+        [
+          "0\t350\ttooling/brain-factory/test/__slice__/payload.ts",
+          "350\t0\ttooling/brain-factory/src/payload.ts",
+        ].join("\n"),
+      ),
+    ).toBe(350);
+  });
 });

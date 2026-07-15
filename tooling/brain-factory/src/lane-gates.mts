@@ -27,6 +27,7 @@ import {
 import {
   laneFileOwnershipIssues,
   laneHistoryOwnershipIssues,
+  laneHistoryShapeIssues,
 } from "./lane-ownership.js";
 import { lifecycleAdoptionRecordIssues } from "./lifecycle-adoption.js";
 
@@ -213,6 +214,25 @@ const commitList = spawnSync(
 if (commitList.status !== 0)
   throw new Error(`${taskId}: could not enumerate task slices`);
 const taskCommits = commitList.stdout.trim().split("\n").filter(Boolean);
+const historicalShapes = taskCommits.map((commit) => {
+  const parents = spawnSync(
+    "rtk",
+    ["proxy", "git", "rev-list", "--parents", "-n", "1", commit],
+    { cwd: process.cwd(), encoding: "utf8" },
+  );
+  if (parents.status !== 0)
+    throw new Error(`${taskId}: could not inspect slice ancestry ${commit}`);
+  return {
+    commit,
+    parentCount: Math.max(
+      0,
+      parents.stdout.trim().split(/\s+/).filter(Boolean).length - 1,
+    ),
+  };
+});
+const historicalShapeIssues = laneHistoryShapeIssues(historicalShapes);
+if (historicalShapeIssues.length > 0)
+  throw new Error(`${taskId}: ${historicalShapeIssues.join("; ")}`);
 const historicalPaths = taskCommits.map((commit) => {
   const paths = spawnSync(
     "rtk",
@@ -327,6 +347,7 @@ writeFileSync(
       estimateDrift: changedSourceLines > task.estimatedSourceLines,
       estimatedSourceLines: task.estimatedSourceLines,
       sourceSliceBudget: task.sourceSliceBudget,
+      sourceSliceLimit: task.sourceSliceLimit ?? 4,
       sourceSlices,
       stage,
       status: "passed",

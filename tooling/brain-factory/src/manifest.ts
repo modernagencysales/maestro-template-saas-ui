@@ -484,10 +484,9 @@ export const validateManifest = (manifest: BrainTaskManifest): string[] => {
       );
     if (task.sourceSliceBudget !== 300)
       errors.push(`${task.taskId}: source slice budget must remain 300`);
-    if (
-      task.sourceSliceLimit !== undefined &&
-      (task.taskId !== "S04-T01" || task.sourceSliceLimit !== 5)
-    )
+    if (task.taskId === "S04-T01" && task.sourceSliceLimit !== 5)
+      errors.push(`${task.taskId}: source slice limit must be five`);
+    if (task.taskId !== "S04-T01" && task.sourceSliceLimit !== undefined)
       errors.push(`${task.taskId}: only S04-T01 may use five source slices`);
     if (
       task.fileInventoryStatus === "ready" &&

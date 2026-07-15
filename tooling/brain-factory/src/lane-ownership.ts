@@ -74,3 +74,13 @@ export const laneHistoryOwnershipIssues = (
       (issue) => `${commit}: ${issue}`,
     ),
   );
+
+export const laneHistoryShapeIssues = (
+  commits: readonly {
+    readonly commit: string;
+    readonly parentCount: number;
+  }[],
+): string[] =>
+  commits.flatMap(({ commit, parentCount }) =>
+    parentCount === 1 ? [] : [`${commit}: task slice commits must be linear`],
+  );

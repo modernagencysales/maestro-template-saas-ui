@@ -1,6 +1,6 @@
 {
   "planPath": "docs/superpowers/plans/2026-07-14-maestro-brain-agency-context-os-implementation-plan.md",
-  "planSha256": "9667a45e9e634300a4bd2353ada5e75e19e85ddeb609307ff90c7762030a4fd1",
+  "planSha256": "06d79032c84bc5c2839c0b5cd66d2bf6c523104bd9978aab3f18683f35c56c53",
   "schemaVersion": "maestro-brain-task-manifest/v1",
   "tasks": [
     {
@@ -473,7 +473,7 @@
       "acceptanceAfter": "S01, S03",
       "classification": "template-gap",
       "codeStartAfter": ["S00-T03", "S01-T02"],
-      "estimatedSourceLines": 260,
+      "estimatedSourceLines": 1287,
       "fileInventoryIssues": [],
       "fileInventoryStatus": "ready",
       "fileLocks": [
@@ -503,7 +503,7 @@
       "requirements": ["IAM-04", "SLK-01"],
       "sourceSliceBudget": 300,
       "sourceSliceLimit": 5,
-      "taskBlockHash": "8a5b197f7b60914c5933b55ef54f2f375d0692e13e2d01a54010f0788f918119",
+      "taskBlockHash": "e9b5b9dce66d15d150aa7902731e6a5195353d243f95a2b022739897c77cd1bd",
       "taskId": "S04-T01",
       "title": "Add The Nango Provider Boundary And Admin Connect Session",
       "tranche": "C1-contract-spine"

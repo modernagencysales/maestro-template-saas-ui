@@ -190,8 +190,27 @@ describe("Fabro workflow prompt contracts", () => {
           "Do not use native apply_patch",
         );
       }
-      expect(source).not.toMatch(/HEAD_SHA=\$\([^\n]*&& rtk git rev-parse/);
+      expect(source).not.toMatch(/\$\([^\n)]*rtk git rev-parse/);
     }
+  });
+
+  it("binds task history depth to the manifest slice limit", () => {
+    const buildTask = readFileSync(
+      resolve(
+        import.meta.dirname,
+        "../../../.fabro/workflows/brain-build-task/workflow.fabro",
+      ),
+      "utf8",
+    );
+    const implement = buildTask
+      .split("\n")
+      .find((line) => line.trimStart().startsWith("implement ["));
+    expect(implement).toContain(
+      "sourceSliceLimit from the task manifest, defaulting to four",
+    );
+    expect(implement).toContain("S04-T01 permits five");
+    expect(implement).not.toContain("one to four real task commits");
+    expect(implement).not.toContain("more than four real commits");
   });
 
   it("bounds task reconnaissance and leaves deterministic gates to the workflow", () => {
@@ -231,7 +250,7 @@ describe("Fabro workflow prompt contracts", () => {
       "the next deterministic workflow node owns the complete focused gate",
     );
     expect(implement).toContain(
-      "after any repair, if it contains more than four commits",
+      "after any repair, if it exceeds the manifest sourceSliceLimit",
     );
     expect(implement).toContain("never create empty padding commits");
     expect(implement).toContain("or use --allow-empty");
@@ -312,7 +331,7 @@ describe("Fabro workflow prompt contracts", () => {
     expect(record).toContain(
       "The required field name is integrationWorkdir, not workdir",
     );
-    expect(record).toContain("never retry malformed apply_patch calls");
+    expect(record).toContain("Do not use native apply_patch");
   });
 
   it("keeps positive acceptance evidence out of unaccepted lane records", () => {
