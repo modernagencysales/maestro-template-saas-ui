@@ -1254,8 +1254,7 @@ manifest.
   `packages/convex/confect/tables/providerConnections.ts`,
   `packages/convex/test/slack-connections.test.ts`, and
   `apps/web/src/features/connections/nango-connect-button.tsx` and
-  `apps/web/src/features/connections/nango-connect-button.test.tsx`; modify
-  `packages/convex/confect/internal/migrations.ts`.
+  `apps/web/src/features/connections/nango-connect-button.test.tsx`.
 - **Failure-first tests:** signed-out/non-org-admin connect, raw token input,
   forged/expired Connect session, second active Slack connection, provider
   timeout, and connection ID from another organization all fail. Tests assert no
@@ -1292,10 +1291,11 @@ manifest.
   owns `verifying -> active | error` and later revocation; reauthorization is
   `active -> reauthorizing -> active | error`, preserves `connectionKey`, and
   increments `connectionGeneration` only after successful bot/team verification.
-- **Migration / compatibility / rollback:** no legacy Slack data. Feature-flag
-  Connect UI off until webhook security in T03 is green. Rollback disables new
-  sessions and marks the connection unavailable without deleting Nango's
-  connection or captured data.
+- **Migration / compatibility / rollback:** `providerConnections` is a new empty
+  table with nullable T02 identity/error fields, so no data migration or
+  backfill is warranted; wave integration owns schema/codegen registration.
+  Feature-flag Connect UI off until webhook security in T03 is green. Rollback
+  disables new writes and retains created provider rows and Nango connections.
 - **Focused verification:**
   `rtk host-test-slot --class focused pnpm --dir packages/integrations test nango`,
   `rtk host-test-slot --class focused pnpm --dir packages/convex test slack-connections`,

@@ -225,6 +225,12 @@ describe("Maestro Brain execution manifest", () => {
     expect(stableIdentity?.codeStartAfter).toEqual(["S00-T04", "S01-T01"]);
     expect(providerSetup?.codeStartAfter).toEqual(["S00-T03", "S01-T02"]);
     expect(providerSetup?.sourceSliceLimit).toBe(5);
+    expect(providerSetup?.fileLocks).toContain(
+      "packages/convex/confect/tables/providerConnections.ts",
+    );
+    expect(providerSetup?.fileLocks).not.toContain(
+      "packages/convex/confect/internal/migrations.ts",
+    );
     expect(stableIdentity?.sourceSliceLimit).toBeUndefined();
     expect(headlessPrincipal?.codeStartAfter).toEqual([
       "S11-T01",
