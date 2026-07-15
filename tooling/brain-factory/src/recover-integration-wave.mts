@@ -1,9 +1,11 @@
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
+import { hydrateWorktreeDependencies } from "./dependencies.js";
 import {
   acquireIntegrationOwnership,
   fabroRunId,
+  GLOBAL_INTEGRATION_LOCK,
   gitSha,
   integrationLockPath,
   safeAbsolutePath,
@@ -14,12 +16,20 @@ import {
   validateIntegrationWaveSelection,
 } from "./integration-wave.js";
 import {
+  materializeImmutableWaveSelection,
   replaceWaveRunRecord,
   verifyWaveRunInspection,
   waveWorkflowArgs,
+  waveModeForWorktree,
+  waveWorktreeRecoveryAction,
   type WaveRunIdentity,
 } from "./integration-wave-launch.js";
-import { gitIsAncestor, runRtk, runRtkToFile } from "./process.js";
+import {
+  gitBranchExists,
+  gitIsAncestor,
+  runRtk,
+  runRtkToFile,
+} from "./process.js";
 
 const valueAfter = (flag: string): string | undefined => {
   const index = process.argv.indexOf(flag);
@@ -55,7 +65,7 @@ const gitCommonDirectory = safeAbsolutePath(
   "Git common directory",
 );
 const releaseOwnership = acquireIntegrationOwnership({
-  lockPath: integrationLockPath(gitCommonDirectory, "wave-v2"),
+  lockPath: integrationLockPath(gitCommonDirectory, GLOBAL_INTEGRATION_LOCK),
   owner: {
     action: "recover-integration-wave-v2",
     at: new Date().toISOString(),
@@ -91,10 +101,11 @@ try {
     "wave selection path",
   );
   const selection = record(
-    JSON.parse(readFileSync(selectionPath, "utf8")),
-    "wave selection",
+    runRecord.selection,
+    "reserved wave selection",
   ) as unknown as IntegrationWaveSelection;
   validateIntegrationWaveSelection(selection);
+  materializeImmutableWaveSelection(selectionPath, selection);
   const selectionSha256 = string(
     runRecord.selectionSha256,
     "wave selection hash",
@@ -106,8 +117,25 @@ try {
   ) {
     throw new Error(`${integrationId}: immutable selection drift`);
   }
-  if (!existsSync(workdir))
-    throw new Error(`${integrationId}: workdir is missing`);
+  const worktreeAction = waveWorktreeRecoveryAction({
+    branchExists: gitBranchExists(expectedBranch, root),
+    worktreeExists: existsSync(workdir),
+  });
+  if (worktreeAction !== "reuse") {
+    if (worktreeAction === "attach-branch") {
+      runRtk(["git", "worktree", "add", workdir, expectedBranch], {
+        cwd: root,
+      });
+    } else {
+      runRtk(
+        ["git", "worktree", "add", "-b", expectedBranch, workdir, baseSha],
+        {
+          cwd: root,
+        },
+      );
+    }
+    hydrateWorktreeDependencies(root, workdir);
+  }
   const worktreeHead = gitSha(
     runRtk(["git", "rev-parse", "HEAD"], { cwd: workdir, quiet: true }),
     "wave worktree HEAD",
@@ -129,10 +157,75 @@ try {
     JSON.parse(
       runRtk(["fabro", "inspect", runId, "--json", "--quiet"], { quiet: true }),
     );
-  const identityFor = (mode: "integrate" | "recover"): WaveRunIdentity => ({
+  const discoverRecordedLaunch = (
+    rawPath: string,
+    identity: WaveRunIdentity,
+  ): string | undefined => {
+    if (!existsSync(rawPath)) return undefined;
+    let inspection: unknown;
+    let runId: string;
+    try {
+      const raw = record(
+        JSON.parse(readFileSync(rawPath, "utf8")),
+        "raw launch",
+      );
+      runId = fabroRunId(raw.run_id ?? raw.runId, "raw wave run ID");
+      inspection = inspect(runId);
+    } catch {
+      inspection = JSON.parse(
+        runRtk(
+          ["fabro", "inspect", "BrainIntegrateWave", "--json", "--quiet"],
+          { quiet: true },
+        ),
+      );
+      const recent = record(
+        Array.isArray(inspection) ? inspection[0] : inspection,
+        "most recent wave run",
+      );
+      runId = fabroRunId(recent.run_id, "discovered wave run ID");
+    }
+    verifyWaveRunInspection(inspection, { ...identity, runId });
+    return runId;
+  };
+  const launchOrDiscover = (
+    identity: WaveRunIdentity,
+    rawPath: string,
+    outcomePath: string,
+  ): string => {
+    const discovered = discoverRecordedLaunch(rawPath, identity);
+    if (discovered) return discovered;
+    const raw = record(
+      JSON.parse(
+        runRtkToFile(
+          waveWorkflowArgs({
+            ...identity,
+            controlRoot: root,
+            evidenceDirectory: evidence,
+            workflow,
+          }),
+          rawPath,
+          { outcomePath },
+        ),
+      ),
+      "wave launch output",
+    );
+    const runId = fabroRunId(raw.run_id ?? raw.runId, "wave run ID");
+    verifyWaveRunInspection(inspect(runId), { ...identity, runId });
+    return runId;
+  };
+  const reservationToken = string(
+    runRecord.reservationToken,
+    "wave reservation token",
+  );
+  const identityFor = (
+    mode: "integrate" | "recover",
+    attempt: number,
+  ): WaveRunIdentity => ({
+    attempt,
     baseSha,
     integrationId,
     mode,
+    reservationToken,
     selectionPath,
     selectionSha256,
     workdir,
@@ -143,29 +236,12 @@ try {
       : undefined;
   if (!runId) {
     const rawPath = `${recordPath}.launch-1.raw`;
-    const integrateIdentity = identityFor("integrate");
-    const raw = existsSync(rawPath)
-      ? record(JSON.parse(readFileSync(rawPath, "utf8")), "raw launch receipt")
-      : record(
-          JSON.parse(
-            runRtkToFile(
-              waveWorkflowArgs({
-                ...integrateIdentity,
-                controlRoot: root,
-                evidenceDirectory: evidence,
-                workflow,
-              }),
-              rawPath,
-              { outcomePath: `${rawPath}.outcome.json` },
-            ),
-          ),
-          "recovered initial launch receipt",
-        );
-    runId = fabroRunId(raw.run_id ?? raw.runId, "raw wave run ID");
-    verifyWaveRunInspection(inspect(runId), {
-      ...integrateIdentity,
-      runId,
-    });
+    const integrateIdentity = identityFor("integrate", 1);
+    runId = launchOrDiscover(
+      integrateIdentity,
+      rawPath,
+      `${rawPath}.outcome.json`,
+    );
     replaceWaveRunRecord(recordPath, currentContent, {
       ...runRecord,
       activeMode: "integrate",
@@ -181,7 +257,7 @@ try {
     runRecord.activeMode === "recover" ? "recover" : ("integrate" as const);
   const exactInspection = inspect(runId);
   verifyWaveRunInspection(exactInspection, {
-    ...identityFor(activeMode),
+    ...identityFor(activeMode, Number(runRecord.attempt ?? 1)),
     runId,
   });
   const inspected = record(
@@ -214,26 +290,13 @@ try {
     }
     const rawPath = `${recordPath}.launch-${attempt}.raw`;
     const outcomePath = `${rawPath}.outcome.json`;
-    const recoveryIdentity = identityFor("recover");
-    const output = runRtkToFile(
-      waveWorkflowArgs({
-        ...recoveryIdentity,
-        controlRoot: root,
-        evidenceDirectory: evidence,
-        workflow,
-      }),
+    const recoveryMode = waveModeForWorktree(baseSha, worktreeHead);
+    const recoveryIdentity = identityFor(recoveryMode, attempt);
+    const recoveryRunId = launchOrDiscover(
+      recoveryIdentity,
       rawPath,
-      { outcomePath },
+      outcomePath,
     );
-    const raw = record(JSON.parse(output), "recovery launch output");
-    const recoveryRunId = fabroRunId(
-      raw.run_id ?? raw.runId,
-      "recovery wave run ID",
-    );
-    verifyWaveRunInspection(inspect(recoveryRunId), {
-      ...recoveryIdentity,
-      runId: recoveryRunId,
-    });
     const previousRunIds = Array.isArray(runRecord.runIds)
       ? runRecord.runIds.map((value, index) =>
           fabroRunId(value, `runIds[${index}]`),
@@ -241,7 +304,7 @@ try {
       : [runId];
     replaceWaveRunRecord(recordPath, currentContent, {
       ...runRecord,
-      activeMode: "recover",
+      activeMode: recoveryMode,
       attempt,
       recoveredAt: new Date().toISOString(),
       recoveryReason: reason.trim(),

@@ -8,6 +8,7 @@ import {
 import {
   acquireIntegrationOwnership,
   fabroRunId,
+  GLOBAL_INTEGRATION_LOCK,
   gitSha,
   integrationLockPath,
   safeAbsolutePath,
@@ -49,7 +50,7 @@ const gitCommonDirectory = safeAbsolutePath(
   "Git common directory",
 );
 const releaseOwnership = acquireIntegrationOwnership({
-  lockPath: integrationLockPath(gitCommonDirectory, manifestTranche),
+  lockPath: integrationLockPath(gitCommonDirectory, GLOBAL_INTEGRATION_LOCK),
   owner: {
     action: "launch-integration",
     at: new Date().toISOString(),

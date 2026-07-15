@@ -67,7 +67,12 @@ const fixture = () => {
   command(workdir, "config", "user.email", "brain@example.test");
   command(workdir, "config", "user.name", "Brain Test");
   writeFileSync(resolve(workdir, "source.ts"), "export const ready = false;\n");
-  command(workdir, "add", "source.ts");
+  mkdirSync(resolve(workdir, "packages/convex/convex"), { recursive: true });
+  writeFileSync(
+    resolve(workdir, "packages/convex/convex/schema.ts"),
+    "export const generated = false;\n",
+  );
+  command(workdir, "add", "source.ts", "packages/convex/convex/schema.ts");
   command(workdir, "commit", "-qm", "test: add base");
   const baseSha = command(workdir, "rev-parse", "HEAD");
   command(workdir, "checkout", "-qb", "lane");
@@ -99,6 +104,7 @@ const fixture = () => {
     headSha,
     status: "passed",
     reviewVerdict: "pass",
+    remainingFindings: [],
     broadGate: {
       status: "passed",
       headSha,
@@ -219,6 +225,13 @@ const waveFixture = () => {
   });
   const selectionPath = resolve(value.evidence, "wave-000001-selection.json");
   writeJson(selectionPath, selection);
+  const resultPath = resolve(
+    value.evidence,
+    "integration",
+    selection.integrationId,
+    "integration-result.json",
+  );
+  mkdirSync(resolve(resultPath, ".."), { recursive: true });
   writeJson(value.lanePath, {
     acceptanceBlocker: "external acceptance evidence is not yet present",
     accepted: false,
@@ -230,7 +243,7 @@ const waveFixture = () => {
     status: "integrated",
     tranche: manifestTask.tranche,
   });
-  writeJson(value.resultPath, {
+  writeJson(resultPath, {
     schemaVersion: "maestro-brain-integration-result/v2",
     integrationId: selection.integrationId,
     selectionSha256: selection.selectionSha256,
@@ -240,6 +253,7 @@ const waveFixture = () => {
     headSha,
     status: "passed",
     reviewVerdict: "pass",
+    remainingFindings: [],
     broadGate: {
       status: "passed",
       headSha,
@@ -247,13 +261,18 @@ const waveFixture = () => {
     },
     generatedFiles: [],
     includedTasks: [
-      { taskId: manifestTask.taskId, tranche: manifestTask.tranche },
+      {
+        laneHeadSha: selection.selectedTasks[0]?.headSha,
+        taskId: manifestTask.taskId,
+        tranche: manifestTask.tranche,
+      },
     ],
   });
   return {
     ...value,
     headSha,
     integrationId: selection.integrationId,
+    resultPath,
     selectionPath,
   };
 };
@@ -296,6 +315,37 @@ describe("normal integration result check", () => {
     ).toThrow("no included tasks");
   });
 
+  it("rejects v2 remaining findings and missing lane-head provenance", () => {
+    const value = waveFixture();
+    const result = readRecord(value.resultPath);
+    result.remainingFindings = [{ id: "still-open", severity: "high" }];
+    writeJson(value.resultPath, result);
+    expect(() =>
+      validateIntegrationResult({
+        controlRoot: value.controlRoot,
+        evidenceDirectory: value.evidence,
+        expectedWorkdir: value.workdir,
+        integrationId: value.integrationId,
+        selectionPath: value.selectionPath,
+      }),
+    ).toThrow("remaining findings");
+
+    result.remainingFindings = [];
+    result.includedTasks = [
+      { taskId: "S09-T01", tranche: "C1-contract-spine" },
+    ];
+    writeJson(value.resultPath, result);
+    expect(() =>
+      validateIntegrationResult({
+        controlRoot: value.controlRoot,
+        evidenceDirectory: value.evidence,
+        expectedWorkdir: value.workdir,
+        integrationId: value.integrationId,
+        selectionPath: value.selectionPath,
+      }),
+    ).toThrow("included laneHeadSha");
+  });
+
   it("rejects v2 non-lane integration files and generated receipt drift", () => {
     const value = waveFixture();
     writeFileSync(
@@ -333,10 +383,7 @@ describe("normal integration result check", () => {
   });
   it("accepts exact integration-owned generated output", () => {
     const value = waveFixture();
-    const generatedFile = "packages/convex/convex/generated.ts";
-    mkdirSync(resolve(value.workdir, "packages/convex/convex"), {
-      recursive: true,
-    });
+    const generatedFile = "packages/convex/convex/schema.ts";
     writeFileSync(
       resolve(value.workdir, generatedFile),
       "export const generated = true;\n",
@@ -365,6 +412,38 @@ describe("normal integration result check", () => {
         selectionPath: value.selectionPath,
       }),
     ).not.toThrow();
+  });
+  it("rejects an arbitrary file in a generated namespace", () => {
+    const value = waveFixture();
+    const generatedFile = "packages/convex/convex/backdoor.ts";
+    writeFileSync(
+      resolve(value.workdir, generatedFile),
+      "export const pwn = true;\n",
+    );
+    command(value.workdir, "add", generatedFile);
+    command(value.workdir, "commit", "-qm", "test: add fake generated output");
+    const headSha = command(value.workdir, "rev-parse", "HEAD");
+    const result = readRecord(value.resultPath);
+    result.headSha = headSha;
+    result.generatedFiles = [generatedFile];
+    result.broadGate = {
+      status: "passed",
+      headSha,
+      command: "rtk host-test-slot --class full pnpm verify",
+    };
+    writeJson(value.resultPath, result);
+    const lane = readRecord(value.lanePath);
+    lane.integrationHeadSha = headSha;
+    writeJson(value.lanePath, lane);
+    expect(() =>
+      validateIntegrationResult({
+        controlRoot: value.controlRoot,
+        evidenceDirectory: value.evidence,
+        expectedWorkdir: value.workdir,
+        integrationId: value.integrationId,
+        selectionPath: value.selectionPath,
+      }),
+    ).toThrow("non-lane, non-generated files");
   });
   it("accepts an exact passed head and integrated lane", () => {
     const value = fixture();
@@ -703,7 +782,7 @@ describe("normal integration result check", () => {
     ).toThrow("S09-T01: dependency S08-T01 has no lane result");
   });
 
-  it("trusts prior integration provenance after legitimate later file edits", () => {
+  it("trusts prior v2 integration provenance after legitimate later edits", () => {
     const value = fixture();
     const manifest = readRecord(value.manifestPath);
     const tasks = manifest.tasks as Record<string, unknown>[];
@@ -748,7 +827,7 @@ describe("normal integration result check", () => {
       includedTasks: [{ laneHeadSha: value.baseSha, taskId: "S08-T01" }],
       integrationId: "D2-domain-bodies-w1",
       reviewVerdict: "pass",
-      schemaVersion: "maestro-brain-integration-result/v1",
+      schemaVersion: "maestro-brain-integration-result/v2",
       status: "passed",
     });
     expect(() =>

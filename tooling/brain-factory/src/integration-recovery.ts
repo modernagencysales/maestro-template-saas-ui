@@ -16,6 +16,8 @@ import { dirname, isAbsolute, resolve } from "node:path";
 
 type JsonRecord = Record<string, unknown>;
 
+export const GLOBAL_INTEGRATION_LOCK = "global" as const;
+
 const hashText = (value: string): string =>
   createHash("sha256").update(value).digest("hex");
 

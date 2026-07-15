@@ -3,18 +3,24 @@ import { resolve } from "node:path";
 
 import {
   acquireIntegrationOwnership,
+  fabroRunId,
+  GLOBAL_INTEGRATION_LOCK,
   gitSha,
   integrationLockPath,
   safeAbsolutePath,
 } from "./integration-recovery.js";
 import { record, string } from "./integration-check-support.js";
 import { validateIntegrationResult } from "./integration-result-check.mjs";
+import { proveIntegrationGeneratedOutput } from "./integration-generated-proof.js";
 import {
   type IntegrationWaveSelection,
   validateIntegrationWaveSelection,
 } from "./integration-wave.js";
 import { runRtk } from "./process.js";
-import { promotionAction } from "./integration-wave-launch.js";
+import {
+  promotionAction,
+  verifyPassedWaveRunInspection,
+} from "./integration-wave-launch.js";
 
 const valueAfter = (flag: string): string | undefined => {
   const index = process.argv.indexOf(flag);
@@ -79,6 +85,7 @@ if (
   safeAbsolutePath(runRecord.workdir, "recorded wave workdir") !== workdir ||
   runRecord.branch !== `fabro/brain-${integrationId}` ||
   selection.baseSha !== baseSha ||
+  JSON.stringify(runRecord.selection) !== JSON.stringify(selection) ||
   selection.selectionSha256 !== result.selectionSha256 ||
   string(runRecord.selectionSha256, "run selection hash") !==
     selection.selectionSha256
@@ -93,7 +100,7 @@ const gitCommonDirectory = safeAbsolutePath(
   "Git common directory",
 );
 const releaseOwnership = acquireIntegrationOwnership({
-  lockPath: integrationLockPath(gitCommonDirectory, "wave-v2"),
+  lockPath: integrationLockPath(gitCommonDirectory, GLOBAL_INTEGRATION_LOCK),
   owner: {
     action: "promote-integration-wave-v2",
     at: new Date().toISOString(),
@@ -103,6 +110,40 @@ const releaseOwnership = acquireIntegrationOwnership({
 });
 
 try {
+  const runId = fabroRunId(runRecord.runId, "wave run ID");
+  const attempt = Number(runRecord.attempt);
+  const activeMode =
+    runRecord.activeMode === "recover" ? "recover" : "integrate";
+  const reservationToken = string(
+    runRecord.reservationToken,
+    "wave reservation token",
+  );
+  if (
+    runRecord.status !== "launched" ||
+    !new Set(["integrate", "recover"]).has(String(runRecord.activeMode)) ||
+    !Number.isInteger(attempt) ||
+    attempt < 1
+  ) {
+    throw new Error(`${integrationId}: wave run is not promotable`);
+  }
+  verifyPassedWaveRunInspection(
+    JSON.parse(
+      runRtk(["fabro", "inspect", runId, "--json", "--quiet"], {
+        quiet: true,
+      }),
+    ),
+    {
+      attempt,
+      baseSha,
+      integrationId,
+      mode: activeMode,
+      reservationToken,
+      runId,
+      selectionPath,
+      selectionSha256: selection.selectionSha256,
+      workdir,
+    },
+  );
   const branchHead = gitSha(
     runRtk(["git", "rev-parse", `refs/heads/fabro/brain-${integrationId}`], {
       quiet: true,
@@ -118,6 +159,26 @@ try {
     integrationId,
     selectionPath,
   });
+  const generatedFiles = (result.generatedFiles as string[]) ?? [];
+  const laneFiles = selection.selectedTasks.flatMap(
+    (task) => task.changedFiles,
+  );
+  if (
+    generatedFiles.length > 0 ||
+    laneFiles.some(
+      (file) =>
+        file.startsWith("packages/convex/confect/") ||
+        file.startsWith("apps/web/src/routes/") ||
+        file.startsWith("tooling/confect-manifest/"),
+    )
+  ) {
+    proveIntegrationGeneratedOutput({
+      baseSha,
+      generatedFiles,
+      headSha,
+      root,
+    });
+  }
   const trackedStatus = runRtk(
     ["proxy", "git", "status", "--porcelain", "--untracked-files=no"],
     { quiet: true },

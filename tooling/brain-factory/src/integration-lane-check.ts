@@ -209,8 +209,10 @@ export const validateIntegratedLanes = (
             .find((item) => item.taskId === dependencyId)
         : undefined;
       if (
-        dependencyResult.schemaVersion !==
-          "maestro-brain-integration-result/v1" ||
+        !new Set([
+          "maestro-brain-integration-result/v1",
+          "maestro-brain-integration-result/v2",
+        ]).has(String(dependencyResult.schemaVersion)) ||
         dependencyResult.status !== "passed" ||
         dependencyResult.reviewVerdict !== "pass" ||
         dependencyResult.headSha !== dependencyIntegrationHead ||
@@ -255,6 +257,13 @@ export const validateIntegratedLanes = (
       throw new Error(`${taskId}: integrationId mismatch`);
     }
     const laneHeadSha = string(lane.headSha, `${taskId}: lane headSha`);
+    if (
+      input.waveSelection &&
+      string(includedTask.laneHeadSha, `${taskId}: included laneHeadSha`) !==
+        laneHeadSha
+    ) {
+      throw new Error(`${taskId}: included lane head mismatch`);
+    }
     const proof = readJson(resolve(laneDirectory, "ci-proof-packet.json"));
     validateProofContract(proof, {
       planSha256: manifest.planSha256,

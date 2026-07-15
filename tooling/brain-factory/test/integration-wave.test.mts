@@ -12,9 +12,13 @@ import {
 } from "../src/integration-wave.js";
 import type { BrainTaskContract } from "../src/manifest.js";
 import {
+  materializeImmutableWaveSelection,
   promotionAction,
   replaceWaveRunRecord,
+  verifyPassedWaveRunInspection,
   verifyWaveRunInspection,
+  waveModeForWorktree,
+  waveWorktreeRecoveryAction,
 } from "../src/integration-wave-launch.js";
 
 const task = (
@@ -159,6 +163,20 @@ describe("integration wave planner", () => {
     expect(() => promotionAction("other", "base", "head")).toThrow(
       "rebuild the wave and rerun full verify",
     );
+    expect(waveModeForWorktree("base", "base")).toBe("integrate");
+    expect(waveModeForWorktree("base", "partial")).toBe("recover");
+    expect(
+      waveWorktreeRecoveryAction({
+        branchExists: false,
+        worktreeExists: false,
+      }),
+    ).toBe("create-branch");
+    expect(
+      waveWorktreeRecoveryAction({ branchExists: true, worktreeExists: false }),
+    ).toBe("attach-branch");
+    expect(
+      waveWorktreeRecoveryAction({ branchExists: true, worktreeExists: true }),
+    ).toBe("reuse");
   });
 
   it("atomically replaces only the exact durable run record", () => {
@@ -173,14 +191,22 @@ describe("integration wave planner", () => {
     expect(() =>
       replaceWaveRunRecord(path, current, { status: "drifted" }),
     ).toThrow("wave run record changed");
+    const selectionPath = resolve(root, "selection.json");
+    materializeImmutableWaveSelection(selectionPath, { exact: true });
+    materializeImmutableWaveSelection(selectionPath, { exact: true });
+    expect(() =>
+      materializeImmutableWaveSelection(selectionPath, { exact: false }),
+    ).toThrow("conflicts with reservation");
     rmSync(root, { recursive: true });
   });
 
   it("binds recovery to exact Fabro labels and inputs", () => {
     const identity = {
+      attempt: 2,
       baseSha: "a".repeat(40),
       integrationId: "wave-000001",
       mode: "recover" as const,
+      reservationToken: "123e4567-e89b-42d3-a456-426614174000",
       runId: "01ARZ3NDEKTSV4RRFFQ69G5FAV",
       selectionPath: "/tmp/wave-selection.json",
       selectionSha256: "b".repeat(64),
@@ -192,22 +218,38 @@ describe("integration wave planner", () => {
         settings: {
           run: {
             inputs: {
+              attempt: identity.attempt,
               base_sha: identity.baseSha,
               integration_id: identity.integrationId,
               mode: identity.mode,
+              reservation_token: identity.reservationToken,
               selection_path: identity.selectionPath,
               selection_sha256: identity.selectionSha256,
               workdir: identity.workdir,
             },
             metadata: {
+              attempt: identity.attempt,
               integration: identity.integrationId,
               "integration-mode": "wave-v2",
+              reservation: identity.reservationToken,
             },
           },
         },
       },
     };
     expect(() => verifyWaveRunInspection(inspection, identity)).not.toThrow();
+    expect(() =>
+      verifyPassedWaveRunInspection(
+        { ...inspection, status: { kind: "failed" } },
+        identity,
+      ),
+    ).toThrow("is not succeeded");
+    expect(() =>
+      verifyPassedWaveRunInspection(
+        { ...inspection, status: { kind: "succeeded" } },
+        identity,
+      ),
+    ).not.toThrow();
     expect(() =>
       verifyWaveRunInspection(
         {
