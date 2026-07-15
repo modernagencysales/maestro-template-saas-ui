@@ -161,6 +161,39 @@ describe("Fabro workflow prompt contracts", () => {
     }
   });
 
+  it("keeps integration Git proof raw and patch fallback bounded", () => {
+    for (const workflow of [
+      "brain-integrate-tranche",
+      "brain-integrate-wave",
+      "brain-repair-tranche",
+    ] as const) {
+      const source = readFileSync(
+        resolve(
+          import.meta.dirname,
+          "../../../.fabro/workflows",
+          workflow,
+          "workflow.fabro",
+        ),
+        "utf8",
+      );
+      for (const node of workflows[workflow].promptNodes) {
+        const prompt = source
+          .split("\n")
+          .find((line) => line.trimStart().startsWith(`${node} [`));
+        expect(prompt, `${workflow}.${node}`).toContain(
+          "use rtk proxy git for every SHA, path, status, numstat, or cherry value used as structured evidence",
+        );
+        expect(prompt, `${workflow}.${node}`).toContain(
+          "filtered rtk git output must never feed structured evidence",
+        );
+        expect(prompt, `${workflow}.${node}`).toContain(
+          "Do not use native apply_patch",
+        );
+      }
+      expect(source).not.toMatch(/HEAD_SHA=\$\([^\n]*&& rtk git rev-parse/);
+    }
+  });
+
   it("bounds task reconnaissance and leaves deterministic gates to the workflow", () => {
     const buildTask = readFileSync(
       resolve(

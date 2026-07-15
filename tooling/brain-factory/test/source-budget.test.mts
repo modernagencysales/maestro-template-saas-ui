@@ -42,4 +42,10 @@ describe("Brain task source budgets", () => {
     expect(validSourceSlices([301])).toBe(false);
     expect(validSourceSlices([10, 20, 30, 40, 50])).toBe(false);
   });
+
+  it("supports an explicit five-slice task contract", () => {
+    expect(validSourceSlices([280, 272, 229, 57, 261], 300, 5)).toBe(true);
+    expect(validSourceSlices([280, 272, 229, 57, 301], 300, 5)).toBe(false);
+    expect(validSourceSlices([1, 2, 3, 4, 5, 6], 300, 5)).toBe(false);
+  });
 });

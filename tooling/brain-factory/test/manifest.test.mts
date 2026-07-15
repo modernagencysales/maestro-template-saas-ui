@@ -224,12 +224,49 @@ describe("Maestro Brain execution manifest", () => {
     );
     expect(stableIdentity?.codeStartAfter).toEqual(["S00-T04", "S01-T01"]);
     expect(providerSetup?.codeStartAfter).toEqual(["S00-T03", "S01-T02"]);
+    expect(providerSetup?.sourceSliceLimit).toBe(5);
+    expect(stableIdentity?.sourceSliceLimit).toBeUndefined();
     expect(headlessPrincipal?.codeStartAfter).toEqual([
       "S11-T01",
       "S01-T02",
       "S01-T03",
     ]);
     expect(headlessPrincipal?.acceptanceAfter).toBe("S11-T01, S01-T03");
+  });
+
+  it("reserves the five-slice exception for S04-T01", () => {
+    const manifest = buildManifest();
+    const s04AtFiveSlices = {
+      ...manifest,
+      tasks: manifest.tasks.map((task) =>
+        task.taskId === "S04-T01"
+          ? { ...task, estimatedSourceLines: 1_500 }
+          : task,
+      ),
+    };
+    expect(validateManifest(s04AtFiveSlices)).not.toContain(
+      "S04-T01: invalid source-line estimate 1500",
+    );
+    expect(
+      validateManifest({
+        ...s04AtFiveSlices,
+        tasks: s04AtFiveSlices.tasks.map((task) =>
+          task.taskId === "S04-T01"
+            ? { ...task, estimatedSourceLines: 1_501 }
+            : task,
+        ),
+      }),
+    ).toContain("S04-T01: invalid source-line estimate 1501");
+    expect(
+      validateManifest({
+        ...manifest,
+        tasks: manifest.tasks.map((task) =>
+          task.taskId === "S00-T04"
+            ? { ...task, sourceSliceLimit: 5 as const }
+            : task,
+        ),
+      }),
+    ).toContain("S00-T04: only S04-T01 may use five source slices");
   });
 
   it("keeps S13 lane proofs behind their real product dependencies", () => {

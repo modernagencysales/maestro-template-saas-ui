@@ -69,8 +69,9 @@ them. Product-specific additions are:
 3. This Markdown is canonical. Generate, validate, hash, and discard only the
    next stack's temporary StackPlan JSON.
 4. Each StackPlan reports hand-authored source lines separately from generated,
-   test, and documentation review totals. The 300-source-line and four-slice
-   limits remain binding.
+   test, and documentation review totals. Every source slice remains at most 300
+   lines. Tasks default to four slices; S04-T01 alone may use five because its
+   demonstrated 1,287-line provider boundary cannot fit within 1,200 lines.
 5. Receipts contain names, versions, hashes, counts, statuses, redacted error
    tags, and command results—never secrets or customer text.
 
@@ -106,11 +107,13 @@ applying these rules:
    an independent contract/security review, and emits a minimal proof packet.
    Red gates return to implementation inside the same Fabro run. Appendix A's
    source number is the task estimate. A slice is one task contract. A task
-   remains one slice and may produce one to four coherent one-intention commits;
-   every commit remains <=300 changed hand-authored source lines and the task is
-   accepted only as one proof set. If a task requires more than four coherent
-   commits, or any coherent commit cannot fit the limit, split the task contract
-   and regenerate the binding manifest before implementation.
+   remains one slice and normally produces one to four coherent one-intention
+   commits; S04-T01 alone may produce five; every commit remains <=300 changed
+   hand-authored source lines and the task is accepted only as one proof set.
+   Except for the declared S04-T01 five-commit limit, if a task requires more
+   than four coherent commits, or any coherent commit cannot fit the limit,
+   split the task contract and regenerate the binding manifest before
+   implementation.
 5. **Wave integration:** one-intention task commits are selected into an
    immutable dependency-safe, conflict-free integration wave across tranches.
    `rtk host-test-slot --class full pnpm verify` runs once on the integrated
@@ -4477,6 +4480,8 @@ checks validate:
   codegen worktrees prove Confect-generated deltas before centralized codegen;
 - clean worktree/base SHA and proof/head consistency;
 - no broad lane command or gate weakening;
+- at most four 300-line source slices per task by default, with a manifest-
+  validated five-slice exception only for S04-T01;
 - full verification before an immutable wave is promoted and marks tasks
   accepted.
 

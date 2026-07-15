@@ -24,7 +24,10 @@ import {
   changedHandAuthoredSourceLines,
   validSourceSlices,
 } from "./source-budget.js";
-import { laneFileOwnershipIssues } from "./lane-ownership.js";
+import {
+  laneFileOwnershipIssues,
+  laneHistoryOwnershipIssues,
+} from "./lane-ownership.js";
 import { lifecycleAdoptionRecordIssues } from "./lifecycle-adoption.js";
 
 interface ProofPacket {
@@ -160,14 +163,18 @@ for (const requiredFile of requiredTaskFiles[taskId] ?? [])
       `${taskId}: missing required task artifact ${requiredFile}`,
     );
 
-const head = spawnSync("rtk", ["git", "rev-parse", "HEAD"], {
+const head = spawnSync("rtk", ["proxy", "git", "rev-parse", "HEAD"], {
   cwd: process.cwd(),
   encoding: "utf8",
 }).stdout.trim();
-const treeResult = spawnSync("rtk", ["git", "rev-parse", "HEAD^{tree}"], {
-  cwd: process.cwd(),
-  encoding: "utf8",
-});
+const treeResult = spawnSync(
+  "rtk",
+  ["proxy", "git", "rev-parse", "HEAD^{tree}"],
+  {
+    cwd: process.cwd(),
+    encoding: "utf8",
+  },
+);
 if (treeResult.status !== 0)
   throw new Error(`${taskId}: could not resolve current tree`);
 const currentTreeSha = treeResult.stdout.trim();
@@ -194,16 +201,51 @@ if (
   );
 const commitList = spawnSync(
   "rtk",
-  ["git", "rev-list", "--reverse", `${proof.baseSha}..${proof.headSha}`],
+  [
+    "proxy",
+    "git",
+    "rev-list",
+    "--reverse",
+    `${proof.baseSha}..${proof.headSha}`,
+  ],
   { cwd: process.cwd(), encoding: "utf8" },
 );
 if (commitList.status !== 0)
   throw new Error(`${taskId}: could not enumerate task slices`);
 const taskCommits = commitList.stdout.trim().split("\n").filter(Boolean);
+const historicalPaths = taskCommits.map((commit) => {
+  const paths = spawnSync(
+    "rtk",
+    [
+      "proxy",
+      "git",
+      "diff-tree",
+      "--root",
+      "--no-commit-id",
+      "--name-only",
+      "-r",
+      "--no-renames",
+      commit,
+    ],
+    { cwd: process.cwd(), encoding: "utf8" },
+  );
+  if (paths.status !== 0)
+    throw new Error(`${taskId}: could not inspect slice paths ${commit}`);
+  return {
+    commit,
+    files: paths.stdout.trim().split("\n").filter(Boolean),
+  };
+});
+const historicalOwnershipIssues = laneHistoryOwnershipIssues(
+  historicalPaths,
+  task.fileLocks,
+);
+if (historicalOwnershipIssues.length > 0)
+  throw new Error(`${taskId}: ${historicalOwnershipIssues.join("; ")}`);
 const sourceSlices = taskCommits.map((commit) => {
   const numstat = spawnSync(
     "rtk",
-    ["git", "show", "--numstat", "--format=", commit],
+    ["proxy", "git", "show", "--no-renames", "--numstat", "--format=", commit],
     { cwd: process.cwd(), encoding: "utf8" },
   );
   if (numstat.status !== 0)
@@ -220,13 +262,13 @@ if (
   !validSourceSlices(
     sourceSlices.map((slice) => slice.changedSourceLines),
     task.sourceSliceBudget,
-    4,
+    task.sourceSliceLimit ?? 4,
   )
 )
   throw new Error(
     oversizedSlice
       ? `${taskId}: slice ${oversizedSlice.commit} changes ${oversizedSlice.changedSourceLines} hand-authored source lines; split it below ${task.sourceSliceBudget}`
-      : `${taskId}: expected one to four task slice commits, got ${taskCommits.length}`,
+      : `${taskId}: expected one to ${task.sourceSliceLimit ?? 4} task slice commits, got ${taskCommits.length}`,
   );
 const changedSourceLines = sourceSlices.reduce(
   (total, slice) => total + slice.changedSourceLines,

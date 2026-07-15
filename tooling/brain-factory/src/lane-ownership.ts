@@ -61,3 +61,16 @@ export const laneFileOwnershipIssues = (
         : [`${file}: not declared in manifest fileLocks`],
   );
 };
+
+export const laneHistoryOwnershipIssues = (
+  commits: readonly {
+    readonly commit: string;
+    readonly files: readonly string[];
+  }[],
+  fileLocks: readonly string[],
+): string[] =>
+  commits.flatMap(({ commit, files }) =>
+    laneFileOwnershipIssues(files, fileLocks).map(
+      (issue) => `${commit}: ${issue}`,
+    ),
+  );
