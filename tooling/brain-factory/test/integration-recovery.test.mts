@@ -17,6 +17,8 @@ import {
   persistLegacyIntegrationRecovery,
   planLegacyIntegrationRecovery,
   promoteRepairLaunch,
+  reconcileDurableRepairLaunch,
+  reconcileLegacyIntegrationRecovery,
   repairWorkflowArgs,
   reserveRepairLaunch,
   safeAbsolutePath,
@@ -29,6 +31,7 @@ const LANE_SHA = "4".repeat(40);
 const INTEGRATION_COMMIT_SHA = "5".repeat(40);
 const SOURCE_RUN_ID = "01KXHDXG8A8751TZ3HY4CQJKBD";
 const REPAIR_RUN_ID = "01KXHE00000000000000000000";
+const RESERVATION_TOKEN = "12345678-1234-4123-8123-123456789abc";
 
 const roots: string[] = [];
 const root = (): string => {
@@ -210,7 +213,7 @@ describe("legacy integration recovery", () => {
     ).toThrow("Fabro run base mismatch");
   });
 
-  it("rejects missing reason, ownership drift, and repeated recovery", () => {
+  it("rejects missing reason, ownership drift, and drifted recovery", () => {
     expect(() =>
       planLegacyIntegrationRecovery({ ...validInput(), reason: " " }),
     ).toThrow("recovery reason must be a non-empty string");
@@ -229,7 +232,17 @@ describe("legacy integration recovery", () => {
           recovery: { sourceReviewRun: SOURCE_RUN_ID },
         },
       }),
-    ).toThrow("integration evidence already has recovery history");
+    ).toThrow("normalized recovery evidence drifted");
+  });
+
+  it("reconstructs the same plan from normalized recovery evidence", () => {
+    const input = validInput();
+    const original = planLegacyIntegrationRecovery(input);
+    const resumed = planLegacyIntegrationRecovery({
+      ...input,
+      integrationResult: original.normalizedResult,
+    });
+    expect(resumed).toEqual(original);
   });
 
   it("binds legacy evidence to its schema, tranche, heads, and worktree", () => {
@@ -372,7 +385,7 @@ describe("legacy integration recovery", () => {
     writeFileSync(`${resultPath}.next`, "crash residue\n");
     expect(() =>
       persistLegacyIntegrationRecovery({ auditPath, plan, resultPath }),
-    ).toThrow("recovery staging file already exists");
+    ).toThrow("recovery staging file conflicts");
     expect(readFileSync(auditPath, "utf8")).toBe(audit);
   });
 
@@ -461,7 +474,7 @@ describe("legacy integration recovery", () => {
         runId: REPAIR_RUN_ID,
         status: "launched",
       }),
-    ).toThrow("repair launch staging file already exists");
+    ).toThrow("repair launch staging file conflicts");
     expect(readFileSync(repairPath, "utf8")).toBe(reserved);
     rmSync(`${repairPath}.next`);
     promoteRepairLaunch(repairPath, token, {
@@ -474,13 +487,177 @@ describe("legacy integration recovery", () => {
     });
   });
 
+  it.each([
+    "after-reservation",
+    "after-audit-append",
+    "after-normalization",
+    "after-launch",
+    "after-promotion-stage",
+  ] as const)("resumes idempotently after %s", (faultPoint) => {
+    const fixtureRoot = root();
+    const resultPath = resolve(fixtureRoot, "integration-result.json");
+    const auditPath = resolve(fixtureRoot, "recovery-audit.jsonl");
+    const repairRecordPath = resolve(fixtureRoot, "repair-F0-foundation.json");
+    const authority = validInput();
+    const plan = planLegacyIntegrationRecovery(authority);
+    writeFileSync(
+      resultPath,
+      `${JSON.stringify(authority.integrationResult, null, 2)}\n`,
+    );
+    const liveRuns = new Map<number, string>();
+    let launchCalls = 0;
+    const run = (fault?: typeof faultPoint) =>
+      reconcileLegacyIntegrationRecovery({
+        auditPath,
+        discoverLaunchedRun: ({ attempt }) => liveRuns.get(attempt),
+        ...(fault
+          ? {
+              fault: (point) => {
+                if (point === fault) throw new Error(`crash:${point}`);
+              },
+            }
+          : {}),
+        identity: {
+          baseSha: plan.repairBaseSha,
+          sourceReviewRun: plan.sourceReviewRun,
+          tranche: authority.tranche,
+          workdir: authority.worktreePath,
+        },
+        launch: ({ attempt }) => {
+          launchCalls += 1;
+          liveRuns.set(attempt, REPAIR_RUN_ID);
+          return REPAIR_RUN_ID;
+        },
+        plan,
+        repairRecordPath,
+        resultPath,
+      });
+
+    expect(() => run(faultPoint)).toThrow(`crash:${faultPoint}`);
+    const durableResult = JSON.parse(readFileSync(resultPath, "utf8")) as {
+      readonly recovery?: unknown;
+    };
+    const durableReservation = JSON.parse(
+      readFileSync(repairRecordPath, "utf8"),
+    ) as { readonly status?: unknown };
+    if (faultPoint === "after-reservation") {
+      expect(existsSync(auditPath)).toBe(false);
+      expect(durableResult.recovery).toBeUndefined();
+    }
+    if (faultPoint === "after-audit-append") {
+      expect(durableResult.recovery).toBeUndefined();
+      expect(existsSync(`${resultPath}.next`)).toBe(true);
+    }
+    if (faultPoint === "after-normalization") {
+      expect(durableResult.recovery).toBeDefined();
+      expect(launchCalls).toBe(0);
+    }
+    if (faultPoint === "after-launch") {
+      expect(durableReservation.status).toBe("preparing");
+      expect(liveRuns.size).toBe(1);
+    }
+    if (faultPoint === "after-promotion-stage") {
+      expect(durableReservation.status).toBe("preparing");
+      expect(existsSync(`${repairRecordPath}.next`)).toBe(true);
+    }
+    expect(run()).toEqual({ runId: REPAIR_RUN_ID, status: "launched" });
+    expect(run()).toEqual({ runId: REPAIR_RUN_ID, status: "launched" });
+    expect(launchCalls).toBe(1);
+    expect(
+      readFileSync(auditPath, "utf8").split("\n").filter(Boolean),
+    ).toHaveLength(1);
+    expect(JSON.parse(readFileSync(resultPath, "utf8"))).toEqual(
+      plan.normalizedResult,
+    );
+    expect(JSON.parse(readFileSync(repairRecordPath, "utf8"))).toMatchObject({
+      runId: REPAIR_RUN_ID,
+      status: "launched",
+    });
+  });
+
+  it("records a launch failure and retries a new attempt exactly once", () => {
+    const fixtureRoot = root();
+    const resultPath = resolve(fixtureRoot, "integration-result.json");
+    const auditPath = resolve(fixtureRoot, "recovery-audit.jsonl");
+    const repairRecordPath = resolve(fixtureRoot, "repair-F0-foundation.json");
+    const authority = validInput();
+    const plan = planLegacyIntegrationRecovery(authority);
+    writeFileSync(
+      resultPath,
+      `${JSON.stringify(authority.integrationResult, null, 2)}\n`,
+    );
+    let launchCalls = 0;
+    const liveRuns = new Map<number, string>();
+    const run = () =>
+      reconcileLegacyIntegrationRecovery({
+        auditPath,
+        discoverLaunchedRun: ({ attempt }) => liveRuns.get(attempt),
+        identity: {
+          baseSha: plan.repairBaseSha,
+          sourceReviewRun: plan.sourceReviewRun,
+          tranche: authority.tranche,
+          workdir: authority.worktreePath,
+        },
+        launch: ({ attempt }) => {
+          launchCalls += 1;
+          if (launchCalls === 1) throw new Error("definite launch failure");
+          liveRuns.set(attempt, REPAIR_RUN_ID);
+          return REPAIR_RUN_ID;
+        },
+        plan,
+        repairRecordPath,
+        resultPath,
+      });
+    expect(run).toThrow("definite launch failure");
+    expect(JSON.parse(readFileSync(repairRecordPath, "utf8"))).toMatchObject({
+      launchAttempt: 1,
+      status: "launch_failed",
+    });
+    expect(run()).toEqual({ runId: REPAIR_RUN_ID, status: "launched" });
+    expect(run()).toEqual({ runId: REPAIR_RUN_ID, status: "launched" });
+    expect(launchCalls).toBe(2);
+    expect(liveRuns.size).toBe(1);
+    expect(
+      readFileSync(auditPath, "utf8").split("\n").filter(Boolean),
+    ).toHaveLength(1);
+  });
+
+  it("promotes a durable live-run receipt without rereading mutable evidence", () => {
+    const repairRecordPath = resolve(root(), "repair-F0-foundation.json");
+    reserveRepairLaunch(repairRecordPath, {
+      baseSha: HEAD_SHA,
+      launchAttempt: 1,
+      schemaVersion: "maestro-brain-repair-reservation/v1",
+      sourceReviewRun: SOURCE_RUN_ID,
+      status: "preparing",
+      tranche: "F0-foundation",
+      workdir: "/workdir",
+    });
+    expect(
+      reconcileDurableRepairLaunch({
+        discoverLaunchedRun: () => REPAIR_RUN_ID,
+        repairRecordPath,
+      }),
+    ).toEqual({ runId: REPAIR_RUN_ID, status: "launched" });
+    expect(
+      reconcileDurableRepairLaunch({
+        discoverLaunchedRun: () => {
+          throw new Error("must not rediscover an already promoted run");
+        },
+        repairRecordPath,
+      }),
+    ).toEqual({ runId: REPAIR_RUN_ID, status: "launched" });
+  });
+
   it("uses exact repair workflow inputs and rejects shell-hostile values", () => {
     expect(
       repairWorkflowArgs({
         controlRoot: "/control",
         evidenceDirectory: "/evidence",
+        launchAttempt: 1,
         recoveryAuditPath: "/state/recovery-audit.jsonl",
         repairBaseSha: HEAD_SHA,
+        reservationToken: RESERVATION_TOKEN,
         sourceReviewRun: SOURCE_RUN_ID,
         tranche: "F0-foundation",
         workdir: "/workdir",
@@ -500,8 +677,10 @@ describe("legacy integration recovery", () => {
     const base = {
       controlRoot: "/control",
       evidenceDirectory: "/evidence",
+      launchAttempt: 1,
       recoveryAuditPath: "/state/recovery-audit.jsonl",
       repairBaseSha: HEAD_SHA,
+      reservationToken: RESERVATION_TOKEN,
       sourceReviewRun: SOURCE_RUN_ID,
       tranche: "F0-foundation",
       workdir: "/workdir",

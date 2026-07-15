@@ -239,9 +239,97 @@ export const planLegacyIntegrationRecovery = (input: {
   }
 
   if (result.recovery !== undefined) {
-    throw new Error(
-      `${tranche}: integration evidence already has recovery history`,
-    );
+    const recovery = record(result.recovery, "recovery history");
+    if (
+      result.schemaVersion !== "maestro-brain-integration-result/v1" ||
+      result.status !== "rework" ||
+      result.reviewVerdict !== "rework" ||
+      result.tranche !== tranche ||
+      result.integrationId !== tranche ||
+      result.manifestTranche !== tranche ||
+      gitSha(result.baseSha, "normalized evidence baseSha") !== baseSha ||
+      gitSha(result.headSha, "normalized evidence headSha") !== worktreeHead ||
+      safeAbsolutePath(
+        result.integrationWorkdir,
+        "normalized evidence integrationWorkdir",
+      ) !== worktreePath ||
+      result.sourceRunStatus !== "failed" ||
+      fabroRunId(
+        result.sourceReviewRun,
+        "normalized evidence sourceReviewRun",
+      ) !== runId
+    ) {
+      throw new Error(`${tranche}: normalized recovery evidence drifted`);
+    }
+    if (
+      recovery.schemaVersion !== "maestro-brain-integration-recovery/v1" ||
+      recovery.sourceRunStatus !== "failed" ||
+      fabroRunId(recovery.sourceReviewRun, "recovery sourceReviewRun") !==
+        runId ||
+      gitSha(recovery.legacyBaseHeadSha, "recovery legacyBaseHeadSha") !==
+        baseSha ||
+      gitSha(
+        recovery.legacyIntegrationHeadSha,
+        "recovery legacyIntegrationHeadSha",
+      ) !== worktreeHead ||
+      safeAbsolutePath(recovery.legacyWorktree, "recovery legacyWorktree") !==
+        worktreePath ||
+      recovery.previousStatus !== "passed" ||
+      recovery.previousReviewVerdict !== "pass" ||
+      string(recovery.reason, "recovery reason") !== reason
+    ) {
+      throw new Error(`${tranche}: normalized recovery history drifted`);
+    }
+    if (!Array.isArray(result.includedTasks)) {
+      throw new Error(`${tranche}: normalized recovery has no included tasks`);
+    }
+    const manifestTaskIds = new Set(input.manifestTaskIds);
+    const includedTaskIds = result.includedTasks
+      .map((value, index) => {
+        const task = record(value, `includedTasks[${index}]`);
+        const taskId = string(task.taskId, `includedTasks[${index}] taskId`);
+        if (!manifestTaskIds.has(taskId) || task.tranche !== tranche) {
+          throw new Error(`${taskId}: normalized task identity mismatch`);
+        }
+        gitSha(task.laneHeadSha, `${taskId} laneHeadSha`);
+        const integrationCommitSha = gitSha(
+          task.integrationCommitSha,
+          `${taskId} integrationCommitSha`,
+        );
+        if (!input.isAncestor(integrationCommitSha, worktreeHead)) {
+          throw new Error(`${taskId}: normalized integration commit drifted`);
+        }
+        return taskId;
+      })
+      .sort();
+    if (
+      new Set(includedTaskIds).size !== includedTaskIds.length ||
+      !Array.isArray(recovery.legacyIncludedTaskIds) ||
+      JSON.stringify(includedTaskIds) !==
+        JSON.stringify([...recovery.legacyIncludedTaskIds].sort())
+    ) {
+      throw new Error(`${tranche}: normalized included-task history drifted`);
+    }
+    const recoveryAt = string(recovery.at, "recovery at");
+    return {
+      auditEvent: {
+        action: "recover-legacy-integration",
+        at: recoveryAt,
+        baseSha,
+        headSha: worktreeHead,
+        legacyIncludedTaskIds: includedTaskIds,
+        previousReviewVerdict: "pass",
+        previousStatus: "passed",
+        reason,
+        schemaVersion: "maestro-brain-integration-recovery-audit/v1",
+        sourceRunStatus: "failed",
+        sourceReviewRun: runId,
+        tranche,
+      },
+      normalizedResult: result,
+      repairBaseSha: worktreeHead,
+      sourceReviewRun: runId,
+    };
   }
   if (
     string(result.schemaVersion, "legacy evidence schemaVersion") !==
@@ -440,31 +528,64 @@ export const planLegacyIntegrationRecovery = (input: {
 
 export const persistLegacyIntegrationRecovery = (input: {
   readonly auditPath: string;
+  readonly fault?: (point: RecoveryFaultPoint) => void;
   readonly plan: LegacyIntegrationRecoveryPlan;
   readonly resultPath: string;
 }): void => {
   const temporary = `${input.resultPath}.next`;
-  if (existsSync(temporary)) {
-    throw new Error(`recovery staging file already exists at ${temporary}`);
-  }
-  writeFileSync(
-    temporary,
-    `${JSON.stringify(input.plan.normalizedResult, null, 2)}\n`,
-    { flag: "wx" },
+  const normalizedContent = `${JSON.stringify(
+    input.plan.normalizedResult,
+    null,
+    2,
+  )}\n`;
+  const auditEvents = existsSync(input.auditPath)
+    ? readFileSync(input.auditPath, "utf8")
+        .split("\n")
+        .filter(Boolean)
+        .map((line) => record(JSON.parse(line), "recovery audit event"))
+    : [];
+  const auditExists = auditEvents.some(
+    (event) => JSON.stringify(event) === JSON.stringify(input.plan.auditEvent),
   );
-  try {
+  if (
+    existsSync(input.resultPath) &&
+    readFileSync(input.resultPath, "utf8") === normalizedContent &&
+    auditExists
+  ) {
+    if (existsSync(temporary)) {
+      if (readFileSync(temporary, "utf8") !== normalizedContent) {
+        throw new Error(`recovery staging file conflicts at ${temporary}`);
+      }
+      rmSync(temporary);
+    }
+    return;
+  }
+  if (existsSync(temporary)) {
+    if (readFileSync(temporary, "utf8") !== normalizedContent) {
+      throw new Error(`recovery staging file conflicts at ${temporary}`);
+    }
+  } else {
+    writeFileSync(temporary, normalizedContent, { flag: "wx" });
+  }
+  if (!auditExists) {
     mkdirSync(dirname(input.auditPath), { recursive: true });
     appendFileSync(
       input.auditPath,
       `${JSON.stringify(input.plan.auditEvent)}\n`,
       "utf8",
     );
-  } catch (error) {
-    rmSync(temporary);
-    throw error;
+    input.fault?.("after-audit-append");
   }
   renameSync(temporary, input.resultPath);
+  input.fault?.("after-normalization");
 };
+
+export type RecoveryFaultPoint =
+  | "after-audit-append"
+  | "after-launch"
+  | "after-normalization"
+  | "after-promotion-stage"
+  | "after-reservation";
 
 export const reserveRepairLaunch = (
   path: string,
@@ -503,24 +624,30 @@ export const promoteRepairLaunch = (
   path: string,
   reservationToken: string,
   recordValue: JsonRecord,
+  fault?: (point: RecoveryFaultPoint) => void,
 ): void => {
   const temporary = `${path}.next`;
-  if (existsSync(temporary)) {
-    throw new Error(
-      `repair launch staging file already exists at ${temporary}`,
-    );
-  }
   const reservationContent = readFileSync(path, "utf8");
   const reservation = record(JSON.parse(reservationContent), "reservation");
   if (
     reservation.reservationToken !== reservationToken ||
-    reservation.status !== "preparing"
+    !new Set(["launch_failed", "preparing"]).has(String(reservation.status))
   ) {
     throw new Error(`repair launch reservation changed at ${path}`);
   }
-  writeFileSync(temporary, `${JSON.stringify(recordValue, null, 2)}\n`, {
-    flag: "wx",
-  });
+  const promotedContent = `${JSON.stringify(
+    { ...recordValue, reservationToken },
+    null,
+    2,
+  )}\n`;
+  if (existsSync(temporary)) {
+    if (readFileSync(temporary, "utf8") !== promotedContent) {
+      throw new Error(`repair launch staging file conflicts at ${temporary}`);
+    }
+  } else {
+    writeFileSync(temporary, promotedContent, { flag: "wx" });
+  }
+  fault?.("after-promotion-stage");
   if (readFileSync(path, "utf8") !== reservationContent) {
     rmSync(temporary);
     throw new Error(`repair launch reservation changed at ${path}`);
@@ -528,11 +655,308 @@ export const promoteRepairLaunch = (
   renameSync(temporary, path);
 };
 
+export interface RepairRecoveryIdentity {
+  readonly baseSha: string;
+  readonly sourceReviewRun: string;
+  readonly tranche: string;
+  readonly workdir: string;
+}
+
+interface RepairReservation extends JsonRecord {
+  readonly baseSha: string;
+  readonly launchAttempt: number;
+  readonly reservationToken: string;
+  readonly schemaVersion: "maestro-brain-repair-reservation/v1";
+  readonly sourceReviewRun: string;
+  readonly status: "launch_failed" | "launched" | "preparing";
+  readonly tranche: string;
+  readonly workdir: string;
+}
+
+const repairReservation = (
+  value: unknown,
+  identity: RepairRecoveryIdentity,
+): RepairReservation => {
+  const reservation = record(value, "repair reservation");
+  if (reservation.schemaVersion !== "maestro-brain-repair-reservation/v1")
+    throw new Error("repair reservation schema mismatch");
+  if (
+    gitSha(reservation.baseSha, "repair reservation baseSha") !==
+    identity.baseSha
+  )
+    throw new Error("repair reservation base mismatch");
+  if (
+    fabroRunId(
+      reservation.sourceReviewRun,
+      "repair reservation sourceReviewRun",
+    ) !== identity.sourceReviewRun
+  )
+    throw new Error("repair reservation source run mismatch");
+  if (reservation.tranche !== identity.tranche)
+    throw new Error("repair reservation tranche mismatch");
+  if (
+    safeAbsolutePath(reservation.workdir, "repair reservation workdir") !==
+    identity.workdir
+  )
+    throw new Error("repair reservation workdir mismatch");
+  if (
+    typeof reservation.reservationToken !== "string" ||
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(
+      reservation.reservationToken,
+    )
+  ) {
+    throw new Error("repair reservation token is invalid");
+  }
+  if (
+    !Number.isInteger(reservation.launchAttempt) ||
+    Number(reservation.launchAttempt) < 1
+  ) {
+    throw new Error("repair reservation launch attempt is invalid");
+  }
+  if (
+    !new Set(["launch_failed", "launched", "preparing"]).has(
+      String(reservation.status),
+    )
+  ) {
+    throw new Error("repair reservation status is invalid");
+  }
+  return reservation as unknown as RepairReservation;
+};
+
+const repairIdentityFromRecord = (value: unknown): RepairRecoveryIdentity => {
+  const reservation = record(value, "repair reservation");
+  return {
+    baseSha: gitSha(reservation.baseSha, "repair reservation baseSha"),
+    sourceReviewRun: fabroRunId(
+      reservation.sourceReviewRun,
+      "repair reservation sourceReviewRun",
+    ),
+    tranche: safeTranche(reservation.tranche, "repair reservation tranche"),
+    workdir: safeAbsolutePath(
+      reservation.workdir,
+      "repair reservation workdir",
+    ),
+  };
+};
+
+const writeRepairReservation = (
+  path: string,
+  current: RepairReservation,
+  next: JsonRecord,
+): RepairReservation => {
+  const temporary = `${path}.next`;
+  const currentContent = readFileSync(path, "utf8");
+  const nextContent = `${JSON.stringify(
+    { ...next, reservationToken: current.reservationToken },
+    null,
+    2,
+  )}\n`;
+  if (existsSync(temporary)) {
+    if (readFileSync(temporary, "utf8") !== nextContent) {
+      throw new Error(`repair launch staging file conflicts at ${temporary}`);
+    }
+  } else {
+    writeFileSync(temporary, nextContent, { flag: "wx" });
+  }
+  if (readFileSync(path, "utf8") !== currentContent) {
+    throw new Error(`repair launch reservation changed at ${path}`);
+  }
+  renameSync(temporary, path);
+  return record(
+    JSON.parse(nextContent),
+    "repair reservation",
+  ) as unknown as RepairReservation;
+};
+
+const ensureRepairReservation = (
+  path: string,
+  identity: RepairRecoveryIdentity,
+): { readonly created: boolean; readonly reservation: RepairReservation } => {
+  if (!existsSync(path)) {
+    reserveRepairLaunch(path, {
+      ...identity,
+      launchAttempt: 1,
+      schemaVersion: "maestro-brain-repair-reservation/v1",
+      status: "preparing",
+    });
+    return {
+      created: true,
+      reservation: repairReservation(readJsonRecord(path), identity),
+    };
+  }
+  if (existsSync(`${path}.next`)) {
+    const current = repairReservation(readJsonRecord(path), identity);
+    const staged = repairReservation(readJsonRecord(`${path}.next`), identity);
+    if (current.reservationToken !== staged.reservationToken) {
+      throw new Error("repair promotion residue has different ownership");
+    }
+    renameSync(`${path}.next`, path);
+  }
+  return {
+    created: false,
+    reservation: repairReservation(readJsonRecord(path), identity),
+  };
+};
+
+export interface ReconcileRecoveryInput {
+  readonly auditPath: string;
+  readonly discoverLaunchedRun: (input: {
+    readonly attempt: number;
+    readonly reservationToken: string;
+  }) => string | undefined;
+  readonly fault?: (point: RecoveryFaultPoint) => void;
+  readonly identity: RepairRecoveryIdentity;
+  readonly launch: (input: {
+    readonly attempt: number;
+    readonly reservationToken: string;
+  }) => string;
+  readonly plan: LegacyIntegrationRecoveryPlan;
+  readonly repairRecordPath: string;
+  readonly resultPath: string;
+}
+
+export const reconcileDurableRepairLaunch = (input: {
+  readonly discoverLaunchedRun: (input: {
+    readonly attempt: number;
+    readonly reservationToken: string;
+  }) => string | undefined;
+  readonly repairRecordPath: string;
+}): { readonly runId: string; readonly status: "launched" } | undefined => {
+  if (!existsSync(input.repairRecordPath)) return undefined;
+  const raw = readJsonRecord(input.repairRecordPath);
+  const identity = repairIdentityFromRecord(raw);
+  const { reservation } = ensureRepairReservation(
+    input.repairRecordPath,
+    identity,
+  );
+  if (reservation.status === "launched") {
+    return {
+      runId: fabroRunId(reservation.runId, "repair reservation runId"),
+      status: "launched",
+    };
+  }
+  const discovered = input.discoverLaunchedRun({
+    attempt: reservation.launchAttempt,
+    reservationToken: reservation.reservationToken,
+  });
+  if (discovered === undefined) return undefined;
+  const runId = fabroRunId(discovered, "discovered repair runId");
+  promoteRepairLaunch(input.repairRecordPath, reservation.reservationToken, {
+    ...identity,
+    launchAttempt: reservation.launchAttempt,
+    runId,
+    schemaVersion: "maestro-brain-repair-reservation/v1",
+    status: "launched",
+  });
+  return { runId, status: "launched" };
+};
+
+export const reconcileLegacyIntegrationRecovery = (
+  input: ReconcileRecoveryInput,
+): { readonly runId: string; readonly status: "launched" } => {
+  const identity: RepairRecoveryIdentity = {
+    baseSha: gitSha(input.identity.baseSha, "recovery identity baseSha"),
+    sourceReviewRun: fabroRunId(
+      input.identity.sourceReviewRun,
+      "recovery identity sourceReviewRun",
+    ),
+    tranche: safeTranche(input.identity.tranche, "recovery identity tranche"),
+    workdir: safeAbsolutePath(
+      input.identity.workdir,
+      "recovery identity workdir",
+    ),
+  };
+  if (
+    input.plan.repairBaseSha !== identity.baseSha ||
+    input.plan.sourceReviewRun !== identity.sourceReviewRun
+  ) {
+    throw new Error("recovery plan does not match reservation identity");
+  }
+  const ensured = ensureRepairReservation(input.repairRecordPath, identity);
+  let reservation = ensured.reservation;
+  if (ensured.created) input.fault?.("after-reservation");
+  if (reservation.status === "launched") {
+    return {
+      runId: fabroRunId(reservation.runId, "repair reservation runId"),
+      status: "launched",
+    };
+  }
+  const discoveredRunId = input.discoverLaunchedRun({
+    attempt: reservation.launchAttempt,
+    reservationToken: reservation.reservationToken,
+  });
+  if (discoveredRunId !== undefined) {
+    const runId = fabroRunId(discoveredRunId, "discovered repair runId");
+    promoteRepairLaunch(
+      input.repairRecordPath,
+      reservation.reservationToken,
+      {
+        ...identity,
+        launchAttempt: reservation.launchAttempt,
+        runId,
+        schemaVersion: "maestro-brain-repair-reservation/v1",
+        status: "launched",
+      },
+      input.fault,
+    );
+    return { runId, status: "launched" };
+  }
+  persistLegacyIntegrationRecovery({
+    auditPath: input.auditPath,
+    ...(input.fault ? { fault: input.fault } : {}),
+    plan: input.plan,
+    resultPath: input.resultPath,
+  });
+  if (reservation.status === "launch_failed") {
+    reservation = writeRepairReservation(input.repairRecordPath, reservation, {
+      ...identity,
+      launchAttempt: reservation.launchAttempt + 1,
+      schemaVersion: "maestro-brain-repair-reservation/v1",
+      status: "preparing",
+    });
+  }
+  let runId: string;
+  try {
+    runId = fabroRunId(
+      input.launch({
+        attempt: reservation.launchAttempt,
+        reservationToken: reservation.reservationToken,
+      }),
+      "launched repair runId",
+    );
+  } catch (error) {
+    writeRepairReservation(input.repairRecordPath, reservation, {
+      ...identity,
+      failure: "repair launch failed",
+      launchAttempt: reservation.launchAttempt,
+      schemaVersion: "maestro-brain-repair-reservation/v1",
+      status: "launch_failed",
+    });
+    throw error;
+  }
+  input.fault?.("after-launch");
+  promoteRepairLaunch(
+    input.repairRecordPath,
+    reservation.reservationToken,
+    {
+      ...identity,
+      launchAttempt: reservation.launchAttempt,
+      runId,
+      schemaVersion: "maestro-brain-repair-reservation/v1",
+      status: "launched",
+    },
+    input.fault,
+  );
+  return { runId, status: "launched" };
+};
+
 export const repairWorkflowArgs = (input: {
   readonly controlRoot: string;
   readonly evidenceDirectory: string;
+  readonly launchAttempt: number;
   readonly recoveryAuditPath: string;
   readonly repairBaseSha: string;
+  readonly reservationToken: string;
   readonly sourceReviewRun: string;
   readonly tranche: string;
   readonly workdir: string;
@@ -547,6 +971,16 @@ export const repairWorkflowArgs = (input: {
     input.recoveryAuditPath,
     "recoveryAuditPath",
   );
+  if (!Number.isInteger(input.launchAttempt) || input.launchAttempt < 1) {
+    throw new Error("launchAttempt must be a positive integer");
+  }
+  if (
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(
+      input.reservationToken,
+    )
+  ) {
+    throw new Error("reservationToken must be a UUID");
+  }
   const repairBaseSha = gitSha(input.repairBaseSha, "repairBaseSha");
   const sourceReviewRun = fabroRunId(input.sourceReviewRun, "sourceReviewRun");
   const tranche = safeTranche(input.tranche, "tranche");
@@ -563,6 +997,10 @@ export const repairWorkflowArgs = (input: {
     "local",
     "--label",
     `tranche=${tranche}`,
+    "--label",
+    `recovery_token=${input.reservationToken}`,
+    "--label",
+    `launch_attempt=${input.launchAttempt}`,
     "-I",
     `workdir=${workdir}`,
     "-I",

@@ -1,4 +1,4 @@
-import { existsSync, realpathSync } from "node:fs";
+import { existsSync, readFileSync, realpathSync } from "node:fs";
 import { resolve } from "node:path";
 
 import {
@@ -6,15 +6,14 @@ import {
   fabroRunId,
   gitSha,
   integrationLockPath,
-  persistLegacyIntegrationRecovery,
   planLegacyIntegrationRecovery,
-  promoteRepairLaunch,
   readJsonRecord,
+  reconcileDurableRepairLaunch,
+  reconcileLegacyIntegrationRecovery,
   repairWorkflowArgs,
-  reserveRepairLaunch,
   safeAbsolutePath,
 } from "./integration-recovery.js";
-import { gitIsAncestor, runRtk } from "./process.js";
+import { gitIsAncestor, runRtk, runRtkToFile } from "./process.js";
 
 const valueAfter = (flag: string): string | undefined => {
   const index = process.argv.indexOf(flag);
@@ -54,6 +53,19 @@ const resultPath = resolve(
 );
 const runRecordPath = resolve(state, "runs", `integration-${tranche}.json`);
 const repairRecordPath = resolve(state, "runs", `repair-${tranche}.json`);
+const receiptPath = (attempt: number): string =>
+  `${repairRecordPath}.launch-${attempt}.json`;
+const readReceipt = (attempt: number): string | undefined => {
+  const path = receiptPath(attempt);
+  if (!existsSync(path)) return undefined;
+  const output = readFileSync(path, "utf8").trim();
+  if (output.length === 0) return undefined;
+  const parsed = JSON.parse(output) as { run_id?: string; runId?: string };
+  return fabroRunId(
+    parsed.run_id ?? parsed.runId,
+    "repair launch receipt run ID",
+  );
+};
 const auditPath = resolve(state, "recovery-audit.jsonl");
 const expectedWorkdir = resolve(
   root,
@@ -103,12 +115,6 @@ const manifestTaskIds = Array.isArray(manifest.tasks)
 if (manifestTaskIds.length === 0) {
   throw new Error(`${tranche}: tranche is absent from the task manifest`);
 }
-if (existsSync(repairRecordPath)) {
-  throw new Error(
-    `${tranche}: repair launch record already exists at ${repairRecordPath}`,
-  );
-}
-
 const releaseOwnership = acquireIntegrationOwnership({
   lockPath: integrationLockPath(gitCommonDirectory, tranche),
   owner: {
@@ -120,100 +126,111 @@ const releaseOwnership = acquireIntegrationOwnership({
 });
 
 try {
-  const runRecord = readJsonRecord(runRecordPath);
-  const integrationResult = readJsonRecord(resultPath);
-  const runId = fabroRunId(runRecord.runId, "run record runId");
-  const inspection = JSON.parse(
-    runRtk(["fabro", "inspect", runId, "--json", "--quiet"], {
-      quiet: true,
-    }),
-  ) as readonly {
-    readonly run_id?: string;
-    readonly status?: { readonly kind?: string };
-  }[];
-  if (inspection.length !== 1 || inspection[0]?.run_id !== runId) {
-    throw new Error(
-      `${tranche}: Fabro inspection did not return exactly one run`,
-    );
-  }
+  const durableLaunch = reconcileDurableRepairLaunch({
+    discoverLaunchedRun: ({ attempt }) => readReceipt(attempt),
+    repairRecordPath,
+  });
+  const reconcileFromEvidence = (): string => {
+    const runRecord = readJsonRecord(runRecordPath);
+    const integrationResult = readJsonRecord(resultPath);
+    const runId = fabroRunId(runRecord.runId, "run record runId");
+    const inspection = JSON.parse(
+      runRtk(["fabro", "inspect", runId, "--json", "--quiet"], {
+        quiet: true,
+      }),
+    ) as readonly {
+      readonly run_id?: string;
+      readonly status?: { readonly kind?: string };
+    }[];
+    if (inspection.length !== 1 || inspection[0]?.run_id !== runId) {
+      throw new Error(
+        `${tranche}: Fabro inspection did not return exactly one run`,
+      );
+    }
 
-  const worktreePath = realpathSync(expectedWorkdir);
-  const worktreeHead = gitSha(
-    runRtk(["git", "rev-parse", "HEAD"], {
-      cwd: worktreePath,
-      quiet: true,
-    }),
-    "worktree HEAD",
-  );
-  const branch = `fabro/brain-${tranche.toLowerCase()}`;
-  const branchHead = gitSha(
-    runRtk(["git", "rev-parse", `refs/heads/${branch}`], {
-      cwd: root,
-      quiet: true,
-    }),
-    "branch head",
-  );
-  const worktreeClean =
-    runRtk(["proxy", "git", "status", "--porcelain"], {
-      cwd: worktreePath,
-      quiet: true,
-    }) === "";
-  const controlHead = gitSha(
-    runRtk(["git", "rev-parse", "HEAD"], {
-      cwd: root,
-      quiet: true,
-    }),
-    "control HEAD",
-  );
-  const now = new Date().toISOString();
-  const plan = planLegacyIntegrationRecovery({
-    branchHead,
-    controlHead,
-    failedRun: inspection[0],
-    integrationResult,
-    isAncestor: (ancestor, descendant) =>
-      gitIsAncestor(ancestor, descendant, root),
-    manifestTaskIds,
-    now,
-    reason: recoveryReason,
-    runRecord,
-    tranche,
-    worktreeClean,
-    worktreeHead,
-    worktreePath,
-  });
-  const workflowArgs = repairWorkflowArgs({
-    controlRoot: root,
-    evidenceDirectory,
-    recoveryAuditPath: auditPath,
-    repairBaseSha: plan.repairBaseSha,
-    sourceReviewRun: plan.sourceReviewRun,
-    tranche,
-    workdir: worktreePath,
-    workflow,
-  });
-  const reservationToken = reserveRepairLaunch(repairRecordPath, {
-    baseSha: plan.repairBaseSha,
-    sourceReviewRun: plan.sourceReviewRun,
-    status: "preparing",
-    tranche,
-    workdir: worktreePath,
-  });
-  persistLegacyIntegrationRecovery({ auditPath, plan, resultPath });
-  const output = runRtk(workflowArgs, { quiet: true });
-  const parsed = JSON.parse(output) as { run_id?: string; runId?: string };
-  const repairRunId = fabroRunId(
-    parsed.run_id ?? parsed.runId,
-    "repair Fabro run ID",
-  );
-  promoteRepairLaunch(repairRecordPath, reservationToken, {
-    baseSha: plan.repairBaseSha,
-    runId: repairRunId,
-    sourceReviewRun: plan.sourceReviewRun,
-    status: "launched",
-    tranche,
-    workdir: worktreePath,
-  });
+    const worktreePath = realpathSync(expectedWorkdir);
+    const worktreeHead = gitSha(
+      runRtk(["git", "rev-parse", "HEAD"], {
+        cwd: worktreePath,
+        quiet: true,
+      }),
+      "worktree HEAD",
+    );
+    const branch = `fabro/brain-${tranche.toLowerCase()}`;
+    const branchHead = gitSha(
+      runRtk(["git", "rev-parse", `refs/heads/${branch}`], {
+        cwd: root,
+        quiet: true,
+      }),
+      "branch head",
+    );
+    const worktreeClean =
+      runRtk(["proxy", "git", "status", "--porcelain"], {
+        cwd: worktreePath,
+        quiet: true,
+      }) === "";
+    const controlHead = gitSha(
+      runRtk(["git", "rev-parse", "HEAD"], {
+        cwd: root,
+        quiet: true,
+      }),
+      "control HEAD",
+    );
+    const now = new Date().toISOString();
+    const plan = planLegacyIntegrationRecovery({
+      branchHead,
+      controlHead,
+      failedRun: inspection[0],
+      integrationResult,
+      isAncestor: (ancestor, descendant) =>
+        gitIsAncestor(ancestor, descendant, root),
+      manifestTaskIds,
+      now,
+      reason: recoveryReason,
+      runRecord,
+      tranche,
+      worktreeClean,
+      worktreeHead,
+      worktreePath,
+    });
+    const reconciled = reconcileLegacyIntegrationRecovery({
+      auditPath,
+      discoverLaunchedRun: ({ attempt }) => readReceipt(attempt),
+      identity: {
+        baseSha: plan.repairBaseSha,
+        sourceReviewRun: plan.sourceReviewRun,
+        tranche,
+        workdir: worktreePath,
+      },
+      launch: ({ attempt, reservationToken }) => {
+        const output = runRtkToFile(
+          repairWorkflowArgs({
+            controlRoot: root,
+            evidenceDirectory,
+            launchAttempt: attempt,
+            recoveryAuditPath: auditPath,
+            repairBaseSha: plan.repairBaseSha,
+            reservationToken,
+            sourceReviewRun: plan.sourceReviewRun,
+            tranche,
+            workdir: worktreePath,
+            workflow,
+          }),
+          receiptPath(attempt),
+        );
+        const parsed = JSON.parse(output) as {
+          run_id?: string;
+          runId?: string;
+        };
+        return fabroRunId(parsed.run_id ?? parsed.runId, "repair Fabro run ID");
+      },
+      plan,
+      repairRecordPath,
+      resultPath,
+    });
+    return reconciled.runId;
+  };
+  const repairRunId = durableLaunch?.runId ?? reconcileFromEvidence();
   console.log(
     `${tranche}: normalized failed legacy attempt and launched repair ${repairRunId}`,
   );
