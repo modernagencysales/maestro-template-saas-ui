@@ -125,4 +125,24 @@ describe("Brain repair result check", () => {
       }),
     ).toThrow(/findings remain/);
   });
+
+  it("uses evidence-owned required finding IDs for non-C1 repairs", () => {
+    const value = fixture();
+    const result = JSON.parse(readFileSync(value.resultPath, "utf8")) as Record<
+      string,
+      unknown
+    >;
+    result.requiredFindingIds = ["legacy-integration-run-failed"];
+    result.resolvedFindings = [{ id: "legacy-integration-run-failed" }];
+    writeJson(value.resultPath, result);
+    expect(() =>
+      validateRepairResult({
+        baseSha: value.baseSha,
+        evidenceDirectory: value.evidence,
+        expectedWorkdir: value.workdir,
+        stage: "review",
+        tranche: "C1-contract-spine",
+      }),
+    ).not.toThrow();
+  });
 });

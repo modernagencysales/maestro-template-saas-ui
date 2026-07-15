@@ -6,7 +6,7 @@ import { changedHandAuthoredSourceLines } from "./source-budget.js";
 
 type JsonRecord = Record<string, unknown>;
 
-const requiredFindingIds = new Set([
+const legacyRequiredFindingIds = new Set([
   "api-key-server-derived-scope",
   "eval-external-run-artifacts",
   "eval-mechanical-answer-scoring",
@@ -93,6 +93,13 @@ export const validateRepairResult = (input: RepairCheckInput): void => {
     )
   )
     throw new Error("critical/high findings remain");
+  const requiredFindingIds = Array.isArray(result.requiredFindingIds)
+    ? new Set(
+        result.requiredFindingIds.map((value, index) =>
+          string(value, `requiredFindingIds[${index}]`),
+        ),
+      )
+    : legacyRequiredFindingIds;
   const resolved = new Set(
     (Array.isArray(result.resolvedFindings) ? result.resolvedFindings : []).map(
       (item, index) =>
