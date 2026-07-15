@@ -791,7 +791,7 @@ manifest.
   [`brainPages.ts`](https://github.com/modernagencysales/maestro/blob/c8b644c154af91f7e6b67b31861fd6b7eaa211b1/packages/convex/convex/schema/brainPages.ts#L22-L83).
 - **Files:** modify `packages/convex/confect/tables/brainPages.ts`,
   `packages/convex/confect/internal/migrations.ts`, and
-  `docs/product/maestro-brain-lifecycle-adoption.md`; create
+  `docs/product/maestro-brain-lifecycle-adoption/S02-T01.md`; create
   `packages/convex/confect/tables/pageRevisions.ts`,
   `packages/convex/confect/brain/pageSchemas.ts`, and
   `packages/convex/test/brain-page-schema.test.ts`.
@@ -1260,7 +1260,7 @@ manifest.
   `packages/convex/confect/integrations/slackDirectory.ts`, and
   `packages/convex/test/slack-directory.test.ts`; modify
   `packages/convex/confect/internal/migrations.ts` and
-  `docs/product/maestro-brain-lifecycle-adoption.md`.
+  `docs/product/maestro-brain-lifecycle-adoption/S04-T02.md`.
 - **Failure-first tests:** duplicate active connection/team/app binding,
   `is_member` derived from installer user token, auto-join invocation, channel
   from a stale connection generation, team mismatch, channel rename creating a
@@ -1396,7 +1396,7 @@ manifest.
   `apps/web/src/features/connections/channel-policy-view-model.ts`,
   `apps/web/src/features/connections/channel-policy-view-model.test.ts`; modify
   `apps/web/src/routes/_workspace.connections.tsx` and
-  `docs/product/maestro-brain-lifecycle-adoption.md`.
+  `docs/product/maestro-brain-lifecycle-adoption/S04-T04.md`.
 - **Failure-first tests:** non-org-admin policy change, Direct with zero/two
   targets, Classify with empty/duplicate/unauthorized/cross-org target,
   Capture-only with targets, Slack Connect requester-private delivery, stale
@@ -1458,7 +1458,7 @@ manifest.
   `packages/convex/confect/sources/sourceSchemas.ts`, and
   `packages/convex/test/source-ledger-schema.test.ts`; modify
   `packages/convex/confect/internal/migrations.ts` and
-  `docs/product/maestro-brain-lifecycle-adoption.md`.
+  `docs/product/maestro-brain-lifecycle-adoption/S05-T01.md`.
 - **Failure-first tests:** missing organization/channel binding, duplicate
   transport receipt, multiple receipts for one logical observation, conflicting
   observation identity, invalid source key/revision key, cross-org channel,
@@ -1561,7 +1561,7 @@ manifest.
   `packages/convex/confect/sources/sourceUnits.impl.ts`, and
   `packages/convex/test/source-unit.test.ts`; modify
   `packages/convex/confect/tables/sourceProcessingJobs.ts` and
-  `docs/product/maestro-brain-lifecycle-adoption.md`.
+  `docs/product/maestro-brain-lifecycle-adoption/S05-T03.md`.
 - **Failure-first tests:** standalone and thread assembly, out-of-order replies,
   reply arriving during assembly, a thread spanning a policy change, edit/delete
   at the cut, over-message/byte/token bounds, stale lease, duplicate assembly
@@ -1611,7 +1611,8 @@ manifest.
   `packages/convex/confect/sources/policyDispatch.ts`, and
   `packages/convex/test/direct-routing.test.ts`; modify
   `packages/convex/confect/tables/sourceProcessingJobs.ts`,
-  `docs/product/maestro-brain-lifecycle-adoption.md`, and generated manifests.
+  `docs/product/maestro-brain-lifecycle-adoption/S05-T04.md`, and generated
+  manifests.
 - **Failure-first tests:** no policy -> `awaiting_policy`; Capture-only creates
   no route/job; Direct creates one exact route; stale policy/route/lifecycle/
   lease generation, wrong Brain org, duplicate effect, and any classification
@@ -1718,7 +1719,7 @@ manifest.
   `packages/convex/test/source-fairness.test.ts`; modify
   `packages/convex/confect/tables/channelSyncStates.ts`,
   `packages/convex/confect/tables/sourceProcessingJobs.ts`, and
-  `docs/product/maestro-brain-lifecycle-adoption.md`.
+  `docs/product/maestro-brain-lifecycle-adoption/S06-T02.md`.
 - **Failure-first tests:** 100-channel round-robin, one huge queue, one failing
   channel, live burst while deep backfill runs, connection/method 429 with
   `Retry-After`, organization concurrency cap, above-envelope admission, noisy
@@ -1871,7 +1872,7 @@ manifest.
   `packages/convex/confect/tables/legalHolds.ts`,
   `packages/convex/confect/tables/lifecycleJobs.ts`,
   `packages/convex/test/lifecycle-envelope.test.ts`, and
-  `docs/product/maestro-brain-lifecycle-adoption.md`; modify
+  `docs/product/maestro-brain-lifecycle-adoption/S07-T01.md`; modify
   `packages/convex/confect/tables/brainPages.ts`,
   `packages/convex/confect/tables/pageRevisions.ts`,
   `packages/convex/confect/tables/citations.ts`,
@@ -1942,7 +1943,7 @@ manifest.
   `packages/convex/confect/brain/revisions.ts`,
   `packages/convex/confect/brain/citations.ts`,
   `packages/convex/confect/jobs/workpool.impl.ts`, and
-  `docs/product/maestro-brain-lifecycle-adoption.md`.
+  `docs/product/maestro-brain-lifecycle-adoption/S07-T02.md`.
 - **Failure-first tests:** Slack delete after page citation, emergency revoke
   during existing route/page/job work, current page read/history/editor snapshot
   after revoke, normal prospective policy change versus historical revoke, legal
@@ -2116,7 +2117,7 @@ manifest.
   `packages/integrations/src/llmReceipt.test.ts`,
   `packages/integrations/src/llmEgressPolicy.test.ts`, and
   `packages/convex/confect/tables/modelCallReceipts.ts`; modify lifecycle
-  inventory `docs/product/maestro-brain-lifecycle-adoption.md`.
+  inventory `docs/product/maestro-brain-lifecycle-adoption/S08-T01.md`.
 - **Failure-first tests:** valid structured output, malformed JSON/schema, wrong
   request/source hash, provider/model mismatch, timeout, cancellation, rate
   limit, spend/token/input bounds, disallowed provider/model/region,
@@ -2229,7 +2230,8 @@ manifest.
   `apps/web/src/features/connections/classification-review-queue.tsx`, and
   `apps/web/src/features/connections/classification-review-queue.test.tsx`;
   modify `packages/convex/confect/tables/sourceProcessingJobs.ts`,
-  `docs/product/maestro-brain-lifecycle-adoption.md`, and generated manifests.
+  `docs/product/maestro-brain-lifecycle-adoption/S08-T03.md`, and generated
+  manifests.
 - **Failure-first tests:** Direct/Capture-only makes zero calls; empty/multiple/
   out-of-allowlist target, wrong snapshot/hash/policy, unresolved evidence
   quote, stale route/lifecycle/lease, model timeout, non-admin review,
@@ -2305,8 +2307,8 @@ manifest.
   `apps/web/src/features/brain/maintenance-review.tsx`, and
   `apps/web/src/features/brain/maintenance-review.test.tsx`; modify
   `packages/convex/confect/tables/sourceProcessingJobs.ts`,
-  `docs/product/maestro-brain-lifecycle-adoption.md`, generated manifests, and
-  `tooling/evals/src/index.ts`.
+  `docs/product/maestro-brain-lifecycle-adoption/S08-T04.md`, generated
+  manifests, and `tooling/evals/src/index.ts`.
 - **Failure-first tests:** typed no-op, new/existing page proposal, uncited
   factual claim, citation outside context pack, stale
   page/source/route/lifecycle generation, revision budget, model
@@ -2369,9 +2371,10 @@ manifest.
   which cannot wrap a Convex query.
 - **Files:** modify `packages/search/src/index.ts`,
   `packages/search/src/index.test.ts`, `packages/search/package.json`, and
-  `pnpm-lock.yaml`; create `packages/search/src/asyncSearch.ts`,
-  `packages/search/src/asyncSearch.test.ts`, and (when still absent)
-  `docs/product/maestro-brain-lifecycle-adoption.md`; update
+  `pnpm-lock.yaml` and
+  `docs/product/maestro-brain-lifecycle-adoption/S09-T01.md`; create
+  `packages/search/src/asyncSearch.ts` and
+  `packages/search/src/asyncSearch.test.ts`; update
   `docs/template/porting-backlog.md`. The pinned baseline has no external
   first-party consumer; drift preflight enumerates any new one.
 - **Failure-first tests:** async fake/live parity, cancellation, timeout,
@@ -2425,7 +2428,7 @@ manifest.
   `packages/convex/confect/brain/revisions.ts`,
   `packages/convex/confect/lifecycle/propagation.ts`,
   `packages/convex/confect/internal/migrations.ts`, and
-  `docs/product/maestro-brain-lifecycle-adoption.md`.
+  `docs/product/maestro-brain-lifecycle-adoption/S09-T02.md`.
 - **Failure-first tests:** organization-vault-only source, inactive/revoked/
   redacted route, wrong workspace/org, stale projection generation, duplicate
   effect, edit/delete, page restore, route revocation, and cross-client query.
@@ -2481,7 +2484,8 @@ manifest.
   `packages/convex/confect/retrieval/manifest.ts`,
   `packages/convex/confect/retrieval/reads.ts`, and
   `packages/convex/test/brain-context-read.test.ts`; update
-  `docs/product/maestro-brain-lifecycle-adoption.md` and generated manifests.
+  `docs/product/maestro-brain-lifecycle-adoption/S09-T03.md` and generated
+  manifests.
 - **Failure-first tests:** signed-out/wrong role, caller tenant/Convex fields,
   vault-only/inactive/redacted source, stale route/lifecycle generation,
   candidate outside immutable manifest, oversized context, and manifest hash
@@ -2539,7 +2543,7 @@ manifest.
   `apps/web/src/features/brain/ask-adapter.ts`, and
   `apps/web/src/features/brain/ask-adapter.test.ts`; modify
   `packages/convex/confect/tables/retrievalReceipts.ts`,
-  `docs/product/maestro-brain-lifecycle-adoption.md`, and
+  `docs/product/maestro-brain-lifecycle-adoption/S09-T04.md`, and
   `apps/web/src/features/brain/brain-workspace.tsx`.
 - **Failure-first tests:** evidence question, no-evidence abstention, citation
   outside manifest, claim without citation, stale role/route/lifecycle after
@@ -2602,7 +2606,7 @@ manifest.
   `apps/web/src/features/settings/slack-link-status.tsx`, and
   `apps/web/src/features/settings/slack-link-status.test.tsx`; modify
   `packages/convex/confect/internal/migrations.ts` and
-  `docs/product/maestro-brain-lifecycle-adoption.md`.
+  `docs/product/maestro-brain-lifecycle-adoption/S10-T01.md`.
 - **Failure-first tests:** forged/replayed/expired link token, wrong team/user,
   display-name/email match, binding identity already linked to another active
   user, revoked WorkOS user/membership, stale connection generation, and token
@@ -2658,7 +2662,8 @@ manifest.
   `packages/convex/test/slack-intake.test.ts`; modify
   `packages/convex/confect/slack/webhook.impl.ts`,
   `packages/convex/confect/tables/sourceProcessingJobs.ts`,
-  `docs/product/maestro-brain-lifecycle-adoption.md`, and generated manifests.
+  `docs/product/maestro-brain-lifecycle-adoption/S10-T02.md`, and generated
+  manifests.
 - **Failure-first tests:** Slack Connect mention, unbound/revoked user,
   bot/non-user event, Direct channel without viewer role, ambiguous DM,
   cross-org/free-text client, out-of-authorized-set model result, replay, ACK
@@ -2826,7 +2831,7 @@ manifest.
 - **Files:** modify `packages/convex/confect/headless/auth.ts`,
   `packages/convex/confect/tables/apiKeys.ts`,
   `packages/convex/confect/internal/migrations.ts`, and
-  `docs/product/maestro-brain-lifecycle-adoption.md`; create
+  `docs/product/maestro-brain-lifecycle-adoption/S11-T01.md`; create
   `packages/convex/confect/tables/servicePrincipals.ts`,
   `packages/convex/confect/headless/apiKeys.spec.ts`,
   `packages/convex/confect/headless/apiKeys.impl.ts`,
@@ -3096,7 +3101,8 @@ manifest.
   `packages/storage/src/index.ts`, `packages/storage/src/index.test.ts`,
   `packages/convex/confect/http.ts`,
   `packages/convex/confect/jobs/workpool.impl.ts`,
-  `docs/product/maestro-brain-lifecycle-adoption.md`, and generated manifests.
+  `docs/product/maestro-brain-lifecycle-adoption/S12-T02.md`, and generated
+  manifests.
 - **Failure-first tests:** viewer/editor, archived Brain, stale role/route/
   lifecycle after gather, redacted/deleted source, duplicate idempotency key,
   partial write, oversized bundle, URL expiry, job retry, purge failure, and

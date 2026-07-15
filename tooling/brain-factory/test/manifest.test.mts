@@ -223,7 +223,7 @@ describe("Maestro Brain execution manifest", () => {
     expect(providerSetup?.codeStartAfter).toEqual(["S00-T03", "S01-T02"]);
   });
 
-  it("keeps S13 MCP and export work behind the reviewed contracts", () => {
+  it("keeps code-start edges narrower than S13 acceptance", () => {
     const manifest = buildManifest();
     const semanticEvals = manifest.tasks.find(
       (task) => task.taskId === "S13-T01",
@@ -231,23 +231,59 @@ describe("Maestro Brain execution manifest", () => {
     const capacity = manifest.tasks.find((task) => task.taskId === "S13-T02");
     const operations = manifest.tasks.find((task) => task.taskId === "S13-T03");
     expect(semanticEvals?.acceptanceAfter).toBe("S10, S11, S12 complete");
-    expect(semanticEvals?.codeStartAfter).toEqual([
-      "S08-T04",
-      "S09-T04",
-      "S11-T03",
-    ]);
-    expect(capacity?.codeStartAfter).toEqual(["S13-T01", "S06-T02", "S11-T04"]);
-    expect(operations?.codeStartAfter).toEqual([
-      "S06-T02",
-      "S08-T01",
-      "S11-T04",
-      "S12-T02",
-    ]);
+    expect(semanticEvals?.codeStartAfter).toEqual([]);
+    expect(capacity?.acceptanceAfter).toBe("S13-T01, S06");
+    expect(capacity?.codeStartAfter).toEqual(["S13-T01", "S06-T02"]);
+    expect(operations?.acceptanceAfter).toBe("S13-T02");
+    expect(operations?.codeStartAfter).toEqual(["S06-T02", "S08-T01"]);
     expect(
       manifest.tasks
         .filter((task) => task.taskId.startsWith("S13-"))
         .every((task) => task.tranche === "X3-convergence"),
     ).toBe(true);
+  });
+
+  it("gives lifecycle adoption work exact task-local locks", () => {
+    const manifest = buildManifest();
+    const lifecycleTasks = [
+      "S02-T01",
+      "S04-T02",
+      "S04-T04",
+      "S05-T01",
+      "S05-T03",
+      "S05-T04",
+      "S06-T02",
+      "S07-T01",
+      "S07-T02",
+      "S08-T01",
+      "S08-T03",
+      "S08-T04",
+      "S09-T01",
+      "S09-T02",
+      "S09-T03",
+      "S09-T04",
+      "S10-T01",
+      "S10-T02",
+      "S11-T01",
+      "S12-T02",
+    ];
+    const taskById = new Map(manifest.tasks.map((task) => [task.taskId, task]));
+    for (const taskId of lifecycleTasks) {
+      const task = taskById.get(taskId);
+      expect(task?.fileLocks).toContain(
+        `docs/product/maestro-brain-lifecycle-adoption/${taskId}.md`,
+      );
+      expect(task?.fileLocks).not.toContain(
+        "docs/product/maestro-brain-lifecycle-adoption.md",
+      );
+    }
+    expect(
+      manifest.tasks.filter((task) =>
+        task.fileLocks.includes(
+          "docs/product/maestro-brain-lifecycle-adoption.md",
+        ),
+      ),
+    ).toEqual([]);
   });
 
   it("uses only package-relevant profiles for the next frontier", () => {

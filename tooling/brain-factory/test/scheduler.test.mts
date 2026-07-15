@@ -239,14 +239,14 @@ describe("brain task scheduler", () => {
     ).toEqual([]);
   });
 
-  it("does not dispatch S13 operations before MCP and export contracts", () => {
+  it("dispatches S13 operations after its direct code contracts", () => {
     const manifest = buildManifest();
     const task = manifest.tasks.find(
       (candidate) => candidate.taskId === "S13-T03",
     );
     expect(task).toBeDefined();
     if (!task) throw new Error("S13-T03 missing from manifest");
-    const completed = new Set(["S06-T02", "S08-T01", "S11-T04"]);
+    const completed = new Set(["S08-T01"]);
     expect(
       selectReadyTasks({
         activeTaskIds: new Set(),
@@ -255,7 +255,7 @@ describe("brain task scheduler", () => {
         tasks: [task],
       }).selected,
     ).toEqual([]);
-    completed.add("S12-T02");
+    completed.add("S06-T02");
     expect(
       selectReadyTasks({
         activeTaskIds: new Set(),

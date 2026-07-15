@@ -233,7 +233,7 @@
       "fileInventoryIssues": [],
       "fileInventoryStatus": "ready",
       "fileLocks": [
-        "docs/product/maestro-brain-lifecycle-adoption.md",
+        "docs/product/maestro-brain-lifecycle-adoption/S02-T01.md",
         "packages/convex/confect/brain/pageSchemas.ts",
         "packages/convex/confect/internal/migrations.ts",
         "packages/convex/confect/tables/brainPages.ts",
@@ -245,7 +245,7 @@
       "lane": "brain",
       "requirements": ["IAM-03", "KNW-01"],
       "sourceSliceBudget": 300,
-      "taskBlockHash": "ea7107b3eef6fca92dfd53fb1cc3abfc16507f77aaa59d4a462dad5bc4ea0648",
+      "taskBlockHash": "dc205e57f25f69ecba7f6237744e0ce28cd01e3fab0c6cf506b7d0d7906cf6c9",
       "taskId": "S02-T01",
       "title": "Expand Brain Pages To Stable Tree Identity",
       "tranche": "C1-contract-spine"
@@ -498,7 +498,7 @@
       "fileInventoryIssues": [],
       "fileInventoryStatus": "ready",
       "fileLocks": [
-        "docs/product/maestro-brain-lifecycle-adoption.md",
+        "docs/product/maestro-brain-lifecycle-adoption/S04-T02.md",
         "packages/convex/confect/integrations/slackDirectory.impl.ts",
         "packages/convex/confect/integrations/slackDirectory.spec.ts",
         "packages/convex/confect/integrations/slackDirectory.ts",
@@ -513,7 +513,7 @@
       "lane": "slack-source",
       "requirements": ["SLK-01", "SLK-02"],
       "sourceSliceBudget": 300,
-      "taskBlockHash": "8009a4a21fb4e48e64103cab96f86a769092021073ef753ffc749e05e4784f0f",
+      "taskBlockHash": "77253a36956f32fbced84ff6668728cfceca110d05d6cf3c6a40b7a23886e1ce",
       "taskId": "S04-T02",
       "title": "Persist Exact Connection, Bot Identity, And Channel Directory State",
       "tranche": "D2-domain-bodies"
@@ -567,7 +567,7 @@
         "apps/web/src/features/connections/channel-table.tsx",
         "apps/web/src/features/connections/connections-adapter.ts",
         "apps/web/src/routes/_workspace.connections.tsx",
-        "docs/product/maestro-brain-lifecycle-adoption.md",
+        "docs/product/maestro-brain-lifecycle-adoption/S04-T04.md",
         "packages/convex/confect/slack/channelPolicies.impl.ts",
         "packages/convex/confect/slack/channelPolicies.spec.ts",
         "packages/convex/confect/slack/channelPolicy.ts",
@@ -580,7 +580,7 @@
       "lane": "slack-source",
       "requirements": ["IAM-04", "SLK-02", "SLK-03", "SLK-08", "UI-01"],
       "sourceSliceBudget": 300,
-      "taskBlockHash": "e85900fcfc21a3d268fa879f33b29d786b995b1fd8901292a7ae245c95ac0cbb",
+      "taskBlockHash": "43fe7362c17307d938a689c31cfaa350124a5029c8ef938d09c8f08066ec12c5",
       "taskId": "S04-T04",
       "title": "Build Multi-Channel Routing And Delivery Policy Control Plane",
       "tranche": "D2-domain-bodies"
@@ -593,7 +593,7 @@
       "fileInventoryIssues": [],
       "fileInventoryStatus": "ready",
       "fileLocks": [
-        "docs/product/maestro-brain-lifecycle-adoption.md",
+        "docs/product/maestro-brain-lifecycle-adoption/S05-T01.md",
         "packages/convex/confect/internal/migrations.ts",
         "packages/convex/confect/sources/sourceSchemas.ts",
         "packages/convex/confect/tables/providerEventReceipts.ts",
@@ -607,7 +607,7 @@
       "lane": "slack-source",
       "requirements": ["IAM-03", "KNW-02", "SLK-04", "SLK-05"],
       "sourceSliceBudget": 300,
-      "taskBlockHash": "aef84ff5022cb0977d4cdd761966375b33a1a430bb125792267a04b63c63aa2d",
+      "taskBlockHash": "7542539e334b2f682529977d6e29f15df1721ae541193cbcad5e9b9c92fd2891",
       "taskId": "S05-T01",
       "title": "Add The Organization Source Ledger And Atomic Capture Tables",
       "tranche": "C1-contract-spine"
@@ -645,7 +645,7 @@
       "fileInventoryIssues": [],
       "fileInventoryStatus": "ready",
       "fileLocks": [
-        "docs/product/maestro-brain-lifecycle-adoption.md",
+        "docs/product/maestro-brain-lifecycle-adoption/S05-T03.md",
         "packages/convex/confect/sources/assembler.ts",
         "packages/convex/confect/sources/sourceUnits.impl.ts",
         "packages/convex/confect/sources/sourceUnits.spec.ts",
@@ -659,7 +659,7 @@
       "lane": "slack-source",
       "requirements": ["SLK-06", "ZFC-01"],
       "sourceSliceBudget": 300,
-      "taskBlockHash": "bb792881ba780a2682649a244e1463faf2e2959573453256e4558ef2b5dffab9",
+      "taskBlockHash": "7323a2abc0f68ee701724fa4f8c3375d6422eaa906703bed880d6949c4752156",
       "taskId": "S05-T03",
       "title": "Assemble Immutable Bounded Source-Unit Revisions At A Fixed Cut",
       "tranche": "D2-domain-bodies"
@@ -672,7 +672,7 @@
       "fileInventoryIssues": [],
       "fileInventoryStatus": "ready",
       "fileLocks": [
-        "docs/product/maestro-brain-lifecycle-adoption.md",
+        "docs/product/maestro-brain-lifecycle-adoption/S05-T04.md",
         "packages/convex/confect/sources/policyDispatch.ts",
         "packages/convex/confect/tables/sourceProcessingJobs.ts",
         "packages/convex/confect/tables/sourceRoutes.ts",
@@ -683,7 +683,7 @@
       "lane": "slack-source",
       "requirements": ["KNW-01", "SLK-03", "ZFC-01"],
       "sourceSliceBudget": 300,
-      "taskBlockHash": "0abdf7507fb6c7ccadaff5f8303cc68156db072e889a589479a86c4b833d837e",
+      "taskBlockHash": "7e01ec5e3e04d46748c1843b6abed871a324342ce8e1d0c37e1606b9d4a8cb6e",
       "taskId": "S05-T04",
       "title": "Dispatch Capture-Only And Direct Routes Mechanically",
       "tranche": "D2-domain-bodies"
@@ -722,7 +722,7 @@
       "fileInventoryIssues": [],
       "fileInventoryStatus": "ready",
       "fileLocks": [
-        "docs/product/maestro-brain-lifecycle-adoption.md",
+        "docs/product/maestro-brain-lifecycle-adoption/S06-T02.md",
         "packages/convex/confect/jobs/fairScheduler.test.ts",
         "packages/convex/confect/jobs/fairScheduler.ts",
         "packages/convex/confect/jobs/slackRateBudget.test.ts",
@@ -737,7 +737,7 @@
       "lane": "slack-source",
       "requirements": ["REL-02", "SLK-07"],
       "sourceSliceBudget": 300,
-      "taskBlockHash": "aa32778fc26b71c41c532a49738bc0f919af633a8296b7bf400241d65beb4bac",
+      "taskBlockHash": "eac4adcd3cb13c713deeccd07cbaee1dcf41b2816d08cc5fe1fda8f8dcf1a69e",
       "taskId": "S06-T02",
       "title": "Add Fair Priority Pools And Central Slack Rate Budgets",
       "tranche": "D2-domain-bodies"
@@ -810,7 +810,7 @@
       "fileInventoryIssues": [],
       "fileInventoryStatus": "ready",
       "fileLocks": [
-        "docs/product/maestro-brain-lifecycle-adoption.md",
+        "docs/product/maestro-brain-lifecycle-adoption/S07-T01.md",
         "docs/template/data-lifecycle.md",
         "packages/convex/confect/internal/migrations.ts",
         "packages/convex/confect/lifecycle/envelope.ts",
@@ -836,7 +836,7 @@
       "lane": "lifecycle",
       "requirements": ["FND-03", "IAM-04", "KNW-02"],
       "sourceSliceBudget": 300,
-      "taskBlockHash": "f5623627b16de2b6fd33d13e2da96786811b4e88b9ff0818cf82b7c3c089f024",
+      "taskBlockHash": "5c95618a15d8dab0ed37787e3dc08d74f3eb4dfae0c61a31be9457825b87f414",
       "taskId": "S07-T01",
       "title": "Add The Shared Lifecycle Envelope, Policies, Holds, And Jobs",
       "tranche": "C1-contract-spine"
@@ -849,7 +849,7 @@
       "fileInventoryIssues": [],
       "fileInventoryStatus": "ready",
       "fileLocks": [
-        "docs/product/maestro-brain-lifecycle-adoption.md",
+        "docs/product/maestro-brain-lifecycle-adoption/S07-T02.md",
         "packages/convex/confect/brain/citations.ts",
         "packages/convex/confect/brain/revisions.ts",
         "packages/convex/confect/jobs/workpool.impl.ts",
@@ -868,7 +868,7 @@
       "lane": "lifecycle",
       "requirements": ["KNW-02", "SLK-05", "SLK-08"],
       "sourceSliceBudget": 300,
-      "taskBlockHash": "be25475227cc123db81e0bb3116ca55362578f7fa18e6bd350fae815a09260d7",
+      "taskBlockHash": "f34e388f8f9862ecdcb4302fedafca6ca0f52f6e204f8f3e899ebf8a16188992",
       "taskId": "S07-T02",
       "title": "Propagate Slack Edit/Delete And Emergency Route Revocation",
       "tranche": "D2-domain-bodies"
@@ -946,7 +946,7 @@
         ".env.example",
         "@dependencies",
         "@environment",
-        "docs/product/maestro-brain-lifecycle-adoption.md",
+        "docs/product/maestro-brain-lifecycle-adoption/S08-T01.md",
         "docs/template/env-manifest.json",
         "docs/template/env-manifest.md",
         "packages/convex/confect/tables/modelCallReceipts.ts",
@@ -968,7 +968,7 @@
       "lane": "cognition",
       "requirements": ["AI-01", "AI-04", "ZFC-01"],
       "sourceSliceBudget": 300,
-      "taskBlockHash": "4386ba8267607a2adc4090d34d243a2afc76dbaa3be4b4eaf7aa950151c0467f",
+      "taskBlockHash": "f5f8b13c7e8c82f784bddb2b5a12834aec77b6a946cca14b167993fa33aaa0ea",
       "taskId": "S08-T01",
       "title": "Replace The Text Placeholder With A Structured Provider-Neutral LLM Gateway",
       "tranche": "C1-contract-spine"
@@ -1012,7 +1012,7 @@
       "fileLocks": [
         "apps/web/src/features/connections/classification-review-queue.test.tsx",
         "apps/web/src/features/connections/classification-review-queue.tsx",
-        "docs/product/maestro-brain-lifecycle-adoption.md",
+        "docs/product/maestro-brain-lifecycle-adoption/S08-T03.md",
         "packages/convex/confect/classification/commit.ts",
         "packages/convex/confect/classification/gather.ts",
         "packages/convex/confect/classification/request.ts",
@@ -1026,7 +1026,7 @@
       "lane": "cognition",
       "requirements": ["AI-02", "IAM-04", "SLK-03", "ZFC-01"],
       "sourceSliceBudget": 300,
-      "taskBlockHash": "dfc49cc146f24ae7ab493f4faad1144614aed64b287bc71d4dcd9e4841e96647",
+      "taskBlockHash": "9809d474a0fa1618ed4e1e1be72d4522f8ef4a05c92c6db7b15e47e8f4f7ca6f",
       "taskId": "S08-T03",
       "title": "Implement Review-First Zero-Or-One Classification",
       "tranche": "X3-convergence"
@@ -1041,7 +1041,7 @@
       "fileLocks": [
         "apps/web/src/features/brain/maintenance-review.test.tsx",
         "apps/web/src/features/brain/maintenance-review.tsx",
-        "docs/product/maestro-brain-lifecycle-adoption.md",
+        "docs/product/maestro-brain-lifecycle-adoption/S08-T04.md",
         "packages/convex/confect/maintenance/commit.ts",
         "packages/convex/confect/maintenance/gather.ts",
         "packages/convex/confect/maintenance/policy.ts",
@@ -1056,7 +1056,7 @@
       "lane": "cognition",
       "requirements": ["AI-03", "AI-04", "KNW-01", "UI-04"],
       "sourceSliceBudget": 300,
-      "taskBlockHash": "c66e6735bd39cebc2c7d9724e6e56cce4a61da9719df18f1fbc9cc4ebd521ea6",
+      "taskBlockHash": "56a596c2cbeb9f32aebbee6c2fa169c9d06b4e2455e8aefe4715e0ab3d3144e8",
       "taskId": "S08-T04",
       "title": "Implement Cited Review-First Brain Maintenance And Autopilot Gate",
       "tranche": "X3-convergence"
@@ -1070,7 +1070,7 @@
       "fileInventoryStatus": "ready",
       "fileLocks": [
         "@dependencies",
-        "docs/product/maestro-brain-lifecycle-adoption.md",
+        "docs/product/maestro-brain-lifecycle-adoption/S09-T01.md",
         "docs/template/porting-backlog.md",
         "packages/search/package.json",
         "packages/search/src/asyncSearch.test.ts",
@@ -1084,7 +1084,7 @@
       "lane": "retrieval",
       "requirements": ["KNW-03", "ZFC-01"],
       "sourceSliceBudget": 300,
-      "taskBlockHash": "3b1794a586c4126e6e851b32e305e5fee2a8d325a34fd512f3a43c389024e5b2",
+      "taskBlockHash": "3698a91efdd9b456fb5cfbc54a5b4d1f8dd46d33c2eedc0e9eada0e28fb6adb4",
       "taskId": "S09-T01",
       "title": "Migrate The Search Seam To Asynchronous Effect Semantics",
       "tranche": "C1-contract-spine"
@@ -1097,7 +1097,7 @@
       "fileInventoryIssues": [],
       "fileInventoryStatus": "ready",
       "fileLocks": [
-        "docs/product/maestro-brain-lifecycle-adoption.md",
+        "docs/product/maestro-brain-lifecycle-adoption/S09-T02.md",
         "packages/convex/confect/brain/revisions.ts",
         "packages/convex/confect/internal/migrations.ts",
         "packages/convex/confect/lifecycle/propagation.ts",
@@ -1114,7 +1114,7 @@
       "lane": "retrieval",
       "requirements": ["KNW-02", "KNW-03"],
       "sourceSliceBudget": 300,
-      "taskBlockHash": "5a57e1216475d9cceefa0a3606f9c6621a39d925e4596aa8fe66956a5206d198",
+      "taskBlockHash": "af3409565f8909414f1b454c38b0c4d0270ef935de5ef2f3288e145cab4f0e1b",
       "taskId": "S09-T02",
       "title": "Build Authorized Workspace Search Projections",
       "tranche": "D2-domain-bodies"
@@ -1127,7 +1127,7 @@
       "fileInventoryIssues": [],
       "fileInventoryStatus": "ready",
       "fileLocks": [
-        "docs/product/maestro-brain-lifecycle-adoption.md",
+        "docs/product/maestro-brain-lifecycle-adoption/S09-T03.md",
         "packages/convex/confect/brain/pages.impl.ts",
         "packages/convex/confect/brain/pages.spec.ts",
         "packages/convex/confect/retrieval/manifest.ts",
@@ -1140,7 +1140,7 @@
       "lane": "retrieval",
       "requirements": ["HLS-02", "IAM-03", "KNW-04"],
       "sourceSliceBudget": 300,
-      "taskBlockHash": "f0345f291a4f1da14b92e48a1fbb7913a3729068b33fe11cd8e69c8c00f78c0b",
+      "taskBlockHash": "a036736bcc358d95d3b774bc40e4fb87e71957703555c0e3979bc82963450ea6",
       "taskId": "S09-T03",
       "title": "Add Shared Page/Source/Context Reads And Immutable Retrieval Receipts",
       "tranche": "X3-convergence"
@@ -1158,7 +1158,7 @@
         "apps/web/src/features/brain/ask-dialog.test.tsx",
         "apps/web/src/features/brain/ask-dialog.tsx",
         "apps/web/src/features/brain/brain-workspace.tsx",
-        "docs/product/maestro-brain-lifecycle-adoption.md",
+        "docs/product/maestro-brain-lifecycle-adoption/S09-T04.md",
         "packages/convex/confect/answers/deliver.ts",
         "packages/convex/confect/answers/gather.ts",
         "packages/convex/confect/answers/request.ts",
@@ -1171,7 +1171,7 @@
       "lane": "retrieval",
       "requirements": ["AI-04", "HLS-02", "KNW-04", "UI-01"],
       "sourceSliceBudget": 300,
-      "taskBlockHash": "d7818b4de950585075ae85c2fbe0bbf5268420bf21ed5ac3d77b140b475197e8",
+      "taskBlockHash": "bc557e7c84fd2c2719e326bc2b47a4d48f0cf0e27790515d41d74364595a4fb1",
       "taskId": "S09-T04",
       "title": "Implement Cited Ask With Abstention And Final Reauthorization",
       "tranche": "X3-convergence"
@@ -1190,7 +1190,7 @@
         "apps/web/src/features/settings/slack-link-button.tsx",
         "apps/web/src/features/settings/slack-link-status.test.tsx",
         "apps/web/src/features/settings/slack-link-status.tsx",
-        "docs/product/maestro-brain-lifecycle-adoption.md",
+        "docs/product/maestro-brain-lifecycle-adoption/S10-T01.md",
         "packages/convex/confect/internal/migrations.ts",
         "packages/convex/confect/slack/identityLink.ts",
         "packages/convex/confect/slack/identityLinks.impl.ts",
@@ -1203,7 +1203,7 @@
       "lane": "slack-answer",
       "requirements": ["IAM-04", "SLK-09"],
       "sourceSliceBudget": 300,
-      "taskBlockHash": "e67ccdd3585d72684a791bd01b2dd2694c59aa5ff3f2d9f3f54955060056b632",
+      "taskBlockHash": "31d477606c8d812c0f800d81d3401104da038d29fbb39dce06e1292cbd8d6e04",
       "taskId": "S10-T01",
       "title": "Link Exact Slack Users To Current Maestro Users",
       "tranche": "X3-convergence"
@@ -1216,7 +1216,7 @@
       "fileInventoryIssues": [],
       "fileInventoryStatus": "ready",
       "fileLocks": [
-        "docs/product/maestro-brain-lifecycle-adoption.md",
+        "docs/product/maestro-brain-lifecycle-adoption/S10-T02.md",
         "packages/convex/confect/slack/answerJobs.ts",
         "packages/convex/confect/slack/intake.impl.ts",
         "packages/convex/confect/slack/intake.spec.ts",
@@ -1230,7 +1230,7 @@
       "lane": "slack-answer",
       "requirements": ["HLS-02", "SLK-08", "SLK-09", "ZFC-01"],
       "sourceSliceBudget": 300,
-      "taskBlockHash": "8c243766bfcd4a0a6a4aef4eb343fca63a87ce0aec7db87bbbac589df169fe2d",
+      "taskBlockHash": "d06e45777388035ccf4eb6780ae0289011c1aaf8bf17e947fc3948b5c6f8e48d",
       "taskId": "S10-T02",
       "title": "Capture Mentions/DMs And Select Only An Authorized Brain Scope",
       "tranche": "X3-convergence"
@@ -1307,7 +1307,7 @@
       "fileLocks": [
         "apps/web/src/features/settings/api-keys.test.tsx",
         "apps/web/src/features/settings/api-keys.tsx",
-        "docs/product/maestro-brain-lifecycle-adoption.md",
+        "docs/product/maestro-brain-lifecycle-adoption/S11-T01.md",
         "packages/convex/confect/headless/apiKeys.impl.ts",
         "packages/convex/confect/headless/apiKeys.spec.ts",
         "packages/convex/confect/headless/auth.ts",
@@ -1321,7 +1321,7 @@
       "lane": "headless",
       "requirements": ["HLS-01", "IAM-04", "KNW-02"],
       "sourceSliceBudget": 300,
-      "taskBlockHash": "4d62b53a5330e009747b3d51ec800810d6086d207ee4268a9e7be9fce9c157a8",
+      "taskBlockHash": "d6fe04335edc25c06919ae5e483bf20676cee4448b34671fa6c3bdb2337c607f",
       "taskId": "S11-T01",
       "title": "Add Human-Authorized One-Brain API Key CRUD And Service Principals",
       "tranche": "C1-contract-spine"
@@ -1449,7 +1449,7 @@
       "fileInventoryIssues": [],
       "fileInventoryStatus": "ready",
       "fileLocks": [
-        "docs/product/maestro-brain-lifecycle-adoption.md",
+        "docs/product/maestro-brain-lifecycle-adoption/S12-T02.md",
         "packages/convex/confect/brain/exports/gather.ts",
         "packages/convex/confect/brain/exports/job.ts",
         "packages/convex/confect/brain/exports/storage.ts",
@@ -1465,7 +1465,7 @@
       "lane": "export",
       "requirements": ["IAM-04", "KNW-02", "KNW-05"],
       "sourceSliceBudget": 300,
-      "taskBlockHash": "1507198d6f7b3d2ab67855e790ac1104db18e4afbfe648cd0749e3563bc7255d",
+      "taskBlockHash": "8a39a3b24feff027d7a7b79502404cd0ad4bf023fa64c8e6ef76dd4a42f8a06d",
       "taskId": "S12-T02",
       "title": "Add Authorized Export Jobs And Temporary Convex Storage",
       "tranche": "X3-convergence"
@@ -1503,7 +1503,7 @@
     {
       "acceptanceAfter": "S10, S11, S12 complete",
       "classification": "template-gap",
-      "codeStartAfter": ["S08-T04", "S09-T04", "S11-T03"],
+      "codeStartAfter": [],
       "estimatedSourceLines": 280,
       "fileInventoryIssues": [],
       "fileInventoryStatus": "ready",
@@ -1543,7 +1543,7 @@
     {
       "acceptanceAfter": "S13-T01, S06",
       "classification": "template-gap",
-      "codeStartAfter": ["S13-T01", "S06-T02", "S11-T04"],
+      "codeStartAfter": ["S13-T01", "S06-T02"],
       "estimatedSourceLines": 260,
       "fileInventoryIssues": [],
       "fileInventoryStatus": "ready",
@@ -1569,7 +1569,7 @@
     {
       "acceptanceAfter": "S13-T02",
       "classification": "template-gap",
-      "codeStartAfter": ["S06-T02", "S08-T01", "S11-T04", "S12-T02"],
+      "codeStartAfter": ["S06-T02", "S08-T01"],
       "estimatedSourceLines": 260,
       "fileInventoryIssues": [],
       "fileInventoryStatus": "ready",
