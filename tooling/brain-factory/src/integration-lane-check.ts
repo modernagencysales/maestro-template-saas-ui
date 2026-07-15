@@ -1,4 +1,5 @@
-import { existsSync, readdirSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 import {
   commandsForProfiles,
@@ -23,6 +24,10 @@ import { laneFileOwnershipIssues } from "./lane-ownership.js";
 import { lifecycleAdoptionRecordIssues } from "./lifecycle-adoption.js";
 import type { GateProfile } from "./manifest.js";
 import { proofChangedFilesMatch, validateProofContract } from "./proof.js";
+import {
+  type IntegrationWaveSelection,
+  validateIntegrationWaveSelection,
+} from "./integration-wave.js";
 
 export interface IntegratedLaneCheckInput {
   readonly baseSha: string;
@@ -31,7 +36,8 @@ export interface IntegratedLaneCheckInput {
   readonly headSha: string;
   readonly includedTasks: readonly unknown[];
   readonly integrationId: string;
-  readonly manifestTranche: string;
+  readonly manifestTranche?: string;
+  readonly waveSelection?: IntegrationWaveSelection;
   readonly workdir: string;
 }
 
@@ -64,6 +70,11 @@ export const validateIntegratedLanes = (
   input: IntegratedLaneCheckInput,
 ): void => {
   if (input.includedTasks.length === 0) throw new Error("no included tasks");
+  if (input.waveSelection)
+    validateIntegrationWaveSelection(input.waveSelection);
+  if (!input.waveSelection && !input.manifestTranche) {
+    throw new Error("legacy integration has no manifest tranche");
+  }
   const manifest = manifestFor(input.controlRoot);
   const manifestTasks = manifest.tasks;
   const includedTaskIds = input.includedTasks.map((value, index) =>
@@ -76,6 +87,20 @@ export const validateIntegratedLanes = (
     throw new Error("duplicate included task");
   }
   const includedTaskSet = new Set(includedTaskIds);
+  const waveTasks = new Map(
+    input.waveSelection?.selectedTasks.map((task) => [task.taskId, task]) ?? [],
+  );
+  if (
+    input.waveSelection &&
+    JSON.stringify(includedTaskIds) !==
+      JSON.stringify(
+        input.waveSelection.selectedTasks.map((task) => task.taskId),
+      )
+  ) {
+    throw new Error(
+      "included task set does not match immutable wave selection",
+    );
+  }
   const seen = new Set<string>();
   const lockOwners = new Map<string, string>();
 
@@ -87,8 +112,20 @@ export const validateIntegratedLanes = (
     seen.add(taskId);
     const manifestTask = manifestTasks.get(taskId);
     if (!manifestTask) throw new Error(`${taskId}: absent from task manifest`);
-    if (manifestTask.tranche !== input.manifestTranche) {
+    const expectedTranche = string(
+      manifestTask.tranche,
+      `${taskId}: manifest tranche`,
+    );
+    if (!input.waveSelection && expectedTranche !== input.manifestTranche) {
       throw new Error(`${taskId}: task manifest tranche mismatch`);
+    }
+    const includedTask = record(value, `includedTasks[${index}]`);
+    if (
+      input.waveSelection &&
+      string(includedTask.tranche, `${taskId}: included task tranche`) !==
+        expectedTranche
+    ) {
+      throw new Error(`${taskId}: included task tranche mismatch`);
     }
     if (manifestTask.fileInventoryStatus !== "ready") {
       throw new Error(`${taskId}: file inventory is not dispatch-ready`);
@@ -114,7 +151,14 @@ export const validateIntegratedLanes = (
         dependency,
         `${taskId}: codeStartAfter dependency`,
       );
-      if (includedTaskSet.has(dependencyId)) continue;
+      if (includedTaskSet.has(dependencyId)) {
+        if (input.waveSelection) {
+          throw new Error(
+            `${taskId}: same-wave dependency ${dependencyId} is forbidden`,
+          );
+        }
+        continue;
+      }
       const dependencyLanePath = resolve(
         input.evidenceDirectory,
         "lane-results",
@@ -204,7 +248,7 @@ export const validateIntegratedLanes = (
     if (lane.integrationHeadSha !== input.headSha) {
       throw new Error(`${taskId}: integration head mismatch`);
     }
-    if (lane.tranche !== input.manifestTranche) {
+    if (lane.tranche !== expectedTranche) {
       throw new Error(`${taskId}: manifest tranche mismatch`);
     }
     if (lane.integrationId !== input.integrationId) {
@@ -235,6 +279,31 @@ export const validateIntegratedLanes = (
       throw new Error(
         `${taskId}: proof does not bind a reviewed passing lane head`,
       );
+    }
+    const waveTask = waveTasks.get(taskId);
+    if (input.waveSelection) {
+      if (!waveTask) throw new Error(`${taskId}: absent from wave selection`);
+      const fileHash = (name: string): string =>
+        createHash("sha256")
+          .update(readFileSync(resolve(laneDirectory, name), "utf8"))
+          .digest("hex");
+      if (
+        waveTask.tranche !== expectedTranche ||
+        waveTask.headSha !== laneHeadSha ||
+        waveTask.planSha256 !== manifest.planSha256 ||
+        waveTask.taskBlockHash !== manifestTask.taskBlockHash ||
+        waveTask.proofSha256 !== fileHash("ci-proof-packet.json") ||
+        waveTask.gateSha256 !== fileHash("lane-gate-report.json") ||
+        lane.preIntegrationLaneResultSha256 !== waveTask.laneResultSha256 ||
+        JSON.stringify(waveTask.changedFiles) !==
+          JSON.stringify([...(proof.changedFiles as string[])].sort()) ||
+        JSON.stringify(waveTask.fileLocks) !==
+          JSON.stringify([...(manifestTask.fileLocks as string[])].sort()) ||
+        JSON.stringify(waveTask.codeStartAfter) !==
+          JSON.stringify([...(manifestTask.codeStartAfter as string[])].sort())
+      ) {
+        throw new Error(`${taskId}: immutable wave selection drift`);
+      }
     }
     if (!gitIsAncestor(input.workdir, proofBaseSha, laneHeadSha)) {
       throw new Error(
