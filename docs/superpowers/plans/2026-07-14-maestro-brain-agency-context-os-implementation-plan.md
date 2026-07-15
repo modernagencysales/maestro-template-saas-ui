@@ -1871,8 +1871,8 @@ manifest.
   `packages/convex/confect/tables/retentionPolicies.ts`,
   `packages/convex/confect/tables/legalHolds.ts`,
   `packages/convex/confect/tables/lifecycleJobs.ts`,
-  `packages/convex/test/lifecycle-envelope.test.ts`, and
-  `docs/product/maestro-brain-lifecycle-adoption/S07-T01.md`; modify
+  `packages/convex/test/lifecycle-envelope.test.ts`; modify
+  `docs/product/maestro-brain-lifecycle-adoption/S07-T01.md`,
   `packages/convex/confect/tables/brainPages.ts`,
   `packages/convex/confect/tables/pageRevisions.ts`,
   `packages/convex/confect/tables/citations.ts`,

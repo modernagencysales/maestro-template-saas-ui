@@ -105,9 +105,9 @@ const START_OVERRIDES: Readonly<Record<string, readonly string[]>> = {
   "S12-T01": [],
   "S12-T02": ["S12-T01", "S11-T02", "S07-T01"],
   "S12-T03": ["S12-T02", "S03-T01"],
-  "S13-T01": [],
-  "S13-T02": ["S13-T01", "S06-T02"],
-  "S13-T03": ["S06-T02", "S08-T01"],
+  "S13-T01": ["S08-T04", "S09-T04", "S11-T03"],
+  "S13-T02": ["S13-T01", "S06-T02", "S11-T04"],
+  "S13-T03": ["S06-T02", "S08-T01", "S11-T04", "S12-T02"],
   "S13-T04": ["S13-T03", "S03-T01"],
   "S14-T01": ["S10-T04", "S11-T04", "S12-T03", "S13-T04"],
 };
@@ -463,6 +463,7 @@ export const buildManifest = (root = REPO_ROOT): BrainTaskManifest => {
 export const validateManifest = (manifest: BrainTaskManifest): string[] => {
   const errors: string[] = [];
   const ids = new Set(manifest.tasks.map((task) => task.taskId));
+  const lifecycleRecordOwners = new Map<string, string>();
   if (manifest.tasks.length !== 56)
     errors.push(`expected 56 tasks, got ${manifest.tasks.length}`);
   if (ids.size !== manifest.tasks.length) errors.push("duplicate task IDs");
@@ -500,6 +501,28 @@ export const validateManifest = (manifest: BrainTaskManifest): string[] => {
         errors.push(
           `${task.taskId}: unknown code-start dependency ${dependency}`,
         );
+    for (const lock of task.fileLocks) {
+      const match = lock.match(
+        /^docs\/product\/maestro-brain-lifecycle-adoption\/(S\d{2}-T\d{2})\.md$/,
+      );
+      if (!match) continue;
+      const recordTaskId = required(
+        match[1],
+        `${task.taskId}: lifecycle record lock has no owner`,
+      );
+      if (recordTaskId !== task.taskId) {
+        errors.push(
+          `${task.taskId}: lifecycle record ${lock} belongs to ${recordTaskId}`,
+        );
+      }
+      const priorOwner = lifecycleRecordOwners.get(lock);
+      if (priorOwner && priorOwner !== task.taskId) {
+        errors.push(
+          `${task.taskId}: lifecycle record ${lock} also belongs to ${priorOwner}`,
+        );
+      }
+      lifecycleRecordOwners.set(lock, task.taskId);
+    }
   }
   const visiting = new Set<string>();
   const visited = new Set<string>();

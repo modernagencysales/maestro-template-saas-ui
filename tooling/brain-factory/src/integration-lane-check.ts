@@ -20,6 +20,7 @@ import {
 } from "./lane-gate-cache.js";
 import { validateLaneAcceptance } from "./lane-acceptance.js";
 import { laneFileOwnershipIssues } from "./lane-ownership.js";
+import { lifecycleAdoptionRecordIssues } from "./lifecycle-adoption.js";
 import type { GateProfile } from "./manifest.js";
 import { proofChangedFilesMatch, validateProofContract } from "./proof.js";
 
@@ -189,6 +190,17 @@ export const validateIntegratedLanes = (
       throw new Error(`${taskId}: missing lane result`);
     const lane = readJson(lanePath);
     validateLaneAcceptance(lane, taskId);
+    const lifecycleIssues = lifecycleAdoptionRecordIssues({
+      root: input.workdir,
+      state: String(lane.status),
+      task: {
+        fileLocks: manifestTask.fileLocks as string[],
+        taskId,
+      },
+    });
+    if (lifecycleIssues.length > 0) {
+      throw new Error(lifecycleIssues.join("; "));
+    }
     if (lane.integrationHeadSha !== input.headSha) {
       throw new Error(`${taskId}: integration head mismatch`);
     }

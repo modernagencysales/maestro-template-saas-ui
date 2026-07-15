@@ -24,6 +24,7 @@ import {
   validSourceSlices,
 } from "./source-budget.js";
 import { laneFileOwnershipIssues } from "./lane-ownership.js";
+import { lifecycleAdoptionRecordIssues } from "./lifecycle-adoption.js";
 
 interface ProofPacket {
   readonly baseSha: string;
@@ -73,6 +74,14 @@ const run = (command: GateCommand): void => {
 const manifest = buildManifest();
 const task = manifest.tasks.find((candidate) => candidate.taskId === taskId);
 if (!task) throw new Error(`unknown task ${taskId}`);
+const lifecycleIssues = lifecycleAdoptionRecordIssues({
+  root: process.cwd(),
+  state: "lane_green",
+  task,
+});
+if (lifecycleIssues.length > 0) {
+  throw new Error(lifecycleIssues.join("; "));
+}
 const laneDirectory = resolve(evidence, "lane-results", taskId);
 const proofPath = resolve(laneDirectory, "ci-proof-packet.json");
 const reportPath = resolve(laneDirectory, "lane-gate-report.json");

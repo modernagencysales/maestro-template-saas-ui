@@ -341,6 +341,51 @@ describe("normal integration result check", () => {
     ).toThrow("S09-T01: source.ts: not declared in manifest fileLocks");
   });
 
+  it("rejects an integrated task whose lifecycle record remains a stub", () => {
+    const value = fixture();
+    const recordPath =
+      "docs/product/maestro-brain-lifecycle-adoption/S09-T01.md";
+    const manifest = readRecord(value.manifestPath);
+    const tasks = manifest.tasks as Array<Record<string, unknown>>;
+    tasks[0] = { ...tasks[0], fileLocks: ["source.ts", recordPath] };
+    writeJson(value.manifestPath, manifest);
+    const absoluteRecordPath = resolve(value.workdir, recordPath);
+    mkdirSync(resolve(absoluteRecordPath, ".."), { recursive: true });
+    writeFileSync(
+      absoluteRecordPath,
+      "# S09-T01 Lifecycle Adoption Record\n\n**Owner:** S09-T01  \n**State:** task-owned stub\n",
+    );
+    command(value.workdir, "add", recordPath);
+    command(
+      value.workdir,
+      "commit",
+      "-qm",
+      "test: preserve stale lifecycle record",
+    );
+    const stubHeadSha = command(value.workdir, "rev-parse", "HEAD");
+    const result = readRecord(value.resultPath);
+    result.headSha = stubHeadSha;
+    result.broadGate = {
+      status: "passed",
+      headSha: stubHeadSha,
+      command: "rtk host-test-slot --class full pnpm verify",
+    };
+    writeJson(value.resultPath, result);
+    const lane = readRecord(value.lanePath);
+    lane.integrationHeadSha = stubHeadSha;
+    writeJson(value.lanePath, lane);
+
+    expect(() =>
+      validateIntegrationResult({
+        controlRoot: value.controlRoot,
+        evidenceDirectory: value.evidence,
+        expectedWorkdir: value.workdir,
+        integrationId: value.integrationId,
+        manifestTranche: value.manifestTranche,
+      }),
+    ).toThrow("S09-T01: lifecycle adoption record remains a task-owned stub");
+  });
+
   it("rejects proof schema, plan, and task-block drift", () => {
     const value = fixture();
     const original = readRecord(value.proofPath);

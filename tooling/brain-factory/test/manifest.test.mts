@@ -223,7 +223,7 @@ describe("Maestro Brain execution manifest", () => {
     expect(providerSetup?.codeStartAfter).toEqual(["S00-T03", "S01-T02"]);
   });
 
-  it("keeps code-start edges narrower than S13 acceptance", () => {
+  it("keeps S13 lane proofs behind their real product dependencies", () => {
     const manifest = buildManifest();
     const semanticEvals = manifest.tasks.find(
       (task) => task.taskId === "S13-T01",
@@ -231,11 +231,20 @@ describe("Maestro Brain execution manifest", () => {
     const capacity = manifest.tasks.find((task) => task.taskId === "S13-T02");
     const operations = manifest.tasks.find((task) => task.taskId === "S13-T03");
     expect(semanticEvals?.acceptanceAfter).toBe("S10, S11, S12 complete");
-    expect(semanticEvals?.codeStartAfter).toEqual([]);
+    expect(semanticEvals?.codeStartAfter).toEqual([
+      "S08-T04",
+      "S09-T04",
+      "S11-T03",
+    ]);
     expect(capacity?.acceptanceAfter).toBe("S13-T01, S06");
-    expect(capacity?.codeStartAfter).toEqual(["S13-T01", "S06-T02"]);
+    expect(capacity?.codeStartAfter).toEqual(["S13-T01", "S06-T02", "S11-T04"]);
     expect(operations?.acceptanceAfter).toBe("S13-T02");
-    expect(operations?.codeStartAfter).toEqual(["S06-T02", "S08-T01"]);
+    expect(operations?.codeStartAfter).toEqual([
+      "S06-T02",
+      "S08-T01",
+      "S11-T04",
+      "S12-T02",
+    ]);
     expect(
       manifest.tasks
         .filter((task) => task.taskId.startsWith("S13-"))
@@ -276,6 +285,15 @@ describe("Maestro Brain execution manifest", () => {
       expect(task?.fileLocks).not.toContain(
         "docs/product/maestro-brain-lifecycle-adoption.md",
       );
+      expect(
+        manifest.tasks
+          .filter((candidate) =>
+            candidate.fileLocks.includes(
+              `docs/product/maestro-brain-lifecycle-adoption/${taskId}.md`,
+            ),
+          )
+          .map((candidate) => candidate.taskId),
+      ).toEqual([taskId]);
     }
     expect(
       manifest.tasks.filter((task) =>
@@ -284,6 +302,31 @@ describe("Maestro Brain execution manifest", () => {
         ),
       ),
     ).toEqual([]);
+  });
+
+  it("rejects cross-owned lifecycle adoption locks", () => {
+    const manifest = buildManifest();
+    const unsafe = {
+      ...manifest,
+      tasks: manifest.tasks.map((task) =>
+        task.taskId === "S04-T02"
+          ? {
+              ...task,
+              fileLocks: [
+                ...task.fileLocks,
+                "docs/product/maestro-brain-lifecycle-adoption/S02-T01.md",
+              ],
+            }
+          : task,
+      ),
+    };
+
+    expect(validateManifest(unsafe)).toEqual(
+      expect.arrayContaining([
+        "S04-T02: lifecycle record docs/product/maestro-brain-lifecycle-adoption/S02-T01.md belongs to S02-T01",
+        "S04-T02: lifecycle record docs/product/maestro-brain-lifecycle-adoption/S02-T01.md also belongs to S02-T01",
+      ]),
+    );
   });
 
   it("uses only package-relevant profiles for the next frontier", () => {

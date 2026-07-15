@@ -836,7 +836,7 @@
       "lane": "lifecycle",
       "requirements": ["FND-03", "IAM-04", "KNW-02"],
       "sourceSliceBudget": 300,
-      "taskBlockHash": "5c95618a15d8dab0ed37787e3dc08d74f3eb4dfae0c61a31be9457825b87f414",
+      "taskBlockHash": "f107e1c6caf670a3d435915a04f797ef9ba8c861b288793182dfe2af7a1a8eb4",
       "taskId": "S07-T01",
       "title": "Add The Shared Lifecycle Envelope, Policies, Holds, And Jobs",
       "tranche": "C1-contract-spine"
@@ -1503,7 +1503,7 @@
     {
       "acceptanceAfter": "S10, S11, S12 complete",
       "classification": "template-gap",
-      "codeStartAfter": [],
+      "codeStartAfter": ["S08-T04", "S09-T04", "S11-T03"],
       "estimatedSourceLines": 280,
       "fileInventoryIssues": [],
       "fileInventoryStatus": "ready",
@@ -1543,7 +1543,7 @@
     {
       "acceptanceAfter": "S13-T01, S06",
       "classification": "template-gap",
-      "codeStartAfter": ["S13-T01", "S06-T02"],
+      "codeStartAfter": ["S13-T01", "S06-T02", "S11-T04"],
       "estimatedSourceLines": 260,
       "fileInventoryIssues": [],
       "fileInventoryStatus": "ready",
@@ -1569,7 +1569,7 @@
     {
       "acceptanceAfter": "S13-T02",
       "classification": "template-gap",
-      "codeStartAfter": ["S06-T02", "S08-T01"],
+      "codeStartAfter": ["S06-T02", "S08-T01", "S11-T04", "S12-T02"],
       "estimatedSourceLines": 260,
       "fileInventoryIssues": [],
       "fileInventoryStatus": "ready",
