@@ -1,5 +1,7 @@
 import { spawnSync } from "node:child_process";
-import { closeSync, openSync, readFileSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { closeSync, openSync, readFileSync, writeFileSync } from "node:fs";
+import { resolve } from "node:path";
 
 export const runRtk = (
   args: readonly string[],
@@ -20,7 +22,7 @@ export const runRtk = (
 export const runRtkToFile = (
   args: readonly string[],
   outputPath: string,
-  options: { readonly cwd?: string } = {},
+  options: { readonly cwd?: string; readonly outcomePath?: string } = {},
 ): string => {
   const output = openSync(outputPath, "wx");
   let result: ReturnType<typeof spawnSync>;
@@ -32,6 +34,26 @@ export const runRtkToFile = (
     });
   } finally {
     closeSync(output);
+  }
+  if (options.outcomePath) {
+    const outputContent = readFileSync(outputPath, "utf8");
+    writeFileSync(
+      options.outcomePath,
+      `${JSON.stringify(
+        {
+          kind: result.status === null ? "spawn_failed" : "exited",
+          outputPath: resolve(outputPath),
+          outputSha256: createHash("sha256")
+            .update(outputContent)
+            .digest("hex"),
+          schemaVersion: "maestro-rtk-file-outcome/v1",
+          status: result.status,
+        },
+        null,
+        2,
+      )}\n`,
+      { flag: "wx" },
+    );
   }
   if (result.status !== 0)
     throw new Error(

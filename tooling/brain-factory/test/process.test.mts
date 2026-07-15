@@ -1,4 +1,5 @@
 import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
@@ -61,6 +62,7 @@ describe("brain factory process helpers", () => {
     const root = mkdtempSync(resolve(tmpdir(), "brain-process-partial-"));
     roots.push(root);
     const receipt = resolve(root, "launch.raw");
+    const outcome = resolve(root, "launch.raw.outcome.json");
     expect(() =>
       runRtkToFile(
         [
@@ -70,8 +72,16 @@ describe("brain factory process helpers", () => {
           "process.stdout.write('partial');process.exit(1)",
         ],
         receipt,
+        { outcomePath: outcome },
       ),
     ).toThrow("failed (1)");
     expect(readFileSync(receipt, "utf8")).toBe("partial");
+    expect(JSON.parse(readFileSync(outcome, "utf8"))).toEqual({
+      kind: "exited",
+      outputPath: receipt,
+      outputSha256: createHash("sha256").update("partial").digest("hex"),
+      schemaVersion: "maestro-rtk-file-outcome/v1",
+      status: 1,
+    });
   });
 });

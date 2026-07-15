@@ -1,9 +1,10 @@
-import { existsSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
+import { existsSync, realpathSync } from "node:fs";
 import { resolve } from "node:path";
 
 import {
   acquireIntegrationOwnership,
-  buildRepairLaunchReceipt,
+  discoverRepairLaunch,
+  dispatchIntegrationRecovery,
   fabroRunId,
   gitSha,
   integrationLockPath,
@@ -61,6 +62,8 @@ const receiptPath = (attempt: number): string =>
   `${repairRecordPath}.launch-${attempt}.json`;
 const rawLaunchPath = (attempt: number): string =>
   `${repairRecordPath}.launch-${attempt}.raw`;
+const launchOutcomePath = (attempt: number): string =>
+  `${rawLaunchPath(attempt)}.outcome.json`;
 type LaunchIdentity = Omit<RepairLaunchReceiptInput, "runId">;
 const inspectFabro = (target: string): unknown =>
   JSON.parse(
@@ -68,94 +71,14 @@ const inspectFabro = (target: string): unknown =>
       quiet: true,
     }),
   );
-const inspectedRunId = (inspection: unknown): string => {
-  const values = Array.isArray(inspection) ? inspection : [inspection];
-  if (values.length !== 1) {
-    throw new Error("Fabro repair inspection must contain exactly one run");
-  }
-  const value = values[0];
-  if (typeof value !== "object" || value === null || Array.isArray(value)) {
-    throw new Error("Fabro repair inspection must contain an object");
-  }
-  return fabroRunId(
-    (value as { readonly run_id?: unknown }).run_id,
-    "Fabro repair run ID",
-  );
-};
-const persistReceipt = (attempt: number, receipt: unknown): void => {
-  const path = receiptPath(attempt);
-  const content = `${JSON.stringify(receipt, null, 2)}\n`;
-  if (existsSync(path)) {
-    if (readFileSync(path, "utf8") !== content) {
-      throw new Error(`repair launch receipt conflicts at ${path}`);
-    }
-    return;
-  }
-  writeFileSync(path, content, { flag: "wx" });
-};
-const receiptFromInspection = (
-  inspection: unknown,
-  identity: LaunchIdentity,
-): unknown => {
-  const runId = inspectedRunId(inspection);
-  verifyRepairLaunchInspection(inspection, { ...identity, runId });
-  const receipt = buildRepairLaunchReceipt({ ...identity, runId });
-  persistReceipt(identity.attempt, receipt);
-  return receipt;
-};
-const discoverLaunch = (identity: LaunchIdentity): RepairLaunchDiscovery => {
-  const receipt = receiptPath(identity.attempt);
-  if (existsSync(receipt)) {
-    try {
-      const parsed = JSON.parse(readFileSync(receipt, "utf8")) as {
-        readonly runId?: unknown;
-      };
-      const runId = fabroRunId(parsed.runId, "structured repair launch run ID");
-      verifyRepairLaunchInspection(inspectFabro(runId), {
-        ...identity,
-        runId,
-      });
-      return {
-        kind: "found",
-        receipt: parsed,
-      };
-    } catch (error) {
-      return {
-        kind: "ambiguous",
-        reason: `structured launch receipt is unreadable: ${String(error)}`,
-      };
-    }
-  }
-  const raw = rawLaunchPath(identity.attempt);
-  if (!existsSync(raw)) return { kind: "absent" };
-  try {
-    const output = readFileSync(raw, "utf8").trim();
-    const parsed = JSON.parse(output) as { run_id?: unknown; runId?: unknown };
-    const runId = fabroRunId(
-      parsed.run_id ?? parsed.runId,
-      "raw repair launch run ID",
-    );
-    return {
-      kind: "found",
-      receipt: receiptFromInspection(inspectFabro(runId), identity),
-    };
-  } catch {
-    try {
-      return {
-        kind: "found",
-        receipt: receiptFromInspection(
-          inspectFabro("BrainRepairTranche"),
-          identity,
-        ),
-      };
-    } catch (error) {
-      return {
-        kind: "ambiguous",
-        reason: `raw launch output exists but no exact accepted run was verified: ${String(error)}`,
-      };
-    }
-  }
-};
+const discoverLaunch = (identity: LaunchIdentity): RepairLaunchDiscovery =>
+  discoverRepairLaunch({
+    identity,
+    inspect: inspectFabro,
+    outcomePath: launchOutcomePath(identity.attempt),
+    rawPath: rawLaunchPath(identity.attempt),
+    receiptPath: receiptPath(identity.attempt),
+  });
 const verifyLaunchedRun = (identity: RepairLaunchReceiptInput): void =>
   verifyRepairLaunchInspection(inspectFabro(identity.runId), identity);
 const auditPath = resolve(state, "recovery-audit.jsonl");
@@ -227,32 +150,6 @@ try {
       ? (durableResult.recovery as Record<string, unknown>)
       : undefined;
   const durableWorkdir = realpathSync(expectedWorkdir);
-  const durableLaunch = existsSync(repairRecordPath)
-    ? reconcileDurableRepairLaunch({
-        auditPath,
-        discoverLaunchedRun: discoverLaunch,
-        expected: {
-          baseSha: gitSha(
-            durableRecovery?.legacyIntegrationHeadSha,
-            "durable recovery legacy integration head",
-          ),
-          integrationBaseSha: gitSha(
-            durableRunRecord.baseSha,
-            "run record baseSha",
-          ),
-          sourceReviewRun: fabroRunId(
-            durableRunRecord.runId,
-            "run record runId",
-          ),
-          tranche,
-          workdir: durableWorkdir,
-        },
-        manifestTaskIds,
-        repairRecordPath,
-        resultPath,
-        verifyLaunchedRun,
-      })
-    : undefined;
   const reconcileFromEvidence = (): string => {
     const runRecord = readJsonRecord(runRecordPath);
     const integrationResult = readJsonRecord(resultPath);
@@ -340,6 +237,7 @@ try {
             workflow,
           }),
           rawLaunchPath(attempt),
+          { outcomePath: launchOutcomePath(attempt) },
         );
         const discovery = discoverLaunch({
           attempt,
@@ -372,7 +270,36 @@ try {
     });
     return reconciled.runId;
   };
-  const repairRunId = durableLaunch?.runId ?? reconcileFromEvidence();
+  const repairRunId = dispatchIntegrationRecovery({
+    integrationResult: durableResult,
+    reconcileDurable: () =>
+      reconcileDurableRepairLaunch({
+        auditPath,
+        discoverLaunchedRun: discoverLaunch,
+        expected: {
+          baseSha: gitSha(
+            durableRecovery?.legacyIntegrationHeadSha,
+            "durable recovery legacy integration head",
+          ),
+          integrationBaseSha: gitSha(
+            durableRunRecord.baseSha,
+            "run record baseSha",
+          ),
+          sourceReviewRun: fabroRunId(
+            durableRunRecord.runId,
+            "run record runId",
+          ),
+          tranche,
+          workdir: durableWorkdir,
+        },
+        manifestTaskIds,
+        repairRecordPath,
+        resultPath,
+        verifyLaunchedRun,
+      })?.runId,
+    reconcileFromEvidence,
+    repairRecordExists: existsSync(repairRecordPath),
+  });
   console.log(
     `${tranche}: normalized failed legacy attempt and launched repair ${repairRunId}`,
   );

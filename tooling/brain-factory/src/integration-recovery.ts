@@ -16,8 +16,10 @@ import { dirname, isAbsolute, resolve } from "node:path";
 
 type JsonRecord = Record<string, unknown>;
 
-const hashJson = (value: unknown): string =>
-  createHash("sha256").update(JSON.stringify(value)).digest("hex");
+const hashText = (value: string): string =>
+  createHash("sha256").update(value).digest("hex");
+
+const hashJson = (value: unknown): string => hashText(JSON.stringify(value));
 
 const record = (value: unknown, label: string): JsonRecord => {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
@@ -863,6 +865,31 @@ export type RepairLaunchDiscovery =
   | { readonly kind: "ambiguous"; readonly reason: string }
   | { readonly kind: "found"; readonly receipt: unknown };
 
+export const dispatchIntegrationRecovery = (input: {
+  readonly integrationResult: unknown;
+  readonly reconcileDurable: () => string | undefined;
+  readonly reconcileFromEvidence: () => string;
+  readonly repairRecordExists: boolean;
+}): string => {
+  const result = record(input.integrationResult, "integration result");
+  const recovery =
+    typeof result.recovery === "object" &&
+    result.recovery !== null &&
+    !Array.isArray(result.recovery)
+      ? (result.recovery as JsonRecord)
+      : undefined;
+  const normalizedRecoveryExists =
+    result.schemaVersion === "maestro-brain-integration-result/v1" &&
+    result.sourceRunStatus === "failed" &&
+    recovery?.schemaVersion === "maestro-brain-integration-recovery/v1" &&
+    recovery.sourceRunStatus === "failed";
+  if (input.repairRecordExists && normalizedRecoveryExists) {
+    const durable = input.reconcileDurable();
+    if (durable !== undefined) return durable;
+  }
+  return input.reconcileFromEvidence();
+};
+
 export const verifyRepairLaunchInspection = (
   value: unknown,
   expected: RepairLaunchAttempt,
@@ -918,6 +945,113 @@ export const verifyRepairLaunchInspection = (
     string(inputs.tranche, "Fabro repair tranche input") !== expected.tranche
   ) {
     throw new Error("Fabro repair labels or inputs do not match reservation");
+  }
+};
+
+export const discoverRepairLaunch = (input: {
+  readonly identity: Omit<RepairLaunchReceiptInput, "runId">;
+  readonly inspect: (target: string) => unknown;
+  readonly outcomePath: string;
+  readonly rawPath: string;
+  readonly receiptPath: string;
+}): RepairLaunchDiscovery => {
+  const persistReceipt = (receipt: JsonRecord): void => {
+    const content = `${JSON.stringify(receipt, null, 2)}\n`;
+    if (existsSync(input.receiptPath)) {
+      if (readFileSync(input.receiptPath, "utf8") !== content) {
+        throw new Error(
+          `repair launch receipt conflicts at ${input.receiptPath}`,
+        );
+      }
+      return;
+    }
+    writeFileSync(input.receiptPath, content, { flag: "wx" });
+  };
+  const receiptFromInspection = (inspection: unknown): JsonRecord => {
+    const values = Array.isArray(inspection) ? inspection : [inspection];
+    if (values.length !== 1) {
+      throw new Error("Fabro repair inspection must contain exactly one run");
+    }
+    const inspected = record(values[0], "Fabro repair inspection");
+    const runId = fabroRunId(inspected.run_id, "Fabro repair run ID");
+    verifyRepairLaunchInspection(inspection, { ...input.identity, runId });
+    const receipt = buildRepairLaunchReceipt({ ...input.identity, runId });
+    persistReceipt(receipt);
+    return receipt;
+  };
+  const authoritativeNonzeroExit = (): boolean => {
+    if (!existsSync(input.outcomePath)) return false;
+    try {
+      const outcome = readJsonRecord(input.outcomePath);
+      return (
+        outcome.schemaVersion === "maestro-rtk-file-outcome/v1" &&
+        outcome.kind === "exited" &&
+        outcome.outputPath === resolve(input.rawPath) &&
+        outcome.outputSha256 ===
+          hashText(readFileSync(input.rawPath, "utf8")) &&
+        Number.isInteger(outcome.status) &&
+        Number(outcome.status) !== 0
+      );
+    } catch {
+      return false;
+    }
+  };
+
+  if (existsSync(input.receiptPath)) {
+    try {
+      const receipt = readJsonRecord(input.receiptPath);
+      const runId = fabroRunId(
+        receipt.runId,
+        "structured repair launch run ID",
+      );
+      verifyRepairLaunchInspection(input.inspect(runId), {
+        ...input.identity,
+        runId,
+      });
+      return { kind: "found", receipt };
+    } catch (error) {
+      return {
+        kind: "ambiguous",
+        reason: `structured launch receipt could not be verified: ${String(error)}`,
+      };
+    }
+  }
+  if (!existsSync(input.rawPath)) return { kind: "absent" };
+
+  let rawRunId: string | undefined;
+  try {
+    const raw = JSON.parse(readFileSync(input.rawPath, "utf8")) as {
+      readonly run_id?: unknown;
+      readonly runId?: unknown;
+    };
+    rawRunId = fabroRunId(raw.run_id ?? raw.runId, "raw repair launch run ID");
+    return {
+      kind: "found",
+      receipt: receiptFromInspection(input.inspect(rawRunId)),
+    };
+  } catch {
+    // A missing or partial response is reconciled against durable Fabro state.
+  }
+
+  let latest: unknown;
+  try {
+    latest = input.inspect("BrainRepairTranche");
+  } catch (error) {
+    return {
+      kind: "ambiguous",
+      reason: `raw launch output exists but Fabro inspection failed: ${String(error)}`,
+    };
+  }
+  try {
+    return { kind: "found", receipt: receiptFromInspection(latest) };
+  } catch (error) {
+    if (rawRunId === undefined && authoritativeNonzeroExit()) {
+      return { kind: "absent" };
+    }
+    return {
+      kind: "ambiguous",
+      reason: `raw launch output exists but no exact accepted run was verified: ${String(error)}`,
+    };
   }
 };
 
