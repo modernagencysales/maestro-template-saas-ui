@@ -3,19 +3,20 @@ import { resolve } from "node:path";
 
 import {
   acquireIntegrationOwnership,
-  discoverRepairLaunch,
+  discoverCreatedRepairRun,
   dispatchIntegrationRecovery,
   fabroRunId,
   gitSha,
+  inspectRepairRunPhase,
   integrationLockPath,
   planLegacyIntegrationRecovery,
   readJsonRecord,
   reconcileDurableRepairLaunch,
   reconcileLegacyIntegrationRecovery,
-  repairWorkflowArgs,
+  repairWorkflowCreateArgs,
+  repairWorkflowStartArgs,
   safeAbsolutePath,
-  verifyRepairLaunchInspection,
-  type RepairLaunchDiscovery,
+  type RepairCreateDiscovery,
   type RepairLaunchReceiptInput,
 } from "./integration-recovery.js";
 import { gitIsAncestor, runRtk, runRtkToFile } from "./process.js";
@@ -58,12 +59,16 @@ const resultPath = resolve(
 );
 const runRecordPath = resolve(state, "runs", `integration-${tranche}.json`);
 const repairRecordPath = resolve(state, "runs", `repair-${tranche}.json`);
-const receiptPath = (attempt: number): string =>
-  `${repairRecordPath}.launch-${attempt}.json`;
-const rawLaunchPath = (attempt: number): string =>
-  `${repairRecordPath}.launch-${attempt}.raw`;
-const launchOutcomePath = (attempt: number): string =>
-  `${rawLaunchPath(attempt)}.outcome.json`;
+const createReceiptPath = (attempt: number): string =>
+  `${repairRecordPath}.create-${attempt}.json`;
+const rawCreatePath = (attempt: number): string =>
+  `${repairRecordPath}.create-${attempt}.raw`;
+const createOutcomePath = (attempt: number): string =>
+  `${rawCreatePath(attempt)}.outcome.json`;
+const rawStartPath = (attempt: number, startAttempt: number): string =>
+  `${repairRecordPath}.start-${attempt}-${startAttempt}.raw`;
+const startOutcomePath = (attempt: number, startAttempt: number): string =>
+  `${rawStartPath(attempt, startAttempt)}.outcome.json`;
 type LaunchIdentity = Omit<RepairLaunchReceiptInput, "runId">;
 const inspectFabro = (target: string): unknown =>
   JSON.parse(
@@ -71,16 +76,16 @@ const inspectFabro = (target: string): unknown =>
       quiet: true,
     }),
   );
-const discoverLaunch = (identity: LaunchIdentity): RepairLaunchDiscovery =>
-  discoverRepairLaunch({
+const discoverCreate = (identity: LaunchIdentity): RepairCreateDiscovery =>
+  discoverCreatedRepairRun({
     identity,
     inspect: inspectFabro,
-    outcomePath: launchOutcomePath(identity.attempt),
-    rawPath: rawLaunchPath(identity.attempt),
-    receiptPath: receiptPath(identity.attempt),
+    outcomePath: createOutcomePath(identity.attempt),
+    rawPath: rawCreatePath(identity.attempt),
+    receiptPath: createReceiptPath(identity.attempt),
   });
-const verifyLaunchedRun = (identity: RepairLaunchReceiptInput): void =>
-  verifyRepairLaunchInspection(inspectFabro(identity.runId), identity);
+const inspectRun = (identity: RepairLaunchReceiptInput) =>
+  inspectRepairRunPhase(inspectFabro(identity.runId), identity);
 const auditPath = resolve(state, "recovery-audit.jsonl");
 const expectedWorkdir = resolve(
   root,
@@ -215,58 +220,50 @@ try {
     });
     const reconciled = reconcileLegacyIntegrationRecovery({
       auditPath,
-      discoverLaunchedRun: discoverLaunch,
+      create: (identity) => {
+        runRtkToFile(
+          repairWorkflowCreateArgs({
+            controlRoot: root,
+            evidenceDirectory,
+            launchAttempt: identity.attempt,
+            recoveryAuditPath: auditPath,
+            repairBaseSha: identity.baseSha,
+            reservationToken: identity.reservationToken,
+            sourceReviewRun: identity.sourceReviewRun,
+            tranche,
+            workdir: worktreePath,
+            workflow,
+          }),
+          rawCreatePath(identity.attempt),
+          { outcomePath: createOutcomePath(identity.attempt) },
+        );
+        const discovery = discoverCreate(identity);
+        if (discovery.kind !== "found") {
+          throw new Error(
+            discovery.kind === "ambiguous"
+              ? discovery.reason
+              : "successful create produced no exact run receipt",
+          );
+        }
+        return discovery.receipt;
+      },
+      discoverCreatedRun: discoverCreate,
       identity: {
         baseSha: plan.repairBaseSha,
         sourceReviewRun: plan.sourceReviewRun,
         tranche,
         workdir: worktreePath,
       },
-      launch: ({ attempt, reservationToken }) => {
-        runRtkToFile(
-          repairWorkflowArgs({
-            controlRoot: root,
-            evidenceDirectory,
-            launchAttempt: attempt,
-            recoveryAuditPath: auditPath,
-            repairBaseSha: plan.repairBaseSha,
-            reservationToken,
-            sourceReviewRun: plan.sourceReviewRun,
-            tranche,
-            workdir: worktreePath,
-            workflow,
-          }),
-          rawLaunchPath(attempt),
-          { outcomePath: launchOutcomePath(attempt) },
-        );
-        const discovery = discoverLaunch({
-          attempt,
-          baseSha: plan.repairBaseSha,
-          integrationBaseSha: gitSha(
-            plan.auditEvent.baseSha,
-            "recovery integration baseSha",
-          ),
-          reservationToken,
-          sourceReviewRun: plan.sourceReviewRun,
-          taskIds: Array.isArray(plan.auditEvent.legacyIncludedTaskIds)
-            ? (plan.auditEvent.legacyIncludedTaskIds as string[])
-            : [],
-          tranche,
-          workdir: worktreePath,
-        });
-        if (discovery.kind !== "found") {
-          throw new Error(
-            discovery.kind === "ambiguous"
-              ? discovery.reason
-              : "successful launch produced no durable receipt",
-          );
-        }
-        return discovery.receipt;
-      },
+      inspectRun,
       plan,
       repairRecordPath,
       resultPath,
-      verifyLaunchedRun,
+      start: ({ attempt, runId, startAttempt }) =>
+        runRtkToFile(
+          repairWorkflowStartArgs(runId),
+          rawStartPath(attempt, startAttempt),
+          { outcomePath: startOutcomePath(attempt, startAttempt) },
+        ),
     });
     return reconciled.runId;
   };
@@ -275,7 +272,6 @@ try {
     reconcileDurable: () =>
       reconcileDurableRepairLaunch({
         auditPath,
-        discoverLaunchedRun: discoverLaunch,
         expected: {
           baseSha: gitSha(
             durableRecovery?.legacyIntegrationHeadSha,
@@ -292,10 +288,16 @@ try {
           tranche,
           workdir: durableWorkdir,
         },
+        inspectRun,
         manifestTaskIds,
         repairRecordPath,
         resultPath,
-        verifyLaunchedRun,
+        start: ({ attempt, runId, startAttempt }) =>
+          runRtkToFile(
+            repairWorkflowStartArgs(runId),
+            rawStartPath(attempt, startAttempt),
+            { outcomePath: startOutcomePath(attempt, startAttempt) },
+          ),
       })?.runId,
     reconcileFromEvidence,
     repairRecordExists: existsSync(repairRecordPath),
