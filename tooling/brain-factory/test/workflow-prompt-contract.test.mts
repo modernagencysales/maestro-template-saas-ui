@@ -12,6 +12,10 @@ const workflows = {
     evidencePath: "/integration/",
     promptNodes: ["integrate", "review", "repair", "record"],
   },
+  "brain-integrate-wave": {
+    evidencePath: "/integration/",
+    promptNodes: ["integrate", "review", "repair", "record"],
+  },
   "brain-release-evidence": {
     evidencePath: "/release/release-result.json",
     promptNodes: ["operate", "review"],
@@ -105,5 +109,23 @@ describe("Fabro workflow prompt contracts", () => {
     expect(release).toContain("review -> final_gate");
     expect(release).toContain("release-evidence-check.mts");
     expect(release).toContain("Do not fabricate live credentials");
+  });
+
+  it("binds cross-tranche integration to one immutable selection and full gate", () => {
+    const wave = readFileSync(
+      resolve(
+        import.meta.dirname,
+        "../../../.fabro/workflows/brain-integrate-wave/workflow.fabro",
+      ),
+      "utf8",
+    );
+    expect(wave).toContain("never use a repository-wide glob");
+    expect(wave).toContain("Never discover or add a late lane");
+    expect(wave).toContain("same-wave edges");
+    expect(wave).toContain("integration-wave-selection-check.mts");
+    expect(wave.match(/host-test-slot --class full pnpm verify/g)).toHaveLength(
+      2,
+    );
+    expect(wave).toContain("--wave-selection");
   });
 });
