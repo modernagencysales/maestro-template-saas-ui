@@ -1,4 +1,5 @@
 import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import {
   existsSync,
   mkdtempSync,
@@ -16,6 +17,8 @@ import { afterEach, describe, expect, it } from "vitest";
 import { validateIntegrationResult } from "../src/integration-result-check.mjs";
 import { archiveIntegrationEvidence } from "../src/evidence-archive.js";
 import { gateCommandSetHash } from "../src/lane-gate-cache.js";
+import { planIntegrationWave } from "../src/integration-wave.js";
+import type { BrainTaskContract } from "../src/manifest.js";
 
 const temporaryDirectories: string[] = [];
 
@@ -170,6 +173,91 @@ const fixture = () => {
 const readRecord = (path: string): Record<string, unknown> =>
   JSON.parse(readFileSync(path, "utf8")) as Record<string, unknown>;
 
+const sha256File = (path: string): string =>
+  createHash("sha256").update(readFileSync(path, "utf8")).digest("hex");
+
+const waveFixture = () => {
+  const value = fixture();
+  command(value.workdir, "rm", "integration.ts");
+  command(value.workdir, "commit", "-qm", "test: remove integration marker");
+  const headSha = command(value.workdir, "rev-parse", "HEAD");
+  const manifest = readRecord(value.manifestPath);
+  const manifestTask = (manifest.tasks as BrainTaskContract[])[0];
+  if (!manifestTask) throw new Error("fixture manifest task missing");
+  const plannerTask = {
+    ...manifestTask,
+    kind: "product" as const,
+  } as BrainTaskContract;
+  writeJson(value.lanePath, {
+    taskId: manifestTask.taskId,
+    headSha: readRecord(value.proofPath).headSha,
+    status: "lane_green",
+    tranche: manifestTask.tranche,
+  });
+  const preIntegrationLaneResultSha256 = sha256File(value.lanePath);
+  const selection = planIntegrationWave({
+    baseSha: value.baseSha,
+    candidates: [
+      {
+        changedFiles: ["source.ts"],
+        gateHeadSha: String(readRecord(value.gatePath).headSha),
+        gateSha256: sha256File(value.gatePath),
+        headSha: String(readRecord(value.proofPath).headSha),
+        laneResultSha256: preIntegrationLaneResultSha256,
+        planSha256: value.planSha256,
+        proofHeadSha: String(readRecord(value.proofPath).headSha),
+        proofSha256: sha256File(value.proofPath),
+        taskBlockHash: value.taskBlockHash,
+        taskId: manifestTask.taskId,
+        tranche: manifestTask.tranche,
+      },
+    ],
+    completedTaskIds: new Set(),
+    integrationId: "wave-000001",
+    planSha256: value.planSha256,
+    tasks: [plannerTask],
+  });
+  const selectionPath = resolve(value.evidence, "wave-000001-selection.json");
+  writeJson(selectionPath, selection);
+  writeJson(value.lanePath, {
+    acceptanceBlocker: "external acceptance evidence is not yet present",
+    accepted: false,
+    taskId: manifestTask.taskId,
+    headSha: selection.selectedTasks[0]?.headSha,
+    integrationHeadSha: headSha,
+    integrationId: selection.integrationId,
+    preIntegrationLaneResultSha256,
+    status: "integrated",
+    tranche: manifestTask.tranche,
+  });
+  writeJson(value.resultPath, {
+    schemaVersion: "maestro-brain-integration-result/v2",
+    integrationId: selection.integrationId,
+    selectionSha256: selection.selectionSha256,
+    manifestTranches: [manifestTask.tranche],
+    integrationWorkdir: realpathSync(value.workdir),
+    baseSha: value.baseSha,
+    headSha,
+    status: "passed",
+    reviewVerdict: "pass",
+    broadGate: {
+      status: "passed",
+      headSha,
+      command: "rtk host-test-slot --class full pnpm verify",
+    },
+    generatedFiles: [],
+    includedTasks: [
+      { taskId: manifestTask.taskId, tranche: manifestTask.tranche },
+    ],
+  });
+  return {
+    ...value,
+    headSha,
+    integrationId: selection.integrationId,
+    selectionPath,
+  };
+};
+
 afterEach(() => {
   for (const directory of temporaryDirectories.splice(0)) {
     rmSync(directory, { force: true, recursive: true });
@@ -177,6 +265,66 @@ afterEach(() => {
 });
 
 describe("normal integration result check", () => {
+  it("accepts an exact v2 wave selection and rejects task-set drift", () => {
+    const value = waveFixture();
+    expect(() =>
+      validateIntegrationResult({
+        controlRoot: value.controlRoot,
+        evidenceDirectory: value.evidence,
+        expectedWorkdir: value.workdir,
+        integrationId: value.integrationId,
+        selectionPath: value.selectionPath,
+      }),
+    ).not.toThrow();
+    const result = readRecord(value.resultPath);
+    result.includedTasks = [];
+    writeJson(value.resultPath, result);
+    expect(() =>
+      validateIntegrationResult({
+        controlRoot: value.controlRoot,
+        evidenceDirectory: value.evidence,
+        expectedWorkdir: value.workdir,
+        integrationId: value.integrationId,
+        selectionPath: value.selectionPath,
+      }),
+    ).toThrow("no included tasks");
+  });
+
+  it("rejects v2 non-lane integration files and generated receipt drift", () => {
+    const value = waveFixture();
+    writeFileSync(
+      resolve(value.workdir, "extra.ts"),
+      "export const extra = true;\n",
+    );
+    command(value.workdir, "add", "extra.ts");
+    command(
+      value.workdir,
+      "commit",
+      "-qm",
+      "test: add unowned integration file",
+    );
+    const result = readRecord(value.resultPath);
+    const headSha = command(value.workdir, "rev-parse", "HEAD");
+    result.headSha = headSha;
+    result.broadGate = {
+      status: "passed",
+      headSha,
+      command: "rtk host-test-slot --class full pnpm verify",
+    };
+    const lane = readRecord(value.lanePath);
+    lane.integrationHeadSha = headSha;
+    writeJson(value.lanePath, lane);
+    writeJson(value.resultPath, result);
+    expect(() =>
+      validateIntegrationResult({
+        controlRoot: value.controlRoot,
+        evidenceDirectory: value.evidence,
+        expectedWorkdir: value.workdir,
+        integrationId: value.integrationId,
+        selectionPath: value.selectionPath,
+      }),
+    ).toThrow("non-lane, non-generated files");
+  });
   it("accepts an exact passed head and integrated lane", () => {
     const value = fixture();
     expect(() =>

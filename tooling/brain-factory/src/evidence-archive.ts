@@ -7,7 +7,7 @@ import { readJson, record, string } from "./integration-check-support.js";
 export interface EvidenceArchiveInput {
   readonly evidenceDirectory: string;
   readonly integrationId: string;
-  readonly manifestTranche: string;
+  readonly manifestTranche?: string;
 }
 
 export interface EvidenceArchiveResult {
@@ -49,6 +49,17 @@ export const archiveIntegrationEvidence = (
       ),
     )
     .sort();
+  const manifestTranches = Array.isArray(integrationResult.manifestTranches)
+    ? integrationResult.manifestTranches
+    : input.manifestTranche
+      ? [input.manifestTranche]
+      : [];
+  if (
+    manifestTranches.length === 0 ||
+    manifestTranches.some((value) => typeof value !== "string")
+  ) {
+    throw new Error("integration archive has no manifest tranche identity");
+  }
   const laneEvidence = taskIds.map((taskId) => {
     const laneDirectory = resolve(
       input.evidenceDirectory,
@@ -66,7 +77,7 @@ export const archiveIntegrationEvidence = (
     {
       schemaVersion: "maestro-brain-evidence-archive/v1",
       integrationId,
-      manifestTranche: input.manifestTranche,
+      manifestTranches,
       integrationResult,
       laneEvidence,
     },
@@ -88,7 +99,8 @@ export const archiveIntegrationEvidence = (
     if (
       manifest.schemaVersion !== "maestro-brain-evidence-archive-manifest/v1" ||
       manifest.integrationId !== integrationId ||
-      manifest.manifestTranche !== input.manifestTranche ||
+      JSON.stringify(manifest.manifestTranches) !==
+        JSON.stringify(manifestTranches) ||
       manifest.contentSha256 !== contentSha256 ||
       manifest.artifactFile !== `${contentSha256}.json` ||
       !existsSync(artifactPath) ||
@@ -113,7 +125,7 @@ export const archiveIntegrationEvidence = (
       {
         schemaVersion: "maestro-brain-evidence-archive-manifest/v1",
         integrationId,
-        manifestTranche: input.manifestTranche,
+        manifestTranches,
         contentSha256,
         artifactFile: `${contentSha256}.json`,
       },
