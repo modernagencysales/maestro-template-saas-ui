@@ -24,6 +24,7 @@
     "brain:factory:restore-superseded-lanes": "tsx tooling/brain-factory/src/restore-superseded-lanes.mts",
     "brain:factory:recover-wave": "tsx tooling/brain-factory/src/recover-integration-wave.mts",
     "brain:factory:recover-integration": "tsx tooling/brain-factory/src/recover-integration.mts",
+    "brain:factory:reconcile-acceptance": "tsx tooling/brain-factory/src/reconcile-acceptance.mts",
     "brain:factory:lane-gates": "tsx tooling/brain-factory/src/lane-gates.mts",
     "brain:factory:check-confect-codegen": "tsx tooling/brain-factory/src/check-confect-codegen.mts",
     "brain:factory:resume": "tsx tooling/brain-factory/src/resume.mts",

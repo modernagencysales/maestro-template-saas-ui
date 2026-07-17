@@ -1,0 +1,18 @@
+digraph BrainReconcileAcceptance {
+  graph [
+    goal="Reconcile immutable integrated-task evidence into one exact-head acceptance receipt",
+    inputs="workdir,evidence_dir,head_sha",
+    rankdir=LR
+  ]
+  start [shape=Mdiamond]
+  exit [shape=Msquare]
+  preflight [shape=parallelogram, goal_gate=true, retry_target=preflight, max_retries=1, timeout="600s", script="set -euo pipefail; WORKDIR='{{ inputs.workdir|default('__required_workdir__') }}'; EVIDENCE='{{ inputs.evidence_dir|default('__required_evidence__') }}'; HEAD_SHA='{{ inputs.head_sha|default('__required_head__') }}'; rtk proxy test \"${WORKDIR#/}\" != \"$WORKDIR\"; rtk proxy test \"${EVIDENCE#/}\" != \"$EVIDENCE\"; rtk proxy test \"$(cd \"$WORKDIR\" && rtk proxy git rev-parse HEAD)\" = \"$HEAD_SHA\"; STATUS=$(cd \"$WORKDIR\" && rtk proxy git status --porcelain --untracked-files=no); rtk proxy test -z \"$STATUS\"; rtk proxy test -d \"$EVIDENCE/archive\"; rtk proxy test -d \"$EVIDENCE/lane-results\"; rtk proxy mkdir -p \"$EVIDENCE/integration/acceptance-program\" \"$EVIDENCE/acceptance/receipts\" "]
+  full_gate [shape=parallelogram, goal_gate=true, retry_target=full_gate, max_retries=1, timeout="10800s", script="set -euo pipefail; rtk pnpm --dir '{{ inputs.workdir|default('__required_workdir__') }}/tooling/brain-factory' exec tsx src/integration-broad-gate.mts --workdir '{{ inputs.workdir|default('__required_workdir__') }}' --evidence '{{ inputs.evidence_dir|default('__required_evidence__') }}' --integration-id acceptance-program"]
+  reconcile [shape=parallelogram, goal_gate=true, retry_target=reconcile, max_retries=1, timeout="1800s", script="set -euo pipefail; WORKDIR='{{ inputs.workdir|default('__required_workdir__') }}'; EVIDENCE='{{ inputs.evidence_dir|default('__required_evidence__') }}'; HEAD_SHA='{{ inputs.head_sha|default('__required_head__') }}'; GATE=\"$EVIDENCE/integration/acceptance-program/broad-gate-$HEAD_SHA.json\"; rtk pnpm --dir \"$WORKDIR/tooling/brain-factory\" exec tsx src/reconcile-acceptance.mts --workdir \"$WORKDIR\" --evidence \"$EVIDENCE\" --broad-gate \"$GATE\" "]
+  start -> preflight
+  preflight -> full_gate [condition="outcome=succeeded"]
+  preflight -> exit [label="blocked"]
+  full_gate -> reconcile [condition="outcome=succeeded"]
+  full_gate -> exit [label="full gate red"]
+  reconcile -> exit
+}
