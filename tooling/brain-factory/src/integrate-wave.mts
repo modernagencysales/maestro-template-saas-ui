@@ -9,6 +9,7 @@ import {
 import { resolve } from "node:path";
 
 import { hydrateWorktreeDependencies } from "./dependencies.js";
+import { validateContractReproofRequest } from "./contract-reproof.js";
 import { taskIsAvailableIntegrationCandidate } from "./dispatch-ownership.js";
 import {
   completedTaskIdsForControlHead,
@@ -259,6 +260,43 @@ try {
     const gateContent = readFileSync(gatePath, "utf8");
     const proof = readJson(proofPath);
     const gate = readJson(gatePath);
+    const reproof =
+      typeof lane.reproof === "object" && lane.reproof !== null
+        ? (lane.reproof as Record<string, unknown>)
+        : undefined;
+    const reproofRequestPath = reproof
+      ? string(reproof.requestPath, `${task.taskId}: reproof requestPath`)
+      : undefined;
+    const reproofRequestContent = reproofRequestPath
+      ? readFileSync(reproofRequestPath, "utf8")
+      : undefined;
+    if (
+      reproofRequestContent &&
+      sha256(reproofRequestContent) !== reproof?.requestSha256
+    ) {
+      throw new Error(`${task.taskId}: reproof request drift`);
+    }
+    if (reproofRequestContent) {
+      if (!reproofRequestPath?.startsWith(`${evidence}/`)) {
+        throw new Error(`${task.taskId}: reproof request path is unsafe`);
+      }
+      const request = validateContractReproofRequest(
+        JSON.parse(reproofRequestContent),
+        {
+          controlHeadSha: string(proof.baseSha, `${task.taskId}: proof base`),
+          planSha256: manifest.planSha256,
+          taskBlockHash: task.taskBlockHash,
+          taskId: task.taskId,
+        },
+      );
+      if (
+        !request.priorEvidencePath.startsWith(`${evidence}/`) ||
+        sha256(readFileSync(request.priorEvidencePath, "utf8")) !==
+          request.priorArchiveSha256
+      ) {
+        throw new Error(`${task.taskId}: reproof prior evidence drift`);
+      }
+    }
     const proofPlanSha256 = validateProofContract(proof, {
       taskBlockHash: task.taskBlockHash,
       taskId: task.taskId,
@@ -323,6 +361,9 @@ try {
       planSha256: manifest.planSha256,
       proofHeadSha: string(proof.headSha, `${task.taskId}: proof head`),
       proofSha256: sha256(proofContent),
+      ...(reproofRequestContent
+        ? { reproofRequestSha256: sha256(reproofRequestContent) }
+        : {}),
       taskBlockHash: task.taskBlockHash,
       taskId: task.taskId,
       tranche: task.tranche,

@@ -485,6 +485,32 @@ describe("integration wave planner", () => {
     ).toThrow("candidate plan or task-block drift");
   });
 
+  it("SHA-binds optional contract reproof lineage", () => {
+    const value = task("S01-T04", "D2-domain-bodies");
+    const selection = planIntegrationWave({
+      baseSha: "base",
+      candidates: [
+        { ...candidate(value), reproofRequestSha256: "a".repeat(64) },
+      ],
+      completedTaskIds: new Set(),
+      integrationId: integrationWaveId(7),
+      planSha256: "plan",
+      tasks: [value],
+    });
+    expect(selection.selectedTasks[0]?.reproofRequestSha256).toBe(
+      "a".repeat(64),
+    );
+    expect(() =>
+      validateIntegrationWaveSelection({
+        ...selection,
+        selectedTasks: selection.selectedTasks.map((task) => ({
+          ...task,
+          reproofRequestSha256: "b".repeat(64),
+        })),
+      }),
+    ).toThrow("selection hash mismatch");
+  });
+
   it("fails closed on control divergence and recovers a post-merge crash", () => {
     expect(promotionAction("base", "base", "head")).toBe("fast-forward");
     expect(promotionAction("head", "base", "head")).toBe("record-after-crash");

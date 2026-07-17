@@ -19,6 +19,7 @@ export interface IntegrationWaveCandidate {
   readonly planSha256: string;
   readonly proofHeadSha: string;
   readonly proofSha256: string;
+  readonly reproofRequestSha256?: string;
   readonly taskBlockHash: string;
   readonly taskId: string;
   readonly tranche: string;
@@ -120,6 +121,9 @@ const selectionPayload = (input: {
     planSha256: task.planSha256,
     proofHeadSha: task.proofHeadSha,
     proofSha256: task.proofSha256,
+    ...(task.reproofRequestSha256
+      ? { reproofRequestSha256: task.reproofRequestSha256 }
+      : {}),
     taskBlockHash: task.taskBlockHash,
     taskId: task.taskId,
     tranche: task.tranche,

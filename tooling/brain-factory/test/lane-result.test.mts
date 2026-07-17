@@ -31,4 +31,25 @@ describe("final lane result", () => {
       validateFinalLaneResult(result, { currentHeadSha, taskId }),
     ).toThrow();
   });
+
+  it("accepts complete reproof lineage and rejects partial lineage", () => {
+    const reproof = {
+      priorIntegrationHeadSha: "b".repeat(40),
+      priorIntegrationId: "wave-000001",
+      requestPath: "/tmp/evidence/reproofs/S04-T01/request.json",
+      requestSha256: "c".repeat(64),
+    };
+    expect(() =>
+      validateFinalLaneResult(
+        { ...validResult, reproof },
+        { currentHeadSha, taskId },
+      ),
+    ).not.toThrow();
+    expect(() =>
+      validateFinalLaneResult(
+        { ...validResult, reproof: { ...reproof, requestSha256: "short" } },
+        { currentHeadSha, taskId },
+      ),
+    ).toThrow(/lineage is incomplete/);
+  });
 });

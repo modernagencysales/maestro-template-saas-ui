@@ -74,11 +74,31 @@ export const archiveIntegrationEvidence = (
       "lane-results",
       safeSegment(taskId, "taskId"),
     );
+    const result = readJson(resolve(laneDirectory, "lane-result.json"));
+    const reproof =
+      typeof result.reproof === "object" && result.reproof !== null
+        ? record(result.reproof, `${taskId}: reproof`)
+        : undefined;
+    const requestPath = reproof
+      ? string(reproof.requestPath, `${taskId}: reproof requestPath`)
+      : undefined;
+    const reproofRequest = requestPath ? readJson(requestPath) : undefined;
+    const priorEvidencePath = reproofRequest
+      ? string(
+          reproofRequest.priorEvidencePath,
+          `${taskId}: reproof priorEvidencePath`,
+        )
+      : undefined;
+    const priorEvidence = priorEvidencePath
+      ? readJson(priorEvidencePath)
+      : undefined;
     return {
       taskId,
       proof: readJson(resolve(laneDirectory, "ci-proof-packet.json")),
       gate: readJson(resolve(laneDirectory, "lane-gate-report.json")),
-      result: readJson(resolve(laneDirectory, "lane-result.json")),
+      result,
+      ...(reproofRequest ? { reproofRequest } : {}),
+      ...(priorEvidence ? { priorEvidence } : {}),
     };
   });
   const content = `${JSON.stringify(

@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
@@ -22,6 +23,7 @@ import {
   proofChangedFilesMatch,
   validateProofContract,
 } from "./proof.js";
+import { validateContractReproofRequest } from "./contract-reproof.js";
 import {
   changedHandAuthoredSourceLines,
   validSourceSlices,
@@ -55,6 +57,7 @@ const taskId = valueAfter("--task");
 const evidence = valueAfter("--evidence");
 const stageValue = valueAfter("--stage") ?? "pre-review";
 const reusePreReview = process.argv.includes("--reuse-pre-review");
+const reproofPath = valueAfter("--reproof-request");
 if (!taskId || !evidence) {
   console.error(
     "usage: lane-gates --task <id> --evidence <absolute-dir> [--stage pre-review|final] [--reuse-pre-review]",
@@ -104,6 +107,48 @@ const proofPlanSha256 = validateProofContract(
     taskId,
   },
 );
+if (reproofPath && reproofPath !== "none") {
+  if (!existsSync(reproofPath)) {
+    throw new Error(`${taskId}: contract reproof request is missing`);
+  }
+  const request = validateContractReproofRequest(
+    JSON.parse(readFileSync(reproofPath, "utf8")),
+    {
+      controlHeadSha: proof.baseSha,
+      planSha256: manifest.planSha256,
+      taskBlockHash: task.taskBlockHash,
+      taskId,
+    },
+  );
+  if (request.controlHeadSha !== proof.baseSha) {
+    throw new Error(`${taskId}: reproof delta does not start at control HEAD`);
+  }
+  const evidenceRoot = `${resolve(evidence)}/`;
+  if (
+    !request.priorEvidencePath.startsWith(evidenceRoot) ||
+    !existsSync(request.priorEvidencePath) ||
+    createHash("sha256")
+      .update(readFileSync(request.priorEvidencePath, "utf8"))
+      .digest("hex") !== request.priorArchiveSha256
+  ) {
+    throw new Error(`${taskId}: reproof prior evidence is unsafe or drifted`);
+  }
+  const ancestry = spawnSync(
+    "rtk",
+    [
+      "proxy",
+      "git",
+      "merge-base",
+      "--is-ancestor",
+      request.priorIntegrationHeadSha,
+      proof.baseSha,
+    ],
+    { cwd: process.cwd(), encoding: "utf8" },
+  );
+  if (ancestry.status !== 0) {
+    throw new Error(`${taskId}: reproof prior integration is not on base`);
+  }
+}
 if (!reviewVerdictMatchesGateStage(stage, proof.reviewVerdict)) {
   throw new Error(
     stage === "final"

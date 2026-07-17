@@ -395,10 +395,15 @@ describe("Fabro workflow prompt contracts", () => {
     const complete = buildTask
       .split("\n")
       .find((line) => line.trimStart().startsWith("complete ["));
+    const writer = readFileSync(
+      resolve(import.meta.dirname, "../src/write-lane-result.mts"),
+      "utf8",
+    );
 
-    expect(complete).toContain("task-manifest.json");
-    expect(complete).toContain("manifest tranche missing");
-    expect(complete).toContain("tranche:task.tranche");
+    expect(complete).toContain("write-lane-result.mts");
+    expect(writer).toContain("buildManifest");
+    expect(writer).toContain("tranche: task.tranche");
+    expect(writer).toContain("validateContractReproofRequest");
     expect(buildTask).toContain(
       'review_gate -> complete [condition="outcome=succeeded"]',
     );

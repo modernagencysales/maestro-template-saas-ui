@@ -299,6 +299,23 @@ export const validateIntegratedLanes = (
         createHash("sha256")
           .update(readFileSync(resolve(laneDirectory, name), "utf8"))
           .digest("hex");
+      const laneReproof =
+        typeof lane.reproof === "object" && lane.reproof !== null
+          ? record(lane.reproof, `${taskId}: reproof`)
+          : undefined;
+      const reproofRequestSha256 = laneReproof
+        ? createHash("sha256")
+            .update(
+              readFileSync(
+                string(
+                  laneReproof.requestPath,
+                  `${taskId}: reproof requestPath`,
+                ),
+                "utf8",
+              ),
+            )
+            .digest("hex")
+        : undefined;
       if (
         waveTask.tranche !== expectedTranche ||
         waveTask.headSha !== laneHeadSha ||
@@ -306,6 +323,7 @@ export const validateIntegratedLanes = (
         waveTask.taskBlockHash !== manifestTask.taskBlockHash ||
         waveTask.proofSha256 !== fileHash("ci-proof-packet.json") ||
         waveTask.gateSha256 !== fileHash("lane-gate-report.json") ||
+        waveTask.reproofRequestSha256 !== reproofRequestSha256 ||
         lane.preIntegrationLaneResultSha256 !== waveTask.laneResultSha256 ||
         JSON.stringify(waveTask.changedFiles) !==
           JSON.stringify([...(proof.changedFiles as string[])].sort()) ||
