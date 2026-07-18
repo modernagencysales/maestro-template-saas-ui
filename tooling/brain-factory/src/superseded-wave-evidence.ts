@@ -6,7 +6,7 @@ import {
 } from "./integration-check-support.js";
 import {
   type IntegrationWaveSelection,
-  validateIntegrationWaveSelection,
+  readIntegrationWaveSelection,
 } from "./integration-wave.js";
 import {
   type IntegrationWaveSupersessionReceipt,
@@ -27,6 +27,8 @@ export interface ValidatedSupersededWave {
   readonly headSha: string;
   readonly resultTasks: ReadonlyMap<string, JsonRecord>;
   readonly selection: IntegrationWaveSelection;
+  readonly selectionFileSha256: string;
+  readonly selectionPayloadSha256: string;
   readonly supersession: IntegrationWaveSupersessionReceipt;
 }
 
@@ -49,22 +51,32 @@ export const validateSupersededWaveEvidence = (input: {
     selectionContent: input.wave.selectionContent,
     selectionPath: input.wave.selectionPath,
   });
-  const selection = JSON.parse(
+  const selectionRead = readIntegrationWaveSelection(
     input.wave.selectionContent,
-  ) as IntegrationWaveSelection;
-  validateIntegrationWaveSelection(selection);
+  );
+  const { selection } = selectionRead;
   const result = record(
     input.wave.integrationResult,
     `${input.wave.integrationId}: integration result`,
   );
   const headSha = gitSha(result.headSha, "integration result head");
+  const legacyResult =
+    selectionRead.legacy &&
+    result.schemaVersion === "maestro-brain-integration-result/v2" &&
+    result.selectionSha256 === selectionRead.selectionPayloadSha256;
+  const currentResult =
+    !selectionRead.legacy &&
+    result.schemaVersion === "maestro-brain-integration-result/v3" &&
+    !Object.hasOwn(result, "selectionSha256") &&
+    !Object.hasOwn(result, "selection_sha256") &&
+    result.selectionPayloadSha256 === selectionRead.selectionPayloadSha256 &&
+    result.selectionFileSha256 === selectionRead.selectionFileSha256;
   if (
-    result.schemaVersion !== "maestro-brain-integration-result/v2" ||
+    (!legacyResult && !currentResult) ||
     result.integrationId !== input.wave.integrationId ||
     result.status !== "passed" ||
     result.reviewVerdict !== "pass" ||
     result.integrationHeadSha !== headSha ||
-    result.selectionSha256 !== selection.selectionSha256 ||
     !Array.isArray(result.remainingFindings) ||
     result.remainingFindings.length !== 0 ||
     !Array.isArray(result.includedTasks)
@@ -104,5 +116,12 @@ export const validateSupersededWaveEvidence = (input: {
       );
     }
   }
-  return { headSha, resultTasks, selection, supersession };
+  return {
+    headSha,
+    resultTasks,
+    selection,
+    selectionFileSha256: selectionRead.selectionFileSha256,
+    selectionPayloadSha256: selectionRead.selectionPayloadSha256,
+    supersession,
+  };
 };

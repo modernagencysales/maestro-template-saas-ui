@@ -9,6 +9,7 @@ import {
   applySupersededLaneRestoration,
   planSupersededLaneRestoration,
 } from "../src/superseded-lane-restoration.js";
+import { validateAppliedSupersededLaneRestoration } from "../src/superseded-lane-restoration-receipt.js";
 import { buildIntegrationWaveSupersessionReceipt } from "../src/integration-wave-supersession.js";
 import {
   planIntegrationWave,
@@ -53,6 +54,7 @@ const laneGreen = (taskId = "S02-T04") => ({
 });
 
 const waveEvidence = (input: {
+  compactSelection?: boolean;
   integrationId: string;
   integrationHeadSha: string;
   laneResultSha256: string;
@@ -75,7 +77,7 @@ const waveEvidence = (input: {
     taskId: value.taskId,
     tranche: value.tranche,
   };
-  const selection = planIntegrationWave({
+  const plannedSelection = planIntegrationWave({
     baseSha,
     candidates: [candidate],
     completedTaskIds: new Set(),
@@ -83,8 +85,25 @@ const waveEvidence = (input: {
     planSha256,
     tasks: [value],
   });
+  const legacyPayload = {
+    baseSha: plannedSelection.baseSha,
+    deferredTaskIds: plannedSelection.deferredTaskIds,
+    integrationId: plannedSelection.integrationId,
+    planSha256: plannedSelection.planSha256,
+    ...(plannedSelection.requestedTaskIds === undefined
+      ? {}
+      : { requestedTaskIds: plannedSelection.requestedTaskIds }),
+    schemaVersion: "maestro-brain-integration-wave-selection/v2" as const,
+    selectedTasks: plannedSelection.selectedTasks,
+  };
+  const selection = {
+    ...legacyPayload,
+    selectionSha256: sha256(JSON.stringify(legacyPayload)),
+  };
   const selectionPath = resolve(root, "selection.json");
-  const selectionContent = json(selection);
+  const selectionContent = input.compactSelection
+    ? JSON.stringify(selection)
+    : json(selection);
   const runId = "01ARZ3NDEKTSV4RRFFQ69G5FAV";
   const reservationToken = ["lane", "restoration", "fixture"].join("-");
   const workdir = resolve(root, "workdir");
@@ -166,6 +185,7 @@ const waveEvidence = (input: {
     root,
     runRecordContent,
     selectionContent,
+    selectionPayloadSha256: selection.selectionSha256,
     selectionPath,
     supersessionReceipt,
   };
@@ -209,8 +229,75 @@ describe("superseded lane restoration", () => {
         taskId: "S02-T04",
       }),
     ]);
+    expect(value.currentWave.supersessionReceipt).toEqual(
+      expect.objectContaining({
+        schemaVersion: "maestro-brain-integration-wave-supersession/v2",
+        selectionFileSha256: sha256(value.currentWave.selectionContent),
+        selectionPayloadSha256: value.currentWave.selectionPayloadSha256,
+      }),
+    );
+    expect(value.currentWave.supersessionReceipt).not.toHaveProperty(
+      "selectionSha256",
+    );
+    expect(planned.receipt).toEqual(
+      expect.objectContaining({
+        schemaVersion: "maestro-brain-superseded-lane-restoration/v2",
+        selectionFileSha256: sha256(value.currentWave.selectionContent),
+        selectionPayloadSha256: value.currentWave.selectionPayloadSha256,
+      }),
+    );
+    expect(planned.receipt).not.toHaveProperty("selectionSha256");
     expect(planned.receipt.receiptSha256).toMatch(/^[0-9a-f]{64}$/);
+    expect(
+      validateAppliedSupersededLaneRestoration({
+        currentControlHead: value.currentWave.controlHeadSha,
+        isAncestor: () => true,
+        lanes: [{ content: value.priorContent, taskId: "S02-T04" }],
+        receipt: planned.receipt,
+        wave: value.currentWave,
+      }),
+    ).toEqual(planned.receipt);
+    expect(() =>
+      validateAppliedSupersededLaneRestoration({
+        currentControlHead: value.currentWave.controlHeadSha,
+        isAncestor: () => true,
+        lanes: [{ content: value.priorContent, taskId: "S02-T04" }],
+        receipt: {
+          ...planned.receipt,
+          selectionFileSha256: "f".repeat(64),
+        },
+        wave: value.currentWave,
+      }),
+    ).toThrow("identity or digest mismatch");
     rmSync(value.currentWave.root, { recursive: true });
+  });
+
+  it("normalizes v2 payload identity while preserving exact file bytes", () => {
+    const pretty = waveEvidence({
+      integrationHeadSha: "4".repeat(40),
+      integrationId: "wave-000014",
+      laneResultSha256: "5".repeat(64),
+    });
+    const compact = waveEvidence({
+      compactSelection: true,
+      integrationHeadSha: "4".repeat(40),
+      integrationId: "wave-000014",
+      laneResultSha256: "5".repeat(64),
+    });
+    expect(pretty.supersessionReceipt.selectionPayloadSha256).toBe(
+      compact.supersessionReceipt.selectionPayloadSha256,
+    );
+    expect(pretty.supersessionReceipt.selectionFileSha256).toBe(
+      sha256(pretty.selectionContent),
+    );
+    expect(compact.supersessionReceipt.selectionFileSha256).toBe(
+      sha256(compact.selectionContent),
+    );
+    expect(pretty.supersessionReceipt.selectionFileSha256).not.toBe(
+      compact.supersessionReceipt.selectionFileSha256,
+    );
+    rmSync(pretty.root, { recursive: true });
+    rmSync(compact.root, { recursive: true });
   });
 
   it("reconstructs an exact prior superseded-wave overlay from lineage", () => {

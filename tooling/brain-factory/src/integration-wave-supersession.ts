@@ -9,7 +9,7 @@ import {
 import {
   type IntegrationWaveSelection,
   integrationWaveId,
-  validateIntegrationWaveSelection,
+  readIntegrationWaveSelection,
 } from "./integration-wave.js";
 import { verifyWaveRunInspection } from "./integration-wave-launch.js";
 import {
@@ -19,7 +19,7 @@ import {
 } from "./integration-check-support.js";
 
 export const INTEGRATION_WAVE_SUPERSESSION_SCHEMA =
-  "maestro-brain-integration-wave-supersession/v1" as const;
+  "maestro-brain-integration-wave-supersession/v2" as const;
 
 export type SupersededWaveRunStatus = "cancelled" | "failed";
 
@@ -43,7 +43,7 @@ export interface IntegrationWaveSupersessionReceipt {
   readonly schemaVersion: typeof INTEGRATION_WAVE_SUPERSESSION_SCHEMA;
   readonly selectedTaskIds: readonly string[];
   readonly selectionFileSha256: string;
-  readonly selectionSha256: string;
+  readonly selectionPayloadSha256: string;
   readonly status: "superseded";
 }
 
@@ -57,7 +57,8 @@ interface SupersessionSource {
   readonly selectedTaskIds: readonly string[];
   readonly selection: IntegrationWaveSelection;
   readonly selectionFileSha256: string;
-  readonly selectionSha256: string;
+  readonly selectionPayloadSha256: string;
+  readonly legacy: boolean;
 }
 
 const sha256 = (value: string): string =>
@@ -103,12 +104,6 @@ const timestamp = (value: unknown): string => {
   return parsed;
 };
 
-const parseSelection = (content: string): IntegrationWaveSelection => {
-  const selection = JSON.parse(content) as IntegrationWaveSelection;
-  validateIntegrationWaveSelection(selection);
-  return selection;
-};
-
 const stringArray = (value: unknown, label: string): readonly string[] => {
   if (!Array.isArray(value)) throw new Error(`${label} must be an array`);
   return value.map((item, index) => string(item, `${label}[${index}]`));
@@ -126,16 +121,31 @@ const sourceFromContents = (input: {
   );
   const recordValue = JSON.parse(input.runRecordContent) as unknown;
   const runRecord = record(recordValue, `${expectedIntegrationId}: run record`);
-  const selection = parseSelection(input.selectionContent);
+  const selectionRead = readIntegrationWaveSelection(input.selectionContent);
+  const { selection } = selectionRead;
+  const legacyRun =
+    runRecord.schemaVersion === "maestro-brain-integration-wave-run/v2" &&
+    selectionRead.legacy &&
+    digest(runRecord.selectionSha256, "run record selection payload hash") ===
+      selectionRead.selectionPayloadSha256;
+  const currentRun =
+    runRecord.schemaVersion === "maestro-brain-integration-wave-run/v3" &&
+    !selectionRead.legacy &&
+    !Object.hasOwn(runRecord, "selectionSha256") &&
+    !Object.hasOwn(runRecord, "selection_sha256") &&
+    digest(
+      runRecord.selectionPayloadSha256,
+      "run record selection payload hash",
+    ) === selectionRead.selectionPayloadSha256 &&
+    digest(runRecord.selectionFileSha256, "run record selection file hash") ===
+      selectionRead.selectionFileSha256;
   if (
-    runRecord.schemaVersion !== "maestro-brain-integration-wave-run/v2" ||
+    (!legacyRun && !currentRun) ||
     runRecord.status !== "launched" ||
     waveId(runRecord.integrationId, "run record integration ID") !==
       expectedIntegrationId ||
     selection.integrationId !== expectedIntegrationId ||
     gitSha(runRecord.baseSha, "run record base SHA") !== selection.baseSha ||
-    digest(runRecord.selectionSha256, "run record selection hash") !==
-      selection.selectionSha256 ||
     JSON.stringify(runRecord.selection) !== JSON.stringify(selection) ||
     safeAbsolutePath(runRecord.selectionPath, "run record selection path") !==
       safeAbsolutePath(input.selectionPath, "selection path")
@@ -166,8 +176,9 @@ const sourceFromContents = (input: {
     runRecordSha256: sha256(input.runRecordContent),
     selectedTaskIds: selection.selectedTasks.map((task) => task.taskId),
     selection,
-    selectionFileSha256: sha256(input.selectionContent),
-    selectionSha256: selection.selectionSha256,
+    selectionFileSha256: selectionRead.selectionFileSha256,
+    selectionPayloadSha256: selectionRead.selectionPayloadSha256,
+    legacy: selectionRead.legacy,
   };
 };
 
@@ -183,6 +194,61 @@ const statusFromInspection = (value: unknown): string => {
         record(run.status, "wave run status").kind,
         "wave run status kind",
       );
+};
+
+const verifyCurrentWaveRunInspection = (
+  value: unknown,
+  expected: {
+    readonly attempt: number;
+    readonly baseSha: string;
+    readonly integrationId: string;
+    readonly mode: "integrate" | "recover";
+    readonly reservationToken: string;
+    readonly runId: string;
+    readonly selectionFileSha256: string;
+    readonly selectionPath: string;
+    readonly selectionPayloadSha256: string;
+    readonly workdir: string;
+  },
+): void => {
+  const items = Array.isArray(value) ? value : [value];
+  if (items.length !== 1) {
+    throw new Error("wave run inspection must contain one run");
+  }
+  const run = record(items[0], "wave run");
+  const runSpec = record(run.run_spec, "wave run spec");
+  const settings = record(runSpec.settings, "wave run settings");
+  const configuration = record(settings.run, "wave run configuration");
+  const inputs = record(configuration.inputs, "wave run inputs");
+  const metadata = record(
+    configuration.metadata ?? runSpec.labels ?? run.labels,
+    "wave run metadata",
+  );
+  if (
+    fabroRunId(run.run_id, "wave run ID") !== expected.runId ||
+    Number(inputs.attempt) !== expected.attempt ||
+    gitSha(inputs.base_sha, "wave run base") !== expected.baseSha ||
+    string(inputs.integration_id, "wave integration ID") !==
+      expected.integrationId ||
+    string(inputs.mode, "wave run mode") !== expected.mode ||
+    safeAbsolutePath(inputs.selection_path, "wave selection path") !==
+      expected.selectionPath ||
+    Object.hasOwn(inputs, "selection_sha256") ||
+    Object.hasOwn(inputs, "selectionSha256") ||
+    digest(inputs.selection_payload_sha256, "wave selection payload hash") !==
+      expected.selectionPayloadSha256 ||
+    digest(inputs.selection_file_sha256, "wave selection file hash") !==
+      expected.selectionFileSha256 ||
+    string(inputs.reservation_token, "wave reservation token") !==
+      expected.reservationToken ||
+    safeAbsolutePath(inputs.workdir, "wave workdir") !== expected.workdir ||
+    metadata.integration !== expected.integrationId ||
+    metadata["integration-mode"] !== "wave-v3" ||
+    metadata.reservation !== expected.reservationToken ||
+    Number(metadata.attempt) !== expected.attempt
+  ) {
+    throw new Error("wave run inspection identity mismatch");
+  }
 };
 
 const terminalStatus = (
@@ -247,7 +313,7 @@ const receiptPayload = (input: {
   schemaVersion: INTEGRATION_WAVE_SUPERSESSION_SCHEMA,
   selectedTaskIds: input.source.selectedTaskIds,
   selectionFileSha256: input.source.selectionFileSha256,
-  selectionSha256: input.source.selectionSha256,
+  selectionPayloadSha256: input.source.selectionPayloadSha256,
   status: "superseded" as const,
 });
 
@@ -271,11 +337,11 @@ export const buildIntegrationWaveSupersessionReceipt = (input: {
     const runId = source.runIds[index];
     if (!runId)
       throw new Error(`${source.integrationId}: missing run ${attempt}`);
-    verifyWaveRunInspection(inspection, {
+    const expected = {
       attempt,
       baseSha: source.baseSha,
       integrationId: source.integrationId,
-      mode: attempt === 1 ? "integrate" : "recover",
+      mode: attempt === 1 ? ("integrate" as const) : ("recover" as const),
       reservationToken: string(
         source.record.reservationToken,
         "wave reservation token",
@@ -285,9 +351,20 @@ export const buildIntegrationWaveSupersessionReceipt = (input: {
         source.record.selectionPath,
         "wave selection path",
       ),
-      selectionSha256: source.selectionSha256,
       workdir: safeAbsolutePath(source.record.workdir, "wave workdir"),
-    });
+    };
+    if (source.legacy) {
+      verifyWaveRunInspection(inspection, {
+        ...expected,
+        selectionSha256: source.selectionPayloadSha256,
+      });
+    } else {
+      verifyCurrentWaveRunInspection(inspection, {
+        ...expected,
+        selectionFileSha256: source.selectionFileSha256,
+        selectionPayloadSha256: source.selectionPayloadSha256,
+      });
+    }
     return {
       attempt,
       runId,

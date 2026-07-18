@@ -19,14 +19,15 @@ import {
 } from "./superseded-wave-evidence.js";
 
 export const SUPERSEDED_LANE_RESTORATION_SCHEMA =
-  "maestro-brain-superseded-lane-restoration/v1" as const;
+  "maestro-brain-superseded-lane-restoration/v2" as const;
 
 export interface SupersededLaneRestorationReceipt {
   readonly integrationHeadSha: string;
   readonly integrationId: string;
   readonly receiptSha256: string;
   readonly schemaVersion: typeof SUPERSEDED_LANE_RESTORATION_SCHEMA;
-  readonly selectionSha256: string;
+  readonly selectionFileSha256: string;
+  readonly selectionPayloadSha256: string;
   readonly status: "restored";
   readonly supersessionReceiptSha256: string;
   readonly tasks: readonly {
@@ -202,7 +203,8 @@ export const planSupersededLaneRestoration = (input: {
     integrationHeadSha: current.headSha,
     integrationId: input.wave.integrationId,
     schemaVersion: SUPERSEDED_LANE_RESTORATION_SCHEMA,
-    selectionSha256: current.selection.selectionSha256,
+    selectionFileSha256: current.selectionFileSha256,
+    selectionPayloadSha256: current.selectionPayloadSha256,
     status: "restored" as const,
     supersessionReceiptSha256: current.supersession.receiptSha256,
     tasks,

@@ -15,10 +15,7 @@ import {
 } from "./superseded-lane-restoration.js";
 import { validateAppliedSupersededLaneRestoration } from "./superseded-lane-restoration-receipt.js";
 import type { SupersededWaveEvidence } from "./superseded-wave-evidence.js";
-import {
-  type IntegrationWaveSelection,
-  validateIntegrationWaveSelection,
-} from "./integration-wave.js";
+import { readIntegrationWaveSelection } from "./integration-wave.js";
 
 interface Request {
   readonly apply: boolean;
@@ -128,8 +125,7 @@ const wave = waveEvidence(parsed.integrationId);
 const priorWave = parsed.priorIntegrationId
   ? waveEvidence(parsed.priorIntegrationId)
   : undefined;
-const selection = JSON.parse(wave.selectionContent) as IntegrationWaveSelection;
-validateIntegrationWaveSelection(selection);
+const { selection } = readIntegrationWaveSelection(wave.selectionContent);
 const lanePaths = new Map(
   selection.selectedTasks.map((task) => {
     if (!/^S\d{2}-T\d{2}$/.test(task.taskId)) {
