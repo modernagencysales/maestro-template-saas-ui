@@ -2,8 +2,10 @@ import { createHash } from "node:crypto";
 
 import type { BrainTaskContract } from "./manifest.js";
 
-export const INTEGRATION_WAVE_SCHEMA =
+export const LEGACY_INTEGRATION_WAVE_SCHEMA =
   "maestro-brain-integration-wave-selection/v2" as const;
+export const INTEGRATION_WAVE_SCHEMA =
+  "maestro-brain-integration-wave-selection/v3" as const;
 
 export const laneTrancheMatchesManifest = (
   laneTranche: unknown,
@@ -30,22 +32,149 @@ export interface IntegrationWaveTaskSnapshot extends IntegrationWaveCandidate {
   readonly fileLocks: readonly string[];
 }
 
-export interface IntegrationWaveSelection {
+interface IntegrationWaveSelectionBase {
   readonly baseSha: string;
   readonly deferredTaskIds: readonly string[];
   readonly integrationId: string;
   readonly planSha256: string;
   readonly requestedTaskIds?: readonly string[];
-  readonly schemaVersion: typeof INTEGRATION_WAVE_SCHEMA;
   readonly selectedTasks: readonly IntegrationWaveTaskSnapshot[];
+}
+
+export interface IntegrationWaveSelectionV2 extends IntegrationWaveSelectionBase {
+  readonly schemaVersion: typeof LEGACY_INTEGRATION_WAVE_SCHEMA;
   readonly selectionSha256: string;
 }
 
-const hashJson = (value: unknown): string =>
-  createHash("sha256").update(JSON.stringify(value)).digest("hex");
+export interface IntegrationWaveSelectionV3 extends IntegrationWaveSelectionBase {
+  readonly schemaVersion: typeof INTEGRATION_WAVE_SCHEMA;
+  readonly selectionPayloadSha256: string;
+}
+
+export type IntegrationWaveSelection =
+  IntegrationWaveSelectionV2 | IntegrationWaveSelectionV3;
+
+export type IntegrationWaveSelectionPayload = Omit<
+  IntegrationWaveSelectionV3,
+  "selectionPayloadSha256"
+>;
+
+export interface ReadIntegrationWaveSelectionResult {
+  readonly selection: IntegrationWaveSelection;
+  readonly selectionFileSha256: string;
+  readonly selectionPayloadSha256: string;
+  readonly legacy: boolean;
+}
+
+const sha256 = (value: string): string =>
+  createHash("sha256").update(value).digest("hex");
+
+const canonicalJsonString = (
+  value: unknown,
+  path: string,
+  ancestors: Set<object>,
+): string => {
+  if (value === null) return "null";
+  if (typeof value === "string" || typeof value === "boolean") {
+    return JSON.stringify(value);
+  }
+  if (typeof value === "number") {
+    if (!Number.isFinite(value)) {
+      throw new Error(`${path}: canonical JSON numbers must be finite`);
+    }
+    return JSON.stringify(Object.is(value, -0) ? 0 : value);
+  }
+  if (typeof value !== "object") {
+    throw new Error(`${path}: value is not JSON-safe`);
+  }
+  if (ancestors.has(value)) {
+    throw new Error(`${path}: cyclic value is not JSON-safe`);
+  }
+  ancestors.add(value);
+  try {
+    if (Array.isArray(value)) {
+      if (Object.getPrototypeOf(value) !== Array.prototype) {
+        throw new Error(`${path}: canonical JSON requires a plain array`);
+      }
+      const allowedKeys = new Set<PropertyKey>(["length"]);
+      for (let index = 0; index < value.length; index += 1) {
+        allowedKeys.add(String(index));
+      }
+      if (Reflect.ownKeys(value).some((key) => !allowedKeys.has(key))) {
+        throw new Error(`${path}: extra array properties are not JSON-safe`);
+      }
+      const result: string[] = [];
+      for (let index = 0; index < value.length; index += 1) {
+        if (!Object.hasOwn(value, index)) {
+          throw new Error(`${path}: sparse arrays are not JSON-safe`);
+        }
+        const descriptor = Object.getOwnPropertyDescriptor(
+          value,
+          String(index),
+        );
+        if (
+          !descriptor ||
+          !("value" in descriptor) ||
+          descriptor.enumerable !== true
+        ) {
+          throw new Error(
+            `${path}[${index}]: array index must be an enumerable data property`,
+          );
+        }
+        result.push(
+          canonicalJsonString(descriptor.value, `${path}[${index}]`, ancestors),
+        );
+      }
+      return `[${result.join(",")}]`;
+    }
+    const prototype = Object.getPrototypeOf(value) as object | null;
+    if (prototype !== Object.prototype && prototype !== null) {
+      throw new Error(`${path}: canonical JSON requires a plain object`);
+    }
+    if (Object.getOwnPropertySymbols(value).length > 0) {
+      throw new Error(`${path}: symbol keys are not JSON-safe`);
+    }
+    const enumerableKeys = new Set(Object.keys(value));
+    if (
+      Object.getOwnPropertyNames(value).some((key) => !enumerableKeys.has(key))
+    ) {
+      throw new Error(
+        `${path}: non-enumerable own properties are not JSON-safe`,
+      );
+    }
+    const result: string[] = [];
+    for (const key of Object.keys(value).sort()) {
+      const descriptor = Object.getOwnPropertyDescriptor(value, key);
+      if (!descriptor || descriptor.get || descriptor.set) {
+        throw new Error(`${path}.${key}: accessors are not JSON-safe`);
+      }
+      result.push(
+        `${JSON.stringify(key)}:${canonicalJsonString(
+          descriptor.value,
+          `${path}.${key}`,
+          ancestors,
+        )}`,
+      );
+    }
+    return `{${result.join(",")}}`;
+  } finally {
+    ancestors.delete(value);
+  }
+};
+
+export const canonicalSelectionPayload = (value: unknown): string =>
+  canonicalJsonString(value, "selection", new Set());
+
+export const selectionPayloadSha256 = (value: unknown): string =>
+  sha256(canonicalSelectionPayload(value));
+
+export const selectionFileSha256 = (content: string): string => sha256(content);
 
 const sortedUnique = (values: readonly string[]): string[] =>
   [...new Set(values)].sort();
+
+const isSha256 = (value: unknown): value is string =>
+  typeof value === "string" && /^[0-9a-f]{64}$/.test(value);
 
 const earlierTaskSet = (
   left: readonly IntegrationWaveTaskSnapshot[],
@@ -94,14 +223,57 @@ const maximumConflictFreeTasks = (
   return best;
 };
 
-const selectionPayload = (input: {
+const hasOwn = (value: object, key: PropertyKey): boolean =>
+  Object.prototype.hasOwnProperty.call(value, key);
+
+const assertNoAmbiguousSelectionHash = (value: object): void => {
+  if (hasOwn(value, "selectionSha256") || hasOwn(value, "selection_sha256")) {
+    throw new Error("ambiguous selection hash field is forbidden in v3");
+  }
+};
+
+export const selectionPayload = (input: {
   readonly baseSha: string;
   readonly deferredTaskIds: readonly string[];
   readonly integrationId: string;
   readonly planSha256: string;
   readonly requestedTaskIds?: readonly string[];
   readonly selectedTasks: readonly IntegrationWaveTaskSnapshot[];
-}) => ({
+}): IntegrationWaveSelectionPayload => {
+  assertNoAmbiguousSelectionHash(input);
+  return {
+    baseSha: input.baseSha,
+    deferredTaskIds: [...input.deferredTaskIds],
+    integrationId: input.integrationId,
+    planSha256: input.planSha256,
+    ...(input.requestedTaskIds === undefined
+      ? {}
+      : { requestedTaskIds: [...input.requestedTaskIds] }),
+    schemaVersion: INTEGRATION_WAVE_SCHEMA,
+    selectedTasks: input.selectedTasks.map((task) => ({
+      changedFiles: [...task.changedFiles],
+      codeStartAfter: [...task.codeStartAfter],
+      fileLocks: [...task.fileLocks],
+      gateHeadSha: task.gateHeadSha,
+      gateSha256: task.gateSha256,
+      headSha: task.headSha,
+      laneResultSha256: task.laneResultSha256,
+      planSha256: task.planSha256,
+      proofHeadSha: task.proofHeadSha,
+      proofSha256: task.proofSha256,
+      ...(hasOwn(task, "reproofRequestSha256")
+        ? { reproofRequestSha256: task.reproofRequestSha256 }
+        : {}),
+      taskBlockHash: task.taskBlockHash,
+      taskId: task.taskId,
+      tranche: task.tranche,
+    })),
+  };
+};
+
+const legacySelectionPayload = (
+  input: IntegrationWaveSelectionV2,
+): Omit<IntegrationWaveSelectionV2, "selectionSha256"> => ({
   baseSha: input.baseSha,
   deferredTaskIds: [...input.deferredTaskIds],
   integrationId: input.integrationId,
@@ -109,7 +281,7 @@ const selectionPayload = (input: {
   ...(input.requestedTaskIds === undefined
     ? {}
     : { requestedTaskIds: [...input.requestedTaskIds] }),
-  schemaVersion: INTEGRATION_WAVE_SCHEMA,
+  schemaVersion: LEGACY_INTEGRATION_WAVE_SCHEMA,
   selectedTasks: input.selectedTasks.map((task) => ({
     changedFiles: [...task.changedFiles],
     codeStartAfter: [...task.codeStartAfter],
@@ -121,7 +293,7 @@ const selectionPayload = (input: {
     planSha256: task.planSha256,
     proofHeadSha: task.proofHeadSha,
     proofSha256: task.proofSha256,
-    ...(task.reproofRequestSha256
+    ...(hasOwn(task, "reproofRequestSha256")
       ? { reproofRequestSha256: task.reproofRequestSha256 }
       : {}),
     taskBlockHash: task.taskBlockHash,
@@ -138,7 +310,8 @@ export const planIntegrationWave = (input: {
   readonly planSha256: string;
   readonly requestedTaskIds?: readonly string[];
   readonly tasks: readonly BrainTaskContract[];
-}): IntegrationWaveSelection => {
+}): IntegrationWaveSelectionV3 => {
+  assertNoAmbiguousSelectionHash(input);
   const requestedTaskIds =
     input.requestedTaskIds === undefined
       ? undefined
@@ -194,6 +367,14 @@ export const planIntegrationWave = (input: {
         `${candidate.taskId}: candidate proof/gate head mismatch`,
       );
     }
+    if (
+      hasOwn(candidate, "reproofRequestSha256") &&
+      !isSha256(candidate.reproofRequestSha256)
+    ) {
+      throw new Error(
+        `${candidate.taskId}: reproofRequestSha256 must be a 64-hex SHA-256`,
+      );
+    }
     for (const dependency of task.codeStartAfter) {
       if (candidateIds.has(dependency)) {
         throw new Error(
@@ -234,21 +415,144 @@ export const planIntegrationWave = (input: {
     ...(requestedTaskIds === undefined ? {} : { requestedTaskIds }),
     selectedTasks,
   });
-  return { ...payload, selectionSha256: hashJson(payload) };
+  return {
+    ...payload,
+    selectionPayloadSha256: selectionPayloadSha256(payload),
+  };
 };
 
-export const validateIntegrationWaveSelection = (
-  value: IntegrationWaveSelection,
+const stringArrayValue = (value: unknown, label: string): readonly string[] => {
+  if (!Array.isArray(value) || value.some((item) => typeof item !== "string")) {
+    throw new Error(`${label} must be a string array`);
+  }
+  return value;
+};
+
+const assertNormalizedStrings = (
+  values: readonly string[],
+  label: string,
 ): void => {
-  if (value.schemaVersion !== INTEGRATION_WAVE_SCHEMA) {
-    throw new Error("unexpected integration wave selection schema");
+  const normalized = sortedUnique(values);
+  if (
+    normalized.length !== values.length ||
+    normalized.some((value, index) => value !== values[index])
+  ) {
+    throw new Error(`${label} order is invalid`);
+  }
+};
+
+const assertTaskSnapshot = (
+  value: unknown,
+  index: number,
+  strictKeys: boolean,
+): asserts value is IntegrationWaveTaskSnapshot => {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    throw new Error(`selectedTasks[${index}] must be an object`);
+  }
+  const task = value as Record<string, unknown>;
+  const stringFields = [
+    "gateHeadSha",
+    "gateSha256",
+    "headSha",
+    "laneResultSha256",
+    "planSha256",
+    "proofHeadSha",
+    "proofSha256",
+    "taskBlockHash",
+    "taskId",
+    "tranche",
+  ] as const;
+  for (const field of stringFields) {
+    if (typeof task[field] !== "string") {
+      throw new Error(`selectedTasks[${index}].${field} must be a string`);
+    }
+  }
+  for (const field of [
+    "changedFiles",
+    "codeStartAfter",
+    "fileLocks",
+  ] as const) {
+    const values = stringArrayValue(
+      task[field],
+      `selectedTasks[${index}].${field}`,
+    );
+    if (strictKeys) assertNormalizedStrings(values, field);
+  }
+  if (
+    hasOwn(task, "reproofRequestSha256") &&
+    !isSha256(task.reproofRequestSha256)
+  ) {
+    throw new Error(
+      `selectedTasks[${index}].reproofRequestSha256 must be a 64-hex SHA-256`,
+    );
+  }
+  if (strictKeys) {
+    const allowed = new Set([
+      ...stringFields,
+      "changedFiles",
+      "codeStartAfter",
+      "fileLocks",
+      "reproofRequestSha256",
+    ]);
+    const unknown = Object.keys(task).filter((key) => !allowed.has(key));
+    if (unknown.length > 0) {
+      throw new Error(
+        `selectedTasks[${index}] has unknown fields: ${unknown.sort().join(", ")}`,
+      );
+    }
+  }
+};
+
+const validateSelectionShape = (
+  value: IntegrationWaveSelection,
+  strictKeys: boolean,
+): void => {
+  if (
+    typeof value.baseSha !== "string" ||
+    typeof value.integrationId !== "string" ||
+    typeof value.planSha256 !== "string"
+  ) {
+    throw new Error("integration wave selection identity is invalid");
+  }
+  const deferredTaskIds = stringArrayValue(
+    value.deferredTaskIds,
+    "deferredTaskIds",
+  );
+  if (strictKeys) {
+    assertNormalizedStrings(deferredTaskIds, "deferred task");
+    if (deferredTaskIds.some((taskId) => !/^S\d{2}-T\d{2}$/.test(taskId))) {
+      throw new Error("deferred task IDs are invalid");
+    }
+  }
+  if (!Array.isArray(value.selectedTasks)) {
+    throw new Error("selectedTasks must be an array");
+  }
+  value.selectedTasks.forEach((task, index) =>
+    assertTaskSnapshot(task, index, strictKeys),
+  );
+  if (value.requestedTaskIds !== undefined) {
+    stringArrayValue(value.requestedTaskIds, "requestedTaskIds");
+  }
+  if (strictKeys) {
+    const allowed = new Set([
+      "baseSha",
+      "deferredTaskIds",
+      "integrationId",
+      "planSha256",
+      "requestedTaskIds",
+      "schemaVersion",
+      "selectedTasks",
+      "selectionPayloadSha256",
+    ]);
+    const unknown = Object.keys(value).filter((key) => !allowed.has(key));
+    if (unknown.length > 0) {
+      throw new Error(
+        `integration wave v3 has unknown fields: ${unknown.sort().join(", ")}`,
+      );
+    }
   }
   if (value.selectedTasks.length === 0)
     throw new Error("integration wave has no tasks");
-  const payload = selectionPayload(value);
-  if (hashJson(payload) !== value.selectionSha256) {
-    throw new Error("integration wave selection hash mismatch");
-  }
   const ids = value.selectedTasks.map((task) => task.taskId);
   if (
     new Set(ids).size !== ids.length ||
@@ -279,6 +583,83 @@ export const validateIntegrationWaveSelection = (
       locks.set(lock, task.taskId);
     }
   }
+};
+
+const validateV2Selection = (value: IntegrationWaveSelectionV2): void => {
+  if (hasOwn(value, "selection_sha256")) {
+    throw new Error("ambiguous selection hash field is forbidden in v2");
+  }
+  validateSelectionShape(value, false);
+  if (
+    sha256(JSON.stringify(legacySelectionPayload(value))) !==
+    value.selectionSha256
+  ) {
+    throw new Error("integration wave selection payload hash mismatch");
+  }
+};
+
+const validateV3Selection = (value: IntegrationWaveSelectionV3): void => {
+  assertNoAmbiguousSelectionHash(value);
+  validateSelectionShape(value, true);
+  const payload = selectionPayload(value);
+  if (selectionPayloadSha256(payload) !== value.selectionPayloadSha256) {
+    throw new Error("integration wave selection payload hash mismatch");
+  }
+};
+
+export const validateIntegrationWaveSelection = (
+  value: IntegrationWaveSelection,
+): void => {
+  if (value.schemaVersion === INTEGRATION_WAVE_SCHEMA) {
+    validateV3Selection(value);
+    return;
+  }
+  if (value.schemaVersion === LEGACY_INTEGRATION_WAVE_SCHEMA) {
+    validateV2Selection(value);
+    return;
+  }
+  throw new Error("unexpected integration wave selection schema");
+};
+
+export const validateLaunchableIntegrationWaveSelection = (
+  value: IntegrationWaveSelectionV3,
+): void => {
+  if (value.schemaVersion !== INTEGRATION_WAVE_SCHEMA) {
+    throw new Error("unexpected integration wave selection schema");
+  }
+  validateV3Selection(value);
+};
+
+export const readIntegrationWaveSelection = (
+  content: string,
+): ReadIntegrationWaveSelectionResult => {
+  const parsed = JSON.parse(content) as unknown;
+  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+    throw new Error("integration wave selection must be an object");
+  }
+  const schemaVersion = (parsed as { readonly schemaVersion?: unknown })
+    .schemaVersion;
+  if (schemaVersion === INTEGRATION_WAVE_SCHEMA) {
+    const selection = parsed as IntegrationWaveSelectionV3;
+    validateLaunchableIntegrationWaveSelection(selection);
+    return {
+      legacy: false,
+      selection,
+      selectionFileSha256: selectionFileSha256(content),
+      selectionPayloadSha256: selection.selectionPayloadSha256,
+    };
+  }
+  if (schemaVersion === LEGACY_INTEGRATION_WAVE_SCHEMA) {
+    const selection = parsed as IntegrationWaveSelectionV2;
+    validateV2Selection(selection);
+    return {
+      legacy: true,
+      selection,
+      selectionFileSha256: selectionFileSha256(content),
+      selectionPayloadSha256: selection.selectionSha256,
+    };
+  }
+  throw new Error("unexpected integration wave selection schema");
 };
 
 export const integrationWaveId = (sequence: number): string => {

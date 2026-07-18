@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
@@ -5,11 +6,20 @@ import { resolve } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 
 import {
+  canonicalSelectionPayload,
   integrationWaveId,
   laneTrancheMatchesManifest,
+  LEGACY_INTEGRATION_WAVE_SCHEMA,
   planIntegrationWave,
+  readIntegrationWaveSelection,
+  selectionFileSha256,
+  selectionPayload,
+  selectionPayloadSha256,
   validateIntegrationWaveSelection,
+  validateLaunchableIntegrationWaveSelection,
   type IntegrationWaveCandidate,
+  type IntegrationWaveSelectionV2,
+  type IntegrationWaveSelectionV3,
 } from "../src/integration-wave.js";
 import {
   integrationTasksForRequest,
@@ -74,6 +84,54 @@ const candidate = (value: BrainTaskContract): IntegrationWaveCandidate => ({
   tranche: value.tranche,
 });
 
+const legacySelection = (
+  selection: IntegrationWaveSelectionV3,
+): IntegrationWaveSelectionV2 => {
+  const { selectionPayloadSha256: _selectionPayloadSha256, ...v3Payload } =
+    selection;
+  const payload = {
+    ...v3Payload,
+    schemaVersion: LEGACY_INTEGRATION_WAVE_SCHEMA,
+  };
+  return {
+    ...payload,
+    selectionSha256: createHash("sha256")
+      .update(JSON.stringify(payload))
+      .digest("hex"),
+  };
+};
+
+const LEGACY_V2_GOLDEN_CONTENT = `{
+  "baseSha": "legacy-base",
+  "deferredTaskIds": [],
+  "integrationId": "wave-000007",
+  "planSha256": "legacy-plan",
+  "schemaVersion": "maestro-brain-integration-wave-selection/v2",
+  "selectedTasks": [
+    {
+      "changedFiles": [
+        "legacy.ts"
+      ],
+      "codeStartAfter": [],
+      "fileLocks": [
+        "legacy.ts"
+      ],
+      "gateHeadSha": "legacy-head",
+      "gateSha256": "legacy-gate",
+      "headSha": "legacy-head",
+      "laneResultSha256": "legacy-lane",
+      "planSha256": "legacy-plan",
+      "proofHeadSha": "legacy-head",
+      "proofSha256": "legacy-proof",
+      "taskBlockHash": "legacy-block",
+      "taskId": "S01-T01",
+      "tranche": "C1-contract-spine"
+    }
+  ],
+  "selectionSha256": "83320d35aecaea0ee24979cfcbb6e443e74b512b5079018072d9fdcc109956cc"
+}
+`;
+
 const supersessionFixture = (
   statuses: readonly ("cancelled" | "failed" | "running" | "succeeded")[] = [
     "failed",
@@ -88,14 +146,16 @@ const supersessionFixture = (
   const selectionPath = resolve(root, "selection.json");
   const workdir = resolve(root, "workdir");
   const value = task("S01-T03", "D2-domain-bodies");
-  const selection = planIntegrationWave({
-    baseSha,
-    candidates: [{ ...candidate(value), planSha256 }],
-    completedTaskIds: new Set(),
-    integrationId,
-    planSha256,
-    tasks: [value],
-  });
+  const selection = legacySelection(
+    planIntegrationWave({
+      baseSha,
+      candidates: [{ ...candidate(value), planSha256 }],
+      completedTaskIds: new Set(),
+      integrationId,
+      planSha256,
+      tasks: [value],
+    }),
+  );
   const selectionContent = `${JSON.stringify(selection, null, 2)}\n`;
   const runIds = [
     "01ARZ3NDEKTSV4RRFFQ69G5FAV",
@@ -159,6 +219,352 @@ const supersessionFixture = (
 };
 
 describe("integration wave planner", () => {
+  it("canonicalizes JSON object keys while preserving array order", () => {
+    expect(
+      canonicalSelectionPayload({
+        zebra: { second: 2, first: 1 },
+        alpha: ["second", "first"],
+      }),
+    ).toBe('{"alpha":["second","first"],"zebra":{"first":1,"second":2}}');
+    expect(
+      canonicalSelectionPayload({
+        alpha: ["second", "first"],
+        zebra: { first: 1, second: 2 },
+      }),
+    ).toBe(
+      canonicalSelectionPayload({
+        zebra: { second: 2, first: 1 },
+        alpha: ["second", "first"],
+      }),
+    );
+    expect(canonicalSelectionPayload(["first", "second"])).not.toBe(
+      canonicalSelectionPayload(["second", "first"]),
+    );
+    expect(canonicalSelectionPayload({ 2: "two", 10: "ten" })).toBe(
+      '{"10":"ten","2":"two"}',
+    );
+  });
+
+  it("rejects values that cannot participate in strict canonical JSON", () => {
+    class UnsupportedValue {
+      readonly value = "not-plain";
+    }
+    const sparse = ["present"];
+    sparse.length = 2;
+    const hidden = {};
+    Object.defineProperty(hidden, "value", { value: "hidden" });
+    const decoratedArray = ["present"] as string[] & { extra?: string };
+    decoratedArray.extra = "ignored-by-JSON.stringify";
+    class UnsupportedArray extends Array<string> {}
+    const subclass = new UnsupportedArray("present");
+    let getterInvoked = false;
+    const accessorIndex = ["present"];
+    Object.defineProperty(accessorIndex, "0", {
+      configurable: true,
+      enumerable: true,
+      get: () => {
+        getterInvoked = true;
+        return "present";
+      },
+    });
+    const hiddenIndex = ["present"];
+    Object.defineProperty(hiddenIndex, "0", { enumerable: false });
+
+    expect(() => canonicalSelectionPayload(undefined)).toThrow("JSON-safe");
+    expect(() => canonicalSelectionPayload({ value: undefined })).toThrow(
+      "JSON-safe",
+    );
+    expect(() => canonicalSelectionPayload({ value: Number.NaN })).toThrow(
+      "finite",
+    );
+    expect(() => canonicalSelectionPayload(sparse)).toThrow("sparse");
+    expect(() => canonicalSelectionPayload(new UnsupportedValue())).toThrow(
+      "plain object",
+    );
+    expect(() => canonicalSelectionPayload({ value: 1n })).toThrow("JSON-safe");
+    expect(() => canonicalSelectionPayload(hidden)).toThrow("own properties");
+    expect(() => canonicalSelectionPayload(decoratedArray)).toThrow(
+      "array properties",
+    );
+    expect(() => canonicalSelectionPayload(subclass)).toThrow("plain array");
+    expect(() => canonicalSelectionPayload(accessorIndex)).toThrow(
+      "array index",
+    );
+    expect(getterInvoked).toBe(false);
+    expect(() => canonicalSelectionPayload(hiddenIndex)).toThrow("array index");
+  });
+
+  it("separates canonical payload identity from exact selection file bytes", () => {
+    const value = task("S02-T04", "D2-domain-bodies");
+    const selection = planIntegrationWave({
+      baseSha: "base",
+      candidates: [candidate(value)],
+      completedTaskIds: new Set(),
+      integrationId: integrationWaveId(13),
+      planSha256: "plan",
+      tasks: [value],
+    });
+    const compact = JSON.stringify(selection);
+    const pretty = `${JSON.stringify(selection, null, 2)}\n`;
+    const compactRead = readIntegrationWaveSelection(compact);
+    const prettyRead = readIntegrationWaveSelection(pretty);
+
+    expect(compactRead.legacy).toBe(false);
+    expect(prettyRead.legacy).toBe(false);
+    expect(compactRead.selectionPayloadSha256).toBe(
+      selection.selectionPayloadSha256,
+    );
+    expect(prettyRead.selectionPayloadSha256).toBe(
+      selection.selectionPayloadSha256,
+    );
+    expect(compactRead.selectionFileSha256).toBe(selectionFileSha256(compact));
+    expect(prettyRead.selectionFileSha256).toBe(selectionFileSha256(pretty));
+    expect(compactRead.selectionFileSha256).not.toBe(
+      prettyRead.selectionFileSha256,
+    );
+  });
+
+  it("binds every selected receipt field and array position into v3 identity", () => {
+    const tasks = [
+      task("S02-T04", "D2-domain-bodies"),
+      task("S03-T03", "D2-domain-bodies"),
+    ];
+    const selection = planIntegrationWave({
+      baseSha: "base",
+      candidates: [
+        candidate(tasks[0]!),
+        {
+          ...candidate(tasks[1]!),
+          reproofRequestSha256: "a".repeat(64),
+        },
+      ],
+      completedTaskIds: new Set(),
+      integrationId: integrationWaveId(13),
+      planSha256: "plan",
+      tasks,
+    });
+    const payload = selectionPayload(selection);
+    expect(selectionPayloadSha256(payload)).toBe(
+      selection.selectionPayloadSha256,
+    );
+    const reversed = {
+      ...selection,
+      selectedTasks: [...selection.selectedTasks].reverse(),
+    };
+    expect(selectionPayloadSha256(selectionPayload(reversed))).not.toBe(
+      selection.selectionPayloadSha256,
+    );
+    expect(() => validateIntegrationWaveSelection(reversed)).toThrow(
+      "selected task order is invalid",
+    );
+    expect(() =>
+      validateIntegrationWaveSelection({
+        ...selection,
+        selectedTasks: selection.selectedTasks.map((snapshot, index) =>
+          index === 0 ? { ...snapshot, laneResultSha256: "mutated" } : snapshot,
+        ),
+      }),
+    ).toThrow("payload hash mismatch");
+    expect(() =>
+      validateIntegrationWaveSelection({
+        ...selection,
+        selectedTasks: selection.selectedTasks.map((snapshot) =>
+          snapshot.reproofRequestSha256
+            ? { ...snapshot, reproofRequestSha256: "b".repeat(64) }
+            : snapshot,
+        ),
+      }),
+    ).toThrow("payload hash mismatch");
+    expect(() =>
+      validateIntegrationWaveSelection({
+        ...selection,
+        selectedTasks: selection.selectedTasks.slice(1),
+      }),
+    ).toThrow("payload hash mismatch");
+  });
+
+  it("rejects an explicitly present empty reproof receipt hash", () => {
+    const value = task("S02-T04", "D2-domain-bodies");
+    const input = {
+      baseSha: "base",
+      candidates: [{ ...candidate(value), reproofRequestSha256: "" }],
+      completedTaskIds: new Set<string>(),
+      integrationId: integrationWaveId(13),
+      planSha256: "plan",
+      tasks: [value],
+    };
+    expect(() => planIntegrationWave(input)).toThrow("64-hex");
+
+    const selection = planIntegrationWave({
+      ...input,
+      candidates: [candidate(value)],
+    });
+    const emptyReproofPayload = selectionPayload({
+      ...selection,
+      selectedTasks: selection.selectedTasks.map((snapshot) => ({
+        ...snapshot,
+        reproofRequestSha256: "",
+      })),
+    });
+    expect(() =>
+      validateIntegrationWaveSelection({
+        ...emptyReproofPayload,
+        selectionPayloadSha256: selectionPayloadSha256(emptyReproofPayload),
+      }),
+    ).toThrow("64-hex");
+  });
+
+  it("rejects an own undefined reproof receipt instead of treating it as absent", () => {
+    const value = task("S02-T04", "D2-domain-bodies");
+    const selection = planIntegrationWave({
+      baseSha: "base",
+      candidates: [candidate(value)],
+      completedTaskIds: new Set(),
+      integrationId: integrationWaveId(13),
+      planSha256: "plan",
+      tasks: [value],
+    });
+    const withUndefinedReproof = {
+      ...selection,
+      selectedTasks: selection.selectedTasks.map((snapshot) => ({
+        ...snapshot,
+        reproofRequestSha256: undefined,
+      })),
+    };
+    expect(() =>
+      validateIntegrationWaveSelection(
+        withUndefinedReproof as unknown as IntegrationWaveSelectionV3,
+      ),
+    ).toThrow("64-hex");
+
+    const legacy = legacySelection(selection);
+    const legacyWithUndefinedReproof = {
+      ...legacy,
+      selectedTasks: legacy.selectedTasks.map((snapshot) => ({
+        ...snapshot,
+        reproofRequestSha256: undefined,
+      })),
+    };
+    expect(() =>
+      validateIntegrationWaveSelection(
+        legacyWithUndefinedReproof as unknown as IntegrationWaveSelectionV2,
+      ),
+    ).toThrow("64-hex");
+  });
+
+  it("rejects non-normalized v3 ID and receipt arrays even with a valid digest", () => {
+    const value = task("S02-T04", "D2-domain-bodies", [], ["a.ts", "b.ts"]);
+    const selection = planIntegrationWave({
+      baseSha: "base",
+      candidates: [candidate(value)],
+      completedTaskIds: new Set(),
+      integrationId: integrationWaveId(13),
+      planSha256: "plan",
+      tasks: [value],
+    });
+    const unsortedDeferredPayload = selectionPayload({
+      ...selection,
+      deferredTaskIds: ["S03-T03", "S02-T04"],
+    });
+    expect(() =>
+      validateIntegrationWaveSelection({
+        ...unsortedDeferredPayload,
+        selectionPayloadSha256: selectionPayloadSha256(unsortedDeferredPayload),
+      }),
+    ).toThrow("deferred task order is invalid");
+
+    const unsortedFilesPayload = selectionPayload({
+      ...selection,
+      selectedTasks: selection.selectedTasks.map((snapshot) => ({
+        ...snapshot,
+        changedFiles: ["b.ts", "a.ts"],
+      })),
+    });
+    expect(() =>
+      validateIntegrationWaveSelection({
+        ...unsortedFilesPayload,
+        selectionPayloadSha256: selectionPayloadSha256(unsortedFilesPayload),
+      }),
+    ).toThrow("changedFiles order is invalid");
+  });
+
+  it("emits only explicit v3 payload identity and rejects ambiguous names", () => {
+    const value = task("S02-T04", "D2-domain-bodies");
+    const input = {
+      baseSha: "base",
+      candidates: [candidate(value)],
+      completedTaskIds: new Set<string>(),
+      integrationId: integrationWaveId(13),
+      planSha256: "plan",
+      tasks: [value],
+    };
+    const selection = planIntegrationWave(input);
+    expect(selection.schemaVersion).toBe(
+      "maestro-brain-integration-wave-selection/v3",
+    );
+    expect(selection.selectionPayloadSha256).toMatch(/^[0-9a-f]{64}$/);
+    expect(selection).not.toHaveProperty("selectionSha256");
+    expect(selection).not.toHaveProperty("selectionFileSha256");
+    expect(() =>
+      planIntegrationWave({
+        ...input,
+        selectionSha256: "ambiguous",
+      } as typeof input),
+    ).toThrow("ambiguous selection hash");
+    expect(() =>
+      validateIntegrationWaveSelection({
+        ...selection,
+        selectionSha256: "ambiguous",
+      } as IntegrationWaveSelectionV3),
+    ).toThrow("ambiguous selection hash");
+    expect(() =>
+      planIntegrationWave({
+        ...input,
+        selection_sha256: "ambiguous",
+      } as typeof input),
+    ).toThrow("ambiguous selection hash");
+  });
+
+  it("normalizes historical v2 bytes without making them launchable", () => {
+    const value = task("S02-T04", "D2-domain-bodies");
+    const historical = legacySelection(
+      planIntegrationWave({
+        baseSha: "base",
+        candidates: [candidate(value)],
+        completedTaskIds: new Set(),
+        integrationId: integrationWaveId(12),
+        planSha256: "plan",
+        tasks: [value],
+      }),
+    );
+    const content = `${JSON.stringify(historical, null, 2)}\n`;
+    const read = readIntegrationWaveSelection(content);
+
+    expect(read.legacy).toBe(true);
+    expect(read.selection).toEqual(historical);
+    expect(read.selectionPayloadSha256).toBe(historical.selectionSha256);
+    expect(read.selectionFileSha256).toBe(selectionFileSha256(content));
+    expect(read.selectionPayloadSha256).not.toBe(read.selectionFileSha256);
+    expect(() =>
+      validateLaunchableIntegrationWaveSelection(
+        read.selection as IntegrationWaveSelectionV3,
+      ),
+    ).toThrow("unexpected integration wave selection schema");
+  });
+
+  it("reads an independently pinned historical v2 byte fixture", () => {
+    const read = readIntegrationWaveSelection(LEGACY_V2_GOLDEN_CONTENT);
+
+    expect(read.legacy).toBe(true);
+    expect(read.selectionPayloadSha256).toBe(
+      "83320d35aecaea0ee24979cfcbb6e443e74b512b5079018072d9fdcc109956cc",
+    );
+    expect(read.selectionFileSha256).toBe(
+      "bade9d314130644136ede627727c5cdef943345b529dd569902eb73b99f655fa",
+    );
+    expect(read.selection.selectedTasks[0]?.taskId).toBe("S01-T01");
+  });
+
   it("strictly parses exact requested task filters and rejects unknown input", () => {
     const known = new Set(["S02-T04", "S03-T03"]);
     expect(
@@ -212,7 +618,7 @@ describe("integration wave planner", () => {
     ]);
   });
 
-  it("binds an exact requested filter into deterministic selection v2", () => {
+  it("binds an exact requested filter into deterministic selection v3", () => {
     const tasks = [
       task("S02-T04", "D2-domain-bodies"),
       task("S03-T03", "D2-domain-bodies"),
@@ -248,12 +654,16 @@ describe("integration wave planner", () => {
       "S02-T04",
       "S03-T03",
     ]);
-    expect(() =>
-      validateIntegrationWaveSelection({
-        ...first,
-        requestedTaskIds: ["S02-T04"],
-      }),
-    ).toThrow("selection hash mismatch");
+    const narrowedRequest = {
+      ...first,
+      requestedTaskIds: ["S02-T04"],
+    };
+    expect(selectionPayloadSha256(selectionPayload(narrowedRequest))).not.toBe(
+      first.selectionPayloadSha256,
+    );
+    expect(() => validateIntegrationWaveSelection(narrowedRequest)).toThrow(
+      "requested task filter is invalid",
+    );
   });
 
   it("rejects requested proof drift and requested lock conflicts", () => {
@@ -336,14 +746,14 @@ describe("integration wave planner", () => {
       "S01-T03",
       "S04-T01",
     ]);
-    expect(selection.selectionSha256).toMatch(/^[0-9a-f]{64}$/);
+    expect(selection.selectionPayloadSha256).toMatch(/^[0-9a-f]{64}$/);
     expect(() => validateIntegrationWaveSelection(selection)).not.toThrow();
     expect(() =>
       validateIntegrationWaveSelection({
         ...selection,
         baseSha: "drifted",
       }),
-    ).toThrow("selection hash mismatch");
+    ).toThrow("payload hash mismatch");
   });
 
   it("forbids dependencies that are absent from the exact base", () => {
@@ -508,7 +918,7 @@ describe("integration wave planner", () => {
           reproofRequestSha256: "b".repeat(64),
         })),
       }),
-    ).toThrow("selection hash mismatch");
+    ).toThrow("payload hash mismatch");
   });
 
   it("fails closed on control divergence and recovers a post-merge crash", () => {
