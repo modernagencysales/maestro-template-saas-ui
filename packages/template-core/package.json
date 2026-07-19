@@ -12,6 +12,10 @@
     "./generated/confectManifest": {
       "types": "./src/generated/confectManifest.ts",
       "default": "./src/generated/confectManifest.ts"
+    },
+    "./systemCatalog": {
+      "types": "./src/systemCatalog.ts",
+      "default": "./src/systemCatalog.ts"
     }
   },
   "scripts": {

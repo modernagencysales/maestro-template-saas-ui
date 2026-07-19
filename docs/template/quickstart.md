@@ -15,7 +15,8 @@ pnpm template:quickstart -- --blueprint source-grounded-gtm-brain --name "Client
 pnpm template:intake -- --name "Client Brain" --write
 pnpm template:doctor -- --mode fake
 pnpm template:seed-demo -- --blueprint source-grounded-gtm-brain --write
-pnpm template:add-client-domain -- --name customerContext --write
+pnpm template:systems -- --query knowledge
+pnpm template:add-client-domain -- --name customerContext --system knowledge-brain --disposition extend --write
 pnpm template:handoff -- --mode fake --write
 pnpm --dir apps/web dev
 ```
@@ -41,7 +42,7 @@ Commands without `--write` are dry-run previews.
 6. Seed deterministic demo context with
    `pnpm template:seed-demo -- --blueprint source-grounded-gtm-brain --write`.
 7. Change the first client noun with
-   `pnpm template:add-client-domain -- --name customerContext --write`.
+   `pnpm template:add-client-domain -- --name customerContext --system knowledge-brain --disposition extend --write`.
 8. Start the app with `pnpm --dir apps/web dev`.
 9. Review the generated implementation brief at
    `docs/template/generated/implementation-brief.md`.
@@ -90,7 +91,8 @@ Use this when the goal is speed from client idea to useful prototype:
 1. Pick the closest blueprint.
 2. Run `template:quickstart` and `template:seed-demo`.
 3. Run `template:intake` to capture the first discovery map.
-4. Change one client noun with `template:add-client-domain`.
+4. Query the canonical system catalog and change one client noun with
+   `template:add-client-domain -- --system <canonical-id> --disposition reuse|extend`.
 5. Add or rename one capability.
 6. Add or rename one workflow.
 7. Run the fake doctor and focused generator checks.
@@ -119,9 +121,9 @@ Use the generated implementation brief as the discovery map:
 
 1. Generate the quickstart files.
 2. Add a client-specific capability with
-   `pnpm template:add-capability -- --name "<capability>" --write`.
+   `pnpm template:add-capability -- --name "<capability>" --system <canonical-id> --disposition extend --write`.
 3. Add a workflow with
-   `pnpm template:add-workflow -- --name "<workflow>" --write`.
+   `pnpm template:add-workflow -- --name "<workflow>" --system <canonical-id> --disposition extend --write`.
 4. Regenerate Convex refs, typecheck the Convex package, and keep
    `template:promote-workflow` only for older reviewed or private-package
    workflow artifacts. `template:add-workflow -- --write` already writes the
@@ -133,7 +135,7 @@ Use the generated implementation brief as the discovery map:
 7. Run `pnpm review:readiness` before handoff.
 
 The first files a worker should inspect are `AGENTS.md`,
-`docs/template/blueprint-catalog.md`,
+`docs/template/blueprint-catalog.md`, `docs/template/system-catalog.md`,
 `docs/template/generator-output-contract.md`, `template-instance.json`, and the
 generated implementation brief.
 

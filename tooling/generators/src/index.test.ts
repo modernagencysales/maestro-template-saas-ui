@@ -217,9 +217,9 @@ describe("template app factory generators", () => {
       "pnpm template:doctor -- --mode fake",
       "review docs/template/generated/provider-setup-checklist.md",
       "pnpm template:seed-demo -- --blueprint source-grounded-gtm-brain --write",
-      "pnpm template:add-client-domain -- --name customerContext --write",
-      "pnpm template:add-capability -- --name summarizeSource --write",
-      "pnpm template:add-workflow -- --name sourceGroundedPlan --write",
+      "pnpm template:add-client-domain -- --name customerContext --system knowledge-brain --disposition extend --write",
+      "pnpm template:add-capability -- --name summarizeSource --system knowledge-brain --disposition extend --write",
+      "pnpm template:add-workflow -- --name sourceGroundedPlan --system knowledge-brain --disposition extend --write",
       "pnpm template:handoff -- --mode fake --write",
     ]);
     expect(quickstart.files[1]?.content).toContain("source-backed GTM brain");
@@ -697,6 +697,8 @@ describe("template app factory generators", () => {
   it("builds client domain scaffolds for app-specific nouns", () => {
     const generated = buildClientDomainFiles({
       name: "customer success",
+      system: "knowledge-brain",
+      disposition: "extend",
       description: "Client-specific customer success workspace nouns.",
     });
 
@@ -718,6 +720,66 @@ describe("template app factory generators", () => {
     });
   });
 
+  it("lists canonical systems and resolves exact aliases before generation", () => {
+    const all = runGeneratorCli(["systems"]);
+    const auth = runGeneratorCli(["systems", "--query", "auth"]);
+    const unknown = runGeneratorCli([
+      "systems",
+      "--query",
+      "parallel customer memory",
+    ]);
+
+    expect(JSON.parse(all.stdout)).toMatchObject({
+      query: null,
+      matches: expect.arrayContaining([
+        expect.objectContaining({ id: "access-and-tenancy" }),
+        expect.objectContaining({ id: "workflow-runtime" }),
+      ]),
+    });
+    expect(JSON.parse(auth.stdout)).toMatchObject({
+      matches: [expect.objectContaining({ id: "access-and-tenancy" })],
+    });
+    expect(JSON.parse(unknown.stdout)).toMatchObject({
+      matches: [],
+      guidance: expect.stringContaining("introduce decision"),
+    });
+  });
+
+  it("requires an active canonical system id before scaffolding", () => {
+    const missing = runGeneratorCli([
+      "add-capability",
+      "--name",
+      "parallel brain",
+    ]);
+    const alias = runGeneratorCli([
+      "add-capability",
+      "--name",
+      "parallel brain",
+      "--system",
+      "rag",
+    ]);
+    const missingDisposition = runGeneratorCli([
+      "add-capability",
+      "--name",
+      "parallel brain",
+      "--system",
+      "knowledge-brain",
+    ]);
+
+    expect(missing).toMatchObject({
+      exitCode: 1,
+      stderr: expect.stringContaining("Missing required --system"),
+    });
+    expect(alias).toMatchObject({
+      exitCode: 1,
+      stderr: expect.stringContaining("Unknown canonical system"),
+    });
+    expect(missingDisposition).toMatchObject({
+      exitCode: 1,
+      stderr: expect.stringContaining("Missing required --disposition"),
+    });
+  });
+
   it("writes client domain scaffolds through the CLI", () => {
     const cwd = mkdtempSync(join(tmpdir(), "maestro-template-domain-"));
 
@@ -727,6 +789,10 @@ describe("template app factory generators", () => {
           "add-client-domain",
           "--name",
           "customer success",
+          "--system",
+          "knowledge-brain",
+          "--disposition",
+          "extend",
           "--description",
           "Client-specific customer success workspace nouns.",
           "--write",
@@ -752,6 +818,8 @@ describe("template app factory generators", () => {
   it("builds Confect-oriented capability generator files", () => {
     const generated = buildCapabilityFiles({
       name: "summarize source",
+      system: "knowledge-brain",
+      disposition: "extend",
       description: "Summarizes an approved source set.",
       exposure: "headless",
     });
@@ -759,6 +827,8 @@ describe("template app factory generators", () => {
     expect(generated).toMatchObject({
       name: "summarizeSource",
       pascalName: "SummarizeSource",
+      system: "knowledge-brain",
+      disposition: "extend",
       exposure: "headless",
     });
     expect(generated.files.map((file) => file.path)).toEqual([
@@ -810,6 +880,8 @@ describe("template app factory generators", () => {
     expect(generated.files[3]?.content).toContain("summarizeSourceReturns");
     expect(generated.files[4]?.content).toContain('"surfaces"');
     expect(JSON.parse(generated.files[4]?.content ?? "{}")).toMatchObject({
+      system: "knowledge-brain",
+      disposition: "extend",
       requiredFiles: expect.arrayContaining([
         "Confect spec/impl",
         "tests",
@@ -817,6 +889,12 @@ describe("template app factory generators", () => {
       ]),
       migrationNotes: expect.any(Array),
       frontendAdapter: "required when exposure is web",
+    });
+    expect(JSON.parse(generated.files[6]?.content ?? "{}")).toMatchObject({
+      ownership: {
+        system: "knowledge-brain",
+        disposition: "extend",
+      },
     });
   });
 
@@ -829,6 +907,10 @@ describe("template app factory generators", () => {
           "add-capability",
           "--name",
           "summarize source",
+          "--system",
+          "knowledge-brain",
+          "--disposition",
+          "extend",
           "--description",
           "Summarizes an approved source set.",
           "--write",
@@ -859,6 +941,8 @@ describe("template app factory generators", () => {
   it("builds workflow generator files with durable Confect contracts", () => {
     const generated = buildWorkflowFiles({
       name: "source grounded plan",
+      system: "knowledge-brain",
+      disposition: "extend",
       description: "Builds a sourced plan with approval and receipt.",
     });
 
@@ -960,6 +1044,10 @@ describe("template app factory generators", () => {
           "add-workflow",
           "--name",
           "source grounded plan",
+          "--system",
+          "knowledge-brain",
+          "--disposition",
+          "extend",
           "--description",
           "Builds a sourced plan with approval and receipt.",
           "--write",
@@ -1000,6 +1088,8 @@ describe("template app factory generators", () => {
   it("builds web-only agent seat generator files", () => {
     const generated = buildAgentFiles({
       name: "workflow architect",
+      system: "workflow-runtime",
+      disposition: "reuse",
       description: "Drafts reviewed workflow plans from approved context.",
     });
 
@@ -1055,6 +1145,10 @@ describe("template app factory generators", () => {
           "add-agent",
           "--name",
           "workflow architect",
+          "--system",
+          "workflow-runtime",
+          "--disposition",
+          "reuse",
           "--description",
           "Drafts reviewed workflow plans from approved context.",
           "--write",
@@ -1065,6 +1159,10 @@ describe("template app factory generators", () => {
         "add-agent-seat",
         "--name",
         "workflow architect",
+        "--system",
+        "workflow-runtime",
+        "--disposition",
+        "reuse",
         "--description",
         "Drafts reviewed workflow plans from approved context.",
       ]);
@@ -1137,6 +1235,8 @@ describe("template app factory generators", () => {
   it("builds production-target capability promotion files", () => {
     const promoted = buildCapabilityPromotionFiles({
       name: "summarize source",
+      system: "knowledge-brain",
+      disposition: "extend",
       description: "Summarizes an approved source set.",
     });
 
@@ -1202,6 +1302,10 @@ describe("template app factory generators", () => {
           "promote-capability",
           "--name",
           "summarize source",
+          "--system",
+          "knowledge-brain",
+          "--disposition",
+          "extend",
           "--description",
           "Summarizes an approved source set.",
           "--write",
@@ -1228,6 +1332,8 @@ describe("template app factory generators", () => {
   it("builds production-target workflow promotion files", () => {
     const promoted = buildWorkflowPromotionFiles({
       name: "source grounded plan",
+      system: "knowledge-brain",
+      disposition: "extend",
       description: "Builds a sourced plan with approval and receipt.",
     });
 
@@ -1266,6 +1372,10 @@ describe("template app factory generators", () => {
           "promote-workflow",
           "--name",
           "source grounded plan",
+          "--system",
+          "knowledge-brain",
+          "--disposition",
+          "extend",
           "--description",
           "Builds a sourced plan with approval and receipt.",
           "--write",

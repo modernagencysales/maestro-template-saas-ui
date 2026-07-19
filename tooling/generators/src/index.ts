@@ -2,9 +2,16 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import {
+  canonicalSystemById,
+  findCanonicalSystems,
+  parseSystemCatalog,
+  type SystemCatalog,
+} from "@maestro-template/template-core/systemCatalog";
 import { gtmImplementationBlueprint } from "./blueprints/gtmImplementation";
 
 export type ProviderMode = "fake" | "test" | "live";
+export type SystemGeneratorDisposition = "reuse" | "extend";
 
 export type BlueprintId = "source-grounded-gtm-brain" | "gtm-implementation";
 
@@ -145,6 +152,8 @@ export type ClientIntake = {
 
 export type CapabilityGeneratorOptions = {
   readonly name: string;
+  readonly system: string;
+  readonly disposition: SystemGeneratorDisposition;
   readonly description?: string;
   readonly exposure?: "web" | "workflow" | "headless";
   readonly write?: boolean;
@@ -152,6 +161,8 @@ export type CapabilityGeneratorOptions = {
 
 export type ClientDomainGeneratorOptions = {
   readonly name: string;
+  readonly system: string;
+  readonly disposition: SystemGeneratorDisposition;
   readonly description?: string;
   readonly write?: boolean;
 };
@@ -159,18 +170,24 @@ export type ClientDomainGeneratorOptions = {
 export type ClientDomainGeneratorResult = {
   readonly name: string;
   readonly pascalName: string;
+  readonly system: string;
+  readonly disposition: SystemGeneratorDisposition;
   readonly files: readonly GeneratedFile[];
 };
 
 export type CapabilityGeneratorResult = {
   readonly name: string;
   readonly pascalName: string;
+  readonly system: string;
+  readonly disposition: SystemGeneratorDisposition;
   readonly exposure: "web" | "workflow" | "headless";
   readonly files: readonly GeneratedFile[];
 };
 
 export type WorkflowGeneratorOptions = {
   readonly name: string;
+  readonly system: string;
+  readonly disposition: SystemGeneratorDisposition;
   readonly description?: string;
   readonly write?: boolean;
 };
@@ -178,11 +195,15 @@ export type WorkflowGeneratorOptions = {
 export type WorkflowGeneratorResult = {
   readonly name: string;
   readonly pascalName: string;
+  readonly system: string;
+  readonly disposition: SystemGeneratorDisposition;
   readonly files: readonly GeneratedFile[];
 };
 
 export type AgentGeneratorOptions = {
   readonly name: string;
+  readonly system: string;
+  readonly disposition: SystemGeneratorDisposition;
   readonly description?: string;
   readonly write?: boolean;
 };
@@ -190,6 +211,8 @@ export type AgentGeneratorOptions = {
 export type AgentGeneratorResult = {
   readonly name: string;
   readonly pascalName: string;
+  readonly system: string;
+  readonly disposition: SystemGeneratorDisposition;
   readonly surfaces: readonly ["web"];
   readonly headlessExposure: false;
   readonly files: readonly GeneratedFile[];
@@ -198,6 +221,8 @@ export type AgentGeneratorResult = {
 
 export type PromotionGeneratorOptions = {
   readonly name: string;
+  readonly system: string;
+  readonly disposition: SystemGeneratorDisposition;
   readonly description?: string;
   readonly write?: boolean;
 };
@@ -205,6 +230,8 @@ export type PromotionGeneratorOptions = {
 export type PromotionGeneratorResult = {
   readonly name: string;
   readonly pascalName: string;
+  readonly system: string;
+  readonly disposition: SystemGeneratorDisposition;
   readonly target: "capability" | "workflow";
   readonly files: readonly GeneratedFile[];
   readonly followUp: readonly string[];
@@ -268,6 +295,14 @@ const defaultRepoRoot = resolve(
 
 const envManifestPath = (repoRoot = defaultRepoRoot): string =>
   resolve(repoRoot, "docs/template/env-manifest.json");
+
+const systemCatalogPath = (repoRoot = defaultRepoRoot): string =>
+  resolve(repoRoot, "docs/template/system-catalog.json");
+
+export const readSystemCatalog = (repoRoot = defaultRepoRoot): SystemCatalog =>
+  parseSystemCatalog(
+    JSON.parse(readFileSync(systemCatalogPath(repoRoot), "utf8")) as unknown,
+  );
 
 const readEnvManifest = (
   repoRoot = defaultRepoRoot,
@@ -413,6 +448,10 @@ const withGeneratorProvenance = (
   generator: string,
   name: string,
   files: readonly GeneratedFile[],
+  ownership?: {
+    readonly system: string;
+    readonly disposition: SystemGeneratorDisposition;
+  },
 ): readonly GeneratedFile[] => {
   const commandFamily =
     generator === "private-package"
@@ -428,6 +467,7 @@ const withGeneratorProvenance = (
           generator,
           commandFamily,
           name,
+          ...(ownership === undefined ? {} : { ownership }),
           generatedPaths: files.map((file) => file.path),
         },
         null,
@@ -973,9 +1013,9 @@ export const buildTemplateQuickstart = (options?: {
       "pnpm template:doctor -- --mode fake",
       "review docs/template/generated/provider-setup-checklist.md",
       `pnpm template:seed-demo -- --blueprint ${blueprint} --write`,
-      "pnpm template:add-client-domain -- --name customerContext --write",
-      `pnpm template:add-capability -- --name ${blueprintConfig.defaultCapability} --write`,
-      `pnpm template:add-workflow -- --name ${blueprintConfig.defaultWorkflow} --write`,
+      "pnpm template:add-client-domain -- --name customerContext --system knowledge-brain --disposition extend --write",
+      `pnpm template:add-capability -- --name ${blueprintConfig.defaultCapability} --system knowledge-brain --disposition extend --write`,
+      `pnpm template:add-workflow -- --name ${blueprintConfig.defaultWorkflow} --system knowledge-brain --disposition extend --write`,
       "pnpm template:handoff -- --mode fake --write",
     ],
   };
@@ -1094,6 +1134,8 @@ export const buildClientDomainFiles = (
   const basePath = `generated/domains/${name}`;
   const metadata = {
     domain: name,
+    system: options.system,
+    disposition: options.disposition,
     description,
     extensionBoundary: "generated-or-private-package",
     sourceTypes: ["markdown", "link", "note"],
@@ -1116,6 +1158,8 @@ export const buildClientDomainFiles = (
 
 ${description}
 
+Canonical system: \`${options.system}\` (\`${options.disposition}\`).
+
 ## Purpose
 
 Use this generated domain as the client-specific boundary for nouns, source
@@ -1136,7 +1180,12 @@ package until reviewed.
   return {
     name,
     pascalName,
-    files: withGeneratorProvenance("add-client-domain", name, files),
+    system: options.system,
+    disposition: options.disposition,
+    files: withGeneratorProvenance("add-client-domain", name, files, {
+      system: options.system,
+      disposition: options.disposition,
+    }),
   };
 };
 
@@ -1292,6 +1341,8 @@ describe("${name} generated capability domain", () => {
       content: `${JSON.stringify(
         {
           capability: name,
+          system: options.system,
+          disposition: options.disposition,
           description,
           exposure,
           authScope: "workspace member",
@@ -1327,6 +1378,7 @@ ${description}
 
 ## Contract
 
+- Canonical system: \`${options.system}\` (\`${options.disposition}\`)
 - Args: \`${name}Args\`
 - Returns: \`${name}Returns\`
 - Typed errors: ${typedErrors.join(", ")}
@@ -1346,8 +1398,13 @@ ${description}
   return {
     name,
     pascalName,
+    system: options.system,
+    disposition: options.disposition,
     exposure,
-    files: withGeneratorProvenance("add-capability", name, files),
+    files: withGeneratorProvenance("add-capability", name, files, {
+      system: options.system,
+      disposition: options.disposition,
+    }),
   };
 };
 
@@ -1380,6 +1437,8 @@ import * as S from "effect/Schema";
 
 export const ${manifestName} = {
   agent: "${name}",
+  system: "${options.system}",
+  systemDisposition: "${options.disposition}",
   displayName: "${pascalName}",
   description: ${JSON.stringify(description)},
   surfaces: ["web"],
@@ -1705,6 +1764,7 @@ ${description}
 
 ## Generated Contract
 
+- Canonical system: \`${options.system}\` (\`${options.disposition}\`)
 - Agent: \`${name}\`
 - Surfaces: \`["web"]\`
 - Agent seat: web-facing
@@ -1731,9 +1791,14 @@ ${description}
   return {
     name,
     pascalName,
+    system: options.system,
+    disposition: options.disposition,
     surfaces: ["web"],
     headlessExposure: false,
-    files: withGeneratorProvenance("add-agent", name, files),
+    files: withGeneratorProvenance("add-agent", name, files, {
+      system: options.system,
+      disposition: options.disposition,
+    }),
     followUp,
   };
 };
@@ -2236,6 +2301,8 @@ describe("${name} durable workflow scaffold", () => {
 
 ${description}
 
+Canonical system: \`${options.system}\` (\`${options.disposition}\`).
+
 ## Generated Files
 
 - \`packages/convex/convex/workflowRunners/${name}.ts\`: plain Convex \`defineWorkflow\` durable replay handler.
@@ -2260,7 +2327,12 @@ ${description}
   return {
     name,
     pascalName,
-    files: withGeneratorProvenance("add-workflow", name, files),
+    system: options.system,
+    disposition: options.disposition,
+    files: withGeneratorProvenance("add-workflow", name, files, {
+      system: options.system,
+      disposition: options.disposition,
+    }),
   };
 };
 
@@ -2419,6 +2491,8 @@ describe("${name} promoted capability domain", () => {
       content: `${JSON.stringify(
         {
           capability: name,
+          system: options.system,
+          disposition: options.disposition,
           promoted: true,
           targetGroup: `capabilities/${name}`,
           authScope: "workspace member",
@@ -2446,6 +2520,7 @@ ${description}
 
 ## Promotion Contract
 
+- Canonical system: \`${options.system}\` (\`${options.disposition}\`)
 - Confect spec: \`${name}.spec.ts\`
 - Confect impl: \`${name}.impl.ts\`
 - Typed errors: Unauthorized, ValidationFailed, Forbidden
@@ -2465,8 +2540,13 @@ ${description}
   return {
     name,
     pascalName,
+    system: options.system,
+    disposition: options.disposition,
     target: "capability",
-    files: withGeneratorProvenance("promote-capability", name, files),
+    files: withGeneratorProvenance("promote-capability", name, files, {
+      system: options.system,
+      disposition: options.disposition,
+    }),
     followUp: [
       "Add promoted group to the Confect spec tree.",
       "Run pnpm confect:codegen and inspect generated refs.",
@@ -2546,6 +2626,8 @@ export default GroupImpl.make(databaseSchema, ${name}Group).pipe(
         {
           id: name,
           name: pascalName,
+          system: options.system,
+          disposition: options.disposition,
           description,
           promoted: true,
           nodes: [
@@ -2583,6 +2665,7 @@ ${description}
 
 ## Promotion Contract
 
+- Canonical system: \`${options.system}\` (\`${options.disposition}\`)
 - Confect run spec: \`${name}.spec.ts\`
 - Confect run impl: \`${name}.impl.ts\`
 - Durable graph seed: \`${name}.workflow.json\`
@@ -2601,8 +2684,13 @@ ${description}
   return {
     name,
     pascalName,
+    system: options.system,
+    disposition: options.disposition,
     target: "workflow",
-    files: withGeneratorProvenance("promote-workflow", name, files),
+    files: withGeneratorProvenance("promote-workflow", name, files, {
+      system: options.system,
+      disposition: options.disposition,
+    }),
     followUp: [
       "Add promoted workflow group to the Confect spec tree.",
       "Wire the durable graph into workflow UI and headless registry surfaces.",
@@ -2920,6 +3008,9 @@ const parseArgs = (
   readonly mode: ProviderMode;
   readonly exposure: "web" | "workflow" | "headless";
   readonly description: string | undefined;
+  readonly system: string | undefined;
+  readonly disposition: SystemGeneratorDisposition | undefined;
+  readonly query: string | undefined;
   readonly write: boolean;
   readonly path: string;
 } => {
@@ -2930,6 +3021,9 @@ const parseArgs = (
   const pathIndex = argv.indexOf("--path");
   const exposureIndex = argv.indexOf("--exposure");
   const descriptionIndex = argv.indexOf("--description");
+  const systemIndex = argv.indexOf("--system");
+  const dispositionIndex = argv.indexOf("--disposition");
+  const queryIndex = argv.indexOf("--query");
   const fromIndex = argv.indexOf("--from");
   const toIndex = argv.indexOf("--to");
   const fixtureIndex = argv.indexOf("--fixture");
@@ -2962,6 +3056,11 @@ const parseArgs = (
   }
 
   const path = pathIndex >= 0 ? argv[pathIndex + 1] : undefined;
+  const disposition =
+    dispositionIndex >= 0 ? argv[dispositionIndex + 1] : undefined;
+  if (disposition && !["reuse", "extend"].includes(disposition)) {
+    throw new Error(`Unknown system disposition: ${disposition}`);
+  }
 
   return {
     command,
@@ -2973,6 +3072,9 @@ const parseArgs = (
     mode: (mode ?? "fake") as ProviderMode,
     exposure: exposure as "web" | "workflow" | "headless",
     description: descriptionIndex >= 0 ? argv[descriptionIndex + 1] : undefined,
+    system: systemIndex >= 0 ? argv[systemIndex + 1] : undefined,
+    disposition: disposition as SystemGeneratorDisposition | undefined,
+    query: queryIndex >= 0 ? argv[queryIndex + 1] : undefined,
     write: argv.includes("--write"),
     path: path || "template-instance.json",
   };
@@ -2989,6 +3091,34 @@ export const runGeneratorCli = (
   try {
     const args = parseArgs(argv);
     const outputPath = resolve(cwd, args.path);
+    const catalogRoot = existsSync(systemCatalogPath(cwd))
+      ? cwd
+      : defaultRepoRoot;
+    const requireOwnership = (): {
+      readonly system: string;
+      readonly disposition: SystemGeneratorDisposition;
+    } => {
+      if (!args.system) {
+        throw new Error(
+          `Missing required --system for ${args.command}. Run pnpm template:systems to inspect canonical owners before scaffolding.`,
+        );
+      }
+      const system = canonicalSystemById(
+        readSystemCatalog(catalogRoot),
+        args.system,
+      );
+      if (system.lifecycle !== "active") {
+        throw new Error(
+          `Canonical system ${system.id} is ${system.lifecycle} and cannot receive new generated ownership.`,
+        );
+      }
+      if (!args.disposition) {
+        throw new Error(
+          `Missing required --disposition reuse|extend for ${args.command}. Record whether the generated slice delegates to or expands ${system.id}.`,
+        );
+      }
+      return { system: system.id, disposition: args.disposition };
+    };
 
     if (!args.command || args.command === "help" || args.command === "--help") {
       return {
@@ -3003,17 +3133,42 @@ export const runGeneratorCli = (
             "template:intake [--blueprint <supported-blueprint>] [--name <name>] [--mode fake|test|live] [--write]",
             "template:seed-demo [--blueprint <supported-blueprint>] [--mode fake|test|live] [--write]",
             "template:handoff [--blueprint <supported-blueprint>] [--name <name>] [--mode fake|test|live] [--write]",
-            "template:add-client-domain --name <name> [--description <text>] [--write]",
-            "template:add-capability --name <name> [--description <text>] [--exposure web|workflow|headless] [--write]",
-            "template:add-workflow --name <name> [--description <text>] [--write]",
-            "template:add-agent --name <name> [--description <text>] [--write]",
-            "template:add-agent-seat --name <name> [--description <text>] [--write]",
-            "template:promote-capability --name <name> [--description <text>] [--write]",
-            "template:promote-workflow --name <name> [--description <text>] [--write]",
+            "template:systems [--query <exact-id-alias-responsibility-or-table>]",
+            "template:add-client-domain --name <name> --system <canonical-id> --disposition reuse|extend [--description <text>] [--write]",
+            "template:add-capability --name <name> --system <canonical-id> --disposition reuse|extend [--description <text>] [--exposure web|workflow|headless] [--write]",
+            "template:add-workflow --name <name> --system <canonical-id> --disposition reuse|extend [--description <text>] [--write]",
+            "template:add-agent --name <name> --system <canonical-id> --disposition reuse|extend [--description <text>] [--write]",
+            "template:add-agent-seat --name <name> --system <canonical-id> --disposition reuse|extend [--description <text>] [--write]",
+            "template:promote-capability --name <name> --system <canonical-id> --disposition reuse|extend [--description <text>] [--write]",
+            "template:promote-workflow --name <name> --system <canonical-id> --disposition reuse|extend [--description <text>] [--write]",
             "template:upgrade --from <client-version> --to <template-version>",
             "template:private-package:dry-run --fixture <path>",
             "template:private-package:import --fixture <path> [--write]",
           ].join("\n") + "\n",
+        stderr: "",
+      };
+    }
+
+    if (args.command === "systems") {
+      const catalog = readSystemCatalog(catalogRoot);
+      const systems = args.query
+        ? findCanonicalSystems(catalog, args.query)
+        : catalog.systems;
+
+      return {
+        exitCode: 0,
+        stdout: `${JSON.stringify(
+          {
+            query: args.query ?? null,
+            matches: systems,
+            guidance:
+              systems.length === 0
+                ? "No exact catalog match. Review the full catalog before proposing an introduce decision."
+                : "Use the canonical id with --system and reuse or extend this owner.",
+          },
+          null,
+          2,
+        )}\n`,
         stderr: "",
       };
     }
@@ -3170,6 +3325,7 @@ export const runGeneratorCli = (
 
       const result = buildClientDomainFiles({
         name: args.name,
+        ...requireOwnership(),
         ...(args.description ? { description: args.description } : {}),
       });
 
@@ -3195,6 +3351,7 @@ export const runGeneratorCli = (
 
       const result = buildCapabilityFiles({
         name: args.name,
+        ...requireOwnership(),
         exposure: args.exposure,
         ...(args.description ? { description: args.description } : {}),
       });
@@ -3221,6 +3378,7 @@ export const runGeneratorCli = (
 
       const result = buildWorkflowFiles({
         name: args.name,
+        ...requireOwnership(),
         ...(args.description ? { description: args.description } : {}),
       });
 
@@ -3246,6 +3404,7 @@ export const runGeneratorCli = (
 
       const result = buildAgentFiles({
         name: args.name,
+        ...requireOwnership(),
         ...(args.description ? { description: args.description } : {}),
       });
 
@@ -3271,6 +3430,7 @@ export const runGeneratorCli = (
 
       const result = buildCapabilityPromotionFiles({
         name: args.name,
+        ...requireOwnership(),
         ...(args.description ? { description: args.description } : {}),
       });
 
@@ -3296,6 +3456,7 @@ export const runGeneratorCli = (
 
       const result = buildWorkflowPromotionFiles({
         name: args.name,
+        ...requireOwnership(),
         ...(args.description ? { description: args.description } : {}),
       });
 

@@ -8,7 +8,8 @@ type WorkPackage = Slice["workPackages"][number];
 const workPackage = (over: Partial<WorkPackage> = {}): WorkPackage => ({
   kind: "pattern-instance",
   target: "packages/convex/confect/capabilities/x",
-  generatorCommand: "pnpm template:add-capability -- --name x --write",
+  generatorCommand:
+    "pnpm template:add-capability -- --name x --system knowledge-brain --disposition extend --write",
   followUpGates: [
     "pnpm confect:codegen",
     "pnpm confect:manifest",

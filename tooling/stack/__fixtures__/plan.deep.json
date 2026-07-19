@@ -27,7 +27,7 @@
         {
           "kind": "pattern-instance",
           "target": "packages/convex/confect/capabilities/demoChecks",
-          "generatorCommand": "pnpm template:add-capability -- --name demoChecks --write",
+          "generatorCommand": "pnpm template:add-capability -- --name demoChecks --system knowledge-brain --disposition extend --write",
           "followUpGates": ["pnpm check:confect-contracts"]
         }
       ],
@@ -44,7 +44,7 @@
         {
           "kind": "pattern-instance",
           "target": "packages/convex/confect/capabilities/demoDomain",
-          "generatorCommand": "pnpm template:add-capability -- --name demoDomain --write",
+          "generatorCommand": "pnpm template:add-capability -- --name demoDomain --system knowledge-brain --disposition extend --write",
           "followUpGates": ["pnpm check:confect-contracts"]
         }
       ],
@@ -61,7 +61,7 @@
         {
           "kind": "pattern-instance",
           "target": "packages/convex/confect/capabilities/demoCapability",
-          "generatorCommand": "pnpm template:add-capability -- --name demoCapability --write",
+          "generatorCommand": "pnpm template:add-capability -- --name demoCapability --system knowledge-brain --disposition extend --write",
           "followUpGates": [
             "pnpm confect:codegen",
             "pnpm check:confect-contracts"
@@ -81,7 +81,7 @@
         {
           "kind": "pattern-instance",
           "target": "packages/convex/confect/workflowContracts/demoWorkflow",
-          "generatorCommand": "pnpm template:add-workflow -- --name demoWorkflow --write",
+          "generatorCommand": "pnpm template:add-workflow -- --name demoWorkflow --system knowledge-brain --disposition extend --write",
           "followUpGates": [
             "pnpm confect:codegen",
             "pnpm check:workflow-graph-boundary"

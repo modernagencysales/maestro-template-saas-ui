@@ -43,6 +43,30 @@ an invention:
 - The multi-surface idea — the same capability reachable from web, CLI, MCP, and
   an OpenAPI-described HTTP API — is how maestro actually exposes work.
 
+## What Maestro taught us about whole-system duplication
+
+Maestro's layer and code-duplication gates could keep individual modules clean
+while two separately clean subsystems evolved around the same product job. Its
+convergence work introduced a product-responsibility graph: stable systems and
+jobs, one semantic owner per responsibility, explicit projection/delegate roles,
+owned tables, generator ownership inputs, and AI review for semantic
+near-duplicates that deterministic checks cannot recognize.
+
+This template adopts the proportional core of that solution:
+
+- `docs/template/system-catalog.json` is the small checked-in responsibility,
+  schema ownership, and canonical-entrypoint graph;
+- `pnpm check:system-catalog` proves every hand-authored Confect table has one
+  owner and all catalog paths still resolve;
+- `pnpm template:systems` exposes the graph before planning, while backend
+  generators require `--system` and `--disposition reuse|extend`;
+- the contract-review AI gate judges whether new nouns conceal a parallel
+  lifecycle and whether actor surfaces delegate to the canonical owner.
+
+The template intentionally does not copy Maestro's large migration/conflict
+ledger or run an embedding/model scan over the repository. Exact ownership is a
+fast deterministic gate; semantic similarity stays a bounded plan/PR judgment.
+
 ## What is deliberately different
 
 - **Confect + Effect is a go-forward choice, not an extraction.** maestro today

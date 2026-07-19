@@ -32,5 +32,8 @@ pre-push:
     gates:
       tags: deterministic
       run: pnpm check:gates
+    system-catalog:
+      tags: deterministic
+      run: pnpm check:system-catalog
     rubric:
       run: bash scripts/pre-push-rubric.sh

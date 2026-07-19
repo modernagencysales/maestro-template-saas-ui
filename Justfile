@@ -6,7 +6,7 @@
 # verify = the fast gate chain. Mutation and hosted smoke are slow gates that
 # run as separate scheduled/manual CI jobs, not in verify.
 
-verify: check-fmt lint typecheck test test-tooling check-deps check-knip check-debt check-gates check-generators build
+verify: check-fmt lint typecheck test test-tooling check-deps check-knip check-debt check-gates check-generators check-system-catalog build
 
 check-fmt:
     pnpm check:format
@@ -49,6 +49,9 @@ check-gates:
 
 check-generators:
     pnpm check:generators
+
+check-system-catalog:
+    pnpm check:system-catalog
 
 check-convex:
     pnpm check:convex

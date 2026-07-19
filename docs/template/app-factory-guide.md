@@ -15,6 +15,8 @@ without copying project-specific business logic into the core framework.
 - Start from fake providers and synthetic demo data.
 - Use [env-manifest.md](./env-manifest.md) as the provider setup source of
   truth.
+- Query [system-catalog.md](./system-catalog.md) before adding nouns or durable
+  resources; reuse or extend an existing canonical owner by default.
 - Add client domain nouns through generators.
 - Keep Confect specs, generated manifest/headless metadata, generated ref
   mappings, frontend adapters, docs, and tests together.
@@ -58,9 +60,9 @@ not template-core assumptions.
    `pnpm template:seed-demo -- --blueprint source-grounded-gtm-brain --write`.
 5. Run `pnpm template:doctor -- --mode fake`.
 6. Add a first capability with
-   `pnpm template:add-capability -- --name summarizeSource --write`.
+   `pnpm template:add-capability -- --name summarizeSource --system knowledge-brain --disposition extend --write`.
 7. Add a first workflow with
-   `pnpm template:add-workflow -- --name sourceGroundedPlan --write`.
+   `pnpm template:add-workflow -- --name sourceGroundedPlan --system knowledge-brain --disposition extend --write`.
 8. Regenerate generated contracts before wiring generated wrappers:
    `pnpm confect:codegen`, `pnpm confect:manifest`, then the relevant focused
    tests and gates for the changed surface. Run Convex codegen only when the
@@ -73,7 +75,8 @@ not template-core assumptions.
 10. Import reviewed private packages with
     `pnpm template:private-package:import -- --fixture <fixture> --write`; keep
     generated source modules under `private-packages/<package>/` until review.
-11. Add domain modules with `template:add-client-domain`.
+11. Add domain modules with
+    `template:add-client-domain -- --system <id> --disposition reuse|extend`.
 12. Add capabilities, workflows, agents, Brain schemas, API surfaces, source
     types, notifications, admin surfaces, and data lifecycle resources through
     the matching generators.

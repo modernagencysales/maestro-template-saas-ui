@@ -27,6 +27,12 @@ Every schema addition that stores workspace-owned data must declare:
 These fields must be documented before a resource is promoted from
 generated/client-specific code into the template core.
 
+Every hand-authored table must also have exactly one owner in
+`docs/template/system-catalog.json`. `pnpm check:system-catalog` compares that
+catalog to `packages/convex/confect/tables/*.ts`, so a new table cannot land as
+an unowned parallel subsystem. Extend an existing system by default; a new
+system requires a reviewed introduction decision.
+
 ## DSAR Request Planning
 
 `buildWorkspaceDsarPlan` creates a plan-only request for workspace export or

@@ -25,6 +25,8 @@ For backend or headless behavior, emit or update:
 - data-map metadata.
 - env manifest entries when a provider or secret name is introduced.
 - migration notes for durable table or index changes.
+- canonical system ID and `reuse`/`extend` ownership decision in generated
+  provenance.
 - reviewer commands.
 
 `template:add-capability` emits flat Confect files under
@@ -74,6 +76,9 @@ For user-facing behavior, also emit or update:
   declare
   `error: () => Schema.Union(Unauthorized, ValidationFailed, Forbidden)`.
 - Generated source must never import from `repos/*`.
+- Backend/client-domain generators accept an existing canonical `--system` ID
+  and require `--disposition reuse|extend`; creating a new owner requires a
+  reviewed catalog decision before generation.
 - Generated client-specific logic stays under generated modules or
   `private-packages/<name>/` until reviewed.
 - Provider SDKs stay behind Effect services and adapters.
@@ -91,5 +96,6 @@ For user-facing behavior, also emit or update:
 - `pnpm check:confect-contracts`
 - `pnpm check:workflow-graph-boundary`
 - `pnpm check:schema-migration-notes` when durable data changes
+- `pnpm check:system-catalog`
 - `pnpm check:secret-canaries`
 - focused package tests for the generated slice

@@ -3,7 +3,7 @@
 Use the frontend route generator:
 
 ```bash
-pnpm template:add-client-domain -- --name reports
+pnpm template:add-client-domain -- --name reports --system <canonical-id> --disposition reuse
 ```
 
 ## Files Created

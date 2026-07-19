@@ -3,19 +3,23 @@
 Dry-run a generated workflow:
 
 ```bash
-pnpm template:add-workflow -- --name sourceToBrief
+pnpm template:systems -- --query sources
+pnpm template:add-workflow -- --name sourceToBrief --system knowledge-brain --disposition extend
 ```
 
 Write the generated files:
 
 ```bash
-pnpm template:add-workflow -- --name sourceToBrief --description "Turns approved sources into a reviewed brief." --write
+pnpm template:add-workflow -- --name sourceToBrief --system knowledge-brain --disposition extend --description "Turns approved sources into a reviewed brief." --write
 ```
 
 `template:add-workflow` writes the production-target workflow contract, durable
 graph JSON data, runner, test scaffold, and generated docs directly. Do not run
 `template:promote-workflow` as the normal next step for files created by
 `template:add-workflow`.
+
+`--system` names the product system whose job the workflow performs. Do not use
+`workflow-runtime` merely because all workflows run on that shared primitive.
 
 Regenerate contract artifacts after the files are written and before wiring
 generated public wrappers:
