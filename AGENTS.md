@@ -83,6 +83,11 @@ Rules when replacing a fixture body:
 
 ## Working Loop
 
+- Before planning a subsystem, schema table, capability, workflow, agent, or
+  route, read `docs/template/system-catalog.md` and run
+  `pnpm template:systems -- --query <responsibility-or-table>`. Record `reuse`,
+  `extend`, or a reviewed `introduce` decision. Do not create a parallel system
+  under a new name.
 - Planning starts from work-packages. Each plan/subplan slice must classify work
   as `fixture-to-real`, `pattern-instance`, or `template-gap`.
 - `fixture-to-real` names the existing contract fixture, the real
@@ -95,8 +100,10 @@ Rules when replacing a fixture body:
   `pnpm stack:check` for deterministic plan-shape validation.
 
 - Scaffold first: when a `pnpm template:*` generator covers the module kind, use
-  it instead of hand-writing registrations. Generated output compiles and passes
-  gates; fill in the TODOs where judgment is required.
+  it instead of hand-writing registrations. Backend generators require the
+  canonical `--system` ID plus `--disposition reuse|extend` and record both in
+  provenance. Generated output compiles and passes gates; fill in the TODOs
+  where judgment is required.
 - Gate discipline: run the focused gates for what you changed before every
   commit, and `just verify` before declaring any task done. Recipe names in the
   Justfile are the canonical gate contract shared by local dev, CI, and agent
@@ -110,7 +117,9 @@ Rules when replacing a fixture body:
 - Suppressions (`eslint-disable`, `ts-expect-error`) are debt: do not add them
   without a comment explaining the constraint and a backlog note.
 - When a subsystem changes status (real/fake/seam/planned), update its doc in
-  the same commit.
+  the same commit. When durable schema changes, update
+  `docs/template/system-catalog.json` and run `pnpm check:system-catalog` in the
+  same commit.
 
 ## Testing Doctrine
 
@@ -176,6 +185,7 @@ This project vendors external repositories under `repos/`.
 ## Playbook Index
 
 - [Blueprint catalog](docs/template/blueprint-catalog.md)
+- [Canonical system catalog](docs/template/system-catalog.md)
 - [Generator output contract](docs/template/generator-output-contract.md)
 - [Client intake questionnaire](docs/template/client-intake-questionnaire.md)
 - [Client handoff packet](docs/template/client-handoff-packet.md)

@@ -50,6 +50,26 @@ Flag semantic layer violations that dependency-cruiser may miss:
 - Duplicated business logic across web, API, CLI, or MCP surfaces instead of
   shared capabilities/workflows.
 
+## Canonical system ownership
+
+`docs/template/system-catalog.json` is the checked-in responsibility and schema
+ownership contract. For a subsystem, capability, workflow, agent, route, or
+table change, judge the meaning that deterministic checks cannot:
+
+- Does the change reuse or extend the named canonical system, or does it build a
+  parallel lifecycle under new nouns?
+- Is a supposedly new system genuinely distinct from every catalog summary,
+  responsibility, alias, table, and canonical entrypoint?
+- Do actor-specific web/API/CLI/MCP/agent surfaces delegate to one owner, or do
+  they introduce separate state, orchestration, or command implementations?
+- Does an `introduce`, `replace`, or `retire` change include a reviewed system
+  decision and, when applicable, a migration/feature-preservation plan?
+
+Block unrecorded parallel systems and duplicated table families even when each
+individual file obeys the layer law. The deterministic `check:system-catalog`
+gate already checks exact table coverage, unique ownership, IDs, and paths; do
+not reimplement those checks here.
+
 ## Typed errors and tenancy
 
 - Throw only typed errors from the closed error taxonomy; Confect specs declare
@@ -126,8 +146,8 @@ Return minified JSON only. Each finding must include:
 - `severity`: `red`, `yellow`, or `green`.
 - `path`, `line`, `issue`, `contract`, `fix`.
 - `clause`: stable clause id such as `LAYER_LAW`, `TYPED_ERRORS`,
-  `TENANCY_GUARD`, `META_GATE_SECURITY`, `SUPPRESSION_BAN`, `RATCHET`,
-  `TEST_QUALITY`, `PR_HYGIENE`.
+  `TENANCY_GUARD`, `SYSTEM_OWNERSHIP`, `META_GATE_SECURITY`, `SUPPRESSION_BAN`,
+  `RATCHET`, `TEST_QUALITY`, `PR_HYGIENE`.
 - `confidence`: `high`, `medium`, or `low`.
 - `mechanicalGateCandidate`: `eslint`, `debt`, `depcruise`, `arch-test`, or
   `none`.

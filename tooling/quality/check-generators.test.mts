@@ -41,6 +41,8 @@ describe("check:generators", () => {
             "template:seed-demo",
             "template:handoff",
             "template:add-client-domain",
+            "template:systems",
+            "check:system-catalog",
           ]),
         }),
       ]),

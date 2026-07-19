@@ -7,8 +7,10 @@ Use this when asking an AI worker to modify the template or a client fork.
 1. Read `AGENTS.md`.
 2. Read `docs/template/repo-map.md`.
 3. Read `docs/template/blueprint-catalog.md`.
-4. Read `docs/template/generator-output-contract.md`.
-5. Read the relevant package README or authoring guide.
+4. Read `docs/template/system-catalog.md` and query likely responsibilities with
+   `pnpm template:systems -- --query <term>`.
+5. Read `docs/template/generator-output-contract.md`.
+6. Read the relevant package README or authoring guide.
 
 ## Effect And Confect
 
@@ -31,6 +33,11 @@ Choose generators before hand-writing modules:
   runtime/private capability artifacts.
 - `template:promote-workflow` only for older reviewed or private-package
   workflow artifacts that still need migration into production-target paths.
+
+Capability, workflow, agent, promotion, and client-domain generators require
+`--system <canonical-id> --disposition reuse|extend`. If no system fits, stop
+scaffolding and write a reviewed introduction decision; do not use a new synonym
+to bypass the catalog.
 
 ## Layer Law
 
@@ -58,6 +65,7 @@ commands:
 - `pnpm check:generators`
 - `pnpm check:confect-contracts`
 - `pnpm check:workflow-graph-boundary`
+- `pnpm check:system-catalog`
 - `pnpm check:secret-canaries`
 - package-specific Vitest suites
 

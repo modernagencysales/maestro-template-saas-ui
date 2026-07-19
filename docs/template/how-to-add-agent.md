@@ -3,10 +3,14 @@
 Use the agent generator:
 
 ```bash
-pnpm template:add-agent -- --name workflow_architect --write
+pnpm template:systems -- --query workflows
+pnpm template:add-agent -- --name workflow_architect --system workflow-runtime --disposition reuse --write
 ```
 
 `pnpm template:add-agent-seat` remains an alias for older task briefs.
+
+Use the product system the agent serves. The generated seat is an actor-view of
+that owner, not a new system with its own parallel state.
 
 ## Files Created
 

@@ -20,6 +20,10 @@
   B2B AI/GTM app fork.
 - `docs/template/blueprint-catalog.md`: blueprint families for common
   AI/GTM/client implementation apps.
+- `docs/template/system-catalog.json`: machine-checked canonical system,
+  responsibility, entrypoint, and schema-table ownership.
+- `docs/template/system-catalog.md`: agent/human reuse, extension, and system
+  introduction workflow.
 - `docs/template/client-intake-questionnaire.md`: discovery questions before a
   client-specific fork.
 - `docs/template/implementation-brief-template.md`: discovery and handoff
@@ -56,9 +60,10 @@
   controls, including the optional co-editing document shell.
 - `packages/workflow-ui`: React Flow graph editor primitive and future command
   reducers.
-- `packages/template-core`: shared template registry for sample/reviewer data,
-  generated Confect manifest output, workflow/capability/agent types, co-editing
-  domain constructors, policies, and reviewer-safe fixtures.
+- `packages/template-core`: shared template registry and pure canonical-system
+  catalog parser for sample/reviewer data, generated Confect manifest output,
+  workflow/capability/agent types, co-editing domain constructors, policies, and
+  reviewer-safe fixtures.
 - `packages/integrations`: Effect service interfaces and provider adapters.
 - `packages/notifications`: notification provider boundary plus fake-safe in-app
   center model, read-state planner, and channel preferences. Durable

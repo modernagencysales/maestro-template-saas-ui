@@ -103,9 +103,10 @@ pnpm template:quickstart -- --blueprint source-grounded-gtm-brain --name "Review
 pnpm template:intake -- --name "Reviewer Brain" --write
 pnpm template:doctor -- --mode fake
 pnpm template:seed-demo -- --blueprint source-grounded-gtm-brain --write
-pnpm template:add-capability -- --name summarizeSource
-pnpm template:add-workflow -- --name sourceGroundedPlan
-pnpm template:promote-capability -- --name summarizeSource
+pnpm template:systems -- --query sources
+pnpm template:add-capability -- --name summarizeSource --system knowledge-brain --disposition extend
+pnpm template:add-workflow -- --name sourceGroundedPlan --system knowledge-brain --disposition extend
+pnpm template:promote-capability -- --name summarizeSource --system knowledge-brain --disposition extend
 pnpm template:workflow-output-smoke
 pnpm template:handoff -- --mode fake --write
 pnpm template:upgrade -- --from client-v1.0.0 --to template-v1.1.0
