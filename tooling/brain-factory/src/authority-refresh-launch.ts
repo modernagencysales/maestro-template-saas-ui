@@ -119,6 +119,7 @@ export const launchAuthorityRefresh = (input: {
         const path = resolve(directory, entry.name);
         if (entry.isDirectory()) visit(path);
         else if (entry.name === "integration-result.json") {
+          if (existsSync(resolve(directory, "supersession.json"))) continue;
           const result = JSON.parse(readFileSync(path, "utf8")) as {
             headSha?: unknown;
             includedTasks?: readonly { taskId?: unknown }[];

@@ -309,6 +309,7 @@ describe("authority refresh admission", () => {
     expect(resumeSource).toContain("launchAuthorityRefresh({");
     expect(launchSource).toContain('"authority-refresh"');
     expect(launchSource).toContain('"authority-repair"');
+    expect(launchSource).toContain('"supersession.json"');
     expect(launchSource).toContain("resume_mode=conflict-aware");
   });
 
