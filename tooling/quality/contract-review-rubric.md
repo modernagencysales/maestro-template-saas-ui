@@ -70,6 +70,26 @@ individual file obeys the layer law. The deterministic `check:system-catalog`
 gate already checks exact table coverage, unique ownership, IDs, and paths; do
 not reimplement those checks here.
 
+Also inspect `docs/template/product-topology.json` and generated provenance. The
+deterministic topology gate proves exact ownership coverage; semantic review
+must still catch two differently named resources that own the same
+responsibility, lifecycle, command authority, or durable state.
+
+## Data and promotion contracts
+
+- Every new durable table must have one entry in `data-resources.json` with an
+  explicit tenant scope, sensitivity/PII posture, export/delete/retention
+  behavior, workspace lifecycle, write authority, and migration decision.
+- Block shadow tables, per-surface copies, read-model sprawl without a declared
+  source of truth, and table families that duplicate an existing lifecycle.
+- Code under `experiments/` and `private-packages/` is intentionally free to be
+  rough, but it is not production code. Production must never import it or let
+  it register a table, route, headless operation, job, or provider.
+- Promotion re-scaffolds the learned contract through `template:add-feature` or
+  the matching generator. Flag copied sandbox implementations that bypass the
+  auth, tenancy, typed-state, audit, observability, rollout, entitlement,
+  lifecycle, test, and provenance contract.
+
 ## Typed errors and tenancy
 
 - Throw only typed errors from the closed error taxonomy; Confect specs declare
@@ -147,7 +167,8 @@ Return minified JSON only. Each finding must include:
 - `path`, `line`, `issue`, `contract`, `fix`.
 - `clause`: stable clause id such as `LAYER_LAW`, `TYPED_ERRORS`,
   `TENANCY_GUARD`, `SYSTEM_OWNERSHIP`, `META_GATE_SECURITY`, `SUPPRESSION_BAN`,
-  `RATCHET`, `TEST_QUALITY`, `PR_HYGIENE`.
+  `DATA_RESOURCE`, `PROMOTION_BOUNDARY`, `RATCHET`, `TEST_QUALITY`,
+  `PR_HYGIENE`.
 - `confidence`: `high`, `medium`, or `low`.
 - `mechanicalGateCandidate`: `eslint`, `debt`, `depcruise`, `arch-test`, or
   `none`.

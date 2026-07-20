@@ -7,10 +7,13 @@ Use this when asking an AI worker to modify the template or a client fork.
 1. Read `AGENTS.md`.
 2. Read `docs/template/repo-map.md`.
 3. Read `docs/template/blueprint-catalog.md`.
-4. Read `docs/template/system-catalog.md` and query likely responsibilities with
+4. Read `docs/template/system-catalog.md`, `docs/template/product-topology.md`,
+   and `docs/template/data-lifecycle.md`; query likely responsibilities with
    `pnpm template:systems -- --query <term>`.
-5. Read `docs/template/generator-output-contract.md`.
-6. Read the relevant package README or authoring guide.
+5. Read `docs/template/promotion-boundary.md` and
+   `docs/template/generator-output-contract.md`.
+6. Inspect `docs/template/data-resources.json` before proposing durable state.
+7. Read the relevant package README or authoring guide.
 
 ## Effect And Confect
 
@@ -26,6 +29,9 @@ Choose generators before hand-writing modules:
 
 - `template:quickstart` for a new fork.
 - `template:add-client-domain` for client nouns.
+- `template:prototype` for uncertain behavior; it stays under `experiments/`.
+- `template:add-feature` for a production capability + frontend vertical slice.
+- `template:add-table` for durable state and its complete lifecycle contract.
 - `template:add-capability` for a new operation.
 - `template:add-workflow` for a production-target workflow graph, contract,
   runner, and test scaffold.
@@ -34,7 +40,8 @@ Choose generators before hand-writing modules:
 - `template:promote-workflow` only for older reviewed or private-package
   workflow artifacts that still need migration into production-target paths.
 
-Capability, workflow, agent, promotion, and client-domain generators require
+Capability, workflow, agent, feature, table, prototype, promotion,
+private-package, and client-domain generators require
 `--system <canonical-id> --disposition reuse|extend`. If no system fits, stop
 scaffolding and write a reviewed introduction decision; do not use a new synonym
 to bypass the catalog.
@@ -66,6 +73,9 @@ commands:
 - `pnpm check:confect-contracts`
 - `pnpm check:workflow-graph-boundary`
 - `pnpm check:system-catalog`
+- `pnpm check:system-topology`
+- `pnpm check:data-resources`
+- `pnpm check:promotion-boundary`
 - `pnpm check:secret-canaries`
 - package-specific Vitest suites
 

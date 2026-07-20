@@ -37,6 +37,10 @@ pnpm check:confect-contracts
 pnpm check:confect-compat
 pnpm check:workflow-graph-boundary
 pnpm check:schema-migration-notes
+pnpm check:system-catalog
+pnpm check:system-topology
+pnpm check:data-resources
+pnpm check:promotion-boundary
 pnpm check:layer-boundaries
 pnpm check:secret-canaries
 pnpm check:sbom-license

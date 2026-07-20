@@ -35,5 +35,14 @@ pre-push:
     system-catalog:
       tags: deterministic
       run: pnpm check:system-catalog
+    system-topology:
+      tags: deterministic
+      run: pnpm check:system-topology
+    data-resources:
+      tags: deterministic
+      run: pnpm check:data-resources
+    promotion-boundary:
+      tags: deterministic
+      run: pnpm check:promotion-boundary
     rubric:
       run: bash scripts/pre-push-rubric.sh

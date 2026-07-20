@@ -24,6 +24,14 @@
   responsibility, entrypoint, and schema-table ownership.
 - `docs/template/system-catalog.md`: agent/human reuse, extension, and system
   introduction workflow.
+- `docs/template/product-topology.json`: machine-checked ownership for
+  production capabilities, workflows, agents, jobs, routes, headless gateways,
+  and provider seams.
+- `docs/template/data-resources.json`: machine-checked tenant, sensitivity, PII,
+  export/delete/retention, lifecycle, and write-authority posture for every
+  durable table.
+- `docs/template/promotion-boundary.md`: experiment/private-package isolation
+  and production promotion workflow.
 - `docs/template/client-intake-questionnaire.md`: discovery questions before a
   client-specific fork.
 - `docs/template/implementation-brief-template.md`: discovery and handoff
@@ -39,6 +47,10 @@
   workers.
 - `agent-patterns/`: future local references for Effect, Confect, and workflow
   graph idioms.
+- `experiments/`: low-friction, fake-safe prototypes that production code may
+  not import. Use `template:prototype`; promote by re-scaffolding.
+- `private-packages/`: reviewed package-import staging area that remains outside
+  the production dependency graph until contracts are promoted.
 - `repos/`: future vendored read-only source references for Effect and Confect.
 - `vendor/`: private package artifacts required by the internal template. This
   fork currently does not require private UI tarballs.
@@ -90,8 +102,9 @@
 - `tooling/quality`: deterministic gates and AI gate wrappers.
 - `tooling/workflow`: headless operation projection from the generated Confect
   manifest, CLI/MCP/API metadata, OpenAPI generation, and workflow helpers.
-- `tooling/generators`: template init, quickstart, seed-demo, handoff, add-*
-  generators, doctor, private-package import, and upgrade.
+- `tooling/generators`: template init, quickstart, prototype, golden feature,
+  durable table, seed-demo, handoff, other add-* generators, doctor,
+  private-package import, and upgrade.
 - `tooling/evals`: prompt and source-grounding evaluation fixtures.
 - `tooling/release`: deploy, smoke, rollback, and backup/restore helpers.
 - `tooling/pr-backlog`: PR sweep and backlog tooling.
