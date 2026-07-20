@@ -9,6 +9,7 @@ import {
   loadManifestProjection,
   MANIFEST_RELATIVE,
   PLAN_RELATIVE,
+  parseAuthorityRepairTransition,
   parseTaskPacketAuditRows,
   REPO_ROOT,
   readyWidth,
@@ -35,6 +36,64 @@ const generatorDryRunPaths = (args: readonly string[]): readonly string[] => {
 };
 
 describe("Maestro Brain execution manifest", () => {
+  const transitionBody = (overrides: Record<string, unknown> = {}): string =>
+    `- **Authority-repair transition:**\n  \`\`\`json\n${JSON.stringify(
+      {
+        schemaVersion: "maestro-brain-authority-repair-transition/v1",
+        mode: "path-rehome",
+        fromPlanSha256: "a".repeat(64),
+        fromTaskBlockHash: "b".repeat(64),
+        sourceRunId: "01KXZP38CAC2GYAF2YA7NRTBQK",
+        sourceBaseSha: "c".repeat(40),
+        sourceHeadSha: "d".repeat(40),
+        sourceTreeSha: "e".repeat(40),
+        requiredIntegratedTaskIds: ["S05-T01"],
+        immutableFindings: [
+          {
+            kind: "git-blob",
+            objectSha: "f".repeat(40),
+            contentSha256: "1".repeat(64),
+          },
+        ],
+        supersededPaths: [
+          {
+            path: "packages/example/obsolete.ts",
+            replacementPath: "packages/example/current.ts",
+            disposition: "replaced-by-current-owned-artifact",
+          },
+        ],
+        ...overrides,
+      },
+      null,
+      2,
+    )}\n  \`\`\``;
+
+  it("distinguishes path-rehome and contract-only authority repairs", () => {
+    expect(
+      parseAuthorityRepairTransition(transitionBody(), "S10-T01")?.mode,
+    ).toBe("path-rehome");
+    expect(
+      parseAuthorityRepairTransition(
+        transitionBody({ mode: "contract-only", supersededPaths: [] }),
+        "S03-T03",
+      ),
+    ).toEqual(
+      expect.objectContaining({ mode: "contract-only", supersededPaths: [] }),
+    );
+    expect(() =>
+      parseAuthorityRepairTransition(
+        transitionBody({ supersededPaths: [] }),
+        "S10-T01",
+      ),
+    ).toThrow("path-rehome repair requires superseded paths");
+    expect(() =>
+      parseAuthorityRepairTransition(
+        transitionBody({ mode: "contract-only" }),
+        "S03-T03",
+      ),
+    ).toThrow("contract-only repair cannot supersede paths");
+  });
+
   it("projects every dependency classification and collision without changing task contracts", () => {
     const projection = loadManifestProjection();
     const generated = buildManifest();
@@ -512,6 +571,7 @@ describe("Maestro Brain execution manifest", () => {
     expect(slackIdentity?.sourceSliceLimit).toBe(6);
     expect(slackIdentity?.authorityRepairTransition).toEqual({
       schemaVersion: "maestro-brain-authority-repair-transition/v1",
+      mode: "path-rehome",
       fromPlanSha256:
         "5e3506ec26c1776547b03641707371efaebb1c490ce3da6b6a1e2ed0df2a8417",
       fromTaskBlockHash:

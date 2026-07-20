@@ -5,6 +5,7 @@ import { validateAuthorityRepairRewrite } from "../src/authority-repair-check.js
 describe("authority repair rewrite", () => {
   const transition = {
     schemaVersion: "maestro-brain-authority-repair-transition/v1" as const,
+    mode: "path-rehome" as const,
     fromPlanSha256: "a".repeat(64),
     fromTaskBlockHash: "b".repeat(64),
     sourceRunId: "01KXZP38CAC2GYAF2YA7NRTBQK",

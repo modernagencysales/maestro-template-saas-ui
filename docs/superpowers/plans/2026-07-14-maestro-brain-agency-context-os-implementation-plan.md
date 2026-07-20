@@ -2937,6 +2937,7 @@ manifest.
   ```json
   {
     "schemaVersion": "maestro-brain-authority-repair-transition/v1",
+    "mode": "path-rehome",
     "fromPlanSha256": "5e3506ec26c1776547b03641707371efaebb1c490ce3da6b6a1e2ed0df2a8417",
     "fromTaskBlockHash": "31d477606c8d812c0f800d81d3401104da038d29fbb39dce06e1292cbd8d6e04",
     "sourceRunId": "01KXZP38CAC2GYAF2YA7NRTBQK",

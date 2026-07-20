@@ -1,6 +1,6 @@
 {
   "planPath": "docs/superpowers/plans/2026-07-14-maestro-brain-agency-context-os-implementation-plan.md",
-  "planSha256": "e31f972a39b51cea55808659bca53233d7870c65181bb8d03a4c24201bf2d8ea",
+  "planSha256": "07ec9b27e8efc4bf7915555e135a8660534e966d629e812e48845600ed27272e",
   "schemaVersion": "maestro-brain-task-manifest/v1",
   "tasks": [
     {
@@ -1321,12 +1321,13 @@
       "requirements": ["IAM-04", "SLK-09"],
       "sourceSliceBudget": 300,
       "sourceSliceLimit": 6,
-      "taskBlockHash": "10073df5c7eb2e1ff832124f13d272492263fb86ecdcbe0f309ac13e3fa02fb1",
+      "taskBlockHash": "8a41d8a2448d6b1ad831ad0b5765d83457d8f2b7f51e0575877d09dafc17c3bf",
       "taskId": "S10-T01",
       "title": "Link Exact Slack Users To Current Maestro Users",
       "tranche": "X3-convergence",
       "authorityRepairTransition": {
         "schemaVersion": "maestro-brain-authority-repair-transition/v1",
+        "mode": "path-rehome",
         "fromPlanSha256": "5e3506ec26c1776547b03641707371efaebb1c490ce3da6b6a1e2ed0df2a8417",
         "fromTaskBlockHash": "31d477606c8d812c0f800d81d3401104da038d29fbb39dce06e1292cbd8d6e04",
         "sourceRunId": "01KXZP38CAC2GYAF2YA7NRTBQK",

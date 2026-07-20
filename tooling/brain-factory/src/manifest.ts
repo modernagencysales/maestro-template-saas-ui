@@ -62,6 +62,7 @@ export interface BrainTaskContract {
 
 export interface AuthorityRepairTransition {
   readonly schemaVersion: "maestro-brain-authority-repair-transition/v1";
+  readonly mode: "contract-only" | "path-rehome";
   readonly fromPlanSha256: string;
   readonly fromTaskBlockHash: string;
   readonly sourceRunId: string;
@@ -397,6 +398,7 @@ export const parseAuthorityRepairTransition = (
     value,
     [
       "schemaVersion",
+      "mode",
       "fromPlanSha256",
       "fromTaskBlockHash",
       "sourceRunId",
@@ -411,6 +413,9 @@ export const parseAuthorityRepairTransition = (
   );
   if (value.schemaVersion !== "maestro-brain-authority-repair-transition/v1") {
     throw new Error(`${taskId}: invalid authority-repair transition schema`);
+  }
+  if (value.mode !== "contract-only" && value.mode !== "path-rehome") {
+    throw new Error(`${taskId}: invalid authority-repair transition mode`);
   }
   const sha64 = /^[0-9a-f]{64}$/;
   const sha40 = /^[0-9a-f]{40}$/;
@@ -461,13 +466,14 @@ export const parseAuthorityRepairTransition = (
   ) {
     throw new Error(`${taskId}: duplicate immutable finding object`);
   }
-  if (
-    !Array.isArray(value.supersededPaths) ||
-    value.supersededPaths.length === 0
-  ) {
-    throw new Error(
-      `${taskId}: authority-repair superseded paths are required`,
-    );
+  if (!Array.isArray(value.supersededPaths)) {
+    throw new Error(`${taskId}: authority-repair superseded paths are invalid`);
+  }
+  if (value.mode === "path-rehome" && value.supersededPaths.length === 0) {
+    throw new Error(`${taskId}: path-rehome repair requires superseded paths`);
+  }
+  if (value.mode === "contract-only" && value.supersededPaths.length !== 0) {
+    throw new Error(`${taskId}: contract-only repair cannot supersede paths`);
   }
   const supersededPaths = value.supersededPaths.map((item, index) => {
     const mapping = recordValue(item, `${taskId}: superseded path ${index}`);
@@ -508,6 +514,7 @@ export const parseAuthorityRepairTransition = (
   }
   return {
     schemaVersion: "maestro-brain-authority-repair-transition/v1",
+    mode: value.mode,
     fromPlanSha256: exactString(
       value.fromPlanSha256,
       sha64,
