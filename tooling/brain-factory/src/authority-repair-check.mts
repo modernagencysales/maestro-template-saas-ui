@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync, realpathSync } from "node:fs";
-import { resolve } from "node:path";
+import { basename, resolve } from "node:path";
 
 import { validateAuthorityRepairRewrite } from "./authority-repair-check.js";
 import { laneHistoryOwnershipIssues } from "./lane-ownership.js";
@@ -31,6 +31,9 @@ const archiveManifest = JSON.parse(
   schemaVersion?: unknown;
   taskId?: unknown;
 };
+const archiveManifestSha256 = createHash("sha256")
+  .update(readFileSync(resolve(archive, "manifest.json")))
+  .digest("hex");
 if (
   archiveManifest.schemaVersion !==
     "maestro-brain-authority-repair-archive/v1" ||
@@ -38,6 +41,11 @@ if (
   !Array.isArray(archiveManifest.artifacts)
 ) {
   throw new Error(`${taskId}: authority-repair archive manifest is invalid`);
+}
+if (basename(archive) !== archiveManifestSha256) {
+  throw new Error(
+    `${taskId}: authority-repair archive is not content-addressed`,
+  );
 }
 for (const artifact of archiveManifest.artifacts) {
   if (

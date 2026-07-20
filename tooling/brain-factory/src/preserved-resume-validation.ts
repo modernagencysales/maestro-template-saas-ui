@@ -29,6 +29,7 @@ interface WorktreeRegistration {
 
 interface AuthorityResumeRecord {
   readonly authorityArchivePath?: unknown;
+  readonly authorityArchiveManifestSha256?: unknown;
   readonly baseSha?: unknown;
   readonly branch?: unknown;
   readonly factoryBaseSha?: unknown;
@@ -59,6 +60,79 @@ const parseWorktrees = (value: string): readonly WorktreeRegistration[] =>
 
 const validateSha = (value: string, label: string): void => {
   if (!/^[0-9a-f]{40}$/.test(value)) throw new Error(`${label} is invalid`);
+};
+
+export const validateAuthorityRepairArchivePin = (input: {
+  readonly evidence: string;
+  readonly record: Pick<
+    AuthorityResumeRecord,
+    "authorityArchiveManifestSha256" | "authorityArchivePath"
+  >;
+  readonly taskId: string;
+}): {
+  readonly authorityArchiveManifestSha256: string;
+  readonly authorityArchivePath: string;
+} => {
+  const path = input.record.authorityArchivePath;
+  const manifestSha256 = input.record.authorityArchiveManifestSha256;
+  if (
+    typeof path !== "string" ||
+    typeof manifestSha256 !== "string" ||
+    !/^[0-9a-f]{64}$/.test(manifestSha256) ||
+    !existsSync(path)
+  ) {
+    throw new Error(
+      `${input.taskId}: authority owner archive identity mismatch`,
+    );
+  }
+  const archiveDirectory = realpathSync(path);
+  const manifestPath = resolve(archiveDirectory, "manifest.json");
+  if (!existsSync(manifestPath)) {
+    throw new Error(
+      `${input.taskId}: authority owner archive identity mismatch`,
+    );
+  }
+  const content = readFileSync(manifestPath, "utf8");
+  const actualSha256 = createHash("sha256").update(content).digest("hex");
+  let manifest: {
+    readonly authorityId?: unknown;
+    readonly schemaVersion?: unknown;
+    readonly taskId?: unknown;
+  };
+  try {
+    manifest = JSON.parse(content) as typeof manifest;
+  } catch {
+    throw new Error(
+      `${input.taskId}: authority owner archive identity mismatch`,
+    );
+  }
+  const authorityId = manifest.authorityId;
+  if (
+    manifest.schemaVersion !== "maestro-brain-authority-repair-archive/v1" ||
+    manifest.taskId !== input.taskId ||
+    typeof authorityId !== "string" ||
+    !/^[0-9a-f]{12}$/.test(authorityId) ||
+    path !== archiveDirectory ||
+    actualSha256 !== manifestSha256 ||
+    basename(archiveDirectory) !== manifestSha256 ||
+    realpathSync(
+      resolve(
+        input.evidence,
+        "authority-refreshes",
+        input.taskId,
+        authorityId,
+        manifestSha256,
+      ),
+    ) !== archiveDirectory
+  ) {
+    throw new Error(
+      `${input.taskId}: authority owner archive identity mismatch`,
+    );
+  }
+  return {
+    authorityArchiveManifestSha256: manifestSha256,
+    authorityArchivePath: archiveDirectory,
+  };
 };
 
 export const validatePreservedResumeLaunch = (
@@ -254,6 +328,13 @@ export const validateTerminalAuthorityResumeOwner = (input: {
   readonly workdir: string;
 } => {
   const authorityRepair = input.record.mode === "authority-repair";
+  const repairPin = authorityRepair
+    ? validateAuthorityRepairArchivePin({
+        evidence: input.evidence,
+        record: input.record,
+        taskId: input.taskId,
+      })
+    : undefined;
   if (
     !new Set(["canceled", "cancelled", "failed", "succeeded"]).has(input.status)
   ) {
@@ -312,9 +393,11 @@ export const validateTerminalAuthorityResumeOwner = (input: {
       `${input.taskId}: authority owner archive manifest is missing`,
     );
   }
-  const archiveManifest = JSON.parse(
-    readFileSync(archiveManifestPath, "utf8"),
-  ) as {
+  const archiveManifestContent = readFileSync(archiveManifestPath, "utf8");
+  const archiveManifestSha256 = createHash("sha256")
+    .update(archiveManifestContent)
+    .digest("hex");
+  const archiveManifest = JSON.parse(archiveManifestContent) as {
     readonly artifacts?: unknown;
     readonly authorityId?: unknown;
     readonly currentAuthority?: { readonly controlHeadSha?: unknown };
@@ -327,14 +410,32 @@ export const validateTerminalAuthorityResumeOwner = (input: {
     readonly taskId?: unknown;
   };
   const authorityId = archiveManifest.authorityId;
+  const expectedArchiveDirectory = repairPin
+    ? resolve(
+        input.evidence,
+        "authority-refreshes",
+        input.taskId,
+        String(authorityId),
+        repairPin.authorityArchiveManifestSha256,
+      )
+    : resolve(
+        input.evidence,
+        "authority-refreshes",
+        input.taskId,
+        String(authorityId),
+      );
   if (
     typeof authorityId !== "string" ||
     !/^[0-9a-f]{12}$/.test(authorityId) ||
     input.record.authorityArchivePath !== archiveDirectory ||
-    basename(archiveDirectory) !== authorityId ||
-    realpathSync(
-      resolve(input.evidence, "authority-refreshes", input.taskId, authorityId),
-    ) !== archiveDirectory
+    (authorityRepair
+      ? typeof input.record.authorityArchiveManifestSha256 !== "string" ||
+        !/^[0-9a-f]{64}$/.test(input.record.authorityArchiveManifestSha256) ||
+        input.record.authorityArchiveManifestSha256 !== archiveManifestSha256 ||
+        basename(archiveDirectory) !== archiveManifestSha256 ||
+        basename(resolve(archiveDirectory, "..")) !== authorityId
+      : basename(archiveDirectory) !== authorityId) ||
+    realpathSync(expectedArchiveDirectory) !== archiveDirectory
   ) {
     throw new Error(
       `${input.taskId}: authority owner archive identity mismatch`,

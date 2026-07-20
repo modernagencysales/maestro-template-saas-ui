@@ -14,6 +14,7 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
+  validateAuthorityRepairArchivePin,
   validatePreservedResumeLaunch,
   validateTerminalAuthorityResumeOwner,
 } from "../src/preserved-resume-validation.js";
@@ -201,19 +202,66 @@ describe("preserved resume launch validation", () => {
       workdir: realpathSync(authorityWorkdir),
     });
     rmSync(join(proofDirectory, "lane-result.json"));
+    const repairManifestContent = JSON.stringify({
+      ...manifest,
+      schemaVersion: "maestro-brain-authority-repair-archive/v1",
+    });
+    const repairManifestSha256 = sha256(repairManifestContent);
+    const repairArchiveDirectory = join(archiveDirectory, repairManifestSha256);
+    mkdirSync(repairArchiveDirectory);
+    for (const [file, content] of Object.entries(artifactContents)) {
+      writeFileSync(join(repairArchiveDirectory, file), content);
+    }
     writeFileSync(
-      join(archiveDirectory, "manifest.json"),
-      JSON.stringify({
-        ...manifest,
-        schemaVersion: "maestro-brain-authority-repair-archive/v1",
+      join(repairArchiveDirectory, "manifest.json"),
+      repairManifestContent,
+    );
+    const repairRecord = {
+      ...input.record,
+      authorityArchiveManifestSha256: repairManifestSha256,
+      authorityArchivePath: realpathSync(repairArchiveDirectory),
+      mode: "authority-repair",
+    } as const;
+    expect(
+      validateAuthorityRepairArchivePin({
+        evidence: value.evidence,
+        record: repairRecord,
+        taskId,
       }),
+    ).toEqual({
+      authorityArchiveManifestSha256: repairManifestSha256,
+      authorityArchivePath: realpathSync(repairArchiveDirectory),
+    });
+    writeFileSync(
+      join(repairArchiveDirectory, "manifest.json"),
+      `${repairManifestContent}\n`,
+    );
+    expect(() =>
+      validateAuthorityRepairArchivePin({
+        evidence: value.evidence,
+        record: repairRecord,
+        taskId,
+      }),
+    ).toThrow("archive identity mismatch");
+    writeFileSync(
+      join(repairArchiveDirectory, "manifest.json"),
+      repairManifestContent,
     );
     expect(() =>
       validateTerminalAuthorityResumeOwner({
         ...input,
-        record: { ...input.record, mode: "authority-repair" },
+        record: repairRecord,
       }),
     ).not.toThrow();
+    expect(() =>
+      validateTerminalAuthorityResumeOwner({
+        ...input,
+        record: {
+          ...repairRecord,
+          authorityArchiveManifestSha256: "f".repeat(64),
+        },
+      }),
+    ).toThrow("archive identity mismatch");
     writeFileSync(
       join(proofDirectory, "lane-result.json"),
       JSON.stringify({
@@ -222,16 +270,19 @@ describe("preserved resume launch validation", () => {
         treeSha: git(authorityWorkdir, "rev-parse", "HEAD^{tree}"),
       }),
     );
-    writeFileSync(
-      join(archiveDirectory, "manifest.json"),
-      JSON.stringify(manifest),
-    );
     const adoptedRecord = adoptTerminalAuthorityResumeRecord({
-      record: input.record,
+      record: repairRecord,
       resumeStrategy: owner.resumeStrategy,
       sourceHeadSha: input.sourceHeadSha,
       taskBaseSha: input.taskBaseSha,
     });
+    expect(adoptedRecord).toEqual(
+      expect.objectContaining({
+        authorityArchiveManifestSha256: repairManifestSha256,
+        authorityArchivePath: realpathSync(repairArchiveDirectory),
+        mode: "resume-review",
+      }),
+    );
     const expectedResume = {
       branch: owner.branch,
       mode: "resume-review" as const,

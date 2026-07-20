@@ -29,10 +29,14 @@ import {
   serializeResumeCommits,
   validateResumeSource,
 } from "./resume-support.js";
-import { validateTerminalAuthorityResumeOwner } from "./preserved-resume-validation.js";
+import {
+  validateAuthorityRepairArchivePin,
+  validateTerminalAuthorityResumeOwner,
+} from "./preserved-resume-validation.js";
 
 interface ResumeRecord {
   readonly authorityArchivePath?: string;
+  readonly authorityArchiveManifestSha256?: string;
   readonly baseSha?: string;
   readonly branch: string;
   readonly factoryBaseSha?: string;
@@ -198,6 +202,12 @@ let preservedProofHeadSha: string | undefined;
 let preservedExpectedCommit = "none";
 let preservedRecord: PreservedResumeRecord | undefined;
 let authorityRepairArchive = "none";
+let authorityRepairArchivePin:
+  | {
+      readonly authorityArchiveManifestSha256: string;
+      readonly authorityArchivePath: string;
+    }
+  | undefined;
 let terminalTransition:
   | {
       readonly expectedContent: string;
@@ -313,6 +323,17 @@ assertArchiveActionSelectorUsed({
 });
 if (preservedRecord !== undefined) {
   const record = preservedRecord;
+  if (
+    record.authorityArchiveManifestSha256 !== undefined ||
+    record.authorityArchivePath !== undefined
+  ) {
+    authorityRepairArchivePin = validateAuthorityRepairArchivePin({
+      evidence,
+      record,
+      taskId,
+    });
+    authorityRepairArchive = authorityRepairArchivePin.authorityArchivePath;
+  }
   const normalizedRecord = {
     ...record,
     resumeStrategy: record.resumeStrategy ?? "prelaunch-cherry-pick",
@@ -419,6 +440,7 @@ if (disposition.kind === "create" && gitBranchExists(branch, root)) {
   );
 }
 const preparingRecord = {
+  ...authorityRepairArchivePin,
   branch,
   factoryBaseSha: launchBaseSha,
   mode: "resume-review",
@@ -554,6 +576,7 @@ const runId = parsed.run_id ?? parsed.runId;
 if (!runId)
   throw new Error(`${taskId}: Fabro did not return a run ID: ${output}`);
 promoteTaskReservation(recordPath, {
+  ...authorityRepairArchivePin,
   branch,
   factoryBaseSha: launchBaseSha,
   mode: "resume-review",
