@@ -313,7 +313,7 @@ describe("Fabro workflow prompt contracts", () => {
       expect(buildTask).toContain(`review_fork -> ${node}`);
       expect(buildTask).toContain(`${node} -> review_merge`);
       expect(prompt).toContain(`.brain-review-output/${lens}.json`);
-      expect(prompt).toContain(`review-lens-guard.mts --lens ${lens}`);
+      expect(prompt).toContain(`review-lens-guard.mts\\" --lens ${lens}`);
       expect(prompt).toContain("every rubric item");
       expect(prompt).toContain("Never edit the proof packet");
       expect(prompt).toContain("Never edit or commit product/worktree files");
@@ -338,7 +338,52 @@ describe("Fabro workflow prompt contracts", () => {
     expect(
       buildTask.indexOf("review_aggregate -> aggregate_gate"),
     ).toBeLessThan(buildTask.indexOf("aggregate_gate -> final_gates"));
-    expect(buildTask).toContain("review-worktree-guard.mts capture");
+    expect(buildTask).toContain('review-worktree-guard.mts\\" capture');
+  });
+
+  it("runs review orchestration from current control tooling", () => {
+    const buildTask = readFileSync(
+      resolve(
+        import.meta.dirname,
+        "../../../.fabro/workflows/brain-build-task/workflow.fabro",
+      ),
+      "utf8",
+    );
+    const node = (name: string) =>
+      buildTask
+        .split("\n")
+        .find((line) => line.trimStart().startsWith(`${name} [`));
+    const reviewSnapshot = node("review_snapshot");
+    const reviewAggregate = node("review_aggregate");
+
+    expect(reviewSnapshot).toContain(
+      "$BRAIN_CONTROL_ROOT/tooling/brain-factory/src/review-worktree-guard.mts",
+    );
+    expect(reviewSnapshot).toContain(
+      "$BRAIN_CONTROL_ROOT/tooling/brain-factory/src/review-worktrees.mts",
+    );
+    expect(reviewSnapshot).toContain('--workdir \\"$BRAIN_WORKDIR\\"');
+
+    for (const lens of ["contract", "safety", "quality"] as const) {
+      const reviewLens = node(`review_${lens}`);
+      expect(reviewLens).toContain(
+        "$BRAIN_CONTROL_ROOT/tooling/brain-factory/src/review-worktrees.mts",
+      );
+      expect(reviewLens).toContain(
+        "$BRAIN_CONTROL_ROOT/tooling/brain-factory/src/review-lens-guard.mts",
+      );
+      expect(reviewLens).toContain('--workdir \\"$BRAIN_WORKDIR\\"');
+      expect(reviewLens).toContain('cd \\"$REVIEW_WORKTREE\\"');
+    }
+
+    expect(reviewAggregate).toContain(
+      "$BRAIN_CONTROL_ROOT/tooling/brain-factory/src/review-aggregate.mts",
+    );
+    expect(reviewAggregate).toContain('--workdir \\"$BRAIN_WORKDIR\\"');
+    expect(reviewAggregate).toContain('--review-repo \\"$BRAIN_WORKDIR\\"');
+    expect(buildTask).not.toMatch(
+      /(?:tsx tooling\/brain-factory\/src|\$BRAIN_WORKDIR\/tooling\/brain-factory\/src)\/review-(?:worktree-guard|worktrees|lens-guard|aggregate)\.mts/,
+    );
   });
 
   it("keeps all command coordinates in validated environment argv", () => {
