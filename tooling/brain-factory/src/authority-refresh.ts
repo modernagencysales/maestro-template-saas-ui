@@ -10,6 +10,8 @@ import {
 } from "node:fs";
 import { resolve } from "node:path";
 
+import type { AuthorityRepairTransition } from "./manifest.js";
+
 import { validateFinalLaneResult } from "./lane-result.js";
 import {
   laneHistoryOwnershipIssues,
@@ -67,6 +69,8 @@ export interface AuthorityRefreshAdmission {
   readonly sourceHeadSha: string;
   readonly task: AuthorityRefreshTask;
   readonly taskBaseSha: string;
+  readonly transitionKind: "authority-refresh" | "authority-repair";
+  readonly supersededPaths: AuthorityRepairTransition["supersededPaths"];
 }
 
 const sha256 = (value: string): string =>
@@ -146,16 +150,22 @@ export const authorityRefreshCoordinates = (
 };
 
 export const admitAuthorityRefresh = (input: {
+  readonly authorityRepairTransition?: AuthorityRepairTransition;
   readonly controlHeadSha: string;
   readonly evidence: string;
   readonly root: string;
   readonly runGit: GitRunner;
   readonly sourceBranch: string;
+  readonly sourceRunId?: string;
   readonly sourceWorkdir: string;
   readonly task: AuthorityRefreshTask;
+  readonly integratedTaskIds?: readonly string[];
+  readonly readGitBlob?: (cwd: string, objectSha: string) => string;
   readonly branchExists?: (branch: string) => boolean;
 }): AuthorityRefreshAdmission => {
   const taskId = input.task.taskId;
+  const transition = input.authorityRepairTransition;
+  const repair = transition !== undefined;
   const laneDirectory = resolve(input.evidence, "lane-results", taskId);
   const paths = {
     gate: resolve(laneDirectory, "lane-gate-report.json"),
@@ -163,6 +173,7 @@ export const admitAuthorityRefresh = (input: {
     proof: resolve(laneDirectory, "ci-proof-packet.json"),
   };
   for (const [label, path] of Object.entries(paths)) {
+    if (repair && label === "lane") continue;
     if (!existsSync(path))
       throw new Error(`${taskId}: ${label} evidence is missing`);
   }
@@ -211,27 +222,85 @@ export const admitAuthorityRefresh = (input: {
 
   const contents = {
     gate: readFileSync(paths.gate, "utf8"),
-    lane: readFileSync(paths.lane, "utf8"),
+    lane: repair ? undefined : readFileSync(paths.lane, "utf8"),
     proof: readFileSync(paths.proof, "utf8"),
   };
-  const lane = jsonRecord(contents.lane, `${taskId}: lane result`);
   const proof = jsonRecord(contents.proof, `${taskId}: CI proof`);
   const gate = jsonRecord(contents.gate, `${taskId}: final gate`);
-  const sourceHeadSha = exactSha(lane.headSha, 40, `${taskId}: lane head`);
-  const sourceTreeSha = exactSha(lane.treeSha, 40, `${taskId}: lane tree`);
+  const lane = repair
+    ? undefined
+    : jsonRecord(contents.lane ?? "", `${taskId}: lane result`);
+  const sourceHeadSha = exactSha(
+    repair ? transition.sourceHeadSha : lane?.headSha,
+    40,
+    `${taskId}: lane head`,
+  );
+  const sourceTreeSha = exactSha(
+    repair ? transition.sourceTreeSha : lane?.treeSha,
+    40,
+    `${taskId}: lane tree`,
+  );
   if (git(sourceWorkdir, ["rev-parse", "HEAD"]) !== sourceHeadSha) {
     throw new Error(`${taskId}: source worktree HEAD mismatch`);
   }
   if (git(sourceWorkdir, ["rev-parse", "HEAD^{tree}"]) !== sourceTreeSha) {
     throw new Error(`${taskId}: source worktree tree mismatch`);
   }
-  validateFinalLaneResult(lane, {
-    currentHeadSha: sourceHeadSha,
-    currentTreeSha: sourceTreeSha,
-    finalGateReport: gate,
-    proof,
-    taskId,
-  });
+  if (repair) {
+    if (
+      input.sourceRunId !== transition.sourceRunId ||
+      transition.fromPlanSha256 !== proof.planSha256 ||
+      transition.fromTaskBlockHash !== proof.taskBlockHash ||
+      transition.sourceBaseSha !== proof.baseSha ||
+      proof.reviewVerdict !== "rework" ||
+      proof.reviewHeadSha !== sourceHeadSha ||
+      !Array.isArray(proof.reviewFindings) ||
+      proof.reviewFindings.length === 0
+    ) {
+      throw new Error(`${taskId}: authority-repair proof provenance mismatch`);
+    }
+    const findingIds = proof.reviewFindings.map((finding) =>
+      typeof finding === "object" && finding !== null && !Array.isArray(finding)
+        ? (finding as JsonRecord).id
+        : undefined,
+    );
+    if (
+      findingIds.some((id) => typeof id !== "string" || !id) ||
+      new Set(findingIds).size !== findingIds.length
+    ) {
+      throw new Error(`${taskId}: authority-repair findings are invalid`);
+    }
+    if (
+      gate.schemaVersion !== "maestro-brain-lane-gate/v1" ||
+      gate.taskId !== taskId ||
+      gate.stage !== "pre-review" ||
+      gate.status !== "passed" ||
+      gate.headSha !== sourceHeadSha ||
+      gate.currentHeadSha !== sourceHeadSha ||
+      gate.currentTreeSha !== sourceTreeSha ||
+      gate.planSha256 !== transition.fromPlanSha256 ||
+      gate.taskBlockHash !== transition.fromTaskBlockHash
+    ) {
+      throw new Error(`${taskId}: authority-repair pre-review gate is invalid`);
+    }
+    const integrated = new Set(input.integratedTaskIds ?? []);
+    const missing = transition.requiredIntegratedTaskIds.filter(
+      (prerequisite) => !integrated.has(prerequisite),
+    );
+    if (missing.length > 0) {
+      throw new Error(
+        `${taskId}: authority-repair prerequisite is not integrated: ${missing.join(", ")}`,
+      );
+    }
+  } else {
+    validateFinalLaneResult(lane as JsonRecord, {
+      currentHeadSha: sourceHeadSha,
+      currentTreeSha: sourceTreeSha,
+      finalGateReport: gate,
+      proof,
+      taskId,
+    });
+  }
   const oldTaskBlockHash = exactSha(
     proof.taskBlockHash,
     64,
@@ -308,7 +377,12 @@ export const admitAuthorityRefresh = (input: {
     throw new Error(`${taskId}: ${shapeIssues.join("; ")}`);
   const ownershipIssues = laneHistoryOwnershipIssues(
     histories,
-    input.task.fileLocks,
+    repair
+      ? [
+          ...input.task.fileLocks,
+          ...transition.supersededPaths.map(({ path }) => path),
+        ]
+      : input.task.fileLocks,
   );
   if (ownershipIssues.length > 0) {
     throw new Error(
@@ -340,6 +414,14 @@ export const admitAuthorityRefresh = (input: {
     ]),
   );
   if (
+    repair &&
+    transition.supersededPaths.some(
+      ({ path }) => !actualChangedFiles.includes(path),
+    )
+  ) {
+    throw new Error(`${taskId}: authority-repair superseded path is absent`);
+  }
+  if (
     !Array.isArray(proof.changedFiles) ||
     !proof.changedFiles.every((file) => typeof file === "string") ||
     !proofChangedFilesMatch(proof.changedFiles as string[], actualChangedFiles)
@@ -365,11 +447,90 @@ export const admitAuthorityRefresh = (input: {
       `${taskId}: authority refresh evidence coordinates already exist`,
     );
   }
-  const artifactInputs: readonly (readonly [string, string])[] = [
-    ["prior-lane-result.json", contents.lane],
-    ["prior-proof.json", contents.proof],
-    ["prior-final-gate.json", contents.gate],
-  ];
+  const artifactInputs: (readonly [string, string])[] = repair
+    ? [
+        ["prior-proof.json", contents.proof],
+        ["prior-pre-review-gate.json", contents.gate],
+        [
+          "authority-repair-transition.json",
+          `${JSON.stringify(transition, null, 2)}\n`,
+        ],
+      ]
+    : [
+        ["prior-lane-result.json", contents.lane ?? ""],
+        ["prior-proof.json", contents.proof],
+        ["prior-final-gate.json", contents.gate],
+      ];
+  if (repair) {
+    const lensDirectory = resolve(
+      laneDirectory,
+      "review-lenses",
+      sourceHeadSha,
+    );
+    const lensFindingIds = new Set<string>();
+    for (const lens of ["contract", "safety", "quality"] as const) {
+      const lensPath = resolve(lensDirectory, `${lens}.json`);
+      if (!existsSync(lensPath)) {
+        throw new Error(
+          `${taskId}: authority-repair ${lens} review is missing`,
+        );
+      }
+      const content = readFileSync(lensPath, "utf8");
+      const artifact = jsonRecord(content, `${taskId}: ${lens} review`);
+      if (
+        artifact.lens !== lens ||
+        artifact.taskId !== taskId ||
+        artifact.planSha256 !== transition.fromPlanSha256 ||
+        artifact.taskBlockHash !== transition.fromTaskBlockHash ||
+        artifact.baseSha !== transition.sourceBaseSha ||
+        artifact.headSha !== sourceHeadSha ||
+        artifact.treeSha !== sourceTreeSha ||
+        !Array.isArray(artifact.findings)
+      ) {
+        throw new Error(`${taskId}: authority-repair ${lens} review drifted`);
+      }
+      for (const finding of artifact.findings) {
+        if (
+          typeof finding === "object" &&
+          finding !== null &&
+          !Array.isArray(finding)
+        ) {
+          const id = (finding as JsonRecord).id;
+          if (typeof id === "string") lensFindingIds.add(id);
+        }
+      }
+      artifactInputs.push([`prior-review-${lens}.json`, content]);
+    }
+    const proofFindingIds = (proof.reviewFindings as JsonRecord[]).map(
+      (finding) => finding.id as string,
+    );
+    if (
+      proofFindingIds.some((id) => !lensFindingIds.has(id)) ||
+      [...lensFindingIds].some((id) => !proofFindingIds.includes(id))
+    ) {
+      throw new Error(`${taskId}: authority-repair review findings drifted`);
+    }
+    for (const finding of transition.immutableFindings) {
+      let objectType: string;
+      let content: string;
+      try {
+        objectType = git(sourceWorkdir, ["cat-file", "-t", finding.objectSha]);
+        if (!input.readGitBlob) {
+          throw new Error("raw Git blob reader is missing");
+        }
+        content = input.readGitBlob(sourceWorkdir, finding.objectSha);
+      } catch {
+        throw new Error(`${taskId}: immutable finding object is missing`);
+      }
+      if (objectType !== "blob" || sha256(content) !== finding.contentSha256) {
+        throw new Error(`${taskId}: immutable finding object drifted`);
+      }
+      artifactInputs.push([
+        `independent-finding-${finding.objectSha}.txt`,
+        content,
+      ]);
+    }
+  }
   const artifacts = artifactInputs.map(([file, content]) => ({
     content,
     file,
@@ -388,6 +549,8 @@ export const admitAuthorityRefresh = (input: {
     sourceHeadSha,
     task: input.task,
     taskBaseSha,
+    transitionKind: repair ? "authority-repair" : "authority-refresh",
+    supersededPaths: transition?.supersededPaths ?? [],
   };
 };
 
@@ -416,7 +579,10 @@ export const preserveAuthorityRefreshEvidence = (
   if (existsSync(stagingDirectory)) fileSystem.remove(stagingDirectory);
   mkdirSync(stagingDirectory, { recursive: true });
   const manifest = {
-    schemaVersion: "maestro-brain-authority-refresh-archive/v1",
+    schemaVersion:
+      admission.transitionKind === "authority-repair"
+        ? "maestro-brain-authority-repair-archive/v1"
+        : "maestro-brain-authority-refresh-archive/v1",
     taskId: admission.task.taskId,
     authorityId: admission.coordinates.authorityId,
     currentAuthority: {
@@ -430,6 +596,8 @@ export const preserveAuthorityRefreshEvidence = (
       commits: admission.sourceCommits,
       headSha: admission.sourceHeadSha,
     },
+    transitionKind: admission.transitionKind,
+    supersededPaths: admission.supersededPaths,
     artifacts: admission.artifacts.map(({ file, sha256: digest }) => ({
       file,
       sha256: digest,
