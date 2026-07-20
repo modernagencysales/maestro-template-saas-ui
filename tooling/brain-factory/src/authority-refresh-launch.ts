@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { existsSync, readFileSync, readdirSync, rmSync } from "node:fs";
+import { existsSync, readFileSync, rmSync } from "node:fs";
 import { resolve } from "node:path";
 
 import {
@@ -7,6 +7,7 @@ import {
   assertAuthorityRefreshTerminalStatus,
   preserveAuthorityRefreshEvidence,
 } from "./authority-refresh.js";
+import { resolveIntegratedPrerequisiteTaskIds } from "./authority-repair-prerequisites.js";
 import { buildTaskLaunchEnv } from "./build-task-launch-env.js";
 import { materializeBuildTaskRunConfig } from "./build-task-run-config.js";
 import { hydrateWorktreeDependencies } from "./dependencies.js";
@@ -64,6 +65,15 @@ export const runAuthorityRefreshTransition = (input: {
   return runId;
 };
 
+export const assertAuthorityRepairSourceStatus = (
+  status: string,
+  taskId: string,
+): void => {
+  if (status !== "failed") {
+    throw new Error(`${taskId}: authority-repair source run must have failed`);
+  }
+};
+
 export const launchAuthorityRefresh = (input: {
   readonly authorityRepair?: boolean;
   readonly evidence: string;
@@ -108,31 +118,17 @@ export const launchAuthorityRefresh = (input: {
       `${input.taskId}: no authority-repair transition is authorized`,
     );
   }
+  if (input.authorityRepair) {
+    assertAuthorityRepairSourceStatus(status, input.taskId);
+  }
   const controlHeadSha = runRtk(["git", "rev-parse", "HEAD"], {
     quiet: true,
   });
-  const integratedTaskIds = new Set<string>();
-  const integrationRoot = resolve(input.evidence, "integration");
-  if (existsSync(integrationRoot)) {
-    const visit = (directory: string): void => {
-      for (const entry of readdirSync(directory, { withFileTypes: true })) {
-        const path = resolve(directory, entry.name);
-        if (entry.isDirectory()) visit(path);
-        else if (entry.name === "integration-result.json") {
-          if (existsSync(resolve(directory, "supersession.json"))) continue;
-          const result = JSON.parse(readFileSync(path, "utf8")) as {
-            headSha?: unknown;
-            includedTasks?: readonly { taskId?: unknown }[];
-            reviewVerdict?: unknown;
-            status?: unknown;
-          };
-          if (
-            result.status !== "passed" ||
-            result.reviewVerdict !== "pass" ||
-            typeof result.headSha !== "string" ||
-            !Array.isArray(result.includedTasks)
-          )
-            continue;
+  const integratedTaskIds = transition
+    ? resolveIntegratedPrerequisiteTaskIds({
+        controlHeadSha,
+        evidence: input.evidence,
+        isAncestor: (headSha, currentHeadSha) => {
           try {
             runRtk(
               [
@@ -140,29 +136,35 @@ export const launchAuthorityRefresh = (input: {
                 "git",
                 "merge-base",
                 "--is-ancestor",
-                result.headSha,
-                controlHeadSha,
+                headSha,
+                currentHeadSha,
               ],
               { cwd: input.root, quiet: true },
             );
+            return true;
           } catch {
-            continue;
+            return false;
           }
-          for (const included of result.includedTasks) {
-            if (typeof included.taskId === "string")
-              integratedTaskIds.add(included.taskId);
+        },
+        requiredTasks: transition.requiredIntegratedTaskIds.map((taskId) => {
+          const prerequisite = manifest.tasks.find(
+            (candidate) => candidate.taskId === taskId,
+          );
+          if (!prerequisite) {
+            throw new Error(
+              `${input.taskId}: unknown repair prerequisite ${taskId}`,
+            );
           }
-        }
-      }
-    };
-    visit(integrationRoot);
-  }
+          return { taskId, tranche: prerequisite.tranche };
+        }),
+      })
+    : [];
   const admissionInput = {
     ...(transition ? { authorityRepairTransition: transition } : {}),
     branchExists: (candidate: string) => gitBranchExists(candidate, input.root),
     controlHeadSha,
     evidence: input.evidence,
-    integratedTaskIds: [...integratedTaskIds],
+    integratedTaskIds,
     readGitBlob: (cwd: string, objectSha: string) =>
       execFileSync("rtk", ["proxy", "git", "cat-file", "blob", objectSha], {
         cwd,
@@ -212,6 +214,11 @@ export const launchAuthorityRefresh = (input: {
   const { branch, workdir } = admission.coordinates;
   const preparingRecord = {
     authorityArchivePath: admission.archiveDirectory,
+    ...(input.authorityRepair
+      ? {
+          authorityArchiveManifestSha256: admission.archiveManifestSha256,
+        }
+      : {}),
     baseSha: controlHeadSha,
     branch,
     factoryBaseSha: controlHeadSha,
