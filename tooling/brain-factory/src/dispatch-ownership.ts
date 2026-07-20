@@ -400,15 +400,167 @@ export const archiveTerminalTaskRecord = (input: {
   return archivedPath;
 };
 
+interface ResumeIdentity {
+  readonly branch: string;
+  readonly mode: "resume-review";
+  readonly resumeStrategy: "in-lane-cherry-pick" | "prelaunch-cherry-pick";
+  readonly sourceHeadSha: string;
+  readonly taskBaseSha: string;
+  readonly taskId: string;
+  readonly workdir: string;
+}
+
+interface PreservedResumeObservation {
+  readonly branchExists: boolean;
+  readonly cherryPickHead?: string;
+  readonly controlCommonDir: string;
+  readonly headSha: string;
+  readonly proofHeadIsAncestor: boolean;
+  readonly statusPorcelain: string;
+  readonly taskBaseIsAncestor: boolean;
+  readonly worktreeBranch: string;
+  readonly worktreeCommonDir: string;
+  readonly worktreeExists: boolean;
+}
+
+export type PreservedResumeDisposition =
+  | { readonly kind: "create" }
+  | { readonly kind: "reuse-clean"; readonly startSha: string }
+  | { readonly kind: "reuse-conflict"; readonly startSha: string };
+
+export const resolvePreservedFactoryBase = (input: {
+  readonly proof?: {
+    readonly baseSha?: unknown;
+    readonly headSha?: unknown;
+    readonly taskId?: unknown;
+  };
+  readonly recordFactoryBaseSha?: unknown;
+  readonly taskId: string;
+}): { readonly baseSha: string; readonly proofHeadSha?: string } => {
+  let recordedBaseSha: string | undefined;
+  if (input.recordFactoryBaseSha !== undefined) {
+    if (!/^[0-9a-f]{40}$/.test(String(input.recordFactoryBaseSha))) {
+      throw new Error(`${input.taskId}: recorded factory base is invalid`);
+    }
+    recordedBaseSha = String(input.recordFactoryBaseSha);
+  }
+  if (input.proof === undefined) {
+    if (recordedBaseSha !== undefined) {
+      return { baseSha: recordedBaseSha };
+    }
+    throw new Error(`${input.taskId}: preserved factory base is missing`);
+  }
+  if (input.proof.taskId !== input.taskId) {
+    throw new Error(`${input.taskId}: proof task identity mismatch`);
+  }
+  if (!/^[0-9a-f]{40}$/.test(String(input.proof.baseSha))) {
+    throw new Error(`${input.taskId}: proof factory base is invalid`);
+  }
+  if (!/^[0-9a-f]{40}$/.test(String(input.proof.headSha))) {
+    throw new Error(`${input.taskId}: proof head is invalid`);
+  }
+  const proofBaseSha = String(input.proof.baseSha);
+  if (recordedBaseSha !== undefined && recordedBaseSha !== proofBaseSha) {
+    throw new Error(
+      `${input.taskId}: recorded factory base differs from proof`,
+    );
+  }
+  return {
+    baseSha: recordedBaseSha ?? proofBaseSha,
+    proofHeadSha: String(input.proof.headSha),
+  };
+};
+
+export const preservedResumeDisposition = (input: {
+  readonly expected: ResumeIdentity;
+  readonly observation: PreservedResumeObservation;
+  readonly record: Partial<ResumeIdentity>;
+}): PreservedResumeDisposition => {
+  const { expected, observation, record } = input;
+  const identities = [
+    ["task ID", record.taskId, expected.taskId],
+    ["mode", record.mode, expected.mode],
+    ["resume strategy", record.resumeStrategy, expected.resumeStrategy],
+    ["source HEAD", record.sourceHeadSha, expected.sourceHeadSha],
+    ["task base", record.taskBaseSha, expected.taskBaseSha],
+    ["branch", record.branch, expected.branch],
+    ["worktree", record.workdir, expected.workdir],
+  ] as const;
+  for (const [label, actual, wanted] of identities) {
+    if (actual !== wanted) {
+      throw new Error(`${expected.taskId}: preserved resume ${label} mismatch`);
+    }
+  }
+  if (observation.branchExists !== observation.worktreeExists) {
+    throw new Error(
+      `${expected.taskId}: preserved resume branch/worktree presence mismatch`,
+    );
+  }
+  if (!observation.branchExists) return { kind: "create" };
+  if (observation.worktreeBranch !== expected.branch) {
+    throw new Error(`${expected.taskId}: preserved worktree branch mismatch`);
+  }
+  if (observation.worktreeCommonDir !== observation.controlCommonDir) {
+    throw new Error(
+      `${expected.taskId}: preserved worktree repository mismatch`,
+    );
+  }
+  if (!/^[0-9a-f]{40}$/.test(observation.headSha)) {
+    throw new Error(`${expected.taskId}: preserved worktree HEAD is invalid`);
+  }
+  if (!observation.taskBaseIsAncestor) {
+    throw new Error(
+      `${expected.taskId}: preserved task base is not an ancestor of worktree HEAD`,
+    );
+  }
+
+  const statusLines = observation.statusPorcelain
+    .split("\n")
+    .filter((line) => line.length > 0);
+  if (statusLines.length === 0) {
+    if (!observation.proofHeadIsAncestor) {
+      throw new Error(
+        `${expected.taskId}: preserved proof head is not an ancestor of worktree HEAD`,
+      );
+    }
+    if (observation.cherryPickHead !== undefined) {
+      throw new Error(
+        `${expected.taskId}: clean worktree has an unexpected cherry-pick marker`,
+      );
+    }
+    return { kind: "reuse-clean", startSha: observation.headSha };
+  }
+
+  if (statusLines.some((line) => line.startsWith("??"))) {
+    throw new Error(
+      `${expected.taskId}: preserved conflict contains untracked files`,
+    );
+  }
+  if (expected.resumeStrategy !== "in-lane-cherry-pick") {
+    throw new Error(
+      `${expected.taskId}: dirty preserved worktree is not an in-lane resume`,
+    );
+  }
+  if (!/^[0-9a-f]{40}$/.test(observation.cherryPickHead ?? "")) {
+    throw new Error(
+      `${expected.taskId}: dirty preserved worktree has no cherry-pick marker`,
+    );
+  }
+  return { kind: "reuse-conflict", startSha: observation.headSha };
+};
+
 export const runRecordOwnsTask = (input: {
   readonly inspect: () => string | undefined;
   readonly recordExists: boolean;
 }): boolean => {
   if (!input.recordExists) return false;
+  let status: string | undefined;
   try {
-    input.inspect();
+    status = input.inspect();
   } catch {
     return true;
   }
-  return true;
+  return !new Set(["canceled", "cancelled", "failed", "succeeded"]).has(
+    status ?? "unknown",
+  );
 };

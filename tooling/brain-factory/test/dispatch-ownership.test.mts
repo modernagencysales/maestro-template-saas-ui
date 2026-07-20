@@ -8,6 +8,8 @@ import {
   acquireDispatcherLock,
   archiveTerminalTaskRecord,
   promoteTaskReservation,
+  preservedResumeDisposition,
+  resolvePreservedFactoryBase,
   reconcilePreparingTaskReservation,
   recoveryCoordinatesForRecord,
   recoverTaskReservation,
@@ -140,10 +142,23 @@ describe("brain dispatch ownership", () => {
     expect(hydration).toBeGreaterThan(worktreeAdd);
     expect(hydration).toBeLessThan(cherryPick);
     expect(resume).toContain('process.argv.includes("--conflict-aware")');
-    expect(resume).toContain('"resume_mode=conflict-aware"');
+    expect(resume).toContain("`resume_mode=${resumeMode}`");
     expect(resume).toContain("serializeResumeCommits(taskId, taskCommits)");
     expect(resume).toContain("if (!conflictAware)");
     expect(resume.indexOf("if (!conflictAware)")).toBeLessThan(cherryPick);
+    expect(resume).toContain("preservedResumeDisposition({");
+    expect(resume).toContain('disposition.kind === "create"');
+    expect(resume).toContain('disposition.kind === "reuse-conflict"');
+    expect(resume).toContain('"preserved-worktree"');
+    expect(resume).toContain('"preserved-conflict-aware"');
+    expect(resume.indexOf("preservedResumeDisposition({")).toBeLessThan(
+      resume.indexOf("  archiveTerminalTaskRecord({"),
+    );
+    expect(resume.indexOf("  archiveTerminalTaskRecord({")).toBeLessThan(
+      resume.indexOf("reserveTaskPreparing(recordPath"),
+    );
+    expect(resume).not.toContain('"worktree", "remove"');
+    expect(resume).not.toContain('"reset", "--hard"');
   });
 
   it("pins conflict-aware resume commits as immutable workflow input", () => {
@@ -308,6 +323,190 @@ describe("brain dispatch ownership", () => {
     expect(
       runRecordOwnsTask({ inspect: () => undefined, recordExists: true }),
     ).toBe(true);
+  });
+
+  it("releases terminal records only after authoritative inspection", () => {
+    expect(
+      runRecordOwnsTask({ inspect: () => "preparing", recordExists: true }),
+    ).toBe(true);
+    expect(
+      runRecordOwnsTask({ inspect: () => "running", recordExists: true }),
+    ).toBe(true);
+    for (const status of ["canceled", "cancelled", "failed", "succeeded"]) {
+      expect(
+        runRecordOwnsTask({ inspect: () => status, recordExists: true }),
+      ).toBe(false);
+    }
+    expect(
+      runRecordOwnsTask({ inspect: () => "failed", recordExists: false }),
+    ).toBe(false);
+  });
+
+  const exactResumeRecord = {
+    branch: "fabro/review-s11-t02",
+    mode: "resume-review",
+    resumeStrategy: "in-lane-cherry-pick",
+    sourceHeadSha: "a".repeat(40),
+    taskBaseSha: "b".repeat(40),
+    taskId: "S11-T02",
+    workdir: "/tmp/resume-s11-t02",
+  } as const;
+  const exactResumeObservation = {
+    branchExists: true,
+    controlCommonDir: "/repo/.git",
+    headSha: "c".repeat(40),
+    proofHeadIsAncestor: true,
+    statusPorcelain: "",
+    taskBaseIsAncestor: true,
+    worktreeBranch: exactResumeRecord.branch,
+    worktreeCommonDir: "/repo/.git",
+    worktreeExists: true,
+  } as const;
+
+  it("reuses only an exact clean preserved resume worktree", () => {
+    expect(
+      preservedResumeDisposition({
+        expected: exactResumeRecord,
+        observation: exactResumeObservation,
+        record: exactResumeRecord,
+      }),
+    ).toEqual({ kind: "reuse-clean", startSha: "c".repeat(40) });
+    expect(
+      preservedResumeDisposition({
+        expected: exactResumeRecord,
+        observation: {
+          ...exactResumeObservation,
+          branchExists: false,
+          worktreeExists: false,
+        },
+        record: exactResumeRecord,
+      }),
+    ).toEqual({ kind: "create" });
+  });
+
+  it("reuses only an explicit in-lane cherry-pick conflict", () => {
+    expect(
+      preservedResumeDisposition({
+        expected: exactResumeRecord,
+        observation: {
+          ...exactResumeObservation,
+          cherryPickHead: "d".repeat(40),
+          statusPorcelain: "UU packages/convex/confect/example.ts",
+        },
+        record: exactResumeRecord,
+      }),
+    ).toEqual({ kind: "reuse-conflict", startSha: "c".repeat(40) });
+    expect(() =>
+      preservedResumeDisposition({
+        expected: exactResumeRecord,
+        observation: {
+          ...exactResumeObservation,
+          cherryPickHead: "d".repeat(40),
+          statusPorcelain: "?? unrelated.ts",
+        },
+        record: exactResumeRecord,
+      }),
+    ).toThrow("untracked files");
+  });
+
+  it("fails closed on any preserved resume identity drift", () => {
+    const cases = [
+      {
+        observation: exactResumeObservation,
+        record: { ...exactResumeRecord, sourceHeadSha: "f".repeat(40) },
+        message: "source HEAD mismatch",
+      },
+      {
+        observation: {
+          ...exactResumeObservation,
+          worktreeBranch: "fabro/review-other",
+        },
+        record: exactResumeRecord,
+        message: "worktree branch mismatch",
+      },
+      {
+        observation: {
+          ...exactResumeObservation,
+          worktreeCommonDir: "/other/.git",
+        },
+        record: exactResumeRecord,
+        message: "repository mismatch",
+      },
+      {
+        observation: {
+          ...exactResumeObservation,
+          taskBaseIsAncestor: false,
+        },
+        record: exactResumeRecord,
+        message: "task base is not an ancestor",
+      },
+      {
+        observation: {
+          ...exactResumeObservation,
+          proofHeadIsAncestor: false,
+        },
+        record: exactResumeRecord,
+        message: "proof head is not an ancestor",
+      },
+      {
+        observation: {
+          ...exactResumeObservation,
+          branchExists: false,
+        },
+        record: exactResumeRecord,
+        message: "branch/worktree presence mismatch",
+      },
+    ] as const;
+    for (const item of cases) {
+      expect(() =>
+        preservedResumeDisposition({
+          expected: exactResumeRecord,
+          observation: item.observation,
+          record: item.record,
+        }),
+      ).toThrow(item.message);
+    }
+  });
+
+  it("binds preserved resume to its recorded or exact proof base", () => {
+    const proof = {
+      baseSha: "d".repeat(40),
+      headSha: "c".repeat(40),
+      taskId: "S11-T02",
+    };
+    expect(() =>
+      resolvePreservedFactoryBase({
+        proof,
+        recordFactoryBaseSha: "e".repeat(40),
+        taskId: "S11-T02",
+      }),
+    ).toThrow("recorded factory base differs from proof");
+    expect(
+      resolvePreservedFactoryBase({
+        proof,
+        recordFactoryBaseSha: "d".repeat(40),
+        taskId: "S11-T02",
+      }),
+    ).toEqual({ baseSha: "d".repeat(40), proofHeadSha: "c".repeat(40) });
+    expect(
+      resolvePreservedFactoryBase({
+        recordFactoryBaseSha: "e".repeat(40),
+        taskId: "S11-T02",
+      }),
+    ).toEqual({ baseSha: "e".repeat(40) });
+    expect(resolvePreservedFactoryBase({ proof, taskId: "S11-T02" })).toEqual({
+      baseSha: "d".repeat(40),
+      proofHeadSha: "c".repeat(40),
+    });
+    expect(() => resolvePreservedFactoryBase({ taskId: "S11-T02" })).toThrow(
+      "factory base is missing",
+    );
+    expect(() =>
+      resolvePreservedFactoryBase({
+        proof: { ...proof, taskId: "S11-T03" },
+        taskId: "S11-T02",
+      }),
+    ).toThrow("proof task identity mismatch");
   });
 
   it("requires explicit audited recovery and no unresolved worktree", () => {

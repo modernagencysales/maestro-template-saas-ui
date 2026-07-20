@@ -6,11 +6,13 @@ import { materializeBuildTaskRunConfig } from "./build-task-run-config.js";
 import {
   acquireDispatcherLock,
   archiveTerminalTaskRecord,
+  preservedResumeDisposition,
   promoteTaskReservation,
   reserveTaskPreparing,
+  resolvePreservedFactoryBase,
 } from "./dispatch-ownership.js";
 import { buildManifest } from "./manifest.js";
-import { gitBranchExists, runRtk } from "./process.js";
+import { gitBranchExists, gitIsAncestor, runRtk } from "./process.js";
 import {
   serializeResumeCommits,
   validateResumeSource,
@@ -18,6 +20,7 @@ import {
 
 interface ResumeRecord {
   readonly branch: string;
+  readonly factoryBaseSha?: string;
   readonly mode?: "resume-review";
   readonly runId?: string;
   readonly resumeStrategy?: "in-lane-cherry-pick" | "prelaunch-cherry-pick";
@@ -50,9 +53,8 @@ const taskId = valueAfter("--task");
 const sourceRef = valueAfter("--ref");
 const taskBase = valueAfter("--base");
 const conflictAware = process.argv.includes("--conflict-aware");
-const resumeStrategy = conflictAware
-  ? "in-lane-cherry-pick"
-  : "prelaunch-cherry-pick";
+const resumeStrategy: "in-lane-cherry-pick" | "prelaunch-cherry-pick" =
+  conflictAware ? "in-lane-cherry-pick" : "prelaunch-cherry-pick";
 if (!taskId || !sourceRef || !taskBase) {
   console.error(
     "usage: brain:factory:resume -- --task <id> --ref <git-ref> --base <sha> [--conflict-aware]",
@@ -101,6 +103,23 @@ const { sourceHeadSha, taskBaseSha, taskCommits } = validateResumeSource({
   taskId,
 });
 const recordPath = resolve(runDirectory, `${taskId}.json`);
+const expectedResume = {
+  branch,
+  mode: "resume-review" as const,
+  resumeStrategy,
+  sourceHeadSha,
+  taskBaseSha,
+  taskId,
+  workdir,
+};
+let disposition:
+  | { readonly kind: "create" }
+  | { readonly kind: "reuse-clean"; readonly startSha: string }
+  | { readonly kind: "reuse-conflict"; readonly startSha: string } = {
+  kind: "create",
+};
+let launchBaseSha = factoryBase;
+let preservedProofHeadSha: string | undefined;
 if (existsSync(recordPath)) {
   const record = JSON.parse(readFileSync(recordPath, "utf8")) as ResumeRecord;
   if (!record.runId) {
@@ -115,14 +134,13 @@ if (existsSync(recordPath)) {
     "failed",
     "succeeded",
   ]).has(status);
-  const exactResume =
-    record.mode === "resume-review" &&
-    record.taskId === taskId &&
-    record.sourceHeadSha === sourceHeadSha &&
-    record.taskBaseSha === taskBaseSha &&
-    (record.resumeStrategy ?? "prelaunch-cherry-pick") === resumeStrategy &&
-    record.branch === branch &&
-    record.workdir === workdir;
+  const normalizedRecord = {
+    ...record,
+    resumeStrategy: record.resumeStrategy ?? "prelaunch-cherry-pick",
+  };
+  const exactResume = Object.entries(expectedResume).every(
+    ([key, value]) => normalizedRecord[key as keyof ResumeRecord] === value,
+  );
   if (!terminal) {
     if (exactResume && existsSync(workdir) && gitBranchExists(branch, root)) {
       console.log(
@@ -134,6 +152,98 @@ if (existsSync(recordPath)) {
       `${taskId}: live or unknown Fabro run ${record.runId} (${status}) owns this task`,
     );
   }
+  const worktreeExists = existsSync(workdir);
+  const branchExists = gitBranchExists(branch, root);
+  const git = (args: readonly string[]): string =>
+    runRtk(["proxy", "git", ...args], { cwd: workdir, quiet: true });
+  const cherryPickPath =
+    worktreeExists && branchExists
+      ? git([
+          "rev-parse",
+          "--path-format=absolute",
+          "--git-path",
+          "CHERRY_PICK_HEAD",
+        ])
+      : "";
+  if (worktreeExists && branchExists) {
+    const proofPath = resolve(
+      evidence,
+      "lane-results",
+      taskId,
+      "ci-proof-packet.json",
+    );
+    const resolvedBase = resolvePreservedFactoryBase({
+      ...(existsSync(proofPath)
+        ? {
+            proof: JSON.parse(readFileSync(proofPath, "utf8")) as {
+              baseSha?: unknown;
+              headSha?: unknown;
+              taskId?: unknown;
+            },
+          }
+        : {}),
+      ...(record.factoryBaseSha
+        ? { recordFactoryBaseSha: record.factoryBaseSha }
+        : {}),
+      taskId,
+    });
+    launchBaseSha = resolvedBase.baseSha;
+    preservedProofHeadSha = resolvedBase.proofHeadSha;
+    if (!gitIsAncestor(launchBaseSha, "HEAD", workdir)) {
+      throw new Error(
+        `${taskId}: preserved factory base is not an ancestor of worktree HEAD`,
+      );
+    }
+    if (
+      resolvedBase.proofHeadSha !== undefined &&
+      !gitIsAncestor(resolvedBase.proofHeadSha, "HEAD", workdir)
+    ) {
+      throw new Error(
+        `${taskId}: preserved proof head is not an ancestor of worktree HEAD`,
+      );
+    }
+  }
+  disposition = preservedResumeDisposition({
+    expected: expectedResume,
+    observation: {
+      branchExists,
+      ...(cherryPickPath && existsSync(cherryPickPath)
+        ? { cherryPickHead: readFileSync(cherryPickPath, "utf8").trim() }
+        : {}),
+      controlCommonDir:
+        worktreeExists && branchExists
+          ? runRtk(
+              [
+                "proxy",
+                "git",
+                "rev-parse",
+                "--path-format=absolute",
+                "--git-common-dir",
+              ],
+              { cwd: root, quiet: true },
+            )
+          : "",
+      headSha: worktreeExists && branchExists ? git(["rev-parse", "HEAD"]) : "",
+      proofHeadIsAncestor:
+        worktreeExists && branchExists && preservedProofHeadSha !== undefined
+          ? gitIsAncestor(preservedProofHeadSha, "HEAD", workdir)
+          : false,
+      statusPorcelain:
+        worktreeExists && branchExists ? git(["status", "--porcelain=v1"]) : "",
+      taskBaseIsAncestor:
+        worktreeExists && branchExists
+          ? gitIsAncestor(taskBaseSha, "HEAD", workdir)
+          : false,
+      worktreeBranch:
+        worktreeExists && branchExists ? git(["branch", "--show-current"]) : "",
+      worktreeCommonDir:
+        worktreeExists && branchExists
+          ? git(["rev-parse", "--path-format=absolute", "--git-common-dir"])
+          : "",
+      worktreeExists,
+    },
+    record: normalizedRecord,
+  });
   archiveTerminalTaskRecord({
     auditPath,
     now,
@@ -143,18 +253,19 @@ if (existsSync(recordPath)) {
     taskId,
   });
 }
-if (existsSync(workdir)) {
+if (disposition.kind === "create" && existsSync(workdir)) {
   throw new Error(
     `${taskId}: resume worktree already exists at ${workdir}; no force removal is allowed`,
   );
 }
-if (gitBranchExists(branch, root)) {
+if (disposition.kind === "create" && gitBranchExists(branch, root)) {
   throw new Error(
     `${taskId}: resume branch ${branch} already exists; no reset is allowed`,
   );
 }
 reserveTaskPreparing(recordPath, {
   branch,
+  factoryBaseSha: launchBaseSha,
   mode: "resume-review",
   resumeStrategy,
   sourceHeadSha,
@@ -163,43 +274,54 @@ reserveTaskPreparing(recordPath, {
   taskId,
   workdir,
 });
-runRtk(["git", "worktree", "add", "-b", branch, workdir, factoryBase]);
-hydrateWorktreeDependencies(root, workdir);
-if (!conflictAware) {
-  for (const commit of taskCommits)
-    runRtk(["git", "cherry-pick", commit], { cwd: workdir });
+if (disposition.kind === "create") {
+  runRtk(["git", "worktree", "add", "-b", branch, workdir, factoryBase]);
+  hydrateWorktreeDependencies(root, workdir);
+  if (!conflictAware) {
+    for (const commit of taskCommits)
+      runRtk(["git", "cherry-pick", commit], { cwd: workdir });
+  }
 }
-const startSha = runRtk(["git", "rev-parse", "HEAD"], {
-  cwd: workdir,
-  quiet: true,
-});
-const resumeInputs = conflictAware
-  ? [
-      "-I",
-      "resume_mode=conflict-aware",
-      "-I",
-      `resume_source_head=${sourceHeadSha}`,
-      "-I",
-      `resume_task_base=${taskBaseSha}`,
-      "-I",
-      `resume_commits=${serializeResumeCommits(taskId, taskCommits)}`,
-    ]
-  : [];
+const startSha =
+  disposition.kind === "create"
+    ? runRtk(["git", "rev-parse", "HEAD"], {
+        cwd: workdir,
+        quiet: true,
+      })
+    : disposition.startSha;
+const resumeMode =
+  disposition.kind === "reuse-conflict"
+    ? "preserved-conflict-aware"
+    : disposition.kind === "reuse-clean"
+      ? "preserved-worktree"
+      : conflictAware
+        ? "conflict-aware"
+        : "none";
+const resumeInputs =
+  resumeMode !== "none"
+    ? [
+        "-I",
+        `resume_mode=${resumeMode}`,
+        "-I",
+        `resume_source_head=${sourceHeadSha}`,
+        "-I",
+        `resume_task_base=${taskBaseSha}`,
+        "-I",
+        `resume_commits=${serializeResumeCommits(taskId, taskCommits)}`,
+      ]
+    : [];
 const launchEnv = buildTaskLaunchEnv({
-  baseSha: factoryBase,
+  baseSha: launchBaseSha,
   evidence,
   hostTestMaxLoad1m: "20",
   reproofRequest: "none",
   resumeCommits:
-    resumeStrategy === "in-lane-cherry-pick"
+    resumeMode !== "none"
       ? serializeResumeCommits(taskId, taskCommits)
       : "none",
-  resumeMode:
-    resumeStrategy === "in-lane-cherry-pick" ? "conflict-aware" : "none",
-  resumeSourceHead:
-    resumeStrategy === "in-lane-cherry-pick" ? sourceHeadSha : "none",
-  resumeTaskBase:
-    resumeStrategy === "in-lane-cherry-pick" ? taskBaseSha : "none",
+  resumeMode,
+  resumeSourceHead: resumeMode !== "none" ? sourceHeadSha : "none",
+  resumeTaskBase: resumeMode !== "none" ? taskBaseSha : "none",
   startSha,
   taskId,
   workdir,
@@ -230,7 +352,7 @@ const output = runRtk(
     "-I",
     `task_id=${taskId}`,
     "-I",
-    `base_sha=${factoryBase}`,
+    `base_sha=${launchBaseSha}`,
     "-I",
     `start_sha=${startSha}`,
     ...resumeInputs,
@@ -246,6 +368,7 @@ if (!runId)
   throw new Error(`${taskId}: Fabro did not return a run ID: ${output}`);
 promoteTaskReservation(recordPath, {
   branch,
+  factoryBaseSha: launchBaseSha,
   mode: "resume-review",
   resumeStrategy,
   runId,

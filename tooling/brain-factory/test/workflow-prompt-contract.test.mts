@@ -392,6 +392,15 @@ describe("Fabro workflow prompt contracts", () => {
     expect(buildTask).toContain(
       "if resolution requires an out-of-scope file, stop and report a contract gap",
     );
+    expect(buildTask).toContain("preserved-worktree");
+    expect(buildTask).toContain("preserved-conflict-aware");
+    expect(buildTask).toContain("CHERRY_PICK_HEAD");
+    expect(buildTask).toContain(
+      'if [ \\"$BRAIN_RESUME_MODE\\" = preserved-worktree ]',
+    );
+    expect(buildTask).toContain(
+      'if [ \\"$BRAIN_RESUME_MODE\\" = preserved-conflict-aware ]',
+    );
     expect(buildTask.indexOf("preflight -> apply_archive")).toBeLessThan(
       buildTask.indexOf("apply_archive -> implement"),
     );
