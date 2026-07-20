@@ -1,6 +1,6 @@
 {
   "planPath": "docs/superpowers/plans/2026-07-14-maestro-brain-agency-context-os-implementation-plan.md",
-  "planSha256": "b25dfe4b3139d61e98976f450d6dfbdb30629201ab2015f7846a04ca02435a57",
+  "planSha256": "e31f972a39b51cea55808659bca53233d7870c65181bb8d03a4c24201bf2d8ea",
   "schemaVersion": "maestro-brain-task-manifest/v1",
   "tasks": [
     {
@@ -1321,10 +1321,34 @@
       "requirements": ["IAM-04", "SLK-09"],
       "sourceSliceBudget": 300,
       "sourceSliceLimit": 6,
-      "taskBlockHash": "067b8e9df5c266e7d5f39aee20948186ff1feb0f81e02082e062bd9c0d5a8c3b",
+      "taskBlockHash": "10073df5c7eb2e1ff832124f13d272492263fb86ecdcbe0f309ac13e3fa02fb1",
       "taskId": "S10-T01",
       "title": "Link Exact Slack Users To Current Maestro Users",
-      "tranche": "X3-convergence"
+      "tranche": "X3-convergence",
+      "authorityRepairTransition": {
+        "schemaVersion": "maestro-brain-authority-repair-transition/v1",
+        "fromPlanSha256": "5e3506ec26c1776547b03641707371efaebb1c490ce3da6b6a1e2ed0df2a8417",
+        "fromTaskBlockHash": "31d477606c8d812c0f800d81d3401104da038d29fbb39dce06e1292cbd8d6e04",
+        "sourceRunId": "01KXZP38CAC2GYAF2YA7NRTBQK",
+        "sourceBaseSha": "bc7631796e42ee5d33a006df85730dc1293f505e",
+        "sourceHeadSha": "ae416ba6efe4b822a339d127eb5d428589068c24",
+        "sourceTreeSha": "0fd4c83f8afa2b35d9aadc38a2d2a7a92da426c9",
+        "requiredIntegratedTaskIds": ["S05-T01"],
+        "immutableFindings": [
+          {
+            "kind": "git-blob",
+            "objectSha": "643c702586f1e7a4ab1c3fb37843e612b9b974ba",
+            "contentSha256": "5e7b05f921760cf94f2eefd472ba511ccca84603c41ffbec5870dd51fb2fb4aa"
+          }
+        ],
+        "supersededPaths": [
+          {
+            "path": "packages/convex/confect/internal/migrations.ts",
+            "replacementPath": "packages/convex/confect/internal/migration-fragments/S10-T01.json",
+            "disposition": "replaced-by-current-owned-artifact"
+          }
+        ]
+      }
     },
     {
       "acceptanceAfter": "S10-T01",

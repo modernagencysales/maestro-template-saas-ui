@@ -2933,6 +2933,33 @@ manifest.
   at most six linear commits; each commit remains at or below 300 lines.
 - **Lane branch / commit boundary:** branch `codex/brain-s10-slack-identity`;
   commit `feat: link Slack users to Maestro`.
+- **Authority-repair transition:**
+  ```json
+  {
+    "schemaVersion": "maestro-brain-authority-repair-transition/v1",
+    "fromPlanSha256": "5e3506ec26c1776547b03641707371efaebb1c490ce3da6b6a1e2ed0df2a8417",
+    "fromTaskBlockHash": "31d477606c8d812c0f800d81d3401104da038d29fbb39dce06e1292cbd8d6e04",
+    "sourceRunId": "01KXZP38CAC2GYAF2YA7NRTBQK",
+    "sourceBaseSha": "bc7631796e42ee5d33a006df85730dc1293f505e",
+    "sourceHeadSha": "ae416ba6efe4b822a339d127eb5d428589068c24",
+    "sourceTreeSha": "0fd4c83f8afa2b35d9aadc38a2d2a7a92da426c9",
+    "requiredIntegratedTaskIds": ["S05-T01"],
+    "immutableFindings": [
+      {
+        "kind": "git-blob",
+        "objectSha": "643c702586f1e7a4ab1c3fb37843e612b9b974ba",
+        "contentSha256": "5e7b05f921760cf94f2eefd472ba511ccca84603c41ffbec5870dd51fb2fb4aa"
+      }
+    ],
+    "supersededPaths": [
+      {
+        "path": "packages/convex/confect/internal/migrations.ts",
+        "replacementPath": "packages/convex/confect/internal/migration-fragments/S10-T01.json",
+        "disposition": "replaced-by-current-owned-artifact"
+      }
+    ]
+  }
+  ```
 
 ### S10-T02 — Capture Mentions/DMs And Select Only An Authorized Brain Scope
 

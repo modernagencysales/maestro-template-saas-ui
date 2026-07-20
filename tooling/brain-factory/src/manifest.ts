@@ -57,6 +57,28 @@ export interface BrainTaskContract {
   /** Present only for deterministic control checkpoints. */
   readonly controlCommitChain?: readonly string[];
   readonly controlHeadSha?: string;
+  readonly authorityRepairTransition?: AuthorityRepairTransition;
+}
+
+export interface AuthorityRepairTransition {
+  readonly schemaVersion: "maestro-brain-authority-repair-transition/v1";
+  readonly fromPlanSha256: string;
+  readonly fromTaskBlockHash: string;
+  readonly sourceRunId: string;
+  readonly sourceBaseSha: string;
+  readonly sourceHeadSha: string;
+  readonly sourceTreeSha: string;
+  readonly requiredIntegratedTaskIds: readonly string[];
+  readonly immutableFindings: readonly {
+    readonly kind: "git-blob";
+    readonly objectSha: string;
+    readonly contentSha256: string;
+  }[];
+  readonly supersededPaths: readonly {
+    readonly path: string;
+    readonly replacementPath: string;
+    readonly disposition: "replaced-by-current-owned-artifact";
+  }[];
 }
 
 export interface BrainTaskManifest {
@@ -316,6 +338,212 @@ const taskBlocks = (
   );
 };
 
+const exactKeys = (
+  value: Record<string, unknown>,
+  expected: readonly string[],
+  label: string,
+): void => {
+  const actual = Object.keys(value).sort();
+  const wanted = [...expected].sort();
+  if (JSON.stringify(actual) !== JSON.stringify(wanted)) {
+    throw new Error(`${label}: fields must be exactly ${wanted.join(", ")}`);
+  }
+};
+
+const recordValue = (
+  value: unknown,
+  label: string,
+): Record<string, unknown> => {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    throw new Error(`${label}: must be an object`);
+  }
+  return value as Record<string, unknown>;
+};
+
+const exactString = (
+  value: unknown,
+  pattern: RegExp,
+  label: string,
+): string => {
+  if (typeof value !== "string" || !pattern.test(value)) {
+    throw new Error(`${label}: invalid value`);
+  }
+  return value;
+};
+
+export const parseAuthorityRepairTransition = (
+  body: string,
+  taskId: string,
+): AuthorityRepairTransition | undefined => {
+  const marker =
+    /- \*\*Authority-repair transition:\*\*\s*```json\r?\n([\s\S]*?)\r?\n\s*```/g;
+  const matches = [...body.matchAll(marker)];
+  if (matches.length === 0) return undefined;
+  if (matches.length !== 1) {
+    throw new Error(`${taskId}: duplicate authority-repair transition`);
+  }
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(
+      required(matches[0]?.[1], `${taskId}: empty authority-repair transition`),
+    );
+  } catch (error) {
+    throw new Error(`${taskId}: invalid authority-repair transition JSON`, {
+      cause: error,
+    });
+  }
+  const value = recordValue(parsed, `${taskId}: authority-repair transition`);
+  exactKeys(
+    value,
+    [
+      "schemaVersion",
+      "fromPlanSha256",
+      "fromTaskBlockHash",
+      "sourceRunId",
+      "sourceBaseSha",
+      "sourceHeadSha",
+      "sourceTreeSha",
+      "requiredIntegratedTaskIds",
+      "immutableFindings",
+      "supersededPaths",
+    ],
+    `${taskId}: authority-repair transition`,
+  );
+  if (value.schemaVersion !== "maestro-brain-authority-repair-transition/v1") {
+    throw new Error(`${taskId}: invalid authority-repair transition schema`);
+  }
+  const sha64 = /^[0-9a-f]{64}$/;
+  const sha40 = /^[0-9a-f]{40}$/;
+  const taskIds = value.requiredIntegratedTaskIds;
+  if (
+    !Array.isArray(taskIds) ||
+    taskIds.length === 0 ||
+    taskIds.some(
+      (id) => typeof id !== "string" || !/^S\d{2}-T\d{2}$/.test(id),
+    ) ||
+    new Set(taskIds).size !== taskIds.length
+  ) {
+    throw new Error(`${taskId}: invalid authority-repair prerequisites`);
+  }
+  if (
+    !Array.isArray(value.immutableFindings) ||
+    value.immutableFindings.length === 0
+  ) {
+    throw new Error(`${taskId}: authority-repair findings are required`);
+  }
+  const immutableFindings = value.immutableFindings.map((item, index) => {
+    const finding = recordValue(item, `${taskId}: immutable finding ${index}`);
+    exactKeys(
+      finding,
+      ["kind", "objectSha", "contentSha256"],
+      `${taskId}: immutable finding ${index}`,
+    );
+    if (finding.kind !== "git-blob") {
+      throw new Error(`${taskId}: immutable finding ${index} kind is invalid`);
+    }
+    return {
+      kind: "git-blob" as const,
+      objectSha: exactString(
+        finding.objectSha,
+        sha40,
+        `${taskId}: immutable finding object`,
+      ),
+      contentSha256: exactString(
+        finding.contentSha256,
+        sha64,
+        `${taskId}: immutable finding content hash`,
+      ),
+    };
+  });
+  if (
+    new Set(immutableFindings.map((finding) => finding.objectSha)).size !==
+    immutableFindings.length
+  ) {
+    throw new Error(`${taskId}: duplicate immutable finding object`);
+  }
+  if (
+    !Array.isArray(value.supersededPaths) ||
+    value.supersededPaths.length === 0
+  ) {
+    throw new Error(
+      `${taskId}: authority-repair superseded paths are required`,
+    );
+  }
+  const supersededPaths = value.supersededPaths.map((item, index) => {
+    const mapping = recordValue(item, `${taskId}: superseded path ${index}`);
+    exactKeys(
+      mapping,
+      ["path", "replacementPath", "disposition"],
+      `${taskId}: superseded path ${index}`,
+    );
+    if (mapping.disposition !== "replaced-by-current-owned-artifact") {
+      throw new Error(
+        `${taskId}: superseded path ${index} disposition is invalid`,
+      );
+    }
+    const path = exactString(mapping.path, /\S/, `${taskId}: superseded path`);
+    const replacementPath = exactString(
+      mapping.replacementPath,
+      /\S/,
+      `${taskId}: replacement path`,
+    );
+    if (
+      fileLockIssue(path) ||
+      fileLockIssue(replacementPath) ||
+      path === replacementPath
+    ) {
+      throw new Error(`${taskId}: authority-repair path mapping is invalid`);
+    }
+    return {
+      path,
+      replacementPath,
+      disposition: "replaced-by-current-owned-artifact" as const,
+    };
+  });
+  if (
+    new Set(supersededPaths.map((mapping) => mapping.path)).size !==
+    supersededPaths.length
+  ) {
+    throw new Error(`${taskId}: duplicate superseded path`);
+  }
+  return {
+    schemaVersion: "maestro-brain-authority-repair-transition/v1",
+    fromPlanSha256: exactString(
+      value.fromPlanSha256,
+      sha64,
+      `${taskId}: prior plan SHA`,
+    ),
+    fromTaskBlockHash: exactString(
+      value.fromTaskBlockHash,
+      sha64,
+      `${taskId}: prior task hash`,
+    ),
+    sourceRunId: exactString(
+      value.sourceRunId,
+      /^[0-9A-HJKMNP-TV-Z]{26}$/,
+      `${taskId}: source run ID`,
+    ),
+    sourceBaseSha: exactString(
+      value.sourceBaseSha,
+      sha40,
+      `${taskId}: source base SHA`,
+    ),
+    sourceHeadSha: exactString(
+      value.sourceHeadSha,
+      sha40,
+      `${taskId}: source head SHA`,
+    ),
+    sourceTreeSha: exactString(
+      value.sourceTreeSha,
+      sha40,
+      `${taskId}: source tree SHA`,
+    ),
+    requiredIntegratedTaskIds: taskIds as string[],
+    immutableFindings,
+    supersededPaths,
+  };
+};
+
 const acceptanceRows = (
   plan: string,
 ): Map<string, { dependency: string; estimatedSourceLines: number }> => {
@@ -508,6 +736,10 @@ export const buildManifest = (root = REPO_ROOT): BrainTaskManifest => {
           ?.match(/\b(?:FND|IAM|UI|SLK|ZFC|AI|KNW|HLS|REL)-\d{2}\b/g) ?? [],
       ),
     ].sort();
+    const authorityRepairTransition = parseAuthorityRepairTransition(
+      body,
+      taskId,
+    );
     return {
       acceptanceAfter: acceptanceContract.dependency,
       classification,
@@ -533,6 +765,9 @@ export const buildManifest = (root = REPO_ROOT): BrainTaskManifest => {
       taskId,
       title,
       tranche: trancheFor(taskId),
+      ...(authorityRepairTransition === undefined
+        ? {}
+        : { authorityRepairTransition }),
     } satisfies BrainTaskContract;
   });
   return {
@@ -724,6 +959,31 @@ export const validateManifest = (manifest: BrainTaskManifest): string[] => {
         errors.push(
           `${task.taskId}: unknown code-start dependency ${dependency}`,
         );
+    const transition = task.authorityRepairTransition;
+    if (transition) {
+      for (const prerequisite of transition.requiredIntegratedTaskIds) {
+        if (
+          !ids.has(prerequisite) ||
+          !task.codeStartAfter.includes(prerequisite)
+        ) {
+          errors.push(
+            `${task.taskId}: authority-repair prerequisite ${prerequisite} is not a code-start dependency`,
+          );
+        }
+      }
+      for (const mapping of transition.supersededPaths) {
+        if (task.fileLocks.includes(mapping.path)) {
+          errors.push(
+            `${task.taskId}: superseded path remains currently owned`,
+          );
+        }
+        if (!task.fileLocks.includes(mapping.replacementPath)) {
+          errors.push(
+            `${task.taskId}: replacement path is not currently owned`,
+          );
+        }
+      }
+    }
     for (const lock of task.fileLocks) {
       const match = lock.match(
         /^docs\/product\/maestro-brain-lifecycle-adoption\/(S\d{2}-T\d{2})\.md$/,
