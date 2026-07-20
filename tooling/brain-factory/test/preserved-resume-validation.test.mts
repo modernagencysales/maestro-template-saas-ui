@@ -200,6 +200,32 @@ describe("preserved resume launch validation", () => {
       startSha: currentHead,
       workdir: realpathSync(authorityWorkdir),
     });
+    rmSync(join(proofDirectory, "lane-result.json"));
+    writeFileSync(
+      join(archiveDirectory, "manifest.json"),
+      JSON.stringify({
+        ...manifest,
+        schemaVersion: "maestro-brain-authority-repair-archive/v1",
+      }),
+    );
+    expect(() =>
+      validateTerminalAuthorityResumeOwner({
+        ...input,
+        record: { ...input.record, mode: "authority-repair" },
+      }),
+    ).not.toThrow();
+    writeFileSync(
+      join(proofDirectory, "lane-result.json"),
+      JSON.stringify({
+        headSha: currentHead,
+        taskId,
+        treeSha: git(authorityWorkdir, "rev-parse", "HEAD^{tree}"),
+      }),
+    );
+    writeFileSync(
+      join(archiveDirectory, "manifest.json"),
+      JSON.stringify(manifest),
+    );
     const adoptedRecord = adoptTerminalAuthorityResumeRecord({
       record: input.record,
       resumeStrategy: owner.resumeStrategy,
