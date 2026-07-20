@@ -25,6 +25,22 @@ module.exports = {
       from: { path: "^packages/workflow-ui/src" },
       to: { path: "^apps/web/src" },
     },
+    {
+      name: "production-does-not-import-experiments",
+      severity: "error",
+      comment:
+        "Experiments are sandbox-only; promote behavior through a canonical generator.",
+      from: { path: "^(apps|packages)/" },
+      to: { path: "^experiments/" },
+    },
+    {
+      name: "production-does-not-import-private-packages",
+      severity: "error",
+      comment:
+        "Private packages remain isolated until their contracts are promoted.",
+      from: { path: "^(apps|packages)/" },
+      to: { path: "^private-packages/" },
+    },
   ],
   options: {
     doNotFollow: {

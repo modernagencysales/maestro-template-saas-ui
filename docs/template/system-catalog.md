@@ -8,7 +8,9 @@ This catalog answers one question before code exists:
 The machine-readable source of truth is
 [`system-catalog.json`](./system-catalog.json). It owns every hand-authored
 Confect table exactly once and points to the canonical implementation
-entrypoints. Run an exact lookup before planning or scaffolding:
+entrypoints. [`product-topology.json`](./product-topology.json) maps production
+capabilities, workflows, agents, jobs, routes, headless gateways, and provider
+seams to those systems. Run an exact lookup before planning or scaffolding:
 
 ```bash
 pnpm template:systems
@@ -114,4 +116,5 @@ An introduction decision must state:
 
 The deterministic catalog gate then proves that IDs, aliases, responsibilities,
 and table ownership are unique; all table files are covered; and every canonical
-entrypoint and decision document resolves.
+entrypoint and decision document resolves. `pnpm check:system-topology` proves
+that production resources have a canonical owner or generator provenance.

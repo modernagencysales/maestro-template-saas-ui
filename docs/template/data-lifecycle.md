@@ -17,15 +17,23 @@ Authoritative implementation:
 - `packages/convex/test/data-lifecycle.test.ts`
 - `packages/convex/test/data-lifecycle-ops.test.ts`
 
-Every schema addition that stores workspace-owned data must declare:
+The machine-readable source of truth is
+[`data-resources.json`](./data-resources.json). It classifies every durable
+table, while `packages/convex/confect/ops/dataResources.generated.ts` projects
+workspace-managed entries into the runtime DSAR and retention planner.
+
+Every schema addition must declare:
 
 - owner module
 - export posture
 - delete posture
 - retention rule
+- tenant scope and sensitivity/PII classification
+- canonical write authority and migration decision
 
-These fields must be documented before a resource is promoted from
-generated/client-specific code into the template core.
+Use `pnpm template:add-table` so the table, system owner, resource contract, and
+migration decision are created together. Then run `pnpm data-resources:generate`
+and `pnpm check:data-resources` before promotion.
 
 Every hand-authored table must also have exactly one owner in
 `docs/template/system-catalog.json`. `pnpm check:system-catalog` compares that
@@ -73,6 +81,7 @@ redaction, or legal-hold-aware retention execution.
 The planner covers these workspace-owned resources:
 
 - `workspaces`
+- `accessAuditEvents`
 - `workspaceMembers`
 - `brainPages`
 - `workflowRuns`
@@ -80,12 +89,15 @@ The planner covers these workspace-owned resources:
 - `workflowRunEvents`
 - `workflowRunEvidenceSnapshots`
 - `workflowRunContextManifests`
+- `workflowRunLinks`
 - `usageEvents`
+- `billingPlans`
 - `creditLedger`
 - `entitlements`
 - `webhookEvents`
 - `dsarRequests`
 - `featureFlagPolicies`
+- `policies`
 - `notificationRecords`
 - `notificationPreferences`
 - `apiKeys`
@@ -185,6 +197,13 @@ The implemented retention hooks are:
 - Versioned entries: append-only; retain for the audit window.
 - Version freshness: retain until workspace delete.
 - API keys: hash or redact on export.
+- Access audit events: retain for the audit window and redact identity context
+  on export.
+- Workflow run links: retain for the audit window with their parent-child run
+  provenance.
+- Billing plans: retain until workspace deletion as tenant billing
+  configuration.
+- Scoped policies: retain until workspace deletion as tenant configuration.
 - Workflow runs: retain for the audit window.
 - Credit ledger: retain for reconciliation.
 

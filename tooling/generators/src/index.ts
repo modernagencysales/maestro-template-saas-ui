@@ -3,8 +3,22 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
+  parseDataResourceCatalog,
+  type DataDeleteMode,
+  type DataExportMode,
+  type DataResourceCatalog,
+  type DataRetention,
+  type DataSensitivity,
+  type DataTenantScope,
+} from "@maestro-template/template-core/dataResourceCatalog";
+import {
+  parseProductTopology,
+  type ProductTopology,
+} from "@maestro-template/template-core/productTopology";
+import {
   canonicalSystemById,
   findCanonicalSystems,
+  normalizeSystemLookup,
   parseSystemCatalog,
   type SystemCatalog,
 } from "@maestro-template/template-core/systemCatalog";
@@ -184,6 +198,24 @@ export type CapabilityGeneratorResult = {
   readonly files: readonly GeneratedFile[];
 };
 
+export type FeatureGeneratorOptions = {
+  readonly name: string;
+  readonly system: string;
+  readonly disposition: SystemGeneratorDisposition;
+  readonly description?: string;
+  readonly write?: boolean;
+};
+
+export type FeatureGeneratorResult = {
+  readonly name: string;
+  readonly pascalName: string;
+  readonly route: string;
+  readonly system: string;
+  readonly disposition: SystemGeneratorDisposition;
+  readonly files: readonly GeneratedFile[];
+  readonly followUp: readonly string[];
+};
+
 export type WorkflowGeneratorOptions = {
   readonly name: string;
   readonly system: string;
@@ -235,6 +267,45 @@ export type PromotionGeneratorResult = {
   readonly target: "capability" | "workflow";
   readonly files: readonly GeneratedFile[];
   readonly followUp: readonly string[];
+};
+
+export type PrototypeGeneratorOptions = {
+  readonly name: string;
+  readonly system: string;
+  readonly disposition: SystemGeneratorDisposition;
+  readonly hypothesis: string;
+  readonly write?: boolean;
+};
+
+export type PrototypeGeneratorResult = {
+  readonly name: string;
+  readonly system: string;
+  readonly disposition: SystemGeneratorDisposition;
+  readonly files: readonly GeneratedFile[];
+  readonly followUp: readonly string[];
+};
+
+export type TableGeneratorOptions = {
+  readonly name: string;
+  readonly system: string;
+  readonly disposition: SystemGeneratorDisposition;
+  readonly tenantScope: DataTenantScope;
+  readonly sensitivity: DataSensitivity;
+  readonly pii: readonly string[];
+  readonly exportMode: DataExportMode;
+  readonly deleteMode: DataDeleteMode;
+  readonly retention: DataRetention;
+  readonly appendOnly?: boolean;
+  readonly description?: string;
+  readonly write?: boolean;
+};
+
+export type TableGeneratorResult = {
+  readonly name: string;
+  readonly pascalName: string;
+  readonly system: string;
+  readonly disposition: "extend";
+  readonly files: readonly GeneratedFile[];
 };
 
 export type TemplateUpgradeReport = {
@@ -299,9 +370,31 @@ const envManifestPath = (repoRoot = defaultRepoRoot): string =>
 const systemCatalogPath = (repoRoot = defaultRepoRoot): string =>
   resolve(repoRoot, "docs/template/system-catalog.json");
 
+const dataResourceCatalogPath = (repoRoot = defaultRepoRoot): string =>
+  resolve(repoRoot, "docs/template/data-resources.json");
+
+const productTopologyPath = (repoRoot = defaultRepoRoot): string =>
+  resolve(repoRoot, "docs/template/product-topology.json");
+
 export const readSystemCatalog = (repoRoot = defaultRepoRoot): SystemCatalog =>
   parseSystemCatalog(
     JSON.parse(readFileSync(systemCatalogPath(repoRoot), "utf8")) as unknown,
+  );
+
+export const readDataResourceCatalog = (
+  repoRoot = defaultRepoRoot,
+): DataResourceCatalog =>
+  parseDataResourceCatalog(
+    JSON.parse(
+      readFileSync(dataResourceCatalogPath(repoRoot), "utf8"),
+    ) as unknown,
+  );
+
+export const readProductTopology = (
+  repoRoot = defaultRepoRoot,
+): ProductTopology =>
+  parseProductTopology(
+    JSON.parse(readFileSync(productTopologyPath(repoRoot), "utf8")) as unknown,
   );
 
 const readEnvManifest = (
@@ -415,6 +508,9 @@ const slugify = (value: string): string =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
 
+const kebabCase = (value: string): string =>
+  slugify(value.replace(/([a-z0-9])([A-Z])/g, "$1-$2"));
+
 const pascalCase = (value: string): string => {
   const normalized = value
     .trim()
@@ -441,6 +537,20 @@ const writeGeneratedFiles = (
     const targetPath = resolve(cwd, file.path);
     mkdirSync(dirname(targetPath), { recursive: true });
     writeFileSync(targetPath, file.content);
+  }
+};
+
+const assertGeneratedPathsAreNew = (
+  files: readonly GeneratedFile[],
+  cwd: string,
+): void => {
+  const existing = files
+    .map(({ path }) => path)
+    .filter((path) => existsSync(resolve(cwd, path)));
+  if (existing.length > 0) {
+    throw new Error(
+      `Refusing to overwrite existing paths: ${existing.join(", ")}. Reuse or extend the existing slice, or choose a new reviewed name.`,
+    );
   }
 };
 
@@ -1404,6 +1514,448 @@ ${description}
     files: withGeneratorProvenance("add-capability", name, files, {
       system: options.system,
       disposition: options.disposition,
+    }),
+  };
+};
+
+export const buildFeatureFiles = (
+  options: FeatureGeneratorOptions,
+): FeatureGeneratorResult => {
+  const name = camelCase(options.name);
+  const pascalName = pascalCase(options.name);
+  const route = kebabCase(options.name);
+  const description =
+    options.description ??
+    `Generated ${name} vertical slice. Replace fake fixtures through the typed Confect adapter.`;
+  const featurePath = `apps/web/src/features/${name}`;
+  const capability = buildCapabilityFiles({
+    name,
+    system: options.system,
+    disposition: options.disposition,
+    description,
+    exposure: "web",
+  });
+  const capabilityFiles = capability.files.filter(
+    ({ path }) =>
+      path !== `docs/template/generated/provenance/add-capability/${name}.json`,
+  );
+  const files: readonly GeneratedFile[] = [
+    ...capabilityFiles,
+    {
+      path: `${featurePath}/contract.ts`,
+      content: `export const ${name}FeatureContract = {
+  ownership: {
+    system: "${options.system}",
+    disposition: "${options.disposition}",
+  },
+  capability: "${name}",
+  tenantScope: "workspace",
+  auth: "workspace-member",
+  typedErrors: ["Unauthorized", "ValidationFailed", "Forbidden"],
+  audit: {
+    readEvent: "${name}.viewed",
+    writeEvent: "${name}.changed",
+    actorAndWorkspaceRequired: true,
+  },
+  observability: {
+    operation: "${options.system}.${name}",
+    redactInput: true,
+    captureLatency: true,
+  },
+  featureFlag: {
+    key: "${options.system}.${route}",
+    default: "off-until-reviewed",
+    killSwitch: true,
+  },
+  entitlement: {
+    posture: "explicit-plan-or-none",
+    default: "not-entitled",
+  },
+  dataLifecycle: {
+    durableResources: [] as const,
+    instruction: "Use template:add-table before adding durable state.",
+  },
+} as const;
+`,
+    },
+    {
+      path: `${featurePath}/model.ts`,
+      content: `export type ${pascalName}Item = {
+  readonly id: string;
+  readonly label: string;
+  readonly detail: string;
+};
+
+export type ${pascalName}FeatureState =
+  | { readonly status: "loading" }
+  | { readonly status: "empty" }
+  | { readonly status: "ready"; readonly items: readonly ${pascalName}Item[] }
+  | { readonly status: "edit"; readonly draft: ${pascalName}Item }
+  | { readonly status: "skipped"; readonly reason: string }
+  | {
+      readonly status: "typed-error";
+      readonly error: "Unauthorized" | "ValidationFailed" | "Forbidden";
+    }
+  | { readonly status: "transport-error"; readonly message: string }
+  | { readonly status: "success"; readonly item: ${pascalName}Item };
+
+export type ${pascalName}ViewModel = {
+  readonly title: string;
+  readonly status: ${pascalName}FeatureState["status"];
+  readonly notice: string;
+  readonly items: readonly ${pascalName}Item[];
+  readonly canEdit: boolean;
+};
+
+export const present${pascalName} = (
+  state: ${pascalName}FeatureState,
+): ${pascalName}ViewModel => {
+  const base = {
+    title: ${JSON.stringify(description)},
+    status: state.status,
+    items: [] as readonly ${pascalName}Item[],
+    canEdit: false,
+  };
+
+  switch (state.status) {
+    case "loading":
+      return { ...base, notice: "Loading…" };
+    case "empty":
+      return { ...base, notice: "Nothing here yet.", canEdit: true };
+    case "ready":
+      return { ...base, notice: "Ready", items: state.items, canEdit: true };
+    case "edit":
+      return { ...base, notice: "Editing", items: [state.draft], canEdit: true };
+    case "skipped":
+      return { ...base, notice: state.reason };
+    case "typed-error":
+      return { ...base, notice: \`Request failed: \${state.error}\` };
+    case "transport-error":
+      return { ...base, notice: \`Connection failed: \${state.message}\` };
+    case "success":
+      return { ...base, notice: "Saved", items: [state.item], canEdit: true };
+  }
+};
+`,
+    },
+    {
+      path: `${featurePath}/fixtures.ts`,
+      content: `import type { ${pascalName}FeatureState, ${pascalName}Item } from "./model";
+
+export const fake${pascalName}Items: readonly ${pascalName}Item[] = [
+  {
+    id: "${name}-demo-1",
+    label: "Example account",
+    detail: "Synthetic fixture for customer.example; never use customer data here.",
+  },
+];
+
+export const fake${pascalName}States = {
+  loading: { status: "loading" },
+  empty: { status: "empty" },
+  ready: { status: "ready", items: fake${pascalName}Items },
+  edit: { status: "edit", draft: fake${pascalName}Items[0]! },
+  skipped: { status: "skipped", reason: "Feature flag is disabled." },
+  typedError: { status: "typed-error", error: "Forbidden" },
+  transportError: { status: "transport-error", message: "Demo transport unavailable." },
+  success: { status: "success", item: fake${pascalName}Items[0]! },
+} as const satisfies Record<string, ${pascalName}FeatureState>;
+`,
+    },
+    {
+      path: `${featurePath}/${route}-feature.tsx`,
+      content: `import { Button, Card, Heading, Stack, Text } from "@saas-ui/react";
+import { fake${pascalName}States } from "./fixtures";
+import { present${pascalName}, type ${pascalName}FeatureState } from "./model";
+
+export function ${pascalName}Feature({
+  state = fake${pascalName}States.ready,
+}: {
+  readonly state?: ${pascalName}FeatureState;
+}) {
+  const view = present${pascalName}(state);
+
+  return (
+    <Card.Root aria-label="${description}">
+      <Card.Header>
+        <Heading size="md">{view.title}</Heading>
+        <Text>{view.notice}</Text>
+      </Card.Header>
+      <Card.Body>
+        <Stack gap="3">
+          {view.items.map((item) => (
+            <Card.Root key={item.id} variant="outline">
+              <Card.Body>
+                <Heading size="sm">{item.label}</Heading>
+                <Text>{item.detail}</Text>
+              </Card.Body>
+            </Card.Root>
+          ))}
+          {view.canEdit ? <Button alignSelf="start">Edit</Button> : null}
+        </Stack>
+      </Card.Body>
+    </Card.Root>
+  );
+}
+`,
+    },
+    {
+      path: `${featurePath}/model.test.ts`,
+      content: `import { describe, expect, it } from "vitest";
+import { fake${pascalName}States } from "./fixtures";
+import { present${pascalName} } from "./model";
+
+describe("${name} feature presenter", () => {
+  it.each(Object.entries(fake${pascalName}States))(
+    "presents the %s state without throwing",
+    (_name, state) => {
+      const view = present${pascalName}(state);
+      expect(view.status).toBe(state.status);
+      expect(view.notice.length).toBeGreaterThan(0);
+    },
+  );
+
+  it("keeps fixtures synthetic and fake-safe", () => {
+    expect(JSON.stringify(fake${pascalName}States)).toContain("customer.example");
+  });
+});
+`,
+    },
+    {
+      path: `apps/web/src/screens/${route}-screen.tsx`,
+      content: `import { Page } from "@saas-ui/react";
+import { ${pascalName}Feature } from "../features/${name}/${route}-feature";
+
+export function ${pascalName}Screen() {
+  return (
+    <Page.Root>
+      <Page.Header title="${pascalName}" description={${JSON.stringify(description)}} />
+      <Page.Body>
+        <${pascalName}Feature />
+      </Page.Body>
+    </Page.Root>
+  );
+}
+`,
+    },
+    {
+      path: `apps/web/src/routes/_workspace.${route}.tsx`,
+      content: `import { createFileRoute } from "@tanstack/react-router";
+import { ${pascalName}Screen } from "../screens/${route}-screen";
+
+export const Route = createFileRoute("/_workspace/${route}")({
+  component: ${pascalName}Screen,
+});
+`,
+    },
+    {
+      path: `docs/template/generated/features/${name}.md`,
+      content: `# ${pascalName} Feature
+
+${description}
+
+- Owner: \`${options.system}\` (\`${options.disposition}\`)
+- Capability: \`${name}\`
+- Route: \`/_workspace/${route}\`
+- Auth and tenancy: authenticated workspace member
+- Rollout: flag off and not entitled until reviewed
+- Data lifecycle: no durable data; use \`template:add-table\` before adding any
+- Audit: read/write event names are declared in the feature contract
+- Observability: operation name, redaction, and latency posture are declared
+
+Run the model and capability tests, Confect codegen, route generation, and the
+topology/promotion/data-resource gates before opening the production PR.
+`,
+    },
+  ];
+
+  return {
+    name,
+    pascalName,
+    route,
+    system: options.system,
+    disposition: options.disposition,
+    files: withGeneratorProvenance("add-feature", name, files, {
+      system: options.system,
+      disposition: options.disposition,
+    }),
+    followUp: [
+      "Specialize the generated capability contract and keep typed failures reachable.",
+      "Replace fake fixtures through a thin Confect React adapter.",
+      "Register navigation only after flag, entitlement, auth, and audit review.",
+      "Run pnpm confect:codegen, pnpm build, focused tests, and just verify.",
+    ],
+  };
+};
+
+const tenantOwnerField = (
+  tenantScope: DataTenantScope,
+): {
+  readonly field: string;
+  readonly table: string;
+  readonly index: string;
+} => {
+  if (tenantScope === "workspace") {
+    return { field: "workspaceId", table: "workspaces", index: "by_workspace" };
+  }
+  if (tenantScope === "organization") {
+    return {
+      field: "organizationId",
+      table: "organizations",
+      index: "by_organization",
+    };
+  }
+  if (tenantScope === "user") {
+    return { field: "userId", table: "users", index: "by_user" };
+  }
+  return { field: "key", table: "", index: "by_key" };
+};
+
+export const buildTableFiles = (
+  options: TableGeneratorOptions,
+  catalogs?: {
+    readonly systems?: SystemCatalog;
+    readonly dataResources?: DataResourceCatalog;
+  },
+): TableGeneratorResult => {
+  if (options.disposition !== "extend") {
+    throw new RangeError("New durable tables must use --disposition extend");
+  }
+
+  const name = camelCase(options.name);
+  const pascalName = pascalCase(options.name);
+  const systems = catalogs?.systems ?? readSystemCatalog();
+  const dataResources = catalogs?.dataResources ?? readDataResourceCatalog();
+  const system = canonicalSystemById(systems, options.system);
+  if (system.lifecycle !== "active") {
+    throw new RangeError(
+      `Canonical system ${system.id} is ${system.lifecycle} and cannot receive a durable table`,
+    );
+  }
+  if (
+    systems.systems.some(({ tables }) => tables.includes(name)) ||
+    dataResources.resources.some(({ id }) => id === name)
+  ) {
+    throw new RangeError(`Durable table ${name} is already registered`);
+  }
+
+  const owner = tenantOwnerField(options.tenantScope);
+  const writeAuthority = system.canonicalEntrypoints[0];
+  if (writeAuthority === undefined) {
+    throw new RangeError(
+      `Canonical system ${system.id} has no write authority entrypoint`,
+    );
+  }
+  const ownerField =
+    options.tenantScope === "global"
+      ? "    key: Schema.String,"
+      : `    ${owner.field}: Id("${owner.table}"),`;
+  const idImport =
+    options.tenantScope === "global"
+      ? ""
+      : 'import { Id } from "../_generated/id";\n';
+  const description =
+    options.description ??
+    `Durable ${name} state owned by the ${system.id} canonical system.`;
+  const decisionPath = `docs/template/schema-decisions/${name}.md`;
+  const tablePath = `packages/convex/confect/tables/${name}.ts`;
+  const nextSystems: SystemCatalog = {
+    ...systems,
+    systems: systems.systems.map((candidate) =>
+      candidate.id === system.id
+        ? {
+            ...candidate,
+            tables: [...candidate.tables, name].sort(),
+          }
+        : candidate,
+    ),
+  };
+  const nextDataResources = parseDataResourceCatalog({
+    ...dataResources,
+    resources: [
+      ...dataResources.resources,
+      {
+        id: name,
+        system: system.id,
+        sourcePath: tablePath,
+        tenantScope: options.tenantScope,
+        sensitivity: options.sensitivity,
+        pii: [...options.pii],
+        exportMode: options.exportMode,
+        deleteMode: options.deleteMode,
+        retention: options.retention,
+        appendOnly: options.appendOnly ?? false,
+        workspaceLifecycle:
+          options.tenantScope === "workspace" ? "managed" : "excluded",
+        writeAuthority,
+        migrationRef: decisionPath,
+        detail: description,
+      },
+    ].sort((left, right) => left.id.localeCompare(right.id)),
+  });
+  const files: readonly GeneratedFile[] = [
+    {
+      path: tablePath,
+      content: `import { Table } from "@confect/server";
+import * as Schema from "effect/Schema";
+${idImport}
+// ${description}
+export default Table.make(() =>
+  Schema.Struct({
+${ownerField}
+    createdAt: Schema.Number,
+    updatedAt: Schema.Number,
+  }),
+).index("${owner.index}", ["${owner.field}"]);
+`,
+    },
+    {
+      path: decisionPath,
+      content: `# ${pascalName} Schema Decision
+
+Canonical system: \`${system.id}\`
+Disposition: \`extend\`
+Status: proposed
+
+## Purpose
+
+${description}
+
+## Data Contract
+
+- Tenant scope: \`${options.tenantScope}\`
+- Sensitivity: \`${options.sensitivity}\`
+- PII categories: ${options.pii.length === 0 ? "none" : options.pii.map((value) => `\`${value}\``).join(", ")}
+- Export: \`${options.exportMode}\`
+- Delete/redaction: \`${options.deleteMode}\`
+- Retention: \`${options.retention}\`
+- Append-only: \`${String(options.appendOnly ?? false)}\`
+- Write authority: \`${writeAuthority}\`
+
+## Migration And Rollback
+
+Document indexes, backfill, compatibility window, rollback behavior, and the
+query that proves the table is necessary before approving this decision.
+`,
+    },
+    {
+      path: "docs/template/system-catalog.json",
+      content: `${JSON.stringify(nextSystems, null, 2)}\n`,
+    },
+    {
+      path: "docs/template/data-resources.json",
+      content: `${JSON.stringify(nextDataResources, null, 2)}\n`,
+    },
+  ];
+
+  return {
+    name,
+    pascalName,
+    system: system.id,
+    disposition: "extend",
+    files: withGeneratorProvenance("add-table", name, files, {
+      system: system.id,
+      disposition: "extend",
     }),
   };
 };
@@ -2774,6 +3326,10 @@ const privatePackageName = (
 const privatePackageCapabilityFiles = (
   packageName: string,
   capabilityName: string,
+  ownership: {
+    readonly system: string;
+    readonly disposition: SystemGeneratorDisposition;
+  },
 ): readonly GeneratedFile[] => {
   const name = camelCase(capabilityName);
   const pascalName = pascalCase(capabilityName);
@@ -2789,7 +3345,7 @@ const privatePackageCapabilityFiles = (
           authScope: "workspace member",
           typedErrors: ["Unauthorized", "ValidationFailed", "Forbidden"],
           surfaces: ["api", "cli", "mcp"],
-          promotionCommand: `pnpm template:promote-capability -- --name ${name} --write`,
+          promotionCommand: `pnpm template:promote-capability -- --name ${name} --system ${ownership.system} --disposition ${ownership.disposition} --write`,
         },
         null,
         2,
@@ -2804,7 +3360,7 @@ Private package capability module for \`${packageName}\`.
 ## Import Checklist
 
 1. Review fixture redaction and source ownership.
-2. Promote with \`pnpm template:promote-capability -- --name ${name} --write\`.
+2. Promote with \`pnpm template:promote-capability -- --name ${name} --system ${ownership.system} --disposition ${ownership.disposition} --write\`.
 3. Replace deterministic implementation with client-specific domain logic.
 4. Run \`pnpm check:confect-contracts\` and focused capability tests.
 `,
@@ -2815,6 +3371,10 @@ Private package capability module for \`${packageName}\`.
 const privatePackageWorkflowFiles = (
   packageName: string,
   workflowName: string,
+  ownership: {
+    readonly system: string;
+    readonly disposition: SystemGeneratorDisposition;
+  },
 ): readonly GeneratedFile[] => {
   const name = camelCase(workflowName);
   const pascalName = pascalCase(workflowName);
@@ -2857,7 +3417,7 @@ Private package workflow module for \`${packageName}\`.
 ## Import Checklist
 
 1. Review graph nodes, approvals, idempotency, and Trust Receipt policy.
-2. Promote with \`pnpm template:promote-workflow -- --name ${name} --write\`.
+2. Promote with \`pnpm template:promote-workflow -- --name ${name} --system ${ownership.system} --disposition ${ownership.disposition} --write\`.
 3. Connect reviewed capability refs to reviewed capability modules.
 4. Run \`pnpm check:workflow-graph-boundary\` and focused workflow tests.
 `,
@@ -2893,6 +3453,8 @@ const privatePackageIndexFile = (
 
 export const buildPrivatePackagePlan = (options: {
   readonly fixturePath: string;
+  readonly system: string;
+  readonly disposition: SystemGeneratorDisposition;
   readonly mode?: "dry-run" | "import";
 }): PrivatePackagePlan => {
   const mode = options.mode ?? "dry-run";
@@ -2936,6 +3498,9 @@ export const buildPrivatePackagePlan = (options: {
           packageName,
           reviewBoundary: "private-packages-first",
           contractReview: "required-before-promotion",
+          system: options.system,
+          disposition: options.disposition,
+          productionRegistrations: false,
           capabilities,
           workflows,
           agents: manifest?.agents ?? [],
@@ -2979,10 +3544,10 @@ This package plan is generated from \`${options.fixturePath}\`.
     },
     privatePackageIndexFile(packageName, capabilities, workflows, docs),
     ...capabilities.flatMap((capability) =>
-      privatePackageCapabilityFiles(packageName, capability),
+      privatePackageCapabilityFiles(packageName, capability, options),
     ),
     ...workflows.flatMap((workflow) =>
-      privatePackageWorkflowFiles(packageName, workflow),
+      privatePackageWorkflowFiles(packageName, workflow, options),
     ),
   ];
 
@@ -2991,8 +3556,80 @@ This package plan is generated from \`${options.fixturePath}\`.
     mode,
     ok: checks.every((check) => check.status !== "fail"),
     packageName,
-    files: withGeneratorProvenance("private-package", packageName, files),
+    files: withGeneratorProvenance("private-package", packageName, files, {
+      system: options.system,
+      disposition: options.disposition,
+    }),
     checks,
+  };
+};
+
+export const buildPrototypeFiles = (
+  options: PrototypeGeneratorOptions,
+): PrototypeGeneratorResult => {
+  const name = camelCase(options.name);
+  const pascalName = pascalCase(options.name);
+  const basePath = `experiments/${options.system}/${name}`;
+  const promotionCommand = `pnpm template:add-feature -- --name ${name} --system ${options.system} --disposition ${options.disposition} --write`;
+  const files: readonly GeneratedFile[] = [
+    {
+      path: `${basePath}/experiment.json`,
+      content: `${JSON.stringify(
+        {
+          schemaVersion: 1,
+          id: name,
+          system: options.system,
+          disposition: options.disposition,
+          hypothesis: options.hypothesis.trim(),
+          productionRegistrations: false,
+          promotionCommand,
+        },
+        null,
+        2,
+      )}\n`,
+    },
+    {
+      path: `${basePath}/README.md`,
+      content: `# ${pascalName} Experiment
+
+Hypothesis: ${options.hypothesis.trim()}
+
+This code is sandbox-only. It may use fake fixtures and local adapters, but it
+must not register production tables, routes, headless operations, jobs, or
+providers. Production code must not import it.
+
+When the behavior is worth keeping, re-scaffold the vertical slice with:
+
+\`\`\`bash
+${promotionCommand}
+\`\`\`
+`,
+    },
+    {
+      path: `${basePath}/src/index.ts`,
+      content: `/** Sandbox-only prototype for ${options.hypothesis.trim()} */
+export const experiment = {
+  id: "${name}",
+  system: "${options.system}",
+  hypothesis: ${JSON.stringify(options.hypothesis.trim())},
+} as const;
+`,
+    },
+  ];
+
+  return {
+    name,
+    system: options.system,
+    disposition: options.disposition,
+    files: withGeneratorProvenance("prototype", name, files, {
+      system: options.system,
+      disposition: options.disposition,
+    }),
+    followUp: [
+      "Prototype with fake-safe data inside the experiment directory.",
+      "Record what was learned in the experiment README.",
+      `Promote only by re-scaffolding: ${promotionCommand}`,
+    ],
   };
 };
 
@@ -3008,9 +3645,17 @@ const parseArgs = (
   readonly mode: ProviderMode;
   readonly exposure: "web" | "workflow" | "headless";
   readonly description: string | undefined;
+  readonly hypothesis: string | undefined;
   readonly system: string | undefined;
   readonly disposition: SystemGeneratorDisposition | undefined;
   readonly query: string | undefined;
+  readonly tenantScope: DataTenantScope | undefined;
+  readonly sensitivity: DataSensitivity | undefined;
+  readonly pii: readonly string[] | undefined;
+  readonly exportMode: DataExportMode | undefined;
+  readonly deleteMode: DataDeleteMode | undefined;
+  readonly retention: DataRetention | undefined;
+  readonly appendOnly: boolean;
   readonly write: boolean;
   readonly path: string;
 } => {
@@ -3021,9 +3666,16 @@ const parseArgs = (
   const pathIndex = argv.indexOf("--path");
   const exposureIndex = argv.indexOf("--exposure");
   const descriptionIndex = argv.indexOf("--description");
+  const hypothesisIndex = argv.indexOf("--hypothesis");
   const systemIndex = argv.indexOf("--system");
   const dispositionIndex = argv.indexOf("--disposition");
   const queryIndex = argv.indexOf("--query");
+  const tenantScopeIndex = argv.indexOf("--tenant-scope");
+  const sensitivityIndex = argv.indexOf("--sensitivity");
+  const piiIndex = argv.indexOf("--pii");
+  const exportModeIndex = argv.indexOf("--export-mode");
+  const deleteModeIndex = argv.indexOf("--delete-mode");
+  const retentionIndex = argv.indexOf("--retention");
   const fromIndex = argv.indexOf("--from");
   const toIndex = argv.indexOf("--to");
   const fixtureIndex = argv.indexOf("--fixture");
@@ -3061,6 +3713,54 @@ const parseArgs = (
   if (disposition && !["reuse", "extend"].includes(disposition)) {
     throw new Error(`Unknown system disposition: ${disposition}`);
   }
+  const tenantScope =
+    tenantScopeIndex >= 0 ? argv[tenantScopeIndex + 1] : undefined;
+  if (
+    tenantScope &&
+    !["global", "organization", "workspace", "user"].includes(tenantScope)
+  ) {
+    throw new Error(`Unknown tenant scope: ${tenantScope}`);
+  }
+  const sensitivity =
+    sensitivityIndex >= 0 ? argv[sensitivityIndex + 1] : undefined;
+  if (
+    sensitivity &&
+    !["public", "internal", "confidential", "restricted"].includes(sensitivity)
+  ) {
+    throw new Error(`Unknown data sensitivity: ${sensitivity}`);
+  }
+  const exportMode =
+    exportModeIndex >= 0 ? argv[exportModeIndex + 1] : undefined;
+  if (
+    exportMode &&
+    !["markdown", "json", "redacted-json", "not-applicable"].includes(
+      exportMode,
+    )
+  ) {
+    throw new Error(`Unknown export mode: ${exportMode}`);
+  }
+  const deleteMode =
+    deleteModeIndex >= 0 ? argv[deleteModeIndex + 1] : undefined;
+  if (
+    deleteMode &&
+    !["delete", "redact", "retain-audit", "not-applicable"].includes(deleteMode)
+  ) {
+    throw new Error(`Unknown delete mode: ${deleteMode}`);
+  }
+  const retention = retentionIndex >= 0 ? argv[retentionIndex + 1] : undefined;
+  if (
+    retention &&
+    ![
+      "retain-until-workspace-delete",
+      "retain-audit-window",
+      "hash-or-redact-on-export",
+      "retain-until-account-delete",
+      "retain-until-organization-delete",
+      "retain-configuration",
+    ].includes(retention)
+  ) {
+    throw new Error(`Unknown retention action: ${retention}`);
+  }
 
   return {
     command,
@@ -3072,9 +3772,23 @@ const parseArgs = (
     mode: (mode ?? "fake") as ProviderMode,
     exposure: exposure as "web" | "workflow" | "headless",
     description: descriptionIndex >= 0 ? argv[descriptionIndex + 1] : undefined,
+    hypothesis: hypothesisIndex >= 0 ? argv[hypothesisIndex + 1] : undefined,
     system: systemIndex >= 0 ? argv[systemIndex + 1] : undefined,
     disposition: disposition as SystemGeneratorDisposition | undefined,
     query: queryIndex >= 0 ? argv[queryIndex + 1] : undefined,
+    tenantScope: tenantScope as DataTenantScope | undefined,
+    sensitivity: sensitivity as DataSensitivity | undefined,
+    pii:
+      piiIndex >= 0
+        ? (argv[piiIndex + 1] ?? "")
+            .split(",")
+            .map((value) => value.trim())
+            .filter((value) => value.length > 0 && value !== "none")
+        : undefined,
+    exportMode: exportMode as DataExportMode | undefined,
+    deleteMode: deleteMode as DataDeleteMode | undefined,
+    retention: retention as DataRetention | undefined,
+    appendOnly: argv.includes("--append-only"),
     write: argv.includes("--write"),
     path: path || "template-instance.json",
   };
@@ -3134,16 +3848,19 @@ export const runGeneratorCli = (
             "template:seed-demo [--blueprint <supported-blueprint>] [--mode fake|test|live] [--write]",
             "template:handoff [--blueprint <supported-blueprint>] [--name <name>] [--mode fake|test|live] [--write]",
             "template:systems [--query <exact-id-alias-responsibility-or-table>]",
+            "template:prototype --name <name> --system <canonical-id> --disposition reuse|extend --hypothesis <text> [--write]",
             "template:add-client-domain --name <name> --system <canonical-id> --disposition reuse|extend [--description <text>] [--write]",
+            "template:add-feature --name <name> --system <canonical-id> --disposition reuse|extend [--description <text>] [--write]",
             "template:add-capability --name <name> --system <canonical-id> --disposition reuse|extend [--description <text>] [--exposure web|workflow|headless] [--write]",
+            "template:add-table --name <name> --system <canonical-id> --disposition extend --tenant-scope global|organization|workspace|user --sensitivity public|internal|confidential|restricted --pii <comma-list|none> --export-mode markdown|json|redacted-json|not-applicable --delete-mode delete|redact|retain-audit|not-applicable --retention <action> [--append-only] [--description <text>] [--write]",
             "template:add-workflow --name <name> --system <canonical-id> --disposition reuse|extend [--description <text>] [--write]",
             "template:add-agent --name <name> --system <canonical-id> --disposition reuse|extend [--description <text>] [--write]",
             "template:add-agent-seat --name <name> --system <canonical-id> --disposition reuse|extend [--description <text>] [--write]",
             "template:promote-capability --name <name> --system <canonical-id> --disposition reuse|extend [--description <text>] [--write]",
             "template:promote-workflow --name <name> --system <canonical-id> --disposition reuse|extend [--description <text>] [--write]",
             "template:upgrade --from <client-version> --to <template-version>",
-            "template:private-package:dry-run --fixture <path>",
-            "template:private-package:import --fixture <path> [--write]",
+            "template:private-package:dry-run --fixture <path> --system <canonical-id> --disposition reuse|extend",
+            "template:private-package:import --fixture <path> --system <canonical-id> --disposition reuse|extend [--write]",
           ].join("\n") + "\n",
         stderr: "",
       };
@@ -3151,9 +3868,25 @@ export const runGeneratorCli = (
 
     if (args.command === "systems") {
       const catalog = readSystemCatalog(catalogRoot);
-      const systems = args.query
+      const topology = readProductTopology(catalogRoot);
+      const catalogMatches = args.query
         ? findCanonicalSystems(catalog, args.query)
         : catalog.systems;
+      const normalizedQuery = normalizeSystemLookup(args.query ?? "");
+      const resourceMatches = args.query
+        ? topology.resources.filter((resource) =>
+            [resource.id, resource.path, resource.responsibility].some(
+              (value) => normalizeSystemLookup(value) === normalizedQuery,
+            ),
+          )
+        : topology.resources;
+      const matchedSystemIds = new Set([
+        ...catalogMatches.map(({ id }) => id),
+        ...resourceMatches.map(({ system }) => system),
+      ]);
+      const systems = catalog.systems.filter(({ id }) =>
+        matchedSystemIds.has(id),
+      );
 
       return {
         exitCode: 0,
@@ -3161,6 +3894,7 @@ export const runGeneratorCli = (
           {
             query: args.query ?? null,
             matches: systems,
+            resources: resourceMatches,
             guidance:
               systems.length === 0
                 ? "No exact catalog match. Review the full catalog before proposing an introduce decision."
@@ -3169,6 +3903,29 @@ export const runGeneratorCli = (
           null,
           2,
         )}\n`,
+        stderr: "",
+      };
+    }
+
+    if (args.command === "prototype") {
+      if (!args.name) throw new Error("Missing required --name for prototype");
+      if (!args.hypothesis?.trim()) {
+        throw new Error("Missing required --hypothesis for prototype");
+      }
+      const result = buildPrototypeFiles({
+        name: args.name,
+        ...requireOwnership(),
+        hypothesis: args.hypothesis,
+      });
+
+      if (args.write) {
+        assertGeneratedPathsAreNew(result.files, cwd);
+        writeGeneratedFiles(result.files, cwd);
+      }
+
+      return {
+        exitCode: 0,
+        stdout: `${JSON.stringify(result, null, 2)}\n`,
         stderr: "",
       };
     }
@@ -3340,6 +4097,32 @@ export const runGeneratorCli = (
       };
     }
 
+    if (args.command === "add-feature") {
+      if (!args.name) {
+        return {
+          exitCode: 1,
+          stdout: "",
+          stderr: "Missing required --name for add-feature\n",
+        };
+      }
+      const result = buildFeatureFiles({
+        name: args.name,
+        ...requireOwnership(),
+        ...(args.description ? { description: args.description } : {}),
+      });
+
+      if (args.write) {
+        assertGeneratedPathsAreNew(result.files, cwd);
+        writeGeneratedFiles(result.files, cwd);
+      }
+
+      return {
+        exitCode: 0,
+        stdout: `${JSON.stringify(result, null, 2)}\n`,
+        stderr: "",
+      };
+    }
+
     if (args.command === "add-capability") {
       if (!args.name) {
         return {
@@ -3355,6 +4138,65 @@ export const runGeneratorCli = (
         exposure: args.exposure,
         ...(args.description ? { description: args.description } : {}),
       });
+
+      if (args.write) {
+        writeGeneratedFiles(result.files, cwd);
+      }
+
+      return {
+        exitCode: 0,
+        stdout: `${JSON.stringify(result, null, 2)}\n`,
+        stderr: "",
+      };
+    }
+
+    if (args.command === "add-table") {
+      if (!args.name) {
+        throw new Error("Missing required --name for add-table");
+      }
+      if (!args.tenantScope) {
+        throw new Error("Missing required --tenant-scope for add-table");
+      }
+      if (!args.sensitivity) {
+        throw new Error("Missing required --sensitivity for add-table");
+      }
+      if (args.pii === undefined) {
+        throw new Error(
+          "Missing required --pii <comma-list|none> for add-table",
+        );
+      }
+      if (!args.exportMode) {
+        throw new Error("Missing required --export-mode for add-table");
+      }
+      if (!args.deleteMode) {
+        throw new Error("Missing required --delete-mode for add-table");
+      }
+      if (!args.retention) {
+        throw new Error("Missing required --retention for add-table");
+      }
+      const ownership = requireOwnership();
+      if (ownership.disposition !== "extend") {
+        throw new Error("New durable tables must use --disposition extend");
+      }
+      const result = buildTableFiles(
+        {
+          name: args.name,
+          system: ownership.system,
+          disposition: "extend",
+          tenantScope: args.tenantScope,
+          sensitivity: args.sensitivity,
+          pii: args.pii,
+          exportMode: args.exportMode,
+          deleteMode: args.deleteMode,
+          retention: args.retention,
+          appendOnly: args.appendOnly,
+          ...(args.description ? { description: args.description } : {}),
+        },
+        {
+          systems: readSystemCatalog(catalogRoot),
+          dataResources: readDataResourceCatalog(catalogRoot),
+        },
+      );
 
       if (args.write) {
         writeGeneratedFiles(result.files, cwd);
@@ -3506,6 +4348,7 @@ export const runGeneratorCli = (
 
       const plan = buildPrivatePackagePlan({
         fixturePath: resolve(cwd, args.fixture),
+        ...requireOwnership(),
         mode: args.command === "private-package:import" ? "import" : "dry-run",
       });
 

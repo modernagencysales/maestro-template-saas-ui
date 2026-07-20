@@ -23,6 +23,8 @@ without copying project-specific business logic into the core framework.
 - Promote runtime-authored capabilities to generated source when compile-time
   guarantees matter.
 - Keep private client packages separate from the template core.
+- Explore uncertain behavior with `template:prototype`; promote understood
+  behavior with `template:add-feature`.
 
 ## Default Flow
 
@@ -73,13 +75,16 @@ not template-core assumptions.
    artifacts or private-package workflow modules into production-target paths.
    New `template:add-workflow -- --write` output is already production-target.
 10. Import reviewed private packages with
-    `pnpm template:private-package:import -- --fixture <fixture> --write`; keep
-    generated source modules under `private-packages/<package>/` until review.
+    `pnpm template:private-package:import -- --fixture <fixture> --system <id> --disposition reuse|extend --write`;
+    keep generated source modules under `private-packages/<package>/` until
+    review.
 11. Add domain modules with
     `template:add-client-domain -- --system <id> --disposition reuse|extend`.
-12. Add capabilities, workflows, agents, Brain schemas, API surfaces, source
-    types, notifications, admin surfaces, and data lifecycle resources through
-    the matching generators.
+12. Add a complete user-facing slice with
+    `template:add-feature -- --name <name> --system <id> --disposition reuse|extend --write`.
+    Add lower-level capabilities, workflows, agents, Brain schemas, API
+    surfaces, source types, notifications, admin surfaces, and data lifecycle
+    resources through their matching generators.
 13. Run focused verification for each generated change.
 14. Run `pnpm template:handoff -- --mode fake --write` and full verification
     before a client handoff.

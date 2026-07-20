@@ -1,9 +1,9 @@
 # How To Add A Brain Schema
 
-Use the Brain schema generator:
+Use the canonical table generator for durable Brain state:
 
 ```bash
-pnpm template:add-brain-schema -- --name customerBrief
+pnpm template:add-table -- --name customerBrief --system knowledge-brain --disposition extend --tenant-scope workspace --sensitivity confidential --pii customer-content --export-mode markdown --delete-mode delete --retention retain-until-workspace-delete
 ```
 
 ## Files Created
@@ -30,4 +30,6 @@ pnpm template:add-brain-schema -- --name customerBrief
 
 - `pnpm --dir packages/convex test brain`
 - `pnpm check:schema-migration-notes`
+- `pnpm check:data-resources`
+- `pnpm check:system-catalog`
 - `pnpm check:confect-contracts`

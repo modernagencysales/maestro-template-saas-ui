@@ -1,7 +1,7 @@
-# Default owner.
-* @kimprobably
-
-# Gate files — changing a gate requires explicit owner review.
+# Ordinary product files intentionally have no mandatory owner so green,
+# low-risk PRs can auto-merge. Architecture, data, security, deploy, and gate
+# contracts require explicit owner review.
+/.github/                     @kimprobably
 /eslint.config.mjs             @kimprobably
 /dependency-cruiser.config.cjs @kimprobably
 /tsconfig.base.json            @kimprobably
@@ -12,5 +12,16 @@
 /.gitleaks.toml                @kimprobably
 /.buildkite/                   @kimprobably
 /tooling/quality/              @kimprobably
+/tooling/generators/           @kimprobably
 /Justfile                      @kimprobably
 /AGENTS.md                     @kimprobably
+/docs/template/system-catalog* @kimprobably
+/docs/template/product-topology* @kimprobably
+/docs/template/data-resources.json @kimprobably
+/docs/template/promotion-boundary.md @kimprobably
+/packages/convex/confect/tables/ @kimprobably
+/packages/convex/convex/schema.ts @kimprobably
+/packages/convex/confect/ops/dataResources.generated.ts @kimprobably
+/packages/convex/confect/access/ @kimprobably
+/docs/template/security*       @kimprobably
+/tooling/release/              @kimprobably

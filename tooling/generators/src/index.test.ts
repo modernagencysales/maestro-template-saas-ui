@@ -9,6 +9,7 @@ import {
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { JsxEmit, ModuleKind, ScriptTarget, transpileModule } from "typescript";
 import { describe, expect, it } from "vitest";
 import {
   buildAgentFiles,
@@ -17,11 +18,13 @@ import {
   buildCapabilityPromotionFiles,
   buildClientDomainFiles,
   buildDemoSeedPlan,
+  buildFeatureFiles,
   buildHandoffPacket,
   buildClientIntake,
   buildPrivatePackagePlan,
   buildTemplateInstance,
   buildTemplateQuickstart,
+  buildTableFiles,
   buildTemplateUpgradeReport,
   buildWorkflowFiles,
   buildWorkflowPromotionFiles,
@@ -723,6 +726,11 @@ describe("template app factory generators", () => {
   it("lists canonical systems and resolves exact aliases before generation", () => {
     const all = runGeneratorCli(["systems"]);
     const auth = runGeneratorCli(["systems", "--query", "auth"]);
+    const agentResource = runGeneratorCli([
+      "systems",
+      "--query",
+      "present canonical agent seats",
+    ]);
     const unknown = runGeneratorCli([
       "systems",
       "--query",
@@ -738,6 +746,10 @@ describe("template app factory generators", () => {
     });
     expect(JSON.parse(auth.stdout)).toMatchObject({
       matches: [expect.objectContaining({ id: "access-and-tenancy" })],
+    });
+    expect(JSON.parse(agentResource.stdout)).toMatchObject({
+      matches: [expect.objectContaining({ id: "workflow-runtime" })],
+      resources: [expect.objectContaining({ id: "route:agents" })],
     });
     expect(JSON.parse(unknown.stdout)).toMatchObject({
       matches: [],
@@ -936,6 +948,110 @@ describe("template app factory generators", () => {
     } finally {
       rmSync(cwd, { recursive: true, force: true });
     }
+  });
+
+  it("builds a durable table with ownership, lifecycle metadata, and a migration decision", () => {
+    const generated = buildTableFiles({
+      name: "source reviews",
+      system: "knowledge-brain",
+      disposition: "extend",
+      tenantScope: "workspace",
+      sensitivity: "confidential",
+      pii: ["identity", "customer-content"],
+      exportMode: "json",
+      deleteMode: "delete",
+      retention: "retain-until-workspace-delete",
+      description: "Stores source review decisions.",
+    });
+
+    expect(generated).toMatchObject({
+      name: "sourceReviews",
+      system: "knowledge-brain",
+      disposition: "extend",
+    });
+    expect(generated.files.map(({ path }) => path)).toEqual(
+      expect.arrayContaining([
+        "packages/convex/confect/tables/sourceReviews.ts",
+        "docs/template/schema-decisions/sourceReviews.md",
+        "docs/template/system-catalog.json",
+        "docs/template/data-resources.json",
+        "docs/template/generated/provenance/add-table/sourceReviews.json",
+      ]),
+    );
+    expect(generated.files[0]?.content).toContain(
+      'workspaceId: Id("workspaces")',
+    );
+
+    const systemCatalogFile = generated.files.find(
+      ({ path }) => path === "docs/template/system-catalog.json",
+    );
+    const systemCatalog = JSON.parse(systemCatalogFile?.content ?? "{}") as {
+      readonly systems: readonly {
+        readonly id: string;
+        readonly tables: readonly string[];
+      }[];
+    };
+    expect(
+      systemCatalog.systems.find(({ id }) => id === "knowledge-brain")?.tables,
+    ).toContain("sourceReviews");
+
+    const dataCatalogFile = generated.files.find(
+      ({ path }) => path === "docs/template/data-resources.json",
+    );
+    const dataCatalog = JSON.parse(dataCatalogFile?.content ?? "{}") as {
+      readonly resources: readonly Record<string, unknown>[];
+    };
+    expect(dataCatalog.resources).toContainEqual(
+      expect.objectContaining({
+        id: "sourceReviews",
+        system: "knowledge-brain",
+        tenantScope: "workspace",
+        workspaceLifecycle: "managed",
+        retention: "retain-until-workspace-delete",
+      }),
+    );
+  });
+
+  it("rejects incomplete or non-extension table generation", () => {
+    const reuse = runGeneratorCli([
+      "add-table",
+      "--name",
+      "source reviews",
+      "--system",
+      "knowledge-brain",
+      "--disposition",
+      "reuse",
+      "--tenant-scope",
+      "workspace",
+      "--sensitivity",
+      "confidential",
+      "--pii",
+      "none",
+      "--export-mode",
+      "json",
+      "--delete-mode",
+      "delete",
+      "--retention",
+      "retain-until-workspace-delete",
+    ]);
+    const incomplete = runGeneratorCli([
+      "add-table",
+      "--name",
+      "source reviews",
+      "--system",
+      "knowledge-brain",
+      "--disposition",
+      "extend",
+    ]);
+
+    expect(reuse).toMatchObject({
+      exitCode: 1,
+      stderr: expect.stringContaining("must use --disposition extend"),
+    });
+    expect(incomplete).toMatchObject({
+      exitCode: 1,
+      stderr: expect.stringContaining("Missing required --tenant-scope"),
+    });
   });
 
   it("builds workflow generator files with durable Confect contracts", () => {
@@ -1465,7 +1581,11 @@ describe("template app factory generators", () => {
         { flag: "w" },
       );
 
-      const plan = buildPrivatePackagePlan({ fixturePath: fixture });
+      const plan = buildPrivatePackagePlan({
+        fixturePath: fixture,
+        system: "knowledge-brain",
+        disposition: "extend",
+      });
 
       expect(plan).toMatchObject({
         mode: "dry-run",
@@ -1514,7 +1634,15 @@ describe("template app factory generators", () => {
       );
 
       const dryRun = runGeneratorCli(
-        ["private-package:dry-run", "--fixture", "fixtures/generic-ai-ops"],
+        [
+          "private-package:dry-run",
+          "--fixture",
+          "fixtures/generic-ai-ops",
+          "--system",
+          "knowledge-brain",
+          "--disposition",
+          "extend",
+        ],
         cwd,
       );
       const imported = runGeneratorCli(
@@ -1522,6 +1650,10 @@ describe("template app factory generators", () => {
           "private-package:import",
           "--fixture",
           "fixtures/generic-ai-ops",
+          "--system",
+          "knowledge-brain",
+          "--disposition",
+          "extend",
           "--write",
         ],
         cwd,
@@ -1557,6 +1689,9 @@ describe("template app factory generators", () => {
         packageName: "generic-ai-ops",
         reviewBoundary: "private-packages-first",
         contractReview: "required-before-promotion",
+        system: "knowledge-brain",
+        disposition: "extend",
+        productionRegistrations: false,
         ownershipNotes: expect.arrayContaining([
           "Assign a client/package owner before promotion.",
         ]),
@@ -1572,7 +1707,7 @@ describe("template app factory generators", () => {
       expect(JSON.parse(readFileSync(capabilityPath, "utf8"))).toMatchObject({
         capability: "summarizeSource",
         promotionCommand:
-          "pnpm template:promote-capability -- --name summarizeSource --write",
+          "pnpm template:promote-capability -- --name summarizeSource --system knowledge-brain --disposition extend --write",
       });
       expect(JSON.parse(readFileSync(workflowPath, "utf8"))).toMatchObject({
         workflow: "sourceGroundedPlan",
@@ -1581,6 +1716,216 @@ describe("template app factory generators", () => {
           expect.objectContaining({ id: "receipt" }),
         ]),
       });
+    } finally {
+      rmSync(cwd, { recursive: true, force: true });
+    }
+  });
+
+  it("requires canonical ownership before importing private packages", () => {
+    const result = runGeneratorCli([
+      "private-package:import",
+      "--fixture",
+      "examples/generic-ai-ops",
+      "--write",
+    ]);
+
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain("Missing required --system");
+  });
+
+  it("scaffolds prototypes only inside the experiment boundary", () => {
+    const cwd = mkdtempSync(join(tmpdir(), "maestro-template-prototype-"));
+
+    try {
+      const result = runGeneratorCli(
+        [
+          "prototype",
+          "--name",
+          "memoryLab",
+          "--system",
+          "knowledge-brain",
+          "--disposition",
+          "extend",
+          "--hypothesis",
+          "A bounded memory view improves grounded answers.",
+          "--write",
+        ],
+        cwd,
+      );
+      const contractPath = join(
+        cwd,
+        "experiments/knowledge-brain/memoryLab/experiment.json",
+      );
+
+      expect(result.exitCode).toBe(0);
+      expect(existsSync(contractPath)).toBe(true);
+      expect(JSON.parse(readFileSync(contractPath, "utf8"))).toMatchObject({
+        schemaVersion: 1,
+        id: "memoryLab",
+        system: "knowledge-brain",
+        disposition: "extend",
+        hypothesis: "A bounded memory view improves grounded answers.",
+        productionRegistrations: false,
+        promotionCommand: expect.stringContaining("template:add-feature"),
+      });
+      expect(JSON.parse(result.stdout).files).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            path: "experiments/knowledge-brain/memoryLab/src/index.ts",
+          }),
+        ]),
+      );
+    } finally {
+      rmSync(cwd, { recursive: true, force: true });
+    }
+  });
+
+  it("builds a golden production feature as a complete vertical slice", () => {
+    const result = buildFeatureFiles({
+      name: "accountSignals",
+      system: "knowledge-brain",
+      disposition: "extend",
+      description: "Present grounded account signals.",
+    });
+    const paths = result.files.map(({ path }) => path);
+    const contract = result.files.find(({ path }) =>
+      path.endsWith("/accountSignals/contract.ts"),
+    )?.content;
+    const model = result.files.find(({ path }) =>
+      path.endsWith("/accountSignals/model.ts"),
+    )?.content;
+    const route = result.files.find(({ path }) =>
+      path.endsWith("/_workspace.account-signals.tsx"),
+    )?.content;
+    const provenance = result.files.find(
+      ({ path }) =>
+        path ===
+        "docs/template/generated/provenance/add-feature/accountSignals.json",
+    );
+
+    expect(paths).toEqual(
+      expect.arrayContaining([
+        "packages/convex/confect/capabilities/accountSignals.spec.ts",
+        "packages/convex/confect/capabilities/accountSignals.impl.ts",
+        "apps/web/src/features/accountSignals/contract.ts",
+        "apps/web/src/features/accountSignals/model.ts",
+        "apps/web/src/features/accountSignals/fixtures.ts",
+        "apps/web/src/features/accountSignals/account-signals-feature.tsx",
+        "apps/web/src/features/accountSignals/model.test.ts",
+        "apps/web/src/screens/account-signals-screen.tsx",
+        "apps/web/src/routes/_workspace.account-signals.tsx",
+        "docs/template/generated/features/accountSignals.md",
+      ]),
+    );
+    expect(contract).toContain('system: "knowledge-brain"');
+    expect(contract).toContain('tenantScope: "workspace"');
+    expect(contract).toContain('auth: "workspace-member"');
+    expect(contract).toContain("audit");
+    expect(contract).toContain("observability");
+    expect(contract).toContain("featureFlag");
+    expect(contract).toContain("entitlement");
+    expect(contract).toContain("dataLifecycle");
+    expect(model).toContain('status: "loading"');
+    expect(model).toContain('status: "empty"');
+    expect(model).toContain('status: "ready"');
+    expect(model).toContain('status: "edit"');
+    expect(model).toContain('status: "skipped"');
+    expect(model).toContain('status: "typed-error"');
+    expect(model).toContain('status: "transport-error"');
+    expect(model).toContain('status: "success"');
+    expect(route).toContain("AccountSignalsScreen");
+    expect(route).not.toContain("Feature");
+    expect(JSON.parse(provenance?.content ?? "{}")).toMatchObject({
+      generator: "add-feature",
+      ownership: { system: "knowledge-brain", disposition: "extend" },
+      generatedPaths: expect.arrayContaining([
+        "packages/convex/confect/capabilities/accountSignals.spec.ts",
+        "apps/web/src/routes/_workspace.account-signals.tsx",
+      ]),
+    });
+    const syntaxDiagnostics = result.files
+      .filter(({ path }) => /\.[cm]?[jt]sx?$/.test(path))
+      .flatMap(
+        ({ path, content }) =>
+          transpileModule(content, {
+            fileName: path,
+            reportDiagnostics: true,
+            compilerOptions: {
+              jsx: JsxEmit.ReactJSX,
+              module: ModuleKind.ESNext,
+              target: ScriptTarget.ES2022,
+            },
+          }).diagnostics ?? [],
+      );
+    expect(syntaxDiagnostics).toEqual([]);
+  });
+
+  it("writes a golden feature through the CLI", () => {
+    const cwd = mkdtempSync(join(tmpdir(), "maestro-template-feature-"));
+
+    try {
+      const result = runGeneratorCli(
+        [
+          "add-feature",
+          "--name",
+          "accountSignals",
+          "--system",
+          "knowledge-brain",
+          "--disposition",
+          "extend",
+          "--description",
+          "Present grounded account signals.",
+          "--write",
+        ],
+        cwd,
+      );
+
+      expect(result.exitCode).toBe(0);
+      expect(
+        existsSync(
+          join(cwd, "apps/web/src/routes/_workspace.account-signals.tsx"),
+        ),
+      ).toBe(true);
+      expect(
+        existsSync(
+          join(
+            cwd,
+            "packages/convex/confect/capabilities/accountSignals.spec.ts",
+          ),
+        ),
+      ).toBe(true);
+    } finally {
+      rmSync(cwd, { recursive: true, force: true });
+    }
+  });
+
+  it("refuses to overwrite an existing golden feature path", () => {
+    const cwd = mkdtempSync(join(tmpdir(), "maestro-template-feature-clash-"));
+    const routePath = join(
+      cwd,
+      "apps/web/src/routes/_workspace.account-signals.tsx",
+    );
+
+    try {
+      mkdirSync(dirname(routePath), { recursive: true });
+      writeFileSync(routePath, "// user-owned route\n");
+      const result = runGeneratorCli(
+        [
+          "add-feature",
+          "--name",
+          "accountSignals",
+          "--system",
+          "knowledge-brain",
+          "--disposition",
+          "extend",
+          "--write",
+        ],
+        cwd,
+      );
+
+      expect(result.exitCode).toBe(1);
+      expect(result.stderr).toContain("Refusing to overwrite existing paths");
+      expect(readFileSync(routePath, "utf8")).toBe("// user-owned route\n");
     } finally {
       rmSync(cwd, { recursive: true, force: true });
     }

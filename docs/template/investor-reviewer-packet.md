@@ -110,8 +110,8 @@ pnpm template:promote-capability -- --name summarizeSource --system knowledge-br
 pnpm template:workflow-output-smoke
 pnpm template:handoff -- --mode fake --write
 pnpm template:upgrade -- --from client-v1.0.0 --to template-v1.1.0
-pnpm template:private-package:dry-run -- --fixture examples/generic-ai-ops
-pnpm template:private-package:import -- --fixture examples/generic-ai-ops --write
+pnpm template:private-package:dry-run -- --fixture examples/generic-ai-ops --system knowledge-brain --disposition extend
+pnpm template:private-package:import -- --fixture examples/generic-ai-ops --system knowledge-brain --disposition extend --write
 ```
 
 ## Architecture Trace

@@ -83,11 +83,12 @@ Rules when replacing a fixture body:
 
 ## Working Loop
 
-- Before planning a subsystem, schema table, capability, workflow, agent, or
-  route, read `docs/template/system-catalog.md` and run
-  `pnpm template:systems -- --query <responsibility-or-table>`. Record `reuse`,
-  `extend`, or a reviewed `introduce` decision. Do not create a parallel system
-  under a new name.
+- Before planning a subsystem, schema table, capability, workflow, agent, job,
+  provider, or route, read `docs/template/system-catalog.md`,
+  `docs/template/product-topology.md`, and `docs/template/data-lifecycle.md`,
+  then run `pnpm template:systems -- --query <responsibility-or-table>`. Record
+  `reuse`, `extend`, or a reviewed `introduce` decision. Do not create a
+  parallel system under a new name.
 - Planning starts from work-packages. Each plan/subplan slice must classify work
   as `fixture-to-real`, `pattern-instance`, or `template-gap`.
 - `fixture-to-real` names the existing contract fixture, the real
@@ -104,6 +105,20 @@ Rules when replacing a fixture body:
   canonical `--system` ID plus `--disposition reuse|extend` and record both in
   provenance. Generated output compiles and passes gates; fill in the TODOs
   where judgment is required.
+- Freedom boundary: uncertain behavior starts with `template:prototype` under
+  `experiments/<system>/<name>`. Experiment and private-package code is never a
+  production dependency and cannot register tables, routes, headless operations,
+  jobs, or providers. Promote learned behavior by re-scaffolding with
+  `template:add-feature` or the matching `template:add-*` generator; never
+  import or move the sandbox implementation into runtime paths.
+- Production feature path: use `template:add-feature` for user-facing vertical
+  slices. It emits capability → contract/presenter → feature → screen → thin
+  route, fake-safe fixtures, state tests, ownership, tenancy, audit,
+  observability, rollout, entitlement, lifecycle posture, and provenance.
+- Durable data: read `docs/template/data-resources.json` before adding state.
+  New tables must use `template:add-table`; update lifecycle metadata and the
+  migration decision in the same change. Do not invent a parallel table family
+  because its existing owner has a different noun.
 - Gate discipline: run the focused gates for what you changed before every
   commit, and `just verify` before declaring any task done. Recipe names in the
   Justfile are the canonical gate contract shared by local dev, CI, and agent
@@ -186,6 +201,9 @@ This project vendors external repositories under `repos/`.
 
 - [Blueprint catalog](docs/template/blueprint-catalog.md)
 - [Canonical system catalog](docs/template/system-catalog.md)
+- [Product topology](docs/template/product-topology.md)
+- [Data resource catalog](docs/template/data-lifecycle.md)
+- [Sandbox and promotion boundary](docs/template/promotion-boundary.md)
 - [Generator output contract](docs/template/generator-output-contract.md)
 - [Client intake questionnaire](docs/template/client-intake-questionnaire.md)
 - [Client handoff packet](docs/template/client-handoff-packet.md)

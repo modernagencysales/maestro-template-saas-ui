@@ -3,10 +3,11 @@
 # already runs; this file adds NO new logic, only the canonical names.
 # Recipe names are pinned by tooling/quality/check-ci-completeness.mts.
 #
-# verify = the fast gate chain. Mutation and hosted smoke are slow gates that
-# run as separate scheduled/manual CI jobs, not in verify.
+# verify is the complete deterministic promotion chain. Mutation and hosted
+# smoke remain scheduled/manual jobs.
 
-verify: check-fmt lint typecheck test test-tooling check-deps check-knip check-debt check-gates check-generators check-system-catalog build
+verify:
+    sh -c 'if command -v host-test-slot >/dev/null 2>&1; then host-test-slot --class full pnpm verify; else pnpm verify; fi'
 
 check-fmt:
     pnpm check:format
@@ -53,6 +54,15 @@ check-generators:
 check-system-catalog:
     pnpm check:system-catalog
 
+check-system-topology:
+    pnpm check:system-topology
+
+check-data-resources:
+    pnpm check:data-resources
+
+check-promotion-boundary:
+    pnpm check:promotion-boundary
+
 check-convex:
     pnpm check:convex
 
@@ -63,4 +73,4 @@ mutation:
     bash .buildkite/scripts/mutation.sh
 
 verify-full:
-    sh -c 'if command -v host-test-slot >/dev/null 2>&1; then host-test-slot --class full pnpm verify; else pnpm verify; fi'
+    just verify
