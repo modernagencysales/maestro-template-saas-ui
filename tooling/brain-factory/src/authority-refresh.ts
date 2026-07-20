@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { isDeepStrictEqual } from "node:util";
 import {
   existsSync,
   mkdirSync,
@@ -18,6 +19,12 @@ import {
   laneHistoryShapeIssues,
 } from "./lane-ownership.js";
 import { validateProofContract, proofChangedFilesMatch } from "./proof.js";
+import {
+  aggregateReviewLenses,
+  DEFAULT_REVIEW_RUBRIC_IDS,
+  REVIEW_LENS_NAMES,
+  type ReviewLensName,
+} from "./review-lens.js";
 import {
   changedHandAuthoredSourceLines,
   validSourceSlices,
@@ -58,6 +65,8 @@ interface PreservedArtifact {
 
 export interface AuthorityRefreshAdmission {
   readonly archiveDirectory: string;
+  readonly archiveManifestContent: string;
+  readonly archiveManifestSha256: string;
   readonly artifacts: readonly PreservedArtifact[];
   readonly controlHeadSha: string;
   readonly coordinates: AuthorityRefreshCoordinates;
@@ -436,17 +445,6 @@ export const admitAuthorityRefresh = (input: {
     taskBlockHash: input.task.taskBlockHash,
     taskId,
   });
-  const archiveDirectory = resolve(
-    input.evidence,
-    "authority-refreshes",
-    taskId,
-    coordinates.authorityId,
-  );
-  if (existsSync(archiveDirectory)) {
-    throw new Error(
-      `${taskId}: authority refresh evidence coordinates already exist`,
-    );
-  }
   const artifactInputs: (readonly [string, string])[] = repair
     ? [
         ["prior-proof.json", contents.proof],
@@ -467,8 +465,9 @@ export const admitAuthorityRefresh = (input: {
       "review-lenses",
       sourceHeadSha,
     );
-    const lensFindingIds = new Set<string>();
-    for (const lens of ["contract", "safety", "quality"] as const) {
+    const lensValues: unknown[] = [];
+    const reviewerRunIds = {} as Record<ReviewLensName, string>;
+    for (const lens of REVIEW_LENS_NAMES) {
       const lensPath = resolve(lensDirectory, `${lens}.json`);
       if (!existsSync(lensPath)) {
         throw new Error(
@@ -479,34 +478,30 @@ export const admitAuthorityRefresh = (input: {
       const artifact = jsonRecord(content, `${taskId}: ${lens} review`);
       if (
         artifact.lens !== lens ||
-        artifact.taskId !== taskId ||
-        artifact.planSha256 !== transition.fromPlanSha256 ||
-        artifact.taskBlockHash !== transition.fromTaskBlockHash ||
-        artifact.baseSha !== transition.sourceBaseSha ||
-        artifact.headSha !== sourceHeadSha ||
-        artifact.treeSha !== sourceTreeSha ||
-        !Array.isArray(artifact.findings)
+        typeof artifact.reviewerRunId !== "string"
       ) {
         throw new Error(`${taskId}: authority-repair ${lens} review drifted`);
       }
-      for (const finding of artifact.findings) {
-        if (
-          typeof finding === "object" &&
-          finding !== null &&
-          !Array.isArray(finding)
-        ) {
-          const id = (finding as JsonRecord).id;
-          if (typeof id === "string") lensFindingIds.add(id);
-        }
-      }
+      reviewerRunIds[lens] = artifact.reviewerRunId;
+      lensValues.push(artifact);
       artifactInputs.push([`prior-review-${lens}.json`, content]);
     }
-    const proofFindingIds = (proof.reviewFindings as JsonRecord[]).map(
-      (finding) => finding.id as string,
-    );
+    const aggregate = aggregateReviewLenses({
+      expected: {
+        baseSha: transition.sourceBaseSha,
+        headSha: sourceHeadSha,
+        planSha256: transition.fromPlanSha256,
+        reviewerRunIds,
+        rubricIds: DEFAULT_REVIEW_RUBRIC_IDS,
+        taskBlockHash: transition.fromTaskBlockHash,
+        taskId,
+        treeSha: sourceTreeSha,
+      },
+      lenses: lensValues,
+    });
     if (
-      proofFindingIds.some((id) => !lensFindingIds.has(id)) ||
-      [...lensFindingIds].some((id) => !proofFindingIds.includes(id))
+      aggregate.reviewVerdict !== "rework" ||
+      !isDeepStrictEqual(aggregate.reviewFindings, proof.reviewFindings)
     ) {
       throw new Error(`${taskId}: authority-repair review findings drifted`);
     }
@@ -536,8 +531,56 @@ export const admitAuthorityRefresh = (input: {
     file,
     sha256: sha256(content),
   }));
+  const transitionKind = repair ? "authority-repair" : "authority-refresh";
+  const archiveManifestContent = `${JSON.stringify(
+    {
+      schemaVersion:
+        transitionKind === "authority-repair"
+          ? "maestro-brain-authority-repair-archive/v1"
+          : "maestro-brain-authority-refresh-archive/v1",
+      taskId,
+      authorityId: coordinates.authorityId,
+      currentAuthority: {
+        controlHeadSha: input.controlHeadSha,
+        planSha256: input.task.planSha256,
+        taskBlockHash: input.task.taskBlockHash,
+      },
+      oldAuthority: {
+        planSha256: oldPlanSha256,
+        taskBlockHash: oldTaskBlockHash,
+      },
+      source: {
+        baseSha: taskBaseSha,
+        commits: sourceCommits,
+        headSha: sourceHeadSha,
+      },
+      transitionKind,
+      supersededPaths: transition?.supersededPaths ?? [],
+      artifacts: artifacts.map(({ file, sha256: digest }) => ({
+        file,
+        sha256: digest,
+      })),
+    },
+    null,
+    2,
+  )}\n`;
+  const archiveManifestSha256 = sha256(archiveManifestContent);
+  const archiveDirectory = resolve(
+    input.evidence,
+    "authority-refreshes",
+    taskId,
+    coordinates.authorityId,
+    ...(repair ? [archiveManifestSha256] : []),
+  );
+  if (existsSync(archiveDirectory)) {
+    throw new Error(
+      `${taskId}: authority refresh evidence coordinates already exist`,
+    );
+  }
   return {
     archiveDirectory,
+    archiveManifestContent,
+    archiveManifestSha256,
     artifacts,
     controlHeadSha: input.controlHeadSha,
     coordinates,
@@ -549,7 +592,7 @@ export const admitAuthorityRefresh = (input: {
     sourceHeadSha,
     task: input.task,
     taskBaseSha,
-    transitionKind: repair ? "authority-repair" : "authority-refresh",
+    transitionKind,
     supersededPaths: transition?.supersededPaths ?? [],
   };
 };
@@ -578,31 +621,6 @@ export const preserveAuthorityRefreshEvidence = (
   const stagingDirectory = `${admission.archiveDirectory}.next`;
   if (existsSync(stagingDirectory)) fileSystem.remove(stagingDirectory);
   mkdirSync(stagingDirectory, { recursive: true });
-  const manifest = {
-    schemaVersion:
-      admission.transitionKind === "authority-repair"
-        ? "maestro-brain-authority-repair-archive/v1"
-        : "maestro-brain-authority-refresh-archive/v1",
-    taskId: admission.task.taskId,
-    authorityId: admission.coordinates.authorityId,
-    currentAuthority: {
-      controlHeadSha: admission.controlHeadSha,
-      planSha256: admission.task.planSha256,
-      taskBlockHash: admission.task.taskBlockHash,
-    },
-    oldAuthority: admission.oldAuthority,
-    source: {
-      baseSha: admission.taskBaseSha,
-      commits: admission.sourceCommits,
-      headSha: admission.sourceHeadSha,
-    },
-    transitionKind: admission.transitionKind,
-    supersededPaths: admission.supersededPaths,
-    artifacts: admission.artifacts.map(({ file, sha256: digest }) => ({
-      file,
-      sha256: digest,
-    })),
-  };
   try {
     for (const artifact of admission.artifacts) {
       fileSystem.write(
@@ -613,7 +631,7 @@ export const preserveAuthorityRefreshEvidence = (
     }
     fileSystem.write(
       resolve(stagingDirectory, "manifest.json"),
-      `${JSON.stringify(manifest, null, 2)}\n`,
+      admission.archiveManifestContent,
       { flag: "wx" },
     );
     for (const artifact of admission.artifacts) {
@@ -626,6 +644,15 @@ export const preserveAuthorityRefreshEvidence = (
           `${admission.task.taskId}: staged authority evidence hash mismatch`,
         );
       }
+    }
+    if (
+      sha256(
+        readFileSync(resolve(stagingDirectory, "manifest.json"), "utf8"),
+      ) !== admission.archiveManifestSha256
+    ) {
+      throw new Error(
+        `${admission.task.taskId}: staged authority manifest hash mismatch`,
+      );
     }
     fileSystem.rename(stagingDirectory, admission.archiveDirectory);
   } catch (error) {

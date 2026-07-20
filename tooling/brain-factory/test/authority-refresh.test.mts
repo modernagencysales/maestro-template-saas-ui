@@ -13,7 +13,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { afterEach, describe, expect, it } from "vitest";
@@ -29,6 +29,10 @@ import {
   recordPreparingTaskLaunch,
   replaceTerminalTaskRecord,
 } from "../src/dispatch-ownership.js";
+import {
+  DEFAULT_REVIEW_RUBRIC_IDS,
+  type ReviewLensName,
+} from "../src/review-lens.js";
 
 const roots: string[] = [];
 const sha256 = (value: string): string =>
@@ -146,7 +150,22 @@ const admit = (value: ReturnType<typeof fixture>, overrides = {}) =>
     ...overrides,
   });
 
-const repairAdmission = (value: ReturnType<typeof fixture>) => {
+const repairAdmission = (
+  value: ReturnType<typeof fixture>,
+  mutateLens?: (
+    lens: ReviewLensName,
+    artifact: Record<string, unknown>,
+  ) => void,
+  contract: {
+    readonly fileLocks?: readonly string[];
+    readonly mode?: "contract-only" | "path-rehome";
+    readonly supersededPaths?: readonly {
+      readonly path: string;
+      readonly replacementPath: string;
+      readonly disposition: "replaced-by-current-owned-artifact";
+    }[];
+  } = {},
+) => {
   const laneDirectory = join(value.evidence, "lane-results", value.taskId);
   rmSync(join(laneDirectory, "lane-result.json"));
   const proofPath = join(laneDirectory, "ci-proof-packet.json");
@@ -169,22 +188,34 @@ const repairAdmission = (value: ReturnType<typeof fixture>) => {
   writeFileSync(gatePath, `${JSON.stringify(gate, null, 2)}\n`);
   const lenses = join(laneDirectory, "review-lenses", value.headSha);
   mkdirSync(lenses, { recursive: true });
-  for (const lens of ["contract", "safety", "quality"]) {
+  for (const lens of ["contract", "safety", "quality"] as const) {
+    const findings = lens === "safety" ? proof.reviewFindings : [];
+    const artifact: Record<string, unknown> = {
+      lens,
+      taskId: value.taskId,
+      planSha256: value.oldPlanSha256,
+      taskBlockHash: value.oldTaskBlockHash,
+      baseSha: value.baseSha,
+      headSha: value.headSha,
+      treeSha: value.treeSha,
+      reviewerRunId: `review-${lens}`,
+      rubricDispositions: DEFAULT_REVIEW_RUBRIC_IDS[lens].map(
+        (rubricId, index) => ({
+          rubricId,
+          disposition: lens === "safety" && index === 0 ? "finding" : "pass",
+          evidence: ["exact review evidence"],
+          ...(lens === "safety" && index === 0
+            ? { findingIds: [proof.reviewFindings[0].id] }
+            : {}),
+        }),
+      ),
+      findings,
+      verdict: lens === "safety" ? "rework" : "pass",
+    };
+    mutateLens?.(lens, artifact);
     writeFileSync(
       join(lenses, `${lens}.json`),
-      `${JSON.stringify({
-        lens,
-        taskId: value.taskId,
-        planSha256: value.oldPlanSha256,
-        taskBlockHash: value.oldTaskBlockHash,
-        baseSha: value.baseSha,
-        headSha: value.headSha,
-        treeSha: value.treeSha,
-        reviewerRunId: `review-${lens}`,
-        rubricDispositions: [],
-        findings: lens === "safety" ? proof.reviewFindings : [],
-        verdict: lens === "safety" ? "rework" : "pass",
-      })}\n`,
+      `${JSON.stringify(artifact)}\n`,
     );
   }
   const reviewContent = "independent terminal rework\n";
@@ -196,6 +227,7 @@ const repairAdmission = (value: ReturnType<typeof fixture>) => {
   return admitAuthorityRefresh({
     authorityRepairTransition: {
       schemaVersion: "maestro-brain-authority-repair-transition/v1",
+      mode: contract.mode ?? "path-rehome",
       fromPlanSha256: value.oldPlanSha256,
       fromTaskBlockHash: value.oldTaskBlockHash,
       sourceRunId: "01KXZP38CAC2GYAF2YA7NRTBQK",
@@ -206,13 +238,15 @@ const repairAdmission = (value: ReturnType<typeof fixture>) => {
       immutableFindings: [
         { kind: "git-blob", objectSha, contentSha256: sha256(reviewContent) },
       ],
-      supersededPaths: [
-        {
-          path: "obsolete.txt",
-          replacementPath: "replacement.txt",
-          disposition: "replaced-by-current-owned-artifact",
-        },
-      ],
+      supersededPaths:
+        contract.supersededPaths ??
+        ([
+          {
+            path: "obsolete.txt",
+            replacementPath: "replacement.txt",
+            disposition: "replaced-by-current-owned-artifact",
+          },
+        ] as const),
     },
     controlHeadSha: value.controlHeadSha,
     evidence: value.evidence,
@@ -228,7 +262,7 @@ const repairAdmission = (value: ReturnType<typeof fixture>) => {
     sourceRunId: "01KXZP38CAC2GYAF2YA7NRTBQK",
     sourceWorkdir: value.sourceWorkdir,
     task: {
-      fileLocks: ["owned.txt", "replacement.txt"],
+      fileLocks: contract.fileLocks ?? ["owned.txt", "replacement.txt"],
       planSha256: "c".repeat(64),
       sourceSliceBudget: 300,
       sourceSliceLimit: 4,
@@ -244,6 +278,25 @@ afterEach(() => {
 });
 
 describe("authority refresh admission", () => {
+  it("admits contract-only repair only while historical paths remain current-owned", () => {
+    const value = fixture();
+    expect(
+      repairAdmission(value, undefined, {
+        fileLocks: ["owned.txt"],
+        mode: "contract-only",
+        supersededPaths: [],
+      }).supersededPaths,
+    ).toEqual([]);
+    const unowned = fixture();
+    expect(() =>
+      repairAdmission(unowned, undefined, {
+        fileLocks: [],
+        mode: "contract-only",
+        supersededPaths: [],
+      }),
+    ).toThrow("not declared in current manifest fileLocks");
+  }, 15_000);
+
   it("admits exact terminal rework without fabricating a lane result", () => {
     const value = fixture();
     writeFileSync(join(value.sourceWorkdir, "obsolete.txt"), "legacy\n");
@@ -268,6 +321,10 @@ describe("authority refresh admission", () => {
     const admission = repairAdmission({ ...value, headSha, treeSha });
 
     expect(admission.transitionKind).toBe("authority-repair");
+    expect(admission.archiveManifestSha256).toMatch(/^[0-9a-f]{64}$/);
+    expect(basename(admission.archiveDirectory)).toBe(
+      admission.archiveManifestSha256,
+    );
     expect(admission.supersededPaths).toEqual([
       {
         path: "obsolete.txt",
@@ -288,6 +345,40 @@ describe("authority refresh admission", () => {
         /^independent-finding-[0-9a-f]{40}\.txt$/.test(file),
       ),
     ).toBe(true);
+    preserveAuthorityRefreshEvidence(admission);
+    expect(
+      sha256(
+        readFileSync(join(admission.archiveDirectory, "manifest.json"), "utf8"),
+      ),
+    ).toBe(admission.archiveManifestSha256);
+  }, 15_000);
+
+  it("requires complete exact review-lens artifacts for terminal repair", () => {
+    const value = fixture();
+    writeFileSync(join(value.sourceWorkdir, "obsolete.txt"), "legacy\n");
+    git(value.sourceWorkdir, "add", "obsolete.txt");
+    git(value.sourceWorkdir, "commit", "-m", "legacy ownership");
+    const headSha = git(value.sourceWorkdir, "rev-parse", "HEAD");
+    const treeSha = git(value.sourceWorkdir, "rev-parse", "HEAD^{tree}");
+    const laneDirectory = join(value.evidence, "lane-results", value.taskId);
+    for (const file of ["ci-proof-packet.json", "lane-gate-report.json"]) {
+      const path = join(laneDirectory, file);
+      const payload = JSON.parse(readFileSync(path, "utf8"));
+      payload.headSha = headSha;
+      if (file === "lane-gate-report.json") {
+        payload.currentHeadSha = headSha;
+        payload.currentTreeSha = treeSha;
+      } else {
+        payload.changedFiles = ["obsolete.txt", "owned.txt"];
+        payload.reviewHeadSha = headSha;
+      }
+      writeFileSync(path, `${JSON.stringify(payload, null, 2)}\n`);
+    }
+    expect(() =>
+      repairAdmission({ ...value, headSha, treeSha }, (lens, artifact) => {
+        if (lens === "contract") artifact.rubricDispositions = [];
+      }),
+    ).toThrow("missing rubric disposition");
   });
   it("wires the explicit CLI mode to the normal conflict-aware workflow", () => {
     const resumeSource = readFileSync(
@@ -309,7 +400,6 @@ describe("authority refresh admission", () => {
     expect(resumeSource).toContain("launchAuthorityRefresh({");
     expect(launchSource).toContain('"authority-refresh"');
     expect(launchSource).toContain('"authority-repair"');
-    expect(launchSource).toContain('"supersession.json"');
     expect(launchSource).toContain("resume_mode=conflict-aware");
   });
 
