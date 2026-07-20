@@ -146,12 +146,149 @@ const admit = (value: ReturnType<typeof fixture>, overrides = {}) =>
     ...overrides,
   });
 
+const repairAdmission = (value: ReturnType<typeof fixture>) => {
+  const laneDirectory = join(value.evidence, "lane-results", value.taskId);
+  rmSync(join(laneDirectory, "lane-result.json"));
+  const proofPath = join(laneDirectory, "ci-proof-packet.json");
+  const proof = JSON.parse(readFileSync(proofPath, "utf8"));
+  proof.reviewVerdict = "rework";
+  proof.reviewFindings = [
+    {
+      id: "S03-T03-SAFETY-001",
+      lens: "safety",
+      severity: "high",
+      summary: "repair required",
+      details: "exact terminal finding",
+      evidence: ["owned.txt"],
+    },
+  ];
+  writeFileSync(proofPath, `${JSON.stringify(proof, null, 2)}\n`);
+  const gatePath = join(laneDirectory, "lane-gate-report.json");
+  const gate = JSON.parse(readFileSync(gatePath, "utf8"));
+  gate.stage = "pre-review";
+  writeFileSync(gatePath, `${JSON.stringify(gate, null, 2)}\n`);
+  const lenses = join(laneDirectory, "review-lenses", value.headSha);
+  mkdirSync(lenses, { recursive: true });
+  for (const lens of ["contract", "safety", "quality"]) {
+    writeFileSync(
+      join(lenses, `${lens}.json`),
+      `${JSON.stringify({
+        lens,
+        taskId: value.taskId,
+        planSha256: value.oldPlanSha256,
+        taskBlockHash: value.oldTaskBlockHash,
+        baseSha: value.baseSha,
+        headSha: value.headSha,
+        treeSha: value.treeSha,
+        reviewerRunId: `review-${lens}`,
+        rubricDispositions: [],
+        findings: lens === "safety" ? proof.reviewFindings : [],
+        verdict: lens === "safety" ? "rework" : "pass",
+      })}\n`,
+    );
+  }
+  const reviewContent = "independent terminal rework\n";
+  const objectSha = execFileSync("git", ["hash-object", "-w", "--stdin"], {
+    cwd: value.repo,
+    encoding: "utf8",
+    input: reviewContent,
+  }).trim();
+  return admitAuthorityRefresh({
+    authorityRepairTransition: {
+      schemaVersion: "maestro-brain-authority-repair-transition/v1",
+      fromPlanSha256: value.oldPlanSha256,
+      fromTaskBlockHash: value.oldTaskBlockHash,
+      sourceRunId: "01KXZP38CAC2GYAF2YA7NRTBQK",
+      sourceBaseSha: value.baseSha,
+      sourceHeadSha: value.headSha,
+      sourceTreeSha: value.treeSha,
+      requiredIntegratedTaskIds: ["S01-T01"],
+      immutableFindings: [
+        { kind: "git-blob", objectSha, contentSha256: sha256(reviewContent) },
+      ],
+      supersededPaths: [
+        {
+          path: "obsolete.txt",
+          replacementPath: "replacement.txt",
+          disposition: "replaced-by-current-owned-artifact",
+        },
+      ],
+    },
+    controlHeadSha: value.controlHeadSha,
+    evidence: value.evidence,
+    integratedTaskIds: ["S01-T01"],
+    readGitBlob: (cwd, objectSha) =>
+      execFileSync("git", ["cat-file", "blob", objectSha], {
+        cwd,
+        encoding: "utf8",
+      }),
+    root: value.repo,
+    runGit: (cwd, args) => git(cwd, ...args),
+    sourceBranch: "source",
+    sourceRunId: "01KXZP38CAC2GYAF2YA7NRTBQK",
+    sourceWorkdir: value.sourceWorkdir,
+    task: {
+      fileLocks: ["owned.txt", "replacement.txt"],
+      planSha256: "c".repeat(64),
+      sourceSliceBudget: 300,
+      sourceSliceLimit: 4,
+      taskBlockHash: "d".repeat(64),
+      taskId: value.taskId,
+    },
+  });
+};
+
 afterEach(() => {
   for (const root of roots.splice(0))
     rmSync(root, { force: true, recursive: true });
 });
 
 describe("authority refresh admission", () => {
+  it("admits exact terminal rework without fabricating a lane result", () => {
+    const value = fixture();
+    writeFileSync(join(value.sourceWorkdir, "obsolete.txt"), "legacy\n");
+    git(value.sourceWorkdir, "add", "obsolete.txt");
+    git(value.sourceWorkdir, "commit", "-m", "legacy ownership");
+    const headSha = git(value.sourceWorkdir, "rev-parse", "HEAD");
+    const treeSha = git(value.sourceWorkdir, "rev-parse", "HEAD^{tree}");
+    const laneDirectory = join(value.evidence, "lane-results", value.taskId);
+    for (const file of ["ci-proof-packet.json", "lane-gate-report.json"]) {
+      const path = join(laneDirectory, file);
+      const payload = JSON.parse(readFileSync(path, "utf8"));
+      payload.headSha = headSha;
+      if (file === "lane-gate-report.json") {
+        payload.currentHeadSha = headSha;
+        payload.currentTreeSha = treeSha;
+      } else {
+        payload.changedFiles = ["obsolete.txt", "owned.txt"];
+        payload.reviewHeadSha = headSha;
+      }
+      writeFileSync(path, `${JSON.stringify(payload, null, 2)}\n`);
+    }
+    const admission = repairAdmission({ ...value, headSha, treeSha });
+
+    expect(admission.transitionKind).toBe("authority-repair");
+    expect(admission.supersededPaths).toEqual([
+      {
+        path: "obsolete.txt",
+        replacementPath: "replacement.txt",
+        disposition: "replaced-by-current-owned-artifact",
+      },
+    ]);
+    const artifactFiles = admission.artifacts.map(({ file }) => file);
+    expect(artifactFiles).toEqual(
+      expect.arrayContaining([
+        "prior-proof.json",
+        "prior-pre-review-gate.json",
+        "authority-repair-transition.json",
+      ]),
+    );
+    expect(
+      artifactFiles.some((file) =>
+        /^independent-finding-[0-9a-f]{40}\.txt$/.test(file),
+      ),
+    ).toBe(true);
+  });
   it("wires the explicit CLI mode to the normal conflict-aware workflow", () => {
     const resumeSource = readFileSync(
       fileURLToPath(new URL("../src/resume.mts", import.meta.url)),
@@ -166,8 +303,12 @@ describe("authority refresh admission", () => {
     expect(resumeSource).toContain(
       'process.argv.includes("--authority-refresh")',
     );
+    expect(resumeSource).toContain(
+      'process.argv.includes("--authority-repair")',
+    );
     expect(resumeSource).toContain("launchAuthorityRefresh({");
-    expect(launchSource).toContain("mode=authority-refresh");
+    expect(launchSource).toContain('"authority-refresh"');
+    expect(launchSource).toContain('"authority-repair"');
     expect(launchSource).toContain("resume_mode=conflict-aware");
   });
 
