@@ -25,8 +25,8 @@ rerun dry-run import and fix contract diffs deliberately.
 ## Commands
 
 ```bash
-pnpm template:private-package:dry-run -- --fixture examples/generic-ai-ops
-pnpm template:private-package:import -- --fixture examples/generic-ai-ops --write
+pnpm template:private-package:dry-run -- --fixture examples/generic-ai-ops --system <canonical-id> --disposition reuse|extend
+pnpm template:private-package:import -- --fixture examples/generic-ai-ops --system <canonical-id> --disposition reuse|extend --write
 ```
 
 The dry-run emits a redaction-aware package plan. Import writes the plan,

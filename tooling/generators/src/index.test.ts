@@ -1579,7 +1579,11 @@ describe("template app factory generators", () => {
         { flag: "w" },
       );
 
-      const plan = buildPrivatePackagePlan({ fixturePath: fixture });
+      const plan = buildPrivatePackagePlan({
+        fixturePath: fixture,
+        system: "knowledge-brain",
+        disposition: "extend",
+      });
 
       expect(plan).toMatchObject({
         mode: "dry-run",
@@ -1628,7 +1632,15 @@ describe("template app factory generators", () => {
       );
 
       const dryRun = runGeneratorCli(
-        ["private-package:dry-run", "--fixture", "fixtures/generic-ai-ops"],
+        [
+          "private-package:dry-run",
+          "--fixture",
+          "fixtures/generic-ai-ops",
+          "--system",
+          "knowledge-brain",
+          "--disposition",
+          "extend",
+        ],
         cwd,
       );
       const imported = runGeneratorCli(
@@ -1636,6 +1648,10 @@ describe("template app factory generators", () => {
           "private-package:import",
           "--fixture",
           "fixtures/generic-ai-ops",
+          "--system",
+          "knowledge-brain",
+          "--disposition",
+          "extend",
           "--write",
         ],
         cwd,
@@ -1671,6 +1687,9 @@ describe("template app factory generators", () => {
         packageName: "generic-ai-ops",
         reviewBoundary: "private-packages-first",
         contractReview: "required-before-promotion",
+        system: "knowledge-brain",
+        disposition: "extend",
+        productionRegistrations: false,
         ownershipNotes: expect.arrayContaining([
           "Assign a client/package owner before promotion.",
         ]),
@@ -1686,7 +1705,7 @@ describe("template app factory generators", () => {
       expect(JSON.parse(readFileSync(capabilityPath, "utf8"))).toMatchObject({
         capability: "summarizeSource",
         promotionCommand:
-          "pnpm template:promote-capability -- --name summarizeSource --write",
+          "pnpm template:promote-capability -- --name summarizeSource --system knowledge-brain --disposition extend --write",
       });
       expect(JSON.parse(readFileSync(workflowPath, "utf8"))).toMatchObject({
         workflow: "sourceGroundedPlan",
@@ -1695,6 +1714,65 @@ describe("template app factory generators", () => {
           expect.objectContaining({ id: "receipt" }),
         ]),
       });
+    } finally {
+      rmSync(cwd, { recursive: true, force: true });
+    }
+  });
+
+  it("requires canonical ownership before importing private packages", () => {
+    const result = runGeneratorCli([
+      "private-package:import",
+      "--fixture",
+      "examples/generic-ai-ops",
+      "--write",
+    ]);
+
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain("Missing required --system");
+  });
+
+  it("scaffolds prototypes only inside the experiment boundary", () => {
+    const cwd = mkdtempSync(join(tmpdir(), "maestro-template-prototype-"));
+
+    try {
+      const result = runGeneratorCli(
+        [
+          "prototype",
+          "--name",
+          "memoryLab",
+          "--system",
+          "knowledge-brain",
+          "--disposition",
+          "extend",
+          "--hypothesis",
+          "A bounded memory view improves grounded answers.",
+          "--write",
+        ],
+        cwd,
+      );
+      const contractPath = join(
+        cwd,
+        "experiments/knowledge-brain/memoryLab/experiment.json",
+      );
+
+      expect(result.exitCode).toBe(0);
+      expect(existsSync(contractPath)).toBe(true);
+      expect(JSON.parse(readFileSync(contractPath, "utf8"))).toMatchObject({
+        schemaVersion: 1,
+        id: "memoryLab",
+        system: "knowledge-brain",
+        disposition: "extend",
+        hypothesis: "A bounded memory view improves grounded answers.",
+        productionRegistrations: false,
+        promotionCommand: expect.stringContaining("template:add-feature"),
+      });
+      expect(JSON.parse(result.stdout).files).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            path: "experiments/knowledge-brain/memoryLab/src/index.ts",
+          }),
+        ]),
+      );
     } finally {
       rmSync(cwd, { recursive: true, force: true });
     }

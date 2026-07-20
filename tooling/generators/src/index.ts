@@ -251,6 +251,22 @@ export type PromotionGeneratorResult = {
   readonly followUp: readonly string[];
 };
 
+export type PrototypeGeneratorOptions = {
+  readonly name: string;
+  readonly system: string;
+  readonly disposition: SystemGeneratorDisposition;
+  readonly hypothesis: string;
+  readonly write?: boolean;
+};
+
+export type PrototypeGeneratorResult = {
+  readonly name: string;
+  readonly system: string;
+  readonly disposition: SystemGeneratorDisposition;
+  readonly files: readonly GeneratedFile[];
+  readonly followUp: readonly string[];
+};
+
 export type TableGeneratorOptions = {
   readonly name: string;
   readonly system: string;
@@ -3005,6 +3021,10 @@ const privatePackageName = (
 const privatePackageCapabilityFiles = (
   packageName: string,
   capabilityName: string,
+  ownership: {
+    readonly system: string;
+    readonly disposition: SystemGeneratorDisposition;
+  },
 ): readonly GeneratedFile[] => {
   const name = camelCase(capabilityName);
   const pascalName = pascalCase(capabilityName);
@@ -3020,7 +3040,7 @@ const privatePackageCapabilityFiles = (
           authScope: "workspace member",
           typedErrors: ["Unauthorized", "ValidationFailed", "Forbidden"],
           surfaces: ["api", "cli", "mcp"],
-          promotionCommand: `pnpm template:promote-capability -- --name ${name} --write`,
+          promotionCommand: `pnpm template:promote-capability -- --name ${name} --system ${ownership.system} --disposition ${ownership.disposition} --write`,
         },
         null,
         2,
@@ -3035,7 +3055,7 @@ Private package capability module for \`${packageName}\`.
 ## Import Checklist
 
 1. Review fixture redaction and source ownership.
-2. Promote with \`pnpm template:promote-capability -- --name ${name} --write\`.
+2. Promote with \`pnpm template:promote-capability -- --name ${name} --system ${ownership.system} --disposition ${ownership.disposition} --write\`.
 3. Replace deterministic implementation with client-specific domain logic.
 4. Run \`pnpm check:confect-contracts\` and focused capability tests.
 `,
@@ -3046,6 +3066,10 @@ Private package capability module for \`${packageName}\`.
 const privatePackageWorkflowFiles = (
   packageName: string,
   workflowName: string,
+  ownership: {
+    readonly system: string;
+    readonly disposition: SystemGeneratorDisposition;
+  },
 ): readonly GeneratedFile[] => {
   const name = camelCase(workflowName);
   const pascalName = pascalCase(workflowName);
@@ -3088,7 +3112,7 @@ Private package workflow module for \`${packageName}\`.
 ## Import Checklist
 
 1. Review graph nodes, approvals, idempotency, and Trust Receipt policy.
-2. Promote with \`pnpm template:promote-workflow -- --name ${name} --write\`.
+2. Promote with \`pnpm template:promote-workflow -- --name ${name} --system ${ownership.system} --disposition ${ownership.disposition} --write\`.
 3. Connect reviewed capability refs to reviewed capability modules.
 4. Run \`pnpm check:workflow-graph-boundary\` and focused workflow tests.
 `,
@@ -3124,6 +3148,8 @@ const privatePackageIndexFile = (
 
 export const buildPrivatePackagePlan = (options: {
   readonly fixturePath: string;
+  readonly system: string;
+  readonly disposition: SystemGeneratorDisposition;
   readonly mode?: "dry-run" | "import";
 }): PrivatePackagePlan => {
   const mode = options.mode ?? "dry-run";
@@ -3167,6 +3193,9 @@ export const buildPrivatePackagePlan = (options: {
           packageName,
           reviewBoundary: "private-packages-first",
           contractReview: "required-before-promotion",
+          system: options.system,
+          disposition: options.disposition,
+          productionRegistrations: false,
           capabilities,
           workflows,
           agents: manifest?.agents ?? [],
@@ -3210,10 +3239,10 @@ This package plan is generated from \`${options.fixturePath}\`.
     },
     privatePackageIndexFile(packageName, capabilities, workflows, docs),
     ...capabilities.flatMap((capability) =>
-      privatePackageCapabilityFiles(packageName, capability),
+      privatePackageCapabilityFiles(packageName, capability, options),
     ),
     ...workflows.flatMap((workflow) =>
-      privatePackageWorkflowFiles(packageName, workflow),
+      privatePackageWorkflowFiles(packageName, workflow, options),
     ),
   ];
 
@@ -3222,8 +3251,80 @@ This package plan is generated from \`${options.fixturePath}\`.
     mode,
     ok: checks.every((check) => check.status !== "fail"),
     packageName,
-    files: withGeneratorProvenance("private-package", packageName, files),
+    files: withGeneratorProvenance("private-package", packageName, files, {
+      system: options.system,
+      disposition: options.disposition,
+    }),
     checks,
+  };
+};
+
+export const buildPrototypeFiles = (
+  options: PrototypeGeneratorOptions,
+): PrototypeGeneratorResult => {
+  const name = camelCase(options.name);
+  const pascalName = pascalCase(options.name);
+  const basePath = `experiments/${options.system}/${name}`;
+  const promotionCommand = `pnpm template:add-feature -- --name ${name} --system ${options.system} --disposition ${options.disposition} --write`;
+  const files: readonly GeneratedFile[] = [
+    {
+      path: `${basePath}/experiment.json`,
+      content: `${JSON.stringify(
+        {
+          schemaVersion: 1,
+          id: name,
+          system: options.system,
+          disposition: options.disposition,
+          hypothesis: options.hypothesis.trim(),
+          productionRegistrations: false,
+          promotionCommand,
+        },
+        null,
+        2,
+      )}\n`,
+    },
+    {
+      path: `${basePath}/README.md`,
+      content: `# ${pascalName} Experiment
+
+Hypothesis: ${options.hypothesis.trim()}
+
+This code is sandbox-only. It may use fake fixtures and local adapters, but it
+must not register production tables, routes, headless operations, jobs, or
+providers. Production code must not import it.
+
+When the behavior is worth keeping, re-scaffold the vertical slice with:
+
+\`\`\`bash
+${promotionCommand}
+\`\`\`
+`,
+    },
+    {
+      path: `${basePath}/src/index.ts`,
+      content: `/** Sandbox-only prototype for ${options.hypothesis.trim()} */
+export const experiment = {
+  id: "${name}",
+  system: "${options.system}",
+  hypothesis: ${JSON.stringify(options.hypothesis.trim())},
+} as const;
+`,
+    },
+  ];
+
+  return {
+    name,
+    system: options.system,
+    disposition: options.disposition,
+    files: withGeneratorProvenance("prototype", name, files, {
+      system: options.system,
+      disposition: options.disposition,
+    }),
+    followUp: [
+      "Prototype with fake-safe data inside the experiment directory.",
+      "Record what was learned in the experiment README.",
+      `Promote only by re-scaffolding: ${promotionCommand}`,
+    ],
   };
 };
 
@@ -3239,6 +3340,7 @@ const parseArgs = (
   readonly mode: ProviderMode;
   readonly exposure: "web" | "workflow" | "headless";
   readonly description: string | undefined;
+  readonly hypothesis: string | undefined;
   readonly system: string | undefined;
   readonly disposition: SystemGeneratorDisposition | undefined;
   readonly query: string | undefined;
@@ -3259,6 +3361,7 @@ const parseArgs = (
   const pathIndex = argv.indexOf("--path");
   const exposureIndex = argv.indexOf("--exposure");
   const descriptionIndex = argv.indexOf("--description");
+  const hypothesisIndex = argv.indexOf("--hypothesis");
   const systemIndex = argv.indexOf("--system");
   const dispositionIndex = argv.indexOf("--disposition");
   const queryIndex = argv.indexOf("--query");
@@ -3364,6 +3467,7 @@ const parseArgs = (
     mode: (mode ?? "fake") as ProviderMode,
     exposure: exposure as "web" | "workflow" | "headless",
     description: descriptionIndex >= 0 ? argv[descriptionIndex + 1] : undefined,
+    hypothesis: hypothesisIndex >= 0 ? argv[hypothesisIndex + 1] : undefined,
     system: systemIndex >= 0 ? argv[systemIndex + 1] : undefined,
     disposition: disposition as SystemGeneratorDisposition | undefined,
     query: queryIndex >= 0 ? argv[queryIndex + 1] : undefined,
@@ -3439,6 +3543,7 @@ export const runGeneratorCli = (
             "template:seed-demo [--blueprint <supported-blueprint>] [--mode fake|test|live] [--write]",
             "template:handoff [--blueprint <supported-blueprint>] [--name <name>] [--mode fake|test|live] [--write]",
             "template:systems [--query <exact-id-alias-responsibility-or-table>]",
+            "template:prototype --name <name> --system <canonical-id> --disposition reuse|extend --hypothesis <text> [--write]",
             "template:add-client-domain --name <name> --system <canonical-id> --disposition reuse|extend [--description <text>] [--write]",
             "template:add-capability --name <name> --system <canonical-id> --disposition reuse|extend [--description <text>] [--exposure web|workflow|headless] [--write]",
             "template:add-table --name <name> --system <canonical-id> --disposition extend --tenant-scope global|organization|workspace|user --sensitivity public|internal|confidential|restricted --pii <comma-list|none> --export-mode markdown|json|redacted-json|not-applicable --delete-mode delete|redact|retain-audit|not-applicable --retention <action> [--append-only] [--description <text>] [--write]",
@@ -3448,8 +3553,8 @@ export const runGeneratorCli = (
             "template:promote-capability --name <name> --system <canonical-id> --disposition reuse|extend [--description <text>] [--write]",
             "template:promote-workflow --name <name> --system <canonical-id> --disposition reuse|extend [--description <text>] [--write]",
             "template:upgrade --from <client-version> --to <template-version>",
-            "template:private-package:dry-run --fixture <path>",
-            "template:private-package:import --fixture <path> [--write]",
+            "template:private-package:dry-run --fixture <path> --system <canonical-id> --disposition reuse|extend",
+            "template:private-package:import --fixture <path> --system <canonical-id> --disposition reuse|extend [--write]",
           ].join("\n") + "\n",
         stderr: "",
       };
@@ -3492,6 +3597,26 @@ export const runGeneratorCli = (
           null,
           2,
         )}\n`,
+        stderr: "",
+      };
+    }
+
+    if (args.command === "prototype") {
+      if (!args.name) throw new Error("Missing required --name for prototype");
+      if (!args.hypothesis?.trim()) {
+        throw new Error("Missing required --hypothesis for prototype");
+      }
+      const result = buildPrototypeFiles({
+        name: args.name,
+        ...requireOwnership(),
+        hypothesis: args.hypothesis,
+      });
+
+      if (args.write) writeGeneratedFiles(result.files, cwd);
+
+      return {
+        exitCode: 0,
+        stdout: `${JSON.stringify(result, null, 2)}\n`,
         stderr: "",
       };
     }
@@ -3888,6 +4013,7 @@ export const runGeneratorCli = (
 
       const plan = buildPrivatePackagePlan({
         fixturePath: resolve(cwd, args.fixture),
+        ...requireOwnership(),
         mode: args.command === "private-package:import" ? "import" : "dry-run",
       });
 
