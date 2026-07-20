@@ -295,6 +295,7 @@ describe("Fabro workflow prompt contracts", () => {
     expect(buildTask).toContain(
       'review_fork [label="Parallel Exhaustive Review", shape=component, join_policy="wait_all"',
     );
+    expect(buildTask).toContain("max_parallel=1");
     expect(buildTask).toContain(
       'review_merge [label="Join Exhaustive Reviews", shape=tripleoctagon]',
     );
