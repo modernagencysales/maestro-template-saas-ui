@@ -253,6 +253,7 @@ export const validateTerminalAuthorityResumeOwner = (input: {
   readonly startSha: string;
   readonly workdir: string;
 } => {
+  const authorityRepair = input.record.mode === "authority-repair";
   if (
     !new Set(["canceled", "cancelled", "failed", "succeeded"]).has(input.status)
   ) {
@@ -260,7 +261,11 @@ export const validateTerminalAuthorityResumeOwner = (input: {
   }
   const identities = [
     ["task ID", input.record.taskId, input.taskId],
-    ["mode", input.record.mode, "authority-refresh"],
+    [
+      "mode",
+      input.record.mode,
+      authorityRepair ? "authority-repair" : "authority-refresh",
+    ],
     ["resume strategy", input.record.resumeStrategy, "in-lane-cherry-pick"],
     ["launch base", input.record.baseSha, input.taskBaseSha],
     ["factory base", input.record.factoryBaseSha, input.taskBaseSha],
@@ -346,7 +351,9 @@ export const validateTerminalAuthorityResumeOwner = (input: {
   }
   if (
     archiveManifest.schemaVersion !==
-      "maestro-brain-authority-refresh-archive/v1" ||
+      (authorityRepair
+        ? "maestro-brain-authority-repair-archive/v1"
+        : "maestro-brain-authority-refresh-archive/v1") ||
     archiveManifest.taskId !== input.taskId ||
     archiveManifest.currentAuthority?.controlHeadSha !== input.taskBaseSha ||
     archiveManifest.source?.baseSha !== input.record.taskBaseSha ||
@@ -430,14 +437,16 @@ export const validateTerminalAuthorityResumeOwner = (input: {
     input.taskId,
     "lane-result.json",
   );
-  if (!existsSync(lanePath)) {
+  if (!authorityRepair && !existsSync(lanePath)) {
     throw new Error(`${input.taskId}: authority owner lane result is missing`);
   }
-  const lane = JSON.parse(readFileSync(lanePath, "utf8")) as {
-    readonly headSha?: unknown;
-    readonly taskId?: unknown;
-    readonly treeSha?: unknown;
-  };
+  const lane = existsSync(lanePath)
+    ? (JSON.parse(readFileSync(lanePath, "utf8")) as {
+        readonly headSha?: unknown;
+        readonly taskId?: unknown;
+        readonly treeSha?: unknown;
+      })
+    : undefined;
   const git = (args: readonly string[]): string =>
     runRtk(["proxy", "git", ...args], {
       cwd: validated.workdir,
@@ -475,9 +484,10 @@ export const validateTerminalAuthorityResumeOwner = (input: {
     );
   }
   if (
-    lane.taskId !== input.taskId ||
-    lane.headSha !== input.sourceHeadSha ||
-    lane.treeSha !== git(["rev-parse", "HEAD^{tree}"])
+    !authorityRepair &&
+    (lane?.taskId !== input.taskId ||
+      lane?.headSha !== input.sourceHeadSha ||
+      lane?.treeSha !== git(["rev-parse", "HEAD^{tree}"]))
   ) {
     throw new Error(`${input.taskId}: authority owner lane identity mismatch`);
   }

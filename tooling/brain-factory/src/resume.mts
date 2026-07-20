@@ -36,7 +36,7 @@ interface ResumeRecord {
   readonly baseSha?: string;
   readonly branch: string;
   readonly factoryBaseSha?: string;
-  readonly mode?: "authority-refresh" | "resume-review";
+  readonly mode?: "authority-refresh" | "authority-repair" | "resume-review";
   readonly runId?: string;
   readonly resumeStrategy?: "in-lane-cherry-pick" | "prelaunch-cherry-pick";
   readonly sourceHeadSha?: string;
@@ -84,24 +84,31 @@ const sourceRef = valueAfter("--ref");
 const taskBase = valueAfter("--base");
 const archiveActionId = parseArchiveActionSelector(process.argv.slice(2));
 const authorityRefresh = process.argv.includes("--authority-refresh");
+const authorityRepair = process.argv.includes("--authority-repair");
 const conflictAware = process.argv.includes("--conflict-aware");
 let resumeStrategy = resolveResumeStrategy({
   authorityOwner: false,
   conflictAware,
 });
-if (!taskId || (!authorityRefresh && (!sourceRef || !taskBase))) {
+if (
+  !taskId ||
+  (!authorityRefresh && !authorityRepair && (!sourceRef || !taskBase))
+) {
   console.error(
-    "usage: brain:factory:resume -- --task <id> (--authority-refresh | --ref <git-ref> --base <sha> [--conflict-aware]) [--archive-action <id>]",
+    "usage: brain:factory:resume -- --task <id> (--authority-refresh | --authority-repair | --ref <git-ref> --base <sha> [--conflict-aware]) [--archive-action <id>]",
   );
   process.exit(2);
 }
 if (
-  authorityRefresh &&
+  (authorityRefresh || authorityRepair) &&
   (sourceRef || taskBase || conflictAware || archiveActionId)
 ) {
   throw new Error(
-    `${taskId}: --authority-refresh derives exact source coordinates and cannot be combined with --ref, --base, --conflict-aware, or --archive-action`,
+    `${taskId}: authority transition derives exact source coordinates and cannot be combined with --ref, --base, --conflict-aware, or --archive-action`,
   );
+}
+if (authorityRefresh && authorityRepair) {
+  throw new Error(`${taskId}: choose exactly one authority transition`);
 }
 const root = process.cwd();
 const state = resolve(valueAfter("--state") ?? ".fabro/state/maestro-brain");
@@ -128,8 +135,15 @@ assertArchiveActionSelectorApplicable({
   recordExists,
   taskId,
 });
-if (authorityRefresh) {
-  launchAuthorityRefresh({ evidence, recordPath, root, state, taskId });
+if (authorityRefresh || authorityRepair) {
+  launchAuthorityRefresh({
+    authorityRepair,
+    evidence,
+    recordPath,
+    root,
+    state,
+    taskId,
+  });
   process.exit(0);
 }
 if (!sourceRef || !taskBase)
@@ -183,6 +197,7 @@ let launchBaseSha = factoryBase;
 let preservedProofHeadSha: string | undefined;
 let preservedExpectedCommit = "none";
 let preservedRecord: PreservedResumeRecord | undefined;
+let authorityRepairArchive = "none";
 let terminalTransition:
   | {
       readonly expectedContent: string;
@@ -229,7 +244,13 @@ if (existsSync(recordPath)) {
       `${taskId}: live or unknown Fabro run ${record.runId} (${status}) owns this task`,
     );
   }
-  if (record.mode === "authority-refresh") {
+  if (
+    record.mode === "authority-refresh" ||
+    record.mode === "authority-repair"
+  ) {
+    if (record.mode === "authority-repair") {
+      authorityRepairArchive = record.authorityArchivePath ?? "none";
+    }
     const owner = validateTerminalAuthorityResumeOwner({
       controlCommonDir,
       evidence,
@@ -459,6 +480,7 @@ const resumeInputs =
       ]
     : [];
 const launchEnv = buildTaskLaunchEnv({
+  authorityRepairArchive,
   baseSha: launchBaseSha,
   controlRoot: root,
   controlCommonDir,
@@ -518,6 +540,8 @@ const output = runRtk(
     `resume_expected_commit=${preservedExpectedCommit}`,
     "-I",
     `resume_proof_head=${preservedProofHeadSha ?? "none"}`,
+    "-I",
+    `authority_repair_archive=${authorityRepairArchive}`,
     ...resumeInputs,
   ],
   {

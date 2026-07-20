@@ -7,6 +7,7 @@ import { buildTaskLaunchEnv } from "../src/build-task-launch-env.js";
 import { materializeBuildTaskRunConfig } from "../src/build-task-run-config.js";
 
 const valid = {
+  authorityRepairArchive: "none",
   baseSha: "a".repeat(40),
   controlRoot: "/tmp/control root",
   controlCommonDir: "/tmp/control common",

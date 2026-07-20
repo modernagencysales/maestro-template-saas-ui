@@ -213,6 +213,7 @@ for (const task of selected) {
   runRtk(["git", "worktree", "add", "-B", branch, workdir, baseSha]);
   hydrateWorktreeDependencies(root, workdir);
   const launchEnv = buildTaskLaunchEnv({
+    authorityRepairArchive: "none",
     baseSha,
     controlRoot: root,
     controlCommonDir,

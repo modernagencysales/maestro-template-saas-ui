@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { isAbsolute } from "node:path";
 
 interface BuildTaskCoordinates {
+  readonly authorityRepairArchive: string;
   readonly baseSha: string;
   readonly controlRoot: string;
   readonly controlCommonDir: string;
@@ -59,5 +60,6 @@ export const buildTaskLaunchEnv = (
     BRAIN_REPROOF_REQUEST: input.reproofRequest,
     BRAIN_HOST_TEST_MAX_LOAD_1M: input.hostTestMaxLoad1m,
     BRAIN_REVIEW_ATTEMPT: randomUUID(),
+    BRAIN_AUTHORITY_REPAIR_ARCHIVE: input.authorityRepairArchive,
   };
 };

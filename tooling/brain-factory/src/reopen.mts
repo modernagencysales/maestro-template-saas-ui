@@ -417,6 +417,7 @@ runRtk(["git", "worktree", "add", "-b", branch, workdir, controlHeadSha]);
 hydrateWorktreeDependencies(root, workdir);
 const workflow = resolve(".fabro/workflows/brain-build-task/workflow.fabro");
 const launchEnv = buildTaskLaunchEnv({
+  authorityRepairArchive: "none",
   baseSha: controlHeadSha,
   controlRoot: root,
   controlCommonDir,

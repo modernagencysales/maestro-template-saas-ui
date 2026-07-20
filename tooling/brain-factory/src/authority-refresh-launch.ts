@@ -1,4 +1,5 @@
-import { existsSync, readFileSync, rmSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { existsSync, readFileSync, readdirSync, rmSync } from "node:fs";
 import { resolve } from "node:path";
 
 import {
@@ -64,6 +65,7 @@ export const runAuthorityRefreshTransition = (input: {
 };
 
 export const launchAuthorityRefresh = (input: {
+  readonly authorityRepair?: boolean;
   readonly evidence: string;
   readonly recordPath: string;
   readonly root: string;
@@ -98,17 +100,78 @@ export const launchAuthorityRefresh = (input: {
     (candidate) => candidate.taskId === input.taskId,
   );
   if (!task) throw new Error(`unknown task ${input.taskId}`);
+  const transition = input.authorityRepair
+    ? task.authorityRepairTransition
+    : undefined;
+  if (input.authorityRepair && !transition) {
+    throw new Error(
+      `${input.taskId}: no authority-repair transition is authorized`,
+    );
+  }
   const controlHeadSha = runRtk(["git", "rev-parse", "HEAD"], {
     quiet: true,
   });
+  const integratedTaskIds = new Set<string>();
+  const integrationRoot = resolve(input.evidence, "integration");
+  if (existsSync(integrationRoot)) {
+    const visit = (directory: string): void => {
+      for (const entry of readdirSync(directory, { withFileTypes: true })) {
+        const path = resolve(directory, entry.name);
+        if (entry.isDirectory()) visit(path);
+        else if (entry.name === "integration-result.json") {
+          const result = JSON.parse(readFileSync(path, "utf8")) as {
+            headSha?: unknown;
+            includedTasks?: readonly { taskId?: unknown }[];
+            reviewVerdict?: unknown;
+            status?: unknown;
+          };
+          if (
+            result.status !== "passed" ||
+            result.reviewVerdict !== "pass" ||
+            typeof result.headSha !== "string" ||
+            !Array.isArray(result.includedTasks)
+          )
+            continue;
+          try {
+            runRtk(
+              [
+                "proxy",
+                "git",
+                "merge-base",
+                "--is-ancestor",
+                result.headSha,
+                controlHeadSha,
+              ],
+              { cwd: input.root, quiet: true },
+            );
+          } catch {
+            continue;
+          }
+          for (const included of result.includedTasks) {
+            if (typeof included.taskId === "string")
+              integratedTaskIds.add(included.taskId);
+          }
+        }
+      }
+    };
+    visit(integrationRoot);
+  }
   const admissionInput = {
+    ...(transition ? { authorityRepairTransition: transition } : {}),
     branchExists: (candidate: string) => gitBranchExists(candidate, input.root),
     controlHeadSha,
     evidence: input.evidence,
+    integratedTaskIds: [...integratedTaskIds],
+    readGitBlob: (cwd: string, objectSha: string) =>
+      execFileSync("rtk", ["proxy", "git", "cat-file", "blob", objectSha], {
+        cwd,
+        encoding: "utf8",
+      }),
     root: input.root,
     runGit: (cwd: string, args: readonly string[]) =>
       runRtk(["proxy", "git", ...args], { cwd, quiet: true }),
     sourceBranch: record.branch,
+    sourceRunId: terminalRunId,
     sourceWorkdir: record.workdir,
     task: {
       fileLocks: task.fileLocks,
@@ -128,7 +191,7 @@ export const launchAuthorityRefresh = (input: {
     now,
     owner: {
       controlRoot: input.root,
-      mode: "authority-refresh",
+      mode: input.authorityRepair ? "authority-repair" : "authority-refresh",
       pid: process.pid,
       runId: terminalRunId,
       startedAt: now,
@@ -151,7 +214,7 @@ export const launchAuthorityRefresh = (input: {
     baseSha: controlHeadSha,
     branch,
     factoryBaseSha: controlHeadSha,
-    mode: "authority-refresh",
+    mode: input.authorityRepair ? "authority-repair" : "authority-refresh",
     resumeStrategy: "in-lane-cherry-pick",
     sourceHeadSha: admission.sourceHeadSha,
     status: "preparing",
@@ -171,6 +234,9 @@ export const launchAuthorityRefresh = (input: {
     evidence: input.evidence,
     hostTestMaxLoad1m: "20",
     reproofRequest: "none",
+    authorityRepairArchive: input.authorityRepair
+      ? admission.archiveDirectory
+      : "none",
     resumeBranch: branch,
     resumeCommits: serializedCommits,
     resumeExpectedCommit: "none",
@@ -210,7 +276,11 @@ export const launchAuthorityRefresh = (input: {
           "--label",
           `task=${input.taskId}`,
           "--label",
-          "mode=authority-refresh",
+          `mode=${input.authorityRepair ? "authority-repair" : "authority-refresh"}`,
+          "-I",
+          `authority_repair_archive=${
+            input.authorityRepair ? admission.archiveDirectory : "none"
+          }`,
           "-I",
           `workdir=${workdir}`,
           "-I",
