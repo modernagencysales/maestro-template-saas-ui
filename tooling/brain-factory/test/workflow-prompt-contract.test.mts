@@ -355,7 +355,14 @@ describe("Fabro workflow prompt contracts", () => {
         .find((line) => line.trimStart().startsWith(`${name} [`));
     const reviewSnapshot = node("review_snapshot");
     const reviewAggregate = node("review_aggregate");
+    const controlLoader =
+      "$BRAIN_CONTROL_ROOT/node_modules/tsx/dist/loader.mjs";
 
+    expect(
+      reviewSnapshot?.match(/node_modules\/tsx\/dist\/loader\.mjs/g) ?? [],
+    ).toHaveLength(2);
+    expect(reviewSnapshot).toContain(controlLoader);
+    expect(reviewSnapshot).not.toContain("--import tsx");
     expect(reviewSnapshot).toContain(
       "$BRAIN_CONTROL_ROOT/tooling/brain-factory/src/review-worktree-guard.mts",
     );
@@ -366,6 +373,11 @@ describe("Fabro workflow prompt contracts", () => {
 
     for (const lens of ["contract", "safety", "quality"] as const) {
       const reviewLens = node(`review_${lens}`);
+      expect(
+        reviewLens?.match(/node_modules\/tsx\/dist\/loader\.mjs/g) ?? [],
+      ).toHaveLength(2);
+      expect(reviewLens).toContain(controlLoader);
+      expect(reviewLens).not.toContain("--import tsx");
       expect(reviewLens).toContain(
         "$BRAIN_CONTROL_ROOT/tooling/brain-factory/src/review-worktrees.mts",
       );
@@ -376,6 +388,11 @@ describe("Fabro workflow prompt contracts", () => {
       expect(reviewLens).toContain('cd \\"$REVIEW_WORKTREE\\"');
     }
 
+    expect(
+      reviewAggregate?.match(/node_modules\/tsx\/dist\/loader\.mjs/g) ?? [],
+    ).toHaveLength(1);
+    expect(reviewAggregate).toContain(controlLoader);
+    expect(reviewAggregate).not.toContain("--import tsx");
     expect(reviewAggregate).toContain(
       "$BRAIN_CONTROL_ROOT/tooling/brain-factory/src/review-aggregate.mts",
     );
