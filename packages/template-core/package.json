@@ -16,6 +16,10 @@
     "./systemCatalog": {
       "types": "./src/systemCatalog.ts",
       "default": "./src/systemCatalog.ts"
+    },
+    "./dataResourceCatalog": {
+      "types": "./src/dataResourceCatalog.ts",
+      "default": "./src/dataResourceCatalog.ts"
     }
   },
   "scripts": {

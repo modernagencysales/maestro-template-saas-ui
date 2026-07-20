@@ -22,6 +22,7 @@ import {
   buildPrivatePackagePlan,
   buildTemplateInstance,
   buildTemplateQuickstart,
+  buildTableFiles,
   buildTemplateUpgradeReport,
   buildWorkflowFiles,
   buildWorkflowPromotionFiles,
@@ -936,6 +937,110 @@ describe("template app factory generators", () => {
     } finally {
       rmSync(cwd, { recursive: true, force: true });
     }
+  });
+
+  it("builds a durable table with ownership, lifecycle metadata, and a migration decision", () => {
+    const generated = buildTableFiles({
+      name: "source reviews",
+      system: "knowledge-brain",
+      disposition: "extend",
+      tenantScope: "workspace",
+      sensitivity: "confidential",
+      pii: ["identity", "customer-content"],
+      exportMode: "json",
+      deleteMode: "delete",
+      retention: "retain-until-workspace-delete",
+      description: "Stores source review decisions.",
+    });
+
+    expect(generated).toMatchObject({
+      name: "sourceReviews",
+      system: "knowledge-brain",
+      disposition: "extend",
+    });
+    expect(generated.files.map(({ path }) => path)).toEqual(
+      expect.arrayContaining([
+        "packages/convex/confect/tables/sourceReviews.ts",
+        "docs/template/schema-decisions/sourceReviews.md",
+        "docs/template/system-catalog.json",
+        "docs/template/data-resources.json",
+        "docs/template/generated/provenance/add-table/sourceReviews.json",
+      ]),
+    );
+    expect(generated.files[0]?.content).toContain(
+      'workspaceId: Id("workspaces")',
+    );
+
+    const systemCatalogFile = generated.files.find(
+      ({ path }) => path === "docs/template/system-catalog.json",
+    );
+    const systemCatalog = JSON.parse(systemCatalogFile?.content ?? "{}") as {
+      readonly systems: readonly {
+        readonly id: string;
+        readonly tables: readonly string[];
+      }[];
+    };
+    expect(
+      systemCatalog.systems.find(({ id }) => id === "knowledge-brain")?.tables,
+    ).toContain("sourceReviews");
+
+    const dataCatalogFile = generated.files.find(
+      ({ path }) => path === "docs/template/data-resources.json",
+    );
+    const dataCatalog = JSON.parse(dataCatalogFile?.content ?? "{}") as {
+      readonly resources: readonly Record<string, unknown>[];
+    };
+    expect(dataCatalog.resources).toContainEqual(
+      expect.objectContaining({
+        id: "sourceReviews",
+        system: "knowledge-brain",
+        tenantScope: "workspace",
+        workspaceLifecycle: "managed",
+        retention: "retain-until-workspace-delete",
+      }),
+    );
+  });
+
+  it("rejects incomplete or non-extension table generation", () => {
+    const reuse = runGeneratorCli([
+      "add-table",
+      "--name",
+      "source reviews",
+      "--system",
+      "knowledge-brain",
+      "--disposition",
+      "reuse",
+      "--tenant-scope",
+      "workspace",
+      "--sensitivity",
+      "confidential",
+      "--pii",
+      "none",
+      "--export-mode",
+      "json",
+      "--delete-mode",
+      "delete",
+      "--retention",
+      "retain-until-workspace-delete",
+    ]);
+    const incomplete = runGeneratorCli([
+      "add-table",
+      "--name",
+      "source reviews",
+      "--system",
+      "knowledge-brain",
+      "--disposition",
+      "extend",
+    ]);
+
+    expect(reuse).toMatchObject({
+      exitCode: 1,
+      stderr: expect.stringContaining("must use --disposition extend"),
+    });
+    expect(incomplete).toMatchObject({
+      exitCode: 1,
+      stderr: expect.stringContaining("Missing required --tenant-scope"),
+    });
   });
 
   it("builds workflow generator files with durable Confect contracts", () => {

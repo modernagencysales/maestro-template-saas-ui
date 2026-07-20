@@ -3,6 +3,15 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
+  parseDataResourceCatalog,
+  type DataDeleteMode,
+  type DataExportMode,
+  type DataResourceCatalog,
+  type DataRetention,
+  type DataSensitivity,
+  type DataTenantScope,
+} from "@maestro-template/template-core/dataResourceCatalog";
+import {
   canonicalSystemById,
   findCanonicalSystems,
   parseSystemCatalog,
@@ -237,6 +246,29 @@ export type PromotionGeneratorResult = {
   readonly followUp: readonly string[];
 };
 
+export type TableGeneratorOptions = {
+  readonly name: string;
+  readonly system: string;
+  readonly disposition: SystemGeneratorDisposition;
+  readonly tenantScope: DataTenantScope;
+  readonly sensitivity: DataSensitivity;
+  readonly pii: readonly string[];
+  readonly exportMode: DataExportMode;
+  readonly deleteMode: DataDeleteMode;
+  readonly retention: DataRetention;
+  readonly appendOnly?: boolean;
+  readonly description?: string;
+  readonly write?: boolean;
+};
+
+export type TableGeneratorResult = {
+  readonly name: string;
+  readonly pascalName: string;
+  readonly system: string;
+  readonly disposition: "extend";
+  readonly files: readonly GeneratedFile[];
+};
+
 export type TemplateUpgradeReport = {
   readonly from: string;
   readonly to: string;
@@ -299,9 +331,21 @@ const envManifestPath = (repoRoot = defaultRepoRoot): string =>
 const systemCatalogPath = (repoRoot = defaultRepoRoot): string =>
   resolve(repoRoot, "docs/template/system-catalog.json");
 
+const dataResourceCatalogPath = (repoRoot = defaultRepoRoot): string =>
+  resolve(repoRoot, "docs/template/data-resources.json");
+
 export const readSystemCatalog = (repoRoot = defaultRepoRoot): SystemCatalog =>
   parseSystemCatalog(
     JSON.parse(readFileSync(systemCatalogPath(repoRoot), "utf8")) as unknown,
+  );
+
+export const readDataResourceCatalog = (
+  repoRoot = defaultRepoRoot,
+): DataResourceCatalog =>
+  parseDataResourceCatalog(
+    JSON.parse(
+      readFileSync(dataResourceCatalogPath(repoRoot), "utf8"),
+    ) as unknown,
   );
 
 const readEnvManifest = (
@@ -1404,6 +1448,178 @@ ${description}
     files: withGeneratorProvenance("add-capability", name, files, {
       system: options.system,
       disposition: options.disposition,
+    }),
+  };
+};
+
+const tenantOwnerField = (
+  tenantScope: DataTenantScope,
+): {
+  readonly field: string;
+  readonly table: string;
+  readonly index: string;
+} => {
+  if (tenantScope === "workspace") {
+    return { field: "workspaceId", table: "workspaces", index: "by_workspace" };
+  }
+  if (tenantScope === "organization") {
+    return {
+      field: "organizationId",
+      table: "organizations",
+      index: "by_organization",
+    };
+  }
+  if (tenantScope === "user") {
+    return { field: "userId", table: "users", index: "by_user" };
+  }
+  return { field: "key", table: "", index: "by_key" };
+};
+
+export const buildTableFiles = (
+  options: TableGeneratorOptions,
+  catalogs?: {
+    readonly systems?: SystemCatalog;
+    readonly dataResources?: DataResourceCatalog;
+  },
+): TableGeneratorResult => {
+  if (options.disposition !== "extend") {
+    throw new RangeError("New durable tables must use --disposition extend");
+  }
+
+  const name = camelCase(options.name);
+  const pascalName = pascalCase(options.name);
+  const systems = catalogs?.systems ?? readSystemCatalog();
+  const dataResources = catalogs?.dataResources ?? readDataResourceCatalog();
+  const system = canonicalSystemById(systems, options.system);
+  if (system.lifecycle !== "active") {
+    throw new RangeError(
+      `Canonical system ${system.id} is ${system.lifecycle} and cannot receive a durable table`,
+    );
+  }
+  if (
+    systems.systems.some(({ tables }) => tables.includes(name)) ||
+    dataResources.resources.some(({ id }) => id === name)
+  ) {
+    throw new RangeError(`Durable table ${name} is already registered`);
+  }
+
+  const owner = tenantOwnerField(options.tenantScope);
+  const writeAuthority = system.canonicalEntrypoints[0];
+  if (writeAuthority === undefined) {
+    throw new RangeError(
+      `Canonical system ${system.id} has no write authority entrypoint`,
+    );
+  }
+  const ownerField =
+    options.tenantScope === "global"
+      ? "    key: Schema.String,"
+      : `    ${owner.field}: Id("${owner.table}"),`;
+  const idImport =
+    options.tenantScope === "global"
+      ? ""
+      : 'import { Id } from "../_generated/id";\n';
+  const description =
+    options.description ??
+    `Durable ${name} state owned by the ${system.id} canonical system.`;
+  const decisionPath = `docs/template/schema-decisions/${name}.md`;
+  const tablePath = `packages/convex/confect/tables/${name}.ts`;
+  const nextSystems: SystemCatalog = {
+    ...systems,
+    systems: systems.systems.map((candidate) =>
+      candidate.id === system.id
+        ? {
+            ...candidate,
+            tables: [...candidate.tables, name].sort(),
+          }
+        : candidate,
+    ),
+  };
+  const nextDataResources = parseDataResourceCatalog({
+    ...dataResources,
+    resources: [
+      ...dataResources.resources,
+      {
+        id: name,
+        system: system.id,
+        sourcePath: tablePath,
+        tenantScope: options.tenantScope,
+        sensitivity: options.sensitivity,
+        pii: [...options.pii],
+        exportMode: options.exportMode,
+        deleteMode: options.deleteMode,
+        retention: options.retention,
+        appendOnly: options.appendOnly ?? false,
+        workspaceLifecycle:
+          options.tenantScope === "workspace" ? "managed" : "excluded",
+        writeAuthority,
+        migrationRef: decisionPath,
+        detail: description,
+      },
+    ].sort((left, right) => left.id.localeCompare(right.id)),
+  });
+  const files: readonly GeneratedFile[] = [
+    {
+      path: tablePath,
+      content: `import { Table } from "@confect/server";
+import * as Schema from "effect/Schema";
+${idImport}
+// ${description}
+export default Table.make(() =>
+  Schema.Struct({
+${ownerField}
+    createdAt: Schema.Number,
+    updatedAt: Schema.Number,
+  }),
+).index("${owner.index}", ["${owner.field}"]);
+`,
+    },
+    {
+      path: decisionPath,
+      content: `# ${pascalName} Schema Decision
+
+Canonical system: \`${system.id}\`
+Disposition: \`extend\`
+Status: proposed
+
+## Purpose
+
+${description}
+
+## Data Contract
+
+- Tenant scope: \`${options.tenantScope}\`
+- Sensitivity: \`${options.sensitivity}\`
+- PII categories: ${options.pii.length === 0 ? "none" : options.pii.map((value) => `\`${value}\``).join(", ")}
+- Export: \`${options.exportMode}\`
+- Delete/redaction: \`${options.deleteMode}\`
+- Retention: \`${options.retention}\`
+- Append-only: \`${String(options.appendOnly ?? false)}\`
+- Write authority: \`${writeAuthority}\`
+
+## Migration And Rollback
+
+Document indexes, backfill, compatibility window, rollback behavior, and the
+query that proves the table is necessary before approving this decision.
+`,
+    },
+    {
+      path: "docs/template/system-catalog.json",
+      content: `${JSON.stringify(nextSystems, null, 2)}\n`,
+    },
+    {
+      path: "docs/template/data-resources.json",
+      content: `${JSON.stringify(nextDataResources, null, 2)}\n`,
+    },
+  ];
+
+  return {
+    name,
+    pascalName,
+    system: system.id,
+    disposition: "extend",
+    files: withGeneratorProvenance("add-table", name, files, {
+      system: system.id,
+      disposition: "extend",
     }),
   };
 };
@@ -3011,6 +3227,13 @@ const parseArgs = (
   readonly system: string | undefined;
   readonly disposition: SystemGeneratorDisposition | undefined;
   readonly query: string | undefined;
+  readonly tenantScope: DataTenantScope | undefined;
+  readonly sensitivity: DataSensitivity | undefined;
+  readonly pii: readonly string[] | undefined;
+  readonly exportMode: DataExportMode | undefined;
+  readonly deleteMode: DataDeleteMode | undefined;
+  readonly retention: DataRetention | undefined;
+  readonly appendOnly: boolean;
   readonly write: boolean;
   readonly path: string;
 } => {
@@ -3024,6 +3247,12 @@ const parseArgs = (
   const systemIndex = argv.indexOf("--system");
   const dispositionIndex = argv.indexOf("--disposition");
   const queryIndex = argv.indexOf("--query");
+  const tenantScopeIndex = argv.indexOf("--tenant-scope");
+  const sensitivityIndex = argv.indexOf("--sensitivity");
+  const piiIndex = argv.indexOf("--pii");
+  const exportModeIndex = argv.indexOf("--export-mode");
+  const deleteModeIndex = argv.indexOf("--delete-mode");
+  const retentionIndex = argv.indexOf("--retention");
   const fromIndex = argv.indexOf("--from");
   const toIndex = argv.indexOf("--to");
   const fixtureIndex = argv.indexOf("--fixture");
@@ -3061,6 +3290,54 @@ const parseArgs = (
   if (disposition && !["reuse", "extend"].includes(disposition)) {
     throw new Error(`Unknown system disposition: ${disposition}`);
   }
+  const tenantScope =
+    tenantScopeIndex >= 0 ? argv[tenantScopeIndex + 1] : undefined;
+  if (
+    tenantScope &&
+    !["global", "organization", "workspace", "user"].includes(tenantScope)
+  ) {
+    throw new Error(`Unknown tenant scope: ${tenantScope}`);
+  }
+  const sensitivity =
+    sensitivityIndex >= 0 ? argv[sensitivityIndex + 1] : undefined;
+  if (
+    sensitivity &&
+    !["public", "internal", "confidential", "restricted"].includes(sensitivity)
+  ) {
+    throw new Error(`Unknown data sensitivity: ${sensitivity}`);
+  }
+  const exportMode =
+    exportModeIndex >= 0 ? argv[exportModeIndex + 1] : undefined;
+  if (
+    exportMode &&
+    !["markdown", "json", "redacted-json", "not-applicable"].includes(
+      exportMode,
+    )
+  ) {
+    throw new Error(`Unknown export mode: ${exportMode}`);
+  }
+  const deleteMode =
+    deleteModeIndex >= 0 ? argv[deleteModeIndex + 1] : undefined;
+  if (
+    deleteMode &&
+    !["delete", "redact", "retain-audit", "not-applicable"].includes(deleteMode)
+  ) {
+    throw new Error(`Unknown delete mode: ${deleteMode}`);
+  }
+  const retention = retentionIndex >= 0 ? argv[retentionIndex + 1] : undefined;
+  if (
+    retention &&
+    ![
+      "retain-until-workspace-delete",
+      "retain-audit-window",
+      "hash-or-redact-on-export",
+      "retain-until-account-delete",
+      "retain-until-organization-delete",
+      "retain-configuration",
+    ].includes(retention)
+  ) {
+    throw new Error(`Unknown retention action: ${retention}`);
+  }
 
   return {
     command,
@@ -3075,6 +3352,19 @@ const parseArgs = (
     system: systemIndex >= 0 ? argv[systemIndex + 1] : undefined,
     disposition: disposition as SystemGeneratorDisposition | undefined,
     query: queryIndex >= 0 ? argv[queryIndex + 1] : undefined,
+    tenantScope: tenantScope as DataTenantScope | undefined,
+    sensitivity: sensitivity as DataSensitivity | undefined,
+    pii:
+      piiIndex >= 0
+        ? (argv[piiIndex + 1] ?? "")
+            .split(",")
+            .map((value) => value.trim())
+            .filter((value) => value.length > 0 && value !== "none")
+        : undefined,
+    exportMode: exportMode as DataExportMode | undefined,
+    deleteMode: deleteMode as DataDeleteMode | undefined,
+    retention: retention as DataRetention | undefined,
+    appendOnly: argv.includes("--append-only"),
     write: argv.includes("--write"),
     path: path || "template-instance.json",
   };
@@ -3136,6 +3426,7 @@ export const runGeneratorCli = (
             "template:systems [--query <exact-id-alias-responsibility-or-table>]",
             "template:add-client-domain --name <name> --system <canonical-id> --disposition reuse|extend [--description <text>] [--write]",
             "template:add-capability --name <name> --system <canonical-id> --disposition reuse|extend [--description <text>] [--exposure web|workflow|headless] [--write]",
+            "template:add-table --name <name> --system <canonical-id> --disposition extend --tenant-scope global|organization|workspace|user --sensitivity public|internal|confidential|restricted --pii <comma-list|none> --export-mode markdown|json|redacted-json|not-applicable --delete-mode delete|redact|retain-audit|not-applicable --retention <action> [--append-only] [--description <text>] [--write]",
             "template:add-workflow --name <name> --system <canonical-id> --disposition reuse|extend [--description <text>] [--write]",
             "template:add-agent --name <name> --system <canonical-id> --disposition reuse|extend [--description <text>] [--write]",
             "template:add-agent-seat --name <name> --system <canonical-id> --disposition reuse|extend [--description <text>] [--write]",
@@ -3355,6 +3646,65 @@ export const runGeneratorCli = (
         exposure: args.exposure,
         ...(args.description ? { description: args.description } : {}),
       });
+
+      if (args.write) {
+        writeGeneratedFiles(result.files, cwd);
+      }
+
+      return {
+        exitCode: 0,
+        stdout: `${JSON.stringify(result, null, 2)}\n`,
+        stderr: "",
+      };
+    }
+
+    if (args.command === "add-table") {
+      if (!args.name) {
+        throw new Error("Missing required --name for add-table");
+      }
+      if (!args.tenantScope) {
+        throw new Error("Missing required --tenant-scope for add-table");
+      }
+      if (!args.sensitivity) {
+        throw new Error("Missing required --sensitivity for add-table");
+      }
+      if (args.pii === undefined) {
+        throw new Error(
+          "Missing required --pii <comma-list|none> for add-table",
+        );
+      }
+      if (!args.exportMode) {
+        throw new Error("Missing required --export-mode for add-table");
+      }
+      if (!args.deleteMode) {
+        throw new Error("Missing required --delete-mode for add-table");
+      }
+      if (!args.retention) {
+        throw new Error("Missing required --retention for add-table");
+      }
+      const ownership = requireOwnership();
+      if (ownership.disposition !== "extend") {
+        throw new Error("New durable tables must use --disposition extend");
+      }
+      const result = buildTableFiles(
+        {
+          name: args.name,
+          system: ownership.system,
+          disposition: "extend",
+          tenantScope: args.tenantScope,
+          sensitivity: args.sensitivity,
+          pii: args.pii,
+          exportMode: args.exportMode,
+          deleteMode: args.deleteMode,
+          retention: args.retention,
+          appendOnly: args.appendOnly,
+          ...(args.description ? { description: args.description } : {}),
+        },
+        {
+          systems: readSystemCatalog(catalogRoot),
+          dataResources: readDataResourceCatalog(catalogRoot),
+        },
+      );
 
       if (args.write) {
         writeGeneratedFiles(result.files, cwd);
