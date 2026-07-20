@@ -120,19 +120,21 @@ Use the generated implementation brief as the discovery map:
 ## One-Day Prototype Mode
 
 1. Generate the quickstart files.
-2. Add a client-specific capability with
-   `pnpm template:add-capability -- --name "<capability>" --system <canonical-id> --disposition extend --write`.
-3. Add a workflow with
+2. Search the catalog, then explore uncertain behavior under the sandbox with
+   `pnpm template:prototype -- --name "<feature>" --system <canonical-id> --disposition extend --hypothesis "<expected learning>" --write`.
+3. Record the learning and promote the useful behavior as a complete slice with
+   `pnpm template:add-feature -- --name "<feature>" --system <canonical-id> --disposition extend --write`.
+4. Add a workflow with
    `pnpm template:add-workflow -- --name "<workflow>" --system <canonical-id> --disposition extend --write`.
-4. Regenerate Convex refs, typecheck the Convex package, and keep
+5. Regenerate Convex refs, typecheck the Convex package, and keep
    `template:promote-workflow` only for older reviewed or private-package
    workflow artifacts. `template:add-workflow -- --write` already writes the
    production-target workflow paths.
-5. Wire the generated refs into the Saas UI business surfaces, API, CLI, and MCP
+6. Wire the generated refs into the Saas UI business surfaces, API, CLI, and MCP
    surfaces.
-6. Add focused tests for the capability, workflow graph, provider posture, and
+7. Add focused tests for the capability, workflow graph, provider posture, and
    Trust Receipt.
-7. Run `pnpm review:readiness` before handoff.
+8. Run `pnpm review:readiness` before handoff.
 
 The first files a worker should inspect are `AGENTS.md`,
 `docs/template/blueprint-catalog.md`, `docs/template/system-catalog.md`,

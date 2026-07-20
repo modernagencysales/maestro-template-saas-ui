@@ -198,6 +198,24 @@ export type CapabilityGeneratorResult = {
   readonly files: readonly GeneratedFile[];
 };
 
+export type FeatureGeneratorOptions = {
+  readonly name: string;
+  readonly system: string;
+  readonly disposition: SystemGeneratorDisposition;
+  readonly description?: string;
+  readonly write?: boolean;
+};
+
+export type FeatureGeneratorResult = {
+  readonly name: string;
+  readonly pascalName: string;
+  readonly route: string;
+  readonly system: string;
+  readonly disposition: SystemGeneratorDisposition;
+  readonly files: readonly GeneratedFile[];
+  readonly followUp: readonly string[];
+};
+
 export type WorkflowGeneratorOptions = {
   readonly name: string;
   readonly system: string;
@@ -490,6 +508,9 @@ const slugify = (value: string): string =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
 
+const kebabCase = (value: string): string =>
+  slugify(value.replace(/([a-z0-9])([A-Z])/g, "$1-$2"));
+
 const pascalCase = (value: string): string => {
   const normalized = value
     .trim()
@@ -516,6 +537,20 @@ const writeGeneratedFiles = (
     const targetPath = resolve(cwd, file.path);
     mkdirSync(dirname(targetPath), { recursive: true });
     writeFileSync(targetPath, file.content);
+  }
+};
+
+const assertGeneratedPathsAreNew = (
+  files: readonly GeneratedFile[],
+  cwd: string,
+): void => {
+  const existing = files
+    .map(({ path }) => path)
+    .filter((path) => existsSync(resolve(cwd, path)));
+  if (existing.length > 0) {
+    throw new Error(
+      `Refusing to overwrite existing paths: ${existing.join(", ")}. Reuse or extend the existing slice, or choose a new reviewed name.`,
+    );
   }
 };
 
@@ -1480,6 +1515,276 @@ ${description}
       system: options.system,
       disposition: options.disposition,
     }),
+  };
+};
+
+export const buildFeatureFiles = (
+  options: FeatureGeneratorOptions,
+): FeatureGeneratorResult => {
+  const name = camelCase(options.name);
+  const pascalName = pascalCase(options.name);
+  const route = kebabCase(options.name);
+  const description =
+    options.description ??
+    `Generated ${name} vertical slice. Replace fake fixtures through the typed Confect adapter.`;
+  const featurePath = `apps/web/src/features/${name}`;
+  const capability = buildCapabilityFiles({
+    name,
+    system: options.system,
+    disposition: options.disposition,
+    description,
+    exposure: "web",
+  });
+  const capabilityFiles = capability.files.filter(
+    ({ path }) =>
+      path !== `docs/template/generated/provenance/add-capability/${name}.json`,
+  );
+  const files: readonly GeneratedFile[] = [
+    ...capabilityFiles,
+    {
+      path: `${featurePath}/contract.ts`,
+      content: `export const ${name}FeatureContract = {
+  ownership: {
+    system: "${options.system}",
+    disposition: "${options.disposition}",
+  },
+  capability: "${name}",
+  tenantScope: "workspace",
+  auth: "workspace-member",
+  typedErrors: ["Unauthorized", "ValidationFailed", "Forbidden"],
+  audit: {
+    readEvent: "${name}.viewed",
+    writeEvent: "${name}.changed",
+    actorAndWorkspaceRequired: true,
+  },
+  observability: {
+    operation: "${options.system}.${name}",
+    redactInput: true,
+    captureLatency: true,
+  },
+  featureFlag: {
+    key: "${options.system}.${route}",
+    default: "off-until-reviewed",
+    killSwitch: true,
+  },
+  entitlement: {
+    posture: "explicit-plan-or-none",
+    default: "not-entitled",
+  },
+  dataLifecycle: {
+    durableResources: [] as const,
+    instruction: "Use template:add-table before adding durable state.",
+  },
+} as const;
+`,
+    },
+    {
+      path: `${featurePath}/model.ts`,
+      content: `export type ${pascalName}Item = {
+  readonly id: string;
+  readonly label: string;
+  readonly detail: string;
+};
+
+export type ${pascalName}FeatureState =
+  | { readonly status: "loading" }
+  | { readonly status: "empty" }
+  | { readonly status: "ready"; readonly items: readonly ${pascalName}Item[] }
+  | { readonly status: "edit"; readonly draft: ${pascalName}Item }
+  | { readonly status: "skipped"; readonly reason: string }
+  | {
+      readonly status: "typed-error";
+      readonly error: "Unauthorized" | "ValidationFailed" | "Forbidden";
+    }
+  | { readonly status: "transport-error"; readonly message: string }
+  | { readonly status: "success"; readonly item: ${pascalName}Item };
+
+export type ${pascalName}ViewModel = {
+  readonly title: string;
+  readonly status: ${pascalName}FeatureState["status"];
+  readonly notice: string;
+  readonly items: readonly ${pascalName}Item[];
+  readonly canEdit: boolean;
+};
+
+export const present${pascalName} = (
+  state: ${pascalName}FeatureState,
+): ${pascalName}ViewModel => {
+  const base = {
+    title: ${JSON.stringify(description)},
+    status: state.status,
+    items: [] as readonly ${pascalName}Item[],
+    canEdit: false,
+  };
+
+  switch (state.status) {
+    case "loading":
+      return { ...base, notice: "Loading…" };
+    case "empty":
+      return { ...base, notice: "Nothing here yet.", canEdit: true };
+    case "ready":
+      return { ...base, notice: "Ready", items: state.items, canEdit: true };
+    case "edit":
+      return { ...base, notice: "Editing", items: [state.draft], canEdit: true };
+    case "skipped":
+      return { ...base, notice: state.reason };
+    case "typed-error":
+      return { ...base, notice: \`Request failed: \${state.error}\` };
+    case "transport-error":
+      return { ...base, notice: \`Connection failed: \${state.message}\` };
+    case "success":
+      return { ...base, notice: "Saved", items: [state.item], canEdit: true };
+  }
+};
+`,
+    },
+    {
+      path: `${featurePath}/fixtures.ts`,
+      content: `import type { ${pascalName}FeatureState, ${pascalName}Item } from "./model";
+
+export const fake${pascalName}Items: readonly ${pascalName}Item[] = [
+  {
+    id: "${name}-demo-1",
+    label: "Example account",
+    detail: "Synthetic fixture for customer.example; never use customer data here.",
+  },
+];
+
+export const fake${pascalName}States = {
+  loading: { status: "loading" },
+  empty: { status: "empty" },
+  ready: { status: "ready", items: fake${pascalName}Items },
+  edit: { status: "edit", draft: fake${pascalName}Items[0]! },
+  skipped: { status: "skipped", reason: "Feature flag is disabled." },
+  typedError: { status: "typed-error", error: "Forbidden" },
+  transportError: { status: "transport-error", message: "Demo transport unavailable." },
+  success: { status: "success", item: fake${pascalName}Items[0]! },
+} as const satisfies Record<string, ${pascalName}FeatureState>;
+`,
+    },
+    {
+      path: `${featurePath}/${route}-feature.tsx`,
+      content: `import { Button, Card, Heading, Stack, Text } from "@saas-ui/react";
+import { fake${pascalName}States } from "./fixtures";
+import { present${pascalName}, type ${pascalName}FeatureState } from "./model";
+
+export function ${pascalName}Feature({
+  state = fake${pascalName}States.ready,
+}: {
+  readonly state?: ${pascalName}FeatureState;
+}) {
+  const view = present${pascalName}(state);
+
+  return (
+    <Card.Root aria-label="${description}">
+      <Card.Header>
+        <Heading size="md">{view.title}</Heading>
+        <Text>{view.notice}</Text>
+      </Card.Header>
+      <Card.Body>
+        <Stack gap="3">
+          {view.items.map((item) => (
+            <Card.Root key={item.id} variant="outline">
+              <Card.Body>
+                <Heading size="sm">{item.label}</Heading>
+                <Text>{item.detail}</Text>
+              </Card.Body>
+            </Card.Root>
+          ))}
+          {view.canEdit ? <Button alignSelf="start">Edit</Button> : null}
+        </Stack>
+      </Card.Body>
+    </Card.Root>
+  );
+}
+`,
+    },
+    {
+      path: `${featurePath}/model.test.ts`,
+      content: `import { describe, expect, it } from "vitest";
+import { fake${pascalName}States } from "./fixtures";
+import { present${pascalName} } from "./model";
+
+describe("${name} feature presenter", () => {
+  it.each(Object.entries(fake${pascalName}States))(
+    "presents the %s state without throwing",
+    (_name, state) => {
+      const view = present${pascalName}(state);
+      expect(view.status).toBe(state.status);
+      expect(view.notice.length).toBeGreaterThan(0);
+    },
+  );
+
+  it("keeps fixtures synthetic and fake-safe", () => {
+    expect(JSON.stringify(fake${pascalName}States)).toContain("customer.example");
+  });
+});
+`,
+    },
+    {
+      path: `apps/web/src/screens/${route}-screen.tsx`,
+      content: `import { Page } from "@saas-ui/react";
+import { ${pascalName}Feature } from "../features/${name}/${route}-feature";
+
+export function ${pascalName}Screen() {
+  return (
+    <Page.Root>
+      <Page.Header title="${pascalName}" description={${JSON.stringify(description)}} />
+      <Page.Body>
+        <${pascalName}Feature />
+      </Page.Body>
+    </Page.Root>
+  );
+}
+`,
+    },
+    {
+      path: `apps/web/src/routes/_workspace.${route}.tsx`,
+      content: `import { createFileRoute } from "@tanstack/react-router";
+import { ${pascalName}Screen } from "../screens/${route}-screen";
+
+export const Route = createFileRoute("/_workspace/${route}")({
+  component: ${pascalName}Screen,
+});
+`,
+    },
+    {
+      path: `docs/template/generated/features/${name}.md`,
+      content: `# ${pascalName} Feature
+
+${description}
+
+- Owner: \`${options.system}\` (\`${options.disposition}\`)
+- Capability: \`${name}\`
+- Route: \`/_workspace/${route}\`
+- Auth and tenancy: authenticated workspace member
+- Rollout: flag off and not entitled until reviewed
+- Data lifecycle: no durable data; use \`template:add-table\` before adding any
+- Audit: read/write event names are declared in the feature contract
+- Observability: operation name, redaction, and latency posture are declared
+
+Run the model and capability tests, Confect codegen, route generation, and the
+topology/promotion/data-resource gates before opening the production PR.
+`,
+    },
+  ];
+
+  return {
+    name,
+    pascalName,
+    route,
+    system: options.system,
+    disposition: options.disposition,
+    files: withGeneratorProvenance("add-feature", name, files, {
+      system: options.system,
+      disposition: options.disposition,
+    }),
+    followUp: [
+      "Specialize the generated capability contract and keep typed failures reachable.",
+      "Replace fake fixtures through a thin Confect React adapter.",
+      "Register navigation only after flag, entitlement, auth, and audit review.",
+      "Run pnpm confect:codegen, pnpm build, focused tests, and just verify.",
+    ],
   };
 };
 
@@ -3545,6 +3850,7 @@ export const runGeneratorCli = (
             "template:systems [--query <exact-id-alias-responsibility-or-table>]",
             "template:prototype --name <name> --system <canonical-id> --disposition reuse|extend --hypothesis <text> [--write]",
             "template:add-client-domain --name <name> --system <canonical-id> --disposition reuse|extend [--description <text>] [--write]",
+            "template:add-feature --name <name> --system <canonical-id> --disposition reuse|extend [--description <text>] [--write]",
             "template:add-capability --name <name> --system <canonical-id> --disposition reuse|extend [--description <text>] [--exposure web|workflow|headless] [--write]",
             "template:add-table --name <name> --system <canonical-id> --disposition extend --tenant-scope global|organization|workspace|user --sensitivity public|internal|confidential|restricted --pii <comma-list|none> --export-mode markdown|json|redacted-json|not-applicable --delete-mode delete|redact|retain-audit|not-applicable --retention <action> [--append-only] [--description <text>] [--write]",
             "template:add-workflow --name <name> --system <canonical-id> --disposition reuse|extend [--description <text>] [--write]",
@@ -3612,7 +3918,10 @@ export const runGeneratorCli = (
         hypothesis: args.hypothesis,
       });
 
-      if (args.write) writeGeneratedFiles(result.files, cwd);
+      if (args.write) {
+        assertGeneratedPathsAreNew(result.files, cwd);
+        writeGeneratedFiles(result.files, cwd);
+      }
 
       return {
         exitCode: 0,
@@ -3778,6 +4087,32 @@ export const runGeneratorCli = (
       });
 
       if (args.write) {
+        writeGeneratedFiles(result.files, cwd);
+      }
+
+      return {
+        exitCode: 0,
+        stdout: `${JSON.stringify(result, null, 2)}\n`,
+        stderr: "",
+      };
+    }
+
+    if (args.command === "add-feature") {
+      if (!args.name) {
+        return {
+          exitCode: 1,
+          stdout: "",
+          stderr: "Missing required --name for add-feature\n",
+        };
+      }
+      const result = buildFeatureFiles({
+        name: args.name,
+        ...requireOwnership(),
+        ...(args.description ? { description: args.description } : {}),
+      });
+
+      if (args.write) {
+        assertGeneratedPathsAreNew(result.files, cwd);
         writeGeneratedFiles(result.files, cwd);
       }
 

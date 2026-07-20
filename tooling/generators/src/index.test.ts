@@ -9,6 +9,7 @@ import {
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { JsxEmit, ModuleKind, ScriptTarget, transpileModule } from "typescript";
 import { describe, expect, it } from "vitest";
 import {
   buildAgentFiles,
@@ -17,6 +18,7 @@ import {
   buildCapabilityPromotionFiles,
   buildClientDomainFiles,
   buildDemoSeedPlan,
+  buildFeatureFiles,
   buildHandoffPacket,
   buildClientIntake,
   buildPrivatePackagePlan,
@@ -1773,6 +1775,157 @@ describe("template app factory generators", () => {
           }),
         ]),
       );
+    } finally {
+      rmSync(cwd, { recursive: true, force: true });
+    }
+  });
+
+  it("builds a golden production feature as a complete vertical slice", () => {
+    const result = buildFeatureFiles({
+      name: "accountSignals",
+      system: "knowledge-brain",
+      disposition: "extend",
+      description: "Present grounded account signals.",
+    });
+    const paths = result.files.map(({ path }) => path);
+    const contract = result.files.find(({ path }) =>
+      path.endsWith("/accountSignals/contract.ts"),
+    )?.content;
+    const model = result.files.find(({ path }) =>
+      path.endsWith("/accountSignals/model.ts"),
+    )?.content;
+    const route = result.files.find(({ path }) =>
+      path.endsWith("/_workspace.account-signals.tsx"),
+    )?.content;
+    const provenance = result.files.find(
+      ({ path }) =>
+        path ===
+        "docs/template/generated/provenance/add-feature/accountSignals.json",
+    );
+
+    expect(paths).toEqual(
+      expect.arrayContaining([
+        "packages/convex/confect/capabilities/accountSignals.spec.ts",
+        "packages/convex/confect/capabilities/accountSignals.impl.ts",
+        "apps/web/src/features/accountSignals/contract.ts",
+        "apps/web/src/features/accountSignals/model.ts",
+        "apps/web/src/features/accountSignals/fixtures.ts",
+        "apps/web/src/features/accountSignals/account-signals-feature.tsx",
+        "apps/web/src/features/accountSignals/model.test.ts",
+        "apps/web/src/screens/account-signals-screen.tsx",
+        "apps/web/src/routes/_workspace.account-signals.tsx",
+        "docs/template/generated/features/accountSignals.md",
+      ]),
+    );
+    expect(contract).toContain('system: "knowledge-brain"');
+    expect(contract).toContain('tenantScope: "workspace"');
+    expect(contract).toContain('auth: "workspace-member"');
+    expect(contract).toContain("audit");
+    expect(contract).toContain("observability");
+    expect(contract).toContain("featureFlag");
+    expect(contract).toContain("entitlement");
+    expect(contract).toContain("dataLifecycle");
+    expect(model).toContain('status: "loading"');
+    expect(model).toContain('status: "empty"');
+    expect(model).toContain('status: "ready"');
+    expect(model).toContain('status: "edit"');
+    expect(model).toContain('status: "skipped"');
+    expect(model).toContain('status: "typed-error"');
+    expect(model).toContain('status: "transport-error"');
+    expect(model).toContain('status: "success"');
+    expect(route).toContain("AccountSignalsScreen");
+    expect(route).not.toContain("Feature");
+    expect(JSON.parse(provenance?.content ?? "{}")).toMatchObject({
+      generator: "add-feature",
+      ownership: { system: "knowledge-brain", disposition: "extend" },
+      generatedPaths: expect.arrayContaining([
+        "packages/convex/confect/capabilities/accountSignals.spec.ts",
+        "apps/web/src/routes/_workspace.account-signals.tsx",
+      ]),
+    });
+    const syntaxDiagnostics = result.files
+      .filter(({ path }) => /\.[cm]?[jt]sx?$/.test(path))
+      .flatMap(
+        ({ path, content }) =>
+          transpileModule(content, {
+            fileName: path,
+            reportDiagnostics: true,
+            compilerOptions: {
+              jsx: JsxEmit.ReactJSX,
+              module: ModuleKind.ESNext,
+              target: ScriptTarget.ES2022,
+            },
+          }).diagnostics ?? [],
+      );
+    expect(syntaxDiagnostics).toEqual([]);
+  });
+
+  it("writes a golden feature through the CLI", () => {
+    const cwd = mkdtempSync(join(tmpdir(), "maestro-template-feature-"));
+
+    try {
+      const result = runGeneratorCli(
+        [
+          "add-feature",
+          "--name",
+          "accountSignals",
+          "--system",
+          "knowledge-brain",
+          "--disposition",
+          "extend",
+          "--description",
+          "Present grounded account signals.",
+          "--write",
+        ],
+        cwd,
+      );
+
+      expect(result.exitCode).toBe(0);
+      expect(
+        existsSync(
+          join(cwd, "apps/web/src/routes/_workspace.account-signals.tsx"),
+        ),
+      ).toBe(true);
+      expect(
+        existsSync(
+          join(
+            cwd,
+            "packages/convex/confect/capabilities/accountSignals.spec.ts",
+          ),
+        ),
+      ).toBe(true);
+    } finally {
+      rmSync(cwd, { recursive: true, force: true });
+    }
+  });
+
+  it("refuses to overwrite an existing golden feature path", () => {
+    const cwd = mkdtempSync(join(tmpdir(), "maestro-template-feature-clash-"));
+    const routePath = join(
+      cwd,
+      "apps/web/src/routes/_workspace.account-signals.tsx",
+    );
+
+    try {
+      mkdirSync(dirname(routePath), { recursive: true });
+      writeFileSync(routePath, "// user-owned route\n");
+      const result = runGeneratorCli(
+        [
+          "add-feature",
+          "--name",
+          "accountSignals",
+          "--system",
+          "knowledge-brain",
+          "--disposition",
+          "extend",
+          "--write",
+        ],
+        cwd,
+      );
+
+      expect(result.exitCode).toBe(1);
+      expect(result.stderr).toContain("Refusing to overwrite existing paths");
+      expect(readFileSync(routePath, "utf8")).toBe("// user-owned route\n");
     } finally {
       rmSync(cwd, { recursive: true, force: true });
     }

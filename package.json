@@ -35,6 +35,7 @@
     "template:systems": "tsx tooling/generators/src/index.ts systems",
     "template:prototype": "tsx tooling/generators/src/index.ts prototype",
     "template:add-client-domain": "tsx tooling/generators/src/index.ts add-client-domain",
+    "template:add-feature": "tsx tooling/generators/src/index.ts add-feature",
     "template:add-capability": "tsx tooling/generators/src/index.ts add-capability",
     "template:add-table": "tsx tooling/generators/src/index.ts add-table",
     "template:add-workflow": "tsx tooling/generators/src/index.ts add-workflow",

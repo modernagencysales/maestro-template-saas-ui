@@ -59,9 +59,17 @@ For user-facing behavior, also emit or update:
 - route or navigation metadata.
 - screenshots or visual smoke notes when the rendered surface changes.
 
+`template:add-feature` is the production golden path. It emits the Confect
+capability plus contract → presenter/fixtures/tests → feature → screen → thin
+route, with auth, workspace tenancy, audit, observability, rollout, entitlement,
+and lifecycle posture in the same slice. It refuses to overwrite existing
+targets.
+
 ## Promotion Rules
 
 - Runtime-authored capabilities and workflows are data until promoted.
+- Experiment and private-package code is never a runtime dependency. Promotion
+  re-scaffolds through `template:add-*`; production code never imports it.
 - Promotion to generated Confect source is the compile-time safety path.
 - Capability generators emit flat Confect files:
   `packages/convex/confect/capabilities/<name>.spec.ts`,
@@ -97,5 +105,8 @@ For user-facing behavior, also emit or update:
 - `pnpm check:workflow-graph-boundary`
 - `pnpm check:schema-migration-notes` when durable data changes
 - `pnpm check:system-catalog`
+- `pnpm check:system-topology`
+- `pnpm check:data-resources`
+- `pnpm check:promotion-boundary`
 - `pnpm check:secret-canaries`
 - focused package tests for the generated slice
