@@ -1,0 +1,415 @@
+{
+  "schemaVersion": 1,
+  "resources": [
+    {
+      "id": "capability:catalog",
+      "kind": "capability",
+      "system": "policy-and-prompts",
+      "path": "packages/convex/confect/capabilities/catalog.spec.ts",
+      "responsibility": "list the canonical capability catalog",
+      "surfaces": ["internal", "web"],
+      "uses": ["access-and-tenancy", "workflow-runtime"],
+      "lifecycle": "active"
+    },
+    {
+      "id": "capability:source-grounded-brief",
+      "kind": "capability",
+      "system": "knowledge-brain",
+      "path": "packages/convex/confect/capabilities/sourceGroundedBrief.spec.ts",
+      "responsibility": "create source-grounded implementation briefs",
+      "surfaces": ["web", "api", "cli", "mcp"],
+      "uses": ["access-and-tenancy", "policy-and-prompts", "workflow-runtime"],
+      "lifecycle": "active"
+    },
+    {
+      "id": "workflow:durable-graph-runtime",
+      "kind": "workflow",
+      "system": "workflow-runtime",
+      "path": "packages/convex/confect/workflows/runGraph.ts",
+      "responsibility": "execute canonical durable workflow graphs",
+      "surfaces": ["internal", "worker"],
+      "uses": ["policy-and-prompts"],
+      "lifecycle": "active"
+    },
+    {
+      "id": "agent:assistant",
+      "kind": "agent",
+      "system": "knowledge-brain",
+      "path": "packages/convex/confect/agents/assistant.spec.ts",
+      "responsibility": "provide the source-grounded assistant seat",
+      "surfaces": ["web"],
+      "uses": ["access-and-tenancy", "policy-and-prompts", "workflow-runtime"],
+      "lifecycle": "active"
+    },
+    {
+      "id": "job:workpool",
+      "kind": "job",
+      "system": "workflow-runtime",
+      "path": "packages/convex/confect/jobs/workpool.spec.ts",
+      "responsibility": "schedule bounded durable background work",
+      "surfaces": ["internal", "worker"],
+      "uses": ["access-and-tenancy"],
+      "lifecycle": "active"
+    },
+    {
+      "id": "route:admin",
+      "kind": "route",
+      "system": "access-and-tenancy",
+      "path": "apps/web/src/routes/_workspace.admin.tsx",
+      "responsibility": "present audited administration controls",
+      "surfaces": ["web"],
+      "uses": ["data-lifecycle"],
+      "lifecycle": "active"
+    },
+    {
+      "id": "route:agents",
+      "kind": "route",
+      "system": "workflow-runtime",
+      "path": "apps/web/src/routes/_workspace.agents.tsx",
+      "responsibility": "present canonical agent seats",
+      "surfaces": ["web"],
+      "uses": ["knowledge-brain", "policy-and-prompts"],
+      "lifecycle": "active"
+    },
+    {
+      "id": "route:analytics",
+      "kind": "route",
+      "system": "billing-and-entitlements",
+      "path": "apps/web/src/routes/_workspace.analytics.tsx",
+      "responsibility": "present product usage and workflow analytics",
+      "surfaces": ["web"],
+      "uses": ["workflow-runtime"],
+      "lifecycle": "active"
+    },
+    {
+      "id": "route:api",
+      "kind": "route",
+      "system": "access-and-tenancy",
+      "path": "apps/web/src/routes/_workspace.api.tsx",
+      "responsibility": "present API documentation and credential management",
+      "surfaces": ["web"],
+      "uses": ["policy-and-prompts"],
+      "lifecycle": "active"
+    },
+    {
+      "id": "route:billing",
+      "kind": "route",
+      "system": "billing-and-entitlements",
+      "path": "apps/web/src/routes/_workspace.billing.tsx",
+      "responsibility": "present plans entitlements credits and billing actions",
+      "surfaces": ["web"],
+      "uses": [],
+      "lifecycle": "active"
+    },
+    {
+      "id": "route:brain",
+      "kind": "route",
+      "system": "knowledge-brain",
+      "path": "apps/web/src/routes/_workspace.brain.tsx",
+      "responsibility": "present source-backed knowledge and context",
+      "surfaces": ["web"],
+      "uses": [],
+      "lifecycle": "active"
+    },
+    {
+      "id": "route:capabilities",
+      "kind": "route",
+      "system": "policy-and-prompts",
+      "path": "apps/web/src/routes/_workspace.capabilities.tsx",
+      "responsibility": "present the governed capability catalog",
+      "surfaces": ["web"],
+      "uses": ["workflow-runtime"],
+      "lifecycle": "active"
+    },
+    {
+      "id": "route:data-lifecycle",
+      "kind": "route",
+      "system": "data-lifecycle",
+      "path": "apps/web/src/routes/_workspace.data-lifecycle.tsx",
+      "responsibility": "present DSAR retention and deletion planning",
+      "surfaces": ["web"],
+      "uses": ["access-and-tenancy"],
+      "lifecycle": "active"
+    },
+    {
+      "id": "route:data-map",
+      "kind": "route",
+      "system": "data-lifecycle",
+      "path": "apps/web/src/routes/_workspace.data-map.tsx",
+      "responsibility": "present the durable data inventory",
+      "surfaces": ["web"],
+      "uses": [],
+      "lifecycle": "active"
+    },
+    {
+      "id": "route:documents",
+      "kind": "route",
+      "system": "document-collaboration",
+      "path": "apps/web/src/routes/_workspace.documents.tsx",
+      "responsibility": "present collaborative documents and review history",
+      "surfaces": ["web"],
+      "uses": ["access-and-tenancy"],
+      "lifecycle": "active"
+    },
+    {
+      "id": "route:health",
+      "kind": "route",
+      "system": "policy-and-prompts",
+      "path": "apps/web/src/routes/_workspace.health.tsx",
+      "responsibility": "present provider and runtime readiness",
+      "surfaces": ["web"],
+      "uses": ["workflow-runtime"],
+      "lifecycle": "active"
+    },
+    {
+      "id": "route:integrations",
+      "kind": "route",
+      "system": "policy-and-prompts",
+      "path": "apps/web/src/routes/_workspace.integrations.tsx",
+      "responsibility": "present governed provider configuration",
+      "surfaces": ["web"],
+      "uses": ["access-and-tenancy"],
+      "lifecycle": "active"
+    },
+    {
+      "id": "route:legal",
+      "kind": "route",
+      "system": "data-lifecycle",
+      "path": "apps/web/src/routes/_workspace.legal.tsx",
+      "responsibility": "present legal privacy and retention posture",
+      "surfaces": ["web"],
+      "uses": ["access-and-tenancy"],
+      "lifecycle": "active"
+    },
+    {
+      "id": "route:notifications",
+      "kind": "route",
+      "system": "notifications",
+      "path": "apps/web/src/routes/_workspace.notifications.tsx",
+      "responsibility": "present notification delivery and preferences",
+      "surfaces": ["web"],
+      "uses": ["access-and-tenancy"],
+      "lifecycle": "active"
+    },
+    {
+      "id": "route:onboarding",
+      "kind": "route",
+      "system": "access-and-tenancy",
+      "path": "apps/web/src/routes/_workspace.onboarding.tsx",
+      "responsibility": "present tenant onboarding and setup",
+      "surfaces": ["web"],
+      "uses": ["policy-and-prompts"],
+      "lifecycle": "active"
+    },
+    {
+      "id": "route:runs",
+      "kind": "route",
+      "system": "workflow-runtime",
+      "path": "apps/web/src/routes/_workspace.runs.tsx",
+      "responsibility": "present canonical workflow and agent run history",
+      "surfaces": ["web"],
+      "uses": [],
+      "lifecycle": "active"
+    },
+    {
+      "id": "route:settings",
+      "kind": "route",
+      "system": "access-and-tenancy",
+      "path": "apps/web/src/routes/_workspace.settings.tsx",
+      "responsibility": "present workspace membership and settings",
+      "surfaces": ["web"],
+      "uses": ["policy-and-prompts"],
+      "lifecycle": "active"
+    },
+    {
+      "id": "route:sources",
+      "kind": "route",
+      "system": "knowledge-brain",
+      "path": "apps/web/src/routes/_workspace.sources.tsx",
+      "responsibility": "present source intake and freshness",
+      "surfaces": ["web"],
+      "uses": ["access-and-tenancy"],
+      "lifecycle": "active"
+    },
+    {
+      "id": "route:workflows",
+      "kind": "route",
+      "system": "workflow-runtime",
+      "path": "apps/web/src/routes/_workspace.workflows.tsx",
+      "responsibility": "present workflow design execution and control",
+      "surfaces": ["web"],
+      "uses": ["policy-and-prompts"],
+      "lifecycle": "active"
+    },
+    {
+      "id": "integration:billing-policy",
+      "kind": "provider",
+      "system": "billing-and-entitlements",
+      "path": "packages/integrations/src/billing.ts",
+      "responsibility": "define the billing provider service boundary",
+      "surfaces": ["internal", "worker"],
+      "uses": ["policy-and-prompts"],
+      "lifecycle": "active"
+    },
+    {
+      "id": "integration:dodo",
+      "kind": "provider",
+      "system": "billing-and-entitlements",
+      "path": "packages/integrations/src/dodo.ts",
+      "responsibility": "adapt Dodo billing behind the canonical billing service",
+      "surfaces": ["internal", "worker"],
+      "uses": [],
+      "lifecycle": "active"
+    },
+    {
+      "id": "integration:flags",
+      "kind": "provider",
+      "system": "policy-and-prompts",
+      "path": "packages/integrations/src/flags.ts",
+      "responsibility": "adapt feature flag evaluation behind policy",
+      "surfaces": ["internal", "worker"],
+      "uses": [],
+      "lifecycle": "active"
+    },
+    {
+      "id": "integration:llm",
+      "kind": "provider",
+      "system": "policy-and-prompts",
+      "path": "packages/integrations/src/llm.ts",
+      "responsibility": "adapt language model execution behind governed policy",
+      "surfaces": ["internal", "worker"],
+      "uses": ["billing-and-entitlements"],
+      "lifecycle": "active"
+    },
+    {
+      "id": "integration:llm-response",
+      "kind": "provider",
+      "system": "policy-and-prompts",
+      "path": "packages/integrations/src/llmResponse.ts",
+      "responsibility": "normalize governed language model responses",
+      "surfaces": ["internal", "worker"],
+      "uses": [],
+      "lifecycle": "active"
+    },
+    {
+      "id": "integration:rate-limit",
+      "kind": "provider",
+      "system": "policy-and-prompts",
+      "path": "packages/integrations/src/rateLimit.ts",
+      "responsibility": "enforce provider and capability rate limits",
+      "surfaces": ["internal", "worker"],
+      "uses": ["billing-and-entitlements"],
+      "lifecycle": "active"
+    },
+    {
+      "id": "integration:spend",
+      "kind": "provider",
+      "system": "billing-and-entitlements",
+      "path": "packages/integrations/src/spend.ts",
+      "responsibility": "enforce provider spend limits and metering",
+      "surfaces": ["internal", "worker"],
+      "uses": ["policy-and-prompts"],
+      "lifecycle": "active"
+    },
+    {
+      "id": "integration:workos",
+      "kind": "provider",
+      "system": "access-and-tenancy",
+      "path": "packages/integrations/src/workos.ts",
+      "responsibility": "adapt WorkOS identity behind the tenancy boundary",
+      "surfaces": ["internal", "worker"],
+      "uses": [],
+      "lifecycle": "active"
+    },
+    {
+      "id": "provider:notifications",
+      "kind": "provider",
+      "system": "notifications",
+      "path": "packages/notifications/src/index.ts",
+      "responsibility": "define notification delivery provider seams",
+      "surfaces": ["internal", "worker"],
+      "uses": [],
+      "lifecycle": "active"
+    },
+    {
+      "id": "provider:observability",
+      "kind": "provider",
+      "system": "workflow-runtime",
+      "path": "packages/observability/src/index.ts",
+      "responsibility": "record workflow and capability operational telemetry",
+      "surfaces": ["internal", "worker"],
+      "uses": [],
+      "lifecycle": "active"
+    },
+    {
+      "id": "provider:search",
+      "kind": "provider",
+      "system": "knowledge-brain",
+      "path": "packages/search/src/index.ts",
+      "responsibility": "adapt optional search and retrieval for knowledge",
+      "surfaces": ["internal", "worker"],
+      "uses": ["policy-and-prompts"],
+      "lifecycle": "active"
+    },
+    {
+      "id": "provider:storage",
+      "kind": "provider",
+      "system": "knowledge-brain",
+      "path": "packages/storage/src/index.ts",
+      "responsibility": "adapt durable source and document asset storage",
+      "surfaces": ["internal", "worker"],
+      "uses": ["data-lifecycle"],
+      "lifecycle": "active"
+    },
+    {
+      "id": "headless:auth",
+      "kind": "headless",
+      "system": "access-and-tenancy",
+      "path": "packages/convex/confect/headless/auth.ts",
+      "responsibility": "authenticate headless workspace operations",
+      "surfaces": ["api", "cli", "mcp"],
+      "uses": [],
+      "lifecycle": "active"
+    },
+    {
+      "id": "headless:error-envelope",
+      "kind": "headless",
+      "system": "access-and-tenancy",
+      "path": "packages/convex/confect/headless/errorEnvelope.ts",
+      "responsibility": "normalize typed headless error envelopes",
+      "surfaces": ["api", "cli", "mcp"],
+      "uses": [],
+      "lifecycle": "active"
+    },
+    {
+      "id": "headless:executor",
+      "kind": "headless",
+      "system": "workflow-runtime",
+      "path": "packages/convex/confect/manifest/executor.ts",
+      "responsibility": "dispatch manifest operations to canonical contracts",
+      "surfaces": ["api", "cli", "mcp"],
+      "uses": ["access-and-tenancy"],
+      "lifecycle": "active"
+    },
+    {
+      "id": "headless:mcp",
+      "kind": "headless",
+      "system": "workflow-runtime",
+      "path": "packages/convex/confect/manifest/mcp.ts",
+      "responsibility": "project canonical operations into MCP tools",
+      "surfaces": ["api", "cli", "mcp"],
+      "uses": ["access-and-tenancy"],
+      "lifecycle": "active"
+    },
+    {
+      "id": "headless:openapi",
+      "kind": "headless",
+      "system": "workflow-runtime",
+      "path": "packages/convex/confect/manifest/openapi.ts",
+      "responsibility": "project canonical operations into OpenAPI",
+      "surfaces": ["api", "cli", "mcp"],
+      "uses": ["access-and-tenancy"],
+      "lifecycle": "active"
+    }
+  ]
+}

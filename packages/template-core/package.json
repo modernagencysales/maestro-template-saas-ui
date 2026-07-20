@@ -20,6 +20,10 @@
     "./dataResourceCatalog": {
       "types": "./src/dataResourceCatalog.ts",
       "default": "./src/dataResourceCatalog.ts"
+    },
+    "./productTopology": {
+      "types": "./src/productTopology.ts",
+      "default": "./src/productTopology.ts"
     }
   },
   "scripts": {

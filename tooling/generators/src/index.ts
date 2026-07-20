@@ -12,8 +12,13 @@ import {
   type DataTenantScope,
 } from "@maestro-template/template-core/dataResourceCatalog";
 import {
+  parseProductTopology,
+  type ProductTopology,
+} from "@maestro-template/template-core/productTopology";
+import {
   canonicalSystemById,
   findCanonicalSystems,
+  normalizeSystemLookup,
   parseSystemCatalog,
   type SystemCatalog,
 } from "@maestro-template/template-core/systemCatalog";
@@ -334,6 +339,9 @@ const systemCatalogPath = (repoRoot = defaultRepoRoot): string =>
 const dataResourceCatalogPath = (repoRoot = defaultRepoRoot): string =>
   resolve(repoRoot, "docs/template/data-resources.json");
 
+const productTopologyPath = (repoRoot = defaultRepoRoot): string =>
+  resolve(repoRoot, "docs/template/product-topology.json");
+
 export const readSystemCatalog = (repoRoot = defaultRepoRoot): SystemCatalog =>
   parseSystemCatalog(
     JSON.parse(readFileSync(systemCatalogPath(repoRoot), "utf8")) as unknown,
@@ -346,6 +354,13 @@ export const readDataResourceCatalog = (
     JSON.parse(
       readFileSync(dataResourceCatalogPath(repoRoot), "utf8"),
     ) as unknown,
+  );
+
+export const readProductTopology = (
+  repoRoot = defaultRepoRoot,
+): ProductTopology =>
+  parseProductTopology(
+    JSON.parse(readFileSync(productTopologyPath(repoRoot), "utf8")) as unknown,
   );
 
 const readEnvManifest = (
@@ -3442,9 +3457,25 @@ export const runGeneratorCli = (
 
     if (args.command === "systems") {
       const catalog = readSystemCatalog(catalogRoot);
-      const systems = args.query
+      const topology = readProductTopology(catalogRoot);
+      const catalogMatches = args.query
         ? findCanonicalSystems(catalog, args.query)
         : catalog.systems;
+      const normalizedQuery = normalizeSystemLookup(args.query ?? "");
+      const resourceMatches = args.query
+        ? topology.resources.filter((resource) =>
+            [resource.id, resource.path, resource.responsibility].some(
+              (value) => normalizeSystemLookup(value) === normalizedQuery,
+            ),
+          )
+        : topology.resources;
+      const matchedSystemIds = new Set([
+        ...catalogMatches.map(({ id }) => id),
+        ...resourceMatches.map(({ system }) => system),
+      ]);
+      const systems = catalog.systems.filter(({ id }) =>
+        matchedSystemIds.has(id),
+      );
 
       return {
         exitCode: 0,
@@ -3452,6 +3483,7 @@ export const runGeneratorCli = (
           {
             query: args.query ?? null,
             matches: systems,
+            resources: resourceMatches,
             guidance:
               systems.length === 0
                 ? "No exact catalog match. Review the full catalog before proposing an introduce decision."

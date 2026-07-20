@@ -724,6 +724,11 @@ describe("template app factory generators", () => {
   it("lists canonical systems and resolves exact aliases before generation", () => {
     const all = runGeneratorCli(["systems"]);
     const auth = runGeneratorCli(["systems", "--query", "auth"]);
+    const agentResource = runGeneratorCli([
+      "systems",
+      "--query",
+      "present canonical agent seats",
+    ]);
     const unknown = runGeneratorCli([
       "systems",
       "--query",
@@ -739,6 +744,10 @@ describe("template app factory generators", () => {
     });
     expect(JSON.parse(auth.stdout)).toMatchObject({
       matches: [expect.objectContaining({ id: "access-and-tenancy" })],
+    });
+    expect(JSON.parse(agentResource.stdout)).toMatchObject({
+      matches: [expect.objectContaining({ id: "workflow-runtime" })],
+      resources: [expect.objectContaining({ id: "route:agents" })],
     });
     expect(JSON.parse(unknown.stdout)).toMatchObject({
       matches: [],
