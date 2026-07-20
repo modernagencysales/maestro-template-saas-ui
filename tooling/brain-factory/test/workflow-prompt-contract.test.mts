@@ -801,6 +801,12 @@ describe("Fabro workflow prompt contracts", () => {
     expect(review).toContain(
       "do not recompute budgets from integration cherry-pick commit numstat",
     );
+    expect(review).toContain(
+      "Ignore every prior broad-gate receipt status and finding during semantic review",
+    );
+    expect(review).toContain(
+      "The deterministic gates node exclusively owns broad-gate execution and its verdict",
+    );
     expect(reviewGate).toContain('.status == \\"ready_for_review\\"');
     expect(wave).toContain("integration-wave-selection-check.mts");
     expect(wave).toContain("hydrate-integration-dependencies.mts");
