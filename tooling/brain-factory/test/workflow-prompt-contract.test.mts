@@ -283,7 +283,7 @@ describe("Fabro workflow prompt contracts", () => {
     expect(release).toContain("Do not fabricate live credentials");
   });
 
-  it("fans out exhaustive read-only review lenses and joins them deterministically", () => {
+  it("serializes isolated exhaustive review lenses and joins them deterministically", () => {
     const buildTask = readFileSync(
       resolve(
         import.meta.dirname,
@@ -292,10 +292,13 @@ describe("Fabro workflow prompt contracts", () => {
       "utf8",
     );
     expect(buildTask).toContain("gates -> review_snapshot");
-    expect(buildTask).toContain(
-      'review_fork [label="Parallel Exhaustive Review", shape=component, join_policy="wait_all"',
+    const reviewFork = buildTask
+      .split("\n")
+      .find((line) => line.trimStart().startsWith("review_fork ["));
+    expect(reviewFork).toBe(
+      '  review_fork [label="Serialized Isolated Review", shape=component, join_policy="wait_all", max_parallel=1]',
     );
-    expect(buildTask).toContain("max_parallel=1");
+    expect(reviewFork).not.toContain("max_parallel=3");
     expect(buildTask).toContain(
       'review_merge [label="Join Exhaustive Reviews", shape=tripleoctagon]',
     );
