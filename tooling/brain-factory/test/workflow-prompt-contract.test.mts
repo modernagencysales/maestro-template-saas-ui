@@ -461,6 +461,11 @@ describe("Fabro workflow prompt contracts", () => {
     expect(buildTask).toContain("preserved-worktree");
     expect(buildTask).toContain("preserved-conflict-aware");
     expect(buildTask).toContain("validate-preserved-resume.mts");
+    expect(buildTask).toContain("authority_repair_archive");
+    expect(buildTask).toContain("BRAIN_AUTHORITY_REPAIR_ARCHIVE");
+    expect(buildTask).toContain("authority-repair-check.mts");
+    expect(buildTask).toContain("implement -> authority_repair_check");
+    expect(buildTask).toContain("authority_repair_check -> gates");
     expect(buildTask).toContain(
       '\\"$BRAIN_CONTROL_ROOT/tooling/brain-factory/src/validate-preserved-resume.mts\\"',
     );
