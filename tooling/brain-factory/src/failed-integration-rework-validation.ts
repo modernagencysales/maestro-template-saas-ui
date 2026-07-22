@@ -325,7 +325,8 @@ export const supersessionBindsFailedAttempt = (
 ): boolean =>
   runAttempts.some(
     ({ runId, status }) =>
-      status === "failed" && evidence.includes(`run:${runId}:failed`),
+      new Set(["failed", "owner_rework"]).has(status) &&
+      evidence.includes(`run:${runId}:${status}`),
   );
 
 export const validateSupersession = (input: {
@@ -351,7 +352,14 @@ export const validateSupersession = (input: {
   });
   if (
     validated.runAttempts.length === 0 ||
-    validated.runAttempts.some(({ status }) => status !== "failed") ||
+    validated.runAttempts.some(
+      ({ status }, index) =>
+        status !== "failed" &&
+        !(
+          status === "owner_rework" &&
+          index === validated.runAttempts.length - 1
+        ),
+    ) ||
     !failedWaveSelectsTask(validated.selectedTaskIds, input.taskId)
   ) {
     throw new Error("failed integration wave is not terminal failed");

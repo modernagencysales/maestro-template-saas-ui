@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
@@ -44,6 +45,13 @@ const evidenceItems = valuesAfter("--evidence");
 if (evidenceItems.length === 0) {
   throw new Error("at least one --evidence item is required");
 }
+const ownerReworkResultSha256 = valueAfter("--owner-rework-result-sha256");
+if (
+  ownerReworkResultSha256 !== undefined &&
+  !/^[0-9a-f]{64}$/.test(ownerReworkResultSha256)
+) {
+  throw new Error("--owner-rework-result-sha256 must be an exact SHA-256");
+}
 
 const controlHead = gitSha(
   runRtk(["git", "rev-parse", "HEAD"], { quiet: true }),
@@ -77,6 +85,7 @@ try {
   );
   const promotionPath = resolve(evidence, "promotion.json");
   const supersessionPath = resolve(evidence, "supersession.json");
+  const integrationResultPath = resolve(evidence, "integration-result.json");
   if (!existsSync(runRecordPath) || !existsSync(selectionPath)) {
     throw new Error(
       `${integrationId}: durable wave record or selection is missing`,
@@ -115,6 +124,16 @@ try {
     }
     console.log(JSON.stringify(validated, null, 2));
   } else {
+    const ownerReworkResultContent = ownerReworkResultSha256
+      ? readFileSync(integrationResultPath, "utf8")
+      : undefined;
+    if (
+      ownerReworkResultContent &&
+      createHash("sha256").update(ownerReworkResultContent).digest("hex") !==
+        ownerReworkResultSha256
+    ) {
+      throw new Error(`${integrationId}: owner-rework result hash mismatch`);
+    }
     const runRecord = JSON.parse(runRecordContent) as { runIds?: unknown };
     if (!Array.isArray(runRecord.runIds)) {
       throw new Error(`${integrationId}: durable runIds are missing`);
@@ -131,6 +150,7 @@ try {
       createdAt: new Date().toISOString(),
       evidence: evidenceItems,
       expectedIntegrationId: integrationId,
+      ...(ownerReworkResultContent ? { ownerReworkResultContent } : {}),
       reason,
       runInspections,
       runRecordContent,

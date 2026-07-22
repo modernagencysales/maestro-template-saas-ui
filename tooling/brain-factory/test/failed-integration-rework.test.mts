@@ -23,6 +23,7 @@ import {
   selectionPayloadSha256,
 } from "../src/integration-wave.js";
 import { buildIntegrationWaveSupersessionReceipt } from "../src/integration-wave-supersession.js";
+import { planIntegrationOwnerReworkRoute } from "../src/route-integration-rework.js";
 
 const json = (value: unknown): string => `${JSON.stringify(value, null, 2)}\n`;
 const sha256 = (value: string): string =>
@@ -265,6 +266,54 @@ const fixture = () => {
 };
 
 describe("failed integration rework admission", () => {
+  it("plans one supersession followed by sorted normal owner reopen commands", () => {
+    const value = fixture();
+    const taskFinding = {
+      ...value.values.integrationResult.remainingFindings[0],
+      candidateHeadSha: value.values.integrationResult.headSha,
+      ownerKind: "task" as const,
+      priorEvidenceSha256: [sha256(value.input.selectionContent)],
+    };
+    const integrationResultContent = json({
+      ...value.values.integrationResult,
+      broadGate: null,
+      remainingFindings: [taskFinding],
+      status: "ready_for_review",
+    });
+    const planned = planIntegrationOwnerReworkRoute({
+      expectedIntegrationId: value.values.selection.integrationId,
+      expectedResultSha256: sha256(integrationResultContent),
+      expectedSelectionFileSha256: selectionFileSha256(
+        value.input.selectionContent,
+      ),
+      expectedSelectionPayloadSha256:
+        value.values.selection.selectionPayloadSha256,
+      integrationOwnedPaths: [],
+      integrationResultContent,
+      selectionContent: value.input.selectionContent,
+      stateRoot: "/tmp/state",
+    });
+
+    expect(planned.ownerTaskIds).toEqual([value.input.taskId]);
+    expect(planned.commands).toHaveLength(2);
+    expect(planned.commands[0]).toEqual(
+      expect.arrayContaining([
+        "brain:factory:supersede-wave",
+        "--owner-rework-result-sha256",
+        sha256(integrationResultContent),
+      ]),
+    );
+    expect(planned.commands[1]).toEqual(
+      expect.arrayContaining([
+        "brain:factory:reopen",
+        "--task",
+        value.input.taskId,
+        "--failed-integration",
+        value.values.selection.integrationId,
+        "--launch",
+      ]),
+    );
+  });
   it("ignores an unbound stale broad-gate sidecar", () => {
     expect(integrationResultBindsBroadGate({ broadGate: null })).toBe(false);
     expect(
@@ -284,6 +333,12 @@ describe("failed integration rework admission", () => {
           { runId: "run-2", status: "failed" },
         ],
         ["run:run-2:failed"],
+      ),
+    ).toBe(true);
+    expect(
+      supersessionBindsFailedAttempt(
+        [{ runId: "run-owner", status: "owner_rework" }],
+        ["run:run-owner:owner_rework"],
       ),
     ).toBe(true);
   });

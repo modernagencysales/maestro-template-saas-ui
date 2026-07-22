@@ -20,11 +20,12 @@ import {
   string,
   type JsonRecord,
 } from "./integration-check-support.js";
+import { planIntegrationOwnerReworkRoute } from "./route-integration-rework.js";
 
 export const INTEGRATION_WAVE_SUPERSESSION_SCHEMA =
   "maestro-brain-integration-wave-supersession/v2" as const;
 
-export type SupersededWaveRunStatus = "cancelled" | "failed";
+export type SupersededWaveRunStatus = "cancelled" | "failed" | "owner_rework";
 
 export interface SupersededWaveRunAttempt {
   readonly attempt: number;
@@ -226,8 +227,14 @@ const terminalStatus = (
   label: string,
 ): SupersededWaveRunStatus => {
   const parsed = string(value, label);
-  if (parsed !== "failed" && parsed !== "cancelled") {
-    throw new Error(`${label} is not terminal failed/cancelled (${parsed})`);
+  if (
+    parsed !== "failed" &&
+    parsed !== "cancelled" &&
+    parsed !== "owner_rework"
+  ) {
+    throw new Error(
+      `${label} is not terminal failed/cancelled/owner_rework (${parsed})`,
+    );
   }
   return parsed;
 };
@@ -317,6 +324,7 @@ export const buildIntegrationWaveSupersessionReceipt = (input: {
   readonly evidence: readonly string[];
   readonly expectedIntegrationId: string;
   readonly reason: string;
+  readonly ownerReworkResultContent?: string;
   readonly runInspections: readonly unknown[];
   readonly runRecordContent: string;
   readonly selectionContent: string | Uint8Array;
@@ -326,6 +334,30 @@ export const buildIntegrationWaveSupersessionReceipt = (input: {
   if (input.runInspections.length !== source.runIds.length) {
     throw new Error(`${source.integrationId}: Fabro inspection count mismatch`);
   }
+  const ownerRework = input.ownerReworkResultContent
+    ? planIntegrationOwnerReworkRoute({
+        expectedIntegrationId: source.integrationId,
+        expectedResultSha256: sha256(input.ownerReworkResultContent),
+        expectedSelectionFileSha256: source.selectionFileSha256,
+        expectedSelectionPayloadSha256: source.selectionPayloadSha256,
+        integrationOwnedPaths: (() => {
+          const result = JSON.parse(input.ownerReworkResultContent) as {
+            readonly generatedFiles?: unknown;
+          };
+          return Array.isArray(result.generatedFiles)
+            ? result.generatedFiles.filter(
+                (path): path is string => typeof path === "string",
+              )
+            : [];
+        })(),
+        integrationResultContent: input.ownerReworkResultContent,
+        selectionContent:
+          typeof input.selectionContent === "string"
+            ? input.selectionContent
+            : new TextDecoder().decode(input.selectionContent),
+        stateRoot: ".",
+      })
+    : undefined;
   const runAttempts = input.runInspections.map((inspection, index) => {
     const attempt = index + 1;
     const runId = source.runIds[index];
@@ -359,16 +391,32 @@ export const buildIntegrationWaveSupersessionReceipt = (input: {
         selectionPayloadSha256: source.selectionPayloadSha256,
       });
     }
+    const inspectedStatus = statusFromInspection(inspection);
+    const finalOwnerRework =
+      inspectedStatus === "succeeded" &&
+      ownerRework !== undefined &&
+      index === input.runInspections.length - 1;
     return {
       attempt,
       runId,
-      status: terminalStatus(
-        statusFromInspection(inspection),
-        `wave run ${runId} status`,
-      ),
+      status: finalOwnerRework
+        ? ("owner_rework" as const)
+        : terminalStatus(inspectedStatus, `wave run ${runId} status`),
     };
   });
-  const payload = receiptPayload({ ...input, runAttempts, source });
+  const evidence = ownerRework
+    ? [
+        ...input.evidence,
+        `run:${runAttempts.at(-1)?.runId}:owner_rework`,
+        `owner-rework-result-sha256:${ownerRework.resultSha256}`,
+      ]
+    : input.evidence;
+  const payload = receiptPayload({
+    ...input,
+    evidence,
+    runAttempts,
+    source,
+  });
   return { ...payload, receiptSha256: sha256(JSON.stringify(payload)) };
 };
 

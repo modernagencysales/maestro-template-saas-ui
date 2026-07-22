@@ -1316,6 +1316,84 @@ describe("integration wave supersession", () => {
     },
   );
 
+  it("records a succeeded Fabro owner-rework exit as an explicit terminal state", () => {
+    const fixture = supersessionFixture(["succeeded"]);
+    const selection = JSON.parse(fixture.selectionContent) as {
+      readonly selectedTasks: readonly {
+        readonly fileLocks: readonly string[];
+        readonly taskId: string;
+      }[];
+      readonly selectionSha256: string;
+    };
+    const selected = selection.selectedTasks[0];
+    const affectedPath = selected?.fileLocks[0];
+    if (!selected || !affectedPath)
+      throw new Error("owner fixture is incomplete");
+    const ownerReworkResultContent = `${JSON.stringify({
+      schemaVersion: "maestro-brain-integration-result/v3",
+      integrationId: fixture.integrationId,
+      baseSha: fixture.baseSha,
+      headSha: "d".repeat(40),
+      selectionFileSha256: createHash("sha256")
+        .update(fixture.selectionContent)
+        .digest("hex"),
+      selectionPayloadSha256: selection.selectionSha256,
+      status: "ready_for_review",
+      reviewVerdict: "rework",
+      generatedFiles: [],
+      remainingFindings: [
+        {
+          id: "owner-defect",
+          taskId: selected.taskId,
+          candidateHeadSha: "d".repeat(40),
+          summary: "Owner repair is required.",
+          details: "The selected task owns the defect.",
+          severity: "high",
+          affectedPaths: [affectedPath],
+          expectedBehavior: "The owner repairs the behavior.",
+          requiredRegressionProof: "The focused regression passes.",
+          priorEvidenceSha256: [selection.selectionSha256],
+          changeExpectation: "source_or_test_delta",
+          ownerKind: "task",
+        },
+      ],
+    })}\n`;
+    const resultSha256 = createHash("sha256")
+      .update(ownerReworkResultContent)
+      .digest("hex");
+    const receipt = buildIntegrationWaveSupersessionReceipt({
+      ...fixture,
+      createdAt: "2026-07-22T12:00:00.000Z",
+      evidence: [`integration-result-sha256:${resultSha256}`],
+      expectedIntegrationId: fixture.integrationId,
+      ownerReworkResultContent,
+      reason: "Route exact task-owned findings",
+    });
+
+    expect(receipt.runAttempts).toEqual([
+      {
+        attempt: 1,
+        runId: fixture.runInspections[0]?.run_id,
+        status: "owner_rework",
+      },
+    ]);
+    expect(receipt.evidence).toContain(
+      `run:${fixture.runInspections[0]?.run_id}:owner_rework`,
+    );
+    expect(() =>
+      validateIntegrationWaveSupersessionReceipt({
+        currentControlHead: fixture.controlHeadSha,
+        expectedIntegrationId: fixture.integrationId,
+        isAncestor: () => true,
+        receipt,
+        runRecordContent: fixture.runRecordContent,
+        selectionContent: fixture.selectionContent,
+        selectionPath: fixture.selectionPath,
+      }),
+    ).not.toThrow();
+    rmSync(fixture.root, { recursive: true });
+  });
+
   it("rejects stale or tampered run records and selections", () => {
     const fixture = supersessionFixture();
     const receipt = buildIntegrationWaveSupersessionReceipt({
