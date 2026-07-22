@@ -862,6 +862,18 @@ describe("Fabro workflow prompt contracts", () => {
       "The deterministic gates node exclusively owns broad-gate execution and its verdict",
     );
     expect(reviewGate).toContain('.status == \\"ready_for_review\\"');
+    expect(review).toContain("ownerKind task or integration");
+    expect(wave).toContain("integration-owner-rework-check.mts");
+    expect(wave).toContain(
+      'review_gate -> owner_rework_gate [label="task rework"]',
+    );
+    expect(wave).toContain(
+      'owner_rework_gate -> exit [condition="outcome=succeeded"]',
+    );
+    expect(wave).toContain(
+      'owner_rework_gate -> repair [label="integration repair"]',
+    );
+    expect(wave).not.toContain('review_gate -> repair [label="rework"]');
     expect(wave).toContain("integration-wave-selection-check.mts");
     expect(wave).toContain("hydrate-integration-dependencies.mts");
     expect(wave).toContain("repair -> dependencies");
