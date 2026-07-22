@@ -75,3 +75,37 @@ authoritative graph validator.
   touched.
 - No remaining functional concern is known. Normal supersession/reopen now has
   focused proof for the actual succeeded Fabro owner-rework exit.
+
+## Review repair
+
+Review findings were resolved in three additional bounded checkpoints:
+
+1. `c52908e` `fix: partition Brain owner rework`
+2. `7a7f1d4` `fix: resume Brain owner routing`
+3. `3989d5f` `fix: reserve Brain owner repair capacity`
+4. `3d0b6e4` `fix: reconcile fast owner repairs`
+
+The repaired contract now:
+
+- partitions all complete structured findings by sorted selected owner and
+  passes a distinct raw-finding SHA to normal reopen tooling;
+- filters and signs only that owner's subset in the generated reproof request;
+- persists a routing receipt before supersession, then durably records each
+  owner's request SHA and new run ID;
+- resumes a partial crash from an already-created matching reservation without
+  relaunching completed owners;
+- rejects reconciliation for the unchanged pre-route `lane_green` state or any
+  missing/drifted per-owner routing evidence;
+- reserves every pending owner repair from unrelated coding capacity; and
+- binds gate, route, observer, and supersession conversion to the exact
+  integration worktree HEAD as well as the immutable result and selection
+  hashes.
+
+Review-repair verification:
+
+- Focused suite: 8 files, 164 tests passed, including two-owner partition, crash
+  replay, unchanged-lane rejection, capacity reservation, and forged-head
+  rejection.
+- Brain Factory typecheck, repository lint, supported Prettier check, Fabro
+  workflow validation, and `brain:factory:check` all passed.
+- No Fabro runs or external mutations occurred during review repair.
