@@ -684,7 +684,9 @@ export const reconcileControllerAction = (input: {
         (owner as JsonRecord).status === "launched" &&
         (owner as JsonRecord).runId === task.runId &&
         typeof (owner as JsonRecord).requestSha256 === "string" &&
-        new Set(["preparing", "running", "recoverable"]).has(task.stage)
+        new Set(["preparing", "running", "recoverable", "terminal"]).has(
+          task.stage,
+        )
       );
     });
     return { kind: reopened ? "succeeded" : "unresolved" };

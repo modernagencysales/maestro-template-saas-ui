@@ -189,6 +189,17 @@ describe("controller CLI contract", () => {
     expect(
       reconcileControllerAction({ action, observe: () => after, stateRoot }),
     ).toEqual({ kind: "succeeded" });
+    const alreadyTerminal = normalizeControllerSnapshot({
+      ...snapshot,
+      tasks: [{ runId: "owner-run", status: "terminal", taskId: "S04-T04" }],
+    });
+    expect(
+      reconcileControllerAction({
+        action,
+        observe: () => alreadyTerminal,
+        stateRoot,
+      }),
+    ).toEqual({ kind: "succeeded" });
     rmSync(stateRoot, { force: true, recursive: true });
   });
 
