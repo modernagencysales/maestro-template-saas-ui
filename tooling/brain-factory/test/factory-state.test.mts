@@ -164,6 +164,35 @@ describe("brain factory control state", () => {
     ).toMatchObject({ stage: "unknown" });
   });
 
+  it("classifies exact failed task findings as owner rework", () => {
+    expect(
+      classifyControllerWave({
+        findingSha256: SHA_64_A,
+        identity: "exact",
+        inspection: "failed",
+        integrationId: "wave-1",
+        ownerTaskIds: ["S01-T01", "S02-T01"],
+        resultSha256: SHA_64_B,
+        runId: "run-1",
+        selectionFileSha256: "c".repeat(64),
+        selectionPayloadSha256: "d".repeat(64),
+      }),
+    ).toMatchObject({ stage: "owner_rework" });
+  });
+
+  it("fails closed when owner rework evidence is incomplete", () => {
+    expect(
+      classifyControllerWave({
+        findingSha256: SHA_64_A,
+        identity: "exact",
+        inspection: "failed",
+        integrationId: "wave-1",
+        ownerTaskIds: ["S01-T01"],
+        runId: "run-1",
+      }),
+    ).toMatchObject({ stage: "unknown" });
+  });
+
   it.each([
     [
       "task",

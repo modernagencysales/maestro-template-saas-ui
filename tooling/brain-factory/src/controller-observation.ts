@@ -16,6 +16,7 @@ import { validateLaneAcceptance } from "./lane-acceptance.js";
 import { validateFinalLaneResult } from "./lane-result.js";
 import type { BrainTaskManifest } from "./manifest.js";
 import { gitIsAncestor, runRtk } from "./process.js";
+import { planIntegrationOwnerReworkRoute } from "./route-integration-rework.js";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -362,7 +363,52 @@ export const observeControllerSnapshot = (
               : status
                 ? "running"
                 : "unknown";
-        const result = jsonFile(join(evidence, "integration-result.json"));
+        const resultPath = join(evidence, "integration-result.json");
+        const resultContent = existsSync(resultPath)
+          ? readFileSync(resultPath, "utf8")
+          : undefined;
+        const result = resultContent
+          ? (JSON.parse(resultContent) as JsonRecord)
+          : undefined;
+        if (
+          resultContent &&
+          (inspection === "succeeded" || inspection === "failed") &&
+          result?.status === "ready_for_review" &&
+          result.reviewVerdict === "rework"
+        ) {
+          const generatedFiles = Array.isArray(result.generatedFiles)
+            ? result.generatedFiles.filter(
+                (path): path is string => typeof path === "string",
+              )
+            : [];
+          const route = planIntegrationOwnerReworkRoute({
+            expectedIntegrationId: integrationId,
+            expectedResultSha256: sha256(resultContent),
+            expectedSelectionFileSha256: selection.selectionFileSha256,
+            expectedSelectionPayloadSha256: selection.selectionPayloadSha256,
+            integrationOwnedPaths: generatedFiles,
+            integrationResultContent: resultContent,
+            selectionContent,
+            stateRoot: input.stateRoot,
+          });
+          const resultHead = stringValue(result.headSha);
+          if (!resultHead)
+            throw new Error("owner rework result head is missing");
+          waves.push({
+            findingSha256: route.findingSha256,
+            headSha: resultHead,
+            identity: "exact",
+            inspection,
+            integrationId,
+            ownerTaskIds: route.ownerTaskIds,
+            ownershipId,
+            resultSha256: route.resultSha256,
+            runId,
+            selectionFileSha256: route.selectionFileSha256,
+            selectionPayloadSha256: route.selectionPayloadSha256,
+          });
+          continue;
+        }
         const resultHead = stringValue(result?.headSha);
         const exact =
           inspection !== "succeeded" ||

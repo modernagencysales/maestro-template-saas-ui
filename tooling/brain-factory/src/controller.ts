@@ -31,6 +31,7 @@ export type ControllerActionKind =
   | "recover_lane"
   | "promote_wave"
   | "recover_wave"
+  | "route_owner_rework"
   | "integrate_batch"
   | "dispatch_tasks"
   | "wait";
@@ -43,6 +44,7 @@ export interface ControllerActionIdentity {
   readonly targetIds: readonly string[];
   readonly sourceRunIds: readonly string[];
   readonly sourceHeadShas: readonly string[];
+  readonly sourceEvidenceSha256: readonly string[];
   readonly findingSha256: string;
   readonly policySha256: string;
 }
@@ -117,6 +119,7 @@ const makeAction = (input: {
   readonly policy: ControllerPolicy;
   readonly snapshot: ControllerSnapshot;
   readonly sourceHeadShas?: readonly (string | undefined)[];
+  readonly sourceEvidenceSha256?: readonly (string | undefined)[];
   readonly sourceRunIds?: readonly (string | undefined)[];
   readonly targetIds: readonly string[];
 }): ControllerAction => {
@@ -128,6 +131,7 @@ const makeAction = (input: {
     targetIds: values(input.targetIds),
     sourceRunIds: values(input.sourceRunIds ?? []),
     sourceHeadShas: orderedValues(input.sourceHeadShas ?? []),
+    sourceEvidenceSha256: orderedValues(input.sourceEvidenceSha256 ?? []),
     findingSha256: input.findingSha256 ?? digest([]),
     policySha256: policyDigest(input.policy),
   };
@@ -163,12 +167,20 @@ const waveAction = (
   policy: ControllerPolicy,
 ): ControllerAction =>
   makeAction({
+    ...(wave.findingSha256 === undefined
+      ? {}
+      : { findingSha256: wave.findingSha256 }),
     kind,
     policy,
     snapshot,
     sourceHeadShas: [wave.headSha],
+    sourceEvidenceSha256: [
+      wave.resultSha256,
+      wave.selectionFileSha256,
+      wave.selectionPayloadSha256,
+    ],
     sourceRunIds: [wave.runId],
-    targetIds: [wave.integrationId],
+    targetIds: [wave.integrationId, ...(wave.ownerTaskIds ?? [])],
   });
 
 const waitAction = (
@@ -335,6 +347,22 @@ export const planControllerTick = (
     return withFrontier(
       waveAction("promote_wave", promotable, snapshot, policy),
     );
+  }
+  const ownerRework = snapshot.waves.find(
+    ({ stage }) => stage === "owner_rework",
+  );
+  if (ownerRework) {
+    const route = waveAction(
+      "route_owner_rework",
+      ownerRework,
+      snapshot,
+      policy,
+    );
+    const withoutWave = { ...snapshot, waves: [] };
+    const followOn = planControllerTick(withoutWave, policy, manifest).filter(
+      ({ kind }) => kind === "dispatch_tasks",
+    );
+    return [route, ...followOn];
   }
   const failedWave = snapshot.waves.find(
     ({ stage }) => stage === "recoverable",
@@ -529,6 +557,30 @@ export const commandForControllerAction = (
         "--state",
         stateRoot,
       ];
+    case "route_owner_rework": {
+      const integrationId = action.targetIds.find((value) =>
+        /^wave-\d{6}$/.test(value),
+      );
+      if (!integrationId) throw new Error("route_owner_rework target missing");
+      if (action.sourceEvidenceSha256.length !== 3) {
+        throw new Error("route_owner_rework evidence coordinates missing");
+      }
+      return [
+        "pnpm",
+        "brain:factory:route-rework",
+        "--",
+        "--integration-id",
+        integrationId,
+        "--result-sha256",
+        action.sourceEvidenceSha256[0] ?? "",
+        "--selection-file-sha256",
+        action.sourceEvidenceSha256[1] ?? "",
+        "--selection-payload-sha256",
+        action.sourceEvidenceSha256[2] ?? "",
+        "--state",
+        stateRoot,
+      ];
+    }
     case "integrate_batch":
       return [
         "pnpm",

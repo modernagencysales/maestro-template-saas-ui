@@ -125,6 +125,43 @@ const exactWaveFixture = (root: string) => {
 };
 
 describe("controller CLI contract", () => {
+  it("reconciles owner routing without treating task rework as promotion", () => {
+    const ownerWave = {
+      findingSha256: "1".repeat(64),
+      headSha: "d".repeat(40),
+      identity: "exact" as const,
+      inspection: "succeeded" as const,
+      integrationId: "wave-000042",
+      ownerTaskIds: ["S04-T04"],
+      ownershipId: "wave-owner",
+      resultSha256: "2".repeat(64),
+      runId: "wave-run",
+      selectionFileSha256: "3".repeat(64),
+      selectionPayloadSha256: "4".repeat(64),
+    };
+    const before = normalizeControllerSnapshot({
+      ...snapshot,
+      waves: [ownerWave],
+    });
+    const action = planControllerTick(
+      before,
+      { maximumBatchSize: 4, minimumBatchSize: 1, totalActiveCapacity: 10 },
+      manifest,
+    )[0];
+    if (!action) throw new Error("owner route action missing");
+    expect(
+      reconcileControllerAction({ action, observe: () => before, stateRoot }),
+    ).toEqual({ kind: "not-started" });
+
+    const after = normalizeControllerSnapshot({
+      ...snapshot,
+      tasks: [{ status: "running", taskId: "S04-T04" }],
+    });
+    expect(
+      reconcileControllerAction({ action, observe: () => after, stateRoot }),
+    ).toEqual({ kind: "succeeded" });
+  });
+
   it("maps terminal Fabro state authoritatively and fails inspection closed", () => {
     const root = mkdtempSync(join(tmpdir(), "brain-controller-observe-"));
     const runs = join(root, "runs");

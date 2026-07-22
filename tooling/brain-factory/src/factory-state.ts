@@ -132,15 +132,20 @@ export type ControllerWaveInspection =
 export type ControllerWaveIdentity = "exact" | "drifted" | "unknown";
 
 export type ControllerWaveStage =
-  "running" | "promotable" | "recoverable" | "unknown";
+  "running" | "promotable" | "recoverable" | "owner_rework" | "unknown";
 
 export interface ControllerWaveObservation {
+  readonly findingSha256?: string;
   readonly headSha?: string;
   readonly identity: ControllerWaveIdentity;
   readonly inspection: ControllerWaveInspection;
   readonly integrationId: string;
   readonly ownershipId?: string;
+  readonly ownerTaskIds?: readonly string[];
+  readonly resultSha256?: string;
   readonly runId?: string;
+  readonly selectionFileSha256?: string;
+  readonly selectionPayloadSha256?: string;
 }
 
 export interface ControllerWaveState extends ControllerWaveObservation {
@@ -261,17 +266,59 @@ export const classifyControllerWave = (
     requireIdentity(input.runId, `${input.integrationId}.runId`);
   if (input.ownershipId !== undefined)
     requireIdentity(input.ownershipId, `${input.integrationId}.ownershipId`);
+  if (input.findingSha256 !== undefined)
+    requireSha256(input.findingSha256, `${input.integrationId}.findingSha256`);
+  if (input.resultSha256 !== undefined)
+    requireSha256(input.resultSha256, `${input.integrationId}.resultSha256`);
+  if (input.selectionFileSha256 !== undefined)
+    requireSha256(
+      input.selectionFileSha256,
+      `${input.integrationId}.selectionFileSha256`,
+    );
+  if (input.selectionPayloadSha256 !== undefined)
+    requireSha256(
+      input.selectionPayloadSha256,
+      `${input.integrationId}.selectionPayloadSha256`,
+    );
+  if (input.ownerTaskIds !== undefined) {
+    if (input.ownerTaskIds.length === 0)
+      throw new Error(`${input.integrationId}.ownerTaskIds must not be empty`);
+    for (const taskId of input.ownerTaskIds)
+      requireIdentity(taskId, `${input.integrationId}.ownerTaskId`);
+    if (new Set(input.ownerTaskIds).size !== input.ownerTaskIds.length)
+      throw new Error(
+        `${input.integrationId}.ownerTaskIds contains duplicates`,
+      );
+  }
+
+  const hasOwnerEvidence =
+    input.findingSha256 !== undefined ||
+    input.ownerTaskIds !== undefined ||
+    input.resultSha256 !== undefined ||
+    input.selectionFileSha256 !== undefined ||
+    input.selectionPayloadSha256 !== undefined;
+  const completeOwnerEvidence =
+    input.findingSha256 !== undefined &&
+    input.ownerTaskIds !== undefined &&
+    input.resultSha256 !== undefined &&
+    input.selectionFileSha256 !== undefined &&
+    input.selectionPayloadSha256 !== undefined;
 
   const stage: ControllerWaveStage =
     input.identity !== "exact"
       ? "unknown"
-      : input.inspection === "succeeded"
-        ? "promotable"
-        : input.inspection === "failed"
-          ? "recoverable"
-          : input.inspection === "running"
-            ? "running"
-            : "unknown";
+      : hasOwnerEvidence && !completeOwnerEvidence
+        ? "unknown"
+        : completeOwnerEvidence &&
+            (input.inspection === "failed" || input.inspection === "succeeded")
+          ? "owner_rework"
+          : input.inspection === "succeeded"
+            ? "promotable"
+            : input.inspection === "failed"
+              ? "recoverable"
+              : input.inspection === "running"
+                ? "running"
+                : "unknown";
 
   return { ...input, stage };
 };

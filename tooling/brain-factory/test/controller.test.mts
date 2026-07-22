@@ -348,6 +348,45 @@ describe("controller pure planner", () => {
     ]);
   });
 
+  it("routes owner rework while continuing unrelated dispatch", () => {
+    const ownerRework = {
+      ...wave("wave-000042", "failed"),
+      findingSha256: "1".repeat(64),
+      ownerTaskIds: ["S04-T04"],
+      resultSha256: "2".repeat(64),
+      selectionFileSha256: "3".repeat(64),
+      selectionPayloadSha256: "4".repeat(64),
+    } as const;
+    const actions = planControllerTick(
+      snapshot({ tasks: frontier(), waves: [ownerRework] }),
+      { ...policy, totalActiveCapacity: 2 },
+    );
+
+    expect(actions).toMatchObject([
+      {
+        kind: "route_owner_rework",
+        targetIds: ["S04-T04", "wave-000042"],
+      },
+      { kind: "dispatch_tasks", targetIds: ["S00-T02", "S01-T01"] },
+    ]);
+    const routeAction = actions[0];
+    if (!routeAction) throw new Error("route owner rework action missing");
+    const command = commandForControllerAction(routeAction, "/tmp/state");
+    expect(command).toEqual(
+      expect.arrayContaining([
+        "brain:factory:route-rework",
+        "--integration-id",
+        "wave-000042",
+        "--result-sha256",
+        "2".repeat(64),
+        "--selection-file-sha256",
+        "3".repeat(64),
+        "--selection-payload-sha256",
+        "4".repeat(64),
+      ]),
+    );
+  });
+
   it("uses only the injected manifest contract for frontier selection", () => {
     const selectedManifest = {
       ...manifest,

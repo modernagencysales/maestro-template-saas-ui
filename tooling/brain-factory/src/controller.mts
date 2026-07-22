@@ -450,6 +450,7 @@ const actionIdentityMatches = (action: ControllerAction): boolean => {
     targetIds: action.targetIds,
     sourceRunIds: action.sourceRunIds,
     sourceHeadShas: action.sourceHeadShas,
+    sourceEvidenceSha256: action.sourceEvidenceSha256,
     findingSha256: action.findingSha256,
     policySha256: action.policySha256,
   };
@@ -610,6 +611,46 @@ export const reconcileControllerAction = (input: {
           ? "succeeded"
           : "unresolved",
     };
+  }
+  if (action.kind === "route_owner_rework") {
+    const integrationId = action.targetIds.find((value) =>
+      /^wave-\d{6}$/.test(value),
+    );
+    const ownerTaskIds = action.targetIds.filter(
+      (value) => value !== integrationId,
+    );
+    if (!integrationId || ownerTaskIds.length === 0) {
+      return { kind: "unresolved" };
+    }
+    const wave = observed.waves.find(
+      (candidate) => candidate.integrationId === integrationId,
+    );
+    if (wave) {
+      const exact =
+        wave.stage === "owner_rework" &&
+        wave.findingSha256 === action.findingSha256 &&
+        exactStringArray(
+          [
+            wave.resultSha256,
+            wave.selectionFileSha256,
+            wave.selectionPayloadSha256,
+          ].filter((value): value is string => value !== undefined),
+          action.sourceEvidenceSha256,
+        );
+      return { kind: exact ? "not-started" : "unresolved" };
+    }
+    const reopened = ownerTaskIds.every((taskId) => {
+      const task = observed.tasks.find(
+        (candidate) => candidate.taskId === taskId,
+      );
+      return (
+        task !== undefined &&
+        new Set(["preparing", "running", "recoverable", "lane_green"]).has(
+          task.stage,
+        )
+      );
+    });
+    return { kind: reopened ? "succeeded" : "unresolved" };
   }
   const integrationId = action.targetIds[0];
   if (!integrationId) return { kind: "unresolved" };
