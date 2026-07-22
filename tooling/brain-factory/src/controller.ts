@@ -358,7 +358,26 @@ export const planControllerTick = (
       snapshot,
       policy,
     );
-    const withoutWave = { ...snapshot, waves: [] };
+    const ownerTaskIds = new Set(ownerRework.ownerTaskIds ?? []);
+    const presentTaskIds = new Set(snapshot.tasks.map(({ taskId }) => taskId));
+    const withoutWave = {
+      ...snapshot,
+      tasks: [
+        ...snapshot.tasks.map((task) =>
+          ownerTaskIds.has(task.taskId)
+            ? { ...task, stage: "running" as const, status: "running" as const }
+            : task,
+        ),
+        ...[...ownerTaskIds]
+          .filter((taskId) => !presentTaskIds.has(taskId))
+          .map((taskId) => ({
+            stage: "running" as const,
+            status: "running" as const,
+            taskId,
+          })),
+      ],
+      waves: [],
+    };
     const followOn = planControllerTick(withoutWave, policy, manifest).filter(
       ({ kind }) => kind === "dispatch_tasks",
     );

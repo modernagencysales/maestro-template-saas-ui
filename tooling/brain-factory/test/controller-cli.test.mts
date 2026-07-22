@@ -126,6 +126,7 @@ const exactWaveFixture = (root: string) => {
 
 describe("controller CLI contract", () => {
   it("reconciles owner routing without treating task rework as promotion", () => {
+    rmSync(stateRoot, { force: true, recursive: true });
     const ownerWave = {
       findingSha256: "1".repeat(64),
       headSha: "d".repeat(40),
@@ -155,11 +156,40 @@ describe("controller CLI contract", () => {
 
     const after = normalizeControllerSnapshot({
       ...snapshot,
-      tasks: [{ status: "running", taskId: "S04-T04" }],
+      tasks: [{ runId: "owner-run", status: "running", taskId: "S04-T04" }],
     });
     expect(
       reconcileControllerAction({ action, observe: () => after, stateRoot }),
+    ).toEqual({ kind: "unresolved" });
+    writeJson(
+      join(
+        stateRoot,
+        "evidence",
+        "integration",
+        "wave-000042",
+        "owner-rework-routing.json",
+      ),
+      {
+        schemaVersion: "maestro-brain-owner-rework-routing/v1",
+        findingSha256: "1".repeat(64),
+        owners: {
+          "S04-T04": {
+            findingsSha256: "9".repeat(64),
+            requestSha256: "8".repeat(64),
+            runId: "owner-run",
+            status: "launched",
+          },
+        },
+        resultSha256: "2".repeat(64),
+        selectionFileSha256: "3".repeat(64),
+        selectionPayloadSha256: "4".repeat(64),
+        status: "complete",
+      },
+    );
+    expect(
+      reconcileControllerAction({ action, observe: () => after, stateRoot }),
     ).toEqual({ kind: "succeeded" });
+    rmSync(stateRoot, { force: true, recursive: true });
   });
 
   it("maps terminal Fabro state authoritatively and fails inspection closed", () => {

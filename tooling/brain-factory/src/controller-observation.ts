@@ -297,6 +297,7 @@ export const observeControllerSnapshot = (
       const runId = stringValue(record?.runId);
       const baseSha = stringValue(record?.baseSha);
       const ownershipId = stringValue(record?.reservationToken);
+      const integrationWorkdir = stringValue(record?.workdir);
       const selectionPath = resolve(
         runsRoot,
         `integration-${integrationId}-selection.json`,
@@ -304,6 +305,7 @@ export const observeControllerSnapshot = (
       const evidence = join(evidenceRoot, "integration", integrationId);
       const promotion = jsonFile(join(evidence, "promotion.json"));
       const supersession = jsonFile(join(evidence, "supersession.json"));
+      const routing = jsonFile(join(evidence, "owner-rework-routing.json"));
       try {
         if (
           record?.integrationId !== integrationId ||
@@ -311,6 +313,7 @@ export const observeControllerSnapshot = (
           !runId ||
           !exactSha(baseSha, 40) ||
           !ownershipId ||
+          !integrationWorkdir ||
           !existsSync(selectionPath)
         ) {
           throw new Error("wave record drift");
@@ -352,7 +355,7 @@ export const observeControllerSnapshot = (
             selectionContent,
             selectionPath,
           });
-          continue;
+          if (!routing || routing.status === "complete") continue;
         }
         const status = inspect(runId);
         const inspection =
@@ -382,6 +385,10 @@ export const observeControllerSnapshot = (
               )
             : [];
           const route = planIntegrationOwnerReworkRoute({
+            expectedHeadSha: runRtk(
+              ["proxy", "git", "-C", integrationWorkdir, "rev-parse", "HEAD"],
+              { quiet: true },
+            ),
             expectedIntegrationId: integrationId,
             expectedResultSha256: sha256(resultContent),
             expectedSelectionFileSha256: selection.selectionFileSha256,
@@ -391,6 +398,18 @@ export const observeControllerSnapshot = (
             selectionContent,
             stateRoot: input.stateRoot,
           });
+          if (
+            routing &&
+            (routing.schemaVersion !==
+              "maestro-brain-owner-rework-routing/v1" ||
+              routing.findingSha256 !== route.findingSha256 ||
+              routing.resultSha256 !== route.resultSha256 ||
+              routing.selectionFileSha256 !== route.selectionFileSha256 ||
+              routing.selectionPayloadSha256 !== route.selectionPayloadSha256 ||
+              !new Set(["planned", "superseded"]).has(String(routing.status)))
+          ) {
+            throw new Error("owner rework routing receipt drift");
+          }
           const resultHead = stringValue(result.headSha);
           if (!resultHead)
             throw new Error("owner rework result head is missing");

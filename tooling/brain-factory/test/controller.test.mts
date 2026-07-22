@@ -367,7 +367,7 @@ describe("controller pure planner", () => {
         kind: "route_owner_rework",
         targetIds: ["S04-T04", "wave-000042"],
       },
-      { kind: "dispatch_tasks", targetIds: ["S00-T02", "S01-T01"] },
+      { kind: "dispatch_tasks", targetIds: ["S00-T02"] },
     ]);
     const routeAction = actions[0];
     if (!routeAction) throw new Error("route owner rework action missing");
@@ -385,6 +385,33 @@ describe("controller pure planner", () => {
         "4".repeat(64),
       ]),
     );
+  });
+
+  it("reserves every owner repair launch from unrelated coding capacity", () => {
+    const actions = planControllerTick(
+      snapshot({
+        tasks: frontier(),
+        waves: [
+          {
+            ...wave("wave-000043", "failed"),
+            findingSha256: "1".repeat(64),
+            ownerTaskIds: ["S04-T04", "S05-T01"],
+            resultSha256: "2".repeat(64),
+            selectionFileSha256: "3".repeat(64),
+            selectionPayloadSha256: "4".repeat(64),
+          },
+        ],
+      }),
+      { ...policy, totalActiveCapacity: 2 },
+    );
+
+    expect(actions).toMatchObject([
+      {
+        kind: "route_owner_rework",
+        targetIds: ["S04-T04", "S05-T01", "wave-000043"],
+      },
+    ]);
+    expect(actions).toHaveLength(1);
   });
 
   it("uses only the injected manifest contract for frontier selection", () => {

@@ -639,15 +639,52 @@ export const reconcileControllerAction = (input: {
         );
       return { kind: exact ? "not-started" : "unresolved" };
     }
+    const routing = jsonFile(
+      join(
+        input.stateRoot,
+        "evidence",
+        "integration",
+        integrationId,
+        "owner-rework-routing.json",
+      ),
+    );
+    const routingOwners =
+      routing &&
+      typeof routing.owners === "object" &&
+      routing.owners !== null &&
+      !Array.isArray(routing.owners)
+        ? (routing.owners as JsonRecord)
+        : undefined;
+    if (
+      routing?.schemaVersion !== "maestro-brain-owner-rework-routing/v1" ||
+      routing.status !== "complete" ||
+      routing.findingSha256 !== action.findingSha256 ||
+      !exactStringArray(
+        [
+          String(routing.resultSha256 ?? ""),
+          String(routing.selectionFileSha256 ?? ""),
+          String(routing.selectionPayloadSha256 ?? ""),
+        ],
+        action.sourceEvidenceSha256,
+      ) ||
+      !routingOwners
+    ) {
+      return { kind: "unresolved" };
+    }
     const reopened = ownerTaskIds.every((taskId) => {
       const task = observed.tasks.find(
         (candidate) => candidate.taskId === taskId,
       );
+      const owner = routingOwners[taskId];
       return (
         task !== undefined &&
-        new Set(["preparing", "running", "recoverable", "lane_green"]).has(
-          task.stage,
-        )
+        typeof owner === "object" &&
+        owner !== null &&
+        !Array.isArray(owner) &&
+        (owner as JsonRecord).status === "launched" &&
+        (owner as JsonRecord).runId === task.runId &&
+        typeof (owner as JsonRecord).requestSha256 === "string" &&
+        new Set(["preparing", "running", "recoverable"]).has(task.stage)
       );
     });
     return { kind: reopened ? "succeeded" : "unresolved" };
