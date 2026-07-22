@@ -352,6 +352,24 @@ export const planControllerTick = (
     ({ stage }) => stage === "owner_rework",
   );
   if (ownerRework) {
+    const ownerCount = ownerRework.ownerTaskIds?.length ?? 0;
+    if (ownerCount > policy.totalActiveCapacity) {
+      const unrelated = planControllerTick(
+        { ...snapshot, waves: [] },
+        policy,
+        manifest,
+      ).filter(({ kind }) => kind === "dispatch_tasks");
+      return [
+        ...unrelated,
+        waitAction(
+          [
+            `owner_rework_capacity_exceeded:${ownerRework.integrationId}:${ownerCount}>${policy.totalActiveCapacity}`,
+          ],
+          snapshot,
+          policy,
+        ),
+      ];
+    }
     const route = waveAction(
       "route_owner_rework",
       ownerRework,

@@ -414,6 +414,33 @@ describe("controller pure planner", () => {
     expect(actions).toHaveLength(1);
   });
 
+  it("defers an owner wave wider than total capacity while dispatching unrelated work", () => {
+    const actions = planControllerTick(
+      snapshot({
+        tasks: frontier(),
+        waves: [
+          {
+            ...wave("wave-000044", "failed"),
+            findingSha256: "1".repeat(64),
+            ownerTaskIds: ["S04-T04", "S05-T01", "S06-T01"],
+            resultSha256: "2".repeat(64),
+            selectionFileSha256: "3".repeat(64),
+            selectionPayloadSha256: "4".repeat(64),
+          },
+        ],
+      }),
+      { ...policy, totalActiveCapacity: 2 },
+    );
+
+    expect(actions).toMatchObject([
+      { kind: "dispatch_tasks", targetIds: ["S00-T02", "S01-T01"] },
+      {
+        kind: "wait",
+        targetIds: ["owner_rework_capacity_exceeded:wave-000044:3>2"],
+      },
+    ]);
+  });
+
   it("uses only the injected manifest contract for frontier selection", () => {
     const selectedManifest = {
       ...manifest,
