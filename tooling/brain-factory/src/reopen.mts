@@ -38,11 +38,18 @@ const valueAfter = (flag: string): string | undefined => {
 const taskId = valueAfter("--task");
 const reason = valueAfter("--reason")?.trim();
 const failedIntegrationId = valueAfter("--failed-integration");
+const ownerFindingsSha256 = valueAfter("--owner-findings-sha256");
 const launch = process.argv.includes("--launch");
 if (!taskId || !reason) {
   throw new Error(
     "usage: brain:factory:reopen -- --task <id> --reason <text> [--failed-integration wave-NNNNNN] [--launch]",
   );
+}
+if (
+  ownerFindingsSha256 !== undefined &&
+  !/^[0-9a-f]{64}$/.test(ownerFindingsSha256)
+) {
+  throw new Error(`${taskId}: owner findings hash is invalid`);
 }
 
 const sha256 = (value: string): string =>
@@ -240,6 +247,31 @@ if (failedIntegrationId) {
   const failedIntegrationResult = JSON.parse(
     readFileSync(integrationResultPath, "utf8"),
   ) as Record<string, unknown>;
+  if (ownerFindingsSha256) {
+    const ownerFindings = Array.isArray(
+      failedIntegrationResult.remainingFindings,
+    )
+      ? failedIntegrationResult.remainingFindings
+          .filter(
+            (finding) =>
+              typeof finding === "object" &&
+              finding !== null &&
+              !Array.isArray(finding) &&
+              (finding as Record<string, unknown>).taskId === taskId,
+          )
+          .sort((left, right) =>
+            String((left as Record<string, unknown>).id).localeCompare(
+              String((right as Record<string, unknown>).id),
+            ),
+          )
+      : [];
+    if (
+      ownerFindings.length === 0 ||
+      sha256(JSON.stringify(ownerFindings)) !== ownerFindingsSha256
+    ) {
+      throw new Error(`${taskId}: owner findings subset hash mismatch`);
+    }
+  }
   const broadGatePath = resolve(
     integrationDirectory,
     `broad-gate-${String(failedIntegrationResult.headSha ?? "")}.json`,
@@ -620,6 +652,7 @@ reserveTaskPreparing(recordPath, {
   branch,
   mode: "contract-reproof",
   requestSha256: request.requestSha256,
+  ...(ownerFindingsSha256 ? { ownerFindingsSha256 } : {}),
   ...(refreshResume
     ? {
         resumeStrategy: "in-lane-cherry-pick",
@@ -722,6 +755,7 @@ promoteTaskReservation(recordPath, {
   branch,
   mode: "contract-reproof",
   requestSha256: request.requestSha256,
+  ...(ownerFindingsSha256 ? { ownerFindingsSha256 } : {}),
   ...(refreshResume
     ? {
         resumeStrategy: "in-lane-cherry-pick",

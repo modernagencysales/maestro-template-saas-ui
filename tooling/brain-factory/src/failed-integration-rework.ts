@@ -20,6 +20,7 @@ import {
   validateIntegrationReproofFindings,
 } from "./failed-integration-rework-validation.js";
 import { readIntegrationWaveSelection } from "./integration-wave.js";
+import { classifyIntegrationFindings } from "./integration-finding.js";
 
 interface FailedIntegrationReworkInput {
   readonly broadGateContent?: string;
@@ -114,12 +115,45 @@ export const planFailedIntegrationRework = (
     "integration result",
   );
   const reviewOnly = input.broadGateContent === undefined;
-  const remainingFindings = Array.isArray(integrationResult.remainingFindings)
+  const allRemainingFindings = Array.isArray(
+    integrationResult.remainingFindings,
+  )
     ? integrationResult.remainingFindings
     : [];
+  const structuredOwnership =
+    allRemainingFindings.length > 0 &&
+    allRemainingFindings.every(
+      (finding) =>
+        typeof finding === "object" &&
+        finding !== null &&
+        !Array.isArray(finding) &&
+        Object.hasOwn(finding, "ownerKind"),
+    );
+  const remainingFindings = structuredOwnership
+    ? classifyIntegrationFindings({
+        candidateHeadSha: String(integrationResult.headSha ?? ""),
+        findings: allRemainingFindings,
+        integrationOwnedPaths: Array.isArray(integrationResult.generatedFiles)
+          ? integrationResult.generatedFiles.filter(
+              (path): path is string => typeof path === "string",
+            )
+          : [],
+        selectedTasks: selection.selectedTasks,
+      }).findings.filter((finding) => finding.taskId === input.taskId)
+    : allRemainingFindings.filter(
+        (finding) =>
+          typeof finding === "object" &&
+          finding !== null &&
+          !Array.isArray(finding) &&
+          (finding as Record<string, unknown>).taskId === input.taskId,
+      );
+  if (allRemainingFindings.length > 0 && remainingFindings.length === 0) {
+    throw new Error("failed integration finding owner mismatch");
+  }
   const semanticRework =
     integrationResult.status === (reviewOnly ? "ready_for_review" : "rework") &&
     integrationResult.reviewVerdict === "rework" &&
+    allRemainingFindings.length > 0 &&
     remainingFindings.length > 0;
   const broadGateOnlyFailure =
     !reviewOnly &&

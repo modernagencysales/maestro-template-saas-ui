@@ -295,6 +295,12 @@ describe("failed integration rework admission", () => {
     });
 
     expect(planned.ownerTaskIds).toEqual([value.input.taskId]);
+    expect(planned.ownerRoutes).toEqual([
+      expect.objectContaining({
+        findingIds: ["type-coverage-below-threshold"],
+        taskId: value.input.taskId,
+      }),
+    ]);
     expect(planned.commands).toHaveLength(2);
     expect(planned.commands[0]).toEqual(
       expect.arrayContaining([
@@ -312,6 +318,80 @@ describe("failed integration rework admission", () => {
         value.values.selection.integrationId,
         "--launch",
       ]),
+    );
+  });
+
+  it("partitions a multi-owner wave into one signed finding subset per owner", () => {
+    const value = fixture();
+    const firstTask = value.values.selection.selectedTasks[0];
+    if (!firstTask) throw new Error("first selected task is missing");
+    const secondTask = {
+      ...firstTask,
+      changedFiles: ["packages/second.ts"],
+      fileLocks: ["packages/second.ts"],
+      taskId: "S12-T01",
+    };
+    const payload = selectionPayload({
+      ...value.values.selection,
+      requestedTaskIds: [value.input.taskId, secondTask.taskId],
+      selectedTasks: [...value.values.selection.selectedTasks, secondTask],
+    });
+    const selection = {
+      ...payload,
+      selectionPayloadSha256: selectionPayloadSha256(payload),
+    };
+    const selectionContent = json(selection);
+    const first = {
+      ...value.values.integrationResult.remainingFindings[0],
+      candidateHeadSha: value.values.integrationResult.headSha,
+      ownerKind: "task" as const,
+      priorEvidenceSha256: [sha256(selectionContent)],
+    };
+    const second = {
+      ...first,
+      id: "second-owner-defect",
+      taskId: secondTask.taskId,
+      affectedPaths: secondTask.fileLocks,
+    };
+    const integrationResultContent = json({
+      ...value.values.integrationResult,
+      broadGate: null,
+      selectionFileSha256: selectionFileSha256(selectionContent),
+      selectionPayloadSha256: selection.selectionPayloadSha256,
+      status: "ready_for_review",
+      remainingFindings: [second, first],
+    });
+    const planned = planIntegrationOwnerReworkRoute({
+      expectedIntegrationId: selection.integrationId,
+      expectedResultSha256: sha256(integrationResultContent),
+      expectedSelectionFileSha256: selectionFileSha256(selectionContent),
+      expectedSelectionPayloadSha256: selection.selectionPayloadSha256,
+      integrationOwnedPaths: [],
+      integrationResultContent,
+      selectionContent,
+      stateRoot: "/tmp/state",
+    });
+
+    expect(
+      planned.ownerRoutes.map(({ taskId, findingIds }) => ({
+        taskId,
+        findingIds,
+      })),
+    ).toEqual([
+      { taskId: value.input.taskId, findingIds: [first.id] },
+      { taskId: secondTask.taskId, findingIds: [second.id] },
+    ]);
+    expect(planned.ownerRoutes[0]?.findings).toEqual([first]);
+    expect(planned.ownerRoutes[1]?.findings).toEqual([second]);
+    expect(planned.commands.slice(1)).toEqual(
+      planned.ownerRoutes.map(({ findingSha256, taskId }) =>
+        expect.arrayContaining([
+          "--task",
+          taskId,
+          "--owner-findings-sha256",
+          findingSha256,
+        ]),
+      ),
     );
   });
   it("ignores an unbound stale broad-gate sidecar", () => {
