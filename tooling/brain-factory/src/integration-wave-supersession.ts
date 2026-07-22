@@ -323,6 +323,7 @@ export const buildIntegrationWaveSupersessionReceipt = (input: {
   readonly createdAt: string;
   readonly evidence: readonly string[];
   readonly expectedIntegrationId: string;
+  readonly expectedOwnerReworkHeadSha?: string;
   readonly reason: string;
   readonly ownerReworkResultContent?: string;
   readonly runInspections: readonly unknown[];
@@ -334,8 +335,14 @@ export const buildIntegrationWaveSupersessionReceipt = (input: {
   if (input.runInspections.length !== source.runIds.length) {
     throw new Error(`${source.integrationId}: Fabro inspection count mismatch`);
   }
+  if (input.ownerReworkResultContent && !input.expectedOwnerReworkHeadSha) {
+    throw new Error("owner rework supersession requires exact candidate head");
+  }
   const ownerRework = input.ownerReworkResultContent
     ? planIntegrationOwnerReworkRoute({
+        ...(input.expectedOwnerReworkHeadSha
+          ? { expectedHeadSha: input.expectedOwnerReworkHeadSha }
+          : {}),
         expectedIntegrationId: source.integrationId,
         expectedResultSha256: sha256(input.ownerReworkResultContent),
         expectedSelectionFileSha256: source.selectionFileSha256,

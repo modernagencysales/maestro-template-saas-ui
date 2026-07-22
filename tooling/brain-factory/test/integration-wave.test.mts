@@ -1366,6 +1366,7 @@ describe("integration wave supersession", () => {
       createdAt: "2026-07-22T12:00:00.000Z",
       evidence: [`integration-result-sha256:${resultSha256}`],
       expectedIntegrationId: fixture.integrationId,
+      expectedOwnerReworkHeadSha: "d".repeat(40),
       ownerReworkResultContent,
       reason: "Route exact task-owned findings",
     });
@@ -1377,6 +1378,17 @@ describe("integration wave supersession", () => {
         status: "owner_rework",
       },
     ]);
+    expect(() =>
+      buildIntegrationWaveSupersessionReceipt({
+        ...fixture,
+        createdAt: "2026-07-22T12:00:00.000Z",
+        evidence: [`integration-result-sha256:${resultSha256}`],
+        expectedIntegrationId: fixture.integrationId,
+        expectedOwnerReworkHeadSha: "e".repeat(40),
+        ownerReworkResultContent,
+        reason: "Route exact task-owned findings",
+      }),
+    ).toThrow("candidate head mismatch");
     expect(receipt.evidence).toContain(
       `run:${fixture.runInspections[0]?.run_id}:owner_rework`,
     );

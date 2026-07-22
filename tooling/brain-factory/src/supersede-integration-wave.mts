@@ -138,6 +138,22 @@ try {
     if (!Array.isArray(runRecord.runIds)) {
       throw new Error(`${integrationId}: durable runIds are missing`);
     }
+    const expectedOwnerReworkHeadSha = ownerReworkResultContent
+      ? gitSha(
+          runRtk(
+            [
+              "proxy",
+              "git",
+              "-C",
+              String((runRecord as { workdir?: unknown }).workdir ?? ""),
+              "rev-parse",
+              "HEAD",
+            ],
+            { quiet: true },
+          ),
+          "owner-rework worktree HEAD",
+        )
+      : undefined;
     const runInspections = runRecord.runIds.map((runId) =>
       JSON.parse(
         runRtk(["fabro", "inspect", String(runId), "--json", "--quiet"], {
@@ -150,6 +166,7 @@ try {
       createdAt: new Date().toISOString(),
       evidence: evidenceItems,
       expectedIntegrationId: integrationId,
+      ...(expectedOwnerReworkHeadSha ? { expectedOwnerReworkHeadSha } : {}),
       ...(ownerReworkResultContent ? { ownerReworkResultContent } : {}),
       reason,
       runInspections,

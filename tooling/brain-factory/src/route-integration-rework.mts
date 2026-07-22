@@ -1,8 +1,18 @@
-import { existsSync, readFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  renameSync,
+  writeFileSync,
+} from "node:fs";
 import { resolve } from "node:path";
 
 import { runRtk } from "./process.js";
-import { planIntegrationOwnerReworkRoute } from "./route-integration-rework.js";
+import {
+  executeIntegrationOwnerReworkRoute,
+  planIntegrationOwnerReworkRoute,
+  type OwnerReworkRoutingReceipt,
+} from "./route-integration-rework.js";
 
 const valueAfter = (flag: string): string | undefined => {
   const index = process.argv.indexOf(flag);
@@ -38,10 +48,26 @@ const resultPath = resolve(
   integrationId,
   "integration-result.json",
 );
-if (!existsSync(selectionPath) || !existsSync(resultPath)) {
+const runRecordPath = resolve(
+  stateRoot,
+  "runs",
+  `integration-${integrationId}.json`,
+);
+if (
+  !existsSync(selectionPath) ||
+  !existsSync(resultPath) ||
+  !existsSync(runRecordPath)
+) {
   throw new Error(`${integrationId}: selection or result is missing`);
 }
 const integrationResultContent = readFileSync(resultPath, "utf8");
+const runRecord = JSON.parse(readFileSync(runRecordPath, "utf8")) as {
+  readonly workdir?: unknown;
+};
+const expectedHeadSha = runRtk(
+  ["proxy", "git", "-C", String(runRecord.workdir ?? ""), "rev-parse", "HEAD"],
+  { quiet: true },
+);
 const parsed = JSON.parse(integrationResultContent) as {
   readonly generatedFiles?: unknown;
 };
@@ -51,6 +77,7 @@ const integrationOwnedPaths = Array.isArray(parsed.generatedFiles)
     )
   : [];
 const route = planIntegrationOwnerReworkRoute({
+  expectedHeadSha,
   expectedIntegrationId: integrationId,
   expectedResultSha256,
   expectedSelectionFileSha256,
@@ -60,5 +87,68 @@ const route = planIntegrationOwnerReworkRoute({
   selectionContent: readFileSync(selectionPath, "utf8"),
   stateRoot,
 });
-for (const command of route.commands) runRtk(command);
-process.stdout.write(`${JSON.stringify(route, null, 2)}\n`);
+const receiptPath = resolve(
+  stateRoot,
+  "evidence",
+  "integration",
+  integrationId,
+  "owner-rework-routing.json",
+);
+const commandForOwner = new Map(
+  route.ownerTaskIds.map((taskId, index) => [
+    taskId,
+    route.commands[index + 1],
+  ]),
+);
+const receipt = executeIntegrationOwnerReworkRoute(route, {
+  loadReceipt: () =>
+    existsSync(receiptPath)
+      ? (JSON.parse(
+          readFileSync(receiptPath, "utf8"),
+        ) as OwnerReworkRoutingReceipt)
+      : undefined,
+  reopen: (owner) => {
+    const command = commandForOwner.get(owner.taskId);
+    if (!command) throw new Error(`${owner.taskId}: reopen command is missing`);
+    runRtk(command);
+  },
+  reservationFor: (taskId) => {
+    const path = resolve(stateRoot, "runs", `${taskId}.json`);
+    if (!existsSync(path)) return undefined;
+    const record = JSON.parse(readFileSync(path, "utf8")) as Record<
+      string,
+      unknown
+    >;
+    return record.taskId === taskId &&
+      record.mode === "contract-reproof" &&
+      record.status === "launched" &&
+      typeof record.ownerFindingsSha256 === "string" &&
+      typeof record.requestSha256 === "string" &&
+      typeof record.runId === "string"
+      ? {
+          findingsSha256: record.ownerFindingsSha256,
+          requestSha256: record.requestSha256,
+          runId: record.runId,
+        }
+      : undefined;
+  },
+  saveReceipt: (value) => {
+    mkdirSync(resolve(receiptPath, ".."), { recursive: true });
+    const temporary = `${receiptPath}.next`;
+    const content = `${JSON.stringify(value, null, 2)}\n`;
+    if (existsSync(temporary)) {
+      if (readFileSync(temporary, "utf8") !== content) {
+        throw new Error("pending owner routing receipt transition conflicts");
+      }
+    } else {
+      writeFileSync(temporary, content, { flag: "wx" });
+    }
+    renameSync(temporary, receiptPath);
+  },
+  supersede: () => {
+    const command = route.commands[0];
+    if (!command) throw new Error("supersession command is missing");
+    runRtk(command);
+  },
+});
+process.stdout.write(`${JSON.stringify({ receipt, route }, null, 2)}\n`);
