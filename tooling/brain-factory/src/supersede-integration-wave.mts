@@ -12,6 +12,7 @@ import {
 import {
   buildIntegrationWaveSupersessionReceipt,
   materializeImmutableWaveSupersession,
+  validateExistingOwnerReworkSupersessionReplay,
   validateIntegrationWaveSupersessionReceipt,
 } from "./integration-wave-supersession.js";
 import { gitIsAncestor, runRtk } from "./process.js";
@@ -96,27 +97,74 @@ try {
   }
   const runRecordContent = readFileSync(runRecordPath, "utf8");
   const selectionContent = readFileSync(selectionPath);
+  const runRecord = JSON.parse(runRecordContent) as {
+    runIds?: unknown;
+    workdir?: unknown;
+  };
+  const ownerReworkResultContent = ownerReworkResultSha256
+    ? readFileSync(integrationResultPath, "utf8")
+    : undefined;
+  if (
+    ownerReworkResultContent &&
+    createHash("sha256").update(ownerReworkResultContent).digest("hex") !==
+      ownerReworkResultSha256
+  ) {
+    throw new Error(`${integrationId}: owner-rework result hash mismatch`);
+  }
+  const expectedOwnerReworkHeadSha = ownerReworkResultContent
+    ? gitSha(
+        runRtk(
+          [
+            "proxy",
+            "git",
+            "-C",
+            String(runRecord.workdir ?? ""),
+            "rev-parse",
+            "HEAD",
+          ],
+          { quiet: true },
+        ),
+        "owner-rework worktree HEAD",
+      )
+    : undefined;
   if (existsSync(supersessionPath)) {
     const existing = JSON.parse(readFileSync(supersessionPath, "utf8")) as {
       evidence?: unknown;
       reason?: unknown;
     };
-    const validated = validateIntegrationWaveSupersessionReceipt({
-      currentControlHead: controlHead,
-      expectedIntegrationId: integrationId,
-      isAncestor: (ancestor, descendant) =>
-        gitIsAncestor(ancestor, descendant, root),
-      receipt: existing,
-      runRecordContent,
-      selectionContent,
-      selectionPath,
-    });
+    const validated =
+      ownerReworkResultContent && expectedOwnerReworkHeadSha
+        ? validateExistingOwnerReworkSupersessionReplay({
+            currentControlHead: controlHead,
+            evidence: evidenceItems,
+            expectedIntegrationId: integrationId,
+            expectedOwnerReworkHeadSha,
+            isAncestor: (ancestor, descendant) =>
+              gitIsAncestor(ancestor, descendant, root),
+            reason,
+            receipt: existing,
+            resultContent: ownerReworkResultContent,
+            runRecordContent,
+            selectionContent,
+            selectionPath,
+          })
+        : validateIntegrationWaveSupersessionReceipt({
+            currentControlHead: controlHead,
+            expectedIntegrationId: integrationId,
+            isAncestor: (ancestor, descendant) =>
+              gitIsAncestor(ancestor, descendant, root),
+            receipt: existing,
+            runRecordContent,
+            selectionContent,
+            selectionPath,
+          });
     if (
-      validated.reason !== reason.trim() ||
-      JSON.stringify(validated.evidence) !==
-        JSON.stringify(
-          [...new Set(evidenceItems.map((item) => item.trim()))].sort(),
-        )
+      !ownerReworkResultContent &&
+      (validated.reason !== reason.trim() ||
+        JSON.stringify(validated.evidence) !==
+          JSON.stringify(
+            [...new Set(evidenceItems.map((item) => item.trim()))].sort(),
+          ))
     ) {
       throw new Error(
         `${integrationId}: existing immutable supersession has different reason or evidence`,
@@ -124,36 +172,9 @@ try {
     }
     console.log(JSON.stringify(validated, null, 2));
   } else {
-    const ownerReworkResultContent = ownerReworkResultSha256
-      ? readFileSync(integrationResultPath, "utf8")
-      : undefined;
-    if (
-      ownerReworkResultContent &&
-      createHash("sha256").update(ownerReworkResultContent).digest("hex") !==
-        ownerReworkResultSha256
-    ) {
-      throw new Error(`${integrationId}: owner-rework result hash mismatch`);
-    }
-    const runRecord = JSON.parse(runRecordContent) as { runIds?: unknown };
     if (!Array.isArray(runRecord.runIds)) {
       throw new Error(`${integrationId}: durable runIds are missing`);
     }
-    const expectedOwnerReworkHeadSha = ownerReworkResultContent
-      ? gitSha(
-          runRtk(
-            [
-              "proxy",
-              "git",
-              "-C",
-              String((runRecord as { workdir?: unknown }).workdir ?? ""),
-              "rev-parse",
-              "HEAD",
-            ],
-            { quiet: true },
-          ),
-          "owner-rework worktree HEAD",
-        )
-      : undefined;
     const runInspections = runRecord.runIds.map((runId) =>
       JSON.parse(
         runRtk(["fabro", "inspect", String(runId), "--json", "--quiet"], {

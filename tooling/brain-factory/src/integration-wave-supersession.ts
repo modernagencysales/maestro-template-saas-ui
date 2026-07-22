@@ -505,6 +505,71 @@ export const validateIntegrationWaveSupersessionReceipt = (input: {
   return expected;
 };
 
+export const validateExistingOwnerReworkSupersessionReplay = (input: {
+  readonly currentControlHead: string;
+  readonly evidence: readonly string[];
+  readonly expectedIntegrationId: string;
+  readonly expectedOwnerReworkHeadSha: string;
+  readonly isAncestor: (ancestor: string, descendant: string) => boolean;
+  readonly reason: string;
+  readonly receipt: unknown;
+  readonly resultContent: string;
+  readonly runRecordContent: string;
+  readonly selectionContent: string | Uint8Array;
+  readonly selectionPath: string;
+}): ValidatedIntegrationWaveSupersessionReceipt => {
+  const selectionBytes =
+    typeof input.selectionContent === "string"
+      ? input.selectionContent
+      : new TextDecoder().decode(input.selectionContent);
+  const selection = readIntegrationWaveSelection(selectionBytes);
+  const result = JSON.parse(input.resultContent) as {
+    readonly generatedFiles?: unknown;
+  };
+  const route = planIntegrationOwnerReworkRoute({
+    expectedHeadSha: input.expectedOwnerReworkHeadSha,
+    expectedIntegrationId: input.expectedIntegrationId,
+    expectedResultSha256: sha256(input.resultContent),
+    expectedSelectionFileSha256: selection.selectionFileSha256,
+    expectedSelectionPayloadSha256: selection.selectionPayloadSha256,
+    integrationOwnedPaths: Array.isArray(result.generatedFiles)
+      ? result.generatedFiles.filter(
+          (path): path is string => typeof path === "string",
+        )
+      : [],
+    integrationResultContent: input.resultContent,
+    selectionContent: selectionBytes,
+    stateRoot: ".",
+  });
+  const validated = validateIntegrationWaveSupersessionReceipt({
+    currentControlHead: input.currentControlHead,
+    expectedIntegrationId: input.expectedIntegrationId,
+    isAncestor: input.isAncestor,
+    receipt: input.receipt,
+    runRecordContent: input.runRecordContent,
+    selectionContent: input.selectionContent,
+    selectionPath: input.selectionPath,
+  });
+  const finalAttempt = validated.runAttempts.at(-1);
+  if (!finalAttempt || finalAttempt.status !== "owner_rework") {
+    throw new Error("existing supersession is not owner rework");
+  }
+  const expectedEvidence = normalizedEvidence([
+    ...input.evidence,
+    `run:${finalAttempt.runId}:owner_rework`,
+    `owner-rework-result-sha256:${route.resultSha256}`,
+  ]);
+  if (
+    validated.reason !== input.reason.trim() ||
+    JSON.stringify(validated.evidence) !== JSON.stringify(expectedEvidence)
+  ) {
+    throw new Error(
+      `${input.expectedIntegrationId}: existing owner-rework supersession evidence drift`,
+    );
+  }
+  return validated;
+};
+
 export const materializeImmutableWaveSupersession = (
   path: string,
   receipt: IntegrationWaveSupersessionReceipt,

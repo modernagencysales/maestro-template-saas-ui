@@ -35,6 +35,7 @@ import {
   nextIntegrationWaveId,
   priorIntegrationWaveResolution,
   validateIntegrationWaveSupersessionReceipt,
+  validateExistingOwnerReworkSupersessionReplay,
 } from "../src/integration-wave-supersession.js";
 import {
   materializeImmutableWaveSelection,
@@ -1392,6 +1393,42 @@ describe("integration wave supersession", () => {
     expect(receipt.evidence).toContain(
       `run:${fixture.runInspections[0]?.run_id}:owner_rework`,
     );
+    expect(() =>
+      validateExistingOwnerReworkSupersessionReplay({
+        currentControlHead: fixture.controlHeadSha,
+        evidence: [`integration-result-sha256:${resultSha256}`],
+        expectedIntegrationId: fixture.integrationId,
+        expectedOwnerReworkHeadSha: "d".repeat(40),
+        isAncestor: () => true,
+        reason: "Route exact task-owned findings",
+        receipt,
+        resultContent: ownerReworkResultContent,
+        runRecordContent: fixture.runRecordContent,
+        selectionContent: fixture.selectionContent,
+        selectionPath: fixture.selectionPath,
+      }),
+    ).not.toThrow();
+    expect(() =>
+      validateExistingOwnerReworkSupersessionReplay({
+        currentControlHead: fixture.controlHeadSha,
+        evidence: [`integration-result-sha256:${resultSha256}`],
+        expectedIntegrationId: fixture.integrationId,
+        expectedOwnerReworkHeadSha: "e".repeat(40),
+        isAncestor: () => true,
+        reason: "Route exact task-owned findings",
+        receipt,
+        resultContent: ownerReworkResultContent,
+        runRecordContent: fixture.runRecordContent,
+        selectionContent: fixture.selectionContent,
+        selectionPath: fixture.selectionPath,
+      }),
+    ).toThrow("candidate head mismatch");
+    const cli = readFileSync(
+      resolve(import.meta.dirname, "../src/supersede-integration-wave.mts"),
+      "utf8",
+    );
+    expect(cli).toContain("validateExistingOwnerReworkSupersessionReplay");
+    expect(cli).toContain("--owner-rework-result-sha256");
     expect(() =>
       validateIntegrationWaveSupersessionReceipt({
         currentControlHead: fixture.controlHeadSha,
