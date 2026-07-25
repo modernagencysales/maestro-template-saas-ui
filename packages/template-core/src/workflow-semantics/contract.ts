@@ -1,5 +1,7 @@
 import type { WorkflowSemanticRule } from "./schema";
 
+export * from "./failure-policy";
+
 export const WORKFLOW_SCHEMA_FIELDS = {
   graph: ["id", "version", "startNodeId", "nodes", "edges", "joins"],
   node: ["id", "kind", "label", "capability", "agent", "delayMs", "retry"],
@@ -25,6 +27,7 @@ export const WORKFLOW_SCHEMA_FIELDS = {
     "stepName",
     "payloadPolicy",
     "semanticRuleIds",
+    "failurePolicy",
     "kind",
     "capability",
     "functionKind",
@@ -40,6 +43,8 @@ export const WORKFLOW_SCHEMA_FIELDS = {
     "childVersion",
   ],
   retryV2: ["maxAttempts", "initialBackoffMs", "base"],
+  failurePolicy: ["kind", "edgeId", "failure", "capability", "stepName"],
+  settledFailure: ["_tag", "code", "message"],
   schedule: ["kind", "delayMs", "timestamp"],
   payloadPolicy: ["maxInputBytes", "maxResultBytes", "resultMode"],
   transaction: ["kind", "limits"],
@@ -114,6 +119,14 @@ const WORKFLOW_GRAPH_V2_FIELDS = [
   ...WORKFLOW_SCHEMA_FIELDS.graphV2,
   ...prefixWorkflowFields("nodes[].", WORKFLOW_SCHEMA_FIELDS.nodeV2),
   ...prefixWorkflowFields("nodes[].retry.", WORKFLOW_SCHEMA_FIELDS.retryV2),
+  ...prefixWorkflowFields(
+    "nodes[].failurePolicy.",
+    WORKFLOW_SCHEMA_FIELDS.failurePolicy,
+  ),
+  ...prefixWorkflowFields(
+    "nodes[].failurePolicy.failure.",
+    WORKFLOW_SCHEMA_FIELDS.settledFailure,
+  ),
   ...prefixWorkflowFields("nodes[].schedule.", WORKFLOW_SCHEMA_FIELDS.schedule),
   ...prefixWorkflowFields(
     "nodes[].payloadPolicy.",
@@ -178,6 +191,8 @@ const GRAPH_FIXTURE = "packages/convex/test/workflow-conformance.test.ts";
 const GENERATOR_FIXTURE = "tooling/generators/src/index.test.ts";
 const V2_GRAPH_FIXTURE = "packages/convex/test/workflow-graph-v2.test.ts";
 const V2_BUILDER_FIXTURE = "packages/convex/test/workflow-builder.test.ts";
+const FAILURE_POLICY_FIXTURE =
+  "packages/template-core/src/workflow-semantics/failure-policy.test.ts";
 
 const supported = <const Id extends string>(
   id: Id,
@@ -379,6 +394,84 @@ export const WORKFLOW_SEMANTICS = [
     "WorkflowSemanticRuleId[]",
     "defineMaestroWorkflow semantic coverage validation",
     V2_GRAPH_FIXTURE,
+  ),
+  supported(
+    "WF-NODE-FAILURE-POLICY",
+    "graph.nodes[].failurePolicy",
+    "WorkflowFailurePolicy<WorkflowCapabilityReference, WorkflowStepName>",
+    "project declared policy to validated failureRoutes before ready-wave dispatch",
+    FAILURE_POLICY_FIXTURE,
+    "undeclared routing rethrows the first settled rejection",
+  ),
+  supported(
+    "WF-FAILURE-POLICY-KIND",
+    "graph.nodes[].failurePolicy.kind",
+    "fail | error-edge | compensation",
+    "select fail, passed error edge, or declared compensation compiler",
+    FAILURE_POLICY_FIXTURE,
+    "tagged-union decoding with no implicit routing fallback",
+  ),
+  supported(
+    "WF-FAILURE-EDGE",
+    "graph.nodes[].failurePolicy.edgeId",
+    "errorEdgePolicy.edgeId | compensationPolicy.edgeId",
+    "validateFailureRoutes existing outgoing edge then passedEdges.add(edgeId)",
+    FAILURE_POLICY_FIXTURE,
+    "route must name an outgoing edge of the failed capability node",
+  ),
+  supported(
+    "WF-FAILURE-ENVELOPE",
+    "graph.nodes[].failurePolicy.failure",
+    "WorkflowSettledFailure",
+    "apply typed failure to stable declared-order workflow context",
+    FAILURE_POLICY_FIXTURE,
+    "safe tagged code and bounded single-line message",
+  ),
+  supported(
+    "WF-FAILURE-COMPENSATION-CAPABILITY",
+    "graph.nodes[].failurePolicy.capability",
+    "WorkflowCapabilityReference",
+    "runCompensation through generated action capability registry",
+    FAILURE_POLICY_FIXTURE,
+    "generated versioned capability reference and registry membership",
+  ),
+  supported(
+    "WF-FAILURE-COMPENSATION-STEP",
+    "graph.nodes[].failurePolicy.stepName",
+    "WorkflowStepName",
+    "runCompensation stable named action with retry false by default",
+    FAILURE_POLICY_FIXTURE,
+    "versioned restart-safe step name",
+  ),
+  supported(
+    "WF-FAILURE-TAG",
+    "graph.nodes[].failurePolicy.failure._tag",
+    "WorkflowSettledFailure._tag",
+    "validateFailureRoutes typed settled failure discriminator",
+    FAILURE_POLICY_FIXTURE,
+  ),
+  supported(
+    "WF-FAILURE-CODE",
+    "graph.nodes[].failurePolicy.failure.code",
+    "WorkflowSafeFailureCode",
+    "project redacted stable failure code to workflow context",
+    FAILURE_POLICY_FIXTURE,
+    "non-empty uppercase safe code",
+  ),
+  supported(
+    "WF-FAILURE-MESSAGE",
+    "graph.nodes[].failurePolicy.failure.message",
+    "WorkflowSafeFailureMessage",
+    "project redacted stable failure message to workflow context",
+    FAILURE_POLICY_FIXTURE,
+    "non-empty single-line message capped at 256 characters",
+  ),
+  restricted(
+    "WF-FAILURE-UNDECLARED-ROUTE",
+    "behavior.failureRouting.undeclared",
+    "Implicit error-edge or compensation routing hides settled sibling behavior.",
+    "Declare nodes[].failurePolicy or retain fail behavior.",
+    FAILURE_POLICY_FIXTURE,
   ),
   restricted(
     "WF-NODE-FUNCTION-KIND",

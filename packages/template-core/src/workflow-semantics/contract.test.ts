@@ -66,6 +66,7 @@ describe("workflow semantics contract", () => {
         "stepName",
         "payloadPolicy",
         "semanticRuleIds",
+        "failurePolicy",
         "functionKind",
         "schedule",
         "transaction",
@@ -77,6 +78,7 @@ describe("workflow semantics contract", () => {
     expect(WORKFLOW_GRAPH_FIELDS).toEqual(
       expect.arrayContaining([
         "nodes[].retry.initialBackoffMs",
+        "nodes[].failurePolicy.failure.code",
         "nodes[].transaction.limits.scheduledFunctionArgsBytes",
         "kickoffProfiles[].mode",
         "policyPosture.policyHash",
