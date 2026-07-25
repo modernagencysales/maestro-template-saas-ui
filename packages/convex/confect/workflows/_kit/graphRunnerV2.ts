@@ -21,6 +21,10 @@ import {
   findReadyWave,
   type TraversalSnapshot,
 } from "./graphRunnerTraversal";
+import {
+  runRegisteredSubworkflow,
+  type WorkflowV2SubworkflowRegistryEntry,
+} from "./subworkflows";
 
 type CapabilityNodeV2 = Extract<WorkflowNodeV2, { kind: "capability" }>;
 type CapabilityKindV2 = CapabilityNodeV2["functionKind"];
@@ -93,6 +97,9 @@ export type RunDurableGraphV2CompilerInput<
   }) => Promise<WorkflowEffectAdmission>;
   readonly failureRoutes?: Readonly<
     Record<string, WorkflowSettledFailureRoute>
+  >;
+  readonly workflowRegistry?: Readonly<
+    Record<string, WorkflowV2SubworkflowRegistryEntry>
   >;
   readonly projectOutput: (input: {
     readonly context: Readonly<Record<string, unknown>>;
@@ -301,6 +308,24 @@ const executeNode = async <Result extends Record<string, unknown>>(
 ): Promise<unknown> => {
   if (node.kind === "source") return input.inputs;
   if (node.kind === "output") return input.projectOutput({ context });
+  if (node.kind === "subworkflow") {
+    const entry = input.workflowRegistry?.[node.workflow];
+    if (!entry) {
+      throw validationFailure(
+        node,
+        `missing generated workflow registry entry ${node.workflow}`,
+      );
+    }
+    return runRegisteredSubworkflow({
+      step,
+      node,
+      entry,
+      inputs: input.inputs,
+      context,
+      principal: input.principal,
+      policySnapshot: input.policySnapshot,
+    });
+  }
   if (node.kind !== "capability") {
     throw validationFailure(node, "node compiler is not enabled yet");
   }

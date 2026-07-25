@@ -34,6 +34,8 @@ export type DurableGraphStepRef<
   Kind extends DurableGraphStepKind = DurableGraphStepKind,
 > = FunctionReference<Kind, "internal">;
 
+export type { DurableGraphWorkflowRef } from "./subworkflows";
+
 export type DurableGraphCapabilityEnvelope = {
   readonly inputs: unknown;
   readonly context: Readonly<Record<string, unknown>>;
@@ -83,6 +85,11 @@ export type RunDurableGraphStep = {
     ref: DurableGraphStepRef<"action">,
     args: Record<string, unknown>,
     options?: Record<string, unknown>,
+  ) => Promise<unknown>;
+  readonly runWorkflow?: (
+    ref: FunctionReference<"mutation", "internal">,
+    args: Readonly<Record<string, unknown>>,
+    options?: { readonly name?: string },
   ) => Promise<unknown>;
   readonly sleep: (
     delayMs: number,
@@ -141,6 +148,9 @@ export const runDurableGraphWorkflowV2 = async <
   const executable = input.graph.nodes.filter(
     (node) => node.kind !== "source" && node.kind !== "output",
   );
+  const subworkflowNodes = executable.filter(
+    (node) => node.kind === "subworkflow",
+  );
   if (
     executable.length > 0 &&
     (!input.capabilityRegistry || !input.effectIdentity || !input.admitEffect)
@@ -152,6 +162,13 @@ export const runDurableGraphWorkflowV2 = async <
     );
   }
   if (executable.length === 0) return input.projectOutput({ context: {} });
+  if (subworkflowNodes.length > 0 && !input.workflowRegistry) {
+    throw makePublicError(
+      "VALIDATION_FAILED",
+      "Workflow graph V2 contains a subworkflow without a generated registry.",
+      { nodeIds: subworkflowNodes.map(({ id }) => id).join(",") },
+    );
+  }
   const capabilityRegistry = input.capabilityRegistry;
   const effectIdentity = input.effectIdentity;
   const admitEffect = input.admitEffect;

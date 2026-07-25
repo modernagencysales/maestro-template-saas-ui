@@ -7,6 +7,7 @@ import {
 import { isSafeConditionExpression } from "./conditionExpression";
 import type { DurableWorkflowGraphV2 } from "./graphSchema";
 import { generatedWorkflowReadyWaveLimit } from "./_kit/workpoolConfig";
+import { scheduledSubworkflowFinding } from "./_kit/subworkflows";
 
 type ValidationState = {
   readonly errors: WorkflowGraphValidationError[];
@@ -320,6 +321,10 @@ export const validateWorkflowGraphV2 = (
           ]
         : [],
     ),
+    ...graph.nodes.flatMap((node) => {
+      const finding = scheduledSubworkflowFinding(node);
+      return finding ? [finding] : [];
+    }),
     ...validateReadyWaveBound(graph, generatedWorkflowReadyWaveLimit).map(
       (width) =>
         `graph materializes a ready wave of ${width} nodes above the environment Workpool limit ${generatedWorkflowReadyWaveLimit}`,

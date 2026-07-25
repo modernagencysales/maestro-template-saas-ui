@@ -1,5 +1,13 @@
 import { makePublicError } from "../../shared/errors";
 
+export type JsonSafeValue =
+  | null
+  | string
+  | boolean
+  | number
+  | JsonSafeValue[]
+  | { [key: string]: JsonSafeValue };
+
 export const assertJsonObject = (value: unknown, message: string): void => {
   if (!isJsonRecord(value)) {
     throw makePublicError("VALIDATION_FAILED", message);
@@ -7,7 +15,10 @@ export const assertJsonObject = (value: unknown, message: string): void => {
   assertJsonSafe(value, message);
 };
 
-export const assertJsonSafe = (value: unknown, message: string): void => {
+export const assertJsonSafe: (
+  value: unknown,
+  message: string,
+) => asserts value is JsonSafeValue = (value, message) => {
   if (!isJsonSafe(value)) {
     throw makePublicError("VALIDATION_FAILED", message);
   }

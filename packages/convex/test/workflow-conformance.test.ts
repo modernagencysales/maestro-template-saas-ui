@@ -9,6 +9,7 @@ import { adversarialWorkflowDrafts } from "./fixtures/workflows/adversarial";
 import { findWorkflowConformanceIssues } from "./fixtures/workflows/conformanceChecks";
 import {
   WorkflowCapabilityReference,
+  WorkflowReference,
   WorkflowStepName,
   validateWorkflowGraphV2,
   type DurableWorkflowGraph,
@@ -20,6 +21,13 @@ import {
   type DurableGraphStepRef,
   type RunDurableGraphStep,
 } from "../confect/workflows/_kit/graphRunner";
+import {
+  defineWorkflowV2SubworkflowRegistry,
+  runRegisteredSubworkflow,
+  scheduledSubworkflowFinding,
+  type DurableGraphWorkflowRef,
+} from "../confect/workflows/_kit/subworkflows";
+import type { WorkflowPrincipal } from "../confect/workflows/_kit/principal";
 import type { WorkflowEffectContract } from "../confect/workflows/_kit/effectReservations";
 import { runObservedWorkflowStage } from "../confect/workflows/_kit/observedStage";
 
@@ -276,6 +284,165 @@ describe("Maestro V2 action retry compiler", () => {
     ).rejects.toThrow("Workflow graph V2 failed validation.");
     expect(runQuery).not.toHaveBeenCalled();
   });
+
+  it("runs an exact child version with bounded args and inherited principal", async () => {
+    const runWorkflow = vi.fn(async () => ({ receiptId: "child-receipt" }));
+    const graph = v2SubworkflowGraph();
+
+    await expect(
+      runDurableGraphWorkflowV2(v2Step({ runWorkflow }), {
+        ...v2Input(graph),
+        inputs: { requestId: "request-1" },
+        principal: childPrincipal,
+        workflowRegistry: childWorkflowRegistry,
+        capabilityRegistry: {},
+        admitEffect: async () => ({ kind: "deny", reason: "not used" }),
+      }),
+    ).resolves.toMatchObject({
+      context: { child: { receiptId: "child-receipt" } },
+    });
+    expect(runWorkflow).toHaveBeenCalledWith(
+      childHandlerRef,
+      { requestId: "request-1", principal: childPrincipal },
+      { name: "child.v3" },
+    );
+  });
+
+  it("rejects a registry key whose version differs from its binding", () => {
+    expect(() =>
+      defineWorkflowV2SubworkflowRegistry({
+        [childWorkflowRef]: { ...childWorkflowEntry, version: 2 },
+      }),
+    ).toThrow(/generated reference matching its immutable version/);
+  });
+
+  it.each(["child failed", "child canceled"])(
+    "propagates %s without overstating cleanup completion",
+    async (message) => {
+      const runWorkflow = vi.fn(async () => Promise.reject(new Error(message)));
+      await expect(
+        runDurableGraphWorkflowV2(v2Step({ runWorkflow }), {
+          ...v2Input(v2SubworkflowGraph()),
+          principal: childPrincipal,
+          workflowRegistry: childWorkflowRegistry,
+          capabilityRegistry: {},
+          admitEffect: async () => ({ kind: "deny", reason: "not used" }),
+        }),
+      ).rejects.toThrow(message);
+      expect(childWorkflowEntry.lifecycle).toEqual({
+        cancel: "cascade",
+        cleanup: "cascade-async",
+      });
+    },
+  );
+
+  it("allows only an explicit grant narrowing for the child principal", async () => {
+    const runWorkflow = vi.fn(async () => ({ receiptId: "narrowed" }));
+    const narrowedRegistry = defineWorkflowV2SubworkflowRegistry({
+      [childWorkflowRef]: {
+        ...childWorkflowEntry,
+        principal: { kind: "narrow", grants: ["brief:read"] },
+      },
+    });
+    await runDurableGraphWorkflowV2(v2Step({ runWorkflow }), {
+      ...v2Input(v2SubworkflowGraph()),
+      inputs: { requestId: "request-1" },
+      principal: childPrincipal,
+      workflowRegistry: narrowedRegistry,
+      capabilityRegistry: {},
+      admitEffect: async () => ({ kind: "deny", reason: "not used" }),
+    });
+    expect(runWorkflow).toHaveBeenCalledWith(
+      childHandlerRef,
+      {
+        requestId: "request-1",
+        principal: { ...childPrincipal, grants: ["brief:read"] },
+      },
+      { name: "child.v3" },
+    );
+  });
+
+  it("rejects a child principal that attempts to add a grant", async () => {
+    const runWorkflow = vi.fn(async () => ({ receiptId: "unreachable" }));
+    const wideningRegistry = defineWorkflowV2SubworkflowRegistry({
+      [childWorkflowRef]: {
+        ...childWorkflowEntry,
+        principal: { kind: "narrow", grants: ["workflow:admin"] },
+      },
+    });
+    await expect(
+      runDurableGraphWorkflowV2(v2Step({ runWorkflow }), {
+        ...v2Input(v2SubworkflowGraph()),
+        inputs: { requestId: "request-1" },
+        principal: childPrincipal,
+        workflowRegistry: wideningRegistry,
+        capabilityRegistry: {},
+        admitEffect: async () => ({ kind: "deny", reason: "not used" }),
+      }),
+    ).rejects.toThrow(/narrowed child principal cannot add grants/);
+    expect(runWorkflow).not.toHaveBeenCalled();
+  });
+
+  it("retains the validated child result type instead of WorkflowId", () => {
+    const typedInvocation = () =>
+      runRegisteredSubworkflow({
+        step: v2Step({ runWorkflow: async () => ({ receiptId: "typed" }) }),
+        node: v2SubworkflowNode(),
+        entry: childWorkflowEntry,
+        inputs: { requestId: "request-1" },
+        context: {},
+        principal: childPrincipal,
+        policySnapshot: {},
+      });
+    const typedChildResult: () => Promise<ChildResult> = typedInvocation;
+    expect(typedChildResult).toBeTypeOf("function");
+  });
+
+  it("rejects oversized child args before runWorkflow dispatch", async () => {
+    const runWorkflow = vi.fn(async () => ({ receiptId: "unreachable" }));
+    await expect(
+      runDurableGraphWorkflowV2(v2Step({ runWorkflow }), {
+        ...v2Input(v2SubworkflowGraph(32)),
+        inputs: { requestId: "x".repeat(200) },
+        principal: childPrincipal,
+        workflowRegistry: childWorkflowRegistry,
+        capabilityRegistry: {},
+        admitEffect: async () => ({ kind: "deny", reason: "not used" }),
+      }),
+    ).rejects.toThrow(/child.*mapped args.*32 bytes/);
+    expect(runWorkflow).not.toHaveBeenCalled();
+  });
+
+  it("validates the child result before exposing it to parent traversal", async () => {
+    const runWorkflow = vi.fn(async () => ({ wrong: true }));
+    await expect(
+      runDurableGraphWorkflowV2(v2Step({ runWorkflow }), {
+        ...v2Input(v2SubworkflowGraph()),
+        inputs: { requestId: "request-1" },
+        principal: childPrincipal,
+        workflowRegistry: childWorkflowRegistry,
+        capabilityRegistry: {},
+        admitEffect: async () => ({ kind: "deny", reason: "not used" }),
+      }),
+    ).rejects.toThrow(/child returned an invalid declared result/);
+  });
+
+  it.each(["runAt", "runAfter"] as const)(
+    "rejects scheduled child %s on pinned Workflow 0.4.4 with an honest alternative",
+    (kind) => {
+      expect(
+        scheduledSubworkflowFinding({
+          ...v2SubworkflowNode(),
+          schedule:
+            kind === "runAt"
+              ? { kind, timestamp: 100 }
+              : { kind, delayMs: 100 },
+        }),
+      ).toBe(
+        "subworkflow node child cannot use runAt or runAfter on pinned Workflow 0.4.4 because runWorkflow drops scheduled-child options; use a named sleep followed by an unscheduled child as a deliberately non-equivalent alternative, or a tested compatible upgrade",
+      );
+    },
+  );
 
   it("passes the stable name and exact explicit retry options", async () => {
     const actionRef =
@@ -818,6 +985,51 @@ const capabilityRef = Schema.decodeSync(WorkflowCapabilityReference)(
   "capability.billingCharge.v2",
 );
 
+const childWorkflowRef = Schema.decodeSync(WorkflowReference)(
+  "workflow.childReceipt.v3",
+);
+type ChildArgs = {
+  readonly requestId: string;
+  readonly principal: WorkflowPrincipal;
+};
+type ChildResult = { readonly receiptId: string };
+const childHandlerRef =
+  "workflow.childReceipt.v3.handler" as unknown as DurableGraphWorkflowRef<
+    ChildArgs,
+    ChildResult
+  >;
+const childResultSchema = Schema.Struct({ receiptId: Schema.String });
+const childPrincipal = {
+  version: 1,
+  kind: "user",
+  workspaceId: "workspace-1",
+  actorId: "actor-1",
+  role: "member",
+  authEpoch: 4,
+  provenance: "kickoff.fixture",
+  grants: ["workflow:run", "brief:read"],
+  kickoffAt: 1,
+} as const satisfies WorkflowPrincipal;
+const childWorkflowRegistry = defineWorkflowV2SubworkflowRegistry({
+  [childWorkflowRef]: {
+    version: 3,
+    ref: childHandlerRef,
+    mapArgs: ({ inputs }) => ({
+      requestId: String((inputs as { requestId?: unknown }).requestId),
+    }),
+    resultSchema: childResultSchema,
+    principal: { kind: "inherit" },
+    lifecycle: { cancel: "cascade", cleanup: "cascade-async" },
+  },
+});
+const childWorkflowEntry = readChildWorkflowEntry();
+
+function readChildWorkflowEntry() {
+  const entry = Object.values(childWorkflowRegistry)[0];
+  if (!entry) throw new Error("child workflow fixture requires an entry");
+  return entry;
+}
+
 const guards = {
   approval: { kind: "required", evidenceRef: "approval.fixture" },
   quotaRate: { kind: "required", evidenceRef: "quota.fixture" },
@@ -908,6 +1120,38 @@ const v2CapabilityGraph = (
   ],
   joins: [],
 });
+
+const v2SubworkflowNode = (maxInputBytes = 1024) => ({
+  id: "child",
+  kind: "subworkflow" as const,
+  workflow: childWorkflowRef,
+  childVersion: 3,
+  label: "Child receipt",
+  stepName: Schema.decodeSync(WorkflowStepName)("child.v3"),
+  payloadPolicy: { ...payloadPolicy, maxInputBytes },
+  semanticRuleIds: ["WF-NODE-SUBWORKFLOW", "WF-NODE-CHILD-VERSION"] as const,
+});
+
+const v2SubworkflowGraph = (maxInputBytes = 1024): DurableWorkflowGraphV2 => {
+  const { source, output, ...graph } = v2SubworkflowTemplate();
+  return {
+    ...graph,
+    nodes: [source, v2SubworkflowNode(maxInputBytes), output],
+    edges: [
+      { id: "source-child", sourceNodeId: "source", targetNodeId: "child" },
+      { id: "child-output", sourceNodeId: "child", targetNodeId: "output" },
+    ],
+  };
+};
+
+const v2SubworkflowTemplate = () => {
+  const graph = v2CapabilityGraph("query");
+  const source = graph.nodes.find((node) => node.kind === "source");
+  const output = graph.nodes.find((node) => node.kind === "output");
+  if (!source || !output)
+    throw new Error("subworkflow fixture requires endpoints");
+  return { ...graph, source, output };
+};
 
 const v2ParallelGraph = (): DurableWorkflowGraphV2 => ({
   ...v2CapabilityGraph("query"),
@@ -1069,6 +1313,7 @@ const v2Step = (
   runQuery: async () => undefined,
   runMutation: async () => undefined,
   runAction: async () => undefined,
+  runWorkflow: async () => undefined,
   sleep: async () => undefined,
   awaitEvent: async () => {
     throw new Error("V2 capability fixture does not await events.");
