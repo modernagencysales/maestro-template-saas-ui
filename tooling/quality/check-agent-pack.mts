@@ -101,7 +101,8 @@ async function factoryWiringFindings(
   );
   if (
     !includesAll(cliIndex, [
-      'import { factoryCliComposition } from "./factory/composition";',
+      'import { createFactoryCliComposition } from "./factory/composition";',
+      "const factoryCliComposition = createFactoryCliComposition(() => process.env);",
       "export const runCliAsync",
       "dispatchFactoryCliCommand(\n      factoryCliComposition.handlers,",
     ]) ||
@@ -115,14 +116,22 @@ async function factoryWiringFindings(
     ]) ||
     !includesAll(factoryComposition, [
       "const execFile = createNodeExecFileAdapter();",
-      "runtime: createNodePreflightRuntimeReader({\n      fs: nodePreflightFileSystem,\n      execFile,",
+      "export function createFactoryCliComposition(\n  readEnvironment: CompositionEnvironmentReader,\n) {",
+      "runtime: createNodePreflightRuntimeReader({\n        fs: nodePreflightFileSystem,\n        execFile,",
+      "environment: readEnvironment,",
       "const descriptors = defineQualityDiagnosticRegistryProjection(\n  defineDiagnosticRegistryProjection,\n);",
-      "const verificationRunner = createExecFileVerificationRunner({\n  execFile,",
+      "const verificationRunner = createExecFileVerificationRunner({\n    execFile,",
+      "projectCompositionEnvironment(repo, readEnvironment)",
       "createPreflightCliHandler(preflight)",
       "createVerifyCliHandler(verify)",
       "createVerifyCliHandler(check)",
-      "export const factoryCliComposition = Object.freeze({\n  handlers,",
-    ])
+      "return Object.freeze({\n    handlers,",
+    ]) ||
+    countOccurrences(cliIndex, "createFactoryCliComposition(") !== 1 ||
+    countOccurrences(factoryComposition, "createFactoryCliComposition(") !==
+      1 ||
+    factoryComposition?.includes("process.env") === true ||
+    factoryComposition?.includes("export const factoryCliComposition") === true
   ) {
     findings.push("factory-wiring:shared-executor-adapter");
   }
@@ -134,6 +143,14 @@ async function factoryWiringFindings(
     findings.push("factory-wiring:just-recipe");
   }
   return findings;
+}
+
+function countOccurrences(
+  source: string | undefined,
+  fragment: string,
+): number {
+  if (source === undefined || fragment.length === 0) return 0;
+  return source.split(fragment).length - 1;
 }
 
 function includesAll(

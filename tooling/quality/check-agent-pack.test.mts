@@ -88,6 +88,57 @@ describe("check:agent-pack", () => {
     );
   });
 
+  it("rejects duplicate factory composition construction", async () => {
+    const fixtureRoot = await integratedFixture();
+    const indexPath = join(fixtureRoot, "apps/cli/src/index.ts");
+    await writeFile(
+      indexPath,
+      (await readFile(indexPath, "utf8")).replace(
+        "const factoryCliComposition = createFactoryCliComposition(() => process.env);",
+        [
+          "const factoryCliComposition = createFactoryCliComposition(() => process.env);",
+          "const duplicateFactoryCliComposition = createFactoryCliComposition(() => process.env);",
+        ].join("\n"),
+      ),
+    );
+
+    await expect(checkAgentPack(fixtureRoot)).resolves.toContain(
+      "factory-wiring:shared-executor-adapter",
+    );
+  });
+
+  it("rejects an unshared factory composition construction", async () => {
+    const fixtureRoot = await integratedFixture();
+    const indexPath = join(fixtureRoot, "apps/cli/src/index.ts");
+    await writeFile(
+      indexPath,
+      (await readFile(indexPath, "utf8")).replace(
+        "factoryCliComposition.handlers,",
+        "createFactoryCliComposition(() => process.env).handlers,",
+      ),
+    );
+
+    await expect(checkAgentPack(fixtureRoot)).resolves.toContain(
+      "factory-wiring:shared-executor-adapter",
+    );
+  });
+
+  it("rejects ambient environment access inside composition", async () => {
+    const fixtureRoot = await integratedFixture();
+    const compositionPath = join(
+      fixtureRoot,
+      "apps/cli/src/factory/composition.ts",
+    );
+    await writeFile(
+      compositionPath,
+      `${await readFile(compositionPath, "utf8")}\nconst ambientEnvironment = process.env;\n`,
+    );
+
+    await expect(checkAgentPack(fixtureRoot)).resolves.toContain(
+      "factory-wiring:shared-executor-adapter",
+    );
+  });
+
   it("rejects a composition that omits the canonical diagnostic registry", async () => {
     const fixtureRoot = await integratedFixture();
     const compositionPath = join(
