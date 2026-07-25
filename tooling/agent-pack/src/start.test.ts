@@ -109,11 +109,14 @@ describe("start command", () => {
       repo: context.repo,
       preflight: ready,
     });
-    expect(
-      vi.mocked(dependencies.readinessSurface.open).mock.invocationCallOrder[0],
-    ).toBeLessThan(
-      vi.mocked(dependencies.supervise).mock.invocationCallOrder[0]!,
-    );
+    const readinessOpenOrder = vi.mocked(dependencies.readinessSurface.open)
+      .mock.invocationCallOrder[0];
+    const superviseOrder = vi.mocked(dependencies.supervise).mock
+      .invocationCallOrder[0];
+    if (readinessOpenOrder === undefined || superviseOrder === undefined) {
+      throw new Error("Expected readiness and supervision to both run.");
+    }
+    expect(readinessOpenOrder).toBeLessThan(superviseOrder);
   });
 
   it("starts explicit local Convex, Confect, and web argv without production", async () => {

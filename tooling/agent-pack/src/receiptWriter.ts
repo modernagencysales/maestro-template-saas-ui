@@ -8,8 +8,6 @@ import {
   type FileHandle,
 } from "node:fs/promises";
 import { resolve } from "node:path";
-import type { VerificationReceipt } from "./receipt.js";
-import type { RepositoryContext } from "./repoContext.js";
 import type { VerificationReceiptWriter } from "./verify.js";
 
 export const VERIFICATION_RECEIPT_PATH =
