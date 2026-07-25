@@ -1,0 +1,69 @@
+{
+  "feature": "phase-3-plan-check-and-scaffold",
+  "slices": [
+    {
+      "id": 1,
+      "branch": "codex/wp-3.3-scaffold-adapters",
+      "intention": "project deterministic stack-plan validation through the Agent Pack command ABI",
+      "layers": ["checks"],
+      "contractRiskIds": [
+        "ambient-time-inline",
+        "schema-runtime-validator-export",
+        "policy-data-hardcoded",
+        "duplicated-closed-union",
+        "invalid-test-fixture-or-cast",
+        "branching-logic-needs-boundary-tests",
+        "unjustified-cap-or-threshold",
+        "type-escape-or-cast"
+      ],
+      "workPackages": [
+        {
+          "kind": "fixture-to-real",
+          "target": "WP-3.3 tooling/stack/plan.mts validation projected by tooling/agent-pack/src/planCheck.ts",
+          "followUpGates": [
+            "pnpm --dir tooling/stack test",
+            "pnpm --dir tooling/agent-pack test planCheck",
+            "pnpm --dir tooling/agent-pack typecheck"
+          ],
+          "notes": "Reuse the existing deterministic validator through an injected callable boundary; exclude business-judgment grading, planner rule copies, root package exports, barrels, scripts, and router registration."
+        }
+      ],
+      "taskRefs": ["WP-3.3-plan-check"],
+      "rationale": "The transport-neutral command must preserve the stack validator as the sole deterministic plan authority.",
+      "estLines": 230
+    },
+    {
+      "id": 2,
+      "branch": "codex/wp-3.3-scaffold-adapters",
+      "intention": "gate preview-first generator delegation with preflight and workflow semantic evidence",
+      "layers": ["checks"],
+      "contractRiskIds": [
+        "ambient-time-inline",
+        "schema-runtime-validator-export",
+        "policy-data-hardcoded",
+        "duplicated-closed-union",
+        "invalid-test-fixture-or-cast",
+        "branching-logic-needs-boundary-tests",
+        "unjustified-cap-or-threshold",
+        "type-escape-or-cast"
+      ],
+      "workPackages": [
+        {
+          "kind": "fixture-to-real",
+          "target": "WP-3.3 template generator APIs projected by tooling/agent-pack/src/scaffold.ts",
+          "followUpGates": [
+            "pnpm --dir tooling/generators test",
+            "pnpm --dir tooling/agent-pack test scaffold",
+            "pnpm check:generators",
+            "pnpm check:workflow-semantics"
+          ],
+          "notes": "Preview is default; writes require a current passing matching preflight fingerprint. Unsupported and restricted requests return registry-owned alternatives without copying generator rules or playbook prose. Exclude MCP/WP-3.5, root dependencies, package barrels, CLI router registration, generator registry ownership, and central scripts."
+        }
+      ],
+      "taskRefs": ["WP-3.3-scaffold"],
+      "rationale": "One injected adapter keeps generators and workflow semantics authoritative while adding mutation safety to every transport.",
+      "estLines": 300
+    }
+  ],
+  "allTaskRefs": ["WP-3.3-plan-check", "WP-3.3-scaffold"]
+}
