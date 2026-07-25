@@ -1,0 +1,7 @@
+{
+  "kind": "deterministic-fixture",
+  "owner": "saas-application",
+  "dataClassification": "public-synthetic",
+  "provider": "none",
+  "liveFallback": false
+}

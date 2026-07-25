@@ -1,0 +1,7 @@
+{
+  "id": "workspace_my_app",
+  "slug": "my-app",
+  "name": "My App Workspace",
+  "memberRole": "owner",
+  "synthetic": true
+}

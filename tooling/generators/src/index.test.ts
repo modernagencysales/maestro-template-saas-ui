@@ -849,7 +849,7 @@ describe("template app factory generators", () => {
 
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain(
-      "Supported blueprints: source-grounded-gtm-brain, gtm-implementation",
+      "Supported blueprints: source-grounded-gtm-brain, gtm-implementation, saas-application",
     );
     expect(result.stdout).toContain(
       "Planned blueprints: implementation-consulting-brain, internal-ops-agent-workspace, custom-domain-ai-app",
@@ -877,6 +877,7 @@ describe("template app factory generators", () => {
     );
     expect(result.stderr).toContain("source-grounded-gtm-brain");
     expect(result.stderr).toContain("gtm-implementation");
+    expect(result.stderr).toContain("saas-application");
   });
 
   it("doctors fake instances without requiring live secrets", () => {
