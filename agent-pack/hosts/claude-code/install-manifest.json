@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "host": "claude-code",
+  "homeRoot": ".claude",
+  "plugins": [
+    {
+      "name": "maestro",
+      "source": "agent-pack/plugins/maestro",
+      "destination": ".claude/plugins/maestro"
+    },
+    {
+      "name": "maestro-convex",
+      "source": "agent-pack/plugins/maestro-convex",
+      "destination": ".claude/plugins/maestro-convex"
+    }
+  ],
+  "officialSkills": {
+    "source": "agent-pack/official-convex/skills",
+    "destination": ".claude/skills"
+  },
+  "safety": {
+    "network": false,
+    "hooks": false,
+    "mcp": false,
+    "convexAuthentication": false
+  }
+}
