@@ -110,8 +110,14 @@ export function createExecFileVerificationRunner(input: {
             dirtyResult?.exitCode !== 0 || dirtyResult.stdout.trim().length > 0,
         },
         repositoryFingerprint,
-        environmentFingerprint: fingerprint("environment", environment),
-        providerPostureFingerprint: fingerprint("providers", providerPosture),
+        environmentFingerprint:
+          environment === undefined
+            ? "environment_sha256:unavailable"
+            : fingerprint("environment", environment),
+        providerPostureFingerprint:
+          providerPosture === undefined
+            ? "providers_sha256:unavailable"
+            : fingerprint("providers", providerPosture),
       };
     },
     run: async (request) =>
@@ -227,11 +233,11 @@ async function safeExec(
 
 async function safelyRead<T extends Readonly<Record<string, unknown>>>(
   read: () => Promise<T>,
-): Promise<T | { readonly unavailable: true }> {
+): Promise<T | undefined> {
   try {
     return await read();
   } catch {
-    return { unavailable: true };
+    return undefined;
   }
 }
 
@@ -252,7 +258,14 @@ async function readVerifyPlan(
     for (const command of commands) {
       const match = /^pnpm ([a-z0-9][a-z0-9:_-]*)$/.exec(command.trim());
       const script = match?.[1];
-      if (script === undefined || !script.includes(":")) return undefined;
+      if (
+        script === undefined ||
+        !Object.hasOwn(manifest.scripts, script) ||
+        typeof manifest.scripts[script] !== "string" ||
+        manifest.scripts[script].trim() === ""
+      ) {
+        return undefined;
+      }
       const member = argvKey(["pnpm", script]);
       if (plan.has(member)) return undefined;
       plan.add(member);

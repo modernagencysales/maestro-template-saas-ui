@@ -110,20 +110,14 @@ const verificationRunner = createExecFileVerificationRunner({
     ci: process.env.CI === "true" || process.env.BUILDKITE === "true",
   }),
   providerPosture: async (repo) => {
-    let instance;
-    try {
-      instance = parseTemplateInstance(
-        await readBoundedFile(
-          resolve(repo.targetRoot, "template-instance.json"),
-          { maxBytes: FACTORY_EXECUTION_POLICY.packageJsonMaxBytes },
-        ),
-      );
-    } catch {
-      instance = buildTemplateInstance({
-        providerMode: "fake",
-        generatedAt: "1970-01-01T00:00:00.000Z",
-      });
-    }
+    const instance = parseTemplateInstance(
+      await readBoundedFile(
+        resolve(repo.targetRoot, "template-instance.json"),
+        {
+          maxBytes: FACTORY_EXECUTION_POLICY.packageJsonMaxBytes,
+        },
+      ),
+    );
     return Object.fromEntries(
       Object.entries(instance.providers).map(([id, posture]) => [
         id,

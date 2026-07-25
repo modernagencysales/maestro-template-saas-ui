@@ -1,4 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
+import { readFile as nodeReadFile } from "node:fs/promises";
+import { fileURLToPath } from "node:url";
 import type { DiagnosticDescriptor } from "./diagnostics.js";
 import { createRepositoryContext } from "./repoContext.js";
 import {
@@ -29,7 +31,22 @@ const descriptors: readonly DiagnosticDescriptor[] = [
   },
 ];
 const repo = createRepositoryContext({ cwd: "/repo" });
-const manifest = (verify: string) => JSON.stringify({ scripts: { verify } });
+const manifest = (
+  verify: string,
+  scripts: Readonly<Record<string, string>> = {},
+) =>
+  JSON.stringify({
+    scripts: {
+      verify,
+      "check:agent-pack": "fixture",
+      "check:types": "fixture",
+      "taste:eval": "fixture",
+      lint: "fixture",
+      typecheck: "fixture",
+      test: "fixture",
+      ...scripts,
+    },
+  });
 
 function runner(
   execFile: VerificationExecFile,
@@ -106,6 +123,24 @@ describe("execFile verification runner", () => {
     });
   });
 
+  it("marks failed environment and provider readers unavailable", async () => {
+    const execFile: VerificationExecFile = async (file, args) => ({
+      exitCode: 0,
+      stdout: file === "git" && args[0] === "rev-parse" ? "abc1234" : "",
+      stderr: "",
+    });
+    const facts = await runner(execFile, {
+      environment: async () => Promise.reject(new Error("environment failed")),
+      providerPosture: async () =>
+        Promise.reject(new Error("provider posture failed")),
+    }).inspect(repo);
+
+    expect(facts).toMatchObject({
+      environmentFingerprint: "environment_sha256:unavailable",
+      providerPostureFingerprint: "providers_sha256:unavailable",
+    });
+  });
+
   it("executes focused descriptors as exact argv and carries semantic ids", async () => {
     const execFile = vi.fn<VerificationExecFile>(async (_file, args) => ({
       exitCode: args[0] === "check:agent-pack" ? 0 : 1,
@@ -167,6 +202,26 @@ describe("execFile verification runner", () => {
     ]);
   });
 
+  it("accepts the real root verify chain with exact bare scripts", async () => {
+    const rootPackageJson = await nodeReadFile(
+      fileURLToPath(new URL("../../../package.json", import.meta.url)),
+      "utf8",
+    );
+    const observations = await runner(
+      async () => ({ exitCode: 0, stdout: "success", stderr: "" }),
+      { readFile: async () => rootPackageJson },
+    ).run({
+      scope: "full",
+      repo,
+      changed: [],
+      descriptors: [descriptors[0]!],
+    });
+
+    expect(observations).toMatchObject([
+      { gateId: "agent-pack", status: "pass" },
+    ]);
+  });
+
   it("ignores a forged evidence frame for a gate outside the plan", async () => {
     const execute: VerificationExecFile = async () => ({
       exitCode: 0,
@@ -197,6 +252,8 @@ describe("execFile verification runner", () => {
     ["shell pipeline", async () => manifest("pnpm check:agent-pack | tee x")],
     ["empty segment", async () => manifest("pnpm check:agent-pack &&")],
     ["pnpm exec", async () => manifest("pnpm exec vitest")],
+    ["missing script", async () => manifest("pnpm not-registered")],
+    ["concatenated commands", async () => manifest("pnpm lint pnpm test")],
   ])("returns unavailable for a %s verify plan", async (_name, readFile) => {
     const execute: VerificationExecFile = async () => ({
       exitCode: 0,

@@ -91,6 +91,37 @@ describe("agent-pack verification command", () => {
     expect(requests[0]).toMatchObject({ scope: "full", descriptors });
   });
 
+  it("samples verification context before and after gate execution", async () => {
+    const events: string[] = [];
+    const command = createVerifyCommand({
+      descriptors: [descriptors[0]!],
+      runner: {
+        inspect: async () => {
+          events.push("inspect");
+          return {
+            createdAt: "2026-07-25T12:00:00.000Z",
+            subject: { commit: "abc123", dirty: false },
+            repositoryFingerprint: "repository_sha256:fixture",
+            environmentFingerprint: "environment_sha256:fixture",
+            providerPostureFingerprint: "providers_sha256:fixture",
+          };
+        },
+        run: async () => {
+          events.push("run");
+          return [{ gateId: "agent-pack", status: "pass", message: "Passed." }];
+        },
+      },
+    });
+
+    await executeAgentPackCommand(
+      command,
+      { scope: "full", changed: [] },
+      context,
+    );
+
+    expect(events).toEqual(["inspect", "run", "inspect"]);
+  });
+
   it("selects only declared focused gates and records partial evidence", async () => {
     const requests: VerificationRunRequest[] = [];
     const command = createVerifyCommand({
@@ -218,31 +249,86 @@ describe("agent-pack verification command", () => {
   });
 
   it.each([
+    ["repository", "repositoryFingerprint", "repository_sha256:changed"],
+    ["environment", "environmentFingerprint", "environment_sha256:changed"],
     [
-      "changed",
-      "repository_sha256:before",
-      "repository_sha256:after",
-      "AGENT_PACK_REPOSITORY_CHANGED_DURING_VERIFY",
-    ],
-    [
-      "unavailable",
-      "repository_sha256:unavailable",
-      "repository_sha256:unavailable",
-      "AGENT_PACK_REPOSITORY_METADATA_UNAVAILABLE",
+      "provider posture",
+      "providerPostureFingerprint",
+      "providers_sha256:changed",
     ],
   ] as const)(
-    "blocks when repository metadata is %s",
-    async (_name, before, after, code) => {
+    "blocks when %s metadata changes",
+    async (_name, field, afterValue) => {
       let inspection = 0;
+      const command = createVerifyCommand({
+        descriptors: [descriptors[0]!],
+        runner: {
+          inspect: async () => {
+            const facts = {
+              createdAt: "2026-07-25T12:00:00.000Z",
+              subject: { commit: "abc123", dirty: false },
+              repositoryFingerprint: "repository_sha256:fixture" as const,
+              environmentFingerprint: "environment_sha256:fixture" as const,
+              providerPostureFingerprint: "providers_sha256:fixture" as const,
+            };
+            return inspection++ === 0
+              ? facts
+              : { ...facts, [field]: afterValue };
+          },
+          run: async () => [
+            { gateId: "agent-pack", status: "pass", message: "Passed." },
+          ],
+        },
+      });
+
+      const result = await executeAgentPackCommand(
+        command,
+        { scope: "full", changed: [] },
+        context,
+      );
+      expect(result).toMatchObject({
+        exitClass: "findings",
+        diagnostics: [
+          {
+            code: "AGENT_PACK_VERIFICATION_CONTEXT_CHANGED_DURING_VERIFY",
+            severity: "error",
+            safeToContinue: false,
+          },
+        ],
+        data: { requiredBlocking: true },
+      });
+    },
+  );
+
+  it.each([
+    ["repository", "repositoryFingerprint", "repository_sha256:unavailable"],
+    ["environment", "environmentFingerprint", "environment_sha256:unavailable"],
+    [
+      "provider posture",
+      "providerPostureFingerprint",
+      "providers_sha256:unavailable",
+    ],
+  ] as const)(
+    "blocks when %s metadata is unavailable",
+    async (_name, field, value) => {
       const command = createVerifyCommand({
         descriptors: [descriptors[0]!],
         runner: {
           inspect: async () => ({
             createdAt: "2026-07-25T12:00:00.000Z",
             subject: { commit: "abc123", dirty: false },
-            repositoryFingerprint: inspection++ === 0 ? before : after,
-            environmentFingerprint: "environment_sha256:fixture",
-            providerPostureFingerprint: "providers_sha256:fixture",
+            repositoryFingerprint:
+              field === "repositoryFingerprint"
+                ? (value as `repository_sha256:${string}`)
+                : "repository_sha256:fixture",
+            environmentFingerprint:
+              field === "environmentFingerprint"
+                ? (value as `environment_sha256:${string}`)
+                : "environment_sha256:fixture",
+            providerPostureFingerprint:
+              field === "providerPostureFingerprint"
+                ? (value as `providers_sha256:${string}`)
+                : "providers_sha256:fixture",
           }),
           run: async () => [
             { gateId: "agent-pack", status: "pass", message: "Passed." },
@@ -257,7 +343,13 @@ describe("agent-pack verification command", () => {
       );
       expect(result).toMatchObject({
         exitClass: "findings",
-        diagnostics: [{ code, severity: "error", safeToContinue: false }],
+        diagnostics: [
+          {
+            code: "AGENT_PACK_VERIFICATION_CONTEXT_UNAVAILABLE",
+            severity: "error",
+            safeToContinue: false,
+          },
+        ],
         data: { requiredBlocking: true },
       });
     },

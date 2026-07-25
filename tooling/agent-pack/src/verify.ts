@@ -77,6 +77,7 @@ export function createVerifyCommand(input: {
       });
       const after = await input.runner.inspect(context.repo);
       const observations = completeObservations(descriptors, observed);
+      const metadataDiagnostics = verificationContextDiagnostics(facts, after);
       const receipt = createVerificationReceipt({
         createdAt: facts.createdAt,
         command: { id: "verify", version: AGENT_PACK_COMMAND_VERSION },
@@ -101,7 +102,7 @@ export function createVerifyCommand(input: {
         })),
       });
       const diagnostics = [
-        ...repositoryMetadataDiagnostics(facts, after),
+        ...metadataDiagnostics,
         ...observations.flatMap(({ descriptor, observation }) =>
           observation.status === "pass"
             ? []
@@ -118,10 +119,7 @@ export function createVerifyCommand(input: {
       ];
       const summary = summarizeVerificationReceipt(receipt);
       const requiredBlocking =
-        summary.requiredFailures.length > 0 ||
-        diagnostics.some(({ code }) =>
-          code.startsWith("AGENT_PACK_REPOSITORY_"),
-        );
+        summary.requiredFailures.length > 0 || metadataDiagnostics.length > 0;
       return {
         mutationPosture: "read-only" as const,
         exitClass:
@@ -179,36 +177,62 @@ function decodeVerifyInput(
   return { ok: true, args: { scope, changed } };
 }
 
-function repositoryMetadataDiagnostics(
+function verificationContextDiagnostics(
   before: VerificationRuntimeFacts,
   after: VerificationRuntimeFacts,
 ): readonly AgentPackDiagnostic[] {
-  if (
-    before.repositoryFingerprint === "repository_sha256:unavailable" ||
-    after.repositoryFingerprint === "repository_sha256:unavailable"
-  ) {
+  const fingerprints = [
+    {
+      label: "repository",
+      before: before.repositoryFingerprint,
+      after: after.repositoryFingerprint,
+      unavailable: "repository_sha256:unavailable",
+    },
+    {
+      label: "environment",
+      before: before.environmentFingerprint,
+      after: after.environmentFingerprint,
+      unavailable: "environment_sha256:unavailable",
+    },
+    {
+      label: "provider posture",
+      before: before.providerPostureFingerprint,
+      after: after.providerPostureFingerprint,
+      unavailable: "providers_sha256:unavailable",
+    },
+  ] as const;
+  const unavailable = fingerprints
+    .filter(
+      (fingerprint) =>
+        fingerprint.before === fingerprint.unavailable ||
+        fingerprint.after === fingerprint.unavailable,
+    )
+    .map(({ label }) => label);
+  if (unavailable.length > 0) {
     return [
       {
-        code: "AGENT_PACK_REPOSITORY_METADATA_UNAVAILABLE",
+        code: "AGENT_PACK_VERIFICATION_CONTEXT_UNAVAILABLE",
         severity: "error",
-        message:
-          "Repository metadata was unavailable before or after verification.",
+        message: `Verification context metadata was unavailable before or after gates: ${unavailable.join(", ")}.`,
         safeToContinue: false,
         nextAction:
-          "Restore Git metadata inspection before trusting verification.",
+          "Restore repository, environment, and provider metadata inspection before trusting verification.",
         rerun: "pnpm maestro -- verify --scope focused",
       },
     ];
   }
-  if (before.repositoryFingerprint !== after.repositoryFingerprint) {
+  const changed = fingerprints
+    .filter((fingerprint) => fingerprint.before !== fingerprint.after)
+    .map(({ label }) => label);
+  if (changed.length > 0) {
     return [
       {
-        code: "AGENT_PACK_REPOSITORY_CHANGED_DURING_VERIFY",
+        code: "AGENT_PACK_VERIFICATION_CONTEXT_CHANGED_DURING_VERIFY",
         severity: "error",
-        message: "Repository metadata changed while verification was running.",
+        message: `Verification context changed while gates were running: ${changed.join(", ")}.`,
         safeToContinue: false,
         nextAction:
-          "Stop concurrent repository changes and rerun verification.",
+          "Stabilize repository, environment, and provider context, then rerun verification.",
         rerun: "pnpm maestro -- verify --scope focused",
       },
     ];
