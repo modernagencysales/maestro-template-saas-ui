@@ -1,0 +1,87 @@
+import { describe, expect, it } from "vitest";
+
+import {
+  defineDiagnosticRegistryProjection,
+  projectGateDiagnostic,
+  validateDiagnosticDescriptor,
+  type DiagnosticDescriptor,
+} from "./diagnostics.js";
+
+const descriptor: DiagnosticDescriptor = {
+  gateId: "workflow-semantics",
+  posture: "required",
+  evidenceClass: "behavioral",
+  canonicalDoc: "docs/template/generated/workflow-semantics.md",
+  repairHint: "Fix the reported workflow invariant in the owning source file.",
+  argv: ["pnpm", "check:workflow:fast"],
+  rerun: ["pnpm", "check:workflow:fast"],
+  focusedPathPrefixes: ["packages/convex/confect/workflows/"],
+};
+
+describe("diagnostic registry projection", () => {
+  it("preserves canonical registry evidence and semantic rule ids", () => {
+    const [registered] = defineDiagnosticRegistryProjection([descriptor]);
+    const projected = projectGateDiagnostic(registered!, {
+      status: "fail",
+      message: "A workflow node bypasses the generated runner.",
+      semanticRuleIds: ["workflow/no-raw-runner"],
+    });
+
+    expect(projected).toMatchObject({
+      code: "workflow-semantics",
+      severity: "error",
+      safeToContinue: false,
+      gateId: "workflow-semantics",
+      posture: "required",
+      evidenceClass: "behavioral",
+      canonicalDoc: descriptor.canonicalDoc,
+      repairHint: descriptor.repairHint,
+      rerunArgv: ["pnpm", "check:workflow:fast"],
+      semanticRuleIds: ["workflow/no-raw-runner"],
+    });
+    expect(projected.rerun).toBe("pnpm check:workflow:fast");
+  });
+
+  it.each([
+    "Edit the gate until it passes.",
+    "Disable this gate temporarily.",
+    "Skip the failing check.",
+    "Weaken the gate threshold.",
+  ])("rejects unsafe repair advice: %s", (repairHint) => {
+    expect(validateDiagnosticDescriptor({ ...descriptor, repairHint })).toEqual(
+      {
+        ok: false,
+        reason:
+          "repairHint must repair the invariant, never edit, disable, skip, or weaken a gate",
+      },
+    );
+  });
+
+  it.each([
+    ["bash", "-lc", "pnpm test"],
+    ["pnpm", "test"],
+    ["pnpm", "exec", "vitest"],
+    ["pnpm", "check:*"],
+  ])("rejects unbounded or shell-capable argv: %j", (...argv) => {
+    expect(
+      validateDiagnosticDescriptor({ ...descriptor, argv, rerun: argv }),
+    ).toMatchObject({ ok: false });
+  });
+
+  it("rejects duplicate registry gate ids rather than owning another gate list", () => {
+    expect(() =>
+      defineDiagnosticRegistryProjection([descriptor, descriptor]),
+    ).toThrow(/duplicate diagnostic gate id/i);
+  });
+
+  it("projects advisory failures as non-blocking warnings", () => {
+    const projected = projectGateDiagnostic(
+      { ...descriptor, gateId: "taste", posture: "advisory" },
+      { status: "fail", message: "Review suggested." },
+    );
+    expect(projected).toMatchObject({
+      severity: "warning",
+      safeToContinue: true,
+    });
+  });
+});
