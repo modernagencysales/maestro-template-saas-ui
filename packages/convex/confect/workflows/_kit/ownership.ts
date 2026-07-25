@@ -12,6 +12,7 @@ import {
 } from "../../_generated/services";
 import { makePublicError } from "../../shared/errors";
 import { validateCallerIdempotencyKey } from "../../shared/idempotencyKey";
+import { createWorkflowLifecycleState } from "./lifecycleState";
 
 type Reader = Context.Tag.Service<typeof DatabaseReader>;
 type Writer = Context.Tag.Service<typeof DatabaseWriter>;
@@ -154,6 +155,28 @@ const reserveWorkflowRun = <
       ...optionalRunFields(input),
     })
     .pipe(Effect.orDie);
+
+export const initialWorkflowLifecycleFields = (input: {
+  readonly workspaceId: string;
+  readonly workflowRunId: string;
+  readonly workflowId: string;
+  readonly workflowVersion: number;
+}) => {
+  const state = createWorkflowLifecycleState(input);
+  return {
+    lifecycleExecution: state.execution,
+    lifecycleGeneration: state.generation,
+    lifecycleGenerationAnchor: state.generationAnchor,
+    lifecycleRestartAnchor: state.restartAnchor,
+    priorGenerationQuiescence: state.priorGenerationQuiescence,
+    cleanupState: state.cleanup,
+    componentCleanupState: state.componentCleanup,
+    parentRetentionUntil: state.retention.parentUntil,
+    childRetentionUntil: state.retention.childUntil,
+    evidenceRetentionUntil: state.retention.evidenceUntil,
+    onCompleteContext: null,
+  } as const;
+};
 
 const optionalRunFields = <F extends FunctionReference<"mutation", "internal">>(
   input: StartWorkflowOwnershipInput<F>,

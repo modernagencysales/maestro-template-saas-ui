@@ -1,0 +1,165 @@
+{
+  "feature": "phase-1-wp-1.6-lifecycle-stack-1",
+  "slices": [
+    {
+      "id": 1,
+      "branch": "codex/wp1.6-lifecycle",
+      "intention": "define the pure tenant-safe workflow lifecycle state authority and guarded transitions",
+      "layers": ["workflows", "checks"],
+      "contractRiskIds": [
+        "ambient-time-inline",
+        "bare-error-not-typed",
+        "workspace-guard",
+        "schema-runtime-validator-export",
+        "policy-data-hardcoded",
+        "duplicated-closed-union",
+        "invalid-test-fixture-or-cast",
+        "branching-logic-needs-boundary-tests",
+        "unjustified-cap-or-threshold",
+        "prompt-model-policy-boundary",
+        "type-escape-or-cast",
+        "existing-module-repair-checklist"
+      ],
+      "existingModuleRepairChecklist": {
+        "existingTargetModules": [
+          "packages/convex/confect/workflows/_kit/lifecycleState.ts",
+          "packages/convex/test/workflow-lifecycle-state.test.ts"
+        ],
+        "repairStrategy": "extend",
+        "compatibilityRisks": [
+          "A cross-workspace or stale-generation control changes lifecycle state",
+          "Terminal component status is mistaken for generation quiescence",
+          "Product cleanup is presented as full component deletion"
+        ],
+        "policyDataOwnership": "packages/convex/confect/workflows/_kit/lifecycleState.ts",
+        "promptVersioningImpact": "Generation and restart anchors are stable versioned lifecycle inputs.",
+        "evalOrGateCoverage": [
+          "pnpm --dir packages/convex test workflow-lifecycle-state",
+          "pnpm --dir packages/convex typecheck"
+        ]
+      },
+      "workPackages": [
+        {
+          "kind": "fixture-to-real",
+          "target": "WP-1.6 pure lifecycle state authority",
+          "fixtureContract": "generated workflow start/status lifecycle metadata",
+          "realBoundary": "packages/convex/confect/workflows/_kit/lifecycleState.ts",
+          "followUpGates": [
+            "pnpm --dir packages/convex test workflow-lifecycle-state",
+            "pnpm --dir packages/convex typecheck"
+          ]
+        }
+      ],
+      "taskRefs": ["WP-1.6"],
+      "rationale": "Lifecycle transitions must be proven independently from component and provider effects.",
+      "estLines": 295
+    },
+    {
+      "id": 2,
+      "branch": "codex/wp1.6-lifecycle",
+      "intention": "extend workflowRuns with nullable lifecycle persistence and backward-compatible ownership/status helpers",
+      "layers": ["workflows", "storage", "checks"],
+      "contractRiskIds": [
+        "ambient-time-inline",
+        "bare-error-not-typed",
+        "workspace-guard",
+        "schema-runtime-validator-export",
+        "policy-data-hardcoded",
+        "duplicated-closed-union",
+        "invalid-test-fixture-or-cast",
+        "branching-logic-needs-boundary-tests",
+        "unjustified-cap-or-threshold",
+        "prompt-model-policy-boundary",
+        "type-escape-or-cast",
+        "existing-module-repair-checklist"
+      ],
+      "existingModuleRepairChecklist": {
+        "existingTargetModules": [
+          "packages/convex/confect/tables/workflowRuns.ts",
+          "packages/convex/confect/workflows/_kit/ownership.ts",
+          "packages/convex/confect/workflows/_kit/status.ts"
+        ],
+        "repairStrategy": "extend",
+        "compatibilityRisks": [
+          "Legacy rows stop decoding",
+          "Nullable lifecycle state changes existing status responses",
+          "Completion context accepts unbounded or untyped values"
+        ],
+        "policyDataOwnership": "packages/convex/confect/tables/workflowRuns.ts",
+        "promptVersioningImpact": "Nullable generation, retention, cleanup, and completion context fields preserve old rows while enabling new versions.",
+        "evalOrGateCoverage": [
+          "pnpm --dir packages/convex test workflow-lifecycle-state workflow-spine-effect workflow-graph",
+          "pnpm check:confect-contracts"
+        ]
+      },
+      "workPackages": [
+        {
+          "kind": "fixture-to-real",
+          "target": "workflowRuns lifecycle persistence leaves",
+          "fixtureContract": "existing generated workflow ownership and status wrappers",
+          "realBoundary": "packages/convex/confect/tables/workflowRuns.ts",
+          "followUpGates": [
+            "pnpm --dir packages/convex test workflow-lifecycle-state workflow-spine-effect workflow-graph",
+            "pnpm check:confect-contracts"
+          ]
+        }
+      ],
+      "taskRefs": ["WP-1.6"],
+      "rationale": "Existing rows and wrappers remain valid while lifecycle state gains an explicit persistence shape.",
+      "estLines": 275
+    },
+    {
+      "id": 3,
+      "branch": "codex/wp1.6-lifecycle",
+      "intention": "pin property and table-driven failure evidence for retention, residual, and ownership guards",
+      "layers": ["workflows", "storage", "checks"],
+      "contractRiskIds": [
+        "ambient-time-inline",
+        "bare-error-not-typed",
+        "workspace-guard",
+        "schema-runtime-validator-export",
+        "policy-data-hardcoded",
+        "duplicated-closed-union",
+        "invalid-test-fixture-or-cast",
+        "branching-logic-needs-boundary-tests",
+        "unjustified-cap-or-threshold",
+        "prompt-model-policy-boundary",
+        "type-escape-or-cast",
+        "existing-module-repair-checklist"
+      ],
+      "existingModuleRepairChecklist": {
+        "existingTargetModules": [
+          "packages/convex/test/workflow-lifecycle-state.test.ts"
+        ],
+        "repairStrategy": "extend",
+        "compatibilityRisks": [
+          "A transition guard is tested for only one command",
+          "Child or evidence retention is omitted",
+          "Unverifiable component residuals permit a cleaned claim"
+        ],
+        "policyDataOwnership": "packages/convex/confect/workflows/_kit/lifecycleState.ts",
+        "promptVersioningImpact": "The transition table is executable lifecycle compatibility evidence.",
+        "evalOrGateCoverage": [
+          "pnpm --dir packages/convex test workflow-lifecycle-state",
+          "pnpm stack:check docs/superpowers/plans/manifests/phase-1-wp-1.6-lifecycle-stack-1.json"
+        ]
+      },
+      "workPackages": [
+        {
+          "kind": "fixture-to-real",
+          "target": "WP-1.6 adversarial lifecycle transition evidence",
+          "fixtureContract": "property and table-driven lifecycle fixtures",
+          "realBoundary": "packages/convex/confect/workflows/_kit/lifecycleState.ts",
+          "followUpGates": [
+            "pnpm --dir packages/convex test workflow-lifecycle-state",
+            "pnpm stack:check docs/superpowers/plans/manifests/phase-1-wp-1.6-lifecycle-stack-1.json"
+          ]
+        }
+      ],
+      "taskRefs": ["WP-1.6"],
+      "rationale": "Every lifecycle command must share the same tenant and generation guard before state-specific checks.",
+      "estLines": 245
+    }
+  ],
+  "allTaskRefs": ["WP-1.6"]
+}

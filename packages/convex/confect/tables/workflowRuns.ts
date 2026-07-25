@@ -1,5 +1,13 @@
 import { Table } from "@confect/server";
 import * as Schema from "effect/Schema";
+import {
+  WorkflowComponentCleanupState,
+  WorkflowGenerationQuiescence,
+  WorkflowLifecycleExecution,
+  WorkflowOnCompleteContext,
+  WorkflowProductCleanupState,
+  WorkflowRetentionTime,
+} from "../workflows/_kit/lifecycleState";
 
 export const WorkflowRunStatus = Schema.Literal(
   "queued",
@@ -33,6 +41,27 @@ export const WorkflowRunRow = Schema.Struct({
   timedOutAt: Schema.optional(Schema.NullOr(Schema.Number)),
   timeoutErrorCode: Schema.optional(Schema.NullOr(Schema.String)),
   timeoutSummary: Schema.optional(Schema.NullOr(Schema.String)),
+  lifecycleExecution: Schema.optional(
+    Schema.NullOr(WorkflowLifecycleExecution),
+  ),
+  lifecycleGeneration: Schema.optional(
+    Schema.NullOr(
+      Schema.Number.pipe(Schema.int(), Schema.greaterThanOrEqualTo(0)),
+    ),
+  ),
+  lifecycleGenerationAnchor: Schema.optional(Schema.NullOr(Schema.String)),
+  lifecycleRestartAnchor: Schema.optional(Schema.NullOr(Schema.String)),
+  priorGenerationQuiescence: Schema.optional(
+    Schema.NullOr(WorkflowGenerationQuiescence),
+  ),
+  cleanupState: Schema.optional(Schema.NullOr(WorkflowProductCleanupState)),
+  componentCleanupState: Schema.optional(
+    Schema.NullOr(WorkflowComponentCleanupState),
+  ),
+  parentRetentionUntil: Schema.optional(WorkflowRetentionTime),
+  childRetentionUntil: Schema.optional(WorkflowRetentionTime),
+  evidenceRetentionUntil: Schema.optional(WorkflowRetentionTime),
+  onCompleteContext: Schema.optional(Schema.NullOr(WorkflowOnCompleteContext)),
 });
 
 export default Table.make(() => WorkflowRunRow)
