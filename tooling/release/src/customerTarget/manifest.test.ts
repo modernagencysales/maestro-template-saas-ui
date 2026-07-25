@@ -1,4 +1,3 @@
-import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -7,8 +6,10 @@ import {
   assertMaterializableCustomerReleaseManifest,
   validateCustomerReleaseManifest,
 } from "./manifest";
+import { hashSourceFiles } from "./sourceFixture.test-support";
 
 const repoRoot = resolve(import.meta.dirname, "../../../..");
+const sourceCommit = "517b5bc28d1d633bef18f57610cff49800123788";
 const fixturePath = resolve(repoRoot, "releases/v0.1.0-alpha.1/manifest.json");
 const schemaFile = resolve(
   repoRoot,
@@ -44,17 +45,11 @@ const rewriteFixture = (
   return JSON.parse(serialized);
 };
 
-const sha256 = (path: string): string =>
-  `sha256:${createHash("sha256")
-    .update(readFileSync(resolve(repoRoot, path)))
-    .digest("hex")}`;
-
+const shippedPaths = Object.keys(
+  JSON.parse(readFileSync(fixturePath, "utf8")).expectedHashes,
+);
 const shippedFiles = Object.freeze(
-  Object.fromEntries(
-    Object.keys(
-      JSON.parse(readFileSync(fixturePath, "utf8")).expectedHashes,
-    ).map((path) => [path, sha256(path)]),
-  ),
+  hashSourceFiles(repoRoot, sourceCommit, shippedPaths),
 );
 
 describe("customer release manifest", () => {
@@ -67,7 +62,7 @@ describe("customer release manifest", () => {
     expect(manifest.release).toEqual({
       version: "0.1.0-alpha.1",
       tag: "maestro-template-v0.1.0-alpha.1",
-      sourceCommit: "517b5bc28d1d633bef18f57610cff49800123788",
+      sourceCommit,
       sourceChecksum:
         "sha256:144583e8a2b0b495776f1456f035dc3d815342309a3a5826480a4f4c5140a297",
     });

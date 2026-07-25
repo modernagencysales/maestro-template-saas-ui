@@ -1,4 +1,3 @@
-import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -12,6 +11,7 @@ import {
   CUSTOMER_OWNERSHIP_RULES,
   classifyCustomerSourcePath,
 } from "./ownership";
+import { hashSourceFiles } from "./sourceFixture.test-support";
 
 const repoRoot = resolve(import.meta.dirname, "../../../..");
 const sourceCommit = "517b5bc28d1d633bef18f57610cff49800123788";
@@ -22,11 +22,6 @@ const sourcePaths = execFileSync(
 )
   .trim()
   .split("\n");
-const sha256 = (path: string): string =>
-  `sha256:${createHash("sha256")
-    .update(readFileSync(resolve(repoRoot, path)))
-    .digest("hex")}`;
-
 describe("customer ownership inventory", () => {
   it("classifies every immutable tagged source path", () => {
     const inventory = buildCustomerOwnershipInventory(sourcePaths);
@@ -74,8 +69,10 @@ describe("customer ownership inventory", () => {
         "utf8",
       ),
     );
-    const shippedFiles = Object.fromEntries(
-      Object.keys(fixture.expectedHashes).map((path) => [path, sha256(path)]),
+    const shippedFiles = hashSourceFiles(
+      repoRoot,
+      sourceCommit,
+      Object.keys(fixture.expectedHashes),
     );
     const manifest = validateCustomerReleaseManifest(fixture, shippedFiles);
 
