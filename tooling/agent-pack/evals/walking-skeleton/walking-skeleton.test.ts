@@ -7,6 +7,7 @@ import { mkdtemp } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
 import { runCrudProof } from "../../../generators/src/crud-proof.js";
 import { aggregateWalkingSkeletonRuns } from "./aggregate.js";
+import { parseCliOptions } from "./cli.js";
 import type { WalkingSkeletonResult } from "./contract.js";
 import {
   createHostAdapter,
@@ -28,6 +29,26 @@ const reviewedClaudeSettings = `${JSON.stringify(
 )}\n`;
 
 describe("walking-skeleton fail-closed evidence", () => {
+  it("accepts pnpm's standalone argument separator", () => {
+    expect(
+      parseCliOptions(
+        [
+          "--",
+          "--suite",
+          "walking-skeleton",
+          "--host",
+          "codex",
+          "--candidate-sha",
+          candidateSha,
+        ],
+        "/repo",
+      ),
+    ).toMatchObject({
+      mode: "run",
+      options: { host: "codex", candidateSha },
+    });
+  });
+
   it("uses ephemeral MCP-disabled Codex and never forwards ambient credentials", async () => {
     const calls: HostCommand[] = [];
     const adapter = createHostAdapter("codex", async (input) => {

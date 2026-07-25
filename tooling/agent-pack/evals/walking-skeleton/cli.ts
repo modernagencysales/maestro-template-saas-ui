@@ -121,6 +121,7 @@ function parseFlags(argv: readonly string[]): {
   const booleanFlags = new Set(["--aggregate"]);
   for (let index = 0; index < argv.length; index += 1) {
     const flag = argv[index];
+    if (flag === "--") continue;
     if (!flag?.startsWith("--")) {
       throw new EvaluationError(
         "EVAL_INVALID_ARGUMENT",
