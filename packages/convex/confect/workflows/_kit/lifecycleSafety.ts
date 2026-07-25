@@ -23,7 +23,23 @@ export const restartWorkflowLifecycle = async (
   const run = await ownedRun(ports, principal, "restart", input.workflowRunId);
   validControlInput(input);
   const restartAnchor = decodeRestartAnchor(input.restartAnchor);
-  const next = transition(run.state, {
+  const status = await componentCall(() =>
+    ports.component.status(run.componentWorkflowId),
+  );
+  if (status.type === "inProgress") {
+    throw controlError(
+      "INVALID_STATE",
+      "Workflow restart requires component-proven prior-generation quiescence.",
+    );
+  }
+  const quiescent =
+    run.state.priorGenerationQuiescence === "quiescent"
+      ? run.state
+      : transition(run.state, {
+          kind: "mark-generation-quiescent",
+          ...guard(run),
+        });
+  const next = transition(quiescent, {
     kind: "advance-generation",
     ...guard(run),
     nextGeneration: run.state.generation + 1,

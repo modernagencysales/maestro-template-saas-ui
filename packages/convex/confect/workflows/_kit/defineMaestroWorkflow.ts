@@ -77,6 +77,12 @@ export type MaestroWorkflowRestartOptions = {
 };
 
 export type MaestroWorkflowLifecycleManager<Context> = {
+  readonly status: (
+    context: Context,
+    workflowId: string,
+  ) => Promise<{
+    readonly type: "inProgress" | "completed" | "failed" | "canceled";
+  }>;
   readonly cancel: (context: Context, workflowId: string) => Promise<void>;
   readonly restart: (
     context: Context,
@@ -90,6 +96,8 @@ export const bindMaestroWorkflowLifecycleManager = <Context>(
   context: Context,
   manager: MaestroWorkflowLifecycleManager<Context>,
 ) => ({
+  status: (componentWorkflowId: string) =>
+    manager.status(context, componentWorkflowId),
   cancel: (componentWorkflowId: string) =>
     manager.cancel(context, componentWorkflowId),
   restart: (
@@ -108,6 +116,8 @@ export const createMaestroWorkflowLifecycleAdapter = (
 ) => {
   const manager = createMaestroWorkflowManager(component);
   return bindMaestroWorkflowLifecycleManager(context, {
+    status: (managerContext, workflowId) =>
+      manager.status(managerContext, workflowId as WorkflowId),
     cancel: (managerContext, workflowId) =>
       manager.cancel(managerContext, workflowId as WorkflowId),
     restart: (managerContext, workflowId, options) =>

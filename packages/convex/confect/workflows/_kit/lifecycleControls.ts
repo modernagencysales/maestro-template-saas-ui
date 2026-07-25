@@ -124,6 +124,9 @@ export type WorkflowLifecycleControlPorts = {
     readonly restartAnchor: string;
   }) => Promise<WorkflowRestartInspection>;
   readonly component: {
+    readonly status: (componentWorkflowId: string) => Promise<{
+      readonly type: "inProgress" | "completed" | "failed" | "canceled";
+    }>;
     readonly cancel: (componentWorkflowId: string) => Promise<void>;
     readonly restart: (
       componentWorkflowId: string,

@@ -119,6 +119,7 @@ export const lifecycleHarness = (run = activeRun()) => {
       externalEffects: [],
     })),
     component: {
+      status: vi.fn(async () => ({ type: "completed" as const })),
       cancel: vi.fn(async () => undefined),
       restart: vi.fn(async () => undefined),
       cleanup: vi.fn(async () => true),

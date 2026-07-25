@@ -18,6 +18,7 @@ describe("workflow lifecycle Confect and component registration", () => {
 
   it("maps exact component IDs and pinned restart options", async () => {
     const manager = {
+      status: vi.fn(async () => ({ type: "completed" as const })),
       cancel: vi.fn(async () => undefined),
       restart: vi.fn(async () => undefined),
       cleanup: vi.fn(async () => true),
@@ -25,6 +26,9 @@ describe("workflow lifecycle Confect and component registration", () => {
     const ctx = { kind: "mutation-context" };
     const adapter = createWorkflowLifecycleComponentAdapter(ctx, manager);
 
+    await expect(adapter.status("component-run-a")).resolves.toEqual({
+      type: "completed",
+    });
     await adapter.cancel("component-run-a");
     await adapter.restart("component-run-a", {
       from: "review.v3",
@@ -33,6 +37,7 @@ describe("workflow lifecycle Confect and component registration", () => {
     await expect(adapter.cleanup("component-run-a")).resolves.toBe(true);
 
     expect(manager.cancel).toHaveBeenCalledWith(ctx, "component-run-a");
+    expect(manager.status).toHaveBeenCalledWith(ctx, "component-run-a");
     expect(manager.restart).toHaveBeenCalledWith(ctx, "component-run-a", {
       from: "review.v3",
       startAsync: true,

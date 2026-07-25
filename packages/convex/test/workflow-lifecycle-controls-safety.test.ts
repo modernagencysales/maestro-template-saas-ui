@@ -12,6 +12,9 @@ describe("tenant-safe workflow lifecycle safety", () => {
     const fixture = lifecycleHarness(
       terminalRun({ priorGenerationQuiescence: "pending" }),
     );
+    vi.mocked(fixture.ports.component.status).mockResolvedValue({
+      type: "inProgress",
+    });
     await expect(
       fixture.controls.restart(principal, {
         workflowRunId: "run-a",
@@ -22,6 +25,26 @@ describe("tenant-safe workflow lifecycle safety", () => {
     ).rejects.toBeInstanceOf(WorkflowLifecycleControlError);
     expect(fixture.ports.inspectRestart).not.toHaveBeenCalled();
     expect(fixture.ports.component.restart).not.toHaveBeenCalled();
+  });
+
+  it("records component-proven quiescence before advancing a generation", async () => {
+    const fixture = lifecycleHarness(
+      terminalRun({ priorGenerationQuiescence: "pending" }),
+    );
+
+    await expect(
+      fixture.controls.restart(principal, {
+        workflowRunId: "run-a",
+        restartAnchor: "review.v3",
+        reasonCode: "recovery",
+        occurredAt: 200,
+      }),
+    ).resolves.toMatchObject({ generation: 1 });
+    expect(fixture.ports.component.status).toHaveBeenCalledWith("component-a");
+    expect(fixture.currentRun().state).toMatchObject({
+      generation: 1,
+      priorGenerationQuiescence: "quiescent",
+    });
   });
 
   it("refuses an undeclared or expired external effect before restart", async () => {

@@ -97,6 +97,7 @@ const readPorts = (
     ),
   inspectRestart: unavailableOperation,
   component: {
+    status: unavailableOperation,
     cancel: unavailableOperation,
     restart: unavailableOperation,
     cleanup: unavailableOperation,
