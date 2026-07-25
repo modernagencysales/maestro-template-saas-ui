@@ -193,6 +193,10 @@ const V2_GRAPH_FIXTURE = "packages/convex/test/workflow-graph-v2.test.ts";
 const V2_BUILDER_FIXTURE = "packages/convex/test/workflow-builder.test.ts";
 const FAILURE_POLICY_FIXTURE =
   "packages/template-core/src/workflow-semantics/failure-policy.test.ts";
+const INLINE_TRANSACTION_BUILDER_FIXTURE =
+  "packages/convex/test/workflow-builder.test.ts";
+const INLINE_TRANSACTION_GUARD =
+  "independent remains default; inline is query/mutation capability only with small-atomic posture; named presets or reviewed explicit positive counters are mandatory; action, scheduled, and other node combinations are structurally rejected; canonical JSON/runtime parity is executable; support is pinned to Convex 1.42.1";
 
 const supported = <const Id extends string>(
   id: Id,
@@ -487,12 +491,13 @@ export const WORKFLOW_SEMANTICS = [
     "Use an unscheduled node until the WP-1.11 scheduling compiler and horizon fixtures land.",
     V2_BUILDER_FIXTURE,
   ),
-  restricted(
+  supported(
     "WF-NODE-TRANSACTION",
     "graph.nodes[].transaction",
-    "Inline and independent transaction options await exact query/mutation step compilation.",
-    "Use the source-to-output starter graph until WP-1.2 maps transaction posture.",
-    V2_BUILDER_FIXTURE,
+    "workflowNode.query/mutation and inlineQuery/inlineMutation",
+    "independent -> named step options; guarded inline -> { inline: true, transactionLimits }",
+    INLINE_TRANSACTION_BUILDER_FIXTURE,
+    INLINE_TRANSACTION_GUARD,
   ),
   supported(
     "WF-NODE-EVENT-DEFINITION",
@@ -612,68 +617,77 @@ export const WORKFLOW_SEMANTICS = [
     "Use inline generated defaults until the artifact-reference compiler lands.",
     V2_GRAPH_FIXTURE,
   ),
-  restricted(
+  supported(
     "WF-TRANSACTION-KIND",
     "graph.nodes[].transaction.kind",
-    "WP-1.1 does not compile query/mutation transaction posture.",
-    "Wait for WP-1.2 exact query/mutation call mapping; do not model it as action retry.",
-    V2_BUILDER_FIXTURE,
+    "WorkflowIndependentTransaction | WorkflowInlineTransaction",
+    "transaction.kind -> independent options or guarded inline options",
+    INLINE_TRANSACTION_BUILDER_FIXTURE,
+    INLINE_TRANSACTION_GUARD,
   ),
-  restricted(
+  supported(
     "WF-TRANSACTION-LIMITS",
     "graph.nodes[].transaction.limits",
-    "Inline transaction limits are not passed to a step by the bootstrap runner.",
-    "Use no executable V2 node until WP-1.2 compiles the complete limits object.",
-    V2_BUILDER_FIXTURE,
+    "inlineTransactionPreset | reviewedInlineTransaction",
+    "validated limits -> step.runQuery/runMutation transactionLimits",
+    GRAPH_FIXTURE,
+    INLINE_TRANSACTION_GUARD,
   ),
-  restricted(
+  supported(
     "WF-TRANSACTION-BYTES-READ",
     "graph.nodes[].transaction.limits.bytesRead",
-    "The WP-1.1 bootstrap runner does not compile inline transaction limits.",
-    "Wait for the WP-1.2 exact transactionLimits mapping.",
-    V2_BUILDER_FIXTURE,
+    "InlineTransactionLimits.bytesRead",
+    "transaction.limits.bytesRead -> transactionLimits.bytesRead",
+    GRAPH_FIXTURE,
+    INLINE_TRANSACTION_GUARD,
   ),
-  restricted(
+  supported(
     "WF-TRANSACTION-BYTES-WRITTEN",
     "graph.nodes[].transaction.limits.bytesWritten",
-    "The WP-1.1 bootstrap runner does not compile inline transaction limits.",
-    "Wait for the WP-1.2 exact transactionLimits mapping.",
-    V2_BUILDER_FIXTURE,
+    "InlineTransactionLimits.bytesWritten",
+    "transaction.limits.bytesWritten -> transactionLimits.bytesWritten",
+    GRAPH_FIXTURE,
+    INLINE_TRANSACTION_GUARD,
   ),
-  restricted(
+  supported(
     "WF-TRANSACTION-DATABASE-QUERIES",
     "graph.nodes[].transaction.limits.databaseQueries",
-    "The WP-1.1 bootstrap runner does not compile inline transaction limits.",
-    "Wait for the WP-1.2 exact transactionLimits mapping.",
-    V2_BUILDER_FIXTURE,
+    "InlineTransactionLimits.databaseQueries",
+    "transaction.limits.databaseQueries -> transactionLimits.databaseQueries",
+    GRAPH_FIXTURE,
+    INLINE_TRANSACTION_GUARD,
   ),
-  restricted(
+  supported(
     "WF-TRANSACTION-DOCUMENTS-READ",
     "graph.nodes[].transaction.limits.documentsRead",
-    "The WP-1.1 bootstrap runner does not compile inline transaction limits.",
-    "Wait for the WP-1.2 exact transactionLimits mapping.",
-    V2_BUILDER_FIXTURE,
+    "InlineTransactionLimits.documentsRead",
+    "transaction.limits.documentsRead -> transactionLimits.documentsRead",
+    GRAPH_FIXTURE,
+    INLINE_TRANSACTION_GUARD,
   ),
-  restricted(
+  supported(
     "WF-TRANSACTION-DOCUMENTS-WRITTEN",
     "graph.nodes[].transaction.limits.documentsWritten",
-    "The WP-1.1 bootstrap runner does not compile inline transaction limits.",
-    "Wait for the WP-1.2 exact transactionLimits mapping.",
-    V2_BUILDER_FIXTURE,
+    "InlineTransactionLimits.documentsWritten",
+    "transaction.limits.documentsWritten -> transactionLimits.documentsWritten",
+    GRAPH_FIXTURE,
+    INLINE_TRANSACTION_GUARD,
   ),
-  restricted(
+  supported(
     "WF-TRANSACTION-FUNCTIONS-SCHEDULED",
     "graph.nodes[].transaction.limits.functionsScheduled",
-    "The WP-1.1 bootstrap runner does not compile inline transaction limits.",
-    "Wait for the WP-1.2 exact transactionLimits mapping.",
-    V2_BUILDER_FIXTURE,
+    "InlineTransactionLimits.functionsScheduled",
+    "transaction.limits.functionsScheduled -> transactionLimits.functionsScheduled",
+    GRAPH_FIXTURE,
+    INLINE_TRANSACTION_GUARD,
   ),
-  restricted(
-    "WF-TRANSACTION-SCHEDULED-ARGS-BYTES",
+  supported(
+    "WF-TRANSACTION-SCHEDULED-FUNCTION-ARGS-BYTES",
     "graph.nodes[].transaction.limits.scheduledFunctionArgsBytes",
-    "The WP-1.1 bootstrap runner does not compile inline transaction limits.",
-    "Wait for the WP-1.2 exact transactionLimits mapping.",
-    V2_BUILDER_FIXTURE,
+    "InlineTransactionLimits.scheduledFunctionArgsBytes",
+    "transaction.limits.scheduledFunctionArgsBytes -> transactionLimits.scheduledFunctionArgsBytes",
+    GRAPH_FIXTURE,
+    INLINE_TRANSACTION_GUARD,
   ),
   supported(
     "WF-KICKOFF-NAME",

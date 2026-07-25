@@ -48,6 +48,10 @@ export const workflowGeneratorSemanticCoverage = defineWorkflowSemanticCoverage(
       "WorkflowActionNodeV2.retry with WorkflowEffectContract",
       "exact guarded runAction retry options",
     ),
+    "WF-NODE-TRANSACTION": guardedDefault(
+      "workflowNode query/mutation constructors",
+      "independent by default; guarded inline options",
+    ),
     "WF-NODE-EVENT-DEFINITION": generated(
       "defineWorkflowEvent + defineWorkflowV2EventRegistry",
       "exact generated event registry entry",
@@ -78,6 +82,42 @@ export const workflowGeneratorSemanticCoverage = defineWorkflowSemanticCoverage(
     "WF-RETRY-BASE": generated(
       "WorkflowRetryConfigV2.base",
       "validated runAction.retry.base",
+    ),
+    "WF-TRANSACTION-KIND": guardedDefault(
+      "WorkflowIndependentTransaction | WorkflowInlineTransaction",
+      "independent or guarded inline compiler branch",
+    ),
+    "WF-TRANSACTION-LIMITS": guardedDefault(
+      "inlineTransactionPreset | reviewedInlineTransaction",
+      "validated step transactionLimits",
+    ),
+    "WF-TRANSACTION-BYTES-READ": guardedDefault(
+      "InlineTransactionLimits.bytesRead",
+      "transactionLimits.bytesRead",
+    ),
+    "WF-TRANSACTION-BYTES-WRITTEN": guardedDefault(
+      "InlineTransactionLimits.bytesWritten",
+      "transactionLimits.bytesWritten",
+    ),
+    "WF-TRANSACTION-DATABASE-QUERIES": guardedDefault(
+      "InlineTransactionLimits.databaseQueries",
+      "transactionLimits.databaseQueries",
+    ),
+    "WF-TRANSACTION-DOCUMENTS-READ": guardedDefault(
+      "InlineTransactionLimits.documentsRead",
+      "transactionLimits.documentsRead",
+    ),
+    "WF-TRANSACTION-DOCUMENTS-WRITTEN": guardedDefault(
+      "InlineTransactionLimits.documentsWritten",
+      "transactionLimits.documentsWritten",
+    ),
+    "WF-TRANSACTION-FUNCTIONS-SCHEDULED": guardedDefault(
+      "InlineTransactionLimits.functionsScheduled",
+      "transactionLimits.functionsScheduled",
+    ),
+    "WF-TRANSACTION-SCHEDULED-FUNCTION-ARGS-BYTES": guardedDefault(
+      "InlineTransactionLimits.scheduledFunctionArgsBytes",
+      "transactionLimits.scheduledFunctionArgsBytes",
     ),
     "WF-EDGE-ID": generated("WorkflowEdge.id", "edge identity"),
     "WF-EDGE-SOURCE": generated(

@@ -171,6 +171,39 @@ describe("workflow semantics contract", () => {
     });
   });
 
+  it("publishes only guarded inline transaction semantics", () => {
+    const transactionRuleIds = [
+      "WF-NODE-TRANSACTION",
+      "WF-TRANSACTION-KIND",
+      "WF-TRANSACTION-LIMITS",
+      "WF-TRANSACTION-BYTES-READ",
+      "WF-TRANSACTION-BYTES-WRITTEN",
+      "WF-TRANSACTION-DATABASE-QUERIES",
+      "WF-TRANSACTION-DOCUMENTS-READ",
+      "WF-TRANSACTION-DOCUMENTS-WRITTEN",
+      "WF-TRANSACTION-FUNCTIONS-SCHEDULED",
+      "WF-TRANSACTION-SCHEDULED-FUNCTION-ARGS-BYTES",
+    ] as const;
+    for (const id of transactionRuleIds) {
+      expect(WORKFLOW_SEMANTICS.find((rule) => rule.id === id)).toMatchObject({
+        status: "supported",
+        runtimeGuard: expect.stringMatching(
+          /independent remains default.*query\/mutation capability only.*small-atomic.*named presets or reviewed explicit positive counters.*action, scheduled, and other node combinations.*canonical JSON\/runtime parity.*Convex 1\.42\.1/,
+        ),
+      });
+    }
+    expect(
+      WORKFLOW_SEMANTICS.find(
+        (rule) => rule.id === "WF-TRANSACTION-SCHEDULED-ARGS-BYTES",
+      ),
+    ).toBeUndefined();
+    for (const id of ["WF-NODE-SCHEDULE", "WF-STEP-ACTION"]) {
+      expect(WORKFLOW_SEMANTICS.find((rule) => rule.id === id)?.status).toBe(
+        "intentionally-restricted",
+      );
+    }
+  });
+
   it("requires mappings and fixtures for support and repairs for every rule", () => {
     expect(validateWorkflowSemantics(WORKFLOW_SEMANTICS)).toEqual([]);
   });

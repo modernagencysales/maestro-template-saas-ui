@@ -1497,6 +1497,22 @@ describe("template app factory generators", () => {
     expect(semantics).toContain(
       '"compiler": "internal persisted generation allocation only"',
     );
+    expect(JSON.parse(semantics)).toMatchObject(
+      Object.fromEntries(
+        [
+          "WF-NODE-TRANSACTION",
+          "WF-TRANSACTION-KIND",
+          "WF-TRANSACTION-LIMITS",
+          "WF-TRANSACTION-BYTES-READ",
+          "WF-TRANSACTION-BYTES-WRITTEN",
+          "WF-TRANSACTION-DATABASE-QUERIES",
+          "WF-TRANSACTION-DOCUMENTS-READ",
+          "WF-TRANSACTION-DOCUMENTS-WRITTEN",
+          "WF-TRANSACTION-FUNCTIONS-SCHEDULED",
+          "WF-TRANSACTION-SCHEDULED-FUNCTION-ARGS-BYTES",
+        ].map((id) => [id, { posture: "guarded-default" }]),
+      ),
+    );
     expect(semantics).not.toContain('"WF-HANDLER-DATE"');
 
     expect(graph).toContain("defineWorkflowGraphV2");
