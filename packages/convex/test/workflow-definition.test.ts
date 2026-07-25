@@ -1,0 +1,98 @@
+import { v } from "convex/values";
+import * as Either from "effect/Either";
+import { describe, expect, it } from "vitest";
+
+import {
+  planMaestroWorkflowDefinition,
+  type MaestroWorkflowMetadata,
+} from "../confect/workflows/_kit/defineMaestroWorkflow";
+
+const metadata = {
+  workflowId: "workflow_source_to_receipt",
+  workflowVersion: 2,
+  runtimeVersion: "maestro-graph-v2",
+  argsSchemaName: "sourceToReceipt.v2.args",
+  returnSchemaName: "sourceToReceipt.v2.return",
+  principalSchemaName: "workflowPrincipal.v1",
+  policyPosture: {
+    kind: "none",
+    reason: "No policy-dependent decisions.",
+  },
+  kickoffProfiles: [
+    { name: "interactive", mode: "eager-first-poll", default: true },
+    { name: "bulk", mode: "queued", default: false },
+  ],
+  semanticRuleIds: ["WF-DEFINE", "WF-START-EAGER", "WF-START-QUEUED"],
+  semanticCoverage: {
+    "WF-DEFINE": {
+      posture: "generated",
+      constructor: "defineMaestroWorkflow",
+      compiler: "generated component runner",
+      fixture: "workflow-definition.test.ts",
+    },
+    "WF-START-EAGER": {
+      posture: "generated",
+      constructor: "eagerFirstPollProfile",
+      compiler: "startAsync false",
+      fixture: "workflow-definition.test.ts",
+    },
+    "WF-START-QUEUED": {
+      posture: "generated",
+      constructor: "queuedProfile",
+      compiler: "startAsync true",
+      fixture: "workflow-definition.test.ts",
+    },
+  },
+} as const satisfies MaestroWorkflowMetadata;
+
+describe("defineMaestroWorkflow planning boundary", () => {
+  it("requires concrete validators and forces action retries off by default", () => {
+    const result = planMaestroWorkflowDefinition(
+      {
+        args: { request: v.string() },
+        returns: v.object({ receiptId: v.string() }),
+      },
+      metadata,
+    );
+
+    expect(Either.getOrThrow(result).definition.workpoolOptions).toEqual({
+      retryActionsByDefault: false,
+    });
+  });
+
+  it("rejects v.any at the workflow return boundary", () => {
+    const result = planMaestroWorkflowDefinition(
+      { args: { request: v.string() }, returns: v.any() },
+      metadata,
+    );
+    expect(Either.isLeft(result)).toBe(true);
+    if (Either.isLeft(result)) {
+      expect(result.left.findings).toContain(
+        "return validator cannot be v.any",
+      );
+    }
+  });
+
+  it("rejects missing semantic evidence and invalid default kickoff posture", () => {
+    const result = planMaestroWorkflowDefinition(
+      {
+        args: { request: v.string() },
+        returns: v.object({ receiptId: v.string() }),
+      },
+      {
+        ...metadata,
+        semanticCoverage: {},
+        kickoffProfiles: [{ name: "bulk", mode: "queued", default: true }],
+      },
+    );
+    expect(Either.isLeft(result)).toBe(true);
+    if (Either.isLeft(result)) {
+      expect(result.left.findings).toEqual(
+        expect.arrayContaining([
+          "default kickoff profile must use eager-first-poll",
+          "WF-DEFINE: missing semantic evidence",
+        ]),
+      );
+    }
+  });
+});
