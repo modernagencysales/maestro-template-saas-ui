@@ -1045,10 +1045,11 @@ export const checkDescriptors = defineRegisteredStaticCheckDescriptors(
     recipes: {
       evidenceClass: "static",
       canonicalDoc:
-        "docs/superpowers/plans/2026-07-24-maestro-agent-pack-productization-plan.md#wp-43-add-an-outcome-oriented-feature-recipe-library",
+        "docs/superpowers/plans/2026-07-24-maestro-agent-pack-productization-plan.md",
       focusedPathPrefixes: [
         "packages/template-core/src/recipes",
         "docs/template/recipes",
+        "docs/template/recipes/index.generated.json",
         "tooling/agent-pack/src/recipes.ts",
         "tooling/quality/check-recipes.mts",
       ],

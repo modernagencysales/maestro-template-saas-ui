@@ -70,6 +70,7 @@ describe("quality diagnostic registry", () => {
       "auth-demo-bypass",
       "workflow-graph-boundary",
       "workflow-semantics",
+      "recipes",
     ]);
     expect(
       diagnosticRegistryDescriptors
