@@ -1,8 +1,15 @@
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { afterEach } from "vitest";
 import { createCustomerReleaseAdapter } from "./createAdapter.js";
 
@@ -22,7 +29,10 @@ afterEach(() => {
 export const hash = (bytes: string | Buffer): string =>
   `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
 
-export function blueprintTargetPlan(content = "fixture blueprint\n") {
+export function blueprintTargetPlan(
+  content = "fixture blueprint\n",
+  replacement?: { path: string; content: string },
+) {
   const entries = [
     {
       path: "generated/fixture-blueprint.txt",
@@ -32,6 +42,19 @@ export function blueprintTargetPlan(content = "fixture blueprint\n") {
       sha256: hash(content),
       content,
     },
+    ...(replacement
+      ? [
+          {
+            path: replacement.path,
+            ownership: "generated" as const,
+            action: "generate" as const,
+            upgrade: "regenerate" as const,
+            replaces: "copy" as const,
+            sha256: hash(replacement.content),
+            content: replacement.content,
+          },
+        ]
+      : []),
   ];
   const identity = {
     schemaVersion: 1 as const,
@@ -44,6 +67,7 @@ export function blueprintTargetPlan(content = "fixture blueprint\n") {
       action: entry.action,
       upgrade: entry.upgrade,
       sha256: entry.sha256,
+      ...("replaces" in entry ? { replaces: entry.replaces } : {}),
     })),
   };
   return { ...identity, entries, digest: hash(JSON.stringify(identity)) };
@@ -52,7 +76,14 @@ export function blueprintTargetPlan(content = "fixture blueprint\n") {
 export const git = (root: string, args: readonly string[]): Buffer =>
   execFileSync("git", ["-C", root, ...args]);
 
-export function taggedRelease() {
+export function taggedRelease(
+  options: {
+    customerProjectionRoot?: string;
+    extraCopies?: Readonly<Record<string, string>>;
+    replacement?: { path: string; content: string };
+    blueprintRemovals?: readonly string[];
+  } = {},
+) {
   const repositoryRoot = makeRoot();
   const temporaryRoot = makeRoot("maestro-create-extract-");
   const homeRoot = makeRoot("maestro-create-home-");
@@ -62,7 +93,30 @@ export function taggedRelease() {
   git(repositoryRoot, ["config", "user.name", "Fixture"]);
   writeFileSync(join(repositoryRoot, "runtime.txt"), "tagged runtime\n");
   writeFileSync(join(repositoryRoot, "package.json"), '{"tagged":true}\n');
-  git(repositoryRoot, ["add", "runtime.txt", "package.json"]);
+  const projectionFiles = options.customerProjectionRoot
+    ? [
+        "package.json",
+        "apps/cli/package.json",
+        "apps/web/package.json",
+        "packages/convex/package.json",
+        "tooling/agent-pack/src/index.ts",
+        "tooling/agent-pack/src/pluginContract.ts",
+        "tooling/generators/src/index.ts",
+        "tooling/quality/check-workflow-policy-snapshots.mts",
+        "tooling/quality/check-workflow-principal-propagation.mts",
+      ]
+    : [];
+  for (const path of projectionFiles) {
+    const source = resolve(options.customerProjectionRoot!, path);
+    if (!existsSync(source)) continue;
+    mkdirSync(dirname(join(repositoryRoot, path)), { recursive: true });
+    writeFileSync(join(repositoryRoot, path), readFileSync(source));
+  }
+  for (const [path, bytes] of Object.entries(options.extraCopies ?? {})) {
+    mkdirSync(dirname(join(repositoryRoot, path)), { recursive: true });
+    writeFileSync(join(repositoryRoot, path), bytes);
+  }
+  git(repositoryRoot, ["add", "."]);
   git(repositoryRoot, ["commit", "--quiet", "-m", "fixture release"]);
   const sourceCommit = git(repositoryRoot, ["rev-parse", "HEAD"])
     .toString("utf8")
@@ -93,6 +147,26 @@ export function taggedRelease() {
         action: "copy",
         upgrade: "preserve",
       },
+      ...[...projectionFiles, ...Object.keys(options.extraCopies ?? {})]
+        .filter(
+          (path) =>
+            path !== "package.json" &&
+            !options.blueprintRemovals?.includes(path),
+        )
+        .map((path) => ({
+          path,
+          match: "exact",
+          ownership: "template-owned" as const,
+          action: "copy" as const,
+          upgrade: "replace" as const,
+        })),
+      ...(options.blueprintRemovals ?? []).map((path) => ({
+        path,
+        match: "exact" as const,
+        ownership: "factory-only" as const,
+        action: "omit" as const,
+        upgrade: "remove" as const,
+      })),
       {
         path: "package.json",
         match: "exact",
@@ -108,7 +182,15 @@ export function taggedRelease() {
         upgrade: "regenerate",
       },
     ],
-    expectedHashes: { "runtime.txt": hash("tagged runtime\n") },
+    expectedHashes: Object.fromEntries(
+      [
+        "runtime.txt",
+        ...projectionFiles.filter((path) => path !== "package.json"),
+        ...Object.keys(options.extraCopies ?? {}).filter(
+          (path) => !options.blueprintRemovals?.includes(path),
+        ),
+      ].map((path) => [path, hash(readFileSync(join(repositoryRoot, path)))]),
+    ),
     extensionSeams: [
       { path: "runtime.txt", description: "Fixture extension seam." },
     ],
@@ -116,7 +198,7 @@ export function taggedRelease() {
   const manifestPath = join(repositoryRoot, "release-manifest.json");
   const manifestBytes = `${JSON.stringify(manifest, null, 2)}\n`;
   writeFileSync(manifestPath, manifestBytes);
-  const plan = blueprintTargetPlan();
+  const plan = blueprintTargetPlan("fixture blueprint\n", options.replacement);
   const blueprintManifest = {
     schemaVersion: plan.schemaVersion,
     id: plan.id,
@@ -128,6 +210,7 @@ export function taggedRelease() {
       action: entry.action,
       upgrade: entry.upgrade,
       sha256: entry.sha256,
+      ...("replaces" in entry ? { replaces: entry.replaces } : {}),
     })),
   };
   const blueprintManifestPath = join(
@@ -136,7 +219,7 @@ export function taggedRelease() {
   );
   const blueprintManifestBytes = `${JSON.stringify(blueprintManifest, null, 2)}\n`;
   writeFileSync(blueprintManifestPath, blueprintManifestBytes);
-  return {
+  const result = {
     repositoryRoot,
     temporaryRoot,
     homeRoot,
@@ -147,7 +230,13 @@ export function taggedRelease() {
     ownershipManifestChecksum: hash(manifestBytes),
     blueprintManifestPath,
     blueprintManifestChecksum: hash(blueprintManifestBytes),
+    replacement: options.replacement,
+    baseOperations: [
+      ...projectionFiles,
+      ...Object.keys(options.extraCopies ?? {}),
+    ],
   };
+  return result;
 }
 
 export type TaggedReleaseFixture = ReturnType<typeof taggedRelease>;
@@ -175,7 +264,8 @@ export function prepare(
       sourceRoot: fixture.repositoryRoot,
     },
     target: fixture.targetRoot,
-    blueprintTargetPlan,
+    blueprintTargetPlan: () =>
+      blueprintTargetPlan("fixture blueprint\n", fixture.replacement),
     templateInstance: (facts) =>
       `${JSON.stringify({ name: "My App", release: facts })}\n`,
   });
