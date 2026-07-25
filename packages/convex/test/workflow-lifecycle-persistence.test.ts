@@ -13,6 +13,7 @@ import {
   persistWorkflowLifecycleState,
 } from "../confect/workflows/lifecyclePersistence";
 import { inspectWorkflowRestart } from "../confect/workflows/lifecycleInspection";
+import { reconcileWorkflowCompletion } from "../confect/workflows/lifecycleReconciliation";
 import { testConfectLayer } from "./support/confect";
 import {
   lifecycleNow,
@@ -21,6 +22,55 @@ import {
 } from "./workflow-lifecycle-persistence.fixture";
 
 describe("workflow lifecycle persistent tenant adapters", () => {
+  it("reconciles a bounded owned completion idempotently", async () => {
+    const program = Effect.gen(function* () {
+      const confect = yield* Effect.serviceOptional(
+        TestConfect.TestConfect<typeof databaseSchema>(),
+      );
+      const seeded = yield* seedLifecyclePersistence(confect);
+      return yield* confect.run(
+        Effect.gen(function* () {
+          const reader = yield* DatabaseReader;
+          const writer = yield* DatabaseWriter;
+          const context = {
+            workspaceId: seeded.workspaceId,
+            workflowRunId: seeded.runId,
+            workflowId: "workflow.invoice-review",
+            workflowVersion: 3,
+            generation: 0,
+            generationAnchor: "workflow.invoice-review@v3:g0",
+          };
+          const input = {
+            componentWorkflowId: "component-run-a",
+            context,
+            result: { kind: "failed" as const, error: "redacted" },
+          };
+          yield* reconcileWorkflowCompletion(reader, writer, input);
+          yield* reconcileWorkflowCompletion(reader, writer, input);
+          const row = yield* reader
+            .table("workflowRuns")
+            .get(seeded.runId)
+            .pipe(Effect.orDie);
+          return JSON.stringify({
+            execution: row?.lifecycleExecution,
+            quiescence: row?.priorGenerationQuiescence,
+            status: row?.status,
+          });
+        }),
+        Schema.String,
+      );
+    });
+    await expect(
+      Effect.runPromise(program.pipe(Effect.provide(testConfectLayer()))),
+    ).resolves.toBe(
+      JSON.stringify({
+        execution: "terminal",
+        quiescence: "pending",
+        status: "failed",
+      }),
+    );
+  });
+
   it("inspects downstream steps and generation-scoped effect horizons", async () => {
     const program = Effect.gen(function* () {
       const confect = yield* Effect.serviceOptional(

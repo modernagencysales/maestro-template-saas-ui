@@ -12,7 +12,10 @@ import {
 } from "../../_generated/services";
 import { makePublicError } from "../../shared/errors";
 import { validateCallerIdempotencyKey } from "../../shared/idempotencyKey";
-import { createWorkflowLifecycleState } from "./lifecycleState";
+import {
+  createWorkflowLifecycleState,
+  type WorkflowOnCompleteContext,
+} from "./lifecycleState";
 
 type Reader = Context.Tag.Service<typeof DatabaseReader>;
 type Writer = Context.Tag.Service<typeof DatabaseWriter>;
@@ -60,6 +63,19 @@ export type StartWorkflowOwnershipInput<
   readonly timeoutMs?: number;
   readonly deadlineAt?: number;
   readonly kickoffProfile: "eager-first-poll" | "queued";
+  readonly onCompleteRef?: FunctionReference<
+    "mutation",
+    "internal",
+    {
+      readonly workflowId: string;
+      readonly context: WorkflowOnCompleteContext;
+      readonly result:
+        | { readonly kind: "success"; readonly returnValue: unknown }
+        | { readonly kind: "failed"; readonly error: string }
+        | { readonly kind: "canceled" };
+    },
+    null
+  >;
 };
 
 export const startWorkflowAndRecordOwnership = <
@@ -90,10 +106,21 @@ export const startWorkflowAndRecordOwnership = <
     }
 
     const reservationId = yield* reserveWorkflowRun(writer, normalizedInput);
+    const completionContext = workflowOnCompleteContext(
+      normalizedInput,
+      reservationId,
+    );
+    if (normalizedInput.onCompleteRef) {
+      yield* writer
+        .table("workflowRuns")
+        .patch(reservationId, { onCompleteContext: completionContext })
+        .pipe(Effect.orDie);
+    }
     const componentWorkflowId = yield* startComponentWorkflow(
       mutationCtx,
       normalizedInput,
       reservationId,
+      completionContext,
     );
     yield* recordStartedWorkflow(writer, reservationId, componentWorkflowId);
     return componentWorkflowId;
@@ -240,6 +267,7 @@ const startComponentWorkflow = <
   mutationCtx: Mutation,
   input: StartWorkflowOwnershipInput<F>,
   workflowRunId: GenericId<"workflowRuns">,
+  completionContext: WorkflowOnCompleteContext,
 ) =>
   Effect.promise(() => {
     const workflowArgs = input.buildWorkflowArgs
@@ -253,8 +281,25 @@ const startComponentWorkflow = <
     }
     return start(mutationCtx, input.workflowRef, workflowArgs, {
       ...kickoffProfileStartOptions(input.kickoffProfile),
+      ...(input.onCompleteRef
+        ? { onComplete: input.onCompleteRef, context: completionContext }
+        : {}),
     });
   });
+
+const workflowOnCompleteContext = <
+  F extends FunctionReference<"mutation", "internal">,
+>(
+  input: StartWorkflowOwnershipInput<F>,
+  workflowRunId: GenericId<"workflowRuns">,
+): WorkflowOnCompleteContext => ({
+  workspaceId: input.workspaceId,
+  workflowRunId,
+  workflowId: input.workflowId,
+  workflowVersion: input.workflowVersion,
+  generation: 0,
+  generationAnchor: `${input.workflowId}@v${input.workflowVersion}:g0`,
+});
 
 export const kickoffProfileStartOptions = (
   profile: "eager-first-poll" | "queued",

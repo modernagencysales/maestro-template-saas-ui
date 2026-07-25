@@ -2,6 +2,7 @@ import { FunctionSpec, GroupSpec } from "@confect/core";
 import * as Schema from "effect/Schema";
 
 import { Id } from "../_generated/id";
+import { WorkflowOnCompleteContext } from "./_kit/lifecycleState";
 import {
   MemberNotInWorkspace,
   NotFound,
@@ -145,9 +146,32 @@ const restart = FunctionSpec.internalMutation({
   error: () => WorkflowLifecycleErrors,
 });
 
+const reconcileCompletion = FunctionSpec.internalMutation({
+  name: "reconcileCompletion",
+  args: () =>
+    Schema.Struct({
+      componentWorkflowId: Schema.NonEmptyString,
+      context: WorkflowOnCompleteContext,
+      result: Schema.Union(
+        Schema.Struct({
+          kind: Schema.Literal("success"),
+          returnValue: Schema.Unknown,
+        }),
+        Schema.Struct({ kind: Schema.Literal("failed"), error: Schema.String }),
+        Schema.Struct({ kind: Schema.Literal("canceled") }),
+      ),
+    }),
+  returns: () =>
+    Schema.Struct({
+      status: Schema.Literal("success", "failed", "canceled"),
+    }),
+  error: () => WorkflowLifecycleErrors,
+});
+
 export default GroupSpec.make()
   .addFunction(cancel)
   .addFunction(restart)
+  .addFunction(reconcileCompletion)
   .addFunction(list)
   .addFunction(listByName)
   .addFunction(listSteps)

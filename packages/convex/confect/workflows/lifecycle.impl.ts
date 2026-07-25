@@ -8,6 +8,7 @@ import {
   DatabaseWriter,
   MutationCtx,
 } from "../_generated/services";
+import { ValidationFailed } from "../errors";
 import {
   authorizeWorkflowLifecycle,
   makeWorkflowLifecycleMutationControls,
@@ -15,6 +16,7 @@ import {
   runWorkflowLifecycleControl,
 } from "./lifecycleAdapters";
 import lifecycle from "./lifecycle.spec";
+import { reconcileWorkflowCompletion } from "./lifecycleReconciliation";
 
 const cancel = FunctionImpl.make(databaseSchema, lifecycle, "cancel", (args) =>
   Effect.gen(function* () {
@@ -119,9 +121,30 @@ const restart = FunctionImpl.make(
     }),
 );
 
+const reconcileCompletion = FunctionImpl.make(
+  databaseSchema,
+  lifecycle,
+  "reconcileCompletion",
+  (args) =>
+    Effect.gen(function* () {
+      const reader = yield* DatabaseReader;
+      const writer = yield* DatabaseWriter;
+      return yield* reconcileWorkflowCompletion(reader, writer, args).pipe(
+        Effect.mapError(
+          (error) =>
+            new ValidationFailed({
+              field: "onComplete",
+              message: error.message,
+            }),
+        ),
+      );
+    }),
+);
+
 export default GroupImpl.make(databaseSchema, lifecycle).pipe(
   Layer.provide(cancel),
   Layer.provide(restart),
+  Layer.provide(reconcileCompletion),
   Layer.provide(list),
   Layer.provide(listByName),
   Layer.provide(listSteps),
