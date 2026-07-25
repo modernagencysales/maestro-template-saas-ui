@@ -21,6 +21,19 @@ printed by create. Install dependencies and initialize Git only after reviewing
 their separate approval items. See the
 [customer target contract](./customer-target-contract.md).
 
+From the completed customer target, the shortest visible-app path is:
+
+```bash
+pnpm install
+pnpm maestro -- start
+```
+
+The default fake mode starts only the web app, requires no Convex account, and
+prints the personalized app name, first outcome, URL, and `/health` readiness
+route only after that route responds successfully. Use `--mode local` only for
+the reviewed local Convex stack and `--mode dev` only with an authenticated
+personal dev deployment. See [local start modes](./start-modes.md).
+
 Copy-paste path:
 
 ```bash
@@ -32,7 +45,7 @@ pnpm template:seed-demo -- --blueprint source-grounded-gtm-brain --write
 pnpm template:systems -- --query knowledge
 pnpm template:add-client-domain -- --name customerContext --system knowledge-brain --disposition extend --write
 pnpm template:handoff -- --mode fake --write
-pnpm --dir apps/web dev
+pnpm maestro -- start
 ```
 
 This is the fastest reviewer path: install, generate the client fork packet,
@@ -61,7 +74,7 @@ unsupported host posture.
    `pnpm template:seed-demo -- --blueprint source-grounded-gtm-brain --write`.
 7. Change the first client noun with
    `pnpm template:add-client-domain -- --name customerContext --system knowledge-brain --disposition extend --write`.
-8. Start the app with `pnpm --dir apps/web dev`.
+8. Start the app with `pnpm maestro -- start`.
 9. Review the generated implementation brief at
    `docs/template/generated/implementation-brief.md`.
 10. Preview the handoff packet with
@@ -75,8 +88,9 @@ route is the first copyable mutation slice: `Plan export` and `Plan delete`
 update local fake-safe state until a real Convex URL and workspace are
 configured.
 
-Expected local URL: `http://127.0.0.1:5173/` unless Vite selects another free
-port. Expected generated files:
+Expected local URL: `http://127.0.0.1:5173/`; start uses strict port binding and
+reports a collision rather than selecting an unannounced port. The readiness
+route is `http://127.0.0.1:5173/health`. Expected generated files:
 
 - `template-instance.json`
 - `docs/template/generated/implementation-brief.md`
