@@ -147,6 +147,23 @@ never the value. Provider exceptions are converted to a fixed redacted failure
 before component persistence; do not include SDK messages, stacks, previews,
 tokens, webhook bodies, or unnecessary PII.
 
+## Principal And Policy Replay
+
+Public starts never accept actor, role, grants, auth epoch, or system-principal
+fields. The authenticated Confect mutation constructs a V2 principal and an
+explicit `none` or exact version/hash policy snapshot, persists both with the
+run, and passes them through the generated runner. Capability mappers append
+those fields after rejecting reserved-field overrides. Child workflows inherit
+the principal or receive a grant subset; widening is invalid.
+
+Pinned policy drives deterministic business decisions through sleep, events,
+children, and restart. It is never replaced with the latest active policy.
+Immediately before a consequential action, the generated capability boundary
+reloads current membership for the persisted actor and tenant. Revocation, role
+downgrade, or missing current grants blocks the effect without changing the
+pinned decision. Legacy active runs may finish non-consequential work but must
+reauthorize before starting an external effect.
+
 ## Reviewer-Safe Run Receipt
 
 The deterministic sample receipt lives in `packages/template-core/src/index.ts`

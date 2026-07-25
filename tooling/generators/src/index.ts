@@ -3079,7 +3079,7 @@ const startWithProfile = (
         actorId: access.userId,
         role: access.role,
         grants: ["workflow:start"],
-        authEpoch: startedAt,
+        authEpoch: access.authEpoch,
         kickoffAt: startedAt,
       });
       const policySnapshot = {
@@ -3359,6 +3359,7 @@ import {
   defineWorkflowCapabilityRegistry,
 } from "../_kit/graphRunnerV2";
 import { runWorkflowCapabilityBoundary } from "../_kit/workflowCapabilityBoundary";
+import { requireConsequentialWorkflowAuthority } from "../_kit/principalAuthorization";
 import {
   defineWorkflowEvent,
   defineWorkflowV2EventRegistry,
@@ -3374,6 +3375,9 @@ import { ${name}References } from "./v1.graph";
  * redaction policy, and provider/reconciliation fixture evidence.
  * Query and mutation nodes use an independent Workpool transaction by default.
  * Inline nodes must be authored with a named generated preset.
+ * External actions declare authorization: { kind: "consequential",
+ * requiredGrants, boundary: "generated-current-authority" } and invoke the
+ * generated consequential-authority function inside their capability wrapper.
  */
 export const ${name}CapabilityRegistry = defineWorkflowCapabilityRegistry({});
 
@@ -3382,6 +3386,8 @@ export const ${name}CapabilityArgs = buildWorkflowCapabilityArgs;
 
 /** Generated capabilities must cross this boundary before Workpool returns. */
 export const ${name}CapabilityBoundary = runWorkflowCapabilityBoundary;
+export const ${name}ConsequentialAuthority =
+  requireConsequentialWorkflowAuthority;
 
 export const ${name}ArtifactRefs = {
   put: Ref.getFunctionReference(refs.internal.workflows.artifacts.put),

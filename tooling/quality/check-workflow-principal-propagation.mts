@@ -18,6 +18,10 @@ const subworkflows = readFileSync(
   "packages/convex/confect/workflows/_kit/subworkflows.ts",
   "utf8",
 );
+const runnerAuthority = readFileSync(
+  "packages/convex/confect/workflows/_kit/graphRunnerV2.ts",
+  "utf8",
+);
 const findings: string[] = [];
 
 for (const forbidden of ["actorId", "authEpoch", "systemId", "grants"]) {
@@ -43,6 +47,12 @@ for (const required of [
 }
 if (!registry.includes("buildWorkflowCapabilityArgs"))
   findings.push("generated capability registry misses authority mapper");
+if (!registry.includes("requireConsequentialWorkflowAuthority"))
+  findings.push("generated capability registry misses current reauthorization");
+if (!registry.includes('boundary: "generated-current-authority"'))
+  findings.push("generated external action contract misses authority posture");
+if (!runnerAuthority.includes("assertExternalAuthorizationBoundary"))
+  findings.push("V2 action runner misses authorization preflight");
 for (const required of [
   "hasReservedWorkflowIdentityField(mappedArgs)",
   "narrowed child principal cannot add grants",

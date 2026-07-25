@@ -9,6 +9,7 @@ import {
   assertWorkflowPrincipalAuthority,
   createWorkflowSystemPrincipal,
   createWorkflowUserPrincipal,
+  resolveWorkflowRunPrincipal,
 } from "../confect/workflows/_kit/principal";
 import {
   assertWorkflowPolicySnapshot,
@@ -75,6 +76,14 @@ describe("durable workflow principal authority", () => {
         startedAt: 100,
       }),
     ).toMatchObject({ consequentialEffects: "reauthorization-required" });
+    expect(
+      resolveWorkflowRunPrincipal({
+        workspaceId: "workspace-a",
+        startedByUserId: "user-a",
+        startedAt: 100,
+        principalSnapshot: null,
+      }),
+    ).toMatchObject({ kind: "legacy-active" });
   });
 
   it("keeps pinned grants while current revocation blocks effects", () => {

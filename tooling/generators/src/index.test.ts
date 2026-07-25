@@ -1385,6 +1385,7 @@ describe("template app factory generators", () => {
     expect(registry).toContain("sourceGroundedPlanCapabilityArgs");
     expect(registry).toContain("runWorkflowCapabilityBoundary");
     expect(registry).toContain("sourceGroundedPlanCapabilityBoundary");
+    expect(registry).toContain("sourceGroundedPlanConsequentialAuthority");
     expect(registry).toContain("sourceGroundedPlanArtifactRefs");
     expect(registry).toContain("refs.internal.workflows.artifacts.put");
     expect(registry).toContain("refs.internal.workflows.artifacts.getOwned");

@@ -85,6 +85,11 @@ export type WorkflowV2ActionCapabilityEntry =
     readonly effectContract: WorkflowEffectContract;
     readonly instanceKey: (envelope: WorkflowV2CapabilityEnvelope) => string;
     readonly terminalError?: (error: unknown) => string | undefined;
+    readonly authorization?: {
+      readonly kind: "consequential";
+      readonly requiredGrants: readonly string[];
+      readonly boundary: "generated-current-authority";
+    };
   };
 
 export type WorkflowV2CapabilityEntry =
@@ -541,6 +546,7 @@ const runActionNode = async <Result extends Record<string, unknown>>(
   entry: WorkflowV2ActionCapabilityEntry,
   envelope: WorkflowV2CapabilityEnvelope,
 ): Promise<unknown> => {
+  assertExternalAuthorizationBoundary(input, node, entry);
   const validated = validateWorkflowEffectContract(
     entry.effectContract,
     node.retry,
@@ -655,6 +661,27 @@ const runActionNode = async <Result extends Record<string, unknown>>(
       throw new NonRetryableError(terminalMessage);
     }
     throw error;
+  }
+};
+
+const assertExternalAuthorizationBoundary = <
+  Result extends Record<string, unknown>,
+>(
+  input: RunDurableGraphV2CompilerInput<Result>,
+  node: Extract<CapabilityNodeV2, { functionKind: "action" }>,
+  entry: WorkflowV2ActionCapabilityEntry,
+): void => {
+  const principal = input.principal as { readonly version?: unknown };
+  if (entry.effectClass !== "external" || principal.version !== 2) return;
+  if (
+    entry.authorization?.kind !== "consequential" ||
+    entry.authorization.boundary !== "generated-current-authority" ||
+    entry.authorization.requiredGrants.length === 0
+  ) {
+    throw validationFailure(
+      node,
+      "V2 external capabilities require generated current-authority reauthorization",
+    );
   }
 };
 

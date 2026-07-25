@@ -23,7 +23,10 @@ export type WorkspaceAccess = {
   readonly workspaceId: GenericId<"workspaces">;
   readonly role: Role;
   readonly reason: string;
+  readonly authEpoch: number;
 };
+
+export type WorkspaceActorAccess = WorkspaceAccess;
 
 export const requireWorkspaceAccess = (
   workspaceId: GenericId<"workspaces">,
@@ -62,8 +65,62 @@ export const requireWorkspaceAccess = (
       workspaceId,
       role: resolution.role,
       reason: resolution.reason,
+      authEpoch: membershipAuthEpoch(memberships),
     };
   });
+
+export const requireWorkspaceActorAccess = (
+  workspaceId: GenericId<"workspaces">,
+  userId: GenericId<"users">,
+  minimumRole: Role,
+): Effect.Effect<
+  WorkspaceActorAccess,
+  Unauthorized | WorkspaceNotFound | MemberNotInWorkspace,
+  DatabaseReader | Clock.Clock
+> =>
+  Effect.gen(function* () {
+    const reader = yield* DatabaseReader;
+    const user = yield* reader.table("users").get(userId).pipe(Effect.orDie);
+    yield* requireActiveUser(user);
+    const workspace = yield* loadWorkspace(workspaceId);
+    const organization = yield* loadWorkspaceOrganization(
+      workspace.organizationId,
+      workspaceId,
+    );
+    const nowMs = yield* Clock.currentTimeMillis;
+    const memberships = yield* loadWorkspaceAccessMemberships({
+      workspaceId,
+      organizationId: workspace.organizationId,
+      userId,
+    });
+    const resolution = yield* requireResolvedWorkspaceAccess(
+      resolveWorkspaceAccessRole({
+        nowMs,
+        userId,
+        workspace,
+        organization,
+        ...memberships,
+      }),
+      minimumRole,
+    );
+    return {
+      userId,
+      workspaceId,
+      role: resolution.role,
+      reason: resolution.reason,
+      authEpoch: membershipAuthEpoch(memberships),
+    };
+  });
+
+const membershipAuthEpoch = (memberships: {
+  readonly workspaceMembers: readonly { readonly updatedAt: number }[];
+  readonly organizationMembers: readonly { readonly updatedAt: number }[];
+}): number =>
+  Math.max(
+    0,
+    ...memberships.workspaceMembers.map((row) => row.updatedAt),
+    ...memberships.organizationMembers.map((row) => row.updatedAt),
+  );
 
 const loadActiveWorkspaceUser = Effect.gen(function* () {
   const auth = yield* Auth;

@@ -1,4 +1,5 @@
 import * as Schema from "effect/Schema";
+import { roleAtLeast, Role, type Role as RoleType } from "../../access/roles";
 
 const WorkflowPrincipalV1Base = {
   version: Schema.Literal(1),
@@ -53,7 +54,7 @@ export const WorkflowUserPrincipalV2 = Schema.Struct({
   ...WorkflowPrincipalV2Base,
   kind: Schema.Literal("user"),
   actorId: Schema.NonEmptyString,
-  role: Schema.NonEmptyString,
+  role: Role,
   authEpoch: Schema.Number.pipe(Schema.int(), Schema.greaterThanOrEqualTo(0)),
   provenance: Schema.Literal("authenticated-workflow-start"),
 });
@@ -77,7 +78,7 @@ export type DurableWorkflowPrincipal = Schema.Schema.Type<
 export const createWorkflowUserPrincipal = (input: {
   readonly workspaceId: string;
   readonly actorId: string;
-  readonly role: string;
+  readonly role: "viewer" | "editor" | "admin" | "owner";
   readonly grants: readonly string[];
   readonly authEpoch: number;
   readonly kickoffAt: number;
@@ -137,11 +138,30 @@ export const adaptLegacyActiveWorkflowPrincipal = (input: {
   consequentialEffects: "reauthorization-required" as const,
 });
 
+export const resolveWorkflowRunPrincipal = (row: {
+  readonly workspaceId: string;
+  readonly startedByUserId: string;
+  readonly startedAt: number;
+  readonly principalSnapshot?: DurableWorkflowPrincipal | null | undefined;
+}):
+  | DurableWorkflowPrincipal
+  | ReturnType<typeof adaptLegacyActiveWorkflowPrincipal> => {
+  if (row.principalSnapshot) {
+    const principal = decodeDurablePrincipal(row.principalSnapshot);
+    assertWorkflowPrincipalAuthority(principal, {
+      workspaceId: row.workspaceId,
+      requiredGrants: [],
+    });
+    return principal;
+  }
+  return adaptLegacyActiveWorkflowPrincipal(row);
+};
+
 export type CurrentWorkflowAuthority = {
   readonly active: boolean;
   readonly workspaceId: string;
   readonly actorId: string;
-  readonly role: string;
+  readonly role: RoleType;
   readonly grants: readonly string[];
   readonly authEpoch: number;
 };
@@ -157,6 +177,7 @@ export const assertConsequentialWorkflowAuthority = (
     current.workspaceId !== principal.workspaceId ||
     principal.kind !== "user" ||
     current.actorId !== principal.actorId ||
+    !roleAtLeast(current.role, principal.role) ||
     current.authEpoch < principal.authEpoch ||
     requiredGrants.some(
       (grant) => !principal.grants.includes(grant) || !currentGrants.has(grant),

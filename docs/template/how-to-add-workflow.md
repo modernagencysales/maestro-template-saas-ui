@@ -94,6 +94,14 @@ Cancellation is projected as cascading while cleanup remains `cascade-async`;
 neither is described as atomic rollback or immediate deletion. Scheduled child
 options remain rejected on Workflow 0.4.4.
 
+Public start args contain business input only. Keep the generated
+server-constructed V2 principal and policy snapshot in ownership, runner, and
+capability arguments. For policy-dependent workflows, resolve an exact policy
+version and hash at kickoff; never read “latest” during replay or restart.
+External actions declare required grants and invoke the generated current
+authority check inside their redacting capability boundary. Child grant lists
+may only narrow the parent.
+
 ## Lifecycle Controls
 
 Generated starts return both the tenant-owned `workflowRunId` and the component
