@@ -26,7 +26,7 @@ const finding = (
   repair: string,
 ): WorkflowSemanticFinding => ({ ruleId, file, reason, repair });
 
-export const readWorkflowGraphFields = (_repoRoot: string): readonly string[] =>
+export const readWorkflowGraphFields = (): readonly string[] =>
   WORKFLOW_GRAPH_FIELDS;
 
 export const checkWorkflowSemantics = (
@@ -40,7 +40,7 @@ export const checkWorkflowSemantics = (
       "complete the semantic rule evidence and rerun pnpm check:workflow-semantics",
     ),
   );
-  const actualFields = readWorkflowGraphFields(repoRoot);
+  const actualFields = readWorkflowGraphFields();
   for (const field of new Set([...WORKFLOW_GRAPH_FIELDS, ...actualFields])) {
     if (
       !WORKFLOW_GRAPH_FIELDS.includes(

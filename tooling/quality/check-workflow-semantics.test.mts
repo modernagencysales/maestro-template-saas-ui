@@ -9,10 +9,8 @@ const repoRoot = resolve(import.meta.dirname, "../..");
 
 describe("check:workflow-semantics", () => {
   it("derives the complete typed graph field inventory", () => {
-    expect(readWorkflowGraphFields(repoRoot)).toHaveLength(23);
-    expect(readWorkflowGraphFields(repoRoot)).toContain(
-      "nodes[].retry.maxAttempts",
-    );
+    expect(readWorkflowGraphFields()).toHaveLength(23);
+    expect(readWorkflowGraphFields()).toContain("nodes[].retry.maxAttempts");
   });
 
   it("passes the repository ledger and generated projection", () => {
