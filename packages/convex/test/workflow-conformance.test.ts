@@ -1506,7 +1506,7 @@ describe("Maestro V2 inline transaction compiler", () => {
 });
 
 describe("pinned Convex Workflow component conformance", () => {
-  beforeEach(() => vi.useFakeTimers());
+  beforeEach(() => vi.useFakeTimers({ toFake: ["Date", "setTimeout"] }));
   afterEach(() => {
     expect(vi.getTimerCount()).toBe(0);
     vi.useRealTimers();
