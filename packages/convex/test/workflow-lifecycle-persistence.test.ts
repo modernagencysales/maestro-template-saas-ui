@@ -12,6 +12,7 @@ import {
   loadOwnedWorkflowRun,
   persistWorkflowLifecycleState,
 } from "../confect/workflows/lifecyclePersistence";
+import { inspectWorkflowRestart } from "../confect/workflows/lifecycleInspection";
 import { testConfectLayer } from "./support/confect";
 import {
   lifecycleNow,
@@ -20,6 +21,67 @@ import {
 } from "./workflow-lifecycle-persistence.fixture";
 
 describe("workflow lifecycle persistent tenant adapters", () => {
+  it("inspects downstream steps and generation-scoped effect horizons", async () => {
+    const program = Effect.gen(function* () {
+      const confect = yield* Effect.serviceOptional(
+        TestConfect.TestConfect<typeof databaseSchema>(),
+      );
+      const seeded = yield* seedLifecyclePersistence(confect);
+      return yield* confect.run(
+        Effect.gen(function* () {
+          const reader = yield* DatabaseReader;
+          const writer = yield* DatabaseWriter;
+          yield* writer
+            .table("workflowEffectReservations")
+            .insert({
+              workspaceId: seeded.workspaceId,
+              workflowRunId: seeded.runId,
+              workflowId: "workflow.invoice-review",
+              workflowVersion: 3,
+              generation: 0,
+              stepName: "review.v3",
+              logicalEffectKey: "invoice-review:review",
+              capabilityRef: "capability.invoice.review",
+              effectClass: "external",
+              strategy: "durable-ledger-and-reconcile",
+              state: "confirmed",
+              reconciliationState: "confirmed",
+              approvalCheck: "passed",
+              quotaRateCheck: "passed",
+              spendKillSwitchCheck: "passed",
+              dedupeExpiresAt: lifecycleNow + 1_000,
+              restartSafeUntil: lifecycleNow + 500,
+              occurredAt: lifecycleNow,
+              occurredAtDescending: -lifecycleNow,
+              appendOnly: true,
+            })
+            .pipe(Effect.orDie);
+          const inspection = yield* inspectWorkflowRestart(reader, {
+            workspaceId: seeded.workspaceId,
+            workflowRunId: seeded.runId,
+            generation: 0,
+            restartAnchor: "review.v3",
+          });
+          return JSON.stringify(inspection);
+        }),
+        Schema.String,
+      );
+    });
+    const result = await Effect.runPromise(
+      program.pipe(Effect.provide(testConfectLayer())),
+    );
+
+    expect(JSON.parse(result)).toEqual({
+      discardedSteps: ["review.v3"],
+      externalEffects: [
+        expect.objectContaining({
+          stepName: "review.v3",
+          restartSafe: true,
+        }),
+      ],
+    });
+  });
+
   it("lists only tenant product projections without raw payloads", async () => {
     const program = Effect.gen(function* () {
       const confect = yield* Effect.serviceOptional(

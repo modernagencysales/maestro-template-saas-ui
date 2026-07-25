@@ -24,6 +24,7 @@ import {
   persistWorkflowLifecycleState,
 } from "./lifecyclePersistence";
 import { workflowLifecycleComponentAdapter } from "./lifecycleComponent";
+import { inspectWorkflowRestart } from "./lifecycleInspection";
 
 type Reader = Context.Tag.Service<typeof DatabaseReader>;
 type Writer = Context.Tag.Service<typeof DatabaseWriter>;
@@ -95,7 +96,8 @@ const readPorts = (
     Effect.runPromise(
       listOwnedWorkflowSteps(reader, workflowRunId, pagination),
     ),
-  inspectRestart: unavailableOperation,
+  inspectRestart: (input) =>
+    Effect.runPromise(inspectWorkflowRestart(reader, input)),
   component: {
     status: unavailableOperation,
     cancel: unavailableOperation,

@@ -1,0 +1,89 @@
+import type * as Context from "effect/Context";
+import * as Effect from "effect/Effect";
+
+import { DatabaseReader } from "../_generated/services";
+import type { WorkflowRestartInspection } from "./_kit/lifecycleControls";
+import { WorkflowLifecyclePersistenceError } from "./lifecyclePersistence";
+
+type Reader = Context.Tag.Service<typeof DatabaseReader>;
+
+export const inspectWorkflowRestart = (
+  reader: Reader,
+  input: {
+    readonly workspaceId: string;
+    readonly workflowRunId: string;
+    readonly generation: number;
+    readonly restartAnchor: string;
+  },
+): Effect.Effect<
+  WorkflowRestartInspection,
+  WorkflowLifecyclePersistenceError
+> =>
+  Effect.gen(function* () {
+    const stages = yield* reader
+      .table("workflowStageRuns")
+      .index("by_run", (q) => q.eq("workflowRunId", input.workflowRunId))
+      .collect()
+      .pipe(Effect.orDie);
+    const ordered = stages
+      .filter((stage) => stage.stageKey !== undefined)
+      .sort(
+        (left, right) =>
+          (left.order ?? Number.MAX_SAFE_INTEGER) -
+            (right.order ?? Number.MAX_SAFE_INTEGER) ||
+          (left.attemptNumber ?? left.attempt) -
+            (right.attemptNumber ?? right.attempt),
+      );
+    const anchorOrder = findRestartAnchorOrder(ordered, input.restartAnchor);
+    if (anchorOrder === undefined) {
+      return yield* new WorkflowLifecyclePersistenceError({
+        message: "Restart anchor is not present in the persisted run graph.",
+      });
+    }
+    const discardedSteps = [
+      ...new Set(
+        ordered
+          .filter(
+            (stage) => (stage.order ?? Number.MAX_SAFE_INTEGER) >= anchorOrder,
+          )
+          .map((stage) => stage.stageKey)
+          .filter((step): step is string => step !== undefined),
+      ),
+    ];
+    const reservations = yield* Effect.forEach(discardedSteps, (stepName) =>
+      reader
+        .table("workflowEffectReservations")
+        .index("by_run_generation_step", (q) =>
+          q
+            .eq("workflowRunId", input.workflowRunId)
+            .eq("generation", input.generation)
+            .eq("stepName", stepName),
+        )
+        .collect()
+        .pipe(Effect.orDie),
+    );
+    return {
+      discardedSteps,
+      externalEffects: reservations.flat().map((reservation) => ({
+        stepName: reservation.stepName,
+        restartSafe: reservation.strategy !== "non-retriable",
+        restartSafeUntil: reservation.restartSafeUntil,
+        dedupeExpiresAt: reservation.dedupeExpiresAt,
+      })),
+    };
+  });
+
+const findRestartAnchorOrder = (
+  stages: readonly {
+    readonly stageKey?: string | undefined;
+    readonly order?: number | undefined;
+  }[],
+  restartAnchor: string,
+): number | undefined => {
+  if (restartAnchor === "beginning") return Number.NEGATIVE_INFINITY;
+  for (let index = stages.length - 1; index >= 0; index -= 1) {
+    const stage = stages[index];
+    if (stage?.stageKey === restartAnchor) return stage.order;
+  }
+  return undefined;
+};
