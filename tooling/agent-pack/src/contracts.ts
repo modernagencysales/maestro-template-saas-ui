@@ -8,6 +8,13 @@ export const AGENT_PACK_EXECUTION_CONTEXT_VERSION = 1 as const;
 export type AgentPackInvocation = "cli" | "mcp" | "library";
 export type AgentPackMutationPosture = "read-only" | "preview" | "write";
 export type AgentPackDiagnosticSeverity = "info" | "warning" | "error";
+export type AgentPackJsonValue =
+  | null
+  | boolean
+  | number
+  | string
+  | readonly AgentPackJsonValue[]
+  | { readonly [key: string]: AgentPackJsonValue };
 
 export type AgentPackExecutionContext = {
   readonly schemaVersion: typeof AGENT_PACK_EXECUTION_CONTEXT_VERSION;
@@ -31,7 +38,10 @@ export type AgentPackArgumentResult<Args> =
       readonly diagnostics: readonly AgentPackDiagnostic[];
     };
 
-export type AgentPackResult<CommandId extends string, Data> = {
+export type AgentPackResult<
+  CommandId extends string,
+  Data extends AgentPackJsonValue,
+> = {
   readonly schemaVersion: typeof AGENT_PACK_RESULT_VERSION;
   readonly command: {
     readonly id: CommandId;
@@ -45,7 +55,11 @@ export type AgentPackResult<CommandId extends string, Data> = {
   readonly data: Data;
 };
 
-export type AgentPackCommand<CommandId extends string, Args, Data> = {
+export type AgentPackCommand<
+  CommandId extends string,
+  Args,
+  Data extends AgentPackJsonValue,
+> = {
   readonly id: CommandId;
   readonly schemaVersion: typeof AGENT_PACK_COMMAND_VERSION;
   readonly decode: (input: unknown) => AgentPackArgumentResult<Args>;
@@ -56,24 +70,27 @@ export type AgentPackCommand<CommandId extends string, Args, Data> = {
   ) => Promise<AgentPackResult<CommandId, Data>>;
 };
 
-type AgentPackResultInput<CommandId extends string, Data> = Omit<
-  AgentPackResult<CommandId, Data>,
-  "schemaVersion" | "command"
-> & {
+type AgentPackResultInput<
+  CommandId extends string,
+  Data extends AgentPackJsonValue,
+> = Omit<AgentPackResult<CommandId, Data>, "schemaVersion" | "command"> & {
   readonly command: CommandId;
 };
 
 export function defineAgentPackCommand<
   const CommandId extends string,
   Args,
-  Data,
+  Data extends AgentPackJsonValue,
 >(
   command: AgentPackCommand<CommandId, Args, Data>,
 ): AgentPackCommand<CommandId, Args, Data> {
   return command;
 }
 
-export function createAgentPackResult<const CommandId extends string, Data>(
+export function createAgentPackResult<
+  const CommandId extends string,
+  Data extends AgentPackJsonValue,
+>(
   input: AgentPackResultInput<CommandId, Data>,
 ): AgentPackResult<CommandId, Data> {
   return {
@@ -92,7 +109,7 @@ export function createAgentPackResult<const CommandId extends string, Data>(
 }
 
 export function renderAgentPackResult(
-  result: AgentPackResult<string, unknown>,
+  result: AgentPackResult<string, AgentPackJsonValue>,
   options: { readonly details?: boolean } = {},
 ): string {
   const lines = [result.summary];
