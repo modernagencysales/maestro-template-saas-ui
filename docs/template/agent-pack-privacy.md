@@ -21,9 +21,9 @@ local until you move or delete them. Maestro does not upload them. Their
 retention is controlled by the repository owner; delete them with ordinary local
 file controls when they are no longer needed.
 
-A support bundle is preview-first and allowlisted. It can contain only version
-numbers, stable diagnostic error codes, bounded durations, categorical
-host/provider posture, and derived receipt IDs. It does not contain source text,
+A support bundle is preview-first and allowlisted. V1 can contain only
+product-owned version numbers and categorical host/provider posture. It does not
+contain receipt facts, diagnostic text or codes, command metadata, source text,
 prompts, file contents, raw paths, environment values, secret values,
 authentication or session state, provider payloads, identities, customer or
 production data, unredacted logs, or arbitrary files. Exporting a bundle is a
