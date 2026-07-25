@@ -5,7 +5,7 @@ import {
   type ConvexMcpProfiles,
 } from "../pluginContract.js";
 
-type HostCommand = {
+export type HostCommand = {
   readonly command: string;
   readonly args: readonly string[];
 };

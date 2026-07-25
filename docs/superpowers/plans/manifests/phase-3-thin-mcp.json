@@ -95,7 +95,7 @@
     {
       "id": 4,
       "branch": "codex/wp3.5-thin-mcp",
-      "intention": "pin MCP ownership, documentation, and rollback evidence",
+      "intention": "pin MCP ownership and complete the explicit local configure lifecycle",
       "layers": ["checks"],
       "contractRiskIds": [
         "ambient-time-inline",
@@ -117,17 +117,29 @@
             "pnpm check:headless-surface-contract"
           ],
           "notes": "Document exact protocol tools, host mechanisms, Convex opt-in effects, and removal without customer-code changes. Exclude root package barrels, CLI composition/router/index/help, central quality registration, host projection, scripts, lockfile, mutating scaffold, Convex auto-start, and WP-3.5 follow-on tools."
+        },
+        {
+          "kind": "fixture-to-real",
+          "target": "WP-3.5 mcp/configure.ts and factory/mcpConfigure.ts leaf lifecycle",
+          "followUpGates": [
+            "pnpm --dir tooling/agent-pack test configure",
+            "pnpm --dir apps/cli test mcpConfigure",
+            "pnpm --dir tooling/agent-pack typecheck",
+            "pnpm --dir apps/cli typecheck"
+          ],
+          "notes": "Preview inspect by default; apply only through explicit local --write; remove only the exact receipt-owned registration. Exclude ambient host mutation, arbitrary paths or commands, production profiles, root wiring, and additional MCP tools."
         }
       ],
-      "taskRefs": ["WP-3.5-docs-gates"],
-      "rationale": "Deterministic gates prevent transport or host authority drift.",
-      "estLines": 180
+      "taskRefs": ["WP-3.5-docs-gates", "WP-3.5-configure-lifecycle"],
+      "rationale": "Deterministic gates and a closed receipt-owned command prevent transport or host authority drift.",
+      "estLines": 300
     }
   ],
   "allTaskRefs": [
     "WP-3.5-protocol-projection",
     "WP-3.5-server-cli",
     "WP-3.5-convex-host-profiles",
-    "WP-3.5-docs-gates"
+    "WP-3.5-docs-gates",
+    "WP-3.5-configure-lifecycle"
   ]
 }

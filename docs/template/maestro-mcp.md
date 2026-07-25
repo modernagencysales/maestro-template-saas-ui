@@ -31,3 +31,9 @@ explicit personal-development preview; `dev-power` has separate effects and
 confirmation posture. Both use the root `convex.json`, personal `dev`
 deployment, exact audited upstream inventory, and an environment-tool deny list.
 Unknown tools and every production flag fail closed.
+
+`pnpm maestro -- mcp configure --host <claude-code|codex>` previews `inspect` by
+default. `--write` is the only apply action and `--remove` removes only the
+exact local `convex` registration owned by its Maestro receipt. The command
+accepts no paths, commands, production profile, or host-global scope; its host
+configuration store is injected by the CLI boundary.
