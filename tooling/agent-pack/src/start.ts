@@ -216,6 +216,8 @@ function isolatedConvexEnvironment(
 ): NonNullable<StartProcessSpec["environment"]> {
   const selectors = [
     "CONVEX_DEPLOYMENT",
+    "CONVEX_DEPLOY_KEY",
+    "TEMPLATE_CONVEX_DEPLOY_KEY",
     "CONVEX_URL",
     "CONVEX_SITE_URL",
     "CONVEX_SELF_HOSTED_URL",
@@ -307,7 +309,9 @@ function supervisionFailure(
         ? "The readiness route did not become healthy before timeout."
         : result.kind === "readiness-failed"
           ? "The readiness route could not be observed."
-          : "A required local executable could not be spawned.";
+          : result.kind === "cleanup-timeout"
+            ? "Child cleanup exceeded its hard deadline after termination."
+            : "A required local executable could not be spawned.";
   return failure("Local start was unavailable; every child was stopped.", [
     diagnostic(
       `AGENT_PACK_START_${result.kind.replaceAll("-", "_").toUpperCase()}`,

@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import {
+  processTreeSignalRequest,
   redactStartLog,
   superviseProcesses,
   type ManagedProcess,
@@ -178,5 +179,53 @@ describe("process supervisor", () => {
     expect(redactStartLog("Authorization: Bearer abc KEY=value safe=yes")).toBe(
       "Authorization: Bearer [REDACTED] KEY=[REDACTED] safe=yes",
     );
+  });
+
+  it("classifies stubborn termination and completion instead of waiting forever", async () => {
+    const trigger = deferred<{ code: number | null; signal: string | null }>();
+    const never = new Promise<{ code: number | null; signal: string | null }>(
+      () => undefined,
+    );
+    const spawn = vi
+      .fn<ProcessSpawner["spawn"]>()
+      .mockResolvedValueOnce({
+        completion: trigger.promise,
+        terminate: async () => undefined,
+      })
+      .mockResolvedValueOnce({
+        completion: never,
+        terminate: () => new Promise<void>(() => undefined),
+      });
+    const running = superviseProcesses(specs, {
+      spawner: { spawn },
+      signals: { subscribe: () => () => undefined },
+      log: () => undefined,
+      readiness: { wait: async () => true, onReady: () => undefined },
+      cleanupTimeoutMs: 5,
+    });
+    await vi.waitFor(() => expect(spawn).toHaveBeenCalledTimes(2));
+    trigger.resolve({ code: 1, signal: null });
+
+    await expect(running).resolves.toEqual({ kind: "cleanup-timeout" });
+  });
+
+  it("uses platform-correct process-tree requests without shell interpolation", () => {
+    expect(processTreeSignalRequest("win32", 42, "SIGTERM")).toEqual({
+      kind: "windows",
+      command: "taskkill",
+      args: ["/pid", "42", "/t"],
+      shell: false,
+    });
+    expect(processTreeSignalRequest("win32", 42, "SIGKILL")).toEqual({
+      kind: "windows",
+      command: "taskkill",
+      args: ["/pid", "42", "/t", "/f"],
+      shell: false,
+    });
+    expect(processTreeSignalRequest("linux", 42, "SIGTERM")).toEqual({
+      kind: "posix",
+      pid: -42,
+      signal: "SIGTERM",
+    });
   });
 });

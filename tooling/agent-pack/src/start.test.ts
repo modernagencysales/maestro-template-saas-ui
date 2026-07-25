@@ -112,7 +112,12 @@ describe("start command", () => {
   it("removes poisoned live Convex targets from fake and local children", async () => {
     const poisoned = {
       CONVEX_DEPLOYMENT: "prod:customer",
+      CONVEX_DEPLOY_KEY: "prod-deploy-key",
+      TEMPLATE_CONVEX_DEPLOY_KEY: "prod-cluster-deploy-key",
       CONVEX_URL: "https://prod.convex.cloud",
+      CONVEX_SITE_URL: "https://prod.convex.site",
+      CONVEX_SELF_HOSTED_URL: "https://prod.self-hosted.example",
+      CONVEX_SELF_HOSTED_ADMIN_KEY: "prod-admin-key",
       VITE_CONVEX_URL: "https://prod.convex.cloud",
       SAFE_NAME: "kept",
     };
@@ -129,13 +134,40 @@ describe("start command", () => {
           poisoned,
           spec.environment,
         );
-        expect(JSON.stringify(environment)).not.toContain("prod.convex.cloud");
+        expect(JSON.stringify(environment)).not.toMatch(
+          /prod|deploy-key|admin-key/,
+        );
         expect(environment.CONVEX_DEPLOYMENT).toBe("");
+        expect(environment.CONVEX_DEPLOY_KEY).toBe("");
+        expect(environment.TEMPLATE_CONVEX_DEPLOY_KEY).toBe("");
         expect(environment.SAFE_NAME).toBe("kept");
         expect(environment.VITE_CONVEX_URL).toBe(
           mode === "local" && spec.id === "web" ? "http://127.0.0.1:3210" : "",
         );
       }
+    }
+
+    const dev = fixture({
+      safeToStart: true,
+      auth: "connected",
+      exitClass: "success",
+      diagnostics: [],
+    });
+    await executeAgentPackCommand(
+      createStartCommand(dev),
+      { mode: "dev" },
+      context,
+    );
+    const devSpecs = vi.mocked(dev.supervise).mock.calls[0]?.[0] ?? [];
+    const personalDev = {
+      CONVEX_DEPLOYMENT: "dev:personal",
+      CONVEX_DEPLOY_KEY: "personal-dev-key",
+      VITE_CONVEX_URL: "https://personal-dev.convex.cloud",
+    };
+    for (const spec of devSpecs) {
+      expect(projectProcessEnvironment(personalDev, spec.environment)).toEqual(
+        personalDev,
+      );
     }
   });
 

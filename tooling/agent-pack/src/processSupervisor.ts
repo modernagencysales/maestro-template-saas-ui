@@ -19,7 +19,8 @@ export type ProcessSupervisionResult =
   | { readonly kind: "child-exit"; readonly completion: ProcessCompletion }
   | { readonly kind: "readiness-timeout" }
   | { readonly kind: "readiness-failed" }
-  | { readonly kind: "spawn-failed" };
+  | { readonly kind: "spawn-failed" }
+  | { readonly kind: "cleanup-timeout" };
 export type ManagedProcess = {
   readonly completion: Promise<ProcessCompletion>;
   readonly terminate: (signal: NodeJS.Signals) => Promise<void>;
@@ -44,16 +45,25 @@ export async function superviseProcesses(
       readonly wait: (signal: AbortSignal) => Promise<boolean>;
       readonly onReady: () => void;
     };
+    readonly cleanupTimeoutMs?: number;
   },
 ): Promise<ProcessSupervisionResult> {
   const children: ManagedProcess[] = [];
+  const cleanupTimeoutMs = dependencies.cleanupTimeoutMs ?? 5_000;
   let forwardedSignal: NodeJS.Signals | undefined;
   let resolveUserSignal!: (signal: NodeJS.Signals) => void;
   const userSignal = new Promise<NodeJS.Signals>((resolve) => {
     resolveUserSignal = resolve;
   });
-  const terminateAll = async (signal: NodeJS.Signals): Promise<void> => {
-    await Promise.allSettled(children.map((child) => child.terminate(signal)));
+  const terminateAll = (signal: NodeJS.Signals): Promise<boolean> =>
+    settlesWithin(
+      Promise.allSettled(children.map((child) => child.terminate(signal))),
+      cleanupTimeoutMs,
+    );
+  const cleanupAll = async (signal: NodeJS.Signals): Promise<boolean> => {
+    const terminated = await terminateAll(signal);
+    const settled = await settleChildren(children, cleanupTimeoutMs);
+    return terminated && settled;
   };
   const unsubscribe = dependencies.signals.subscribe((signal) => {
     if (forwardedSignal !== undefined) return;
@@ -71,9 +81,9 @@ export async function superviseProcesses(
       );
     }
     if (forwardedSignal !== undefined) {
-      await terminateAll(forwardedSignal);
-      await settleChildren(children);
-      return { kind: "user-signal", signal: forwardedSignal };
+      return (await cleanupAll(forwardedSignal))
+        ? { kind: "user-signal", signal: forwardedSignal }
+        : { kind: "cleanup-timeout" };
     }
     const childExit = Promise.race(
       children.map((child) => child.completion),
@@ -93,24 +103,22 @@ export async function superviseProcesses(
     const admission = await Promise.race([childExit, signalEvent, readiness]);
     if (admission.kind !== "ready") {
       readinessAbort.abort();
-      await terminateAll(
+      const cleaned = await cleanupAll(
         admission.kind === "user-signal" ? admission.signal : "SIGTERM",
       );
-      await settleChildren(children);
-      return admission;
+      return cleaned ? admission : { kind: "cleanup-timeout" };
     }
     dependencies.readiness.onReady();
     const outcome = await Promise.race([childExit, signalEvent]);
     readinessAbort.abort();
-    await terminateAll(
+    const cleaned = await cleanupAll(
       outcome.kind === "user-signal" ? outcome.signal : "SIGTERM",
     );
-    await settleChildren(children);
-    return outcome;
+    return cleaned ? outcome : { kind: "cleanup-timeout" };
   } catch {
-    await terminateAll("SIGTERM");
-    await settleChildren(children);
-    return { kind: "spawn-failed" };
+    return (await cleanupAll("SIGTERM"))
+      ? { kind: "spawn-failed" }
+      : { kind: "cleanup-timeout" };
   } finally {
     unsubscribe();
   }
@@ -118,8 +126,12 @@ export async function superviseProcesses(
 
 async function settleChildren(
   children: readonly ManagedProcess[],
-): Promise<void> {
-  await Promise.allSettled(children.map((child) => child.completion));
+  timeoutMs: number,
+): Promise<boolean> {
+  return settlesWithin(
+    Promise.allSettled(children.map((child) => child.completion)),
+    timeoutMs,
+  );
 }
 
 export function redactStartLog(line: string): string {
@@ -179,9 +191,9 @@ export function createNodeProcessSpawner(
               child.signalCode === null
             ) {
               signalProcessTree(child.pid, "SIGKILL");
+              await settlesWithin(completion, 2_000);
             }
           }
-          await completion.catch(() => undefined);
         },
       };
     },
@@ -198,20 +210,64 @@ export function projectProcessEnvironment(
   return Object.assign(child, projection.set);
 }
 
+export type ProcessTreeSignalRequest =
+  | {
+      readonly kind: "posix";
+      readonly pid: number;
+      readonly signal: NodeJS.Signals;
+    }
+  | {
+      readonly kind: "windows";
+      readonly command: "taskkill";
+      readonly args: readonly string[];
+      readonly shell: false;
+    };
+
+export function processTreeSignalRequest(
+  platform: NodeJS.Platform,
+  pid: number,
+  signal: NodeJS.Signals,
+): ProcessTreeSignalRequest {
+  return platform === "win32"
+    ? {
+        kind: "windows",
+        command: "taskkill",
+        args: [
+          "/pid",
+          String(pid),
+          "/t",
+          ...(signal === "SIGKILL" ? ["/f"] : []),
+        ],
+        shell: false,
+      }
+    : { kind: "posix", pid: -pid, signal };
+}
+
 function signalProcessTree(
   pid: number | undefined,
   signal: NodeJS.Signals,
 ): void {
   if (pid === undefined) return;
+  const request = processTreeSignalRequest(process.platform, pid, signal);
   try {
-    process.kill(process.platform === "win32" ? pid : -pid, signal);
+    if (request.kind === "posix") {
+      process.kill(request.pid, request.signal);
+      return;
+    }
+    const terminator = spawn(request.command, [...request.args], {
+      shell: request.shell,
+      stdio: "ignore",
+      windowsHide: true,
+    });
+    terminator.once("error", () => undefined);
+    terminator.unref();
   } catch {
     // The process may have exited between the state check and signal.
   }
 }
 
 async function settlesWithin(
-  completion: Promise<ProcessCompletion>,
+  completion: Promise<unknown>,
   timeoutMs: number,
 ): Promise<boolean> {
   let timer: NodeJS.Timeout | undefined;
