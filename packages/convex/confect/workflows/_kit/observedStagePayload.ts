@@ -1,4 +1,8 @@
 import type { RunObservedWorkflowStageInput } from "./observedStage";
+import { getConvexSize, type Value } from "convex/values";
+
+import { sha256Hex } from "../../shared/sha256";
+import { redactWorkflowBoundaryFailure } from "./payloadBudget";
 
 export const recordStageStarted = <Result>(
   input: RunObservedWorkflowStageInput<Result>,
@@ -21,7 +25,7 @@ export const recordStageSucceeded = <Result>(
       ? input.step.runMutation(input.refs.recordStageFinished, {
           ...stageObservationArgs(input),
           status: "succeeded",
-          outputJson: safeStringify(result),
+          outputJson: safeStringify(successReceipt(result)),
         })
       : Promise.resolve(),
   );
@@ -35,7 +39,12 @@ export const recordStageFailed = <Result>(
       ? input.step.runMutation(input.refs.recordStageFinished, {
           ...stageObservationArgs(input),
           status: "failed",
-          errorJson: safeStringify({ message: errorMessage(error) }),
+          errorJson: safeStringify(
+            redactWorkflowBoundaryFailure(error, {
+              correlationId: input.workflowRunId ?? "unavailable",
+              nodeId: input.nodeId,
+            }),
+          ),
         })
       : Promise.resolve(),
   );
@@ -58,8 +67,24 @@ const stageObservationArgs = <Result>(
   order: input.order,
 });
 
-const errorMessage = (error: unknown): string =>
-  error instanceof Error ? error.message : String(error);
+const successReceipt = (result: unknown) => {
+  const serialized = safeStringify(result);
+  const artifactId = readArtifactId(result);
+  return {
+    kind: artifactId ? "artifact-reference" : "bounded-inline",
+    measuredBytes: getConvexSize(result as Value),
+    contentHash: sha256Hex(serialized),
+    ...(artifactId ? { artifactId } : {}),
+  };
+};
+
+const readArtifactId = (result: unknown): string | undefined =>
+  typeof result === "object" &&
+  result !== null &&
+  "artifactId" in result &&
+  typeof result.artifactId === "string"
+    ? result.artifactId
+    : undefined;
 
 const quarantineObservation = async (
   observe: () => Promise<unknown>,

@@ -32,6 +32,10 @@ import {
   WorkflowEventReference,
 } from "./_kit/workflowReferences";
 import eventInstances from "./eventInstances.spec";
+import {
+  assertWorkflowPayloadBudget,
+  redactWorkflowBoundaryFailure,
+} from "./_kit/payloadBudget";
 
 const workflowComponent = componentsGeneric()
   .workflow as unknown as WorkflowComponent;
@@ -232,6 +236,26 @@ const send = FunctionImpl.make(
           }),
       });
       const ctx = yield* MutationCtx;
+      if (delivery.kind === "value") {
+        yield* Effect.try({
+          try: () =>
+            assertWorkflowPayloadBudget({
+              surface: "event-value",
+              phase: "pre-component-send",
+              nodeId: existing.eventDefinition,
+              value: delivery.value,
+            }),
+          catch: () =>
+            new ValidationFailed({
+              field: "event",
+              message: "Workflow event payload exceeds its budget.",
+            }),
+        });
+      }
+      const redactedError = redactWorkflowBoundaryFailure(delivery, {
+        correlationId: existing.workflowRunId,
+        nodeId: existing.eventDefinition,
+      });
       yield* Effect.tryPromise({
         try: () =>
           delivery.kind === "value"
@@ -241,7 +265,7 @@ const send = FunctionImpl.make(
               })
             : sendComponentEvent(ctx, workflowComponent, {
                 id: transition.owned.componentEventId,
-                error: delivery.error,
+                error: redactedError.safeMessage,
               }),
         catch: () =>
           new ValidationFailed({

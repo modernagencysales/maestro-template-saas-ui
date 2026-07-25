@@ -13,6 +13,7 @@ import type {
   RunDurableGraphInput,
   RunDurableGraphStep,
 } from "./graphRunner";
+import { assertWorkflowPayloadBudget } from "./payloadBudget";
 
 type NodeExecution = {
   readonly step: RunDurableGraphStep;
@@ -128,6 +129,12 @@ const dispatchCapability = async ({
 
   const envelope = buildEnvelope(input, node, context);
   const args = entry.buildArgs?.(envelope) ?? envelope;
+  assertWorkflowPayloadBudget({
+    surface: "step-args",
+    phase: "pre-dispatch",
+    nodeId: node.id,
+    value: args,
+  });
   return invokeCapability(step, entry, args);
 };
 

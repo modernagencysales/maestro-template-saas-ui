@@ -78,7 +78,7 @@ export type WorkflowOnCompleteContext = Schema.Schema.Type<
 >;
 
 /** Pinned Workpool completion-context ceiling; the context contains IDs only. */
-export const MAX_ON_COMPLETE_CONTEXT_BYTES = 1_000_000;
+export const MAX_ON_COMPLETE_CONTEXT_BYTES = 128 << 10;
 
 export type WorkflowLifecycleState = {
   readonly workspaceId: string;

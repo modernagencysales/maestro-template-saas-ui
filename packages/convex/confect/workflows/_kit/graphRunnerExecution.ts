@@ -15,6 +15,10 @@ import {
 } from "./graphRunnerTraversal";
 import { runObservedWorkflowStage } from "./observedStage";
 import type { RunDurableGraphInput, RunDurableGraphStep } from "./graphRunner";
+import {
+  assertWorkflowPayloadBudget,
+  observeWorkflowPayload,
+} from "./payloadBudget";
 
 type GraphExecutionState = Omit<
   TraversalSnapshot,
@@ -31,6 +35,7 @@ type GraphExecutionState = Omit<
   readonly queuedNodes: Set<string>;
   readonly queue: string[];
   readonly graphOrder: ReadonlyMap<string, number>;
+  observedJournalBytes: number;
   order: number;
 };
 
@@ -103,6 +108,7 @@ const createExecutionState = (
     graphOrder: new Map(
       input.graph.nodes.map((node, index) => [node.id, index]),
     ),
+    observedJournalBytes: 0,
     order: 0,
   };
 };
@@ -203,6 +209,15 @@ const executeAndValidateNode = async (
     context: state.context,
   });
   assertJsonSafe(result, `Workflow node ${node.id} returned non-JSON output.`);
+  assertWorkflowPayloadBudget({
+    surface: node.kind === "output" ? "workflow-return" : "step-result",
+    phase:
+      node.kind === "output"
+        ? "pre-product-projection"
+        : "pre-component-return",
+    nodeId: node.id,
+    value: result,
+  });
   if (node.kind === "output") {
     assertJsonObject(result, "Workflow output must be a JSON object.");
   }
@@ -216,6 +231,11 @@ const recordNodeResult = (
 ): void => {
   state.order += 1;
   state.context[node.id] = result;
+  state.observedJournalBytes = observeWorkflowPayload({
+    nodeId: node.id,
+    observedJournalBytes: state.observedJournalBytes,
+    value: result,
+  }).observedJournalBytes;
   state.completedNodes.add(node.id);
 };
 

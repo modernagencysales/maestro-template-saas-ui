@@ -69,6 +69,20 @@ describe("workflow lifecycle observed-stage generation evidence", () => {
       ["output", 2],
     ]);
   });
+
+  it("persists bounded receipts instead of workflow values", async () => {
+    const observed = await run("query");
+    const finished = observed.find(
+      (entry) => entry.nodeId === "work" && entry.status === "succeeded",
+    );
+    expect(finished?.outputJson).toEqual(expect.any(String));
+    expect(JSON.parse(String(finished?.outputJson))).toMatchObject({
+      kind: "bounded-inline",
+      measuredBytes: expect.any(Number),
+      contentHash: expect.stringMatching(/^[a-f0-9]{64}$/),
+    });
+    expect(finished?.outputJson).not.toContain('"ok":true');
+  });
 });
 
 const run = async (kind: "query" | "mutation" | "action") => {

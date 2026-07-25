@@ -1381,6 +1381,11 @@ describe("template app factory generators", () => {
     const docs = generated.files[10]?.content ?? "";
 
     expect(registry).toContain("defineWorkflowCapabilityRegistry");
+    expect(registry).toContain("runWorkflowCapabilityBoundary");
+    expect(registry).toContain("sourceGroundedPlanCapabilityBoundary");
+    expect(registry).toContain("sourceGroundedPlanArtifactRefs");
+    expect(registry).toContain("refs.internal.workflows.artifacts.put");
+    expect(registry).toContain("refs.internal.workflows.artifacts.getOwned");
     expect(registry).toContain("defineWorkflowV2SubworkflowRegistry");
     expect(registry).toContain("defineWorkflowV2EventRegistry");
     expect(registry).toContain("defineWorkflowEvent");

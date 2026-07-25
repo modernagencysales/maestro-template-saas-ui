@@ -34,6 +34,11 @@ import {
   runObservedWorkflowStage,
   type ObservedWorkflowStageRefs,
 } from "./observedStage";
+import {
+  admitWorkflowPayloadReservation,
+  assertWorkflowPayloadBudget,
+  observeWorkflowPayload,
+} from "./payloadBudget";
 
 type CapabilityNodeV2 = Extract<WorkflowNodeV2, { kind: "capability" }>;
 type CapabilityKindV2 = CapabilityNodeV2["functionKind"];
@@ -154,6 +159,21 @@ export const runCompiledDurableGraphWorkflowV2 = async <
   const completed = new Set<string>();
   const passedEdges = new Set<string>();
   const failedEdges = new Set<string>();
+  let predictedJournalBytes = 0;
+  let observedJournalBytes = 0;
+  for (const node of input.graph.nodes) {
+    predictedJournalBytes = admitWorkflowPayloadReservation({
+      nodeId: node.id,
+      predictedJournalBytes,
+      reservation:
+        node.payloadPolicy.resultMode === "artifact-reference"
+          ? { kind: "artifact-reference" }
+          : {
+              kind: "fixed",
+              maxResultBytes: node.payloadPolicy.maxResultBytes,
+            },
+    }).predictedJournalBytes;
+  }
   const failureRoutes = validateFailureRoutes(
     input,
     edgeIndexes.outgoingByNode,
@@ -209,6 +229,11 @@ export const runCompiledDurableGraphWorkflowV2 = async <
     for (const [index, node] of wave.entries()) {
       const outcome = outcomes[index];
       if (outcome?.status === "fulfilled") {
+        observedJournalBytes = observeWorkflowPayload({
+          nodeId: node.id,
+          observedJournalBytes,
+          value: outcome.value,
+        }).observedJournalBytes;
         context[node.id] = outcome.value;
         completed.add(node.id);
       } else if (outcome?.status === "rejected") {
@@ -254,7 +279,14 @@ export const runCompiledDurableGraphWorkflowV2 = async <
       }
     }
     if (wave.some((node) => node.kind === "output")) {
-      return input.projectOutput({ context });
+      const result = input.projectOutput({ context });
+      assertWorkflowPayloadBudget({
+        surface: "product-projection",
+        phase: "pre-product-projection",
+        nodeId: "workflow-output",
+        value: result,
+      });
+      return result;
     }
   }
 };
@@ -435,19 +467,25 @@ const executeNode = async <Result extends Record<string, unknown>>(
   };
   if (node.functionKind === "query") {
     const options = capabilityStepOptions(input, node, entry);
-    return step.runQuery(
+    const args = entry.buildArgs(envelope);
+    assertCapabilityArgs(node, args);
+    const result = await step.runQuery(
       entry.ref as DurableGraphStepRef<"query">,
-      entry.buildArgs(envelope),
+      args,
       options,
     );
+    return assertCapabilityResult(node, result);
   }
   if (node.functionKind === "mutation") {
     const options = capabilityStepOptions(input, node, entry);
-    return step.runMutation(
+    const args = entry.buildArgs(envelope);
+    assertCapabilityArgs(node, args);
+    const result = await step.runMutation(
       entry.ref as DurableGraphStepRef<"mutation">,
-      entry.buildArgs(envelope),
+      args,
       options,
     );
+    return assertCapabilityResult(node, result);
   }
   return runActionNode(
     step,
@@ -573,6 +611,7 @@ const runActionNode = async <Result extends Record<string, unknown>>(
     );
   }
   const args = entry.buildArgs({ ...envelope, logicalEffectKey });
+  assertCapabilityArgs(node, args);
   if (
     validated.right.strategy === "provider-native" &&
     readArgumentPath(args, validated.right.keyArgumentPath) !== logicalEffectKey
@@ -590,7 +629,8 @@ const runActionNode = async <Result extends Record<string, unknown>>(
         : node.retry,
   } as const;
   try {
-    return await step.runAction(entry.ref, args, options);
+    const result = await step.runAction(entry.ref, args, options);
+    return assertCapabilityResult(node, result);
   } catch (error) {
     const terminalMessage = entry.terminalError?.(error);
     if (terminalMessage !== undefined) {
@@ -599,6 +639,56 @@ const runActionNode = async <Result extends Record<string, unknown>>(
     throw error;
   }
 };
+
+const assertCapabilityArgs = (
+  node: CapabilityNodeV2,
+  args: Record<string, unknown>,
+): void => {
+  const measurement = assertWorkflowPayloadBudget({
+    surface: "step-args",
+    phase: "pre-dispatch",
+    nodeId: node.id,
+    value: args,
+  });
+  if (measurement.measuredBytes > node.payloadPolicy.maxInputBytes) {
+    throw validationFailure(node, "capability arguments exceed maxInputBytes");
+  }
+};
+
+const assertCapabilityResult = (
+  node: CapabilityNodeV2,
+  result: unknown,
+): unknown => {
+  const measurement = assertWorkflowPayloadBudget({
+    surface: "step-result",
+    phase: "pre-component-return",
+    nodeId: node.id,
+    value: result,
+  });
+  if (
+    node.payloadPolicy.resultMode === "inline" &&
+    measurement.measuredBytes > node.payloadPolicy.maxResultBytes
+  ) {
+    throw validationFailure(node, "capability result exceeds maxResultBytes");
+  }
+  if (
+    node.payloadPolicy.resultMode === "artifact-reference" &&
+    !isArtifactReference(result)
+  ) {
+    throw validationFailure(
+      node,
+      "capability must return an artifact reference",
+    );
+  }
+  return result;
+};
+
+const isArtifactReference = (value: unknown): boolean =>
+  typeof value === "object" &&
+  value !== null &&
+  "artifactId" in value &&
+  typeof value.artifactId === "string" &&
+  value.artifactId.length > 0;
 
 const readArgumentPath = (
   args: Readonly<Record<string, unknown>>,

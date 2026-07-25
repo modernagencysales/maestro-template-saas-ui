@@ -54,10 +54,10 @@ export const assertWorkflowPayloadBudget = (input: {
   readonly surface: Exclude<WorkflowPayloadSurface, "journal-cumulative">;
   readonly phase: WorkflowPayloadPhase;
   readonly nodeId: string;
-  readonly value: Value | undefined;
+  readonly value: unknown;
 }): WorkflowPayloadMeasurement => {
   const budget = MAESTRO_PAYLOAD_BUDGETS[input.surface];
-  const measuredBytes = getConvexSize(input.value);
+  const measuredBytes = getConvexSize(input.value as Value | undefined);
   if (measuredBytes > budget.hardBytes) {
     throw payloadFailure({
       code: "WORKFLOW_PAYLOAD_HARD_LIMIT",
@@ -118,13 +118,13 @@ export const admitWorkflowPayloadReservation = (input: {
 export const observeWorkflowPayload = (input: {
   readonly nodeId: string;
   readonly observedJournalBytes: number;
-  readonly value: Value | undefined;
+  readonly value: unknown;
 }): {
   readonly observedJournalBytes: number;
   readonly measuredBytes: number;
 } => {
   assertFiniteNonnegative(input.observedJournalBytes, "observed journal bytes");
-  const measuredBytes = getConvexSize(input.value);
+  const measuredBytes = getConvexSize(input.value as Value | undefined);
   const observedJournalBytes = input.observedJournalBytes + measuredBytes;
   assertCumulativeBudget({
     nodeId: input.nodeId,

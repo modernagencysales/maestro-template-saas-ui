@@ -3347,6 +3347,7 @@ import { components } from "../../../convex/_generated/api";
 import { v } from "convex/values";
 import * as Schema from "effect/Schema";
 import { defineWorkflowCapabilityRegistry } from "../_kit/graphRunnerV2";
+import { runWorkflowCapabilityBoundary } from "../_kit/workflowCapabilityBoundary";
 import {
   defineWorkflowEvent,
   defineWorkflowV2EventRegistry,
@@ -3364,6 +3365,14 @@ import { ${name}References } from "./v1.graph";
  * Inline nodes must be authored with a named generated preset.
  */
 export const ${name}CapabilityRegistry = defineWorkflowCapabilityRegistry({});
+
+/** Generated capabilities must cross this boundary before Workpool returns. */
+export const ${name}CapabilityBoundary = runWorkflowCapabilityBoundary;
+
+export const ${name}ArtifactRefs = {
+  put: Ref.getFunctionReference(refs.internal.workflows.artifacts.put),
+  getOwned: Ref.getFunctionReference(refs.internal.workflows.artifacts.getOwned),
+} as const;
 
 export const ${name}SubworkflowLinkRefs = {
   reserveRef: refs.internal.workflows.subworkflowLinks.reserve,

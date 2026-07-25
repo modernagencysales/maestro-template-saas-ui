@@ -78,6 +78,13 @@ before calling the durable event/control path. Generated capability nodes are
 only usable when their registry entries include a concrete `buildArgs` mapper
 for the target internal capability ref.
 
+Generated capability implementations use the emitted capability boundary and
+artifact refs. Declare a fixed `maxResultBytes` only for predictably small
+results. Select `artifact-reference` for provider documents or other large
+values, persist them before returning to Workpool, and return only the generated
+artifact reference. Raw provider failures must cross the redacting boundary;
+stage/event/completion/product records never store their message or stack.
+
 Generated subworkflow nodes resolve only through the workflow's generated child
 registry. Each entry pins the child version and typed Args/Result contract,
 declares transitive children and inherited or narrowed principal posture, and

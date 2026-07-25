@@ -343,7 +343,7 @@ const resolveChildPrincipal = (
 };
 
 const assertMappedArgsSize = (node: SubworkflowNodeV2, args: unknown): void => {
-  const budget = Math.min(node.payloadPolicy.maxInputBytes, 1_000_000);
+  const budget = Math.min(node.payloadPolicy.maxInputBytes, 512 << 10);
   if (!Number.isFinite(budget) || budget < 0) {
     throw subworkflowFailure(
       node,

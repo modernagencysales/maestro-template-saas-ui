@@ -131,6 +131,22 @@ accepts each terminal outcome exactly once: an identical replay is a no-op and a
 conflicting replay returns a redacted conflict without overwriting the first
 accepted result.
 
+## Payloads And Artifacts
+
+Every generated capability measures Convex values before dispatch and before
+returning to Workpool. Nodes reserve a fixed maximum inline result or declare
+`artifact-reference`; cumulative reservations are checked before execution and
+observed sizes are checked after each await. Events, child arguments, completion
+context, workflow returns, and product projections have smaller Maestro limits
+than their pinned upstream ceilings.
+
+Large values go through the generated `workflowArtifacts` capability. The
+durable graph receives only its tenant/run/version/generation-bound artifact ID,
+hash, measured size, and sensitivity. Stage records contain bounded receipts,
+never the value. Provider exceptions are converted to a fixed redacted failure
+before component persistence; do not include SDK messages, stacks, previews,
+tokens, webhook bodies, or unnecessary PII.
+
 ## Reviewer-Safe Run Receipt
 
 The deterministic sample receipt lives in `packages/template-core/src/index.ts`
