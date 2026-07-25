@@ -220,12 +220,12 @@ const edge = (id: string, sourceNodeId: string, targetNodeId: string) => ({
 });
 
 // AP-002 negative type fixtures: these suppressions are the assertion mechanism.
-// @ts-expect-error retry is unavailable on source nodes.
 workflowNode.source({
   ...base,
   id: "bad",
   kind: "source",
   stepName: "bad.v2",
+  // @ts-expect-error AP-002 fixture: retry is unavailable on source nodes.
   retry: false,
 });
 workflowNode.inlineMutation({

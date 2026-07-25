@@ -3,9 +3,12 @@ import * as Schema from "effect/Schema";
 
 import {
   DurableWorkflowGraph,
+  type DurableWorkflowGraphV2,
   type DurableWorkflowGraph as LegacyWorkflowGraph,
   type WorkflowNode,
+  type WorkflowNodeV2,
 } from "./graph";
+import { defineWorkflowGraphV2 } from "./_kit/workflowBuilder";
 
 export const LegacyDurableWorkflowGraph = DurableWorkflowGraph;
 
@@ -19,14 +22,32 @@ export class WorkflowGraphMigrationError extends Schema.TaggedError<WorkflowGrap
   },
 ) {}
 
-export type MigratedLegacyWorkflowNode = Omit<WorkflowNode, "retry"> & {
-  readonly stepName: string;
+export type LegacyWorkflowMigrationOptions = Pick<
+  DurableWorkflowGraphV2,
+  | "argsSchemaName"
+  | "returnSchemaName"
+  | "principalSchemaName"
+  | "policyPosture"
+> & {
+  readonly payloadPolicy: WorkflowNodeV2["payloadPolicy"];
+  readonly capabilityKinds?: Readonly<
+    Record<string, "query" | "mutation" | "action">
+  >;
+  readonly eventContracts?: Readonly<
+    Record<
+      string,
+      {
+        readonly eventDefinition: string;
+        readonly eventSchemaName: string;
+        readonly eventInstanceKey: string;
+      }
+    >
+  >;
+  readonly kickoffProfiles?: DurableWorkflowGraphV2["kickoffProfiles"];
+  readonly unstableArgs?: DurableWorkflowGraphV2["unstableArgs"];
 };
 
-export type MigratedLegacyWorkflowGraph = Omit<LegacyWorkflowGraph, "nodes"> & {
-  readonly schemaVersion: 2;
-  readonly nodes: readonly MigratedLegacyWorkflowNode[];
-};
+export type MigratedLegacyWorkflowGraph = DurableWorkflowGraphV2;
 
 export const decodeLegacyWorkflowGraph = (
   input: unknown,
@@ -56,31 +77,133 @@ export const decodeLegacyWorkflowGraph = (
 
 export const migrateLegacyWorkflowGraph = (
   input: unknown,
-): Either.Either<MigratedLegacyWorkflowGraph, WorkflowGraphMigrationError> =>
-  Either.map(decodeLegacyWorkflowGraph(input), (graph) => ({
-    schemaVersion: 2,
+  options: LegacyWorkflowMigrationOptions,
+): Either.Either<MigratedLegacyWorkflowGraph, WorkflowGraphMigrationError> => {
+  const decoded = decodeLegacyWorkflowGraph(input);
+  return Either.isLeft(decoded)
+    ? Either.left(decoded.left)
+    : migrateDecodedGraph(decoded.right, options);
+};
+
+const migrateDecodedGraph = (
+  graph: LegacyWorkflowGraph,
+  options: LegacyWorkflowMigrationOptions,
+): Either.Either<MigratedLegacyWorkflowGraph, WorkflowGraphMigrationError> => {
+  const nodes: WorkflowNodeV2[] = [];
+  for (const node of graph.nodes) {
+    const migrated = migrateLegacyNode(node, graph.version, options);
+    if (Either.isLeft(migrated)) return Either.left(migrated.left);
+    nodes.push(migrated.right);
+  }
+  const built = defineWorkflowGraphV2({
     id: graph.id,
     version: graph.version,
     startNodeId: graph.startNodeId,
-    nodes: graph.nodes.map((node) => migrateLegacyNode(node, graph.version)),
+    argsSchemaName: options.argsSchemaName,
+    returnSchemaName: options.returnSchemaName,
+    principalSchemaName: options.principalSchemaName,
+    policyPosture: options.policyPosture,
+    ...(options.kickoffProfiles === undefined
+      ? {}
+      : { kickoffProfiles: options.kickoffProfiles }),
+    ...(options.unstableArgs === undefined
+      ? {}
+      : { unstableArgs: options.unstableArgs }),
+    nodes,
     edges: graph.edges,
     joins: graph.joins,
-  }));
+  });
+  return Either.mapLeft(
+    built,
+    (error) =>
+      new WorkflowGraphMigrationError({
+        sourceVersion: 1,
+        issue: error.findings.join("; "),
+      }),
+  );
+};
 
 const migrateLegacyNode = (
   node: WorkflowNode,
   workflowVersion: number,
-): MigratedLegacyWorkflowNode => {
-  return {
+  options: LegacyWorkflowMigrationOptions,
+): Either.Either<WorkflowNodeV2, WorkflowGraphMigrationError> => {
+  const common = {
     id: node.id,
-    kind: node.kind,
     label: node.label,
-    ...(node.capability === undefined ? {} : { capability: node.capability }),
-    ...(node.agent === undefined ? {} : { agent: node.agent }),
-    ...(node.delayMs === undefined ? {} : { delayMs: node.delayMs }),
     stepName: `${node.id}.v${workflowVersion}`,
-  };
+    payloadPolicy: options.payloadPolicy,
+  } as const;
+  if (node.kind === "source" || node.kind === "output") {
+    return Either.right({
+      ...common,
+      kind: node.kind,
+      semanticRuleIds: ["WF-NODE-KIND"],
+    });
+  }
+  if (node.kind === "delay") {
+    return Either.right({
+      ...common,
+      kind: "delay",
+      delayMs: node.delayMs ?? 0,
+      semanticRuleIds: ["WF-STEP-SLEEP"],
+    });
+  }
+  if (node.kind === "approval") {
+    const event = options.eventContracts?.[node.id];
+    return event === undefined
+      ? migrationFailure(`missing event contract for ${node.id}`)
+      : Either.right({
+          ...common,
+          kind: "event",
+          ...event,
+          semanticRuleIds: ["WF-STEP-EVENT"],
+        });
+  }
+  if (node.kind === "agent") {
+    const agent = node.agent ?? node.capability;
+    return agent === undefined
+      ? migrationFailure(`missing agent ref for ${node.id}`)
+      : Either.right({
+          ...common,
+          kind: "agent",
+          agent,
+          semanticRuleIds: ["WF-NODE-AGENT"],
+        });
+  }
+  const capability = node.capability;
+  if (capability === undefined) {
+    return migrationFailure(`missing capability ref for ${node.id}`);
+  }
+  const functionKind = options.capabilityKinds?.[capability];
+  if (functionKind === undefined) {
+    return migrationFailure(`missing capability kind for ${capability}`);
+  }
+  if (functionKind === "action") {
+    return Either.right({
+      ...common,
+      kind: "capability",
+      functionKind,
+      capability,
+      semanticRuleIds: ["WF-STEP-ACTION"],
+    });
+  }
+  return Either.right({
+    ...common,
+    kind: "capability",
+    functionKind,
+    capability,
+    transaction: { kind: "independent" },
+    semanticRuleIds: [
+      functionKind === "query" ? "WF-STEP-QUERY" : "WF-STEP-MUTATION",
+    ],
+  });
 };
+
+const migrationFailure = (
+  issue: string,
+): Either.Either<never, WorkflowGraphMigrationError> =>
+  Either.left(new WorkflowGraphMigrationError({ sourceVersion: 1, issue }));
 
 const hasSchemaVersion = (
   input: unknown,

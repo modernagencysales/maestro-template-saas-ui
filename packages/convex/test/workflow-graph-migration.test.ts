@@ -36,6 +36,21 @@ const legacyGraph = {
   joins: [],
 } as const;
 
+const migrationOptions = {
+  argsSchemaName: "legacyReceipt.v2.args",
+  returnSchemaName: "legacyReceipt.v2.return",
+  principalSchemaName: "workflowPrincipal.v1",
+  policyPosture: {
+    kind: "none" as const,
+    reason: "Legacy graph has no policy-dependent decisions.",
+  },
+  payloadPolicy: {
+    maxInputBytes: 64_000,
+    maxResultBytes: 64_000,
+    resultMode: "inline" as const,
+  },
+};
+
 describe("legacy durable workflow graph migration", () => {
   it("decodes the complete V1 shape behind an explicit compatibility schema", () => {
     expect(
@@ -47,28 +62,91 @@ describe("legacy durable workflow graph migration", () => {
   });
 
   it("adds stable V2 step addresses without enabling discarded V1 retry metadata", () => {
-    expect(Either.getOrThrow(migrateLegacyWorkflowGraph(legacyGraph))).toEqual({
+    expect(
+      Either.getOrThrow(
+        migrateLegacyWorkflowGraph(legacyGraph, migrationOptions),
+      ),
+    ).toEqual({
       schemaVersion: 2,
       id: legacyGraph.id,
       version: legacyGraph.version,
       startNodeId: legacyGraph.startNodeId,
+      argsSchemaName: migrationOptions.argsSchemaName,
+      returnSchemaName: migrationOptions.returnSchemaName,
+      principalSchemaName: migrationOptions.principalSchemaName,
+      policyPosture: migrationOptions.policyPosture,
+      kickoffProfiles: [
+        { name: "interactive", mode: "eager-first-poll", default: true },
+      ],
+      unstableArgs: { enabled: false },
       nodes: [
         {
           id: "source",
           kind: "source",
           label: "Legacy source",
           stepName: "source.v1",
+          payloadPolicy: migrationOptions.payloadPolicy,
+          semanticRuleIds: ["WF-NODE-KIND"],
         },
         {
           id: "receipt",
           kind: "output",
           label: "Legacy receipt",
           stepName: "receipt.v1",
+          payloadPolicy: migrationOptions.payloadPolicy,
+          semanticRuleIds: ["WF-NODE-KIND"],
         },
       ],
       edges: legacyGraph.edges,
       joins: legacyGraph.joins,
     });
+  });
+
+  it("requires explicit capability kind resolution instead of guessing from a V1 ref", () => {
+    const graph = {
+      ...legacyGraph,
+      nodes: [
+        legacyGraph.nodes[0],
+        {
+          id: "brief",
+          kind: "capability",
+          label: "Brief",
+          capability: "sourceGroundedBrief",
+          retry: { maxAttempts: 2, backoffMs: 10 },
+        },
+        legacyGraph.nodes[1],
+      ],
+      edges: [
+        {
+          id: "source_brief",
+          sourceNodeId: "source",
+          targetNodeId: "brief",
+        },
+        {
+          id: "brief_receipt",
+          sourceNodeId: "brief",
+          targetNodeId: "receipt",
+        },
+      ],
+    };
+    const unresolved = migrateLegacyWorkflowGraph(graph, migrationOptions);
+    expect(Either.isLeft(unresolved)).toBe(true);
+    if (Either.isLeft(unresolved)) {
+      expect(unresolved.left.issue).toContain(
+        "missing capability kind for sourceGroundedBrief",
+      );
+    }
+
+    const migrated = migrateLegacyWorkflowGraph(graph, {
+      ...migrationOptions,
+      capabilityKinds: { sourceGroundedBrief: "action" },
+    });
+    expect(Either.getOrThrow(migrated).nodes[1]).toMatchObject({
+      kind: "capability",
+      functionKind: "action",
+      capability: "sourceGroundedBrief",
+    });
+    expect(Either.getOrThrow(migrated).nodes[1]).not.toHaveProperty("retry");
   });
 
   it("rejects inputs that claim V2 instead of silently downgrading them", () => {
