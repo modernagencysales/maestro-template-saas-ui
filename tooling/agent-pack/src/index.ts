@@ -4,6 +4,7 @@ export * from "./repoContext.js";
 export * from "./preflight.js";
 export * from "./diagnostics.js";
 export * from "./receipt.js";
+export * from "./receiptWriter.js";
 export * from "./recipes.js";
 export * from "./verify.js";
 export * from "./check.js";

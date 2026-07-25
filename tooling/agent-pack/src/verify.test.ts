@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { executeAgentPackCommand } from "./contracts.js";
 import type { DiagnosticDescriptor } from "./diagnostics.js";
 import { createRepositoryContext } from "./repoContext.js";
@@ -62,6 +62,57 @@ const runner = (
 });
 
 describe("agent-pack verification command", () => {
+  it("persists the canonical receipt after stable verification", async () => {
+    const persist = vi.fn(async () => undefined);
+    const command = createVerifyCommand({
+      descriptors: [requiredDescriptor],
+      runner: runner([
+        { gateId: "agent-pack", status: "pass", message: "Passed." },
+      ]),
+      receiptWriter: { persist },
+    });
+
+    const result = await executeAgentPackCommand(
+      command,
+      { scope: "full", changed: [] },
+      context,
+    );
+
+    expect(result.exitClass).toBe("success");
+    expect(persist).toHaveBeenCalledWith(
+      context.repo,
+      expect.objectContaining({
+        schemaVersion: 1,
+        subject: { commit: "abc123", dirty: false },
+        scope: { kind: "full", changedPaths: [], partial: false },
+      }),
+    );
+  });
+
+  it("fails safely when the latest receipt cannot be persisted", async () => {
+    const command = createVerifyCommand({
+      descriptors: [requiredDescriptor],
+      runner: runner([
+        { gateId: "agent-pack", status: "pass", message: "Passed." },
+      ]),
+      receiptWriter: {
+        persist: async () => Promise.reject(new Error("secret-value")),
+      },
+    });
+
+    const result = await executeAgentPackCommand(
+      command,
+      { scope: "full", changed: [] },
+      context,
+    );
+
+    expect(result).toMatchObject({
+      exitClass: "unavailableDependency",
+      diagnostics: [{ code: "AGENT_PACK_RECEIPT_PERSIST_UNAVAILABLE" }],
+    });
+    expect(JSON.stringify(result)).not.toContain("secret-value");
+  });
+
   it("binds passing full evidence into a fresh receipt", async () => {
     const requests: VerificationRunRequest[] = [];
     const command = createVerifyCommand({

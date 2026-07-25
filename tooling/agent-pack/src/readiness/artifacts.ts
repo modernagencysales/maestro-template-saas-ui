@@ -116,7 +116,13 @@ async function optionalReceipt(
   } catch {
     return null;
   }
-  const receipt = parseReceipt(JSON.parse(raw) as unknown);
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw) as unknown;
+  } catch {
+    return null;
+  }
+  const receipt = parseReceipt(parsed);
   if (receipt === null) return null;
   return {
     subject: receipt.subject,
@@ -180,14 +186,23 @@ function parseReceipt(value: unknown): VerificationReceipt | null {
     !prefixed(fingerprints.repository, "repository_sha256:") ||
     !prefixed(fingerprints.environment, "environment_sha256:") ||
     !prefixed(fingerprints.providerPosture, "providers_sha256:") ||
-    (scope.kind !== "full" && scope.kind !== "focused") ||
-    !Array.isArray(scope.changedPaths) ||
-    typeof scope.partial !== "boolean" ||
+    !validScope(scope) ||
     !Array.isArray(receipt.gates) ||
     !receipt.gates.every(validGate)
   )
     return null;
   return value as VerificationReceipt;
+}
+
+function validScope(scope: Record<string, unknown>): boolean {
+  if (
+    !Array.isArray(scope.changedPaths) ||
+    !scope.changedPaths.every((path) => typeof path === "string")
+  )
+    return false;
+  return scope.kind === "full"
+    ? scope.partial === false && scope.changedPaths.length === 0
+    : scope.kind === "focused" && scope.partial === true;
 }
 
 function validGate(value: unknown): boolean {

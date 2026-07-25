@@ -16,6 +16,7 @@ import {
   type EnvironmentFingerprint,
   type ProvidersFingerprint,
   type RepositoryFingerprint,
+  type VerificationReceipt,
   type VerificationSubject,
 } from "./receipt.js";
 import type { RepositoryContext } from "./repoContext.js";
@@ -56,9 +57,17 @@ export type VerificationRunner = {
   ) => Promise<readonly VerificationRunObservation[]>;
 };
 
+export type VerificationReceiptWriter = {
+  readonly persist: (
+    repo: RepositoryContext,
+    receipt: VerificationReceipt,
+  ) => Promise<void>;
+};
+
 export function createVerifyCommand(input: {
   readonly descriptors: readonly DiagnosticDescriptor[];
   readonly runner: VerificationRunner;
+  readonly receiptWriter?: VerificationReceiptWriter;
 }) {
   const registry = defineDiagnosticRegistryProjection(input.descriptors);
   return defineAgentPackCommand({
@@ -101,8 +110,13 @@ export function createVerifyCommand(input: {
           semanticRuleIds: [...(observation.semanticRuleIds ?? [])],
         })),
       });
+      const receiptDiagnostic =
+        metadataDiagnostics.length === 0 && input.receiptWriter !== undefined
+          ? await persistReceipt(input.receiptWriter, context.repo, receipt)
+          : undefined;
       const diagnostics = [
         ...metadataDiagnostics,
+        ...(receiptDiagnostic === undefined ? [] : [receiptDiagnostic]),
         ...observations.flatMap(({ descriptor, observation }) =>
           observation.status === "pass"
             ? []
@@ -119,24 +133,51 @@ export function createVerifyCommand(input: {
       ];
       const summary = summarizeVerificationReceipt(receipt);
       const requiredBlocking =
-        summary.requiredFailures.length > 0 || metadataDiagnostics.length > 0;
+        summary.requiredFailures.length > 0 ||
+        metadataDiagnostics.length > 0 ||
+        receiptDiagnostic !== undefined;
       return {
         mutationPosture: "read-only" as const,
         exitClass:
-          diagnostics.length === 0
-            ? ("success" as const)
-            : ("findings" as const),
+          receiptDiagnostic !== undefined
+            ? ("unavailableDependency" as const)
+            : diagnostics.length === 0
+              ? ("success" as const)
+              : ("findings" as const),
         summary:
-          diagnostics.length === 0
-            ? "Verification passed."
-            : requiredBlocking
-              ? "Verification found required failures."
-              : "Required verification passed with advisory findings.",
+          receiptDiagnostic !== undefined
+            ? "Verification completed, but its latest receipt could not be persisted."
+            : diagnostics.length === 0
+              ? "Verification passed."
+              : requiredBlocking
+                ? "Verification found required failures."
+                : "Required verification passed with advisory findings.",
         diagnostics,
         data: { receipt, summary, requiredBlocking },
       };
     },
   });
+}
+
+async function persistReceipt(
+  writer: VerificationReceiptWriter,
+  repo: RepositoryContext,
+  receipt: VerificationReceipt,
+): Promise<AgentPackDiagnostic | undefined> {
+  try {
+    await writer.persist(repo, receipt);
+    return undefined;
+  } catch {
+    return {
+      code: "AGENT_PACK_RECEIPT_PERSIST_UNAVAILABLE",
+      severity: "error",
+      message: "The latest verification receipt could not be persisted safely.",
+      safeToContinue: false,
+      nextAction:
+        "Restore the target-local .maestro receipt directory and rerun verification.",
+      rerun: "pnpm maestro -- verify --scope focused",
+    };
+  }
 }
 
 function decodeVerifyInput(

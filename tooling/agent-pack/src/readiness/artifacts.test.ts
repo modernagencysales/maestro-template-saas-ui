@@ -136,4 +136,60 @@ describe("readiness canonical artifact adapter", () => {
       }),
     ).rejects.toThrow("Blueprint readiness artifact is invalid");
   });
+
+  it.each([
+    ["full partial", { kind: "full", changedPaths: [], partial: true }],
+    ["focused complete", { kind: "focused", changedPaths: [], partial: false }],
+    [
+      "full changed",
+      { kind: "full", changedPaths: ["changed.ts"], partial: false },
+    ],
+  ])("rejects an invalid %s receipt scope", async (_name, scope) => {
+    const stored = files({
+      schemaVersion: 1,
+      createdAt: "2026-07-25T12:00:00.000Z",
+      command: { id: "verify", version: 1 },
+      subject: { commit: "abc123", dirty: false },
+      fingerprints: {
+        repository: "repository_sha256:new",
+        environment: "environment_sha256:env",
+        providerPosture: "providers_sha256:providers",
+      },
+      scope,
+      gates: [],
+    });
+    const result = await loadBuildReadinessInput({
+      repo,
+      preflight,
+      current,
+      readFile: async (path) => {
+        const value = stored.get(path);
+        if (value === undefined) throw new Error("missing");
+        return value;
+      },
+    });
+    expect(result.receipt).toBeNull();
+  });
+
+  it.each([
+    ["malformed", "{not-json"],
+    ["missing", undefined],
+  ])("keeps a %s receipt secret-safe and unavailable", async (_name, raw) => {
+    const stored = files();
+    if (raw !== undefined)
+      stored.set("/customer/.maestro/verification-receipt.json", raw);
+    const result = await loadBuildReadinessInput({
+      repo,
+      preflight,
+      current,
+      readFile: async (path) => {
+        const value = stored.get(path);
+        if (value === undefined)
+          throw Object.assign(new Error("secret-value"), { code: "ENOENT" });
+        return value;
+      },
+    });
+    expect(result.receipt).toBeNull();
+    expect(JSON.stringify(result)).not.toContain("secret-value");
+  });
 });

@@ -8,6 +8,7 @@ import {
   createMcpConfigureCommand,
   createNodeExecFileAdapter,
   createNodeBuildReadinessSurface,
+  createNodeVerificationReceiptWriter,
   createNodePreflightRuntimeReader,
   createConvexDoctorAdapter,
   createProviderDoctorCommand,
@@ -232,6 +233,9 @@ export function createFactoryCliComposition(
   const verify = createVerifyCommand({
     descriptors,
     runner: verificationRunner,
+    receiptWriter: createNodeVerificationReceiptWriter({
+      maxBytes: FACTORY_EXECUTION_POLICY.packageJsonMaxBytes,
+    }),
   });
   const check = createCheckCommand({ preflight, verify });
   const planCheck = createPlanCheckCommand({
