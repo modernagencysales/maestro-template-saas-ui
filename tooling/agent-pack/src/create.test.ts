@@ -1,0 +1,192 @@
+import { describe, expect, it, vi } from "vitest";
+import {
+  createCustomerCreateCommand,
+  type CustomerCreateDependencies,
+  type CustomerCreateReleaseFacts,
+} from "./create.js";
+import {
+  AGENT_PACK_EXECUTION_CONTEXT_VERSION,
+  executeAgentPackCommand,
+} from "./contracts.js";
+import { createRepositoryContext } from "./repoContext.js";
+
+const facts: CustomerCreateReleaseFacts = {
+  version: "0.1.0-alpha.1",
+  tag: "maestro-template-v0.1.0-alpha.1",
+  sourceCommit: "a".repeat(40),
+  sourceChecksum: `sha256:${"b".repeat(64)}`,
+  cliCompatibility: ">=0.1.0-alpha.1 <0.2.0",
+  agentPackCompatibility: ">=0.1.0-alpha.1 <0.2.0",
+  ownershipManifest: "releases/v0.1.0-alpha.1/manifest.json",
+  ownershipManifestChecksum: `sha256:${"c".repeat(64)}`,
+  extensionSeams: ["customer/extensions"],
+};
+
+const context = {
+  schemaVersion: AGENT_PACK_EXECUTION_CONTEXT_VERSION,
+  invocation: "library" as const,
+  repo: createRepositoryContext({ cwd: "/factory" }),
+};
+
+function fixture(options: { readonly collisions?: readonly string[] } = {}) {
+  let instance = "";
+  const materialize = vi.fn(async () => ({ ok: true as const, files: 3 }));
+  const dependencies: CustomerCreateDependencies = {
+    release: {
+      prepare: vi.fn(async (request) => {
+        instance = request.templateInstance(facts);
+        return {
+          ok: true as const,
+          token: { release: facts.tag },
+          facts,
+          preview: {
+            preflightFingerprint: `sha256:${"d".repeat(64)}`,
+            writes: [
+              { path: "package.json", bytes: 20 },
+              { path: "template-instance.json", bytes: instance.length },
+            ],
+            omissions: ["docs/superpowers"],
+            collisions: options.collisions ?? [],
+            totalBytes: 20 + instance.length,
+          },
+        };
+      }),
+      materialize,
+    },
+  };
+  return { dependencies, materialize, instance: () => instance };
+}
+
+const input = {
+  target: "../my-app",
+  name: "My App",
+  outcome: "Track client requests",
+  demoOnly: true,
+};
+
+describe("customer create command", () => {
+  it("previews exact release writes and personalized instance facts by default", async () => {
+    const test = fixture();
+    const result = await executeAgentPackCommand(
+      createCustomerCreateCommand(test.dependencies),
+      input,
+      context,
+    );
+
+    expect(result.exitClass).toBe("success");
+    expect(result.mutationPosture).toBe("preview");
+    expect(test.materialize).not.toHaveBeenCalled();
+    expect(result.data).toMatchObject({
+      preview: {
+        writes: [
+          { path: "package.json", bytes: 20 },
+          { path: "template-instance.json", bytes: expect.any(Number) },
+        ],
+        omissions: ["docs/superpowers"],
+        collisions: [],
+      },
+      nextCommand: 'pnpm --dir "../my-app" maestro -- start',
+      followUpActions: [
+        { id: "install", requiresApproval: true, executed: false },
+        { id: "git-init", requiresApproval: true, executed: false },
+      ],
+    });
+    expect(JSON.parse(test.instance())).toMatchObject({
+      schemaVersion: 1,
+      release: {
+        tag: facts.tag,
+        sourceCommit: facts.sourceCommit,
+        sourceChecksum: facts.sourceChecksum,
+      },
+      ownership: {
+        manifest: facts.ownershipManifest,
+        manifestChecksum: facts.ownershipManifestChecksum,
+      },
+      personalization: {
+        name: "My App",
+        firstOutcome: "Track client requests",
+        demoOnly: true,
+      },
+    });
+  });
+
+  it("writes only when explicitly requested and never runs install or git init", async () => {
+    const test = fixture();
+    const result = await executeAgentPackCommand(
+      createCustomerCreateCommand(test.dependencies),
+      { ...input, write: true },
+      context,
+    );
+
+    expect(result.exitClass).toBe("success");
+    expect(result.mutationPosture).toBe("write");
+    expect(test.materialize).toHaveBeenCalledOnce();
+    expect(result.data).toMatchObject({ materializedFiles: 3 });
+  });
+
+  it("fails closed for fixture-only or unresolved release bindings", async () => {
+    const dependencies: CustomerCreateDependencies = {
+      release: {
+        prepare: vi.fn(async () => ({
+          ok: false as const,
+          code: "release-unavailable" as const,
+          message:
+            "Release manifest is fixture-only until its tag is externally resolved.",
+        })),
+        materialize: vi.fn(),
+      },
+    };
+    const result = await executeAgentPackCommand(
+      createCustomerCreateCommand(dependencies),
+      input,
+      context,
+    );
+
+    expect(result.exitClass).toBe("blockedMutation");
+    expect(result.diagnostics[0]?.code).toBe(
+      "AGENT_PACK_CREATE_RELEASE_UNAVAILABLE",
+    );
+    expect(dependencies.release.materialize).not.toHaveBeenCalled();
+  });
+
+  it("shows collisions in preview and refuses the write", async () => {
+    const preview = fixture({ collisions: ["package.json"] });
+    const previewResult = await executeAgentPackCommand(
+      createCustomerCreateCommand(preview.dependencies),
+      input,
+      context,
+    );
+    expect(previewResult.exitClass).toBe("findings");
+    expect(previewResult.data).toMatchObject({
+      preview: { collisions: ["package.json"] },
+    });
+
+    const write = fixture({ collisions: ["package.json"] });
+    const writeResult = await executeAgentPackCommand(
+      createCustomerCreateCommand(write.dependencies),
+      { ...input, write: true },
+      context,
+    );
+    expect(writeResult.exitClass).toBe("blockedMutation");
+    expect(write.materialize).not.toHaveBeenCalled();
+  });
+
+  it("accepts only target, name, outcome, demo-only, and write inputs", async () => {
+    const test = fixture();
+    for (const invalid of [
+      { ...input, provider: "live" },
+      { ...input, authenticate: true },
+      { ...input, install: true },
+      { ...input, name: " " },
+      { ...input, outcome: "" },
+    ]) {
+      const result = await executeAgentPackCommand(
+        createCustomerCreateCommand(test.dependencies),
+        invalid,
+        context,
+      );
+      expect(result.exitClass).toBe("invalidInvocation");
+    }
+    expect(test.dependencies.release.prepare).not.toHaveBeenCalled();
+  });
+});

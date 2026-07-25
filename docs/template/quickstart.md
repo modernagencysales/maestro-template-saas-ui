@@ -7,6 +7,20 @@ Trust Receipt without live provider setup.
 
 ## 10-Minute Local Fake Mode
 
+For a customer app, preview a reviewed release first:
+
+```bash
+pnpm maestro -- create ../my-app --name "My App" --outcome "Track client requests" --demo-only
+pnpm maestro -- create ../my-app --name "My App" --outcome "Track client requests" --demo-only --write
+```
+
+Create asks only for the name, first outcome, and demo-only posture. The first
+command writes nothing; the second materializes only after an exact external
+tag, commit, and archive-checksum binding passes. Follow the single next command
+printed by create. Install dependencies and initialize Git only after reviewing
+their separate approval items. See the
+[customer target contract](./customer-target-contract.md).
+
 Copy-paste path:
 
 ```bash
