@@ -151,7 +151,10 @@ export function createComposedStartCommand(options: {
 export function parseStartTargetInstance<T>(
   raw: string,
   canonical: (raw: string) => T,
-  customerDefault: (name: string) => T,
+  customerDefault: (identity: {
+    readonly name: string;
+    readonly blueprint: string;
+  }) => T,
 ): T {
   try {
     return canonical(raw);
@@ -161,14 +164,21 @@ export function parseStartTargetInstance<T>(
       const personalization = isRecord(value)
         ? value.personalization
         : undefined;
+      const blueprint = isRecord(value) ? value.blueprint : undefined;
       if (
         isRecord(personalization) &&
         typeof personalization.name === "string" &&
         personalization.name.trim() !== "" &&
         typeof personalization.firstOutcome === "string" &&
-        personalization.firstOutcome.trim() !== ""
+        personalization.firstOutcome.trim() !== "" &&
+        isRecord(blueprint) &&
+        typeof blueprint.id === "string" &&
+        blueprint.id.trim() !== ""
       ) {
-        return customerDefault(personalization.name);
+        return customerDefault({
+          name: personalization.name,
+          blueprint: blueprint.id,
+        });
       }
     } catch {
       // Preserve the canonical parser diagnostic below.

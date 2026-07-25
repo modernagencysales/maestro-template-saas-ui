@@ -160,13 +160,19 @@ export function createFactoryCliComposition(
       }),
       readers: {
         parseTemplateInstance: (raw) =>
-          parseStartTargetInstance(raw, parseTemplateInstance, (name) =>
-            buildTemplateInstance({
-              name,
+          parseStartTargetInstance(raw, parseTemplateInstance, (identity) => {
+            const blueprint = buildBlueprintCatalog().find(
+              ({ id }) => id === identity.blueprint,
+            )?.id;
+            if (blueprint === undefined)
+              throw new Error("Customer blueprint is not reviewed.");
+            return buildTemplateInstance({
+              name: identity.name,
+              blueprint,
               providerMode: "fake",
               generatedAt: "1970-01-01T00:00:00.000Z",
-            }),
-          ),
+            });
+          }),
         buildTemplateInstance,
         doctorTemplateInstance,
         readSystemCatalog,

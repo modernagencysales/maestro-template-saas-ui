@@ -125,17 +125,30 @@ describe("start CLI adapter", () => {
     const canonical = vi.fn(() => {
       throw new Error("legacy instance required");
     });
-    const customerDefault = vi.fn((name: string) => ({ name, mode: "fake" }));
+    const customerDefault = vi.fn(
+      (identity: { readonly name: string; readonly blueprint: string }) => ({
+        ...identity,
+        mode: "fake",
+      }),
+    );
     expect(
       parseStartTargetInstance(
         JSON.stringify({
           personalization: { name: "My App", firstOutcome: "Track requests" },
+          blueprint: { id: "saas-application" },
         }),
         canonical,
         customerDefault,
       ),
-    ).toEqual({ name: "My App", mode: "fake" });
-    expect(customerDefault).toHaveBeenCalledWith("My App");
+    ).toEqual({
+      name: "My App",
+      blueprint: "saas-application",
+      mode: "fake",
+    });
+    expect(customerDefault).toHaveBeenCalledWith({
+      name: "My App",
+      blueprint: "saas-application",
+    });
     expect(() =>
       parseStartTargetInstance("{}", canonical, customerDefault),
     ).toThrow("legacy instance required");
