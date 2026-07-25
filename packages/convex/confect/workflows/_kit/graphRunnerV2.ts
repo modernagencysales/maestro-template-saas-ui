@@ -700,7 +700,10 @@ const assertExternalAuthorizationBoundary = <
   entry: WorkflowV2ActionCapabilityEntry,
 ): void => {
   const principal = input.principal as { readonly version?: unknown };
-  if (entry.effectClass !== "external" || principal.version !== 2) return;
+  if (entry.effectClass !== "external") return;
+  if (principal.version !== 2) {
+    throw validationFailure(node, "workflow authority is unavailable");
+  }
   if (
     entry.authorization?.kind !== "consequential" ||
     entry.authorization.boundary !== "generated-current-authority" ||

@@ -1269,12 +1269,13 @@ describe("Maestro V2 inline transaction compiler", () => {
     });
 
     await runDurableGraphWorkflowV2(v2Step({ runAction }), {
-      ...v2Input(graph),
+      ...v2ExternalInput(graph),
       capabilityRegistry: {
         [capabilityRef]: {
           kind: "action",
           ref: actionRef,
           effectClass: "external",
+          authorization: externalAuthorization,
           effectContract: providerNativeContract,
           instanceKey: () => "invoice-42",
           buildArgs: ({ logicalEffectKey }) => ({ logicalEffectKey }),
@@ -1298,12 +1299,13 @@ describe("Maestro V2 inline transaction compiler", () => {
     const runAction = vi.fn(async () => ({ accepted: true }));
     const graph = v2CapabilityGraph("action");
     await runDurableGraphWorkflowV2(v2Step({ runAction }), {
-      ...v2Input(graph),
+      ...v2ExternalInput(graph),
       capabilityRegistry: {
         [capabilityRef]: {
           kind: "action",
           ref: "compiler.v2.action" as unknown as DurableGraphStepRef<"action">,
           effectClass: "external",
+          authorization: externalAuthorization,
           effectContract: nonRetriableContract,
           instanceKey: () => "invoice-42",
           buildArgs: () => ({}),
@@ -1328,12 +1330,13 @@ describe("Maestro V2 inline transaction compiler", () => {
     const unsafe = { ...providerNativeContract, dedupeRetentionMs: 199 };
     await expect(
       runDurableGraphWorkflowV2(v2Step({ runAction }), {
-        ...v2Input(graph),
+        ...v2ExternalInput(graph),
         capabilityRegistry: {
           [capabilityRef]: {
             kind: "action",
             ref: "compiler.v2.action" as unknown as DurableGraphStepRef<"action">,
             effectClass: "external",
+            authorization: externalAuthorization,
             effectContract: unsafe,
             instanceKey: () => "invoice-42",
             buildArgs: () => ({}),
@@ -1374,7 +1377,8 @@ describe("Maestro V2 inline transaction compiler", () => {
     );
   });
 
-  it("does not call the provider after admission denial", async () => {
+  it("rejects legacy external actions before effect admission", async () => {
+    const admitEffect = vi.fn(async () => ({ kind: "dispatch" as const }));
     const runAction = vi.fn(async () => ({ accepted: true }));
     await expect(
       runDurableGraphWorkflowV2(v2Step({ runAction }), {
@@ -1384,6 +1388,49 @@ describe("Maestro V2 inline transaction compiler", () => {
             kind: "action",
             ref: "compiler.v2.action" as unknown as DurableGraphStepRef<"action">,
             effectClass: "external",
+            authorization: externalAuthorization,
+            effectContract: nonRetriableContract,
+            instanceKey: () => "invoice-42",
+            buildArgs: () => ({}),
+          },
+        },
+        admitEffect,
+      }),
+    ).rejects.toThrow(/workflow authority is unavailable/);
+    expect(admitEffect).not.toHaveBeenCalled();
+    expect(runAction).not.toHaveBeenCalled();
+  });
+
+  it("allows legacy principals to complete non-consequential work", async () => {
+    const runQuery = vi.fn(async () => ({ ok: true }));
+    await expect(
+      runDurableGraphWorkflowV2(v2Step({ runQuery }), {
+        ...v2Input(v2CapabilityGraph("query")),
+        capabilityRegistry: {
+          [capabilityRef]: {
+            kind: "query",
+            ref: "compiler.v2.query" as unknown as DurableGraphStepRef<"query">,
+            effectClass: "none",
+            buildArgs: () => ({}),
+          },
+        },
+        admitEffect: async () => ({ kind: "deny", reason: "not used" }),
+      }),
+    ).resolves.toMatchObject({ status: "completed" });
+    expect(runQuery).toHaveBeenCalledOnce();
+  });
+
+  it("does not call the provider after admission denial", async () => {
+    const runAction = vi.fn(async () => ({ accepted: true }));
+    await expect(
+      runDurableGraphWorkflowV2(v2Step({ runAction }), {
+        ...v2ExternalInput(v2CapabilityGraph("action")),
+        capabilityRegistry: {
+          [capabilityRef]: {
+            kind: "action",
+            ref: "compiler.v2.action" as unknown as DurableGraphStepRef<"action">,
+            effectClass: "external",
+            authorization: externalAuthorization,
             effectContract: nonRetriableContract,
             instanceKey: () => "invoice-42",
             buildArgs: () => ({}),
@@ -1402,12 +1449,13 @@ describe("Maestro V2 inline transaction compiler", () => {
     const providerFailure = new Error("provider secret payload");
     const runAction = vi.fn(async () => Promise.reject(providerFailure));
     const promise = runDurableGraphWorkflowV2(v2Step({ runAction }), {
-      ...v2Input(v2CapabilityGraph("action")),
+      ...v2ExternalInput(v2CapabilityGraph("action")),
       capabilityRegistry: {
         [capabilityRef]: {
           kind: "action",
           ref: "compiler.v2.action" as unknown as DurableGraphStepRef<"action">,
           effectClass: "external",
+          authorization: externalAuthorization,
           effectContract: nonRetriableContract,
           instanceKey: () => "invoice-42",
           buildArgs: () => ({}),
@@ -1428,7 +1476,7 @@ describe("Maestro V2 inline transaction compiler", () => {
       async (...[, args]: [unknown, Record<string, unknown>]) => args,
     );
     await runDurableGraphWorkflowV2(v2Step({ runAction }), {
-      ...v2Input(
+      ...v2ExternalInput(
         v2CapabilityGraph("action", {
           maxAttempts: 2,
           initialBackoffMs: 1,
@@ -1440,6 +1488,7 @@ describe("Maestro V2 inline transaction compiler", () => {
           kind: "action",
           ref: "compiler.v2.action" as unknown as DurableGraphStepRef<"action">,
           effectClass: "external",
+          authorization: externalAuthorization,
           effectContract: providerNativeContract,
           instanceKey: () => "invoice-42",
           buildArgs: ({ logicalEffectKey }) => ({ logicalEffectKey }),
@@ -1464,7 +1513,7 @@ describe("Maestro V2 inline transaction compiler", () => {
       const runAction = vi.fn(async () => ({ accepted: true }));
       await expect(
         runDurableGraphWorkflowV2(v2Step({ runAction }), {
-          ...v2Input(
+          ...v2ExternalInput(
             v2CapabilityGraph("action", {
               maxAttempts: 2,
               initialBackoffMs: 1,
@@ -1476,6 +1525,7 @@ describe("Maestro V2 inline transaction compiler", () => {
               kind: "action",
               ref: "compiler.v2.action" as unknown as DurableGraphStepRef<"action">,
               effectClass: "external",
+              authorization: externalAuthorization,
               effectContract: providerNativeContract,
               instanceKey: () => "invoice-42",
               buildArgs,
@@ -1926,6 +1976,12 @@ const nonRetriableContract = {
   guards,
 } satisfies WorkflowEffectContract;
 
+const externalAuthorization = {
+  kind: "consequential",
+  requiredGrants: ["billing:charge"],
+  boundary: "generated-current-authority",
+} as const;
+
 const v2CapabilityGraph = (
   functionKind: "action" | "query" | "mutation",
   retry?: { maxAttempts: number; initialBackoffMs: number; base: number },
@@ -2189,6 +2245,20 @@ const v2Input = (graph: DurableWorkflowGraphV2) => ({
     status: "completed",
     context,
   }),
+});
+
+const v2ExternalInput = (graph: DurableWorkflowGraphV2) => ({
+  ...v2Input(graph),
+  principal: {
+    version: 2,
+    kind: "system",
+    workspaceId: "workspace-1",
+    grants: ["billing:charge"],
+    kickoffAt: 1,
+    systemId: "workflow-runner",
+    reason: "workflow action fixture",
+    provenance: "scheduled-system-workflow",
+  } as const,
 });
 
 const v2Step = (
