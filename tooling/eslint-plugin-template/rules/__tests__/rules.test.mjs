@@ -80,6 +80,11 @@ tester.run("typed-convex-errors", typedConvexErrors, {
     },
     {
       filename: CAP,
+      code: "const original = () => { throw new Error('bad'); }; const handler = original; export const f = mutation({ handler });",
+      errors: [{ messageId: "typed" }],
+    },
+    {
+      filename: CAP,
       code: "import { mutation as registerMutation } from './_generated/server'; const handler = () => { throw new Error('bad'); }; export const f = registerMutation({ handler });",
       errors: [{ messageId: "typed" }],
     },

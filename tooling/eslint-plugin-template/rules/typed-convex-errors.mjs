@@ -106,10 +106,12 @@ const addResolvedFunction = (functions, node, sourceCode) => {
   if (resolved) functions.add(resolved);
 };
 
-const resolveFunction = (node, sourceCode) => {
+const resolveFunction = (node, sourceCode, seen = new Set()) => {
   if (isFunction(node)) return node;
   if (node.type !== "Identifier") return null;
   const variable = resolveVariable(node, sourceCode);
+  if (!variable || seen.has(variable)) return null;
+  seen.add(variable);
   for (const definition of variable?.defs ?? []) {
     if (definition.type === "FunctionName" && isFunction(definition.node)) {
       return definition.node;
@@ -117,10 +119,10 @@ const resolveFunction = (node, sourceCode) => {
     if (
       definition.type === "Variable" &&
       definition.node.type === "VariableDeclarator" &&
-      definition.node.init &&
-      isFunction(definition.node.init)
+      definition.node.init
     ) {
-      return definition.node.init;
+      const resolved = resolveFunction(definition.node.init, sourceCode, seen);
+      if (resolved) return resolved;
     }
   }
   return null;
