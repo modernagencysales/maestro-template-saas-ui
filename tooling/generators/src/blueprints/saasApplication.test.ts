@@ -379,6 +379,7 @@ describe("saas application blueprint", () => {
       "stack:sync",
       "stack:preflight",
       "stack:merge",
+      "evals:agent-pack",
       "evals",
       "smoke:web-static",
       "review:readiness",
