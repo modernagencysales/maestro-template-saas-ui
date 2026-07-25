@@ -381,7 +381,7 @@ const verifyJournalTree = (root: string, journal: Journal): void => {
   }
 };
 
-const removeJournalTree = (root: string, journal: Journal): void => {
+const removeJournalTree = (root: string): void => {
   const existing = listFiles(root).filter((path) => path !== JOURNAL);
   for (const path of existing) unlinkSync(containedPath(root, path));
   unlinkSync(resolve(root, JOURNAL));
@@ -420,7 +420,7 @@ export function recoverInterruptedCustomerTarget(
     );
   }
   verifyJournalTree(preview.stageRoot, journal);
-  removeJournalTree(preview.stageRoot, journal);
+  removeJournalTree(preview.stageRoot);
   return { recovered: true };
 }
 
@@ -515,6 +515,6 @@ export function rollbackCustomerTarget(targetRoot: string): {
       "Rollback target is missing a journaled path",
     );
   }
-  removeJournalTree(root, journal);
+  removeJournalTree(root);
   return { rolledBack: true };
 }

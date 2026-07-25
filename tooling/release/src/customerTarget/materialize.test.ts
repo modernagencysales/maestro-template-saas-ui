@@ -254,8 +254,13 @@ describe("customer target preview and materialization", () => {
         interruptAfterFiles: 1,
       }),
     ).toThrow("Materialization interrupted");
+    const firstWrite = corruptedPreview.writes[0];
+    expect(firstWrite).toBeDefined();
+    if (firstWrite === undefined) {
+      throw new CustomerMaterializationError("Expected a staged write fixture");
+    }
     writeFileSync(
-      join(corruptedPreview.stageRoot, corruptedPreview.writes[0]!.path),
+      join(corruptedPreview.stageRoot, firstWrite.path),
       "partial or changed bytes\n",
     );
     expect(() =>
