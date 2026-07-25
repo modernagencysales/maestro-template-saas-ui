@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "releaseManifest": "releases/v0.2.0-alpha.1/manifest.json",
+  "blueprintManifest": "releases/v0.2.0-alpha.1/blueprints/saas-application.json",
+  "forbiddenPublicPathFragments": [
+    "apps/web/src/routes/readiness",
+    "apps/web/src/routes/_workspace.readiness",
+    "apps/web/src/features/readiness",
+    "apps/web/src/screens/readiness",
+    "apps/web/src/api/readiness"
+  ],
+  "forbiddenRouteTokens": [
+    "/readiness",
+    "/__maestro/readiness",
+    "BuildReadiness"
+  ],
+  "localOnlyOwner": "tooling/agent-pack/src/readiness"
+}

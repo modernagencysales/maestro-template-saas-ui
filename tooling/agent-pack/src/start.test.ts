@@ -21,6 +21,12 @@ const ready: StartPreflightResult = {
   auth: "not-required",
   exitClass: "success",
   diagnostics: [],
+  readiness: {
+    worksNow: "Fake records work now.",
+    demoOnly: "Live connections are demo-only.",
+    blueprint: "saas-application",
+    providers: [{ id: "convex", posture: "sample" }],
+  },
 };
 const identity = JSON.stringify({
   personalization: {
@@ -29,14 +35,21 @@ const identity = JSON.stringify({
   },
 });
 
-function fixture(preflight: StartPreflightResult = ready) {
+function fixture(preflight: Partial<StartPreflightResult> = ready) {
+  const preflightResult = { ...ready, ...preflight };
   const dependencies: StartDependencies = {
-    preflight: vi.fn(async () => preflight),
+    preflight: vi.fn(async () => preflightResult),
     readFile: vi.fn(async () => identity),
     ports: {
       available: vi.fn(async () => true),
     },
     readiness: { wait: vi.fn(async () => true) },
+    readinessSurface: {
+      open: vi.fn(async () => ({
+        url: "http://127.0.0.1:4174/",
+        close: vi.fn(async () => undefined),
+      })),
+    },
     supervise: vi.fn(async (_specs, readiness) => {
       if (await readiness.wait(new AbortController().signal))
         readiness.onReady();
@@ -81,13 +94,26 @@ describe("start command", () => {
       app: { name: "My App", firstOutcome: "Track client requests" },
       url: "http://127.0.0.1:5173",
       readinessUrl: "http://127.0.0.1:5173/health",
+      buildReadinessUrl: "http://127.0.0.1:4174/",
     });
     expect(dependencies.announce).toHaveBeenCalledWith({
       name: "My App",
       firstOutcome: "Track client requests",
       url: "http://127.0.0.1:5173",
       readinessUrl: "http://127.0.0.1:5173/health",
+      buildReadinessUrl: "http://127.0.0.1:4174/",
     });
+    expect(dependencies.readinessSurface.open).toHaveBeenCalledWith({
+      mode: "fake",
+      port: 4174,
+      repo: context.repo,
+      preflight: ready,
+    });
+    expect(
+      vi.mocked(dependencies.readinessSurface.open).mock.invocationCallOrder[0],
+    ).toBeLessThan(
+      vi.mocked(dependencies.supervise).mock.invocationCallOrder[0]!,
+    );
   });
 
   it("starts explicit local Convex, Confect, and web argv without production", async () => {
@@ -321,6 +347,15 @@ describe("start command", () => {
     expect(preflight.diagnostics[0]?.severity).toBe("warning");
 
     const timeout = fixture();
+    const readinessSession = await timeout.readinessSurface.open({
+      mode: "fake",
+      port: 4174,
+      repo: context.repo,
+      preflight: ready,
+    });
+    vi.mocked(timeout.readinessSurface.open).mockResolvedValue(
+      readinessSession,
+    );
     vi.mocked(timeout.supervise).mockResolvedValue({
       kind: "readiness-timeout",
     });
@@ -334,6 +369,7 @@ describe("start command", () => {
       "AGENT_PACK_START_READINESS_TIMEOUT",
     );
     expect(timeout.announce).not.toHaveBeenCalled();
+    expect(readinessSession.close).toHaveBeenCalledOnce();
 
     for (const supervision of [
       { kind: "spawn-failed" as const },

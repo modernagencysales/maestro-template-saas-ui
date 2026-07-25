@@ -18,12 +18,22 @@ import type {
   StartProcessSpec,
 } from "./processSupervisor.js";
 import type { PreflightMode } from "./preflight.js";
+import type { RepositoryContext } from "./repoContext.js";
 
 export type StartPreflightResult = {
   readonly safeToStart: boolean;
   readonly auth: "not-required" | "connected" | "cancelled";
   readonly exitClass: AgentPackExitClass;
   readonly diagnostics: readonly AgentPackDiagnostic[];
+  readonly readiness: {
+    readonly worksNow: string;
+    readonly demoOnly: string;
+    readonly blueprint: string;
+    readonly providers: readonly {
+      readonly id: string;
+      readonly posture: "sample" | "local" | "test" | "live" | "missing";
+    }[];
+  };
 };
 export type StartDependencies = {
   readonly preflight: (
@@ -42,11 +52,23 @@ export type StartDependencies = {
   readonly readiness: {
     readonly wait: (url: string, signal: AbortSignal) => Promise<boolean>;
   };
+  readonly readinessSurface: {
+    readonly open: (input: {
+      readonly mode: StartMode;
+      readonly port: number;
+      readonly repo: RepositoryContext;
+      readonly preflight: StartPreflightResult;
+    }) => Promise<{
+      readonly url: string;
+      readonly close: () => Promise<void>;
+    }>;
+  };
   readonly announce: (facts: {
     readonly name: string;
     readonly firstOutcome: string;
     readonly url: string;
     readonly readinessUrl: string;
+    readonly buildReadinessUrl: string;
   }) => void;
 };
 
@@ -104,17 +126,57 @@ export function createStartCommand(dependencies: StartDependencies) {
         context.repo.targetRoot,
       );
       if (!identity.ok) return failure(identity.summary, [identity.diagnostic]);
+      let surface: Awaited<
+        ReturnType<StartDependencies["readinessSurface"]["open"]>
+      >;
+      try {
+        surface = await dependencies.readinessSurface.open({
+          mode,
+          port: ports.readinessPresenter,
+          repo: context.repo,
+          preflight,
+        });
+      } catch {
+        return failure("The local Build Readiness surface was unavailable.", [
+          diagnostic(
+            "AGENT_PACK_START_READINESS_SURFACE_UNAVAILABLE",
+            "The localhost-only Build Readiness presenter could not start.",
+            "Free the reviewed loopback port and inspect canonical readiness artifacts.",
+            `pnpm maestro -- start --mode ${mode}`,
+          ),
+        ]);
+      }
       const specs = processPlan(mode, context.repo.targetRoot, ports.web);
-      const supervision = await dependencies.supervise(specs, {
-        wait: (signal) =>
-          dependencies.readiness.wait(ports.readinessUrl, signal),
-        onReady: () =>
-          dependencies.announce({
-            ...identity.app,
-            url: ports.url,
-            readinessUrl: ports.readinessUrl,
-          }),
-      });
+      let supervision: ProcessSupervisionResult;
+      let closeFailed = false;
+      try {
+        supervision = await dependencies.supervise(specs, {
+          wait: (signal) =>
+            dependencies.readiness.wait(ports.readinessUrl, signal),
+          onReady: () =>
+            dependencies.announce({
+              ...identity.app,
+              url: ports.url,
+              readinessUrl: ports.readinessUrl,
+              buildReadinessUrl: surface.url,
+            }),
+        });
+      } finally {
+        try {
+          await surface.close();
+        } catch {
+          closeFailed = true;
+        }
+      }
+      if (closeFailed)
+        return failure("The local Build Readiness surface did not close.", [
+          diagnostic(
+            "AGENT_PACK_START_READINESS_SURFACE_CLEANUP",
+            "The localhost readiness presenter exceeded its cleanup boundary.",
+            "Stop the local process and confirm the loopback port is free.",
+            `pnpm maestro -- start --mode ${mode}`,
+          ),
+        ]);
       if (supervision.kind !== "user-signal") {
         return supervisionFailure(supervision, mode);
       }
@@ -128,6 +190,7 @@ export function createStartCommand(dependencies: StartDependencies) {
           app: identity.app,
           url: ports.url,
           readinessUrl: ports.readinessUrl,
+          buildReadinessUrl: surface.url,
           processes: specs.map(({ id }) => id),
           stoppedBy: supervision.signal,
         },

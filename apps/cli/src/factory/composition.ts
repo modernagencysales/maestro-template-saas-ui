@@ -7,6 +7,7 @@ import {
   createMaestroMcpServer,
   createMcpConfigureCommand,
   createNodeExecFileAdapter,
+  createNodeBuildReadinessSurface,
   createNodePreflightRuntimeReader,
   createConvexDoctorAdapter,
   createProviderDoctorCommand,
@@ -179,14 +180,6 @@ export function createFactoryCliComposition(
   const startOutput = createStartOutputBoundary(
     overrides.start?.log ?? ((line) => process.stderr.write(`${line}\n`)),
   );
-  const start = createComposedStartCommand({
-    preflight,
-    readFile: readBoundedFile,
-    maxBytes: FACTORY_EXECUTION_POLICY.packageJsonMaxBytes,
-    environment: readEnvironment,
-    log: startOutput.write,
-  });
-
   const verificationRunner = createExecFileVerificationRunner({
     execFile,
     readFile: readBoundedFile,
@@ -214,6 +207,20 @@ export function createFactoryCliComposition(
       );
     },
     limits: FACTORY_EXECUTION_POLICY,
+  });
+  const start = createComposedStartCommand({
+    preflight,
+    readFile: readBoundedFile,
+    maxBytes: FACTORY_EXECUTION_POLICY.packageJsonMaxBytes,
+    environment: readEnvironment,
+    log: startOutput.write,
+    readinessSurface: createNodeBuildReadinessSurface({
+      readFile: (path) =>
+        readBoundedFile(path, {
+          maxBytes: FACTORY_EXECUTION_POLICY.packageJsonMaxBytes,
+        }),
+      current: (repo) => verificationRunner.inspect(repo),
+    }),
   });
 
   const verify = createVerifyCommand({

@@ -200,10 +200,22 @@ describe("customer create command", () => {
           auth: "not-required" as const,
           exitClass: "success" as const,
           diagnostics: [],
+          readiness: {
+            worksNow: "Fake records work now.",
+            demoOnly: "Live connections are demo-only.",
+            blueprint: "saas-application",
+            providers: [{ id: "convex", posture: "sample" as const }],
+          },
         })),
         readFile: vi.fn(async (path) => readFileSync(path, "utf8")),
         ports: { available: vi.fn(async () => true) },
         readiness: { wait: vi.fn(async () => true) },
+        readinessSurface: {
+          open: vi.fn(async () => ({
+            url: "http://127.0.0.1:4174/",
+            close: vi.fn(async () => undefined),
+          })),
+        },
         supervise: vi.fn(async (_specs, readiness) => {
           readiness.onReady();
           return { kind: "user-signal" as const, signal: "SIGINT" as const };

@@ -1,6 +1,7 @@
 import {
   AGENT_PACK_EXECUTION_CONTEXT_VERSION,
   createNodeProcessSpawner,
+  type StartDependencies,
   createRepositoryContext,
   createStartCommand,
   executeAgentPackCommand,
@@ -85,6 +86,7 @@ export function createComposedStartCommand(options: {
   readonly maxBytes: number;
   readonly environment: () => NodeJS.ProcessEnv;
   readonly log: (line: string) => void;
+  readonly readinessSurface: StartDependencies["readinessSurface"];
 }) {
   return createStartCommand({
     preflight: async (mode, context) => {
@@ -99,22 +101,42 @@ export function createComposedStartCommand(options: {
             auth: "cancelled",
             exitClass: result.exitClass,
             diagnostics: result.diagnostics,
+            readiness: {
+              worksNow: "Readiness is unavailable until preflight succeeds.",
+              demoOnly: "Provider and runtime posture are unverified.",
+              blueprint: "unverified",
+              providers: [],
+            },
           }
         : {
             safeToStart: result.data.safeToMutate,
             auth: result.data.facts.auth,
             exitClass: result.exitClass,
             diagnostics: result.diagnostics,
+            readiness: {
+              worksNow: result.data.worksNow,
+              demoOnly: result.data.demoOnly,
+              blueprint: result.data.facts.app.blueprint,
+              providers: result.data.facts.app.providers,
+            },
           };
     },
     readFile: (path) => options.readFile(path, { maxBytes: options.maxBytes }),
     ports: nodeStartPortProbe,
     readiness: { wait: waitForStartReadiness },
-    announce: ({ name, firstOutcome, url, readinessUrl }) => {
+    readinessSurface: options.readinessSurface,
+    announce: ({
+      name,
+      firstOutcome,
+      url,
+      readinessUrl,
+      buildReadinessUrl,
+    }) => {
       options.log(`[maestro] ${safeLine(name)}`);
       options.log(`[maestro] First outcome: ${safeLine(firstOutcome)}`);
       options.log(`[maestro] URL: ${url}`);
       options.log(`[maestro] Readiness: ${readinessUrl}`);
+      options.log(`[maestro] Build Readiness: ${buildReadinessUrl}`);
     },
     supervise: (specs, readiness) =>
       superviseProcesses(specs, {

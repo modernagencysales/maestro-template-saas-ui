@@ -33,7 +33,7 @@ export type BuildReadinessInput = {
   }[];
   readonly surfaces: readonly {
     readonly id: string;
-    readonly kind: "screen" | "data" | "automation" | "connection";
+    readonly kind: "screen" | "data" | "automation" | "connection" | "other";
     readonly status: ReadinessSurfaceStatus;
   }[];
   readonly receipt: null | {
