@@ -1,6 +1,6 @@
 import * as Schema from "effect/Schema";
 
-const WorkflowPrincipalBase = {
+const WorkflowPrincipalV1Base = {
   version: Schema.Literal(1),
   workspaceId: Schema.NonEmptyString,
   grants: Schema.Array(Schema.NonEmptyString),
@@ -8,7 +8,7 @@ const WorkflowPrincipalBase = {
 } as const;
 
 export const WorkflowUserPrincipal = Schema.Struct({
-  ...WorkflowPrincipalBase,
+  ...WorkflowPrincipalV1Base,
   kind: Schema.Literal("user"),
   actorId: Schema.NonEmptyString,
   role: Schema.NonEmptyString,
@@ -21,7 +21,7 @@ export type WorkflowUserPrincipal = Schema.Schema.Type<
 >;
 
 export const WorkflowSystemPrincipal = Schema.Struct({
-  ...WorkflowPrincipalBase,
+  ...WorkflowPrincipalV1Base,
   kind: Schema.Literal("system"),
   systemId: Schema.NonEmptyString,
   reason: Schema.NonEmptyString,
@@ -37,6 +37,116 @@ export const WorkflowPrincipal = Schema.Union(
 );
 
 export type WorkflowPrincipal = Schema.Schema.Type<typeof WorkflowPrincipal>;
+
+const PrincipalGrant = Schema.NonEmptyString.pipe(Schema.maxLength(128));
+const WorkflowPrincipalV2Base = {
+  version: Schema.Literal(2),
+  workspaceId: Schema.NonEmptyString,
+  grants: Schema.Array(PrincipalGrant),
+  kickoffAt: Schema.Number.pipe(
+    Schema.finite(),
+    Schema.greaterThanOrEqualTo(0),
+  ),
+} as const;
+
+export const WorkflowUserPrincipalV2 = Schema.Struct({
+  ...WorkflowPrincipalV2Base,
+  kind: Schema.Literal("user"),
+  actorId: Schema.NonEmptyString,
+  role: Schema.NonEmptyString,
+  authEpoch: Schema.Number.pipe(Schema.int(), Schema.greaterThanOrEqualTo(0)),
+  provenance: Schema.Literal("authenticated-workflow-start"),
+});
+
+export const WorkflowSystemPrincipalV2 = Schema.Struct({
+  ...WorkflowPrincipalV2Base,
+  kind: Schema.Literal("system"),
+  systemId: Schema.NonEmptyString,
+  reason: Schema.NonEmptyString,
+  provenance: Schema.Literal("scheduled-system-workflow"),
+});
+
+export const DurableWorkflowPrincipal = Schema.Union(
+  WorkflowUserPrincipalV2,
+  WorkflowSystemPrincipalV2,
+);
+export type DurableWorkflowPrincipal = Schema.Schema.Type<
+  typeof DurableWorkflowPrincipal
+>;
+
+export const createWorkflowUserPrincipal = (input: {
+  readonly workspaceId: string;
+  readonly actorId: string;
+  readonly role: string;
+  readonly grants: readonly string[];
+  readonly authEpoch: number;
+  readonly kickoffAt: number;
+}): DurableWorkflowPrincipal =>
+  decodeDurablePrincipal({
+    version: 2,
+    kind: "user",
+    ...input,
+    grants: uniqueGrants(input.grants),
+    provenance: "authenticated-workflow-start",
+  });
+
+export const createWorkflowSystemPrincipal = (input: {
+  readonly workspaceId: string;
+  readonly systemId: string;
+  readonly reason: string;
+  readonly grants: readonly string[];
+  readonly kickoffAt: number;
+}): DurableWorkflowPrincipal => {
+  if (input.grants.some((grant) => grant.startsWith("user:"))) {
+    throw new Error("System workflow principals cannot acquire user grants.");
+  }
+  return decodeDurablePrincipal({
+    version: 2,
+    kind: "system",
+    ...input,
+    grants: uniqueGrants(input.grants),
+    provenance: "scheduled-system-workflow",
+  });
+};
+
+export const assertWorkflowPrincipalAuthority = (
+  principal: DurableWorkflowPrincipal,
+  input: {
+    readonly workspaceId: string;
+    readonly requiredGrants: readonly string[];
+  },
+): void => {
+  if (principal.workspaceId !== input.workspaceId) {
+    throw new Error("Workflow principal is unavailable.");
+  }
+  const grants = new Set(principal.grants);
+  if (input.requiredGrants.some((grant) => !grants.has(grant))) {
+    throw new Error("Workflow principal is unavailable.");
+  }
+};
+
+export const adaptLegacyActiveWorkflowPrincipal = (input: {
+  readonly workspaceId: string;
+  readonly startedByUserId: string;
+  readonly startedAt: number;
+}) => ({
+  kind: "legacy-active" as const,
+  workspaceId: input.workspaceId,
+  actorId: input.startedByUserId,
+  kickoffAt: input.startedAt,
+  consequentialEffects: "reauthorization-required" as const,
+});
+
+const decodeDurablePrincipal = (input: unknown): DurableWorkflowPrincipal =>
+  Schema.decodeUnknownSync(DurableWorkflowPrincipal)(input);
+
+const uniqueGrants = (grants: readonly string[]): readonly string[] => {
+  const unique = [...new Set(grants)].sort();
+  if (unique.length !== grants.length) {
+    throw new Error("Workflow principal grants must be unique.");
+  }
+  return unique;
+};
 
 export const RESERVED_WORKFLOW_IDENTITY_FIELDS = new Set([
   "actorId",

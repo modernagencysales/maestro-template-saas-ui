@@ -9,6 +9,8 @@ import {
   WorkflowProductCleanupState,
   WorkflowRetentionTime,
 } from "../workflows/_kit/lifecycleState";
+import { DurableWorkflowPrincipal } from "../workflows/_kit/principal";
+import { WorkflowPolicySnapshot } from "../workflows/_kit/policySnapshot";
 
 export const WorkflowRunStatus = Schema.Literal(
   "queued",
@@ -66,6 +68,8 @@ export const WorkflowRunRow = Schema.Struct({
   childRetentionUntil: Schema.optional(WorkflowRetentionTime),
   evidenceRetentionUntil: Schema.optional(WorkflowRetentionTime),
   onCompleteContext: Schema.optional(Schema.NullOr(WorkflowOnCompleteContext)),
+  principalSnapshot: Schema.optional(Schema.NullOr(DurableWorkflowPrincipal)),
+  policySnapshot: Schema.optional(Schema.NullOr(WorkflowPolicySnapshot)),
 });
 
 export default Table.make(() => WorkflowRunRow)

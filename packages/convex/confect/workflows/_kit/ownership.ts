@@ -20,6 +20,8 @@ import {
   assertWorkflowStartBinding,
   type PublicationRegistry,
 } from "./publication";
+import type { DurableWorkflowPrincipal } from "./principal";
+import type { WorkflowPolicySnapshot } from "./policySnapshot";
 
 type Reader = Context.Tag.Service<typeof DatabaseReader>;
 type Writer = Context.Tag.Service<typeof DatabaseWriter>;
@@ -43,7 +45,10 @@ export type WorkflowRunReservationInput = Pick<
   | "sourceRunId"
   | "timeoutMs"
   | "deadlineAt"
->;
+> & {
+  readonly principalSnapshot?: DurableWorkflowPrincipal;
+  readonly policySnapshot?: WorkflowPolicySnapshot;
+};
 
 export type StartWorkflowOwnershipInput<
   F extends FunctionReference<"mutation", "internal">,
@@ -67,6 +72,8 @@ export type StartWorkflowOwnershipInput<
   readonly timeoutMs?: number;
   readonly deadlineAt?: number;
   readonly kickoffProfile: "eager-first-poll" | "queued";
+  readonly principalSnapshot?: DurableWorkflowPrincipal;
+  readonly policySnapshot?: WorkflowPolicySnapshot;
   readonly publication?: {
     readonly registry: PublicationRegistry;
     readonly graphHash: string;
@@ -216,6 +223,8 @@ export const reserveWorkflowRun = (
         completedAt: null,
         failedAt: null,
         trustReceiptId: input.trustReceiptId ?? null,
+        principalSnapshot: input.principalSnapshot ?? null,
+        policySnapshot: input.policySnapshot ?? null,
         ...optionalRunFields(input),
       })
       .pipe(Effect.orDie);
