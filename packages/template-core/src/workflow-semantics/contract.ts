@@ -436,17 +436,21 @@ export const WORKFLOW_SEMANTICS = [
     "Use a generated pinned child only after the subworkflow compiler fixtures land.",
     V2_BUILDER_FIXTURE,
   ),
-  restricted(
+  supported(
     "WF-NODE-RETRY",
     "graph.nodes[].retry",
-    "Current graph retry metadata is validated but not faithfully mapped for actions.",
-    "Use maxAttempts 1 until the Phase 1 action retry compiler and dedupe fixtures land.",
+    "WorkflowActionNodeV2.retry with WorkflowEffectContract",
+    "runAction { name, retry } after effect reservation and provider-key proof",
+    GRAPH_FIXTURE,
+    "action-only strategy, guard, finite-horizon, dedupe-coverage, and key-path validation; V1 remains one-attempt",
   ),
-  restricted(
-    "WF-RETRY-ATTEMPTS",
+  supported(
+    "WF-RETRY-MAX-ATTEMPTS",
     "graph.nodes[].retry.maxAttempts",
-    "Attempts above one are not yet compiled into step options.",
-    "Set maxAttempts to 1 or wait for the Phase 1 retry mapping.",
+    "WorkflowRetryConfigV2.maxAttempts",
+    "exact runAction.retry.maxAttempts including the initial attempt",
+    GRAPH_FIXTURE,
+    "finite positive integer; non-retriable effects reject values above one",
   ),
   restricted(
     "WF-RETRY-BACKOFF",
@@ -454,19 +458,21 @@ export const WORKFLOW_SEMANTICS = [
     "Backoff is not yet compiled into action retry behavior.",
     "Set backoffMs to 0 or use a reviewed capability-owned retry seam.",
   ),
-  restricted(
+  supported(
     "WF-RETRY-INITIAL-BACKOFF",
     "graph.nodes[].retry.initialBackoffMs",
-    "V2 action retry is intentionally not compiled during WP-1.1.",
-    "Omit action retry until WP-1.2 maps the exact Convex retry options and dedupe proof.",
-    V2_BUILDER_FIXTURE,
+    "WorkflowRetryConfigV2.initialBackoffMs",
+    "exact runAction.retry.initialBackoffMs",
+    GRAPH_FIXTURE,
+    "finite and nonnegative with covered retry plus restart horizon",
   ),
-  restricted(
+  supported(
     "WF-RETRY-BASE",
     "graph.nodes[].retry.base",
-    "V2 action retry is intentionally not compiled during WP-1.1.",
-    "Omit action retry until WP-1.2 maps the exact Convex retry options and dedupe proof.",
-    V2_BUILDER_FIXTURE,
+    "WorkflowRetryConfigV2.base",
+    "exact runAction.retry.base",
+    GRAPH_FIXTURE,
+    "finite and at least one with a declarative effect strategy",
   ),
   restricted(
     "WF-SCHEDULE-KIND",

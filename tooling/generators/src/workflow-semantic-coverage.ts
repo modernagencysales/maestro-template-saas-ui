@@ -44,17 +44,25 @@ export const workflowGeneratorSemanticCoverage = defineWorkflowSemanticCoverage(
     "WF-NODE-ID": generated("WorkflowNode.id", "journal step identity"),
     "WF-NODE-KIND": generated("WorkflowNodeKind", "node executor lookup"),
     "WF-NODE-LABEL": generated("WorkflowNode.label", "receipt projection"),
-    "WF-NODE-RETRY": guardedDefault(
-      "WorkflowNode.retry",
-      "maxAttempts=1/backoffMs=0 restriction",
+    "WF-NODE-RETRY": generated(
+      "WorkflowActionNodeV2.retry with WorkflowEffectContract",
+      "exact guarded runAction retry options",
     ),
-    "WF-RETRY-ATTEMPTS": guardedDefault(
-      "WorkflowRetryConfig.maxAttempts",
-      "literal one until Phase 1 compiler support",
+    "WF-RETRY-MAX-ATTEMPTS": generated(
+      "WorkflowRetryConfigV2.maxAttempts",
+      "validated runAction.retry.maxAttempts",
     ),
     "WF-RETRY-BACKOFF": guardedDefault(
       "WorkflowRetryConfig.backoffMs",
       "literal zero until Phase 1 compiler support",
+    ),
+    "WF-RETRY-INITIAL-BACKOFF": generated(
+      "WorkflowRetryConfigV2.initialBackoffMs",
+      "validated runAction.retry.initialBackoffMs",
+    ),
+    "WF-RETRY-BASE": generated(
+      "WorkflowRetryConfigV2.base",
+      "validated runAction.retry.base",
     ),
     "WF-EDGE-ID": generated("WorkflowEdge.id", "edge identity"),
     "WF-EDGE-SOURCE": generated(

@@ -85,15 +85,17 @@ describe("workflow semantics contract", () => {
 
     for (const id of [
       "WF-NODE-RETRY",
-      "WF-RETRY-ATTEMPTS",
+      "WF-RETRY-MAX-ATTEMPTS",
       "WF-RETRY-INITIAL-BACKOFF",
       "WF-RETRY-BASE",
-      "WF-STEP-ACTION",
     ]) {
       expect(WORKFLOW_SEMANTICS.find((rule) => rule.id === id)?.status).toBe(
-        "intentionally-restricted",
+        "supported",
       );
     }
+    expect(
+      WORKFLOW_SEMANTICS.find((rule) => rule.id === "WF-STEP-ACTION")?.status,
+    ).toBe("intentionally-restricted");
   });
 
   it("requires mappings and fixtures for support and repairs for every rule", () => {
@@ -147,13 +149,11 @@ describe("workflow semantics contract", () => {
       validateWorkflowSemanticCoverage({
         "WF-NODE-RETRY": {
           posture: "generated",
-          constructor: "WorkflowNode.retry",
-          compiler: "unrestricted retry",
-          fixture: "missing",
+          constructor: "WorkflowActionNodeV2.retry",
+          compiler: "guarded retry",
+          fixture: "workflow-conformance.test.ts",
         },
       }),
-    ).toContain(
-      "WF-NODE-RETRY: restricted rule requires guarded-default evidence",
-    );
+    ).toEqual([]);
   });
 });
