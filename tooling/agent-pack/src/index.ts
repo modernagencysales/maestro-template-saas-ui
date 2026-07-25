@@ -12,6 +12,7 @@ export * from "./officialConvex.js";
 export * from "./preflightProbe.js";
 export * from "./providers/convex.js";
 export * from "./providers/doctor.js";
+export * from "./readiness/index.js";
 export * from "./verificationRunner.js";
 export * from "./planCheck.js";
 export * from "./scaffold.js";
