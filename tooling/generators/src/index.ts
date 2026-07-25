@@ -28,7 +28,6 @@ import {
   buildSaasApplicationHandoff,
   saasApplicationBlueprint,
 } from "./blueprints/saasApplication";
-import { buildFactorySaasApplicationFiles } from "./blueprints/saasApplicationFactory";
 export {
   buildSaasApplicationFiles,
   buildSaasApplicationTargetPlan,
@@ -1151,7 +1150,7 @@ export function buildTemplateQuickstart(
         path: "template-instance.json",
         content: `${JSON.stringify(instance, null, 2)}\n`,
       },
-      ...buildFactorySaasApplicationFiles({ name: instance.name }),
+      ...buildSaasApplicationFiles({ name: instance.name }),
       {
         path: "docs/template/generated/handoff-packet.md",
         content: buildSaasApplicationHandoff(instance.name),
