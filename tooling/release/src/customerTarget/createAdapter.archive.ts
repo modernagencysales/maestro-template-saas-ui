@@ -157,6 +157,18 @@ function resolveReleaseDefinition(
       "Base ownership manifest is invalid.",
     );
   }
+  const paths = [
+    ...(Array.isArray(base.paths) ? base.paths : []),
+    ...value.additionalPaths,
+  ];
+  const expectedHashes = isRecord(base.expectedHashes)
+    ? Object.fromEntries(
+        Object.entries(base.expectedHashes).filter(
+          ([path]) =>
+            resolveCustomerReleasePath(paths, path)?.action === "copy",
+        ),
+      )
+    : base.expectedHashes;
   return {
     deriveExpectedHashes: value.deriveExpectedHashesFromArchive === true,
     manifest: {
@@ -164,10 +176,8 @@ function resolveReleaseDefinition(
       materializationStatus: value.materializationStatus,
       fixtureReason: undefined,
       release: value.release,
-      paths: [
-        ...(Array.isArray(base.paths) ? base.paths : []),
-        ...value.additionalPaths,
-      ],
+      paths,
+      expectedHashes,
     },
   };
 }

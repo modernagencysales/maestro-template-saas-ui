@@ -1,5 +1,7 @@
-import { existsSync, readFileSync, rmSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { spawnSync } from "node:child_process";
+import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
@@ -20,26 +22,50 @@ const repositoryRoot = resolve(
 );
 
 describe("final materialized customer filesystem", () => {
-  it("audits the real disposable final target, not preview writes", async () => {
-    const fixture = taggedRelease({ customerProjectionRoot: repositoryRoot });
-    const release = adapter(fixture);
-    const prepared = await prepare(fixture, release);
-    if (!prepared.ok) throw new Error(prepared.message);
-    const result = await release.materialize(
-      prepared.token,
-      prepared.preview.preflightFingerprint,
+  it("audits the real disposable final target, not preview writes", () => {
+    const parent = mkdtempSync(join(tmpdir(), "maestro-final-filesystem-"));
+    const targetRoot = join(parent, "customer-app");
+    const result = spawnSync(
+      "pnpm",
+      [
+        "maestro",
+        "--",
+        "create",
+        targetRoot,
+        "--name",
+        "Final Filesystem Audit",
+        "--outcome",
+        "Audit the materialized customer artifact",
+        "--write",
+        "--json",
+      ],
+      {
+        cwd: repositoryRoot,
+        encoding: "utf8",
+        maxBuffer: 10 * 1024 * 1024,
+      },
     );
-    if (!result.ok) throw new Error(result.message);
 
     try {
-      const tree = enumerateFinalCustomerTree(fixture.targetRoot);
+      expect(result.status, `${result.stdout}\n${result.stderr}`).toBe(0);
+      const tree = enumerateFinalCustomerTree(targetRoot);
       assertNoPathEscape(tree.root, tree.files);
+      expect(tree.files).not.toContain(
+        "tooling/agent-pack/src/pluginContract.ts",
+      );
+      expect(
+        tree.files.filter(
+          (path) =>
+            path === "tooling/agent-pack/src/mcp" ||
+            path.startsWith("tooling/agent-pack/src/mcp/"),
+        ),
+      ).toEqual([]);
       assertFinalCustomerFilesystem(tree);
       runFinalCustomerCompileGates(tree.root);
     } finally {
-      rmSync(fixture.targetRoot, { recursive: true, force: true });
+      rmSync(parent, { recursive: true, force: true });
     }
-    expect(existsSync(fixture.targetRoot)).toBe(false);
+    expect(existsSync(parent)).toBe(false);
   });
 
   it("applies blueprint removal after a forbidden base copy", async () => {
