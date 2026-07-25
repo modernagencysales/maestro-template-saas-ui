@@ -38,7 +38,11 @@ if (!content.includes("principalSnapshot: principal"))
   findings.push("kickoff does not persist durable authority");
 if (!runner.includes("policySnapshot: args.policySnapshot"))
   findings.push("runner does not use its pinned policy argument");
-if (!runner.includes('kind: v.literal("none")'))
+if (
+  !runner.includes("policySnapshot: WorkflowPolicySnapshotValidator") ||
+  !policyAuthority.includes('kind: v.literal("none")') ||
+  !policyAuthority.includes("reason: v.string()")
+)
   findings.push("declared-none policy is not explicit");
 if (/readLatest|latestActivePolicy|activePolicy/.test(content))
   findings.push("generated workflow reads latest policy during replay");
