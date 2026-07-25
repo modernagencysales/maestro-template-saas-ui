@@ -137,6 +137,33 @@ export const adaptLegacyActiveWorkflowPrincipal = (input: {
   consequentialEffects: "reauthorization-required" as const,
 });
 
+export type CurrentWorkflowAuthority = {
+  readonly active: boolean;
+  readonly workspaceId: string;
+  readonly actorId: string;
+  readonly role: string;
+  readonly grants: readonly string[];
+  readonly authEpoch: number;
+};
+
+export const assertConsequentialWorkflowAuthority = (
+  principal: DurableWorkflowPrincipal,
+  current: CurrentWorkflowAuthority,
+  requiredGrants: readonly string[],
+): void => {
+  const currentGrants = new Set(current.grants);
+  const unavailable =
+    !current.active ||
+    current.workspaceId !== principal.workspaceId ||
+    principal.kind !== "user" ||
+    current.actorId !== principal.actorId ||
+    current.authEpoch < principal.authEpoch ||
+    requiredGrants.some(
+      (grant) => !principal.grants.includes(grant) || !currentGrants.has(grant),
+    );
+  if (unavailable) throw new Error("Workflow authority is unavailable.");
+};
+
 const decodeDurablePrincipal = (input: unknown): DurableWorkflowPrincipal =>
   Schema.decodeUnknownSync(DurableWorkflowPrincipal)(input);
 

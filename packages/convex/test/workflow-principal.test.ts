@@ -5,6 +5,7 @@ import { WorkflowRunRow } from "../confect/tables/workflowRuns";
 import {
   DurableWorkflowPrincipal,
   adaptLegacyActiveWorkflowPrincipal,
+  assertConsequentialWorkflowAuthority,
   assertWorkflowPrincipalAuthority,
   createWorkflowSystemPrincipal,
   createWorkflowUserPrincipal,
@@ -14,6 +15,7 @@ import {
   policyPosture,
   resolveWorkflowPolicySnapshot,
 } from "../confect/workflows/_kit/policySnapshot";
+import { buildWorkflowCapabilityArgs } from "../confect/workflows/_kit/graphRunnerV2";
 
 describe("durable workflow principal authority", () => {
   it("constructs a versioned user principal from server-owned fields", () => {
@@ -73,6 +75,60 @@ describe("durable workflow principal authority", () => {
         startedAt: 100,
       }),
     ).toMatchObject({ consequentialEffects: "reauthorization-required" });
+  });
+
+  it("keeps pinned grants while current revocation blocks effects", () => {
+    const principal = userPrincipal();
+    expect(() =>
+      assertConsequentialWorkflowAuthority(
+        principal,
+        {
+          active: true,
+          workspaceId: "workspace-a",
+          actorId: "user-a",
+          role: "editor",
+          grants: ["workflow:start"],
+          authEpoch: 8,
+        },
+        ["workflow:start"],
+      ),
+    ).not.toThrow();
+    expect(() =>
+      assertConsequentialWorkflowAuthority(
+        principal,
+        {
+          active: false,
+          workspaceId: "workspace-a",
+          actorId: "user-a",
+          role: "editor",
+          grants: ["workflow:start"],
+          authEpoch: 9,
+        },
+        ["workflow:start"],
+      ),
+    ).toThrow("Workflow authority is unavailable.");
+  });
+
+  it("appends authority after rejecting mapped identity overrides", () => {
+    const principal = userPrincipal();
+    const policySnapshot = { version: 1, kind: "none", reason: "fixture" };
+    const envelope = {
+      inputs: {},
+      context: {},
+      node: {} as never,
+      principal,
+      policySnapshot,
+    };
+    expect(
+      buildWorkflowCapabilityArgs(envelope, { requestId: "request-a" }),
+    ).toEqual({
+      requestId: "request-a",
+      principal,
+      policySnapshot,
+    });
+    expect(() =>
+      buildWorkflowCapabilityArgs(envelope, { actorId: "forged" }),
+    ).toThrow(/cannot override/i);
   });
 });
 

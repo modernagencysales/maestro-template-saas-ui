@@ -2923,6 +2923,7 @@ import {
   WorkspaceNotFound,
 } from "../errors";
 import { startWorkflowAndRecordOwnership } from "../workflows/_kit/ownership";
+import { createWorkflowUserPrincipal } from "../workflows/_kit/principal";
 import type {
   WorkflowCompletionResult,
   WorkflowOnCompleteContext,
@@ -3073,16 +3074,20 @@ const startWithProfile = (
         requireWorkspaceAccess(workspaceId, "editor"),
       );
       const startedAt = yield* withConfectClock(Clock.currentTimeMillis);
-      const principal = {
-        version: 1 as const,
-        kind: "user" as const,
+      const principal = createWorkflowUserPrincipal({
         workspaceId,
         actorId: access.userId,
         role: access.role,
         grants: ["workflow:start"],
-        authEpoch: 1,
+        authEpoch: startedAt,
         kickoffAt: startedAt,
-        provenance: access.reason,
+      });
+      const policySnapshot = {
+        version: 1 as const,
+        kind: "none" as const,
+        reason: ${name}Graph.policyPosture.kind === "none"
+          ? ${name}Graph.policyPosture.reason
+          : "Generated kickoff requires a pinned policy resolver.",
       };
       const componentWorkflowId = yield* startWorkflowAndRecordOwnership({
         workflowRef: ${name}RunRef,
@@ -3092,6 +3097,7 @@ const startWithProfile = (
           workflowRunId,
           idempotencyKey,
           principal,
+          policySnapshot,
         }),
         workspaceId,
         workflowId: ${name}Graph.id,
@@ -3100,6 +3106,8 @@ const startWithProfile = (
         idempotencyKey,
         startedByUserId: access.userId,
         startedAt: startedAt,
+        principalSnapshot: principal,
+        policySnapshot,
         workflowKind: "workflow.${name}",
         kickoffProfile:
           kickoffProfile === "interactive" ? "eager-first-poll" : "queued",
@@ -3293,7 +3301,7 @@ export const ${name}Graph = Either.getOrThrow(defineWorkflowGraphV2({
   startNodeId: "start",
   argsSchemaName: "${name}.v2.args",
   returnSchemaName: "${name}.v2.return",
-  principalSchemaName: "workflowPrincipal.v1",
+  principalSchemaName: "workflowPrincipal.v2",
   policyPosture: {
     kind: "none",
     reason: "Generated source-to-receipt workflow has no policy decisions.",
@@ -3346,7 +3354,10 @@ import * as Ref from "@confect/core/Ref";
 import { components } from "../../../convex/_generated/api";
 import { v } from "convex/values";
 import * as Schema from "effect/Schema";
-import { defineWorkflowCapabilityRegistry } from "../_kit/graphRunnerV2";
+import {
+  buildWorkflowCapabilityArgs,
+  defineWorkflowCapabilityRegistry,
+} from "../_kit/graphRunnerV2";
 import { runWorkflowCapabilityBoundary } from "../_kit/workflowCapabilityBoundary";
 import {
   defineWorkflowEvent,
@@ -3365,6 +3376,9 @@ import { ${name}References } from "./v1.graph";
  * Inline nodes must be authored with a named generated preset.
  */
 export const ${name}CapabilityRegistry = defineWorkflowCapabilityRegistry({});
+
+/** Every generated buildArgs mapper delegates here to append pinned authority. */
+export const ${name}CapabilityArgs = buildWorkflowCapabilityArgs;
 
 /** Generated capabilities must cross this boundary before Workpool returns. */
 export const ${name}CapabilityBoundary = runWorkflowCapabilityBoundary;
@@ -3464,7 +3478,7 @@ const reconcileCompletionRef = Ref.getFunctionReference(
 
 const WorkflowPrincipalValidator = v.union(
   v.object({
-    version: v.literal(1),
+    version: v.literal(2),
     kind: v.literal("user"),
     workspaceId: v.string(),
     actorId: v.string(),
@@ -3472,16 +3486,33 @@ const WorkflowPrincipalValidator = v.union(
     grants: v.array(v.string()),
     authEpoch: v.number(),
     kickoffAt: v.number(),
-    provenance: v.string(),
+    provenance: v.literal("authenticated-workflow-start"),
   }),
   v.object({
-    version: v.literal(1),
+    version: v.literal(2),
     kind: v.literal("system"),
     workspaceId: v.string(),
     systemId: v.string(),
     reason: v.string(),
     grants: v.array(v.string()),
     kickoffAt: v.number(),
+    provenance: v.literal("scheduled-system-workflow"),
+  }),
+);
+
+const WorkflowPolicySnapshotValidator = v.union(
+  v.object({
+    version: v.literal(1),
+    kind: v.literal("none"),
+    reason: v.string(),
+  }),
+  v.object({
+    version: v.literal(1),
+    kind: v.literal("pinned"),
+    schemaName: v.string(),
+    policyVersionId: v.string(),
+    policyHash: v.string(),
+    resolvedAt: v.number(),
   }),
 );
 
@@ -3551,6 +3582,7 @@ export const run = defineMaestroWorkflow(components.workflow, {
     workflowRunId: v.string(),
     idempotencyKey: v.string(),
     principal: WorkflowPrincipalValidator,
+    policySnapshot: WorkflowPolicySnapshotValidator,
   },
   returns: WorkflowReceiptValidator,
 }, metadata).handler(async (step, args): Promise<WorkflowReceipt> => {
@@ -3566,7 +3598,7 @@ export const run = defineMaestroWorkflow(components.workflow, {
     graph: ${name}Graph,
     inputs: args,
     principal: args.principal,
-    policySnapshot: { kind: "none", reason: ${name}Graph.policyPosture.kind === "none" ? ${name}Graph.policyPosture.reason : "generated" },
+    policySnapshot: args.policySnapshot,
     effectIdentity: {
       workspaceId: args.workspaceId,
       workflowRunId: args.workflowRunId,
@@ -3654,15 +3686,16 @@ describe("${name} durable workflow scaffold", () => {
       graph: ${name}Graph,
       inputs,
       principal: {
-        version: 1,
+        version: 2,
         kind: "system",
         workspaceId: inputs.workspaceId,
         systemId: "workflow-test",
         reason: "fixture",
         grants: [],
         kickoffAt: 1,
+        provenance: "scheduled-system-workflow",
       },
-      policySnapshot: { kind: "none", reason: "fixture" },
+      policySnapshot: { version: 1, kind: "none", reason: "fixture" },
       projectOutput: () => ({
         workflowId: ${name}Graph.id,
         status: "completed" as const,

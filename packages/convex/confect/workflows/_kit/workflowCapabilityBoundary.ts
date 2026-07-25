@@ -37,6 +37,7 @@ export const runWorkflowCapabilityBoundary = async <Result>(input: {
   readonly payloadPolicy: WorkflowCapabilityPayloadPolicy;
   readonly predictedJournalBytes: number;
   readonly observedJournalBytes: number;
+  readonly reauthorize?: () => Promise<void>;
   readonly execute: () => Promise<Result>;
   readonly persistArtifact?: (
     result: Result,
@@ -63,6 +64,7 @@ export const runWorkflowCapabilityBoundary = async <Result>(input: {
 
   let result: Result;
   try {
+    await input.reauthorize?.();
     result = await input.execute();
   } catch (error) {
     throw new RedactedWorkflowCapabilityError(

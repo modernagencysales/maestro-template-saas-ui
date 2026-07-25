@@ -39,6 +39,7 @@ import {
   assertWorkflowPayloadBudget,
   observeWorkflowPayload,
 } from "./payloadBudget";
+import { hasReservedWorkflowIdentityField } from "./principal";
 
 type CapabilityNodeV2 = Extract<WorkflowNodeV2, { kind: "capability" }>;
 type CapabilityKindV2 = CapabilityNodeV2["functionKind"];
@@ -50,6 +51,23 @@ export type WorkflowV2CapabilityEnvelope = {
   readonly principal: unknown;
   readonly policySnapshot: unknown;
   readonly logicalEffectKey?: LogicalEffectKey;
+};
+
+export const buildWorkflowCapabilityArgs = (
+  envelope: WorkflowV2CapabilityEnvelope,
+  mapped: Readonly<Record<string, unknown>>,
+): Record<string, unknown> => {
+  if (hasReservedWorkflowIdentityField(mapped) || "policySnapshot" in mapped) {
+    throw makePublicError(
+      "VALIDATION_FAILED",
+      "Workflow capability args cannot override durable authority fields.",
+    );
+  }
+  return {
+    ...mapped,
+    principal: envelope.principal,
+    policySnapshot: envelope.policySnapshot,
+  };
 };
 
 type CommonCapabilityEntryV2<Kind extends CapabilityKindV2> = {

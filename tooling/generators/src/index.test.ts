@@ -1381,6 +1381,8 @@ describe("template app factory generators", () => {
     const docs = generated.files[10]?.content ?? "";
 
     expect(registry).toContain("defineWorkflowCapabilityRegistry");
+    expect(registry).toContain("buildWorkflowCapabilityArgs");
+    expect(registry).toContain("sourceGroundedPlanCapabilityArgs");
     expect(registry).toContain("runWorkflowCapabilityBoundary");
     expect(registry).toContain("sourceGroundedPlanCapabilityBoundary");
     expect(registry).toContain("sourceGroundedPlanArtifactRefs");
@@ -1457,6 +1459,10 @@ describe("template app factory generators", () => {
     expect(spec).toContain("WorkflowStatusResult");
 
     expect(impl).toContain("startWorkflowAndRecordOwnership");
+    expect(impl).toContain("createWorkflowUserPrincipal");
+    expect(impl).toContain("principalSnapshot: principal");
+    expect(impl).toContain("policySnapshot,");
+    expect(impl).not.toContain("authEpoch: 1");
     expect(impl).toContain("onCompleteRef: sourceGroundedPlanOnCompleteRef");
     expect(impl).toContain("refs.internal.workflows.lifecycle.restart");
     expect(impl).toContain("refs.internal.workflows.lifecycle.cleanup");
@@ -1487,12 +1493,15 @@ describe("template app factory generators", () => {
     expect(convexWorkflow).toContain("reconcileObservedWorkflowCompletion");
     expect(convexWorkflow).toContain("runDurableGraphWorkflow");
     expect(convexWorkflow).toContain("WorkflowPrincipalValidator");
+    expect(convexWorkflow).toContain("WorkflowPolicySnapshotValidator");
+    expect(convexWorkflow).toContain("version: v.literal(2)");
+    expect(convexWorkflow).toContain("policySnapshot: args.policySnapshot");
     expect(convexWorkflow).toContain("WorkflowReceiptValidator");
     expect(convexWorkflow).toContain("principal: WorkflowPrincipalValidator");
     expect(convexWorkflow).toContain("returns: WorkflowReceiptValidator");
     expect(convexWorkflow).not.toContain("returns: v.any()");
     expect(convexWorkflow).toContain("metadata");
-    expect(convexWorkflow).toContain('policySnapshot: { kind: "none"');
+    expect(convexWorkflow).toContain("policySnapshot: args.policySnapshot");
     expect(convexWorkflow).toContain("RunDurableGraphV2CompilerInput");
     expect(convexWorkflow).toContain(").failurePolicy");
     expect(convexWorkflow).toContain("failureRoutes,");

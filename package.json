@@ -78,6 +78,8 @@
     "check:confect-v9": "tsx tooling/quality/check-confect-v9.mts",
     "check:confect-contracts": "tsx tooling/quality/check-confect-contracts.mts",
     "check:workflow-graph-boundary": "tsx tooling/quality/check-workflow-graph-boundary.mts",
+    "check:workflow-policy-snapshots": "tsx tooling/quality/check-workflow-policy-snapshots.mts",
+    "check:workflow-principal-propagation": "tsx tooling/quality/check-workflow-principal-propagation.mts",
     "check:workflow-semantics": "tsx tooling/quality/check-workflow-semantics.mts",
     "check:workflow-version-immutability": "tsx tooling/quality/check-workflow-version-immutability.mts",
     "check:workflow:fast": "pnpm --dir tooling/eslint-plugin-template test && pnpm --dir packages/template-core test workflow-semantics && pnpm check:workflow-semantics",
