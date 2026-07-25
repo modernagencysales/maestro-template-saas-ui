@@ -23,7 +23,7 @@ import {
 } from "./graphRunnerTraversal";
 import {
   runRegisteredSubworkflow,
-  type WorkflowV2SubworkflowRegistryEntry,
+  type AnyWorkflowV2SubworkflowRegistryEntry,
 } from "./subworkflows";
 
 type CapabilityNodeV2 = Extract<WorkflowNodeV2, { kind: "capability" }>;
@@ -99,7 +99,7 @@ export type RunDurableGraphV2CompilerInput<
     Record<string, WorkflowSettledFailureRoute>
   >;
   readonly workflowRegistry?: Readonly<
-    Record<string, WorkflowV2SubworkflowRegistryEntry>
+    Record<string, AnyWorkflowV2SubworkflowRegistryEntry>
   >;
   readonly projectOutput: (input: {
     readonly context: Readonly<Record<string, unknown>>;

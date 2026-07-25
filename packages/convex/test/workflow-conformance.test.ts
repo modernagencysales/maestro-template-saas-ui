@@ -23,9 +23,11 @@ import {
 } from "../confect/workflows/_kit/graphRunner";
 import {
   defineWorkflowV2SubworkflowRegistry,
+  defineWorkflowV2Subworkflow,
   runRegisteredSubworkflow,
   scheduledSubworkflowFinding,
   type DurableGraphWorkflowRef,
+  type WorkflowV2SubworkflowRegistryEntry,
 } from "../confect/workflows/_kit/subworkflows";
 import type { WorkflowPrincipal } from "../confect/workflows/_kit/principal";
 import type { WorkflowEffectContract } from "../confect/workflows/_kit/effectReservations";
@@ -383,12 +385,16 @@ describe("Maestro V2 action retry compiler", () => {
     expect(runWorkflow).not.toHaveBeenCalled();
   });
 
-  it("retains the validated child result type instead of WorkflowId", () => {
+  it("retains child args and validated result through registry invocation", () => {
+    const typedRegistryEntry: WorkflowV2SubworkflowRegistryEntry<
+      ChildArgs,
+      ChildResult
+    > = childWorkflowEntry;
     const typedInvocation = () =>
       runRegisteredSubworkflow({
         step: v2Step({ runWorkflow: async () => ({ receiptId: "typed" }) }),
         node: v2SubworkflowNode(),
-        entry: childWorkflowEntry,
+        entry: typedRegistryEntry,
         inputs: { requestId: "request-1" },
         context: {},
         principal: childPrincipal,
@@ -413,7 +419,7 @@ describe("Maestro V2 action retry compiler", () => {
     expect(runWorkflow).not.toHaveBeenCalled();
   });
 
-  it("validates the child result before exposing it to parent traversal", async () => {
+  it("rejects a runtime result mismatch against the parameterized child reference", async () => {
     const runWorkflow = vi.fn(async () => ({ wrong: true }));
     await expect(
       runDurableGraphWorkflowV2(v2Step({ runWorkflow }), {
@@ -1011,7 +1017,7 @@ const childPrincipal = {
   kickoffAt: 1,
 } as const satisfies WorkflowPrincipal;
 const childWorkflowRegistry = defineWorkflowV2SubworkflowRegistry({
-  [childWorkflowRef]: {
+  [childWorkflowRef]: defineWorkflowV2Subworkflow({
     version: 3,
     ref: childHandlerRef,
     mapArgs: ({ inputs }) => ({
@@ -1020,7 +1026,7 @@ const childWorkflowRegistry = defineWorkflowV2SubworkflowRegistry({
     resultSchema: childResultSchema,
     principal: { kind: "inherit" },
     lifecycle: { cancel: "cascade", cleanup: "cascade-async" },
-  },
+  }),
 });
 const childWorkflowEntry = readChildWorkflowEntry();
 

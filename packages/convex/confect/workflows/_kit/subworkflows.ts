@@ -15,9 +15,13 @@ import {
 
 type SubworkflowNodeV2 = Extract<WorkflowNodeV2, { kind: "subworkflow" }>;
 type MappedChildArgs = Readonly<Record<string, unknown>>;
+type ChildWorkflowArgs = MappedChildArgs & {
+  readonly principal: WorkflowPrincipalType;
+};
+export type AnyChildWorkflowArgs = ChildWorkflowArgs;
 
 export type DurableGraphWorkflowRef<
-  Args extends Readonly<Record<string, unknown>>,
+  Args extends ChildWorkflowArgs,
   Result,
 > = FunctionReference<"mutation", "internal", { args: Args }, Result>;
 
@@ -29,14 +33,15 @@ export type WorkflowV2SubworkflowEnvelope = {
 };
 
 export type WorkflowV2SubworkflowRegistryEntry<
-  ResultSchema extends Schema.Schema.AnyNoContext = Schema.Schema.AnyNoContext,
+  Args extends ChildWorkflowArgs,
+  Result,
 > = {
   readonly version: number;
-  readonly ref: FunctionReference<"mutation", "internal">;
+  readonly ref: DurableGraphWorkflowRef<Args, Result>;
   readonly mapArgs: (
     envelope: WorkflowV2SubworkflowEnvelope,
-  ) => MappedChildArgs;
-  readonly resultSchema: ResultSchema;
+  ) => Omit<Args, "principal">;
+  readonly resultSchema: Schema.Schema<Result>;
   readonly principal:
     | { readonly kind: "inherit" }
     | { readonly kind: "narrow"; readonly grants: readonly string[] };
@@ -46,9 +51,33 @@ export type WorkflowV2SubworkflowRegistryEntry<
   };
 };
 
+export type AnyWorkflowV2SubworkflowRegistryEntry = {
+  readonly version: number;
+  readonly ref: DurableGraphWorkflowRef<AnyChildWorkflowArgs, unknown>;
+  readonly mapArgs: (
+    envelope: WorkflowV2SubworkflowEnvelope,
+  ) => MappedChildArgs;
+  readonly resultSchema: Schema.Schema.AnyNoContext;
+  readonly principal: WorkflowV2SubworkflowRegistryEntry<
+    ChildWorkflowArgs,
+    unknown
+  >["principal"];
+  readonly lifecycle: WorkflowV2SubworkflowRegistryEntry<
+    ChildWorkflowArgs,
+    unknown
+  >["lifecycle"];
+};
+
+export const defineWorkflowV2Subworkflow = <
+  Args extends ChildWorkflowArgs,
+  Result,
+>(
+  entry: WorkflowV2SubworkflowRegistryEntry<Args, Result>,
+): WorkflowV2SubworkflowRegistryEntry<Args, Result> => entry;
+
 export const defineWorkflowV2SubworkflowRegistry = <
   const Registry extends Readonly<
-    Record<string, WorkflowV2SubworkflowRegistryEntry>
+    Record<string, AnyWorkflowV2SubworkflowRegistryEntry>
   >,
 >(
   registry: Registry,
@@ -66,9 +95,26 @@ export const defineWorkflowV2SubworkflowRegistry = <
   return registry;
 };
 
-export const runRegisteredSubworkflow = async <
-  ResultSchema extends Schema.Schema.AnyNoContext,
->({
+type RunSubworkflowInput<Entry> = {
+  readonly step: RunDurableGraphStep;
+  readonly node: SubworkflowNodeV2;
+  readonly entry: Entry;
+  readonly inputs: unknown;
+  readonly context: Readonly<Record<string, unknown>>;
+  readonly principal: unknown;
+  readonly policySnapshot: unknown;
+};
+
+export function runRegisteredSubworkflow<
+  Args extends ChildWorkflowArgs,
+  Result,
+>(
+  input: RunSubworkflowInput<WorkflowV2SubworkflowRegistryEntry<Args, Result>>,
+): Promise<Result>;
+export function runRegisteredSubworkflow(
+  input: RunSubworkflowInput<AnyWorkflowV2SubworkflowRegistryEntry>,
+): Promise<unknown>;
+export async function runRegisteredSubworkflow({
   step,
   node,
   entry,
@@ -76,15 +122,7 @@ export const runRegisteredSubworkflow = async <
   context,
   principal,
   policySnapshot,
-}: {
-  readonly step: RunDurableGraphStep;
-  readonly node: SubworkflowNodeV2;
-  readonly entry: WorkflowV2SubworkflowRegistryEntry<ResultSchema>;
-  readonly inputs: unknown;
-  readonly context: Readonly<Record<string, unknown>>;
-  readonly principal: unknown;
-  readonly policySnapshot: unknown;
-}): Promise<Schema.Schema.Type<ResultSchema>> => {
+}: RunSubworkflowInput<AnyWorkflowV2SubworkflowRegistryEntry>): Promise<unknown> {
   if (entry.version !== node.childVersion) {
     throw subworkflowFailure(
       node,
@@ -126,7 +164,7 @@ export const runRegisteredSubworkflow = async <
     throw subworkflowFailure(node, "child returned an invalid declared result");
   }
   return decoded.right;
-};
+}
 
 export const scheduledSubworkflowFinding = (
   node: unknown,
@@ -152,7 +190,7 @@ const decodePrincipal = (
 const resolveChildPrincipal = (
   node: SubworkflowNodeV2,
   parent: WorkflowPrincipalType,
-  policy: WorkflowV2SubworkflowRegistryEntry["principal"],
+  policy: AnyWorkflowV2SubworkflowRegistryEntry["principal"],
 ): WorkflowPrincipalType => {
   if (policy.kind === "inherit") return parent;
   const parentGrants = new Set(parent.grants);

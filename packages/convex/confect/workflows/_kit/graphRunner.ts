@@ -86,9 +86,12 @@ export type RunDurableGraphStep = {
     args: Record<string, unknown>,
     options?: Record<string, unknown>,
   ) => Promise<unknown>;
-  readonly runWorkflow?: (
-    ref: FunctionReference<"mutation", "internal">,
-    args: Readonly<Record<string, unknown>>,
+  readonly runWorkflow?: <
+    Args extends import("./subworkflows").AnyChildWorkflowArgs,
+    Result,
+  >(
+    ref: import("./subworkflows").DurableGraphWorkflowRef<Args, Result>,
+    args: Args,
     options?: { readonly name?: string },
   ) => Promise<unknown>;
   readonly sleep: (
