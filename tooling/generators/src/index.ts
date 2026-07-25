@@ -22,8 +22,8 @@ import {
   parseSystemCatalog,
   type SystemCatalog,
 } from "@maestro-template/template-core/systemCatalog";
-import { WORKFLOW_SEMANTICS } from "@maestro-template/template-core/workflow-semantics";
 import { gtmImplementationBlueprint } from "./blueprints/gtmImplementation";
+import { workflowGeneratorSemanticCoverage } from "./workflow-semantic-coverage";
 
 export type ProviderMode = "fake" | "test" | "live";
 export type SystemGeneratorDisposition = "reuse" | "extend";
@@ -2876,13 +2876,7 @@ describe("${name} durable workflow scaffold", () => {
     },
     {
       path: `docs/template/generated/workflows/${name}.semantics.json`,
-      content: `${JSON.stringify(
-        Object.fromEntries(
-          WORKFLOW_SEMANTICS.map((rule) => [rule.id, rule.status]),
-        ),
-        null,
-        2,
-      )}\n`,
+      content: `${JSON.stringify(workflowGeneratorSemanticCoverage, null, 2)}\n`,
     },
     {
       path: `docs/template/generated/workflows/${name}.md`,

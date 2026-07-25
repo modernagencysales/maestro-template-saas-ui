@@ -6,7 +6,7 @@ import { evaluateCompatibilitySet, validatePinnedManifests } from "./matrix";
 const repoRoot = resolve(import.meta.dirname, "../../..");
 
 describe("Convex compatibility matrix", () => {
-  it("accepts the current pinned set and rejects an unproven candidate", async () => {
+  it("accepts current and reports isolated candidate source regressions", async () => {
     const [matrix, current, candidate] = await Promise.all([
       readJson("docs/template/convex-compatibility.json"),
       readJson("tooling/convex-compat/__fixtures__/current.json"),
@@ -19,11 +19,7 @@ describe("Convex compatibility matrix", () => {
     });
     expect(evaluateCompatibilitySet(matrix, candidate)).toEqual({
       status: "fail",
-      findings: [
-        "workpool-duplicate-completion",
-        "workpool-cancel-race",
-        "fresh-frozen-install",
-      ],
+      findings: ["workpool-duplicate-completion", "workpool-cancel-race"],
     });
   });
 

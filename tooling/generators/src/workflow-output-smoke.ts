@@ -13,6 +13,7 @@ import { dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
+import { validateWorkflowSemanticCoverage } from "@maestro-template/template-core/workflow-semantics";
 
 export const smokeWorkflowName = "generatedWorkflowSmoke";
 export const workflowOutputSmokeScriptName = "template:workflow-output-smoke";
@@ -164,6 +165,18 @@ export const runWorkflowOutputSmoke = (
         args: ["--dir", tempRepoRoot, "confect:codegen"],
       },
       {
+        label: "Lint generated runner source and projection",
+        command: "pnpm",
+        args: [
+          "--dir",
+          tempRepoRoot,
+          "exec",
+          "eslint",
+          `packages/convex/confect/workflowRunners/${smokeWorkflowName}.ts`,
+          `packages/convex/convex/workflowRunners/${smokeWorkflowName}.ts`,
+        ],
+      },
+      {
         label: "Regenerate Convex refs",
         command: "pnpm",
         args: ["--dir", convexPackage, "exec", "convex", "codegen"],
@@ -218,8 +231,37 @@ export const runWorkflowOutputSmoke = (
         "Confect did not reproduce the registered workflow runner",
       );
     }
-    const fingerprint = createHash("sha256").update(runnerSource).digest("hex");
-    if (fingerprint.length !== 64) throw new Error("Runner fingerprint failed");
+    const coverage = JSON.parse(readFileSync(semanticsPath, "utf8")) as Record<
+      string,
+      {
+        readonly posture: "generated" | "guarded-default";
+        readonly constructor: string;
+        readonly compiler: string;
+        readonly fixture: string;
+      }
+    >;
+    const coverageFindings = validateWorkflowSemanticCoverage(coverage);
+    if (coverageFindings.length > 0) {
+      throw new Error(
+        `Invalid semantic coverage: ${coverageFindings.join(", ")}`,
+      );
+    }
+    const firstFingerprint = createHash("sha256")
+      .update(runnerSource)
+      .digest("hex");
+    rmSync(runnerPath);
+    runSmokeCommand(tempRepoRoot, {
+      label: "Reproduce deleted Confect runner projection",
+      command: "pnpm",
+      args: ["--dir", tempRepoRoot, "confect:codegen"],
+    });
+    const reproduced = readFileSync(runnerPath, "utf8");
+    const reproducedFingerprint = createHash("sha256")
+      .update(reproduced)
+      .digest("hex");
+    if (reproducedFingerprint !== firstFingerprint) {
+      throw new Error("Reproduced runner fingerprint changed");
+    }
   } finally {
     if (keepTemp) {
       process.stdout.write(

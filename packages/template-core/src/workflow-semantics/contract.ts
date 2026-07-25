@@ -55,14 +55,14 @@ const DOC = "docs/template/convex-workflow-compatibility.md";
 const GRAPH_FIXTURE = "packages/convex/test/workflow-conformance.test.ts";
 const GENERATOR_FIXTURE = "tooling/generators/src/index.test.ts";
 
-const supported = (
-  id: string,
+const supported = <const Id extends string>(
+  id: Id,
   subject: string,
   typedConstructor: string,
   compilerMapping: string,
   fixture = GRAPH_FIXTURE,
   runtimeGuard = "typed graph validation",
-): WorkflowSemanticRule => ({
+): WorkflowSemanticRule & { readonly id: Id } => ({
   id,
   subject,
   status: "supported",
@@ -75,13 +75,13 @@ const supported = (
   documentation: DOC,
 });
 
-const restricted = (
-  id: string,
+const restricted = <const Id extends string>(
+  id: Id,
   subject: string,
   reason: string,
   repair: string,
   fixture = GRAPH_FIXTURE,
-): WorkflowSemanticRule => ({
+): WorkflowSemanticRule & { readonly id: Id } => ({
   id,
   subject,
   status: "intentionally-restricted",
@@ -94,13 +94,13 @@ const restricted = (
   documentation: DOC,
 });
 
-const unsupported = (
-  id: string,
+const unsupported = <const Id extends string>(
+  id: Id,
   subject: string,
   reason: string,
   repair: string,
   fixture = GRAPH_FIXTURE,
-): WorkflowSemanticRule => ({
+): WorkflowSemanticRule & { readonly id: Id } => ({
   id,
   subject,
   status: "unsupported",
@@ -113,7 +113,7 @@ const unsupported = (
   documentation: DOC,
 });
 
-export const WORKFLOW_SEMANTICS: readonly WorkflowSemanticRule[] = [
+export const WORKFLOW_SEMANTICS = [
   supported(
     "WF-GRAPH-ID",
     "graph.id",
@@ -392,7 +392,53 @@ export const WORKFLOW_SEMANTICS: readonly WorkflowSemanticRule[] = [
     "Generate values in a capability step and journal the result.",
     "tooling/eslint-plugin-template/rules/__tests__/rules.test.mjs",
   ),
-];
+] as const satisfies readonly WorkflowSemanticRule[];
+
+export type WorkflowSemanticRuleId = (typeof WORKFLOW_SEMANTICS)[number]["id"];
+
+export type WorkflowSemanticCoverageEvidence = {
+  readonly posture: "generated" | "guarded-default";
+  readonly constructor: string;
+  readonly compiler: string;
+  readonly fixture: string;
+};
+
+export const defineWorkflowSemanticCoverage = <
+  const Coverage extends Partial<
+    Record<WorkflowSemanticRuleId, WorkflowSemanticCoverageEvidence>
+  >,
+>(
+  coverage: Coverage,
+): Coverage => coverage;
+
+export const validateWorkflowSemanticCoverage = (
+  coverage: Readonly<Record<string, WorkflowSemanticCoverageEvidence>>,
+): readonly string[] => {
+  const rules = new Map<string, WorkflowSemanticRule>(
+    WORKFLOW_SEMANTICS.map((rule) => [rule.id, rule]),
+  );
+  const findings: string[] = [];
+  for (const [id, evidence] of Object.entries(coverage)) {
+    const rule = rules.get(id);
+    if (rule === undefined) {
+      findings.push(`${id}: unknown semantic rule`);
+      continue;
+    }
+    if (rule.status === "unsupported") {
+      findings.push(`${id}: unsupported rule cannot be generated`);
+    }
+    if (
+      rule.status === "intentionally-restricted" &&
+      evidence.posture !== "guarded-default"
+    ) {
+      findings.push(`${id}: restricted rule requires guarded-default evidence`);
+    }
+    for (const [field, value] of Object.entries(evidence)) {
+      if (value.trim().length === 0) findings.push(`${id}: missing ${field}`);
+    }
+  }
+  return findings;
+};
 
 export const validateWorkflowSemantics = (
   rules: readonly WorkflowSemanticRule[],

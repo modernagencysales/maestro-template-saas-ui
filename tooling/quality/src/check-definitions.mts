@@ -898,8 +898,8 @@ export const checkDescriptors = {
         file: "tooling/quality/check-workflow-semantics.mts",
         includes: [
           "WF-GRAPH-UNMAPPED",
-          "WF-RAW-IMPORT",
-          "validateWorkflowRunnerSource",
+          "readWorkflowGraphFields",
+          "WF-DOC-PROJECTION",
         ],
         message: "workflow semantic gate must inspect schemas and real runners",
       },

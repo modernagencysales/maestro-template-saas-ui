@@ -1141,7 +1141,11 @@ describe("template app factory generators", () => {
     expect(convexWorkflow).toContain("capabilityRegistry: {}");
     expect(runnerSpec).toContain("FunctionSpec.convexInternalMutation");
     expect(runnerImpl).toContain("FunctionImpl.make");
-    expect(semantics).toContain('"WF-DEFINE": "supported"');
+    expect(semantics).toContain('"WF-DEFINE"');
+    expect(semantics).toContain('"posture": "generated"');
+    expect(semantics).toContain('"WF-NODE-RETRY"');
+    expect(semantics).toContain('"posture": "guarded-default"');
+    expect(semantics).not.toContain('"WF-HANDLER-DATE"');
 
     expect(graph).toContain("satisfies DurableWorkflowGraph");
     expect(graph).toContain("version: 1");

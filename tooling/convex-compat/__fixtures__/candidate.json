@@ -6,10 +6,13 @@
     "workpool": "0.4.8",
     "convexTest": "0.0.54"
   },
+  "authority": "candidate",
   "expected": "fail",
-  "missingProofs": [
-    "workpool-duplicate-completion",
-    "workpool-cancel-race",
+  "proofs": [
+    "isolated-source-workpool-0.4.8",
+    "workpool-duplicate-completion-fixed-source-test",
+    "workpool-cancel-race-fixed-source-test",
     "fresh-frozen-install"
-  ]
+  ],
+  "missingProofs": ["workpool-duplicate-completion", "workpool-cancel-race"]
 }

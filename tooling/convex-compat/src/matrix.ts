@@ -12,14 +12,18 @@ export function evaluateCompatibilitySet(
   const matrix = record(matrixInput, "matrix");
   const fixture = record(fixtureInput, "fixture");
   const versions = record(fixture.versions, "fixture.versions");
-  const current = record(matrix.current, "matrix.current");
   const expected = stringValue(fixture.expected, "fixture.expected");
+  const authority = stringValue(
+    fixture.authority ?? "current",
+    "fixture.authority",
+  );
   const missingProofs = stringArray(
     fixture.missingProofs ?? [],
     "missingProofs",
   );
 
   if (expected === "pass") {
+    const target = record(matrix[authority], `matrix.${authority}`);
     const versionPairs = [
       ["convex", "convex"],
       ["workflow", "@convex-dev/workflow"],
@@ -27,7 +31,7 @@ export function evaluateCompatibilitySet(
       ["convexTest", "convex-test"],
     ] as const;
     const versionFindings = versionPairs.flatMap(([fixtureKey, matrixKey]) =>
-      versions[fixtureKey] === current[matrixKey]
+      versions[fixtureKey] === target[matrixKey]
         ? []
         : [`version-mismatch:${fixtureKey}`],
     );

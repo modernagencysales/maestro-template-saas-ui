@@ -4,6 +4,7 @@ import {
   WORKFLOW_GRAPH_FIELDS,
   WORKFLOW_SEMANTICS,
   renderWorkflowSemanticsMarkdown,
+  validateWorkflowSemanticCoverage,
   validateWorkflowSemantics,
 } from "./contract";
 
@@ -49,5 +50,36 @@ describe("workflow semantics contract", () => {
     expect(renderWorkflowSemanticsMarkdown(WORKFLOW_SEMANTICS)).toBe(first);
     expect(first).toContain("WF-HANDLER-DATE");
     expect(first).toContain("intentionally-restricted");
+  });
+
+  it("validates typed generator coverage without claiming the global ledger", () => {
+    expect(
+      validateWorkflowSemanticCoverage({
+        "WF-DEFINE": {
+          posture: "generated",
+          constructor: "defineMaestroWorkflow",
+          compiler: "registered runner",
+          fixture: "workflow-output-smoke.ts",
+        },
+        "WF-NODE-RETRY": {
+          posture: "guarded-default",
+          constructor: "WorkflowNode.retry",
+          compiler: "maxAttempts=1/backoffMs=0",
+          fixture: "index.test.ts",
+        },
+      }),
+    ).toEqual([]);
+    expect(
+      validateWorkflowSemanticCoverage({
+        "WF-NODE-RETRY": {
+          posture: "generated",
+          constructor: "WorkflowNode.retry",
+          compiler: "unrestricted retry",
+          fixture: "missing",
+        },
+      }),
+    ).toContain(
+      "WF-NODE-RETRY: restricted rule requires guarded-default evidence",
+    );
   });
 });

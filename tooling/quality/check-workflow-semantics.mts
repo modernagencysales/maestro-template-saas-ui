@@ -1,11 +1,5 @@
-import {
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  readdirSync,
-  writeFileSync,
-} from "node:fs";
-import { dirname, join, relative, resolve } from "node:path";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
 import {
   WORKFLOW_GRAPH_FIELDS,
   WORKFLOW_SEMANTICS,
@@ -21,12 +15,6 @@ const SCHEMA_FILES = {
   edge: "packages/convex/confect/workflows/graphEdgeSchema.ts",
   join: "packages/convex/confect/workflows/graphJoinSchema.ts",
 } as const;
-
-const RAW_IMPORT_ALLOWLIST = [
-  /^packages\/convex\/confect\/workflowRunners\/[A-Za-z][A-Za-z0-9]*\.ts$/,
-  /^packages\/convex\/confect\/workflows\/_kit\/(?:ownership|status)\.ts$/,
-  /^packages\/convex\/test\/workflow-conformance(?:-helpers)?\.test\.ts$/,
-] as const;
 
 export type WorkflowSemanticFinding = {
   readonly ruleId: string;
@@ -84,75 +72,6 @@ export const readWorkflowGraphFields = (
   return [...graph, ...node, ...retry, ...edge, ...condition, ...joinFields];
 };
 
-export const validateWorkflowRunnerSource = (
-  file: string,
-  source: string,
-): readonly WorkflowSemanticFinding[] => {
-  const findings: WorkflowSemanticFinding[] = [];
-  const importsRawWorkflow = /from\s+["']@convex-dev\/workflow["']/.test(
-    source,
-  );
-  if (
-    importsRawWorkflow &&
-    !RAW_IMPORT_ALLOWLIST.some((allowed) => allowed.test(file))
-  ) {
-    findings.push(
-      finding(
-        "WF-RAW-IMPORT",
-        file,
-        "raw Workflow primitives are allowed only in generated Confect runners and pinned compatibility fixtures",
-        "use the generated workflow kit, then rerun pnpm check:workflow:fast",
-      ),
-    );
-  }
-  if (/\bnew\s+WorkflowManager\s*\(/.test(source)) {
-    findings.push(
-      finding(
-        "WF-RAW-MANAGER",
-        file,
-        "application code instantiated a second WorkflowManager",
-        "use the generated workflow manager boundary, then rerun pnpm check:workflow:fast",
-      ),
-    );
-  }
-  const isReplayHandler =
-    file.includes("/workflowRunners/") ||
-    /define(?:Maestro)?Workflow[\s\S]*\.handler\s*\(/.test(source);
-  for (const [ruleId, pattern, reason] of [
-    ["WF-HANDLER-IO", /\bfetch\s*\(/, "ambient network I/O"],
-    ["WF-HANDLER-ENV", /\bprocess\.env\b/, "ambient environment access"],
-    [
-      "WF-HANDLER-CRYPTO",
-      /\bcrypto\.(?:randomUUID|getRandomValues)\b/,
-      "ambient cryptographic randomness",
-    ],
-    [
-      "WF-HANDLER-INTL",
-      /\bIntl\.|\.toLocale(?:String|DateString|TimeString)\s*\(/,
-      "locale-sensitive computation",
-    ],
-  ] as const) {
-    if (isReplayHandler && pattern.test(source)) {
-      findings.push(
-        finding(
-          ruleId,
-          file,
-          `${reason} is forbidden in a replay handler`,
-          "move the operation into a capability step, then rerun pnpm check:workflow:fast",
-        ),
-      );
-    }
-  }
-  return findings;
-};
-
-const sourceFiles = (root: string): readonly string[] => {
-  if (!existsSync(root)) return [];
-  return readdirSync(root, { recursive: true, withFileTypes: true })
-    .filter((entry) => entry.isFile() && entry.name.endsWith(".ts"))
-    .map((entry) => join(entry.parentPath, entry.name));
-};
-
 export const checkWorkflowSemantics = (
   repoRoot: string,
 ): readonly WorkflowSemanticFinding[] => {
@@ -201,18 +120,6 @@ export const checkWorkflowSemantics = (
         "run pnpm check:workflow-semantics --write",
       ),
     );
-  }
-  for (const root of [
-    "packages/convex/confect/workflowRunners",
-    "packages/convex/convex/workflowRunners",
-    "apps",
-  ]) {
-    for (const absolute of sourceFiles(join(repoRoot, root))) {
-      const file = relative(repoRoot, absolute).replaceAll("\\", "/");
-      findings.push(
-        ...validateWorkflowRunnerSource(file, readFileSync(absolute, "utf8")),
-      );
-    }
   }
   return findings;
 };

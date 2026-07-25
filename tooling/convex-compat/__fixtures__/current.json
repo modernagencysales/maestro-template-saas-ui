@@ -1,5 +1,6 @@
 {
   "name": "current",
+  "authority": "current",
   "versions": {
     "convex": "1.42.1",
     "workflow": "0.4.4",

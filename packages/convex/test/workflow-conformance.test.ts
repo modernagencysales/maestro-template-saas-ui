@@ -42,127 +42,90 @@ describe("pinned Convex Workflow component conformance", () => {
 
   it("consumes an event that arrives before its wait step", async () => {
     const t = createWorkflowHarness();
-    const workflowId = await t.mutation(conformanceApi.workflow.create, {
-      workflowName: "event-before-wait",
-      workflowHandle: "function://;workflowConformance:terminalFailure",
-      workflowArgs: {},
-      startAsync: true,
-    });
-    const eventId = await t.mutation(conformanceApi.event.send, {
-      workflowId,
-      name: "approved",
-      result: { kind: "success", returnValue: { approved: true } },
-    });
-    const entries = await t.mutation(conformanceApi.journal.startSteps, {
-      workflowId,
-      generationNumber: 0,
-      steps: [
-        {
-          step: {
-            kind: "event",
-            name: "approved",
-            inProgress: true,
-            argsSize: 0,
-            args: { eventId },
-            startedAt: Date.now(),
-          },
-        },
-      ],
-    });
-    expect(entries[0]?.step).toMatchObject({
-      kind: "event",
-      inProgress: false,
-      eventId,
-    });
+    const workflowId = await t.mutation(
+      conformanceApi.startEventBeforeWait,
+      {},
+    );
+    await t.finishAllScheduledFunctions(vi.runAllTimers);
+    await expect(
+      t.query(conformanceApi.workflowStatus, { workflowId }),
+    ).resolves.toEqual({ type: "completed", result: true });
   });
 
-  it("lists with pagination and exposes cancellation before cleanup", async () => {
+  it("traverses workflow pagination cursors without duplicates", async () => {
     const t = createWorkflowHarness();
-    const workflowId = await t.mutation(conformanceApi.workflow.create, {
-      workflowName: "lifecycle",
-      workflowHandle: "function://;workflowConformance:terminalFailure",
-      workflowArgs: {},
-      startAsync: true,
+    const ids = await Promise.all([
+      t.mutation(conformanceApi.startQueuedFailure, {}),
+      t.mutation(conformanceApi.startQueuedFailure, {}),
+      t.mutation(conformanceApi.startQueuedFailure, {}),
+    ]);
+    const first = await t.query(conformanceApi.listWorkflows, {
+      cursor: null,
+      numItems: 2,
     });
-    const listed = await t.query(conformanceApi.workflow.list, {
-      order: "asc",
-      paginationOpts: { cursor: null, numItems: 1 },
+    const second = await t.query(conformanceApi.listWorkflows, {
+      cursor: first.continueCursor,
+      numItems: 2,
     });
-    expect(listed.page).toHaveLength(1);
-    expect(listed.page[0]?.workflowId).toBe(workflowId);
+    const listedIds = [...first.page, ...second.page].map(
+      (entry) => (entry as { workflowId: string }).workflowId,
+    );
+    expect(new Set(listedIds)).toEqual(new Set(ids));
+    expect(second.isDone).toBe(true);
+  });
 
-    await t.mutation(conformanceApi.workflow.cancel, { workflowId });
-    const canceled = await t.query(conformanceApi.workflow.getStatus, {
+  it("cancels and cleans through the public manager boundary", async () => {
+    const t = createWorkflowHarness();
+    const workflowId = await t.mutation(conformanceApi.startQueuedFailure, {});
+
+    await t.mutation(conformanceApi.cancelWorkflow, { workflowId });
+    const canceled = await t.query(conformanceApi.workflowStatus, {
       workflowId,
     });
-    expect(canceled.workflow.runResult).toMatchObject({ kind: "canceled" });
+    expect(canceled).toEqual({ type: "canceled" });
 
     await expect(
-      t.mutation(conformanceApi.workflow.cleanup, { workflowId }),
+      t.mutation(conformanceApi.cleanupWorkflow, { workflowId }),
     ).resolves.toBe(true);
     await expect(
-      t.query(conformanceApi.workflow.getStatus, { workflowId }),
+      t.query(conformanceApi.workflowStatus, { workflowId }),
     ).rejects.toThrow("Workflow not found");
   });
 
-  it("starts parallel component work and truncates restarts from the latest duplicate name", async () => {
+  it("dispatches Promise.all steps as parallel component work", async () => {
     const t = createWorkflowHarness();
-    const workflowId = await t.mutation(conformanceApi.workflow.create, {
-      workflowName: "parallel-and-restart",
-      workflowHandle: "function://;workflowConformance:terminalFailure",
-      workflowArgs: {},
-      startAsync: true,
-    });
-    const parallel = await t.mutation(conformanceApi.journal.startSteps, {
+    const workflowId = await t.mutation(conformanceApi.startParallel, {});
+    await t.finishAllScheduledFunctions(vi.runAllTimers);
+    await expect(
+      t.query(conformanceApi.workflowStatus, { workflowId }),
+    ).resolves.toEqual({ type: "completed", result: ["left", "right"] });
+    const steps = await t.query(conformanceApi.listWorkflowSteps, {
       workflowId,
-      generationNumber: 0,
-      steps: ["left", "right"].map((name) => ({
-        step: {
-          kind: "function" as const,
-          functionType: "mutation" as const,
-          handle: "function://;workflowConformance:echoStep",
-          name,
-          inProgress: true,
-          argsSize: 0,
-          args: { value: name },
-          startedAt: Date.now(),
-        },
-      })),
+      cursor: null,
+      numItems: 10,
     });
-    expect(
-      parallel.map((entry) =>
-        entry.step.kind === "function" ? entry.step.workId : undefined,
-      ),
-    ).toEqual([expect.any(String), expect.any(String)]);
+    expect(steps.page.map((step) => step.name)).toEqual(["left", "right"]);
+    expect(steps.page.map((step) => step.workId)).toEqual([
+      expect.any(String),
+      expect.any(String),
+    ]);
+  });
 
-    await t.mutation(conformanceApi.workflow.cancel, { workflowId });
-    const restartId = await t.mutation(conformanceApi.workflow.create, {
-      workflowName: "duplicate-restart",
-      workflowHandle: "function://;workflowConformance:terminalFailure",
-      workflowArgs: {},
-      startAsync: true,
-    });
-    await t.mutation(conformanceApi.journal.startSteps, {
-      workflowId: restartId,
-      generationNumber: 0,
-      steps: ["duplicate", "middle", "duplicate", "tail"].map((name) => ({
-        step: completedMutationStep(name),
-      })),
-    });
-    await t.mutation(conformanceApi.workflow.complete, {
-      workflowId: restartId,
-      generationNumber: 0,
-      runResult: { kind: "failed", error: "characterized failure" },
-    });
-    await t.mutation(conformanceApi.workflow.restart, {
-      workflowId: restartId,
-      from: "duplicate",
-      startAsync: true,
-    });
-    const retained = await t.query(conformanceApi.workflow.listSteps, {
-      workflowId: restartId,
-      order: "asc",
-      paginationOpts: { cursor: null, numItems: 10 },
+  it("selects the latest duplicate restart name and truncates its tail", async () => {
+    const t = createWorkflowHarness();
+    const workflowId = await t.mutation(
+      conformanceApi.startRestartWorkflow,
+      {},
+    );
+    await t.finishAllScheduledFunctions(vi.runAllTimers);
+    await expect(
+      t.query(conformanceApi.workflowStatus, { workflowId }),
+    ).resolves.toMatchObject({ type: "failed" });
+    await t.mutation(conformanceApi.restartFromDuplicate, { workflowId });
+    const retained = await t.query(conformanceApi.listWorkflowSteps, {
+      workflowId,
+      cursor: null,
+      numItems: 10,
     });
     expect(retained.page.map((step) => step.name)).toEqual([
       "duplicate",
@@ -170,10 +133,40 @@ describe("pinned Convex Workflow component conformance", () => {
     ]);
   });
 
-  it("cascades subworkflow cancellation and continues nested cleanup asynchronously", async () => {
+  it("cascades subworkflow cancellation through public workflow steps", async () => {
+    const t = createWorkflowHarness();
+    const parentId = await t.mutation(conformanceApi.startParent, {});
+    let childId: string | undefined;
+    for (let attempt = 0; attempt < 10 && childId === undefined; attempt += 1) {
+      vi.runOnlyPendingTimers();
+      await t.finishInProgressScheduledFunctions();
+      const steps = await t.query(conformanceApi.listWorkflowSteps, {
+        workflowId: parentId,
+        cursor: null,
+        numItems: 10,
+      });
+      childId = steps.page[0]?.workflowId;
+    }
+    if (childId === undefined) {
+      throw new Error("component did not create the nested workflow");
+    }
+
+    await t.mutation(conformanceApi.cancelWorkflow, { workflowId: parentId });
+    const childStatus = await t.query(conformanceApi.workflowStatus, {
+      workflowId: childId,
+    });
+    expect(childStatus).toEqual({ type: "canceled" });
+
+    await t.mutation(conformanceApi.cleanupWorkflow, { workflowId: parentId });
+    await expect(
+      t.query(conformanceApi.workflowStatus, { workflowId: childId }),
+    ).rejects.toThrow("Workflow not found");
+  });
+
+  it("continues residual nested cleanup asynchronously", async () => {
     const t = createWorkflowHarness();
     const parentId = await t.mutation(conformanceApi.workflow.create, {
-      workflowName: "parent",
+      workflowName: "cleanup-parent",
       workflowHandle: "function://;workflowConformance:terminalFailure",
       workflowArgs: {},
       startAsync: true,
@@ -185,7 +178,7 @@ describe("pinned Convex Workflow component conformance", () => {
         {
           step: {
             kind: "workflow",
-            name: "child",
+            name: "cleanup-child",
             handle: "function://;workflowConformance:terminalFailure",
             inProgress: true,
             argsSize: 0,
@@ -197,36 +190,38 @@ describe("pinned Convex Workflow component conformance", () => {
     });
     const child = entries[0]?.step;
     if (child?.kind !== "workflow" || child.workflowId === undefined) {
-      throw new Error("component did not create the nested workflow");
+      throw new Error("component did not create the cleanup child");
     }
     const childId = child.workflowId;
-
     await t.mutation(conformanceApi.workflow.cancel, { workflowId: parentId });
-    const childStatus = await t.query(conformanceApi.workflow.getStatus, {
-      workflowId: childId,
-    });
-    expect(childStatus.workflow.runResult).toMatchObject({ kind: "canceled" });
-
-    await t.mutation(conformanceApi.workflow.cleanup, { workflowId: parentId });
-    expect(
-      await t.query(conformanceApi.workflow.getStatus, { workflowId: childId }),
-    ).toBeDefined();
+    await t.mutation(conformanceApi.cleanupWorkflow, { workflowId: parentId });
+    await expect(
+      t.query(conformanceApi.workflow.getStatus, { workflowId: childId }),
+    ).resolves.toBeDefined();
     await t.finishAllScheduledFunctions(vi.runAllTimers);
     await expect(
       t.query(conformanceApi.workflow.getStatus, { workflowId: childId }),
     ).rejects.toThrow("Workflow not found");
   });
 
-  it("preserves the terminal result when onComplete fails and cleans a large journal", async () => {
+  it("preserves the terminal result when onComplete fails", async () => {
+    const t = createWorkflowHarness();
+    const workflowId = await t.mutation(
+      conformanceApi.startFailingOnComplete,
+      {},
+    );
+    await t.finishAllScheduledFunctions(vi.runAllTimers);
+    await expect(
+      t.query(conformanceApi.workflowStatus, { workflowId }),
+    ).resolves.toEqual({ type: "completed", result: "preserved" });
+  });
+
+  it("batches cleanup for a journal larger than the component limit", async () => {
     const t = createWorkflowHarness();
     const workflowId = await t.mutation(conformanceApi.workflow.create, {
-      workflowName: "on-complete-and-cleanup",
+      workflowName: "cleanup-batches",
       workflowHandle: "function://;workflowConformance:terminalFailure",
       workflowArgs: {},
-      onComplete: {
-        fnHandle: "function://;missing:onComplete",
-        context: { test: true },
-      },
       startAsync: true,
     });
     await t.mutation(conformanceApi.journal.startSteps, {
@@ -241,16 +236,16 @@ describe("pinned Convex Workflow component conformance", () => {
       generationNumber: 0,
       runResult: { kind: "success", returnValue: "preserved" },
     });
-    const completed = await t.query(conformanceApi.workflow.getStatus, {
-      workflowId,
-    });
-    expect(completed.workflow.runResult).toEqual({
-      kind: "success",
-      returnValue: "preserved",
-    });
     await expect(
-      t.mutation(conformanceApi.workflow.cleanup, { workflowId }),
+      t.mutation(conformanceApi.cleanupWorkflow, { workflowId }),
     ).resolves.toBe(true);
+    await t.finishAllScheduledFunctions(vi.runAllTimers);
+    const residual = await t.query(conformanceApi.workflow.listSteps, {
+      workflowId,
+      order: "asc",
+      paginationOpts: { cursor: null, numItems: 400 },
+    });
+    expect(residual.page).toEqual([]);
   });
 });
 

@@ -27,12 +27,15 @@
     "convex": "1.42.3",
     "@convex-dev/workflow": "0.4.4",
     "@convex-dev/workpool": "0.4.8",
-    "status": "unproven",
-    "requiredProofs": [
-      "workpool-duplicate-completion",
-      "workpool-cancel-race",
+    "convex-test": "0.0.54",
+    "status": "tested-isolated-fail-not-adopted",
+    "proofs": [
+      "isolated-source-workpool-0.4.8",
+      "workpool-duplicate-completion-fixed-source-test",
+      "workpool-cancel-race-fixed-source-test",
       "fresh-frozen-install"
-    ]
+    ],
+    "findings": ["workpool-duplicate-completion", "workpool-cancel-race"]
   },
   "workflowPublicInventory": [
     "defineWorkflow",
