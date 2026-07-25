@@ -99,6 +99,34 @@ event, cancel, restart, cleanup, manifest, and capability step contracts. Do not
 move replay handlers into Confect impl files: the workflow component is the
 durable runtime, while Confect is the typed contract layer around it.
 
+## Tenant-Safe Lifecycle
+
+Generated start results include the tenant-owned `workflowRunId`. Generated
+contracts use that ID for authenticated cancel, restart, step pagination, and
+cleanup; list and list-by-name results are tenant-filtered, bounded product
+projections. Component IDs are never accepted as cross-workspace authority.
+
+Cancellation is cooperative, so an action already running may finish.
+Compensation is modeled as a separate explicit workflow. Restart accepts only
+the beginning or a unique stable step instance and fails closed until the
+selected generation has no exposed Workpool work. Its graph inspection is
+generation-scoped and every downstream external action must have a matching
+restart-safe reservation with a sufficient dedupe horizon. Query and mutation
+steps are not classified as external effects.
+
+Cleanup waits for terminal quiescence, parent/child links, and the longest
+required evidence-retention deadline. Retention automation invokes the bounded
+`workflows.lifecycle.sweepRetention` control. The product may report
+`product-cleaned` after all exposed work is reconciled while separately
+recording `component-residuals-unverifiable` for hidden component records. This
+is deliberately not a full-deletion guarantee.
+
+Generated `onComplete` context contains only validated, size-bounded stable
+workspace, run, workflow-version, and generation identifiers. Reconciliation
+accepts each terminal outcome exactly once: an identical replay is a no-op and a
+conflicting replay returns a redacted conflict without overwriting the first
+accepted result.
+
 ## Reviewer-Safe Run Receipt
 
 The deterministic sample receipt lives in `packages/template-core/src/index.ts`

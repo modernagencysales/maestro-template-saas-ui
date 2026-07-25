@@ -87,6 +87,33 @@ Cancellation is projected as cascading while cleanup remains `cascade-async`;
 neither is described as atomic rollback or immediate deletion. Scheduled child
 options remain rejected on Workflow 0.4.4.
 
+## Lifecycle Controls
+
+Generated starts return both the tenant-owned `workflowRunId` and the component
+workflow ID. Use the product run ID for generated `cancel`, `restart`,
+`listSteps`, and `cleanup` controls. `list` and `listByName` are bounded,
+tenant-filtered projections; none of these controls exposes raw step arguments
+or results.
+
+Cancellation is cooperative: an already-running action may finish, and any
+compensation is a separate explicit workflow. Restart is allowed only from the
+beginning or a unique stable step instance. Its preflight requires the selected
+generation to be quiescent and rejects every downstream external action that
+lacks generation-scoped restart-safe reservation evidence. It never treats a
+canceled or terminal component status alone as proof that Workpool is idle.
+
+Cleanup is retention-gated. A parent waits for the longest child or evidence
+deadline, and system cleanup uses bounded calls to
+`workflows.lifecycle.sweepRetention`. `product-cleaned` means exposed product
+work is complete; hidden Workflow 0.4.4 component records may remain
+`component-residuals-unverifiable`. No generated API or receipt describes that
+state as full data deletion.
+
+The generated completion callback receives only a runtime-validated, bounded
+ownership/run/version context. Completion reconciliation is exactly-once:
+identical terminal delivery is a no-op, while a conflicting terminal delivery is
+rejected without replacing the accepted outcome.
+
 ## Transaction Posture
 
 Generated query and mutation capability nodes use independent Workpool
