@@ -2933,6 +2933,8 @@ import { ${name}References } from "./${name}.graph";
  * internal refs. External actions must declare effect strategy, effect class,
  * logical instance-key mapping, dedupe/restart horizons, guard postures,
  * redaction policy, and provider/reconciliation fixture evidence.
+ * Query and mutation nodes use an independent Workpool transaction by default.
+ * Inline nodes must be authored with a named generated preset.
  */
 export const ${name}CapabilityRegistry = defineWorkflowCapabilityRegistry({});
 
@@ -3215,7 +3217,8 @@ Canonical system: \`${options.system}\` (\`${options.disposition}\`).
 6. Generated capability nodes require registry entries with generated internal refs, concrete \`buildArgs\` and logical instance-key mappers, and complete effect/guard/redaction/evidence contracts.
 7. Generated subworkflow entries require an immutable child version, typed Args/Result schemas, declared transitive children, principal posture, and \`${name}SubworkflowLinkRefs\`; cycle, depth, and fan-out checks run before child dispatch.
 8. Workflow 0.4.4 scheduled children remain rejected; use a named sleep plus an unscheduled child only as a deliberately non-equivalent alternative.
-9. Run \`pnpm check:workflow:fast\`, \`pnpm check:confect-contracts\`, and focused workflow tests.
+9. Query and mutation capabilities use independent Workpool transactions by default. Inline is restricted to declared small atomic work: novice authors choose \`tiny\` or \`small-atomic\`; raw counters require the reviewed advanced constructor. Actions and scheduled steps cannot be inline.
+10. Run \`pnpm check:workflow:fast\`, \`pnpm check:confect-contracts\`, and focused workflow tests.
 `,
     },
   ];

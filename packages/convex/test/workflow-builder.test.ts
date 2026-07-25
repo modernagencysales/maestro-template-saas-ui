@@ -8,6 +8,10 @@ import {
   workflowNode,
   type DefineWorkflowGraphV2Input,
 } from "../confect/workflows/_kit/workflowBuilder";
+import {
+  inlineTransactionPreset,
+  reviewedInlineTransaction,
+} from "../confect/workflows/_kit/inlineTransactions";
 import { defineWorkflowReferenceRegistry } from "../confect/workflows/_kit/workflowReferences";
 
 const refs = defineWorkflowReferenceRegistry({
@@ -46,19 +50,76 @@ describe("typed workflow V2 constructors", () => {
       capability: refs.capabilities.sendBrief,
     });
     expect(
-      workflowNode.inlineMutation({
-        ...base,
-        id: "write",
-        kind: "capability",
-        functionKind: "mutation",
-        capability: refs.capabilities.writeReceipt,
-        stepName: "write.v2",
-        transaction: {
-          kind: "inline",
-          limits: { documentsRead: 2, documentsWritten: 1 },
+      workflowNode.inlineMutation(
+        {
+          ...base,
+          id: "write",
+          kind: "capability",
+          functionKind: "mutation",
+          capability: refs.capabilities.writeReceipt,
+          stepName: "write.v2",
         },
-      }),
+        "tiny",
+      ),
     ).toMatchObject({ transaction: { kind: "inline" } });
+    expect(
+      workflowNode.advanced.inlineMutation(
+        {
+          ...base,
+          id: "reviewed-write",
+          kind: "capability",
+          functionKind: "mutation",
+          capability: refs.capabilities.writeReceipt,
+          stepName: "reviewed-write.v2",
+        },
+        reviewedInlineTransaction({ documentsRead: 2, documentsWritten: 1 }),
+      ),
+    ).toMatchObject({
+      transaction: { limitsProfile: "reviewed-explicit" },
+    });
+  });
+
+  it("makes unsafe inline combinations type-negative", () => {
+    workflowNode.action({
+      ...base,
+      id: "bad-action",
+      kind: "capability",
+      functionKind: "action",
+      capability: refs.capabilities.sendBrief,
+      stepName: "bad-action.v2",
+      // @ts-expect-error AP-002: action nodes never expose inline transaction posture.
+      transaction: inlineTransactionPreset("tiny"),
+    });
+    workflowNode.inlineQuery(
+      {
+        ...base,
+        id: "bad-schedule",
+        kind: "capability",
+        functionKind: "query",
+        capability: refs.capabilities.sendBrief,
+        stepName: "bad-schedule.v2",
+        // @ts-expect-error AP-002: inline nodes cannot be scheduled.
+        schedule: { kind: "runAfter", delayMs: 1 },
+      },
+      "tiny",
+    );
+    workflowNode.query({
+      ...base,
+      id: "bad-limits",
+      kind: "capability",
+      functionKind: "query",
+      capability: refs.capabilities.sendBrief,
+      stepName: "bad-limits.v2",
+      // @ts-expect-error AP-002: independent novice APIs do not accept raw limits.
+      limits: { documentsRead: 1 },
+    });
+    expect(() => reviewedInlineTransaction({})).toThrow("at least one");
+    expect(() =>
+      reviewedInlineTransaction({ documentsRead: Number.POSITIVE_INFINITY }),
+    ).toThrow("finite positive integer");
+    expect(() => reviewedInlineTransaction({ documentsRead: -1 })).toThrow(
+      "finite positive integer",
+    );
   });
 
   it("builds a strictly decoded graph with one generated interactive profile", () => {
@@ -295,17 +356,19 @@ workflowNode.source({
   // @ts-expect-error AP-002 fixture: retry is unavailable on source nodes.
   retry: false,
 });
-workflowNode.inlineMutation({
-  ...base,
-  id: "bad-inline",
-  kind: "capability",
-  functionKind: "mutation",
-  capability: refs.capabilities.writeReceipt,
-  stepName: "bad-inline.v2",
-  transaction: { kind: "inline", limits: {} },
-  // @ts-expect-error AP-002 fixture: inline mutations cannot be scheduled.
-  schedule: { kind: "runAfter", delayMs: 1 },
-});
+workflowNode.inlineMutation(
+  {
+    ...base,
+    id: "bad-inline",
+    kind: "capability",
+    functionKind: "mutation",
+    capability: refs.capabilities.writeReceipt,
+    stepName: "bad-inline.v2",
+    // @ts-expect-error AP-002 fixture: inline mutations cannot be scheduled.
+    schedule: { kind: "runAfter", delayMs: 1 },
+  },
+  "tiny",
+);
 workflowNode.subworkflow({
   ...base,
   id: "bad-child",

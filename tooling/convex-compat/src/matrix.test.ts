@@ -35,6 +35,37 @@ describe("Convex compatibility matrix", () => {
     ).toEqual([]);
   });
 
+  it("pins the supported inline transaction surface and presets", async () => {
+    const matrix = (await readJson(
+      "docs/template/convex-compatibility.json",
+    )) as {
+      readonly inlineTransactions: unknown;
+    };
+    expect(matrix.inlineTransactions).toEqual({
+      supportedConvexVersion: "1.42.1",
+      supportedFields: [
+        "bytesRead",
+        "bytesWritten",
+        "databaseQueries",
+        "documentsRead",
+        "documentsWritten",
+        "functionsScheduled",
+        "scheduledFunctionArgsBytes",
+      ],
+      presets: {
+        tiny: { documentsRead: 5, bytesWritten: 100 },
+        "small-atomic": {
+          documentsWritten: 100,
+          bytesWritten: 1_048_576,
+        },
+      },
+      evidence: [
+        "workflow-0.4.4-transaction-option-fixture",
+        "committed-convex-function-guidelines",
+      ],
+    });
+  });
+
   it("evaluates candidates without changing the working lockfile", async () => {
     const before = await readFile(resolve(repoRoot, "pnpm-lock.yaml"), "utf8");
     const matrix = await readJson("docs/template/convex-compatibility.json");

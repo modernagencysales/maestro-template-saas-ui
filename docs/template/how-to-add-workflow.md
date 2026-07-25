@@ -87,6 +87,29 @@ Cancellation is projected as cascading while cleanup remains `cascade-async`;
 neither is described as atomic rollback or immediate deletion. Scheduled child
 options remain rejected on Workflow 0.4.4.
 
+## Transaction Posture
+
+Generated query and mutation capability nodes use independent Workpool
+transactions by default. Keep that default unless a capability is explicitly
+reviewed as small, atomic database work. Actions can never be inline, and an
+inline node cannot use `runAt` or `runAfter`.
+
+Novice authoring selects a compatibility-owned preset and never supplies raw
+counters:
+
+```ts
+workflowNode.inlineMutation(node, "tiny");
+workflowNode.inlineQuery(node, "small-atomic");
+```
+
+The exact preset counters and supported fields are pinned in
+`docs/template/convex-compatibility.json`. A reviewed advanced contract may use
+`workflowNode.advanced.inlineMutation(node, reviewedInlineTransaction(limits))`.
+That path still requires finite positive integer counters, a generated registry
+entry declaring `transactionPosture: "small-atomic"`, and the exact pinned
+Convex version. Inline limits pass only as Workflow's `transactionLimits`
+option; independent calls receive no inline options.
+
 Use `template:promote-workflow` only for older review artifacts or private
 package promotion flows that still need promotion into production-target paths.
 For new generated workflows, `template:add-workflow -- --write` already writes

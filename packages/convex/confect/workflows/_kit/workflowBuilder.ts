@@ -23,6 +23,11 @@ import {
   WorkflowStepName,
   type WorkflowStepName as WorkflowStepNameType,
 } from "./workflowReferences";
+import {
+  inlineTransactionPreset,
+  type InlineTransactionPresetName,
+  type ReviewedInlineTransaction,
+} from "./inlineTransactions";
 
 type SourceNode = Schema.Schema.Type<typeof WorkflowSourceNodeV2>;
 type ActionNode = Schema.Schema.Type<typeof WorkflowActionNodeV2>;
@@ -60,14 +65,36 @@ export const workflowNode = {
     ...input,
     transaction: { kind: "independent" },
   }),
-  inlineQuery: (input: InlineQueryNode): InlineQueryNode => input,
+  inlineQuery: (
+    input: Omit<InlineQueryNode, "transaction">,
+    preset: InlineTransactionPresetName,
+  ): InlineQueryNode => ({
+    ...input,
+    transaction: inlineTransactionPreset(preset),
+  }),
   mutation: (
     input: Omit<IndependentMutationNode, "transaction">,
   ): IndependentMutationNode => ({
     ...input,
     transaction: { kind: "independent" },
   }),
-  inlineMutation: (input: InlineMutationNode): InlineMutationNode => input,
+  inlineMutation: (
+    input: Omit<InlineMutationNode, "transaction">,
+    preset: InlineTransactionPresetName,
+  ): InlineMutationNode => ({
+    ...input,
+    transaction: inlineTransactionPreset(preset),
+  }),
+  advanced: {
+    inlineQuery: (
+      input: Omit<InlineQueryNode, "transaction">,
+      transaction: ReviewedInlineTransaction,
+    ): InlineQueryNode => ({ ...input, transaction }),
+    inlineMutation: (
+      input: Omit<InlineMutationNode, "transaction">,
+      transaction: ReviewedInlineTransaction,
+    ): InlineMutationNode => ({ ...input, transaction }),
+  },
   agent: (input: AgentNode): AgentNode => input,
   delay: (input: DelayNode): DelayNode => input,
   event: (input: EventNode): EventNode => input,

@@ -65,6 +65,32 @@
     "sleep",
     "awaitEvent"
   ],
+  "inlineTransactions": {
+    "supportedConvexVersion": "1.42.1",
+    "supportedFields": [
+      "bytesRead",
+      "bytesWritten",
+      "databaseQueries",
+      "documentsRead",
+      "documentsWritten",
+      "functionsScheduled",
+      "scheduledFunctionArgsBytes"
+    ],
+    "presets": {
+      "tiny": {
+        "documentsRead": 5,
+        "bytesWritten": 100
+      },
+      "small-atomic": {
+        "documentsWritten": 100,
+        "bytesWritten": 1048576
+      }
+    },
+    "evidence": [
+      "workflow-0.4.4-transaction-option-fixture",
+      "committed-convex-function-guidelines"
+    ]
+  },
   "sourceFacts": {
     "scheduledChildOptionPropagation": "unsupported-on-0.4.4",
     "defaultStart": "eager-first-poll-with-terminal-id-on-caught-failure",

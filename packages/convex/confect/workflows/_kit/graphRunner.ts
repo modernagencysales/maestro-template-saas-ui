@@ -24,6 +24,7 @@ import {
   type RunDurableGraphV2CompilerInput,
 } from "./graphRunnerV2";
 import { validateWorkflowV2SubworkflowTopology } from "./subworkflows";
+import { PINNED_INLINE_CONVEX_VERSION } from "./inlineTransactions";
 
 export type {
   WorkflowEffectAdmission,
@@ -237,6 +238,7 @@ export const runDurableGraphWorkflowV2 = async <
   }
   return runCompiledDurableGraphWorkflowV2(step, {
     ...input,
+    convexVersion: input.convexVersion ?? PINNED_INLINE_CONVEX_VERSION,
     capabilityRegistry,
     effectIdentity,
     admitEffect,

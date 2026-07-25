@@ -1,0 +1,167 @@
+{
+  "feature": "phase-1-wp-1.5-inline-transactions",
+  "slices": [
+    {
+      "id": 1,
+      "branch": "codex/wp1.5-inline-transactions",
+      "intention": "encode independent defaults and guarded inline transaction presets in the canonical v2 graph contract",
+      "layers": ["workflows", "checks"],
+      "contractRiskIds": [
+        "ambient-time-inline",
+        "bare-error-not-typed",
+        "workspace-guard",
+        "schema-runtime-validator-export",
+        "policy-data-hardcoded",
+        "duplicated-closed-union",
+        "invalid-test-fixture-or-cast",
+        "branching-logic-needs-boundary-tests",
+        "unjustified-cap-or-threshold",
+        "prompt-model-policy-boundary",
+        "type-escape-or-cast",
+        "existing-module-repair-checklist"
+      ],
+      "existingModuleRepairChecklist": {
+        "existingTargetModules": [
+          "packages/convex/confect/workflows/graphNodeSchema.ts",
+          "packages/convex/confect/workflows/_kit/workflowBuilder.ts",
+          "packages/convex/confect/workflows/graphValidation.ts"
+        ],
+        "repairStrategy": "extend",
+        "compatibilityRisks": [
+          "An action or scheduled node represents inline execution",
+          "A novice author supplies unreviewed raw counters",
+          "A named preset drifts from compatibility authority"
+        ],
+        "policyDataOwnership": "docs/template/convex-compatibility.json",
+        "promptVersioningImpact": "Transaction posture, preset name, and resolved counters are immutable graph inputs.",
+        "evalOrGateCoverage": [
+          "pnpm --dir packages/convex test workflow-builder workflow-graph-v2",
+          "pnpm --dir packages/convex typecheck"
+        ]
+      },
+      "workPackages": [
+        {
+          "kind": "template-gap",
+          "target": "WP-1.5 canonical v2 inline transaction authoring contract",
+          "followUpGates": [
+            "pnpm --dir packages/convex test workflow-builder workflow-graph-v2",
+            "pnpm --dir packages/convex typecheck"
+          ],
+          "templateBacklogRef": "AP-002 Convex workflow semantic compatibility",
+          "templateResolutionPath": "Extend the existing discriminated graph node union and constructors with compatibility-owned presets and a reviewed explicit path."
+        }
+      ],
+      "taskRefs": ["WP-1.5"],
+      "rationale": "Unsafe action and scheduling combinations must remain structurally impossible while independent execution stays the default.",
+      "estLines": 285
+    },
+    {
+      "id": 2,
+      "branch": "codex/wp1.5-inline-transactions",
+      "intention": "preflight pinned compatibility and pass exact inline options through the v2 runner",
+      "layers": ["workflows", "checks"],
+      "contractRiskIds": [
+        "ambient-time-inline",
+        "bare-error-not-typed",
+        "workspace-guard",
+        "schema-runtime-validator-export",
+        "policy-data-hardcoded",
+        "duplicated-closed-union",
+        "invalid-test-fixture-or-cast",
+        "branching-logic-needs-boundary-tests",
+        "unjustified-cap-or-threshold",
+        "prompt-model-policy-boundary",
+        "type-escape-or-cast",
+        "existing-module-repair-checklist"
+      ],
+      "existingModuleRepairChecklist": {
+        "existingTargetModules": [
+          "packages/convex/confect/workflows/_kit/graphRunnerV2.ts",
+          "packages/convex/test/workflow-conformance.test.ts"
+        ],
+        "repairStrategy": "extend",
+        "compatibilityRisks": [
+          "Inline options reach an unsupported Convex runtime",
+          "A capability without small-atomic posture dispatches inline",
+          "Independent execution receives transaction tuning"
+        ],
+        "policyDataOwnership": "docs/template/convex-compatibility.json",
+        "promptVersioningImpact": "The pinned Convex version and exact step options are compiler inputs and replay evidence.",
+        "evalOrGateCoverage": [
+          "pnpm --dir packages/convex test workflow-conformance",
+          "pnpm --dir packages/convex typecheck"
+        ]
+      },
+      "workPackages": [
+        {
+          "kind": "template-gap",
+          "target": "WP-1.5 v2 inline transaction compiler",
+          "followUpGates": [
+            "pnpm --dir packages/convex test workflow-conformance",
+            "pnpm --dir packages/convex typecheck"
+          ],
+          "templateBacklogRef": "AP-002 Convex workflow semantic compatibility",
+          "templateResolutionPath": "Reject unsupported runtime or registry posture before dispatch and pass only name, inline, and resolved transactionLimits."
+        }
+      ],
+      "taskRefs": ["WP-1.5"],
+      "rationale": "Runtime support is guarded by the exact tested Convex and Workflow compatibility set.",
+      "estLines": 260
+    },
+    {
+      "id": 3,
+      "branch": "codex/wp1.5-inline-transactions",
+      "intention": "project conservative inline authoring guidance and executable semantic evidence",
+      "layers": ["generators", "docs", "checks"],
+      "contractRiskIds": [
+        "ambient-time-inline",
+        "bare-error-not-typed",
+        "workspace-guard",
+        "schema-runtime-validator-export",
+        "policy-data-hardcoded",
+        "duplicated-closed-union",
+        "invalid-test-fixture-or-cast",
+        "branching-logic-needs-boundary-tests",
+        "unjustified-cap-or-threshold",
+        "prompt-model-policy-boundary",
+        "type-escape-or-cast",
+        "existing-module-repair-checklist"
+      ],
+      "existingModuleRepairChecklist": {
+        "existingTargetModules": [
+          "tooling/generators/src/index.ts",
+          "docs/template/how-to-add-workflow.md",
+          "docs/template/convex-compatibility.json"
+        ],
+        "repairStrategy": "extend",
+        "compatibilityRisks": [
+          "Generated workflows default to inline execution",
+          "Documentation invites raw novice tuning",
+          "Semantic support is claimed without exact option evidence"
+        ],
+        "policyDataOwnership": "packages/template-core/src/workflow-semantics/contract.ts",
+        "promptVersioningImpact": "Generated transaction posture remains an explicit reviewed source choice.",
+        "evalOrGateCoverage": [
+          "pnpm template:workflow-output-smoke",
+          "pnpm check:workflow-semantics",
+          "pnpm stack:check docs/superpowers/plans/manifests/phase-1-wp-1.5-inline-transactions.json"
+        ]
+      },
+      "workPackages": [
+        {
+          "kind": "pattern-instance",
+          "target": "docs/template/generated/workflows/<name>.md",
+          "generatorCommand": "pnpm template:add-workflow -- --name <name> --system <canonical-id> --disposition extend --write",
+          "followUpGates": [
+            "pnpm template:workflow-output-smoke",
+            "pnpm check:workflow-semantics"
+          ]
+        }
+      ],
+      "taskRefs": ["WP-1.5"],
+      "rationale": "Generator defaults and author guidance must preserve the independent posture and surface only named novice presets.",
+      "estLines": 245
+    }
+  ],
+  "allTaskRefs": ["WP-1.5"]
+}

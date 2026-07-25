@@ -1509,6 +1509,8 @@ describe("template app factory generators", () => {
     expect(graph).toContain('kind: "output"');
     expect(graph).not.toContain('kind: "capability"');
     expect(graph).not.toContain('kind: "approval"');
+    expect(registry).toContain("independent Workpool transaction");
+    expect(registry).not.toContain("transactionLimits:");
 
     expect(docs).toContain(
       "packages/convex/confect/workflowRunners/sourceGroundedPlan.ts",
@@ -1521,6 +1523,8 @@ describe("template app factory generators", () => {
     expect(docs).toContain(
       "concrete `buildArgs` and logical instance-key mappers",
     );
+    expect(docs).toContain("`tiny` or `small-atomic`");
+    expect(docs).toContain("reviewed advanced constructor");
     expect(docs).toContain("cycle, depth, and fan-out checks");
     expect(docs).toContain("scheduled children remain rejected");
     expect(spec).toContain("startInteractive");

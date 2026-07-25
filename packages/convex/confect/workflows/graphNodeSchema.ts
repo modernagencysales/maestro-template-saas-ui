@@ -62,13 +62,15 @@ export const WorkflowPayloadPolicy = S.Struct({
 });
 
 export const WorkflowTransactionLimits = S.Struct({
-  bytesRead: S.optional(S.Number),
-  bytesWritten: S.optional(S.Number),
-  databaseQueries: S.optional(S.Number),
-  documentsRead: S.optional(S.Number),
-  documentsWritten: S.optional(S.Number),
-  functionsScheduled: S.optional(S.Number),
-  scheduledFunctionArgsBytes: S.optional(S.Number),
+  bytesRead: S.optional(S.Number.pipe(S.int(), S.greaterThan(0))),
+  bytesWritten: S.optional(S.Number.pipe(S.int(), S.greaterThan(0))),
+  databaseQueries: S.optional(S.Number.pipe(S.int(), S.greaterThan(0))),
+  documentsRead: S.optional(S.Number.pipe(S.int(), S.greaterThan(0))),
+  documentsWritten: S.optional(S.Number.pipe(S.int(), S.greaterThan(0))),
+  functionsScheduled: S.optional(S.Number.pipe(S.int(), S.greaterThan(0))),
+  scheduledFunctionArgsBytes: S.optional(
+    S.Number.pipe(S.int(), S.greaterThan(0)),
+  ),
 });
 
 const WorkflowNodeV2BaseFields = {
@@ -110,6 +112,8 @@ const WorkflowIndependentTransaction = S.Struct({
 
 const WorkflowInlineTransaction = S.Struct({
   kind: S.Literal("inline"),
+  posture: S.Literal("small-atomic"),
+  limitsProfile: S.Literal("tiny", "small-atomic", "reviewed-explicit"),
   limits: WorkflowTransactionLimits,
 });
 

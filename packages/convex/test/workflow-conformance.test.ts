@@ -56,6 +56,11 @@ import {
 import type { WorkflowPrincipal } from "../confect/workflows/_kit/principal";
 import type { WorkflowEffectContract } from "../confect/workflows/_kit/effectReservations";
 import { runObservedWorkflowStage } from "../confect/workflows/_kit/observedStage";
+import {
+  PINNED_INLINE_CONVEX_VERSION,
+  inlineTransactionPreset,
+  reviewedInlineTransaction,
+} from "../confect/workflows/_kit/inlineTransactions";
 
 describe("Maestro workflow rejection fixtures", () => {
   it.each(adversarialWorkflowDrafts)(
@@ -646,7 +651,126 @@ const v2EventGraph = (): DurableWorkflowGraphV2 => ({
   joins: [],
 });
 
-describe("Maestro V2 action retry compiler", () => {
+describe("Maestro V2 inline transaction compiler", () => {
+  it("passes the exact tiny preset only to an inline query", async () => {
+    const runQuery = vi.fn(async () => ({ ok: true }));
+    await runDurableGraphWorkflowV2(v2Step({ runQuery }), {
+      ...v2Input(v2InlineGraph("query", inlineTransactionPreset("tiny"))),
+      convexVersion: PINNED_INLINE_CONVEX_VERSION,
+      capabilityRegistry: {
+        [capabilityRef]: {
+          kind: "query",
+          ref: "inline.query" as unknown as DurableGraphStepRef<"query">,
+          effectClass: "none",
+          transactionPosture: "small-atomic",
+          buildArgs: () => ({ value: 1 }),
+        },
+      },
+      admitEffect: async () => ({ kind: "deny", reason: "not used" }),
+    });
+    expect(runQuery).toHaveBeenCalledWith(
+      expect.anything(),
+      { value: 1 },
+      {
+        name: "charge.v2",
+        inline: true,
+        transactionLimits: { documentsRead: 5, bytesWritten: 100 },
+      },
+    );
+  });
+
+  it("passes reviewed explicit counters only to an inline mutation", async () => {
+    const runMutation = vi.fn(async () => ({ ok: true }));
+    const transaction = reviewedInlineTransaction({
+      bytesRead: 4096,
+      bytesWritten: 2048,
+      databaseQueries: 4,
+      documentsRead: 8,
+      documentsWritten: 3,
+      functionsScheduled: 1,
+      scheduledFunctionArgsBytes: 512,
+    });
+    await runDurableGraphWorkflowV2(v2Step({ runMutation }), {
+      ...v2Input(v2InlineGraph("mutation", transaction)),
+      convexVersion: PINNED_INLINE_CONVEX_VERSION,
+      capabilityRegistry: {
+        [capabilityRef]: {
+          kind: "mutation",
+          ref: "inline.mutation" as unknown as DurableGraphStepRef<"mutation">,
+          effectClass: "none",
+          transactionPosture: "small-atomic",
+          buildArgs: () => ({ value: 1 }),
+        },
+      },
+      admitEffect: async () => ({ kind: "deny", reason: "not used" }),
+    });
+    expect(runMutation).toHaveBeenCalledWith(
+      expect.anything(),
+      { value: 1 },
+      {
+        name: "charge.v2",
+        inline: true,
+        transactionLimits: transaction.limits,
+      },
+    );
+  });
+
+  it("keeps independent capability options free of inline tuning", async () => {
+    const runQuery = vi.fn(async () => ({ ok: true }));
+    await runDurableGraphWorkflowV2(v2Step({ runQuery }), {
+      ...v2Input(v2CapabilityGraph("query")),
+      capabilityRegistry: {
+        [capabilityRef]: {
+          kind: "query",
+          ref: "independent.query" as unknown as DurableGraphStepRef<"query">,
+          effectClass: "none",
+          buildArgs: () => ({ value: 1 }),
+        },
+      },
+      admitEffect: async () => ({ kind: "deny", reason: "not used" }),
+    });
+    expect(runQuery).toHaveBeenCalledWith(
+      expect.anything(),
+      { value: 1 },
+      {
+        name: "charge.v2",
+      },
+    );
+  });
+
+  it("rejects unsupported Convex and missing atomic posture before dispatch", async () => {
+    const runQuery = vi.fn(async () => ({ ok: true }));
+    const graph = v2InlineGraph(
+      "query",
+      inlineTransactionPreset("small-atomic"),
+    );
+    const registry = {
+      [capabilityRef]: {
+        kind: "query" as const,
+        ref: "inline.query" as unknown as DurableGraphStepRef<"query">,
+        effectClass: "none" as const,
+        buildArgs: () => ({ value: 1 }),
+      },
+    };
+    await expect(
+      runDurableGraphWorkflowV2(v2Step({ runQuery }), {
+        ...v2Input(graph),
+        convexVersion: "1.40.9",
+        capabilityRegistry: registry,
+        admitEffect: async () => ({ kind: "deny", reason: "not used" }),
+      }),
+    ).rejects.toThrow("pinned Convex");
+    await expect(
+      runDurableGraphWorkflowV2(v2Step({ runQuery }), {
+        ...v2Input(graph),
+        convexVersion: PINNED_INLINE_CONVEX_VERSION,
+        capabilityRegistry: registry,
+        admitEffect: async () => ({ kind: "deny", reason: "not used" }),
+      }),
+    ).rejects.toThrow("small-atomic");
+    expect(runQuery).not.toHaveBeenCalled();
+  });
+
   it("starts a complete V2 ready wave and waits for its all-successful join", async () => {
     const started: string[] = [];
     const resolvers = new Map<string, (value: unknown) => void>();
@@ -1836,6 +1960,21 @@ const v2CapabilityGraph = (
   ],
   joins: [],
 });
+
+const v2InlineGraph = (
+  functionKind: "query" | "mutation",
+  transaction:
+    | ReturnType<typeof inlineTransactionPreset>
+    | ReturnType<typeof reviewedInlineTransaction>,
+): DurableWorkflowGraphV2 => {
+  const graph = v2CapabilityGraph(functionKind);
+  return {
+    ...graph,
+    nodes: graph.nodes.map((node) =>
+      node.kind === "capability" ? { ...node, transaction } : node,
+    ),
+  };
+};
 
 const v2SubworkflowNode = (maxInputBytes = 1024) => ({
   id: "child",

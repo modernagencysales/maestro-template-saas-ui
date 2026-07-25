@@ -29,6 +29,10 @@ import {
   runRegisteredWorkflowEvent,
   type AnyWorkflowV2EventRegistryEntry,
 } from "./events";
+import {
+  assertInlineTransactionPreflight,
+  PINNED_INLINE_CONVEX_VERSION,
+} from "./inlineTransactions";
 
 type CapabilityNodeV2 = Extract<WorkflowNodeV2, { kind: "capability" }>;
 type CapabilityKindV2 = CapabilityNodeV2["functionKind"];
@@ -46,6 +50,7 @@ type CommonCapabilityEntryV2<Kind extends CapabilityKindV2> = {
   readonly kind: Kind;
   readonly ref: DurableGraphStepRef<Kind>;
   readonly effectClass: Kind extends "action" ? "external" | "none" : "none";
+  readonly transactionPosture?: Kind extends "action" ? never : "small-atomic";
   readonly buildArgs: (
     envelope: WorkflowV2CapabilityEnvelope,
   ) => Record<string, unknown>;
@@ -82,6 +87,7 @@ export type RunDurableGraphV2CompilerInput<
   Result extends Record<string, unknown>,
 > = {
   readonly graph: DurableWorkflowGraphV2;
+  readonly convexVersion: string;
   readonly inputs: unknown;
   readonly principal: unknown;
   readonly policySnapshot: unknown;
@@ -386,19 +392,19 @@ const executeNode = async <Result extends Record<string, unknown>>(
     policySnapshot: input.policySnapshot,
   };
   if (node.functionKind === "query") {
+    const options = capabilityStepOptions(input, node, entry);
     return step.runQuery(
       entry.ref as DurableGraphStepRef<"query">,
       entry.buildArgs(envelope),
-      {
-        name: node.stepName,
-      },
+      options,
     );
   }
   if (node.functionKind === "mutation") {
+    const options = capabilityStepOptions(input, node, entry);
     return step.runMutation(
       entry.ref as DurableGraphStepRef<"mutation">,
       entry.buildArgs(envelope),
-      { name: node.stepName },
+      options,
     );
   }
   return runActionNode(
@@ -408,6 +414,26 @@ const executeNode = async <Result extends Record<string, unknown>>(
     entry as WorkflowV2ActionCapabilityEntry,
     envelope,
   );
+};
+
+const capabilityStepOptions = <Result extends Record<string, unknown>>(
+  input: RunDurableGraphV2CompilerInput<Result>,
+  node: Extract<CapabilityNodeV2, { functionKind: "query" | "mutation" }>,
+  entry: WorkflowV2CapabilityEntry,
+): Readonly<Record<string, unknown>> => {
+  if (node.transaction.kind === "independent") {
+    return { name: node.stepName };
+  }
+  assertInlineTransactionPreflight({
+    convexVersion: input.convexVersion,
+    transaction: node.transaction,
+    capabilityPosture: entry.transactionPosture,
+  });
+  return {
+    name: node.stepName,
+    inline: true,
+    transactionLimits: node.transaction.limits,
+  };
 };
 
 const runActionNode = async <Result extends Record<string, unknown>>(

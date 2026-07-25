@@ -8,6 +8,7 @@ import { isSafeConditionExpression } from "./conditionExpression";
 import type { DurableWorkflowGraphV2 } from "./graphSchema";
 import { generatedWorkflowReadyWaveLimit } from "./_kit/workpoolConfig";
 import { scheduledSubworkflowFinding } from "./_kit/subworkflows";
+import { inlineTransactionFinding } from "./_kit/inlineTransactions";
 
 type ValidationState = {
   readonly errors: WorkflowGraphValidationError[];
@@ -324,6 +325,17 @@ export const validateWorkflowGraphV2 = (
     ...graph.nodes.flatMap((node) => {
       const finding = scheduledSubworkflowFinding(node);
       return finding ? [finding] : [];
+    }),
+    ...graph.nodes.flatMap((node) => {
+      if (
+        node.kind !== "capability" ||
+        node.functionKind === "action" ||
+        node.transaction.kind !== "inline"
+      ) {
+        return [];
+      }
+      const finding = inlineTransactionFinding(node.transaction);
+      return finding === undefined ? [] : [`node ${node.id}: ${finding}`];
     }),
     ...validateReadyWaveBound(graph, generatedWorkflowReadyWaveLimit).map(
       (width) =>
