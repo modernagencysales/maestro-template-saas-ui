@@ -146,6 +146,61 @@ describe("check:agent-pack", () => {
       ]),
     );
   });
+  it("enforces closed discriminated verification receipt scopes", async () => {
+    for (const scope of [
+      { kind: "full", changedPaths: [], partial: false },
+      {
+        kind: "focused",
+        changedPaths: ["tooling/agent-pack/src/receipt.ts"],
+        partial: true,
+      },
+    ]) {
+      const fixtureRoot = await integratedFixture();
+      const passPath = join(
+        fixtureRoot,
+        "docs/template/examples/receipts/pass.json",
+      );
+      const pass = JSON.parse(await readFile(passPath, "utf8"));
+      pass.scope = scope;
+      await writeFile(passPath, JSON.stringify(pass));
+
+      await expect(checkAgentPack(fixtureRoot)).resolves.not.toEqual(
+        expect.arrayContaining([
+          expect.stringContaining(
+            "verification-receipt:invalid-example:pass.json",
+          ),
+        ]),
+      );
+    }
+
+    for (const scope of [
+      { kind: "full", changedPaths: [], partial: true },
+      { kind: "focused", changedPaths: [], partial: false },
+      {
+        kind: "full",
+        changedPaths: ["tooling/agent-pack/src/receipt.ts"],
+        partial: false,
+      },
+      { kind: "full", changedPaths: [], partial: false, extra: true },
+    ]) {
+      const fixtureRoot = await integratedFixture();
+      const passPath = join(
+        fixtureRoot,
+        "docs/template/examples/receipts/pass.json",
+      );
+      const pass = JSON.parse(await readFile(passPath, "utf8"));
+      pass.scope = scope;
+      await writeFile(passPath, JSON.stringify(pass));
+
+      await expect(checkAgentPack(fixtureRoot)).resolves.toEqual(
+        expect.arrayContaining([
+          expect.stringContaining(
+            "verification-receipt:invalid-example:pass.json",
+          ),
+        ]),
+      );
+    }
+  });
   it("requires onboarding and operator docs to link canonical guidance", async () => {
     const fixtureRoot = await integratedFixture();
     const quickstartPath = join(fixtureRoot, "docs/template/quickstart.md");

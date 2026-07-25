@@ -239,6 +239,14 @@ function validateJsonSchema(
 ): readonly string[] {
   const schema = record(rawSchema);
   const errors: string[] = [];
+  if (Array.isArray(schema.oneOf)) {
+    const matches = schema.oneOf.filter(
+      (candidate) => validateJsonSchema(value, candidate, path).length === 0,
+    ).length;
+    if (matches !== 1) {
+      errors.push(`${path} must match exactly one oneOf schema`);
+    }
+  }
   if ("const" in schema && !jsonEqual(value, schema.const)) {
     errors.push(`${path} must equal the schema constant`);
   }
@@ -272,6 +280,9 @@ function validateJsonSchema(
     }
   } else if (schema.type === "array") {
     if (!Array.isArray(value)) return [...errors, `${path} must be an array`];
+    if (typeof schema.maxItems === "number" && value.length > schema.maxItems) {
+      errors.push(`${path} has more than maxItems`);
+    }
     value.forEach((item, index) => {
       errors.push(
         ...validateJsonSchema(item, schema.items, `${path}[${index}]`),

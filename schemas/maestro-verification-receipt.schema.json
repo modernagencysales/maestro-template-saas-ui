@@ -48,8 +48,17 @@
       "type": "object",
       "additionalProperties": false,
       "required": ["kind", "changedPaths", "partial"],
+      "properties": {
+        "kind": { "enum": ["full", "focused"] },
+        "changedPaths": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "partial": { "type": "boolean" }
+      },
       "oneOf": [
         {
+          "type": "object",
           "properties": {
             "kind": { "const": "full" },
             "changedPaths": { "type": "array", "maxItems": 0 },
@@ -57,6 +66,7 @@
           }
         },
         {
+          "type": "object",
           "properties": {
             "kind": { "const": "focused" },
             "changedPaths": {
