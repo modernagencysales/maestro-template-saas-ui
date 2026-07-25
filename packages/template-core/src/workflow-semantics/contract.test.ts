@@ -49,6 +49,53 @@ describe("workflow semantics contract", () => {
     );
   });
 
+  it("registers every accepted V2 field without enabling action retry", () => {
+    expect(WORKFLOW_SCHEMA_FIELDS.graphV2).toEqual(
+      expect.arrayContaining([
+        "schemaVersion",
+        "argsSchemaName",
+        "returnSchemaName",
+        "principalSchemaName",
+        "policyPosture",
+        "kickoffProfiles",
+        "unstableArgs",
+      ]),
+    );
+    expect(WORKFLOW_SCHEMA_FIELDS.nodeV2).toEqual(
+      expect.arrayContaining([
+        "stepName",
+        "payloadPolicy",
+        "semanticRuleIds",
+        "functionKind",
+        "schedule",
+        "transaction",
+        "eventDefinition",
+        "workflow",
+        "childVersion",
+      ]),
+    );
+    expect(WORKFLOW_GRAPH_FIELDS).toEqual(
+      expect.arrayContaining([
+        "nodes[].retry.initialBackoffMs",
+        "nodes[].transaction.limits.scheduledFunctionArgsBytes",
+        "kickoffProfiles[].mode",
+        "policyPosture.policyHash",
+      ]),
+    );
+
+    for (const id of [
+      "WF-NODE-RETRY",
+      "WF-RETRY-ATTEMPTS",
+      "WF-RETRY-INITIAL-BACKOFF",
+      "WF-RETRY-BASE",
+      "WF-STEP-ACTION",
+    ]) {
+      expect(WORKFLOW_SEMANTICS.find((rule) => rule.id === id)?.status).toBe(
+        "intentionally-restricted",
+      );
+    }
+  });
+
   it("requires mappings and fixtures for support and repairs for every rule", () => {
     expect(validateWorkflowSemantics(WORKFLOW_SEMANTICS)).toEqual([]);
   });

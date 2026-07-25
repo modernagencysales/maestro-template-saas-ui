@@ -480,12 +480,9 @@ tester.run("workflow-handler-determinism", workflowHandlerDeterminism, {
 tester.run("no-raw-workflow-primitives", noRawWorkflowPrimitives, {
   valid: [
     {
-      filename: GENERATED_RUNNER,
-      code: 'import { defineWorkflow as defineMaestroWorkflow } from "@convex-dev/workflow";',
-    },
-    {
-      filename: "packages/convex/test/workflow-conformance.test.ts",
-      code: 'import { WorkflowManager } from "@convex-dev/workflow";',
+      filename:
+        "packages/convex/confect/workflows/_kit/defineMaestroWorkflow.ts",
+      code: 'import { WorkflowManager } from "@convex-dev/workflow"; const manager = new WorkflowManager(c);',
     },
     {
       filename: CAP,
@@ -500,6 +497,12 @@ tester.run("no-raw-workflow-primitives", noRawWorkflowPrimitives, {
     },
     {
       filename: PROJECTED_RUNNER,
+      code: 'import { WorkflowManager } from "@convex-dev/workflow"; const manager = new WorkflowManager(c);',
+      errors: [{ messageId: "raw" }, { messageId: "manager" }],
+    },
+    {
+      filename:
+        "packages/convex/confect/workflows/_kit/defineMaestroWorkflow.test.ts",
       code: 'import { WorkflowManager } from "@convex-dev/workflow"; const manager = new WorkflowManager(c);',
       errors: [{ messageId: "raw" }, { messageId: "manager" }],
     },

@@ -1,10 +1,6 @@
 const RAW_WORKFLOW = "@convex-dev/workflow";
-const GENERATED_RUNNER =
-  /packages\/convex\/confect\/workflowRunners\/[A-Za-z][A-Za-z0-9]*\.ts$/;
-const COMPATIBILITY_FIXTURE =
-  /packages\/convex\/test\/workflow-conformance(?:-helpers)?\.test\.ts$/;
-const WORKFLOW_KIT =
-  /packages\/convex\/confect\/workflows\/_kit\/(?:ownership|status)\.ts$/;
+const WORKFLOW_DEFINITION_BOUNDARY =
+  /packages\/convex\/confect\/workflows\/_kit\/defineMaestroWorkflow\.ts$/;
 
 export default {
   meta: {
@@ -25,10 +21,7 @@ export default {
       /\\/g,
       "/",
     );
-    const allowed =
-      GENERATED_RUNNER.test(filename) ||
-      COMPATIBILITY_FIXTURE.test(filename) ||
-      WORKFLOW_KIT.test(filename);
+    const allowed = WORKFLOW_DEFINITION_BOUNDARY.test(filename);
     return {
       ImportDeclaration(node) {
         if (!allowed && node.source.value === RAW_WORKFLOW) {
