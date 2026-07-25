@@ -90,7 +90,6 @@ describe("workflow effect reservation capabilities", () => {
           logicalEffectKey: input.logicalEffectKey,
           event: {
             kind: "ambiguous",
-            strategy: "durable-ledger-and-reconcile",
           },
           occurredAt: now + 2,
         },
@@ -127,6 +126,26 @@ describe("workflow effect reservation capabilities", () => {
       providerCorrelationHash: "sha256:provider-1",
     });
     expect(JSON.stringify(result.history)).not.toContain("providerPayload");
+  });
+
+  it("rejects a reservation whose dedupe horizon does not cover restart safety", async () => {
+    const program = Effect.gen(function* () {
+      const confect = yield* Effect.serviceOptional(
+        TestConfect.TestConfect<typeof databaseSchema>(),
+      );
+      const seeded = yield* confect.run(seedTenancy(now), SeededTenancy);
+      return yield* confect.mutation(
+        refs.internal.workflows.effectReservations.reserve,
+        {
+          ...reserveInput(seeded.workspaceId),
+          dedupeExpiresAt: now + 9_999,
+          restartSafeUntil: now + 10_000,
+        },
+      );
+    });
+    await expect(
+      Effect.runPromise(program.pipe(Effect.provide(testConfectLayer()))),
+    ).rejects.toThrow(/cover the complete restart-safe window/);
   });
 });
 

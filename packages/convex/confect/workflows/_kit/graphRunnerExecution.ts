@@ -140,7 +140,7 @@ const runGraphNode = (
     label: node.label,
     kind: node.kind,
     stageKey: node.id,
-    attemptNumber: 1,
+    attemptNumber: "unknown",
     order: state.order,
     run: () => executeAndValidateNode(step, state, node),
   });

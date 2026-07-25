@@ -31,6 +31,7 @@ const reserve = FunctionImpl.make(
   "reserve",
   (input) =>
     Effect.gen(function* () {
+      yield* validateReservationHorizon(input);
       const existing = yield* readLatest(
         input.workspaceId,
         input.logicalEffectKey,
@@ -96,6 +97,7 @@ const transition = FunctionImpl.make(
       const transitioned = transitionWorkflowEffectState(
         stateFrom(existing),
         event as WorkflowEffectTransition,
+        existing.strategy,
       );
       if (transitioned._tag === "Left") {
         return yield* new ValidationFailed({
@@ -175,6 +177,22 @@ const guardsFrom = (input: {
 
 const deniedGuard = (guards: WorkflowEffectGuardResults): boolean =>
   Object.values(guards).includes("denied");
+
+const validateReservationHorizon = (input: ReserveInput) =>
+  Number.isFinite(input.occurredAt) &&
+  Number.isFinite(input.restartSafeUntil) &&
+  Number.isFinite(input.dedupeExpiresAt) &&
+  input.occurredAt >= 0 &&
+  input.restartSafeUntil >= input.occurredAt &&
+  input.dedupeExpiresAt >= input.restartSafeUntil
+    ? Effect.void
+    : Effect.fail(
+        new ValidationFailed({
+          field: "dedupeExpiresAt",
+          message:
+            "Reservation horizons must be finite, nonnegative, and cover the complete restart-safe window.",
+        }),
+      );
 
 const stateFrom = (row: {
   readonly state: WorkflowEffectState["state"];

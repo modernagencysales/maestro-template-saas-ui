@@ -1,16 +1,25 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { isNonRetryableError } from "@convex-dev/workpool";
+import * as Schema from "effect/Schema";
 import {
   conformanceApi,
   createWorkflowHarness,
 } from "./helpers/workflowHarness";
 import { adversarialWorkflowDrafts } from "./fixtures/workflows/adversarial";
 import { findWorkflowConformanceIssues } from "./fixtures/workflows/conformanceChecks";
-import type { DurableWorkflowGraph } from "../confect/workflows/graph";
+import {
+  WorkflowCapabilityReference,
+  type DurableWorkflowGraph,
+  type DurableWorkflowGraphV2,
+} from "../confect/workflows/graph";
 import {
   runDurableGraphWorkflow,
+  runDurableGraphWorkflowV2,
   type DurableGraphStepRef,
   type RunDurableGraphStep,
 } from "../confect/workflows/_kit/graphRunner";
+import type { WorkflowEffectContract } from "../confect/workflows/_kit/effectReservations";
+import { runObservedWorkflowStage } from "../confect/workflows/_kit/observedStage";
 
 describe("Maestro workflow rejection fixtures", () => {
   it.each(adversarialWorkflowDrafts)(
@@ -82,6 +91,224 @@ describe("Maestro workflow compiler mapping", () => {
     expect(awaitEvent.mock.calls).toEqual([
       [{ name: "compiler-mapping.approval.approved" }],
     ]);
+  });
+});
+
+describe("Maestro V2 action retry compiler", () => {
+  it("passes the stable name and exact explicit retry options", async () => {
+    const actionRef =
+      "compiler.v2.action" as unknown as DurableGraphStepRef<"action">;
+    const runAction = vi.fn(async () => ({ accepted: true }));
+    const admitEffect = vi.fn(async () => ({ kind: "dispatch" as const }));
+    const graph = v2CapabilityGraph("action", {
+      maxAttempts: 4,
+      initialBackoffMs: 125,
+      base: 2,
+    });
+
+    await runDurableGraphWorkflowV2(v2Step({ runAction }), {
+      ...v2Input(graph),
+      capabilityRegistry: {
+        [capabilityRef]: {
+          kind: "action",
+          ref: actionRef,
+          effectClass: "external",
+          effectContract: providerNativeContract,
+          instanceKey: () => "invoice-42",
+          buildArgs: ({ logicalEffectKey }) => ({ logicalEffectKey }),
+        },
+      },
+      admitEffect,
+    });
+
+    expect(runAction).toHaveBeenCalledWith(
+      actionRef,
+      { logicalEffectKey: expect.stringContaining("effect.v1") },
+      {
+        name: "charge.v2",
+        retry: { maxAttempts: 4, initialBackoffMs: 125, base: 2 },
+      },
+    );
+    expect(admitEffect).toHaveBeenCalledBefore(runAction);
+  });
+
+  it("uses retry false for a non-retriable action", async () => {
+    const runAction = vi.fn(async () => ({ accepted: true }));
+    const graph = v2CapabilityGraph("action");
+    await runDurableGraphWorkflowV2(v2Step({ runAction }), {
+      ...v2Input(graph),
+      capabilityRegistry: {
+        [capabilityRef]: {
+          kind: "action",
+          ref: "compiler.v2.action" as unknown as DurableGraphStepRef<"action">,
+          effectClass: "external",
+          effectContract: nonRetriableContract,
+          instanceKey: () => "invoice-42",
+          buildArgs: () => ({}),
+        },
+      },
+      admitEffect: async () => ({ kind: "dispatch" }),
+    });
+    expect(runAction).toHaveBeenCalledWith(
+      expect.anything(),
+      {},
+      { name: "charge.v2", retry: false },
+    );
+  });
+
+  it("rejects an unsafe dedupe horizon before provider dispatch", async () => {
+    const runAction = vi.fn(async () => ({ accepted: true }));
+    const graph = v2CapabilityGraph("action", {
+      maxAttempts: 2,
+      initialBackoffMs: 1,
+      base: 2,
+    });
+    const unsafe = { ...providerNativeContract, dedupeRetentionMs: 199 };
+    await expect(
+      runDurableGraphWorkflowV2(v2Step({ runAction }), {
+        ...v2Input(graph),
+        capabilityRegistry: {
+          [capabilityRef]: {
+            kind: "action",
+            ref: "compiler.v2.action" as unknown as DurableGraphStepRef<"action">,
+            effectClass: "external",
+            effectContract: unsafe,
+            instanceKey: () => "invoice-42",
+            buildArgs: () => ({}),
+          },
+        },
+        admitEffect: async () => ({ kind: "dispatch" }),
+      }),
+    ).rejects.toThrow(
+      /charge.*capability\.billingCharge\.v2.*dedupeRetentionMs/s,
+    );
+    expect(runAction).not.toHaveBeenCalled();
+  });
+
+  it("keeps action retry options off queries and mutations", async () => {
+    const runQuery = vi.fn(async () => ({ ok: true }));
+    const graph = v2CapabilityGraph("query");
+    await runDurableGraphWorkflowV2(v2Step({ runQuery }), {
+      ...v2Input(graph),
+      capabilityRegistry: {
+        [capabilityRef]: {
+          kind: "query",
+          ref: "compiler.v2.query" as unknown as DurableGraphStepRef<"query">,
+          effectClass: "none",
+          buildArgs: () => ({}),
+        },
+      },
+      admitEffect: async () => ({ kind: "deny", reason: "not used" }),
+    });
+    expect(runQuery).toHaveBeenCalledWith(
+      expect.anything(),
+      {},
+      { name: "charge.v2" },
+    );
+    expect(runQuery).not.toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      expect.objectContaining({ retry: expect.anything() }),
+    );
+  });
+
+  it("does not call the provider after admission denial", async () => {
+    const runAction = vi.fn(async () => ({ accepted: true }));
+    await expect(
+      runDurableGraphWorkflowV2(v2Step({ runAction }), {
+        ...v2Input(v2CapabilityGraph("action")),
+        capabilityRegistry: {
+          [capabilityRef]: {
+            kind: "action",
+            ref: "compiler.v2.action" as unknown as DurableGraphStepRef<"action">,
+            effectClass: "external",
+            effectContract: nonRetriableContract,
+            instanceKey: () => "invoice-42",
+            buildArgs: () => ({}),
+          },
+        },
+        admitEffect: async () => ({
+          kind: "deny",
+          reason: "spend kill switch",
+        }),
+      }),
+    ).rejects.toThrow(/spend kill switch/);
+    expect(runAction).not.toHaveBeenCalled();
+  });
+
+  it("maps declared terminal failures to the pinned non-retryable error", async () => {
+    const providerFailure = new Error("provider secret payload");
+    const runAction = vi.fn(async () => Promise.reject(providerFailure));
+    const promise = runDurableGraphWorkflowV2(v2Step({ runAction }), {
+      ...v2Input(v2CapabilityGraph("action")),
+      capabilityRegistry: {
+        [capabilityRef]: {
+          kind: "action",
+          ref: "compiler.v2.action" as unknown as DurableGraphStepRef<"action">,
+          effectClass: "external",
+          effectContract: nonRetriableContract,
+          instanceKey: () => "invoice-42",
+          buildArgs: () => ({}),
+          terminalError: (error) =>
+            error === providerFailure
+              ? "redacted terminal provider failure"
+              : undefined,
+        },
+      },
+      admitEffect: async () => ({ kind: "dispatch" }),
+    });
+    await expect(promise).rejects.toSatisfy(isNonRetryableError);
+    await expect(promise).rejects.not.toThrow(/secret payload/);
+  });
+
+  it("replays a provider-native ambiguity with the identical logical key", async () => {
+    const runAction = vi.fn(
+      async (_ref: unknown, args: Record<string, unknown>) => args,
+    );
+    await runDurableGraphWorkflowV2(v2Step({ runAction }), {
+      ...v2Input(
+        v2CapabilityGraph("action", {
+          maxAttempts: 2,
+          initialBackoffMs: 1,
+          base: 2,
+        }),
+      ),
+      capabilityRegistry: {
+        [capabilityRef]: {
+          kind: "action",
+          ref: "compiler.v2.action" as unknown as DurableGraphStepRef<"action">,
+          effectClass: "external",
+          effectContract: providerNativeContract,
+          instanceKey: () => "invoice-42",
+          buildArgs: ({ logicalEffectKey }) => ({ logicalEffectKey }),
+        },
+      },
+      admitEffect: async () => ({ kind: "replay-provider-key" }),
+    });
+    expect(runAction).toHaveBeenCalledWith(
+      expect.anything(),
+      { logicalEffectKey: expect.stringContaining("effect.v1") },
+      expect.objectContaining({ name: "charge.v2" }),
+    );
+  });
+
+  it("omits an attempt count when the pinned component cannot prove it", async () => {
+    const recordStageStarted =
+      "observe.started" as unknown as DurableGraphStepRef<"mutation">;
+    const runMutation = vi.fn(async () => undefined);
+    await runObservedWorkflowStage({
+      step: { runMutation },
+      refs: { recordStageStarted },
+      nodeId: "charge",
+      label: "Charge",
+      kind: "capability",
+      attemptNumber: "unknown",
+      run: async () => ({ ok: true }),
+    });
+    expect(runMutation).toHaveBeenCalledWith(
+      recordStageStarted,
+      expect.not.objectContaining({ attemptNumber: expect.anything() }),
+    );
   });
 });
 
@@ -369,6 +596,140 @@ const compilerMappingGraph = (): DurableWorkflowGraph => {
     joins: [],
   };
 };
+
+const capabilityRef = Schema.decodeSync(WorkflowCapabilityReference)(
+  "capability.billingCharge.v2",
+);
+
+const guards = {
+  approval: { kind: "required", evidenceRef: "approval.fixture" },
+  quotaRate: { kind: "required", evidenceRef: "quota.fixture" },
+  spendKillSwitch: { kind: "required", evidenceRef: "spend.fixture" },
+} as const;
+
+const providerNativeContract = {
+  strategy: "provider-native",
+  effectClass: "external",
+  keyArgumentPath: "logicalEffectKey",
+  providerEvidenceRef: "provider.fixture",
+  duplicateDeliveryFixtureRef: "provider.duplicate.fixture",
+  ambiguityResolution: { kind: "exact-provider-key-replay" },
+  dedupeRetentionMs: 200,
+  maxRetryWindowMs: 100,
+  maxRestartWindowMs: 100,
+  redactionPolicyRef: "redaction.fixture",
+  guards,
+} satisfies WorkflowEffectContract;
+
+const nonRetriableContract = {
+  strategy: "non-retriable",
+  effectClass: "external",
+  reason: "provider has no safe dedupe contract",
+  ambiguousOutcome: "manual-review",
+  redactionPolicyRef: "redaction.fixture",
+  guards,
+} satisfies WorkflowEffectContract;
+
+const v2CapabilityGraph = (
+  functionKind: "action" | "query" | "mutation",
+  retry?: { maxAttempts: number; initialBackoffMs: number; base: number },
+): DurableWorkflowGraphV2 => ({
+  schemaVersion: 2,
+  id: "compiler-v2",
+  version: 2,
+  startNodeId: "source",
+  argsSchemaName: "compiler.v2.args",
+  returnSchemaName: "compiler.v2.returns",
+  principalSchemaName: "workflow.principal.v1",
+  policyPosture: { kind: "none", reason: "fixture" },
+  kickoffProfiles: [{ name: "queued", mode: "queued", default: true }],
+  unstableArgs: { enabled: false },
+  nodes: [
+    {
+      id: "source",
+      kind: "source",
+      label: "Source",
+      stepName: "start.v2",
+      payloadPolicy,
+      semanticRuleIds: [],
+    },
+    functionKind === "action"
+      ? {
+          id: "charge",
+          kind: "capability",
+          functionKind,
+          capability: capabilityRef,
+          label: "Charge",
+          stepName: "charge.v2",
+          payloadPolicy,
+          semanticRuleIds: [],
+          ...(retry ? { retry } : {}),
+        }
+      : {
+          id: "charge",
+          kind: "capability",
+          functionKind,
+          capability: capabilityRef,
+          label: "Read charge",
+          stepName: "charge.v2",
+          payloadPolicy,
+          semanticRuleIds: [],
+          transaction: { kind: "independent" },
+        },
+    {
+      id: "output",
+      kind: "output",
+      label: "Output",
+      stepName: "output.v2",
+      payloadPolicy,
+      semanticRuleIds: [],
+    },
+  ],
+  edges: [
+    { id: "source-charge", sourceNodeId: "source", targetNodeId: "charge" },
+    { id: "charge-output", sourceNodeId: "charge", targetNodeId: "output" },
+  ],
+  joins: [],
+});
+
+const payloadPolicy = {
+  maxInputBytes: 1024,
+  maxResultBytes: 1024,
+  resultMode: "inline",
+} as const;
+
+const v2Input = (graph: DurableWorkflowGraphV2) => ({
+  graph,
+  inputs: { workspaceId: "workspace-1" },
+  principal: { kind: "system" },
+  policySnapshot: { kind: "none" },
+  effectIdentity: {
+    workspaceId: "workspace-1",
+    workflowRunId: "run-1",
+    generation: 0,
+  },
+  projectOutput: ({
+    context,
+  }: {
+    context: Readonly<Record<string, unknown>>;
+  }) => ({
+    status: "completed",
+    context,
+  }),
+});
+
+const v2Step = (
+  overrides: Partial<RunDurableGraphStep>,
+): RunDurableGraphStep => ({
+  runQuery: async () => undefined,
+  runMutation: async () => undefined,
+  runAction: async () => undefined,
+  sleep: async () => undefined,
+  awaitEvent: async () => {
+    throw new Error("V2 capability fixture does not await events.");
+  },
+  ...overrides,
+});
 
 const completedMutationStep = (name: string) => ({
   kind: "function" as const,

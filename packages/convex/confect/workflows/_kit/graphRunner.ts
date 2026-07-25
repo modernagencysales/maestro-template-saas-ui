@@ -14,6 +14,17 @@ import {
 } from "./graphRunnerExecution";
 import { preflightCapabilityRegistry } from "./graphRunnerNodes";
 import { type ObservedWorkflowStageRefs } from "./observedStage";
+import {
+  runCompiledDurableGraphWorkflowV2,
+  type RunDurableGraphV2CompilerInput,
+} from "./graphRunnerV2";
+
+export type {
+  WorkflowEffectAdmission,
+  WorkflowV2ActionCapabilityEntry,
+  WorkflowV2CapabilityEntry,
+  WorkflowV2CapabilityEnvelope,
+} from "./graphRunnerV2";
 
 export type DurableGraphStepKind = "query" | "mutation" | "action";
 
@@ -97,8 +108,15 @@ export type RunDurableGraphV2Input<
   readonly inputs: unknown;
   readonly principal: unknown;
   readonly policySnapshot: unknown;
-  readonly projectOutput: () => Result;
-};
+  readonly projectOutput: (input: {
+    readonly context: Readonly<Record<string, unknown>>;
+  }) => Result;
+} & Partial<
+  Omit<
+    RunDurableGraphV2CompilerInput<Result>,
+    "graph" | "inputs" | "principal" | "policySnapshot" | "projectOutput"
+  >
+>;
 
 /**
  * V2 bootstrap runner. WP-1.2+ add executable node compilers serially; WP-1.1
@@ -107,7 +125,7 @@ export type RunDurableGraphV2Input<
 export const runDurableGraphWorkflowV2 = async <
   Result extends Record<string, unknown>,
 >(
-  _step: RunDurableGraphStep,
+  step: RunDurableGraphStep,
   input: RunDurableGraphV2Input<Result>,
 ): Promise<Result> => {
   const findings = validateWorkflowGraphV2(input.graph);
@@ -121,12 +139,30 @@ export const runDurableGraphWorkflowV2 = async <
   const executable = input.graph.nodes.filter(
     (node) => node.kind !== "source" && node.kind !== "output",
   );
-  if (executable.length > 0) {
+  if (
+    executable.length > 0 &&
+    (!input.capabilityRegistry || !input.effectIdentity || !input.admitEffect)
+  ) {
     throw makePublicError(
       "VALIDATION_FAILED",
       "Workflow graph V2 contains a node whose compiler is not enabled yet.",
       { nodeIds: executable.map(({ id }) => id).join(",") },
     );
   }
-  return input.projectOutput();
+  if (executable.length === 0) return input.projectOutput({ context: {} });
+  const capabilityRegistry = input.capabilityRegistry;
+  const effectIdentity = input.effectIdentity;
+  const admitEffect = input.admitEffect;
+  if (!capabilityRegistry || !effectIdentity || !admitEffect) {
+    throw makePublicError(
+      "VALIDATION_FAILED",
+      "Workflow graph V2 executable compiler inputs are incomplete.",
+    );
+  }
+  return runCompiledDurableGraphWorkflowV2(step, {
+    ...input,
+    capabilityRegistry,
+    effectIdentity,
+    admitEffect,
+  });
 };

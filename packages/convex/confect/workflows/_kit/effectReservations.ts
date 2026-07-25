@@ -47,6 +47,14 @@ export const ProviderNativeEffectContract = Schema.Struct({
   keyArgumentPath: Schema.NonEmptyString,
   providerEvidenceRef: Schema.NonEmptyString,
   duplicateDeliveryFixtureRef: Schema.NonEmptyString,
+  ambiguityResolution: Schema.Union(
+    Schema.Struct({ kind: Schema.Literal("exact-provider-key-replay") }),
+    Schema.Struct({
+      kind: Schema.Literal("provider-status-reconciliation"),
+      capabilityRef: WorkflowCapabilityReference,
+      fixtureRef: Schema.NonEmptyString,
+    }),
+  ),
 });
 
 export const DurableLedgerEffectContract = Schema.Struct({
@@ -102,6 +110,11 @@ export const validateWorkflowEffectContract = (
     );
   }
   const contract = decoded.right;
+  if (retry !== undefined && !validRetry(retry)) {
+    return Either.left(
+      new WorkflowEffectContractError({ issue: "invalid action retry policy" }),
+    );
+  }
   if (contract.strategy === "non-retriable") {
     return retry !== undefined && retry.maxAttempts > 1
       ? Either.left(
@@ -113,6 +126,19 @@ export const validateWorkflowEffectContract = (
   }
   const requiredRetention =
     contract.maxRetryWindowMs + contract.maxRestartWindowMs;
+  if (
+    ![
+      contract.dedupeRetentionMs,
+      contract.maxRetryWindowMs,
+      contract.maxRestartWindowMs,
+    ].every((value) => Number.isFinite(value) && value >= 0)
+  ) {
+    return Either.left(
+      new WorkflowEffectContractError({
+        issue: "retry and dedupe horizons must be finite and nonnegative",
+      }),
+    );
+  }
   if (contract.dedupeRetentionMs < requiredRetention) {
     return Either.left(
       new WorkflowEffectContractError({
@@ -120,19 +146,17 @@ export const validateWorkflowEffectContract = (
       }),
     );
   }
-  if (
-    retry !== undefined &&
-    (!Number.isInteger(retry.maxAttempts) ||
-      retry.maxAttempts < 1 ||
-      retry.initialBackoffMs < 0 ||
-      retry.base < 1)
-  ) {
-    return Either.left(
-      new WorkflowEffectContractError({ issue: "invalid action retry policy" }),
-    );
-  }
   return Either.right(contract);
 };
+
+const validRetry = (retry: WorkflowActionRetry): boolean =>
+  Number.isFinite(retry.maxAttempts) &&
+  Number.isInteger(retry.maxAttempts) &&
+  retry.maxAttempts >= 1 &&
+  Number.isFinite(retry.initialBackoffMs) &&
+  retry.initialBackoffMs >= 0 &&
+  Number.isFinite(retry.base) &&
+  retry.base >= 1;
 
 export const LogicalEffectKey = Schema.NonEmptyString.pipe(
   Schema.brand("LogicalEffectKey"),
@@ -184,7 +208,6 @@ export type WorkflowEffectTransition =
   | { readonly kind: "confirmed" }
   | {
       readonly kind: "ambiguous";
-      readonly strategy: WorkflowEffectStrategyType;
     }
   | { readonly kind: "reconciled-confirmed" }
   | { readonly kind: "manual-review" }
@@ -200,8 +223,26 @@ export class WorkflowEffectTransitionError extends Data.TaggedError(
 export const transitionWorkflowEffectState = (
   current: WorkflowEffectState,
   event: WorkflowEffectTransition,
+  ambiguityStrategy?: WorkflowEffectStrategyType,
 ): Either.Either<WorkflowEffectState, WorkflowEffectTransitionError> => {
-  const next = transitionTable[current.state]?.[event.kind]?.(event);
+  if (event.kind === "ambiguous" && ambiguityStrategy === undefined) {
+    return Either.left(
+      new WorkflowEffectTransitionError({
+        state: current.state,
+        event: event.kind,
+      }),
+    );
+  }
+  const next = transitionTable[current.state]?.[event.kind]?.(
+    event.kind === "ambiguous"
+      ? {
+          ...event,
+          ...(ambiguityStrategy === undefined
+            ? {}
+            : { strategy: ambiguityStrategy }),
+        }
+      : event,
+  );
   return next === undefined
     ? Either.left(
         new WorkflowEffectTransitionError({
@@ -213,7 +254,9 @@ export const transitionWorkflowEffectState = (
 };
 
 type TransitionResolver = (
-  event: WorkflowEffectTransition,
+  event: WorkflowEffectTransition & {
+    readonly strategy?: WorkflowEffectStrategyType;
+  },
 ) => WorkflowEffectState;
 
 const transitionTable: Partial<

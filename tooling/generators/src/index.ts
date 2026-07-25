@@ -2871,6 +2871,19 @@ export const ${name}Graph = Either.getOrThrow(defineWorkflowGraphV2({
 `,
     },
     {
+      path: `packages/convex/confect/workflows/${name}.registry.ts`,
+      content: `import { defineWorkflowCapabilityRegistry } from "./_kit/graphRunnerV2";
+
+/**
+ * Generated typed capability registry. Add entries only through generated
+ * internal refs. External actions must declare effect strategy, effect class,
+ * logical instance-key mapping, dedupe/restart horizons, guard postures,
+ * redaction policy, and provider/reconciliation fixture evidence.
+ */
+export const ${name}CapabilityRegistry = defineWorkflowCapabilityRegistry({});
+`,
+    },
+    {
       path: `packages/convex/confect/workflowRunners/${name}.ts`,
       content: `import { defineMaestroWorkflow } from "../workflows/_kit/defineMaestroWorkflow";
 import { v } from "convex/values";
@@ -3069,6 +3082,7 @@ Canonical system: \`${options.system}\` (\`${options.disposition}\`).
 - \`packages/convex/confect/workflowContracts/${name}.spec.ts\`: typed start, status, and approval contract.
 - \`packages/convex/confect/workflowContracts/${name}.impl.ts\`: Confect implementation that records workflow ownership and projects component status.
 - \`packages/convex/confect/workflows/${name}.graph.ts\`: durable graph data, initially source to Trust Receipt output only.
+- \`packages/convex/confect/workflows/${name}.registry.ts\`: generated typed capability metadata and internal refs; external actions require effect, horizon, guard, redaction, and fixture evidence.
 - \`packages/convex/test/${name}.workflow.test.ts\`: focused runner scaffold for the default graph.
 
 ## Required Follow-Up
@@ -3078,7 +3092,7 @@ Canonical system: \`${options.system}\` (\`${options.disposition}\`).
 3. Preserve the authenticated handler's server-derived principal projection when specializing start behavior.
 4. Keep React Flow as a projection of \`${name}.graph.ts\`; do not persist canvas node state as the workflow contract.
 5. Generated approval nodes require the generated \`workflowContracts.${name}.approve\` mutation before they are usable.
-6. Generated capability nodes require registry entries with concrete \`buildArgs\` mappers for the target internal capability ref.
+6. Generated capability nodes require registry entries with generated internal refs, concrete \`buildArgs\` and logical instance-key mappers, and complete effect/guard/redaction/evidence contracts.
 7. Run \`pnpm check:workflow:fast\`, \`pnpm check:confect-contracts\`, and focused workflow tests.
 `,
     },

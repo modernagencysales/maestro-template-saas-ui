@@ -1157,6 +1157,7 @@ describe("template app factory generators", () => {
       "packages/convex/confect/workflowContracts/sourceGroundedPlan.spec.ts",
       "packages/convex/confect/workflowContracts/sourceGroundedPlan.impl.ts",
       "packages/convex/confect/workflows/sourceGroundedPlan.graph.ts",
+      "packages/convex/confect/workflows/sourceGroundedPlan.registry.ts",
       "packages/convex/confect/workflowRunners/sourceGroundedPlan.ts",
       "packages/convex/confect/workflowRunners/sourceGroundedPlan.spec.ts",
       "packages/convex/confect/workflowRunners/sourceGroundedPlan.impl.ts",
@@ -1165,17 +1166,25 @@ describe("template app factory generators", () => {
       "docs/template/generated/workflows/sourceGroundedPlan.md",
       "docs/template/generated/provenance/add-workflow/sourceGroundedPlan.json",
     ]);
-    expect(generated.files[3]?.path).toBe(
+    expect(generated.files[4]?.path).toBe(
       "packages/convex/confect/workflowRunners/sourceGroundedPlan.ts",
     );
     const spec = generated.files[0]?.content ?? "";
     const impl = generated.files[1]?.content ?? "";
     const graph = generated.files[2]?.content ?? "";
-    const convexWorkflow = generated.files[3]?.content ?? "";
-    const runnerSpec = generated.files[4]?.content ?? "";
-    const runnerImpl = generated.files[5]?.content ?? "";
-    const semantics = generated.files[7]?.content ?? "";
-    const docs = generated.files[8]?.content ?? "";
+    const registry = generated.files[3]?.content ?? "";
+    const convexWorkflow = generated.files[4]?.content ?? "";
+    const runnerSpec = generated.files[5]?.content ?? "";
+    const runnerImpl = generated.files[6]?.content ?? "";
+    const semantics = generated.files[8]?.content ?? "";
+    const docs = generated.files[9]?.content ?? "";
+
+    expect(registry).toContain("defineWorkflowCapabilityRegistry");
+    expect(registry).toContain("internal refs");
+    expect(registry).toContain("dedupe/restart horizons");
+    expect(registry).toContain("guard postures");
+    expect(registry).toContain("redaction policy");
+    expect(registry).toContain("fixture evidence");
 
     expect(spec).toContain("defineContractFunction");
     expect(spec).toContain("export const manifest");
@@ -1261,7 +1270,9 @@ describe("template app factory generators", () => {
     expect(docs).toContain("pnpm confect:codegen");
     expect(docs).toContain("pnpm --dir packages/convex exec convex codegen");
     expect(docs).toContain("workflowContracts.sourceGroundedPlan.approve");
-    expect(docs).toContain("concrete `buildArgs` mappers");
+    expect(docs).toContain(
+      "concrete `buildArgs` and logical instance-key mappers",
+    );
     expect(spec).toContain("startInteractive");
     expect(spec).toContain("startQueued");
     expect(spec).not.toContain("kickoffMode");

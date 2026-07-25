@@ -25,6 +25,7 @@ const providerNative = {
   keyArgumentPath: "request.idempotencyKey",
   providerEvidenceRef: "provider-idempotency-fixture",
   duplicateDeliveryFixtureRef: "duplicate-delivery-fixture",
+  ambiguityResolution: { kind: "exact-provider-key-replay" },
   redactionPolicyRef: "redaction.v1",
   guards,
 } as const;
@@ -78,6 +79,35 @@ describe("workflow effect retry contract", () => {
     }
   });
 
+  it.each([Number.NaN, Number.POSITIVE_INFINITY, -1])(
+    "rejects unsafe numeric retry or horizon value %s",
+    (value) => {
+      expect(
+        Either.isLeft(
+          validateWorkflowEffectContract(
+            { ...providerNative, maxRestartWindowMs: value },
+            { maxAttempts: 2, initialBackoffMs: 1, base: 2 },
+          ),
+        ),
+      ).toBe(true);
+      expect(
+        Either.isLeft(
+          validateWorkflowEffectContract(
+            {
+              strategy: "non-retriable",
+              effectClass: "external",
+              reason: "No safe retry.",
+              ambiguousOutcome: "manual-review",
+              redactionPolicyRef: "redaction.v1",
+              guards,
+            },
+            { maxAttempts: 1, initialBackoffMs: value, base: 2 },
+          ),
+        ),
+      ).toBe(true);
+    },
+  );
+
   it("forbids automatic retry for non-retriable effects", () => {
     const contract = Either.getOrThrow(
       decodeWorkflowEffectContract({
@@ -123,10 +153,13 @@ describe("workflow effect retry contract", () => {
       }),
     );
     const ambiguous = Either.getOrThrow(
-      transitionWorkflowEffectState(submitted, {
-        kind: "ambiguous",
-        strategy: "durable-ledger-and-reconcile",
-      }),
+      transitionWorkflowEffectState(
+        submitted,
+        {
+          kind: "ambiguous",
+        },
+        "durable-ledger-and-reconcile",
+      ),
     );
     expect(ambiguous).toEqual({
       state: "ambiguous",

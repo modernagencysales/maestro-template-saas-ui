@@ -49,7 +49,9 @@ const stageObservationArgs = <Result>(
   label: input.label,
   kind: input.kind,
   stageKey: input.stageKey ?? input.nodeId,
-  attemptNumber: input.attemptNumber ?? 1,
+  ...(typeof input.attemptNumber === "number"
+    ? { attemptNumber: input.attemptNumber }
+    : {}),
   order: input.order,
 });
 

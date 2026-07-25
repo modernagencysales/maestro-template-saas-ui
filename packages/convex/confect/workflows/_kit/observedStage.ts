@@ -31,7 +31,7 @@ export type RunObservedWorkflowStageInput<Result> = {
   readonly label: string;
   readonly kind: WorkflowNodeKind;
   readonly stageKey?: string;
-  readonly attemptNumber?: number;
+  readonly attemptNumber?: number | "unknown";
   readonly order?: number;
   readonly run: () => Promise<Result>;
 };
