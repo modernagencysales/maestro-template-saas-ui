@@ -23,6 +23,7 @@ const row = {
   dedupeExpiresAt: 20_000,
   restartSafeUntil: 10_000,
   occurredAt: 1_000,
+  occurredAtDescending: -1_000,
   appendOnly: true,
 } as const;
 

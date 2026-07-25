@@ -63,6 +63,7 @@ export const WorkflowEffectReservationRow = Schema.Struct({
   dedupeExpiresAt: Schema.Number,
   restartSafeUntil: Schema.Number,
   occurredAt: Schema.Number,
+  occurredAtDescending: Schema.Number,
   appendOnly: Schema.Literal(true),
 });
 
@@ -76,7 +77,11 @@ export const decodeWorkflowEffectReservationRow = Schema.decodeUnknownEither(
 );
 
 export default Table.make(() => WorkflowEffectReservationRow)
-  .index("by_workspace_effect", ["workspaceId", "logicalEffectKey"])
+  .index("by_workspace_effect", [
+    "workspaceId",
+    "logicalEffectKey",
+    "occurredAtDescending",
+  ])
   .index("by_workspace_state_expiry", [
     "workspaceId",
     "state",

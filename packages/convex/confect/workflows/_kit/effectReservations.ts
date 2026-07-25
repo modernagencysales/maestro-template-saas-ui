@@ -279,14 +279,17 @@ export type WorkflowEffectDispatchPlan =
 export const planWorkflowEffectDispatch = ({
   state,
   guardResults,
+  ownsReservation,
 }: {
   readonly state: WorkflowEffectState;
   readonly guardResults: WorkflowEffectGuardResults;
+  readonly ownsReservation: boolean;
 }): WorkflowEffectDispatchPlan => {
   for (const guard of guardOrder) {
     if (guardResults[guard] === "denied") return { kind: "deny", guard };
   }
-  if (state.state === "reserved") return { kind: "dispatch" };
+  if (state.state === "reserved")
+    return ownsReservation ? { kind: "dispatch" } : { kind: "in-flight" };
   if (state.state === "submitted") return { kind: "in-flight" };
   if (state.state === "confirmed") return { kind: "reuse-confirmed" };
   if (state.state === "terminal") return { kind: "terminal" };

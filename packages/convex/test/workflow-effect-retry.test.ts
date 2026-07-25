@@ -157,6 +157,7 @@ describe("workflow effect retry contract", () => {
           quotaRate: "not-applicable",
           spendKillSwitch: "denied",
         },
+        ownsReservation: true,
       }),
     ).toEqual({ kind: "deny", guard: "spendKillSwitch" });
     expect(
@@ -167,6 +168,7 @@ describe("workflow effect retry contract", () => {
           quotaRate: "not-applicable",
           spendKillSwitch: "passed",
         },
+        ownsReservation: false,
       }),
     ).toEqual({ kind: "reconcile" });
   });
