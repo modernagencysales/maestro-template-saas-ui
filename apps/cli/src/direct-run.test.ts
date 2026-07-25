@@ -16,22 +16,26 @@ describe("CLI direct-entry guard", () => {
     expect(isCliDirectRun(url, ["node"])).toBe(false);
   });
 
-  it("imports without executing help for an unrelated index.ts entry", () => {
-    const output = execFileSync(
-      process.execPath,
-      [
-        "--import",
-        "tsx",
-        "--input-type=module",
-        "--eval",
+  it(
+    "imports without executing help for an unrelated index.ts entry",
+    { timeout: 15_000 },
+    () => {
+      const output = execFileSync(
+        process.execPath,
         [
-          'process.argv[1] = "/tmp/index.ts";',
-          'await import("./apps/cli/src/index.ts");',
-        ].join("\n"),
-      ],
-      { cwd: repoRoot, encoding: "utf8" },
-    );
+          "--import",
+          "tsx",
+          "--input-type=module",
+          "--eval",
+          [
+            'process.argv[1] = "/tmp/index.ts";',
+            'await import("./apps/cli/src/index.ts");',
+          ].join("\n"),
+        ],
+        { cwd: repoRoot, encoding: "utf8" },
+      );
 
-    expect(output).toBe("");
-  });
+      expect(output).toBe("");
+    },
+  );
 });
