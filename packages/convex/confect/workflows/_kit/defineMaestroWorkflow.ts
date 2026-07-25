@@ -8,7 +8,6 @@ import {
   sendEvent,
   WorkflowManager,
   type EventId,
-  type StepDefinition,
   type WorkflowComponent,
   type WorkflowId,
 } from "@convex-dev/workflow";
@@ -25,7 +24,6 @@ export type MaestroWorkflowComponent = WorkflowComponent;
 export type MaestroWorkflowEventId<Name extends string = string> =
   EventId<Name>;
 export type MaestroWorkflowId = WorkflowId;
-export type MaestroWorkflowStepDefinition = StepDefinition;
 
 export type WorkflowKickoffProfile = {
   readonly name: string;

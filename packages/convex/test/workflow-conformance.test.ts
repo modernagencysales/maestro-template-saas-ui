@@ -138,9 +138,9 @@ describe("Maestro workflow compiler mapping", () => {
 describe("Maestro typed event compiler 2A", () => {
   it("journals fresh allocation before awaiting a pre-sent event", async () => {
     const calls: string[] = [];
-    const awaitCall = vi.fn(async () => ({
-      approved: true,
-    }));
+    const awaitCall = vi.fn(
+      async (event: AwaitEventInput) => (void event, { approved: true }),
+    );
     const step = eventStep(awaitCall, calls);
     const result: Promise<{ readonly approved: boolean }> =
       runRegisteredWorkflowEvent({
@@ -236,9 +236,9 @@ describe("Maestro typed event compiler 2A", () => {
   });
 
   it("does not cross-deliver concurrent event instances", async () => {
-    const awaitCall = vi.fn(async () => ({
-      approved: true,
-    }));
+    const awaitCall = vi.fn(
+      async (event: AwaitEventInput) => (void event, { approved: true }),
+    );
     const allocated = new Map([
       ["approval-1", ownedApprovalEvent()],
       [
@@ -953,8 +953,9 @@ describe("Maestro V2 inline transaction compiler", () => {
 
   it("runs an exact child version with bounded args and inherited principal", async () => {
     const runWorkflow = vi.fn(async () => ({ receiptId: "child-receipt" }));
-    const runMutation = vi.fn(async (ref: DurableGraphStepRef<"mutation">) =>
-      ref === childLinkReserveRef ? { linkId: "link-1" } : null,
+    const runMutation = vi.fn(
+      async (...[ref]: Parameters<RunDurableGraphStep["runMutation"]>) =>
+        ref === childLinkReserveRef ? { linkId: "link-1" } : null,
     );
     const graph = v2SubworkflowGraph();
 
@@ -1109,8 +1110,9 @@ describe("Maestro V2 inline transaction compiler", () => {
     async (...row) => {
       const [, message, expectedOutcome] = row;
       const runWorkflow = vi.fn(async () => Promise.reject(new Error(message)));
-      const runMutation = vi.fn(async (ref: DurableGraphStepRef<"mutation">) =>
-        ref === childLinkReserveRef ? { linkId: "link-1" } : null,
+      const runMutation = vi.fn(
+        async (...[ref]: Parameters<RunDurableGraphStep["runMutation"]>) =>
+          ref === childLinkReserveRef ? { linkId: "link-1" } : null,
       );
       await expect(
         runDurableGraphWorkflowV2(v2Step({ runWorkflow, runMutation }), {

@@ -80,14 +80,12 @@ export type WorkflowEventDelivery<Value> =
   | { readonly kind: "value"; readonly value: Value }
   | { readonly kind: "error"; readonly error: string };
 
-export const validateWorkflowEventDelivery = <
-  Definition extends AnyWorkflowEventDefinition,
->(
-  definition: Definition,
+export const validateWorkflowEventDelivery = <Value>(
+  definition: { readonly schema: Schema.Schema<Value> },
   delivery:
     | { readonly kind: "value"; readonly value: unknown }
     | { readonly kind: "error"; readonly error: string },
-): WorkflowEventDelivery<WorkflowEventValue<Definition>> => {
+): WorkflowEventDelivery<Value> => {
   if (
     typeof definition !== "object" ||
     definition === null ||
@@ -106,7 +104,7 @@ export const validateWorkflowEventDelivery = <
     if (Either.isLeft(decoded)) throw unavailableEvent();
     return {
       kind: "value",
-      value: decoded.right as WorkflowEventValue<Definition>,
+      value: decoded.right,
     };
   } catch {
     throw unavailableEvent();
@@ -148,11 +146,12 @@ export type WorkflowV2EventRegistryEntry<
   };
 };
 
-type AnyWorkflowEventDefinition = WorkflowEventDefinition<
-  unknown,
-  string,
-  Validator<unknown, "required", string>
->;
+type AnyWorkflowEventDefinition = {
+  readonly reference: WorkflowEventReferenceType;
+  readonly name: string;
+  readonly schemaName: string;
+  readonly validator: Validator<unknown, "required", string>;
+};
 
 export type AnyWorkflowV2EventRegistryEntry = {
   readonly definition: AnyWorkflowEventDefinition;
