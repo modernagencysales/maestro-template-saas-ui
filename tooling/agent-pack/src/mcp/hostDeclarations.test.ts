@@ -26,11 +26,12 @@ describe("repo-native Maestro MCP declarations", () => {
   });
 
   it("provides Codex's project config.toml MCP table for root projection", async () => {
-    const config = await readFile(
+    const leaf = await readFile(
       `${repoRoot}/agent-pack/hosts/codex/maestro-mcp.config.toml`,
       "utf8",
     );
-    expect(config).toBe(
+    const root = await readFile(`${repoRoot}/.codex/config.toml`, "utf8");
+    expect(leaf).toBe(
       [
         "[mcp_servers.maestro]",
         'command = "pnpm"',
@@ -40,6 +41,7 @@ describe("repo-native Maestro MCP declarations", () => {
         "",
       ].join("\n"),
     );
-    expect(config).not.toContain("convex mcp start");
+    expect(root).toBe(leaf);
+    expect(root).not.toContain("convex mcp start");
   });
 });

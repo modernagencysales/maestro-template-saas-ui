@@ -16,6 +16,10 @@ describe("maestro-template CLI", () => {
     expect(runCli(["help"]).stdout).toContain(
       "maestro plan-check --plan <manifest.json> [--details|--json]",
     );
+    expect(runCli(["help"]).stdout).toContain("maestro mcp\n");
+    expect(runCli(["help"]).stdout).toContain(
+      "maestro mcp configure --host <claude-code|codex>",
+    );
     await expect(runCliAsync(["scaffold", "--help"])).resolves.toMatchObject({
       exitCode: 0,
       stdout: expect.stringContaining(

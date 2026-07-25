@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { runTemplateApiOperation } from "@maestro-template/workflow-tooling";
+import type { Readable, Writable } from "node:stream";
 import { createCliHandlers } from "./commands";
 import { isCliDirectRun } from "./direct-run";
 import { createFactoryCliComposition } from "./factory/composition";
@@ -65,6 +66,9 @@ export const runCliAsync = async (
   cwd: string = process.cwd(),
 ): Promise<CliResult> => {
   const normalized = normalizeCliArgv(argv);
+  if (normalized[0] === "mcp" && normalized[1] === "configure") {
+    return factoryCliComposition.mcpConfigure.run(normalized.slice(1), cwd);
+  }
   return (
     (await dispatchFactoryCliCommand(
       factoryCliComposition.handlers,
@@ -74,13 +78,41 @@ export const runCliAsync = async (
   );
 };
 
+export type CliEntryStreams = {
+  readonly stdin: Readable;
+  readonly stdout: Writable;
+  readonly stderr: Writable;
+  readonly cwd: string;
+};
+
+export async function runCliEntry(
+  argv: readonly string[],
+  streams: CliEntryStreams,
+  config: CliRuntimeConfig = emptyCliRuntimeConfig,
+): Promise<void> {
+  const normalized = normalizeCliArgv(argv);
+  if (normalized.length === 1 && normalized[0] === "mcp") {
+    await factoryCliComposition.mcp.serve(streams);
+    return;
+  }
+  const result = await runCliAsync(normalized, config, streams.cwd);
+  streams.stdout.write(result.stdout);
+  streams.stderr.write(result.stderr);
+  process.exitCode = result.exitCode;
+}
+
 if (isCliDirectRun(import.meta.url)) {
-  void runCliAsync(
+  void runCliEntry(
     process.argv.slice(2),
+    {
+      stdin: process.stdin,
+      stdout: process.stdout,
+      stderr: process.stderr,
+      cwd: process.cwd(),
+    },
     decodeCliRuntimeConfig(process.env),
-  ).then((result) => {
-    process.stdout.write(result.stdout);
-    process.stderr.write(result.stderr);
-    process.exitCode = result.exitCode;
+  ).catch(() => {
+    process.stderr.write("MCP_SERVER_ERROR startup\n");
+    process.exitCode = 70;
   });
 }

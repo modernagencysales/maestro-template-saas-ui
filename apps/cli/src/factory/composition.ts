@@ -3,15 +3,25 @@ import {
   createCheckCommand,
   createComposedPreflightProbe,
   createExecFileVerificationRunner,
+  createMaestroMcpProjection,
+  createMaestroMcpServer,
+  createMcpConfigureCommand,
   createNodeExecFileAdapter,
   createNodePreflightRuntimeReader,
   createPlanCheckCommand,
   createPreflightCommand,
   createScaffoldCommand,
   createVerifyCommand,
+  createRepositoryContext,
+  createRepositoryLocalMcpConfigurationStore,
   defineDiagnosticRegistryProjection,
   executeAgentPackCommand,
   nodePreflightFileSystem,
+  parseConvexMcpProfiles,
+  readInstalledConvexMcpInventory,
+  serveMcpStdio,
+  type AgentPackExecutionContext,
+  type McpConfigurationStore,
   type NodePreflightPolicy,
   type RepositoryContext,
 } from "@maestro-template/agent-pack";
@@ -33,15 +43,18 @@ import {
   validatePlan,
 } from "@maestro-template/stack-tooling";
 import { WORKFLOW_SEMANTICS } from "@maestro-template/template-core/workflow-semantics";
+import { readFileSync } from "node:fs";
 import { open } from "node:fs/promises";
 import { arch, platform } from "node:os";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { createPlanCheckCliHandler } from "./planCheck";
+import { createMcpCliAdapter } from "./mcp";
+import { createMcpConfigureCliAdapter } from "./mcpConfigure";
 import { createPreflightCliHandler } from "./preflight";
 import { createScaffoldCliHandler } from "./scaffold";
 import { createVerifyCliHandler } from "./verify";
-import type { FactoryCliHandler } from "./router";
+import { runAgentPackCommandAsCli, type FactoryCliHandler } from "./router";
 
 export const FACTORY_EXECUTION_POLICY = Object.freeze({
   supportedPlatforms: ["linux", "darwin", "win32"],
@@ -88,10 +101,30 @@ const publishedWorkflowRuleIds = WORKFLOW_SEMANTICS.map(({ id }) => id);
 const descriptors = defineQualityDiagnosticRegistryProjection(
   defineDiagnosticRegistryProjection,
 );
+const convexMcpProfiles = parseConvexMcpProfiles(
+  JSON.parse(
+    readFileSync(
+      new URL(
+        "../../../../docs/template/convex-mcp-profiles.json",
+        import.meta.url,
+      ),
+      "utf8",
+    ),
+  ) as unknown,
+);
 
 export type CompositionEnvironmentReader = () => Readonly<
   Record<string, string | undefined>
 >;
+
+export type FactoryMcpOverrides = {
+  readonly mcp?: {
+    readonly observedTools?: (
+      context: AgentPackExecutionContext,
+    ) => Promise<readonly string[]>;
+    readonly store?: McpConfigurationStore;
+  };
+};
 
 export function projectCompositionEnvironment(
   repo: RepositoryContext,
@@ -115,6 +148,7 @@ export function projectCompositionEnvironment(
 
 export function createFactoryCliComposition(
   readEnvironment: CompositionEnvironmentReader,
+  overrides: FactoryMcpOverrides = {},
 ) {
   const preflight = createPreflightCommand(
     createComposedPreflightProbe({
@@ -226,6 +260,44 @@ export function createFactoryCliComposition(
         readReviewedAdrRefs(pathToFileURL(`${repo.sourceRoot}/`)),
     },
   });
+  const mcpStore =
+    overrides.mcp?.store ??
+    createRepositoryLocalMcpConfigurationStore({ execFile });
+  const observedTools =
+    overrides.mcp?.observedTools ??
+    ((context: AgentPackExecutionContext) =>
+      readInstalledConvexMcpInventory({
+        execFile,
+        repo: context.repo,
+        timeoutMs: FACTORY_EXECUTION_POLICY.metadataTimeoutMs,
+        maxBufferBytes: FACTORY_EXECUTION_POLICY.maxBufferBytes,
+      }));
+  const mcpConfigureCommand = createMcpConfigureCommand({
+    contract: convexMcpProfiles,
+    observedTools,
+    store: mcpStore,
+  });
+  const mcpConfigure = createMcpConfigureCliAdapter((input, cwd, renderMode) =>
+    runAgentPackCommandAsCli(
+      mcpConfigureCommand,
+      input,
+      {
+        schemaVersion: AGENT_PACK_EXECUTION_CONTEXT_VERSION,
+        invocation: "cli",
+        repo: createRepositoryContext({ cwd }),
+      },
+      renderMode,
+    ),
+  );
+  const mcp = createMcpCliAdapter(({ stdin, stdout, stderr, cwd }) => {
+    const repo = createRepositoryContext({ cwd });
+    const projection = createMaestroMcpProjection(
+      { preflight, planCheck, scaffold, verify },
+      repo,
+    );
+    const server = createMaestroMcpServer(projection);
+    return serveMcpStdio({ stdin, stdout, stderr, server });
+  });
   const handlers: readonly FactoryCliHandler[] = [
     createPreflightCliHandler(preflight),
     createVerifyCliHandler(verify),
@@ -236,6 +308,8 @@ export function createFactoryCliComposition(
 
   return Object.freeze({
     handlers,
+    mcp,
+    mcpConfigure,
     diagnosticCount: descriptors.length,
     workflowRuleCount: workflowRules.length,
   });

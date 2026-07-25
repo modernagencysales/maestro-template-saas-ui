@@ -24,3 +24,6 @@ playwright-report/
 .qlty/plugin_cachedir
 .qlty/results
 .qlty/cache
+
+# Receipt-owned repository-local MCP configuration state
+.maestro/mcp/

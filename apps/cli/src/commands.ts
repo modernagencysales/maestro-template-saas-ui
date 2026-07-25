@@ -48,6 +48,8 @@ const helpResult = (): CliResult =>
       "maestro check [--mode fake|test|live] [--changed <paths>] [--details|--json]",
       "maestro plan-check --plan <manifest.json> [--details|--json]",
       "maestro scaffold --generator <id> --args <json-object> [--write --preflight-fingerprint <preflight_sha256:...>] [--details|--json]",
+      "maestro mcp",
+      "maestro mcp configure --host <claude-code|codex> [--profile <inspect|dev-power>] [--write|--remove] [--human|--details|--json]",
     ].join("\n") + "\n",
   );
 

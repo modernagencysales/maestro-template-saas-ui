@@ -20,6 +20,14 @@ const FORBIDDEN_MCP_FILES = [
   ".agents/mcp.json",
   ".codex/mcp.json",
 ] as const;
+const CODEX_MAESTRO_CONFIG = [
+  "[mcp_servers.maestro]",
+  'command = "pnpm"',
+  'args = ["maestro", "--", "mcp"]',
+  'cwd = "."',
+  "enabled = true",
+  "",
+].join("\n");
 
 export async function checkAgentPack(
   repoRoot: string,
@@ -103,6 +111,13 @@ async function factoryWiringFindings(
       'export * from "./verificationRunner.js";',
       'export * from "./planCheck.js";',
       'export * from "./scaffold.js";',
+      'export * from "./pluginContract.js";',
+      'export * from "./mcp/protocol.js";',
+      'export * from "./mcp/projection.js";',
+      'export * from "./mcp/server.js";',
+      'export * from "./mcp/convexProfiles.js";',
+      'export * from "./mcp/configure.js";',
+      'export * from "./mcp/nodeConfigure.js";',
     ].join("\n")
   ) {
     findings.push("factory-wiring:agent-pack-barrel");
@@ -120,6 +135,10 @@ async function factoryWiringFindings(
       "const factoryCliComposition = createFactoryCliComposition(() => process.env);",
       "export const runCliAsync",
       "dispatchFactoryCliCommand(\n      factoryCliComposition.handlers,",
+      'normalized.length === 1 && normalized[0] === "mcp"',
+      "factoryCliComposition.mcp.serve(streams)",
+      'normalized[0] === "mcp" && normalized[1] === "configure"',
+      "factoryCliComposition.mcpConfigure.run(normalized.slice(1), cwd)",
     ]) ||
     !includesAll(factoryRouter, [
       "executeAgentPackCommand",
@@ -131,7 +150,8 @@ async function factoryWiringFindings(
     ]) ||
     !includesAll(factoryComposition, [
       "const execFile = createNodeExecFileAdapter();",
-      "export function createFactoryCliComposition(\n  readEnvironment: CompositionEnvironmentReader,\n) {",
+      "export function createFactoryCliComposition(",
+      "overrides: FactoryMcpOverrides = {},",
       "runtime: createNodePreflightRuntimeReader({\n        fs: nodePreflightFileSystem,\n        execFile,",
       "environment: readEnvironment,",
       "const descriptors = defineQualityDiagnosticRegistryProjection(\n  defineDiagnosticRegistryProjection,\n);",
@@ -144,7 +164,13 @@ async function factoryWiringFindings(
       "createScaffoldCliHandler(scaffold)",
       "createPlanCheckCommand({",
       "createScaffoldCommand({",
+      "createMaestroMcpProjection(",
+      "createMaestroMcpServer(projection)",
+      "createMcpConfigureCommand({",
+      "createRepositoryLocalMcpConfigurationStore({ execFile })",
+      "readInstalledConvexMcpInventory({",
       "return Object.freeze({\n    handlers,",
+      "mcp,\n    mcpConfigure,",
     ]) ||
     countOccurrences(cliIndex, "createFactoryCliComposition(") !== 1 ||
     countOccurrences(factoryComposition, "createFactoryCliComposition(") !==
@@ -373,7 +399,7 @@ async function forbiddenMcpFindings(
     }
   }
   const codex = await optionalText(join(repoRoot, ".codex/config.toml"));
-  if (codex !== undefined && /\bmcp(?:_servers?)?\b/i.test(codex)) {
+  if (codex !== undefined && codex !== CODEX_MAESTRO_CONFIG) {
     findings.push("forbidden-mcp-config:.codex/config.toml");
   }
   const claude = await optionalText(join(repoRoot, ".claude/settings.json"));

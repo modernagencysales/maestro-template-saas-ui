@@ -1,7 +1,9 @@
 import { execFileSync } from "node:child_process";
+import { Readable, Writable } from "node:stream";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { isCliDirectRun } from "./direct-run";
+import { runCliEntry } from "./index";
 
 const repoRoot = fileURLToPath(new URL("../../../", import.meta.url));
 
@@ -38,4 +40,31 @@ describe("CLI direct-entry guard", () => {
       expect(output).toBe("");
     },
   );
+
+  it("routes exact plain mcp argv to stdio without CLI rendering", async () => {
+    const stdout: string[] = [];
+    const stderr: string[] = [];
+    await runCliEntry(["mcp"], {
+      stdin: Readable.from([
+        `${JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list", params: {} })}\n`,
+      ]),
+      stdout: writable(stdout),
+      stderr: writable(stderr),
+      cwd: repoRoot,
+    });
+    expect(JSON.parse(stdout.join(""))).toMatchObject({
+      jsonrpc: "2.0",
+      result: { tools: expect.any(Array) },
+    });
+    expect(stderr).toEqual([]);
+  });
 });
+
+function writable(chunks: string[]): Writable {
+  return new Writable({
+    write(chunk, _encoding, callback) {
+      chunks.push(String(chunk));
+      callback();
+    },
+  });
+}

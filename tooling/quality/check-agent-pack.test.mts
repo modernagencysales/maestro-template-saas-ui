@@ -31,13 +31,12 @@ describe("check:agent-pack", () => {
     );
   });
 
-  it("rejects committed Claude or Codex MCP configuration", async () => {
+  it("rejects root MCP configuration beyond the exact Maestro projection", async () => {
     const fixtureRoot = await integratedFixture();
     await writeFile(join(fixtureRoot, ".mcp.json"), "{}\n");
-    await mkdir(join(fixtureRoot, ".codex"), { recursive: true });
     await writeFile(
       join(fixtureRoot, ".codex/config.toml"),
-      '[mcp_servers.convex]\ncommand = "convex"\n',
+      `${await readFile(join(fixtureRoot, ".codex/config.toml"), "utf8")}\n[mcp_servers.convex]\ncommand = "convex"\n`,
     );
 
     await expect(checkAgentPack(fixtureRoot)).resolves.toEqual(
@@ -286,6 +285,11 @@ async function integratedFixture(): Promise<string> {
   );
   await cp(join(repoRoot, "package.json"), join(fixtureRoot, "package.json"));
   await cp(join(repoRoot, "Justfile"), join(fixtureRoot, "Justfile"));
+  await mkdir(join(fixtureRoot, ".codex"), { recursive: true });
+  await cp(
+    join(repoRoot, ".codex/config.toml"),
+    join(fixtureRoot, ".codex/config.toml"),
+  );
   await mkdir(join(fixtureRoot, "apps/cli/src/factory"), { recursive: true });
   await cp(
     join(repoRoot, "apps/cli/package.json"),
