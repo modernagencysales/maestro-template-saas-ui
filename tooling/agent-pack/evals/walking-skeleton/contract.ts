@@ -21,13 +21,8 @@ export type WalkingSkeletonResult = {
     readonly summary: string;
   }[];
   readonly evidence: {
-    readonly visibleUrl: string;
     readonly manifestPath: string;
     readonly receiptPath: string;
-    readonly recordPath: string;
-    readonly recordId: string;
-    readonly verticalSlicePaths: readonly string[];
-    readonly serverProofPath?: string;
   };
   readonly explanation: {
     readonly works: string;
@@ -85,6 +80,7 @@ export type EvaluationErrorCode =
   | "EVAL_VERTICAL_SLICE_INVALID"
   | "EVAL_RECORD_EVIDENCE_INVALID"
   | "EVAL_BROWSER_PROOF_UNAVAILABLE"
+  | "EVAL_PRODUCT_PROOF_UNAVAILABLE"
   | "EVAL_FORBIDDEN_HOST_CONFIG"
   | "EVAL_PROVENANCE_CHANGED"
   | "EVAL_SUITE_INCOMPLETE"
@@ -125,7 +121,7 @@ Build a small app named ${JSON.stringify(input.productName)}. Follow committed r
 Required journey:
 ${walkingSkeletonScenario.steps.map((step, index) => `${String(index + 1)}. ${step}`).join("\n")}
 
-Write strict JSON schemaVersion 2 to ${input.resultPath}. Include candidateSha; relative customerTarget; the five required milestones with ISO reachedAt; interventions limited to product-naming, dependency-approval, or auth-approval; evidence with loopback visibleUrl, relative manifestPath, receiptPath, recordPath, nonempty recordId, verticalSlicePaths, and optional serverProofPath; and explanation strings works, demoOnly, nextAction. The record JSON must contain the created record with synthetic=false, and the visible response body must contain its recordId. A captured server proof, if live probing will not remain possible, must contain url, 2xx statusCode, positive responseBytes, sha256 bodySha256, relative bodyPath, and capturedAt. Do not put secrets or environment values in evidence.`;
+Write strict JSON schemaVersion 2 to ${input.resultPath}. Include candidateSha; relative customerTarget; the five required milestones with ISO reachedAt; interventions limited to product-naming, dependency-approval, or auth-approval; evidence with manifestPath pointing to the generated target's template-instance.json and receiptPath pointing to its verification receipt; and explanation strings works, demoOnly, nextAction. Do not manufacture record, server, or vertical-slice proof: the harness will require a product-owned local CRUD proof command after you exit. Do not put secrets or environment values in evidence.`;
 }
 
 export function gradeHostReport(input: {
@@ -237,14 +233,9 @@ export function parseWalkingSkeletonResult(
   }
   const evidence = value.evidence;
   if (
-    ![
-      evidence.visibleUrl,
-      evidence.manifestPath,
-      evidence.receiptPath,
-      evidence.recordPath,
-      evidence.recordId,
-    ].every((entry) => typeof entry === "string" && entry.length > 0) ||
-    !Array.isArray(evidence.verticalSlicePaths)
+    ![evidence.manifestPath, evidence.receiptPath].every(
+      (entry) => typeof entry === "string" && entry.length > 0,
+    )
   ) {
     throw new EvaluationError(
       "EVAL_RESULT_INVALID",

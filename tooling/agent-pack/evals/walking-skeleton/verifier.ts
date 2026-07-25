@@ -9,6 +9,10 @@ import {
   type WalkingSkeletonResult,
 } from "./contract.js";
 
+const REVIEWED_RELEASE_PATH = "releases/v0.2.0-alpha.1/manifest.json";
+const REVIEWED_BLUEPRINT_PATH =
+  "releases/v0.2.0-alpha.1/blueprints/saas-application.json";
+
 export type VerifierCommandResult = {
   readonly exitCode: number | null;
   readonly stdout: string;
@@ -21,13 +25,19 @@ export type VerifierCommand = (input: {
   readonly env: NodeJS.ProcessEnv;
   readonly timeoutMs: number;
 }) => Promise<VerifierCommandResult>;
-export type UrlProbe = (url: string) => Promise<{
-  readonly statusCode: number;
-  readonly body: string;
-}>;
+export type ProductProof = {
+  readonly url: string;
+  readonly create: { readonly statusCode: number; readonly record: unknown };
+  readonly read: { readonly statusCode: number; readonly record: unknown };
+};
+export type ProductProofRunner = (input: {
+  readonly customerRoot: string;
+  readonly env: NodeJS.ProcessEnv;
+  readonly command: VerifierCommand;
+}) => Promise<ProductProof>;
 export type ExecutableEvidencePorts = {
   readonly command: VerifierCommand;
-  readonly probeUrl: UrlProbe;
+  readonly productProof: ProductProofRunner;
 };
 
 export async function verifyExecutableEvidence(input: {
@@ -38,7 +48,6 @@ export async function verifyExecutableEvidence(input: {
   readonly ports?: Partial<ExecutableEvidencePorts>;
 }): Promise<ExecutableEvidence> {
   const command = input.ports?.command ?? executeVerifierCommand;
-  const probeUrl = input.ports?.probeUrl ?? probeLoopbackUrl;
   const customerRoot = safePath(input.workspace, input.result.customerTarget);
   if (!customerRoot) {
     throw new EvaluationError(
@@ -46,19 +55,30 @@ export async function verifyExecutableEvidence(input: {
       "customerTarget must remain inside the clean clone.",
     );
   }
-  for (const [path, code] of [
-    [input.result.evidence.manifestPath, "EVAL_MANIFEST_INVALID"],
-    [input.result.evidence.receiptPath, "EVAL_GATE_RECEIPT_INVALID"],
-    [input.result.evidence.recordPath, "EVAL_RECORD_EVIDENCE_INVALID"],
-  ] as const) {
-    const absolute = safePath(input.workspace, path);
-    if (!absolute || !isWithin(customerRoot, absolute)) {
-      throw new EvaluationError(
-        code,
-        `Customer evidence must remain inside the target: ${path}`,
-      );
-    }
+  const manifestPath = safePath(
+    input.workspace,
+    input.result.evidence.manifestPath,
+  );
+  if (
+    !manifestPath ||
+    manifestPath !== resolve(customerRoot, "template-instance.json")
+  ) {
+    throw new EvaluationError(
+      "EVAL_MANIFEST_INVALID",
+      "Manifest evidence must be the generated customer template-instance.json.",
+    );
   }
+  const receiptPath = safePath(
+    input.workspace,
+    input.result.evidence.receiptPath,
+  );
+  if (!receiptPath || !isWithin(customerRoot, receiptPath)) {
+    throw new EvaluationError(
+      "EVAL_GATE_RECEIPT_INVALID",
+      "Gate receipt evidence must remain inside the customer target.",
+    );
+  }
+
   await verifyProvenance(
     input.workspace,
     input.candidateSha,
@@ -67,36 +87,13 @@ export async function verifyExecutableEvidence(input: {
   );
   await verifyPrerequisites(input.workspace);
   await verifyForbiddenHostConfiguration(customerRoot);
-
-  const manifest = await readJsonEvidence(
-    input.workspace,
-    input.result.evidence.manifestPath,
-    "EVAL_MANIFEST_INVALID",
-  );
-  validateManifest(manifest, input.candidateSha);
-  const receipt = await readJsonEvidence(
-    input.workspace,
-    input.result.evidence.receiptPath,
-    "EVAL_GATE_RECEIPT_INVALID",
-  );
-  const gateSet = validateReceipt(receipt);
-  const verticalSlice = await validateVerticalSlice(
+  const releaseProjection = await verifyReviewedReleaseProjection(
     input.workspace,
     customerRoot,
-    input.result.evidence.verticalSlicePaths,
+    manifestPath,
   );
-  const firstRecord = await validateFirstRecord(
-    input.workspace,
-    input.result.evidence.recordPath,
-    input.result.evidence.recordId,
-  );
-  const serverProof = await verifyServer(
-    input.workspace,
-    input.result.evidence.visibleUrl,
-    input.result.evidence.serverProofPath,
-    input.result.evidence.recordId,
-    probeUrl,
-  );
+  const receipt = await readJsonFile(receiptPath, "EVAL_GATE_RECEIPT_INVALID");
+  const gateSet = validateReceipt(receipt);
 
   const check = await command({
     command: "pnpm",
@@ -112,19 +109,34 @@ export async function verifyExecutableEvidence(input: {
     );
   }
 
+  const productProofRunner = input.ports?.productProof ?? runProductOwnedProof;
+  const productProof = await productProofRunner({
+    customerRoot,
+    env: safeVerifierEnvironment(input.sessionDir),
+    command,
+  });
+  const record = validateProductProof(productProof);
+  const recordBytes = stableStringify(record);
+
   return {
     canonicalHashes: {
-      manifest: hashCanonical(manifest),
+      manifest: hashCanonical(releaseProjection.binding),
       gateSet: hashCanonical(gateSet),
-      verticalSlice: hashCanonical(verticalSlice),
-      firstRecord: hashCanonical(firstRecord),
+      verticalSlice: hashCanonical(releaseProjection.projectedFiles),
+      firstRecord: hash(recordBytes),
       checkExecution: hashCanonical({
         command: "pnpm maestro -- check --mode fake --json",
         exitCode: 0,
         gateSet,
       }),
     },
-    serverProof,
+    serverProof: {
+      url: productProof.url,
+      statusCode: productProof.read.statusCode,
+      responseBytes: Buffer.byteLength(recordBytes),
+      bodySha256: hash(recordBytes),
+      source: "live-probe",
+    },
   };
 }
 
@@ -151,6 +163,177 @@ export function safeVerifierEnvironment(
     GIT_CONFIG_NOSYSTEM: "1",
     GIT_CONFIG_GLOBAL: "/dev/null",
   };
+}
+
+async function verifyReviewedReleaseProjection(
+  workspace: string,
+  customerRoot: string,
+  instancePath: string,
+): Promise<{
+  readonly binding: unknown;
+  readonly projectedFiles: readonly {
+    readonly path: string;
+    readonly sha256: string;
+  }[];
+}> {
+  const releasePath = resolve(workspace, REVIEWED_RELEASE_PATH);
+  const blueprintPath = resolve(workspace, REVIEWED_BLUEPRINT_PATH);
+  const [releaseBytes, blueprintBytes, instance] = await Promise.all([
+    readFile(releasePath),
+    readFile(blueprintPath),
+    readJsonFile(instancePath, "EVAL_MANIFEST_INVALID"),
+  ]).catch(() => {
+    throw new EvaluationError(
+      "EVAL_MANIFEST_INVALID",
+      "Candidate reviewed release projection is unavailable.",
+    );
+  });
+  const release = parseJsonBuffer(releaseBytes, "EVAL_MANIFEST_INVALID");
+  const blueprint = parseJsonBuffer(blueprintBytes, "EVAL_MANIFEST_INVALID");
+  if (!isRecord(release) || !isRecord(blueprint) || !isRecord(instance)) {
+    invalidManifest();
+  }
+  const reviewedBinding = isRecord(release.release)
+    ? release.release
+    : undefined;
+  const instanceBinding = isRecord(instance.release)
+    ? instance.release
+    : undefined;
+  const ownership = isRecord(instance.ownership)
+    ? instance.ownership
+    : undefined;
+  const instanceBlueprint = isRecord(instance.blueprint)
+    ? instance.blueprint
+    : undefined;
+  if (
+    release.schemaVersion !== 1 ||
+    release.materializationStatus !== "materializable" ||
+    !reviewedBinding ||
+    !instanceBinding ||
+    stableStringify(instanceBinding) !== stableStringify(reviewedBinding) ||
+    !ownership ||
+    ownership.manifest !== REVIEWED_RELEASE_PATH ||
+    ownership.manifestChecksum !== hashBuffer(releaseBytes) ||
+    !instanceBlueprint ||
+    instanceBlueprint.id !== blueprint.id ||
+    instanceBlueprint.provenance !== blueprint.provenance ||
+    !/^sha256:[0-9a-f]{64}$/u.test(String(instanceBlueprint.digest)) ||
+    !Array.isArray(blueprint.entries) ||
+    blueprint.entries.length === 0
+  ) {
+    invalidManifest();
+  }
+  const projectedFiles = [];
+  for (const entry of blueprint.entries) {
+    if (
+      !isRecord(entry) ||
+      typeof entry.path !== "string" ||
+      !/^sha256:[0-9a-f]{64}$/u.test(String(entry.sha256))
+    ) {
+      invalidManifest();
+    }
+    const targetPath = safePath(customerRoot, entry.path);
+    if (!targetPath) invalidManifest();
+    let bytes: Buffer;
+    try {
+      bytes = await readFile(targetPath);
+    } catch {
+      invalidManifest();
+    }
+    const actual = hashBuffer(bytes);
+    if (actual !== entry.sha256) invalidManifest();
+    projectedFiles.push({ path: entry.path, sha256: actual });
+  }
+  return {
+    binding: {
+      release: reviewedBinding,
+      ownershipManifestChecksum: hashBuffer(releaseBytes),
+      blueprintManifestChecksum: hashBuffer(blueprintBytes),
+      blueprintId: blueprint.id,
+      blueprintProvenance: blueprint.provenance,
+    },
+    projectedFiles,
+  };
+}
+
+function invalidManifest(): never {
+  throw new EvaluationError(
+    "EVAL_MANIFEST_INVALID",
+    "Customer instance does not match the candidate reviewed release binding and projection.",
+  );
+}
+
+export async function runProductOwnedProof(input: {
+  readonly customerRoot: string;
+  readonly env: NodeJS.ProcessEnv;
+  readonly command: VerifierCommand;
+}): Promise<ProductProof> {
+  let manifest: unknown;
+  try {
+    manifest = JSON.parse(
+      await readFile(resolve(input.customerRoot, "package.json"), "utf8"),
+    );
+  } catch {
+    manifest = undefined;
+  }
+  const scripts =
+    isRecord(manifest) && isRecord(manifest.scripts)
+      ? manifest.scripts
+      : undefined;
+  if (!scripts || typeof scripts["maestro:crud-proof"] !== "string") {
+    throw new EvaluationError(
+      "EVAL_PRODUCT_PROOF_UNAVAILABLE",
+      "Generated customer app lacks a product-owned maestro:crud-proof command that launches fake mode and exercises create plus read after host exit.",
+    );
+  }
+  const result = await input.command({
+    command: "pnpm",
+    args: ["run", "maestro:crud-proof", "--", "--json"],
+    cwd: input.customerRoot,
+    env: input.env,
+    timeoutMs: 5 * 60 * 1000,
+  });
+  if (result.exitCode !== 0) {
+    throw new EvaluationError(
+      "EVAL_PRODUCT_PROOF_UNAVAILABLE",
+      "The product-owned CRUD proof command failed.",
+    );
+  }
+  try {
+    return JSON.parse(result.stdout) as ProductProof;
+  } catch {
+    throw new EvaluationError(
+      "EVAL_PRODUCT_PROOF_UNAVAILABLE",
+      "The product-owned CRUD proof command returned invalid evidence.",
+    );
+  }
+}
+
+function validateProductProof(proof: ProductProof): unknown {
+  if (
+    !/^https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?(?:\/|$)/u.test(
+      proof.url,
+    ) ||
+    !success(proof.create?.statusCode) ||
+    !success(proof.read?.statusCode) ||
+    !isRecord(proof.create?.record) ||
+    !isRecord(proof.read?.record) ||
+    stableStringify(proof.create.record) !==
+      stableStringify(proof.read.record) ||
+    typeof proof.read.record.id !== "string" ||
+    proof.read.record.id.length === 0 ||
+    proof.read.record.synthetic !== false
+  ) {
+    throw new EvaluationError(
+      "EVAL_PRODUCT_PROOF_UNAVAILABLE",
+      "Product-owned proof did not independently create and read the same non-synthetic local record.",
+    );
+  }
+  return proof.read.record;
+}
+
+function success(value: number | undefined): boolean {
+  return typeof value === "number" && value >= 200 && value < 300;
 }
 
 async function verifyProvenance(
@@ -241,39 +424,6 @@ async function verifyForbiddenHostConfiguration(
   }
 }
 
-function validateManifest(value: unknown, candidateSha: string): void {
-  if (!isRecord(value)) invalidManifest();
-  const release = isRecord(value.release) ? value.release : undefined;
-  const compatibility = isRecord(value.compatibility)
-    ? value.compatibility
-    : undefined;
-  if (
-    value.schemaVersion !== 1 ||
-    value.materializationStatus !== "materializable" ||
-    !release ||
-    release.sourceCommit !== candidateSha ||
-    typeof release.version !== "string" ||
-    !/^sha256:[0-9a-f]{64}$/u.test(String(release.sourceChecksum)) ||
-    !compatibility ||
-    typeof compatibility.cli !== "string" ||
-    typeof compatibility.agentPack !== "string" ||
-    !Array.isArray(value.paths) ||
-    value.paths.length === 0 ||
-    !isRecord(value.expectedHashes) ||
-    Object.keys(value.expectedHashes).length === 0 ||
-    !Array.isArray(value.extensionSeams)
-  ) {
-    invalidManifest();
-  }
-}
-
-function invalidManifest(): never {
-  throw new EvaluationError(
-    "EVAL_MANIFEST_INVALID",
-    "Customer manifest is empty, malformed, non-materializable, or not pinned to the candidate.",
-  );
-}
-
 function validateReceipt(value: unknown): readonly unknown[] {
   if (!isRecord(value)) invalidReceipt();
   const command = isRecord(value.command) ? value.command : undefined;
@@ -291,8 +441,7 @@ function validateReceipt(value: unknown): readonly unknown[] {
   ) {
     invalidReceipt();
   }
-  const gates = value.gates as readonly unknown[];
-  const canonical = gates.map((gate) => {
+  const canonical = (value.gates as readonly unknown[]).map((gate) => {
     if (
       !isRecord(gate) ||
       typeof gate.gateId !== "string" ||
@@ -324,165 +473,32 @@ function invalidReceipt(): never {
   );
 }
 
-async function validateVerticalSlice(
-  workspace: string,
-  customerRoot: string,
-  paths: readonly string[],
-): Promise<readonly { readonly path: string; readonly sha256: string }[]> {
-  if (paths.length === 0) invalidVertical();
-  const artifacts = [];
-  for (const path of [...paths].sort()) {
-    const absolute = safePath(workspace, path);
-    if (!absolute || !isWithin(customerRoot, absolute)) invalidVertical();
-    let content: string;
-    try {
-      content = await readFile(absolute, "utf8");
-    } catch {
-      invalidVertical();
-    }
-    if (
-      content.trim().length < 80 ||
-      /^\s*(?:export\s*\{\};?)?\s*$/u.test(content)
-    ) {
-      invalidVertical();
-    }
-    artifacts.push({
-      path: relative(customerRoot, absolute).replaceAll("\\", "/"),
-      sha256: hash(content),
-    });
-  }
-  return artifacts;
-}
-
-function invalidVertical(): never {
-  throw new EvaluationError(
-    "EVAL_VERTICAL_SLICE_INVALID",
-    "Vertical-slice evidence is missing, outside the target, empty, or placeholder-only.",
-  );
-}
-
-async function validateFirstRecord(
-  workspace: string,
+async function readJsonFile(
   path: string,
-  recordId: string,
+  code: "EVAL_MANIFEST_INVALID" | "EVAL_GATE_RECEIPT_INVALID",
 ): Promise<unknown> {
-  const value = await readJsonEvidence(
-    workspace,
-    path,
-    "EVAL_RECORD_EVIDENCE_INVALID",
-  );
-  const records = Array.isArray(value) ? value : [value];
-  const record = records.find(
-    (entry) =>
-      isRecord(entry) && entry.id === recordId && entry.synthetic === false,
-  );
-  if (!record || Object.keys(record).length < 3) {
-    throw new EvaluationError(
-      "EVAL_RECORD_EVIDENCE_INVALID",
-      "Persisted-record evidence must contain the created non-synthetic record.",
-    );
-  }
-  return record;
-}
-
-async function verifyServer(
-  workspace: string,
-  url: string,
-  proofPath: string | undefined,
-  recordId: string,
-  probe: UrlProbe,
-): Promise<ExecutableEvidence["serverProof"]> {
-  if (!/^https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?(?:\/|$)/u.test(url)) {
-    throw new EvaluationError(
-      "EVAL_BROWSER_PROOF_UNAVAILABLE",
-      "Visible URL is not loopback-only.",
-    );
-  }
   try {
-    const response = await probe(url);
-    if (
-      response.statusCode >= 200 &&
-      response.statusCode < 300 &&
-      response.body.length > 0 &&
-      response.body.includes(recordId)
-    ) {
-      return {
-        url,
-        statusCode: response.statusCode,
-        responseBytes: Buffer.byteLength(response.body),
-        bodySha256: hash(response.body),
-        source: "live-probe",
-      };
-    }
-  } catch {
-    // Captured proof is the explicit offline fallback.
-  }
-  if (proofPath) {
-    const proof = await readJsonEvidence(
-      workspace,
-      proofPath,
-      "EVAL_BROWSER_PROOF_UNAVAILABLE",
-    );
-    const bodyPath = isRecord(proof) ? proof.bodyPath : undefined;
-    const bodyAbsolute =
-      typeof bodyPath === "string" ? safePath(workspace, bodyPath) : null;
-    let body = "";
-    try {
-      body = bodyAbsolute ? await readFile(bodyAbsolute, "utf8") : "";
-    } catch {
-      body = "";
-    }
-    if (
-      isRecord(proof) &&
-      proof.url === url &&
-      typeof proof.statusCode === "number" &&
-      proof.statusCode >= 200 &&
-      proof.statusCode < 300 &&
-      typeof proof.responseBytes === "number" &&
-      proof.responseBytes > 0 &&
-      /^sha256:[0-9a-f]{64}$/u.test(String(proof.bodySha256)) &&
-      Buffer.byteLength(body) === proof.responseBytes &&
-      hash(body) === proof.bodySha256 &&
-      body.includes(recordId) &&
-      Number.isFinite(Date.parse(String(proof.capturedAt)))
-    ) {
-      return {
-        url,
-        statusCode: proof.statusCode,
-        responseBytes: proof.responseBytes,
-        bodySha256: String(proof.bodySha256),
-        source: "captured-proof",
-      };
-    }
-  }
-  throw new EvaluationError(
-    "EVAL_BROWSER_PROOF_UNAVAILABLE",
-    "The local URL was unreachable and no valid captured server proof exists.",
-  );
-}
-
-async function readJsonEvidence(
-  workspace: string,
-  path: string,
-  code:
-    | "EVAL_MANIFEST_INVALID"
-    | "EVAL_GATE_RECEIPT_INVALID"
-    | "EVAL_RECORD_EVIDENCE_INVALID"
-    | "EVAL_BROWSER_PROOF_UNAVAILABLE",
-): Promise<unknown> {
-  const absolute = safePath(workspace, path);
-  if (!absolute)
-    throw new EvaluationError(code, `Unsafe evidence path: ${path}`);
-  try {
-    const content = await readFile(absolute, "utf8");
-    if (content.trim().length < 3 || content.length > 2 * 1024 * 1024)
+    const content = await readFile(path, "utf8");
+    if (content.trim().length < 3 || content.length > 4 * 1024 * 1024) {
       throw new Error("size");
+    }
     return JSON.parse(content);
   } catch {
     throw new EvaluationError(
       code,
       `Evidence is missing or invalid JSON: ${path}`,
     );
+  }
+}
+
+function parseJsonBuffer(
+  value: Buffer,
+  code: "EVAL_MANIFEST_INVALID",
+): unknown {
+  try {
+    return JSON.parse(value.toString("utf8"));
+  } catch {
+    throw new EvaluationError(code, "Reviewed release JSON is invalid.");
   }
 }
 
@@ -503,6 +519,10 @@ function isWithin(root: string, absolute: string): boolean {
 }
 
 function hash(value: string): string {
+  return `sha256:${createHash("sha256").update(value).digest("hex")}`;
+}
+
+function hashBuffer(value: Buffer): string {
   return `sha256:${createHash("sha256").update(value).digest("hex")}`;
 }
 
@@ -550,20 +570,4 @@ export function executeVerifierCommand(input: {
       },
     );
   });
-}
-
-export async function probeLoopbackUrl(
-  url: string,
-): Promise<{ statusCode: number; body: string }> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 3_000);
-  try {
-    const response = await fetch(url, {
-      signal: controller.signal,
-      redirect: "error",
-    });
-    return { statusCode: response.status, body: await response.text() };
-  } finally {
-    clearTimeout(timer);
-  }
 }

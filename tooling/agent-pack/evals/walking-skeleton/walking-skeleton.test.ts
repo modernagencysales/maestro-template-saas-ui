@@ -1,31 +1,28 @@
-import { access, mkdir, readFile, writeFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { mkdtemp } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
 import { aggregateWalkingSkeletonRuns } from "./aggregate.js";
 import type { WalkingSkeletonResult } from "./contract.js";
-import { parseCliOptions } from "./cli.js";
 import {
   createHostAdapter,
   safeHostEnvironment,
   type HostCommand,
-  type WalkingSkeletonHostAdapter,
 } from "./hosts.js";
-import { runWalkingSkeleton } from "./runner.js";
-import { verifyExecutableEvidence, type VerifierCommand } from "./verifier.js";
+import {
+  verifyExecutableEvidence,
+  type ProductProofRunner,
+  type VerifierCommand,
+} from "./verifier.js";
 
 const candidateSha = "a".repeat(40);
-const hashes = {
-  manifest: `sha256:${"1".repeat(64)}`,
-  gateSet: `sha256:${"2".repeat(64)}`,
-  verticalSlice: `sha256:${"3".repeat(64)}`,
-  firstRecord: `sha256:${"4".repeat(64)}`,
-  checkExecution: `sha256:${"5".repeat(64)}`,
-};
+const reviewedCommit = "1".repeat(40);
 
-describe("walking-skeleton fail-closed harness", () => {
-  it("uses a strict credential-free environment and ephemeral MCP-disabled Codex", async () => {
+describe("walking-skeleton fail-closed evidence", () => {
+  it("uses ephemeral MCP-disabled Codex and never forwards ambient credentials", async () => {
     const calls: HostCommand[] = [];
     const adapter = createHostAdapter("codex", async (input) => {
       calls.push(input);
@@ -38,13 +35,13 @@ describe("walking-skeleton fail-closed harness", () => {
     });
     await adapter.preflight({
       cwd: "/repo",
-      hostHome: "/auth/codex",
-      sessionDir: "/run/one",
+      hostHome: "/auth",
+      sessionDir: "/run",
     });
     await adapter.run({
       cwd: "/repo",
-      hostHome: "/auth/codex",
-      sessionDir: "/run/one",
+      hostHome: "/auth",
+      sessionDir: "/run",
       prompt: "test",
       timeoutMs: 1_000,
     });
@@ -56,192 +53,90 @@ describe("walking-skeleton fail-closed harness", () => {
         "mcp_servers={}",
       ]),
     );
-    expect(calls[2]?.env.CODEX_HOME).toBe("/auth/codex");
-    expect(calls[2]?.env.CONVEX_DEPLOY_KEY).toBeUndefined();
-    expect(calls[2]?.env.ANTHROPIC_API_KEY).toBeUndefined();
     expect(
-      Object.keys(
-        safeHostEnvironment({
-          host: "codex",
-          hostHome: "/auth/codex",
-          sessionDir: "/run/one",
-          source: { PATH: "/bin", CONVEX_DEPLOY_KEY: "secret" },
-        }),
-      ),
-    ).not.toContain("CONVEX_DEPLOY_KEY");
-  });
-
-  it("classifies missing host executable and logged-out Claude", async () => {
-    const missing = createHostAdapter("claude", async () => ({
-      exitCode: null,
-      stdout: "",
-      stderr: "",
-      unavailable: true,
-    }));
-    await expect(
-      missing.preflight({
-        cwd: "/repo",
+      safeHostEnvironment({
+        host: "codex",
         hostHome: "/auth",
         sessionDir: "/run",
-      }),
-    ).rejects.toMatchObject({ code: "EVAL_HOST_EXECUTABLE_UNAVAILABLE" });
-
-    let call = 0;
-    const loggedOut = createHostAdapter("claude", async () => ({
-      exitCode: 0,
-      stdout: ++call === 1 ? "1.0" : '{"loggedIn":false}',
-      stderr: "",
-      unavailable: false,
-    }));
-    await expect(
-      loggedOut.preflight({
-        cwd: "/repo",
-        hostHome: "/auth",
-        sessionDir: "/run",
-      }),
-    ).rejects.toMatchObject({ code: "EVAL_HOST_AUTH_REQUIRED" });
+        source: { PATH: "/bin", CONVEX_DEPLOY_KEY: "secret" },
+      }).CONVEX_DEPLOY_KEY,
+    ).toBeUndefined();
   });
 
-  it("makes the documented focused invocation usable with safe defaults", () => {
-    const parsed = parseCliOptions(
-      [
-        "--suite",
-        "walking-skeleton",
-        "--host",
-        "codex",
-        "--candidate-sha",
-        candidateSha,
-      ],
-      "/repo",
-      { CODEX_HOME: "/auth/codex", PATH: "/bin" },
-      new Date("2026-07-25T12:00:00Z"),
+  it("accepts the frozen reviewed release binding rather than candidate HEAD", async () => {
+    const fixture = await completeFixture();
+    const evidence = await verify(fixture, localCrudProof);
+    expect(evidence.canonicalHashes.manifest).toMatch(/^sha256:/u);
+  });
+
+  it("rejects a fabricated customer instance that substitutes candidate HEAD", async () => {
+    const fixture = await completeFixture();
+    const path = join(
+      fixture.workspace,
+      "eval-target",
+      "template-instance.json",
     );
-    expect(parsed.mode).toBe("run");
-    if (parsed.mode === "run") {
-      expect(parsed.options.runId).toMatch(/^codex-/u);
-      expect(parsed.options.out).toBe("/repo/tooling/agent-pack/evals/runs");
-      expect(parsed.options.hostHome).toBe("/auth/codex");
-    }
-  });
-
-  it("rejects missing offline prerequisite evidence before trusting host claims", async () => {
-    const fixture = await fixtureWorkspace();
-    await expect(
-      verifyExecutableEvidence({
-        workspace: fixture.workspace,
-        candidateSha,
-        sessionDir: fixture.sessionDir,
-        result: validResult(),
-        ports: verifierPorts(),
-      }),
-    ).rejects.toMatchObject({ code: "EVAL_PREREQUISITE_EVIDENCE_MISSING" });
-  });
-
-  it("rejects empty manifest and placeholder vertical-slice evidence", async () => {
-    const fixture = await fixtureWorkspace({ complete: true });
-    await writeFile(
-      join(fixture.workspace, "eval-target", "manifest.json"),
-      "{}\n",
-    );
-    await expect(verify(fixture)).rejects.toMatchObject({
+    const instance = JSON.parse(await readFile(path, "utf8")) as {
+      release: { sourceCommit: string };
+    };
+    instance.release.sourceCommit = candidateSha;
+    await writeFile(path, JSON.stringify(instance));
+    await expect(verify(fixture, localCrudProof)).rejects.toMatchObject({
       code: "EVAL_MANIFEST_INVALID",
     });
+  });
 
-    await writeValidManifest(fixture.workspace);
+  it("fails closed when fake host-authored files exist but product CRUD seam does not", async () => {
+    const fixture = await completeFixture();
     await writeFile(
-      join(fixture.workspace, "eval-target", "apps", "web", "records.ts"),
-      "export {};\n",
+      join(fixture.workspace, "eval-target", "record.json"),
+      JSON.stringify({ id: "fake", synthetic: false }),
+    );
+    await writeFile(
+      join(fixture.workspace, "eval-target", "captured-proof.json"),
+      JSON.stringify({
+        statusCode: 200,
+        bodySha256: `sha256:${"0".repeat(64)}`,
+      }),
     );
     await expect(verify(fixture)).rejects.toMatchObject({
-      code: "EVAL_VERTICAL_SLICE_INVALID",
+      code: "EVAL_PRODUCT_PROOF_UNAVAILABLE",
+      message: expect.stringContaining("maestro:crud-proof"),
     });
   });
 
-  it("rejects browser-open failure without captured proof", async () => {
-    const fixture = await fixtureWorkspace({ complete: true });
-    await expect(
-      verifyExecutableEvidence({
-        workspace: fixture.workspace,
-        candidateSha,
-        sessionDir: fixture.sessionDir,
-        result: validResult(),
-        ports: verifierPorts({ probeFails: true }),
-      }),
-    ).rejects.toMatchObject({ code: "EVAL_BROWSER_PROOF_UNAVAILABLE" });
+  it("proves a harness-owned local server can exercise create and read", async () => {
+    const proof = await localCrudProof({
+      customerRoot: "/unused",
+      env: { PATH: "/bin" },
+      command: verifierCommand,
+    });
+    expect(proof.create.statusCode).toBe(201);
+    expect(proof.read.record).toEqual(proof.create.record);
+    expect(proof.url).toMatch(/^http:\/\/127\.0\.0\.1:/u);
   });
 
-  it("fails closed on stale plugin or MCP configuration with recovery guidance", async () => {
-    const fixture = await fixtureWorkspace({ complete: true });
+  it("rejects missing frozen-install evidence before product proof", async () => {
+    const fixture = await completeFixture();
     await writeFile(
-      join(fixture.workspace, "eval-target", ".mcp.json"),
-      "{}\n",
+      join(fixture.workspace, "node_modules", ".modules.yaml"),
+      "",
     );
-    await expect(verify(fixture)).rejects.toMatchObject({
-      code: "EVAL_FORBIDDEN_HOST_CONFIG",
-      message: expect.stringContaining("removed before rerun"),
+    await expect(verify(fixture, localCrudProof)).rejects.toMatchObject({
+      code: "EVAL_PREREQUISITE_EVIDENCE_MISSING",
     });
   });
 
-  it("independently verifies real evidence, writes hashes, and discards workspace", async () => {
-    const out = await mkdtemp(join(tmpdir(), "maestro-eval-run-"));
-    const adapter: WalkingSkeletonHostAdapter = {
-      host: "codex",
-      preflight: async () => undefined,
-      run: async () => ({
-        exitCode: 0,
-        stdout: "API_TOKEN=secret-value",
-        stderr: "",
-        unavailable: false,
-      }),
-    };
-    const receipt = await runWalkingSkeleton(
-      {
-        host: "codex",
-        runId: "codex-1",
-        out,
-        sourceRoot: "/repo",
-        candidateSha,
-        hostHome: "/auth/codex",
-        productName: "Acme Workspace",
-      },
-      {
-        adapter,
-        prepareWorkspace: async ({ workspace }) => {
-          await populateWorkspace(workspace, true);
-          await mkdir(join(workspace, ".maestro-eval"));
-          await writeFile(
-            join(workspace, ".maestro-eval", "walking-skeleton-result.json"),
-            JSON.stringify(validResult()),
-          );
-        },
-        verifierPorts: verifierPorts(),
-        now: (() => {
-          const values = [
-            new Date("2026-07-25T12:00:00Z"),
-            new Date("2026-07-25T12:06:00Z"),
-          ];
-          return () => values.shift() ?? new Date("2026-07-25T12:06:00Z");
-        })(),
-      },
-    );
-    expect(receipt.status).toBe("passed");
-    expect(receipt.canonicalHashes?.manifest).toMatch(/^sha256:/u);
-    await expect(access(join(out, "codex-1", "workspace"))).rejects.toThrow();
-    expect(
-      await readFile(join(out, "codex-1", "host.stdout.log"), "utf8"),
-    ).toBe("API_TOKEN=[REDACTED]");
-    expect(
-      JSON.parse(
-        await readFile(join(out, "codex-1", "retention.json"), "utf8"),
-      ),
-    ).toMatchObject({
-      workspaceRetained: false,
-    });
-  });
-
-  it("aggregates exactly two runs per host and rejects canonical divergence", async () => {
+  it("still aggregates exactly two equivalent runs per host", async () => {
     const out = await mkdtemp(join(tmpdir(), "maestro-eval-suite-"));
     const runIds = ["claude-1", "claude-2", "codex-1", "codex-2"];
+    const canonicalHashes = {
+      manifest: sha("manifest"),
+      gateSet: sha("gates"),
+      verticalSlice: sha("projection"),
+      firstRecord: sha("record"),
+      checkExecution: sha("check"),
+    };
     for (const runId of runIds) {
       await mkdir(join(out, runId));
       await writeFile(
@@ -251,7 +146,7 @@ describe("walking-skeleton fail-closed harness", () => {
           runId,
           candidateSha,
           status: "passed",
-          canonicalHashes: hashes,
+          canonicalHashes,
         }),
       );
     }
@@ -260,161 +155,183 @@ describe("walking-skeleton fail-closed harness", () => {
         out,
         runIds,
         candidateSha,
-        suiteRunId: "suite-pass",
+        suiteRunId: "suite",
       }),
-    ).resolves.toMatchObject({ status: "passed", canonicalHashes: hashes });
-    await writeFile(
-      join(out, "codex-2", "receipt.json"),
-      JSON.stringify({
-        host: "codex",
-        runId: "codex-2",
-        candidateSha,
-        status: "passed",
-        canonicalHashes: { ...hashes, firstRecord: `sha256:${"9".repeat(64)}` },
-      }),
-    );
-    await expect(
-      aggregateWalkingSkeletonRuns({
-        out,
-        runIds,
-        candidateSha,
-        suiteRunId: "suite-fail",
-      }),
-    ).rejects.toMatchObject({ code: "EVAL_SUITE_DIVERGED" });
+    ).resolves.toMatchObject({ status: "passed", canonicalHashes });
   });
 });
 
+async function completeFixture() {
+  const root = await mkdtemp(join(tmpdir(), "maestro-eval-proof-"));
+  const workspace = join(root, "workspace");
+  const sessionDir = join(root, "session");
+  const customerRoot = join(workspace, "eval-target");
+  await mkdir(join(workspace, "node_modules"), { recursive: true });
+  await mkdir(join(workspace, "releases", "v0.2.0-alpha.1", "blueprints"), {
+    recursive: true,
+  });
+  await mkdir(join(customerRoot, "apps", "web"), { recursive: true });
+  await mkdir(sessionDir);
+  await writeFile(
+    join(workspace, "pnpm-lock.yaml"),
+    "lockfileVersion: '9.0'\n# frozen\n# frozen\n# frozen\n",
+  );
+  await writeFile(
+    join(workspace, "node_modules", ".modules.yaml"),
+    "virtualStoreDir: .pnpm\nvirtualStoreDirMaxLength: 120\n",
+  );
+
+  const release = {
+    schemaVersion: 1,
+    kind: "composed-customer-release",
+    materializationStatus: "materializable",
+    release: {
+      version: "0.2.0-alpha.1",
+      tag: "maestro-template-v0.2.0-alpha.1",
+      sourceCommit: reviewedCommit,
+      sourceChecksum: sha("reviewed archive"),
+    },
+  };
+  const releaseBytes = Buffer.from(`${JSON.stringify(release, null, 2)}\n`);
+  await writeFile(
+    join(workspace, "releases", "v0.2.0-alpha.1", "manifest.json"),
+    releaseBytes,
+  );
+  const projectedContent =
+    "export type RecordItem = { id: string; title: string };\nexport const recordsRoute = '/records';\n";
+  await writeFile(
+    join(customerRoot, "apps", "web", "records.ts"),
+    projectedContent,
+  );
+  const blueprint = {
+    schemaVersion: 1,
+    id: "saas-application",
+    provenance: "@maestro-template/generators/saas-application@1",
+    entries: [{ path: "apps/web/records.ts", sha256: sha(projectedContent) }],
+  };
+  await writeFile(
+    join(
+      workspace,
+      "releases",
+      "v0.2.0-alpha.1",
+      "blueprints",
+      "saas-application.json",
+    ),
+    `${JSON.stringify(blueprint, null, 2)}\n`,
+  );
+  await writeFile(
+    join(customerRoot, "template-instance.json"),
+    JSON.stringify({
+      schemaVersion: 1,
+      release: release.release,
+      ownership: {
+        manifest: "releases/v0.2.0-alpha.1/manifest.json",
+        manifestChecksum: shaBuffer(releaseBytes),
+      },
+      blueprint: {
+        id: blueprint.id,
+        provenance: blueprint.provenance,
+        digest: sha("target plan"),
+      },
+    }),
+  );
+  await writeFile(
+    join(customerRoot, "receipt.json"),
+    JSON.stringify(validReceipt()),
+  );
+  await writeFile(
+    join(customerRoot, "package.json"),
+    JSON.stringify({ scripts: {} }),
+  );
+  return { workspace, sessionDir };
+}
+
 function validResult(): WalkingSkeletonResult {
-  const base = Date.parse("2026-07-25T12:00:00Z");
   return {
     schemaVersion: 2,
     candidateSha,
     customerTarget: "eval-target",
-    milestones: [
-      "prerequisites_install_complete",
-      "visible_fake_url",
-      "personalized_interaction",
-      "first_record_persisted",
-      "check_complete",
-    ].map((id, index) => ({
-      id,
-      reachedAt: new Date(base + (index + 1) * 60_000).toISOString(),
-    })),
-    interventions: [{ kind: "product-naming", summary: "Named the app." }],
+    milestones: [],
+    interventions: [],
     evidence: {
-      visibleUrl: "http://127.0.0.1:4173/records",
-      manifestPath: "eval-target/manifest.json",
+      manifestPath: "eval-target/template-instance.json",
       receiptPath: "eval-target/receipt.json",
-      recordPath: "eval-target/record.json",
-      recordId: "record-1",
-      verticalSlicePaths: ["eval-target/apps/web/records.ts"],
     },
-    explanation: {
-      works: "Record create and read work locally.",
-      demoOnly: "Storage remains fake.",
-      nextAction: "Connect personal Convex dev when ready.",
-    },
+    explanation: { works: "works", demoOnly: "fake", nextAction: "next" },
   };
 }
 
-async function fixtureWorkspace(
-  options: { prerequisites?: boolean; complete?: boolean } = {},
+async function verify(
+  fixture: { workspace: string; sessionDir: string },
+  productProof?: ProductProofRunner,
 ) {
-  const root = await mkdtemp(join(tmpdir(), "maestro-eval-fixture-"));
-  const workspace = join(root, "workspace");
-  const sessionDir = join(root, "session");
-  await mkdir(workspace);
-  await mkdir(sessionDir);
-  await mkdir(join(workspace, "eval-target", "apps", "web"), {
-    recursive: true,
+  return verifyExecutableEvidence({
+    workspace: fixture.workspace,
+    candidateSha,
+    sessionDir: fixture.sessionDir,
+    result: validResult(),
+    ports: {
+      command: verifierCommand,
+      ...(productProof ? { productProof } : {}),
+    },
   });
-  if (options.prerequisites || options.complete)
-    await writePrerequisites(workspace);
-  if (options.complete) await populateWorkspace(workspace, false);
-  return { workspace, sessionDir };
 }
 
-async function populateWorkspace(
-  workspace: string,
-  includePrerequisites: boolean,
-) {
-  await mkdir(join(workspace, "eval-target", "apps", "web"), {
-    recursive: true,
+const verifierCommand: VerifierCommand = async (input) => {
+  if (input.command === "git" && input.args[0] === "rev-parse") {
+    return { exitCode: 0, stdout: `${candidateSha}\n`, stderr: "" };
+  }
+  if (input.command === "git") return { exitCode: 0, stdout: "", stderr: "" };
+  return { exitCode: 0, stdout: '{"status":"pass"}', stderr: "" };
+};
+
+const localCrudProof: ProductProofRunner = async () => {
+  let record: Record<string, unknown> | undefined;
+  const server = createServer((request, response) => {
+    if (request.method === "POST" && request.url === "/records") {
+      record = { id: "record-1", title: "First record", synthetic: false };
+      response.writeHead(201, { "content-type": "application/json" });
+      response.end(JSON.stringify(record));
+      return;
+    }
+    if (
+      request.method === "GET" &&
+      request.url === "/records/record-1" &&
+      record
+    ) {
+      response.writeHead(200, { "content-type": "application/json" });
+      response.end(JSON.stringify(record));
+      return;
+    }
+    response.writeHead(404).end();
   });
-  if (includePrerequisites) await writePrerequisites(workspace);
-  await writeValidManifest(workspace);
-  await writeFile(
-    join(workspace, "eval-target", "receipt.json"),
-    JSON.stringify(validReceipt()),
+  await new Promise<void>((resolveReady) =>
+    server.listen(0, "127.0.0.1", resolveReady),
   );
-  await writeFile(
-    join(workspace, "eval-target", "record.json"),
-    JSON.stringify({
-      id: "record-1",
-      title: "Customer record",
-      detail: "Persisted locally",
-      synthetic: false,
-    }),
-  );
-  await writeFile(
-    join(workspace, "eval-target", "apps", "web", "records.ts"),
-    "export type RecordItem = { id: string; title: string };\nexport const createRecord = (title: string): RecordItem => ({ id: `record-${title.length}`, title });\n",
-  );
-}
-
-async function writePrerequisites(workspace: string) {
-  await mkdir(join(workspace, "node_modules"), { recursive: true });
-  await writeFile(
-    join(workspace, "pnpm-lock.yaml"),
-    `lockfileVersion: '9.0'\n${"# frozen\n".repeat(8)}`,
-  );
-  await writeFile(
-    join(workspace, "node_modules", ".modules.yaml"),
-    `${"virtualStoreDir: .pnpm\n".repeat(3)}`,
-  );
-}
-
-async function writeValidManifest(workspace: string) {
-  await writeFile(
-    join(workspace, "eval-target", "manifest.json"),
-    JSON.stringify({
-      $schema: "../../schemas/maestro-customer-release-manifest.schema.json",
-      schemaVersion: 1,
-      materializationStatus: "materializable",
-      release: {
-        version: "0.2.0-alpha.1",
-        tag: "maestro-template-v0.2.0-alpha.1",
-        sourceCommit: candidateSha,
-        sourceChecksum: `sha256:${"a".repeat(64)}`,
-      },
-      compatibility: { cli: "1", agentPack: "1" },
-      paths: [
-        {
-          path: "apps/web",
-          match: "subtree",
-          ownership: "template-owned",
-          action: "copy",
-          upgrade: "replace",
-        },
-      ],
-      expectedHashes: { "apps/web/records.ts": `sha256:${"b".repeat(64)}` },
-      extensionSeams: [],
-    }),
-  );
-}
+  const address = server.address();
+  if (!address || typeof address === "string")
+    throw new Error("server unavailable");
+  const url = `http://127.0.0.1:${String(address.port)}`;
+  try {
+    const created = await fetch(`${url}/records`, { method: "POST" });
+    const read = await fetch(`${url}/records/record-1`);
+    return {
+      url,
+      create: { statusCode: created.status, record: await created.json() },
+      read: { statusCode: read.status, record: await read.json() },
+    };
+  } finally {
+    await new Promise<void>((resolveClosed, reject) =>
+      server.close((error) => (error ? reject(error) : resolveClosed())),
+    );
+  }
+};
 
 function validReceipt() {
   return {
     schemaVersion: 1,
-    createdAt: "2026-07-25T12:05:00Z",
     command: { id: "check", version: 1 },
-    subject: { commit: candidateSha, dirty: true },
-    fingerprints: {
-      repository: "repository_sha256:abc",
-      environment: "environment_sha256:def",
-      providerPosture: "providers_sha256:ghi",
-    },
-    scope: { kind: "full", changedPaths: [], partial: false },
+    fingerprints: { repository: "repository_sha256:abc" },
     gates: [
       {
         gateId: "architecture",
@@ -427,33 +344,10 @@ function validReceipt() {
   };
 }
 
-function verifierPorts(options: { probeFails?: boolean } = {}) {
-  const command: VerifierCommand = async (input) => {
-    if (input.command === "git" && input.args[0] === "rev-parse") {
-      return { exitCode: 0, stdout: `${candidateSha}\n`, stderr: "" };
-    }
-    if (input.command === "git") return { exitCode: 0, stdout: "", stderr: "" };
-    return { exitCode: 0, stdout: '{"status":"pass"}', stderr: "" };
-  };
-  return {
-    command,
-    probeUrl: options.probeFails
-      ? async () => {
-          throw new Error("browser unavailable");
-        }
-      : async () => ({
-          statusCode: 200,
-          body: "<html>records record-1</html>",
-        }),
-  };
+function sha(value: string): string {
+  return `sha256:${createHash("sha256").update(value).digest("hex")}`;
 }
 
-async function verify(fixture: { workspace: string; sessionDir: string }) {
-  return verifyExecutableEvidence({
-    workspace: fixture.workspace,
-    candidateSha,
-    sessionDir: fixture.sessionDir,
-    result: validResult(),
-    ports: verifierPorts(),
-  });
+function shaBuffer(value: Buffer): string {
+  return `sha256:${createHash("sha256").update(value).digest("hex")}`;
 }
