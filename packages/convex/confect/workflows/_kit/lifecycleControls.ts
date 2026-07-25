@@ -88,6 +88,11 @@ export type WorkflowRestartInspection = {
   }[];
 };
 
+export type WorkflowQuiescenceInspection = {
+  readonly inProgressSteps: readonly string[];
+  readonly inProgressChildren: readonly string[];
+};
+
 export type WorkflowLifecycleControlPorts = {
   readonly authorize: (
     principal: WorkflowLifecyclePrincipal,
@@ -123,6 +128,11 @@ export type WorkflowLifecycleControlPorts = {
     readonly generation: number;
     readonly restartAnchor: string;
   }) => Promise<WorkflowRestartInspection>;
+  readonly inspectQuiescence: (input: {
+    readonly workspaceId: string;
+    readonly workflowRunId: string;
+    readonly componentWorkflowId: string;
+  }) => Promise<WorkflowQuiescenceInspection>;
   readonly component: {
     readonly status: (componentWorkflowId: string) => Promise<{
       readonly type: "inProgress" | "completed" | "failed" | "canceled";

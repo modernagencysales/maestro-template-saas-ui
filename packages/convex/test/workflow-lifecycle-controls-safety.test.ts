@@ -13,7 +13,11 @@ describe("tenant-safe workflow lifecycle safety", () => {
       terminalRun({ priorGenerationQuiescence: "pending" }),
     );
     vi.mocked(fixture.ports.component.status).mockResolvedValue({
-      type: "inProgress",
+      type: "canceled",
+    });
+    vi.mocked(fixture.ports.inspectQuiescence).mockResolvedValue({
+      inProgressSteps: ["action.v3"],
+      inProgressChildren: [],
     });
     await expect(
       fixture.controls.restart(principal, {
@@ -23,6 +27,11 @@ describe("tenant-safe workflow lifecycle safety", () => {
         occurredAt: 200,
       }),
     ).rejects.toBeInstanceOf(WorkflowLifecycleControlError);
+    expect(fixture.ports.inspectQuiescence).toHaveBeenCalledWith({
+      workspaceId: "workspace-a",
+      workflowRunId: "run-a",
+      componentWorkflowId: "component-a",
+    });
     expect(fixture.ports.inspectRestart).not.toHaveBeenCalled();
     expect(fixture.ports.component.restart).not.toHaveBeenCalled();
   });

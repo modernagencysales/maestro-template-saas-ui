@@ -7,6 +7,43 @@ import { WorkflowLifecyclePersistenceError } from "./lifecyclePersistence";
 
 type Reader = Context.Tag.Service<typeof DatabaseReader>;
 
+export const inspectWorkflowExposedWork = (
+  reader: Reader,
+  input: {
+    readonly workspaceId: string;
+    readonly workflowRunId: string;
+    readonly componentWorkflowId: string;
+  },
+) =>
+  Effect.gen(function* () {
+    const stages = yield* reader
+      .table("workflowStageRuns")
+      .index("by_run", (q) => q.eq("workflowRunId", input.workflowRunId))
+      .collect()
+      .pipe(Effect.orDie);
+    const children = yield* reader
+      .table("workflowRunLinks")
+      .index("by_workspace_and_parent", (q) =>
+        q
+          .eq("workspaceId", input.workspaceId)
+          .eq("parentWorkflowId", input.componentWorkflowId),
+      )
+      .collect()
+      .pipe(Effect.orDie);
+    return {
+      inProgressSteps: stages
+        .filter(
+          (stage) => stage.status === "queued" || stage.status === "running",
+        )
+        .map((stage) => stage.stageKey ?? stage.nodeId),
+      inProgressChildren: children
+        .filter(
+          (child) => child.status === "starting" || child.status === "running",
+        )
+        .map((child) => child.relationId),
+    };
+  });
+
 export const inspectWorkflowRestart = (
   reader: Reader,
   input: {

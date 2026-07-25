@@ -26,7 +26,16 @@ export const restartWorkflowLifecycle = async (
   const status = await componentCall(() =>
     ports.component.status(run.componentWorkflowId),
   );
-  if (status.type === "inProgress") {
+  const exposedWork = await ports.inspectQuiescence({
+    workspaceId: principal.workspaceId,
+    workflowRunId: run.workflowRunId,
+    componentWorkflowId: run.componentWorkflowId,
+  });
+  if (
+    status.type === "inProgress" ||
+    exposedWork.inProgressSteps.length > 0 ||
+    exposedWork.inProgressChildren.length > 0
+  ) {
     throw controlError(
       "INVALID_STATE",
       "Workflow restart requires component-proven prior-generation quiescence.",

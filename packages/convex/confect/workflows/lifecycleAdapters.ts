@@ -24,7 +24,10 @@ import {
   persistWorkflowLifecycleState,
 } from "./lifecyclePersistence";
 import { workflowLifecycleComponentAdapter } from "./lifecycleComponent";
-import { inspectWorkflowRestart } from "./lifecycleInspection";
+import {
+  inspectWorkflowExposedWork,
+  inspectWorkflowRestart,
+} from "./lifecycleInspection";
 
 type Reader = Context.Tag.Service<typeof DatabaseReader>;
 type Writer = Context.Tag.Service<typeof DatabaseWriter>;
@@ -98,6 +101,8 @@ const readPorts = (
     ),
   inspectRestart: (input) =>
     Effect.runPromise(inspectWorkflowRestart(reader, input)),
+  inspectQuiescence: (input) =>
+    Effect.runPromise(inspectWorkflowExposedWork(reader, input)),
   component: {
     status: unavailableOperation,
     cancel: unavailableOperation,
