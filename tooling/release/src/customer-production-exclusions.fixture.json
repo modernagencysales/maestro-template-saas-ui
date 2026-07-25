@@ -27,7 +27,22 @@
     "apps/cli/src/factory/mcpIntegration.test.ts",
     "apps/cli/src/factory/createRootIntegration.test.ts",
     "apps/cli/src/index.test.ts",
-    "apps/cli/src/direct-run.test.ts"
+    "apps/cli/src/direct-run.test.ts",
+    "apps/cli/src/factory/createComposition.ts",
+    "apps/cli/src/factory/create.test.ts",
+    "apps/cli/src/factory/planCheck.test.ts",
+    "apps/cli/src/factory/preflight.test.ts",
+    "apps/cli/src/factory/router.test.ts",
+    "apps/cli/src/factory/scaffold.test.ts",
+    "apps/cli/src/factory/start.test.ts",
+    "apps/cli/src/factory/verify.test.ts",
+    "tooling/generators/src/index.ts",
+    "tooling/generators/src/index.test.ts",
+    "tooling/generators/src/direct-run.test.ts",
+    "tooling/generators/src/blueprints/saasApplication.test.ts",
+    "tooling/generators/src/blueprints/saasApplication.ts",
+    "tooling/generators/src/workflow-output-smoke.ts",
+    "tooling/generators/src/workflow-semantic-coverage.ts"
   ],
   "forbiddenCustomerBarrelExports": ["./pluginContract.js", "./mcp/"],
   "localOnlyOwner": "tooling/agent-pack/src/readiness"

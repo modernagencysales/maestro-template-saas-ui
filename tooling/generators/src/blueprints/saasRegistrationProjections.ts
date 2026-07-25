@@ -19,9 +19,6 @@ const source = (path: string): string =>
     "utf8",
   );
 
-const generatorSource = (name: string): string =>
-  readFileSync(new URL(`../${name}`, import.meta.url), "utf8");
-
 export const REMOVED_CUSTOMER_TEMPLATE_SCRIPTS = [
   "template:init",
   "template:quickstart",
@@ -40,7 +37,10 @@ const customerPackage = (): string => {
   const value = JSON.parse(source("package.json")) as {
     scripts: Record<string, string>;
   };
-  for (const name of REMOVED_CUSTOMER_TEMPLATE_SCRIPTS) delete value.scripts[name];
+  for (const name of REMOVED_CUSTOMER_TEMPLATE_SCRIPTS)
+    delete value.scripts[name];
+  delete value.scripts["check:recipes"];
+  delete value.scripts["check:workflow-version-immutability"];
   for (const name of Object.keys(value.scripts)) {
     if (name.startsWith("template:")) {
       value.scripts[name] = value.scripts[name]!.replace(
@@ -49,7 +49,21 @@ const customerPackage = (): string => {
       );
     }
   }
-  value.scripts["template:smoke"] = "tsx tooling/generators/src/customer-cli.ts smoke";
+  value.scripts["template:smoke"] =
+    "tsx tooling/generators/src/customer-cli.ts smoke";
+  return `${JSON.stringify(value, null, 2)}\n`;
+};
+
+const customerGeneratorPackage = (): string => {
+  const value = JSON.parse(source("tooling/generators/package.json")) as Record<
+    string,
+    unknown
+  >;
+  value.main = "src/customer.ts";
+  value.types = "src/customer.ts";
+  value.exports = { ".": "./src/customer.ts" };
+  const scripts = value.scripts as Record<string, string>;
+  scripts.cli = "tsx src/customer-cli.ts";
   return `${JSON.stringify(value, null, 2)}\n`;
 };
 
@@ -227,20 +241,26 @@ export const buildSaasRegistrationProjections =
     },
     { path: "package.json", content: customerPackage() },
     {
+      path: "tooling/generators/package.json",
+      content: customerGeneratorPackage(),
+    },
+    {
       path: "tooling/quality/install-lefthook-if-git.mjs",
       content: source("tooling/quality/install-lefthook-if-git.mjs"),
     },
-    ...([
-      ["customer.ts", "customer.ts"],
-      ["customer-runtime.ts", "customer-runtime.ts"],
-      ["customer-dispatcher.ts", "customer-dispatcher.ts"],
-      ["customer-cli.ts", "customer-cli.ts"],
-      ["direct-run.ts", "direct-run.ts"],
-      ["workflow-release-commands.ts", "workflow-release-commands.ts"],
-      ["blueprints/gtmImplementation.ts", "blueprints/gtmImplementation.ts"],
-    ] as const).map(([path, name]) => ({
+    ...(
+      [
+        ["customer.ts", "customer.ts"],
+        ["customer-runtime.ts", "customer-runtime.ts"],
+        ["customer-dispatcher.ts", "customer-dispatcher.ts"],
+        ["customer-cli.ts", "customer-cli.ts"],
+        ["direct-run.ts", "direct-run.ts"],
+        ["workflow-release-commands.ts", "workflow-release-commands.ts"],
+        ["blueprints/gtmImplementation.ts", "blueprints/gtmImplementation.ts"],
+      ] as const
+    ).map(([path, name]) => ({
       path: `tooling/generators/src/${path}`,
-      content: generatorSource(name),
+      content: source(`tooling/generators/src/${name}`),
     })),
     ...[
       "tooling/generators/src/workflow-files.ts",

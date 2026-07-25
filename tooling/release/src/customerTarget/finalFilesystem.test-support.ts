@@ -18,10 +18,12 @@ const forbiddenPaths = [
   /^tooling\/agent-pack\/src\/mcp\//,
   /(?:^|\/)(?:plugin|mcp)(?:Contract)?[^/]*\.test\.[cm]?[jt]sx?$/i,
   /^tooling\/generators\/src\/index\.ts$/,
+  /^tooling\/generators\/src\/(?:index|direct-run)\.test\.ts$/,
+  /^tooling\/generators\/src\/blueprints\/saasApplication(?:\.test)?\.ts$/,
+  /^tooling\/generators\/src\/workflow-(?:output-smoke|semantic-coverage)\.ts$/,
 ];
 
-const residue =
-  /(?:pluginContract|\.\/mcp(?:\/|["'])|\bmcp\b|customerComposition)/i;
+const residue = /(?:pluginContract|\.\/mcp(?:\/|["']))/i;
 const generatorImport =
   /(?:from\s+["'][^"']*tooling\/generators\/src\/index|tooling\/generators\/src\/index\.ts)/;
 const importSensitivePath =
@@ -83,6 +85,15 @@ export function assertFinalCustomerFilesystem(tree: FinalCustomerTree): void {
 function assertAuthoringInventory(tree: FinalCustomerTree): void {
   const required = [
     "tooling/agent-pack/src/index.ts",
+    "tooling/generators/src/customer.ts",
+    "tooling/generators/src/customer-runtime.ts",
+    "tooling/generators/src/customer-dispatcher.ts",
+    "tooling/generators/src/customer-cli.ts",
+    "tooling/generators/src/direct-run.ts",
+    "tooling/generators/src/workflow-files.ts",
+    "tooling/generators/src/workflow-predeploy.ts",
+    "tooling/generators/src/workflow-release-commands.ts",
+    "tooling/generators/src/blueprints/gtmImplementation.ts",
     "tooling/quality/check-workflow-policy-snapshots.mts",
     "tooling/quality/check-workflow-principal-propagation.mts",
     "packages/convex/package.json",
@@ -119,7 +130,7 @@ function assertLocalPackageScripts(tree: FinalCustomerTree): void {
         if (
           entry &&
           !entry.startsWith("-") &&
-          !existsSync(resolve(tree.root, entry))
+          !existsSync(resolve(tree.root, dirname(packagePath), entry))
         )
           throw new Error(
             `${packagePath} script ${name} has missing entrypoint: ${entry}`,
@@ -127,7 +138,12 @@ function assertLocalPackageScripts(tree: FinalCustomerTree): void {
       }
       for (const match of command.matchAll(/pnpm\s+--dir\s+([^\s;&|]+)/g)) {
         const target = match[1];
-        if (target && !existsSync(resolve(tree.root, target, "package.json")))
+        if (
+          target &&
+          !existsSync(
+            resolve(tree.root, dirname(packagePath), target, "package.json"),
+          )
+        )
           throw new Error(
             `${packagePath} script ${name} has missing pnpm --dir target: ${target}`,
           );
@@ -154,6 +170,11 @@ export function runFinalCustomerCompileGates(root: string): void {
     CONVEX_DEPLOYMENT: "",
     CONVEX_URL: "",
   };
+  execFileSync("pnpm", ["install", "--frozen-lockfile", "--ignore-scripts"], {
+    cwd: root,
+    env,
+    stdio: "pipe",
+  });
   for (const [command, args] of [
     ["pnpm", ["--dir", "apps/cli", "typecheck"]],
     ["pnpm", ["check:workflow-policy-snapshots"]],

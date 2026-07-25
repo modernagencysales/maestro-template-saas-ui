@@ -22,6 +22,7 @@ import {
   saasApplicationBlueprint,
 } from "./saasApplication";
 import { buildFactorySaasApplicationFiles } from "./saasApplicationFactory";
+import { REMOVED_CUSTOMER_TEMPLATE_SCRIPTS } from "./saasRegistrationProjections";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../../../..");
 const sourceModule = (path: string) =>
@@ -33,13 +34,29 @@ const sourceModule = (path: string) =>
 describe("saas application blueprint", () => {
   it("projects only the supported customer generator scripts", () => {
     const plan = buildSaasApplicationTargetPlan();
-    const packageEntry = plan.entries.find(({ path }) => path === "package.json");
+    const packageEntry = plan.entries.find(
+      ({ path }) => path === "package.json",
+    );
     if (!packageEntry) throw new Error("missing projected package.json");
-    const scripts = (JSON.parse(packageEntry.content) as { scripts: Record<string, string> }).scripts;
+    const scripts = (
+      JSON.parse(packageEntry.content) as { scripts: Record<string, string> }
+    ).scripts;
     expect(scripts["template:add-table"]).toContain("customer-cli.ts");
     expect(scripts["template:publish-workflow"]).toContain("customer-cli.ts");
     expect(scripts["template:smoke"]).toContain("customer-cli.ts");
-    for (const name of ["template:init", "template:quickstart", "template:intake", "template:seed-demo", "template:handoff", "template:prototype", "template:add-client-domain", "template:workflow-output-smoke", "template:upgrade", "template:private-package:dry-run", "template:private-package:import"]) {
+    for (const name of [
+      "template:init",
+      "template:quickstart",
+      "template:intake",
+      "template:seed-demo",
+      "template:handoff",
+      "template:prototype",
+      "template:add-client-domain",
+      "template:workflow-output-smoke",
+      "template:upgrade",
+      "template:private-package:dry-run",
+      "template:private-package:import",
+    ]) {
       expect(scripts).not.toHaveProperty(name);
     }
     expect(plan.entries.map(({ path }) => path)).not.toContain(
@@ -168,11 +185,22 @@ describe("saas application blueprint", () => {
       "apps/web/src/features/records/records-surface.tsx",
       "apps/web/src/screens/records-screen.tsx",
       "apps/web/src/routes/_workspace.records.tsx",
+      "generated/blueprints/saas-application/application-contract.json",
+      "generated/blueprints/saas-application/surface-contract.json",
+      "generated/blueprints/saas-application/readiness.json",
       "apps/cli/src/factory/customerComposition.ts",
       "apps/cli/src/index.ts",
       "apps/cli/src/factory/start.ts",
       "package.json",
+      "tooling/generators/package.json",
       "tooling/quality/install-lefthook-if-git.mjs",
+      "tooling/generators/src/customer.ts",
+      "tooling/generators/src/customer-runtime.ts",
+      "tooling/generators/src/customer-dispatcher.ts",
+      "tooling/generators/src/customer-cli.ts",
+      "tooling/generators/src/direct-run.ts",
+      "tooling/generators/src/workflow-release-commands.ts",
+      "tooling/generators/src/blueprints/gtmImplementation.ts",
       "tooling/generators/src/workflow-files.ts",
       "tooling/generators/src/workflow-predeploy.ts",
       "packages/convex/confect/capabilities/_kit/workspaceAccess.ts",
@@ -232,9 +260,6 @@ describe("saas application blueprint", () => {
       "packages/convex/convex/records.ts",
       "apps/web/src/routeTree.gen.ts",
       "apps/web/src/routeRegistry.generated.ts",
-      "generated/blueprints/saas-application/application-contract.json",
-      "generated/blueprints/saas-application/surface-contract.json",
-      "generated/blueprints/saas-application/readiness.json",
     ]);
     for (const file of first.slice(0, 4)) {
       expect(readFileSync(join(repoRoot, file.path), "utf8")).toBe(
@@ -360,13 +385,22 @@ describe("saas application blueprint", () => {
       "deploy:doctor",
       "deploy:cloudflare",
       "test:mutation",
+      "check:recipes",
+      "check:workflow-version-immutability",
     ]);
     const factory = JSON.parse(
       readFileSync(join(repoRoot, "package.json"), "utf8"),
     ) as typeof root;
-    expect(Object.keys(root.scripts)).toEqual(
-      Object.keys(factory.scripts).filter((name) => !omittedScripts.has(name)),
-    );
+    expect(Object.keys(root.scripts)).toEqual([
+      ...Object.keys(factory.scripts).filter(
+        (name) =>
+          !omittedScripts.has(name) &&
+          !REMOVED_CUSTOMER_TEMPLATE_SCRIPTS.includes(
+            name as (typeof REMOVED_CUSTOMER_TEMPLATE_SCRIPTS)[number],
+          ),
+      ),
+      "template:smoke",
+    ]);
     const rewritten = new Set([
       "test:tooling",
       "check:coverage-ratchet",
@@ -376,9 +410,32 @@ describe("saas application blueprint", () => {
       "verify",
     ]);
     for (const [name, command] of Object.entries(factory.scripts)) {
-      if (!omittedScripts.has(name) && !rewritten.has(name))
+      if (
+        name.startsWith("template:") &&
+        !REMOVED_CUSTOMER_TEMPLATE_SCRIPTS.includes(
+          name as (typeof REMOVED_CUSTOMER_TEMPLATE_SCRIPTS)[number],
+        )
+      ) {
+        expect(root.scripts[name]).toBe(
+          command.replace(
+            "tooling/generators/src/index.ts",
+            "tooling/generators/src/customer-cli.ts",
+          ),
+        );
+        continue;
+      }
+      if (
+        !omittedScripts.has(name) &&
+        !rewritten.has(name) &&
+        !REMOVED_CUSTOMER_TEMPLATE_SCRIPTS.includes(
+          name as (typeof REMOVED_CUSTOMER_TEMPLATE_SCRIPTS)[number],
+        )
+      )
         expect(root.scripts[name]).toBe(command);
     }
+    expect(root.scripts["template:smoke"]).toBe(
+      "tsx tooling/generators/src/customer-cli.ts smoke",
+    );
     expect(JSON.stringify(root.scripts)).not.toMatch(
       new RegExp(omittedPaths.join("|")),
     );

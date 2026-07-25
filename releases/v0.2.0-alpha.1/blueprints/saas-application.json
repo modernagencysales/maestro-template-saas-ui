@@ -3,7 +3,7 @@
   "id": "saas-application",
   "provenance": "@maestro-template/generators/saas-application@1",
   "projectionSource": {
-    "sourceCommit": "25b66378fa6b242f2834cd5ae56f04cb150d72c9",
+    "sourceCommit": "2e7798ec8badb0b768d7e5afbc150aea7da9af37",
     "assets": [
       {
         "path": "base/apps/cli/src/factory/customerComposition.ts.txt",
@@ -482,12 +482,44 @@
         "sha256": "sha256:1e7b2f583fe33eb9bdb1c489cd1c35c888a311f0d1f3c0364c1b18bcdc1a8b1b"
       },
       {
+        "path": "base/tooling/generators/package.json.txt",
+        "sha256": "sha256:e0ab05691ad59aeee07abf2baa0910787aee19ee13074fc909f22a6a8aba5351"
+      },
+      {
+        "path": "base/tooling/generators/src/blueprints/gtmImplementation.ts.txt",
+        "sha256": "sha256:16ddad3d6cc5387d32f6e55300582a37d233ea2aed8d914658135af2b1a5d690"
+      },
+      {
+        "path": "base/tooling/generators/src/customer-cli.ts.txt",
+        "sha256": "sha256:f3644fae5b4544c0b8eb0a09857ff9031556acf48584d26ab4485fee18d5f234"
+      },
+      {
+        "path": "base/tooling/generators/src/customer-dispatcher.ts.txt",
+        "sha256": "sha256:f42244b91fc30dd43d0a1874130069771f39bdc05f6e31dbd0949e1ce2ca64f0"
+      },
+      {
+        "path": "base/tooling/generators/src/customer-runtime.ts.txt",
+        "sha256": "sha256:2589dcc6143fca519e6f31159f829ae2ac12b66df19f79220d2d1ed403038660"
+      },
+      {
+        "path": "base/tooling/generators/src/customer.ts.txt",
+        "sha256": "sha256:97c2491d3425360f274ab2a29411fac391917a54284cec70cc4c58e09258aea1"
+      },
+      {
+        "path": "base/tooling/generators/src/direct-run.ts.txt",
+        "sha256": "sha256:766e70b4aa8ffc1620ae699c82bf1ee95ae9685b63ecad429346ce6816095040"
+      },
+      {
         "path": "base/tooling/generators/src/workflow-files.ts.txt",
         "sha256": "sha256:0034148277b5fb6e13bd468f91eea614320226a9d66e688d7300e87089d9b88a"
       },
       {
         "path": "base/tooling/generators/src/workflow-predeploy.ts.txt",
         "sha256": "sha256:6799abe5b1452cd912bd1037c0fd202c07225ae7c63dc110deeeaa671ea3ea22"
+      },
+      {
+        "path": "base/tooling/generators/src/workflow-release-commands.ts.txt",
+        "sha256": "sha256:543f127e1a70299f9b5190db2269803dcba973c19d9ea1b219ddf57d0fb79ac5"
       },
       {
         "path": "base/tooling/quality/check-agent-pack.mts.txt",
@@ -1203,7 +1235,7 @@
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:b154e2d89d2b4c00d1351d3747b77a4cdbc8b62f5754ee83bd8d82b086c56b9e",
+      "sha256": "sha256:7830c72aa87e5ba52aa19ac5959a0671139f4bb170943db797abf250fd8bf517",
       "replaces": "generate"
     },
     {
@@ -1603,6 +1635,58 @@
       "replaces": "copy"
     },
     {
+      "path": "tooling/generators/package.json",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:f22172f3aa3d16a13cf6bb9084e23c06919eac6db924708645380816132eb562",
+      "replaces": "copy"
+    },
+    {
+      "path": "tooling/generators/src/blueprints/gtmImplementation.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:16ddad3d6cc5387d32f6e55300582a37d233ea2aed8d914658135af2b1a5d690",
+      "replaces": "copy"
+    },
+    {
+      "path": "tooling/generators/src/customer-cli.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:f3644fae5b4544c0b8eb0a09857ff9031556acf48584d26ab4485fee18d5f234"
+    },
+    {
+      "path": "tooling/generators/src/customer-dispatcher.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:f42244b91fc30dd43d0a1874130069771f39bdc05f6e31dbd0949e1ce2ca64f0"
+    },
+    {
+      "path": "tooling/generators/src/customer-runtime.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:2589dcc6143fca519e6f31159f829ae2ac12b66df19f79220d2d1ed403038660"
+    },
+    {
+      "path": "tooling/generators/src/customer.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:97c2491d3425360f274ab2a29411fac391917a54284cec70cc4c58e09258aea1"
+    },
+    {
+      "path": "tooling/generators/src/direct-run.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:766e70b4aa8ffc1620ae699c82bf1ee95ae9685b63ecad429346ce6816095040",
+      "replaces": "copy"
+    },
+    {
       "path": "tooling/generators/src/workflow-files.ts",
       "ownership": "generated",
       "action": "generate",
@@ -1616,6 +1700,13 @@
       "upgrade": "regenerate",
       "sha256": "sha256:6799abe5b1452cd912bd1037c0fd202c07225ae7c63dc110deeeaa671ea3ea22",
       "replaces": "copy"
+    },
+    {
+      "path": "tooling/generators/src/workflow-release-commands.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:543f127e1a70299f9b5190db2269803dcba973c19d9ea1b219ddf57d0fb79ac5"
     },
     {
       "path": "tooling/quality/check-agent-pack.mts",

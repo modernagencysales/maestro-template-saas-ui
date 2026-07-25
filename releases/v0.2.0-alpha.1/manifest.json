@@ -118,10 +118,115 @@
       "ownership": "factory-only",
       "action": "omit",
       "upgrade": "remove"
+    },
+    {
+      "path": "apps/cli/src/factory/createComposition.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "apps/cli/src/factory/create.test.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "apps/cli/src/factory/planCheck.test.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "apps/cli/src/factory/preflight.test.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "apps/cli/src/factory/router.test.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "apps/cli/src/factory/scaffold.test.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "apps/cli/src/factory/start.test.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "apps/cli/src/factory/verify.test.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "tooling/generators/src/index.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "tooling/generators/src/index.test.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "tooling/generators/src/direct-run.test.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "tooling/generators/src/blueprints/saasApplication.test.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "tooling/generators/src/blueprints/saasApplication.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "tooling/generators/src/workflow-output-smoke.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "tooling/generators/src/workflow-semantic-coverage.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
     }
   ],
   "blueprintManifest": {
     "path": "blueprints/saas-application.json",
-    "sha256": "sha256:30fe62418ad67e5f422da681162a1b5bd383f86caff8ba3d946e60fe3c29d452"
+    "sha256": "sha256:db4323c947b9b7dd2ca3f412947ab9f07c0e50599a97a702cf6ece7d396bec05"
   }
 }

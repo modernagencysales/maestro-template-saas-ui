@@ -239,11 +239,15 @@ const sha256 = (value: string): string =>
 export function buildSaasApplicationTargetPlan(
   options: BlueprintTargetPlanOptions,
 ): BlueprintTargetPlan;
+export function buildSaasApplicationTargetPlan(): BlueprintTargetPlan;
 export function buildSaasApplicationTargetPlan(): BlueprintTargetPlan {
   const replacements = new Map<string, "copy" | "generate">([
     ["apps/cli/src/index.ts", "copy"],
     ["apps/cli/src/factory/start.ts", "copy"],
     ["package.json", "generate"],
+    ["tooling/generators/package.json", "copy"],
+    ["tooling/generators/src/direct-run.ts", "copy"],
+    ["tooling/generators/src/blueprints/gtmImplementation.ts", "copy"],
     ["packages/convex/confect/_generated/schema.ts", "copy"],
     ["packages/convex/confect/_generated/convexSchema.ts", "copy"],
     ["packages/convex/confect/_generated/spec.ts", "copy"],
