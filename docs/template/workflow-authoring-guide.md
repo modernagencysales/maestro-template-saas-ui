@@ -3,6 +3,13 @@
 Workflows compose capabilities. They do not call provider SDKs, repos, or raw
 Convex functions directly.
 
+The accepted architecture decision is
+[ADR 0002](./adr/0002-maestro-graph-over-convex-workflow.md). Before authoring
+or changing a primitive, read the canonical
+[Convex workflow compatibility record](./convex-workflow-compatibility.md). It
+distinguishes upstream behavior, current implementation gaps, and deliberately
+stricter Maestro policy.
+
 ## Workflow Definition
 
 Each workflow declares:

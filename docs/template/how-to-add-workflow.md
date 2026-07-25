@@ -1,5 +1,10 @@
 # How To Add A Workflow
 
+Read [ADR 0002](./adr/0002-maestro-graph-over-convex-workflow.md) and the
+[Convex workflow compatibility record](./convex-workflow-compatibility.md)
+first. They define supported, intentionally restricted, and unsupported
+semantics. The graph boundary check is shape-only; it is not semantic proof.
+
 Dry-run a generated workflow:
 
 ```bash

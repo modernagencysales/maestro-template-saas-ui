@@ -391,30 +391,30 @@ tester.run("workflow-handler-determinism", workflowHandlerDeterminism, {
       filename: WORKFLOW_TEST,
       code: "export const run = defineWorkflow(c, {}).handler(() => Date.now());",
     },
-  ],
-  invalid: [
-    // Date.now() inside a defineWorkflow(…).handler body
+    // Upstream patches these core globals for deterministic replay. Maestro
+    // permits the normalized forms rather than misreporting an upstream gap.
     {
       filename: WORKFLOW,
-      code: "export const run = defineWorkflow(c, {}).handler(() => { const t = Date.now(); return t; });",
-      errors: [{ messageId: "nondeterministic" }],
+      code: "export const run = defineWorkflow(c, {}).handler(() => [Date.now(), new Date(), Math.random()]);",
     },
+  ],
+  invalid: [
     // ctx.db.get(...) inside a handler (a db read)
     {
       filename: WORKFLOW,
       code: "export const run = defineWorkflow(c, {}).handler(async (step, ctx) => { return ctx.db.get(id); });",
       errors: [{ messageId: "nondeterministic" }],
     },
-    // new Date(...) inside a handler
+    // Locale/timezone-sensitive formatting is deliberately restricted because
+    // the pinned runtime does not normalize Intl or Date locale methods.
     {
       filename: WORKFLOW,
-      code: "export const run = defineWorkflow(c, {}).handler(() => new Date());",
+      code: "export const run = defineWorkflow(c, {}).handler(() => new Intl.DateTimeFormat().format(new Date()));",
       errors: [{ messageId: "nondeterministic" }],
     },
-    // Math.random() inside a handler
     {
       filename: WORKFLOW,
-      code: "export const run = defineWorkflow(c, {}).handler(() => Math.random());",
+      code: "export const run = defineWorkflow(c, {}).handler(() => new Date().toLocaleString());",
       errors: [{ messageId: "nondeterministic" }],
     },
     // crypto.randomUUID() inside a handler
@@ -457,7 +457,7 @@ tester.run("workflow-handler-determinism", workflowHandlerDeterminism, {
     // a banned token in a NESTED callback inside the handler still runs at replay
     {
       filename: WORKFLOW,
-      code: "export const run = defineWorkflow(c, {}).handler((step, xs) => xs.map(() => Date.now()));",
+      code: "export const run = defineWorkflow(c, {}).handler((step, xs) => xs.map(() => process.env.KEY));",
       errors: [{ messageId: "nondeterministic" }],
     },
   ],
