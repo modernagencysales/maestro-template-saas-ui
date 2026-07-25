@@ -937,17 +937,17 @@ const checkDescriptorDefinitions = {
   },
 } satisfies Record<string, StaticCheckDescriptor>;
 
-type DiagnosticOverride = Partial<
-  Pick<
-    StaticCheckDiagnosticMetadata,
-    | "posture"
-    | "evidenceClass"
-    | "canonicalDoc"
-    | "repairHint"
-    | "focusedPathPrefixes"
-    | "semanticRuleIds"
-  >
->;
+type DiagnosticOverride = Pick<StaticCheckDiagnosticMetadata, "evidenceClass"> &
+  Partial<
+    Pick<
+      StaticCheckDiagnosticMetadata,
+      | "posture"
+      | "canonicalDoc"
+      | "repairHint"
+      | "focusedPathPrefixes"
+      | "semanticRuleIds"
+    >
+  >;
 
 type RegisteredCheckDescriptors<
   Definitions extends Record<string, StaticCheckDescriptor>,
@@ -960,7 +960,7 @@ function defineRegisteredStaticCheckDescriptors<
   const Definitions extends Record<string, StaticCheckDescriptor>,
 >(
   definitions: Definitions,
-  overrides: Partial<Record<keyof Definitions, DiagnosticOverride>>,
+  overrides: { readonly [GateId in keyof Definitions]: DiagnosticOverride },
 ): RegisteredCheckDescriptors<Definitions> {
   return Object.fromEntries(
     Object.entries(definitions).map(([gateId, descriptor]) => {
@@ -978,7 +978,6 @@ function defineRegisteredStaticCheckDescriptors<
           ...descriptor,
           gateId,
           posture: "required" as const,
-          evidenceClass: "static" as const,
           canonicalDoc: "docs/rule-coverage.md",
           repairHint:
             "Repair the reported invariant in its owning source and rerun this check.",
@@ -997,7 +996,29 @@ function defineRegisteredStaticCheckDescriptors<
 export const checkDescriptors = defineRegisteredStaticCheckDescriptors(
   checkDescriptorDefinitions,
   {
+    "ci-completeness": { evidenceClass: "static" },
+    "config-drift": { evidenceClass: "static" },
+    deps: { evidenceClass: "static" },
+    knip: { evidenceClass: "static" },
+    "route-tree": { evidenceClass: "static" },
+    "types-coverage": { evidenceClass: "static" },
+    gates: { evidenceClass: "static" },
+    debt: { evidenceClass: "static" },
+    generators: { evidenceClass: "static" },
+    "docs-freshness": { evidenceClass: "static" },
+    "generated-files": { evidenceClass: "static" },
+    "confect-contracts": { evidenceClass: "static" },
+    "confect-compat": { evidenceClass: "static" },
+    "schema-migration-notes": { evidenceClass: "static" },
+    "layer-boundaries": { evidenceClass: "static" },
+    "secret-canaries": { evidenceClass: "static" },
+    "sbom-license": { evidenceClass: "static" },
+    "headless-surface-contract": { evidenceClass: "static" },
+    "posthog-readiness": { evidenceClass: "static" },
+    "auth-demo-bypass": { evidenceClass: "static" },
+    "workflow-graph-boundary": { evidenceClass: "static" },
     "workflow-semantics": {
+      evidenceClass: "static",
       canonicalDoc: "docs/template/generated/workflow-semantics.md",
       semanticRuleIds: [
         "WF-CONTRACT",

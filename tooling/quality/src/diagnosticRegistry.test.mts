@@ -32,7 +32,7 @@ describe("quality diagnostic registry", () => {
     }
   });
 
-  it("marks only human-judgment gates advisory", () => {
+  it("classifies each gate by the evidence its invoked command proves", () => {
     const advisory = diagnosticRegistryDescriptors.filter(
       ({ posture }) => posture === "advisory",
     );
@@ -43,6 +43,34 @@ describe("quality diagnostic registry", () => {
     expect(
       advisory.every(({ evidenceClass }) => evidenceClass === "advisory"),
     ).toBe(true);
+    expect(
+      diagnosticRegistryDescriptors
+        .filter(({ evidenceClass }) => evidenceClass === "static")
+        .map(({ gateId }) => gateId),
+    ).toEqual([
+      "ci-completeness",
+      "config-drift",
+      "deps",
+      "knip",
+      "route-tree",
+      "types-coverage",
+      "gates",
+      "debt",
+      "generators",
+      "docs-freshness",
+      "generated-files",
+      "confect-contracts",
+      "confect-compat",
+      "schema-migration-notes",
+      "layer-boundaries",
+      "secret-canaries",
+      "sbom-license",
+      "headless-surface-contract",
+      "posthog-readiness",
+      "auth-demo-bypass",
+      "workflow-graph-boundary",
+      "workflow-semantics",
+    ]);
     expect(
       diagnosticRegistryDescriptors
         .filter(({ posture }) => posture === "required")
