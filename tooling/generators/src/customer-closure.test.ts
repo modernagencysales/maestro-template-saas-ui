@@ -8,13 +8,23 @@ const sourceDir = dirname(new URL("./customer.ts", import.meta.url).pathname);
 
 const resolveLocal = (from: string, specifier: string): string => {
   const base = resolve(dirname(from), specifier);
-  const match = [base, `${base}.ts`, `${base}.tsx`, `${base}.mts`, resolve(base, "index.ts")].find(existsSync);
-  if (!match) throw new Error(`Unresolved customer import ${specifier} from ${from}`);
+  const match = [
+    base,
+    `${base}.ts`,
+    `${base}.tsx`,
+    `${base}.mts`,
+    resolve(base, "index.ts"),
+  ].find(existsSync);
+  if (!match)
+    throw new Error(`Unresolved customer import ${specifier} from ${from}`);
   return match;
 };
 
 const customerClosure = (): readonly string[] => {
-  const pending = [resolve(sourceDir, "customer.ts"), resolve(sourceDir, "customer-cli.ts")];
+  const pending = [
+    resolve(sourceDir, "customer.ts"),
+    resolve(sourceDir, "customer-cli.ts"),
+  ];
   const visited = new Set<string>();
   while (pending.length > 0) {
     const path = pending.pop();
@@ -22,9 +32,12 @@ const customerClosure = (): readonly string[] => {
     visited.add(path);
     const source = readFileSync(path, "utf8");
     expect(path).not.toMatch(/\/src\/index\.ts$/);
-    expect(source).not.toMatch(/saasApplicationFactory|saasRegistrationProjections|tooling\/release|(?:^|\/)releases\/|private-package/);
+    expect(source).not.toMatch(
+      /saasApplicationFactory|saasRegistrationProjections|tooling\/release|(?:^|\/)releases\/|private-package/,
+    );
     for (const imported of preProcessFile(source, true, true).importedFiles) {
-      if (imported.fileName.startsWith(".")) pending.push(resolveLocal(path, imported.fileName));
+      if (imported.fileName.startsWith("."))
+        pending.push(resolveLocal(path, imported.fileName));
     }
   }
   return [...visited];
@@ -33,7 +46,13 @@ const customerClosure = (): readonly string[] => {
 describe("customer generator closure", () => {
   it("is complete and excludes the factory runtime", () => {
     const closure = customerClosure();
-    for (const name of ["customer-runtime.ts", "customer-dispatcher.ts", "workflow-files.ts", "workflow-predeploy.ts", "workflow-release-commands.ts"]) {
+    for (const name of [
+      "customer-runtime.ts",
+      "customer-dispatcher.ts",
+      "workflow-files.ts",
+      "workflow-predeploy.ts",
+      "workflow-release-commands.ts",
+    ]) {
       expect(closure).toContain(resolve(sourceDir, name));
     }
     const projectedPaths = new Set(

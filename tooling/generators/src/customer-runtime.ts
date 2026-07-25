@@ -397,7 +397,8 @@ export const buildBlueprintCatalog = (): readonly TemplateBlueprint[] => [
   {
     id: "saas-application",
     label: "SaaS Application",
-    summary: "A neutral workspace-safe SaaS application with one renameable CRUD record slice and no required automation or live provider.",
+    summary:
+      "A neutral workspace-safe SaaS application with one renameable CRUD record slice and no required automation or live provider.",
     domainNouns: ["workspace", "member", "record"],
     sourceTypes: ["deterministic fixture"],
     defaultCapability: null,
