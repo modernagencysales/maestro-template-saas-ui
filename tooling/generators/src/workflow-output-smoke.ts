@@ -4,6 +4,7 @@ import {
   existsSync,
   mkdirSync,
   mkdtempSync,
+  readFileSync,
   rmSync,
   symlinkSync,
 } from "node:fs";
@@ -19,6 +20,7 @@ type SmokeCommand = {
   readonly label: string;
   readonly command: string;
   readonly args: readonly string[];
+  readonly requiresDeployment?: boolean;
 };
 
 const ignoredPathSegments = new Set([
@@ -159,6 +161,7 @@ export const runWorkflowOutputSmoke = (
         label: "Regenerate Convex refs",
         command: "pnpm",
         args: ["--dir", convexPackage, "exec", "convex", "codegen"],
+        requiresDeployment: true,
       },
       {
         label: "Typecheck generated Convex package output",
@@ -168,7 +171,29 @@ export const runWorkflowOutputSmoke = (
     ];
 
     for (const step of steps) {
+      if (
+        step.requiresDeployment === true &&
+        !process.env.CONVEX_DEPLOYMENT?.trim()
+      ) {
+        process.stdout.write(
+          `\n[workflow-output-smoke] ${step.label}: unavailable (no CONVEX_DEPLOYMENT); continuing with fake/local typecheck and output checks\n`,
+        );
+        continue;
+      }
       runSmokeCommand(tempRepoRoot, step);
+    }
+
+    const runnerPath = join(
+      convexPackage,
+      "convex/workflowRunners",
+      `${smokeWorkflowName}.ts`,
+    );
+    if (!existsSync(runnerPath)) {
+      throw new Error(`Generated workflow runner is missing: ${runnerPath}`);
+    }
+    const runnerSource = readFileSync(runnerPath, "utf8");
+    if (!runnerSource.includes("defineWorkflow")) {
+      throw new Error("Generated workflow runner lost its durable handler");
     }
   } finally {
     if (keepTemp) {

@@ -1129,10 +1129,13 @@ describe("template app factory generators", () => {
 
     expect(convexWorkflow).toContain("defineWorkflow");
     expect(convexWorkflow).toContain("runDurableGraphWorkflow");
+    expect(convexWorkflow).toContain("workspaceId: v.string()");
+    expect(convexWorkflow).toContain("idempotencyKey: v.string()");
     expect(convexWorkflow).toContain("policySnapshot: {}");
     expect(convexWorkflow).toContain("capabilityRegistry: {}");
 
     expect(graph).toContain("satisfies DurableWorkflowGraph");
+    expect(graph).toContain("version: 1");
     expect(graph).toContain('kind: "source"');
     expect(graph).toContain('kind: "output"');
     expect(graph).not.toContain('kind: "capability"');
@@ -1346,6 +1349,9 @@ describe("template app factory generators", () => {
     );
     expect(existsSync(smokeScriptPath)).toBe(true);
     expect(smokeWorkflowName).toBe("generatedWorkflowSmoke");
+    const smokeSource = readFileSync(smokeScriptPath, "utf8");
+    expect(smokeSource).toContain("requiresDeployment");
+    expect(smokeSource).toContain("Generated workflow runner is missing");
   });
 
   it("builds production-target capability promotion files", () => {
