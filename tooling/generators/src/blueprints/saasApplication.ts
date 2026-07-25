@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import type { GeneratedFile, TemplateBlueprint } from "../index";
+import { buildSaasRegistrationProjections } from "./saasRegistrationProjections";
 
 export const saasApplicationBlueprint = {
   id: "saas-application",
@@ -125,6 +126,7 @@ export const buildSaasApplicationFiles = (options: {
       read: { by: "created-id", expectedTitle: "First record" },
     }),
     ...executableSourceFiles(),
+    ...buildSaasRegistrationProjections(),
     jsonFile(
       "generated/blueprints/saas-application/application-contract.json",
       {
@@ -203,6 +205,7 @@ export type BlueprintTargetPlan = {
     readonly upgrade: "regenerate";
     readonly sha256: string;
     readonly content: string;
+    readonly replaces?: "copy" | "generate";
   }[];
   readonly digest: string;
 };
@@ -210,11 +213,21 @@ export type BlueprintTargetPlan = {
 const sha256 = (value: string): string =>
   `sha256:${createHash("sha256").update(value).digest("hex")}`;
 
-export const buildSaasApplicationTargetPlan = (options: {
+export const buildSaasApplicationTargetPlan = (_options: {
   readonly name: string;
   readonly firstOutcome?: string;
 }): BlueprintTargetPlan => {
-  const entries = buildSaasApplicationFiles(options)
+  const replacements = new Map<string, "copy" | "generate">([
+    ["packages/convex/confect/_generated/schema.ts", "copy"],
+    ["packages/convex/confect/_generated/convexSchema.ts", "copy"],
+    ["packages/convex/confect/_generated/spec.ts", "copy"],
+    ["packages/convex/confect/_generated/id.ts", "copy"],
+    ["apps/web/src/routeTree.gen.ts", "generate"],
+  ]);
+  const entries = buildSaasApplicationFiles({
+    name: "SaaS Application",
+    firstOutcome: "Create and review records",
+  })
     .filter(({ path }) => path !== "template-instance.json")
     .map(({ path, content }) => ({
       path,
@@ -223,13 +236,23 @@ export const buildSaasApplicationTargetPlan = (options: {
       upgrade: "regenerate" as const,
       sha256: sha256(content),
       content,
+      ...(replacements.has(path) ? { replaces: replacements.get(path)! } : {}),
     }))
     .sort((left, right) => left.path.localeCompare(right.path));
   const registrations = [
     "packages/convex/confect/tables/records.ts",
     "packages/convex/confect/records/records.spec.ts",
     "packages/convex/confect/records/records.impl.ts",
+    "packages/convex/confect/_generated/tables/records.ts",
+    "packages/convex/confect/_generated/schema.ts",
+    "packages/convex/confect/_generated/convexSchema.ts",
+    "packages/convex/confect/_generated/spec.ts",
+    "packages/convex/confect/_generated/id.ts",
+    "packages/convex/confect/_generated/registeredFunctions/records.ts",
+    "packages/convex/convex/records.ts",
     "apps/web/src/routes/_workspace.records.tsx",
+    "apps/web/src/routeTree.gen.ts",
+    "apps/web/src/routeRegistry.generated.ts",
   ] as const;
   const identity = {
     schemaVersion: 1 as const,

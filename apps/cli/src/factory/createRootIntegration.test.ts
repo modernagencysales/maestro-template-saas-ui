@@ -1,14 +1,16 @@
-import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
+import {
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import {
-  AGENT_PACK_EXECUTION_CONTEXT_VERSION,
-  createCustomerCreateCommand,
-  createRepositoryContext,
-  executeAgentPackCommand,
-} from "@maestro-template/agent-pack";
-import { buildSaasApplicationTargetPlan } from "@maestro-template/generators";
 import { afterEach, describe, expect, it } from "vitest";
 import { runCliAsync } from "../index";
 import { CREATE_HELP } from "./create";
@@ -22,6 +24,31 @@ afterEach(() => {
 });
 
 describe("create root integration", () => {
+  it("preserves alpha.1 and pins the executable release manifests", () => {
+    const digest = (path: string) =>
+      `sha256:${createHash("sha256").update(readFileSync(path)).digest("hex")}`;
+    expect(
+      digest(join(repoRoot, "releases/v0.1.0-alpha.1/manifest.json")),
+    ).toBe(
+      "sha256:0b55fd0895ecbcf6743860551ed52f165b4252c17ea94ad1687163a8ce6c6b93",
+    );
+    expect(
+      digest(join(repoRoot, "releases/v0.2.0-alpha.1/manifest.json")),
+    ).toBe(
+      "sha256:027ffeafea7603b6875c1449c5775afece7f9f50514c69bbdc0e944e1332b138",
+    );
+    expect(
+      digest(
+        join(
+          repoRoot,
+          "releases/v0.2.0-alpha.1/blueprints/saas-application.json",
+        ),
+      ),
+    ).toBe(
+      "sha256:1e292e9135059f670a4356793c69f325420eed109c82027d2b597733cf1cd816",
+    );
+  });
+
   it("registers the exact seven-command factory inventory", () => {
     expect(
       createFactoryCliComposition(() => ({})).handlers.map(
@@ -49,7 +76,7 @@ describe("create root integration", () => {
     expect((await runCliAsync(["help"])).stdout).toContain(CREATE_HELP.trim());
   });
 
-  it("keeps default preview non-mutating and fails closed for the fixture-only release", async () => {
+  it("resolves the reviewed SaaS release in a non-mutating default preview", async () => {
     const parent = mkdtempSync(join(tmpdir(), "maestro-create-root-"));
     temporaryRoots.push(parent);
     const target = join(parent, "customer-app");
@@ -67,12 +94,12 @@ describe("create root integration", () => {
       repoRoot,
     );
 
-    expect(result.exitCode).not.toBe(0);
+    expect(result.exitCode).toBe(0);
     expect(JSON.parse(result.stdout)).toMatchObject({
       mutationPosture: "preview",
-      exitClass: "blockedMutation",
-      diagnostics: [{ code: "AGENT_PACK_CREATE_RELEASE_UNAVAILABLE" }],
-      data: null,
+      exitClass: "success",
+      diagnostics: [],
+      data: { release: { version: "0.2.0-alpha.1" } },
     });
     expect(existsSync(target)).toBe(false);
   });
@@ -93,50 +120,26 @@ describe("create root integration", () => {
     );
   });
 
-  it("materializes and executes the SaaS overlay in the customer target", async () => {
-    const fixtures = (await import(
-      new URL(
-        "../../../../tooling/release/src/customerTarget/createAdapter.testFixtures.ts",
-        import.meta.url,
-      ).href
-    )) as {
-      readonly taggedRelease: () => {
-        readonly repositoryRoot: string;
-        readonly targetRoot: string;
-      };
-      readonly adapter: (fixture: unknown) => {
-        readonly prepare: (request: unknown) => Promise<unknown>;
-        readonly materialize: (
-          token: unknown,
-          fingerprint: string,
-        ) => Promise<unknown>;
-      };
-    };
-    const fixture = fixtures.taggedRelease();
-    const release = fixtures.adapter(fixture);
-    const command = createCustomerCreateCommand({
-      blueprintTargetPlan: ({ name, outcome }) =>
-        buildSaasApplicationTargetPlan({ name, firstOutcome: outcome }),
-      release: release as Parameters<
-        typeof createCustomerCreateCommand
-      >[0]["release"],
-    });
-    const result = await executeAgentPackCommand(
-      command,
-      {
-        target: fixture.targetRoot,
-        name: "My App",
-        outcome: "Create and review records",
-        write: true,
-      },
-      {
-        schemaVersion: AGENT_PACK_EXECUTION_CONTEXT_VERSION,
-        invocation: "library",
-        repo: createRepositoryContext({ cwd: fixture.repositoryRoot }),
-      },
+  it("materializes and compiles the canonical SaaS registries in the customer target", async () => {
+    const parent = mkdtempSync(join(tmpdir(), "maestro-create-workspace-"));
+    temporaryRoots.push(parent);
+    const targetRoot = join(parent, "app");
+    const result = await runCliAsync(
+      [
+        "create",
+        targetRoot,
+        "--name",
+        "My App",
+        "--outcome",
+        "Create and review records",
+        "--write",
+        "--json",
+      ],
+      undefined,
+      repoRoot,
     );
-
-    expect(result.exitClass).toBe("success");
+    expect(result.exitCode, result.stderr).toBe(0);
+    expect(JSON.parse(result.stdout)).toMatchObject({ exitClass: "success" });
     const required = [
       "packages/convex/confect/tables/records.ts",
       "packages/convex/confect/records/records.spec.ts",
@@ -148,10 +151,10 @@ describe("create root integration", () => {
       "apps/web/src/routes/_workspace.records.tsx",
     ] as const;
     for (const path of required) {
-      expect(existsSync(join(fixture.targetRoot, path))).toBe(true);
+      expect(existsSync(join(targetRoot, path))).toBe(true);
     }
     const instance = JSON.parse(
-      readFileSync(join(fixture.targetRoot, "template-instance.json"), "utf8"),
+      readFileSync(join(targetRoot, "template-instance.json"), "utf8"),
     );
     expect(instance).toMatchObject({
       blueprint: {
@@ -164,33 +167,73 @@ describe("create root integration", () => {
         firstOutcome: "Create and review records",
       },
     });
-    expect(
-      readFileSync(
-        join(fixture.targetRoot, "packages/convex/confect/tables/records.ts"),
-        "utf8",
-      ),
-    ).toContain('.index("by_workspace", ["workspaceId"])');
-    expect(
-      readFileSync(
-        join(
-          fixture.targetRoot,
-          "packages/convex/confect/records/records.spec.ts",
-        ),
-        "utf8",
-      ),
-    ).toContain('operationId: "records.create"');
-    expect(
-      readFileSync(
-        join(fixture.targetRoot, "apps/web/src/routes/_workspace.records.tsx"),
-        "utf8",
-      ),
-    ).toContain('createFileRoute("/_workspace/records")');
+    symlinkSync(
+      join(repoRoot, "node_modules"),
+      join(targetRoot, "node_modules"),
+      "dir",
+    );
+    for (const project of ["packages/convex", "apps/web"]) {
+      symlinkSync(
+        join(repoRoot, project, "node_modules"),
+        join(targetRoot, project, "node_modules"),
+        "dir",
+      );
+    }
+    execFileSync(
+      "pnpm",
+      [
+        "exec",
+        "tsc",
+        "-p",
+        join(targetRoot, "packages/convex/tsconfig.json"),
+        "--outDir",
+        join(targetRoot, "packages/convex/dist"),
+        "--declaration",
+      ],
+      { cwd: targetRoot, stdio: "pipe" },
+    );
+    const webTargetConfig = join(parent, "web-target-tsconfig.json");
+    writeFileSync(
+      webTargetConfig,
+      JSON.stringify({
+        extends: join(targetRoot, "apps/web/tsconfig.json"),
+        compilerOptions: {
+          baseUrl: targetRoot,
+          paths: {
+            "@maestro-template/convex/refs": [
+              "packages/convex/dist/src/refs.d.ts",
+            ],
+          },
+        },
+      }),
+    );
+    execFileSync("pnpm", ["exec", "tsc", "-p", webTargetConfig, "--noEmit"], {
+      cwd: targetRoot,
+      stdio: "pipe",
+    });
+
+    const databaseSchema = (await import(
+      `${pathToFileURL(join(targetRoot, "packages/convex/confect/_generated/schema.ts")).href}?target=${Date.now()}`
+    )) as { readonly default: { readonly tables: Record<string, unknown> } };
+    expect(databaseSchema.default.tables).toHaveProperty("records");
+    const spec = (await import(
+      `${pathToFileURL(join(targetRoot, "packages/convex/confect/_generated/spec.ts")).href}?target=${Date.now()}`
+    )) as { readonly default: unknown };
+    expect(JSON.stringify(spec.default)).toContain('"records"');
+    for (const operation of ["list", "read", "create"]) {
+      expect(JSON.stringify(spec.default)).toContain(`"${operation}"`);
+    }
+    const routes = (await import(
+      `${pathToFileURL(join(targetRoot, "apps/web/src/routeRegistry.generated.ts")).href}?target=${Date.now()}`
+    )) as {
+      readonly saasApplicationRoutes: { readonly records: string };
+    };
+    expect(routes.saasApplicationRoutes.records).toBe("/records");
 
     const targetAdapter = (await import(
       `${
-        pathToFileURL(
-          join(fixture.targetRoot, "apps/web/src/adapters/records/fake.ts"),
-        ).href
+        pathToFileURL(join(targetRoot, "apps/web/src/adapters/records/fake.ts"))
+          .href
       }?target=${Date.now()}`
     )) as {
       readonly createFakeRecordAdapter: () => {
@@ -214,5 +257,5 @@ describe("create root integration", () => {
       title: "First record",
     });
     expect(await records.read("workspace_b", created.id)).toBeNull();
-  });
+  }, 120_000);
 });

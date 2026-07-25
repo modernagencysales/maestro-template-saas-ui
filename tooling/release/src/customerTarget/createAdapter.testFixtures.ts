@@ -110,6 +110,20 @@ export function taggedRelease() {
   const manifestPath = join(repositoryRoot, "release-manifest.json");
   const manifestBytes = `${JSON.stringify(manifest, null, 2)}\n`;
   writeFileSync(manifestPath, manifestBytes);
+  const plan = blueprintTargetPlan();
+  const blueprintManifest = {
+    schemaVersion: plan.schemaVersion,
+    id: plan.id,
+    provenance: plan.provenance,
+    registrations: plan.registrations,
+    entries: plan.entries.map(({ content: _, ...entry }) => entry),
+  };
+  const blueprintManifestPath = join(
+    makeRoot("maestro-blueprint-authority-"),
+    "manifest.json",
+  );
+  const blueprintManifestBytes = `${JSON.stringify(blueprintManifest, null, 2)}\n`;
+  writeFileSync(blueprintManifestPath, blueprintManifestBytes);
   return {
     repositoryRoot,
     temporaryRoot,
@@ -119,6 +133,8 @@ export function taggedRelease() {
     manifest,
     manifestPath,
     ownershipManifestChecksum: hash(manifestBytes),
+    blueprintManifestPath,
+    blueprintManifestChecksum: hash(blueprintManifestBytes),
   };
 }
 
@@ -132,6 +148,8 @@ export function adapter(fixture: TaggedReleaseFixture) {
     tag: fixture.tag,
     homeRoot: fixture.homeRoot,
     temporaryRoot: fixture.temporaryRoot,
+    blueprintManifestPath: fixture.blueprintManifestPath,
+    blueprintManifestChecksum: fixture.blueprintManifestChecksum,
   });
 }
 

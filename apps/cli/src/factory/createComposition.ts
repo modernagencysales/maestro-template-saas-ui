@@ -9,10 +9,13 @@ import { createCreateCliHandler } from "./create";
 const TRUSTED_REPOSITORY_ROOT = fileURLToPath(
   new URL("../../../../", import.meta.url),
 );
-const REVIEWED_MANIFEST_PATH = "releases/v0.1.0-alpha.1/manifest.json";
+const REVIEWED_MANIFEST_PATH = "releases/v0.2.0-alpha.1/manifest.json";
 const REVIEWED_MANIFEST_CHECKSUM =
-  "sha256:0b55fd0895ecbcf6743860551ed52f165b4252c17ea94ad1687163a8ce6c6b93";
-const REVIEWED_TAG = "maestro-template-v0.1.0-alpha.1";
+  "sha256:027ffeafea7603b6875c1449c5775afece7f9f50514c69bbdc0e944e1332b138";
+const REVIEWED_BLUEPRINT_CHECKSUM =
+  "sha256:1e292e9135059f670a4356793c69f325420eed109c82027d2b597733cf1cd816";
+const REVIEWED_TAG = "maestro-template-v0.2.0-alpha.1";
+const REVIEWED_COMMIT = "10516dfc7470d9cfa68b250550576298f76042f4";
 
 export function createCustomerCreateComposition() {
   const release = createCustomerReleaseAdapter({
@@ -20,6 +23,12 @@ export function createCustomerCreateComposition() {
     manifestPath: resolve(TRUSTED_REPOSITORY_ROOT, REVIEWED_MANIFEST_PATH),
     ownershipManifestChecksum: REVIEWED_MANIFEST_CHECKSUM,
     tag: REVIEWED_TAG,
+    sourceCommit: REVIEWED_COMMIT,
+    blueprintManifestPath: resolve(
+      TRUSTED_REPOSITORY_ROOT,
+      "releases/v0.2.0-alpha.1/blueprints/saas-application.json",
+    ),
+    blueprintManifestChecksum: REVIEWED_BLUEPRINT_CHECKSUM,
     homeRoot: homedir(),
   });
   const command = createCustomerCreateCommand({

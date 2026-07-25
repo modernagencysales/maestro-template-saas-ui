@@ -1,0 +1,202 @@
+{
+  "schemaVersion": 1,
+  "id": "saas-application",
+  "provenance": "@maestro-template/generators/saas-application@1",
+  "registrations": [
+    "packages/convex/confect/tables/records.ts",
+    "packages/convex/confect/records/records.spec.ts",
+    "packages/convex/confect/records/records.impl.ts",
+    "packages/convex/confect/_generated/tables/records.ts",
+    "packages/convex/confect/_generated/schema.ts",
+    "packages/convex/confect/_generated/convexSchema.ts",
+    "packages/convex/confect/_generated/spec.ts",
+    "packages/convex/confect/_generated/id.ts",
+    "packages/convex/confect/_generated/registeredFunctions/records.ts",
+    "packages/convex/convex/records.ts",
+    "apps/web/src/routes/_workspace.records.tsx",
+    "apps/web/src/routeTree.gen.ts",
+    "apps/web/src/routeRegistry.generated.ts"
+  ],
+  "entries": [
+    {
+      "path": "apps/web/src/adapters/records/contract.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:312c580a3f6491fd9d64dd2b69a731ed8fc11d848574fe2ab1f9d47bbe3eaa99"
+    },
+    {
+      "path": "apps/web/src/adapters/records/fake.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:e3ee55ce2b42ca85d37c26850cf0ab1d44e45a25b8c2dcec93f328f3d2a725ab"
+    },
+    {
+      "path": "apps/web/src/features/records/model.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:f4a555a4e9e31481f94e3ecdc531bc6349181f7d6070c013817c0aaecd2fa56b"
+    },
+    {
+      "path": "apps/web/src/features/records/records-surface.tsx",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:1b555178efd5fc7a3b371ffc6ffc1618d96fca8bfb063c92e4e1d1b3d80e0e1b"
+    },
+    {
+      "path": "apps/web/src/routeRegistry.generated.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:76514892ae38e2c23bcda81bc188d9232f596d4638981afd82ab88564d8faac0"
+    },
+    {
+      "path": "apps/web/src/routes/_workspace.records.tsx",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:b114374f005010801425451465ad4f8c37e532bc76350be8caf7e9d3f430eb8b"
+    },
+    {
+      "path": "apps/web/src/routeTree.gen.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:45223c1a9c9f7e26f2f662b2f1fb1f88c984df3af5a251f6a2e176e39abd066a",
+      "replaces": "generate"
+    },
+    {
+      "path": "apps/web/src/screens/records-screen.tsx",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:b286b9b74361a54db90a496ac61e42965fea07d08e464ee7d7b3a158e5537ea6"
+    },
+    {
+      "path": "examples/saas-application/seed/crud-scenario.json",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:2786847d5b817ae4a4a60b79ea031301fae0f529225d051fa1ccb6c928a7d871"
+    },
+    {
+      "path": "examples/saas-application/seed/records.json",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:50cc993f81cfeab95263a3306430e3301f4faa043f31fca1be83f91ccb0df7e9"
+    },
+    {
+      "path": "examples/saas-application/seed/source.json",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:b3679c472b8706d218ad8f299512c67eba1678e93eeea98c070372cc0888d71d"
+    },
+    {
+      "path": "examples/saas-application/seed/workspace.json",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:aa726c48e9fdf5353d5e6d411640c9f11200e41cb97f7d9ecd6f1dfec630a507"
+    },
+    {
+      "path": "generated/blueprints/saas-application/application-contract.json",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:2ea9774e3243631f5a7493857a3473dc39b1f7d812328dcfec751e19a2f24b7d"
+    },
+    {
+      "path": "generated/blueprints/saas-application/readiness.json",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:69edc5715308dc0f1d0a14bcf1c81b255d1b0bb7981d2b63ecbae9ecbc2437b4"
+    },
+    {
+      "path": "generated/blueprints/saas-application/surface-contract.json",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:ef298e47f05a1383ce9c5c6b9de222f0a02adecb26640a6a5a3ca55b5cf9fd2a"
+    },
+    {
+      "path": "packages/convex/confect/_generated/convexSchema.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:21c4fe6bb52f524804a361d6ab0d9cca507992348fca6244a207480ce1b3a48b",
+      "replaces": "copy"
+    },
+    {
+      "path": "packages/convex/confect/_generated/id.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:dc6e68dea93a3b4492e68afe9be32f43b7a210fc90f9268eec85d44aab6a4fc7",
+      "replaces": "copy"
+    },
+    {
+      "path": "packages/convex/confect/_generated/registeredFunctions/records.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:003ec562cf932eb0dd26ad6d840fbab920eaa1592e410101c1631f0b8eb9aae0"
+    },
+    {
+      "path": "packages/convex/confect/_generated/schema.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:2ae59b20084ec719950f8d8855e200ec4a3203f7383a720a22bdc21534a94a4c",
+      "replaces": "copy"
+    },
+    {
+      "path": "packages/convex/confect/_generated/spec.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:24d1ea1fcda62b89f9ac4d1be17ec9e0c99e73a7b0a0f590c5583e3606bdc7ec",
+      "replaces": "copy"
+    },
+    {
+      "path": "packages/convex/confect/_generated/tables/records.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:b2b60b14989a0305c303c31a7700f345422ac6d39fa36c0d567cf56e809c3dbf"
+    },
+    {
+      "path": "packages/convex/confect/records/records.impl.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:b2d072a4330891e518d2608a3cd4c25c592f7a15f9be85054731a466421f4e3a"
+    },
+    {
+      "path": "packages/convex/confect/records/records.spec.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:17a3dabe815a79c57d2be8a42dcbd8b9458d93480b161ddbdbde6b3bcc2dfd4a"
+    },
+    {
+      "path": "packages/convex/confect/tables/records.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:a5de66aa782dc72875b456738c6d52ef651ca340a67733065f322412262dc896"
+    },
+    {
+      "path": "packages/convex/convex/records.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:3fddd6a9c3d7f50198f2b5feba77d707fe302e453349a55739e220d69996de5c"
+    }
+  ]
+}

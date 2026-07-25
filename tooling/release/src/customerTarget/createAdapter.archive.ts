@@ -13,6 +13,7 @@ import { join, relative, resolve, sep } from "node:path";
 import {
   CustomerReleaseAdapterError,
   parseManifest,
+  isRecord,
   rawExpectedHashes,
   readVerifiedManifest,
   releaseFacts,
@@ -40,7 +41,11 @@ export function withImmutableRelease<Result>(
   use: (resolved: ResolvedRelease) => Result,
 ): Result {
   const manifestBytes = readVerifiedManifest(options);
-  const rawManifest = parseManifest(manifestBytes);
+  const definition = resolveReleaseDefinition(
+    options,
+    parseManifest(manifestBytes),
+  );
+  const rawManifest = definition.manifest;
   const preliminary = validateCustomerReleaseManifest(
     rawManifest,
     rawExpectedHashes(rawManifest),
@@ -57,7 +62,9 @@ export function withImmutableRelease<Result>(
       "Requested tag does not match the ownership manifest.",
     );
   }
-  const sourceCommit = resolveTagCommit(options.repositoryRoot, options.tag);
+  const sourceCommit = options.sourceCommit
+    ? resolveReviewedCommit(options.repositoryRoot, options.sourceCommit)
+    : resolveTagCommit(options.repositoryRoot, options.tag);
   if (sourceCommit !== preliminary.release.sourceCommit) {
     throw new CustomerReleaseAdapterError(
       "release-unavailable",
@@ -83,7 +90,12 @@ export function withImmutableRelease<Result>(
     mkdirSync(sourceRoot);
     extractArchive(archivePath, sourceRoot);
     const shippedFiles = copiedFileHashes(preliminary, sourceRoot);
-    const manifest = validateCustomerReleaseManifest(rawManifest, shippedFiles);
+    const manifest = validateCustomerReleaseManifest(
+      definition.deriveExpectedHashes
+        ? { ...rawManifest, expectedHashes: shippedFiles }
+        : rawManifest,
+      shippedFiles,
+    );
     const binding = { tag: options.tag, sourceCommit, sourceChecksum };
     assertMaterializableCustomerReleaseManifest(manifest, binding);
     return use({
@@ -94,6 +106,90 @@ export function withImmutableRelease<Result>(
     });
   } finally {
     rmSync(sessionRoot, { recursive: true, force: true });
+  }
+}
+
+function resolveReleaseDefinition(
+  options: CustomerReleaseAdapterOptions,
+  value: unknown,
+): {
+  readonly manifest: Record<string, unknown>;
+  readonly deriveExpectedHashes: boolean;
+} {
+  if (!isRecord(value)) {
+    throw new CustomerReleaseAdapterError(
+      "release-unavailable",
+      "Customer release manifest is invalid.",
+    );
+  }
+  if (value.kind !== "composed-customer-release") {
+    return { manifest: value, deriveExpectedHashes: false };
+  }
+  if (
+    !isRecord(value.baseManifest) ||
+    typeof value.baseManifest.path !== "string" ||
+    typeof value.baseManifest.sha256 !== "string" ||
+    !Array.isArray(value.additionalPaths) ||
+    !isRecord(value.release) ||
+    !isRecord(value.blueprintManifest) ||
+    typeof value.blueprintManifest.path !== "string" ||
+    value.blueprintManifest.sha256 !== options.blueprintManifestChecksum ||
+    resolve(options.manifestPath, "..", value.blueprintManifest.path) !==
+      resolve(options.blueprintManifestPath)
+  ) {
+    throw new CustomerReleaseAdapterError(
+      "release-unavailable",
+      "Composed customer release descriptor is invalid.",
+    );
+  }
+  const basePath = resolve(options.manifestPath, "..", value.baseManifest.path);
+  const baseBytes = readFileSync(basePath);
+  if (sha256(baseBytes) !== value.baseManifest.sha256) {
+    throw new CustomerReleaseAdapterError(
+      "release-unavailable",
+      "Base ownership manifest checksum is not reviewed.",
+    );
+  }
+  const base = parseManifest(baseBytes);
+  if (!isRecord(base)) {
+    throw new CustomerReleaseAdapterError(
+      "release-unavailable",
+      "Base ownership manifest is invalid.",
+    );
+  }
+  return {
+    deriveExpectedHashes: value.deriveExpectedHashesFromArchive === true,
+    manifest: {
+      ...base,
+      materializationStatus: value.materializationStatus,
+      fixtureReason: undefined,
+      release: value.release,
+      paths: [
+        ...(Array.isArray(base.paths) ? base.paths : []),
+        ...value.additionalPaths,
+      ],
+    },
+  };
+}
+
+function resolveReviewedCommit(repositoryRoot: string, commit: string): string {
+  try {
+    return execFileSync(
+      "git",
+      [
+        "-C",
+        realpathSync(repositoryRoot),
+        "rev-parse",
+        "--verify",
+        `${commit}^{commit}`,
+      ],
+      { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] },
+    ).trim();
+  } catch {
+    throw new CustomerReleaseAdapterError(
+      "release-unavailable",
+      "Reviewed immutable release commit is not available.",
+    );
   }
 }
 

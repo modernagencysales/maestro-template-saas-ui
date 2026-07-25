@@ -120,6 +120,8 @@ describe("customer release create adapter", () => {
       tag: "maestro-template-v0.1.0-alpha.1",
       homeRoot: makeRoot("maestro-create-current-home-"),
       temporaryRoot,
+      blueprintManifestPath: manifestPath,
+      blueprintManifestChecksum: hash(readFileSync(manifestPath)),
     });
     const result = await release.prepare({
       repo: { workingDirectory: repositoryRoot, sourceRoot: repositoryRoot },
@@ -232,7 +234,7 @@ describe("customer release create adapter", () => {
       },
       target: fixture.targetRoot,
       blueprintTargetPlan: () =>
-        blueprintTargetPlan(calls++ === 0 ? "first\n" : "second\n"),
+        blueprintTargetPlan(calls++ === 0 ? "fixture blueprint\n" : "second\n"),
       templateInstance: () => "{}\n",
     });
     if (!prepared.ok) throw new Error("expected prepared release");
@@ -240,8 +242,23 @@ describe("customer release create adapter", () => {
       prepared.token,
       prepared.preview.preflightFingerprint,
     );
-    expect(result).toMatchObject({ ok: false, code: "stale-preflight" });
+    expect(result).toMatchObject({ ok: false, code: "release-unavailable" });
     expect(existsSync(fixture.targetRoot)).toBe(false);
+  });
+
+  it("rejects a valid self-digest when reviewed blueprint bytes drift", async () => {
+    const fixture = taggedRelease();
+    const result = await adapter(fixture).prepare({
+      repo: {
+        workingDirectory: fixture.repositoryRoot,
+        sourceRoot: fixture.repositoryRoot,
+      },
+      target: fixture.targetRoot,
+      blueprintTargetPlan: () => blueprintTargetPlan("generator drift\n"),
+      templateInstance: () => "{}\n",
+    });
+    expect(result).toMatchObject({ ok: false, code: "release-unavailable" });
+    expect(result.ok ? "" : result.message).toMatch(/reviewed release/i);
   });
 });
 

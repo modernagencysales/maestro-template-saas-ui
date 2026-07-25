@@ -44,6 +44,7 @@ export type CustomerMaterializationRequest = {
       readonly action: "generate";
       readonly upgrade: "regenerate";
       readonly bytes: Buffer;
+      readonly replaces?: "copy" | "generate";
     }[];
   };
   readonly resolvedRelease: ResolvedCustomerReleaseBinding;
@@ -261,16 +262,31 @@ export function previewCustomerTarget(
   const blueprintEntries = (request.blueprintTargetPlan?.entries ?? []).map(
     (entry): CustomerReleasePath => ({ ...entry, match: "exact" }),
   );
-  const basePaths = new Set(baseEntries.map(({ path }) => path));
-  for (const entry of blueprintEntries) {
+  const baseByPath = new Map(baseEntries.map((entry) => [entry.path, entry]));
+  for (const [index, entry] of blueprintEntries.entries()) {
     assertEntry(entry);
-    if (basePaths.has(entry.path)) {
+    const planEntry = request.blueprintTargetPlan?.entries[index];
+    const base = baseByPath.get(entry.path);
+    if (base && planEntry?.replaces !== base.action) {
       throw new CustomerMaterializationError(
         `Blueprint target plan overlaps release operation: ${entry.path}`,
       );
     }
+    if (!base && planEntry?.replaces !== undefined) {
+      throw new CustomerMaterializationError(
+        `Blueprint replacement has no release operation: ${entry.path}`,
+      );
+    }
   }
-  const writes = [...baseEntries, ...blueprintEntries]
+  const replacementPaths = new Set(
+    (request.blueprintTargetPlan?.entries ?? [])
+      .filter(({ replaces }) => replaces !== undefined)
+      .map(({ path }) => path),
+  );
+  const writes = [
+    ...baseEntries.filter(({ path }) => !replacementPaths.has(path)),
+    ...blueprintEntries,
+  ]
     .map((entry) => {
       assertEntry(entry);
       if (entry.action === "omit") {

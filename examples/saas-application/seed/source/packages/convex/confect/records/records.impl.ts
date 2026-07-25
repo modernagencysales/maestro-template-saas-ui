@@ -61,6 +61,7 @@ const create = FunctionImpl.make(
         });
       }
       const now = yield* withClock(Clock.currentTimeMillis);
+      const reader = yield* DatabaseReader;
       const writer = yield* DatabaseWriter;
       const recordId = yield* writer
         .table("records")
@@ -72,7 +73,7 @@ const create = FunctionImpl.make(
           updatedAt: now,
         })
         .pipe(Effect.orDie);
-      const created = yield* writer
+      const created = yield* reader
         .table("records")
         .get(recordId)
         .pipe(Effect.orDie);

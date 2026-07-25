@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Button, Card, Heading, Input, Stack, Text } from "@saas-ui/react";
 import { templateConfectRefs } from "@maestro-template/convex/refs";
+import type { Ref } from "@confect/core";
 import type {
   RecordAdapter,
   SaaSRecord,
@@ -13,6 +14,9 @@ import {
 import { isConvexConfigured } from "../../env";
 import { useWorkspace } from "../../providers/workspace";
 import { presentRecords, type RecordsState } from "./model.js";
+
+type ListRecordsRef = typeof templateConfectRefs.public.records.list;
+type WorkspaceId = Ref.Args<ListRecordsRef>["workspaceId"];
 
 const sharedFakeAdapter = createFakeRecordAdapter();
 
@@ -93,7 +97,9 @@ function FakeRecordsSurface({ adapter }: { readonly adapter: RecordAdapter }) {
 function LocalRecordsSurface() {
   const workspace = useWorkspace();
   const workspaceId =
-    workspace.status === "ready" ? workspace.activeWorkspaceId : null;
+    workspace.status === "ready"
+      ? (workspace.activeWorkspaceId as WorkspaceId)
+      : null;
   const listState = useTemplateQuery(
     templateConfectRefs.public.records.list,
     workspaceId === null ? "skip" : { workspaceId },

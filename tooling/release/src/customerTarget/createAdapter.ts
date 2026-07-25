@@ -7,6 +7,7 @@ import {
 } from "./createAdapter.archive.js";
 import {
   CustomerReleaseAdapterError,
+  assertReviewedBlueprintTargetPlan,
   failure,
   isObject,
   validateBlueprintTargetPlan,
@@ -42,6 +43,7 @@ export function createCustomerReleaseAdapter(
           const blueprint = validateBlueprintTargetPlan(
             request.blueprintTargetPlan(),
           );
+          assertReviewedBlueprintTargetPlan(options, blueprint);
           const templateInstance = request.templateInstance(resolved.facts, {
             id: blueprint.id,
             digest: blueprint.digest,
@@ -92,6 +94,7 @@ export function createCustomerReleaseAdapter(
           const blueprint = validateBlueprintTargetPlan(
             state.request.blueprintTargetPlan(),
           );
+          assertReviewedBlueprintTargetPlan(options, blueprint);
           if (blueprint.digest !== state.blueprintDigest) {
             throw new CustomerReleaseAdapterError(
               "stale-preflight",

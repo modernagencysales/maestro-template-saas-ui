@@ -47,6 +47,7 @@ export type CustomerCreateBlueprintPlan = {
     readonly upgrade: "regenerate";
     readonly sha256: string;
     readonly content: string;
+    readonly replaces?: "copy" | "generate";
   }[];
 };
 

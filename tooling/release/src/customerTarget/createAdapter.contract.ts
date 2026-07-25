@@ -35,6 +35,9 @@ export type CustomerReleaseAdapterOptions = {
   readonly tag: string;
   readonly homeRoot: string;
   readonly temporaryRoot?: string;
+  readonly sourceCommit?: string;
+  readonly blueprintManifestPath: string;
+  readonly blueprintManifestChecksum: string;
 };
 
 export type PrepareRequest = {
@@ -66,6 +69,7 @@ export type BlueprintTargetPlan = BlueprintTargetFacts & {
     readonly upgrade: "regenerate";
     readonly sha256: string;
     readonly content: string;
+    readonly replaces?: "copy" | "generate";
   }[];
 };
 
@@ -86,6 +90,10 @@ export function validateBlueprintTargetPlan(
         entry.ownership !== "generated" ||
         entry.action !== "generate" ||
         entry.upgrade !== "regenerate" ||
+        (entry.replaces !== undefined &&
+          entry.replaces !== "copy" &&
+          entry.replaces !== "generate") ||
+        entry.path === "template-instance.json" ||
         sha256(entry.content) !== entry.sha256,
     )
   ) {
@@ -108,6 +116,46 @@ export function validateBlueprintTargetPlan(
     );
   }
   return value;
+}
+
+export function assertReviewedBlueprintTargetPlan(
+  options: CustomerReleaseAdapterOptions,
+  plan: BlueprintTargetPlan,
+): void {
+  const bytes = readFileSync(options.blueprintManifestPath);
+  if (sha256(bytes) !== options.blueprintManifestChecksum) {
+    throw new CustomerReleaseAdapterError(
+      "release-unavailable",
+      "Blueprint ownership manifest checksum is not reviewed.",
+    );
+  }
+  const manifest = parseManifest(bytes);
+  if (!isRecord(manifest) || !Array.isArray(manifest.entries)) {
+    throw new CustomerReleaseAdapterError(
+      "release-unavailable",
+      "Blueprint ownership manifest is invalid.",
+    );
+  }
+  const expected = JSON.stringify({
+    schemaVersion: manifest.schemaVersion,
+    id: manifest.id,
+    provenance: manifest.provenance,
+    registrations: manifest.registrations,
+    entries: manifest.entries,
+  });
+  const actual = JSON.stringify({
+    schemaVersion: plan.schemaVersion,
+    id: plan.id,
+    provenance: plan.provenance,
+    registrations: plan.registrations,
+    entries: plan.entries.map(({ content: _, ...entry }) => entry),
+  });
+  if (actual !== expected) {
+    throw new CustomerReleaseAdapterError(
+      "release-unavailable",
+      "Blueprint target plan is not owned by the reviewed release.",
+    );
+  }
 }
 
 export type PreparedRelease = {

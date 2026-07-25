@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "kind": "composed-customer-release",
+  "materializationStatus": "materializable",
+  "baseManifest": {
+    "path": "../v0.1.0-alpha.1/manifest.json",
+    "sha256": "sha256:0b55fd0895ecbcf6743860551ed52f165b4252c17ea94ad1687163a8ce6c6b93"
+  },
+  "release": {
+    "version": "0.2.0-alpha.1",
+    "tag": "maestro-template-v0.2.0-alpha.1",
+    "sourceCommit": "10516dfc7470d9cfa68b250550576298f76042f4",
+    "sourceChecksum": "sha256:56bdac01542086dd4d284f7e24ed272e5cec5870b46a47f351f113271dd8de69"
+  },
+  "deriveExpectedHashesFromArchive": true,
+  "additionalPaths": [
+    {
+      "path": ".codex",
+      "match": "subtree",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "examples/saas-application",
+      "match": "subtree",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    }
+  ],
+  "blueprintManifest": {
+    "path": "blueprints/saas-application.json",
+    "sha256": "sha256:1e292e9135059f670a4356793c69f325420eed109c82027d2b597733cf1cd816"
+  }
+}
