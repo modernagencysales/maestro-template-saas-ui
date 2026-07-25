@@ -363,3 +363,42 @@ export const resolveWorkflowStart = (
   assertPublishedDependencies(registry, release);
   return release;
 };
+
+export type WorkflowStartPublicationBinding = {
+  readonly workflowId: string;
+  readonly workflowVersion: number;
+  readonly graphHash: string;
+  readonly runnerRef: unknown;
+  readonly runnerModule: string;
+  readonly releaseChecksum: string;
+  readonly kickoffProfile: "eager-first-poll" | "queued";
+};
+
+export const assertWorkflowStartBinding = (
+  registry: PublicationRegistry,
+  binding: WorkflowStartPublicationBinding,
+): WorkflowRelease => {
+  const release = resolveWorkflowStart(
+    registry,
+    binding.workflowId,
+    binding.workflowVersion,
+  );
+  if (release.graphHash !== binding.graphHash) {
+    throw new Error(
+      "Published workflow graph hash does not match start binding",
+    );
+  }
+  if (
+    release.runner.ref !== binding.runnerRef ||
+    release.runner.module !== binding.runnerModule
+  ) {
+    throw new Error("Published workflow runner does not match start binding");
+  }
+  if (release.releaseChecksum !== binding.releaseChecksum) {
+    throw new Error("Published workflow checksum does not match start binding");
+  }
+  if (!release.kickoffProfiles.includes(binding.kickoffProfile)) {
+    throw new Error("Published workflow kickoff profile is unavailable");
+  }
+  return release;
+};

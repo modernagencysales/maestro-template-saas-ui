@@ -1349,19 +1349,19 @@ describe("template app factory generators", () => {
     expect(generated.files.map((file) => file.path)).toEqual([
       "packages/convex/confect/workflowContracts/sourceGroundedPlan.spec.ts",
       "packages/convex/confect/workflowContracts/sourceGroundedPlan.impl.ts",
-      "packages/convex/confect/workflows/sourceGroundedPlan.graph.ts",
-      "packages/convex/confect/workflows/sourceGroundedPlan.registry.ts",
-      "packages/convex/confect/workflows/sourceGroundedPlan.predeploy.ts",
-      "packages/convex/confect/workflowRunners/sourceGroundedPlan.ts",
-      "packages/convex/confect/workflowRunners/sourceGroundedPlan.spec.ts",
-      "packages/convex/confect/workflowRunners/sourceGroundedPlan.impl.ts",
+      "packages/convex/confect/workflows/sourceGroundedPlan/v1.graph.ts",
+      "packages/convex/confect/workflows/sourceGroundedPlan/v1.registry.ts",
+      "packages/convex/confect/workflows/sourceGroundedPlan/v1.predeploy.ts",
+      "packages/convex/confect/workflowRunners/sourceGroundedPlan/v1.ts",
+      "packages/convex/confect/workflowRunners/sourceGroundedPlan/v1.spec.ts",
+      "packages/convex/confect/workflowRunners/sourceGroundedPlan/v1.impl.ts",
       "packages/convex/test/sourceGroundedPlan.workflow.test.ts",
       "docs/template/generated/workflows/sourceGroundedPlan.semantics.json",
       "docs/template/generated/workflows/sourceGroundedPlan.md",
       "docs/template/generated/provenance/add-workflow/sourceGroundedPlan.json",
     ]);
     expect(generated.files[5]?.path).toBe(
-      "packages/convex/confect/workflowRunners/sourceGroundedPlan.ts",
+      "packages/convex/confect/workflowRunners/sourceGroundedPlan/v1.ts",
     );
     const spec = generated.files[0]?.content ?? "";
     const impl = generated.files[1]?.content ?? "";
@@ -1450,7 +1450,7 @@ describe("template app factory generators", () => {
     expect(impl).toContain("refs.internal.workflows.lifecycle.restart");
     expect(impl).toContain("refs.internal.workflows.lifecycle.cleanup");
     expect(impl).toContain("makeFunctionReference");
-    expect(impl).toContain('"workflowRunners/sourceGroundedPlan:run"');
+    expect(impl).toContain('"workflowRunners/sourceGroundedPlan/v1:run"');
     expect(impl).not.toContain('"workflows/sourceGroundedPlan:run"');
     expect(impl).not.toContain("../../convex/_generated/api");
     expect(impl).toContain("toWorkflowValidationFailed");
@@ -1555,9 +1555,9 @@ describe("template app factory generators", () => {
     expect(registry).not.toContain("transactionLimits:");
 
     expect(docs).toContain(
-      "packages/convex/confect/workflowRunners/sourceGroundedPlan.ts",
+      "packages/convex/confect/workflowRunners/sourceGroundedPlan/v1.ts",
     );
-    expect(docs).toContain("Confect-owned plain workflow runner source");
+    expect(docs).toContain("immutable-version Confect-owned runner source");
     expect(docs).not.toContain("packages/convex/convex/workflows/");
     expect(docs).toContain("pnpm confect:codegen");
     expect(docs).toContain("pnpm --dir packages/convex exec convex codegen");
@@ -1606,11 +1606,11 @@ describe("template app factory generators", () => {
       );
       const graphPath = join(
         cwd,
-        "packages/convex/confect/workflows/sourceGroundedPlan.graph.ts",
+        "packages/convex/confect/workflows/sourceGroundedPlan/v1.graph.ts",
       );
       const workflowPath = join(
         cwd,
-        "packages/convex/confect/workflowRunners/sourceGroundedPlan.ts",
+        "packages/convex/confect/workflowRunners/sourceGroundedPlan/v1.ts",
       );
 
       expect(result.exitCode).toBe(0);

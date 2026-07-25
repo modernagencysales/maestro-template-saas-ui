@@ -2930,9 +2930,9 @@ import {
   projectWorkflowStatus,
   type WorkflowStatusRunProjection,
 } from "../workflows/_kit/status";
-import { ${name}Graph } from "../workflows/${name}.graph";
+import { ${name}Graph } from "../workflows/${name}/v1.graph";
 import { validateWorkflowEventDelivery } from "../workflows/_kit/events";
-import { ${name}ApprovalDecisionEvent } from "../workflows/${name}.registry";
+import { ${name}ApprovalDecisionEvent } from "../workflows/${name}/v1.registry";
 import ${name} from "./${name}.spec";
 
 const withConfectClock = <A, E, R>(
@@ -2968,7 +2968,7 @@ const ${name}RunRef = makeFunctionReference<
   "mutation",
   WorkflowRunFunctionArgs,
   WorkflowId
->("workflowRunners/${name}:run") as unknown as FunctionReference<
+>("workflowRunners/${name}/v1:run") as unknown as FunctionReference<
   "mutation",
   "internal",
   WorkflowRunFunctionArgs,
@@ -2985,7 +2985,7 @@ const ${name}OnCompleteRef = makeFunctionReference<
   "mutation",
   WorkflowCompletionArgs,
   null
->("workflowRunners/${name}:onComplete") as unknown as FunctionReference<
+>("workflowRunners/${name}/v1:onComplete") as unknown as FunctionReference<
   "mutation",
   "internal",
   WorkflowCompletionArgs,
@@ -3275,10 +3275,10 @@ export default GroupImpl.make(databaseSchema, ${name}).pipe(
 `,
     },
     {
-      path: `packages/convex/confect/workflows/${name}.graph.ts`,
+      path: `packages/convex/confect/workflows/${name}/v1.graph.ts`,
       content: `import * as Either from "effect/Either";
-import { defineWorkflowGraphV2 } from "./_kit/workflowBuilder";
-import { defineWorkflowReferenceRegistry } from "./_kit/workflowReferences";
+import { defineWorkflowGraphV2 } from "../_kit/workflowBuilder";
+import { defineWorkflowReferenceRegistry } from "../_kit/workflowReferences";
 
 export const ${name}References = defineWorkflowReferenceRegistry({
   capabilities: { eventControl: "capability.workflowEventControl.v1" },
@@ -3339,20 +3339,20 @@ export const ${name}Graph = Either.getOrThrow(defineWorkflowGraphV2({
 `,
     },
     {
-      path: `packages/convex/confect/workflows/${name}.registry.ts`,
-      content: `import refs from "../_generated/refs";
+      path: `packages/convex/confect/workflows/${name}/v1.registry.ts`,
+      content: `import refs from "../../_generated/refs";
 import * as Ref from "@confect/core/Ref";
-import { components } from "../../convex/_generated/api";
+import { components } from "../../../convex/_generated/api";
 import { v } from "convex/values";
 import * as Schema from "effect/Schema";
-import { defineWorkflowCapabilityRegistry } from "./_kit/graphRunnerV2";
+import { defineWorkflowCapabilityRegistry } from "../_kit/graphRunnerV2";
 import {
   defineWorkflowEvent,
   defineWorkflowV2EventRegistry,
-} from "./_kit/events";
-import { defineWorkflowV2SubworkflowRegistry } from "./_kit/subworkflows";
-import { generatedWorkflowSubworkflowPolicy } from "./_kit/workpoolConfig";
-import { ${name}References } from "./${name}.graph";
+} from "../_kit/events";
+import { defineWorkflowV2SubworkflowRegistry } from "../_kit/subworkflows";
+import { generatedWorkflowSubworkflowPolicy } from "../_kit/workpoolConfig";
+import { ${name}References } from "./v1.graph";
 
 /**
  * Generated typed capability registry. Add entries only through generated
@@ -3409,35 +3409,35 @@ export const ${name}SubworkflowPolicy = generatedWorkflowSubworkflowPolicy;
 `,
     },
     {
-      path: `packages/convex/confect/workflows/${name}.predeploy.ts`,
+      path: `packages/convex/confect/workflows/${name}/v1.predeploy.ts`,
       content: renderGeneratedWorkflowPredeploySource(pascalName),
     },
     {
-      path: `packages/convex/confect/workflowRunners/${name}.ts`,
+      path: `packages/convex/confect/workflowRunners/${name}/v1.ts`,
       content: `import { Ref } from "@confect/core";
 import {
   defineMaestroWorkflow,
   MaestroWorkflowIdValidator,
   MaestroWorkflowResultValidator,
-} from "../workflows/_kit/defineMaestroWorkflow";
+} from "../../workflows/_kit/defineMaestroWorkflow";
 import { internalMutationGeneric } from "convex/server";
 import { v } from "convex/values";
-import refs from "../_generated/refs";
-import { components } from "../../convex/_generated/api";
+import refs from "../../_generated/refs";
+import { components } from "../../../convex/_generated/api";
 import {
   runDurableGraphWorkflowV2,
   type RunDurableGraphStep,
-} from "../workflows/_kit/graphRunner";
-import { loadObservedWorkflowExecutionIdentity } from "../workflows/_kit/observedStage";
-import { reconcileObservedWorkflowCompletion } from "../workflows/_kit/lifecycleCompletion";
-import { WorkflowOnCompleteContextValidator } from "../workflows/_kit/lifecycleState";
-import type { RunDurableGraphV2CompilerInput } from "../workflows/_kit/graphRunnerV2";
-import { ${name}Graph } from "../workflows/${name}.graph";
+} from "../../workflows/_kit/graphRunner";
+import { loadObservedWorkflowExecutionIdentity } from "../../workflows/_kit/observedStage";
+import { reconcileObservedWorkflowCompletion } from "../../workflows/_kit/lifecycleCompletion";
+import { WorkflowOnCompleteContextValidator } from "../../workflows/_kit/lifecycleState";
+import type { RunDurableGraphV2CompilerInput } from "../../workflows/_kit/graphRunnerV2";
+import { ${name}Graph } from "../../workflows/${name}/v1.graph";
 import {
   ${name}EventRegistry,
   ${name}SubworkflowPolicy,
   ${name}SubworkflowRegistry,
-} from "../workflows/${name}.registry";
+} from "../../workflows/${name}/v1.registry";
 
 const executionIdentityRef = Ref.getFunctionReference(
   refs.internal.workflows.stageObservations.executionIdentity,
@@ -3574,9 +3574,9 @@ export const run = defineMaestroWorkflow(components.workflow, {
 `,
     },
     {
-      path: `packages/convex/confect/workflowRunners/${name}.spec.ts`,
+      path: `packages/convex/confect/workflowRunners/${name}/v1.spec.ts`,
       content: `import { FunctionSpec, GroupSpec } from "@confect/core";
-import type { onComplete, run } from "./${name}";
+import type { onComplete, run } from "./v1";
 
 export default GroupSpec.make()
   .addFunction(FunctionSpec.convexInternalMutation<typeof run>()("run"))
@@ -3586,12 +3586,12 @@ export default GroupSpec.make()
 `,
     },
     {
-      path: `packages/convex/confect/workflowRunners/${name}.impl.ts`,
+      path: `packages/convex/confect/workflowRunners/${name}/v1.impl.ts`,
       content: `import { FunctionImpl, GroupImpl } from "@confect/server";
 import * as Layer from "effect/Layer";
-import databaseSchema from "../_generated/schema";
-import { onComplete, run } from "./${name}";
-import ${name} from "./${name}.spec";
+import databaseSchema from "../../_generated/schema";
+import { onComplete, run } from "./v1";
+import ${name} from "./v1.spec";
 
 const runImpl = FunctionImpl.make(databaseSchema, ${name}, "run", run);
 const onCompleteImpl = FunctionImpl.make(
@@ -3611,7 +3611,7 @@ export default GroupImpl.make(databaseSchema, ${name}).pipe(
     {
       path: `packages/convex/test/${name}.workflow.test.ts`,
       content: `import { describe, expect, it } from "vitest";
-import { ${name}Graph } from "../confect/workflows/${name}.graph";
+import { ${name}Graph } from "../confect/workflows/${name}/v1.graph";
 import {
   runDurableGraphWorkflowV2,
   type RunDurableGraphStep,
@@ -3681,22 +3681,22 @@ Canonical system: \`${options.system}\` (\`${options.disposition}\`).
 
 ## Generated Files
 
-- \`packages/convex/confect/workflowRunners/${name}.ts\`: Confect-owned plain workflow runner source.
-- \`packages/convex/convex/workflowRunners/${name}.ts\`: reproducible Confect projection; never edit it by hand.
+- \`packages/convex/confect/workflowRunners/${name}/v1.ts\`: immutable-version Confect-owned runner source.
+- \`packages/convex/convex/workflowRunners/${name}/v1.ts\`: reproducible versioned Confect projection; never edit it by hand.
 - \`docs/template/generated/workflows/${name}.semantics.json\`: semantic coverage keyed by executable rule id.
 - \`packages/convex/confect/workflowContracts/${name}.spec.ts\`: typed start, status, event, cancel, restart, list, step-list, and cleanup contract.
 - \`packages/convex/confect/workflowContracts/${name}.impl.ts\`: Confect implementation that records workflow ownership and projects component status.
-- \`packages/convex/confect/workflows/${name}.graph.ts\`: durable graph data, initially source to Trust Receipt output only.
-- \`packages/convex/confect/workflows/${name}.registry.ts\`: generated typed capability and immutable child-workflow metadata, topology policy, and internal refs; external actions require effect, horizon, guard, redaction, and fixture evidence.
-- \`packages/convex/confect/workflows/${name}.predeploy.ts\`: collected workflow-component Workpool declarations and the injected canonical predeploy findings gate.
+- \`packages/convex/confect/workflows/${name}/v1.graph.ts\`: versioned durable graph data, initially source to Trust Receipt output only.
+- \`packages/convex/confect/workflows/${name}/v1.registry.ts\`: exact versioned capability, event, child-workflow, and internal-ref bindings.
+- \`packages/convex/confect/workflows/${name}/v1.predeploy.ts\`: collected workflow-component Workpool declarations and the injected canonical predeploy findings gate.
 - \`packages/convex/test/${name}.workflow.test.ts\`: focused runner scaffold for the default graph.
 
 ## Required Follow-Up
 
 1. Keep the generated \`startInteractive\` and \`startQueued\` mutations as the only kickoff-mode selectors; callers never supply the mode or principal.
-2. Run \`pnpm confect:codegen\`, then \`pnpm --dir packages/convex exec convex codegen\`, so Confect reproduces \`workflowRunners/${name}:run\` before typecheck.
+2. Run \`pnpm confect:codegen\`, then \`pnpm --dir packages/convex exec convex codegen\`, so Confect reproduces \`workflowRunners/${name}/v1:run\` before typecheck.
 3. Preserve the authenticated handler's server-derived principal projection when specializing start behavior.
-4. Keep React Flow as a projection of \`${name}.graph.ts\`; do not persist canvas node state as the workflow contract.
+4. Keep React Flow as a projection of \`${name}/v1.graph.ts\`; do not persist canvas node state as the workflow contract.
 5. Generated event nodes require \`workflowContracts.${name}.sendEvent\`; callers select an owned opaque ID or generated definition key and never provide workspace, principal, or raw component names.
 6. Generated capability nodes require registry entries with generated internal refs, concrete \`buildArgs\` and logical instance-key mappers, and complete effect/guard/redaction/evidence contracts.
 7. Generated subworkflow entries require an immutable child version, typed Args/Result schemas, declared transitive children, principal posture, and \`${name}SubworkflowLinkRefs\`; cycle, depth, and fan-out checks run before child dispatch.

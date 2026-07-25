@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   addCapabilityRelease,
   addWorkflowRelease,
+  assertWorkflowStartBinding,
   defineCapabilityRelease,
   definePublicationRegistry,
   defineWorkflowRelease,
@@ -197,5 +198,35 @@ describe("immutable workflow publication registry", () => {
         "capability.fixture.echo",
       ).version,
     ).toBe(1);
+  });
+
+  it("requires generated start inputs to match the exact published entry", () => {
+    const release = workflow(1, 1, "published");
+    const registry = definePublicationRegistry({
+      capabilities: [capability(1, "published")],
+      workflows: [release],
+    });
+    expect(
+      assertWorkflowStartBinding(registry, {
+        workflowId: release.workflowId,
+        workflowVersion: release.version,
+        graphHash: release.graphHash,
+        runnerRef: release.runner.ref,
+        runnerModule: release.runner.module,
+        releaseChecksum: release.releaseChecksum,
+        kickoffProfile: "queued",
+      }),
+    ).toBe(release);
+    expect(() =>
+      assertWorkflowStartBinding(registry, {
+        workflowId: release.workflowId,
+        workflowVersion: release.version,
+        graphHash: sha("9"),
+        runnerRef: release.runner.ref,
+        runnerModule: release.runner.module,
+        releaseChecksum: release.releaseChecksum,
+        kickoffProfile: "queued",
+      }),
+    ).toThrow(/graph hash/i);
   });
 });

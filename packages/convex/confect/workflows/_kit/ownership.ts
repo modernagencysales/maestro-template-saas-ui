@@ -16,6 +16,10 @@ import {
   createWorkflowLifecycleState,
   type WorkflowOnCompleteContext,
 } from "./lifecycleState";
+import {
+  assertWorkflowStartBinding,
+  type PublicationRegistry,
+} from "./publication";
 
 type Reader = Context.Tag.Service<typeof DatabaseReader>;
 type Writer = Context.Tag.Service<typeof DatabaseWriter>;
@@ -63,6 +67,12 @@ export type StartWorkflowOwnershipInput<
   readonly timeoutMs?: number;
   readonly deadlineAt?: number;
   readonly kickoffProfile: "eager-first-poll" | "queued";
+  readonly publication?: {
+    readonly registry: PublicationRegistry;
+    readonly graphHash: string;
+    readonly runnerModule: string;
+    readonly releaseChecksum: string;
+  };
   readonly onCompleteRef?: FunctionReference<
     "mutation",
     "internal",
@@ -88,6 +98,17 @@ export const startWorkflowAndRecordOwnership = <
   MutationCtx | DatabaseReader | DatabaseWriter
 > =>
   Effect.gen(function* () {
+    if (input.publication) {
+      assertWorkflowStartBinding(input.publication.registry, {
+        workflowId: input.workflowId,
+        workflowVersion: input.workflowVersion,
+        graphHash: input.publication.graphHash,
+        runnerRef: input.workflowRef,
+        runnerModule: input.publication.runnerModule,
+        releaseChecksum: input.publication.releaseChecksum,
+        kickoffProfile: input.kickoffProfile,
+      });
+    }
     const idempotencyKey = yield* validateWorkflowIdempotencyKey(
       input.idempotencyKey,
     );

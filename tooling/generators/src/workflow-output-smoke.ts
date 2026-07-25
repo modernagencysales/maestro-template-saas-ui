@@ -166,7 +166,8 @@ export const runWorkflowOutputSmoke = (
     const runnerPath = join(
       convexPackage,
       "convex/workflowRunners",
-      `${smokeWorkflowName}.ts`,
+      smokeWorkflowName,
+      "v1.ts",
     );
     rmSync(runnerPath, { force: true });
     if (existsSync(runnerPath)) {
@@ -205,8 +206,8 @@ export const runWorkflowOutputSmoke = (
           tempRepoRoot,
           "exec",
           "eslint",
-          `packages/convex/confect/workflowRunners/${smokeWorkflowName}.ts`,
-          `packages/convex/convex/workflowRunners/${smokeWorkflowName}.ts`,
+          `packages/convex/confect/workflowRunners/${smokeWorkflowName}/v1.ts`,
+          `packages/convex/convex/workflowRunners/${smokeWorkflowName}/v1.ts`,
         ],
       },
       {
@@ -242,7 +243,8 @@ export const runWorkflowOutputSmoke = (
     const sourcePath = join(
       convexPackage,
       "confect/workflowRunners",
-      `${smokeWorkflowName}.ts`,
+      smokeWorkflowName,
+      "v1.ts",
     );
     const semanticsPath = join(
       tempRepoRoot,
