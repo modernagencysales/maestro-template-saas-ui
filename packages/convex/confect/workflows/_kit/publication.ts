@@ -4,14 +4,27 @@ export type PublicationLifecycle = "draft" | "published" | "retired";
 
 export type ChecksummedModule = {
   readonly module: string;
-  readonly source: string;
   readonly checksum: string;
+};
+
+export type GeneratedPublicationAuthority = {
+  readonly schemaVersion: 1;
+  readonly descriptorChecksum: string;
+  readonly sourceClosure: {
+    readonly roots: readonly string[];
+    readonly modules: readonly {
+      readonly path: string;
+      readonly checksum: string;
+    }[];
+    readonly checksum: string;
+  };
 };
 
 export type CapabilityRelease<Ref = unknown> = {
   readonly logicalKey: string;
   readonly version: number;
   readonly lifecycle: PublicationLifecycle;
+  readonly authority: GeneratedPublicationAuthority;
   readonly functionRef: Ref;
   readonly functionReference: string;
   readonly argsSchema: string;
@@ -31,7 +44,8 @@ export type WorkflowRelease<RunnerRef = unknown, CompletionRef = unknown> = {
   readonly workflowId: string;
   readonly version: number;
   readonly lifecycle: PublicationLifecycle;
-  readonly graphSource: string;
+  readonly authority: GeneratedPublicationAuthority;
+  readonly graphModule: string;
   readonly graphHash: string;
   readonly runner: { readonly ref: RunnerRef; readonly module: string };
   readonly events: readonly {
@@ -57,7 +71,6 @@ export type WorkflowRelease<RunnerRef = unknown, CompletionRef = unknown> = {
   readonly runtimeVersion: string;
   readonly interpreter: ChecksummedModule;
   readonly lifecycleContractVersion: number;
-  readonly sourceManifest: readonly ChecksummedModule[];
   readonly sourceClosureChecksum: string;
   readonly releaseChecksum: string;
   readonly stableStepNames: readonly string[];
@@ -71,6 +84,7 @@ export type PublicationRegistry = {
 };
 
 const releaseKey = (name: string, version: number) => `${name}@v${version}`;
+const sha256Pattern = /^[a-f0-9]{64}$/;
 
 const canonicalize = (value: unknown): unknown => {
   if (Array.isArray(value)) return value.map(canonicalize);
@@ -109,13 +123,9 @@ const assertVersion = (version: number, label: string): void => {
   }
 };
 
-const assertChecksum = (
-  claimed: string,
-  actual: string,
-  label: string,
-): void => {
-  if (claimed !== actual) {
-    throw new Error(`${label} checksum does not match canonical content`);
+const assertChecksum = (checksum: string, label: string): void => {
+  if (!sha256Pattern.test(checksum)) {
+    throw new Error(`${label} must be a lowercase SHA-256 checksum`);
   }
 };
 
@@ -130,7 +140,7 @@ const cloneAndValidateModules = (
       throw new Error(`Duplicate ${label} module: ${entry.module}`);
     }
     seen.add(entry.module);
-    assertChecksum(entry.checksum, sha256Hex(entry.source), entry.module);
+    assertChecksum(entry.checksum, entry.module);
     return { ...entry };
   });
   return validated.sort((left, right) =>
@@ -138,28 +148,12 @@ const cloneAndValidateModules = (
   );
 };
 
-export const checksumPublicationSource = (source: string): string =>
-  sha256Hex(source);
-
-export const checksumPublicationSourceClosure = (
-  modules: readonly ChecksummedModule[],
-): string =>
-  sha256Hex(
-    canonicalJson({
-      modules: modules
-        .map(({ module, source }) => ({
-          module,
-          checksum: sha256Hex(source),
-        }))
-        .sort((left, right) => left.module.localeCompare(right.module)),
-    }),
-  );
-
-export const checksumCapabilityRelease = (release: CapabilityRelease): string =>
+const checksumCapabilityRelease = (release: CapabilityRelease): string =>
   sha256Hex(
     canonicalJson({
       logicalKey: release.logicalKey,
       version: release.version,
+      authorityChecksum: release.authority.descriptorChecksum,
       functionReference: release.functionReference,
       argsSchema: release.argsSchema,
       returnSchema: release.returnSchema,
@@ -173,11 +167,13 @@ export const checksumCapabilityRelease = (release: CapabilityRelease): string =>
     }),
   );
 
-export const checksumWorkflowRelease = (release: WorkflowRelease): string =>
+const checksumWorkflowRelease = (release: WorkflowRelease): string =>
   sha256Hex(
     canonicalJson({
       workflowId: release.workflowId,
       version: release.version,
+      authorityChecksum: release.authority.descriptorChecksum,
+      graphModule: release.graphModule,
       graphHash: release.graphHash,
       runnerModule: release.runner.module,
       events: release.events,
@@ -199,6 +195,35 @@ export const checksumWorkflowRelease = (release: WorkflowRelease): string =>
     }),
   );
 
+const checksumSourceClosureDescriptor = (
+  sourceClosure: Pick<
+    GeneratedPublicationAuthority["sourceClosure"],
+    "roots" | "modules"
+  >,
+): string =>
+  sha256Hex(
+    canonicalJson({
+      roots: sourceClosure.roots,
+      modules: sourceClosure.modules,
+    }),
+  );
+
+const checksumAuthorityDescriptor = (
+  kind: "workflow" | "capability",
+  logicalId: string,
+  version: number,
+  sourceClosure: GeneratedPublicationAuthority["sourceClosure"],
+): string =>
+  sha256Hex(
+    canonicalJson({
+      schemaVersion: 1,
+      kind,
+      logicalId,
+      version,
+      sourceClosure,
+    }),
+  );
+
 const assertUniqueKeys = (values: readonly string[], label: string): void => {
   const seen = new Set<string>();
   for (const value of values) {
@@ -206,6 +231,57 @@ const assertUniqueKeys = (values: readonly string[], label: string): void => {
     seen.add(value);
   }
 };
+
+const cloneAndValidateAuthority = (
+  authority: GeneratedPublicationAuthority,
+  kind: "workflow" | "capability",
+  logicalId: string,
+  version: number,
+): GeneratedPublicationAuthority => {
+  const sourceClosure = {
+    roots: [...authority.sourceClosure.roots].sort(),
+    modules: authority.sourceClosure.modules
+      .map((module) => ({ ...module }))
+      .sort((left, right) => left.path.localeCompare(right.path)),
+    checksum: authority.sourceClosure.checksum,
+  };
+  assertUniqueKeys(
+    sourceClosure.modules.map(({ path }) => path),
+    "publication source module",
+  );
+  for (const module of sourceClosure.modules) {
+    assertText(module.path, "publication source module path");
+    assertChecksum(module.checksum, module.path);
+  }
+  if (
+    sourceClosure.checksum !== checksumSourceClosureDescriptor(sourceClosure)
+  ) {
+    throw new Error(
+      "Generated source closure checksum does not match its descriptor",
+    );
+  }
+  if (
+    authority.descriptorChecksum !==
+    checksumAuthorityDescriptor(kind, logicalId, version, sourceClosure)
+  ) {
+    throw new Error(
+      "Generated publication authority checksum does not match its descriptor",
+    );
+  }
+  return {
+    schemaVersion: 1,
+    descriptorChecksum: authority.descriptorChecksum,
+    sourceClosure,
+  };
+};
+
+/** Test-fixture hashing only. Production descriptors are emitted by Node tooling. */
+export const publicationTestOnly = {
+  checksumCapabilityRelease,
+  checksumWorkflowRelease,
+  checksumSourceClosureDescriptor,
+  checksumAuthorityDescriptor,
+} as const;
 
 export const defineCapabilityRelease = <Ref>(
   release: CapabilityRelease<Ref>,
@@ -217,21 +293,38 @@ export const defineCapabilityRelease = <Ref>(
     release.dependencyManifest,
     "capability dependency",
   );
+  const authority = cloneAndValidateAuthority(
+    release.authority,
+    "capability",
+    release.logicalKey,
+    release.version,
+  );
+  for (const dependency of dependencyManifest) {
+    if (
+      !authority.sourceClosure.modules.some(
+        ({ path, checksum }) =>
+          path === dependency.module && checksum === dependency.checksum,
+      )
+    ) {
+      throw new Error(
+        `Capability dependency is absent from authoritative closure: ${dependency.module}`,
+      );
+    }
+  }
   const candidate: CapabilityRelease<Ref> = {
     ...release,
+    authority,
     effectManifest: { ...release.effectManifest },
     dependencyManifest,
   };
-  assertChecksum(
-    release.sourceClosureChecksum,
-    checksumPublicationSourceClosure(dependencyManifest),
-    "capability source closure",
-  );
-  assertChecksum(
-    release.releaseChecksum,
-    checksumCapabilityRelease(candidate),
-    "capability release",
-  );
+  if (release.sourceClosureChecksum !== authority.sourceClosure.checksum) {
+    throw new Error("Capability source closure is not authoritative");
+  }
+  if (release.releaseChecksum !== checksumCapabilityRelease(candidate)) {
+    throw new Error(
+      "Capability release checksum does not match generated descriptor",
+    );
+  }
   return deepFreeze(candidate);
 };
 
@@ -242,33 +335,38 @@ export const defineWorkflowRelease = <RunnerRef, CompletionRef>(
   assertVersion(release.completion.version, "completion");
   assertVersion(release.lifecycleContractVersion, "lifecycle contract");
   assertText(release.workflowId, "workflow id");
-  assertChecksum(
-    release.graphHash,
-    sha256Hex(release.graphSource),
-    "workflow graph",
+  assertText(release.graphModule, "workflow graph module");
+  assertChecksum(release.graphHash, "workflow graph");
+  const authority = cloneAndValidateAuthority(
+    release.authority,
+    "workflow",
+    release.workflowId,
+    release.version,
   );
+  if (
+    !authority.sourceClosure.modules.some(
+      ({ path, checksum }) =>
+        path === release.graphModule && checksum === release.graphHash,
+    )
+  ) {
+    throw new Error("Workflow graph is absent from authoritative closure");
+  }
   const [interpreter] = cloneAndValidateModules(
     [release.interpreter],
     "workflow interpreter",
   );
   if (!interpreter) throw new Error("Workflow interpreter is required");
-  const sourceManifest = cloneAndValidateModules(
-    release.sourceManifest,
-    "workflow source",
-  );
-  const closureInterpreter = sourceManifest.find(
-    ({ module }) => module === interpreter.module,
+  const closureInterpreter = authority.sourceClosure.modules.find(
+    ({ path }) => path === interpreter.module,
   );
   if (closureInterpreter?.checksum !== interpreter.checksum) {
     throw new Error(
       "Workflow source closure must contain the exact interpreter source",
     );
   }
-  assertChecksum(
-    release.sourceClosureChecksum,
-    checksumPublicationSourceClosure(sourceManifest),
-    "workflow source closure",
-  );
+  if (release.sourceClosureChecksum !== authority.sourceClosure.checksum) {
+    throw new Error("Workflow source closure is not authoritative");
+  }
   assertUniqueKeys(
     release.capabilityBindings.map(({ logicalKey }) => logicalKey),
     "workflow capability binding",
@@ -280,6 +378,7 @@ export const defineWorkflowRelease = <RunnerRef, CompletionRef>(
   assertUniqueKeys(release.stableStepNames, "workflow stable step name");
   const candidate: WorkflowRelease<RunnerRef, CompletionRef> = {
     ...release,
+    authority,
     runner: { ...release.runner },
     events: release.events.map((event) => ({ ...event })),
     completion: { ...release.completion },
@@ -291,14 +390,13 @@ export const defineWorkflowRelease = <RunnerRef, CompletionRef>(
       ...binding,
     })),
     interpreter,
-    sourceManifest,
     stableStepNames: [...release.stableStepNames],
   };
-  assertChecksum(
-    release.releaseChecksum,
-    checksumWorkflowRelease(candidate),
-    "workflow release",
-  );
+  if (release.releaseChecksum !== checksumWorkflowRelease(candidate)) {
+    throw new Error(
+      "Workflow release checksum does not match generated descriptor",
+    );
+  }
   return deepFreeze(candidate);
 };
 

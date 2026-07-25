@@ -22,6 +22,7 @@ export type PublicationEntry = {
   readonly lifecycle: "draft" | "published" | "retired";
   readonly isolatedFixture: boolean;
   readonly fingerprint: Readonly<Record<string, string>>;
+  readonly sourceClosure: SourceClosure;
   readonly artifacts: readonly {
     readonly class: PublicationArtifactClass;
     readonly path: string;
@@ -47,6 +48,11 @@ export type SourceClosure = {
   }[];
   readonly checksum: string;
 };
+
+export const checksumSourceClosure = (
+  closure: Pick<SourceClosure, "roots" | "modules">,
+): string =>
+  sha256(canonicalJson({ roots: closure.roots, modules: closure.modules }));
 
 const canonicalManifestPath =
   "docs/template/generated/workflow-publications.json";
@@ -84,10 +90,14 @@ export const verifyPublicationManifestChecksum = (
   }
   for (const entry of manifest.entries) {
     if (
-      entry.lifecycle !== "draft" &&
-      (!entry.isolatedFixture ||
-        (entry.kind === "workflow" && !entry.logicalId.includes("fixture")))
+      entry.sourceClosure.checksum !==
+      checksumSourceClosure(entry.sourceClosure)
     ) {
+      findings.push(
+        `publication source closure checksum mismatch: ${entry.logicalId}@v${entry.version}`,
+      );
+    }
+    if (entry.lifecycle !== "draft" && !entry.isolatedFixture) {
       findings.push(
         `Phase 1 publication must remain an isolated fixture: ${entry.logicalId}@v${entry.version}`,
       );
@@ -122,12 +132,18 @@ const importSpecifiers = (source: string): readonly string[] => {
 
 const resolveImport = (fromPath: string, specifier: string): string => {
   const base = resolve(dirname(fromPath), specifier);
+  const sourceBase = base.replace(/\.(?:c|m)?js$/, "");
   const candidates = [
     base,
     `${base}.ts`,
     `${base}.tsx`,
     `${base}.mts`,
     `${base}.js`,
+    `${base}.d.ts`,
+    `${sourceBase}.ts`,
+    `${sourceBase}.tsx`,
+    `${sourceBase}.mts`,
+    `${sourceBase}.d.ts`,
     resolve(base, "index.ts"),
     resolve(base, "index.tsx"),
     resolve(base, "index.mts"),
@@ -171,7 +187,7 @@ export const buildResolvedSourceClosure = (
   return {
     roots: normalizedRoots,
     modules,
-    checksum: sha256(canonicalJson({ roots: normalizedRoots, modules })),
+    checksum: checksumSourceClosure({ roots: normalizedRoots, modules }),
   };
 };
 
@@ -218,6 +234,21 @@ export const findWorkingTreePublicationDrift = (
   const findings: string[] = [];
   for (const entry of manifest.entries) {
     if (entry.lifecycle === "draft") continue;
+    try {
+      const actualClosure = buildResolvedSourceClosure(
+        repoRoot,
+        entry.sourceClosure.roots,
+      );
+      if (canonicalJson(actualClosure) !== canonicalJson(entry.sourceClosure)) {
+        findings.push(
+          `source closure drift: ${entry.logicalId}@v${entry.version}`,
+        );
+      }
+    } catch (error) {
+      findings.push(
+        `source closure resolution failed: ${entry.logicalId}@v${entry.version}: ${error instanceof Error ? error.message : "unknown error"}`,
+      );
+    }
     for (const artifact of entry.artifacts) {
       const absolutePath = resolve(repoRoot, artifact.path);
       try {
@@ -292,6 +323,7 @@ const parseEntry = (value: unknown): PublicationEntry => {
       "lifecycle",
       "isolatedFixture",
       "fingerprint",
+      "sourceClosure",
       "artifacts",
     ],
     "publication entry",
@@ -326,6 +358,41 @@ const parseEntry = (value: unknown): PublicationEntry => {
       return [key, field];
     }),
   );
+  if (!isRecord(value.sourceClosure)) {
+    throw new Error("publication source closure is invalid");
+  }
+  assertExactKeys(
+    value.sourceClosure,
+    ["roots", "modules", "checksum"],
+    "publication source closure",
+  );
+  if (
+    !Array.isArray(value.sourceClosure.roots) ||
+    !value.sourceClosure.roots.every((root) => typeof root === "string") ||
+    !Array.isArray(value.sourceClosure.modules) ||
+    typeof value.sourceClosure.checksum !== "string"
+  ) {
+    throw new Error("publication source closure fields are invalid");
+  }
+  const sourceClosure: SourceClosure = {
+    roots: value.sourceClosure.roots,
+    modules: value.sourceClosure.modules.map((module) => {
+      if (
+        !isRecord(module) ||
+        typeof module.path !== "string" ||
+        typeof module.checksum !== "string"
+      ) {
+        throw new Error("publication source module is invalid");
+      }
+      assertExactKeys(
+        module,
+        ["path", "checksum"],
+        "publication source module",
+      );
+      return { path: module.path, checksum: module.checksum };
+    }),
+    checksum: value.sourceClosure.checksum,
+  };
   if (!Array.isArray(value.artifacts)) {
     throw new Error("publication artifacts are invalid");
   }
@@ -367,6 +434,7 @@ const parseEntry = (value: unknown): PublicationEntry => {
     lifecycle: value.lifecycle,
     isolatedFixture: value.isolatedFixture,
     fingerprint,
+    sourceClosure,
     artifacts,
   };
 };

@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   buildResolvedSourceClosure,
+  checksumSourceClosure,
   checksumPublicationManifest,
   compareTrustedPublications,
   deriveActualPublicationMergeBase,
@@ -19,6 +20,10 @@ import {
 const sha = (digit: string) => digit.repeat(64);
 
 const manifest = (): WorkflowPublicationManifest => {
+  const sourceClosure = {
+    roots: ["runner.ts"],
+    modules: [{ path: "runner.ts", checksum: sha("5") }],
+  };
   const unsigned = {
     schemaVersion: 1 as const,
     entries: [
@@ -43,6 +48,10 @@ const manifest = (): WorkflowPublicationManifest => {
           dependencyManifest: sha("3"),
           interpreter: sha("4"),
         },
+        sourceClosure: {
+          ...sourceClosure,
+          checksum: checksumSourceClosure(sourceClosure),
+        },
         artifacts: [
           {
             class: "runner" as const,
@@ -65,7 +74,7 @@ describe("workflow publication immutability gate", () => {
     mkdirSync(join(root, "runtime"), { recursive: true });
     writeFileSync(
       join(root, "runner.ts"),
-      'import { run } from "./runtime/interpreter";\nexport { run };\n',
+      'import { run } from "./runtime/interpreter.js";\nexport { run };\n',
     );
     writeFileSync(
       join(root, "runtime/interpreter.ts"),
@@ -209,6 +218,7 @@ describe("workflow publication immutability gate", () => {
       entries: [
         {
           ...entry,
+          sourceClosure: closure,
           artifacts: [
             {
               class: "runner" as const,
@@ -221,8 +231,68 @@ describe("workflow publication immutability gate", () => {
     };
     expect(findWorkingTreePublicationDrift(root, current)).toEqual([]);
     writeFileSync(join(root, "runner.ts"), "export const version = 2;\n");
-    expect(findWorkingTreePublicationDrift(root, current)[0]).toMatch(
+    expect(findWorkingTreePublicationDrift(root, current).join("\n")).toMatch(
       /runner artifact drift/,
+    );
+  });
+
+  it("rejects caller-rehashed artifacts when resolved closure bytes drift", () => {
+    const root = mkdtempSync(join(tmpdir(), "maestro-workflow-authority-"));
+    mkdirSync(join(root, "runtime"), { recursive: true });
+    writeFileSync(
+      join(root, "graph.ts"),
+      'import { value } from "./runtime/value";\nexport const graph = value;\n',
+    );
+    writeFileSync(
+      join(root, "runtime/value.ts"),
+      'export const value = "v1";\n',
+    );
+    const closure = buildResolvedSourceClosure(root, ["graph.ts"]);
+    const base = manifest();
+    const entry = base.entries[0];
+    if (!entry) throw new Error("missing fixture publication");
+    const published = {
+      ...base,
+      entries: [
+        {
+          ...entry,
+          sourceClosure: closure,
+          artifacts: [
+            {
+              class: "graph" as const,
+              path: "graph.ts",
+              checksum: closure.modules[0]?.checksum ?? "",
+            },
+          ],
+        },
+      ],
+    };
+
+    writeFileSync(
+      join(root, "graph.ts"),
+      'import { value } from "./runtime/moved";\nexport const graph = value + " forged";\n',
+    );
+    writeFileSync(
+      join(root, "runtime/moved.ts"),
+      'export const value = "v2";\n',
+    );
+    const forged = buildResolvedSourceClosure(root, ["graph.ts"]);
+    const callerRehashed = {
+      ...published,
+      entries: published.entries.map((candidate) => ({
+        ...candidate,
+        fingerprint: {
+          ...candidate.fingerprint,
+          graphHash: forged.modules[0]?.checksum ?? "",
+        },
+        artifacts: candidate.artifacts.map((artifact) => ({
+          ...artifact,
+          checksum: forged.modules[0]?.checksum ?? "",
+        })),
+      })),
+    };
+    expect(findWorkingTreePublicationDrift(root, callerRehashed)).toContain(
+      "source closure drift: workflow.fixture.publication@v1",
     );
   });
 });
