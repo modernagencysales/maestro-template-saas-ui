@@ -72,6 +72,7 @@
     "check:gates": "tsx tooling/quality/check-gates.mts",
     "check:debt": "tsx tooling/quality/check-debt.mts",
     "check:generators": "tsx tooling/quality/check-generators.mts",
+    "check:recipes": "tsx tooling/quality/check-recipes.mts",
     "check:docs-freshness": "tsx tooling/quality/check-docs-freshness.mts",
     "check:generated-files": "tsx tooling/quality/check-generated-files.mts",
     "check:confect-v9": "tsx tooling/quality/check-confect-v9.mts",

@@ -927,6 +927,21 @@ const checkDescriptorDefinitions = {
       },
     ],
   },
+  recipes: {
+    name: "check:recipes",
+    requirements: [
+      {
+        file: "tooling/quality/check-recipes.mts",
+        includes: ["checkRecipes", "index.generated.json"],
+        message: "recipe validation must inspect the live generated index",
+      },
+      {
+        file: "docs/template/recipes/index.generated.json",
+        includes: ["schemaVersion", "recipes"],
+        message: "recipe discovery must use the generated canonical index",
+      },
+    ],
+  },
   taste: {
     name: "taste:eval",
     requirements: [],
@@ -1026,6 +1041,18 @@ export const checkDescriptors = defineRegisteredStaticCheckDescriptors(
         "WF-GRAPH-STALE",
         "WF-GRAPH-UNMAPPED",
       ],
+    },
+    recipes: {
+      evidenceClass: "static",
+      canonicalDoc:
+        "docs/superpowers/plans/2026-07-24-maestro-agent-pack-productization-plan.md#wp-43-add-an-outcome-oriented-feature-recipe-library",
+      focusedPathPrefixes: [
+        "packages/template-core/src/recipes",
+        "docs/template/recipes",
+        "tooling/agent-pack/src/recipes.ts",
+        "tooling/quality/check-recipes.mts",
+      ],
+      semanticRuleIds: ["WP-4.3"],
     },
     taste: {
       posture: "advisory",
