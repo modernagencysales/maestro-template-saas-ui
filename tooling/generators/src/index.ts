@@ -23,6 +23,10 @@ import {
   type SystemCatalog,
 } from "@maestro-template/template-core/systemCatalog";
 import { gtmImplementationBlueprint } from "./blueprints/gtmImplementation";
+import {
+  renderGeneratedFailureRouteCompiler,
+  renderGeneratedWorkflowPredeploySource,
+} from "./workflow-predeploy";
 import { workflowGeneratorSemanticCoverage } from "./workflow-semantic-coverage";
 
 export type ProviderMode = "fake" | "test" | "live";
@@ -2884,6 +2888,10 @@ export const ${name}CapabilityRegistry = defineWorkflowCapabilityRegistry({});
 `,
     },
     {
+      path: `packages/convex/confect/workflows/${name}.predeploy.ts`,
+      content: renderGeneratedWorkflowPredeploySource(pascalName),
+    },
+    {
       path: `packages/convex/confect/workflowRunners/${name}.ts`,
       content: `import { defineMaestroWorkflow } from "../workflows/_kit/defineMaestroWorkflow";
 import { v } from "convex/values";
@@ -2892,6 +2900,7 @@ import {
   runDurableGraphWorkflowV2,
   type RunDurableGraphStep,
 } from "../workflows/_kit/graphRunner";
+import type { RunDurableGraphV2CompilerInput } from "../workflows/_kit/graphRunnerV2";
 import { ${name}Graph } from "../workflows/${name}.graph";
 
 const WorkflowPrincipalValidator = v.union(
@@ -2927,6 +2936,7 @@ type WorkflowReceipt = {
   readonly status: "completed";
 };
 
+${renderGeneratedFailureRouteCompiler(`${name}Graph`)}
 const metadata = {
   workflowId: ${name}Graph.id,
   workflowVersion: ${name}Graph.version,
@@ -2972,6 +2982,7 @@ export const run = defineMaestroWorkflow(components.workflow, {
     inputs: args,
     principal: args.principal,
     policySnapshot: { kind: "none", reason: ${name}Graph.policyPosture.kind === "none" ? ${name}Graph.policyPosture.reason : "generated" },
+    failureRoutes,
     projectOutput: () => ({ workflowId: ${name}Graph.id, status: "completed" as const }),
   }),
 );
@@ -3083,6 +3094,7 @@ Canonical system: \`${options.system}\` (\`${options.disposition}\`).
 - \`packages/convex/confect/workflowContracts/${name}.impl.ts\`: Confect implementation that records workflow ownership and projects component status.
 - \`packages/convex/confect/workflows/${name}.graph.ts\`: durable graph data, initially source to Trust Receipt output only.
 - \`packages/convex/confect/workflows/${name}.registry.ts\`: generated typed capability metadata and internal refs; external actions require effect, horizon, guard, redaction, and fixture evidence.
+- \`packages/convex/confect/workflows/${name}.predeploy.ts\`: collected workflow-component Workpool declarations and the injected canonical predeploy findings gate.
 - \`packages/convex/test/${name}.workflow.test.ts\`: focused runner scaffold for the default graph.
 
 ## Required Follow-Up

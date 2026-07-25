@@ -45,9 +45,123 @@ import {
   sourceFingerprint,
   workflowOutputSmokeScriptName,
 } from "./workflow-output-smoke";
+import {
+  buildWorkflowPredeployPlan,
+  compileGeneratedWorkflowFailureRoutes,
+  WorkflowPredeployGenerationError,
+} from "./workflow-predeploy";
 
 const testDir = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(testDir, "../../..");
+
+describe("workflow generator predeploy projection", () => {
+  const failure = {
+    _tag: "WorkflowSettledFailure",
+    code: "PROVIDER_REJECTED",
+    message: "Provider rejected the request.",
+  } as const;
+
+  it("projects declared error-edge and compensation policies", () => {
+    expect(
+      compileGeneratedWorkflowFailureRoutes([
+        {
+          id: "charge",
+          failurePolicy: {
+            kind: "error-edge",
+            edgeId: "charge-error",
+            failure,
+          },
+        },
+        {
+          id: "notify",
+          failurePolicy: {
+            kind: "compensation",
+            edgeId: "notify-compensated",
+            capability: "capability.retractNotification.v2",
+            stepName: "retract-notification.v2",
+            failure,
+          },
+        },
+        { id: "receipt", failurePolicy: { kind: "fail" } },
+      ]),
+    ).toEqual({
+      charge: {
+        kind: "error-edge",
+        edgeId: "charge-error",
+        failure,
+      },
+      notify: {
+        kind: "compensation",
+        edgeId: "notify-compensated",
+        capability: "capability.retractNotification.v2",
+        stepName: "retract-notification.v2",
+        failure,
+      },
+    });
+  });
+
+  it("rejects routing not declared by the generated node", () => {
+    expect(() =>
+      compileGeneratedWorkflowFailureRoutes(
+        [{ id: "charge", failurePolicy: { kind: "fail" } }],
+        {
+          charge: {
+            kind: "error-edge",
+            edgeId: "charge-error",
+            failure,
+          },
+        },
+      ),
+    ).toThrowError(
+      new WorkflowPredeployGenerationError([
+        "charge: undeclared error-edge routing; declare nodes[].failurePolicy or retain fail behavior",
+      ]),
+    );
+  });
+
+  it("fails predeploy generation on conflicting environment Workpools", () => {
+    type Options = {
+      readonly maxParallelism: number;
+      readonly retryActionsByDefault: boolean;
+    };
+    const workflowWorkpoolConfigurationFindings = (
+      _environment: "production",
+      declarations: readonly {
+        readonly component: string;
+        readonly options: Options;
+      }[],
+    ): readonly string[] =>
+      declarations.flatMap(({ component, options }) =>
+        options.maxParallelism === 20 && !options.retryActionsByDefault
+          ? []
+          : [
+              `${component}: Workpool configuration conflicts with the production workflow budget`,
+            ],
+      );
+
+    expect(() =>
+      buildWorkflowPredeployPlan({
+        environment: "production" as const,
+        declarationGroups: [
+          {
+            component: "workflow",
+            options: { maxParallelism: 20, retryActionsByDefault: false },
+          },
+          [
+            {
+              component: "workflow-shadow",
+              options: {
+                maxParallelism: 3,
+                retryActionsByDefault: true,
+              },
+            },
+          ],
+        ],
+        workflowWorkpoolConfigurationFindings,
+      }),
+    ).toThrow("workflow-shadow: Workpool configuration conflicts");
+  });
+});
 
 describe("template app factory generators", () => {
   it("exercises workflow smoke path filtering and tiny-tree copying", () => {
@@ -1158,6 +1272,7 @@ describe("template app factory generators", () => {
       "packages/convex/confect/workflowContracts/sourceGroundedPlan.impl.ts",
       "packages/convex/confect/workflows/sourceGroundedPlan.graph.ts",
       "packages/convex/confect/workflows/sourceGroundedPlan.registry.ts",
+      "packages/convex/confect/workflows/sourceGroundedPlan.predeploy.ts",
       "packages/convex/confect/workflowRunners/sourceGroundedPlan.ts",
       "packages/convex/confect/workflowRunners/sourceGroundedPlan.spec.ts",
       "packages/convex/confect/workflowRunners/sourceGroundedPlan.impl.ts",
@@ -1166,18 +1281,19 @@ describe("template app factory generators", () => {
       "docs/template/generated/workflows/sourceGroundedPlan.md",
       "docs/template/generated/provenance/add-workflow/sourceGroundedPlan.json",
     ]);
-    expect(generated.files[4]?.path).toBe(
+    expect(generated.files[5]?.path).toBe(
       "packages/convex/confect/workflowRunners/sourceGroundedPlan.ts",
     );
     const spec = generated.files[0]?.content ?? "";
     const impl = generated.files[1]?.content ?? "";
     const graph = generated.files[2]?.content ?? "";
     const registry = generated.files[3]?.content ?? "";
-    const convexWorkflow = generated.files[4]?.content ?? "";
-    const runnerSpec = generated.files[5]?.content ?? "";
-    const runnerImpl = generated.files[6]?.content ?? "";
-    const semantics = generated.files[8]?.content ?? "";
-    const docs = generated.files[9]?.content ?? "";
+    const predeploy = generated.files[4]?.content ?? "";
+    const convexWorkflow = generated.files[5]?.content ?? "";
+    const runnerSpec = generated.files[6]?.content ?? "";
+    const runnerImpl = generated.files[7]?.content ?? "";
+    const semantics = generated.files[9]?.content ?? "";
+    const docs = generated.files[10]?.content ?? "";
 
     expect(registry).toContain("defineWorkflowCapabilityRegistry");
     expect(registry).toContain("internal refs");
@@ -1243,6 +1359,14 @@ describe("template app factory generators", () => {
     expect(convexWorkflow).not.toContain("returns: v.any()");
     expect(convexWorkflow).toContain("metadata");
     expect(convexWorkflow).toContain('policySnapshot: { kind: "none"');
+    expect(convexWorkflow).toContain("RunDurableGraphV2CompilerInput");
+    expect(convexWorkflow).toContain(").failurePolicy");
+    expect(convexWorkflow).toContain("failureRoutes,");
+    expect(predeploy).toContain(
+      "collectSourceGroundedPlanWorkflowWorkpoolDeclarations",
+    );
+    expect(predeploy).toContain("workflowWorkpoolConfigurationFindings(");
+    expect(predeploy).toContain("Workflow predeploy generation failed");
     expect(runnerSpec).toContain("FunctionSpec.convexInternalMutation");
     expect(runnerImpl).toContain("FunctionImpl.make");
     expect(semantics).toContain('"WF-DEFINE"');
