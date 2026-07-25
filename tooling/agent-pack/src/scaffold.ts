@@ -35,6 +35,24 @@ export type WorkflowScaffoldRestriction = {
   readonly adrPath: string;
 };
 
+export type WorkflowSemanticProjection = {
+  readonly id: string;
+  readonly status: "supported" | "intentionally-restricted" | "unsupported";
+  readonly repair: string;
+};
+
+export type WorkflowResolution =
+  | {
+      readonly kind: "declared-alternative";
+      readonly ruleId: string;
+      readonly alternative: string;
+    }
+  | {
+      readonly kind: "reviewed-adr";
+      readonly ruleId: string;
+      readonly adrRef: string;
+    };
+
 export type ScaffoldGeneratorRequest = {
   readonly generatorId: string;
   readonly args: ScaffoldArguments;
@@ -62,12 +80,12 @@ export type ScaffoldDependencies = {
     readonly inspect: (repo: RepositoryContext) => Promise<{
       readonly fingerprint: string;
       readonly safeToMutate: boolean;
+      readonly cleanWorktree: boolean;
     }>;
   };
   readonly workflow: {
-    readonly restrictions: (
-      ruleIds: readonly string[],
-    ) => readonly WorkflowScaffoldRestriction[];
+    readonly semantics: readonly WorkflowSemanticProjection[];
+    readonly reviewedAdrRefs: ReadonlySet<string>;
   };
 };
 
@@ -77,6 +95,7 @@ export type ScaffoldInput = {
   readonly write: boolean;
   readonly preflightFingerprint?: string;
   readonly workflowRuleIds: readonly string[];
+  readonly workflowResolutions: readonly WorkflowResolution[];
 };
 
 export function createScaffoldCommand(dependencies: ScaffoldDependencies) {
@@ -115,8 +134,10 @@ export function createScaffoldCommand(dependencies: ScaffoldDependencies) {
         };
       }
 
-      const restrictions = dependencies.workflow.restrictions(
+      const restrictions = workflowRestrictions(
         input.workflowRuleIds,
+        input.workflowResolutions,
+        dependencies.workflow,
       );
       if (restrictions.length > 0) {
         return {
@@ -157,6 +178,16 @@ export function createScaffoldCommand(dependencies: ScaffoldDependencies) {
       }
 
       const preflight = await dependencies.preflight.inspect(context.repo);
+      if (!preflight.cleanWorktree) {
+        return scaffoldBlocked(
+          input,
+          mutationPosture,
+          preview.output,
+          "AGENT_PACK_SCAFFOLD_WORKTREE_DIRTY",
+          "Scaffold writes require explicit clean-worktree evidence.",
+          "Commit or remove unrelated changes, rerun preflight, and retry with its unchanged fingerprint.",
+        );
+      }
       if (
         !preflight.safeToMutate ||
         input.preflightFingerprint === undefined ||
@@ -194,6 +225,7 @@ function decodeScaffoldInput(
     "write",
     "preflightFingerprint",
     "workflowRuleIds",
+    "workflowResolutions",
   ]);
   if (
     !isRecord(input) ||
@@ -203,6 +235,7 @@ function decodeScaffoldInput(
   }
   const write = input.write ?? false;
   const workflowRuleIds = input.workflowRuleIds ?? [];
+  const workflowResolutions = input.workflowResolutions ?? [];
   if (
     typeof input.generatorId !== "string" ||
     !/^[a-z0-9][a-z0-9:_-]*$/.test(input.generatorId) ||
@@ -215,7 +248,9 @@ function decodeScaffoldInput(
     !workflowRuleIds.every(
       (ruleId) =>
         typeof ruleId === "string" && /^[A-Z0-9][A-Z0-9_-]*$/.test(ruleId),
-    )
+    ) ||
+    !Array.isArray(workflowResolutions) ||
+    !workflowResolutions.every(isWorkflowResolution)
   ) {
     return invalidScaffoldInput();
   }
@@ -229,8 +264,79 @@ function decodeScaffoldInput(
         ? { preflightFingerprint: input.preflightFingerprint }
         : {}),
       workflowRuleIds,
+      workflowResolutions,
     },
   };
+}
+
+function isWorkflowResolution(value: unknown): value is WorkflowResolution {
+  if (!isRecord(value) || typeof value.ruleId !== "string") return false;
+  if (value.kind === "declared-alternative") {
+    return (
+      Object.keys(value).length === 3 &&
+      typeof value.alternative === "string" &&
+      value.alternative.length > 0
+    );
+  }
+  return (
+    value.kind === "reviewed-adr" &&
+    Object.keys(value).length === 3 &&
+    typeof value.adrRef === "string" &&
+    /^docs\/template\/adr\/\d{4}-[a-z0-9]+(?:-[a-z0-9]+)*\.md$/.test(
+      value.adrRef,
+    )
+  );
+}
+
+function workflowRestrictions(
+  ruleIds: readonly string[],
+  resolutions: readonly WorkflowResolution[],
+  authority: ScaffoldDependencies["workflow"],
+): readonly WorkflowScaffoldRestriction[] {
+  const rules = new Map(authority.semantics.map((rule) => [rule.id, rule]));
+  return ruleIds.flatMap((ruleId) => {
+    const rule = rules.get(ruleId);
+    if (rule?.status === "supported") return [];
+    const matching = resolutions.filter(
+      (resolution) => resolution.ruleId === ruleId,
+    );
+    const selection = matching[0];
+    if (
+      rule !== undefined &&
+      matching.length === 1 &&
+      selection !== undefined &&
+      resolutionIsReviewed(selection, rule, authority.reviewedAdrRefs)
+    ) {
+      return [];
+    }
+    const selectedAdr = matching.find(
+      (
+        resolution,
+      ): resolution is Extract<
+        WorkflowResolution,
+        { readonly kind: "reviewed-adr" }
+      > => resolution.kind === "reviewed-adr",
+    );
+    return [
+      {
+        ruleId,
+        status: rule?.status ?? "unsupported",
+        alternative:
+          rule?.repair ?? "Select a rule declared by WORKFLOW_SEMANTICS.",
+        adrPath: selectedAdr?.adrRef ?? "<existing-reviewed-adr-required>",
+      },
+    ];
+  });
+}
+
+function resolutionIsReviewed(
+  resolution: WorkflowResolution,
+  rule: WorkflowSemanticProjection,
+  reviewedAdrRefs: ReadonlySet<string>,
+): boolean {
+  return resolution.kind === "declared-alternative"
+    ? resolution.alternative === rule.repair
+    : reviewedAdrRefs.has(resolution.adrRef);
 }
 
 function scaffoldSuccess(

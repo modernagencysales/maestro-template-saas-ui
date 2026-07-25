@@ -41,9 +41,10 @@ function dependencies(
       inspect: async () => ({
         fingerprint: "preflight_sha256:current",
         safeToMutate: true,
+        cleanWorktree: true,
       }),
     },
-    workflow: { restrictions: () => [] },
+    workflow: { semantics: [], reviewedAdrRefs: new Set() },
     ...overrides,
   };
 }
@@ -88,6 +89,7 @@ describe("scaffold command", () => {
       return {
         fingerprint: "preflight_sha256:current",
         safeToMutate: true,
+        cleanWorktree: true,
       };
     });
     const result = await executeAgentPackCommand(
@@ -130,6 +132,7 @@ describe("scaffold command", () => {
               inspect: async () => ({
                 fingerprint: "preflight_sha256:current",
                 safeToMutate,
+                cleanWorktree: true,
               }),
             },
           }),
@@ -152,6 +155,38 @@ describe("scaffold command", () => {
       });
     },
   );
+
+  it("refuses a dirty worktree even when preview paths do not overlap", async () => {
+    const run = vi.fn(async () => ({ ok: true as const, output }));
+    const result = await executeAgentPackCommand(
+      createScaffoldCommand(
+        dependencies({
+          generators: { resolve: () => ({ supported: true }), run },
+          preflight: {
+            inspect: async () => ({
+              fingerprint: "preflight_sha256:current",
+              safeToMutate: true,
+              cleanWorktree: false,
+            }),
+          },
+        }),
+      ),
+      {
+        generatorId: "add-capability",
+        args,
+        write: true,
+        preflightFingerprint: "preflight_sha256:current",
+      },
+      context,
+    );
+
+    expect(output.collisions).toEqual([]);
+    expect(run).toHaveBeenCalledOnce();
+    expect(result).toMatchObject({
+      exitClass: "blockedMutation",
+      diagnostics: [{ code: "AGENT_PACK_SCAFFOLD_WORKTREE_DIRTY" }],
+    });
+  });
 
   it("refuses previewed collisions before writing", async () => {
     const collided = { ...output, collisions: ["generated/sourceBrief.ts"] };
@@ -217,41 +252,110 @@ describe("scaffold command", () => {
     });
   });
 
-  it("fails restricted workflow primitives with declared alternatives", async () => {
-    const restrictions = [
+  const restrictedRule = {
+    id: "WF-STEP-ACTION",
+    status: "intentionally-restricted" as const,
+    repair:
+      "Use a mutation/query capability or wait for the Phase 1 action strategy compiler.",
+  };
+  const reviewedAdr =
+    "docs/template/adr/0002-maestro-graph-over-convex-workflow.md";
+
+  it.each([
+    [
+      "declared alternative",
       {
-        ruleId: "WF-STEP-ACTION",
-        status: "intentionally-restricted" as const,
-        alternative: "Use a mutation/query capability.",
-        adrPath: "docs/template/adr/0002-maestro-graph-over-convex-workflow.md",
+        kind: "declared-alternative" as const,
+        ruleId: restrictedRule.id,
+        alternative: restrictedRule.repair,
       },
-    ];
-    const run = vi.fn();
+    ],
+    [
+      "reviewed ADR",
+      {
+        kind: "reviewed-adr" as const,
+        ruleId: restrictedRule.id,
+        adrRef: reviewedAdr,
+      },
+    ],
+  ])("allows a restricted primitive with its %s", async (_case, resolution) => {
+    const run = vi.fn(async () => ({ ok: true as const, output }));
     const result = await executeAgentPackCommand(
       createScaffoldCommand(
         dependencies({
           generators: { resolve: () => ({ supported: true }), run },
-          workflow: { restrictions: () => restrictions },
+          workflow: {
+            semantics: [restrictedRule],
+            reviewedAdrRefs: new Set([reviewedAdr]),
+          },
         }),
       ),
       {
         generatorId: "add-workflow",
         args,
         workflowRuleIds: ["WF-STEP-ACTION"],
+        workflowResolutions: [resolution],
       },
       context,
     );
 
-    expect(run).not.toHaveBeenCalled();
+    expect(run).toHaveBeenCalledOnce();
     expect(result).toMatchObject({
-      exitClass: "blockedMutation",
-      diagnostics: [
-        {
-          code: "AGENT_PACK_WORKFLOW_PRIMITIVE_RESTRICTED",
-          nextAction: expect.stringContaining(restrictions[0].alternative),
-        },
-      ],
-      data: { restrictions },
+      exitClass: "success",
+      data: { restrictions: [] },
     });
   });
+
+  it.each([
+    ["missing", []],
+    [
+      "invalid alternative",
+      [
+        {
+          kind: "declared-alternative" as const,
+          ruleId: restrictedRule.id,
+          alternative: "Use an unreviewed action wrapper.",
+        },
+      ],
+    ],
+    [
+      "invalid ADR",
+      [
+        {
+          kind: "reviewed-adr" as const,
+          ruleId: restrictedRule.id,
+          adrRef: "docs/template/adr/9999-missing.md",
+        },
+      ],
+    ],
+  ])(
+    "blocks a restricted primitive with %s resolution",
+    async (_case, workflowResolutions) => {
+      const run = vi.fn();
+      const result = await executeAgentPackCommand(
+        createScaffoldCommand(
+          dependencies({
+            generators: { resolve: () => ({ supported: true }), run },
+            workflow: {
+              semantics: [restrictedRule],
+              reviewedAdrRefs: new Set([reviewedAdr]),
+            },
+          }),
+        ),
+        {
+          generatorId: "add-workflow",
+          args,
+          workflowRuleIds: [restrictedRule.id],
+          workflowResolutions,
+        },
+        context,
+      );
+
+      expect(run).not.toHaveBeenCalled();
+      expect(result).toMatchObject({
+        exitClass: "blockedMutation",
+        diagnostics: [{ code: "AGENT_PACK_WORKFLOW_PRIMITIVE_RESTRICTED" }],
+      });
+    },
+  );
 });

@@ -1,5 +1,6 @@
 {
   "feature": "phase-3-plan-check-and-scaffold",
+  "adrRefs": ["docs/template/adr/0002-maestro-graph-over-convex-workflow.md"],
   "slices": [
     {
       "id": 1,

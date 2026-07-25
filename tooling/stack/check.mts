@@ -3,13 +3,38 @@
  * the agent AND always by stack:submit before any branch work, so the happy
  * path cannot skip the depth/order/completeness guardrails (spec §2.4).
  */
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import process from "node:process";
-import { type StackPlan, validatePlan } from "./plan.mts";
+import { validatePlan } from "./plan.mts";
+
+const SOURCE_ROOT = new URL("../../", import.meta.url);
+const ADR_DIRECTORY = "docs/template/adr/";
 
 export function checkPlanFile(url: URL): string[] {
-  const plan = JSON.parse(readFileSync(url, "utf8")) as StackPlan;
-  return validatePlan(plan);
+  let plan: unknown;
+  try {
+    plan = JSON.parse(readFileSync(url, "utf8"));
+  } catch {
+    return ["plan must be valid JSON"];
+  }
+  return validatePlan(plan, {
+    reviewedAdrRefs: readReviewedAdrRefs(SOURCE_ROOT),
+  });
+}
+
+export function readReviewedAdrRefs(sourceRoot: URL): ReadonlySet<string> {
+  const adrDirectoryUrl = new URL(ADR_DIRECTORY, sourceRoot);
+  const references = readdirSync(adrDirectoryUrl, { withFileTypes: true })
+    .filter(
+      (entry) => entry.isFile() && /^\d{4}-[a-z0-9-]+\.md$/.test(entry.name),
+    )
+    .filter((entry) =>
+      /^## Status\s+Accepted\.\s*$/m.test(
+        readFileSync(new URL(entry.name, adrDirectoryUrl), "utf8"),
+      ),
+    )
+    .map((entry) => `${ADR_DIRECTORY}${entry.name}`);
+  return new Set(references);
 }
 
 // CLI: `tsx tooling/stack/check.mts <plan.json>`

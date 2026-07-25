@@ -12,8 +12,9 @@ findings without judging business quality.
 `scaffold` delegates supported operations to the existing `template:*` generator
 API. Preview is the default. A write first previews exact files and collisions,
 then requires the current passing preflight fingerprint to equal the caller's
-reviewed fingerprint. Generator output remains the authority for file bytes,
-provenance, semantic rule IDs, manual follow-up, codegen, and focused gates.
+reviewed fingerprint and explicit clean-worktree evidence from that preflight.
+Generator output remains the authority for file bytes, provenance, semantic rule
+IDs, manual follow-up, codegen, and focused gates.
 
 Canonical authoring and output details remain in the existing references:
 
@@ -24,15 +25,16 @@ Canonical authoring and output details remain in the existing references:
 - [ADR 0002](./adr/0002-maestro-graph-over-convex-workflow.md)
 
 Unsupported requests return registry-owned nearby recipes and a reviewable
-`template-gap` skeleton. Restricted or unsupported workflow primitive requests
-return the semantic ledger's declared alternative and ADR path; the command does
-not invent source files or bypass the semantic gate.
+`template-gap` skeleton. Restricted or unsupported workflow primitives proceed
+only when the caller selects the semantic ledger's exact declared repair or an
+existing accepted ADR path. Missing or invented selections return the
+ledger-owned alternative; the command does not invent source files or bypass the
+semantic gate.
 
 ## Explicit Exclusions
 
 - No generator rules, recipes, or playbook prose are duplicated in Agent Pack.
-- No edits to `tooling/stack/plan.mts` or `tooling/generators/src/index.ts` are
-  part of the leaf stack.
+- No edits to `tooling/generators/src/index.ts` are part of the leaf stack.
 - No Agent Pack package dependency, barrel, root CLI composition, router,
   script, Just recipe, or aggregate-gate registration is owned here.
 - No MCP transport or WP-3.5 behavior is included.
@@ -49,11 +51,12 @@ Bind the leaf factories without adding behavior:
   provenance paths, collisions, semantic rule IDs, manual follow-up, codegen,
   and focused gates, and must preserve every existing `pnpm template:*`
   entrypoint.
-- Project `WORKFLOW_SEMANTICS` into `WorkflowScaffoldRestriction` values using
-  the existing status, repair, and documentation/ADR evidence; do not maintain a
-  second primitive list.
+- Inject `WORKFLOW_SEMANTICS` as the `WorkflowSemanticProjection` authority and
+  accepted paths from `docs/template/adr`; do not maintain second primitive or
+  ADR lists.
 - Bind scaffold preflight inspection to the shared preflight command for the
-  trusted repository context, returning only `fingerprint` and `safeToMutate`.
+  trusted repository context, returning `fingerprint`, `safeToMutate`, and
+  explicit `cleanWorktree` evidence.
 - Add the required workspace dependencies and Agent Pack barrel exports for
   `planCheck.ts` and `scaffold.ts`.
 - Add leaf CLI argument adapters, then register exactly one `plan-check` and one

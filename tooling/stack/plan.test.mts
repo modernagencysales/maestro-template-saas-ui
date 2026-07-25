@@ -36,11 +36,41 @@ const plan = (over: Partial<StackPlan> = {}): StackPlan => ({
   feature: "x",
   slices: [slice()],
   allTaskRefs: ["t1"],
+  adrRefs: [],
   ...over,
 });
 
 test("a sound single-slice plan passes", () => {
   expect(validatePlan(plan())).toEqual([]);
+});
+
+test("accepts declared ADRs from the reviewed repository authority", () => {
+  const adrRef = "docs/template/adr/0002-maestro-graph-over-convex-workflow.md";
+  expect(
+    validatePlan(plan({ adrRefs: [adrRef] }), {
+      reviewedAdrRefs: new Set([adrRef]),
+    }),
+  ).toEqual([]);
+});
+
+test.each([
+  ["invalid shape", ["docs/template/adr/not-numbered.md"]],
+  ["outside authority", ["docs/template/system-decisions/0002-choice.md"]],
+  [
+    "missing from authority",
+    ["docs/template/adr/9999-missing-reviewed-decision.md"],
+  ],
+] as const)("rejects %s ADR references", (_case, adrRefs) => {
+  const errors = validatePlan(plan({ adrRefs }), {
+    reviewedAdrRefs: new Set(),
+  });
+  expect(errors.some((error) => error.includes("adrRefs"))).toBe(true);
+});
+
+test("rejects malformed plan shapes without throwing", () => {
+  expect(validatePlan({ feature: "x", slices: "not-an-array" })).toEqual([
+    "plan must match the StackPlan shape",
+  ]);
 });
 
 test("rejects a slice missing layer-required contract risks", () => {
