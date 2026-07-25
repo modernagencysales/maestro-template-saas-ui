@@ -43,6 +43,14 @@ export type WorkflowComponentCleanupState = Schema.Schema.Type<
   typeof WorkflowComponentCleanupState
 >;
 
+export const WorkflowComponentResidualState = Schema.Literal(
+  "not-assessed",
+  "component-residuals-unverifiable",
+);
+export type WorkflowComponentResidualState = Schema.Schema.Type<
+  typeof WorkflowComponentResidualState
+>;
+
 const NonNegativeInteger = Schema.Number.pipe(
   Schema.int(),
   Schema.greaterThanOrEqualTo(0),
@@ -85,6 +93,7 @@ export type WorkflowLifecycleState = {
   readonly priorGenerationQuiescence: WorkflowGenerationQuiescence;
   readonly cleanup: WorkflowProductCleanupState;
   readonly componentCleanup: WorkflowComponentCleanupState;
+  readonly componentResiduals: WorkflowComponentResidualState;
   readonly retention: {
     readonly parentUntil: number | null;
     readonly childUntil: number | null;
@@ -143,6 +152,7 @@ export const createWorkflowLifecycleState = (
       | "priorGenerationQuiescence"
       | "cleanup"
       | "componentCleanup"
+      | "componentResiduals"
     >
   >,
 ): WorkflowLifecycleState => {
@@ -164,6 +174,7 @@ export const createWorkflowLifecycleState = (
       input.priorGenerationQuiescence ?? "not-applicable",
     cleanup: input.cleanup ?? "not-requested",
     componentCleanup: input.componentCleanup ?? "not-requested",
+    componentResiduals: input.componentResiduals ?? "not-assessed",
     retention: {
       parentUntil: input.retention?.parentUntil ?? null,
       childUntil: input.retention?.childUntil ?? null,
@@ -198,11 +209,6 @@ export const transitionWorkflowLifecycle = (
 ): Either.Either<WorkflowLifecycleState, WorkflowLifecycleTransitionError> => {
   const guardFinding = guardLifecycleTransition(state, command);
   if (guardFinding) return fail(guardFinding);
-  if (state.componentCleanup === "component-residuals-unverifiable") {
-    return fail(
-      "component residuals are unverifiable; lifecycle cannot advance",
-    );
-  }
   switch (command.kind) {
     case "mark-terminal":
       return finishExecution(state, "terminal");
@@ -230,7 +236,8 @@ export const transitionWorkflowLifecycle = (
           })
         : fail("component cleanup requires in-progress product cleanup");
     case "mark-component-known-work-complete":
-      return state.componentCleanup === "component-cleanup-requested"
+      return state.componentCleanup === "component-cleanup-requested" ||
+        state.componentCleanup === "component-residuals-unverifiable"
         ? Either.right({
             ...state,
             componentCleanup: "component-known-work-complete",
@@ -239,10 +246,11 @@ export const transitionWorkflowLifecycle = (
             "known component work can complete only after cleanup is requested",
           );
     case "mark-component-residuals-unverifiable":
-      return state.componentCleanup === "component-cleanup-requested"
+      return state.componentCleanup === "component-cleanup-requested" ||
+        state.componentCleanup === "component-known-work-complete"
         ? Either.right({
             ...state,
-            componentCleanup: "component-residuals-unverifiable",
+            componentResiduals: "component-residuals-unverifiable",
           })
         : fail(
             "component residuals can be recorded only after cleanup is requested",

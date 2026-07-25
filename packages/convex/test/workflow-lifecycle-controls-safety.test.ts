@@ -154,7 +154,12 @@ describe("tenant-safe workflow lifecycle safety", () => {
         reasonCode: "retention-sweep",
         occurredAt: 200,
       }),
-    ).resolves.toEqual({ status: "component-cleanup-requested" });
+    ).resolves.toEqual({
+      status: "component-cleanup-requested",
+      componentCleanup: "component-cleanup-requested",
+      componentResiduals: "not-assessed",
+      fullDeletionProven: false,
+    });
 
     vi.mocked(fixture.ports.inspectQuiescence).mockResolvedValueOnce({
       inProgressSteps: [],
@@ -166,10 +171,16 @@ describe("tenant-safe workflow lifecycle safety", () => {
         reasonCode: "retention-sweep",
         occurredAt: 201,
       }),
-    ).resolves.toEqual({ status: "component-residuals-unverifiable" });
+    ).resolves.toEqual({
+      status: "product-cleaned",
+      componentCleanup: "component-known-work-complete",
+      componentResiduals: "component-residuals-unverifiable",
+      fullDeletionProven: false,
+    });
     expect(fixture.currentRun().state).toMatchObject({
-      cleanup: "in-progress",
-      componentCleanup: "component-residuals-unverifiable",
+      cleanup: "product-cleaned",
+      componentCleanup: "component-known-work-complete",
+      componentResiduals: "component-residuals-unverifiable",
     });
   });
 

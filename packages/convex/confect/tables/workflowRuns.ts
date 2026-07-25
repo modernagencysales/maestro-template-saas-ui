@@ -2,6 +2,7 @@ import { Table } from "@confect/server";
 import * as Schema from "effect/Schema";
 import {
   WorkflowComponentCleanupState,
+  WorkflowComponentResidualState,
   WorkflowGenerationQuiescence,
   WorkflowLifecycleExecution,
   WorkflowOnCompleteContext,
@@ -57,6 +58,9 @@ export const WorkflowRunRow = Schema.Struct({
   cleanupState: Schema.optional(Schema.NullOr(WorkflowProductCleanupState)),
   componentCleanupState: Schema.optional(
     Schema.NullOr(WorkflowComponentCleanupState),
+  ),
+  componentResidualState: Schema.optional(
+    Schema.NullOr(WorkflowComponentResidualState),
   ),
   parentRetentionUntil: Schema.optional(WorkflowRetentionTime),
   childRetentionUntil: Schema.optional(WorkflowRetentionTime),

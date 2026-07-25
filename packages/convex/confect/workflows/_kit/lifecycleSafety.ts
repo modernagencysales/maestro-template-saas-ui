@@ -171,36 +171,58 @@ export const reconcileWorkflowCleanup = async (
 ) => {
   const run = await ownedRun(ports, principal, "cleanup", input.workflowRunId);
   validControlInput(input);
-  if (
-    run.state.componentCleanup === "component-residuals-unverifiable" ||
-    run.state.componentCleanup === "component-known-work-complete"
-  ) {
-    return { status: run.state.componentCleanup } as const;
+  if (run.state.cleanup === "product-cleaned") {
+    return cleanedProjection();
   }
-  if (run.state.componentCleanup !== "component-cleanup-requested") {
+  if (
+    run.state.componentCleanup !== "component-cleanup-requested" &&
+    run.state.componentCleanup !== "component-known-work-complete"
+  ) {
     throw controlError(
       "INVALID_STATE",
       "Cleanup reconciliation requires a component cleanup request.",
     );
   }
-  const exposedWork = await ports.inspectQuiescence({
-    workspaceId: principal.workspaceId,
-    workflowRunId: run.workflowRunId,
-    componentWorkflowId: run.componentWorkflowId,
-  });
-  if (
-    exposedWork.inProgressSteps.length > 0 ||
-    exposedWork.inProgressChildren.length > 0
-  ) {
-    return { status: "component-cleanup-requested" as const };
+  let next = run.state;
+  if (next.componentCleanup === "component-cleanup-requested") {
+    const exposedWork = await ports.inspectQuiescence({
+      workspaceId: principal.workspaceId,
+      workflowRunId: run.workflowRunId,
+      componentWorkflowId: run.componentWorkflowId,
+    });
+    if (
+      exposedWork.inProgressSteps.length > 0 ||
+      exposedWork.inProgressChildren.length > 0
+    ) {
+      return {
+        status: "component-cleanup-requested" as const,
+        componentCleanup: "component-cleanup-requested" as const,
+        componentResiduals: next.componentResiduals,
+        fullDeletionProven: false as const,
+      };
+    }
+    next = transition(next, {
+      kind: "mark-component-known-work-complete",
+      ...guard(run),
+    });
   }
-  const next = transition(run.state, {
-    kind: "mark-component-residuals-unverifiable",
-    ...guard(run),
-  });
+  if (next.componentResiduals !== "component-residuals-unverifiable") {
+    next = transition(next, {
+      kind: "mark-component-residuals-unverifiable",
+      ...guard(run),
+    });
+  }
+  next = transition(next, { kind: "mark-product-cleaned", ...guard(run) });
   await ports.saveLifecycleState(run.workflowRunId, next);
-  return { status: "component-residuals-unverifiable" as const };
+  return cleanedProjection();
 };
+
+const cleanedProjection = () => ({
+  status: "product-cleaned" as const,
+  componentCleanup: "component-known-work-complete" as const,
+  componentResiduals: "component-residuals-unverifiable" as const,
+  fullDeletionProven: false as const,
+});
 
 const restartSafe = (
   effect: WorkflowRestartInspection["externalEffects"][number],

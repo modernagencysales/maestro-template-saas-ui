@@ -155,18 +155,6 @@ describe("pure workflow lifecycle state", () => {
       command("request-cleanup", { now: 174 }),
       "evidence retention",
     ],
-    [
-      "unverifiable residuals",
-      {
-        ...baseState(),
-        execution: "terminal" as const,
-        priorGenerationQuiescence: "quiescent" as const,
-        cleanup: "in-progress" as const,
-        componentCleanup: "component-residuals-unverifiable" as const,
-      },
-      command("mark-product-cleaned"),
-      "residuals",
-    ],
   ])("fails closed on %s", (_name, state, next, reason) => {
     const result = transitionWorkflowLifecycle(state, next);
     expect(Either.isLeft(result)).toBe(true);
@@ -261,6 +249,7 @@ describe("workflow lifecycle persistence leaves", () => {
       priorGenerationQuiescence: "not-applicable",
       cleanupState: "not-requested",
       componentCleanupState: "not-requested",
+      componentResidualState: "not-assessed",
     });
   });
 

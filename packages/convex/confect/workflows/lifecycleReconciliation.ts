@@ -53,10 +53,19 @@ export const reconcileWorkflowCompletion = (
     const execution =
       input.result.kind === "canceled" ? "canceled" : "terminal";
     if (owned.state.execution !== "active") {
-      if (owned.state.execution !== execution) {
-        return yield* unavailable("Completion would regress lifecycle state.");
+      const accepted = yield* acceptedCompletionKind(
+        reader,
+        owned.workflowRunId,
+      );
+      if (
+        owned.state.execution !== execution ||
+        accepted !== input.result.kind
+      ) {
+        return yield* unavailable(
+          "Completion conflicts with the accepted terminal outcome.",
+        );
       }
-      return { status: input.result.kind } as const;
+      return { status: accepted } as const;
     }
     const next = yield* transitionCompletion(owned.state, execution);
     yield* persistWorkflowLifecycleState(writer, owned.workflowRunId, next);
@@ -73,6 +82,27 @@ export const reconcileWorkflowCompletion = (
       .pipe(Effect.orDie);
     return { status: input.result.kind } as const;
   });
+
+const acceptedCompletionKind = (reader: Reader, workflowRunId: string) =>
+  reader
+    .table("workflowRuns")
+    .get(workflowRunId as GenericId<"workflowRuns">)
+    .pipe(
+      Effect.orDie,
+      Effect.flatMap((row) => {
+        const accepted =
+          row?.status === "completed"
+            ? "success"
+            : row?.status === "failed"
+              ? "failed"
+              : row?.status === "canceled"
+                ? "canceled"
+                : null;
+        return accepted === null
+          ? unavailable("Accepted completion outcome is unavailable.")
+          : Effect.succeed(accepted);
+      }),
+    );
 
 const decodeContext = (input: unknown) => {
   const decoded = decodeWorkflowOnCompleteContext(input);

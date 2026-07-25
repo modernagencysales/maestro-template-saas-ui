@@ -4,6 +4,7 @@ import * as S from "effect/Schema";
 import { WorkflowRunStatus } from "../../tables/workflowRuns";
 import {
   WorkflowComponentCleanupState,
+  WorkflowComponentResidualState,
   WorkflowGenerationQuiescence,
   WorkflowLifecycleExecution,
   WorkflowProductCleanupState,
@@ -15,6 +16,7 @@ export const WorkflowLifecycleStatus = S.Struct({
   priorGenerationQuiescence: WorkflowGenerationQuiescence,
   cleanup: WorkflowProductCleanupState,
   componentCleanup: WorkflowComponentCleanupState,
+  componentResiduals: WorkflowComponentResidualState,
 });
 
 export const WorkflowStatusResult = S.Struct({
@@ -56,6 +58,9 @@ export type WorkflowStatusRunProjection = {
   > | null;
   readonly componentCleanupState?: S.Schema.Type<
     typeof WorkflowComponentCleanupState
+  > | null;
+  readonly componentResidualState?: S.Schema.Type<
+    typeof WorkflowComponentResidualState
   > | null;
 };
 
@@ -168,6 +173,7 @@ const lifecycleStatusFields = (
           priorGenerationQuiescence: run.priorGenerationQuiescence,
           cleanup: run.cleanupState,
           componentCleanup: run.componentCleanupState,
+          componentResiduals: run.componentResidualState ?? "not-assessed",
         },
       }
     : {};

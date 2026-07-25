@@ -228,6 +228,7 @@ export const initialWorkflowLifecycleFields = (input: {
     priorGenerationQuiescence: state.priorGenerationQuiescence,
     cleanupState: state.cleanup,
     componentCleanupState: state.componentCleanup,
+    componentResidualState: state.componentResiduals,
     parentRetentionUntil: state.retention.parentUntil,
     childRetentionUntil: state.retention.childUntil,
     evidenceRetentionUntil: state.retention.evidenceUntil,

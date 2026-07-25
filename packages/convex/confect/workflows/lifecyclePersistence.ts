@@ -77,6 +77,7 @@ export const persistWorkflowLifecycleState = (
       priorGenerationQuiescence: state.priorGenerationQuiescence,
       cleanupState: state.cleanup,
       componentCleanupState: state.componentCleanup,
+      componentResidualState: state.componentResiduals,
       parentRetentionUntil: state.retention.parentUntil,
       childRetentionUntil: state.retention.childUntil,
       evidenceRetentionUntil: state.retention.evidenceUntil,
@@ -168,6 +169,8 @@ const decodeLifecycleState = (row: {
   readonly cleanupState?: WorkflowLifecycleState["cleanup"] | null | undefined;
   readonly componentCleanupState?:
     WorkflowLifecycleState["componentCleanup"] | null | undefined;
+  readonly componentResidualState?:
+    WorkflowLifecycleState["componentResiduals"] | null | undefined;
   readonly parentRetentionUntil?: number | null | undefined;
   readonly childRetentionUntil?: number | null | undefined;
   readonly evidenceRetentionUntil?: number | null | undefined;
@@ -208,7 +211,15 @@ const decodeLifecycleState = (row: {
     restartAnchor,
     priorGenerationQuiescence: row.priorGenerationQuiescence,
     cleanup: row.cleanupState,
-    componentCleanup: row.componentCleanupState,
+    componentCleanup:
+      row.componentCleanupState === "component-residuals-unverifiable"
+        ? "component-cleanup-requested"
+        : row.componentCleanupState,
+    componentResiduals:
+      row.componentResidualState ??
+      (row.componentCleanupState === "component-residuals-unverifiable"
+        ? "component-residuals-unverifiable"
+        : "not-assessed"),
     retention: {
       parentUntil: row.parentRetentionUntil ?? null,
       childUntil: row.childRetentionUntil ?? null,

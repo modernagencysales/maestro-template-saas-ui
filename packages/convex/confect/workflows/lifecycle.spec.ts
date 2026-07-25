@@ -173,11 +173,16 @@ const reconcileCleanup = FunctionSpec.internalMutation({
   args: () => ControlArgs,
   returns: () =>
     Schema.Struct({
-      status: Schema.Literal(
+      status: Schema.Literal("component-cleanup-requested", "product-cleaned"),
+      componentCleanup: Schema.Literal(
         "component-cleanup-requested",
         "component-known-work-complete",
+      ),
+      componentResiduals: Schema.Literal(
+        "not-assessed",
         "component-residuals-unverifiable",
       ),
+      fullDeletionProven: Schema.Literal(false),
     }),
   error: () => WorkflowLifecycleErrors,
 });
