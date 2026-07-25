@@ -11,7 +11,7 @@ import {
 const factoryCliComposition = createFactoryCliComposition(() => ({}));
 
 describe("factory CLI composition", () => {
-  it("binds one explicit policy to canonical readers and nine commands", () => {
+  it("binds one explicit policy to canonical readers and ten commands", () => {
     expect(
       factoryCliComposition.handlers.map(({ command }) => command),
     ).toEqual([
@@ -19,6 +19,7 @@ describe("factory CLI composition", () => {
       "start",
       "add",
       "recipes",
+      "doctor",
       "preflight",
       "verify",
       "check",
@@ -41,7 +42,7 @@ describe("factory CLI composition", () => {
 
   it("imports generator and quality sources without running either CLI", () => {
     expect(process.exitCode).toBeUndefined();
-    expect(factoryCliComposition.handlers).toHaveLength(9);
+    expect(factoryCliComposition.handlers).toHaveLength(10);
   });
 
   it("routes exact start help without spawning", async () => {

@@ -8,6 +8,8 @@ import {
   createMcpConfigureCommand,
   createNodeExecFileAdapter,
   createNodePreflightRuntimeReader,
+  createConvexDoctorAdapter,
+  createProviderDoctorCommand,
   createPlanCheckCommand,
   createPreflightCommand,
   createAddRecipeCommand,
@@ -22,6 +24,7 @@ import {
   parseConvexMcpProfiles,
   readInstalledConvexMcpInventory,
   serveMcpStdio,
+  validateInstalledOfficialConvexTargets,
   type AgentPackExecutionContext,
   type McpConfigurationStore,
   type NodePreflightPolicy,
@@ -50,6 +53,7 @@ import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { createPlanCheckCliHandler } from "./planCheck";
 import { createCustomerCreateComposition } from "./createComposition";
+import { createProviderDoctorCliHandler } from "./doctor";
 import {
   projectCompositionEnvironment,
   type CompositionEnvironmentReader,
@@ -278,6 +282,65 @@ export function createFactoryCliComposition(
     add: createAddRecipeCommand(recipeDependencies),
     recipes: createRecipesCommand(recipeDependencies),
   });
+  const providerDoctor = createProviderDoctorCommand({
+    adapters: [
+      createConvexDoctorAdapter({
+        environment: (repo) => {
+          const report = projectCompositionEnvironment(repo, readEnvironment);
+          return {
+            availableEnvironmentNames: report.availableEnvironmentNames
+              .split(",")
+              .filter(Boolean),
+          };
+        },
+        requiredEnvironmentNames: (repo) =>
+          requiredEnvNamesForProvider("convex", {
+            repoRoot: repo.sourceRoot,
+          }),
+        templateProviderReport: async (repo, environment) => {
+          try {
+            const instance = parseTemplateInstance(
+              await readBoundedFile(
+                resolve(repo.targetRoot, "template-instance.json"),
+                { maxBytes: FACTORY_EXECUTION_POLICY.packageJsonMaxBytes },
+              ),
+            );
+            const report = doctorTemplateInstance(instance, {
+              mode:
+                environment === "fake" || environment === "local"
+                  ? "fake"
+                  : "test",
+              repoRoot: repo.sourceRoot,
+            });
+            const check = report.checks.find(
+              ({ id }) => id === "provider:convex",
+            );
+            return (
+              check ?? {
+                status: "warn" as const,
+                detail:
+                  "Convex provider check is absent from the template report.",
+              }
+            );
+          } catch {
+            return {
+              status: "warn" as const,
+              detail:
+                "Template instance is unavailable; provider state was not inferred.",
+            };
+          }
+        },
+        officialAiFilesFindings: (repo) =>
+          validateInstalledOfficialConvexTargets(repo.sourceRoot),
+        mcpPolicy: {
+          fakeDisabled: true,
+          inspectDeployment: "dev",
+          productionUnsupported: true,
+          alwaysDisabledTools: convexMcpProfiles.alwaysDisabled,
+        },
+      }),
+    ],
+  });
   const mcpStore =
     overrides.mcp?.store ??
     createRepositoryLocalMcpConfigurationStore({ execFile });
@@ -320,6 +383,7 @@ export function createFactoryCliComposition(
     createCustomerCreateComposition(),
     createStartCliHandler(start, startOutput),
     ...recipeHandlers,
+    createProviderDoctorCliHandler(providerDoctor),
     createPreflightCliHandler(preflight),
     createVerifyCliHandler(verify),
     createVerifyCliHandler(check),

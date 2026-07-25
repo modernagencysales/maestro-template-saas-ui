@@ -31,3 +31,7 @@ advanced inspection. Ask only the consequential questions in the selected
 recipe. If no exact recipe matches, return its adjacent reviewed recipes and
 `template-gap`; never invent an architecture or claim an unsupported workflow
 primitive.
+
+For Convex setup or diagnosis, run the read-only provider doctor and load
+`agent-pack/references/convex.md`. Load `agent-pack/references/storage.md` only
+when the accepted file-import recipe genuinely requires retained object bytes.
