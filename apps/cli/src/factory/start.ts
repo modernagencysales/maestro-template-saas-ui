@@ -229,7 +229,11 @@ function renderModeFor(
 }
 
 function safeLine(value: string): string {
-  return redactStartLog(value.replace(/[\r\n\u001b]/g, " "));
+  const sanitized = value
+    .replaceAll("\r", " ")
+    .replaceAll("\n", " ")
+    .replaceAll(String.fromCodePoint(27), " ");
+  return redactStartLog(sanitized);
 }
 
 async function waitForStartReadiness(

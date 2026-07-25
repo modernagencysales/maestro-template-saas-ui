@@ -39,15 +39,30 @@ export function loadRecipeCatalogProjection(
     resolve: (query) => {
       const resolution = resolveRecipe(catalog, query);
       if (resolution.kind === "recipe")
-        return { kind: "recipe", recipe: projected.get(resolution.recipe.id)! };
+        return {
+          kind: "recipe",
+          recipe: requireProjectedRecipe(projected, resolution.recipe.id),
+        };
       return {
         ...resolution,
         adjacent: resolution.adjacent.map((recipe) =>
-          projected.get(recipe.id)!,
+          requireProjectedRecipe(projected, recipe.id),
         ),
       };
     },
   };
+}
+
+function requireProjectedRecipe(
+  projected: ReadonlyMap<string, RecipeCommandProjection>,
+  id: string,
+): RecipeCommandProjection {
+  const recipe = projected.get(id);
+  if (recipe === undefined)
+    throw new Error(
+      `Recipe projection is unavailable for ${JSON.stringify(id)}.`,
+    );
+  return recipe;
 }
 
 export function currentGeneratedRecipeIndex(sourceRoot: string) {

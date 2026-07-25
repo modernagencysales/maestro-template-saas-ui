@@ -79,11 +79,11 @@ function parseAdd(argv: readonly string[]) {
       renderMode = mode;
       continue;
     }
-    if (token !== "--answer" || argv[index + 1] === undefined) {
+    const pair = argv[index + 1];
+    if (token !== "--answer" || pair === undefined) {
       valid = false;
       continue;
     }
-    const pair = argv[index + 1]!;
     index += 1;
     const separator = pair.indexOf("=");
     if (separator < 1 || separator === pair.length - 1) {
