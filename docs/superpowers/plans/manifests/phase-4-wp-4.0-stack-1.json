@@ -1,0 +1,40 @@
+{
+  "feature": "phase-4-wp-4.0-customer-release-manifest",
+  "slices": [
+    {
+      "id": 1,
+      "branch": "codex/wp4-release-manifest",
+      "intention": "define and self-protect the immutable customer release ownership manifest contract with one tagged golden fixture",
+      "layers": ["schema", "checks"],
+      "contractRiskIds": [
+        "ambient-time-inline",
+        "schema-runtime-validator-export",
+        "policy-data-hardcoded",
+        "duplicated-closed-union",
+        "invalid-test-fixture-or-cast",
+        "branching-logic-needs-boundary-tests",
+        "unjustified-cap-or-threshold",
+        "type-escape-or-cast"
+      ],
+      "workPackages": [
+        {
+          "kind": "template-gap",
+          "target": "WP-4.0 customer release manifest schema, tagged fixture, validator, and shipped-path self-protection",
+          "followUpGates": [
+            "pnpm --dir tooling/release test customerTarget",
+            "pnpm --dir tooling/release typecheck",
+            "pnpm check:generated-files",
+            "pnpm check:secret-canaries",
+            "pnpm stack:check docs/superpowers/plans/manifests/phase-4-wp-4.0-stack-1.json"
+          ],
+          "templateBacklogRef": "AP-007 first-run visible app",
+          "templateResolutionPath": "Promote the tagged-release ownership manifest and validator as the single factory-to-customer contract; materialization and all CLI/runtime consumers remain later stacks."
+        }
+      ],
+      "taskRefs": ["WP-4.0-stack-1"],
+      "rationale": "The immutable release identity and exhaustive path ownership contract must exist before any customer materializer can safely copy or generate files.",
+      "estLines": 290
+    }
+  ],
+  "allTaskRefs": ["WP-4.0-stack-1"]
+}

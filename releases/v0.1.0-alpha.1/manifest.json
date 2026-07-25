@@ -1,0 +1,56 @@
+{
+  "$schema": "../../schemas/maestro-customer-release-manifest.schema.json",
+  "schemaVersion": 1,
+  "release": {
+    "version": "0.1.0-alpha.1",
+    "tag": "maestro-template-v0.1.0-alpha.1",
+    "sourceCommit": "a6ec083e7f6a689fb39f19804fb117056b290c79",
+    "sourceChecksum": "sha256:7e6c9148442e12d073721a8dfa1ccfd9675cb757c588ae5ddf8c48f38485594e"
+  },
+  "compatibility": {
+    "cli": ">=0.1.0-alpha.1 <0.2.0",
+    "agentPack": ">=0.1.0-alpha.1 <0.2.0"
+  },
+  "paths": [
+    {
+      "path": "AGENTS.md",
+      "ownership": "template-owned",
+      "action": "copy",
+      "upgrade": "replace"
+    },
+    {
+      "path": "docs/template/client-intake-questionnaire.md",
+      "ownership": "customer-extension",
+      "action": "copy",
+      "upgrade": "preserve"
+    },
+    {
+      "path": "template-instance.json",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate"
+    },
+    {
+      "path": ".env.local",
+      "ownership": "local-only",
+      "action": "omit",
+      "upgrade": "preserve"
+    },
+    {
+      "path": "docs/superpowers",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    }
+  ],
+  "expectedHashes": {
+    "AGENTS.md": "sha256:8f191b1ea45fdc13d56b8990eace9fa00978fe7a008d483b4933123b29b1485e",
+    "docs/template/client-intake-questionnaire.md": "sha256:b791a3683674ed16f9943035afd4aa0e30841641a98dc8d7ca186850d27bd26f"
+  },
+  "extensionSeams": [
+    {
+      "path": "docs/template/client-intake-questionnaire.md",
+      "description": "Customer-owned intake language and answers."
+    }
+  ]
+}
