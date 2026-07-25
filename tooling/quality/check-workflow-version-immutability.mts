@@ -2,8 +2,21 @@
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
-import { dirname, relative, resolve, sep } from "node:path";
+import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+
+import {
+  buildResolvedSourceClosure,
+  checksumSourceClosure,
+  normalizedSourcePath,
+  type SourceClosure,
+} from "../generators/src/workflow-source-closure";
+
+export {
+  buildResolvedSourceClosure,
+  checksumSourceClosure,
+} from "../generators/src/workflow-source-closure";
+export type { SourceClosure } from "../generators/src/workflow-source-closure";
 
 export type PublicationArtifactClass =
   | "graph"
@@ -39,20 +52,6 @@ export type WorkflowPublicationManifest =
   UnsignedWorkflowPublicationManifest & {
     readonly manifestChecksum: string;
   };
-
-export type SourceClosure = {
-  readonly roots: readonly string[];
-  readonly modules: readonly {
-    readonly path: string;
-    readonly checksum: string;
-  }[];
-  readonly checksum: string;
-};
-
-export const checksumSourceClosure = (
-  closure: Pick<SourceClosure, "roots" | "modules">,
-): string =>
-  sha256(canonicalJson({ roots: closure.roots, modules: closure.modules }));
 
 const canonicalManifestPath =
   "docs/template/generated/workflow-publications.json";
@@ -109,94 +108,6 @@ export const verifyPublicationManifestChecksum = (
     }
   }
   return findings;
-};
-
-const normalizedRelativePath = (root: string, absolutePath: string): string => {
-  const path = relative(root, absolutePath).split(sep).join("/");
-  if (path === ".." || path.startsWith("../")) {
-    throw new Error(`Source closure escaped repository root: ${absolutePath}`);
-  }
-  return path;
-};
-
-const importSpecifiers = (source: string): readonly string[] => {
-  const specifiers: string[] = [];
-  const pattern =
-    /(?:import|export)\s+(?:[^"']*?\sfrom\s*)?["']([^"']+)["']|import\s*\(\s*["']([^"']+)["']\s*\)/g;
-  for (const match of source.matchAll(pattern)) {
-    const specifier = match[1] ?? match[2];
-    if (specifier?.startsWith(".")) specifiers.push(specifier);
-  }
-  return specifiers;
-};
-
-const resolveImports = (
-  fromPath: string,
-  specifier: string,
-): readonly string[] => {
-  const base = resolve(dirname(fromPath), specifier);
-  const sourceBase = base.replace(/\.(?:c|m)?js$/, "");
-  const candidates = [
-    base,
-    `${base}.ts`,
-    `${base}.tsx`,
-    `${base}.mts`,
-    `${base}.js`,
-    `${base}.d.ts`,
-    `${sourceBase}.ts`,
-    `${sourceBase}.tsx`,
-    `${sourceBase}.mts`,
-    `${sourceBase}.js`,
-    `${sourceBase}.d.ts`,
-    resolve(base, "index.ts"),
-    resolve(base, "index.tsx"),
-    resolve(base, "index.mts"),
-    resolve(base, "index.js"),
-    resolve(base, "index.d.ts"),
-  ];
-  const resolvedPaths = [
-    ...new Set(candidates.filter((candidate) => existsSync(candidate))),
-  ];
-  if (resolvedPaths.length === 0) {
-    throw new Error(`Unresolved import ${specifier} from ${fromPath}`);
-  }
-  return resolvedPaths;
-};
-
-export const buildResolvedSourceClosure = (
-  repoRoot: string,
-  roots: readonly string[],
-): SourceClosure => {
-  const absoluteRoot = resolve(repoRoot);
-  const pending = roots.map((root) => resolve(absoluteRoot, root));
-  const sources = new Map<string, string>();
-  while (pending.length > 0) {
-    const absolutePath = pending.pop();
-    if (!absolutePath || sources.has(absolutePath)) continue;
-    if (!existsSync(absolutePath)) {
-      throw new Error(`Source closure root is missing: ${absolutePath}`);
-    }
-    normalizedRelativePath(absoluteRoot, absolutePath);
-    const source = readFileSync(absolutePath, "utf8");
-    sources.set(absolutePath, source);
-    for (const specifier of importSpecifiers(source)) {
-      pending.push(...resolveImports(absolutePath, specifier));
-    }
-  }
-  const modules = [...sources]
-    .map(([path, source]) => ({
-      path: normalizedRelativePath(absoluteRoot, path),
-      checksum: sha256(source),
-    }))
-    .sort((left, right) => left.path.localeCompare(right.path));
-  const normalizedRoots = roots.map((root) =>
-    normalizedRelativePath(absoluteRoot, resolve(absoluteRoot, root)),
-  );
-  return {
-    roots: normalizedRoots,
-    modules,
-    checksum: checksumSourceClosure({ roots: normalizedRoots, modules }),
-  };
 };
 
 const entryKey = (entry: PublicationEntry): string =>
@@ -260,7 +171,7 @@ export const findWorkingTreePublicationDrift = (
     for (const artifact of entry.artifacts) {
       const absolutePath = resolve(repoRoot, artifact.path);
       try {
-        normalizedRelativePath(resolve(repoRoot), absolutePath);
+        normalizedSourcePath(resolve(repoRoot), absolutePath);
       } catch {
         findings.push(
           `${artifact.class} artifact escaped repository: ${artifact.path}`,

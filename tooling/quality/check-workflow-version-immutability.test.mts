@@ -110,6 +110,53 @@ describe("workflow publication immutability gate", () => {
     );
   });
 
+  it("uses syntax nodes instead of comments or string-shaped import text", () => {
+    const root = mkdtempSync(join(tmpdir(), "maestro-workflow-closure-ast-"));
+    mkdirSync(join(root, "runtime"), { recursive: true });
+    writeFileSync(
+      join(root, "runner.ts"),
+      [
+        '// import "./runtime/comment-only";',
+        "const prose = \"export * from './runtime/string-only'\";",
+        'export { run } from "./runtime/reexport";',
+        'export * from "./runtime/export-all";',
+        'export const load = () => import("./runtime/dynamic");',
+        "void prose;",
+      ].join("\n"),
+    );
+    writeFileSync(join(root, "runtime/reexport.ts"), "export const run = 1;\n");
+    writeFileSync(
+      join(root, "runtime/export-all.ts"),
+      "export const all = 1;\n",
+    );
+    writeFileSync(
+      join(root, "runtime/dynamic.ts"),
+      "export const dynamic = 1;\n",
+    );
+
+    expect(
+      buildResolvedSourceClosure(root, ["runner.ts"]).modules.map(
+        ({ path }) => path,
+      ),
+    ).toEqual([
+      "runner.ts",
+      "runtime/dynamic.ts",
+      "runtime/export-all.ts",
+      "runtime/reexport.ts",
+    ]);
+  });
+
+  it("fails closed on a non-literal dynamic relative import", () => {
+    const root = mkdtempSync(join(tmpdir(), "maestro-workflow-closure-ast-"));
+    writeFileSync(
+      join(root, "runner.ts"),
+      'const target = "./runtime/hidden";\nexport const load = () => import(target);\n',
+    );
+    expect(() => buildResolvedSourceClosure(root, ["runner.ts"])).toThrow(
+      /non-literal dynamic import/i,
+    );
+  });
+
   it("authenticates executable generated modules alongside declarations", () => {
     const root = mkdtempSync(join(tmpdir(), "maestro-workflow-generated-api-"));
     mkdirSync(join(root, "_generated"), { recursive: true });
