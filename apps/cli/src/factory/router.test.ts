@@ -3,7 +3,11 @@ import {
   defineAgentPackCommand,
 } from "@maestro-template/agent-pack";
 import { describe, expect, it } from "vitest";
-import { runAgentPackCommandAsCli } from "./router";
+import {
+  createFactoryCliHandler,
+  dispatchFactoryCliCommand,
+  runAgentPackCommandAsCli,
+} from "./router";
 
 describe("factory CLI adapter", () => {
   it("projects invalid input through the shared command executor", async () => {
@@ -51,5 +55,33 @@ describe("factory CLI adapter", () => {
       exitClass: "invalidInvocation",
       diagnostics: [{ code: "TEST_INVALID" }],
     });
+  });
+
+  it("constructs registered handlers through the shared executor", async () => {
+    const command = defineAgentPackCommand({
+      id: "test.success",
+      schemaVersion: 1,
+      decode: () => ({ ok: true as const, args: {} }),
+      mutationPosture: () => "read-only" as const,
+      execute: async () => ({
+        mutationPosture: "read-only" as const,
+        exitClass: "success" as const,
+        summary: "Factory command passed.",
+        diagnostics: [],
+        data: { passed: true },
+      }),
+    });
+    const handler = createFactoryCliHandler(command);
+    const result = await handler.run(["test.success"], "/fixture");
+    expect(result).toMatchObject({
+      exitCode: 0,
+      stdout: "Factory command passed.\n",
+    });
+  });
+
+  it("leaves unknown commands to the legacy fallback", async () => {
+    await expect(
+      dispatchFactoryCliCommand(["legacy-command"], "/fixture"),
+    ).resolves.toBeUndefined();
   });
 });

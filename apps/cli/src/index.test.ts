@@ -1,9 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { decodeCliRuntimeConfig, runCli } from "./index";
+import { decodeCliRuntimeConfig, runCli, runCliAsync } from "./index";
 
 describe("maestro-template CLI", () => {
   it("accepts the canonical pnpm argument separator", () => {
     const result = runCli(["--", "describe"]);
+    expect(result.exitCode).toBe(0);
+    expect(JSON.parse(result.stdout)).toMatchObject({ valid: true });
+  });
+
+  it("preserves legacy commands through the async factory-first entrypoint", async () => {
+    const result = await runCliAsync(["describe"]);
     expect(result.exitCode).toBe(0);
     expect(JSON.parse(result.stdout)).toMatchObject({ valid: true });
   });
