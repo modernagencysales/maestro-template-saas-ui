@@ -85,6 +85,9 @@ async function factoryWiringFindings(
       'export * from "./receipt.js";',
       'export * from "./verify.js";',
       'export * from "./check.js";',
+      'export * from "./nodeAdapters.js";',
+      'export * from "./preflightProbe.js";',
+      'export * from "./verificationRunner.js";',
     ].join("\n")
   ) {
     findings.push("factory-wiring:agent-pack-barrel");
@@ -93,15 +96,33 @@ async function factoryWiringFindings(
   const factoryRouter = await optionalText(
     join(repoRoot, "apps/cli/src/factory/router.ts"),
   );
+  const factoryComposition = await optionalText(
+    join(repoRoot, "apps/cli/src/factory/composition.ts"),
+  );
   if (
-    cliIndex === undefined ||
-    !cliIndex.includes("dispatchFactoryCliCommand(normalized, cwd)") ||
-    !cliIndex.includes("export const runCliAsync") ||
-    factoryRouter === undefined ||
-    !factoryRouter.includes("executeAgentPackCommand") ||
-    !factoryRouter.includes("renderAgentPackResult") ||
-    !factoryRouter.includes("exitCodeFor") ||
-    !factoryRouter.includes("createFactoryCliHandler")
+    !includesAll(cliIndex, [
+      'import { factoryCliComposition } from "./factory/composition";',
+      "export const runCliAsync",
+      "dispatchFactoryCliCommand(\n      factoryCliComposition.handlers,",
+    ]) ||
+    !includesAll(factoryRouter, [
+      "executeAgentPackCommand",
+      "renderAgentPackResult",
+      "exitCodeFor",
+      "createFactoryCliHandler",
+      "handlers: readonly FactoryCliHandler[]",
+      "const handler = handlers.find",
+    ]) ||
+    !includesAll(factoryComposition, [
+      "const execFile = createNodeExecFileAdapter();",
+      "runtime: createNodePreflightRuntimeReader({\n      fs: nodePreflightFileSystem,\n      execFile,",
+      "const descriptors = defineQualityDiagnosticRegistryProjection(\n  defineDiagnosticRegistryProjection,\n);",
+      "const verificationRunner = createExecFileVerificationRunner({\n  execFile,",
+      "createPreflightCliHandler(preflight)",
+      "createVerifyCliHandler(verify)",
+      "createVerifyCliHandler(check)",
+      "export const factoryCliComposition = Object.freeze({\n  handlers,",
+    ])
   ) {
     findings.push("factory-wiring:shared-executor-adapter");
   }
@@ -113,6 +134,15 @@ async function factoryWiringFindings(
     findings.push("factory-wiring:just-recipe");
   }
   return findings;
+}
+
+function includesAll(
+  source: string | undefined,
+  fragments: readonly string[],
+): boolean {
+  return (
+    source !== undefined && fragments.every((part) => source.includes(part))
+  );
 }
 
 const RECEIPT_EXAMPLES = ["pass.json", "advisory.json", "stale.json"] as const;

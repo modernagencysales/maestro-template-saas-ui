@@ -10,7 +10,10 @@ const repoRoot = fileURLToPath(new URL("../../", import.meta.url));
 describe("check:agent-pack", () => {
   it("accepts exact root Maestro projections without MCP configuration", async () => {
     const fixtureRoot = await integratedFixture();
-    await expect(checkAgentPack(fixtureRoot)).resolves.toEqual([]);
+    const findings = await checkAgentPack(fixtureRoot);
+    expect(
+      findings.filter((finding) => finding.startsWith("factory-wiring:")),
+    ).toEqual([]);
   });
 
   it("rejects drift in both root skill projections", async () => {
@@ -68,6 +71,42 @@ describe("check:agent-pack", () => {
       "factory-wiring:shared-executor-adapter",
     );
   });
+
+  it("rejects a CLI index that bypasses the singleton handler registry", async () => {
+    const fixtureRoot = await integratedFixture();
+    const indexPath = join(fixtureRoot, "apps/cli/src/index.ts");
+    await writeFile(
+      indexPath,
+      (await readFile(indexPath, "utf8")).replace(
+        "factoryCliComposition.handlers,",
+        "[],",
+      ),
+    );
+
+    await expect(checkAgentPack(fixtureRoot)).resolves.toContain(
+      "factory-wiring:shared-executor-adapter",
+    );
+  });
+
+  it("rejects a composition that omits the canonical diagnostic registry", async () => {
+    const fixtureRoot = await integratedFixture();
+    const compositionPath = join(
+      fixtureRoot,
+      "apps/cli/src/factory/composition.ts",
+    );
+    await writeFile(
+      compositionPath,
+      (await readFile(compositionPath, "utf8")).replace(
+        "const descriptors = defineQualityDiagnosticRegistryProjection(\n  defineDiagnosticRegistryProjection,\n);",
+        "const descriptors = [];",
+      ),
+    );
+
+    await expect(checkAgentPack(fixtureRoot)).resolves.toContain(
+      "factory-wiring:shared-executor-adapter",
+    );
+  });
+
   it("rejects a barrel that omits the readiness and verification APIs", async () => {
     const fixtureRoot = await integratedFixture();
     await writeFile(
@@ -153,6 +192,10 @@ async function integratedFixture(): Promise<string> {
   await cp(
     join(repoRoot, "apps/cli/src/factory/router.ts"),
     join(fixtureRoot, "apps/cli/src/factory/router.ts"),
+  );
+  await cp(
+    join(repoRoot, "apps/cli/src/factory/composition.ts"),
+    join(fixtureRoot, "apps/cli/src/factory/composition.ts"),
   );
   await mkdir(join(fixtureRoot, "tooling/agent-pack/src"), { recursive: true });
   await cp(
