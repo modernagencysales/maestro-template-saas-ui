@@ -97,8 +97,31 @@ const cleanup = FunctionImpl.make(
     }),
 );
 
+const restart = FunctionImpl.make(
+  databaseSchema,
+  lifecycle,
+  "restart",
+  (args) =>
+    Effect.gen(function* () {
+      const principal = yield* authorizeWorkflowLifecycle(args.workspaceId);
+      const reader = yield* DatabaseReader;
+      const writer = yield* DatabaseWriter;
+      const mutation = yield* MutationCtx;
+      const controls = makeWorkflowLifecycleMutationControls(
+        reader,
+        writer,
+        mutation,
+        principal,
+      );
+      return yield* runWorkflowLifecycleControl(args.workflowRunId, () =>
+        controls.restart(principal, args),
+      );
+    }),
+);
+
 export default GroupImpl.make(databaseSchema, lifecycle).pipe(
   Layer.provide(cancel),
+  Layer.provide(restart),
   Layer.provide(list),
   Layer.provide(listByName),
   Layer.provide(listSteps),

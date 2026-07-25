@@ -12,7 +12,7 @@ describe("workflow lifecycle Confect and component registration", () => {
     expect(encoded).toContain("listByName");
     expect(encoded).toContain("listSteps");
     expect(encoded).toContain("cleanup");
-    expect(encoded).not.toContain('"restart"');
+    expect(encoded).toContain('"restart"');
     expect(lifecycleImpl).toMatchObject({ _op_layer: "Fold" });
   });
 

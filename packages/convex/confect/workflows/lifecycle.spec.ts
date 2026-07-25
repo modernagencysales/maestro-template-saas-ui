@@ -130,8 +130,24 @@ const cleanup = FunctionSpec.internalMutation({
   error: () => WorkflowLifecycleErrors,
 });
 
+const restart = FunctionSpec.internalMutation({
+  name: "restart",
+  args: () =>
+    Schema.Struct({
+      ...ControlArgs.fields,
+      restartAnchor: Schema.NonEmptyString,
+    }),
+  returns: () =>
+    Schema.Struct({
+      generation: NonNegativeInteger,
+      discardedSteps: Schema.Array(Schema.NonEmptyString),
+    }),
+  error: () => WorkflowLifecycleErrors,
+});
+
 export default GroupSpec.make()
   .addFunction(cancel)
+  .addFunction(restart)
   .addFunction(list)
   .addFunction(listByName)
   .addFunction(listSteps)
