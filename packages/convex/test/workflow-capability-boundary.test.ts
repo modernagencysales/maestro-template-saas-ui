@@ -106,6 +106,7 @@ describe("generated workflow capability payload boundary", () => {
         payloadPolicy: inlinePolicy,
         predictedJournalBytes: 0,
         observedJournalBytes: 0,
+        consequential: true,
         reauthorize: async () =>
           assertConsequentialWorkflowAuthority(
             principal,

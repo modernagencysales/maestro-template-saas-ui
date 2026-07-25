@@ -1429,6 +1429,8 @@ describe("template app factory generators", () => {
     expect(registry).toContain("guard postures");
     expect(registry).toContain("redaction policy");
     expect(registry).toContain("fixture evidence");
+    expect(registry).toContain("defineWorkflowRoleGrantPolicy");
+    expect(registry).toContain("role-to-grants policy before effect admission");
 
     expect(spec).toContain("defineContractFunction");
     expect(spec).toContain("export const manifest");
@@ -1462,6 +1464,11 @@ describe("template app factory generators", () => {
     expect(impl).toContain("startWorkflowAndRecordOwnership");
     expect(impl).toContain("createWorkflowUserPrincipal");
     expect(impl).toContain("resolveWorkflowPolicySnapshotForRun");
+    expect(impl).toContain("readonly principal: DurableWorkflowPrincipal");
+    expect(impl).toContain("readonly policySnapshot: WorkflowPolicySnapshot");
+    expect(impl).not.toContain(
+      'readonly version: 1;\n      readonly kind: "user"',
+    );
     expect(impl).toContain("principalSnapshot: principal");
     expect(impl).toContain("policySnapshot,");
     expect(impl).not.toContain("authEpoch: 1");
@@ -1494,12 +1501,17 @@ describe("template app factory generators", () => {
     expect(convexWorkflow).toContain("export const onComplete");
     expect(convexWorkflow).toContain("reconcileObservedWorkflowCompletion");
     expect(convexWorkflow).toContain("runDurableGraphWorkflow");
-    expect(convexWorkflow).toContain("WorkflowPrincipalValidator");
+    expect(convexWorkflow).toContain("DurableWorkflowPrincipalValidator");
     expect(convexWorkflow).toContain("WorkflowPolicySnapshotValidator");
-    expect(convexWorkflow).toContain("version: v.literal(2)");
+    expect(convexWorkflow).not.toContain("const WorkflowPrincipalValidator");
+    expect(convexWorkflow).not.toContain(
+      "const WorkflowPolicySnapshotValidator",
+    );
     expect(convexWorkflow).toContain("policySnapshot: args.policySnapshot");
     expect(convexWorkflow).toContain("WorkflowReceiptValidator");
-    expect(convexWorkflow).toContain("principal: WorkflowPrincipalValidator");
+    expect(convexWorkflow).toContain(
+      "principal: DurableWorkflowPrincipalValidator",
+    );
     expect(convexWorkflow).toContain("returns: WorkflowReceiptValidator");
     expect(convexWorkflow).not.toContain("returns: v.any()");
     expect(convexWorkflow).toContain("metadata");

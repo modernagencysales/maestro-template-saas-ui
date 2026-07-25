@@ -1,5 +1,6 @@
 import * as Schema from "effect/Schema";
 import type { GenericId } from "convex/values";
+import { v } from "convex/values";
 import * as Effect from "effect/Effect";
 import * as Data from "effect/Data";
 
@@ -48,6 +49,22 @@ export const WorkflowPolicySnapshot = Schema.Union(
 export type WorkflowPolicySnapshot = Schema.Schema.Type<
   typeof WorkflowPolicySnapshot
 >;
+
+export const WorkflowPolicySnapshotValidator = v.union(
+  v.object({
+    version: v.literal(1),
+    kind: v.literal("none"),
+    reason: v.string(),
+  }),
+  v.object({
+    version: v.literal(1),
+    kind: v.literal("pinned"),
+    schemaName: v.string(),
+    policyVersionId: v.string(),
+    policyHash: v.string(),
+    resolvedAt: v.number(),
+  }),
+);
 
 export class WorkflowPolicyResolutionError extends Data.TaggedError(
   "WorkflowPolicyResolutionError",

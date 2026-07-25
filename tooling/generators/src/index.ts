@@ -2923,8 +2923,14 @@ import {
   WorkspaceNotFound,
 } from "../errors";
 import { startWorkflowAndRecordOwnership } from "../workflows/_kit/ownership";
-import { createWorkflowUserPrincipal } from "../workflows/_kit/principal";
-import { resolveWorkflowPolicySnapshotForRun } from "../workflows/_kit/policySnapshot";
+import {
+  createWorkflowUserPrincipal,
+  type DurableWorkflowPrincipal,
+} from "../workflows/_kit/principal";
+import {
+  resolveWorkflowPolicySnapshotForRun,
+  type WorkflowPolicySnapshot,
+} from "../workflows/_kit/policySnapshot";
 import type {
   WorkflowCompletionResult,
   WorkflowOnCompleteContext,
@@ -2952,17 +2958,8 @@ type WorkflowRunFunctionArgs = {
     readonly workspaceId: string;
     readonly workflowRunId: string;
     readonly idempotencyKey: string;
-    readonly principal: {
-      readonly version: 1;
-      readonly kind: "user";
-      readonly workspaceId: string;
-      readonly actorId: string;
-      readonly role: string;
-      readonly grants: readonly string[];
-      readonly authEpoch: number;
-      readonly kickoffAt: number;
-      readonly provenance: string;
-    };
+    readonly principal: DurableWorkflowPrincipal;
+    readonly policySnapshot: WorkflowPolicySnapshot;
   };
   readonly startAsync?: boolean;
 };
@@ -3357,7 +3354,10 @@ import {
   defineWorkflowCapabilityRegistry,
 } from "../_kit/graphRunnerV2";
 import { runWorkflowCapabilityBoundary } from "../_kit/workflowCapabilityBoundary";
-import { requireConsequentialWorkflowAuthority } from "../_kit/principalAuthorization";
+import {
+  defineWorkflowRoleGrantPolicy,
+  requireConsequentialWorkflowAuthority,
+} from "../_kit/principalAuthorization";
 import {
   defineWorkflowEvent,
   defineWorkflowV2EventRegistry,
@@ -3374,8 +3374,9 @@ import { ${name}References } from "./v1.graph";
  * Query and mutation nodes use an independent Workpool transaction by default.
  * Inline nodes must be authored with a named generated preset.
  * External actions declare authorization: { kind: "consequential",
- * requiredGrants, boundary: "generated-current-authority" } and invoke the
- * generated consequential-authority function inside their capability wrapper.
+ * requiredGrants, boundary: "generated-current-authority", ref } where ref is
+ * an exact generated internal query that reloads current membership and applies
+ * this workflow's role-to-grants policy before effect admission.
  */
 export const ${name}CapabilityRegistry = defineWorkflowCapabilityRegistry({});
 
@@ -3386,6 +3387,13 @@ export const ${name}CapabilityArgs = buildWorkflowCapabilityArgs;
 export const ${name}CapabilityBoundary = runWorkflowCapabilityBoundary;
 export const ${name}ConsequentialAuthority =
   requireConsequentialWorkflowAuthority;
+
+export const ${name}CurrentGrantPolicy = defineWorkflowRoleGrantPolicy({
+  viewer: [],
+  editor: ["workflow:start"],
+  admin: ["workflow:start"],
+  owner: ["workflow:start"],
+});
 
 export const ${name}ArtifactRefs = {
   put: Ref.getFunctionReference(refs.internal.workflows.artifacts.put),
@@ -3459,6 +3467,8 @@ import {
 import { loadObservedWorkflowExecutionIdentity } from "../../workflows/_kit/observedStage";
 import { reconcileObservedWorkflowCompletion } from "../../workflows/_kit/lifecycleCompletion";
 import { WorkflowOnCompleteContextValidator } from "../../workflows/_kit/lifecycleState";
+import { DurableWorkflowPrincipalValidator } from "../../workflows/_kit/principal";
+import { WorkflowPolicySnapshotValidator } from "../../workflows/_kit/policySnapshot";
 import type { RunDurableGraphV2CompilerInput } from "../../workflows/_kit/graphRunnerV2";
 import { ${name}Graph } from "../../workflows/${name}/v1.graph";
 import {
@@ -3478,46 +3488,6 @@ const recordStageStarted = Ref.getFunctionReference(
 );
 const reconcileCompletionRef = Ref.getFunctionReference(
   refs.internal.workflows.lifecycle.reconcileCompletion,
-);
-
-const WorkflowPrincipalValidator = v.union(
-  v.object({
-    version: v.literal(2),
-    kind: v.literal("user"),
-    workspaceId: v.string(),
-    actorId: v.string(),
-    role: v.string(),
-    grants: v.array(v.string()),
-    authEpoch: v.number(),
-    kickoffAt: v.number(),
-    provenance: v.literal("authenticated-workflow-start"),
-  }),
-  v.object({
-    version: v.literal(2),
-    kind: v.literal("system"),
-    workspaceId: v.string(),
-    systemId: v.string(),
-    reason: v.string(),
-    grants: v.array(v.string()),
-    kickoffAt: v.number(),
-    provenance: v.literal("scheduled-system-workflow"),
-  }),
-);
-
-const WorkflowPolicySnapshotValidator = v.union(
-  v.object({
-    version: v.literal(1),
-    kind: v.literal("none"),
-    reason: v.string(),
-  }),
-  v.object({
-    version: v.literal(1),
-    kind: v.literal("pinned"),
-    schemaName: v.string(),
-    policyVersionId: v.string(),
-    policyHash: v.string(),
-    resolvedAt: v.number(),
-  }),
 );
 
 const WorkflowReceiptValidator = v.object({
@@ -3585,7 +3555,7 @@ export const run = defineMaestroWorkflow(components.workflow, {
     workspaceId: v.string(),
     workflowRunId: v.string(),
     idempotencyKey: v.string(),
-    principal: WorkflowPrincipalValidator,
+    principal: DurableWorkflowPrincipalValidator,
     policySnapshot: WorkflowPolicySnapshotValidator,
   },
   returns: WorkflowReceiptValidator,

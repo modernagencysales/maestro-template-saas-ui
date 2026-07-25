@@ -12,6 +12,10 @@ import {
   resolveWorkflowRunPrincipal,
 } from "../confect/workflows/_kit/principal";
 import {
+  defineWorkflowRoleGrantPolicy,
+  projectCurrentWorkflowAuthority,
+} from "../confect/workflows/_kit/principalAuthorization";
+import {
   assertWorkflowPolicySnapshot,
   policyPosture,
   resolveWorkflowPolicySnapshot,
@@ -117,6 +121,48 @@ describe("durable workflow principal authority", () => {
         ["workflow:start"],
       ),
     ).toThrow("Workflow authority is unavailable.");
+  });
+
+  it("derives current grants from membership role policy, never the snapshot", () => {
+    const principal = createWorkflowUserPrincipal({
+      ...userInput,
+      grants: ["provider:write"],
+    });
+    if (principal.kind !== "user") {
+      throw new Error("User principal fixture decoded as a system principal.");
+    }
+    const access = {
+      userId: "user-a",
+      workspaceId: "workspace-a",
+      role: "editor",
+      reason: "direct workspace membership",
+      authEpoch: 8,
+    } as const;
+    const narrowed = defineWorkflowRoleGrantPolicy({
+      viewer: [],
+      editor: [],
+      admin: ["provider:write"],
+      owner: ["provider:write"],
+    });
+    expect(() =>
+      assertConsequentialWorkflowAuthority(
+        principal,
+        projectCurrentWorkflowAuthority(principal, access, narrowed),
+        ["provider:write"],
+      ),
+    ).toThrow("Workflow authority is unavailable.");
+
+    const unchanged = defineWorkflowRoleGrantPolicy({
+      ...narrowed,
+      editor: ["provider:write"],
+    });
+    expect(() =>
+      assertConsequentialWorkflowAuthority(
+        principal,
+        projectCurrentWorkflowAuthority(principal, access, unchanged),
+        ["provider:write"],
+      ),
+    ).not.toThrow();
   });
 
   it("appends authority after rejecting mapped identity overrides", () => {

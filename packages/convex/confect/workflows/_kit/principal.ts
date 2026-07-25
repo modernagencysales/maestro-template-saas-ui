@@ -1,4 +1,5 @@
 import * as Schema from "effect/Schema";
+import { v } from "convex/values";
 import { roleAtLeast, Role, type Role as RoleType } from "../../access/roles";
 
 const WorkflowPrincipalV1Base = {
@@ -72,6 +73,35 @@ export const DurableWorkflowPrincipal = Schema.Union(
 export type DurableWorkflowPrincipal = Schema.Schema.Type<
   typeof DurableWorkflowPrincipal
 >;
+
+export const DurableWorkflowPrincipalValidator = v.union(
+  v.object({
+    version: v.literal(2),
+    kind: v.literal("user"),
+    workspaceId: v.string(),
+    actorId: v.string(),
+    role: v.union(
+      v.literal("viewer"),
+      v.literal("editor"),
+      v.literal("admin"),
+      v.literal("owner"),
+    ),
+    grants: v.array(v.string()),
+    authEpoch: v.number(),
+    kickoffAt: v.number(),
+    provenance: v.literal("authenticated-workflow-start"),
+  }),
+  v.object({
+    version: v.literal(2),
+    kind: v.literal("system"),
+    workspaceId: v.string(),
+    systemId: v.string(),
+    reason: v.string(),
+    grants: v.array(v.string()),
+    kickoffAt: v.number(),
+    provenance: v.literal("scheduled-system-workflow"),
+  }),
+);
 
 export const WorkflowPrincipal = Schema.Union(
   LegacyWorkflowPrincipal,

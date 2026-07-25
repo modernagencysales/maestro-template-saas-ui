@@ -30,19 +30,31 @@ export class RedactedWorkflowCapabilityError extends Error {
   }
 }
 
-export const runWorkflowCapabilityBoundary = async <Result>(input: {
+type WorkflowCapabilityBoundaryInput<Result> = {
   readonly nodeId: string;
   readonly correlationId: string;
   readonly args: Value;
   readonly payloadPolicy: WorkflowCapabilityPayloadPolicy;
   readonly predictedJournalBytes: number;
   readonly observedJournalBytes: number;
-  readonly reauthorize?: () => Promise<void>;
   readonly execute: () => Promise<Result>;
   readonly persistArtifact?: (
     result: Result,
   ) => Promise<WorkflowArtifactReference>;
-}): Promise<{
+} & (
+  | {
+      readonly consequential: true;
+      readonly reauthorize: () => Promise<void>;
+    }
+  | {
+      readonly consequential?: false;
+      readonly reauthorize?: never;
+    }
+);
+
+export const runWorkflowCapabilityBoundary = async <Result>(
+  input: WorkflowCapabilityBoundaryInput<Result>,
+): Promise<{
   readonly result: Result | WorkflowArtifactReference;
   readonly predictedJournalBytes: number;
   readonly observedJournalBytes: number;
@@ -64,7 +76,7 @@ export const runWorkflowCapabilityBoundary = async <Result>(input: {
 
   let result: Result;
   try {
-    await input.reauthorize?.();
+    if (input.consequential) await input.reauthorize();
     result = await input.execute();
   } catch (error) {
     throw new RedactedWorkflowCapabilityError(

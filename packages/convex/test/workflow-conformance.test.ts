@@ -1379,9 +1379,10 @@ describe("Maestro V2 inline transaction compiler", () => {
 
   it("rejects legacy external actions before effect admission", async () => {
     const admitEffect = vi.fn(async () => ({ kind: "dispatch" as const }));
+    const runQuery = vi.fn(async () => null);
     const runAction = vi.fn(async () => ({ accepted: true }));
     await expect(
-      runDurableGraphWorkflowV2(v2Step({ runAction }), {
+      runDurableGraphWorkflowV2(v2Step({ runAction, runQuery }), {
         ...v2Input(v2CapabilityGraph("action")),
         capabilityRegistry: {
           [capabilityRef]: {
@@ -1397,6 +1398,42 @@ describe("Maestro V2 inline transaction compiler", () => {
         admitEffect,
       }),
     ).rejects.toThrow(/workflow authority is unavailable/);
+    expect(runQuery).not.toHaveBeenCalled();
+    expect(admitEffect).not.toHaveBeenCalled();
+    expect(runAction).not.toHaveBeenCalled();
+  });
+
+  it("blocks revoked V2 authority before effect admission", async () => {
+    const admitEffect = vi.fn(async () => ({ kind: "dispatch" as const }));
+    const runAction = vi.fn(async () => ({ accepted: true }));
+    const runQuery = vi.fn(async () => {
+      throw new Error("revoked membership details");
+    });
+    await expect(
+      runDurableGraphWorkflowV2(v2Step({ runAction, runQuery }), {
+        ...v2ExternalInput(v2CapabilityGraph("action")),
+        capabilityRegistry: {
+          [capabilityRef]: {
+            kind: "action",
+            ref: "compiler.v2.action" as unknown as DurableGraphStepRef<"action">,
+            effectClass: "external",
+            authorization: externalAuthorization,
+            effectContract: nonRetriableContract,
+            instanceKey: () => "invoice-42",
+            buildArgs: () => ({}),
+          },
+        },
+        admitEffect,
+      }),
+    ).rejects.toThrow(/workflow authority is unavailable/);
+    expect(runQuery).toHaveBeenCalledWith(
+      externalAuthorization.ref,
+      expect.objectContaining({
+        workspaceId: "workspace-1",
+        requiredGrants: ["billing:charge"],
+      }),
+      { name: "charge.v2.authorize" },
+    );
     expect(admitEffect).not.toHaveBeenCalled();
     expect(runAction).not.toHaveBeenCalled();
   });
@@ -1980,6 +2017,7 @@ const externalAuthorization = {
   kind: "consequential",
   requiredGrants: ["billing:charge"],
   boundary: "generated-current-authority",
+  ref: "compiler.v2.authorize" as unknown as DurableGraphStepRef<"query">,
 } as const;
 
 const v2CapabilityGraph = (

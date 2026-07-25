@@ -94,6 +94,7 @@ export type WorkflowV2ActionCapabilityEntry =
       readonly kind: "consequential";
       readonly requiredGrants: readonly string[];
       readonly boundary: "generated-current-authority";
+      readonly ref: DurableGraphStepRef<"query">;
     };
   };
 
@@ -574,7 +575,7 @@ const runActionNode = async <Result extends Record<string, unknown>>(
   entry: WorkflowV2ActionCapabilityEntry,
   envelope: WorkflowV2CapabilityEnvelope,
 ): Promise<unknown> => {
-  assertExternalAuthorizationBoundary(input, node, entry);
+  const authorization = assertExternalAuthorizationBoundary(input, node, entry);
   const validated = validateWorkflowEffectContract(
     entry.effectContract,
     node.retry,
@@ -598,6 +599,9 @@ const runActionNode = async <Result extends Record<string, unknown>>(
     stepName: node.stepName,
     instanceKey,
   });
+  if (authorization) {
+    await reauthorizeExternalAction(step, input, node, authorization);
+  }
   const admission = await input.admitEffect({
     node,
     capability: node.capability,
@@ -698,21 +702,46 @@ const assertExternalAuthorizationBoundary = <
   input: RunDurableGraphV2CompilerInput<Result>,
   node: Extract<CapabilityNodeV2, { functionKind: "action" }>,
   entry: WorkflowV2ActionCapabilityEntry,
-): void => {
+): WorkflowV2ActionCapabilityEntry["authorization"] => {
   const principal = input.principal as { readonly version?: unknown };
-  if (entry.effectClass !== "external") return;
+  if (entry.effectClass !== "external") return undefined;
   if (principal.version !== 2) {
     throw validationFailure(node, "workflow authority is unavailable");
   }
   if (
     entry.authorization?.kind !== "consequential" ||
     entry.authorization.boundary !== "generated-current-authority" ||
-    entry.authorization.requiredGrants.length === 0
+    entry.authorization.requiredGrants.length === 0 ||
+    typeof entry.authorization.ref !== "string"
   ) {
     throw validationFailure(
       node,
       "V2 external capabilities require generated current-authority reauthorization",
     );
+  }
+  return entry.authorization;
+};
+
+const reauthorizeExternalAction = async <
+  Result extends Record<string, unknown>,
+>(
+  step: RunDurableGraphStep,
+  input: RunDurableGraphV2CompilerInput<Result>,
+  node: Extract<CapabilityNodeV2, { functionKind: "action" }>,
+  authorization: NonNullable<WorkflowV2ActionCapabilityEntry["authorization"]>,
+): Promise<void> => {
+  try {
+    await step.runQuery(
+      authorization.ref,
+      {
+        workspaceId: input.effectIdentity.workspaceId,
+        principal: input.principal,
+        requiredGrants: authorization.requiredGrants,
+      },
+      { name: `${node.stepName}.authorize` },
+    );
+  } catch {
+    throw validationFailure(node, "workflow authority is unavailable");
   }
 };
 
