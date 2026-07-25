@@ -38,6 +38,7 @@ import {
 } from "./workflow-predeploy";
 import { isGeneratorDirectRun } from "./direct-run";
 import { workflowGeneratorSemanticCoverage } from "./workflow-semantic-coverage";
+import { bumpRelease, publishRelease } from "./workflow-release-commands";
 
 export type ProviderMode = "fake" | "test" | "live";
 export type SystemGeneratorDisposition = "reuse" | "extend";
@@ -3409,7 +3410,7 @@ export const ${name}SubworkflowPolicy = generatedWorkflowSubworkflowPolicy;
 `,
     },
     {
-      path: `packages/convex/confect/workflows/${name}/v1.predeploy.ts`,
+      path: `packages/convex/confect/workflows/${name}.predeploy.ts`,
       content: renderGeneratedWorkflowPredeploySource(pascalName),
     },
     {
@@ -3688,7 +3689,7 @@ Canonical system: \`${options.system}\` (\`${options.disposition}\`).
 - \`packages/convex/confect/workflowContracts/${name}.impl.ts\`: Confect implementation that records workflow ownership and projects component status.
 - \`packages/convex/confect/workflows/${name}/v1.graph.ts\`: versioned durable graph data, initially source to Trust Receipt output only.
 - \`packages/convex/confect/workflows/${name}/v1.registry.ts\`: exact versioned capability, event, child-workflow, and internal-ref bindings.
-- \`packages/convex/confect/workflows/${name}/v1.predeploy.ts\`: collected workflow-component Workpool declarations and the injected canonical predeploy findings gate.
+- \`packages/convex/confect/workflows/${name}.predeploy.ts\`: collected workflow-component Workpool declarations and the injected canonical predeploy findings gate.
 - \`packages/convex/test/${name}.workflow.test.ts\`: focused runner scaffold for the default graph.
 
 ## Required Follow-Up
@@ -4474,6 +4475,7 @@ const parseArgs = (
   readonly blueprint: BlueprintId;
   readonly from: string | undefined;
   readonly to: string | undefined;
+  readonly version: string | undefined;
   readonly fixture: string | undefined;
   readonly mode: ProviderMode;
   readonly exposure: "web" | "workflow" | "headless";
@@ -4511,6 +4513,7 @@ const parseArgs = (
   const retentionIndex = argv.indexOf("--retention");
   const fromIndex = argv.indexOf("--from");
   const toIndex = argv.indexOf("--to");
+  const versionIndex = argv.indexOf("--version");
   const fixtureIndex = argv.indexOf("--fixture");
   const mode = modeIndex >= 0 ? argv[modeIndex + 1] : undefined;
   const blueprint =
@@ -4601,6 +4604,7 @@ const parseArgs = (
     blueprint: blueprint as BlueprintId,
     from: fromIndex >= 0 ? argv[fromIndex + 1] : undefined,
     to: toIndex >= 0 ? argv[toIndex + 1] : undefined,
+    version: versionIndex >= 0 ? argv[versionIndex + 1] : undefined,
     fixture: fixtureIndex >= 0 ? argv[fixtureIndex + 1] : undefined,
     mode: (mode ?? "fake") as ProviderMode,
     exposure: exposure as "web" | "workflow" | "headless",
@@ -4687,6 +4691,10 @@ export const runGeneratorCli = (
             "template:add-capability --name <name> --system <canonical-id> --disposition reuse|extend [--description <text>] [--exposure web|workflow|headless] [--write]",
             "template:add-table --name <name> --system <canonical-id> --disposition extend --tenant-scope global|organization|workspace|user --sensitivity public|internal|confidential|restricted --pii <comma-list|none> --export-mode markdown|json|redacted-json|not-applicable --delete-mode delete|redact|retain-audit|not-applicable --retention <action> [--append-only] [--description <text>] [--write]",
             "template:add-workflow --name <name> --system <canonical-id> --disposition reuse|extend [--description <text>] [--write]",
+            "template:bump-workflow --name <name> --from <N> --to <N+1> [--write]",
+            "template:bump-capability --name <name> --from <N> --to <N+1> [--write]",
+            "template:publish-workflow --name <name> --version <N>",
+            "template:publish-capability --name <name> --version <N>",
             "template:add-agent --name <name> --system <canonical-id> --disposition reuse|extend [--description <text>] [--write]",
             "template:add-agent-seat --name <name> --system <canonical-id> --disposition reuse|extend [--description <text>] [--write]",
             "template:promote-capability --name <name> --system <canonical-id> --disposition reuse|extend [--description <text>] [--write]",
@@ -5143,6 +5151,48 @@ export const runGeneratorCli = (
         writeGeneratedFiles(result.files, cwd);
       }
 
+      return {
+        exitCode: 0,
+        stdout: `${JSON.stringify(result, null, 2)}\n`,
+        stderr: "",
+      };
+    }
+
+    if (
+      args.command === "bump-workflow" ||
+      args.command === "bump-capability"
+    ) {
+      if (!args.name) {
+        throw new Error(`Missing required --name for ${args.command}`);
+      }
+      const result = bumpRelease({
+        cwd,
+        kind: args.command === "bump-workflow" ? "workflow" : "capability",
+        name: camelCase(args.name),
+        from: args.from,
+        to: args.to,
+        write: args.write,
+      });
+      return {
+        exitCode: 0,
+        stdout: `${JSON.stringify(result, null, 2)}\n`,
+        stderr: "",
+      };
+    }
+
+    if (
+      args.command === "publish-workflow" ||
+      args.command === "publish-capability"
+    ) {
+      if (!args.name) {
+        throw new Error(`Missing required --name for ${args.command}`);
+      }
+      const result = publishRelease({
+        cwd,
+        kind: args.command === "publish-workflow" ? "workflow" : "capability",
+        name: camelCase(args.name),
+        version: args.version,
+      });
       return {
         exitCode: 0,
         stdout: `${JSON.stringify(result, null, 2)}\n`,

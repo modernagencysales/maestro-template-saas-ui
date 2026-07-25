@@ -82,6 +82,17 @@ const fixture = (): { root: string; descriptor: ReleaseDescriptor } => {
       canonicalize([{ path: "src/dep.ts", checksum: sha256(dependency) }]),
     ),
   );
+  const authorityChecksum = sha256(
+    JSON.stringify(
+      canonicalize({
+        schemaVersion: 1,
+        kind: "workflow",
+        logicalId: "workflow.fixture",
+        version: 1,
+        sourceClosure,
+      }),
+    ),
+  );
   const descriptor = withReleaseChecksum({
     kind: "workflow",
     logicalId: "workflow.fixture",
@@ -98,17 +109,7 @@ const fixture = (): { root: string; descriptor: ReleaseDescriptor } => {
       completionRef: "workflowRunners/fixture/v1:onComplete",
       runtimeVersion: "maestro-workflow-runtime.v2",
       sourceClosure: sourceClosure.checksum,
-      authorityChecksum: sha256(
-        JSON.stringify(
-          canonicalize({
-            schemaVersion: 1,
-            kind: "workflow",
-            logicalId: "workflow.fixture",
-            version: 1,
-            sourceClosure,
-          }),
-        ),
-      ),
+      authorityChecksum,
       stableStepNames: "start.v2,receipt.v2",
       validators: "fixture.v1.args->fixture.v1.result",
       events: "none",
@@ -116,6 +117,17 @@ const fixture = (): { root: string; descriptor: ReleaseDescriptor } => {
       dependencyManifest: dependencyChecksum,
       interpreter: sha256(interpreter),
       releaseChecksum: "pending",
+    },
+    releaseContent: {
+      workflowId: "workflow.fixture",
+      version: 1,
+      authorityChecksum,
+      graphHash: sha256(graph),
+      interpreter: {
+        module: "src/interpreter.ts",
+        checksum: sha256(interpreter),
+      },
+      sourceClosureChecksum: sourceClosure.checksum,
     },
     dependencies: [],
     artifacts: [

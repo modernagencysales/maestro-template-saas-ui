@@ -5,39 +5,16 @@ import { publicationEchoV1Release } from "../../capabilities/_versions/publicati
 import { defineWorkflowRelease } from "../_kit/publication";
 import { publicationFixtureGraph } from "./v1.graph";
 import { publicationFixtureApprovalDecisionEvent } from "./v1.registry";
+import { publicationFixtureV1Authority } from "./v1.authority";
 
 export const publicationFixtureV1Release = defineWorkflowRelease({
   workflowId: publicationFixtureGraph.id,
   version: 1,
   lifecycle: "published",
-  authority: {
-    schemaVersion: 1,
-    descriptorChecksum:
-      "efbf7012c0d7dafb2bc80d50c40b6c2a1b0d0b98bf1fc51b58fbb7dc1f50d611",
-    sourceClosure: {
-      roots: [
-        "packages/convex/confect/workflows/_kit/graphRunnerV2.ts",
-        "packages/convex/confect/workflows/publicationFixture/v1.graph.ts",
-      ],
-      modules: [
-        {
-          path: "packages/convex/confect/workflows/_kit/graphRunnerV2.ts",
-          checksum:
-            "f221ac01b5ed864c05dfce752b8ef2fca4b5ef173a8e338fc64b798f3863a288",
-        },
-        {
-          path: "packages/convex/confect/workflows/publicationFixture/v1.graph.ts",
-          checksum:
-            "93115ef21f488fd4b8ace001edcb6e30683b7e8a995997045820ccce6ed150e2",
-        },
-      ],
-      checksum:
-        "d278e3e7a2194f7d738e679164e8b51ef485e7b656504c270df7b849c4602f99",
-    },
-  },
+  authority: publicationFixtureV1Authority,
   graphModule:
     "packages/convex/confect/workflows/publicationFixture/v1.graph.ts",
-  graphHash: "93115ef21f488fd4b8ace001edcb6e30683b7e8a995997045820ccce6ed150e2",
+  graphHash: "2c4c348ac937797e21618686ab80768538f4d7484064dc33e2c0e73549312d36",
   runner: {
     ref: Ref.getFunctionReference(
       refs.internal.workflowRunners.publicationFixture.v1.run,
@@ -74,9 +51,9 @@ export const publicationFixtureV1Release = defineWorkflowRelease({
   },
   lifecycleContractVersion: 1,
   sourceClosureChecksum:
-    "d278e3e7a2194f7d738e679164e8b51ef485e7b656504c270df7b849c4602f99",
+    "d0ef318d4b3bb3db85da4176e693c5c9eb0b283991c0e138657f7c2a6a97e0b0",
   releaseChecksum:
-    "e38eb6503b44ca125f015799369130665b90cc49d099cfe19247f943ac126d23",
+    "3f0fa1216e46d0f4e1b0b365f4dfb455dad98a4c04f24b96c3cb2e58668753ee",
   stableStepNames: ["start.v2", "receipt.v2"],
   semanticComplete: true,
   isolatedFixture: true,

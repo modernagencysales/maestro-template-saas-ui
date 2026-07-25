@@ -15,11 +15,14 @@ Client forks should upgrade from tagged template releases.
    [blueprint-catalog.md](./blueprint-catalog.md).
 6. Confirm generated or private-package slices still follow
    [generator-output-contract.md](./generator-output-contract.md).
-7. Apply migrations in staging.
-8. Run fake and live-provider smokes.
-9. Update the handoff packet using
-   [client-handoff-packet.md](./client-handoff-packet.md).
-10. Promote only from the verified commit.
+7. Review immutable workflow and capability releases using the
+   [workflow versioning guide](./workflow-versioning.md). Published versions
+   must remain byte-identical; upgrade behavior through additive drafts.
+8. Apply migrations in staging.
+9. Run fake and live-provider smokes.
+10. Update the handoff packet using
+    [client-handoff-packet.md](./client-handoff-packet.md).
+11. Promote only from the verified commit.
 
 ## Conflict Policy
 

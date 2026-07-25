@@ -1,0 +1,564 @@
+import type { GeneratedPublicationAuthority } from "../../../workflows/_kit/publication";
+
+export const publicationEchoV1Authority = {
+  schemaVersion: 1,
+  descriptorChecksum:
+    "fa047e04602c6f061354f305e8846ec0a150f3d62e97c03498e7d2ea4de71efd",
+  sourceClosure: {
+    roots: [
+      "packages/convex/confect/capabilities/_versions/publicationEcho/v1.impl.ts",
+      "packages/convex/confect/capabilities/_versions/publicationEcho/v1.operation.ts",
+      "packages/convex/confect/capabilities/_versions/publicationEcho/v1.spec.ts",
+      "packages/convex/convex/capabilities/_versions/publicationEcho/v1.ts",
+    ],
+    modules: [
+      {
+        path: "packages/convex/confect/_generated/id.ts",
+        checksum:
+          "02ffab67bde66d949c0973c9da2f8391a7951e4bde3a1734a6849c68c4f0da94",
+      },
+      {
+        path: "packages/convex/confect/_generated/registeredFunctions/capabilities/_versions/publicationEcho/v1.ts",
+        checksum:
+          "e34dd8da81ce52ea02089265c01f8d1b19b2fa9534eb18e1eb871d9bb614fd96",
+      },
+      {
+        path: "packages/convex/confect/_generated/schema.ts",
+        checksum:
+          "b4914470a4a18db5b793efd4ba682055005ebbbe9c2dd8c6fc895a0070d0b0b5",
+      },
+      {
+        path: "packages/convex/confect/_generated/tables/accessAuditEvents.ts",
+        checksum:
+          "30d4e9e00f8e4efdd2cdf6c4dd56ff762dc1bf3904c6a857823a851a913018f1",
+      },
+      {
+        path: "packages/convex/confect/_generated/tables/actionApprovals.ts",
+        checksum:
+          "9e89329b683aec885c44c04b5f0ce8ea7d4e394ed24c7724e3a0ac00ac980fec",
+      },
+      {
+        path: "packages/convex/confect/_generated/tables/actionDigests.ts",
+        checksum:
+          "5bbf88380388b26f7fbed75c8c10eb9a9720e4f585fe9e9a7f2660ccf149fff9",
+      },
+      {
+        path: "packages/convex/confect/_generated/tables/actionJobs.ts",
+        checksum:
+          "77ea4876c19184047c1cccc260c182d855e58763513a99d807aab84dd4f5542b",
+      },
+      {
+        path: "packages/convex/confect/_generated/tables/actionTriggers.ts",
+        checksum:
+          "80f975f4861eff805bc16d6b84829cbdf9a26a85d44b4721479f2305b8e7f850",
+      },
+      {
+        path: "packages/convex/confect/_generated/tables/apiKeys.ts",
+        checksum:
+          "5d788391988107c1ee12931737b562f1bc59763dee79c47e92e5dd07f50f2b3d",
+      },
+      {
+        path: "packages/convex/confect/_generated/tables/billingPlans.ts",
+        checksum:
+          "bc5e2a28768dfdddbe2f6c03fe608d6e13aaf2f5daafbdc5942e42e16b5e4791",
+      },
+      {
+        path: "packages/convex/confect/_generated/tables/brainPages.ts",
+        checksum:
+          "5a2a3e03f7094b60dbcf25c56553dddbb614e6f845bc9ae96601906fdc4b7513",
+      },
+      {
+        path: "packages/convex/confect/_generated/tables/citations.ts",
+        checksum:
+          "817d2295ad45147b1a758efe8302b0392330b3b9bd6feee7b6e8b5482c4fa1d1",
+      },
+      {
+        path: "packages/convex/confect/_generated/tables/claims.ts",
+        checksum:
+          "5fe0214c02689138916ad9e292043dc686266f17fb47cd5d898995936b8d53b0",
+      },
+      {
+        path: "packages/convex/confect/_generated/tables/concepts.ts",
+        checksum:
+          "504e962fcc38e5fbb94e60298e4058061eca2976a8d55cd7947c5dd380088087",
+      },
+      {
+        path: "packages/convex/confect/_generated/tables/contextPacks.ts",
+        checksum:
+          "0b29b56866d0b24af881df43c80a0c5dcbbe9f184468f3dd6d478cc4d1c953f3",
+      },
+      {
+        path: "packages/convex/confect/_generated/tables/creditLedger.ts",
+        checksum:
+          "4d5e716225f64a06ce2d5c2f2fb25a0fd43940a76d04a6e454de71b19a9196d2",
+      },
+      {
+        path: "packages/convex/confect/_generated/tables/documentAnnotations.ts",
+        checksum:
+          "684c5554973765be6d6d531dca57d0de8ee570956652ca6f542a832fea22db2c",
+      },
+      {
+        path: "packages/convex/confect/_generated/tables/documents.ts",
+        checksum:
+          "0b80993e7bc8b899d1cfc2ba29344a1e3824fd9311aa992e6e455fb0946101d1",
+      },
+      {
+        path: "packages/convex/confect/_generated/tables/documentVersions.ts",
+        checksum:
+          "f83d62bf307a5ed251d24131024c56f521ed379f38f74fbbcd34a6badddd9367",
+      },
+      {
+        path: "packages/convex/confect/_generated/tables/dsarRequests.ts",
+        checksum:
+          "0cbb804637bb7226f62c99899d7ba0ee385c6b910ac72d0956a7640eacbd5878",
+      },
+      {
+        path: "packages/convex/confect/_generated/tables/entitlements.ts",
+        checksum:
+          "a3be147aafbcea1914641529df506fe73c189ed1d12587f87070689ff3255c22",
+      },
+      {
+        path: "packages/convex/confect/_generated/tables/featureFlagPolicies.ts",
+        checksum:
+          "8f580f215f9333676b562a31294f0e6b28a79563309927a7f61ddd47ffe1e858",
+      },
+      {
+        path: "packages/convex/confect/_generated/tables/invitations.ts",
+        checksum:
+          "6e7366573275d4ca0e4319140cecacf714a31f28b25c29443a75afa4d31ed941",
+      },
+      {
+        path: "packages/convex/confect/_generated/tables/notificationPreferences.ts",
+        checksum:
+          "f2d6669452062ecd7c11a4d5e2f53f0e0fece0fa39bb2b9daad237f3eb096702",
+      },
+      {
+        path: "packages/convex/confect/_generated/tables/notificationRecords.ts",
+        checksum:
+          "dc14b0db6440f54da2ef7e9f2cad8e20ca5743283e10eac169c693a44018ae46",
+      },
+      {
+        path: "packages/convex/confect/_generated/tables/organizationMembers.ts",
+        checksum:
+          "635bbe05a581a1a7232aac129c01db486ef4d6576f657e24f6e7e79f2cf3fac1",
+      },
+      {
+        path: "packages/convex/confect/_generated/tables/organizations.ts",
+        checksum:
+          "ece14a2c8d1aee4dafb9ac0beede6d199a5e921043f8976c1b982ee84cae836f",
+      },
+      {
+        path: "packages/convex/confect/_generated/tables/policies.ts",
+        checksum:
+          "426188bbc0e6e9abb6244e915aed217f6587d97c5b30e87693da9c06e29208fe",
+      },
+      {
+        path: "packages/convex/confect/_generated/tables/promptRegistry.ts",
+        checksum:
+          "e41f6bb1898f764206b5b75a17081b4815f5e693df54f9aa1d230b6dc67f58fd",
+      },
+      {
+        path: "packages/convex/confect/_generated/tables/transformBlocks.ts",
+        checksum:
+          "e540e211d31a787e7d2bbab5ab68b83a3c81470c3fc9bfa012378d9846cbd3e6",
+      },
+      {
+        path: "packages/convex/confect/_generated/tables/transformDefinitions.ts",
+        checksum:
+          "a08a84fd57651feba11fe76ea8382c84af5e0621cefc04aa0807bcc3bb02665a",
+      },
+      {
+        path: "packages/convex/confect/_generated/tables/transformRuns.ts",
+        checksum:
+          "c612cd8460cbab8a41b8d253ab8338e9326770f7df742a7ee8d121b6e4bfd86f",
+      },
+      {
+        path: "packages/convex/confect/_generated/tables/usageEvents.ts",
+        checksum:
+          "b218d8e5381d31a53fbaedc712057162884b7bba675c9ca0442e617fb59da5b8",
+      },
+      {
+        path: "packages/convex/confect/_generated/tables/users.ts",
+        checksum:
+          "5077cea170c80ec6baf2c9e46fe1d1bf74c6b5afd3b406a89876159ead3efd1c",
+      },
+      {
+        path: "packages/convex/confect/_generated/tables/versionedEntries.ts",
+        checksum:
+          "50c38e39e78c9b9ba47afe0eeaca6e2b62cf61fcc3fd5d9e4d525e32627c9e5a",
+      },
+      {
+        path: "packages/convex/confect/_generated/tables/versionFreshness.ts",
+        checksum:
+          "2d1f221e6b33e7d9773748d4afc3490eb410ed878f39d3047b81b9d9069b64bb",
+      },
+      {
+        path: "packages/convex/confect/_generated/tables/webhookEvents.ts",
+        checksum:
+          "da51ade80c31b55ff1a39d9074cdd7c71e37a517be06e53f3c8f9b8337920759",
+      },
+      {
+        path: "packages/convex/confect/_generated/tables/workflowEffectReservations.ts",
+        checksum:
+          "7b52d637e7b5384243f8439f7ffa4905d9772eda5348461cae9742d3ed699993",
+      },
+      {
+        path: "packages/convex/confect/_generated/tables/workflowEventInstances.ts",
+        checksum:
+          "82b819db8ef3cc7e39e07b74e63cc7581a06bcbcc50c73ca0dbd2f1eb8b3610f",
+      },
+      {
+        path: "packages/convex/confect/_generated/tables/workflowRunContextManifests.ts",
+        checksum:
+          "b400b1de79c69dec1591f221bc77b10da23e83705de0744ebf6bb9850acde276",
+      },
+      {
+        path: "packages/convex/confect/_generated/tables/workflowRunEvents.ts",
+        checksum:
+          "a3d5558685367a35554d921a4f3a22e871a23a39d54f4dfc0a7248b29d50b5a4",
+      },
+      {
+        path: "packages/convex/confect/_generated/tables/workflowRunEvidenceSnapshots.ts",
+        checksum:
+          "a59baab091fc327bd51417e8bf02dd60e640c58bfeacb6476b61efc9730e5c65",
+      },
+      {
+        path: "packages/convex/confect/_generated/tables/workflowRunLinks.ts",
+        checksum:
+          "11421eae1cde59a4c891b5bb6f8a4c1a0abfcadfeaf212a8a0240a6d12699d47",
+      },
+      {
+        path: "packages/convex/confect/_generated/tables/workflowRuns.ts",
+        checksum:
+          "5bd11a755e0cc74fc33a5bd45534498db6c1a6056b8118ee3b17aafbec40afea",
+      },
+      {
+        path: "packages/convex/confect/_generated/tables/workflowStageRuns.ts",
+        checksum:
+          "767c037814ca4cc31a9f0f366955544e52b0ac38e9c4d8de292cf095425b7230",
+      },
+      {
+        path: "packages/convex/confect/_generated/tables/workspaceMembers.ts",
+        checksum:
+          "07b7881a5b41f6a6a7d6df3fbcbf7e2fc8d43b542094c98e8460746edadf6418",
+      },
+      {
+        path: "packages/convex/confect/_generated/tables/workspaces.ts",
+        checksum:
+          "064150635cacea045c37ecc6fdd06ee5394aaf2e89e9e10da02ee69d65bcede2",
+      },
+      {
+        path: "packages/convex/confect/access/roles.ts",
+        checksum:
+          "65b0f8bd279df7cb9157bc3249b7b17b9cbaa056797a0d0a2ef1c78778ed28a6",
+      },
+      {
+        path: "packages/convex/confect/access/tenancySchemas.ts",
+        checksum:
+          "f350925a8d147fe36eaaffa8ea06f27d03511732f06347f0c0022defb7141ac9",
+      },
+      {
+        path: "packages/convex/confect/capabilities/_kit/capability.ts",
+        checksum:
+          "6110c1253fca43373f4be474196e9bdacafb2217bb8167519a8e1cff2602b4f5",
+      },
+      {
+        path: "packages/convex/confect/capabilities/_kit/errors.ts",
+        checksum:
+          "479a36e8dbe42f4318ed89d7131d2bf46ee78f802ea91b0513da1fcf55001594",
+      },
+      {
+        path: "packages/convex/confect/capabilities/_kit/principal.ts",
+        checksum:
+          "d783f73fe44a71dea3239a2645b36b11437262cfe988ab3ff1e318e2abd6815e",
+      },
+      {
+        path: "packages/convex/confect/capabilities/_kit/surfaces.ts",
+        checksum:
+          "9e1ea50d6e22adfe378b949a737ea4f9b2fa25234a784fab3bc1abc4d0e92776",
+      },
+      {
+        path: "packages/convex/confect/capabilities/_versions/publicationEcho/v1.impl.ts",
+        checksum:
+          "5695ec352c30a3afda9f1cf89b14b6df3e61c112e1a2a384676f174e688bc84a",
+      },
+      {
+        path: "packages/convex/confect/capabilities/_versions/publicationEcho/v1.operation.ts",
+        checksum:
+          "c03597cdef9f80b81255c9ab1fa25e77df19374f8b4acdbd9ee6b541c430e37b",
+      },
+      {
+        path: "packages/convex/confect/capabilities/_versions/publicationEcho/v1.spec.ts",
+        checksum:
+          "91a99bb98c090e83794bfcb99a6fdab5a7245f8346eba8d5e7818637fb7be17e",
+      },
+      {
+        path: "packages/convex/confect/errors.ts",
+        checksum:
+          "bf20d349c5e3e84e9b096df34ee002a24a1c64663510f1ec6f56ef843193ecbd",
+      },
+      {
+        path: "packages/convex/confect/headless/auth.ts",
+        checksum:
+          "c4116b0a50c1382bb3613580392309d2394cbe1a9b582724b824ef9ec14e3d6c",
+      },
+      {
+        path: "packages/convex/confect/ops/dataLifecycle.ts",
+        checksum:
+          "10a0f28ca21dfd1e60c69c5d62bace006bb1ebe99613df7d3093f378cdf08ffd",
+      },
+      {
+        path: "packages/convex/confect/ops/dataResources.generated.ts",
+        checksum:
+          "dd969a27446eb6c931e3662f1b416da594c4f75e63f566e97da857c12b060e15",
+      },
+      {
+        path: "packages/convex/confect/shared/tokenCrypto.ts",
+        checksum:
+          "9a4eb93b80c8fc4d9f856d6ca6acdd40d0ada4febddc40722c5c4d91afd3affe",
+      },
+      {
+        path: "packages/convex/confect/tables/accessAuditEvents.ts",
+        checksum:
+          "a95e33492cffae2da330b25d24763128c78d5f52afd4b8790cfd30d3c97cc439",
+      },
+      {
+        path: "packages/convex/confect/tables/actionApprovals.ts",
+        checksum:
+          "dbb10d1dcc7e29367be85b63fe9cb5b77063dbb8f50f54f917a7a8ce5a47a33d",
+      },
+      {
+        path: "packages/convex/confect/tables/actionDigests.ts",
+        checksum:
+          "b2b9c2c5a85803889cd74dc9eb794d0b108fff56b84e53ccbe5d78004d533abd",
+      },
+      {
+        path: "packages/convex/confect/tables/actionJobs.ts",
+        checksum:
+          "9f8922b7cb01f49bc034658547cd77b5262c4a38e970640157f6441e9184ea0e",
+      },
+      {
+        path: "packages/convex/confect/tables/actionTriggers.ts",
+        checksum:
+          "ca28688e105b396784cc8b65f4a09cb05127b0c47a67bf0436168e8ec1263cc9",
+      },
+      {
+        path: "packages/convex/confect/tables/apiKeys.ts",
+        checksum:
+          "1a47a7b84d44747afef6db928f9eaba8922136070472dc875b0117c8ecbcac8d",
+      },
+      {
+        path: "packages/convex/confect/tables/billingPlans.ts",
+        checksum:
+          "7e6d17c02b1eac9bda3ff20da510a4e63dfd65c0c5ef2ba4226eb755b4a79d95",
+      },
+      {
+        path: "packages/convex/confect/tables/brainPages.ts",
+        checksum:
+          "3f48dc4ff740d0859ee5bdbaf4802a1f9f9359617aec27d57acbe5d2ed258fdf",
+      },
+      {
+        path: "packages/convex/confect/tables/citations.ts",
+        checksum:
+          "b5039f7a5d46fc2a73b297a41cbb072820fa3c0b650bf78f3ef886edf6318f40",
+      },
+      {
+        path: "packages/convex/confect/tables/claims.ts",
+        checksum:
+          "c25f767dbe8633e494340fb876255388e7e4aff53d637d03fb66896ea2aaaf62",
+      },
+      {
+        path: "packages/convex/confect/tables/concepts.ts",
+        checksum:
+          "669139fc110d2e30d8e2c70dcc8a381412b7767fd0cfd9dfa5cffe6c45615bdc",
+      },
+      {
+        path: "packages/convex/confect/tables/contextPacks.ts",
+        checksum:
+          "ee79e0668ec0a87a41523ebb651834fc1d1b590680ed7ae382f386ca84d18143",
+      },
+      {
+        path: "packages/convex/confect/tables/creditLedger.ts",
+        checksum:
+          "72280f4733700489535a333dcad542052379686c296219db80fcd9ac278ac0c4",
+      },
+      {
+        path: "packages/convex/confect/tables/documentAnnotations.ts",
+        checksum:
+          "a738b36d290cc4bb4cc90ea80e3c683cff6b4a8333362683b010a1265a5e0de2",
+      },
+      {
+        path: "packages/convex/confect/tables/documents.ts",
+        checksum:
+          "1e80fbf866ca9b6279277eb4df04d11ebce9ebc43702458ae001f43a7cf930f3",
+      },
+      {
+        path: "packages/convex/confect/tables/documentVersions.ts",
+        checksum:
+          "847952a104f143408bae90a518556abb66044acd20f040384eace3103aa0a1ca",
+      },
+      {
+        path: "packages/convex/confect/tables/dsarRequests.ts",
+        checksum:
+          "a6d8f47a1c7760db9c21e815f50a51d215a8019227bc3e71b16c60f8e4c2ec27",
+      },
+      {
+        path: "packages/convex/confect/tables/entitlements.ts",
+        checksum:
+          "8ba0fb41014a06c165993f3fa5d6643287139fa2ad33441d36e5526c23db7ac5",
+      },
+      {
+        path: "packages/convex/confect/tables/featureFlagPolicies.ts",
+        checksum:
+          "13e6f16d9e97ae09726c1a0cc949cb36d9d504254d268c7b9c987d5c8d99a43b",
+      },
+      {
+        path: "packages/convex/confect/tables/invitations.ts",
+        checksum:
+          "e2d57a3e6fe7abce59a938da1f8eb46338ad0d023b532d999b58e2d4d82d8a13",
+      },
+      {
+        path: "packages/convex/confect/tables/notificationPreferences.ts",
+        checksum:
+          "cc59e1f7fdecfe1c9d62f85cec5fb6f1ede9bc6266038e67e3f50d9f7afaec7a",
+      },
+      {
+        path: "packages/convex/confect/tables/notificationRecords.ts",
+        checksum:
+          "0dc88e5de709cbea9c152bf0e97c1504804cc39c29d5356ba2ada763a3ce0d92",
+      },
+      {
+        path: "packages/convex/confect/tables/organizationMembers.ts",
+        checksum:
+          "cdfcf8b18e18cfd08776b0686b79b513b69755d2a86be0f295b2aec6f8603327",
+      },
+      {
+        path: "packages/convex/confect/tables/organizations.ts",
+        checksum:
+          "7dc50224f21f517854041b689b39fe85d46ecc3eea01fe4966be628fe654fe63",
+      },
+      {
+        path: "packages/convex/confect/tables/policies.ts",
+        checksum:
+          "d9b2544bb4b3fdeb876bbcee0652b8ee6c7b309ede239d787759351cb717f04d",
+      },
+      {
+        path: "packages/convex/confect/tables/promptRegistry.ts",
+        checksum:
+          "e73770cb8baf6d201eb823e4efb58dd19331695beb4fd74da9142be2bad4ca96",
+      },
+      {
+        path: "packages/convex/confect/tables/transformBlocks.ts",
+        checksum:
+          "e450c543319e238db63d6d2c19932d5d03f44a416adf26a4a95f06cfa83b4f57",
+      },
+      {
+        path: "packages/convex/confect/tables/transformDefinitions.ts",
+        checksum:
+          "cea07b72da9ee9e12025475e979879a4942d053edbe6c0d6ec97766b35d1001e",
+      },
+      {
+        path: "packages/convex/confect/tables/transformRuns.ts",
+        checksum:
+          "fcefd5a9374629da7d764af69f3e34df59e2f44a6478e0b9b71cabdecb394a34",
+      },
+      {
+        path: "packages/convex/confect/tables/usageEvents.ts",
+        checksum:
+          "aeb588e3bc531f4485028ad3afc45a293c54b17f2a9ad6fc7f0f5180046f95cd",
+      },
+      {
+        path: "packages/convex/confect/tables/users.ts",
+        checksum:
+          "324375a3fec674e941e5be57d2d763e952d5d19c8f43bd1de03295ae7c522a0b",
+      },
+      {
+        path: "packages/convex/confect/tables/versionedEntries.ts",
+        checksum:
+          "0011ee83cac9f038365a808d9770a2cd8123121bf17dba08fe66eb1c47bbd307",
+      },
+      {
+        path: "packages/convex/confect/tables/versionFreshness.ts",
+        checksum:
+          "02ea6a92efe4e39b5fd232fdf1a169382fecbdb2e0b0ff68a8cde076007d8dda",
+      },
+      {
+        path: "packages/convex/confect/tables/webhookEvents.ts",
+        checksum:
+          "ae39d9ff123efcf70a705a0a09eb39013cddfe2f87ceed23e93612b9cf7dcace",
+      },
+      {
+        path: "packages/convex/confect/tables/workflowEffectReservations.ts",
+        checksum:
+          "278438fb20af5ca39c445cb2131fd92c9d5667afc7aa134e2cf5f7db5856cf1e",
+      },
+      {
+        path: "packages/convex/confect/tables/workflowEventInstances.ts",
+        checksum:
+          "e01767b6566e10e77f76daec682571b2a58c74a3cfb380c4bd85d091752f04ee",
+      },
+      {
+        path: "packages/convex/confect/tables/workflowRunContextManifests.ts",
+        checksum:
+          "e18387b8b655b10274fdbe853efacbe6f15590580967a3046d903823b4ae4e89",
+      },
+      {
+        path: "packages/convex/confect/tables/workflowRunEvents.ts",
+        checksum:
+          "91c3b7c3296cdb61e5e1711d82147edd37bad53a12d5ca8fcb8daa5839a796cc",
+      },
+      {
+        path: "packages/convex/confect/tables/workflowRunEvidenceSnapshots.ts",
+        checksum:
+          "40795db81224a9cb054e2ad3367ff95c13e1bdf2404b9abcb872e1e83988d1fc",
+      },
+      {
+        path: "packages/convex/confect/tables/workflowRunLinks.ts",
+        checksum:
+          "91b3006bcc7fe3693f9b22ead3a55b4372c42aadd35a7ba92ae8441a2f285b60",
+      },
+      {
+        path: "packages/convex/confect/tables/workflowRuns.ts",
+        checksum:
+          "ee601f8331621885a947fb0be89aa679d3adedb9000a1e574604727ce5218fc2",
+      },
+      {
+        path: "packages/convex/confect/tables/workflowStageRuns.ts",
+        checksum:
+          "e135bccc81def1cf43e6d1f7de76b861cca00a5f60fc50ababe1a06ec93e1259",
+      },
+      {
+        path: "packages/convex/confect/tables/workspaceMembers.ts",
+        checksum:
+          "a82f17728ed61924f9a74dc575351512690a28414412bfa491ab4515b3adcf2e",
+      },
+      {
+        path: "packages/convex/confect/tables/workspaces.ts",
+        checksum:
+          "37c43089690b4fdbb3e9bf2d3b1151ac132a58913919946a23c27d6d82b58b18",
+      },
+      {
+        path: "packages/convex/confect/workflows/_kit/lifecycleState.ts",
+        checksum:
+          "8019de09fadad280d96f311c8ec64f27f81165efc27158c62fee8b55bd1a29ce",
+      },
+      {
+        path: "packages/convex/confect/workflows/_kit/principal.ts",
+        checksum:
+          "ac36e13cf98b08c11c2cfe942a092679133ddd7f9445d8f330504686fda03c7a",
+      },
+      {
+        path: "packages/convex/confect/workflows/_kit/workflowReferences.ts",
+        checksum:
+          "75333e300f385dddf6a993bcffe6ead2ed5a68ea8597eea0583666cad8222e09",
+      },
+      {
+        path: "packages/convex/convex/capabilities/_versions/publicationEcho/v1.ts",
+        checksum:
+          "4a424ffd1e5acf2294e8f17da06c0084a7405f3940f935ffa801d38d958973e9",
+      },
+    ],
+    checksum:
+      "aa775e72f16e401d061d0c68fca6cc757f07015ecfca2f91ae017d1150bfccbb",
+  },
+} as const satisfies GeneratedPublicationAuthority;

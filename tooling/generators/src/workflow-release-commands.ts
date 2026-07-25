@@ -28,6 +28,7 @@ export type ReleaseDescriptor = {
   readonly lifecycle: Lifecycle;
   readonly semanticComplete: boolean;
   readonly isolatedFixture: boolean;
+  readonly releaseContent: Readonly<Record<string, unknown>>;
   readonly fingerprint: Readonly<Record<string, string>>;
   readonly dependencies: readonly {
     readonly kind: ReleaseKind;
@@ -53,7 +54,7 @@ export type SourceClosure = {
 
 type PublicationEntry = Omit<
   ReleaseDescriptor,
-  "name" | "semanticComplete" | "dependencies" | "artifacts"
+  "name" | "semanticComplete" | "releaseContent" | "dependencies" | "artifacts"
 > & {
   readonly artifacts: readonly {
     readonly class: ArtifactClass;
@@ -111,11 +112,11 @@ const importSpecifiers = (source: string): readonly string[] => {
   return specifiers;
 };
 
-const resolveImport = (
+const resolveImports = (
   fromPath: string,
   specifier: string,
   pathExists: (path: string) => boolean,
-): string => {
+): readonly string[] => {
   const base = resolve(dirname(fromPath), specifier);
   const sourceBase = base.replace(/\.(?:c|m)?js$/, "");
   const candidates = [
@@ -123,20 +124,24 @@ const resolveImport = (
     `${base}.ts`,
     `${base}.tsx`,
     `${base}.mts`,
+    `${base}.js`,
     `${base}.d.ts`,
     `${sourceBase}.ts`,
     `${sourceBase}.tsx`,
     `${sourceBase}.mts`,
+    `${sourceBase}.js`,
     `${sourceBase}.d.ts`,
     resolve(base, "index.ts"),
     resolve(base, "index.tsx"),
     resolve(base, "index.mts"),
+    resolve(base, "index.js"),
+    resolve(base, "index.d.ts"),
   ];
-  const resolvedPath = candidates.find(pathExists);
-  if (!resolvedPath) {
+  const resolvedPaths = [...new Set(candidates.filter(pathExists))];
+  if (resolvedPaths.length === 0) {
     throw new Error(`Unresolved import ${specifier} from ${fromPath}`);
   }
-  return resolvedPath;
+  return resolvedPaths;
 };
 
 export const buildAuthoritativeSourceClosure = (
@@ -163,7 +168,7 @@ export const buildAuthoritativeSourceClosure = (
     sources.set(absolutePath, source);
     for (const specifier of importSpecifiers(source)) {
       pending.push(
-        resolveImport(
+        ...resolveImports(
           absolutePath,
           specifier,
           (candidate) => overlay.has(candidate) || existsSync(candidate),
@@ -430,24 +435,9 @@ const requiredFingerprintFields = (kind: ReleaseKind): readonly string[] =>
 
 export const checksumReleaseDescriptor = (
   descriptor: ReleaseDescriptor,
-): string => {
-  const { releaseChecksum: _releaseChecksum, ...fingerprint } =
-    descriptor.fingerprint;
-  return sha256(
-    canonicalJson({
-      kind: descriptor.kind,
-      logicalId: descriptor.logicalId,
-      version: descriptor.version,
-      semanticComplete: descriptor.semanticComplete,
-      isolatedFixture: descriptor.isolatedFixture,
-      fingerprint,
-      dependencies: descriptor.dependencies,
-      sourceClosure: descriptor.sourceClosure,
-    }),
-  );
-};
+): string => sha256(canonicalJson(descriptor.releaseContent));
 
-const descriptorWithAuthoritativeSource = (
+export const descriptorWithAuthoritativeSource = (
   cwd: string,
   descriptor: ReleaseDescriptor,
   sourceClosure: SourceClosure,
@@ -465,21 +455,51 @@ const descriptorWithAuthoritativeSource = (
     .filter(({ class: artifactClass }) => artifactClass === "dependency")
     .map(({ path }) => ({ path, checksum: checksumFor(path) }))
     .sort((left, right) => left.path.localeCompare(right.path));
+  const authorityChecksum = sha256(
+    canonicalJson({
+      schemaVersion: 1,
+      kind: descriptor.kind,
+      logicalId: descriptor.logicalId,
+      version: descriptor.version,
+      sourceClosure,
+    }),
+  );
+  const releaseContent = {
+    ...descriptor.releaseContent,
+    version: descriptor.version,
+    authorityChecksum,
+    sourceClosureChecksum: sourceClosure.checksum,
+    ...(graph ? { graphHash: checksumFor(graph.path) } : {}),
+    ...(interpreter
+      ? {
+          interpreter: {
+            module:
+              typeof descriptor.releaseContent.interpreter === "object" &&
+              descriptor.releaseContent.interpreter !== null &&
+              "module" in descriptor.releaseContent.interpreter
+                ? descriptor.releaseContent.interpreter.module
+                : interpreter.path,
+            checksum: checksumFor(interpreter.path),
+          },
+        }
+      : {}),
+    ...(descriptor.kind === "capability"
+      ? {
+          dependencyManifest: dependencyArtifacts.map(({ path, checksum }) => ({
+            module: path,
+            checksum,
+          })),
+        }
+      : {}),
+  };
   const candidate: ReleaseDescriptor = {
     ...descriptor,
     sourceClosure,
+    releaseContent,
     fingerprint: {
       ...descriptor.fingerprint,
       sourceClosure: sourceClosure.checksum,
-      authorityChecksum: sha256(
-        canonicalJson({
-          schemaVersion: 1,
-          kind: descriptor.kind,
-          logicalId: descriptor.logicalId,
-          version: descriptor.version,
-          sourceClosure,
-        }),
-      ),
+      authorityChecksum,
       dependencyManifest: sha256(canonicalJson(dependencyArtifacts)),
       ...(graph ? { graphHash: checksumFor(graph.path) } : {}),
       ...(interpreter ? { interpreter: checksumFor(interpreter.path) } : {}),
@@ -520,6 +540,14 @@ const assertAuthoritativeFingerprint = (
       "Publication authority fingerprint does not match resolved repository bytes",
     );
   }
+  if (
+    descriptor.releaseContent.authorityChecksum !== expectedAuthorityChecksum ||
+    descriptor.releaseContent.sourceClosureChecksum !== sourceClosure.checksum
+  ) {
+    throw new Error(
+      "Publication release content does not use the authoritative source closure",
+    );
+  }
   const artifacts = descriptor.artifacts.map((artifact) => ({
     ...artifact,
     checksum: sha256(
@@ -545,6 +573,11 @@ const assertAuthoritativeFingerprint = (
       "Publication graph fingerprint does not match repository bytes",
     );
   }
+  if (graph && descriptor.releaseContent.graphHash !== graph.checksum) {
+    throw new Error(
+      "Publication release graph does not match repository bytes",
+    );
+  }
   const interpreter = artifacts.find(
     ({ class: artifactClass }) => artifactClass === "interpreter",
   );
@@ -554,6 +587,17 @@ const assertAuthoritativeFingerprint = (
   ) {
     throw new Error(
       "Publication interpreter fingerprint does not match repository bytes",
+    );
+  }
+  if (
+    interpreter &&
+    (typeof descriptor.releaseContent.interpreter !== "object" ||
+      descriptor.releaseContent.interpreter === null ||
+      !("checksum" in descriptor.releaseContent.interpreter) ||
+      descriptor.releaseContent.interpreter.checksum !== interpreter.checksum)
+  ) {
+    throw new Error(
+      "Publication release interpreter does not match repository bytes",
     );
   }
   const dependencyArtifacts = artifacts

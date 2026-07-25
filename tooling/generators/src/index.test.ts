@@ -106,6 +106,12 @@ describe("reviewed generator operation", () => {
     expect(runGeneratorCli(["help"], repoRoot).stdout).toContain(
       "template:add-capability --name <name>",
     );
+    expect(runGeneratorCli(["help"], repoRoot).stdout).toContain(
+      "template:bump-workflow --name <name> --from <N> --to <N+1>",
+    );
+    expect(runGeneratorCli(["help"], repoRoot).stdout).toContain(
+      "template:publish-capability --name <name> --version <N>",
+    );
   });
 
   it("refuses reviewed writes when any generated path exists", () => {
@@ -1351,7 +1357,7 @@ describe("template app factory generators", () => {
       "packages/convex/confect/workflowContracts/sourceGroundedPlan.impl.ts",
       "packages/convex/confect/workflows/sourceGroundedPlan/v1.graph.ts",
       "packages/convex/confect/workflows/sourceGroundedPlan/v1.registry.ts",
-      "packages/convex/confect/workflows/sourceGroundedPlan/v1.predeploy.ts",
+      "packages/convex/confect/workflows/sourceGroundedPlan.predeploy.ts",
       "packages/convex/confect/workflowRunners/sourceGroundedPlan/v1.ts",
       "packages/convex/confect/workflowRunners/sourceGroundedPlan/v1.spec.ts",
       "packages/convex/confect/workflowRunners/sourceGroundedPlan/v1.impl.ts",

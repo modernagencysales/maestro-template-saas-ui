@@ -3,6 +3,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
+import { buildAuthoritativeSourceClosure } from "../generators/src/workflow-release-commands";
+
 import {
   buildResolvedSourceClosure,
   checksumSourceClosure,
@@ -105,6 +107,36 @@ describe("workflow publication immutability gate", () => {
     writeFileSync(join(root, "runner.ts"), 'import "./missing";\n');
     expect(() => buildResolvedSourceClosure(root, ["runner.ts"])).toThrow(
       /unresolved import/i,
+    );
+  });
+
+  it("authenticates executable generated modules alongside declarations", () => {
+    const root = mkdtempSync(join(tmpdir(), "maestro-workflow-generated-api-"));
+    mkdirSync(join(root, "_generated"), { recursive: true });
+    writeFileSync(
+      join(root, "runner.ts"),
+      'import { api } from "./_generated/api";\nexport const ref = api;\n',
+    );
+    writeFileSync(join(root, "_generated/api.d.ts"), "export const api: {};\n");
+    writeFileSync(join(root, "_generated/api.js"), "export const api = {};\n");
+
+    const checked = buildResolvedSourceClosure(root, ["runner.ts"]);
+    const generated = buildAuthoritativeSourceClosure(root, ["runner.ts"]);
+    expect(checked).toEqual(generated);
+    expect(checked.modules.map(({ path }) => path)).toEqual([
+      "_generated/api.d.ts",
+      "_generated/api.js",
+      "runner.ts",
+    ]);
+
+    writeFileSync(
+      join(root, "_generated/api.js"),
+      "export const api = { changed: true };\n",
+    );
+    const drifted = buildResolvedSourceClosure(root, ["runner.ts"]);
+    expect(drifted.checksum).not.toBe(checked.checksum);
+    expect(drifted).toEqual(
+      buildAuthoritativeSourceClosure(root, ["runner.ts"]),
     );
   });
 

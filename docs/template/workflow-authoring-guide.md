@@ -10,6 +10,10 @@ or changing a primitive, read the canonical
 distinguishes upstream behavior, current implementation gaps, and deliberately
 stricter Maestro policy.
 
+Version bumps, immutable publication, retirement, and rollback follow the
+[workflow versioning guide](./workflow-versioning.md). Generated application
+workflows remain draft until their semantic and publication gates are accepted.
+
 ## Workflow Definition
 
 Each workflow declares:

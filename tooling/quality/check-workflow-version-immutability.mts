@@ -130,7 +130,10 @@ const importSpecifiers = (source: string): readonly string[] => {
   return specifiers;
 };
 
-const resolveImport = (fromPath: string, specifier: string): string => {
+const resolveImports = (
+  fromPath: string,
+  specifier: string,
+): readonly string[] => {
   const base = resolve(dirname(fromPath), specifier);
   const sourceBase = base.replace(/\.(?:c|m)?js$/, "");
   const candidates = [
@@ -143,16 +146,21 @@ const resolveImport = (fromPath: string, specifier: string): string => {
     `${sourceBase}.ts`,
     `${sourceBase}.tsx`,
     `${sourceBase}.mts`,
+    `${sourceBase}.js`,
     `${sourceBase}.d.ts`,
     resolve(base, "index.ts"),
     resolve(base, "index.tsx"),
     resolve(base, "index.mts"),
+    resolve(base, "index.js"),
+    resolve(base, "index.d.ts"),
   ];
-  const resolvedPath = candidates.find((candidate) => existsSync(candidate));
-  if (!resolvedPath) {
+  const resolvedPaths = [
+    ...new Set(candidates.filter((candidate) => existsSync(candidate))),
+  ];
+  if (resolvedPaths.length === 0) {
     throw new Error(`Unresolved import ${specifier} from ${fromPath}`);
   }
-  return resolvedPath;
+  return resolvedPaths;
 };
 
 export const buildResolvedSourceClosure = (
@@ -172,7 +180,7 @@ export const buildResolvedSourceClosure = (
     const source = readFileSync(absolutePath, "utf8");
     sources.set(absolutePath, source);
     for (const specifier of importSpecifiers(source)) {
-      pending.push(resolveImport(absolutePath, specifier));
+      pending.push(...resolveImports(absolutePath, specifier));
     }
   }
   const modules = [...sources]
