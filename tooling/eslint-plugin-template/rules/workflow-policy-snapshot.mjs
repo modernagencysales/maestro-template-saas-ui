@@ -31,7 +31,8 @@
  * getPolicyVersion. Allowlist-as-code (no options).
  */
 
-const WORKFLOWS_RE = /(?:^|\/)packages\/convex\/confect\/workflows\//;
+const WORKFLOWS_RE =
+  /(?:^|\/)packages\/convex\/(?:confect\/(?:workflows|workflowRunners)|convex\/workflowRunners)\//;
 
 // The exact banned name — the latest-active resolver. Matched by identity, never
 // as a prefix, so `getPolicyVersion` / `getPolicyInWorkspace` are unaffected.

@@ -56,6 +56,15 @@ layers, add the missing boundary instead.
   workflows or call capabilities; they do not call repos or adapters directly.
 - Runtime-authored capabilities are data, not arbitrary code. Promotion to
   generated Confect source is the compile-time safety path.
+- Author workflows only through `pnpm template:add-workflow`; its Confect-owned
+  runner source is the single raw Convex Workflow boundary. Do not import
+  `@convex-dev/workflow`, instantiate `WorkflowManager`, or call lifecycle/event
+  helpers from application code. Exact compatibility fixtures are the only
+  non-generated exception; there is no inline suppression or project allowlist.
+- Run `pnpm check:workflow:fast` while authoring. Semantic diagnostics include a
+  stable rule id, reason, repair, and rerun command. The generated support
+  ledger is
+  [workflow-semantics.md](docs/template/generated/workflow-semantics.md).
 
 ## Reference Fixture Implementations
 

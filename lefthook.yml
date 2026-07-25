@@ -32,6 +32,9 @@ pre-push:
     gates:
       tags: deterministic
       run: pnpm check:gates
+    workflow-semantics:
+      tags: deterministic
+      run: pnpm check:workflow:fast
     system-catalog:
       tags: deterministic
       run: pnpm check:system-catalog

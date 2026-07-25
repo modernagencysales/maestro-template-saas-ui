@@ -13,6 +13,7 @@ import requireMinroleOnWrite from "./rules/require-minrole-on-write.mjs";
 import workflowStepsAreCapabilities from "./rules/workflow-steps-are-capabilities.mjs";
 import workflowHandlerDeterminism from "./rules/workflow-handler-determinism.mjs";
 import workflowPolicySnapshot from "./rules/workflow-policy-snapshot.mjs";
+import noRawWorkflowPrimitives from "./rules/no-raw-workflow-primitives.mjs";
 import noCrossDomainValueImport from "./rules/no-cross-domain-value-import.mjs";
 import noRawScheduler from "./rules/no-raw-scheduler.mjs";
 import frontendRouteThin from "./rules/frontend-route-thin.mjs";
@@ -28,6 +29,7 @@ export default {
     "workflow-steps-are-capabilities": workflowStepsAreCapabilities,
     "workflow-handler-determinism": workflowHandlerDeterminism,
     "workflow-policy-snapshot": workflowPolicySnapshot,
+    "no-raw-workflow-primitives": noRawWorkflowPrimitives,
     "no-cross-domain-value-import": noCrossDomainValueImport,
     "no-raw-scheduler": noRawScheduler,
     "frontend-route-thin": frontendRouteThin,

@@ -12,9 +12,14 @@ export const terminalFailure = workflow
     throw new Error("characterized terminal failure");
   });
 
-const terminalFailureRef = makeFunctionReference<"mutation", { args: {} }>(
-  "workflowConformance:terminalFailure",
-) as unknown as FunctionReference<"mutation", "internal", { args: {} }>;
+const terminalFailureRef = makeFunctionReference<
+  "mutation",
+  { args: Record<string, never> }
+>("workflowConformance:terminalFailure") as unknown as FunctionReference<
+  "mutation",
+  "internal",
+  { args: Record<string, never> }
+>;
 
 export const startEagerFailure = mutation({
   args: {},

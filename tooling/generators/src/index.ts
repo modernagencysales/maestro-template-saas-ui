@@ -22,6 +22,7 @@ import {
   parseSystemCatalog,
   type SystemCatalog,
 } from "@maestro-template/template-core/systemCatalog";
+import { WORKFLOW_SEMANTICS } from "@maestro-template/template-core/workflow-semantics";
 import { gtmImplementationBlueprint } from "./blueprints/gtmImplementation";
 
 export type ProviderMode = "fake" | "test" | "live";
@@ -2770,17 +2771,17 @@ export const ${name}Graph = {
 `,
     },
     {
-      path: `packages/convex/convex/workflowRunners/${name}.ts`,
-      content: `import { defineWorkflow } from "@convex-dev/workflow";
+      path: `packages/convex/confect/workflowRunners/${name}.ts`,
+      content: `import { defineWorkflow as defineMaestroWorkflow } from "@convex-dev/workflow";
 import { v } from "convex/values";
-import { components } from "../_generated/api";
+import { components } from "../../convex/_generated/api";
 import {
   runDurableGraphWorkflow,
   type RunDurableGraphStep,
-} from "../../confect/workflows/_kit/graphRunner";
-import { ${name}Graph } from "../../confect/workflows/${name}.graph";
+} from "../workflows/_kit/graphRunner";
+import { ${name}Graph } from "../workflows/${name}.graph";
 
-export const run = defineWorkflow(components.workflow, {
+export const run = defineMaestroWorkflow(components.workflow, {
   args: {
     workspaceId: v.string(),
     idempotencyKey: v.string(),
@@ -2793,6 +2794,32 @@ export const run = defineWorkflow(components.workflow, {
     policySnapshot: {},
     capabilityRegistry: {},
   }),
+);
+`,
+    },
+    {
+      path: `packages/convex/confect/workflowRunners/${name}.spec.ts`,
+      content: `import { FunctionSpec, GroupSpec } from "@confect/core";
+import type { run } from "./${name}";
+
+export default GroupSpec.make().addFunction(
+  FunctionSpec.convexInternalMutation<typeof run>()("run"),
+);
+`,
+    },
+    {
+      path: `packages/convex/confect/workflowRunners/${name}.impl.ts`,
+      content: `import { FunctionImpl, GroupImpl } from "@confect/server";
+import * as Layer from "effect/Layer";
+import databaseSchema from "../_generated/schema";
+import { run } from "./${name}";
+import ${name} from "./${name}.spec";
+
+const runImpl = FunctionImpl.make(databaseSchema, ${name}, "run", run);
+
+export default GroupImpl.make(databaseSchema, ${name}).pipe(
+  Layer.provide(runImpl),
+  GroupImpl.finalize,
 );
 `,
     },
@@ -2848,6 +2875,16 @@ describe("${name} durable workflow scaffold", () => {
 `,
     },
     {
+      path: `docs/template/generated/workflows/${name}.semantics.json`,
+      content: `${JSON.stringify(
+        Object.fromEntries(
+          WORKFLOW_SEMANTICS.map((rule) => [rule.id, rule.status]),
+        ),
+        null,
+        2,
+      )}\n`,
+    },
+    {
       path: `docs/template/generated/workflows/${name}.md`,
       content: `# ${pascalName} Workflow
 
@@ -2857,7 +2894,9 @@ Canonical system: \`${options.system}\` (\`${options.disposition}\`).
 
 ## Generated Files
 
-- \`packages/convex/convex/workflowRunners/${name}.ts\`: plain Convex \`defineWorkflow\` durable replay handler.
+- \`packages/convex/confect/workflowRunners/${name}.ts\`: Confect-owned plain workflow runner source.
+- \`packages/convex/convex/workflowRunners/${name}.ts\`: reproducible Confect projection; never edit it by hand.
+- \`docs/template/generated/workflows/${name}.semantics.json\`: semantic coverage keyed by executable rule id.
 - \`packages/convex/confect/workflowContracts/${name}.spec.ts\`: typed start, status, and approval contract.
 - \`packages/convex/confect/workflowContracts/${name}.impl.ts\`: Confect implementation that records workflow ownership and projects component status.
 - \`packages/convex/confect/workflows/${name}.graph.ts\`: durable graph data, initially source to Trust Receipt output only.
@@ -2866,12 +2905,11 @@ Canonical system: \`${options.system}\` (\`${options.disposition}\`).
 ## Required Follow-Up
 
 1. Add the generated Confect group to the workflow spec tree.
-2. Run \`pnpm --dir packages/convex exec convex codegen\` after writing the generated files so \`workflowRunners/${name}:run\` exists before typecheck.
-   Run \`pnpm confect:codegen\` when validating the generated \`workflowContracts.${name}\` public wrappers; if Confect sync removes \`packages/convex/convex/workflowRunners/${name}.ts\`, rerun this generator before Convex codegen and typecheck.
+2. Run \`pnpm confect:codegen\`, then \`pnpm --dir packages/convex exec convex codegen\`, so Confect reproduces \`workflowRunners/${name}:run\` before typecheck.
 3. Keep React Flow as a projection of \`${name}.graph.ts\`; do not persist canvas node state as the workflow contract.
 4. Generated approval nodes require the generated \`workflowContracts.${name}.approve\` mutation before they are usable.
 5. Generated capability nodes require registry entries with concrete \`buildArgs\` mappers for the target internal capability ref.
-6. Run \`pnpm check:workflow-graph-boundary\`, \`pnpm check:confect-contracts\`, and focused workflow tests.
+6. Run \`pnpm check:workflow:fast\`, \`pnpm check:confect-contracts\`, and focused workflow tests.
 `,
     },
   ];

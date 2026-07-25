@@ -40,7 +40,8 @@
  * pinned upstream runtime patches them. There is no per-project allowlist.
  */
 
-const WORKFLOWS_RE = /(?:^|\/)packages\/convex\/confect\/workflows\//;
+const WORKFLOWS_RE =
+  /(?:^|\/)packages\/convex\/(?:confect\/(?:workflows|workflowRunners)|convex\/workflowRunners)\//;
 
 export default {
   meta: {
@@ -114,12 +115,17 @@ function handlerFnOf(node) {
 function isDefineWorkflowCall(node) {
   if (node.type !== "CallExpression") return false;
   const callee = node.callee;
-  if (callee.type === "Identifier") return callee.name === "defineWorkflow";
+  if (callee.type === "Identifier")
+    return (
+      callee.name === "defineWorkflow" ||
+      callee.name === "defineMaestroWorkflow"
+    );
   return (
     callee.type === "MemberExpression" &&
     !callee.computed &&
     callee.property.type === "Identifier" &&
-    callee.property.name === "defineWorkflow"
+    (callee.property.name === "defineWorkflow" ||
+      callee.property.name === "defineMaestroWorkflow")
   );
 }
 

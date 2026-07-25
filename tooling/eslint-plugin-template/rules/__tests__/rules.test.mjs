@@ -15,6 +15,7 @@ import requireMinroleOnWrite from "../require-minrole-on-write.mjs";
 import workflowStepsAreCapabilities from "../workflow-steps-are-capabilities.mjs";
 import workflowHandlerDeterminism from "../workflow-handler-determinism.mjs";
 import workflowPolicySnapshot from "../workflow-policy-snapshot.mjs";
+import noRawWorkflowPrimitives from "../no-raw-workflow-primitives.mjs";
 import noCrossDomainValueImport from "../no-cross-domain-value-import.mjs";
 import noRawScheduler from "../no-raw-scheduler.mjs";
 import frontendRouteThin from "../frontend-route-thin.mjs";
@@ -35,6 +36,10 @@ const HTTP = "packages/convex/confect/http.ts";
 const WORKFLOW = "packages/convex/confect/workflows/x.ts";
 const WORKFLOW_TEST = "packages/convex/confect/workflows/x.test.ts";
 const INTERPRETER = "packages/convex/confect/workflows/runGraph.ts";
+const GENERATED_RUNNER =
+  "packages/convex/confect/workflowRunners/generatedBrief.ts";
+const PROJECTED_RUNNER =
+  "packages/convex/convex/workflowRunners/generatedBrief.ts";
 const DOMAIN = "packages/convex/confect/capabilities/batch.domain.ts";
 const DOMAIN_DIR = "packages/convex/confect/domain/batch.ts";
 const DOMAIN_TEST = "packages/convex/confect/capabilities/batch.domain.test.ts";
@@ -397,12 +402,21 @@ tester.run("workflow-handler-determinism", workflowHandlerDeterminism, {
       filename: WORKFLOW,
       code: "export const run = defineWorkflow(c, {}).handler(() => [Date.now(), new Date(), Math.random()]);",
     },
+    {
+      filename: GENERATED_RUNNER,
+      code: "export const run = defineMaestroWorkflow(c, {}).handler(() => [Date.now(), Math.random()]);",
+    },
   ],
   invalid: [
     // ctx.db.get(...) inside a handler (a db read)
     {
       filename: WORKFLOW,
       code: "export const run = defineWorkflow(c, {}).handler(async (step, ctx) => { return ctx.db.get(id); });",
+      errors: [{ messageId: "nondeterministic" }],
+    },
+    {
+      filename: GENERATED_RUNNER,
+      code: "export const run = defineMaestroWorkflow(c, {}).handler(() => fetch('https://x'));",
       errors: [{ messageId: "nondeterministic" }],
     },
     // Locale/timezone-sensitive formatting is deliberately restricted because
@@ -459,6 +473,35 @@ tester.run("workflow-handler-determinism", workflowHandlerDeterminism, {
       filename: WORKFLOW,
       code: "export const run = defineWorkflow(c, {}).handler((step, xs) => xs.map(() => process.env.KEY));",
       errors: [{ messageId: "nondeterministic" }],
+    },
+  ],
+});
+
+tester.run("no-raw-workflow-primitives", noRawWorkflowPrimitives, {
+  valid: [
+    {
+      filename: GENERATED_RUNNER,
+      code: 'import { defineWorkflow as defineMaestroWorkflow } from "@convex-dev/workflow";',
+    },
+    {
+      filename: "packages/convex/test/workflow-conformance.test.ts",
+      code: 'import { WorkflowManager } from "@convex-dev/workflow";',
+    },
+    {
+      filename: CAP,
+      code: 'import { startGeneratedWorkflow } from "../workflows/_kit";',
+    },
+  ],
+  invalid: [
+    {
+      filename: CAP,
+      code: 'import { defineWorkflow } from "@convex-dev/workflow";',
+      errors: [{ messageId: "raw" }],
+    },
+    {
+      filename: PROJECTED_RUNNER,
+      code: 'import { WorkflowManager } from "@convex-dev/workflow"; const manager = new WorkflowManager(c);',
+      errors: [{ messageId: "raw" }, { messageId: "manager" }],
     },
   ],
 });

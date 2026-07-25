@@ -378,7 +378,11 @@ importers:
 
   packages/storage: {}
 
-  packages/template-core: {}
+  packages/template-core:
+    dependencies:
+      effect:
+        specifier: 3.21.4
+        version: 3.21.4
 
   packages/ui:
     dependencies:

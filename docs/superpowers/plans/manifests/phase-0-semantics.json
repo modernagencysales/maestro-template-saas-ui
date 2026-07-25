@@ -1,0 +1,67 @@
+{
+  "feature": "phase-0-workflow-semantics-enforcement",
+  "slices": [
+    {
+      "id": 1,
+      "branch": "codex/ap-a-architecture-s05",
+      "intention": "install the executable workflow semantics ledger and self-protected gate",
+      "layers": ["schema", "checks", "workflows"],
+      "contractRiskIds": [
+        "ambient-time-inline",
+        "bare-error-not-typed",
+        "schema-runtime-validator-export",
+        "policy-data-hardcoded",
+        "duplicated-closed-union",
+        "workspace-guard",
+        "invalid-test-fixture-or-cast",
+        "branching-logic-needs-boundary-tests",
+        "unjustified-cap-or-threshold",
+        "prompt-model-policy-boundary",
+        "type-escape-or-cast",
+        "existing-module-repair-checklist"
+      ],
+      "existingModuleRepairChecklist": {
+        "existingTargetModules": [
+          "tooling/eslint-plugin-template/rules/workflow-handler-determinism.mjs",
+          "tooling/eslint-plugin-template/rules/workflow-steps-are-capabilities.mjs",
+          "tooling/eslint-plugin-template/rules/workflow-policy-snapshot.mjs",
+          "tooling/generators/src/workflow-output-smoke.ts"
+        ],
+        "repairStrategy": "extend",
+        "compatibilityRisks": [
+          "Generated runners bypass semantic lint coverage",
+          "Confect synchronization deletes orphan runner output",
+          "Required semantic gates disappear from local or CI inventories"
+        ],
+        "policyDataOwnership": "packages/template-core/src/workflow-semantics/contract.ts",
+        "promptVersioningImpact": "None; semantic policy becomes a typed executable registry.",
+        "evalOrGateCoverage": [
+          "pnpm --dir tooling/eslint-plugin-template test",
+          "pnpm --dir packages/template-core test workflow-semantics",
+          "pnpm check:workflow-semantics",
+          "pnpm check:workflow:fast",
+          "pnpm check:ci-completeness"
+        ]
+      },
+      "workPackages": [
+        {
+          "kind": "template-gap",
+          "target": "WP-0.5 executable workflow semantics enforcement spine",
+          "followUpGates": [
+            "pnpm --dir tooling/eslint-plugin-template test",
+            "pnpm --dir packages/template-core test workflow-semantics",
+            "pnpm check:workflow-semantics",
+            "pnpm check:workflow:fast",
+            "pnpm check:ci-completeness"
+          ],
+          "templateBacklogRef": "AP-002 Convex workflow semantic compatibility",
+          "templateResolutionPath": "Promote audited upstream semantics into one executable support ledger consumed by generators, runtime builders, diagnostics, and dedicated gates."
+        }
+      ],
+      "taskRefs": ["WP-0.5"],
+      "rationale": "The ledger, lint rules, generation ownership, destructive sequence, and self-protected inventories form one atomic semantic authority.",
+      "estLines": 300
+    }
+  ],
+  "allTaskRefs": ["WP-0.5"]
+}

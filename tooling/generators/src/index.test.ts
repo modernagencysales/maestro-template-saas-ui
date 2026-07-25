@@ -1070,19 +1070,25 @@ describe("template app factory generators", () => {
       "packages/convex/confect/workflowContracts/sourceGroundedPlan.spec.ts",
       "packages/convex/confect/workflowContracts/sourceGroundedPlan.impl.ts",
       "packages/convex/confect/workflows/sourceGroundedPlan.graph.ts",
-      "packages/convex/convex/workflowRunners/sourceGroundedPlan.ts",
+      "packages/convex/confect/workflowRunners/sourceGroundedPlan.ts",
+      "packages/convex/confect/workflowRunners/sourceGroundedPlan.spec.ts",
+      "packages/convex/confect/workflowRunners/sourceGroundedPlan.impl.ts",
       "packages/convex/test/sourceGroundedPlan.workflow.test.ts",
+      "docs/template/generated/workflows/sourceGroundedPlan.semantics.json",
       "docs/template/generated/workflows/sourceGroundedPlan.md",
       "docs/template/generated/provenance/add-workflow/sourceGroundedPlan.json",
     ]);
     expect(generated.files[3]?.path).toBe(
-      "packages/convex/convex/workflowRunners/sourceGroundedPlan.ts",
+      "packages/convex/confect/workflowRunners/sourceGroundedPlan.ts",
     );
     const spec = generated.files[0]?.content ?? "";
     const impl = generated.files[1]?.content ?? "";
     const graph = generated.files[2]?.content ?? "";
     const convexWorkflow = generated.files[3]?.content ?? "";
-    const docs = generated.files[5]?.content ?? "";
+    const runnerSpec = generated.files[4]?.content ?? "";
+    const runnerImpl = generated.files[5]?.content ?? "";
+    const semantics = generated.files[7]?.content ?? "";
+    const docs = generated.files[8]?.content ?? "";
 
     expect(spec).toContain("defineContractFunction");
     expect(spec).toContain("export const manifest");
@@ -1127,12 +1133,15 @@ describe("template app factory generators", () => {
     expect(impl).not.toMatch(/\bargs:\s*\{ workspaceId, idempotencyKey \}/);
     expect(impl).not.toContain("now:");
 
-    expect(convexWorkflow).toContain("defineWorkflow");
+    expect(convexWorkflow).toContain("defineMaestroWorkflow");
     expect(convexWorkflow).toContain("runDurableGraphWorkflow");
     expect(convexWorkflow).toContain("workspaceId: v.string()");
     expect(convexWorkflow).toContain("idempotencyKey: v.string()");
     expect(convexWorkflow).toContain("policySnapshot: {}");
     expect(convexWorkflow).toContain("capabilityRegistry: {}");
+    expect(runnerSpec).toContain("FunctionSpec.convexInternalMutation");
+    expect(runnerImpl).toContain("FunctionImpl.make");
+    expect(semantics).toContain('"WF-DEFINE": "supported"');
 
     expect(graph).toContain("satisfies DurableWorkflowGraph");
     expect(graph).toContain("version: 1");
@@ -1142,11 +1151,9 @@ describe("template app factory generators", () => {
     expect(graph).not.toContain('kind: "approval"');
 
     expect(docs).toContain(
-      "packages/convex/convex/workflowRunners/sourceGroundedPlan.ts",
+      "packages/convex/confect/workflowRunners/sourceGroundedPlan.ts",
     );
-    expect(docs).toContain(
-      "plain Convex `defineWorkflow` durable replay handler",
-    );
+    expect(docs).toContain("Confect-owned plain workflow runner source");
     expect(docs).not.toContain("packages/convex/convex/workflows/");
     expect(docs).toContain("pnpm confect:codegen");
     expect(docs).toContain("pnpm --dir packages/convex exec convex codegen");
@@ -1183,7 +1190,7 @@ describe("template app factory generators", () => {
       );
       const workflowPath = join(
         cwd,
-        "packages/convex/convex/workflowRunners/sourceGroundedPlan.ts",
+        "packages/convex/confect/workflowRunners/sourceGroundedPlan.ts",
       );
 
       expect(result.exitCode).toBe(0);

@@ -14,6 +14,7 @@ export const checkDescriptors = {
           "pnpm check:confect-contracts",
           "pnpm check:confect-compat",
           "pnpm check:workflow-graph-boundary",
+          "pnpm check:workflow-semantics",
           "pnpm check:system-catalog",
           "pnpm check:system-topology",
           "pnpm check:data-resources",
@@ -54,7 +55,11 @@ export const checkDescriptors = {
       },
       {
         file: ".buildkite/scripts/ci-self-protection.sh",
-        includes: ["check:ci-completeness", "check:config-drift"],
+        includes: [
+          "check:ci-completeness",
+          "check:config-drift",
+          "check:workflow-semantics",
+        ],
         message: "secretless self-protection step must run the shape pins",
       },
       {
@@ -64,6 +69,7 @@ export const checkDescriptors = {
           "pnpm check:system-topology",
           "pnpm check:data-resources",
           "pnpm check:promotion-boundary",
+          "pnpm check:workflow-semantics",
         ],
         message:
           "hosted deterministic CI must run system, data, and promotion gates",
@@ -80,6 +86,8 @@ export const checkDescriptors = {
           "check-system-topology:",
           "check-data-resources:",
           "check-promotion-boundary:",
+          "check-workflow-semantics:",
+          "check-workflow-fast:",
         ],
         message: "Justfile must keep the canonical gate recipe names",
       },
@@ -93,6 +101,7 @@ export const checkDescriptors = {
           "check:system-topology",
           "check:data-resources",
           "check:promotion-boundary",
+          "check:workflow:fast",
         ],
         message: "lefthook must run shifted-left gates and rubric injection",
       },
@@ -166,6 +175,7 @@ export const checkDescriptors = {
           "check:data-resources",
           "check:promotion-boundary",
           "check:workflow-graph-boundary",
+          "check:workflow-semantics",
           "contract-review",
           "taste:eval",
           "test:mutation",
@@ -868,6 +878,35 @@ export const checkDescriptors = {
         absent: ["@xyflow/react", "ReactFlow"],
         message:
           "headless workflow projection must not depend on React Flow runtime",
+      },
+    ],
+  },
+  "workflow-semantics": {
+    name: "check:workflow-semantics",
+    requirements: [
+      {
+        file: "packages/template-core/src/workflow-semantics/contract.ts",
+        includes: [
+          "WORKFLOW_GRAPH_FIELDS",
+          "OFFICIAL_WORKFLOW_PRIMITIVES",
+          "WF-HANDLER-DATE",
+          "WF-HANDLER-RANDOM",
+        ],
+        message: "workflow semantics must have one executable support ledger",
+      },
+      {
+        file: "tooling/quality/check-workflow-semantics.mts",
+        includes: [
+          "WF-GRAPH-UNMAPPED",
+          "WF-RAW-IMPORT",
+          "validateWorkflowRunnerSource",
+        ],
+        message: "workflow semantic gate must inspect schemas and real runners",
+      },
+      {
+        file: "docs/template/generated/workflow-semantics.md",
+        includes: ["Generated Workflow Semantics", "WF-HANDLER-DATE"],
+        message: "workflow semantics docs must be generated from the ledger",
       },
     ],
   },

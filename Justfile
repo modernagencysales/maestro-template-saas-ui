@@ -72,6 +72,12 @@ check-convex:
 check-convex-compat:
     pnpm check:convex-compat
 
+check-workflow-semantics:
+    pnpm check:workflow-semantics
+
+check-workflow-fast:
+    pnpm check:workflow:fast
+
 coverage:
     pnpm check:coverage-ratchet
 

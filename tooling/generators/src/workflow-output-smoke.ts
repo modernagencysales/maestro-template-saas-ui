@@ -12,6 +12,7 @@ import { tmpdir } from "node:os";
 import { dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 
 export const smokeWorkflowName = "generatedWorkflowSmoke";
 export const workflowOutputSmokeScriptName = "template:workflow-output-smoke";
@@ -158,6 +159,11 @@ export const runWorkflowOutputSmoke = (
         ],
       },
       {
+        label: "Regenerate Confect runner projection",
+        command: "pnpm",
+        args: ["--dir", tempRepoRoot, "confect:codegen"],
+      },
+      {
         label: "Regenerate Convex refs",
         command: "pnpm",
         args: ["--dir", convexPackage, "exec", "convex", "codegen"],
@@ -192,9 +198,28 @@ export const runWorkflowOutputSmoke = (
       throw new Error(`Generated workflow runner is missing: ${runnerPath}`);
     }
     const runnerSource = readFileSync(runnerPath, "utf8");
-    if (!runnerSource.includes("defineWorkflow")) {
-      throw new Error("Generated workflow runner lost its durable handler");
+    const sourcePath = join(
+      convexPackage,
+      "confect/workflowRunners",
+      `${smokeWorkflowName}.ts`,
+    );
+    const semanticsPath = join(
+      tempRepoRoot,
+      "docs/template/generated/workflows",
+      `${smokeWorkflowName}.semantics.json`,
+    );
+    if (!existsSync(sourcePath) || !existsSync(semanticsPath)) {
+      throw new Error(
+        "Generated workflow semantic source or coverage is missing",
+      );
     }
+    if (!runnerSource.includes("registeredFunctions.run")) {
+      throw new Error(
+        "Confect did not reproduce the registered workflow runner",
+      );
+    }
+    const fingerprint = createHash("sha256").update(runnerSource).digest("hex");
+    if (fingerprint.length !== 64) throw new Error("Runner fingerprint failed");
   } finally {
     if (keepTemp) {
       process.stdout.write(

@@ -37,7 +37,8 @@
  * beyond that.
  */
 
-const WORKFLOWS_RE = /(?:^|\/)packages\/convex\/confect\/workflows\//;
+const WORKFLOWS_RE =
+  /(?:^|\/)packages\/convex\/(?:confect\/(?:workflows|workflowRunners)|convex\/workflowRunners)\//;
 const STEP_RUNNERS = new Set(["runQuery", "runMutation", "runAction"]);
 const INTERPRETER_FILES = new Set([
   "packages/convex/confect/workflows/runGraph.ts",
@@ -115,12 +116,17 @@ function handlerFnOf(node) {
 function isDefineWorkflowCall(node) {
   if (node.type !== "CallExpression") return false;
   const callee = node.callee;
-  if (callee.type === "Identifier") return callee.name === "defineWorkflow";
+  if (callee.type === "Identifier")
+    return (
+      callee.name === "defineWorkflow" ||
+      callee.name === "defineMaestroWorkflow"
+    );
   return (
     callee.type === "MemberExpression" &&
     !callee.computed &&
     callee.property.type === "Identifier" &&
-    callee.property.name === "defineWorkflow"
+    (callee.property.name === "defineWorkflow" ||
+      callee.property.name === "defineMaestroWorkflow")
   );
 }
 

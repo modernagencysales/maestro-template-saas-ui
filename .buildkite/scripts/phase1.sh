@@ -35,6 +35,7 @@ pnpm check:docs-freshness
 pnpm check:generated-files
 pnpm check:confect-contracts
 pnpm check:confect-compat
+pnpm check:workflow-semantics
 pnpm check:workflow-graph-boundary
 pnpm check:schema-migration-notes
 pnpm check:system-catalog
