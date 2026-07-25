@@ -1,9 +1,12 @@
 import { cp, mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { installOfficialConvexBundle } from "../agent-pack/src/officialConvex.js";
 import { checkConvexAiFiles } from "./check-convex-ai-files.mts";
+
+const repoRoot = fileURLToPath(new URL("../../", import.meta.url));
 
 describe("check:convex-ai-files", () => {
   it("accepts every installed target and exact managed section", async () => {
@@ -81,7 +84,7 @@ async function integratedFixture(): Promise<string> {
   await mkdir(join(fixtureRoot, "agent-pack"), { recursive: true });
   await mkdir(join(fixtureRoot, "docs/template"), { recursive: true });
   await cp(
-    join(process.cwd(), "agent-pack/official-convex"),
+    join(repoRoot, "agent-pack/official-convex"),
     join(fixtureRoot, "agent-pack/official-convex"),
     { recursive: true },
   );
@@ -90,7 +93,7 @@ async function integratedFixture(): Promise<string> {
     "convex-compatibility.json",
   ]) {
     await cp(
-      join(process.cwd(), "docs/template", file),
+      join(repoRoot, "docs/template", file),
       join(fixtureRoot, "docs/template", file),
     );
   }

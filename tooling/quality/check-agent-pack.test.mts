@@ -1,8 +1,11 @@
 import { cp, mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { checkAgentPack } from "./check-agent-pack.mts";
+
+const repoRoot = fileURLToPath(new URL("../../", import.meta.url));
 
 describe("check:agent-pack", () => {
   it("accepts exact root Maestro projections without MCP configuration", async () => {
@@ -45,7 +48,7 @@ describe("check:agent-pack", () => {
 
 async function integratedFixture(): Promise<string> {
   const fixtureRoot = await mkdtemp(join(tmpdir(), "maestro-pack-check-"));
-  await cp(join(process.cwd(), "agent-pack"), join(fixtureRoot, "agent-pack"), {
+  await cp(join(repoRoot, "agent-pack"), join(fixtureRoot, "agent-pack"), {
     recursive: true,
   });
   await mkdir(join(fixtureRoot, ".agents/skills"), { recursive: true });
