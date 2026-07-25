@@ -14,5 +14,21 @@
     "/__maestro/readiness",
     "BuildReadiness"
   ],
+  "forbiddenCustomerPaths": [
+    "tooling/agent-pack/src/pluginContract.ts",
+    "tooling/agent-pack/src/mcp",
+    "tooling/agent-pack/src/convexPlugin.test.ts",
+    "apps/cli/src/factory/composition.ts",
+    "apps/cli/src/factory/composition.test.ts",
+    "apps/cli/src/factory/mcp.ts",
+    "apps/cli/src/factory/mcp.test.ts",
+    "apps/cli/src/factory/mcpConfigure.ts",
+    "apps/cli/src/factory/mcpConfigure.test.ts",
+    "apps/cli/src/factory/mcpIntegration.test.ts",
+    "apps/cli/src/factory/createRootIntegration.test.ts",
+    "apps/cli/src/index.test.ts",
+    "apps/cli/src/direct-run.test.ts"
+  ],
+  "forbiddenCustomerBarrelExports": ["./pluginContract.js", "./mcp/"],
   "localOnlyOwner": "tooling/agent-pack/src/readiness"
 }

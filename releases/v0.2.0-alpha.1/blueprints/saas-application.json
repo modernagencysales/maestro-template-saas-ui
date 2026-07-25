@@ -443,7 +443,7 @@
       },
       {
         "path": "base/tooling/agent-pack/src/index.ts.txt",
-        "sha256": "sha256:da0a8a59b6afcd449ad781f61766e358ea55c9f305dc0e6f85c3f2d6bd63b76c"
+        "sha256": "sha256:162ea96a68f0cb0fb4dadbbda6b2b7166b4cbcbb336efdbe2f0202ea3fe5ef1d"
       },
       {
         "path": "base/tooling/agent-pack/src/ports.ts.txt",
@@ -1533,7 +1533,7 @@
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:da0a8a59b6afcd449ad781f61766e358ea55c9f305dc0e6f85c3f2d6bd63b76c",
+      "sha256": "sha256:162ea96a68f0cb0fb4dadbbda6b2b7166b4cbcbb336efdbe2f0202ea3fe5ef1d",
       "replaces": "copy"
     },
     {

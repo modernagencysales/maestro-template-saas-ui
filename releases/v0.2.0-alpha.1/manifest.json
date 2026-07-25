@@ -27,10 +27,101 @@
       "ownership": "factory-only",
       "action": "omit",
       "upgrade": "remove"
+    },
+    {
+      "path": "tooling/agent-pack/src/pluginContract.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "tooling/agent-pack/src/mcp",
+      "match": "subtree",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "tooling/agent-pack/src/convexPlugin.test.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "apps/cli/src/factory/composition.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "apps/cli/src/factory/composition.test.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "apps/cli/src/factory/mcp.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "apps/cli/src/factory/mcp.test.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "apps/cli/src/factory/mcpConfigure.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "apps/cli/src/factory/mcpConfigure.test.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "apps/cli/src/factory/mcpIntegration.test.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "apps/cli/src/factory/createRootIntegration.test.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "apps/cli/src/index.test.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "apps/cli/src/direct-run.test.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
     }
   ],
   "blueprintManifest": {
     "path": "blueprints/saas-application.json",
-    "sha256": "sha256:4120be6238134992ed61e5ec38aa6f82fd6bf74c1c17ccfbb91a8542f47e693e"
+    "sha256": "sha256:30fe62418ad67e5f422da681162a1b5bd383f86caff8ba3d946e60fe3c29d452"
   }
 }
