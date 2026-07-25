@@ -11,6 +11,7 @@ export * from "./preflightProbe.js";
 export * from "./verificationRunner.js";
 export * from "./planCheck.js";
 export * from "./scaffold.js";
+export * from "./create.js";
 export * from "./pluginContract.js";
 export * from "./mcp/protocol.js";
 export * from "./mcp/projection.js";

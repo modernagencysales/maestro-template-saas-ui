@@ -23,7 +23,6 @@ import {
   type AgentPackExecutionContext,
   type McpConfigurationStore,
   type NodePreflightPolicy,
-  type RepositoryContext,
 } from "@maestro-template/agent-pack";
 import {
   buildBlueprintCatalog,
@@ -45,10 +44,14 @@ import {
 import { WORKFLOW_SEMANTICS } from "@maestro-template/template-core/workflow-semantics";
 import { readFileSync } from "node:fs";
 import { open } from "node:fs/promises";
-import { arch, platform } from "node:os";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { createPlanCheckCliHandler } from "./planCheck";
+import { createCustomerCreateComposition } from "./createComposition";
+import {
+  projectCompositionEnvironment,
+  type CompositionEnvironmentReader,
+} from "./environment";
 import { createMcpCliAdapter } from "./mcp";
 import { createMcpConfigureCliAdapter } from "./mcpConfigure";
 import { createPreflightCliHandler } from "./preflight";
@@ -113,9 +116,8 @@ const convexMcpProfiles = parseConvexMcpProfiles(
   ) as unknown,
 );
 
-export type CompositionEnvironmentReader = () => Readonly<
-  Record<string, string | undefined>
->;
+export { projectCompositionEnvironment } from "./environment";
+export type { CompositionEnvironmentReader } from "./environment";
 
 export type FactoryMcpOverrides = {
   readonly mcp?: {
@@ -125,26 +127,6 @@ export type FactoryMcpOverrides = {
     readonly store?: McpConfigurationStore;
   };
 };
-
-export function projectCompositionEnvironment(
-  repo: RepositoryContext,
-  readEnvironment: CompositionEnvironmentReader,
-) {
-  const environment = readEnvironment();
-  const availableEnvironmentNames = Object.entries(environment)
-    .filter(([, value]) => typeof value === "string" && value.trim() !== "")
-    .map(([name]) => name)
-    .sort();
-  return {
-    sourceRoot: repo.sourceRoot,
-    targetRoot: repo.targetRoot,
-    platform: platform(),
-    architecture: arch(),
-    node: process.version,
-    ci: environment.CI === "true" || environment.BUILDKITE === "true",
-    availableEnvironmentNames: availableEnvironmentNames.join(","),
-  };
-}
 
 export function createFactoryCliComposition(
   readEnvironment: CompositionEnvironmentReader,
@@ -299,6 +281,7 @@ export function createFactoryCliComposition(
     return serveMcpStdio({ stdin, stdout, stderr, server });
   });
   const handlers: readonly FactoryCliHandler[] = [
+    createCustomerCreateComposition(),
     createPreflightCliHandler(preflight),
     createVerifyCliHandler(verify),
     createVerifyCliHandler(check),
