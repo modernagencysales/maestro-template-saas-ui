@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { runTemplateApiOperation } from "@maestro-template/workflow-tooling";
 import { createCliHandlers } from "./commands";
+import { createFactoryCliHandlers } from "./factory/router";
 import { cliFailure, formatJsonOutput } from "./result";
 import { decodeCliRuntimeConfig, emptyCliRuntimeConfig } from "./runtimeConfig";
 import { dispatchCliCommand } from "./router";
@@ -39,17 +40,25 @@ const runStaticCliCapability = (
   };
 };
 
-const cliHandlers = createCliHandlers({
-  capability: {
-    hasCapability: (capabilityId) => staticCliCapabilityIds.has(capabilityId),
-    runCapability: runStaticCliCapability,
-  },
-});
+const cliHandlers = [
+  ...createFactoryCliHandlers(),
+  ...createCliHandlers({
+    capability: {
+      hasCapability: (capabilityId) => staticCliCapabilityIds.has(capabilityId),
+      runCapability: runStaticCliCapability,
+    },
+  }),
+];
 
 export const runCli = (
   argv: readonly string[],
   config: CliRuntimeConfig = emptyCliRuntimeConfig,
-): CliResult => dispatchCliCommand(cliHandlers, argv, config);
+): CliResult =>
+  dispatchCliCommand(
+    cliHandlers,
+    argv[0] === "--" ? argv.slice(1) : argv,
+    config,
+  );
 
 if (
   process.argv[1]?.endsWith("index.ts") ||

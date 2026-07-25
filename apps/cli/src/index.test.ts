@@ -2,6 +2,12 @@ import { describe, expect, it } from "vitest";
 import { decodeCliRuntimeConfig, runCli } from "./index";
 
 describe("maestro-template CLI", () => {
+  it("accepts the canonical pnpm argument separator", () => {
+    const result = runCli(["--", "describe"]);
+    expect(result.exitCode).toBe(0);
+    expect(JSON.parse(result.stdout)).toMatchObject({ valid: true });
+  });
+
   it("describes the shared workflow template", () => {
     const result = runCli(["describe"]);
 

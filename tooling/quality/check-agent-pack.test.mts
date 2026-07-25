@@ -44,6 +44,18 @@ describe("check:agent-pack", () => {
       ]),
     );
   });
+
+  it("rejects drift in the canonical factory invocation", async () => {
+    const fixtureRoot = await integratedFixture();
+    const rootPackagePath = join(fixtureRoot, "package.json");
+    const rootPackage = JSON.parse(await readFile(rootPackagePath, "utf8"));
+    rootPackage.scripts.maestro = "tsx tooling/generators/src/index.ts";
+    await writeFile(rootPackagePath, JSON.stringify(rootPackage));
+
+    await expect(checkAgentPack(fixtureRoot)).resolves.toContain(
+      "factory-wiring:root-maestro-script",
+    );
+  });
 });
 
 async function integratedFixture(): Promise<string> {
@@ -64,6 +76,30 @@ async function integratedFixture(): Promise<string> {
     ),
     join(fixtureRoot, ".agents/skills/maestro-convex"),
     { recursive: true },
+  );
+  await cp(join(repoRoot, "package.json"), join(fixtureRoot, "package.json"));
+  await cp(join(repoRoot, "Justfile"), join(fixtureRoot, "Justfile"));
+  await mkdir(join(fixtureRoot, "apps/cli/src/factory"), { recursive: true });
+  await cp(
+    join(repoRoot, "apps/cli/package.json"),
+    join(fixtureRoot, "apps/cli/package.json"),
+  );
+  await cp(
+    join(repoRoot, "apps/cli/src/index.ts"),
+    join(fixtureRoot, "apps/cli/src/index.ts"),
+  );
+  await cp(
+    join(repoRoot, "apps/cli/src/factory/router.ts"),
+    join(fixtureRoot, "apps/cli/src/factory/router.ts"),
+  );
+  await mkdir(join(fixtureRoot, "tooling/agent-pack/src"), { recursive: true });
+  await cp(
+    join(repoRoot, "tooling/agent-pack/package.json"),
+    join(fixtureRoot, "tooling/agent-pack/package.json"),
+  );
+  await cp(
+    join(repoRoot, "tooling/agent-pack/src/index.ts"),
+    join(fixtureRoot, "tooling/agent-pack/src/index.ts"),
   );
   return fixtureRoot;
 }
