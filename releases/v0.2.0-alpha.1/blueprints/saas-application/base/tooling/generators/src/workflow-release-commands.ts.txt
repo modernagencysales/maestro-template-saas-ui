@@ -649,7 +649,10 @@ export const publishRelease = (input: {
   const manifest = existsSync(absoluteManifest)
     ? readJson<PublicationManifest>(input.cwd, manifestPath)
     : { schemaVersion: 1 as const, entries: [], manifestChecksum: "" };
-  const { manifestChecksum: _checksum, ...unsignedManifest } = manifest;
+  const unsignedManifest = {
+    schemaVersion: manifest.schemaVersion,
+    entries: manifest.entries,
+  };
   if (
     manifest.entries.length > 0 &&
     checksumManifest(unsignedManifest) !== manifest.manifestChecksum

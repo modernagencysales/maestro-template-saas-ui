@@ -383,7 +383,7 @@
       },
       {
         "path": "base/tooling/generators/src/workflow-release-commands.ts.txt",
-        "sha256": "sha256:5dd847fe3153edbb7a2bda41175ed99cac216123e70197a3c2ad8a3d7cb9fa04"
+        "sha256": "sha256:543f127e1a70299f9b5190db2269803dcba973c19d9ea1b219ddf57d0fb79ac5"
       },
       {
         "path": "base/tooling/quality/check-agent-pack.mts.txt",
@@ -1284,7 +1284,7 @@
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:5dd847fe3153edbb7a2bda41175ed99cac216123e70197a3c2ad8a3d7cb9fa04"
+      "sha256": "sha256:543f127e1a70299f9b5190db2269803dcba973c19d9ea1b219ddf57d0fb79ac5"
     },
     {
       "path": "tooling/quality/check-agent-pack.mts",

@@ -35,7 +35,7 @@ describe("create root integration", () => {
     expect(
       digest(join(repoRoot, "releases/v0.2.0-alpha.1/manifest.json")),
     ).toBe(
-      "sha256:6c8c02385be18c84743dd26f933723c7e14330e93b5729842719f7741b505291",
+      "sha256:a8dc9fbe99edb3b769e6634438acd5b08e5b7b817df3c5ca526f5a6520b1ce34",
     );
     expect(
       digest(
@@ -45,7 +45,7 @@ describe("create root integration", () => {
         ),
       ),
     ).toBe(
-      "sha256:64beb12d4d6ac775379c970ea7ccb893de3bf3ae8165360de53d3c8943fd1ac8",
+      "sha256:0a0a557cb0b3be60c3593ec307b4aa4c17c2f0b4ff108ccca195f75edac10278",
     );
   });
 
