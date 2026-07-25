@@ -357,7 +357,8 @@ const executeNode = async <Result extends Record<string, unknown>>(
       ownership: {
         workspaceId: input.effectIdentity.workspaceId,
         workflowRunId: input.effectIdentity.workflowRunId,
-        generation: input.effectIdentity.generation,
+        principal: input.principal,
+        occurredAt: input.effectIdentity.occurredAt,
       },
     });
   }

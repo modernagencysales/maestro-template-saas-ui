@@ -46,6 +46,10 @@ import {
   type ProductWorkflowEventId,
   type WorkflowEventOwnership,
 } from "../confect/workflows/_kit/events";
+import {
+  allocateWorkflowEventInstance,
+  reconcileWorkflowEventInstance,
+} from "../confect/workflows/_kit/eventInstances";
 import type { WorkflowPrincipal } from "../confect/workflows/_kit/principal";
 import type { WorkflowEffectContract } from "../confect/workflows/_kit/effectReservations";
 import { runObservedWorkflowStage } from "../confect/workflows/_kit/observedStage";
@@ -124,22 +128,22 @@ describe("Maestro workflow compiler mapping", () => {
 });
 
 describe("Maestro typed event compiler 2A", () => {
-  it("awaits a located pre-sent event with stable typed identity", async () => {
-    const locate = vi.fn(async () => ownedApprovalEvent());
-    const entry = { definition: approvalEvent, locate };
+  it("journals fresh allocation before awaiting a pre-sent event", async () => {
+    const calls: string[] = [];
     const awaitCall = vi.fn(async (_event: AwaitEventInput) => ({
       approved: true,
     }));
+    const step = eventStep(awaitCall, calls);
     const result: Promise<{ readonly approved: boolean }> =
       runRegisteredWorkflowEvent({
-        step: eventStep(awaitCall),
+        step,
         node: eventNode(),
-        entry,
+        entry: approvalEntry(),
         ownership: eventRunOwnership,
       });
 
     await expect(result).resolves.toEqual({ approved: true });
-    expect(locate).toHaveBeenCalledWith(approvalOwnership());
+    expect(calls).toEqual(["generation", "create", "allocate", "await"]);
     expect(awaitCall).toHaveBeenCalledWith({
       id: ownedApprovalEvent().componentEventId,
       name: "approval-decision.v1.approval-1",
@@ -176,13 +180,13 @@ describe("Maestro typed event compiler 2A", () => {
     "rejects a %s ownership mismatch opaquely",
     async (_name, mismatch) => {
       const awaitCall = vi.fn(async () => ({ approved: true }));
-      const entry = approvalEntry({ ...ownedApprovalEvent(), ...mismatch });
+      const owned = { ...ownedApprovalEvent(), ...mismatch };
 
       await expect(
         runRegisteredWorkflowEvent({
-          step: eventStep(awaitCall),
+          step: eventStep(awaitCall, undefined, () => owned),
           node: eventNode(),
-          entry,
+          entry: approvalEntry(),
           ownership: eventRunOwnership,
         }),
       ).rejects.toSatisfy(isOpaqueEventFailure);
@@ -190,11 +194,40 @@ describe("Maestro typed event compiler 2A", () => {
     },
   );
 
+  it("rejects principal or creator-capability drift before await", async () => {
+    const awaitCall = vi.fn(async () => ({ approved: true }));
+    await expect(
+      runRegisteredWorkflowEvent({
+        step: eventStep(awaitCall, undefined, () =>
+          ownedApprovalEvent({
+            principal: { ...eventPrincipal, systemId: "other-runner" },
+          }),
+        ),
+        node: eventNode(),
+        entry: approvalEntry(),
+        ownership: eventRunOwnership,
+      }),
+    ).rejects.toSatisfy(isOpaqueEventFailure);
+
+    const otherCreator = Schema.decodeSync(WorkflowCapabilityReference)(
+      "capability.eventAllocator.v1",
+    );
+    await expect(
+      runRegisteredWorkflowEvent({
+        step: eventStep(awaitCall),
+        node: eventNode(),
+        entry: { ...approvalEntry(), creatorCapability: otherCreator },
+        ownership: eventRunOwnership,
+      }),
+    ).rejects.toSatisfy(isOpaqueEventFailure);
+    expect(awaitCall).not.toHaveBeenCalled();
+  });
+
   it("does not cross-deliver concurrent event instances", async () => {
     const awaitCall = vi.fn(async (_event: AwaitEventInput) => ({
       approved: true,
     }));
-    const located = new Map([
+    const allocated = new Map([
       ["approval-1", ownedApprovalEvent()],
       [
         "approval-2",
@@ -205,25 +238,22 @@ describe("Maestro typed event compiler 2A", () => {
         }),
       ],
     ]);
-    const entry = {
-      definition: approvalEvent,
-      locate: async (ownership: WorkflowEventOwnership) => {
-        const event = located.get(ownership.eventInstanceKey);
-        if (!event) throw new Error("missing fixture event");
-        return event;
-      },
-    };
+    const step = eventStep(awaitCall, undefined, (args) => {
+      const event = allocated.get(String(args.eventInstanceKey));
+      if (!event) throw new Error("missing fixture event");
+      return event;
+    });
 
     await runRegisteredWorkflowEvent({
-      step: eventStep(awaitCall),
+      step,
       node: eventNode(),
-      entry,
+      entry: approvalEntry(),
       ownership: eventRunOwnership,
     });
     await runRegisteredWorkflowEvent({
-      step: eventStep(awaitCall),
+      step,
       node: eventNode({ eventInstanceKey: "approval-2" }),
-      entry,
+      entry: approvalEntry(),
       ownership: eventRunOwnership,
     });
 
@@ -233,6 +263,66 @@ describe("Maestro typed event compiler 2A", () => {
       ["component-event-1", "approval-decision.v1.approval-1"],
       ["component-event-2", "approval-decision.v1.approval-2"],
     ]);
+  });
+
+  it("allocates idempotently and invalidates a stale generation on restart", () => {
+    const initial = allocateWorkflowEventInstance([], {
+      ...approvalOwnership(),
+      componentWorkflowId: "component-workflow-1",
+      componentEventId: "component-event-1" as ComponentEventId,
+      occurredAt: 1,
+    });
+    const duplicate = allocateWorkflowEventInstance(initial.rows, {
+      ...approvalOwnership(),
+      componentWorkflowId: "component-workflow-1",
+      componentEventId: "unused-duplicate" as ComponentEventId,
+      occurredAt: 2,
+    });
+    expect(duplicate.allocated).toEqual(initial.allocated);
+    expect(duplicate.rows).toEqual(initial.rows);
+
+    const restarted = allocateWorkflowEventInstance(initial.rows, {
+      ...approvalOwnership({ generation: 2 }),
+      componentWorkflowId: "component-workflow-1",
+      componentEventId: "component-event-2" as ComponentEventId,
+      occurredAt: 3,
+    });
+    expect(restarted.allocated.componentEventId).toBe("component-event-2");
+    expect(restarted.allocated.eventId).not.toBe(initial.allocated.eventId);
+    expect(restarted.rows).toMatchObject([
+      {
+        generation: 1,
+        status: "invalidated",
+        cleanup: "residual-inaccessible",
+      },
+      { generation: 2, status: "allocated", cleanup: "active" },
+    ]);
+  });
+
+  it("records cancellation and cleanup without claiming component deletion", () => {
+    const { rows, allocated } = allocateWorkflowEventInstance([], {
+      ...approvalOwnership(),
+      componentWorkflowId: "component-workflow-1",
+      componentEventId: "component-event-1" as ComponentEventId,
+      occurredAt: 1,
+    });
+    const canceled = reconcileWorkflowEventInstance(rows, {
+      eventId: allocated.eventId,
+      workspaceId: "workspace-1",
+      outcome: "canceled",
+      occurredAt: 2,
+    });
+    expect(canceled).toMatchObject([
+      { status: "canceled", cleanup: "residual-inaccessible" },
+    ]);
+    expect(() =>
+      reconcileWorkflowEventInstance(canceled, {
+        eventId: allocated.eventId,
+        workspaceId: "workspace-2",
+        outcome: "cleanup",
+        occurredAt: 3,
+      }),
+    ).toThrow("Workflow event is unavailable");
   });
 
   it("rejects invalid payloads through the real shared Convex validator", async () => {
@@ -302,7 +392,22 @@ const eventIdentity = {
   generation: 1,
   occurredAt: 1,
 } as const;
-const eventRunOwnership = eventIdentity;
+const eventPrincipal = {
+  version: 1,
+  kind: "system",
+  workspaceId: "workspace-1",
+  grants: ["workflow:event:await"],
+  kickoffAt: 1,
+  systemId: "workflow-runner",
+  reason: "workflow event fixture",
+} as const;
+const eventRunOwnership = {
+  workspaceId: eventIdentity.workspaceId,
+  workflowRunId: eventIdentity.workflowRunId,
+  generation: eventIdentity.generation,
+  principal: eventPrincipal,
+  occurredAt: eventIdentity.occurredAt,
+} as const;
 
 const approvalOwnership = (
   overrides: Partial<WorkflowEventOwnership> = {},
@@ -310,6 +415,8 @@ const approvalOwnership = (
   ...eventRunOwnership,
   eventDefinition: approvalEventRef,
   eventInstanceKey: "approval-1",
+  principal: eventPrincipal,
+  creatorCapability: capabilityRef,
   ...overrides,
 });
 
@@ -322,9 +429,17 @@ const ownedApprovalEvent = (
   ...overrides,
 });
 
-const approvalEntry = (owned = ownedApprovalEvent()) => ({
+const approvalEntry = () => ({
   definition: approvalEvent,
-  locate: async () => owned,
+  creatorCapability: capabilityRef,
+  refs: {
+    loadGeneration:
+      "component.journal.load" as unknown as DurableGraphStepRef<"query">,
+    createComponentEvent:
+      "component.event.create" as unknown as DurableGraphStepRef<"mutation">,
+    allocate:
+      "workflows.eventInstances.allocate" as unknown as DurableGraphStepRef<"mutation">,
+  },
 });
 
 const eventNode = (overrides: Partial<EventNodeV2> = {}): EventNodeV2 => ({
@@ -346,10 +461,30 @@ const eventNode = (overrides: Partial<EventNodeV2> = {}): EventNodeV2 => ({
 
 const eventStep = (
   awaitCall: (event: AwaitEventInput) => Promise<unknown>,
+  calls?: string[],
+  allocate: (args: Record<string, unknown>) => OwnedWorkflowEvent = () =>
+    ownedApprovalEvent(),
 ): RunDurableGraphStep =>
   v2Step({
-    awaitEvent: async <Result>(event: AwaitEventInput) =>
-      (await awaitCall(event)) as Result,
+    workflowId: "component-workflow-1" as unknown as NonNullable<
+      RunDurableGraphStep["workflowId"]
+    >,
+    runQuery: async () => {
+      calls?.push("generation");
+      return { workflow: { generationNumber: 1 } };
+    },
+    runMutation: async (ref, args) => {
+      if (String(ref) === "component.event.create") {
+        calls?.push("create");
+        return "component-event-1";
+      }
+      calls?.push("allocate");
+      return allocate(args);
+    },
+    awaitEvent: async <Result>(event: AwaitEventInput) => {
+      calls?.push("await");
+      return (await awaitCall(event)) as Result;
+    },
   });
 
 const isOpaqueEventFailure = (error: unknown): boolean =>
@@ -1746,7 +1881,7 @@ const payloadPolicy = {
 const v2Input = (graph: DurableWorkflowGraphV2) => ({
   graph,
   inputs: { workspaceId: "workspace-1" },
-  principal: { kind: "system" },
+  principal: eventPrincipal,
   policySnapshot: { kind: "none" },
   effectIdentity: {
     workspaceId: "workspace-1",

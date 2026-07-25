@@ -1,5 +1,8 @@
 import type { FunctionReference } from "convex/server";
-import type { EventId as ComponentEventId } from "@convex-dev/workflow";
+import type {
+  EventId as ComponentEventId,
+  WorkflowId as ComponentWorkflowId,
+} from "@convex-dev/workflow";
 import type { Validator } from "convex/values";
 
 import {
@@ -75,6 +78,8 @@ export type RunDurableGraphInput = {
 };
 
 export type RunDurableGraphStep = {
+  /** Exact component workflow identity supplied by Workflow 0.4.4. */
+  readonly workflowId?: ComponentWorkflowId;
   readonly runQuery: (
     ref: DurableGraphStepRef<"query">,
     args: Record<string, unknown>,

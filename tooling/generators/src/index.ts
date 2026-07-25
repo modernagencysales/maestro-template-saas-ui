@@ -2885,7 +2885,9 @@ export const ${name}Graph = Either.getOrThrow(defineWorkflowGraphV2({
     {
       path: `packages/convex/confect/workflows/${name}.registry.ts`,
       content: `import refs from "../_generated/refs";
+import { components } from "../../convex/_generated/api";
 import { defineWorkflowCapabilityRegistry } from "./_kit/graphRunnerV2";
+import { defineWorkflowV2EventRegistry } from "./_kit/events";
 import { defineWorkflowV2SubworkflowRegistry } from "./_kit/subworkflows";
 import { generatedWorkflowSubworkflowPolicy } from "./_kit/workpoolConfig";
 
@@ -2901,6 +2903,16 @@ export const ${name}SubworkflowLinkRefs = {
   reserveRef: refs.internal.workflows.subworkflowLinks.reserve,
   reconcileRef: refs.internal.workflows.subworkflowLinks.reconcile,
 } as const;
+
+export const ${name}EventInstanceRefs = {
+  loadGeneration: components.workflow.journal.load,
+  createComponentEvent: components.workflow.event.create,
+  allocate: refs.internal.workflows.eventInstances.allocate,
+  reconcile: refs.internal.workflows.eventInstances.reconcile,
+} as const;
+
+/** Generated typed event entries bind component and persisted internal refs. */
+export const ${name}EventRegistry = defineWorkflowV2EventRegistry({});
 
 /**
  * Generated immutable child registry. Every entry declares its exact version,
@@ -2929,6 +2941,7 @@ import {
 import type { RunDurableGraphV2CompilerInput } from "../workflows/_kit/graphRunnerV2";
 import { ${name}Graph } from "../workflows/${name}.graph";
 import {
+  ${name}EventRegistry,
   ${name}SubworkflowPolicy,
   ${name}SubworkflowRegistry,
 } from "../workflows/${name}.registry";
@@ -3020,6 +3033,7 @@ export const run = defineMaestroWorkflow(components.workflow, {
       occurredAt: args.principal.kickoffAt,
     },
     workflowRegistry: ${name}SubworkflowRegistry,
+    eventRegistry: ${name}EventRegistry,
     subworkflowPolicy: ${name}SubworkflowPolicy,
     failureRoutes,
     projectOutput: () => ({ workflowId: ${name}Graph.id, status: "completed" as const }),

@@ -36,6 +36,7 @@ export type VersionFreshnessDoc = Document.Document<typeof schemaDefinition, "ve
 export type VersionedEntriesDoc = Document.Document<typeof schemaDefinition, "versionedEntries">;
 export type WebhookEventsDoc = Document.Document<typeof schemaDefinition, "webhookEvents">;
 export type WorkflowEffectReservationsDoc = Document.Document<typeof schemaDefinition, "workflowEffectReservations">;
+export type WorkflowEventInstancesDoc = Document.Document<typeof schemaDefinition, "workflowEventInstances">;
 export type WorkflowRunContextManifestsDoc = Document.Document<typeof schemaDefinition, "workflowRunContextManifests">;
 export type WorkflowRunEventsDoc = Document.Document<typeof schemaDefinition, "workflowRunEvents">;
 export type WorkflowRunEvidenceSnapshotsDoc = Document.Document<typeof schemaDefinition, "workflowRunEvidenceSnapshots">;
@@ -81,6 +82,7 @@ export interface Docs {
   versionedEntries: VersionedEntriesDoc;
   webhookEvents: WebhookEventsDoc;
   workflowEffectReservations: WorkflowEffectReservationsDoc;
+  workflowEventInstances: WorkflowEventInstancesDoc;
   workflowRunContextManifests: WorkflowRunContextManifestsDoc;
   workflowRunEvents: WorkflowRunEventsDoc;
   workflowRunEvidenceSnapshots: WorkflowRunEvidenceSnapshotsDoc;

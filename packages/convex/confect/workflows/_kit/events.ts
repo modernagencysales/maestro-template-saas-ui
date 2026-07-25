@@ -9,10 +9,16 @@ import * as Schema from "effect/Schema";
 import { makePublicError } from "../../shared/errors";
 import type { WorkflowNodeV2 } from "../graph";
 import {
+  WorkflowCapabilityReference,
+  type WorkflowCapabilityReference as WorkflowCapabilityReferenceType,
   WorkflowEventReference,
   type WorkflowEventReference as WorkflowEventReferenceType,
 } from "./workflowReferences";
-import type { RunDurableGraphStep } from "./graphRunner";
+import {
+  WorkflowPrincipal,
+  type WorkflowPrincipal as WorkflowPrincipalType,
+} from "./principal";
+import type { DurableGraphStepRef, RunDurableGraphStep } from "./graphRunner";
 
 type EventNodeV2 = Extract<WorkflowNodeV2, { readonly kind: "event" }>;
 
@@ -73,6 +79,8 @@ export type WorkflowEventOwnership = {
   readonly generation: number;
   readonly eventDefinition: WorkflowEventReferenceType;
   readonly eventInstanceKey: string;
+  readonly principal: WorkflowPrincipalType;
+  readonly creatorCapability: WorkflowCapabilityReferenceType;
 };
 
 export type OwnedWorkflowEvent<Name extends string = string> =
@@ -91,9 +99,12 @@ export type WorkflowV2EventRegistryEntry<
   >,
 > = {
   readonly definition: WorkflowEventDefinition<Value, Name, V>;
-  readonly locate: (
-    ownership: WorkflowEventOwnership,
-  ) => Promise<OwnedWorkflowEvent<Name>>;
+  readonly creatorCapability: WorkflowCapabilityReferenceType;
+  readonly refs: {
+    readonly loadGeneration: DurableGraphStepRef<"query">;
+    readonly createComponentEvent: DurableGraphStepRef<"mutation">;
+    readonly allocate: DurableGraphStepRef<"mutation">;
+  };
 };
 
 type AnyWorkflowEventDefinition = WorkflowEventDefinition<
@@ -104,9 +115,8 @@ type AnyWorkflowEventDefinition = WorkflowEventDefinition<
 
 export type AnyWorkflowV2EventRegistryEntry = {
   readonly definition: AnyWorkflowEventDefinition;
-  readonly locate: (
-    ownership: WorkflowEventOwnership,
-  ) => Promise<OwnedWorkflowEvent<string>>;
+  readonly creatorCapability: WorkflowCapabilityReferenceType;
+  readonly refs: WorkflowV2EventRegistryEntry<unknown>["refs"];
 };
 
 export const defineWorkflowV2EventRegistry = <
@@ -134,8 +144,8 @@ type RunEventInput<Entry> = {
   readonly entry: Entry;
   readonly ownership: Pick<
     WorkflowEventOwnership,
-    "workspaceId" | "workflowRunId" | "generation"
-  >;
+    "workspaceId" | "workflowRunId"
+  > & { readonly principal: unknown; readonly occurredAt: number };
 };
 
 export function runRegisteredWorkflowEvent<
@@ -161,14 +171,59 @@ export async function runRegisteredWorkflowEvent({
     throw unavailableEvent();
   }
   const instanceKey = validateEventInstanceKey(node.eventInstanceKey);
+  if (!step.workflowId) throw unavailableEvent();
+  const principal = Schema.decodeUnknownEither(WorkflowPrincipal)(
+    ownership.principal,
+  );
+  const creatorCapability = Schema.decodeUnknownEither(
+    WorkflowCapabilityReference,
+  )(entry.creatorCapability);
+  if (
+    principal._tag === "Left" ||
+    principal.right.workspaceId !== ownership.workspaceId ||
+    creatorCapability._tag === "Left" ||
+    !Number.isFinite(ownership.occurredAt) ||
+    ownership.occurredAt < 0
+  ) {
+    throw unavailableEvent();
+  }
+  const generationResult = await step.runQuery(
+    entry.refs.loadGeneration,
+    { workflowId: step.workflowId, shortCircuit: true },
+    { name: `${node.stepName}.event-generation.v1` },
+  );
+  const generation = readGeneration(generationResult);
   const expected: WorkflowEventOwnership = {
-    ...ownership,
+    workspaceId: ownership.workspaceId,
+    workflowRunId: ownership.workflowRunId,
+    generation,
     eventDefinition: node.eventDefinition,
     eventInstanceKey: instanceKey,
+    principal: principal.right,
+    creatorCapability: creatorCapability.right,
   };
-  const owned = await entry.locate(expected);
-  assertExactOwnership(owned, expected);
   const runtimeName = `${entry.definition.name}.${instanceKey}`;
+  const componentEventId = await step.runMutation(
+    entry.refs.createComponentEvent,
+    { workflowId: step.workflowId, name: runtimeName },
+    { name: `${node.stepName}.event-create.v1` },
+  );
+  if (typeof componentEventId !== "string" || componentEventId.length === 0) {
+    throw unavailableEvent();
+  }
+  const owned = readOwnedWorkflowEvent(
+    await step.runMutation(
+      entry.refs.allocate,
+      {
+        ...expected,
+        componentWorkflowId: step.workflowId,
+        componentEventId,
+        occurredAt: ownership.occurredAt,
+      },
+      { name: `${node.stepName}.event-allocate.v1` },
+    ),
+  );
+  assertExactOwnership(owned, expected);
   return step.awaitEvent({
     id: owned.componentEventId,
     name: runtimeName,
@@ -196,10 +251,42 @@ const assertExactOwnership = (
     actual.workflowRunId !== expected.workflowRunId ||
     actual.generation !== expected.generation ||
     actual.eventDefinition !== expected.eventDefinition ||
-    actual.eventInstanceKey !== expected.eventInstanceKey
+    actual.eventInstanceKey !== expected.eventInstanceKey ||
+    !samePrincipal(actual.principal, expected.principal) ||
+    actual.creatorCapability !== expected.creatorCapability
   ) {
     throw unavailableEvent();
   }
+};
+
+const readGeneration = (value: unknown): number => {
+  const generation =
+    typeof value === "object" && value !== null && "workflow" in value
+      ? (value.workflow as { readonly generationNumber?: unknown })
+          .generationNumber
+      : undefined;
+  if (!Number.isInteger(generation) || (generation as number) < 0) {
+    throw unavailableEvent();
+  }
+  return generation as number;
+};
+
+const readOwnedWorkflowEvent = (value: unknown): OwnedWorkflowEvent => {
+  if (typeof value !== "object" || value === null) throw unavailableEvent();
+  return value as OwnedWorkflowEvent;
+};
+
+const samePrincipal = (
+  left: unknown,
+  right: WorkflowPrincipalType,
+): boolean => {
+  const decodedLeft = Schema.decodeUnknownEither(WorkflowPrincipal)(left);
+  const decodedRight = Schema.decodeUnknownEither(WorkflowPrincipal)(right);
+  return (
+    decodedLeft._tag === "Right" &&
+    decodedRight._tag === "Right" &&
+    JSON.stringify(decodedLeft.right) === JSON.stringify(decodedRight.right)
+  );
 };
 
 const unavailableEvent = () =>

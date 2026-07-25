@@ -1297,6 +1297,7 @@ describe("template app factory generators", () => {
 
     expect(registry).toContain("defineWorkflowCapabilityRegistry");
     expect(registry).toContain("defineWorkflowV2SubworkflowRegistry");
+    expect(registry).toContain("defineWorkflowV2EventRegistry");
     expect(registry).toContain("generatedWorkflowSubworkflowPolicy");
     expect(registry).toContain(
       "refs.internal.workflows.subworkflowLinks.reserve",
@@ -1304,6 +1305,15 @@ describe("template app factory generators", () => {
     expect(registry).toContain(
       "refs.internal.workflows.subworkflowLinks.reconcile",
     );
+    expect(registry).toContain(
+      "refs.internal.workflows.eventInstances.allocate",
+    );
+    expect(registry).toContain(
+      "refs.internal.workflows.eventInstances.reconcile",
+    );
+    expect(registry).toContain("components.workflow.journal.load");
+    expect(registry).toContain("components.workflow.event.create");
+    expect(convexWorkflow).toContain("eventRegistry:");
     expect(registry).toContain("internal refs");
     expect(registry).toContain("dedupe/restart horizons");
     expect(registry).toContain("guard postures");
