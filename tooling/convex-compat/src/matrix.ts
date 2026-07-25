@@ -5,6 +5,12 @@ export type CompatibilityResult = {
   readonly findings: readonly string[];
 };
 
+export type WorkpoolProductionSupportResult = {
+  readonly status: "supported" | "unsupported";
+  readonly findings: readonly string[];
+  readonly supportedAlternative: string;
+};
+
 export function evaluateCompatibilitySet(
   matrixInput: unknown,
   fixtureInput: unknown,
@@ -83,6 +89,60 @@ export function validatePinnedManifests(
     findings.push("packages/convex:convex-test");
   }
   return findings;
+}
+
+export function evaluateWorkpoolProductionSupport(
+  matrixInput: unknown,
+  fixtureInput: unknown,
+): WorkpoolProductionSupportResult {
+  const matrix = record(matrixInput, "matrix");
+  const fixture = record(fixtureInput, "fixture");
+  const authority = stringValue(
+    fixture.authority ?? "current",
+    "fixture.authority",
+  );
+  const expected = stringValue(
+    fixture.expectedProductionSupport,
+    "fixture.expectedProductionSupport",
+  );
+  if (expected !== "supported" && expected !== "unsupported") {
+    throw new TypeError(
+      "fixture.expectedProductionSupport must be supported or unsupported",
+    );
+  }
+
+  const safety = record(matrix.workpoolSafety, "matrix.workpoolSafety");
+  const set = record(safety[authority], `matrix.workpoolSafety.${authority}`);
+  const outcomes = record(
+    set.behavioralOutcomes,
+    `matrix.workpoolSafety.${authority}.behavioralOutcomes`,
+  );
+  const requiredRules = stringArray(
+    safety.requiredBehaviorRules,
+    "matrix.workpoolSafety.requiredBehaviorRules",
+  );
+  const findings = requiredRules.filter(
+    (ruleId) => outcomes[ruleId] !== "safe",
+  );
+  const status = findings.length === 0 ? "supported" : "unsupported";
+  const declared = stringValue(
+    set.productionSupport,
+    `matrix.workpoolSafety.${authority}.productionSupport`,
+  );
+  if (declared !== status) {
+    findings.push(`authority-disposition-mismatch:${declared}:${status}`);
+  }
+  if (expected !== status) {
+    findings.push(`fixture-disposition-mismatch:${expected}:${status}`);
+  }
+  return {
+    status,
+    findings,
+    supportedAlternative: stringValue(
+      safety.supportedAlternative,
+      "matrix.workpoolSafety.supportedAlternative",
+    ),
+  };
 }
 
 export function validateInlineTransactionCompatibility(

@@ -32,14 +32,39 @@
     "@convex-dev/workflow": "0.4.4",
     "@convex-dev/workpool": "0.4.8",
     "convex-test": "0.0.54",
-    "status": "tested-isolated-fail-not-adopted",
+    "status": "behaviorally-tested-fail-not-adopted",
     "proofs": [
-      "isolated-source-workpool-0.4.8",
-      "workpool-duplicate-completion-fixed-source-test",
-      "workpool-cancel-race-fixed-source-test",
-      "fresh-frozen-install"
+      "fresh-frozen-install-workpool-0.4.8",
+      "component-state-machine-duplicate-completion-behavior",
+      "component-state-machine-duplicate-cancellation-behavior",
+      "source-order-regression-explanation"
     ],
-    "findings": ["workpool-duplicate-completion", "workpool-cancel-race"]
+    "findings": ["WF-WORKPOOL-DUPLICATE-COMPLETION", "WF-WORKPOOL-CANCEL-RACE"]
+  },
+  "workpoolSafety": {
+    "requiredBehaviorRules": [
+      "WF-WORKPOOL-DUPLICATE-COMPLETION",
+      "WF-WORKPOOL-CANCEL-RACE"
+    ],
+    "behaviorFixture": "tooling/convex-compat/src/candidate-install.test.ts",
+    "supportedAlternative": "Use workflow-optional mode: reject Workpool retry and cancellation activation and make no production workflow compatibility claim.",
+    "current": {
+      "version": "0.4.7",
+      "productionSupport": "unsupported",
+      "behavioralOutcomes": {
+        "WF-WORKPOOL-DUPLICATE-COMPLETION": "unsafe-attempt-mutated-before-pending-completion-dedup",
+        "WF-WORKPOOL-CANCEL-RACE": "unsafe-concurrent-double-delete"
+      }
+    },
+    "candidate": {
+      "version": "0.4.8",
+      "productionSupport": "unsupported",
+      "adoption": "rejected",
+      "behavioralOutcomes": {
+        "WF-WORKPOOL-DUPLICATE-COMPLETION": "unsafe-attempt-mutated-before-pending-completion-dedup",
+        "WF-WORKPOOL-CANCEL-RACE": "unsafe-concurrent-double-delete"
+      }
+    }
   },
   "workflowPublicInventory": [
     "defineWorkflow",
@@ -119,8 +144,8 @@
     "workpoolSchedule": "requested-runAt-is-not-actual-start-and-may-be-clamped",
     "terminalRetryError": "NonRetryableError",
     "runtimeClosure": "function-handle-does-not-freeze-transitive-closure",
-    "workpool047DuplicateCompletion": "unproven-avoidance",
-    "workpool047CancelRace": "unproven-avoidance",
+    "workpool047DuplicateCompletion": "behaviorally-reproduced-attempt-mutation-before-dedup",
+    "workpool047CancelRace": "behaviorally-reproduced-concurrent-double-delete",
     "date": "generation-state-normalized-except-locale-timezone-methods",
     "mathRandom": "seeded-by-workflow-id"
   }

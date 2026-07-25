@@ -7,5 +7,6 @@
     "workpool": "0.4.7",
     "convexTest": "0.0.54"
   },
-  "expected": "pass"
+  "expected": "pass",
+  "expectedProductionSupport": "unsupported"
 }

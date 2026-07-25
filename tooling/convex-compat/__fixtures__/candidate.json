@@ -8,11 +8,15 @@
   },
   "authority": "candidate",
   "expected": "fail",
+  "expectedProductionSupport": "unsupported",
   "proofs": [
-    "isolated-source-workpool-0.4.8",
-    "workpool-duplicate-completion-fixed-source-test",
-    "workpool-cancel-race-fixed-source-test",
-    "fresh-frozen-install"
+    "fresh-frozen-install-workpool-0.4.8",
+    "component-state-machine-duplicate-completion-behavior",
+    "component-state-machine-duplicate-cancellation-behavior",
+    "source-order-regression-explanation"
   ],
-  "missingProofs": ["workpool-duplicate-completion", "workpool-cancel-race"]
+  "missingProofs": [
+    "WF-WORKPOOL-DUPLICATE-COMPLETION",
+    "WF-WORKPOOL-CANCEL-RACE"
+  ]
 }

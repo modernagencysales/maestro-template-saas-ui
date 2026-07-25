@@ -37,6 +37,11 @@ The compatibility record is
   bounded payloads, or portable replay require it.
 - Upstream support is not a Maestro support claim until the executable ledger
   and fixtures cover it.
+- The current Workpool 0.4.7 pin is compatibility-only. Component behavior
+  reproduces the duplicate-completion and duplicate-cancellation regressions on
+  both 0.4.7 and candidate 0.4.8, so 0.4.8 is rejected and production workflow
+  support remains fail-closed until a runtime avoidance or tested fixed version
+  passes both stable semantic rules.
 - Dependency changes update the compatibility matrix before semantic
   classifications or generated runners change.
 - If this decision changes, this ADR is superseded rather than rewritten.

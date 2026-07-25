@@ -136,6 +136,19 @@ describe("workflow semantics contract", () => {
     ).toBe("intentionally-restricted");
   });
 
+  it("fails Workpool production safety closed on behavioral evidence", () => {
+    for (const id of [
+      "WF-WORKPOOL-DUPLICATE-COMPLETION",
+      "WF-WORKPOOL-CANCEL-RACE",
+    ]) {
+      expect(WORKFLOW_SEMANTICS.find((rule) => rule.id === id)).toMatchObject({
+        status: "unsupported",
+        fixture: "tooling/convex-compat/src/candidate-install.test.ts",
+        repair: expect.stringMatching(/disabled|workflow-optional/),
+      });
+    }
+  });
+
   it("publishes only the proven terminal typed-event semantics", () => {
     for (const id of [
       "WF-NODE-EVENT-DEFINITION",

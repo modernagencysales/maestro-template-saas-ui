@@ -195,6 +195,8 @@ const FAILURE_POLICY_FIXTURE =
   "packages/template-core/src/workflow-semantics/failure-policy.test.ts";
 const INLINE_TRANSACTION_BUILDER_FIXTURE =
   "packages/convex/test/workflow-builder.test.ts";
+const WORKPOOL_SAFETY_FIXTURE =
+  "tooling/convex-compat/src/candidate-install.test.ts";
 const INLINE_TRANSACTION_GUARD =
   "independent remains default; inline is query/mutation capability only with small-atomic posture; named presets or reviewed explicit positive counters are mandatory; action, scheduled, and other node combinations are structurally rejected; canonical JSON/runtime parity is executable; support is pinned to Convex 1.42.1";
 
@@ -806,6 +808,20 @@ export const WORKFLOW_SEMANTICS = [
     "graph.joins[].sourceNodeIds",
     "WorkflowJoin.sourceNodeIds",
     "join source validation",
+  ),
+  unsupported(
+    "WF-WORKPOOL-DUPLICATE-COMPLETION",
+    "compatibility.workpool.duplicateCompletion",
+    "Workpool 0.4.7 and candidate 0.4.8 both behaviorally mutate the accepted attempt before checking for an existing pending completion.",
+    "Keep production workflow support disabled until Agent B proves a runtime avoidance guard against the same behavioral fixture or the matrix adopts a tested fixed Workpool version.",
+    WORKPOOL_SAFETY_FIXTURE,
+  ),
+  unsupported(
+    "WF-WORKPOOL-CANCEL-RACE",
+    "compatibility.workpool.duplicateCancellation",
+    "Workpool 0.4.7 and candidate 0.4.8 both behaviorally process duplicate cancellations concurrently and can double-delete pending work.",
+    "Use workflow-optional mode and reject production cancellation activation until Agent B proves serialized idempotent cancellation against the same fixture or the matrix adopts a tested fixed version.",
+    WORKPOOL_SAFETY_FIXTURE,
   ),
   supported(
     "WF-DEFINE",

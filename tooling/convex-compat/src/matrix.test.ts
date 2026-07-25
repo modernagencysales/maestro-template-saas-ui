@@ -8,6 +8,7 @@ import {
 } from "../../../packages/convex/confect/workflows/_kit/inlineTransactions";
 import {
   evaluateCompatibilitySet,
+  evaluateWorkpoolProductionSupport,
   validateInlineTransactionCompatibility,
   validatePinnedManifests,
 } from "./matrix";
@@ -28,7 +29,7 @@ describe("Convex compatibility matrix", () => {
     });
     expect(evaluateCompatibilitySet(matrix, candidate)).toEqual({
       status: "fail",
-      findings: ["workpool-duplicate-completion", "workpool-cancel-race"],
+      findings: ["WF-WORKPOOL-DUPLICATE-COMPLETION", "WF-WORKPOOL-CANCEL-RACE"],
     });
   });
 
@@ -42,6 +43,50 @@ describe("Convex compatibility matrix", () => {
     expect(
       validatePinnedManifests(matrix, convexPackage, proofPackage),
     ).toEqual([]);
+  });
+
+  it("fails production support closed for current and candidate Workpool", async () => {
+    const [matrix, current, candidate] = await Promise.all([
+      readJson("docs/template/convex-compatibility.json"),
+      readJson("tooling/convex-compat/__fixtures__/current.json"),
+      readJson("tooling/convex-compat/__fixtures__/candidate.json"),
+    ]);
+    const supportedAlternative =
+      "Use workflow-optional mode: reject Workpool retry and cancellation activation and make no production workflow compatibility claim.";
+
+    expect(evaluateWorkpoolProductionSupport(matrix, current)).toEqual({
+      status: "unsupported",
+      findings: ["WF-WORKPOOL-DUPLICATE-COMPLETION", "WF-WORKPOOL-CANCEL-RACE"],
+      supportedAlternative,
+    });
+    expect(evaluateWorkpoolProductionSupport(matrix, candidate)).toEqual({
+      status: "unsupported",
+      findings: ["WF-WORKPOOL-DUPLICATE-COMPLETION", "WF-WORKPOOL-CANCEL-RACE"],
+      supportedAlternative,
+    });
+  });
+
+  it("rejects a false Workpool production-support declaration", async () => {
+    const [matrix, current] = (await Promise.all([
+      readJson("docs/template/convex-compatibility.json"),
+      readJson("tooling/convex-compat/__fixtures__/current.json"),
+    ])) as [Record<string, unknown>, unknown];
+    const safety = matrix.workpoolSafety as Record<string, unknown>;
+    const currentAuthority = safety.current as Record<string, unknown>;
+    const result = evaluateWorkpoolProductionSupport(
+      {
+        ...matrix,
+        workpoolSafety: {
+          ...safety,
+          current: { ...currentAuthority, productionSupport: "supported" },
+        },
+      },
+      current,
+    );
+
+    expect(result.findings).toContain(
+      "authority-disposition-mismatch:supported:unsupported",
+    );
   });
 
   it("derives runtime inline parity from the canonical authority", async () => {

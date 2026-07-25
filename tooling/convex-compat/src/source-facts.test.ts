@@ -122,14 +122,14 @@ export const SOURCE_FACT_EVIDENCE = {
     ],
   },
   workpool047DuplicateCompletion: {
-    expected: "unproven-avoidance",
+    expected: "behaviorally-reproduced-attempt-mutation-before-dedup",
     packageName: "@convex-dev/workpool",
     packageVersion: "0.4.7",
     source: "src/component/stateMachine.test.ts",
     includes: ["duplicate complete with correct attempt -> BUG"],
   },
   workpool047CancelRace: {
-    expected: "unproven-avoidance",
+    expected: "behaviorally-reproduced-concurrent-double-delete",
     packageName: "@convex-dev/workpool",
     packageVersion: "0.4.7",
     source: "src/component/stateMachine.test.ts",
