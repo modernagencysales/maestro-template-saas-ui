@@ -157,7 +157,7 @@ describe("check:agent-pack", () => {
     );
   });
 
-  it("rejects a composition that bypasses the shared start command", async () => {
+  it("rejects a start handler that bypasses its JSON-safe output boundary", async () => {
     const fixtureRoot = await integratedFixture();
     const compositionPath = join(
       fixtureRoot,
@@ -166,8 +166,8 @@ describe("check:agent-pack", () => {
     await writeFile(
       compositionPath,
       (await readFile(compositionPath, "utf8")).replace(
+        "createStartCliHandler(start, startOutput)",
         "createStartCliHandler(start)",
-        "createStartCliHandler(createStartCommand({} as never))",
       ),
     );
 

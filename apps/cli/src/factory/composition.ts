@@ -59,6 +59,7 @@ import { createScaffoldCliHandler } from "./scaffold";
 import {
   createComposedStartCommand,
   createStartCliHandler,
+  createStartOutputBoundary,
   parseStartTargetInstance,
 } from "./start";
 import { createVerifyCliHandler } from "./verify";
@@ -167,12 +168,15 @@ export function createFactoryCliComposition(
       },
     }),
   );
+  const startOutput = createStartOutputBoundary(
+    overrides.start?.log ?? ((line) => process.stdout.write(`${line}\n`)),
+  );
   const start = createComposedStartCommand({
     preflight,
     readFile: readBoundedFile,
     maxBytes: FACTORY_EXECUTION_POLICY.packageJsonMaxBytes,
     environment: readEnvironment,
-    log: overrides.start?.log ?? ((line) => process.stdout.write(`${line}\n`)),
+    log: startOutput.write,
   });
 
   const verificationRunner = createExecFileVerificationRunner({
@@ -302,7 +306,7 @@ export function createFactoryCliComposition(
   });
   const handlers: readonly FactoryCliHandler[] = [
     createCustomerCreateComposition(),
-    createStartCliHandler(start),
+    createStartCliHandler(start, startOutput),
     createPreflightCliHandler(preflight),
     createVerifyCliHandler(verify),
     createVerifyCliHandler(check),

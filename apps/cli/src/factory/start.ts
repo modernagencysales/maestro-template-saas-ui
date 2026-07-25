@@ -15,21 +15,43 @@ import {
 } from "@maestro-template/agent-pack";
 import type { CliResult } from "../types";
 import { cliSuccess } from "../result";
+import { AsyncLocalStorage } from "node:async_hooks";
 import { setTimeout as delay } from "node:timers/promises";
 import { runAgentPackCommandAsCli, type FactoryCliRenderMode } from "./router";
 
 export const START_HELP =
   "maestro start [--mode fake|local|dev] [--human|--details|--json]\n";
 
+export type StartOutputBoundary = {
+  readonly write: (line: string) => void;
+  readonly run: <Value>(
+    renderMode: FactoryCliRenderMode,
+    effect: () => Promise<Value>,
+  ) => Promise<Value>;
+};
+
+export function createStartOutputBoundary(
+  sink: (line: string) => void,
+): StartOutputBoundary {
+  const renderMode = new AsyncLocalStorage<FactoryCliRenderMode>();
+  return {
+    write: (line) => {
+      if (renderMode.getStore() !== "json") sink(line);
+    },
+    run: (mode, effect) => renderMode.run(mode, effect),
+  };
+}
+
 export function createStartCliHandler<Args, Data extends AgentPackJsonValue>(
   command: AgentPackCommand<"start", Args, Data>,
+  output?: StartOutputBoundary,
 ) {
   return {
     command: "start",
     run: (argv: readonly string[], cwd: string): Promise<CliResult> =>
       argv.length === 2 && argv[1] === "--help"
         ? Promise.resolve(cliSuccess(START_HELP))
-        : runStartCli(command, argv, cwd),
+        : runStartCli(command, argv, cwd, output),
   };
 }
 
@@ -37,18 +59,21 @@ export function runStartCli<Args, Data extends AgentPackJsonValue>(
   command: AgentPackCommand<"start", Args, Data>,
   argv: readonly string[],
   cwd: string,
+  output?: StartOutputBoundary,
 ): Promise<CliResult> {
   const parsed = parseStartCli(argv.slice(1));
-  return runAgentPackCommandAsCli(
-    command,
-    parsed.input,
-    {
-      schemaVersion: AGENT_PACK_EXECUTION_CONTEXT_VERSION,
-      invocation: "cli",
-      repo: createRepositoryContext({ cwd }),
-    },
-    parsed.renderMode,
-  );
+  const execute = () =>
+    runAgentPackCommandAsCli(
+      command,
+      parsed.input,
+      {
+        schemaVersion: AGENT_PACK_EXECUTION_CONTEXT_VERSION,
+        invocation: "cli",
+        repo: createRepositoryContext({ cwd }),
+      },
+      parsed.renderMode,
+    );
+  return output?.run(parsed.renderMode, execute) ?? execute();
 }
 
 export function createComposedStartCommand(options: {

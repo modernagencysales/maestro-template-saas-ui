@@ -90,8 +90,9 @@ export async function factoryWiringFindings(
       "const verificationRunner = createExecFileVerificationRunner({\n    execFile,",
       "projectCompositionEnvironment(repo, readEnvironment)",
       "createCustomerCreateComposition()",
+      "createStartOutputBoundary(",
       "createComposedStartCommand({",
-      "createStartCliHandler(start)",
+      "createStartCliHandler(start, startOutput)",
       "parseStartTargetInstance(raw, parseTemplateInstance",
       "createPreflightCliHandler(preflight)",
       "createVerifyCliHandler(verify)",
@@ -109,6 +110,9 @@ export async function factoryWiringFindings(
       "mcp,\n    mcpConfigure,",
     ]) ||
     !includesAll(factoryStart, [
+      "new AsyncLocalStorage<FactoryCliRenderMode>()",
+      'renderMode.getStore() !== "json"',
+      "output?.run(parsed.renderMode, execute) ?? execute()",
       "readiness: { wait: waitForStartReadiness }",
       "supervise: (specs, readiness)",
       "readiness,",
