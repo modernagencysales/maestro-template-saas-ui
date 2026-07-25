@@ -31,6 +31,6 @@
   ],
   "blueprintManifest": {
     "path": "blueprints/saas-application.json",
-    "sha256": "sha256:d7a08d403e980cc6f64dba7775accdd72db581e2b3573d6a83048ec599f911f4"
+    "sha256": "sha256:4120be6238134992ed61e5ec38aa6f82fd6bf74c1c17ccfbb91a8542f47e693e"
   }
 }

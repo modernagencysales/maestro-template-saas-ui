@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { readFileSync } from "node:fs";
-import { buildWorkflowFiles } from "../generators/src/index";
+import { buildWorkflowFiles } from "../generators/src/workflow-files";
 
 const fixture = JSON.parse(
   readFileSync(

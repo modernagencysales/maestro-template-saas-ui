@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { buildWorkflowFiles } from "../generators/src/index";
+import { buildWorkflowFiles } from "../generators/src/workflow-files";
 import { readFileSync } from "node:fs";
 
 const generated = buildWorkflowFiles({

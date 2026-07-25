@@ -96,6 +96,28 @@ describe("saas application blueprint", () => {
       action: "generate",
       upgrade: "regenerate",
     });
+    for (const path of [
+      "tooling/generators/src/workflow-predeploy.ts",
+      "packages/convex/confect/capabilities/_kit/workspaceAccess.ts",
+      "packages/convex/confect/workflows/lifecycle.spec.ts",
+      "packages/convex/confect/workflows/lifecycle.impl.ts",
+    ]) {
+      expect(after.entries.find((entry) => entry.path === path)).toMatchObject({
+        ownership: "generated",
+        action: "generate",
+        upgrade: "regenerate",
+        replaces: "copy",
+      });
+    }
+    expect(
+      after.entries.find(
+        (entry) => entry.path === "tooling/generators/src/workflow-files.ts",
+      ),
+    ).toMatchObject({
+      ownership: "generated",
+      action: "generate",
+      upgrade: "regenerate",
+    });
     expect(after.entries.some((entry) => entry.path === "AGENTS.md")).toBe(
       false,
     );
@@ -135,8 +157,9 @@ describe("saas application blueprint", () => {
       "apps/cli/src/factory/start.ts",
       "package.json",
       "tooling/quality/install-lefthook-if-git.mjs",
-      "tooling/generators/src/index.ts",
-      "tooling/generators/src/workflow-release-commands.ts",
+      "tooling/generators/src/workflow-files.ts",
+      "tooling/generators/src/workflow-predeploy.ts",
+      "packages/convex/confect/capabilities/_kit/workspaceAccess.ts",
       "packages/convex/confect/_generated/docs.ts",
       "packages/convex/confect/_generated/tables/workflowArtifacts.ts",
       "packages/convex/confect/ops/dataResources.generated.ts",
@@ -147,9 +170,11 @@ describe("saas application blueprint", () => {
       "packages/convex/confect/workflows/_kit/graphRunnerExecution.ts",
       "packages/convex/confect/workflows/_kit/graphRunnerNodes.ts",
       "packages/convex/confect/workflows/_kit/graphRunnerV2.ts",
+      "packages/convex/confect/workflows/_kit/lifecycle.ts",
       "packages/convex/confect/workflows/_kit/lifecycleControls.ts",
       "packages/convex/confect/workflows/_kit/lifecycleSafety.ts",
       "packages/convex/confect/workflows/_kit/lifecycleState.ts",
+      "packages/convex/confect/workflows/_kit/lifecycleSweep.ts",
       "packages/convex/confect/workflows/_kit/observedStage.ts",
       "packages/convex/confect/workflows/_kit/observedStagePayload.ts",
       "packages/convex/confect/workflows/_kit/payloadBudget.ts",
@@ -158,8 +183,11 @@ describe("saas application blueprint", () => {
       "packages/convex/confect/workflows/_kit/subworkflows.ts",
       "packages/convex/confect/workflows/_kit/workflowArtifacts.ts",
       "packages/convex/confect/workflows/lifecycleAdapters.ts",
+      "packages/convex/confect/workflows/lifecycle.impl.ts",
       "packages/convex/confect/workflows/lifecycleInspection.ts",
       "packages/convex/confect/workflows/lifecyclePersistence.ts",
+      "packages/convex/confect/workflows/lifecycleReconciliation.ts",
+      "packages/convex/confect/workflows/lifecycle.spec.ts",
       "packages/convex/test/workflow-lifecycle-controls.fixture.ts",
       "packages/convex/test/workflow-lifecycle-registration.test.ts",
       "tooling/quality/check-workflow-policy-snapshots.mts",
