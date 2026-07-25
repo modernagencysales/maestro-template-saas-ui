@@ -1,4 +1,5 @@
 import { NonRetryableError } from "@convex-dev/workpool";
+import * as ConfectRef from "@confect/core/Ref";
 import * as Either from "effect/Either";
 import * as Schema from "effect/Schema";
 
@@ -97,19 +98,78 @@ export type WorkflowV2ActionCapabilityEntry =
     };
   };
 
-const generatedCurrentAuthorityRefBrand = Symbol(
-  "maestro.generated-current-authority-ref",
+const generatedCurrentAuthorityBindingBrand = Symbol(
+  "maestro.generated-current-authority-binding",
 );
+const generatedCurrentAuthorityBindings = new WeakSet<object>();
 
-export type GeneratedCurrentAuthorityRef = Readonly<{
+export type GeneratedCurrentAuthorityBinding = Readonly<{
   readonly ref: DurableGraphStepRef<"query">;
-  readonly [generatedCurrentAuthorityRefBrand]: true;
+  readonly workflowContractKey: string;
+  readonly workflowId: string;
+  readonly workflowVersion: number;
+  readonly [generatedCurrentAuthorityBindingBrand]: true;
 }>;
 
-export const defineGeneratedCurrentAuthorityRef = (
-  ref: DurableGraphStepRef<"query">,
-): GeneratedCurrentAuthorityRef =>
-  Object.freeze({ ref, [generatedCurrentAuthorityRefBrand]: true as const });
+export const defineGeneratedCurrentAuthorityBinding = (
+  graph: Pick<DurableWorkflowGraphV2, "id" | "version">,
+  generatedWorkflowContractRefs: object,
+): GeneratedCurrentAuthorityBinding => {
+  const workflowContractKey = workflowContractKeyForGraph(graph.id);
+  const functionNamespace = `workflowContracts/${workflowContractKey}`;
+  const contract = Object.entries(generatedWorkflowContractRefs).find(
+    ([key]) => key === workflowContractKey,
+  )?.[1];
+  if (
+    typeof contract !== "object" ||
+    contract === null ||
+    !("authorizeConsequential" in contract) ||
+    !isConfectRef(contract.authorizeConsequential) ||
+    contract.authorizeConsequential.functionNamespace !== functionNamespace ||
+    contract.authorizeConsequential.functionSpec.name !==
+      "authorizeConsequential"
+  ) {
+    throw new Error("Generated workflow current authority is unavailable.");
+  }
+  const binding = Object.freeze({
+    ref: ConfectRef.getFunctionReference(
+      contract.authorizeConsequential,
+    ) as DurableGraphStepRef<"query">,
+    workflowContractKey,
+    workflowId: graph.id,
+    workflowVersion: graph.version,
+    [generatedCurrentAuthorityBindingBrand]: true as const,
+  });
+  generatedCurrentAuthorityBindings.add(binding);
+  return binding;
+};
+
+const isConfectRef = (value: unknown): value is ConfectRef.AnyQuery =>
+  typeof value === "object" &&
+  value !== null &&
+  "functionNamespace" in value &&
+  typeof value.functionNamespace === "string" &&
+  "functionSpec" in value &&
+  typeof value.functionSpec === "object" &&
+  value.functionSpec !== null &&
+  "name" in value.functionSpec &&
+  typeof value.functionSpec.name === "string";
+
+const workflowContractKeyForGraph = (workflowId: string): string => {
+  const prefix = "workflow_";
+  const source = workflowId.startsWith(prefix)
+    ? workflowId.slice(prefix.length)
+    : workflowId;
+  const key = source.replace(/[-_]([A-Za-z0-9])/g, (_, character: string) =>
+    character.toUpperCase(),
+  );
+  if (!/^[a-z][A-Za-z0-9]*$/.test(key)) {
+    throw new Error(
+      "Generated workflow identity cannot resolve current authority.",
+    );
+  }
+  return key;
+};
 
 export type WorkflowV2CapabilityEntry =
   | WorkflowV2ActionCapabilityEntry
@@ -139,7 +199,7 @@ export type RunDurableGraphV2CompilerInput<
   readonly inputs: unknown;
   readonly principal: unknown;
   readonly policySnapshot: unknown;
-  readonly currentAuthority?: GeneratedCurrentAuthorityRef;
+  readonly currentAuthority?: GeneratedCurrentAuthorityBinding;
   readonly capabilityRegistry: Readonly<
     Record<string, WorkflowV2CapabilityEntry>
   >;
@@ -726,7 +786,7 @@ const assertExternalAuthorizationBoundary = <
     entry.authorization?.kind !== "consequential" ||
     entry.authorization.boundary !== "generated-current-authority" ||
     entry.authorization.requiredGrants.length === 0 ||
-    !isGeneratedCurrentAuthorityRef(input.currentAuthority)
+    !isGeneratedCurrentAuthorityBinding(input.currentAuthority, input.graph)
   ) {
     throw validationFailure(
       node,
@@ -746,7 +806,7 @@ const reauthorizeExternalAction = async <
 ): Promise<void> => {
   try {
     const currentAuthority = input.currentAuthority;
-    if (!isGeneratedCurrentAuthorityRef(currentAuthority)) {
+    if (!isGeneratedCurrentAuthorityBinding(currentAuthority, input.graph)) {
       throw new Error("Generated current authority is unavailable.");
     }
     const result = await step.runQuery(
@@ -767,15 +827,28 @@ const reauthorizeExternalAction = async <
   }
 };
 
-const isGeneratedCurrentAuthorityRef = (
+const isGeneratedCurrentAuthorityBinding = (
   value: unknown,
-): value is GeneratedCurrentAuthorityRef =>
-  typeof value === "object" &&
-  value !== null &&
-  generatedCurrentAuthorityRefBrand in value &&
-  value[generatedCurrentAuthorityRefBrand] === true &&
-  "ref" in value &&
-  typeof value.ref === "string";
+  graph: Pick<DurableWorkflowGraphV2, "id" | "version">,
+): value is GeneratedCurrentAuthorityBinding => {
+  if (
+    typeof value !== "object" ||
+    value === null ||
+    !generatedCurrentAuthorityBindings.has(value) ||
+    !(generatedCurrentAuthorityBindingBrand in value) ||
+    value[generatedCurrentAuthorityBindingBrand] !== true ||
+    !("ref" in value) ||
+    !("workflowId" in value) ||
+    value.workflowId !== graph.id ||
+    !("workflowContractKey" in value) ||
+    value.workflowContractKey !== workflowContractKeyForGraph(graph.id) ||
+    !("workflowVersion" in value) ||
+    value.workflowVersion !== graph.version
+  ) {
+    return false;
+  }
+  return true;
+};
 
 const assertCurrentAuthorityReceipt = <Result extends Record<string, unknown>>(
   result: unknown,

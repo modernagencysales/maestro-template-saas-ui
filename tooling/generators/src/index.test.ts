@@ -1521,11 +1521,20 @@ describe("template app factory generators", () => {
     expect(convexWorkflow).toContain(
       "principal: DurableWorkflowPrincipalValidator",
     );
-    expect(convexWorkflow).toContain("defineGeneratedCurrentAuthorityRef");
+    expect(convexWorkflow).toContain("defineGeneratedCurrentAuthorityBinding");
+    expect(convexWorkflow).not.toContain("defineGeneratedCurrentAuthorityRef");
     expect(convexWorkflow).toContain(
       "refs.internal.workflowContracts.sourceGroundedPlan.authorizeConsequential",
     );
     expect(convexWorkflow).toContain("currentAuthority,");
+    const graphRunnerV2 = readFileSync(
+      join(repoRoot, "packages/convex/confect/workflows/_kit/graphRunnerV2.ts"),
+      "utf8",
+    );
+    expect(graphRunnerV2).not.toContain(
+      "export const defineGeneratedCurrentAuthorityRef",
+    );
+    expect(graphRunnerV2).toContain("generatedWorkflowContractRefs: object");
     expect(convexWorkflow).toContain("returns: WorkflowReceiptValidator");
     expect(convexWorkflow).not.toContain("returns: v.any()");
     expect(convexWorkflow).toContain("metadata");

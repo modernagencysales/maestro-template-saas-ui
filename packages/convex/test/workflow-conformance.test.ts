@@ -25,8 +25,8 @@ import {
   type RunDurableGraphStep,
 } from "../confect/workflows/_kit/graphRunner";
 import {
-  defineGeneratedCurrentAuthorityRef,
-  type GeneratedCurrentAuthorityRef,
+  defineGeneratedCurrentAuthorityBinding,
+  type GeneratedCurrentAuthorityBinding,
 } from "../confect/workflows/_kit/graphRunnerV2";
 import {
   defineWorkflowV2SubworkflowRegistry,
@@ -1452,17 +1452,56 @@ describe("Maestro V2 inline transaction compiler", () => {
     expect(runAction).not.toHaveBeenCalled();
   });
 
-  it("rejects an arbitrary no-op authority ref before admission", async () => {
+  it("rejects a forged authority binding with a matching receipt", async () => {
     const admitEffect = vi.fn(async () => ({ kind: "dispatch" as const }));
     const runAction = vi.fn(async () => ({ accepted: true }));
-    const runQuery = vi.fn(async () => null);
+    const runQuery = vi.fn(async () => currentAuthorityReceipt);
     const arbitraryAuthority = {
+      ...generatedCurrentAuthority,
       ref: "compiler.noop" as unknown as DurableGraphStepRef<"query">,
-    } as unknown as GeneratedCurrentAuthorityRef;
+    } as unknown as GeneratedCurrentAuthorityBinding;
     await expect(
       runDurableGraphWorkflowV2(v2Step({ runAction, runQuery }), {
         ...v2ExternalInput(v2CapabilityGraph("action")),
         currentAuthority: arbitraryAuthority,
+        capabilityRegistry: {
+          [capabilityRef]: {
+            kind: "action",
+            ref: "compiler.v2.action" as unknown as DurableGraphStepRef<"action">,
+            effectClass: "external",
+            authorization: externalAuthorization,
+            effectContract: nonRetriableContract,
+            instanceKey: () => "invoice-42",
+            buildArgs: () => ({}),
+          },
+        },
+        admitEffect,
+      }),
+    ).rejects.toThrow(/generated current-authority reauthorization/);
+    expect(runQuery).not.toHaveBeenCalled();
+    expect(admitEffect).not.toHaveBeenCalled();
+    expect(runAction).not.toHaveBeenCalled();
+  });
+
+  it("rejects a generated authority binding for a different workflow", async () => {
+    const admitEffect = vi.fn(async () => ({ kind: "dispatch" as const }));
+    const runAction = vi.fn(async () => ({ accepted: true }));
+    const runQuery = vi.fn(async () => currentAuthorityReceipt);
+    const mismatchedAuthority = defineGeneratedCurrentAuthorityBinding(
+      { id: "workflow_other", version: 2 },
+      {
+        other: {
+          authorizeConsequential: {
+            functionNamespace: "workflowContracts/other",
+            functionSpec: { name: "authorizeConsequential" },
+          },
+        },
+      },
+    );
+    await expect(
+      runDurableGraphWorkflowV2(v2Step({ runAction, runQuery }), {
+        ...v2ExternalInput(v2CapabilityGraph("action")),
+        currentAuthority: mismatchedAuthority,
         capabilityRegistry: {
           [capabilityRef]: {
             kind: "action",
@@ -2063,8 +2102,18 @@ const externalAuthorization = {
   boundary: "generated-current-authority",
 } as const;
 
-const generatedCurrentAuthority = defineGeneratedCurrentAuthorityRef(
-  "workflowContracts.compilerV2:authorizeConsequential" as unknown as DurableGraphStepRef<"query">,
+const generatedWorkflowContractRefs = {
+  compilerV2: {
+    authorizeConsequential: {
+      functionNamespace: "workflowContracts/compilerV2",
+      functionSpec: { name: "authorizeConsequential" },
+    },
+  },
+} as const;
+
+const generatedCurrentAuthority = defineGeneratedCurrentAuthorityBinding(
+  { id: "compiler-v2", version: 2 },
+  generatedWorkflowContractRefs,
 );
 
 const currentAuthorityReceipt = {

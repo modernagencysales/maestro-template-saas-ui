@@ -3519,7 +3519,7 @@ import {
   runDurableGraphWorkflowV2,
   type RunDurableGraphStep,
 } from "../../workflows/_kit/graphRunner";
-import { defineGeneratedCurrentAuthorityRef } from "../../workflows/_kit/graphRunnerV2";
+import { defineGeneratedCurrentAuthorityBinding } from "../../workflows/_kit/graphRunnerV2";
 import { loadObservedWorkflowExecutionIdentity } from "../../workflows/_kit/observedStage";
 import { reconcileObservedWorkflowCompletion } from "../../workflows/_kit/lifecycleCompletion";
 import { WorkflowOnCompleteContextValidator } from "../../workflows/_kit/lifecycleState";
@@ -3545,11 +3545,18 @@ const recordStageStarted = Ref.getFunctionReference(
 const reconcileCompletionRef = Ref.getFunctionReference(
   refs.internal.workflows.lifecycle.reconcileCompletion,
 );
-const currentAuthority = defineGeneratedCurrentAuthorityRef(
+const currentAuthority = defineGeneratedCurrentAuthorityBinding(
+  ${name}Graph,
+  refs.internal.workflowContracts,
+);
+if (
+  currentAuthority.ref !==
   Ref.getFunctionReference(
     refs.internal.workflowContracts.${name}.authorizeConsequential,
-  ),
-);
+  )
+) {
+  throw new Error("Generated workflow current authority binding is invalid.");
+}
 
 const WorkflowReceiptValidator = v.object({
   workflowId: v.string(),
