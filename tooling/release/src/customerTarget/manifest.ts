@@ -7,6 +7,7 @@ export type CustomerPathOwnership =
 
 export type CustomerReleasePath = {
   readonly path: string;
+  readonly match: "exact" | "subtree";
   readonly ownership: CustomerPathOwnership;
   readonly action: "copy" | "generate" | "omit";
   readonly upgrade: "replace" | "preserve" | "regenerate" | "remove";
@@ -45,6 +46,12 @@ export type CustomerReleaseManifest =
       readonly fixtureReason: string;
     });
 
+export type ResolvedCustomerReleaseBinding = {
+  readonly tag: string;
+  readonly sourceCommit: string;
+  readonly sourceChecksum: string;
+};
+
 export class CustomerReleaseManifestError extends Error {
   readonly findings: readonly string[];
 
@@ -57,10 +64,25 @@ export class CustomerReleaseManifestError extends Error {
 
 export function assertMaterializableCustomerReleaseManifest(
   manifest: CustomerReleaseManifest,
+  resolved: ResolvedCustomerReleaseBinding | undefined,
 ): asserts manifest is MaterializableCustomerReleaseManifest {
   if (manifest.materializationStatus === "fixture-only") {
     throw new CustomerReleaseManifestError([
       `Release manifest is fixture-only: ${manifest.fixtureReason}`,
+    ]);
+  }
+  if (!resolved) {
+    throw new CustomerReleaseManifestError([
+      "Materializable release requires an externally resolved tag binding",
+    ]);
+  }
+  if (
+    resolved.tag !== manifest.release.tag ||
+    resolved.sourceCommit !== manifest.release.sourceCommit ||
+    resolved.sourceChecksum !== manifest.release.sourceChecksum
+  ) {
+    throw new CustomerReleaseManifestError([
+      "Resolved tag, commit, or source checksum does not match the release manifest",
     ]);
   }
 }
@@ -115,38 +137,99 @@ const parsePath = (
   }
   rejectUnknown(
     value,
-    ["path", "ownership", "action", "upgrade"],
+    ["path", "match", "ownership", "action", "upgrade"],
     `paths[${index}]`,
     findings,
   );
   const path = requiredString(value, "path", `paths[${index}]`, findings);
   if (!isSafePath(path)) findings.push(`Unsafe manifest path: ${path}`);
+  const pathMatch = value.match;
+  if (pathMatch !== "exact" && pathMatch !== "subtree") {
+    findings.push(`paths[${index}].match must be exact or subtree`);
+  }
+  const match = pathMatch === "subtree" ? "subtree" : "exact";
   const ownership = value.ownership;
   const action = value.action;
   const upgrade = value.upgrade;
   const combinations: readonly CustomerReleasePath[] = [
-    { path, ownership: "template-owned", action: "copy", upgrade: "replace" },
     {
       path,
+      match,
+      ownership: "template-owned",
+      action: "copy",
+      upgrade: "replace",
+    },
+    {
+      path,
+      match,
       ownership: "customer-extension",
       action: "copy",
       upgrade: "preserve",
     },
-    { path, ownership: "generated", action: "generate", upgrade: "regenerate" },
-    { path, ownership: "local-only", action: "omit", upgrade: "preserve" },
-    { path, ownership: "factory-only", action: "omit", upgrade: "remove" },
+    {
+      path,
+      match,
+      ownership: "generated",
+      action: "generate",
+      upgrade: "regenerate",
+    },
+    {
+      path,
+      match,
+      ownership: "local-only",
+      action: "omit",
+      upgrade: "preserve",
+    },
+    {
+      path,
+      match,
+      ownership: "factory-only",
+      action: "omit",
+      upgrade: "remove",
+    },
   ];
-  const match = combinations.find(
+  const combination = combinations.find(
     (candidate) =>
       candidate.ownership === ownership &&
       candidate.action === action &&
       candidate.upgrade === upgrade,
   );
-  if (!match) {
+  if (!combination) {
     findings.push(`Invalid ownership/action/upgrade posture for path: ${path}`);
   }
-  return match;
+  return combination;
 };
+
+export function resolveCustomerReleasePath(
+  paths: readonly CustomerReleasePath[],
+  path: string,
+): CustomerReleasePath | undefined {
+  const exact = paths.filter(
+    (entry) => entry.match === "exact" && entry.path === path,
+  );
+  if (exact.length > 1) {
+    throw new CustomerReleaseManifestError([
+      `Ambiguous exact path classification: ${path}`,
+    ]);
+  }
+  if (exact[0]) return exact[0];
+  const subtrees = paths
+    .filter(
+      (entry) =>
+        entry.match === "subtree" &&
+        (path === entry.path || path.startsWith(`${entry.path}/`)),
+    )
+    .sort((left, right) => right.path.length - left.path.length);
+  if (
+    subtrees.length > 1 &&
+    subtrees[0]?.path.length === subtrees[1]?.path.length
+  ) {
+    throw new CustomerReleaseManifestError([
+      `Ambiguous subtree path classification: ${path}`,
+    ]);
+  }
+  return subtrees[0];
+}
 
 export function validateCustomerReleaseManifest(
   input: unknown,
@@ -249,11 +332,12 @@ export function validateCustomerReleaseManifest(
   const paths = rawPaths
     .map((value, index) => parsePath(value, index, findings))
     .filter((value): value is CustomerReleasePath => value !== undefined);
-  const classifications = new Map<string, CustomerReleasePath>();
+  const classifications = new Set<string>();
   for (const entry of paths) {
-    if (classifications.has(entry.path))
-      findings.push(`Duplicate path classification: ${entry.path}`);
-    classifications.set(entry.path, entry);
+    const key = `${entry.match}:${entry.path}`;
+    if (classifications.has(key))
+      findings.push(`Duplicate path classification: ${key}`);
+    classifications.add(key);
   }
 
   const rawHashes = isRecord(input.expectedHashes) ? input.expectedHashes : {};
@@ -267,7 +351,7 @@ export function validateCustomerReleaseManifest(
   }
 
   for (const [path, actualHash] of Object.entries(shippedFiles)) {
-    const classification = classifications.get(path);
+    const classification = resolveCustomerReleasePath(paths, path);
     if (!classification) findings.push(`Unclassified shipped path: ${path}`);
     else if (classification.action !== "copy")
       findings.push(`Shipped path must use copy action: ${path}`);
@@ -276,15 +360,21 @@ export function validateCustomerReleaseManifest(
     if (expectedHashes[path] !== actualHash)
       findings.push(`Hash mismatch for shipped path: ${path}`);
   }
-  for (const entry of paths.filter(({ action }) => action === "copy")) {
+  for (const entry of paths.filter(
+    ({ action, match }) => action === "copy" && match === "exact",
+  )) {
     if (!(entry.path in shippedFiles))
       findings.push(`Copied path missing from shipped release: ${entry.path}`);
     if (!(entry.path in expectedHashes))
       findings.push(`Copied path missing expected hash: ${entry.path}`);
   }
   for (const path of Object.keys(expectedHashes)) {
-    if (classifications.get(path)?.action !== "copy")
+    if (resolveCustomerReleasePath(paths, path)?.action !== "copy")
       findings.push(`Expected hash must reference a copied path: ${path}`);
+    if (!(path in shippedFiles))
+      findings.push(
+        `Expected copied path missing from shipped release: ${path}`,
+      );
   }
 
   const rawSeams = Array.isArray(input.extensionSeams)
@@ -315,7 +405,10 @@ export function validateCustomerReleaseManifest(
       `extensionSeams[${index}]`,
       findings,
     );
-    if (classifications.get(path)?.ownership !== "customer-extension") {
+    if (
+      resolveCustomerReleasePath(paths, path)?.ownership !==
+      "customer-extension"
+    ) {
       findings.push(
         `Extension seam must reference a customer-extension path: ${path}`,
       );

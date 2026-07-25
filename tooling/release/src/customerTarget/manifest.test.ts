@@ -22,24 +22,40 @@ const readSchema = (): unknown => JSON.parse(readFileSync(schemaFile, "utf8"));
 const rewriteFixture = (
   status: string | undefined,
   includeReason: boolean,
-): unknown =>
-  JSON.parse(JSON.stringify(readFixture()), (key, value: unknown): unknown => {
-    if (key === "materializationStatus") return status;
-    if (key === "fixtureReason" && !includeReason) return undefined;
-    return value;
-  });
+): unknown => {
+  let serialized = JSON.stringify(readFixture());
+  serialized = serialized.replace(
+    '"materializationStatus":"fixture-only"',
+    status === undefined
+      ? '"removedMaterializationStatus":null'
+      : `"materializationStatus":${JSON.stringify(status)}`,
+  );
+  if (!includeReason) {
+    serialized = serialized.replace(/"fixtureReason":"(?:[^"\\]|\\.)*",/, "");
+  } else if (
+    status === "fixture-only" &&
+    !serialized.includes('"fixtureReason"')
+  ) {
+    serialized = serialized.replace(
+      '"release":',
+      '"fixtureReason":"Contract evidence fixture.","release":',
+    );
+  }
+  return JSON.parse(serialized);
+};
 
 const sha256 = (path: string): string =>
   `sha256:${createHash("sha256")
     .update(readFileSync(resolve(repoRoot, path)))
     .digest("hex")}`;
 
-const shippedFiles = Object.freeze({
-  "AGENTS.md": sha256("AGENTS.md"),
-  "docs/template/client-intake-questionnaire.md": sha256(
-    "docs/template/client-intake-questionnaire.md",
+const shippedFiles = Object.freeze(
+  Object.fromEntries(
+    Object.keys(
+      JSON.parse(readFileSync(fixturePath, "utf8")).expectedHashes,
+    ).map((path) => [path, sha256(path)]),
   ),
-});
+);
 
 describe("customer release manifest", () => {
   it("validates the immutable golden tagged release", () => {
@@ -51,9 +67,9 @@ describe("customer release manifest", () => {
     expect(manifest.release).toEqual({
       version: "0.1.0-alpha.1",
       tag: "maestro-template-v0.1.0-alpha.1",
-      sourceCommit: "a6ec083e7f6a689fb39f19804fb117056b290c79",
+      sourceCommit: "edfc912837af6096bed30213429b821bae282921",
       sourceChecksum:
-        "sha256:7e6c9148442e12d073721a8dfa1ccfd9675cb757c588ae5ddf8c48f38485594e",
+        "sha256:2a7c3981d8a27f591a2a0f6555d7fd101113393b8867f7621512e148b4627437",
     });
     expect(manifest.compatibility).toEqual({
       cli: ">=0.1.0-alpha.1 <0.2.0",
@@ -61,12 +77,15 @@ describe("customer release manifest", () => {
     });
     expect(manifest).toMatchObject({
       materializationStatus: "fixture-only",
-      fixtureReason:
-        "Contract evidence only; the complete customer ownership inventory lands in WP-4.0 stack 2.",
+      fixtureReason: expect.stringContaining("has not been published"),
     });
-    expect(() => assertMaterializableCustomerReleaseManifest(manifest)).toThrow(
-      "Release manifest is fixture-only",
-    );
+    expect(() =>
+      assertMaterializableCustomerReleaseManifest(manifest, {
+        tag: manifest.release.tag,
+        sourceCommit: manifest.release.sourceCommit,
+        sourceChecksum: manifest.release.sourceChecksum,
+      }),
+    ).toThrow("Release manifest is fixture-only");
     expect(new Set(manifest.paths.map(({ ownership }) => ownership))).toEqual(
       new Set([
         "template-owned",
@@ -76,11 +95,11 @@ describe("customer release manifest", () => {
         "factory-only",
       ]),
     );
-    expect(manifest.extensionSeams).toEqual([
-      {
-        path: "docs/template/client-intake-questionnaire.md",
-        description: "Customer-owned intake language and answers.",
-      },
+    expect(manifest.extensionSeams.map(({ path }) => path).sort()).toEqual([
+      ".env.example",
+      "README.md",
+      "docs/template/client-intake-questionnaire.md",
+      "project.config.json",
     ]);
   });
 
@@ -92,6 +111,11 @@ describe("customer release manifest", () => {
           enum: ["fixture-only", "materializable"],
         },
         fixtureReason: { type: "string", minLength: 1 },
+        paths: expect.objectContaining({
+          items: expect.objectContaining({
+            required: expect.arrayContaining(["match"]),
+          }),
+        }),
       },
       allOf: [
         expect.objectContaining({
@@ -138,14 +162,39 @@ describe("customer release manifest", () => {
     },
   );
 
-  it("allows only a materializable manifest through the assertion", () => {
+  it("requires an externally resolved exact binding for materialization", () => {
+    const fixtureOnly = validateCustomerReleaseManifest(
+      rewriteFixture("fixture-only", true),
+      shippedFiles,
+    );
     const manifest = validateCustomerReleaseManifest(
       rewriteFixture("materializable", false),
       shippedFiles,
     );
 
     expect(() =>
-      assertMaterializableCustomerReleaseManifest(manifest),
+      assertMaterializableCustomerReleaseManifest(fixtureOnly, {
+        tag: fixtureOnly.release.tag,
+        sourceCommit: fixtureOnly.release.sourceCommit,
+        sourceChecksum: fixtureOnly.release.sourceChecksum,
+      }),
+    ).toThrow("Release manifest is fixture-only");
+    expect(() =>
+      assertMaterializableCustomerReleaseManifest(manifest, undefined),
+    ).toThrow("externally resolved tag binding");
+    expect(() =>
+      assertMaterializableCustomerReleaseManifest(manifest, {
+        tag: "maestro-template-v0.1.0-alpha.1-wrong",
+        sourceCommit: manifest.release.sourceCommit,
+        sourceChecksum: manifest.release.sourceChecksum,
+      }),
+    ).toThrow("does not match the release manifest");
+    expect(() =>
+      assertMaterializableCustomerReleaseManifest(manifest, {
+        tag: manifest.release.tag,
+        sourceCommit: manifest.release.sourceCommit,
+        sourceChecksum: manifest.release.sourceChecksum,
+      }),
     ).not.toThrow();
   });
 
@@ -153,15 +202,15 @@ describe("customer release manifest", () => {
     expect(() =>
       validateCustomerReleaseManifest(readFixture(), {
         ...shippedFiles,
-        "apps/web/src/unclassified.ts": `sha256:${"0".repeat(64)}`,
+        "unknown/unclassified.ts": `sha256:${"0".repeat(64)}`,
       }),
     ).toThrowError(CustomerReleaseManifestError);
     expect(() =>
       validateCustomerReleaseManifest(readFixture(), {
         ...shippedFiles,
-        "apps/web/src/unclassified.ts": `sha256:${"0".repeat(64)}`,
+        "unknown/unclassified.ts": `sha256:${"0".repeat(64)}`,
       }),
-    ).toThrow("Unclassified shipped path: apps/web/src/unclassified.ts");
+    ).toThrow("Unclassified shipped path: unknown/unclassified.ts");
   });
 
   it("rejects copied hashes and extension seams that drift from ownership", () => {

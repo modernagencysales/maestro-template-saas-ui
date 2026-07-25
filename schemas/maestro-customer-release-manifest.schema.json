@@ -55,9 +55,10 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["path", "ownership", "action", "upgrade"],
+        "required": ["path", "match", "ownership", "action", "upgrade"],
         "properties": {
           "path": { "$ref": "#/$defs/path" },
+          "match": { "enum": ["exact", "subtree"] },
           "ownership": {
             "enum": [
               "template-owned",
