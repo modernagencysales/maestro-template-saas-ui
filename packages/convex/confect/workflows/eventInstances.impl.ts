@@ -1,16 +1,35 @@
 import { FunctionImpl, GroupImpl } from "@confect/server";
+import {
+  sendEvent as sendComponentEvent,
+  type WorkflowComponent,
+} from "@convex-dev/workflow";
+import type { GenericId } from "convex/values";
+import { componentsGeneric } from "convex/server";
 import * as Effect from "effect/Effect";
+import * as Clock from "effect/Clock";
 import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
 import type { EventId as ComponentEventId } from "@convex-dev/workflow";
 import * as Schema from "effect/Schema";
 
 import databaseSchema from "../_generated/schema";
-import { DatabaseReader, DatabaseWriter } from "../_generated/services";
-import { NotFound, ValidationFailed } from "../errors";
+import {
+  DatabaseReader,
+  DatabaseWriter,
+  MutationCtx,
+} from "../_generated/services";
+import { requireWorkspaceAccess } from "../capabilities/_kit/workspaceAccess";
+import {
+  MemberNotInWorkspace,
+  NotFound,
+  Unauthorized,
+  ValidationFailed,
+  WorkspaceNotFound,
+} from "../errors";
 import {
   allocateWorkflowEventInstance,
   reconcileWorkflowEventInstance,
+  sendWorkflowEventInstance,
   type WorkflowEventInstanceRow,
 } from "./_kit/eventInstances";
 import { ProductWorkflowEventId } from "./_kit/events";
@@ -19,6 +38,15 @@ import {
   WorkflowEventReference,
 } from "./_kit/workflowReferences";
 import eventInstances from "./eventInstances.spec";
+
+const workflowComponent = componentsGeneric()
+  .workflow as unknown as WorkflowComponent;
+
+const withConfectClock = <A, E, R>(
+  effect: Effect.Effect<A, E, R>,
+): Effect.Effect<A, E, Exclude<R, Clock.Clock>> =>
+  // Confect provides Clock at runtime, but its current handler type omits it.
+  effect as Effect.Effect<A, E, Exclude<R, Clock.Clock>>;
 
 const allocate = FunctionImpl.make(
   databaseSchema,
@@ -143,6 +171,112 @@ const reconcile = FunctionImpl.make(
     }),
 );
 
+const send = FunctionImpl.make(
+  databaseSchema,
+  eventInstances,
+  "send",
+  ({ selector, delivery, occurredAt }) =>
+    Effect.gen(function* () {
+      const reader = yield* DatabaseReader;
+      const candidates =
+        selector.kind === "id"
+          ? yield* reader
+              .table("workflowEventInstances")
+              .index("by_product_event", (q) =>
+                q.eq("eventId", selector.eventId),
+              )
+              .collect()
+              .pipe(Effect.orDie)
+          : yield* reader
+              .table("workflowEventInstances")
+              .index("by_component_definition_instance", (q) =>
+                q
+                  .eq("componentWorkflowId", selector.componentWorkflowId)
+                  .eq("eventDefinition", selector.eventDefinition)
+                  .eq("eventInstanceKey", selector.eventInstanceKey),
+              )
+              .collect()
+              .pipe(Effect.orDie);
+      const active = candidates.filter(
+        (candidate) =>
+          candidate.status === "allocated" && candidate.cleanup === "active",
+      );
+      if (active.length !== 1 || active[0] === undefined) {
+        return yield* unavailableOwnedEvent(
+          selector.kind === "id"
+            ? selector.eventId
+            : selector.componentWorkflowId,
+        );
+      }
+      const existing = active[0];
+      yield* withConfectClock(
+        requireWorkspaceAccess(
+          existing.workspaceId as GenericId<"workspaces">,
+          "editor",
+        ),
+      ).pipe(
+        Effect.mapError((error) =>
+          error instanceof Unauthorized
+            ? error
+            : new NotFound({
+                resource: "workflowEventInstances",
+                id: existing.eventId,
+              }),
+        ),
+      );
+      const transition = yield* Effect.try({
+        try: () =>
+          sendWorkflowEventInstance(candidates.map(toRuntimeRow), {
+            selector,
+            delivery: { kind: delivery.kind },
+            occurredAt,
+          }),
+        catch: () =>
+          new NotFound({
+            resource: "workflowEventInstances",
+            id: existing.eventId,
+          }),
+      });
+      const ctx = yield* MutationCtx;
+      yield* Effect.tryPromise({
+        try: () =>
+          delivery.kind === "value"
+            ? sendComponentEvent(ctx, workflowComponent, {
+                id: transition.owned.componentEventId,
+                value: delivery.value,
+              })
+            : sendComponentEvent(ctx, workflowComponent, {
+                id: transition.owned.componentEventId,
+                error: delivery.error,
+              }),
+        catch: () =>
+          new ValidationFailed({
+            field: "event",
+            message: "Workflow event is unavailable.",
+          }),
+      });
+      const next = transition.rows.find(
+        (row) => row.eventId === transition.owned.eventId,
+      );
+      if (next === undefined) {
+        return yield* unavailableOwnedEvent(existing.eventId);
+      }
+      const writer = yield* DatabaseWriter;
+      yield* writer
+        .table("workflowEventInstances")
+        .patch(existing._id, {
+          status: next.status,
+          deliveryKind: next.deliveryKind,
+          updatedAt: next.updatedAt,
+        })
+        .pipe(Effect.orDie);
+      return { ...transition.owned, status: "sent" as const };
+    }),
+);
+
+const unavailableOwnedEvent = (id: string) =>
+  Effect.fail(new NotFound({ resource: "workflowEventInstances", id }));
+
 const toRuntimeRow = (row: {
   readonly workspaceId: string;
   readonly workflowRunId: string;
@@ -155,6 +289,7 @@ const toRuntimeRow = (row: {
   readonly principal: WorkflowEventInstanceRow["principal"];
   readonly creatorCapability: string;
   readonly status: WorkflowEventInstanceRow["status"];
+  readonly deliveryKind: WorkflowEventInstanceRow["deliveryKind"];
   readonly cleanup: WorkflowEventInstanceRow["cleanup"];
   readonly createdAt: number;
   readonly updatedAt: number;
@@ -173,5 +308,6 @@ const toRuntimeRow = (row: {
 export default GroupImpl.make(databaseSchema, eventInstances).pipe(
   Layer.provide(allocate),
   Layer.provide(reconcile),
+  Layer.provide(send),
   GroupImpl.finalize,
 );

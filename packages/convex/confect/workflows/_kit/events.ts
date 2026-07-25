@@ -73,6 +73,43 @@ export const defineWorkflowEvent = <
 export type WorkflowEventValue<Definition> =
   Definition extends WorkflowEventDefinition<infer Value> ? Value : never;
 
+export type WorkflowEventDelivery<Value> =
+  | { readonly kind: "value"; readonly value: Value }
+  | { readonly kind: "error"; readonly error: string };
+
+export const validateWorkflowEventDelivery = <
+  Definition extends AnyWorkflowEventDefinition,
+>(
+  definition: Definition,
+  delivery:
+    | { readonly kind: "value"; readonly value: unknown }
+    | { readonly kind: "error"; readonly error: string },
+): WorkflowEventDelivery<WorkflowEventValue<Definition>> => {
+  if (
+    typeof definition !== "object" ||
+    definition === null ||
+    !("validator" in definition)
+  ) {
+    throw unavailableEvent();
+  }
+  if (delivery.kind === "error") {
+    if (delivery.error.length === 0) throw unavailableEvent();
+    return delivery;
+  }
+  try {
+    const decoded = Schema.decodeUnknownEither(definition.schema)(
+      delivery.value,
+    );
+    if (Either.isLeft(decoded)) throw unavailableEvent();
+    return {
+      kind: "value",
+      value: decoded.right as WorkflowEventValue<Definition>,
+    };
+  } catch {
+    throw unavailableEvent();
+  }
+};
+
 export type WorkflowEventOwnership = {
   readonly workspaceId: string;
   readonly workflowRunId: string;
@@ -104,6 +141,7 @@ export type WorkflowV2EventRegistryEntry<
     readonly loadGeneration: DurableGraphStepRef<"query">;
     readonly createComponentEvent: DurableGraphStepRef<"mutation">;
     readonly allocate: DurableGraphStepRef<"mutation">;
+    readonly reconcile: DurableGraphStepRef<"mutation">;
   };
 };
 
@@ -224,12 +262,53 @@ export async function runRegisteredWorkflowEvent({
     ),
   );
   assertExactOwnership(owned, expected);
-  return step.awaitEvent({
-    id: owned.componentEventId,
-    name: runtimeName,
-    validator: entry.definition.validator,
-  });
+  try {
+    const result = await step.awaitEvent({
+      id: owned.componentEventId,
+      name: runtimeName,
+      validator: entry.definition.validator,
+    });
+    await markEventConsumed(
+      step,
+      entry,
+      owned,
+      ownership.occurredAt,
+      node.stepName,
+    );
+    return result;
+  } catch (error) {
+    try {
+      await markEventConsumed(
+        step,
+        entry,
+        owned,
+        ownership.occurredAt,
+        node.stepName,
+      );
+    } catch {
+      // Cancellation or invalidation is already durable; preserve the await error.
+    }
+    throw error;
+  }
 }
+
+const markEventConsumed = (
+  step: RunDurableGraphStep,
+  entry: AnyWorkflowV2EventRegistryEntry,
+  owned: OwnedWorkflowEvent,
+  occurredAt: number,
+  stepName: string,
+): Promise<unknown> =>
+  step.runMutation(
+    entry.refs.reconcile,
+    {
+      workspaceId: owned.workspaceId,
+      eventId: owned.eventId,
+      outcome: "consumed",
+      occurredAt,
+    },
+    { name: `${stepName}.event-consume.v1` },
+  );
 
 export const validateEventInstanceKey = (value: string): string => {
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value)) {

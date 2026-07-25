@@ -2387,6 +2387,7 @@ import {
   WorkspaceNotFound,
 } from "../errors";
 import { Id } from "../_generated/id";
+import { ProductWorkflowEventId } from "../workflows/_kit/events";
 import { WorkflowStatusResult } from "../workflows/_kit/status";
 
 const WorkflowErrors = Schema.Union(
@@ -2413,14 +2414,34 @@ const StatusArgs = Schema.Struct({
   componentWorkflowId: Schema.String,
 });
 
-const ApproveArgs = Schema.Struct({
-  workspaceId: Id("workspaces"),
-  componentWorkflowId: Schema.String,
-  nodeId: Schema.String,
+const SendEventArgs = Schema.Struct({
+  selector: Schema.Union(
+    Schema.Struct({
+      kind: Schema.Literal("id"),
+      eventId: ProductWorkflowEventId,
+    }),
+    Schema.Struct({
+      kind: Schema.Literal("definition"),
+      componentWorkflowId: Schema.NonEmptyString,
+      event: Schema.Literal("approvalDecision"),
+      eventInstanceKey: Schema.NonEmptyString,
+    }),
+  ),
+  delivery: Schema.Union(
+    Schema.Struct({
+      kind: Schema.Literal("value"),
+      value: Schema.Struct({ approved: Schema.Boolean }),
+    }),
+    Schema.Struct({
+      kind: Schema.Literal("error"),
+      error: Schema.NonEmptyString,
+    }),
+  ),
 });
 
-const ApproveReturns = Schema.Struct({
-  eventId: Schema.String,
+const SendEventReturns = Schema.Struct({
+  eventId: ProductWorkflowEventId,
+  status: Schema.Literal("sent"),
 });
 
 export const startInteractive = defineContractFunction(
@@ -2507,17 +2528,17 @@ export const status = defineContractFunction(
   },
 );
 
-export const approve = defineContractFunction(
+export const sendEvent = defineContractFunction(
   FunctionSpec.publicMutation({
-    name: "approve",
-    args: () => ApproveArgs,
-    returns: () => ApproveReturns,
+    name: "sendEvent",
+    args: () => SendEventArgs,
+    returns: () => SendEventReturns,
     error: () => WorkflowErrors,
   }),
   {
     namespace: "workflows.${name}",
-    name: "approve",
-    operationId: "workflows.${name}.approve",
+    name: "sendEvent",
+    operationId: "workflows.${name}.sendEvent",
     kind: "mutation",
     surfaces: ["web", "api", "cli", "mcp"],
     typedErrors: [
@@ -2528,14 +2549,14 @@ export const approve = defineContractFunction(
       "ValidationFailed",
     ],
     idempotent: false,
-    argsSchemaName: "workflows.${name}.approve.args",
-    returnsSchemaName: "workflows.${name}.approve.returns",
-    argsSchema: ApproveArgs,
-    returnsSchema: ApproveReturns,
+    argsSchemaName: "workflows.${name}.sendEvent.args",
+    returnsSchemaName: "workflows.${name}.sendEvent.returns",
+    argsSchema: SendEventArgs,
+    returnsSchema: SendEventReturns,
   },
 );
 
-const contractFunctions = [startInteractive, startQueued, status, approve] as const;
+const contractFunctions = [startInteractive, startQueued, status, sendEvent] as const;
 
 export const manifest = collectContractManifest(contractFunctions);
 export const schemaRegistry = collectContractSchemas(contractFunctions);
@@ -2544,7 +2565,7 @@ export default GroupSpec.make()
   .addFunction(startInteractive.spec)
   .addFunction(startQueued.spec)
   .addFunction(status.spec)
-  .addFunction(approve.spec);
+  .addFunction(sendEvent.spec);
 `,
     },
     {
@@ -2552,7 +2573,6 @@ export default GroupSpec.make()
       content: `import type { GenericId } from "convex/values";
 import {
   getStatus,
-  sendEvent,
   type WorkflowComponent,
   type WorkflowId,
 } from "@convex-dev/workflow";
@@ -2567,9 +2587,10 @@ import {
   type FunctionReference,
 } from "convex/server";
 import databaseSchema from "../_generated/schema";
+import refs from "../_generated/refs";
 import {
   DatabaseReader,
-  MutationCtx,
+  MutationRunner,
   QueryCtx,
 } from "../_generated/services";
 import { requireWorkspaceAccess } from "../capabilities/_kit/workspaceAccess";
@@ -2586,6 +2607,8 @@ import {
   type WorkflowStatusRunProjection,
 } from "../workflows/_kit/status";
 import { ${name}Graph } from "../workflows/${name}.graph";
+import { validateWorkflowEventDelivery } from "../workflows/_kit/events";
+import { ${name}ApprovalDecisionEvent } from "../workflows/${name}.registry";
 import ${name} from "./${name}.spec";
 
 const withConfectClock = <A, E, R>(
@@ -2788,24 +2811,31 @@ const statusImpl = FunctionImpl.make(
     }).pipe(Effect.mapError(toWorkflowError)),
 );
 
-const approveImpl = FunctionImpl.make(
+const sendEventImpl = FunctionImpl.make(
   databaseSchema,
   ${name},
-  "approve",
-  ({ workspaceId, componentWorkflowId, nodeId }) =>
+  "sendEvent",
+  ({ selector, delivery }) =>
     Effect.gen(function* () {
-      yield* withConfectClock(requireWorkspaceAccess(workspaceId, "editor"));
-      yield* findWorkflowRun(workspaceId, componentWorkflowId);
-      const ctx = yield* MutationCtx;
-      const eventId = yield* Effect.promise(() =>
-        sendEvent(ctx, workflowComponent, {
-          workflowId: componentWorkflowId as WorkflowId,
-          name: ${name}Graph.id + "." + nodeId + ".approved",
-          value: null,
-        }),
-      ).pipe(Effect.mapError(toWorkflowValidationFailed));
-
-      return { eventId };
+      const validated = validateWorkflowEventDelivery(
+        ${name}ApprovalDecisionEvent,
+        delivery,
+      );
+      const occurredAt = yield* withConfectClock(Clock.currentTimeMillis);
+      const runMutation = yield* MutationRunner;
+      return yield* runMutation(refs.internal.workflows.eventInstances.send, {
+        selector:
+          selector.kind === "id"
+            ? selector
+            : {
+                kind: "definition" as const,
+                componentWorkflowId: selector.componentWorkflowId,
+                eventDefinition: ${name}ApprovalDecisionEvent.reference,
+                eventInstanceKey: selector.eventInstanceKey,
+              },
+        delivery: validated,
+        occurredAt,
+      });
     }).pipe(Effect.mapError(toWorkflowError)),
 );
 
@@ -2813,7 +2843,7 @@ export default GroupImpl.make(databaseSchema, ${name}).pipe(
   Layer.provide(startInteractiveImpl),
   Layer.provide(startQueuedImpl),
   Layer.provide(statusImpl),
-  Layer.provide(approveImpl),
+  Layer.provide(sendEventImpl),
   GroupImpl.finalize,
 );
 `,
@@ -2825,9 +2855,9 @@ import { defineWorkflowGraphV2 } from "./_kit/workflowBuilder";
 import { defineWorkflowReferenceRegistry } from "./_kit/workflowReferences";
 
 export const ${name}References = defineWorkflowReferenceRegistry({
-  capabilities: {},
+  capabilities: { eventControl: "capability.workflowEventControl.v1" },
   workflows: { self: "workflow.${name}.v2" },
-  events: {},
+  events: { approvalDecision: "event.approvalDecision.v1" },
 });
 
 export const ${name}Graph = Either.getOrThrow(defineWorkflowGraphV2({
@@ -2885,11 +2915,18 @@ export const ${name}Graph = Either.getOrThrow(defineWorkflowGraphV2({
     {
       path: `packages/convex/confect/workflows/${name}.registry.ts`,
       content: `import refs from "../_generated/refs";
+import * as Ref from "@confect/core/Ref";
 import { components } from "../../convex/_generated/api";
+import { v } from "convex/values";
+import * as Schema from "effect/Schema";
 import { defineWorkflowCapabilityRegistry } from "./_kit/graphRunnerV2";
-import { defineWorkflowV2EventRegistry } from "./_kit/events";
+import {
+  defineWorkflowEvent,
+  defineWorkflowV2EventRegistry,
+} from "./_kit/events";
 import { defineWorkflowV2SubworkflowRegistry } from "./_kit/subworkflows";
 import { generatedWorkflowSubworkflowPolicy } from "./_kit/workpoolConfig";
+import { ${name}References } from "./${name}.graph";
 
 /**
  * Generated typed capability registry. Add entries only through generated
@@ -2907,12 +2944,30 @@ export const ${name}SubworkflowLinkRefs = {
 export const ${name}EventInstanceRefs = {
   loadGeneration: components.workflow.journal.load,
   createComponentEvent: components.workflow.event.create,
-  allocate: refs.internal.workflows.eventInstances.allocate,
-  reconcile: refs.internal.workflows.eventInstances.reconcile,
+  allocate: Ref.getFunctionReference(
+    refs.internal.workflows.eventInstances.allocate,
+  ),
+  reconcile: Ref.getFunctionReference(
+    refs.internal.workflows.eventInstances.reconcile,
+  ),
 } as const;
 
+export const ${name}ApprovalDecisionEvent = defineWorkflowEvent({
+  reference: ${name}References.events.approvalDecision,
+  name: "${kebabCase(name)}-approval-decision.v1",
+  schemaName: "workflows.${name}.approvalDecision.v1",
+  schema: Schema.Struct({ approved: Schema.Boolean }),
+  validator: v.object({ approved: v.boolean() }),
+});
+
 /** Generated typed event entries bind component and persisted internal refs. */
-export const ${name}EventRegistry = defineWorkflowV2EventRegistry({});
+export const ${name}EventRegistry = defineWorkflowV2EventRegistry({
+  [${name}ApprovalDecisionEvent.reference]: {
+    definition: ${name}ApprovalDecisionEvent,
+    creatorCapability: ${name}References.capabilities.eventControl,
+    refs: ${name}EventInstanceRefs,
+  },
+});
 
 /**
  * Generated immutable child registry. Every entry declares its exact version,
@@ -3143,7 +3198,7 @@ Canonical system: \`${options.system}\` (\`${options.disposition}\`).
 - \`packages/convex/confect/workflowRunners/${name}.ts\`: Confect-owned plain workflow runner source.
 - \`packages/convex/convex/workflowRunners/${name}.ts\`: reproducible Confect projection; never edit it by hand.
 - \`docs/template/generated/workflows/${name}.semantics.json\`: semantic coverage keyed by executable rule id.
-- \`packages/convex/confect/workflowContracts/${name}.spec.ts\`: typed start, status, and approval contract.
+- \`packages/convex/confect/workflowContracts/${name}.spec.ts\`: typed start, status, and event-control contract.
 - \`packages/convex/confect/workflowContracts/${name}.impl.ts\`: Confect implementation that records workflow ownership and projects component status.
 - \`packages/convex/confect/workflows/${name}.graph.ts\`: durable graph data, initially source to Trust Receipt output only.
 - \`packages/convex/confect/workflows/${name}.registry.ts\`: generated typed capability and immutable child-workflow metadata, topology policy, and internal refs; external actions require effect, horizon, guard, redaction, and fixture evidence.
@@ -3156,7 +3211,7 @@ Canonical system: \`${options.system}\` (\`${options.disposition}\`).
 2. Run \`pnpm confect:codegen\`, then \`pnpm --dir packages/convex exec convex codegen\`, so Confect reproduces \`workflowRunners/${name}:run\` before typecheck.
 3. Preserve the authenticated handler's server-derived principal projection when specializing start behavior.
 4. Keep React Flow as a projection of \`${name}.graph.ts\`; do not persist canvas node state as the workflow contract.
-5. Generated approval nodes require the generated \`workflowContracts.${name}.approve\` mutation before they are usable.
+5. Generated event nodes require \`workflowContracts.${name}.sendEvent\`; callers select an owned opaque ID or generated definition key and never provide workspace, principal, or raw component names.
 6. Generated capability nodes require registry entries with generated internal refs, concrete \`buildArgs\` and logical instance-key mappers, and complete effect/guard/redaction/evidence contracts.
 7. Generated subworkflow entries require an immutable child version, typed Args/Result schemas, declared transitive children, principal posture, and \`${name}SubworkflowLinkRefs\`; cycle, depth, and fan-out checks run before child dispatch.
 8. Workflow 0.4.4 scheduled children remain rejected; use a named sleep plus an unscheduled child only as a deliberately non-equivalent alternative.

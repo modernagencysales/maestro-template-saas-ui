@@ -1,0 +1,166 @@
+{
+  "feature": "phase-1-wp-1.4-terminal-typed-events-2b-slice-2",
+  "slices": [
+    {
+      "id": 1,
+      "branch": "codex/ap-b-workflow",
+      "intention": "guard typed event send and consumption through persisted owned event state",
+      "layers": ["workflows", "storage", "checks"],
+      "contractRiskIds": [
+        "ambient-time-inline",
+        "bare-error-not-typed",
+        "workspace-guard",
+        "schema-runtime-validator-export",
+        "policy-data-hardcoded",
+        "duplicated-closed-union",
+        "invalid-test-fixture-or-cast",
+        "branching-logic-needs-boundary-tests",
+        "unjustified-cap-or-threshold",
+        "prompt-model-policy-boundary",
+        "type-escape-or-cast",
+        "existing-module-repair-checklist"
+      ],
+      "existingModuleRepairChecklist": {
+        "existingTargetModules": [
+          "packages/convex/confect/tables/workflowEventInstances.ts",
+          "packages/convex/confect/workflows/_kit/eventInstances.ts",
+          "packages/convex/confect/workflows/eventInstances.spec.ts",
+          "packages/convex/confect/workflows/eventInstances.impl.ts"
+        ],
+        "repairStrategy": "extend",
+        "compatibilityRisks": [
+          "A stale, canceled, consumed, or cross-owner event reaches the component",
+          "Duplicate sends or consumes change terminal state",
+          "An explicit error is confused with a typed value"
+        ],
+        "policyDataOwnership": "packages/template-core/src/workflow-semantics/contract.ts",
+        "promptVersioningImpact": "Owned event selector, generated definition, delivery kind, and lifecycle transition are versioned inputs.",
+        "evalOrGateCoverage": [
+          "pnpm --dir packages/convex test workflow-conformance",
+          "pnpm --dir packages/convex typecheck"
+        ]
+      },
+      "workPackages": [
+        {
+          "kind": "template-gap",
+          "target": "WP-1.4 authenticated internal typed event send",
+          "followUpGates": [
+            "pnpm --dir packages/convex test workflow-conformance",
+            "pnpm --dir packages/convex typecheck"
+          ],
+          "templateBacklogRef": "AP-002 Convex workflow semantic compatibility",
+          "templateResolutionPath": "Resolve only an active persisted owned ID or generated definition selector, derive tenant ownership, authenticate, send through the component ID, and record one delivery/consumption transition."
+        }
+      ],
+      "taskRefs": ["WP-1.4"],
+      "rationale": "Component event delivery must be preceded by opaque application ownership and lifecycle checks.",
+      "estLines": 285
+    },
+    {
+      "id": 2,
+      "branch": "codex/ap-b-workflow",
+      "intention": "generate shared typed event definitions and identity-free public translators",
+      "layers": ["generators", "workflows", "checks"],
+      "contractRiskIds": [
+        "ambient-time-inline",
+        "bare-error-not-typed",
+        "workspace-guard",
+        "schema-runtime-validator-export",
+        "policy-data-hardcoded",
+        "duplicated-closed-union",
+        "invalid-test-fixture-or-cast",
+        "branching-logic-needs-boundary-tests",
+        "unjustified-cap-or-threshold",
+        "prompt-model-policy-boundary",
+        "type-escape-or-cast",
+        "existing-module-repair-checklist"
+      ],
+      "existingModuleRepairChecklist": {
+        "existingTargetModules": [
+          "tooling/generators/src/index.ts",
+          "tooling/generators/src/index.test.ts"
+        ],
+        "repairStrategy": "extend",
+        "compatibilityRisks": [
+          "A public caller supplies workspace, principal, generation, or a raw component event name",
+          "Generated payload validation diverges from the awaited validator",
+          "Old string-event runners are silently rewritten"
+        ],
+        "policyDataOwnership": "packages/template-core/src/workflow-semantics/contract.ts",
+        "promptVersioningImpact": "Generated event reference, validator, schema name, registry, and public selector key are immutable workflow source.",
+        "evalOrGateCoverage": [
+          "pnpm template:workflow-output-smoke",
+          "pnpm check:confect-contracts"
+        ]
+      },
+      "workPackages": [
+        {
+          "kind": "pattern-instance",
+          "target": "packages/convex/confect/workflowContracts/<name>.spec.ts",
+          "generatorCommand": "pnpm template:add-workflow -- --name <name> --system <canonical-system> --disposition extend --write",
+          "followUpGates": [
+            "pnpm template:workflow-output-smoke",
+            "pnpm check:confect-contracts"
+          ]
+        }
+      ],
+      "taskRefs": ["WP-1.4"],
+      "rationale": "Every new workflow needs one generated typed definition and safe public translation path by default.",
+      "estLines": 275
+    },
+    {
+      "id": 3,
+      "branch": "codex/ap-b-workflow",
+      "intention": "publish terminal event evidence and request only proven semantic promotions",
+      "layers": ["workflows", "docs", "checks"],
+      "contractRiskIds": [
+        "ambient-time-inline",
+        "bare-error-not-typed",
+        "workspace-guard",
+        "schema-runtime-validator-export",
+        "policy-data-hardcoded",
+        "duplicated-closed-union",
+        "invalid-test-fixture-or-cast",
+        "branching-logic-needs-boundary-tests",
+        "unjustified-cap-or-threshold",
+        "prompt-model-policy-boundary",
+        "type-escape-or-cast",
+        "existing-module-repair-checklist"
+      ],
+      "existingModuleRepairChecklist": {
+        "existingTargetModules": [
+          "packages/convex/confect/workflows/_kit/events.ts",
+          "packages/convex/test/workflow-conformance.test.ts",
+          "docs/template/generated/workflows/<name>.md"
+        ],
+        "repairStrategy": "extend",
+        "compatibilityRisks": [
+          "A semantic status is promoted without compiler, runtime, and generator evidence",
+          "Consumption masks an explicit event error or cancellation"
+        ],
+        "policyDataOwnership": "packages/template-core/src/workflow-semantics/contract.ts",
+        "promptVersioningImpact": "Consumption step name and semantic evidence remain stable across replay.",
+        "evalOrGateCoverage": [
+          "pnpm check:workflow-semantics",
+          "pnpm stack:check docs/superpowers/plans/manifests/phase-1-wp-1.4-stack-2b-slice-2.json"
+        ]
+      },
+      "workPackages": [
+        {
+          "kind": "template-gap",
+          "target": "WP-1.4 terminal typed event semantic evidence",
+          "followUpGates": [
+            "pnpm check:workflow-semantics",
+            "pnpm stack:check docs/superpowers/plans/manifests/phase-1-wp-1.4-stack-2b-slice-2.json"
+          ],
+          "templateBacklogRef": "AP-002 Convex workflow semantic compatibility",
+          "templateResolutionPath": "Publish compiler/runtime/generator fixtures and submit the exact semantic-ledger promotion to its owner without editing that authority in this lane."
+        }
+      ],
+      "taskRefs": ["WP-1.4"],
+      "rationale": "Semantic support claims follow executable evidence and preserve the Agent-A authority boundary.",
+      "estLines": 230
+    }
+  ],
+  "allTaskRefs": ["WP-1.4"]
+}

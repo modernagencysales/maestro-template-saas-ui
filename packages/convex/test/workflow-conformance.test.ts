@@ -42,13 +42,16 @@ import {
   defineWorkflowEvent,
   defineWorkflowV2EventRegistry,
   runRegisteredWorkflowEvent,
+  validateWorkflowEventDelivery,
   type OwnedWorkflowEvent,
   type ProductWorkflowEventId,
   type WorkflowEventOwnership,
 } from "../confect/workflows/_kit/events";
 import {
   allocateWorkflowEventInstance,
+  consumeWorkflowEventInstance,
   reconcileWorkflowEventInstance,
+  sendWorkflowEventInstance,
 } from "../confect/workflows/_kit/eventInstances";
 import type { WorkflowPrincipal } from "../confect/workflows/_kit/principal";
 import type { WorkflowEffectContract } from "../confect/workflows/_kit/effectReservations";
@@ -143,7 +146,13 @@ describe("Maestro typed event compiler 2A", () => {
       });
 
     await expect(result).resolves.toEqual({ approved: true });
-    expect(calls).toEqual(["generation", "create", "allocate", "await"]);
+    expect(calls).toEqual([
+      "generation",
+      "create",
+      "allocate",
+      "await",
+      "consume",
+    ]);
     expect(awaitCall).toHaveBeenCalledWith({
       id: ownedApprovalEvent().componentEventId,
       name: "approval-decision.v1.approval-1",
@@ -325,6 +334,116 @@ describe("Maestro typed event compiler 2A", () => {
     ).toThrow("Workflow event is unavailable");
   });
 
+  it("validates typed values and explicit errors from the shared definition", () => {
+    expect(
+      validateWorkflowEventDelivery(approvalEvent, {
+        kind: "value",
+        value: { approved: true },
+      }),
+    ).toEqual({ kind: "value", value: { approved: true } });
+    expect(() =>
+      validateWorkflowEventDelivery(approvalEvent, {
+        kind: "value",
+        value: { approved: "yes" },
+      }),
+    ).toThrow("Workflow event is unavailable");
+    expect(
+      validateWorkflowEventDelivery(approvalEvent, {
+        kind: "error",
+        error: "approval rejected",
+      }),
+    ).toEqual({ kind: "error", error: "approval rejected" });
+  });
+
+  it("sends by opaque ID or generated definition and consumes exactly once", () => {
+    const initial = allocateWorkflowEventInstance([], {
+      ...approvalOwnership(),
+      componentWorkflowId: "component-workflow-1",
+      componentEventId: "component-event-1" as ComponentEventId,
+      occurredAt: 1,
+    });
+    const sent = sendWorkflowEventInstance(initial.rows, {
+      selector: { kind: "id", eventId: initial.allocated.eventId },
+      delivery: { kind: "value" },
+      occurredAt: 2,
+    });
+    expect(sent.owned).toEqual(initial.allocated);
+    expect(sent.rows).toMatchObject([
+      { status: "sent", deliveryKind: "value" },
+    ]);
+    expect(() =>
+      sendWorkflowEventInstance(sent.rows, {
+        selector: {
+          kind: "definition",
+          componentWorkflowId: "component-workflow-1",
+          eventDefinition: approvalEventRef,
+          eventInstanceKey: "approval-1",
+        },
+        delivery: { kind: "value" },
+        occurredAt: 3,
+      }),
+    ).toThrow("Workflow event is unavailable");
+    const consumed = consumeWorkflowEventInstance(sent.rows, {
+      eventId: sent.owned.eventId,
+      occurredAt: 4,
+    });
+    expect(consumed).toMatchObject([{ status: "consumed" }]);
+    expect(() =>
+      consumeWorkflowEventInstance(consumed, {
+        eventId: sent.owned.eventId,
+        occurredAt: 5,
+      }),
+    ).toThrow("Workflow event is unavailable");
+  });
+
+  it("rejects cancellation, stale IDs, and wrong workflow before send dispatch", () => {
+    const initial = allocateWorkflowEventInstance([], {
+      ...approvalOwnership(),
+      componentWorkflowId: "component-workflow-1",
+      componentEventId: "component-event-1" as ComponentEventId,
+      occurredAt: 1,
+    });
+    const canceled = reconcileWorkflowEventInstance(initial.rows, {
+      workspaceId: "workspace-1",
+      eventId: initial.allocated.eventId,
+      outcome: "canceled",
+      occurredAt: 2,
+    });
+    expect(() =>
+      sendWorkflowEventInstance(canceled, {
+        selector: { kind: "id", eventId: initial.allocated.eventId },
+        delivery: { kind: "error" },
+        occurredAt: 3,
+      }),
+    ).toThrow("Workflow event is unavailable");
+
+    const restarted = allocateWorkflowEventInstance(initial.rows, {
+      ...approvalOwnership({ generation: 2 }),
+      componentWorkflowId: "component-workflow-1",
+      componentEventId: "component-event-2" as ComponentEventId,
+      occurredAt: 4,
+    });
+    expect(() =>
+      sendWorkflowEventInstance(restarted.rows, {
+        selector: { kind: "id", eventId: initial.allocated.eventId },
+        delivery: { kind: "value" },
+        occurredAt: 5,
+      }),
+    ).toThrow("Workflow event is unavailable");
+    expect(() =>
+      sendWorkflowEventInstance(restarted.rows, {
+        selector: {
+          kind: "definition",
+          componentWorkflowId: "component-workflow-other",
+          eventDefinition: approvalEventRef,
+          eventInstanceKey: "approval-1",
+        },
+        delivery: { kind: "value" },
+        occurredAt: 5,
+      }),
+    ).toThrow("Workflow event is unavailable");
+  });
+
   it("rejects invalid payloads through the real shared Convex validator", async () => {
     const t = createWorkflowHarness();
     const workflowId = await t.mutation(
@@ -439,6 +558,8 @@ const approvalEntry = () => ({
       "component.event.create" as unknown as DurableGraphStepRef<"mutation">,
     allocate:
       "workflows.eventInstances.allocate" as unknown as DurableGraphStepRef<"mutation">,
+    reconcile:
+      "workflows.eventInstances.reconcile" as unknown as DurableGraphStepRef<"mutation">,
   },
 });
 
@@ -477,6 +598,10 @@ const eventStep = (
       if (String(ref) === "component.event.create") {
         calls?.push("create");
         return "component-event-1";
+      }
+      if (String(ref) === "workflows.eventInstances.reconcile") {
+        calls?.push("consume");
+        return { status: "consumed", cleanup: "active" };
       }
       calls?.push("allocate");
       return allocate(args);

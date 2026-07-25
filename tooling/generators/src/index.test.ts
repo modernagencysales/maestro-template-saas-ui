@@ -1298,6 +1298,11 @@ describe("template app factory generators", () => {
     expect(registry).toContain("defineWorkflowCapabilityRegistry");
     expect(registry).toContain("defineWorkflowV2SubworkflowRegistry");
     expect(registry).toContain("defineWorkflowV2EventRegistry");
+    expect(registry).toContain("defineWorkflowEvent");
+    expect(registry).toContain("sourceGroundedPlanApprovalDecisionEvent");
+    expect(registry).toContain(
+      "validator: v.object({ approved: v.boolean() })",
+    );
     expect(registry).toContain("generatedWorkflowSubworkflowPolicy");
     expect(registry).toContain(
       "refs.internal.workflows.subworkflowLinks.reserve",
@@ -1311,9 +1316,17 @@ describe("template app factory generators", () => {
     expect(registry).toContain(
       "refs.internal.workflows.eventInstances.reconcile",
     );
+    expect(registry).toContain("Ref.getFunctionReference");
     expect(registry).toContain("components.workflow.journal.load");
     expect(registry).toContain("components.workflow.event.create");
     expect(convexWorkflow).toContain("eventRegistry:");
+    expect(spec).toContain('name: "sendEvent"');
+    expect(spec).toContain('kind: Schema.Literal("id")');
+    expect(spec).toContain('kind: Schema.Literal("definition")');
+    expect(spec).not.toContain("const ApproveArgs");
+    expect(impl).toContain("refs.internal.workflows.eventInstances.send");
+    expect(impl).toContain("validateWorkflowEventDelivery");
+    expect(impl).not.toContain("nodeId");
     expect(registry).toContain("internal refs");
     expect(registry).toContain("dedupe/restart horizons");
     expect(registry).toContain("guard postures");
@@ -1342,10 +1355,10 @@ describe("template app factory generators", () => {
       'returnsSchemaName: "workflows.sourceGroundedPlan.status.returns"',
     );
     expect(spec).toContain(
-      'argsSchemaName: "workflows.sourceGroundedPlan.approve.args"',
+      'argsSchemaName: "workflows.sourceGroundedPlan.sendEvent.args"',
     );
     expect(spec).toContain(
-      'returnsSchemaName: "workflows.sourceGroundedPlan.approve.returns"',
+      'returnsSchemaName: "workflows.sourceGroundedPlan.sendEvent.returns"',
     );
     expect(spec).toContain("WorkflowStatusResult");
 
@@ -1357,7 +1370,7 @@ describe("template app factory generators", () => {
     expect(impl).toContain("toWorkflowValidationFailed");
     expect(impl).toContain("Effect.mapError(toWorkflowError)");
     expect(impl).toContain("Effect.mapError(toWorkflowValidationFailed)");
-    expect(impl).toContain("workflowArgs:");
+    expect(impl).not.toContain("workflowArgs:");
     expect(impl).toContain("buildWorkflowArgs: (workflowRunId) =>");
     expect(impl).toContain("workflowRunId,");
     expect(impl).toContain("startedAt:");
@@ -1417,7 +1430,7 @@ describe("template app factory generators", () => {
     expect(docs).not.toContain("packages/convex/convex/workflows/");
     expect(docs).toContain("pnpm confect:codegen");
     expect(docs).toContain("pnpm --dir packages/convex exec convex codegen");
-    expect(docs).toContain("workflowContracts.sourceGroundedPlan.approve");
+    expect(docs).toContain("workflowContracts.sourceGroundedPlan.sendEvent");
     expect(docs).toContain(
       "concrete `buildArgs` and logical instance-key mappers",
     );

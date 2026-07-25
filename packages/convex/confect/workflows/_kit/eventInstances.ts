@@ -16,7 +16,9 @@ export type WorkflowEventInstanceRow = WorkflowEventOwnership & {
   readonly componentWorkflowId: string;
   readonly eventId: ProductWorkflowEventId;
   readonly componentEventId: ComponentEventId;
-  readonly status: "allocated" | "invalidated" | "canceled";
+  readonly status:
+    "allocated" | "sent" | "consumed" | "invalidated" | "canceled";
+  readonly deliveryKind: "none" | "value" | "error";
   readonly cleanup: "active" | "residual-inaccessible";
   readonly createdAt: number;
   readonly updatedAt: number;
@@ -55,7 +57,7 @@ export const allocateWorkflowEventInstance = (
   const nextRows = rows.map((row) =>
     sameLogicalInstance(row, input) &&
     row.generation < input.generation &&
-    row.status === "allocated"
+    (row.status === "allocated" || row.status === "sent")
       ? {
           ...row,
           status: "invalidated" as const,
@@ -79,6 +81,7 @@ export const allocateWorkflowEventInstance = (
     ...input,
     eventId,
     status: "allocated",
+    deliveryKind: "none",
     cleanup: "active",
     createdAt: input.occurredAt,
     updatedAt: input.occurredAt,
@@ -91,7 +94,7 @@ export const reconcileWorkflowEventInstance = (
   input: {
     readonly workspaceId: string;
     readonly eventId: ProductWorkflowEventId;
-    readonly outcome: "canceled" | "cleanup";
+    readonly outcome: "consumed" | "canceled" | "cleanup";
     readonly occurredAt: number;
   },
 ): readonly WorkflowEventInstanceRow[] => {
@@ -104,6 +107,14 @@ export const reconcileWorkflowEventInstance = (
     if (row.workspaceId !== input.workspaceId) throw unavailableEvent();
     matched = true;
     if (
+      (input.outcome === "consumed" && row.status !== "sent") ||
+      (input.outcome === "canceled" && row.status === "consumed") ||
+      (input.outcome === "cleanup" && row.status === "consumed")
+    ) {
+      throw unavailableEvent();
+    }
+    if (
+      (input.outcome === "consumed" && row.status === "consumed") ||
       (input.outcome === "canceled" && row.status === "canceled") ||
       (input.outcome === "cleanup" && row.cleanup === "residual-inaccessible")
     ) {
@@ -111,10 +122,81 @@ export const reconcileWorkflowEventInstance = (
     }
     return {
       ...row,
-      status: input.outcome === "canceled" ? ("canceled" as const) : row.status,
-      cleanup: "residual-inaccessible" as const,
+      status:
+        input.outcome === "consumed"
+          ? ("consumed" as const)
+          : input.outcome === "canceled"
+            ? ("canceled" as const)
+            : row.status,
+      cleanup:
+        input.outcome === "consumed"
+          ? row.cleanup
+          : ("residual-inaccessible" as const),
       updatedAt: input.occurredAt,
     };
+  });
+  if (!matched) throw unavailableEvent();
+  return next;
+};
+
+export type WorkflowEventInstanceSelector =
+  | { readonly kind: "id"; readonly eventId: ProductWorkflowEventId }
+  | {
+      readonly kind: "definition";
+      readonly componentWorkflowId: string;
+      readonly eventDefinition: WorkflowEventOwnership["eventDefinition"];
+      readonly eventInstanceKey: string;
+    };
+
+export const sendWorkflowEventInstance = (
+  rows: readonly WorkflowEventInstanceRow[],
+  input: {
+    readonly selector: WorkflowEventInstanceSelector;
+    readonly delivery: { readonly kind: "value" | "error" };
+    readonly occurredAt: number;
+  },
+): {
+  readonly rows: readonly WorkflowEventInstanceRow[];
+  readonly owned: OwnedWorkflowEvent;
+} => {
+  assertOccurredAt(input.occurredAt);
+  const matches = rows.filter((row) =>
+    input.selector.kind === "id"
+      ? row.eventId === input.selector.eventId
+      : row.componentWorkflowId === input.selector.componentWorkflowId &&
+        row.eventDefinition === input.selector.eventDefinition &&
+        row.eventInstanceKey === input.selector.eventInstanceKey,
+  );
+  if (matches.length !== 1 || matches[0]?.status !== "allocated") {
+    throw unavailableEvent();
+  }
+  const matched = matches[0];
+  const next = {
+    ...matched,
+    status: "sent" as const,
+    deliveryKind: input.delivery.kind,
+    updatedAt: input.occurredAt,
+  };
+  return {
+    rows: rows.map((row) => (row.eventId === matched.eventId ? next : row)),
+    owned: toOwned(matched),
+  };
+};
+
+export const consumeWorkflowEventInstance = (
+  rows: readonly WorkflowEventInstanceRow[],
+  input: {
+    readonly eventId: ProductWorkflowEventId;
+    readonly occurredAt: number;
+  },
+): readonly WorkflowEventInstanceRow[] => {
+  assertOccurredAt(input.occurredAt);
+  let matched = false;
+  const next = rows.map((row) => {
+    if (row.eventId !== input.eventId) return row;
+    if (row.status !== "sent") throw unavailableEvent();
+    matched = true;
+    return { ...row, status: "consumed" as const, updatedAt: input.occurredAt };
   });
   if (!matched) throw unavailableEvent();
   return next;
@@ -159,6 +241,12 @@ const assertAllocation = (input: AllocateWorkflowEventInstanceInput): void => {
     principal._tag === "Left" ||
     principal.right.workspaceId !== input.workspaceId
   ) {
+    throw unavailableEvent();
+  }
+};
+
+const assertOccurredAt = (occurredAt: number): void => {
+  if (!Number.isFinite(occurredAt) || occurredAt < 0) {
     throw unavailableEvent();
   }
 };

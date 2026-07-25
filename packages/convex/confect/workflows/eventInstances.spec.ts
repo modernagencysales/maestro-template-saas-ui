@@ -1,7 +1,13 @@
 import { FunctionSpec, GroupSpec } from "@confect/core";
 import * as Schema from "effect/Schema";
 
-import { NotFound, ValidationFailed } from "../errors";
+import {
+  MemberNotInWorkspace,
+  NotFound,
+  Unauthorized,
+  ValidationFailed,
+  WorkspaceNotFound,
+} from "../errors";
 import { ProductWorkflowEventId } from "./_kit/events";
 import { WorkflowPrincipal } from "./_kit/principal";
 import {
@@ -37,16 +43,58 @@ export const OwnedWorkflowEventResult = Schema.Struct({
 export const ReconcileWorkflowEventInstanceArgs = Schema.Struct({
   workspaceId: Schema.NonEmptyString,
   eventId: ProductWorkflowEventId,
-  outcome: Schema.Literal("canceled", "cleanup"),
+  outcome: Schema.Literal("consumed", "canceled", "cleanup"),
   occurredAt: Schema.Number.pipe(Schema.greaterThanOrEqualTo(0)),
 });
 
 export const ReconcileWorkflowEventInstanceResult = Schema.Struct({
-  status: Schema.Literal("allocated", "invalidated", "canceled"),
+  status: Schema.Literal(
+    "allocated",
+    "sent",
+    "consumed",
+    "invalidated",
+    "canceled",
+  ),
   cleanup: Schema.Literal("active", "residual-inaccessible"),
 });
 
-const errors = Schema.Union(NotFound, ValidationFailed);
+export const WorkflowEventInstanceSelector = Schema.Union(
+  Schema.Struct({
+    kind: Schema.Literal("id"),
+    eventId: ProductWorkflowEventId,
+  }),
+  Schema.Struct({
+    kind: Schema.Literal("definition"),
+    componentWorkflowId: Schema.NonEmptyString,
+    eventDefinition: WorkflowEventReference,
+    eventInstanceKey: Schema.NonEmptyString,
+  }),
+);
+
+export const SendWorkflowEventInstanceArgs = Schema.Struct({
+  selector: WorkflowEventInstanceSelector,
+  delivery: Schema.Union(
+    Schema.Struct({ kind: Schema.Literal("value"), value: Schema.Unknown }),
+    Schema.Struct({
+      kind: Schema.Literal("error"),
+      error: Schema.NonEmptyString,
+    }),
+  ),
+  occurredAt: Schema.Number.pipe(Schema.greaterThanOrEqualTo(0)),
+});
+
+export const SendWorkflowEventInstanceResult = Schema.Struct({
+  ...OwnedWorkflowEventResult.fields,
+  status: Schema.Literal("sent"),
+});
+
+const errors = Schema.Union(
+  Unauthorized,
+  MemberNotInWorkspace,
+  WorkspaceNotFound,
+  NotFound,
+  ValidationFailed,
+);
 
 const allocate = FunctionSpec.internalMutation({
   name: "allocate",
@@ -62,4 +110,14 @@ const reconcile = FunctionSpec.internalMutation({
   error: () => errors,
 });
 
-export default GroupSpec.make().addFunction(allocate).addFunction(reconcile);
+const send = FunctionSpec.internalMutation({
+  name: "send",
+  args: () => SendWorkflowEventInstanceArgs,
+  returns: () => SendWorkflowEventInstanceResult,
+  error: () => errors,
+});
+
+export default GroupSpec.make()
+  .addFunction(allocate)
+  .addFunction(reconcile)
+  .addFunction(send);

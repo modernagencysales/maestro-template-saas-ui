@@ -9,6 +9,8 @@ import {
 
 export const WorkflowEventInstanceStatus = Schema.Literal(
   "allocated",
+  "sent",
+  "consumed",
   "invalidated",
   "canceled",
 );
@@ -30,6 +32,7 @@ export const WorkflowEventInstanceRow = Schema.Struct({
   principal: WorkflowPrincipal,
   creatorCapability: WorkflowCapabilityReference,
   status: WorkflowEventInstanceStatus,
+  deliveryKind: Schema.Literal("none", "value", "error"),
   cleanup: WorkflowEventInstanceCleanup,
   createdAt: Schema.Number,
   updatedAt: Schema.Number,
@@ -50,5 +53,10 @@ export default Table.make(() => WorkflowEventInstanceRow)
     "eventInstanceKey",
   ])
   .index("by_component_generation", ["componentWorkflowId", "generation"])
+  .index("by_component_definition_instance", [
+    "componentWorkflowId",
+    "eventDefinition",
+    "eventInstanceKey",
+  ])
   .index("by_product_event", ["eventId"])
   .index("by_component_event", ["componentEventId"]);
