@@ -2,6 +2,31 @@
   "schemaVersion": 1,
   "id": "saas-application",
   "provenance": "@maestro-template/generators/saas-application@1",
+  "projectionSource": {
+    "sourceCommit": "10516dfc7470d9cfa68b250550576298f76042f4",
+    "assets": [
+      {
+        "path": "base/apps/web/src/routeTree.gen.ts.txt",
+        "sha256": "sha256:e3e426b3985f11ac5f985c659b147213c3ee94ee48511683d82995255ec6a08b"
+      },
+      {
+        "path": "base/packages/convex/confect/_generated/convexSchema.ts.txt",
+        "sha256": "sha256:4aadb60928900040e69d325063f9e332eae567ba1c4f4b08cd459e1e2c9df388"
+      },
+      {
+        "path": "base/packages/convex/confect/_generated/id.ts.txt",
+        "sha256": "sha256:02ffab67bde66d949c0973c9da2f8391a7951e4bde3a1734a6849c68c4f0da94"
+      },
+      {
+        "path": "base/packages/convex/confect/_generated/schema.ts.txt",
+        "sha256": "sha256:b4914470a4a18db5b793efd4ba682055005ebbbe9c2dd8c6fc895a0070d0b0b5"
+      },
+      {
+        "path": "base/packages/convex/confect/_generated/spec.ts.txt",
+        "sha256": "sha256:c95ae9a907e034edf7c82e7d00515f76f98c04c3618a4a68e51db2d4f0d1cd9e"
+      }
+    ]
+  },
   "registrations": [
     "packages/convex/confect/tables/records.ts",
     "packages/convex/confect/records/records.spec.ts",

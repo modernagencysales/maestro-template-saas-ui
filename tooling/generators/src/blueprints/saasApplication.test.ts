@@ -18,6 +18,7 @@ import {
 } from "../index";
 import {
   buildSaasApplicationFiles,
+  buildSaasApplicationTargetPlan,
   saasApplicationBlueprint,
 } from "./saasApplication";
 
@@ -49,6 +50,39 @@ describe("saas application blueprint", () => {
     );
   });
 
+  it("pins replacement projections to the reviewed release source", () => {
+    const checkoutSpecPath = join(
+      repoRoot,
+      "packages/convex/confect/_generated/spec.ts",
+    );
+    const originalCheckoutSpec = readFileSync(checkoutSpecPath, "utf8");
+    const before = buildSaasApplicationTargetPlan({ name: "My App" });
+    let after: typeof before;
+    try {
+      writeFileSync(
+        checkoutSpecPath,
+        `${originalCheckoutSpec}\n// unrelated integration registration\n`,
+      );
+      after = buildSaasApplicationTargetPlan({ name: "My App" });
+    } finally {
+      writeFileSync(checkoutSpecPath, originalCheckoutSpec);
+    }
+
+    expect(after).toEqual(before);
+    const projectedSpec = after.entries.find(
+      ({ path }) => path === "packages/convex/confect/_generated/spec.ts",
+    );
+    expect(projectedSpec?.content).toContain(
+      'import ops_versioning from "../ops/versioning.spec";',
+    );
+    expect(projectedSpec?.content).toContain(
+      'import records from "../records/records.spec";',
+    );
+    expect(projectedSpec?.content).not.toContain(
+      "unrelated integration registration",
+    );
+  });
+
   it("emits deterministic workspace-safe CRUD and readiness contracts", async () => {
     const first = buildSaasApplicationFiles({ name: "My App" });
     const second = buildSaasApplicationFiles({ name: "My App" });
@@ -67,6 +101,15 @@ describe("saas application blueprint", () => {
       "apps/web/src/features/records/records-surface.tsx",
       "apps/web/src/screens/records-screen.tsx",
       "apps/web/src/routes/_workspace.records.tsx",
+      "packages/convex/confect/_generated/tables/records.ts",
+      "packages/convex/confect/_generated/schema.ts",
+      "packages/convex/confect/_generated/convexSchema.ts",
+      "packages/convex/confect/_generated/spec.ts",
+      "packages/convex/confect/_generated/id.ts",
+      "packages/convex/confect/_generated/registeredFunctions/records.ts",
+      "packages/convex/convex/records.ts",
+      "apps/web/src/routeTree.gen.ts",
+      "apps/web/src/routeRegistry.generated.ts",
       "generated/blueprints/saas-application/application-contract.json",
       "generated/blueprints/saas-application/surface-contract.json",
       "generated/blueprints/saas-application/readiness.json",
@@ -77,7 +120,10 @@ describe("saas application blueprint", () => {
       );
     }
 
-    const contract = JSON.parse(first[13]?.content ?? "{}");
+    const contract = JSON.parse(
+      first.find(({ path }) => path.endsWith("application-contract.json"))
+        ?.content ?? "{}",
+    );
     expect(contract).toMatchObject({
       entity: {
         singular: "record",
@@ -116,7 +162,10 @@ describe("saas application blueprint", () => {
       expect(spec?.content).toContain(`operationId: "${operation.id}"`);
     }
 
-    const surfaces = JSON.parse(first[14]?.content ?? "{}");
+    const surfaces = JSON.parse(
+      first.find(({ path }) => path.endsWith("surface-contract.json"))
+        ?.content ?? "{}",
+    );
     expect(surfaces.web.operations).toEqual(surfaces.headless.operations);
     const { recordOperationContract } = (await import(
       sourceModule("apps/web/src/adapters/records/contract.ts")
@@ -137,7 +186,10 @@ describe("saas application blueprint", () => {
       placeholderSuccess: false,
     });
 
-    const readiness = JSON.parse(first[15]?.content ?? "{}");
+    const readiness = JSON.parse(
+      first.find(({ path }) => path.endsWith("readiness.json"))?.content ??
+        "{}",
+    );
     expect(
       readiness.surfaces.every((surface: { status: string }) =>
         ["real", "fake", "seam", "unavailable"].includes(surface.status),

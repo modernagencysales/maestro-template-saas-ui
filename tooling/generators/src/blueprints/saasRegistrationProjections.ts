@@ -2,7 +2,13 @@ import { readFileSync } from "node:fs";
 import type { GeneratedFile } from "../index";
 
 const source = (path: string): string =>
-  readFileSync(new URL(`../../../../${path}`, import.meta.url), "utf8");
+  readFileSync(
+    new URL(
+      `../../../../releases/v0.2.0-alpha.1/blueprints/saas-application/base/${path}.txt`,
+      import.meta.url,
+    ),
+    "utf8",
+  );
 
 const replace = (
   value: string,
