@@ -1,10 +1,17 @@
 import process from "node:process";
-import { validateOfficialConvexBundle } from "../agent-pack/src/officialConvex.js";
+import {
+  validateInstalledOfficialConvexTargets,
+  validateOfficialConvexBundle,
+} from "../agent-pack/src/officialConvex.js";
 
 export async function checkConvexAiFiles(
   repoRoot: string,
 ): Promise<readonly string[]> {
-  return validateOfficialConvexBundle(repoRoot);
+  const [bundle, installed] = await Promise.all([
+    validateOfficialConvexBundle(repoRoot),
+    validateInstalledOfficialConvexTargets(repoRoot),
+  ]);
+  return [...bundle, ...installed];
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {

@@ -40,6 +40,37 @@ export async function checkSkillProjections(
   return findings;
 }
 
+export async function checkRootSkillProjections(
+  repoRoot: string,
+): Promise<readonly string[]> {
+  const mappings = [
+    {
+      source: "agent-pack/generated/codex/.agents/skills/maestro",
+      target: ".agents/skills/maestro",
+    },
+    {
+      source: "agent-pack/plugins/maestro-convex/skills/maestro-convex",
+      target: ".agents/skills/maestro-convex",
+    },
+  ] as const;
+  const findings: string[] = [];
+  for (const mapping of mappings) {
+    const expected = await fileHashes(join(repoRoot, mapping.source));
+    const installed = await fileHashes(join(repoRoot, mapping.target));
+    for (const [path, hash] of expected) {
+      if (!installed.has(path))
+        findings.push(`missing:${mapping.target}/${path}`);
+      else if (installed.get(path) !== hash) {
+        findings.push(`drift:${mapping.target}/${path}`);
+      }
+    }
+    for (const path of installed.keys()) {
+      if (!expected.has(path)) findings.push(`extra:${mapping.target}/${path}`);
+    }
+  }
+  return findings;
+}
+
 async function fileHashes(root: string): Promise<ReadonlyMap<string, string>> {
   const hashes = new Map<string, string>();
   for (const path of await filesUnder(root)) {

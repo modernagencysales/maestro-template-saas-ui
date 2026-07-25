@@ -86,6 +86,49 @@ export async function validateOfficialConvexBundle(
   return findings;
 }
 
+export async function validateInstalledOfficialConvexTargets(
+  repoRoot: string,
+): Promise<readonly string[]> {
+  const manifest = await readManifest(repoRoot);
+  const findings: string[] = [];
+
+  for (const file of manifest.files) {
+    const source = await readFile(join(repoRoot, safeRelative(file.source)));
+    for (const target of file.targets) {
+      if (target.includes("#")) {
+        const path = target.split("#", 1)[0] ?? "";
+        const installed = await optionalRead(
+          join(repoRoot, safeRelative(path)),
+        );
+        const expected = Buffer.from(source).toString("utf8").trimEnd();
+        if (
+          installed === undefined ||
+          managedSection(installed.toString("utf8")) !== expected
+        ) {
+          findings.push(`managed-section:${target}`);
+        }
+      } else {
+        const installed = await optionalRead(
+          join(repoRoot, safeRelative(target)),
+        );
+        if (installed === undefined) findings.push(`target-missing:${target}`);
+        else if (sha256(installed) !== file.sha256) {
+          findings.push(`target-checksum:${target}`);
+        }
+      }
+    }
+  }
+
+  const claude = await optionalRead(join(repoRoot, "CLAUDE.md"));
+  if (
+    claude === undefined ||
+    !hasClaudeAgentsIncludeOutsideManagedSection(claude.toString("utf8"))
+  ) {
+    findings.push("claude-include:outside-managed-section");
+  }
+  return findings;
+}
+
 export async function installOfficialConvexBundle(
   repoRoot: string,
   targetRoot: string,
@@ -207,6 +250,18 @@ function managedSection(content: string): string | undefined {
   const end = content.indexOf(END_MARKER);
   if (start < 0 || end < start) return undefined;
   return content.slice(start, end + END_MARKER.length).trimEnd();
+}
+
+function hasClaudeAgentsIncludeOutsideManagedSection(content: string): boolean {
+  const start = content.indexOf(START_MARKER);
+  const end = content.indexOf(END_MARKER);
+  let include = content.indexOf("@AGENTS.md");
+  while (include >= 0) {
+    if (start < 0 || end < start || include < start || include > end)
+      return true;
+    include = content.indexOf("@AGENTS.md", include + 1);
+  }
+  return false;
 }
 
 async function readManifest(repoRoot: string): Promise<OfficialConvexManifest> {
