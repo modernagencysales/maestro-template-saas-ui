@@ -2,6 +2,13 @@ import { execFileSync } from "node:child_process";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import {
+  createSourceFile,
+  isFunctionDeclaration,
+  type FunctionDeclaration,
+  type SourceFile,
+  ScriptTarget,
+} from "typescript";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 const candidateRoot = mkdtempSync(join(tmpdir(), "maestro-workpool-048-"));
@@ -49,17 +56,73 @@ describe("isolated Workpool 0.4.8 candidate", () => {
     expect(lock).toContain("specifier: 1.42.3");
   });
 
-  it("reports the published 0.4.8 source regressions honestly", () => {
-    const source = readFileSync(
-      join(
-        candidateRoot,
-        "node_modules/@convex-dev/workpool/src/component/stateMachine.test.ts",
-      ),
-      "utf8",
+  it("proves duplicate completion mutates attempts before deduplication", () => {
+    const source = candidateSource("complete.ts");
+    const handler = functionSource(source, "completeHandler");
+    const increment = requiredIndex(handler, "work.attempts++");
+    const persistedIncrement = requiredIndex(
+      handler,
+      'ctx.db.patch("work", work._id, { attempts: work.attempts })',
     );
-    expect(source).toContain("duplicate complete with correct attempt");
-    expect(source).toContain("multiple cancels for same work");
-    expect(source).toContain("duplicate complete with correct attempt -> BUG");
-    expect(source).toContain("multiple cancels for same work -> BUG");
+    const dedupQuery = requiredIndex(handler, '.query("pendingCompletion")');
+    const dedupGuard = requiredIndex(handler, "if (pendingCompletion)");
+
+    expect(increment).toBeLessThan(persistedIncrement);
+    expect(persistedIncrement).toBeLessThan(dedupQuery);
+    expect(dedupQuery).toBeLessThan(dedupGuard);
+  });
+
+  it("proves duplicate cancellations race before the shared guard is set", () => {
+    const source = candidateSource("loop.ts");
+    const handler = functionSource(source, "handleCancelation");
+    const concurrentDispatch = requiredIndex(handler, "await Promise.all(");
+    const concurrentMap = requiredIndex(handler, "canceled.map(async");
+    const initialGuard = requiredIndex(handler, "canceledWork.has(workId)");
+    const firstAwaitAfterGuard = requiredIndex(
+      handler,
+      'await ctx.db.get("work", workId)',
+    );
+    const pendingStartDelete = requiredIndex(
+      handler,
+      'await ctx.db.delete("pendingStart", pendingStart._id)',
+    );
+    const guardMutation = requiredIndex(handler, "canceledWork.add(workId)");
+
+    expect(concurrentDispatch).toBeLessThan(concurrentMap);
+    expect(concurrentMap).toBeLessThan(initialGuard);
+    expect(initialGuard).toBeLessThan(firstAwaitAfterGuard);
+    expect(firstAwaitAfterGuard).toBeLessThan(pendingStartDelete);
+    expect(pendingStartDelete).toBeLessThan(guardMutation);
   });
 });
+
+const candidateSource = (file: string): SourceFile => {
+  const path = join(
+    candidateRoot,
+    "node_modules/@convex-dev/workpool/src/component",
+    file,
+  );
+  return createSourceFile(
+    path,
+    readFileSync(path, "utf8"),
+    ScriptTarget.Latest,
+    true,
+  );
+};
+
+const functionSource = (source: SourceFile, name: string): string => {
+  const declaration = source.statements.find(
+    (statement): statement is FunctionDeclaration =>
+      isFunctionDeclaration(statement) && statement.name?.text === name,
+  );
+  if (declaration === undefined) {
+    throw new Error(`${source.fileName}: missing function ${name}`);
+  }
+  return declaration.getText(source);
+};
+
+const requiredIndex = (source: string, fragment: string): number => {
+  const index = source.indexOf(fragment);
+  expect(index, fragment).toBeGreaterThanOrEqual(0);
+  return index;
+};
