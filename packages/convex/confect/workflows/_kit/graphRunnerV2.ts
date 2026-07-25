@@ -311,6 +311,15 @@ const runActionNode = async <Result extends Record<string, unknown>>(
     );
   }
   const args = entry.buildArgs({ ...envelope, logicalEffectKey });
+  if (
+    validated.right.strategy === "provider-native" &&
+    readArgumentPath(args, validated.right.keyArgumentPath) !== logicalEffectKey
+  ) {
+    throw validationFailure(
+      node,
+      `capability ${node.capability} must map the derived logical effect key at ${validated.right.keyArgumentPath}`,
+    );
+  }
   const options = {
     name: node.stepName,
     retry:
@@ -327,6 +336,24 @@ const runActionNode = async <Result extends Record<string, unknown>>(
     }
     throw error;
   }
+};
+
+const readArgumentPath = (
+  args: Readonly<Record<string, unknown>>,
+  path: string,
+): unknown => {
+  let current: unknown = args;
+  for (const segment of path.split(".")) {
+    if (
+      typeof current !== "object" ||
+      current === null ||
+      !Object.hasOwn(current, segment)
+    ) {
+      return undefined;
+    }
+    current = (current as Record<string, unknown>)[segment];
+  }
+  return current;
 };
 
 const runReconciliationCapability = <Result extends Record<string, unknown>>(

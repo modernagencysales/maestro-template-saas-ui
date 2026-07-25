@@ -292,6 +292,41 @@ describe("Maestro V2 action retry compiler", () => {
     );
   });
 
+  it.each([
+    ["omitted", () => ({})],
+    ["altered", () => ({ logicalEffectKey: "attacker-controlled" })],
+  ])(
+    "rejects a provider-native %s key mapping before dispatch",
+    async (_case, buildArgs) => {
+      const runAction = vi.fn(async () => ({ accepted: true }));
+      await expect(
+        runDurableGraphWorkflowV2(v2Step({ runAction }), {
+          ...v2Input(
+            v2CapabilityGraph("action", {
+              maxAttempts: 2,
+              initialBackoffMs: 1,
+              base: 2,
+            }),
+          ),
+          capabilityRegistry: {
+            [capabilityRef]: {
+              kind: "action",
+              ref: "compiler.v2.action" as unknown as DurableGraphStepRef<"action">,
+              effectClass: "external",
+              effectContract: providerNativeContract,
+              instanceKey: () => "invoice-42",
+              buildArgs,
+            },
+          },
+          admitEffect: async () => ({ kind: "replay-provider-key" }),
+        }),
+      ).rejects.toThrow(
+        /must map the derived logical effect key at logicalEffectKey/,
+      );
+      expect(runAction).not.toHaveBeenCalled();
+    },
+  );
+
   it("omits an attempt count when the pinned component cannot prove it", async () => {
     const recordStageStarted =
       "observe.started" as unknown as DurableGraphStepRef<"mutation">;
