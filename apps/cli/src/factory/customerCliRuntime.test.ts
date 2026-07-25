@@ -148,6 +148,42 @@ describe("materialized customer CLI runtime closure", () => {
     expect(agentPackCheck).toContain(
       "Customer context, receipts, and MCP posture are valid.",
     );
+    const claudeSettings = join(target, ".claude/settings.json");
+    const settingsBytes = readFileSync(claudeSettings, "utf8");
+    try {
+      writeFileSync(
+        claudeSettings,
+        `${JSON.stringify({ enableAllProjectMcpServers: false, theme: "dark" }, null, 2)}\n`,
+      );
+      expect(
+        spawnSync("pnpm", ["run", "check:agent-pack"], {
+          cwd: target,
+          encoding: "utf8",
+          timeout: 30_000,
+          env: supportedHostEnvironment,
+        }).status,
+      ).not.toBe(0);
+    } finally {
+      writeFileSync(claudeSettings, settingsBytes);
+    }
+    const claudeInstructions = join(target, "CLAUDE.md");
+    const claudeBytes = readFileSync(claudeInstructions, "utf8");
+    try {
+      writeFileSync(
+        claudeInstructions,
+        claudeBytes.replace("@AGENTS.md\n", ""),
+      );
+      expect(
+        spawnSync("pnpm", ["run", "check:agent-pack"], {
+          cwd: target,
+          encoding: "utf8",
+          timeout: 30_000,
+          env: supportedHostEnvironment,
+        }).status,
+      ).not.toBe(0);
+    } finally {
+      writeFileSync(claudeInstructions, claudeBytes);
+    }
     execFileSync("pnpm", ["run", "check:workflow-semantics"], {
       cwd: target,
       stdio: "pipe",

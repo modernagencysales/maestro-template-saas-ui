@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import {
   mkdirSync,
   mkdtempSync,
@@ -345,6 +346,25 @@ describe("saas application blueprint", () => {
     )?.content;
     expect(customerContextCheck).toContain("customer-context:extra:");
     expect(customerContextCheck).toContain("safeClaudeSettings");
+    expect(customerContextCheck).toContain("sha256(installed) !== item.sha256");
+    expect(customerContextCheck).toContain("hasClaudeInclude(content)");
+    expect(
+      customerContext.files.find(
+        ({ path }) => path === ".claude/settings.json",
+      ),
+    ).toMatchObject({
+      sha256:
+        "sha256:7825364f57b5c5f07c64d5c5bbbaa8046a6c1c21d3216112cc86f99d2e5b6ccc",
+      validation: "safe-claude-settings",
+    });
+    const generatedSettings = files.find(
+      ({ path }) => path === ".claude/settings.json",
+    )?.content;
+    expect(
+      createHash("sha256")
+        .update(generatedSettings ?? "")
+        .digest("hex"),
+    ).toBe("7825364f57b5c5f07c64d5c5bbbaa8046a6c1c21d3216112cc86f99d2e5b6ccc");
     for (const required of [
       "CLAUDE.md",
       ".claude/skills/convex/SKILL.md",

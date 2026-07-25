@@ -4,7 +4,7 @@ import { isAbsolute, join, relative } from "node:path";
 
 const MANIFEST_PATH = "docs/template/customer-context.manifest.json";
 const MANIFEST_SHA256 =
-  "sha256:bce7605e57fd61645f583958fdc69c1fd234a2b0f3ee60b020b67b18b12d1bb5";
+  "sha256:4bf94873ab73b6ae146f4f4c6c4766592d3b767233c0b148a26b1e0e1cf3e3a3";
 const START_MARKER = "<!-- convex-ai-start -->";
 const END_MARKER = "<!-- convex-ai-end -->";
 const MANAGED_SKILL_ROOTS = [".agents/skills", ".claude/skills"] as const;
@@ -46,11 +46,19 @@ export async function customerContextFindings(
     if (installed === undefined)
       findings.push(`customer-context:missing:${item.path}`);
     else if (item.validation === "managed-convex-section") {
-      const section = managedSection(installed.toString("utf8"));
-      if (section === undefined || sha256(section) !== item.sha256)
+      const content = installed.toString("utf8");
+      const section = managedSection(content);
+      if (
+        section === undefined ||
+        sha256(section) !== item.sha256 ||
+        (item.path === "CLAUDE.md" && !hasClaudeInclude(content))
+      )
         findings.push(`customer-context:checksum:${item.path}`);
     } else if (item.validation === "safe-claude-settings") {
-      if (!safeClaudeSettings(installed.toString("utf8")))
+      if (
+        sha256(installed) !== item.sha256 ||
+        !safeClaudeSettings(installed.toString("utf8"))
+      )
         findings.push(`customer-context:unsafe-settings:${item.path}`);
     } else if (
       item.validation !== undefined ||
@@ -76,6 +84,18 @@ function managedSection(content: string): Buffer | undefined {
     : Buffer.from(
         `${content.slice(start, end + END_MARKER.length).trimEnd()}\n`,
       );
+}
+
+function hasClaudeInclude(content: string): boolean {
+  const start = content.indexOf(START_MARKER);
+  const end = content.indexOf(END_MARKER);
+  let include = content.indexOf("@AGENTS.md");
+  while (include >= 0) {
+    if (start < 0 || end < start || include < start || include > end)
+      return true;
+    include = content.indexOf("@AGENTS.md", include + 1);
+  }
+  return false;
 }
 
 function safeClaudeSettings(content: string): boolean {

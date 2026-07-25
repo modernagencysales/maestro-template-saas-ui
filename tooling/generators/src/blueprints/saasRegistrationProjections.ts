@@ -21,6 +21,7 @@ const source = (path: string): string =>
 
 const customerContextSource = (path: string): string => {
   const content = source(`customer-context/${path}`);
+  if (path === ".claude/settings.json") return content;
   return content.endsWith("\n\n") ? content.slice(0, -1) : content;
 };
 

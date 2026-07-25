@@ -23,7 +23,7 @@
       },
       {
         "path": "base/customer-context.manifest.json",
-        "sha256": "sha256:bce7605e57fd61645f583958fdc69c1fd234a2b0f3ee60b020b67b18b12d1bb5"
+        "sha256": "sha256:4bf94873ab73b6ae146f4f4c6c4766592d3b767233c0b148a26b1e0e1cf3e3a3"
       },
       {
         "path": "base/customer-context/.agents/skills/convex-create-component/SKILL.md.txt",
@@ -367,7 +367,7 @@
       },
       {
         "path": "base/tooling/quality/check-customer-context.mts.txt",
-        "sha256": "sha256:330c75e3244c7353a98c45f541719d675091321388a77df1070194912934ea67"
+        "sha256": "sha256:2afb296aafbbd9a6679d0e7a1b3016d2a5abf722d7b82a34d69c03097f77b462"
       },
       {
         "path": "base/tooling/quality/install-lefthook-if-git.mjs.txt",
@@ -663,7 +663,7 @@
       "ownership": "customer-extension",
       "action": "copy",
       "upgrade": "preserve",
-      "sha256": "sha256:41d4924a726e61602f4d51534aee4c8f752b1899fd0c5f1cb7687adf373f9688"
+      "sha256": "sha256:7825364f57b5c5f07c64d5c5bbbaa8046a6c1c21d3216112cc86f99d2e5b6ccc"
     },
     {
       "path": ".claude/skills/convex-create-component/agents/openai.yaml",
@@ -967,7 +967,7 @@
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:bce7605e57fd61645f583958fdc69c1fd234a2b0f3ee60b020b67b18b12d1bb5"
+      "sha256": "sha256:4bf94873ab73b6ae146f4f4c6c4766592d3b767233c0b148a26b1e0e1cf3e3a3"
     },
     {
       "path": "examples/saas-application/seed/crud-scenario.json",
@@ -1202,7 +1202,7 @@
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:330c75e3244c7353a98c45f541719d675091321388a77df1070194912934ea67"
+      "sha256": "sha256:2afb296aafbbd9a6679d0e7a1b3016d2a5abf722d7b82a34d69c03097f77b462"
     },
     {
       "path": "tooling/quality/install-lefthook-if-git.mjs",
