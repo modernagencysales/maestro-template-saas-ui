@@ -213,6 +213,10 @@ function serializeTemplateInstance(
         manifestChecksum: facts.ownershipManifestChecksum,
         extensionSeams: facts.extensionSeams,
       },
+      blueprint: {
+        id: "saas-application",
+        workflowPosture: "optional-unavailable",
+      },
       personalization: {
         name: input.name,
         firstOutcome: input.outcome,

@@ -1,3 +1,12 @@
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import {
   createCustomerCreateCommand,
@@ -9,6 +18,7 @@ import {
   executeAgentPackCommand,
 } from "./contracts.js";
 import { createRepositoryContext } from "./repoContext.js";
+import { createStartCommand, type StartDependencies } from "./start.js";
 
 const facts: CustomerCreateReleaseFacts = {
   version: "0.1.0-alpha.1",
@@ -102,12 +112,108 @@ describe("customer create command", () => {
         manifest: facts.ownershipManifest,
         manifestChecksum: facts.ownershipManifestChecksum,
       },
+      blueprint: {
+        id: "saas-application",
+        workflowPosture: "optional-unavailable",
+      },
       personalization: {
         name: "My App",
         firstOutcome: "Track client requests",
         demoOnly: true,
       },
     });
+  });
+
+  it("creates a separate personalized SaaS target before starting it", async () => {
+    const root = mkdtempSync(join(tmpdir(), "maestro-create-start-"));
+    const factoryRoot = join(root, "factory");
+    const targetRoot = join(root, "customer-app");
+    mkdirSync(factoryRoot);
+    let instance = "";
+    const create = createCustomerCreateCommand({
+      release: {
+        prepare: vi.fn(async (request) => {
+          instance = request.templateInstance(facts);
+          return {
+            ok: true as const,
+            token: {},
+            facts,
+            preview: {
+              preflightFingerprint: `sha256:${"d".repeat(64)}`,
+              writes: [
+                { path: "template-instance.json", bytes: instance.length },
+              ],
+              omissions: [],
+              collisions: [],
+              totalBytes: instance.length,
+            },
+          };
+        }),
+        materialize: vi.fn(async () => {
+          mkdirSync(targetRoot);
+          writeFileSync(join(targetRoot, "template-instance.json"), instance);
+          return { ok: true as const, files: 1 };
+        }),
+      },
+    });
+    try {
+      const created = await executeAgentPackCommand(
+        create,
+        {
+          target: targetRoot,
+          name: "My App",
+          outcome: "Create and review records",
+          write: true,
+        },
+        {
+          ...context,
+          repo: createRepositoryContext({ cwd: factoryRoot }),
+        },
+      );
+      expect(created.exitClass).toBe("success");
+      expect(
+        JSON.parse(
+          readFileSync(join(targetRoot, "template-instance.json"), "utf8"),
+        ),
+      ).toMatchObject({
+        blueprint: { id: "saas-application" },
+        personalization: {
+          name: "My App",
+          firstOutcome: "Create and review records",
+        },
+      });
+
+      const startDependencies: StartDependencies = {
+        preflight: vi.fn(async () => ({
+          safeToStart: true,
+          auth: "not-required" as const,
+          exitClass: "success" as const,
+          diagnostics: [],
+        })),
+        readFile: vi.fn(async (path) => readFileSync(path, "utf8")),
+        ports: { available: vi.fn(async () => true) },
+        readiness: { wait: vi.fn(async () => true) },
+        supervise: vi.fn(async (_specs, readiness) => {
+          readiness.onReady();
+          return { kind: "user-signal" as const, signal: "SIGINT" as const };
+        }),
+        announce: vi.fn(),
+      };
+      const started = await executeAgentPackCommand(
+        createStartCommand(startDependencies),
+        { mode: "fake" },
+        {
+          ...context,
+          repo: createRepositoryContext({ cwd: targetRoot }),
+        },
+      );
+      expect(started.exitClass).toBe("success");
+      expect(vi.mocked(startDependencies.supervise).mock.calls[0]?.[0]).toEqual(
+        [expect.objectContaining({ cwd: targetRoot, id: "web" })],
+      );
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 
   it("writes only when explicitly requested and never runs install or git init", async () => {
