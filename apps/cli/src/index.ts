@@ -2,7 +2,7 @@
 import { runTemplateApiOperation } from "@maestro-template/workflow-tooling";
 import { createCliHandlers } from "./commands";
 import { isCliDirectRun } from "./direct-run";
-import { factoryCliComposition } from "./factory/composition";
+import { createFactoryCliComposition } from "./factory/composition";
 import { dispatchFactoryCliCommand } from "./factory/router";
 import { cliFailure, formatJsonOutput } from "./result";
 import { decodeCliRuntimeConfig, emptyCliRuntimeConfig } from "./runtimeConfig";
@@ -48,6 +48,8 @@ const cliHandlers = createCliHandlers({
     runCapability: runStaticCliCapability,
   },
 });
+
+const factoryCliComposition = createFactoryCliComposition(() => process.env);
 
 const normalizeCliArgv = (argv: readonly string[]): readonly string[] =>
   argv[0] === "--" ? argv.slice(1) : argv;

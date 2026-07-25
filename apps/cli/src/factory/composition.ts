@@ -9,6 +9,7 @@ import {
   defineDiagnosticRegistryProjection,
   nodePreflightFileSystem,
   type NodePreflightPolicy,
+  type RepositoryContext,
 } from "@maestro-template/agent-pack";
 import {
   buildBlueprintCatalog,
@@ -75,74 +76,99 @@ const descriptors = defineQualityDiagnosticRegistryProjection(
   defineDiagnosticRegistryProjection,
 );
 
-const preflight = createPreflightCommand(
-  createComposedPreflightProbe({
-    runtime: createNodePreflightRuntimeReader({
-      fs: nodePreflightFileSystem,
-      execFile,
-      policy: FACTORY_EXECUTION_POLICY,
-      workflowRules,
-      publishedWorkflowRuleIds,
-    }),
-    readers: {
-      parseTemplateInstance,
-      buildTemplateInstance,
-      doctorTemplateInstance,
-      readSystemCatalog,
-      readDataResourceCatalog,
-      readProductTopology,
-      buildBlueprintCatalog,
-      requiredEnvNamesForProvider,
-    },
-  }),
-);
+export type CompositionEnvironmentReader = () => Readonly<
+  Record<string, string | undefined>
+>;
 
-const verificationRunner = createExecFileVerificationRunner({
-  execFile,
-  readFile: readBoundedFile,
-  now: () => new Date().toISOString(),
-  environment: async (repo) => ({
+export function projectCompositionEnvironment(
+  repo: RepositoryContext,
+  readEnvironment: CompositionEnvironmentReader,
+) {
+  const environment = readEnvironment();
+  const availableEnvironmentNames = Object.entries(environment)
+    .filter(([, value]) => typeof value === "string" && value.trim() !== "")
+    .map(([name]) => name)
+    .sort();
+  return {
     sourceRoot: repo.sourceRoot,
     targetRoot: repo.targetRoot,
     platform: platform(),
     architecture: arch(),
     node: process.version,
-    ci: process.env.CI === "true" || process.env.BUILDKITE === "true",
-  }),
-  providerPosture: async (repo) => {
-    const instance = parseTemplateInstance(
-      await readBoundedFile(
-        resolve(repo.targetRoot, "template-instance.json"),
-        {
-          maxBytes: FACTORY_EXECUTION_POLICY.packageJsonMaxBytes,
-        },
-      ),
-    );
-    return Object.fromEntries(
-      Object.entries(instance.providers).map(([id, posture]) => [
-        id,
-        posture === "configured"
-          ? "live"
-          : posture === "fake"
-            ? "sample"
-            : "local",
-      ]),
-    );
-  },
-  limits: FACTORY_EXECUTION_POLICY,
-});
+    ci: environment.CI === "true" || environment.BUILDKITE === "true",
+    availableEnvironmentNames: availableEnvironmentNames.join(","),
+  };
+}
 
-const verify = createVerifyCommand({ descriptors, runner: verificationRunner });
-const check = createCheckCommand({ preflight, verify });
+export function createFactoryCliComposition(
+  readEnvironment: CompositionEnvironmentReader,
+) {
+  const preflight = createPreflightCommand(
+    createComposedPreflightProbe({
+      runtime: createNodePreflightRuntimeReader({
+        fs: nodePreflightFileSystem,
+        execFile,
+        policy: FACTORY_EXECUTION_POLICY,
+        workflowRules,
+        publishedWorkflowRuleIds,
+        environment: readEnvironment,
+      }),
+      readers: {
+        parseTemplateInstance,
+        buildTemplateInstance,
+        doctorTemplateInstance,
+        readSystemCatalog,
+        readDataResourceCatalog,
+        readProductTopology,
+        buildBlueprintCatalog,
+        requiredEnvNamesForProvider,
+      },
+    }),
+  );
 
-const handlers: readonly FactoryCliHandler[] = [
-  createPreflightCliHandler(preflight),
-  createVerifyCliHandler(verify),
-  createVerifyCliHandler(check),
-];
+  const verificationRunner = createExecFileVerificationRunner({
+    execFile,
+    readFile: readBoundedFile,
+    now: () => new Date().toISOString(),
+    environment: async (repo) =>
+      projectCompositionEnvironment(repo, readEnvironment),
+    providerPosture: async (repo) => {
+      const instance = parseTemplateInstance(
+        await readBoundedFile(
+          resolve(repo.targetRoot, "template-instance.json"),
+          {
+            maxBytes: FACTORY_EXECUTION_POLICY.packageJsonMaxBytes,
+          },
+        ),
+      );
+      return Object.fromEntries(
+        Object.entries(instance.providers).map(([id, posture]) => [
+          id,
+          posture === "configured"
+            ? "live"
+            : posture === "fake"
+              ? "sample"
+              : "local",
+        ]),
+      );
+    },
+    limits: FACTORY_EXECUTION_POLICY,
+  });
 
-export const factoryCliComposition = Object.freeze({
-  handlers,
-  diagnosticCount: descriptors.length,
-  workflowRuleCount: workflowRules.length,
-});
+  const verify = createVerifyCommand({
+    descriptors,
+    runner: verificationRunner,
+  });
+  const check = createCheckCommand({ preflight, verify });
+  const handlers: readonly FactoryCliHandler[] = [
+    createPreflightCliHandler(preflight),
+    createVerifyCliHandler(verify),
+    createVerifyCliHandler(check),
+  ];
+
+  return Object.freeze({
+    handlers,
+    diagnosticCount: descriptors.length,
+    workflowRuleCount: workflowRules.length,
+  });
+}
