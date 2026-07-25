@@ -1,5 +1,7 @@
 import type { LogLevel, WorkpoolOptions } from "@convex-dev/workpool";
 
+import { readNodeEnvironment } from "../../shared/env";
+
 export type WorkflowEnvironment = "development" | "test" | "production";
 
 export type WorkflowWorkpoolDeclaration = {
@@ -25,10 +27,12 @@ export const workflowWorkpoolOptions = (
   retryActionsByDefault: false,
 });
 
+const nodeEnvironment = readNodeEnvironment();
+
 const generatedWorkflowEnvironment: WorkflowEnvironment =
-  process.env.NODE_ENV === "production"
+  nodeEnvironment === "production"
     ? "production"
-    : process.env.NODE_ENV === "test"
+    : nodeEnvironment === "test"
       ? "test"
       : "development";
 
