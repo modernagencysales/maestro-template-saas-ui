@@ -31,7 +31,6 @@ export type PublicationEntry = {
 
 export type UnsignedWorkflowPublicationManifest = {
   readonly schemaVersion: 1;
-  readonly trustedComparisonRef: "main";
   readonly entries: readonly PublicationEntry[];
 };
 
@@ -82,9 +81,6 @@ export const verifyPublicationManifestChecksum = (
   const findings: string[] = [];
   if (manifestChecksum !== checksumPublicationManifest(unsigned)) {
     findings.push("publication manifest checksum mismatch");
-  }
-  if (manifest.trustedComparisonRef !== "main") {
-    findings.push("publication manifest must use trusted comparison ref main");
   }
   for (const entry of manifest.entries) {
     if (
@@ -266,8 +262,220 @@ const git = (repoRoot: string, args: readonly string[]): string =>
     stdio: ["ignore", "pipe", "pipe"],
   }).trim();
 
-const parseManifest = (source: string): WorkflowPublicationManifest =>
-  JSON.parse(source) as WorkflowPublicationManifest;
+type GitReader = (args: readonly string[]) => string;
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
+const assertExactKeys = (
+  value: Record<string, unknown>,
+  keys: readonly string[],
+  label: string,
+): void => {
+  const expected = new Set(keys);
+  const unexpected = Object.keys(value).filter((key) => !expected.has(key));
+  if (unexpected.length > 0) {
+    throw new Error(
+      `${label} contains unknown fields: ${unexpected.join(", ")}`,
+    );
+  }
+};
+
+const parseEntry = (value: unknown): PublicationEntry => {
+  if (!isRecord(value)) throw new Error("publication entry must be an object");
+  assertExactKeys(
+    value,
+    [
+      "kind",
+      "logicalId",
+      "version",
+      "lifecycle",
+      "isolatedFixture",
+      "fingerprint",
+      "artifacts",
+    ],
+    "publication entry",
+  );
+  if (value.kind !== "workflow" && value.kind !== "capability") {
+    throw new Error("publication entry kind is invalid");
+  }
+  if (typeof value.logicalId !== "string" || value.logicalId.length === 0) {
+    throw new Error("publication entry logicalId is invalid");
+  }
+  if (!Number.isSafeInteger(value.version) || Number(value.version) < 1) {
+    throw new Error("publication entry version is invalid");
+  }
+  if (
+    value.lifecycle !== "draft" &&
+    value.lifecycle !== "published" &&
+    value.lifecycle !== "retired"
+  ) {
+    throw new Error("publication entry lifecycle is invalid");
+  }
+  if (typeof value.isolatedFixture !== "boolean") {
+    throw new Error("publication entry fixture posture is invalid");
+  }
+  if (!isRecord(value.fingerprint)) {
+    throw new Error("publication fingerprint is invalid");
+  }
+  const fingerprint = Object.fromEntries(
+    Object.entries(value.fingerprint).map(([key, field]) => {
+      if (typeof field !== "string") {
+        throw new Error(`publication fingerprint ${key} is invalid`);
+      }
+      return [key, field];
+    }),
+  );
+  if (!Array.isArray(value.artifacts)) {
+    throw new Error("publication artifacts are invalid");
+  }
+  const artifacts = value.artifacts.map((artifact) => {
+    if (!isRecord(artifact)) throw new Error("publication artifact is invalid");
+    assertExactKeys(
+      artifact,
+      ["class", "path", "checksum"],
+      "publication artifact",
+    );
+    const allowedClasses: readonly PublicationArtifactClass[] = [
+      "graph",
+      "runner",
+      "event",
+      "completion",
+      "capability",
+      "dependency",
+      "interpreter",
+      "registry",
+    ];
+    if (
+      typeof artifact.class !== "string" ||
+      !allowedClasses.includes(artifact.class as PublicationArtifactClass) ||
+      typeof artifact.path !== "string" ||
+      typeof artifact.checksum !== "string"
+    ) {
+      throw new Error("publication artifact fields are invalid");
+    }
+    return {
+      class: artifact.class as PublicationArtifactClass,
+      path: artifact.path,
+      checksum: artifact.checksum,
+    };
+  });
+  return {
+    kind: value.kind,
+    logicalId: value.logicalId,
+    version: Number(value.version),
+    lifecycle: value.lifecycle,
+    isolatedFixture: value.isolatedFixture,
+    fingerprint,
+    artifacts,
+  };
+};
+
+export const parsePublicationManifest = (
+  source: string,
+): WorkflowPublicationManifest => {
+  const value: unknown = JSON.parse(source);
+  if (!isRecord(value))
+    throw new Error("publication manifest must be an object");
+  assertExactKeys(
+    value,
+    ["schemaVersion", "entries", "manifestChecksum"],
+    "publication manifest",
+  );
+  if (value.schemaVersion !== 1 || !Array.isArray(value.entries)) {
+    throw new Error("publication manifest schema is invalid");
+  }
+  if (typeof value.manifestChecksum !== "string") {
+    throw new Error("publication manifest checksum is invalid");
+  }
+  return {
+    schemaVersion: 1,
+    entries: value.entries.map(parseEntry),
+    manifestChecksum: value.manifestChecksum,
+  };
+};
+
+const safeBranch = (branch: string): boolean =>
+  /^[A-Za-z0-9._/-]+$/.test(branch) &&
+  !branch.startsWith("-") &&
+  !branch.includes("..") &&
+  !branch.includes("//") &&
+  !branch.endsWith("/") &&
+  !branch.endsWith(".lock");
+
+export const deriveActualPublicationMergeBase = (
+  readGit: GitReader,
+  environment: Readonly<Record<string, string | undefined>>,
+): string => {
+  const branch =
+    environment.BUILDKITE_PULL_REQUEST_BASE_BRANCH?.trim() || "main";
+  if (!safeBranch(branch)) {
+    throw new Error(`Invalid canonical CI comparison branch: ${branch}`);
+  }
+  const candidates = [`refs/remotes/origin/${branch}`, `refs/heads/${branch}`];
+  let trustedRef: string | undefined;
+  for (const candidate of candidates) {
+    try {
+      const resolved = readGit([
+        "rev-parse",
+        "--verify",
+        "--end-of-options",
+        `${candidate}^{commit}`,
+      ]);
+      if (resolved.length > 0) {
+        trustedRef = candidate;
+        break;
+      }
+    } catch {
+      // Try the same CI-owned branch in the other canonical namespace.
+    }
+  }
+  if (!trustedRef) {
+    throw new Error(`Canonical CI comparison ref does not exist: ${branch}`);
+  }
+  const mergeBase = readGit(["merge-base", "HEAD", trustedRef]);
+  if (!/^[a-f0-9]{40,64}$/.test(mergeBase)) {
+    throw new Error("Git did not return a valid actual merge base");
+  }
+  return mergeBase;
+};
+
+export const readTrustedPublicationManifest = (
+  readGit: GitReader,
+  actualMergeBase: string,
+  allowFirstPublication: boolean,
+): WorkflowPublicationManifest | null => {
+  const listing = readGit([
+    "ls-tree",
+    "--name-only",
+    actualMergeBase,
+    "--",
+    canonicalManifestPath,
+  ]);
+  if (listing === "") {
+    if (!allowFirstPublication) {
+      throw new Error(
+        "Trusted base has no publication manifest; pass --allow-first-publication only to establish the first baseline",
+      );
+    }
+    return null;
+  }
+  if (listing !== canonicalManifestPath) {
+    throw new Error("Trusted base manifest lookup returned an unexpected path");
+  }
+  const source = readGit([
+    "show",
+    `${actualMergeBase}:${canonicalManifestPath}`,
+  ]);
+  const manifest = parsePublicationManifest(source);
+  const findings = verifyPublicationManifestChecksum(manifest);
+  if (findings.length > 0) {
+    throw new Error(
+      `Trusted publication manifest is invalid: ${findings.join(", ")}`,
+    );
+  }
+  return manifest;
+};
 
 const argument = (name: string): string | undefined => {
   const index = process.argv.indexOf(name);
@@ -278,33 +486,35 @@ export const runWorkflowVersionImmutabilityCheck = (
   repoRoot = repoRootFromScript(),
 ): readonly string[] => {
   const callerBase = argument("--comparison-base");
+  const allowFirstPublication = process.argv.includes(
+    "--allow-first-publication",
+  );
   const requestedManifest =
     argument("--publication-manifest") ?? canonicalManifestPath;
   if (!callerBase) throw new Error("Missing --comparison-base");
   if (requestedManifest !== canonicalManifestPath) {
     throw new Error(`Publication manifest must be ${canonicalManifestPath}`);
   }
-  const current = parseManifest(
+  const current = parsePublicationManifest(
     readFileSync(resolve(repoRoot, canonicalManifestPath), "utf8"),
   );
-  const actualMergeBase = git(repoRoot, [
-    "merge-base",
-    "HEAD",
-    current.trustedComparisonRef,
-  ]);
+  const readGit: GitReader = (args) => git(repoRoot, args);
+  const actualMergeBase = deriveActualPublicationMergeBase(
+    readGit,
+    process.env,
+  );
   validateComparisonBase(callerBase, actualMergeBase);
   const findings = [
     ...verifyPublicationManifestChecksum(current),
     ...findWorkingTreePublicationDrift(repoRoot, current),
   ];
-  try {
-    const trusted = parseManifest(
-      git(repoRoot, ["show", `${actualMergeBase}:${canonicalManifestPath}`]),
-    );
-    findings.push(...verifyPublicationManifestChecksum(trusted));
+  const trusted = readTrustedPublicationManifest(
+    readGit,
+    actualMergeBase,
+    allowFirstPublication,
+  );
+  if (trusted) {
     findings.push(...compareTrustedPublications(trusted, current));
-  } catch {
-    // The first publication manifest establishes the trusted baseline.
   }
   return findings;
 };

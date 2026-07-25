@@ -7,7 +7,10 @@ import {
   buildResolvedSourceClosure,
   checksumPublicationManifest,
   compareTrustedPublications,
+  deriveActualPublicationMergeBase,
   findWorkingTreePublicationDrift,
+  parsePublicationManifest,
+  readTrustedPublicationManifest,
   validateComparisonBase,
   verifyPublicationManifestChecksum,
   type WorkflowPublicationManifest,
@@ -18,7 +21,6 @@ const sha = (digit: string) => digit.repeat(64);
 const manifest = (): WorkflowPublicationManifest => {
   const unsigned = {
     schemaVersion: 1 as const,
-    trustedComparisonRef: "main",
     entries: [
       {
         kind: "workflow" as const,
@@ -97,18 +99,53 @@ describe("workflow publication immutability gate", () => {
     );
   });
 
-  it("rejects a misleading caller base and a rewritten manifest checksum", () => {
+  it("rejects a misleading caller base and mutable trust-ref content", () => {
     expect(() => validateComparisonBase("caller-base", "actual-base")).toThrow(
       /actual merge base/i,
     );
     const trusted = manifest();
     expect(verifyPublicationManifestChecksum(trusted)).toEqual([]);
-    expect(
-      verifyPublicationManifestChecksum({
-        ...trusted,
-        trustedComparisonRef: "attacker-controlled",
+    expect(() =>
+      parsePublicationManifest(
+        JSON.stringify({
+          ...trusted,
+          trustedComparisonRef: "refs/heads/attacker-controlled",
+        }),
+      ),
+    ).toThrow(/unknown fields.*trustedComparisonRef/i);
+  });
+
+  it("fails closed on nonexistent or malicious canonical CI refs", () => {
+    expect(() =>
+      deriveActualPublicationMergeBase(() => {
+        throw new Error("unknown revision");
+      }, {}),
+    ).toThrow(/comparison ref does not exist/i);
+    expect(() =>
+      deriveActualPublicationMergeBase(() => "unused", {
+        BUILDKITE_PULL_REQUEST_BASE_BRANCH: "main;git reset --hard",
       }),
-    ).toContain("publication manifest checksum mismatch");
+    ).toThrow(/invalid canonical CI comparison branch/i);
+  });
+
+  it("rejects a corrupt trusted-base manifest and narrows first publication", () => {
+    const base = "a".repeat(40);
+    const corruptGit = (args: readonly string[]) =>
+      args[0] === "ls-tree"
+        ? "docs/template/generated/workflow-publications.json"
+        : "{not-json";
+    expect(() =>
+      readTrustedPublicationManifest(corruptGit, base, true),
+    ).toThrow();
+
+    const absentGit = (args: readonly string[]) => {
+      if (args[0] !== "ls-tree") throw new Error("unexpected git command");
+      return "";
+    };
+    expect(() =>
+      readTrustedPublicationManifest(absentGit, base, false),
+    ).toThrow(/allow-first-publication/i);
+    expect(readTrustedPublicationManifest(absentGit, base, true)).toBeNull();
   });
 
   it.each([
