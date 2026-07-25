@@ -11,6 +11,7 @@ import {
   type RunDurableGraphStep,
 } from "../confect/workflows/_kit/graphRunner";
 import type { WorkflowEffectContract } from "../confect/workflows/_kit/effectReservations";
+import { defineGeneratedCurrentAuthorityBinding } from "../confect/workflows/_kit/graphRunnerV2";
 import refs from "../confect/_generated/refs";
 
 const capability = Schema.decodeSync(WorkflowCapabilityReference)(
@@ -29,6 +30,35 @@ const stageStarted = mutationRef;
 const actionRef = Ref.getFunctionReference(
   refs.internal.jobs.workpool.backgroundWork,
 );
+const externalAuthorization = {
+  kind: "consequential",
+  requiredGrants: ["fixture:dispatch"],
+  boundary: "generated-current-authority",
+} as const;
+
+const generatedCurrentAuthority = defineGeneratedCurrentAuthorityBinding(
+  { id: "observed-stage-v2", version: 2 },
+  {
+    observedStageV2: {
+      authorizeConsequential: {
+        functionNamespace: "workflowContracts/observedStageV2",
+        functionSpec: { name: "authorizeConsequential" },
+      },
+    },
+  },
+);
+
+const currentAuthorityReceipt = {
+  kind: "workflow-current-authority",
+  version: 1,
+  workspaceId: "workspace-1",
+  actorId: "user-1",
+  authEpoch: 2,
+  capability,
+  workflowId: "observed-stage-v2",
+  workflowVersion: 2,
+  requiredGrants: ["fixture:dispatch"],
+} as const;
 
 describe("workflow lifecycle observed-stage generation evidence", () => {
   it.each(["query", "mutation"] as const)(
@@ -92,7 +122,10 @@ const run = async (kind: "query" | "mutation" | "action") => {
     return null;
   });
   const step: RunDurableGraphStep = {
-    runQuery: async () => ({ ok: true }),
+    runQuery: async (ref) =>
+      ref === generatedCurrentAuthority.ref
+        ? currentAuthorityReceipt
+        : { ok: true },
     runMutation,
     runAction: async () => ({ ok: true }),
     sleep: async () => undefined,
@@ -103,7 +136,17 @@ const run = async (kind: "query" | "mutation" | "action") => {
   const common = {
     graph: graph(kind),
     inputs: {},
-    principal: {},
+    principal: {
+      version: 2,
+      kind: "user",
+      workspaceId: "workspace-1",
+      grants: ["fixture:dispatch"],
+      kickoffAt: 1,
+      actorId: "user-1",
+      role: "editor",
+      authEpoch: 1,
+      provenance: "authenticated-workflow-start",
+    } as const,
     policySnapshot: { kind: "none" },
     effectIdentity: {
       workspaceId: "workspace-1",
@@ -126,11 +169,13 @@ const run = async (kind: "query" | "mutation" | "action") => {
           kind: "action",
           ref: actionRef,
           effectClass: "external",
+          authorization: externalAuthorization,
           effectContract,
           instanceKey: () => "instance-1",
           buildArgs: ({ logicalEffectKey }) => ({ logicalEffectKey }),
         },
       },
+      currentAuthority: generatedCurrentAuthority,
     });
   } else if (kind === "query") {
     await runDurableGraphWorkflowV2(step, {
