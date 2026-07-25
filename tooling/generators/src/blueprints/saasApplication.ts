@@ -218,6 +218,7 @@ export const buildSaasApplicationTargetPlan = (_options: {
   readonly firstOutcome?: string;
 }): BlueprintTargetPlan => {
   const replacements = new Map<string, "copy" | "generate">([
+    ["apps/cli/src/index.ts", "copy"],
     ["packages/convex/confect/_generated/schema.ts", "copy"],
     ["packages/convex/confect/_generated/convexSchema.ts", "copy"],
     ["packages/convex/confect/_generated/spec.ts", "copy"],
@@ -240,6 +241,8 @@ export const buildSaasApplicationTargetPlan = (_options: {
     }))
     .sort((left, right) => left.path.localeCompare(right.path));
   const registrations = [
+    "apps/cli/src/factory/customerComposition.ts",
+    "apps/cli/src/index.ts",
     "packages/convex/confect/tables/records.ts",
     "packages/convex/confect/records/records.spec.ts",
     "packages/convex/confect/records/records.impl.ts",

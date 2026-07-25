@@ -142,6 +142,14 @@ const routeTree = (): string => {
 export const buildSaasRegistrationProjections =
   (): readonly GeneratedFile[] => [
     {
+      path: "apps/cli/src/factory/customerComposition.ts",
+      content: source("apps/cli/src/factory/customerComposition.ts"),
+    },
+    {
+      path: "apps/cli/src/index.ts",
+      content: source("apps/cli/src/index.ts"),
+    },
+    {
       path: "packages/convex/confect/_generated/tables/records.ts",
       content:
         'import unnamed from "../../tables/records";\n\nexport default unnamed("records");\n',
