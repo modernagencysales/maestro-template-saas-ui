@@ -1,12 +1,4 @@
-import {
-  afterAll,
-  beforeAll,
-  beforeEach,
-  describe,
-  expect,
-  it,
-  vi,
-} from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { isNonRetryableError } from "@convex-dev/workpool";
 import type { EventId as ComponentEventId } from "@convex-dev/workflow";
 import { v } from "convex/values";
@@ -1514,9 +1506,11 @@ describe("Maestro V2 inline transaction compiler", () => {
 });
 
 describe("pinned Convex Workflow component conformance", () => {
-  beforeAll(() => vi.useFakeTimers());
-  beforeEach(() => vi.clearAllTimers());
-  afterAll(() => vi.useRealTimers());
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => {
+    expect(vi.getTimerCount()).toBe(0);
+    vi.useRealTimers();
+  });
 
   it("distinguishes eager-first-poll from queued kickoff", async () => {
     const eager = createWorkflowHarness();
@@ -1525,6 +1519,10 @@ describe("pinned Convex Workflow component conformance", () => {
       workflowId: eagerId,
     });
     expect(eagerStatus.workflow.runResult).toMatchObject({ kind: "failed" });
+    await eager.mutation(conformanceApi.cleanupWorkflow, {
+      workflowId: eagerId,
+    });
+    await eager.finishAllScheduledFunctions(vi.runOnlyPendingTimers);
 
     const queued = createWorkflowHarness();
     const queuedId = await queued.mutation(
@@ -1541,6 +1539,7 @@ describe("pinned Convex Workflow component conformance", () => {
     await queued.mutation(conformanceApi.cleanupWorkflow, {
       workflowId: queuedId,
     });
+    await queued.finishAllScheduledFunctions(vi.runOnlyPendingTimers);
   });
 
   it("consumes an event that arrives before its wait step", async () => {
@@ -1553,6 +1552,7 @@ describe("pinned Convex Workflow component conformance", () => {
     await expect(
       t.query(conformanceApi.workflowStatus, { workflowId }),
     ).resolves.toEqual({ type: "completed", result: true });
+    await t.mutation(conformanceApi.cleanupWorkflow, { workflowId });
   });
 
   it("traverses workflow pagination cursors without duplicates", async () => {
@@ -1579,6 +1579,7 @@ describe("pinned Convex Workflow component conformance", () => {
       await t.mutation(conformanceApi.cancelWorkflow, { workflowId });
       await t.mutation(conformanceApi.cleanupWorkflow, { workflowId });
     }
+    await t.finishAllScheduledFunctions(vi.runOnlyPendingTimers);
   });
 
   it("cancels and cleans through the public manager boundary", async () => {
@@ -1597,6 +1598,7 @@ describe("pinned Convex Workflow component conformance", () => {
     await expect(
       t.query(conformanceApi.workflowStatus, { workflowId }),
     ).rejects.toThrow("Workflow not found");
+    await t.finishAllScheduledFunctions(vi.runOnlyPendingTimers);
   });
 
   it("dispatches Promise.all steps as parallel component work", async () => {
@@ -1617,6 +1619,7 @@ describe("pinned Convex Workflow component conformance", () => {
       expect.any(String),
     ]);
     expect(new Set(steps.page.map((step) => step.workId)).size).toBe(2);
+    await t.mutation(conformanceApi.cleanupWorkflow, { workflowId });
   });
 
   it("selects the latest duplicate restart name and truncates its tail", async () => {
@@ -1639,6 +1642,8 @@ describe("pinned Convex Workflow component conformance", () => {
       "duplicate",
       "middle",
     ]);
+    await t.finishAllScheduledFunctions(vi.runOnlyPendingTimers);
+    await t.mutation(conformanceApi.cleanupWorkflow, { workflowId });
   });
 
   it("cascades subworkflow cancellation through public workflow steps", async () => {
@@ -1669,6 +1674,7 @@ describe("pinned Convex Workflow component conformance", () => {
     await expect(
       t.query(conformanceApi.workflowStatus, { workflowId: childId }),
     ).rejects.toThrow("Workflow not found");
+    await t.finishAllScheduledFunctions(vi.runOnlyPendingTimers);
   });
 
   it("continues residual nested cleanup asynchronously", async () => {
@@ -1728,6 +1734,7 @@ describe("pinned Convex Workflow component conformance", () => {
       expect.stringContaining("missingOnComplete"),
     );
     callbackFailure.mockRestore();
+    await t.mutation(conformanceApi.cleanupWorkflow, { workflowId });
   });
 
   it("batches cleanup for a journal larger than the component limit", async () => {
