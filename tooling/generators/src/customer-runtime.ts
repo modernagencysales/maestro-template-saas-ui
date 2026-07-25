@@ -20,8 +20,6 @@ import {
   type SystemCatalog,
 } from "@maestro-template/template-core/systemCatalog";
 import { gtmImplementationBlueprint } from "./blueprints/gtmImplementation";
-import { buildWorkflowFiles } from "./workflow-files";
-import { bumpRelease, publishRelease } from "./workflow-release-commands";
 
 export { buildWorkflowFiles } from "./workflow-files";
 
@@ -408,16 +406,6 @@ export const buildBlueprintCatalog = (): readonly TemplateBlueprint[] => [
     surfaces: ["web", "api", "cli"],
   },
 ];
-
-const findBlueprint = (blueprint: BlueprintId): TemplateBlueprint => {
-  const match = buildBlueprintCatalog().find((entry) => entry.id === blueprint);
-
-  if (!match) {
-    throw new Error(`Unknown blueprint: ${blueprint}`);
-  }
-
-  return match;
-};
 
 const slugify = (value: string): string =>
   value

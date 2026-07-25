@@ -43,7 +43,9 @@ const customerPackage = (): string => {
   delete value.scripts["check:workflow-version-immutability"];
   for (const name of Object.keys(value.scripts)) {
     if (name.startsWith("template:")) {
-      value.scripts[name] = value.scripts[name]!.replace(
+      const script = value.scripts[name];
+      if (script === undefined) continue;
+      value.scripts[name] = script.replace(
         "tooling/generators/src/index.ts",
         "tooling/generators/src/customer-cli.ts",
       );

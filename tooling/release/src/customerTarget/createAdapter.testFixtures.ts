@@ -88,12 +88,13 @@ export function taggedRelease(
   const temporaryRoot = makeRoot("maestro-create-extract-");
   const homeRoot = makeRoot("maestro-create-home-");
   const targetRoot = join(makeRoot("maestro-create-target-parent-"), "app");
+  const customerProjectionRoot = options.customerProjectionRoot;
   git(repositoryRoot, ["init", "--quiet"]);
   git(repositoryRoot, ["config", "user.email", "fixture@example.invalid"]);
   git(repositoryRoot, ["config", "user.name", "Fixture"]);
   writeFileSync(join(repositoryRoot, "runtime.txt"), "tagged runtime\n");
   writeFileSync(join(repositoryRoot, "package.json"), '{"tagged":true}\n');
-  const projectionFiles = options.customerProjectionRoot
+  const projectionFiles = customerProjectionRoot
     ? [
         "package.json",
         "apps/cli/package.json",
@@ -107,7 +108,7 @@ export function taggedRelease(
       ]
     : [];
   for (const path of projectionFiles) {
-    const source = resolve(options.customerProjectionRoot!, path);
+    const source = resolve(customerProjectionRoot, path);
     if (!existsSync(source)) continue;
     mkdirSync(dirname(join(repositoryRoot, path)), { recursive: true });
     writeFileSync(join(repositoryRoot, path), readFileSync(source));
