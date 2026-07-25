@@ -219,12 +219,17 @@ export const buildSaasApplicationTargetPlan = (_options: {
 }): BlueprintTargetPlan => {
   const replacements = new Map<string, "copy" | "generate">([
     ["apps/cli/src/index.ts", "copy"],
+    ["apps/cli/src/factory/start.ts", "copy"],
     ["package.json", "generate"],
     ["packages/convex/confect/_generated/schema.ts", "copy"],
     ["packages/convex/confect/_generated/convexSchema.ts", "copy"],
     ["packages/convex/confect/_generated/spec.ts", "copy"],
     ["packages/convex/confect/_generated/id.ts", "copy"],
     ["apps/web/src/routeTree.gen.ts", "generate"],
+    ["tooling/agent-pack/src/start.ts", "copy"],
+    ["tooling/agent-pack/src/ports.ts", "copy"],
+    ["tooling/agent-pack/src/verify.ts", "copy"],
+    ["tooling/agent-pack/src/index.ts", "copy"],
   ]);
   const entries = buildSaasApplicationFiles({
     name: "SaaS Application",
@@ -244,8 +249,19 @@ export const buildSaasApplicationTargetPlan = (_options: {
   const registrations = [
     "apps/cli/src/factory/customerComposition.ts",
     "apps/cli/src/index.ts",
+    "apps/cli/src/factory/start.ts",
     "package.json",
     "tooling/quality/install-lefthook-if-git.mjs",
+    "tooling/agent-pack/src/start.ts",
+    "tooling/agent-pack/src/ports.ts",
+    "tooling/agent-pack/src/verify.ts",
+    "tooling/agent-pack/src/receiptWriter.ts",
+    "tooling/agent-pack/src/index.ts",
+    "tooling/agent-pack/src/readiness/artifacts.ts",
+    "tooling/agent-pack/src/readiness/index.ts",
+    "tooling/agent-pack/src/readiness/nodeSurface.ts",
+    "tooling/agent-pack/src/readiness/presenter.ts",
+    "tooling/agent-pack/src/readiness/server.ts",
     "packages/convex/confect/tables/records.ts",
     "packages/convex/confect/records/records.spec.ts",
     "packages/convex/confect/records/records.impl.ts",

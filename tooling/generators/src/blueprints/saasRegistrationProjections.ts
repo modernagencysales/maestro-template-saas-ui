@@ -149,11 +149,30 @@ export const buildSaasRegistrationProjections =
       path: "apps/cli/src/index.ts",
       content: source("apps/cli/src/index.ts"),
     },
+    {
+      path: "apps/cli/src/factory/start.ts",
+      content: source("apps/cli/src/factory/start.ts"),
+    },
     { path: "package.json", content: source("package.json") },
     {
       path: "tooling/quality/install-lefthook-if-git.mjs",
       content: source("tooling/quality/install-lefthook-if-git.mjs"),
     },
+    ...[
+      "start.ts",
+      "ports.ts",
+      "verify.ts",
+      "receiptWriter.ts",
+      "index.ts",
+      "readiness/artifacts.ts",
+      "readiness/index.ts",
+      "readiness/nodeSurface.ts",
+      "readiness/presenter.ts",
+      "readiness/server.ts",
+    ].map((path) => ({
+      path: `tooling/agent-pack/src/${path}`,
+      content: source(`tooling/agent-pack/src/${path}`),
+    })),
     {
       path: "packages/convex/confect/_generated/tables/records.ts",
       content:

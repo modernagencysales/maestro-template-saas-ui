@@ -3,7 +3,9 @@ import {
   createComposedPreflightProbe,
   createExecFileVerificationRunner,
   createNodeExecFileAdapter,
+  createNodeBuildReadinessSurface,
   createNodePreflightRuntimeReader,
+  createNodeVerificationReceiptWriter,
   createPreflightCommand,
   createVerifyCommand,
   defineDiagnosticRegistryProjection,
@@ -83,13 +85,19 @@ const descriptors = defineQualityDiagnosticRegistryProjection(
 );
 
 const parseCustomerInstance = (raw: string) =>
-  parseStartTargetInstance(raw, parseTemplateInstance, (name) =>
-    buildTemplateInstance({
-      name,
+  parseStartTargetInstance(raw, parseTemplateInstance, (identity) => {
+    const blueprint = buildBlueprintCatalog().find(
+      ({ id }) => id === identity.blueprint,
+    )?.id;
+    if (blueprint === undefined)
+      throw new Error("Customer blueprint is not reviewed.");
+    return buildTemplateInstance({
+      name: identity.name,
+      blueprint,
       providerMode: "fake",
       generatedAt: "1970-01-01T00:00:00.000Z",
-    }),
-  );
+    });
+  });
 
 export function createCustomerCliComposition(
   readEnvironment: CompositionEnvironmentReader,
@@ -120,13 +128,6 @@ export function createCustomerCliComposition(
   const output = createStartOutputBoundary(
     options.log ?? ((line) => process.stderr.write(`${line}\n`)),
   );
-  const start = createComposedStartCommand({
-    preflight,
-    readFile: readBoundedFile,
-    maxBytes: policy.packageJsonMaxBytes,
-    environment: readEnvironment,
-    log: output.write,
-  });
   const runner = createExecFileVerificationRunner({
     execFile,
     readFile: readBoundedFile,
@@ -153,7 +154,25 @@ export function createCustomerCliComposition(
     },
     limits: policy,
   });
-  const verify = createVerifyCommand({ descriptors, runner });
+  const start = createComposedStartCommand({
+    preflight,
+    readFile: readBoundedFile,
+    maxBytes: policy.packageJsonMaxBytes,
+    environment: readEnvironment,
+    log: output.write,
+    readinessSurface: createNodeBuildReadinessSurface({
+      readFile: (path) =>
+        readBoundedFile(path, { maxBytes: policy.packageJsonMaxBytes }),
+      current: (repo) => runner.inspect(repo),
+    }),
+  });
+  const verify = createVerifyCommand({
+    descriptors,
+    runner,
+    receiptWriter: createNodeVerificationReceiptWriter({
+      maxBytes: policy.packageJsonMaxBytes,
+    }),
+  });
   const check = createCheckCommand({ preflight, verify });
   const handlers: readonly FactoryCliHandler[] = [
     createStartCliHandler(start, output),

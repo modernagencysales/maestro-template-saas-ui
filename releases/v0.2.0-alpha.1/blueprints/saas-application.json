@@ -7,7 +7,11 @@
     "assets": [
       {
         "path": "base/apps/cli/src/factory/customerComposition.ts.txt",
-        "sha256": "sha256:89b3c8b897a84bb08ee5b7a7b217cba7225a7828c65ac71bef88c54860a8e688"
+        "sha256": "sha256:51b58f567d23b4bb88754dc509e4994eefdce403d86108bcccde05da17ced77e"
+      },
+      {
+        "path": "base/apps/cli/src/factory/start.ts.txt",
+        "sha256": "sha256:13cb7418d7584af779314fc49925c4cda7c64b71d5150241a305aaeb5c9a4ba8"
       },
       {
         "path": "base/apps/cli/src/index.ts.txt",
@@ -19,7 +23,7 @@
       },
       {
         "path": "base/package.json.txt",
-        "sha256": "sha256:e6ec0c1dafef0fc9a431526e0e0fe067dd9f86f0b3aa8125077c7ab81bf4228f"
+        "sha256": "sha256:5b9dc70919d49c20e53fb3ffe024985c215ffb7bf4dfe9509a298980ee19f31d"
       },
       {
         "path": "base/packages/convex/confect/_generated/convexSchema.ts.txt",
@@ -38,6 +42,46 @@
         "sha256": "sha256:c95ae9a907e034edf7c82e7d00515f76f98c04c3618a4a68e51db2d4f0d1cd9e"
       },
       {
+        "path": "base/tooling/agent-pack/src/index.ts.txt",
+        "sha256": "sha256:da0a8a59b6afcd449ad781f61766e358ea55c9f305dc0e6f85c3f2d6bd63b76c"
+      },
+      {
+        "path": "base/tooling/agent-pack/src/ports.ts.txt",
+        "sha256": "sha256:ec58f8c3ce02fdddc28d6bc69e042fca1c0cb4ad714491698c891d72988734d0"
+      },
+      {
+        "path": "base/tooling/agent-pack/src/readiness/artifacts.ts.txt",
+        "sha256": "sha256:0186559a6081e2c14656e5e283e8c6d48a85178eefbc603aa1802a17c90295a5"
+      },
+      {
+        "path": "base/tooling/agent-pack/src/readiness/index.ts.txt",
+        "sha256": "sha256:2f0a375d1244694dd473503f25565bf4d8144c3c81651f7cb39ddf07d8a82015"
+      },
+      {
+        "path": "base/tooling/agent-pack/src/readiness/nodeSurface.ts.txt",
+        "sha256": "sha256:d5ae74b1eac70359a43da79dc82a474b60b71b020042c8316eb69551d80465b4"
+      },
+      {
+        "path": "base/tooling/agent-pack/src/readiness/presenter.ts.txt",
+        "sha256": "sha256:3dd3054e39b632a668368d777bc5f443df53f147543b311972f9215a83ec0640"
+      },
+      {
+        "path": "base/tooling/agent-pack/src/readiness/server.ts.txt",
+        "sha256": "sha256:2404477a78176aa511bfa279402d8c475f01419d7b5f85110c99b622730a5980"
+      },
+      {
+        "path": "base/tooling/agent-pack/src/receiptWriter.ts.txt",
+        "sha256": "sha256:e815be8e4b24713d13643becb04314da32adc1454161efd52c7c246379b840f2"
+      },
+      {
+        "path": "base/tooling/agent-pack/src/start.ts.txt",
+        "sha256": "sha256:585aa84878af057d07b034df493706ef07ee44bb623217caa911407a8cc0d79d"
+      },
+      {
+        "path": "base/tooling/agent-pack/src/verify.ts.txt",
+        "sha256": "sha256:1e7b2f583fe33eb9bdb1c489cd1c35c888a311f0d1f3c0364c1b18bcdc1a8b1b"
+      },
+      {
         "path": "base/tooling/quality/install-lefthook-if-git.mjs.txt",
         "sha256": "sha256:bab60cd0103007cb53babe29d02b5736448c7e39391cfd113465820b6e915ffb"
       }
@@ -46,8 +90,19 @@
   "registrations": [
     "apps/cli/src/factory/customerComposition.ts",
     "apps/cli/src/index.ts",
+    "apps/cli/src/factory/start.ts",
     "package.json",
     "tooling/quality/install-lefthook-if-git.mjs",
+    "tooling/agent-pack/src/start.ts",
+    "tooling/agent-pack/src/ports.ts",
+    "tooling/agent-pack/src/verify.ts",
+    "tooling/agent-pack/src/receiptWriter.ts",
+    "tooling/agent-pack/src/index.ts",
+    "tooling/agent-pack/src/readiness/artifacts.ts",
+    "tooling/agent-pack/src/readiness/index.ts",
+    "tooling/agent-pack/src/readiness/nodeSurface.ts",
+    "tooling/agent-pack/src/readiness/presenter.ts",
+    "tooling/agent-pack/src/readiness/server.ts",
     "packages/convex/confect/tables/records.ts",
     "packages/convex/confect/records/records.spec.ts",
     "packages/convex/confect/records/records.impl.ts",
@@ -68,7 +123,15 @@
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:89b3c8b897a84bb08ee5b7a7b217cba7225a7828c65ac71bef88c54860a8e688"
+      "sha256": "sha256:51b58f567d23b4bb88754dc509e4994eefdce403d86108bcccde05da17ced77e"
+    },
+    {
+      "path": "apps/cli/src/factory/start.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:13cb7418d7584af779314fc49925c4cda7c64b71d5150241a305aaeb5c9a4ba8",
+      "replaces": "copy"
     },
     {
       "path": "apps/cli/src/index.ts",
@@ -189,7 +252,7 @@
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:e6ec0c1dafef0fc9a431526e0e0fe067dd9f86f0b3aa8125077c7ab81bf4228f",
+      "sha256": "sha256:5b9dc70919d49c20e53fb3ffe024985c215ffb7bf4dfe9509a298980ee19f31d",
       "replaces": "generate"
     },
     {
@@ -265,6 +328,80 @@
       "action": "generate",
       "upgrade": "regenerate",
       "sha256": "sha256:3fddd6a9c3d7f50198f2b5feba77d707fe302e453349a55739e220d69996de5c"
+    },
+    {
+      "path": "tooling/agent-pack/src/index.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:da0a8a59b6afcd449ad781f61766e358ea55c9f305dc0e6f85c3f2d6bd63b76c",
+      "replaces": "copy"
+    },
+    {
+      "path": "tooling/agent-pack/src/ports.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:ec58f8c3ce02fdddc28d6bc69e042fca1c0cb4ad714491698c891d72988734d0",
+      "replaces": "copy"
+    },
+    {
+      "path": "tooling/agent-pack/src/readiness/artifacts.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:0186559a6081e2c14656e5e283e8c6d48a85178eefbc603aa1802a17c90295a5"
+    },
+    {
+      "path": "tooling/agent-pack/src/readiness/index.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:2f0a375d1244694dd473503f25565bf4d8144c3c81651f7cb39ddf07d8a82015"
+    },
+    {
+      "path": "tooling/agent-pack/src/readiness/nodeSurface.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:d5ae74b1eac70359a43da79dc82a474b60b71b020042c8316eb69551d80465b4"
+    },
+    {
+      "path": "tooling/agent-pack/src/readiness/presenter.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:3dd3054e39b632a668368d777bc5f443df53f147543b311972f9215a83ec0640"
+    },
+    {
+      "path": "tooling/agent-pack/src/readiness/server.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:2404477a78176aa511bfa279402d8c475f01419d7b5f85110c99b622730a5980"
+    },
+    {
+      "path": "tooling/agent-pack/src/receiptWriter.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:e815be8e4b24713d13643becb04314da32adc1454161efd52c7c246379b840f2"
+    },
+    {
+      "path": "tooling/agent-pack/src/start.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:585aa84878af057d07b034df493706ef07ee44bb623217caa911407a8cc0d79d",
+      "replaces": "copy"
+    },
+    {
+      "path": "tooling/agent-pack/src/verify.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:1e7b2f583fe33eb9bdb1c489cd1c35c888a311f0d1f3c0364c1b18bcdc1a8b1b",
+      "replaces": "copy"
     },
     {
       "path": "tooling/quality/install-lefthook-if-git.mjs",

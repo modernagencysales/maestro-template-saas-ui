@@ -103,8 +103,19 @@ describe("saas application blueprint", () => {
       "apps/web/src/routes/_workspace.records.tsx",
       "apps/cli/src/factory/customerComposition.ts",
       "apps/cli/src/index.ts",
+      "apps/cli/src/factory/start.ts",
       "package.json",
       "tooling/quality/install-lefthook-if-git.mjs",
+      "tooling/agent-pack/src/start.ts",
+      "tooling/agent-pack/src/ports.ts",
+      "tooling/agent-pack/src/verify.ts",
+      "tooling/agent-pack/src/receiptWriter.ts",
+      "tooling/agent-pack/src/index.ts",
+      "tooling/agent-pack/src/readiness/artifacts.ts",
+      "tooling/agent-pack/src/readiness/index.ts",
+      "tooling/agent-pack/src/readiness/nodeSurface.ts",
+      "tooling/agent-pack/src/readiness/presenter.ts",
+      "tooling/agent-pack/src/readiness/server.ts",
       "packages/convex/confect/_generated/tables/records.ts",
       "packages/convex/confect/_generated/schema.ts",
       "packages/convex/confect/_generated/convexSchema.ts",
@@ -203,6 +214,46 @@ describe("saas application blueprint", () => {
       status: "unavailable",
       reason: expect.stringContaining("semantic ledger"),
     });
+  });
+
+  it("projects a customer-only root script closure", () => {
+    const files = buildSaasApplicationFiles({ name: "My App" });
+    const root = JSON.parse(
+      files.find(({ path }) => path === "package.json")?.content ?? "{}",
+    ) as {
+      readonly packageManager: string;
+      readonly scripts: Readonly<Record<string, string>>;
+      readonly devDependencies: Readonly<Record<string, string>>;
+    };
+    const forbidden = [
+      "tooling/evals",
+      "tooling/pr-backlog",
+      "tooling/release",
+      "tooling/stack",
+    ];
+    expect(Object.keys(root.scripts)).toEqual([
+      "maestro",
+      "format",
+      "check:format",
+      "lint",
+      "typecheck",
+      "test",
+      "build",
+      "confect:codegen",
+      "confect:dev",
+      "convex:dev",
+      "dev:backend",
+      "prepare",
+      "verify",
+    ]);
+    expect(JSON.stringify(root.scripts)).not.toMatch(
+      new RegExp(forbidden.join("|")),
+    );
+    const factory = JSON.parse(
+      readFileSync(join(repoRoot, "package.json"), "utf8"),
+    );
+    expect(root.packageManager).toBe(factory.packageManager);
+    expect(root.devDependencies).toEqual(factory.devDependencies);
   });
 
   it("executes fake create, list, and read with workspace isolation", async () => {
