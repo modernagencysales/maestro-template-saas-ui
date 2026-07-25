@@ -4920,9 +4920,7 @@ function generatorArgv(
   return { ok: true, value: argv };
 }
 
-function parseReviewedGeneratorResult(
-  stdout: string,
-):
+function parseReviewedGeneratorResult(stdout: string):
   | {
       readonly ok: true;
       readonly value: Record<string, unknown>;
