@@ -20,4 +20,7 @@ export {
   WorkflowTransactionLimits,
 } from "./graphSchema";
 export { WorkflowGraphValidationError } from "./graphValidationError";
-export { validateWorkflowGraph } from "./graphValidation";
+export {
+  validateWorkflowGraph,
+  validateWorkflowGraphV2,
+} from "./graphValidation";

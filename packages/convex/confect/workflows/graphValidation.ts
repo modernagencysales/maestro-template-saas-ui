@@ -5,6 +5,7 @@ import {
   type WorkflowNode,
 } from "./graph";
 import { isSafeConditionExpression } from "./conditionExpression";
+import type { DurableWorkflowGraphV2 } from "./graphSchema";
 
 type ValidationState = {
   readonly errors: WorkflowGraphValidationError[];
@@ -224,6 +225,124 @@ const trackDuplicate = (
     duplicateIds.add(id);
   }
   ids.add(id);
+};
+
+export const validateWorkflowGraphV2 = (
+  graph: DurableWorkflowGraphV2,
+): readonly string[] => {
+  const sources = graph.nodes.filter((node) => node.kind === "source");
+  const outputs = graph.nodes.filter((node) => node.kind === "output");
+  const outgoing = new Map<string, string[]>();
+  const reverse = new Map<string, string[]>();
+  for (const edge of graph.edges) {
+    append(outgoing, edge.sourceNodeId, edge.targetNodeId);
+    append(reverse, edge.targetNodeId, edge.sourceNodeId);
+  }
+  const reachable = walk(graph.startNodeId, outgoing);
+  const reachesOutput = new Set(
+    outputs.flatMap((node) => [...walk(node.id, reverse)]),
+  );
+  const duplicateStepNames = duplicates(
+    graph.nodes.map((node) => node.stepName),
+  );
+
+  return [
+    ...(sources.length === 1 ? [] : ["exactly one source node is required"]),
+    ...(outputs.length === 1 ? [] : ["exactly one output node is required"]),
+    ...(sources[0]?.id === graph.startNodeId
+      ? []
+      : ["startNodeId must identify the source node"]),
+    ...outputs.flatMap((node) =>
+      (outgoing.get(node.id)?.length ?? 0) === 0
+        ? []
+        : [`output node ${node.id} cannot have outgoing edges`],
+    ),
+    ...graph.nodes.flatMap((node) =>
+      reachable.has(node.id)
+        ? []
+        : [`node ${node.id} is unreachable from source`],
+    ),
+    ...graph.nodes.flatMap((node) =>
+      reachesOutput.has(node.id)
+        ? []
+        : [`node ${node.id} does not converge on the output`],
+    ),
+    ...(hasCycle(
+      graph.nodes.map((node) => node.id),
+      outgoing,
+    )
+      ? ["workflow graph must be acyclic"]
+      : []),
+    ...graph.joins.flatMap((join) =>
+      join.strategy === "any-successful"
+        ? [
+            "any-successful joins require a typed mutually-exclusive branch or reviewed loser policy",
+          ]
+        : [],
+    ),
+    ...duplicateStepNames.map((name) => `duplicate stepName: ${name}`),
+  ];
+};
+
+const append = (
+  index: Map<string, string[]>,
+  key: string,
+  value: string,
+): void => {
+  const values = index.get(key) ?? [];
+  values.push(value);
+  index.set(key, values);
+};
+
+const walk = (
+  start: string,
+  index: ReadonlyMap<string, readonly string[]>,
+): ReadonlySet<string> => {
+  const visited = new Set<string>();
+  const pending = [start];
+  while (pending.length > 0) {
+    const current = pending.shift();
+    if (current === undefined || visited.has(current)) continue;
+    visited.add(current);
+    pending.push(...(index.get(current) ?? []));
+  }
+  return visited;
+};
+
+const hasCycle = (
+  nodeIds: readonly string[],
+  outgoing: ReadonlyMap<string, readonly string[]>,
+): boolean => {
+  const indegree = new Map(nodeIds.map((id) => [id, 0]));
+  for (const targets of outgoing.values()) {
+    for (const target of targets) {
+      if (indegree.has(target))
+        indegree.set(target, (indegree.get(target) ?? 0) + 1);
+    }
+  }
+  const pending = nodeIds.filter((id) => indegree.get(id) === 0);
+  let visited = 0;
+  while (pending.length > 0) {
+    const current = pending.shift();
+    if (current === undefined) continue;
+    visited += 1;
+    for (const target of outgoing.get(current) ?? []) {
+      const next = (indegree.get(target) ?? 0) - 1;
+      indegree.set(target, next);
+      if (next === 0) pending.push(target);
+    }
+  }
+  return visited !== nodeIds.length;
+};
+
+const duplicates = (values: readonly string[]): readonly string[] => {
+  const seen = new Set<string>();
+  const duplicate = new Set<string>();
+  for (const value of values) {
+    if (seen.has(value)) duplicate.add(value);
+    seen.add(value);
+  }
+  return [...duplicate].sort();
 };
 
 const edgeKey = (sourceNodeId: string, targetNodeId: string): string =>
