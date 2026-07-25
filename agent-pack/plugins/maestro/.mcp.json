@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "maestro": {
+      "type": "stdio",
+      "command": "pnpm",
+      "args": ["maestro", "--", "mcp"],
+      "cwd": "${CLAUDE_PROJECT_DIR}"
+    }
+  }
+}

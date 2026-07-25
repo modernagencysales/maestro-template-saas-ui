@@ -10,5 +10,7 @@ an in-memory receipt, and removes only unchanged receipt-owned files. It never
 writes Codex MCP configuration, starts a process, authenticates Convex, or
 contacts a remote registry.
 
-Phase 2 deliberately has no Codex plugin or MCP registration. MCP support is a
-later, explicit opt-in surface.
+WP-3.5 provides `maestro-mcp.config.toml` for root integration to project as one
+repository-native Maestro entry in `.codex/config.toml`. This temporary-home
+installer still writes skills only and never alters global Codex configuration.
+Convex MCP remains a separately previewed local opt-in.

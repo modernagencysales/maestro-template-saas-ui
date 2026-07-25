@@ -36,7 +36,7 @@ semantic gate.
 - No edits to `tooling/generators/src/index.ts` are part of the leaf stack.
 - No Agent Pack package dependency, barrel, root CLI composition, router,
   script, Just recipe, or aggregate-gate registration is owned here.
-- No MCP transport or WP-3.5 behavior is included.
+- MCP exposes scaffold preview only. Reviewed writes remain CLI-only.
 
 ## Shared Wiring
 

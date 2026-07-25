@@ -7,9 +7,10 @@ skills. Normal onboarding is offline and does not refresh remote skill metadata.
 
 Validated host baseline: Claude Code `2.1.220` successfully added the local `./`
 marketplace, installed, listed, inspected, and uninstalled both plugins in a
-disposable `CLAUDE_CONFIG_DIR`. Plugin details reported one skill and zero
-hooks, MCP servers, or LSP servers for each plugin. This is recorded evidence,
-not a hard minimum version; later versions must keep passing the same fixture.
+disposable `CLAUDE_CONFIG_DIR`. Plugin details initially reported one skill and
+zero hooks or LSP servers. The Maestro plugin now declares only the thin
+repository-local Maestro MCP server; the Convex plugin remains skill-only. This
+is recorded evidence, not a hard minimum version.
 
 ## Verify the primary path
 
@@ -28,9 +29,10 @@ boundary, fingerprint, and exact recovery commands behind this read-only check.
 
 ## Optional local plugins
 
-The `maestro` and `maestro-convex` plugins add skill routing only. They contain
-no hooks or MCP server, do not authenticate Convex, and do not start background
-processes.
+The `maestro` plugin adds skill routing and the read-oriented Maestro MCP
+declaration. It invokes `pnpm maestro -- mcp` from `CLAUDE_PROJECT_DIR`; it does
+not authenticate Convex or start a background Convex process. The
+`maestro-convex` plugin remains skill-only.
 
 Before trusting the local marketplace, inspect
 `.claude-plugin/marketplace.json`, both plugin manifests, and their `skills/`
@@ -48,9 +50,24 @@ confirm both plugins are enabled, then ask Claude to list the `maestro` and
 `maestro-convex` skills. Official Convex skills remain repository-native and do
 not depend on these optional plugins.
 
-Phase 2 intentionally creates no `.mcp.json`. Do not add a Convex MCP server or
-production deployment while following this setup. Later opt-in MCP setup must
-use the Maestro CLI's audited personal-development profile.
+The plugin's `.mcp.json` names only Maestro and does not register Convex. To opt
+into the audited read-only Convex `inspect` profile for a personal development
+deployment, review [`convex-mcp-profiles.json`](./convex-mcp-profiles.json),
+then run from the one repository root:
+
+```bash
+claude mcp add --transport stdio --scope local convex -- pnpm exec convex mcp start --project-dir . --deployment dev --disable-tools data,envGet,envList,envRemove,envSet,logs,run,runOneoffQuery
+```
+
+Remove it without changing customer code:
+
+```bash
+claude mcp remove --scope local convex
+```
+
+`dev-power` is a separate local choice. Review its data, log, and function
+execution effects before using its preview; production and environment-value
+tools are unsupported.
 
 ## Remove or roll back
 

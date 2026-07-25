@@ -1,8 +1,10 @@
 # Codex setup
 
-Codex works from committed repository instructions and skills. Phase 2 does not
-require a plugin, an MCP server, Convex authentication, or writes to your global
-Codex home.
+Codex works from committed repository instructions and skills. The Agent Pack
+provides the thin Maestro server declaration through Codex's current project
+`config.toml` mechanism. Root integration projects that leaf declaration to
+`.codex/config.toml`; it does not configure Convex, authenticate, or write to
+the global Codex home.
 
 Validated host baseline: Codex `0.145.0` loaded the repository metadata and
 discovered `maestro`, `maestro-convex`, `convex`, and `convex-quickstart`. This
@@ -38,6 +40,12 @@ equivalent repo-native discovery.
    The [preflight readiness guide](./preflight.md) explains the read-only result
    and its exact recovery actions.
 
+6. After root integration, review `.codex/config.toml`. Its sole MCP entry
+   invokes `pnpm maestro -- mcp` with `cwd = "."`; repository trust therefore
+   resolves the server context to this target root. Disable that one table to
+   roll back MCP while retaining CLI and skill support. The exact source
+   declaration is `agent-pack/hosts/codex/maestro-mcp.config.toml`.
+
 The root `.agents/skills/maestro` directory is generated from
 `agent-pack/skills/maestro`. Edit only the canonical source and run the
 repository skill synchronization command; the drift gate rejects a
@@ -54,7 +62,7 @@ pnpm --dir tooling/agent-pack test codexInstall
 ```
 
 The fixture projects committed local sources only. It does not write the real
-`~/.codex`, create `.codex/config.toml`, add an MCP entry, start an MCP process,
+`~/.codex`, alter the repository `.codex/config.toml`, start Convex MCP,
 authenticate Convex, or access remote metadata.
 
 ## Status and removal
@@ -67,5 +75,5 @@ unrelated skills and customer code, and refuses modified files.
 
 To stop using the repo-native pack, close the checkout or remove it through the
 same project-management process that created it. Do not recursively delete a
-real Codex home. No MCP cleanup or Convex logout is necessary because Phase 2
-configures neither.
+real Codex home. The project Maestro declaration disappears with the checkout.
+No Convex logout is necessary because fake mode never configures Convex MCP.

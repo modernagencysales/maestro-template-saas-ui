@@ -1,0 +1,133 @@
+{
+  "feature": "phase-3-thin-maestro-mcp",
+  "adrRefs": ["docs/template/adr/0002-maestro-graph-over-convex-workflow.md"],
+  "slices": [
+    {
+      "id": 1,
+      "branch": "codex/wp3.5-thin-mcp",
+      "intention": "project accepted command envelopes through a closed read-oriented MCP tool registry",
+      "layers": ["checks"],
+      "contractRiskIds": [
+        "ambient-time-inline",
+        "schema-runtime-validator-export",
+        "policy-data-hardcoded",
+        "duplicated-closed-union",
+        "invalid-test-fixture-or-cast",
+        "branching-logic-needs-boundary-tests",
+        "unjustified-cap-or-threshold",
+        "type-escape-or-cast"
+      ],
+      "workPackages": [
+        {
+          "kind": "fixture-to-real",
+          "target": "WP-3.5 tooling/agent-pack/src/mcp/protocol.ts and projection.ts",
+          "followUpGates": [
+            "pnpm --dir tooling/agent-pack test mcp",
+            "pnpm --dir tooling/agent-pack typecheck"
+          ],
+          "notes": "Reuse AgentPackCommand execution and result envelopes; exclude planning, repair generation, chat state, telemetry, arbitrary commands, identity, secrets, production authority, and writes."
+        }
+      ],
+      "taskRefs": ["WP-3.5-protocol-projection"],
+      "rationale": "The MCP surface is a closed transport projection over the accepted ABI.",
+      "estLines": 300
+    },
+    {
+      "id": 2,
+      "branch": "codex/wp3.5-thin-mcp",
+      "intention": "serve framed stdio from the trusted CLI repository context",
+      "layers": ["checks"],
+      "contractRiskIds": [
+        "ambient-time-inline",
+        "schema-runtime-validator-export",
+        "policy-data-hardcoded",
+        "duplicated-closed-union",
+        "invalid-test-fixture-or-cast",
+        "branching-logic-needs-boundary-tests",
+        "unjustified-cap-or-threshold",
+        "type-escape-or-cast"
+      ],
+      "workPackages": [
+        {
+          "kind": "fixture-to-real",
+          "target": "WP-3.5 tooling/agent-pack/src/mcp/server.ts and apps/cli/src/factory/mcp.ts",
+          "followUpGates": [
+            "pnpm --dir apps/cli test mcp direct-run",
+            "pnpm --dir apps/cli typecheck"
+          ],
+          "notes": "Stdout carries protocol frames only; stderr diagnostics are fixed and redacted. No shell strings or alternate command behavior."
+        }
+      ],
+      "taskRefs": ["WP-3.5-server-cli"],
+      "rationale": "One server-side context preserves CLI and MCP parity without caller authority.",
+      "estLines": 280
+    },
+    {
+      "id": 3,
+      "branch": "codex/wp3.5-thin-mcp",
+      "intention": "project fail-closed Convex profiles and current host declarations",
+      "layers": ["checks"],
+      "contractRiskIds": [
+        "ambient-time-inline",
+        "schema-runtime-validator-export",
+        "policy-data-hardcoded",
+        "duplicated-closed-union",
+        "invalid-test-fixture-or-cast",
+        "branching-logic-needs-boundary-tests",
+        "unjustified-cap-or-threshold",
+        "type-escape-or-cast"
+      ],
+      "workPackages": [
+        {
+          "kind": "fixture-to-real",
+          "target": "WP-3.5 convexProfiles.ts plus Claude Code .mcp.json and the Codex leaf config template",
+          "followUpGates": [
+            "pnpm --dir tooling/agent-pack test convexProfiles hostDeclarations",
+            "pnpm check:secret-canaries"
+          ],
+          "notes": "Consume the existing audited Convex inventory. Fake is disabled, inspect is the default opt-in, dev-power is separate, environment tools remain denied, and production is unsupported."
+        }
+      ],
+      "taskRefs": ["WP-3.5-convex-host-profiles"],
+      "rationale": "Host-native declarations stay removable and never auto-start Convex MCP.",
+      "estLines": 260
+    },
+    {
+      "id": 4,
+      "branch": "codex/wp3.5-thin-mcp",
+      "intention": "pin MCP ownership, documentation, and rollback evidence",
+      "layers": ["checks"],
+      "contractRiskIds": [
+        "ambient-time-inline",
+        "schema-runtime-validator-export",
+        "policy-data-hardcoded",
+        "duplicated-closed-union",
+        "invalid-test-fixture-or-cast",
+        "branching-logic-needs-boundary-tests",
+        "unjustified-cap-or-threshold",
+        "type-escape-or-cast"
+      ],
+      "workPackages": [
+        {
+          "kind": "fixture-to-real",
+          "target": "WP-3.5 setup docs, manifest, and leaf host declarations",
+          "followUpGates": [
+            "pnpm stack:check docs/superpowers/plans/manifests/phase-3-thin-mcp.json",
+            "pnpm --dir tooling/agent-pack test hostDeclarations",
+            "pnpm check:headless-surface-contract"
+          ],
+          "notes": "Document exact protocol tools, host mechanisms, Convex opt-in effects, and removal without customer-code changes. Exclude root package barrels, CLI composition/router/index/help, central quality registration, host projection, scripts, lockfile, mutating scaffold, Convex auto-start, and WP-3.5 follow-on tools."
+        }
+      ],
+      "taskRefs": ["WP-3.5-docs-gates"],
+      "rationale": "Deterministic gates prevent transport or host authority drift.",
+      "estLines": 180
+    }
+  ],
+  "allTaskRefs": [
+    "WP-3.5-protocol-projection",
+    "WP-3.5-server-cli",
+    "WP-3.5-convex-host-profiles",
+    "WP-3.5-docs-gates"
+  ]
+}
