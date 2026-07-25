@@ -13,4 +13,6 @@ pnpm install --frozen-lockfile
 pnpm check:ci-completeness
 pnpm check:config-drift
 pnpm check:workflow-semantics
+pnpm check:convex-ai-files
+pnpm check:agent-pack
 pnpm check:gates

@@ -1,0 +1,19 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "maestro-agent-pack",
+  "owner": {
+    "name": "Maestro"
+  },
+  "plugins": [
+    {
+      "name": "maestro",
+      "source": "./agent-pack/plugins/maestro",
+      "description": "Skill-only Maestro workflow guidance."
+    },
+    {
+      "name": "maestro-convex",
+      "source": "./agent-pack/plugins/maestro-convex",
+      "description": "Skill-only routing to official Convex and Maestro workflow guidance."
+    }
+  ]
+}

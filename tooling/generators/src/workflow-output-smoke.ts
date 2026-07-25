@@ -212,7 +212,7 @@ export const runWorkflowOutputSmoke = (
       {
         label: "Regenerate Convex refs",
         command: "pnpm",
-        args: ["--dir", convexPackage, "exec", "convex", "codegen"],
+        args: ["--dir", tempRepoRoot, "exec", "convex", "codegen"],
         requiresDeployment: true,
       },
       {

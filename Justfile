@@ -72,6 +72,12 @@ check-convex:
 check-convex-compat:
     pnpm check:convex-compat
 
+
+check-convex-ai-files:
+    pnpm check:convex-ai-files
+
+check-agent-pack:
+    pnpm check:agent-pack
 check-workflow-semantics:
     pnpm check:workflow-semantics
 

@@ -23,6 +23,8 @@ export PATH="${HOME}/.local/bin:${PATH}"
 pnpm verify
 pnpm check:ci-completeness
 pnpm check:config-drift
+pnpm check:convex-ai-files
+pnpm check:agent-pack
 pnpm check:deps
 pnpm check:knip
 pnpm check:route-tree
