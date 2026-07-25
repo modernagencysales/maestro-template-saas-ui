@@ -1,136 +1,17 @@
-import { createHash } from "node:crypto";
-import { execFileSync } from "node:child_process";
-import {
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  readdirSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs";
-import { tmpdir } from "node:os";
+import { readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { afterEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import { createCustomerReleaseAdapter } from "./createAdapter.js";
-
-const temporaryRoots: string[] = [];
-const makeRoot = (prefix = "maestro-create-adapter-"): string => {
-  const root = mkdtempSync(join(tmpdir(), prefix));
-  temporaryRoots.push(root);
-  return root;
-};
-afterEach(() => {
-  for (const root of temporaryRoots.splice(0))
-    rmSync(root, { recursive: true, force: true });
-});
-
-const hash = (bytes: string | Buffer): string =>
-  `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
-const git = (root: string, args: readonly string[]): Buffer =>
-  execFileSync("git", ["-C", root, ...args]);
-
-function taggedRelease() {
-  const repositoryRoot = makeRoot();
-  const temporaryRoot = makeRoot("maestro-create-extract-");
-  const homeRoot = makeRoot("maestro-create-home-");
-  const targetRoot = join(makeRoot("maestro-create-target-parent-"), "app");
-  git(repositoryRoot, ["init", "--quiet"]);
-  git(repositoryRoot, ["config", "user.email", "fixture@example.invalid"]);
-  git(repositoryRoot, ["config", "user.name", "Fixture"]);
-  writeFileSync(join(repositoryRoot, "runtime.txt"), "tagged runtime\n");
-  writeFileSync(join(repositoryRoot, "package.json"), '{"tagged":true}\n');
-  git(repositoryRoot, ["add", "runtime.txt", "package.json"]);
-  git(repositoryRoot, ["commit", "--quiet", "-m", "fixture release"]);
-  const sourceCommit = git(repositoryRoot, ["rev-parse", "HEAD"])
-    .toString("utf8")
-    .trim();
-  const tag = "maestro-template-v1.2.3";
-  git(repositoryRoot, ["tag", tag]);
-  const archive = git(repositoryRoot, [
-    "archive",
-    "--format=tar",
-    sourceCommit,
-  ]);
-  const manifest = {
-    $schema: "../../schemas/maestro-customer-release-manifest.schema.json",
-    schemaVersion: 1,
-    materializationStatus: "materializable",
-    release: {
-      version: "1.2.3",
-      tag,
-      sourceCommit,
-      sourceChecksum: hash(archive),
-    },
-    compatibility: { cli: "1.2.x", agentPack: "1.2.x" },
-    paths: [
-      {
-        path: "runtime.txt",
-        match: "exact",
-        ownership: "customer-extension",
-        action: "copy",
-        upgrade: "preserve",
-      },
-      {
-        path: "package.json",
-        match: "exact",
-        ownership: "generated",
-        action: "generate",
-        upgrade: "regenerate",
-      },
-      {
-        path: "template-instance.json",
-        match: "exact",
-        ownership: "generated",
-        action: "generate",
-        upgrade: "regenerate",
-      },
-    ],
-    expectedHashes: { "runtime.txt": hash("tagged runtime\n") },
-    extensionSeams: [
-      { path: "runtime.txt", description: "Fixture extension seam." },
-    ],
-  };
-  const manifestPath = join(repositoryRoot, "release-manifest.json");
-  const manifestBytes = `${JSON.stringify(manifest, null, 2)}\n`;
-  writeFileSync(manifestPath, manifestBytes);
-  return {
-    repositoryRoot,
-    temporaryRoot,
-    homeRoot,
-    targetRoot,
-    tag,
-    manifest,
-    manifestPath,
-    ownershipManifestChecksum: hash(manifestBytes),
-  };
-}
-
-function adapter(fixture: ReturnType<typeof taggedRelease>) {
-  return createCustomerReleaseAdapter({
-    repositoryRoot: fixture.repositoryRoot,
-    manifestPath: fixture.manifestPath,
-    ownershipManifestChecksum: fixture.ownershipManifestChecksum,
-    tag: fixture.tag,
-    homeRoot: fixture.homeRoot,
-    temporaryRoot: fixture.temporaryRoot,
-  });
-}
-
-function prepare(
-  fixture: ReturnType<typeof taggedRelease>,
-  release = adapter(fixture),
-) {
-  return release.prepare({
-    repo: {
-      workingDirectory: fixture.repositoryRoot,
-      sourceRoot: fixture.repositoryRoot,
-    },
-    target: fixture.targetRoot,
-    templateInstance: (facts) =>
-      `${JSON.stringify({ name: "My App", release: facts })}\n`,
-  });
-}
+import {
+  adapter,
+  git,
+  hash,
+  makeRoot,
+  prepare,
+  taggedRelease,
+  type TaggedReleaseFixture,
+} from "./createAdapter.testFixtures.js";
 
 describe("customer release create adapter", () => {
   it("previews and writes only immutable tagged bytes with every generated entry", async () => {
@@ -191,26 +72,22 @@ describe("customer release create adapter", () => {
   it.each([
     [
       "ownership manifest",
-      (fixture: ReturnType<typeof taggedRelease>) => {
+      (fixture: TaggedReleaseFixture) => {
         fixture.ownershipManifestChecksum = `sha256:${"0".repeat(64)}`;
       },
     ],
     [
       "tag commit",
-      (fixture: ReturnType<typeof taggedRelease>) => {
+      (fixture: TaggedReleaseFixture) => {
         fixture.manifest.release.sourceCommit = "0".repeat(40);
-        const bytes = `${JSON.stringify(fixture.manifest, null, 2)}\n`;
-        writeFileSync(fixture.manifestPath, bytes);
-        fixture.ownershipManifestChecksum = hash(bytes);
+        rewriteManifest(fixture);
       },
     ],
     [
       "archive",
-      (fixture: ReturnType<typeof taggedRelease>) => {
+      (fixture: TaggedReleaseFixture) => {
         fixture.manifest.release.sourceChecksum = `sha256:${"0".repeat(64)}`;
-        const bytes = `${JSON.stringify(fixture.manifest, null, 2)}\n`;
-        writeFileSync(fixture.manifestPath, bytes);
-        fixture.ownershipManifestChecksum = hash(bytes);
+        rewriteManifest(fixture);
       },
     ],
   ] as const)(
@@ -276,3 +153,9 @@ describe("customer release create adapter", () => {
     expect(reused).toMatchObject({ ok: false, code: "stale-preflight" });
   });
 });
+
+function rewriteManifest(fixture: TaggedReleaseFixture): void {
+  const bytes = `${JSON.stringify(fixture.manifest, null, 2)}\n`;
+  writeFileSync(fixture.manifestPath, bytes);
+  fixture.ownershipManifestChecksum = hash(bytes);
+}

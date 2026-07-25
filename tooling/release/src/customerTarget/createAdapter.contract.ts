@@ -1,0 +1,168 @@
+import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
+import { relative, sep } from "node:path";
+import type { CustomerReleaseManifest } from "./manifest.js";
+
+export type CreateFailureCode =
+  | "collision"
+  | "dirty-source"
+  | "release-unavailable"
+  | "stale-preflight"
+  | "unsafe-target";
+
+export type CreateFailure = {
+  readonly ok: false;
+  readonly code: CreateFailureCode;
+  readonly message: string;
+};
+
+export type CustomerReleaseAdapterFacts = {
+  readonly version: string;
+  readonly tag: string;
+  readonly sourceCommit: string;
+  readonly sourceChecksum: string;
+  readonly cliCompatibility: string;
+  readonly agentPackCompatibility: string;
+  readonly ownershipManifest: string;
+  readonly ownershipManifestChecksum: string;
+  readonly extensionSeams: readonly string[];
+};
+
+export type CustomerReleaseAdapterOptions = {
+  readonly repositoryRoot: string;
+  readonly manifestPath: string;
+  readonly ownershipManifestChecksum: string;
+  readonly tag: string;
+  readonly homeRoot: string;
+  readonly temporaryRoot?: string;
+};
+
+export type PrepareRequest = {
+  readonly repo: {
+    readonly workingDirectory: string;
+    readonly sourceRoot: string;
+  };
+  readonly target: string;
+  readonly templateInstance: (facts: CustomerReleaseAdapterFacts) => string;
+};
+
+export type PreparedRelease = {
+  readonly ok: true;
+  readonly token: object;
+  readonly facts: CustomerReleaseAdapterFacts;
+  readonly preview: {
+    readonly preflightFingerprint: string;
+    readonly writes: readonly {
+      readonly path: string;
+      readonly bytes: number;
+    }[];
+    readonly omissions: readonly string[];
+    readonly collisions: readonly string[];
+    readonly totalBytes: number;
+  };
+};
+
+export type TokenState = {
+  readonly request: PrepareRequest;
+  readonly templateInstance: string;
+};
+
+export class CustomerReleaseAdapterError extends Error {
+  readonly code: CreateFailureCode;
+
+  constructor(code: CreateFailureCode, message: string) {
+    super(message);
+    this.name = "CustomerReleaseAdapterError";
+    this.code = code;
+  }
+}
+
+export const sha256 = (bytes: string | Buffer): string =>
+  `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
+
+export function readVerifiedManifest(
+  options: CustomerReleaseAdapterOptions,
+): Buffer {
+  const bytes = readFileSync(options.manifestPath);
+  if (sha256(bytes) !== options.ownershipManifestChecksum) {
+    throw new CustomerReleaseAdapterError(
+      "release-unavailable",
+      "Ownership manifest checksum does not match the reviewed release binding.",
+    );
+  }
+  return bytes;
+}
+
+export function parseManifest(bytes: Buffer): unknown {
+  try {
+    return JSON.parse(bytes.toString("utf8")) as unknown;
+  } catch {
+    throw new CustomerReleaseAdapterError(
+      "release-unavailable",
+      "Ownership manifest is not valid JSON.",
+    );
+  }
+}
+
+export function rawExpectedHashes(
+  value: unknown,
+): Readonly<Record<string, string>> {
+  if (!isRecord(value) || !isRecord(value.expectedHashes)) return {};
+  return Object.fromEntries(
+    Object.entries(value.expectedHashes).filter(
+      (entry): entry is [string, string] => typeof entry[1] === "string",
+    ),
+  );
+}
+
+export function releaseFacts(
+  options: CustomerReleaseAdapterOptions,
+  manifest: CustomerReleaseManifest,
+): CustomerReleaseAdapterFacts {
+  const manifestPath = relative(options.repositoryRoot, options.manifestPath);
+  return {
+    version: manifest.release.version,
+    tag: manifest.release.tag,
+    sourceCommit: manifest.release.sourceCommit,
+    sourceChecksum: manifest.release.sourceChecksum,
+    cliCompatibility: manifest.compatibility.cli,
+    agentPackCompatibility: manifest.compatibility.agentPack,
+    ownershipManifest:
+      manifestPath === "" ||
+      manifestPath === ".." ||
+      manifestPath.startsWith(`..${sep}`)
+        ? options.manifestPath
+        : manifestPath.split(sep).join("/"),
+    ownershipManifestChecksum: options.ownershipManifestChecksum,
+    extensionSeams: manifest.extensionSeams.map(({ path }) => path),
+  };
+}
+
+export function failure(error: unknown): CreateFailure {
+  if (error instanceof CustomerReleaseAdapterError) {
+    return { ok: false, code: error.code, message: error.message };
+  }
+  const message = error instanceof Error ? error.message : "unknown failure";
+  if (/collision|non-empty|Target contains/i.test(message)) {
+    return { ok: false, code: "collision", message };
+  }
+  if (/target|root|symbolic|path escape/i.test(message)) {
+    return { ok: false, code: "unsafe-target", message };
+  }
+  if (/preflight|hash mismatch|changed/i.test(message)) {
+    return { ok: false, code: "stale-preflight", message };
+  }
+  return {
+    ok: false,
+    code: "release-unavailable",
+    message: "Immutable customer release verification failed.",
+  };
+}
+
+export function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+export function isObject(value: unknown): value is object {
+  return value !== null && typeof value === "object";
+}

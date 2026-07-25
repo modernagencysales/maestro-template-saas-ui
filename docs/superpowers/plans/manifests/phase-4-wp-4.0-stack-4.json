@@ -1,0 +1,124 @@
+{
+  "feature": "phase-4-wp-4.0-customer-release-adapter-split",
+  "slices": [
+    {
+      "id": 1,
+      "branch": "codex/wp4-release-adapter",
+      "intention": "separate focused immutable release fixtures from unchanged adapter acceptance assertions",
+      "layers": ["checks"],
+      "contractRiskIds": [
+        "ambient-time-inline",
+        "schema-runtime-validator-export",
+        "policy-data-hardcoded",
+        "duplicated-closed-union",
+        "invalid-test-fixture-or-cast",
+        "branching-logic-needs-boundary-tests",
+        "unjustified-cap-or-threshold",
+        "type-escape-or-cast"
+      ],
+      "workPackages": [
+        {
+          "kind": "template-gap",
+          "target": "WP-4.0 customer release adapter adversarial fixtures",
+          "followUpGates": [
+            "pnpm --dir tooling/release exec vitest run src/customerTarget/createAdapter.test.ts"
+          ],
+          "templateBacklogRef": "AP-007 first-run visible app",
+          "templateResolutionPath": "Keep local tagged-repository construction and cleanup fixtures bounded separately from the unchanged behavior assertions."
+        }
+      ],
+      "taskRefs": ["WP-4.0-stack-4-adapter-fixtures"],
+      "rationale": "Fixture setup remains reusable and reviewable without obscuring the accepted fail-closed assertions.",
+      "estLines": 180
+    },
+    {
+      "id": 2,
+      "branch": "codex/wp4-release-adapter",
+      "intention": "isolate the accepted customer release adapter closed types, diagnostics, and ownership-manifest binding validation",
+      "layers": ["domain"],
+      "contractRiskIds": [
+        "ambient-time-inline",
+        "bare-error-not-typed",
+        "schema-runtime-validator-export",
+        "policy-data-hardcoded",
+        "duplicated-closed-union",
+        "invalid-test-fixture-or-cast",
+        "branching-logic-needs-boundary-tests",
+        "unjustified-cap-or-threshold",
+        "type-escape-or-cast"
+      ],
+      "workPackages": [
+        {
+          "kind": "template-gap",
+          "target": "WP-4.0 customer release adapter contracts and binding validation",
+          "followUpGates": ["pnpm --dir tooling/release typecheck"],
+          "templateBacklogRef": "AP-007 first-run visible app",
+          "templateResolutionPath": "Keep the accepted create adapter types and fail-closed ownership-manifest binding in one bounded internal leaf."
+        }
+      ],
+      "taskRefs": ["WP-4.0-stack-4-adapter-contract"],
+      "rationale": "Closed result types and binding diagnostics should remain reviewable without Git session or orchestration mechanics.",
+      "estLines": 200
+    },
+    {
+      "id": 3,
+      "branch": "codex/wp4-release-adapter",
+      "intention": "isolate immutable tag resolution, Git archive verification, extraction, and cleanup",
+      "layers": ["adapters"],
+      "contractRiskIds": [],
+      "workPackages": [
+        {
+          "kind": "template-gap",
+          "target": "WP-4.0 immutable Git archive session",
+          "followUpGates": [
+            "pnpm --dir tooling/release test customerTarget",
+            "pnpm --dir tooling/release typecheck"
+          ],
+          "templateBacklogRef": "AP-007 first-run visible app",
+          "templateResolutionPath": "Resolve the reviewed tag, reproduce and checksum its Git archive, verify tagged file hashes, and always remove temporary extraction."
+        }
+      ],
+      "taskRefs": ["WP-4.0-stack-4-archive-session"],
+      "rationale": "Host process and temporary filesystem behavior form one bounded immutable-release adapter seam.",
+      "estLines": 240
+    },
+    {
+      "id": 4,
+      "branch": "codex/wp4-release-adapter",
+      "intention": "retain public adapter orchestration, generated-entry projection, preview, write, and one-use token behavior",
+      "layers": ["domain", "adapters"],
+      "contractRiskIds": [
+        "ambient-time-inline",
+        "bare-error-not-typed",
+        "schema-runtime-validator-export",
+        "policy-data-hardcoded",
+        "duplicated-closed-union",
+        "invalid-test-fixture-or-cast",
+        "branching-logic-needs-boundary-tests",
+        "unjustified-cap-or-threshold",
+        "type-escape-or-cast"
+      ],
+      "workPackages": [
+        {
+          "kind": "template-gap",
+          "target": "WP-4.0 customer release adapter orchestration",
+          "followUpGates": [
+            "pnpm --dir tooling/release test customerTarget",
+            "pnpm --dir tooling/release typecheck"
+          ],
+          "templateBacklogRef": "AP-007 first-run visible app",
+          "templateResolutionPath": "Preserve the accepted public adapter export while delegating immutable binding and archive mechanics to bounded leaves."
+        }
+      ],
+      "taskRefs": ["WP-4.0-stack-4-adapter-orchestration"],
+      "rationale": "The public create port remains small and exposes no new root wiring or release semantics.",
+      "estLines": 200
+    }
+  ],
+  "allTaskRefs": [
+    "WP-4.0-stack-4-adapter-fixtures",
+    "WP-4.0-stack-4-adapter-contract",
+    "WP-4.0-stack-4-archive-session",
+    "WP-4.0-stack-4-adapter-orchestration"
+  ]
+}
