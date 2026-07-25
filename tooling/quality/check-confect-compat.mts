@@ -1,6 +1,14 @@
 import { readFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
-import { validatePinnedManifests } from "../convex-compat/src/matrix";
+import {
+  INLINE_TRANSACTION_LIMIT_FIELDS,
+  INLINE_TRANSACTION_PRESETS,
+  PINNED_INLINE_CONVEX_VERSION,
+} from "../../packages/convex/confect/workflows/_kit/inlineTransactions";
+import {
+  validateInlineTransactionCompatibility,
+  validatePinnedManifests,
+} from "../convex-compat/src/matrix";
 import { descriptorFor } from "./src/check-definitions.mts";
 import { isDirectRun } from "./src/direct-run.mts";
 import { evaluateStaticCheck } from "./src/gate.mts";
@@ -15,7 +23,14 @@ export async function collectCompatibilityFindings(
     readJson(join(repoRoot, "packages/convex/package.json")),
     readJson(join(repoRoot, "tooling/effectified-api-proof/package.json")),
   ]);
-  return validatePinnedManifests(matrix, convexPackage, proofPackage);
+  return [
+    ...validatePinnedManifests(matrix, convexPackage, proofPackage),
+    ...validateInlineTransactionCompatibility(matrix, {
+      supportedConvexVersion: PINNED_INLINE_CONVEX_VERSION,
+      supportedFields: INLINE_TRANSACTION_LIMIT_FIELDS,
+      presets: INLINE_TRANSACTION_PRESETS,
+    }),
+  ];
 }
 
 async function readJson(path: string): Promise<unknown> {
@@ -30,8 +45,7 @@ if (isDirectRun(import.meta.url)) {
   const failures = [
     ...staticResult.failures,
     ...compatibilityFindings.map(
-      (finding) =>
-        `package version differs from compatibility matrix: ${finding}`,
+      (finding) => `compatibility authority mismatch: ${finding}`,
     ),
   ];
   if (failures.length === 0) {

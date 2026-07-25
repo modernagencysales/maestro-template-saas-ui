@@ -85,6 +85,164 @@ export function validatePinnedManifests(
   return findings;
 }
 
+export function validateInlineTransactionCompatibility(
+  matrixInput: unknown,
+  runtimeInput: unknown,
+): readonly string[] {
+  try {
+    const matrix = record(matrixInput, "matrix");
+    const authority = record(
+      matrix.inlineTransactions,
+      "matrix.inlineTransactions",
+    );
+    const runtime = record(runtimeInput, "runtime.inlineTransactions");
+    const findings: string[] = [];
+    const authorityVersion = stringValue(
+      authority.supportedConvexVersion,
+      "matrix.inlineTransactions.supportedConvexVersion",
+    );
+    const runtimeVersion = stringValue(
+      runtime.supportedConvexVersion,
+      "runtime.inlineTransactions.supportedConvexVersion",
+    );
+    if (authorityVersion !== runtimeVersion) {
+      findings.push("inline-version-mismatch");
+    }
+
+    const authorityFields = stringArray(
+      authority.supportedFields,
+      "matrix.inlineTransactions.supportedFields",
+    );
+    const runtimeFields = stringArray(
+      runtime.supportedFields,
+      "runtime.inlineTransactions.supportedFields",
+    );
+    compareExactNames("inline-field", authorityFields, runtimeFields, findings);
+
+    const authorityPresets = record(
+      authority.presets,
+      "matrix.inlineTransactions.presets",
+    );
+    const runtimePresets = record(
+      runtime.presets,
+      "runtime.inlineTransactions.presets",
+    );
+    compareExactNames(
+      "inline-preset",
+      Object.keys(authorityPresets),
+      Object.keys(runtimePresets),
+      findings,
+    );
+    for (const presetName of unionNames(
+      Object.keys(authorityPresets),
+      Object.keys(runtimePresets),
+    )) {
+      const authorityPreset = authorityPresets[presetName];
+      const runtimePreset = runtimePresets[presetName];
+      if (authorityPreset === undefined || runtimePreset === undefined)
+        continue;
+      comparePreset(
+        presetName,
+        authorityPreset,
+        runtimePreset,
+        authorityFields,
+        runtimeFields,
+        findings,
+      );
+    }
+    return [...new Set(findings)].sort();
+  } catch (error) {
+    return [
+      `inline-authority-invalid:${error instanceof Error ? error.message : String(error)}`,
+    ];
+  }
+}
+
+const comparePreset = (
+  presetName: string,
+  authorityInput: unknown,
+  runtimeInput: unknown,
+  authorityFields: readonly string[],
+  runtimeFields: readonly string[],
+  findings: string[],
+): void => {
+  const authority = record(
+    authorityInput,
+    `matrix.inlineTransactions.presets.${presetName}`,
+  );
+  const runtime = record(
+    runtimeInput,
+    `runtime.inlineTransactions.presets.${presetName}`,
+  );
+  const authorityCounters = Object.keys(authority);
+  const runtimeCounters = Object.keys(runtime);
+  compareExactNames(
+    `inline-preset-counter:${presetName}`,
+    authorityCounters,
+    runtimeCounters,
+    findings,
+  );
+  if (authorityCounters.length === 0 || runtimeCounters.length === 0) {
+    findings.push(`inline-preset-empty:${presetName}`);
+  }
+  for (const counter of unionNames(authorityCounters, runtimeCounters)) {
+    if (!authorityFields.includes(counter)) {
+      findings.push(
+        `inline-authority-counter-unsupported:${presetName}:${counter}`,
+      );
+    }
+    if (!runtimeFields.includes(counter)) {
+      findings.push(
+        `inline-runtime-counter-unsupported:${presetName}:${counter}`,
+      );
+    }
+    const authorityValue = authority[counter];
+    const runtimeValue = runtime[counter];
+    if (!isValidCounter(authorityValue)) {
+      findings.push(
+        `inline-authority-counter-invalid:${presetName}:${counter}`,
+      );
+    }
+    if (!isValidCounter(runtimeValue)) {
+      findings.push(`inline-runtime-counter-invalid:${presetName}:${counter}`);
+    }
+    if (authorityValue !== runtimeValue) {
+      findings.push(`inline-counter-mismatch:${presetName}:${counter}`);
+    }
+  }
+};
+
+const compareExactNames = (
+  prefix: string,
+  authority: readonly string[],
+  runtime: readonly string[],
+  findings: string[],
+): void => {
+  const authorityNames = new Set(authority);
+  const runtimeNames = new Set(runtime);
+  if (authorityNames.size !== authority.length)
+    findings.push(`${prefix}-duplicate:authority`);
+  if (runtimeNames.size !== runtime.length)
+    findings.push(`${prefix}-duplicate:runtime`);
+  for (const name of authorityNames) {
+    if (!runtimeNames.has(name)) findings.push(`${prefix}-missing:${name}`);
+  }
+  for (const name of runtimeNames) {
+    if (!authorityNames.has(name)) findings.push(`${prefix}-unknown:${name}`);
+  }
+};
+
+const unionNames = (
+  left: readonly string[],
+  right: readonly string[],
+): readonly string[] => [...new Set([...left, ...right])].sort();
+
+const isValidCounter = (value: unknown): value is number =>
+  typeof value === "number" &&
+  Number.isFinite(value) &&
+  Number.isInteger(value) &&
+  value > 0;
+
 function record(value: unknown, name: string): JsonRecord {
   if (value === null || typeof value !== "object" || Array.isArray(value)) {
     throw new TypeError(`${name} must be an object`);

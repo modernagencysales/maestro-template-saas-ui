@@ -1,7 +1,16 @@
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import { evaluateCompatibilitySet, validatePinnedManifests } from "./matrix";
+import {
+  INLINE_TRANSACTION_LIMIT_FIELDS,
+  INLINE_TRANSACTION_PRESETS,
+  PINNED_INLINE_CONVEX_VERSION,
+} from "../../../packages/convex/confect/workflows/_kit/inlineTransactions";
+import {
+  evaluateCompatibilitySet,
+  validateInlineTransactionCompatibility,
+  validatePinnedManifests,
+} from "./matrix";
 
 const repoRoot = resolve(import.meta.dirname, "../../..");
 
@@ -35,35 +44,57 @@ describe("Convex compatibility matrix", () => {
     ).toEqual([]);
   });
 
-  it("pins the supported inline transaction surface and presets", async () => {
-    const matrix = (await readJson(
-      "docs/template/convex-compatibility.json",
-    )) as {
-      readonly inlineTransactions: unknown;
-    };
-    expect(matrix.inlineTransactions).toEqual({
-      supportedConvexVersion: "1.42.1",
-      supportedFields: [
-        "bytesRead",
-        "bytesWritten",
-        "databaseQueries",
-        "documentsRead",
-        "documentsWritten",
-        "functionsScheduled",
-        "scheduledFunctionArgsBytes",
-      ],
-      presets: {
-        tiny: { documentsRead: 5, bytesWritten: 100 },
-        "small-atomic": {
-          documentsWritten: 100,
-          bytesWritten: 1_048_576,
+  it("derives runtime inline parity from the canonical authority", async () => {
+    const matrix = await readJson("docs/template/convex-compatibility.json");
+    expect(
+      validateInlineTransactionCompatibility(matrix, runtimeInline),
+    ).toEqual([]);
+  });
+
+  it.each([
+    ["version drift", { supportedConvexVersion: "1.42.2" }],
+    [
+      "field addition",
+      { supportedFields: [...runtimeInline.supportedFields, "rogue"] },
+    ],
+    [
+      "field removal",
+      { supportedFields: runtimeInline.supportedFields.slice(1) },
+    ],
+    [
+      "preset addition",
+      { presets: { ...runtimeInline.presets, rogue: { bytesRead: 1 } } },
+    ],
+    ["preset removal", { presets: { tiny: runtimeInline.presets.tiny } }],
+    [
+      "counter drift",
+      {
+        presets: {
+          ...runtimeInline.presets,
+          tiny: { documentsRead: 6, bytesWritten: 100 },
         },
       },
-      evidence: [
-        "workflow-0.4.4-transaction-option-fixture",
-        "committed-convex-function-guidelines",
-      ],
-    });
+    ],
+    [
+      "invalid counter",
+      {
+        presets: {
+          ...runtimeInline.presets,
+          tiny: { documentsRead: -1, bytesWritten: 100 },
+        },
+      },
+    ],
+  ])("rejects inline compatibility %s", async (_name, override) => {
+    const matrix = (await readJson(
+      "docs/template/convex-compatibility.json",
+    )) as Record<string, unknown>;
+    const authority = matrix.inlineTransactions as Record<string, unknown>;
+    expect(
+      validateInlineTransactionCompatibility(
+        { ...matrix, inlineTransactions: { ...authority, ...override } },
+        runtimeInline,
+      ),
+    ).not.toEqual([]);
   });
 
   it("evaluates candidates without changing the working lockfile", async () => {
@@ -77,6 +108,12 @@ describe("Convex compatibility matrix", () => {
     expect(after).toBe(before);
   });
 });
+
+const runtimeInline = {
+  supportedConvexVersion: PINNED_INLINE_CONVEX_VERSION,
+  supportedFields: INLINE_TRANSACTION_LIMIT_FIELDS,
+  presets: INLINE_TRANSACTION_PRESETS,
+} as const;
 
 async function readJson(path: string): Promise<unknown> {
   return JSON.parse(await readFile(resolve(repoRoot, path), "utf8"));
