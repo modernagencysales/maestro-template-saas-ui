@@ -21,7 +21,11 @@
     "resolvedCommit": "ec1e6baae7d86c7843c22938c75979c016f5c6e9",
     "skillsInstaller": "1.5.20",
     "installerInvocation": "npx --yes skills@1.5.20 add get-convex/agent-skills --yes --copy",
-    "posture": "recorded-for-WP-2.1-controlled-install"
+    "lockFormat": 1,
+    "managedManifest": "docs/template/convex-ai-files.manifest.json",
+    "normalOnboarding": "committed-offline-outputs",
+    "removal": "checksummed-owned-files-without-remote-metadata",
+    "posture": "controlled-install-verified-in-disposable-checkout"
   },
   "candidate": {
     "convex": "1.42.3",
