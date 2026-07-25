@@ -346,6 +346,7 @@ const checkDescriptorDefinitions = {
       {
         file: "package.json",
         includes: [
+          "--max-old-space-size=8192",
           "type-coverage --project tsconfig.type-coverage.json --at-least 99.7",
         ],
         message:

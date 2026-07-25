@@ -13,6 +13,7 @@ describe("check:types-coverage", () => {
         expect.objectContaining({
           file: "package.json",
           includes: expect.arrayContaining([
+            "--max-old-space-size=8192",
             "type-coverage --project tsconfig.type-coverage.json --at-least 99.7",
           ]),
         }),
