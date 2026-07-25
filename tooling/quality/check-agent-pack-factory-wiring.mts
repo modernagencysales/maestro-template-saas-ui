@@ -92,6 +92,8 @@ export async function factoryWiringFindings(
       "createCustomerCreateComposition()",
       "overrides.start?.log ?? ((line) => process.stderr.write(`${line}\\n`))",
       "createComposedStartCommand({",
+      "createNodeBuildReadinessSurface({",
+      "receiptWriter: createNodeVerificationReceiptWriter({",
       "createStartCliHandler(start, startOutput)",
       "parseStartTargetInstance(raw, parseTemplateInstance",
       "createPreflightCliHandler(preflight)",
@@ -121,6 +123,12 @@ export async function factoryWiringFindings(
     countOccurrences(factoryComposition, "createFactoryCliComposition(") !==
       1 ||
     countOccurrences(factoryComposition, "createComposedStartCommand(") !== 1 ||
+    countOccurrences(factoryComposition, "createNodeBuildReadinessSurface(") !==
+      1 ||
+    countOccurrences(
+      factoryComposition,
+      "createNodeVerificationReceiptWriter(",
+    ) !== 1 ||
     factoryComposition?.includes("process.env") === true ||
     factoryComposition?.includes("export const factoryCliComposition") === true
   ) {
@@ -144,10 +152,16 @@ function expectedAgentPackBarrel(): string {
     'export * from "./preflight.js";',
     'export * from "./diagnostics.js";',
     'export * from "./receipt.js";',
+    'export * from "./receiptWriter.js";',
+    'export * from "./recipes.js";',
     'export * from "./verify.js";',
     'export * from "./check.js";',
     'export * from "./nodeAdapters.js";',
+    'export * from "./officialConvex.js";',
     'export * from "./preflightProbe.js";',
+    'export * from "./providers/convex.js";',
+    'export * from "./providers/doctor.js";',
+    'export * from "./readiness/index.js";',
     'export * from "./verificationRunner.js";',
     'export * from "./planCheck.js";',
     'export * from "./scaffold.js";',
