@@ -131,6 +131,7 @@ const assertRoots = (request: CustomerMaterializationRequest): string => {
     target === source ||
     target === factory ||
     inside(source, target) ||
+    inside(factory, target) ||
     inside(target, source)
   ) {
     throw new CustomerMaterializationError(

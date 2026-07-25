@@ -177,6 +177,33 @@ describe("customer target preview and materialization", () => {
     ).toThrow("Unsafe materialization path");
   });
 
+  it("rejects prospective targets beneath a separate live factory root", () => {
+    const { root, request } = fixture();
+    const liveFactory = join(root, "live-factory");
+    const factoryAlias = join(root, "factory-alias");
+    mkdirSync(liveFactory);
+    symlinkSync(liveFactory, factoryAlias, "dir");
+    const separated = { ...request, factoryRoot: liveFactory };
+
+    for (const targetRoot of [
+      liveFactory,
+      join(liveFactory, "customer"),
+      join(liveFactory, "nested", "..", "customer"),
+      join(factoryAlias, "customer"),
+    ]) {
+      expect(() => previewCustomerTarget({ ...separated, targetRoot })).toThrow(
+        "Target must be separate from the factory source",
+      );
+    }
+
+    expect(() =>
+      previewCustomerTarget({
+        ...separated,
+        targetRoot: join(root, "sibling-customer"),
+      }),
+    ).not.toThrow();
+  });
+
   it("fails on stale hashes or changed preflight without target mutation", () => {
     const { sourceRoot, targetRoot, request } = fixture();
     writeFileSync(join(sourceRoot, "runtime.txt"), "stale\n");
