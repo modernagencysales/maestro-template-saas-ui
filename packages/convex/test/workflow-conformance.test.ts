@@ -25,6 +25,10 @@ import {
   type RunDurableGraphStep,
 } from "../confect/workflows/_kit/graphRunner";
 import {
+  defineGeneratedCurrentAuthorityRef,
+  type GeneratedCurrentAuthorityRef,
+} from "../confect/workflows/_kit/graphRunnerV2";
+import {
   defineWorkflowV2SubworkflowRegistry,
   defineWorkflowV2Subworkflow,
   runRegisteredSubworkflow,
@@ -1261,6 +1265,7 @@ describe("Maestro V2 inline transaction compiler", () => {
     const actionRef =
       "compiler.v2.action" as unknown as DurableGraphStepRef<"action">;
     const runAction = vi.fn(async () => ({ accepted: true }));
+    const runQuery = vi.fn(async () => currentAuthorityReceipt);
     const admitEffect = vi.fn(async () => ({ kind: "dispatch" as const }));
     const graph = v2CapabilityGraph("action", {
       maxAttempts: 4,
@@ -1268,7 +1273,7 @@ describe("Maestro V2 inline transaction compiler", () => {
       base: 2,
     });
 
-    await runDurableGraphWorkflowV2(v2Step({ runAction }), {
+    await runDurableGraphWorkflowV2(v2Step({ runAction, runQuery }), {
       ...v2ExternalInput(graph),
       capabilityRegistry: {
         [capabilityRef]: {
@@ -1293,6 +1298,15 @@ describe("Maestro V2 inline transaction compiler", () => {
       },
     );
     expect(admitEffect).toHaveBeenCalledBefore(runAction);
+    expect(runQuery).toHaveBeenCalledWith(
+      generatedCurrentAuthority.ref,
+      expect.objectContaining({
+        principal: expect.objectContaining({ actorId: "user-1" }),
+        requiredGrants: ["billing:charge"],
+      }),
+      { name: "charge.v2.authorize" },
+    );
+    expect(runQuery).toHaveBeenCalledBefore(admitEffect);
   });
 
   it("uses retry false for a non-retriable action", async () => {
@@ -1427,13 +1441,43 @@ describe("Maestro V2 inline transaction compiler", () => {
       }),
     ).rejects.toThrow(/workflow authority is unavailable/);
     expect(runQuery).toHaveBeenCalledWith(
-      externalAuthorization.ref,
+      generatedCurrentAuthority.ref,
       expect.objectContaining({
         workspaceId: "workspace-1",
         requiredGrants: ["billing:charge"],
       }),
       { name: "charge.v2.authorize" },
     );
+    expect(admitEffect).not.toHaveBeenCalled();
+    expect(runAction).not.toHaveBeenCalled();
+  });
+
+  it("rejects an arbitrary no-op authority ref before admission", async () => {
+    const admitEffect = vi.fn(async () => ({ kind: "dispatch" as const }));
+    const runAction = vi.fn(async () => ({ accepted: true }));
+    const runQuery = vi.fn(async () => null);
+    const arbitraryAuthority = {
+      ref: "compiler.noop" as unknown as DurableGraphStepRef<"query">,
+    } as unknown as GeneratedCurrentAuthorityRef;
+    await expect(
+      runDurableGraphWorkflowV2(v2Step({ runAction, runQuery }), {
+        ...v2ExternalInput(v2CapabilityGraph("action")),
+        currentAuthority: arbitraryAuthority,
+        capabilityRegistry: {
+          [capabilityRef]: {
+            kind: "action",
+            ref: "compiler.v2.action" as unknown as DurableGraphStepRef<"action">,
+            effectClass: "external",
+            authorization: externalAuthorization,
+            effectContract: nonRetriableContract,
+            instanceKey: () => "invoice-42",
+            buildArgs: () => ({}),
+          },
+        },
+        admitEffect,
+      }),
+    ).rejects.toThrow(/generated current-authority reauthorization/);
+    expect(runQuery).not.toHaveBeenCalled();
     expect(admitEffect).not.toHaveBeenCalled();
     expect(runAction).not.toHaveBeenCalled();
   });
@@ -2017,7 +2061,22 @@ const externalAuthorization = {
   kind: "consequential",
   requiredGrants: ["billing:charge"],
   boundary: "generated-current-authority",
-  ref: "compiler.v2.authorize" as unknown as DurableGraphStepRef<"query">,
+} as const;
+
+const generatedCurrentAuthority = defineGeneratedCurrentAuthorityRef(
+  "workflowContracts.compilerV2:authorizeConsequential" as unknown as DurableGraphStepRef<"query">,
+);
+
+const currentAuthorityReceipt = {
+  kind: "workflow-current-authority",
+  version: 1,
+  workspaceId: "workspace-1",
+  actorId: "user-1",
+  authEpoch: 2,
+  capability: capabilityRef,
+  workflowId: "compiler-v2",
+  workflowVersion: 2,
+  requiredGrants: ["billing:charge"],
 } as const;
 
 const v2CapabilityGraph = (
@@ -2287,22 +2346,25 @@ const v2Input = (graph: DurableWorkflowGraphV2) => ({
 
 const v2ExternalInput = (graph: DurableWorkflowGraphV2) => ({
   ...v2Input(graph),
+  currentAuthority: generatedCurrentAuthority,
   principal: {
     version: 2,
-    kind: "system",
+    kind: "user",
     workspaceId: "workspace-1",
     grants: ["billing:charge"],
     kickoffAt: 1,
-    systemId: "workflow-runner",
-    reason: "workflow action fixture",
-    provenance: "scheduled-system-workflow",
+    actorId: "user-1",
+    role: "editor",
+    authEpoch: 1,
+    provenance: "authenticated-workflow-start",
   } as const,
 });
 
 const v2Step = (
   overrides: Partial<RunDurableGraphStep>,
 ): RunDurableGraphStep => ({
-  runQuery: async () => undefined,
+  runQuery: async (ref) =>
+    ref === generatedCurrentAuthority.ref ? currentAuthorityReceipt : undefined,
   runMutation: async (ref) =>
     ref === childLinkReserveRef ? { linkId: "link-1" } : null,
   runAction: async () => undefined,

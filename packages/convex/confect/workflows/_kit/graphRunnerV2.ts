@@ -94,9 +94,22 @@ export type WorkflowV2ActionCapabilityEntry =
       readonly kind: "consequential";
       readonly requiredGrants: readonly string[];
       readonly boundary: "generated-current-authority";
-      readonly ref: DurableGraphStepRef<"query">;
     };
   };
+
+const generatedCurrentAuthorityRefBrand = Symbol(
+  "maestro.generated-current-authority-ref",
+);
+
+export type GeneratedCurrentAuthorityRef = Readonly<{
+  readonly ref: DurableGraphStepRef<"query">;
+  readonly [generatedCurrentAuthorityRefBrand]: true;
+}>;
+
+export const defineGeneratedCurrentAuthorityRef = (
+  ref: DurableGraphStepRef<"query">,
+): GeneratedCurrentAuthorityRef =>
+  Object.freeze({ ref, [generatedCurrentAuthorityRefBrand]: true as const });
 
 export type WorkflowV2CapabilityEntry =
   | WorkflowV2ActionCapabilityEntry
@@ -126,6 +139,7 @@ export type RunDurableGraphV2CompilerInput<
   readonly inputs: unknown;
   readonly principal: unknown;
   readonly policySnapshot: unknown;
+  readonly currentAuthority?: GeneratedCurrentAuthorityRef;
   readonly capabilityRegistry: Readonly<
     Record<string, WorkflowV2CapabilityEntry>
   >;
@@ -712,7 +726,7 @@ const assertExternalAuthorizationBoundary = <
     entry.authorization?.kind !== "consequential" ||
     entry.authorization.boundary !== "generated-current-authority" ||
     entry.authorization.requiredGrants.length === 0 ||
-    typeof entry.authorization.ref !== "string"
+    !isGeneratedCurrentAuthorityRef(input.currentAuthority)
   ) {
     throw validationFailure(
       node,
@@ -731,19 +745,82 @@ const reauthorizeExternalAction = async <
   authorization: NonNullable<WorkflowV2ActionCapabilityEntry["authorization"]>,
 ): Promise<void> => {
   try {
-    await step.runQuery(
-      authorization.ref,
+    const currentAuthority = input.currentAuthority;
+    if (!isGeneratedCurrentAuthorityRef(currentAuthority)) {
+      throw new Error("Generated current authority is unavailable.");
+    }
+    const result = await step.runQuery(
+      currentAuthority.ref,
       {
         workspaceId: input.effectIdentity.workspaceId,
         principal: input.principal,
         requiredGrants: authorization.requiredGrants,
+        capability: node.capability,
+        workflowId: input.graph.id,
+        workflowVersion: input.graph.version,
       },
       { name: `${node.stepName}.authorize` },
     );
+    assertCurrentAuthorityReceipt(result, input, node, authorization);
   } catch {
     throw validationFailure(node, "workflow authority is unavailable");
   }
 };
+
+const isGeneratedCurrentAuthorityRef = (
+  value: unknown,
+): value is GeneratedCurrentAuthorityRef =>
+  typeof value === "object" &&
+  value !== null &&
+  generatedCurrentAuthorityRefBrand in value &&
+  value[generatedCurrentAuthorityRefBrand] === true &&
+  "ref" in value &&
+  typeof value.ref === "string";
+
+const assertCurrentAuthorityReceipt = <Result extends Record<string, unknown>>(
+  result: unknown,
+  input: RunDurableGraphV2CompilerInput<Result>,
+  node: Extract<CapabilityNodeV2, { functionKind: "action" }>,
+  authorization: NonNullable<WorkflowV2ActionCapabilityEntry["authorization"]>,
+): void => {
+  const principal = input.principal as {
+    readonly kind?: unknown;
+    readonly actorId?: unknown;
+    readonly authEpoch?: unknown;
+  };
+  if (
+    typeof result !== "object" ||
+    result === null ||
+    !("kind" in result) ||
+    result.kind !== "workflow-current-authority" ||
+    !("version" in result) ||
+    result.version !== 1 ||
+    !("workspaceId" in result) ||
+    result.workspaceId !== input.effectIdentity.workspaceId ||
+    principal.kind !== "user" ||
+    !("actorId" in result) ||
+    result.actorId !== principal.actorId ||
+    !("authEpoch" in result) ||
+    typeof result.authEpoch !== "number" ||
+    typeof principal.authEpoch !== "number" ||
+    result.authEpoch < principal.authEpoch ||
+    !("capability" in result) ||
+    result.capability !== node.capability ||
+    !("workflowId" in result) ||
+    result.workflowId !== input.graph.id ||
+    !("workflowVersion" in result) ||
+    result.workflowVersion !== input.graph.version ||
+    !("requiredGrants" in result) ||
+    !sameStrings(result.requiredGrants, authorization.requiredGrants)
+  ) {
+    throw new Error("Generated current authority receipt is invalid.");
+  }
+};
+
+const sameStrings = (left: unknown, right: readonly string[]): boolean =>
+  Array.isArray(left) &&
+  left.length === right.length &&
+  left.every((value, index) => value === right[index]);
 
 const assertCapabilityArgs = (
   node: CapabilityNodeV2,

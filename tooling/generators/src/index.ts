@@ -2517,6 +2517,8 @@ import {
 } from "../errors";
 import { Id } from "../_generated/id";
 import { ProductWorkflowEventId } from "../workflows/_kit/events";
+import { DurableWorkflowPrincipal } from "../workflows/_kit/principal";
+import { WorkflowCurrentAuthorityReceipt } from "../workflows/_kit/principalAuthorization";
 import { WorkflowStatusResult } from "../workflows/_kit/status";
 import {
   WorkflowLifecycleRunProjection,
@@ -2606,6 +2608,24 @@ const SendEventArgs = Schema.Struct({
 const SendEventReturns = Schema.Struct({
   eventId: ProductWorkflowEventId,
   status: Schema.Literal("sent"),
+});
+
+export const authorizeConsequential = FunctionSpec.internalQuery({
+  name: "authorizeConsequential",
+  args: () =>
+    Schema.Struct({
+      workspaceId: Id("workspaces"),
+      principal: DurableWorkflowPrincipal,
+      requiredGrants: Schema.Array(Schema.NonEmptyString),
+      capability: Schema.NonEmptyString,
+      workflowId: Schema.NonEmptyString,
+      workflowVersion: Schema.Number.pipe(
+        Schema.int(),
+        Schema.greaterThanOrEqualTo(1),
+      ),
+    }),
+  returns: () => WorkflowCurrentAuthorityReceipt,
+  error: () => MemberNotInWorkspace,
 });
 
 export const startInteractive = defineContractFunction(
@@ -2876,6 +2896,7 @@ export const manifest = collectContractManifest(contractFunctions);
 export const schemaRegistry = collectContractSchemas(contractFunctions);
 
 export default GroupSpec.make()
+  .addFunction(authorizeConsequential)
   .addFunction(startInteractive.spec)
   .addFunction(startQueued.spec)
   .addFunction(status.spec)
@@ -2942,6 +2963,10 @@ import {
 import { ${name}Graph } from "../workflows/${name}/v1.graph";
 import { validateWorkflowEventDelivery } from "../workflows/_kit/events";
 import { ${name}ApprovalDecisionEvent } from "../workflows/${name}/v1.registry";
+import {
+  ${name}CurrentGrantPolicy,
+} from "../workflows/${name}/v1.registry";
+import { requireConsequentialWorkflowAuthority } from "../workflows/_kit/principalAuthorization";
 import ${name} from "./${name}.spec";
 
 const withConfectClock = <A, E, R>(
@@ -3124,6 +3149,36 @@ const startInteractiveImpl = FunctionImpl.make(
   (args) => startWithProfile("interactive", args),
 );
 
+const authorizeConsequentialImpl = FunctionImpl.make(
+  databaseSchema,
+  ${name},
+  "authorizeConsequential",
+  (args) =>
+    Effect.gen(function* () {
+      if (args.principal.workspaceId !== args.workspaceId) {
+        return yield* new MemberNotInWorkspace({
+          membershipId: "workflow-actor",
+        });
+      }
+      const access = yield* requireConsequentialWorkflowAuthority(
+        args.principal,
+        args.requiredGrants,
+        ${name}CurrentGrantPolicy,
+      );
+      return {
+        kind: "workflow-current-authority" as const,
+        version: 1 as const,
+        workspaceId: access.workspaceId,
+        actorId: access.userId,
+        authEpoch: access.authEpoch,
+        capability: args.capability,
+        workflowId: args.workflowId,
+        workflowVersion: args.workflowVersion,
+        requiredGrants: args.requiredGrants,
+      };
+    }),
+);
+
 const startQueuedImpl = FunctionImpl.make(
   databaseSchema,
   ${name},
@@ -3264,6 +3319,7 @@ const cleanupImpl = FunctionImpl.make(
 );
 
 export default GroupImpl.make(databaseSchema, ${name}).pipe(
+  Layer.provide(authorizeConsequentialImpl),
   Layer.provide(startInteractiveImpl),
   Layer.provide(startQueuedImpl),
   Layer.provide(statusImpl),
@@ -3373,10 +3429,9 @@ import { ${name}References } from "./v1.graph";
  * redaction policy, and provider/reconciliation fixture evidence.
  * Query and mutation nodes use an independent Workpool transaction by default.
  * Inline nodes must be authored with a named generated preset.
- * External actions declare authorization: { kind: "consequential",
- * requiredGrants, boundary: "generated-current-authority", ref } where ref is
- * an exact generated internal query that reloads current membership and applies
- * this workflow's role-to-grants policy before effect admission.
+ * External actions declare only consequential metadata. The generated runner,
+ * not an entry or caller, owns the fixed current-authority query ref that reloads
+ * membership and applies this workflow's role-to-grants policy before admission.
  */
 export const ${name}CapabilityRegistry = defineWorkflowCapabilityRegistry({});
 
@@ -3464,6 +3519,7 @@ import {
   runDurableGraphWorkflowV2,
   type RunDurableGraphStep,
 } from "../../workflows/_kit/graphRunner";
+import { defineGeneratedCurrentAuthorityRef } from "../../workflows/_kit/graphRunnerV2";
 import { loadObservedWorkflowExecutionIdentity } from "../../workflows/_kit/observedStage";
 import { reconcileObservedWorkflowCompletion } from "../../workflows/_kit/lifecycleCompletion";
 import { WorkflowOnCompleteContextValidator } from "../../workflows/_kit/lifecycleState";
@@ -3488,6 +3544,11 @@ const recordStageStarted = Ref.getFunctionReference(
 );
 const reconcileCompletionRef = Ref.getFunctionReference(
   refs.internal.workflows.lifecycle.reconcileCompletion,
+);
+const currentAuthority = defineGeneratedCurrentAuthorityRef(
+  Ref.getFunctionReference(
+    refs.internal.workflowContracts.${name}.authorizeConsequential,
+  ),
 );
 
 const WorkflowReceiptValidator = v.object({
@@ -3573,6 +3634,7 @@ export const run = defineMaestroWorkflow(components.workflow, {
     inputs: args,
     principal: args.principal,
     policySnapshot: args.policySnapshot,
+    currentAuthority,
     effectIdentity: {
       workspaceId: args.workspaceId,
       workflowRunId: args.workflowRunId,

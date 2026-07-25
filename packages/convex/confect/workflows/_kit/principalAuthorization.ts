@@ -1,5 +1,6 @@
 import type { GenericId } from "convex/values";
 import * as Effect from "effect/Effect";
+import * as Schema from "effect/Schema";
 
 import {
   requireWorkspaceActorAccess,
@@ -14,6 +15,25 @@ import {
 } from "./principal";
 
 export type WorkflowRoleGrantPolicy = Readonly<Record<Role, readonly string[]>>;
+
+export const WorkflowCurrentAuthorityReceipt = Schema.Struct({
+  kind: Schema.Literal("workflow-current-authority"),
+  version: Schema.Literal(1),
+  workspaceId: Schema.NonEmptyString,
+  actorId: Schema.NonEmptyString,
+  authEpoch: Schema.Number.pipe(Schema.int(), Schema.greaterThanOrEqualTo(0)),
+  capability: Schema.NonEmptyString,
+  workflowId: Schema.NonEmptyString,
+  workflowVersion: Schema.Number.pipe(
+    Schema.int(),
+    Schema.greaterThanOrEqualTo(1),
+  ),
+  requiredGrants: Schema.Array(Schema.NonEmptyString),
+});
+
+export type WorkflowCurrentAuthorityReceipt = Schema.Schema.Type<
+  typeof WorkflowCurrentAuthorityReceipt
+>;
 
 export const defineWorkflowRoleGrantPolicy = (
   policy: WorkflowRoleGrantPolicy,

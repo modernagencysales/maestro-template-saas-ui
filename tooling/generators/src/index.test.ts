@@ -1430,7 +1430,16 @@ describe("template app factory generators", () => {
     expect(registry).toContain("redaction policy");
     expect(registry).toContain("fixture evidence");
     expect(registry).toContain("defineWorkflowRoleGrantPolicy");
-    expect(registry).toContain("role-to-grants policy before effect admission");
+    expect(registry).toContain(
+      "runner,\n * not an entry or caller, owns the fixed current-authority query ref",
+    );
+    expect(registry).not.toContain(
+      'boundary: "generated-current-authority", ref',
+    );
+    expect(spec).toContain("export const authorizeConsequential");
+    expect(spec).toContain("returns: () => WorkflowCurrentAuthorityReceipt");
+    expect(impl).toContain("requireConsequentialWorkflowAuthority(");
+    expect(impl).toContain("sourceGroundedPlanCurrentGrantPolicy");
 
     expect(spec).toContain("defineContractFunction");
     expect(spec).toContain("export const manifest");
@@ -1512,6 +1521,11 @@ describe("template app factory generators", () => {
     expect(convexWorkflow).toContain(
       "principal: DurableWorkflowPrincipalValidator",
     );
+    expect(convexWorkflow).toContain("defineGeneratedCurrentAuthorityRef");
+    expect(convexWorkflow).toContain(
+      "refs.internal.workflowContracts.sourceGroundedPlan.authorizeConsequential",
+    );
+    expect(convexWorkflow).toContain("currentAuthority,");
     expect(convexWorkflow).toContain("returns: WorkflowReceiptValidator");
     expect(convexWorkflow).not.toContain("returns: v.any()");
     expect(convexWorkflow).toContain("metadata");
