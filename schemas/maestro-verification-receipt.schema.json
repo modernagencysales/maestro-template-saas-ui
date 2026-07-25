@@ -37,24 +37,36 @@
     "fingerprints": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["environment", "providerPosture"],
+      "required": ["repository", "environment", "providerPosture"],
       "properties": {
-        "environment": { "type": "string", "minLength": 1 },
-        "providerPosture": { "type": "string", "minLength": 1 }
+        "repository": { "type": "string", "pattern": "^repository_sha256:" },
+        "environment": { "type": "string", "pattern": "^environment_sha256:" },
+        "providerPosture": { "type": "string", "pattern": "^providers_sha256:" }
       }
     },
     "scope": {
       "type": "object",
       "additionalProperties": false,
       "required": ["kind", "changedPaths", "partial"],
-      "properties": {
-        "kind": { "enum": ["full", "focused"] },
-        "changedPaths": {
-          "type": "array",
-          "items": { "type": "string" }
+      "oneOf": [
+        {
+          "properties": {
+            "kind": { "const": "full" },
+            "changedPaths": { "type": "array", "maxItems": 0 },
+            "partial": { "const": false }
+          }
         },
-        "partial": { "type": "boolean" }
-      }
+        {
+          "properties": {
+            "kind": { "const": "focused" },
+            "changedPaths": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "partial": { "const": true }
+          }
+        }
+      ]
     },
     "gates": {
       "type": "array",

@@ -45,8 +45,9 @@ const runner = (
   inspect: async () => ({
     createdAt: "2026-07-25T12:00:00.000Z",
     subject: { commit: "abc123", dirty: false },
-    environmentFingerprint: "env:fixture",
-    providerPostureFingerprint: "providers:fake",
+    repositoryFingerprint: "repository_sha256:fixture",
+    environmentFingerprint: "environment_sha256:fixture",
+    providerPostureFingerprint: "providers_sha256:fixture",
   }),
   run: async (request) => {
     requests.push(request);
@@ -192,5 +193,62 @@ describe("agent-pack verification command", () => {
       ],
       data: { receipt: { gates: [{ status: "unavailable" }] } },
     });
+  });
+
+  it.each([
+    [
+      "changed",
+      "repository_sha256:before",
+      "repository_sha256:after",
+      "AGENT_PACK_REPOSITORY_CHANGED_DURING_VERIFY",
+    ],
+    [
+      "unavailable",
+      "repository_sha256:unavailable",
+      "repository_sha256:unavailable",
+      "AGENT_PACK_REPOSITORY_METADATA_UNAVAILABLE",
+    ],
+  ] as const)(
+    "blocks when repository metadata is %s",
+    async (_name, before, after, code) => {
+      let inspection = 0;
+      const command = createVerifyCommand({
+        descriptors: [descriptors[0]!],
+        runner: {
+          inspect: async () => ({
+            createdAt: "2026-07-25T12:00:00.000Z",
+            subject: { commit: "abc123", dirty: false },
+            repositoryFingerprint: inspection++ === 0 ? before : after,
+            environmentFingerprint: "environment_sha256:fixture",
+            providerPostureFingerprint: "providers_sha256:fixture",
+          }),
+          run: async () => [
+            { gateId: "agent-pack", status: "pass", message: "Passed." },
+          ],
+        },
+      });
+
+      const result = await executeAgentPackCommand(
+        command,
+        { scope: "full", changed: [] },
+        context,
+      );
+      expect(result).toMatchObject({
+        exitClass: "findings",
+        diagnostics: [{ code, severity: "error", safeToContinue: false }],
+        data: { requiredBlocking: true },
+      });
+    },
+  );
+
+  it.each([
+    { scope: "focused", changed: [], extra: true },
+    { scope: "full", changed: ["apps/cli"] },
+    { scope: "focused", changed: "apps/cli" },
+  ])("rejects invalid invocation shape %#", async (invocation) => {
+    const command = createVerifyCommand({ descriptors, runner: runner([]) });
+    await expect(
+      executeAgentPackCommand(command, invocation, context),
+    ).resolves.toMatchObject({ exitClass: "invalidInvocation" });
   });
 });

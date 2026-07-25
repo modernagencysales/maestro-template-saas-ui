@@ -165,7 +165,11 @@ export function fingerprintPreflight(
 function decodePreflightInput(
   input: unknown,
 ): AgentPackArgumentResult<PreflightInput> {
-  if (isRecord(input) && modes.has(input.mode as PreflightMode)) {
+  if (
+    isRecord(input) &&
+    Object.keys(input).length === 1 &&
+    modes.has(input.mode as PreflightMode)
+  ) {
     return { ok: true, args: { mode: input.mode as PreflightMode } };
   }
   return {

@@ -26,7 +26,7 @@ export function runPreflightCli<Args, Data extends AgentPackJsonValue>(
   const options = parsePreflightCli(argv.slice(1));
   return runAgentPackCommandAsCli(
     command,
-    { mode: options.mode },
+    options.input,
     {
       schemaVersion: AGENT_PACK_EXECUTION_CONTEXT_VERSION,
       invocation: "cli",
@@ -37,15 +37,49 @@ export function runPreflightCli<Args, Data extends AgentPackJsonValue>(
 }
 
 function parsePreflightCli(argv: readonly string[]): {
-  readonly mode: string;
+  readonly input: unknown;
   readonly renderMode: FactoryCliRenderMode;
 } {
-  const modeIndex = argv.indexOf("--mode");
-  const mode = modeIndex >= 0 ? (argv[modeIndex + 1] ?? "") : "fake";
-  const renderMode = argv.includes("--json")
-    ? "json"
-    : argv.includes("--details")
-      ? "details"
-      : "human";
-  return { mode, renderMode };
+  let mode = "fake";
+  let renderMode: FactoryCliRenderMode = "human";
+  let modeSeen = false;
+  let renderSeen = false;
+  let valid = true;
+  for (let index = 0; index < argv.length; index += 1) {
+    const token = argv[index];
+    if (token === "--mode") {
+      const value = argv[index + 1];
+      if (modeSeen || value === undefined || value.startsWith("--"))
+        valid = false;
+      else {
+        mode = value;
+        modeSeen = true;
+        index += 1;
+      }
+      continue;
+    }
+    const selectedRenderMode = renderModeFor(token);
+    if (selectedRenderMode !== undefined) {
+      if (renderSeen) valid = false;
+      else {
+        renderMode = selectedRenderMode;
+        renderSeen = true;
+      }
+      continue;
+    }
+    valid = false;
+  }
+  return {
+    input: valid ? { mode } : { mode: "__invalid__" },
+    renderMode,
+  };
+}
+
+function renderModeFor(
+  token: string | undefined,
+): FactoryCliRenderMode | undefined {
+  if (token === "--json") return "json";
+  if (token === "--details") return "details";
+  if (token === "--human") return "human";
+  return undefined;
 }

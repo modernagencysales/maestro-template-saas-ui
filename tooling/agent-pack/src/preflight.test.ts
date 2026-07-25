@@ -156,6 +156,23 @@ describe("agent-pack preflight", () => {
     expect(calls).toEqual([{ input: { mode: "test" }, repo: context.repo }]);
   });
 
+  it("rejects extra invocation fields before probing", async () => {
+    let probed = false;
+    const command = createPreflightCommand({
+      inspect: async () => {
+        probed = true;
+        return readyFacts();
+      },
+    });
+    const result = await executeAgentPackCommand(
+      command,
+      { mode: "fake", unknown: true },
+      context,
+    );
+    expect(result.exitClass).toBe("invalidInvocation");
+    expect(probed).toBe(false);
+  });
+
   it.each(["greenfield", "canonical-clone", "existing-app"] as const)(
     "accepts an unambiguous %s topology",
     async (role) => {

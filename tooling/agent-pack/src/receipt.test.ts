@@ -11,8 +11,9 @@ const base: VerificationReceiptInput = {
   createdAt: "2026-07-25T12:00:00.000Z",
   command: { id: "verify", version: 1 },
   subject: { commit: "abc123", dirty: false },
-  environmentFingerprint: "env:node22-linux",
-  providerPostureFingerprint: "providers:fake",
+  repositoryFingerprint: "repository_sha256:fixture",
+  environmentFingerprint: "environment_sha256:node22-linux",
+  providerPostureFingerprint: "providers_sha256:fake",
   scope: { kind: "full", changedPaths: [], partial: false },
   gates: [
     {
@@ -34,6 +35,7 @@ describe("verification receipt", () => {
       command: base.command,
       subject: base.subject,
       fingerprints: {
+        repository: base.repositoryFingerprint,
         environment: base.environmentFingerprint,
         providerPosture: base.providerPostureFingerprint,
       },
@@ -131,6 +133,7 @@ describe("verification receipt", () => {
     expect(
       evaluateReceiptStaleness(receipt, {
         subject: { commit: "def456", dirty: true },
+        repositoryFingerprint: base.repositoryFingerprint,
         environmentFingerprint: base.environmentFingerprint,
         providerPostureFingerprint: base.providerPostureFingerprint,
       }),
@@ -145,12 +148,28 @@ describe("verification receipt", () => {
     expect(
       evaluateReceiptStaleness(receipt, {
         subject: base.subject,
-        environmentFingerprint: "env:node24-linux",
-        providerPostureFingerprint: "providers:dev",
+        repositoryFingerprint: base.repositoryFingerprint,
+        environmentFingerprint: "environment_sha256:node24-linux",
+        providerPostureFingerprint: "providers_sha256:dev",
       }),
     ).toEqual({
       stale: true,
       reasons: ["environment-changed", "provider-posture-changed"],
+    });
+  });
+
+  it("detects a changed repository fingerprint", () => {
+    const receipt = createVerificationReceipt(base);
+    expect(
+      evaluateReceiptStaleness(receipt, {
+        subject: base.subject,
+        repositoryFingerprint: "repository_sha256:changed",
+        environmentFingerprint: base.environmentFingerprint,
+        providerPostureFingerprint: base.providerPostureFingerprint,
+      }),
+    ).toEqual({
+      stale: true,
+      reasons: ["repository-fingerprint-changed"],
     });
   });
 
@@ -166,6 +185,7 @@ describe("verification receipt", () => {
     expect(
       evaluateReceiptStaleness(receipt, {
         subject: base.subject,
+        repositoryFingerprint: base.repositoryFingerprint,
         environmentFingerprint: base.environmentFingerprint,
         providerPostureFingerprint: base.providerPostureFingerprint,
       }),

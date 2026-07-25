@@ -12,11 +12,21 @@ export type VerificationSubject = {
   readonly dirty: boolean;
 };
 
-export type VerificationScope = {
-  readonly kind: "full" | "focused";
-  readonly changedPaths: readonly string[];
-  readonly partial: boolean;
-};
+export type RepositoryFingerprint = `repository_sha256:${string}`;
+export type EnvironmentFingerprint = `environment_sha256:${string}`;
+export type ProvidersFingerprint = `providers_sha256:${string}`;
+
+export type VerificationScope =
+  | {
+      readonly kind: "full";
+      readonly changedPaths: readonly [];
+      readonly partial: false;
+    }
+  | {
+      readonly kind: "focused";
+      readonly changedPaths: readonly string[];
+      readonly partial: true;
+    };
 
 export type VerificationGateObservation = {
   readonly gateId: string;
@@ -33,8 +43,9 @@ export type VerificationReceiptInput = {
     readonly version: typeof AGENT_PACK_COMMAND_VERSION;
   };
   readonly subject: VerificationSubject;
-  readonly environmentFingerprint: string;
-  readonly providerPostureFingerprint: string;
+  readonly repositoryFingerprint: RepositoryFingerprint;
+  readonly environmentFingerprint: EnvironmentFingerprint;
+  readonly providerPostureFingerprint: ProvidersFingerprint;
   readonly scope: VerificationScope;
   readonly gates: readonly VerificationGateObservation[];
 };
@@ -45,8 +56,9 @@ export type VerificationReceipt = {
   readonly command: VerificationReceiptInput["command"];
   readonly subject: VerificationSubject;
   readonly fingerprints: {
-    readonly environment: string;
-    readonly providerPosture: string;
+    readonly repository: RepositoryFingerprint;
+    readonly environment: EnvironmentFingerprint;
+    readonly providerPosture: ProvidersFingerprint;
   };
   readonly scope: VerificationScope;
   readonly gates: readonly VerificationGateObservation[];
@@ -55,6 +67,7 @@ export type VerificationReceipt = {
 export type ReceiptStalenessReason =
   | "commit-changed"
   | "dirty-state-changed"
+  | "repository-fingerprint-changed"
   | "environment-changed"
   | "provider-posture-changed"
   | "partial-scope";
@@ -80,10 +93,18 @@ export function createVerificationReceipt(
     command: { ...input.command },
     subject: { ...input.subject },
     fingerprints: {
+      repository: input.repositoryFingerprint,
       environment: input.environmentFingerprint,
       providerPosture: input.providerPostureFingerprint,
     },
-    scope: { ...input.scope, changedPaths: [...input.scope.changedPaths] },
+    scope:
+      input.scope.kind === "full"
+        ? { kind: "full", changedPaths: [], partial: false }
+        : {
+            kind: "focused",
+            changedPaths: [...input.scope.changedPaths],
+            partial: true,
+          },
     gates: input.gates.map((gate) => ({
       ...gate,
       semanticRuleIds: [...gate.semanticRuleIds],
@@ -95,8 +116,9 @@ export function evaluateReceiptStaleness(
   receipt: VerificationReceipt,
   current: {
     readonly subject: VerificationSubject;
-    readonly environmentFingerprint: string;
-    readonly providerPostureFingerprint: string;
+    readonly repositoryFingerprint: RepositoryFingerprint;
+    readonly environmentFingerprint: EnvironmentFingerprint;
+    readonly providerPostureFingerprint: ProvidersFingerprint;
   },
 ): ReceiptStaleness {
   const reasons: ReceiptStalenessReason[] = [];
@@ -104,6 +126,9 @@ export function evaluateReceiptStaleness(
     reasons.push("commit-changed");
   if (receipt.subject.dirty !== current.subject.dirty)
     reasons.push("dirty-state-changed");
+  if (receipt.fingerprints.repository !== current.repositoryFingerprint) {
+    reasons.push("repository-fingerprint-changed");
+  }
   if (receipt.fingerprints.environment !== current.environmentFingerprint) {
     reasons.push("environment-changed");
   }

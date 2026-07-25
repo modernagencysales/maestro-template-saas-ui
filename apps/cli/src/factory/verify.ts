@@ -31,7 +31,7 @@ export function runVerifyCli<
   const options = parseVerifyCli(argv.slice(1));
   return runAgentPackCommandAsCli(
     command,
-    { scope: options.scope, changed: options.changed },
+    options.input,
     {
       schemaVersion: AGENT_PACK_EXECUTION_CONTEXT_VERSION,
       invocation: "cli",
@@ -42,23 +42,62 @@ export function runVerifyCli<
 }
 
 function parseVerifyCli(argv: readonly string[]): {
-  readonly scope: string;
-  readonly changed: readonly string[];
+  readonly input: unknown;
   readonly renderMode: FactoryCliRenderMode;
 } {
-  const scopeIndex = argv.indexOf("--scope");
-  const changed = argv.flatMap((token, index) =>
-    token === "--changed" && argv[index + 1]
-      ? (argv[index + 1] ?? "").split(",").filter(Boolean)
-      : [],
-  );
+  let scope = "focused";
+  let changed: readonly string[] = [];
+  let renderMode: FactoryCliRenderMode = "human";
+  let scopeSeen = false;
+  let changedSeen = false;
+  let renderSeen = false;
+  let valid = true;
+  for (let index = 0; index < argv.length; index += 1) {
+    const token = argv[index];
+    if (token === "--scope" || token === "--changed") {
+      const value = argv[index + 1];
+      const duplicate = token === "--scope" ? scopeSeen : changedSeen;
+      if (duplicate || value === undefined || value.startsWith("--"))
+        valid = false;
+      else {
+        if (token === "--scope") {
+          scope = value;
+          scopeSeen = true;
+        } else {
+          const paths = value.split(",");
+          changed = paths.filter(Boolean);
+          changedSeen = true;
+          if (changed.length === 0 || paths.some((path) => path.length === 0)) {
+            valid = false;
+          }
+        }
+        index += 1;
+      }
+      continue;
+    }
+    const selectedRenderMode = renderModeFor(token);
+    if (selectedRenderMode !== undefined) {
+      if (renderSeen) valid = false;
+      else {
+        renderMode = selectedRenderMode;
+        renderSeen = true;
+      }
+      continue;
+    }
+    valid = false;
+  }
+  if (scope === "full" && changed.length > 0) valid = false;
   return {
-    scope: scopeIndex >= 0 ? (argv[scopeIndex + 1] ?? "") : "focused",
-    changed,
-    renderMode: argv.includes("--json")
-      ? "json"
-      : argv.includes("--details")
-        ? "details"
-        : "human",
+    input: valid ? { scope, changed } : { scope: "__invalid__", changed: [] },
+    renderMode,
   };
+}
+
+function renderModeFor(
+  token: string | undefined,
+): FactoryCliRenderMode | undefined {
+  if (token === "--json") return "json";
+  if (token === "--details") return "details";
+  if (token === "--human") return "human";
+  return undefined;
 }

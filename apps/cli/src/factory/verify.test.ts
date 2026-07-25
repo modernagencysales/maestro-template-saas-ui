@@ -9,7 +9,12 @@ const verifyCommand = defineAgentPackCommand({
   id: "verify",
   schemaVersion: AGENT_PACK_COMMAND_VERSION,
   decode: (input: unknown) => {
-    if (typeof input === "object" && input !== null && "scope" in input) {
+    if (
+      typeof input === "object" &&
+      input !== null &&
+      "scope" in input &&
+      (input.scope === "focused" || input.scope === "full")
+    ) {
       return {
         ok: true as const,
         args: {
@@ -73,5 +78,29 @@ describe("verify CLI adapter", () => {
     await expect(
       runVerifyCli(verifyCommand, ["verify"], "/fixture"),
     ).resolves.toMatchObject({ exitCode: 0, stdout: "Verification passed.\n" });
+  });
+
+  it.each([
+    ["unknown option", ["verify", "--wat", "--json"]],
+    [
+      "duplicate scope",
+      ["verify", "--scope", "focused", "--scope", "full", "--json"],
+    ],
+    ["missing changed value", ["verify", "--changed", "--json"]],
+    [
+      "empty changed segment",
+      ["verify", "--changed", "apps/cli,,tooling", "--json"],
+    ],
+    [
+      "full changed paths",
+      ["verify", "--scope", "full", "--changed", "apps/cli", "--json"],
+    ],
+  ])("fails closed for %s", async (_name, argv) => {
+    const result = await runVerifyCli(verifyCommand, argv, "/fixture");
+    expect(result.exitCode).toBe(2);
+    expect(JSON.parse(result.stdout)).toMatchObject({
+      exitClass: "invalidInvocation",
+      diagnostics: [{ code: "AGENT_PACK_VERIFY_INVALID" }],
+    });
   });
 });

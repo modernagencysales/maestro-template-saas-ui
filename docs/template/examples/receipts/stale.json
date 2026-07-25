@@ -4,8 +4,9 @@
   "command": { "id": "verify", "version": 1 },
   "subject": { "commit": "fedcba9876543210", "dirty": false },
   "fingerprints": {
+    "repository": "repository_sha256:stale-example",
     "environment": "environment_sha256:stale-example",
-    "providerPosture": "provider_sha256:fake-example"
+    "providerPosture": "providers_sha256:fake-example"
   },
   "scope": {
     "kind": "focused",

@@ -73,6 +73,7 @@ describe("execFile verification runner", () => {
     await expect(runner(execFile).inspect(repo)).resolves.toMatchObject({
       createdAt: "2026-07-25T12:00:00.000Z",
       subject: { commit: "abc1234", dirty: true },
+      repositoryFingerprint: expect.stringMatching(/^repository_sha256:/),
       environmentFingerprint: expect.stringMatching(/^environment_sha256:/),
       providerPostureFingerprint: expect.stringMatching(/^providers_sha256:/),
     });

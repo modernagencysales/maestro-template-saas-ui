@@ -75,4 +75,20 @@ describe("preflight CLI adapter", () => {
       diagnostics: [{ code: "AGENT_PACK_PREFLIGHT_INVALID" }],
     });
   });
+
+  it.each([
+    ["unknown option", ["preflight", "--wat", "--json"]],
+    [
+      "duplicate mode",
+      ["preflight", "--mode", "fake", "--mode", "test", "--json"],
+    ],
+    ["missing mode", ["preflight", "--mode", "--json"]],
+  ])("fails closed for %s", async (_name, argv) => {
+    const result = await runPreflightCli(command, argv, "/fixture");
+    expect(result.exitCode).toBe(2);
+    expect(JSON.parse(result.stdout)).toMatchObject({
+      exitClass: "invalidInvocation",
+      diagnostics: [{ code: "AGENT_PACK_PREFLIGHT_INVALID" }],
+    });
+  });
 });

@@ -82,6 +82,17 @@ export function createExecFileVerificationRunner(input: {
         safelyRead(input.providerPosture),
       ]);
       const commit = commitResult?.stdout.trim() ?? "";
+      const repositoryFingerprint =
+        /^[0-9a-f]{7,64}$/i.test(commit) && dirtyResult?.exitCode === 0
+          ? fingerprint("repository", {
+              commit,
+              status: dirtyResult.stdout
+                .split(/\r?\n/)
+                .filter(Boolean)
+                .sort()
+                .join("\n"),
+            })
+          : "repository_sha256:unavailable";
 
       return {
         createdAt: input.now(),
@@ -90,6 +101,7 @@ export function createExecFileVerificationRunner(input: {
           dirty:
             dirtyResult?.exitCode !== 0 || dirtyResult.stdout.trim().length > 0,
         },
+        repositoryFingerprint,
         environmentFingerprint: fingerprint("environment", environment),
         providerPostureFingerprint: fingerprint("providers", providerPosture),
       };
@@ -259,10 +271,12 @@ function unavailable(gateId: string): VerificationRunObservation {
   };
 }
 
-function fingerprint(
-  kind: "environment" | "providers",
+function fingerprint<
+  const Kind extends "repository" | "environment" | "providers",
+>(
+  kind: Kind,
   value: Readonly<Record<string, unknown>>,
-): string {
+): `${Kind}_sha256:${string}` {
   const stable = JSON.stringify(
     Object.fromEntries(
       Object.entries(value).sort(([left], [right]) =>
@@ -270,5 +284,5 @@ function fingerprint(
       ),
     ),
   );
-  return `${kind}_sha256:${createHash("sha256").update(stable).digest("hex")}`;
+  return `${kind}_sha256:${createHash("sha256").update(stable).digest("hex")}` as `${Kind}_sha256:${string}`;
 }

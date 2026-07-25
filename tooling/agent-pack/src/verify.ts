@@ -13,6 +13,9 @@ import {
 import {
   createVerificationReceipt,
   summarizeVerificationReceipt,
+  type EnvironmentFingerprint,
+  type ProvidersFingerprint,
+  type RepositoryFingerprint,
   type VerificationSubject,
 } from "./receipt.js";
 import type { RepositoryContext } from "./repoContext.js";
@@ -39,8 +42,9 @@ export type VerificationRunRequest = {
 export type VerificationRuntimeFacts = {
   readonly createdAt: string;
   readonly subject: VerificationSubject;
-  readonly environmentFingerprint: string;
-  readonly providerPostureFingerprint: string;
+  readonly repositoryFingerprint: RepositoryFingerprint;
+  readonly environmentFingerprint: EnvironmentFingerprint;
+  readonly providerPostureFingerprint: ProvidersFingerprint;
 };
 
 export type VerificationRunner = {
@@ -64,27 +68,30 @@ export function createVerifyCommand(input: {
     mutationPosture: () => "read-only",
     execute: async (args, context) => {
       const descriptors = selectDescriptors(registry, args);
-      const [facts, observed] = await Promise.all([
-        input.runner.inspect(context.repo),
-        input.runner.run({
-          repo: context.repo,
-          scope: args.scope,
-          changed: args.changed,
-          descriptors,
-        }),
-      ]);
+      const facts = await input.runner.inspect(context.repo);
+      const observed = await input.runner.run({
+        repo: context.repo,
+        scope: args.scope,
+        changed: args.changed,
+        descriptors,
+      });
+      const after = await input.runner.inspect(context.repo);
       const observations = completeObservations(descriptors, observed);
       const receipt = createVerificationReceipt({
         createdAt: facts.createdAt,
         command: { id: "verify", version: AGENT_PACK_COMMAND_VERSION },
         subject: facts.subject,
+        repositoryFingerprint: facts.repositoryFingerprint,
         environmentFingerprint: facts.environmentFingerprint,
         providerPostureFingerprint: facts.providerPostureFingerprint,
-        scope: {
-          kind: args.scope,
-          changedPaths: args.changed,
-          partial: args.scope === "focused",
-        },
+        scope:
+          args.scope === "full"
+            ? { kind: "full", changedPaths: [], partial: false }
+            : {
+                kind: "focused",
+                changedPaths: args.changed,
+                partial: true,
+              },
         gates: observations.map(({ descriptor, observation }) => ({
           gateId: descriptor.gateId,
           posture: descriptor.posture,
@@ -93,19 +100,28 @@ export function createVerifyCommand(input: {
           semanticRuleIds: [...(observation.semanticRuleIds ?? [])],
         })),
       });
-      const diagnostics = observations.flatMap(({ descriptor, observation }) =>
-        observation.status === "pass"
-          ? []
-          : [
-              projectGateDiagnostic(descriptor, {
-                status: observation.status,
-                message: observation.message,
-                semanticRuleIds: observation.semanticRuleIds,
-              }),
-            ],
-      );
+      const diagnostics = [
+        ...repositoryMetadataDiagnostics(facts, after),
+        ...observations.flatMap(({ descriptor, observation }) =>
+          observation.status === "pass"
+            ? []
+            : [
+                projectGateDiagnostic(descriptor, {
+                  status: observation.status,
+                  message: observation.message,
+                  ...(observation.semanticRuleIds
+                    ? { semanticRuleIds: observation.semanticRuleIds }
+                    : {}),
+                }),
+              ],
+        ),
+      ];
       const summary = summarizeVerificationReceipt(receipt);
-      const requiredBlocking = summary.requiredFailures.length > 0;
+      const requiredBlocking =
+        summary.requiredFailures.length > 0 ||
+        diagnostics.some(({ code }) =>
+          code.startsWith("AGENT_PACK_REPOSITORY_"),
+        );
       return {
         mutationPosture: "read-only" as const,
         exitClass:
@@ -128,19 +144,31 @@ export function createVerifyCommand(input: {
 function decodeVerifyInput(
   input: unknown,
 ): AgentPackArgumentResult<VerifyInput> {
-  if (typeof input !== "object" || input === null || !("scope" in input)) {
+  if (
+    typeof input !== "object" ||
+    input === null ||
+    !("scope" in input) ||
+    !Object.keys(input).every((key) => key === "scope" || key === "changed")
+  ) {
     return invalidVerifyInput("Verification input must include a scope.");
   }
   const scope = input.scope;
+  if ("changed" in input && !Array.isArray(input.changed)) {
+    return invalidVerifyInput("Changed paths must be an array.");
+  }
   const changed =
     "changed" in input && Array.isArray(input.changed) ? input.changed : [];
   if (
     (scope !== "focused" && scope !== "full") ||
+    (scope === "full" && changed.length > 0) ||
     !changed.every(
       (path) =>
         typeof path === "string" &&
         path.length > 0 &&
+        path.trim() === path &&
         !path.startsWith("/") &&
+        !path.startsWith("\\") &&
+        !/^[a-zA-Z]:[\\/]/.test(path) &&
         !path.split(/[\\/]/).includes(".."),
     )
   ) {
@@ -149,6 +177,43 @@ function decodeVerifyInput(
     );
   }
   return { ok: true, args: { scope, changed } };
+}
+
+function repositoryMetadataDiagnostics(
+  before: VerificationRuntimeFacts,
+  after: VerificationRuntimeFacts,
+): readonly AgentPackDiagnostic[] {
+  if (
+    before.repositoryFingerprint === "repository_sha256:unavailable" ||
+    after.repositoryFingerprint === "repository_sha256:unavailable"
+  ) {
+    return [
+      {
+        code: "AGENT_PACK_REPOSITORY_METADATA_UNAVAILABLE",
+        severity: "error",
+        message:
+          "Repository metadata was unavailable before or after verification.",
+        safeToContinue: false,
+        nextAction:
+          "Restore Git metadata inspection before trusting verification.",
+        rerun: "pnpm maestro -- verify --scope focused",
+      },
+    ];
+  }
+  if (before.repositoryFingerprint !== after.repositoryFingerprint) {
+    return [
+      {
+        code: "AGENT_PACK_REPOSITORY_CHANGED_DURING_VERIFY",
+        severity: "error",
+        message: "Repository metadata changed while verification was running.",
+        safeToContinue: false,
+        nextAction:
+          "Stop concurrent repository changes and rerun verification.",
+        rerun: "pnpm maestro -- verify --scope focused",
+      },
+    ];
+  }
+  return [];
 }
 
 function invalidVerifyInput(
