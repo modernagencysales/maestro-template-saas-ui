@@ -68,6 +68,56 @@ describe("check:agent-pack", () => {
       "factory-wiring:shared-executor-adapter",
     );
   });
+  it("rejects a barrel that omits the readiness and verification APIs", async () => {
+    const fixtureRoot = await integratedFixture();
+    await writeFile(
+      join(fixtureRoot, "tooling/agent-pack/src/index.ts"),
+      [
+        'export * from "./contracts.js";',
+        'export * from "./exitCodes.js";',
+        'export * from "./repoContext.js";',
+      ].join("\n"),
+    );
+    await expect(checkAgentPack(fixtureRoot)).resolves.toContain(
+      "factory-wiring:agent-pack-barrel",
+    );
+  });
+  it("validates receipt schema versions, examples, and their meaning", async () => {
+    const fixtureRoot = await integratedFixture();
+    const schemaPath = join(
+      fixtureRoot,
+      "schemas/maestro-verification-receipt.schema.json",
+    );
+    const schema = JSON.parse(await readFile(schemaPath, "utf8"));
+    schema.properties.schemaVersion.const = 2;
+    await writeFile(schemaPath, JSON.stringify(schema));
+    const passPath = join(
+      fixtureRoot,
+      "docs/template/examples/receipts/pass.json",
+    );
+    const pass = JSON.parse(await readFile(passPath, "utf8"));
+    pass.gates[0].status = "fail";
+    await writeFile(passPath, JSON.stringify(pass));
+    await expect(checkAgentPack(fixtureRoot)).resolves.toEqual(
+      expect.arrayContaining([
+        "verification-receipt:schema-version",
+        expect.stringContaining(
+          "verification-receipt:invalid-example:pass.json",
+        ),
+      ]),
+    );
+  });
+  it("requires onboarding and operator docs to link canonical guidance", async () => {
+    const fixtureRoot = await integratedFixture();
+    const quickstartPath = join(fixtureRoot, "docs/template/quickstart.md");
+    await writeFile(
+      quickstartPath,
+      (await readFile(quickstartPath, "utf8")).replace("./preflight.md", "#"),
+    );
+    await expect(checkAgentPack(fixtureRoot)).resolves.toContain(
+      "agent-pack-doc-link:docs/template/quickstart.md:./preflight.md",
+    );
+  });
 });
 
 async function integratedFixture(): Promise<string> {
@@ -112,6 +162,30 @@ async function integratedFixture(): Promise<string> {
   await cp(
     join(repoRoot, "tooling/agent-pack/src/index.ts"),
     join(fixtureRoot, "tooling/agent-pack/src/index.ts"),
+  );
+  await mkdir(join(fixtureRoot, "schemas"), { recursive: true });
+  await cp(
+    join(repoRoot, "schemas/maestro-verification-receipt.schema.json"),
+    join(fixtureRoot, "schemas/maestro-verification-receipt.schema.json"),
+  );
+  await mkdir(join(fixtureRoot, "docs/template"), { recursive: true });
+  for (const doc of [
+    "quickstart.md",
+    "claude-code-setup.md",
+    "codex-setup.md",
+    "repo-map.md",
+    "reviewer-guide.md",
+    "operations-runbook.md",
+  ]) {
+    await cp(
+      join(repoRoot, "docs/template", doc),
+      join(fixtureRoot, "docs/template", doc),
+    );
+  }
+  await cp(
+    join(repoRoot, "docs/template/examples"),
+    join(fixtureRoot, "docs/template/examples"),
+    { recursive: true },
   );
   return fixtureRoot;
 }
