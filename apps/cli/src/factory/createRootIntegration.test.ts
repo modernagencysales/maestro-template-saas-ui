@@ -35,7 +35,7 @@ describe("create root integration", () => {
     expect(
       digest(join(repoRoot, "releases/v0.2.0-alpha.1/manifest.json")),
     ).toBe(
-      "sha256:20edffa027e00501447ef6f64619dc24cdf5a6395cb2d73dc052fba46027ca9a",
+      "sha256:6d4dbea9ea0a8a99ebc5a30e0fbddda15256ac467f3326b49f61673814dc39bb",
     );
     expect(
       digest(
@@ -45,7 +45,7 @@ describe("create root integration", () => {
         ),
       ),
     ).toBe(
-      "sha256:702b79c960bb986aec5c6fcbe7774ae6a8af90463fb732514483cc92b650684b",
+      "sha256:d1e84e1c38496efed9d1c8753dd80e32aa4115713197eb4f06c6efa02abfeca3",
     );
   });
 
@@ -135,6 +135,7 @@ describe("create root integration", () => {
         "My App",
         "--outcome",
         "Create and review records",
+        "--demo-only",
         "--write",
         "--json",
       ],
@@ -273,5 +274,49 @@ describe("create root integration", () => {
       title: "First record",
     });
     expect(await records.read("workspace_b", created.id)).toBeNull();
+
+    const customerPackage = JSON.parse(
+      readFileSync(join(targetRoot, "package.json"), "utf8"),
+    ) as { readonly scripts: Readonly<Record<string, string>> };
+    expect(customerPackage.scripts["maestro:crud-proof"]).toBe(
+      "tsx tooling/generators/src/crud-proof.ts --mode fake",
+    );
+    const proof = JSON.parse(
+      execFileSync("pnpm", ["--silent", "run", "maestro:crud-proof"], {
+        cwd: targetRoot,
+        encoding: "utf8",
+        timeout: 30_000,
+      }),
+    ) as {
+      readonly url: string;
+      readonly statuses: { readonly create: number; readonly read: number };
+      readonly record: {
+        readonly createBodyHash: string;
+        readonly readBodyHash: string;
+        readonly synthetic: boolean;
+      };
+    };
+    expect(proof).toMatchObject({
+      url: expect.stringMatching(/^http:\/\/127\.0\.0\.1:\d+$/),
+      statuses: { create: 201, read: 200 },
+      record: { synthetic: false },
+    });
+    expect(proof.record.readBodyHash).toBe(proof.record.createBodyHash);
+    await expect(fetch(proof.url)).rejects.toThrow();
+
+    const production = spawnSync(
+      "pnpm",
+      ["--silent", "run", "maestro:crud-proof"],
+      {
+        cwd: targetRoot,
+        encoding: "utf8",
+        timeout: 30_000,
+        env: { ...process.env, NODE_ENV: "production" },
+      },
+    );
+    expect(production.status).not.toBe(0);
+    expect(production.stderr).toContain(
+      "CRUD proof is unavailable in a production environment.",
+    );
   }, 120_000);
 });

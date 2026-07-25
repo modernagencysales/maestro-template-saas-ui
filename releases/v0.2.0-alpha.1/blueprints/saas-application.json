@@ -490,6 +490,10 @@
         "sha256": "sha256:16ddad3d6cc5387d32f6e55300582a37d233ea2aed8d914658135af2b1a5d690"
       },
       {
+        "path": "base/tooling/generators/src/crud-proof.ts.txt",
+        "sha256": "sha256:53916d53603abbc55caca6ab54806059577e5caff79ccbcf71068021fe11e018"
+      },
+      {
         "path": "base/tooling/generators/src/customer-cli.ts.txt",
         "sha256": "sha256:f3644fae5b4544c0b8eb0a09857ff9031556acf48584d26ab4485fee18d5f234"
       },
@@ -556,6 +560,7 @@
     "apps/cli/src/index.ts",
     "apps/cli/src/factory/start.ts",
     "package.json",
+    "tooling/generators/src/crud-proof.ts",
     "tooling/quality/install-lefthook-if-git.mjs",
     "tooling/generators/src/workflow-files.ts",
     "tooling/generators/src/workflow-predeploy.ts",
@@ -1235,7 +1240,7 @@
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:79d77a29382e8e1a67e0d8ba20aef02b0689667cab91526f9a71fe78570e9a33",
+      "sha256": "sha256:308759dfc959e2acc9df8a622bb54da0e8858bcb50f555db94997c154c51c671",
       "replaces": "generate"
     },
     {
@@ -1649,6 +1654,13 @@
       "upgrade": "regenerate",
       "sha256": "sha256:16ddad3d6cc5387d32f6e55300582a37d233ea2aed8d914658135af2b1a5d690",
       "replaces": "copy"
+    },
+    {
+      "path": "tooling/generators/src/crud-proof.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:53916d53603abbc55caca6ab54806059577e5caff79ccbcf71068021fe11e018"
     },
     {
       "path": "tooling/generators/src/customer-cli.ts",

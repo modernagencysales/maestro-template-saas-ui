@@ -318,6 +318,7 @@ export function buildSaasApplicationTargetPlan(): BlueprintTargetPlan {
     "apps/cli/src/index.ts",
     "apps/cli/src/factory/start.ts",
     "package.json",
+    "tooling/generators/src/crud-proof.ts",
     "tooling/quality/install-lefthook-if-git.mjs",
     "tooling/generators/src/workflow-files.ts",
     "tooling/generators/src/workflow-predeploy.ts",

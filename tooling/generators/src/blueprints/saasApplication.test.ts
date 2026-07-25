@@ -198,6 +198,7 @@ describe("saas application blueprint", () => {
       "tooling/generators/src/customer-runtime.ts",
       "tooling/generators/src/customer-dispatcher.ts",
       "tooling/generators/src/customer-cli.ts",
+      "tooling/generators/src/crud-proof.ts",
       "tooling/generators/src/direct-run.ts",
       "tooling/generators/src/workflow-release-commands.ts",
       "tooling/generators/src/blueprints/gtmImplementation.ts",
@@ -399,6 +400,7 @@ describe("saas application blueprint", () => {
             name as (typeof REMOVED_CUSTOMER_TEMPLATE_SCRIPTS)[number],
           ),
       ),
+      "maestro:crud-proof",
       "template:smoke",
     ]);
     const rewritten = new Set([

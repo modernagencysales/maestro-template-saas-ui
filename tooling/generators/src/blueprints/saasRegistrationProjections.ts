@@ -51,6 +51,8 @@ const customerPackage = (): string => {
       );
     }
   }
+  value.scripts["maestro:crud-proof"] =
+    "tsx tooling/generators/src/crud-proof.ts --mode fake";
   value.scripts["template:smoke"] =
     "tsx tooling/generators/src/customer-cli.ts smoke";
   return `${JSON.stringify(value, null, 2)}\n`;
@@ -256,6 +258,7 @@ export const buildSaasRegistrationProjections =
         ["customer-runtime.ts", "customer-runtime.ts"],
         ["customer-dispatcher.ts", "customer-dispatcher.ts"],
         ["customer-cli.ts", "customer-cli.ts"],
+        ["crud-proof.ts", "crud-proof.ts"],
         ["direct-run.ts", "direct-run.ts"],
         ["workflow-release-commands.ts", "workflow-release-commands.ts"],
         ["blueprints/gtmImplementation.ts", "blueprints/gtmImplementation.ts"],

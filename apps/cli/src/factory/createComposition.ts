@@ -11,9 +11,9 @@ const TRUSTED_REPOSITORY_ROOT = fileURLToPath(
 );
 const REVIEWED_MANIFEST_PATH = "releases/v0.2.0-alpha.1/manifest.json";
 const REVIEWED_MANIFEST_CHECKSUM =
-  "sha256:20edffa027e00501447ef6f64619dc24cdf5a6395cb2d73dc052fba46027ca9a";
+  "sha256:6d4dbea9ea0a8a99ebc5a30e0fbddda15256ac467f3326b49f61673814dc39bb";
 const REVIEWED_BLUEPRINT_CHECKSUM =
-  "sha256:702b79c960bb986aec5c6fcbe7774ae6a8af90463fb732514483cc92b650684b";
+  "sha256:d1e84e1c38496efed9d1c8753dd80e32aa4115713197eb4f06c6efa02abfeca3";
 const REVIEWED_TAG = "maestro-template-v0.2.0-alpha.1";
 const REVIEWED_COMMIT = "10516dfc7470d9cfa68b250550576298f76042f4";
 
