@@ -1,23 +1,124 @@
-import { resolve } from "node:path";
 import { execFileSync } from "node:child_process";
-import { EvaluationError, type EvaluationHost } from "./contract.js";
-import { runWalkingSkeleton } from "./runner.js";
+import { homedir } from "node:os";
+import { join, resolve } from "node:path";
+import { aggregateWalkingSkeletonRuns } from "./aggregate.js";
+import {
+  EvaluationError,
+  type EvaluationErrorCode,
+  type EvaluationHost,
+} from "./contract.js";
+import {
+  runWalkingSkeleton,
+  type WalkingSkeletonRunOptions,
+} from "./runner.js";
 
-type CliOptions = {
-  readonly host: EvaluationHost;
-  readonly runId: string;
+export const usage = `pnpm evals:agent-pack -- --suite walking-skeleton --host <claude|codex> [--run-id <id>] [--out <dir>] [--candidate-sha <sha>] [--host-home <dir>] [--product-name <name>]
+pnpm evals:agent-pack -- --suite walking-skeleton --aggregate --run-ids <claude-1,claude-2,codex-1,codex-2> [--suite-run-id <id>] [--out <dir>] [--candidate-sha <sha>]`;
+
+type AggregateOptions = {
+  readonly mode: "aggregate";
   readonly out: string;
-  readonly sourceRoot: string;
   readonly candidateSha: string;
-  readonly hostHome: string;
-  readonly productName: string;
+  readonly runIds: readonly string[];
+  readonly suiteRunId: string;
+};
+type RunOptions = {
+  readonly mode: "run";
+  readonly options: WalkingSkeletonRunOptions;
 };
 
 export function parseCliOptions(
   argv: readonly string[],
   cwd: string,
-): CliOptions {
+  env: NodeJS.ProcessEnv = process.env,
+  now: Date = new Date(),
+): RunOptions | AggregateOptions {
+  const { values, switches } = parseFlags(argv);
+  if (values.get("--suite") !== "walking-skeleton") {
+    throw new EvaluationError(
+      "EVAL_INVALID_ARGUMENT",
+      "--suite walking-skeleton is required.",
+    );
+  }
+  const sourceRoot = resolve(cwd, values.get("--source") ?? ".");
+  const out = resolve(
+    cwd,
+    values.get("--out") ?? "tooling/agent-pack/evals/runs",
+  );
+  const candidateSha = values.get("--candidate-sha") ?? resolveHead(sourceRoot);
+  if (switches.has("--aggregate")) {
+    const runIds = required(values, "--run-ids").split(",").filter(Boolean);
+    return {
+      mode: "aggregate",
+      out,
+      candidateSha,
+      runIds,
+      suiteRunId:
+        values.get("--suite-run-id") ??
+        `suite-${now.toISOString().replace(/[^0-9]/gu, "")}`,
+    };
+  }
+  const host = values.get("--host");
+  if (host !== "claude" && host !== "codex") {
+    throw new EvaluationError(
+      "EVAL_INVALID_ARGUMENT",
+      "--host must be claude or codex.",
+    );
+  }
+  return {
+    mode: "run",
+    options: {
+      host,
+      runId:
+        values.get("--run-id") ??
+        `${host}-${now.toISOString().replace(/[^0-9]/gu, "")}-${String(process.pid)}`,
+      out,
+      sourceRoot,
+      candidateSha,
+      hostHome: resolve(
+        values.get("--host-home") ?? defaultHostHome(host, env),
+      ),
+      productName: values.get("--product-name") ?? "Acme Workspace",
+    },
+  };
+}
+
+export async function main(
+  argv: readonly string[] = process.argv.slice(2),
+): Promise<void> {
+  if (argv.includes("--help")) {
+    process.stdout.write(`${usage}\n`);
+    return;
+  }
+  try {
+    const parsed = parseCliOptions(argv, process.cwd());
+    const result =
+      parsed.mode === "run"
+        ? await runWalkingSkeleton(parsed.options)
+        : await aggregateWalkingSkeletonRuns(parsed);
+    process.stdout.write(`${JSON.stringify(result)}\n`);
+  } catch (error) {
+    const classified =
+      error instanceof EvaluationError
+        ? error
+        : new EvaluationError(
+            "EVAL_HOST_EXECUTION_FAILED",
+            "Evaluation failed unexpectedly.",
+          );
+    process.stderr.write(
+      `${JSON.stringify({ status: "failed", code: classified.code, message: classified.message })}\n`,
+    );
+    process.exitCode = exitCode(classified.code);
+  }
+}
+
+function parseFlags(argv: readonly string[]): {
+  readonly values: ReadonlyMap<string, string>;
+  readonly switches: ReadonlySet<string>;
+} {
   const values = new Map<string, string>();
+  const switches = new Set<string>();
+  const booleanFlags = new Set(["--aggregate"]);
   for (let index = 0; index < argv.length; index += 1) {
     const flag = argv[index];
     if (!flag?.startsWith("--")) {
@@ -25,6 +126,10 @@ export function parseCliOptions(
         "EVAL_INVALID_ARGUMENT",
         `Unexpected argument: ${flag ?? ""}`,
       );
+    }
+    if (booleanFlags.has(flag)) {
+      switches.add(flag);
+      continue;
     }
     const value = argv[index + 1];
     if (!value || value.startsWith("--")) {
@@ -36,53 +141,13 @@ export function parseCliOptions(
     values.set(flag, value);
     index += 1;
   }
-  const suite = values.get("--suite");
-  if (suite !== "walking-skeleton") {
-    throw new EvaluationError(
-      "EVAL_INVALID_ARGUMENT",
-      "--suite walking-skeleton is required.",
-    );
-  }
-  const host = values.get("--host");
-  if (host !== "claude" && host !== "codex") {
-    throw new EvaluationError(
-      "EVAL_INVALID_ARGUMENT",
-      "--host must be claude or codex.",
-    );
-  }
-  const sourceRoot = resolve(cwd, values.get("--source") ?? ".");
-  return {
-    host,
-    runId: required(values, "--run-id"),
-    out: resolve(cwd, required(values, "--out")),
-    sourceRoot,
-    candidateSha: values.get("--candidate-sha") ?? resolveHead(sourceRoot),
-    hostHome: resolve(cwd, required(values, "--host-home")),
-    productName: values.get("--product-name") ?? "Acme Workspace",
-  };
+  return { values, switches };
 }
 
-export async function main(
-  argv: readonly string[] = process.argv.slice(2),
-): Promise<void> {
-  try {
-    const receipt = await runWalkingSkeleton(
-      parseCliOptions(argv, process.cwd()),
-    );
-    process.stdout.write(`${JSON.stringify(receipt)}\n`);
-  } catch (error) {
-    const classified =
-      error instanceof EvaluationError
-        ? error
-        : new EvaluationError(
-            "EVAL_HOST_EXECUTION_FAILED",
-            "Walking-skeleton evaluation failed unexpectedly.",
-          );
-    process.stderr.write(
-      `${JSON.stringify({ status: "failed", code: classified.code, message: classified.message })}\n`,
-    );
-    process.exitCode = exitCode(classified.code);
-  }
+function defaultHostHome(host: EvaluationHost, env: NodeJS.ProcessEnv): string {
+  return host === "codex"
+    ? (env.CODEX_HOME ?? join(homedir(), ".codex"))
+    : (env.CLAUDE_CONFIG_DIR ?? join(homedir(), ".claude"));
 }
 
 function resolveHead(sourceRoot: string): string {
@@ -94,40 +159,32 @@ function resolveHead(sourceRoot: string): string {
   } catch {
     throw new EvaluationError(
       "EVAL_INVALID_ARGUMENT",
-      "Could not resolve --candidate-sha from the source repository.",
+      "Could not resolve candidate HEAD.",
     );
   }
 }
 
 function required(values: ReadonlyMap<string, string>, key: string): string {
   const value = values.get(key);
-  if (!value) {
+  if (!value)
     throw new EvaluationError("EVAL_INVALID_ARGUMENT", `${key} is required.`);
-  }
   return value;
 }
 
-function exitCode(code: EvaluationError["code"]): number {
-  switch (code) {
-    case "EVAL_INVALID_ARGUMENT":
-    case "EVAL_OUTPUT_EXISTS":
-      return 2;
-    case "EVAL_HOST_EXECUTABLE_UNAVAILABLE":
-    case "EVAL_HOST_AUTH_REQUIRED":
-      return 3;
-    case "EVAL_HOST_EXECUTION_FAILED":
-    case "EVAL_RESULT_MISSING":
-    case "EVAL_RESULT_INVALID":
-      return 4;
-    case "EVAL_ASSERTION_FAILED":
-      return 5;
-  }
+function exitCode(code: EvaluationErrorCode): number {
+  if (code === "EVAL_INVALID_ARGUMENT" || code === "EVAL_OUTPUT_EXISTS")
+    return 2;
+  if (
+    code === "EVAL_HOST_EXECUTABLE_UNAVAILABLE" ||
+    code === "EVAL_HOST_AUTH_REQUIRED"
+  )
+    return 3;
+  if (code === "EVAL_SUITE_INCOMPLETE" || code === "EVAL_SUITE_DIVERGED")
+    return 6;
+  return code === "EVAL_ASSERTION_FAILED" ? 5 : 4;
 }
 
 const isDirectRun =
   process.argv[1] !== undefined &&
   import.meta.url === new URL(`file://${resolve(process.argv[1])}`).href;
-
-if (isDirectRun) {
-  await main();
-}
+if (isDirectRun) await main();

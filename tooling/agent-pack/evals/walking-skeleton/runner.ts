@@ -1,18 +1,24 @@
 import { execFile } from "node:child_process";
-import { mkdir, readFile, realpath, writeFile } from "node:fs/promises";
+import { mkdir, readFile, realpath, rm, writeFile } from "node:fs/promises";
 import { isAbsolute, join, resolve } from "node:path";
 import { promisify } from "node:util";
 import {
   buildWalkingSkeletonPrompt,
   EvaluationError,
-  gradeWalkingSkeleton,
+  gradeHostReport,
   parseWalkingSkeletonResult,
   redactJson,
   redactText,
+  type CanonicalEvidenceHashes,
   type EvaluationHost,
   type WalkingSkeletonVerdict,
 } from "./contract.js";
 import { createHostAdapter, type WalkingSkeletonHostAdapter } from "./hosts.js";
+import {
+  safeVerifierEnvironment,
+  verifyExecutableEvidence,
+  type ExecutableEvidencePorts,
+} from "./verifier.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -26,9 +32,8 @@ export type WalkingSkeletonRunOptions = {
   readonly productName: string;
   readonly timeoutMs?: number;
 };
-
 export type WalkingSkeletonRunReceipt = {
-  readonly schemaVersion: 1;
+  readonly schemaVersion: 2;
   readonly suite: "walking-skeleton";
   readonly host: EvaluationHost;
   readonly runId: string;
@@ -37,10 +42,11 @@ export type WalkingSkeletonRunReceipt = {
   readonly startedAt: string;
   readonly completedAt: string;
   readonly outputDirectory: string;
+  readonly workspaceRetained: false;
   readonly errorCode?: string;
   readonly verdict?: WalkingSkeletonVerdict;
+  readonly canonicalHashes?: CanonicalEvidenceHashes;
 };
-
 export type WalkingSkeletonRunPorts = {
   readonly now: () => Date;
   readonly adapter: WalkingSkeletonHostAdapter;
@@ -48,7 +54,9 @@ export type WalkingSkeletonRunPorts = {
     readonly sourceRoot: string;
     readonly candidateSha: string;
     readonly workspace: string;
+    readonly sessionDir: string;
   }) => Promise<void>;
+  readonly verifierPorts: Partial<ExecutableEvidencePorts>;
 };
 
 export async function runWalkingSkeleton(
@@ -76,14 +84,28 @@ export async function runWalkingSkeleton(
 
   const startedAt = now().toISOString();
   const workspace = join(outputDirectory, "workspace");
+  const sessionDir = join(outputDirectory, "session");
   const resultPath = ".maestro-eval/walking-skeleton-result.json";
+  await mkdir(sessionDir);
+  await writeFile(
+    join(sessionDir, "empty-mcp.json"),
+    '{"mcpServers":{}}\n',
+    "utf8",
+  );
+  await writeFile(
+    join(sessionDir, "claude-settings.json"),
+    '{"enableAllProjectMcpServers":false,"enabledPlugins":{}}\n',
+    "utf8",
+  );
   await writeJson(join(outputDirectory, "metadata.json"), {
-    schemaVersion: 1,
+    schemaVersion: 2,
     suite: "walking-skeleton",
     host: options.host,
     runId: options.runId,
     candidateSha: options.candidateSha,
     startedAt,
+    environmentPolicy: "strict-allowlist",
+    hostSessionPolicy: options.host === "codex" ? "ephemeral" : "isolated-temp",
   });
   await writeRetention(outputDirectory, startedAt);
 
@@ -91,21 +113,23 @@ export async function runWalkingSkeleton(
     await adapter.preflight({
       cwd: options.sourceRoot,
       hostHome: options.hostHome,
+      sessionDir,
     });
     await prepareWorkspace({
       sourceRoot: options.sourceRoot,
       candidateSha: options.candidateSha,
       workspace,
-    });
-    const prompt = buildWalkingSkeletonPrompt({
-      candidateSha: options.candidateSha,
-      productName: options.productName,
-      resultPath,
+      sessionDir,
     });
     const hostResult = await adapter.run({
       cwd: workspace,
       hostHome: options.hostHome,
-      prompt,
+      sessionDir,
+      prompt: buildWalkingSkeletonPrompt({
+        candidateSha: options.candidateSha,
+        productName: options.productName,
+        resultPath,
+      }),
       timeoutMs: options.timeoutMs ?? 45 * 60 * 1000,
     });
     await writeFile(
@@ -133,20 +157,30 @@ export async function runWalkingSkeleton(
     } catch {
       throw new EvaluationError(
         "EVAL_RESULT_MISSING",
-        "The host did not write the required walking-skeleton result.",
+        "The host did not write the required result.",
       );
     }
     const result = parseWalkingSkeletonResult(rawResult);
-    await writeJson(join(workspace, resultPath), redactJson(result));
-    const verdict = await gradeWalkingSkeleton({
-      result,
+    const executableEvidence = await verifyExecutableEvidence({
       workspace,
       candidateSha: options.candidateSha,
+      sessionDir,
+      result,
+      ...(overrides.verifierPorts ? { ports: overrides.verifierPorts } : {}),
+    });
+    const verdict = gradeHostReport({
+      result,
+      candidateSha: options.candidateSha,
       startedAt,
+      executableEvidence,
     });
     await writeJson(
       join(outputDirectory, "result.redacted.json"),
       redactJson(result),
+    );
+    await writeJson(
+      join(outputDirectory, "evidence-summary.json"),
+      executableEvidence,
     );
     await writeJson(join(outputDirectory, "verdict.json"), verdict);
     if (verdict.status !== "passed") {
@@ -156,7 +190,7 @@ export async function runWalkingSkeleton(
       );
     }
     const receipt: WalkingSkeletonRunReceipt = {
-      schemaVersion: 1,
+      schemaVersion: 2,
       suite: "walking-skeleton",
       host: options.host,
       runId: options.runId,
@@ -165,7 +199,9 @@ export async function runWalkingSkeleton(
       startedAt,
       completedAt: now().toISOString(),
       outputDirectory,
+      workspaceRetained: false,
       verdict,
+      canonicalHashes: executableEvidence.canonicalHashes,
     };
     await writeJson(join(outputDirectory, "receipt.json"), receipt);
     return receipt;
@@ -178,7 +214,7 @@ export async function runWalkingSkeleton(
             "Walking-skeleton execution failed unexpectedly.",
           );
     const receipt: WalkingSkeletonRunReceipt = {
-      schemaVersion: 1,
+      schemaVersion: 2,
       suite: "walking-skeleton",
       host: options.host,
       runId: options.runId,
@@ -187,10 +223,14 @@ export async function runWalkingSkeleton(
       startedAt,
       completedAt: now().toISOString(),
       outputDirectory,
+      workspaceRetained: false,
       errorCode: classified.code,
     };
     await writeJson(join(outputDirectory, "receipt.json"), receipt);
     throw classified;
+  } finally {
+    await rm(workspace, { recursive: true, force: true });
+    await rm(sessionDir, { recursive: true, force: true });
   }
 }
 
@@ -198,22 +238,24 @@ export async function cloneCandidate(input: {
   readonly sourceRoot: string;
   readonly candidateSha: string;
   readonly workspace: string;
+  readonly sessionDir: string;
 }): Promise<void> {
   const sourceRoot = await realpath(input.sourceRoot);
+  const env = safeVerifierEnvironment(input.sessionDir);
   await execFileAsync(
     "git",
     ["clone", "--no-local", "--no-checkout", sourceRoot, input.workspace],
-    { maxBuffer: 5 * 1024 * 1024 },
+    { maxBuffer: 5 * 1024 * 1024, env },
   );
   await execFileAsync(
     "git",
     ["-C", input.workspace, "checkout", "--detach", input.candidateSha],
-    { maxBuffer: 5 * 1024 * 1024 },
+    { maxBuffer: 5 * 1024 * 1024, env },
   );
   const { stdout } = await execFileAsync(
     "git",
     ["-C", input.workspace, "rev-parse", "HEAD"],
-    { encoding: "utf8" },
+    { encoding: "utf8", env },
   );
   if (String(stdout).trim() !== input.candidateSha) {
     throw new EvaluationError(
@@ -233,13 +275,13 @@ function validateOptions(options: WalkingSkeletonRunOptions): void {
   if (!/^[0-9a-f]{40}$/u.test(options.candidateSha)) {
     throw new EvaluationError(
       "EVAL_INVALID_ARGUMENT",
-      "--candidate-sha must be a full 40-character commit SHA.",
+      "--candidate-sha must be a full commit SHA.",
     );
   }
   if (!isAbsolute(options.hostHome)) {
     throw new EvaluationError(
       "EVAL_INVALID_ARGUMENT",
-      "--host-home must be an absolute, isolated host state directory.",
+      "--host-home must be absolute when supplied.",
     );
   }
   if (options.productName.trim().length === 0) {
@@ -258,8 +300,15 @@ async function writeRetention(
     Date.parse(startedAt) + 14 * 24 * 60 * 60 * 1000,
   );
   await writeJson(join(directory, "retention.json"), {
-    schemaVersion: 1,
-    containsSyntheticRedactedEvidenceOnly: true,
+    schemaVersion: 2,
+    retainedArtifacts: [
+      "redacted host logs",
+      "redacted host result",
+      "canonical evidence hashes",
+      "verdict",
+      "receipt",
+    ],
+    workspaceRetained: false,
     passedRunDays: 14,
     failedRunMaximumDays: 30,
     deleteAfter: deleteAfter.toISOString(),

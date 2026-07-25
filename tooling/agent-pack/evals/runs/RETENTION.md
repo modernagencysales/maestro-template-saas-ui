@@ -1,8 +1,10 @@
 # Walking-skeleton run retention
 
-Run directories are synthetic, local evaluation evidence. They must never
-contain credentials, provider state, or customer data. The harness redacts
-captured host output and writes a deletion deadline into each run.
+Run directories contain only redacted host output, redacted synthetic results,
+canonical evidence hashes, verdicts, and receipts. The clean-clone workspace and
+per-run host session directory are deleted at the end of every pass or failure.
+Host processes receive a strict environment allowlist, never ambient Convex,
+cloud, or API credentials.
 
 - Passed runs: remove after 14 days.
 - Failed runs: retain until the defect is attributed and repaired, no longer
