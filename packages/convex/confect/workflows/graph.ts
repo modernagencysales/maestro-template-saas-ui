@@ -23,4 +23,11 @@ export { WorkflowGraphValidationError } from "./graphValidationError";
 export {
   validateWorkflowGraph,
   validateWorkflowGraphV2,
+  type WorkflowGraphV2Finding,
 } from "./graphValidation";
+export {
+  WorkflowCapabilityReference,
+  WorkflowEventReference,
+  WorkflowReference,
+  WorkflowStepName,
+} from "./_kit/workflowReferences";

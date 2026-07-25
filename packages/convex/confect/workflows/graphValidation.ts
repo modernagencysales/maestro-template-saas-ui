@@ -229,7 +229,7 @@ const trackDuplicate = (
 
 export const validateWorkflowGraphV2 = (
   graph: DurableWorkflowGraphV2,
-): readonly string[] => {
+): readonly WorkflowGraphV2Finding[] => {
   const sources = graph.nodes.filter((node) => node.kind === "source");
   const outputs = graph.nodes.filter((node) => node.kind === "output");
   const outgoing = new Map<string, string[]>();
@@ -247,6 +247,28 @@ export const validateWorkflowGraphV2 = (
   );
 
   return [
+    ...graph.edges.flatMap((edge) => [
+      ...(!graph.nodes.some((node) => node.id === edge.sourceNodeId)
+        ? [
+            {
+              _tag: "DanglingEdgeV2" as const,
+              edgeId: edge.id,
+              endpoint: "source" as const,
+              nodeId: edge.sourceNodeId,
+            },
+          ]
+        : []),
+      ...(!graph.nodes.some((node) => node.id === edge.targetNodeId)
+        ? [
+            {
+              _tag: "DanglingEdgeV2" as const,
+              edgeId: edge.id,
+              endpoint: "target" as const,
+              nodeId: edge.targetNodeId,
+            },
+          ]
+        : []),
+    ]),
     ...(sources.length === 1 ? [] : ["exactly one source node is required"]),
     ...(outputs.length === 1 ? [] : ["exactly one output node is required"]),
     ...(sources[0]?.id === graph.startNodeId
@@ -283,6 +305,15 @@ export const validateWorkflowGraphV2 = (
     ...duplicateStepNames.map((name) => `duplicate stepName: ${name}`),
   ];
 };
+
+export type WorkflowGraphV2Finding =
+  | string
+  | {
+      readonly _tag: "DanglingEdgeV2";
+      readonly edgeId: string;
+      readonly endpoint: "source" | "target";
+      readonly nodeId: string;
+    };
 
 const append = (
   index: Map<string, string[]>,

@@ -5,6 +5,16 @@ import {
   decodeDurableWorkflowGraphV2,
   type DurableWorkflowGraphV2,
 } from "../confect/workflows/graph";
+import { defineWorkflowReferenceRegistry } from "../confect/workflows/_kit/workflowReferences";
+
+const refs = defineWorkflowReferenceRegistry({
+  capabilities: {
+    sendBrief: "capability.sendBrief.v2",
+    agentSeat: "capability.agentSeat.v1",
+  },
+  workflows: { child: "workflow.child.v1" },
+  events: { approval: "event.approval.v1" },
+});
 
 const payloadPolicy = {
   maxInputBytes: 64_000,
@@ -99,7 +109,7 @@ describe("durable workflow graph V2 schema", () => {
       id: "act",
       kind: "capability",
       functionKind: "action",
-      capability: "sendBrief",
+      capability: refs.capabilities.sendBrief,
       label: "Send brief",
       stepName: "act.v2",
       payloadPolicy,
@@ -145,6 +155,51 @@ describe("durable workflow graph V2 schema", () => {
         decodeDurableWorkflowGraphV2({
           ...validGraph,
           nodes: [validGraph.nodes[0], child, validGraph.nodes[1]],
+        }),
+      ),
+    ).toBe(true);
+  });
+
+  it("rejects retry on agent nodes", () => {
+    expect(
+      Either.isLeft(
+        decodeDurableWorkflowGraphV2({
+          ...validGraph,
+          nodes: [
+            validGraph.nodes[0],
+            {
+              id: "agent",
+              kind: "agent",
+              agent: refs.capabilities.agentSeat,
+              label: "Agent",
+              stepName: "agent.v2",
+              payloadPolicy,
+              semanticRuleIds: ["WF-NODE-AGENT"],
+              retry: { maxAttempts: 2, initialBackoffMs: 10, base: 2 },
+            },
+            validGraph.nodes[1],
+          ],
+        }),
+      ),
+    ).toBe(true);
+  });
+
+  it("rejects arbitrary durable registry strings and unknown semantic rules", () => {
+    const action = {
+      id: "act",
+      kind: "capability",
+      functionKind: "action",
+      capability: "sendBrief",
+      label: "Send brief",
+      stepName: "act.v2",
+      payloadPolicy,
+      semanticRuleIds: ["WF-NOT-A-RULE"],
+    } as const;
+    expect(
+      Either.isLeft(
+        decodeDurableWorkflowGraphV2({
+          ...validGraph,
+          nodes: [validGraph.nodes[0], action, validGraph.nodes[1]],
         }),
       ),
     ).toBe(true);

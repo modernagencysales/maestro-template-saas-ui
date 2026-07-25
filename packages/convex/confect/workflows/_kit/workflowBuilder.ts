@@ -18,6 +18,11 @@ import {
   WorkflowSubworkflowNodeV2,
 } from "../graphNodeSchema";
 import { validateWorkflowGraphV2 } from "../graphValidation";
+import type { WorkflowGraphV2Finding } from "../graphValidation";
+import {
+  WorkflowStepName,
+  type WorkflowStepName as WorkflowStepNameType,
+} from "./workflowReferences";
 
 type SourceNode = Schema.Schema.Type<typeof WorkflowSourceNodeV2>;
 type ActionNode = Schema.Schema.Type<typeof WorkflowActionNodeV2>;
@@ -81,7 +86,7 @@ export type DefineWorkflowGraphV2Input = Omit<
 export class WorkflowGraphBuilderError extends Data.TaggedError(
   "WorkflowGraphBuilderError",
 )<{
-  readonly findings: readonly string[];
+  readonly findings: readonly WorkflowGraphV2Finding[];
 }> {}
 
 export const defineWorkflowGraphV2 = (
@@ -112,3 +117,37 @@ const DEFAULT_INTERACTIVE_PROFILE = {
   mode: "eager-first-poll",
   default: true,
 } as const;
+
+export type WorkflowStepInstance =
+  | { readonly kind: "identity"; readonly value: string }
+  | { readonly kind: "ordinal"; readonly value: number };
+
+const WorkflowStepInstanceSuffix = Schema.String.pipe(
+  Schema.pattern(/^(?:n\d{6,}|k\d+-[a-z0-9]+(?:-[a-z0-9]+)*)$/),
+);
+
+export const deriveWorkflowStepInstanceSuffix = (
+  instance: WorkflowStepInstance,
+): string => {
+  if (instance.kind === "ordinal") {
+    return Schema.decodeSync(WorkflowStepInstanceSuffix)(
+      `n${String(instance.value).padStart(6, "0")}`,
+    );
+  }
+  return Schema.decodeSync(WorkflowStepInstanceSuffix)(
+    `k${instance.value.length}-${instance.value}`,
+  );
+};
+
+export const stableWorkflowStepName = ({
+  name,
+  version,
+  instanceSuffix,
+}: {
+  readonly name: string;
+  readonly version: number;
+  readonly instanceSuffix?: string;
+}): WorkflowStepNameType =>
+  Schema.decodeSync(WorkflowStepName)(
+    `${name}.v${version}${instanceSuffix ? `.i-${instanceSuffix}` : ""}`,
+  );

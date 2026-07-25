@@ -7,6 +7,14 @@ import {
   decodeLegacyWorkflowGraph,
   migrateLegacyWorkflowGraph,
 } from "../confect/workflows/graphMigration";
+import { decodeDurableWorkflowGraphV2 } from "../confect/workflows/graph";
+import { defineWorkflowReferenceRegistry } from "../confect/workflows/_kit/workflowReferences";
+
+const refs = defineWorkflowReferenceRegistry({
+  capabilities: { sourceGroundedBrief: "capability.sourceGroundedBrief.v2" },
+  workflows: {},
+  events: {},
+});
 
 const legacyGraph = {
   id: "workflow_legacy_receipt",
@@ -62,11 +70,10 @@ describe("legacy durable workflow graph migration", () => {
   });
 
   it("adds stable V2 step addresses without enabling discarded V1 retry metadata", () => {
-    expect(
-      Either.getOrThrow(
-        migrateLegacyWorkflowGraph(legacyGraph, migrationOptions),
-      ),
-    ).toEqual({
+    const migrated = Either.getOrThrow(
+      migrateLegacyWorkflowGraph(legacyGraph, migrationOptions),
+    );
+    expect(Either.getOrThrow(decodeDurableWorkflowGraphV2(migrated))).toEqual({
       schemaVersion: 2,
       id: legacyGraph.id,
       version: legacyGraph.version,
@@ -133,18 +140,23 @@ describe("legacy durable workflow graph migration", () => {
     expect(Either.isLeft(unresolved)).toBe(true);
     if (Either.isLeft(unresolved)) {
       expect(unresolved.left.issue).toContain(
-        "missing capability kind for sourceGroundedBrief",
+        "missing capability binding for sourceGroundedBrief",
       );
     }
 
     const migrated = migrateLegacyWorkflowGraph(graph, {
       ...migrationOptions,
-      capabilityKinds: { sourceGroundedBrief: "action" },
+      capabilityBindings: {
+        sourceGroundedBrief: {
+          kind: "action",
+          reference: refs.capabilities.sourceGroundedBrief,
+        },
+      },
     });
     expect(Either.getOrThrow(migrated).nodes[1]).toMatchObject({
       kind: "capability",
       functionKind: "action",
-      capability: "sourceGroundedBrief",
+      capability: refs.capabilities.sourceGroundedBrief,
     });
     expect(Either.getOrThrow(migrated).nodes[1]).not.toHaveProperty("retry");
   });

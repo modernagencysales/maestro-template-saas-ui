@@ -1,5 +1,16 @@
 import * as S from "effect/Schema";
-import { defineWorkflowSchemaFields } from "@maestro-template/template-core/workflow-semantics";
+import {
+  WORKFLOW_SEMANTICS,
+  defineWorkflowSchemaFields,
+  type WorkflowSemanticRuleId,
+} from "@maestro-template/template-core/workflow-semantics";
+
+import {
+  WorkflowCapabilityReference,
+  WorkflowEventReference,
+  WorkflowReference,
+  WorkflowStepName,
+} from "./_kit/workflowReferences";
 
 export const WorkflowNodeKind = S.Literal(
   "source",
@@ -63,15 +74,22 @@ export const WorkflowTransactionLimits = S.Struct({
 const WorkflowNodeV2BaseFields = {
   id: S.NonEmptyString,
   label: S.NonEmptyString,
-  stepName: S.NonEmptyString,
+  stepName: WorkflowStepName,
   payloadPolicy: WorkflowPayloadPolicy,
-  semanticRuleIds: S.Array(S.NonEmptyString),
+  semanticRuleIds: S.Array(
+    S.Literal(
+      ...(WORKFLOW_SEMANTICS.map(({ id }) => id) as [
+        WorkflowSemanticRuleId,
+        ...WorkflowSemanticRuleId[],
+      ]),
+    ),
+  ),
 } as const;
 
 const WorkflowCapabilityV2BaseFields = {
   ...WorkflowNodeV2BaseFields,
   kind: S.Literal("capability"),
-  capability: S.NonEmptyString,
+  capability: WorkflowCapabilityReference,
 } as const;
 
 export const WorkflowSourceNodeV2 = S.Struct({
@@ -123,8 +141,7 @@ export const WorkflowMutationNodeV2 = S.Union(
 export const WorkflowAgentNodeV2 = S.Struct({
   ...WorkflowNodeV2BaseFields,
   kind: S.Literal("agent"),
-  agent: S.NonEmptyString,
-  retry: S.optional(WorkflowRetryConfigV2),
+  agent: WorkflowCapabilityReference,
   schedule: S.optional(WorkflowSchedule),
 });
 
@@ -137,7 +154,7 @@ export const WorkflowDelayNodeV2 = S.Struct({
 export const WorkflowEventNodeV2 = S.Struct({
   ...WorkflowNodeV2BaseFields,
   kind: S.Literal("event"),
-  eventDefinition: S.NonEmptyString,
+  eventDefinition: WorkflowEventReference,
   eventSchemaName: S.NonEmptyString,
   eventInstanceKey: S.NonEmptyString,
 });
@@ -145,7 +162,7 @@ export const WorkflowEventNodeV2 = S.Struct({
 export const WorkflowSubworkflowNodeV2 = S.Struct({
   ...WorkflowNodeV2BaseFields,
   kind: S.Literal("subworkflow"),
-  workflow: S.NonEmptyString,
+  workflow: WorkflowReference,
   childVersion: S.Number,
 });
 

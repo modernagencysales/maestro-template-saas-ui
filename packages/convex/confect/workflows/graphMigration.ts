@@ -9,6 +9,11 @@ import {
   type WorkflowNodeV2,
 } from "./graph";
 import { defineWorkflowGraphV2 } from "./_kit/workflowBuilder";
+import { stableWorkflowStepName } from "./_kit/workflowBuilder";
+import type {
+  WorkflowCapabilityReference,
+  WorkflowEventReference,
+} from "./_kit/workflowReferences";
 
 export const LegacyDurableWorkflowGraph = DurableWorkflowGraph;
 
@@ -30,14 +35,23 @@ export type LegacyWorkflowMigrationOptions = Pick<
   | "policyPosture"
 > & {
   readonly payloadPolicy: WorkflowNodeV2["payloadPolicy"];
-  readonly capabilityKinds?: Readonly<
-    Record<string, "query" | "mutation" | "action">
+  readonly capabilityBindings?: Readonly<
+    Record<
+      string,
+      {
+        readonly kind: "query" | "mutation" | "action";
+        readonly reference: WorkflowCapabilityReference;
+      }
+    >
+  >;
+  readonly agentBindings?: Readonly<
+    Record<string, WorkflowCapabilityReference>
   >;
   readonly eventContracts?: Readonly<
     Record<
       string,
       {
-        readonly eventDefinition: string;
+        readonly eventDefinition: WorkflowEventReference;
         readonly eventSchemaName: string;
         readonly eventInstanceKey: string;
       }
@@ -131,7 +145,10 @@ const migrateLegacyNode = (
   const common = {
     id: node.id,
     label: node.label,
-    stepName: `${node.id}.v${workflowVersion}`,
+    stepName: stableWorkflowStepName({
+      name: node.id,
+      version: workflowVersion,
+    }),
     payloadPolicy: options.payloadPolicy,
   } as const;
   if (node.kind === "source" || node.kind === "output") {
@@ -161,9 +178,13 @@ const migrateLegacyNode = (
         });
   }
   if (node.kind === "agent") {
-    const agent = node.agent ?? node.capability;
+    const legacyAgent = node.agent ?? node.capability;
+    const agent =
+      legacyAgent === undefined
+        ? undefined
+        : options.agentBindings?.[legacyAgent];
     return agent === undefined
-      ? migrationFailure(`missing agent ref for ${node.id}`)
+      ? migrationFailure(`missing generated agent binding for ${node.id}`)
       : Either.right({
           ...common,
           kind: "agent",
@@ -175,16 +196,17 @@ const migrateLegacyNode = (
   if (capability === undefined) {
     return migrationFailure(`missing capability ref for ${node.id}`);
   }
-  const functionKind = options.capabilityKinds?.[capability];
-  if (functionKind === undefined) {
-    return migrationFailure(`missing capability kind for ${capability}`);
+  const binding = options.capabilityBindings?.[capability];
+  if (binding === undefined) {
+    return migrationFailure(`missing capability binding for ${capability}`);
   }
+  const { kind: functionKind, reference } = binding;
   if (functionKind === "action") {
     return Either.right({
       ...common,
       kind: "capability",
       functionKind,
-      capability,
+      capability: reference,
       semanticRuleIds: ["WF-STEP-ACTION"],
     });
   }
@@ -192,7 +214,7 @@ const migrateLegacyNode = (
     ...common,
     kind: "capability",
     functionKind,
-    capability,
+    capability: reference,
     transaction: { kind: "independent" },
     semanticRuleIds: [
       functionKind === "query" ? "WF-STEP-QUERY" : "WF-STEP-MUTATION",
