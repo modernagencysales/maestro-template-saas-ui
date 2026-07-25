@@ -515,21 +515,19 @@ export const WORKFLOW_SEMANTICS = [
     "Wait for the generated workflow/generation/tenant event ownership boundary.",
     V2_BUILDER_FIXTURE,
   ),
-  supported(
+  restricted(
     "WF-NODE-SUBWORKFLOW",
     "graph.nodes[].workflow",
-    "defineWorkflowV2SubworkflowRegistry",
-    "runRegisteredSubworkflow",
+    "Direct registry/runtime fixtures exist, but generator registry projection, cycle/depth/fanout preflight, workflowRunLinks reconciliation, and idempotent parent/child linkage are absent.",
+    "Add the canonical builder, compiler, generator registry projection, cycle/depth/fanout preflight, workflowRunLinks reconciliation, idempotent link persistence, and positive/rejection behavior fixtures before promotion.",
     GRAPH_FIXTURE,
-    "mapped args getConvexSize budget, inherited or grant-narrowed principal, decoded child result validation, child cancellation propagation, and residual child asynchronous cleanup",
   ),
-  supported(
+  restricted(
     "WF-NODE-CHILD-VERSION",
     "graph.nodes[].childVersion",
-    "defineWorkflowV2SubworkflowRegistry",
-    "runRegisteredSubworkflow exact generated key/version binding",
+    "The generated registry is absent, so exact key/version bindings are not projected or covered through persisted parent/child reconciliation.",
+    "Add generated projection of the immutable child registry and exact key/version fixtures through workflowRunLinks reconciliation before promotion.",
     GRAPH_FIXTURE,
-    "generated WorkflowReference key suffix and registry version must match node childVersion exactly",
   ),
   supported(
     "WF-NODE-RETRY",
@@ -858,9 +856,7 @@ export const WORKFLOW_SEMANTICS = [
     "WF-CANCEL",
     "primitive.cancel",
     "workflow control contract",
-    "component cancel with nested workflow cascade",
-    GRAPH_FIXTURE,
-    "public workflow steps show the nested child becomes canceled",
+    "component cancel",
   ),
   supported(
     "WF-RESTART",
@@ -873,8 +869,6 @@ export const WORKFLOW_SEMANTICS = [
     "primitive.cleanup",
     "workflow cleanup contract",
     "batched component cleanup with residual status",
-    GRAPH_FIXTURE,
-    "residual child remains before asynchronous cleanup and is absent after the scheduled drain",
   ),
   supported(
     "WF-LIST",

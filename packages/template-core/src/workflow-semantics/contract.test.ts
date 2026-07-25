@@ -100,26 +100,25 @@ describe("workflow semantics contract", () => {
     ).toBe("intentionally-restricted");
   });
 
-  it("publishes only the guarded unscheduled child workflow slice", () => {
+  it("keeps child workflows restricted until production closure lands", () => {
     expect(
       WORKFLOW_SEMANTICS.find((rule) => rule.id === "WF-NODE-SUBWORKFLOW"),
     ).toMatchObject({
-      status: "supported",
-      typedConstructor: "defineWorkflowV2SubworkflowRegistry",
-      compilerMapping: "runRegisteredSubworkflow",
+      status: "intentionally-restricted",
       fixture: "packages/convex/test/workflow-conformance.test.ts",
-      runtimeGuard: expect.stringMatching(
-        /mapped args.*principal.*result.*cancellation.*cleanup/,
+      reason: expect.stringMatching(
+        /generator registry projection.*cycle.*depth.*fanout.*workflowRunLinks.*idempotent parent\/child linkage/,
+      ),
+      repair: expect.stringMatching(
+        /builder.*compiler.*generator.*behavior fixtures/,
       ),
     });
     expect(
       WORKFLOW_SEMANTICS.find((rule) => rule.id === "WF-NODE-CHILD-VERSION"),
     ).toMatchObject({
-      status: "supported",
-      typedConstructor: "defineWorkflowV2SubworkflowRegistry",
-      compilerMapping:
-        "runRegisteredSubworkflow exact generated key/version binding",
-      runtimeGuard: expect.stringMatching(/key.*version/),
+      status: "intentionally-restricted",
+      reason: expect.stringMatching(/generated registry.*exact key\/version/),
+      repair: expect.stringMatching(/generated projection.*reconciliation/),
     });
     expect(
       WORKFLOW_SEMANTICS.find((rule) => rule.id === "WF-CHILD-SCHEDULE"),
@@ -135,12 +134,6 @@ describe("workflow semantics contract", () => {
       WORKFLOW_SEMANTICS.find((rule) => rule.id === "WF-PAYLOAD-MAX-INPUT")
         ?.status,
     ).toBe("intentionally-restricted");
-    expect(
-      WORKFLOW_SEMANTICS.find((rule) => rule.id === "WF-CANCEL")?.runtimeGuard,
-    ).toMatch(/child.*canceled/);
-    expect(
-      WORKFLOW_SEMANTICS.find((rule) => rule.id === "WF-CLEANUP")?.runtimeGuard,
-    ).toMatch(/residual child.*asynchronous cleanup/);
   });
 
   it("requires mappings and fixtures for support and repairs for every rule", () => {
