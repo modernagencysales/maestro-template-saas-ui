@@ -11,6 +11,7 @@ import * as Schema from "effect/Schema";
 import { sha256Hex } from "../../shared/sha256";
 
 export const MAX_WORKFLOW_ARTIFACT_BYTES = 880_000;
+export const MAX_STORED_WORKFLOW_ARTIFACT_BYTES = 880_000;
 
 export const WorkflowArtifactSensitivity = Schema.Literal(
   "internal",
@@ -148,17 +149,43 @@ export const toStoredWorkflowArtifact = (
   row: WorkflowArtifactRow,
 ): StoredWorkflowArtifactRow => {
   const { content, ...metadata } = row;
-  return { ...metadata, contentJson: canonicalConvexValue(content) };
+  const stored = { ...metadata, contentJson: canonicalConvexValue(content) };
+  assertStoredArtifactBudget(stored);
+  return stored;
 };
 
 export const fromStoredWorkflowArtifact = (
   row: StoredWorkflowArtifactRow,
 ): WorkflowArtifactRow => {
   const { contentJson, ...metadata } = row;
+  assertStoredArtifactBudget(row);
+  let content: Value;
+  try {
+    content = jsonToConvex(JSON.parse(contentJson) as JSONValue);
+  } catch {
+    return fail("workflow artifact content is invalid");
+  }
+  const canonicalContent = canonicalConvexValue(content);
+  const measuredBytes = getConvexSize(content);
+  const contentHash = sha256Hex(canonicalContent);
+  if (
+    contentJson !== canonicalContent ||
+    metadata.contentHash !== contentHash ||
+    metadata.measuredBytes !== measuredBytes
+  ) {
+    fail("workflow artifact integrity check failed");
+  }
   return {
     ...metadata,
-    content: jsonToConvex(JSON.parse(contentJson) as JSONValue),
+    content,
   };
+};
+
+const assertStoredArtifactBudget = (row: StoredWorkflowArtifactRow): void => {
+  const storedBytes = getConvexSize(row as unknown as Value);
+  if (storedBytes > MAX_STORED_WORKFLOW_ARTIFACT_BYTES) {
+    fail("stored workflow artifact exceeds the durable document limit");
+  }
 };
 
 export const assertWorkflowArtifactDeletable = (

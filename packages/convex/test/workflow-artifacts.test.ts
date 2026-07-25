@@ -6,6 +6,7 @@ import { decodeWorkflowArtifactRow } from "../confect/tables/workflowArtifacts";
 import {
   WorkflowArtifactContractError,
   assertWorkflowArtifactDeletable,
+  fromStoredWorkflowArtifact,
   prepareWorkflowArtifact,
   resolveWorkflowArtifactReference,
   toStoredWorkflowArtifact,
@@ -81,6 +82,24 @@ describe("workflow artifact contract", () => {
         prepareWorkflowArtifact(run, draft("x".repeat(900_000))),
       ),
     ).toMatch(/artifact storage limit/i);
+
+    const escaped = prepareWorkflowArtifact(run, draft('"'.repeat(500_000)));
+    expect(() => toStoredWorkflowArtifact(escaped)).toThrow(
+      WorkflowArtifactContractError,
+    );
+  });
+
+  it.each([
+    ["content", { contentJson: '{"body":"tampered"}' }],
+    ["hash", { contentHash: "0".repeat(64) }],
+    ["size", { measuredBytes: 1 }],
+  ])("rejects tampered stored artifact %s", (_kind, tamper) => {
+    const stored = toStoredWorkflowArtifact(
+      prepareWorkflowArtifact(run, draft({ body: "trusted" })),
+    );
+    expect(() => fromStoredWorkflowArtifact({ ...stored, ...tamper })).toThrow(
+      WorkflowArtifactContractError,
+    );
   });
 
   it("reuses identical content and rejects reference mutation", () => {

@@ -50,7 +50,7 @@ const put = FunctionImpl.make(databaseSchema, artifacts, "put", (args) =>
       if (resolved) return reference(resolved.artifactId, resolved.row);
     }
     const writer = yield* DatabaseWriter;
-    const stored = toStoredWorkflowArtifact(row);
+    const stored = yield* contract(() => toStoredWorkflowArtifact(row));
     const artifactId = yield* writer
       .table("workflowArtifacts")
       .insert({
@@ -171,7 +171,13 @@ const loadArtifact = (reader: Reader, artifactId: string) =>
     .pipe(
       Effect.orDie,
       Effect.flatMap((row) =>
-        row ? Effect.succeed(toRuntimeRow(row)) : unavailable(artifactId),
+        row
+          ? Effect.try({
+              try: () => toRuntimeRow(row),
+              catch: () =>
+                new NotFound({ resource: "workflowArtifacts", id: artifactId }),
+            })
+          : unavailable(artifactId),
       ),
     );
 
