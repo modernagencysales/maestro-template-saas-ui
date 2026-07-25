@@ -38,6 +38,7 @@ export type StartWorkflowOwnershipInput<
   readonly sourceRunId?: string;
   readonly timeoutMs?: number;
   readonly deadlineAt?: number;
+  readonly kickoffProfile: "eager-first-poll" | "queued";
 };
 
 export const startWorkflowAndRecordOwnership = <
@@ -186,9 +187,15 @@ const startComponentWorkflow = <
 ) =>
   Effect.promise(() =>
     start(mutationCtx, input.workflowRef, input.workflowArgs, {
-      startAsync: true,
+      ...kickoffProfileStartOptions(input.kickoffProfile),
     }),
   );
+
+export const kickoffProfileStartOptions = (
+  profile: "eager-first-poll" | "queued",
+): { readonly startAsync: boolean } => ({
+  startAsync: profile === "queued",
+});
 
 const recordStartedWorkflow = (
   writer: Writer,

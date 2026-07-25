@@ -2418,17 +2418,17 @@ const ApproveReturns = Schema.Struct({
   eventId: Schema.String,
 });
 
-export const start = defineContractFunction(
+export const startInteractive = defineContractFunction(
   FunctionSpec.publicMutation({
-    name: "start",
+    name: "startInteractive",
     args: () => StartArgs,
     returns: () => StartReturns,
     error: () => WorkflowErrors,
   }),
   {
     namespace: "workflows.${name}",
-    name: "start",
-    operationId: "workflows.${name}.start",
+    name: "startInteractive",
+    operationId: "workflows.${name}.startInteractive",
     kind: "mutation",
     surfaces: ["web", "api", "cli", "mcp"],
     typedErrors: [
@@ -2439,8 +2439,36 @@ export const start = defineContractFunction(
       "ValidationFailed",
     ],
     idempotent: false,
-    argsSchemaName: "workflows.${name}.start.args",
-    returnsSchemaName: "workflows.${name}.start.returns",
+    argsSchemaName: "workflows.${name}.startInteractive.args",
+    returnsSchemaName: "workflows.${name}.startInteractive.returns",
+    argsSchema: StartArgs,
+    returnsSchema: StartReturns,
+  },
+);
+
+export const startQueued = defineContractFunction(
+  FunctionSpec.publicMutation({
+    name: "startQueued",
+    args: () => StartArgs,
+    returns: () => StartReturns,
+    error: () => WorkflowErrors,
+  }),
+  {
+    namespace: "workflows.${name}",
+    name: "startQueued",
+    operationId: "workflows.${name}.startQueued",
+    kind: "mutation",
+    surfaces: ["web", "api", "cli", "mcp"],
+    typedErrors: [
+      "Unauthorized",
+      "MemberNotInWorkspace",
+      "WorkspaceNotFound",
+      "NotFound",
+      "ValidationFailed",
+    ],
+    idempotent: false,
+    argsSchemaName: "workflows.${name}.startQueued.args",
+    returnsSchemaName: "workflows.${name}.startQueued.returns",
     argsSchema: StartArgs,
     returnsSchema: StartReturns,
   },
@@ -2502,13 +2530,14 @@ export const approve = defineContractFunction(
   },
 );
 
-const contractFunctions = [start, status, approve] as const;
+const contractFunctions = [startInteractive, startQueued, status, approve] as const;
 
 export const manifest = collectContractManifest(contractFunctions);
 export const schemaRegistry = collectContractSchemas(contractFunctions);
 
 export default GroupSpec.make()
-  .addFunction(start.spec)
+  .addFunction(startInteractive.spec)
+  .addFunction(startQueued.spec)
   .addFunction(status.spec)
   .addFunction(approve.spec);
 `,
@@ -2566,6 +2595,17 @@ type WorkflowRunFunctionArgs = {
   readonly args: {
     readonly workspaceId: string;
     readonly idempotencyKey: string;
+    readonly principal: {
+      readonly version: 1;
+      readonly kind: "user";
+      readonly workspaceId: string;
+      readonly actorId: string;
+      readonly role: string;
+      readonly grants: readonly string[];
+      readonly authEpoch: number;
+      readonly kickoffAt: number;
+      readonly provenance: string;
+    };
   };
   readonly startAsync?: boolean;
 };
@@ -2649,19 +2689,32 @@ const findWorkflowRun = (
     return run;
   });
 
-const startImpl = FunctionImpl.make(
-  databaseSchema,
-  ${name},
-  "start",
-  ({ workspaceId, idempotencyKey }) =>
-    Effect.gen(function* () {
+const startWithProfile = (
+  kickoffProfile: "interactive" | "queued",
+  { workspaceId, idempotencyKey }: {
+    readonly workspaceId: string;
+    readonly idempotencyKey: string;
+  },
+) =>
+  Effect.gen(function* () {
       const access = yield* withConfectClock(
         requireWorkspaceAccess(workspaceId, "editor"),
       );
       const startedAt = yield* withConfectClock(Clock.currentTimeMillis);
+      const principal = {
+        version: 1 as const,
+        kind: "user" as const,
+        workspaceId,
+        actorId: access.userId,
+        role: access.role,
+        grants: ["workflow:start"],
+        authEpoch: 1,
+        kickoffAt: startedAt,
+        provenance: access.reason,
+      };
       const componentWorkflowId = yield* startWorkflowAndRecordOwnership({
         workflowRef: ${name}RunRef,
-        workflowArgs: { workspaceId, idempotencyKey },
+        workflowArgs: { workspaceId, idempotencyKey, principal },
         workspaceId,
         workflowId: ${name}Graph.id,
         workflowVersion: ${name}Graph.version,
@@ -2670,6 +2723,8 @@ const startImpl = FunctionImpl.make(
         startedByUserId: access.userId,
         startedAt: startedAt,
         workflowKind: "workflow.${name}",
+        kickoffProfile:
+          kickoffProfile === "interactive" ? "eager-first-poll" : "queued",
       }).pipe(Effect.mapError(toWorkflowValidationFailed));
 
       return {
@@ -2677,7 +2732,20 @@ const startImpl = FunctionImpl.make(
         workflow: "${name}" as const,
         componentWorkflowId,
       };
-    }).pipe(Effect.mapError(toWorkflowError)),
+  }).pipe(Effect.mapError(toWorkflowError));
+
+const startInteractiveImpl = FunctionImpl.make(
+  databaseSchema,
+  ${name},
+  "startInteractive",
+  (args) => startWithProfile("interactive", args),
+);
+
+const startQueuedImpl = FunctionImpl.make(
+  databaseSchema,
+  ${name},
+  "startQueued",
+  (args) => startWithProfile("queued", args),
 );
 
 const statusImpl = FunctionImpl.make(
@@ -2730,7 +2798,8 @@ const approveImpl = FunctionImpl.make(
 );
 
 export default GroupImpl.make(databaseSchema, ${name}).pipe(
-  Layer.provide(startImpl),
+  Layer.provide(startInteractiveImpl),
+  Layer.provide(startQueuedImpl),
   Layer.provide(statusImpl),
   Layer.provide(approveImpl),
   GroupImpl.finalize,
@@ -2739,24 +2808,55 @@ export default GroupImpl.make(databaseSchema, ${name}).pipe(
     },
     {
       path: `packages/convex/confect/workflows/${name}.graph.ts`,
-      content: `import type { DurableWorkflowGraph } from "./graph";
+      content: `import * as Either from "effect/Either";
+import { defineWorkflowGraphV2 } from "./_kit/workflowBuilder";
+import { defineWorkflowReferenceRegistry } from "./_kit/workflowReferences";
 
-export const ${name}Graph = {
+export const ${name}References = defineWorkflowReferenceRegistry({
+  capabilities: {},
+  workflows: { self: "workflow.${name}.v2" },
+  events: {},
+});
+
+export const ${name}Graph = Either.getOrThrow(defineWorkflowGraphV2({
   id: "workflow_${name}",
-  version: 1,
+  version: 2,
   startNodeId: "start",
+  argsSchemaName: "${name}.v2.args",
+  returnSchemaName: "${name}.v2.return",
+  principalSchemaName: "workflowPrincipal.v1",
+  policyPosture: {
+    kind: "none",
+    reason: "Generated source-to-receipt workflow has no policy decisions.",
+  },
+  kickoffProfiles: [
+    { name: "interactive", mode: "eager-first-poll", default: true },
+    { name: "queued", mode: "queued", default: false },
+  ],
   nodes: [
     {
       id: "start",
       kind: "source",
       label: "${name} start",
-      retry: { maxAttempts: 1, backoffMs: 0 },
+      stepName: "start.v2",
+      payloadPolicy: {
+        maxInputBytes: 64000,
+        maxResultBytes: 64000,
+        resultMode: "inline",
+      },
+      semanticRuleIds: ["WF-NODE-KIND"],
     },
     {
       id: "receipt",
       kind: "output",
       label: "Trust Receipt",
-      retry: { maxAttempts: 1, backoffMs: 0 },
+      stepName: "receipt.v2",
+      payloadPolicy: {
+        maxInputBytes: 64000,
+        maxResultBytes: 64000,
+        resultMode: "inline",
+      },
+      semanticRuleIds: ["WF-NODE-KIND"],
     },
   ],
   edges: [
@@ -2767,32 +2867,99 @@ export const ${name}Graph = {
     },
   ],
   joins: [],
-} satisfies DurableWorkflowGraph;
+}));
 `,
     },
     {
       path: `packages/convex/confect/workflowRunners/${name}.ts`,
-      content: `import { defineWorkflow as defineMaestroWorkflow } from "@convex-dev/workflow";
+      content: `import { defineMaestroWorkflow } from "../workflows/_kit/defineMaestroWorkflow";
 import { v } from "convex/values";
 import { components } from "../../convex/_generated/api";
 import {
-  runDurableGraphWorkflow,
+  runDurableGraphWorkflowV2,
   type RunDurableGraphStep,
 } from "../workflows/_kit/graphRunner";
 import { ${name}Graph } from "../workflows/${name}.graph";
+
+const WorkflowPrincipalValidator = v.union(
+  v.object({
+    version: v.literal(1),
+    kind: v.literal("user"),
+    workspaceId: v.string(),
+    actorId: v.string(),
+    role: v.string(),
+    grants: v.array(v.string()),
+    authEpoch: v.number(),
+    kickoffAt: v.number(),
+    provenance: v.string(),
+  }),
+  v.object({
+    version: v.literal(1),
+    kind: v.literal("system"),
+    workspaceId: v.string(),
+    systemId: v.string(),
+    reason: v.string(),
+    grants: v.array(v.string()),
+    kickoffAt: v.number(),
+  }),
+);
+
+const WorkflowReceiptValidator = v.object({
+  workflowId: v.string(),
+  status: v.literal("completed"),
+});
+
+type WorkflowReceipt = {
+  readonly workflowId: string;
+  readonly status: "completed";
+};
+
+const metadata = {
+  workflowId: ${name}Graph.id,
+  workflowVersion: ${name}Graph.version,
+  runtimeVersion: "maestro-graph-v2",
+  argsSchemaName: ${name}Graph.argsSchemaName,
+  returnSchemaName: ${name}Graph.returnSchemaName,
+  principalSchemaName: ${name}Graph.principalSchemaName,
+  policyPosture: ${name}Graph.policyPosture,
+  kickoffProfiles: ${name}Graph.kickoffProfiles,
+  semanticRuleIds: ["WF-DEFINE", "WF-START-EAGER", "WF-START-QUEUED"],
+  semanticCoverage: {
+    "WF-DEFINE": {
+      posture: "generated",
+      constructor: "defineMaestroWorkflow",
+      compiler: "WorkflowManager.define",
+      fixture: "${name}.workflow.test.ts",
+    },
+    "WF-START-EAGER": {
+      posture: "generated",
+      constructor: "startInteractive",
+      compiler: "startAsync false",
+      fixture: "${name}.workflow.test.ts",
+    },
+    "WF-START-QUEUED": {
+      posture: "generated",
+      constructor: "startQueued",
+      compiler: "startAsync true",
+      fixture: "${name}.workflow.test.ts",
+    },
+  },
+} as const;
 
 export const run = defineMaestroWorkflow(components.workflow, {
   args: {
     workspaceId: v.string(),
     idempotencyKey: v.string(),
+    principal: WorkflowPrincipalValidator,
   },
-  returns: v.any(),
-}).handler((step, args) =>
-  runDurableGraphWorkflow(step as RunDurableGraphStep, {
+  returns: WorkflowReceiptValidator,
+}, metadata).handler(async (step, args): Promise<WorkflowReceipt> =>
+  runDurableGraphWorkflowV2(step as RunDurableGraphStep, {
     graph: ${name}Graph,
     inputs: args,
-    policySnapshot: {},
-    capabilityRegistry: {},
+    principal: args.principal,
+    policySnapshot: { kind: "none", reason: ${name}Graph.policyPosture.kind === "none" ? ${name}Graph.policyPosture.reason : "generated" },
+    projectOutput: () => ({ workflowId: ${name}Graph.id, status: "completed" as const }),
   }),
 );
 `,
@@ -2828,7 +2995,7 @@ export default GroupImpl.make(databaseSchema, ${name}).pipe(
       content: `import { describe, expect, it } from "vitest";
 import { ${name}Graph } from "../confect/workflows/${name}.graph";
 import {
-  runDurableGraphWorkflow,
+  runDurableGraphWorkflowV2,
   type RunDurableGraphStep,
 } from "../confect/workflows/_kit/graphRunner";
 
@@ -2854,21 +3021,29 @@ describe("${name} durable workflow scaffold", () => {
       workspaceId: "workspace_123",
       idempotencyKey: "workflow-test-1",
     };
-    const policySnapshot = { mode: "test" };
 
-    const result = await runDurableGraphWorkflow(step, {
+    const result = await runDurableGraphWorkflowV2(step, {
       graph: ${name}Graph,
       inputs,
-      policySnapshot,
-      capabilityRegistry: {},
+      principal: {
+        version: 1,
+        kind: "system",
+        workspaceId: inputs.workspaceId,
+        systemId: "workflow-test",
+        reason: "fixture",
+        grants: [],
+        kickoffAt: 1,
+      },
+      policySnapshot: { kind: "none", reason: "fixture" },
+      projectOutput: () => ({
+        workflowId: ${name}Graph.id,
+        status: "completed" as const,
+      }),
     });
 
     expect(result).toEqual({
-      inputs,
-      context: {
-        start: inputs,
-      },
-      policySnapshot,
+      workflowId: ${name}Graph.id,
+      status: "completed",
     });
   });
 });
@@ -2898,12 +3073,13 @@ Canonical system: \`${options.system}\` (\`${options.disposition}\`).
 
 ## Required Follow-Up
 
-1. Add the generated Confect group to the workflow spec tree.
+1. Keep the generated \`startInteractive\` and \`startQueued\` mutations as the only kickoff-mode selectors; callers never supply the mode or principal.
 2. Run \`pnpm confect:codegen\`, then \`pnpm --dir packages/convex exec convex codegen\`, so Confect reproduces \`workflowRunners/${name}:run\` before typecheck.
-3. Keep React Flow as a projection of \`${name}.graph.ts\`; do not persist canvas node state as the workflow contract.
-4. Generated approval nodes require the generated \`workflowContracts.${name}.approve\` mutation before they are usable.
-5. Generated capability nodes require registry entries with concrete \`buildArgs\` mappers for the target internal capability ref.
-6. Run \`pnpm check:workflow:fast\`, \`pnpm check:confect-contracts\`, and focused workflow tests.
+3. Preserve the authenticated handler's server-derived principal projection when specializing start behavior.
+4. Keep React Flow as a projection of \`${name}.graph.ts\`; do not persist canvas node state as the workflow contract.
+5. Generated approval nodes require the generated \`workflowContracts.${name}.approve\` mutation before they are usable.
+6. Generated capability nodes require registry entries with concrete \`buildArgs\` mappers for the target internal capability ref.
+7. Run \`pnpm check:workflow:fast\`, \`pnpm check:confect-contracts\`, and focused workflow tests.
 `,
     },
   ];

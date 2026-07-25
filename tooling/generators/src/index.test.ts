@@ -1180,12 +1180,17 @@ describe("template app factory generators", () => {
     expect(spec).toContain("defineContractFunction");
     expect(spec).toContain("export const manifest");
     expect(spec).toContain("export const schemaRegistry");
-    expect(spec).toContain('operationId: "workflows.sourceGroundedPlan.start"');
     expect(spec).toContain(
-      'argsSchemaName: "workflows.sourceGroundedPlan.start.args"',
+      'operationId: "workflows.sourceGroundedPlan.startInteractive"',
     );
     expect(spec).toContain(
-      'returnsSchemaName: "workflows.sourceGroundedPlan.start.returns"',
+      'operationId: "workflows.sourceGroundedPlan.startQueued"',
+    );
+    expect(spec).toContain(
+      'argsSchemaName: "workflows.sourceGroundedPlan.startInteractive.args"',
+    );
+    expect(spec).toContain(
+      'returnsSchemaName: "workflows.sourceGroundedPlan.startInteractive.returns"',
     );
     expect(spec).toContain(
       'argsSchemaName: "workflows.sourceGroundedPlan.status.args"',
@@ -1222,10 +1227,13 @@ describe("template app factory generators", () => {
 
     expect(convexWorkflow).toContain("defineMaestroWorkflow");
     expect(convexWorkflow).toContain("runDurableGraphWorkflow");
-    expect(convexWorkflow).toContain("workspaceId: v.string()");
-    expect(convexWorkflow).toContain("idempotencyKey: v.string()");
-    expect(convexWorkflow).toContain("policySnapshot: {}");
-    expect(convexWorkflow).toContain("capabilityRegistry: {}");
+    expect(convexWorkflow).toContain("WorkflowPrincipalValidator");
+    expect(convexWorkflow).toContain("WorkflowReceiptValidator");
+    expect(convexWorkflow).toContain("principal: WorkflowPrincipalValidator");
+    expect(convexWorkflow).toContain("returns: WorkflowReceiptValidator");
+    expect(convexWorkflow).not.toContain("returns: v.any()");
+    expect(convexWorkflow).toContain("metadata");
+    expect(convexWorkflow).toContain('policySnapshot: { kind: "none"');
     expect(runnerSpec).toContain("FunctionSpec.convexInternalMutation");
     expect(runnerImpl).toContain("FunctionImpl.make");
     expect(semantics).toContain('"WF-DEFINE"');
@@ -1234,8 +1242,12 @@ describe("template app factory generators", () => {
     expect(semantics).toContain('"posture": "guarded-default"');
     expect(semantics).not.toContain('"WF-HANDLER-DATE"');
 
-    expect(graph).toContain("satisfies DurableWorkflowGraph");
-    expect(graph).toContain("version: 1");
+    expect(graph).toContain("defineWorkflowGraphV2");
+    expect(graph).toContain("defineWorkflowReferenceRegistry");
+    expect(graph).toContain("version: 2");
+    expect(graph).toContain('stepName: "start.v2"');
+    expect(graph).toContain('name: "interactive"');
+    expect(graph).toContain('name: "queued"');
     expect(graph).toContain('kind: "source"');
     expect(graph).toContain('kind: "output"');
     expect(graph).not.toContain('kind: "capability"');
@@ -1250,6 +1262,14 @@ describe("template app factory generators", () => {
     expect(docs).toContain("pnpm --dir packages/convex exec convex codegen");
     expect(docs).toContain("workflowContracts.sourceGroundedPlan.approve");
     expect(docs).toContain("concrete `buildArgs` mappers");
+    expect(spec).toContain("startInteractive");
+    expect(spec).toContain("startQueued");
+    expect(spec).not.toContain("kickoffMode");
+    expect(impl).toContain('startWithProfile("interactive"');
+    expect(impl).toContain('startWithProfile("queued"');
+    expect(impl).toContain('kickoffProfile === "interactive"');
+    expect(impl).toContain("principal:");
+    expect(impl).toContain("actorId: access.userId");
   });
 
   it("writes generated workflow files through the CLI", () => {

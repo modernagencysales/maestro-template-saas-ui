@@ -6,6 +6,7 @@ import {
   planMaestroWorkflowDefinition,
   type MaestroWorkflowMetadata,
 } from "../confect/workflows/_kit/defineMaestroWorkflow";
+import { kickoffProfileStartOptions } from "../confect/workflows/_kit/ownership";
 
 const metadata = {
   workflowId: "workflow_source_to_receipt",
@@ -46,6 +47,12 @@ const metadata = {
 } as const satisfies MaestroWorkflowMetadata;
 
 describe("defineMaestroWorkflow planning boundary", () => {
+  it("maps named kickoff profiles to fixed component start options", () => {
+    expect(kickoffProfileStartOptions("eager-first-poll")).toEqual({
+      startAsync: false,
+    });
+    expect(kickoffProfileStartOptions("queued")).toEqual({ startAsync: true });
+  });
   it("requires concrete validators and forces action retries off by default", () => {
     const result = planMaestroWorkflowDefinition(
       {

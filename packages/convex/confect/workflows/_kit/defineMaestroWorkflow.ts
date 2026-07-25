@@ -3,6 +3,7 @@ import {
   type WorkflowSemanticCoverageEvidence,
   type WorkflowSemanticRuleId,
 } from "@maestro-template/template-core/workflow-semantics";
+import { WorkflowManager, type WorkflowComponent } from "@convex-dev/workflow";
 import type { PropertyValidators, Validator } from "convex/values";
 import * as Data from "effect/Data";
 import * as Either from "effect/Either";
@@ -75,6 +76,27 @@ export const planMaestroWorkflowDefinition = <
         },
         metadata,
       });
+};
+
+/** Sole application-facing workflow definition boundary. */
+export const defineMaestroWorkflow = <
+  Args extends PropertyValidators,
+  Returns extends Validator<unknown, "required", string>,
+>(
+  component: WorkflowComponent,
+  definition: MaestroWorkflowDefinition<Args, Returns>,
+  metadata: MaestroWorkflowMetadata,
+) => {
+  const planned = Either.getOrThrow(
+    planMaestroWorkflowDefinition(definition, metadata),
+  );
+  const manager = new WorkflowManager(component, {
+    workpoolOptions: planned.definition.workpoolOptions,
+  });
+  return manager.define({
+    args: planned.definition.args,
+    returns: planned.definition.returns,
+  });
 };
 
 const validateDefinition = <

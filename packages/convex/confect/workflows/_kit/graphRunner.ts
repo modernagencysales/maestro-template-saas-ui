@@ -1,6 +1,12 @@
 import type { FunctionReference } from "convex/server";
 
-import { type DurableWorkflowGraph, type WorkflowNode } from "../graph";
+import {
+  type DurableWorkflowGraph,
+  type DurableWorkflowGraphV2,
+  type WorkflowNode,
+  validateWorkflowGraphV2,
+} from "../graph";
+import { makePublicError } from "../../shared/errors";
 import {
   readStartNode,
   runGraphExecution,
@@ -82,4 +88,45 @@ export const runDurableGraphWorkflow = async (
   const startNode = readStartNode(input.graph);
   preflightCapabilityRegistry(input.graph, input.capabilityRegistry);
   return runGraphExecution(step, input, startNode);
+};
+
+export type RunDurableGraphV2Input<
+  Result extends Record<string, unknown> = Readonly<Record<string, unknown>>,
+> = {
+  readonly graph: DurableWorkflowGraphV2;
+  readonly inputs: unknown;
+  readonly principal: unknown;
+  readonly policySnapshot: unknown;
+  readonly projectOutput: () => Result;
+};
+
+/**
+ * V2 bootstrap runner. WP-1.2+ add executable node compilers serially; WP-1.1
+ * intentionally accepts only the generated source-to-output starter graph.
+ */
+export const runDurableGraphWorkflowV2 = async <
+  Result extends Record<string, unknown>,
+>(
+  _step: RunDurableGraphStep,
+  input: RunDurableGraphV2Input<Result>,
+): Promise<Result> => {
+  const findings = validateWorkflowGraphV2(input.graph);
+  if (findings.length > 0) {
+    throw makePublicError(
+      "VALIDATION_FAILED",
+      "Workflow graph V2 failed validation.",
+      { findings: JSON.stringify(findings) },
+    );
+  }
+  const executable = input.graph.nodes.filter(
+    (node) => node.kind !== "source" && node.kind !== "output",
+  );
+  if (executable.length > 0) {
+    throw makePublicError(
+      "VALIDATION_FAILED",
+      "Workflow graph V2 contains a node whose compiler is not enabled yet.",
+      { nodeIds: executable.map(({ id }) => id).join(",") },
+    );
+  }
+  return input.projectOutput();
 };
