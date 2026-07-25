@@ -13,6 +13,8 @@ import {
 import { validateWorkflowIdempotencyKey } from "../confect/workflows/_kit/ownership";
 import { projectWorkflowStatus } from "../confect/workflows/_kit/status";
 
+type AwaitEventInput = Parameters<RunDurableGraphStep["awaitEvent"]>[0];
+
 const classifyRef =
   "internal.capabilities.classify" as unknown as DurableGraphStepRef<"query">;
 const enrichRef =
@@ -432,7 +434,8 @@ describe("durable graph runner", () => {
       sleep: async (delayMs, options) => {
         sleeps.push({ delayMs, name: options?.name });
       },
-      awaitEvent: async <Result>(event: { readonly name: string }) => {
+      awaitEvent: async <Result>(event: AwaitEventInput) => {
+        if (!event.name) throw new Error("V1 approval fixture requires a name");
         events.push(event.name);
         return { approvedBy: "user_123" } as Result;
       },
@@ -506,7 +509,8 @@ describe("durable graph runner", () => {
       sleep: async (delayMs, options) => {
         sleeps.push({ delayMs, name: options?.name });
       },
-      awaitEvent: async <Result>(event: { readonly name: string }) => {
+      awaitEvent: async <Result>(event: AwaitEventInput) => {
+        if (!event.name) throw new Error("V1 approval fixture requires a name");
         events.push(event.name);
         return { approvedBy: "user_123" } as Result;
       },

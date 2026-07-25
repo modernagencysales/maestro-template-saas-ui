@@ -1,4 +1,6 @@
 import type { FunctionReference } from "convex/server";
+import type { EventId as ComponentEventId } from "@convex-dev/workflow";
+import type { Validator } from "convex/values";
 
 import {
   type DurableWorkflowGraph,
@@ -35,6 +37,7 @@ export type DurableGraphStepRef<
 > = FunctionReference<Kind, "internal">;
 
 export type { DurableGraphWorkflowRef } from "./subworkflows";
+export type { ProductWorkflowEventId } from "./events";
 
 export type DurableGraphCapabilityEnvelope = {
   readonly inputs: unknown;
@@ -98,9 +101,14 @@ export type RunDurableGraphStep = {
     delayMs: number,
     options?: { readonly name?: string },
   ) => Promise<void>;
-  readonly awaitEvent: <Result = unknown>(event: {
-    readonly name: string;
-  }) => Promise<Result>;
+  readonly awaitEvent: <Result = unknown, Name extends string = string>(
+    event: (
+      | { readonly name: Name; readonly id?: ComponentEventId<Name> }
+      | { readonly name?: Name; readonly id: ComponentEventId<Name> }
+    ) & {
+      readonly validator?: Validator<Result, "required", string>;
+    },
+  ) => Promise<Result>;
 };
 
 export const runDurableGraphWorkflow = async (
@@ -154,14 +162,25 @@ export const runDurableGraphWorkflowV2 = async <
   const subworkflowNodes = executable.filter(
     (node) => node.kind === "subworkflow",
   );
+  const eventNodes = executable.filter((node) => node.kind === "event");
+  const capabilityNodes = executable.filter(
+    (node) => node.kind === "capability",
+  );
   if (
-    executable.length > 0 &&
+    capabilityNodes.length > 0 &&
     (!input.capabilityRegistry || !input.effectIdentity || !input.admitEffect)
   ) {
     throw makePublicError(
       "VALIDATION_FAILED",
       "Workflow graph V2 contains a node whose compiler is not enabled yet.",
-      { nodeIds: executable.map(({ id }) => id).join(",") },
+      { nodeIds: capabilityNodes.map(({ id }) => id).join(",") },
+    );
+  }
+  if (eventNodes.length > 0 && !input.effectIdentity) {
+    throw makePublicError(
+      "VALIDATION_FAILED",
+      "Workflow graph V2 event allocation requires workflow ownership identity.",
+      { nodeIds: eventNodes.map(({ id }) => id).join(",") },
     );
   }
   if (executable.length === 0) return input.projectOutput({ context: {} });
@@ -172,10 +191,19 @@ export const runDurableGraphWorkflowV2 = async <
       { nodeIds: subworkflowNodes.map(({ id }) => id).join(",") },
     );
   }
-  const capabilityRegistry = input.capabilityRegistry;
+  if (eventNodes.length > 0 && !input.eventRegistry) {
+    throw makePublicError(
+      "VALIDATION_FAILED",
+      "Workflow graph V2 contains an event without a generated registry.",
+      { nodeIds: eventNodes.map(({ id }) => id).join(",") },
+    );
+  }
+  const capabilityRegistry = input.capabilityRegistry ?? {};
   const effectIdentity = input.effectIdentity;
-  const admitEffect = input.admitEffect;
-  if (!capabilityRegistry || !effectIdentity || !admitEffect) {
+  const admitEffect =
+    input.admitEffect ??
+    (async () => ({ kind: "deny", reason: "not used" }) as const);
+  if (!effectIdentity) {
     throw makePublicError(
       "VALIDATION_FAILED",
       "Workflow graph V2 executable compiler inputs are incomplete.",

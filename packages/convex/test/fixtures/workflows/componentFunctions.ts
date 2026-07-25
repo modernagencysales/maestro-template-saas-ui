@@ -92,6 +92,20 @@ export const startEventBeforeWait = mutation({
   },
 });
 
+export const sendInvalidEventPayload = mutation({
+  args: { workflowId: vWorkflowId },
+  returns: v.null(),
+  handler: async (ctx, { workflowId }): Promise<null> => {
+    await workflow.sendEvent(ctx, {
+      workflowId,
+      name: "approved",
+      validator: v.object({ approved: v.boolean() }),
+      value: { approved: "yes" } as unknown as { approved: boolean },
+    });
+    return null;
+  },
+});
+
 export const parallelWorkflow = workflow
   .define({ args: {}, returns: v.array(v.string()) })
   .handler(

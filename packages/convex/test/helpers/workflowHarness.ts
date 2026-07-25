@@ -36,6 +36,9 @@ export const conformanceApi = {
   startEventBeforeWait: mutationRef<Record<string, never>, string>(
     "startEventBeforeWait",
   ),
+  sendInvalidEventPayload: mutationRef<{ workflowId: string }, null>(
+    "sendInvalidEventPayload",
+  ),
   startParallel: mutationRef<Record<string, never>, string>("startParallel"),
   startParent: mutationRef<Record<string, never>, string>("startParent"),
   startRestartWorkflow: mutationRef<Record<string, never>, string>(

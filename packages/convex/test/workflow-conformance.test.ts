@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { isNonRetryableError } from "@convex-dev/workpool";
+import type { EventId as ComponentEventId } from "@convex-dev/workflow";
+import { v } from "convex/values";
 import * as Schema from "effect/Schema";
 import {
   conformanceApi,
@@ -9,6 +11,7 @@ import { adversarialWorkflowDrafts } from "./fixtures/workflows/adversarial";
 import { findWorkflowConformanceIssues } from "./fixtures/workflows/conformanceChecks";
 import {
   WorkflowCapabilityReference,
+  WorkflowEventReference,
   WorkflowReference,
   WorkflowStepName,
   validateWorkflowGraphV2,
@@ -29,6 +32,14 @@ import {
   type DurableGraphWorkflowRef,
   type WorkflowV2SubworkflowRegistryEntry,
 } from "../confect/workflows/_kit/subworkflows";
+import {
+  defineWorkflowEvent,
+  defineWorkflowV2EventRegistry,
+  runRegisteredWorkflowEvent,
+  type OwnedWorkflowEvent,
+  type ProductWorkflowEventId,
+  type WorkflowEventOwnership,
+} from "../confect/workflows/_kit/events";
 import type { WorkflowPrincipal } from "../confect/workflows/_kit/principal";
 import type { WorkflowEffectContract } from "../confect/workflows/_kit/effectReservations";
 import { runObservedWorkflowStage } from "../confect/workflows/_kit/observedStage";
@@ -104,6 +115,268 @@ describe("Maestro workflow compiler mapping", () => {
       [{ name: "compiler-mapping.approval.approved" }],
     ]);
   });
+});
+
+describe("Maestro typed event compiler 2A", () => {
+  it("awaits a located pre-sent event with stable typed identity", async () => {
+    const locate = vi.fn(async () => ownedApprovalEvent());
+    const entry = { definition: approvalEvent, locate };
+    const awaitCall = vi.fn(async (_event: AwaitEventInput) => ({
+      approved: true,
+    }));
+    const result: Promise<{ readonly approved: boolean }> =
+      runRegisteredWorkflowEvent({
+        step: eventStep(awaitCall),
+        node: eventNode(),
+        entry,
+        ownership: eventRunOwnership,
+      });
+
+    await expect(result).resolves.toEqual({ approved: true });
+    expect(locate).toHaveBeenCalledWith(approvalOwnership());
+    expect(awaitCall).toHaveBeenCalledWith({
+      id: ownedApprovalEvent().componentEventId,
+      name: "approval-decision.v1.approval-1",
+      validator: approvalEvent.validator,
+    });
+  });
+
+  it("rejects registry and schema mismatches before await", async () => {
+    expect(() =>
+      defineWorkflowV2EventRegistry({
+        "event.other.v1": approvalEntry(),
+      }),
+    ).toThrow("Event registry key must match");
+
+    const awaitCall = vi.fn(async () => ({ approved: true }));
+    await expect(
+      runRegisteredWorkflowEvent({
+        step: eventStep(awaitCall),
+        node: eventNode({ eventSchemaName: "approval.wrong.v1" }),
+        entry: approvalEntry(),
+        ownership: eventRunOwnership,
+      }),
+    ).rejects.toThrow("Workflow event is unavailable");
+    expect(awaitCall).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["workspace", { workspaceId: "workspace-2" }],
+    ["run", { workflowRunId: "run-2" }],
+    ["generation", { generation: 2 }],
+    ["definition", { eventDefinition: otherEventRef }],
+    ["instance", { eventInstanceKey: "approval-2" }],
+  ] as const)(
+    "rejects a %s ownership mismatch opaquely",
+    async (_name, mismatch) => {
+      const awaitCall = vi.fn(async () => ({ approved: true }));
+      const entry = approvalEntry({ ...ownedApprovalEvent(), ...mismatch });
+
+      await expect(
+        runRegisteredWorkflowEvent({
+          step: eventStep(awaitCall),
+          node: eventNode(),
+          entry,
+          ownership: eventRunOwnership,
+        }),
+      ).rejects.toSatisfy(isOpaqueEventFailure);
+      expect(awaitCall).not.toHaveBeenCalled();
+    },
+  );
+
+  it("does not cross-deliver concurrent event instances", async () => {
+    const awaitCall = vi.fn(async (_event: AwaitEventInput) => ({
+      approved: true,
+    }));
+    const located = new Map([
+      ["approval-1", ownedApprovalEvent()],
+      [
+        "approval-2",
+        ownedApprovalEvent({
+          eventId: "product-event-2" as ProductWorkflowEventId,
+          componentEventId: "component-event-2" as ComponentEventId,
+          eventInstanceKey: "approval-2",
+        }),
+      ],
+    ]);
+    const entry = {
+      definition: approvalEvent,
+      locate: async (ownership: WorkflowEventOwnership) => {
+        const event = located.get(ownership.eventInstanceKey);
+        if (!event) throw new Error("missing fixture event");
+        return event;
+      },
+    };
+
+    await runRegisteredWorkflowEvent({
+      step: eventStep(awaitCall),
+      node: eventNode(),
+      entry,
+      ownership: eventRunOwnership,
+    });
+    await runRegisteredWorkflowEvent({
+      step: eventStep(awaitCall),
+      node: eventNode({ eventInstanceKey: "approval-2" }),
+      entry,
+      ownership: eventRunOwnership,
+    });
+
+    expect(
+      awaitCall.mock.calls.map(([event]) => [event.id, event.name]),
+    ).toEqual([
+      ["component-event-1", "approval-decision.v1.approval-1"],
+      ["component-event-2", "approval-decision.v1.approval-2"],
+    ]);
+  });
+
+  it("rejects invalid payloads through the real shared Convex validator", async () => {
+    const t = createWorkflowHarness();
+    const workflowId = await t.mutation(
+      conformanceApi.startEventBeforeWait,
+      {},
+    );
+    await expect(
+      t.mutation(conformanceApi.sendInvalidEventPayload, { workflowId }),
+    ).rejects.toThrow();
+  });
+
+  it("rejects an invalid instance key instead of falling back to a raw name", async () => {
+    const awaitCall = vi.fn(async () => ({ approved: true }));
+    await expect(
+      runRegisteredWorkflowEvent({
+        step: eventStep(awaitCall),
+        node: eventNode({ eventInstanceKey: "Approval Raw" }),
+        entry: approvalEntry(),
+        ownership: eventRunOwnership,
+      }),
+    ).rejects.toSatisfy(isOpaqueEventFailure);
+    expect(awaitCall).not.toHaveBeenCalled();
+  });
+
+  it("compiles the registry through the V2 graph runner", async () => {
+    const awaitCall = vi.fn(async () => ({ approved: true }));
+    const eventRegistry = defineWorkflowV2EventRegistry({
+      [approvalEvent.reference]: approvalEntry(),
+    });
+
+    await expect(
+      runDurableGraphWorkflowV2(eventStep(awaitCall), {
+        ...v2Input(v2EventGraph()),
+        effectIdentity: eventIdentity,
+        eventRegistry,
+      }),
+    ).resolves.toMatchObject({
+      context: { approval: { approved: true } },
+    });
+  });
+});
+
+type AwaitEventInput = Parameters<RunDurableGraphStep["awaitEvent"]>[0];
+type EventNodeV2 = Extract<
+  DurableWorkflowGraphV2["nodes"][number],
+  { readonly kind: "event" }
+>;
+
+const approvalEventRef = Schema.decodeSync(WorkflowEventReference)(
+  "event.approvalDecision.v1",
+);
+const otherEventRef = Schema.decodeSync(WorkflowEventReference)(
+  "event.otherDecision.v1",
+);
+const approvalEvent = defineWorkflowEvent({
+  reference: approvalEventRef,
+  name: "approval-decision.v1",
+  schemaName: "workflow.approvalDecision.v1",
+  schema: Schema.Struct({ approved: Schema.Boolean }),
+  validator: v.object({ approved: v.boolean() }),
+});
+const eventIdentity = {
+  workspaceId: "workspace-1",
+  workflowRunId: "run-1",
+  generation: 1,
+} as const;
+const eventRunOwnership = eventIdentity;
+
+const approvalOwnership = (
+  overrides: Partial<WorkflowEventOwnership> = {},
+): WorkflowEventOwnership => ({
+  ...eventRunOwnership,
+  eventDefinition: approvalEventRef,
+  eventInstanceKey: "approval-1",
+  ...overrides,
+});
+
+const ownedApprovalEvent = (
+  overrides: Partial<OwnedWorkflowEvent> = {},
+): OwnedWorkflowEvent => ({
+  eventId: "product-event-1" as ProductWorkflowEventId,
+  componentEventId: "component-event-1" as ComponentEventId,
+  ...approvalOwnership(),
+  ...overrides,
+});
+
+const approvalEntry = (owned = ownedApprovalEvent()) => ({
+  definition: approvalEvent,
+  locate: async () => owned,
+});
+
+const eventNode = (overrides: Partial<EventNodeV2> = {}): EventNodeV2 => ({
+  id: "approval",
+  kind: "event",
+  label: "Approval",
+  stepName: "approval.v2",
+  eventDefinition: approvalEventRef,
+  eventSchemaName: approvalEvent.schemaName,
+  eventInstanceKey: "approval-1",
+  payloadPolicy: {
+    maxInputBytes: 1024,
+    maxResultBytes: 1024,
+    resultMode: "inline",
+  },
+  semanticRuleIds: ["WF-NODE-EVENT-DEFINITION"],
+  ...overrides,
+});
+
+const eventStep = (
+  awaitCall: (event: AwaitEventInput) => Promise<unknown>,
+): RunDurableGraphStep =>
+  v2Step({
+    awaitEvent: async <Result>(event: AwaitEventInput) =>
+      (await awaitCall(event)) as Result,
+  });
+
+const isOpaqueEventFailure = (error: unknown): boolean =>
+  error instanceof Error &&
+  error.message === "Workflow event is unavailable." &&
+  !("details" in error);
+
+const v2EventGraph = (): DurableWorkflowGraphV2 => ({
+  ...v2CapabilityGraph("query"),
+  id: "compiler-v2-event",
+  nodes: [
+    {
+      id: "source",
+      kind: "source",
+      label: "Source",
+      stepName: "start.v2",
+      payloadPolicy,
+      semanticRuleIds: [],
+    },
+    eventNode(),
+    {
+      id: "output",
+      kind: "output",
+      label: "Output",
+      stepName: "output.v2",
+      payloadPolicy,
+      semanticRuleIds: [],
+    },
+  ],
+  edges: [
+    { id: "source-approval", sourceNodeId: "source", targetNodeId: "approval" },
+    { id: "approval-output", sourceNodeId: "approval", targetNodeId: "output" },
+  ],
+  joins: [],
 });
 
 describe("Maestro V2 action retry compiler", () => {

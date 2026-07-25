@@ -25,6 +25,10 @@ import {
   runRegisteredSubworkflow,
   type AnyWorkflowV2SubworkflowRegistryEntry,
 } from "./subworkflows";
+import {
+  runRegisteredWorkflowEvent,
+  type AnyWorkflowV2EventRegistryEntry,
+} from "./events";
 
 type CapabilityNodeV2 = Extract<WorkflowNodeV2, { kind: "capability" }>;
 type CapabilityKindV2 = CapabilityNodeV2["functionKind"];
@@ -100,6 +104,9 @@ export type RunDurableGraphV2CompilerInput<
   >;
   readonly workflowRegistry?: Readonly<
     Record<string, AnyWorkflowV2SubworkflowRegistryEntry>
+  >;
+  readonly eventRegistry?: Readonly<
+    Record<string, AnyWorkflowV2EventRegistryEntry>
   >;
   readonly projectOutput: (input: {
     readonly context: Readonly<Record<string, unknown>>;
@@ -324,6 +331,25 @@ const executeNode = async <Result extends Record<string, unknown>>(
       context,
       principal: input.principal,
       policySnapshot: input.policySnapshot,
+    });
+  }
+  if (node.kind === "event") {
+    const entry = input.eventRegistry?.[node.eventDefinition];
+    if (!entry) {
+      throw validationFailure(
+        node,
+        `missing generated event registry entry ${node.eventDefinition}`,
+      );
+    }
+    return runRegisteredWorkflowEvent({
+      step,
+      node,
+      entry,
+      ownership: {
+        workspaceId: input.effectIdentity.workspaceId,
+        workflowRunId: input.effectIdentity.workflowRunId,
+        generation: input.effectIdentity.generation,
+      },
     });
   }
   if (node.kind !== "capability") {
