@@ -1,0 +1,204 @@
+{
+  "feature": "phase-1-wp-1.6-lifecycle-stack-3",
+  "slices": [
+    {
+      "id": 1,
+      "branch": "codex/wp1.6-lifecycle",
+      "intention": "register the accepted lifecycle boundary as internal-only Confect functions",
+      "layers": ["workflows", "contracts"],
+      "contractRiskIds": [
+        "ambient-time-inline",
+        "workspace-guard",
+        "schema-runtime-validator-export",
+        "bare-error-not-typed",
+        "policy-data-hardcoded",
+        "prompt-model-policy-boundary",
+        "type-escape-or-cast",
+        "existing-module-repair-checklist"
+      ],
+      "existingModuleRepairChecklist": {
+        "existingTargetModules": [
+          "packages/convex/confect/workflows/lifecycle.spec.ts",
+          "packages/convex/confect/workflows/lifecycle.impl.ts",
+          "packages/convex/convex/workflows/lifecycle.ts"
+        ],
+        "repairStrategy": "extend",
+        "compatibilityRisks": [
+          "A lifecycle operation is accidentally public",
+          "A handler bypasses the accepted lifecycle control port",
+          "Deferred restart is exposed without effect inspection"
+        ],
+        "policyDataOwnership": "packages/convex/confect/workflows/_kit/lifecycleState.ts",
+        "promptVersioningImpact": "No prompt or model policy changes.",
+        "evalOrGateCoverage": [
+          "pnpm --dir packages/convex test workflow-lifecycle-registration",
+          "pnpm --dir packages/convex typecheck"
+        ]
+      },
+      "workPackages": [
+        {
+          "kind": "fixture-to-real",
+          "target": "WP-1.6 internal lifecycle registration",
+          "fixtureContract": "accepted createWorkflowLifecycleControls port",
+          "realBoundary": "Confect internal specs, implementations, and Convex registration source",
+          "followUpGates": [
+            "pnpm --dir packages/convex test workflow-lifecycle-registration",
+            "pnpm --dir packages/convex typecheck"
+          ]
+        }
+      ],
+      "taskRefs": ["WP-1.6"],
+      "rationale": "Lifecycle controls remain internal until later public translators authenticate and narrow inputs.",
+      "estLines": 295
+    },
+    {
+      "id": 2,
+      "branch": "codex/wp1.6-lifecycle",
+      "intention": "back tenant-owned run and step projections with bounded persistent queries",
+      "layers": ["workflows", "persistence"],
+      "contractRiskIds": [
+        "ambient-time-inline",
+        "bare-error-not-typed",
+        "workspace-guard",
+        "unjustified-cap-or-threshold",
+        "policy-data-hardcoded",
+        "prompt-model-policy-boundary",
+        "type-escape-or-cast",
+        "branching-logic-needs-boundary-tests",
+        "existing-module-repair-checklist"
+      ],
+      "existingModuleRepairChecklist": {
+        "existingTargetModules": [
+          "packages/convex/confect/workflows/lifecyclePersistence.ts",
+          "packages/convex/test/workflow-lifecycle-persistence.test.ts"
+        ],
+        "repairStrategy": "extend",
+        "compatibilityRisks": [
+          "A product list reads component-global workflow payloads",
+          "A tenant filter is applied after ownership is lost",
+          "Raw graph, arguments, results, or summaries reach projections"
+        ],
+        "policyDataOwnership": "packages/convex/confect/tables/workflowRuns.ts and workflowStageRuns.ts",
+        "promptVersioningImpact": "Workflow ID/version and generation remain explicit projection fields.",
+        "evalOrGateCoverage": [
+          "pnpm --dir packages/convex test workflow-lifecycle-persistence",
+          "pnpm check:confect-contracts"
+        ]
+      },
+      "workPackages": [
+        {
+          "kind": "fixture-to-real",
+          "target": "WP-1.6 persistent tenant lifecycle projections",
+          "fixtureContract": "list, listByName, and listSteps lifecycle ports",
+          "realBoundary": "workflowRuns and workflowStageRuns indexed pagination",
+          "followUpGates": [
+            "pnpm --dir packages/convex test workflow-lifecycle-persistence",
+            "pnpm check:confect-contracts"
+          ]
+        }
+      ],
+      "taskRefs": ["WP-1.6"],
+      "rationale": "Product-owned indexed rows provide tenant-safe bounded projections without component payload access.",
+      "estLines": 295
+    },
+    {
+      "id": 3,
+      "branch": "codex/wp1.6-lifecycle",
+      "intention": "persist guarded lifecycle state and whitelisted redacted audit evidence",
+      "layers": ["workflows", "persistence", "audit"],
+      "contractRiskIds": [
+        "ambient-time-inline",
+        "bare-error-not-typed",
+        "workspace-guard",
+        "policy-data-hardcoded",
+        "prompt-model-policy-boundary",
+        "type-escape-or-cast",
+        "branching-logic-needs-boundary-tests",
+        "existing-module-repair-checklist"
+      ],
+      "existingModuleRepairChecklist": {
+        "existingTargetModules": [
+          "packages/convex/confect/workflows/lifecyclePersistence.ts",
+          "packages/convex/confect/tables/workflowRunEvents.ts"
+        ],
+        "repairStrategy": "extend",
+        "compatibilityRisks": [
+          "A corrupt or legacy-null lifecycle row is mutated",
+          "Audit JSON retains component IDs or raw workflow payloads",
+          "Lifecycle state is saved outside the owning mutation"
+        ],
+        "policyDataOwnership": "packages/convex/confect/workflows/_kit/lifecycleState.ts",
+        "promptVersioningImpact": "Audit evidence retains only bounded workflow version and generation context.",
+        "evalOrGateCoverage": [
+          "pnpm --dir packages/convex test workflow-lifecycle-persistence workflow-lifecycle-state",
+          "pnpm --dir packages/convex typecheck"
+        ]
+      },
+      "workPackages": [
+        {
+          "kind": "fixture-to-real",
+          "target": "WP-1.6 lifecycle state and audit persistence",
+          "fixtureContract": "saveLifecycleState and appendAudit ports",
+          "realBoundary": "workflowRuns lifecycle columns and workflowRunEvents append-only evidence",
+          "followUpGates": [
+            "pnpm --dir packages/convex test workflow-lifecycle-persistence workflow-lifecycle-state",
+            "pnpm --dir packages/convex typecheck"
+          ]
+        }
+      ],
+      "taskRefs": ["WP-1.6"],
+      "rationale": "State and audit writes stay in the lifecycle mutation while corrupt ownership fails closed.",
+      "estLines": 285
+    },
+    {
+      "id": 4,
+      "branch": "codex/wp1.6-lifecycle",
+      "intention": "bind component control calls to the pinned Workflow 0.4.4 manager",
+      "layers": ["workflows", "components"],
+      "contractRiskIds": [
+        "ambient-time-inline",
+        "bare-error-not-typed",
+        "policy-data-hardcoded",
+        "workspace-guard",
+        "prompt-model-policy-boundary",
+        "type-escape-or-cast",
+        "branching-logic-needs-boundary-tests",
+        "existing-module-repair-checklist"
+      ],
+      "existingModuleRepairChecklist": {
+        "existingTargetModules": [
+          "packages/convex/confect/workflows/lifecycleComponent.ts",
+          "packages/convex/confect/workflows/lifecycleAdapters.ts"
+        ],
+        "repairStrategy": "extend",
+        "compatibilityRisks": [
+          "Component identity is used before tenant ownership resolves",
+          "Restart options diverge from the pinned queued contract",
+          "Cleanup acceptance is reported as full deletion"
+        ],
+        "policyDataOwnership": "docs/template/convex-workflow-compatibility.md",
+        "promptVersioningImpact": "No prompt or model policy changes.",
+        "evalOrGateCoverage": [
+          "pnpm --dir packages/convex test workflow-lifecycle-registration workflow-lifecycle-controls",
+          "pnpm check:confect-contracts"
+        ]
+      },
+      "workPackages": [
+        {
+          "kind": "pattern-instance",
+          "target": "WP-1.6 pinned workflow component lifecycle adapter",
+          "generatorCommand": "pnpm confect:codegen",
+          "generatedTarget": "Confect lifecycle refs and registered internal functions",
+          "followUpGates": [
+            "pnpm --dir packages/convex test workflow-lifecycle-registration workflow-lifecycle-controls",
+            "pnpm check:confect-contracts"
+          ]
+        }
+      ],
+      "taskRefs": ["WP-1.6"],
+      "rationale": "The real adapter delegates exact component IDs and pinned options only after tenant ownership resolution.",
+      "estLines": 275
+    }
+  ],
+  "allTaskRefs": ["WP-1.6"]
+}
