@@ -1,0 +1,107 @@
+import { describe, expect, it, vi } from "vitest";
+
+import { WorkflowLifecycleControlError } from "../confect/workflows/_kit/lifecycle";
+import {
+  lifecycleHarness,
+  principal,
+  terminalRun,
+} from "./workflow-lifecycle-controls.fixture";
+
+describe("tenant-safe workflow lifecycle safety", () => {
+  it("refuses restart until the prior generation is quiescent", async () => {
+    const fixture = lifecycleHarness(
+      terminalRun({ priorGenerationQuiescence: "pending" }),
+    );
+    await expect(
+      fixture.controls.restart(principal, {
+        workflowRunId: "run-a",
+        restartAnchor: "review.v3",
+        reasonCode: "recovery",
+        occurredAt: 200,
+      }),
+    ).rejects.toBeInstanceOf(WorkflowLifecycleControlError);
+    expect(fixture.ports.inspectRestart).not.toHaveBeenCalled();
+    expect(fixture.ports.component.restart).not.toHaveBeenCalled();
+  });
+
+  it("refuses an undeclared or expired external effect before restart", async () => {
+    const fixture = lifecycleHarness(terminalRun());
+    vi.mocked(fixture.ports.inspectRestart).mockResolvedValue({
+      discardedSteps: ["charge.v3"],
+      externalEffects: [
+        {
+          stepName: "charge.v3",
+          restartSafe: false,
+          restartSafeUntil: 500,
+          dedupeExpiresAt: 500,
+        },
+      ],
+    });
+    await expect(
+      fixture.controls.restart(principal, {
+        workflowRunId: "run-a",
+        restartAnchor: "charge.v3",
+        reasonCode: "recovery",
+        occurredAt: 200,
+      }),
+    ).rejects.toMatchObject({ code: "RESTART_UNSAFE" });
+    expect(fixture.ports.component.restart).not.toHaveBeenCalled();
+    expect(fixture.audits).toEqual([]);
+  });
+
+  it("restarts from a stable name with exact queued component options", async () => {
+    const fixture = lifecycleHarness(terminalRun());
+    const result = await fixture.controls.restart(principal, {
+      workflowRunId: "run-a",
+      restartAnchor: "review.v3",
+      reasonCode: "recovery",
+      occurredAt: 200,
+    });
+    expect(fixture.ports.component.restart).toHaveBeenCalledWith(
+      "component-a",
+      { from: "review.v3", startAsync: true },
+    );
+    expect(result).toEqual({ generation: 1, discardedSteps: ["review.v3"] });
+    expect(fixture.currentRun().state).toMatchObject({
+      execution: "active",
+      generation: 1,
+      restartAnchor: "review.v3",
+    });
+    expect(fixture.audits[0]).toMatchObject({
+      type: "workflow.restart.requested",
+      reasonCode: "recovery",
+      generation: 1,
+      redacted: true,
+    });
+  });
+
+  it("refuses retained cleanup and never equates acceptance with completion", async () => {
+    const fixture = lifecycleHarness(terminalRun());
+    await expect(
+      fixture.controls.cleanup(principal, {
+        workflowRunId: "run-a",
+        reasonCode: "retention-sweep",
+        occurredAt: 149,
+      }),
+    ).rejects.toMatchObject({ code: "INVALID_STATE" });
+    expect(fixture.ports.component.cleanup).not.toHaveBeenCalled();
+
+    const accepted = await fixture.controls.cleanup(principal, {
+      workflowRunId: "run-a",
+      reasonCode: "retention-sweep",
+      occurredAt: 150,
+    });
+    expect(accepted).toEqual({
+      status: "component-cleanup-requested",
+      fullDeletionProven: false,
+    });
+    expect(fixture.currentRun().state).toMatchObject({
+      cleanup: "in-progress",
+      componentCleanup: "component-cleanup-requested",
+    });
+    expect(fixture.audits.at(-1)).toMatchObject({
+      type: "workflow.cleanup.requested",
+      redacted: true,
+    });
+  });
+});

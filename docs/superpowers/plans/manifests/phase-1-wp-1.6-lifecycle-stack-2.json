@@ -22,7 +22,7 @@
       ],
       "existingModuleRepairChecklist": {
         "existingTargetModules": [
-          "packages/convex/confect/workflows/_kit/lifecycle.ts",
+          "packages/convex/confect/workflows/_kit/lifecycleControls.ts",
           "packages/convex/confect/workflows/_kit/lifecycleState.ts"
         ],
         "repairStrategy": "extend",
@@ -43,7 +43,7 @@
           "kind": "fixture-to-real",
           "target": "WP-1.6 tenant-safe lifecycle control boundary",
           "fixtureContract": "generated workflow start/status/control fixtures",
-          "realBoundary": "packages/convex/confect/workflows/_kit/lifecycle.ts",
+          "realBoundary": "packages/convex/confect/workflows/_kit/lifecycleControls.ts",
           "followUpGates": [
             "pnpm --dir packages/convex test workflow-lifecycle-controls",
             "pnpm --dir packages/convex typecheck"
@@ -75,7 +75,7 @@
       ],
       "existingModuleRepairChecklist": {
         "existingTargetModules": [
-          "packages/convex/confect/workflows/_kit/lifecycle.ts",
+          "packages/convex/confect/workflows/_kit/lifecycleSafety.ts",
           "packages/convex/confect/workflows/_kit/lifecycleState.ts"
         ],
         "repairStrategy": "extend",
@@ -96,7 +96,7 @@
           "kind": "fixture-to-real",
           "target": "WP-1.6 guarded restart and cleanup",
           "fixtureContract": "lifecycle state and effect reservation evidence",
-          "realBoundary": "workflowRuns lifecycle state plus generated component adapter port",
+          "realBoundary": "packages/convex/confect/workflows/_kit/lifecycleSafety.ts plus workflowRuns lifecycle state and generated component adapter port",
           "followUpGates": [
             "pnpm --dir packages/convex test workflow-lifecycle-controls workflow-lifecycle-state",
             "pnpm check:confect-contracts"
@@ -128,8 +128,8 @@
       ],
       "existingModuleRepairChecklist": {
         "existingTargetModules": [
-          "packages/convex/confect/workflows/_kit/lifecycle.ts",
-          "packages/convex/test/workflow-lifecycle-controls.test.ts"
+          "packages/convex/confect/workflows/_kit/lifecycleProjections.ts",
+          "packages/convex/test/workflow-lifecycle-controls-projections.test.ts"
         ],
         "repairStrategy": "extend",
         "compatibilityRisks": [
@@ -137,7 +137,7 @@
           "Unbounded pagination reaches persistence",
           "Audit payloads include component IDs or discarded payloads"
         ],
-        "policyDataOwnership": "packages/convex/confect/workflows/_kit/lifecycle.ts",
+        "policyDataOwnership": "packages/convex/confect/workflows/_kit/lifecycleProjections.ts",
         "promptVersioningImpact": "Run and step projection fields form a narrow stable lifecycle response.",
         "evalOrGateCoverage": [
           "pnpm --dir packages/convex test workflow-lifecycle-controls",
