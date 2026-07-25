@@ -11,10 +11,17 @@ import {
 const factoryCliComposition = createFactoryCliComposition(() => ({}));
 
 describe("factory CLI composition", () => {
-  it("binds one explicit policy to canonical readers and five commands", () => {
+  it("binds one explicit policy to canonical readers and six commands", () => {
     expect(
       factoryCliComposition.handlers.map(({ command }) => command),
-    ).toEqual(["preflight", "verify", "check", "plan-check", "scaffold"]);
+    ).toEqual([
+      "create",
+      "preflight",
+      "verify",
+      "check",
+      "plan-check",
+      "scaffold",
+    ]);
     expect(factoryCliComposition.diagnosticCount).toBe(
       diagnosticRegistryDescriptors.length,
     );
@@ -31,7 +38,7 @@ describe("factory CLI composition", () => {
 
   it("imports generator and quality sources without running either CLI", () => {
     expect(process.exitCode).toBeUndefined();
-    expect(factoryCliComposition.handlers).toHaveLength(5);
+    expect(factoryCliComposition.handlers).toHaveLength(6);
   });
 
   it("projects repository-aware environment names without values", () => {
