@@ -22,6 +22,7 @@
     "@maestro-template/generators": "workspace:*",
     "@maestro-template/integrations": "workspace:*",
     "@maestro-template/quality-tooling": "workspace:*",
+    "@maestro-template/stack-tooling": "workspace:*",
     "@maestro-template/template-core": "workspace:*",
     "@maestro-template/workflow-tooling": "workspace:*",
     "effect": "3.21.4"

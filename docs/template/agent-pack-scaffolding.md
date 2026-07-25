@@ -1,8 +1,7 @@
 # Agent Pack Planning And Scaffolding
 
-Status: seam. WP-3.3 leaf commands are implemented; root package exports,
-dependency bindings, CLI adapters, and router registration remain integration
-work.
+Status: implemented. WP-3.3 uses shared stack, generator, Agent Pack, and CLI
+contracts. MCP projection remains explicitly excluded until WP-3.5.
 
 `plan-check` delegates deterministic manifest validation to
 [`tooling/stack/plan.mts`](../../tooling/stack/plan.mts). It reports that
@@ -39,29 +38,14 @@ semantic gate.
   script, Just recipe, or aggregate-gate registration is owned here.
 - No MCP transport or WP-3.5 behavior is included.
 
-## Root Integration Request
+## Shared Wiring
 
-Bind the leaf factories without adding behavior:
-
-- Export `tooling/stack/plan.mts` as a package callable whose runtime input
-  validation returns deterministic findings instead of throwing on malformed
-  JSON, then inject it as `createPlanCheckCommand({ validate })`.
-- Export a typed generator operation and reviewed generator/recipe registry from
-  `tooling/generators/src/index.ts`. Its operation must return exact files,
-  provenance paths, collisions, semantic rule IDs, manual follow-up, codegen,
-  and focused gates, and must preserve every existing `pnpm template:*`
-  entrypoint.
-- Inject `WORKFLOW_SEMANTICS` as the `WorkflowSemanticProjection` authority and
-  accepted paths from `docs/template/adr`; do not maintain second primitive or
-  ADR lists.
-- Bind scaffold preflight inspection to the shared preflight command for the
-  trusted repository context, returning `fingerprint`, `safeToMutate`, and
-  explicit `cleanWorktree` evidence.
-- Add the required workspace dependencies and Agent Pack barrel exports for
-  `planCheck.ts` and `scaffold.ts`.
-- Add leaf CLI argument adapters, then register exactly one `plan-check` and one
-  `scaffold` command in the root factory composition/router. The adapters must
-  call the shared commands through `executeAgentPackCommand` and preserve the
-  JSON/human renderer.
-- Add package scripts, Just/CI coverage, and documentation links only after the
-  bindings above exist. Do not expose scaffold write through MCP in WP-3.3.
+- `@maestro-template/stack-tooling` exports the deterministic plan validator and
+  accepted-ADR reader.
+- `@maestro-template/generators` exports the reviewed descriptor registry and
+  delegates typed preview/write operations to the unchanged generator CLI API.
+- The Agent Pack barrel exports `plan-check` and `scaffold` command factories.
+- The factory composition injects repository-aware ADR, preflight, generator,
+  and workflow-ledger projections into one command instance each.
+- Strict CLI adapters invoke both commands through `executeAgentPackCommand` and
+  the shared human/JSON renderer.

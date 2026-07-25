@@ -4721,6 +4721,281 @@ export const runGeneratorCli = (
   }
 };
 
+export type ReviewedGeneratorDescriptor = {
+  readonly generatorId:
+    | "add-client-domain"
+    | "add-feature"
+    | "add-capability"
+    | "add-table"
+    | "add-workflow"
+    | "add-agent";
+  readonly recipe: string;
+  readonly command: `pnpm template:${string}`;
+  readonly argumentNames: readonly string[];
+  readonly codegen: readonly string[];
+  readonly focusedGates: readonly string[];
+};
+
+const backendCodegen = ["pnpm confect:codegen", "pnpm confect:manifest"];
+const backendGates = ["pnpm check:confect-contracts"];
+
+export const REVIEWED_GENERATOR_DESCRIPTORS = [
+  {
+    generatorId: "add-client-domain",
+    recipe: "docs/template/app-factory-guide.md",
+    command: "pnpm template:add-client-domain",
+    argumentNames: ["name", "system", "disposition", "description"],
+    codegen: backendCodegen,
+    focusedGates: backendGates,
+  },
+  {
+    generatorId: "add-feature",
+    recipe: "docs/template/app-factory-guide.md",
+    command: "pnpm template:add-feature",
+    argumentNames: ["name", "system", "disposition", "description"],
+    codegen: backendCodegen,
+    focusedGates: [...backendGates, "pnpm --dir apps/web typecheck"],
+  },
+  {
+    generatorId: "add-capability",
+    recipe: "docs/template/how-to-add-capability.md",
+    command: "pnpm template:add-capability",
+    argumentNames: ["name", "system", "disposition", "description", "exposure"],
+    codegen: backendCodegen,
+    focusedGates: backendGates,
+  },
+  {
+    generatorId: "add-table",
+    recipe: "docs/template/how-to-add-data-lifecycle-resource.md",
+    command: "pnpm template:add-table",
+    argumentNames: [
+      "name",
+      "system",
+      "disposition",
+      "tenantScope",
+      "sensitivity",
+      "pii",
+      "exportMode",
+      "deleteMode",
+      "retention",
+      "appendOnly",
+      "description",
+    ],
+    codegen: backendCodegen,
+    focusedGates: [
+      ...backendGates,
+      "pnpm check:data-resources",
+      "pnpm check:schema-migration-notes",
+    ],
+  },
+  {
+    generatorId: "add-workflow",
+    recipe: "docs/template/how-to-add-workflow.md",
+    command: "pnpm template:add-workflow",
+    argumentNames: ["name", "system", "disposition", "description"],
+    codegen: backendCodegen,
+    focusedGates: [...backendGates, "pnpm check:workflow-graph-boundary"],
+  },
+  {
+    generatorId: "add-agent",
+    recipe: "docs/template/how-to-add-agent.md",
+    command: "pnpm template:add-agent",
+    argumentNames: ["name", "system", "disposition", "description"],
+    codegen: backendCodegen,
+    focusedGates: backendGates,
+  },
+] as const satisfies readonly ReviewedGeneratorDescriptor[];
+
+export type ReviewedGeneratorRequest = {
+  readonly generatorId: string;
+  readonly args: Readonly<Record<string, unknown>>;
+  readonly write: boolean;
+  readonly cwd: string;
+};
+
+export type ReviewedGeneratorOutput = {
+  readonly files: readonly GeneratedFile[];
+  readonly provenancePaths: readonly string[];
+  readonly collisions: readonly string[];
+  readonly semanticRuleIds: readonly string[];
+  readonly manualFollowUp: readonly string[];
+  readonly codegen: readonly string[];
+  readonly focusedGates: readonly string[];
+};
+
+export type ReviewedGeneratorRunResult =
+  | { readonly ok: true; readonly output: ReviewedGeneratorOutput }
+  | { readonly ok: false; readonly message: string };
+
+export function resolveReviewedGenerator(generatorId: string):
+  | { readonly supported: true }
+  | {
+      readonly supported: false;
+      readonly nearest: readonly ReviewedGeneratorDescriptor[];
+    } {
+  return REVIEWED_GENERATOR_DESCRIPTORS.some(
+    (descriptor) => descriptor.generatorId === generatorId,
+  )
+    ? { supported: true }
+    : { supported: false, nearest: REVIEWED_GENERATOR_DESCRIPTORS.slice(0, 1) };
+}
+
+export function runReviewedGenerator(
+  request: ReviewedGeneratorRequest,
+): ReviewedGeneratorRunResult {
+  const descriptor = REVIEWED_GENERATOR_DESCRIPTORS.find(
+    (candidate) => candidate.generatorId === request.generatorId,
+  );
+  if (descriptor === undefined) {
+    return {
+      ok: false,
+      message: `Unsupported generator: ${request.generatorId}`,
+    };
+  }
+  const argv = generatorArgv(descriptor, request.args);
+  if (!argv.ok) return argv;
+  const preview = runGeneratorCli(argv.value, request.cwd);
+  if (preview.exitCode !== 0) {
+    return { ok: false, message: preview.stderr.trim() };
+  }
+  const parsed = parseReviewedGeneratorResult(preview.stdout);
+  if (!parsed.ok) return parsed;
+  const collisions = parsed.files
+    .map(({ path }) => path)
+    .filter((path) => existsSync(resolve(request.cwd, path)));
+  const output = projectReviewedOutput(parsed.value, descriptor, collisions);
+  if (!request.write) return { ok: true, output };
+  if (collisions.length > 0) {
+    return {
+      ok: false,
+      message: `Refusing to overwrite existing paths: ${collisions.join(", ")}.`,
+    };
+  }
+  const written = runGeneratorCli([...argv.value, "--write"], request.cwd);
+  return written.exitCode === 0
+    ? { ok: true, output }
+    : { ok: false, message: written.stderr.trim() };
+}
+
+function generatorArgv(
+  descriptor: ReviewedGeneratorDescriptor,
+  args: Readonly<Record<string, unknown>>,
+):
+  | { readonly ok: true; readonly value: readonly string[] }
+  | {
+      readonly ok: false;
+      readonly message: string;
+    } {
+  const unknown = Object.keys(args).filter(
+    (name) => !descriptor.argumentNames.includes(name),
+  );
+  if (unknown.length > 0) {
+    return {
+      ok: false,
+      message: `Unknown generator arguments: ${unknown.join(", ")}`,
+    };
+  }
+  const argv: string[] = [descriptor.generatorId];
+  for (const name of descriptor.argumentNames) {
+    const value = args[name];
+    if (value === undefined || value === false) continue;
+    const flag = `--${name.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`)}`;
+    if (value === true) argv.push(flag);
+    else if (typeof value === "string") argv.push(flag, value);
+    else if (
+      Array.isArray(value) &&
+      value.every((item) => typeof item === "string")
+    ) {
+      argv.push(flag, value.length === 0 ? "none" : value.join(","));
+    } else {
+      return {
+        ok: false,
+        message: `Generator argument ${name} has an invalid value.`,
+      };
+    }
+  }
+  return { ok: true, value: argv };
+}
+
+function parseReviewedGeneratorResult(
+  stdout: string,
+):
+  | {
+      readonly ok: true;
+      readonly value: Record<string, unknown>;
+      readonly files: readonly GeneratedFile[];
+    }
+  | { readonly ok: false; readonly message: string } {
+  try {
+    const value: unknown = JSON.parse(stdout);
+    if (value === null || typeof value !== "object" || !("files" in value)) {
+      return { ok: false, message: "Generator returned an invalid result." };
+    }
+    const files = (value as { readonly files: unknown }).files;
+    if (!Array.isArray(files) || !files.every(isGeneratedFile)) {
+      return { ok: false, message: "Generator returned invalid files." };
+    }
+    return { ok: true, value: value as Record<string, unknown>, files };
+  } catch {
+    return { ok: false, message: "Generator returned invalid JSON." };
+  }
+}
+
+function projectReviewedOutput(
+  value: Record<string, unknown>,
+  descriptor: ReviewedGeneratorDescriptor,
+  collisions: readonly string[],
+): ReviewedGeneratorOutput {
+  const files = value.files as readonly GeneratedFile[];
+  return {
+    files,
+    provenancePaths: files
+      .map(({ path }) => path)
+      .filter((path) => path.includes("/provenance/")),
+    collisions,
+    semanticRuleIds: collectStringArrayField(value, "semanticRuleIds"),
+    manualFollowUp: stringArray(value.followUp),
+    codegen: descriptor.codegen,
+    focusedGates: descriptor.focusedGates,
+  };
+}
+
+function collectStringArrayField(
+  value: unknown,
+  field: string,
+): readonly string[] {
+  if (Array.isArray(value)) {
+    return [
+      ...new Set(value.flatMap((item) => collectStringArrayField(item, field))),
+    ];
+  }
+  if (value === null || typeof value !== "object") return [];
+  const record = value as Record<string, unknown>;
+  return [
+    ...stringArray(record[field]),
+    ...Object.values(record).flatMap((item) =>
+      collectStringArrayField(item, field),
+    ),
+  ].filter((item, index, all) => all.indexOf(item) === index);
+}
+
+function stringArray(value: unknown): readonly string[] {
+  return Array.isArray(value) && value.every((item) => typeof item === "string")
+    ? value
+    : [];
+}
+
+function isGeneratedFile(value: unknown): value is GeneratedFile {
+  return (
+    value !== null &&
+    typeof value === "object" &&
+    "path" in value &&
+    typeof value.path === "string" &&
+    "content" in value &&
+    typeof value.content === "string"
+  );
+}
+
 if (isGeneratorDirectRun(import.meta.url)) {
   const result = runGeneratorCli(process.argv.slice(2));
   process.stdout.write(result.stdout);

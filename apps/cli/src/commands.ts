@@ -46,6 +46,8 @@ const helpResult = (): CliResult =>
       "maestro preflight [--mode fake|test|live] [--details|--json]",
       "maestro verify [--scope focused|full] [--changed <paths>] [--details|--json]",
       "maestro check [--mode fake|test|live] [--changed <paths>] [--details|--json]",
+      "maestro plan-check --plan <manifest.json> [--details|--json]",
+      "maestro scaffold --generator <id> --args <json-object> [--write --preflight-fingerprint <preflight_sha256:...>] [--details|--json]",
     ].join("\n") + "\n",
   );
 

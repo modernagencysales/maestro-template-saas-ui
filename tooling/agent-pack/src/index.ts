@@ -9,3 +9,5 @@ export * from "./check.js";
 export * from "./nodeAdapters.js";
 export * from "./preflightProbe.js";
 export * from "./verificationRunner.js";
+export * from "./planCheck.js";
+export * from "./scaffold.js";

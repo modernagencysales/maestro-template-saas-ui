@@ -85,7 +85,7 @@ export type ScaffoldDependencies = {
   };
   readonly workflow: {
     readonly semantics: readonly WorkflowSemanticProjection[];
-    readonly reviewedAdrRefs: ReadonlySet<string>;
+    readonly reviewedAdrRefs: (repo: RepositoryContext) => ReadonlySet<string>;
   };
 };
 
@@ -138,6 +138,7 @@ export function createScaffoldCommand(dependencies: ScaffoldDependencies) {
         input.workflowRuleIds,
         input.workflowResolutions,
         dependencies.workflow,
+        context.repo,
       );
       if (restrictions.length > 0) {
         return {
@@ -292,6 +293,7 @@ function workflowRestrictions(
   ruleIds: readonly string[],
   resolutions: readonly WorkflowResolution[],
   authority: ScaffoldDependencies["workflow"],
+  repo: RepositoryContext,
 ): readonly WorkflowScaffoldRestriction[] {
   const rules = new Map(authority.semantics.map((rule) => [rule.id, rule]));
   return ruleIds.flatMap((ruleId) => {
@@ -305,7 +307,7 @@ function workflowRestrictions(
       rule !== undefined &&
       matching.length === 1 &&
       selection !== undefined &&
-      resolutionIsReviewed(selection, rule, authority.reviewedAdrRefs)
+      resolutionIsReviewed(selection, rule, authority.reviewedAdrRefs(repo))
     ) {
       return [];
     }

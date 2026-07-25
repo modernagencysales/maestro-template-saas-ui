@@ -43,11 +43,13 @@ async function factoryWiringFindings(
   repoRoot: string,
 ): Promise<readonly string[]> {
   const findings: string[] = [];
-  const [rootPackage, cliPackage, agentPackPackage] = await Promise.all([
-    readJson(join(repoRoot, "package.json")),
-    readJson(join(repoRoot, "apps/cli/package.json")),
-    readJson(join(repoRoot, "tooling/agent-pack/package.json")),
-  ]);
+  const [rootPackage, cliPackage, agentPackPackage, stackPackage] =
+    await Promise.all([
+      readJson(join(repoRoot, "package.json")),
+      readJson(join(repoRoot, "apps/cli/package.json")),
+      readJson(join(repoRoot, "tooling/agent-pack/package.json")),
+      readJson(join(repoRoot, "tooling/stack/package.json")),
+    ]);
   if (record(rootPackage.scripts).maestro !== "tsx apps/cli/src/index.ts") {
     findings.push("factory-wiring:root-maestro-script");
   }
@@ -60,9 +62,20 @@ async function factoryWiringFindings(
   }
   if (
     record(cliPackage.dependencies)["@maestro-template/agent-pack"] !==
-    "workspace:*"
+      "workspace:*" ||
+    record(cliPackage.dependencies)["@maestro-template/generators"] !==
+      "workspace:*" ||
+    record(cliPackage.dependencies)["@maestro-template/stack-tooling"] !==
+      "workspace:*"
   ) {
     findings.push("factory-wiring:cli-agent-pack-dependency");
+  }
+  if (
+    stackPackage.main !== "index.mts" ||
+    stackPackage.types !== "index.mts" ||
+    record(stackPackage.exports)["."] !== "./index.mts"
+  ) {
+    findings.push("factory-wiring:stack-exports");
   }
   if (
     agentPackPackage.main !== "src/index.ts" ||
@@ -88,6 +101,8 @@ async function factoryWiringFindings(
       'export * from "./nodeAdapters.js";',
       'export * from "./preflightProbe.js";',
       'export * from "./verificationRunner.js";',
+      'export * from "./planCheck.js";',
+      'export * from "./scaffold.js";',
     ].join("\n")
   ) {
     findings.push("factory-wiring:agent-pack-barrel");
@@ -125,6 +140,10 @@ async function factoryWiringFindings(
       "createPreflightCliHandler(preflight)",
       "createVerifyCliHandler(verify)",
       "createVerifyCliHandler(check)",
+      "createPlanCheckCliHandler(planCheck)",
+      "createScaffoldCliHandler(scaffold)",
+      "createPlanCheckCommand({",
+      "createScaffoldCommand({",
       "return Object.freeze({\n    handlers,",
     ]) ||
     countOccurrences(cliIndex, "createFactoryCliComposition(") !== 1 ||

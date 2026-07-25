@@ -304,6 +304,7 @@ async function integratedFixture(): Promise<string> {
     join(fixtureRoot, "apps/cli/src/factory/composition.ts"),
   );
   await mkdir(join(fixtureRoot, "tooling/agent-pack/src"), { recursive: true });
+  await mkdir(join(fixtureRoot, "tooling/stack"), { recursive: true });
   await cp(
     join(repoRoot, "tooling/agent-pack/package.json"),
     join(fixtureRoot, "tooling/agent-pack/package.json"),
@@ -311,6 +312,10 @@ async function integratedFixture(): Promise<string> {
   await cp(
     join(repoRoot, "tooling/agent-pack/src/index.ts"),
     join(fixtureRoot, "tooling/agent-pack/src/index.ts"),
+  );
+  await cp(
+    join(repoRoot, "tooling/stack/package.json"),
+    join(fixtureRoot, "tooling/stack/package.json"),
   );
   await mkdir(join(fixtureRoot, "schemas"), { recursive: true });
   await cp(

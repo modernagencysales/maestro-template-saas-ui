@@ -1,12 +1,16 @@
 import {
+  AGENT_PACK_EXECUTION_CONTEXT_VERSION,
   createCheckCommand,
   createComposedPreflightProbe,
   createExecFileVerificationRunner,
   createNodeExecFileAdapter,
   createNodePreflightRuntimeReader,
+  createPlanCheckCommand,
   createPreflightCommand,
+  createScaffoldCommand,
   createVerifyCommand,
   defineDiagnosticRegistryProjection,
+  executeAgentPackCommand,
   nodePreflightFileSystem,
   type NodePreflightPolicy,
   type RepositoryContext,
@@ -19,14 +23,23 @@ import {
   readDataResourceCatalog,
   readProductTopology,
   readSystemCatalog,
+  resolveReviewedGenerator,
   requiredEnvNamesForProvider,
+  runReviewedGenerator,
 } from "@maestro-template/generators";
 import { defineQualityDiagnosticRegistryProjection } from "@maestro-template/quality-tooling";
+import {
+  readReviewedAdrRefs,
+  validatePlan,
+} from "@maestro-template/stack-tooling";
 import { WORKFLOW_SEMANTICS } from "@maestro-template/template-core/workflow-semantics";
 import { open } from "node:fs/promises";
 import { arch, platform } from "node:os";
 import { resolve } from "node:path";
+import { pathToFileURL } from "node:url";
+import { createPlanCheckCliHandler } from "./planCheck";
 import { createPreflightCliHandler } from "./preflight";
+import { createScaffoldCliHandler } from "./scaffold";
 import { createVerifyCliHandler } from "./verify";
 import type { FactoryCliHandler } from "./router";
 
@@ -160,10 +173,65 @@ export function createFactoryCliComposition(
     runner: verificationRunner,
   });
   const check = createCheckCommand({ preflight, verify });
+  const planCheck = createPlanCheckCommand({
+    validate: (plan, repo) =>
+      validatePlan(plan, {
+        reviewedAdrRefs: readReviewedAdrRefs(
+          pathToFileURL(`${repo.sourceRoot}/`),
+        ),
+      }),
+  });
+  const scaffold = createScaffoldCommand({
+    generators: {
+      resolve: resolveReviewedGenerator,
+      run: async ({ generatorId, args, write, repo }) =>
+        runReviewedGenerator({
+          generatorId,
+          args,
+          write,
+          cwd: repo.targetRoot,
+        }),
+    },
+    preflight: {
+      inspect: async (repo) => {
+        const result = await executeAgentPackCommand(
+          preflight,
+          { mode: "fake" },
+          {
+            schemaVersion: AGENT_PACK_EXECUTION_CONTEXT_VERSION,
+            invocation: "library",
+            repo,
+          },
+        );
+        return result.data === null
+          ? {
+              fingerprint: "preflight_sha256:unavailable",
+              safeToMutate: false,
+              cleanWorktree: false,
+            }
+          : {
+              fingerprint: result.data.fingerprint,
+              safeToMutate: result.data.safeToMutate,
+              cleanWorktree: !result.data.facts.repository.dirty,
+            };
+      },
+    },
+    workflow: {
+      semantics: WORKFLOW_SEMANTICS.map(({ id, status, repair }) => ({
+        id,
+        status,
+        repair,
+      })),
+      reviewedAdrRefs: (repo) =>
+        readReviewedAdrRefs(pathToFileURL(`${repo.sourceRoot}/`)),
+    },
+  });
   const handlers: readonly FactoryCliHandler[] = [
     createPreflightCliHandler(preflight),
     createVerifyCliHandler(verify),
     createVerifyCliHandler(check),
+    createPlanCheckCliHandler(planCheck),
+    createScaffoldCliHandler(scaffold),
   ];
 
   return Object.freeze({

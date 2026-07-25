@@ -9,7 +9,7 @@ import {
   missingContractRiskIdsForLayers,
   unknownContractRiskIds,
   type ContractRiskId,
-} from "./contract-risk-registry.mts";
+} from "./contract-risk-registry.mjs";
 
 type Slice = {
   readonly id: number;

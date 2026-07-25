@@ -32,6 +32,9 @@ import {
   buildWorkflowPromotionFiles,
   doctorTemplateInstance,
   requiredEnvNamesForProvider,
+  resolveReviewedGenerator,
+  REVIEWED_GENERATOR_DESCRIPTORS,
+  runReviewedGenerator,
   runGeneratorCli,
 } from "./index";
 import { gtmImplementationBlueprint } from "./blueprints/gtmImplementation";
@@ -53,6 +56,81 @@ import {
 
 const testDir = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(testDir, "../../..");
+
+describe("reviewed generator operation", () => {
+  const request = {
+    generatorId: "add-capability",
+    args: {
+      name: "agentPackParity",
+      system: "knowledge-brain",
+      disposition: "extend",
+      exposure: "headless",
+    },
+  } as const;
+
+  it("returns the exact canonical preview bytes", () => {
+    const direct = runGeneratorCli(
+      [
+        "add-capability",
+        "--name",
+        request.args.name,
+        "--system",
+        request.args.system,
+        "--disposition",
+        request.args.disposition,
+        "--exposure",
+        request.args.exposure,
+      ],
+      repoRoot,
+    );
+    const reviewed = runReviewedGenerator({
+      ...request,
+      write: false,
+      cwd: repoRoot,
+    });
+
+    expect(direct.exitCode).toBe(0);
+    expect(reviewed).toMatchObject({ ok: true, output: { collisions: [] } });
+    if (!reviewed.ok) throw new Error(reviewed.message);
+    expect(reviewed.output.files).toEqual(JSON.parse(direct.stdout).files);
+  });
+
+  it("exposes one reviewed descriptor registry without changing CLI entrypoints", () => {
+    expect(resolveReviewedGenerator("add-capability")).toEqual({
+      supported: true,
+    });
+    expect(resolveReviewedGenerator("invent-widget")).toMatchObject({
+      supported: false,
+      nearest: [REVIEWED_GENERATOR_DESCRIPTORS[0]],
+    });
+    expect(runGeneratorCli(["help"], repoRoot).stdout).toContain(
+      "template:add-capability --name <name>",
+    );
+  });
+
+  it("refuses reviewed writes when any generated path exists", () => {
+    const cwd = mkdtempSync(join(tmpdir(), "maestro-reviewed-generator-"));
+    try {
+      const preview = runReviewedGenerator({ ...request, write: false, cwd });
+      if (!preview.ok) throw new Error(preview.message);
+      const occupied = preview.output.files[0];
+      if (occupied === undefined) throw new Error("missing generated fixture");
+      const occupiedPath = join(cwd, occupied.path);
+      mkdirSync(dirname(occupiedPath), { recursive: true });
+      writeFileSync(occupiedPath, "user-owned\n");
+
+      expect(
+        runReviewedGenerator({ ...request, write: true, cwd }),
+      ).toMatchObject({
+        ok: false,
+        message: expect.stringContaining("existing paths"),
+      });
+      expect(readFileSync(occupiedPath, "utf8")).toBe("user-owned\n");
+    } finally {
+      rmSync(cwd, { recursive: true, force: true });
+    }
+  });
+});
 
 describe("workflow generator predeploy projection", () => {
   const failure = {

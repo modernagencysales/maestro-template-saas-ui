@@ -5,7 +5,7 @@
  */
 import { readdirSync, readFileSync } from "node:fs";
 import process from "node:process";
-import { validatePlan } from "./plan.mts";
+import { validatePlan } from "./plan.mjs";
 
 const SOURCE_ROOT = new URL("../../", import.meta.url);
 const ADR_DIRECTORY = "docs/template/adr/";

@@ -24,7 +24,7 @@ describe("plan-check command", () => {
     );
 
     expect(validate).toHaveBeenCalledOnce();
-    expect(validate).toHaveBeenCalledWith(plan);
+    expect(validate).toHaveBeenCalledWith(plan, context.repo);
     expect(result).toMatchObject({
       mutationPosture: "read-only",
       exitClass: "success",

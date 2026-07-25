@@ -4,6 +4,7 @@ import {
   type AgentPackArgumentResult,
   type AgentPackJsonValue,
 } from "./contracts.js";
+import type { RepositoryContext } from "./repoContext.js";
 
 export type PlanCheckInput = {
   readonly plan: Readonly<Record<string, AgentPackJsonValue>>;
@@ -11,6 +12,7 @@ export type PlanCheckInput = {
 
 export type StackPlanValidator = (
   plan: PlanCheckInput["plan"],
+  repo: RepositoryContext,
 ) => readonly string[];
 
 export function createPlanCheckCommand(input: {
@@ -21,8 +23,8 @@ export function createPlanCheckCommand(input: {
     schemaVersion: AGENT_PACK_COMMAND_VERSION,
     decode: decodePlanCheckInput,
     mutationPosture: () => "read-only",
-    execute: async ({ plan }) => {
-      const findings = [...input.validate(plan)];
+    execute: async ({ plan }, context) => {
+      const findings = [...input.validate(plan, context.repo)];
       const diagnostics = findings.map((message) => ({
         code: "AGENT_PACK_PLAN_INVALID",
         severity: "error" as const,

@@ -44,7 +44,7 @@ function dependencies(
         cleanWorktree: true,
       }),
     },
-    workflow: { semantics: [], reviewedAdrRefs: new Set() },
+    workflow: { semantics: [], reviewedAdrRefs: () => new Set() },
     ...overrides,
   };
 }
@@ -286,7 +286,7 @@ describe("scaffold command", () => {
           generators: { resolve: () => ({ supported: true }), run },
           workflow: {
             semantics: [restrictedRule],
-            reviewedAdrRefs: new Set([reviewedAdr]),
+            reviewedAdrRefs: () => new Set([reviewedAdr]),
           },
         }),
       ),
@@ -338,7 +338,7 @@ describe("scaffold command", () => {
             generators: { resolve: () => ({ supported: true }), run },
             workflow: {
               semantics: [restrictedRule],
-              reviewedAdrRefs: new Set([reviewedAdr]),
+              reviewedAdrRefs: () => new Set([reviewedAdr]),
             },
           }),
         ),

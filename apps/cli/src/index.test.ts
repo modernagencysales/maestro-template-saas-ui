@@ -1,11 +1,59 @@
 import { describe, expect, it } from "vitest";
+import { fileURLToPath } from "node:url";
+import { runReviewedGenerator } from "@maestro-template/generators";
 import { decodeCliRuntimeConfig, runCli, runCliAsync } from "./index";
+
+const repoRoot = fileURLToPath(new URL("../../../", import.meta.url));
 
 describe("maestro-template CLI", () => {
   it("accepts the canonical pnpm argument separator", () => {
     const result = runCli(["--", "describe"]);
     expect(result.exitCode).toBe(0);
     expect(JSON.parse(result.stdout)).toMatchObject({ valid: true });
+  });
+
+  it("prints exact planning and scaffolding help", async () => {
+    expect(runCli(["help"]).stdout).toContain(
+      "maestro plan-check --plan <manifest.json> [--details|--json]",
+    );
+    await expect(runCliAsync(["scaffold", "--help"])).resolves.toMatchObject({
+      exitCode: 0,
+      stdout: expect.stringContaining(
+        "maestro scaffold --generator <id> --args <json-object>",
+      ),
+    });
+  });
+
+  it("keeps CLI scaffold preview bytes identical to the direct generator", async () => {
+    const args = {
+      name: "cliParity",
+      system: "knowledge-brain",
+      disposition: "extend",
+      exposure: "headless",
+    };
+    const direct = runReviewedGenerator({
+      generatorId: "add-capability",
+      args,
+      write: false,
+      cwd: repoRoot,
+    });
+    if (!direct.ok) throw new Error(direct.message);
+    const cli = await runCliAsync(
+      [
+        "scaffold",
+        "--generator",
+        "add-capability",
+        "--args",
+        JSON.stringify(args),
+        "--json",
+      ],
+      undefined,
+      repoRoot,
+    );
+    expect(cli.exitCode).toBe(0);
+    expect(JSON.parse(cli.stdout).data.output.files).toEqual(
+      direct.output.files,
+    );
   });
 
   it("preserves legacy commands through the async factory-first entrypoint", async () => {
@@ -119,6 +167,9 @@ describe("maestro-template CLI", () => {
     );
     expect(JSON.parse(runCli(["mcp", "tools"]).stdout)).not.toContainEqual(
       expect.objectContaining({ name: "template.resolveSourceSet" }),
+    );
+    expect(JSON.parse(runCli(["mcp", "tools"]).stdout)).not.toContainEqual(
+      expect.objectContaining({ name: expect.stringContaining("scaffold") }),
     );
   });
 
