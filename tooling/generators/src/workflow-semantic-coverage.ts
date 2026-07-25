@@ -48,6 +48,21 @@ export const workflowGeneratorSemanticCoverage = defineWorkflowSemanticCoverage(
       "WorkflowActionNodeV2.retry with WorkflowEffectContract",
       "exact guarded runAction retry options",
     ),
+    "WF-NODE-EVENT-DEFINITION": generated(
+      "defineWorkflowEvent + defineWorkflowV2EventRegistry",
+      "exact generated event registry entry",
+      "tooling/generators/src/index.test.ts",
+    ),
+    "WF-NODE-EVENT-SCHEMA": generated(
+      "WorkflowEventDefinition schema + validator",
+      "shared generated await and delivery validator",
+      "tooling/generators/src/index.test.ts",
+    ),
+    "WF-NODE-EVENT-INSTANCE": generated(
+      "WorkflowEventNodeV2.eventInstanceKey + ProductWorkflowEventId",
+      "persisted owned event allocation",
+      "packages/convex/test/workflow-conformance.test.ts",
+    ),
     "WF-RETRY-MAX-ATTEMPTS": generated(
       "WorkflowRetryConfigV2.maxAttempts",
       "validated runAction.retry.maxAttempts",
@@ -72,6 +87,20 @@ export const workflowGeneratorSemanticCoverage = defineWorkflowSemanticCoverage(
     "WF-EDGE-TARGET": generated(
       "WorkflowEdge.targetNodeId",
       "ready-node traversal",
+    ),
+    "WF-STEP-EVENT": generated(
+      "runRegisteredWorkflowEvent",
+      "ID-bound await and persisted consumed reconciliation",
+      "packages/convex/test/workflow-conformance.test.ts",
+    ),
+    "WF-SEND-EVENT": generated(
+      "generated workflowContracts.sendEvent selector",
+      "authenticated translation to component-owned EventId",
+      "tooling/generators/src/index.test.ts",
+    ),
+    "WF-CREATE-EVENT": guardedDefault(
+      "generated internal event allocation refs",
+      "internal persisted generation allocation only",
     ),
     "WF-DEFINE": generated(
       "defineMaestroWorkflow",

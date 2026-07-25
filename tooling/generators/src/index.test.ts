@@ -1488,6 +1488,15 @@ describe("template app factory generators", () => {
     expect(semantics).toContain('"posture": "generated"');
     expect(semantics).toContain('"WF-NODE-RETRY"');
     expect(semantics).toContain('"posture": "guarded-default"');
+    expect(semantics).toContain('"WF-NODE-EVENT-DEFINITION"');
+    expect(semantics).toContain('"WF-NODE-EVENT-SCHEMA"');
+    expect(semantics).toContain('"WF-NODE-EVENT-INSTANCE"');
+    expect(semantics).toContain('"WF-STEP-EVENT"');
+    expect(semantics).toContain('"WF-SEND-EVENT"');
+    expect(semantics).toContain('"WF-CREATE-EVENT"');
+    expect(semantics).toContain(
+      '"compiler": "internal persisted generation allocation only"',
+    );
     expect(semantics).not.toContain('"WF-HANDLER-DATE"');
 
     expect(graph).toContain("defineWorkflowGraphV2");

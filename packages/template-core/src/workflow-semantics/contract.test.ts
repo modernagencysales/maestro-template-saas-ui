@@ -136,6 +136,41 @@ describe("workflow semantics contract", () => {
     ).toBe("intentionally-restricted");
   });
 
+  it("publishes only the proven terminal typed-event semantics", () => {
+    for (const id of [
+      "WF-NODE-EVENT-DEFINITION",
+      "WF-NODE-EVENT-SCHEMA",
+      "WF-NODE-EVENT-INSTANCE",
+    ]) {
+      expect(WORKFLOW_SEMANTICS.find((rule) => rule.id === id)).toMatchObject({
+        status: "supported",
+        fixture: "packages/convex/test/workflow-conformance.test.ts",
+      });
+    }
+    expect(
+      WORKFLOW_SEMANTICS.find((rule) => rule.id === "WF-STEP-EVENT"),
+    ).toMatchObject({
+      status: "supported",
+      compilerMapping: expect.stringMatching(
+        /ID-bound generated event definition.*shared validator.*persisted consumed reconciliation/,
+      ),
+    });
+    expect(
+      WORKFLOW_SEMANTICS.find((rule) => rule.id === "WF-SEND-EVENT"),
+    ).toMatchObject({
+      status: "supported",
+      compilerMapping: expect.stringMatching(
+        /authenticated generated selector translation.*component-owned EventId/,
+      ),
+    });
+    expect(
+      WORKFLOW_SEMANTICS.find((rule) => rule.id === "WF-CREATE-EVENT"),
+    ).toMatchObject({
+      status: "intentionally-restricted",
+      reason: expect.stringMatching(/internal to persisted generation/),
+    });
+  });
+
   it("requires mappings and fixtures for support and repairs for every rule", () => {
     expect(validateWorkflowSemantics(WORKFLOW_SEMANTICS)).toEqual([]);
   });

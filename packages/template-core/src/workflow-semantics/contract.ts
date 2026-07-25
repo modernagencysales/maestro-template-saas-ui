@@ -494,26 +494,29 @@ export const WORKFLOW_SEMANTICS = [
     "Use the source-to-output starter graph until WP-1.2 maps transaction posture.",
     V2_BUILDER_FIXTURE,
   ),
-  restricted(
+  supported(
     "WF-NODE-EVENT-DEFINITION",
     "graph.nodes[].eventDefinition",
-    "Typed event execution is not enabled by the WP-1.1 bootstrap runner.",
-    "Wait for the typed event compiler and ownership fixtures before adding an event node.",
-    V2_BUILDER_FIXTURE,
+    "defineWorkflowEvent + defineWorkflowV2EventRegistry",
+    "eventDefinition -> exact generated registry entry -> runRegisteredWorkflowEvent",
+    GRAPH_FIXTURE,
+    "opaque definition and ownership mismatch rejection before awaitEvent",
   ),
-  restricted(
+  supported(
     "WF-NODE-EVENT-SCHEMA",
     "graph.nodes[].eventSchemaName",
-    "Event validators are recorded but not yet bound to component await/send operations.",
-    "Use the generated event path after its compiler and validator fixture land.",
-    V2_BUILDER_FIXTURE,
+    "WorkflowEventDefinition schema + validator",
+    "eventSchemaName -> exact generated definition schemaName + shared delivery validator",
+    GRAPH_FIXTURE,
+    "schema mismatch and invalid delivery rejection before component dispatch",
   ),
-  restricted(
+  supported(
     "WF-NODE-EVENT-INSTANCE",
     "graph.nodes[].eventInstanceKey",
-    "Event instance ownership is not yet compiled by the V2 bootstrap runner.",
-    "Wait for the generated workflow/generation/tenant event ownership boundary.",
-    V2_BUILDER_FIXTURE,
+    "WorkflowEventNodeV2.eventInstanceKey + ProductWorkflowEventId",
+    "eventInstanceKey -> persisted workflowEventInstances allocation -> component-owned EventId",
+    GRAPH_FIXTURE,
+    "workspace, run, generation, definition, instance, principal, creator, lifecycle ownership",
   ),
   restricted(
     "WF-NODE-SUBWORKFLOW",
@@ -831,8 +834,10 @@ export const WORKFLOW_SEMANTICS = [
   supported(
     "WF-STEP-EVENT",
     "primitive.awaitEvent",
-    "approvalNode",
-    "step.awaitEvent(generated event name)",
+    "runRegisteredWorkflowEvent",
+    "ID-bound generated event definition -> shared validator awaitEvent -> persisted consumed reconciliation",
+    GRAPH_FIXTURE,
+    "opaque ownership, generation, definition, instance, cancellation, and duplicate-consume rejection before awaitEvent",
   ),
   supported(
     "WF-START-EAGER",
@@ -891,14 +896,16 @@ export const WORKFLOW_SEMANTICS = [
   supported(
     "WF-SEND-EVENT",
     "primitive.sendEvent",
-    "typed event contract",
-    "component-owned EventId send",
+    "generated workflowContracts.sendEvent selector",
+    "authenticated generated selector translation -> persisted ownership guard -> component-owned EventId delivery",
+    GRAPH_FIXTURE,
+    "shared validator plus terminal lifecycle and tenant rejection before component dispatch",
   ),
   restricted(
     "WF-CREATE-EVENT",
     "primitive.createEvent",
-    "Application-created raw EventIds bypass generated event ownership.",
-    "Use the generated send/await event contract.",
+    "EventId creation remains internal to persisted generation; application-created raw EventIds bypass generated ownership.",
+    "Use the generated send/await contract; allocate event instances only through the internal persisted generation path.",
   ),
   supported(
     "WF-HANDLER-DATE",
