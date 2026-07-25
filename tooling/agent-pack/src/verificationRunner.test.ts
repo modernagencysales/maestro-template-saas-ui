@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { DiagnosticDescriptor } from "./diagnostics.js";
+import { createRepositoryContext } from "./repoContext.js";
 import {
   VERIFICATION_EVIDENCE_PREFIX,
   createExecFileVerificationRunner,
@@ -26,10 +27,10 @@ const descriptors: readonly DiagnosticDescriptor[] = [
     rerun: ["pnpm", "taste:eval"],
   },
 ];
+const repo = createRepositoryContext({ cwd: "/repo" });
 
 function runner(execFile: VerificationExecFile) {
   return createExecFileVerificationRunner({
-    cwd: "/repo",
     execFile,
     now: () => "2026-07-25T12:00:00.000Z",
     environment: async () => ({ os: "linux", node: "22.20.0" }),
@@ -47,7 +48,6 @@ describe("execFile verification runner", () => {
   it("rejects unbounded execution limits", () => {
     expect(() =>
       createExecFileVerificationRunner({
-        cwd: "/repo",
         execFile: async () => ({ exitCode: 0, stdout: "", stderr: "" }),
         now: () => "2026-07-25T12:00:00.000Z",
         environment: async () => ({}),
@@ -70,7 +70,7 @@ describe("execFile verification runner", () => {
       return { exitCode: 0, stdout: " M changed.ts\n", stderr: "" };
     });
 
-    await expect(runner(execFile).inspect()).resolves.toMatchObject({
+    await expect(runner(execFile).inspect(repo)).resolves.toMatchObject({
       createdAt: "2026-07-25T12:00:00.000Z",
       subject: { commit: "abc1234", dirty: true },
       environmentFingerprint: expect.stringMatching(/^environment_sha256:/),
@@ -91,6 +91,7 @@ describe("execFile verification runner", () => {
     }));
     const observations = await runner(execFile).run({
       scope: "focused",
+      repo,
       changed: ["tooling/agent-pack/src/verify.ts"],
       descriptors,
     });
@@ -122,6 +123,7 @@ describe("execFile verification runner", () => {
     }));
     const observations = await runner(execFile).run({
       scope: "full",
+      repo,
       changed: [],
       descriptors,
     });
@@ -147,6 +149,7 @@ describe("execFile verification runner", () => {
   ])("returns unavailable for %s", async (_name, execute) => {
     const observations = await runner(execute).run({
       scope: "full",
+      repo,
       changed: [],
       descriptors,
     });
@@ -157,5 +160,33 @@ describe("execFile verification runner", () => {
         message: `Verification evidence for ${gateId} is unavailable.`,
       })),
     );
+  });
+
+  it("derives focused cwd from each trusted repository context", async () => {
+    const execFile = vi.fn<VerificationExecFile>(async () => ({
+      exitCode: 0,
+      stdout: "",
+      stderr: "",
+    }));
+    const sharedRunner = runner(execFile);
+    const otherRepo = createRepositoryContext({ cwd: "/other-repo" });
+
+    await sharedRunner.run({
+      repo,
+      scope: "focused",
+      changed: [],
+      descriptors: [descriptors[0]!],
+    });
+    await sharedRunner.run({
+      repo: otherRepo,
+      scope: "focused",
+      changed: [],
+      descriptors: [descriptors[0]!],
+    });
+
+    expect(execFile.mock.calls.map((call) => call[2].cwd)).toEqual([
+      "/repo",
+      "/other-repo",
+    ]);
   });
 });

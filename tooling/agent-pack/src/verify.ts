@@ -15,6 +15,7 @@ import {
   summarizeVerificationReceipt,
   type VerificationSubject,
 } from "./receipt.js";
+import type { RepositoryContext } from "./repoContext.js";
 
 export type VerifyInput = {
   readonly scope: "focused" | "full";
@@ -29,6 +30,7 @@ export type VerificationRunObservation = {
 };
 
 export type VerificationRunRequest = {
+  readonly repo: RepositoryContext;
   readonly scope: VerifyInput["scope"];
   readonly changed: readonly string[];
   readonly descriptors: readonly DiagnosticDescriptor[];
@@ -42,7 +44,9 @@ export type VerificationRuntimeFacts = {
 };
 
 export type VerificationRunner = {
-  readonly inspect: () => Promise<VerificationRuntimeFacts>;
+  readonly inspect: (
+    repo: RepositoryContext,
+  ) => Promise<VerificationRuntimeFacts>;
   readonly run: (
     request: VerificationRunRequest,
   ) => Promise<readonly VerificationRunObservation[]>;
@@ -58,11 +62,12 @@ export function createVerifyCommand(input: {
     schemaVersion: AGENT_PACK_COMMAND_VERSION,
     decode: decodeVerifyInput,
     mutationPosture: () => "read-only",
-    execute: async (args) => {
+    execute: async (args, context) => {
       const descriptors = selectDescriptors(registry, args);
       const [facts, observed] = await Promise.all([
-        input.runner.inspect(),
+        input.runner.inspect(context.repo),
         input.runner.run({
+          repo: context.repo,
           scope: args.scope,
           changed: args.changed,
           descriptors,

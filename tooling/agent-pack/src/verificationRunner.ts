@@ -32,7 +32,6 @@ type FingerprintValue = string | number | boolean | null;
 type ProviderPosture = "sample" | "local" | "test" | "live" | "missing";
 
 export function createExecFileVerificationRunner(input: {
-  readonly cwd: string;
   readonly execFile: VerificationExecFile;
   readonly now: () => string;
   readonly environment: () => Promise<
@@ -61,12 +60,12 @@ export function createExecFileVerificationRunner(input: {
     );
   }
   return {
-    inspect: async () => {
+    inspect: async (repo) => {
       const commitResult = await safeExec(
         input.execFile,
         "git",
         ["rev-parse", "HEAD"],
-        input.cwd,
+        repo.sourceRoot,
         input.limits.metadataTimeoutMs,
         input.limits.maxBufferBytes,
       );
@@ -74,7 +73,7 @@ export function createExecFileVerificationRunner(input: {
         input.execFile,
         "git",
         ["status", "--porcelain=v1"],
-        input.cwd,
+        repo.sourceRoot,
         input.limits.metadataTimeoutMs,
         input.limits.maxBufferBytes,
       );
@@ -97,10 +96,10 @@ export function createExecFileVerificationRunner(input: {
     },
     run: async (request) =>
       request.scope === "full"
-        ? runFull(input.execFile, input.cwd, request, input.limits)
+        ? runFull(input.execFile, request, input.limits)
         : runFocused(
             input.execFile,
-            input.cwd,
+            request.repo.sourceRoot,
             request.descriptors,
             input.limits,
           ),
@@ -154,7 +153,6 @@ async function runFocused(
 
 async function runFull(
   execFile: VerificationExecFile,
-  cwd: string,
   request: VerificationRunRequest,
   limits: {
     readonly fullTimeoutMs: number;
@@ -165,7 +163,7 @@ async function runFull(
     execFile,
     "just",
     ["verify"],
-    cwd,
+    request.repo.sourceRoot,
     limits.fullTimeoutMs,
     limits.maxBufferBytes,
   );
