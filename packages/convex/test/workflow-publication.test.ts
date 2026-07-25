@@ -4,6 +4,10 @@ import {
   addCapabilityRelease,
   addWorkflowRelease,
   assertWorkflowStartBinding,
+  checksumCapabilityRelease,
+  checksumPublicationSource,
+  checksumPublicationSourceClosure,
+  checksumWorkflowRelease,
   defineCapabilityRelease,
   definePublicationRegistry,
   defineWorkflowRelease,
@@ -13,41 +17,73 @@ import {
   resolveWorkflowForRun,
   resolveWorkflowStart,
   retireWorkflow,
+  type CapabilityRelease,
+  type ChecksummedModule,
+  type WorkflowRelease,
 } from "../confect/workflows/_kit/publication";
 
 const sha = (digit: string) => digit.repeat(64);
 
-const capability = (version: number, lifecycle: "draft" | "published") =>
-  defineCapabilityRelease({
+const sourceModule = (module: string, source: string): ChecksummedModule => ({
+  module,
+  source,
+  checksum: checksumPublicationSource(source),
+});
+
+const capability = (version: number, lifecycle: "draft" | "published") => {
+  const dependencyManifest = [
+    sourceModule(
+      `domain/fixtureEcho/v${version}`,
+      `export const fixtureEchoVersion = ${version};\n`,
+    ),
+  ];
+  const candidate: CapabilityRelease<string> = {
     logicalKey: "capability.fixture.echo",
     version,
     lifecycle,
     functionRef: `capabilities/_versions/fixtureEcho/v${version}:run`,
+    functionReference: `capabilities/_versions/fixtureEcho/v${version}:run`,
     argsSchema: `fixtureEcho.v${version}.args`,
     returnSchema: `fixtureEcho.v${version}.return`,
     effectManifest: { kind: "mutation", external: false },
-    dependencyManifest: [
-      {
-        module: `domain/fixtureEcho/v${version}`,
-        checksum: sha(String(version)),
-      },
-    ],
-    sourceClosureChecksum: sha(String(version + 1)),
-    releaseChecksum: sha(String(version + 2)),
+    dependencyManifest,
+    sourceClosureChecksum: checksumPublicationSourceClosure(dependencyManifest),
+    releaseChecksum: "",
     semanticComplete: true,
     isolatedFixture: true,
+  };
+  return defineCapabilityRelease({
+    ...candidate,
+    releaseChecksum: checksumCapabilityRelease(candidate),
   });
+};
 
 const workflow = (
   version: number,
   capabilityVersion: number,
   lifecycle: "draft" | "published",
-) =>
-  defineWorkflowRelease({
+) => {
+  const graphSource = JSON.stringify({
+    id: "workflow.fixture.publication",
+    version,
+  });
+  const interpreter = sourceModule(
+    "workflows/_kit/graphRunnerV2",
+    "export const graphRunnerVersion = 2;\n",
+  );
+  const sourceManifest = [
+    sourceModule(
+      `workflows/fixturePublication/v${version}.graph.ts`,
+      graphSource,
+    ),
+    interpreter,
+  ];
+  const candidate: WorkflowRelease<string, string> = {
     workflowId: "workflow.fixture.publication",
     version,
     lifecycle,
-    graphHash: sha(String(version)),
+    graphSource,
+    graphHash: checksumPublicationSource(graphSource),
     runner: {
       ref: `workflowRunners/fixturePublication/v${version}:run`,
       module: `workflowRunners/fixturePublication/v${version}`,
@@ -60,6 +96,7 @@ const workflow = (
     ],
     completion: {
       ref: `workflowRunners/fixturePublication/v${version}:onComplete`,
+      module: `workflowRunners/fixturePublication/v${version}:onComplete`,
       version: 1,
     },
     kickoffProfiles: ["eager-first-poll", "queued"],
@@ -67,21 +104,33 @@ const workflow = (
       {
         logicalKey: "capability.fixture.echo",
         version: capabilityVersion,
-        releaseChecksum: sha(String(capabilityVersion + 2)),
+        releaseChecksum: capability(capabilityVersion, "published")
+          .releaseChecksum,
       },
     ],
     subworkflowBindings: [],
     runtimeVersion: "maestro-workflow-runtime.v2",
-    interpreter: {
-      module: "workflows/_kit/graphRunnerV2",
-      checksum: sha("8"),
-    },
+    interpreter,
     lifecycleContractVersion: 1,
-    sourceClosureChecksum: sha(String(version + 4)),
-    releaseChecksum: sha(String(version + 5)),
+    sourceManifest,
+    sourceClosureChecksum: checksumPublicationSourceClosure(sourceManifest),
+    releaseChecksum: "",
     stableStepNames: ["start.v2", "fixture-echo.v2", "receipt.v2"],
     semanticComplete: true,
     isolatedFixture: true,
+  };
+  return defineWorkflowRelease({
+    ...candidate,
+    releaseChecksum: checksumWorkflowRelease(candidate),
+  });
+};
+
+const resealWorkflow = <RunnerRef, CompletionRef>(
+  release: WorkflowRelease<RunnerRef, CompletionRef>,
+): WorkflowRelease<RunnerRef, CompletionRef> =>
+  defineWorkflowRelease({
+    ...release,
+    releaseChecksum: checksumWorkflowRelease(release),
   });
 
 describe("immutable workflow publication registry", () => {
@@ -121,7 +170,7 @@ describe("immutable workflow publication registry", () => {
       v2Workflow,
     );
 
-    expect(resolveWorkflowStart(withDrafts, v1Workflow.workflowId, 1)).toBe(
+    expect(resolveWorkflowStart(withDrafts, v1Workflow.workflowId, 1)).toEqual(
       v1Workflow,
     );
     expect(() => publishWorkflow(withDrafts, v2Workflow.workflowId, 2)).toThrow(
@@ -140,13 +189,13 @@ describe("immutable workflow publication registry", () => {
     expect(
       resolveWorkflowStart(published, v2Workflow.workflowId, 2),
     ).toMatchObject({ lifecycle: "published", version: 2 });
-    expect(resolveWorkflowStart(published, v1Workflow.workflowId, 1)).toBe(
+    expect(resolveWorkflowStart(published, v1Workflow.workflowId, 1)).toEqual(
       v1Workflow,
     );
   });
 
   it("rejects incomplete releases and published-version overwrite", () => {
-    const incomplete = defineWorkflowRelease({
+    const incomplete = resealWorkflow({
       ...workflow(1, 1, "draft"),
       semanticComplete: false,
     });
@@ -164,13 +213,7 @@ describe("immutable workflow publication registry", () => {
       workflows: [workflow(1, 1, "published")],
     });
     expect(() =>
-      addWorkflowRelease(
-        published,
-        defineWorkflowRelease({
-          ...workflow(1, 1, "published"),
-          graphHash: sha("9"),
-        }),
-      ),
+      addWorkflowRelease(published, workflow(1, 1, "published")),
     ).toThrow(/immutable/i);
   });
 
@@ -216,7 +259,7 @@ describe("immutable workflow publication registry", () => {
         releaseChecksum: release.releaseChecksum,
         kickoffProfile: "queued",
       }),
-    ).toBe(release);
+    ).toEqual(release);
     expect(() =>
       assertWorkflowStartBinding(registry, {
         workflowId: release.workflowId,
@@ -228,5 +271,134 @@ describe("immutable workflow publication registry", () => {
         kickoffProfile: "queued",
       }),
     ).toThrow(/graph hash/i);
+  });
+
+  it("clones and deeply freezes nested publication content", () => {
+    const release = workflow(1, 1, "published");
+    const runner = { ...release.runner };
+    const event = { ...release.events[0]! };
+    const capabilityBinding = { ...release.capabilityBindings[0]! };
+    const source = { ...release.sourceManifest[0]! };
+    const immutable = defineWorkflowRelease({
+      ...release,
+      runner,
+      events: [event],
+      capabilityBindings: [capabilityBinding],
+      sourceManifest: [source, release.sourceManifest[1]!],
+    });
+
+    runner.module = "attacker/runner";
+    event.validator = "attacker.validator";
+    capabilityBinding.logicalKey = "capability.attacker";
+    source.source = "attacker source";
+
+    expect(immutable.runner.module).toBe(release.runner.module);
+    expect(immutable.events[0]?.validator).toBe(release.events[0]?.validator);
+    expect(immutable.capabilityBindings[0]?.logicalKey).toBe(
+      release.capabilityBindings[0]?.logicalKey,
+    );
+    expect(immutable.sourceManifest[0]?.source).toBe(
+      release.sourceManifest[0]?.source,
+    );
+    expect(Reflect.set(immutable.runner, "module", "attacker/runner")).toBe(
+      false,
+    );
+    expect(() =>
+      Reflect.apply(Array.prototype.push, immutable.events, [event]),
+    ).toThrow();
+  });
+
+  it("rejects duplicate logical capability and subworkflow bindings", () => {
+    const release = workflow(1, 1, "draft");
+    expect(() =>
+      defineWorkflowRelease({
+        ...release,
+        capabilityBindings: [
+          ...release.capabilityBindings,
+          {
+            logicalKey: release.capabilityBindings[0]!.logicalKey,
+            version: 2,
+            releaseChecksum: capability(2, "published").releaseChecksum,
+          },
+        ],
+      }),
+    ).toThrow(/duplicate workflow capability binding/i);
+    expect(() =>
+      defineWorkflowRelease({
+        ...release,
+        subworkflowBindings: [
+          {
+            workflowId: "workflow.fixture.child",
+            version: 1,
+            releaseChecksum: sha("1"),
+          },
+          {
+            workflowId: "workflow.fixture.child",
+            version: 2,
+            releaseChecksum: sha("2"),
+          },
+        ],
+      }),
+    ).toThrow(/duplicate workflow subworkflow binding/i);
+  });
+
+  it("rejects forged graph, dependency, closure, and release checksums", () => {
+    const workflowRelease = workflow(1, 1, "draft");
+    expect(() =>
+      defineWorkflowRelease({ ...workflowRelease, graphHash: sha("9") }),
+    ).toThrow(/workflow graph checksum/i);
+    expect(() =>
+      defineWorkflowRelease({
+        ...workflowRelease,
+        sourceClosureChecksum: sha("9"),
+      }),
+    ).toThrow(/workflow source closure checksum/i);
+    expect(() =>
+      defineWorkflowRelease({
+        ...workflowRelease,
+        releaseChecksum: sha("9"),
+      }),
+    ).toThrow(/workflow release checksum/i);
+
+    const capabilityRelease = capability(1, "draft");
+    expect(() =>
+      defineCapabilityRelease({
+        ...capabilityRelease,
+        dependencyManifest: capabilityRelease.dependencyManifest.map(
+          (dependency) => ({ ...dependency, checksum: sha("9") }),
+        ),
+      }),
+    ).toThrow(/checksum does not match canonical content/i);
+    expect(() =>
+      defineCapabilityRelease({
+        ...capabilityRelease,
+        sourceClosureChecksum: sha("9"),
+      }),
+    ).toThrow(/capability source closure checksum/i);
+  });
+
+  it("revalidates forged releases on add and draft replacement", () => {
+    const empty = definePublicationRegistry({
+      capabilities: [],
+      workflows: [],
+    });
+    expect(() =>
+      addCapabilityRelease(empty, {
+        ...capability(1, "draft"),
+        releaseChecksum: sha("9"),
+      }),
+    ).toThrow(/capability release checksum/i);
+
+    const draft = workflow(1, 1, "draft");
+    const registry = definePublicationRegistry({
+      capabilities: [capability(1, "published")],
+      workflows: [draft],
+    });
+    expect(() =>
+      addWorkflowRelease(registry, {
+        ...draft,
+        graphHash: sha("9"),
+      }),
+    ).toThrow(/workflow graph checksum/i);
   });
 });
