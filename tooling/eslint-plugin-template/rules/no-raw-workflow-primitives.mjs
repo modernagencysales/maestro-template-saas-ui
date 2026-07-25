@@ -1,5 +1,7 @@
 const RAW_WORKFLOW = "@convex-dev/workflow";
-const WORKFLOW_DEFINITION_BOUNDARY =
+const RAW_IMPORT_BOUNDARY =
+  /packages\/convex\/confect\/workflows\/_kit\/(?:defineMaestroWorkflow|ownership|status)\.ts$/;
+const MANAGER_CONSTRUCTION_BOUNDARY =
   /packages\/convex\/confect\/workflows\/_kit\/defineMaestroWorkflow\.ts$/;
 
 export default {
@@ -21,16 +23,18 @@ export default {
       /\\/g,
       "/",
     );
-    const allowed = WORKFLOW_DEFINITION_BOUNDARY.test(filename);
+    const rawImportAllowed = RAW_IMPORT_BOUNDARY.test(filename);
+    const managerConstructionAllowed =
+      MANAGER_CONSTRUCTION_BOUNDARY.test(filename);
     return {
       ImportDeclaration(node) {
-        if (!allowed && node.source.value === RAW_WORKFLOW) {
+        if (!rawImportAllowed && node.source.value === RAW_WORKFLOW) {
           context.report({ node, messageId: "raw" });
         }
       },
       NewExpression(node) {
         if (
-          !allowed &&
+          !managerConstructionAllowed &&
           node.callee.type === "Identifier" &&
           node.callee.name === "WorkflowManager"
         ) {

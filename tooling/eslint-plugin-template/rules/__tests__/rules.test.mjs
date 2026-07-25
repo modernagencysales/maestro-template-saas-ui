@@ -485,6 +485,14 @@ tester.run("no-raw-workflow-primitives", noRawWorkflowPrimitives, {
       code: 'import { WorkflowManager } from "@convex-dev/workflow"; const manager = new WorkflowManager(c);',
     },
     {
+      filename: "packages/convex/confect/workflows/_kit/ownership.ts",
+      code: 'import { start, WorkflowId } from "@convex-dev/workflow";',
+    },
+    {
+      filename: "packages/convex/confect/workflows/_kit/status.ts",
+      code: 'import type { WorkflowStatus } from "@convex-dev/workflow";',
+    },
+    {
       filename: CAP,
       code: 'import { startGeneratedWorkflow } from "../workflows/_kit";',
     },
@@ -505,6 +513,21 @@ tester.run("no-raw-workflow-primitives", noRawWorkflowPrimitives, {
         "packages/convex/confect/workflows/_kit/defineMaestroWorkflow.test.ts",
       code: 'import { WorkflowManager } from "@convex-dev/workflow"; const manager = new WorkflowManager(c);',
       errors: [{ messageId: "raw" }, { messageId: "manager" }],
+    },
+    {
+      filename: "packages/convex/confect/workflows/_kit/graphRunner.ts",
+      code: 'import { WorkflowId } from "@convex-dev/workflow";',
+      errors: [{ messageId: "raw" }],
+    },
+    {
+      filename: "packages/convex/confect/workflows/_kit/ownership.ts",
+      code: 'import { WorkflowManager } from "@convex-dev/workflow"; const manager = new WorkflowManager(c);',
+      errors: [{ messageId: "manager" }],
+    },
+    {
+      filename: "packages/convex/confect/workflows/_kit/status.ts",
+      code: 'import { WorkflowManager } from "@convex-dev/workflow"; const manager = new WorkflowManager(c);',
+      errors: [{ messageId: "manager" }],
     },
   ],
 });
