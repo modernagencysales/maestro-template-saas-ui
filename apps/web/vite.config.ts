@@ -26,6 +26,12 @@ export default defineConfig({
             import.meta.url,
           ),
         ),
+      "@maestro-template/template-core/workflow-semantics": fileURLToPath(
+        new URL(
+          "../../packages/template-core/src/workflow-semantics/contract.ts",
+          import.meta.url,
+        ),
+      ),
       "@maestro-template/ui": fileURLToPath(
         new URL("../../packages/ui/src/index.tsx", import.meta.url),
       ),
