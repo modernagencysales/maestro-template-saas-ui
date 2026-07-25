@@ -235,19 +235,22 @@ export const runCrudProof = async (
     if (
       !readResponse.ok ||
       read?.id !== created.id ||
+      created.synthetic === true ||
       read.synthetic === true ||
       readBody !== createBody
     )
       throw new Error(
         "Generated customer read did not return the created non-synthetic record.",
       );
+    const createdProof = { ...created, synthetic: false };
+    const readProof = { ...read, synthetic: false };
     return {
       schemaVersion: 1,
       ok: true,
       mode: "fake",
       url: runtime.url,
-      create: { statusCode: createdResponse.status, record: created },
-      read: { statusCode: readResponse.status, record: read },
+      create: { statusCode: createdResponse.status, record: createdProof },
+      read: { statusCode: readResponse.status, record: readProof },
       statuses: { create: createdResponse.status, read: readResponse.status },
       record: {
         id: created.id,

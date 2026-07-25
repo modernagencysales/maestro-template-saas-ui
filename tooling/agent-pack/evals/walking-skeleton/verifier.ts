@@ -86,11 +86,14 @@ export async function verifyExecutableEvidence(input: {
     input.sessionDir,
   );
   await verifyPrerequisites(input.workspace);
-  await verifyForbiddenHostConfiguration(customerRoot);
   const releaseProjection = await verifyReviewedReleaseProjection(
     input.workspace,
     customerRoot,
     manifestPath,
+  );
+  await verifyForbiddenHostConfiguration(
+    customerRoot,
+    releaseProjection.projectedFiles,
   );
   const receipt = await readJsonFile(receiptPath, "EVAL_GATE_RECEIPT_INVALID");
   const gateSet = validateReceipt(receipt);
@@ -386,7 +389,11 @@ async function verifyPrerequisites(workspace: string): Promise<void> {
 
 async function verifyForbiddenHostConfiguration(
   customerRoot: string,
+  reviewedFiles: readonly { readonly path: string; readonly sha256: string }[],
 ): Promise<void> {
+  const reviewedSettings = reviewedFiles.find(
+    ({ path }) => path === ".claude/settings.json",
+  );
   const forbidden = new Set([
     ".mcp.json",
     ".claude-plugin",
@@ -400,6 +407,17 @@ async function verifyForbiddenHostConfiguration(
       if (entry.name === "node_modules" || entry.name === ".git") continue;
       const absolute = resolve(directory, entry.name);
       const path = relative(customerRoot, absolute).replaceAll("\\", "/");
+      if (path === ".claude/settings.json" && reviewedSettings) {
+        let actual: string | undefined;
+        try {
+          actual = entry.isFile()
+            ? hashBuffer(await readFile(absolute))
+            : undefined;
+        } catch {
+          actual = undefined;
+        }
+        if (actual === reviewedSettings.sha256) continue;
+      }
       if (
         [...forbidden].some(
           (item) => path === item || path.startsWith(`${item}/`),

@@ -36,8 +36,14 @@ describe("generated customer CRUD proof", () => {
     expect(report).toMatchObject({
       ok: true,
       url: expect.stringMatching(/^http:\/\/127\.0\.0\.1:\d+$/),
-      create: { statusCode: 201, record: { id: "record_0001" } },
-      read: { statusCode: 200, record: { id: "record_0001" } },
+      create: {
+        statusCode: 201,
+        record: { id: "record_0001", synthetic: false },
+      },
+      read: {
+        statusCode: 200,
+        record: { id: "record_0001", synthetic: false },
+      },
       statuses: { create: 201, read: 200 },
       record: { id: "record_0001", sameBody: true, synthetic: false },
     });

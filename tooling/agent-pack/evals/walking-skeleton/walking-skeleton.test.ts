@@ -2,9 +2,10 @@ import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { createServer } from "node:http";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { mkdtemp } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
+import { runCrudProof } from "../../../generators/src/crud-proof.js";
 import { aggregateWalkingSkeletonRuns } from "./aggregate.js";
 import type { WalkingSkeletonResult } from "./contract.js";
 import {
@@ -20,6 +21,11 @@ import {
 
 const candidateSha = "a".repeat(40);
 const reviewedCommit = "1".repeat(40);
+const reviewedClaudeSettings = `${JSON.stringify(
+  { enableAllProjectMcpServers: false },
+  null,
+  2,
+)}\n`;
 
 describe("walking-skeleton fail-closed evidence", () => {
   it("uses ephemeral MCP-disabled Codex and never forwards ambient credentials", async () => {
@@ -69,6 +75,29 @@ describe("walking-skeleton fail-closed evidence", () => {
     expect(evidence.canonicalHashes.manifest).toMatch(/^sha256:/u);
   });
 
+  it("accepts exact reviewed Claude settings and rejects tampering", async () => {
+    const fixture = await completeFixture();
+    await expect(verify(fixture, localCrudProof)).resolves.toBeDefined();
+    await writeFile(
+      join(fixture.workspace, "eval-target", ".claude", "settings.json"),
+      JSON.stringify({ enableAllProjectMcpServers: true }),
+    );
+    await expect(verify(fixture, localCrudProof)).rejects.toMatchObject({
+      code: "EVAL_MANIFEST_INVALID",
+    });
+  });
+
+  it.each([".claude/settings.local.json", ".mcp.json"])(
+    "rejects unreviewed host configuration at %s",
+    async (path) => {
+      const fixture = await completeFixture();
+      await writeFile(join(fixture.workspace, "eval-target", path), "{}\n");
+      await expect(verify(fixture, localCrudProof)).rejects.toMatchObject({
+        code: "EVAL_FORBIDDEN_HOST_CONFIG",
+      });
+    },
+  );
+
   it("rejects a fabricated customer instance that substitutes candidate HEAD", async () => {
     const fixture = await completeFixture();
     const path = join(
@@ -114,6 +143,23 @@ describe("walking-skeleton fail-closed evidence", () => {
     expect(proof.create.statusCode).toBe(201);
     expect(proof.read.record).toEqual(proof.create.record);
     expect(proof.url).toMatch(/^http:\/\/127\.0\.0\.1:/u);
+  });
+
+  it("accepts the real generated CRUD proof contract", async () => {
+    const fixture = await completeFixture();
+    await expect(
+      verify(fixture, async ({ customerRoot }) =>
+        runCrudProof({
+          cwd: customerRoot,
+          adapterModulePath: resolve(
+            import.meta.dirname,
+            "../../../../examples/saas-application/seed/source/apps/web/src/adapters/records/fake.ts",
+          ),
+        }),
+      ),
+    ).resolves.toMatchObject({
+      serverProof: { source: "live-probe", statusCode: 200 },
+    });
   });
 
   it("rejects missing frozen-install evidence before product proof", async () => {
@@ -171,6 +217,7 @@ async function completeFixture() {
     recursive: true,
   });
   await mkdir(join(customerRoot, "apps", "web"), { recursive: true });
+  await mkdir(join(customerRoot, ".claude"), { recursive: true });
   await mkdir(sessionDir);
   await writeFile(
     join(workspace, "pnpm-lock.yaml"),
@@ -203,11 +250,18 @@ async function completeFixture() {
     join(customerRoot, "apps", "web", "records.ts"),
     projectedContent,
   );
+  await writeFile(
+    join(customerRoot, ".claude", "settings.json"),
+    reviewedClaudeSettings,
+  );
   const blueprint = {
     schemaVersion: 1,
     id: "saas-application",
     provenance: "@maestro-template/generators/saas-application@1",
-    entries: [{ path: "apps/web/records.ts", sha256: sha(projectedContent) }],
+    entries: [
+      { path: ".claude/settings.json", sha256: sha(reviewedClaudeSettings) },
+      { path: "apps/web/records.ts", sha256: sha(projectedContent) },
+    ],
   };
   await writeFile(
     join(
@@ -233,6 +287,7 @@ async function completeFixture() {
         provenance: blueprint.provenance,
         digest: sha("target plan"),
       },
+      personalization: { demoOnly: true },
     }),
   );
   await writeFile(

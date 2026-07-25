@@ -491,7 +491,7 @@
       },
       {
         "path": "base/tooling/generators/src/crud-proof.ts.txt",
-        "sha256": "sha256:2ef1d24f23b1089e0a101547522229090d7236a55c633c24c27c0c9bb1047a4f"
+        "sha256": "sha256:96b82c5b343d6b680893bcb3860b65cece7f8e33ace0108bdd690092855b5dd0"
       },
       {
         "path": "base/tooling/generators/src/customer-cli.ts.txt",
@@ -1660,7 +1660,7 @@
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:2ef1d24f23b1089e0a101547522229090d7236a55c633c24c27c0c9bb1047a4f"
+      "sha256": "sha256:96b82c5b343d6b680893bcb3860b65cece7f8e33ace0108bdd690092855b5dd0"
     },
     {
       "path": "tooling/generators/src/customer-cli.ts",
