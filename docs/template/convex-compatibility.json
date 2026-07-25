@@ -91,6 +91,24 @@
       "committed-convex-function-guidelines"
     ]
   },
+  "payloadBudgets": {
+    "upstream": {
+      "workflowStepReturnBytes": 819200,
+      "workflowJournalBytes": 8388608,
+      "workpoolFunctionArgsBytes": 1000000,
+      "workpoolCompletionContextBytes": 1000000
+    },
+    "maestro": {
+      "step-args": { "softBytes": 393216, "hardBytes": 524288 },
+      "step-result": { "softBytes": 524288, "hardBytes": 655360 },
+      "journal-cumulative": { "softBytes": 4194304, "hardBytes": 6291456 },
+      "event-value": { "softBytes": 131072, "hardBytes": 262144 },
+      "nested-workflow-args": { "softBytes": 393216, "hardBytes": 524288 },
+      "workflow-return": { "softBytes": 524288, "hardBytes": 655360 },
+      "on-complete-context": { "softBytes": 65536, "hardBytes": 131072 },
+      "product-projection": { "softBytes": 131072, "hardBytes": 262144 }
+    }
+  },
   "sourceFacts": {
     "scheduledChildOptionPropagation": "unsupported-on-0.4.4",
     "defaultStart": "eager-first-poll-with-terminal-id-on-caught-failure",
