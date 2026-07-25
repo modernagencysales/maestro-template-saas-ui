@@ -4,11 +4,10 @@
  * (CLI/MCP) branch on `code`. Pure layers (domain modules, shared helpers) may
  * throw plain Error — it gets wrapped at the boundary.
  *
- * SCOPE — the boundary layers, matched as path substrings (configurable via
- * the `layers` option). Defaults target this repo's backend layout under
- * packages/convex/confect/**: `/capabilities/`, `/workflows/`, `/agents/`,
- * plus `/http.` (the confect HTTP router lives at confect/http.ts, not in an
- * http/ directory).
+ * SCOPE — actual Convex handler callbacks inside the configured backend
+ * layers. Pure constructors, validators, and planners in those directories
+ * remain ordinary TypeScript and may throw invariant `Error`s which the
+ * callable boundary translates.
  */
 export default {
   meta: {
@@ -46,6 +45,7 @@ export default {
       ThrowStatement(node) {
         const arg = node.argument;
         if (
+          isInsideConvexBoundary(node) &&
           arg.type === "NewExpression" &&
           arg.callee.type === "Identifier" &&
           arg.callee.name === "Error"
@@ -56,3 +56,60 @@ export default {
     };
   },
 };
+
+const isInsideConvexBoundary = (node) => {
+  for (let current = node.parent; current; current = current.parent) {
+    if (isFunction(current) && isConvexBoundaryCallback(current)) return true;
+  }
+  return false;
+};
+
+const isFunction = (node) =>
+  node.type === "ArrowFunctionExpression" ||
+  node.type === "FunctionExpression" ||
+  node.type === "FunctionDeclaration";
+
+const isConvexBoundaryCallback = (node) => {
+  const parent = node.parent;
+  if (!parent) return false;
+  if (
+    parent.type === "Property" &&
+    parent.value === node &&
+    propertyName(parent.key) === "handler"
+  ) {
+    const object = parent.parent;
+    return (
+      object?.type === "ObjectExpression" &&
+      object.parent?.type === "CallExpression" &&
+      isConvexFactory(object.parent.callee)
+    );
+  }
+  if (parent.type !== "CallExpression" || !parent.arguments.includes(node)) {
+    return false;
+  }
+  return (
+    isConvexFactory(parent.callee) ||
+    (parent.callee.type === "MemberExpression" &&
+      propertyName(parent.callee.property) === "handler")
+  );
+};
+
+const isConvexFactory = (callee) => {
+  const name =
+    callee.type === "Identifier"
+      ? callee.name
+      : callee.type === "MemberExpression"
+        ? propertyName(callee.property)
+        : null;
+  return (
+    name !== null &&
+    /(?:query|mutation|action|httpAction)(?:Generic)?$/i.test(name)
+  );
+};
+
+const propertyName = (node) =>
+  node.type === "Identifier"
+    ? node.name
+    : node.type === "Literal" && typeof node.value === "string"
+      ? node.value
+      : null;

@@ -5,7 +5,6 @@ import {
   type JSONValue,
   type Value,
 } from "convex/values";
-import * as Data from "effect/Data";
 import * as Schema from "effect/Schema";
 
 import { sha256Hex } from "../../shared/sha256";
@@ -76,9 +75,15 @@ export type StoredWorkflowArtifactRow = Omit<WorkflowArtifactRow, "content"> & {
   readonly contentJson: string;
 };
 
-export class WorkflowArtifactContractError extends Data.TaggedError(
-  "WorkflowArtifactContractError",
-)<{ readonly reason: string }> {}
+export class WorkflowArtifactContractError extends Error {
+  readonly reason: string;
+
+  constructor({ reason }: { readonly reason: string }) {
+    super(reason);
+    this.name = "WorkflowArtifactContractError";
+    this.reason = reason;
+  }
+}
 
 export const prepareWorkflowArtifact = (
   run: WorkflowArtifactRun,

@@ -23,6 +23,11 @@ import { sha256Hex } from "../confect/shared/sha256";
 
 const sha = (digit: string) => digit.repeat(64);
 
+const requiredFixtureValue = <Value>(value: Value | undefined): Value => {
+  if (value === undefined) throw new Error("Publication fixture is incomplete");
+  return value;
+};
+
 const sourceModule = (module: string, source: string): ChecksummedModule => ({
   module,
   checksum: sha256Hex(source),
@@ -324,12 +329,19 @@ describe("immutable workflow publication registry", () => {
   it("clones and deeply freezes nested publication content", () => {
     const release = workflow(1, 1, "published");
     const runner = { ...release.runner };
-    const event = { ...release.events[0]! };
-    const capabilityBinding = { ...release.capabilityBindings[0]! };
-    const source = { ...release.authority.sourceClosure.modules[0]! };
+    const event = { ...requiredFixtureValue(release.events[0]) };
+    const capabilityBinding = {
+      ...requiredFixtureValue(release.capabilityBindings[0]),
+    };
+    const source = {
+      ...requiredFixtureValue(release.authority.sourceClosure.modules[0]),
+    };
     const sourceClosure = {
       ...release.authority.sourceClosure,
-      modules: [source, release.authority.sourceClosure.modules[1]!],
+      modules: [
+        source,
+        requiredFixtureValue(release.authority.sourceClosure.modules[1]),
+      ],
     };
     const immutable = defineWorkflowRelease({
       ...release,
@@ -368,7 +380,8 @@ describe("immutable workflow publication registry", () => {
         capabilityBindings: [
           ...release.capabilityBindings,
           {
-            logicalKey: release.capabilityBindings[0]!.logicalKey,
+            logicalKey: requiredFixtureValue(release.capabilityBindings[0])
+              .logicalKey,
             version: 2,
             releaseChecksum: capability(2, "published").releaseChecksum,
           },

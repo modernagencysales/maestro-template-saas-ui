@@ -1,9 +1,4 @@
 import type { GenericId } from "convex/values";
-import {
-  getStatus,
-  type WorkflowComponent,
-  type WorkflowId,
-} from "@convex-dev/workflow";
 import { FunctionImpl, GroupImpl } from "@confect/server";
 import * as Clock from "effect/Clock";
 import * as Effect from "effect/Effect";
@@ -27,6 +22,11 @@ import {
   WorkspaceNotFound,
 } from "../errors";
 import { startWorkflowAndRecordOwnership } from "../workflows/_kit/ownership";
+import {
+  getMaestroWorkflowStatus,
+  type MaestroWorkflowComponent,
+  type MaestroWorkflowId,
+} from "../workflows/_kit/defineMaestroWorkflow";
 import { workflowPublicationRegistry } from "../workflows/_generated/workflowRegistry";
 import {
   projectWorkflowStatus,
@@ -45,7 +45,7 @@ const withConfectClock = <A, E, R>(
   effect as Effect.Effect<A, E, Exclude<R, Clock.Clock>>;
 
 const workflowComponent = componentsGeneric()
-  .workflow as unknown as WorkflowComponent;
+  .workflow as unknown as MaestroWorkflowComponent;
 
 const errorMessage = (error: unknown): string | null => {
   if (
@@ -201,7 +201,11 @@ const statusImpl = FunctionImpl.make(
       const run = yield* findWorkflowRun(workspaceId, componentWorkflowId);
       const ctx = yield* QueryCtx;
       const rawStatus = yield* Effect.promise(() =>
-        getStatus(ctx, workflowComponent, componentWorkflowId as WorkflowId),
+        getMaestroWorkflowStatus(
+          ctx,
+          workflowComponent,
+          componentWorkflowId as MaestroWorkflowId,
+        ),
       ).pipe(Effect.mapError(toWorkflowValidationFailed));
       const runProjection = {
         ...(run.status !== undefined ? { status: run.status } : {}),

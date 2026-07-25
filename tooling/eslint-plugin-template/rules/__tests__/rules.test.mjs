@@ -61,17 +61,27 @@ tester.run("typed-convex-errors", typedConvexErrors, {
       filename: TEST_FILE,
       code: "export function f() { throw new Error('test ok'); }",
     },
+    // workflow planners are not client-callable boundaries
+    {
+      filename: WORKFLOW,
+      code: "export function validate() { throw new Error('invariant'); }",
+    },
   ],
   invalid: [
     {
       filename: CAP,
-      code: "export function f() { throw new Error('bad'); }",
+      code: "export const f = mutation({ handler: () => { throw new Error('bad'); } });",
       errors: [{ messageId: "typed" }],
     },
     // the confect HTTP router (confect/http.ts) is a boundary layer too
     {
       filename: HTTP,
-      code: "export function f() { throw new Error('bad'); }",
+      code: "export const f = httpAction(() => { throw new Error('bad'); });",
+      errors: [{ messageId: "typed" }],
+    },
+    {
+      filename: WORKFLOW,
+      code: "export const run = defineWorkflow(c, {}).handler(() => { throw new Error('bad'); });",
       errors: [{ messageId: "typed" }],
     },
   ],

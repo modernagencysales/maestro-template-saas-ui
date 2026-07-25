@@ -5,6 +5,7 @@ import {
 } from "@maestro-template/template-core/workflow-semantics";
 import {
   defineEvent,
+  getStatus,
   sendEvent,
   WorkflowManager,
   type EventId,
@@ -22,6 +23,7 @@ import { generatedWorkflowWorkpoolOptions } from "./workpoolConfig";
 
 export const defineMaestroWorkflowEvent = defineEvent;
 export const sendMaestroWorkflowEvent = sendEvent;
+export const getMaestroWorkflowStatus = getStatus;
 export const MaestroWorkflowIdValidator = vWorkflowId;
 export const MaestroWorkflowResultValidator = vResultValidator;
 export type MaestroWorkflowComponent = WorkflowComponent;
