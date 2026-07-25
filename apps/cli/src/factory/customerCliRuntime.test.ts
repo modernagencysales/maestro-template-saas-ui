@@ -190,6 +190,17 @@ describe("materialized customer CLI runtime closure", () => {
       timeout: 30_000,
       env: supportedHostEnvironment,
     });
+    for (const gate of [
+      "check:workflow-policy-snapshots",
+      "check:workflow-principal-propagation",
+    ]) {
+      execFileSync("pnpm", ["run", gate], {
+        cwd: target,
+        stdio: "pipe",
+        timeout: 30_000,
+        env: supportedHostEnvironment,
+      });
+    }
     const maestroSkill = join(target, ".agents/skills/maestro/SKILL.md");
     const maestroBytes = readFileSync(maestroSkill, "utf8");
     try {

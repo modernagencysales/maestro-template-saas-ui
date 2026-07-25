@@ -193,6 +193,18 @@ export const buildSaasRegistrationProjections =
       content: source("tooling/quality/install-lefthook-if-git.mjs"),
     },
     ...[
+      "tooling/generators/src/index.ts",
+      "tooling/generators/src/workflow-release-commands.ts",
+      "packages/convex/confect/workflows/_kit/graphRunnerV2.ts",
+      "packages/convex/confect/workflows/_kit/lifecycleSafety.ts",
+      "packages/convex/confect/workflows/_kit/policySnapshot.ts",
+      "packages/convex/confect/workflows/_kit/principal.ts",
+      "packages/convex/confect/workflows/_kit/subworkflows.ts",
+      "tooling/quality/check-workflow-policy-snapshots.mts",
+      "tooling/quality/check-workflow-principal-propagation.mts",
+      "tooling/quality/fixtures/workflow-policy-snapshots.json",
+    ].map((path) => ({ path, content: source(path) })),
+    ...[
       "start.ts",
       "ports.ts",
       "verify.ts",

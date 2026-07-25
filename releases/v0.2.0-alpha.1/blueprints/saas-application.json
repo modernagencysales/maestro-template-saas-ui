@@ -318,6 +318,26 @@
         "sha256": "sha256:c95ae9a907e034edf7c82e7d00515f76f98c04c3618a4a68e51db2d4f0d1cd9e"
       },
       {
+        "path": "base/packages/convex/confect/workflows/_kit/graphRunnerV2.ts.txt",
+        "sha256": "sha256:d162ba82b57c8f8e8a02d5c08134738acc0694a9dec26d888cbd8b16324a59f3"
+      },
+      {
+        "path": "base/packages/convex/confect/workflows/_kit/lifecycleSafety.ts.txt",
+        "sha256": "sha256:2046b5d12f56b44b3acfc7b6cf0433847bbd94f84899f941e809fd9534d136f9"
+      },
+      {
+        "path": "base/packages/convex/confect/workflows/_kit/policySnapshot.ts.txt",
+        "sha256": "sha256:cd360058e27ae3ecf6de33178de7d23267bb45a3fc1dd442d963c042f66a7492"
+      },
+      {
+        "path": "base/packages/convex/confect/workflows/_kit/principal.ts.txt",
+        "sha256": "sha256:e7efe3c84e5c9140950b70ca02e0dc71db2e3dd5b616e09f7b0fdd04cf0419a0"
+      },
+      {
+        "path": "base/packages/convex/confect/workflows/_kit/subworkflows.ts.txt",
+        "sha256": "sha256:107c7d71f55bea9e7720d741c25a3408987101d8aa9e4f0d7e69bc0555426111"
+      },
+      {
         "path": "base/tooling/agent-pack/src/index.ts.txt",
         "sha256": "sha256:da0a8a59b6afcd449ad781f61766e358ea55c9f305dc0e6f85c3f2d6bd63b76c"
       },
@@ -358,6 +378,14 @@
         "sha256": "sha256:1e7b2f583fe33eb9bdb1c489cd1c35c888a311f0d1f3c0364c1b18bcdc1a8b1b"
       },
       {
+        "path": "base/tooling/generators/src/index.ts.txt",
+        "sha256": "sha256:38660cf6beab430446bad812b24274014283f782718ec70c0140b44d3fd024f5"
+      },
+      {
+        "path": "base/tooling/generators/src/workflow-release-commands.ts.txt",
+        "sha256": "sha256:5dd847fe3153edbb7a2bda41175ed99cac216123e70197a3c2ad8a3d7cb9fa04"
+      },
+      {
         "path": "base/tooling/quality/check-agent-pack.mts.txt",
         "sha256": "sha256:9bd981e806e95596a87aae617284616faaff12d5bf458d6b0f2151f140136490"
       },
@@ -368,6 +396,18 @@
       {
         "path": "base/tooling/quality/check-customer-context.mts.txt",
         "sha256": "sha256:2afb296aafbbd9a6679d0e7a1b3016d2a5abf722d7b82a34d69c03097f77b462"
+      },
+      {
+        "path": "base/tooling/quality/check-workflow-policy-snapshots.mts.txt",
+        "sha256": "sha256:f6deb4571b2e0ca10cab85d126ce062632752fcfc5fbfe2c4c1cc7913cc206f9"
+      },
+      {
+        "path": "base/tooling/quality/check-workflow-principal-propagation.mts.txt",
+        "sha256": "sha256:6d943ab6afe5b12651ed5bd61454736d3fe2112bd04ddd8cb65455a57ef2510b"
+      },
+      {
+        "path": "base/tooling/quality/fixtures/workflow-policy-snapshots.json.txt",
+        "sha256": "sha256:0b9bd9cf266b88904fa09b268e2ecae734687597e2506982e2d7460328be9b6a"
       },
       {
         "path": "base/tooling/quality/install-lefthook-if-git.mjs.txt",
@@ -381,6 +421,16 @@
     "apps/cli/src/factory/start.ts",
     "package.json",
     "tooling/quality/install-lefthook-if-git.mjs",
+    "tooling/generators/src/index.ts",
+    "tooling/generators/src/workflow-release-commands.ts",
+    "packages/convex/confect/workflows/_kit/graphRunnerV2.ts",
+    "packages/convex/confect/workflows/_kit/lifecycleSafety.ts",
+    "packages/convex/confect/workflows/_kit/policySnapshot.ts",
+    "packages/convex/confect/workflows/_kit/principal.ts",
+    "packages/convex/confect/workflows/_kit/subworkflows.ts",
+    "tooling/quality/check-workflow-policy-snapshots.mts",
+    "tooling/quality/check-workflow-principal-propagation.mts",
+    "tooling/quality/fixtures/workflow-policy-snapshots.json",
     "tooling/agent-pack/src/start.ts",
     "tooling/agent-pack/src/ports.ts",
     "tooling/agent-pack/src/verify.ts",
@@ -1094,6 +1144,46 @@
       "sha256": "sha256:a5de66aa782dc72875b456738c6d52ef651ca340a67733065f322412262dc896"
     },
     {
+      "path": "packages/convex/confect/workflows/_kit/graphRunnerV2.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:d162ba82b57c8f8e8a02d5c08134738acc0694a9dec26d888cbd8b16324a59f3",
+      "replaces": "copy"
+    },
+    {
+      "path": "packages/convex/confect/workflows/_kit/lifecycleSafety.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:2046b5d12f56b44b3acfc7b6cf0433847bbd94f84899f941e809fd9534d136f9",
+      "replaces": "copy"
+    },
+    {
+      "path": "packages/convex/confect/workflows/_kit/policySnapshot.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:cd360058e27ae3ecf6de33178de7d23267bb45a3fc1dd442d963c042f66a7492",
+      "replaces": "copy"
+    },
+    {
+      "path": "packages/convex/confect/workflows/_kit/principal.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:e7efe3c84e5c9140950b70ca02e0dc71db2e3dd5b616e09f7b0fdd04cf0419a0",
+      "replaces": "copy"
+    },
+    {
+      "path": "packages/convex/confect/workflows/_kit/subworkflows.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:107c7d71f55bea9e7720d741c25a3408987101d8aa9e4f0d7e69bc0555426111",
+      "replaces": "copy"
+    },
+    {
       "path": "packages/convex/convex/records.ts",
       "ownership": "generated",
       "action": "generate",
@@ -1182,6 +1272,21 @@
       "replaces": "copy"
     },
     {
+      "path": "tooling/generators/src/index.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:38660cf6beab430446bad812b24274014283f782718ec70c0140b44d3fd024f5",
+      "replaces": "copy"
+    },
+    {
+      "path": "tooling/generators/src/workflow-release-commands.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:5dd847fe3153edbb7a2bda41175ed99cac216123e70197a3c2ad8a3d7cb9fa04"
+    },
+    {
       "path": "tooling/quality/check-agent-pack.mts",
       "ownership": "generated",
       "action": "generate",
@@ -1203,6 +1308,27 @@
       "action": "generate",
       "upgrade": "regenerate",
       "sha256": "sha256:2afb296aafbbd9a6679d0e7a1b3016d2a5abf722d7b82a34d69c03097f77b462"
+    },
+    {
+      "path": "tooling/quality/check-workflow-policy-snapshots.mts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:f6deb4571b2e0ca10cab85d126ce062632752fcfc5fbfe2c4c1cc7913cc206f9"
+    },
+    {
+      "path": "tooling/quality/check-workflow-principal-propagation.mts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:6d943ab6afe5b12651ed5bd61454736d3fe2112bd04ddd8cb65455a57ef2510b"
+    },
+    {
+      "path": "tooling/quality/fixtures/workflow-policy-snapshots.json",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:0b9bd9cf266b88904fa09b268e2ecae734687597e2506982e2d7460328be9b6a"
     },
     {
       "path": "tooling/quality/install-lefthook-if-git.mjs",
