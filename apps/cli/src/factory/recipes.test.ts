@@ -18,14 +18,19 @@ describe("recipe CLI", () => {
       repoRoot,
     );
 
-    expect(JSON.parse(listed.stdout)).toMatchObject({
+    const listedResult = JSON.parse(listed.stdout) as {
+      readonly data: { readonly recipes: readonly unknown[] };
+    };
+    expect(listedResult).toMatchObject({
       schemaVersion: 1,
       command: { id: "recipes", version: 1 },
       mutationPosture: "read-only",
-      data: {
-        recipes: expect.arrayContaining([{ id: "validated-file-import" }]),
-      },
     });
+    expect(listedResult.data.recipes).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: "validated-file-import" }),
+      ]),
+    );
     expect(JSON.parse(shown.stdout)).toMatchObject({
       exitClass: "success",
       data: { recipe: { id: "validated-file-import" } },
