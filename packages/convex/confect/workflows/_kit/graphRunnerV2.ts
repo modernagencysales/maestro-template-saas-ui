@@ -30,6 +30,10 @@ import {
   type AnyWorkflowV2EventRegistryEntry,
 } from "./events";
 import { assertInlineTransactionPreflight } from "./inlineTransactions";
+import {
+  runObservedWorkflowStage,
+  type ObservedWorkflowStageRefs,
+} from "./observedStage";
 
 type CapabilityNodeV2 = Extract<WorkflowNodeV2, { kind: "capability" }>;
 type CapabilityKindV2 = CapabilityNodeV2["functionKind"];
@@ -97,6 +101,7 @@ export type RunDurableGraphV2CompilerInput<
     readonly generation: number;
     readonly occurredAt: number;
   };
+  readonly observability?: ObservedWorkflowStageRefs;
   readonly subworkflowPolicy?: import("./subworkflows").WorkflowV2SubworkflowPolicy;
   readonly admitEffect: (input: {
     readonly node: CapabilityNodeV2;
@@ -189,7 +194,15 @@ export const runCompiledDurableGraphWorkflowV2 = async <
     }
     const snapshot = { ...context };
     const outcomes = await Promise.allSettled(
-      wave.map((node) => executeNode(step, input, node, snapshot)),
+      wave.map((node) =>
+        executeObservedNode(
+          step,
+          input,
+          node,
+          snapshot,
+          input.graph.nodes.findIndex((candidate) => candidate.id === node.id),
+        ),
+      ),
     );
     let firstUnhandledFailure: unknown;
     let hasUnhandledFailure = false;
@@ -244,6 +257,38 @@ export const runCompiledDurableGraphWorkflowV2 = async <
       return input.projectOutput({ context });
     }
   }
+};
+
+const executeObservedNode = <Result extends Record<string, unknown>>(
+  step: RunDurableGraphStep,
+  input: RunDurableGraphV2CompilerInput<Result>,
+  node: WorkflowNodeV2,
+  context: Readonly<Record<string, unknown>>,
+  order: number,
+) => {
+  const capability =
+    node.kind === "capability"
+      ? input.capabilityRegistry[node.capability]
+      : undefined;
+  return runObservedWorkflowStage({
+    step,
+    ...(input.observability ? { refs: input.observability } : {}),
+    workflowRunId: input.effectIdentity.workflowRunId,
+    ...(step.workflowId ? { componentWorkflowId: step.workflowId } : {}),
+    nodeId: node.id,
+    label: node.label,
+    kind: node.kind,
+    stageKey: node.stepName,
+    lifecycleGeneration: input.effectIdentity.generation,
+    externalEffect:
+      node.kind === "capability" &&
+      node.functionKind === "action" &&
+      capability?.kind === "action" &&
+      capability.effectClass === "external",
+    observedAt: input.effectIdentity.occurredAt,
+    order,
+    run: () => executeNode(step, input, node, context),
+  });
 };
 
 const validateFailureRoutes = <Result extends Record<string, unknown>>(

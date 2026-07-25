@@ -63,7 +63,11 @@ export const inspectWorkflowRestart = (
       .collect()
       .pipe(Effect.orDie);
     const ordered = stages
-      .filter((stage) => stage.stageKey !== undefined)
+      .filter(
+        (stage) =>
+          stage.lifecycleGeneration === input.generation &&
+          stage.stageKey !== undefined,
+      )
       .sort(
         (left, right) =>
           (left.order ?? Number.MAX_SAFE_INTEGER) -
@@ -99,6 +103,22 @@ export const inspectWorkflowRestart = (
         .collect()
         .pipe(Effect.orDie),
     );
+    const reservationsByStep = new Map(
+      reservations.flat().map((reservation) => [reservation.stepName, true]),
+    );
+    const missingExternalReservation = ordered.find(
+      (stage) =>
+        (stage.order ?? Number.MAX_SAFE_INTEGER) >= anchorOrder &&
+        stage.kind === "capability" &&
+        stage.externalEffect !== false &&
+        stage.stageKey !== undefined &&
+        !reservationsByStep.has(stage.stageKey),
+    );
+    if (missingExternalReservation?.stageKey) {
+      return yield* new WorkflowLifecyclePersistenceError({
+        message: `External step ${missingExternalReservation.stageKey} has no generation-scoped restart reservation.`,
+      });
+    }
     return {
       discardedSteps,
       externalEffects: reservations.flat().map((reservation) => ({

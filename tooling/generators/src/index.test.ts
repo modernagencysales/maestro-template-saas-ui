@@ -1476,7 +1476,20 @@ describe("template app factory generators", () => {
     expect(convexWorkflow).toContain("sourceGroundedPlanSubworkflowRegistry");
     expect(convexWorkflow).toContain("sourceGroundedPlanSubworkflowPolicy");
     expect(convexWorkflow).toContain("workflowRunId: args.workflowRunId");
-    expect(convexWorkflow).toContain("occurredAt: args.principal.kickoffAt");
+    expect(convexWorkflow).toContain(
+      "refs.internal.workflows.stageObservations",
+    );
+    expect(convexWorkflow).toContain(
+      "generation: executionIdentity.generation",
+    );
+    expect(convexWorkflow).toContain(
+      "occurredAt: executionIdentity.observedAt",
+    );
+    expect(convexWorkflow).not.toContain("generation: 0");
+    expect(convexWorkflow).toContain("stageObservations.recordStarted");
+    expect(convexWorkflow).toContain(
+      "observability: { recordStageStarted, recordStageFinished }",
+    );
     expect(predeploy).toContain(
       "collectSourceGroundedPlanWorkflowWorkpoolDeclarations",
     );

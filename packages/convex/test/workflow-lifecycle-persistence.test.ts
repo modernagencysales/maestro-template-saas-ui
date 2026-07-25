@@ -22,6 +22,33 @@ import {
 } from "./workflow-lifecycle-persistence.fixture";
 
 describe("workflow lifecycle persistent tenant adapters", () => {
+  it("rejects a downstream external step without generation-scoped evidence", async () => {
+    const program = Effect.gen(function* () {
+      const confect = yield* Effect.serviceOptional(
+        TestConfect.TestConfect<typeof databaseSchema>(),
+      );
+      const seeded = yield* seedLifecyclePersistence(confect);
+      return yield* confect.run(
+        Effect.gen(function* () {
+          const reader = yield* DatabaseReader;
+          return yield* inspectWorkflowRestart(reader, {
+            workspaceId: seeded.workspaceId,
+            workflowRunId: seeded.runId,
+            generation: 0,
+            restartAnchor: "review.v3",
+          }).pipe(
+            Effect.flip,
+            Effect.map((error) => error.message),
+          );
+        }),
+        Schema.String,
+      );
+    });
+    await expect(
+      Effect.runPromise(program.pipe(Effect.provide(testConfectLayer()))),
+    ).resolves.toContain("no generation-scoped restart reservation");
+  });
+
   it("reconciles a bounded owned completion idempotently", async () => {
     const program = Effect.gen(function* () {
       const confect = yield* Effect.serviceOptional(

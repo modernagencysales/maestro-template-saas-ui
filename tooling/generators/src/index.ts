@@ -2988,13 +2988,16 @@ export const ${name}SubworkflowPolicy = generatedWorkflowSubworkflowPolicy;
     },
     {
       path: `packages/convex/confect/workflowRunners/${name}.ts`,
-      content: `import { defineMaestroWorkflow } from "../workflows/_kit/defineMaestroWorkflow";
+      content: `import { Ref } from "@confect/core";
+import { defineMaestroWorkflow } from "../workflows/_kit/defineMaestroWorkflow";
 import { v } from "convex/values";
+import refs from "../_generated/refs";
 import { components } from "../../convex/_generated/api";
 import {
   runDurableGraphWorkflowV2,
   type RunDurableGraphStep,
 } from "../workflows/_kit/graphRunner";
+import { loadObservedWorkflowExecutionIdentity } from "../workflows/_kit/observedStage";
 import type { RunDurableGraphV2CompilerInput } from "../workflows/_kit/graphRunnerV2";
 import { ${name}Graph } from "../workflows/${name}.graph";
 import {
@@ -3002,6 +3005,16 @@ import {
   ${name}SubworkflowPolicy,
   ${name}SubworkflowRegistry,
 } from "../workflows/${name}.registry";
+
+const executionIdentityRef = Ref.getFunctionReference(
+  refs.internal.workflows.stageObservations.executionIdentity,
+);
+const recordStageFinished = Ref.getFunctionReference(
+  refs.internal.workflows.stageObservations.recordFinished,
+);
+const recordStageStarted = Ref.getFunctionReference(
+  refs.internal.workflows.stageObservations.recordStarted,
+);
 
 const WorkflowPrincipalValidator = v.union(
   v.object({
@@ -3077,8 +3090,16 @@ export const run = defineMaestroWorkflow(components.workflow, {
     principal: WorkflowPrincipalValidator,
   },
   returns: WorkflowReceiptValidator,
-}, metadata).handler(async (step, args): Promise<WorkflowReceipt> =>
-  runDurableGraphWorkflowV2(step as RunDurableGraphStep, {
+}, metadata).handler(async (step, args): Promise<WorkflowReceipt> => {
+  const executionIdentity = await loadObservedWorkflowExecutionIdentity(
+    step,
+    executionIdentityRef,
+    {
+    workspaceId: args.workspaceId,
+    workflowRunId: args.workflowRunId,
+    },
+  );
+  return runDurableGraphWorkflowV2(step as RunDurableGraphStep, {
     graph: ${name}Graph,
     inputs: args,
     principal: args.principal,
@@ -3086,16 +3107,17 @@ export const run = defineMaestroWorkflow(components.workflow, {
     effectIdentity: {
       workspaceId: args.workspaceId,
       workflowRunId: args.workflowRunId,
-      generation: 0,
-      occurredAt: args.principal.kickoffAt,
+      generation: executionIdentity.generation,
+      occurredAt: executionIdentity.observedAt,
     },
+    observability: { recordStageStarted, recordStageFinished },
     workflowRegistry: ${name}SubworkflowRegistry,
     eventRegistry: ${name}EventRegistry,
     subworkflowPolicy: ${name}SubworkflowPolicy,
     failureRoutes,
     projectOutput: () => ({ workflowId: ${name}Graph.id, status: "completed" as const }),
-  }),
-);
+  });
+});
 `,
     },
     {

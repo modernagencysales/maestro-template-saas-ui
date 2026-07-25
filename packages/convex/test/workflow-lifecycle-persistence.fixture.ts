@@ -55,6 +55,8 @@ export const seedLifecyclePersistence = (
             errorJson: null,
             outputJson: '{"secret":"must-not-project"}',
             componentWorkflowId: "component-run-a",
+            lifecycleGeneration: 0,
+            externalEffect: true,
             stageKey: "review.v3",
             attemptNumber: 1,
             order: 0,
