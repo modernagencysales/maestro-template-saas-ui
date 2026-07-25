@@ -81,12 +81,40 @@ describe("saas application blueprint", () => {
     expect(projectedSpec?.content).not.toContain(
       "unrelated integration registration",
     );
+    for (const path of ["CLAUDE.md", ".claude/settings.json"]) {
+      expect(after.entries.find((entry) => entry.path === path)).toMatchObject({
+        ownership: "customer-extension",
+        action: "copy",
+        upgrade: "preserve",
+      });
+    }
+    expect(
+      after.entries.find((entry) => entry.path === "skills-lock.json"),
+    ).toMatchObject({
+      ownership: "generated",
+      action: "generate",
+      upgrade: "regenerate",
+    });
+    expect(after.entries.some((entry) => entry.path === "AGENTS.md")).toBe(
+      false,
+    );
   });
 
   it("emits deterministic workspace-safe CRUD and readiness contracts", async () => {
     const first = buildSaasApplicationFiles({ name: "My App" });
     const second = buildSaasApplicationFiles({ name: "My App" });
     expect(first).toEqual(second);
+    const customerContext = JSON.parse(
+      first.find(
+        ({ path }) => path === "docs/template/customer-context.manifest.json",
+      )?.content ?? "{}",
+    ) as { readonly files: readonly { readonly path: string }[] };
+    const customerContextTargets = [
+      "docs/template/customer-context.manifest.json",
+      ...customerContext.files
+        .filter(({ path }) => path !== "AGENTS.md")
+        .map(({ path }) => path),
+    ];
     expect(first.map(({ path }) => path)).toEqual([
       "examples/saas-application/seed/workspace.json",
       "examples/saas-application/seed/records.json",
@@ -116,6 +144,10 @@ describe("saas application blueprint", () => {
       "tooling/agent-pack/src/readiness/nodeSurface.ts",
       "tooling/agent-pack/src/readiness/presenter.ts",
       "tooling/agent-pack/src/readiness/server.ts",
+      "tooling/quality/check-agent-pack.mts",
+      "tooling/quality/check-customer-context.mts",
+      "tooling/quality/check-convex-ai-files.mts",
+      ...customerContextTargets,
       "packages/convex/confect/_generated/tables/records.ts",
       "packages/convex/confect/_generated/schema.ts",
       "packages/convex/confect/_generated/convexSchema.ts",
@@ -218,6 +250,11 @@ describe("saas application blueprint", () => {
 
   it("projects a customer-only root script closure", () => {
     const files = buildSaasApplicationFiles({ name: "My App" });
+    const customerContext = JSON.parse(
+      files.find(
+        ({ path }) => path === "docs/template/customer-context.manifest.json",
+      )?.content ?? "{}",
+    ) as { readonly files: readonly { readonly path: string }[] };
     const root = JSON.parse(
       files.find(({ path }) => path === "package.json")?.content ?? "{}",
     ) as {
@@ -259,6 +296,7 @@ describe("saas application blueprint", () => {
       "test:tooling",
       "check:coverage-ratchet",
       "coverage:update-baseline",
+      "check:agent-pack",
       "prepare",
       "verify",
     ]);
@@ -276,6 +314,7 @@ describe("saas application blueprint", () => {
     expect(root.scripts.verify).toEqual(
       expect.stringContaining("pnpm check:agent-pack"),
     );
+    expect(root.scripts.verify).toContain("pnpm check:convex-ai-files");
     for (const check of [
       "check:generators",
       "check:workflow-semantics",
@@ -285,6 +324,36 @@ describe("saas application blueprint", () => {
       "check:layer-boundaries",
     ])
       expect(root.scripts.verify).toContain(`pnpm ${check}`);
+    const agentPackCheck = files.find(
+      ({ path }) => path === "tooling/quality/check-agent-pack.mts",
+    )?.content;
+    expect(agentPackCheck).toContain("customerContextFindings(repoRoot)");
+    expect(agentPackCheck).toContain("verificationArtifactFindings(repoRoot)");
+    expect(agentPackCheck).toContain("forbiddenMcpFindings(repoRoot)");
+    expect(agentPackCheck).not.toContain("checkSkillProjections");
+    expect(agentPackCheck).not.toContain("factoryWiringFindings");
+    expect(root.scripts["check:agent-pack"]).toBe(
+      "tsx tooling/quality/check-agent-pack.mts",
+    );
+    const convexCheck = files.find(
+      ({ path }) => path === "tooling/quality/check-convex-ai-files.mts",
+    )?.content;
+    expect(convexCheck).toContain("Installed Convex AI targets");
+    expect(convexCheck).not.toContain("validateOfficialConvexBundle");
+    const customerContextCheck = files.find(
+      ({ path }) => path === "tooling/quality/check-customer-context.mts",
+    )?.content;
+    expect(customerContextCheck).toContain("customer-context:extra:");
+    expect(customerContextCheck).toContain("safeClaudeSettings");
+    for (const required of [
+      "CLAUDE.md",
+      ".claude/skills/convex/SKILL.md",
+      ".agents/skills/maestro/SKILL.md",
+      ".agents/skills/maestro-convex/SKILL.md",
+      ".agents/skills/convex/SKILL.md",
+      "skills-lock.json",
+    ])
+      expect(customerContext.files.map(({ path }) => path)).toContain(required);
     expect(root.packageManager).toBe(factory.packageManager);
     expect(root.devDependencies).toEqual(factory.devDependencies);
   });

@@ -198,15 +198,23 @@ export type BlueprintTargetPlan = {
   readonly id: "saas-application";
   readonly provenance: "@maestro-template/generators/saas-application@1";
   readonly registrations: readonly string[];
-  readonly entries: readonly {
+  readonly entries: readonly ({
     readonly path: string;
-    readonly ownership: "generated";
-    readonly action: "generate";
-    readonly upgrade: "regenerate";
     readonly sha256: string;
     readonly content: string;
     readonly replaces?: "copy" | "generate";
-  }[];
+  } & (
+    | {
+        readonly ownership: "generated";
+        readonly action: "generate";
+        readonly upgrade: "regenerate";
+      }
+    | {
+        readonly ownership: "customer-extension";
+        readonly action: "copy";
+        readonly upgrade: "preserve";
+      }
+  ))[];
   readonly digest: string;
 };
 
@@ -230,21 +238,37 @@ export const buildSaasApplicationTargetPlan = (_options: {
     ["tooling/agent-pack/src/ports.ts", "copy"],
     ["tooling/agent-pack/src/verify.ts", "copy"],
     ["tooling/agent-pack/src/index.ts", "copy"],
+    ["tooling/quality/check-agent-pack.mts", "copy"],
+    ["tooling/quality/check-convex-ai-files.mts", "copy"],
   ]);
+  const customerExtensions = new Set(["CLAUDE.md", ".claude/settings.json"]);
   const entries = buildSaasApplicationFiles({
     name: "SaaS Application",
     firstOutcome: "Create and review records",
   })
     .filter(({ path }) => path !== "template-instance.json")
-    .map(({ path, content }) => ({
-      path,
-      ownership: "generated" as const,
-      action: "generate" as const,
-      upgrade: "regenerate" as const,
-      sha256: sha256(content),
-      content,
-      ...(replacements.has(path) ? { replaces: replacements.get(path)! } : {}),
-    }))
+    .map(({ path, content }) =>
+      customerExtensions.has(path)
+        ? {
+            path,
+            ownership: "customer-extension" as const,
+            action: "copy" as const,
+            upgrade: "preserve" as const,
+            sha256: sha256(content),
+            content,
+          }
+        : {
+            path,
+            ownership: "generated" as const,
+            action: "generate" as const,
+            upgrade: "regenerate" as const,
+            sha256: sha256(content),
+            content,
+            ...(replacements.has(path)
+              ? { replaces: replacements.get(path)! }
+              : {}),
+          },
+    )
     .sort((left, right) => left.path.localeCompare(right.path));
   const registrations = [
     "apps/cli/src/factory/customerComposition.ts",
@@ -262,6 +286,13 @@ export const buildSaasApplicationTargetPlan = (_options: {
     "tooling/agent-pack/src/readiness/nodeSurface.ts",
     "tooling/agent-pack/src/readiness/presenter.ts",
     "tooling/agent-pack/src/readiness/server.ts",
+    "tooling/quality/check-agent-pack.mts",
+    "tooling/quality/check-customer-context.mts",
+    "tooling/quality/check-convex-ai-files.mts",
+    "docs/template/customer-context.manifest.json",
+    "CLAUDE.md",
+    ".claude/settings.json",
+    "skills-lock.json",
     "packages/convex/confect/tables/records.ts",
     "packages/convex/confect/records/records.spec.ts",
     "packages/convex/confect/records/records.impl.ts",

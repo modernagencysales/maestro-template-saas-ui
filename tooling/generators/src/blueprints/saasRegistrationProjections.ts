@@ -1,6 +1,15 @@
 import { readFileSync } from "node:fs";
 import type { GeneratedFile } from "../index";
 
+const asset = (path: string): string =>
+  readFileSync(
+    new URL(
+      `../../../../releases/v0.2.0-alpha.1/blueprints/saas-application/base/${path}`,
+      import.meta.url,
+    ),
+    "utf8",
+  );
+
 const source = (path: string): string =>
   readFileSync(
     new URL(
@@ -9,6 +18,30 @@ const source = (path: string): string =>
     ),
     "utf8",
   );
+
+const customerContextSource = (path: string): string => {
+  const content = source(`customer-context/${path}`);
+  return content.endsWith("\n\n") ? content.slice(0, -1) : content;
+};
+
+const customerContextProjections = (): readonly GeneratedFile[] => {
+  const content = asset("customer-context.manifest.json");
+  const manifest = JSON.parse(content) as {
+    readonly files: readonly { readonly path: string }[];
+  };
+  return [
+    {
+      path: "docs/template/customer-context.manifest.json",
+      content,
+    },
+    ...manifest.files
+      .filter(({ path }) => path !== "AGENTS.md")
+      .map(({ path }) => ({
+        path,
+        content: customerContextSource(path),
+      })),
+  ];
+};
 
 const replace = (
   value: string,
@@ -173,6 +206,19 @@ export const buildSaasRegistrationProjections =
       path: `tooling/agent-pack/src/${path}`,
       content: source(`tooling/agent-pack/src/${path}`),
     })),
+    {
+      path: "tooling/quality/check-agent-pack.mts",
+      content: source("tooling/quality/check-agent-pack.mts"),
+    },
+    {
+      path: "tooling/quality/check-customer-context.mts",
+      content: source("tooling/quality/check-customer-context.mts"),
+    },
+    {
+      path: "tooling/quality/check-convex-ai-files.mts",
+      content: source("tooling/quality/check-convex-ai-files.mts"),
+    },
+    ...customerContextProjections(),
     {
       path: "packages/convex/confect/_generated/tables/records.ts",
       content:

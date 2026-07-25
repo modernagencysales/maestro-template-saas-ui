@@ -38,14 +38,22 @@ export type CustomerMaterializationRequest = {
   readonly generatedFiles: Readonly<Record<string, Buffer>>;
   readonly blueprintTargetPlan?: {
     readonly digest: string;
-    readonly entries: readonly {
+    readonly entries: readonly ({
       readonly path: string;
-      readonly ownership: "generated";
-      readonly action: "generate";
-      readonly upgrade: "regenerate";
       readonly bytes: Buffer;
       readonly replaces?: "copy" | "generate";
-    }[];
+    } & (
+      | {
+          readonly ownership: "generated";
+          readonly action: "generate";
+          readonly upgrade: "regenerate";
+        }
+      | {
+          readonly ownership: "customer-extension";
+          readonly action: "copy";
+          readonly upgrade: "preserve";
+        }
+    ))[];
   };
   readonly resolvedRelease: ResolvedCustomerReleaseBinding;
 };
@@ -298,6 +306,9 @@ export function previewCustomerTarget(
       const sha256 = hash(bytes);
       if (
         entry.action === "copy" &&
+        !request.blueprintTargetPlan?.entries.some(
+          ({ path }) => path === entry.path,
+        ) &&
         request.manifest.expectedHashes[entry.path] !== sha256
       ) {
         throw new CustomerMaterializationError(

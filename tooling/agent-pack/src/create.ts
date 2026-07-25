@@ -40,15 +40,23 @@ export type CustomerCreateBlueprintPlan = {
   readonly digest: string;
   readonly provenance: string;
   readonly registrations: readonly string[];
-  readonly entries: readonly {
+  readonly entries: readonly ({
     readonly path: string;
-    readonly ownership: "generated";
-    readonly action: "generate";
-    readonly upgrade: "regenerate";
     readonly sha256: string;
     readonly content: string;
     readonly replaces?: "copy" | "generate";
-  }[];
+  } & (
+    | {
+        readonly ownership: "generated";
+        readonly action: "generate";
+        readonly upgrade: "regenerate";
+      }
+    | {
+        readonly ownership: "customer-extension";
+        readonly action: "copy";
+        readonly upgrade: "preserve";
+      }
+  ))[];
 };
 
 type CreateFailureCode =

@@ -62,15 +62,23 @@ export type BlueprintTargetFacts = {
 export type BlueprintTargetPlan = BlueprintTargetFacts & {
   readonly schemaVersion: 1;
   readonly registrations: readonly string[];
-  readonly entries: readonly {
+  readonly entries: readonly ({
     readonly path: string;
-    readonly ownership: "generated";
-    readonly action: "generate";
-    readonly upgrade: "regenerate";
     readonly sha256: string;
     readonly content: string;
     readonly replaces?: "copy" | "generate";
-  }[];
+  } & (
+    | {
+        readonly ownership: "generated";
+        readonly action: "generate";
+        readonly upgrade: "regenerate";
+      }
+    | {
+        readonly ownership: "customer-extension";
+        readonly action: "copy";
+        readonly upgrade: "preserve";
+      }
+  ))[];
 };
 
 export function validateBlueprintTargetPlan(
@@ -87,9 +95,14 @@ export function validateBlueprintTargetPlan(
     new Set(value.registrations).size !== value.registrations.length ||
     value.entries.some(
       (entry) =>
-        entry.ownership !== "generated" ||
-        entry.action !== "generate" ||
-        entry.upgrade !== "regenerate" ||
+        !(
+          (entry.ownership === "generated" &&
+            entry.action === "generate" &&
+            entry.upgrade === "regenerate") ||
+          (entry.ownership === "customer-extension" &&
+            entry.action === "copy" &&
+            entry.upgrade === "preserve")
+        ) ||
         (entry.replaces !== undefined &&
           entry.replaces !== "copy" &&
           entry.replaces !== "generate") ||

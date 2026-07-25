@@ -77,6 +77,40 @@ describe("materialized customer CLI runtime closure", () => {
     execFileSync("git", ["commit", "--quiet", "--no-verify", "-m", "fixture"], {
       cwd: target,
     });
+    for (const path of [
+      "AGENTS.md",
+      "CLAUDE.md",
+      ".agents/skills/maestro/SKILL.md",
+      ".agents/skills/maestro-convex/SKILL.md",
+      ".claude/settings.json",
+      "skills-lock.json",
+      "packages/convex/convex/_generated/ai/ai-files.state.json",
+      "packages/convex/convex/_generated/ai/guidelines.md",
+    ])
+      expect(existsSync(join(target, path))).toBe(true);
+    for (const skill of [
+      "convex",
+      "convex-create-component",
+      "convex-migration-helper",
+      "convex-performance-audit",
+      "convex-quickstart",
+      "convex-setup-auth",
+    ]) {
+      expect(existsSync(join(target, `.agents/skills/${skill}/SKILL.md`))).toBe(
+        true,
+      );
+      expect(existsSync(join(target, `.claude/skills/${skill}/SKILL.md`))).toBe(
+        true,
+      );
+    }
+    for (const path of ["agent-pack", "tooling/stack", "tooling/release"])
+      expect(existsSync(join(target, path))).toBe(false);
+    const customerPackage = JSON.parse(
+      readFileSync(join(target, "package.json"), "utf8"),
+    ) as { readonly scripts: Readonly<Record<string, string>> };
+    expect(customerPackage.scripts.verify).toContain(
+      "pnpm check:convex-ai-files",
+    );
     const hostBin = join(parent, "supported-host-bin");
     mkdirSync(hostBin);
     const corepack = join(hostBin, "corepack");
@@ -96,6 +130,60 @@ describe("materialized customer CLI runtime closure", () => {
       ],
       { cwd: target, stdio: "pipe", timeout: 30_000 },
     );
+    const convexCheck = execFileSync("pnpm", ["run", "check:convex-ai-files"], {
+      cwd: target,
+      encoding: "utf8",
+      timeout: 30_000,
+      env: supportedHostEnvironment,
+    });
+    expect(convexCheck).toContain(
+      "Installed Convex AI targets match the pinned manifest.",
+    );
+    const agentPackCheck = execFileSync("pnpm", ["run", "check:agent-pack"], {
+      cwd: target,
+      encoding: "utf8",
+      timeout: 30_000,
+      env: supportedHostEnvironment,
+    });
+    expect(agentPackCheck).toContain(
+      "Customer context, receipts, and MCP posture are valid.",
+    );
+    execFileSync("pnpm", ["run", "check:workflow-semantics"], {
+      cwd: target,
+      stdio: "pipe",
+      timeout: 30_000,
+      env: supportedHostEnvironment,
+    });
+    const maestroSkill = join(target, ".agents/skills/maestro/SKILL.md");
+    const maestroBytes = readFileSync(maestroSkill, "utf8");
+    try {
+      writeFileSync(maestroSkill, `${maestroBytes}\ndrift\n`);
+      expect(
+        spawnSync("pnpm", ["run", "check:agent-pack"], {
+          cwd: target,
+          encoding: "utf8",
+          timeout: 30_000,
+          env: supportedHostEnvironment,
+        }).status,
+      ).not.toBe(0);
+    } finally {
+      writeFileSync(maestroSkill, maestroBytes);
+    }
+    const convexSkill = join(target, ".agents/skills/convex/SKILL.md");
+    const convexBytes = readFileSync(convexSkill, "utf8");
+    try {
+      writeFileSync(convexSkill, `${convexBytes}\ndrift\n`);
+      expect(
+        spawnSync("pnpm", ["run", "check:convex-ai-files"], {
+          cwd: target,
+          encoding: "utf8",
+          timeout: 30_000,
+          env: supportedHostEnvironment,
+        }).status,
+      ).not.toBe(0);
+    } finally {
+      writeFileSync(convexSkill, convexBytes);
+    }
 
     const preflight = spawnSync(
       "pnpm",

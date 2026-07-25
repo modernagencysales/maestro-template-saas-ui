@@ -106,7 +106,7 @@
     "convex:ai-files:install": "convex ai-files install",
     "convex:ai-files:status": "convex ai-files status",
     "check:convex-ai-files": "tsx tooling/quality/check-convex-ai-files.mts",
-    "check:agent-pack": "pnpm --dir tooling/agent-pack test && pnpm --dir tooling/agent-pack typecheck && tsx tooling/agent-pack/src/syncSkills.ts && pnpm check:convex-ai-files && tsx tooling/quality/check-agent-pack.mts"
+    "check:agent-pack": "tsx tooling/quality/check-agent-pack.mts"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.12.1",
