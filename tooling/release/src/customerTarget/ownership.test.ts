@@ -14,7 +14,7 @@ import {
 } from "./ownership";
 
 const repoRoot = resolve(import.meta.dirname, "../../../..");
-const sourceCommit = "edfc912837af6096bed30213429b821bae282921";
+const sourceCommit = "517b5bc28d1d633bef18f57610cff49800123788";
 const sourcePaths = execFileSync(
   "git",
   ["ls-tree", "-r", "--name-only", sourceCommit],

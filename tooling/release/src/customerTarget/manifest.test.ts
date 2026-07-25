@@ -67,9 +67,9 @@ describe("customer release manifest", () => {
     expect(manifest.release).toEqual({
       version: "0.1.0-alpha.1",
       tag: "maestro-template-v0.1.0-alpha.1",
-      sourceCommit: "edfc912837af6096bed30213429b821bae282921",
+      sourceCommit: "517b5bc28d1d633bef18f57610cff49800123788",
       sourceChecksum:
-        "sha256:2a7c3981d8a27f591a2a0f6555d7fd101113393b8867f7621512e148b4627437",
+        "sha256:144583e8a2b0b495776f1456f035dc3d815342309a3a5826480a4f4c5140a297",
     });
     expect(manifest.compatibility).toEqual({
       cli: ">=0.1.0-alpha.1 <0.2.0",
