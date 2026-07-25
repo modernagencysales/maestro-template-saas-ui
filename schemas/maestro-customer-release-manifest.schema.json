@@ -7,6 +7,7 @@
   "required": [
     "$schema",
     "schemaVersion",
+    "materializationStatus",
     "release",
     "compatibility",
     "paths",
@@ -18,6 +19,10 @@
       "const": "../../schemas/maestro-customer-release-manifest.schema.json"
     },
     "schemaVersion": { "const": 1 },
+    "materializationStatus": {
+      "enum": ["fixture-only", "materializable"]
+    },
+    "fixtureReason": { "type": "string", "minLength": 1 },
     "release": {
       "type": "object",
       "additionalProperties": false,
@@ -122,6 +127,23 @@
       }
     }
   },
+  "allOf": [
+    {
+      "if": {
+        "required": ["materializationStatus"],
+        "properties": {
+          "materializationStatus": { "const": "fixture-only" }
+        }
+      },
+      "then": {
+        "required": ["fixtureReason"],
+        "properties": {
+          "fixtureReason": { "type": "string", "minLength": 1 }
+        }
+      },
+      "else": { "not": { "required": ["fixtureReason"] } }
+    }
+  ],
   "$defs": {
     "path": {
       "type": "string",

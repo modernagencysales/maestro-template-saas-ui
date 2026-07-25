@@ -4,14 +4,30 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   CustomerReleaseManifestError,
+  assertMaterializableCustomerReleaseManifest,
   validateCustomerReleaseManifest,
 } from "./manifest";
 
 const repoRoot = resolve(import.meta.dirname, "../../../..");
 const fixturePath = resolve(repoRoot, "releases/v0.1.0-alpha.1/manifest.json");
+const schemaFile = resolve(
+  repoRoot,
+  "schemas/maestro-customer-release-manifest.schema.json",
+);
 
 const readFixture = (): unknown =>
   JSON.parse(readFileSync(fixturePath, "utf8"));
+const readSchema = (): unknown => JSON.parse(readFileSync(schemaFile, "utf8"));
+
+const rewriteFixture = (
+  status: string | undefined,
+  includeReason: boolean,
+): unknown =>
+  JSON.parse(JSON.stringify(readFixture()), (key, value: unknown): unknown => {
+    if (key === "materializationStatus") return status;
+    if (key === "fixtureReason" && !includeReason) return undefined;
+    return value;
+  });
 
 const sha256 = (path: string): string =>
   `sha256:${createHash("sha256")
@@ -43,6 +59,14 @@ describe("customer release manifest", () => {
       cli: ">=0.1.0-alpha.1 <0.2.0",
       agentPack: ">=0.1.0-alpha.1 <0.2.0",
     });
+    expect(manifest).toMatchObject({
+      materializationStatus: "fixture-only",
+      fixtureReason:
+        "Contract evidence only; the complete customer ownership inventory lands in WP-4.0 stack 2.",
+    });
+    expect(() => assertMaterializableCustomerReleaseManifest(manifest)).toThrow(
+      "Release manifest is fixture-only",
+    );
     expect(new Set(manifest.paths.map(({ ownership }) => ownership))).toEqual(
       new Set([
         "template-owned",
@@ -58,6 +82,71 @@ describe("customer release manifest", () => {
         description: "Customer-owned intake language and answers.",
       },
     ]);
+  });
+
+  it("declares a closed materialization posture in the schema artifact", () => {
+    expect(readSchema()).toMatchObject({
+      required: expect.arrayContaining(["materializationStatus"]),
+      properties: {
+        materializationStatus: {
+          enum: ["fixture-only", "materializable"],
+        },
+        fixtureReason: { type: "string", minLength: 1 },
+      },
+      allOf: [
+        expect.objectContaining({
+          if: {
+            required: ["materializationStatus"],
+            properties: {
+              materializationStatus: { const: "fixture-only" },
+            },
+          },
+          then: expect.objectContaining({ required: ["fixtureReason"] }),
+          else: { not: { required: ["fixtureReason"] } },
+        }),
+      ],
+    });
+  });
+
+  it.each([
+    [
+      "missing",
+      undefined,
+      true,
+      "materializationStatus must be fixture-only or materializable",
+    ],
+    [
+      "unknown",
+      "preview-ready",
+      true,
+      "materializationStatus must be fixture-only or materializable",
+    ],
+    [
+      "fixture reason missing",
+      "fixture-only",
+      false,
+      "manifest.fixtureReason must be a non-empty string",
+    ],
+  ])(
+    "rejects %s materialization posture in the validator",
+    (_, status, includeReason, finding) => {
+      const fixture = rewriteFixture(status, includeReason);
+
+      expect(() =>
+        validateCustomerReleaseManifest(fixture, shippedFiles),
+      ).toThrow(finding);
+    },
+  );
+
+  it("allows only a materializable manifest through the assertion", () => {
+    const manifest = validateCustomerReleaseManifest(
+      rewriteFixture("materializable", false),
+      shippedFiles,
+    );
+
+    expect(() =>
+      assertMaterializableCustomerReleaseManifest(manifest),
+    ).not.toThrow();
   });
 
   it("fails self-protection when a shipped path is unclassified", () => {

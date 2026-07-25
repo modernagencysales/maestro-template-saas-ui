@@ -12,7 +12,7 @@ export type CustomerReleasePath = {
   readonly upgrade: "replace" | "preserve" | "regenerate" | "remove";
 };
 
-export type CustomerReleaseManifest = {
+type CustomerReleaseManifestBase = {
   readonly $schema: string;
   readonly schemaVersion: 1;
   readonly release: {
@@ -33,6 +33,18 @@ export type CustomerReleaseManifest = {
   }[];
 };
 
+export type MaterializableCustomerReleaseManifest =
+  CustomerReleaseManifestBase & {
+    readonly materializationStatus: "materializable";
+  };
+
+export type CustomerReleaseManifest =
+  | MaterializableCustomerReleaseManifest
+  | (CustomerReleaseManifestBase & {
+      readonly materializationStatus: "fixture-only";
+      readonly fixtureReason: string;
+    });
+
 export class CustomerReleaseManifestError extends Error {
   readonly findings: readonly string[];
 
@@ -40,6 +52,16 @@ export class CustomerReleaseManifestError extends Error {
     super(findings.join("\n"));
     this.name = "CustomerReleaseManifestError";
     this.findings = findings;
+  }
+}
+
+export function assertMaterializableCustomerReleaseManifest(
+  manifest: CustomerReleaseManifest,
+): asserts manifest is MaterializableCustomerReleaseManifest {
+  if (manifest.materializationStatus === "fixture-only") {
+    throw new CustomerReleaseManifestError([
+      `Release manifest is fixture-only: ${manifest.fixtureReason}`,
+    ]);
   }
 }
 
@@ -138,6 +160,8 @@ export function validateCustomerReleaseManifest(
     [
       "$schema",
       "schemaVersion",
+      "materializationStatus",
+      "fixtureReason",
       "release",
       "compatibility",
       "paths",
@@ -150,6 +174,28 @@ export function validateCustomerReleaseManifest(
   if (input.$schema !== schemaPath)
     findings.push(`Manifest $schema must be ${schemaPath}`);
   if (input.schemaVersion !== 1) findings.push("schemaVersion must be 1");
+  const rawMaterializationStatus = input.materializationStatus;
+  let materializationStatus: "fixture-only" | "materializable" =
+    "materializable";
+  let fixtureReason = "";
+  if (rawMaterializationStatus === "fixture-only") {
+    materializationStatus = rawMaterializationStatus;
+    fixtureReason = requiredString(
+      input,
+      "fixtureReason",
+      "manifest",
+      findings,
+    );
+  } else if (rawMaterializationStatus === "materializable") {
+    materializationStatus = rawMaterializationStatus;
+    if (input.fixtureReason !== undefined) {
+      findings.push("materializable manifests must not declare fixtureReason");
+    }
+  } else {
+    findings.push(
+      "materializationStatus must be fixture-only or materializable",
+    );
+  }
 
   const release = isRecord(input.release) ? input.release : {};
   if (!isRecord(input.release)) findings.push("release must be an object");
@@ -278,7 +324,7 @@ export function validateCustomerReleaseManifest(
   });
 
   if (findings.length > 0) throw new CustomerReleaseManifestError(findings);
-  return {
+  const validated: CustomerReleaseManifestBase = {
     $schema: schemaPath,
     schemaVersion: 1,
     release: { version, tag, sourceCommit, sourceChecksum },
@@ -287,4 +333,7 @@ export function validateCustomerReleaseManifest(
     expectedHashes,
     extensionSeams,
   };
+  return materializationStatus === "fixture-only"
+    ? { ...validated, materializationStatus, fixtureReason }
+    : { ...validated, materializationStatus };
 }

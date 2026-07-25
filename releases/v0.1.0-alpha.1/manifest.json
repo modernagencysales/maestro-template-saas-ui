@@ -1,6 +1,8 @@
 {
   "$schema": "../../schemas/maestro-customer-release-manifest.schema.json",
   "schemaVersion": 1,
+  "materializationStatus": "fixture-only",
+  "fixtureReason": "Contract evidence only; the complete customer ownership inventory lands in WP-4.0 stack 2.",
   "release": {
     "version": "0.1.0-alpha.1",
     "tag": "maestro-template-v0.1.0-alpha.1",
