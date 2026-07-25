@@ -24,7 +24,10 @@ export type StartWorkflowOwnershipInput<
   F extends FunctionReference<"mutation", "internal">,
 > = {
   readonly workflowRef: F;
-  readonly workflowArgs: FunctionArgs<F>["args"];
+  readonly workflowArgs?: FunctionArgs<F>["args"];
+  readonly buildWorkflowArgs?: (
+    workflowRunId: string,
+  ) => FunctionArgs<F>["args"];
   readonly workspaceId: string;
   readonly workflowId: string;
   readonly workflowVersion: number;
@@ -72,6 +75,7 @@ export const startWorkflowAndRecordOwnership = <
     const componentWorkflowId = yield* startComponentWorkflow(
       mutationCtx,
       normalizedInput,
+      reservationId,
     );
     yield* recordStartedWorkflow(writer, reservationId, componentWorkflowId);
     return componentWorkflowId;
@@ -184,12 +188,22 @@ const startComponentWorkflow = <
 >(
   mutationCtx: Mutation,
   input: StartWorkflowOwnershipInput<F>,
+  workflowRunId: GenericId<"workflowRuns">,
 ) =>
-  Effect.promise(() =>
-    start(mutationCtx, input.workflowRef, input.workflowArgs, {
+  Effect.promise(() => {
+    const workflowArgs = input.buildWorkflowArgs
+      ? input.buildWorkflowArgs(workflowRunId)
+      : input.workflowArgs;
+    if (workflowArgs === undefined) {
+      throw makePublicError(
+        "VALIDATION_FAILED",
+        "Workflow start arguments are required.",
+      );
+    }
+    return start(mutationCtx, input.workflowRef, workflowArgs, {
       ...kickoffProfileStartOptions(input.kickoffProfile),
-    }),
-  );
+    });
+  });
 
 export const kickoffProfileStartOptions = (
   profile: "eager-first-poll" | "queued",

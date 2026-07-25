@@ -4,9 +4,17 @@ import * as Either from "effect/Either";
 import * as Schema from "effect/Schema";
 
 import { makePublicError } from "../../shared/errors";
-import { WorkflowReference, type WorkflowNodeV2 } from "../graph";
+import {
+  WorkflowReference,
+  type WorkflowNodeV2,
+  type WorkflowReference as WorkflowReferenceType,
+} from "../graph";
 import { assertJsonSafe } from "./graphRunnerJson";
-import type { RunDurableGraphStep } from "./graphRunner";
+import type { DurableGraphStepRef, RunDurableGraphStep } from "./graphRunner";
+import type {
+  SubworkflowRunLinkOutcome,
+  SubworkflowRunLinkProjection,
+} from "./subworkflowLinks";
 import {
   WorkflowPrincipal,
   hasReservedWorkflowIdentityField,
@@ -49,6 +57,11 @@ export type WorkflowV2SubworkflowRegistryEntry<
     readonly cancel: "cascade";
     readonly cleanup: "cascade-async";
   };
+  readonly children: readonly WorkflowReferenceType[];
+  readonly links: {
+    readonly reserveRef: DurableGraphStepRef<"mutation">;
+    readonly reconcileRef: DurableGraphStepRef<"mutation">;
+  };
 };
 
 export type AnyWorkflowV2SubworkflowRegistryEntry = {
@@ -66,6 +79,16 @@ export type AnyWorkflowV2SubworkflowRegistryEntry = {
     ChildWorkflowArgs,
     unknown
   >["lifecycle"];
+  readonly children: readonly WorkflowReferenceType[];
+  readonly links: WorkflowV2SubworkflowRegistryEntry<
+    ChildWorkflowArgs,
+    unknown
+  >["links"];
+};
+
+export type WorkflowV2SubworkflowPolicy = {
+  readonly maxDepth: number;
+  readonly maxFanOut: number;
 };
 
 export const defineWorkflowV2Subworkflow = <
@@ -84,7 +107,14 @@ export const defineWorkflowV2SubworkflowRegistry = <
 ): Registry => {
   for (const [key, entry] of Object.entries(registry)) {
     const decoded = Schema.decodeUnknownEither(WorkflowReference)(key);
-    if (Either.isLeft(decoded) || !key.endsWith(`.v${entry.version}`)) {
+    const invalidChild = entry.children.some((child) =>
+      Either.isLeft(Schema.decodeUnknownEither(WorkflowReference)(child)),
+    );
+    if (
+      Either.isLeft(decoded) ||
+      !key.endsWith(`.v${entry.version}`) ||
+      invalidChild
+    ) {
       throw makePublicError(
         "VALIDATION_FAILED",
         "Subworkflow registry key must be a generated reference matching its immutable version.",
@@ -103,6 +133,13 @@ type RunSubworkflowInput<Entry> = {
   readonly context: Readonly<Record<string, unknown>>;
   readonly principal: unknown;
   readonly policySnapshot: unknown;
+  readonly ownership: {
+    readonly workspaceId: string;
+    readonly parentWorkflowId: string;
+    readonly parentWorkflowVersion: number;
+    readonly generation: number;
+    readonly occurredAt: number;
+  };
 };
 
 export function runRegisteredSubworkflow<
@@ -122,6 +159,7 @@ export async function runRegisteredSubworkflow({
   context,
   principal,
   policySnapshot,
+  ownership,
 }: RunSubworkflowInput<AnyWorkflowV2SubworkflowRegistryEntry>): Promise<unknown> {
   if (entry.version !== node.childVersion) {
     throw subworkflowFailure(
@@ -156,15 +194,116 @@ export async function runRegisteredSubworkflow({
   }
   const childArgs = { ...mappedArgs, principal: childPrincipal };
   assertMappedArgsSize(node, childArgs);
-  const rawResult = await step.runWorkflow(entry.ref, childArgs, {
-    name: node.stepName,
-  });
-  const decoded = Schema.decodeUnknownEither(entry.resultSchema)(rawResult);
-  if (Either.isLeft(decoded)) {
-    throw subworkflowFailure(node, "child returned an invalid declared result");
+  const projection: SubworkflowRunLinkProjection = {
+    workspaceId: ownership.workspaceId,
+    parentWorkflowId: ownership.parentWorkflowId,
+    parentWorkflowVersion: ownership.parentWorkflowVersion,
+    generation: ownership.generation,
+    childWorkflow: node.workflow,
+    childWorkflowVersion: node.childVersion,
+    stepName: node.stepName,
+    principal: childPrincipal,
+    cancellation: entry.lifecycle.cancel,
+    cleanup: entry.lifecycle.cleanup,
+  };
+  const reservation = await step.runMutation(
+    entry.links.reserveRef,
+    { projection, occurredAt: ownership.occurredAt },
+    { name: `${node.stepName}.link.reserve.v1` },
+  );
+  const linkId = readLinkId(node, reservation);
+  let childResult: unknown;
+  let resultJson: string;
+  try {
+    const rawResult = await step.runWorkflow(entry.ref, childArgs, {
+      name: node.stepName,
+    });
+    const decoded = Schema.decodeUnknownEither(entry.resultSchema)(rawResult);
+    if (Either.isLeft(decoded)) {
+      throw subworkflowFailure(
+        node,
+        "child returned an invalid declared result",
+      );
+    }
+    childResult = decoded.right;
+    const encoded = JSON.stringify(childResult);
+    if (encoded === undefined) {
+      throw subworkflowFailure(
+        node,
+        "child returned a non-serializable result",
+      );
+    }
+    resultJson = encoded;
+  } catch (error) {
+    await reconcileLink(
+      step,
+      entry,
+      node,
+      ownership,
+      linkId,
+      isPinnedWorkflowCancellation(error)
+        ? { kind: "canceled" }
+        : { kind: "failed", error: "Child workflow failed." },
+    );
+    throw error;
   }
-  return decoded.right;
+  await reconcileLink(step, entry, node, ownership, linkId, {
+    kind: "succeeded",
+    resultJson,
+  });
+  return childResult;
 }
+
+export const validateWorkflowV2SubworkflowTopology = (
+  graph: { readonly nodes: readonly WorkflowNodeV2[] },
+  registry: Readonly<Record<string, AnyWorkflowV2SubworkflowRegistryEntry>>,
+  policy: WorkflowV2SubworkflowPolicy,
+): void => {
+  if (
+    !Number.isInteger(policy.maxDepth) ||
+    policy.maxDepth < 1 ||
+    !Number.isInteger(policy.maxFanOut) ||
+    policy.maxFanOut < 1
+  ) {
+    throw topologyFailure("depth and fan-out limits must be positive integers");
+  }
+  const roots = graph.nodes
+    .filter((node): node is SubworkflowNodeV2 => node.kind === "subworkflow")
+    .map((node) => node.workflow);
+  let fanOut = roots.length;
+  if (fanOut > policy.maxFanOut) {
+    throw topologyFailure(
+      `declared child fan-out ${fanOut} exceeds limit ${policy.maxFanOut}`,
+    );
+  }
+  const visit = (reference: string, depth: number, path: readonly string[]) => {
+    if (path.includes(reference)) {
+      throw topologyFailure(
+        `cycle detected at ${[...path, reference].join(" -> ")}`,
+      );
+    }
+    if (depth > policy.maxDepth) {
+      throw topologyFailure(
+        `nesting depth ${depth} exceeds limit ${policy.maxDepth}`,
+      );
+    }
+    const entry = registry[reference];
+    if (!entry) {
+      throw topologyFailure(`missing generated registry entry ${reference}`);
+    }
+    const nextPath = [...path, reference];
+    for (const child of entry.children) {
+      fanOut += 1;
+      if (fanOut > policy.maxFanOut) {
+        throw topologyFailure(
+          `declared child fan-out exceeds limit ${policy.maxFanOut}`,
+        );
+      }
+      visit(child, depth + 1, nextPath);
+    }
+  };
+  for (const root of roots) visit(root, 1, []);
+};
 
 export const scheduledSubworkflowFinding = (
   node: unknown,
@@ -221,11 +360,51 @@ const assertMappedArgsSize = (node: SubworkflowNodeV2, args: unknown): void => {
   }
 };
 
+const readLinkId = (node: SubworkflowNodeV2, value: unknown): string => {
+  if (
+    !isRecord(value) ||
+    typeof value.linkId !== "string" ||
+    value.linkId.length === 0
+  ) {
+    throw subworkflowFailure(node, "link reservation returned an invalid ID");
+  }
+  return value.linkId;
+};
+
+const reconcileLink = (
+  step: RunDurableGraphStep,
+  entry: AnyWorkflowV2SubworkflowRegistryEntry,
+  node: SubworkflowNodeV2,
+  ownership: RunSubworkflowInput<AnyWorkflowV2SubworkflowRegistryEntry>["ownership"],
+  linkId: string,
+  outcome: SubworkflowRunLinkOutcome,
+): Promise<unknown> =>
+  step.runMutation(
+    entry.links.reconcileRef,
+    {
+      workspaceId: ownership.workspaceId,
+      linkId,
+      outcome,
+      occurredAt: ownership.occurredAt,
+    },
+    { name: `${node.stepName}.link.reconcile.v1` },
+  );
+
+const isPinnedWorkflowCancellation = (error: unknown): boolean =>
+  error instanceof Error && error.message === "Canceled";
+
 const subworkflowFailure = (node: SubworkflowNodeV2, issue: string) =>
   makePublicError(
     "VALIDATION_FAILED",
     `Workflow subworkflow compilation failed at ${node.id} (${node.stepName}): ${issue}`,
     { nodeId: node.id, stepName: node.stepName, issue },
+  );
+
+const topologyFailure = (issue: string) =>
+  makePublicError(
+    "VALIDATION_FAILED",
+    `Workflow subworkflow topology failed: ${issue}.`,
+    { issue },
   );
 
 const isRecord = (value: unknown): value is Readonly<Record<string, unknown>> =>

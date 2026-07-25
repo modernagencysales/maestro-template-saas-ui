@@ -20,6 +20,7 @@ import {
   runCompiledDurableGraphWorkflowV2,
   type RunDurableGraphV2CompilerInput,
 } from "./graphRunnerV2";
+import { validateWorkflowV2SubworkflowTopology } from "./subworkflows";
 
 export type {
   WorkflowEffectAdmission,
@@ -189,6 +190,26 @@ export const runDurableGraphWorkflowV2 = async <
       "VALIDATION_FAILED",
       "Workflow graph V2 contains a subworkflow without a generated registry.",
       { nodeIds: subworkflowNodes.map(({ id }) => id).join(",") },
+    );
+  }
+  if (
+    subworkflowNodes.length > 0 &&
+    (!input.subworkflowPolicy || !input.effectIdentity)
+  ) {
+    throw makePublicError(
+      "VALIDATION_FAILED",
+      "Workflow graph V2 subworkflow ownership and topology policy are required.",
+    );
+  }
+  if (
+    subworkflowNodes.length > 0 &&
+    input.workflowRegistry &&
+    input.subworkflowPolicy
+  ) {
+    validateWorkflowV2SubworkflowTopology(
+      input.graph,
+      input.workflowRegistry,
+      input.subworkflowPolicy,
     );
   }
   if (eventNodes.length > 0 && !input.eventRegistry) {

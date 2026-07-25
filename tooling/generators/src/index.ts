@@ -2549,7 +2549,8 @@ export default GroupSpec.make()
     },
     {
       path: `packages/convex/confect/workflowContracts/${name}.impl.ts`,
-      content: `import {
+      content: `import type { GenericId } from "convex/values";
+import {
   getStatus,
   sendEvent,
   type WorkflowComponent,
@@ -2599,6 +2600,7 @@ const workflowComponent =
 type WorkflowRunFunctionArgs = {
   readonly args: {
     readonly workspaceId: string;
+    readonly workflowRunId: string;
     readonly idempotencyKey: string;
     readonly principal: {
       readonly version: 1;
@@ -2667,7 +2669,7 @@ const toWorkflowError = (error: unknown): WorkflowError => {
 };
 
 const findWorkflowRun = (
-  workspaceId: string,
+  workspaceId: GenericId<"workspaces">,
   componentWorkflowId: string,
 ) =>
   Effect.gen(function* () {
@@ -2697,7 +2699,7 @@ const findWorkflowRun = (
 const startWithProfile = (
   kickoffProfile: "interactive" | "queued",
   { workspaceId, idempotencyKey }: {
-    readonly workspaceId: string;
+    readonly workspaceId: GenericId<"workspaces">;
     readonly idempotencyKey: string;
   },
 ) =>
@@ -2719,7 +2721,12 @@ const startWithProfile = (
       };
       const componentWorkflowId = yield* startWorkflowAndRecordOwnership({
         workflowRef: ${name}RunRef,
-        workflowArgs: { workspaceId, idempotencyKey, principal },
+        buildWorkflowArgs: (workflowRunId) => ({
+          workspaceId,
+          workflowRunId,
+          idempotencyKey,
+          principal,
+        }),
         workspaceId,
         workflowId: ${name}Graph.id,
         workflowVersion: ${name}Graph.version,
@@ -2877,7 +2884,10 @@ export const ${name}Graph = Either.getOrThrow(defineWorkflowGraphV2({
     },
     {
       path: `packages/convex/confect/workflows/${name}.registry.ts`,
-      content: `import { defineWorkflowCapabilityRegistry } from "./_kit/graphRunnerV2";
+      content: `import refs from "../_generated/refs";
+import { defineWorkflowCapabilityRegistry } from "./_kit/graphRunnerV2";
+import { defineWorkflowV2SubworkflowRegistry } from "./_kit/subworkflows";
+import { generatedWorkflowSubworkflowPolicy } from "./_kit/workpoolConfig";
 
 /**
  * Generated typed capability registry. Add entries only through generated
@@ -2886,6 +2896,21 @@ export const ${name}Graph = Either.getOrThrow(defineWorkflowGraphV2({
  * redaction policy, and provider/reconciliation fixture evidence.
  */
 export const ${name}CapabilityRegistry = defineWorkflowCapabilityRegistry({});
+
+export const ${name}SubworkflowLinkRefs = {
+  reserveRef: refs.internal.workflows.subworkflowLinks.reserve,
+  reconcileRef: refs.internal.workflows.subworkflowLinks.reconcile,
+} as const;
+
+/**
+ * Generated immutable child registry. Every entry declares its exact version,
+ * typed Args/Result mapping, transitive children, principal narrowing, and the
+ * shared typed workflowRunLinks reserve/reconcile refs above.
+ */
+export const ${name}SubworkflowRegistry =
+  defineWorkflowV2SubworkflowRegistry({});
+
+export const ${name}SubworkflowPolicy = generatedWorkflowSubworkflowPolicy;
 `,
     },
     {
@@ -2903,6 +2928,10 @@ import {
 } from "../workflows/_kit/graphRunner";
 import type { RunDurableGraphV2CompilerInput } from "../workflows/_kit/graphRunnerV2";
 import { ${name}Graph } from "../workflows/${name}.graph";
+import {
+  ${name}SubworkflowPolicy,
+  ${name}SubworkflowRegistry,
+} from "../workflows/${name}.registry";
 
 const WorkflowPrincipalValidator = v.union(
   v.object({
@@ -2973,6 +3002,7 @@ const metadata = {
 export const run = defineMaestroWorkflow(components.workflow, {
   args: {
     workspaceId: v.string(),
+    workflowRunId: v.string(),
     idempotencyKey: v.string(),
     principal: WorkflowPrincipalValidator,
   },
@@ -2983,6 +3013,14 @@ export const run = defineMaestroWorkflow(components.workflow, {
     inputs: args,
     principal: args.principal,
     policySnapshot: { kind: "none", reason: ${name}Graph.policyPosture.kind === "none" ? ${name}Graph.policyPosture.reason : "generated" },
+    effectIdentity: {
+      workspaceId: args.workspaceId,
+      workflowRunId: args.workflowRunId,
+      generation: 0,
+      occurredAt: args.principal.kickoffAt,
+    },
+    workflowRegistry: ${name}SubworkflowRegistry,
+    subworkflowPolicy: ${name}SubworkflowPolicy,
     failureRoutes,
     projectOutput: () => ({ workflowId: ${name}Graph.id, status: "completed" as const }),
   }),
@@ -3094,7 +3132,7 @@ Canonical system: \`${options.system}\` (\`${options.disposition}\`).
 - \`packages/convex/confect/workflowContracts/${name}.spec.ts\`: typed start, status, and approval contract.
 - \`packages/convex/confect/workflowContracts/${name}.impl.ts\`: Confect implementation that records workflow ownership and projects component status.
 - \`packages/convex/confect/workflows/${name}.graph.ts\`: durable graph data, initially source to Trust Receipt output only.
-- \`packages/convex/confect/workflows/${name}.registry.ts\`: generated typed capability metadata and internal refs; external actions require effect, horizon, guard, redaction, and fixture evidence.
+- \`packages/convex/confect/workflows/${name}.registry.ts\`: generated typed capability and immutable child-workflow metadata, topology policy, and internal refs; external actions require effect, horizon, guard, redaction, and fixture evidence.
 - \`packages/convex/confect/workflows/${name}.predeploy.ts\`: collected workflow-component Workpool declarations and the injected canonical predeploy findings gate.
 - \`packages/convex/test/${name}.workflow.test.ts\`: focused runner scaffold for the default graph.
 
@@ -3106,7 +3144,9 @@ Canonical system: \`${options.system}\` (\`${options.disposition}\`).
 4. Keep React Flow as a projection of \`${name}.graph.ts\`; do not persist canvas node state as the workflow contract.
 5. Generated approval nodes require the generated \`workflowContracts.${name}.approve\` mutation before they are usable.
 6. Generated capability nodes require registry entries with generated internal refs, concrete \`buildArgs\` and logical instance-key mappers, and complete effect/guard/redaction/evidence contracts.
-7. Run \`pnpm check:workflow:fast\`, \`pnpm check:confect-contracts\`, and focused workflow tests.
+7. Generated subworkflow entries require an immutable child version, typed Args/Result schemas, declared transitive children, principal posture, and \`${name}SubworkflowLinkRefs\`; cycle, depth, and fan-out checks run before child dispatch.
+8. Workflow 0.4.4 scheduled children remain rejected; use a named sleep plus an unscheduled child only as a deliberately non-equivalent alternative.
+9. Run \`pnpm check:workflow:fast\`, \`pnpm check:confect-contracts\`, and focused workflow tests.
 `,
     },
   ];

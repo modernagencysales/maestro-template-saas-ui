@@ -1296,6 +1296,14 @@ describe("template app factory generators", () => {
     const docs = generated.files[10]?.content ?? "";
 
     expect(registry).toContain("defineWorkflowCapabilityRegistry");
+    expect(registry).toContain("defineWorkflowV2SubworkflowRegistry");
+    expect(registry).toContain("generatedWorkflowSubworkflowPolicy");
+    expect(registry).toContain(
+      "refs.internal.workflows.subworkflowLinks.reserve",
+    );
+    expect(registry).toContain(
+      "refs.internal.workflows.subworkflowLinks.reconcile",
+    );
     expect(registry).toContain("internal refs");
     expect(registry).toContain("dedupe/restart horizons");
     expect(registry).toContain("guard postures");
@@ -1340,6 +1348,8 @@ describe("template app factory generators", () => {
     expect(impl).toContain("Effect.mapError(toWorkflowError)");
     expect(impl).toContain("Effect.mapError(toWorkflowValidationFailed)");
     expect(impl).toContain("workflowArgs:");
+    expect(impl).toContain("buildWorkflowArgs: (workflowRunId) =>");
+    expect(impl).toContain("workflowRunId,");
     expect(impl).toContain("startedAt:");
     expect(impl).toContain("const runProjection = {");
     expect(impl).toContain("...(run.timeoutSummary !== undefined");
@@ -1362,6 +1372,10 @@ describe("template app factory generators", () => {
     expect(convexWorkflow).toContain("RunDurableGraphV2CompilerInput");
     expect(convexWorkflow).toContain(").failurePolicy");
     expect(convexWorkflow).toContain("failureRoutes,");
+    expect(convexWorkflow).toContain("sourceGroundedPlanSubworkflowRegistry");
+    expect(convexWorkflow).toContain("sourceGroundedPlanSubworkflowPolicy");
+    expect(convexWorkflow).toContain("workflowRunId: args.workflowRunId");
+    expect(convexWorkflow).toContain("occurredAt: args.principal.kickoffAt");
     expect(predeploy).toContain(
       "collectSourceGroundedPlanWorkflowWorkpoolDeclarations",
     );
@@ -1397,6 +1411,8 @@ describe("template app factory generators", () => {
     expect(docs).toContain(
       "concrete `buildArgs` and logical instance-key mappers",
     );
+    expect(docs).toContain("cycle, depth, and fan-out checks");
+    expect(docs).toContain("scheduled children remain rejected");
     expect(spec).toContain("startInteractive");
     expect(spec).toContain("startQueued");
     expect(spec).not.toContain("kickoffMode");

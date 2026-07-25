@@ -29,9 +29,15 @@ import {
   defineWorkflowV2Subworkflow,
   runRegisteredSubworkflow,
   scheduledSubworkflowFinding,
+  validateWorkflowV2SubworkflowTopology,
   type DurableGraphWorkflowRef,
   type WorkflowV2SubworkflowRegistryEntry,
 } from "../confect/workflows/_kit/subworkflows";
+import {
+  buildSubworkflowRunLinkRow,
+  reconcileSubworkflowRunLinkState,
+  type SubworkflowRunLinkProjection,
+} from "../confect/workflows/_kit/subworkflowLinks";
 import {
   defineWorkflowEvent,
   defineWorkflowV2EventRegistry,
@@ -294,6 +300,7 @@ const eventIdentity = {
   workspaceId: "workspace-1",
   workflowRunId: "run-1",
   generation: 1,
+  occurredAt: 1,
 } as const;
 const eventRunOwnership = eventIdentity;
 
@@ -562,10 +569,17 @@ describe("Maestro V2 action retry compiler", () => {
 
   it("runs an exact child version with bounded args and inherited principal", async () => {
     const runWorkflow = vi.fn(async () => ({ receiptId: "child-receipt" }));
+    const runMutation = vi.fn(
+      async (
+        ref: DurableGraphStepRef<"mutation">,
+        _args: Record<string, unknown>,
+        _options?: Record<string, unknown>,
+      ) => (ref === childLinkReserveRef ? { linkId: "link-1" } : null),
+    );
     const graph = v2SubworkflowGraph();
 
     await expect(
-      runDurableGraphWorkflowV2(v2Step({ runWorkflow }), {
+      runDurableGraphWorkflowV2(v2Step({ runWorkflow, runMutation }), {
         ...v2Input(graph),
         inputs: { requestId: "request-1" },
         principal: childPrincipal,
@@ -581,6 +595,26 @@ describe("Maestro V2 action retry compiler", () => {
       { requestId: "request-1", principal: childPrincipal },
       { name: "child.v3" },
     );
+    expect(runMutation.mock.calls).toEqual([
+      [
+        childLinkReserveRef,
+        { projection: childLinkProjection(), occurredAt: 1 },
+        { name: "child.v3.link.reserve.v1" },
+      ],
+      [
+        childLinkReconcileRef,
+        {
+          workspaceId: "workspace-1",
+          linkId: "link-1",
+          outcome: {
+            kind: "succeeded",
+            resultJson: '{"receiptId":"child-receipt"}',
+          },
+          occurredAt: 1,
+        },
+        { name: "child.v3.link.reconcile.v1" },
+      ],
+    ]);
   });
 
   it("rejects a registry key whose version differs from its binding", () => {
@@ -591,12 +625,120 @@ describe("Maestro V2 action retry compiler", () => {
     ).toThrow(/generated reference matching its immutable version/);
   });
 
-  it.each(["child failed", "child canceled"])(
-    "propagates %s without overstating cleanup completion",
-    async (message) => {
-      const runWorkflow = vi.fn(async () => Promise.reject(new Error(message)));
+  it.each([
+    ["cycle", { maxDepth: 4, maxFanOut: 8 }, [childWorkflowRef]],
+    ["maximum depth", { maxDepth: 1, maxFanOut: 8 }, [nestedWorkflowRef]],
+    [
+      "bounded fan-out",
+      { maxDepth: 4, maxFanOut: 1 },
+      [nestedWorkflowRef, nestedWorkflowRef],
+    ],
+  ] as const)(
+    "rejects %s before starting a child",
+    async (_name, policy, children) => {
+      const runWorkflow = vi.fn(async () => ({ receiptId: "unreachable" }));
+      const registry = defineWorkflowV2SubworkflowRegistry({
+        [childWorkflowRef]: defineWorkflowV2Subworkflow({
+          ...childWorkflowEntry,
+          children,
+        }),
+        [nestedWorkflowRef]: defineWorkflowV2Subworkflow({
+          ...childWorkflowEntry,
+          version: 4,
+          children: [],
+        }),
+      });
+
+      expect(() =>
+        validateWorkflowV2SubworkflowTopology(
+          v2SubworkflowGraph(),
+          registry,
+          policy,
+        ),
+      ).toThrow();
       await expect(
         runDurableGraphWorkflowV2(v2Step({ runWorkflow }), {
+          ...v2Input(v2SubworkflowGraph()),
+          principal: childPrincipal,
+          workflowRegistry: registry,
+          subworkflowPolicy: policy,
+          capabilityRegistry: {},
+          admitEffect: async () => ({ kind: "deny", reason: "not used" }),
+        }),
+      ).rejects.toThrow();
+      expect(runWorkflow).not.toHaveBeenCalled();
+    },
+  );
+
+  it("persists exact parent-child projections and reconciles replay idempotently", () => {
+    const projection = childLinkProjection();
+    const row = buildSubworkflowRunLinkRow(projection, 10);
+    expect(row).toMatchObject({
+      workspaceId: "workspace-1",
+      parentWorkflowId: "run-1",
+      childWorkflowId: null,
+      relationKind: "subworkflow",
+      relationId: "child.v3",
+      status: "starting",
+    });
+    expect(JSON.parse(row.parentKind)).toEqual({
+      workflowVersion: 2,
+      generation: 0,
+      principal: childPrincipal,
+    });
+    expect(JSON.parse(row.childKind)).toEqual({
+      workflow: childWorkflowRef,
+      workflowVersion: 3,
+      principal: childPrincipal,
+      cancellation: "cascade",
+      cleanup: "cascade-async",
+    });
+
+    const first = reconcileSubworkflowRunLinkState(
+      row,
+      {
+        kind: "succeeded",
+        resultJson: '{"receiptId":"child-receipt"}',
+      },
+      11,
+    );
+    const replay = reconcileSubworkflowRunLinkState(
+      first,
+      {
+        kind: "succeeded",
+        resultJson: '{"receiptId":"child-receipt"}',
+      },
+      12,
+    );
+    expect(replay).toEqual(first);
+    expect(() =>
+      reconcileSubworkflowRunLinkState(
+        first,
+        {
+          kind: "failed",
+          error: "late contradiction",
+        },
+        13,
+      ),
+    ).toThrow("already reconciled");
+  });
+
+  it.each([
+    ["child failure", "child failed", "failed"],
+    ["child cancellation", "Canceled", "canceled"],
+  ] as const)(
+    "propagates %s without overstating cleanup completion",
+    async (_label, message, expectedOutcome) => {
+      const runWorkflow = vi.fn(async () => Promise.reject(new Error(message)));
+      const runMutation = vi.fn(
+        async (
+          ref: DurableGraphStepRef<"mutation">,
+          _args: Record<string, unknown>,
+          _options?: Record<string, unknown>,
+        ) => (ref === childLinkReserveRef ? { linkId: "link-1" } : null),
+      );
+      await expect(
+        runDurableGraphWorkflowV2(v2Step({ runWorkflow, runMutation }), {
           ...v2Input(v2SubworkflowGraph()),
           principal: childPrincipal,
           workflowRegistry: childWorkflowRegistry,
@@ -607,6 +749,9 @@ describe("Maestro V2 action retry compiler", () => {
       expect(childWorkflowEntry.lifecycle).toEqual({
         cancel: "cascade",
         cleanup: "cascade-async",
+      });
+      expect(runMutation.mock.calls[1]?.[1]).toMatchObject({
+        outcome: { kind: expectedOutcome },
       });
     },
   );
@@ -672,6 +817,13 @@ describe("Maestro V2 action retry compiler", () => {
         context: {},
         principal: childPrincipal,
         policySnapshot: {},
+        ownership: {
+          workspaceId: "workspace-1",
+          parentWorkflowId: "run-1",
+          parentWorkflowVersion: 2,
+          generation: 0,
+          occurredAt: 1,
+        },
       });
     const typedChildResult: () => Promise<ChildResult> = typedInvocation;
     expect(typedChildResult).toBeTypeOf("function");
@@ -1267,6 +1419,9 @@ const capabilityRef = Schema.decodeSync(WorkflowCapabilityReference)(
 const childWorkflowRef = Schema.decodeSync(WorkflowReference)(
   "workflow.childReceipt.v3",
 );
+const nestedWorkflowRef = Schema.decodeSync(WorkflowReference)(
+  "workflow.nestedReceipt.v4",
+);
 type ChildArgs = {
   readonly requestId: string;
   readonly principal: WorkflowPrincipal;
@@ -1289,6 +1444,10 @@ const childPrincipal = {
   grants: ["workflow:run", "brief:read"],
   kickoffAt: 1,
 } as const satisfies WorkflowPrincipal;
+const childLinkReserveRef =
+  "workflows.subworkflowLinks.reserve" as unknown as DurableGraphStepRef<"mutation">;
+const childLinkReconcileRef =
+  "workflows.subworkflowLinks.reconcile" as unknown as DurableGraphStepRef<"mutation">;
 const childWorkflowRegistry = defineWorkflowV2SubworkflowRegistry({
   [childWorkflowRef]: defineWorkflowV2Subworkflow({
     version: 3,
@@ -1299,9 +1458,27 @@ const childWorkflowRegistry = defineWorkflowV2SubworkflowRegistry({
     resultSchema: childResultSchema,
     principal: { kind: "inherit" },
     lifecycle: { cancel: "cascade", cleanup: "cascade-async" },
+    children: [],
+    links: {
+      reserveRef: childLinkReserveRef,
+      reconcileRef: childLinkReconcileRef,
+    },
   }),
 });
 const childWorkflowEntry = readChildWorkflowEntry();
+
+const childLinkProjection = (): SubworkflowRunLinkProjection => ({
+  workspaceId: "workspace-1",
+  parentWorkflowId: "run-1",
+  parentWorkflowVersion: 2,
+  generation: 0,
+  childWorkflow: childWorkflowRef,
+  childWorkflowVersion: 3,
+  stepName: Schema.decodeSync(WorkflowStepName)("child.v3"),
+  principal: childPrincipal,
+  cancellation: "cascade",
+  cleanup: "cascade-async",
+});
 
 function readChildWorkflowEntry() {
   const entry = Object.values(childWorkflowRegistry)[0];
@@ -1575,7 +1752,9 @@ const v2Input = (graph: DurableWorkflowGraphV2) => ({
     workspaceId: "workspace-1",
     workflowRunId: "run-1",
     generation: 0,
+    occurredAt: 1,
   },
+  subworkflowPolicy: { maxDepth: 4, maxFanOut: 8 },
   projectOutput: ({
     context,
   }: {
@@ -1590,7 +1769,8 @@ const v2Step = (
   overrides: Partial<RunDurableGraphStep>,
 ): RunDurableGraphStep => ({
   runQuery: async () => undefined,
-  runMutation: async () => undefined,
+  runMutation: async (ref) =>
+    ref === childLinkReserveRef ? { linkId: "link-1" } : null,
   runAction: async () => undefined,
   runWorkflow: async () => undefined,
   sleep: async () => undefined,

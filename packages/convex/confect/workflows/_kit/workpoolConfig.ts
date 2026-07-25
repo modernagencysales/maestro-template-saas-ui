@@ -43,6 +43,12 @@ export const generatedWorkflowWorkpoolOptions = workflowWorkpoolOptions(
 export const generatedWorkflowReadyWaveLimit =
   environmentPosture[generatedWorkflowEnvironment].maxParallelism;
 
+export const generatedWorkflowSubworkflowPolicy = {
+  maxDepth: 8,
+  maxFanOut:
+    environmentPosture[generatedWorkflowEnvironment].maxParallelism * 4,
+} as const;
+
 export const workflowWorkpoolConfigurationFindings = (
   environment: WorkflowEnvironment,
   declarations: readonly WorkflowWorkpoolDeclaration[],

@@ -78,6 +78,15 @@ before calling the durable event/control path. Generated capability nodes are
 only usable when their registry entries include a concrete `buildArgs` mapper
 for the target internal capability ref.
 
+Generated subworkflow nodes resolve only through the workflow's generated child
+registry. Each entry pins the child version and typed Args/Result contract,
+declares transitive children and inherited or narrowed principal posture, and
+uses the shared typed `workflowRunLinks` reserve/reconcile mutations. Cycle,
+maximum-depth, and bounded fan-out validation runs before the first child step.
+Cancellation is projected as cascading while cleanup remains `cascade-async`;
+neither is described as atomic rollback or immediate deletion. Scheduled child
+options remain rejected on Workflow 0.4.4.
+
 Use `template:promote-workflow` only for older review artifacts or private
 package promotion flows that still need promotion into production-target paths.
 For new generated workflows, `template:add-workflow -- --write` already writes

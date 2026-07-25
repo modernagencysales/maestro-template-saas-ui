@@ -92,7 +92,9 @@ export type RunDurableGraphV2CompilerInput<
     readonly workspaceId: string;
     readonly workflowRunId: string;
     readonly generation: number;
+    readonly occurredAt: number;
   };
+  readonly subworkflowPolicy?: import("./subworkflows").WorkflowV2SubworkflowPolicy;
   readonly admitEffect: (input: {
     readonly node: CapabilityNodeV2;
     readonly capability: string;
@@ -331,6 +333,13 @@ const executeNode = async <Result extends Record<string, unknown>>(
       context,
       principal: input.principal,
       policySnapshot: input.policySnapshot,
+      ownership: {
+        workspaceId: input.effectIdentity.workspaceId,
+        parentWorkflowId: input.effectIdentity.workflowRunId,
+        parentWorkflowVersion: input.graph.version,
+        generation: input.effectIdentity.generation,
+        occurredAt: input.effectIdentity.occurredAt,
+      },
     });
   }
   if (node.kind === "event") {
