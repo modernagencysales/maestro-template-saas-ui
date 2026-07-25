@@ -78,6 +78,10 @@ check-convex-ai-files:
 
 check-agent-pack:
     pnpm check:agent-pack
+
+check-workflow-output-smoke:
+    pnpm template:workflow-output-smoke
+
 check-workflow-semantics:
     pnpm check:workflow-semantics
 
