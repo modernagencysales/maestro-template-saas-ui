@@ -22,6 +22,10 @@ const runnerAuthority = readFileSync(
   "packages/convex/confect/workflows/_kit/graphRunnerV2.ts",
   "utf8",
 );
+const principalAuthority = readFileSync(
+  "packages/convex/confect/workflows/_kit/principal.ts",
+  "utf8",
+);
 const findings: string[] = [];
 
 for (const forbidden of ["actorId", "authEpoch", "systemId", "grants"]) {
@@ -36,9 +40,10 @@ for (const required of [
   if (!impl.includes(required))
     findings.push(`generated start misses ${required}`);
 }
+if (!principalAuthority.includes("version: v.literal(2)"))
+  findings.push("generated runner misses version v.literal(2)");
 for (const required of [
-  "version: v.literal(2)",
-  "principal: WorkflowPrincipalValidator",
+  "principal: DurableWorkflowPrincipalValidator",
   "policySnapshot: WorkflowPolicySnapshotValidator",
   "policySnapshot: args.policySnapshot",
 ]) {
@@ -49,7 +54,9 @@ if (!registry.includes("buildWorkflowCapabilityArgs"))
   findings.push("generated capability registry misses authority mapper");
 if (!registry.includes("requireConsequentialWorkflowAuthority"))
   findings.push("generated capability registry misses current reauthorization");
-if (!registry.includes('boundary: "generated-current-authority"'))
+if (
+  !runnerAuthority.includes('readonly boundary: "generated-current-authority"')
+)
   findings.push("generated external action contract misses authority posture");
 if (!runnerAuthority.includes("assertExternalAuthorizationBoundary"))
   findings.push("V2 action runner misses authorization preflight");
