@@ -1,4 +1,12 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 import { isNonRetryableError } from "@convex-dev/workpool";
 import type { EventId as ComponentEventId } from "@convex-dev/workflow";
 import { v } from "convex/values";
@@ -1506,8 +1514,9 @@ describe("Maestro V2 inline transaction compiler", () => {
 });
 
 describe("pinned Convex Workflow component conformance", () => {
-  beforeEach(() => vi.useFakeTimers());
-  afterEach(() => vi.useRealTimers());
+  beforeAll(() => vi.useFakeTimers());
+  beforeEach(() => vi.clearAllTimers());
+  afterAll(() => vi.useRealTimers());
 
   it("distinguishes eager-first-poll from queued kickoff", async () => {
     const eager = createWorkflowHarness();
@@ -1526,6 +1535,12 @@ describe("pinned Convex Workflow component conformance", () => {
       workflowId: queuedId,
     });
     expect(queuedStatus.workflow.runResult).toBeUndefined();
+    await queued.mutation(conformanceApi.cancelWorkflow, {
+      workflowId: queuedId,
+    });
+    await queued.mutation(conformanceApi.cleanupWorkflow, {
+      workflowId: queuedId,
+    });
   });
 
   it("consumes an event that arrives before its wait step", async () => {
@@ -1534,7 +1549,7 @@ describe("pinned Convex Workflow component conformance", () => {
       conformanceApi.startEventBeforeWait,
       {},
     );
-    await t.finishAllScheduledFunctions(vi.runAllTimers);
+    await t.finishAllScheduledFunctions(vi.runOnlyPendingTimers);
     await expect(
       t.query(conformanceApi.workflowStatus, { workflowId }),
     ).resolves.toEqual({ type: "completed", result: true });
@@ -1560,6 +1575,10 @@ describe("pinned Convex Workflow component conformance", () => {
     );
     expect(new Set(listedIds)).toEqual(new Set(ids));
     expect(second.isDone).toBe(true);
+    for (const workflowId of ids) {
+      await t.mutation(conformanceApi.cancelWorkflow, { workflowId });
+      await t.mutation(conformanceApi.cleanupWorkflow, { workflowId });
+    }
   });
 
   it("cancels and cleans through the public manager boundary", async () => {
@@ -1583,7 +1602,7 @@ describe("pinned Convex Workflow component conformance", () => {
   it("dispatches Promise.all steps as parallel component work", async () => {
     const t = createWorkflowHarness();
     const workflowId = await t.mutation(conformanceApi.startParallel, {});
-    await t.finishAllScheduledFunctions(vi.runAllTimers);
+    await t.finishAllScheduledFunctions(vi.runOnlyPendingTimers);
     await expect(
       t.query(conformanceApi.workflowStatus, { workflowId }),
     ).resolves.toEqual({ type: "completed", result: ["left", "right"] });
@@ -1606,7 +1625,7 @@ describe("pinned Convex Workflow component conformance", () => {
       conformanceApi.startRestartWorkflow,
       {},
     );
-    await t.finishAllScheduledFunctions(vi.runAllTimers);
+    await t.finishAllScheduledFunctions(vi.runOnlyPendingTimers);
     await expect(
       t.query(conformanceApi.workflowStatus, { workflowId }),
     ).resolves.toMatchObject({ type: "failed" });
@@ -1687,7 +1706,7 @@ describe("pinned Convex Workflow component conformance", () => {
     await expect(
       t.query(conformanceApi.workflow.getStatus, { workflowId: childId }),
     ).resolves.toBeDefined();
-    await t.finishAllScheduledFunctions(vi.runAllTimers);
+    await t.finishAllScheduledFunctions(vi.runOnlyPendingTimers);
     await expect(
       t.query(conformanceApi.workflow.getStatus, { workflowId: childId }),
     ).rejects.toThrow("Workflow not found");
@@ -1700,7 +1719,7 @@ describe("pinned Convex Workflow component conformance", () => {
       conformanceApi.startFailingOnComplete,
       {},
     );
-    await t.finishAllScheduledFunctions(vi.runAllTimers);
+    await t.finishAllScheduledFunctions(vi.runOnlyPendingTimers);
     await expect(
       t.query(conformanceApi.workflowStatus, { workflowId }),
     ).resolves.toEqual({ type: "completed", result: "preserved" });
@@ -1734,7 +1753,7 @@ describe("pinned Convex Workflow component conformance", () => {
     await expect(
       t.mutation(conformanceApi.cleanupWorkflow, { workflowId }),
     ).resolves.toBe(true);
-    await t.finishAllScheduledFunctions(vi.runAllTimers);
+    await t.finishAllScheduledFunctions(vi.runOnlyPendingTimers);
     const residual = await t.query(conformanceApi.workflow.listSteps, {
       workflowId,
       order: "asc",
