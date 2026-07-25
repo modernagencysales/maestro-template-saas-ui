@@ -17,6 +17,7 @@ import {
 } from "./lifecycleAdapters";
 import lifecycle from "./lifecycle.spec";
 import { reconcileWorkflowCompletion } from "./lifecycleReconciliation";
+import { runBoundedWorkflowRetentionSweep } from "./_kit/lifecycleSweep";
 
 const cancel = FunctionImpl.make(databaseSchema, lifecycle, "cancel", (args) =>
   Effect.gen(function* () {
@@ -141,10 +142,56 @@ const reconcileCompletion = FunctionImpl.make(
     }),
 );
 
+const reconcileCleanup = FunctionImpl.make(
+  databaseSchema,
+  lifecycle,
+  "reconcileCleanup",
+  (args) =>
+    Effect.gen(function* () {
+      const principal = yield* authorizeWorkflowLifecycle(args.workspaceId);
+      const reader = yield* DatabaseReader;
+      const writer = yield* DatabaseWriter;
+      const mutation = yield* MutationCtx;
+      const controls = makeWorkflowLifecycleMutationControls(
+        reader,
+        writer,
+        mutation,
+        principal,
+      );
+      return yield* runWorkflowLifecycleControl(args.workflowRunId, () =>
+        controls.reconcileCleanup(principal, args),
+      );
+    }),
+);
+
+const sweepRetention = FunctionImpl.make(
+  databaseSchema,
+  lifecycle,
+  "sweepRetention",
+  (args) =>
+    Effect.gen(function* () {
+      const principal = yield* authorizeWorkflowLifecycle(args.workspaceId);
+      const reader = yield* DatabaseReader;
+      const writer = yield* DatabaseWriter;
+      const mutation = yield* MutationCtx;
+      const controls = makeWorkflowLifecycleMutationControls(
+        reader,
+        writer,
+        mutation,
+        principal,
+      );
+      return yield* runWorkflowLifecycleControl("retention-sweep", () =>
+        runBoundedWorkflowRetentionSweep(controls, principal, args),
+      );
+    }),
+);
+
 export default GroupImpl.make(databaseSchema, lifecycle).pipe(
   Layer.provide(cancel),
   Layer.provide(restart),
   Layer.provide(reconcileCompletion),
+  Layer.provide(reconcileCleanup),
+  Layer.provide(sweepRetention),
   Layer.provide(list),
   Layer.provide(listByName),
   Layer.provide(listSteps),

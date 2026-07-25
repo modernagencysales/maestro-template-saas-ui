@@ -122,6 +122,11 @@ export const lifecycleHarness = (run = activeRun()) => {
       inProgressSteps: [],
       inProgressChildren: [],
     })),
+    inspectRetention: vi.fn(async () => ({
+      ...storedRun.state.retention,
+      activeChildCount: 0,
+      retentionUnverifiable: false,
+    })),
     component: {
       status: vi.fn(async () => ({ type: "completed" as const })),
       cancel: vi.fn(async () => undefined),

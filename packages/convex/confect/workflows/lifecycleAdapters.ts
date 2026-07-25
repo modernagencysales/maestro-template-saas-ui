@@ -27,6 +27,7 @@ import { workflowLifecycleComponentAdapter } from "./lifecycleComponent";
 import {
   inspectWorkflowExposedWork,
   inspectWorkflowRestart,
+  inspectWorkflowRetention,
 } from "./lifecycleInspection";
 
 type Reader = Context.Tag.Service<typeof DatabaseReader>;
@@ -103,6 +104,8 @@ const readPorts = (
     Effect.runPromise(inspectWorkflowRestart(reader, input)),
   inspectQuiescence: (input) =>
     Effect.runPromise(inspectWorkflowExposedWork(reader, input)),
+  inspectRetention: (input) =>
+    Effect.runPromise(inspectWorkflowRetention(reader, input)),
   component: {
     status: unavailableOperation,
     cancel: unavailableOperation,

@@ -1,11 +1,87 @@
 import type * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
+import * as Option from "effect/Option";
 
 import { DatabaseReader } from "../_generated/services";
 import type { WorkflowRestartInspection } from "./_kit/lifecycleControls";
 import { WorkflowLifecyclePersistenceError } from "./lifecyclePersistence";
 
 type Reader = Context.Tag.Service<typeof DatabaseReader>;
+
+export const inspectWorkflowRetention = (
+  reader: Reader,
+  input: {
+    readonly workspaceId: string;
+    readonly workflowRunId: string;
+    readonly componentWorkflowId: string;
+  },
+) =>
+  Effect.gen(function* () {
+    const run = yield* reader
+      .table("workflowRuns")
+      .get(
+        input.workflowRunId as import("convex/values").GenericId<"workflowRuns">,
+      )
+      .pipe(Effect.orDie);
+    const links = yield* reader
+      .table("workflowRunLinks")
+      .index("by_workspace_and_parent", (q) =>
+        q
+          .eq("workspaceId", input.workspaceId)
+          .eq("parentWorkflowId", input.componentWorkflowId),
+      )
+      .collect()
+      .pipe(Effect.orDie);
+    const evidence = yield* reader
+      .table("workflowRunEvidenceSnapshots")
+      .index("by_run", (q) => q.eq("workflowRunId", input.workflowRunId))
+      .collect()
+      .pipe(Effect.orDie);
+    const childRuns = yield* Effect.forEach(
+      links.flatMap((link) =>
+        link.childWorkflowId ? [link.childWorkflowId] : [],
+      ),
+      (childWorkflowId) =>
+        reader
+          .table("workflowRuns")
+          .index("by_workspace_component_workflow", (q) =>
+            q
+              .eq("workspaceId", input.workspaceId)
+              .eq("componentWorkflowId", childWorkflowId),
+          )
+          .first()
+          .pipe(Effect.map(Option.getOrNull), Effect.orDie),
+    );
+    const childDeadlines = childRuns.flatMap((child) =>
+      child
+        ? [
+            child.parentRetentionUntil,
+            child.childRetentionUntil,
+            child.evidenceRetentionUntil,
+          ].filter((value): value is number => value != null)
+        : [],
+    );
+    return {
+      parentUntil: run?.parentRetentionUntil ?? null,
+      childUntil: maxDeadline(run?.childRetentionUntil, childDeadlines),
+      evidenceUntil: run?.evidenceRetentionUntil ?? null,
+      activeChildCount: links.filter(
+        (link) => link.status === "starting" || link.status === "running",
+      ).length,
+      retentionUnverifiable:
+        run === null ||
+        childRuns.some((child) => child === null) ||
+        (evidence.length > 0 && run.evidenceRetentionUntil == null),
+    };
+  });
+
+const maxDeadline = (
+  own: number | null | undefined,
+  descendants: readonly number[],
+): number | null => {
+  const values = [...(own == null ? [] : [own]), ...descendants];
+  return values.length === 0 ? null : Math.max(...values);
+};
 
 export const inspectWorkflowExposedWork = (
   reader: Reader,

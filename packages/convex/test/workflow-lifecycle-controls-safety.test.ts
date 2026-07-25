@@ -136,4 +136,64 @@ describe("tenant-safe workflow lifecycle safety", () => {
       redacted: true,
     });
   });
+
+  it("reconciles exposed cleanup work without claiming hidden deletion", async () => {
+    const fixture = lifecycleHarness(
+      terminalRun({
+        cleanup: "in-progress",
+        componentCleanup: "component-cleanup-requested",
+      }),
+    );
+    vi.mocked(fixture.ports.inspectQuiescence).mockResolvedValueOnce({
+      inProgressSteps: ["action.v3"],
+      inProgressChildren: [],
+    });
+    await expect(
+      fixture.controls.reconcileCleanup(principal, {
+        workflowRunId: "run-a",
+        reasonCode: "retention-sweep",
+        occurredAt: 200,
+      }),
+    ).resolves.toEqual({ status: "component-cleanup-requested" });
+
+    vi.mocked(fixture.ports.inspectQuiescence).mockResolvedValueOnce({
+      inProgressSteps: [],
+      inProgressChildren: [],
+    });
+    await expect(
+      fixture.controls.reconcileCleanup(principal, {
+        workflowRunId: "run-a",
+        reasonCode: "retention-sweep",
+        occurredAt: 201,
+      }),
+    ).resolves.toEqual({ status: "component-residuals-unverifiable" });
+    expect(fixture.currentRun().state).toMatchObject({
+      cleanup: "in-progress",
+      componentCleanup: "component-residuals-unverifiable",
+    });
+  });
+
+  it("refuses canceled cleanup while exposed action work remains", async () => {
+    const fixture = lifecycleHarness(
+      terminalRun({
+        execution: "canceled",
+        priorGenerationQuiescence: "pending",
+      }),
+    );
+    vi.mocked(fixture.ports.component.status).mockResolvedValue({
+      type: "canceled",
+    });
+    vi.mocked(fixture.ports.inspectQuiescence).mockResolvedValue({
+      inProgressSteps: ["action.v3"],
+      inProgressChildren: [],
+    });
+    await expect(
+      fixture.controls.cleanup(principal, {
+        workflowRunId: "run-a",
+        reasonCode: "operator-request",
+        occurredAt: 200,
+      }),
+    ).rejects.toMatchObject({ code: "INVALID_STATE" });
+    expect(fixture.ports.component.cleanup).not.toHaveBeenCalled();
+  });
 });

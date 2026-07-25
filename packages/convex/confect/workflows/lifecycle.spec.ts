@@ -168,10 +168,44 @@ const reconcileCompletion = FunctionSpec.internalMutation({
   error: () => WorkflowLifecycleErrors,
 });
 
+const reconcileCleanup = FunctionSpec.internalMutation({
+  name: "reconcileCleanup",
+  args: () => ControlArgs,
+  returns: () =>
+    Schema.Struct({
+      status: Schema.Literal(
+        "component-cleanup-requested",
+        "component-known-work-complete",
+        "component-residuals-unverifiable",
+      ),
+    }),
+  error: () => WorkflowLifecycleErrors,
+});
+
+const sweepRetention = FunctionSpec.internalMutation({
+  name: "sweepRetention",
+  args: () =>
+    Schema.Struct({
+      workspaceId: Id("workspaces"),
+      ...Pagination.fields,
+      occurredAt: Schema.Number.pipe(Schema.greaterThanOrEqualTo(0)),
+    }),
+  returns: () =>
+    Schema.Struct({
+      accepted: Schema.Array(Schema.NonEmptyString),
+      refused: Schema.Array(Schema.NonEmptyString),
+      isDone: Schema.Boolean,
+      continueCursor: Schema.String,
+    }),
+  error: () => WorkflowLifecycleErrors,
+});
+
 export default GroupSpec.make()
   .addFunction(cancel)
   .addFunction(restart)
   .addFunction(reconcileCompletion)
+  .addFunction(reconcileCleanup)
+  .addFunction(sweepRetention)
   .addFunction(list)
   .addFunction(listByName)
   .addFunction(listSteps)

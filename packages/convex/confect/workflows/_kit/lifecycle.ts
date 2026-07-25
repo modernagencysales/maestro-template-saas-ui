@@ -12,6 +12,7 @@ import {
 } from "./lifecycleProjections";
 import {
   cleanupWorkflowLifecycle,
+  reconcileWorkflowCleanup,
   restartWorkflowLifecycle,
 } from "./lifecycleSafety";
 
@@ -49,4 +50,8 @@ export const createWorkflowLifecycleControls = (
   ) => listWorkflowLifecycleSteps(ports, principal, input),
   cleanup: (principal: WorkflowLifecyclePrincipal, input: ControlInput) =>
     cleanupWorkflowLifecycle(ports, principal, input),
+  reconcileCleanup: (
+    principal: WorkflowLifecyclePrincipal,
+    input: ControlInput,
+  ) => reconcileWorkflowCleanup(ports, principal, input),
 });

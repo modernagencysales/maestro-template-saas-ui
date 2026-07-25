@@ -93,7 +93,51 @@ export const cleanupWorkflowLifecycle = async (
 ) => {
   const run = await ownedRun(ports, principal, "cleanup", input.workflowRunId);
   validControlInput(input);
-  let next = transition(run.state, {
+  const status = await componentCall(() =>
+    ports.component.status(run.componentWorkflowId),
+  );
+  const exposedWork = await ports.inspectQuiescence({
+    workspaceId: principal.workspaceId,
+    workflowRunId: run.workflowRunId,
+    componentWorkflowId: run.componentWorkflowId,
+  });
+  if (
+    status.type === "inProgress" ||
+    exposedWork.inProgressSteps.length > 0 ||
+    exposedWork.inProgressChildren.length > 0
+  ) {
+    throw controlError(
+      "INVALID_STATE",
+      "Workflow cleanup requires component and exposed-work quiescence.",
+    );
+  }
+  const retention = await ports.inspectRetention({
+    workspaceId: principal.workspaceId,
+    workflowRunId: run.workflowRunId,
+    componentWorkflowId: run.componentWorkflowId,
+  });
+  if (retention.activeChildCount > 0 || retention.retentionUnverifiable) {
+    throw controlError(
+      "INVALID_STATE",
+      "Workflow cleanup requires verifiable retained child and evidence state.",
+    );
+  }
+  const quiescent =
+    run.state.priorGenerationQuiescence === "quiescent"
+      ? run.state
+      : transition(run.state, {
+          kind: "mark-generation-quiescent",
+          ...guard(run),
+        });
+  const retainedState = {
+    ...quiescent,
+    retention: {
+      parentUntil: retention.parentUntil,
+      childUntil: retention.childUntil,
+      evidenceUntil: retention.evidenceUntil,
+    },
+  };
+  let next = transition(retainedState, {
     kind: "request-cleanup",
     ...guard(run),
     now: input.occurredAt,
@@ -118,6 +162,44 @@ export const cleanupWorkflowLifecycle = async (
     status: "component-cleanup-requested" as const,
     fullDeletionProven: false as const,
   };
+};
+
+export const reconcileWorkflowCleanup = async (
+  ports: WorkflowLifecycleControlPorts,
+  principal: WorkflowLifecyclePrincipal,
+  input: ControlInput,
+) => {
+  const run = await ownedRun(ports, principal, "cleanup", input.workflowRunId);
+  validControlInput(input);
+  if (
+    run.state.componentCleanup === "component-residuals-unverifiable" ||
+    run.state.componentCleanup === "component-known-work-complete"
+  ) {
+    return { status: run.state.componentCleanup } as const;
+  }
+  if (run.state.componentCleanup !== "component-cleanup-requested") {
+    throw controlError(
+      "INVALID_STATE",
+      "Cleanup reconciliation requires a component cleanup request.",
+    );
+  }
+  const exposedWork = await ports.inspectQuiescence({
+    workspaceId: principal.workspaceId,
+    workflowRunId: run.workflowRunId,
+    componentWorkflowId: run.componentWorkflowId,
+  });
+  if (
+    exposedWork.inProgressSteps.length > 0 ||
+    exposedWork.inProgressChildren.length > 0
+  ) {
+    return { status: "component-cleanup-requested" as const };
+  }
+  const next = transition(run.state, {
+    kind: "mark-component-residuals-unverifiable",
+    ...guard(run),
+  });
+  await ports.saveLifecycleState(run.workflowRunId, next);
+  return { status: "component-residuals-unverifiable" as const };
 };
 
 const restartSafe = (

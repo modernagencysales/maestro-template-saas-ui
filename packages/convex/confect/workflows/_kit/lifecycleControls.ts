@@ -93,6 +93,14 @@ export type WorkflowQuiescenceInspection = {
   readonly inProgressChildren: readonly string[];
 };
 
+export type WorkflowRetentionInspection = {
+  readonly parentUntil: number | null;
+  readonly childUntil: number | null;
+  readonly evidenceUntil: number | null;
+  readonly activeChildCount: number;
+  readonly retentionUnverifiable: boolean;
+};
+
 export type WorkflowLifecycleControlPorts = {
   readonly authorize: (
     principal: WorkflowLifecyclePrincipal,
@@ -133,6 +141,11 @@ export type WorkflowLifecycleControlPorts = {
     readonly workflowRunId: string;
     readonly componentWorkflowId: string;
   }) => Promise<WorkflowQuiescenceInspection>;
+  readonly inspectRetention: (input: {
+    readonly workspaceId: string;
+    readonly workflowRunId: string;
+    readonly componentWorkflowId: string;
+  }) => Promise<WorkflowRetentionInspection>;
   readonly component: {
     readonly status: (componentWorkflowId: string) => Promise<{
       readonly type: "inProgress" | "completed" | "failed" | "canceled";
