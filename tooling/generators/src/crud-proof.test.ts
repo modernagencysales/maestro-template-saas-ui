@@ -2,7 +2,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { runCrudProof } from "./crud-proof";
+import { parseCrudProofArgs, runCrudProof } from "./crud-proof";
 
 const roots: string[] = [];
 afterEach(() => {
@@ -36,10 +36,32 @@ describe("generated customer CRUD proof", () => {
     expect(report).toMatchObject({
       ok: true,
       url: expect.stringMatching(/^http:\/\/127\.0\.0\.1:\d+$/),
+      create: { statusCode: 201, record: { id: "record_0001" } },
+      read: { statusCode: 200, record: { id: "record_0001" } },
       statuses: { create: 201, read: 200 },
       record: { id: "record_0001", sameBody: true, synthetic: false },
     });
     expect(report.record.readBodyHash).toBe(report.record.createBodyHash);
+    expect(report.read.record).toEqual(report.create.record);
+  });
+
+  it("accepts the optional JSON compatibility flag in either position", () => {
+    expect(parseCrudProofArgs(["--json"])).toEqual({
+      mode: "fake",
+      json: true,
+    });
+    expect(parseCrudProofArgs(["--mode", "fake", "--json"])).toEqual({
+      mode: "fake",
+      json: true,
+    });
+    expect(parseCrudProofArgs(["--mode", "fake", "--", "--json"])).toEqual({
+      mode: "fake",
+      json: true,
+    });
+    expect(parseCrudProofArgs(["--json", "--mode", "fake"])).toEqual({
+      mode: "fake",
+      json: true,
+    });
   });
 
   it("rejects production before loading the adapter", async () => {

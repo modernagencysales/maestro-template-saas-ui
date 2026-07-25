@@ -35,6 +35,14 @@ export type CrudProofReport = {
   readonly ok: true;
   readonly mode: "fake";
   readonly url: string;
+  readonly create: {
+    readonly statusCode: number;
+    readonly record: Readonly<Record<string, unknown>>;
+  };
+  readonly read: {
+    readonly statusCode: number;
+    readonly record: Readonly<Record<string, unknown>>;
+  };
   readonly statuses: { readonly create: number; readonly read: number };
   readonly record: {
     readonly id: string;
@@ -238,6 +246,8 @@ export const runCrudProof = async (
       ok: true,
       mode: "fake",
       url: runtime.url,
+      create: { statusCode: createdResponse.status, record: created },
+      read: { statusCode: readResponse.status, record: read },
       statuses: { create: createdResponse.status, read: readResponse.status },
       record: {
         id: created.id,
@@ -259,15 +269,31 @@ export const runCrudProof = async (
   }
 };
 
-const parseMode = (argv: readonly string[]) =>
-  argv.length === 0
-    ? "fake"
-    : argv.length === 2 && argv[0] === "--mode"
-      ? (argv[1] ?? "invalid")
-      : "invalid";
+export const parseCrudProofArgs = (argv: readonly string[]) => {
+  let mode = "fake";
+  let modeSeen = false;
+  let json = false;
+  for (let index = 0; index < argv.length; index += 1) {
+    const argument = argv[index];
+    if (argument === "--json" && !json) {
+      json = true;
+      continue;
+    }
+    if (argument === "--") continue;
+    if (argument === "--mode" && !modeSeen && argv[index + 1]) {
+      mode = argv[index + 1] ?? "invalid";
+      modeSeen = true;
+      index += 1;
+      continue;
+    }
+    return { mode: "invalid", json } as const;
+  }
+  return { mode, json } as const;
+};
 
 if (isGeneratorDirectRun(import.meta.url)) {
-  runCrudProof({ mode: parseMode(process.argv.slice(2)) })
+  const cli = parseCrudProofArgs(process.argv.slice(2));
+  runCrudProof({ mode: cli.mode })
     .then((report) => process.stdout.write(`${JSON.stringify(report)}\n`))
     .catch((error: unknown) => {
       process.stderr.write(

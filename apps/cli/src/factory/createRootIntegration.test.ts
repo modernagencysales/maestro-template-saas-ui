@@ -35,7 +35,7 @@ describe("create root integration", () => {
     expect(
       digest(join(repoRoot, "releases/v0.2.0-alpha.1/manifest.json")),
     ).toBe(
-      "sha256:6d4dbea9ea0a8a99ebc5a30e0fbddda15256ac467f3326b49f61673814dc39bb",
+      "sha256:b36bd8e2dc2d03e9fd91b43de070bf32bfeedb8e02faba6bf3a9d61eedc867b4",
     );
     expect(
       digest(
@@ -45,7 +45,7 @@ describe("create root integration", () => {
         ),
       ),
     ).toBe(
-      "sha256:d1e84e1c38496efed9d1c8753dd80e32aa4115713197eb4f06c6efa02abfeca3",
+      "sha256:848c80656d025ee8814032b28ea0f8d013e490f5f6a1e8240568ad05cb88e9cf",
     );
   });
 
@@ -282,13 +282,25 @@ describe("create root integration", () => {
       "tsx tooling/generators/src/crud-proof.ts --mode fake",
     );
     const proof = JSON.parse(
-      execFileSync("pnpm", ["--silent", "run", "maestro:crud-proof"], {
-        cwd: targetRoot,
-        encoding: "utf8",
-        timeout: 30_000,
-      }),
+      execFileSync(
+        "pnpm",
+        ["--silent", "run", "maestro:crud-proof", "--", "--json"],
+        {
+          cwd: targetRoot,
+          encoding: "utf8",
+          timeout: 30_000,
+        },
+      ),
     ) as {
       readonly url: string;
+      readonly create: {
+        readonly statusCode: number;
+        readonly record: Readonly<Record<string, unknown>>;
+      };
+      readonly read: {
+        readonly statusCode: number;
+        readonly record: Readonly<Record<string, unknown>>;
+      };
       readonly statuses: { readonly create: number; readonly read: number };
       readonly record: {
         readonly createBodyHash: string;
@@ -298,10 +310,13 @@ describe("create root integration", () => {
     };
     expect(proof).toMatchObject({
       url: expect.stringMatching(/^http:\/\/127\.0\.0\.1:\d+$/),
+      create: { statusCode: 201, record: { id: expect.any(String) } },
+      read: { statusCode: 200, record: { id: expect.any(String) } },
       statuses: { create: 201, read: 200 },
       record: { synthetic: false },
     });
     expect(proof.record.readBodyHash).toBe(proof.record.createBodyHash);
+    expect(proof.read.record).toEqual(proof.create.record);
     await expect(fetch(proof.url)).rejects.toThrow();
 
     const production = spawnSync(
