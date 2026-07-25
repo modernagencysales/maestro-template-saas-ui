@@ -110,6 +110,9 @@ importers:
       "@maestro-template/quality-tooling":
         specifier: workspace:*
         version: link:../../tooling/quality
+      "@maestro-template/stack-tooling":
+        specifier: workspace:*
+        version: link:../../tooling/stack
       "@maestro-template/template-core":
         specifier: workspace:*
         version: link:../../packages/template-core
