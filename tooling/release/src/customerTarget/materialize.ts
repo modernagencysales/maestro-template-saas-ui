@@ -36,6 +36,16 @@ export type CustomerMaterializationRequest = {
   readonly sourceDirty: boolean;
   readonly sourceRevision: string;
   readonly generatedFiles: Readonly<Record<string, Buffer>>;
+  readonly blueprintTargetPlan?: {
+    readonly digest: string;
+    readonly entries: readonly {
+      readonly path: string;
+      readonly ownership: "generated";
+      readonly action: "generate";
+      readonly upgrade: "regenerate";
+      readonly bytes: Buffer;
+    }[];
+  };
   readonly resolvedRelease: ResolvedCustomerReleaseBinding;
 };
 
@@ -186,6 +196,10 @@ const operationBytes = (
   request: CustomerMaterializationRequest,
   entry: CustomerReleasePath,
 ): Buffer => {
+  const blueprint = request.blueprintTargetPlan?.entries.find(
+    ({ path }) => path === entry.path,
+  );
+  if (blueprint) return blueprint.bytes;
   if (entry.action === "generate") {
     const generated = request.generatedFiles[entry.path];
     if (!generated)
@@ -240,10 +254,23 @@ export function previewCustomerTarget(
   const generatedEntries = request.manifest.paths.filter(
     (entry) => entry.action === "generate" && entry.match === "exact",
   );
-  const writes = [
+  const baseEntries = [
     ...sourceEntries.filter((entry) => entry.action === "copy"),
     ...generatedEntries,
-  ]
+  ];
+  const blueprintEntries = (request.blueprintTargetPlan?.entries ?? []).map(
+    (entry): CustomerReleasePath => ({ ...entry, match: "exact" }),
+  );
+  const basePaths = new Set(baseEntries.map(({ path }) => path));
+  for (const entry of blueprintEntries) {
+    assertEntry(entry);
+    if (basePaths.has(entry.path)) {
+      throw new CustomerMaterializationError(
+        `Blueprint target plan overlaps release operation: ${entry.path}`,
+      );
+    }
+  }
+  const writes = [...baseEntries, ...blueprintEntries]
     .map((entry) => {
       assertEntry(entry);
       if (entry.action === "omit") {
@@ -283,6 +310,7 @@ export function previewCustomerTarget(
   const preflightFingerprint = hash(
     JSON.stringify({
       sourceRevision: request.sourceRevision,
+      blueprintDigest: request.blueprintTargetPlan?.digest ?? null,
       targetRoot,
       writes: writes.map(({ path, sha256 }) => ({ path, sha256 })),
       collisions,
@@ -460,10 +488,10 @@ export function materializeCustomerTarget(
   };
   writeJournal(preview.stageRoot, staging);
   for (const [index, write] of preview.writes.entries()) {
-    const ownershipRule = resolveCustomerReleasePath(
-      request.manifest.paths,
-      write.path,
-    );
+    const ownershipRule =
+      request.blueprintTargetPlan?.entries.find(
+        ({ path }) => path === write.path,
+      ) ?? resolveCustomerReleasePath(request.manifest.paths, write.path);
     if (!ownershipRule) {
       throw new CustomerMaterializationError(
         `Unknown staged operation: ${write.path}`,

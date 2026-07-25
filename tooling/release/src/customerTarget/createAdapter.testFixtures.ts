@@ -22,6 +22,27 @@ afterEach(() => {
 export const hash = (bytes: string | Buffer): string =>
   `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
 
+export function blueprintTargetPlan(content = "fixture blueprint\n") {
+  const entries = [
+    {
+      path: "generated/fixture-blueprint.txt",
+      ownership: "generated" as const,
+      action: "generate" as const,
+      upgrade: "regenerate" as const,
+      sha256: hash(content),
+      content,
+    },
+  ];
+  const identity = {
+    schemaVersion: 1 as const,
+    id: "fixture-blueprint",
+    provenance: "fixture-generator@1",
+    registrations: ["generated/fixture-blueprint.txt"],
+    entries: entries.map(({ content: _, ...entry }) => entry),
+  };
+  return { ...identity, entries, digest: hash(JSON.stringify(identity)) };
+}
+
 export const git = (root: string, args: readonly string[]): Buffer =>
   execFileSync("git", ["-C", root, ...args]);
 
@@ -124,6 +145,7 @@ export function prepare(
       sourceRoot: fixture.repositoryRoot,
     },
     target: fixture.targetRoot,
+    blueprintTargetPlan,
     templateInstance: (facts) =>
       `${JSON.stringify({ name: "My App", release: facts })}\n`,
   });

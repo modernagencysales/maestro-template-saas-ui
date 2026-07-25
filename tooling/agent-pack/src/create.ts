@@ -34,6 +34,22 @@ export type CustomerCreatePreview = {
   readonly totalBytes: number;
 };
 
+export type CustomerCreateBlueprintPlan = {
+  readonly schemaVersion: 1;
+  readonly id: string;
+  readonly digest: string;
+  readonly provenance: string;
+  readonly registrations: readonly string[];
+  readonly entries: readonly {
+    readonly path: string;
+    readonly ownership: "generated";
+    readonly action: "generate";
+    readonly upgrade: "regenerate";
+    readonly sha256: string;
+    readonly content: string;
+  }[];
+};
+
 type CreateFailureCode =
   | "collision"
   | "dirty-source"
@@ -55,11 +71,21 @@ type PreparedRelease = {
 };
 
 export type CustomerCreateDependencies = {
+  readonly blueprintTargetPlan: (
+    input: CustomerCreateInput,
+  ) => CustomerCreateBlueprintPlan;
   readonly release: {
     readonly prepare: (request: {
       readonly repo: RepositoryContext;
       readonly target: string;
-      readonly templateInstance: (facts: CustomerCreateReleaseFacts) => string;
+      readonly templateInstance: (
+        facts: CustomerCreateReleaseFacts,
+        blueprint: Pick<
+          CustomerCreateBlueprintPlan,
+          "id" | "digest" | "provenance"
+        >,
+      ) => string;
+      readonly blueprintTargetPlan: () => CustomerCreateBlueprintPlan;
     }) => Promise<PreparedRelease | CreateFailure>;
     readonly materialize: (
       token: unknown,
@@ -83,7 +109,9 @@ export function createCustomerCreateCommand(
       const prepared = await dependencies.release.prepare({
         repo: context.repo,
         target: input.target,
-        templateInstance: (facts) => serializeTemplateInstance(facts, input),
+        templateInstance: (facts, blueprint) =>
+          serializeTemplateInstance(facts, blueprint, input),
+        blueprintTargetPlan: () => dependencies.blueprintTargetPlan(input),
       });
       if (!prepared.ok) {
         return {
@@ -193,6 +221,7 @@ function invalidCreateInput(): AgentPackArgumentResult<CustomerCreateInput> {
 
 function serializeTemplateInstance(
   facts: CustomerCreateReleaseFacts,
+  blueprint: Pick<CustomerCreateBlueprintPlan, "id" | "digest" | "provenance">,
   input: CustomerCreateInput,
 ): string {
   return `${JSON.stringify(
@@ -214,7 +243,7 @@ function serializeTemplateInstance(
         extensionSeams: facts.extensionSeams,
       },
       blueprint: {
-        id: "saas-application",
+        ...blueprint,
         workflowPosture: "optional-unavailable",
       },
       personalization: {

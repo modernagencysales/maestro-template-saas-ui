@@ -1,7 +1,14 @@
 import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import {
+  AGENT_PACK_EXECUTION_CONTEXT_VERSION,
+  createCustomerCreateCommand,
+  createRepositoryContext,
+  executeAgentPackCommand,
+} from "@maestro-template/agent-pack";
+import { buildSaasApplicationTargetPlan } from "@maestro-template/generators";
 import { afterEach, describe, expect, it } from "vitest";
 import { runCliAsync } from "../index";
 import { CREATE_HELP } from "./create";
@@ -15,13 +22,14 @@ afterEach(() => {
 });
 
 describe("create root integration", () => {
-  it("registers the exact six-command factory inventory", () => {
+  it("registers the exact seven-command factory inventory", () => {
     expect(
       createFactoryCliComposition(() => ({})).handlers.map(
         ({ command }) => command,
       ),
     ).toEqual([
       "create",
+      "start",
       "preflight",
       "verify",
       "check",
@@ -83,5 +91,128 @@ describe("create root integration", () => {
         "        version: link:../../tooling/release",
       ].join("\n"),
     );
+  });
+
+  it("materializes and executes the SaaS overlay in the customer target", async () => {
+    const fixtures = (await import(
+      new URL(
+        "../../../../tooling/release/src/customerTarget/createAdapter.testFixtures.ts",
+        import.meta.url,
+      ).href
+    )) as {
+      readonly taggedRelease: () => {
+        readonly repositoryRoot: string;
+        readonly targetRoot: string;
+      };
+      readonly adapter: (fixture: unknown) => {
+        readonly prepare: (request: unknown) => Promise<unknown>;
+        readonly materialize: (
+          token: unknown,
+          fingerprint: string,
+        ) => Promise<unknown>;
+      };
+    };
+    const fixture = fixtures.taggedRelease();
+    const release = fixtures.adapter(fixture);
+    const command = createCustomerCreateCommand({
+      blueprintTargetPlan: ({ name, outcome }) =>
+        buildSaasApplicationTargetPlan({ name, firstOutcome: outcome }),
+      release: release as Parameters<
+        typeof createCustomerCreateCommand
+      >[0]["release"],
+    });
+    const result = await executeAgentPackCommand(
+      command,
+      {
+        target: fixture.targetRoot,
+        name: "My App",
+        outcome: "Create and review records",
+        write: true,
+      },
+      {
+        schemaVersion: AGENT_PACK_EXECUTION_CONTEXT_VERSION,
+        invocation: "library",
+        repo: createRepositoryContext({ cwd: fixture.repositoryRoot }),
+      },
+    );
+
+    expect(result.exitClass).toBe("success");
+    const required = [
+      "packages/convex/confect/tables/records.ts",
+      "packages/convex/confect/records/records.spec.ts",
+      "packages/convex/confect/records/records.impl.ts",
+      "apps/web/src/adapters/records/contract.ts",
+      "apps/web/src/adapters/records/fake.ts",
+      "apps/web/src/features/records/records-surface.tsx",
+      "apps/web/src/screens/records-screen.tsx",
+      "apps/web/src/routes/_workspace.records.tsx",
+    ] as const;
+    for (const path of required) {
+      expect(existsSync(join(fixture.targetRoot, path))).toBe(true);
+    }
+    const instance = JSON.parse(
+      readFileSync(join(fixture.targetRoot, "template-instance.json"), "utf8"),
+    );
+    expect(instance).toMatchObject({
+      blueprint: {
+        id: "saas-application",
+        digest: expect.stringMatching(/^sha256:[0-9a-f]{64}$/),
+        provenance: "@maestro-template/generators/saas-application@1",
+      },
+      personalization: {
+        name: "My App",
+        firstOutcome: "Create and review records",
+      },
+    });
+    expect(
+      readFileSync(
+        join(fixture.targetRoot, "packages/convex/confect/tables/records.ts"),
+        "utf8",
+      ),
+    ).toContain('.index("by_workspace", ["workspaceId"])');
+    expect(
+      readFileSync(
+        join(
+          fixture.targetRoot,
+          "packages/convex/confect/records/records.spec.ts",
+        ),
+        "utf8",
+      ),
+    ).toContain('operationId: "records.create"');
+    expect(
+      readFileSync(
+        join(fixture.targetRoot, "apps/web/src/routes/_workspace.records.tsx"),
+        "utf8",
+      ),
+    ).toContain('createFileRoute("/_workspace/records")');
+
+    const targetAdapter = (await import(
+      `${
+        pathToFileURL(
+          join(fixture.targetRoot, "apps/web/src/adapters/records/fake.ts"),
+        ).href
+      }?target=${Date.now()}`
+    )) as {
+      readonly createFakeRecordAdapter: () => {
+        readonly create: (input: {
+          readonly workspaceId: string;
+          readonly title: string;
+          readonly detail: string;
+        }) => Promise<{ readonly id: string }>;
+        readonly list: (workspaceId: string) => Promise<readonly unknown[]>;
+        readonly read: (workspaceId: string, id: string) => Promise<unknown>;
+      };
+    };
+    const records = targetAdapter.createFakeRecordAdapter();
+    const created = await records.create({
+      workspaceId: "workspace_a",
+      title: "First record",
+      detail: "Materialized target import resolved.",
+    });
+    expect(await records.list("workspace_a")).toHaveLength(1);
+    expect(await records.read("workspace_a", created.id)).toMatchObject({
+      title: "First record",
+    });
+    expect(await records.read("workspace_b", created.id)).toBeNull();
   });
 });

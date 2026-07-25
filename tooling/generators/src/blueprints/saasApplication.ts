@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { createHash } from "node:crypto";
 import type { GeneratedFile, TemplateBlueprint } from "../index";
 
 export const saasApplicationBlueprint = {
@@ -77,10 +78,13 @@ const slugify = (value: string): string =>
 
 export const buildSaasApplicationFiles = (options: {
   readonly name: string;
+  readonly firstOutcome?: string;
 }): readonly GeneratedFile[] => {
   const name = options.name.trim() || "My App";
   const slug = slugify(name);
   const workspaceId = `workspace_${slug.replaceAll("-", "_")}`;
+  const firstOutcome =
+    options.firstOutcome?.trim() || "Create and review records";
   const operations = [
     { id: "records.list", kind: "query", workspaceScoped: true },
     { id: "records.read", kind: "query", workspaceScoped: true },
@@ -133,6 +137,7 @@ export const buildSaasApplicationFiles = (options: {
         },
         primitive: "table-route-crud",
         workflowRequired: false,
+        personalization: { name, firstOutcome },
         operations,
         uiStates: ["loading", "empty", "error", "list", "detail", "create"],
         layers: {
@@ -184,6 +189,56 @@ export const buildSaasApplicationFiles = (options: {
         "Every non-real surface remains labeled until its adapter and focused evidence replace the seam.",
     }),
   ];
+};
+
+export type BlueprintTargetPlan = {
+  readonly schemaVersion: 1;
+  readonly id: "saas-application";
+  readonly provenance: "@maestro-template/generators/saas-application@1";
+  readonly registrations: readonly string[];
+  readonly entries: readonly {
+    readonly path: string;
+    readonly ownership: "generated";
+    readonly action: "generate";
+    readonly upgrade: "regenerate";
+    readonly sha256: string;
+    readonly content: string;
+  }[];
+  readonly digest: string;
+};
+
+const sha256 = (value: string): string =>
+  `sha256:${createHash("sha256").update(value).digest("hex")}`;
+
+export const buildSaasApplicationTargetPlan = (options: {
+  readonly name: string;
+  readonly firstOutcome?: string;
+}): BlueprintTargetPlan => {
+  const entries = buildSaasApplicationFiles(options)
+    .filter(({ path }) => path !== "template-instance.json")
+    .map(({ path, content }) => ({
+      path,
+      ownership: "generated" as const,
+      action: "generate" as const,
+      upgrade: "regenerate" as const,
+      sha256: sha256(content),
+      content,
+    }))
+    .sort((left, right) => left.path.localeCompare(right.path));
+  const registrations = [
+    "packages/convex/confect/tables/records.ts",
+    "packages/convex/confect/records/records.spec.ts",
+    "packages/convex/confect/records/records.impl.ts",
+    "apps/web/src/routes/_workspace.records.tsx",
+  ] as const;
+  const identity = {
+    schemaVersion: 1 as const,
+    id: "saas-application" as const,
+    provenance: "@maestro-template/generators/saas-application@1" as const,
+    registrations,
+    entries: entries.map(({ content: _, ...entry }) => entry),
+  };
+  return { ...identity, entries, digest: sha256(JSON.stringify(identity)) };
 };
 
 export const buildSaasApplicationHandoff = (

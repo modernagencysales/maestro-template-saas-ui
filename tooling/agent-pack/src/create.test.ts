@@ -38,13 +38,23 @@ const context = {
   repo: createRepositoryContext({ cwd: "/factory" }),
 };
 
+const blueprint = {
+  schemaVersion: 1 as const,
+  id: "saas-application",
+  digest: `sha256:${"e".repeat(64)}`,
+  provenance: "@maestro-template/generators/saas-application@1",
+  registrations: ["apps/web/src/routes/_workspace.records.tsx"],
+  entries: [],
+};
+
 function fixture(options: { readonly collisions?: readonly string[] } = {}) {
   let instance = "";
   const materialize = vi.fn(async () => ({ ok: true as const, files: 3 }));
   const dependencies: CustomerCreateDependencies = {
+    blueprintTargetPlan: () => blueprint,
     release: {
       prepare: vi.fn(async (request) => {
-        instance = request.templateInstance(facts);
+        instance = request.templateInstance(facts, blueprint);
         return {
           ok: true as const,
           token: { release: facts.tag },
@@ -131,9 +141,10 @@ describe("customer create command", () => {
     mkdirSync(factoryRoot);
     let instance = "";
     const create = createCustomerCreateCommand({
+      blueprintTargetPlan: () => blueprint,
       release: {
         prepare: vi.fn(async (request) => {
-          instance = request.templateInstance(facts);
+          instance = request.templateInstance(facts, blueprint);
           return {
             ok: true as const,
             token: {},
@@ -232,6 +243,7 @@ describe("customer create command", () => {
 
   it("fails closed for fixture-only or unresolved release bindings", async () => {
     const dependencies: CustomerCreateDependencies = {
+      blueprintTargetPlan: () => blueprint,
       release: {
         prepare: vi.fn(async () => ({
           ok: false as const,

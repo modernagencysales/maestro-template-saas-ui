@@ -1,10 +1,11 @@
-import { readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { createCustomerReleaseAdapter } from "./createAdapter.js";
 import {
   adapter,
+  blueprintTargetPlan,
   git,
   hash,
   makeRoot,
@@ -37,6 +38,7 @@ describe("customer release create adapter", () => {
       },
       preview: {
         writes: [
+          { path: "generated/fixture-blueprint.txt" },
           { path: "package.json" },
           { path: "runtime.txt" },
           { path: "template-instance.json" },
@@ -51,7 +53,7 @@ describe("customer release create adapter", () => {
       prepared.token,
       prepared.preview.preflightFingerprint,
     );
-    expect(written).toEqual({ ok: true, files: 3 });
+    expect(written).toEqual({ ok: true, files: 4 });
     expect(readFileSync(join(fixture.targetRoot, "runtime.txt"), "utf8")).toBe(
       "tagged runtime\n",
     );
@@ -122,6 +124,9 @@ describe("customer release create adapter", () => {
     const result = await release.prepare({
       repo: { workingDirectory: repositoryRoot, sourceRoot: repositoryRoot },
       target: join(makeRoot("maestro-create-current-target-"), "app"),
+      blueprintTargetPlan: () => {
+        throw new Error("fixture-only release must fail before blueprint use");
+      },
       templateInstance: () => "{}\n",
     });
 
@@ -152,7 +157,104 @@ describe("customer release create adapter", () => {
     );
     expect(reused).toMatchObject({ ok: false, code: "stale-preflight" });
   });
+
+  it.each([
+    [
+      "duplicate path",
+      () => {
+        const plan = blueprintTargetPlan();
+        return rehashPlan({
+          ...plan,
+          entries: [...plan.entries, plan.entries[0]!],
+        });
+      },
+    ],
+    [
+      "release overlap",
+      () => {
+        const plan = blueprintTargetPlan();
+        const entry = { ...plan.entries[0]!, path: "runtime.txt" };
+        return rehashPlan({
+          ...plan,
+          registrations: [entry.path],
+          entries: [entry],
+        });
+      },
+    ],
+    [
+      "registration omission",
+      () =>
+        rehashPlan({ ...blueprintTargetPlan(), registrations: ["missing.ts"] }),
+    ],
+    [
+      "byte drift",
+      () => {
+        const plan = blueprintTargetPlan();
+        return {
+          ...plan,
+          entries: [{ ...plan.entries[0]!, content: "drift\n" }],
+        };
+      },
+    ],
+    [
+      "unclassified posture",
+      () => {
+        const plan = blueprintTargetPlan();
+        return rehashPlan({
+          ...plan,
+          entries: [{ ...plan.entries[0]!, ownership: "template-owned" }],
+        } as never);
+      },
+    ],
+  ] as const)("rejects blueprint target plan %s", async (_label, buildPlan) => {
+    const fixture = taggedRelease();
+    const result = await adapter(fixture).prepare({
+      repo: {
+        workingDirectory: fixture.repositoryRoot,
+        sourceRoot: fixture.repositoryRoot,
+      },
+      target: fixture.targetRoot,
+      blueprintTargetPlan: buildPlan as never,
+      templateInstance: () => "{}\n",
+    });
+    expect(result).toMatchObject({ ok: false });
+    expect(existsSync(fixture.targetRoot)).toBe(false);
+  });
+
+  it("rebuilds the blueprint plan and rejects drift before materialization", async () => {
+    const fixture = taggedRelease();
+    const release = adapter(fixture);
+    let calls = 0;
+    const prepared = await release.prepare({
+      repo: {
+        workingDirectory: fixture.repositoryRoot,
+        sourceRoot: fixture.repositoryRoot,
+      },
+      target: fixture.targetRoot,
+      blueprintTargetPlan: () =>
+        blueprintTargetPlan(calls++ === 0 ? "first\n" : "second\n"),
+      templateInstance: () => "{}\n",
+    });
+    if (!prepared.ok) throw new Error("expected prepared release");
+    const result = await release.materialize(
+      prepared.token,
+      prepared.preview.preflightFingerprint,
+    );
+    expect(result).toMatchObject({ ok: false, code: "stale-preflight" });
+    expect(existsSync(fixture.targetRoot)).toBe(false);
+  });
 });
+
+function rehashPlan(plan: ReturnType<typeof blueprintTargetPlan>) {
+  const identity = {
+    schemaVersion: plan.schemaVersion,
+    id: plan.id,
+    provenance: plan.provenance,
+    registrations: plan.registrations,
+    entries: plan.entries.map(({ content: _, ...entry }) => entry),
+  };
+  return { ...plan, digest: hash(JSON.stringify(identity)) };
+}
 
 function rewriteManifest(fixture: TaggedReleaseFixture): void {
   const bytes = `${JSON.stringify(fixture.manifest, null, 2)}\n`;

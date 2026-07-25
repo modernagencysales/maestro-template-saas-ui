@@ -43,8 +43,72 @@ export type PrepareRequest = {
     readonly sourceRoot: string;
   };
   readonly target: string;
-  readonly templateInstance: (facts: CustomerReleaseAdapterFacts) => string;
+  readonly templateInstance: (
+    facts: CustomerReleaseAdapterFacts,
+    blueprint: BlueprintTargetFacts,
+  ) => string;
+  readonly blueprintTargetPlan: () => BlueprintTargetPlan;
 };
+
+export type BlueprintTargetFacts = {
+  readonly id: string;
+  readonly digest: string;
+  readonly provenance: string;
+};
+
+export type BlueprintTargetPlan = BlueprintTargetFacts & {
+  readonly schemaVersion: 1;
+  readonly registrations: readonly string[];
+  readonly entries: readonly {
+    readonly path: string;
+    readonly ownership: "generated";
+    readonly action: "generate";
+    readonly upgrade: "regenerate";
+    readonly sha256: string;
+    readonly content: string;
+  }[];
+};
+
+export function validateBlueprintTargetPlan(
+  value: BlueprintTargetPlan,
+): BlueprintTargetPlan {
+  const paths = value.entries.map(({ path }) => path);
+  if (
+    value.schemaVersion !== 1 ||
+    value.id.length === 0 ||
+    value.provenance.length === 0 ||
+    value.registrations.length === 0 ||
+    new Set(paths).size !== paths.length ||
+    value.registrations.some((path) => !paths.includes(path)) ||
+    new Set(value.registrations).size !== value.registrations.length ||
+    value.entries.some(
+      (entry) =>
+        entry.ownership !== "generated" ||
+        entry.action !== "generate" ||
+        entry.upgrade !== "regenerate" ||
+        sha256(entry.content) !== entry.sha256,
+    )
+  ) {
+    throw new CustomerReleaseAdapterError(
+      "release-unavailable",
+      "Blueprint target plan is incomplete or contains drift.",
+    );
+  }
+  const identity = {
+    schemaVersion: value.schemaVersion,
+    id: value.id,
+    provenance: value.provenance,
+    registrations: value.registrations,
+    entries: value.entries.map(({ content: _, ...entry }) => entry),
+  };
+  if (sha256(JSON.stringify(identity)) !== value.digest) {
+    throw new CustomerReleaseAdapterError(
+      "release-unavailable",
+      "Blueprint target plan digest does not match its exact operations.",
+    );
+  }
+  return value;
+}
 
 export type PreparedRelease = {
   readonly ok: true;
@@ -65,6 +129,7 @@ export type PreparedRelease = {
 export type TokenState = {
   readonly request: PrepareRequest;
   readonly templateInstance: string;
+  readonly blueprintDigest: string;
 };
 
 export class CustomerReleaseAdapterError extends Error {

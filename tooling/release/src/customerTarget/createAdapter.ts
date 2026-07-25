@@ -9,6 +9,7 @@ import {
   CustomerReleaseAdapterError,
   failure,
   isObject,
+  validateBlueprintTargetPlan,
   type CreateFailure,
   type CustomerReleaseAdapterOptions,
   type PrepareRequest,
@@ -38,7 +39,14 @@ export function createCustomerReleaseAdapter(
     ): Promise<PreparedRelease | CreateFailure> => {
       try {
         return withImmutableRelease(options, (resolved) => {
-          const templateInstance = request.templateInstance(resolved.facts);
+          const blueprint = validateBlueprintTargetPlan(
+            request.blueprintTargetPlan(),
+          );
+          const templateInstance = request.templateInstance(resolved.facts, {
+            id: blueprint.id,
+            digest: blueprint.digest,
+            provenance: blueprint.provenance,
+          });
           const generatedFiles = generatedEntries(
             resolved.manifest,
             resolved.sourceRoot,
@@ -49,10 +57,15 @@ export function createCustomerReleaseAdapter(
             request,
             resolved,
             generatedFiles,
+            blueprint,
           );
           const preview = previewCustomerTarget(materialization);
           const token = {};
-          tokens.set(token, { request, templateInstance });
+          tokens.set(token, {
+            request,
+            templateInstance,
+            blueprintDigest: blueprint.digest,
+          });
           return {
             ok: true as const,
             token,
@@ -76,6 +89,15 @@ export function createCustomerReleaseAdapter(
       if (!state) return invalidToken();
       try {
         return withImmutableRelease(options, (resolved) => {
+          const blueprint = validateBlueprintTargetPlan(
+            state.request.blueprintTargetPlan(),
+          );
+          if (blueprint.digest !== state.blueprintDigest) {
+            throw new CustomerReleaseAdapterError(
+              "stale-preflight",
+              "Blueprint target plan changed after preview.",
+            );
+          }
           const generatedFiles = generatedEntries(
             resolved.manifest,
             resolved.sourceRoot,
@@ -86,6 +108,7 @@ export function createCustomerReleaseAdapter(
             state.request,
             resolved,
             generatedFiles,
+            blueprint,
           );
           const preview = previewCustomerTarget(request);
           if (preview.preflightFingerprint !== preflightFingerprint) {
@@ -134,6 +157,7 @@ function materializationRequest(
   request: PrepareRequest,
   resolvedRelease: ResolvedRelease,
   generatedFiles: Readonly<Record<string, Buffer>>,
+  blueprint: ReturnType<typeof validateBlueprintTargetPlan>,
 ): CustomerMaterializationRequest {
   return {
     manifest: resolvedRelease.manifest,
@@ -146,6 +170,13 @@ function materializationRequest(
     sourceDirty: false,
     sourceRevision: resolvedRelease.binding.sourceCommit,
     generatedFiles,
+    blueprintTargetPlan: {
+      digest: blueprint.digest,
+      entries: blueprint.entries.map(({ content, ...entry }) => ({
+        ...entry,
+        bytes: Buffer.from(content),
+      })),
+    },
     resolvedRelease: resolvedRelease.binding,
   };
 }

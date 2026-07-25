@@ -28,6 +28,10 @@ import {
   buildSaasApplicationHandoff,
   saasApplicationBlueprint,
 } from "./blueprints/saasApplication";
+export {
+  buildSaasApplicationFiles,
+  buildSaasApplicationTargetPlan,
+} from "./blueprints/saasApplication";
 import {
   renderGeneratedFailureRouteCompiler,
   renderGeneratedWorkflowPredeploySource,
