@@ -1,6 +1,10 @@
-import type { StaticCheckDescriptor } from "./gate.mts";
+import type {
+  RegisteredStaticCheckDescriptor,
+  StaticCheckDescriptor,
+  StaticCheckDiagnosticMetadata,
+} from "./gate.mts";
 
-export const checkDescriptors = {
+const checkDescriptorDefinitions = {
   "ci-completeness": {
     name: "check:ci-completeness",
     requirements: [
@@ -923,7 +927,103 @@ export const checkDescriptors = {
       },
     ],
   },
+  taste: {
+    name: "taste:eval",
+    requirements: [],
+  },
+  "contract-review": {
+    name: "review:contract",
+    requirements: [],
+  },
 } satisfies Record<string, StaticCheckDescriptor>;
+
+type DiagnosticOverride = Partial<
+  Pick<
+    StaticCheckDiagnosticMetadata,
+    | "posture"
+    | "evidenceClass"
+    | "canonicalDoc"
+    | "repairHint"
+    | "focusedPathPrefixes"
+    | "semanticRuleIds"
+  >
+>;
+
+type RegisteredCheckDescriptors<
+  Definitions extends Record<string, StaticCheckDescriptor>,
+> = {
+  readonly [GateId in keyof Definitions]: Definitions[GateId] &
+    RegisteredStaticCheckDescriptor & { readonly gateId: GateId };
+};
+
+function defineRegisteredStaticCheckDescriptors<
+  const Definitions extends Record<string, StaticCheckDescriptor>,
+>(
+  definitions: Definitions,
+  overrides: Partial<Record<keyof Definitions, DiagnosticOverride>>,
+): RegisteredCheckDescriptors<Definitions> {
+  return Object.fromEntries(
+    Object.entries(definitions).map(([gateId, descriptor]) => {
+      const override = overrides[gateId];
+      const [script] = descriptor.name.split(" ");
+      if (script === undefined || script.length === 0) {
+        throw new Error(
+          `${gateId}: check descriptor must name an exact script`,
+        );
+      }
+      const command = ["pnpm", script] as const;
+      return [
+        gateId,
+        {
+          ...descriptor,
+          gateId,
+          posture: "required" as const,
+          evidenceClass: "static" as const,
+          canonicalDoc: "docs/rule-coverage.md",
+          repairHint:
+            "Repair the reported invariant in its owning source and rerun this check.",
+          argv: command,
+          rerun: command,
+          focusedPathPrefixes: [
+            ...new Set(descriptor.requirements.map(({ file }) => file)),
+          ],
+          ...override,
+        },
+      ];
+    }),
+  ) as unknown as RegisteredCheckDescriptors<Definitions>;
+}
+
+export const checkDescriptors = defineRegisteredStaticCheckDescriptors(
+  checkDescriptorDefinitions,
+  {
+    "workflow-semantics": {
+      canonicalDoc: "docs/template/generated/workflow-semantics.md",
+      semanticRuleIds: [
+        "WF-CONTRACT",
+        "WF-DOC-PROJECTION",
+        "WF-GRAPH-STALE",
+        "WF-GRAPH-UNMAPPED",
+      ],
+    },
+    taste: {
+      posture: "advisory",
+      evidenceClass: "advisory",
+      canonicalDoc: "docs/template/reviewer-guide.md",
+      repairHint:
+        "Review the reported product-quality finding in the affected surface.",
+      focusedPathPrefixes: ["apps/", "packages/", "tooling/"],
+    },
+    "contract-review": {
+      posture: "advisory",
+      evidenceClass: "advisory",
+      canonicalDoc: "docs/template/reviewer-guide.md",
+      repairHint:
+        "Review the reported contract finding at its owning boundary.",
+      focusedPathPrefixes: ["apps/", "packages/", "tooling/"],
+    },
+  },
+);
 
 export type CheckName = keyof typeof checkDescriptors;
 

@@ -12,6 +12,22 @@ export type StaticCheckDescriptor = {
   name: string;
   requirements: StaticRequirement[];
 };
+export type StaticCheckEvidenceClass =
+  "static" | "behavioral" | "runtime" | "live-promotion" | "advisory";
+export type StaticCheckPosture = "required" | "advisory";
+export type StaticCheckDiagnosticMetadata = {
+  readonly gateId: string;
+  readonly posture: StaticCheckPosture;
+  readonly evidenceClass: StaticCheckEvidenceClass;
+  readonly canonicalDoc: string;
+  readonly repairHint: string;
+  readonly argv: readonly [string, ...string[]];
+  readonly rerun: readonly [string, ...string[]];
+  readonly focusedPathPrefixes: readonly string[];
+  readonly semanticRuleIds?: readonly string[];
+};
+export type RegisteredStaticCheckDescriptor = StaticCheckDescriptor &
+  StaticCheckDiagnosticMetadata;
 
 export type StaticCheckResult = {
   ok: boolean;
