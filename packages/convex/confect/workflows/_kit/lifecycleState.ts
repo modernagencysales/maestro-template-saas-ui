@@ -1,4 +1,4 @@
-import { getConvexSize } from "convex/values";
+import { getConvexSize, v } from "convex/values";
 import * as Data from "effect/Data";
 import * as Either from "effect/Either";
 import * as Schema from "effect/Schema";
@@ -56,6 +56,14 @@ export const WorkflowOnCompleteContext = Schema.Struct({
   workflowVersion: NonNegativeInteger,
   generation: NonNegativeInteger,
   generationAnchor: Schema.NonEmptyString,
+});
+export const WorkflowOnCompleteContextValidator = v.object({
+  workspaceId: v.string(),
+  workflowRunId: v.string(),
+  workflowId: v.string(),
+  workflowVersion: v.number(),
+  generation: v.number(),
+  generationAnchor: v.string(),
 });
 export type WorkflowOnCompleteContext = Schema.Schema.Type<
   typeof WorkflowOnCompleteContext

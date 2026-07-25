@@ -2602,6 +2602,10 @@ import {
   WorkspaceNotFound,
 } from "../errors";
 import { startWorkflowAndRecordOwnership } from "../workflows/_kit/ownership";
+import type {
+  WorkflowCompletionResult,
+  WorkflowOnCompleteContext,
+} from "../workflows/lifecycleReconciliation";
 import {
   projectWorkflowStatus,
   type WorkflowStatusRunProjection,
@@ -2649,6 +2653,23 @@ const ${name}RunRef = makeFunctionReference<
   "internal",
   WorkflowRunFunctionArgs,
   WorkflowId
+>;
+
+type WorkflowCompletionArgs = {
+  readonly workflowId: string;
+  readonly context: WorkflowOnCompleteContext;
+  readonly result: WorkflowCompletionResult;
+};
+
+const ${name}OnCompleteRef = makeFunctionReference<
+  "mutation",
+  WorkflowCompletionArgs,
+  null
+>("workflowRunners/${name}:onComplete") as unknown as FunctionReference<
+  "mutation",
+  "internal",
+  WorkflowCompletionArgs,
+  null
 >;
 
 const errorMessage = (error: unknown): string | null => {
@@ -2744,6 +2765,7 @@ const startWithProfile = (
       };
       const componentWorkflowId = yield* startWorkflowAndRecordOwnership({
         workflowRef: ${name}RunRef,
+        onCompleteRef: ${name}OnCompleteRef,
         buildWorkflowArgs: (workflowRunId) => ({
           workspaceId,
           workflowRunId,
@@ -2989,7 +3011,12 @@ export const ${name}SubworkflowPolicy = generatedWorkflowSubworkflowPolicy;
     {
       path: `packages/convex/confect/workflowRunners/${name}.ts`,
       content: `import { Ref } from "@confect/core";
-import { defineMaestroWorkflow } from "../workflows/_kit/defineMaestroWorkflow";
+import {
+  defineMaestroWorkflow,
+  MaestroWorkflowIdValidator,
+  MaestroWorkflowResultValidator,
+} from "../workflows/_kit/defineMaestroWorkflow";
+import { internalMutationGeneric } from "convex/server";
 import { v } from "convex/values";
 import refs from "../_generated/refs";
 import { components } from "../../convex/_generated/api";
@@ -2998,6 +3025,8 @@ import {
   type RunDurableGraphStep,
 } from "../workflows/_kit/graphRunner";
 import { loadObservedWorkflowExecutionIdentity } from "../workflows/_kit/observedStage";
+import { reconcileObservedWorkflowCompletion } from "../workflows/_kit/lifecycleCompletion";
+import { WorkflowOnCompleteContextValidator } from "../workflows/_kit/lifecycleState";
 import type { RunDurableGraphV2CompilerInput } from "../workflows/_kit/graphRunnerV2";
 import { ${name}Graph } from "../workflows/${name}.graph";
 import {
@@ -3014,6 +3043,9 @@ const recordStageFinished = Ref.getFunctionReference(
 );
 const recordStageStarted = Ref.getFunctionReference(
   refs.internal.workflows.stageObservations.recordStarted,
+);
+const reconcileCompletionRef = Ref.getFunctionReference(
+  refs.internal.workflows.lifecycle.reconcileCompletion,
 );
 
 const WorkflowPrincipalValidator = v.union(
@@ -3048,6 +3080,23 @@ type WorkflowReceipt = {
   readonly workflowId: string;
   readonly status: "completed";
 };
+
+export const onComplete = internalMutationGeneric({
+  args: {
+    workflowId: MaestroWorkflowIdValidator,
+    context: WorkflowOnCompleteContextValidator,
+    result: MaestroWorkflowResultValidator,
+  },
+  returns: v.null(),
+  handler: async (context, input): Promise<null> => {
+    await reconcileObservedWorkflowCompletion(
+      context,
+      reconcileCompletionRef,
+      input,
+    );
+    return null;
+  },
+});
 
 ${renderGeneratedFailureRouteCompiler(`${name}Graph`)}
 const metadata = {
@@ -3123,11 +3172,13 @@ export const run = defineMaestroWorkflow(components.workflow, {
     {
       path: `packages/convex/confect/workflowRunners/${name}.spec.ts`,
       content: `import { FunctionSpec, GroupSpec } from "@confect/core";
-import type { run } from "./${name}";
+import type { onComplete, run } from "./${name}";
 
-export default GroupSpec.make().addFunction(
-  FunctionSpec.convexInternalMutation<typeof run>()("run"),
-);
+export default GroupSpec.make()
+  .addFunction(FunctionSpec.convexInternalMutation<typeof run>()("run"))
+  .addFunction(
+    FunctionSpec.convexInternalMutation<typeof onComplete>()("onComplete"),
+  );
 `,
     },
     {
@@ -3135,13 +3186,20 @@ export default GroupSpec.make().addFunction(
       content: `import { FunctionImpl, GroupImpl } from "@confect/server";
 import * as Layer from "effect/Layer";
 import databaseSchema from "../_generated/schema";
-import { run } from "./${name}";
+import { onComplete, run } from "./${name}";
 import ${name} from "./${name}.spec";
 
 const runImpl = FunctionImpl.make(databaseSchema, ${name}, "run", run);
+const onCompleteImpl = FunctionImpl.make(
+  databaseSchema,
+  ${name},
+  "onComplete",
+  onComplete,
+);
 
 export default GroupImpl.make(databaseSchema, ${name}).pipe(
   Layer.provide(runImpl),
+  Layer.provide(onCompleteImpl),
   GroupImpl.finalize,
 );
 `,

@@ -10,6 +10,8 @@ import {
   type EventId,
   type WorkflowComponent,
   type WorkflowId,
+  vWorkflowId,
+  vResultValidator,
 } from "@convex-dev/workflow";
 import type { PropertyValidators, Validator } from "convex/values";
 import * as Data from "effect/Data";
@@ -20,6 +22,8 @@ import { generatedWorkflowWorkpoolOptions } from "./workpoolConfig";
 
 export const defineMaestroWorkflowEvent = defineEvent;
 export const sendMaestroWorkflowEvent = sendEvent;
+export const MaestroWorkflowIdValidator = vWorkflowId;
+export const MaestroWorkflowResultValidator = vResultValidator;
 export type MaestroWorkflowComponent = WorkflowComponent;
 export type MaestroWorkflowEventId<Name extends string = string> =
   EventId<Name>;

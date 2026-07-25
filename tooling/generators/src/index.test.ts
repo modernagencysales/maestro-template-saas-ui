@@ -1441,6 +1441,7 @@ describe("template app factory generators", () => {
     expect(spec).toContain("WorkflowStatusResult");
 
     expect(impl).toContain("startWorkflowAndRecordOwnership");
+    expect(impl).toContain("onCompleteRef: sourceGroundedPlanOnCompleteRef");
     expect(impl).toContain("makeFunctionReference");
     expect(impl).toContain('"workflowRunners/sourceGroundedPlan:run"');
     expect(impl).not.toContain('"workflows/sourceGroundedPlan:run"');
@@ -1462,6 +1463,8 @@ describe("template app factory generators", () => {
     expect(impl).not.toContain("now:");
 
     expect(convexWorkflow).toContain("defineMaestroWorkflow");
+    expect(convexWorkflow).toContain("export const onComplete");
+    expect(convexWorkflow).toContain("reconcileObservedWorkflowCompletion");
     expect(convexWorkflow).toContain("runDurableGraphWorkflow");
     expect(convexWorkflow).toContain("WorkflowPrincipalValidator");
     expect(convexWorkflow).toContain("WorkflowReceiptValidator");
@@ -1496,6 +1499,7 @@ describe("template app factory generators", () => {
     expect(predeploy).toContain("workflowWorkpoolConfigurationFindings(");
     expect(predeploy).toContain("Workflow predeploy generation failed");
     expect(runnerSpec).toContain("FunctionSpec.convexInternalMutation");
+    expect(runnerSpec).toContain('("onComplete")');
     expect(runnerImpl).toContain("FunctionImpl.make");
     expect(semantics).toContain('"WF-DEFINE"');
     expect(semantics).toContain('"posture": "generated"');
