@@ -21,6 +21,23 @@ type ExistingWorkflowRun = {
   readonly componentWorkflowId?: string | null | undefined;
 };
 
+export type WorkflowRunReservationInput = Pick<
+  StartWorkflowOwnershipInput<FunctionReference<"mutation", "internal">>,
+  | "workspaceId"
+  | "workflowId"
+  | "workflowVersion"
+  | "graphJson"
+  | "idempotencyKey"
+  | "startedByUserId"
+  | "startedAt"
+  | "trustReceiptId"
+  | "workflowKind"
+  | "sourceRunKind"
+  | "sourceRunId"
+  | "timeoutMs"
+  | "deadlineAt"
+>;
+
 export type StartWorkflowOwnershipInput<
   F extends FunctionReference<"mutation", "internal">,
 > = {
@@ -132,29 +149,42 @@ const handleExistingWorkflowRun = <
     : Effect.succeed(null);
 };
 
-const reserveWorkflowRun = <
-  F extends FunctionReference<"mutation", "internal">,
->(
+export const reserveWorkflowRun = (
   writer: Writer,
-  input: StartWorkflowOwnershipInput<F>,
+  input: WorkflowRunReservationInput,
 ) =>
-  writer
-    .table("workflowRuns")
-    .insert({
-      workspaceId: input.workspaceId,
-      workflowId: input.workflowId,
-      workflowVersion: input.workflowVersion,
-      graphJson: input.graphJson,
-      status: "queued",
-      idempotencyKey: input.idempotencyKey,
-      startedByUserId: input.startedByUserId,
-      startedAt: input.startedAt,
-      completedAt: null,
-      failedAt: null,
-      trustReceiptId: input.trustReceiptId ?? null,
-      ...optionalRunFields(input),
-    })
-    .pipe(Effect.orDie);
+  Effect.gen(function* () {
+    const reservationId = yield* writer
+      .table("workflowRuns")
+      .insert({
+        workspaceId: input.workspaceId,
+        workflowId: input.workflowId,
+        workflowVersion: input.workflowVersion,
+        graphJson: input.graphJson,
+        status: "queued",
+        idempotencyKey: input.idempotencyKey,
+        startedByUserId: input.startedByUserId,
+        startedAt: input.startedAt,
+        completedAt: null,
+        failedAt: null,
+        trustReceiptId: input.trustReceiptId ?? null,
+        ...optionalRunFields(input),
+      })
+      .pipe(Effect.orDie);
+    yield* writer
+      .table("workflowRuns")
+      .patch(
+        reservationId,
+        initialWorkflowLifecycleFields({
+          workspaceId: input.workspaceId,
+          workflowRunId: reservationId,
+          workflowId: input.workflowId,
+          workflowVersion: input.workflowVersion,
+        }),
+      )
+      .pipe(Effect.orDie);
+    return reservationId;
+  });
 
 export const initialWorkflowLifecycleFields = (input: {
   readonly workspaceId: string;
@@ -178,9 +208,7 @@ export const initialWorkflowLifecycleFields = (input: {
   } as const;
 };
 
-const optionalRunFields = <F extends FunctionReference<"mutation", "internal">>(
-  input: StartWorkflowOwnershipInput<F>,
-) => ({
+const optionalRunFields = (input: WorkflowRunReservationInput) => ({
   ...definedFields({
     timeoutMs: input.timeoutMs,
     deadlineAt: input.deadlineAt,

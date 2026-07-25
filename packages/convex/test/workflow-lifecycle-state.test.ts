@@ -1,10 +1,17 @@
+import { TestConfect } from "@confect/test";
 import * as Either from "effect/Either";
+import * as Effect from "effect/Effect";
+import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
 import { describe, expect, it } from "vitest";
 
 import { WorkflowRunRow } from "../confect/tables/workflowRuns";
 import {
   MAX_ON_COMPLETE_CONTEXT_BYTES,
+  WorkflowComponentCleanupState,
+  WorkflowGenerationQuiescence,
+  WorkflowLifecycleExecution,
+  WorkflowProductCleanupState,
   createWorkflowLifecycleState,
   decodeWorkflowOnCompleteContext,
   deriveGenerationAnchor,
@@ -12,8 +19,12 @@ import {
   type WorkflowLifecycleCommand,
   type WorkflowLifecycleState,
 } from "../confect/workflows/_kit/lifecycleState";
-import { initialWorkflowLifecycleFields } from "../confect/workflows/_kit/ownership";
+import {
+  initialWorkflowLifecycleFields,
+  reserveWorkflowRun,
+} from "../confect/workflows/_kit/ownership";
 import { projectWorkflowStatus } from "../confect/workflows/_kit/status";
+import { testConfectLayer } from "./support/confect";
 
 const baseState = (overrides: Partial<WorkflowLifecycleState> = {}) =>
   createWorkflowLifecycleState({
@@ -253,6 +264,67 @@ describe("workflow lifecycle persistence leaves", () => {
     });
   });
 
+  it("persists initialized lifecycle fields after the canonical run ID exists", async () => {
+    const program = Effect.gen(function* () {
+      const confect = yield* Effect.serviceOptional(
+        TestConfect.TestConfect<typeof databaseSchema>(),
+      );
+      return yield* confect.run(
+        Effect.gen(function* () {
+          const writer = yield* DatabaseWriter;
+          const reservationId = yield* reserveWorkflowRun(writer, {
+            workspaceId: "workspace-a",
+            workflowId: "workflow.invoice",
+            workflowVersion: 3,
+            graphJson: "{}",
+            idempotencyKey: "invoice-persisted-1",
+            startedByUserId: "user-a",
+            startedAt: 1,
+          });
+          const reader = yield* DatabaseReader;
+          const row = yield* reader
+            .table("workflowRuns")
+            .index("by_idempotency_key", (q) =>
+              q
+                .eq("workspaceId", "workspace-a")
+                .eq("idempotencyKey", "invoice-persisted-1"),
+            )
+            .first()
+            .pipe(Effect.map(Option.getOrNull), Effect.orDie);
+          return {
+            reservationId: String(reservationId),
+            storedId: String(row?._id ?? "missing"),
+            lifecycleExecution: row?.lifecycleExecution ?? null,
+            lifecycleGeneration: row?.lifecycleGeneration ?? null,
+            lifecycleGenerationAnchor: row?.lifecycleGenerationAnchor ?? null,
+            priorGenerationQuiescence: row?.priorGenerationQuiescence ?? null,
+            cleanupState: row?.cleanupState ?? null,
+            componentCleanupState: row?.componentCleanupState ?? null,
+          };
+        }),
+        LifecycleInsertionSnapshot,
+      );
+    });
+
+    const snapshot = await Effect.runPromise(
+      program.pipe(Effect.provide(testConfectLayer())),
+    );
+    expect(snapshot).toEqual({
+      reservationId: snapshot.storedId,
+      storedId: snapshot.storedId,
+      lifecycleExecution: "active",
+      lifecycleGeneration: 0,
+      lifecycleGenerationAnchor: deriveGenerationAnchor(
+        "workflow.invoice",
+        3,
+        0,
+      ),
+      priorGenerationQuiescence: "not-applicable",
+      cleanupState: "not-requested",
+      componentCleanupState: "not-requested",
+    });
+  });
+
   it("projects lifecycle independently from component status", () => {
     expect(
       projectWorkflowStatus(
@@ -305,3 +377,16 @@ describe("workflow lifecycle persistence leaves", () => {
     ).toBe(true);
   });
 });
+
+const LifecycleInsertionSnapshot = Schema.Struct({
+  reservationId: Schema.String,
+  storedId: Schema.String,
+  lifecycleExecution: Schema.NullOr(WorkflowLifecycleExecution),
+  lifecycleGeneration: Schema.NullOr(Schema.Number),
+  lifecycleGenerationAnchor: Schema.NullOr(Schema.String),
+  priorGenerationQuiescence: Schema.NullOr(WorkflowGenerationQuiescence),
+  cleanupState: Schema.NullOr(WorkflowProductCleanupState),
+  componentCleanupState: Schema.NullOr(WorkflowComponentCleanupState),
+});
+import databaseSchema from "../confect/_generated/schema";
+import { DatabaseReader, DatabaseWriter } from "../confect/_generated/services";
