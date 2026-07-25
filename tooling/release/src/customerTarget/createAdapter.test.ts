@@ -167,7 +167,7 @@ describe("customer release create adapter", () => {
         const plan = blueprintTargetPlan();
         return rehashPlan({
           ...plan,
-          entries: [...plan.entries, plan.entries[0]!],
+          entries: [...plan.entries, firstPlanEntry(plan)],
         });
       },
     ],
@@ -175,7 +175,7 @@ describe("customer release create adapter", () => {
       "release overlap",
       () => {
         const plan = blueprintTargetPlan();
-        const entry = { ...plan.entries[0]!, path: "runtime.txt" };
+        const entry = { ...firstPlanEntry(plan), path: "runtime.txt" };
         return rehashPlan({
           ...plan,
           registrations: [entry.path],
@@ -194,7 +194,7 @@ describe("customer release create adapter", () => {
         const plan = blueprintTargetPlan();
         return {
           ...plan,
-          entries: [{ ...plan.entries[0]!, content: "drift\n" }],
+          entries: [{ ...firstPlanEntry(plan), content: "drift\n" }],
         };
       },
     ],
@@ -204,11 +204,12 @@ describe("customer release create adapter", () => {
         const plan = blueprintTargetPlan();
         return rehashPlan({
           ...plan,
-          entries: [{ ...plan.entries[0]!, ownership: "template-owned" }],
+          entries: [{ ...firstPlanEntry(plan), ownership: "template-owned" }],
         } as never);
       },
     ],
-  ] as const)("rejects blueprint target plan %s", async (_label, buildPlan) => {
+  ] as const)("rejects blueprint target plan %s", async (...testCase) => {
+    const buildPlan = testCase[1];
     const fixture = taggedRelease();
     const result = await adapter(fixture).prepare({
       repo: {
@@ -268,9 +269,21 @@ function rehashPlan(plan: ReturnType<typeof blueprintTargetPlan>) {
     id: plan.id,
     provenance: plan.provenance,
     registrations: plan.registrations,
-    entries: plan.entries.map(({ content: _, ...entry }) => entry),
+    entries: plan.entries.map((entry) => ({
+      path: entry.path,
+      ownership: entry.ownership,
+      action: entry.action,
+      upgrade: entry.upgrade,
+      sha256: entry.sha256,
+    })),
   };
   return { ...plan, digest: hash(JSON.stringify(identity)) };
+}
+
+function firstPlanEntry(plan: ReturnType<typeof blueprintTargetPlan>) {
+  const entry = plan.entries[0];
+  if (entry === undefined) throw new Error("Blueprint fixture has no entries");
+  return entry;
 }
 
 function rewriteManifest(fixture: TaggedReleaseFixture): void {

@@ -218,13 +218,29 @@ export type BlueprintTargetPlan = {
   readonly digest: string;
 };
 
+type BlueprintTargetPlanOptions = {
+  readonly name: string;
+  readonly firstOutcome?: string;
+};
+
+const targetEntryIdentity = (
+  entry: BlueprintTargetPlan["entries"][number],
+) => ({
+  path: entry.path,
+  ownership: entry.ownership,
+  action: entry.action,
+  upgrade: entry.upgrade,
+  sha256: entry.sha256,
+  ...(entry.replaces === undefined ? {} : { replaces: entry.replaces }),
+});
+
 const sha256 = (value: string): string =>
   `sha256:${createHash("sha256").update(value).digest("hex")}`;
 
-export const buildSaasApplicationTargetPlan = (_options: {
-  readonly name: string;
-  readonly firstOutcome?: string;
-}): BlueprintTargetPlan => {
+export function buildSaasApplicationTargetPlan(
+  options: BlueprintTargetPlanOptions,
+): BlueprintTargetPlan;
+export function buildSaasApplicationTargetPlan(): BlueprintTargetPlan {
   const replacements = new Map<string, "copy" | "generate">([
     ["apps/cli/src/index.ts", "copy"],
     ["apps/cli/src/factory/start.ts", "copy"],
@@ -253,8 +269,9 @@ export const buildSaasApplicationTargetPlan = (_options: {
     firstOutcome: "Create and review records",
   })
     .filter(({ path }) => path !== "template-instance.json")
-    .map(({ path, content }) =>
-      customerExtensions.has(path)
+    .map(({ path, content }) => {
+      const replacement = replacements.get(path);
+      return customerExtensions.has(path)
         ? {
             path,
             ownership: "customer-extension" as const,
@@ -270,11 +287,9 @@ export const buildSaasApplicationTargetPlan = (_options: {
             upgrade: "regenerate" as const,
             sha256: sha256(content),
             content,
-            ...(replacements.has(path)
-              ? { replaces: replacements.get(path)! }
-              : {}),
-          },
-    )
+            ...(replacement === undefined ? {} : { replaces: replacement }),
+          };
+    })
     .sort((left, right) => left.path.localeCompare(right.path));
   const registrations = [
     "apps/cli/src/factory/customerComposition.ts",
@@ -328,10 +343,10 @@ export const buildSaasApplicationTargetPlan = (_options: {
     id: "saas-application" as const,
     provenance: "@maestro-template/generators/saas-application@1" as const,
     registrations,
-    entries: entries.map(({ content: _, ...entry }) => entry),
+    entries: entries.map(targetEntryIdentity),
   };
   return { ...identity, entries, digest: sha256(JSON.stringify(identity)) };
-};
+}
 
 export const buildSaasApplicationHandoff = (
   name: string,

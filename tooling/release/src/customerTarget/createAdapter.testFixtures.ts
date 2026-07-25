@@ -38,7 +38,13 @@ export function blueprintTargetPlan(content = "fixture blueprint\n") {
     id: "fixture-blueprint",
     provenance: "fixture-generator@1",
     registrations: ["generated/fixture-blueprint.txt"],
-    entries: entries.map(({ content: _, ...entry }) => entry),
+    entries: entries.map((entry) => ({
+      path: entry.path,
+      ownership: entry.ownership,
+      action: entry.action,
+      upgrade: entry.upgrade,
+      sha256: entry.sha256,
+    })),
   };
   return { ...identity, entries, digest: hash(JSON.stringify(identity)) };
 }
@@ -116,7 +122,13 @@ export function taggedRelease() {
     id: plan.id,
     provenance: plan.provenance,
     registrations: plan.registrations,
-    entries: plan.entries.map(({ content: _, ...entry }) => entry),
+    entries: plan.entries.map((entry) => ({
+      path: entry.path,
+      ownership: entry.ownership,
+      action: entry.action,
+      upgrade: entry.upgrade,
+      sha256: entry.sha256,
+    })),
   };
   const blueprintManifestPath = join(
     makeRoot("maestro-blueprint-authority-"),

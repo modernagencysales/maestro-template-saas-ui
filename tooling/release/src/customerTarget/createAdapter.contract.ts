@@ -81,6 +81,17 @@ export type BlueprintTargetPlan = BlueprintTargetFacts & {
   ))[];
 };
 
+const targetEntryIdentity = (
+  entry: BlueprintTargetPlan["entries"][number],
+) => ({
+  path: entry.path,
+  ownership: entry.ownership,
+  action: entry.action,
+  upgrade: entry.upgrade,
+  sha256: entry.sha256,
+  ...(entry.replaces === undefined ? {} : { replaces: entry.replaces }),
+});
+
 export function validateBlueprintTargetPlan(
   value: BlueprintTargetPlan,
 ): BlueprintTargetPlan {
@@ -120,7 +131,7 @@ export function validateBlueprintTargetPlan(
     id: value.id,
     provenance: value.provenance,
     registrations: value.registrations,
-    entries: value.entries.map(({ content: _, ...entry }) => entry),
+    entries: value.entries.map(targetEntryIdentity),
   };
   if (sha256(JSON.stringify(identity)) !== value.digest) {
     throw new CustomerReleaseAdapterError(
@@ -161,7 +172,7 @@ export function assertReviewedBlueprintTargetPlan(
     id: plan.id,
     provenance: plan.provenance,
     registrations: plan.registrations,
-    entries: plan.entries.map(({ content: _, ...entry }) => entry),
+    entries: plan.entries.map(targetEntryIdentity),
   });
   if (actual !== expected) {
     throw new CustomerReleaseAdapterError(
