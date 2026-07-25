@@ -73,6 +73,21 @@ tester.run("typed-convex-errors", typedConvexErrors, {
       code: "export const f = mutation({ handler: () => { throw new Error('bad'); } });",
       errors: [{ messageId: "typed" }],
     },
+    {
+      filename: CAP,
+      code: "const handler = () => { throw new Error('bad'); }; export const f = mutation({ handler });",
+      errors: [{ messageId: "typed" }],
+    },
+    {
+      filename: CAP,
+      code: "import { mutation as registerMutation } from './_generated/server'; const handler = () => { throw new Error('bad'); }; export const f = registerMutation({ handler });",
+      errors: [{ messageId: "typed" }],
+    },
+    {
+      filename: CAP,
+      code: "const registerMutation = mutation; const handler = () => { throw new Error('bad'); }; export const f = registerMutation({ handler });",
+      errors: [{ messageId: "typed" }],
+    },
     // the confect HTTP router (confect/http.ts) is a boundary layer too
     {
       filename: HTTP,

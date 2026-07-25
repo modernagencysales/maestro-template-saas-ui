@@ -41,25 +41,94 @@ export default {
     if (!layers.some((l) => filename.includes(l))) return {};
     if (filename.includes(".test.") || filename.includes("/__tests__/"))
       return {};
+    const calls = [];
+    const bareErrorThrows = [];
     return {
+      CallExpression(node) {
+        calls.push(node);
+      },
       ThrowStatement(node) {
         const arg = node.argument;
         if (
-          isInsideConvexBoundary(node) &&
           arg.type === "NewExpression" &&
           arg.callee.type === "Identifier" &&
           arg.callee.name === "Error"
         ) {
-          context.report({ node, messageId: "typed" });
+          bareErrorThrows.push(node);
+        }
+      },
+      "Program:exit"() {
+        const boundaryFunctions = collectBoundaryFunctions(
+          calls,
+          context.sourceCode,
+        );
+        for (const node of bareErrorThrows) {
+          if (isInsideBoundaryFunction(node, boundaryFunctions)) {
+            context.report({ node, messageId: "typed" });
+          }
         }
       },
     };
   },
 };
 
-const isInsideConvexBoundary = (node) => {
+const collectBoundaryFunctions = (calls, sourceCode) => {
+  const functions = new Set();
+  for (const call of calls) {
+    const chainedHandler =
+      call.callee.type === "MemberExpression" &&
+      propertyName(call.callee.property) === "handler";
+    if (chainedHandler) {
+      for (const argument of call.arguments) {
+        addResolvedFunction(functions, argument, sourceCode);
+      }
+      continue;
+    }
+    if (!isConvexFactory(call.callee, sourceCode)) continue;
+    for (const argument of call.arguments) {
+      addResolvedFunction(functions, argument, sourceCode);
+      if (argument.type !== "ObjectExpression") continue;
+      for (const property of argument.properties) {
+        if (
+          property.type === "Property" &&
+          propertyName(property.key) === "handler"
+        ) {
+          addResolvedFunction(functions, property.value, sourceCode);
+        }
+      }
+    }
+  }
+  return functions;
+};
+
+const addResolvedFunction = (functions, node, sourceCode) => {
+  const resolved = resolveFunction(node, sourceCode);
+  if (resolved) functions.add(resolved);
+};
+
+const resolveFunction = (node, sourceCode) => {
+  if (isFunction(node)) return node;
+  if (node.type !== "Identifier") return null;
+  const variable = resolveVariable(node, sourceCode);
+  for (const definition of variable?.defs ?? []) {
+    if (definition.type === "FunctionName" && isFunction(definition.node)) {
+      return definition.node;
+    }
+    if (
+      definition.type === "Variable" &&
+      definition.node.type === "VariableDeclarator" &&
+      definition.node.init &&
+      isFunction(definition.node.init)
+    ) {
+      return definition.node.init;
+    }
+  }
+  return null;
+};
+
+const isInsideBoundaryFunction = (node, boundaryFunctions) => {
   for (let current = node.parent; current; current = current.parent) {
-    if (isFunction(current) && isConvexBoundaryCallback(current)) return true;
+    if (isFunction(current) && boundaryFunctions.has(current)) return true;
   }
   return false;
 };
@@ -69,42 +138,68 @@ const isFunction = (node) =>
   node.type === "FunctionExpression" ||
   node.type === "FunctionDeclaration";
 
-const isConvexBoundaryCallback = (node) => {
-  const parent = node.parent;
-  if (!parent) return false;
-  if (
-    parent.type === "Property" &&
-    parent.value === node &&
-    propertyName(parent.key) === "handler"
-  ) {
-    const object = parent.parent;
-    return (
-      object?.type === "ObjectExpression" &&
-      object.parent?.type === "CallExpression" &&
-      isConvexFactory(object.parent.callee)
-    );
+const CONVEX_FACTORIES = new Set([
+  "query",
+  "mutation",
+  "action",
+  "httpAction",
+  "internalQuery",
+  "internalMutation",
+  "internalAction",
+  "queryGeneric",
+  "mutationGeneric",
+  "actionGeneric",
+  "internalQueryGeneric",
+  "internalMutationGeneric",
+  "internalActionGeneric",
+]);
+
+const isConvexFactory = (callee, sourceCode, seen = new Set()) => {
+  if (callee.type === "MemberExpression") {
+    return CONVEX_FACTORIES.has(propertyName(callee.property));
   }
-  if (parent.type !== "CallExpression" || !parent.arguments.includes(node)) {
-    return false;
+  if (callee.type !== "Identifier") return false;
+  if (CONVEX_FACTORIES.has(callee.name)) return true;
+  const variable = resolveVariable(callee, sourceCode);
+  if (!variable || seen.has(variable)) return false;
+  seen.add(variable);
+  for (const definition of variable.defs) {
+    if (definition.type === "ImportBinding") {
+      const imported = definition.node.imported;
+      if (
+        imported &&
+        CONVEX_FACTORIES.has(propertyName(imported)) &&
+        isConvexFactoryImport(definition.parent?.source?.value)
+      ) {
+        return true;
+      }
+    }
+    if (
+      definition.type === "Variable" &&
+      definition.node.type === "VariableDeclarator" &&
+      definition.node.init &&
+      isConvexFactory(definition.node.init, sourceCode, seen)
+    ) {
+      return true;
+    }
   }
-  return (
-    isConvexFactory(parent.callee) ||
-    (parent.callee.type === "MemberExpression" &&
-      propertyName(parent.callee.property) === "handler")
-  );
+  return false;
 };
 
-const isConvexFactory = (callee) => {
-  const name =
-    callee.type === "Identifier"
-      ? callee.name
-      : callee.type === "MemberExpression"
-        ? propertyName(callee.property)
-        : null;
-  return (
-    name !== null &&
-    /(?:query|mutation|action|httpAction)(?:Generic)?$/i.test(name)
-  );
+const isConvexFactoryImport = (source) =>
+  typeof source === "string" &&
+  (source === "convex/server" || /(?:^|\/)_generated\/server$/.test(source));
+
+const resolveVariable = (identifier, sourceCode) => {
+  for (
+    let scope = sourceCode.getScope(identifier);
+    scope;
+    scope = scope.upper
+  ) {
+    const variable = scope.set.get(identifier.name);
+    if (variable) return variable;
+  }
+  return null;
 };
 
 const propertyName = (node) =>
