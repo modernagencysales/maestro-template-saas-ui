@@ -1553,6 +1553,7 @@ describe("pinned Convex Workflow component conformance", () => {
       t.query(conformanceApi.workflowStatus, { workflowId }),
     ).resolves.toEqual({ type: "completed", result: true });
     await t.mutation(conformanceApi.cleanupWorkflow, { workflowId });
+    await t.finishAllScheduledFunctions(vi.runOnlyPendingTimers);
   });
 
   it("traverses workflow pagination cursors without duplicates", async () => {
