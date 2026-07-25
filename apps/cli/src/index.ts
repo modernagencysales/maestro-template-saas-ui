@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { runTemplateApiOperation } from "@maestro-template/workflow-tooling";
 import { createCliHandlers } from "./commands";
+import { isCliDirectRun } from "./direct-run";
 import { factoryCliComposition } from "./factory/composition";
 import { dispatchFactoryCliCommand } from "./factory/router";
 import { cliFailure, formatJsonOutput } from "./result";
@@ -71,10 +72,7 @@ export const runCliAsync = async (
   );
 };
 
-if (
-  process.argv[1]?.endsWith("index.ts") ||
-  process.argv[1]?.endsWith("index.js")
-) {
+if (isCliDirectRun(import.meta.url)) {
   void runCliAsync(
     process.argv.slice(2),
     decodeCliRuntimeConfig(process.env),
