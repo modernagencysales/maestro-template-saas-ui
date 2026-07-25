@@ -609,7 +609,7 @@ export function BusinessDataLifecycleRoute() {
   );
 }
 
-function BusinessAppShell({
+export function BusinessAppShell({
   activePath = "/",
   children,
 }: {
@@ -702,7 +702,11 @@ function BusinessAppShell({
   );
 }
 
-function BusinessPageRoot({ children }: { readonly children: ReactNode }) {
+export function BusinessPageRoot({
+  children,
+}: {
+  readonly children: ReactNode;
+}) {
   return (
     <Page.Root
       bg="gray.50"

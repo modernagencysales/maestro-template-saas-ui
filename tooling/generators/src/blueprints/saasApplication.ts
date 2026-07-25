@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import type { GeneratedFile, TemplateBlueprint } from "../index";
 
 export const saasApplicationBlueprint = {
@@ -42,6 +43,30 @@ const jsonFile = (path: string, value: unknown): GeneratedFile => ({
   path,
   content: `${JSON.stringify(value, null, 2)}\n`,
 });
+
+const executableSourcePaths = [
+  "packages/convex/confect/tables/records.ts",
+  "packages/convex/confect/records/records.spec.ts",
+  "packages/convex/confect/records/records.impl.ts",
+  "apps/web/src/adapters/records/contract.ts",
+  "apps/web/src/adapters/records/fake.ts",
+  "apps/web/src/features/records/model.ts",
+  "apps/web/src/features/records/records-surface.tsx",
+  "apps/web/src/screens/records-screen.tsx",
+  "apps/web/src/routes/_workspace.records.tsx",
+] as const;
+
+const executableSourceFiles = (): readonly GeneratedFile[] =>
+  executableSourcePaths.map((path) => ({
+    path,
+    content: readFileSync(
+      new URL(
+        `../../../../examples/saas-application/seed/source/${path}`,
+        import.meta.url,
+      ),
+      "utf8",
+    ),
+  }));
 
 const slugify = (value: string): string =>
   value
@@ -95,6 +120,7 @@ export const buildSaasApplicationFiles = (options: {
       },
       read: { by: "created-id", expectedTitle: "First record" },
     }),
+    ...executableSourceFiles(),
     jsonFile(
       "generated/blueprints/saas-application/application-contract.json",
       {
@@ -168,8 +194,15 @@ Blueprint: \`saas-application\`
 
 ## Useful First Loop
 
-Start in fake mode, create a record, return to the list, and open its detail.
-The neutral \`record\` noun is intentionally renameable.
+Create a separate customer target with the reviewed SaaS release, then start
+from that target so its personalized name and first outcome are available:
+
+\`pnpm maestro -- create ../my-app --name ${JSON.stringify(name)} --outcome "Create and review records" --write\`
+
+\`pnpm --dir ../my-app maestro -- start --mode fake\`
+
+In the target, create a record, return to the list, and open its detail. The
+neutral \`record\` noun is intentionally renameable.
 
 ## Readiness
 

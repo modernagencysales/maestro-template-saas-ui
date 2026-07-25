@@ -41,18 +41,37 @@ export type SystemGeneratorDisposition = "reuse" | "extend";
 export type BlueprintId =
   "source-grounded-gtm-brain" | "gtm-implementation" | "saas-application";
 
-export type TemplateBlueprint = {
-  readonly id: BlueprintId;
+export type WorkflowBackedBlueprintId = Exclude<
+  BlueprintId,
+  "saas-application"
+>;
+export type WorkflowOptionalBlueprintId = "saas-application";
+
+type TemplateBlueprintBase = {
   readonly label: string;
   readonly summary: string;
   readonly domainNouns: readonly string[];
   readonly sourceTypes: readonly string[];
-  readonly defaultCapability: string | null;
-  readonly defaultWorkflow: string | null;
-  readonly defaultAgent: string | null;
   readonly providerPosture: "fake-first";
   readonly surfaces: readonly ("web" | "api" | "cli" | "mcp")[];
 };
+
+export type WorkflowBackedTemplateBlueprint = TemplateBlueprintBase & {
+  readonly id: WorkflowBackedBlueprintId;
+  readonly defaultCapability: string;
+  readonly defaultWorkflow: string;
+  readonly defaultAgent: string;
+};
+
+export type WorkflowOptionalTemplateBlueprint = TemplateBlueprintBase & {
+  readonly id: WorkflowOptionalBlueprintId;
+  readonly defaultCapability: null;
+  readonly defaultWorkflow: null;
+  readonly defaultAgent: null;
+};
+
+export type TemplateBlueprint =
+  WorkflowBackedTemplateBlueprint | WorkflowOptionalTemplateBlueprint;
 
 export type TemplateInstance = {
   readonly name: string;
@@ -161,17 +180,31 @@ export type HandoffPacket = {
   readonly markdown: string;
 };
 
-export type TemplateQuickstart = {
-  readonly blueprint: BlueprintId;
+type TemplateQuickstartBase = {
   readonly instance: TemplateInstance;
-  readonly firstCapability: string | null;
-  readonly firstWorkflow: string | null;
-  readonly firstAgent: string | null;
   readonly files: readonly GeneratedFile[];
-  readonly targets: readonly string[];
-  readonly collisions: readonly string[];
   readonly nextCommands: readonly string[];
 };
+
+export type WorkflowBackedTemplateQuickstart = TemplateQuickstartBase & {
+  readonly blueprint: WorkflowBackedBlueprintId;
+  readonly firstCapability: string;
+  readonly firstWorkflow: string;
+  readonly firstAgent: string;
+};
+
+export type WorkflowOptionalTemplateQuickstart = TemplateQuickstartBase & {
+  readonly blueprint: WorkflowOptionalBlueprintId;
+  readonly workflowPosture: "optional-unavailable";
+  readonly firstCapability: null;
+  readonly firstWorkflow: null;
+  readonly firstAgent: null;
+  readonly targets: readonly string[];
+  readonly collisions: readonly string[];
+};
+
+export type TemplateQuickstart =
+  WorkflowBackedTemplateQuickstart | WorkflowOptionalTemplateQuickstart;
 
 export type ClientIntake = {
   readonly instance: TemplateInstance;
@@ -468,7 +501,8 @@ const defaultUpgradeRequiredChecks = [
   "pnpm check:secret-canaries",
 ] as const;
 
-const defaultBlueprintId: BlueprintId = "source-grounded-gtm-brain";
+const defaultBlueprintId: WorkflowBackedBlueprintId =
+  "source-grounded-gtm-brain";
 const plannedBlueprintIds = [
   "implementation-consulting-brain",
   "internal-ops-agent-workspace",
@@ -1069,13 +1103,30 @@ const buildBlueprintQuickstartFiles = (
   ];
 };
 
-export const buildTemplateQuickstart = (options?: {
+type TemplateQuickstartOptions = {
   readonly name?: string;
   readonly blueprint?: BlueprintId;
   readonly providerMode?: ProviderMode;
   readonly generatedAt?: string;
   readonly cwd?: string;
-}): TemplateQuickstart => {
+};
+
+export function buildTemplateQuickstart(
+  options: TemplateQuickstartOptions & {
+    readonly blueprint: WorkflowOptionalBlueprintId;
+  },
+): WorkflowOptionalTemplateQuickstart;
+export function buildTemplateQuickstart(
+  options?: TemplateQuickstartOptions & {
+    readonly blueprint?: WorkflowBackedBlueprintId;
+  },
+): WorkflowBackedTemplateQuickstart;
+export function buildTemplateQuickstart(
+  options?: TemplateQuickstartOptions,
+): TemplateQuickstart;
+export function buildTemplateQuickstart(
+  options?: TemplateQuickstartOptions,
+): TemplateQuickstart {
   const blueprint = options?.blueprint ?? defaultBlueprintId;
   const blueprintConfig = findBlueprint(blueprint);
   const baseInstance = buildTemplateInstance({
@@ -1105,20 +1156,25 @@ export const buildTemplateQuickstart = (options?: {
       },
     ]);
     const targets = files.map(({ path }) => path);
-    const collisions = options?.cwd
-      ? targets.filter((path) => existsSync(resolve(options.cwd, path)))
+    const targetCwd = options?.cwd;
+    const collisions = targetCwd
+      ? targets.filter((path) => existsSync(resolve(targetCwd, path)))
       : [];
 
     return {
       blueprint,
       instance,
+      workflowPosture: "optional-unavailable",
       firstCapability: null,
       firstWorkflow: null,
       firstAgent: null,
       files,
       targets,
       collisions,
-      nextCommands: ["pnpm maestro -- start --mode fake"],
+      nextCommands: [
+        `pnpm maestro -- create ../${instance.slug} --name ${JSON.stringify(instance.name)} --outcome "Create and review records" --write`,
+        `pnpm --dir ../${instance.slug} maestro -- start --mode fake`,
+      ],
     };
   }
   const seed = buildDemoSeedPlan({
@@ -1178,20 +1234,21 @@ export const buildTemplateQuickstart = (options?: {
     instance.slug,
     files,
   );
-  const targets = generatedFiles.map(({ path }) => path);
-  const collisions = options?.cwd
-    ? targets.filter((path) => existsSync(resolve(options.cwd, path)))
-    : [];
+  if (
+    blueprintConfig.defaultCapability === null ||
+    blueprintConfig.defaultWorkflow === null ||
+    blueprintConfig.defaultAgent === null
+  ) {
+    throw new Error(`Blueprint ${blueprint} is missing its workflow contract.`);
+  }
 
   return {
-    blueprint,
+    blueprint: blueprint as WorkflowBackedBlueprintId,
     instance,
     firstCapability: blueprintConfig.defaultCapability,
     firstWorkflow: blueprintConfig.defaultWorkflow,
     firstAgent: blueprintConfig.defaultAgent,
     files: generatedFiles,
-    targets,
-    collisions,
     nextCommands: [
       "pnpm template:doctor -- --mode fake",
       "review docs/template/generated/provider-setup-checklist.md",
@@ -1202,7 +1259,7 @@ export const buildTemplateQuickstart = (options?: {
       "pnpm template:handoff -- --mode fake --write",
     ],
   };
-};
+}
 
 export const buildClientIntake = (options?: {
   readonly name?: string;
@@ -4756,7 +4813,9 @@ export const runGeneratorCli = (
       });
 
       if (args.write) {
-        assertGeneratedPathsAreNew(quickstart.files, cwd);
+        if (quickstart.blueprint === "saas-application") {
+          assertGeneratedPathsAreNew(quickstart.files, cwd);
+        }
         writeGeneratedFiles(quickstart.files, cwd);
       }
 
