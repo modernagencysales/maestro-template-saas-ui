@@ -55,6 +55,14 @@ export type AgentPackResult<
   readonly data: Data;
 };
 
+export type AgentPackCommandOutcome<Data extends AgentPackJsonValue> = {
+  readonly mutationPosture: AgentPackMutationPosture;
+  readonly exitClass: AgentPackExitClass;
+  readonly summary: string;
+  readonly diagnostics: readonly AgentPackDiagnostic[];
+  readonly data: Data;
+};
+
 export type AgentPackCommand<
   CommandId extends string,
   Args,
@@ -67,7 +75,7 @@ export type AgentPackCommand<
   readonly execute: (
     args: Args,
     context: AgentPackExecutionContext,
-  ) => Promise<AgentPackResult<CommandId, Data>>;
+  ) => Promise<AgentPackCommandOutcome<Data>>;
 };
 
 type AgentPackResultInput<
@@ -87,7 +95,7 @@ export function defineAgentPackCommand<
   return command;
 }
 
-export function createAgentPackResult<
+function createAgentPackResult<
   const CommandId extends string,
   Data extends AgentPackJsonValue,
 >(
@@ -106,6 +114,124 @@ export function createAgentPackResult<
     diagnostics: input.diagnostics,
     data: input.data,
   };
+}
+
+export async function executeAgentPackCommand<
+  const CommandId extends string,
+  Args,
+  Data extends AgentPackJsonValue,
+>(
+  command: AgentPackCommand<CommandId, Args, Data>,
+  input: unknown,
+  context: AgentPackExecutionContext,
+): Promise<AgentPackResult<CommandId, Data | null>> {
+  let mutationPosture: AgentPackMutationPosture = "read-only";
+
+  try {
+    const decoded = command.decode(input);
+    if (!decoded.ok) {
+      return diagnosticsMatchExit("invalidInvocation", decoded.diagnostics)
+        ? createAgentPackResult({
+            command: command.id,
+            mutationPosture,
+            exitClass: "invalidInvocation",
+            summary: `Invalid invocation for ${command.id}.`,
+            context,
+            diagnostics: decoded.diagnostics,
+            data: null,
+          })
+        : contractDefect(
+            command.id,
+            mutationPosture,
+            context,
+            "AGENT_PACK_EXIT_DIAGNOSTIC_MISMATCH",
+            "Argument decoding returned diagnostics inconsistent with invalidInvocation.",
+          );
+    }
+
+    mutationPosture = command.mutationPosture(decoded.args);
+    const outcome = await command.execute(decoded.args, context);
+    if (outcome.mutationPosture !== mutationPosture) {
+      return contractDefect(
+        command.id,
+        mutationPosture,
+        context,
+        "AGENT_PACK_POSTURE_MISMATCH",
+        `Command ${command.id} returned ${outcome.mutationPosture} after declaring ${mutationPosture}.`,
+      );
+    }
+    if (!diagnosticsMatchExit(outcome.exitClass, outcome.diagnostics)) {
+      return contractDefect(
+        command.id,
+        mutationPosture,
+        context,
+        "AGENT_PACK_EXIT_DIAGNOSTIC_MISMATCH",
+        `Command ${command.id} returned diagnostics inconsistent with ${outcome.exitClass}.`,
+      );
+    }
+
+    return createAgentPackResult({
+      command: command.id,
+      mutationPosture,
+      exitClass: outcome.exitClass,
+      summary: outcome.summary,
+      context,
+      diagnostics: outcome.diagnostics,
+      data: outcome.data,
+    });
+  } catch {
+    return contractDefect(
+      command.id,
+      mutationPosture,
+      context,
+      "AGENT_PACK_INTERNAL_DEFECT",
+      `Command ${command.id} failed inside the agent-pack executor.`,
+    );
+  }
+}
+
+function diagnosticsMatchExit(
+  exitClass: AgentPackExitClass,
+  diagnostics: readonly AgentPackDiagnostic[],
+): boolean {
+  const hasError = diagnostics.some(({ severity }) => severity === "error");
+  const hasFinding = diagnostics.some(
+    ({ severity }) => severity === "warning" || severity === "error",
+  );
+
+  if (exitClass === "success") return !hasFinding;
+  if (exitClass === "findings") return hasFinding;
+  return hasError;
+}
+
+function contractDefect<CommandId extends string>(
+  command: CommandId,
+  mutationPosture: AgentPackMutationPosture,
+  context: AgentPackExecutionContext,
+  code:
+    | "AGENT_PACK_EXIT_DIAGNOSTIC_MISMATCH"
+    | "AGENT_PACK_INTERNAL_DEFECT"
+    | "AGENT_PACK_POSTURE_MISMATCH",
+  message: string,
+): AgentPackResult<CommandId, null> {
+  return createAgentPackResult({
+    command,
+    mutationPosture,
+    exitClass: "internalDefect",
+    summary: `Agent-pack command contract defect: ${command}.`,
+    context,
+    diagnostics: [
+      {
+        code,
+        severity: "error",
+        message,
+        safeToContinue: false,
+        nextAction: "Report this command contract defect.",
+        rerun: `pnpm maestro -- ${command} --json`,
+      },
+    ],
+    data: null,
+  });
 }
 
 export function renderAgentPackResult(
