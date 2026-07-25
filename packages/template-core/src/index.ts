@@ -4,6 +4,7 @@ export type Tone = "neutral" | "good" | "warn";
 // browser-safe barrel.
 export * from "./coediting";
 export * from "./knowledge";
+export * from "./recipes";
 export {
   checkPrimitiveContract,
   createPrimitiveContract,

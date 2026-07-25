@@ -1,0 +1,111 @@
+{
+  "schemaVersion": 1,
+  "id": "crud-business-entity",
+  "aliases": [
+    "add records",
+    "track business items",
+    "create a business entity"
+  ],
+  "outcome": "Add one workspace-owned business entity with create, list, and detail behavior.",
+  "availability": { "status": "available" },
+  "consequentialQuestions": [
+    {
+      "id": "entityName",
+      "prompt": "What singular name should people see for this item?",
+      "why": "The answer names the table, route, and visible labels.",
+      "answerKind": "text"
+    },
+    {
+      "id": "canonicalOwner",
+      "prompt": "Which existing canonical system owns this item lifecycle?",
+      "why": "A missing owner is a template-gap, not permission to invent a parallel system.",
+      "answerKind": "text"
+    },
+    {
+      "id": "sensitiveData",
+      "prompt": "Will this item contain personal or sensitive data?",
+      "why": "This determines lifecycle, export, delete, and retention posture.",
+      "answerKind": "boolean"
+    }
+  ],
+  "canonicalSystems": [
+    {
+      "id": "access-and-tenancy",
+      "disposition": "reuse",
+      "role": "Workspace authorization for every create and read."
+    },
+    {
+      "id": "data-lifecycle",
+      "disposition": "extend",
+      "role": "Export, retention, and delete posture for the selected owner."
+    }
+  ],
+  "classifications": [
+    {
+      "kind": "pattern-instance",
+      "target": "template:add-table",
+      "evidence": "Scaffold the durable workspace-owned table under the selected canonical owner."
+    },
+    {
+      "kind": "pattern-instance",
+      "target": "template:add-feature",
+      "evidence": "Generate the canonical capability-to-route vertical slice."
+    }
+  ],
+  "generatorPreviews": [
+    {
+      "generatorId": "add-table",
+      "command": "pnpm template:add-table -- --name <entityName> --system <canonicalOwner> --disposition extend",
+      "purpose": "Preview table, lifecycle metadata, migration note, and ownership provenance."
+    },
+    {
+      "generatorId": "add-feature",
+      "command": "pnpm template:add-feature -- --name <entityName> --system <canonicalOwner> --disposition extend",
+      "purpose": "Preview capability, contract, adapter, feature, screen, route, states, and tests."
+    }
+  ],
+  "providerReferences": [
+    {
+      "id": "none",
+      "posture": "none",
+      "note": "Base CRUD uses fake/local persistence and requires no provider account."
+    }
+  ],
+  "migrationRisks": [
+    "Adding or reshaping fields requires an explicit widen-migrate-narrow decision.",
+    "Workspace indexes and lifecycle metadata must ship with the table registration."
+  ],
+  "focusedGates": [
+    "pnpm check:system-catalog",
+    "pnpm check:data-resources",
+    "pnpm check:schema-migration-notes",
+    "pnpm --dir apps/web typecheck"
+  ],
+  "doneState": [
+    "A workspace member can create an item and read it in list and detail views.",
+    "Loading, empty, error, list, detail, and create states have focused evidence.",
+    "Another workspace cannot read or mutate the item."
+  ],
+  "minimumPrimitive": "A workspace-authorized table plus create, list, and read operations projected through one route.",
+  "whenNotToUse": [
+    "The item is derived transient data and does not need an owned lifecycle.",
+    "The request is really an external side effect, approval, or durable orchestration."
+  ],
+  "escalationTriggers": [
+    {
+      "from": "table-route",
+      "to": "capability",
+      "when": "The operation needs policy, audit, entitlement, or cross-resource validation."
+    },
+    {
+      "from": "capability",
+      "to": "workflow",
+      "when": "The operation must pause, retry, wait, or resume across transactions."
+    },
+    {
+      "from": "workflow",
+      "to": "agent",
+      "when": "A nondeterministic actor needs explicit tools to choose among reviewed operations."
+    }
+  ]
+}

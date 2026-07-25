@@ -23,3 +23,11 @@ host integration or optional MCP work.
 
 Prefer committed fake/local providers. Never infer permission to authenticate,
 deploy, access production, expose secrets, or mutate a real host home.
+
+For common product outcomes, resolve the generated catalog at
+`docs/template/recipes/index.generated.json` through
+`pnpm maestro -- add <outcome-or-recipe>`. Use `recipes list/show` only for
+advanced inspection. Ask only the consequential questions in the selected
+recipe. If no exact recipe matches, return its adjacent reviewed recipes and
+`template-gap`; never invent an architecture or claim an unsupported workflow
+primitive.

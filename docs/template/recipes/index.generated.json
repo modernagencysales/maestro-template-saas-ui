@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "generated": true,
+  "recipes": [
+    {
+      "id": "approval-background-automation",
+      "file": "approval-background-automation.json",
+      "sha256": "sha256:3d9b8c294510c5c43e18a26d0400d8bf3a3d4934f71160c0c8458d5b5f3b79c3"
+    },
+    {
+      "id": "crud-business-entity",
+      "file": "crud-business-entity.json",
+      "sha256": "sha256:5467adf217d0d98516a9b5ee6a7622096cd028557d8e06c51e7e5af8fb722344"
+    },
+    {
+      "id": "validated-file-import",
+      "file": "validated-file-import.json",
+      "sha256": "sha256:05182fd758da9200c6e397f84b6cc64e0d30a94820e777bd15f52a0c7d55ae5f"
+    }
+  ]
+}

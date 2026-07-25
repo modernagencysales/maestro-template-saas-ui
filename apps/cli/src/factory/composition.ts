@@ -10,6 +10,8 @@ import {
   createNodePreflightRuntimeReader,
   createPlanCheckCommand,
   createPreflightCommand,
+  createAddRecipeCommand,
+  createRecipesCommand,
   createScaffoldCommand,
   createVerifyCommand,
   createRepositoryContext,
@@ -55,6 +57,8 @@ import {
 import { createMcpCliAdapter } from "./mcp";
 import { createMcpConfigureCliAdapter } from "./mcpConfigure";
 import { createPreflightCliHandler } from "./preflight";
+import { loadRecipeCatalogProjection } from "./recipeCatalog";
+import { createRecipeCliHandlers } from "./recipes";
 import { createScaffoldCliHandler } from "./scaffold";
 import {
   createComposedStartCommand,
@@ -266,6 +270,14 @@ export function createFactoryCliComposition(
         readReviewedAdrRefs(pathToFileURL(`${repo.sourceRoot}/`)),
     },
   });
+  const recipeDependencies = {
+    load: (repo: AgentPackExecutionContext["repo"]) =>
+      loadRecipeCatalogProjection(repo.sourceRoot),
+  };
+  const recipeHandlers = createRecipeCliHandlers({
+    add: createAddRecipeCommand(recipeDependencies),
+    recipes: createRecipesCommand(recipeDependencies),
+  });
   const mcpStore =
     overrides.mcp?.store ??
     createRepositoryLocalMcpConfigurationStore({ execFile });
@@ -307,6 +319,7 @@ export function createFactoryCliComposition(
   const handlers: readonly FactoryCliHandler[] = [
     createCustomerCreateComposition(),
     createStartCliHandler(start, startOutput),
+    ...recipeHandlers,
     createPreflightCliHandler(preflight),
     createVerifyCliHandler(verify),
     createVerifyCliHandler(check),
