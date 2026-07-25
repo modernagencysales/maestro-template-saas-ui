@@ -1,5 +1,5 @@
 import * as Effect from "effect/Effect";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import {
   isSafeConditionExpression,
@@ -143,6 +143,33 @@ const agentGraph = {
   joins: [],
 } satisfies DurableWorkflowGraph;
 
+const parallelJoinGraph = {
+  id: "workflow_parallel_join",
+  version: 1,
+  startNodeId: "source",
+  nodes: ["source", "branchA", "branchB", "output"].map((id) => ({
+    id,
+    kind:
+      id === "source" ? "source" : id === "output" ? "output" : "capability",
+    label: id,
+    ...(id.startsWith("branch") ? { capability: id } : {}),
+    retry: { maxAttempts: 1, backoffMs: 0 },
+  })) as DurableWorkflowGraph["nodes"],
+  edges: [
+    { id: "source-a", sourceNodeId: "source", targetNodeId: "branchA" },
+    { id: "source-b", sourceNodeId: "source", targetNodeId: "branchB" },
+    { id: "a-output", sourceNodeId: "branchA", targetNodeId: "output" },
+    { id: "b-output", sourceNodeId: "branchB", targetNodeId: "output" },
+  ],
+  joins: [
+    {
+      nodeId: "output",
+      strategy: "all-successful",
+      sourceNodeIds: ["branchA", "branchB"],
+    },
+  ],
+} satisfies DurableWorkflowGraph;
+
 describe("workflow status projection", () => {
   it("projects component statuses and defaults unknown blobs safely", () => {
     expect(
@@ -250,6 +277,132 @@ describe("workflow condition grammar", () => {
 });
 
 describe("durable graph runner", () => {
+  it("starts a complete ready wave and commits results in graph order", async () => {
+    const started: string[] = [];
+    const resolvers = new Map<string, (value: unknown) => void>();
+    const runQuery = async (
+      _ref: DurableGraphStepRef<"query">,
+      args: Record<string, unknown>,
+    ) => {
+      const nodeId = String(args.nodeId);
+      started.push(nodeId);
+      return new Promise((resolve) => resolvers.set(nodeId, resolve));
+    };
+    const promise = runDurableGraphWorkflow(
+      {
+        runQuery,
+        runMutation: async () => undefined,
+        runAction: async () => undefined,
+        sleep: async () => undefined,
+        awaitEvent: async () => {
+          throw new Error("parallel fixture does not await events");
+        },
+      },
+      {
+        graph: parallelJoinGraph,
+        inputs: {},
+        policySnapshot: {},
+        capabilityRegistry: {
+          branchA: {
+            kind: "query",
+            ref: classifyRef,
+            buildArgs: ({ node }) => ({ nodeId: node.id }),
+          },
+          branchB: {
+            kind: "query",
+            ref: classifyRef,
+            buildArgs: ({ node }) => ({ nodeId: node.id }),
+          },
+        },
+        projectOutput: ({ context }) => ({ keys: Object.keys(context) }),
+      },
+    );
+
+    await vi.waitFor(() => expect(started).toEqual(["branchA", "branchB"]));
+    resolvers.get("branchB")?.({ branch: "B" });
+    let settled = false;
+    void promise.finally(() => {
+      settled = true;
+    });
+    await Promise.resolve();
+    expect(settled).toBe(false);
+    resolvers.get("branchA")?.({ branch: "A" });
+    await expect(promise).resolves.toEqual({
+      keys: ["source", "branchA", "branchB"],
+    });
+  });
+
+  it("waits for settled siblings and preserves stable observation order on failure", async () => {
+    const resolvers = new Map<
+      string,
+      { resolve: (value: unknown) => void; reject: (error: Error) => void }
+    >();
+    const observations: Record<string, unknown>[] = [];
+    const promise = runDurableGraphWorkflow(
+      {
+        runQuery: async (_ref, args) =>
+          new Promise((resolve, reject) =>
+            resolvers.set(String(args.nodeId), { resolve, reject }),
+          ),
+        runMutation: async (_ref, args) => {
+          observations.push(args);
+          return undefined;
+        },
+        runAction: async () => undefined,
+        sleep: async () => undefined,
+        awaitEvent: async () => {
+          throw new Error("parallel fixture does not await events");
+        },
+      },
+      {
+        graph: parallelJoinGraph,
+        inputs: {},
+        policySnapshot: {},
+        capabilityRegistry: {
+          branchA: {
+            kind: "query",
+            ref: classifyRef,
+            buildArgs: ({ node }) => ({ nodeId: node.id }),
+          },
+          branchB: {
+            kind: "query",
+            ref: classifyRef,
+            buildArgs: ({ node }) => ({ nodeId: node.id }),
+          },
+        },
+        observability: {
+          recordStageStarted: stageStartedRef,
+          recordStageFinished: stageFinishedRef,
+        },
+      },
+    );
+    await vi.waitFor(() => expect(resolvers.size).toBe(2));
+    resolvers.get("branchB")?.reject(new Error("branch B failed"));
+    let settled = false;
+    void promise
+      .finally(() => {
+        settled = true;
+      })
+      .catch(() => undefined);
+    await Promise.resolve();
+    expect(settled).toBe(false);
+    resolvers.get("branchA")?.resolve({ branch: "A" });
+    await expect(promise).rejects.toThrow("branch B failed");
+    expect(
+      observations.filter(
+        (entry) =>
+          entry.status === "running" &&
+          String(entry.nodeId).startsWith("branch"),
+      ),
+    ).toEqual([
+      expect.objectContaining({ nodeId: "branchA", order: 1 }),
+      expect.objectContaining({ nodeId: "branchB", order: 2 }),
+    ]);
+    expect(observations).toContainEqual(
+      expect.objectContaining({ nodeId: "branchA", status: "succeeded" }),
+    );
+  });
+
   it("dispatches through the registry, sleeps, awaits approval, and observes stages", async () => {
     const queryCalls: unknown[] = [];
     const actionCalls: unknown[] = [];

@@ -9,6 +9,7 @@ import * as Data from "effect/Data";
 import * as Either from "effect/Either";
 
 import type { WorkflowPolicyPosture } from "./policySnapshot";
+import { generatedWorkflowWorkpoolOptions } from "./workpoolConfig";
 
 export type WorkflowKickoffProfile = {
   readonly name: string;
@@ -45,7 +46,7 @@ export type PlannedMaestroWorkflowDefinition<
   Returns extends Validator<unknown, "required", string>,
 > = {
   readonly definition: MaestroWorkflowDefinition<Args, Returns> & {
-    readonly workpoolOptions: { readonly retryActionsByDefault: false };
+    readonly workpoolOptions: typeof generatedWorkflowWorkpoolOptions;
   };
   readonly metadata: MaestroWorkflowMetadata;
 };
@@ -72,7 +73,7 @@ export const planMaestroWorkflowDefinition = <
     : Either.right({
         definition: {
           ...definition,
-          workpoolOptions: { retryActionsByDefault: false },
+          workpoolOptions: generatedWorkflowWorkpoolOptions,
         },
         metadata,
       });

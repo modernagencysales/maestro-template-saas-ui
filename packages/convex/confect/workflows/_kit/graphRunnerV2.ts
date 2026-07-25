@@ -92,27 +92,67 @@ export const runCompiledDurableGraphWorkflowV2 = async <
   input: RunDurableGraphV2CompilerInput<Result>,
 ): Promise<Result> => {
   const nodes = new Map(input.graph.nodes.map((node) => [node.id, node]));
-  const outgoing = new Map<string, string[]>();
+  const incoming = new Map<string, string[]>();
   for (const edge of input.graph.edges) {
-    const targets = outgoing.get(edge.sourceNodeId) ?? [];
-    targets.push(edge.targetNodeId);
-    outgoing.set(edge.sourceNodeId, targets);
+    const sources = incoming.get(edge.targetNodeId) ?? [];
+    sources.push(edge.sourceNodeId);
+    incoming.set(edge.targetNodeId, sources);
   }
   const context: Record<string, unknown> = {};
-  let current = nodes.get(input.graph.startNodeId);
-  while (current !== undefined) {
-    context[current.id] = await executeNode(step, input, current, context);
-    if (current.kind === "output") {
-      return input.projectOutput({ context });
-    }
-    const targets = outgoing.get(current.id) ?? [];
-    if (targets.length !== 1) {
-      throw validationFailure(
-        current,
-        `serial WP-1.2 compiler requires exactly one successor; found ${targets.length}`,
+  const completed = new Set<string>();
+  while (completed.size < nodes.size) {
+    const wave = input.graph.nodes.filter(
+      (node) =>
+        !completed.has(node.id) &&
+        (node.id === input.graph.startNodeId ||
+          (incoming.get(node.id) ?? []).every((source) =>
+            completed.has(source),
+          )),
+    );
+    if (wave.length === 0) {
+      throw makePublicError(
+        "VALIDATION_FAILED",
+        "Workflow graph V2 traversal made no progress.",
       );
     }
-    current = nodes.get(targets[0] ?? "");
+    const inlineMutations = wave.filter(
+      (node) =>
+        node.kind === "capability" &&
+        node.functionKind === "mutation" &&
+        node.transaction.kind === "inline",
+    );
+    if (inlineMutations.length > 1) {
+      const firstInlineMutation = inlineMutations[0];
+      if (firstInlineMutation === undefined) {
+        throw makePublicError(
+          "VALIDATION_FAILED",
+          "Invalid inline mutation wave.",
+        );
+      }
+      throw validationFailure(
+        firstInlineMutation,
+        `ready wave contains ${inlineMutations.length} inline mutations; combine atomic writes behind one typed capability or make them independent`,
+      );
+    }
+    const snapshot = { ...context };
+    const outcomes = await Promise.allSettled(
+      wave.map((node) => executeNode(step, input, node, snapshot)),
+    );
+    for (const [index, node] of wave.entries()) {
+      const outcome = outcomes[index];
+      if (outcome?.status === "fulfilled") {
+        context[node.id] = outcome.value;
+        completed.add(node.id);
+      }
+    }
+    const failure = outcomes.find(
+      (outcome): outcome is PromiseRejectedResult =>
+        outcome.status === "rejected",
+    );
+    if (failure) throw failure.reason;
+    if (wave.some((node) => node.kind === "output")) {
+      return input.projectOutput({ context });
+    }
   }
   throw makePublicError(
     "VALIDATION_FAILED",

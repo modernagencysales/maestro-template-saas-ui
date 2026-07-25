@@ -30,6 +30,7 @@ type GraphExecutionState = Omit<
   readonly failedEdges: Set<string>;
   readonly queuedNodes: Set<string>;
   readonly queue: string[];
+  readonly graphOrder: ReadonlyMap<string, number>;
   order: number;
 };
 
@@ -68,7 +69,7 @@ export const runGraphExecution = async (
   const state = createExecutionState(input, startNode);
 
   while (state.queue.length > 0) {
-    const outcome = await processNextQueuedNode(step, state);
+    const outcome = await processReadyWave(step, state);
     if (outcome.type === "output") {
       return outcome.value;
     }
@@ -99,39 +100,69 @@ const createExecutionState = (
     failedEdges: new Set<string>(),
     queuedNodes: new Set<string>([startNode.id]),
     queue: [startNode.id],
+    graphOrder: new Map(
+      input.graph.nodes.map((node, index) => [node.id, index]),
+    ),
     order: 0,
   };
 };
 
-const processNextQueuedNode = async (
+const processReadyWave = async (
   step: RunDurableGraphStep,
   state: GraphExecutionState,
 ): Promise<ProcessNodeOutcome> => {
-  const node = dequeueNode(state);
-  if (!node) {
+  const wave = dequeueReadyWave(state);
+  if (wave.length === 0) {
     return { type: "continue" };
   }
-
-  const result = await runGraphNode(step, state, node);
-  recordNodeResult(state, node, result);
-  return node.kind === "output"
-    ? outputNodeResult(result)
-    : continueAfterEnqueue(state, node);
+  const outcomes = await Promise.allSettled(
+    wave.map((node, index) =>
+      runGraphNode(step, state, node, state.order + index),
+    ),
+  );
+  for (const [index, node] of wave.entries()) {
+    const outcome = outcomes[index];
+    if (outcome?.status === "fulfilled")
+      recordNodeResult(state, node, outcome.value);
+  }
+  const failedIndex = outcomes.findIndex(
+    (outcome) => outcome.status === "rejected",
+  );
+  if (failedIndex >= 0)
+    throw (outcomes[failedIndex] as PromiseRejectedResult).reason;
+  for (const node of wave) enqueueActiveTargets(state, node);
+  const outputIndex = wave.findIndex((node) => node.kind === "output");
+  return outputIndex < 0
+    ? { type: "continue" }
+    : outputNodeResult(
+        (outcomes[outputIndex] as PromiseFulfilledResult<unknown>).value,
+      );
 };
 
-const dequeueNode = (state: GraphExecutionState): WorkflowNode | undefined => {
-  const nodeId = state.queue.shift();
-  if (!nodeId || state.completedNodes.has(nodeId)) {
-    return undefined;
-  }
-  state.queuedNodes.delete(nodeId);
-  return state.nodesById.get(nodeId);
+const dequeueReadyWave = (
+  state: GraphExecutionState,
+): readonly WorkflowNode[] => {
+  const nodeIds = state.queue.splice(0);
+  const nodes = nodeIds
+    .flatMap((nodeId) => {
+      state.queuedNodes.delete(nodeId);
+      const node = state.nodesById.get(nodeId);
+      return node && !state.completedNodes.has(nodeId) ? [node] : [];
+    })
+    .sort(
+      (left, right) =>
+        (state.graphOrder.get(left.id) ?? Number.MAX_SAFE_INTEGER) -
+          (state.graphOrder.get(right.id) ?? Number.MAX_SAFE_INTEGER) ||
+        left.id.localeCompare(right.id),
+    );
+  return nodes;
 };
 
 const runGraphNode = (
   step: RunDurableGraphStep,
   state: GraphExecutionState,
   node: WorkflowNode,
+  order: number,
 ): Promise<unknown> =>
   runObservedWorkflowStage({
     step,
@@ -141,7 +172,7 @@ const runGraphNode = (
     kind: node.kind,
     stageKey: node.id,
     attemptNumber: "unknown",
-    order: state.order,
+    order,
     run: () => executeAndValidateNode(step, state, node),
   });
 
@@ -191,14 +222,6 @@ const recordNodeResult = (
 const outputNodeResult = (result: unknown): ProcessNodeOutcome => {
   assertJsonObject(result, "Workflow output must be a JSON object.");
   return { type: "output", value: result as Readonly<Record<string, unknown>> };
-};
-
-const continueAfterEnqueue = (
-  state: GraphExecutionState,
-  node: WorkflowNode,
-): ProcessNodeOutcome => {
-  enqueueActiveTargets(state, node);
-  return { type: "continue" };
 };
 
 const enqueueActiveTargets = (

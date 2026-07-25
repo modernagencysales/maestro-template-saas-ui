@@ -7,6 +7,7 @@ import {
   type MaestroWorkflowMetadata,
 } from "../confect/workflows/_kit/defineMaestroWorkflow";
 import { kickoffProfileStartOptions } from "../confect/workflows/_kit/ownership";
+import { workflowWorkpoolOptions } from "../confect/workflows/_kit/workpoolConfig";
 
 const metadata = {
   workflowId: "workflow_source_to_receipt",
@@ -62,7 +63,24 @@ describe("defineMaestroWorkflow planning boundary", () => {
       metadata,
     );
 
-    expect(Either.getOrThrow(result).definition.workpoolOptions).toEqual({
+    expect(Either.getOrThrow(result).definition.workpoolOptions).toEqual(
+      expect.objectContaining({
+        retryActionsByDefault: false,
+        maxParallelism: expect.any(Number),
+        logLevel: expect.any(String),
+      }),
+    );
+  });
+
+  it("uses one explicit bounded Workpool posture per environment", () => {
+    expect(workflowWorkpoolOptions("test")).toEqual({
+      maxParallelism: 4,
+      logLevel: "WARN",
+      retryActionsByDefault: false,
+    });
+    expect(workflowWorkpoolOptions("production")).toEqual({
+      maxParallelism: 20,
+      logLevel: "REPORT",
       retryActionsByDefault: false,
     });
   });
