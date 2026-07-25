@@ -29,6 +29,7 @@ import {
   saasApplicationBlueprint,
 } from "./blueprints/saasApplication";
 export {
+  buildSaasApplicationAlpha1TargetPlan,
   buildSaasApplicationFiles,
   buildSaasApplicationTargetPlan,
 } from "./blueprints/saasApplication";

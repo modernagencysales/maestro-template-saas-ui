@@ -1,5 +1,5 @@
 import { createCustomerCreateCommand } from "@maestro-template/agent-pack";
-import { buildSaasApplicationTargetPlan } from "@maestro-template/generators";
+import { buildSaasApplicationAlpha1TargetPlan } from "@maestro-template/generators";
 import { createCustomerReleaseAdapter } from "@maestro-template/release-tooling/customer-create";
 import { homedir } from "node:os";
 import { resolve } from "node:path";
@@ -33,7 +33,7 @@ export function createCustomerCreateComposition() {
   });
   const command = createCustomerCreateCommand({
     blueprintTargetPlan: ({ name, outcome }) =>
-      buildSaasApplicationTargetPlan({ name, firstOutcome: outcome }),
+      buildSaasApplicationAlpha1TargetPlan({ name, firstOutcome: outcome }),
     release: {
       prepare: (request) =>
         release.prepare({

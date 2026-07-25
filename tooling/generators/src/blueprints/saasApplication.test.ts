@@ -18,6 +18,7 @@ import {
   type WorkflowOptionalTemplateQuickstart,
 } from "../index";
 import {
+  buildSaasApplicationAlpha1TargetPlan,
   buildSaasApplicationTargetPlan,
   saasApplicationBlueprint,
 } from "./saasApplication";
@@ -62,6 +63,98 @@ describe("saas application blueprint", () => {
     expect(plan.entries.map(({ path }) => path)).not.toContain(
       "tooling/generators/src/index.ts",
     );
+    expect(
+      plan.entries.find(
+        ({ path }) => path === "docs/template/agent-pack-privacy.md",
+      ),
+    ).toMatchObject({
+      ownership: "generated",
+      action: "generate",
+      upgrade: "regenerate",
+      content: readFileSync(
+        join(repoRoot, "docs/template/agent-pack-privacy.md"),
+        "utf8",
+      ),
+    });
+  });
+
+  it("keeps the historical alpha.1 target projection byte-authoritative", () => {
+    const plan = buildSaasApplicationAlpha1TargetPlan();
+    const manifest = JSON.parse(
+      readFileSync(
+        join(
+          repoRoot,
+          "releases/v0.2.0-alpha.1/blueprints/saas-application.json",
+        ),
+        "utf8",
+      ),
+    ) as {
+      readonly schemaVersion: number;
+      readonly id: string;
+      readonly provenance: string;
+      readonly registrations: readonly string[];
+      readonly entries: readonly unknown[];
+    };
+
+    expect({
+      schemaVersion: plan.schemaVersion,
+      id: plan.id,
+      provenance: plan.provenance,
+      registrations: plan.registrations,
+      entries: plan.entries.map(
+        ({ path, ownership, action, upgrade, sha256, replaces }) => ({
+          path,
+          ownership,
+          action,
+          upgrade,
+          sha256,
+          ...(replaces === undefined ? {} : { replaces }),
+        }),
+      ),
+    }).toEqual({
+      schemaVersion: manifest.schemaVersion,
+      id: manifest.id,
+      provenance: manifest.provenance,
+      registrations: manifest.registrations,
+      entries: manifest.entries,
+    });
+  });
+
+  it("materializes the current privacy disclosure without support internals", () => {
+    const targetRoot = mkdtempSync(
+      join(tmpdir(), "maestro-current-customer-projection-"),
+    );
+    try {
+      const plan = buildSaasApplicationTargetPlan();
+      for (const entry of plan.entries) {
+        const target = join(targetRoot, entry.path);
+        mkdirSync(dirname(target), { recursive: true });
+        writeFileSync(target, entry.content, { flag: "wx" });
+      }
+
+      expect(
+        readFileSync(
+          join(targetRoot, "docs/template/agent-pack-privacy.md"),
+          "utf8",
+        ),
+      ).toBe(
+        readFileSync(
+          join(repoRoot, "docs/template/agent-pack-privacy.md"),
+          "utf8",
+        ),
+      );
+      expect(
+        plan.entries
+          .map(({ path }) => path)
+          .filter((path) =>
+            /supportBundle|support-bundle|privacy\.noNetwork|runtimeNetworkInterceptor/.test(
+              path,
+            ),
+          ),
+      ).toEqual([]);
+    } finally {
+      rmSync(targetRoot, { recursive: true, force: true });
+    }
   });
 
   it("defines a neutral workflow-optional application contract", () => {
@@ -188,6 +281,7 @@ describe("saas application blueprint", () => {
       "generated/blueprints/saas-application/application-contract.json",
       "generated/blueprints/saas-application/surface-contract.json",
       "generated/blueprints/saas-application/readiness.json",
+      "docs/template/agent-pack-privacy.md",
       "apps/cli/src/factory/customerComposition.ts",
       "apps/cli/src/index.ts",
       "apps/cli/src/factory/start.ts",
@@ -420,10 +514,15 @@ describe("saas application blueprint", () => {
         )
       ) {
         expect(root.scripts[name]).toBe(
-          command.replace(
-            "tooling/generators/src/index.ts",
-            "tooling/generators/src/customer-cli.ts",
-          ),
+          command
+            .replace(
+              "tooling/generators/src/index.ts",
+              "tooling/generators/src/customer-cli.ts",
+            )
+            .replace(
+              "tooling/generators/src/cli.ts",
+              "tooling/generators/src/customer-cli.ts",
+            ),
         );
         continue;
       }

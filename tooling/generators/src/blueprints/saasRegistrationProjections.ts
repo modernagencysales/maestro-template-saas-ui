@@ -19,6 +19,12 @@ const source = (path: string): string =>
     "utf8",
   );
 
+const currentPublicDocument = (path: string): string =>
+  readFileSync(
+    new URL(`../../../../docs/template/${path}`, import.meta.url),
+    "utf8",
+  );
+
 export const REMOVED_CUSTOMER_TEMPLATE_SCRIPTS = [
   "template:init",
   "template:quickstart",
@@ -45,10 +51,15 @@ const customerPackage = (): string => {
     if (name.startsWith("template:")) {
       const script = value.scripts[name];
       if (script === undefined) continue;
-      value.scripts[name] = script.replace(
-        "tooling/generators/src/index.ts",
-        "tooling/generators/src/customer-cli.ts",
-      );
+      value.scripts[name] = script
+        .replace(
+          "tooling/generators/src/index.ts",
+          "tooling/generators/src/customer-cli.ts",
+        )
+        .replace(
+          "tooling/generators/src/cli.ts",
+          "tooling/generators/src/customer-cli.ts",
+        );
     }
   }
   value.scripts["maestro:crud-proof"] =
@@ -231,6 +242,10 @@ const routeTree = (): string => {
 
 export const buildSaasRegistrationProjections =
   (): readonly GeneratedFile[] => [
+    {
+      path: "docs/template/agent-pack-privacy.md",
+      content: currentPublicDocument("agent-pack-privacy.md"),
+    },
     {
       path: "apps/cli/src/factory/customerComposition.ts",
       content: source("apps/cli/src/factory/customerComposition.ts"),

@@ -241,6 +241,20 @@ export function buildSaasApplicationTargetPlan(
 ): BlueprintTargetPlan;
 export function buildSaasApplicationTargetPlan(): BlueprintTargetPlan;
 export function buildSaasApplicationTargetPlan(): BlueprintTargetPlan {
+  return buildTargetPlan(true);
+}
+
+export function buildSaasApplicationAlpha1TargetPlan(
+  options: BlueprintTargetPlanOptions,
+): BlueprintTargetPlan;
+export function buildSaasApplicationAlpha1TargetPlan(): BlueprintTargetPlan;
+export function buildSaasApplicationAlpha1TargetPlan(): BlueprintTargetPlan {
+  return buildTargetPlan(false);
+}
+
+function buildTargetPlan(
+  includePrivacyDisclosure: boolean,
+): BlueprintTargetPlan {
   const replacements = new Map<string, "copy" | "generate">([
     ["apps/cli/src/index.ts", "copy"],
     ["apps/cli/src/factory/start.ts", "copy"],
@@ -290,7 +304,12 @@ export function buildSaasApplicationTargetPlan(): BlueprintTargetPlan {
     name: "SaaS Application",
     firstOutcome: "Create and review records",
   })
-    .filter(({ path }) => path !== "template-instance.json")
+    .filter(
+      ({ path }) =>
+        path !== "template-instance.json" &&
+        (includePrivacyDisclosure ||
+          path !== "docs/template/agent-pack-privacy.md"),
+    )
     .map(({ path, content }) => {
       const replacement = replacements.get(path);
       return customerExtensions.has(path)
@@ -313,7 +332,8 @@ export function buildSaasApplicationTargetPlan(): BlueprintTargetPlan {
           };
     })
     .sort((left, right) => left.path.localeCompare(right.path));
-  const registrations = [
+  const registrationsWithPrivacy = [
+    "docs/template/agent-pack-privacy.md",
     "apps/cli/src/factory/customerComposition.ts",
     "apps/cli/src/index.ts",
     "apps/cli/src/factory/start.ts",
@@ -387,6 +407,11 @@ export function buildSaasApplicationTargetPlan(): BlueprintTargetPlan {
     "apps/web/src/routeTree.gen.ts",
     "apps/web/src/routeRegistry.generated.ts",
   ] as const;
+  const registrations = includePrivacyDisclosure
+    ? registrationsWithPrivacy
+    : registrationsWithPrivacy.filter(
+        (path) => path !== "docs/template/agent-pack-privacy.md",
+      );
   const identity = {
     schemaVersion: 1 as const,
     id: "saas-application" as const,
@@ -408,7 +433,7 @@ Blueprint: \`saas-application\`
 Create a separate customer target with the reviewed SaaS release, then start
 from that target so its personalized name and first outcome are available:
 
-\`pnpm maestro -- create ../my-app --name ${JSON.stringify(name)} --outcome "Create and review records" --write\`
+\`pnpm maestro -- create ../my-app --name ${JSON.stringify(name)} --outcome "Create and review records" --write --privacy-reviewed\`
 
 \`pnpm --dir ../my-app maestro -- start --mode fake\`
 
