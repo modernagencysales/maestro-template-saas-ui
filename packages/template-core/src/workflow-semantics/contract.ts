@@ -1,29 +1,56 @@
 import type { WorkflowSemanticRule } from "./schema";
 
+export const WORKFLOW_SCHEMA_FIELDS = {
+  graph: ["id", "version", "startNodeId", "nodes", "edges", "joins"],
+  node: ["id", "kind", "label", "capability", "agent", "delayMs", "retry"],
+  retry: ["maxAttempts", "backoffMs"],
+  edge: ["id", "sourceNodeId", "targetNodeId", "condition"],
+  condition: ["expression"],
+  join: ["nodeId", "strategy", "sourceNodeIds"],
+} as const;
+
+type WorkflowSchemaSection = keyof typeof WORKFLOW_SCHEMA_FIELDS;
+type WorkflowSchemaFieldName<Section extends WorkflowSchemaSection> =
+  (typeof WORKFLOW_SCHEMA_FIELDS)[Section][number];
+
+export const defineWorkflowSchemaFields = <
+  Section extends WorkflowSchemaSection,
+  const Fields extends Record<WorkflowSchemaFieldName<Section>, unknown>,
+>(
+  section: Section,
+  fields: Fields &
+    Record<Exclude<keyof Fields, WorkflowSchemaFieldName<Section>>, never>,
+): Fields => {
+  const expected = WORKFLOW_SCHEMA_FIELDS[section] as readonly string[];
+  const actual = Object.keys(fields);
+  if (
+    actual.length !== expected.length ||
+    expected.some((field) => !Object.hasOwn(fields, field))
+  ) {
+    throw new Error(`Workflow ${section} schema fields differ from registry.`);
+  }
+  return fields;
+};
+
+const prefixWorkflowFields = <
+  Prefix extends string,
+  const Fields extends readonly string[],
+>(
+  prefix: Prefix,
+  fields: Fields,
+): readonly `${Prefix}${Fields[number]}`[] =>
+  fields.map((field) => `${prefix}${field}` as `${Prefix}${Fields[number]}`);
+
 export const WORKFLOW_GRAPH_FIELDS = [
-  "id",
-  "version",
-  "startNodeId",
-  "nodes",
-  "edges",
-  "joins",
-  "nodes[].id",
-  "nodes[].kind",
-  "nodes[].label",
-  "nodes[].capability",
-  "nodes[].agent",
-  "nodes[].delayMs",
-  "nodes[].retry",
-  "nodes[].retry.maxAttempts",
-  "nodes[].retry.backoffMs",
-  "edges[].id",
-  "edges[].sourceNodeId",
-  "edges[].targetNodeId",
-  "edges[].condition",
-  "edges[].condition.expression",
-  "joins[].nodeId",
-  "joins[].strategy",
-  "joins[].sourceNodeIds",
+  ...WORKFLOW_SCHEMA_FIELDS.graph,
+  ...prefixWorkflowFields("nodes[].", WORKFLOW_SCHEMA_FIELDS.node),
+  ...prefixWorkflowFields("nodes[].retry.", WORKFLOW_SCHEMA_FIELDS.retry),
+  ...prefixWorkflowFields("edges[].", WORKFLOW_SCHEMA_FIELDS.edge),
+  ...prefixWorkflowFields(
+    "edges[].condition.",
+    WORKFLOW_SCHEMA_FIELDS.condition,
+  ),
+  ...prefixWorkflowFields("joins[].", WORKFLOW_SCHEMA_FIELDS.join),
 ] as const;
 
 export const OFFICIAL_WORKFLOW_PRIMITIVES = [

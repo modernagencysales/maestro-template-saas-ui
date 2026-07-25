@@ -1,4 +1,5 @@
 import * as S from "effect/Schema";
+import { defineWorkflowSchemaFields } from "@maestro-template/template-core/workflow-semantics";
 
 import { WorkflowEdge } from "./graphEdgeSchema";
 import { WorkflowJoin } from "./graphJoinSchema";
@@ -12,13 +13,18 @@ export {
   WorkflowRetryConfig,
 } from "./graphNodeSchema";
 
-export const DurableWorkflowGraph = S.Struct({
-  id: S.String,
-  version: S.Number,
-  startNodeId: S.String,
-  nodes: S.Array(WorkflowNode).pipe(S.minItems(1)),
-  edges: S.Array(WorkflowEdge),
-  joins: S.Array(WorkflowJoin),
-});
+export const DurableWorkflowGraphSchemaFields = defineWorkflowSchemaFields(
+  "graph",
+  {
+    id: S.String,
+    version: S.Number,
+    startNodeId: S.String,
+    nodes: S.Array(WorkflowNode).pipe(S.minItems(1)),
+    edges: S.Array(WorkflowEdge),
+    joins: S.Array(WorkflowJoin),
+  },
+);
+
+export const DurableWorkflowGraph = S.Struct(DurableWorkflowGraphSchemaFields);
 
 export type DurableWorkflowGraph = S.Schema.Type<typeof DurableWorkflowGraph>;

@@ -9,12 +9,8 @@ import {
 import { isDirectRun } from "./src/direct-run.mts";
 
 const GENERATED_DOC = "docs/template/generated/workflow-semantics.md";
-const SCHEMA_FILES = {
-  graph: "packages/convex/confect/workflows/graphSchema.ts",
-  node: "packages/convex/confect/workflows/graphNodeSchema.ts",
-  edge: "packages/convex/confect/workflows/graphEdgeSchema.ts",
-  join: "packages/convex/confect/workflows/graphJoinSchema.ts",
-} as const;
+const GRAPH_SCHEMA_FILE =
+  "packages/convex/confect/workflows/graphSchema.ts" as const;
 
 export type WorkflowSemanticFinding = {
   readonly ruleId: string;
@@ -30,47 +26,8 @@ const finding = (
   repair: string,
 ): WorkflowSemanticFinding => ({ ruleId, file, reason, repair });
 
-const structFields = (source: string, name: string): readonly string[] => {
-  const marker = `${name} = S.Struct({`;
-  const start = source.indexOf(marker);
-  if (start < 0) return [];
-  let depth = 1;
-  let cursor = start + marker.length;
-  const bodyStart = cursor;
-  while (cursor < source.length && depth > 0) {
-    if (source[cursor] === "{") depth += 1;
-    if (source[cursor] === "}") depth -= 1;
-    cursor += 1;
-  }
-  const body = source.slice(bodyStart, cursor - 1);
-  return [...body.matchAll(/^\s{2}([A-Za-z][A-Za-z0-9]*):/gm)]
-    .map((match) => match[1])
-    .filter((field): field is string => field !== undefined);
-};
-
-export const readWorkflowGraphFields = (
-  repoRoot: string,
-): readonly string[] => {
-  const read = (key: keyof typeof SCHEMA_FILES) =>
-    readFileSync(join(repoRoot, SCHEMA_FILES[key]), "utf8");
-  const graph = structFields(read("graph"), "DurableWorkflowGraph");
-  const node = structFields(read("node"), "WorkflowNode").map(
-    (field) => `nodes[].${field}`,
-  );
-  const retry = structFields(read("node"), "WorkflowRetryConfig").map(
-    (field) => `nodes[].retry.${field}`,
-  );
-  const edge = structFields(read("edge"), "WorkflowEdge").map(
-    (field) => `edges[].${field}`,
-  );
-  const condition = structFields(read("edge"), "WorkflowCondition").map(
-    (field) => `edges[].condition.${field}`,
-  );
-  const joinFields = structFields(read("join"), "WorkflowJoin").map(
-    (field) => `joins[].${field}`,
-  );
-  return [...graph, ...node, ...retry, ...edge, ...condition, ...joinFields];
-};
+export const readWorkflowGraphFields = (_repoRoot: string): readonly string[] =>
+  WORKFLOW_GRAPH_FIELDS;
 
 export const checkWorkflowSemantics = (
   repoRoot: string,
@@ -93,7 +50,7 @@ export const checkWorkflowSemantics = (
       findings.push(
         finding(
           "WF-GRAPH-UNMAPPED",
-          SCHEMA_FILES.graph,
+          GRAPH_SCHEMA_FILE,
           `graph schema field ${field} has no semantic rule`,
           "classify the field in WORKFLOW_SEMANTICS and add compiler/fixture evidence",
         ),
@@ -102,7 +59,7 @@ export const checkWorkflowSemantics = (
       findings.push(
         finding(
           "WF-GRAPH-STALE",
-          SCHEMA_FILES.graph,
+          GRAPH_SCHEMA_FILE,
           `semantic field ${field} is absent from the graph schemas`,
           "remove the stale rule or restore the typed graph field",
         ),

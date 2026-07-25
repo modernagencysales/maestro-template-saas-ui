@@ -2,13 +2,40 @@ import { describe, expect, it } from "vitest";
 import {
   OFFICIAL_WORKFLOW_PRIMITIVES,
   WORKFLOW_GRAPH_FIELDS,
+  WORKFLOW_SCHEMA_FIELDS,
   WORKFLOW_SEMANTICS,
+  defineWorkflowSchemaFields,
   renderWorkflowSemanticsMarkdown,
   validateWorkflowSemanticCoverage,
   validateWorkflowSemantics,
 } from "./contract";
 
 describe("workflow semantics contract", () => {
+  it("keeps schema constructors on the exact exported field registry", () => {
+    expect(
+      defineWorkflowSchemaFields("retry", {
+        maxAttempts: "validator",
+        backoffMs: "validator",
+      }),
+    ).toEqual({ maxAttempts: "validator", backoffMs: "validator" });
+    expect(WORKFLOW_SCHEMA_FIELDS.retry).toEqual(["maxAttempts", "backoffMs"]);
+
+    const defineUnchecked = defineWorkflowSchemaFields as (
+      section: "retry",
+      fields: Record<string, unknown>,
+    ) => Record<string, unknown>;
+    expect(() =>
+      defineUnchecked("retry", { maxAttempts: "validator" }),
+    ).toThrow("Workflow retry schema fields differ from registry");
+    expect(() =>
+      defineUnchecked("retry", {
+        maxAttempts: "validator",
+        backoffMs: "validator",
+        surprise: "validator",
+      }),
+    ).toThrow("Workflow retry schema fields differ from registry");
+  });
+
   it("classifies every graph field and official primitive exactly once", () => {
     const subjects = WORKFLOW_SEMANTICS.map((rule) => rule.subject);
     expect(new Set(subjects).size).toBe(subjects.length);

@@ -1,9 +1,7 @@
 # Maestro Agent Pack Product Specification
 
-Status: draft for product approval  
-Date: 2026-07-10  
-Scope: agent skill, safe CLI, thin MCP adapter, guided coaching, and
-template-readiness contract  
+Status: draft for product approval Date: 2026-07-10 Scope: agent skill, safe
+CLI, thin MCP adapter, guided coaching, and template-readiness contract
 Implementation planning: deferred until this specification is approved
 
 ## Decision Summary

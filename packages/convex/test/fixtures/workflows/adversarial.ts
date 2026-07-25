@@ -1,3 +1,7 @@
+class UnsupportedPayloadInstance {
+  readonly value = "not-a-plain-object";
+}
+
 export const adversarialWorkflowDrafts = [
   {
     name: "dropped-retry",
@@ -36,6 +40,46 @@ export const adversarialWorkflowDrafts = [
     executionMode: "parallel",
     stepNames: ["fetch.v1"],
     payload: { invalid: Number.NaN },
+    principalContext: { workspaceId: "workspace_123", userId: "user_123" },
+    expectedFinding: "WF-CONVEX-VALUE",
+  },
+  {
+    name: "date-convex-value",
+    retryDeclared: false,
+    retryMapped: false,
+    executionMode: "parallel",
+    stepNames: ["fetch.v1"],
+    payload: { invalid: new Date("2026-07-24T00:00:00.000Z") },
+    principalContext: { workspaceId: "workspace_123", userId: "user_123" },
+    expectedFinding: "WF-CONVEX-VALUE",
+  },
+  {
+    name: "map-convex-value",
+    retryDeclared: false,
+    retryMapped: false,
+    executionMode: "parallel",
+    stepNames: ["fetch.v1"],
+    payload: { invalid: new Map([["key", "value"]]) },
+    principalContext: { workspaceId: "workspace_123", userId: "user_123" },
+    expectedFinding: "WF-CONVEX-VALUE",
+  },
+  {
+    name: "set-convex-value",
+    retryDeclared: false,
+    retryMapped: false,
+    executionMode: "parallel",
+    stepNames: ["fetch.v1"],
+    payload: { invalid: new Set(["value"]) },
+    principalContext: { workspaceId: "workspace_123", userId: "user_123" },
+    expectedFinding: "WF-CONVEX-VALUE",
+  },
+  {
+    name: "class-instance-convex-value",
+    retryDeclared: false,
+    retryMapped: false,
+    executionMode: "parallel",
+    stepNames: ["fetch.v1"],
+    payload: { invalid: new UnsupportedPayloadInstance() },
     principalContext: { workspaceId: "workspace_123", userId: "user_123" },
     expectedFinding: "WF-CONVEX-VALUE",
   },

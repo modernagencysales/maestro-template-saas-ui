@@ -39,5 +39,7 @@ const isConvexValue = (value: unknown): boolean => {
   if (typeof value === "number") return Number.isFinite(value);
   if (Array.isArray(value)) return value.every(isConvexValue);
   if (typeof value !== "object") return false;
+  const prototype = Object.getPrototypeOf(value) as object | null;
+  if (prototype !== Object.prototype && prototype !== null) return false;
   return Object.values(value).every(isConvexValue);
 };

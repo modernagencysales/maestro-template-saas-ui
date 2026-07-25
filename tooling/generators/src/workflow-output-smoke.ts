@@ -7,6 +7,7 @@ import {
   readFileSync,
   rmSync,
   symlinkSync,
+  writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, relative, resolve, sep } from "node:path";
@@ -124,6 +125,20 @@ const runSmokeCommand = (tempRepoRoot: string, step: SmokeCommand): void => {
   }
 };
 
+const sourceFingerprint = (source: string): string =>
+  createHash("sha256").update(source).digest("hex");
+
+export const runnerOwnershipFinding = (
+  runnerPath: string,
+  expectedFingerprint: string,
+): string | null => {
+  if (!existsSync(runnerPath)) return "runner projection is missing";
+  const actualFingerprint = sourceFingerprint(readFileSync(runnerPath, "utf8"));
+  return actualFingerprint === expectedFingerprint
+    ? null
+    : `runner projection fingerprint changed: expected ${expectedFingerprint}, received ${actualFingerprint}`;
+};
+
 export const runWorkflowOutputSmoke = (
   repoRoot = repoRootFromScript(),
 ): void => {
@@ -139,6 +154,15 @@ export const runWorkflowOutputSmoke = (
     copyRepoForSmoke(repoRoot, tempRepoRoot);
 
     const convexPackage = join(tempRepoRoot, "packages/convex");
+    const runnerPath = join(
+      convexPackage,
+      "convex/workflowRunners",
+      `${smokeWorkflowName}.ts`,
+    );
+    rmSync(runnerPath, { force: true });
+    if (existsSync(runnerPath)) {
+      throw new Error("Copied runner projection survived smoke isolation");
+    }
     const steps: readonly SmokeCommand[] = [
       {
         label: "Generate workflow output",
@@ -202,11 +226,6 @@ export const runWorkflowOutputSmoke = (
       runSmokeCommand(tempRepoRoot, step);
     }
 
-    const runnerPath = join(
-      convexPackage,
-      "convex/workflowRunners",
-      `${smokeWorkflowName}.ts`,
-    );
     if (!existsSync(runnerPath)) {
       throw new Error(`Generated workflow runner is missing: ${runnerPath}`);
     }
@@ -246,21 +265,52 @@ export const runWorkflowOutputSmoke = (
         `Invalid semantic coverage: ${coverageFindings.join(", ")}`,
       );
     }
-    const firstFingerprint = createHash("sha256")
-      .update(runnerSource)
-      .digest("hex");
+    const expectedFingerprint = sourceFingerprint(runnerSource);
+    writeFileSync(
+      runnerPath,
+      `${runnerSource}\n// deliberate smoke corruption\n`,
+    );
+    const corruptionFinding = runnerOwnershipFinding(
+      runnerPath,
+      expectedFingerprint,
+    );
+    if (!corruptionFinding?.includes("fingerprint changed")) {
+      throw new Error("Runner ownership check accepted corrupted output");
+    }
+    runSmokeCommand(tempRepoRoot, {
+      label: "Repair corrupted Confect runner projection",
+      command: "pnpm",
+      args: ["--dir", tempRepoRoot, "confect:codegen"],
+    });
+    const repairedFinding = runnerOwnershipFinding(
+      runnerPath,
+      expectedFingerprint,
+    );
+    if (repairedFinding !== null) {
+      throw new Error(
+        `Confect did not repair owned output: ${repairedFinding}`,
+      );
+    }
     rmSync(runnerPath);
+    if (
+      runnerOwnershipFinding(runnerPath, expectedFingerprint) !==
+      "runner projection is missing"
+    ) {
+      throw new Error("Runner ownership check accepted deleted output");
+    }
     runSmokeCommand(tempRepoRoot, {
       label: "Reproduce deleted Confect runner projection",
       command: "pnpm",
       args: ["--dir", tempRepoRoot, "confect:codegen"],
     });
-    const reproduced = readFileSync(runnerPath, "utf8");
-    const reproducedFingerprint = createHash("sha256")
-      .update(reproduced)
-      .digest("hex");
-    if (reproducedFingerprint !== firstFingerprint) {
-      throw new Error("Reproduced runner fingerprint changed");
+    const reproducedFinding = runnerOwnershipFinding(
+      runnerPath,
+      expectedFingerprint,
+    );
+    if (reproducedFinding !== null) {
+      throw new Error(
+        `Reproduced runner ownership failed: ${reproducedFinding}`,
+      );
     }
   } finally {
     if (keepTemp) {

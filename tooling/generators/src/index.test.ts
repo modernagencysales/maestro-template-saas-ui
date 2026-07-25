@@ -7,6 +7,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
+import { createHash } from "node:crypto";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { JsxEmit, ModuleKind, ScriptTarget, transpileModule } from "typescript";
@@ -34,6 +35,7 @@ import {
 } from "./index";
 import { gtmImplementationBlueprint } from "./blueprints/gtmImplementation";
 import {
+  runnerOwnershipFinding,
   smokeWorkflowName,
   workflowOutputSmokeScriptName,
 } from "./workflow-output-smoke";
@@ -42,6 +44,27 @@ const testDir = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(testDir, "../../..");
 
 describe("template app factory generators", () => {
+  it("detects corrupted and deleted owned runner projections", () => {
+    const root = mkdtempSync(join(tmpdir(), "runner-ownership-"));
+    const runner = join(root, "runner.ts");
+    const expectedSource = "export const run = true;\n";
+    const expectedFingerprint = createHash("sha256")
+      .update(expectedSource)
+      .digest("hex");
+    try {
+      writeFileSync(runner, `${expectedSource}// corrupt\n`);
+      expect(runnerOwnershipFinding(runner, expectedFingerprint)).toContain(
+        "fingerprint changed",
+      );
+      rmSync(runner);
+      expect(runnerOwnershipFinding(runner, expectedFingerprint)).toBe(
+        "runner projection is missing",
+      );
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
   it("ships demo-safe GTM implementation seed fixtures", () => {
     const accounts = JSON.parse(
       readFileSync(

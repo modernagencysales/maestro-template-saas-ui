@@ -5,6 +5,12 @@ import {
 } from "./helpers/workflowHarness";
 import { adversarialWorkflowDrafts } from "./fixtures/workflows/adversarial";
 import { findWorkflowConformanceIssues } from "./fixtures/workflows/conformanceChecks";
+import type { DurableWorkflowGraph } from "../confect/workflows/graph";
+import {
+  runDurableGraphWorkflow,
+  type DurableGraphStepRef,
+  type RunDurableGraphStep,
+} from "../confect/workflows/_kit/graphRunner";
 
 describe("Maestro workflow rejection fixtures", () => {
   it.each(adversarialWorkflowDrafts)(
@@ -15,6 +21,68 @@ describe("Maestro workflow rejection fixtures", () => {
       );
     },
   );
+});
+
+describe("Maestro workflow compiler mapping", () => {
+  it("maps every supported compiler node to its exact step call", async () => {
+    const queryRef =
+      "compiler.query" as unknown as DurableGraphStepRef<"query">;
+    const mutationRef =
+      "compiler.mutation" as unknown as DurableGraphStepRef<"mutation">;
+    const actionRef =
+      "compiler.action" as unknown as DurableGraphStepRef<"action">;
+    const runQuery = vi.fn(async () => ({ queried: true }));
+    const runMutation = vi.fn(async () => ({ mutated: true }));
+    const runAction = vi.fn(async () => ({ acted: true }));
+    const sleep = vi.fn(async () => undefined);
+    const awaitEvent = vi.fn(async () => ({ approved: true }));
+    const step = {
+      runQuery,
+      runMutation,
+      runAction,
+      sleep,
+      awaitEvent,
+    } as unknown as RunDurableGraphStep;
+    const graph = compilerMappingGraph();
+
+    await runDurableGraphWorkflow(step, {
+      graph,
+      inputs: { request: "compile" },
+      policySnapshot: { mode: "test" },
+      capabilityRegistry: {
+        query: {
+          kind: "query",
+          ref: queryRef,
+          buildArgs: ({ node }) => ({ nodeId: node.id }),
+        },
+        mutation: {
+          kind: "mutation",
+          ref: mutationRef,
+          buildArgs: ({ node }) => ({ nodeId: node.id }),
+        },
+        action: {
+          kind: "action",
+          ref: actionRef,
+          buildArgs: ({ node }) => ({ nodeId: node.id }),
+        },
+      },
+      projectOutput: ({ context }) => ({
+        completedNodeIds: Object.keys(context),
+      }),
+    });
+
+    expect(runQuery.mock.calls).toEqual([[queryRef, { nodeId: "query" }]]);
+    expect(runMutation.mock.calls).toEqual([
+      [mutationRef, { nodeId: "mutation" }],
+    ]);
+    expect(runAction.mock.calls).toEqual([[actionRef, { nodeId: "action" }]]);
+    expect(sleep.mock.calls).toEqual([
+      [25, { name: "compiler-mapping.delay.delay" }],
+    ]);
+    expect(awaitEvent.mock.calls).toEqual([
+      [{ name: "compiler-mapping.approval.approved" }],
+    ]);
+  });
 });
 
 describe("pinned Convex Workflow component conformance", () => {
@@ -109,6 +177,7 @@ describe("pinned Convex Workflow component conformance", () => {
       expect.any(String),
       expect.any(String),
     ]);
+    expect(new Set(steps.page.map((step) => step.workId)).size).toBe(2);
   });
 
   it("selects the latest duplicate restart name and truncates its tail", async () => {
@@ -206,6 +275,7 @@ describe("pinned Convex Workflow component conformance", () => {
 
   it("preserves the terminal result when onComplete fails", async () => {
     const t = createWorkflowHarness();
+    const callbackFailure = vi.spyOn(console, "error");
     const workflowId = await t.mutation(
       conformanceApi.startFailingOnComplete,
       {},
@@ -214,6 +284,11 @@ describe("pinned Convex Workflow component conformance", () => {
     await expect(
       t.query(conformanceApi.workflowStatus, { workflowId }),
     ).resolves.toEqual({ type: "completed", result: "preserved" });
+    expect(callbackFailure).toHaveBeenCalledWith(
+      "Error calling onComplete",
+      expect.stringContaining("missingOnComplete"),
+    );
+    callbackFailure.mockRestore();
   });
 
   it("batches cleanup for a journal larger than the component limit", async () => {
@@ -246,8 +321,54 @@ describe("pinned Convex Workflow component conformance", () => {
       paginationOpts: { cursor: null, numItems: 400 },
     });
     expect(residual.page).toEqual([]);
+    await expect(
+      t.query(conformanceApi.workflowStatus, { workflowId }),
+    ).rejects.toThrow("Workflow not found");
   });
 });
+
+const compilerMappingGraph = (): DurableWorkflowGraph => {
+  const node = (
+    id: string,
+    kind: DurableWorkflowGraph["nodes"][number]["kind"],
+    extra: Record<string, unknown> = {},
+  ) => ({
+    id,
+    kind,
+    label: id,
+    retry: { maxAttempts: 1, backoffMs: 0 },
+    ...extra,
+  });
+  const ids = [
+    "source",
+    "query",
+    "mutation",
+    "action",
+    "delay",
+    "approval",
+    "output",
+  ] as const;
+  return {
+    id: "compiler-mapping",
+    version: 1,
+    startNodeId: "source",
+    nodes: [
+      node("source", "source"),
+      node("query", "capability", { capability: "query" }),
+      node("mutation", "capability", { capability: "mutation" }),
+      node("action", "capability", { capability: "action" }),
+      node("delay", "delay", { delayMs: 25 }),
+      node("approval", "approval"),
+      node("output", "output"),
+    ] as DurableWorkflowGraph["nodes"],
+    edges: ids.slice(0, -1).map((sourceNodeId, index) => ({
+      id: `${sourceNodeId}-${ids[index + 1]}`,
+      sourceNodeId,
+      targetNodeId: ids[index + 1] ?? "output",
+    })),
+    joins: [],
+  };
+};
 
 const completedMutationStep = (name: string) => ({
   kind: "function" as const,
