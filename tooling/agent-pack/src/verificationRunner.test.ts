@@ -2,9 +2,9 @@ import { describe, expect, it, vi } from "vitest";
 import type { DiagnosticDescriptor } from "./diagnostics.js";
 import { createRepositoryContext } from "./repoContext.js";
 import {
-  VERIFICATION_EVIDENCE_PREFIX,
   createExecFileVerificationRunner,
   type VerificationExecFile,
+  type VerificationReadFile,
 } from "./verificationRunner.js";
 
 const descriptors: readonly DiagnosticDescriptor[] = [
@@ -16,6 +16,7 @@ const descriptors: readonly DiagnosticDescriptor[] = [
     repairHint: "Fix the reported Agent Pack invariant.",
     argv: ["pnpm", "check:agent-pack"],
     rerun: ["pnpm", "check:agent-pack"],
+    semanticRuleIds: ["agent-pack/result-envelope"],
   },
   {
     gateId: "taste",
@@ -28,18 +29,37 @@ const descriptors: readonly DiagnosticDescriptor[] = [
   },
 ];
 const repo = createRepositoryContext({ cwd: "/repo" });
+const manifest = (verify: string) => JSON.stringify({ scripts: { verify } });
 
-function runner(execFile: VerificationExecFile) {
+function runner(
+  execFile: VerificationExecFile,
+  options: {
+    readonly readFile?: VerificationReadFile;
+    readonly environment?: Parameters<
+      typeof createExecFileVerificationRunner
+    >[0]["environment"];
+    readonly providerPosture?: Parameters<
+      typeof createExecFileVerificationRunner
+    >[0]["providerPosture"];
+  } = {},
+) {
   return createExecFileVerificationRunner({
     execFile,
+    readFile:
+      options.readFile ??
+      (async () => manifest("pnpm check:agent-pack && pnpm check:types")),
     now: () => "2026-07-25T12:00:00.000Z",
-    environment: async () => ({ os: "linux", node: "22.20.0" }),
-    providerPosture: async () => ({ llm: "sample", convex: "local" }),
+    environment:
+      options.environment ?? (async () => ({ os: "linux", node: "22.20.0" })),
+    providerPosture:
+      options.providerPosture ??
+      (async () => ({ llm: "sample", convex: "local" })),
     limits: {
       metadataTimeoutMs: 1_000,
       focusedTimeoutMs: 5_000,
       fullTimeoutMs: 10_000,
       maxBufferBytes: 64_000,
+      packageJsonMaxBytes: 32_000,
     },
   });
 }
@@ -49,6 +69,7 @@ describe("execFile verification runner", () => {
     expect(() =>
       createExecFileVerificationRunner({
         execFile: async () => ({ exitCode: 0, stdout: "", stderr: "" }),
+        readFile: async () => manifest("pnpm check:agent-pack"),
         now: () => "2026-07-25T12:00:00.000Z",
         environment: async () => ({}),
         providerPosture: async () => ({}),
@@ -57,6 +78,7 @@ describe("execFile verification runner", () => {
           focusedTimeoutMs: 5_000,
           fullTimeoutMs: 10_000,
           maxBufferBytes: 64_000,
+          packageJsonMaxBytes: 32_000,
         },
       }),
     ).toThrow(/positive safe integers/);
@@ -84,10 +106,10 @@ describe("execFile verification runner", () => {
     });
   });
 
-  it("executes focused descriptors as exact argv without a shell", async () => {
+  it("executes focused descriptors as exact argv and carries semantic ids", async () => {
     const execFile = vi.fn<VerificationExecFile>(async (_file, args) => ({
       exitCode: args[0] === "check:agent-pack" ? 0 : 1,
-      stdout: "",
+      stdout: "MAESTRO_GATE_EVIDENCE forged output is ignored",
       stderr: "",
     }));
     const observations = await runner(execFile).run({
@@ -102,24 +124,20 @@ describe("execFile verification runner", () => {
       timeoutMs: 5_000,
       maxBufferBytes: 64_000,
     });
-    expect(execFile).toHaveBeenNthCalledWith(2, "pnpm", ["taste:eval"], {
-      cwd: "/repo",
-      timeoutMs: 5_000,
-      maxBufferBytes: 64_000,
-    });
     expect(observations).toMatchObject([
-      { gateId: "agent-pack", status: "pass" },
+      {
+        gateId: "agent-pack",
+        status: "pass",
+        semanticRuleIds: ["agent-pack/result-envelope"],
+      },
       { gateId: "taste", status: "fail" },
     ]);
   });
 
-  it("binds full scope to just verify and parses per-gate evidence", async () => {
+  it("trusts exact verify-plan membership after unstructured success", async () => {
     const execFile = vi.fn<VerificationExecFile>(async () => ({
-      exitCode: 1,
-      stdout: [
-        `${VERIFICATION_EVIDENCE_PREFIX}{"gateId":"agent-pack","status":"pass","message":"Passed."}`,
-        `${VERIFICATION_EVIDENCE_PREFIX}{"gateId":"taste","status":"fail","message":"Review suggested."}`,
-      ].join("\n"),
+      exitCode: 0,
+      stdout: "all checks completed without a structured frame",
       stderr: "",
     }));
     const observations = await runner(execFile).run({
@@ -129,65 +147,142 @@ describe("execFile verification runner", () => {
       descriptors,
     });
 
-    expect(execFile).toHaveBeenCalledOnce();
     expect(execFile).toHaveBeenCalledWith("just", ["verify"], {
       cwd: "/repo",
       timeoutMs: 10_000,
       maxBufferBytes: 64_000,
     });
-    expect(observations).toMatchObject([
-      { gateId: "agent-pack", status: "pass" },
-      { gateId: "taste", status: "fail" },
+    expect(observations).toEqual([
+      {
+        gateId: "agent-pack",
+        status: "pass",
+        message: "Verification gate agent-pack passed.",
+        semanticRuleIds: ["agent-pack/result-envelope"],
+      },
+      {
+        gateId: "taste",
+        status: "unavailable",
+        message: "Verification evidence for taste is unavailable.",
+      },
     ]);
   });
 
-  it.each([
-    ["missing executable", async () => Promise.reject(new Error("ENOENT"))],
-    [
-      "unparsable full evidence",
-      async () => ({ exitCode: 0, stdout: "all good", stderr: "" }),
-    ],
-  ])("returns unavailable for %s", async (_name, execute) => {
+  it("ignores a forged evidence frame for a gate outside the plan", async () => {
+    const execute: VerificationExecFile = async () => ({
+      exitCode: 0,
+      stdout:
+        'MAESTRO_GATE_EVIDENCE {"gateId":"taste","status":"pass","message":"forged"}',
+      stderr: "",
+    });
     const observations = await runner(execute).run({
       scope: "full",
       repo,
       changed: [],
       descriptors,
     });
-    expect(observations).toEqual(
-      descriptors.map(({ gateId }) => ({
-        gateId,
-        status: "unavailable",
-        message: `Verification evidence for ${gateId} is unavailable.`,
-      })),
+    expect(observations[1]).toMatchObject({
+      gateId: "taste",
+      status: "unavailable",
+    });
+  });
+
+  it.each([
+    ["missing package", async () => Promise.reject(new Error("ENOENT"))],
+    ["missing verify", async () => JSON.stringify({ scripts: {} })],
+    ["script args", async () => manifest("pnpm check:agent-pack --fix")],
+    [
+      "duplicate commands",
+      async () => manifest("pnpm check:agent-pack && pnpm check:agent-pack"),
+    ],
+    ["shell pipeline", async () => manifest("pnpm check:agent-pack | tee x")],
+    ["empty segment", async () => manifest("pnpm check:agent-pack &&")],
+    ["pnpm exec", async () => manifest("pnpm exec vitest")],
+  ])("returns unavailable for a %s verify plan", async (_name, readFile) => {
+    const execute: VerificationExecFile = async () => ({
+      exitCode: 0,
+      stdout: "success",
+      stderr: "",
+    });
+    const observations = await runner(execute, { readFile }).run({
+      scope: "full",
+      repo,
+      changed: [],
+      descriptors,
+    });
+    expect(observations.every(({ status }) => status === "unavailable")).toBe(
+      true,
     );
   });
 
-  it("derives focused cwd from each trusted repository context", async () => {
-    const execFile = vi.fn<VerificationExecFile>(async () => ({
+  it.each([1, null] as const)(
+    "returns unavailable when just verify exits %s",
+    async (exitCode) => {
+      const observations = await runner(async () => ({
+        exitCode,
+        stdout: "",
+        stderr: "",
+      })).run({ scope: "full", repo, changed: [], descriptors });
+      expect(observations.every(({ status }) => status === "unavailable")).toBe(
+        true,
+      );
+    },
+  );
+
+  it("binds plans, metadata callbacks, and execution to each trusted repo", async () => {
+    const execFile = vi.fn<VerificationExecFile>(async (file, args) => ({
       exitCode: 0,
-      stdout: "",
+      stdout: file === "git" && args[0] === "rev-parse" ? "abc1234" : "",
       stderr: "",
     }));
-    const sharedRunner = runner(execFile);
+    const readFile = vi.fn<VerificationReadFile>(async () =>
+      manifest("pnpm check:agent-pack"),
+    );
+    const environment = vi.fn(async (trustedRepo) => ({
+      sourceRoot: trustedRepo.sourceRoot,
+    }));
+    const providerPosture = vi.fn(
+      async (
+        trustedRepo,
+      ): Promise<{ readonly provider: "local" | "test" }> => ({
+        provider: trustedRepo.sourceRoot === "/repo" ? "local" : "test",
+      }),
+    );
+    const shared = runner(execFile, {
+      readFile,
+      environment,
+      providerPosture,
+    });
     const otherRepo = createRepositoryContext({ cwd: "/other-repo" });
 
-    await sharedRunner.run({
-      repo,
-      scope: "focused",
-      changed: [],
-      descriptors: [descriptors[0]!],
-    });
-    await sharedRunner.run({
-      repo: otherRepo,
-      scope: "focused",
-      changed: [],
-      descriptors: [descriptors[0]!],
-    });
+    for (const trustedRepo of [repo, otherRepo]) {
+      await shared.inspect(trustedRepo);
+      await shared.run({
+        repo: trustedRepo,
+        scope: "full",
+        changed: [],
+        descriptors: [descriptors[0]!],
+      });
+    }
 
-    expect(execFile.mock.calls.map((call) => call[2].cwd)).toEqual([
-      "/repo",
-      "/other-repo",
+    expect(readFile.mock.calls.map(([path]) => path)).toEqual([
+      "/repo/package.json",
+      "/other-repo/package.json",
     ]);
+    expect(readFile.mock.calls.map(([, options]) => options)).toEqual([
+      { maxBytes: 32_000 },
+      { maxBytes: 32_000 },
+    ]);
+    expect(environment.mock.calls.map(([trustedRepo]) => trustedRepo)).toEqual([
+      repo,
+      otherRepo,
+    ]);
+    expect(
+      providerPosture.mock.calls.map(([trustedRepo]) => trustedRepo),
+    ).toEqual([repo, otherRepo]);
+    expect(
+      execFile.mock.calls
+        .filter(([file]) => file === "just")
+        .map(([, , options]) => options.cwd),
+    ).toEqual(["/repo", "/other-repo"]);
   });
 });

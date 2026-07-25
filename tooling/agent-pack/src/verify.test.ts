@@ -25,6 +25,7 @@ const descriptors: readonly DiagnosticDescriptor[] = [
     argv: ["pnpm", "check:agent-pack"],
     rerun: ["pnpm", "check:agent-pack"],
     focusedPathPrefixes: ["tooling/agent-pack/", "apps/cli/"],
+    defaultFocused: true,
   },
   {
     gateId: "taste",
@@ -117,6 +118,27 @@ describe("agent-pack verification command", () => {
         },
       },
     });
+  });
+
+  it("uses only the explicit minimal default for an empty focused scope", async () => {
+    const requests: VerificationRunRequest[] = [];
+    const command = createVerifyCommand({
+      descriptors,
+      runner: runner(
+        [{ gateId: "agent-pack", status: "pass", message: "Passed." }],
+        requests,
+      ),
+    });
+
+    await executeAgentPackCommand(
+      command,
+      { scope: "focused", changed: [] },
+      context,
+    );
+
+    expect(requests[0]?.descriptors.map(({ gateId }) => gateId)).toEqual([
+      "agent-pack",
+    ]);
   });
 
   it("blocks a required failure with canonical repair evidence", async () => {

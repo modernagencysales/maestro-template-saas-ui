@@ -235,7 +235,10 @@ function selectDescriptors(
   descriptors: readonly DiagnosticDescriptor[],
   input: VerifyInput,
 ): readonly DiagnosticDescriptor[] {
-  if (input.scope === "full" || input.changed.length === 0) return descriptors;
+  if (input.scope === "full") return descriptors;
+  if (input.changed.length === 0) {
+    return descriptors.filter(({ defaultFocused }) => defaultFocused === true);
+  }
   return descriptors.filter((descriptor) =>
     (descriptor.focusedPathPrefixes ?? []).some((prefix) =>
       input.changed.some((path) => path.startsWith(prefix)),

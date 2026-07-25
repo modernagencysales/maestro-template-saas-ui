@@ -15,6 +15,8 @@ export type DiagnosticDescriptor = {
   readonly argv: readonly [string, ...string[]];
   readonly rerun: readonly [string, ...string[]];
   readonly focusedPathPrefixes?: readonly string[];
+  readonly defaultFocused?: boolean;
+  readonly semanticRuleIds?: readonly string[];
 };
 
 export type GateDiagnosticObservation = {
@@ -84,6 +86,14 @@ export function validateDiagnosticDescriptor(
       return {
         ok: false,
         reason: "focused path prefixes must be bounded repository paths",
+      };
+    }
+  }
+  for (const semanticRuleId of descriptor.semanticRuleIds ?? []) {
+    if (!SAFE_ID.test(semanticRuleId)) {
+      return {
+        ok: false,
+        reason: "semantic rule ids must be stable, path-safe identifiers",
       };
     }
   }

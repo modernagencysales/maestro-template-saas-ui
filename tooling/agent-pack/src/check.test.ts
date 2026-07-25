@@ -6,9 +6,14 @@ import {
   type AgentPackArgumentResult,
 } from "./contracts.js";
 import { createCheckCommand } from "./check.js";
+import type { DiagnosticDescriptor } from "./diagnostics.js";
 import type { PreflightInput } from "./preflight.js";
 import { createRepositoryContext } from "./repoContext.js";
-import type { VerifyInput } from "./verify.js";
+import {
+  createVerifyCommand,
+  type VerificationRunRequest,
+  type VerifyInput,
+} from "./verify.js";
 
 const context = {
   schemaVersion: 1 as const,
@@ -103,5 +108,60 @@ describe("novice check composition", () => {
       diagnostics: [{ severity: "warning", safeToContinue: true }],
       data: { safeToMutate: true, requiredBlocking: false },
     });
+  });
+
+  it("keeps an empty focused check on the explicit minimal gate set", async () => {
+    const descriptors: readonly DiagnosticDescriptor[] = [
+      {
+        gateId: "agent-pack",
+        posture: "required",
+        evidenceClass: "behavioral",
+        canonicalDoc: "docs/template/preflight.md",
+        repairHint: "Fix the reported Agent Pack invariant.",
+        argv: ["pnpm", "check:agent-pack"],
+        rerun: ["pnpm", "check:agent-pack"],
+        defaultFocused: true,
+      },
+      {
+        gateId: "web",
+        posture: "required",
+        evidenceClass: "behavioral",
+        canonicalDoc: "docs/template/preflight.md",
+        repairHint: "Fix the reported web invariant.",
+        argv: ["pnpm", "check:web"],
+        rerun: ["pnpm", "check:web"],
+      },
+    ];
+    const requests: VerificationRunRequest[] = [];
+    const verify = createVerifyCommand({
+      descriptors,
+      runner: {
+        inspect: async () => ({
+          createdAt: "2026-07-25T12:00:00.000Z",
+          subject: { commit: "abc1234", dirty: false },
+          repositoryFingerprint: "repository_sha256:fixture",
+          environmentFingerprint: "environment_sha256:fixture",
+          providerPostureFingerprint: "providers_sha256:fixture",
+        }),
+        run: async (request) => {
+          requests.push(request);
+          return request.descriptors.map(({ gateId }) => ({
+            gateId,
+            status: "pass" as const,
+            message: "Passed.",
+          }));
+        },
+      },
+    });
+
+    await executeAgentPackCommand(
+      createCheckCommand({ preflight: commands().preflight, verify }),
+      { mode: "fake", scope: "focused", changed: [] },
+      context,
+    );
+
+    expect(requests[0]?.descriptors.map(({ gateId }) => gateId)).toEqual([
+      "agent-pack",
+    ]);
   });
 });

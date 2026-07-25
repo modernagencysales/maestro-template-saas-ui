@@ -16,6 +16,8 @@ const descriptor: DiagnosticDescriptor = {
   argv: ["pnpm", "check:workflow:fast"],
   rerun: ["pnpm", "check:workflow:fast"],
   focusedPathPrefixes: ["packages/convex/confect/workflows/"],
+  defaultFocused: true,
+  semanticRuleIds: ["workflow/no-raw-runner"],
 };
 
 describe("diagnostic registry projection", () => {
@@ -72,6 +74,18 @@ describe("diagnostic registry projection", () => {
     expect(() =>
       defineDiagnosticRegistryProjection([descriptor, descriptor]),
     ).toThrow(/duplicate diagnostic gate id/i);
+  });
+
+  it("rejects malformed semantic rule ids", () => {
+    expect(
+      validateDiagnosticDescriptor({
+        ...descriptor,
+        semanticRuleIds: ["workflow rule with spaces"],
+      }),
+    ).toEqual({
+      ok: false,
+      reason: "semantic rule ids must be stable, path-safe identifiers",
+    });
   });
 
   it("projects advisory failures as non-blocking warnings", () => {
