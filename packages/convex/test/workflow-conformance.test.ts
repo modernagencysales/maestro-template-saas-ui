@@ -9,6 +9,8 @@ import { adversarialWorkflowDrafts } from "./fixtures/workflows/adversarial";
 import { findWorkflowConformanceIssues } from "./fixtures/workflows/conformanceChecks";
 import {
   WorkflowCapabilityReference,
+  WorkflowStepName,
+  validateWorkflowGraphV2,
   type DurableWorkflowGraph,
   type DurableWorkflowGraphV2,
 } from "../confect/workflows/graph";
@@ -172,6 +174,107 @@ describe("Maestro V2 action retry compiler", () => {
       { nodeId: "branchA" },
       { name: "branchA.v2" },
     );
+  });
+
+  it("routes settled failure in graph order and reuses a committed sibling on replay", async () => {
+    const journal = new Map<string, Promise<unknown>>();
+    const executions = new Map<string, number>();
+    const runQuery = vi.fn(
+      async (
+        _ref: unknown,
+        args: Record<string, unknown>,
+        options?: Record<string, unknown>,
+      ) => {
+        const name = String(options?.name);
+        const retained = journal.get(name);
+        if (retained) return retained;
+        const nodeId = String(args.nodeId);
+        executions.set(nodeId, (executions.get(nodeId) ?? 0) + 1);
+        const result =
+          nodeId === "branchB"
+            ? Promise.reject(new Error("redacted branch failure"))
+            : Promise.resolve({ branch: "A", committed: true });
+        journal.set(name, result);
+        return result;
+      },
+    );
+    let outputAttempts = 0;
+    const input = {
+      ...v2Input(v2SettledFailureGraph()),
+      capabilityRegistry: {
+        [capabilityRef]: {
+          kind: "query" as const,
+          ref: "compiler.v2.query" as unknown as DurableGraphStepRef<"query">,
+          effectClass: "none" as const,
+          buildArgs: ({ node }: { node: { readonly id: string } }) => ({
+            nodeId: node.id,
+          }),
+        },
+      },
+      admitEffect: async () => ({ kind: "deny" as const, reason: "not used" }),
+      failureRoutes: {
+        branchB: {
+          kind: "error-edge" as const,
+          edgeId: "b-output-error",
+          failure: {
+            _tag: "WorkflowSettledFailure" as const,
+            code: "BRANCH_REJECTED",
+            message: "Branch could not complete.",
+          },
+        },
+      },
+      projectOutput: ({
+        context,
+      }: {
+        context: Readonly<Record<string, unknown>>;
+      }) => {
+        outputAttempts += 1;
+        if (outputAttempts === 1) throw new Error("restart after settled wave");
+        return { status: "completed", context };
+      },
+    };
+
+    await expect(
+      runDurableGraphWorkflowV2(v2Step({ runQuery }), input),
+    ).rejects.toThrow("restart after settled wave");
+    await expect(
+      runDurableGraphWorkflowV2(v2Step({ runQuery }), input),
+    ).resolves.toMatchObject({
+      context: {
+        branchA: { branch: "A", committed: true },
+        branchB: {
+          _tag: "WorkflowSettledFailure",
+          code: "BRANCH_REJECTED",
+        },
+      },
+    });
+    expect([...executions.entries()]).toEqual([
+      ["branchA", 1],
+      ["branchB", 1],
+    ]);
+  });
+
+  it("rejects a materialized ready wave above the environment budget", async () => {
+    const runQuery = vi.fn(async () => ({ ok: true }));
+    const graph = v2OverBudgetGraph();
+    expect(validateWorkflowGraphV2(graph)).toContain(
+      "graph materializes a ready wave of 5 nodes above the environment Workpool limit 4",
+    );
+    await expect(
+      runDurableGraphWorkflowV2(v2Step({ runQuery }), {
+        ...v2Input(graph),
+        capabilityRegistry: {
+          [capabilityRef]: {
+            kind: "query",
+            ref: "compiler.v2.query" as unknown as DurableGraphStepRef<"query">,
+            effectClass: "none",
+            buildArgs: () => ({}),
+          },
+        },
+        admitEffect: async () => ({ kind: "deny", reason: "not used" }),
+      }),
+    ).rejects.toThrow("Workflow graph V2 failed validation.");
+    expect(runQuery).not.toHaveBeenCalled();
   });
 
   it("passes the stable name and exact explicit retry options", async () => {
@@ -872,6 +975,67 @@ const v2ConditionalGraph = (): DurableWorkflowGraphV2 => ({
   ],
   joins: [],
 });
+
+const v2SettledFailureGraph = (): DurableWorkflowGraphV2 => ({
+  ...v2ParallelGraph(),
+  edges: [
+    { id: "source-a", sourceNodeId: "source", targetNodeId: "branchA" },
+    { id: "source-b", sourceNodeId: "source", targetNodeId: "branchB" },
+    { id: "a-output", sourceNodeId: "branchA", targetNodeId: "output" },
+    {
+      id: "b-output-success",
+      sourceNodeId: "branchB",
+      targetNodeId: "output",
+    },
+    {
+      id: "b-output-error",
+      sourceNodeId: "branchB",
+      targetNodeId: "output",
+    },
+  ],
+});
+
+const v2OverBudgetGraph = (): DurableWorkflowGraphV2 => {
+  const template = v2ParallelGraph();
+  const source = template.nodes.find((node) => node.kind === "source");
+  const output = template.nodes.find((node) => node.kind === "output");
+  if (!source || !output)
+    throw new Error("parallel fixture requires endpoints");
+  const branches = Array.from({ length: 5 }, (_, index) => ({
+    id: `branch${index}`,
+    kind: "capability" as const,
+    functionKind: "query" as const,
+    capability: capabilityRef,
+    label: `Branch ${index}`,
+    stepName: Schema.decodeSync(WorkflowStepName)(`branch${index}.v2`),
+    payloadPolicy,
+    semanticRuleIds: [],
+    transaction: { kind: "independent" as const },
+  }));
+  return {
+    ...template,
+    nodes: [source, ...branches, output],
+    edges: [
+      ...branches.map((branch) => ({
+        id: `source-${branch.id}`,
+        sourceNodeId: "source",
+        targetNodeId: branch.id,
+      })),
+      ...branches.map((branch) => ({
+        id: `${branch.id}-output`,
+        sourceNodeId: branch.id,
+        targetNodeId: "output",
+      })),
+    ],
+    joins: [
+      {
+        nodeId: "output",
+        strategy: "all-successful",
+        sourceNodeIds: branches.map((branch) => branch.id),
+      },
+    ],
+  };
+};
 
 const payloadPolicy = {
   maxInputBytes: 1024,

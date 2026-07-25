@@ -2,6 +2,11 @@ import type { LogLevel, WorkpoolOptions } from "@convex-dev/workpool";
 
 export type WorkflowEnvironment = "development" | "test" | "production";
 
+export type WorkflowWorkpoolDeclaration = {
+  readonly component: string;
+  readonly options: WorkpoolOptions;
+};
+
 const environmentPosture: Readonly<
   Record<
     WorkflowEnvironment,
@@ -20,10 +25,32 @@ export const workflowWorkpoolOptions = (
   retryActionsByDefault: false,
 });
 
-export const generatedWorkflowWorkpoolOptions = workflowWorkpoolOptions(
+const generatedWorkflowEnvironment: WorkflowEnvironment =
   process.env.NODE_ENV === "production"
     ? "production"
     : process.env.NODE_ENV === "test"
       ? "test"
-      : "development",
+      : "development";
+
+export const generatedWorkflowWorkpoolOptions = workflowWorkpoolOptions(
+  generatedWorkflowEnvironment,
 );
+
+export const generatedWorkflowReadyWaveLimit =
+  environmentPosture[generatedWorkflowEnvironment].maxParallelism;
+
+export const workflowWorkpoolConfigurationFindings = (
+  environment: WorkflowEnvironment,
+  declarations: readonly WorkflowWorkpoolDeclaration[],
+): readonly string[] => {
+  const expected = workflowWorkpoolOptions(environment);
+  return declarations.flatMap(({ component, options }) =>
+    options.maxParallelism === expected.maxParallelism &&
+    options.logLevel === expected.logLevel &&
+    options.retryActionsByDefault === expected.retryActionsByDefault
+      ? []
+      : [
+          `${component}: Workpool configuration conflicts with the ${environment} workflow budget`,
+        ],
+  );
+};

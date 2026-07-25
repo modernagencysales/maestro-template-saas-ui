@@ -136,7 +136,8 @@
         "existingTargetModules": [
           "packages/convex/confect/workflows/graphEdgeSchema.ts",
           "packages/convex/confect/workflows/graphValidation.ts",
-          "packages/convex/confect/workflows/_kit/graphRunnerTraversal.ts"
+          "packages/convex/confect/workflows/_kit/graphRunnerV2.ts",
+          "packages/convex/confect/workflows/_kit/workpoolConfig.ts"
         ],
         "repairStrategy": "extend",
         "compatibilityRisks": [
@@ -147,9 +148,11 @@
         "policyDataOwnership": "packages/template-core/src/workflow-semantics/contract.ts",
         "promptVersioningImpact": "Typed outcome routing changes the immutable graph contract and requires a new workflow version.",
         "evalOrGateCoverage": [
-          "pnpm --dir packages/convex test workflow-conformance",
+          "pnpm --dir packages/convex test workflow-graph workflow-definition workflow-conformance",
+          "pnpm --dir packages/convex typecheck",
           "pnpm check:workflow-semantics",
-          "pnpm check:workflow-graph-boundary"
+          "pnpm check:workflow-graph-boundary",
+          "pnpm stack:check docs/superpowers/plans/manifests/phase-1-wp-1.3-stack-1.json"
         ]
       },
       "workPackages": [
@@ -157,17 +160,19 @@
           "kind": "template-gap",
           "target": "WP-1.3 typed settled outcome and bounded fan-out contract",
           "followUpGates": [
-            "pnpm --dir packages/convex test workflow-conformance",
+            "pnpm --dir packages/convex test workflow-graph workflow-definition workflow-conformance",
+            "pnpm --dir packages/convex typecheck",
             "pnpm check:workflow-semantics",
-            "pnpm check:workflow-graph-boundary"
+            "pnpm check:workflow-graph-boundary",
+            "pnpm stack:check docs/superpowers/plans/manifests/phase-1-wp-1.3-stack-1.json"
           ],
           "templateBacklogRef": "AP-002 Convex workflow semantic compatibility",
           "templateResolutionPath": "Add Agent-A-owned typed outcome fields, then compile stable success, failure, and compensation routing without an atomic-wave claim."
         }
       ],
       "taskRefs": ["WP-1.3"],
-      "rationale": "Failure routing depends on semantic authority that is intentionally separate from the ready-wave planner.",
-      "estLines": 260
+      "rationale": "The runtime now rejects unresolved V1 races and over-budget materialization, then applies declared typed error-edge or compensation routes only after the settled barrier while preserving journal-backed sibling reuse without an atomic-wave claim.",
+      "estLines": 300
     }
   ],
   "allTaskRefs": ["WP-1.3"]

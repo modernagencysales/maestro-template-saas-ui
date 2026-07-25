@@ -6,6 +6,7 @@ import {
 } from "./graph";
 import { isSafeConditionExpression } from "./conditionExpression";
 import type { DurableWorkflowGraphV2 } from "./graphSchema";
+import { generatedWorkflowReadyWaveLimit } from "./_kit/workpoolConfig";
 
 type ValidationState = {
   readonly errors: WorkflowGraphValidationError[];
@@ -26,6 +27,15 @@ export const validateWorkflowGraph = (
 
   validateStartNode(graph, state);
   validateJoins(graph, state);
+  state.errors.push(
+    ...validateReadyWaveBound(graph, generatedWorkflowReadyWaveLimit).map(
+      (width) =>
+        invalidJoin(
+          graph.startNodeId,
+          `graph materializes a ready wave of ${width} nodes above the environment Workpool limit ${generatedWorkflowReadyWaveLimit}`,
+        ),
+    ),
+  );
   return state.errors;
 };
 
@@ -172,6 +182,14 @@ const validateJoins = (
   state: ValidationState,
 ): void => {
   for (const join of graph.joins) {
+    if (join.strategy === "any-successful") {
+      state.errors.push(
+        invalidJoin(
+          join.nodeId,
+          "any-successful join cannot prove losing work is resolved; use all-successful until a typed mutually-exclusive branch or loser policy is declared",
+        ),
+      );
+    }
     if (!state.nodeIds.has(join.nodeId)) {
       state.errors.push(invalidJoin(join.nodeId, "join node is not in graph"));
     }
@@ -302,8 +320,50 @@ export const validateWorkflowGraphV2 = (
           ]
         : [],
     ),
+    ...validateReadyWaveBound(graph, generatedWorkflowReadyWaveLimit).map(
+      (width) =>
+        `graph materializes a ready wave of ${width} nodes above the environment Workpool limit ${generatedWorkflowReadyWaveLimit}`,
+    ),
     ...duplicateStepNames.map((name) => `duplicate stepName: ${name}`),
   ];
+};
+
+const validateReadyWaveBound = (
+  graph: {
+    readonly nodes: readonly { readonly id: string }[];
+    readonly edges: readonly {
+      readonly sourceNodeId: string;
+      readonly targetNodeId: string;
+    }[];
+  },
+  limit: number,
+): readonly number[] => {
+  const indegree = new Map(graph.nodes.map((node) => [node.id, 0]));
+  const outgoing = new Map<string, string[]>();
+  for (const edge of graph.edges) {
+    if (!indegree.has(edge.sourceNodeId) || !indegree.has(edge.targetNodeId)) {
+      continue;
+    }
+    indegree.set(edge.targetNodeId, (indegree.get(edge.targetNodeId) ?? 0) + 1);
+    append(outgoing, edge.sourceNodeId, edge.targetNodeId);
+  }
+  let wave = graph.nodes
+    .map((node) => node.id)
+    .filter((nodeId) => indegree.get(nodeId) === 0);
+  let maximum = wave.length;
+  while (wave.length > 0) {
+    const next: string[] = [];
+    for (const source of wave) {
+      for (const target of outgoing.get(source) ?? []) {
+        const remaining = (indegree.get(target) ?? 0) - 1;
+        indegree.set(target, remaining);
+        if (remaining === 0) next.push(target);
+      }
+    }
+    maximum = Math.max(maximum, next.length);
+    wave = next;
+  }
+  return maximum > limit ? [maximum] : [];
 };
 
 export type WorkflowGraphV2Finding =

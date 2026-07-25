@@ -7,7 +7,10 @@ import {
   type MaestroWorkflowMetadata,
 } from "../confect/workflows/_kit/defineMaestroWorkflow";
 import { kickoffProfileStartOptions } from "../confect/workflows/_kit/ownership";
-import { workflowWorkpoolOptions } from "../confect/workflows/_kit/workpoolConfig";
+import {
+  workflowWorkpoolConfigurationFindings,
+  workflowWorkpoolOptions,
+} from "../confect/workflows/_kit/workpoolConfig";
 
 const metadata = {
   workflowId: "workflow_source_to_receipt",
@@ -83,6 +86,23 @@ describe("defineMaestroWorkflow planning boundary", () => {
       logLevel: "REPORT",
       retryActionsByDefault: false,
     });
+  });
+
+  it("rejects conflicting component Workpool configurations before deploy", () => {
+    expect(
+      workflowWorkpoolConfigurationFindings("test", [
+        {
+          component: "workflow-primary",
+          options: workflowWorkpoolOptions("test"),
+        },
+        {
+          component: "workflow-conflict",
+          options: { ...workflowWorkpoolOptions("test"), maxParallelism: 5 },
+        },
+      ]),
+    ).toEqual([
+      "workflow-conflict: Workpool configuration conflicts with the test workflow budget",
+    ]);
   });
 
   it("rejects v.any at the workflow return boundary", () => {

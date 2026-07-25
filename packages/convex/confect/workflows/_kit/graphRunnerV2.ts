@@ -5,7 +5,9 @@ import { makePublicError } from "../../shared/errors";
 import {
   evaluateSafeConditionExpression,
   type DurableWorkflowGraphV2,
+  type WorkflowCapabilityReference,
   type WorkflowNodeV2,
+  type WorkflowStepName,
 } from "../graph";
 import {
   deriveLogicalEffectKey,
@@ -89,10 +91,33 @@ export type RunDurableGraphV2CompilerInput<
     readonly contract: WorkflowEffectContract;
     readonly logicalEffectKey: LogicalEffectKey;
   }) => Promise<WorkflowEffectAdmission>;
+  readonly failureRoutes?: Readonly<
+    Record<string, WorkflowSettledFailureRoute>
+  >;
   readonly projectOutput: (input: {
     readonly context: Readonly<Record<string, unknown>>;
   }) => Result;
 };
+
+export type WorkflowSettledFailure = {
+  readonly _tag: "WorkflowSettledFailure";
+  readonly code: string;
+  readonly message: string;
+};
+
+export type WorkflowSettledFailureRoute =
+  | {
+      readonly kind: "error-edge";
+      readonly edgeId: string;
+      readonly failure: WorkflowSettledFailure;
+    }
+  | {
+      readonly kind: "compensation";
+      readonly edgeId: string;
+      readonly capability: WorkflowCapabilityReference;
+      readonly stepName: WorkflowStepName;
+      readonly failure: WorkflowSettledFailure;
+    };
 
 export const runCompiledDurableGraphWorkflowV2 = async <
   Result extends Record<string, unknown>,
@@ -105,6 +130,10 @@ export const runCompiledDurableGraphWorkflowV2 = async <
   const completed = new Set<string>();
   const passedEdges = new Set<string>();
   const failedEdges = new Set<string>();
+  const failureRoutes = validateFailureRoutes(
+    input,
+    edgeIndexes.outgoingByNode,
+  );
   const traversal: TraversalSnapshot = {
     incomingByNode: edgeIndexes.incomingByNode,
     joinsByNode: new Map(input.graph.joins.map((join) => [join.nodeId, join])),
@@ -143,20 +172,45 @@ export const runCompiledDurableGraphWorkflowV2 = async <
     const outcomes = await Promise.allSettled(
       wave.map((node) => executeNode(step, input, node, snapshot)),
     );
+    let firstUnhandledFailure: unknown;
+    let hasUnhandledFailure = false;
     for (const [index, node] of wave.entries()) {
       const outcome = outcomes[index];
       if (outcome?.status === "fulfilled") {
         context[node.id] = outcome.value;
         completed.add(node.id);
+      } else if (outcome?.status === "rejected") {
+        const route = failureRoutes.get(node.id);
+        if (route === undefined) {
+          if (!hasUnhandledFailure) firstUnhandledFailure = outcome.reason;
+          hasUnhandledFailure = true;
+          continue;
+        }
+        context[node.id] = route.failure;
+        completed.add(node.id);
+        passedEdges.add(route.edgeId);
+        for (const edge of edgeIndexes.outgoingByNode.get(node.id) ?? []) {
+          if (edge.id !== route.edgeId) failedEdges.add(edge.id);
+        }
       }
     }
-    const failure = outcomes.find(
-      (outcome): outcome is PromiseRejectedResult =>
-        outcome.status === "rejected",
-    );
-    if (failure) throw failure.reason;
-    for (const node of wave) {
+    for (const [index, node] of wave.entries()) {
+      const route = failureRoutes.get(node.id);
+      if (
+        outcomes[index]?.status === "rejected" &&
+        route?.kind === "compensation"
+      ) {
+        await runCompensation(step, input, node, route, context);
+      }
+    }
+    if (hasUnhandledFailure) throw firstUnhandledFailure;
+    for (const [index, node] of wave.entries()) {
+      if (outcomes[index]?.status !== "fulfilled") continue;
       for (const edge of edgeIndexes.outgoingByNode.get(node.id) ?? []) {
+        if (failureRoutes.get(node.id)?.edgeId === edge.id) {
+          failedEdges.add(edge.id);
+          continue;
+        }
         const active = edge.condition
           ? evaluateSafeConditionExpression(edge.condition.expression, {
               inputs: input.inputs,
@@ -171,6 +225,72 @@ export const runCompiledDurableGraphWorkflowV2 = async <
       return input.projectOutput({ context });
     }
   }
+};
+
+const validateFailureRoutes = <Result extends Record<string, unknown>>(
+  input: RunDurableGraphV2CompilerInput<Result>,
+  outgoingByNode: ReadonlyMap<
+    string,
+    readonly DurableWorkflowGraphV2["edges"][number][]
+  >,
+): ReadonlyMap<string, WorkflowSettledFailureRoute> => {
+  const routes = new Map(Object.entries(input.failureRoutes ?? {}));
+  for (const [nodeId, route] of routes) {
+    const node = input.graph.nodes.find((candidate) => candidate.id === nodeId);
+    const edge = (outgoingByNode.get(nodeId) ?? []).find(
+      (candidate) => candidate.id === route.edgeId,
+    );
+    if (!node || node.kind !== "capability" || !edge) {
+      throw makePublicError(
+        "VALIDATION_FAILED",
+        `Workflow failure route ${nodeId} must name a capability node and an existing outgoing error edge.`,
+        { nodeId, edgeId: route.edgeId },
+      );
+    }
+    if (route.failure._tag !== "WorkflowSettledFailure") {
+      throw validationFailure(
+        node,
+        "failure route must use the typed settled failure envelope",
+      );
+    }
+  }
+  return routes;
+};
+
+const runCompensation = async <Result extends Record<string, unknown>>(
+  step: RunDurableGraphStep,
+  input: RunDurableGraphV2CompilerInput<Result>,
+  node: WorkflowNodeV2,
+  route: Extract<WorkflowSettledFailureRoute, { kind: "compensation" }>,
+  context: Readonly<Record<string, unknown>>,
+): Promise<void> => {
+  const compensation = input.capabilityRegistry[route.capability];
+  if (compensation?.kind !== "action") {
+    throw validationFailure(
+      node,
+      `missing generated action registry entry for compensation capability ${route.capability}`,
+    );
+  }
+  const compensationNode: Extract<
+    CapabilityNodeV2,
+    { functionKind: "action" }
+  > = {
+    id: `${node.id}.compensation`,
+    kind: "capability",
+    functionKind: "action",
+    capability: route.capability,
+    label: `Compensate ${node.label}`,
+    stepName: route.stepName,
+    payloadPolicy: node.payloadPolicy,
+    semanticRuleIds: node.semanticRuleIds,
+  };
+  await runActionNode(step, input, compensationNode, compensation, {
+    inputs: input.inputs,
+    context,
+    node: compensationNode,
+    principal: input.principal,
+    policySnapshot: input.policySnapshot,
+  });
 };
 
 const executeNode = async <Result extends Record<string, unknown>>(

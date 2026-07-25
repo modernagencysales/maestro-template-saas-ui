@@ -24,6 +24,8 @@ export type {
   WorkflowV2ActionCapabilityEntry,
   WorkflowV2CapabilityEntry,
   WorkflowV2CapabilityEnvelope,
+  WorkflowSettledFailure,
+  WorkflowSettledFailureRoute,
 } from "./graphRunnerV2";
 
 export type DurableGraphStepKind = "query" | "mutation" | "action";
