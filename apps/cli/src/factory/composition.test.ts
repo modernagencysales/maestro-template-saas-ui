@@ -39,7 +39,7 @@ describe("factory CLI composition", () => {
       createRepositoryContext({ cwd: "/tmp/customer-app" }),
       () => ({
         BUILDKITE: "true",
-        OPENROUTER_API_KEY: "must-not-cross-boundary",
+        OPENROUTER_API_KEY: "fake",
         EMPTY: "",
       }),
     );
@@ -50,8 +50,6 @@ describe("factory CLI composition", () => {
       ci: true,
       availableEnvironmentNames: "BUILDKITE,OPENROUTER_API_KEY",
     });
-    expect(JSON.stringify(environment)).not.toContain(
-      "must-not-cross-boundary",
-    );
+    expect(JSON.stringify(environment)).not.toContain("fake");
   });
 });
