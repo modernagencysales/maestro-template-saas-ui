@@ -58,6 +58,9 @@ export async function factoryWiringFindings(
   const factoryComposition = await optionalText(
     join(repoRoot, "apps/cli/src/factory/composition.ts"),
   );
+  const factoryStart = await optionalText(
+    join(repoRoot, "apps/cli/src/factory/start.ts"),
+  );
   if (
     !includesAll(cliIndex, [
       'import { createFactoryCliComposition } from "./factory/composition";',
@@ -87,6 +90,9 @@ export async function factoryWiringFindings(
       "const verificationRunner = createExecFileVerificationRunner({\n    execFile,",
       "projectCompositionEnvironment(repo, readEnvironment)",
       "createCustomerCreateComposition()",
+      "createComposedStartCommand({",
+      "createStartCliHandler(start)",
+      "parseStartTargetInstance(raw, parseTemplateInstance",
       "createPreflightCliHandler(preflight)",
       "createVerifyCliHandler(verify)",
       "createVerifyCliHandler(check)",
@@ -101,6 +107,11 @@ export async function factoryWiringFindings(
       "readInstalledConvexMcpInventory({",
       "return Object.freeze({\n    handlers,",
       "mcp,\n    mcpConfigure,",
+    ]) ||
+    !includesAll(factoryStart, [
+      "readiness: { wait: waitForStartReadiness }",
+      "supervise: (specs, readiness)",
+      "readiness,",
     ]) ||
     countOccurrences(cliIndex, "createFactoryCliComposition(") !== 1 ||
     countOccurrences(factoryComposition, "createFactoryCliComposition(") !==
@@ -136,6 +147,9 @@ function expectedAgentPackBarrel(): string {
     'export * from "./planCheck.js";',
     'export * from "./scaffold.js";',
     'export * from "./create.js";',
+    'export * from "./ports.js";',
+    'export * from "./processSupervisor.js";',
+    'export * from "./start.js";',
     'export * from "./pluginContract.js";',
     'export * from "./mcp/protocol.js";',
     'export * from "./mcp/projection.js";',

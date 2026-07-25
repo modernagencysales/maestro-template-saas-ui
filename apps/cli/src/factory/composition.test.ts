@@ -11,11 +11,12 @@ import {
 const factoryCliComposition = createFactoryCliComposition(() => ({}));
 
 describe("factory CLI composition", () => {
-  it("binds one explicit policy to canonical readers and six commands", () => {
+  it("binds one explicit policy to canonical readers and seven commands", () => {
     expect(
       factoryCliComposition.handlers.map(({ command }) => command),
     ).toEqual([
       "create",
+      "start",
       "preflight",
       "verify",
       "check",
@@ -38,7 +39,21 @@ describe("factory CLI composition", () => {
 
   it("imports generator and quality sources without running either CLI", () => {
     expect(process.exitCode).toBeUndefined();
-    expect(factoryCliComposition.handlers).toHaveLength(6);
+    expect(factoryCliComposition.handlers).toHaveLength(7);
+  });
+
+  it("routes exact start help without spawning", async () => {
+    const start = factoryCliComposition.handlers.find(
+      ({ command }) => command === "start",
+    );
+    await expect(
+      start?.run(["start", "--help"], "/tmp/customer-app"),
+    ).resolves.toMatchObject({
+      exitCode: 0,
+      stdout:
+        "maestro start [--mode fake|local|dev] [--human|--details|--json]\n",
+      stderr: "",
+    });
   });
 
   it("projects repository-aware environment names without values", () => {

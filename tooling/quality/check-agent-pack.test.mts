@@ -157,6 +157,25 @@ describe("check:agent-pack", () => {
     );
   });
 
+  it("rejects a composition that bypasses the shared start command", async () => {
+    const fixtureRoot = await integratedFixture();
+    const compositionPath = join(
+      fixtureRoot,
+      "apps/cli/src/factory/composition.ts",
+    );
+    await writeFile(
+      compositionPath,
+      (await readFile(compositionPath, "utf8")).replace(
+        "createStartCliHandler(start)",
+        "createStartCliHandler(createStartCommand({} as never))",
+      ),
+    );
+
+    await expect(checkAgentPack(fixtureRoot)).resolves.toContain(
+      "factory-wiring:shared-executor-adapter",
+    );
+  });
+
   it("rejects a barrel that omits the readiness and verification APIs", async () => {
     const fixtureRoot = await integratedFixture();
     await writeFile(
@@ -306,6 +325,10 @@ async function integratedFixture(): Promise<string> {
   await cp(
     join(repoRoot, "apps/cli/src/factory/composition.ts"),
     join(fixtureRoot, "apps/cli/src/factory/composition.ts"),
+  );
+  await cp(
+    join(repoRoot, "apps/cli/src/factory/start.ts"),
+    join(fixtureRoot, "apps/cli/src/factory/start.ts"),
   );
   await mkdir(join(fixtureRoot, "tooling/agent-pack/src"), { recursive: true });
   await mkdir(join(fixtureRoot, "tooling/stack"), { recursive: true });

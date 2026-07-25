@@ -56,6 +56,11 @@ import { createMcpCliAdapter } from "./mcp";
 import { createMcpConfigureCliAdapter } from "./mcpConfigure";
 import { createPreflightCliHandler } from "./preflight";
 import { createScaffoldCliHandler } from "./scaffold";
+import {
+  createComposedStartCommand,
+  createStartCliHandler,
+  parseStartTargetInstance,
+} from "./start";
 import { createVerifyCliHandler } from "./verify";
 import { runAgentPackCommandAsCli, type FactoryCliHandler } from "./router";
 
@@ -120,6 +125,7 @@ export { projectCompositionEnvironment } from "./environment";
 export type { CompositionEnvironmentReader } from "./environment";
 
 export type FactoryMcpOverrides = {
+  readonly start?: { readonly log?: (line: string) => void };
   readonly mcp?: {
     readonly observedTools?: (
       context: AgentPackExecutionContext,
@@ -143,7 +149,14 @@ export function createFactoryCliComposition(
         environment: readEnvironment,
       }),
       readers: {
-        parseTemplateInstance,
+        parseTemplateInstance: (raw) =>
+          parseStartTargetInstance(raw, parseTemplateInstance, (name) =>
+            buildTemplateInstance({
+              name,
+              providerMode: "fake",
+              generatedAt: "1970-01-01T00:00:00.000Z",
+            }),
+          ),
         buildTemplateInstance,
         doctorTemplateInstance,
         readSystemCatalog,
@@ -154,6 +167,13 @@ export function createFactoryCliComposition(
       },
     }),
   );
+  const start = createComposedStartCommand({
+    preflight,
+    readFile: readBoundedFile,
+    maxBytes: FACTORY_EXECUTION_POLICY.packageJsonMaxBytes,
+    environment: readEnvironment,
+    log: overrides.start?.log ?? ((line) => process.stdout.write(`${line}\n`)),
+  });
 
   const verificationRunner = createExecFileVerificationRunner({
     execFile,
@@ -282,6 +302,7 @@ export function createFactoryCliComposition(
   });
   const handlers: readonly FactoryCliHandler[] = [
     createCustomerCreateComposition(),
+    createStartCliHandler(start),
     createPreflightCliHandler(preflight),
     createVerifyCliHandler(verify),
     createVerifyCliHandler(check),
