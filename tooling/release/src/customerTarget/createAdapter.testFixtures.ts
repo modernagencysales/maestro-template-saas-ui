@@ -107,11 +107,13 @@ export function taggedRelease(
         "tooling/quality/check-workflow-principal-propagation.mts",
       ]
     : [];
-  for (const path of projectionFiles) {
-    const source = resolve(customerProjectionRoot, path);
-    if (!existsSync(source)) continue;
-    mkdirSync(dirname(join(repositoryRoot, path)), { recursive: true });
-    writeFileSync(join(repositoryRoot, path), readFileSync(source));
+  if (customerProjectionRoot) {
+    for (const path of projectionFiles) {
+      const source = resolve(customerProjectionRoot, path);
+      if (!existsSync(source)) continue;
+      mkdirSync(dirname(join(repositoryRoot, path)), { recursive: true });
+      writeFileSync(join(repositoryRoot, path), readFileSync(source));
+    }
   }
   for (const [path, bytes] of Object.entries(options.extraCopies ?? {})) {
     mkdirSync(dirname(join(repositoryRoot, path)), { recursive: true });
