@@ -546,6 +546,22 @@
       "detail": "webhookEvents is durable Billing And Entitlements state governed by the canonical billing-and-entitlements lifecycle."
     },
     {
+      "id": "workflowArtifacts",
+      "system": "workflow-runtime",
+      "sourcePath": "packages/convex/confect/tables/workflowArtifacts.ts",
+      "tenantScope": "workspace",
+      "sensitivity": "confidential",
+      "pii": [],
+      "exportMode": "redacted-json",
+      "deleteMode": "delete",
+      "retention": "retain-audit-window",
+      "appendOnly": true,
+      "workspaceLifecycle": "managed",
+      "writeAuthority": "packages/convex/confect/workflows",
+      "migrationRef": "docs/template/schema-decisions/workflowArtifacts.md",
+      "detail": "Immutable content-addressed workflow values retrieved through tenant-safe artifact capabilities and retained through the longest owning-run restart, dedupe, child, and evidence window."
+    },
+    {
       "id": "workflowEffectReservations",
       "system": "workflow-runtime",
       "sourcePath": "packages/convex/confect/tables/workflowEffectReservations.ts",

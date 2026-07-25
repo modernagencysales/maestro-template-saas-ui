@@ -1,0 +1,15 @@
+{
+  "generator": "add-table",
+  "commandFamily": "template:add-table",
+  "name": "workflowArtifacts",
+  "ownership": {
+    "system": "workflow-runtime",
+    "disposition": "extend"
+  },
+  "generatedPaths": [
+    "packages/convex/confect/tables/workflowArtifacts.ts",
+    "docs/template/schema-decisions/workflowArtifacts.md",
+    "docs/template/system-catalog.json",
+    "docs/template/data-resources.json"
+  ]
+}

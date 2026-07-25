@@ -32,6 +32,7 @@ export const currentLifecycleResourceIds = [
   "versionedEntries",
   "versionFreshness",
   "webhookEvents",
+  "workflowArtifacts",
   "workflowEffectReservations",
   "workflowEventInstances",
   "workflowRunContextManifests",
@@ -257,6 +258,13 @@ export const workspaceLifecycleResourcePlans = [
     detail: "webhookEvents is durable Billing And Entitlements state governed by the canonical billing-and-entitlements lifecycle."
   },
   {
+    id: "workflowArtifacts",
+    owner: "workspace",
+    exportMode: "redacted-json",
+    deleteMode: "delete",
+    detail: "Immutable content-addressed workflow values retrieved through tenant-safe artifact capabilities and retained through the longest owning-run restart, dedupe, child, and evidence window."
+  },
+  {
     id: "workflowEffectReservations",
     owner: "workspace",
     exportMode: "redacted-json",
@@ -479,6 +487,11 @@ export const workspaceRetentionRules = [
     resourceId: "webhookEvents",
     action: "hash-or-redact-on-export",
     detail: "webhookEvents is durable Billing And Entitlements state governed by the canonical billing-and-entitlements lifecycle."
+  },
+  {
+    resourceId: "workflowArtifacts",
+    action: "retain-audit-window",
+    detail: "Immutable content-addressed workflow values retrieved through tenant-safe artifact capabilities and retained through the longest owning-run restart, dedupe, child, and evidence window."
   },
   {
     resourceId: "workflowEffectReservations",

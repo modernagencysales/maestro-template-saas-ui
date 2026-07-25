@@ -85,6 +85,7 @@ The planner covers these workspace-owned resources:
 - `workspaceMembers`
 - `brainPages`
 - `workflowRuns`
+- `workflowArtifacts`
 - `workflowStageRuns`
 - `workflowRunEvents`
 - `workflowRunEvidenceSnapshots`
@@ -201,6 +202,9 @@ The implemented retention hooks are:
   on export.
 - Workflow run links: retain for the audit window with their parent-child run
   provenance.
+- Workflow artifacts: immutable and content-addressed; retain through the
+  longest owning-run restart, dedupe, child, evidence, and explicit reference
+  window, then delete only after product cleanup completes.
 - Billing plans: retain until workspace deletion as tenant billing
   configuration.
 - Scoped policies: retain until workspace deletion as tenant configuration.

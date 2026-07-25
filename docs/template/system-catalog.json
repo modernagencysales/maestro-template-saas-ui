@@ -137,6 +137,7 @@
         "workflows"
       ],
       "tables": [
+        "workflowArtifacts",
         "workflowEffectReservations",
         "workflowEventInstances",
         "workflowRunContextManifests",
