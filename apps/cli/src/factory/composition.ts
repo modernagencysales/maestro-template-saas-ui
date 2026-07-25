@@ -169,7 +169,7 @@ export function createFactoryCliComposition(
     }),
   );
   const startOutput = createStartOutputBoundary(
-    overrides.start?.log ?? ((line) => process.stdout.write(`${line}\n`)),
+    overrides.start?.log ?? ((line) => process.stderr.write(`${line}\n`)),
   );
   const start = createComposedStartCommand({
     preflight,

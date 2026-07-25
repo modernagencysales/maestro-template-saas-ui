@@ -90,7 +90,7 @@ export async function factoryWiringFindings(
       "const verificationRunner = createExecFileVerificationRunner({\n    execFile,",
       "projectCompositionEnvironment(repo, readEnvironment)",
       "createCustomerCreateComposition()",
-      "createStartOutputBoundary(",
+      "overrides.start?.log ?? ((line) => process.stderr.write(`${line}\\n`))",
       "createComposedStartCommand({",
       "createStartCliHandler(start, startOutput)",
       "parseStartTargetInstance(raw, parseTemplateInstance",
@@ -120,6 +120,7 @@ export async function factoryWiringFindings(
     countOccurrences(cliIndex, "createFactoryCliComposition(") !== 1 ||
     countOccurrences(factoryComposition, "createFactoryCliComposition(") !==
       1 ||
+    countOccurrences(factoryComposition, "createComposedStartCommand(") !== 1 ||
     factoryComposition?.includes("process.env") === true ||
     factoryComposition?.includes("export const factoryCliComposition") === true
   ) {

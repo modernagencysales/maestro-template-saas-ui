@@ -176,6 +176,25 @@ describe("check:agent-pack", () => {
     );
   });
 
+  it("rejects duplicate composed start construction", async () => {
+    const fixtureRoot = await integratedFixture();
+    const compositionPath = join(
+      fixtureRoot,
+      "apps/cli/src/factory/composition.ts",
+    );
+    await writeFile(
+      compositionPath,
+      (await readFile(compositionPath, "utf8")).replace(
+        "const start = createComposedStartCommand({",
+        "const duplicateStart = createComposedStartCommand({} as never);\n  const start = createComposedStartCommand({",
+      ),
+    );
+
+    await expect(checkAgentPack(fixtureRoot)).resolves.toContain(
+      "factory-wiring:shared-executor-adapter",
+    );
+  });
+
   it("rejects a barrel that omits the readiness and verification APIs", async () => {
     const fixtureRoot = await integratedFixture();
     await writeFile(

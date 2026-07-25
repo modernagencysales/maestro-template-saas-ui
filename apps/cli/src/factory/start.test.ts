@@ -87,9 +87,9 @@ describe("start CLI adapter", () => {
     expect(JSON.parse(json.stdout)).toMatchObject({ command: { id: "start" } });
   });
 
-  it("emits exactly one parseable versioned JSON result despite raw start output", async () => {
-    const rawOutput = vi.fn();
-    const output = createStartOutputBoundary(rawOutput);
+  it("routes human readiness to progress while JSON stdout stays result-only", async () => {
+    const stderrProgress = vi.fn();
+    const output = createStartOutputBoundary(stderrProgress);
     const start = command();
     vi.mocked(start.execute).mockImplementation(async (args) => {
       output.write("[maestro] Ready at http://127.0.0.1:5173");
@@ -105,18 +105,20 @@ describe("start CLI adapter", () => {
     const handler = createStartCliHandler(start, output);
     const json = await handler.run(["start", "--json"], "/customer");
 
-    expect(rawOutput).not.toHaveBeenCalled();
+    expect(stderrProgress).not.toHaveBeenCalled();
     expect(json.stdout.trim().split("\n")[0]).toBe("{");
     expect(JSON.parse(json.stdout)).toMatchObject({
       schemaVersion: 1,
       command: { id: "start", version: 1 },
     });
 
-    await handler.run(["start", "--human"], "/customer");
-    expect(rawOutput).toHaveBeenCalledWith(
+    const human = await handler.run(["start", "--human"], "/customer");
+    expect(human.stdout).not.toContain("Ready at");
+    expect(human.stderr).toBe("");
+    expect(stderrProgress).toHaveBeenCalledWith(
       "[maestro] Ready at http://127.0.0.1:5173",
     );
-    expect(rawOutput).toHaveBeenCalledWith("[web] child log");
+    expect(stderrProgress).toHaveBeenCalledWith("[web] child log");
   });
 
   it("projects the accepted customer identity through canonical preflight defaults", () => {
