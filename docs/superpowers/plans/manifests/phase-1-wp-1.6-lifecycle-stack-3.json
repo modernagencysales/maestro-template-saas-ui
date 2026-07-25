@@ -167,11 +167,13 @@
       ],
       "existingModuleRepairChecklist": {
         "existingTargetModules": [
+          "packages/convex/confect/workflows/_kit/defineMaestroWorkflow.ts",
           "packages/convex/confect/workflows/lifecycleComponent.ts",
           "packages/convex/confect/workflows/lifecycleAdapters.ts"
         ],
         "repairStrategy": "extend",
         "compatibilityRisks": [
+          "A second module constructs its own WorkflowManager authority",
           "Component identity is used before tenant ownership resolves",
           "Restart options diverge from the pinned queued contract",
           "Cleanup acceptance is reported as full deletion"
@@ -200,5 +202,14 @@
       "estLines": 275
     }
   ],
-  "allTaskRefs": ["WP-1.6"]
+  "allTaskRefs": ["WP-1.6"],
+  "deferredClauses": [
+    "Workpool quiescence census and generation-quiescent transition",
+    "onComplete registration and reconciliation",
+    "retention sweep and scheduling",
+    "restart graph and effect-reservation inspection",
+    "workflow generator projection",
+    "workflow lifecycle documentation",
+    "authenticated public translators and APIs"
+  ]
 }

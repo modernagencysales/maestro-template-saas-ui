@@ -3,7 +3,11 @@ import {
   type WorkflowSemanticCoverageEvidence,
   type WorkflowSemanticRuleId,
 } from "@maestro-template/template-core/workflow-semantics";
-import { WorkflowManager, type WorkflowComponent } from "@convex-dev/workflow";
+import {
+  WorkflowManager,
+  type WorkflowComponent,
+  type WorkflowId,
+} from "@convex-dev/workflow";
 import type { PropertyValidators, Validator } from "convex/values";
 import * as Data from "effect/Data";
 import * as Either from "effect/Either";
@@ -57,6 +61,52 @@ export class MaestroWorkflowDefinitionError extends Data.TaggedError(
   readonly findings: readonly string[];
 }> {}
 
+export type MaestroWorkflowRestartOptions = {
+  readonly from: 0 | string;
+  readonly startAsync: true;
+};
+
+export type MaestroWorkflowLifecycleManager<Context> = {
+  readonly cancel: (context: Context, workflowId: string) => Promise<void>;
+  readonly restart: (
+    context: Context,
+    workflowId: string,
+    options: MaestroWorkflowRestartOptions,
+  ) => Promise<void>;
+  readonly cleanup: (context: Context, workflowId: string) => Promise<boolean>;
+};
+
+export const bindMaestroWorkflowLifecycleManager = <Context>(
+  context: Context,
+  manager: MaestroWorkflowLifecycleManager<Context>,
+) => ({
+  cancel: (componentWorkflowId: string) =>
+    manager.cancel(context, componentWorkflowId),
+  restart: (
+    componentWorkflowId: string,
+    options: MaestroWorkflowRestartOptions,
+  ) => manager.restart(context, componentWorkflowId, options),
+  cleanup: (componentWorkflowId: string) =>
+    manager.cleanup(context, componentWorkflowId),
+});
+
+type WorkflowLifecycleContext = Parameters<WorkflowManager["cancel"]>[0];
+
+export const createMaestroWorkflowLifecycleAdapter = (
+  component: WorkflowComponent,
+  context: WorkflowLifecycleContext,
+) => {
+  const manager = createMaestroWorkflowManager(component);
+  return bindMaestroWorkflowLifecycleManager(context, {
+    cancel: (managerContext, workflowId) =>
+      manager.cancel(managerContext, workflowId as WorkflowId),
+    restart: (managerContext, workflowId, options) =>
+      manager.restart(managerContext, workflowId as WorkflowId, options),
+    cleanup: (managerContext, workflowId) =>
+      manager.cleanup(managerContext, workflowId as WorkflowId),
+  });
+};
+
 export const planMaestroWorkflowDefinition = <
   Args extends PropertyValidators,
   Returns extends Validator<unknown, "required", string>,
@@ -91,14 +141,20 @@ export const defineMaestroWorkflow = <
   const planned = Either.getOrThrow(
     planMaestroWorkflowDefinition(definition, metadata),
   );
-  const manager = new WorkflowManager(component, {
-    workpoolOptions: planned.definition.workpoolOptions,
-  });
+  const manager = createMaestroWorkflowManager(
+    component,
+    planned.definition.workpoolOptions,
+  );
   return manager.define({
     args: planned.definition.args,
     returns: planned.definition.returns,
   });
 };
+
+const createMaestroWorkflowManager = (
+  component: WorkflowComponent,
+  workpoolOptions = generatedWorkflowWorkpoolOptions,
+) => new WorkflowManager(component, { workpoolOptions });
 
 const validateDefinition = <
   Args extends PropertyValidators,
