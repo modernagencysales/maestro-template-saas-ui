@@ -34,6 +34,7 @@ import users from "./tables/users";
 import versionFreshness from "./tables/versionFreshness";
 import versionedEntries from "./tables/versionedEntries";
 import webhookEvents from "./tables/webhookEvents";
+import workflowEffectReservations from "./tables/workflowEffectReservations";
 import workflowRunContextManifests from "./tables/workflowRunContextManifests";
 import workflowRunEvents from "./tables/workflowRunEvents";
 import workflowRunEvidenceSnapshots from "./tables/workflowRunEvidenceSnapshots";
@@ -78,6 +79,7 @@ export default $defineSchema({
   versionFreshness: versionFreshness.tableDefinition,
   versionedEntries: versionedEntries.tableDefinition,
   webhookEvents: webhookEvents.tableDefinition,
+  workflowEffectReservations: workflowEffectReservations.tableDefinition,
   workflowRunContextManifests: workflowRunContextManifests.tableDefinition,
   workflowRunEvents: workflowRunEvents.tableDefinition,
   workflowRunEvidenceSnapshots: workflowRunEvidenceSnapshots.tableDefinition,

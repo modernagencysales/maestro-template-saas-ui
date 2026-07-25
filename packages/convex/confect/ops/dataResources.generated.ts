@@ -3,43 +3,44 @@
 // prettier-ignore
 export const currentLifecycleResourceIds = [
   "accessAuditEvents",
+  "actionApprovals",
+  "actionDigests",
+  "actionJobs",
+  "actionTriggers",
   "apiKeys",
-  "invitations",
-  "workspaceMembers",
-  "workspaces",
+  "billingPlans",
   "brainPages",
   "citations",
   "claims",
   "concepts",
   "contextPacks",
+  "creditLedger",
   "documentAnnotations",
-  "documentVersions",
   "documents",
+  "documentVersions",
+  "dsarRequests",
+  "entitlements",
+  "featureFlagPolicies",
+  "invitations",
+  "notificationPreferences",
+  "notificationRecords",
+  "policies",
+  "transformBlocks",
+  "transformDefinitions",
+  "transformRuns",
+  "usageEvents",
+  "versionedEntries",
+  "versionFreshness",
+  "webhookEvents",
+  "workflowEffectReservations",
   "workflowRunContextManifests",
   "workflowRunEvents",
   "workflowRunEvidenceSnapshots",
   "workflowRunLinks",
   "workflowRuns",
   "workflowStageRuns",
-  "actionApprovals",
-  "actionDigests",
-  "actionJobs",
-  "actionTriggers",
-  "billingPlans",
-  "creditLedger",
-  "entitlements",
-  "usageEvents",
-  "webhookEvents",
-  "featureFlagPolicies",
-  "policies",
-  "notificationPreferences",
-  "notificationRecords",
-  "transformBlocks",
-  "transformDefinitions",
-  "transformRuns",
-  "versionFreshness",
-  "versionedEntries",
-  "dsarRequests"
+  "workspaceMembers",
+  "workspaces"
 ] as const;
 
 // prettier-ignore
@@ -52,6 +53,34 @@ export const workspaceLifecycleResourcePlans = [
     detail: "accessAuditEvents is durable Access And Tenancy state governed by the canonical access-and-tenancy lifecycle."
   },
   {
+    id: "actionApprovals",
+    owner: "workspace",
+    exportMode: "redacted-json",
+    deleteMode: "retain-audit",
+    detail: "actionApprovals is durable Action Automation state governed by the canonical action-automation lifecycle."
+  },
+  {
+    id: "actionDigests",
+    owner: "workspace",
+    exportMode: "redacted-json",
+    deleteMode: "retain-audit",
+    detail: "actionDigests is durable Action Automation state governed by the canonical action-automation lifecycle."
+  },
+  {
+    id: "actionJobs",
+    owner: "workspace",
+    exportMode: "json",
+    deleteMode: "retain-audit",
+    detail: "actionJobs is durable Action Automation state governed by the canonical action-automation lifecycle."
+  },
+  {
+    id: "actionTriggers",
+    owner: "workspace",
+    exportMode: "json",
+    deleteMode: "delete",
+    detail: "actionTriggers is durable Action Automation state governed by the canonical action-automation lifecycle."
+  },
+  {
     id: "apiKeys",
     owner: "workspace",
     exportMode: "redacted-json",
@@ -59,25 +88,11 @@ export const workspaceLifecycleResourcePlans = [
     detail: "apiKeys is durable Access And Tenancy state governed by the canonical access-and-tenancy lifecycle."
   },
   {
-    id: "invitations",
-    owner: "workspace",
-    exportMode: "redacted-json",
-    deleteMode: "redact",
-    detail: "invitations is durable Access And Tenancy state governed by the canonical access-and-tenancy lifecycle."
-  },
-  {
-    id: "workspaceMembers",
-    owner: "workspace",
-    exportMode: "redacted-json",
-    deleteMode: "redact",
-    detail: "workspaceMembers is durable Access And Tenancy state governed by the canonical access-and-tenancy lifecycle."
-  },
-  {
-    id: "workspaces",
+    id: "billingPlans",
     owner: "workspace",
     exportMode: "json",
-    deleteMode: "retain-audit",
-    detail: "workspaces is durable Access And Tenancy state governed by the canonical access-and-tenancy lifecycle."
+    deleteMode: "delete",
+    detail: "billingPlans is durable Billing And Entitlements state governed by the canonical billing-and-entitlements lifecycle."
   },
   {
     id: "brainPages",
@@ -115,11 +130,25 @@ export const workspaceLifecycleResourcePlans = [
     detail: "contextPacks is durable Knowledge Brain state governed by the canonical knowledge-brain lifecycle."
   },
   {
+    id: "creditLedger",
+    owner: "workspace",
+    exportMode: "json",
+    deleteMode: "retain-audit",
+    detail: "creditLedger is durable Billing And Entitlements state governed by the canonical billing-and-entitlements lifecycle."
+  },
+  {
     id: "documentAnnotations",
     owner: "workspace",
     exportMode: "json",
     deleteMode: "delete",
     detail: "documentAnnotations is durable Document Collaboration state governed by the canonical document-collaboration lifecycle."
+  },
+  {
+    id: "documents",
+    owner: "workspace",
+    exportMode: "markdown",
+    deleteMode: "delete",
+    detail: "documents is durable Document Collaboration state governed by the canonical document-collaboration lifecycle."
   },
   {
     id: "documentVersions",
@@ -129,11 +158,109 @@ export const workspaceLifecycleResourcePlans = [
     detail: "documentVersions is durable Document Collaboration state governed by the canonical document-collaboration lifecycle."
   },
   {
-    id: "documents",
+    id: "dsarRequests",
     owner: "workspace",
-    exportMode: "markdown",
+    exportMode: "redacted-json",
+    deleteMode: "retain-audit",
+    detail: "dsarRequests is durable Data Lifecycle state governed by the canonical data-lifecycle lifecycle."
+  },
+  {
+    id: "entitlements",
+    owner: "workspace",
+    exportMode: "json",
+    deleteMode: "retain-audit",
+    detail: "entitlements is durable Billing And Entitlements state governed by the canonical billing-and-entitlements lifecycle."
+  },
+  {
+    id: "featureFlagPolicies",
+    owner: "workspace",
+    exportMode: "json",
     deleteMode: "delete",
-    detail: "documents is durable Document Collaboration state governed by the canonical document-collaboration lifecycle."
+    detail: "featureFlagPolicies is durable Policy And Prompts state governed by the canonical policy-and-prompts lifecycle."
+  },
+  {
+    id: "invitations",
+    owner: "workspace",
+    exportMode: "redacted-json",
+    deleteMode: "redact",
+    detail: "invitations is durable Access And Tenancy state governed by the canonical access-and-tenancy lifecycle."
+  },
+  {
+    id: "notificationPreferences",
+    owner: "workspace",
+    exportMode: "json",
+    deleteMode: "delete",
+    detail: "notificationPreferences is durable Notifications state governed by the canonical notifications lifecycle."
+  },
+  {
+    id: "notificationRecords",
+    owner: "workspace",
+    exportMode: "redacted-json",
+    deleteMode: "retain-audit",
+    detail: "notificationRecords is durable Notifications state governed by the canonical notifications lifecycle."
+  },
+  {
+    id: "policies",
+    owner: "workspace",
+    exportMode: "json",
+    deleteMode: "delete",
+    detail: "policies is durable Policy And Prompts state governed by the canonical policy-and-prompts lifecycle."
+  },
+  {
+    id: "transformBlocks",
+    owner: "workspace",
+    exportMode: "json",
+    deleteMode: "retain-audit",
+    detail: "transformBlocks is durable Transforms state governed by the canonical transforms lifecycle."
+  },
+  {
+    id: "transformDefinitions",
+    owner: "workspace",
+    exportMode: "json",
+    deleteMode: "delete",
+    detail: "transformDefinitions is durable Transforms state governed by the canonical transforms lifecycle."
+  },
+  {
+    id: "transformRuns",
+    owner: "workspace",
+    exportMode: "json",
+    deleteMode: "retain-audit",
+    detail: "transformRuns is durable Transforms state governed by the canonical transforms lifecycle."
+  },
+  {
+    id: "usageEvents",
+    owner: "workspace",
+    exportMode: "json",
+    deleteMode: "retain-audit",
+    detail: "usageEvents is durable Billing And Entitlements state governed by the canonical billing-and-entitlements lifecycle."
+  },
+  {
+    id: "versionedEntries",
+    owner: "workspace",
+    exportMode: "json",
+    deleteMode: "retain-audit",
+    detail: "versionedEntries is durable Generic Versioning state governed by the canonical generic-versioning lifecycle."
+  },
+  {
+    id: "versionFreshness",
+    owner: "workspace",
+    exportMode: "json",
+    deleteMode: "delete",
+    detail: "versionFreshness is durable Generic Versioning state governed by the canonical generic-versioning lifecycle."
+  },
+  {
+    id: "webhookEvents",
+    owner: "workspace",
+    exportMode: "redacted-json",
+    deleteMode: "retain-audit",
+    detail: "webhookEvents is durable Billing And Entitlements state governed by the canonical billing-and-entitlements lifecycle."
+  },
+  {
+    id: "workflowEffectReservations",
+    owner: "workspace",
+    exportMode: "redacted-json",
+    deleteMode: "retain-audit",
+    detail: "Durable workflowEffectReservations state owned by the workflow-runtime canonical system."
   },
   {
     id: "workflowRunContextManifests",
@@ -178,137 +305,18 @@ export const workspaceLifecycleResourcePlans = [
     detail: "workflowStageRuns is durable Workflow Runtime state governed by the canonical workflow-runtime lifecycle."
   },
   {
-    id: "actionApprovals",
+    id: "workspaceMembers",
     owner: "workspace",
     exportMode: "redacted-json",
-    deleteMode: "retain-audit",
-    detail: "actionApprovals is durable Action Automation state governed by the canonical action-automation lifecycle."
+    deleteMode: "redact",
+    detail: "workspaceMembers is durable Access And Tenancy state governed by the canonical access-and-tenancy lifecycle."
   },
   {
-    id: "actionDigests",
-    owner: "workspace",
-    exportMode: "redacted-json",
-    deleteMode: "retain-audit",
-    detail: "actionDigests is durable Action Automation state governed by the canonical action-automation lifecycle."
-  },
-  {
-    id: "actionJobs",
+    id: "workspaces",
     owner: "workspace",
     exportMode: "json",
     deleteMode: "retain-audit",
-    detail: "actionJobs is durable Action Automation state governed by the canonical action-automation lifecycle."
-  },
-  {
-    id: "actionTriggers",
-    owner: "workspace",
-    exportMode: "json",
-    deleteMode: "delete",
-    detail: "actionTriggers is durable Action Automation state governed by the canonical action-automation lifecycle."
-  },
-  {
-    id: "billingPlans",
-    owner: "workspace",
-    exportMode: "json",
-    deleteMode: "delete",
-    detail: "billingPlans is durable Billing And Entitlements state governed by the canonical billing-and-entitlements lifecycle."
-  },
-  {
-    id: "creditLedger",
-    owner: "workspace",
-    exportMode: "json",
-    deleteMode: "retain-audit",
-    detail: "creditLedger is durable Billing And Entitlements state governed by the canonical billing-and-entitlements lifecycle."
-  },
-  {
-    id: "entitlements",
-    owner: "workspace",
-    exportMode: "json",
-    deleteMode: "retain-audit",
-    detail: "entitlements is durable Billing And Entitlements state governed by the canonical billing-and-entitlements lifecycle."
-  },
-  {
-    id: "usageEvents",
-    owner: "workspace",
-    exportMode: "json",
-    deleteMode: "retain-audit",
-    detail: "usageEvents is durable Billing And Entitlements state governed by the canonical billing-and-entitlements lifecycle."
-  },
-  {
-    id: "webhookEvents",
-    owner: "workspace",
-    exportMode: "redacted-json",
-    deleteMode: "retain-audit",
-    detail: "webhookEvents is durable Billing And Entitlements state governed by the canonical billing-and-entitlements lifecycle."
-  },
-  {
-    id: "featureFlagPolicies",
-    owner: "workspace",
-    exportMode: "json",
-    deleteMode: "delete",
-    detail: "featureFlagPolicies is durable Policy And Prompts state governed by the canonical policy-and-prompts lifecycle."
-  },
-  {
-    id: "policies",
-    owner: "workspace",
-    exportMode: "json",
-    deleteMode: "delete",
-    detail: "policies is durable Policy And Prompts state governed by the canonical policy-and-prompts lifecycle."
-  },
-  {
-    id: "notificationPreferences",
-    owner: "workspace",
-    exportMode: "json",
-    deleteMode: "delete",
-    detail: "notificationPreferences is durable Notifications state governed by the canonical notifications lifecycle."
-  },
-  {
-    id: "notificationRecords",
-    owner: "workspace",
-    exportMode: "redacted-json",
-    deleteMode: "retain-audit",
-    detail: "notificationRecords is durable Notifications state governed by the canonical notifications lifecycle."
-  },
-  {
-    id: "transformBlocks",
-    owner: "workspace",
-    exportMode: "json",
-    deleteMode: "retain-audit",
-    detail: "transformBlocks is durable Transforms state governed by the canonical transforms lifecycle."
-  },
-  {
-    id: "transformDefinitions",
-    owner: "workspace",
-    exportMode: "json",
-    deleteMode: "delete",
-    detail: "transformDefinitions is durable Transforms state governed by the canonical transforms lifecycle."
-  },
-  {
-    id: "transformRuns",
-    owner: "workspace",
-    exportMode: "json",
-    deleteMode: "retain-audit",
-    detail: "transformRuns is durable Transforms state governed by the canonical transforms lifecycle."
-  },
-  {
-    id: "versionFreshness",
-    owner: "workspace",
-    exportMode: "json",
-    deleteMode: "delete",
-    detail: "versionFreshness is durable Generic Versioning state governed by the canonical generic-versioning lifecycle."
-  },
-  {
-    id: "versionedEntries",
-    owner: "workspace",
-    exportMode: "json",
-    deleteMode: "retain-audit",
-    detail: "versionedEntries is durable Generic Versioning state governed by the canonical generic-versioning lifecycle."
-  },
-  {
-    id: "dsarRequests",
-    owner: "workspace",
-    exportMode: "redacted-json",
-    deleteMode: "retain-audit",
-    detail: "dsarRequests is durable Data Lifecycle state governed by the canonical data-lifecycle lifecycle."
+    detail: "workspaces is durable Access And Tenancy state governed by the canonical access-and-tenancy lifecycle."
   }
 ] as const;
 
@@ -320,24 +328,34 @@ export const workspaceRetentionRules = [
     detail: "accessAuditEvents is durable Access And Tenancy state governed by the canonical access-and-tenancy lifecycle."
   },
   {
+    resourceId: "actionApprovals",
+    action: "hash-or-redact-on-export",
+    detail: "actionApprovals is durable Action Automation state governed by the canonical action-automation lifecycle."
+  },
+  {
+    resourceId: "actionDigests",
+    action: "hash-or-redact-on-export",
+    detail: "actionDigests is durable Action Automation state governed by the canonical action-automation lifecycle."
+  },
+  {
+    resourceId: "actionJobs",
+    action: "retain-audit-window",
+    detail: "actionJobs is durable Action Automation state governed by the canonical action-automation lifecycle."
+  },
+  {
+    resourceId: "actionTriggers",
+    action: "retain-until-workspace-delete",
+    detail: "actionTriggers is durable Action Automation state governed by the canonical action-automation lifecycle."
+  },
+  {
     resourceId: "apiKeys",
     action: "hash-or-redact-on-export",
     detail: "apiKeys is durable Access And Tenancy state governed by the canonical access-and-tenancy lifecycle."
   },
   {
-    resourceId: "invitations",
-    action: "hash-or-redact-on-export",
-    detail: "invitations is durable Access And Tenancy state governed by the canonical access-and-tenancy lifecycle."
-  },
-  {
-    resourceId: "workspaceMembers",
-    action: "retain-audit-window",
-    detail: "workspaceMembers is durable Access And Tenancy state governed by the canonical access-and-tenancy lifecycle."
-  },
-  {
-    resourceId: "workspaces",
-    action: "retain-audit-window",
-    detail: "workspaces is durable Access And Tenancy state governed by the canonical access-and-tenancy lifecycle."
+    resourceId: "billingPlans",
+    action: "retain-until-workspace-delete",
+    detail: "billingPlans is durable Billing And Entitlements state governed by the canonical billing-and-entitlements lifecycle."
   },
   {
     resourceId: "brainPages",
@@ -365,9 +383,19 @@ export const workspaceRetentionRules = [
     detail: "contextPacks is durable Knowledge Brain state governed by the canonical knowledge-brain lifecycle."
   },
   {
+    resourceId: "creditLedger",
+    action: "retain-audit-window",
+    detail: "creditLedger is durable Billing And Entitlements state governed by the canonical billing-and-entitlements lifecycle."
+  },
+  {
     resourceId: "documentAnnotations",
     action: "retain-until-workspace-delete",
     detail: "documentAnnotations is durable Document Collaboration state governed by the canonical document-collaboration lifecycle."
+  },
+  {
+    resourceId: "documents",
+    action: "retain-until-workspace-delete",
+    detail: "documents is durable Document Collaboration state governed by the canonical document-collaboration lifecycle."
   },
   {
     resourceId: "documentVersions",
@@ -375,9 +403,79 @@ export const workspaceRetentionRules = [
     detail: "documentVersions is durable Document Collaboration state governed by the canonical document-collaboration lifecycle."
   },
   {
-    resourceId: "documents",
+    resourceId: "dsarRequests",
+    action: "retain-audit-window",
+    detail: "dsarRequests is durable Data Lifecycle state governed by the canonical data-lifecycle lifecycle."
+  },
+  {
+    resourceId: "entitlements",
+    action: "retain-audit-window",
+    detail: "entitlements is durable Billing And Entitlements state governed by the canonical billing-and-entitlements lifecycle."
+  },
+  {
+    resourceId: "featureFlagPolicies",
     action: "retain-until-workspace-delete",
-    detail: "documents is durable Document Collaboration state governed by the canonical document-collaboration lifecycle."
+    detail: "featureFlagPolicies is durable Policy And Prompts state governed by the canonical policy-and-prompts lifecycle."
+  },
+  {
+    resourceId: "invitations",
+    action: "hash-or-redact-on-export",
+    detail: "invitations is durable Access And Tenancy state governed by the canonical access-and-tenancy lifecycle."
+  },
+  {
+    resourceId: "notificationPreferences",
+    action: "retain-until-workspace-delete",
+    detail: "notificationPreferences is durable Notifications state governed by the canonical notifications lifecycle."
+  },
+  {
+    resourceId: "notificationRecords",
+    action: "hash-or-redact-on-export",
+    detail: "notificationRecords is durable Notifications state governed by the canonical notifications lifecycle."
+  },
+  {
+    resourceId: "policies",
+    action: "retain-until-workspace-delete",
+    detail: "policies is durable Policy And Prompts state governed by the canonical policy-and-prompts lifecycle."
+  },
+  {
+    resourceId: "transformBlocks",
+    action: "retain-audit-window",
+    detail: "transformBlocks is durable Transforms state governed by the canonical transforms lifecycle."
+  },
+  {
+    resourceId: "transformDefinitions",
+    action: "retain-until-workspace-delete",
+    detail: "transformDefinitions is durable Transforms state governed by the canonical transforms lifecycle."
+  },
+  {
+    resourceId: "transformRuns",
+    action: "retain-audit-window",
+    detail: "transformRuns is durable Transforms state governed by the canonical transforms lifecycle."
+  },
+  {
+    resourceId: "usageEvents",
+    action: "retain-audit-window",
+    detail: "usageEvents is durable Billing And Entitlements state governed by the canonical billing-and-entitlements lifecycle."
+  },
+  {
+    resourceId: "versionedEntries",
+    action: "retain-audit-window",
+    detail: "versionedEntries is durable Generic Versioning state governed by the canonical generic-versioning lifecycle."
+  },
+  {
+    resourceId: "versionFreshness",
+    action: "retain-until-workspace-delete",
+    detail: "versionFreshness is durable Generic Versioning state governed by the canonical generic-versioning lifecycle."
+  },
+  {
+    resourceId: "webhookEvents",
+    action: "hash-or-redact-on-export",
+    detail: "webhookEvents is durable Billing And Entitlements state governed by the canonical billing-and-entitlements lifecycle."
+  },
+  {
+    resourceId: "workflowEffectReservations",
+    action: "retain-audit-window",
+    detail: "Durable workflowEffectReservations state owned by the workflow-runtime canonical system."
   },
   {
     resourceId: "workflowRunContextManifests",
@@ -410,98 +508,13 @@ export const workspaceRetentionRules = [
     detail: "workflowStageRuns is durable Workflow Runtime state governed by the canonical workflow-runtime lifecycle."
   },
   {
-    resourceId: "actionApprovals",
-    action: "hash-or-redact-on-export",
-    detail: "actionApprovals is durable Action Automation state governed by the canonical action-automation lifecycle."
-  },
-  {
-    resourceId: "actionDigests",
-    action: "hash-or-redact-on-export",
-    detail: "actionDigests is durable Action Automation state governed by the canonical action-automation lifecycle."
-  },
-  {
-    resourceId: "actionJobs",
+    resourceId: "workspaceMembers",
     action: "retain-audit-window",
-    detail: "actionJobs is durable Action Automation state governed by the canonical action-automation lifecycle."
+    detail: "workspaceMembers is durable Access And Tenancy state governed by the canonical access-and-tenancy lifecycle."
   },
   {
-    resourceId: "actionTriggers",
-    action: "retain-until-workspace-delete",
-    detail: "actionTriggers is durable Action Automation state governed by the canonical action-automation lifecycle."
-  },
-  {
-    resourceId: "billingPlans",
-    action: "retain-until-workspace-delete",
-    detail: "billingPlans is durable Billing And Entitlements state governed by the canonical billing-and-entitlements lifecycle."
-  },
-  {
-    resourceId: "creditLedger",
+    resourceId: "workspaces",
     action: "retain-audit-window",
-    detail: "creditLedger is durable Billing And Entitlements state governed by the canonical billing-and-entitlements lifecycle."
-  },
-  {
-    resourceId: "entitlements",
-    action: "retain-audit-window",
-    detail: "entitlements is durable Billing And Entitlements state governed by the canonical billing-and-entitlements lifecycle."
-  },
-  {
-    resourceId: "usageEvents",
-    action: "retain-audit-window",
-    detail: "usageEvents is durable Billing And Entitlements state governed by the canonical billing-and-entitlements lifecycle."
-  },
-  {
-    resourceId: "webhookEvents",
-    action: "hash-or-redact-on-export",
-    detail: "webhookEvents is durable Billing And Entitlements state governed by the canonical billing-and-entitlements lifecycle."
-  },
-  {
-    resourceId: "featureFlagPolicies",
-    action: "retain-until-workspace-delete",
-    detail: "featureFlagPolicies is durable Policy And Prompts state governed by the canonical policy-and-prompts lifecycle."
-  },
-  {
-    resourceId: "policies",
-    action: "retain-until-workspace-delete",
-    detail: "policies is durable Policy And Prompts state governed by the canonical policy-and-prompts lifecycle."
-  },
-  {
-    resourceId: "notificationPreferences",
-    action: "retain-until-workspace-delete",
-    detail: "notificationPreferences is durable Notifications state governed by the canonical notifications lifecycle."
-  },
-  {
-    resourceId: "notificationRecords",
-    action: "hash-or-redact-on-export",
-    detail: "notificationRecords is durable Notifications state governed by the canonical notifications lifecycle."
-  },
-  {
-    resourceId: "transformBlocks",
-    action: "retain-audit-window",
-    detail: "transformBlocks is durable Transforms state governed by the canonical transforms lifecycle."
-  },
-  {
-    resourceId: "transformDefinitions",
-    action: "retain-until-workspace-delete",
-    detail: "transformDefinitions is durable Transforms state governed by the canonical transforms lifecycle."
-  },
-  {
-    resourceId: "transformRuns",
-    action: "retain-audit-window",
-    detail: "transformRuns is durable Transforms state governed by the canonical transforms lifecycle."
-  },
-  {
-    resourceId: "versionFreshness",
-    action: "retain-until-workspace-delete",
-    detail: "versionFreshness is durable Generic Versioning state governed by the canonical generic-versioning lifecycle."
-  },
-  {
-    resourceId: "versionedEntries",
-    action: "retain-audit-window",
-    detail: "versionedEntries is durable Generic Versioning state governed by the canonical generic-versioning lifecycle."
-  },
-  {
-    resourceId: "dsarRequests",
-    action: "retain-audit-window",
-    detail: "dsarRequests is durable Data Lifecycle state governed by the canonical data-lifecycle lifecycle."
+    detail: "workspaces is durable Access And Tenancy state governed by the canonical access-and-tenancy lifecycle."
   }
 ] as const;

@@ -34,6 +34,7 @@ import users from "./tables/users";
 import versionFreshness from "./tables/versionFreshness";
 import versionedEntries from "./tables/versionedEntries";
 import webhookEvents from "./tables/webhookEvents";
+import workflowEffectReservations from "./tables/workflowEffectReservations";
 import workflowRunContextManifests from "./tables/workflowRunContextManifests";
 import workflowRunEvents from "./tables/workflowRunEvents";
 import workflowRunEvidenceSnapshots from "./tables/workflowRunEvidenceSnapshots";
@@ -78,6 +79,7 @@ const databaseSchema: $DatabaseSchema.DatabaseSchema<
   typeof versionFreshness |
   typeof versionedEntries |
   typeof webhookEvents |
+  typeof workflowEffectReservations |
   typeof workflowRunContextManifests |
   typeof workflowRunEvents |
   typeof workflowRunEvidenceSnapshots |
@@ -121,6 +123,7 @@ const databaseSchema: $DatabaseSchema.DatabaseSchema<
   versionFreshness,
   versionedEntries,
   webhookEvents,
+  workflowEffectReservations,
   workflowRunContextManifests,
   workflowRunEvents,
   workflowRunEvidenceSnapshots,
