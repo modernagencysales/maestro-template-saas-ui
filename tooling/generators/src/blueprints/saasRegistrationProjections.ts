@@ -149,6 +149,11 @@ export const buildSaasRegistrationProjections =
       path: "apps/cli/src/index.ts",
       content: source("apps/cli/src/index.ts"),
     },
+    { path: "package.json", content: source("package.json") },
+    {
+      path: "tooling/quality/install-lefthook-if-git.mjs",
+      content: source("tooling/quality/install-lefthook-if-git.mjs"),
+    },
     {
       path: "packages/convex/confect/_generated/tables/records.ts",
       content:

@@ -1,5 +1,5 @@
 import { execFileSync, spawnSync } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -46,12 +46,20 @@ describe("materialized customer CLI runtime closure", () => {
       /@maestro-template\/(stack-tooling|release-tooling)/,
     );
 
+    execFileSync("pnpm", ["install", "--offline", "--frozen-lockfile"], {
+      cwd: target,
+      stdio: "pipe",
+      timeout: 120_000,
+    });
+    expect(existsSync(join(target, ".git"))).toBe(false);
     execFileSync("git", ["init", "--quiet"], { cwd: target });
-    execFileSync(
-      "pnpm",
-      ["install", "--offline", "--ignore-scripts", "--frozen-lockfile"],
-      { cwd: target, stdio: "pipe", timeout: 120_000 },
-    );
+    execFileSync("pnpm", ["run", "prepare"], {
+      cwd: target,
+      stdio: "pipe",
+      timeout: 30_000,
+    });
+    expect(existsSync(join(target, ".git/hooks/pre-commit"))).toBe(true);
+    expect(existsSync(join(target, ".git/hooks/pre-push"))).toBe(true);
     execFileSync(
       "pnpm",
       [

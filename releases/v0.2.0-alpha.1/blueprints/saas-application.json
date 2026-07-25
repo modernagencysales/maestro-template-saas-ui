@@ -18,6 +18,10 @@
         "sha256": "sha256:e3e426b3985f11ac5f985c659b147213c3ee94ee48511683d82995255ec6a08b"
       },
       {
+        "path": "base/package.json.txt",
+        "sha256": "sha256:e6ec0c1dafef0fc9a431526e0e0fe067dd9f86f0b3aa8125077c7ab81bf4228f"
+      },
+      {
         "path": "base/packages/convex/confect/_generated/convexSchema.ts.txt",
         "sha256": "sha256:4aadb60928900040e69d325063f9e332eae567ba1c4f4b08cd459e1e2c9df388"
       },
@@ -32,12 +36,18 @@
       {
         "path": "base/packages/convex/confect/_generated/spec.ts.txt",
         "sha256": "sha256:c95ae9a907e034edf7c82e7d00515f76f98c04c3618a4a68e51db2d4f0d1cd9e"
+      },
+      {
+        "path": "base/tooling/quality/install-lefthook-if-git.mjs.txt",
+        "sha256": "sha256:bab60cd0103007cb53babe29d02b5736448c7e39391cfd113465820b6e915ffb"
       }
     ]
   },
   "registrations": [
     "apps/cli/src/factory/customerComposition.ts",
     "apps/cli/src/index.ts",
+    "package.json",
+    "tooling/quality/install-lefthook-if-git.mjs",
     "packages/convex/confect/tables/records.ts",
     "packages/convex/confect/records/records.spec.ts",
     "packages/convex/confect/records/records.impl.ts",
@@ -175,6 +185,14 @@
       "sha256": "sha256:ef298e47f05a1383ce9c5c6b9de222f0a02adecb26640a6a5a3ca55b5cf9fd2a"
     },
     {
+      "path": "package.json",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:e6ec0c1dafef0fc9a431526e0e0fe067dd9f86f0b3aa8125077c7ab81bf4228f",
+      "replaces": "generate"
+    },
+    {
       "path": "packages/convex/confect/_generated/convexSchema.ts",
       "ownership": "generated",
       "action": "generate",
@@ -247,6 +265,13 @@
       "action": "generate",
       "upgrade": "regenerate",
       "sha256": "sha256:3fddd6a9c3d7f50198f2b5feba77d707fe302e453349a55739e220d69996de5c"
+    },
+    {
+      "path": "tooling/quality/install-lefthook-if-git.mjs",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:bab60cd0103007cb53babe29d02b5736448c7e39391cfd113465820b6e915ffb"
     }
   ]
 }

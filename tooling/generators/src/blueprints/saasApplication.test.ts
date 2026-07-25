@@ -103,6 +103,8 @@ describe("saas application blueprint", () => {
       "apps/web/src/routes/_workspace.records.tsx",
       "apps/cli/src/factory/customerComposition.ts",
       "apps/cli/src/index.ts",
+      "package.json",
+      "tooling/quality/install-lefthook-if-git.mjs",
       "packages/convex/confect/_generated/tables/records.ts",
       "packages/convex/confect/_generated/schema.ts",
       "packages/convex/confect/_generated/convexSchema.ts",

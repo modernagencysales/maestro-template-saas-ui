@@ -1,0 +1,21 @@
+import { spawnSync } from "node:child_process";
+
+const cwd = process.cwd();
+const worktree = spawnSync("git", ["rev-parse", "--is-inside-work-tree"], {
+  cwd,
+  encoding: "utf8",
+  shell: false,
+  stdio: ["ignore", "pipe", "ignore"],
+});
+
+if (worktree.status === 0 && worktree.stdout.trim() === "true") {
+  const installed = spawnSync("lefthook", ["install"], {
+    cwd,
+    shell: false,
+    stdio: "inherit",
+  });
+  if (installed.error !== undefined || installed.status !== 0) {
+    process.stderr.write("Lefthook installation failed.\n");
+    process.exitCode = installed.status ?? 1;
+  }
+}

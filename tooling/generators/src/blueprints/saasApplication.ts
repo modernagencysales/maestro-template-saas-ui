@@ -219,6 +219,7 @@ export const buildSaasApplicationTargetPlan = (_options: {
 }): BlueprintTargetPlan => {
   const replacements = new Map<string, "copy" | "generate">([
     ["apps/cli/src/index.ts", "copy"],
+    ["package.json", "generate"],
     ["packages/convex/confect/_generated/schema.ts", "copy"],
     ["packages/convex/confect/_generated/convexSchema.ts", "copy"],
     ["packages/convex/confect/_generated/spec.ts", "copy"],
@@ -243,6 +244,8 @@ export const buildSaasApplicationTargetPlan = (_options: {
   const registrations = [
     "apps/cli/src/factory/customerComposition.ts",
     "apps/cli/src/index.ts",
+    "package.json",
+    "tooling/quality/install-lefthook-if-git.mjs",
     "packages/convex/confect/tables/records.ts",
     "packages/convex/confect/records/records.spec.ts",
     "packages/convex/confect/records/records.impl.ts",
