@@ -33,6 +33,7 @@ export const currentLifecycleResourceIds = [
   "versionFreshness",
   "webhookEvents",
   "workflowEffectReservations",
+  "workflowEventInstances",
   "workflowRunContextManifests",
   "workflowRunEvents",
   "workflowRunEvidenceSnapshots",
@@ -263,6 +264,13 @@ export const workspaceLifecycleResourcePlans = [
     detail: "Durable workflowEffectReservations state owned by the workflow-runtime canonical system."
   },
   {
+    id: "workflowEventInstances",
+    owner: "workspace",
+    exportMode: "redacted-json",
+    deleteMode: "retain-audit",
+    detail: "Persisted workflow event-instance ownership and delivery state; opaque component and event identifiers remain redacted while lifecycle evidence is retained for the audit window."
+  },
+  {
     id: "workflowRunContextManifests",
     owner: "workspace",
     exportMode: "json",
@@ -476,6 +484,11 @@ export const workspaceRetentionRules = [
     resourceId: "workflowEffectReservations",
     action: "retain-audit-window",
     detail: "Durable workflowEffectReservations state owned by the workflow-runtime canonical system."
+  },
+  {
+    resourceId: "workflowEventInstances",
+    action: "retain-audit-window",
+    detail: "Persisted workflow event-instance ownership and delivery state; opaque component and event identifiers remain redacted while lifecycle evidence is retained for the audit window."
   },
   {
     resourceId: "workflowRunContextManifests",

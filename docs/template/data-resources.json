@@ -562,6 +562,22 @@
       "detail": "Durable workflowEffectReservations state owned by the workflow-runtime canonical system."
     },
     {
+      "id": "workflowEventInstances",
+      "system": "workflow-runtime",
+      "sourcePath": "packages/convex/confect/tables/workflowEventInstances.ts",
+      "tenantScope": "workspace",
+      "sensitivity": "confidential",
+      "pii": ["identity"],
+      "exportMode": "redacted-json",
+      "deleteMode": "retain-audit",
+      "retention": "retain-audit-window",
+      "appendOnly": false,
+      "workspaceLifecycle": "managed",
+      "writeAuthority": "packages/convex/confect/workflows/eventInstances.spec.ts",
+      "migrationRef": "docs/template/data-lifecycle.md#current-resources",
+      "detail": "Persisted workflow event-instance ownership and delivery state; opaque component and event identifiers remain redacted while lifecycle evidence is retained for the audit window."
+    },
+    {
       "id": "workflowRunContextManifests",
       "system": "workflow-runtime",
       "sourcePath": "packages/convex/confect/tables/workflowRunContextManifests.ts",

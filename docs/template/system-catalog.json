@@ -138,6 +138,7 @@
       ],
       "tables": [
         "workflowEffectReservations",
+        "workflowEventInstances",
         "workflowRunContextManifests",
         "workflowRunEvents",
         "workflowRunEvidenceSnapshots",
