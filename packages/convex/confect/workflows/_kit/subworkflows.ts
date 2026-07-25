@@ -25,6 +25,7 @@ type SubworkflowNodeV2 = Extract<WorkflowNodeV2, { kind: "subworkflow" }>;
 type MappedChildArgs = Readonly<Record<string, unknown>>;
 type ChildWorkflowArgs = MappedChildArgs & {
   readonly principal: WorkflowPrincipalType;
+  readonly policySnapshot?: unknown;
 };
 export type AnyChildWorkflowArgs = ChildWorkflowArgs;
 
@@ -48,7 +49,7 @@ export type WorkflowV2SubworkflowRegistryEntry<
   readonly ref: DurableGraphWorkflowRef<Args, Result>;
   readonly mapArgs: (
     envelope: WorkflowV2SubworkflowEnvelope,
-  ) => Omit<Args, "principal">;
+  ) => Omit<Args, "principal" | "policySnapshot">;
   readonly resultSchema: Schema.Schema<Result>;
   readonly principal:
     | { readonly kind: "inherit" }
@@ -192,7 +193,11 @@ export async function runRegisteredSubworkflow({
       "mapped args cannot override reserved workflow identity fields",
     );
   }
-  const childArgs = { ...mappedArgs, principal: childPrincipal };
+  const childArgs = {
+    ...mappedArgs,
+    principal: childPrincipal,
+    policySnapshot,
+  };
   assertMappedArgsSize(node, childArgs);
   const projection: SubworkflowRunLinkProjection = {
     workspaceId: ownership.workspaceId,

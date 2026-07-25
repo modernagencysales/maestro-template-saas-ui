@@ -32,12 +32,10 @@ export type WorkflowSystemPrincipal = Schema.Schema.Type<
   typeof WorkflowSystemPrincipal
 >;
 
-export const WorkflowPrincipal = Schema.Union(
+export const LegacyWorkflowPrincipal = Schema.Union(
   WorkflowUserPrincipal,
   WorkflowSystemPrincipal,
 );
-
-export type WorkflowPrincipal = Schema.Schema.Type<typeof WorkflowPrincipal>;
 
 const PrincipalGrant = Schema.NonEmptyString.pipe(Schema.maxLength(128));
 const WorkflowPrincipalV2Base = {
@@ -74,6 +72,12 @@ export const DurableWorkflowPrincipal = Schema.Union(
 export type DurableWorkflowPrincipal = Schema.Schema.Type<
   typeof DurableWorkflowPrincipal
 >;
+
+export const WorkflowPrincipal = Schema.Union(
+  LegacyWorkflowPrincipal,
+  DurableWorkflowPrincipal,
+);
+export type WorkflowPrincipal = Schema.Schema.Type<typeof WorkflowPrincipal>;
 
 export const createWorkflowUserPrincipal = (input: {
   readonly workspaceId: string;

@@ -1461,6 +1461,7 @@ describe("template app factory generators", () => {
 
     expect(impl).toContain("startWorkflowAndRecordOwnership");
     expect(impl).toContain("createWorkflowUserPrincipal");
+    expect(impl).toContain("resolveWorkflowPolicySnapshotForRun");
     expect(impl).toContain("principalSnapshot: principal");
     expect(impl).toContain("policySnapshot,");
     expect(impl).not.toContain("authEpoch: 1");

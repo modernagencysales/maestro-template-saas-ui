@@ -15,6 +15,7 @@ import {
   assertWorkflowPolicySnapshot,
   policyPosture,
   resolveWorkflowPolicySnapshot,
+  workflowPolicyRowHash,
 } from "../confect/workflows/_kit/policySnapshot";
 import { buildWorkflowCapabilityArgs } from "../confect/workflows/_kit/graphRunnerV2";
 
@@ -177,6 +178,21 @@ describe("pinned workflow policy snapshots", () => {
         trustReceiptId: null,
       }),
     ).not.toHaveProperty("principalSnapshot");
+  });
+
+  it("hashes exact stored policy content for kickoff verification", () => {
+    const row = {
+      policyKey: "workspace-a:agent.config",
+      kind: "agent.config",
+      scope: "workspace",
+      workspaceId: "workspace-a",
+      version: 3,
+      dataJson: '{"mode":"review"}',
+    };
+    expect(workflowPolicyRowHash(row)).toMatch(/^[a-f0-9]{64}$/);
+    expect(
+      workflowPolicyRowHash({ ...row, dataJson: '{"mode":"live"}' }),
+    ).not.toBe(workflowPolicyRowHash(row));
   });
 });
 

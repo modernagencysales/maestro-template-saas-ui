@@ -2924,6 +2924,7 @@ import {
 } from "../errors";
 import { startWorkflowAndRecordOwnership } from "../workflows/_kit/ownership";
 import { createWorkflowUserPrincipal } from "../workflows/_kit/principal";
+import { resolveWorkflowPolicySnapshotForRun } from "../workflows/_kit/policySnapshot";
 import type {
   WorkflowCompletionResult,
   WorkflowOnCompleteContext,
@@ -3082,13 +3083,10 @@ const startWithProfile = (
         authEpoch: access.authEpoch,
         kickoffAt: startedAt,
       });
-      const policySnapshot = {
-        version: 1 as const,
-        kind: "none" as const,
-        reason: ${name}Graph.policyPosture.kind === "none"
-          ? ${name}Graph.policyPosture.reason
-          : "Generated kickoff requires a pinned policy resolver.",
-      };
+      const policySnapshot = yield* resolveWorkflowPolicySnapshotForRun(
+        ${name}Graph.policyPosture,
+        { workspaceId, resolvedAt: startedAt },
+      ).pipe(Effect.mapError(toWorkflowValidationFailed));
       const componentWorkflowId = yield* startWorkflowAndRecordOwnership({
         workflowRef: ${name}RunRef,
         onCompleteRef: ${name}OnCompleteRef,

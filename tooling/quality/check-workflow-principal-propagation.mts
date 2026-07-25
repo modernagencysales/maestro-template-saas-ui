@@ -56,6 +56,7 @@ if (!runnerAuthority.includes("assertExternalAuthorizationBoundary"))
 for (const required of [
   "hasReservedWorkflowIdentityField(mappedArgs)",
   "narrowed child principal cannot add grants",
+  "policySnapshot,",
 ]) {
   if (!subworkflows.includes(required))
     findings.push(`child workflow authority misses ${required}`);

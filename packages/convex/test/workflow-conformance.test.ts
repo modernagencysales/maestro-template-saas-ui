@@ -973,7 +973,11 @@ describe("Maestro V2 inline transaction compiler", () => {
     });
     expect(runWorkflow).toHaveBeenCalledWith(
       childHandlerRef,
-      { requestId: "request-1", principal: childPrincipal },
+      {
+        requestId: "request-1",
+        principal: childPrincipal,
+        policySnapshot: { kind: "none" },
+      },
       { name: "child.v3" },
     );
     expect(runMutation.mock.calls).toEqual([
@@ -1154,6 +1158,7 @@ describe("Maestro V2 inline transaction compiler", () => {
       {
         requestId: "request-1",
         principal: { ...childPrincipal, grants: ["brief:read"] },
+        policySnapshot: { kind: "none" },
       },
       { name: "child.v3" },
     );

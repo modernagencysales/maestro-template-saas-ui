@@ -1,5 +1,6 @@
 import { NonRetryableError } from "@convex-dev/workpool";
 import * as Either from "effect/Either";
+import * as Schema from "effect/Schema";
 
 import { makePublicError } from "../../shared/errors";
 import {
@@ -39,7 +40,11 @@ import {
   assertWorkflowPayloadBudget,
   observeWorkflowPayload,
 } from "./payloadBudget";
-import { hasReservedWorkflowIdentityField } from "./principal";
+import {
+  assertWorkflowPrincipalAuthority,
+  DurableWorkflowPrincipal,
+  hasReservedWorkflowIdentityField,
+} from "./principal";
 
 type CapabilityNodeV2 = Extract<WorkflowNodeV2, { kind: "capability" }>;
 type CapabilityKindV2 = CapabilityNodeV2["functionKind"];
@@ -481,6 +486,7 @@ const executeNode = async <Result extends Record<string, unknown>>(
       `capability ${node.capability} declares ${entry.kind}, not ${node.functionKind}`,
     );
   }
+  assertCapabilityPrincipal(input, node);
   const envelope: WorkflowV2CapabilityEnvelope = {
     inputs: input.inputs,
     context,
@@ -517,6 +523,28 @@ const executeNode = async <Result extends Record<string, unknown>>(
     entry as WorkflowV2ActionCapabilityEntry,
     envelope,
   );
+};
+
+const assertCapabilityPrincipal = <Result extends Record<string, unknown>>(
+  input: RunDurableGraphV2CompilerInput<Result>,
+  node: CapabilityNodeV2,
+): void => {
+  const candidate = input.principal as { readonly version?: unknown };
+  if (candidate.version !== 2) return;
+  const decoded = Schema.decodeUnknownEither(DurableWorkflowPrincipal)(
+    input.principal,
+  );
+  if (Either.isLeft(decoded)) {
+    throw validationFailure(node, "durable workflow principal is invalid");
+  }
+  try {
+    assertWorkflowPrincipalAuthority(decoded.right, {
+      workspaceId: input.effectIdentity.workspaceId,
+      requiredGrants: [],
+    });
+  } catch {
+    throw validationFailure(node, "durable workflow principal is unavailable");
+  }
 };
 
 const capabilityStepOptions = <Result extends Record<string, unknown>>(

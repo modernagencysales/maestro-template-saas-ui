@@ -1,4 +1,10 @@
 import * as Schema from "effect/Schema";
+import type { GenericId } from "convex/values";
+import * as Effect from "effect/Effect";
+import * as Data from "effect/Data";
+
+import { DatabaseReader } from "../../_generated/services";
+import { sha256Hex } from "../../shared/sha256";
 
 export const NoWorkflowPolicyPosture = Schema.Struct({
   kind: Schema.Literal("none"),
@@ -42,6 +48,62 @@ export const WorkflowPolicySnapshot = Schema.Union(
 export type WorkflowPolicySnapshot = Schema.Schema.Type<
   typeof WorkflowPolicySnapshot
 >;
+
+export class WorkflowPolicyResolutionError extends Data.TaggedError(
+  "WorkflowPolicyResolutionError",
+)<{ readonly reason: "unavailable" }> {}
+
+export const resolveWorkflowPolicySnapshotForRun = (
+  posture: WorkflowPolicyPosture,
+  input: { readonly workspaceId: string; readonly resolvedAt: number },
+) =>
+  posture.kind === "none"
+    ? Effect.succeed<WorkflowPolicySnapshot>({
+        version: 1,
+        kind: "none",
+        reason: posture.reason,
+      })
+    : Effect.gen(function* () {
+        const reader = yield* DatabaseReader;
+        const row = yield* reader
+          .table("policies")
+          .get(posture.policyVersionId as GenericId<"policies">)
+          .pipe(Effect.orDie);
+        if (
+          row === null ||
+          (row.scope === "workspace" &&
+            row.workspaceId !== input.workspaceId) ||
+          workflowPolicyRowHash(row) !== posture.policyHash
+        ) {
+          return yield* new WorkflowPolicyResolutionError({
+            reason: "unavailable",
+          });
+        }
+        return {
+          version: 1 as const,
+          ...posture,
+          resolvedAt: input.resolvedAt,
+        };
+      });
+
+export const workflowPolicyRowHash = (row: {
+  readonly policyKey: string;
+  readonly kind: string;
+  readonly scope: string;
+  readonly workspaceId?: string | undefined;
+  readonly version: number;
+  readonly dataJson: string;
+}): string =>
+  sha256Hex(
+    JSON.stringify({
+      policyKey: row.policyKey,
+      kind: row.kind,
+      scope: row.scope,
+      ...(row.workspaceId ? { workspaceId: row.workspaceId } : {}),
+      version: row.version,
+      dataJson: row.dataJson,
+    }),
+  );
 
 export const resolveWorkflowPolicySnapshot = async (
   posture: WorkflowPolicyPosture,
