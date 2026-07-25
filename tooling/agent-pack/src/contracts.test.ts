@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   AGENT_PACK_COMMAND_VERSION,
   AGENT_PACK_RESULT_VERSION,
-  createAgentPackResult,
   defineAgentPackCommand,
+  executeAgentPackCommand,
   renderAgentPackResult,
   type AgentPackArgumentResult,
   type AgentPackDiagnostic,
@@ -27,6 +27,36 @@ const finding: AgentPackDiagnostic = {
   rerun: "pnpm maestro -- example --json",
 };
 
+const decodeExample = (
+  input: unknown,
+): AgentPackArgumentResult<{
+  readonly name: string;
+  readonly write: boolean;
+}> =>
+  typeof input === "object" && input !== null && "name" in input
+    ? {
+        ok: true,
+        args: {
+          name: String(input.name),
+          write: "write" in input && input.write === true,
+        },
+      }
+    : { ok: false, diagnostics: [finding] };
+
+const exampleCommand = defineAgentPackCommand({
+  id: "example",
+  schemaVersion: AGENT_PACK_COMMAND_VERSION,
+  decode: decodeExample,
+  mutationPosture: (args) => (args.write ? "write" : "preview"),
+  execute: async (args) => ({
+    mutationPosture: args.write ? "write" : "preview",
+    exitClass: "success",
+    summary: `Prepared ${args.name}.`,
+    diagnostics: [],
+    data: { name: args.name },
+  }),
+});
+
 describe("agent-pack command contract", () => {
   it("pins stable versions and exit classes", () => {
     expect(AGENT_PACK_COMMAND_VERSION).toBe(1);
@@ -42,59 +72,123 @@ describe("agent-pack command contract", () => {
   });
 
   it("defines one typed executable used independently of its transport", async () => {
-    type Args = { readonly name: string; readonly write: boolean };
-    const decode = (input: unknown): AgentPackArgumentResult<Args> =>
-      typeof input === "object" && input !== null && "name" in input
-        ? {
-            ok: true,
-            args: {
-              name: String(input.name),
-              write: "write" in input && input.write === true,
-            },
-          }
-        : { ok: false, diagnostics: [finding] };
-    const command = defineAgentPackCommand({
-      id: "example",
-      schemaVersion: AGENT_PACK_COMMAND_VERSION,
-      decode,
-      mutationPosture: (args: Args) => (args.write ? "write" : "preview"),
-      execute: async (args: Args, executionContext) =>
-        createAgentPackResult({
-          command: "example",
-          mutationPosture: args.write ? "write" : "preview",
-          exitClass: "success",
-          summary: `Prepared ${args.name}.`,
-          context: executionContext,
-          diagnostics: [],
-          data: { name: args.name },
-        }),
-    });
-    const decoded = command.decode({ name: "demo", write: false });
+    const decoded = exampleCommand.decode({ name: "demo", write: false });
 
     expect(decoded).toEqual({
       ok: true,
       args: { name: "demo", write: false },
     });
     if (!decoded.ok) throw new Error("expected decoded args");
-    await expect(command.execute(decoded.args, context)).resolves.toMatchObject(
-      {
-        command: { id: "example", version: 1 },
-        mutationPosture: "preview",
-        data: { name: "demo" },
-      },
-    );
+    await expect(
+      executeAgentPackCommand(
+        exampleCommand,
+        { name: "demo", write: false },
+        context,
+      ),
+    ).resolves.toMatchObject({
+      command: { id: "example", version: 1 },
+      mutationPosture: "preview",
+      data: { name: "demo" },
+    });
   });
 
-  it("creates a stable versioned structured result", () => {
-    const result = createAgentPackResult({
-      command: "example",
+  it("always returns a structured invalid-invocation result", async () => {
+    let executed = false;
+    const command = defineAgentPackCommand({
+      ...exampleCommand,
+      execute: async (args) => {
+        executed = true;
+        return exampleCommand.execute(args, context);
+      },
+    });
+    const result = await executeAgentPackCommand(command, {}, context);
+
+    expect(executed).toBe(false);
+    expect(result).toMatchObject({
+      schemaVersion: 1,
+      command: { id: "example", version: 1 },
       mutationPosture: "read-only",
-      exitClass: "findings",
-      summary: "Example inspection found one issue.",
+      exitClass: "invalidInvocation",
       context,
       diagnostics: [finding],
-      data: { inspected: true },
+      data: null,
     });
+  });
+
+  it("rejects a command outcome whose posture differs from its declaration", async () => {
+    const command = defineAgentPackCommand({
+      ...exampleCommand,
+      mutationPosture: () => "preview",
+      execute: async () => ({
+        mutationPosture: "write",
+        exitClass: "success",
+        summary: "Incorrectly claimed success.",
+        diagnostics: [],
+        data: null,
+      }),
+    });
+
+    await expect(
+      executeAgentPackCommand(command, { name: "demo" }, context),
+    ).resolves.toMatchObject({
+      command: { id: "example", version: 1 },
+      mutationPosture: "preview",
+      exitClass: "internalDefect",
+      diagnostics: [
+        expect.objectContaining({
+          code: "AGENT_PACK_POSTURE_MISMATCH",
+          safeToContinue: false,
+        }),
+      ],
+      data: null,
+    });
+  });
+
+  it("rejects success paired with an error diagnostic", async () => {
+    const command = defineAgentPackCommand({
+      ...exampleCommand,
+      mutationPosture: () => "read-only",
+      execute: async () => ({
+        mutationPosture: "read-only",
+        exitClass: "success",
+        summary: "Incorrectly claimed success.",
+        diagnostics: [finding],
+        data: null,
+      }),
+    });
+
+    await expect(
+      executeAgentPackCommand(command, { name: "demo" }, context),
+    ).resolves.toMatchObject({
+      mutationPosture: "read-only",
+      exitClass: "internalDefect",
+      diagnostics: [
+        expect.objectContaining({
+          code: "AGENT_PACK_EXIT_DIAGNOSTIC_MISMATCH",
+          safeToContinue: false,
+        }),
+      ],
+      data: null,
+    });
+  });
+
+  it("creates a stable versioned structured result", async () => {
+    const command = defineAgentPackCommand({
+      ...exampleCommand,
+      mutationPosture: () => "read-only",
+      execute: async () => ({
+        mutationPosture: "read-only",
+        exitClass: "findings",
+        summary: "Example inspection found one issue.",
+        diagnostics: [finding],
+        data: { inspected: true },
+      }),
+    });
+    const result = await executeAgentPackCommand(
+      command,
+      { name: "demo" },
+      context,
+    );
 
     expect(result).toMatchInlineSnapshot(`
       {
@@ -134,16 +228,23 @@ describe("agent-pack command contract", () => {
     `);
   });
 
-  it("renders concise human output deterministically from the result", () => {
-    const result = createAgentPackResult({
-      command: "example",
-      mutationPosture: "read-only",
-      exitClass: "findings",
-      summary: "Example inspection found one issue.",
-      context,
-      diagnostics: [finding],
-      data: null,
+  it("renders concise human output deterministically from the result", async () => {
+    const command = defineAgentPackCommand({
+      ...exampleCommand,
+      mutationPosture: () => "read-only",
+      execute: async () => ({
+        mutationPosture: "read-only",
+        exitClass: "findings",
+        summary: "Example inspection found one issue.",
+        diagnostics: [finding],
+        data: null,
+      }),
     });
+    const result = await executeAgentPackCommand(
+      command,
+      { name: "demo" },
+      context,
+    );
 
     expect(renderAgentPackResult(result)).toBe(
       [
