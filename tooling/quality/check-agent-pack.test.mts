@@ -56,6 +56,18 @@ describe("check:agent-pack", () => {
       "factory-wiring:root-maestro-script",
     );
   });
+
+  it("rejects a factory adapter that bypasses the shared executor", async () => {
+    const fixtureRoot = await integratedFixture();
+    await writeFile(
+      join(fixtureRoot, "apps/cli/src/factory/router.ts"),
+      "export const dispatchFactoryCliCommand = async () => undefined;\n",
+    );
+
+    await expect(checkAgentPack(fixtureRoot)).resolves.toContain(
+      "factory-wiring:shared-executor-adapter",
+    );
+  });
 });
 
 async function integratedFixture(): Promise<string> {

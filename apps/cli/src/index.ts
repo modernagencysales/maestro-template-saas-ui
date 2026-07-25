@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { runTemplateApiOperation } from "@maestro-template/workflow-tooling";
 import { createCliHandlers } from "./commands";
-import { createFactoryCliHandlers } from "./factory/router";
+import { dispatchFactoryCliCommand } from "./factory/router";
 import { cliFailure, formatJsonOutput } from "./result";
 import { decodeCliRuntimeConfig, emptyCliRuntimeConfig } from "./runtimeConfig";
 import { dispatchCliCommand } from "./router";
@@ -40,35 +40,43 @@ const runStaticCliCapability = (
   };
 };
 
-const cliHandlers = [
-  ...createFactoryCliHandlers(),
-  ...createCliHandlers({
-    capability: {
-      hasCapability: (capabilityId) => staticCliCapabilityIds.has(capabilityId),
-      runCapability: runStaticCliCapability,
-    },
-  }),
-];
+const cliHandlers = createCliHandlers({
+  capability: {
+    hasCapability: (capabilityId) => staticCliCapabilityIds.has(capabilityId),
+    runCapability: runStaticCliCapability,
+  },
+});
+
+const normalizeCliArgv = (argv: readonly string[]): readonly string[] =>
+  argv[0] === "--" ? argv.slice(1) : argv;
 
 export const runCli = (
   argv: readonly string[],
   config: CliRuntimeConfig = emptyCliRuntimeConfig,
-): CliResult =>
-  dispatchCliCommand(
-    cliHandlers,
-    argv[0] === "--" ? argv.slice(1) : argv,
-    config,
+): CliResult => dispatchCliCommand(cliHandlers, normalizeCliArgv(argv), config);
+
+export const runCliAsync = async (
+  argv: readonly string[],
+  config: CliRuntimeConfig = emptyCliRuntimeConfig,
+  cwd: string = process.cwd(),
+): Promise<CliResult> => {
+  const normalized = normalizeCliArgv(argv);
+  return (
+    (await dispatchFactoryCliCommand(normalized, cwd)) ??
+    dispatchCliCommand(cliHandlers, normalized, config)
   );
+};
 
 if (
   process.argv[1]?.endsWith("index.ts") ||
   process.argv[1]?.endsWith("index.js")
 ) {
-  const result = runCli(
+  void runCliAsync(
     process.argv.slice(2),
     decodeCliRuntimeConfig(process.env),
-  );
-  process.stdout.write(result.stdout);
-  process.stderr.write(result.stderr);
-  process.exitCode = result.exitCode;
+  ).then((result) => {
+    process.stdout.write(result.stdout);
+    process.stderr.write(result.stderr);
+    process.exitCode = result.exitCode;
+  });
 }

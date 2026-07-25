@@ -50,6 +50,12 @@ async function factoryWiringFindings(
     findings.push("factory-wiring:cli-binaries");
   }
   if (
+    record(cliPackage.dependencies)["@maestro-template/agent-pack"] !==
+    "workspace:*"
+  ) {
+    findings.push("factory-wiring:cli-agent-pack-dependency");
+  }
+  if (
     agentPackPackage.main !== "src/index.ts" ||
     agentPackPackage.types !== "src/index.ts" ||
     record(agentPackPackage.exports)["."] !== "./src/index.ts"
@@ -75,13 +81,15 @@ async function factoryWiringFindings(
   );
   if (
     cliIndex === undefined ||
-    !cliIndex.includes("...createFactoryCliHandlers()") ||
-    !cliIndex.includes("...createCliHandlers({") ||
-    cliIndex.indexOf("...createFactoryCliHandlers()") >
-      cliIndex.indexOf("...createCliHandlers({") ||
-    factoryRouter === undefined
+    !cliIndex.includes("dispatchFactoryCliCommand(normalized, cwd)") ||
+    !cliIndex.includes("export const runCliAsync") ||
+    factoryRouter === undefined ||
+    !factoryRouter.includes("executeAgentPackCommand") ||
+    !factoryRouter.includes("renderAgentPackResult") ||
+    !factoryRouter.includes("exitCodeFor") ||
+    !factoryRouter.includes("createFactoryCliHandler")
   ) {
-    findings.push("factory-wiring:router-boundary");
+    findings.push("factory-wiring:shared-executor-adapter");
   }
   const justfile = await optionalText(join(repoRoot, "Justfile"));
   if (
