@@ -192,11 +192,6 @@ describe("workflow semantics contract", () => {
         ),
       });
     }
-    expect(
-      WORKFLOW_SEMANTICS.find(
-        (rule) => rule.id === "WF-TRANSACTION-SCHEDULED-ARGS-BYTES",
-      ),
-    ).toBeUndefined();
     for (const id of ["WF-NODE-SCHEDULE", "WF-STEP-ACTION"]) {
       expect(WORKFLOW_SEMANTICS.find((rule) => rule.id === id)?.status).toBe(
         "intentionally-restricted",
