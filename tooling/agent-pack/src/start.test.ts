@@ -4,6 +4,7 @@ import {
   executeAgentPackCommand,
 } from "./contracts.js";
 import { createRepositoryContext } from "./repoContext.js";
+import { projectProcessEnvironment } from "./processSupervisor.js";
 import {
   createStartCommand,
   type StartDependencies,
@@ -18,6 +19,7 @@ const context = {
 const ready: StartPreflightResult = {
   safeToStart: true,
   auth: "not-required",
+  exitClass: "success",
   diagnostics: [],
 };
 const identity = JSON.stringify({
@@ -34,7 +36,13 @@ function fixture(preflight: StartPreflightResult = ready) {
     ports: {
       available: vi.fn(async () => true),
     },
-    supervise: vi.fn(async () => ({ code: null, signal: "SIGINT" })),
+    readiness: { wait: vi.fn(async () => true) },
+    supervise: vi.fn(async (_specs, readiness) => {
+      if (await readiness.wait(new AbortController().signal))
+        readiness.onReady();
+      return { kind: "user-signal" as const, signal: "SIGINT" as const };
+    }),
+    announce: vi.fn(),
   };
   return dependencies;
 }
@@ -49,8 +57,8 @@ describe("start command", () => {
     );
 
     expect(dependencies.preflight).toHaveBeenCalledWith("fake", context);
-    expect(dependencies.supervise).toHaveBeenCalledWith([
-      {
+    expect(vi.mocked(dependencies.supervise).mock.calls[0]?.[0]).toEqual([
+      expect.objectContaining({
         id: "web",
         command: "pnpm",
         args: [
@@ -65,12 +73,18 @@ describe("start command", () => {
           "--strictPort",
         ],
         cwd: "/customer",
-      },
+      }),
     ]);
     expect(result.exitClass).toBe("success");
     expect(result.data).toMatchObject({
       mode: "fake",
       app: { name: "My App", firstOutcome: "Track client requests" },
+      url: "http://127.0.0.1:5173",
+      readinessUrl: "http://127.0.0.1:5173/health",
+    });
+    expect(dependencies.announce).toHaveBeenCalledWith({
+      name: "My App",
+      firstOutcome: "Track client requests",
       url: "http://127.0.0.1:5173",
       readinessUrl: "http://127.0.0.1:5173/health",
     });
@@ -95,10 +109,41 @@ describe("start command", () => {
     expect(JSON.stringify(specs)).not.toContain("production");
   });
 
+  it("removes poisoned live Convex targets from fake and local children", async () => {
+    const poisoned = {
+      CONVEX_DEPLOYMENT: "prod:customer",
+      CONVEX_URL: "https://prod.convex.cloud",
+      VITE_CONVEX_URL: "https://prod.convex.cloud",
+      SAFE_NAME: "kept",
+    };
+    for (const mode of ["fake", "local"] as const) {
+      const dependencies = fixture();
+      await executeAgentPackCommand(
+        createStartCommand(dependencies),
+        { mode },
+        context,
+      );
+      const specs = vi.mocked(dependencies.supervise).mock.calls[0]?.[0] ?? [];
+      for (const spec of specs) {
+        const environment = projectProcessEnvironment(
+          poisoned,
+          spec.environment,
+        );
+        expect(JSON.stringify(environment)).not.toContain("prod.convex.cloud");
+        expect(environment.CONVEX_DEPLOYMENT).toBe("");
+        expect(environment.SAFE_NAME).toBe("kept");
+        expect(environment.VITE_CONVEX_URL).toBe(
+          mode === "local" && spec.id === "web" ? "http://127.0.0.1:3210" : "",
+        );
+      }
+    }
+  });
+
   it("requires authenticated personal dev posture before any spawn", async () => {
     const dependencies = fixture({
       safeToStart: true,
       auth: "cancelled",
+      exitClass: "success",
       diagnostics: [],
     });
     const result = await executeAgentPackCommand(
@@ -114,6 +159,39 @@ describe("start command", () => {
     expect(result.diagnostics[0]?.code).toBe(
       "AGENT_PACK_START_DEV_AUTH_REQUIRED",
     );
+  });
+
+  it("starts only the reviewed dev backend and web fallback commands", async () => {
+    const dependencies = fixture({
+      safeToStart: true,
+      auth: "connected",
+      exitClass: "success",
+      diagnostics: [],
+    });
+    await executeAgentPackCommand(
+      createStartCommand(dependencies),
+      { mode: "dev" },
+      context,
+    );
+
+    const specs = vi.mocked(dependencies.supervise).mock.calls[0]?.[0];
+    expect(
+      specs?.map(({ id, command, args, cwd }) => ({
+        id,
+        command,
+        args,
+        cwd,
+      })),
+    ).toEqual([
+      {
+        id: "backend",
+        command: "pnpm",
+        args: ["dev:backend"],
+        cwd: "/customer",
+      },
+      expect.objectContaining({ id: "web", command: "pnpm", cwd: "/customer" }),
+    ]);
+    expect(JSON.stringify(specs)).not.toContain("production");
   });
 
   it("rejects promotion modes and unknown input", async () => {
@@ -133,6 +211,7 @@ describe("start command", () => {
     const dependencies = fixture({
       safeToStart: false,
       auth: "not-required",
+      exitClass: "unavailableDependency",
       diagnostics: [
         {
           code: "AGENT_PACK_INSTALL_MISSING",
@@ -165,7 +244,7 @@ describe("start command", () => {
       {},
       context,
     );
-    expect(collision.exitClass).toBe("unavailableDependency");
+    expect(collision.exitClass).toBe("blockedMutation");
     expect(collision.diagnostics[0]?.code).toBe(
       "AGENT_PACK_START_PORT_COLLISION",
     );
@@ -183,5 +262,63 @@ describe("start command", () => {
       "AGENT_PACK_START_INSTANCE_INVALID",
     );
     expect(malformed.supervise).not.toHaveBeenCalled();
+  });
+
+  it("preserves preflight exit class and withholds URLs on readiness failure", async () => {
+    const blocked = fixture({
+      safeToStart: false,
+      auth: "not-required",
+      exitClass: "findings",
+      diagnostics: [
+        {
+          code: "AGENT_PACK_PREFLIGHT_WARNING",
+          severity: "warning",
+          message: "Review local posture.",
+          safeToContinue: false,
+          nextAction: "Repair preflight.",
+          rerun: "pnpm maestro -- preflight",
+        },
+      ],
+    });
+    const preflight = await executeAgentPackCommand(
+      createStartCommand(blocked),
+      {},
+      context,
+    );
+    expect(preflight.exitClass).toBe("findings");
+    expect(preflight.diagnostics[0]?.severity).toBe("warning");
+
+    const timeout = fixture();
+    vi.mocked(timeout.supervise).mockResolvedValue({
+      kind: "readiness-timeout",
+    });
+    const result = await executeAgentPackCommand(
+      createStartCommand(timeout),
+      {},
+      context,
+    );
+    expect(result.exitClass).toBe("unavailableDependency");
+    expect(result.diagnostics[0]?.code).toBe(
+      "AGENT_PACK_START_READINESS_TIMEOUT",
+    );
+    expect(timeout.announce).not.toHaveBeenCalled();
+
+    for (const supervision of [
+      { kind: "spawn-failed" as const },
+      {
+        kind: "child-exit" as const,
+        completion: { code: null, signal: "SIGTERM" },
+      },
+    ]) {
+      const unavailable = fixture();
+      vi.mocked(unavailable.supervise).mockResolvedValue(supervision);
+      const failed = await executeAgentPackCommand(
+        createStartCommand(unavailable),
+        {},
+        context,
+      );
+      expect(failed.exitClass).toBe("unavailableDependency");
+      expect(unavailable.announce).not.toHaveBeenCalled();
+    }
   });
 });

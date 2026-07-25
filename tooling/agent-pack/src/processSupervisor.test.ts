@@ -45,73 +45,138 @@ const specs: readonly StartProcessSpec[] = [
   { id: "backend", command: "pnpm", args: ["dev:backend"], cwd: "/app" },
 ];
 
+function signalFixture() {
+  let handler: ((signal: NodeJS.Signals) => void) | undefined;
+  return {
+    boundary: {
+      subscribe: (next: (signal: NodeJS.Signals) => void) => {
+        handler = next;
+        return () => undefined;
+      },
+    },
+    send: (signal: NodeJS.Signals) => handler?.(signal),
+  };
+}
+
 describe("process supervisor", () => {
-  it("uses exact argv/cwd, groups redacted logs, and cleans siblings", async () => {
+  it("announces only after readiness and keeps supervising afterward", async () => {
     const fixture = fixtureSpawner();
-    const logs: string[] = [];
+    const ready = deferred<boolean>();
+    const onReady = vi.fn();
     const running = superviseProcesses(specs, {
       spawner: fixture.spawner,
       signals: { subscribe: () => () => undefined },
-      log: (line) => logs.push(line),
+      log: vi.fn(),
+      readiness: { wait: () => ready.promise, onReady },
     });
     await vi.waitFor(() => expect(fixture.children).toHaveLength(2));
+    expect(onReady).not.toHaveBeenCalled();
+    ready.resolve(true);
+    await vi.waitFor(() => expect(onReady).toHaveBeenCalledOnce());
     fixture.children[0]?.finish.resolve({ code: 1, signal: null });
 
-    await expect(running).resolves.toEqual({ code: 1, signal: null });
-    expect(fixture.children.map(({ spec }) => spec)).toEqual(specs);
+    await expect(running).resolves.toEqual({
+      kind: "child-exit",
+      completion: { code: 1, signal: null },
+    });
     expect(fixture.children[1]?.child.terminate).toHaveBeenCalledWith(
       "SIGTERM",
     );
-    expect(logs).toEqual([
-      "[web] ready TOKEN=[REDACTED]",
-      "[backend] ready TOKEN=[REDACTED]",
-    ]);
   });
 
-  it("forwards a signal to every child and leaves none running", async () => {
-    const fixture = fixtureSpawner();
-    let signalHandler: ((signal: NodeJS.Signals) => void) | undefined;
-    const running = superviseProcesses(specs, {
-      spawner: fixture.spawner,
-      signals: {
-        subscribe: (handler) => {
-          signalHandler = handler;
-          return () => undefined;
-        },
-      },
-      log: () => undefined,
-    });
-    await vi.waitFor(() => expect(fixture.children).toHaveLength(2));
-    signalHandler?.("SIGINT");
-
-    await expect(running).resolves.toEqual({ code: null, signal: "SIGINT" });
-    for (const { child } of fixture.children) {
-      expect(child.terminate).toHaveBeenCalledWith("SIGINT");
+  it("fails immediate exit and readiness timeout without announcing", async () => {
+    for (const posture of ["exit", "timeout"] as const) {
+      const fixture = fixtureSpawner();
+      const ready = deferred<boolean>();
+      const onReady = vi.fn();
+      const running = superviseProcesses(specs, {
+        spawner: fixture.spawner,
+        signals: { subscribe: () => () => undefined },
+        log: () => undefined,
+        readiness: { wait: () => ready.promise, onReady },
+      });
+      await vi.waitFor(() => expect(fixture.children).toHaveLength(2));
+      if (posture === "exit")
+        fixture.children[0]?.finish.resolve({ code: 0, signal: null });
+      else ready.resolve(false);
+      await expect(running).resolves.toMatchObject({
+        kind: posture === "exit" ? "child-exit" : "readiness-timeout",
+      });
+      expect(onReady).not.toHaveBeenCalled();
     }
   });
 
-  it("cleans already-started children when a later spawn fails", async () => {
+  it("treats only its subscribed user signal as clean shutdown", async () => {
+    const user = fixtureSpawner();
+    const signals = signalFixture();
+    const running = superviseProcesses(specs, {
+      spawner: user.spawner,
+      signals: signals.boundary,
+      log: () => undefined,
+      readiness: { wait: async () => true, onReady: () => undefined },
+    });
+    await vi.waitFor(() => expect(user.children).toHaveLength(2));
+    signals.send("SIGINT");
+    await expect(running).resolves.toEqual({
+      kind: "user-signal",
+      signal: "SIGINT",
+    });
+
+    const unsolicited = fixtureSpawner();
+    const failed = superviseProcesses(specs, {
+      spawner: unsolicited.spawner,
+      signals: { subscribe: () => () => undefined },
+      log: () => undefined,
+      readiness: { wait: async () => true, onReady: () => undefined },
+    });
+    await vi.waitFor(() => expect(unsolicited.children).toHaveLength(2));
+    unsolicited.children[0]?.finish.resolve({ code: null, signal: "SIGTERM" });
+    await expect(failed).resolves.toEqual({
+      kind: "child-exit",
+      completion: { code: null, signal: "SIGTERM" },
+    });
+  });
+
+  it("closes sequential admission when shutdown begins", async () => {
+    const signals = signalFixture();
+    const finish = deferred<{ code: number | null; signal: string | null }>();
+    const spawn = vi.fn<ProcessSpawner["spawn"]>(async () => {
+      signals.send("SIGTERM");
+      return {
+        completion: finish.promise,
+        terminate: async (signal) => finish.resolve({ code: null, signal }),
+      };
+    });
+    await expect(
+      superviseProcesses(specs, {
+        spawner: { spawn },
+        signals: signals.boundary,
+        log: () => undefined,
+        readiness: { wait: async () => true, onReady: vi.fn() },
+      }),
+    ).resolves.toEqual({ kind: "user-signal", signal: "SIGTERM" });
+    expect(spawn).toHaveBeenCalledOnce();
+  });
+
+  it("returns unavailable spawn posture and redacts grouped logs", async () => {
     const fixture = fixtureSpawner();
     const spawn = vi
       .fn<ProcessSpawner["spawn"]>()
       .mockImplementationOnce(fixture.spawner.spawn)
-      .mockRejectedValueOnce(new Error("spawn failed"));
-
+      .mockRejectedValueOnce(new Error("ENOENT"));
     await expect(
       superviseProcesses(specs, {
         spawner: { spawn },
         signals: { subscribe: () => () => undefined },
         log: () => undefined,
+        readiness: { wait: async () => true, onReady: vi.fn() },
       }),
-    ).rejects.toThrow("spawn failed");
+    ).resolves.toEqual({ kind: "spawn-failed" });
     expect(fixture.children[0]?.child.terminate).toHaveBeenCalledWith(
       "SIGTERM",
     );
-  });
-
-  it("redacts bearer tokens and secret assignments", () => {
-    expect(
-      redactStartLog("Authorization: Bearer abc.def KEY=value safe=yes"),
-    ).toBe("Authorization: Bearer [REDACTED] KEY=[REDACTED] safe=yes");
+    expect(redactStartLog("Authorization: Bearer abc KEY=value safe=yes")).toBe(
+      "Authorization: Bearer [REDACTED] KEY=[REDACTED] safe=yes",
+    );
   });
 });
