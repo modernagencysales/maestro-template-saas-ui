@@ -145,10 +145,7 @@ export type RunDurableGraphV2Input<
   >
 >;
 
-/**
- * V2 bootstrap runner. WP-1.2+ add executable node compilers serially; WP-1.1
- * intentionally accepts only the generated source-to-output starter graph.
- */
+/** Compiles the validated V2 graph into the pinned Workflow step primitives. */
 export const runDurableGraphWorkflowV2 = async <
   Result extends Record<string, unknown>,
 >(

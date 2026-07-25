@@ -208,6 +208,7 @@ export type WorkflowEffectTransition =
   | { readonly kind: "confirmed" }
   | {
       readonly kind: "ambiguous";
+      readonly phase: "before-dispatch" | "after-dispatch";
     }
   | { readonly kind: "reconciled-confirmed" }
   | { readonly kind: "manual-review" }
@@ -226,6 +227,18 @@ export const transitionWorkflowEffectState = (
   ambiguityStrategy?: WorkflowEffectStrategyType,
 ): Either.Either<WorkflowEffectState, WorkflowEffectTransitionError> => {
   if (event.kind === "ambiguous" && ambiguityStrategy === undefined) {
+    return Either.left(
+      new WorkflowEffectTransitionError({
+        state: current.state,
+        event: event.kind,
+      }),
+    );
+  }
+  if (
+    event.kind === "ambiguous" &&
+    ((event.phase === "before-dispatch" && current.state !== "reserved") ||
+      (event.phase === "after-dispatch" && current.state !== "submitted"))
+  ) {
     return Either.left(
       new WorkflowEffectTransitionError({
         state: current.state,
@@ -271,6 +284,13 @@ const transitionTable: Partial<
       reconciliationState: "not-required",
     }),
     terminal: () => ({ state: "terminal", reconciliationState: "terminal" }),
+    ambiguous: (event) => ({
+      state: "ambiguous",
+      reconciliationState:
+        event.kind === "ambiguous" && event.strategy === "non-retriable"
+          ? "manual-review"
+          : "pending",
+    }),
   },
   submitted: {
     confirmed: () => ({
@@ -323,13 +343,24 @@ export const planWorkflowEffectDispatch = ({
   state,
   guardResults,
   ownsReservation,
+  observedAt,
+  dedupeExpiresAt,
 }: {
   readonly state: WorkflowEffectState;
   readonly guardResults: WorkflowEffectGuardResults;
   readonly ownsReservation: boolean;
+  readonly observedAt?: number;
+  readonly dedupeExpiresAt?: number;
 }): WorkflowEffectDispatchPlan => {
   for (const guard of guardOrder) {
     if (guardResults[guard] === "denied") return { kind: "deny", guard };
+  }
+  if (
+    observedAt !== undefined &&
+    dedupeExpiresAt !== undefined &&
+    observedAt > dedupeExpiresAt
+  ) {
+    return { kind: "manual-review" };
   }
   if (state.state === "reserved")
     return ownsReservation ? { kind: "dispatch" } : { kind: "in-flight" };

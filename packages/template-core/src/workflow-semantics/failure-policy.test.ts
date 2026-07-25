@@ -35,8 +35,13 @@ describe("workflow failure policy semantic authority", () => {
     {
       kind: "compensation",
       edgeId: "charge-compensated",
-      capability: "capability.reverseCharge.v2",
-      stepName: "reverse-charge.v2",
+      steps: [
+        {
+          forNodeId: "charge",
+          capability: "capability.reverseCharge.v2",
+          stepName: "reverse-charge.v2",
+        },
+      ],
       failure,
     },
   ])("accepts declared $kind policy", (policy) => {
@@ -59,8 +64,19 @@ describe("workflow failure policy semantic authority", () => {
     {
       kind: "compensation",
       edgeId: "charge-compensated",
-      capability: "public.reverseCharge",
-      stepName: "reverse-charge",
+      steps: [
+        {
+          forNodeId: "charge",
+          capability: "public.reverseCharge",
+          stepName: "reverse-charge",
+        },
+      ],
+      failure,
+    },
+    {
+      kind: "compensation",
+      edgeId: "charge-compensated",
+      steps: [],
       failure,
     },
   ])("rejects incomplete or unsafe policy %#", (policy) => {

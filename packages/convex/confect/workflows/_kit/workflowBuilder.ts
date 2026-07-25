@@ -28,6 +28,7 @@ import {
   type InlineTransactionPresetName,
   type ReviewedInlineTransaction,
 } from "./inlineTransactions";
+import { unsupportedWorkflowFailurePolicyFinding } from "./failurePolicy";
 
 type SourceNode = Schema.Schema.Type<typeof WorkflowSourceNodeV2>;
 type ActionNode = Schema.Schema.Type<typeof WorkflowActionNodeV2>;
@@ -98,7 +99,8 @@ export const workflowNode = {
   agent: (input: AgentNode): AgentNode => input,
   delay: (input: DelayNode): DelayNode => input,
   event: (input: EventNode): EventNode => input,
-  subworkflow: (input: SubworkflowNode): SubworkflowNode => input,
+  subworkflow: (input: Omit<SubworkflowNode, "schedule">): SubworkflowNode =>
+    input,
   output: (input: OutputNode): OutputNode => input,
 } as const;
 
@@ -119,6 +121,19 @@ export class WorkflowGraphBuilderError extends Data.TaggedError(
 export const defineWorkflowGraphV2 = (
   input: DefineWorkflowGraphV2Input,
 ): Either.Either<DurableWorkflowGraphV2, WorkflowGraphBuilderError> => {
+  const unsupportedFailurePolicies = (
+    input.nodes as readonly Readonly<Record<string, unknown>>[]
+  ).flatMap((node) => {
+    const finding = unsupportedWorkflowFailurePolicyFinding(node);
+    return finding === undefined ? [] : [finding];
+  });
+  if (unsupportedFailurePolicies.length > 0) {
+    return Either.left(
+      new WorkflowGraphBuilderError({
+        findings: unsupportedFailurePolicies,
+      }),
+    );
+  }
   const decoded = decodeDurableWorkflowGraphV2({
     ...input,
     schemaVersion: 2,

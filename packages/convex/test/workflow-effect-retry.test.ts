@@ -157,6 +157,7 @@ describe("workflow effect retry contract", () => {
         submitted,
         {
           kind: "ambiguous",
+          phase: "after-dispatch",
         },
         "durable-ledger-and-reconcile",
       ),
@@ -179,6 +180,31 @@ describe("workflow effect retry contract", () => {
         }),
       ),
     ).toBe(true);
+  });
+
+  it("distinguishes a pre-dispatch ambiguity without permitting redispatch", () => {
+    const ambiguous = Either.getOrThrow(
+      transitionWorkflowEffectState(
+        initialWorkflowEffectState,
+        { kind: "ambiguous", phase: "before-dispatch" },
+        "durable-ledger-and-reconcile",
+      ),
+    );
+    expect(ambiguous).toEqual({
+      state: "ambiguous",
+      reconciliationState: "pending",
+    });
+    expect(
+      planWorkflowEffectDispatch({
+        state: ambiguous,
+        guardResults: {
+          approval: "passed",
+          quotaRate: "passed",
+          spendKillSwitch: "passed",
+        },
+        ownsReservation: false,
+      }),
+    ).toEqual({ kind: "reconcile" });
   });
 
   it("requires every guard before dispatch and never guesses through ambiguity", () => {

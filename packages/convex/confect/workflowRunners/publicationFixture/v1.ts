@@ -15,7 +15,6 @@ import {
 import { loadObservedWorkflowExecutionIdentity } from "../../workflows/_kit/observedStage";
 import { reconcileObservedWorkflowCompletion } from "../../workflows/_kit/lifecycleCompletion";
 import { WorkflowOnCompleteContextValidator } from "../../workflows/_kit/lifecycleState";
-import type { RunDurableGraphV2CompilerInput } from "../../workflows/_kit/graphRunnerV2";
 import { publicationFixtureGraph } from "../../workflows/publicationFixture/v1.graph";
 import {
   publicationFixtureEventRegistry,
@@ -85,25 +84,6 @@ export const onComplete = internalMutationGeneric({
     return null;
   },
 });
-
-type GeneratedFailureRoute = NonNullable<
-  RunDurableGraphV2CompilerInput<WorkflowReceipt>["failureRoutes"]
->[string];
-type GeneratedFailurePolicy = { readonly kind: "fail" } | GeneratedFailureRoute;
-const failureRoutes = Object.fromEntries(
-  publicationFixtureGraph.nodes.flatMap((node) => {
-    const policy = (
-      node as typeof node & {
-        readonly failurePolicy?: GeneratedFailurePolicy;
-      }
-    ).failurePolicy;
-    return policy === undefined || policy.kind === "fail"
-      ? []
-      : [[node.id, policy] as const];
-  }),
-) satisfies NonNullable<
-  RunDurableGraphV2CompilerInput<WorkflowReceipt>["failureRoutes"]
->;
 
 const metadata = {
   workflowId: publicationFixtureGraph.id,
@@ -179,7 +159,6 @@ export const run = defineMaestroWorkflow(
     workflowRegistry: publicationFixtureSubworkflowRegistry,
     eventRegistry: publicationFixtureEventRegistry,
     subworkflowPolicy: publicationFixtureSubworkflowPolicy,
-    failureRoutes,
     projectOutput: () => ({
       workflowId: publicationFixtureGraph.id,
       status: "completed" as const,

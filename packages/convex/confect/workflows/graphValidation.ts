@@ -263,7 +263,21 @@ export const validateWorkflowGraphV2 = (
     outputs.flatMap((node) => [...walk(node.id, reverse)]),
   );
   const duplicateStepNames = duplicates(
-    graph.nodes.map((node) => node.stepName),
+    graph.nodes.flatMap((node) => [
+      node.stepName,
+      ...("failurePolicy" in node && node.failurePolicy.kind === "compensation"
+        ? node.failurePolicy.steps.map(({ stepName }) => stepName)
+        : []),
+    ]),
+  );
+  const kickoffNames = duplicates(
+    graph.kickoffProfiles.map((profile) => profile.name),
+  );
+  const defaultKickoffProfiles = graph.kickoffProfiles.filter(
+    (profile) => profile.default,
+  );
+  const interactiveProfile = graph.kickoffProfiles.find(
+    (profile) => profile.name === "interactive",
   );
 
   return [
@@ -326,6 +340,41 @@ export const validateWorkflowGraphV2 = (
       const finding = scheduledSubworkflowFinding(node);
       return finding ? [finding] : [];
     }),
+    ...graph.nodes.flatMap((node) => {
+      if (!("failurePolicy" in node) || node.failurePolicy.kind === "fail") {
+        return [];
+      }
+      const policy = node.failurePolicy;
+      const route = graph.edges.find(
+        (edge) => edge.id === policy.edgeId && edge.sourceNodeId === node.id,
+      );
+      return [
+        ...(route
+          ? []
+          : [
+              `failure policy for node ${node.id} must name an existing outgoing edge`,
+            ]),
+        ...(policy.kind === "compensation"
+          ? policy.steps.flatMap((step) =>
+              graph.nodes.some((candidate) => candidate.id === step.forNodeId)
+                ? []
+                : [
+                    `compensation ${step.stepName} names missing node ${step.forNodeId}`,
+                  ],
+            )
+          : []),
+      ];
+    }),
+    ...(defaultKickoffProfiles.length === 1
+      ? []
+      : ["kickoffProfiles must declare exactly one default profile"]),
+    ...(interactiveProfile?.mode === "eager-first-poll" &&
+    interactiveProfile.default
+      ? []
+      : [
+          "kickoffProfiles must declare interactive eager-first-poll as the default profile",
+        ]),
+    ...kickoffNames.map((name) => `duplicate kickoff profile name: ${name}`),
     ...graph.nodes.flatMap((node) => {
       if (
         node.kind !== "capability" ||

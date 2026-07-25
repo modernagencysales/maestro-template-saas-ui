@@ -1,7 +1,4 @@
-import {
-  renderGeneratedFailureRouteCompiler,
-  renderGeneratedWorkflowPredeploySource,
-} from "./workflow-predeploy";
+import { renderGeneratedWorkflowPredeploySource } from "./workflow-predeploy";
 
 export type SystemGeneratorDisposition = "reuse" | "extend";
 
@@ -127,9 +124,29 @@ const workflowGeneratorSemanticCoverage = {
   "WF-NODE-ID": generated("WorkflowNode.id", "journal step identity"),
   "WF-NODE-KIND": generated("WorkflowNodeKind", "node executor lookup"),
   "WF-NODE-LABEL": generated("WorkflowNode.label", "receipt projection"),
+  "WF-NODE-FUNCTION-KIND": generated(
+    "workflowNode action/query/mutation constructors",
+    "exact generated registry kind dispatch",
+    "packages/convex/test/workflow-conformance.test.ts",
+  ),
   "WF-NODE-RETRY": generated(
     "WorkflowActionNodeV2.retry with WorkflowEffectContract",
     "exact guarded runAction retry options",
+  ),
+  "WF-FAILURE-COMPENSATION-STEPS": generated(
+    "WorkflowFailurePolicy.steps",
+    "completed-node filtering and reverse-order execution",
+    "packages/convex/test/workflow-conformance.test.ts",
+  ),
+  "WF-FAILURE-COMPENSATION-NODE": generated(
+    "WorkflowCompensationStep.forNodeId",
+    "completed-node filtering before compensation dispatch",
+    "packages/convex/test/workflow-conformance.test.ts",
+  ),
+  "WF-STEP-ACTION": generated(
+    "workflowNode.action with WorkflowEffectContract",
+    "guarded runAction with stable name and exact retry",
+    "packages/convex/test/workflow-conformance.test.ts",
   ),
   "WF-NODE-TRANSACTION": guardedDefault(
     "workflowNode query/mutation constructors",
@@ -902,10 +919,12 @@ const authorizeConsequentialImpl = FunctionImpl.make(
           membershipId: "workflow-actor",
         });
       }
-      const access = yield* requireConsequentialWorkflowAuthority(
-        args.principal,
-        args.requiredGrants,
-        ${name}CurrentGrantPolicy,
+      const access = yield* withConfectClock(
+        requireConsequentialWorkflowAuthority(
+          args.principal,
+          args.requiredGrants,
+          ${name}CurrentGrantPolicy,
+        ),
       );
       return {
         kind: "workflow-current-authority" as const,
@@ -1267,7 +1286,6 @@ import { reconcileObservedWorkflowCompletion } from "../../workflows/_kit/lifecy
 import { WorkflowOnCompleteContextValidator } from "../../workflows/_kit/lifecycleState";
 import { DurableWorkflowPrincipalValidator } from "../../workflows/_kit/principal";
 import { WorkflowPolicySnapshotValidator } from "../../workflows/_kit/policySnapshot";
-import type { RunDurableGraphV2CompilerInput } from "../../workflows/_kit/graphRunnerV2";
 import { ${name}Graph } from "../../workflows/${name}/v1.graph";
 import {
   ${name}EventRegistry,
@@ -1327,7 +1345,6 @@ export const onComplete = internalMutationGeneric({
   },
 });
 
-${renderGeneratedFailureRouteCompiler(`${name}Graph`)}
 const metadata = {
   workflowId: ${name}Graph.id,
   workflowVersion: ${name}Graph.version,
@@ -1394,7 +1411,6 @@ export const run = defineMaestroWorkflow(components.workflow, {
     workflowRegistry: ${name}SubworkflowRegistry,
     eventRegistry: ${name}EventRegistry,
     subworkflowPolicy: ${name}SubworkflowPolicy,
-    failureRoutes,
     projectOutput: () => ({ workflowId: ${name}Graph.id, status: "completed" as const }),
   });
 });

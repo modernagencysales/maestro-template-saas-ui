@@ -79,6 +79,7 @@ describe("workflow semantics contract", () => {
       expect.arrayContaining([
         "nodes[].retry.initialBackoffMs",
         "nodes[].failurePolicy.failure.code",
+        "nodes[].failurePolicy.steps[].capability",
         "nodes[].transaction.limits.scheduledFunctionArgsBytes",
         "kickoffProfiles[].mode",
         "policyPosture.policyHash",
@@ -97,7 +98,7 @@ describe("workflow semantics contract", () => {
     }
     expect(
       WORKFLOW_SEMANTICS.find((rule) => rule.id === "WF-STEP-ACTION")?.status,
-    ).toBe("intentionally-restricted");
+    ).toBe("supported");
   });
 
   it("keeps child workflows restricted until production closure lands", () => {
@@ -205,11 +206,12 @@ describe("workflow semantics contract", () => {
         ),
       });
     }
-    for (const id of ["WF-NODE-SCHEDULE", "WF-STEP-ACTION"]) {
-      expect(WORKFLOW_SEMANTICS.find((rule) => rule.id === id)?.status).toBe(
-        "intentionally-restricted",
-      );
-    }
+    expect(
+      WORKFLOW_SEMANTICS.find((rule) => rule.id === "WF-NODE-SCHEDULE")?.status,
+    ).toBe("intentionally-restricted");
+    expect(
+      WORKFLOW_SEMANTICS.find((rule) => rule.id === "WF-STEP-ACTION")?.status,
+    ).toBe("supported");
   });
 
   it("requires mappings and fixtures for support and repairs for every rule", () => {

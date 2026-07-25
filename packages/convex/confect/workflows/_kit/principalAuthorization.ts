@@ -74,6 +74,10 @@ export const requireConsequentialWorkflowAuthority = (
           principal.workspaceId as GenericId<"workspaces">,
           principal.actorId as GenericId<"users">,
           principal.role,
+        ).pipe(
+          Effect.mapError(
+            () => new MemberNotInWorkspace({ membershipId: "workflow-actor" }),
+          ),
         );
         yield* Effect.try({
           try: () =>

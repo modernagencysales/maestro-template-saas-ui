@@ -216,7 +216,9 @@ const graph = (
   returnSchemaName: "fixture.returns",
   principalSchemaName: "fixture.principal",
   policyPosture: { kind: "none", reason: "fixture" },
-  kickoffProfiles: [{ name: "queued", mode: "queued", default: true }],
+  kickoffProfiles: [
+    { name: "interactive", mode: "eager-first-poll", default: true },
+  ],
   unstableArgs: { enabled: false },
   nodes: [
     {
@@ -268,6 +270,7 @@ const capabilityNode = {
   stepName: "work.v2",
   payloadPolicy,
   semanticRuleIds: [],
+  failurePolicy: { kind: "fail" as const },
 };
 
 const effectContract = {

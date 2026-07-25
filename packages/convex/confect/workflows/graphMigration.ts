@@ -163,6 +163,7 @@ const migrateLegacyNode = (
       ...common,
       kind: "delay",
       delayMs: node.delayMs ?? 0,
+      failurePolicy: { kind: "fail" },
       semanticRuleIds: ["WF-STEP-SLEEP"],
     });
   }
@@ -174,6 +175,7 @@ const migrateLegacyNode = (
           ...common,
           kind: "event",
           ...event,
+          failurePolicy: { kind: "fail" },
           semanticRuleIds: ["WF-STEP-EVENT"],
         });
   }
@@ -189,6 +191,7 @@ const migrateLegacyNode = (
           ...common,
           kind: "agent",
           agent,
+          failurePolicy: { kind: "fail" },
           semanticRuleIds: ["WF-NODE-AGENT"],
         });
   }
@@ -207,6 +210,7 @@ const migrateLegacyNode = (
       kind: "capability",
       functionKind,
       capability: reference,
+      failurePolicy: { kind: "fail" },
       semanticRuleIds: ["WF-STEP-ACTION"],
     });
   }
@@ -216,6 +220,7 @@ const migrateLegacyNode = (
     functionKind,
     capability: reference,
     transaction: { kind: "independent" },
+    failurePolicy: { kind: "fail" },
     semanticRuleIds: [
       functionKind === "query" ? "WF-STEP-QUERY" : "WF-STEP-MUTATION",
     ],

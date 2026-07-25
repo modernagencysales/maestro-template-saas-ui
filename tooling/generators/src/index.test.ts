@@ -161,8 +161,13 @@ describe("workflow generator predeploy projection", () => {
           failurePolicy: {
             kind: "compensation",
             edgeId: "notify-compensated",
-            capability: "capability.retractNotification.v2",
-            stepName: "retract-notification.v2",
+            steps: [
+              {
+                forNodeId: "notify",
+                capability: "capability.retractNotification.v2",
+                stepName: "retract-notification.v2",
+              },
+            ],
             failure,
           },
         },
@@ -177,8 +182,13 @@ describe("workflow generator predeploy projection", () => {
       notify: {
         kind: "compensation",
         edgeId: "notify-compensated",
-        capability: "capability.retractNotification.v2",
-        stepName: "retract-notification.v2",
+        steps: [
+          {
+            forNodeId: "notify",
+            capability: "capability.retractNotification.v2",
+            stepName: "retract-notification.v2",
+          },
+        ],
         failure,
       },
     });
@@ -1539,9 +1549,8 @@ describe("template app factory generators", () => {
     expect(convexWorkflow).not.toContain("returns: v.any()");
     expect(convexWorkflow).toContain("metadata");
     expect(convexWorkflow).toContain("policySnapshot: args.policySnapshot");
-    expect(convexWorkflow).toContain("RunDurableGraphV2CompilerInput");
-    expect(convexWorkflow).toContain(").failurePolicy");
-    expect(convexWorkflow).toContain("failureRoutes,");
+    expect(convexWorkflow).not.toContain("failureRoutes");
+    expect(convexWorkflow).not.toContain("GeneratedFailurePolicy");
     expect(convexWorkflow).toContain("sourceGroundedPlanSubworkflowRegistry");
     expect(convexWorkflow).toContain("sourceGroundedPlanSubworkflowPolicy");
     expect(convexWorkflow).toContain("workflowRunId: args.workflowRunId");

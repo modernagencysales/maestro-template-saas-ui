@@ -16,6 +16,7 @@ export const WorkflowEffectTransitionEvent = Schema.Union(
   Schema.Struct({ kind: Schema.Literal("confirmed") }),
   Schema.Struct({
     kind: Schema.Literal("ambiguous"),
+    phase: Schema.Literal("before-dispatch", "after-dispatch"),
   }),
   Schema.Struct({ kind: Schema.Literal("reconciled-confirmed") }),
   Schema.Struct({ kind: Schema.Literal("manual-review") }),

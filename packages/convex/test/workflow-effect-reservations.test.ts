@@ -90,6 +90,7 @@ describe("workflow effect reservation capabilities", () => {
           logicalEffectKey: input.logicalEffectKey,
           event: {
             kind: "ambiguous",
+            phase: "after-dispatch",
           },
           occurredAt: now + 2,
         },
@@ -126,6 +127,96 @@ describe("workflow effect reservation capabilities", () => {
       providerCorrelationHash: "sha256:provider-1",
     });
     expect(JSON.stringify(result.history)).not.toContain("providerPayload");
+  });
+
+  it("routes a pre-dispatch ambiguity to reconciliation without provider dispatch", async () => {
+    const program = Effect.gen(function* () {
+      const confect = yield* Effect.serviceOptional(
+        TestConfect.TestConfect<typeof databaseSchema>(),
+      );
+      const seeded = yield* confect.run(seedTenancy(now), SeededTenancy);
+      const input = reserveInput(seeded.workspaceId);
+      yield* confect.mutation(
+        refs.internal.workflows.effectReservations.reserve,
+        input,
+      );
+      yield* confect.mutation(
+        refs.internal.workflows.effectReservations.transition,
+        {
+          workspaceId: seeded.workspaceId,
+          logicalEffectKey: input.logicalEffectKey,
+          event: { kind: "ambiguous", phase: "before-dispatch" },
+          occurredAt: now + 1,
+        },
+      );
+      return yield* confect.mutation(
+        refs.internal.workflows.effectReservations.reserve,
+        { ...input, occurredAt: now + 2 },
+      );
+    });
+    const result = await Effect.runPromise(
+      program.pipe(Effect.provide(testConfectLayer())),
+    );
+    expect(result).toMatchObject({
+      state: "ambiguous",
+      decision: { kind: "reconcile" },
+    });
+  });
+
+  it("never reopens an unresolved effect after its dedupe horizon expires", async () => {
+    const program = Effect.gen(function* () {
+      const confect = yield* Effect.serviceOptional(
+        TestConfect.TestConfect<typeof databaseSchema>(),
+      );
+      const seeded = yield* confect.run(seedTenancy(now), SeededTenancy);
+      const input = reserveInput(seeded.workspaceId);
+      yield* confect.mutation(
+        refs.internal.workflows.effectReservations.reserve,
+        input,
+      );
+      return yield* confect.mutation(
+        refs.internal.workflows.effectReservations.reserve,
+        { ...input, occurredAt: input.dedupeExpiresAt + 1 },
+      );
+    });
+    const result = await Effect.runPromise(
+      program.pipe(Effect.provide(testConfectLayer())),
+    );
+    expect(result).toMatchObject({ decision: { kind: "manual-review" } });
+  });
+
+  it("deduplicates concurrent generations onto one logical effect", async () => {
+    const program = Effect.gen(function* () {
+      const confect = yield* Effect.serviceOptional(
+        TestConfect.TestConfect<typeof databaseSchema>(),
+      );
+      const seeded = yield* confect.run(seedTenancy(now), SeededTenancy);
+      const input = reserveInput(seeded.workspaceId);
+      const first = yield* confect.mutation(
+        refs.internal.workflows.effectReservations.reserve,
+        input,
+      );
+      const restarted = yield* confect.mutation(
+        refs.internal.workflows.effectReservations.reserve,
+        { ...input, generation: 1, occurredAt: now + 1 },
+      );
+      const history = yield* confect.query(
+        refs.internal.workflows.effectReservations.history,
+        {
+          workspaceId: seeded.workspaceId,
+          logicalEffectKey: input.logicalEffectKey,
+          limit: 20,
+        },
+      );
+      return { first, restarted, history };
+    });
+    const result = await Effect.runPromise(
+      program.pipe(Effect.provide(testConfectLayer())),
+    );
+    expect(result.first.decision).toEqual({ kind: "dispatch" });
+    expect(result.restarted.decision).toEqual({ kind: "in-flight" });
+    expect(result.history).toHaveLength(1);
+    expect(result.history[0]?.generation).toBe(0);
   });
 
   it("rejects a reservation whose dedupe horizon does not cover restart safety", async () => {

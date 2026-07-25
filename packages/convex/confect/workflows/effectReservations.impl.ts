@@ -31,7 +31,7 @@ const reserve = FunctionImpl.make(
   "reserve",
   (input) =>
     Effect.gen(function* () {
-      yield* validateReservationHorizon(input);
+      yield* validateObservationTime(input.occurredAt);
       const existing = yield* readLatest(
         input.workspaceId,
         input.logicalEffectKey,
@@ -46,9 +46,13 @@ const reserve = FunctionImpl.make(
             state,
             guardResults,
             ownsReservation: false,
+            observedAt: input.occurredAt,
+            dedupeExpiresAt: existing.dedupeExpiresAt,
           }),
         };
       }
+
+      yield* validateReservationHorizon(input);
 
       const state: WorkflowEffectState = deniedGuard(guardResults)
         ? { state: "terminal", reconciliationState: "terminal" }
@@ -191,6 +195,17 @@ const validateReservationHorizon = (input: ReserveInput) =>
           field: "dedupeExpiresAt",
           message:
             "Reservation horizons must be finite, nonnegative, and cover the complete restart-safe window.",
+        }),
+      );
+
+const validateObservationTime = (occurredAt: number) =>
+  Number.isFinite(occurredAt) && occurredAt >= 0
+    ? Effect.void
+    : Effect.fail(
+        new ValidationFailed({
+          field: "occurredAt",
+          message:
+            "Reservation observation time must be finite and nonnegative.",
         }),
       );
 

@@ -44,9 +44,24 @@ export const workflowGeneratorSemanticCoverage = defineWorkflowSemanticCoverage(
     "WF-NODE-ID": generated("WorkflowNode.id", "journal step identity"),
     "WF-NODE-KIND": generated("WorkflowNodeKind", "node executor lookup"),
     "WF-NODE-LABEL": generated("WorkflowNode.label", "receipt projection"),
+    "WF-NODE-FUNCTION-KIND": generated(
+      "workflowNode action/query/mutation constructors",
+      "exact generated registry kind dispatch",
+      "packages/convex/test/workflow-conformance.test.ts",
+    ),
     "WF-NODE-RETRY": generated(
       "WorkflowActionNodeV2.retry with WorkflowEffectContract",
       "exact guarded runAction retry options",
+    ),
+    "WF-FAILURE-COMPENSATION-STEPS": generated(
+      "WorkflowFailurePolicy.steps",
+      "completed-node filtering and reverse-order execution",
+      "packages/convex/test/workflow-conformance.test.ts",
+    ),
+    "WF-FAILURE-COMPENSATION-NODE": generated(
+      "WorkflowCompensationStep.forNodeId",
+      "completed-node filtering before compensation dispatch",
+      "packages/convex/test/workflow-conformance.test.ts",
     ),
     "WF-NODE-TRANSACTION": guardedDefault(
       "workflowNode query/mutation constructors",
@@ -131,6 +146,11 @@ export const workflowGeneratorSemanticCoverage = defineWorkflowSemanticCoverage(
     "WF-STEP-EVENT": generated(
       "runRegisteredWorkflowEvent",
       "ID-bound await and persisted consumed reconciliation",
+      "packages/convex/test/workflow-conformance.test.ts",
+    ),
+    "WF-STEP-ACTION": generated(
+      "workflowNode.action with WorkflowEffectContract",
+      "guarded runAction with stable name and exact retry",
       "packages/convex/test/workflow-conformance.test.ts",
     ),
     "WF-SEND-EVENT": generated(

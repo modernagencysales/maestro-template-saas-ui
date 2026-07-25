@@ -18,6 +18,11 @@ export {
   WorkflowPayloadPolicy,
   WorkflowTransactionLimits,
 } from "./graphNodeSchema";
+export { WorkflowFailurePolicy } from "./_kit/failurePolicy";
+export type {
+  WorkflowFailureRoute,
+  WorkflowSettledFailure,
+} from "./_kit/failurePolicy";
 
 export const DurableWorkflowGraphSchemaFields = defineWorkflowSchemaFields(
   "graph",
@@ -49,7 +54,7 @@ export const WorkflowUnstableArgsPosture = S.Union(
 export const DurableWorkflowGraphV2 = S.Struct({
   schemaVersion: S.Literal(2),
   id: S.NonEmptyString,
-  version: S.Number,
+  version: S.Number.pipe(S.finite(), S.int(), S.greaterThan(0)),
   startNodeId: S.NonEmptyString,
   argsSchemaName: S.NonEmptyString,
   returnSchemaName: S.NonEmptyString,

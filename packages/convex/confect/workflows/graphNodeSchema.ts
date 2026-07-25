@@ -11,6 +11,10 @@ import {
   WorkflowReference,
   WorkflowStepName,
 } from "./_kit/workflowReferences";
+import {
+  WorkflowFailOnlyPolicy,
+  WorkflowFailurePolicy,
+} from "./_kit/failurePolicy";
 
 export const WorkflowNodeKind = S.Literal(
   "source",
@@ -44,20 +48,24 @@ export const WorkflowNode = S.Struct(WorkflowNodeSchemaFields);
 
 export type WorkflowNode = S.Schema.Type<typeof WorkflowNode>;
 
+const PositiveInteger = S.Number.pipe(S.finite(), S.int(), S.greaterThan(0));
+const NonNegativeFinite = S.Number.pipe(S.finite(), S.greaterThanOrEqualTo(0));
+const PositiveFinite = S.Number.pipe(S.finite(), S.greaterThan(0));
+
 export const WorkflowRetryConfigV2 = S.Struct({
-  maxAttempts: S.Number,
-  initialBackoffMs: S.Number,
-  base: S.Number,
+  maxAttempts: PositiveInteger,
+  initialBackoffMs: NonNegativeFinite,
+  base: S.Number.pipe(S.finite(), S.greaterThanOrEqualTo(1)),
 });
 
 export const WorkflowSchedule = S.Union(
-  S.Struct({ kind: S.Literal("runAfter"), delayMs: S.Number }),
-  S.Struct({ kind: S.Literal("runAt"), timestamp: S.Number }),
+  S.Struct({ kind: S.Literal("runAfter"), delayMs: PositiveFinite }),
+  S.Struct({ kind: S.Literal("runAt"), timestamp: NonNegativeFinite }),
 );
 
 export const WorkflowPayloadPolicy = S.Struct({
-  maxInputBytes: S.Number,
-  maxResultBytes: S.Number,
+  maxInputBytes: PositiveInteger,
+  maxResultBytes: PositiveInteger,
   resultMode: S.Literal("inline", "artifact-reference"),
 });
 
@@ -92,6 +100,12 @@ const WorkflowCapabilityV2BaseFields = {
   ...WorkflowNodeV2BaseFields,
   kind: S.Literal("capability"),
   capability: WorkflowCapabilityReference,
+  failurePolicy: WorkflowFailurePolicy,
+} as const;
+
+const WorkflowExecutableV2BaseFields = {
+  ...WorkflowNodeV2BaseFields,
+  failurePolicy: WorkflowFailOnlyPolicy,
 } as const;
 
 export const WorkflowSourceNodeV2 = S.Struct({
@@ -143,20 +157,20 @@ export const WorkflowMutationNodeV2 = S.Union(
 );
 
 export const WorkflowAgentNodeV2 = S.Struct({
-  ...WorkflowNodeV2BaseFields,
+  ...WorkflowExecutableV2BaseFields,
   kind: S.Literal("agent"),
   agent: WorkflowCapabilityReference,
   schedule: S.optional(WorkflowSchedule),
 });
 
 export const WorkflowDelayNodeV2 = S.Struct({
-  ...WorkflowNodeV2BaseFields,
+  ...WorkflowExecutableV2BaseFields,
   kind: S.Literal("delay"),
-  delayMs: S.Number,
+  delayMs: PositiveFinite,
 });
 
 export const WorkflowEventNodeV2 = S.Struct({
-  ...WorkflowNodeV2BaseFields,
+  ...WorkflowExecutableV2BaseFields,
   kind: S.Literal("event"),
   eventDefinition: WorkflowEventReference,
   eventSchemaName: S.NonEmptyString,
@@ -164,10 +178,11 @@ export const WorkflowEventNodeV2 = S.Struct({
 });
 
 export const WorkflowSubworkflowNodeV2 = S.Struct({
-  ...WorkflowNodeV2BaseFields,
+  ...WorkflowExecutableV2BaseFields,
   kind: S.Literal("subworkflow"),
   workflow: WorkflowReference,
-  childVersion: S.Number,
+  childVersion: PositiveInteger,
+  schedule: S.optional(WorkflowSchedule),
 });
 
 export const WorkflowOutputNodeV2 = S.Struct({

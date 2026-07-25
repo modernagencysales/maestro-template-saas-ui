@@ -65,6 +65,7 @@ import {
   inlineTransactionPreset,
   reviewedInlineTransaction,
 } from "../confect/workflows/_kit/inlineTransactions";
+import { workflowFailurePolicy } from "../confect/workflows/_kit/failurePolicy";
 
 describe("Maestro workflow rejection fixtures", () => {
   it.each(adversarialWorkflowDrafts)(
@@ -584,6 +585,7 @@ const eventNode = (overrides: Partial<EventNodeV2> = {}): EventNodeV2 => ({
     resultMode: "inline",
   },
   semanticRuleIds: ["WF-NODE-EVENT-DEFINITION"],
+  failurePolicy: { kind: "fail" },
   ...overrides,
 });
 
@@ -870,7 +872,11 @@ describe("Maestro V2 inline transaction compiler", () => {
         executions.set(nodeId, (executions.get(nodeId) ?? 0) + 1);
         const result =
           nodeId === "branchB"
-            ? Promise.reject(new Error("redacted branch failure"))
+            ? Promise.resolve({
+                _tag: "WorkflowSettledFailure" as const,
+                code: "BRANCH_REJECTED",
+                message: "Branch could not complete.",
+              })
             : Promise.resolve({ branch: "A", committed: true });
         journal.set(name, result);
         return result;
@@ -890,17 +896,6 @@ describe("Maestro V2 inline transaction compiler", () => {
         },
       },
       admitEffect: async () => ({ kind: "deny" as const, reason: "not used" }),
-      failureRoutes: {
-        branchB: {
-          kind: "error-edge" as const,
-          edgeId: "b-output-error",
-          failure: {
-            _tag: "WorkflowSettledFailure" as const,
-            code: "BRANCH_REJECTED",
-            message: "Branch could not complete.",
-          },
-        },
-      },
       projectOutput: ({
         context,
       }: {
@@ -929,6 +924,306 @@ describe("Maestro V2 inline transaction compiler", () => {
     expect([...executions.entries()]).toEqual([
       ["branchA", 1],
       ["branchB", 1],
+    ]);
+  });
+
+  it("preserves an unexpected system rejection instead of routing it", async () => {
+    const systemFailure = new Error("database transport unavailable");
+    const runQuery = vi.fn(
+      async (...[, args]: [unknown, Record<string, unknown>]) =>
+        String(args.nodeId) === "branchB"
+          ? Promise.reject(systemFailure)
+          : { branch: "A", committed: true },
+    );
+    const projectOutput = vi.fn(() => ({ status: "unreachable" }));
+
+    await expect(
+      runDurableGraphWorkflowV2(v2Step({ runQuery }), {
+        ...v2Input(v2SettledFailureGraph()),
+        capabilityRegistry: {
+          [capabilityRef]: {
+            kind: "query",
+            ref: "compiler.v2.query" as unknown as DurableGraphStepRef<"query">,
+            effectClass: "none",
+            buildArgs: ({ node }) => ({ nodeId: node.id }),
+          },
+        },
+        admitEffect: async () => ({ kind: "deny", reason: "not used" }),
+        projectOutput,
+      }),
+    ).rejects.toBe(systemFailure);
+    expect(projectOutput).not.toHaveBeenCalled();
+  });
+
+  it("defers every domain route in a mixed wave until the system rejection can restart", async () => {
+    const systemFailure = new Error("database transport unavailable");
+    const journal = new Map<string, unknown>();
+    let failSystemSiblingOnce = true;
+    const runQuery = vi.fn(
+      async (
+        ...[, args, options]: [
+          unknown,
+          Record<string, unknown>,
+          { name?: string }?,
+        ]
+      ) => {
+        const name = String(options?.name);
+        if (journal.has(name)) return journal.get(name);
+        const nodeId = String(args.nodeId);
+        if (nodeId === "branchA" && failSystemSiblingOnce) {
+          failSystemSiblingOnce = false;
+          throw systemFailure;
+        }
+        const result =
+          nodeId === "branchB"
+            ? {
+                _tag: "WorkflowSettledFailure" as const,
+                code: "BRANCH_REJECTED",
+                message: "Branch could not complete.",
+              }
+            : { branch: "A", committed: true };
+        journal.set(name, result);
+        return result;
+      },
+    );
+    const runAction = vi.fn(async () => ({ compensated: true }));
+    const input = {
+      ...v2Input(v2MixedWaveCompensationGraph()),
+      capabilityRegistry: compensationCapabilityRegistry(),
+      admitEffect: async () => ({ kind: "dispatch" as const }),
+    };
+
+    await expect(
+      runDurableGraphWorkflowV2(v2Step({ runQuery, runAction }), input),
+    ).rejects.toBe(systemFailure);
+    expect(runAction).not.toHaveBeenCalled();
+
+    await expect(
+      runDurableGraphWorkflowV2(v2Step({ runQuery, runAction }), input),
+    ).resolves.toMatchObject({
+      context: {
+        branchB: { code: "BRANCH_REJECTED" },
+      },
+    });
+    expect(runAction).toHaveBeenCalledTimes(1);
+  });
+
+  it("compensates completed steps in reverse order and resumes idempotently after a compensation failure", async () => {
+    const graph = v2CompensationGraph();
+    const queryJournal = new Map<string, unknown>();
+    const actionJournal = new Map<string, unknown>();
+    const queryExecutions: string[] = [];
+    const actionExecutions: string[] = [];
+    let failCompensationOnce = true;
+    const runQuery = vi.fn(
+      async (
+        ...[, args, options]: [
+          unknown,
+          Record<string, unknown>,
+          { name?: string }?,
+        ]
+      ) => {
+        const name = String(options?.name);
+        if (queryJournal.has(name)) return queryJournal.get(name);
+        const nodeId = String(args.nodeId);
+        queryExecutions.push(nodeId);
+        const result =
+          nodeId === "failure"
+            ? {
+                _tag: "WorkflowSettledFailure" as const,
+                code: "ORDER_REJECTED",
+                message: "Order could not complete.",
+              }
+            : { completed: nodeId };
+        queryJournal.set(name, result);
+        return result;
+      },
+    );
+    const compensationFailure = new Error("compensation transport unavailable");
+    const runAction = vi.fn(
+      async (...[, , options]: [unknown, unknown, { name?: string }?]) => {
+        const name = String(options?.name);
+        if (actionJournal.has(name)) return actionJournal.get(name);
+        actionExecutions.push(name);
+        if (name === "compensate-second.v2" && failCompensationOnce) {
+          failCompensationOnce = false;
+          throw compensationFailure;
+        }
+        const result = { compensated: name, detail: "x".repeat(512) };
+        actionJournal.set(name, result);
+        return result;
+      },
+    );
+    const input = {
+      ...v2Input(graph),
+      capabilityRegistry: compensationCapabilityRegistry(),
+      admitEffect: async () => ({ kind: "dispatch" as const }),
+    };
+
+    await expect(
+      runDurableGraphWorkflowV2(v2Step({ runQuery, runAction }), input),
+    ).rejects.toBe(compensationFailure);
+    expect(actionExecutions).toEqual([
+      "compensate-failure.v2",
+      "compensate-second.v2",
+    ]);
+
+    await expect(
+      runDurableGraphWorkflowV2(v2Step({ runQuery, runAction }), input),
+    ).resolves.toMatchObject({
+      context: {
+        failure: {
+          _tag: "WorkflowSettledFailure",
+          code: "ORDER_REJECTED",
+        },
+      },
+    });
+    expect(queryExecutions).toEqual(["first", "second", "failure"]);
+    expect(actionExecutions).toEqual([
+      "compensate-failure.v2",
+      "compensate-second.v2",
+      "compensate-second.v2",
+      "compensate-first.v2",
+    ]);
+  });
+
+  it("does not run compensations for cancellation or another runtime rejection", async () => {
+    const cancellation = new Error("Canceled");
+    const runQuery = vi.fn(
+      async (...[, args]: [unknown, Record<string, unknown>]) =>
+        String(args.nodeId) === "failure"
+          ? Promise.reject(cancellation)
+          : { completed: String(args.nodeId) },
+    );
+    const runAction = vi.fn(async () => ({ compensated: true }));
+
+    await expect(
+      runDurableGraphWorkflowV2(v2Step({ runQuery, runAction }), {
+        ...v2Input(v2CompensationGraph()),
+        capabilityRegistry: compensationCapabilityRegistry(),
+        admitEffect: async () => ({ kind: "dispatch" }),
+      }),
+    ).rejects.toBe(cancellation);
+    expect(runAction).not.toHaveBeenCalled();
+  });
+
+  it("treats a typed compensation result as a replay-stable failed compensation", async () => {
+    const graph = v2CompensationGraph();
+    const queryJournal = new Map<string, unknown>();
+    const actionJournal = new Map<string, unknown>();
+    const actionExecutions: string[] = [];
+    let compensationCanSucceed = false;
+    const runQuery = vi.fn(
+      async (
+        ...[, args, options]: [
+          unknown,
+          Record<string, unknown>,
+          { name?: string }?,
+        ]
+      ) => {
+        const name = String(options?.name);
+        if (queryJournal.has(name)) return queryJournal.get(name);
+        const nodeId = String(args.nodeId);
+        const result =
+          nodeId === "failure"
+            ? {
+                _tag: "WorkflowSettledFailure" as const,
+                code: "ORDER_REJECTED",
+                message: "Order could not complete.",
+              }
+            : { completed: nodeId };
+        queryJournal.set(name, result);
+        return result;
+      },
+    );
+    const typedCompensationFailure = {
+      _tag: "WorkflowSettledFailure" as const,
+      code: "COMPENSATION_REJECTED",
+      message: "Compensation could not complete.",
+    };
+    const runAction = vi.fn(
+      async (...[, , options]: [unknown, unknown, { name?: string }?]) => {
+        const name = String(options?.name);
+        if (actionJournal.has(name)) return actionJournal.get(name);
+        actionExecutions.push(name);
+        const result =
+          name === "compensate-second.v2" && !compensationCanSucceed
+            ? typedCompensationFailure
+            : { compensated: name };
+        actionJournal.set(name, result);
+        return result;
+      },
+    );
+    const input = {
+      ...v2Input(graph),
+      capabilityRegistry: compensationCapabilityRegistry(),
+      admitEffect: async () => ({ kind: "dispatch" as const }),
+    };
+
+    await expect(
+      runDurableGraphWorkflowV2(v2Step({ runQuery, runAction }), input),
+    ).rejects.toMatchObject({
+      name: "WorkflowCompensationFailure",
+      failure: typedCompensationFailure,
+    });
+    await expect(
+      runDurableGraphWorkflowV2(v2Step({ runQuery, runAction }), input),
+    ).rejects.toMatchObject({
+      name: "WorkflowCompensationFailure",
+      failure: typedCompensationFailure,
+    });
+    expect(actionExecutions).toEqual([
+      "compensate-failure.v2",
+      "compensate-second.v2",
+    ]);
+
+    compensationCanSucceed = true;
+    actionJournal.delete("compensate-second.v2");
+    await expect(
+      runDurableGraphWorkflowV2(v2Step({ runQuery, runAction }), input),
+    ).resolves.toMatchObject({
+      context: { failure: { code: "ORDER_REJECTED" } },
+    });
+    expect(actionExecutions).toEqual([
+      "compensate-failure.v2",
+      "compensate-second.v2",
+      "compensate-second.v2",
+      "compensate-first.v2",
+    ]);
+  });
+
+  it("preserves cancellation identity during compensation and stops the reverse plan", async () => {
+    const cancellation = new Error("Canceled");
+    const runQuery = vi.fn(
+      async (...[, args]: [unknown, Record<string, unknown>]) =>
+        String(args.nodeId) === "failure"
+          ? {
+              _tag: "WorkflowSettledFailure" as const,
+              code: "ORDER_REJECTED",
+              message: "Order could not complete.",
+            }
+          : { completed: String(args.nodeId) },
+    );
+    const compensationNames: string[] = [];
+    const runAction = vi.fn(
+      async (...[, , options]: [unknown, unknown, { name?: string }?]) => {
+        const name = String(options?.name);
+        compensationNames.push(name);
+        if (name === "compensate-second.v2") throw cancellation;
+        return { compensated: name };
+      },
+    );
+
+    await expect(
+      runDurableGraphWorkflowV2(v2Step({ runQuery, runAction }), {
+        ...v2Input(v2CompensationGraph()),
+        capabilityRegistry: compensationCapabilityRegistry(),
+        admitEffect: async () => ({ kind: "dispatch" }),
+      }),
+    ).rejects.toBe(cancellation);
+    expect(compensationNames).toEqual([
+      "compensate-failure.v2",
+      "compensate-second.v2",
     ]);
   });
 
@@ -1623,6 +1918,123 @@ describe("Maestro V2 inline transaction compiler", () => {
     );
   });
 
+  it("runs only durable-ledger reconciliation after ambiguous admission", async () => {
+    const providerRef =
+      "compiler.v2.provider" as unknown as DurableGraphStepRef<"action">;
+    const reconciliationRef =
+      "compiler.v2.reconcile" as unknown as DurableGraphStepRef<"action">;
+    const runAction = vi.fn(async (ref) =>
+      ref === reconciliationRef ? { reconciled: true } : { dispatched: true },
+    );
+    const result = await runDurableGraphWorkflowV2(v2Step({ runAction }), {
+      ...v2ExternalInput(v2CapabilityGraph("action")),
+      capabilityRegistry: {
+        [capabilityRef]: {
+          kind: "action",
+          ref: providerRef,
+          effectClass: "external",
+          authorization: externalAuthorization,
+          effectContract: durableLedgerContract,
+          instanceKey: () => "invoice-42",
+          buildArgs: () => ({ provider: true }),
+        },
+        [reconciliationCapabilityRef]: {
+          kind: "action",
+          ref: reconciliationRef,
+          effectClass: "none",
+          effectContract: nonRetriableContract,
+          instanceKey: () => "reconcile-invoice-42",
+          buildArgs: ({ logicalEffectKey }) => ({ logicalEffectKey }),
+        },
+      },
+      admitEffect: async () => ({ kind: "reconcile-ledger" }),
+    });
+    expect(runAction).toHaveBeenCalledOnce();
+    expect(runAction).toHaveBeenCalledWith(
+      reconciliationRef,
+      { logicalEffectKey: expect.stringContaining("effect.v1") },
+      { name: "charge.v2.reconcile", retry: false },
+    );
+    expect(runAction).not.toHaveBeenCalledWith(
+      providerRef,
+      expect.anything(),
+      expect.anything(),
+    );
+    expect(result.context.charge).toEqual({ reconciled: true });
+  });
+
+  it("runs only provider-status reconciliation when that mechanism is declared", async () => {
+    const providerRef =
+      "compiler.v2.provider" as unknown as DurableGraphStepRef<"action">;
+    const reconciliationRef =
+      "compiler.v2.providerStatus" as unknown as DurableGraphStepRef<"action">;
+    const runAction = vi.fn(async (ref) =>
+      ref === reconciliationRef ? { status: "accepted" } : { dispatched: true },
+    );
+    const result = await runDurableGraphWorkflowV2(v2Step({ runAction }), {
+      ...v2ExternalInput(v2CapabilityGraph("action")),
+      capabilityRegistry: {
+        [capabilityRef]: {
+          kind: "action",
+          ref: providerRef,
+          effectClass: "external",
+          authorization: externalAuthorization,
+          effectContract: providerStatusContract,
+          instanceKey: () => "invoice-42",
+          buildArgs: ({ logicalEffectKey }) => ({ logicalEffectKey }),
+        },
+        [providerStatusCapabilityRef]: {
+          kind: "action",
+          ref: reconciliationRef,
+          effectClass: "none",
+          effectContract: nonRetriableContract,
+          instanceKey: () => "provider-status-invoice-42",
+          buildArgs: ({ logicalEffectKey }) => ({ logicalEffectKey }),
+        },
+      },
+      admitEffect: async () => ({ kind: "reconcile-provider-status" }),
+    });
+    expect(runAction).toHaveBeenCalledOnce();
+    expect(runAction).toHaveBeenCalledWith(
+      reconciliationRef,
+      { logicalEffectKey: expect.stringContaining("effect.v1") },
+      { name: "charge.v2.reconcile", retry: false },
+    );
+    expect(runAction).not.toHaveBeenCalledWith(
+      providerRef,
+      expect.anything(),
+      expect.anything(),
+    );
+    expect(result.context.charge).toEqual({ status: "accepted" });
+  });
+
+  it("returns a non-retriable manual-review result without provider dispatch", async () => {
+    const runAction = vi.fn(async () => ({ dispatched: true }));
+    const result = await runDurableGraphWorkflowV2(v2Step({ runAction }), {
+      ...v2ExternalInput(v2CapabilityGraph("action")),
+      capabilityRegistry: {
+        [capabilityRef]: {
+          kind: "action",
+          ref: "compiler.v2.provider" as unknown as DurableGraphStepRef<"action">,
+          effectClass: "external",
+          authorization: externalAuthorization,
+          effectContract: nonRetriableContract,
+          instanceKey: () => "invoice-42",
+          buildArgs: () => ({}),
+        },
+      },
+      admitEffect: async () => ({
+        kind: "manual-review",
+        result: { status: "manual-review", correlationId: "safe-1" },
+      }),
+    });
+    expect(runAction).not.toHaveBeenCalled();
+    expect(result.context.charge).toEqual({
+      status: "manual-review",
+      correlationId: "safe-1",
+    });
+  });
+
   it.each([
     ["omitted", () => ({})],
     ["altered", () => ({ logicalEffectKey: "attacker-controlled" })],
@@ -1996,6 +2408,15 @@ const compilerMappingGraph = (): DurableWorkflowGraph => {
 const capabilityRef = Schema.decodeSync(WorkflowCapabilityReference)(
   "capability.billingCharge.v2",
 );
+const compensateFirstRef = Schema.decodeSync(WorkflowCapabilityReference)(
+  "capability.compensateFirst.v2",
+);
+const compensateSecondRef = Schema.decodeSync(WorkflowCapabilityReference)(
+  "capability.compensateSecond.v2",
+);
+const compensateFailureRef = Schema.decodeSync(WorkflowCapabilityReference)(
+  "capability.compensateFailure.v2",
+);
 
 const childWorkflowRef = Schema.decodeSync(WorkflowReference)(
   "workflow.childReceipt.v3",
@@ -2087,6 +2508,34 @@ const providerNativeContract = {
   guards,
 } satisfies WorkflowEffectContract;
 
+const reconciliationCapabilityRef = Schema.decodeSync(
+  WorkflowCapabilityReference,
+)("capability.reconcileLedger.v1");
+const providerStatusCapabilityRef = Schema.decodeSync(
+  WorkflowCapabilityReference,
+)("capability.reconcileProviderStatus.v1");
+
+const durableLedgerContract = {
+  strategy: "durable-ledger-and-reconcile",
+  effectClass: "external",
+  reconciliationCapabilityRef,
+  reconciliationFixtureRef: "ledger.ambiguity.fixture",
+  dedupeRetentionMs: 200,
+  maxRetryWindowMs: 100,
+  maxRestartWindowMs: 100,
+  redactionPolicyRef: "redaction.fixture",
+  guards,
+} satisfies WorkflowEffectContract;
+
+const providerStatusContract = {
+  ...providerNativeContract,
+  ambiguityResolution: {
+    kind: "provider-status-reconciliation",
+    capabilityRef: providerStatusCapabilityRef,
+    fixtureRef: "provider.status.fixture",
+  },
+} satisfies WorkflowEffectContract;
+
 const nonRetriableContract = {
   strategy: "non-retriable",
   effectClass: "external",
@@ -2140,7 +2589,9 @@ const v2CapabilityGraph = (
   returnSchemaName: "compiler.v2.returns",
   principalSchemaName: "workflow.principal.v1",
   policyPosture: { kind: "none", reason: "fixture" },
-  kickoffProfiles: [{ name: "queued", mode: "queued", default: true }],
+  kickoffProfiles: [
+    { name: "interactive", mode: "eager-first-poll", default: true },
+  ],
   unstableArgs: { enabled: false },
   nodes: [
     {
@@ -2161,6 +2612,7 @@ const v2CapabilityGraph = (
           stepName: "charge.v2",
           payloadPolicy,
           semanticRuleIds: [],
+          failurePolicy: { kind: "fail" },
           ...(retry ? { retry } : {}),
         }
       : {
@@ -2172,6 +2624,7 @@ const v2CapabilityGraph = (
           stepName: "charge.v2",
           payloadPolicy,
           semanticRuleIds: [],
+          failurePolicy: { kind: "fail" },
           transaction: { kind: "independent" },
         },
     {
@@ -2214,6 +2667,7 @@ const v2SubworkflowNode = (maxInputBytes = 1024) => ({
   stepName: Schema.decodeSync(WorkflowStepName)("child.v3"),
   payloadPolicy: { ...payloadPolicy, maxInputBytes },
   semanticRuleIds: ["WF-NODE-SUBWORKFLOW", "WF-NODE-CHILD-VERSION"] as const,
+  failurePolicy: { kind: "fail" as const },
 });
 
 const v2SubworkflowGraph = (maxInputBytes = 1024): DurableWorkflowGraphV2 => {
@@ -2257,6 +2711,7 @@ const v2ParallelGraph = (): DurableWorkflowGraphV2 => ({
       stepName: `${id}.v2`,
       payloadPolicy,
       semanticRuleIds: [],
+      failurePolicy: { kind: "fail" as const },
       transaction: { kind: "independent" as const },
     })),
     {
@@ -2306,6 +2761,21 @@ const v2ConditionalGraph = (): DurableWorkflowGraphV2 => ({
 
 const v2SettledFailureGraph = (): DurableWorkflowGraphV2 => ({
   ...v2ParallelGraph(),
+  nodes: v2ParallelGraph().nodes.map((node) =>
+    node.kind === "capability" && node.id === "branchB"
+      ? {
+          ...node,
+          failurePolicy: workflowFailurePolicy.errorEdge({
+            edgeId: "b-output-error",
+            failure: {
+              _tag: "WorkflowSettledFailure" as const,
+              code: "BRANCH_REJECTED",
+              message: "Branch could not complete.",
+            },
+          }),
+        }
+      : node,
+  ),
   edges: [
     { id: "source-a", sourceNodeId: "source", targetNodeId: "branchA" },
     { id: "source-b", sourceNodeId: "source", targetNodeId: "branchB" },
@@ -2323,6 +2793,143 @@ const v2SettledFailureGraph = (): DurableWorkflowGraphV2 => ({
   ],
 });
 
+const v2CompensationGraph = (): DurableWorkflowGraphV2 => {
+  const graph = v2CapabilityGraph("query");
+  const source = graph.nodes.find((node) => node.kind === "source");
+  const output = graph.nodes.find((node) => node.kind === "output");
+  if (!source || !output)
+    throw new Error("compensation fixture needs endpoints");
+  const queryNode = (id: string) => ({
+    id,
+    kind: "capability" as const,
+    functionKind: "query" as const,
+    capability: capabilityRef,
+    label: id,
+    stepName: Schema.decodeSync(WorkflowStepName)(`${id}.v2`),
+    payloadPolicy: { ...payloadPolicy, maxResultBytes: 256 },
+    semanticRuleIds: ["WF-STEP-QUERY"] as const,
+    failurePolicy: { kind: "fail" as const },
+    transaction: { kind: "independent" as const },
+  });
+  const failure = queryNode("failure");
+  return {
+    ...graph,
+    nodes: [
+      source,
+      queryNode("first"),
+      queryNode("second"),
+      {
+        ...failure,
+        failurePolicy: workflowFailurePolicy.compensation({
+          edgeId: "failure-output-error",
+          failure: {
+            _tag: "WorkflowSettledFailure",
+            code: "ORDER_REJECTED",
+            message: "Order could not complete.",
+          },
+          steps: [
+            {
+              forNodeId: "first",
+              capability: compensateFirstRef,
+              stepName: "compensate-first.v2",
+            },
+            {
+              forNodeId: "second",
+              capability: compensateSecondRef,
+              stepName: "compensate-second.v2",
+            },
+            {
+              forNodeId: "failure",
+              capability: compensateFailureRef,
+              stepName: "compensate-failure.v2",
+            },
+          ],
+        }),
+      },
+      output,
+    ],
+    edges: [
+      { id: "source-first", sourceNodeId: "source", targetNodeId: "first" },
+      { id: "first-second", sourceNodeId: "first", targetNodeId: "second" },
+      {
+        id: "second-failure",
+        sourceNodeId: "second",
+        targetNodeId: "failure",
+      },
+      {
+        id: "failure-output-success",
+        sourceNodeId: "failure",
+        targetNodeId: "output",
+      },
+      {
+        id: "failure-output-error",
+        sourceNodeId: "failure",
+        targetNodeId: "output",
+      },
+    ],
+    joins: [],
+  };
+};
+
+const v2MixedWaveCompensationGraph = (): DurableWorkflowGraphV2 => ({
+  ...v2SettledFailureGraph(),
+  nodes: v2SettledFailureGraph().nodes.map((node) =>
+    node.kind === "capability" && node.id === "branchB"
+      ? {
+          ...node,
+          failurePolicy: workflowFailurePolicy.compensation({
+            edgeId: "b-output-error",
+            failure: {
+              _tag: "WorkflowSettledFailure",
+              code: "BRANCH_REJECTED",
+              message: "Branch could not complete.",
+            },
+            steps: [
+              {
+                forNodeId: "branchB",
+                capability: compensateFailureRef,
+                stepName: "compensate-failure.v2",
+              },
+            ],
+          }),
+        }
+      : node,
+  ),
+});
+
+const compensationCapabilityRegistry = () => ({
+  [capabilityRef]: {
+    kind: "query" as const,
+    ref: "compiler.v2.query" as unknown as DurableGraphStepRef<"query">,
+    effectClass: "none" as const,
+    buildArgs: ({ node }: { readonly node: { readonly id: string } }) => ({
+      nodeId: node.id,
+    }),
+  },
+  ...Object.fromEntries(
+    [compensateFirstRef, compensateSecondRef, compensateFailureRef].map(
+      (reference) => [
+        reference,
+        {
+          kind: "action" as const,
+          ref: `compiler.v2.${reference}` as unknown as DurableGraphStepRef<"action">,
+          effectClass: "none" as const,
+          effectContract: nonRetriableContract,
+          instanceKey: () => "order-42",
+          buildArgs: () => ({}),
+          compensation: {
+            payloadPolicy: {
+              ...payloadPolicy,
+              maxResultBytes: 64_000,
+            },
+            semanticRuleIds: ["WF-STEP-ACTION"] as const,
+          },
+        },
+      ],
+    ),
+  ),
+});
+
 const v2OverBudgetGraph = (): DurableWorkflowGraphV2 => {
   const template = v2ParallelGraph();
   const source = template.nodes.find((node) => node.kind === "source");
@@ -2338,6 +2945,7 @@ const v2OverBudgetGraph = (): DurableWorkflowGraphV2 => {
     stepName: Schema.decodeSync(WorkflowStepName)(`branch${index}.v2`),
     payloadPolicy,
     semanticRuleIds: [],
+    failurePolicy: { kind: "fail" as const },
     transaction: { kind: "independent" as const },
   }));
   return {

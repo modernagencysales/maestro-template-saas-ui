@@ -41,7 +41,7 @@
     "template:add-feature": "tsx tooling/generators/src/index.ts add-feature",
     "template:add-capability": "tsx tooling/generators/src/index.ts add-capability",
     "template:add-table": "tsx tooling/generators/src/index.ts add-table",
-    "template:add-workflow": "tsx tooling/generators/src/index.ts add-workflow",
+    "template:add-workflow": "tsx tooling/generators/src/cli.ts add-workflow",
     "template:bump-workflow": "tsx tooling/generators/src/index.ts bump-workflow",
     "template:bump-capability": "tsx tooling/generators/src/index.ts bump-capability",
     "template:publish-workflow": "tsx tooling/generators/src/index.ts publish-workflow",

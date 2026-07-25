@@ -21,6 +21,12 @@ export type WorkflowSettledFailure = Schema.Schema.Type<
   typeof WorkflowSettledFailure
 >;
 
+export type WorkflowCompensationStep<CapabilityReference, StepName> = {
+  readonly forNodeId: string;
+  readonly capability: CapabilityReference;
+  readonly stepName: StepName;
+};
+
 export type WorkflowFailurePolicy<CapabilityReference, StepName> =
   | { readonly kind: "fail" }
   | {
@@ -31,8 +37,10 @@ export type WorkflowFailurePolicy<CapabilityReference, StepName> =
   | {
       readonly kind: "compensation";
       readonly edgeId: string;
-      readonly capability: CapabilityReference;
-      readonly stepName: StepName;
+      readonly steps: readonly WorkflowCompensationStep<
+        CapabilityReference,
+        StepName
+      >[];
       readonly failure: WorkflowSettledFailure;
     };
 
@@ -68,8 +76,13 @@ export const makeWorkflowFailurePolicySchema = <
     Schema.Struct({
       kind: Schema.Literal("compensation"),
       edgeId: Schema.NonEmptyString,
-      capability: WorkflowCapabilityReference,
-      stepName: WorkflowStepName,
+      steps: Schema.Array(
+        Schema.Struct({
+          forNodeId: Schema.NonEmptyString,
+          capability: WorkflowCapabilityReference,
+          stepName: WorkflowStepName,
+        }),
+      ).pipe(Schema.minItems(1)),
       failure: WorkflowSettledFailure,
     }),
   );

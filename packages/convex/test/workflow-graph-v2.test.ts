@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import {
   decodeDurableWorkflowGraphV2,
   type DurableWorkflowGraphV2,
+  validateWorkflowGraphV2,
 } from "../confect/workflows/graph";
 import { defineWorkflowReferenceRegistry } from "../confect/workflows/_kit/workflowReferences";
 
@@ -114,6 +115,7 @@ describe("durable workflow graph V2 schema", () => {
       stepName: "act.v2",
       payloadPolicy,
       semanticRuleIds: ["WF-STEP-ACTION"],
+      failurePolicy: { kind: "fail" },
       retry: { maxAttempts: 3, initialBackoffMs: 250, base: 2 },
     } as const;
     expect(
@@ -138,18 +140,61 @@ describe("durable workflow graph V2 schema", () => {
     ).toBe(true);
   });
 
-  it("rejects scheduled subworkflows on the pinned component contract", () => {
+  it.each([
+    ["zero attempts", { maxAttempts: 0, initialBackoffMs: 1, base: 2 }],
+    ["fractional attempts", { maxAttempts: 1.5, initialBackoffMs: 1, base: 2 }],
+    ["negative backoff", { maxAttempts: 2, initialBackoffMs: -1, base: 2 }],
+    ["subunit base", { maxAttempts: 2, initialBackoffMs: 1, base: 0.5 }],
+  ])("rejects action retry with %s", (_name, retry) => {
+    expect(
+      Either.isLeft(
+        decodeDurableWorkflowGraphV2({
+          ...validGraph,
+          nodes: [
+            validGraph.nodes[0],
+            {
+              id: "act",
+              kind: "capability",
+              functionKind: "action",
+              capability: refs.capabilities.sendBrief,
+              label: "Send brief",
+              stepName: "act.v2",
+              payloadPolicy,
+              semanticRuleIds: ["WF-NODE-RETRY"],
+              failurePolicy: { kind: "fail" },
+              retry,
+            },
+            validGraph.nodes[1],
+          ],
+        }),
+      ),
+    ).toBe(true);
+  });
+
+  it.each([
+    ["zero child version", { childVersion: 0 }],
+    ["fractional child version", { childVersion: 1.5 }],
+    ["negative payload input", { maxInputBytes: -1 }],
+    ["fractional payload result", { maxResultBytes: 1.5 }],
+  ])("rejects %s", (_name, override) => {
     const child = {
       id: "child",
       kind: "subworkflow",
-      workflow: "childWorkflow",
+      workflow: refs.workflows.child,
       childVersion: 1,
       label: "Child",
       stepName: "child.v1",
-      payloadPolicy,
-      semanticRuleIds: ["WF-CHILD-SCHEDULE"],
-      schedule: { kind: "runAfter", delayMs: 100 },
-    } as const;
+      payloadPolicy: {
+        ...payloadPolicy,
+        ...(Object.hasOwn(override, "maxInputBytes") ||
+        Object.hasOwn(override, "maxResultBytes")
+          ? override
+          : {}),
+      },
+      semanticRuleIds: ["WF-NODE-SUBWORKFLOW"],
+      failurePolicy: { kind: "fail" },
+      ...(Object.hasOwn(override, "childVersion") ? override : {}),
+    };
     expect(
       Either.isLeft(
         decodeDurableWorkflowGraphV2({
@@ -158,6 +203,60 @@ describe("durable workflow graph V2 schema", () => {
         }),
       ),
     ).toBe(true);
+  });
+
+  it("requires every executable node to declare its failure policy", () => {
+    const graph = {
+      ...validGraph,
+      nodes: [
+        validGraph.nodes[0],
+        {
+          id: "act",
+          kind: "capability",
+          functionKind: "query",
+          capability: refs.capabilities.sendBrief,
+          transaction: { kind: "independent" },
+          label: "Read brief",
+          stepName: "act.v2",
+          payloadPolicy,
+          semanticRuleIds: ["WF-NODE-FUNCTION-KIND"],
+        },
+        validGraph.nodes[1],
+      ],
+      edges: [
+        { id: "source_act", sourceNodeId: "source", targetNodeId: "act" },
+        { id: "act_receipt", sourceNodeId: "act", targetNodeId: "receipt" },
+      ],
+    };
+    expect(Either.isLeft(decodeDurableWorkflowGraphV2(graph))).toBe(true);
+  });
+
+  it("rejects scheduled subworkflows on the pinned component contract", () => {
+    const child = {
+      id: "child",
+      kind: "subworkflow",
+      workflow: refs.workflows.child,
+      childVersion: 1,
+      label: "Child",
+      stepName: "child.v1",
+      payloadPolicy,
+      semanticRuleIds: ["WF-CHILD-SCHEDULE"],
+      failurePolicy: { kind: "fail" },
+      schedule: { kind: "runAfter", delayMs: 100 },
+    } as const;
+    const decoded = Either.getOrThrow(
+      decodeDurableWorkflowGraphV2({
+        ...validGraph,
+        nodes: [validGraph.nodes[0], child, validGraph.nodes[1]],
+      }),
+    );
+    expect(validateWorkflowGraphV2(decoded)).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining(
+          "cannot use runAt or runAfter on pinned Workflow 0.4.4",
+        ),
+      ]),
+    );
   });
 
   it("rejects retry on agent nodes", () => {
@@ -175,6 +274,7 @@ describe("durable workflow graph V2 schema", () => {
               stepName: "agent.v2",
               payloadPolicy,
               semanticRuleIds: ["WF-NODE-AGENT"],
+              failurePolicy: { kind: "fail" },
               retry: { maxAttempts: 2, initialBackoffMs: 10, base: 2 },
             },
             validGraph.nodes[1],
