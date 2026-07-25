@@ -44,8 +44,8 @@ not edit by hand.
 | WF-NODE-EVENT-DEFINITION | `graph.nodes[].eventDefinition` | intentionally-restricted | Typed event execution is not enabled by the WP-1.1 bootstrap runner. | Wait for the typed event compiler and ownership fixtures before adding an event node. |
 | WF-NODE-EVENT-SCHEMA | `graph.nodes[].eventSchemaName` | intentionally-restricted | Event validators are recorded but not yet bound to component await/send operations. | Use the generated event path after its compiler and validator fixture land. |
 | WF-NODE-EVENT-INSTANCE | `graph.nodes[].eventInstanceKey` | intentionally-restricted | Event instance ownership is not yet compiled by the V2 bootstrap runner. | Wait for the generated workflow/generation/tenant event ownership boundary. |
-| WF-NODE-SUBWORKFLOW | `graph.nodes[].workflow` | intentionally-restricted | The V2 bootstrap runner rejects executable subworkflow nodes. | Use the starter graph until the unscheduled typed child compiler lands. |
-| WF-NODE-CHILD-VERSION | `graph.nodes[].childVersion` | intentionally-restricted | Child version bindings are validated but not executed by the V2 bootstrap runner. | Use a generated pinned child only after the subworkflow compiler fixtures land. |
+| WF-NODE-SUBWORKFLOW | `graph.nodes[].workflow` | supported | Mapped through the canonical Maestro workflow authoring path. | Use the named typed constructor and rerun pnpm check:workflow:fast. |
+| WF-NODE-CHILD-VERSION | `graph.nodes[].childVersion` | supported | Mapped through the canonical Maestro workflow authoring path. | Use the named typed constructor and rerun pnpm check:workflow:fast. |
 | WF-NODE-RETRY | `graph.nodes[].retry` | supported | Mapped through the canonical Maestro workflow authoring path. | Use the named typed constructor and rerun pnpm check:workflow:fast. |
 | WF-RETRY-MAX-ATTEMPTS | `graph.nodes[].retry.maxAttempts` | supported | Mapped through the canonical Maestro workflow authoring path. | Use the named typed constructor and rerun pnpm check:workflow:fast. |
 | WF-RETRY-BACKOFF | `graph.nodes[].retry.backoffMs` | intentionally-restricted | Backoff is not yet compiled into action retry behavior. | Set backoffMs to 0 or use a reviewed capability-owned retry seam. |
@@ -88,7 +88,7 @@ not edit by hand.
 | WF-STEP-QUERY | `primitive.runQuery` | supported | Mapped through the canonical Maestro workflow authoring path. | Use the named typed constructor and rerun pnpm check:workflow:fast. |
 | WF-STEP-MUTATION | `primitive.runMutation` | supported | Mapped through the canonical Maestro workflow authoring path. | Use the named typed constructor and rerun pnpm check:workflow:fast. |
 | WF-STEP-ACTION | `primitive.runAction` | intentionally-restricted | Actions require explicit retry and idempotency posture not yet compiled. | Use a mutation/query capability or wait for the Phase 1 action strategy compiler. |
-| WF-CHILD-SCHEDULE | `primitive.runWorkflow` | unsupported | Workflow 0.4.4 drops required scheduled-child option propagation. | Schedule a parent capability or use an unscheduled child only after Phase 1 support lands. |
+| WF-CHILD-SCHEDULE | `primitive.runWorkflow` | unsupported | Workflow 0.4.4 drops required scheduled-child option propagation. | Use a named sleep followed by an unscheduled child as an explicitly non-equivalent repair, or adopt a tested compatible Workflow upgrade. |
 | WF-STEP-SLEEP | `primitive.sleep` | supported | Mapped through the canonical Maestro workflow authoring path. | Use the named typed constructor and rerun pnpm check:workflow:fast. |
 | WF-STEP-EVENT | `primitive.awaitEvent` | supported | Mapped through the canonical Maestro workflow authoring path. | Use the named typed constructor and rerun pnpm check:workflow:fast. |
 | WF-START-EAGER | `primitive.start.eagerFirstPoll` | supported | Mapped through the canonical Maestro workflow authoring path. | Use the named typed constructor and rerun pnpm check:workflow:fast. |

@@ -100,6 +100,49 @@ describe("workflow semantics contract", () => {
     ).toBe("intentionally-restricted");
   });
 
+  it("publishes only the guarded unscheduled child workflow slice", () => {
+    expect(
+      WORKFLOW_SEMANTICS.find((rule) => rule.id === "WF-NODE-SUBWORKFLOW"),
+    ).toMatchObject({
+      status: "supported",
+      typedConstructor: "defineWorkflowV2SubworkflowRegistry",
+      compilerMapping: "runRegisteredSubworkflow",
+      fixture: "packages/convex/test/workflow-conformance.test.ts",
+      runtimeGuard: expect.stringMatching(
+        /mapped args.*principal.*result.*cancellation.*cleanup/,
+      ),
+    });
+    expect(
+      WORKFLOW_SEMANTICS.find((rule) => rule.id === "WF-NODE-CHILD-VERSION"),
+    ).toMatchObject({
+      status: "supported",
+      typedConstructor: "defineWorkflowV2SubworkflowRegistry",
+      compilerMapping:
+        "runRegisteredSubworkflow exact generated key/version binding",
+      runtimeGuard: expect.stringMatching(/key.*version/),
+    });
+    expect(
+      WORKFLOW_SEMANTICS.find((rule) => rule.id === "WF-CHILD-SCHEDULE"),
+    ).toMatchObject({
+      status: "unsupported",
+      repair: expect.stringMatching(/named sleep.*non-equivalent/),
+    });
+    expect(
+      WORKFLOW_SEMANTICS.find((rule) => rule.id === "WF-NODE-PAYLOAD-POLICY")
+        ?.status,
+    ).toBe("intentionally-restricted");
+    expect(
+      WORKFLOW_SEMANTICS.find((rule) => rule.id === "WF-PAYLOAD-MAX-INPUT")
+        ?.status,
+    ).toBe("intentionally-restricted");
+    expect(
+      WORKFLOW_SEMANTICS.find((rule) => rule.id === "WF-CANCEL")?.runtimeGuard,
+    ).toMatch(/child.*canceled/);
+    expect(
+      WORKFLOW_SEMANTICS.find((rule) => rule.id === "WF-CLEANUP")?.runtimeGuard,
+    ).toMatch(/residual child.*asynchronous cleanup/);
+  });
+
   it("requires mappings and fixtures for support and repairs for every rule", () => {
     expect(validateWorkflowSemantics(WORKFLOW_SEMANTICS)).toEqual([]);
   });

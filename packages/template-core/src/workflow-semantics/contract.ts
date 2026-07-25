@@ -515,19 +515,21 @@ export const WORKFLOW_SEMANTICS = [
     "Wait for the generated workflow/generation/tenant event ownership boundary.",
     V2_BUILDER_FIXTURE,
   ),
-  restricted(
+  supported(
     "WF-NODE-SUBWORKFLOW",
     "graph.nodes[].workflow",
-    "The V2 bootstrap runner rejects executable subworkflow nodes.",
-    "Use the starter graph until the unscheduled typed child compiler lands.",
-    V2_BUILDER_FIXTURE,
+    "defineWorkflowV2SubworkflowRegistry",
+    "runRegisteredSubworkflow",
+    GRAPH_FIXTURE,
+    "mapped args getConvexSize budget, inherited or grant-narrowed principal, decoded child result validation, child cancellation propagation, and residual child asynchronous cleanup",
   ),
-  restricted(
+  supported(
     "WF-NODE-CHILD-VERSION",
     "graph.nodes[].childVersion",
-    "Child version bindings are validated but not executed by the V2 bootstrap runner.",
-    "Use a generated pinned child only after the subworkflow compiler fixtures land.",
-    V2_BUILDER_FIXTURE,
+    "defineWorkflowV2SubworkflowRegistry",
+    "runRegisteredSubworkflow exact generated key/version binding",
+    GRAPH_FIXTURE,
+    "generated WorkflowReference key suffix and registry version must match node childVersion exactly",
   ),
   supported(
     "WF-NODE-RETRY",
@@ -820,7 +822,7 @@ export const WORKFLOW_SEMANTICS = [
     "WF-CHILD-SCHEDULE",
     "primitive.runWorkflow",
     "Workflow 0.4.4 drops required scheduled-child option propagation.",
-    "Schedule a parent capability or use an unscheduled child only after Phase 1 support lands.",
+    "Use a named sleep followed by an unscheduled child as an explicitly non-equivalent repair, or adopt a tested compatible Workflow upgrade.",
   ),
   supported(
     "WF-STEP-SLEEP",
@@ -856,7 +858,9 @@ export const WORKFLOW_SEMANTICS = [
     "WF-CANCEL",
     "primitive.cancel",
     "workflow control contract",
-    "component cancel",
+    "component cancel with nested workflow cascade",
+    GRAPH_FIXTURE,
+    "public workflow steps show the nested child becomes canceled",
   ),
   supported(
     "WF-RESTART",
@@ -869,6 +873,8 @@ export const WORKFLOW_SEMANTICS = [
     "primitive.cleanup",
     "workflow cleanup contract",
     "batched component cleanup with residual status",
+    GRAPH_FIXTURE,
+    "residual child remains before asynchronous cleanup and is absent after the scheduled drain",
   ),
   supported(
     "WF-LIST",
