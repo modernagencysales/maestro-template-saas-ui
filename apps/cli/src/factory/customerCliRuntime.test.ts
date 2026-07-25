@@ -99,14 +99,26 @@ describe("materialized customer CLI runtime closure", () => {
 
     const preflight = spawnSync(
       "pnpm",
-      ["--silent", "maestro", "--", "preflight", "--mode", "fake", "--json"],
+      [
+        "dlx",
+        "pnpm@10.12.1",
+        "--silent",
+        "maestro",
+        "--",
+        "preflight",
+        "--mode",
+        "fake",
+        "--json",
+      ],
       {
         cwd: target,
         encoding: "utf8",
         timeout: 30_000,
+        env: supportedHostEnvironment,
       },
     );
     expect(preflight.error).toBeUndefined();
+    expect(preflight.status, preflight.stderr).toBe(0);
     expect(() => JSON.parse(preflight.stdout)).not.toThrow();
     expect(preflight.stderr).not.toContain("ERR_MODULE_NOT_FOUND");
 
