@@ -63,10 +63,7 @@ const withGeneratorProvenance = (
     readonly disposition: SystemGeneratorDisposition;
   },
 ): readonly GeneratedFile[] => {
-  const commandFamily =
-    generator === "private-package"
-      ? "template:private-package:import"
-      : `template:${generator}`;
+  const commandFamily = `template:${generator}`;
 
   return [
     ...files,
@@ -105,7 +102,7 @@ const guardedDefault = (constructor: string, compiler: string) => ({
   posture: "guarded-default" as const,
   constructor,
   compiler,
-  fixture: "tooling/generators/src/index.test.ts",
+  fixture: "tooling/generators/src/customer-runtime.test.ts",
 });
 
 const workflowGeneratorSemanticCoverage = {
@@ -141,12 +138,12 @@ const workflowGeneratorSemanticCoverage = {
   "WF-NODE-EVENT-DEFINITION": generated(
     "defineWorkflowEvent + defineWorkflowV2EventRegistry",
     "exact generated event registry entry",
-    "tooling/generators/src/index.test.ts",
+    "tooling/generators/src/customer-runtime.test.ts",
   ),
   "WF-NODE-EVENT-SCHEMA": generated(
     "WorkflowEventDefinition schema + validator",
     "shared generated await and delivery validator",
-    "tooling/generators/src/index.test.ts",
+    "tooling/generators/src/customer-runtime.test.ts",
   ),
   "WF-NODE-EVENT-INSTANCE": generated(
     "WorkflowEventNodeV2.eventInstanceKey + ProductWorkflowEventId",
@@ -222,7 +219,7 @@ const workflowGeneratorSemanticCoverage = {
   "WF-SEND-EVENT": generated(
     "generated workflowContracts.sendEvent selector",
     "authenticated translation to component-owned EventId",
-    "tooling/generators/src/index.test.ts",
+    "tooling/generators/src/customer-runtime.test.ts",
   ),
   "WF-CREATE-EVENT": guardedDefault(
     "generated internal event allocation refs",

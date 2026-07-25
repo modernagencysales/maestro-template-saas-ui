@@ -1,4 +1,4 @@
-import type { TemplateBlueprint } from "../index";
+import type { TemplateBlueprint } from "../customer-runtime";
 
 export const gtmImplementationBlueprint = {
   id: "gtm-implementation",

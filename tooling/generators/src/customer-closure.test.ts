@@ -1,52 +1,47 @@
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
+import { preProcessFile } from "typescript";
 import { describe, expect, it } from "vitest";
-import { buildSaasApplicationFiles } from "./blueprints/saasApplication";
+import { buildSaasApplicationTargetPlan } from "./blueprints/saasApplication";
+
+const sourceDir = dirname(new URL("./customer.ts", import.meta.url).pathname);
+
+const resolveLocal = (from: string, specifier: string): string => {
+  const base = resolve(dirname(from), specifier);
+  const match = [base, `${base}.ts`, `${base}.tsx`, `${base}.mts`, resolve(base, "index.ts")].find(existsSync);
+  if (!match) throw new Error(`Unresolved customer import ${specifier} from ${from}`);
+  return match;
+};
+
+const customerClosure = (): readonly string[] => {
+  const pending = [resolve(sourceDir, "customer.ts"), resolve(sourceDir, "customer-cli.ts")];
+  const visited = new Set<string>();
+  while (pending.length > 0) {
+    const path = pending.pop();
+    if (!path || visited.has(path)) continue;
+    visited.add(path);
+    const source = readFileSync(path, "utf8");
+    expect(path).not.toMatch(/\/src\/index\.ts$/);
+    expect(source).not.toMatch(/saasApplicationFactory|saasRegistrationProjections|tooling\/release|(?:^|\/)releases\/|private-package/);
+    for (const imported of preProcessFile(source, true, true).importedFiles) {
+      if (imported.fileName.startsWith(".")) pending.push(resolveLocal(path, imported.fileName));
+    }
+  }
+  return [...visited];
+};
 
 describe("customer generator closure", () => {
-  it("keeps customer SaaS authoring independent of frozen factory releases", () => {
-    const source = readFileSync(
-      new URL("./blueprints/saasApplication.ts", import.meta.url),
-      "utf8",
+  it("is complete and excludes the factory runtime", () => {
+    const closure = customerClosure();
+    for (const name of ["customer-runtime.ts", "customer-dispatcher.ts", "workflow-files.ts", "workflow-predeploy.ts", "workflow-release-commands.ts"]) {
+      expect(closure).toContain(resolve(sourceDir, name));
+    }
+    const projectedPaths = new Set(
+      buildSaasApplicationTargetPlan().entries.map(({ path }) => path),
     );
-    expect(source).not.toMatch(/saasRegistrationProjections|releases\//);
-
-    const paths = buildSaasApplicationFiles({ name: "Customer App" }).map(
-      ({ path }) => path,
-    );
-    expect(paths).not.toContain("apps/cli/src/factory/customerComposition.ts");
-    expect(paths).not.toContain("package.json");
-    expect(paths).not.toContain("tooling/generators/src/workflow-predeploy.ts");
-  });
-
-  it("keeps the executable and barrel outside factory release assembly", () => {
-    const cli = readFileSync(new URL("./cli.ts", import.meta.url), "utf8");
-    const barrel = readFileSync(new URL("./index.ts", import.meta.url), "utf8");
-    expect(cli).toContain('from "./index"');
-    expect(barrel).not.toContain("process.exitCode");
-
-    const pending = [
-      resolve(dirname(new URL("./cli.ts", import.meta.url).pathname), "cli.ts"),
-      resolve(dirname(new URL("./index.ts", import.meta.url).pathname), "index.ts"),
-    ];
-    const visited = new Set<string>();
-    while (pending.length > 0) {
-      const path = pending.pop();
-      if (!path || visited.has(path)) continue;
-      visited.add(path);
-      const source = readFileSync(path, "utf8");
-      expect(source).not.toMatch(
-        /saasRegistrationProjections|blueprints\/saasApplicationFactory|releases\/|tooling\/release/,
-      );
-      for (const match of source.matchAll(
-        /(?:import|export)\s+(?:[^"']*?\sfrom\s*)?["'](\.[^"']+)["']/g,
-      )) {
-        const specifier = match[1];
-        if (!specifier) continue;
-        const base = resolve(dirname(path), specifier);
-        const candidate = [base, `${base}.ts`, `${base}.tsx`].find(existsSync);
-        if (candidate) pending.push(candidate);
-      }
+    for (const path of closure) {
+      const relative = path.slice(sourceDir.length + 1);
+      expect(projectedPaths).toContain(`tooling/generators/src/${relative}`);
     }
   });
 });

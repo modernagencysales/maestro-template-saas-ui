@@ -31,6 +31,22 @@ const sourceModule = (path: string) =>
   ).href;
 
 describe("saas application blueprint", () => {
+  it("projects only the supported customer generator scripts", () => {
+    const plan = buildSaasApplicationTargetPlan();
+    const packageEntry = plan.entries.find(({ path }) => path === "package.json");
+    if (!packageEntry) throw new Error("missing projected package.json");
+    const scripts = (JSON.parse(packageEntry.content) as { scripts: Record<string, string> }).scripts;
+    expect(scripts["template:add-table"]).toContain("customer-cli.ts");
+    expect(scripts["template:publish-workflow"]).toContain("customer-cli.ts");
+    expect(scripts["template:smoke"]).toContain("customer-cli.ts");
+    for (const name of ["template:init", "template:quickstart", "template:intake", "template:seed-demo", "template:handoff", "template:prototype", "template:add-client-domain", "template:workflow-output-smoke", "template:upgrade", "template:private-package:dry-run", "template:private-package:import"]) {
+      expect(scripts).not.toHaveProperty(name);
+    }
+    expect(plan.entries.map(({ path }) => path)).not.toContain(
+      "tooling/generators/src/index.ts",
+    );
+  });
+
   it("defines a neutral workflow-optional application contract", () => {
     expect(saasApplicationBlueprint).toMatchObject({
       id: "saas-application",

@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import type { GeneratedFile, TemplateBlueprint } from "../index";
+import { buildFactorySaasApplicationFiles } from "./saasApplicationFactory";
 
 export const saasApplicationBlueprint = {
   id: "saas-application",
@@ -281,7 +282,7 @@ export function buildSaasApplicationTargetPlan(): BlueprintTargetPlan {
     ["packages/convex/test/workflow-lifecycle-registration.test.ts", "copy"],
   ]);
   const customerExtensions = new Set(["CLAUDE.md", ".claude/settings.json"]);
-  const entries = buildSaasApplicationFiles({
+  const entries = buildFactorySaasApplicationFiles({
     name: "SaaS Application",
     firstOutcome: "Create and review records",
   })

@@ -10,6 +10,7 @@ import {
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { runCustomerGeneratorCli } from "./customer-dispatcher";
 
 import {
   buildAuthoritativeSourceClosure,
@@ -154,6 +155,22 @@ const rewritten = (
   });
 
 describe("workflow release filesystem authority", () => {
+  it("publishes through the customer lifecycle dispatcher", () => {
+    const { root } = fixture();
+    try {
+      const result = runCustomerGeneratorCli(
+        ["publish-workflow", "--name", "fixture", "--version", "1"],
+        root,
+      );
+      expect(result).toMatchObject({ exitCode: 0, stderr: "" });
+      expect(JSON.parse(result.stdout)).toMatchObject({
+        entry: { lifecycle: "published" },
+      });
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
   it("publishes only when the declared closure matches resolved bytes", () => {
     const { root } = fixture();
     try {
