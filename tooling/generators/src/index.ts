@@ -27,6 +27,7 @@ import {
   renderGeneratedFailureRouteCompiler,
   renderGeneratedWorkflowPredeploySource,
 } from "./workflow-predeploy";
+import { isGeneratorDirectRun } from "./direct-run";
 import { workflowGeneratorSemanticCoverage } from "./workflow-semantic-coverage";
 
 export type ProviderMode = "fake" | "test" | "live";
@@ -4611,10 +4612,7 @@ export const runGeneratorCli = (
   }
 };
 
-if (
-  process.argv[1]?.endsWith("index.ts") ||
-  process.argv[1]?.endsWith("index.js")
-) {
+if (isGeneratorDirectRun(import.meta.url)) {
   const result = runGeneratorCli(process.argv.slice(2));
   process.stdout.write(result.stdout);
   process.stderr.write(result.stderr);

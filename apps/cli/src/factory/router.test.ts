@@ -2,7 +2,7 @@ import {
   AGENT_PACK_EXECUTION_CONTEXT_VERSION,
   defineAgentPackCommand,
 } from "@maestro-template/agent-pack";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   createFactoryCliHandler,
   dispatchFactoryCliCommand,
@@ -81,7 +81,38 @@ describe("factory CLI adapter", () => {
 
   it("leaves unknown commands to the legacy fallback", async () => {
     await expect(
-      dispatchFactoryCliCommand(["legacy-command"], "/fixture"),
+      dispatchFactoryCliCommand([], ["legacy-command"], "/fixture"),
     ).resolves.toBeUndefined();
+  });
+
+  it("injects the registry and preserves the caller cwd for JSON commands", async () => {
+    const run = vi.fn(async (_argv: readonly string[], cwd: string) => ({
+      exitCode: 0 as const,
+      stdout: `${JSON.stringify({ cwd })}\n`,
+      stderr: "",
+    }));
+    const handlers = [{ command: "check", run }];
+
+    const first = await dispatchFactoryCliCommand(
+      handlers,
+      ["check", "--json"],
+      "/tmp/customer-a",
+    );
+    const second = await dispatchFactoryCliCommand(
+      handlers,
+      ["check", "--json"],
+      "/tmp/customer-b",
+    );
+
+    expect(JSON.parse(first?.stdout ?? "{}")).toEqual({
+      cwd: "/tmp/customer-a",
+    });
+    expect(JSON.parse(second?.stdout ?? "{}")).toEqual({
+      cwd: "/tmp/customer-b",
+    });
+    expect(run.mock.calls.map((call) => call[1])).toEqual([
+      "/tmp/customer-a",
+      "/tmp/customer-b",
+    ]);
   });
 });

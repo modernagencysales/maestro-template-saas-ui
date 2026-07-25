@@ -12,7 +12,7 @@ import type { CliResult } from "../types";
 
 export type FactoryCliRenderMode = "human" | "details" | "json";
 
-type FactoryCliHandler = {
+export type FactoryCliHandler = {
   readonly command: string;
   readonly run: (argv: readonly string[], cwd: string) => Promise<CliResult>;
 };
@@ -54,15 +54,11 @@ export function createFactoryCliHandler<
   };
 }
 
-// WP-3.2 registers the first factory command through createFactoryCliHandler.
-const factoryCliHandlers: readonly FactoryCliHandler[] = [];
-
 export async function dispatchFactoryCliCommand(
+  handlers: readonly FactoryCliHandler[],
   argv: readonly string[],
   cwd: string,
 ): Promise<CliResult | undefined> {
-  const handler = factoryCliHandlers.find(
-    (candidate) => candidate.command === argv[0],
-  );
+  const handler = handlers.find((candidate) => candidate.command === argv[0]);
   return handler?.run(argv, cwd);
 }

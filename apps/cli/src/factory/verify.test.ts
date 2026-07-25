@@ -1,6 +1,7 @@
 import {
   AGENT_PACK_COMMAND_VERSION,
   defineAgentPackCommand,
+  type AgentPackJsonValue,
 } from "@maestro-template/agent-pack";
 import { describe, expect, it } from "vitest";
 import { runVerifyCli } from "./verify";
@@ -80,6 +81,34 @@ describe("verify CLI adapter", () => {
     ).resolves.toMatchObject({ exitCode: 0, stdout: "Verification passed.\n" });
   });
 
+  it("passes one explicit provider mode only to check", async () => {
+    const checkCommand = defineAgentPackCommand({
+      id: "check",
+      schemaVersion: AGENT_PACK_COMMAND_VERSION,
+      decode: (input: unknown) => ({ ok: true as const, args: input }),
+      mutationPosture: () => "read-only" as const,
+      execute: async (input) => ({
+        mutationPosture: "read-only" as const,
+        exitClass: "success" as const,
+        summary: "Check passed.",
+        diagnostics: [],
+        data: input as AgentPackJsonValue,
+      }),
+    });
+
+    const result = await runVerifyCli(
+      checkCommand,
+      ["check", "--mode", "test", "--json"],
+      "/fixture",
+    );
+
+    expect(JSON.parse(result.stdout).data).toEqual({
+      mode: "test",
+      scope: "focused",
+      changed: [],
+    });
+  });
+
   it.each([
     ["unknown option", ["verify", "--wat", "--json"]],
     [
@@ -95,6 +124,7 @@ describe("verify CLI adapter", () => {
       "full changed paths",
       ["verify", "--scope", "full", "--changed", "apps/cli", "--json"],
     ],
+    ["verify mode", ["verify", "--mode", "fake", "--json"]],
   ])("fails closed for %s", async (_name, argv) => {
     const result = await runVerifyCli(verifyCommand, argv, "/fixture");
     expect(result.exitCode).toBe(2);

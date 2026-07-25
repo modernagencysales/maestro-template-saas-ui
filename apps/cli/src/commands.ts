@@ -43,6 +43,9 @@ const helpResult = (): CliResult =>
       "maestro-template mcp tools",
       "maestro-template mcp call <toolName>",
       "maestro-template integrations report [fake|test|live]",
+      "maestro preflight [--mode fake|test|live] [--details|--json]",
+      "maestro verify [--scope focused|full] [--changed <paths>] [--details|--json]",
+      "maestro check [--mode fake|test|live] [--changed <paths>] [--details|--json]",
     ].join("\n") + "\n",
   );
 

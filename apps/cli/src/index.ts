@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { runTemplateApiOperation } from "@maestro-template/workflow-tooling";
 import { createCliHandlers } from "./commands";
+import { factoryCliComposition } from "./factory/composition";
 import { dispatchFactoryCliCommand } from "./factory/router";
 import { cliFailure, formatJsonOutput } from "./result";
 import { decodeCliRuntimeConfig, emptyCliRuntimeConfig } from "./runtimeConfig";
@@ -62,8 +63,11 @@ export const runCliAsync = async (
 ): Promise<CliResult> => {
   const normalized = normalizeCliArgv(argv);
   return (
-    (await dispatchFactoryCliCommand(normalized, cwd)) ??
-    dispatchCliCommand(cliHandlers, normalized, config)
+    (await dispatchFactoryCliCommand(
+      factoryCliComposition.handlers,
+      normalized,
+      cwd,
+    )) ?? dispatchCliCommand(cliHandlers, normalized, config)
   );
 };
 

@@ -28,7 +28,7 @@ export function runVerifyCli<
   argv: readonly string[],
   cwd: string,
 ): Promise<CliResult> {
-  const options = parseVerifyCli(argv.slice(1));
+  const options = parseVerifyCli(argv.slice(1), command.id);
   return runAgentPackCommandAsCli(
     command,
     options.input,
@@ -41,19 +41,40 @@ export function runVerifyCli<
   );
 }
 
-function parseVerifyCli(argv: readonly string[]): {
+function parseVerifyCli(
+  argv: readonly string[],
+  commandId: "verify" | "check",
+): {
   readonly input: unknown;
   readonly renderMode: FactoryCliRenderMode;
 } {
   let scope = "focused";
+  let mode = "fake";
   let changed: readonly string[] = [];
   let renderMode: FactoryCliRenderMode = "human";
   let scopeSeen = false;
+  let modeSeen = false;
   let changedSeen = false;
   let renderSeen = false;
   let valid = true;
   for (let index = 0; index < argv.length; index += 1) {
     const token = argv[index];
+    if (token === "--mode") {
+      const value = argv[index + 1];
+      if (
+        commandId !== "check" ||
+        modeSeen ||
+        value === undefined ||
+        value.startsWith("--")
+      ) {
+        valid = false;
+      } else {
+        mode = value;
+        modeSeen = true;
+        index += 1;
+      }
+      continue;
+    }
     if (token === "--scope" || token === "--changed") {
       const value = argv[index + 1];
       const duplicate = token === "--scope" ? scopeSeen : changedSeen;
@@ -88,7 +109,13 @@ function parseVerifyCli(argv: readonly string[]): {
   }
   if (scope === "full" && changed.length > 0) valid = false;
   return {
-    input: valid ? { scope, changed } : { scope: "__invalid__", changed: [] },
+    input: valid
+      ? commandId === "check"
+        ? { mode, scope, changed }
+        : { scope, changed }
+      : commandId === "check"
+        ? { mode: "__invalid__", scope: "focused", changed: [] }
+        : { scope: "__invalid__", changed: [] },
     renderMode,
   };
 }

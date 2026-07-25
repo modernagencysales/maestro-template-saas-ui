@@ -41,6 +41,7 @@ export type DescriptorValidation =
 const UNSAFE_REPAIR =
   /(?:\b(?:edit|change|modify|disable|remove|skip|bypass|weaken)\b.{0,48}\b(?:gate|check|test)\b)|(?:\b(?:gate|check|test)\b.{0,48}\b(?:disable|skip|bypass|weaken)\b)/i;
 const SAFE_ID = /^[a-z0-9][a-z0-9._/-]*$/;
+const SAFE_SEMANTIC_RULE_ID = /^[a-zA-Z0-9][a-zA-Z0-9._/-]*$/;
 const SAFE_DOC =
   /^(?:docs|agent-patterns)\/[a-zA-Z0-9._/-]+\.md(?:#[a-z0-9-]+)?$/;
 const SAFE_SCRIPT = /^[a-z0-9][a-z0-9:_-]*$/;
@@ -90,7 +91,7 @@ export function validateDiagnosticDescriptor(
     }
   }
   for (const semanticRuleId of descriptor.semanticRuleIds ?? []) {
-    if (!SAFE_ID.test(semanticRuleId)) {
+    if (!SAFE_SEMANTIC_RULE_ID.test(semanticRuleId)) {
       return {
         ok: false,
         reason: "semantic rule ids must be stable, path-safe identifiers",
