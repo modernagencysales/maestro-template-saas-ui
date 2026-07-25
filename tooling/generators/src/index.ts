@@ -2389,6 +2389,10 @@ import {
 import { Id } from "../_generated/id";
 import { ProductWorkflowEventId } from "../workflows/_kit/events";
 import { WorkflowStatusResult } from "../workflows/_kit/status";
+import {
+  WorkflowLifecycleRunProjection,
+  WorkflowLifecycleStepProjection,
+} from "../workflows/lifecycle.spec";
 
 const WorkflowErrors = Schema.Union(
   Unauthorized,
@@ -2406,12 +2410,43 @@ const StartArgs = Schema.Struct({
 const StartReturns = Schema.Struct({
   status: Schema.Literal("queued"),
   workflow: Schema.Literal("${name}"),
+  workflowRunId: Id("workflowRuns"),
   componentWorkflowId: Schema.String,
 });
 
 const StatusArgs = Schema.Struct({
   workspaceId: Id("workspaces"),
   componentWorkflowId: Schema.String,
+});
+
+const LifecycleControlArgs = Schema.Struct({
+  workspaceId: Id("workspaces"),
+  workflowRunId: Id("workflowRuns"),
+  reasonCode: Schema.Literal(
+    "operator-request",
+    "recovery",
+    "policy-change",
+    "retention-sweep",
+  ),
+  occurredAt: Schema.Number.pipe(Schema.greaterThanOrEqualTo(0)),
+});
+const Pagination = {
+  cursor: Schema.NullOr(Schema.String),
+  limit: Schema.Number.pipe(
+    Schema.int(),
+    Schema.greaterThan(0),
+    Schema.lessThanOrEqualTo(100),
+  ),
+} as const;
+const LifecycleRunPage = Schema.Struct({
+  page: Schema.Array(WorkflowLifecycleRunProjection),
+  isDone: Schema.Boolean,
+  continueCursor: Schema.String,
+});
+const LifecycleStepPage = Schema.Struct({
+  page: Schema.Array(WorkflowLifecycleStepProjection),
+  isDone: Schema.Boolean,
+  continueCursor: Schema.String,
 });
 
 const SendEventArgs = Schema.Struct({
@@ -2528,6 +2563,145 @@ export const status = defineContractFunction(
   },
 );
 
+const lifecycleContract = <Spec>(
+  spec: Spec,
+  name: string,
+  kind: "query" | "mutation",
+  argsSchema: Schema.Schema.Any,
+  returnsSchema: Schema.Schema.Any,
+  idempotent: boolean,
+) =>
+  defineContractFunction(spec, {
+    namespace: "workflows.${name}",
+    name,
+    operationId: "workflows.${name}." + name,
+    kind,
+    surfaces: ["web", "api", "cli", "mcp"],
+    typedErrors: [
+      "Unauthorized",
+      "MemberNotInWorkspace",
+      "WorkspaceNotFound",
+      "NotFound",
+      "ValidationFailed",
+    ],
+    idempotent,
+    argsSchemaName: "workflows.${name}." + name + ".args",
+    returnsSchemaName: "workflows.${name}." + name + ".returns",
+    argsSchema,
+    returnsSchema,
+  });
+
+const CancelReturns = Schema.Struct({
+  status: Schema.Literal("canceled"),
+  actionMayFinish: Schema.Literal(true),
+});
+export const cancel = lifecycleContract(
+  FunctionSpec.publicMutation({
+    name: "cancel",
+    args: () => LifecycleControlArgs,
+    returns: () => CancelReturns,
+    error: () => WorkflowErrors,
+  }),
+  "cancel",
+  "mutation",
+  LifecycleControlArgs,
+  CancelReturns,
+  false,
+);
+
+const RestartArgs = Schema.Struct({
+  ...LifecycleControlArgs.fields,
+  restartAnchor: Schema.NonEmptyString,
+});
+const RestartReturns = Schema.Struct({
+  generation: Schema.Number.pipe(Schema.int(), Schema.greaterThanOrEqualTo(0)),
+  discardedSteps: Schema.Array(Schema.NonEmptyString),
+});
+export const restart = lifecycleContract(
+  FunctionSpec.publicMutation({
+    name: "restart",
+    args: () => RestartArgs,
+    returns: () => RestartReturns,
+    error: () => WorkflowErrors,
+  }),
+  "restart",
+  "mutation",
+  RestartArgs,
+  RestartReturns,
+  false,
+);
+
+const ListArgs = Schema.Struct({ workspaceId: Id("workspaces"), ...Pagination });
+export const list = lifecycleContract(
+  FunctionSpec.publicQuery({
+    name: "list",
+    args: () => ListArgs,
+    returns: () => LifecycleRunPage,
+    error: () => WorkflowErrors,
+  }),
+  "list",
+  "query",
+  ListArgs,
+  LifecycleRunPage,
+  true,
+);
+
+const ListByNameArgs = Schema.Struct({
+  workspaceId: Id("workspaces"),
+  workflowName: Schema.NonEmptyString,
+  ...Pagination,
+});
+export const listByName = lifecycleContract(
+  FunctionSpec.publicQuery({
+    name: "listByName",
+    args: () => ListByNameArgs,
+    returns: () => LifecycleRunPage,
+    error: () => WorkflowErrors,
+  }),
+  "listByName",
+  "query",
+  ListByNameArgs,
+  LifecycleRunPage,
+  true,
+);
+
+const ListStepsArgs = Schema.Struct({
+  workspaceId: Id("workspaces"),
+  workflowRunId: Id("workflowRuns"),
+  ...Pagination,
+});
+export const listSteps = lifecycleContract(
+  FunctionSpec.publicQuery({
+    name: "listSteps",
+    args: () => ListStepsArgs,
+    returns: () => LifecycleStepPage,
+    error: () => WorkflowErrors,
+  }),
+  "listSteps",
+  "query",
+  ListStepsArgs,
+  LifecycleStepPage,
+  true,
+);
+
+const CleanupReturns = Schema.Struct({
+  status: Schema.Literal("component-cleanup-requested"),
+  fullDeletionProven: Schema.Literal(false),
+});
+export const cleanup = lifecycleContract(
+  FunctionSpec.publicMutation({
+    name: "cleanup",
+    args: () => LifecycleControlArgs,
+    returns: () => CleanupReturns,
+    error: () => WorkflowErrors,
+  }),
+  "cleanup",
+  "mutation",
+  LifecycleControlArgs,
+  CleanupReturns,
+  false,
+);
+
 export const sendEvent = defineContractFunction(
   FunctionSpec.publicMutation({
     name: "sendEvent",
@@ -2556,7 +2730,18 @@ export const sendEvent = defineContractFunction(
   },
 );
 
-const contractFunctions = [startInteractive, startQueued, status, sendEvent] as const;
+const contractFunctions = [
+  startInteractive,
+  startQueued,
+  status,
+  cancel,
+  restart,
+  list,
+  listByName,
+  listSteps,
+  cleanup,
+  sendEvent,
+] as const;
 
 export const manifest = collectContractManifest(contractFunctions);
 export const schemaRegistry = collectContractSchemas(contractFunctions);
@@ -2565,6 +2750,12 @@ export default GroupSpec.make()
   .addFunction(startInteractive.spec)
   .addFunction(startQueued.spec)
   .addFunction(status.spec)
+  .addFunction(cancel.spec)
+  .addFunction(restart.spec)
+  .addFunction(list.spec)
+  .addFunction(listByName.spec)
+  .addFunction(listSteps.spec)
+  .addFunction(cleanup.spec)
   .addFunction(sendEvent.spec);
 `,
     },
@@ -2591,6 +2782,7 @@ import refs from "../_generated/refs";
 import {
   DatabaseReader,
   MutationRunner,
+  QueryRunner,
   QueryCtx,
 } from "../_generated/services";
 import { requireWorkspaceAccess } from "../capabilities/_kit/workspaceAccess";
@@ -2783,10 +2975,12 @@ const startWithProfile = (
         kickoffProfile:
           kickoffProfile === "interactive" ? "eager-first-poll" : "queued",
       }).pipe(Effect.mapError(toWorkflowValidationFailed));
+      const run = yield* findWorkflowRun(workspaceId, componentWorkflowId);
 
       return {
         status: "queued" as const,
         workflow: "${name}" as const,
+        workflowRunId: run._id,
         componentWorkflowId,
       };
   }).pipe(Effect.mapError(toWorkflowError));
@@ -2827,6 +3021,24 @@ const statusImpl = FunctionImpl.make(
         ...(run.timeoutSummary !== undefined
           ? { timeoutSummary: run.timeoutSummary }
           : {}),
+        ...(run.lifecycleExecution !== undefined
+          ? { lifecycleExecution: run.lifecycleExecution }
+          : {}),
+        ...(run.lifecycleGeneration !== undefined
+          ? { lifecycleGeneration: run.lifecycleGeneration }
+          : {}),
+        ...(run.priorGenerationQuiescence !== undefined
+          ? { priorGenerationQuiescence: run.priorGenerationQuiescence }
+          : {}),
+        ...(run.cleanupState !== undefined
+          ? { cleanupState: run.cleanupState }
+          : {}),
+        ...(run.componentCleanupState !== undefined
+          ? { componentCleanupState: run.componentCleanupState }
+          : {}),
+        ...(run.componentResidualState !== undefined
+          ? { componentResidualState: run.componentResidualState }
+          : {}),
       } satisfies WorkflowStatusRunProjection;
 
       return projectWorkflowStatus(rawStatus, runProjection);
@@ -2861,10 +3073,74 @@ const sendEventImpl = FunctionImpl.make(
     }).pipe(Effect.mapError(toWorkflowError)),
 );
 
+const cancelImpl = FunctionImpl.make(databaseSchema, ${name}, "cancel", (args) =>
+  Effect.gen(function* () {
+    const runMutation = yield* MutationRunner;
+    return yield* runMutation(refs.internal.workflows.lifecycle.cancel, args);
+  }).pipe(Effect.mapError(toWorkflowError)),
+);
+
+const restartImpl = FunctionImpl.make(
+  databaseSchema,
+  ${name},
+  "restart",
+  (args) =>
+    Effect.gen(function* () {
+      const runMutation = yield* MutationRunner;
+      return yield* runMutation(refs.internal.workflows.lifecycle.restart, args);
+    }).pipe(Effect.mapError(toWorkflowError)),
+);
+
+const listImpl = FunctionImpl.make(databaseSchema, ${name}, "list", (args) =>
+  Effect.gen(function* () {
+    const runQuery = yield* QueryRunner;
+    return yield* runQuery(refs.internal.workflows.lifecycle.list, args);
+  }).pipe(Effect.mapError(toWorkflowError)),
+);
+
+const listByNameImpl = FunctionImpl.make(
+  databaseSchema,
+  ${name},
+  "listByName",
+  (args) =>
+    Effect.gen(function* () {
+      const runQuery = yield* QueryRunner;
+      return yield* runQuery(refs.internal.workflows.lifecycle.listByName, args);
+    }).pipe(Effect.mapError(toWorkflowError)),
+);
+
+const listStepsImpl = FunctionImpl.make(
+  databaseSchema,
+  ${name},
+  "listSteps",
+  (args) =>
+    Effect.gen(function* () {
+      const runQuery = yield* QueryRunner;
+      return yield* runQuery(refs.internal.workflows.lifecycle.listSteps, args);
+    }).pipe(Effect.mapError(toWorkflowError)),
+);
+
+const cleanupImpl = FunctionImpl.make(
+  databaseSchema,
+  ${name},
+  "cleanup",
+  (args) =>
+    Effect.gen(function* () {
+      const runMutation = yield* MutationRunner;
+      return yield* runMutation(refs.internal.workflows.lifecycle.cleanup, args);
+    }).pipe(Effect.mapError(toWorkflowError)),
+);
+
 export default GroupImpl.make(databaseSchema, ${name}).pipe(
   Layer.provide(startInteractiveImpl),
   Layer.provide(startQueuedImpl),
   Layer.provide(statusImpl),
+  Layer.provide(cancelImpl),
+  Layer.provide(restartImpl),
+  Layer.provide(listImpl),
+  Layer.provide(listByNameImpl),
+  Layer.provide(listStepsImpl),
+  Layer.provide(cleanupImpl),
   Layer.provide(sendEventImpl),
   GroupImpl.finalize,
 );
@@ -3280,7 +3556,7 @@ Canonical system: \`${options.system}\` (\`${options.disposition}\`).
 - \`packages/convex/confect/workflowRunners/${name}.ts\`: Confect-owned plain workflow runner source.
 - \`packages/convex/convex/workflowRunners/${name}.ts\`: reproducible Confect projection; never edit it by hand.
 - \`docs/template/generated/workflows/${name}.semantics.json\`: semantic coverage keyed by executable rule id.
-- \`packages/convex/confect/workflowContracts/${name}.spec.ts\`: typed start, status, and event-control contract.
+- \`packages/convex/confect/workflowContracts/${name}.spec.ts\`: typed start, status, event, cancel, restart, list, step-list, and cleanup contract.
 - \`packages/convex/confect/workflowContracts/${name}.impl.ts\`: Confect implementation that records workflow ownership and projects component status.
 - \`packages/convex/confect/workflows/${name}.graph.ts\`: durable graph data, initially source to Trust Receipt output only.
 - \`packages/convex/confect/workflows/${name}.registry.ts\`: generated typed capability and immutable child-workflow metadata, topology policy, and internal refs; external actions require effect, horizon, guard, redaction, and fixture evidence.
@@ -3298,7 +3574,9 @@ Canonical system: \`${options.system}\` (\`${options.disposition}\`).
 7. Generated subworkflow entries require an immutable child version, typed Args/Result schemas, declared transitive children, principal posture, and \`${name}SubworkflowLinkRefs\`; cycle, depth, and fan-out checks run before child dispatch.
 8. Workflow 0.4.4 scheduled children remain rejected; use a named sleep plus an unscheduled child only as a deliberately non-equivalent alternative.
 9. Query and mutation capabilities use independent Workpool transactions by default. Inline is restricted to declared small atomic work: novice authors choose \`tiny\` or \`small-atomic\`; raw counters require the reviewed advanced constructor. Actions and scheduled steps cannot be inline.
-10. Run \`pnpm check:workflow:fast\`, \`pnpm check:confect-contracts\`, and focused workflow tests.
+10. Cancel is cooperative: an already-running action may finish, and compensation is a separate explicit workflow. Restart refuses unstable anchors, active Workpool/exposed work, and downstream external actions without generation-scoped dedupe evidence.
+11. Cleanup is retention-gated and never claims full component deletion. Schedule bounded calls to \`workflows.lifecycle.sweepRetention\`; pinned Workflow 0.4.4 may leave never-awaited events or failed completion records as explicitly unverifiable residuals.
+12. Run \`pnpm check:workflow:fast\`, \`pnpm check:confect-contracts\`, and focused workflow tests.
 `,
     },
   ];

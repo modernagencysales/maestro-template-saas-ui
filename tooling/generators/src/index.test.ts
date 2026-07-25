@@ -1399,6 +1399,10 @@ describe("template app factory generators", () => {
     expect(registry).toContain("components.workflow.event.create");
     expect(convexWorkflow).toContain("eventRegistry:");
     expect(spec).toContain('name: "sendEvent"');
+    expect(spec).toContain('name: "cancel"');
+    expect(spec).toContain('name: "restart"');
+    expect(spec).toContain('name: "listSteps"');
+    expect(spec).toContain('name: "cleanup"');
     expect(spec).toContain('kind: Schema.Literal("id")');
     expect(spec).toContain('kind: Schema.Literal("definition")');
     expect(spec).not.toContain("const ApproveArgs");
@@ -1442,6 +1446,8 @@ describe("template app factory generators", () => {
 
     expect(impl).toContain("startWorkflowAndRecordOwnership");
     expect(impl).toContain("onCompleteRef: sourceGroundedPlanOnCompleteRef");
+    expect(impl).toContain("refs.internal.workflows.lifecycle.restart");
+    expect(impl).toContain("refs.internal.workflows.lifecycle.cleanup");
     expect(impl).toContain("makeFunctionReference");
     expect(impl).toContain('"workflowRunners/sourceGroundedPlan:run"');
     expect(impl).not.toContain('"workflows/sourceGroundedPlan:run"');
@@ -1455,6 +1461,8 @@ describe("template app factory generators", () => {
     expect(impl).toContain("startedAt:");
     expect(impl).toContain("const runProjection = {");
     expect(impl).toContain("...(run.timeoutSummary !== undefined");
+    expect(impl).toContain("...(run.lifecycleGeneration !== undefined");
+    expect(impl).toContain("...(run.componentResidualState !== undefined");
     expect(impl).toContain(
       "return projectWorkflowStatus(rawStatus, runProjection)",
     );
@@ -1560,6 +1568,8 @@ describe("template app factory generators", () => {
     expect(docs).toContain("reviewed advanced constructor");
     expect(docs).toContain("cycle, depth, and fan-out checks");
     expect(docs).toContain("scheduled children remain rejected");
+    expect(docs).toContain("already-running action may finish");
+    expect(docs).toContain("never claims full component deletion");
     expect(spec).toContain("startInteractive");
     expect(spec).toContain("startQueued");
     expect(spec).not.toContain("kickoffMode");
