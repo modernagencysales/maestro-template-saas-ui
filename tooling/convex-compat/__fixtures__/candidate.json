@@ -1,0 +1,15 @@
+{
+  "name": "workpool-0.4.8",
+  "versions": {
+    "convex": "1.42.3",
+    "workflow": "0.4.4",
+    "workpool": "0.4.8",
+    "convexTest": "0.0.54"
+  },
+  "expected": "fail",
+  "missingProofs": [
+    "workpool-duplicate-completion",
+    "workpool-cancel-race",
+    "fresh-frozen-install"
+  ]
+}

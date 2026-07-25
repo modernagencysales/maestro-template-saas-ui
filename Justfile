@@ -27,6 +27,9 @@ test-tooling:
 test-workflow:
     pnpm test:workflow
 
+test-convex-compat:
+    pnpm test:convex-compat
+
 test-pr-backlog:
     pnpm test:pr-backlog
 
@@ -65,6 +68,9 @@ check-promotion-boundary:
 
 check-convex:
     pnpm check:convex
+
+check-convex-compat:
+    pnpm check:convex-compat
 
 coverage:
     pnpm check:coverage-ratchet

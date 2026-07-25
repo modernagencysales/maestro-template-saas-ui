@@ -551,16 +551,22 @@ export const checkDescriptors = {
     name: "check:confect-compat",
     requirements: [
       {
+        file: "docs/template/convex-compatibility.json",
+        includes: [
+          '"schemaVersion": 1',
+          '"@confect/server": "9.1.5"',
+          '"effect": "3.21.4"',
+          '"convex-test": "0.0.54"',
+        ],
+        message: "machine compatibility authority must pin the tested set",
+      },
+      {
         file: "docs/template/confect-effect-guide.md",
         includes: [
           "@confect/server",
-          "9.1.5",
           "effect",
-          "3.21.4",
           "@effect/platform-node",
-          "0.106.0",
           "convex-test",
-          "0.0.54",
           "check:confect-compat",
         ],
         message:
@@ -568,15 +574,7 @@ export const checkDescriptors = {
       },
       {
         file: "packages/convex/package.json",
-        includes: [
-          '"@confect/core": "9.1.5"',
-          '"@confect/server": "9.1.5"',
-          '"@confect/test": "9.1.5"',
-          '"@effect/platform-node": "0.106.0"',
-          '"convex-test": "0.0.54"',
-          '"confect:codegen"',
-          '"check:convex"',
-        ],
+        includes: ['"confect:codegen"', '"check:convex"'],
         message:
           "Convex package must pin Confect-compatible runtime and codegen scripts",
       },
