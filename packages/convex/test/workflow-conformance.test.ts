@@ -95,6 +95,85 @@ describe("Maestro workflow compiler mapping", () => {
 });
 
 describe("Maestro V2 action retry compiler", () => {
+  it("starts a complete V2 ready wave and waits for its all-successful join", async () => {
+    const started: string[] = [];
+    const resolvers = new Map<string, (value: unknown) => void>();
+    const runQuery = vi.fn(
+      async (_ref: unknown, args: Record<string, unknown>) => {
+        const nodeId = String(args.nodeId);
+        started.push(nodeId);
+        return new Promise((resolve) => resolvers.set(nodeId, resolve));
+      },
+    );
+    const promise = runDurableGraphWorkflowV2(v2Step({ runQuery }), {
+      ...v2Input(v2ParallelGraph()),
+      capabilityRegistry: {
+        [capabilityRef]: {
+          kind: "query",
+          ref: "compiler.v2.query" as unknown as DurableGraphStepRef<"query">,
+          effectClass: "none",
+          buildArgs: ({ node }) => ({ nodeId: node.id }),
+        },
+      },
+      admitEffect: async () => ({ kind: "deny", reason: "not used" }),
+    });
+
+    await vi.waitFor(() => expect(started).toEqual(["branchA", "branchB"]));
+    resolvers.get("branchB")?.({ branch: "B" });
+    let settled = false;
+    void promise.finally(() => {
+      settled = true;
+    });
+    await Promise.resolve();
+    expect(settled).toBe(false);
+    resolvers.get("branchA")?.({ branch: "A" });
+    await expect(promise).resolves.toMatchObject({
+      status: "completed",
+      context: {
+        branchA: { branch: "A" },
+        branchB: { branch: "B" },
+      },
+    });
+    await expect(promise).resolves.toSatisfy(
+      (result) =>
+        Object.keys(result.context).indexOf("branchA") <
+        Object.keys(result.context).indexOf("branchB"),
+    );
+  });
+
+  it("resolves a V2 conditional fan-in from the same edge snapshot", async () => {
+    const runQuery = vi.fn(
+      async (_ref: unknown, args: Record<string, unknown>) => ({
+        nodeId: args.nodeId,
+      }),
+    );
+    await expect(
+      runDurableGraphWorkflowV2(v2Step({ runQuery }), {
+        ...v2Input(v2ConditionalGraph()),
+        inputs: { route: "A" },
+        capabilityRegistry: {
+          [capabilityRef]: {
+            kind: "query",
+            ref: "compiler.v2.query" as unknown as DurableGraphStepRef<"query">,
+            effectClass: "none",
+            buildArgs: ({ node }) => ({ nodeId: node.id }),
+          },
+        },
+        admitEffect: async () => ({ kind: "deny", reason: "not used" }),
+      }),
+    ).resolves.toMatchObject({
+      context: {
+        branchA: { nodeId: "branchA" },
+      },
+    });
+    expect(runQuery).toHaveBeenCalledTimes(1);
+    expect(runQuery).toHaveBeenCalledWith(
+      expect.anything(),
+      { nodeId: "branchA" },
+      { name: "branchA.v2" },
+    );
+  });
+
   it("passes the stable name and exact explicit retry options", async () => {
     const actionRef =
       "compiler.v2.action" as unknown as DurableGraphStepRef<"action">;
@@ -723,6 +802,73 @@ const v2CapabilityGraph = (
   edges: [
     { id: "source-charge", sourceNodeId: "source", targetNodeId: "charge" },
     { id: "charge-output", sourceNodeId: "charge", targetNodeId: "output" },
+  ],
+  joins: [],
+});
+
+const v2ParallelGraph = (): DurableWorkflowGraphV2 => ({
+  ...v2CapabilityGraph("query"),
+  nodes: [
+    {
+      id: "source",
+      kind: "source",
+      label: "Source",
+      stepName: "start.v2",
+      payloadPolicy,
+      semanticRuleIds: [],
+    },
+    ...(["branchA", "branchB"] as const).map((id) => ({
+      id,
+      kind: "capability" as const,
+      functionKind: "query" as const,
+      capability: capabilityRef,
+      label: id,
+      stepName: `${id}.v2`,
+      payloadPolicy,
+      semanticRuleIds: [],
+      transaction: { kind: "independent" as const },
+    })),
+    {
+      id: "output",
+      kind: "output",
+      label: "Output",
+      stepName: "output.v2",
+      payloadPolicy,
+      semanticRuleIds: [],
+    },
+  ],
+  edges: [
+    { id: "source-a", sourceNodeId: "source", targetNodeId: "branchA" },
+    { id: "source-b", sourceNodeId: "source", targetNodeId: "branchB" },
+    { id: "a-output", sourceNodeId: "branchA", targetNodeId: "output" },
+    { id: "b-output", sourceNodeId: "branchB", targetNodeId: "output" },
+  ],
+  joins: [
+    {
+      nodeId: "output",
+      strategy: "all-successful",
+      sourceNodeIds: ["branchA", "branchB"],
+    },
+  ],
+});
+
+const v2ConditionalGraph = (): DurableWorkflowGraphV2 => ({
+  ...v2ParallelGraph(),
+  edges: [
+    {
+      id: "source-a",
+      sourceNodeId: "source",
+      targetNodeId: "branchA",
+      condition: { expression: "inputs.route === 'A'" },
+    },
+    {
+      id: "source-b",
+      sourceNodeId: "source",
+      targetNodeId: "branchB",
+      condition: { expression: "inputs.route === 'B'" },
+    },
+    { id: "a-output", sourceNodeId: "branchA", targetNodeId: "output" },
+    { id: "b-output", sourceNodeId: "branchB", targetNodeId: "output" },
   ],
   joins: [],
 });

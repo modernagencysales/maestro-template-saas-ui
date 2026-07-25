@@ -2,7 +2,11 @@ import { NonRetryableError } from "@convex-dev/workpool";
 import * as Either from "effect/Either";
 
 import { makePublicError } from "../../shared/errors";
-import type { DurableWorkflowGraphV2, WorkflowNodeV2 } from "../graph";
+import {
+  evaluateSafeConditionExpression,
+  type DurableWorkflowGraphV2,
+  type WorkflowNodeV2,
+} from "../graph";
 import {
   deriveLogicalEffectKey,
   validateWorkflowEffectContract,
@@ -10,6 +14,11 @@ import {
   type WorkflowEffectContract,
 } from "./effectReservations";
 import type { DurableGraphStepRef, RunDurableGraphStep } from "./graphRunner";
+import {
+  buildEdgeIndexes,
+  findReadyWave,
+  type TraversalSnapshot,
+} from "./graphRunnerTraversal";
 
 type CapabilityNodeV2 = Extract<WorkflowNodeV2, { kind: "capability" }>;
 type CapabilityKindV2 = CapabilityNodeV2["functionKind"];
@@ -91,24 +100,20 @@ export const runCompiledDurableGraphWorkflowV2 = async <
   step: RunDurableGraphStep,
   input: RunDurableGraphV2CompilerInput<Result>,
 ): Promise<Result> => {
-  const nodes = new Map(input.graph.nodes.map((node) => [node.id, node]));
-  const incoming = new Map<string, string[]>();
-  for (const edge of input.graph.edges) {
-    const sources = incoming.get(edge.targetNodeId) ?? [];
-    sources.push(edge.sourceNodeId);
-    incoming.set(edge.targetNodeId, sources);
-  }
+  const edgeIndexes = buildEdgeIndexes(input.graph.edges);
   const context: Record<string, unknown> = {};
   const completed = new Set<string>();
-  while (completed.size < nodes.size) {
-    const wave = input.graph.nodes.filter(
-      (node) =>
-        !completed.has(node.id) &&
-        (node.id === input.graph.startNodeId ||
-          (incoming.get(node.id) ?? []).every((source) =>
-            completed.has(source),
-          )),
-    );
+  const passedEdges = new Set<string>();
+  const failedEdges = new Set<string>();
+  const traversal: TraversalSnapshot = {
+    incomingByNode: edgeIndexes.incomingByNode,
+    joinsByNode: new Map(input.graph.joins.map((join) => [join.nodeId, join])),
+    completedNodes: completed,
+    passedEdges,
+    failedEdges,
+  };
+  while (true) {
+    const wave = findReadyWave(input.graph.nodes, traversal);
     if (wave.length === 0) {
       throw makePublicError(
         "VALIDATION_FAILED",
@@ -150,14 +155,22 @@ export const runCompiledDurableGraphWorkflowV2 = async <
         outcome.status === "rejected",
     );
     if (failure) throw failure.reason;
+    for (const node of wave) {
+      for (const edge of edgeIndexes.outgoingByNode.get(node.id) ?? []) {
+        const active = edge.condition
+          ? evaluateSafeConditionExpression(edge.condition.expression, {
+              inputs: input.inputs,
+              context,
+              policySnapshot: input.policySnapshot,
+            })
+          : true;
+        (active ? passedEdges : failedEdges).add(edge.id);
+      }
+    }
     if (wave.some((node) => node.kind === "output")) {
       return input.projectOutput({ context });
     }
   }
-  throw makePublicError(
-    "VALIDATION_FAILED",
-    "Workflow graph V2 ended without its output node.",
-  );
 };
 
 const executeNode = async <Result extends Record<string, unknown>>(
