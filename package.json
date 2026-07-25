@@ -22,6 +22,7 @@
     "stack:preflight": "tsx tooling/stack/merge-preflight.mts",
     "stack:merge": "tsx tooling/stack/merge.mts",
     "evals": "pnpm --dir tooling/evals test",
+    "evals:agent-pack": "tsx tooling/agent-pack/evals/walking-skeleton/cli.ts",
     "build": "turbo run build",
     "confect:codegen": "pnpm --dir packages/convex confect:codegen",
     "confect:manifest": "tsx tooling/confect-manifest/src/generate.ts",

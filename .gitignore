@@ -27,3 +27,5 @@ playwright-report/
 
 # Receipt-owned repository-local MCP configuration state
 .maestro/mcp/
+tooling/agent-pack/evals/runs/*/
+tooling/agent-pack/evals/runs/*.json
