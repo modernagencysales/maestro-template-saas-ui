@@ -11,6 +11,7 @@
     "@maestro-template/template-core": "workspace:*"
   },
   "scripts": {
+    "cli": "tsx src/cli.ts",
     "build": "tsc -p tsconfig.json --outDir dist --declaration",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run --passWithNoTests"

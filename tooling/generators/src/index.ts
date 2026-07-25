@@ -28,13 +28,13 @@ import {
   buildSaasApplicationHandoff,
   saasApplicationBlueprint,
 } from "./blueprints/saasApplication";
+import { buildFactorySaasApplicationFiles } from "./blueprints/saasApplicationFactory";
 export {
   buildSaasApplicationFiles,
   buildSaasApplicationTargetPlan,
 } from "./blueprints/saasApplication";
 import { buildWorkflowFiles } from "./workflow-files";
 export { buildWorkflowFiles } from "./workflow-files";
-import { isGeneratorDirectRun } from "./direct-run";
 import { bumpRelease, publishRelease } from "./workflow-release-commands";
 
 export type ProviderMode = "fake" | "test" | "live";
@@ -1151,7 +1151,7 @@ export function buildTemplateQuickstart(
         path: "template-instance.json",
         content: `${JSON.stringify(instance, null, 2)}\n`,
       },
-      ...buildSaasApplicationFiles({ name: instance.name }),
+      ...buildFactorySaasApplicationFiles({ name: instance.name }),
       {
         path: "docs/template/generated/handoff-packet.md",
         content: buildSaasApplicationHandoff(instance.name),
@@ -4300,11 +4300,4 @@ function isGeneratedFile(value: unknown): value is GeneratedFile {
     "content" in value &&
     typeof value.content === "string"
   );
-}
-
-if (isGeneratorDirectRun(import.meta.url)) {
-  const result = runGeneratorCli(process.argv.slice(2));
-  process.stdout.write(result.stdout);
-  process.stderr.write(result.stderr);
-  process.exitCode = result.exitCode;
 }

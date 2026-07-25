@@ -18,10 +18,10 @@ import {
   type WorkflowOptionalTemplateQuickstart,
 } from "../index";
 import {
-  buildSaasApplicationFiles,
   buildSaasApplicationTargetPlan,
   saasApplicationBlueprint,
 } from "./saasApplication";
+import { buildFactorySaasApplicationFiles } from "./saasApplicationFactory";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../../../..");
 const sourceModule = (path: string) =>
@@ -124,8 +124,8 @@ describe("saas application blueprint", () => {
   });
 
   it("emits deterministic workspace-safe CRUD and readiness contracts", async () => {
-    const first = buildSaasApplicationFiles({ name: "My App" });
-    const second = buildSaasApplicationFiles({ name: "My App" });
+    const first = buildFactorySaasApplicationFiles({ name: "My App" });
+    const second = buildFactorySaasApplicationFiles({ name: "My App" });
     expect(first).toEqual(second);
     const customerContext = JSON.parse(
       first.find(
@@ -308,7 +308,7 @@ describe("saas application blueprint", () => {
   });
 
   it("projects a customer-only root script closure", () => {
-    const files = buildSaasApplicationFiles({ name: "My App" });
+    const files = buildFactorySaasApplicationFiles({ name: "My App" });
     const customerContext = JSON.parse(
       files.find(
         ({ path }) => path === "docs/template/customer-context.manifest.json",

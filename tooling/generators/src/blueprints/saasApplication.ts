@@ -1,7 +1,6 @@
 import { readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import type { GeneratedFile, TemplateBlueprint } from "../index";
-import { buildSaasRegistrationProjections } from "./saasRegistrationProjections";
 
 export const saasApplicationBlueprint = {
   id: "saas-application",
@@ -126,7 +125,6 @@ export const buildSaasApplicationFiles = (options: {
       read: { by: "created-id", expectedTitle: "First record" },
     }),
     ...executableSourceFiles(),
-    ...buildSaasRegistrationProjections(),
     jsonFile(
       "generated/blueprints/saas-application/application-contract.json",
       {
