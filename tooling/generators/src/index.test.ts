@@ -1,5 +1,6 @@
 import {
   existsSync,
+  lstatSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -35,8 +36,13 @@ import {
 } from "./index";
 import { gtmImplementationBlueprint } from "./blueprints/gtmImplementation";
 import {
+  copyRepoForSmoke,
+  repoRootFromScript,
   runnerOwnershipFinding,
+  runSmokeCommand,
+  shouldCopyPath,
   smokeWorkflowName,
+  sourceFingerprint,
   workflowOutputSmokeScriptName,
 } from "./workflow-output-smoke";
 
@@ -44,6 +50,64 @@ const testDir = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(testDir, "../../..");
 
 describe("template app factory generators", () => {
+  it("exercises workflow smoke path filtering and tiny-tree copying", () => {
+    const root = mkdtempSync(join(tmpdir(), "workflow-smoke-source-"));
+    const targetParent = mkdtempSync(join(tmpdir(), "workflow-smoke-target-"));
+    const target = join(targetParent, "repo");
+    try {
+      mkdirSync(join(root, "kept"), { recursive: true });
+      mkdirSync(join(root, "node_modules"), { recursive: true });
+      mkdirSync(join(root, "packages/convex"), { recursive: true });
+      writeFileSync(join(root, "kept/value.ts"), "export const value = 1;\n");
+      writeFileSync(join(root, ".env.secret"), "SECRET=hidden\n");
+      writeFileSync(join(root, "node_modules/marker"), "shared\n");
+      writeFileSync(join(root, "packages/convex/.env.local"), "LOCAL=fake\n");
+
+      expect(repoRootFromScript()).toBe(repoRoot);
+      expect(shouldCopyPath(root, root)).toBe(true);
+      expect(shouldCopyPath(root, join(root, "kept/value.ts"))).toBe(true);
+      expect(shouldCopyPath(root, join(root, "node_modules/marker"))).toBe(
+        false,
+      );
+      expect(shouldCopyPath(root, join(root, ".env.secret"))).toBe(false);
+
+      copyRepoForSmoke(root, target);
+      expect(readFileSync(join(target, "kept/value.ts"), "utf8")).toContain(
+        "value = 1",
+      );
+      expect(existsSync(join(target, ".env.secret"))).toBe(false);
+      expect(lstatSync(join(target, "node_modules")).isSymbolicLink()).toBe(
+        true,
+      );
+      expect(
+        readFileSync(join(target, "packages/convex/.env.local"), "utf8"),
+      ).toContain("LOCAL=fake");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+      rmSync(targetParent, { recursive: true, force: true });
+    }
+  });
+
+  it("runs smoke commands and fingerprints their owned source", () => {
+    runSmokeCommand(repoRoot, {
+      label: "fast success",
+      command: process.execPath,
+      args: ["-e", "process.exit(0)"],
+    });
+    expect(() =>
+      runSmokeCommand(repoRoot, {
+        label: "fast failure",
+        command: process.execPath,
+        args: ["-e", "process.exit(3)"],
+      }),
+    ).toThrow("fast failure failed with exit code 3");
+
+    expect(sourceFingerprint("runner-a")).toHaveLength(64);
+    expect(sourceFingerprint("runner-a")).not.toBe(
+      sourceFingerprint("runner-b"),
+    );
+  });
+
   it("detects corrupted and deleted owned runner projections", () => {
     const root = mkdtempSync(join(tmpdir(), "runner-ownership-"));
     const runner = join(root, "runner.ts");

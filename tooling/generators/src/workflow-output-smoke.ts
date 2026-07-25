@@ -45,10 +45,13 @@ const sharedNodeModulePaths = [
 
 const optionalLocalConfigPaths = ["packages/convex/.env.local"] as const;
 
-const repoRootFromScript = (): string =>
+export const repoRootFromScript = (): string =>
   resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 
-const shouldCopyPath = (repoRoot: string, sourcePath: string): boolean => {
+export const shouldCopyPath = (
+  repoRoot: string,
+  sourcePath: string,
+): boolean => {
   if (sourcePath === repoRoot) {
     return true;
   }
@@ -62,7 +65,10 @@ const shouldCopyPath = (repoRoot: string, sourcePath: string): boolean => {
   return !parts.some((part) => part === ".env" || part.startsWith(".env."));
 };
 
-const copyRepoForSmoke = (repoRoot: string, targetRoot: string): void => {
+export const copyRepoForSmoke = (
+  repoRoot: string,
+  targetRoot: string,
+): void => {
   cpSync(repoRoot, targetRoot, {
     recursive: true,
     dereference: false,
@@ -90,7 +96,10 @@ const copyRepoForSmoke = (repoRoot: string, targetRoot: string): void => {
   }
 };
 
-const runSmokeCommand = (tempRepoRoot: string, step: SmokeCommand): void => {
+export const runSmokeCommand = (
+  tempRepoRoot: string,
+  step: SmokeCommand,
+): void => {
   process.stdout.write(`\n[workflow-output-smoke] ${step.label}\n`);
 
   const result = spawnSync(step.command, [...step.args], {
@@ -125,7 +134,7 @@ const runSmokeCommand = (tempRepoRoot: string, step: SmokeCommand): void => {
   }
 };
 
-const sourceFingerprint = (source: string): string =>
+export const sourceFingerprint = (source: string): string =>
   createHash("sha256").update(source).digest("hex");
 
 export const runnerOwnershipFinding = (
