@@ -30,6 +30,10 @@ creates `template-instance.json`; `template:doctor -- --mode fake` expects
 `template-instance.json` and will fail if you only previewed quickstart output.
 Commands without `--write` are dry-run previews.
 
+Before the first write, run `pnpm maestro -- preflight` and follow the
+[preflight readiness guide](./preflight.md) if it reports a blocked target or
+unsupported host posture.
+
 1. Install dependencies with `pnpm install`.
 2. Review `.env.example` and [env-manifest.md](./env-manifest.md). Keep the fake
    defaults unless this is a test/live provider setup. Leave `VITE_CONVEX_URL`

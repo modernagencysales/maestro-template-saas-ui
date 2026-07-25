@@ -18,6 +18,8 @@
   from Maestro frontend primitives into template destinations.
 - `docs/template/quickstart.md`: shortest path from private template to seeded
   B2B AI/GTM app fork.
+- `docs/template/preflight.md`: read-only host, repository, provider, and
+  workflow readiness plus the mutation-safety fingerprint.
 - `docs/template/blueprint-catalog.md`: blueprint families for common
   AI/GTM/client implementation apps.
 - `docs/template/system-catalog.json`: machine-checked canonical system,

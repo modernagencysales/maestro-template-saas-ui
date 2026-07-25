@@ -23,6 +23,9 @@ pnpm maestro -- preflight --human
 Review any reported drift before continuing. Do not run the maintainer-only
 AI-files refresh during normal onboarding.
 
+See the [preflight readiness guide](./preflight.md) for the facts, safety
+boundary, fingerprint, and exact recovery commands behind this read-only check.
+
 ## Optional local plugins
 
 The `maestro` and `maestro-convex` plugins add skill routing only. They contain

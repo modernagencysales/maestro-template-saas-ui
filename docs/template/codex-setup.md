@@ -31,8 +31,12 @@ equivalent repo-native discovery.
 
    ```bash
    pnpm exec convex ai-files status
+   pnpm maestro -- preflight --human
    pnpm --dir tooling/agent-pack test codexInstall
    ```
+
+   The [preflight readiness guide](./preflight.md) explains the read-only result
+   and its exact recovery actions.
 
 The root `.agents/skills/maestro` directory is generated from
 `agent-pack/skills/maestro`. Edit only the canonical source and run the

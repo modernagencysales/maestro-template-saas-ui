@@ -30,3 +30,10 @@ scope was recorded.
 
 `taste` and `contract-review` remain advisory. A deterministic required-gate
 failure is blocking; advisory evidence cannot make a required failure pass.
+
+The machine contract is
+[`schemas/maestro-verification-receipt.schema.json`](../../schemas/maestro-verification-receipt.schema.json).
+Committed [pass](./examples/receipts/pass.json),
+[pass-with-advisories](./examples/receipts/advisory.json), and
+[stale partial-scope](./examples/receipts/stale.json) receipts keep human and
+agent consumers aligned with that versioned shape.
