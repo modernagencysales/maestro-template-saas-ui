@@ -1,8 +1,8 @@
 import type { FunctionReference } from "convex/server";
 import type {
-  EventId as ComponentEventId,
-  WorkflowId as ComponentWorkflowId,
-} from "@convex-dev/workflow";
+  MaestroWorkflowEventId as ComponentEventId,
+  MaestroWorkflowId as ComponentWorkflowId,
+} from "./defineMaestroWorkflow";
 import type { Validator } from "convex/values";
 
 import {

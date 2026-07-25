@@ -1,7 +1,7 @@
-import type { EventId as ComponentEventId } from "@convex-dev/workflow";
 import * as Schema from "effect/Schema";
 
 import { makePublicError } from "../../shared/errors";
+import type { MaestroWorkflowEventId as ComponentEventId } from "./defineMaestroWorkflow";
 import type {
   OwnedWorkflowEvent,
   ProductWorkflowEventId,

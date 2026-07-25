@@ -1,4 +1,4 @@
-import type { GenericId } from "convex/values";
+import { ConvexError, type GenericId } from "convex/values";
 import type * as Context from "effect/Context";
 import * as Data from "effect/Data";
 import * as Effect from "effect/Effect";
@@ -180,7 +180,10 @@ const decodeLifecycleState = (row: {
     row.cleanupState == null ||
     row.componentCleanupState == null
   ) {
-    throw new Error("missing lifecycle state");
+    throw new ConvexError({
+      code: "WORKFLOW_LIFECYCLE_UNAVAILABLE",
+      message: "missing lifecycle state",
+    });
   }
   const expectedAnchor = deriveGenerationAnchor(
     row.workflowId,
@@ -188,7 +191,10 @@ const decodeLifecycleState = (row: {
     row.lifecycleGeneration,
   );
   if (row.lifecycleGenerationAnchor !== expectedAnchor) {
-    throw new Error("invalid generation anchor");
+    throw new ConvexError({
+      code: "WORKFLOW_LIFECYCLE_UNAVAILABLE",
+      message: "invalid generation anchor",
+    });
   }
   const restartAnchor = decodeRestartAnchor(row.lifecycleRestartAnchor ?? null);
   return {

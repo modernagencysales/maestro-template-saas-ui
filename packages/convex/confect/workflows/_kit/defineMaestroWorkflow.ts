@@ -4,7 +4,11 @@ import {
   type WorkflowSemanticRuleId,
 } from "@maestro-template/template-core/workflow-semantics";
 import {
+  defineEvent,
+  sendEvent,
   WorkflowManager,
+  type EventId,
+  type StepDefinition,
   type WorkflowComponent,
   type WorkflowId,
 } from "@convex-dev/workflow";
@@ -14,6 +18,14 @@ import * as Either from "effect/Either";
 
 import type { WorkflowPolicyPosture } from "./policySnapshot";
 import { generatedWorkflowWorkpoolOptions } from "./workpoolConfig";
+
+export const defineMaestroWorkflowEvent = defineEvent;
+export const sendMaestroWorkflowEvent = sendEvent;
+export type MaestroWorkflowComponent = WorkflowComponent;
+export type MaestroWorkflowEventId<Name extends string = string> =
+  EventId<Name>;
+export type MaestroWorkflowId = WorkflowId;
+export type MaestroWorkflowStepDefinition = StepDefinition;
 
 export type WorkflowKickoffProfile = {
   readonly name: string;

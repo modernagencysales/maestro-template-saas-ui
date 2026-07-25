@@ -1,15 +1,15 @@
 import { FunctionImpl, GroupImpl } from "@confect/server";
 import {
-  sendEvent as sendComponentEvent,
-  type WorkflowComponent,
-} from "@convex-dev/workflow";
+  sendMaestroWorkflowEvent as sendComponentEvent,
+  type MaestroWorkflowComponent as WorkflowComponent,
+  type MaestroWorkflowEventId as ComponentEventId,
+} from "./_kit/defineMaestroWorkflow";
 import type { GenericId } from "convex/values";
 import { componentsGeneric } from "convex/server";
 import * as Effect from "effect/Effect";
 import * as Clock from "effect/Clock";
 import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
-import type { EventId as ComponentEventId } from "@convex-dev/workflow";
 import * as Schema from "effect/Schema";
 
 import databaseSchema from "../_generated/schema";
@@ -19,13 +19,7 @@ import {
   MutationCtx,
 } from "../_generated/services";
 import { requireWorkspaceAccess } from "../capabilities/_kit/workspaceAccess";
-import {
-  MemberNotInWorkspace,
-  NotFound,
-  Unauthorized,
-  ValidationFailed,
-  WorkspaceNotFound,
-} from "../errors";
+import { NotFound, Unauthorized, ValidationFailed } from "../errors";
 import {
   allocateWorkflowEventInstance,
   reconcileWorkflowEventInstance,

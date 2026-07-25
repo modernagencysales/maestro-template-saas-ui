@@ -1,13 +1,13 @@
-import {
-  defineEvent,
-  type EventId as ComponentEventId,
-} from "@convex-dev/workflow";
 import type { Infer, Validator } from "convex/values";
 import * as Either from "effect/Either";
 import * as Schema from "effect/Schema";
 
 import { makePublicError } from "../../shared/errors";
 import type { WorkflowNodeV2 } from "../graph";
+import {
+  defineMaestroWorkflowEvent,
+  type MaestroWorkflowEventId as ComponentEventId,
+} from "./defineMaestroWorkflow";
 import {
   WorkflowCapabilityReference,
   type WorkflowCapabilityReference as WorkflowCapabilityReferenceType,
@@ -66,7 +66,10 @@ export const defineWorkflowEvent = <
       "Workflow event definition is invalid.",
     );
   }
-  const shared = defineEvent({ name: input.name, validator: input.validator });
+  const shared = defineMaestroWorkflowEvent({
+    name: input.name,
+    validator: input.validator,
+  });
   return { ...input, ...shared };
 };
 
@@ -146,9 +149,9 @@ export type WorkflowV2EventRegistryEntry<
 };
 
 type AnyWorkflowEventDefinition = WorkflowEventDefinition<
-  any,
+  unknown,
   string,
-  Validator<any, "required", string>
+  Validator<unknown, "required", string>
 >;
 
 export type AnyWorkflowV2EventRegistryEntry = {

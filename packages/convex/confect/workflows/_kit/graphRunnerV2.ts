@@ -29,10 +29,7 @@ import {
   runRegisteredWorkflowEvent,
   type AnyWorkflowV2EventRegistryEntry,
 } from "./events";
-import {
-  assertInlineTransactionPreflight,
-  PINNED_INLINE_CONVEX_VERSION,
-} from "./inlineTransactions";
+import { assertInlineTransactionPreflight } from "./inlineTransactions";
 
 type CapabilityNodeV2 = Extract<WorkflowNodeV2, { kind: "capability" }>;
 type CapabilityKindV2 = CapabilityNodeV2["functionKind"];

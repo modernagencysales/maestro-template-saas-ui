@@ -138,7 +138,7 @@ describe("Maestro workflow compiler mapping", () => {
 describe("Maestro typed event compiler 2A", () => {
   it("journals fresh allocation before awaiting a pre-sent event", async () => {
     const calls: string[] = [];
-    const awaitCall = vi.fn(async (_event: AwaitEventInput) => ({
+    const awaitCall = vi.fn(async () => ({
       approved: true,
     }));
     const step = eventStep(awaitCall, calls);
@@ -190,23 +190,21 @@ describe("Maestro typed event compiler 2A", () => {
     ["generation", { generation: 2 }],
     ["definition", { eventDefinition: otherEventRef }],
     ["instance", { eventInstanceKey: "approval-2" }],
-  ] as const)(
-    "rejects a %s ownership mismatch opaquely",
-    async (_name, mismatch) => {
-      const awaitCall = vi.fn(async () => ({ approved: true }));
-      const owned = { ...ownedApprovalEvent(), ...mismatch };
+  ] as const)("rejects a %s ownership mismatch opaquely", async (...row) => {
+    const [, mismatch] = row;
+    const awaitCall = vi.fn(async () => ({ approved: true }));
+    const owned = { ...ownedApprovalEvent(), ...mismatch };
 
-      await expect(
-        runRegisteredWorkflowEvent({
-          step: eventStep(awaitCall, undefined, () => owned),
-          node: eventNode(),
-          entry: approvalEntry(),
-          ownership: eventRunOwnership,
-        }),
-      ).rejects.toSatisfy(isOpaqueEventFailure);
-      expect(awaitCall).not.toHaveBeenCalled();
-    },
-  );
+    await expect(
+      runRegisteredWorkflowEvent({
+        step: eventStep(awaitCall, undefined, () => owned),
+        node: eventNode(),
+        entry: approvalEntry(),
+        ownership: eventRunOwnership,
+      }),
+    ).rejects.toSatisfy(isOpaqueEventFailure);
+    expect(awaitCall).not.toHaveBeenCalled();
+  });
 
   it("rejects principal or creator-capability drift before await", async () => {
     const awaitCall = vi.fn(async () => ({ approved: true }));
@@ -238,7 +236,7 @@ describe("Maestro typed event compiler 2A", () => {
   });
 
   it("does not cross-deliver concurrent event instances", async () => {
-    const awaitCall = vi.fn(async (_event: AwaitEventInput) => ({
+    const awaitCall = vi.fn(async () => ({
       approved: true,
     }));
     const allocated = new Map([
@@ -775,7 +773,7 @@ describe("Maestro V2 inline transaction compiler", () => {
     const started: string[] = [];
     const resolvers = new Map<string, (value: unknown) => void>();
     const runQuery = vi.fn(
-      async (_ref: unknown, args: Record<string, unknown>) => {
+      async (...[, args]: [unknown, Record<string, unknown>]) => {
         const nodeId = String(args.nodeId);
         started.push(nodeId);
         return new Promise((resolve) => resolvers.set(nodeId, resolve));
@@ -819,7 +817,7 @@ describe("Maestro V2 inline transaction compiler", () => {
 
   it("resolves a V2 conditional fan-in from the same edge snapshot", async () => {
     const runQuery = vi.fn(
-      async (_ref: unknown, args: Record<string, unknown>) => ({
+      async (...[, args]: [unknown, Record<string, unknown>]) => ({
         nodeId: args.nodeId,
       }),
     );
@@ -855,9 +853,11 @@ describe("Maestro V2 inline transaction compiler", () => {
     const executions = new Map<string, number>();
     const runQuery = vi.fn(
       async (
-        _ref: unknown,
-        args: Record<string, unknown>,
-        options?: Record<string, unknown>,
+        ...[, args, options]: [
+          unknown,
+          Record<string, unknown>,
+          Record<string, unknown>?,
+        ]
       ) => {
         const name = String(options?.name);
         const retained = journal.get(name);
@@ -953,12 +953,8 @@ describe("Maestro V2 inline transaction compiler", () => {
 
   it("runs an exact child version with bounded args and inherited principal", async () => {
     const runWorkflow = vi.fn(async () => ({ receiptId: "child-receipt" }));
-    const runMutation = vi.fn(
-      async (
-        ref: DurableGraphStepRef<"mutation">,
-        _args: Record<string, unknown>,
-        _options?: Record<string, unknown>,
-      ) => (ref === childLinkReserveRef ? { linkId: "link-1" } : null),
+    const runMutation = vi.fn(async (ref: DurableGraphStepRef<"mutation">) =>
+      ref === childLinkReserveRef ? { linkId: "link-1" } : null,
     );
     const graph = v2SubworkflowGraph();
 
@@ -1017,42 +1013,40 @@ describe("Maestro V2 inline transaction compiler", () => {
       { maxDepth: 4, maxFanOut: 1 },
       [nestedWorkflowRef, nestedWorkflowRef],
     ],
-  ] as const)(
-    "rejects %s before starting a child",
-    async (_name, policy, children) => {
-      const runWorkflow = vi.fn(async () => ({ receiptId: "unreachable" }));
-      const registry = defineWorkflowV2SubworkflowRegistry({
-        [childWorkflowRef]: defineWorkflowV2Subworkflow({
-          ...childWorkflowEntry,
-          children,
-        }),
-        [nestedWorkflowRef]: defineWorkflowV2Subworkflow({
-          ...childWorkflowEntry,
-          version: 4,
-          children: [],
-        }),
-      });
+  ] as const)("rejects %s before starting a child", async (...row) => {
+    const [, policy, children] = row;
+    const runWorkflow = vi.fn(async () => ({ receiptId: "unreachable" }));
+    const registry = defineWorkflowV2SubworkflowRegistry({
+      [childWorkflowRef]: defineWorkflowV2Subworkflow({
+        ...childWorkflowEntry,
+        children,
+      }),
+      [nestedWorkflowRef]: defineWorkflowV2Subworkflow({
+        ...childWorkflowEntry,
+        version: 4,
+        children: [],
+      }),
+    });
 
-      expect(() =>
-        validateWorkflowV2SubworkflowTopology(
-          v2SubworkflowGraph(),
-          registry,
-          policy,
-        ),
-      ).toThrow();
-      await expect(
-        runDurableGraphWorkflowV2(v2Step({ runWorkflow }), {
-          ...v2Input(v2SubworkflowGraph()),
-          principal: childPrincipal,
-          workflowRegistry: registry,
-          subworkflowPolicy: policy,
-          capabilityRegistry: {},
-          admitEffect: async () => ({ kind: "deny", reason: "not used" }),
-        }),
-      ).rejects.toThrow();
-      expect(runWorkflow).not.toHaveBeenCalled();
-    },
-  );
+    expect(() =>
+      validateWorkflowV2SubworkflowTopology(
+        v2SubworkflowGraph(),
+        registry,
+        policy,
+      ),
+    ).toThrow();
+    await expect(
+      runDurableGraphWorkflowV2(v2Step({ runWorkflow }), {
+        ...v2Input(v2SubworkflowGraph()),
+        principal: childPrincipal,
+        workflowRegistry: registry,
+        subworkflowPolicy: policy,
+        capabilityRegistry: {},
+        admitEffect: async () => ({ kind: "deny", reason: "not used" }),
+      }),
+    ).rejects.toThrow();
+    expect(runWorkflow).not.toHaveBeenCalled();
+  });
 
   it("persists exact parent-child projections and reconciles replay idempotently", () => {
     const projection = childLinkProjection();
@@ -1112,14 +1106,11 @@ describe("Maestro V2 inline transaction compiler", () => {
     ["child cancellation", "Canceled", "canceled"],
   ] as const)(
     "propagates %s without overstating cleanup completion",
-    async (_label, message, expectedOutcome) => {
+    async (...row) => {
+      const [, message, expectedOutcome] = row;
       const runWorkflow = vi.fn(async () => Promise.reject(new Error(message)));
-      const runMutation = vi.fn(
-        async (
-          ref: DurableGraphStepRef<"mutation">,
-          _args: Record<string, unknown>,
-          _options?: Record<string, unknown>,
-        ) => (ref === childLinkReserveRef ? { linkId: "link-1" } : null),
+      const runMutation = vi.fn(async (ref: DurableGraphStepRef<"mutation">) =>
+        ref === childLinkReserveRef ? { linkId: "link-1" } : null,
       );
       await expect(
         runDurableGraphWorkflowV2(v2Step({ runWorkflow, runMutation }), {
@@ -1427,7 +1418,7 @@ describe("Maestro V2 inline transaction compiler", () => {
 
   it("replays a provider-native ambiguity with the identical logical key", async () => {
     const runAction = vi.fn(
-      async (_ref: unknown, args: Record<string, unknown>) => args,
+      async (...[, args]: [unknown, Record<string, unknown>]) => args,
     );
     await runDurableGraphWorkflowV2(v2Step({ runAction }), {
       ...v2Input(
@@ -1461,7 +1452,8 @@ describe("Maestro V2 inline transaction compiler", () => {
     ["altered", () => ({ logicalEffectKey: "attacker-controlled" })],
   ])(
     "rejects a provider-native %s key mapping before dispatch",
-    async (_case, buildArgs) => {
+    async (...row) => {
+      const [, buildArgs] = row;
       const runAction = vi.fn(async () => ({ accepted: true }));
       await expect(
         runDurableGraphWorkflowV2(v2Step({ runAction }), {

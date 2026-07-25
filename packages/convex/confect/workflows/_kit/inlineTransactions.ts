@@ -87,17 +87,25 @@ export const assertInlineTransactionPreflight = (input: {
   readonly capabilityPosture?: "small-atomic" | undefined;
 }): void => {
   if (input.convexVersion !== PINNED_INLINE_CONVEX_VERSION) {
-    throw new Error(
-      `Inline transactions require pinned Convex ${PINNED_INLINE_CONVEX_VERSION}; received ${input.convexVersion}.`,
-    );
+    throw new ConvexError({
+      code: "INVALID_INLINE_TRANSACTION",
+      message: `Inline transactions require pinned Convex ${PINNED_INLINE_CONVEX_VERSION}; received ${input.convexVersion}.`,
+    });
   }
   if (input.capabilityPosture !== "small-atomic") {
-    throw new Error(
-      "Inline transactions require a capability registry entry with small-atomic posture.",
-    );
+    throw new ConvexError({
+      code: "INVALID_INLINE_TRANSACTION",
+      message:
+        "Inline transactions require a capability registry entry with small-atomic posture.",
+    });
   }
   const finding = inlineTransactionFinding(input.transaction);
-  if (finding !== undefined) throw new Error(finding);
+  if (finding !== undefined) {
+    throw new ConvexError({
+      code: "INVALID_INLINE_TRANSACTION",
+      message: finding,
+    });
+  }
 };
 
 const assertInlineTransactionLimits = (
@@ -105,9 +113,10 @@ const assertInlineTransactionLimits = (
 ): void => {
   const entries = Object.entries(limits);
   if (entries.length === 0) {
-    throw new Error(
-      "Inline transaction limits must contain at least one counter.",
-    );
+    throw new ConvexError({
+      code: "INVALID_INLINE_TRANSACTION",
+      message: "Inline transaction limits must contain at least one counter.",
+    });
   }
   for (const [field, value] of entries) {
     if (
@@ -115,7 +124,10 @@ const assertInlineTransactionLimits = (
         field as InlineTransactionLimitField,
       )
     ) {
-      throw new Error(`Unsupported inline transaction limit ${field}.`);
+      throw new ConvexError({
+        code: "INVALID_INLINE_TRANSACTION",
+        message: `Unsupported inline transaction limit ${field}.`,
+      });
     }
     if (
       typeof value !== "number" ||
@@ -123,9 +135,10 @@ const assertInlineTransactionLimits = (
       !Number.isInteger(value) ||
       value <= 0
     ) {
-      throw new Error(
-        `Inline transaction limit ${field} must be a finite positive integer.`,
-      );
+      throw new ConvexError({
+        code: "INVALID_INLINE_TRANSACTION",
+        message: `Inline transaction limit ${field} must be a finite positive integer.`,
+      });
     }
   }
 };
@@ -136,3 +149,4 @@ const sameLimits = (
 ): boolean =>
   JSON.stringify(Object.entries(actual).sort()) ===
   JSON.stringify(Object.entries(expected).sort());
+import { ConvexError } from "convex/values";
