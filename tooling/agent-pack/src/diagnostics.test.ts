@@ -23,7 +23,10 @@ const descriptor: DiagnosticDescriptor = {
 describe("diagnostic registry projection", () => {
   it("preserves canonical registry evidence and semantic rule ids", () => {
     const [registered] = defineDiagnosticRegistryProjection([descriptor]);
-    const projected = projectGateDiagnostic(registered!, {
+    if (registered === undefined) {
+      throw new Error("Expected the diagnostic fixture to be registered.");
+    }
+    const projected = projectGateDiagnostic(registered, {
       status: "fail",
       message: "A workflow node bypasses the generated runner.",
       semanticRuleIds: ["workflow/no-raw-runner"],

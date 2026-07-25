@@ -25,6 +25,10 @@ const base: VerificationReceiptInput = {
     },
   ],
 };
+const baseGate = base.gates[0];
+if (baseGate === undefined) {
+  throw new Error("Expected the receipt fixture to include one gate.");
+}
 
 describe("verification receipt", () => {
   it("binds injected evidence and passes deterministic required gates", () => {
@@ -54,7 +58,7 @@ describe("verification receipt", () => {
       ...base,
       gates: [
         {
-          ...base.gates[0]!,
+          ...baseGate,
           status: "fail",
           semanticRuleIds: ["workflow/no-raw-runner"],
         },
@@ -74,7 +78,7 @@ describe("verification receipt", () => {
       ...base,
       gates: [
         {
-          ...base.gates[0]!,
+          ...baseGate,
           gateId: "taste",
           posture: "advisory",
           status: "fail",
@@ -94,7 +98,7 @@ describe("verification receipt", () => {
       ...base,
       gates: [
         {
-          ...base.gates[0]!,
+          ...baseGate,
           gateId: "provider-smoke",
           evidenceClass: "live-promotion",
           status: "unavailable",
@@ -112,7 +116,7 @@ describe("verification receipt", () => {
       ...base,
       gates: [
         {
-          ...base.gates[0]!,
+          ...baseGate,
           gateId: "contract-review",
           posture: "advisory",
           evidenceClass: "advisory",

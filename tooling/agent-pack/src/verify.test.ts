@@ -38,6 +38,11 @@ const descriptors: readonly DiagnosticDescriptor[] = [
     focusedPathPrefixes: ["apps/web/"],
   },
 ];
+const requiredDescriptor = descriptors[0];
+const advisoryDescriptor = descriptors[1];
+if (requiredDescriptor === undefined || advisoryDescriptor === undefined) {
+  throw new Error("Expected required and advisory diagnostic fixtures.");
+}
 
 const runner = (
   observations: readonly VerificationRunObservation[],
@@ -94,7 +99,7 @@ describe("agent-pack verification command", () => {
   it("samples verification context before and after gate execution", async () => {
     const events: string[] = [];
     const command = createVerifyCommand({
-      descriptors: [descriptors[0]!],
+      descriptors: [requiredDescriptor],
       runner: {
         inspect: async () => {
           events.push("inspect");
@@ -174,7 +179,7 @@ describe("agent-pack verification command", () => {
 
   it("blocks a required failure with canonical repair evidence", async () => {
     const command = createVerifyCommand({
-      descriptors: [descriptors[0]!],
+      descriptors: [requiredDescriptor],
       runner: runner([
         {
           gateId: "agent-pack",
@@ -206,7 +211,7 @@ describe("agent-pack verification command", () => {
 
   it("reports advisory findings without required blocking", async () => {
     const command = createVerifyCommand({
-      descriptors: [descriptors[1]!],
+      descriptors: [advisoryDescriptor],
       runner: runner([
         { gateId: "taste", status: "fail", message: "Review suggested." },
       ]),
@@ -231,7 +236,7 @@ describe("agent-pack verification command", () => {
 
   it("records missing runner evidence as unavailable", async () => {
     const command = createVerifyCommand({
-      descriptors: [descriptors[0]!],
+      descriptors: [requiredDescriptor],
       runner: runner([]),
     });
     const result = await executeAgentPackCommand(
@@ -261,7 +266,7 @@ describe("agent-pack verification command", () => {
     async (_name, field, afterValue) => {
       let inspection = 0;
       const command = createVerifyCommand({
-        descriptors: [descriptors[0]!],
+        descriptors: [requiredDescriptor],
         runner: {
           inspect: async () => {
             const facts = {
@@ -312,7 +317,7 @@ describe("agent-pack verification command", () => {
     "blocks when %s metadata is unavailable",
     async (_name, field, value) => {
       const command = createVerifyCommand({
-        descriptors: [descriptors[0]!],
+        descriptors: [requiredDescriptor],
         runner: {
           inspect: async () => ({
             createdAt: "2026-07-25T12:00:00.000Z",

@@ -45,7 +45,7 @@ const SAFE_SEMANTIC_RULE_ID = /^[a-zA-Z0-9][a-zA-Z0-9._/-]*$/;
 const SAFE_DOC =
   /^(?:docs|agent-patterns)\/[a-zA-Z0-9._/-]+\.md(?:#[a-z0-9-]+)?$/;
 const SAFE_SCRIPT = /^[a-z0-9][a-z0-9:_-]*$/;
-const UNSAFE_ARG = /[\s;&|`$<>*?{}\[\]\\\n\r]/;
+const UNSAFE_ARG = /[\s;&|`$<>*?{}[\]\\\n\r]/;
 
 export function validateDiagnosticDescriptor(
   descriptor: DiagnosticDescriptor,

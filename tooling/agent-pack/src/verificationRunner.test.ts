@@ -30,6 +30,10 @@ const descriptors: readonly DiagnosticDescriptor[] = [
     rerun: ["pnpm", "taste:eval"],
   },
 ];
+const agentPackDescriptor = descriptors[0];
+if (agentPackDescriptor === undefined) {
+  throw new Error("Expected the Agent Pack diagnostic fixture.");
+}
 const repo = createRepositoryContext({ cwd: "/repo" });
 const manifest = (
   verify: string,
@@ -214,7 +218,7 @@ describe("execFile verification runner", () => {
       scope: "full",
       repo,
       changed: [],
-      descriptors: [descriptors[0]!],
+      descriptors: [agentPackDescriptor],
     });
 
     expect(observations).toMatchObject([
@@ -317,7 +321,7 @@ describe("execFile verification runner", () => {
         repo: trustedRepo,
         scope: "full",
         changed: [],
-        descriptors: [descriptors[0]!],
+        descriptors: [agentPackDescriptor],
       });
     }
 
