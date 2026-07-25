@@ -1,0 +1,107 @@
+{
+  "schemaVersion": 1,
+  "convexCliVersion": "1.42.1",
+  "projectDir": ".",
+  "unknownToolPolicy": "fail-closed",
+  "alwaysDisabled": ["envGet", "envList", "envRemove", "envSet"],
+  "forbiddenFlags": [
+    "--prod",
+    "--dangerously-enable-production-deployments",
+    "--cautiously-allow-production-pii"
+  ],
+  "upstreamToolInventory": [
+    "data",
+    "envGet",
+    "envList",
+    "envRemove",
+    "envSet",
+    "functionSpec",
+    "insights",
+    "logs",
+    "run",
+    "runOneoffQuery",
+    "status",
+    "tables"
+  ],
+  "profiles": {
+    "fake": {
+      "launch": "disabled",
+      "deployment": null,
+      "allow": [],
+      "deny": [
+        "data",
+        "envGet",
+        "envList",
+        "envRemove",
+        "envSet",
+        "functionSpec",
+        "insights",
+        "logs",
+        "run",
+        "runOneoffQuery",
+        "status",
+        "tables"
+      ],
+      "effects": ["No MCP configuration or process exists in fake mode."]
+    },
+    "inspect": {
+      "launch": "explicit-opt-in",
+      "deployment": "dev",
+      "allow": ["functionSpec", "insights", "status", "tables"],
+      "deny": [
+        "data",
+        "envGet",
+        "envList",
+        "envRemove",
+        "envSet",
+        "logs",
+        "run",
+        "runOneoffQuery"
+      ],
+      "effects": [
+        "Reads schema, function metadata, deployment status, and operational insights from a personal development deployment.",
+        "Does not read table rows, logs, environment values, or execute functions."
+      ]
+    },
+    "dev-power": {
+      "launch": "explicit-opt-in",
+      "deployment": "dev",
+      "allow": [
+        "data",
+        "functionSpec",
+        "insights",
+        "logs",
+        "run",
+        "runOneoffQuery",
+        "status",
+        "tables"
+      ],
+      "deny": ["envGet", "envList", "envRemove", "envSet"],
+      "effects": [
+        "May read development rows and logs, including personal or provider-derived data.",
+        "May execute development functions and one-off queries; functions can mutate development data.",
+        "Requires an explicit host-local confirmation and is never installed automatically."
+      ]
+    },
+    "production": {
+      "launch": "unsupported",
+      "deployment": null,
+      "allow": [],
+      "deny": [
+        "data",
+        "envGet",
+        "envList",
+        "envRemove",
+        "envSet",
+        "functionSpec",
+        "insights",
+        "logs",
+        "run",
+        "runOneoffQuery",
+        "status",
+        "tables"
+      ],
+      "effects": ["Production Convex MCP access is unsupported."]
+    }
+  }
+}
