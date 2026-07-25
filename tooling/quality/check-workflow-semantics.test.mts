@@ -12,8 +12,16 @@ const repoRoot = resolve(import.meta.dirname, "../..");
 
 describe("check:workflow-semantics", () => {
   it("derives the complete typed graph field inventory", () => {
-    expect(readWorkflowGraphFields()).toHaveLength(23);
-    expect(readWorkflowGraphFields()).toContain("nodes[].retry.maxAttempts");
+    expect(readWorkflowGraphFields()).toHaveLength(68);
+    expect(readWorkflowGraphFields()).toEqual(
+      expect.arrayContaining([
+        "nodes[].retry.maxAttempts",
+        "nodes[].retry.initialBackoffMs",
+        "nodes[].transaction.limits.scheduledFunctionArgsBytes",
+        "kickoffProfiles[].mode",
+        "policyPosture.policyHash",
+      ]),
+    );
   });
 
   it("passes the repository ledger and generated projection", () => {
