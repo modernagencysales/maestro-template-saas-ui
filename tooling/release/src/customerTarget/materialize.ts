@@ -132,7 +132,8 @@ const assertRoots = (request: CustomerMaterializationRequest): string => {
     target === factory ||
     inside(source, target) ||
     inside(factory, target) ||
-    inside(target, source)
+    inside(target, source) ||
+    inside(target, factory)
   ) {
     throw new CustomerMaterializationError(
       "Target must be separate from the factory source",

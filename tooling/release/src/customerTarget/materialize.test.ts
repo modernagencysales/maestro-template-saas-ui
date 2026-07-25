@@ -204,6 +204,19 @@ describe("customer target preview and materialization", () => {
     ).not.toThrow();
   });
 
+  it("rejects an ancestor target containing a separate live factory root", () => {
+    const { request } = fixture();
+    const targetRoot = makeRoot();
+    const factoryRoot = join(targetRoot, "live-factory");
+    mkdirSync(factoryRoot);
+    const before = readdirSync(targetRoot);
+
+    expect(() =>
+      previewCustomerTarget({ ...request, factoryRoot, targetRoot }),
+    ).toThrow("Target must be separate from the factory source");
+    expect(readdirSync(targetRoot)).toEqual(before);
+  });
+
   it("fails on stale hashes or changed preflight without target mutation", () => {
     const { sourceRoot, targetRoot, request } = fixture();
     writeFileSync(join(sourceRoot, "runtime.txt"), "stale\n");
