@@ -1,4 +1,4 @@
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import {
   existsSync,
@@ -35,7 +35,7 @@ describe("create root integration", () => {
     expect(
       digest(join(repoRoot, "releases/v0.2.0-alpha.1/manifest.json")),
     ).toBe(
-      "sha256:a8dc9fbe99edb3b769e6634438acd5b08e5b7b817df3c5ca526f5a6520b1ce34",
+      "sha256:5f08193483a45f44410bce04a4e48e935aa04833bbb15b6259174a6f8bfd72ba",
     );
     expect(
       digest(
@@ -45,11 +45,11 @@ describe("create root integration", () => {
         ),
       ),
     ).toBe(
-      "sha256:0a0a557cb0b3be60c3593ec307b4aa4c17c2f0b4ff108ccca195f75edac10278",
+      "sha256:d7a08d403e980cc6f64dba7775accdd72db581e2b3573d6a83048ec599f911f4",
     );
   });
 
-  it("registers the exact seven-command factory inventory", () => {
+  it("registers the exact ten-command factory inventory", () => {
     expect(
       createFactoryCliComposition(() => ({})).handlers.map(
         ({ command }) => command,
@@ -57,6 +57,9 @@ describe("create root integration", () => {
     ).toEqual([
       "create",
       "start",
+      "add",
+      "recipes",
+      "doctor",
       "preflight",
       "verify",
       "check",
@@ -179,7 +182,7 @@ describe("create root integration", () => {
         "dir",
       );
     }
-    execFileSync(
+    const convexCompile = spawnSync(
       "pnpm",
       [
         "exec",
@@ -190,8 +193,21 @@ describe("create root integration", () => {
         join(targetRoot, "packages/convex/dist"),
         "--declaration",
       ],
-      { cwd: targetRoot, stdio: "pipe" },
+      { cwd: targetRoot, encoding: "utf8" },
     );
+    expect(
+      convexCompile.status,
+      `${convexCompile.stdout}\n${convexCompile.stderr}`,
+    ).toBe(0);
+    for (const gate of [
+      "check:workflow-policy-snapshots",
+      "check:workflow-principal-propagation",
+    ]) {
+      execFileSync("pnpm", ["run", gate], {
+        cwd: targetRoot,
+        stdio: "pipe",
+      });
+    }
     const webTargetConfig = join(parent, "web-target-tsconfig.json");
     writeFileSync(
       webTargetConfig,

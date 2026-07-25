@@ -3,7 +3,7 @@
   "id": "saas-application",
   "provenance": "@maestro-template/generators/saas-application@1",
   "projectionSource": {
-    "sourceCommit": "10516dfc7470d9cfa68b250550576298f76042f4",
+    "sourceCommit": "acc2fa00af6e346fffbdbff36e9c07a6e75c0497",
     "assets": [
       {
         "path": "base/apps/cli/src/factory/customerComposition.ts.txt",
@@ -306,6 +306,10 @@
         "sha256": "sha256:4aadb60928900040e69d325063f9e332eae567ba1c4f4b08cd459e1e2c9df388"
       },
       {
+        "path": "base/packages/convex/confect/_generated/docs.ts.txt",
+        "sha256": "sha256:46f0dbab52627a285427bfce95998eae0153f8d96df5e00d147350e3a1824293"
+      },
+      {
         "path": "base/packages/convex/confect/_generated/id.ts.txt",
         "sha256": "sha256:02ffab67bde66d949c0973c9da2f8391a7951e4bde3a1734a6849c68c4f0da94"
       },
@@ -318,12 +322,64 @@
         "sha256": "sha256:c95ae9a907e034edf7c82e7d00515f76f98c04c3618a4a68e51db2d4f0d1cd9e"
       },
       {
+        "path": "base/packages/convex/confect/_generated/tables/workflowArtifacts.ts.txt",
+        "sha256": "sha256:9c168f15312f6bc69a53f5dbd1eb42620cc13c54d79c1736c0ce0bebd8fa6472"
+      },
+      {
+        "path": "base/packages/convex/confect/ops/dataResources.generated.ts.txt",
+        "sha256": "sha256:319e6f06d89aa9a21a2925a514cfa11616407f069fa5d0bb9aa7f2d10b27a2e9"
+      },
+      {
+        "path": "base/packages/convex/confect/tables/workflowArtifacts.ts.txt",
+        "sha256": "sha256:f1da4e74fa10a4cb12a72be7cfbdc4884cae556a1df0f205cd367e4edaa69cf8"
+      },
+      {
+        "path": "base/packages/convex/confect/tables/workflowRuns.ts.txt",
+        "sha256": "sha256:9eb5d08187a3f32cc34d61996a9eebfd6f79624cd4c28a232757cffafe27dde6"
+      },
+      {
+        "path": "base/packages/convex/confect/tables/workflowStageRuns.ts.txt",
+        "sha256": "sha256:e135bccc81def1cf43e6d1f7de76b861cca00a5f60fc50ababe1a06ec93e1259"
+      },
+      {
+        "path": "base/packages/convex/confect/workflows/_kit/defineMaestroWorkflow.ts.txt",
+        "sha256": "sha256:a9bfcb9fb2934d3581e724866ca79079cd3586017a81af696d0530a925695165"
+      },
+      {
+        "path": "base/packages/convex/confect/workflows/_kit/graphRunnerExecution.ts.txt",
+        "sha256": "sha256:15b66fff49db4a991873bd5954807fdf18e16fd6123206eeac919c879d8f48e6"
+      },
+      {
+        "path": "base/packages/convex/confect/workflows/_kit/graphRunnerNodes.ts.txt",
+        "sha256": "sha256:30c36b4564704de0c57190f3a162cfbf8c1793e6277b2646cdd623221c3b8883"
+      },
+      {
         "path": "base/packages/convex/confect/workflows/_kit/graphRunnerV2.ts.txt",
         "sha256": "sha256:d162ba82b57c8f8e8a02d5c08134738acc0694a9dec26d888cbd8b16324a59f3"
       },
       {
+        "path": "base/packages/convex/confect/workflows/_kit/lifecycleControls.ts.txt",
+        "sha256": "sha256:49624f27e20baaa5914f643cdd180e3a0fce0ed5004acfe216aba80c5ebf14dd"
+      },
+      {
         "path": "base/packages/convex/confect/workflows/_kit/lifecycleSafety.ts.txt",
         "sha256": "sha256:2046b5d12f56b44b3acfc7b6cf0433847bbd94f84899f941e809fd9534d136f9"
+      },
+      {
+        "path": "base/packages/convex/confect/workflows/_kit/lifecycleState.ts.txt",
+        "sha256": "sha256:89077a4bc0a0020f14177d59266096325b75f63cf14ab938a90376a0b1978bdf"
+      },
+      {
+        "path": "base/packages/convex/confect/workflows/_kit/observedStage.ts.txt",
+        "sha256": "sha256:7573830afb4b7fe3671193404a654e9b5dd9aee2f47bf0beba456ddd707dc5c4"
+      },
+      {
+        "path": "base/packages/convex/confect/workflows/_kit/observedStagePayload.ts.txt",
+        "sha256": "sha256:7e16fe7c008460d1f9d40744681e16707e9ceae5430ec0a2412b3b5ba4dc7811"
+      },
+      {
+        "path": "base/packages/convex/confect/workflows/_kit/payloadBudget.ts.txt",
+        "sha256": "sha256:bcc1f2477b8e532624d752c056c8a028a79ee2b662bf47587144bcd7169a0322"
       },
       {
         "path": "base/packages/convex/confect/workflows/_kit/policySnapshot.ts.txt",
@@ -336,6 +392,30 @@
       {
         "path": "base/packages/convex/confect/workflows/_kit/subworkflows.ts.txt",
         "sha256": "sha256:107c7d71f55bea9e7720d741c25a3408987101d8aa9e4f0d7e69bc0555426111"
+      },
+      {
+        "path": "base/packages/convex/confect/workflows/_kit/workflowArtifacts.ts.txt",
+        "sha256": "sha256:733d17db9647758fe925063582cb9032f8c28ab9e793893c87e59ba99d5e5dba"
+      },
+      {
+        "path": "base/packages/convex/confect/workflows/lifecycleAdapters.ts.txt",
+        "sha256": "sha256:c37848fb192bef4f7948e38093556765c94cb7342bf7149ee8731074d13c4c99"
+      },
+      {
+        "path": "base/packages/convex/confect/workflows/lifecycleInspection.ts.txt",
+        "sha256": "sha256:60fe441ce19013cb3a1a0c642476b47a45b302778723afc02f987e2342b3bb0e"
+      },
+      {
+        "path": "base/packages/convex/confect/workflows/lifecyclePersistence.ts.txt",
+        "sha256": "sha256:8070cba594f9f7752b7a66241e99c45691cab5b8e14bbe6f9cd554e570ec85ca"
+      },
+      {
+        "path": "base/packages/convex/test/workflow-lifecycle-controls.fixture.ts.txt",
+        "sha256": "sha256:a7e90c7b2140316a5e8813b20be8abeb26e05051708db4cd8dbbe529d8d07c7c"
+      },
+      {
+        "path": "base/packages/convex/test/workflow-lifecycle-registration.test.ts.txt",
+        "sha256": "sha256:04151cdfd93e958a3cea484b972b141372326d8e5fcd3efe9f70041d85fb3ae6"
       },
       {
         "path": "base/tooling/agent-pack/src/index.ts.txt",
@@ -423,11 +503,31 @@
     "tooling/quality/install-lefthook-if-git.mjs",
     "tooling/generators/src/index.ts",
     "tooling/generators/src/workflow-release-commands.ts",
+    "packages/convex/confect/_generated/docs.ts",
+    "packages/convex/confect/_generated/tables/workflowArtifacts.ts",
+    "packages/convex/confect/ops/dataResources.generated.ts",
+    "packages/convex/confect/tables/workflowArtifacts.ts",
+    "packages/convex/confect/tables/workflowRuns.ts",
+    "packages/convex/confect/tables/workflowStageRuns.ts",
+    "packages/convex/confect/workflows/_kit/defineMaestroWorkflow.ts",
+    "packages/convex/confect/workflows/_kit/graphRunnerExecution.ts",
+    "packages/convex/confect/workflows/_kit/graphRunnerNodes.ts",
     "packages/convex/confect/workflows/_kit/graphRunnerV2.ts",
+    "packages/convex/confect/workflows/_kit/lifecycleControls.ts",
     "packages/convex/confect/workflows/_kit/lifecycleSafety.ts",
+    "packages/convex/confect/workflows/_kit/lifecycleState.ts",
+    "packages/convex/confect/workflows/_kit/observedStage.ts",
+    "packages/convex/confect/workflows/_kit/observedStagePayload.ts",
+    "packages/convex/confect/workflows/_kit/payloadBudget.ts",
     "packages/convex/confect/workflows/_kit/policySnapshot.ts",
     "packages/convex/confect/workflows/_kit/principal.ts",
     "packages/convex/confect/workflows/_kit/subworkflows.ts",
+    "packages/convex/confect/workflows/_kit/workflowArtifacts.ts",
+    "packages/convex/confect/workflows/lifecycleAdapters.ts",
+    "packages/convex/confect/workflows/lifecycleInspection.ts",
+    "packages/convex/confect/workflows/lifecyclePersistence.ts",
+    "packages/convex/test/workflow-lifecycle-controls.fixture.ts",
+    "packages/convex/test/workflow-lifecycle-registration.test.ts",
     "tooling/quality/check-workflow-policy-snapshots.mts",
     "tooling/quality/check-workflow-principal-propagation.mts",
     "tooling/quality/fixtures/workflow-policy-snapshots.json",
@@ -1081,7 +1181,15 @@
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:21c4fe6bb52f524804a361d6ab0d9cca507992348fca6244a207480ce1b3a48b",
+      "sha256": "sha256:76cb8d8404705af451ff094da78d7faf374db9f04d495bbb6c1813f06640b24c",
+      "replaces": "copy"
+    },
+    {
+      "path": "packages/convex/confect/_generated/docs.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:46f0dbab52627a285427bfce95998eae0153f8d96df5e00d147350e3a1824293",
       "replaces": "copy"
     },
     {
@@ -1089,7 +1197,7 @@
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:dc6e68dea93a3b4492e68afe9be32f43b7a210fc90f9268eec85d44aab6a4fc7",
+      "sha256": "sha256:d52d1f1c7f8f6d12491585875c9450e98e2860be42e1d60c38ce19f948e5cca3",
       "replaces": "copy"
     },
     {
@@ -1104,7 +1212,7 @@
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:2ae59b20084ec719950f8d8855e200ec4a3203f7383a720a22bdc21534a94a4c",
+      "sha256": "sha256:800cf52042825c43f00c9a2dfd66b759a1f25ea8aa249937af451c376f120c60",
       "replaces": "copy"
     },
     {
@@ -1121,6 +1229,21 @@
       "action": "generate",
       "upgrade": "regenerate",
       "sha256": "sha256:b2b60b14989a0305c303c31a7700f345422ac6d39fa36c0d567cf56e809c3dbf"
+    },
+    {
+      "path": "packages/convex/confect/_generated/tables/workflowArtifacts.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:9c168f15312f6bc69a53f5dbd1eb42620cc13c54d79c1736c0ce0bebd8fa6472"
+    },
+    {
+      "path": "packages/convex/confect/ops/dataResources.generated.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:319e6f06d89aa9a21a2925a514cfa11616407f069fa5d0bb9aa7f2d10b27a2e9",
+      "replaces": "copy"
     },
     {
       "path": "packages/convex/confect/records/records.impl.ts",
@@ -1144,11 +1267,66 @@
       "sha256": "sha256:a5de66aa782dc72875b456738c6d52ef651ca340a67733065f322412262dc896"
     },
     {
+      "path": "packages/convex/confect/tables/workflowArtifacts.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:f1da4e74fa10a4cb12a72be7cfbdc4884cae556a1df0f205cd367e4edaa69cf8"
+    },
+    {
+      "path": "packages/convex/confect/tables/workflowRuns.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:9eb5d08187a3f32cc34d61996a9eebfd6f79624cd4c28a232757cffafe27dde6",
+      "replaces": "copy"
+    },
+    {
+      "path": "packages/convex/confect/tables/workflowStageRuns.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:e135bccc81def1cf43e6d1f7de76b861cca00a5f60fc50ababe1a06ec93e1259",
+      "replaces": "copy"
+    },
+    {
+      "path": "packages/convex/confect/workflows/_kit/defineMaestroWorkflow.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:a9bfcb9fb2934d3581e724866ca79079cd3586017a81af696d0530a925695165",
+      "replaces": "copy"
+    },
+    {
+      "path": "packages/convex/confect/workflows/_kit/graphRunnerExecution.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:15b66fff49db4a991873bd5954807fdf18e16fd6123206eeac919c879d8f48e6",
+      "replaces": "copy"
+    },
+    {
+      "path": "packages/convex/confect/workflows/_kit/graphRunnerNodes.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:30c36b4564704de0c57190f3a162cfbf8c1793e6277b2646cdd623221c3b8883",
+      "replaces": "copy"
+    },
+    {
       "path": "packages/convex/confect/workflows/_kit/graphRunnerV2.ts",
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
       "sha256": "sha256:d162ba82b57c8f8e8a02d5c08134738acc0694a9dec26d888cbd8b16324a59f3",
+      "replaces": "copy"
+    },
+    {
+      "path": "packages/convex/confect/workflows/_kit/lifecycleControls.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:49624f27e20baaa5914f643cdd180e3a0fce0ed5004acfe216aba80c5ebf14dd",
       "replaces": "copy"
     },
     {
@@ -1158,6 +1336,37 @@
       "upgrade": "regenerate",
       "sha256": "sha256:2046b5d12f56b44b3acfc7b6cf0433847bbd94f84899f941e809fd9534d136f9",
       "replaces": "copy"
+    },
+    {
+      "path": "packages/convex/confect/workflows/_kit/lifecycleState.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:89077a4bc0a0020f14177d59266096325b75f63cf14ab938a90376a0b1978bdf",
+      "replaces": "copy"
+    },
+    {
+      "path": "packages/convex/confect/workflows/_kit/observedStage.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:7573830afb4b7fe3671193404a654e9b5dd9aee2f47bf0beba456ddd707dc5c4",
+      "replaces": "copy"
+    },
+    {
+      "path": "packages/convex/confect/workflows/_kit/observedStagePayload.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:7e16fe7c008460d1f9d40744681e16707e9ceae5430ec0a2412b3b5ba4dc7811",
+      "replaces": "copy"
+    },
+    {
+      "path": "packages/convex/confect/workflows/_kit/payloadBudget.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:bcc1f2477b8e532624d752c056c8a028a79ee2b662bf47587144bcd7169a0322"
     },
     {
       "path": "packages/convex/confect/workflows/_kit/policySnapshot.ts",
@@ -1184,11 +1393,57 @@
       "replaces": "copy"
     },
     {
+      "path": "packages/convex/confect/workflows/_kit/workflowArtifacts.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:733d17db9647758fe925063582cb9032f8c28ab9e793893c87e59ba99d5e5dba"
+    },
+    {
+      "path": "packages/convex/confect/workflows/lifecycleAdapters.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:c37848fb192bef4f7948e38093556765c94cb7342bf7149ee8731074d13c4c99",
+      "replaces": "copy"
+    },
+    {
+      "path": "packages/convex/confect/workflows/lifecycleInspection.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:60fe441ce19013cb3a1a0c642476b47a45b302778723afc02f987e2342b3bb0e"
+    },
+    {
+      "path": "packages/convex/confect/workflows/lifecyclePersistence.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:8070cba594f9f7752b7a66241e99c45691cab5b8e14bbe6f9cd554e570ec85ca",
+      "replaces": "copy"
+    },
+    {
       "path": "packages/convex/convex/records.ts",
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
       "sha256": "sha256:3fddd6a9c3d7f50198f2b5feba77d707fe302e453349a55739e220d69996de5c"
+    },
+    {
+      "path": "packages/convex/test/workflow-lifecycle-controls.fixture.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:a7e90c7b2140316a5e8813b20be8abeb26e05051708db4cd8dbbe529d8d07c7c",
+      "replaces": "copy"
+    },
+    {
+      "path": "packages/convex/test/workflow-lifecycle-registration.test.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:04151cdfd93e958a3cea484b972b141372326d8e5fcd3efe9f70041d85fb3ae6",
+      "replaces": "copy"
     },
     {
       "path": "skills-lock.json",

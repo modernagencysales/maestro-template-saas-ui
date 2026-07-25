@@ -73,14 +73,18 @@ const databaseSchema = (): string => {
   value = replace(
     value,
     'import promptRegistry from "./tables/promptRegistry";',
-    'import promptRegistry from "./tables/promptRegistry";\nimport records from "./tables/records";',
+    'import promptRegistry from "./tables/promptRegistry";\nimport records from "./tables/records";\nimport workflowArtifacts from "./tables/workflowArtifacts";',
   );
   value = replace(
     value,
     "  typeof promptRegistry |",
-    "  typeof promptRegistry |\n  typeof records |",
+    "  typeof promptRegistry |\n  typeof records |\n  typeof workflowArtifacts |",
   );
-  return replace(value, "  promptRegistry,", "  promptRegistry,\n  records,");
+  return replace(
+    value,
+    "  promptRegistry,",
+    "  promptRegistry,\n  records,\n  workflowArtifacts,",
+  );
 };
 
 const convexSchema = (): string => {
@@ -88,12 +92,12 @@ const convexSchema = (): string => {
   value = replace(
     value,
     'import promptRegistry from "./tables/promptRegistry";',
-    'import promptRegistry from "./tables/promptRegistry";\nimport records from "./tables/records";',
+    'import promptRegistry from "./tables/promptRegistry";\nimport records from "./tables/records";\nimport workflowArtifacts from "./tables/workflowArtifacts";',
   );
   return replace(
     value,
     "  promptRegistry: promptRegistry.tableDefinition,",
-    "  promptRegistry: promptRegistry.tableDefinition,\n  records: records.tableDefinition,",
+    "  promptRegistry: promptRegistry.tableDefinition,\n  records: records.tableDefinition,\n  workflowArtifacts: workflowArtifacts.tableDefinition,",
   );
 };
 
@@ -120,7 +124,7 @@ const confectIds = (): string =>
   replace(
     source("packages/convex/confect/_generated/id.ts"),
     ' | "promptRegistry" | "transformBlocks"',
-    ' | "promptRegistry" | "records" | "transformBlocks"',
+    ' | "promptRegistry" | "records" | "transformBlocks" | "workflowArtifacts"',
   );
 
 const routeTree = (): string => {
@@ -195,11 +199,31 @@ export const buildSaasRegistrationProjections =
     ...[
       "tooling/generators/src/index.ts",
       "tooling/generators/src/workflow-release-commands.ts",
+      "packages/convex/confect/_generated/docs.ts",
+      "packages/convex/confect/_generated/tables/workflowArtifacts.ts",
+      "packages/convex/confect/ops/dataResources.generated.ts",
+      "packages/convex/confect/tables/workflowArtifacts.ts",
+      "packages/convex/confect/tables/workflowRuns.ts",
+      "packages/convex/confect/tables/workflowStageRuns.ts",
+      "packages/convex/confect/workflows/_kit/defineMaestroWorkflow.ts",
+      "packages/convex/confect/workflows/_kit/graphRunnerExecution.ts",
+      "packages/convex/confect/workflows/_kit/graphRunnerNodes.ts",
       "packages/convex/confect/workflows/_kit/graphRunnerV2.ts",
+      "packages/convex/confect/workflows/_kit/lifecycleControls.ts",
       "packages/convex/confect/workflows/_kit/lifecycleSafety.ts",
+      "packages/convex/confect/workflows/_kit/lifecycleState.ts",
+      "packages/convex/confect/workflows/_kit/observedStage.ts",
+      "packages/convex/confect/workflows/_kit/observedStagePayload.ts",
+      "packages/convex/confect/workflows/_kit/payloadBudget.ts",
       "packages/convex/confect/workflows/_kit/policySnapshot.ts",
       "packages/convex/confect/workflows/_kit/principal.ts",
       "packages/convex/confect/workflows/_kit/subworkflows.ts",
+      "packages/convex/confect/workflows/_kit/workflowArtifacts.ts",
+      "packages/convex/confect/workflows/lifecycleAdapters.ts",
+      "packages/convex/confect/workflows/lifecycleInspection.ts",
+      "packages/convex/confect/workflows/lifecyclePersistence.ts",
+      "packages/convex/test/workflow-lifecycle-controls.fixture.ts",
+      "packages/convex/test/workflow-lifecycle-registration.test.ts",
       "tooling/quality/check-workflow-policy-snapshots.mts",
       "tooling/quality/check-workflow-principal-propagation.mts",
       "tooling/quality/fixtures/workflow-policy-snapshots.json",
