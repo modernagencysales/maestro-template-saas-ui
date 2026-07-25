@@ -47,7 +47,7 @@
         {
           "kind": "pattern-instance",
           "target": "packages/convex/confect/tables/workflowEffectReservations.ts",
-          "generatorCommand": "pnpm template:add-table -- --name workflowEffectReservations --system workflow-runtime --disposition extend --tenant-scope workspace --sensitivity confidential --pii none --export-mode redacted-json --delete-mode retain-audit --retention retain-through-retry-and-restart-window --append-only --write",
+          "generatorCommand": "pnpm template:add-table -- --name workflowEffectReservations --system workflow-runtime --disposition extend --tenant-scope workspace --sensitivity confidential --pii none --export-mode redacted-json --delete-mode retain-audit --retention retain-audit-window --append-only --write",
           "followUpGates": [
             "pnpm --dir packages/convex test workflow-conformance",
             "pnpm check:workflow-semantics",
