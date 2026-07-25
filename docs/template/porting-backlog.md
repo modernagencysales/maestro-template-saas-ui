@@ -20,6 +20,69 @@ status text as backlog context, not readiness evidence. A `no` or `partial`
 entry here means "not yet part of the generic reusable kit," not necessarily
 "the current starter is incomplete."
 
+## Maestro Agent Pack Productization Gaps
+
+These stable references are governed by the canonical
+[productization plan](../superpowers/plans/2026-07-24-maestro-agent-pack-productization-plan.md).
+
+### AP-001 Agent-pack canonical product contract
+
+Promote the approved prior-art specification into this canonical repository.
+
+### AP-002 Convex workflow semantic compatibility
+
+Make the pinned Workflow and Workpool semantics executable and reject every
+accepted-but-unmapped graph option.
+
+### AP-003 Immutable workflow releases
+
+Bind active and restartable runs to immutable graph, runner, capability, and
+runtime source versions.
+
+### AP-004 Official Convex agent context
+
+Install pinned official Convex AI context through supported host-native paths.
+
+### AP-005 Claude and Codex distribution
+
+Prove the same small skill and CLI contract in both first-class hosts.
+
+### AP-006 Safe factory CLI and MCP
+
+Keep deterministic behavior in one CLI and MCP as a thin transport.
+
+### AP-007 First-run visible app
+
+Make `create -> start -> add -> check` produce visible fake-safe progress.
+
+### AP-008 Generic application blueprint
+
+Generate a personalized tenant-safe CRUD application without workflow setup.
+
+### AP-009 Outcome recipe library
+
+Route product-language outcomes through the minimum-necessary-primitive ladder.
+
+### AP-010 Architecture map and decision lifecycle
+
+Generate deterministic provenance, impact, and consequential ADR governance.
+
+### AP-011 Existing-app adoption
+
+Preserve source prior art and stop unsafe or ambiguous target mutations.
+
+### AP-012 Release migrations and rollback proof
+
+Upgrade one prior tag through collision-aware, exact-hash operations.
+
+### AP-013 Privacy-safe product feedback
+
+Collect bounded, consented product evidence without customer content leakage.
+
+### AP-014 Agent-pack release
+
+Publish only after host, semantic, target, upgrade, and promotion evidence pass.
+
 ## How to read this
 
 - **Priority** — HIGH / MED / LOW for a diligence-grade, genuinely-useful shell.
