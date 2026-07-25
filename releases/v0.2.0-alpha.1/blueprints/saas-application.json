@@ -23,7 +23,7 @@
       },
       {
         "path": "base/package.json.txt",
-        "sha256": "sha256:5b9dc70919d49c20e53fb3ffe024985c215ffb7bf4dfe9509a298980ee19f31d"
+        "sha256": "sha256:c82e355af7528da7cce053c6144721bf1ab1edd13f0a29b573b31dc93d08db90"
       },
       {
         "path": "base/packages/convex/confect/_generated/convexSchema.ts.txt",
@@ -252,7 +252,7 @@
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:5b9dc70919d49c20e53fb3ffe024985c215ffb7bf4dfe9509a298980ee19f31d",
+      "sha256": "sha256:c82e355af7528da7cce053c6144721bf1ab1edd13f0a29b573b31dc93d08db90",
       "replaces": "generate"
     },
     {

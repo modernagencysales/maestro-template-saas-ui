@@ -225,33 +225,66 @@ describe("saas application blueprint", () => {
       readonly scripts: Readonly<Record<string, string>>;
       readonly devDependencies: Readonly<Record<string, string>>;
     };
-    const forbidden = [
+    const omittedPaths = [
       "tooling/evals",
       "tooling/pr-backlog",
       "tooling/release",
       "tooling/stack",
+      ".buildkite",
     ];
-    expect(Object.keys(root.scripts)).toEqual([
-      "maestro",
-      "format",
-      "check:format",
-      "lint",
-      "typecheck",
-      "test",
-      "build",
-      "confect:codegen",
-      "confect:dev",
-      "convex:dev",
-      "dev:backend",
+    const omittedScripts = new Set([
+      "test:pr-backlog",
+      "test:stack",
+      "stack:check",
+      "stack:status",
+      "stack:submit",
+      "stack:sync",
+      "stack:preflight",
+      "stack:merge",
+      "evals",
+      "smoke:web-static",
+      "review:readiness",
+      "review:completion",
+      "deploy:doctor",
+      "deploy:cloudflare",
+      "test:mutation",
+    ]);
+    const factory = JSON.parse(
+      readFileSync(join(repoRoot, "package.json"), "utf8"),
+    ) as typeof root;
+    expect(Object.keys(root.scripts)).toEqual(
+      Object.keys(factory.scripts).filter((name) => !omittedScripts.has(name)),
+    );
+    const rewritten = new Set([
+      "test:tooling",
+      "check:coverage-ratchet",
+      "coverage:update-baseline",
       "prepare",
       "verify",
     ]);
+    for (const [name, command] of Object.entries(factory.scripts)) {
+      if (!omittedScripts.has(name) && !rewritten.has(name))
+        expect(root.scripts[name]).toBe(command);
+    }
     expect(JSON.stringify(root.scripts)).not.toMatch(
-      new RegExp(forbidden.join("|")),
+      new RegExp(omittedPaths.join("|")),
     );
-    const factory = JSON.parse(
-      readFileSync(join(repoRoot, "package.json"), "utf8"),
+    for (const name of omittedScripts) {
+      for (const command of Object.values(root.scripts))
+        expect(command).not.toContain(`pnpm ${name}`);
+    }
+    expect(root.scripts.verify).toEqual(
+      expect.stringContaining("pnpm check:agent-pack"),
     );
+    for (const check of [
+      "check:generators",
+      "check:workflow-semantics",
+      "check:data-resources",
+      "check:system-catalog",
+      "check:system-topology",
+      "check:layer-boundaries",
+    ])
+      expect(root.scripts.verify).toContain(`pnpm ${check}`);
     expect(root.packageManager).toBe(factory.packageManager);
     expect(root.devDependencies).toEqual(factory.devDependencies);
   });
