@@ -55,6 +55,25 @@ describe("check:convex-ai-files", () => {
       "claude-include:outside-managed-section",
     );
   });
+
+  it("rejects a refresh resolving a different agent-skills commit", async () => {
+    const fixtureRoot = await integratedFixture();
+    const statePath = join(
+      fixtureRoot,
+      "agent-pack/official-convex/managed/ai-files.state.json",
+    );
+    const pinned = "ec1e6baae7d86c7843c22938c75979c016f5c6e9";
+    const state = await readFile(statePath, "utf8");
+    expect(state).toContain(pinned);
+    await writeFile(
+      statePath,
+      state.replace(pinned, "0000000000000000000000000000000000000000"),
+    );
+
+    await expect(checkConvexAiFiles(fixtureRoot)).resolves.toContain(
+      "state:agentSkillsSha",
+    );
+  });
 });
 
 async function integratedFixture(): Promise<string> {

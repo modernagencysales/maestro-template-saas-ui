@@ -4,6 +4,11 @@ Codex works from committed repository instructions and skills. Phase 2 does not
 require a plugin, an MCP server, Convex authentication, or writes to your global
 Codex home.
 
+Validated host baseline: Codex `0.145.0` loaded the repository metadata and
+discovered `maestro`, `maestro-convex`, `convex`, and `convex-quickstart`. This
+is recorded evidence, not a hard minimum version; later versions must preserve
+equivalent repo-native discovery.
+
 ## Repo-native setup
 
 1. Create or clone the project through its supported creation path.

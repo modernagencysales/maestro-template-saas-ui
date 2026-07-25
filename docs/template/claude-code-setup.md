@@ -5,6 +5,12 @@ installed. Start it at the repository root so `CLAUDE.md` includes `AGENTS.md`
 and the committed `.claude/skills` directory supplies the pinned official Convex
 skills. Normal onboarding is offline and does not refresh remote skill metadata.
 
+Validated host baseline: Claude Code `2.1.220` successfully added the local `./`
+marketplace, installed, listed, inspected, and uninstalled both plugins in a
+disposable `CLAUDE_CONFIG_DIR`. Plugin details reported one skill and zero
+hooks, MCP servers, or LSP servers for each plugin. This is recorded evidence,
+not a hard minimum version; later versions must keep passing the same fixture.
+
 ## Verify the primary path
 
 From the repository root, run:
