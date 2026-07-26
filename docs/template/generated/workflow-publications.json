@@ -92,7 +92,7 @@
         {
           "class": "registry",
           "path": "packages/convex/confect/capabilities/_versions/publicationEcho/v1.release.ts",
-          "checksum": "8cde59889d130504fd223a083e502630707398c88a35ab0f83a328838fe83071"
+          "checksum": "f50999be3667cfe1449e9284f6261fa2044d2c39b7d6df33a9e84a34dc12b257"
         },
         {
           "class": "registry",
@@ -513,7 +513,7 @@
         {
           "class": "registry",
           "path": "packages/convex/confect/workflows/publicationFixture/v1.release.ts",
-          "checksum": "5de4165b6241a8ca74efeaf58a6e2e1866643084dde5aabacd07d1a91d9c7347"
+          "checksum": "a7cd92f644ab8bad1b68bc73585d1e477a32ed6d18901c9c1f98333f5f35a7ee"
         },
         {
           "class": "registry",
@@ -533,5 +533,5 @@
       ]
     }
   ],
-  "manifestChecksum": "aeed1560c76c88f0fe51ba6d8f592e34ee0b92d7bcf18cdaad0614dde60d0d7b"
+  "manifestChecksum": "cee1d4b5786a9f8d7f7d3781a444ad5ce1fd67a9c46303e5fd42eed9e436ce33"
 }

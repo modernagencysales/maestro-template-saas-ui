@@ -15,6 +15,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildWorkflowPublicationStack,
   findPublishedClosureDrift,
+  synchronizeReleaseAuthorityChecksums,
 } from "./workflow-publication-generation";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
@@ -71,6 +72,29 @@ describe("bounded workflow publication regeneration", () => {
     } finally {
       rmSync(fixtureRoot, { recursive: true, force: true });
     }
+  });
+
+  it("repairs release checksums from authority after an interrupted regeneration", () => {
+    const stale = `export const release = {
+  sourceClosureChecksum:
+    "${"1".repeat(64)}",
+  capabilityBindings: [{ releaseChecksum: dependency.releaseChecksum }],
+  releaseChecksum:
+    "${"2".repeat(64)}",
+};\n`;
+    const repaired = synchronizeReleaseAuthorityChecksums(stale, {
+      sourceClosure: {
+        roots: [],
+        modules: [],
+        checksum: "a".repeat(64),
+      },
+      fingerprint: { releaseChecksum: "b".repeat(64) },
+    });
+    expect(repaired).toContain(`"${"a".repeat(64)}"`);
+    expect(repaired).toContain(`"${"b".repeat(64)}"`);
+    expect(repaired).toContain(
+      "capabilityBindings: [{ releaseChecksum: dependency.releaseChecksum }]",
+    );
   });
 
   it("keeps mutable generated schema and HTTP projections outside the published closure", async () => {

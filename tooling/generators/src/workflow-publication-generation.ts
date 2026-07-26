@@ -140,6 +140,47 @@ const replaceKnownValues = (
   return rendered;
 };
 
+const replaceReleaseChecksumField = (
+  source: string,
+  field: "sourceClosureChecksum" | "releaseChecksum",
+  value: string,
+): string => {
+  const marker = `${field}:`;
+  const fieldStart = source.lastIndexOf(marker);
+  if (fieldStart < 0) {
+    throw new Error(`Generated release field is unavailable: ${field}`);
+  }
+  const valueStart = source.indexOf('"', fieldStart + marker.length);
+  const valueEnd = valueStart < 0 ? -1 : source.indexOf('"', valueStart + 1);
+  const current =
+    valueStart < 0 || valueEnd < 0
+      ? ""
+      : source.slice(valueStart + 1, valueEnd);
+  if (!/^[0-9a-f]{64}$/.test(current) || !/^[0-9a-f]{64}$/.test(value)) {
+    throw new Error(`Generated release ${field} must be a SHA-256 checksum`);
+  }
+  return `${source.slice(0, valueStart + 1)}${value}${source.slice(valueEnd)}`;
+};
+
+export const synchronizeReleaseAuthorityChecksums = (
+  source: string,
+  descriptor: Pick<ReleaseDescriptor, "fingerprint" | "sourceClosure">,
+): string => {
+  const releaseChecksum = descriptor.fingerprint.releaseChecksum;
+  if (!releaseChecksum) {
+    throw new Error("Generated release checksum is unavailable");
+  }
+  return replaceReleaseChecksumField(
+    replaceReleaseChecksumField(
+      source,
+      "sourceClosureChecksum",
+      descriptor.sourceClosure.checksum,
+    ),
+    "releaseChecksum",
+    releaseChecksum,
+  );
+};
+
 const withRunnerFunctionReference = (
   source: string,
   functionReference: string,
@@ -352,9 +393,12 @@ export const buildWorkflowPublicationStack = async (
 
   const generated = new Map<string, string>();
   const capabilityRelease = await format(
-    replaceKnownValues(
-      readFileSync(resolve(cwd, capabilityReleasePath), "utf8"),
-      currentCapability,
+    synchronizeReleaseAuthorityChecksums(
+      replaceKnownValues(
+        readFileSync(resolve(cwd, capabilityReleasePath), "utf8"),
+        currentCapability,
+        capability,
+      ),
       capability,
     ),
     { filepath: capabilityReleasePath },
@@ -365,9 +409,12 @@ export const buildWorkflowPublicationStack = async (
 
   const workflowRelease = await format(
     withRunnerFunctionReference(
-      replaceKnownValues(
-        readFileSync(resolve(cwd, workflowReleasePath), "utf8"),
-        currentWorkflow,
+      synchronizeReleaseAuthorityChecksums(
+        replaceKnownValues(
+          readFileSync(resolve(cwd, workflowReleasePath), "utf8"),
+          currentWorkflow,
+          workflow,
+        ),
         workflow,
       ),
       String(workflow.releaseContent.runnerFunctionReference),
