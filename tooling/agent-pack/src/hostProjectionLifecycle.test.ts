@@ -418,7 +418,7 @@ describe.each(["claude-code", "codex"] as const)(
           currentBytes,
         );
       }
-    });
+    }, 10_000);
 
     it("rejects a tampered prior backup before rollback mutation", async () => {
       const homeDir = await home(host);

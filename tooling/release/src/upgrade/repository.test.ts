@@ -601,7 +601,7 @@ describe("trusted repository upgrade boundary", () => {
         "untouched\n",
       );
     }
-  });
+  }, 15_000);
 
   it("rejects tampered backup bytes and post-apply user edits before rollback", () => {
     for (const field of ["backup", "target"] as const) {

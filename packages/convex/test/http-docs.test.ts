@@ -35,9 +35,10 @@ describe("template HTTP docs routes", () => {
       .sort(byPathThenMethod);
 
     expect(routes).toEqual(
-      templateHttpRoutes
-        .map(({ path, method }) => ({ path, method }))
-        .sort(byPathThenMethod),
+      [
+        ...templateHttpRoutes.map(({ path, method }) => ({ path, method })),
+        { path: "/deploy-authority/consume", method: "POST" },
+      ].sort(byPathThenMethod),
     );
   });
 
