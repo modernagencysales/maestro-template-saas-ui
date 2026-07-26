@@ -13,7 +13,11 @@ import {
   type EvaluationHost,
   type WalkingSkeletonVerdict,
 } from "./contract.js";
-import { createHostAdapter, type WalkingSkeletonHostAdapter } from "./hosts.js";
+import {
+  createHostAdapter,
+  type CodexTransportV1,
+  type WalkingSkeletonHostAdapter,
+} from "./hosts.js";
 import {
   safeVerifierEnvironment,
   verifyExecutableEvidence,
@@ -31,6 +35,7 @@ export type WalkingSkeletonRunOptions = {
   readonly hostHome: string;
   readonly productName: string;
   readonly timeoutMs?: number;
+  readonly codexTransport?: CodexTransportV1;
 };
 export type WalkingSkeletonRunReceipt = {
   readonly schemaVersion: 2;
@@ -131,6 +136,9 @@ export async function runWalkingSkeleton(
         resultPath,
       }),
       timeoutMs: options.timeoutMs ?? 45 * 60 * 1000,
+      ...(options.codexTransport
+        ? { codexTransport: options.codexTransport }
+        : {}),
     });
     await writeFile(
       join(outputDirectory, "host.stdout.log"),

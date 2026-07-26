@@ -7,12 +7,14 @@ import {
   type EvaluationErrorCode,
   type EvaluationHost,
 } from "./contract.js";
+import { validateCodexTransport, type CodexTransportV1 } from "./hosts.js";
 import {
   runWalkingSkeleton,
   type WalkingSkeletonRunOptions,
 } from "./runner.js";
 
 export const usage = `pnpm evals:agent-pack -- --suite walking-skeleton --host <claude|codex> [--run-id <id>] [--out <dir>] [--candidate-sha <sha>] [--host-home <dir>] [--product-name <name>]
+  Codex transport override: --codex-model <id> --codex-provider <name> --codex-base-url <loopback-http-url>
 pnpm evals:agent-pack -- --suite walking-skeleton --aggregate --run-ids <claude-1,claude-2,codex-1,codex-2> [--suite-run-id <id>] [--out <dir>] [--candidate-sha <sha>]`;
 
 type AggregateOptions = {
@@ -46,7 +48,11 @@ export function parseCliOptions(
     values.get("--out") ?? "tooling/agent-pack/evals/runs",
   );
   const candidateSha = values.get("--candidate-sha") ?? resolveHead(sourceRoot);
+  const transportFlagsPresent = codexTransportFlags.some((flag) =>
+    values.has(flag),
+  );
   if (switches.has("--aggregate")) {
+    if (transportFlagsPresent) invalidCodexTransportUse();
     const runIds = required(values, "--run-ids").split(",").filter(Boolean);
     return {
       mode: "aggregate",
@@ -65,6 +71,9 @@ export function parseCliOptions(
       "--host must be claude or codex.",
     );
   }
+  if (host !== "codex" && transportFlagsPresent) invalidCodexTransportUse();
+  const codexTransport =
+    host === "codex" ? parseCodexTransport(values) : undefined;
   return {
     mode: "run",
     options: {
@@ -79,8 +88,36 @@ export function parseCliOptions(
         values.get("--host-home") ?? defaultHostHome(host, env),
       ),
       productName: values.get("--product-name") ?? "Acme Workspace",
+      ...(codexTransport ? { codexTransport } : {}),
     },
   };
+}
+
+const codexTransportFlags = [
+  "--codex-model",
+  "--codex-provider",
+  "--codex-base-url",
+] as const;
+function parseCodexTransport(
+  values: ReadonlyMap<string, string>,
+): CodexTransportV1 | undefined {
+  const present = codexTransportFlags.filter((flag) => values.has(flag));
+  if (present.length === 0) return undefined;
+  if (present.length !== codexTransportFlags.length) invalidCodexTransportUse();
+  return validateCodexTransport({
+    model: required(values, "--codex-model"),
+    provider_name: required(values, "--codex-provider"),
+    base_url: required(values, "--codex-base-url"),
+    wire_api: "responses",
+    requires_openai_auth: true,
+    supports_websockets: true,
+  });
+}
+function invalidCodexTransportUse(): never {
+  throw new EvaluationError(
+    "EVAL_INVALID_ARGUMENT",
+    "Codex transport requires --host codex and all three explicit transport flags.",
+  );
 }
 
 export async function main(

@@ -17,6 +17,14 @@ export type HostCommand = {
 export type HostCommandExecutor = (
   input: HostCommand,
 ) => Promise<HostCommandResult>;
+export type CodexTransportV1 = {
+  readonly model: string;
+  readonly provider_name: string;
+  readonly base_url: string;
+  readonly wire_api: "responses";
+  readonly requires_openai_auth: true;
+  readonly supports_websockets: true;
+};
 export type WalkingSkeletonHostAdapter = {
   readonly host: EvaluationHost;
   readonly preflight: (input: {
@@ -30,7 +38,82 @@ export type WalkingSkeletonHostAdapter = {
     readonly sessionDir: string;
     readonly prompt: string;
     readonly timeoutMs: number;
+    readonly codexTransport?: CodexTransportV1;
   }) => Promise<HostCommandResult>;
+};
+
+const providerIdentifier = /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/u;
+const modelIdentifier = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/u;
+export function validateCodexTransport(value: unknown): CodexTransportV1 {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return invalidTransport();
+  }
+  const candidate = value as Readonly<Record<string, unknown>>;
+  const keys = Object.keys(candidate).sort();
+  const expected = [
+    "base_url",
+    "model",
+    "provider_name",
+    "requires_openai_auth",
+    "supports_websockets",
+    "wire_api",
+  ];
+  if (
+    JSON.stringify(keys) !== JSON.stringify(expected) ||
+    typeof candidate.model !== "string" ||
+    !modelIdentifier.test(candidate.model) ||
+    typeof candidate.provider_name !== "string" ||
+    !providerIdentifier.test(candidate.provider_name) ||
+    typeof candidate.base_url !== "string" ||
+    candidate.wire_api !== "responses" ||
+    candidate.requires_openai_auth !== true ||
+    candidate.supports_websockets !== true
+  ) {
+    return invalidTransport();
+  }
+  let url: URL;
+  try {
+    url = new URL(candidate.base_url);
+  } catch {
+    return invalidTransport();
+  }
+  if (
+    (url.protocol !== "http:" && url.protocol !== "https:") ||
+    !["127.0.0.1", "localhost", "[::1]"].includes(url.hostname) ||
+    url.username.length > 0 ||
+    url.password.length > 0 ||
+    url.search.length > 0 ||
+    url.hash.length > 0
+  ) {
+    return invalidTransport();
+  }
+  return candidate as CodexTransportV1;
+}
+function invalidTransport(): never {
+  throw new EvaluationError(
+    "EVAL_INVALID_ARGUMENT",
+    "Codex transport must contain only valid model/provider identifiers, a loopback HTTP(S) base URL, responses wire API, OpenAI auth, and WebSocket support.",
+  );
+}
+const codexTransportArgs = (value: CodexTransportV1): readonly string[] => {
+  const transport = validateCodexTransport(value);
+  const provider = transport.provider_name;
+  return [
+    "-c",
+    `model=${JSON.stringify(transport.model)}`,
+    "-c",
+    `model_provider=${JSON.stringify(provider)}`,
+    "-c",
+    `model_providers.${provider}.name=${JSON.stringify(provider)}`,
+    "-c",
+    `model_providers.${provider}.base_url=${JSON.stringify(transport.base_url)}`,
+    "-c",
+    `model_providers.${provider}.wire_api="responses"`,
+    "-c",
+    `model_providers.${provider}.requires_openai_auth=true`,
+    "-c",
+    `model_providers.${provider}.supports_websockets=true`,
+  ];
 };
 
 export function safeHostEnvironment(input: {
@@ -108,7 +191,7 @@ export function createHostAdapter(
         );
       }
     },
-    run: ({ cwd, hostHome, sessionDir, prompt, timeoutMs }) =>
+    run: ({ cwd, hostHome, sessionDir, prompt, timeoutMs, codexTransport }) =>
       execute({
         command,
         args:
@@ -130,6 +213,7 @@ export function createHostAdapter(
                 "--ignore-user-config",
                 "-c",
                 "mcp_servers={}",
+                ...(codexTransport ? codexTransportArgs(codexTransport) : []),
                 "--json",
                 "--sandbox",
                 "workspace-write",

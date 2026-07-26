@@ -91,6 +91,177 @@ describe("walking-skeleton fail-closed evidence", () => {
     ).toBeUndefined();
   });
 
+  it("preserves the exact default Codex command without transport", async () => {
+    const calls: HostCommand[] = [];
+    const adapter = createHostAdapter("codex", async (input) => {
+      calls.push(input);
+      return { exitCode: 0, stdout: "", stderr: "", unavailable: false };
+    });
+    await adapter.run({
+      cwd: "/repo",
+      hostHome: "/auth",
+      sessionDir: "/run",
+      prompt: "test",
+      timeoutMs: 1_000,
+    });
+    expect(calls[0]?.args).toEqual([
+      "exec",
+      "--ephemeral",
+      "--ignore-user-config",
+      "-c",
+      "mcp_servers={}",
+      "--json",
+      "--sandbox",
+      "workspace-write",
+      "-C",
+      "/repo",
+      "test",
+    ]);
+  });
+
+  it("adds only explicit Codex transport config while retaining isolation", async () => {
+    const parsed = parseCliOptions(
+      [
+        "--suite",
+        "walking-skeleton",
+        "--host",
+        "codex",
+        "--candidate-sha",
+        candidateSha,
+        "--codex-model",
+        "gpt-5.6-sol",
+        "--codex-provider",
+        "codex-lb",
+        "--codex-base-url",
+        "http://127.0.0.1:2455/backend-api/codex",
+      ],
+      "/repo",
+    );
+    expect(parsed).toMatchObject({
+      mode: "run",
+      options: {
+        codexTransport: {
+          model: "gpt-5.6-sol",
+          provider_name: "codex-lb",
+          base_url: "http://127.0.0.1:2455/backend-api/codex",
+          wire_api: "responses",
+          requires_openai_auth: true,
+          supports_websockets: true,
+        },
+      },
+    });
+    if (parsed.mode !== "run" || !parsed.options.codexTransport) return;
+    const calls: HostCommand[] = [];
+    const adapter = createHostAdapter("codex", async (input) => {
+      calls.push(input);
+      return { exitCode: 0, stdout: "", stderr: "", unavailable: false };
+    });
+    await adapter.run({
+      cwd: "/repo",
+      hostHome: "/auth",
+      sessionDir: "/run",
+      prompt: "test",
+      timeoutMs: 1_000,
+      codexTransport: parsed.options.codexTransport,
+    });
+    expect(calls[0]?.args).toEqual([
+      "exec",
+      "--ephemeral",
+      "--ignore-user-config",
+      "-c",
+      "mcp_servers={}",
+      "-c",
+      'model="gpt-5.6-sol"',
+      "-c",
+      'model_provider="codex-lb"',
+      "-c",
+      'model_providers.codex-lb.name="codex-lb"',
+      "-c",
+      'model_providers.codex-lb.base_url="http://127.0.0.1:2455/backend-api/codex"',
+      "-c",
+      'model_providers.codex-lb.wire_api="responses"',
+      "-c",
+      "model_providers.codex-lb.requires_openai_auth=true",
+      "-c",
+      "model_providers.codex-lb.supports_websockets=true",
+      "--json",
+      "--sandbox",
+      "workspace-write",
+      "-C",
+      "/repo",
+      "test",
+    ]);
+    expect(JSON.stringify(calls[0])).not.toMatch(
+      /api[_-]?key|authorization|password|secret|mcpServers\..+|plugin|rules/iu,
+    );
+  });
+
+  it.each([
+    ["provider", "bad.provider", "http://127.0.0.1:2455"],
+    ["model", "bad model", "http://127.0.0.1:2455"],
+    ["remote", "gpt-5.6-sol", "https://api.openai.com/v1"],
+    ["credential", "gpt-5.6-sol", "http://token@127.0.0.1:2455"],
+  ])("rejects malformed Codex transport %s", (caseName, value, baseUrl) => {
+    const provider = caseName === "provider" ? value : "codex-lb";
+    const model = caseName === "provider" ? "gpt-5.6-sol" : value;
+    expect(() =>
+      parseCliOptions(
+        [
+          "--suite",
+          "walking-skeleton",
+          "--host",
+          "codex",
+          "--candidate-sha",
+          candidateSha,
+          "--codex-model",
+          model,
+          "--codex-provider",
+          provider,
+          "--codex-base-url",
+          baseUrl,
+        ],
+        "/repo",
+      ),
+    ).toThrowError(expect.objectContaining({ code: "EVAL_INVALID_ARGUMENT" }));
+  });
+
+  it("rejects partial transport and transport on Claude", () => {
+    expect(() =>
+      parseCliOptions(
+        [
+          "--suite",
+          "walking-skeleton",
+          "--host",
+          "codex",
+          "--candidate-sha",
+          candidateSha,
+          "--codex-model",
+          "gpt-5.6-sol",
+        ],
+        "/repo",
+      ),
+    ).toThrowError(expect.objectContaining({ code: "EVAL_INVALID_ARGUMENT" }));
+    expect(() =>
+      parseCliOptions(
+        [
+          "--suite",
+          "walking-skeleton",
+          "--host",
+          "claude",
+          "--candidate-sha",
+          candidateSha,
+          "--codex-model",
+          "gpt-5.6-sol",
+          "--codex-provider",
+          "codex-lb",
+          "--codex-base-url",
+          "http://127.0.0.1:2455",
+        ],
+        "/repo",
+      ),
+    ).toThrowError(expect.objectContaining({ code: "EVAL_INVALID_ARGUMENT" }));
+  });
+
   it("accepts the frozen reviewed release binding rather than candidate HEAD", async () => {
     const fixture = await completeFixture();
     const evidence = await verify(fixture, canonicalCrudProof);
