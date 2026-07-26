@@ -71,6 +71,7 @@ const TEMPLATE_PREFIXES = [
   "agent-patterns/",
   "apps/cli/",
   "apps/web/",
+  "docs/agent/",
   "docs/template/",
   "examples/generic-ai-ops/",
   "patches/",
