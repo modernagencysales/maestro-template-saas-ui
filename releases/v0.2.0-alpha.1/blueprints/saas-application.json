@@ -3,7 +3,7 @@
   "id": "saas-application",
   "provenance": "@maestro-template/generators/saas-application@1",
   "projectionSource": {
-    "sourceCommit": "bd3a438192866c94c5e57ea18d62adec6fb3acb6",
+    "sourceCommit": "1b784e7bc23886778d8022411ebe51f64baed423",
     "assets": [
       {
         "path": "base/apps/cli/src/factory/customerComposition.ts.txt",
@@ -303,7 +303,7 @@
       },
       {
         "path": "base/packages/convex/confect/_generated/convexSchema.ts.txt",
-        "sha256": "sha256:d65cd33b0fdecfed577e85fa3fa207dd780cec086a475747dbb0bbd6d0ffee93"
+        "sha256": "sha256:54ee49ac093d6aeb6a8f8e92d773ae316d3e570dff4592147b88573fbdb842f2"
       },
       {
         "path": "base/packages/convex/confect/_generated/docs.ts.txt",
@@ -315,7 +315,7 @@
       },
       {
         "path": "base/packages/convex/confect/_generated/schema.ts.txt",
-        "sha256": "sha256:d652c4cc37f96eb7f262fc8b0446662ea04bbb89676a77b288ecd2d433697331"
+        "sha256": "sha256:49d06c329480edbc5aaddb5a3fc1bf2b7f6d483bc10594030d2473c4bcf2f9ec"
       },
       {
         "path": "base/packages/convex/confect/_generated/spec.ts.txt",
@@ -1282,7 +1282,7 @@
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:d65cd33b0fdecfed577e85fa3fa207dd780cec086a475747dbb0bbd6d0ffee93",
+      "sha256": "sha256:54ee49ac093d6aeb6a8f8e92d773ae316d3e570dff4592147b88573fbdb842f2",
       "replaces": "copy"
     },
     {
@@ -1313,7 +1313,7 @@
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:d652c4cc37f96eb7f262fc8b0446662ea04bbb89676a77b288ecd2d433697331",
+      "sha256": "sha256:49d06c329480edbc5aaddb5a3fc1bf2b7f6d483bc10594030d2473c4bcf2f9ec",
       "replaces": "copy"
     },
     {

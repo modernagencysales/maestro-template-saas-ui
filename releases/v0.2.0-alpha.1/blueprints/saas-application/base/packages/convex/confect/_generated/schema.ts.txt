@@ -32,7 +32,6 @@ import organizations from "./tables/organizations";
 import policies from "./tables/policies";
 import promptRegistry from "./tables/promptRegistry";
 import records from "./tables/records";
-import workflowArtifacts from "./tables/workflowArtifacts";
 import transformBlocks from "./tables/transformBlocks";
 import transformDefinitions from "./tables/transformDefinitions";
 import transformRuns from "./tables/transformRuns";
@@ -86,7 +85,6 @@ const databaseSchema: $DatabaseSchema.DatabaseSchema<
   typeof policies |
   typeof promptRegistry |
   typeof records |
-  typeof workflowArtifacts |
   typeof transformBlocks |
   typeof transformDefinitions |
   typeof transformRuns |
@@ -139,7 +137,6 @@ const databaseSchema: $DatabaseSchema.DatabaseSchema<
   policies,
   promptRegistry,
   records,
-  workflowArtifacts,
   transformBlocks,
   transformDefinitions,
   transformRuns,
