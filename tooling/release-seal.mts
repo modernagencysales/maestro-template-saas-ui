@@ -326,9 +326,37 @@ async function build(args: Args): Promise<readonly Output[]> {
   const { composeAppMap } = await import("./app-map/src/composition.js");
   const { buildAppMapImpact } = await import("./app-map/src/impact.js");
   const { APP_MAP_INPUT_MANIFEST_V1 } = await import("./app-map/src/schema.js");
+  const generatedTemplateInstanceFacts = json({
+    schemaVersion: 1,
+    kind: "release-blueprint-template-instance-facts",
+    sourceRevision: args.sourceCommit,
+    blueprint: {
+      id: plan.id,
+      provenance: plan.provenance,
+      planDigest: plan.digest,
+      manifestDigest: hash(blueprintBytes),
+    },
+    support: { state: "supported" },
+  });
   const composed = await composeAppMap({
     repoRoot: root,
     revision: args.sourceCommit,
+    generatedSourceOverrides: [
+      {
+        sourceId: "template-instance",
+        sourcePath: "template-instance.json",
+        bytes: generatedTemplateInstanceFacts.toString("utf8"),
+        bytesDigest: hash(generatedTemplateInstanceFacts),
+        generation: {
+          kind: "release-blueprint-template-instance-facts",
+          sourceRevision: args.sourceCommit,
+          blueprintId: plan.id,
+          blueprintProvenance: plan.provenance,
+          blueprintPlanDigest: plan.digest,
+          blueprintManifestDigest: hash(blueprintBytes),
+        },
+      },
+    ],
   });
   if (!composed.ok) throw new Error(composed.message);
   const structural = allOperations

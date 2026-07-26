@@ -284,6 +284,16 @@ export type AppMapSourceV1 = {
   readonly digestContract: AppMapDigestContractV1;
   readonly version: string;
   readonly digest: string;
+  readonly generation?: AppMapReviewedGenerationV1;
+};
+
+export type AppMapReviewedGenerationV1 = {
+  readonly kind: "release-blueprint-template-instance-facts";
+  readonly sourceRevision: string;
+  readonly blueprintId: string;
+  readonly blueprintProvenance: string;
+  readonly blueprintPlanDigest: string;
+  readonly blueprintManifestDigest: string;
 };
 
 export type AppMapNodeV1 = {

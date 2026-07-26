@@ -20,6 +20,7 @@ import {
   type AppMapNodeKind,
   type AppMapNodeV1,
   type AppMapProvenanceV1,
+  type AppMapReviewedGenerationV1,
 } from "./schema";
 
 const run = promisify(execFile);
@@ -31,6 +32,14 @@ const digest = (bytes: string | Buffer): string =>
 export type AppMapCompositionRequest = {
   readonly repoRoot: string;
   readonly revision: string;
+  readonly generatedSourceOverrides?: readonly AppMapGeneratedSourceOverrideV1[];
+};
+export type AppMapGeneratedSourceOverrideV1 = {
+  readonly sourceId: "template-instance";
+  readonly sourcePath: "template-instance.json";
+  readonly bytes: string;
+  readonly bytesDigest: string;
+  readonly generation: AppMapReviewedGenerationV1;
 };
 export type AppMapCompositionResult =
   | {
@@ -48,6 +57,7 @@ type SourceBytes = {
   readonly bytes: string;
   readonly digest: string;
   readonly treeFiles?: Readonly<Record<string, string>>;
+  readonly generation?: AppMapReviewedGenerationV1;
 };
 
 const git = async (
@@ -104,11 +114,94 @@ const readCanonicalSource = async (
   const bytes = `${JSON.stringify(records)}\n`;
   return { bytes, digest: digest(bytes), treeFiles };
 };
+const readSource = async (
+  request: AppMapCompositionRequest,
+  entry: AppMapInputManifestEntryV1,
+): Promise<SourceBytes> => {
+  const overrides = request.generatedSourceOverrides ?? [];
+  const override = overrides.find(
+    ({ sourceId }) => sourceId === entry.source.id,
+  );
+  if (!override) return readCanonicalSource(request, entry);
+  if (
+    JSON.stringify(Object.keys(override).sort()) !==
+      JSON.stringify([
+        "bytes",
+        "bytesDigest",
+        "generation",
+        "sourceId",
+        "sourcePath",
+      ]) ||
+    JSON.stringify(Object.keys(override.generation).sort()) !==
+      JSON.stringify([
+        "blueprintId",
+        "blueprintManifestDigest",
+        "blueprintPlanDigest",
+        "blueprintProvenance",
+        "kind",
+        "sourceRevision",
+      ]) ||
+    override.sourceId !== "template-instance" ||
+    entry.source.id !== "template-instance" ||
+    override.sourcePath !== entry.source.path ||
+    override.bytesDigest !== digest(override.bytes) ||
+    override.generation.kind !== "release-blueprint-template-instance-facts" ||
+    override.generation.sourceRevision !== request.revision ||
+    !/^sha256:[a-f0-9]{64}$/u.test(override.generation.blueprintPlanDigest) ||
+    !/^sha256:[a-f0-9]{64}$/u.test(override.generation.blueprintManifestDigest)
+  )
+    throw new Error("Reviewed generated App Map source override is invalid.");
+  const value = JSON.parse(override.bytes) as unknown;
+  if (
+    typeof value !== "object" ||
+    value === null ||
+    Array.isArray(value) ||
+    JSON.stringify(Object.keys(value).sort()) !==
+      JSON.stringify([
+        "blueprint",
+        "kind",
+        "schemaVersion",
+        "sourceRevision",
+        "support",
+      ]) ||
+    Reflect.get(value, "schemaVersion") !== 1 ||
+    Reflect.get(value, "kind") !== override.generation.kind ||
+    Reflect.get(value, "sourceRevision") !== request.revision
+  )
+    throw new Error("Reviewed generated template-instance facts are invalid.");
+  const blueprint = Reflect.get(value, "blueprint") as unknown;
+  const support = Reflect.get(value, "support") as unknown;
+  if (
+    typeof blueprint !== "object" ||
+    blueprint === null ||
+    Array.isArray(blueprint) ||
+    JSON.stringify(Object.keys(blueprint).sort()) !==
+      JSON.stringify(["id", "manifestDigest", "planDigest", "provenance"]) ||
+    Reflect.get(blueprint, "id") !== override.generation.blueprintId ||
+    Reflect.get(blueprint, "provenance") !==
+      override.generation.blueprintProvenance ||
+    Reflect.get(blueprint, "planDigest") !==
+      override.generation.blueprintPlanDigest ||
+    Reflect.get(blueprint, "manifestDigest") !==
+      override.generation.blueprintManifestDigest ||
+    typeof support !== "object" ||
+    support === null ||
+    Array.isArray(support) ||
+    JSON.stringify(Object.keys(support)) !== JSON.stringify(["state"]) ||
+    Reflect.get(support, "state") !== "supported"
+  )
+    throw new Error("Reviewed generated template-instance facts mismatch.");
+  return {
+    bytes: override.bytes,
+    digest: override.bytesDigest,
+    generation: override.generation,
+  };
+};
 
 const sourceDescriptor = (
   entry: AppMapInputManifestEntryV1,
   revision: string,
-  sourceDigest: string,
+  source: SourceBytes,
 ) => ({
   id: entry.source.id,
   kind: entry.source.kind,
@@ -117,7 +210,8 @@ const sourceDescriptor = (
   owner: entry.source.owner,
   digestContract: entry.source.digestContract,
   version: revision,
-  digest: sourceDigest,
+  digest: source.digest,
+  ...(source.generation === undefined ? {} : { generation: source.generation }),
 });
 const provenance = (
   entry: AppMapInputManifestEntryV1,
@@ -699,6 +793,7 @@ const factsFor = (
     return { nodes: [], edges: generatedEdges };
   }
   if (entry.source.id === "template-instance") {
+    if (source.generation) return { nodes: [], edges: [] };
     const instance = parseTemplateInstanceText(source.bytes);
     if (instance.support.state !== "supported")
       throw new Error(
@@ -719,10 +814,22 @@ export const composeAppMap = async (
       message: "App Map composition requires an exact Git revision.",
     };
   try {
+    const overrides = request.generatedSourceOverrides ?? [];
+    if (
+      overrides.length > 1 ||
+      new Set(overrides.map(({ sourceId }) => sourceId)).size !==
+        overrides.length ||
+      overrides.some(
+        ({ sourceId, sourcePath }) =>
+          sourceId !== "template-instance" ||
+          sourcePath !== "template-instance.json",
+      )
+    )
+      throw new Error("Generated App Map source overrides are not closed.");
     const loadedSources = await Promise.all(
       APP_MAP_INPUT_MANIFEST_V1.requiredSources.map(async (entry) => ({
         entry,
-        source: await readCanonicalSource(request, entry),
+        source: await readSource(request, entry),
       })),
     );
     const topologySource = loadedSources.find(
@@ -746,7 +853,7 @@ export const composeAppMap = async (
       batches.push({
         adapterId: entry.adapter.id,
         adapterVersion: 1,
-        source: sourceDescriptor(entry, request.revision, source.digest),
+        source: sourceDescriptor(entry, request.revision, source),
         nodes: facts.nodes,
         edges: facts.edges,
       } as AppMapFactBatchV1);

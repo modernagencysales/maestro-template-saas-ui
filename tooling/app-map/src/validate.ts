@@ -103,6 +103,7 @@ const readSource = (
       "digestContract",
       "version",
       "digest",
+      "generation",
     ],
     factId,
     "Canonical source descriptor",
@@ -117,7 +118,29 @@ const readSource = (
     !isCanonicalText(value.owner) ||
     !isAllowedText(value.digestContract, APP_MAP_DIGEST_CONTRACTS) ||
     !isCanonicalText(value.version) ||
-    !isSha256Digest(value.digest)
+    !isSha256Digest(value.digest) ||
+    (value.generation !== undefined &&
+      (!isRecord(value.generation) ||
+        !hasOnlyKeys(
+          value.generation,
+          [
+            "kind",
+            "sourceRevision",
+            "blueprintId",
+            "blueprintProvenance",
+            "blueprintPlanDigest",
+            "blueprintManifestDigest",
+          ],
+          factId,
+          "Reviewed generated source",
+          invalid,
+        ) ||
+        value.generation.kind !== "release-blueprint-template-instance-facts" ||
+        !isCanonicalText(value.generation.sourceRevision) ||
+        !isCanonicalText(value.generation.blueprintId) ||
+        !isCanonicalText(value.generation.blueprintProvenance) ||
+        !isSha256Digest(value.generation.blueprintPlanDigest) ||
+        !isSha256Digest(value.generation.blueprintManifestDigest)))
   ) {
     return undefined;
   }
@@ -131,6 +154,19 @@ const readSource = (
     digestContract: value.digestContract,
     version: value.version,
     digest: value.digest,
+    ...(value.generation === undefined
+      ? {}
+      : {
+          generation: {
+            kind: "release-blueprint-template-instance-facts" as const,
+            sourceRevision: value.generation.sourceRevision as string,
+            blueprintId: value.generation.blueprintId as string,
+            blueprintProvenance: value.generation.blueprintProvenance as string,
+            blueprintPlanDigest: value.generation.blueprintPlanDigest as string,
+            blueprintManifestDigest: value.generation
+              .blueprintManifestDigest as string,
+          },
+        }),
   };
 };
 
