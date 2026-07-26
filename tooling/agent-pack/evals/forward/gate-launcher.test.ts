@@ -1,9 +1,10 @@
 import { execFile, spawn } from "node:child_process";
-import { mkdtemp, readFile, symlink, writeFile } from "node:fs/promises";
+import { lstat, mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { promisify } from "node:util";
 import { describe, expect, it } from "vitest";
+import { cloneCandidate } from "../walking-skeleton/runner.js";
 
 const execFileAsync = promisify(execFile);
 const repositoryRoot = resolve(import.meta.dirname, "../../../..");
@@ -14,21 +15,19 @@ describe("forward gate launcher", () => {
     async () => {
       const root = await mkdtemp(join(tmpdir(), "maestro-gate-launcher-"));
       const clone = join(root, "detached");
-      await execFileAsync("git", [
-        "clone",
-        "--quiet",
-        "--local",
-        "--no-hardlinks",
-        repositoryRoot,
-        clone,
-      ]);
-      await execFileAsync("git", ["checkout", "--quiet", "--detach", "HEAD"], {
-        cwd: clone,
+      const { stdout } = await execFileAsync("git", ["rev-parse", "HEAD"], {
+        cwd: repositoryRoot,
       });
-      await symlink(
-        join(repositoryRoot, "node_modules"),
-        join(clone, "node_modules"),
-      );
+      const candidateSha = stdout.trim();
+      await cloneCandidate({
+        sourceRoot: repositoryRoot,
+        candidateSha,
+        workspace: clone,
+        sessionDir: root,
+      });
+      await expect(lstat(join(clone, "node_modules"))).rejects.toMatchObject({
+        code: "ENOENT",
+      });
 
       const preloadSource = join(root, "deny-unix-sockets.c");
       const preloadLibrary = join(root, "deny-unix-sockets.so");
