@@ -8,12 +8,13 @@ import {
   writeFile,
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 import type { HostName } from "./hostInstall.js";
 import {
   installVersionedHostProjection,
+  recoverInterruptedHostProjection,
   removeVersionedHostProjection,
   rollbackHostProjection,
 } from "./hostProjectionLifecycle.js";
@@ -48,6 +49,13 @@ const managedSkill = (homeDir: string, host: HostName): string =>
     homeDir,
     host === "claude-code" ? ".claude" : ".codex",
     "skills/maestro/SKILL.md",
+  );
+
+const stateRoot = (homeDir: string, host: HostName): string =>
+  join(
+    homeDir,
+    host === "claude-code" ? ".claude" : ".codex",
+    ".maestro-projection",
   );
 
 afterEach(async () => {
@@ -122,6 +130,129 @@ describe.each(["claude-code", "codex"] as const)(
       expect(await readFile(unmanaged, "utf8")).toBe("customer\n");
     });
 
+    it("rejects the same version with changed source authority", async () => {
+      const homeDir = await home(host);
+      const v1 = await sourceFixture("v1");
+      const changed = await sourceFixture("changed");
+      await installVersionedHostProjection({
+        host,
+        repoRoot: v1,
+        homeDir,
+        version: "1.0.0",
+      });
+      await expect(
+        installVersionedHostProjection({
+          host,
+          repoRoot: changed,
+          homeDir,
+          version: "1.0.0",
+        }),
+      ).rejects.toThrow(/version is immutable/);
+    });
+
+    it("rejects forged remove receipts without touching auth or config", async () => {
+      const homeDir = await home(host);
+      const receipt = await installVersionedHostProjection({
+        host,
+        repoRoot,
+        homeDir,
+        version: "1",
+      });
+      const hostRoot = join(
+        homeDir,
+        host === "claude-code" ? ".claude" : ".codex",
+      );
+      const auth = join(
+        hostRoot,
+        host === "claude-code" ? "auth.json" : "config.toml",
+      );
+      await writeFile(auth, "secret host state\n");
+      const forged = {
+        ...receipt,
+        files: [
+          ...receipt.files,
+          {
+            path: auth,
+            sourceSha256: "0".repeat(64),
+            installedSha256: "0".repeat(64),
+          },
+        ],
+      };
+      await expect(removeVersionedHostProjection(forged)).rejects.toThrow(
+        /persisted authority/,
+      );
+      expect(await readFile(auth, "utf8")).toBe("secret host state\n");
+
+      await writeFile(
+        join(stateRoot(homeDir, host), "receipt.json"),
+        `${JSON.stringify(forged, null, 2)}\n`,
+      );
+      await expect(removeVersionedHostProjection(forged)).rejects.toThrow(
+        /managed skill root/,
+      );
+      expect(await readFile(auth, "utf8")).toBe("secret host state\n");
+    });
+
+    it("rejects forged or copied recovery authority without touching host state", async () => {
+      const homeDir = await home(host);
+      const hostRoot = join(
+        homeDir,
+        host === "claude-code" ? ".claude" : ".codex",
+      );
+      const auth = join(
+        hostRoot,
+        host === "claude-code" ? "auth.json" : "config.toml",
+      );
+      await mkdir(stateRoot(homeDir, host), { recursive: true });
+      await writeFile(auth, "secret host state\n");
+      await writeFile(
+        join(stateRoot(homeDir, host), "journal.json"),
+        JSON.stringify({
+          schemaVersion: 1,
+          kind: "install",
+          host,
+          homeDir,
+          transactionId: "00000000-0000-4000-8000-000000000000",
+          backupRoot: join(stateRoot(homeDir, host), "transactions/x/backup"),
+          plannedPaths: [auth],
+          journalDigest: "0".repeat(64),
+        }),
+      );
+      await expect(
+        recoverInterruptedHostProjection({ host, homeDir }),
+      ).rejects.toThrow(/journal/);
+      expect(await readFile(auth, "utf8")).toBe("secret host state\n");
+    });
+
+    it("rejects a receipt copied across host and home authority", async () => {
+      const otherHost: HostName =
+        host === "claude-code" ? "codex" : "claude-code";
+      const sourceHome = await home(otherHost);
+      await installVersionedHostProjection({
+        host: otherHost,
+        repoRoot,
+        homeDir: sourceHome,
+        version: "1",
+      });
+      const copied = await readFile(
+        join(stateRoot(sourceHome, otherHost), "receipt.json"),
+      );
+      const targetHome = await home(host);
+      await mkdir(stateRoot(targetHome, host), { recursive: true });
+      await writeFile(
+        join(stateRoot(targetHome, host), "receipt.json"),
+        copied,
+      );
+      await expect(
+        installVersionedHostProjection({
+          host,
+          repoRoot,
+          homeDir: targetHome,
+          version: "1",
+        }),
+      ).rejects.toThrow(/receipt authority mismatch/);
+    });
+
     it("refuses modified managed files unless backup-and-replace is explicit", async () => {
       const homeDir = await home(host);
       const v1 = await sourceFixture("v1");
@@ -184,6 +315,70 @@ describe.each(["claude-code", "codex"] as const)(
         version: "1",
       });
       expect(repeated).toEqual(first);
+    });
+
+    it("recovers rollback failure at delete and restore boundaries", async () => {
+      const homeDir = await home(host);
+      const v1 = await sourceFixture("v1");
+      const v2 = await sourceFixture("v2");
+      await installVersionedHostProjection({
+        host,
+        repoRoot: v1,
+        homeDir,
+        version: "1",
+      });
+      const current = await installVersionedHostProjection({
+        host,
+        repoRoot: v2,
+        homeDir,
+        version: "2",
+      });
+      const currentBytes = await readFile(managedSkill(homeDir, host), "utf8");
+      for (const boundary of [
+        1,
+        current.files.length,
+        current.files.length + 1,
+      ]) {
+        await expect(
+          rollbackHostProjection(current, {
+            testFailAfterMutations: boundary,
+          }),
+        ).rejects.toThrow("injected host rollback failure");
+        expect(await readFile(managedSkill(homeDir, host), "utf8")).toBe(
+          currentBytes,
+        );
+      }
+    });
+
+    it("rejects a tampered prior backup before rollback mutation", async () => {
+      const homeDir = await home(host);
+      const v1 = await sourceFixture("v1");
+      const v2 = await sourceFixture("v2");
+      await installVersionedHostProjection({
+        host,
+        repoRoot: v1,
+        homeDir,
+        version: "1",
+      });
+      const current = await installVersionedHostProjection({
+        host,
+        repoRoot: v2,
+        homeDir,
+        version: "2",
+      });
+      if (!current.rollbackRoot)
+        throw new Error("fixture has no rollback root");
+      const priorSkillBackup = join(
+        current.rollbackRoot,
+        "backup",
+        relative(homeDir, managedSkill(homeDir, host)),
+      );
+      await writeFile(priorSkillBackup, "tampered backup\n");
+      const before = await readFile(managedSkill(homeDir, host), "utf8");
+      await expect(rollbackHostProjection(current)).rejects.toThrow(
+        /backup checksum mismatch/,
+      );
+      expect(await readFile(managedSkill(homeDir, host), "utf8")).toBe(before);
     });
 
     it("rejects symlinked host roots and source entries", async () => {
