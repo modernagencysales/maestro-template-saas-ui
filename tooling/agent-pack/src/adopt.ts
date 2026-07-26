@@ -321,8 +321,10 @@ const validateRuntimeShape = (
   if (value === null || typeof value !== "object" || Array.isArray(value))
     return [schemaInvalid(path, "an object")];
   const object = value as Record<string, unknown>;
+  const hasOwn = (subject: object, key: PropertyKey): boolean =>
+    Object.prototype.hasOwnProperty.call(subject, key);
   const findings = Object.keys(object)
-    .filter((key) => !(key in shape.fields))
+    .filter((key) => !hasOwn(shape.fields, key))
     .map((key) =>
       finding(
         "ADOPTION_SCHEMA_CLOSED",
@@ -332,7 +334,7 @@ const validateRuntimeShape = (
     );
   for (const [key, field] of Object.entries(shape.fields)) {
     findings.push(
-      ...(key in object
+      ...(hasOwn(object, key)
         ? validateRuntimeShape(object[key], field, `${path}.${key}`)
         : [schemaInvalid(`${path}.${key}`, "present")]),
     );

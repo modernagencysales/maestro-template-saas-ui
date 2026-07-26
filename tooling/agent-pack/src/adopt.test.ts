@@ -164,6 +164,50 @@ describe("existing-app adoption core", () => {
       expect(schema.properties[key]?.additionalProperties).toBe(false);
   });
 
+  it("does not accept inherited fields as the closed work-package shape", () => {
+    const inherited = Object.create(fixture("separate-target")) as unknown;
+
+    expect(previewAdoptionWorkPackage(inherited)).toMatchObject({
+      ok: false,
+      findings: expect.arrayContaining([
+        expect.objectContaining({ code: "ADOPTION_SCHEMA_INVALID" }),
+      ]),
+      artifact: null,
+    });
+    expect(Object.keys(inherited as object)).toEqual([]);
+  });
+
+  it("rejects prototype-name fields as unknown own properties", () => {
+    const input = fixture("separate-target");
+    const rollback = {
+      ...input.rollback,
+      toString: "undeclared prototype-name field",
+    };
+
+    expect(previewAdoptionWorkPackage({ ...input, rollback })).toMatchObject({
+      ok: false,
+      findings: expect.arrayContaining([
+        expect.objectContaining({
+          code: "ADOPTION_SCHEMA_CLOSED",
+          message: "work package.rollback contains unknown field: toString",
+        }),
+      ]),
+      artifact: null,
+    });
+  });
+
+  it("accepts valid objects with a null prototype", () => {
+    const input = fixture("separate-target");
+    const rollback = Object.assign(Object.create(null), input.rollback);
+    const workPackage = Object.assign(Object.create(null), input, { rollback });
+
+    expect(previewAdoptionWorkPackage(workPackage)).toMatchObject({
+      ok: true,
+      findings: [],
+      artifact: { path: "adoption/adopt-existing-crm.work-package.json" },
+    });
+  });
+
   it.each([
     "alpha//beta",
     ".",
