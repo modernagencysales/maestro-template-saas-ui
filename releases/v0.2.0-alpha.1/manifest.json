@@ -9,8 +9,8 @@
   "release": {
     "version": "0.2.0-alpha.1",
     "tag": "maestro-template-v0.2.0-alpha.1",
-    "sourceCommit": "edbec1b72ed88bc38ed1c71946e26e9e92223076",
-    "sourceChecksum": "sha256:3e65ffda4f751c4f05fa048d22e44a213e6dff08dbbf666365ef6aac98457a1e"
+    "sourceCommit": "6166c37a056eb2f60c1e661dbc46d1116b8c617b",
+    "sourceChecksum": "sha256:0346cc73b5901ec9a62ffdd72734d031f99123dddb3e23aeb30753c4d62a96f2"
   },
   "upgrade": {
     "schemaVersion": 1,
@@ -604,7 +604,7 @@
         "path": "package.json",
         "ownership": "generated",
         "beforeHash": "sha256:d3278e6fbfc6c3218cb0ebaad4322f459fb2a61eaa37329840ce2283e9fb2254",
-        "afterHash": "sha256:7134099890770c27134065533b8e9c96c956e4ca0734bac17de76a5a869bfc7f"
+        "afterHash": "sha256:acc52fabb69527dfdfa0c984f051963f8fe73bcc7123cce8aff36573545f89bd"
       },
       {
         "id": "upgrade-modify-packages-convex-confect-generated-convexSchema-ts",
@@ -3181,7 +3181,7 @@
         "kind": "add",
         "path": "tooling/generators/src/blueprints/saasRegistrationProjections.ts",
         "ownership": "template-owned",
-        "afterHash": "sha256:4da0b31b4e6eb9188da00856909ffa5cd6b4eb4ef06528bea6709f607e658c50"
+        "afterHash": "sha256:f7f32bc357cf780c8e9e49434ddd70058d32cf2220cd2f5e81b2f4855977bd8c"
       },
       {
         "id": "upgrade-add-tooling-generators-src-cli-ts",
@@ -3870,14 +3870,14 @@
   ],
   "blueprintManifest": {
     "path": "blueprints/saas-application.json",
-    "sha256": "sha256:6f62ea480864ddef419ca8b636dfb257fde7684ceb55a1d40f7928ab70fbcdee"
+    "sha256": "sha256:243d9866efbc15a06bf10a22bd9e7d8ad8dc306135d2179519804f6fdf9e1eaf"
   },
   "upgradeImpact": {
     "path": "releases/v0.2.0-alpha.1/upgrade/app-map-input.json",
-    "sha256": "sha256:81192d9fde42bf12e3c2c57d9b5837af0a1df7e785f91885d345f73e4e936d2c",
+    "sha256": "sha256:1b05afa1d790ef6c710846c5a94e53157d285dabab57e7246095d2e9b0d6bd4e",
     "projection": {
       "path": "releases/v0.2.0-alpha.1/upgrade/app-map-impact.json",
-      "sha256": "sha256:85ccdc2f01d9b1506b7d2fd50f3e9b2ffac714f9d5b2df7e91a326a1ed3d94d2"
+      "sha256": "sha256:1f64fa87b547c9126879340fb3bb609848b6bb5a162e719c4d336481aa23547b"
     }
   },
   "migrationHandoff": {
