@@ -36,8 +36,10 @@ if (fixture.valid.length !== 4 || fixture.invalid.length !== 2)
   findings.push("policy fixture matrix is incomplete");
 if (!content.includes("principalSnapshot: principal"))
   findings.push("kickoff does not persist durable authority");
-if (!runner.includes("policySnapshot: args.policySnapshot"))
-  findings.push("runner does not use its pinned policy argument");
+if (!runner.includes("policySnapshot: executionArgs.policySnapshot"))
+  findings.push(
+    "runner does not use its authority-bound pinned policy argument",
+  );
 if (
   !runner.includes("policySnapshot: WorkflowPolicySnapshotValidator") ||
   !policyAuthority.includes('kind: v.literal("none")') ||
