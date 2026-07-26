@@ -572,7 +572,11 @@ importers:
         specifier: workspace:*
         version: link:../../packages/template-core
 
-  tooling/release: {}
+  tooling/release:
+    devDependencies:
+      ajv:
+        specifier: 8.18.0
+        version: 8.18.0
 
   tooling/stack: {}
 

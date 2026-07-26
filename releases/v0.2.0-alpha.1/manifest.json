@@ -12,6 +12,23 @@
     "sourceCommit": "10516dfc7470d9cfa68b250550576298f76042f4",
     "sourceChecksum": "sha256:56bdac01542086dd4d284f7e24ed272e5cec5870b46a47f351f113271dd8de69"
   },
+  "upgrade": {
+    "schemaVersion": 1,
+    "transition": {
+      "id": "template-0.1-to-0.2",
+      "fromVersion": "0.1.0-alpha.1",
+      "toVersion": "0.2.0-alpha.1",
+      "immediatePriorVersion": "0.1.0-alpha.1"
+    },
+    "operations": [],
+    "requirements": [
+      {
+        "id": "review-v0.2-data-migration",
+        "kind": "data-migration",
+        "detail": "Complete the reviewed v0.1.0-alpha.1 to v0.2.0-alpha.1 data migration before file upgrade writes."
+      }
+    ]
+  },
   "deriveExpectedHashesFromArchive": true,
   "additionalPaths": [
     {
