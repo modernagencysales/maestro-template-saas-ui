@@ -16,4 +16,5 @@ pnpm check:config-drift
 pnpm check:workflow-semantics
 pnpm check:convex-ai-files
 pnpm check:agent-pack
+pnpm check:app-map
 pnpm check:gates

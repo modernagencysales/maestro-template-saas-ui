@@ -14,6 +14,7 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
+    "@maestro-template/app-map-tooling": "workspace:*",
     "@confect/js": "9.1.5",
     "@effect/cluster": "0.58.0",
     "@effect/platform": "0.96.2",

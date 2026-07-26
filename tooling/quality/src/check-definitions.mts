@@ -72,6 +72,7 @@ const checkDescriptorDefinitions = {
           "check:config-drift",
           "check:convex-ai-files",
           "check:agent-pack",
+          "check:app-map",
           "check:workflow-semantics",
         ],
         message: "secretless self-protection step must run the shape pins",
@@ -108,6 +109,7 @@ const checkDescriptorDefinitions = {
           "pnpm template:workflow-output-smoke",
           "pnpm check:convex-ai-files",
           "pnpm check:agent-pack",
+          "pnpm check:app-map",
         ],
         message:
           "hosted deterministic CI must run system, data, and promotion gates",
@@ -128,6 +130,8 @@ const checkDescriptorDefinitions = {
           "check-workflow-fast:",
           "check-convex-ai-files:",
           "check-agent-pack:",
+          "test-app-map:",
+          "check-app-map:",
           "check-workflow-output-smoke:",
         ],
         message: "Justfile must keep the canonical gate recipe names",
@@ -150,6 +154,9 @@ const checkDescriptorDefinitions = {
         file: "package.json",
         includes: [
           '"verify"',
+          '"test:app-map"',
+          '"check:app-map"',
+          "pnpm check:agent-pack && pnpm check:app-map && pnpm check:deps",
           "pnpm check:schema-migration-notes && pnpm check:system-catalog && pnpm check:system-topology && pnpm check:data-resources && pnpm check:promotion-boundary && pnpm check:layer-boundaries",
         ],
         message:
@@ -927,6 +934,46 @@ const checkDescriptorDefinitions = {
       },
     ],
   },
+  "app-map": {
+    name: "check:app-map",
+    requirements: [
+      {
+        file: "tooling/app-map/package.json",
+        includes: [
+          '"check": "pnpm lint && pnpm typecheck && pnpm test"',
+          '"./composition"',
+          '"./mcp"',
+          '"./surface"',
+        ],
+        message: "App Map package must expose one closed deterministic check",
+      },
+      {
+        file: "tooling/app-map/src/schema.ts",
+        includes: [
+          "APP_MAP_INPUT_MANIFEST_V1",
+          "generator-provenance-facts",
+          "template-instance-facts",
+        ],
+        message: "App Map must retain the frozen eleven-source input manifest",
+      },
+      {
+        file: "tooling/app-map/src/composition.test.ts",
+        includes: [
+          "toHaveLength(11)",
+          "must project facts",
+          "serializeAppMap(first.build.map)",
+          "serializeAppMap(second.build.map)",
+        ],
+        message:
+          "App Map composition must prove complete sources and byte-stable double builds",
+      },
+      {
+        file: ".buildkite/scripts/phase1.sh",
+        includes: ["pnpm check:app-map"],
+        message: "Hosted deterministic CI must run the App Map gate",
+      },
+    ],
+  },
   "workflow-semantics": {
     name: "check:workflow-semantics",
     requirements: [
@@ -1005,6 +1052,7 @@ type RegisteredCheckDescriptors<
 const canonicalScriptBodies = {
   "check:ci-completeness": "tsx tooling/quality/check-ci-completeness.mts",
   "check:config-drift": "tsx tooling/quality/check-config-drift.mts",
+  "check:app-map": "pnpm --dir tooling/app-map check",
   "check:deps": "tsx tooling/quality/check-deps.mts",
   "check:knip": "knip --config knip.json",
   "check:route-tree": "tsx tooling/quality/check-route-tree.mts",

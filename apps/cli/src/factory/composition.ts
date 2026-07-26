@@ -34,6 +34,7 @@ import {
   type McpConfigurationStore,
   type NodePreflightPolicy,
 } from "@maestro-template/agent-pack";
+import { createAppMapMcpProjection } from "@maestro-template/app-map-tooling/mcp";
 import {
   buildBlueprintCatalog,
   buildTemplateInstance,
@@ -57,6 +58,7 @@ import { open } from "node:fs/promises";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { createPlanCheckCliHandler } from "./planCheck";
+import { createAppMapCliHandlers } from "./appMap";
 import { createCustomerCreateComposition } from "./createComposition";
 import { createProviderDoctorCliHandler } from "./doctor";
 import {
@@ -409,14 +411,26 @@ export function createFactoryCliComposition(
   );
   const mcp = createMcpCliAdapter(({ stdin, stdout, stderr, cwd }) => {
     const repo = createRepositoryContext({ cwd });
-    const projection = createMaestroMcpProjection(
+    const baseProjection = createMaestroMcpProjection(
       { preflight, planCheck, scaffold, supportBundle, verify },
       repo,
     );
+    const appMapProjection = createAppMapMcpProjection(cwd);
+    const appMapToolNames = new Set(
+      appMapProjection.tools().map(({ name }) => name),
+    );
+    const projection = {
+      tools: () => [...baseProjection.tools(), ...appMapProjection.tools()],
+      call: (name: string, args: Readonly<Record<string, unknown>>) =>
+        appMapToolNames.has(name)
+          ? appMapProjection.call(name, args)
+          : baseProjection.call(name, args),
+    };
     const server = createMaestroMcpServer(projection);
     return serveMcpStdio({ stdin, stdout, stderr, server });
   });
   const handlers: readonly FactoryCliHandler[] = [
+    ...createAppMapCliHandlers(),
     createCustomerCreateComposition(),
     createStartCliHandler(start, startOutput),
     ...recipeHandlers,

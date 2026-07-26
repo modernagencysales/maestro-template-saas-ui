@@ -723,7 +723,14 @@ export const parseAppMapInput = (input: unknown): AppMapInputParseResult => {
   }
 
   for (const node of uniqueNodes.values()) {
-    if (node.kind === "system") continue;
+    // Package and semantic-rule nodes are dependency/governance metadata, not
+    // product resources. Their canonical sources cannot prove system ownership.
+    if (
+      node.kind === "system" ||
+      node.kind === "package" ||
+      node.kind === "semantic-rule"
+    )
+      continue;
     const ownerEdges = edges.filter((edge) => {
       if (edge.kind !== "owns" || edge.to !== node.id) return false;
       return uniqueNodes.get(edge.from)?.kind === "system";

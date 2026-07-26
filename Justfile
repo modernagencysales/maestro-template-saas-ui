@@ -24,6 +24,9 @@ test:
 test-tooling:
     pnpm test:tooling
 
+test-app-map:
+    pnpm test:app-map
+
 test-workflow:
     pnpm test:workflow
 
@@ -78,6 +81,9 @@ check-convex-ai-files:
 
 check-agent-pack:
     pnpm check:agent-pack
+
+check-app-map:
+    pnpm check:app-map
 
 check-workflow-output-smoke:
     pnpm template:workflow-output-smoke
