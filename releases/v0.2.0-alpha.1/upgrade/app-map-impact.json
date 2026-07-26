@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "kind": "reviewed-upgrade-impact-coverage",
   "baseRevision": "517b5bc28d1d633bef18f57610cff49800123788",
-  "subjectRevision": "e8519b4f9e01978668c86fdd187164c84527ad24",
+  "subjectRevision": "7d1e0cda544b240cebec180bde7ec406993976ff",
   "structuralPaths": [
     "docs/template/data-resources.json",
     "docs/template/generated/provenance/add-table/workflowArtifacts.json",
@@ -17,6 +17,7 @@
   ],
   "ownershipCoveredPaths": [
     ".gitignore",
+    ".gitleaks.toml",
     "apps/cli/package.json",
     "apps/cli/src/commands.ts",
     "apps/cli/src/direct-run.test.ts",
@@ -362,10 +363,8 @@
     "tooling/agent-pack/src/privacy/no-network-plan.fixture.json",
     "tooling/agent-pack/src/privacy/nodeSupportBundleExporter.ts",
     "tooling/agent-pack/src/privacy/privacy.canaries.test.ts",
-    "tooling/agent-pack/src/privacy/privacy.noNetwork.test.ts",
     "tooling/agent-pack/src/privacy/privacy.supportBundle.test.ts",
     "tooling/agent-pack/src/privacy/privacy.test.ts",
-    "tooling/agent-pack/src/privacy/runtimeNetworkInterceptor.mjs",
     "tooling/agent-pack/src/privacy/support-bundle.schema.json",
     "tooling/agent-pack/src/privacy/supportBundle.ts",
     "tooling/agent-pack/src/privacy/supportBundleCommand.ts",
@@ -495,7 +494,7 @@
   "impact": {
     "schemaVersion": 1,
     "baseRevision": "517b5bc28d1d633bef18f57610cff49800123788",
-    "subjectRevision": "e8519b4f9e01978668c86fdd187164c84527ad24",
+    "subjectRevision": "7d1e0cda544b240cebec180bde7ec406993976ff",
     "complete": true,
     "risk": "high",
     "changedPaths": [

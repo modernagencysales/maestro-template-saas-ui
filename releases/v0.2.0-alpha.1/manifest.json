@@ -9,8 +9,8 @@
   "release": {
     "version": "0.2.0-alpha.1",
     "tag": "maestro-template-v0.2.0-alpha.1",
-    "sourceCommit": "e8519b4f9e01978668c86fdd187164c84527ad24",
-    "sourceChecksum": "sha256:159345629e52c0d86d9afb23e6a528b5200e451e6e0ba0fb178dfd9eba59d50b"
+    "sourceCommit": "7d1e0cda544b240cebec180bde7ec406993976ff",
+    "sourceChecksum": "sha256:f15c68decb159b8ce5407cc3c698cb7107da03f653c65120f6f9870b2f376f8e"
   },
   "upgrade": {
     "schemaVersion": 1,
@@ -28,6 +28,14 @@
         "ownership": "template-owned",
         "beforeHash": "sha256:2b7343c456e373fc9887964be72659044905440a142baad62ac31df84bbdb9e4",
         "afterHash": "sha256:a6c4b1852a369d08dc146c753acee9417ec18732db79136a747be50e55b30209"
+      },
+      {
+        "id": "upgrade-modify-gitleaks-toml",
+        "kind": "modify",
+        "path": ".gitleaks.toml",
+        "ownership": "template-owned",
+        "beforeHash": "sha256:b16663dab33a2ad56fb47f2f2f46098f7a02e3930f1193eb061100ab4d7b42af",
+        "afterHash": "sha256:83ce67f010d5f3e6cb7fb8cc6e6a9ec60cf1e1654fe66c78c58a45cc51c3f6e1"
       },
       {
         "id": "upgrade-modify-apps-cli-package-json",
@@ -99,7 +107,7 @@
         "kind": "add",
         "path": "apps/cli/src/factory/customerCliRuntime.test.ts",
         "ownership": "template-owned",
-        "afterHash": "sha256:08df0bd35500c71aa3bdbe4f381c2f56e96359f6223ed1f7af65677cdd8ba162"
+        "afterHash": "sha256:bd3f3ae3cb7200991e586abfd22d2971f8effb56ef1538f51abcd8e6b7fd1903"
       },
       {
         "id": "upgrade-add-apps-cli-src-factory-customerComposition-ts",
@@ -1806,7 +1814,7 @@
         "kind": "add",
         "path": "packages/convex/test/workflow-deadline.test.ts",
         "ownership": "template-owned",
-        "afterHash": "sha256:d27d21bbcc0b9492ec130feb02b4b8a6941f24ba39066f2e077a19989183f526"
+        "afterHash": "sha256:ff01aeee62f764a34ffde4680a77c81026201ba67b4e6042db5d55141e8ccd25"
       },
       {
         "id": "upgrade-modify-packages-convex-test-workflow-effect-reservations-test-ts",
@@ -2611,13 +2619,6 @@
         "afterHash": "sha256:ec8cea3397e577e421f46dcfb595fe56a69402c2b92ae621d5c378a1d9ad1f09"
       },
       {
-        "id": "upgrade-add-tooling-agent-pack-src-privacy-privacy-noNetwork-test-ts",
-        "kind": "add",
-        "path": "tooling/agent-pack/src/privacy/privacy.noNetwork.test.ts",
-        "ownership": "template-owned",
-        "afterHash": "sha256:061817c63e60341085c7662840c4b65df051fe2e8b6f403d7ac22de27457f205"
-      },
-      {
         "id": "upgrade-add-tooling-agent-pack-src-privacy-privacy-supportBundle-test-ts",
         "kind": "add",
         "path": "tooling/agent-pack/src/privacy/privacy.supportBundle.test.ts",
@@ -2630,13 +2631,6 @@
         "path": "tooling/agent-pack/src/privacy/privacy.test.ts",
         "ownership": "template-owned",
         "afterHash": "sha256:589e31947b45e4feae2b83a8f3addf84f2656570d643c3f79593079c02007ed5"
-      },
-      {
-        "id": "upgrade-add-tooling-agent-pack-src-privacy-runtimeNetworkInterceptor-mjs",
-        "kind": "add",
-        "path": "tooling/agent-pack/src/privacy/runtimeNetworkInterceptor.mjs",
-        "ownership": "template-owned",
-        "afterHash": "sha256:cce9af94ed2593302b800efcc6d875c92a9ba61eeef5aec954b15f9f0ea7cfab"
       },
       {
         "id": "upgrade-add-tooling-agent-pack-src-privacy-support-bundle-schema-json",
@@ -3179,7 +3173,7 @@
         "kind": "add",
         "path": "tooling/generators/src/blueprints/saasRegistrationProjections.ts",
         "ownership": "template-owned",
-        "afterHash": "sha256:be804b1811c2ac233b29dd5e37de0246c705eb2286177fd0eb3db3cca6a823cd"
+        "afterHash": "sha256:4da0b31b4e6eb9188da00856909ffa5cd6b4eb4ef06528bea6709f607e658c50"
       },
       {
         "id": "upgrade-add-tooling-generators-src-cli-ts",
@@ -3768,6 +3762,20 @@
       "upgrade": "remove"
     },
     {
+      "path": "tooling/agent-pack/src/privacy/privacy.noNetwork.test.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "tooling/agent-pack/src/privacy/runtimeNetworkInterceptor.mjs",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
       "path": "tooling/app-map",
       "match": "subtree",
       "ownership": "template-owned",
@@ -3854,14 +3862,14 @@
   ],
   "blueprintManifest": {
     "path": "blueprints/saas-application.json",
-    "sha256": "sha256:2753ecb4fecec8e08f1257c8b330c1a4cbe79618f4ae599a2dd49c8ea7a5d487"
+    "sha256": "sha256:d376e4fee6281cf76a96da250117d335e1520c9ff639b29430b385188974cc3d"
   },
   "upgradeImpact": {
     "path": "releases/v0.2.0-alpha.1/upgrade/app-map-input.json",
-    "sha256": "sha256:fc15175452a618e7275f4169a901c860e568be9bb15554ebd505bafa7f12dda2",
+    "sha256": "sha256:26eadcbecb45f2e2a0cd300fe21f19fa622e42635d0fd7b9d4303b731d78022d",
     "projection": {
       "path": "releases/v0.2.0-alpha.1/upgrade/app-map-impact.json",
-      "sha256": "sha256:b5f78ddb5dccc307b08077916e57acc6b9aafdd265fc2016e1fcc96772d6d97a"
+      "sha256": "sha256:8b2e835314230b1193fc846771f8f74dc6cd8f839f2f00a3b819295890419f9c"
     }
   },
   "migrationHandoff": {
