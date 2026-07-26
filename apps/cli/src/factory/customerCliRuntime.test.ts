@@ -5,9 +5,9 @@ import {
   mkdirSync,
   mkdtempSync,
   readFileSync,
-  rmSync,
   writeFileSync,
 } from "node:fs";
+import { rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { afterAll, afterEach, describe, expect, it } from "vitest";
@@ -49,13 +49,16 @@ const runTaggedCli = (argv: readonly string[]) => {
     stderr: result.stderr,
   };
 };
-afterEach(() => {
-  for (const root of temporaryRoots.splice(0))
-    rmSync(root, { recursive: true, force: true });
+afterEach(async () => {
+  await Promise.all(
+    temporaryRoots
+      .splice(0)
+      .map((root) => rm(root, { recursive: true, force: true })),
+  );
 });
-afterAll(() => {
+afterAll(async () => {
   if (taggedReleaseParent)
-    rmSync(taggedReleaseParent, { recursive: true, force: true });
+    await rm(taggedReleaseParent, { recursive: true, force: true });
 });
 
 describe("materialized customer CLI runtime closure", () => {

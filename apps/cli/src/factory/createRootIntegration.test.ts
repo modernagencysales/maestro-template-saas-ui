@@ -9,6 +9,7 @@ import {
   symlinkSync,
   writeFileSync,
 } from "node:fs";
+import { rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -56,13 +57,16 @@ const runTaggedCli = (argv: readonly string[]) => {
     stderr: result.stderr,
   };
 };
-afterAll(() => {
+afterAll(async () => {
   if (taggedReleaseParent)
-    rmSync(taggedReleaseParent, { recursive: true, force: true });
+    await rm(taggedReleaseParent, { recursive: true, force: true });
 });
-afterEach(() => {
-  for (const root of temporaryRoots.splice(0))
-    rmSync(root, { recursive: true, force: true });
+afterEach(async () => {
+  await Promise.all(
+    temporaryRoots
+      .splice(0)
+      .map((root) => rm(root, { recursive: true, force: true })),
+  );
 });
 
 describe("create root integration", () => {
