@@ -17,6 +17,7 @@ import {
 } from "node:fs";
 import { basename, dirname, join, relative, resolve, sep } from "node:path";
 import { projectReviewedUpgradeImpact } from "@maestro-template/app-map-tooling/upgrade-impact";
+import { buildAppMapImpact } from "@maestro-template/app-map-tooling/impact";
 import type {
   UpgradeManifestV1,
   UpgradePlanInputV1,
@@ -59,6 +60,8 @@ export type TrustedRepositoryUpgradePlan = {
   readonly baseManifestPath: string;
   readonly baseManifestHash: string;
   readonly sourceCommit: string;
+  readonly sourceTag: string;
+  readonly sourceChecksum: string;
   readonly impact: unknown;
 };
 
@@ -82,6 +85,8 @@ const onlyKeys = (
 ): boolean => Object.keys(value).every((key) => keys.includes(key));
 const digest = (value: unknown): value is string =>
   typeof value === "string" && /^sha256:[0-9a-f]{64}$/u.test(value);
+const sortedUnique = (values: readonly string[]): readonly string[] =>
+  [...new Set(values)].sort();
 const readJson = (path: string): unknown =>
   JSON.parse(readFileSync(path, "utf8"));
 
@@ -184,6 +189,8 @@ const repositoryAuthorityFingerprint = (input: {
   readonly releaseManifestHash: string;
   readonly baseManifestHash: string;
   readonly sourceCommit: string;
+  readonly sourceTag: string;
+  readonly sourceChecksum: string;
   readonly planFingerprint: string;
 }): string => sha256(JSON.stringify(input));
 
@@ -253,7 +260,10 @@ export const planRepositoryUpgrade = (input: {
     !record(release.upgrade) ||
     !record(release.upgradeImpact) ||
     typeof release.upgradeImpact.path !== "string" ||
-    typeof release.upgradeImpact.sha256 !== "string"
+    typeof release.upgradeImpact.sha256 !== "string" ||
+    !record(release.upgradeImpact.projection) ||
+    typeof release.upgradeImpact.projection.path !== "string" ||
+    typeof release.upgradeImpact.projection.sha256 !== "string"
   )
     throw new Error(
       "Release manifest does not expose closed upgrade and impact authority.",
@@ -274,6 +284,16 @@ export const planRepositoryUpgrade = (input: {
   if (sha256(impactBytes) !== release.upgradeImpact.sha256)
     throw new Error("Pinned App Map input bytes do not match.");
   const impactInput = JSON.parse(impactBytes.toString("utf8")) as unknown;
+  const projectionPath = String(release.upgradeImpact.projection.path);
+  noSymlinkPath(releaseRoot, projectionPath, { allowMissingLeaf: false });
+  const projectionBytes = gitBlob(
+    releaseRoot,
+    releaseRootCommit,
+    projectionPath,
+  );
+  if (sha256(projectionBytes) !== release.upgradeImpact.projection.sha256)
+    throw new Error("Pinned App Map impact projection bytes do not match.");
+  const projection = JSON.parse(projectionBytes.toString("utf8")) as unknown;
   const manifest = release.upgrade as UpgradeManifestV1;
   if (!Array.isArray(manifest.operations) || manifest.operations.length === 0)
     throw new Error("Reviewed release upgrade has no file operations.");
@@ -293,15 +313,6 @@ export const planRepositoryUpgrade = (input: {
   if (sourceMergeBase !== sourceCommit)
     throw new Error(
       "Release source commit is not an ancestor of release authority HEAD.",
-    );
-  const tagCommit = gitText(releaseRoot, [
-    "rev-parse",
-    "--verify",
-    `refs/tags/${release.release.tag}^{commit}`,
-  ]);
-  if (tagCommit !== sourceCommit)
-    throw new Error(
-      "Release tag does not resolve to the reviewed source commit.",
     );
   const sourceChecksum = sha256(
     gitBytes(releaseRoot, ["archive", "--format=tar", sourceCommit]),
@@ -364,6 +375,47 @@ export const planRepositoryUpgrade = (input: {
   const reviewedPaths = plan.diff.flatMap(({ path, fromPath }) =>
     fromPath ? [fromPath, path] : [path],
   );
+  if (
+    !record(projection) ||
+    projection.schemaVersion !== 1 ||
+    projection.kind !== "reviewed-upgrade-impact-coverage" ||
+    !exactCommit(String(projection.baseRevision)) ||
+    projection.subjectRevision !== sourceCommit ||
+    !Array.isArray(projection.structuralPaths) ||
+    !projection.structuralPaths.every((path) => typeof path === "string") ||
+    !Array.isArray(projection.ownershipCoveredPaths) ||
+    !projection.ownershipCoveredPaths.every(
+      (path) => typeof path === "string",
+    ) ||
+    !record(projection.impact)
+  )
+    throw new Error("Pinned App Map impact coverage is invalid.");
+  const structuralPaths = sortedUnique(projection.structuralPaths as string[]);
+  const ownershipCoveredPaths = sortedUnique(
+    projection.ownershipCoveredPaths as string[],
+  );
+  if (
+    structuralPaths.some((path) => ownershipCoveredPaths.includes(path)) ||
+    JSON.stringify(
+      sortedUnique([...structuralPaths, ...ownershipCoveredPaths]),
+    ) !== JSON.stringify(sortedUnique(reviewedPaths))
+  )
+    throw new Error(
+      "Pinned App Map and ownership coverage do not close reviewed paths.",
+    );
+  const pinnedImpact = buildAppMapImpact({
+    schemaVersion: 1,
+    baseRevision: projection.baseRevision,
+    mapInput: impactInput,
+    changedPaths: structuralPaths,
+  });
+  if (
+    !pinnedImpact.ok ||
+    JSON.stringify(pinnedImpact.impact) !== JSON.stringify(projection.impact)
+  )
+    throw new Error(
+      "Pinned App Map impact projection does not rebuild exactly.",
+    );
   const impact = projectReviewedUpgradeImpact({
     schemaVersion: 1,
     authority: "reviewed-upgrade-plan",
@@ -371,12 +423,12 @@ export const planRepositoryUpgrade = (input: {
     manifestFingerprint: plan.manifestFingerprint,
     planFingerprint: plan.planFingerprint,
     targetCommit: plan.targetCommit,
-    reviewedPaths,
+    reviewedPaths: structuralPaths,
     impactInput: {
       schemaVersion: 1,
       baseRevision: plan.targetCommit,
       mapInput: impactInput,
-      changedPaths: reviewedPaths,
+      changedPaths: structuralPaths,
     },
   });
   if (!impact.ok) throw new Error(impact.diagnostic.code);
@@ -387,6 +439,8 @@ export const planRepositoryUpgrade = (input: {
     releaseManifestHash: sha256(releaseSource),
     baseManifestHash,
     sourceCommit,
+    sourceTag: release.release.tag,
+    sourceChecksum,
     planFingerprint: plan.planFingerprint,
   };
   return {
@@ -401,7 +455,13 @@ export const planRepositoryUpgrade = (input: {
     baseManifestPath: baseAbsolute,
     baseManifestHash,
     sourceCommit,
-    impact: impact.value,
+    sourceTag: release.release.tag,
+    sourceChecksum,
+    impact: {
+      graph: impact.value,
+      pinned: projection.impact,
+      ownershipCoveredPaths,
+    },
   };
 };
 
@@ -560,9 +620,27 @@ export const applyRepositoryUpgrade = (input: {
     trusted.releaseRootCommit !== input.trusted.releaseRootCommit ||
     trusted.releaseManifestHash !== input.trusted.releaseManifestHash ||
     trusted.baseManifestHash !== input.trusted.baseManifestHash ||
-    trusted.sourceCommit !== input.trusted.sourceCommit
+    trusted.sourceCommit !== input.trusted.sourceCommit ||
+    trusted.sourceTag !== input.trusted.sourceTag ||
+    trusted.sourceChecksum !== input.trusted.sourceChecksum
   )
     throw new Error("Upgrade authority changed after planning.");
+  let tagCommit: string;
+  try {
+    tagCommit = gitText(trusted.releaseRoot, [
+      "rev-parse",
+      "--verify",
+      `refs/tags/${trusted.sourceTag}^{commit}`,
+    ]);
+  } catch {
+    throw new Error(
+      "Upgrade apply requires the external immutable release tag.",
+    );
+  }
+  if (tagCommit !== trusted.sourceCommit)
+    throw new Error(
+      "Upgrade apply release tag does not match source authority.",
+    );
 
   const transactionRoot = mkdtempSync(
     join(dirname(targetRoot), `.${basename(targetRoot)}-maestro-upgrade-`),
@@ -790,15 +868,6 @@ const validateRollbackAuthority = (input: {
   if (sha256(baseBytes) !== journal.baseManifestHash)
     throw new Error(
       "Upgrade recovery base manifest hash does not match authority.",
-    );
-  const tagCommit = gitText(journal.releaseRoot, [
-    "rev-parse",
-    "--verify",
-    `refs/tags/${release.release.tag}^{commit}`,
-  ]);
-  if (tagCommit !== release.release.sourceCommit)
-    throw new Error(
-      "Upgrade recovery release tag does not resolve to source authority.",
     );
   if (
     sha256(

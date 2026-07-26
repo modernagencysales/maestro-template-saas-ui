@@ -13,7 +13,7 @@
     },
     "to": {
       "path": "releases/v0.2.0-alpha.1/manifest.json",
-      "sha256": "sha256:532c0da941bce540648b38c4fb868a35b7f37ff9d2623ff5778cd922866168f6"
+      "sha256": "sha256:031c8ea211264d0eeb62016fd88e239890b22b66d414638440e0918e4542be6d"
     }
   },
   "handoff": {

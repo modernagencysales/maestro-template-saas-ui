@@ -11,6 +11,7 @@ import {
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { buildAppMapImpact } from "@maestro-template/app-map-tooling/impact";
 import {
   applyRepositoryUpgrade,
   planRepositoryUpgrade,
@@ -64,7 +65,7 @@ const setup = () => {
   );
   write(targetRoot, path, before);
   init(targetRoot);
-  commit(targetRoot, "target fixture");
+  const targetCommit = commit(targetRoot, "target fixture");
 
   init(releaseRoot);
   write(releaseRoot, path, after);
@@ -85,9 +86,29 @@ const setup = () => {
     new URL("../../../app-map/fixtures/valid.json", import.meta.url),
   );
   const impactPath = "tooling/app-map/input.json";
+  const projectionPath = "tooling/app-map/impact.json";
   write(releaseRoot, "releases/v0.1.0-alpha.1/manifest.json", base);
   mkdirSync(dirname(join(releaseRoot, impactPath)), { recursive: true });
   writeFileSync(join(releaseRoot, impactPath), impactBytes);
+  const projected = buildAppMapImpact({
+    schemaVersion: 1,
+    baseRevision: targetCommit,
+    mapInput: JSON.parse(impactBytes.toString("utf8")) as unknown,
+    changedPaths: [path],
+  });
+  if (!projected.ok) throw new Error("Fixture App Map impact failed.");
+  const projectionBytes = Buffer.from(
+    JSON.stringify({
+      schemaVersion: 1,
+      kind: "reviewed-upgrade-impact-coverage",
+      baseRevision: targetCommit,
+      subjectRevision: sourceCommit,
+      structuralPaths: [path],
+      ownershipCoveredPaths: [],
+      impact: projected.impact,
+    }),
+  );
+  writeFileSync(join(releaseRoot, projectionPath), projectionBytes);
   write(
     releaseRoot,
     "releases/v0.2.0-alpha.1/manifest.json",
@@ -103,7 +124,14 @@ const setup = () => {
         sourceCommit,
         sourceChecksum,
       },
-      upgradeImpact: { path: impactPath, sha256: hash(impactBytes) },
+      upgradeImpact: {
+        path: impactPath,
+        sha256: hash(impactBytes),
+        projection: {
+          path: projectionPath,
+          sha256: hash(projectionBytes),
+        },
+      },
       upgrade: {
         schemaVersion: 1,
         transition: {
@@ -155,9 +183,13 @@ describe("trusted repository upgrade boundary", () => {
       ],
     });
     expect(trusted.impact).toMatchObject({
-      authority: "reviewed-upgrade-plan",
-      targetCommit: trusted.plan.targetCommit,
-      impact: { complete: true, changedPaths: [fixture.path] },
+      graph: {
+        authority: "reviewed-upgrade-plan",
+        targetCommit: trusted.plan.targetCommit,
+        impact: { complete: true, changedPaths: [fixture.path] },
+      },
+      pinned: { complete: true, changedPaths: [fixture.path] },
+      ownershipCoveredPaths: [],
     });
   });
 
@@ -282,6 +314,28 @@ describe("trusted repository upgrade boundary", () => {
         toVersion: "0.2.0-alpha.1",
       }),
     ).toThrow(/archive checksum/);
+  });
+  it("plans from commit authority without a tag but blocks apply before writes", () => {
+    const fixture = setup();
+    git(fixture.releaseRoot, "tag", "-d", "maestro-template-v0.2.0-alpha.1");
+    const trusted = planRepositoryUpgrade({
+      targetRoot: fixture.targetRoot,
+      releaseRoot: fixture.releaseRoot,
+      toVersion: "0.2.0-alpha.1",
+    });
+    expect(trusted.plan.ok).toBe(true);
+    expect(() =>
+      applyRepositoryUpgrade({
+        trusted,
+        targetRoot: fixture.targetRoot,
+        expectedPlanFingerprint: trusted.plan.planFingerprint,
+        expectedAuthorityFingerprint: trusted.authorityFingerprint,
+        write: true,
+      }),
+    ).toThrow(/external immutable release tag/);
+    expect(readFileSync(join(fixture.targetRoot, fixture.path), "utf8")).toBe(
+      fixture.before,
+    );
   });
 
   it("stages exact Git source bytes, emits evidence, verifies, and rolls back", () => {
