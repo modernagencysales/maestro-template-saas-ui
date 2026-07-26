@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -35,6 +36,8 @@ const consumer = createReleaseTemplateInstanceConsumer(
 
 const digest = (path: string): string =>
   createHash("sha256").update(readFileSync(path)).digest("hex");
+const digestBytes = (bytes: Buffer): string =>
+  createHash("sha256").update(bytes).digest("hex");
 
 describe("release templateInstance consumer", () => {
   it("normalizes the CP-5 current release instance through the canonical schema", () => {
@@ -189,13 +192,32 @@ describe("release templateInstance consumer", () => {
     },
   );
 
-  it("keeps both checked-in alpha release manifests byte-identical", () => {
+  it("keeps released manifests immutable without freezing an unreleased seal", () => {
     const repositoryRoot = resolve(import.meta.dirname, "../../../..");
     expect(
       digest(resolve(repositoryRoot, "releases/v0.1.0-alpha.1/manifest.json")),
     ).toBe("0b55fd0895ecbcf6743860551ed52f165b4252c17ea94ad1687163a8ce6c6b93");
-    expect(
-      digest(resolve(repositoryRoot, "releases/v0.2.0-alpha.1/manifest.json")),
-    ).toBe("532c0da941bce540648b38c4fb868a35b7f37ff9d2623ff5778cd922866168f6");
+    const tag = "maestro-template-v0.2.0-alpha.1";
+    const manifestPath = "releases/v0.2.0-alpha.1/manifest.json";
+    let taggedManifest: Buffer | undefined;
+    try {
+      taggedManifest = execFileSync(
+        "git",
+        ["-C", repositoryRoot, "show", `${tag}:${manifestPath}`],
+        { stdio: ["ignore", "pipe", "pipe"] },
+      );
+    } catch {
+      // The alpha remains resealable until its immutable release tag exists.
+    }
+    if (taggedManifest) {
+      expect(digest(resolve(repositoryRoot, manifestPath))).toBe(
+        digestBytes(taggedManifest),
+      );
+    } else {
+      const manifest = JSON.parse(
+        readFileSync(resolve(repositoryRoot, manifestPath), "utf8"),
+      ) as { readonly release: { readonly tag: string } };
+      expect(manifest.release.tag).toBe(tag);
+    }
   });
 });
