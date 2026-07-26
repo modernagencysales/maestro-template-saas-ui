@@ -251,8 +251,10 @@ describe("workflow lifecycle persistent tenant adapters", () => {
             .pipe(Effect.orDie);
           const event = yield* reader
             .table("workflowRunEvents")
-            .index("by_run_sequence", (q) =>
-              q.eq("workflowRunId", seeded.runId),
+            .index(
+              "by_run_sequence",
+              (q) => q.eq("workflowRunId", seeded.runId),
+              "desc",
             )
             .first()
             .pipe(Effect.map(Option.getOrNull), Effect.orDie);
