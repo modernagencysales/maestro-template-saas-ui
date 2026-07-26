@@ -442,12 +442,22 @@ const checkDescriptorDefinitions = {
       },
       {
         file: "tsconfig.type-coverage.json",
-        includes: ["include", "exclude", "tooling/agent-pack/evals/runs/**"],
-        message: "type coverage must inspect real project files",
+        includes: [
+          "include",
+          "exclude",
+          "**/*.test.*",
+          "**/*.spec.*",
+          "**/__tests__/**",
+          "packages/convex/test/**",
+          "tests/**",
+          "tooling/agent-pack/evals/runs/**",
+        ],
+        message:
+          "type coverage must inspect source while excluding generated eval workspaces and test files",
       },
       {
         file: "docs/template/type-coverage-ratchet.md",
-        includes: ["99.7", "100%"],
+        includes: ["99.7", "100%", "source-only", "strict TypeScript"],
         message:
           "type coverage ratchet must be documented until it reaches 100%",
       },

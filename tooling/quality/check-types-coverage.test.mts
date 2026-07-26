@@ -22,12 +22,22 @@ describe("check:types-coverage", () => {
           includes: expect.arrayContaining([
             "include",
             "exclude",
+            "**/*.test.*",
+            "**/*.spec.*",
+            "**/__tests__/**",
+            "packages/convex/test/**",
+            "tests/**",
             "tooling/agent-pack/evals/runs/**",
           ]),
         }),
         expect.objectContaining({
           file: "docs/template/type-coverage-ratchet.md",
-          includes: expect.arrayContaining(["99.7", "100%"]),
+          includes: expect.arrayContaining([
+            "99.7",
+            "100%",
+            "source-only",
+            "strict TypeScript",
+          ]),
         }),
       ]),
     );
