@@ -14,7 +14,7 @@ import {
 } from "./workflow-lifecycle-persistence.fixture";
 
 describe("workflow lifecycle retained descendants", () => {
-  it("derives the longest child/evidence deadline and fails closed on active work", async () => {
+  it("keeps historical component-id child links visible to retention and quiescence inspection", async () => {
     const program = Effect.gen(function* () {
       const confect = yield* Effect.serviceOptional(
         TestConfect.TestConfect<typeof databaseSchema>(),

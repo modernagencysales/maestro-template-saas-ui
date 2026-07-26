@@ -20,6 +20,7 @@ export const publicationFixtureV1Release = defineWorkflowRelease({
       refs.internal.workflowRunners.publicationFixture.v1.run,
     ),
     module: "workflowRunners/publicationFixture/v1:run",
+    functionReference: "workflowRunners/publicationFixture/v1:run",
   },
   events: [
     {
@@ -47,13 +48,13 @@ export const publicationFixtureV1Release = defineWorkflowRelease({
   interpreter: {
     module: "packages/convex/confect/workflows/_kit/graphRunnerV2.ts",
     checksum:
-      "f221ac01b5ed864c05dfce752b8ef2fca4b5ef173a8e338fc64b798f3863a288",
+      "980cd9f429d0b47193ec8783252e1fb0b6589e1bd0d61fab2cdb986b1f9ffaa4",
   },
   lifecycleContractVersion: 1,
   sourceClosureChecksum:
-    "d0ef318d4b3bb3db85da4176e693c5c9eb0b283991c0e138657f7c2a6a97e0b0",
+    "754e681d5cdb6f3d73d0b68f4d83dba5bb30621a8bae4f0d1e133155e55edb6f",
   releaseChecksum:
-    "3f0fa1216e46d0f4e1b0b365f4dfb455dad98a4c04f24b96c3cb2e58668753ee",
+    "d7d61385a28e2daf46c68f8994dae068020029a332f7c2024382b2340136274e",
   stableStepNames: ["start.v2", "receipt.v2"],
   semanticComplete: true,
   isolatedFixture: true,

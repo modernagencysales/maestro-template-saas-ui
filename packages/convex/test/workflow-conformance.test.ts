@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { isNonRetryableError } from "@convex-dev/workpool";
 import type { EventId as ComponentEventId } from "@convex-dev/workflow";
-import { v } from "convex/values";
+import { getConvexSize, v } from "convex/values";
 import * as Schema from "effect/Schema";
 import {
   conformanceApi,
@@ -38,8 +38,11 @@ import {
   type WorkflowV2SubworkflowRegistryEntry,
 } from "../confect/workflows/_kit/subworkflows";
 import {
+  activateSubworkflowRunLinkState,
   buildSubworkflowRunLinkRow,
+  childWorkflowRunIdFromLink,
   reconcileSubworkflowRunLinkState,
+  subworkflowRunLinkIdempotencyKey,
   type SubworkflowRunLinkProjection,
 } from "../confect/workflows/_kit/subworkflowLinks";
 import {
@@ -57,15 +60,29 @@ import {
   reconcileWorkflowEventInstance,
   sendWorkflowEventInstance,
 } from "../confect/workflows/_kit/eventInstances";
-import type { WorkflowPrincipal } from "../confect/workflows/_kit/principal";
+import type { DurableWorkflowPrincipal } from "../confect/workflows/_kit/principal";
+import type { WorkflowPolicySnapshot } from "../confect/workflows/_kit/policySnapshot";
 import type { WorkflowEffectContract } from "../confect/workflows/_kit/effectReservations";
-import { runObservedWorkflowStage } from "../confect/workflows/_kit/observedStage";
+import {
+  bindObservedWorkflowAuthority,
+  loadObservedWorkflowExecutionIdentity,
+  runObservedWorkflowStage,
+} from "../confect/workflows/_kit/observedStage";
 import {
   PINNED_INLINE_CONVEX_VERSION,
   inlineTransactionPreset,
   reviewedInlineTransaction,
 } from "../confect/workflows/_kit/inlineTransactions";
 import { workflowFailurePolicy } from "../confect/workflows/_kit/failurePolicy";
+import {
+  definePublicationRegistry,
+  defineWorkflowRelease,
+  publicationTestOnly,
+  type ChecksummedModule,
+  type GeneratedPublicationAuthority,
+  type WorkflowRelease,
+} from "../confect/workflows/_kit/publication";
+import { sha256Hex } from "../confect/shared/sha256";
 
 describe("Maestro workflow rejection fixtures", () => {
   it.each(adversarialWorkflowDrafts)(
@@ -1254,7 +1271,9 @@ describe("Maestro V2 inline transaction compiler", () => {
     const runWorkflow = vi.fn(async () => ({ receiptId: "child-receipt" }));
     const runMutation = vi.fn(
       async (...[ref]: Parameters<RunDurableGraphStep["runMutation"]>) =>
-        ref === childLinkReserveRef ? { linkId: "link-1" } : null,
+        ref === childLinkReserveRef
+          ? { linkId: "link-1", childWorkflowRunId: "child-run-1" }
+          : null,
     );
     const graph = v2SubworkflowGraph();
 
@@ -1273,9 +1292,19 @@ describe("Maestro V2 inline transaction compiler", () => {
     expect(runWorkflow).toHaveBeenCalledWith(
       childHandlerRef,
       {
+        idempotencyKey: "run-1:2:0:child.v3:workflow.childReceipt.v3:3",
         requestId: "request-1",
+        subworkflow: {
+          generation: 0,
+          linkId: "link-1",
+          parentComponentWorkflowId: "component-parent",
+          parentWorkflowRunId: "run-1",
+          reservedAt: 1,
+        },
         principal: childPrincipal,
-        policySnapshot: { kind: "none" },
+        policySnapshot: childPolicySnapshot,
+        workflowRunId: "child-run-1",
+        workspaceId: "workspace-1",
       },
       { name: "child.v3" },
     );
@@ -1292,21 +1321,148 @@ describe("Maestro V2 inline transaction compiler", () => {
           linkId: "link-1",
           outcome: {
             kind: "succeeded",
-            resultJson: '{"receiptId":"child-receipt"}',
+            receipt: {
+              kind: "bounded-inline",
+              measuredBytes: expect.any(Number),
+              contentHash: expect.stringMatching(/^[a-f0-9]{64}$/),
+            },
           },
           occurredAt: 1,
         },
         { name: "child.v3.link.reconcile.v1" },
       ],
     ]);
+    expect(JSON.stringify(runMutation.mock.calls[1]?.[1])).not.toContain(
+      "child-receipt",
+    );
+  });
+
+  it("fails closed before reserving a child when the parent component identity is unavailable", async () => {
+    const runWorkflow = vi.fn(async () => ({ receiptId: "unreachable" }));
+    const runMutation = vi.fn(async () => ({ linkId: "unreachable" }));
+    const { workflowId: _componentWorkflowId, ...stepWithoutIdentity } = v2Step(
+      { runWorkflow, runMutation },
+    );
+    await expect(
+      runDurableGraphWorkflowV2(stepWithoutIdentity, {
+        ...v2Input(v2SubworkflowGraph()),
+        principal: childPrincipal,
+        workflowRegistry: childWorkflowRegistry,
+        capabilityRegistry: {},
+        admitEffect: async () => ({ kind: "deny", reason: "not used" }),
+      }),
+    ).rejects.toThrow(/parent component identity is unavailable/);
+    expect(runMutation).not.toHaveBeenCalled();
+    expect(runWorkflow).not.toHaveBeenCalled();
   });
 
   it("rejects a registry key whose version differs from its binding", () => {
+    const wrongVersion = Schema.decodeSync(WorkflowReference)(
+      "workflow.childReceipt.v2",
+    );
     expect(() =>
-      defineWorkflowV2SubworkflowRegistry({
-        [childWorkflowRef]: { ...childWorkflowEntry, version: 2 },
+      defineWorkflowV2SubworkflowRegistry(childPublicationRegistry, {
+        [wrongVersion]: childWorkflowDefinition(),
       }),
-    ).toThrow(/generated reference matching its immutable version/);
+    ).toThrow(/publication binding is unavailable/);
+  });
+
+  it("derives child runtime authority from the immutable publication registry", () => {
+    expect(childWorkflowEntry).toMatchObject({
+      version: childPublication.release.version,
+      ref: childPublication.release.runner.ref,
+      children: childPublication.release.subworkflowBindings,
+      lifecycle: {
+        cancel: "restricted",
+        cleanup: "restricted",
+        contractVersion: childPublication.release.lifecycleContractVersion,
+      },
+      publication: {
+        workflowId: childPublication.release.workflowId,
+        graphJson: childPublication.graphJson,
+        argumentMapper: {
+          module: childPublication.argumentMapperModule,
+          schemaName: "workflow.childReceipt.v3.args",
+        },
+        resultSchema: {
+          module: childPublication.resultSchemaModule,
+          schemaName: "workflow.childReceipt.v3.result",
+        },
+        releaseChecksum: childPublication.release.releaseChecksum,
+        graphHash: childPublication.release.graphHash,
+        runnerModule: childPublication.release.runner.module,
+        runnerFunctionReference:
+          childPublication.release.runner.functionReference,
+      },
+    });
+    expect(Object.isFrozen(childWorkflowRegistry)).toBe(true);
+    expect(() =>
+      defineWorkflowV2SubworkflowRegistry(childPublicationRegistry, {
+        [childWorkflowRef]: {
+          ...childWorkflowDefinition(),
+          mapArgs: ({ inputs }) => ({
+            requestId: `forged:${String(
+              (inputs as { requestId?: unknown }).requestId,
+            )}`,
+          }),
+        },
+      }),
+    ).toThrow(/immutable release/);
+    expect(() =>
+      defineWorkflowV2SubworkflowRegistry(childPublicationRegistry, {
+        [childWorkflowRef]: {
+          ...childWorkflowDefinition(),
+          resultSchema: Schema.Struct({ forged: Schema.Boolean }),
+        },
+      }),
+    ).toThrow(/immutable release/);
+    expect(() =>
+      defineWorkflowV2SubworkflowRegistry(childPublicationRegistry, {
+        [childWorkflowRef]: {
+          ...childWorkflowDefinition(),
+          publication: {
+            ...childWorkflowDefinition().publication,
+            argumentMapper: {
+              ...childWorkflowDefinition().publication.argumentMapper,
+              exportName: "attackerMapper",
+            },
+          },
+        },
+      }),
+    ).toThrow(/immutable release/);
+    expect(() =>
+      defineWorkflowV2SubworkflowRegistry(childPublicationRegistry, {
+        [childWorkflowRef]: {
+          ...childWorkflowDefinition(),
+          publication: {
+            ...childWorkflowDefinition().publication,
+            resultSchema: {
+              ...childWorkflowDefinition().publication.resultSchema,
+              exportName: "attackerSchema",
+            },
+          },
+        },
+      }),
+    ).toThrow(/immutable release/);
+    const forgedGraphJson = childPublication.graphJson.replace(
+      '"nodes":[]',
+      '"nodes":[{"id":"attacker"}]',
+    );
+    expect(() =>
+      definePublicationRegistry({
+        capabilities: [],
+        workflows: [
+          {
+            ...childPublication.release,
+            subworkflowRuntime: {
+              ...childPublication.release.subworkflowRuntime!,
+              graphJson: forgedGraphJson,
+              graphSnapshotHash: sha256Hex(forgedGraphJson),
+            },
+          },
+        ],
+      }),
+    ).toThrow(/checksum does not match generated descriptor/);
   });
 
   it.each([
@@ -1320,17 +1476,17 @@ describe("Maestro V2 inline transaction compiler", () => {
   ] as const)("rejects %s before starting a child", async (...row) => {
     const [, policy, children] = row;
     const runWorkflow = vi.fn(async () => ({ receiptId: "unreachable" }));
-    const registry = defineWorkflowV2SubworkflowRegistry({
-      [childWorkflowRef]: defineWorkflowV2Subworkflow({
+    const registry = {
+      [childWorkflowRef]: {
         ...childWorkflowEntry,
         children,
-      }),
-      [nestedWorkflowRef]: defineWorkflowV2Subworkflow({
+      },
+      [nestedWorkflowRef]: {
         ...childWorkflowEntry,
         version: 4,
         children: [],
-      }),
-    });
+      },
+    };
 
     expect(() =>
       validateWorkflowV2SubworkflowTopology(
@@ -1354,7 +1510,7 @@ describe("Maestro V2 inline transaction compiler", () => {
 
   it("persists exact parent-child projections and reconciles replay idempotently", () => {
     const projection = childLinkProjection();
-    const row = buildSubworkflowRunLinkRow(projection, 10);
+    const row = buildSubworkflowRunLinkRow(projection, 10, "child-run-1");
     expect(row).toMatchObject({
       workspaceId: "workspace-1",
       parentWorkflowId: "run-1",
@@ -1364,23 +1520,33 @@ describe("Maestro V2 inline transaction compiler", () => {
       status: "starting",
     });
     expect(JSON.parse(row.parentKind)).toEqual({
+      schemaVersion: 2,
+      workflowRunId: "run-1",
+      componentWorkflowId: "component-parent",
       workflowVersion: 2,
       generation: 0,
       principal: childPrincipal,
     });
     expect(JSON.parse(row.childKind)).toEqual({
+      schemaVersion: 2,
       workflow: childWorkflowRef,
       workflowVersion: 3,
+      graphJson: childPublication.graphJson,
+      releaseChecksum: childPublication.release.releaseChecksum,
       principal: childPrincipal,
-      cancellation: "cascade",
-      cleanup: "cascade-async",
+      policySnapshot: childPolicySnapshot,
+      childWorkflowRunId: "child-run-1",
     });
 
     const first = reconcileSubworkflowRunLinkState(
       row,
       {
         kind: "succeeded",
-        resultJson: '{"receiptId":"child-receipt"}',
+        receipt: {
+          kind: "bounded-inline",
+          measuredBytes: 31,
+          contentHash: "a".repeat(64),
+        },
       },
       11,
     );
@@ -1388,7 +1554,11 @@ describe("Maestro V2 inline transaction compiler", () => {
       first,
       {
         kind: "succeeded",
-        resultJson: '{"receiptId":"child-receipt"}',
+        receipt: {
+          kind: "bounded-inline",
+          measuredBytes: 31,
+          contentHash: "a".repeat(64),
+        },
       },
       12,
     );
@@ -1405,6 +1575,169 @@ describe("Maestro V2 inline transaction compiler", () => {
     ).toThrow("already reconciled");
   });
 
+  it("keys child reservation by the parent product run while preserving replay", () => {
+    const first = childLinkProjection();
+    const replay = { ...first };
+    const independentParent = {
+      ...first,
+      parentWorkflowRunId: "run-2",
+    };
+
+    expect(subworkflowRunLinkIdempotencyKey(replay)).toBe(
+      subworkflowRunLinkIdempotencyKey(first),
+    );
+    expect(subworkflowRunLinkIdempotencyKey(independentParent)).not.toBe(
+      subworkflowRunLinkIdempotencyKey(first),
+    );
+  });
+
+  it("dual-decodes historical child-kind rows without inventing a product run", () => {
+    expect(childWorkflowRunIdFromLink({ childKind: "workflow" })).toBeNull();
+    expect(
+      childWorkflowRunIdFromLink({
+        childKind: JSON.stringify({ childWorkflowRunId: "child-run-1" }),
+      }),
+    ).toBe("child-run-1");
+  });
+
+  it("binds the exact child component identity once and rejects conflicting activation", () => {
+    const row = buildSubworkflowRunLinkRow(
+      childLinkProjection(),
+      10,
+      "child-run-1",
+    );
+    const running = activateSubworkflowRunLinkState(
+      row,
+      {
+        workspaceId: "workspace-1",
+        parentWorkflowRunId: "run-1",
+        parentComponentWorkflowId: "component-parent",
+        childComponentWorkflowId: "component-child",
+        childWorkflowRunId: "child-run-1",
+        generation: 0,
+      },
+      11,
+    );
+    expect(running).toMatchObject({
+      childWorkflowId: "component-child",
+      status: "running",
+      updatedAt: 11,
+    });
+    expect(
+      activateSubworkflowRunLinkState(
+        running,
+        {
+          workspaceId: "workspace-1",
+          parentWorkflowRunId: "run-1",
+          parentComponentWorkflowId: "component-parent",
+          childComponentWorkflowId: "component-child",
+          childWorkflowRunId: "child-run-1",
+          generation: 0,
+        },
+        12,
+      ),
+    ).toBe(running);
+    expect(() =>
+      activateSubworkflowRunLinkState(
+        running,
+        {
+          workspaceId: "workspace-1",
+          parentWorkflowRunId: "run-other",
+          parentComponentWorkflowId: "component-parent",
+          childComponentWorkflowId: "component-other",
+          childWorkflowRunId: "child-run-1",
+          generation: 0,
+        },
+        12,
+      ),
+    ).toThrow(/activation ownership mismatch/);
+  });
+
+  it("activates a generated child before loading its product execution identity", async () => {
+    const calls: string[] = [];
+    const activateRef =
+      "workflows.subworkflowLinks.activate" as unknown as DurableGraphStepRef<"mutation">;
+    const executionIdentityRef =
+      "workflows.stageObservations.executionIdentity" as unknown as DurableGraphStepRef<"query">;
+    const runMutation = vi.fn(async () => {
+      calls.push("activate");
+      return {
+        status: "running",
+        principal: childPrincipal,
+        policySnapshot: childPolicySnapshot,
+      };
+    });
+    const runQuery = vi.fn(async () => {
+      calls.push("load");
+      return { generation: 0, observedAt: 1 };
+    });
+
+    const executionIdentity = await loadObservedWorkflowExecutionIdentity(
+      v2Step({
+        workflowId: "component-child" as NonNullable<
+          RunDurableGraphStep["workflowId"]
+        >,
+        runMutation,
+        runQuery,
+      }),
+      executionIdentityRef,
+      {
+        workspaceId: "workspace-1",
+        workflowRunId: "child-run-1",
+        subworkflow: {
+          linkId: "link-1",
+          parentWorkflowRunId: "run-1",
+          parentComponentWorkflowId: "component-parent",
+          generation: 0,
+          reservedAt: 1,
+        },
+        activateSubworkflowRef: activateRef,
+      },
+    );
+    expect(executionIdentity).toEqual({
+      generation: 0,
+      observedAt: 1,
+      authority: {
+        principal: childPrincipal,
+        policySnapshot: childPolicySnapshot,
+      },
+    });
+    expect(calls).toEqual(["activate", "load"]);
+    expect(runMutation).toHaveBeenCalledWith(activateRef, {
+      workspaceId: "workspace-1",
+      parentWorkflowRunId: "run-1",
+      parentComponentWorkflowId: "component-parent",
+      childWorkflowRunId: "child-run-1",
+      childComponentWorkflowId: "component-child",
+      generation: 0,
+      linkId: "link-1",
+      occurredAt: 1,
+    });
+
+    const forgedPrincipal = {
+      ...childPrincipal,
+      grants: [...childPrincipal.grants, "workflow:admin"],
+    };
+    expect(
+      bindObservedWorkflowAuthority(
+        {
+          principal: forgedPrincipal,
+          policySnapshot: {
+            version: 1,
+            kind: "none",
+            reason: "forged wider policy",
+          },
+          requestId: "request-1",
+        },
+        executionIdentity,
+      ),
+    ).toEqual({
+      principal: childPrincipal,
+      policySnapshot: childPolicySnapshot,
+      requestId: "request-1",
+    });
+  });
+
   it.each([
     ["child failure", "child failed", "failed"],
     ["child cancellation", "Canceled", "canceled"],
@@ -1415,7 +1748,9 @@ describe("Maestro V2 inline transaction compiler", () => {
       const runWorkflow = vi.fn(async () => Promise.reject(new Error(message)));
       const runMutation = vi.fn(
         async (...[ref]: Parameters<RunDurableGraphStep["runMutation"]>) =>
-          ref === childLinkReserveRef ? { linkId: "link-1" } : null,
+          ref === childLinkReserveRef
+            ? { linkId: "link-1", childWorkflowRunId: "child-run-1" }
+            : null,
       );
       await expect(
         runDurableGraphWorkflowV2(v2Step({ runWorkflow, runMutation }), {
@@ -1427,8 +1762,9 @@ describe("Maestro V2 inline transaction compiler", () => {
         }),
       ).rejects.toThrow(message);
       expect(childWorkflowEntry.lifecycle).toEqual({
-        cancel: "cascade",
-        cleanup: "cascade-async",
+        cancel: "restricted",
+        cleanup: "restricted",
+        contractVersion: 1,
       });
       expect(runMutation.mock.calls[1]?.[1]).toMatchObject({
         outcome: { kind: expectedOutcome },
@@ -1436,14 +1772,61 @@ describe("Maestro V2 inline transaction compiler", () => {
     },
   );
 
+  it.each([
+    ["failure", new Error("child failed"), "failed"],
+    ["cancellation", new Error("Canceled"), "canceled"],
+  ] as const)(
+    "preserves child %s when reconciliation fails and reports the secondary outcome",
+    async (...row) => {
+      const [, primary, primaryOutcome] = row;
+      const runWorkflow = vi.fn(async () => Promise.reject(primary));
+      const runMutation = vi.fn(
+        async (...[ref]: Parameters<RunDurableGraphStep["runMutation"]>) => {
+          if (ref === childLinkReserveRef) {
+            return { linkId: "link-1", childWorkflowRunId: "child-run-1" };
+          }
+          if (ref === childLinkReconcileRef) {
+            throw new Error("link reconciliation unavailable");
+          }
+          if (ref === childLinkReportRef) return null;
+          throw new Error("unexpected mutation");
+        },
+      );
+
+      await expect(
+        runDurableGraphWorkflowV2(v2Step({ runWorkflow, runMutation }), {
+          ...v2Input(v2SubworkflowGraph()),
+          principal: childPrincipal,
+          workflowRegistry: childWorkflowRegistry,
+          capabilityRegistry: {},
+          admitEffect: async () => ({ kind: "deny", reason: "not used" }),
+        }),
+      ).rejects.toBe(primary);
+      expect(runMutation).toHaveBeenCalledWith(
+        childLinkReportRef,
+        {
+          workspaceId: "workspace-1",
+          linkId: "link-1",
+          primaryOutcome,
+          issue: "SUBWORKFLOW_LINK_RECONCILIATION_FAILED",
+          occurredAt: 1,
+        },
+        { name: "child.v3.link.reconciliation-failure.v1" },
+      );
+    },
+  );
+
   it("allows only an explicit grant narrowing for the child principal", async () => {
     const runWorkflow = vi.fn(async () => ({ receiptId: "narrowed" }));
-    const narrowedRegistry = defineWorkflowV2SubworkflowRegistry({
-      [childWorkflowRef]: {
-        ...childWorkflowEntry,
-        principal: { kind: "narrow", grants: ["brief:read"] },
+    const narrowedRegistry = defineWorkflowV2SubworkflowRegistry(
+      childPublicationRegistry,
+      {
+        [childWorkflowRef]: childWorkflowDefinition({
+          kind: "narrow",
+          grants: ["brief:read"],
+        }),
       },
-    });
+    );
     await runDurableGraphWorkflowV2(v2Step({ runWorkflow }), {
       ...v2Input(v2SubworkflowGraph()),
       inputs: { requestId: "request-1" },
@@ -1455,9 +1838,19 @@ describe("Maestro V2 inline transaction compiler", () => {
     expect(runWorkflow).toHaveBeenCalledWith(
       childHandlerRef,
       {
+        idempotencyKey: "run-1:2:0:child.v3:workflow.childReceipt.v3:3",
         requestId: "request-1",
         principal: { ...childPrincipal, grants: ["brief:read"] },
-        policySnapshot: { kind: "none" },
+        policySnapshot: childPolicySnapshot,
+        subworkflow: {
+          generation: 0,
+          linkId: "link-1",
+          parentComponentWorkflowId: "component-parent",
+          parentWorkflowRunId: "run-1",
+          reservedAt: 1,
+        },
+        workflowRunId: "child-run-1",
+        workspaceId: "workspace-1",
       },
       { name: "child.v3" },
     );
@@ -1465,12 +1858,15 @@ describe("Maestro V2 inline transaction compiler", () => {
 
   it("rejects a child principal that attempts to add a grant", async () => {
     const runWorkflow = vi.fn(async () => ({ receiptId: "unreachable" }));
-    const wideningRegistry = defineWorkflowV2SubworkflowRegistry({
-      [childWorkflowRef]: {
-        ...childWorkflowEntry,
-        principal: { kind: "narrow", grants: ["workflow:admin"] },
+    const wideningRegistry = defineWorkflowV2SubworkflowRegistry(
+      childPublicationRegistry,
+      {
+        [childWorkflowRef]: childWorkflowDefinition({
+          kind: "narrow",
+          grants: ["workflow:admin"],
+        }),
       },
-    });
+    );
     await expect(
       runDurableGraphWorkflowV2(v2Step({ runWorkflow }), {
         ...v2Input(v2SubworkflowGraph()),
@@ -1497,10 +1893,11 @@ describe("Maestro V2 inline transaction compiler", () => {
         inputs: { requestId: "request-1" },
         context: {},
         principal: childPrincipal,
-        policySnapshot: {},
+        policySnapshot: childPolicySnapshot,
         ownership: {
           workspaceId: "workspace-1",
-          parentWorkflowId: "run-1",
+          parentWorkflowRunId: "run-1",
+          parentComponentWorkflowId: "component-parent",
           parentWorkflowVersion: 2,
           generation: 0,
           occurredAt: 1,
@@ -1523,6 +1920,228 @@ describe("Maestro V2 inline transaction compiler", () => {
       }),
     ).rejects.toThrow(/child.*mapped args.*32 bytes/);
     expect(runWorkflow).not.toHaveBeenCalled();
+  });
+
+  it("rejects an oversized child result before reconciliation or return", async () => {
+    const runWorkflow = vi.fn(async () => ({ receiptId: "x".repeat(2_000) }));
+    const runMutation = vi.fn(
+      async (...[ref]: Parameters<RunDurableGraphStep["runMutation"]>) =>
+        ref === childLinkReserveRef
+          ? { linkId: "link-1", childWorkflowRunId: "child-run-1" }
+          : null,
+    );
+    await expect(
+      runDurableGraphWorkflowV2(v2Step({ runWorkflow, runMutation }), {
+        ...v2Input(v2SubworkflowGraph()),
+        inputs: { requestId: "request-1" },
+        principal: childPrincipal,
+        workflowRegistry: childWorkflowRegistry,
+        capabilityRegistry: {},
+        admitEffect: async () => ({ kind: "deny", reason: "not used" }),
+      }),
+    ).rejects.toThrow(/child result uses .* above the 1024 bytes limit/);
+    expect(runMutation.mock.calls[1]?.[1]).toMatchObject({
+      outcome: { kind: "failed" },
+    });
+  });
+
+  describe("artifact child result budgets", () => {
+    const artifactResultSchema = Schema.Struct({
+      artifactId: Schema.String,
+      contentHash: Schema.String,
+      measuredBytes: Schema.Number,
+    });
+    const artifactPublication = publishedSubworkflowFixture(
+      "workflow.childReceipt",
+      3,
+      childHandlerRef,
+      [],
+      childArgumentMapper,
+      artifactResultSchema,
+    );
+    const artifactRuntime = artifactPublication.release.subworkflowRuntime;
+    if (!artifactRuntime) {
+      throw new Error("artifact workflow fixture requires a runtime binding");
+    }
+    const artifactRegistry = defineWorkflowV2SubworkflowRegistry(
+      definePublicationRegistry({
+        capabilities: [],
+        workflows: [artifactPublication.release],
+      }),
+      {
+        [childWorkflowRef]: defineWorkflowV2Subworkflow<
+          ChildArgs,
+          Schema.Schema.Type<typeof artifactResultSchema>
+        >({
+          ...childWorkflowDefinition(),
+          resultSchema: artifactResultSchema,
+          publication: {
+            workflowId: artifactPublication.release.workflowId,
+            argumentMapper: {
+              module: artifactRuntime.argumentMapper.module,
+              exportName: artifactRuntime.argumentMapper.exportName,
+              schemaName: artifactRuntime.argumentMapper.schemaName,
+            },
+            resultSchema: {
+              module: artifactRuntime.resultSchema.module,
+              exportName: artifactRuntime.resultSchema.exportName,
+              schemaName: artifactRuntime.resultSchema.schemaName,
+            },
+          },
+        }),
+      },
+    );
+
+    const runArtifact = (
+      artifact: {
+        readonly artifactId: string;
+        readonly contentHash: string;
+        readonly measuredBytes: number;
+      },
+      owned: Readonly<Record<string, unknown>>,
+      maxResultBytes: number,
+    ) => {
+      const runWorkflow = vi.fn(async () => artifact);
+      const runQuery = vi.fn(async () => owned);
+      const runMutation = vi.fn(
+        async (...[ref]: Parameters<RunDurableGraphStep["runMutation"]>) =>
+          ref === childLinkReserveRef
+            ? { linkId: "link-1", childWorkflowRunId: "child-run-1" }
+            : null,
+      );
+      const execution = runDurableGraphWorkflowV2(
+        v2Step({ runWorkflow, runMutation, runQuery }),
+        {
+          ...v2Input(
+            v2SubworkflowGraphWithResultPolicy(
+              "artifact-reference",
+              maxResultBytes,
+            ),
+          ),
+          inputs: { requestId: "request-1" },
+          principal: childPrincipal,
+          workflowRegistry: artifactRegistry,
+          capabilityRegistry: {},
+          admitEffect: async () => ({ kind: "deny", reason: "not used" }),
+        },
+      );
+      return { execution, runMutation, runQuery };
+    };
+
+    it("accepts an owned artifact above the inline ceiling under the node limit", async () => {
+      const content = "x".repeat(70_000);
+      const artifact = {
+        artifactId: "artifact-1",
+        contentHash: sha256Hex(JSON.stringify(content)),
+        measuredBytes: getConvexSize(content),
+      };
+      const { execution, runMutation, runQuery } = runArtifact(
+        artifact,
+        { ...artifact, content, workflowRunId: "child-run-1" },
+        96_000,
+      );
+
+      await expect(execution).resolves.toMatchObject({
+        context: { child: artifact },
+      });
+      expect(artifact.measuredBytes).toBeGreaterThan(64_000);
+      expect(runQuery).toHaveBeenCalledWith(childArtifactGetOwnedRef, {
+        workspaceId: "workspace-1",
+        workflowRunId: "child-run-1",
+        artifactId: "artifact-1",
+      });
+      expect(runMutation.mock.calls[1]?.[1]).toMatchObject({
+        outcome: {
+          kind: "succeeded",
+          receipt: {
+            kind: "artifact-reference",
+            contentHash: artifact.contentHash,
+            measuredBytes: getConvexSize(artifact),
+          },
+        },
+      });
+    });
+
+    it("rejects an oversized serialized artifact reference before lookup", async () => {
+      const artifact = {
+        artifactId: `artifact-${"x".repeat(64_000)}`,
+        contentHash: "a".repeat(64),
+        measuredBytes: 512,
+      };
+      const { execution, runQuery } = runArtifact(
+        artifact,
+        { ...artifact, content: "small", workflowRunId: "child-run-1" },
+        96_000,
+      );
+
+      expect(getConvexSize(artifact)).toBeGreaterThan(64_000);
+      await expect(execution).rejects.toThrow(
+        /artifact reference uses .* above the 64000 bytes limit/,
+      );
+      expect(runQuery).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      ["size", { measuredBytes: 513 }],
+      ["hash", { contentHash: "b".repeat(64) }],
+      ["ownership", { workflowRunId: "attacker-run" }],
+    ])("rejects forged durable artifact %s metadata", async (_kind, forged) => {
+      const artifact = {
+        artifactId: "artifact-1",
+        contentHash: "a".repeat(64),
+        measuredBytes: 512,
+      };
+      const { execution } = runArtifact(
+        artifact,
+        {
+          ...artifact,
+          content: "trusted",
+          workflowRunId: "child-run-1",
+          ...forged,
+        },
+        1_024,
+      );
+
+      await expect(execution).rejects.toThrow(
+        /artifact result failed durable ownership and integrity/,
+      );
+    });
+
+    it("rejects a stored artifact above the explicit node limit", async () => {
+      const content = "x".repeat(70_000);
+      const artifact = {
+        artifactId: "artifact-1",
+        contentHash: sha256Hex(JSON.stringify(content)),
+        measuredBytes: getConvexSize(content),
+      };
+      const { execution, runQuery } = runArtifact(
+        artifact,
+        { ...artifact, content, workflowRunId: "child-run-1" },
+        65_000,
+      );
+
+      await expect(execution).rejects.toThrow(
+        /stored artifact uses .* above the 65000 bytes node limit/,
+      );
+      expect(runQuery).toHaveBeenCalledOnce();
+    });
+
+    it("keeps inline child results capped by the global inline ceiling", async () => {
+      const runWorkflow = vi.fn(async () => ({
+        receiptId: "x".repeat(64_000),
+      }));
+
+      await expect(
+        runDurableGraphWorkflowV2(v2Step({ runWorkflow }), {
+          ...v2Input(v2SubworkflowGraphWithResultPolicy("inline", 128_000)),
+          inputs: { requestId: "request-1" },
+          principal: childPrincipal,
+          workflowRegistry: childWorkflowRegistry,
+          capabilityRegistry: {},
+          admitEffect: async () => ({ kind: "deny", reason: "not used" }),
+        }),
+      ).rejects.toThrow(/child result uses .* above the 64000 bytes limit/);
+    });
   });
 
   it("rejects a runtime result mismatch against the parameterized child reference", async () => {
@@ -2426,60 +3045,262 @@ const nestedWorkflowRef = Schema.decodeSync(WorkflowReference)(
 );
 type ChildArgs = {
   readonly requestId: string;
-  readonly principal: WorkflowPrincipal;
+  readonly workspaceId: string;
+  readonly workflowRunId: string;
+  readonly idempotencyKey: string;
+  readonly principal: DurableWorkflowPrincipal;
+  readonly policySnapshot: WorkflowPolicySnapshot;
+  readonly subworkflow?: {
+    readonly linkId: string;
+    readonly parentWorkflowRunId: string;
+    readonly parentComponentWorkflowId: string;
+    readonly generation: number;
+    readonly reservedAt: number;
+  };
 };
 type ChildResult = { readonly receiptId: string };
+const childArgumentMapper = ({ inputs }: { readonly inputs: unknown }) => ({
+  requestId: String((inputs as { requestId?: unknown }).requestId),
+});
 const childHandlerRef =
-  "workflow.childReceipt.v3.handler" as unknown as DurableGraphWorkflowRef<
+  "workflowRunners/childReceipt/v3:run" as unknown as DurableGraphWorkflowRef<
     ChildArgs,
     ChildResult
   >;
 const childResultSchema = Schema.Struct({ receiptId: Schema.String });
 const childPrincipal = {
-  version: 1,
+  version: 2,
   kind: "user",
   workspaceId: "workspace-1",
   actorId: "actor-1",
-  role: "member",
+  role: "editor",
   authEpoch: 4,
-  provenance: "kickoff.fixture",
+  provenance: "authenticated-workflow-start",
   grants: ["workflow:run", "brief:read"],
   kickoffAt: 1,
-} as const satisfies WorkflowPrincipal;
+} as const satisfies DurableWorkflowPrincipal;
+const childPolicySnapshot = {
+  version: 1,
+  kind: "none",
+  reason: "workflow conformance fixture",
+} as const satisfies WorkflowPolicySnapshot;
 const childLinkReserveRef =
   "workflows.subworkflowLinks.reserve" as unknown as DurableGraphStepRef<"mutation">;
 const childLinkReconcileRef =
   "workflows.subworkflowLinks.reconcile" as unknown as DurableGraphStepRef<"mutation">;
-const childWorkflowRegistry = defineWorkflowV2SubworkflowRegistry({
-  [childWorkflowRef]: defineWorkflowV2Subworkflow({
-    version: 3,
-    ref: childHandlerRef,
-    mapArgs: ({ inputs }) => ({
-      requestId: String((inputs as { requestId?: unknown }).requestId),
+const childLinkReportRef =
+  "workflows.subworkflowLinks.reportReconciliationFailure" as unknown as DurableGraphStepRef<"mutation">;
+const childArtifactGetOwnedRef =
+  "workflows.artifacts.getOwned" as unknown as DurableGraphStepRef<"query">;
+
+const publicationSourceModule = (
+  module: string,
+  source: string,
+): ChecksummedModule => ({ module, checksum: sha256Hex(source) });
+
+const publicationAuthority = (
+  logicalId: string,
+  version: number,
+  modules: readonly ChecksummedModule[],
+): GeneratedPublicationAuthority => {
+  const descriptor = {
+    roots: modules.map(({ module }) => module).sort(),
+    modules: modules
+      .map(({ module, checksum }) => ({ path: module, checksum }))
+      .sort((left, right) => left.path.localeCompare(right.path)),
+  };
+  const sourceClosure = {
+    ...descriptor,
+    checksum: publicationTestOnly.checksumSourceClosureDescriptor(descriptor),
+  };
+  return {
+    schemaVersion: 1,
+    sourceClosure,
+    descriptorChecksum: publicationTestOnly.checksumAuthorityDescriptor(
+      "workflow",
+      logicalId,
+      version,
+      sourceClosure,
+    ),
+  };
+};
+
+const publishedSubworkflowFixture = (
+  workflowId: string,
+  version: number,
+  ref: DurableGraphWorkflowRef<ChildArgs, ChildResult>,
+  subworkflowBindings: WorkflowRelease["subworkflowBindings"] = [],
+  mapArgs: (envelope: { readonly inputs: unknown }) => {
+    readonly requestId: string;
+  } = childArgumentMapper,
+  resultSchema: Schema.Schema.AnyNoContext = childResultSchema,
+) => {
+  const graphJson = JSON.stringify({
+    id: workflowId,
+    version,
+    argsSchemaName: `${workflowId}.v${version}.args`,
+    returnSchemaName: `${workflowId}.v${version}.result`,
+    nodes: [],
+  });
+  const graphModule = `workflows/${workflowId}/v${version}.graph.ts`;
+  const argumentMapperModule = `workflows/${workflowId}/v${version}.argumentMapper.ts`;
+  const resultSchemaModule = `workflows/${workflowId}/v${version}.resultSchema.ts`;
+  const runnerFunctionReference = ref as unknown as string;
+  const runnerSourceModule = `packages/convex/convex/${runnerFunctionReference.split(":")[0]}.ts`;
+  const interpreter = publicationSourceModule(
+    "workflows/_kit/graphRunnerV2.ts",
+    "export const runtime = 2;\n",
+  );
+  const modules = [
+    publicationSourceModule(graphModule, graphJson),
+    publicationSourceModule(
+      argumentMapperModule,
+      "export const mapArgs = 1;\n",
+    ),
+    publicationSourceModule(
+      resultSchemaModule,
+      "export const resultSchema = 1;\n",
+    ),
+    publicationSourceModule(
+      runnerSourceModule,
+      `export const runnerVersion = ${version};\n`,
+    ),
+    interpreter,
+  ];
+  const authority = publicationAuthority(workflowId, version, modules);
+  const graphSource = modules[0];
+  if (!graphSource) throw new Error("subworkflow publication graph is missing");
+  const candidate: WorkflowRelease<
+    DurableGraphWorkflowRef<ChildArgs, ChildResult>,
+    string
+  > = {
+    workflowId,
+    version,
+    lifecycle: "published",
+    authority,
+    graphModule,
+    graphHash: graphSource.checksum,
+    subworkflowRuntime: {
+      graphJson,
+      graphSnapshotHash: sha256Hex(graphJson),
+      argumentMapper: {
+        module: argumentMapperModule,
+        exportName: "mapArgs",
+        schemaName: `${workflowId}.v${version}.args`,
+        mapArgs,
+      },
+      resultSchema: {
+        module: resultSchemaModule,
+        exportName: "resultSchema",
+        schemaName: `${workflowId}.v${version}.result`,
+        schema: resultSchema,
+      },
+    },
+    runner: {
+      ref,
+      module: runnerFunctionReference,
+      functionReference: runnerFunctionReference,
+    },
+    events: [],
+    completion: {
+      ref: `${workflowId}/v${version}:onComplete`,
+      module: `${workflowId}/v${version}:onComplete`,
+      version: 1,
+    },
+    kickoffProfiles: ["queued"],
+    capabilityBindings: [],
+    subworkflowBindings,
+    runtimeVersion: "maestro-workflow-runtime.v2",
+    interpreter,
+    lifecycleContractVersion: 1,
+    sourceClosureChecksum: authority.sourceClosure.checksum,
+    releaseChecksum: "",
+    stableStepNames: [],
+    semanticComplete: true,
+    isolatedFixture: true,
+  };
+  return {
+    graphJson,
+    argumentMapperModule,
+    resultSchemaModule,
+    release: defineWorkflowRelease({
+      ...candidate,
+      releaseChecksum: publicationTestOnly.checksumWorkflowRelease(candidate),
     }),
+  };
+};
+
+const childPublication = publishedSubworkflowFixture(
+  "workflow.childReceipt",
+  3,
+  childHandlerRef,
+);
+const nestedPublication = publishedSubworkflowFixture(
+  "workflow.nestedReceipt",
+  4,
+  childHandlerRef,
+);
+const childPublicationRegistry = definePublicationRegistry({
+  capabilities: [],
+  workflows: [childPublication.release, nestedPublication.release],
+});
+const childSubworkflowRuntime = childPublication.release.subworkflowRuntime;
+if (!childSubworkflowRuntime) {
+  throw new Error("child workflow fixture requires a runtime binding");
+}
+
+const childWorkflowDefinition = (
+  principal:
+    | { readonly kind: "inherit" }
+    | {
+        readonly kind: "narrow";
+        readonly grants: readonly string[];
+      } = { kind: "inherit" },
+) =>
+  defineWorkflowV2Subworkflow<ChildArgs, ChildResult>({
+    mapArgs: childArgumentMapper,
     resultSchema: childResultSchema,
-    principal: { kind: "inherit" },
-    lifecycle: { cancel: "cascade", cleanup: "cascade-async" },
-    children: [],
+    principal,
+    publication: {
+      workflowId: childPublication.release.workflowId,
+      argumentMapper: {
+        module: childSubworkflowRuntime.argumentMapper.module,
+        exportName: childSubworkflowRuntime.argumentMapper.exportName,
+        schemaName: childSubworkflowRuntime.argumentMapper.schemaName,
+      },
+      resultSchema: {
+        module: childSubworkflowRuntime.resultSchema.module,
+        exportName: childSubworkflowRuntime.resultSchema.exportName,
+        schemaName: childSubworkflowRuntime.resultSchema.schemaName,
+      },
+    },
     links: {
       reserveRef: childLinkReserveRef,
       reconcileRef: childLinkReconcileRef,
+      reportReconciliationFailureRef: childLinkReportRef,
     },
-  }),
-});
+    artifacts: { getOwnedRef: childArtifactGetOwnedRef },
+  });
+
+const childWorkflowRegistry = defineWorkflowV2SubworkflowRegistry(
+  childPublicationRegistry,
+  { [childWorkflowRef]: childWorkflowDefinition() },
+);
 const childWorkflowEntry = readChildWorkflowEntry();
 
 const childLinkProjection = (): SubworkflowRunLinkProjection => ({
   workspaceId: "workspace-1",
-  parentWorkflowId: "run-1",
+  parentWorkflowRunId: "run-1",
+  parentComponentWorkflowId: "component-parent",
   parentWorkflowVersion: 2,
   generation: 0,
   childWorkflow: childWorkflowRef,
   childWorkflowVersion: 3,
+  childGraphJson: childPublication.graphJson,
+  childReleaseChecksum: childPublication.release.releaseChecksum,
   stepName: Schema.decodeSync(WorkflowStepName)("child.v3"),
   principal: childPrincipal,
-  cancellation: "cascade",
-  cleanup: "cascade-async",
+  policySnapshot: childPolicySnapshot,
 });
 
 function readChildWorkflowEntry() {
@@ -2679,6 +3500,28 @@ const v2SubworkflowGraph = (maxInputBytes = 1024): DurableWorkflowGraphV2 => {
       { id: "source-child", sourceNodeId: "source", targetNodeId: "child" },
       { id: "child-output", sourceNodeId: "child", targetNodeId: "output" },
     ],
+  };
+};
+
+const v2SubworkflowGraphWithResultPolicy = (
+  resultMode: "inline" | "artifact-reference",
+  maxResultBytes: number,
+): DurableWorkflowGraphV2 => {
+  const graph = v2SubworkflowGraph();
+  return {
+    ...graph,
+    nodes: graph.nodes.map((node) =>
+      node.kind === "subworkflow"
+        ? {
+            ...node,
+            payloadPolicy: {
+              ...node.payloadPolicy,
+              resultMode,
+              maxResultBytes,
+            },
+          }
+        : node,
+    ),
   };
 };
 
@@ -2983,7 +3826,7 @@ const v2Input = (graph: DurableWorkflowGraphV2) => ({
   graph,
   inputs: { workspaceId: "workspace-1" },
   principal: eventPrincipal,
-  policySnapshot: { kind: "none" },
+  policySnapshot: childPolicySnapshot,
   effectIdentity: {
     workspaceId: "workspace-1",
     workflowRunId: "run-1",
@@ -3020,10 +3863,15 @@ const v2ExternalInput = (graph: DurableWorkflowGraphV2) => ({
 const v2Step = (
   overrides: Partial<RunDurableGraphStep>,
 ): RunDurableGraphStep => ({
+  workflowId: "component-parent" as NonNullable<
+    RunDurableGraphStep["workflowId"]
+  >,
   runQuery: async (ref) =>
     ref === generatedCurrentAuthority.ref ? currentAuthorityReceipt : undefined,
   runMutation: async (ref) =>
-    ref === childLinkReserveRef ? { linkId: "link-1" } : null,
+    ref === childLinkReserveRef
+      ? { linkId: "link-1", childWorkflowRunId: "child-run-1" }
+      : null,
   runAction: async () => undefined,
   runWorkflow: async () => undefined,
   sleep: async () => undefined,

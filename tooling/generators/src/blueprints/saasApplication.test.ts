@@ -327,6 +327,7 @@ describe("saas application blueprint", () => {
       "tooling/generators/src/crud-proof.ts",
       "tooling/generators/src/direct-run.ts",
       "tooling/generators/src/workflow-release-commands.ts",
+      "tooling/generators/src/workflow-source-closure.ts",
       "tooling/generators/src/blueprints/gtmImplementation.ts",
       "tooling/generators/src/workflow-files.ts",
       "tooling/generators/src/workflow-predeploy.ts",
@@ -519,6 +520,7 @@ describe("saas application blueprint", () => {
       "test:mutation",
       "check:recipes",
       "check:workflow-version-immutability",
+      "check:workflow-publication-generation",
     ]);
     const factory = JSON.parse(
       readFileSync(join(repoRoot, "package.json"), "utf8"),

@@ -1399,7 +1399,7 @@ describe("template app factory generators", () => {
     expect(registry).toContain("sourceGroundedPlanArtifactRefs");
     expect(registry).toContain("refs.internal.workflows.artifacts.put");
     expect(registry).toContain("refs.internal.workflows.artifacts.getOwned");
-    expect(registry).toContain("defineWorkflowV2SubworkflowRegistry");
+    expect(registry).toContain("defineEmptyWorkflowV2SubworkflowRegistry");
     expect(registry).toContain("defineWorkflowV2EventRegistry");
     expect(registry).toContain("defineWorkflowEvent");
     expect(registry).toContain("sourceGroundedPlanApprovalDecisionEvent");
@@ -1412,6 +1412,9 @@ describe("template app factory generators", () => {
     );
     expect(registry).toContain(
       "refs.internal.workflows.subworkflowLinks.reconcile",
+    );
+    expect(registry).toContain(
+      "refs.internal.workflows.subworkflowLinks.reportReconciliationFailure",
     );
     expect(registry).toContain(
       "refs.internal.workflows.eventInstances.allocate",
@@ -1526,7 +1529,7 @@ describe("template app factory generators", () => {
     expect(convexWorkflow).not.toContain(
       "const WorkflowPolicySnapshotValidator",
     );
-    expect(convexWorkflow).toContain("policySnapshot: args.policySnapshot");
+    expect(convexWorkflow).not.toContain("policySnapshot: args.policySnapshot");
     expect(convexWorkflow).toContain("WorkflowReceiptValidator");
     expect(convexWorkflow).toContain(
       "principal: DurableWorkflowPrincipalValidator",
@@ -1548,11 +1551,27 @@ describe("template app factory generators", () => {
     expect(convexWorkflow).toContain("returns: WorkflowReceiptValidator");
     expect(convexWorkflow).not.toContain("returns: v.any()");
     expect(convexWorkflow).toContain("metadata");
-    expect(convexWorkflow).toContain("policySnapshot: args.policySnapshot");
     expect(convexWorkflow).not.toContain("failureRoutes");
     expect(convexWorkflow).not.toContain("GeneratedFailurePolicy");
     expect(convexWorkflow).toContain("sourceGroundedPlanSubworkflowRegistry");
     expect(convexWorkflow).toContain("sourceGroundedPlanSubworkflowPolicy");
+    expect(convexWorkflow).toContain("SubworkflowExecutionContextValidator");
+    expect(convexWorkflow).toContain(
+      "refs.internal.workflows.subworkflowLinks.activate",
+    );
+    expect(convexWorkflow).toContain(
+      "subworkflow: v.optional(SubworkflowExecutionContextValidator)",
+    );
+    expect(convexWorkflow).toContain("activateSubworkflowRef");
+    expect(convexWorkflow).toContain("bindObservedWorkflowAuthority");
+    expect(convexWorkflow).toContain(
+      "const executionArgs = bindObservedWorkflowAuthority(args, executionIdentity)",
+    );
+    expect(convexWorkflow).toContain("inputs: executionArgs");
+    expect(convexWorkflow).toContain("principal: executionArgs.principal");
+    expect(convexWorkflow).toContain(
+      "policySnapshot: executionArgs.policySnapshot",
+    );
     expect(convexWorkflow).toContain("workflowRunId: args.workflowRunId");
     expect(convexWorkflow).toContain(
       "refs.internal.workflows.stageObservations",
@@ -1634,6 +1653,14 @@ describe("template app factory generators", () => {
     expect(docs).toContain("`tiny` or `small-atomic`");
     expect(docs).toContain("reviewed advanced constructor");
     expect(docs).toContain("cycle, depth, and fan-out checks");
+    expect(docs).toContain("stable generated runner-reference identity");
+    expect(docs).toContain("stable mapper/result export descriptors");
+    expect(docs).toContain(
+      "The child registry exposes reserve, reconcile, and reconciliation-failure reporting only",
+    );
+    expect(docs).toContain(
+      "Cascade cancellation and cleanup remain restricted",
+    );
     expect(docs).toContain("scheduled children remain rejected");
     expect(docs).toContain("already-running action may finish");
     expect(docs).toContain("never claims full component deletion");

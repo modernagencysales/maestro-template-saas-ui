@@ -3,7 +3,7 @@ import type { GeneratedPublicationAuthority } from "../../../workflows/_kit/publ
 export const publicationEchoV1Authority = {
   schemaVersion: 1,
   descriptorChecksum:
-    "fa047e04602c6f061354f305e8846ec0a150f3d62e97c03498e7d2ea4de71efd",
+    "c62b405fd74a90171ea894a2ac1699b34659ad27aa05d43beb4f283c04e8f581",
   sourceClosure: {
     roots: [
       "packages/convex/confect/capabilities/_versions/publicationEcho/v1.impl.ts",
@@ -13,9 +13,14 @@ export const publicationEchoV1Authority = {
     ],
     modules: [
       {
+        path: "packages/convex/confect/_generated/docs.ts",
+        checksum:
+          "46f0dbab52627a285427bfce95998eae0153f8d96df5e00d147350e3a1824293",
+      },
+      {
         path: "packages/convex/confect/_generated/id.ts",
         checksum:
-          "02ffab67bde66d949c0973c9da2f8391a7951e4bde3a1734a6849c68c4f0da94",
+          "ef6a2fcda49d2734a5a249f86701f8cfee0cbec202b9ee135ab44d5b8f2ba765",
       },
       {
         path: "packages/convex/confect/_generated/registeredFunctions/capabilities/_versions/publicationEcho/v1.ts",
@@ -25,7 +30,12 @@ export const publicationEchoV1Authority = {
       {
         path: "packages/convex/confect/_generated/schema.ts",
         checksum:
-          "b4914470a4a18db5b793efd4ba682055005ebbbe9c2dd8c6fc895a0070d0b0b5",
+          "666a53d67eb885e77afee6a7b163a27b21de6c9ff5a9456edce3057daf3be9ec",
+      },
+      {
+        path: "packages/convex/confect/_generated/services.ts",
+        checksum:
+          "bac82d2121811c358018c30010042a3dc8206e6e61147b6b02bd108433ec8f23",
       },
       {
         path: "packages/convex/confect/_generated/tables/accessAuditEvents.ts",
@@ -198,6 +208,11 @@ export const publicationEchoV1Authority = {
           "da51ade80c31b55ff1a39d9074cdd7c71e37a517be06e53f3c8f9b8337920759",
       },
       {
+        path: "packages/convex/confect/_generated/tables/workflowArtifacts.ts",
+        checksum:
+          "9c168f15312f6bc69a53f5dbd1eb42620cc13c54d79c1736c0ce0bebd8fa6472",
+      },
+      {
         path: "packages/convex/confect/_generated/tables/workflowEffectReservations.ts",
         checksum:
           "7b52d637e7b5384243f8439f7ffa4905d9772eda5348461cae9742d3ed699993",
@@ -310,7 +325,12 @@ export const publicationEchoV1Authority = {
       {
         path: "packages/convex/confect/ops/dataResources.generated.ts",
         checksum:
-          "dd969a27446eb6c931e3662f1b416da594c4f75e63f566e97da857c12b060e15",
+          "319e6f06d89aa9a21a2925a514cfa11616407f069fa5d0bb9aa7f2d10b27a2e9",
+      },
+      {
+        path: "packages/convex/confect/shared/sha256.ts",
+        checksum:
+          "ef3cde698095b4083a5e18d6832990eca07e074a7b69fc66d94459399a9bd76d",
       },
       {
         path: "packages/convex/confect/shared/tokenCrypto.ts",
@@ -488,6 +508,11 @@ export const publicationEchoV1Authority = {
           "ae39d9ff123efcf70a705a0a09eb39013cddfe2f87ceed23e93612b9cf7dcace",
       },
       {
+        path: "packages/convex/confect/tables/workflowArtifacts.ts",
+        checksum:
+          "f1da4e74fa10a4cb12a72be7cfbdc4884cae556a1df0f205cd367e4edaa69cf8",
+      },
+      {
         path: "packages/convex/confect/tables/workflowEffectReservations.ts",
         checksum:
           "278438fb20af5ca39c445cb2131fd92c9d5667afc7aa134e2cf5f7db5856cf1e",
@@ -520,7 +545,7 @@ export const publicationEchoV1Authority = {
       {
         path: "packages/convex/confect/tables/workflowRuns.ts",
         checksum:
-          "ee601f8331621885a947fb0be89aa679d3adedb9000a1e574604727ce5218fc2",
+          "9eb5d08187a3f32cc34d61996a9eebfd6f79624cd4c28a232757cffafe27dde6",
       },
       {
         path: "packages/convex/confect/tables/workflowStageRuns.ts",
@@ -540,12 +565,22 @@ export const publicationEchoV1Authority = {
       {
         path: "packages/convex/confect/workflows/_kit/lifecycleState.ts",
         checksum:
-          "8019de09fadad280d96f311c8ec64f27f81165efc27158c62fee8b55bd1a29ce",
+          "89077a4bc0a0020f14177d59266096325b75f63cf14ab938a90376a0b1978bdf",
+      },
+      {
+        path: "packages/convex/confect/workflows/_kit/policySnapshot.ts",
+        checksum:
+          "cd360058e27ae3ecf6de33178de7d23267bb45a3fc1dd442d963c042f66a7492",
       },
       {
         path: "packages/convex/confect/workflows/_kit/principal.ts",
         checksum:
-          "ac36e13cf98b08c11c2cfe942a092679133ddd7f9445d8f330504686fda03c7a",
+          "e7efe3c84e5c9140950b70ca02e0dc71db2e3dd5b616e09f7b0fdd04cf0419a0",
+      },
+      {
+        path: "packages/convex/confect/workflows/_kit/workflowArtifacts.ts",
+        checksum:
+          "733d17db9647758fe925063582cb9032f8c28ab9e793893c87e59ba99d5e5dba",
       },
       {
         path: "packages/convex/confect/workflows/_kit/workflowReferences.ts",
@@ -559,6 +594,6 @@ export const publicationEchoV1Authority = {
       },
     ],
     checksum:
-      "aa775e72f16e401d061d0c68fca6cc757f07015ecfca2f91ae017d1150bfccbb",
+      "fd925795e29f209c349be954925ba3ecb130d2121061a912807d21cc4f10fdac",
   },
 } as const satisfies GeneratedPublicationAuthority;

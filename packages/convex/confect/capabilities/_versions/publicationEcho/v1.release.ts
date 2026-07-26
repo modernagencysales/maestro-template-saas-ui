@@ -25,9 +25,9 @@ export const publicationEchoV1Release = defineCapabilityRelease({
     },
   ],
   sourceClosureChecksum:
-    "aa775e72f16e401d061d0c68fca6cc757f07015ecfca2f91ae017d1150bfccbb",
+    "fd925795e29f209c349be954925ba3ecb130d2121061a912807d21cc4f10fdac",
   releaseChecksum:
-    "590a704237280e9f0a81dcde4923d6d6c3848580afa4b5e2b445ed19005760d3",
+    "267c2d5eda0b09707f0227d0fe679a9c1da82dfa40ddbe7d912779230960e533",
   semanticComplete: true,
   isolatedFixture: true,
 });

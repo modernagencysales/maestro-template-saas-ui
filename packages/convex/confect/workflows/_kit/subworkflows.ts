@@ -1,9 +1,10 @@
 import type { FunctionReference } from "convex/server";
-import { getConvexSize } from "convex/values";
+import { getConvexSize, v } from "convex/values";
 import * as Either from "effect/Either";
 import * as Schema from "effect/Schema";
 
 import { makePublicError } from "../../shared/errors";
+import { sha256Hex } from "../../shared/sha256";
 import {
   WorkflowReference,
   type WorkflowNodeV2,
@@ -16,16 +17,48 @@ import type {
   SubworkflowRunLinkProjection,
 } from "./subworkflowLinks";
 import {
-  WorkflowPrincipal,
+  MAX_SUBWORKFLOW_RESULT_BYTES,
+  subworkflowRunLinkIdempotencyKey,
+} from "./subworkflowLinks";
+import {
+  DurableWorkflowPrincipal,
   hasReservedWorkflowIdentityField,
-  type WorkflowPrincipal as WorkflowPrincipalType,
+  type DurableWorkflowPrincipal as WorkflowPrincipalType,
 } from "./principal";
+import {
+  WorkflowPolicySnapshot,
+  type WorkflowPolicySnapshot as WorkflowPolicySnapshotType,
+} from "./policySnapshot";
+import {
+  resolveWorkflowStart,
+  type PublicationRegistry,
+  type WorkflowRelease,
+  type WorkflowSubworkflowRuntimeBinding,
+} from "./publication";
 
 type SubworkflowNodeV2 = Extract<WorkflowNodeV2, { kind: "subworkflow" }>;
 type MappedChildArgs = Readonly<Record<string, unknown>>;
+export type SubworkflowExecutionContext = {
+  readonly linkId: string;
+  readonly parentWorkflowRunId: string;
+  readonly parentComponentWorkflowId: string;
+  readonly generation: number;
+  readonly reservedAt: number;
+};
+export const SubworkflowExecutionContextValidator = v.object({
+  linkId: v.string(),
+  parentWorkflowRunId: v.string(),
+  parentComponentWorkflowId: v.string(),
+  generation: v.number(),
+  reservedAt: v.number(),
+});
 type ChildWorkflowArgs = MappedChildArgs & {
+  readonly workspaceId: string;
+  readonly workflowRunId: string;
+  readonly idempotencyKey: string;
   readonly principal: WorkflowPrincipalType;
-  readonly policySnapshot?: unknown;
+  readonly policySnapshot: WorkflowPolicySnapshotType;
+  readonly subworkflow?: SubworkflowExecutionContext;
 };
 export type AnyChildWorkflowArgs = ChildWorkflowArgs;
 
@@ -41,27 +74,77 @@ export type WorkflowV2SubworkflowEnvelope = {
   readonly policySnapshot: unknown;
 };
 
-export type WorkflowV2SubworkflowRegistryEntry<
+export type WorkflowV2SubworkflowDefinition<
   Args extends ChildWorkflowArgs,
   Result,
 > = {
-  readonly version: number;
-  readonly ref: DurableGraphWorkflowRef<Args, Result>;
   readonly mapArgs: (
     envelope: WorkflowV2SubworkflowEnvelope,
-  ) => Omit<Args, "principal" | "policySnapshot">;
+  ) => Omit<
+    Args,
+    | "workspaceId"
+    | "workflowRunId"
+    | "idempotencyKey"
+    | "principal"
+    | "policySnapshot"
+    | "subworkflow"
+  >;
   readonly resultSchema: Schema.Schema<Result>;
   readonly principal:
     | { readonly kind: "inherit" }
     | { readonly kind: "narrow"; readonly grants: readonly string[] };
-  readonly lifecycle: {
-    readonly cancel: "cascade";
-    readonly cleanup: "cascade-async";
+  readonly publication: {
+    readonly workflowId: string;
+    readonly argumentMapper: {
+      readonly module: string;
+      readonly exportName: string;
+      readonly schemaName: string;
+    };
+    readonly resultSchema: {
+      readonly module: string;
+      readonly exportName: string;
+      readonly schemaName: string;
+    };
   };
-  readonly children: readonly WorkflowReferenceType[];
   readonly links: {
     readonly reserveRef: DurableGraphStepRef<"mutation">;
     readonly reconcileRef: DurableGraphStepRef<"mutation">;
+    readonly reportReconciliationFailureRef: DurableGraphStepRef<"mutation">;
+  };
+  readonly artifacts: {
+    readonly getOwnedRef: DurableGraphStepRef<"query">;
+  };
+};
+
+export type WorkflowV2SubworkflowRegistryEntry<
+  Args extends ChildWorkflowArgs,
+  Result,
+> = WorkflowV2SubworkflowDefinition<Args, Result> & {
+  readonly version: number;
+  readonly ref: DurableGraphWorkflowRef<Args, Result>;
+  readonly lifecycle: {
+    readonly cancel: "restricted";
+    readonly cleanup: "restricted";
+    readonly contractVersion: number;
+  };
+  readonly children: readonly WorkflowReferenceType[];
+  readonly publication: {
+    readonly workflowId: string;
+    readonly graphJson: string;
+    readonly argumentMapper: {
+      readonly module: string;
+      readonly exportName: string;
+      readonly schemaName: string;
+    };
+    readonly resultSchema: {
+      readonly module: string;
+      readonly exportName: string;
+      readonly schemaName: string;
+    };
+    readonly releaseChecksum: string;
+    readonly graphHash: string;
+    readonly runnerModule: string;
+    readonly runnerFunctionReference: string;
   };
 };
 
@@ -81,10 +164,18 @@ export type AnyWorkflowV2SubworkflowRegistryEntry = {
     unknown
   >["lifecycle"];
   readonly children: readonly WorkflowReferenceType[];
+  readonly publication: WorkflowV2SubworkflowRegistryEntry<
+    ChildWorkflowArgs,
+    unknown
+  >["publication"];
   readonly links: WorkflowV2SubworkflowRegistryEntry<
     ChildWorkflowArgs,
     unknown
   >["links"];
+  readonly artifacts: WorkflowV2SubworkflowRegistryEntry<
+    ChildWorkflowArgs,
+    unknown
+  >["artifacts"];
 };
 
 export type WorkflowV2SubworkflowPolicy = {
@@ -96,34 +187,198 @@ export const defineWorkflowV2Subworkflow = <
   Args extends ChildWorkflowArgs,
   Result,
 >(
-  entry: WorkflowV2SubworkflowRegistryEntry<Args, Result>,
-): WorkflowV2SubworkflowRegistryEntry<Args, Result> => entry;
+  entry: WorkflowV2SubworkflowDefinition<Args, Result>,
+): WorkflowV2SubworkflowDefinition<Args, Result> => entry;
+
+type AnyWorkflowV2SubworkflowDefinition = Omit<
+  WorkflowV2SubworkflowDefinition<ChildWorkflowArgs, unknown>,
+  "resultSchema"
+> & {
+  readonly resultSchema: Schema.Schema.AnyNoContext;
+};
+
+type PublishedRegistry<
+  Registry extends Readonly<Record<string, AnyWorkflowV2SubworkflowDefinition>>,
+> = {
+  readonly [
+    Key in keyof Registry
+  ]: Registry[Key] extends WorkflowV2SubworkflowDefinition<
+    infer Args,
+    infer Result
+  >
+    ? WorkflowV2SubworkflowRegistryEntry<Args, Result>
+    : never;
+};
 
 export const defineWorkflowV2SubworkflowRegistry = <
   const Registry extends Readonly<
-    Record<string, AnyWorkflowV2SubworkflowRegistryEntry>
+    Record<string, AnyWorkflowV2SubworkflowDefinition>
   >,
 >(
+  publicationRegistry: PublicationRegistry,
   registry: Registry,
-): Registry => {
-  for (const [key, entry] of Object.entries(registry)) {
+): PublishedRegistry<Registry> => {
+  const published: Record<string, AnyWorkflowV2SubworkflowRegistryEntry> = {};
+  for (const [key, definition] of Object.entries(registry)) {
     const decoded = Schema.decodeUnknownEither(WorkflowReference)(key);
-    const invalidChild = entry.children.some((child) =>
-      Either.isLeft(Schema.decodeUnknownEither(WorkflowReference)(child)),
-    );
-    if (
-      Either.isLeft(decoded) ||
-      !key.endsWith(`.v${entry.version}`) ||
-      invalidChild
-    ) {
+    if (Either.isLeft(decoded)) {
       throw makePublicError(
         "VALIDATION_FAILED",
         "Subworkflow registry key must be a generated reference matching its immutable version.",
-        { key, version: entry.version },
+        { key },
       );
     }
+    const version = workflowReferenceVersion(key);
+    const release = resolvePublishedSubworkflowRelease(
+      publicationRegistry,
+      definition.publication.workflowId,
+      version,
+    );
+    const runtime = assertPublishedSubworkflowDefinition(
+      key,
+      definition,
+      release,
+    );
+    published[key] = Object.freeze({
+      ...definition,
+      version,
+      ref: release.runner.ref as DurableGraphWorkflowRef<
+        ChildWorkflowArgs,
+        unknown
+      >,
+      lifecycle: {
+        cancel: "restricted" as const,
+        cleanup: "restricted" as const,
+        contractVersion: release.lifecycleContractVersion,
+      },
+      children: release.subworkflowBindings.map((binding) =>
+        publishedChildReference(publicationRegistry, binding),
+      ),
+      publication: Object.freeze({
+        workflowId: release.workflowId,
+        graphJson: runtime.graphJson,
+        argumentMapper: {
+          module: runtime.argumentMapper.module,
+          exportName: runtime.argumentMapper.exportName,
+          schemaName: runtime.argumentMapper.schemaName,
+        },
+        resultSchema: {
+          module: runtime.resultSchema.module,
+          exportName: runtime.resultSchema.exportName,
+          schemaName: runtime.resultSchema.schemaName,
+        },
+        releaseChecksum: release.releaseChecksum,
+        graphHash: release.graphHash,
+        runnerModule: release.runner.module,
+        runnerFunctionReference: release.runner.functionReference,
+      }),
+    });
   }
-  return registry;
+  return Object.freeze(published) as PublishedRegistry<Registry>;
+};
+
+export const defineEmptyWorkflowV2SubworkflowRegistry = () =>
+  Object.freeze({}) as Readonly<Record<string, never>>;
+
+const workflowReferenceVersion = (reference: string): number => {
+  const match = /\.v([1-9]\d*)$/.exec(reference);
+  const version = match?.[1] ? Number(match[1]) : Number.NaN;
+  if (!Number.isSafeInteger(version)) {
+    throw makePublicError(
+      "VALIDATION_FAILED",
+      "Subworkflow reference version is unavailable.",
+      { reference },
+    );
+  }
+  return version;
+};
+
+const resolvePublishedSubworkflowRelease = (
+  registry: PublicationRegistry,
+  workflowId: string,
+  version: number,
+): WorkflowRelease => {
+  try {
+    return resolveWorkflowStart(registry, workflowId, version);
+  } catch {
+    throw makePublicError(
+      "VALIDATION_FAILED",
+      "Subworkflow publication binding is unavailable.",
+      { workflowId, version },
+    );
+  }
+};
+
+const assertPublishedSubworkflowDefinition = (
+  reference: string,
+  definition: AnyWorkflowV2SubworkflowDefinition,
+  release: WorkflowRelease,
+): WorkflowSubworkflowRuntimeBinding => {
+  const runtime = release.subworkflowRuntime;
+  if (
+    runtime === undefined ||
+    !sameRuntimeDescriptor(
+      definition.publication.argumentMapper,
+      runtime.argumentMapper,
+    ) ||
+    !sameRuntimeDescriptor(
+      definition.publication.resultSchema,
+      runtime.resultSchema,
+    ) ||
+    definition.mapArgs !== runtime.argumentMapper.mapArgs ||
+    definition.resultSchema !== runtime.resultSchema.schema
+  ) {
+    throw makePublicError(
+      "VALIDATION_FAILED",
+      "Subworkflow graph, runner, mapper, result schema, and lifecycle must be bound to one immutable release.",
+      { reference, workflowId: release.workflowId, version: release.version },
+    );
+  }
+  return runtime;
+};
+
+const sameRuntimeDescriptor = (
+  expected: {
+    readonly module: string;
+    readonly exportName: string;
+    readonly schemaName: string;
+  },
+  actual: {
+    readonly module: string;
+    readonly exportName: string;
+    readonly schemaName: string;
+  },
+): boolean =>
+  expected.module === actual.module &&
+  expected.exportName === actual.exportName &&
+  expected.schemaName === actual.schemaName;
+
+const publishedChildReference = (
+  registry: PublicationRegistry,
+  binding: WorkflowRelease["subworkflowBindings"][number],
+): WorkflowReferenceType => {
+  const dependency = resolvePublishedSubworkflowRelease(
+    registry,
+    binding.workflowId,
+    binding.version,
+  );
+  if (dependency.releaseChecksum !== binding.releaseChecksum) {
+    throw makePublicError(
+      "VALIDATION_FAILED",
+      "Subworkflow dependency checksum drifted from its immutable publication.",
+      { workflowId: binding.workflowId, version: binding.version },
+    );
+  }
+  const reference = `${binding.workflowId}.v${binding.version}`;
+  const decoded = Schema.decodeUnknownEither(WorkflowReference)(reference);
+  if (Either.isLeft(decoded)) {
+    throw makePublicError(
+      "VALIDATION_FAILED",
+      "Published subworkflow dependency has no canonical workflow reference.",
+      { workflowId: binding.workflowId, version: binding.version },
+    );
+  }
+  return decoded.right;
 };
 
 type RunSubworkflowInput<Entry> = {
@@ -136,7 +391,8 @@ type RunSubworkflowInput<Entry> = {
   readonly policySnapshot: unknown;
   readonly ownership: {
     readonly workspaceId: string;
-    readonly parentWorkflowId: string;
+    readonly parentWorkflowRunId: string;
+    readonly parentComponentWorkflowId: string;
     readonly parentWorkflowVersion: number;
     readonly generation: number;
     readonly occurredAt: number;
@@ -175,6 +431,7 @@ export async function runRegisteredSubworkflow({
     throw subworkflowFailure(node, "runWorkflow is unavailable in this runner");
   }
   const parentPrincipal = decodePrincipal(node, principal);
+  const childPolicySnapshot = decodePolicySnapshot(node, policySnapshot);
   const childPrincipal = resolveChildPrincipal(
     node,
     parentPrincipal,
@@ -184,41 +441,62 @@ export async function runRegisteredSubworkflow({
     inputs,
     context,
     principal: childPrincipal,
-    policySnapshot,
+    policySnapshot: childPolicySnapshot,
   });
   assertJsonSafe(mappedArgs, `Subworkflow ${node.id} mapped invalid args.`);
-  if (hasReservedWorkflowIdentityField(mappedArgs)) {
+  if (
+    hasReservedWorkflowIdentityField(mappedArgs) ||
+    ["workflowRunId", "idempotencyKey", "policySnapshot", "subworkflow"].some(
+      (field) => field in mappedArgs,
+    )
+  ) {
     throw subworkflowFailure(
       node,
       "mapped args cannot override reserved workflow identity fields",
     );
   }
-  const childArgs = {
-    ...mappedArgs,
-    principal: childPrincipal,
-    policySnapshot,
-  };
-  assertMappedArgsSize(node, childArgs);
   const projection: SubworkflowRunLinkProjection = {
     workspaceId: ownership.workspaceId,
-    parentWorkflowId: ownership.parentWorkflowId,
+    parentWorkflowRunId: ownership.parentWorkflowRunId,
+    parentComponentWorkflowId: ownership.parentComponentWorkflowId,
     parentWorkflowVersion: ownership.parentWorkflowVersion,
     generation: ownership.generation,
     childWorkflow: node.workflow,
     childWorkflowVersion: node.childVersion,
+    childGraphJson: entry.publication.graphJson,
+    childReleaseChecksum: entry.publication.releaseChecksum,
     stepName: node.stepName,
     principal: childPrincipal,
-    cancellation: entry.lifecycle.cancel,
-    cleanup: entry.lifecycle.cleanup,
+    policySnapshot: childPolicySnapshot,
   };
   const reservation = await step.runMutation(
     entry.links.reserveRef,
     { projection, occurredAt: ownership.occurredAt },
     { name: `${node.stepName}.link.reserve.v1` },
   );
-  const linkId = readLinkId(node, reservation);
+  const { linkId, childWorkflowRunId } = readLinkReservation(node, reservation);
+  const idempotencyKey = subworkflowRunLinkIdempotencyKey(projection);
+  const childArgs = {
+    ...mappedArgs,
+    workspaceId: ownership.workspaceId,
+    workflowRunId: childWorkflowRunId,
+    idempotencyKey,
+    principal: childPrincipal,
+    policySnapshot: childPolicySnapshot,
+    subworkflow: {
+      linkId,
+      parentWorkflowRunId: ownership.parentWorkflowRunId,
+      parentComponentWorkflowId: ownership.parentComponentWorkflowId,
+      generation: ownership.generation,
+      reservedAt: ownership.occurredAt,
+    },
+  };
+  assertMappedArgsSize(node, childArgs);
   let childResult: unknown;
-  let resultJson: string;
+  let receipt: Extract<
+    SubworkflowRunLinkOutcome,
+    { kind: "succeeded" }
+  >["receipt"];
   try {
     const rawResult = await step.runWorkflow(entry.ref, childArgs, {
       name: node.stepName,
@@ -231,6 +509,10 @@ export async function runRegisteredSubworkflow({
       );
     }
     childResult = decoded.right;
+    assertJsonSafe(
+      childResult,
+      `Subworkflow ${node.id} returned invalid data.`,
+    );
     const encoded = JSON.stringify(childResult);
     if (encoded === undefined) {
       throw subworkflowFailure(
@@ -238,23 +520,53 @@ export async function runRegisteredSubworkflow({
         "child returned a non-serializable result",
       );
     }
-    resultJson = encoded;
+    if (node.payloadPolicy.resultMode === "artifact-reference") {
+      const artifact = readArtifactReference(node, childResult);
+      const referenceBytes = getConvexSize(artifact);
+      assertArtifactReferenceBudget(node, referenceBytes);
+      const owned = await step.runQuery(entry.artifacts.getOwnedRef, {
+        workspaceId: ownership.workspaceId,
+        workflowRunId: childWorkflowRunId,
+        artifactId: artifact.artifactId,
+      });
+      assertOwnedArtifactReference(node, artifact, owned, childWorkflowRunId);
+      assertStoredArtifactBudget(node, owned.measuredBytes);
+      receipt = {
+        kind: "artifact-reference",
+        artifactId: artifact.artifactId,
+        contentHash: artifact.contentHash,
+        measuredBytes: referenceBytes,
+      };
+    } else {
+      const measuredBytes = getConvexSize(childResult);
+      assertChildResultBudget(node, measuredBytes);
+      receipt = {
+        kind: "bounded-inline",
+        measuredBytes,
+        contentHash: sha256Hex(encoded),
+      };
+    }
   } catch (error) {
-    await reconcileLink(
-      step,
-      entry,
-      node,
-      ownership,
-      linkId,
-      isPinnedWorkflowCancellation(error)
-        ? { kind: "canceled" }
-        : { kind: "failed", error: "Child workflow failed." },
-    );
+    const outcome = isPinnedWorkflowCancellation(error)
+      ? ({ kind: "canceled" } as const)
+      : ({ kind: "failed", error: "Child workflow failed." } as const);
+    try {
+      await reconcileLink(step, entry, node, ownership, linkId, outcome);
+    } catch {
+      await reportReconciliationFailure(
+        step,
+        entry,
+        node,
+        ownership,
+        linkId,
+        outcome.kind,
+      ).catch(() => undefined);
+    }
     throw error;
   }
   await reconcileLink(step, entry, node, ownership, linkId, {
     kind: "succeeded",
-    resultJson,
+    receipt,
   });
   return childResult;
 }
@@ -324,7 +636,9 @@ const decodePrincipal = (
   node: SubworkflowNodeV2,
   principal: unknown,
 ): WorkflowPrincipalType => {
-  const decoded = Schema.decodeUnknownEither(WorkflowPrincipal)(principal);
+  const decoded = Schema.decodeUnknownEither(DurableWorkflowPrincipal)(
+    principal,
+  );
   if (Either.isLeft(decoded)) {
     throw subworkflowFailure(node, "parent principal is invalid");
   }
@@ -365,15 +679,146 @@ const assertMappedArgsSize = (node: SubworkflowNodeV2, args: unknown): void => {
   }
 };
 
-const readLinkId = (node: SubworkflowNodeV2, value: unknown): string => {
+const readLinkReservation = (
+  node: SubworkflowNodeV2,
+  value: unknown,
+): { readonly linkId: string; readonly childWorkflowRunId: string } => {
   if (
     !isRecord(value) ||
     typeof value.linkId !== "string" ||
-    value.linkId.length === 0
+    value.linkId.length === 0 ||
+    typeof value.childWorkflowRunId !== "string" ||
+    value.childWorkflowRunId.length === 0
   ) {
-    throw subworkflowFailure(node, "link reservation returned an invalid ID");
+    throw subworkflowFailure(
+      node,
+      "link reservation returned invalid product run identities",
+    );
   }
-  return value.linkId;
+  return {
+    linkId: value.linkId,
+    childWorkflowRunId: value.childWorkflowRunId,
+  };
+};
+
+const decodePolicySnapshot = (
+  node: SubworkflowNodeV2,
+  snapshot: unknown,
+): WorkflowPolicySnapshotType => {
+  const decoded = Schema.decodeUnknownEither(WorkflowPolicySnapshot)(snapshot);
+  if (Either.isLeft(decoded)) {
+    throw subworkflowFailure(node, "parent policy snapshot is invalid");
+  }
+  return decoded.right;
+};
+
+type ChildArtifactReference = {
+  readonly artifactId: string;
+  readonly contentHash: string;
+  readonly measuredBytes: number;
+};
+
+const readArtifactReference = (
+  node: SubworkflowNodeV2,
+  result: unknown,
+): ChildArtifactReference => {
+  if (
+    !isRecord(result) ||
+    typeof result.artifactId !== "string" ||
+    result.artifactId.length === 0 ||
+    typeof result.contentHash !== "string" ||
+    !/^[a-f0-9]{64}$/.test(result.contentHash) ||
+    typeof result.measuredBytes !== "number" ||
+    !Number.isSafeInteger(result.measuredBytes) ||
+    result.measuredBytes < 0
+  ) {
+    throw subworkflowFailure(
+      node,
+      "artifact result must include an immutable ID, content hash, and measured byte count",
+    );
+  }
+  return {
+    artifactId: result.artifactId,
+    contentHash: result.contentHash,
+    measuredBytes: result.measuredBytes,
+  };
+};
+
+function assertOwnedArtifactReference(
+  node: SubworkflowNodeV2,
+  expected: ChildArtifactReference,
+  owned: unknown,
+  childWorkflowRunId: string,
+): asserts owned is ChildArtifactReference & {
+  readonly workflowRunId: string;
+} {
+  if (
+    !isRecord(owned) ||
+    owned.artifactId !== expected.artifactId ||
+    owned.contentHash !== expected.contentHash ||
+    owned.measuredBytes !== expected.measuredBytes ||
+    owned.workflowRunId !== childWorkflowRunId
+  ) {
+    throw subworkflowFailure(
+      node,
+      "artifact result failed durable ownership and integrity validation",
+    );
+  }
+}
+
+const assertArtifactReferenceBudget = (
+  node: SubworkflowNodeV2,
+  measuredBytes: number,
+): void => {
+  if (
+    !Number.isSafeInteger(measuredBytes) ||
+    measuredBytes < 0 ||
+    measuredBytes > MAX_SUBWORKFLOW_RESULT_BYTES
+  ) {
+    throw subworkflowFailure(
+      node,
+      `artifact reference uses ${measuredBytes} bytes above the ${MAX_SUBWORKFLOW_RESULT_BYTES} bytes limit`,
+    );
+  }
+};
+
+const assertStoredArtifactBudget = (
+  node: SubworkflowNodeV2,
+  measuredBytes: number,
+): void => {
+  const budget = node.payloadPolicy.maxResultBytes;
+  if (
+    !Number.isSafeInteger(measuredBytes) ||
+    measuredBytes < 0 ||
+    !Number.isSafeInteger(budget) ||
+    budget < 0 ||
+    measuredBytes > budget
+  ) {
+    throw subworkflowFailure(
+      node,
+      `stored artifact uses ${measuredBytes} bytes above the ${budget} bytes node limit`,
+    );
+  }
+};
+
+const assertChildResultBudget = (
+  node: SubworkflowNodeV2,
+  measuredBytes: number,
+): void => {
+  const budget = Math.min(
+    node.payloadPolicy.maxResultBytes,
+    MAX_SUBWORKFLOW_RESULT_BYTES,
+  );
+  if (
+    !Number.isSafeInteger(measuredBytes) ||
+    measuredBytes < 0 ||
+    measuredBytes > budget
+  ) {
+    throw subworkflowFailure(
+      node,
+      `child result uses ${measuredBytes} bytes above the ${budget} bytes limit`,
+    );
+  }
 };
 
 const reconcileLink = (
@@ -393,6 +838,26 @@ const reconcileLink = (
       occurredAt: ownership.occurredAt,
     },
     { name: `${node.stepName}.link.reconcile.v1` },
+  );
+
+const reportReconciliationFailure = (
+  step: RunDurableGraphStep,
+  entry: AnyWorkflowV2SubworkflowRegistryEntry,
+  node: SubworkflowNodeV2,
+  ownership: RunSubworkflowInput<AnyWorkflowV2SubworkflowRegistryEntry>["ownership"],
+  linkId: string,
+  primaryOutcome: "failed" | "canceled",
+): Promise<unknown> =>
+  step.runMutation(
+    entry.links.reportReconciliationFailureRef,
+    {
+      workspaceId: ownership.workspaceId,
+      linkId,
+      primaryOutcome,
+      issue: "SUBWORKFLOW_LINK_RECONCILIATION_FAILED",
+      occurredAt: ownership.occurredAt,
+    },
+    { name: `${node.stepName}.link.reconciliation-failure.v1` },
   );
 
 const isPinnedWorkflowCancellation = (error: unknown): boolean =>

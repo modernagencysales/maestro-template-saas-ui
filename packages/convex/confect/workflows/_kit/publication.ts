@@ -1,3 +1,5 @@
+import { getFunctionName } from "convex/server";
+
 import { sha256Hex } from "../../shared/sha256";
 
 export type PublicationLifecycle = "draft" | "published" | "retired";
@@ -40,6 +42,23 @@ export type CapabilityRelease<Ref = unknown> = {
   readonly isolatedFixture: boolean;
 };
 
+export type WorkflowSubworkflowRuntimeBinding = {
+  readonly graphJson: string;
+  readonly graphSnapshotHash: string;
+  readonly argumentMapper: {
+    readonly module: string;
+    readonly exportName: string;
+    readonly schemaName: string;
+    readonly mapArgs: unknown;
+  };
+  readonly resultSchema: {
+    readonly module: string;
+    readonly exportName: string;
+    readonly schemaName: string;
+    readonly schema: unknown;
+  };
+};
+
 export type WorkflowRelease<RunnerRef = unknown, CompletionRef = unknown> = {
   readonly workflowId: string;
   readonly version: number;
@@ -47,7 +66,12 @@ export type WorkflowRelease<RunnerRef = unknown, CompletionRef = unknown> = {
   readonly authority: GeneratedPublicationAuthority;
   readonly graphModule: string;
   readonly graphHash: string;
-  readonly runner: { readonly ref: RunnerRef; readonly module: string };
+  readonly subworkflowRuntime?: WorkflowSubworkflowRuntimeBinding;
+  readonly runner: {
+    readonly ref: RunnerRef;
+    readonly module: string;
+    readonly functionReference: string;
+  };
   readonly events: readonly {
     readonly definition: string;
     readonly validator: string;
@@ -175,7 +199,27 @@ const checksumWorkflowRelease = (release: WorkflowRelease): string =>
       authorityChecksum: release.authority.descriptorChecksum,
       graphModule: release.graphModule,
       graphHash: release.graphHash,
+      ...(release.subworkflowRuntime
+        ? {
+            subworkflowRuntime: {
+              graphSnapshotHash: release.subworkflowRuntime.graphSnapshotHash,
+              argumentMapper: {
+                module: release.subworkflowRuntime.argumentMapper.module,
+                exportName:
+                  release.subworkflowRuntime.argumentMapper.exportName,
+                schemaName:
+                  release.subworkflowRuntime.argumentMapper.schemaName,
+              },
+              resultSchema: {
+                module: release.subworkflowRuntime.resultSchema.module,
+                exportName: release.subworkflowRuntime.resultSchema.exportName,
+                schemaName: release.subworkflowRuntime.resultSchema.schemaName,
+              },
+            },
+          }
+        : {}),
       runnerModule: release.runner.module,
+      runnerFunctionReference: release.runner.functionReference,
       events: release.events,
       completionModule: release.completion.module,
       completionVersion: release.completion.version,
@@ -351,6 +395,11 @@ export const defineWorkflowRelease = <RunnerRef, CompletionRef>(
   ) {
     throw new Error("Workflow graph is absent from authoritative closure");
   }
+  validateRunnerBinding(release, authority);
+  const subworkflowRuntime = validateSubworkflowRuntimeBinding(
+    release,
+    authority,
+  );
   const [interpreter] = cloneAndValidateModules(
     [release.interpreter],
     "workflow interpreter",
@@ -379,6 +428,7 @@ export const defineWorkflowRelease = <RunnerRef, CompletionRef>(
   const candidate: WorkflowRelease<RunnerRef, CompletionRef> = {
     ...release,
     authority,
+    ...(subworkflowRuntime ? { subworkflowRuntime } : {}),
     runner: { ...release.runner },
     events: release.events.map((event) => ({ ...event })),
     completion: { ...release.completion },
@@ -398,6 +448,103 @@ export const defineWorkflowRelease = <RunnerRef, CompletionRef>(
     );
   }
   return deepFreeze(candidate);
+};
+
+const validateRunnerBinding = (
+  release: WorkflowRelease,
+  authority: GeneratedPublicationAuthority,
+): void => {
+  assertText(
+    release.runner.functionReference,
+    "workflow runner stable generated identity",
+  );
+  let actualFunctionReference: string;
+  try {
+    actualFunctionReference = getFunctionName(
+      release.runner.ref as Parameters<typeof getFunctionName>[0],
+    );
+  } catch {
+    throw new Error(
+      "Workflow runner reference does not match its stable generated identity",
+    );
+  }
+  if (
+    actualFunctionReference !== release.runner.functionReference ||
+    release.runner.module !== release.runner.functionReference
+  ) {
+    throw new Error(
+      "Workflow runner reference does not match its stable generated identity",
+    );
+  }
+  const modulePath = release.runner.functionReference.split(":")[0];
+  if (
+    !modulePath ||
+    !authority.sourceClosure.modules.some(
+      ({ path }) => path === `packages/convex/convex/${modulePath}.ts`,
+    )
+  ) {
+    throw new Error(
+      "Workflow runner module and reference are absent from the immutable source closure",
+    );
+  }
+};
+
+const validateSubworkflowRuntimeBinding = (
+  release: WorkflowRelease,
+  authority: GeneratedPublicationAuthority,
+): WorkflowSubworkflowRuntimeBinding | undefined => {
+  const binding = release.subworkflowRuntime;
+  if (binding === undefined) return undefined;
+  if (
+    binding.graphJson.length === 0 ||
+    binding.graphJson.length > 256 << 10 ||
+    !sha256Pattern.test(binding.graphSnapshotHash) ||
+    sha256Hex(binding.graphJson) !== binding.graphSnapshotHash ||
+    binding.argumentMapper.module.length === 0 ||
+    binding.argumentMapper.exportName.length === 0 ||
+    binding.argumentMapper.schemaName.length === 0 ||
+    typeof binding.argumentMapper.mapArgs !== "function" ||
+    binding.resultSchema.module.length === 0 ||
+    binding.resultSchema.exportName.length === 0 ||
+    binding.resultSchema.schemaName.length === 0 ||
+    binding.resultSchema.schema === undefined
+  ) {
+    throw new Error("Workflow subworkflow runtime binding is invalid");
+  }
+  let graph: unknown;
+  try {
+    graph = JSON.parse(binding.graphJson);
+  } catch {
+    graph = null;
+  }
+  if (
+    graph === null ||
+    typeof graph !== "object" ||
+    !("id" in graph) ||
+    graph.id !== release.workflowId ||
+    !("version" in graph) ||
+    graph.version !== release.version ||
+    !("argsSchemaName" in graph) ||
+    graph.argsSchemaName !== binding.argumentMapper.schemaName ||
+    !("returnSchemaName" in graph) ||
+    graph.returnSchemaName !== binding.resultSchema.schemaName ||
+    !authority.sourceClosure.modules.some(
+      ({ path }) => path === binding.argumentMapper.module,
+    ) ||
+    !authority.sourceClosure.modules.some(
+      ({ path }) => path === binding.resultSchema.module,
+    )
+  ) {
+    throw new Error(
+      "Workflow subworkflow runtime binding is absent from the immutable source closure",
+    );
+  }
+  return Object.freeze({
+    graphJson: binding.graphJson,
+    graphSnapshotHash: binding.graphSnapshotHash,
+    argumentMapper: Object.freeze({ ...binding.argumentMapper }),
+    resultSchema: Object.freeze({ ...binding.resultSchema }),
+  });
 };
 
 const assertUnique = <Release>(
@@ -678,6 +825,7 @@ export type WorkflowStartPublicationBinding = {
   readonly graphHash: string;
   readonly runnerRef: unknown;
   readonly runnerModule: string;
+  readonly runnerFunctionReference: string;
   readonly releaseChecksum: string;
   readonly kickoffProfile: "eager-first-poll" | "queued";
 };
@@ -698,7 +846,8 @@ export const assertWorkflowStartBinding = (
   }
   if (
     release.runner.ref !== binding.runnerRef ||
-    release.runner.module !== binding.runnerModule
+    release.runner.module !== binding.runnerModule ||
+    release.runner.functionReference !== binding.runnerFunctionReference
   ) {
     throw new Error("Published workflow runner does not match start binding");
   }

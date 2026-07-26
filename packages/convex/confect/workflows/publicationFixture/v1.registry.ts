@@ -8,7 +8,7 @@ import {
   defineWorkflowEvent,
   defineWorkflowV2EventRegistry,
 } from "../_kit/events";
-import { defineWorkflowV2SubworkflowRegistry } from "../_kit/subworkflows";
+import { defineEmptyWorkflowV2SubworkflowRegistry } from "../_kit/subworkflows";
 import { generatedWorkflowSubworkflowPolicy } from "../_kit/workpoolConfig";
 import { publicationFixtureReferences } from "./v1.graph";
 
@@ -26,6 +26,8 @@ export const publicationFixtureCapabilityRegistry =
 export const publicationFixtureSubworkflowLinkRefs = {
   reserveRef: refs.internal.workflows.subworkflowLinks.reserve,
   reconcileRef: refs.internal.workflows.subworkflowLinks.reconcile,
+  reportReconciliationFailureRef:
+    refs.internal.workflows.subworkflowLinks.reportReconciliationFailure,
 } as const;
 
 export const publicationFixtureEventInstanceRefs = {
@@ -62,7 +64,7 @@ export const publicationFixtureEventRegistry = defineWorkflowV2EventRegistry({
  * shared typed workflowRunLinks reserve/reconcile refs above.
  */
 export const publicationFixtureSubworkflowRegistry =
-  defineWorkflowV2SubworkflowRegistry({});
+  defineEmptyWorkflowV2SubworkflowRegistry();
 
 export const publicationFixtureSubworkflowPolicy =
   generatedWorkflowSubworkflowPolicy;

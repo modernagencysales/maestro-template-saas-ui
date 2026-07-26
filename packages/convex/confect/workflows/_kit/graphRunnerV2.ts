@@ -588,6 +588,12 @@ const executeNode = async <Result extends Record<string, unknown>>(
         `missing generated workflow registry entry ${node.workflow}`,
       );
     }
+    if (!step.workflowId) {
+      throw validationFailure(
+        node,
+        "parent component identity is unavailable for subworkflow linkage",
+      );
+    }
     return runRegisteredSubworkflow({
       step,
       node,
@@ -598,7 +604,8 @@ const executeNode = async <Result extends Record<string, unknown>>(
       policySnapshot: input.policySnapshot,
       ownership: {
         workspaceId: input.effectIdentity.workspaceId,
-        parentWorkflowId: input.effectIdentity.workflowRunId,
+        parentWorkflowRunId: input.effectIdentity.workflowRunId,
+        parentComponentWorkflowId: step.workflowId,
         parentWorkflowVersion: input.graph.version,
         generation: input.effectIdentity.generation,
         occurredAt: input.effectIdentity.occurredAt,

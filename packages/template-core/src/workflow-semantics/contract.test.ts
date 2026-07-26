@@ -101,25 +101,29 @@ describe("workflow semantics contract", () => {
     ).toBe("supported");
   });
 
-  it("keeps child workflows restricted until production closure lands", () => {
+  it("keeps child lifecycle restricted while publishing exact child versions", () => {
     expect(
       WORKFLOW_SEMANTICS.find((rule) => rule.id === "WF-NODE-SUBWORKFLOW"),
     ).toMatchObject({
       status: "intentionally-restricted",
       fixture: "packages/convex/test/workflow-conformance.test.ts",
       reason: expect.stringMatching(
-        /generator registry projection.*cycle.*depth.*fanout.*workflowRunLinks.*idempotent parent\/child linkage/,
+        /publication binding.*cycle.*depth.*fan-out.*authority.*payload.*product-run linkage/,
       ),
       repair: expect.stringMatching(
-        /builder.*compiler.*generator.*behavior fixtures/,
+        /cancellation.*cleanup.*lifecycle controls.*quiescence.*retention/,
       ),
     });
     expect(
       WORKFLOW_SEMANTICS.find((rule) => rule.id === "WF-NODE-CHILD-VERSION"),
     ).toMatchObject({
-      status: "intentionally-restricted",
-      reason: expect.stringMatching(/generated registry.*exact key\/version/),
-      repair: expect.stringMatching(/generated projection.*reconciliation/),
+      status: "supported",
+      compilerMapping: expect.stringMatching(
+        /published graph snapshot.*runner.*mapper.*result schema.*lifecycle contract.*workflowRunLinks/,
+      ),
+      runtimeGuard: expect.stringMatching(
+        /forged graph snapshot.*mapper\/schema identity drift.*dependency checksum drift/,
+      ),
     });
     expect(
       WORKFLOW_SEMANTICS.find((rule) => rule.id === "WF-CHILD-SCHEDULE"),

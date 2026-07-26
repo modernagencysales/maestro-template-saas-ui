@@ -164,6 +164,8 @@ const startWithProfile = (
         registry: workflowPublicationRegistry,
         graphHash: publicationFixtureV1Release.graphHash,
         runnerModule: publicationFixtureV1Release.runner.module,
+        runnerFunctionReference:
+          publicationFixtureV1Release.runner.functionReference,
         releaseChecksum: publicationFixtureV1Release.releaseChecksum,
       },
     }).pipe(Effect.mapError(toWorkflowValidationFailed));

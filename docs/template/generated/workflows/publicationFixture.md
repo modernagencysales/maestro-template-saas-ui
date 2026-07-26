@@ -45,12 +45,17 @@ Canonical system: `workflow-runtime` (`extend`).
 6. Generated capability nodes require registry entries with generated internal
    refs, concrete `buildArgs` and logical instance-key mappers, and complete
    effect/guard/redaction/evidence contracts.
-7. Generated subworkflow entries require an immutable child version, typed
-   Args/Result schemas, declared transitive children, principal posture, and
+7. Generated subworkflow entries require one immutable publication binding for
+   the child graph snapshot, stable generated runner-reference identity, stable
+   mapper/result export descriptors, lifecycle contract, typed Args/Result
+   schemas, declared transitive children, principal posture, and
    `publicationFixtureSubworkflowLinkRefs`; cycle, depth, and fan-out checks run
    before child dispatch.
-8. Workflow 0.4.4 scheduled children remain rejected; use a named sleep plus an
-   unscheduled child only as a deliberately non-equivalent alternative.
+8. The child registry exposes reserve, reconcile, and reconciliation-failure
+   reporting only. Cascade cancellation and cleanup remain restricted until
+   product lifecycle controls drive them end to end. Workflow 0.4.4 scheduled
+   children remain rejected; use a named sleep plus an unscheduled child only as
+   a deliberately non-equivalent alternative.
 9. Query and mutation capabilities use independent Workpool transactions by
    default. Inline is restricted to declared small atomic work: novice authors
    choose `tiny` or `small-atomic`; raw counters require the reviewed advanced

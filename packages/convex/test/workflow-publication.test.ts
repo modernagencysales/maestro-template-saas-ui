@@ -114,10 +114,15 @@ const workflow = (
     "workflows/_kit/graphRunnerV2",
     "export const graphRunnerVersion = 2;\n",
   );
+  const runnerFunctionReference = `workflowRunners/fixturePublication/v${version}:run`;
   const sourceManifest = [
     sourceModule(
       `workflows/fixturePublication/v${version}.graph.ts`,
       graphSource,
+    ),
+    sourceModule(
+      `packages/convex/convex/workflowRunners/fixturePublication/v${version}.ts`,
+      `export const runnerVersion = ${version};\n`,
     ),
     interpreter,
   ];
@@ -134,8 +139,9 @@ const workflow = (
     graphModule: `workflows/fixturePublication/v${version}.graph.ts`,
     graphHash: sha256Hex(graphSource),
     runner: {
-      ref: `workflowRunners/fixturePublication/v${version}:run`,
-      module: `workflowRunners/fixturePublication/v${version}`,
+      ref: runnerFunctionReference,
+      module: runnerFunctionReference,
+      functionReference: runnerFunctionReference,
     },
     events: [
       {
@@ -309,6 +315,7 @@ describe("immutable workflow publication registry", () => {
         graphHash: release.graphHash,
         runnerRef: release.runner.ref,
         runnerModule: release.runner.module,
+        runnerFunctionReference: release.runner.functionReference,
         releaseChecksum: release.releaseChecksum,
         kickoffProfile: "queued",
       }),
@@ -320,10 +327,25 @@ describe("immutable workflow publication registry", () => {
         graphHash: sha("9"),
         runnerRef: release.runner.ref,
         runnerModule: release.runner.module,
+        runnerFunctionReference: release.runner.functionReference,
         releaseChecksum: release.releaseChecksum,
         kickoffProfile: "queued",
       }),
     ).toThrow(/graph hash/i);
+  });
+
+  it("rejects a forged runner reference that reuses the release checksum", () => {
+    const release = workflow(1, 1, "published");
+
+    expect(() =>
+      defineWorkflowRelease({
+        ...release,
+        runner: {
+          ...release.runner,
+          ref: "workflowRunners/attacker/v1:run",
+        },
+      }),
+    ).toThrow(/runner reference.*stable generated identity/i);
   });
 
   it("clones and deeply freezes nested publication content", () => {
@@ -338,10 +360,9 @@ describe("immutable workflow publication registry", () => {
     };
     const sourceClosure = {
       ...release.authority.sourceClosure,
-      modules: [
-        source,
-        requiredFixtureValue(release.authority.sourceClosure.modules[1]),
-      ],
+      modules: release.authority.sourceClosure.modules.map((module, index) =>
+        index === 0 ? source : module,
+      ),
     };
     const immutable = defineWorkflowRelease({
       ...release,

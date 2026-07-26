@@ -28,6 +28,9 @@ const currentPublicDocument = (path: string): string =>
 const currentSource = (path: string): string =>
   readFileSync(new URL(`../../../../${path}`, import.meta.url), "utf8");
 
+const currentGeneratorSource = (path: string): string =>
+  readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
+
 export const REMOVED_CUSTOMER_TEMPLATE_SCRIPTS = [
   "template:init",
   "template:quickstart",
@@ -37,6 +40,7 @@ export const REMOVED_CUSTOMER_TEMPLATE_SCRIPTS = [
   "template:prototype",
   "template:add-client-domain",
   "template:workflow-output-smoke",
+  "template:regenerate-workflow-publications",
   "template:upgrade",
   "template:private-package:dry-run",
   "template:private-package:import",
@@ -50,6 +54,7 @@ const customerPackage = (): string => {
     delete value.scripts[name];
   delete value.scripts["check:recipes"];
   delete value.scripts["check:workflow-version-immutability"];
+  delete value.scripts["check:workflow-publication-generation"];
   for (const name of Object.keys(value.scripts)) {
     if (name.startsWith("template:")) {
       const script = value.scripts[name];
@@ -296,11 +301,19 @@ export const buildSaasRegistrationProjections = (
         ["crud-proof.ts", "crud-proof.ts"],
         ["direct-run.ts", "direct-run.ts"],
         ["workflow-release-commands.ts", "workflow-release-commands.ts"],
+        ...(current
+          ? ([
+              ["workflow-source-closure.ts", "workflow-source-closure.ts"],
+            ] as const)
+          : []),
         ["blueprints/gtmImplementation.ts", "blueprints/gtmImplementation.ts"],
       ] as const
     ).map(([path, name]) => ({
       path: `tooling/generators/src/${path}`,
-      content: source(`tooling/generators/src/${name}`),
+      content:
+        name === "workflow-source-closure.ts"
+          ? currentGeneratorSource(name)
+          : source(`tooling/generators/src/${name}`),
     })),
     ...[
       "tooling/generators/src/workflow-files.ts",

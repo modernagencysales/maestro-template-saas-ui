@@ -550,16 +550,17 @@ export const WORKFLOW_SEMANTICS = [
   restricted(
     "WF-NODE-SUBWORKFLOW",
     "graph.nodes[].workflow",
-    "Direct registry/runtime fixtures exist, but generator registry projection, cycle/depth/fanout preflight, workflowRunLinks reconciliation, and idempotent parent/child linkage are absent.",
-    "Add the canonical builder, compiler, generator registry projection, cycle/depth/fanout preflight, workflowRunLinks reconciliation, idempotent link persistence, and positive/rejection behavior fixtures before promotion.",
+    "Exact-version publication binding, cycle/depth/fan-out preflight, durable authority inheritance, bounded payload receipts, and idempotent product-run linkage are implemented; product lifecycle cascade cancellation and cleanup remain restricted.",
+    "Keep child cancellation and cleanup restricted until product lifecycle controls can drive and prove cascade execution, reconciliation, quiescence, and retention without relying on unsupported scheduled-child semantics in Workflow 0.4.4.",
     GRAPH_FIXTURE,
   ),
-  restricted(
+  supported(
     "WF-NODE-CHILD-VERSION",
     "graph.nodes[].childVersion",
-    "The generated registry is absent, so exact key/version bindings are not projected or covered through persisted parent/child reconciliation.",
-    "Add generated projection of the immutable child registry and exact key/version fixtures through workflowRunLinks reconciliation before promotion.",
+    "WorkflowNodeV2.childVersion + immutable publication subworkflow runtime binding",
+    "workflow reference/version -> published graph snapshot, runner, mapper, result schema, lifecycle contract, and exact workflowRunLinks reconciliation",
     GRAPH_FIXTURE,
+    "registry-key/version mismatch, forged graph snapshot, mapper/schema identity drift, dependency checksum drift, cycle/depth/fan-out, and replay fixtures",
   ),
   supported(
     "WF-NODE-RETRY",

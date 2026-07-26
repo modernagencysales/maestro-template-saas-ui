@@ -13,9 +13,9 @@
         "functionRef": "capabilities/_versions/publicationEcho/v1:run",
         "effectManifest": "mutation:non-external",
         "dependencyManifest": "ed57217356e1bc108c265afce049d547561b8e33dc50037d83ac47a648e381f5",
-        "sourceClosure": "aa775e72f16e401d061d0c68fca6cc757f07015ecfca2f91ae017d1150bfccbb",
-        "authorityChecksum": "fa047e04602c6f061354f305e8846ec0a150f3d62e97c03498e7d2ea4de71efd",
-        "releaseChecksum": "590a704237280e9f0a81dcde4923d6d6c3848580afa4b5e2b445ed19005760d3"
+        "sourceClosure": "fd925795e29f209c349be954925ba3ecb130d2121061a912807d21cc4f10fdac",
+        "authorityChecksum": "c62b405fd74a90171ea894a2ac1699b34659ad27aa05d43beb4f283c04e8f581",
+        "releaseChecksum": "267c2d5eda0b09707f0227d0fe679a9c1da82dfa40ddbe7d912779230960e533"
       },
       "sourceClosure": {
         "roots": [
@@ -26,8 +26,12 @@
         ],
         "modules": [
           {
+            "path": "packages/convex/confect/_generated/docs.ts",
+            "checksum": "46f0dbab52627a285427bfce95998eae0153f8d96df5e00d147350e3a1824293"
+          },
+          {
             "path": "packages/convex/confect/_generated/id.ts",
-            "checksum": "02ffab67bde66d949c0973c9da2f8391a7951e4bde3a1734a6849c68c4f0da94"
+            "checksum": "ef6a2fcda49d2734a5a249f86701f8cfee0cbec202b9ee135ab44d5b8f2ba765"
           },
           {
             "path": "packages/convex/confect/_generated/registeredFunctions/capabilities/_versions/publicationEcho/v1.ts",
@@ -35,7 +39,11 @@
           },
           {
             "path": "packages/convex/confect/_generated/schema.ts",
-            "checksum": "b4914470a4a18db5b793efd4ba682055005ebbbe9c2dd8c6fc895a0070d0b0b5"
+            "checksum": "666a53d67eb885e77afee6a7b163a27b21de6c9ff5a9456edce3057daf3be9ec"
+          },
+          {
+            "path": "packages/convex/confect/_generated/services.ts",
+            "checksum": "bac82d2121811c358018c30010042a3dc8206e6e61147b6b02bd108433ec8f23"
           },
           {
             "path": "packages/convex/confect/_generated/tables/accessAuditEvents.ts",
@@ -174,6 +182,10 @@
             "checksum": "da51ade80c31b55ff1a39d9074cdd7c71e37a517be06e53f3c8f9b8337920759"
           },
           {
+            "path": "packages/convex/confect/_generated/tables/workflowArtifacts.ts",
+            "checksum": "9c168f15312f6bc69a53f5dbd1eb42620cc13c54d79c1736c0ce0bebd8fa6472"
+          },
+          {
             "path": "packages/convex/confect/_generated/tables/workflowEffectReservations.ts",
             "checksum": "7b52d637e7b5384243f8439f7ffa4905d9772eda5348461cae9742d3ed699993"
           },
@@ -263,7 +275,11 @@
           },
           {
             "path": "packages/convex/confect/ops/dataResources.generated.ts",
-            "checksum": "dd969a27446eb6c931e3662f1b416da594c4f75e63f566e97da857c12b060e15"
+            "checksum": "319e6f06d89aa9a21a2925a514cfa11616407f069fa5d0bb9aa7f2d10b27a2e9"
+          },
+          {
+            "path": "packages/convex/confect/shared/sha256.ts",
+            "checksum": "ef3cde698095b4083a5e18d6832990eca07e074a7b69fc66d94459399a9bd76d"
           },
           {
             "path": "packages/convex/confect/shared/tokenCrypto.ts",
@@ -406,6 +422,10 @@
             "checksum": "ae39d9ff123efcf70a705a0a09eb39013cddfe2f87ceed23e93612b9cf7dcace"
           },
           {
+            "path": "packages/convex/confect/tables/workflowArtifacts.ts",
+            "checksum": "f1da4e74fa10a4cb12a72be7cfbdc4884cae556a1df0f205cd367e4edaa69cf8"
+          },
+          {
             "path": "packages/convex/confect/tables/workflowEffectReservations.ts",
             "checksum": "278438fb20af5ca39c445cb2131fd92c9d5667afc7aa134e2cf5f7db5856cf1e"
           },
@@ -431,7 +451,7 @@
           },
           {
             "path": "packages/convex/confect/tables/workflowRuns.ts",
-            "checksum": "ee601f8331621885a947fb0be89aa679d3adedb9000a1e574604727ce5218fc2"
+            "checksum": "9eb5d08187a3f32cc34d61996a9eebfd6f79624cd4c28a232757cffafe27dde6"
           },
           {
             "path": "packages/convex/confect/tables/workflowStageRuns.ts",
@@ -447,11 +467,19 @@
           },
           {
             "path": "packages/convex/confect/workflows/_kit/lifecycleState.ts",
-            "checksum": "8019de09fadad280d96f311c8ec64f27f81165efc27158c62fee8b55bd1a29ce"
+            "checksum": "89077a4bc0a0020f14177d59266096325b75f63cf14ab938a90376a0b1978bdf"
+          },
+          {
+            "path": "packages/convex/confect/workflows/_kit/policySnapshot.ts",
+            "checksum": "cd360058e27ae3ecf6de33178de7d23267bb45a3fc1dd442d963c042f66a7492"
           },
           {
             "path": "packages/convex/confect/workflows/_kit/principal.ts",
-            "checksum": "ac36e13cf98b08c11c2cfe942a092679133ddd7f9445d8f330504686fda03c7a"
+            "checksum": "e7efe3c84e5c9140950b70ca02e0dc71db2e3dd5b616e09f7b0fdd04cf0419a0"
+          },
+          {
+            "path": "packages/convex/confect/workflows/_kit/workflowArtifacts.ts",
+            "checksum": "733d17db9647758fe925063582cb9032f8c28ab9e793893c87e59ba99d5e5dba"
           },
           {
             "path": "packages/convex/confect/workflows/_kit/workflowReferences.ts",
@@ -462,7 +490,7 @@
             "checksum": "4a424ffd1e5acf2294e8f17da06c0084a7405f3940f935ffa801d38d958973e9"
           }
         ],
-        "checksum": "aa775e72f16e401d061d0c68fca6cc757f07015ecfca2f91ae017d1150bfccbb"
+        "checksum": "fd925795e29f209c349be954925ba3ecb130d2121061a912807d21cc4f10fdac"
       },
       "artifacts": [
         {
@@ -488,12 +516,12 @@
         {
           "class": "registry",
           "path": "packages/convex/confect/capabilities/_versions/publicationEcho/v1.release.ts",
-          "checksum": "52f33d560454c9fc220ad66aad6ac534f923eade6f9c4369967f48b921973622"
+          "checksum": "275c79edd7396e1c187909b56c0c58c441e12e025a030d5c80276ea22644bff2"
         },
         {
           "class": "registry",
           "path": "packages/convex/confect/capabilities/_versions/publicationEcho/v1.authority.ts",
-          "checksum": "9a100d2c63e6ce785481be1e1aa94113b7073a22a6b980f8d63aa2fbb9292234"
+          "checksum": "4c7a935f394e51f4801ca1b613305fb3426b41e8fcae76ae2da618ce945f4e23"
         }
       ]
     },
@@ -507,20 +535,20 @@
         "graphHash": "2c4c348ac937797e21618686ab80768538f4d7484064dc33e2c0e73549312d36",
         "runnerRef": "workflowRunners/publicationFixture/v1:run",
         "kickoffProfiles": "eager-first-poll,queued",
-        "capabilityBindings": "capability.fixture.publicationEcho@v1:590a704237280e9f0a81dcde4923d6d6c3848580afa4b5e2b445ed19005760d3",
+        "capabilityBindings": "capability.fixture.publicationEcho@v1:267c2d5eda0b09707f0227d0fe679a9c1da82dfa40ddbe7d912779230960e533",
         "subworkflowBindings": "none",
         "completionRef": "workflowRunners/publicationFixture/v1:onComplete",
         "runtimeVersion": "maestro-workflow-runtime.v2",
         "lifecycleContractVersion": "1",
-        "sourceClosure": "d0ef318d4b3bb3db85da4176e693c5c9eb0b283991c0e138657f7c2a6a97e0b0",
-        "authorityChecksum": "a27e10ac1a67f99981b223ba3afe6f3e800e29b0978682e588a8cdef9799429c",
+        "sourceClosure": "754e681d5cdb6f3d73d0b68f4d83dba5bb30621a8bae4f0d1e133155e55edb6f",
+        "authorityChecksum": "043e801b92da7ad5459d900edf1c591758f5ae30befa18507dfb93086cb51413",
         "stableStepNames": "start.v2,receipt.v2",
         "validators": "publicationFixture.v2.args->publicationFixture.v2.return",
         "events": "event.approvalDecision.v1:workflows.publicationFixture.approvalDecision.v1",
         "options": "retry=none;inline=independent;schedule=none",
         "dependencyManifest": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
-        "interpreter": "f221ac01b5ed864c05dfce752b8ef2fca4b5ef173a8e338fc64b798f3863a288",
-        "releaseChecksum": "3f0fa1216e46d0f4e1b0b365f4dfb455dad98a4c04f24b96c3cb2e58668753ee"
+        "interpreter": "980cd9f429d0b47193ec8783252e1fb0b6589e1bd0d61fab2cdb986b1f9ffaa4",
+        "releaseChecksum": "d7d61385a28e2daf46c68f8994dae068020029a332f7c2024382b2340136274e"
       },
       "sourceClosure": {
         "roots": [
@@ -535,15 +563,15 @@
         "modules": [
           {
             "path": "packages/convex/confect/_generated/convexSchema.ts",
-            "checksum": "4aadb60928900040e69d325063f9e332eae567ba1c4f4b08cd459e1e2c9df388"
+            "checksum": "189a80cd1328f5cade9cdf7bb06e7932bf4ebcc42e3909e7ace4e3df69366313"
           },
           {
             "path": "packages/convex/confect/_generated/docs.ts",
-            "checksum": "74416bbab1c91ad6d363c019da8f35b5b079d869bbcc9d0aae613d2b55f6fd27"
+            "checksum": "46f0dbab52627a285427bfce95998eae0153f8d96df5e00d147350e3a1824293"
           },
           {
             "path": "packages/convex/confect/_generated/id.ts",
-            "checksum": "02ffab67bde66d949c0973c9da2f8391a7951e4bde3a1734a6849c68c4f0da94"
+            "checksum": "ef6a2fcda49d2734a5a249f86701f8cfee0cbec202b9ee135ab44d5b8f2ba765"
           },
           {
             "path": "packages/convex/confect/_generated/refs.ts",
@@ -631,7 +659,7 @@
           },
           {
             "path": "packages/convex/confect/_generated/schema.ts",
-            "checksum": "b4914470a4a18db5b793efd4ba682055005ebbbe9c2dd8c6fc895a0070d0b0b5"
+            "checksum": "666a53d67eb885e77afee6a7b163a27b21de6c9ff5a9456edce3057daf3be9ec"
           },
           {
             "path": "packages/convex/confect/_generated/services.ts",
@@ -639,7 +667,7 @@
           },
           {
             "path": "packages/convex/confect/_generated/spec.ts",
-            "checksum": "5d5fac70bafe448afd792f1aadded87d42974a741d3565ef2edbe93588f9a454"
+            "checksum": "d63978c9d02288140d6535bb557a4eaed32a2da79b7f23092b400569dfe48ca8"
           },
           {
             "path": "packages/convex/confect/_generated/tables/accessAuditEvents.ts",
@@ -776,6 +804,10 @@
           {
             "path": "packages/convex/confect/_generated/tables/webhookEvents.ts",
             "checksum": "da51ade80c31b55ff1a39d9074cdd7c71e37a517be06e53f3c8f9b8337920759"
+          },
+          {
+            "path": "packages/convex/confect/_generated/tables/workflowArtifacts.ts",
+            "checksum": "9c168f15312f6bc69a53f5dbd1eb42620cc13c54d79c1736c0ce0bebd8fa6472"
           },
           {
             "path": "packages/convex/confect/_generated/tables/workflowEffectReservations.ts",
@@ -935,7 +967,7 @@
           },
           {
             "path": "packages/convex/confect/capabilities/_kit/workspaceAccess.ts",
-            "checksum": "dcf01befbace9c067b2065b890236843fb2a892125bd6b343ac22991045864f2"
+            "checksum": "c247d328e93308e7d2ad435642542d57c419aa2ab191709ab4e82ce71c93c5ea"
           },
           {
             "path": "packages/convex/confect/capabilities/_versions/publicationEcho/v1.spec.ts",
@@ -1083,7 +1115,7 @@
           },
           {
             "path": "packages/convex/confect/ops/dataResources.generated.ts",
-            "checksum": "dd969a27446eb6c931e3662f1b416da594c4f75e63f566e97da857c12b060e15"
+            "checksum": "319e6f06d89aa9a21a2925a514cfa11616407f069fa5d0bb9aa7f2d10b27a2e9"
           },
           {
             "path": "packages/convex/confect/ops/flags.spec.ts",
@@ -1302,6 +1334,10 @@
             "checksum": "ae39d9ff123efcf70a705a0a09eb39013cddfe2f87ceed23e93612b9cf7dcace"
           },
           {
+            "path": "packages/convex/confect/tables/workflowArtifacts.ts",
+            "checksum": "f1da4e74fa10a4cb12a72be7cfbdc4884cae556a1df0f205cd367e4edaa69cf8"
+          },
+          {
             "path": "packages/convex/confect/tables/workflowEffectReservations.ts",
             "checksum": "278438fb20af5ca39c445cb2131fd92c9d5667afc7aa134e2cf5f7db5856cf1e"
           },
@@ -1327,7 +1363,7 @@
           },
           {
             "path": "packages/convex/confect/tables/workflowRuns.ts",
-            "checksum": "ee601f8331621885a947fb0be89aa679d3adedb9000a1e574604727ce5218fc2"
+            "checksum": "9eb5d08187a3f32cc34d61996a9eebfd6f79624cd4c28a232757cffafe27dde6"
           },
           {
             "path": "packages/convex/confect/tables/workflowStageRuns.ts",
@@ -1355,27 +1391,31 @@
           },
           {
             "path": "packages/convex/confect/workflowRunners/publicationFixture/v1.ts",
-            "checksum": "50c0052012d354134f2e29454a33c189257dd546660de536d4128e3197df5e13"
+            "checksum": "741e2e9d032b9475704dd6c2947fbff6b629a744c0b4541ba5e8afb2d3183382"
           },
           {
             "path": "packages/convex/confect/workflows/_kit/defineMaestroWorkflow.ts",
-            "checksum": "15438ac894de5bbafbe8e0b01614695c9013e0326ef8a052d467bdf131bbe897"
+            "checksum": "a9bfcb9fb2934d3581e724866ca79079cd3586017a81af696d0530a925695165"
           },
           {
             "path": "packages/convex/confect/workflows/_kit/effectReservations.ts",
-            "checksum": "356166a677bbe27cac9f2d0c24981d566af9298caab2e7d722caab25656fd56d"
+            "checksum": "1dc78306b989bce509188a5520a3a0bc0aa03f45676143b10358d70e8d9d051d"
           },
           {
             "path": "packages/convex/confect/workflows/_kit/events.ts",
             "checksum": "20fa5e24cde8106497c7cd75ad8fcc1f23671d1c47c56528d59793b55e9c60e4"
           },
           {
+            "path": "packages/convex/confect/workflows/_kit/failurePolicy.ts",
+            "checksum": "be4a689ee4e3826e8e04268b629af6e9b2fabe8fbe2950fc401994042600129f"
+          },
+          {
             "path": "packages/convex/confect/workflows/_kit/graphRunner.ts",
-            "checksum": "e8c286b5466b84c53057b570f0c63ea69bb6a48dbe2591b78d0c9fd27995071d"
+            "checksum": "3280392f115d40d2a56d14cb146e1de356515d2400d45b5aab21475c76909773"
           },
           {
             "path": "packages/convex/confect/workflows/_kit/graphRunnerExecution.ts",
-            "checksum": "c5babbe30feb6541b311585351f1339e0f0b0d3d5120d75645208e4f69e1b770"
+            "checksum": "15b66fff49db4a991873bd5954807fdf18e16fd6123206eeac919c879d8f48e6"
           },
           {
             "path": "packages/convex/confect/workflows/_kit/graphRunnerJson.ts",
@@ -1383,7 +1423,7 @@
           },
           {
             "path": "packages/convex/confect/workflows/_kit/graphRunnerNodes.ts",
-            "checksum": "bbf494cef44db1291bf11bbbee92ec6e438f39eb0c12c61a8af9bf204f76e643"
+            "checksum": "30c36b4564704de0c57190f3a162cfbf8c1793e6277b2646cdd623221c3b8883"
           },
           {
             "path": "packages/convex/confect/workflows/_kit/graphRunnerTraversal.ts",
@@ -1391,7 +1431,7 @@
           },
           {
             "path": "packages/convex/confect/workflows/_kit/graphRunnerV2.ts",
-            "checksum": "f221ac01b5ed864c05dfce752b8ef2fca4b5ef173a8e338fc64b798f3863a288"
+            "checksum": "980cd9f429d0b47193ec8783252e1fb0b6589e1bd0d61fab2cdb986b1f9ffaa4"
           },
           {
             "path": "packages/convex/confect/workflows/_kit/inlineTransactions.ts",
@@ -1407,23 +1447,31 @@
           },
           {
             "path": "packages/convex/confect/workflows/_kit/lifecycleState.ts",
-            "checksum": "8019de09fadad280d96f311c8ec64f27f81165efc27158c62fee8b55bd1a29ce"
+            "checksum": "89077a4bc0a0020f14177d59266096325b75f63cf14ab938a90376a0b1978bdf"
           },
           {
             "path": "packages/convex/confect/workflows/_kit/observedStage.ts",
-            "checksum": "7573830afb4b7fe3671193404a654e9b5dd9aee2f47bf0beba456ddd707dc5c4"
+            "checksum": "7938ed38ff3d1da2394a8f0df752f885da7d5fba95f758d35ec9d627f3d6939b"
           },
           {
             "path": "packages/convex/confect/workflows/_kit/observedStagePayload.ts",
-            "checksum": "30f4102b7e6f688819c1b489dee6986573edc8c8c92da0d7cf6567c9e81f0c8f"
+            "checksum": "7e16fe7c008460d1f9d40744681e16707e9ceae5430ec0a2412b3b5ba4dc7811"
+          },
+          {
+            "path": "packages/convex/confect/workflows/_kit/payloadBudget.ts",
+            "checksum": "bcc1f2477b8e532624d752c056c8a028a79ee2b662bf47587144bcd7169a0322"
           },
           {
             "path": "packages/convex/confect/workflows/_kit/policySnapshot.ts",
-            "checksum": "7f4341d3a3f4c699f79d150a088ed3d6aeac2d391bd9db61a083e8c41090b78e"
+            "checksum": "cd360058e27ae3ecf6de33178de7d23267bb45a3fc1dd442d963c042f66a7492"
           },
           {
             "path": "packages/convex/confect/workflows/_kit/principal.ts",
-            "checksum": "ac36e13cf98b08c11c2cfe942a092679133ddd7f9445d8f330504686fda03c7a"
+            "checksum": "e7efe3c84e5c9140950b70ca02e0dc71db2e3dd5b616e09f7b0fdd04cf0419a0"
+          },
+          {
+            "path": "packages/convex/confect/workflows/_kit/publication.ts",
+            "checksum": "30d93bb090f6e343812f35267b0457f6d7c985a719bf0b62b89db1163f29e16a"
           },
           {
             "path": "packages/convex/confect/workflows/_kit/status.ts",
@@ -1431,15 +1479,19 @@
           },
           {
             "path": "packages/convex/confect/workflows/_kit/subworkflowLinks.ts",
-            "checksum": "8c9e2dda0c9d4d43968d155730921df66769f57ecdfea01c1d02d4520c62d4b3"
+            "checksum": "8307deac7679eb747c14dd2fcc46e2005c6681fd38cee1de997da34e7e5ebc14"
           },
           {
             "path": "packages/convex/confect/workflows/_kit/subworkflows.ts",
-            "checksum": "1f4eedc39b4b70a1859a5c8f80cf564e72dfd3d6c7ec6c7a8bf5d5ee4769efda"
+            "checksum": "13d7da74558350c43ee7a8bc45ea41ea00ff0454ac84b36066a7c9b52997d9cc"
+          },
+          {
+            "path": "packages/convex/confect/workflows/_kit/workflowArtifacts.ts",
+            "checksum": "733d17db9647758fe925063582cb9032f8c28ab9e793893c87e59ba99d5e5dba"
           },
           {
             "path": "packages/convex/confect/workflows/_kit/workflowBuilder.ts",
-            "checksum": "d74a28fa41dddc4779f9d1fb09e253c429de8506e8766a4630e71b8aeabd9b99"
+            "checksum": "d8dd6b7ddccb70a4d5262b727ab5c0e13b525d271cbb8a075b898bde6998b238"
           },
           {
             "path": "packages/convex/confect/workflows/_kit/workflowReferences.ts",
@@ -1448,6 +1500,10 @@
           {
             "path": "packages/convex/confect/workflows/_kit/workpoolConfig.ts",
             "checksum": "382232d4b15ed7abb1a8b9b7858ecee3638866b9a8bf88180f19e91a5cda49b7"
+          },
+          {
+            "path": "packages/convex/confect/workflows/artifacts.spec.ts",
+            "checksum": "c42f1aa89ffc4c0d564724d15e94ed78b1e45cc098e14dcfbe5c63648fe9c4b8"
           },
           {
             "path": "packages/convex/confect/workflows/conditionEvaluator.ts",
@@ -1471,7 +1527,7 @@
           },
           {
             "path": "packages/convex/confect/workflows/effectReservations.spec.ts",
-            "checksum": "6fdd1fd0ee5e5f9b2fe6b28336d685aab8c51fd63151c5ff0053d4874451a93e"
+            "checksum": "51b76d154cc39e790d699518492021fc4d0e2d6ef0fefe69372d5a9f961f7fcb"
           },
           {
             "path": "packages/convex/confect/workflows/eventInstances.spec.ts",
@@ -1491,15 +1547,15 @@
           },
           {
             "path": "packages/convex/confect/workflows/graphNodeSchema.ts",
-            "checksum": "0b4977167da144a70b9c95cfc0119f144e5b4d3b26b2ffca1dbbf0d73a9d94f0"
+            "checksum": "e10aad6aa3ff5fb3ff0a52a0afb5dec346ed7b118ab30fdfd0b429aafd8eced1"
           },
           {
             "path": "packages/convex/confect/workflows/graphSchema.ts",
-            "checksum": "ae2743e5c0a9c4485abb5fb54955fb3062ab0e6d289666870cf9b1189395416c"
+            "checksum": "9c79656f40d29532112c8f0551acc3e9eba48e620cad7db5c0313546b9afb159"
           },
           {
             "path": "packages/convex/confect/workflows/graphValidation.ts",
-            "checksum": "d36bf1174891df36c75afb6877e7a7442e44a0c95b5ef4d65dd0a44cd4380f95"
+            "checksum": "8c1e3d301adf43b90b189978755d20fcbd3d7f2778a415cedfe6adb480157219"
           },
           {
             "path": "packages/convex/confect/workflows/graphValidationError.ts",
@@ -1555,7 +1611,7 @@
           },
           {
             "path": "packages/convex/confect/workflows/publicationFixture/v1.registry.ts",
-            "checksum": "f82df4c6f6770c617d004217ad8f42dead0dca8813ec2397dbae287b76e9a23a"
+            "checksum": "ad092deb98edc3b721cded693e18f4fa5f450e696f58c43380a8f61ac9cbfd96"
           },
           {
             "path": "packages/convex/confect/workflows/stageObservations.spec.ts",
@@ -1563,7 +1619,7 @@
           },
           {
             "path": "packages/convex/confect/workflows/subworkflowLinks.spec.ts",
-            "checksum": "0f1e177a8303543e943062b2e430f701f7fa1e9c594585c7584c04cae0ee246c"
+            "checksum": "44b26b71f9e2af60cd242d369b8624f95e56743fe1192df8d2a9ca28c0b589ec"
           },
           {
             "path": "packages/convex/convex/_generated/api.d.ts",
@@ -1666,7 +1722,7 @@
             "checksum": "52eb65439e0c8325168764c78cb9583812c18a24d791bdfb744ed71418d188d1"
           }
         ],
-        "checksum": "d0ef318d4b3bb3db85da4176e693c5c9eb0b283991c0e138657f7c2a6a97e0b0"
+        "checksum": "754e681d5cdb6f3d73d0b68f4d83dba5bb30621a8bae4f0d1e133155e55edb6f"
       },
       "artifacts": [
         {
@@ -1677,12 +1733,12 @@
         {
           "class": "event",
           "path": "packages/convex/confect/workflows/publicationFixture/v1.registry.ts",
-          "checksum": "f82df4c6f6770c617d004217ad8f42dead0dca8813ec2397dbae287b76e9a23a"
+          "checksum": "ad092deb98edc3b721cded693e18f4fa5f450e696f58c43380a8f61ac9cbfd96"
         },
         {
           "class": "runner",
           "path": "packages/convex/confect/workflowRunners/publicationFixture/v1.ts",
-          "checksum": "50c0052012d354134f2e29454a33c189257dd546660de536d4128e3197df5e13"
+          "checksum": "741e2e9d032b9475704dd6c2947fbff6b629a744c0b4541ba5e8afb2d3183382"
         },
         {
           "class": "runner",
@@ -1702,12 +1758,12 @@
         {
           "class": "completion",
           "path": "packages/convex/confect/workflowRunners/publicationFixture/v1.ts",
-          "checksum": "50c0052012d354134f2e29454a33c189257dd546660de536d4128e3197df5e13"
+          "checksum": "741e2e9d032b9475704dd6c2947fbff6b629a744c0b4541ba5e8afb2d3183382"
         },
         {
           "class": "registry",
           "path": "packages/convex/confect/workflowContracts/publicationFixture.impl.ts",
-          "checksum": "74348c102af6b80900faaa67b7be26034b1963d5ce26b41151c36999e19daf7a"
+          "checksum": "70e335b8aeb2b6fc8d13b74da957039e3f6a12c10daed8ac80e9cf12be16108e"
         },
         {
           "class": "registry",
@@ -1717,12 +1773,12 @@
         {
           "class": "registry",
           "path": "packages/convex/confect/workflows/publicationFixture/v1.release.ts",
-          "checksum": "f6791aafcdb06769c5907ca0698f5f4576be5ad60fe69da923464f5968d034f7"
+          "checksum": "b5cadf27ebfb899716b5578d8dceb6cb835b6841ba612b3a1cd3bdbd75f3e1c1"
         },
         {
           "class": "registry",
           "path": "packages/convex/confect/workflows/publicationFixture/v1.authority.ts",
-          "checksum": "dd04dc3a0db19f483b36d9a467b25b13ca6974b7bc6d7722b3a2e59ac6a31e23"
+          "checksum": "759c4f144ba09b295f17460797232758d00da86059298a91cf62a13b0088e7d6"
         },
         {
           "class": "registry",
@@ -1732,10 +1788,10 @@
         {
           "class": "interpreter",
           "path": "packages/convex/confect/workflows/_kit/graphRunnerV2.ts",
-          "checksum": "f221ac01b5ed864c05dfce752b8ef2fca4b5ef173a8e338fc64b798f3863a288"
+          "checksum": "980cd9f429d0b47193ec8783252e1fb0b6589e1bd0d61fab2cdb986b1f9ffaa4"
         }
       ]
     }
   ],
-  "manifestChecksum": "1e25af555246d758a6bf61e5f9ec8af5bb534b1003245395141e80de91136a92"
+  "manifestChecksum": "1f7fb928805e6596042dacadea963c2ff57315ecb7c883628de8f89e68f9fbec"
 }

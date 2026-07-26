@@ -1,4 +1,6 @@
 import type { FunctionReference } from "convex/server";
+import * as Either from "effect/Either";
+import * as Schema from "effect/Schema";
 
 import type { WorkflowNodeKind } from "../graph";
 import {
@@ -6,9 +8,30 @@ import {
   recordStageStarted,
   recordStageSucceeded,
 } from "./observedStagePayload";
+import type { SubworkflowExecutionContext } from "./subworkflows";
+import {
+  DurableWorkflowPrincipal,
+  type DurableWorkflowPrincipal as DurableWorkflowPrincipalType,
+} from "./principal";
+import {
+  WorkflowPolicySnapshot,
+  type WorkflowPolicySnapshot as WorkflowPolicySnapshotType,
+} from "./policySnapshot";
 
 type StageMutationRef = FunctionReference<"mutation", "internal">;
 type ExecutionIdentityRef = FunctionReference<"query", "internal">;
+type SubworkflowActivationRef = FunctionReference<"mutation", "internal">;
+
+export type ObservedWorkflowAuthority = {
+  readonly principal: DurableWorkflowPrincipalType;
+  readonly policySnapshot: WorkflowPolicySnapshotType;
+};
+
+export type ObservedWorkflowExecutionIdentity = {
+  readonly generation: number;
+  readonly observedAt: number;
+  readonly authority?: ObservedWorkflowAuthority;
+};
 
 export type ObservedWorkflowStageRefs = {
   readonly recordStageStarted?: StageMutationRef;
@@ -30,26 +53,100 @@ export const loadObservedWorkflowExecutionIdentity = async (
       ref: ExecutionIdentityRef,
       args: Record<string, unknown>,
     ) => Promise<unknown>;
+    readonly runMutation: (
+      ref: SubworkflowActivationRef,
+      args: Record<string, unknown>,
+    ) => Promise<unknown>;
   },
   ref: ExecutionIdentityRef,
-  input: { readonly workspaceId: string; readonly workflowRunId: string },
+  input: {
+    readonly workspaceId: string;
+    readonly workflowRunId: string;
+    readonly subworkflow?: SubworkflowExecutionContext;
+    readonly activateSubworkflowRef?: SubworkflowActivationRef;
+  },
 ) => {
   if (!step.workflowId) {
     throw new Error("Workflow component identity is unavailable.");
   }
+  let authority: ObservedWorkflowAuthority | undefined;
+  if (input.subworkflow !== undefined) {
+    if (!input.activateSubworkflowRef) {
+      throw new Error("Subworkflow activation binding is unavailable.");
+    }
+    const activated = await step.runMutation(input.activateSubworkflowRef, {
+      workspaceId: input.workspaceId,
+      parentWorkflowRunId: input.subworkflow.parentWorkflowRunId,
+      parentComponentWorkflowId: input.subworkflow.parentComponentWorkflowId,
+      childWorkflowRunId: input.workflowRunId,
+      childComponentWorkflowId: step.workflowId,
+      generation: input.subworkflow.generation,
+      linkId: input.subworkflow.linkId,
+      occurredAt: input.subworkflow.reservedAt,
+    });
+    authority = readObservedWorkflowAuthority(activated);
+  } else if (input.activateSubworkflowRef !== undefined) {
+    throw new Error("Subworkflow activation context is unavailable.");
+  }
   const value = await step.runQuery(ref, {
-    ...input,
+    workspaceId: input.workspaceId,
+    workflowRunId: input.workflowRunId,
     componentWorkflowId: step.workflowId,
   });
   if (!isExecutionIdentity(value)) {
     throw new Error("Workflow execution identity is unavailable.");
   }
-  return value;
+  return authority === undefined ? value : { ...value, authority };
+};
+
+export const bindObservedWorkflowAuthority = <
+  Args extends {
+    readonly principal: unknown;
+    readonly policySnapshot: unknown;
+  },
+>(
+  args: Args,
+  identity: ObservedWorkflowExecutionIdentity,
+): Args =>
+  identity.authority === undefined
+    ? args
+    : {
+        ...args,
+        principal: identity.authority.principal,
+        policySnapshot: identity.authority.policySnapshot,
+      };
+
+const readObservedWorkflowAuthority = (
+  value: unknown,
+): ObservedWorkflowAuthority => {
+  if (typeof value !== "object" || value === null) {
+    throw new Error("Subworkflow reserved authority is unavailable.");
+  }
+  const principal =
+    "principal" in value
+      ? Schema.decodeUnknownEither(DurableWorkflowPrincipal)(value.principal)
+      : null;
+  const policySnapshot =
+    "policySnapshot" in value
+      ? Schema.decodeUnknownEither(WorkflowPolicySnapshot)(value.policySnapshot)
+      : null;
+  if (
+    principal === null ||
+    Either.isLeft(principal) ||
+    policySnapshot === null ||
+    Either.isLeft(policySnapshot)
+  ) {
+    throw new Error("Subworkflow reserved authority is unavailable.");
+  }
+  return {
+    principal: principal.right,
+    policySnapshot: policySnapshot.right,
+  };
 };
 
 const isExecutionIdentity = (
   value: unknown,
-): value is { readonly generation: number; readonly observedAt: number } =>
+): value is ObservedWorkflowExecutionIdentity =>
   typeof value === "object" &&
   value !== null &&
   "generation" in value &&

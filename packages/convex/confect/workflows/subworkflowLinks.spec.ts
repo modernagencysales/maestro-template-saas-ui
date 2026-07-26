@@ -3,12 +3,15 @@ import * as Schema from "effect/Schema";
 
 import { Id } from "../_generated/id";
 import { NotFound, ValidationFailed } from "../errors";
-import { WorkflowPrincipal } from "./_kit/principal";
+import { DurableWorkflowPrincipal } from "./_kit/principal";
+import { WorkflowPolicySnapshot } from "./_kit/policySnapshot";
+import { MAX_SUBWORKFLOW_RESULT_BYTES } from "./_kit/subworkflowLinks";
 import { WorkflowReference, WorkflowStepName } from "./_kit/workflowReferences";
 
 export const SubworkflowRunLinkProjection = Schema.Struct({
   workspaceId: Schema.NonEmptyString,
-  parentWorkflowId: Schema.NonEmptyString,
+  parentWorkflowRunId: Schema.NonEmptyString,
+  parentComponentWorkflowId: Schema.NonEmptyString,
   parentWorkflowVersion: Schema.Number.pipe(
     Schema.int(),
     Schema.greaterThanOrEqualTo(1),
@@ -19,10 +22,11 @@ export const SubworkflowRunLinkProjection = Schema.Struct({
     Schema.int(),
     Schema.greaterThanOrEqualTo(1),
   ),
+  childGraphJson: Schema.NonEmptyString,
+  childReleaseChecksum: Schema.String.pipe(Schema.pattern(/^[a-f0-9]{64}$/)),
   stepName: WorkflowStepName,
-  principal: WorkflowPrincipal,
-  cancellation: Schema.Literal("cascade"),
-  cleanup: Schema.Literal("cascade-async"),
+  principal: DurableWorkflowPrincipal,
+  policySnapshot: WorkflowPolicySnapshot,
 });
 
 export const ReserveSubworkflowRunLinkArgs = Schema.Struct({
@@ -32,12 +36,39 @@ export const ReserveSubworkflowRunLinkArgs = Schema.Struct({
 
 export const ReserveSubworkflowRunLinkResult = Schema.Struct({
   linkId: Id("workflowRunLinks"),
+  childWorkflowRunId: Id("workflowRuns"),
+});
+
+export const ActivateSubworkflowRunLinkArgs = Schema.Struct({
+  workspaceId: Schema.NonEmptyString,
+  parentWorkflowRunId: Id("workflowRuns"),
+  parentComponentWorkflowId: Schema.NonEmptyString,
+  childWorkflowRunId: Id("workflowRuns"),
+  childComponentWorkflowId: Schema.NonEmptyString,
+  generation: Schema.Number.pipe(Schema.int(), Schema.greaterThanOrEqualTo(0)),
+  linkId: Id("workflowRunLinks"),
+  occurredAt: Schema.Number.pipe(Schema.greaterThanOrEqualTo(0)),
+});
+
+export const ActivateSubworkflowRunLinkResult = Schema.Struct({
+  status: Schema.Literal("running"),
+  principal: DurableWorkflowPrincipal,
+  policySnapshot: WorkflowPolicySnapshot,
 });
 
 export const SubworkflowRunLinkOutcome = Schema.Union(
   Schema.Struct({
     kind: Schema.Literal("succeeded"),
-    resultJson: Schema.String,
+    receipt: Schema.Struct({
+      kind: Schema.Literal("bounded-inline", "artifact-reference"),
+      measuredBytes: Schema.Number.pipe(
+        Schema.int(),
+        Schema.greaterThanOrEqualTo(0),
+        Schema.lessThanOrEqualTo(MAX_SUBWORKFLOW_RESULT_BYTES),
+      ),
+      contentHash: Schema.String.pipe(Schema.pattern(/^[a-f0-9]{64}$/)),
+      artifactId: Schema.optional(Schema.NonEmptyString),
+    }),
   }),
   Schema.Struct({
     kind: Schema.Literal("failed"),
@@ -57,6 +88,14 @@ export const ReconcileSubworkflowRunLinkResult = Schema.Struct({
   status: Schema.Literal("succeeded", "failed", "canceled"),
 });
 
+export const ReportSubworkflowReconciliationFailureArgs = Schema.Struct({
+  workspaceId: Schema.NonEmptyString,
+  linkId: Id("workflowRunLinks"),
+  primaryOutcome: Schema.Literal("failed", "canceled"),
+  issue: Schema.Literal("SUBWORKFLOW_LINK_RECONCILIATION_FAILED"),
+  occurredAt: Schema.Number.pipe(Schema.greaterThanOrEqualTo(0)),
+});
+
 const errors = Schema.Union(NotFound, ValidationFailed);
 
 const reserve = FunctionSpec.internalMutation({
@@ -73,4 +112,22 @@ const reconcile = FunctionSpec.internalMutation({
   error: () => errors,
 });
 
-export default GroupSpec.make().addFunction(reserve).addFunction(reconcile);
+const activate = FunctionSpec.internalMutation({
+  name: "activate",
+  args: () => ActivateSubworkflowRunLinkArgs,
+  returns: () => ActivateSubworkflowRunLinkResult,
+  error: () => errors,
+});
+
+const reportReconciliationFailure = FunctionSpec.internalMutation({
+  name: "reportReconciliationFailure",
+  args: () => ReportSubworkflowReconciliationFailureArgs,
+  returns: () => Schema.Null,
+  error: () => errors,
+});
+
+export default GroupSpec.make()
+  .addFunction(reserve)
+  .addFunction(activate)
+  .addFunction(reportReconciliationFailure)
+  .addFunction(reconcile);

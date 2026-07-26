@@ -78,6 +78,7 @@ export type StartWorkflowOwnershipInput<
     readonly registry: PublicationRegistry;
     readonly graphHash: string;
     readonly runnerModule: string;
+    readonly runnerFunctionReference: string;
     readonly releaseChecksum: string;
   };
   readonly onCompleteRef?: FunctionReference<
@@ -112,6 +113,7 @@ export const startWorkflowAndRecordOwnership = <
         graphHash: input.publication.graphHash,
         runnerRef: input.workflowRef,
         runnerModule: input.publication.runnerModule,
+        runnerFunctionReference: input.publication.runnerFunctionReference,
         releaseChecksum: input.publication.releaseChecksum,
         kickoffProfile: input.kickoffProfile,
       });

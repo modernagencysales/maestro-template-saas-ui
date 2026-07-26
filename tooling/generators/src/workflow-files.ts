@@ -1179,7 +1179,7 @@ import {
   defineWorkflowEvent,
   defineWorkflowV2EventRegistry,
 } from "../_kit/events";
-import { defineWorkflowV2SubworkflowRegistry } from "../_kit/subworkflows";
+import { defineEmptyWorkflowV2SubworkflowRegistry } from "../_kit/subworkflows";
 import { generatedWorkflowSubworkflowPolicy } from "../_kit/workpoolConfig";
 import { ${name}References } from "./v1.graph";
 
@@ -1219,6 +1219,8 @@ export const ${name}ArtifactRefs = {
 export const ${name}SubworkflowLinkRefs = {
   reserveRef: refs.internal.workflows.subworkflowLinks.reserve,
   reconcileRef: refs.internal.workflows.subworkflowLinks.reconcile,
+  reportReconciliationFailureRef:
+    refs.internal.workflows.subworkflowLinks.reportReconciliationFailure,
 } as const;
 
 export const ${name}EventInstanceRefs = {
@@ -1250,12 +1252,14 @@ export const ${name}EventRegistry = defineWorkflowV2EventRegistry({
 });
 
 /**
- * Generated immutable child registry. Every entry declares its exact version,
- * typed Args/Result mapping, transitive children, principal narrowing, and the
- * shared typed workflowRunLinks reserve/reconcile refs above.
+ * Generated immutable child registry. Every entry binds its exact version,
+ * graph snapshot, stable generated runner reference, mapper/result export
+ * descriptors, typed Args/Result mapping, transitive children, principal
+ * narrowing, and the shared typed workflowRunLinks reserve/reconcile refs.
+ * Cascade cancellation and cleanup remain restricted lifecycle operations.
  */
 export const ${name}SubworkflowRegistry =
-  defineWorkflowV2SubworkflowRegistry({});
+  defineEmptyWorkflowV2SubworkflowRegistry();
 
 export const ${name}SubworkflowPolicy = generatedWorkflowSubworkflowPolicy;
 `,
@@ -1281,11 +1285,15 @@ import {
   type RunDurableGraphStep,
 } from "../../workflows/_kit/graphRunner";
 import { defineGeneratedCurrentAuthorityBinding } from "../../workflows/_kit/graphRunnerV2";
-import { loadObservedWorkflowExecutionIdentity } from "../../workflows/_kit/observedStage";
+import {
+  bindObservedWorkflowAuthority,
+  loadObservedWorkflowExecutionIdentity,
+} from "../../workflows/_kit/observedStage";
 import { reconcileObservedWorkflowCompletion } from "../../workflows/_kit/lifecycleCompletion";
 import { WorkflowOnCompleteContextValidator } from "../../workflows/_kit/lifecycleState";
 import { DurableWorkflowPrincipalValidator } from "../../workflows/_kit/principal";
 import { WorkflowPolicySnapshotValidator } from "../../workflows/_kit/policySnapshot";
+import { SubworkflowExecutionContextValidator } from "../../workflows/_kit/subworkflows";
 import { ${name}Graph } from "../../workflows/${name}/v1.graph";
 import {
   ${name}EventRegistry,
@@ -1304,6 +1312,9 @@ const recordStageStarted = Ref.getFunctionReference(
 );
 const reconcileCompletionRef = Ref.getFunctionReference(
   refs.internal.workflows.lifecycle.reconcileCompletion,
+);
+const activateSubworkflowRef = Ref.getFunctionReference(
+  refs.internal.workflows.subworkflowLinks.activate,
 );
 const currentAuthority = defineGeneratedCurrentAuthorityBinding(
   ${name}Graph,
@@ -1384,6 +1395,7 @@ export const run = defineMaestroWorkflow(components.workflow, {
     idempotencyKey: v.string(),
     principal: DurableWorkflowPrincipalValidator,
     policySnapshot: WorkflowPolicySnapshotValidator,
+    subworkflow: v.optional(SubworkflowExecutionContextValidator),
   },
   returns: WorkflowReceiptValidator,
 }, metadata).handler(async (step, args): Promise<WorkflowReceipt> => {
@@ -1393,13 +1405,17 @@ export const run = defineMaestroWorkflow(components.workflow, {
     {
     workspaceId: args.workspaceId,
     workflowRunId: args.workflowRunId,
+    ...(args.subworkflow
+      ? { subworkflow: args.subworkflow, activateSubworkflowRef }
+      : {}),
     },
   );
+  const executionArgs = bindObservedWorkflowAuthority(args, executionIdentity);
   return runDurableGraphWorkflowV2(step as RunDurableGraphStep, {
     graph: ${name}Graph,
-    inputs: args,
-    principal: args.principal,
-    policySnapshot: args.policySnapshot,
+    inputs: executionArgs,
+    principal: executionArgs.principal,
+    policySnapshot: executionArgs.policySnapshot,
     currentAuthority,
     effectIdentity: {
       workspaceId: args.workspaceId,
@@ -1543,8 +1559,8 @@ Canonical system: \`${options.system}\` (\`${options.disposition}\`).
 4. Keep React Flow as a projection of \`${name}/v1.graph.ts\`; do not persist canvas node state as the workflow contract.
 5. Generated event nodes require \`workflowContracts.${name}.sendEvent\`; callers select an owned opaque ID or generated definition key and never provide workspace, principal, or raw component names.
 6. Generated capability nodes require registry entries with generated internal refs, concrete \`buildArgs\` and logical instance-key mappers, and complete effect/guard/redaction/evidence contracts.
-7. Generated subworkflow entries require an immutable child version, typed Args/Result schemas, declared transitive children, principal posture, and \`${name}SubworkflowLinkRefs\`; cycle, depth, and fan-out checks run before child dispatch.
-8. Workflow 0.4.4 scheduled children remain rejected; use a named sleep plus an unscheduled child only as a deliberately non-equivalent alternative.
+7. Generated subworkflow entries require one immutable publication binding for the child graph snapshot, stable generated runner-reference identity, stable mapper/result export descriptors, lifecycle contract, typed Args/Result schemas, declared transitive children, principal posture, and \`${name}SubworkflowLinkRefs\`; cycle, depth, and fan-out checks run before child dispatch.
+8. The child registry exposes reserve, reconcile, and reconciliation-failure reporting only. Cascade cancellation and cleanup remain restricted until product lifecycle controls drive them end to end. Workflow 0.4.4 scheduled children remain rejected; use a named sleep plus an unscheduled child only as a deliberately non-equivalent alternative.
 9. Query and mutation capabilities use independent Workpool transactions by default. Inline is restricted to declared small atomic work: novice authors choose \`tiny\` or \`small-atomic\`; raw counters require the reviewed advanced constructor. Actions and scheduled steps cannot be inline.
 10. Cancel is cooperative: an already-running action may finish, and compensation is a separate explicit workflow. Restart refuses unstable anchors, active Workpool/exposed work, and downstream external actions without generation-scoped dedupe evidence.
 11. Cleanup is retention-gated and never claims full component deletion. Schedule bounded calls to \`workflows.lifecycle.sweepRetention\`; pinned Workflow 0.4.4 may leave never-awaited events or failed completion records as explicitly unverifiable residuals.
