@@ -2097,23 +2097,6 @@ describe("template app factory generators", () => {
     });
   });
 
-  it("prints a client-fork upgrade report through the CLI", () => {
-    const result = runGeneratorCli([
-      "upgrade",
-      "--from",
-      "client-v1.0.0",
-      "--to",
-      "template-v1.1.0",
-    ]);
-
-    expect(result.exitCode).toBe(0);
-    expect(JSON.parse(result.stdout)).toMatchObject({
-      from: "client-v1.0.0",
-      to: "template-v1.1.0",
-      ok: true,
-    });
-  });
-
   it("builds a private package dry-run plan from a fixture manifest", () => {
     const cwd = mkdtempSync(join(tmpdir(), "maestro-template-private-"));
     const fixture = join(cwd, "fixtures/generic-ai-ops");

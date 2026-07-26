@@ -22,6 +22,7 @@ import {
   parseSystemCatalog,
   type SystemCatalog,
 } from "@maestro-template/template-core/systemCatalog";
+import { planUpgrade } from "../../release/src/upgrade/plan.js";
 import { gtmImplementationBlueprint } from "./blueprints/gtmImplementation";
 import {
   buildSaasApplicationFiles,
@@ -644,6 +645,22 @@ const readOptionalJson = <T>(path: string): T | undefined => {
   }
 
   return JSON.parse(readFileSync(path, "utf8")) as T;
+};
+
+const reviewedTransitionMatches = (
+  candidate: unknown,
+  from: string,
+  to: string,
+): boolean => {
+  if (typeof candidate !== "object" || candidate === null) return false;
+  const manifest = Reflect.get(candidate, "manifest") as unknown;
+  if (typeof manifest !== "object" || manifest === null) return false;
+  const transition = Reflect.get(manifest, "transition") as unknown;
+  if (typeof transition !== "object" || transition === null) return false;
+  return (
+    Reflect.get(transition, "fromVersion") === from &&
+    Reflect.get(transition, "toVersion") === to
+  );
 };
 
 export const buildTemplateInstance = (options?: {
@@ -3464,7 +3481,7 @@ export const runGeneratorCli = (
             "template:add-agent-seat --name <name> --system <canonical-id> --disposition reuse|extend [--description <text>] [--write]",
             "template:promote-capability --name <name> --system <canonical-id> --disposition reuse|extend [--description <text>] [--write]",
             "template:promote-workflow --name <name> --system <canonical-id> --disposition reuse|extend [--description <text>] [--write]",
-            "template:upgrade --from <client-version> --to <template-version>",
+            "template:upgrade --from <client-version> --to <template-version> --path <reviewed-input.json>",
             "template:private-package:dry-run --fixture <path> --system <canonical-id> --disposition reuse|extend",
             "template:private-package:import --fixture <path> --system <canonical-id> --disposition reuse|extend [--write]",
           ].join("\n") + "\n",
@@ -3974,10 +3991,17 @@ export const runGeneratorCli = (
         };
       }
 
-      const report = buildTemplateUpgradeReport({
-        from: args.from,
-        to: args.to,
-      });
+      const candidate = JSON.parse(readFileSync(outputPath, "utf8")) as unknown;
+      const planned = planUpgrade(candidate);
+      const report =
+        planned.ok &&
+        !reviewedTransitionMatches(candidate, args.from, args.to)
+          ? planUpgrade({
+              schemaVersion: 1,
+              reviewedInput: candidate,
+              requestedTransition: { from: args.from, to: args.to },
+            })
+          : planned;
 
       return {
         exitCode: report.ok ? 0 : 1,
