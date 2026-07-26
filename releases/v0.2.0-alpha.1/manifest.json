@@ -9,8 +9,8 @@
   "release": {
     "version": "0.2.0-alpha.1",
     "tag": "maestro-template-v0.2.0-alpha.1",
-    "sourceCommit": "8e67bc8d502b2ddf67cf0f983451296da832df3b",
-    "sourceChecksum": "sha256:157b475319b15498a17e176719a974a849a89b265a638f224ce20eefac15f857"
+    "sourceCommit": "c3033b1549d8a81f56ffb3ea98ac232d93ba2b56",
+    "sourceChecksum": "sha256:c7a41267b31470d0466d85cc5477381e62569d6341cb7d36fec3d59ec945050f"
   },
   "upgrade": {
     "schemaVersion": 1,
@@ -1695,7 +1695,7 @@
         "path": "packages/convex/package.json",
         "ownership": "template-owned",
         "beforeHash": "sha256:9d2b81177568ffeee14f8611baf5453ee82f9af2816fcd0d1388caac6656ffdc",
-        "afterHash": "sha256:435a44348d4616cc5a724718035fe87d0422f4e6dcc9c29a3abddc159809954a"
+        "afterHash": "sha256:369f87e7afb5699a8b951e07c2aa3e51a401340af317546dc7d18b5c57a7c10e"
       },
       {
         "id": "upgrade-add-packages-convex-test-confect-codegen-component-roots-test-ts",
@@ -3426,7 +3426,7 @@
         "path": "tooling/quality/check-ci-completeness.test.mts",
         "ownership": "template-owned",
         "beforeHash": "sha256:f8102fa1bf41d3dacc31faee6671fe1169f5ae19038b31e37829e70915382831",
-        "afterHash": "sha256:8ddfab6fab5d15c671a07ffee753f13a06e4fb1eb5669db87e1c1040dfa41187"
+        "afterHash": "sha256:2acebd5224282cbc96d9674bc382ff09c15966393865d1f704790056724a0bac"
       },
       {
         "id": "upgrade-modify-tooling-quality-check-confect-compat-mts",
@@ -3545,7 +3545,7 @@
         "path": "tooling/quality/src/check-definitions.mts",
         "ownership": "template-owned",
         "beforeHash": "sha256:9e119988135f4b297c528e987a4377f71faffe3830f395a407428e6da8a7963a",
-        "afterHash": "sha256:c83715b0ff23a0cb214317dc923a988ae53b154a03994564bc64c377a4cb7a4d"
+        "afterHash": "sha256:8560e1b42437b1ca0cb6d13da7aec3011810072622d2a0a57f2ba0038b428e22"
       },
       {
         "id": "upgrade-modify-tooling-quality-src-diagnosticRegistry-mts",
@@ -3902,14 +3902,14 @@
   ],
   "blueprintManifest": {
     "path": "blueprints/saas-application.json",
-    "sha256": "sha256:04dda252a7c6b1008d3397c3e80598440ca0c714a79d3ab875a9ee6d1b4fd41b"
+    "sha256": "sha256:b9243729e7db0de774f2a93cb19cdc6341265ba72219680fead9a72a49be6518"
   },
   "upgradeImpact": {
     "path": "releases/v0.2.0-alpha.1/upgrade/app-map-input.json",
-    "sha256": "sha256:9e20414600ac0aacc94334b9d37d937ccf59e965dee760680d2474ccd5560782",
+    "sha256": "sha256:0077c55ac8b1b75f076cef9cff86c5517a0ec1accb1f7d4f81cc22a0bc872dc3",
     "projection": {
       "path": "releases/v0.2.0-alpha.1/upgrade/app-map-impact.json",
-      "sha256": "sha256:b998ff05f5b4416c6ab46d0c936b3bf692caa6430b328db65adcdf42f5863bd3"
+      "sha256": "sha256:c790aa7111de3731a067b586f16ffa76d98dbd3728b3d70c7ce0e86492d5bcca"
     }
   },
   "migrationHandoff": {
