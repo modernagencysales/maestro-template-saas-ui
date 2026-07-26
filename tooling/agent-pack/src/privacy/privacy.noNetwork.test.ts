@@ -8,7 +8,7 @@ import {
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { spawn, spawnSync } from "node:child_process";
+import { execFileSync, spawn, spawnSync } from "node:child_process";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { NO_NETWORK_FACTORY_CASES } from "./networkPolicy.js";
 
@@ -16,6 +16,29 @@ const repositoryRoot = resolve(import.meta.dirname, "../../../..");
 const fixtureRoot = mkdtempSync(join(tmpdir(), "maestro-no-network-"));
 const attemptsPath = join(fixtureRoot, "attempts.ndjson");
 const customerTarget = join(fixtureRoot, "customer-app");
+let taggedReleaseParent: string | undefined;
+let taggedReleaseRoot: string | undefined;
+const taggedRepository = (): string => {
+  if (taggedReleaseRoot) return taggedReleaseRoot;
+  taggedReleaseParent = mkdtempSync(join(tmpdir(), "maestro-tagged-release-"));
+  taggedReleaseRoot = join(taggedReleaseParent, "release");
+  execFileSync(
+    "git",
+    ["clone", "--quiet", "--shared", repositoryRoot, taggedReleaseRoot],
+    { stdio: "pipe" },
+  );
+  execFileSync(
+    "git",
+    ["-C", taggedReleaseRoot, "tag", "maestro-template-v0.2.0-alpha.1", "HEAD"],
+    { stdio: "pipe" },
+  );
+  execFileSync(
+    "pnpm",
+    ["install", "--offline", "--frozen-lockfile", "--ignore-scripts"],
+    { cwd: taggedReleaseRoot, stdio: "pipe", timeout: 120_000 },
+  );
+  return taggedReleaseRoot;
+};
 const planPath =
   "tooling/agent-pack/src/privacy/no-network-plan.fixture.json" as const;
 const interceptorPath = fileURLToPath(
@@ -37,7 +60,11 @@ function interceptedEnvironment(): NodeJS.ProcessEnv {
 
 beforeEach(() => writeFileSync(attemptsPath, ""));
 
-afterAll(() => rmSync(fixtureRoot, { recursive: true, force: true }));
+afterAll(() => {
+  rmSync(fixtureRoot, { recursive: true, force: true });
+  if (taggedReleaseParent)
+    rmSync(taggedReleaseParent, { recursive: true, force: true });
+});
 
 describe("privacy no-network conformance", () => {
   it("blocks a real outbound attempt in a spawned Node process", () => {
@@ -167,7 +194,7 @@ describe("privacy no-network conformance", () => {
         "--json",
       ],
       {
-        cwd: repositoryRoot,
+        cwd: taggedRepository(),
         encoding: "utf8",
         timeout: 120_000,
       },

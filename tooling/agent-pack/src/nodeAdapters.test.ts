@@ -258,7 +258,7 @@ describe("Node Agent Pack adapters", () => {
         collisions: ["local.ts"],
         hostIntegration: "current",
       },
-      network: "online",
+      network: "offline",
       auth: "not-required",
       versions: {
         pack: `git:${"a".repeat(40)}`,
@@ -281,6 +281,11 @@ describe("Node Agent Pack adapters", () => {
       templateInstanceText: '{"name":"Fixture"}',
       observedAt: "2026-07-25T12:00:00.000Z",
     });
+    expect(execute).not.toHaveBeenCalledWith(
+      "pnpm",
+      ["ping", "--registry", "https://registry.npmjs.org"],
+      expect.anything(),
+    );
     expect(JSON.stringify(snapshot)).not.toContain("secret-deployment-value");
     expect(execute).not.toHaveBeenCalledWith(
       expect.anything(),

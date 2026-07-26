@@ -222,11 +222,13 @@ export function createNodePreflightRuntimeReader(input: {
           resolve(repo.sourceRoot, "packages/convex/package.json"),
         ),
         safeExec(exec, "pnpm", ["--version"]),
-        safeExec(exec, "pnpm", [
-          "ping",
-          "--registry",
-          "https://registry.npmjs.org",
-        ]),
+        request.mode === "fake"
+          ? Promise.resolve({ exitCode: 1, stdout: "", stderr: "" })
+          : safeExec(exec, "pnpm", [
+              "ping",
+              "--registry",
+              "https://registry.npmjs.org",
+            ]),
         safeExec(exec, "corepack", ["--version"]),
         safeExec(exec, "git", ["--version"]),
         safeExec(exec, "git", ["worktree", "list", "--porcelain"]),

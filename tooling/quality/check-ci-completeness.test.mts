@@ -17,6 +17,9 @@ describe("check:ci-completeness", () => {
     expect(requirements).toContain(
       "pnpm --dir apps/cli test:create-root-integration",
     );
+    expect(requirements).toContain(
+      "pnpm --dir tooling/agent-pack test:privacy-no-network",
+    );
     expect(requirements).toContain("check:system-topology");
     expect(requirements).toContain("check:data-resources");
     expect(requirements).toContain("check:promotion-boundary");
