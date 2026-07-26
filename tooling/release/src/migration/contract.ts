@@ -28,6 +28,10 @@ export type MigrationReceiptV1 = {
   readonly transitionId: string;
   readonly migrationId: string;
   readonly migrationFingerprint: string;
+  readonly releaseRootCommit: string;
+  readonly releaseManifestHash: string;
+  readonly migrationManifestHash: string;
+  readonly fileUpgradePlanFingerprint: string;
   readonly status: "completed";
   readonly completedAt: string;
   readonly issuer: { readonly id: string; readonly keyId: string };
@@ -51,13 +55,6 @@ export type MigrationReceiptV1 = {
     readonly value: string;
   };
 };
-export type MigrationReceiptAuthorityV1 = {
-  readonly issuerId: string;
-  readonly keyId: string;
-  readonly publicKeyPem: string;
-  readonly consumedReplayIdentities: readonly string[];
-};
-
 export type MigrationPlanInputV1 = {
   readonly schemaVersion: 1;
   readonly transition: {
@@ -95,7 +92,6 @@ export type MigrationPlanInputV1 = {
     readonly recovery: MigrationRecoveryV1;
   };
   readonly receipt?: MigrationReceiptV1;
-  readonly receiptAuthority?: MigrationReceiptAuthorityV1;
 };
 
 export type MigrationBlockerCode =
@@ -148,12 +144,10 @@ export type MigrationPlanResult =
       readonly compatibilityWindow: MigrationPlanInputV1["migration"]["compatibilityWindow"];
       readonly evidenceRequirements: MigrationPlanInputV1["migration"]["evidenceRequirements"];
       readonly recovery: MigrationRecoveryV1;
-      readonly fileUpgrade:
-        | {
-            readonly blocked: true;
-            readonly code: "MIGRATION_RECEIPT_REQUIRED";
-          }
-        | { readonly blocked: false; readonly receiptId: string };
+      readonly fileUpgrade: {
+        readonly blocked: true;
+        readonly code: "MIGRATION_RECEIPT_REQUIRED";
+      };
     }
   | {
       readonly ok: false;

@@ -1,224 +1,56 @@
-import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import type { MigrationPlanInputV1, MigrationReceiptV1 } from "./contract.js";
-import {
-  migrationReceiptSigningPayload,
-  planMigrationHandoff,
-} from "./plan.js";
 import { verifyMigrationHandoff } from "./verify.js";
 
-const fixture = (): MigrationPlanInputV1 =>
-  JSON.parse(
-    readFileSync(
-      new URL("../../__fixtures__/migration/clean.json", import.meta.url),
-      "utf8",
-    ),
-  ) as MigrationPlanInputV1;
-const keys = generateKeyPairSync("ed25519");
-const receiptAuthority = {
-  issuerId: "test-release-issuer",
-  keyId: "test-key-1",
-  publicKeyPem: keys.publicKey
-    .export({ type: "spki", format: "pem" })
-    .toString(),
-  consumedReplayIdentities: [] as string[],
-};
-
-const receiptFor = (input: MigrationPlanInputV1): MigrationReceiptV1 => {
-  const plan = planMigrationHandoff(input);
-  if (!plan.ok) throw new Error("fixture must plan successfully");
-  const unsigned: Omit<MigrationReceiptV1, "signature"> = {
-    schemaVersion: 1,
-    id: "receipt-backfill-workflow-graph-v2",
-    transitionId: input.transition.id,
-    migrationId: input.migration.id,
-    migrationFingerprint: plan.migrationFingerprint,
-    status: "completed",
-    completedAt: "2026-08-04T00:00:00.000Z",
-    issuer: { id: receiptAuthority.issuerId, keyId: receiptAuthority.keyId },
-    replayIdentity: "replay-backfill-workflow-graph-v2",
-    authorization: {
-      approved: true,
-      evidenceRef: "evidence/operator-approval",
-    },
-    previewCounts: input.migration.previewCounts,
-    migrateCounts: { attempted: 9, succeeded: 9, failed: 0 },
-    evidence: [
-      { id: "preview-counts", evidenceRef: "evidence/preview" },
-      { id: "migration-verification", evidenceRef: "evidence/verification" },
-    ],
-  };
-  return {
-    ...unsigned,
-    signature: {
-      algorithm: "ed25519",
-      value: sign(
-        null,
-        migrationReceiptSigningPayload(unsigned),
-        keys.privateKey,
-      ).toString("base64"),
-    },
-  };
-};
-
-const fingerprintFor = (input: MigrationPlanInputV1): string => {
-  const plan = planMigrationHandoff(input);
-  if (!plan.ok) throw new Error("fixture must plan successfully");
-  return plan.migrationFingerprint;
-};
-
-const codes = (candidate: unknown): readonly string[] => {
-  const result = verifyMigrationHandoff(candidate);
-  expect(result.ok).toBe(false);
-  return result.ok ? [] : result.resolutions.map(({ code }) => code);
-};
+const fingerprint = `sha256:${"1".repeat(64)}`;
 
 describe("migration receipt verification bridge", () => {
-  it("passes a file upgrade that declares no data migration", () => {
-    const candidate = {
-      schemaVersion: 1,
-      fileUpgrade: {
-        planFingerprint: `sha256:${"1".repeat(64)}`,
-        dataMigrationRequired: false,
-      },
-    };
-    const before = JSON.stringify(candidate);
-    expect(verifyMigrationHandoff(candidate)).toMatchObject({
-      ok: true,
+  it("never trusts caller claims that no migration is required", () => {
+    expect(
+      verifyMigrationHandoff({
+        schemaVersion: 1,
+        fileUpgrade: {
+          planFingerprint: fingerprint,
+          dataMigrationRequired: false,
+        },
+      }),
+    ).toMatchObject({
+      ok: false,
       mode: "verify-only",
       writeAvailable: false,
-      receiptVerified: false,
-      migration: { required: false },
+      resolutions: [{ code: "MIGRATION_VERIFY_TRUSTED_AUTHORITY_REQUIRED" }],
     });
-    expect(JSON.stringify(candidate)).toBe(before);
   });
 
-  it("keeps a required migration blocked until a receipt is present", () => {
-    const handoff = fixture();
-    expect(
-      codes({
-        schemaVersion: 1,
-        fileUpgrade: {
-          planFingerprint: `sha256:${"1".repeat(64)}`,
-          dataMigrationRequired: true,
-        },
-        migration: {
-          expectedFingerprint: fingerprintFor(handoff),
-          handoff,
-        },
-      }),
-    ).toEqual(["MIGRATION_VERIFY_RECEIPT_REQUIRED"]);
-  });
-
-  it("accepts only a matching authorized receipt without mutating input", () => {
-    const handoff = fixture();
+  it("never trusts caller fingerprints, handoffs, keys, or replay state", () => {
     const candidate = {
       schemaVersion: 1,
       fileUpgrade: {
-        planFingerprint: `sha256:${"1".repeat(64)}`,
+        planFingerprint: fingerprint,
         dataMigrationRequired: true,
       },
       migration: {
-        expectedFingerprint: fingerprintFor(handoff),
+        expectedFingerprint: fingerprint,
         handoff: {
-          ...handoff,
-          receipt: receiptFor(handoff),
-          receiptAuthority,
+          receiptAuthority: {
+            publicKeyPem: "caller-key",
+            consumedReplayIdentities: [],
+          },
         },
       },
     };
-    const before = JSON.stringify(candidate);
     const first = verifyMigrationHandoff(candidate);
-    const second = verifyMigrationHandoff({
-      migration: candidate.migration,
-      fileUpgrade: candidate.fileUpgrade,
-      schemaVersion: 1,
-    });
+    const second = verifyMigrationHandoff(candidate);
     expect(first).toEqual(second);
     expect(first).toMatchObject({
-      ok: true,
-      receiptVerified: true,
-      migration: {
-        required: true,
-        receiptId: "receipt-backfill-workflow-graph-v2",
-      },
+      ok: false,
+      resolutions: [{ code: "MIGRATION_VERIFY_TRUSTED_AUTHORITY_REQUIRED" }],
     });
-    expect(JSON.stringify(candidate)).toBe(before);
   });
 
-  it("rejects a stale expected fingerprint", () => {
-    const handoff = fixture();
-    expect(
-      codes({
-        schemaVersion: 1,
-        fileUpgrade: {
-          planFingerprint: `sha256:${"1".repeat(64)}`,
-          dataMigrationRequired: true,
-        },
-        migration: {
-          expectedFingerprint: `sha256:${"0".repeat(64)}`,
-          handoff: {
-            ...handoff,
-            receipt: receiptFor(handoff),
-            receiptAuthority,
-          },
-        },
-      }),
-    ).toEqual(["MIGRATION_VERIFY_FINGERPRINT_MISMATCH"]);
-  });
-
-  it("rejects stale, tampered, or unauthorized handoff receipts", () => {
-    const handoff = fixture();
-    const receipt = receiptFor(handoff);
-    const base = {
-      schemaVersion: 1,
-      fileUpgrade: {
-        planFingerprint: `sha256:${"1".repeat(64)}`,
-        dataMigrationRequired: true,
-      },
-      migration: { expectedFingerprint: fingerprintFor(handoff), handoff },
-    };
-    for (const invalidReceipt of [
-      { ...receipt, migrationFingerprint: `sha256:${"0".repeat(64)}` },
-      {
-        ...receipt,
-        migrateCounts: { ...receipt.migrateCounts, succeeded: 8 },
-      },
-      {
-        ...receipt,
-        authorization: { ...receipt.authorization, approved: false },
-      },
-    ]) {
-      expect(
-        codes({
-          ...base,
-          migration: {
-            ...base.migration,
-            handoff: {
-              ...handoff,
-              receipt: invalidReceipt,
-              receiptAuthority,
-            },
-          },
-        }),
-      ).toEqual(["MIGRATION_VERIFY_HANDOFF_INVALID"]);
-    }
-  });
-
-  it("rejects unknown fields and irrelevant migration payloads", () => {
-    const clean = {
-      schemaVersion: 1,
-      fileUpgrade: {
-        planFingerprint: `sha256:${"1".repeat(64)}`,
-        dataMigrationRequired: false,
-      },
-    };
-    expect(codes({ ...clean, execute: true })).toEqual([
-      "MIGRATION_VERIFY_INPUT_INVALID",
-    ]);
-    expect(codes({ ...clean, migration: { unexpected: true } })).toEqual([
-      "MIGRATION_VERIFY_INPUT_INVALID",
-    ]);
+  it("rejects malformed envelopes without disclosing a trusted result", () => {
+    expect(verifyMigrationHandoff({ execute: true })).toMatchObject({
+      ok: false,
+      resolutions: [{ code: "MIGRATION_VERIFY_INPUT_INVALID" }],
+    });
   });
 });
-import { generateKeyPairSync, sign } from "node:crypto";

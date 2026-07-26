@@ -4,6 +4,7 @@ import type { MigrationPlanInputV1, MigrationReceiptV1 } from "./contract.js";
 import {
   migrationReceiptSigningPayload,
   planMigrationHandoff,
+  verifyMigrationReceiptSignatureEphemeralUntrusted,
 } from "./plan.js";
 
 const keys = generateKeyPairSync("ed25519");
@@ -28,11 +29,6 @@ const signed = (
     ).toString("base64"),
   },
 });
-const resigned = (receipt: MigrationReceiptV1): MigrationReceiptV1 => {
-  const { signature, ...unsigned } = receipt;
-  void signature;
-  return signed(unsigned);
-};
 
 const fixture = (): MigrationPlanInputV1 =>
   JSON.parse(
@@ -57,6 +53,10 @@ const completedReceipt = (input: MigrationPlanInputV1): MigrationReceiptV1 => {
     transitionId: input.transition.id,
     migrationId: input.migration.id,
     migrationFingerprint: planned.migrationFingerprint,
+    releaseRootCommit: "1".repeat(40),
+    releaseManifestHash: `sha256:${"2".repeat(64)}`,
+    migrationManifestHash: `sha256:${"3".repeat(64)}`,
+    fileUpgradePlanFingerprint: `sha256:${"4".repeat(64)}`,
     status: "completed",
     completedAt: "2026-08-04T00:00:00.000Z",
     issuer: { id: receiptAuthority.issuerId, keyId: receiptAuthority.keyId },
@@ -112,57 +112,39 @@ describe("migration handoff planning", () => {
     expect(JSON.stringify(input)).toBe(before);
   });
 
-  it("unblocks file upgrade only for a matching authorized receipt", () => {
+  it("never unblocks file upgrade from caller-supplied receipt JSON", () => {
     const input = fixture();
     const candidate = {
       ...input,
       receipt: completedReceipt(input),
-      receiptAuthority,
     };
     const before = JSON.stringify(candidate);
-    expect(planMigrationHandoff(candidate)).toMatchObject({
-      ok: true,
-      fileUpgrade: {
-        blocked: false,
-        receiptId: "receipt-backfill-workflow-graph-v2",
-      },
-    });
+    expect(failureCodes(candidate)).toContain(
+      "MIGRATION_RECEIPT_AUTHORITY_REQUIRED",
+    );
     expect(JSON.stringify(candidate)).toBe(before);
   });
 
-  it("rejects unsigned authority, untrusted issuers, invalid signatures, and replay", () => {
+  it("labels repeated pure crypto checks ephemeral, untrusted, and not replay-safe", () => {
     const input = fixture();
     const receipt = completedReceipt(input);
+    const first = verifyMigrationReceiptSignatureEphemeralUntrusted(
+      receipt,
+      receiptAuthority.publicKeyPem,
+    );
+    const second = verifyMigrationReceiptSignatureEphemeralUntrusted(
+      receipt,
+      receiptAuthority.publicKeyPem,
+    );
+    expect(first).toEqual({
+      cryptographicallyValid: true,
+      trusted: false,
+      replaySafe: false,
+    });
+    expect(second).toEqual(first);
     expect(failureCodes({ ...input, receipt })).toContain(
       "MIGRATION_RECEIPT_AUTHORITY_REQUIRED",
     );
-    expect(
-      failureCodes({
-        ...input,
-        receipt,
-        receiptAuthority: { ...receiptAuthority, issuerId: "other" },
-      }),
-    ).toContain("MIGRATION_RECEIPT_ISSUER_UNTRUSTED");
-    expect(
-      failureCodes({
-        ...input,
-        receipt: {
-          ...receipt,
-          signature: { ...receipt.signature, value: "Zm9yZ2Vk" },
-        },
-        receiptAuthority,
-      }),
-    ).toContain("MIGRATION_RECEIPT_SIGNATURE_INVALID");
-    expect(
-      failureCodes({
-        ...input,
-        receipt,
-        receiptAuthority: {
-          ...receiptAuthority,
-          consumedReplayIdentities: [receipt.replayIdentity],
-        },
-      }),
-    ).toContain("MIGRATION_RECEIPT_REPLAYED");
   });
 
   it.each([
@@ -272,33 +254,30 @@ describe("migration handoff planning", () => {
     expect(
       failureCodes({
         ...input,
-        receipt: resigned({
+        receipt: {
           ...receipt,
           migrationFingerprint: `sha256:${"0".repeat(64)}`,
-        }),
-        receiptAuthority,
+        },
       }),
-    ).toContain("MIGRATION_RECEIPT_STALE");
+    ).toContain("MIGRATION_RECEIPT_AUTHORITY_REQUIRED");
     expect(
       failureCodes({
         ...input,
-        receipt: resigned({
+        receipt: {
           ...receipt,
           migrateCounts: { ...receipt.migrateCounts, succeeded: 8 },
-        }),
-        receiptAuthority,
+        },
       }),
-    ).toContain("MIGRATION_RECEIPT_TAMPERED");
+    ).toContain("MIGRATION_RECEIPT_AUTHORITY_REQUIRED");
     expect(
       failureCodes({
         ...input,
-        receipt: resigned({
+        receipt: {
           ...receipt,
           authorization: { ...receipt.authorization, approved: false },
-        }),
-        receiptAuthority,
+        },
       }),
-    ).toContain("MIGRATION_RECEIPT_UNAUTHORIZED");
+    ).toContain("MIGRATION_RECEIPT_AUTHORITY_REQUIRED");
   });
 
   it("rejects missing receipt evidence and unknown fields", () => {
@@ -307,10 +286,9 @@ describe("migration handoff planning", () => {
     expect(
       failureCodes({
         ...input,
-        receipt: resigned({ ...receipt, evidence: receipt.evidence.slice(1) }),
-        receiptAuthority,
+        receipt: { ...receipt, evidence: receipt.evidence.slice(1) },
       }),
-    ).toContain("MIGRATION_RECEIPT_EVIDENCE_MISSING");
+    ).toContain("MIGRATION_RECEIPT_AUTHORITY_REQUIRED");
     expect(failureCodes({ ...input, execute: true })).toEqual([
       "MIGRATION_INPUT_INVALID",
     ]);
