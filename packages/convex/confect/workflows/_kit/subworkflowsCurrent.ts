@@ -147,6 +147,7 @@ export type WorkflowV2SubworkflowDefinition<
   };
   readonly links: {
     readonly reserveRef: DurableGraphStepRef<"mutation">;
+    readonly recoverReservationRef: DurableGraphStepRef<"query">;
     readonly reconcileRef: DurableGraphStepRef<"mutation">;
     readonly reportReconciliationFailureRef: DurableGraphStepRef<"mutation">;
   };
@@ -217,10 +218,12 @@ export type AnyWorkflowV2SubworkflowRegistryEntry = {
     ChildWorkflowArgs,
     unknown
   >["publication"];
-  readonly links: WorkflowV2SubworkflowRegistryEntry<
-    ChildWorkflowArgs,
-    unknown
-  >["links"];
+  readonly links: {
+    readonly reserveRef: DurableGraphStepRef<"mutation">;
+    readonly recoverReservationRef?: DurableGraphStepRef<"query">;
+    readonly reconcileRef: DurableGraphStepRef<"mutation">;
+    readonly reportReconciliationFailureRef: DurableGraphStepRef<"mutation">;
+  };
   readonly artifacts: WorkflowV2SubworkflowRegistryEntry<
     ChildWorkflowArgs,
     unknown
@@ -559,6 +562,7 @@ export async function runRegisteredSubworkflow({
   };
   const reserveArgs = { projection, occurredAt: ownership.occurredAt };
   const reserveOptions = { name: `${node.stepName}.link.reserve.v1` };
+  const idempotencyKey = subworkflowRunLinkIdempotencyKey(projection);
   const reservation = await step.runMutation(
     entry.links.reserveRef,
     reserveArgs,
@@ -572,12 +576,19 @@ export async function runRegisteredSubworkflow({
     recoveredReservation = readLinkReservation(node, reservation);
   } catch (error) {
     try {
-      const replayed = await step.runMutation(
-        entry.links.reserveRef,
-        reserveArgs,
-        reserveOptions,
+      const recoveryRef = entry.links.recoverReservationRef;
+      if (recoveryRef === undefined) {
+        throw subworkflowFailure(
+          node,
+          "generated authoritative reservation recovery is unavailable",
+        );
+      }
+      const authoritative = await step.runQuery(
+        recoveryRef,
+        { workspaceId: ownership.workspaceId, idempotencyKey },
+        { name: `${node.stepName}.link.reserve-recovery.v1` },
       );
-      recoveredReservation = readLinkReservation(node, replayed);
+      recoveredReservation = readLinkReservation(node, authoritative);
       try {
         await reconcileLink(
           step,
@@ -607,7 +618,6 @@ export async function runRegisteredSubworkflow({
     throw error;
   }
   const { linkId, childWorkflowRunId } = recoveredReservation;
-  const idempotencyKey = subworkflowRunLinkIdempotencyKey(projection);
   const childArgs = {
     ...mappedArgs,
     workspaceId: ownership.workspaceId,
@@ -702,15 +712,22 @@ export async function runRegisteredSubworkflow({
       receipt,
     });
   } catch {
-    await reportReconciliationFailure(
-      step,
-      entry,
-      node,
-      ownership,
-      linkId,
-      "succeeded",
-      "SUBWORKFLOW_SUCCESS_RECONCILIATION_FAILED",
-    ).catch(() => undefined);
+    try {
+      await reportReconciliationFailure(
+        step,
+        entry,
+        node,
+        ownership,
+        linkId,
+        "succeeded",
+        "SUBWORKFLOW_SUCCESS_RECONCILIATION_FAILED",
+      );
+    } catch {
+      throw subworkflowFailure(
+        node,
+        "child succeeded but reconciliation and its durable failure report remain unresolved; retry reattempts both stable steps",
+      );
+    }
     throw subworkflowFailure(
       node,
       "child succeeded but durable link reconciliation failed",
@@ -1037,20 +1054,42 @@ export const validateWorkflowV2SubworkflowTopology = (
     (node): node is ChildWorkflowNodeV2 =>
       node.kind === "subworkflow" || node.kind === "bounded-subworkflow-batch",
   );
-  let childStarts = roots.reduce(
-    (total, node) =>
-      total +
-      (node.kind === "bounded-subworkflow-batch"
-        ? Math.ceil(node.maxItems / node.batchSize)
-        : 1),
-    0,
-  );
-  if (childStarts > policy.maxFanOut) {
-    throw topologyFailure(
-      `declared child starts ${childStarts} exceed limit ${policy.maxFanOut}`,
-    );
-  }
-  const visit = (reference: string, depth: number, path: readonly string[]) => {
+  let childStarts = 0;
+  const addStarts = (value: number): void => {
+    if (
+      !Number.isSafeInteger(value) ||
+      value < 1 ||
+      childStarts > Number.MAX_SAFE_INTEGER - value
+    ) {
+      throw topologyFailure("declared child starts overflow a safe integer");
+    }
+    childStarts += value;
+    if (childStarts > policy.maxFanOut) {
+      throw topologyFailure(
+        `declared child starts ${childStarts} exceed limit ${policy.maxFanOut}`,
+      );
+    }
+  };
+  const multiplyStarts = (left: number, right: number): number => {
+    if (
+      !Number.isSafeInteger(left) ||
+      left < 1 ||
+      !Number.isSafeInteger(right) ||
+      right < 1 ||
+      left > Math.floor(Number.MAX_SAFE_INTEGER / right)
+    ) {
+      throw topologyFailure(
+        "declared child start multiplicity overflows a safe integer",
+      );
+    }
+    return left * right;
+  };
+  const visit = (
+    reference: string,
+    depth: number,
+    path: readonly string[],
+    parentInstances: number,
+  ) => {
     if (path.includes(reference)) {
       throw topologyFailure(
         `cycle detected at ${[...path, reference].join(" -> ")}`,
@@ -1070,16 +1109,20 @@ export const validateWorkflowV2SubworkflowTopology = (
       entry.childStartMultiplicities ??
       entry.children.map((workflow) => ({ workflow, maxChildStarts: 1 }));
     for (const child of childBindings) {
-      childStarts += child.maxChildStarts;
-      if (childStarts > policy.maxFanOut) {
-        throw topologyFailure(
-          `declared child fan-out exceeds limit ${policy.maxFanOut}`,
-        );
-      }
-      visit(child.workflow, depth + 1, nextPath);
+      const childInstances = multiplyStarts(
+        parentInstances,
+        child.maxChildStarts,
+      );
+      addStarts(childInstances);
+      visit(child.workflow, depth + 1, nextPath, childInstances);
     }
   };
   for (const root of roots) {
+    const rootInstances =
+      root.kind === "bounded-subworkflow-batch"
+        ? Math.ceil(root.maxItems / root.batchSize)
+        : 1;
+    addStarts(rootInstances);
     const entry = registry[root.workflow];
     if (!entry) {
       throw topologyFailure(
@@ -1094,7 +1137,7 @@ export const validateWorkflowV2SubworkflowTopology = (
           root.childVersion,
       );
     }
-    visit(root.workflow, 1, []);
+    visit(root.workflow, 1, [], rootInstances);
   }
 };
 

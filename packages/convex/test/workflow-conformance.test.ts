@@ -30,13 +30,13 @@ import {
 } from "../confect/workflows/_kit/graphRunnerV2Current";
 import {
   defineWorkflowV2SubworkflowRegistry,
-  defineWorkflowV2Subworkflow,
   runRegisteredSubworkflow,
   scheduledSubworkflowFinding,
   type DurableGraphWorkflowRef,
   type WorkflowV2SubworkflowRegistryEntry,
 } from "../confect/workflows/_kit/subworkflows";
 import {
+  defineWorkflowV2Subworkflow,
   defineWorkflowV2SubworkflowRegistry as defineCurrentWorkflowV2SubworkflowRegistry,
   validateWorkflowV2SubworkflowTopology,
   type WorkflowV2BoundedBatchBinding,
@@ -836,7 +836,10 @@ describe("Maestro V2 inline transaction compiler", () => {
         ...v2Input(graph),
         convexVersion: "1.40.9",
         capabilityRegistry: registry,
-        admitEffect: async () => ({ kind: "deny", reason: "not used" }),
+        admitEffect: async () => ({
+          kind: "deny" as const,
+          reason: "not used",
+        }),
       }),
     ).rejects.toThrow("pinned Convex");
     await expect(
@@ -3279,6 +3282,9 @@ const childWorkflowRef = Schema.decodeSync(WorkflowReference)(
 const nestedWorkflowRef = Schema.decodeSync(WorkflowReference)(
   "workflow.nestedReceipt.v4",
 );
+const leafWorkflowRef = Schema.decodeSync(WorkflowReference)(
+  "workflow.leafReceipt.v5",
+);
 type ChildArgs = {
   readonly requestId: string;
   readonly workspaceId: string;
@@ -3326,6 +3332,8 @@ const childPolicySnapshot = {
 } as const satisfies WorkflowPolicySnapshot;
 const childLinkReserveRef =
   "workflows.subworkflowLinks.reserve" as unknown as DurableGraphStepRef<"mutation">;
+const childLinkRecoverRef =
+  "workflows.subworkflowLinks.recoverReservation" as unknown as DurableGraphStepRef<"query">;
 const childLinkReconcileRef =
   "workflows.subworkflowLinks.reconcile" as unknown as DurableGraphStepRef<"mutation">;
 const childLinkReportRef =
@@ -3548,6 +3556,7 @@ const childWorkflowDefinition = (
     },
     links: {
       reserveRef: childLinkReserveRef,
+      recoverReservationRef: childLinkRecoverRef,
       reconcileRef: childLinkReconcileRef,
       reportReconciliationFailureRef: childLinkReportRef,
     },
@@ -4571,30 +4580,39 @@ describe("bounded subworkflow batch runtime", () => {
     },
   );
 
-  it("charges immutable nested batch multiplicity despite serial fan-out", async () => {
+  it("charges recursive 3x3 child-start products against a budget of seven", async () => {
     const runWorkflow = vi.fn(async () => ({ receiptId: "unreachable" }));
     const rootEntry = {
       ...registryEntry(["a"]),
       children: [nestedWorkflowRef],
       childStartMultiplicities: [
-        { workflow: nestedWorkflowRef, maxChildStarts: 8192 },
+        { workflow: nestedWorkflowRef, maxChildStarts: 3 },
       ],
     };
     const nestedEntry = {
       ...childWorkflowEntry,
       version: 4,
+      children: [leafWorkflowRef],
+      childStartMultiplicities: [
+        { workflow: leafWorkflowRef, maxChildStarts: 3 },
+      ],
+    };
+    const leafEntry = {
+      ...childWorkflowEntry,
+      version: 5,
       children: [],
       childStartMultiplicities: [],
     };
     await expect(
       runDurableGraphWorkflowV2(v2Step({ runWorkflow }), {
-        ...v2Input(v2BoundedBatchGraph({ fanOut: 1 })),
+        ...v2Input(v2SubworkflowGraph()),
         principal: childPrincipal,
         workflowRegistry: {
           [childWorkflowRef]: rootEntry,
           [nestedWorkflowRef]: nestedEntry,
+          [leafWorkflowRef]: leafEntry,
         },
-        subworkflowPolicy: { maxDepth: 4, maxFanOut: 8 },
+        subworkflowPolicy: { maxDepth: 4, maxFanOut: 7 },
         capabilityRegistry: {},
         admitEffect: async () => ({ kind: "deny", reason: "not used" }),
       }),
@@ -4602,35 +4620,44 @@ describe("bounded subworkflow batch runtime", () => {
     expect(runWorkflow).not.toHaveBeenCalled();
   });
 
-  it("recovers and reconciles a malformed post-reserve response", async () => {
+  it("recovers repeated malformed reserve responses without leaking or duplicating", async () => {
     let reserveCalls = 0;
     const outcomes: unknown[] = [];
     const runWorkflow = vi.fn(async () => ({ receiptId: "unreachable" }));
     const runMutation = vi.fn(async (ref, args: Record<string, unknown>) => {
       if (ref === childLinkReserveRef) {
         reserveCalls += 1;
-        return reserveCalls === 1
-          ? { malformed: true }
-          : { linkId: "link-recovered", childWorkflowRunId: "run-recovered" };
+        return { malformed: true };
       }
       if (ref === childLinkReconcileRef) outcomes.push(args.outcome);
       return null;
     });
-    await expect(
-      runDurableGraphWorkflowV2(v2Step({ runWorkflow, runMutation }), {
-        ...v2Input(
-          v2BoundedBatchGraph({ maxItems: 1, batchSize: 1, fanOut: 1 }),
-        ),
-        principal: childPrincipal,
-        workflowRegistry: { [childWorkflowRef]: registryEntry(["a"]) },
-        capabilityRegistry: {},
-        admitEffect: async () => ({ kind: "deny", reason: "not used" }),
-      }),
-    ).rejects.toThrow(
-      /link reservation returned invalid product run identities/,
+    const runQuery = vi.fn(async (ref) =>
+      ref === childLinkRecoverRef
+        ? { linkId: "link-recovered", childWorkflowRunId: "run-recovered" }
+        : undefined,
     );
+    const input = {
+      ...v2Input(v2BoundedBatchGraph({ maxItems: 1, batchSize: 1, fanOut: 1 })),
+      principal: childPrincipal,
+      workflowRegistry: { [childWorkflowRef]: registryEntry(["a"]) },
+      capabilityRegistry: {},
+      admitEffect: async () => ({ kind: "deny" as const, reason: "not used" }),
+    };
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      await expect(
+        runDurableGraphWorkflowV2(
+          v2Step({ runWorkflow, runMutation, runQuery }),
+          input,
+        ),
+      ).rejects.toThrow(
+        /link reservation returned invalid product run identities/,
+      );
+    }
     expect(reserveCalls).toBe(2);
+    expect(runQuery).toHaveBeenCalledTimes(2);
     expect(outcomes).toEqual([
+      { kind: "failed", error: "Child workflow failed." },
       { kind: "failed", error: "Child workflow failed." },
     ]);
     expect(runWorkflow).not.toHaveBeenCalled();
@@ -4670,6 +4697,40 @@ describe("bounded subworkflow batch runtime", () => {
         issue: "SUBWORKFLOW_SUCCESS_RECONCILIATION_FAILED",
       }),
     ]);
+  });
+
+  it("surfaces dual reconciliation failure and deterministically reattempts its report", async () => {
+    let reportAttempts = 0;
+    const runMutation = vi.fn(async (ref) => {
+      if (ref === childLinkReserveRef) {
+        return { linkId: "link-dual", childWorkflowRunId: "run-dual" };
+      }
+      if (ref === childLinkReconcileRef)
+        throw new Error("reconcile unavailable");
+      if (ref === childLinkReportRef) {
+        reportAttempts += 1;
+        if (reportAttempts === 1) throw new Error("report unavailable");
+      }
+      return null;
+    });
+    const input = {
+      ...v2Input(v2BoundedBatchGraph({ maxItems: 1, batchSize: 1, fanOut: 1 })),
+      principal: childPrincipal,
+      workflowRegistry: { [childWorkflowRef]: registryEntry(["a"]) },
+      capabilityRegistry: {},
+      admitEffect: async () => ({ kind: "deny" as const, reason: "not used" }),
+    };
+    const step = v2Step({
+      runMutation,
+      runWorkflow: async () => ({ receiptId: "receipt-a" }),
+    });
+    await expect(runDurableGraphWorkflowV2(step, input)).rejects.toThrow(
+      /durable failure report remain unresolved/,
+    );
+    await expect(runDurableGraphWorkflowV2(step, input)).rejects.toThrow(
+      /durable link reconciliation failed/,
+    );
+    expect(reportAttempts).toBe(2);
   });
 
   it.each([
