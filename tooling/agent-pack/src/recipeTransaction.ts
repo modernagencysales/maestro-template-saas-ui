@@ -59,6 +59,7 @@ type UnsignedJournal = {
   readonly preflightFingerprint: string;
   readonly answersSha256: string;
   readonly operations: readonly JournalOperation[];
+  readonly allowedCleanupDirectories: readonly string[];
   readonly createdDirectories: readonly string[];
   readonly error?: string;
 };
@@ -70,6 +71,7 @@ type CrashPoint =
 type TransactionOptions = {
   readonly failAfterOperation?: number;
   readonly crashAt?: CrashPoint;
+  readonly crashAtOperation?: number;
 };
 type RecoveryResult =
   | { readonly ok: true; readonly recoveredAttempts: number }
@@ -184,6 +186,14 @@ function applyRecipeTransaction(
     fsyncDirectory(transactionRoot);
     const journalPath = join(transactionRoot, "transaction.json");
     const receiptPath = join(transactionRoot, "receipt.json");
+    const allowedCleanupDirectories = canonicalCleanupDirectories(
+      request.plan.operations,
+    );
+    const createdCleanupDirectories = prepareCleanupDirectoryWitnesses(
+      authority.targetRoot,
+      transactionRoot,
+      allowedCleanupDirectories,
+    );
     const operations: JournalOperation[] = [];
     for (const operation of request.plan.operations) {
       const target = validateOperationTarget(
@@ -216,7 +226,8 @@ function applyRecipeTransaction(
       preflightFingerprint: request.preflightFingerprint,
       answersSha256: request.answersSha256,
       operations,
-      createdDirectories: canonicalCleanupDirectories(request.plan.operations),
+      allowedCleanupDirectories,
+      createdDirectories: createdCleanupDirectories,
     });
     durableJson(journalPath, journal);
     journal = transition(journalPath, journal, { status: "applying" });
@@ -248,7 +259,7 @@ function applyRecipeTransaction(
           renameSync(target, backup);
           fsyncDirectory(dirname(target));
           fsyncDirectory(dirname(backup));
-          crash(options, "after-backup-rename-before-journal");
+          crash(options, "after-backup-rename-before-journal", index + 1);
           journal = transitionOperation(
             journalPath,
             journal,
@@ -270,9 +281,9 @@ function applyRecipeTransaction(
         renameSync(staged, target);
         fsyncDirectory(dirname(staged));
         fsyncDirectory(dirname(target));
-        crash(options, "after-install-rename-before-journal");
+        crash(options, "after-install-rename-before-journal", index + 1);
         journal = transitionOperation(journalPath, journal, index, "installed");
-        crash(options, "after-installed-journal");
+        crash(options, "after-installed-journal", index + 1);
         if (options?.failAfterOperation === index + 1)
           throw new Error(
             `Injected recipe transaction failure after operation ${index + 1}.`,
@@ -518,18 +529,38 @@ function validateJournalAuthority(
     validateOperationTarget(authority.targetRoot, actual.stagePath);
     validateOperationTarget(authority.targetRoot, actual.backupPath);
   }
-  for (const path of journal.createdDirectories)
-    validateDirectoryPath(authority.targetRoot, path);
-  const expectedCleanupDirectories = canonicalCleanupDirectories(
+  const expectedAllowedDirectories = canonicalCleanupDirectories(
     request.plan.operations,
   );
   if (
-    JSON.stringify(journal.createdDirectories) !==
-    JSON.stringify(expectedCleanupDirectories)
+    JSON.stringify(journal.allowedCleanupDirectories) !==
+    JSON.stringify(expectedAllowedDirectories)
   )
     throw new Error(
-      "Recipe transaction journal cleanup directory authority does not match the reviewed plan.",
+      "Recipe transaction journal cleanup allowlist does not match the reviewed plan.",
     );
+  const claimed = new Set(journal.createdDirectories);
+  const canonicalClaim = expectedAllowedDirectories.filter((path) =>
+    claimed.has(path),
+  );
+  if (
+    claimed.size !== journal.createdDirectories.length ||
+    JSON.stringify(journal.createdDirectories) !==
+      JSON.stringify(canonicalClaim)
+  )
+    throw new Error(
+      "Recipe transaction journal cleanup directory authority is not a canonical reviewed subset.",
+    );
+  const witnessed = readCleanupDirectoryWitnesses(
+    transactionRoot,
+    expectedAllowedDirectories,
+  );
+  if (JSON.stringify(journal.createdDirectories) !== JSON.stringify(witnessed))
+    throw new Error(
+      "Recipe transaction journal cleanup directory authority does not match attempt evidence.",
+    );
+  for (const path of journal.createdDirectories)
+    validateDirectoryPath(authority.targetRoot, path);
 }
 
 function readAuthenticatedJournal(path: string): Journal {
@@ -587,6 +618,10 @@ function isJournal(value: unknown): value is Journal {
     ) &&
     Array.isArray(journal.createdDirectories) &&
     journal.createdDirectories.every((path) => typeof path === "string") &&
+    Array.isArray(journal.allowedCleanupDirectories) &&
+    journal.allowedCleanupDirectories.every(
+      (path) => typeof path === "string",
+    ) &&
     typeof journal.journalDigest === "string"
   );
 }
@@ -637,6 +672,64 @@ function canonicalCleanupDirectories(
   });
 }
 
+function prepareCleanupDirectoryWitnesses(
+  targetRoot: string,
+  transactionRoot: string,
+  allowedDirectories: readonly string[],
+): readonly string[] {
+  const witnessRoot = join(transactionRoot, "cleanup-witnesses");
+  mkdirSync(witnessRoot);
+  fsyncDirectory(transactionRoot);
+  const created: string[] = [];
+  for (const path of allowedDirectories) {
+    const target = containedPath(targetRoot, path);
+    const stats = lstatIfExists(target);
+    if (stats !== null) {
+      validateDirectoryPath(targetRoot, path);
+      continue;
+    }
+    durableFile(
+      join(witnessRoot, `${sha256RecipeBytes(path)}.json`),
+      `${JSON.stringify({ path })}\n`,
+    );
+    created.push(path);
+  }
+  return created;
+}
+
+function readCleanupDirectoryWitnesses(
+  transactionRoot: string,
+  allowedDirectories: readonly string[],
+): readonly string[] {
+  const witnessRoot = join(transactionRoot, "cleanup-witnesses");
+  assertDirectory(witnessRoot, "Recipe cleanup witness root");
+  const witnessed = new Set<string>();
+  for (const entry of readdirSync(witnessRoot, { withFileTypes: true })) {
+    if (!entry.isFile() || entry.isSymbolicLink())
+      throw new Error("Recipe cleanup witness is not a regular file.");
+    const witnessPath = join(witnessRoot, entry.name);
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(readRegularFile(witnessPath).toString("utf8"));
+    } catch {
+      throw new Error("Recipe cleanup witness is invalid.");
+    }
+    if (
+      typeof parsed !== "object" ||
+      parsed === null ||
+      Object.keys(parsed).length !== 1 ||
+      !("path" in parsed) ||
+      typeof parsed.path !== "string" ||
+      entry.name !== `${sha256RecipeBytes(parsed.path)}.json` ||
+      !allowedDirectories.includes(parsed.path) ||
+      witnessed.has(parsed.path)
+    )
+      throw new Error("Recipe cleanup witness authority is invalid.");
+    witnessed.add(parsed.path);
+  }
+  return allowedDirectories.filter((path) => witnessed.has(path));
+}
+
 function unsignedJournal(journal: Journal): UnsignedJournal {
   return {
     schemaVersion: journal.schemaVersion,
@@ -650,6 +743,7 @@ function unsignedJournal(journal: Journal): UnsignedJournal {
     preflightFingerprint: journal.preflightFingerprint,
     answersSha256: journal.answersSha256,
     operations: journal.operations,
+    allowedCleanupDirectories: journal.allowedCleanupDirectories,
     createdDirectories: journal.createdDirectories,
     ...(journal.error === undefined ? {} : { error: journal.error }),
   };
@@ -658,8 +752,12 @@ function unsignedJournal(journal: Journal): UnsignedJournal {
 function crash(
   options: TransactionOptions | undefined,
   point: CrashPoint,
+  operation: number,
 ): void {
-  if (options?.crashAt === point)
+  if (
+    options?.crashAt === point &&
+    (options.crashAtOperation ?? 1) === operation
+  )
     throw new SimulatedProcessCrash(`Injected process crash: ${point}.`);
 }
 function planTransactionRoot(targetRoot: string, fingerprint: string): string {

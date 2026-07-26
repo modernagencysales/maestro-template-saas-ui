@@ -56,6 +56,15 @@ const fixture = () => {
         beforeSha256: null,
         generatorStepId: "durable-table",
       },
+      {
+        path: "reports/request.ts",
+        content: "export const requestReport = true;\n",
+        contentSha256: sha256RecipeBytes(
+          "export const requestReport = true;\n",
+        ),
+        beforeSha256: null,
+        generatorStepId: "durable-table",
+      },
     ],
     collisions: [],
     provenancePaths: ["feature/request.ts"],
@@ -132,6 +141,35 @@ describe("atomic recipe transaction", () => {
     expect(() =>
       readFileSync(join(value.root, "feature/request.ts")),
     ).toThrow();
+  });
+
+  it("preserves a pre-existing empty operation parent through rollback and recovery", async () => {
+    const rolledBack = fixture();
+    mkdirSync(join(rolledBack.root, "feature"));
+    await expect(
+      createNodeRecipeTransaction({ failAfterOperation: 2 }).apply(
+        rolledBack.request,
+      ),
+    ).resolves.toMatchObject({ ok: false });
+    expect(readdirSync(join(rolledBack.root, "feature"))).toEqual([]);
+    expect(
+      readFileSync(join(rolledBack.root, "catalog/data.json"), "utf8"),
+    ).toBe("old\n");
+
+    const recovered = fixture();
+    mkdirSync(join(recovered.root, "feature"));
+    await createNodeRecipeTransaction({
+      crashAt: "after-install-rename-before-journal",
+      crashAtOperation: 2,
+    }).apply(recovered.request);
+    expect(recoverRecipeTransaction(recovered.request)).toMatchObject({
+      ok: true,
+      recoveredAttempts: 1,
+    });
+    expect(readdirSync(join(recovered.root, "feature"))).toEqual([]);
+    expect(
+      readFileSync(join(recovered.root, "catalog/data.json"), "utf8"),
+    ).toBe("old\n");
   });
 
   it.each([
