@@ -248,7 +248,7 @@ describe("forward aggregate", () => {
     const out = await mkdtemp(join(tmpdir(), "forward-aggregate-"));
     await runAggregateFixtures(out);
     await expect(
-      aggregateForwardRuns({
+      aggregateForwardFixture({
         out,
         runIds: ["claude-1", "claude-2", "codex-1", "codex-2"],
         candidateSha,
@@ -277,7 +277,7 @@ describe("forward aggregate", () => {
       JSON.stringify({ ...driftReceipt, evidence: driftEvidence }),
     );
     await expect(
-      aggregateForwardRuns({
+      aggregateForwardFixture({
         out,
         runIds: ["claude-1", "claude-2", "codex-1", "codex-2"],
         candidateSha,
@@ -312,7 +312,7 @@ describe("forward aggregate", () => {
       JSON.stringify({ ...receipt, evidence: mutate(receipt) }),
     );
     await expect(
-      aggregateForwardRuns({
+      aggregateForwardFixture({
         out,
         runIds: ["claude-1", "claude-2", "codex-1", "codex-2"],
         candidateSha,
@@ -331,7 +331,7 @@ describe("forward aggregate", () => {
       JSON.stringify({ ...receipt, candidateSha: "c".repeat(40) }),
     );
     await expect(
-      aggregateForwardRuns({
+      aggregateForwardFixture({
         out,
         runIds: ["claude-1", "claude-2", "codex-1", "codex-2"],
         candidateSha,
@@ -350,7 +350,7 @@ describe("forward aggregate", () => {
       JSON.stringify({ ...receipt, runId: "codex-copied" }),
     );
     await expect(
-      aggregateForwardRuns({
+      aggregateForwardFixture({
         out,
         runIds: ["claude-1", "claude-2", "codex-1", "codex-2"],
         candidateSha,
@@ -366,7 +366,7 @@ describe("forward aggregate", () => {
       await runAggregateFixtures(out);
       await forgeRetainedInput(out, kind);
       await expect(
-        aggregateForwardRuns({
+        aggregateForwardFixture({
           out,
           runIds: ["claude-1", "claude-2", "codex-1", "codex-2"],
           candidateSha,
@@ -375,6 +375,22 @@ describe("forward aggregate", () => {
       ).rejects.toMatchObject({ code: "EVAL_SUITE_DIVERGED" });
     },
   );
+
+  it("rejects coordinated command-output forgery in every run", async () => {
+    const out = await mkdtemp(join(tmpdir(), "forward-forged-command-all-"));
+    await runAggregateFixtures(out);
+    for (const runId of ["claude-1", "claude-2", "codex-1", "codex-2"]) {
+      await forgeRetainedInput(out, "command-output", runId);
+    }
+    await expect(
+      aggregateForwardFixture({
+        out,
+        runIds: ["claude-1", "claude-2", "codex-1", "codex-2"],
+        candidateSha,
+        suiteRunId: "suite-forged-command-all",
+      }),
+    ).rejects.toMatchObject({ code: "EVAL_SUITE_DIVERGED" });
+  });
 });
 
 type ReceiptFixture = {
@@ -524,11 +540,20 @@ async function runAggregateFixtures(out: string): Promise<void> {
   }
 }
 
+function aggregateForwardFixture(
+  input: Omit<Parameters<typeof aggregateForwardRuns>[0], "sourceRoot">,
+) {
+  return aggregateForwardRuns(
+    { ...input, sourceRoot: input.out },
+    fixtureAggregatePorts,
+  );
+}
+
 async function forgeRetainedInput(
   out: string,
   kind: "artifact" | "referenced-file" | "command-output",
+  runId = "codex-2",
 ): Promise<void> {
-  const runId = "codex-2";
   const scenarioId = forwardScenarioIds[0];
   if (!scenarioId) throw new Error("fixture scenario is required");
   const scenarioRoot = join(out, runId, "scenarios", scenarioId);
@@ -568,6 +593,7 @@ async function forgeRetainedInput(
   }
   const receiptPath = join(out, runId, "receipt.json");
   const receipt = JSON.parse(await readFile(receiptPath, "utf8")) as {
+    host: ForwardHost;
     evidence: ForwardRunEvidence[];
     verdicts: ReturnType<typeof gradeForwardEvidence>[];
   };
@@ -598,7 +624,7 @@ async function forgeRetainedInput(
   const contract = forwardScenarioContracts[scenarioId];
   const prompt = buildForwardPrompt({
     candidateSha,
-    host: "codex",
+    host: receipt.host,
     runId,
     scenarioId,
     resultPath: ".maestro-eval/forward-result.json",
@@ -608,12 +634,12 @@ async function forgeRetainedInput(
   const forgedVerdict = gradeForwardEvidence({
     evidence: changedEvidence,
     candidateSha,
-    host: "codex",
+    host: receipt.host,
     runId,
     scenarioId,
     initialContextSha256: forwardInitialContextSha256({
       candidateSha,
-      host: "codex",
+      host: receipt.host,
       scenarioId,
     }),
     userPromptSha256: sha256(prompt),
@@ -631,6 +657,12 @@ async function forgeRetainedInput(
 const fixtureCommandResult = { exitCode: 0, stdout: "verified", stderr: "" };
 const fixtureVerifierPorts = {
   execute: async () => fixtureCommandResult,
+};
+const fixtureAggregatePorts = {
+  prepareWorkspace: async ({ workspace }: { readonly workspace: string }) => {
+    await mkdir(workspace, { recursive: true });
+  },
+  verifierPorts: fixtureVerifierPorts,
 };
 
 function fixtureHashes(

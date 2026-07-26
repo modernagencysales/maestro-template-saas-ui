@@ -45,6 +45,7 @@ type ForwardRunCliOptions = {
 type ForwardAggregateOptions = {
   readonly mode: "forward-aggregate";
   readonly out: string;
+  readonly sourceRoot: string;
   readonly candidateSha: string;
   readonly runIds: readonly string[];
   readonly suiteRunId: string;
@@ -93,6 +94,7 @@ export function parseCliOptions(
       return {
         mode: "forward-aggregate",
         out,
+        sourceRoot,
         candidateSha,
         runIds: required(values, "--run-ids").split(",").filter(Boolean),
         suiteRunId:

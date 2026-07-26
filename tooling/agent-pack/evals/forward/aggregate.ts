@@ -1,5 +1,6 @@
-import { readFile, writeFile } from "node:fs/promises";
+import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
+import type { AssertionFailure } from "../assertions/forbiddenActions.js";
 import { assertForwardParity } from "../assertions/parity.js";
 import {
   parseForwardRunEvidence,
@@ -7,6 +8,7 @@ import {
 } from "../scenarios/evidence.js";
 import { forwardScenarioIds } from "../scenarios/forward.js";
 import { EvaluationError } from "../walking-skeleton/contract.js";
+import { cloneCandidate } from "../walking-skeleton/runner.js";
 import {
   buildForwardPrompt,
   forwardInitialContextSha256,
@@ -14,7 +16,11 @@ import {
   sha256,
 } from "./contract.js";
 import type { ForwardRunReceipt } from "./runner.js";
-import { forwardScenarioContracts, verifyForwardScenario } from "./verifier.js";
+import {
+  forwardScenarioContracts,
+  verifyForwardScenario,
+  type ForwardVerifierPorts,
+} from "./verifier.js";
 
 export type ForwardSuiteVerdict = {
   readonly schemaVersion: 1;
@@ -25,12 +31,16 @@ export type ForwardSuiteVerdict = {
   readonly scenarioIds: readonly string[];
 };
 
-export async function aggregateForwardRuns(input: {
-  readonly out: string;
-  readonly runIds: readonly string[];
-  readonly candidateSha: string;
-  readonly suiteRunId: string;
-}): Promise<ForwardSuiteVerdict> {
+export async function aggregateForwardRuns(
+  input: {
+    readonly out: string;
+    readonly sourceRoot: string;
+    readonly runIds: readonly string[];
+    readonly candidateSha: string;
+    readonly suiteRunId: string;
+  },
+  overrides: Partial<ForwardAggregatePorts> = {},
+): Promise<ForwardSuiteVerdict> {
   if (input.runIds.length !== 4 || new Set(input.runIds).size !== 4) {
     throw new EvaluationError(
       "EVAL_SUITE_INCOMPLETE",
@@ -81,7 +91,12 @@ export async function aggregateForwardRuns(input: {
     for (const receipt of receipts) {
       retainedFailures.set(
         receipt.runId,
-        await verifyRetainedEvidence(resolve(input.out), receipt),
+        await verifyRetainedEvidence(
+          resolve(input.out),
+          resolve(input.sourceRoot),
+          receipt,
+          overrides,
+        ),
       );
     }
   } catch {
@@ -153,67 +168,103 @@ export async function aggregateForwardRuns(input: {
   return verdict;
 }
 
+export type ForwardAggregatePorts = {
+  readonly prepareWorkspace: typeof cloneCandidate;
+  readonly verifierPorts: Partial<ForwardVerifierPorts>;
+};
+
 async function verifyRetainedEvidence(
   out: string,
+  sourceRoot: string,
   receipt: ForwardRunReceipt,
+  overrides: Partial<ForwardAggregatePorts>,
 ): Promise<
-  ReadonlyMap<
-    ForwardRunEvidence["scenarioId"],
-    readonly {
-      readonly code: string;
-      readonly path: string;
-      readonly message: string;
-    }[]
-  >
+  ReadonlyMap<ForwardRunEvidence["scenarioId"], readonly AssertionFailure[]>
 > {
   const failures = new Map<
     ForwardRunEvidence["scenarioId"],
-    readonly {
-      readonly code: string;
-      readonly path: string;
-      readonly message: string;
-    }[]
+    readonly AssertionFailure[]
   >();
-  for (const evidence of receipt.evidence) {
-    const scenarioRoot = join(
-      out,
-      receipt.runId,
-      "scenarios",
-      evidence.scenarioId,
-    );
-    const commandResult = JSON.parse(
-      await readFile(join(scenarioRoot, "command-result.json"), "utf8"),
-    ) as unknown;
-    if (
-      typeof commandResult !== "object" ||
-      commandResult === null ||
-      Array.isArray(commandResult) ||
-      JSON.stringify(Object.keys(commandResult).sort()) !==
-        JSON.stringify(["exitCode", "stderr", "stdout"]) ||
-      !Number.isInteger((commandResult as { exitCode?: unknown }).exitCode) ||
-      typeof (commandResult as { stdout?: unknown }).stdout !== "string" ||
-      typeof (commandResult as { stderr?: unknown }).stderr !== "string"
-    ) {
-      throw new Error("retained command result is invalid");
+  const verificationRoot = await mkdtemp(join(out, ".forward-aggregate-"));
+  const sessionDir = join(verificationRoot, "session");
+  await mkdir(sessionDir);
+  try {
+    for (const evidence of receipt.evidence) {
+      const scenarioRoot = join(
+        out,
+        receipt.runId,
+        "scenarios",
+        evidence.scenarioId,
+      );
+      const commandResult = parseRetainedCommandResult(
+        JSON.parse(
+          await readFile(join(scenarioRoot, "command-result.json"), "utf8"),
+        ),
+      );
+      const workspace = join(verificationRoot, evidence.scenarioId);
+      const prepareWorkspace = overrides.prepareWorkspace ?? cloneCandidate;
+      await prepareWorkspace({
+        sourceRoot,
+        candidateSha: receipt.candidateSha,
+        workspace,
+        sessionDir,
+      });
+      await cp(join(scenarioRoot, "retained-verifier-inputs"), workspace, {
+        recursive: true,
+        force: true,
+      });
+      const result = await verifyForwardScenario({
+        workspace,
+        sessionDir,
+        candidateSha: receipt.candidateSha,
+        scenarioId: evidence.scenarioId,
+        evidence,
+        ...(overrides.verifierPorts ? { ports: overrides.verifierPorts } : {}),
+      });
+      const scenarioFailures = [...result.failures];
+      if (
+        !result.commandResult ||
+        result.commandResult.exitCode !== commandResult.exitCode ||
+        result.commandResult.stdout !== commandResult.stdout ||
+        result.commandResult.stderr !== commandResult.stderr
+      ) {
+        scenarioFailures.push({
+          code: "COMMAND_RESULT_RETENTION_MISMATCH",
+          path: "commands.0",
+          message:
+            "Retained command output does not match the independent aggregate rerun.",
+        });
+      }
+      failures.set(evidence.scenarioId, scenarioFailures);
     }
-    const result = await verifyForwardScenario({
-      workspace: join(scenarioRoot, "retained-verifier-inputs"),
-      sessionDir: scenarioRoot,
-      candidateSha: receipt.candidateSha,
-      scenarioId: evidence.scenarioId,
-      evidence,
-      ports: {
-        execute: async () =>
-          commandResult as {
-            readonly exitCode: number;
-            readonly stdout: string;
-            readonly stderr: string;
-          },
-      },
-    });
-    failures.set(evidence.scenarioId, result.failures);
+  } finally {
+    await rm(verificationRoot, { recursive: true, force: true });
   }
   return failures;
+}
+
+function parseRetainedCommandResult(value: unknown): {
+  readonly exitCode: number;
+  readonly stdout: string;
+  readonly stderr: string;
+} {
+  if (
+    typeof value !== "object" ||
+    value === null ||
+    Array.isArray(value) ||
+    JSON.stringify(Object.keys(value).sort()) !==
+      JSON.stringify(["exitCode", "stderr", "stdout"]) ||
+    !Number.isInteger((value as { exitCode?: unknown }).exitCode) ||
+    typeof (value as { stdout?: unknown }).stdout !== "string" ||
+    typeof (value as { stderr?: unknown }).stderr !== "string"
+  ) {
+    throw new Error("retained command result is invalid");
+  }
+  return value as {
+    readonly exitCode: number;
+    readonly stdout: string;
+    readonly stderr: string;
+  };
 }
 
 function parseReceipt(
