@@ -49,6 +49,7 @@ const FACTORY_ONLY_EXACT = new Set([
   "docs/template/porting-backlog.md",
   "docs/template/porting-roadmap.md",
   "docs/template/post-port-backlog.md",
+  "tooling/app-map/INTEGRATION_REQUEST.md",
 ]);
 
 const FACTORY_ONLY_NESTED_PREFIXES = ["docs/template/extraction/"] as const;
@@ -80,6 +81,7 @@ const TEMPLATE_PREFIXES = [
   "scripts/",
   "tests/",
   "tooling/agent-pack/",
+  "tooling/app-map/",
   "tooling/confect-manifest/",
   "tooling/convex-compat/",
   "tooling/effectified-api-proof/",

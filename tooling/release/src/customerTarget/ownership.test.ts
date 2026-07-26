@@ -44,6 +44,8 @@ describe("customer ownership inventory", () => {
     ["apps/web/src/routes/index.tsx", "template-owned", "copy"],
     ["tooling/generators/src/index.ts", "template-owned", "copy"],
     ["tooling/quality/check-generated-files.mts", "template-owned", "copy"],
+    ["tooling/app-map/src/build.ts", "template-owned", "copy"],
+    ["tooling/app-map/INTEGRATION_REQUEST.md", "factory-only", "omit"],
     ["docs/agent/host-projection-lifecycle.md", "template-owned", "copy"],
     ["docs/template/quickstart.md", "template-owned", "copy"],
     ["examples/generic-ai-ops/seed/workspace.json", "template-owned", "copy"],
