@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "kind": "reviewed-upgrade-impact-coverage",
   "baseRevision": "517b5bc28d1d633bef18f57610cff49800123788",
-  "subjectRevision": "c3033b1549d8a81f56ffb3ea98ac232d93ba2b56",
+  "subjectRevision": "d6bf6a2f4f09f4c929f6fefab668b4f863a4c467",
   "structuralPaths": [
     "docs/template/data-resources.json",
     "docs/template/generated/provenance/add-table/workflowArtifacts.json",
@@ -83,6 +83,7 @@
     "docs/template/system-catalog.md",
     "docs/template/system-decisions/deployment-authority.md",
     "docs/template/template-release-process.md",
+    "docs/template/type-coverage-ratchet.md",
     "docs/template/verification-receipts.md",
     "docs/template/workflow-authoring-guide.md",
     "docs/template/workflow-versioning.md",
@@ -494,12 +495,13 @@
     "tooling/quality/src/diagnosticRegistry.mts",
     "tooling/quality/src/diagnosticRegistry.test.mts",
     "tooling/quality/src/gate.mts",
+    "tsconfig.type-coverage.json",
     "vitest.config.ts"
   ],
   "impact": {
     "schemaVersion": 1,
     "baseRevision": "517b5bc28d1d633bef18f57610cff49800123788",
-    "subjectRevision": "c3033b1549d8a81f56ffb3ea98ac232d93ba2b56",
+    "subjectRevision": "d6bf6a2f4f09f4c929f6fefab668b4f863a4c467",
     "complete": true,
     "risk": "high",
     "changedPaths": [

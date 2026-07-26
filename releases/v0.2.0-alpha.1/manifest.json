@@ -9,8 +9,8 @@
   "release": {
     "version": "0.2.0-alpha.1",
     "tag": "maestro-template-v0.2.0-alpha.1",
-    "sourceCommit": "c3033b1549d8a81f56ffb3ea98ac232d93ba2b56",
-    "sourceChecksum": "sha256:c7a41267b31470d0466d85cc5477381e62569d6341cb7d36fec3d59ec945050f"
+    "sourceCommit": "d6bf6a2f4f09f4c929f6fefab668b4f863a4c467",
+    "sourceChecksum": "sha256:ee2bd59cbe0121616853e3577294b3e816079aa18305c6b1beb85c0bb14a539a"
   },
   "upgrade": {
     "schemaVersion": 1,
@@ -558,6 +558,14 @@
         "ownership": "template-owned",
         "beforeHash": "sha256:3a0e7ff0d36c5079a776582bf2f1bde4aae2a0080d4f373b32d439a8c6c953d0",
         "afterHash": "sha256:7b12b7f6d4a5f9369f194fcd7a9bc0e118236854d6e5f02b56b725c65ec04b85"
+      },
+      {
+        "id": "upgrade-modify-docs-template-type-coverage-ratchet-md",
+        "kind": "modify",
+        "path": "docs/template/type-coverage-ratchet.md",
+        "ownership": "template-owned",
+        "beforeHash": "sha256:c7577a2825fc05df616b6f51a970af720fc30fac1c407b72a4c5550fb16a4716",
+        "afterHash": "sha256:cf0b1924b15021bcf47ce4aa98c5b8084848bf45079f1d9b09703454fcfe5492"
       },
       {
         "id": "upgrade-modify-docs-template-verification-receipts-md",
@@ -3494,7 +3502,7 @@
         "path": "tooling/quality/check-types-coverage.test.mts",
         "ownership": "template-owned",
         "beforeHash": "sha256:cb071766d75c5b8969ed2d530a0b90046e00bdbd1f53e2ed2698267e19f38758",
-        "afterHash": "sha256:895e2b71e3037a7cbc7f544a1dc79d8d6dcadbe47b8c9aff031d69711381d2cb"
+        "afterHash": "sha256:8f1d88580933e4644cda9cc4f1770b0142a41d65699b19568699912badd561b6"
       },
       {
         "id": "upgrade-add-tooling-quality-check-workflow-policy-snapshots-mts",
@@ -3545,7 +3553,7 @@
         "path": "tooling/quality/src/check-definitions.mts",
         "ownership": "template-owned",
         "beforeHash": "sha256:9e119988135f4b297c528e987a4377f71faffe3830f395a407428e6da8a7963a",
-        "afterHash": "sha256:8560e1b42437b1ca0cb6d13da7aec3011810072622d2a0a57f2ba0038b428e22"
+        "afterHash": "sha256:6c47ef6f46e40f5cd0377633250a78619d097c296b2e09bd3682058fb53ccac6"
       },
       {
         "id": "upgrade-modify-tooling-quality-src-diagnosticRegistry-mts",
@@ -3570,6 +3578,14 @@
         "ownership": "template-owned",
         "beforeHash": "sha256:2719e6baa3eb945f90b1c023e427547bca00274873df884519433eeeb34de948",
         "afterHash": "sha256:819fb85fb7bdd424b80b243211bfd2e699caeafea5479aeddc4322d37a9cde39"
+      },
+      {
+        "id": "upgrade-modify-tsconfig-type-coverage-json",
+        "kind": "modify",
+        "path": "tsconfig.type-coverage.json",
+        "ownership": "template-owned",
+        "beforeHash": "sha256:8572c306a99981fb3117ecf03b84d98a7760c4dcb499118b0e46de8276a670da",
+        "afterHash": "sha256:91ec0db24aea7ec1d627d358d648da82e148c0a97facb6164aca03d99d279af4"
       },
       {
         "id": "upgrade-modify-vitest-config-ts",
@@ -3902,14 +3918,14 @@
   ],
   "blueprintManifest": {
     "path": "blueprints/saas-application.json",
-    "sha256": "sha256:b9243729e7db0de774f2a93cb19cdc6341265ba72219680fead9a72a49be6518"
+    "sha256": "sha256:6550f79c5cb4a6447822b0cab9e5a308ed99e95502af430c84b2e5d8dd5ffbb4"
   },
   "upgradeImpact": {
     "path": "releases/v0.2.0-alpha.1/upgrade/app-map-input.json",
-    "sha256": "sha256:0077c55ac8b1b75f076cef9cff86c5517a0ec1accb1f7d4f81cc22a0bc872dc3",
+    "sha256": "sha256:dafb510398eb34454dbfaadfef0228dfb2d5e7a2a390e024c6812f977f79c397",
     "projection": {
       "path": "releases/v0.2.0-alpha.1/upgrade/app-map-impact.json",
-      "sha256": "sha256:c790aa7111de3731a067b586f16ffa76d98dbd3728b3d70c7ce0e86492d5bcca"
+      "sha256": "sha256:ce3c4c6f21081d3422698a77bb34a087e531e81373e6da85722c8e8956f700e7"
     }
   },
   "migrationHandoff": {
