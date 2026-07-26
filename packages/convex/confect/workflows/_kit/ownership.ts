@@ -554,8 +554,9 @@ const countWorkflowRunsForAdmission = (
       .index("by_workspace_status", (q) =>
         q.eq("workspaceId", workspaceId).eq("status", status),
       )
-      .take(candidateLimit)
+      .take(candidateLimit + 1)
       .pipe(Effect.orDie);
+    if (candidates.length > candidateLimit) return limit;
     let count = 0;
     for (const run of candidates) {
       const admission = yield* readWorkflowAdmission(reader, run._id);

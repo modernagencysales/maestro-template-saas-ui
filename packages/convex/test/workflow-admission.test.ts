@@ -232,6 +232,65 @@ describe("workspace workflow admission", () => {
     expect(result).toEqual({ denied: true, lane: "system", limit: 1 });
   });
 
+  it("fails closed when legacy user rows hide a later system run", async () => {
+    const result = await Effect.runPromise(
+      Effect.gen(function* () {
+        const confect = yield* Effect.serviceOptional(
+          TestConfect.TestConfect<typeof databaseSchema>(),
+        );
+        return yield* confect.run(
+          Effect.gen(function* () {
+            const writer = yield* DatabaseWriter;
+            for (const suffix of ["one", "two"]) {
+              yield* writer
+                .table("workflowRuns")
+                .insert({
+                  workspaceId: "workspace-legacy-overflow",
+                  workflowId: "workflow.legacy",
+                  workflowVersion: 1,
+                  graphJson: "{}",
+                  status: "running",
+                  idempotencyKey: `legacy-${suffix}`,
+                  startedByUserId: "legacy-user",
+                  startedAt: 1,
+                  completedAt: null,
+                  failedAt: null,
+                  trustReceiptId: null,
+                })
+                .pipe(Effect.orDie);
+            }
+            const { runId } = yield* reserve(
+              "workspace-legacy-overflow",
+              "later-system",
+              "system",
+            );
+            yield* writer
+              .table("workflowRuns")
+              .patch(runId, { status: "running" })
+              .pipe(Effect.orDie);
+            const reader = yield* DatabaseReader;
+            const decision = yield* Effect.either(
+              assertWorkflowAdmissionAvailable(
+                reader,
+                "workspace-legacy-overflow",
+                "system",
+                {
+                  user: { maxActive: 1, maxQueued: 1, retryAfterMs: 10 },
+                  system: { maxActive: 1, maxQueued: 1, retryAfterMs: 20 },
+                },
+              ),
+            );
+            return Either.isLeft(decision)
+              ? `${decision.left.lane}:${decision.left.saturated}:${decision.left.limit}`
+              : "admitted";
+          }),
+          Schema.String,
+        );
+      }).pipe(Effect.provide(testConfectLayer())),
+    );
+    expect(result).toBe("system:active:1");
+  });
+
   it("denies the queued budget independently of active capacity", async () => {
     const result = await Effect.runPromise(
       Effect.gen(function* () {
