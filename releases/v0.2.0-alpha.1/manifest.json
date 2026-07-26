@@ -9,8 +9,8 @@
   "release": {
     "version": "0.2.0-alpha.1",
     "tag": "maestro-template-v0.2.0-alpha.1",
-    "sourceCommit": "608b7dc40430c58a4aef8e367be6d7313c381d4c",
-    "sourceChecksum": "sha256:1097ff14db738fbf1e7a3f106810a8aecb9bf19337ae65bbda776646744ffeea"
+    "sourceCommit": "488bce294ed3274ff0c0f89ec5082e6c5567208a",
+    "sourceChecksum": "sha256:c68c046d3a8cfee774466438c1de96508f8220c687332639417bff00194eefc7"
   },
   "upgrade": {
     "schemaVersion": 1,
@@ -43,7 +43,7 @@
         "path": "apps/cli/package.json",
         "ownership": "template-owned",
         "beforeHash": "sha256:4ba9fed574588393116f0f0c7eb558fd8e6a01e29005a54861032831182b5c71",
-        "afterHash": "sha256:fc3d26751548321ff1f97b6ca63706e37f59f4fed5f200d31820f72c6f8593ff"
+        "afterHash": "sha256:62ab0341040f2c66771c7d0ddc74c8f255b088bce8588cf644e3fe40c8f25f71"
       },
       {
         "id": "upgrade-modify-apps-cli-src-commands-ts",
@@ -3410,7 +3410,7 @@
         "path": "tooling/quality/check-ci-completeness.test.mts",
         "ownership": "template-owned",
         "beforeHash": "sha256:f8102fa1bf41d3dacc31faee6671fe1169f5ae19038b31e37829e70915382831",
-        "afterHash": "sha256:5ca3624df870b7484096ca547f72432f89f5709aaa3c9f312e31c174e706911c"
+        "afterHash": "sha256:1dea81529e3b76f65b5075237bcad8558c52d6747f8b904502c7cde4602702a9"
       },
       {
         "id": "upgrade-modify-tooling-quality-check-confect-compat-mts",
@@ -3529,7 +3529,7 @@
         "path": "tooling/quality/src/check-definitions.mts",
         "ownership": "template-owned",
         "beforeHash": "sha256:9e119988135f4b297c528e987a4377f71faffe3830f395a407428e6da8a7963a",
-        "afterHash": "sha256:c40d4502282d95ab2c5e130574b3abad3db8bd7d7f2ec3d394955d675d13497b"
+        "afterHash": "sha256:1870a1822ca5a6758858380363c05a9ad4a6793c84cb61f518fe2f09a6f45801"
       },
       {
         "id": "upgrade-modify-tooling-quality-src-diagnosticRegistry-mts",
@@ -3886,14 +3886,14 @@
   ],
   "blueprintManifest": {
     "path": "blueprints/saas-application.json",
-    "sha256": "sha256:becbaddc6b49607ba467c4c613e5ab5f445e2ddc4b3b74aaa4f62dd3bee5e13c"
+    "sha256": "sha256:155217a3d80119a7b2da4d8177192059df1405aaa0f4601bb2339bd1002f5e74"
   },
   "upgradeImpact": {
     "path": "releases/v0.2.0-alpha.1/upgrade/app-map-input.json",
-    "sha256": "sha256:c490a7de394dbf1aa19c5813be2c47cf5bb30e612b8bdbe255e89e7a5980bb59",
+    "sha256": "sha256:4e15740e0865c464b974feccae0e6229456d196dddc693b23346a7e792dc6107",
     "projection": {
       "path": "releases/v0.2.0-alpha.1/upgrade/app-map-impact.json",
-      "sha256": "sha256:2fa68bfd0a0c43d5af3987c7032a39dc34aa44779e2c6102f15fdd1c91ee252f"
+      "sha256": "sha256:3c634a75d6023579040cd5080f3dbcecf1eacd85325c6dfc45a6b859e7efa0c6"
     }
   },
   "migrationHandoff": {
