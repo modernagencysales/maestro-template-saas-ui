@@ -9,8 +9,8 @@
   "release": {
     "version": "0.2.0-alpha.1",
     "tag": "maestro-template-v0.2.0-alpha.1",
-    "sourceCommit": "edb8590a8c04b9ade49879a66f4ae88cab083051",
-    "sourceChecksum": "sha256:b6ec248e41f3c4d0cc57fb50e41da0cb0489523ca95d9a275a245ebaa795a62a"
+    "sourceCommit": "bd3a438192866c94c5e57ea18d62adec6fb3acb6",
+    "sourceChecksum": "sha256:28494d295f0770e23516138500c09d18cb50c19582674eb2fd94454c59cb2efb"
   },
   "upgrade": {
     "schemaVersion": 1,
@@ -3467,7 +3467,7 @@
         "kind": "add",
         "path": "tooling/quality/check-workflow-policy-snapshots.mts",
         "ownership": "template-owned",
-        "afterHash": "sha256:820391a1690bf7463c08a800059b62bde429296a5a4b269d5a311c9cb24b8938"
+        "afterHash": "sha256:7f2538f98e70200c398f2eddb833e5ef25dfb0571f64cfea2d26ae5cf378a886"
       },
       {
         "id": "upgrade-add-tooling-quality-check-workflow-principal-propagation-mts",
@@ -3846,14 +3846,14 @@
   ],
   "blueprintManifest": {
     "path": "blueprints/saas-application.json",
-    "sha256": "sha256:e7d67b7ffad4ef220f7c1b8a03558084bfa1fee6345e8a2dd78ec02612e72543"
+    "sha256": "sha256:53651b57ac3a61ae97be35cf765cdda6913c31d5bf7d9344d08ab7e68c5229ac"
   },
   "upgradeImpact": {
     "path": "releases/v0.2.0-alpha.1/upgrade/app-map-input.json",
-    "sha256": "sha256:06edb0418e0916dac4e00ebe27d67dcc1c26da9f16b705babe9a4333c73e055d",
+    "sha256": "sha256:e933221683ddb3001af6835e86ebef08f459eddf3ca8550ead5ffb1147c1a6dc",
     "projection": {
       "path": "releases/v0.2.0-alpha.1/upgrade/app-map-impact.json",
-      "sha256": "sha256:b04bc77ee142f1654e7b334640e8d2bd2d14a5bff3d178979bee62810bba7ede"
+      "sha256": "sha256:c287112c378c4e870d229bc72231cc217340c55c1316bc023116229ff78d9257"
     }
   },
   "migrationHandoff": {
