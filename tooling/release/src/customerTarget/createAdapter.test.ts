@@ -15,6 +15,22 @@ import {
 } from "./createAdapter.testFixtures.js";
 
 describe("customer release create adapter", () => {
+  it("requires the immutable tag to carry the exact compiled manifest bytes", async () => {
+    const fixture = taggedRelease();
+    git(fixture.repositoryRoot, [
+      "tag",
+      "--force",
+      fixture.tag,
+      fixture.manifest.release.sourceCommit,
+    ]);
+    await expect(prepare(fixture, adapter(fixture))).rejects.toMatchObject({
+      code: "release-unavailable",
+      message: expect.stringMatching(
+        /tag does not contain the ownership manifest/,
+      ),
+    });
+  });
+
   it("previews and writes only immutable tagged bytes with every generated entry", async () => {
     const fixture = taggedRelease();
     writeFileSync(

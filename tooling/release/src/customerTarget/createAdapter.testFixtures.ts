@@ -125,7 +125,6 @@ export function taggedRelease(
     .toString("utf8")
     .trim();
   const tag = "maestro-template-v1.2.3";
-  git(repositoryRoot, ["tag", tag]);
   const archive = git(repositoryRoot, [
     "archive",
     "--format=tar",
@@ -201,6 +200,9 @@ export function taggedRelease(
   const manifestPath = join(repositoryRoot, "release-manifest.json");
   const manifestBytes = `${JSON.stringify(manifest, null, 2)}\n`;
   writeFileSync(manifestPath, manifestBytes);
+  git(repositoryRoot, ["add", "release-manifest.json"]);
+  git(repositoryRoot, ["commit", "--quiet", "-m", "seal release authority"]);
+  git(repositoryRoot, ["tag", tag]);
   const plan = blueprintTargetPlan("fixture blueprint\n", options.replacement);
   const blueprintManifest = {
     schemaVersion: plan.schemaVersion,

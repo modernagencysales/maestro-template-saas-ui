@@ -36,6 +36,14 @@ export type ResolvedRelease = {
   readonly sourceRoot: string;
 };
 
+const safeRelativePath = (path: string): boolean =>
+  path.length > 0 &&
+  !path.startsWith("/") &&
+  !path.includes("\\") &&
+  path
+    .split("/")
+    .every((part) => part.length > 0 && part !== "." && part !== "..");
+
 export function withImmutableRelease<Result>(
   options: CustomerReleaseAdapterOptions,
   use: (resolved: ResolvedRelease) => Result,
@@ -62,15 +70,35 @@ export function withImmutableRelease<Result>(
       "Requested tag does not match the ownership manifest.",
     );
   }
-  const sourceCommit = options.sourceCommit
-    ? resolveReviewedCommit(options.repositoryRoot, options.sourceCommit)
-    : resolveTagCommit(options.repositoryRoot, options.tag);
+  const tagCommit = resolveTagCommit(options.repositoryRoot, options.tag);
+  const sourceCommit = resolveReviewedCommit(
+    options.repositoryRoot,
+    options.sourceCommit ?? preliminary.release.sourceCommit,
+  );
   if (sourceCommit !== preliminary.release.sourceCommit) {
     throw new CustomerReleaseAdapterError(
       "release-unavailable",
-      "Resolved tag commit does not match the ownership manifest.",
+      "Resolved source commit does not match the ownership manifest.",
     );
   }
+  assertSourceAncestorOfTag(options.repositoryRoot, sourceCommit, tagCommit);
+  const manifestRelative = relative(
+    realpathSync(options.repositoryRoot),
+    realpathSync(options.manifestPath),
+  )
+    .split(sep)
+    .join("/");
+  if (!safeRelativePath(manifestRelative))
+    throw new CustomerReleaseAdapterError(
+      "release-unavailable",
+      "Ownership manifest escapes the trusted repository.",
+    );
+  assertTaggedManifest(
+    options.repositoryRoot,
+    tagCommit,
+    manifestRelative,
+    manifestBytes,
+  );
 
   const temporaryRoot = options.temporaryRoot ?? tmpdir();
   const sessionRoot = mkdtempSync(
@@ -222,6 +250,61 @@ function resolveTagCommit(repositoryRoot: string, tag: string): string {
       "Immutable release tag is not available in the repository.",
     );
   }
+}
+function assertSourceAncestorOfTag(
+  repositoryRoot: string,
+  sourceCommit: string,
+  tagCommit: string,
+): void {
+  try {
+    execFileSync(
+      "git",
+      [
+        "-C",
+        realpathSync(repositoryRoot),
+        "merge-base",
+        "--is-ancestor",
+        sourceCommit,
+        tagCommit,
+      ],
+      { stdio: ["ignore", "ignore", "ignore"] },
+    );
+  } catch {
+    throw new CustomerReleaseAdapterError(
+      "release-unavailable",
+      "Reviewed source commit is not an ancestor of the immutable release tag.",
+    );
+  }
+}
+function assertTaggedManifest(
+  repositoryRoot: string,
+  tagCommit: string,
+  manifestPath: string,
+  expected: Buffer,
+): void {
+  let tagged: Buffer;
+  try {
+    tagged = execFileSync(
+      "git",
+      [
+        "-C",
+        realpathSync(repositoryRoot),
+        "show",
+        `${tagCommit}:${manifestPath}`,
+      ],
+      { stdio: ["ignore", "pipe", "ignore"] },
+    );
+  } catch {
+    throw new CustomerReleaseAdapterError(
+      "release-unavailable",
+      "Immutable release tag does not contain the ownership manifest.",
+    );
+  }
+  if (!tagged.equals(expected))
+    throw new CustomerReleaseAdapterError(
+      "release-unavailable",
+      "Tagged ownership manifest bytes do not match the compiled authority.",
+    );
 }
 
 function createArchive(

@@ -54,6 +54,7 @@
     "template:promote-workflow": "tsx tooling/generators/src/index.ts promote-workflow",
     "template:workflow-output-smoke": "tsx tooling/generators/src/workflow-output-smoke.ts",
     "template:upgrade": "tsx tooling/generators/src/index.ts upgrade",
+    "release:seal": "tsx tooling/release-seal.mts",
     "template:private-package:dry-run": "tsx tooling/generators/src/index.ts private-package:dry-run",
     "template:private-package:import": "tsx tooling/generators/src/index.ts private-package:import",
     "pattern-fit": "tsx scripts/pattern-fit.mts",
