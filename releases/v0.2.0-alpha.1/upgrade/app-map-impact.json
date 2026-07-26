@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "kind": "reviewed-upgrade-impact-coverage",
   "baseRevision": "517b5bc28d1d633bef18f57610cff49800123788",
-  "subjectRevision": "488bce294ed3274ff0c0f89ec5082e6c5567208a",
+  "subjectRevision": "74d3925156d5d4dcc07cd8fe0ad01c0cdcbfb327",
   "structuralPaths": [
     "docs/template/data-resources.json",
     "docs/template/generated/provenance/add-table/workflowArtifacts.json",
@@ -321,6 +321,7 @@
     "tooling/agent-pack/evals/walking-skeleton/runner.ts",
     "tooling/agent-pack/evals/walking-skeleton/verifier.ts",
     "tooling/agent-pack/evals/walking-skeleton/walking-skeleton.test.ts",
+    "tooling/agent-pack/package.json",
     "tooling/agent-pack/src/adopt.test.ts",
     "tooling/agent-pack/src/adopt.ts",
     "tooling/agent-pack/src/adoptAuthority.test.ts",
@@ -497,7 +498,7 @@
   "impact": {
     "schemaVersion": 1,
     "baseRevision": "517b5bc28d1d633bef18f57610cff49800123788",
-    "subjectRevision": "488bce294ed3274ff0c0f89ec5082e6c5567208a",
+    "subjectRevision": "74d3925156d5d4dcc07cd8fe0ad01c0cdcbfb327",
     "complete": true,
     "risk": "high",
     "changedPaths": [
