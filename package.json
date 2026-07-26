@@ -7,7 +7,7 @@
     "format": "prettier --write .",
     "check:format": "prettier --check .",
     "lint": "eslint .",
-    "typecheck": "turbo run typecheck",
+    "typecheck": "turbo run typecheck --concurrency=1",
     "check:effect-diagnostics": "effect-language-service diagnostics --project packages/convex/tsconfig.json --format github-actions --strict",
     "test": "turbo run test --filter=!@maestro-template/release-tooling && pnpm --dir tooling/release test:unit && pnpm test:release-filesystem",
     "test:release-filesystem": "pnpm --dir tooling/release test:final-filesystem",

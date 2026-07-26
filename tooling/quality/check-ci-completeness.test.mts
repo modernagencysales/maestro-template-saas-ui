@@ -13,6 +13,7 @@ describe("check:ci-completeness", () => {
   it("pins topology, lifecycle, and promotion enforcement in every required lane", () => {
     const requirements = JSON.stringify(descriptor.requirements);
 
+    expect(requirements).toContain("turbo run typecheck --concurrency=1");
     expect(requirements).toContain("check:system-topology");
     expect(requirements).toContain("check:data-resources");
     expect(requirements).toContain("check:promotion-boundary");

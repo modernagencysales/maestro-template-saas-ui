@@ -158,6 +158,7 @@ const checkDescriptorDefinitions = {
         file: "package.json",
         includes: [
           '"verify"',
+          '"typecheck": "turbo run typecheck --concurrency=1"',
           '"test:release-filesystem"',
           '"test:app-map"',
           '"check:app-map"',
