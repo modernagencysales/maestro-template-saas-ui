@@ -1,11 +1,12 @@
 import { convexTest } from "convex-test";
 import { makeFunctionReference } from "convex/server";
 import { describe, expect, it } from "vitest";
-import schema from "../convex/workflowDeadline/schema";
+import schema from "../convex/components/workflowDeadline/schema";
 
 const modules = {
-  ...import.meta.glob("../convex/workflowDeadline/**/*.ts"),
-  "../convex/workflowDeadline/_generated/server.ts": async () => ({}),
+  ...import.meta.glob("../convex/components/workflowDeadline/**/*.ts"),
+  "../convex/components/workflowDeadline/_generated/server.ts":
+    async () => ({}),
 };
 const prepare = makeFunctionReference<"mutation">("deadlines:prepare");
 const bind = makeFunctionReference<"mutation">("deadlines:bind");

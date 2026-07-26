@@ -1,13 +1,10 @@
 import { type WorkId, Workpool } from "@convex-dev/workpool";
-import { makeFunctionReference } from "convex/server";
+import { internalMutationGeneric, makeFunctionReference } from "convex/server";
 import { type GenericId, v } from "convex/values";
 import * as Either from "effect/Either";
-import {
-  internalMutation,
-  type MutationCtx as AppMutationCtx,
-} from "../_generated/server";
-import { components } from "../workflowDeadline/_generated/rootComponents";
+import type { MutationCtx as AppMutationCtx } from "../_generated/server";
 import { createMaestroWorkflowLifecycleAdapter } from "../../confect/workflows/_kit/defineMaestroWorkflow";
+import { localWorkflowComponents as components } from "../../confect/workflows/_kit/localComponentRefs";
 import {
   planWorkflowDeadlineCallback,
   planWorkflowDeadlineSchedule,
@@ -55,7 +52,7 @@ const enqueueDeadline = (
     context: serial,
   });
 
-export const schedule = internalMutation({
+export const schedule = internalMutationGeneric({
   args: {
     workspaceId: v.id("workspaces"),
     workflowRunId: v.id("workflowRuns"),
@@ -102,7 +99,7 @@ export const schedule = internalMutation({
   },
 });
 
-export const fire = internalMutation({
+export const fire = internalMutationGeneric({
   args: callbackArgs,
   handler: async (ctx, args) => {
     const actualStartedAt = Date.now();
@@ -210,7 +207,7 @@ export const recover = deadlinePool.defineOnComplete({
   },
 });
 
-export const reconcile = internalMutation({
+export const reconcile = internalMutationGeneric({
   args: { workflowRunId: v.id("workflowRuns"), generation: v.number() },
   handler: async (ctx, args) => {
     const workId = await ctx.runQuery(deadlineComponent.beginReconcile, {

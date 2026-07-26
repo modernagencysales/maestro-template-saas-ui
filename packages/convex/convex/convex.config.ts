@@ -5,8 +5,8 @@ import workpool from "@convex-dev/workpool/convex.config";
 import posthog from "@posthog/convex/convex.config.js";
 import { defineApp } from "convex/server";
 import { v } from "convex/values";
-import workflowDeadline from "./workflowDeadline/convex.config";
-import workflowAdmission from "./workflowAdmission/convex.config";
+import workflowDeadline from "./components/workflowDeadline/convex.config";
+import workflowAdmission from "./components/workflowAdmission/convex.config";
 
 const app = defineApp({
   env: {

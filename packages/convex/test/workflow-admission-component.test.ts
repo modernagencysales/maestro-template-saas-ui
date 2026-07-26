@@ -1,10 +1,12 @@
 import { convexTest } from "convex-test";
 import { makeFunctionReference } from "convex/server";
 import { describe, expect, it } from "vitest";
-import schema from "../convex/workflowAdmission/schema";
+import schema from "../convex/components/workflowAdmission/schema";
 import appSchema from "../confect/_generated/convexSchema";
 
-const modules = import.meta.glob("../convex/workflowAdmission/**/*.ts");
+const modules = import.meta.glob(
+  "../convex/components/workflowAdmission/**/*.ts",
+);
 const appModules = {
   ...import.meta.glob("../convex/_generated/**/*.ts"),
   "../convex/workflowAdmissionAdapterHarness.ts": () =>

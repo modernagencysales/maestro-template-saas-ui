@@ -1,0 +1,25 @@
+diff --git a/dist/confect/codegen.mjs b/dist/confect/codegen.mjs
+--- a/dist/confect/codegen.mjs
++++ b/dist/confect/codegen.mjs
+@@ -108 +108 @@
+-	const specFiles = yield* discoverLeafSpecFiles;
++	const specFiles = Array.filter(yield* discoverLeafSpecFiles, (specFile) => specFile !== "workflows/subworkflowLinksCurrent.spec.ts");
+@@ -263,0 +264 @@
++	const preservedLegacyRegisteredFunctions = new Set(["workflows/subworkflowLinksCurrent.ts"]);
+@@ -268 +269 @@
+-		if (!expected.has(normalized)) return Effect.gen(function* () {
++		if (!expected.has(normalized) && !preservedLegacyRegisteredFunctions.has(relativePath)) return Effect.gen(function* () {
+diff --git a/dist/utils.mjs b/dist/utils.mjs
+--- a/dist/utils.mjs
++++ b/dist/utils.mjs
+@@ -187 +187,9 @@
+-	return pipe(yield* pipe(yield* fs.readDirectory(convexDirectory, { recursive: true }), Array.filter((convexPath) => path.extname(convexPath) === ".ts" && !RESERVED_CONVEX_TS_FILE_NAMES.has(path.basename(convexPath)) && path.basename(path.dirname(convexPath)) !== "_generated"), Effect.forEach((groupModulePath) => fromGroupModulePath(groupModulePath))), HashSet.fromIterable, GroupPaths.make);
++	const PRESERVED_APP_MODULES = new Set([
++		"workflows/deadlinesCurrent.ts",
++		"workflows/subworkflowLinksCurrent.ts"
++	]);
++	const isPreservedAppModule = (convexPath) => {
++		const relativeSegments = path.relative(convexDirectory, path.resolve(convexDirectory, convexPath)).split(path.sep);
++		return relativeSegments[0] === "components" || PRESERVED_APP_MODULES.has(relativeSegments.join("/"));
++	};
++	return pipe(yield* pipe(yield* fs.readDirectory(convexDirectory, { recursive: true }), Array.filter((convexPath) => path.extname(convexPath) === ".ts" && !isPreservedAppModule(convexPath) && !RESERVED_CONVEX_TS_FILE_NAMES.has(path.basename(convexPath)) && path.basename(path.dirname(convexPath)) !== "_generated"), Effect.forEach((groupModulePath) => fromGroupModulePath(groupModulePath))), HashSet.fromIterable, GroupPaths.make);

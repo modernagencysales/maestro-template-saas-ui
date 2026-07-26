@@ -3,8 +3,8 @@ import { makeFunctionReference } from "convex/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import workpoolSchema from "../node_modules/@convex-dev/workpool/src/component/schema";
 import appSchema from "../confect/_generated/convexSchema";
-import deadlineSchema from "../convex/workflowDeadline/schema";
-import admissionSchema from "../convex/workflowAdmission/schema";
+import deadlineSchema from "../convex/components/workflowDeadline/schema";
+import admissionSchema from "../convex/components/workflowAdmission/schema";
 import workflowFixtureSchema from "./fixtures/workflow-deadline-workflow/schema";
 
 const appModules = {
@@ -14,15 +14,16 @@ const appModules = {
   "../convex/_generated/server.ts": async () => ({}),
 };
 const deadlineModules = {
-  ...import.meta.glob("../convex/workflowDeadline/**/*.ts"),
-  "../convex/workflowDeadline/_generated/server.ts": async () => ({}),
+  ...import.meta.glob("../convex/components/workflowDeadline/**/*.ts"),
+  "../convex/components/workflowDeadline/_generated/server.ts":
+    async () => ({}),
 };
 const workpoolModules = import.meta.glob([
   "../node_modules/@convex-dev/workpool/src/component/**/*.ts",
   "!../node_modules/@convex-dev/workpool/src/component/**/*.test.ts",
 ]);
 const admissionModules = import.meta.glob(
-  "../convex/workflowAdmission/**/*.ts",
+  "../convex/components/workflowAdmission/**/*.ts",
 );
 const workflowFixtureModules = {
   "../convex/workflow.ts": () =>

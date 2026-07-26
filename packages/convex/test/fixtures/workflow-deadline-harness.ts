@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { components } from "../../convex/workflowDeadline/_generated/rootComponents";
+import { localWorkflowComponents as components } from "../../confect/workflows/_kit/localComponentRefs";
 import {
   internalMutation,
   internalQuery,
