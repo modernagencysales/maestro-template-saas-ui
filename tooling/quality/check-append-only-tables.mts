@@ -280,9 +280,7 @@ const componentAllowanceValid = (
   );
   return (
     realImport &&
-    path.startsWith(
-      `packages/convex/convex/components/${allowance.component}/`,
-    )
+    path.startsWith(`packages/convex/convex/components/${allowance.component}/`)
   );
 };
 

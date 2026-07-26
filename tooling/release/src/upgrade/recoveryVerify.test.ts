@@ -151,7 +151,10 @@ describe("completed upgrade recovery verification", () => {
     const before = JSON.stringify(input);
     const first = verifyUpgradeRecovery(input);
     const second = verifyUpgradeRecovery({
-      observed: { ...input.observed, paths: [...input.observed.paths].reverse() },
+      observed: {
+        ...input.observed,
+        paths: [...input.observed.paths].reverse(),
+      },
       receipt: input.receipt,
       expectedRecoveryFingerprint: input.expectedRecoveryFingerprint,
       recoveryInput: input.recoveryInput,

@@ -183,7 +183,10 @@ const resolution = (
   code: UpgradeRecoveryVerificationCode,
   message: string,
   repair: string,
-  options?: { readonly path?: string; readonly upstreamCodes?: readonly string[] },
+  options?: {
+    readonly path?: string;
+    readonly upstreamCodes?: readonly string[];
+  },
 ): UpgradeRecoveryVerificationResolution => ({
   code,
   ...(options?.path ? { path: options.path } : {}),
@@ -205,9 +208,7 @@ const failed = (
   verified: false,
   resolutions: [...resolutions].sort((left, right) => {
     const code = compareText(left.code, right.code);
-    return code === 0
-      ? compareText(left.path ?? "", right.path ?? "")
-      : code;
+    return code === 0 ? compareText(left.path ?? "", right.path ?? "") : code;
   }),
 });
 

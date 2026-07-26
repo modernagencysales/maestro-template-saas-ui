@@ -10,6 +10,7 @@ import {
 } from "node:fs";
 import { dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
+import { format as formatWithPrettier } from "prettier";
 import {
   buildCustomerOwnershipInventory,
   classifyCustomerSourcePath,
@@ -25,8 +26,10 @@ type Output = { path: string; bytes: Buffer };
 const root = realpathSync(fileURLToPath(new URL("../", import.meta.url)));
 const hash = (bytes: string | Buffer): string =>
   `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
-const json = (value: Json): Buffer =>
-  Buffer.from(`${JSON.stringify(value, null, 2)}\n`);
+const json = async (value: Json): Promise<Buffer> =>
+  Buffer.from(
+    await formatWithPrettier(JSON.stringify(value), { parser: "json" }),
+  );
 const git = (args: readonly string[]): Buffer =>
   execFileSync("git", ["-C", root, ...args], {
     maxBuffer: 512 * 1024 * 1024,
@@ -262,7 +265,7 @@ async function build(args: Args): Promise<readonly Output[]> {
     registrations: plan.registrations,
     entries: plan.entries.map(({ content: _content, ...entry }: any) => entry),
   } as Json;
-  const blueprintBytes = json(blueprintValue);
+  const blueprintBytes = await json(blueprintValue);
   outputs.push({ path: blueprintPath, bytes: blueprintBytes });
 
   const reviewedSourcePaths = sourcePaths(args.sourceCommit);
@@ -326,7 +329,7 @@ async function build(args: Args): Promise<readonly Output[]> {
   const { composeAppMap } = await import("./app-map/src/composition.js");
   const { buildAppMapImpact } = await import("./app-map/src/impact.js");
   const { APP_MAP_INPUT_MANIFEST_V1 } = await import("./app-map/src/schema.js");
-  const generatedTemplateInstanceFacts = json({
+  const generatedTemplateInstanceFacts = await json({
     schemaVersion: 1,
     kind: "release-blueprint-template-instance-facts",
     sourceRevision: args.sourceCommit,
@@ -380,8 +383,8 @@ async function build(args: Args): Promise<readonly Output[]> {
     changedPaths: structural,
   });
   if (!impact.ok) throw new Error("App Map impact generation failed.");
-  const impactInputBytes = json(composed.input as unknown as Json);
-  const impactBytes = json({
+  const impactInputBytes = await json(composed.input as unknown as Json);
+  const impactBytes = await json({
     schemaVersion: 1,
     kind: "reviewed-upgrade-impact-coverage",
     baseRevision,
@@ -424,7 +427,7 @@ async function build(args: Args): Promise<readonly Output[]> {
       sha256: hash(migrationBytes),
     },
   } as Json;
-  const manifestBytes = json(manifestValue);
+  const manifestBytes = await json(manifestValue);
   outputs.push({ path: manifestPath, bytes: manifestBytes });
 
   const compositionPath = "apps/cli/src/factory/createComposition.ts";

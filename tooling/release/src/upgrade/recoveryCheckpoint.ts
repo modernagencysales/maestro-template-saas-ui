@@ -110,9 +110,7 @@ const checkpointCode = (
     return "UPGRADE_RECOVERY_CHECKPOINT_DUPLICATE";
   if (auditCode === "UPGRADE_RECOVERY_AUDIT_CROSS_TARGET_REPLAY")
     return "UPGRADE_RECOVERY_CHECKPOINT_CROSS_TARGET";
-  if (
-    upstreamCodes.includes("UPGRADE_RECOVERY_VERIFY_TARGET_DIRTY")
-  )
+  if (upstreamCodes.includes("UPGRADE_RECOVERY_VERIFY_TARGET_DIRTY"))
     return "UPGRADE_RECOVERY_CHECKPOINT_DIRTY";
   if (
     auditCode === "UPGRADE_RECOVERY_AUDIT_PATH_EVIDENCE_DRIFT" ||
@@ -131,7 +129,9 @@ const checkpointCode = (
 
 const nested = (
   auditInput: unknown,
-): { readonly verificationInput: unknown; readonly recoveryInput: unknown } | undefined => {
+):
+  | { readonly verificationInput: unknown; readonly recoveryInput: unknown }
+  | undefined => {
   if (!isRecord(auditInput) || !("verificationInput" in auditInput))
     return undefined;
   const verificationInput = auditInput.verificationInput;

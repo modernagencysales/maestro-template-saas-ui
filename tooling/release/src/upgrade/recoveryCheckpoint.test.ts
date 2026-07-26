@@ -146,7 +146,9 @@ describe("accepted recovery checkpoint compilation", () => {
           ...input.auditInput.verificationInput,
           observed: {
             ...input.auditInput.verificationInput.observed,
-            paths: [...input.auditInput.verificationInput.observed.paths].reverse(),
+            paths: [
+              ...input.auditInput.verificationInput.observed.paths,
+            ].reverse(),
           },
         },
       },

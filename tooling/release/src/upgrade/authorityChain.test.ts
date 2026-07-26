@@ -62,9 +62,7 @@ describe("full upgrade authority chain", () => {
         ),
       },
     };
-    const appliedVerification = verifyAppliedUpgrade(
-      appliedVerificationInput,
-    );
+    const appliedVerification = verifyAppliedUpgrade(appliedVerificationInput);
     expect(appliedVerification).toMatchObject({
       ok: true,
       applied: true,
@@ -82,9 +80,7 @@ describe("full upgrade authority chain", () => {
       ok: false,
       applied: false,
       verified: false,
-      resolutions: [
-        { code: "UPGRADE_VERIFY_FINGERPRINT_MISMATCH" },
-      ],
+      resolutions: [{ code: "UPGRADE_VERIFY_FINGERPRINT_MISMATCH" }],
     });
 
     const recoveryInput = {
@@ -172,9 +168,7 @@ describe("full upgrade authority chain", () => {
       ok: false,
       recovered: false,
       verified: false,
-      resolutions: [
-        { code: "UPGRADE_RECOVERY_VERIFY_FINGERPRINT_MISMATCH" },
-      ],
+      resolutions: [{ code: "UPGRADE_RECOVERY_VERIFY_FINGERPRINT_MISMATCH" }],
     });
 
     const pathEvidenceFingerprint = recoveryPathEvidenceFingerprint(

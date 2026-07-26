@@ -141,9 +141,9 @@ describe("applied upgrade verification", () => {
         ? { ...entry, hash: `sha256:${"0".repeat(64)}` }
         : entry,
     );
-    expect(codes({ ...input, observed: { ...input.observed, paths } })).toContain(
-      "UPGRADE_VERIFY_AFTER_HASH_MISMATCH",
-    );
+    expect(
+      codes({ ...input, observed: { ...input.observed, paths } }),
+    ).toContain("UPGRADE_VERIFY_AFTER_HASH_MISMATCH");
   });
 
   it("requires explicit absence for deletes and move sources", () => {
@@ -163,9 +163,9 @@ describe("applied upgrade verification", () => {
           }
         : entry,
     );
-    expect(codes({ ...input, observed: { ...input.observed, paths } })).toContain(
-      "UPGRADE_VERIFY_EXPECTED_ABSENT",
-    );
+    expect(
+      codes({ ...input, observed: { ...input.observed, paths } }),
+    ).toContain("UPGRADE_VERIFY_EXPECTED_ABSENT");
   });
 
   it("rejects missing, duplicate, unexpected, and unknown evidence", () => {

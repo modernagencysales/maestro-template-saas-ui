@@ -2,8 +2,7 @@ import { createHash } from "node:crypto";
 import { verifyAppliedUpgrade } from "./verify.js";
 
 export type UpgradeRecoveryCode =
-  | "UPGRADE_RECOVERY_INPUT_INVALID"
-  | "UPGRADE_RECOVERY_VERIFICATION_FAILED";
+  "UPGRADE_RECOVERY_INPUT_INVALID" | "UPGRADE_RECOVERY_VERIFICATION_FAILED";
 
 export type UpgradeRecoveryResult =
   | {

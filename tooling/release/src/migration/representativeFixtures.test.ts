@@ -53,13 +53,17 @@ describe("WP-6.4 representative migration fixtures", () => {
         "expand",
         "backward-compatible-code",
       ]);
-      expect(input.migration.compatibilityWindow.contractNotBefore >=
-        input.migration.compatibilityWindow.endsAt).toBe(true);
+      expect(
+        input.migration.compatibilityWindow.contractNotBefore >=
+          input.migration.compatibilityWindow.endsAt,
+      ).toBe(true);
     },
   );
 
   it("covers rollback and fully evidenced roll-forward recovery", () => {
-    const recoveries = fixtureNames.map((name) => fixture(name).migration.recovery);
+    const recoveries = fixtureNames.map(
+      (name) => fixture(name).migration.recovery,
+    );
 
     expect(recoveries.map(({ kind }) => kind)).toEqual(
       expect.arrayContaining(["rollback", "roll-forward-only"]),

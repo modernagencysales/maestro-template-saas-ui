@@ -149,10 +149,7 @@ const parseAudit = (value: unknown): ParsedAudit | undefined => {
     recoveryCommit: value.acceptedRecord.recoveryCommit,
   });
   const priorReceipts = value.audit.priorReceipts.map(readLedgerRecord);
-  if (
-    !acceptedRecord ||
-    priorReceipts.some((record) => record === undefined)
-  )
+  if (!acceptedRecord || priorReceipts.some((record) => record === undefined))
     return undefined;
   return {
     verificationInput: value.verificationInput,
@@ -184,7 +181,9 @@ const fingerprint = (value: unknown): string =>
     .update(JSON.stringify(canonicalize(value)))
     .digest("hex")}`;
 
-const observedPaths = (verificationInput: unknown): readonly unknown[] | undefined => {
+const observedPaths = (
+  verificationInput: unknown,
+): readonly unknown[] | undefined => {
   if (!isRecord(verificationInput) || !isRecord(verificationInput.observed))
     return undefined;
   return Array.isArray(verificationInput.observed.paths)
@@ -195,9 +194,11 @@ const observedPaths = (verificationInput: unknown): readonly unknown[] | undefin
 const pathFingerprint = (verificationInput: unknown): string | undefined => {
   const paths = observedPaths(verificationInput);
   if (!paths) return undefined;
-  const normalized = paths.map((path) => canonicalize(path)).sort((left, right) =>
-    compareText(JSON.stringify(left), JSON.stringify(right)),
-  );
+  const normalized = paths
+    .map((path) => canonicalize(path))
+    .sort((left, right) =>
+      compareText(JSON.stringify(left), JSON.stringify(right)),
+    );
   return fingerprint({ paths: normalized });
 };
 
@@ -317,9 +318,7 @@ export const auditUpgradeRecovery = (
       "Recovery fingerprint was already consumed by the audit ledger.",
       "Reject duplicate use of the same reviewed recovery plan.",
     );
-  if (
-    input.acceptedRecord.pathEvidenceFingerprint !== currentPathFingerprint
-  )
+  if (input.acceptedRecord.pathEvidenceFingerprint !== currentPathFingerprint)
     return failed(
       "UPGRADE_RECOVERY_AUDIT_PATH_EVIDENCE_DRIFT",
       "Current restored-path evidence differs from the accepted record.",

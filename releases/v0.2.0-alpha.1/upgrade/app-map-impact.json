@@ -827,9 +827,7 @@
         "table:workspaceMembers",
         "table:workspaces"
       ],
-      "workflowVersions": [
-        "workflow-publication:publicationFixture:v1"
-      ],
+      "workflowVersions": ["workflow-publication:publicationFixture:v1"],
       "providers": [
         "integration:billing-policy",
         "integration:dodo",
