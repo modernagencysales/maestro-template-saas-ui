@@ -6,6 +6,7 @@ import {
   deriveWorkflowDeadlineScheduleIdentity,
   observeWorkflowDeadlineStart,
   planWorkflowDeadlineCallback,
+  planWorkflowDeadlineRestart,
   planWorkflowDeadlineSchedule,
   type WorkflowDeadlineGeneration,
   type WorkflowDeadlineRunSnapshot,
@@ -227,6 +228,37 @@ describe("generation-safe workflow deadlines", () => {
       expiredByMs: 25,
     });
     expect(JSON.parse(JSON.stringify(facts))).toEqual(facts);
+  });
+
+  it("preserves the original absolute deadline across restart generations", () => {
+    expect(
+      Either.getOrThrow(
+        planWorkflowDeadlineRestart({
+          deadlineAt: 1_500,
+          timeoutMs: 500,
+          occurredAt: 1_250,
+        }),
+      ),
+    ).toEqual({
+      kind: "schedule",
+      policy: "preserve-original-absolute-deadline",
+      requestedAt: 1_000,
+      horizonMs: 500,
+      deadlineAt: 1_500,
+    });
+  });
+
+  it("rejects restart once the preserved absolute deadline has expired", () => {
+    const decision = planWorkflowDeadlineRestart({
+      deadlineAt: 1_500,
+      timeoutMs: 500,
+      occurredAt: 1_500,
+    });
+
+    expect(Either.isLeft(decision)).toBe(true);
+    if (Either.isLeft(decision)) {
+      expect(decision.left).toMatchObject({ code: "DEADLINE_EXPIRED" });
+    }
   });
 
   it("returns stable redacted errors without echoing run identifiers", () => {

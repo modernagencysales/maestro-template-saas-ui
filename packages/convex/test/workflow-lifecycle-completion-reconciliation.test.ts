@@ -11,7 +11,10 @@ vi.mock("../confect/workflows/_kit/ownership", async (importOriginal) => {
 
 import databaseSchema from "../confect/_generated/schema";
 import { DatabaseReader, DatabaseWriter } from "../confect/_generated/services";
-import { reconcileWorkflowCompletion } from "../confect/workflows/lifecycleReconciliation";
+import {
+  completionAdmissionStatus,
+  reconcileWorkflowCompletion,
+} from "../confect/workflows/lifecycleReconciliationCurrent";
 import { testConfectLayer } from "./support/confect";
 import { seedLifecyclePersistence } from "./workflow-lifecycle-persistence.fixture";
 
@@ -77,5 +80,53 @@ describe("workflow lifecycle completion exactly-once reconciliation", () => {
       storedStatus: "completed",
     });
     expect(JSON.stringify(result)).not.toContain("must-not-leak");
+  });
+
+  it("preserves timedOut when the canceled completion replays", async () => {
+    const result = await Effect.runPromise(
+      Effect.gen(function* () {
+        const confect = yield* Effect.serviceOptional(
+          TestConfect.TestConfect<typeof databaseSchema>(),
+        );
+        const seeded = yield* seedLifecyclePersistence(confect);
+        return yield* confect.run(
+          Effect.gen(function* () {
+            const reader = yield* DatabaseReader;
+            const writer = yield* DatabaseWriter;
+            yield* writer
+              .table("workflowRuns")
+              .patch(seeded.runId, {
+                status: "timedOut",
+                lifecycleExecution: "canceled",
+              })
+              .pipe(Effect.orDie);
+            const replay = yield* reconcileWorkflowCompletion(reader, writer, {
+              componentWorkflowId: "component-run-a",
+              context: {
+                workspaceId: seeded.workspaceId,
+                workflowRunId: seeded.runId,
+                workflowId: "workflow.invoice-review",
+                workflowVersion: 3,
+                generation: 0,
+                generationAnchor: "workflow.invoice-review@v3:g0",
+              },
+              result: { kind: "canceled" },
+            });
+            const row = yield* reader
+              .table("workflowRuns")
+              .get(seeded.runId)
+              .pipe(Effect.orDie);
+            return JSON.stringify({ replay, status: row?.status });
+          }),
+          Schema.String,
+        );
+      }).pipe(Effect.provide(testConfectLayer())),
+    );
+
+    expect(JSON.parse(result)).toEqual({
+      replay: { status: "canceled" },
+      status: "timedOut",
+    });
+    expect(completionAdmissionStatus("canceled", "timedOut")).toBe("timedOut");
   });
 });

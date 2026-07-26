@@ -24,6 +24,16 @@ export type WorkflowCompletionResult =
   | { readonly kind: "failed"; readonly error: string }
   | { readonly kind: "canceled" };
 
+export const completionAdmissionStatus = (
+  completion: WorkflowCompletionResult["kind"],
+  storedStatus: string | undefined,
+) =>
+  completion === "canceled" && storedStatus === "timedOut"
+    ? ("timedOut" as const)
+    : completion === "success"
+      ? ("completed" as const)
+      : completion;
+
 export const reconcileWorkflowCompletion = (
   reader: Reader,
   writer: Writer,

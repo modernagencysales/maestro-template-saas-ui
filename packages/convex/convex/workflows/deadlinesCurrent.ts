@@ -1,45 +1,26 @@
-import {
-  type WorkId,
-  Workpool,
-  type WorkpoolComponent,
-} from "@convex-dev/workpool";
-import {
-  componentsGeneric,
-  type FunctionReference,
-  makeFunctionReference,
-} from "convex/server";
+import { type WorkId, Workpool } from "@convex-dev/workpool";
+import { makeFunctionReference } from "convex/server";
 import { type GenericId, v } from "convex/values";
 import * as Either from "effect/Either";
-import { internalMutation } from "../_generated/server";
 import {
-  createMaestroWorkflowLifecycleAdapter,
-  type MaestroWorkflowComponent,
-} from "../../confect/workflows/_kit/defineMaestroWorkflow";
+  internalMutation,
+  type MutationCtx as AppMutationCtx,
+} from "../_generated/server";
+import { components } from "../workflowDeadline/_generated/rootComponents";
+import { createMaestroWorkflowLifecycleAdapter } from "../../confect/workflows/_kit/defineMaestroWorkflow";
 import {
   planWorkflowDeadlineCallback,
   planWorkflowDeadlineSchedule,
   type WorkflowDeadlineSchedule,
 } from "../../confect/workflows/_kit/workflowDeadline";
 
-const components = componentsGeneric() as Record<string, unknown>;
-const deadlineComponent = (
-  components.workflowDeadline as {
-    deadlines: Record<
-      string,
-      FunctionReference<"mutation" | "query", "internal">
-    >;
-  }
-).deadlines;
-const admissionTransition = (
-  components.workflowAdmission as {
-    admission: { transition: FunctionReference<"mutation", "internal"> };
-  }
-).admission.transition;
-const deadlinePool = new Workpool(
-  components.workflowDeadlineWorkpool as WorkpoolComponent,
-  { maxParallelism: 20, retryActionsByDefault: false },
-);
-const workflowComponent = components.workflow as MaestroWorkflowComponent;
+const deadlineComponent = components.workflowDeadline.deadlines;
+const admissionTransition = components.workflowAdmission.admission.transition;
+const deadlinePool = new Workpool(components.workflowDeadlineWorkpool, {
+  maxParallelism: 20,
+  retryActionsByDefault: false,
+});
+const workflowComponent = components.workflow;
 
 const callbackArgs = {
   workspaceId: v.string(),
@@ -55,20 +36,9 @@ const callbackArgs = {
 };
 
 type DeadlineSchedule = WorkflowDeadlineSchedule;
-type AppMutationCtx = Parameters<
-  Parameters<typeof internalMutation>[0]["handler"]
->[0];
-
-const fireRef = makeFunctionReference<
-  "mutation",
-  ReturnType<typeof serialize>,
-  null
->("workflows/deadlinesCurrent:fire") as FunctionReference<
-  "mutation",
-  "internal",
-  DeadlineSchedule,
-  null
->;
+const fireRef = makeFunctionReference<"mutation">(
+  "workflows/deadlinesCurrent:fire",
+);
 
 export const schedule = internalMutation({
   args: {
@@ -98,13 +68,7 @@ export const schedule = internalMutation({
     );
     if (planned.kind === "no-op") return planned;
     const serial = serialize(planned.schedule);
-    const prepared = (await ctx.runMutation(
-      deadlineComponent.prepare,
-      serial,
-    )) as {
-      kind: "create" | "replace" | "replay";
-      priorWorkId: string | null;
-    };
+    const prepared = await ctx.runMutation(deadlineComponent.prepare, serial);
     if (prepared.kind === "replay")
       return { kind: "scheduled" as const, ...serial };
     if (prepared.priorWorkId)
@@ -133,10 +97,10 @@ export const fire = internalMutation({
     const callbackSchedule = deserialize(args);
     const runId = args.workflowRunId as GenericId<"workflowRuns">;
     const run = await ctx.db.get(runId);
-    const current = (await ctx.runQuery(deadlineComponent.current, {
+    const current = await ctx.runQuery(deadlineComponent.current, {
       workflowRunId: args.workflowRunId,
       generation: run?.lifecycleGeneration ?? args.generation,
-    })) as (ReturnType<typeof serialize> & { state: string }) | null;
+    });
     const currentRun =
       run && run.workspaceId === args.workspaceId
         ? {
@@ -161,6 +125,7 @@ export const fire = internalMutation({
       }),
     );
     if (decision.kind === "no-op") {
+      if (decision.facts === null) return null;
       await observe(
         ctx,
         callbackSchedule,
@@ -205,10 +170,10 @@ export const fire = internalMutation({
 export const reconcile = internalMutation({
   args: { workflowRunId: v.id("workflowRuns"), generation: v.number() },
   handler: async (ctx, args) => {
-    const workId = (await ctx.runQuery(deadlineComponent.beginReconcile, {
+    const workId = await ctx.runQuery(deadlineComponent.beginReconcile, {
       workflowRunId: String(args.workflowRunId),
       generation: args.generation,
-    })) as string | null;
+    });
     if (workId) {
       await deadlinePool.cancel(ctx, workId as WorkId);
       await ctx.runMutation(deadlineComponent.completeReconcile, {

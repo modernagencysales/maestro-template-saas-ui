@@ -1,12 +1,10 @@
 import { FunctionImpl, GroupImpl } from "@confect/server";
 import * as Effect from "effect/Effect";
+import * as Either from "effect/Either";
 import * as Layer from "effect/Layer";
+import type * as Context from "effect/Context";
 import type { GenericId } from "convex/values";
-import {
-  type GenericDataModel,
-  type GenericMutationCtx,
-  makeFunctionReference,
-} from "convex/server";
+import { makeFunctionReference } from "convex/server";
 
 import databaseSchema from "../_generated/schema";
 import {
@@ -22,13 +20,21 @@ import {
   runWorkflowLifecycleControl,
 } from "./lifecycleAdapters";
 import lifecycle from "./lifecycle.spec";
-import { reconcileWorkflowCompletion } from "./lifecycleReconciliationCurrent";
+import {
+  completionAdmissionStatus,
+  reconcileWorkflowCompletion,
+} from "./lifecycleReconciliationCurrent";
 import { runBoundedWorkflowRetentionSweep } from "./_kit/lifecycleSweep";
 import { transitionWorkflowAdmission } from "./_kit/ownership";
+import { planWorkflowDeadlineRestart } from "./_kit/workflowDeadline";
 
 const reconcileDeadlineRef = makeFunctionReference<"mutation">(
   "workflows/deadlinesCurrent:reconcile",
 );
+const scheduleDeadlineRef = makeFunctionReference<"mutation">(
+  "workflows/deadlinesCurrent:schedule",
+);
+type Mutation = Context.Tag.Service<typeof MutationCtx>;
 
 const cancel = FunctionImpl.make(databaseSchema, lifecycle, "cancel", (args) =>
   Effect.gen(function* () {
@@ -142,6 +148,23 @@ const restart = FunctionImpl.make(
         mutation,
         principal,
       );
+      const run = yield* reader
+        .table("workflowRuns")
+        .get(args.workflowRunId)
+        .pipe(Effect.orDie);
+      const restartDeadline = planWorkflowDeadlineRestart({
+        deadlineAt: run?.deadlineAt,
+        timeoutMs: run?.timeoutMs,
+        occurredAt: args.occurredAt,
+      });
+      if (Either.isLeft(restartDeadline)) {
+        return yield* Effect.fail(
+          new ValidationFailed({
+            field: "deadline",
+            message: restartDeadline.left.message,
+          }),
+        );
+      }
       const result = yield* runWorkflowLifecycleControl(
         args.workflowRunId,
         () => controls.restart(principal, args),
@@ -151,6 +174,15 @@ const restart = FunctionImpl.make(
         args.workflowRunId,
         result.generation - 1,
       );
+      if (restartDeadline.right.kind === "schedule") {
+        yield* scheduleDeadline(
+          mutation,
+          args.workspaceId,
+          args.workflowRunId,
+          restartDeadline.right.requestedAt,
+          restartDeadline.right.horizonMs,
+        );
+      }
       return result;
     }),
 );
@@ -177,14 +209,14 @@ const reconcileCompletion = FunctionImpl.make(
         ),
       );
       const mutation = yield* MutationCtx;
+      const run = yield* reader
+        .table("workflowRuns")
+        .get(args.context.workflowRunId as GenericId<"workflowRuns">)
+        .pipe(Effect.orDie);
       yield* transitionWorkflowAdmission(
         mutation,
         args.context.workflowRunId as GenericId<"workflowRuns">,
-        reconciled.status === "success"
-          ? "completed"
-          : reconciled.status === "failed"
-            ? "failed"
-            : "canceled",
+        completionAdmissionStatus(reconciled.status, run?.status),
       ).pipe(Effect.orDie);
       yield* reconcileDeadline(
         mutation,
@@ -196,20 +228,39 @@ const reconcileCompletion = FunctionImpl.make(
 );
 
 const reconcileDeadline = (
-  mutation: unknown,
+  mutation: Mutation,
   workflowRunId: GenericId<"workflowRuns">,
   generation: number,
 ) =>
   Effect.tryPromise({
     try: () =>
-      (mutation as GenericMutationCtx<GenericDataModel>).runMutation(
-        reconcileDeadlineRef,
-        { workflowRunId, generation },
-      ),
+      mutation.runMutation(reconcileDeadlineRef, { workflowRunId, generation }),
     catch: () =>
       new ValidationFailed({
         field: "deadline",
         message: "Workflow deadline reconciliation failed.",
+      }),
+  });
+
+const scheduleDeadline = (
+  mutation: Mutation,
+  workspaceId: GenericId<"workspaces">,
+  workflowRunId: GenericId<"workflowRuns">,
+  requestedAt: number,
+  horizonMs: number,
+) =>
+  Effect.tryPromise({
+    try: () =>
+      mutation.runMutation(scheduleDeadlineRef, {
+        workspaceId,
+        workflowRunId,
+        requestedAt,
+        horizonMs,
+      }),
+    catch: () =>
+      new ValidationFailed({
+        field: "deadline",
+        message: "Restarted workflow deadline could not be scheduled.",
       }),
   });
 

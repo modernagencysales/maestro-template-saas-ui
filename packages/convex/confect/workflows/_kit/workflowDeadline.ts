@@ -84,7 +84,11 @@ export type WorkflowDeadlineContractErrorCode =
   | "UNSUPPORTED_DEADLINE_HORIZON"
   | "INVALID_TIME"
   | "DEADLINE_OVERFLOW"
+  | "DEADLINE_EXPIRED"
   | "INVALID_SCHEDULE";
+
+export const WORKFLOW_RESTART_DEADLINE_POLICY =
+  "preserve-original-absolute-deadline" as const;
 
 export class WorkflowDeadlineContractError extends Data.TaggedError(
   "WorkflowDeadlineContractError",
@@ -152,6 +156,53 @@ export const planWorkflowDeadlineSchedule = (input: {
       deadlineAt,
       runAt: deadlineAt,
     },
+  });
+};
+
+export const planWorkflowDeadlineRestart = (input: {
+  readonly deadlineAt: number | undefined;
+  readonly timeoutMs: number | undefined;
+  readonly occurredAt: number;
+}): Either.Either<
+  | { readonly kind: "none" }
+  | {
+      readonly kind: "schedule";
+      readonly policy: typeof WORKFLOW_RESTART_DEADLINE_POLICY;
+      readonly requestedAt: number;
+      readonly horizonMs: number;
+      readonly deadlineAt: number;
+    },
+  WorkflowDeadlineContractError
+> => {
+  if (input.deadlineAt === undefined && input.timeoutMs === undefined) {
+    return Either.right({ kind: "none" });
+  }
+  if (input.deadlineAt === undefined || input.timeoutMs === undefined) {
+    return fail(
+      "INVALID_SCHEDULE",
+      "Workflow restart deadline metadata is incomplete.",
+    );
+  }
+  const deadlineFinding = validateTime(input.deadlineAt);
+  if (deadlineFinding) return deadlineFinding;
+  const occurredFinding = validateTime(input.occurredAt);
+  if (occurredFinding) return occurredFinding;
+  const horizonFinding = validateHorizon(input.timeoutMs);
+  if (horizonFinding) return horizonFinding;
+  const requestedAt = input.deadlineAt - input.timeoutMs;
+  if (!isNonNegativeSafeInteger(requestedAt)) return invalidSchedule();
+  if (input.occurredAt >= input.deadlineAt) {
+    return fail(
+      "DEADLINE_EXPIRED",
+      "Workflow restart cannot extend an expired absolute deadline.",
+    );
+  }
+  return Either.right({
+    kind: "schedule",
+    policy: WORKFLOW_RESTART_DEADLINE_POLICY,
+    requestedAt,
+    horizonMs: input.timeoutMs,
+    deadlineAt: input.deadlineAt,
   });
 };
 

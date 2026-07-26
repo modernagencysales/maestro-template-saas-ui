@@ -1,8 +1,5 @@
-import {
-  mutationGeneric as mutation,
-  queryGeneric as query,
-} from "convex/server";
 import { ConvexError, v } from "convex/values";
+import { mutation, query } from "./_generated/server";
 
 const schedule = {
   workspaceId: v.string(),
@@ -122,6 +119,7 @@ export const observe = mutation({
       .withIndex("schedule_key", (q) => q.eq("scheduleKey", args.scheduleKey))
       .unique();
     if (!existing || existing.requestedAt !== args.requestedAt) return false;
+    if (existing.state === "timedOut" && args.state === "noOp") return false;
     await ctx.db.patch(existing._id, args);
     return true;
   },

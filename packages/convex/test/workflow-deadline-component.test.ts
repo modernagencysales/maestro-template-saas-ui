@@ -76,6 +76,21 @@ describe("workflow deadline component", () => {
       expired: true,
     });
     await expect(
+      t.mutation(observe, {
+        scheduleKey: schedule().scheduleKey,
+        requestedAt: 1_100,
+        state: "noOp",
+        actualStartedAt: 1_650,
+        latenessMs: 50,
+        expired: true,
+        expiredByMs: 50,
+        noOpReason: "terminal-run",
+      }),
+    ).resolves.toBe(false);
+    await expect(
+      t.query(current, { workflowRunId: "run-a", generation: 0 }),
+    ).resolves.toMatchObject({ state: "timedOut", actualStartedAt: 1_625 });
+    await expect(
       t.query(beginReconcile, { workflowRunId: "run-a", generation: 0 }),
     ).resolves.toBe("work-b");
     // A failed external cancel leaves the exact work identity available to retry.

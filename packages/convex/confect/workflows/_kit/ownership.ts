@@ -207,9 +207,7 @@ export const startWorkflowAndRecordOwnership = <
     if (deadlineHorizon !== null) {
       yield* Effect.tryPromise({
         try: () =>
-          (
-            mutationCtx as unknown as GenericMutationCtx<GenericDataModel>
-          ).runMutation(scheduleDeadlineRef, {
+          mutationCtx.runMutation(scheduleDeadlineRef, {
             workspaceId: normalizedInput.workspaceId,
             workflowRunId: reservationId,
             requestedAt: normalizedInput.startedAt,
