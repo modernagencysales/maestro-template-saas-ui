@@ -4,6 +4,11 @@ import {
   rollbackRepositoryUpgrade,
   verifyRepositoryUpgrade,
 } from "@maestro-template/release-tooling/upgrade";
+import {
+  planMigrationHandoff,
+  verifyMigrationHandoff,
+} from "@maestro-template/release-tooling/migration";
+import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import type { CliResult } from "../types";
 import type { FactoryCliHandler } from "./router";
@@ -25,12 +30,32 @@ const failure = (error: unknown): CliResult => ({
   stdout: "",
   stderr: `${error instanceof Error ? error.message : "Upgrade command failed."}\n`,
 });
+const inputJson = (cwd: string, argv: readonly string[]): unknown => {
+  const input = valueAfter(argv, "--input");
+  if (!input)
+    throw new Error(
+      "upgrade migration-plan/migration-verify requires --input.",
+    );
+  return JSON.parse(readFileSync(resolve(cwd, input), "utf8")) as unknown;
+};
 
 export const createUpgradeCliHandler = (): FactoryCliHandler => ({
   command: "upgrade",
   run: async (argv, cwd) => {
     try {
       const action = argv[1];
+      if (action === "migration-plan") {
+        const result = planMigrationHandoff(inputJson(cwd, argv));
+        return result.ok
+          ? success(result)
+          : { ...success(result), exitCode: 1 };
+      }
+      if (action === "migration-verify") {
+        const result = verifyMigrationHandoff(inputJson(cwd, argv));
+        return result.ok
+          ? success(result)
+          : { ...success(result), exitCode: 1 };
+      }
       if (action === "verify") {
         const receipt = valueAfter(argv, "--receipt");
         const targetRoot = valueAfter(argv, "--target-root");
@@ -77,7 +102,7 @@ export const createUpgradeCliHandler = (): FactoryCliHandler => ({
       }
       if (action !== "plan" && action !== "apply-safe")
         throw new Error(
-          "Usage: maestro upgrade plan|apply-safe|verify|rollback.",
+          "Usage: maestro upgrade plan|apply-safe|verify|rollback|migration-plan|migration-verify.",
         );
       const releaseRootValue = valueAfter(argv, "--release-root");
       const toVersion = valueAfter(argv, "--to");
