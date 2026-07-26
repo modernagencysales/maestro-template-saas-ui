@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { isAbsolute, resolve } from "node:path";
 import {
@@ -182,9 +183,11 @@ function currentFacts(
   blueprint: BlueprintTargetPlan,
   resolved: ResolvedRelease,
 ): CustomerReleaseAdapterFacts {
+  const candidateCommit = resolveCleanCandidateCommit(options.repositoryRoot);
   const authorityChecksum = sha256(
     JSON.stringify({
       kind: "unreleased-current-composition",
+      candidate: { sourceCommit: candidateCommit },
       base: {
         manifestChecksum: options.ownershipManifestChecksum,
         ...resolved.binding,
@@ -207,7 +210,7 @@ function currentFacts(
   return {
     version: "unreleased-current",
     tag: "unreleased-current",
-    sourceCommit: "working-tree",
+    sourceCommit: candidateCommit,
     sourceChecksum: authorityChecksum,
     cliCompatibility: "unreleased-current",
     agentPackCompatibility: "unreleased-current",
@@ -215,6 +218,46 @@ function currentFacts(
     ownershipManifestChecksum: authorityChecksum,
     extensionSeams,
   };
+}
+function resolveCleanCandidateCommit(repositoryRoot: string): string {
+  let sourceCommit: string;
+  let status: string;
+  try {
+    sourceCommit = execFileSync(
+      "git",
+      ["-C", repositoryRoot, "rev-parse", "HEAD"],
+      { encoding: "utf8" },
+    ).trim();
+    status = execFileSync(
+      "git",
+      [
+        "-C",
+        repositoryRoot,
+        "status",
+        "--porcelain=v1",
+        "--untracked-files=all",
+      ],
+      { encoding: "utf8" },
+    ).trim();
+  } catch {
+    throw new CustomerReleaseAdapterError(
+      "release-unavailable",
+      "Current candidate Git provenance could not be resolved.",
+    );
+  }
+  if (!/^[0-9a-f]{40}$/u.test(sourceCommit)) {
+    throw new CustomerReleaseAdapterError(
+      "release-unavailable",
+      "Current candidate HEAD is not an exact Git commit.",
+    );
+  }
+  if (status.length > 0) {
+    throw new CustomerReleaseAdapterError(
+      "dirty-source",
+      "Current candidate source must be clean before customer creation.",
+    );
+  }
+  return sourceCommit;
 }
 
 function invalidToken(): CreateFailure {

@@ -46,6 +46,10 @@ import type { FactoryCliHandler } from "./router";
 const policy = Object.freeze({
   supportedPlatforms: ["linux", "darwin", "win32"],
   supportedNodeMajors: [22],
+  // The customer lockfile is lockfileVersion 9 and is reproducibly installable
+  // by this supported offline-compatible standalone fallback. packageManager
+  // remains the canonical pnpm 10.12.1 authority.
+  supportedPnpmVersions: ["9.15.4"],
   minimumDiskBytes: 512 * 1024 * 1024,
   requiredPorts: [],
   metadataTimeoutMs: 10_000,

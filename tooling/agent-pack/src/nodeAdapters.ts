@@ -155,6 +155,7 @@ export type WorkflowProjectionRule = {
 export type NodePreflightPolicy = {
   readonly supportedPlatforms: readonly string[];
   readonly supportedNodeMajors: readonly number[];
+  readonly supportedPnpmVersions?: readonly string[];
   readonly minimumGitVersion: string;
   readonly minimumDiskBytes: number;
   readonly requiredPorts: readonly number[];
@@ -299,7 +300,9 @@ export function createNodePreflightRuntimeReader(input: {
         currentNodeMajor !== undefined &&
         input.policy.supportedNodeMajors.includes(currentNodeMajor);
       const pnpmSupported =
-        requiredPnpm !== "unavailable" && currentPnpm === requiredPnpm;
+        requiredPnpm !== "unavailable" &&
+        (currentPnpm === requiredPnpm ||
+          (input.policy.supportedPnpmVersions ?? []).includes(currentPnpm));
       const packageVersionsBound = versionsBoundToOneAuthority(versions);
       const observedGitRoot = successfulText(gitRoot);
       const dirtyPaths =

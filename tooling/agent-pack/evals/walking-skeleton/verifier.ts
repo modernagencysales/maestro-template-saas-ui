@@ -14,8 +14,19 @@ import {
 } from "./contract.js";
 
 const REVIEWED_RELEASE_PATH = "releases/v0.2.0-alpha.1/manifest.json";
-const REVIEWED_BLUEPRINT_PATH =
-  "releases/v0.2.0-alpha.1/blueprints/saas-application.json";
+export type CandidateProjection = {
+  readonly id: string;
+  readonly provenance: string;
+  readonly digest: string;
+  readonly entries: readonly {
+    readonly path: string;
+    readonly sha256: string;
+  }[];
+};
+export type CandidateProjectionBuilder = (input: {
+  readonly name: string;
+  readonly outcome: string;
+}) => CandidateProjection | Promise<CandidateProjection>;
 
 export type VerifierCommandResult = {
   readonly exitCode: number | null;
@@ -51,6 +62,7 @@ export type ExecutableEvidencePorts = {
   readonly command: VerifierCommand;
   readonly productProof: ProductProofRunner;
   readonly browserOpen: BrowserOpenPort;
+  readonly candidateProjection: CandidateProjectionBuilder;
 };
 
 export async function verifyExecutableEvidence(input: {
@@ -103,6 +115,9 @@ export async function verifyExecutableEvidence(input: {
     input.workspace,
     customerRoot,
     manifestPath,
+    input.candidateSha,
+    input.ports?.candidateProjection ??
+      createTrustedCandidateProjectionBuilder(),
   );
   await verifyForbiddenHostConfiguration(
     customerRoot,
@@ -292,6 +307,8 @@ async function verifyReviewedReleaseProjection(
   workspace: string,
   customerRoot: string,
   instancePath: string,
+  candidateSha: string,
+  candidateProjection: CandidateProjectionBuilder,
 ): Promise<{
   readonly binding: unknown;
   readonly projectedFiles: readonly {
@@ -300,10 +317,8 @@ async function verifyReviewedReleaseProjection(
   }[];
 }> {
   const releasePath = resolve(workspace, REVIEWED_RELEASE_PATH);
-  const blueprintPath = resolve(workspace, REVIEWED_BLUEPRINT_PATH);
-  const [releaseBytes, blueprintBytes, instance] = await Promise.all([
+  const [releaseBytes, instance] = await Promise.all([
     readFile(releasePath),
-    readFile(blueprintPath),
     readJsonFile(instancePath, "EVAL_MANIFEST_INVALID"),
   ]).catch(() => {
     throw new EvaluationError(
@@ -312,8 +327,7 @@ async function verifyReviewedReleaseProjection(
     );
   });
   const release = parseJsonBuffer(releaseBytes, "EVAL_MANIFEST_INVALID");
-  const blueprint = parseJsonBuffer(blueprintBytes, "EVAL_MANIFEST_INVALID");
-  if (!isRecord(release) || !isRecord(blueprint) || !isRecord(instance)) {
+  if (!isRecord(release) || !isRecord(instance)) {
     invalidManifest();
   }
   const reviewedBinding = isRecord(release.release)
@@ -328,19 +342,62 @@ async function verifyReviewedReleaseProjection(
   const instanceBlueprint = isRecord(instance.blueprint)
     ? instance.blueprint
     : undefined;
+  const compatibility = isRecord(instance.compatibility)
+    ? instance.compatibility
+    : undefined;
+  const personalization = isRecord(instance.personalization)
+    ? instance.personalization
+    : undefined;
+  if (
+    !personalization ||
+    typeof personalization.name !== "string" ||
+    typeof personalization.firstOutcome !== "string"
+  ) {
+    invalidManifest();
+  }
+  const blueprint = await candidateProjection({
+    name: personalization.name,
+    outcome: personalization.firstOutcome,
+  });
+  const authorityChecksum = hash(
+    JSON.stringify({
+      kind: "unreleased-current-composition",
+      candidate: { sourceCommit: candidateSha },
+      base: {
+        manifestChecksum: hashBuffer(releaseBytes),
+        tag: reviewedBinding?.tag,
+        sourceCommit: reviewedBinding?.sourceCommit,
+        sourceChecksum: reviewedBinding?.sourceChecksum,
+      },
+      blueprint: {
+        id: blueprint.id,
+        provenance: blueprint.provenance,
+        digest: blueprint.digest,
+      },
+    }),
+  );
+  const candidateBinding = {
+    version: "unreleased-current",
+    tag: "unreleased-current",
+    sourceCommit: candidateSha,
+    sourceChecksum: authorityChecksum,
+  };
   if (
     release.schemaVersion !== 1 ||
     release.materializationStatus !== "materializable" ||
     !reviewedBinding ||
     !instanceBinding ||
-    stableStringify(instanceBinding) !== stableStringify(reviewedBinding) ||
+    stableStringify(instanceBinding) !== stableStringify(candidateBinding) ||
+    !compatibility ||
+    compatibility.cli !== "unreleased-current" ||
+    compatibility.agentPack !== "unreleased-current" ||
     !ownership ||
-    ownership.manifest !== REVIEWED_RELEASE_PATH ||
-    ownership.manifestChecksum !== hashBuffer(releaseBytes) ||
+    ownership.manifest !== "unreleased-current-composition" ||
+    ownership.manifestChecksum !== authorityChecksum ||
     !instanceBlueprint ||
     instanceBlueprint.id !== blueprint.id ||
     instanceBlueprint.provenance !== blueprint.provenance ||
-    !/^sha256:[0-9a-f]{64}$/u.test(String(instanceBlueprint.digest)) ||
+    instanceBlueprint.digest !== blueprint.digest ||
     !Array.isArray(blueprint.entries) ||
     blueprint.entries.length === 0
   ) {
@@ -369,13 +426,36 @@ async function verifyReviewedReleaseProjection(
   }
   return {
     binding: {
-      release: reviewedBinding,
-      ownershipManifestChecksum: hashBuffer(releaseBytes),
-      blueprintManifestChecksum: hashBuffer(blueprintBytes),
+      release: candidateBinding,
+      baseManifestChecksum: hashBuffer(releaseBytes),
+      ownershipManifestChecksum: authorityChecksum,
+      blueprintDigest: blueprint.digest,
       blueprintId: blueprint.id,
       blueprintProvenance: blueprint.provenance,
     },
     projectedFiles,
+  };
+}
+
+export function createTrustedCandidateProjectionBuilder(): CandidateProjectionBuilder {
+  return async ({ name, outcome }) => {
+    const modulePath = resolve(
+      import.meta.dirname,
+      "../../../generators/src/blueprints/saasApplication.ts",
+    );
+    const loaded = (await import(pathToFileURL(modulePath).href)) as {
+      readonly buildSaasApplicationTargetPlan?: (input: {
+        readonly name: string;
+        readonly firstOutcome: string;
+      }) => CandidateProjection;
+    };
+    if (typeof loaded.buildSaasApplicationTargetPlan !== "function") {
+      invalidManifest();
+    }
+    return loaded.buildSaasApplicationTargetPlan({
+      name,
+      firstOutcome: outcome,
+    });
   };
 }
 

@@ -221,6 +221,7 @@ describe("Node Agent Pack adapters", () => {
       policy: {
         supportedPlatforms: ["linux", "darwin", "win32"],
         supportedNodeMajors: [22],
+        supportedPnpmVersions: ["9.15.4"],
         minimumGitVersion: "2.31.0",
         minimumDiskBytes: 1_000_000,
         requiredPorts: [3000],
@@ -316,7 +317,7 @@ describe("Node Agent Pack adapters", () => {
       runtime.inspect({ mode: "fake" }, repo),
     ).resolves.toMatchObject({
       host: {
-        pnpm: { current: "9.15.4", required: "10.12.1", supported: false },
+        pnpm: { current: "9.15.4", required: "10.12.1", supported: true },
         corepack: "missing",
         git: {
           current: "2.20.0",

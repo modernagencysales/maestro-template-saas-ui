@@ -24,7 +24,10 @@ import {
   saasApplicationBlueprint,
 } from "./saasApplication";
 import { buildFactorySaasApplicationFiles } from "./saasApplicationFactory";
-import { REMOVED_CUSTOMER_TEMPLATE_SCRIPTS } from "./saasRegistrationProjections";
+import {
+  CURRENT_GENERATOR_GATE_SCRIPTS,
+  REMOVED_CUSTOMER_TEMPLATE_SCRIPTS,
+} from "./saasRegistrationProjections";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../../../..");
 const sourceModule = (path: string) =>
@@ -46,14 +49,24 @@ describe("saas application blueprint", () => {
     expect(scripts["template:add-table"]).toContain("customer-cli.ts");
     expect(scripts["template:publish-workflow"]).toContain("customer-cli.ts");
     expect(scripts["template:smoke"]).toContain("customer-cli.ts");
-    for (const name of [
-      "template:init",
+    for (const name of CURRENT_GENERATOR_GATE_SCRIPTS) {
+      expect(scripts[name]).toContain("customer-cli.ts");
+    }
+    for (const required of [
       "template:quickstart",
-      "template:intake",
       "template:seed-demo",
       "template:handoff",
-      "template:prototype",
       "template:add-client-domain",
+      "template:systems",
+      "template:prototype",
+      "template:add-feature",
+      "check:system-catalog",
+    ]) {
+      expect(scripts).toHaveProperty(required);
+    }
+    for (const name of [
+      "template:init",
+      "template:intake",
       "template:workflow-output-smoke",
       "template:upgrade",
       "template:private-package:dry-run",
@@ -562,9 +575,12 @@ describe("saas application blueprint", () => {
       ...Object.keys(factory.scripts).filter(
         (name) =>
           !omittedScripts.has(name) &&
-          !REMOVED_CUSTOMER_TEMPLATE_SCRIPTS.includes(
+          (!REMOVED_CUSTOMER_TEMPLATE_SCRIPTS.includes(
             name as (typeof REMOVED_CUSTOMER_TEMPLATE_SCRIPTS)[number],
-          ),
+          ) ||
+            CURRENT_GENERATOR_GATE_SCRIPTS.includes(
+              name as (typeof CURRENT_GENERATOR_GATE_SCRIPTS)[number],
+            )),
       ),
       "maestro:crud-proof",
       "template:smoke",
@@ -580,9 +596,12 @@ describe("saas application blueprint", () => {
     for (const [name, command] of Object.entries(factory.scripts)) {
       if (
         name.startsWith("template:") &&
-        !REMOVED_CUSTOMER_TEMPLATE_SCRIPTS.includes(
+        (!REMOVED_CUSTOMER_TEMPLATE_SCRIPTS.includes(
           name as (typeof REMOVED_CUSTOMER_TEMPLATE_SCRIPTS)[number],
-        )
+        ) ||
+          CURRENT_GENERATOR_GATE_SCRIPTS.includes(
+            name as (typeof CURRENT_GENERATOR_GATE_SCRIPTS)[number],
+          ))
       ) {
         expect(root.scripts[name]).toBe(
           command
@@ -600,15 +619,23 @@ describe("saas application blueprint", () => {
       if (
         !omittedScripts.has(name) &&
         !rewritten.has(name) &&
-        !REMOVED_CUSTOMER_TEMPLATE_SCRIPTS.includes(
+        (!REMOVED_CUSTOMER_TEMPLATE_SCRIPTS.includes(
           name as (typeof REMOVED_CUSTOMER_TEMPLATE_SCRIPTS)[number],
-        )
+        ) ||
+          CURRENT_GENERATOR_GATE_SCRIPTS.includes(
+            name as (typeof CURRENT_GENERATOR_GATE_SCRIPTS)[number],
+          ))
       )
         expect(root.scripts[name]).toBe(command);
     }
     expect(root.scripts["template:smoke"]).toBe(
       "tsx tooling/generators/src/customer-cli.ts smoke",
     );
+    for (const name of CURRENT_GENERATOR_GATE_SCRIPTS) {
+      expect(root.scripts[name]).toContain(
+        "tooling/generators/src/customer-cli.ts",
+      );
+    }
     expect(JSON.stringify(root.scripts)).not.toMatch(
       new RegExp(omittedPaths.join("|")),
     );

@@ -16,8 +16,10 @@ import {
 } from "./hosts.js";
 import {
   createNativeBrowserOpenPort,
+  createTrustedCandidateProjectionBuilder,
   verifyExecutableEvidence,
   type BrowserOpenPort,
+  type CandidateProjectionBuilder,
   type ProductProofRunner,
   type VerifierCommand,
 } from "./verifier.js";
@@ -29,6 +31,17 @@ const reviewedClaudeSettings = `${JSON.stringify(
   null,
   2,
 )}\n`;
+const projectedContent =
+  "export type RecordItem = { id: string; title: string };\nexport const recordsRoute = '/records';\n";
+const fixtureProjection: CandidateProjectionBuilder = () => ({
+  id: "saas-application",
+  provenance: "@maestro-template/generators/saas-application@1",
+  digest: sha("target plan"),
+  entries: [
+    { path: ".claude/settings.json", sha256: sha(reviewedClaudeSettings) },
+    { path: "apps/web/records.ts", sha256: sha(projectedContent) },
+  ],
+});
 
 describe("walking-skeleton fail-closed evidence", () => {
   it("accepts pnpm's standalone argument separator", () => {
@@ -384,10 +397,33 @@ describe("walking-skeleton fail-closed evidence", () => {
     ).toThrowError(expect.objectContaining({ code: "EVAL_INVALID_ARGUMENT" }));
   });
 
-  it("accepts the frozen reviewed release binding rather than candidate HEAD", async () => {
+  it("accepts the clean candidate-bound current projection", async () => {
     const fixture = await completeFixture();
     const evidence = await verify(fixture, canonicalCrudProof);
     expect(evidence.canonicalHashes.manifest).toMatch(/^sha256:/u);
+  });
+  it("does not authorize projection expectations from the host-mutated workspace", async () => {
+    const workspace = await mkdtemp(join(tmpdir(), "maestro-host-workspace-"));
+    const mutableGenerator = join(
+      workspace,
+      "tooling/generators/src/blueprints/saasApplication.ts",
+    );
+    await mkdir(join(mutableGenerator, ".."), { recursive: true });
+    await writeFile(
+      mutableGenerator,
+      "export const buildSaasApplicationTargetPlan = () => ({ digest: 'host-authored' });\n",
+    );
+    try {
+      const projection = await createTrustedCandidateProjectionBuilder()({
+        name: "SaaS Application",
+        outcome: "Create and review records",
+      });
+      expect(projection.digest).toMatch(/^sha256:[0-9a-f]{64}$/u);
+      expect(projection.digest).not.toBe("host-authored");
+      expect(projection.entries.length).toBeGreaterThan(0);
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
   });
 
   it("accepts exact reviewed Claude settings and rejects tampering", async () => {
@@ -413,7 +449,7 @@ describe("walking-skeleton fail-closed evidence", () => {
     },
   );
 
-  it("rejects a fabricated customer instance that substitutes candidate HEAD", async () => {
+  it("rejects a customer instance that substitutes the frozen base commit", async () => {
     const fixture = await completeFixture();
     const path = join(
       fixture.workspace,
@@ -423,7 +459,7 @@ describe("walking-skeleton fail-closed evidence", () => {
     const instance = JSON.parse(await readFile(path, "utf8")) as {
       release: { sourceCommit: string };
     };
-    instance.release.sourceCommit = candidateSha;
+    instance.release.sourceCommit = reviewedCommit;
     await writeFile(path, JSON.stringify(instance));
     await expect(verify(fixture, canonicalCrudProof)).rejects.toMatchObject({
       code: "EVAL_MANIFEST_INVALID",
@@ -527,7 +563,7 @@ describe("walking-skeleton fail-closed evidence", () => {
       candidateSha,
       sessionDir: fixture.sessionDir,
       result: validResult(),
-      ports: { command, browserOpen },
+      ports: { command, browserOpen, candidateProjection: fixtureProjection },
     });
 
     expect(nativeProofRan).toBe(true);
@@ -580,7 +616,11 @@ describe("walking-skeleton fail-closed evidence", () => {
         candidateSha,
         sessionDir: fixture.sessionDir,
         result: validResult(),
-        ports: { command, browserOpen },
+        ports: {
+          command,
+          browserOpen,
+          candidateProjection: fixtureProjection,
+        },
       }),
     ).rejects.toMatchObject({
       code: "EVAL_PRODUCT_PROOF_UNAVAILABLE",
@@ -608,6 +648,7 @@ describe("walking-skeleton fail-closed evidence", () => {
         command: verifierCommand,
         productProof: canonicalCrudProof,
         browserOpen,
+        candidateProjection: fixtureProjection,
       },
     });
 
@@ -653,7 +694,12 @@ describe("walking-skeleton fail-closed evidence", () => {
       candidateSha,
       sessionDir: fixture.sessionDir,
       result: validResult(),
-      ports: { command, productProof: canonicalCrudProof, browserOpen },
+      ports: {
+        command,
+        productProof: canonicalCrudProof,
+        browserOpen,
+        candidateProjection: fixtureProjection,
+      },
     });
 
     expect(evidence.browserOpen).toMatchObject({
@@ -687,7 +733,12 @@ describe("walking-skeleton fail-closed evidence", () => {
       candidateSha,
       sessionDir: fixture.sessionDir,
       result: validResult(),
-      ports: { command, productProof: canonicalCrudProof, browserOpen },
+      ports: {
+        command,
+        productProof: canonicalCrudProof,
+        browserOpen,
+        candidateProjection: fixtureProjection,
+      },
     });
 
     expect(evidence.browserOpen).toMatchObject({
@@ -725,7 +776,12 @@ describe("walking-skeleton fail-closed evidence", () => {
         candidateSha,
         sessionDir: fixture.sessionDir,
         result: validResult(),
-        ports: { command: verifierCommand, productProof, browserOpen },
+        ports: {
+          command: verifierCommand,
+          productProof,
+          browserOpen,
+          candidateProjection: fixtureProjection,
+        },
       }),
     ).rejects.toMatchObject({
       code: "EVAL_PRODUCT_PROOF_UNAVAILABLE",
@@ -750,7 +806,11 @@ describe("walking-skeleton fail-closed evidence", () => {
         candidateSha,
         sessionDir: fixture.sessionDir,
         result: validResult(),
-        ports: { command, productProof },
+        ports: {
+          command,
+          productProof,
+          candidateProjection: fixtureProjection,
+        },
       }),
     ).rejects.toMatchObject({
       code: "EVAL_PREREQUISITE_EVIDENCE_MISSING",
@@ -854,8 +914,6 @@ async function completeFixture() {
     join(workspace, "releases", "v0.2.0-alpha.1", "manifest.json"),
     releaseBytes,
   );
-  const projectedContent =
-    "export type RecordItem = { id: string; title: string };\nexport const recordsRoute = '/records';\n";
   await writeFile(
     join(customerRoot, "apps", "web", "records.ts"),
     projectedContent,
@@ -883,21 +941,51 @@ async function completeFixture() {
     ),
     `${JSON.stringify(blueprint, null, 2)}\n`,
   );
-  await writeFile(
-    join(customerRoot, "template-instance.json"),
+  const authorityChecksum = sha(
     JSON.stringify({
-      schemaVersion: 1,
-      release: release.release,
-      ownership: {
-        manifest: "releases/v0.2.0-alpha.1/manifest.json",
+      kind: "unreleased-current-composition",
+      candidate: { sourceCommit: candidateSha },
+      base: {
         manifestChecksum: shaBuffer(releaseBytes),
+        tag: release.release.tag,
+        sourceCommit: release.release.sourceCommit,
+        sourceChecksum: release.release.sourceChecksum,
       },
       blueprint: {
         id: blueprint.id,
         provenance: blueprint.provenance,
         digest: sha("target plan"),
       },
-      personalization: { demoOnly: true },
+    }),
+  );
+  await writeFile(
+    join(customerRoot, "template-instance.json"),
+    JSON.stringify({
+      schemaVersion: 1,
+      release: {
+        version: "unreleased-current",
+        tag: "unreleased-current",
+        sourceCommit: candidateSha,
+        sourceChecksum: authorityChecksum,
+      },
+      compatibility: {
+        cli: "unreleased-current",
+        agentPack: "unreleased-current",
+      },
+      ownership: {
+        manifest: "unreleased-current-composition",
+        manifestChecksum: authorityChecksum,
+      },
+      blueprint: {
+        id: blueprint.id,
+        provenance: blueprint.provenance,
+        digest: sha("target plan"),
+      },
+      personalization: {
+        name: "SaaS Application",
+        firstOutcome: "Create and review records",
+        demoOnly: true,
+      },
     }),
   );
   await writeFile(
@@ -986,6 +1074,7 @@ async function verify(
     result: validResult(),
     ports: {
       command: verifierCommand,
+      candidateProjection: fixtureProjection,
       ...(productProof ? { productProof } : {}),
     },
   });

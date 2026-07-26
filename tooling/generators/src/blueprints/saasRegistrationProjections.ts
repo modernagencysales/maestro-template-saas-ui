@@ -45,13 +45,28 @@ export const REMOVED_CUSTOMER_TEMPLATE_SCRIPTS = [
   "template:private-package:dry-run",
   "template:private-package:import",
 ] as const;
+export const CURRENT_GENERATOR_GATE_SCRIPTS = [
+  "template:quickstart",
+  "template:seed-demo",
+  "template:handoff",
+  "template:add-client-domain",
+  "template:prototype",
+] as const;
 
-const customerPackage = (): string => {
+const customerPackage = (current: boolean): string => {
   const value = JSON.parse(source("package.json")) as {
     scripts: Record<string, string>;
   };
-  for (const name of REMOVED_CUSTOMER_TEMPLATE_SCRIPTS)
-    delete value.scripts[name];
+  for (const name of REMOVED_CUSTOMER_TEMPLATE_SCRIPTS) {
+    if (
+      !current ||
+      !CURRENT_GENERATOR_GATE_SCRIPTS.includes(
+        name as (typeof CURRENT_GENERATOR_GATE_SCRIPTS)[number],
+      )
+    ) {
+      delete value.scripts[name];
+    }
+  }
   delete value.scripts["check:recipes"];
   delete value.scripts["check:workflow-version-immutability"];
   delete value.scripts["check:workflow-publication-generation"];
@@ -283,7 +298,7 @@ export const buildSaasRegistrationProjections = (
           },
         ]
       : []),
-    { path: "package.json", content: customerPackage() },
+    { path: "package.json", content: customerPackage(current) },
     {
       path: "tooling/generators/package.json",
       content: customerGeneratorPackage(),
