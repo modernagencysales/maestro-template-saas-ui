@@ -10,6 +10,7 @@ import { parseCliOptions } from "./cli.js";
 import type { WalkingSkeletonResult } from "./contract.js";
 import {
   createHostAdapter,
+  executeHostCommand,
   safeHostEnvironment,
   type HostCommand,
 } from "./hosts.js";
@@ -47,6 +48,25 @@ describe("walking-skeleton fail-closed evidence", () => {
     ).toMatchObject({
       mode: "run",
       options: { host: "codex", candidateSha },
+    });
+  });
+
+  it("closes executor stdin so EOF-gated hosts can complete", async () => {
+    const result = await executeHostCommand({
+      command: process.execPath,
+      args: [
+        "-e",
+        'process.stdin.resume(); process.stdin.on("end", () => process.stdout.write("EOF_OK"));',
+      ],
+      cwd: process.cwd(),
+      env: {},
+      timeoutMs: 1_000,
+    });
+    expect(result).toEqual({
+      exitCode: 0,
+      stdout: "EOF_OK",
+      stderr: "",
+      unavailable: false,
     });
   });
 

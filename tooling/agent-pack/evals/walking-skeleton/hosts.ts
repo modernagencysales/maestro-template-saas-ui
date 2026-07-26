@@ -237,7 +237,7 @@ export function executeHostCommand(
   input: HostCommand,
 ): Promise<HostCommandResult> {
   return new Promise((resolveResult) => {
-    nodeExecFile(
+    const child = nodeExecFile(
       input.command,
       [...input.args],
       {
@@ -258,5 +258,6 @@ export function executeHostCommand(
         });
       },
     );
+    child.stdin?.end();
   });
 }
