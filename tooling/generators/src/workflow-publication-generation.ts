@@ -49,6 +49,18 @@ const workflowAuthorityPath =
 const manifestPath = "docs/template/generated/workflow-publications.json";
 const provenancePath =
   "docs/template/generated/provenance/add-workflow/publicationFixture.json";
+const immutablePublishedPaths = [
+  provenancePath,
+  manifestPath,
+  "docs/template/generated/workflows/publicationFixture.md",
+  "docs/template/generated/workflows/publicationFixture.semantics.json",
+  capabilityAuthorityPath,
+  capabilityDescriptorPath,
+  capabilityReleasePath,
+  workflowAuthorityPath,
+  workflowDescriptorPath,
+  workflowReleasePath,
+] as const;
 
 const sha256 = (value: string | Buffer): string =>
   createHash("sha256").update(value).digest("hex");
@@ -255,11 +267,24 @@ export const buildWorkflowPublicationStack = async (
     cwd,
     capabilityDescriptorPath,
   );
-  const capability = refreshDescriptor(cwd, currentCapability);
   const currentWorkflow = readJson<ReleaseDescriptor>(
     cwd,
     workflowDescriptorPath,
   );
+  if (
+    currentCapability.lifecycle === "published" &&
+    currentWorkflow.lifecycle === "published"
+  ) {
+    return {
+      files: immutablePublishedPaths.map((path) => ({
+        path,
+        content: readFileSync(resolve(cwd, path), "utf8"),
+      })),
+      drift: [],
+      publicationCount: 2,
+    };
+  }
+  const capability = refreshDescriptor(cwd, currentCapability);
   const workflow = refreshDescriptor(
     cwd,
     updateWorkflowDependency(currentWorkflow, capability),

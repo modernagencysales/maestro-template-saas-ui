@@ -27,15 +27,15 @@
       {
         "logicalKey": "publicationEcho",
         "version": 1,
-        "authorityArtifactChecksum": "23c017b495119dc5274887d024f03890caf2808ad35acf33d9110c069666314a",
-        "releaseChecksum": "700eab0360875a9e5e551a7bce49e7f9324b809358f44aab78395fc3b9f81f10"
+        "authorityArtifactChecksum": "4c7a935f394e51f4801ca1b613305fb3426b41e8fcae76ae2da618ce945f4e23",
+        "releaseChecksum": "267c2d5eda0b09707f0227d0fe679a9c1da82dfa40ddbe7d912779230960e533"
       }
     ],
     "manifestPath": "docs/template/generated/workflow-publications.json",
-    "manifestChecksum": "2c9a0e9c95591b2cfff44bb406bbb8024b914ff4b74b12b272928511eb7cca7a",
-    "authorityChecksum": "92fb8ea3eac2a688e06b5121ebae9ff8c2899e9ae660791bc51ff3564984af9a",
-    "authorityArtifactChecksum": "8b66178e45556a05081542d592f1134ec426e75270cca290a57e0dcbf55a5fd8",
-    "sourceClosureChecksum": "dfc30b9681bda6b25d949e4e4d460da04d3f29cdb4c5d3c17a0fca88baa96ba2",
-    "releaseChecksum": "9b3868a2bd9aadbee97fb4e5a779175cc06d06c99bab1c27a1f908bf2427a3b2"
+    "manifestChecksum": "1f7fb928805e6596042dacadea963c2ff57315ecb7c883628de8f89e68f9fbec",
+    "authorityChecksum": "043e801b92da7ad5459d900edf1c591758f5ae30befa18507dfb93086cb51413",
+    "authorityArtifactChecksum": "759c4f144ba09b295f17460797232758d00da86059298a91cf62a13b0088e7d6",
+    "sourceClosureChecksum": "754e681d5cdb6f3d73d0b68f4d83dba5bb30621a8bae4f0d1e133155e55edb6f",
+    "releaseChecksum": "d7d61385a28e2daf46c68f8994dae068020029a332f7c2024382b2340136274e"
   }
 }

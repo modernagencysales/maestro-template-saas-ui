@@ -784,23 +784,10 @@ const ${name}OnCompleteRef = makeFunctionReference<
   null
 >;
 
-const errorMessage = (error: unknown): string | null => {
-  if (
-    typeof error === "object" &&
-    error !== null &&
-    "message" in error &&
-    typeof error.message === "string"
-  ) {
-    return error.message;
-  }
-
-  return null;
-};
-
-const toWorkflowValidationFailed = (error: unknown): ValidationFailed =>
+const toWorkflowPolicyValidationFailed = (): ValidationFailed =>
   new ValidationFailed({
-    field: "workflow",
-    message: errorMessage(error) ?? "Unable to start workflow.",
+    field: "workflowPolicy",
+    message: "Workflow policy could not be resolved.",
   });
 
 type WorkflowError =
@@ -811,21 +798,29 @@ type WorkflowError =
   | ValidationFailed;
 type WorkflowStartError = WorkflowError | WorkflowAdmissionDenied;
 
-const toWorkflowError = (error: unknown): WorkflowError => {
-  if (
+const isWorkflowError = (error: unknown): error is WorkflowError =>
     error instanceof Unauthorized ||
     error instanceof MemberNotInWorkspace ||
     error instanceof WorkspaceNotFound ||
     error instanceof NotFound ||
-    error instanceof ValidationFailed
-  ) {
-    return error;
-  }
-
-  return toWorkflowValidationFailed(error);
-};
-const toWorkflowStartError = (error: unknown): WorkflowStartError =>
-  error instanceof WorkflowAdmissionDenied ? error : toWorkflowError(error);
+    error instanceof ValidationFailed;
+const toWorkflowValidationFailed = (): ValidationFailed =>
+  new ValidationFailed({
+    field: "workflow",
+    message: "Workflow operation failed.",
+  });
+const toWorkflowError = (error: unknown): WorkflowError =>
+  isWorkflowError(error) ? error : toWorkflowValidationFailed();
+const preserveWorkflowStartErrors = <A, R>(
+  effect: Effect.Effect<A, unknown, R>,
+): Effect.Effect<A, WorkflowStartError, R> =>
+  effect.pipe(
+    Effect.catchAll((error) =>
+      isWorkflowError(error) || error instanceof WorkflowAdmissionDenied
+        ? Effect.fail(error)
+        : Effect.die(error),
+    ),
+  );
 
 const findWorkflowRun = (
   workspaceId: GenericId<"workspaces">,
@@ -878,7 +873,7 @@ const startWithProfile = (
       const policySnapshot = yield* resolveWorkflowPolicySnapshotForRun(
         ${name}Graph.policyPosture,
         { workspaceId, resolvedAt: startedAt },
-      ).pipe(Effect.mapError(toWorkflowValidationFailed));
+      ).pipe(Effect.mapError(toWorkflowPolicyValidationFailed));
       const componentWorkflowId = yield* startWorkflowAndRecordOwnership({
         workflowRef: ${name}RunRef,
         onCompleteRef: ${name}OnCompleteRef,
@@ -901,7 +896,7 @@ const startWithProfile = (
         workflowKind: "workflow.${name}",
         kickoffProfile:
           kickoffProfile === "interactive" ? "eager-first-poll" : "queued",
-      }).pipe(Effect.mapError(toWorkflowStartError));
+      });
       const run = yield* findWorkflowRun(workspaceId, componentWorkflowId);
 
       return {
@@ -910,7 +905,7 @@ const startWithProfile = (
         workflowRunId: run._id,
         componentWorkflowId,
       };
-  }).pipe(Effect.mapError(toWorkflowStartError));
+  }).pipe(preserveWorkflowStartErrors);
 
 const startInteractiveImpl = FunctionImpl.make(
   databaseSchema,

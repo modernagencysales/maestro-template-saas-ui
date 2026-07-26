@@ -18,6 +18,43 @@ import {
 } from "./workflow-lifecycle-persistence.fixture";
 
 describe("workflow lifecycle generation persistence", () => {
+  it("moves a queued run to running on the first real stage dispatch", async () => {
+    const status = await Effect.runPromise(
+      Effect.gen(function* () {
+        const confect = yield* Effect.serviceOptional(
+          TestConfect.TestConfect<typeof databaseSchema>(),
+        );
+        return yield* confect.run(
+          Effect.gen(function* () {
+            const reader = yield* DatabaseReader;
+            const writer = yield* DatabaseWriter;
+            const runId = yield* reserveWorkflowRun(writer, {
+              workspaceId: "workspace-dispatch",
+              workflowId: "workflow.queued",
+              workflowVersion: 1,
+              graphJson: '{"nodes":[]}',
+              idempotencyKey: "queued-dispatch",
+              startedByUserId: "fixture",
+              startedAt: lifecycleNow,
+            });
+            yield* writer
+              .table("workflowRuns")
+              .patch(runId, { componentWorkflowId: "component-run-a" })
+              .pipe(Effect.orDie);
+            yield* recordObservedStageStarted(stageArgs(runId, 0));
+            const run = yield* reader
+              .table("workflowRuns")
+              .get(runId)
+              .pipe(Effect.orDie);
+            return run?.status ?? "missing";
+          }),
+          Schema.String,
+        );
+      }).pipe(Effect.provide(testConfectLayer())),
+    );
+    expect(status).toBe("running");
+  });
+
   it("permits only the unbound eager generation zero reservation", async () => {
     const result = await Effect.runPromise(
       Effect.gen(function* () {

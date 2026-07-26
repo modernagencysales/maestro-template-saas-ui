@@ -32,6 +32,7 @@ export const recordObservedStageStarted = (args: StageStartedArgs) =>
     const reader = yield* DatabaseReader;
     const writer = yield* DatabaseWriter;
     yield* requireOwnedGeneration(reader, args);
+    yield* markWorkflowRunDispatched(reader, writer, args.workflowRunId);
     const existing = yield* reader
       .table("workflowStageRuns")
       .index("by_run_generation_stage", (q) =>
@@ -68,6 +69,23 @@ export const recordObservedStageStarted = (args: StageStartedArgs) =>
         .pipe(Effect.orDie);
     }
     return null;
+  });
+export const markWorkflowRunDispatched = (
+  reader: Context.Tag.Service<typeof DatabaseReader>,
+  writer: Context.Tag.Service<typeof DatabaseWriter>,
+  workflowRunId: string,
+) =>
+  Effect.gen(function* () {
+    const run = yield* reader
+      .table("workflowRuns")
+      .get(workflowRunId as GenericId<"workflowRuns">)
+      .pipe(Effect.orDie);
+    if (run?.status === "queued") {
+      yield* writer
+        .table("workflowRuns")
+        .patch(run._id, { status: "running" })
+        .pipe(Effect.orDie);
+    }
   });
 
 const recordFinished = FunctionImpl.make(

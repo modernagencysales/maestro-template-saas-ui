@@ -31,6 +31,7 @@ export const WorkflowRunRow = Schema.Struct({
   graphJson: Schema.String,
   status: WorkflowRunStatus,
   admissionLane: Schema.optional(WorkflowAdmissionLane),
+  startBindingHash: Schema.optional(Schema.NullOr(Schema.String)),
   idempotencyKey: Schema.String,
   startedByUserId: Schema.String,
   startedAt: Schema.Number,

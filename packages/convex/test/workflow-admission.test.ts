@@ -2,14 +2,22 @@ import { TestConfect } from "@confect/test";
 import * as Effect from "effect/Effect";
 import * as Either from "effect/Either";
 import * as Schema from "effect/Schema";
+import type { FunctionReference } from "convex/server";
 import { describe, expect, it } from "vitest";
 
 import databaseSchema from "../confect/_generated/schema";
 import { DatabaseReader, DatabaseWriter } from "../confect/_generated/services";
 import {
   assertWorkflowAdmissionAvailable,
+  recordStartedWorkflow,
   reserveWorkflowRun,
+  sameWorkflowStartBinding,
+  workflowStartBindingHash,
 } from "../confect/workflows/_kit/ownership";
+import {
+  createWorkflowSystemPrincipal,
+  createWorkflowUserPrincipal,
+} from "../confect/workflows/_kit/principal";
 import {
   decideWorkflowAdmission,
   workflowAdmissionPolicy,
@@ -33,6 +41,38 @@ const SystemDenialResult = Schema.Struct({
   lane: Schema.NullOr(Schema.String),
   limit: Schema.NullOr(Schema.Number),
 });
+
+const systemPrincipal = createWorkflowSystemPrincipal({
+  workspaceId: "workspace-a",
+  systemId: "scheduler",
+  reason: "scheduled fixture",
+  grants: ["workflow:start"],
+  kickoffAt: 1,
+});
+const userPrincipal = createWorkflowUserPrincipal({
+  workspaceId: "workspace-a",
+  actorId: "user-a",
+  role: "admin",
+  grants: ["workflow:start"],
+  authEpoch: 1,
+  kickoffAt: 1,
+});
+
+const startBindingInput = (overrides: Record<string, unknown> = {}) =>
+  ({
+    workflowRef: {} as FunctionReference<"mutation", "internal">,
+    workflowArgs: { input: { alpha: 1, beta: 2 } },
+    workspaceId: "workspace-a",
+    workflowId: "workflow.fixture",
+    workflowVersion: 1,
+    graphJson: '{"nodes":[]}',
+    idempotencyKey: "same-key",
+    startedByUserId: "user-a",
+    startedAt: 1,
+    kickoffProfile: "queued" as const,
+    principalSnapshot: userPrincipal,
+    ...overrides,
+  }) as Parameters<typeof workflowStartBindingHash>[0];
 
 describe("workflow admission policy", () => {
   it("derives a narrow independent system lane", () => {
@@ -181,5 +221,167 @@ describe("workspace workflow admission", () => {
       program.pipe(Effect.provide(testConfectLayer())),
     );
     expect(result).toEqual({ denied: true, lane: "system", limit: 1 });
+  });
+
+  it("denies the queued budget independently of active capacity", async () => {
+    const result = await Effect.runPromise(
+      Effect.gen(function* () {
+        const confect = yield* Effect.serviceOptional(
+          TestConfect.TestConfect<typeof databaseSchema>(),
+        );
+        return yield* confect.run(
+          Effect.gen(function* () {
+            yield* reserve("workspace-queued-full", "queued-one", "user");
+            yield* reserve("workspace-queued-full", "queued-two", "user");
+            const reader = yield* DatabaseReader;
+            const decision = yield* Effect.either(
+              assertWorkflowAdmissionAvailable(
+                reader,
+                "workspace-queued-full",
+                "user",
+                tinyPolicy,
+              ),
+            );
+            return Either.isLeft(decision)
+              ? `${decision.left.saturated}:${decision.left.limit}`
+              : "admitted";
+          }),
+          Schema.String,
+        );
+      }).pipe(Effect.provide(testConfectLayer())),
+    );
+    expect(result).toBe("queued:2");
+  });
+
+  it("keeps queued starts queued until the first stage dispatch", async () => {
+    const result = await Effect.runPromise(
+      Effect.gen(function* () {
+        const confect = yield* Effect.serviceOptional(
+          TestConfect.TestConfect<typeof databaseSchema>(),
+        );
+        return yield* confect.run(
+          Effect.gen(function* () {
+            const writer = yield* DatabaseWriter;
+            const reader = yield* DatabaseReader;
+            const runId = yield* reserveWorkflowRun(writer, {
+              workspaceId: "workspace-queued",
+              workflowId: "workflow.queued",
+              workflowVersion: 1,
+              graphJson: "{}",
+              idempotencyKey: "queued-component",
+              startedByUserId: "fixture",
+              startedAt: 1,
+              admissionLane: "user",
+            });
+            yield* recordStartedWorkflow(
+              writer,
+              runId,
+              "component-queued" as never,
+              "queued",
+            );
+            const row = yield* reader
+              .table("workflowRuns")
+              .get(runId)
+              .pipe(Effect.orDie);
+            return row?.status ?? "missing";
+          }),
+          Schema.String,
+        );
+      }).pipe(Effect.provide(testConfectLayer())),
+    );
+    expect(result).toBe("queued");
+  });
+
+  it("derives the system lane from principal despite a user-lane hint", async () => {
+    const result = await Effect.runPromise(
+      Effect.gen(function* () {
+        const confect = yield* Effect.serviceOptional(
+          TestConfect.TestConfect<typeof databaseSchema>(),
+        );
+        return yield* confect.run(
+          Effect.gen(function* () {
+            const writer = yield* DatabaseWriter;
+            const reader = yield* DatabaseReader;
+            const runId = yield* reserveWorkflowRun(writer, {
+              workspaceId: "workspace-a",
+              workflowId: "workflow.system",
+              workflowVersion: 1,
+              graphJson: "{}",
+              idempotencyKey: "system-lane",
+              startedByUserId: "scheduler",
+              startedAt: 1,
+              admissionLane: "user",
+              principalSnapshot: systemPrincipal,
+            });
+            const row = yield* reader
+              .table("workflowRuns")
+              .get(runId)
+              .pipe(Effect.orDie);
+            return row?.admissionLane ?? "missing";
+          }),
+          Schema.String,
+        );
+      }).pipe(Effect.provide(testConfectLayer())),
+    );
+    expect(result).toBe("system");
+  });
+});
+
+describe("immutable workflow start binding", () => {
+  it("binds version, arguments, principal, and derived lane", () => {
+    const baseline = workflowStartBindingHash(startBindingInput(), "same-key");
+    expect(
+      workflowStartBindingHash(
+        startBindingInput({ workflowVersion: 2 }),
+        "same-key",
+      ),
+    ).not.toBe(baseline);
+    expect(
+      workflowStartBindingHash(
+        startBindingInput({ workflowArgs: { input: { alpha: 9, beta: 2 } } }),
+        "same-key",
+      ),
+    ).not.toBe(baseline);
+    expect(
+      workflowStartBindingHash(
+        startBindingInput({ principalSnapshot: systemPrincipal }),
+        "same-key",
+      ),
+    ).not.toBe(baseline);
+  });
+
+  it("canonicalizes reordered object keys", () => {
+    expect(workflowStartBindingHash(startBindingInput(), "same-key")).toBe(
+      workflowStartBindingHash(
+        startBindingInput({ workflowArgs: { input: { beta: 2, alpha: 1 } } }),
+        "same-key",
+      ),
+    );
+  });
+
+  it("accepts exact replay and fails closed for mismatch or legacy rows", () => {
+    const input = startBindingInput();
+    const hash = workflowStartBindingHash(input, "same-key");
+    const replay = {
+      workflowId: input.workflowId,
+      workflowVersion: input.workflowVersion,
+      admissionLane: "user" as const,
+      startBindingHash: hash,
+    };
+    expect(
+      sameWorkflowStartBinding(replay, { ...replay, startBindingHash: hash }),
+    ).toBe(true);
+    expect(
+      sameWorkflowStartBinding(replay, {
+        ...replay,
+        startBindingHash: "different",
+      }),
+    ).toBe(false);
+    expect(
+      sameWorkflowStartBinding(
+        { ...replay, startBindingHash: null },
+        { ...replay, startBindingHash: hash },
+      ),
+    ).toBe(false);
   });
 });

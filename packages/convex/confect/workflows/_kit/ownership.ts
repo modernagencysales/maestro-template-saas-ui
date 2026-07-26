@@ -10,8 +10,9 @@ import {
   DatabaseWriter,
   MutationCtx,
 } from "../../_generated/services";
-import { makePublicError } from "../../shared/errors";
+import { ValidationFailed } from "../../errors";
 import { validateCallerIdempotencyKey } from "../../shared/idempotencyKey";
+import { sha256Hex } from "../../shared/sha256";
 import {
   createWorkflowLifecycleState,
   type WorkflowOnCompleteContext,
@@ -35,6 +36,10 @@ type Writer = Context.Tag.Service<typeof DatabaseWriter>;
 type Mutation = Context.Tag.Service<typeof MutationCtx>;
 type ExistingWorkflowRun = {
   readonly componentWorkflowId?: string | null | undefined;
+  readonly workflowId: string;
+  readonly workflowVersion: number;
+  readonly admissionLane?: WorkflowAdmissionLane | undefined;
+  readonly startBindingHash?: string | null | undefined;
 };
 
 export type WorkflowRunReservationInput = Pick<
@@ -52,8 +57,9 @@ export type WorkflowRunReservationInput = Pick<
   | "sourceRunId"
   | "timeoutMs"
   | "deadlineAt"
-  | "admissionLane"
 > & {
+  readonly admissionLane?: WorkflowAdmissionLane;
+  readonly startBindingHash?: string;
   readonly principalSnapshot?: DurableWorkflowPrincipal;
   readonly policySnapshot?: WorkflowPolicySnapshot;
 };
@@ -80,7 +86,6 @@ export type StartWorkflowOwnershipInput<
   readonly timeoutMs?: number;
   readonly deadlineAt?: number;
   readonly kickoffProfile: "eager-first-poll" | "queued";
-  readonly admissionLane?: WorkflowAdmissionLane;
   readonly principalSnapshot?: DurableWorkflowPrincipal;
   readonly policySnapshot?: WorkflowPolicySnapshot;
   readonly publication?: {
@@ -136,7 +141,8 @@ export const startWorkflowAndRecordOwnership = <
     const normalizedInput = {
       ...input,
       idempotencyKey,
-      admissionLane: resolveWorkflowAdmissionLane(input),
+      admissionLane: workflowAdmissionLaneForPrincipal(input.principalSnapshot),
+      startBindingHash: workflowStartBindingHash(input, idempotencyKey),
     };
     const existing = yield* readExistingWorkflowRun(reader, normalizedInput);
 
@@ -171,7 +177,12 @@ export const startWorkflowAndRecordOwnership = <
       reservationId,
       completionContext,
     );
-    yield* recordStartedWorkflow(writer, reservationId, componentWorkflowId);
+    yield* recordStartedWorkflow(
+      writer,
+      reservationId,
+      componentWorkflowId,
+      normalizedInput.kickoffProfile,
+    );
     return componentWorkflowId;
   });
 
@@ -183,8 +194,9 @@ export const validateWorkflowIdempotencyKey = (idempotencyKey: string) => {
   }
 
   return Effect.fail(
-    makePublicError("VALIDATION_FAILED", validation.error.message, {
-      idempotencyKey,
+    new ValidationFailed({
+      field: "idempotencyKey",
+      message: validation.error.message,
     }),
   );
 };
@@ -209,18 +221,28 @@ const handleExistingWorkflowRun = <
   F extends FunctionReference<"mutation", "internal">,
 >(
   existing: ExistingWorkflowRun | null,
-  input: StartWorkflowOwnershipInput<F>,
+  input: StartWorkflowOwnershipInput<F> & {
+    readonly admissionLane: WorkflowAdmissionLane;
+    readonly startBindingHash: string;
+  },
 ) => {
+  if (existing !== null && !sameWorkflowStartBinding(existing, input)) {
+    return Effect.fail(
+      new ValidationFailed({
+        field: "idempotencyKey",
+        message: "Idempotency key conflicts with an immutable workflow start.",
+      }),
+    );
+  }
   if (existing?.componentWorkflowId) {
     return Effect.succeed(existing.componentWorkflowId as WorkflowId);
   }
   return existing
     ? Effect.fail(
-        makePublicError(
-          "VALIDATION_FAILED",
-          "Workflow start is already reserved for this idempotency key.",
-          { idempotencyKey: input.idempotencyKey },
-        ),
+        new ValidationFailed({
+          field: "idempotencyKey",
+          message: "Workflow start is already reserved.",
+        }),
       )
     : Effect.succeed(null);
 };
@@ -238,7 +260,8 @@ export const reserveWorkflowRun = (
         workflowVersion: input.workflowVersion,
         graphJson: input.graphJson,
         status: "queued",
-        admissionLane: resolveWorkflowAdmissionLane(input),
+        admissionLane: resolveReservationAdmissionLane(input),
+        startBindingHash: input.startBindingHash ?? null,
         idempotencyKey: input.idempotencyKey,
         startedByUserId: input.startedByUserId,
         startedAt: input.startedAt,
@@ -288,12 +311,81 @@ export const initialWorkflowLifecycleFields = (input: {
   } as const;
 };
 
-const resolveWorkflowAdmissionLane = (input: {
+const resolveReservationAdmissionLane = (input: {
   readonly admissionLane?: WorkflowAdmissionLane;
   readonly principalSnapshot?: DurableWorkflowPrincipal;
 }): WorkflowAdmissionLane =>
-  input.admissionLane ??
-  (input.principalSnapshot?.kind === "system" ? "system" : "user");
+  input.principalSnapshot === undefined
+    ? (input.admissionLane ?? "user")
+    : workflowAdmissionLaneForPrincipal(input.principalSnapshot);
+
+export const workflowAdmissionLaneForPrincipal = (
+  principal: DurableWorkflowPrincipal | undefined,
+): WorkflowAdmissionLane => (principal?.kind === "system" ? "system" : "user");
+
+export const workflowStartBindingHash = <
+  F extends FunctionReference<"mutation", "internal">,
+>(
+  input: StartWorkflowOwnershipInput<F>,
+  idempotencyKey: string,
+): string =>
+  sha256Hex(
+    canonicalStartValue({
+      workspaceId: input.workspaceId,
+      workflowId: input.workflowId,
+      workflowVersion: input.workflowVersion,
+      graphJson: input.graphJson,
+      kickoffProfile: input.kickoffProfile,
+      idempotencyKey,
+      workflowArgs: input.buildWorkflowArgs
+        ? input.buildWorkflowArgs("__workflow_start_binding__")
+        : input.workflowArgs,
+      principal: input.principalSnapshot ?? null,
+      policy: input.policySnapshot ?? null,
+      admissionLane: workflowAdmissionLaneForPrincipal(input.principalSnapshot),
+    }),
+  );
+
+export const sameWorkflowStartBinding = (
+  existing: ExistingWorkflowRun,
+  input: {
+    readonly workflowId: string;
+    readonly workflowVersion: number;
+    readonly admissionLane: WorkflowAdmissionLane;
+    readonly startBindingHash: string;
+  },
+): boolean =>
+  existing.workflowId === input.workflowId &&
+  existing.workflowVersion === input.workflowVersion &&
+  (existing.admissionLane ?? "user") === input.admissionLane &&
+  existing.startBindingHash === input.startBindingHash;
+
+const canonicalStartValue = (value: unknown): string => {
+  if (
+    value === null ||
+    typeof value === "string" ||
+    typeof value === "boolean"
+  ) {
+    return JSON.stringify(value);
+  }
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return JSON.stringify(value);
+  }
+  if (Array.isArray(value)) {
+    return `[${value.map(canonicalStartValue).join(",")}]`;
+  }
+  if (typeof value === "object" && value !== null) {
+    return `{${Object.entries(value)
+      .filter(([, entry]) => entry !== undefined)
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(
+        ([key, entry]) =>
+          `${JSON.stringify(key)}:${canonicalStartValue(entry)}`,
+      )
+      .join(",")}}`;
+  }
+  throw new TypeError("Workflow start arguments are not canonical values.");
+};
 
 export const assertWorkflowAdmissionAvailable = (
   reader: Reader,
@@ -404,22 +496,24 @@ const startComponentWorkflow = <
   workflowRunId: GenericId<"workflowRuns">,
   completionContext: WorkflowOnCompleteContext,
 ) =>
-  Effect.promise(() => {
+  Effect.gen(function* () {
     const workflowArgs = input.buildWorkflowArgs
       ? input.buildWorkflowArgs(workflowRunId)
       : input.workflowArgs;
     if (workflowArgs === undefined) {
-      throw makePublicError(
-        "VALIDATION_FAILED",
-        "Workflow start arguments are required.",
-      );
+      return yield* new ValidationFailed({
+        field: "workflow",
+        message: "Workflow start arguments are required.",
+      });
     }
-    return start(mutationCtx, input.workflowRef, workflowArgs, {
-      ...kickoffProfileStartOptions(input.kickoffProfile),
-      ...(input.onCompleteRef
-        ? { onComplete: input.onCompleteRef, context: completionContext }
-        : {}),
-    });
+    return yield* Effect.promise(() =>
+      start(mutationCtx, input.workflowRef, workflowArgs, {
+        ...kickoffProfileStartOptions(input.kickoffProfile),
+        ...(input.onCompleteRef
+          ? { onComplete: input.onCompleteRef, context: completionContext }
+          : {}),
+      }),
+    );
   });
 
 const workflowOnCompleteContext = <
@@ -442,15 +536,16 @@ export const kickoffProfileStartOptions = (
   startAsync: profile === "queued",
 });
 
-const recordStartedWorkflow = (
+export const recordStartedWorkflow = (
   writer: Writer,
   reservationId: GenericId<"workflowRuns">,
   componentWorkflowId: WorkflowId,
+  kickoffProfile: "eager-first-poll" | "queued",
 ) =>
   writer
     .table("workflowRuns")
     .patch(reservationId, {
-      status: "running",
+      ...(kickoffProfile === "eager-first-poll" ? { status: "running" } : {}),
       componentWorkflowId,
     })
     .pipe(Effect.orDie);

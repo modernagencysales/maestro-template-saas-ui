@@ -52,11 +52,18 @@ describe("customer-safe workflow generator leaf", () => {
     }).files;
     const spec = files.find((file) => file.path.endsWith(".spec.ts"))?.content;
     const impl = files.find((file) => file.path.endsWith(".impl.ts"))?.content;
+    const startImpl = impl?.slice(
+      impl.indexOf("const startWithProfile"),
+      impl.indexOf("const startInteractiveImpl"),
+    );
     expect(spec).toContain("const WorkflowStartErrors = Schema.Union(");
     expect(spec).toContain('"WorkflowAdmissionDenied"');
-    expect(impl).toContain(
-      "error instanceof WorkflowAdmissionDenied ? error : toWorkflowError(error)",
-    );
-    expect(impl).toContain("Effect.mapError(toWorkflowStartError)");
+    expect(impl).toContain("Effect.catchAll((error) =>");
+    expect(impl).toContain("error instanceof WorkflowAdmissionDenied");
+    expect(impl).toContain("? Effect.fail(error)");
+    expect(impl).toContain(": Effect.die(error)");
+    expect(startImpl).toContain("}).pipe(preserveWorkflowStartErrors)");
+    expect(impl).not.toContain("error.message");
+    expect(startImpl).not.toContain("toWorkflowValidationFailed");
   });
 });

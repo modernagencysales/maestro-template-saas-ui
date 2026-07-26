@@ -9,7 +9,7 @@
   "releaseContent": {
     "workflowId": "workflow_publicationFixture",
     "version": 1,
-    "authorityChecksum": "92fb8ea3eac2a688e06b5121ebae9ff8c2899e9ae660791bc51ff3564984af9a",
+    "authorityChecksum": "043e801b92da7ad5459d900edf1c591758f5ae30befa18507dfb93086cb51413",
     "graphModule": "packages/convex/confect/workflows/publicationFixture/v1.graph.ts",
     "graphHash": "2c4c348ac937797e21618686ab80768538f4d7484064dc33e2c0e73549312d36",
     "runnerModule": "workflowRunners/publicationFixture/v1:run",
@@ -26,7 +26,7 @@
       {
         "logicalKey": "capability.fixture.publicationEcho",
         "version": 1,
-        "releaseChecksum": "700eab0360875a9e5e551a7bce49e7f9324b809358f44aab78395fc3b9f81f10"
+        "releaseChecksum": "267c2d5eda0b09707f0227d0fe679a9c1da82dfa40ddbe7d912779230960e533"
       }
     ],
     "subworkflowBindings": [],
@@ -36,7 +36,7 @@
       "checksum": "980cd9f429d0b47193ec8783252e1fb0b6589e1bd0d61fab2cdb986b1f9ffaa4"
     },
     "lifecycleContractVersion": 1,
-    "sourceClosureChecksum": "dfc30b9681bda6b25d949e4e4d460da04d3f29cdb4c5d3c17a0fca88baa96ba2",
+    "sourceClosureChecksum": "754e681d5cdb6f3d73d0b68f4d83dba5bb30621a8bae4f0d1e133155e55edb6f",
     "stableStepNames": ["start.v2", "receipt.v2"],
     "semanticComplete": true,
     "isolatedFixture": true,
@@ -46,27 +46,27 @@
     "graphHash": "2c4c348ac937797e21618686ab80768538f4d7484064dc33e2c0e73549312d36",
     "runnerRef": "workflowRunners/publicationFixture/v1:run",
     "kickoffProfiles": "eager-first-poll,queued",
-    "capabilityBindings": "capability.fixture.publicationEcho@v1:700eab0360875a9e5e551a7bce49e7f9324b809358f44aab78395fc3b9f81f10",
+    "capabilityBindings": "capability.fixture.publicationEcho@v1:267c2d5eda0b09707f0227d0fe679a9c1da82dfa40ddbe7d912779230960e533",
     "subworkflowBindings": "none",
     "completionRef": "workflowRunners/publicationFixture/v1:onComplete",
     "runtimeVersion": "maestro-workflow-runtime.v2",
     "lifecycleContractVersion": "1",
-    "sourceClosure": "dfc30b9681bda6b25d949e4e4d460da04d3f29cdb4c5d3c17a0fca88baa96ba2",
-    "authorityChecksum": "92fb8ea3eac2a688e06b5121ebae9ff8c2899e9ae660791bc51ff3564984af9a",
+    "sourceClosure": "754e681d5cdb6f3d73d0b68f4d83dba5bb30621a8bae4f0d1e133155e55edb6f",
+    "authorityChecksum": "043e801b92da7ad5459d900edf1c591758f5ae30befa18507dfb93086cb51413",
     "stableStepNames": "start.v2,receipt.v2",
     "validators": "publicationFixture.v2.args->publicationFixture.v2.return",
     "events": "event.approvalDecision.v1:workflows.publicationFixture.approvalDecision.v1",
     "options": "retry=none;inline=independent;schedule=none",
     "dependencyManifest": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
     "interpreter": "980cd9f429d0b47193ec8783252e1fb0b6589e1bd0d61fab2cdb986b1f9ffaa4",
-    "releaseChecksum": "9b3868a2bd9aadbee97fb4e5a779175cc06d06c99bab1c27a1f908bf2427a3b2"
+    "releaseChecksum": "d7d61385a28e2daf46c68f8994dae068020029a332f7c2024382b2340136274e"
   },
   "dependencies": [
     {
       "kind": "capability",
       "logicalId": "capability.fixture.publicationEcho",
       "version": 1,
-      "releaseChecksum": "700eab0360875a9e5e551a7bce49e7f9324b809358f44aab78395fc3b9f81f10"
+      "releaseChecksum": "267c2d5eda0b09707f0227d0fe679a9c1da82dfa40ddbe7d912779230960e533"
     }
   ],
   "artifacts": [
@@ -572,7 +572,7 @@
       },
       {
         "path": "packages/convex/confect/demo/showcase.impl.ts",
-        "checksum": "8ac809e23cdf4ae50b60674391b7656d1448f30d1512f7de312942d2296dd0d6"
+        "checksum": "49fb0009cb564772d2f42d45139514e4fc9cf1f82766c85a787f5a75e4c86c43"
       },
       {
         "path": "packages/convex/confect/demo/showcase.spec.ts",
@@ -936,7 +936,7 @@
       },
       {
         "path": "packages/convex/confect/tables/workflowRuns.ts",
-        "checksum": "0173bed1932586f05cb07df435292573f3cbfbc8d34fd519fcc3e4fffb296658"
+        "checksum": "9eb5d08187a3f32cc34d61996a9eebfd6f79624cd4c28a232757cffafe27dde6"
       },
       {
         "path": "packages/convex/confect/tables/workflowStageRuns.ts",
@@ -952,7 +952,7 @@
       },
       {
         "path": "packages/convex/confect/workflowContracts/publicationFixture.spec.ts",
-        "checksum": "aef2cc227a9ca8fec8501692687a00224270e5528b559dcc4bdd4b8c748f7db3"
+        "checksum": "9b3d4f58a8217f128b3a0db8f560ebe7c04be0b7739d6635aca942bd42079c97"
       },
       {
         "path": "packages/convex/confect/workflowRunners/publicationFixture/v1.impl.ts",
@@ -1059,10 +1059,6 @@
         "checksum": "13d7da74558350c43ee7a8bc45ea41ea00ff0454ac84b36066a7c9b52997d9cc"
       },
       {
-        "path": "packages/convex/confect/workflows/_kit/workflowAdmission.ts",
-        "checksum": "b361ee4812772ee4e87e90a554626170ff376750f17f04ea3d7b1fc8d803e3a2"
-      },
-      {
         "path": "packages/convex/confect/workflows/_kit/workflowArtifacts.ts",
         "checksum": "733d17db9647758fe925063582cb9032f8c28ab9e793893c87e59ba99d5e5dba"
       },
@@ -1076,7 +1072,7 @@
       },
       {
         "path": "packages/convex/confect/workflows/_kit/workpoolConfig.ts",
-        "checksum": "cbf963fee389352c3c8ce0e4a76efeff4a62d552243e8ed6c3112156a59cf593"
+        "checksum": "382232d4b15ed7abb1a8b9b7858ecee3638866b9a8bf88180f19e91a5cda49b7"
       },
       {
         "path": "packages/convex/confect/workflows/artifacts.spec.ts",
@@ -1196,7 +1192,7 @@
       },
       {
         "path": "packages/convex/confect/workflows/subworkflowLinks.spec.ts",
-        "checksum": "d4535d922113121eb37eca9425ae4892c1b10f58062e1985724127c84c542e53"
+        "checksum": "44b26b71f9e2af60cd242d369b8624f95e56743fe1192df8d2a9ca28c0b589ec"
       },
       {
         "path": "packages/convex/convex/_generated/api.d.ts",
@@ -1299,6 +1295,6 @@
         "checksum": "52eb65439e0c8325168764c78cb9583812c18a24d791bdfb744ed71418d188d1"
       }
     ],
-    "checksum": "dfc30b9681bda6b25d949e4e4d460da04d3f29cdb4c5d3c17a0fca88baa96ba2"
+    "checksum": "754e681d5cdb6f3d73d0b68f4d83dba5bb30621a8bae4f0d1e133155e55edb6f"
   }
 }
