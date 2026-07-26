@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import Ajv2020 from "ajv/dist/2020.js";
 import { describe, expect, it } from "vitest";
+import type { UpgradeManifestV1 } from "./contract.js";
 import { planUpgrade } from "./plan.js";
 
 const repoRoot = resolve(import.meta.dirname, "../../../..");
@@ -23,6 +24,19 @@ const ajv = new Ajv2020({
   strictRequired: false,
 });
 const validate = ajv.compile(schema);
+const upgradeManifest = releaseManifest.upgrade as UpgradeManifestV1;
+const reviewedPriorFiles = upgradeManifest.operations.flatMap((operation) =>
+  operation.beforeHash === undefined
+    ? []
+    : [
+        {
+          path:
+            operation.kind === "move" ? operation.fromPath! : operation.path,
+          ownership: operation.ownership,
+          hash: operation.beforeHash,
+        },
+      ],
+);
 
 describe("reviewed release upgrade manifest contract", () => {
   it("ships a schema-valid engine manifest for the one-prior transition", () => {
@@ -48,12 +62,13 @@ describe("reviewed release upgrade manifest contract", () => {
           relation: "immediate-prior",
           commit: "a".repeat(40),
           clean: true,
-          files: [],
+          files: reviewedPriorFiles,
         },
       }),
     ).toMatchObject({
-      ok: false,
-      resolutions: [{ code: "UPGRADE_DATA_MIGRATION" }],
+      ok: true,
+      mode: "plan-only",
+      writeAvailable: false,
     });
   });
 

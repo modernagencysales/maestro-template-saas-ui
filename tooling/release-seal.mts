@@ -232,6 +232,9 @@ async function build(args: Args): Promise<readonly Output[]> {
   const blueprint = JSON.parse(
     readFileSync(join(root, blueprintPath), "utf8"),
   ) as any;
+  const { buildSaasApplicationTargetPlan } =
+    await import("./generators/src/blueprints/saasApplication.js");
+  const plan = buildSaasApplicationTargetPlan();
   const outputs: Output[] = [];
   const assets = [] as { path: string; sha256: string }[];
   const protectedCustomerSourcePaths: string[] = [];
@@ -244,19 +247,21 @@ async function build(args: Args): Promise<readonly Output[]> {
         ? entry.path.slice(5, -4)
         : undefined;
     if (direct) protectedCustomerSourcePaths.push(direct);
+    const projected = direct
+      ? plan.entries.find((candidate) => candidate.path === direct)
+      : undefined;
     const bytes =
-      direct && hasBlob(args.sourceCommit, direct)
-        ? blob(args.sourceCommit, direct)
-        : blob(args.sourceCommit, target);
+      projected !== undefined
+        ? Buffer.from(projected.content)
+        : direct && hasBlob(args.sourceCommit, direct)
+          ? blob(args.sourceCommit, direct)
+          : blob(args.sourceCommit, target);
     outputs.push({ path: target, bytes });
     assets.push({ path: entry.path, sha256: hash(bytes) });
   }
   if (!args.check) apply(outputs);
   else assertOutputs(outputs);
 
-  const { buildSaasApplicationTargetPlan } =
-    await import("./generators/src/blueprints/saasApplication.js");
-  const plan = buildSaasApplicationTargetPlan();
   const blueprintValue = {
     schemaVersion: plan.schemaVersion,
     id: plan.id,
