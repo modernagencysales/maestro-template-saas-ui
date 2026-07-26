@@ -36,7 +36,7 @@ import {
   type PublicationRegistry,
   type WorkflowRelease,
   type WorkflowSubworkflowRuntimeBinding,
-} from "./publication";
+} from "./publicationCurrent";
 
 type SubworkflowNodeV2 = Extract<WorkflowNodeV2, { kind: "subworkflow" }>;
 type BoundedSubworkflowBatchNodeV2 = Extract<
@@ -100,14 +100,16 @@ export type WorkflowV2BoundedBatchBinding = {
     envelope: WorkflowV2BoundedBatchEnvelope,
   ) => MappedChildArgs;
 };
-type WorkflowV2PublishedArgumentMapper =
-  WorkflowSubworkflowRuntimeBinding["argumentMapper"] & {
-    readonly selectItems?: unknown;
-    readonly mapBatchArgs?: unknown;
+export type WorkflowV2BoundedBatchPublicationBinding = {
+  readonly selectItems: {
+    readonly module: string;
+    readonly exportName: string;
   };
-type WorkflowV2PublishedRuntimeBinding = WorkflowSubworkflowRuntimeBinding & {
-  readonly argumentMapper: WorkflowV2PublishedArgumentMapper;
-  readonly boundedBatch?: WorkflowV2BoundedBatchBinding;
+  readonly mapBatchArgs: {
+    readonly module: string;
+    readonly exportName: string;
+    readonly schemaName: string;
+  };
 };
 
 export type WorkflowV2SubworkflowDefinition<
@@ -125,7 +127,6 @@ export type WorkflowV2SubworkflowDefinition<
     | "policySnapshot"
     | "subworkflow"
   >;
-  readonly boundedBatch?: WorkflowV2BoundedBatchBinding;
   readonly resultSchema: Schema.Schema<Result>;
   readonly principal:
     | { readonly kind: "inherit" }
@@ -142,6 +143,7 @@ export type WorkflowV2SubworkflowDefinition<
       readonly exportName: string;
       readonly schemaName: string;
     };
+    readonly boundedBatch?: WorkflowV2BoundedBatchPublicationBinding;
   };
   readonly links: {
     readonly reserveRef: DurableGraphStepRef<"mutation">;
@@ -156,7 +158,8 @@ export type WorkflowV2SubworkflowDefinition<
 export type WorkflowV2SubworkflowRegistryEntry<
   Args extends ChildWorkflowArgs,
   Result,
-> = WorkflowV2SubworkflowDefinition<Args, Result> & {
+> = Omit<WorkflowV2SubworkflowDefinition<Args, Result>, "publication"> & {
+  readonly boundedBatch?: WorkflowV2BoundedBatchBinding;
   readonly version: number;
   readonly ref: DurableGraphWorkflowRef<Args, Result>;
   readonly lifecycle: {
@@ -165,6 +168,10 @@ export type WorkflowV2SubworkflowRegistryEntry<
     readonly contractVersion: number;
   };
   readonly children: readonly WorkflowReferenceType[];
+  readonly childStartMultiplicities: readonly {
+    readonly workflow: WorkflowReferenceType;
+    readonly maxChildStarts: number;
+  }[];
   readonly publication: {
     readonly workflowId: string;
     readonly graphJson: string;
@@ -202,6 +209,10 @@ export type AnyWorkflowV2SubworkflowRegistryEntry = {
     unknown
   >["lifecycle"];
   readonly children: readonly WorkflowReferenceType[];
+  readonly childStartMultiplicities?: readonly {
+    readonly workflow: WorkflowReferenceType;
+    readonly maxChildStarts: number;
+  }[];
   readonly publication: WorkflowV2SubworkflowRegistryEntry<
     ChildWorkflowArgs,
     unknown
@@ -232,7 +243,6 @@ type AnyWorkflowV2SubworkflowDefinition = Omit<
   WorkflowV2SubworkflowDefinition<ChildWorkflowArgs, unknown>,
   "resultSchema"
 > & {
-  readonly boundedBatch?: WorkflowV2BoundedBatchBinding;
   readonly resultSchema: Schema.Schema.AnyNoContext;
 };
 
@@ -294,6 +304,10 @@ export const defineWorkflowV2SubworkflowRegistry = <
       children: release.subworkflowBindings.map((binding) =>
         publishedChildReference(publicationRegistry, binding),
       ),
+      childStartMultiplicities: release.subworkflowBindings.map((binding) => ({
+        workflow: publishedChildReference(publicationRegistry, binding),
+        maxChildStarts: binding.maxChildStarts ?? 1,
+      })),
       publication: Object.freeze({
         workflowId: release.workflowId,
         graphJson: runtime.graphJson,
@@ -353,18 +367,26 @@ const assertPublishedSubworkflowDefinition = (
   reference: string,
   definition: AnyWorkflowV2SubworkflowDefinition,
   release: WorkflowRelease,
-): WorkflowV2PublishedRuntimeBinding => {
-  const runtime = release.subworkflowRuntime as
-    WorkflowV2PublishedRuntimeBinding | undefined;
-  const publishedSelector = runtime?.argumentMapper.selectItems;
-  const publishedBatchMapper = runtime?.argumentMapper.mapBatchArgs;
+): Omit<WorkflowSubworkflowRuntimeBinding, "boundedBatch"> & {
+  readonly boundedBatch?: WorkflowV2BoundedBatchBinding;
+} => {
+  const runtime = release.subworkflowRuntime;
+  const publishedBoundedBatch = runtime?.boundedBatch;
+  const expectedBoundedBatch = definition.publication.boundedBatch;
   const boundedBatchMatches =
-    definition.boundedBatch === undefined
-      ? publishedSelector === undefined && publishedBatchMapper === undefined
-      : typeof publishedSelector === "function" &&
-        typeof publishedBatchMapper === "function" &&
-        definition.boundedBatch.selectItems === publishedSelector &&
-        definition.boundedBatch.mapBatchArgs === publishedBatchMapper;
+    expectedBoundedBatch === undefined
+      ? publishedBoundedBatch === undefined
+      : publishedBoundedBatch !== undefined &&
+        expectedBoundedBatch.selectItems.module ===
+          publishedBoundedBatch.selectItems.module &&
+        expectedBoundedBatch.selectItems.exportName ===
+          publishedBoundedBatch.selectItems.exportName &&
+        expectedBoundedBatch.mapBatchArgs.module ===
+          publishedBoundedBatch.mapBatchArgs.module &&
+        expectedBoundedBatch.mapBatchArgs.exportName ===
+          publishedBoundedBatch.mapBatchArgs.exportName &&
+        expectedBoundedBatch.mapBatchArgs.schemaName ===
+          publishedBoundedBatch.mapBatchArgs.schemaName;
   if (
     runtime === undefined ||
     !sameRuntimeDescriptor(
@@ -385,15 +407,18 @@ const assertPublishedSubworkflowDefinition = (
       { reference, workflowId: release.workflowId, version: release.version },
     );
   }
+  const { boundedBatch: _publishedDescriptor, ...runtimeWithoutBoundedBatch } =
+    runtime;
+  void _publishedDescriptor;
   return {
-    ...runtime,
-    ...(definition.boundedBatch
+    ...runtimeWithoutBoundedBatch,
+    ...(publishedBoundedBatch
       ? {
           boundedBatch: Object.freeze({
-            selectItems:
-              publishedSelector as WorkflowV2BoundedBatchBinding["selectItems"],
-            mapBatchArgs:
-              publishedBatchMapper as WorkflowV2BoundedBatchBinding["mapBatchArgs"],
+            selectItems: publishedBoundedBatch.selectItems
+              .selectItems as WorkflowV2BoundedBatchBinding["selectItems"],
+            mapBatchArgs: publishedBoundedBatch.mapBatchArgs
+              .mapBatchArgs as WorkflowV2BoundedBatchBinding["mapBatchArgs"],
           }),
         }
       : {}),
@@ -532,12 +557,56 @@ export async function runRegisteredSubworkflow({
     principal: childPrincipal,
     policySnapshot: childPolicySnapshot,
   };
+  const reserveArgs = { projection, occurredAt: ownership.occurredAt };
+  const reserveOptions = { name: `${node.stepName}.link.reserve.v1` };
   const reservation = await step.runMutation(
     entry.links.reserveRef,
-    { projection, occurredAt: ownership.occurredAt },
-    { name: `${node.stepName}.link.reserve.v1` },
+    reserveArgs,
+    reserveOptions,
   );
-  const { linkId, childWorkflowRunId } = readLinkReservation(node, reservation);
+  let recoveredReservation: {
+    readonly linkId: string;
+    readonly childWorkflowRunId: string;
+  };
+  try {
+    recoveredReservation = readLinkReservation(node, reservation);
+  } catch (error) {
+    try {
+      const replayed = await step.runMutation(
+        entry.links.reserveRef,
+        reserveArgs,
+        reserveOptions,
+      );
+      recoveredReservation = readLinkReservation(node, replayed);
+      try {
+        await reconcileLink(
+          step,
+          entry,
+          node,
+          ownership,
+          recoveredReservation.linkId,
+          { kind: "failed", error: "Child workflow failed." },
+        );
+      } catch {
+        await reportReconciliationFailure(
+          step,
+          entry,
+          node,
+          ownership,
+          recoveredReservation.linkId,
+          "failed",
+          "SUBWORKFLOW_RESERVATION_RESPONSE_INVALID",
+        ).catch(() => undefined);
+      }
+    } catch {
+      throw subworkflowFailure(
+        node,
+        "reservation response was invalid and deterministic replay could not recover it",
+      );
+    }
+    throw error;
+  }
+  const { linkId, childWorkflowRunId } = recoveredReservation;
   const idempotencyKey = subworkflowRunLinkIdempotencyKey(projection);
   const childArgs = {
     ...mappedArgs,
@@ -627,10 +696,26 @@ export async function runRegisteredSubworkflow({
     }
     throw error;
   }
-  await reconcileLink(step, entry, node, ownership, linkId, {
-    kind: "succeeded",
-    receipt,
-  });
+  try {
+    await reconcileLink(step, entry, node, ownership, linkId, {
+      kind: "succeeded",
+      receipt,
+    });
+  } catch {
+    await reportReconciliationFailure(
+      step,
+      entry,
+      node,
+      ownership,
+      linkId,
+      "succeeded",
+      "SUBWORKFLOW_SUCCESS_RECONCILIATION_FAILED",
+    ).catch(() => undefined);
+    throw subworkflowFailure(
+      node,
+      "child succeeded but durable link reconciliation failed",
+    );
+  }
   return childResult;
 }
 
@@ -981,14 +1066,17 @@ export const validateWorkflowV2SubworkflowTopology = (
       throw topologyFailure(`missing generated registry entry ${reference}`);
     }
     const nextPath = [...path, reference];
-    for (const child of entry.children) {
-      childStarts += 1;
+    const childBindings =
+      entry.childStartMultiplicities ??
+      entry.children.map((workflow) => ({ workflow, maxChildStarts: 1 }));
+    for (const child of childBindings) {
+      childStarts += child.maxChildStarts;
       if (childStarts > policy.maxFanOut) {
         throw topologyFailure(
           `declared child fan-out exceeds limit ${policy.maxFanOut}`,
         );
       }
-      visit(child, depth + 1, nextPath);
+      visit(child.workflow, depth + 1, nextPath);
     }
   };
   for (const root of roots) {
@@ -1234,7 +1322,8 @@ const reportReconciliationFailure = (
   node: SubworkflowNodeV2,
   ownership: RunSubworkflowInput<AnyWorkflowV2SubworkflowRegistryEntry>["ownership"],
   linkId: string,
-  primaryOutcome: "failed" | "canceled",
+  primaryOutcome: "succeeded" | "failed" | "canceled",
+  issue = "SUBWORKFLOW_LINK_RECONCILIATION_FAILED",
 ): Promise<unknown> =>
   step.runMutation(
     entry.links.reportReconciliationFailureRef,
@@ -1242,7 +1331,7 @@ const reportReconciliationFailure = (
       workspaceId: ownership.workspaceId,
       linkId,
       primaryOutcome,
-      issue: "SUBWORKFLOW_LINK_RECONCILIATION_FAILED",
+      issue,
       occurredAt: ownership.occurredAt,
     },
     { name: `${node.stepName}.link.reconciliation-failure.v1` },

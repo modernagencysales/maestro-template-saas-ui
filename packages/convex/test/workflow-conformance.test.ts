@@ -85,7 +85,7 @@ import {
   type ChecksummedModule,
   type GeneratedPublicationAuthority,
   type WorkflowRelease,
-} from "../confect/workflows/_kit/publication";
+} from "../confect/workflows/_kit/publicationCurrent";
 import { sha256Hex } from "../confect/shared/sha256";
 
 describe("Maestro workflow rejection fixtures", () => {
@@ -3431,7 +3431,6 @@ const publishedSubworkflowFixture = (
         exportName: "mapArgs",
         schemaName: `${workflowId}.v${version}.args`,
         mapArgs,
-        ...(boundedBatch ?? {}),
       },
       resultSchema: {
         module: resultSchemaModule,
@@ -3439,6 +3438,23 @@ const publishedSubworkflowFixture = (
         schemaName: `${workflowId}.v${version}.result`,
         schema: resultSchema,
       },
+      ...(boundedBatch
+        ? {
+            boundedBatch: {
+              selectItems: {
+                module: argumentMapperModule,
+                exportName: "selectItems",
+                selectItems: boundedBatch.selectItems,
+              },
+              mapBatchArgs: {
+                module: argumentMapperModule,
+                exportName: "mapBatchArgs",
+                schemaName: `${workflowId}.v${version}.args`,
+                mapBatchArgs: boundedBatch.mapBatchArgs,
+              },
+            },
+          }
+        : {}),
     },
     runner: {
       ref,
@@ -3500,6 +3516,17 @@ const childWorkflowDefinition = (
         readonly kind: "narrow";
         readonly grants: readonly string[];
       } = { kind: "inherit" },
+  boundedBatch?: {
+    readonly selectItems: {
+      readonly module: string;
+      readonly exportName: string;
+    };
+    readonly mapBatchArgs: {
+      readonly module: string;
+      readonly exportName: string;
+      readonly schemaName: string;
+    };
+  },
 ) =>
   defineWorkflowV2Subworkflow<ChildArgs, ChildResult>({
     mapArgs: childArgumentMapper,
@@ -3517,6 +3544,7 @@ const childWorkflowDefinition = (
         exportName: childSubworkflowRuntime.resultSchema.exportName,
         schemaName: childSubworkflowRuntime.resultSchema.schemaName,
       },
+      ...(boundedBatch ? { boundedBatch } : {}),
     },
     links: {
       reserveRef: childLinkReserveRef,
@@ -4190,10 +4218,24 @@ describe("bounded subworkflow publication binding", () => {
     capabilities: [],
     workflows: [boundedPublication.release],
   });
-  const definition = {
-    ...childWorkflowDefinition(),
-    boundedBatch: publishedBatchBinding,
+  const boundedRuntime =
+    boundedPublication.release.subworkflowRuntime?.boundedBatch;
+  if (!boundedRuntime) throw new Error("bounded runtime fixture is required");
+  const boundedDescriptor = {
+    selectItems: {
+      module: boundedRuntime.selectItems.module,
+      exportName: boundedRuntime.selectItems.exportName,
+    },
+    mapBatchArgs: {
+      module: boundedRuntime.mapBatchArgs.module,
+      exportName: boundedRuntime.mapBatchArgs.exportName,
+      schemaName: boundedRuntime.mapBatchArgs.schemaName,
+    },
   };
+  const definition = childWorkflowDefinition(
+    { kind: "inherit" },
+    boundedDescriptor,
+  );
 
   it("uses selector and mapper references from the immutable publication runtime", () => {
     const registry = defineCurrentWorkflowV2SubworkflowRegistry(
@@ -4211,22 +4253,31 @@ describe("bounded subworkflow publication binding", () => {
   it.each([
     {
       name: "selector drift",
-      boundedBatch: {
-        ...publishedBatchBinding,
-        selectItems: () => ({ items: ["drifted"] }),
+      descriptor: {
+        ...boundedDescriptor,
+        selectItems: {
+          ...boundedDescriptor.selectItems,
+          exportName: "drifted",
+        },
       },
     },
     {
       name: "mapper drift",
-      boundedBatch: {
-        ...publishedBatchBinding,
-        mapBatchArgs: () => ({ requestId: "drifted" }),
+      descriptor: {
+        ...boundedDescriptor,
+        mapBatchArgs: {
+          ...boundedDescriptor.mapBatchArgs,
+          schemaName: "workflow.childReceipt.v4.args",
+        },
       },
     },
-  ])("rejects $name before registry publication", ({ boundedBatch }) => {
+  ])("rejects $name before registry publication", ({ descriptor }) => {
     expect(() =>
       defineCurrentWorkflowV2SubworkflowRegistry(boundedPublicationRegistry, {
-        [childWorkflowRef]: { ...definition, boundedBatch },
+        [childWorkflowRef]: {
+          ...definition,
+          publication: { ...definition.publication, boundedBatch: descriptor },
+        },
       }),
     ).toThrow(/immutable release/);
   });
@@ -4237,6 +4288,80 @@ describe("bounded subworkflow publication binding", () => {
         [childWorkflowRef]: definition,
       }),
     ).toThrow(/immutable release/);
+  });
+
+  it("accepts a reloaded runtime export without same-process identity", () => {
+    const reloaded = publishedSubworkflowFixture(
+      "workflow.childReceipt",
+      3,
+      childHandlerRef,
+      [],
+      childArgumentMapper,
+      childResultSchema,
+      {
+        selectItems: function selectItems() {
+          return { items: ["published-item"] };
+        },
+        mapBatchArgs: function mapBatchArgs({ batch }) {
+          return { requestId: batch.items.join(",") };
+        },
+      },
+    );
+    expect(reloaded.release.releaseChecksum).toBe(
+      boundedPublication.release.releaseChecksum,
+    );
+    const registry = defineCurrentWorkflowV2SubworkflowRegistry(
+      definePublicationRegistry({
+        capabilities: [],
+        workflows: [reloaded.release],
+      }),
+      { [childWorkflowRef]: definition },
+    );
+    expect(registry[childWorkflowRef]?.boundedBatch?.selectItems).not.toBe(
+      publishedBatchBinding.selectItems,
+    );
+  });
+
+  it("rejects descriptor tamper covered by the release checksum", () => {
+    const runtime = boundedPublication.release.subworkflowRuntime;
+    const bounded = runtime?.boundedBatch;
+    if (!runtime || !bounded) throw new Error("bounded runtime is required");
+    expect(() =>
+      defineWorkflowRelease({
+        ...boundedPublication.release,
+        subworkflowRuntime: {
+          ...runtime,
+          boundedBatch: {
+            ...bounded,
+            selectItems: {
+              ...bounded.selectItems,
+              module: runtime.resultSchema.module,
+            },
+          },
+        },
+      }),
+    ).toThrow(/checksum/);
+  });
+
+  it("rejects bounded publication version drift", () => {
+    const v4 = publishedSubworkflowFixture(
+      "workflow.childReceipt",
+      4,
+      childHandlerRef,
+      [],
+      childArgumentMapper,
+      childResultSchema,
+      publishedBatchBinding,
+    );
+    expect(() =>
+      defineCurrentWorkflowV2SubworkflowRegistry(
+        definePublicationRegistry({
+          capabilities: [],
+          workflows: [v4.release],
+        }),
+        { [childWorkflowRef]: definition },
+      ),
+    ).toThrow(/binding is unavailable/);
   });
 });
 
@@ -4445,6 +4570,107 @@ describe("bounded subworkflow batch runtime", () => {
       expect(runWorkflow).not.toHaveBeenCalled();
     },
   );
+
+  it("charges immutable nested batch multiplicity despite serial fan-out", async () => {
+    const runWorkflow = vi.fn(async () => ({ receiptId: "unreachable" }));
+    const rootEntry = {
+      ...registryEntry(["a"]),
+      children: [nestedWorkflowRef],
+      childStartMultiplicities: [
+        { workflow: nestedWorkflowRef, maxChildStarts: 8192 },
+      ],
+    };
+    const nestedEntry = {
+      ...childWorkflowEntry,
+      version: 4,
+      children: [],
+      childStartMultiplicities: [],
+    };
+    await expect(
+      runDurableGraphWorkflowV2(v2Step({ runWorkflow }), {
+        ...v2Input(v2BoundedBatchGraph({ fanOut: 1 })),
+        principal: childPrincipal,
+        workflowRegistry: {
+          [childWorkflowRef]: rootEntry,
+          [nestedWorkflowRef]: nestedEntry,
+        },
+        subworkflowPolicy: { maxDepth: 4, maxFanOut: 8 },
+        capabilityRegistry: {},
+        admitEffect: async () => ({ kind: "deny", reason: "not used" }),
+      }),
+    ).rejects.toThrow(/topology failed/);
+    expect(runWorkflow).not.toHaveBeenCalled();
+  });
+
+  it("recovers and reconciles a malformed post-reserve response", async () => {
+    let reserveCalls = 0;
+    const outcomes: unknown[] = [];
+    const runWorkflow = vi.fn(async () => ({ receiptId: "unreachable" }));
+    const runMutation = vi.fn(async (ref, args: Record<string, unknown>) => {
+      if (ref === childLinkReserveRef) {
+        reserveCalls += 1;
+        return reserveCalls === 1
+          ? { malformed: true }
+          : { linkId: "link-recovered", childWorkflowRunId: "run-recovered" };
+      }
+      if (ref === childLinkReconcileRef) outcomes.push(args.outcome);
+      return null;
+    });
+    await expect(
+      runDurableGraphWorkflowV2(v2Step({ runWorkflow, runMutation }), {
+        ...v2Input(
+          v2BoundedBatchGraph({ maxItems: 1, batchSize: 1, fanOut: 1 }),
+        ),
+        principal: childPrincipal,
+        workflowRegistry: { [childWorkflowRef]: registryEntry(["a"]) },
+        capabilityRegistry: {},
+        admitEffect: async () => ({ kind: "deny", reason: "not used" }),
+      }),
+    ).rejects.toThrow(
+      /link reservation returned invalid product run identities/,
+    );
+    expect(reserveCalls).toBe(2);
+    expect(outcomes).toEqual([
+      { kind: "failed", error: "Child workflow failed." },
+    ]);
+    expect(runWorkflow).not.toHaveBeenCalled();
+  });
+
+  it("durably reports a failed success reconciliation", async () => {
+    const reports: Record<string, unknown>[] = [];
+    const runMutation = vi.fn(async (ref, args: Record<string, unknown>) => {
+      if (ref === childLinkReserveRef) {
+        return { linkId: "link-success", childWorkflowRunId: "run-success" };
+      }
+      if (ref === childLinkReconcileRef) throw new Error("storage unavailable");
+      if (ref === childLinkReportRef) reports.push(args);
+      return null;
+    });
+    await expect(
+      runDurableGraphWorkflowV2(
+        v2Step({
+          runMutation,
+          runWorkflow: async () => ({ receiptId: "receipt-a" }),
+        }),
+        {
+          ...v2Input(
+            v2BoundedBatchGraph({ maxItems: 1, batchSize: 1, fanOut: 1 }),
+          ),
+          principal: childPrincipal,
+          workflowRegistry: { [childWorkflowRef]: registryEntry(["a"]) },
+          capabilityRegistry: {},
+          admitEffect: async () => ({ kind: "deny", reason: "not used" }),
+        },
+      ),
+    ).rejects.toThrow(/durable link reconciliation failed/);
+    expect(reports).toEqual([
+      expect.objectContaining({
+        linkId: "link-success",
+        primaryOutcome: "succeeded",
+        issue: "SUBWORKFLOW_SUCCESS_RECONCILIATION_FAILED",
+      }),
+    ]);
+  });
 
   it.each([
     {
