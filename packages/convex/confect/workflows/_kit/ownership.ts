@@ -5,6 +5,7 @@ import {
   type FunctionReference,
   type GenericDataModel,
   type GenericMutationCtx,
+  makeFunctionReference,
 } from "convex/server";
 import type { GenericId, Value } from "convex/values";
 import type * as Context from "effect/Context";
@@ -47,6 +48,10 @@ type ExistingWorkflowRun = {
   readonly admissionLane?: WorkflowAdmissionLane | null | undefined;
   readonly startBindingHash?: string | null | undefined;
 };
+
+const scheduleDeadlineRef = makeFunctionReference<"mutation">(
+  "workflows/deadlinesCurrent:schedule",
+);
 
 export type WorkflowRunReservationInput = Pick<
   StartWorkflowOwnershipInput<FunctionReference<"mutation", "internal">>,
@@ -198,8 +203,52 @@ export const startWorkflowAndRecordOwnership = <
     if (normalizedInput.kickoffProfile === "eager-first-poll") {
       yield* transitionWorkflowAdmission(mutationCtx, reservationId, "running");
     }
+    const deadlineHorizon = yield* workflowDeadlineHorizon(normalizedInput);
+    if (deadlineHorizon !== null) {
+      yield* Effect.tryPromise({
+        try: () =>
+          (
+            mutationCtx as unknown as GenericMutationCtx<GenericDataModel>
+          ).runMutation(scheduleDeadlineRef, {
+            workspaceId: normalizedInput.workspaceId,
+            workflowRunId: reservationId,
+            requestedAt: normalizedInput.startedAt,
+            horizonMs: deadlineHorizon,
+          }),
+        catch: () =>
+          new ValidationFailed({
+            field: "deadline",
+            message: "Workflow deadline could not be scheduled.",
+          }),
+      });
+    }
     return componentWorkflowId;
   });
+
+const workflowDeadlineHorizon = (
+  input: Pick<
+    WorkflowRunReservationInput,
+    "startedAt" | "timeoutMs" | "deadlineAt"
+  >,
+): Effect.Effect<number | null, ValidationFailed> => {
+  if (input.timeoutMs !== undefined) {
+    if (
+      input.deadlineAt !== undefined &&
+      input.deadlineAt !== input.startedAt + input.timeoutMs
+    ) {
+      return Effect.fail(
+        new ValidationFailed({
+          field: "deadline",
+          message: "Workflow deadline does not match its timeout horizon.",
+        }),
+      );
+    }
+    return Effect.succeed(input.timeoutMs);
+  }
+  return Effect.succeed(
+    input.deadlineAt === undefined ? null : input.deadlineAt - input.startedAt,
+  );
+};
 
 export const validateWorkflowIdempotencyKey = (idempotencyKey: string) => {
   const validation = validateCallerIdempotencyKey(idempotencyKey);

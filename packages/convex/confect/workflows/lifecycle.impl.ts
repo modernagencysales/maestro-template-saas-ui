@@ -2,6 +2,11 @@ import { FunctionImpl, GroupImpl } from "@confect/server";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import type { GenericId } from "convex/values";
+import {
+  type GenericDataModel,
+  type GenericMutationCtx,
+  makeFunctionReference,
+} from "convex/server";
 
 import databaseSchema from "../_generated/schema";
 import {
@@ -17,9 +22,13 @@ import {
   runWorkflowLifecycleControl,
 } from "./lifecycleAdapters";
 import lifecycle from "./lifecycle.spec";
-import { reconcileWorkflowCompletion } from "./lifecycleReconciliation";
+import { reconcileWorkflowCompletion } from "./lifecycleReconciliationCurrent";
 import { runBoundedWorkflowRetentionSweep } from "./_kit/lifecycleSweep";
 import { transitionWorkflowAdmission } from "./_kit/ownership";
+
+const reconcileDeadlineRef = makeFunctionReference<"mutation">(
+  "workflows/deadlinesCurrent:reconcile",
+);
 
 const cancel = FunctionImpl.make(databaseSchema, lifecycle, "cancel", (args) =>
   Effect.gen(function* () {
@@ -33,9 +42,24 @@ const cancel = FunctionImpl.make(databaseSchema, lifecycle, "cancel", (args) =>
       mutation,
       principal,
     );
-    return yield* runWorkflowLifecycleControl(args.workflowRunId, () =>
+    const run = yield* reader
+      .table("workflowRuns")
+      .get(args.workflowRunId)
+      .pipe(Effect.orDie);
+    const result = yield* runWorkflowLifecycleControl(args.workflowRunId, () =>
       controls.cancel(principal, args),
     );
+    if (
+      run?.lifecycleGeneration !== undefined &&
+      run.lifecycleGeneration !== null
+    ) {
+      yield* reconcileDeadline(
+        mutation,
+        args.workflowRunId,
+        run.lifecycleGeneration,
+      );
+    }
+    return result;
   }),
 );
 
@@ -118,9 +142,16 @@ const restart = FunctionImpl.make(
         mutation,
         principal,
       );
-      return yield* runWorkflowLifecycleControl(args.workflowRunId, () =>
-        controls.restart(principal, args),
+      const result = yield* runWorkflowLifecycleControl(
+        args.workflowRunId,
+        () => controls.restart(principal, args),
       );
+      yield* reconcileDeadline(
+        mutation,
+        args.workflowRunId,
+        result.generation - 1,
+      );
+      return result;
     }),
 );
 
@@ -155,9 +186,32 @@ const reconcileCompletion = FunctionImpl.make(
             ? "failed"
             : "canceled",
       ).pipe(Effect.orDie);
+      yield* reconcileDeadline(
+        mutation,
+        args.context.workflowRunId as GenericId<"workflowRuns">,
+        args.context.generation,
+      );
       return reconciled;
     }),
 );
+
+const reconcileDeadline = (
+  mutation: unknown,
+  workflowRunId: GenericId<"workflowRuns">,
+  generation: number,
+) =>
+  Effect.tryPromise({
+    try: () =>
+      (mutation as GenericMutationCtx<GenericDataModel>).runMutation(
+        reconcileDeadlineRef,
+        { workflowRunId, generation },
+      ),
+    catch: () =>
+      new ValidationFailed({
+        field: "deadline",
+        message: "Workflow deadline reconciliation failed.",
+      }),
+  });
 
 const reconcileCleanup = FunctionImpl.make(
   databaseSchema,
