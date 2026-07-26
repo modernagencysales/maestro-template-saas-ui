@@ -11,11 +11,11 @@ const TRUSTED_REPOSITORY_ROOT = fileURLToPath(
 );
 const BASE_MANIFEST_PATH = "releases/v0.2.0-alpha.1/manifest.json";
 const BASE_MANIFEST_CHECKSUM =
-  "sha256:e524f59f835197bdf4a8c969982d4684bc31ea538c4d0cfa4230c47a4aeaf999";
+  "sha256:46882385820c670670b36f32dbcb244231fb6bfc545277ae3c57ba01fa167c77";
 const BASE_BLUEPRINT_CHECKSUM =
-  "sha256:6293dfa850a25a24233d8a4b8899e44abffa8b767876d89e7e84b8dd351f2f72";
+  "sha256:4b0c00d5f83fd073ffe13e6029c6cd9a459665d08094bfe11f801206632de8e7";
 const BASE_TAG = "maestro-template-v0.2.0-alpha.1";
-const BASE_COMMIT = "1fcfd6cf6732ddde100bb8d82790f5a7df3c98a5";
+const BASE_COMMIT = "183743298c2bae61e545a106e3bdb38b1c622f26";
 const REVIEWED_BLUEPRINT_ID = "saas-application";
 const REVIEWED_BLUEPRINT_PROVENANCE =
   "@maestro-template/generators/saas-application@1";

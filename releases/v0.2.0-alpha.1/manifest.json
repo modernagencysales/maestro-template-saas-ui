@@ -9,8 +9,8 @@
   "release": {
     "version": "0.2.0-alpha.1",
     "tag": "maestro-template-v0.2.0-alpha.1",
-    "sourceCommit": "1fcfd6cf6732ddde100bb8d82790f5a7df3c98a5",
-    "sourceChecksum": "sha256:c3260db162e4f6936b2e05b3235ab4b79a2b7695413ecd02249f18e1cd2681db"
+    "sourceCommit": "183743298c2bae61e545a106e3bdb38b1c622f26",
+    "sourceChecksum": "sha256:40eeb87c06222ad05a5c392365ed7df9a837694807c85a2e75e5c6de2561146a"
   },
   "upgrade": {
     "schemaVersion": 1,
@@ -442,14 +442,14 @@
         "kind": "add",
         "path": "docs/template/generated/provenance/add-workflow/publicationFixture.json",
         "ownership": "template-owned",
-        "afterHash": "sha256:ea335ec702039d3f4c43059a0de1edc00f7eb20ef27032ac28abfed5f6a1fe7e"
+        "afterHash": "sha256:6de74130a1a0f26b0e41292481dacc91e98a3f34a0df5a4575fe989ccc04d6d5"
       },
       {
         "id": "upgrade-add-docs-template-generated-workflow-publications-json",
         "kind": "add",
         "path": "docs/template/generated/workflow-publications.json",
         "ownership": "template-owned",
-        "afterHash": "sha256:8cb6e795c057f9df6f16c7c2761dd9f3169328aa48eb0ed8bf68af9f16be759b"
+        "afterHash": "sha256:988c0b8fdf9e8a69de34f72b16db2e97abcb504537e7f342e13d8dffd29cab23"
       },
       {
         "id": "upgrade-modify-docs-template-generated-workflow-semantics-md",
@@ -791,7 +791,7 @@
         "kind": "add",
         "path": "packages/convex/confect/capabilities/_versions/publicationEcho/v1.authority.ts",
         "ownership": "template-owned",
-        "afterHash": "sha256:4c7a935f394e51f4801ca1b613305fb3426b41e8fcae76ae2da618ce945f4e23"
+        "afterHash": "sha256:cbf40b770a388006338a792b861a90bc49634769693656146fe14093f0453312"
       },
       {
         "id": "upgrade-add-packages-convex-confect-capabilities-versions-publicationEcho-v1-impl-ts",
@@ -812,14 +812,14 @@
         "kind": "add",
         "path": "packages/convex/confect/capabilities/_versions/publicationEcho/v1.publication.json",
         "ownership": "template-owned",
-        "afterHash": "sha256:5e87c1d18bdaf983091fa6c20a3c8f23b2ee1ec90760ac81fb25d856db67f7ad"
+        "afterHash": "sha256:3ef43b04b09e236e27dca9788dca2cced0933ad818a6f05b2879b4eda7d33a93"
       },
       {
         "id": "upgrade-add-packages-convex-confect-capabilities-versions-publicationEcho-v1-release-ts",
         "kind": "add",
         "path": "packages/convex/confect/capabilities/_versions/publicationEcho/v1.release.ts",
         "ownership": "template-owned",
-        "afterHash": "sha256:275c79edd7396e1c187909b56c0c58c441e12e025a030d5c80276ea22644bff2"
+        "afterHash": "sha256:8cde59889d130504fd223a083e502630707398c88a35ab0f83a328838fe83071"
       },
       {
         "id": "upgrade-add-packages-convex-confect-capabilities-versions-publicationEcho-v1-spec-ts",
@@ -1470,7 +1470,7 @@
         "kind": "add",
         "path": "packages/convex/confect/workflows/publicationFixture/v1.authority.ts",
         "ownership": "template-owned",
-        "afterHash": "sha256:759c4f144ba09b295f17460797232758d00da86059298a91cf62a13b0088e7d6"
+        "afterHash": "sha256:549ab1bb0627c459ce869e7d9efde66b3cc99c36122100bc729aaef1c5acdc02"
       },
       {
         "id": "upgrade-add-packages-convex-confect-workflows-publicationFixture-v1-graph-ts",
@@ -1484,7 +1484,7 @@
         "kind": "add",
         "path": "packages/convex/confect/workflows/publicationFixture/v1.publication.json",
         "ownership": "template-owned",
-        "afterHash": "sha256:97283b13458191ffbd08d730ed18a03f3b531e6c9497b4c4ce26d176e2907164"
+        "afterHash": "sha256:60975413bb2a5e0014399e41d81a4ad9d9341c93db6c5f969bf6d5271d89b54e"
       },
       {
         "id": "upgrade-add-packages-convex-confect-workflows-publicationFixture-v1-registry-ts",
@@ -1498,7 +1498,7 @@
         "kind": "add",
         "path": "packages/convex/confect/workflows/publicationFixture/v1.release.ts",
         "ownership": "template-owned",
-        "afterHash": "sha256:b5cadf27ebfb899716b5578d8dceb6cb835b6841ba612b3a1cd3bdbd75f3e1c1"
+        "afterHash": "sha256:5de4165b6241a8ca74efeaf58a6e2e1866643084dde5aabacd07d1a91d9c7347"
       },
       {
         "id": "upgrade-add-packages-convex-confect-workflows-stageObservations-impl-ts",
@@ -3369,14 +3369,14 @@
         "kind": "add",
         "path": "tooling/generators/src/workflow-publication-generation.test.ts",
         "ownership": "template-owned",
-        "afterHash": "sha256:89e201752d16cb1f5e1a9dcb0f65ca037bb5d09e8a60c7f577e436870a2909bd"
+        "afterHash": "sha256:2bff424e0c5f16f38464efe51e4f562a978dbe9b02e30a072f3d6e70f1b0e64a"
       },
       {
         "id": "upgrade-add-tooling-generators-src-workflow-publication-generation-ts",
         "kind": "add",
         "path": "tooling/generators/src/workflow-publication-generation.ts",
         "ownership": "template-owned",
-        "afterHash": "sha256:3763013d5d6d7845b575f7bb0712f62ba648af673b47647849408486678841fd"
+        "afterHash": "sha256:22eac84d901df76254324a04d67d1521e513b0d579bef3c76be85a0f1fb6d75b"
       },
       {
         "id": "upgrade-add-tooling-generators-src-workflow-release-commands-test-ts",
@@ -3404,7 +3404,7 @@
         "kind": "add",
         "path": "tooling/generators/src/workflow-source-closure.ts",
         "ownership": "template-owned",
-        "afterHash": "sha256:710040f1b4f792a42194df846804a92e5755a0f3f3baa0642031ea38c489d423"
+        "afterHash": "sha256:d45a7b39c976fddef18ebceee98153648652c773787d9b61289ea4902a3f1ced"
       },
       {
         "id": "upgrade-add-tooling-quality-check-agent-pack-factory-wiring-mts",
@@ -3599,35 +3599,7 @@
       "upgrade": "remove"
     },
     {
-      "path": "examples/saas-application",
-      "match": "subtree",
-      "ownership": "factory-only",
-      "action": "omit",
-      "upgrade": "remove"
-    },
-    {
-      "path": "tooling/agent-pack/src/pluginContract.ts",
-      "match": "exact",
-      "ownership": "factory-only",
-      "action": "omit",
-      "upgrade": "remove"
-    },
-    {
-      "path": "tooling/agent-pack/src/mcp",
-      "match": "subtree",
-      "ownership": "factory-only",
-      "action": "omit",
-      "upgrade": "remove"
-    },
-    {
-      "path": "tooling/agent-pack/src/convexPlugin.test.ts",
-      "match": "exact",
-      "ownership": "factory-only",
-      "action": "omit",
-      "upgrade": "remove"
-    },
-    {
-      "path": "apps/cli/src/factory/composition.ts",
+      "path": "apps/cli/src/direct-run.test.ts",
       "match": "exact",
       "ownership": "factory-only",
       "action": "omit",
@@ -3641,56 +3613,14 @@
       "upgrade": "remove"
     },
     {
-      "path": "apps/cli/src/factory/mcp.ts",
+      "path": "apps/cli/src/factory/composition.ts",
       "match": "exact",
       "ownership": "factory-only",
       "action": "omit",
       "upgrade": "remove"
     },
     {
-      "path": "apps/cli/src/factory/mcp.test.ts",
-      "match": "exact",
-      "ownership": "factory-only",
-      "action": "omit",
-      "upgrade": "remove"
-    },
-    {
-      "path": "apps/cli/src/factory/mcpConfigure.ts",
-      "match": "exact",
-      "ownership": "factory-only",
-      "action": "omit",
-      "upgrade": "remove"
-    },
-    {
-      "path": "apps/cli/src/factory/mcpConfigure.test.ts",
-      "match": "exact",
-      "ownership": "factory-only",
-      "action": "omit",
-      "upgrade": "remove"
-    },
-    {
-      "path": "apps/cli/src/factory/mcpIntegration.test.ts",
-      "match": "exact",
-      "ownership": "factory-only",
-      "action": "omit",
-      "upgrade": "remove"
-    },
-    {
-      "path": "apps/cli/src/factory/createRootIntegration.test.ts",
-      "match": "exact",
-      "ownership": "factory-only",
-      "action": "omit",
-      "upgrade": "remove"
-    },
-    {
-      "path": "apps/cli/src/index.test.ts",
-      "match": "exact",
-      "ownership": "factory-only",
-      "action": "omit",
-      "upgrade": "remove"
-    },
-    {
-      "path": "apps/cli/src/direct-run.test.ts",
+      "path": "apps/cli/src/factory/create.test.ts",
       "match": "exact",
       "ownership": "factory-only",
       "action": "omit",
@@ -3704,7 +3634,42 @@
       "upgrade": "remove"
     },
     {
-      "path": "apps/cli/src/factory/create.test.ts",
+      "path": "apps/cli/src/factory/createRootIntegration.test.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "apps/cli/src/factory/mcp.test.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "apps/cli/src/factory/mcp.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "apps/cli/src/factory/mcpConfigure.test.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "apps/cli/src/factory/mcpConfigure.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "apps/cli/src/factory/mcpIntegration.test.ts",
       "match": "exact",
       "ownership": "factory-only",
       "action": "omit",
@@ -3753,21 +3718,63 @@
       "upgrade": "remove"
     },
     {
-      "path": "tooling/generators/src/index.ts",
+      "path": "apps/cli/src/index.test.ts",
       "match": "exact",
       "ownership": "factory-only",
       "action": "omit",
       "upgrade": "remove"
     },
     {
-      "path": "tooling/generators/src/index.test.ts",
+      "path": "docs/agent",
+      "match": "subtree",
+      "ownership": "template-owned",
+      "action": "copy",
+      "upgrade": "replace"
+    },
+    {
+      "path": "examples/saas-application",
+      "match": "subtree",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "patches",
+      "match": "subtree",
+      "ownership": "template-owned",
+      "action": "copy",
+      "upgrade": "replace"
+    },
+    {
+      "path": "tooling/agent-pack/src/convexPlugin.test.ts",
       "match": "exact",
       "ownership": "factory-only",
       "action": "omit",
       "upgrade": "remove"
     },
     {
-      "path": "tooling/generators/src/direct-run.test.ts",
+      "path": "tooling/agent-pack/src/mcp",
+      "match": "subtree",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "tooling/agent-pack/src/pluginContract.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "tooling/app-map",
+      "match": "subtree",
+      "ownership": "template-owned",
+      "action": "copy",
+      "upgrade": "replace"
+    },
+    {
+      "path": "tooling/app-map/INTEGRATION_REQUEST.md",
       "match": "exact",
       "ownership": "factory-only",
       "action": "omit",
@@ -3788,6 +3795,27 @@
       "upgrade": "remove"
     },
     {
+      "path": "tooling/generators/src/direct-run.test.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "tooling/generators/src/index.test.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "tooling/generators/src/index.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
       "path": "tooling/generators/src/workflow-output-smoke.ts",
       "match": "exact",
       "ownership": "factory-only",
@@ -3800,18 +3828,32 @@
       "ownership": "factory-only",
       "action": "omit",
       "upgrade": "remove"
+    },
+    {
+      "path": "tooling/release-seal.mts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "tooling/release-seal.test.mts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
     }
   ],
   "blueprintManifest": {
     "path": "blueprints/saas-application.json",
-    "sha256": "sha256:6293dfa850a25a24233d8a4b8899e44abffa8b767876d89e7e84b8dd351f2f72"
+    "sha256": "sha256:4b0c00d5f83fd073ffe13e6029c6cd9a459665d08094bfe11f801206632de8e7"
   },
   "upgradeImpact": {
     "path": "releases/v0.2.0-alpha.1/upgrade/app-map-input.json",
-    "sha256": "sha256:0bb09a7df2f6381f35a59a13c322a6cdf1ed330a71cc4ce2150725261c3ede33",
+    "sha256": "sha256:2819c0b2024be03565e8347aa296597dfb56db7c39e50ca3e2ee8a7541323477",
     "projection": {
       "path": "releases/v0.2.0-alpha.1/upgrade/app-map-impact.json",
-      "sha256": "sha256:ea72a057a05de00371ff236efe7fd0c77d4fba1c131f9adb97a823dfd611497a"
+      "sha256": "sha256:24b15499f3684c8fe84f776db5c7f436864d52d8e9d17e643803fd83def6ec0b"
     }
   },
   "migrationHandoff": {
