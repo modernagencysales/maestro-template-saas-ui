@@ -2,6 +2,7 @@ import { lstat, mkdtemp, readFile, readdir, symlink } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { fileURLToPath } from "node:url";
 import { createVerificationReceipt } from "./receipt.js";
 import { createNodeVerificationReceiptWriter } from "./receiptWriter.js";
 import { createRepositoryContext } from "./repoContext.js";
@@ -18,6 +19,14 @@ const receipt = createVerificationReceipt({
 });
 
 describe("verification receipt writer", () => {
+  it("keeps the explicit target-local receipt outside Git evidence", async () => {
+    const rootIgnore = fileURLToPath(
+      new URL("../../../.gitignore", import.meta.url),
+    );
+    expect(await readFile(rootIgnore, "utf8")).toContain(
+      ".maestro/verification-receipt.json",
+    );
+  });
   it("atomically persists bounded canonical bytes with no journal residue", async () => {
     const targetRoot = await mkdtemp(join(tmpdir(), "maestro-receipt-"));
     const repo = createRepositoryContext({ cwd: targetRoot });

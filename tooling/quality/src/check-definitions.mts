@@ -961,6 +961,8 @@ type DiagnosticOverride = Pick<StaticCheckDiagnosticMetadata, "evidenceClass"> &
       | "canonicalDoc"
       | "repairHint"
       | "focusedPathPrefixes"
+      | "defaultFocused"
+      | "prerequisiteCheck"
       | "semanticRuleIds"
     >
   >;
@@ -971,6 +973,41 @@ type RegisteredCheckDescriptors<
   readonly [GateId in keyof Definitions]: Definitions[GateId] &
     RegisteredStaticCheckDescriptor & { readonly gateId: GateId };
 };
+
+const canonicalScriptBodies = {
+  "check:ci-completeness": "tsx tooling/quality/check-ci-completeness.mts",
+  "check:config-drift": "tsx tooling/quality/check-config-drift.mts",
+  "check:deps": "tsx tooling/quality/check-deps.mts",
+  "check:knip": "knip --config knip.json",
+  "check:route-tree": "tsx tooling/quality/check-route-tree.mts",
+  "check:types-coverage":
+    "node --max-old-space-size=8192 node_modules/type-coverage/bin/type-coverage --project tsconfig.type-coverage.json --at-least 99.7",
+  "check:gates": "tsx tooling/quality/check-gates.mts",
+  "check:debt": "tsx tooling/quality/check-debt.mts",
+  "check:generators": "tsx tooling/quality/check-generators.mts",
+  "check:docs-freshness": "tsx tooling/quality/check-docs-freshness.mts",
+  "check:generated-files": "tsx tooling/quality/check-generated-files.mts",
+  "check:confect-contracts": "tsx tooling/quality/check-confect-contracts.mts",
+  "check:confect-compat": "tsx tooling/quality/check-confect-compat.mts",
+  "check:schema-migration-notes":
+    "tsx tooling/quality/check-schema-migration-notes.mts",
+  "check:layer-boundaries":
+    "depcruise --config dependency-cruiser.config.cjs apps packages tooling tests experiments",
+  "check:secret-canaries":
+    "gitleaks detect --config .gitleaks.toml --no-git --redact --source .",
+  "check:sbom-license": "tsx tooling/quality/check-sbom-license.mts",
+  "check:headless-surface-contract":
+    "tsx tooling/quality/check-headless-surface-contract.mts",
+  "check:posthog-readiness": "tsx tooling/quality/check-posthog-readiness.mts",
+  "check:auth-demo-bypass": "tsx tooling/quality/check-auth-demo-bypass.mts",
+  "check:workflow-graph-boundary":
+    "tsx tooling/quality/check-workflow-graph-boundary.mts",
+  "check:workflow-semantics":
+    "tsx tooling/quality/check-workflow-semantics.mts",
+  "check:recipes": "tsx tooling/quality/check-recipes.mts",
+  "taste:eval": "tsx tooling/quality/taste-eval.mts",
+  "review:contract": "pnpm contract-review",
+} as const;
 
 function defineRegisteredStaticCheckDescriptors<
   const Definitions extends Record<string, StaticCheckDescriptor>,
@@ -988,6 +1025,11 @@ function defineRegisteredStaticCheckDescriptors<
         );
       }
       const command = ["pnpm", script] as const;
+      const canonicalScriptBody =
+        canonicalScriptBodies[script as keyof typeof canonicalScriptBodies];
+      if (canonicalScriptBody === undefined) {
+        throw new Error(`${gateId}: canonical script body is not registered`);
+      }
       return [
         gateId,
         {
@@ -999,6 +1041,7 @@ function defineRegisteredStaticCheckDescriptors<
             "Repair the reported invariant in its owning source and rerun this check.",
           argv: command,
           rerun: command,
+          canonicalScriptBody,
           focusedPathPrefixes: [
             ...new Set(descriptor.requirements.map(({ file }) => file)),
           ],
@@ -1018,7 +1061,7 @@ export const checkDescriptors = defineRegisteredStaticCheckDescriptors(
     knip: { evidenceClass: "static" },
     "route-tree": { evidenceClass: "static" },
     "types-coverage": { evidenceClass: "static" },
-    gates: { evidenceClass: "static" },
+    gates: { evidenceClass: "static", defaultFocused: true },
     debt: { evidenceClass: "static" },
     generators: { evidenceClass: "static" },
     "docs-freshness": { evidenceClass: "static" },
@@ -1027,14 +1070,24 @@ export const checkDescriptors = defineRegisteredStaticCheckDescriptors(
     "confect-compat": { evidenceClass: "static" },
     "schema-migration-notes": { evidenceClass: "static" },
     "layer-boundaries": { evidenceClass: "static" },
-    "secret-canaries": { evidenceClass: "static" },
+    "secret-canaries": {
+      evidenceClass: "static",
+      defaultFocused: true,
+      prerequisiteCheck: ["gitleaks", "version"],
+      repairHint:
+        "Install the checksum-pinned scanner with bash .buildkite/scripts/install-gitleaks.sh, then rerun this check.",
+    },
     "sbom-license": { evidenceClass: "static" },
-    "headless-surface-contract": { evidenceClass: "static" },
+    "headless-surface-contract": {
+      evidenceClass: "static",
+      defaultFocused: true,
+    },
     "posthog-readiness": { evidenceClass: "static" },
     "auth-demo-bypass": { evidenceClass: "static" },
     "workflow-graph-boundary": { evidenceClass: "static" },
     "workflow-semantics": {
       evidenceClass: "static",
+      defaultFocused: true,
       canonicalDoc: "docs/template/generated/workflow-semantics.md",
       semanticRuleIds: [
         "WF-CONTRACT",

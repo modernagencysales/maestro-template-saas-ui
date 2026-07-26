@@ -23,7 +23,10 @@ export type StaticCheckDiagnosticMetadata = {
   readonly repairHint: string;
   readonly argv: readonly [string, ...string[]];
   readonly rerun: readonly [string, ...string[]];
+  readonly canonicalScriptBody: string;
   readonly focusedPathPrefixes: readonly string[];
+  readonly defaultFocused?: boolean;
+  readonly prerequisiteCheck?: readonly [string, ...string[]];
   readonly semanticRuleIds?: readonly string[];
 };
 export type RegisteredStaticCheckDescriptor = StaticCheckDescriptor &

@@ -37,6 +37,8 @@ const readyFacts = (): PreflightFacts => ({
       target: "canonical",
     },
     commit: "abc123",
+    gitRoot: "/fixture",
+    rootMatches: true,
     canonicalBase: "main",
     canonicalTag: "pack-v1",
     dirty: false,
@@ -135,6 +137,23 @@ describe("agent-pack preflight", () => {
         facts,
       ),
     );
+  });
+
+  it("binds same-name environment value changes only into the overall fingerprint", () => {
+    const facts = readyFacts();
+    const first = fingerprintPreflight(
+      context.repo,
+      facts,
+      "environment_binding_sha256:first",
+    );
+    const second = fingerprintPreflight(
+      context.repo,
+      facts,
+      "environment_binding_sha256:second",
+    );
+
+    expect(second).not.toBe(first);
+    expect(JSON.stringify(facts)).not.toContain("environment_binding_sha256");
   });
 
   it("always probes through the injected read-only boundary", async () => {
@@ -242,6 +261,15 @@ describe("agent-pack preflight", () => {
       "AGENT_PACK_OFFLINE",
     ],
     [
+      "unknown network",
+      (f: PreflightFacts) => ({
+        ...f,
+        network: "unknown" as const,
+        observationDiagnostics: { network: "Registry probe timed out." },
+      }),
+      "AGENT_PACK_NETWORK_UNKNOWN",
+    ],
+    [
       "ambiguous roots",
       (f: PreflightFacts) => ({
         ...f,
@@ -275,6 +303,17 @@ describe("agent-pack preflight", () => {
       (f: PreflightFacts) => ({ ...f, auth: "cancelled" as const }),
       "AGENT_PACK_AUTH_CANCELLED",
     ],
+    [
+      "ambiguous auth",
+      (f: PreflightFacts) => ({
+        ...f,
+        auth: "unknown" as const,
+        observationDiagnostics: {
+          auth: "Read-only preflight does not authenticate providers.",
+        },
+      }),
+      "AGENT_PACK_AUTH_UNKNOWN",
+    ],
   ])(
     "reports %s with one exact pnpm recovery",
     async (_label, mutate, code) => {
@@ -296,13 +335,49 @@ describe("agent-pack preflight", () => {
       expect(diagnostic?.nextAction).not.toBe(diagnostic?.message);
       if (
         code !== "AGENT_PACK_OFFLINE" &&
+        code !== "AGENT_PACK_NETWORK_UNKNOWN" &&
         code !== "AGENT_PACK_HOST_STALE" &&
-        code !== "AGENT_PACK_AUTH_CANCELLED"
+        code !== "AGENT_PACK_AUTH_CANCELLED" &&
+        code !== "AGENT_PACK_AUTH_UNKNOWN"
       ) {
         expect(result.data).toMatchObject({ safeToMutate: false });
       }
     },
   );
+
+  it("blocks when dirty state, collisions, or the Git root could not be observed", async () => {
+    const facts = readyFacts();
+    const result = await executeAgentPackCommand(
+      createPreflightCommand({
+        inspect: async () => ({
+          ...facts,
+          repository: {
+            ...facts.repository,
+            dirty: "unknown",
+            collisions: "unknown",
+            rootMatches: "unknown",
+          },
+          observationDiagnostics: {
+            dirty: "git status timed out.",
+            collisions: "Collision attribution requires git status.",
+            root: "git rev-parse was unavailable.",
+          },
+        }),
+      }),
+      { mode: "fake" },
+      context,
+    );
+
+    expect(result).toMatchObject({
+      exitClass: "blockedMutation",
+      data: { safeToMutate: false },
+    });
+    expect(result.diagnostics.map(({ code }) => code)).toEqual([
+      "AGENT_PACK_GIT_ROOT_UNKNOWN",
+      "AGENT_PACK_DIRTY_STATE_UNKNOWN",
+      "AGENT_PACK_COLLISIONS_UNKNOWN",
+    ]);
+  });
 
   it("blocks a selected mode with a missing provider without exposing payloads", async () => {
     const facts = readyFacts();

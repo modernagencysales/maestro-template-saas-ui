@@ -37,6 +37,8 @@ const runtimeFacts = {
       target: "existing-app" as const,
     },
     commit: "abc1234",
+    gitRoot: "/workspace/app",
+    rootMatches: true,
     canonicalBase: "main",
     canonicalTag: "v1.0.0",
     dirty: false,
@@ -66,6 +68,7 @@ const runtimeFacts = {
     rerun: "pnpm check:workflow:fast" as const,
   },
   availableEnvironmentNames: ["CONVEX_DEPLOYMENT"],
+  environmentBinding: "environment_binding_sha256:fixture",
   templateInstanceText: JSON.stringify({ name: "App" }),
 };
 
@@ -103,20 +106,23 @@ describe("composed preflight probe", () => {
     });
 
     await expect(probe.inspect({ mode: "test" }, repo)).resolves.toMatchObject({
-      repository: { role: "existing-app", commit: "abc1234" },
-      network: "offline",
-      workflow: { status: "restricted", restricted: ["Intl"] },
-      app: {
-        blueprint: "source-grounded-gtm-brain",
-        providerMode: "test",
-        providers: expect.arrayContaining([
-          { id: "convex", posture: "test" },
-          { id: "workos", posture: "missing" },
-        ]),
-      },
-      indexes: {
-        systems: "docs/template/system-catalog.json",
-        generators: "tooling/generators/src/index.ts",
+      fingerprintBinding: "environment_binding_sha256:fixture",
+      facts: {
+        repository: { role: "existing-app", commit: "abc1234" },
+        network: "offline",
+        workflow: { status: "restricted", restricted: ["Intl"] },
+        app: {
+          blueprint: "source-grounded-gtm-brain",
+          providerMode: "test",
+          providers: expect.arrayContaining([
+            { id: "convex", posture: "test" },
+            { id: "workos", posture: "missing" },
+          ]),
+        },
+        indexes: {
+          systems: "docs/template/system-catalog.json",
+          generators: "tooling/generators/src/index.ts",
+        },
       },
     });
     expect(readers.parseTemplateInstance).toHaveBeenCalledOnce();
@@ -158,11 +164,13 @@ describe("composed preflight probe", () => {
       },
     });
 
-    const facts = await probe.inspect({ mode: "fake" }, repo);
+    const observation = await probe.inspect({ mode: "fake" }, repo);
     expect(buildTemplateInstance).toHaveBeenCalledWith({
       providerMode: "fake",
       generatedAt: "1970-01-01T00:00:00.000Z",
     });
-    expect(facts.app.providers).toEqual([]);
+    expect("facts" in observation && observation.facts.app.providers).toEqual(
+      [],
+    );
   });
 });

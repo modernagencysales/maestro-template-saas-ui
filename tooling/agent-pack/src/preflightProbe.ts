@@ -48,12 +48,15 @@ export type PreflightRuntimeSnapshot = Pick<
   | "repository"
   | "network"
   | "auth"
+  | "observationDiagnostics"
   | "versionsCompatible"
   | "versions"
   | "workflow"
 > & {
   /** Names only. Environment values must never cross this boundary. */
   readonly availableEnvironmentNames: readonly string[];
+  /** Aggregate-only binding. Never contains or hashes one value separately. */
+  readonly environmentBinding: string;
   readonly templateInstanceText: string | undefined;
   readonly observedAt?: string;
 };
@@ -104,41 +107,47 @@ export function createComposedPreflightProbe<
       );
 
       return {
-        host: snapshot.host,
-        prerequisites: snapshot.prerequisites,
-        repository: snapshot.repository,
-        network: snapshot.network,
-        auth: snapshot.auth,
-        versionsCompatible:
-          snapshot.versionsCompatible && doctor.ok && knownBlueprint,
-        versions: snapshot.versions,
-        workflow: snapshot.workflow,
-        app: {
-          blueprint: instance.blueprint,
-          modules: [...instance.modules],
-          providerMode: request.mode,
-          providers: providerPostures(
-            instance,
-            request.mode,
-            repo.sourceRoot,
-            availableEnvironmentNames,
-            input.readers,
-          ),
+        fingerprintBinding: snapshot.environmentBinding,
+        facts: {
+          host: snapshot.host,
+          prerequisites: snapshot.prerequisites,
+          repository: snapshot.repository,
+          network: snapshot.network,
+          auth: snapshot.auth,
+          ...(snapshot.observationDiagnostics === undefined
+            ? {}
+            : { observationDiagnostics: snapshot.observationDiagnostics }),
+          versionsCompatible:
+            snapshot.versionsCompatible && doctor.ok && knownBlueprint,
+          versions: snapshot.versions,
+          workflow: snapshot.workflow,
+          app: {
+            blueprint: instance.blueprint,
+            modules: [...instance.modules],
+            providerMode: request.mode,
+            providers: providerPostures(
+              instance,
+              request.mode,
+              repo.sourceRoot,
+              availableEnvironmentNames,
+              input.readers,
+            ),
+          },
+          indexes: {
+            systems: "docs/template/system-catalog.json",
+            generators: "tooling/generators/src/index.ts",
+            recipes: "docs/template/app-factory-guide.md",
+            documentation: "docs/template/repo-map.md",
+          },
+          claimLevels: [
+            "fake",
+            "local",
+            "dev",
+            "preview",
+            "staging",
+            "production",
+          ],
         },
-        indexes: {
-          systems: "docs/template/system-catalog.json",
-          generators: "tooling/generators/src/index.ts",
-          recipes: "docs/template/app-factory-guide.md",
-          documentation: "docs/template/repo-map.md",
-        },
-        claimLevels: [
-          "fake",
-          "local",
-          "dev",
-          "preview",
-          "staging",
-          "production",
-        ],
       };
     },
   };

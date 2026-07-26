@@ -35,15 +35,25 @@ export type PreflightFacts = {
       readonly target: "canonical" | "new-target" | "existing-app";
     };
     readonly commit: string;
+    readonly gitRoot: string;
+    readonly rootMatches: boolean | "unknown";
     readonly canonicalBase: string;
     readonly canonicalTag: string;
-    readonly dirty: boolean;
-    readonly generatedDrift: boolean;
-    readonly collisions: readonly string[];
+    readonly dirty: boolean | "unknown";
+    readonly generatedDrift: boolean | "unknown";
+    readonly collisions: readonly string[] | "unknown";
     readonly hostIntegration: "current" | "stale" | "not-installed";
   };
   readonly network: "online" | "offline" | "unknown";
-  readonly auth: "not-required" | "connected" | "cancelled";
+  readonly auth: "not-required" | "connected" | "cancelled" | "unknown";
+  readonly observationDiagnostics?: Readonly<
+    Partial<
+      Record<
+        "network" | "auth" | "root" | "dirty" | "collisions" | "generatedDrift",
+        string
+      >
+    >
+  >;
   readonly versionsCompatible: boolean;
   readonly versions: {
     readonly pack: string;
@@ -100,7 +110,13 @@ export type PreflightProbe = {
   readonly inspect: (
     input: PreflightInput,
     repo: RepositoryContext,
-  ) => Promise<PreflightFacts>;
+  ) => Promise<
+    | PreflightFacts
+    | {
+        readonly facts: PreflightFacts;
+        readonly fingerprintBinding: string;
+      }
+  >;
 };
 
 const modes = new Set<PreflightMode>(["fake", "test", "live"]);
@@ -118,6 +134,11 @@ const blockedCodes = new Set([
   "AGENT_PACK_DISK_LOW",
   "AGENT_PACK_PORT_BLOCKED",
   "AGENT_PACK_GENERATED_DRIFT",
+  "AGENT_PACK_GENERATED_DRIFT_UNKNOWN",
+  "AGENT_PACK_GIT_ROOT_MISMATCH",
+  "AGENT_PACK_GIT_ROOT_UNKNOWN",
+  "AGENT_PACK_DIRTY_STATE_UNKNOWN",
+  "AGENT_PACK_COLLISIONS_UNKNOWN",
   "AGENT_PACK_WORKFLOW_UNSAFE",
   "AGENT_PACK_PROVIDER_MISSING",
 ]);
@@ -129,7 +150,13 @@ export function createPreflightCommand(probe: PreflightProbe) {
     decode: decodePreflightInput,
     mutationPosture: () => "read-only",
     execute: async (input, context) => {
-      const facts = snapshotFacts(await probe.inspect(input, context.repo));
+      const inspected = await probe.inspect(input, context.repo);
+      const facts = snapshotFacts(
+        isPreflightObservation(inspected) ? inspected.facts : inspected,
+      );
+      const fingerprintBinding = isPreflightObservation(inspected)
+        ? inspected.fingerprintBinding
+        : "environment_binding_sha256:unavailable";
       const diagnostics = preflightDiagnostics(facts);
       const safeToMutate = !diagnostics.some(
         ({ code }) => unavailableCodes.has(code) || blockedCodes.has(code),
@@ -142,7 +169,11 @@ export function createPreflightCommand(probe: PreflightProbe) {
           : "Preflight found readiness issues.",
         diagnostics,
         data: {
-          fingerprint: fingerprintPreflight(context.repo, facts),
+          fingerprint: fingerprintPreflight(
+            context.repo,
+            facts,
+            fingerprintBinding,
+          ),
           safeToMutate,
           worksNow: worksNow(facts),
           demoOnly: demoOnly(facts),
@@ -157,9 +188,23 @@ export function createPreflightCommand(probe: PreflightProbe) {
 export function fingerprintPreflight(
   repo: RepositoryContext,
   facts: PreflightFacts,
+  fingerprintBinding = "environment_binding_sha256:unavailable",
 ): string {
-  const content = stableJson({ repo, facts: snapshotFacts(facts) });
+  const content = stableJson({
+    repo,
+    facts: snapshotFacts(facts),
+    fingerprintBinding,
+  });
   return `preflight_sha256:${createHash("sha256").update(content).digest("hex")}`;
+}
+
+function isPreflightObservation(
+  value: PreflightFacts | { readonly facts: PreflightFacts },
+): value is {
+  readonly facts: PreflightFacts;
+  readonly fingerprintBinding: string;
+} {
+  return isRecord(value) && "facts" in value && "fingerprintBinding" in value;
 }
 
 function decodePreflightInput(
@@ -250,6 +295,18 @@ function preflightDiagnostics(
     "pnpm maestro -- preflight --mode fake",
   );
   add(
+    facts.network === "unknown",
+    "AGENT_PACK_NETWORK_UNKNOWN",
+    observationMessage(
+      facts,
+      "network",
+      "Registry reachability was attempted but could not be determined.",
+    ),
+    true,
+    "Continue with committed fake/local checks or inspect registry reachability.",
+    "pnpm maestro -- preflight --mode fake",
+  );
+  add(
     facts.repository.role === "ambiguous",
     "AGENT_PACK_REPO_AMBIGUOUS",
     "Source, template, and target roles are ambiguous.",
@@ -258,7 +315,53 @@ function preflightDiagnostics(
     "pnpm maestro -- preflight --details",
   );
   add(
-    facts.repository.dirty && facts.repository.collisions.length > 0,
+    facts.repository.rootMatches === false,
+    "AGENT_PACK_GIT_ROOT_MISMATCH",
+    `Observed Git root ${facts.repository.gitRoot} does not match source root.`,
+    false,
+    "Run Maestro from the intended repository root.",
+    "pnpm maestro -- preflight --details",
+  );
+  add(
+    facts.repository.rootMatches === "unknown",
+    "AGENT_PACK_GIT_ROOT_UNKNOWN",
+    observationMessage(
+      facts,
+      "root",
+      "The Git repository root could not be observed.",
+    ),
+    false,
+    "Restore bounded Git root inspection before mutation.",
+    "pnpm maestro -- preflight --details",
+  );
+  add(
+    facts.repository.dirty === "unknown",
+    "AGENT_PACK_DIRTY_STATE_UNKNOWN",
+    observationMessage(
+      facts,
+      "dirty",
+      "Worktree dirty state could not be observed.",
+    ),
+    false,
+    "Restore bounded Git status inspection before mutation.",
+    "pnpm maestro -- preflight --details",
+  );
+  add(
+    facts.repository.collisions === "unknown",
+    "AGENT_PACK_COLLISIONS_UNKNOWN",
+    observationMessage(
+      facts,
+      "collisions",
+      "Dirty target-path collisions could not be attributed.",
+    ),
+    false,
+    "Restore dirty-path attribution before mutation.",
+    "pnpm maestro -- preflight --details",
+  );
+  add(
+    facts.repository.dirty === true &&
+      facts.repository.collisions !== "unknown" &&
+      facts.repository.collisions.length > 0,
     "AGENT_PACK_DIRTY_OVERLAP",
     "Dirty files overlap planned target paths.",
     false,
@@ -266,11 +369,23 @@ function preflightDiagnostics(
     "pnpm maestro -- preflight --details",
   );
   add(
-    facts.repository.generatedDrift,
+    facts.repository.generatedDrift === true,
     "AGENT_PACK_GENERATED_DRIFT",
     "Generated output differs from its declared provenance.",
     false,
     "Regenerate and review the generated output.",
+    "pnpm check:generators",
+  );
+  add(
+    facts.repository.generatedDrift === "unknown",
+    "AGENT_PACK_GENERATED_DRIFT_UNKNOWN",
+    observationMessage(
+      facts,
+      "generatedDrift",
+      "Generated drift could not be observed.",
+    ),
+    false,
+    "Restore generated-path Git inspection before mutation.",
     "pnpm check:generators",
   );
   add(
@@ -306,6 +421,18 @@ function preflightDiagnostics(
     "pnpm maestro -- preflight --mode fake",
   );
   add(
+    facts.auth === "unknown",
+    "AGENT_PACK_AUTH_UNKNOWN",
+    observationMessage(
+      facts,
+      "auth",
+      "Authentication posture was attempted but remains ambiguous.",
+    ),
+    true,
+    "Use fake mode or run the provider-specific doctor before connected work.",
+    "pnpm maestro -- preflight --mode fake",
+  );
+  add(
     facts.prerequisites.disk === "low",
     "AGENT_PACK_DISK_LOW",
     "Available disk space is below the local-work threshold.",
@@ -332,6 +459,14 @@ function preflightDiagnostics(
     );
   }
   return diagnostics;
+}
+
+function observationMessage(
+  facts: PreflightFacts,
+  key: keyof NonNullable<PreflightFacts["observationDiagnostics"]>,
+  fallback: string,
+): string {
+  return facts.observationDiagnostics?.[key] ?? fallback;
 }
 
 function preflightExitClass(

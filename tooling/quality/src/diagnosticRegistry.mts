@@ -20,7 +20,10 @@ export const diagnosticRegistryDescriptors = Object.values(
     repairHint,
     argv,
     rerun,
+    canonicalScriptBody,
     focusedPathPrefixes,
+    defaultFocused,
+    prerequisiteCheck,
     semanticRuleIds,
   }): QualityDiagnosticDescriptor => ({
     gateId,
@@ -30,7 +33,10 @@ export const diagnosticRegistryDescriptors = Object.values(
     repairHint,
     argv,
     rerun,
+    canonicalScriptBody,
     focusedPathPrefixes,
+    ...(defaultFocused === undefined ? {} : { defaultFocused }),
+    ...(prerequisiteCheck === undefined ? {} : { prerequisiteCheck }),
     ...(semanticRuleIds === undefined ? {} : { semanticRuleIds }),
   }),
 );

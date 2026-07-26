@@ -4,7 +4,7 @@ import {
   type AgentPackJsonValue,
 } from "@maestro-template/agent-pack";
 import { describe, expect, it } from "vitest";
-import { runVerifyCli } from "./verify";
+import { runReceiptExportCli, runVerifyCli } from "./verify";
 
 const verifyCommand = defineAgentPackCommand({
   id: "verify",
@@ -71,6 +71,60 @@ describe("verify CLI adapter", () => {
       data: {
         scope: "focused",
         changed: ["apps/cli", "tooling/agent-pack"],
+      },
+    });
+  });
+
+  it("keeps receipt export preview-only unless write and fingerprint are explicit", async () => {
+    const exportCommand = defineAgentPackCommand({
+      id: "verify-export",
+      schemaVersion: AGENT_PACK_COMMAND_VERSION,
+      decode: (input: unknown) => ({
+        ok: true as const,
+        args: input as { readonly write: boolean },
+      }),
+      mutationPosture: (input: { readonly write: boolean }) =>
+        input.write ? ("write" as const) : ("preview" as const),
+      execute: async (input: { readonly write: boolean }) => ({
+        mutationPosture: input.write
+          ? ("write" as const)
+          : ("preview" as const),
+        exitClass: "success" as const,
+        summary: "Receipt export ready.",
+        diagnostics: [],
+        data: input,
+      }),
+    });
+    const preview = await runReceiptExportCli(
+      exportCommand,
+      ["verify-export", "--scope", "full", "--json"],
+      "/fixture",
+    );
+    const write = await runReceiptExportCli(
+      exportCommand,
+      [
+        "verify-export",
+        "--scope",
+        "full",
+        "--fingerprint",
+        `preflight_sha256:${"a".repeat(64)}`,
+        "--write",
+        "--json",
+      ],
+      "/fixture",
+    );
+
+    expect(JSON.parse(preview.stdout)).toMatchObject({
+      mutationPosture: "preview",
+      data: { scope: "full", changed: [], write: false },
+    });
+    expect(JSON.parse(write.stdout)).toMatchObject({
+      mutationPosture: "write",
+      data: {
+        scope: "full",
+        changed: [],
+        write: true,
+        fingerprint: expect.stringMatching(/^preflight_sha256:/),
       },
     });
   });

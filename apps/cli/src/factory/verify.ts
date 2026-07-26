@@ -19,6 +19,17 @@ export function createVerifyCliHandler<
   };
 }
 
+export function createReceiptExportCliHandler<
+  Args,
+  Data extends AgentPackJsonValue,
+>(command: AgentPackCommand<"verify-export", Args, Data>) {
+  return {
+    command: command.id,
+    run: (argv: readonly string[], cwd: string): Promise<CliResult> =>
+      runReceiptExportCli(command, argv, cwd),
+  };
+}
+
 export function runVerifyCli<
   CommandId extends "verify" | "check",
   Args,
@@ -29,6 +40,24 @@ export function runVerifyCli<
   cwd: string,
 ): Promise<CliResult> {
   const options = parseVerifyCli(argv.slice(1), command.id);
+  return runAgentPackCommandAsCli(
+    command,
+    options.input,
+    {
+      schemaVersion: AGENT_PACK_EXECUTION_CONTEXT_VERSION,
+      invocation: "cli",
+      repo: createRepositoryContext({ cwd }),
+    },
+    options.renderMode,
+  );
+}
+
+export function runReceiptExportCli<Args, Data extends AgentPackJsonValue>(
+  command: AgentPackCommand<"verify-export", Args, Data>,
+  argv: readonly string[],
+  cwd: string,
+): Promise<CliResult> {
+  const options = parseReceiptExportCli(argv.slice(1));
   return runAgentPackCommandAsCli(
     command,
     options.input,
@@ -127,4 +156,71 @@ function renderModeFor(
   if (token === "--details") return "details";
   if (token === "--human") return "human";
   return undefined;
+}
+
+function parseReceiptExportCli(argv: readonly string[]): {
+  readonly input: unknown;
+  readonly renderMode: FactoryCliRenderMode;
+} {
+  let scope = "focused";
+  let changed: readonly string[] = [];
+  let fingerprint: string | undefined;
+  let write = false;
+  let renderMode: FactoryCliRenderMode = "human";
+  const seen = new Set<string>();
+  let valid = true;
+
+  for (let index = 0; index < argv.length; index += 1) {
+    const token = argv[index];
+    if (token === "--write") {
+      if (seen.has(token)) valid = false;
+      seen.add(token);
+      write = true;
+      continue;
+    }
+    if (
+      token === "--scope" ||
+      token === "--changed" ||
+      token === "--fingerprint"
+    ) {
+      const value = argv[index + 1];
+      if (seen.has(token) || value === undefined || value.startsWith("--")) {
+        valid = false;
+      } else {
+        seen.add(token);
+        if (token === "--scope") scope = value;
+        if (token === "--fingerprint") fingerprint = value;
+        if (token === "--changed") {
+          const paths = value.split(",");
+          changed = paths.filter(Boolean);
+          if (changed.length === 0 || paths.some((path) => path.length === 0)) {
+            valid = false;
+          }
+        }
+        index += 1;
+      }
+      continue;
+    }
+    const selectedRenderMode = renderModeFor(token);
+    if (selectedRenderMode !== undefined) {
+      if (seen.has("render")) valid = false;
+      seen.add("render");
+      renderMode = selectedRenderMode;
+      continue;
+    }
+    valid = false;
+  }
+  if (scope === "full" && changed.length > 0) valid = false;
+  if (write !== (fingerprint !== undefined)) valid = false;
+  return {
+    input: valid
+      ? {
+          scope,
+          changed,
+          write,
+          ...(fingerprint === undefined ? {} : { fingerprint }),
+        }
+      : { scope: "__invalid__", changed: [], write: false },
+    renderMode,
+  };
 }

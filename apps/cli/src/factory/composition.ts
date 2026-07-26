@@ -18,6 +18,7 @@ import {
   createRecipesCommand,
   createScaffoldCommand,
   createVerifyCommand,
+  createVerificationReceiptExportCommand,
   createRepositoryContext,
   createRepositoryLocalMcpConfigurationStore,
   defineDiagnosticRegistryProjection,
@@ -58,6 +59,8 @@ import { createCustomerCreateComposition } from "./createComposition";
 import { createProviderDoctorCliHandler } from "./doctor";
 import {
   projectCompositionEnvironment,
+  projectCompositionEnvironmentFingerprintMaterial,
+  projectCompositionProviderFingerprintMaterial,
   type CompositionEnvironmentReader,
 } from "./environment";
 import { createMcpCliAdapter } from "./mcp";
@@ -72,12 +75,16 @@ import {
   createStartOutputBoundary,
   parseStartTargetInstance,
 } from "./start";
-import { createVerifyCliHandler } from "./verify";
+import {
+  createReceiptExportCliHandler,
+  createVerifyCliHandler,
+} from "./verify";
 import { runAgentPackCommandAsCli, type FactoryCliHandler } from "./router";
 
 export const FACTORY_EXECUTION_POLICY = Object.freeze({
   supportedPlatforms: ["linux", "darwin", "win32"],
   supportedNodeMajors: [22],
+  minimumGitVersion: "2.31.0",
   minimumDiskBytes: 512 * 1024 * 1024,
   requiredPorts: [],
   metadataTimeoutMs: 10_000,
@@ -132,7 +139,10 @@ const convexMcpProfiles = parseConvexMcpProfiles(
   ) as unknown,
 );
 
-export { projectCompositionEnvironment } from "./environment";
+export {
+  projectCompositionEnvironment,
+  projectCompositionProviderPosture,
+} from "./environment";
 export type { CompositionEnvironmentReader } from "./environment";
 
 export type FactoryMcpOverrides = {
@@ -192,27 +202,21 @@ export function createFactoryCliComposition(
     readFile: readBoundedFile,
     now: () => new Date().toISOString(),
     environment: async (repo) =>
-      projectCompositionEnvironment(repo, readEnvironment),
-    providerPosture: async (repo) => {
-      const instance = parseTemplateInstance(
-        await readBoundedFile(
-          resolve(repo.targetRoot, "template-instance.json"),
-          {
-            maxBytes: FACTORY_EXECUTION_POLICY.packageJsonMaxBytes,
-          },
+      projectCompositionEnvironmentFingerprintMaterial(repo, readEnvironment),
+    providerPosture: async (repo) =>
+      projectCompositionProviderFingerprintMaterial({
+        repo,
+        instance: parseTemplateInstance(
+          await readBoundedFile(
+            resolve(repo.targetRoot, "template-instance.json"),
+            {
+              maxBytes: FACTORY_EXECUTION_POLICY.packageJsonMaxBytes,
+            },
+          ),
         ),
-      );
-      return Object.fromEntries(
-        Object.entries(instance.providers).map(([id, posture]) => [
-          id,
-          posture === "configured"
-            ? "live"
-            : posture === "fake"
-              ? "sample"
-              : "local",
-        ]),
-      );
-    },
+        readEnvironment,
+        requiredEnvironmentNames: requiredEnvNamesForProvider,
+      }),
     limits: FACTORY_EXECUTION_POLICY,
   });
   const start = createComposedStartCommand({
@@ -233,6 +237,10 @@ export function createFactoryCliComposition(
   const verify = createVerifyCommand({
     descriptors,
     runner: verificationRunner,
+  });
+  const verifyExport = createVerificationReceiptExportCommand({
+    preflight,
+    verify,
     receiptWriter: createNodeVerificationReceiptWriter({
       maxBytes: FACTORY_EXECUTION_POLICY.packageJsonMaxBytes,
     }),
@@ -277,7 +285,7 @@ export function createFactoryCliComposition(
           : {
               fingerprint: result.data.fingerprint,
               safeToMutate: result.data.safeToMutate,
-              cleanWorktree: !result.data.facts.repository.dirty,
+              cleanWorktree: result.data.facts.repository.dirty === false,
             };
       },
     },
@@ -403,6 +411,7 @@ export function createFactoryCliComposition(
     createProviderDoctorCliHandler(providerDoctor),
     createPreflightCliHandler(preflight),
     createVerifyCliHandler(verify),
+    createReceiptExportCliHandler(verifyExport),
     createVerifyCliHandler(check),
     createPlanCheckCliHandler(planCheck),
     createScaffoldCliHandler(scaffold),

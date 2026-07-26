@@ -14,8 +14,10 @@ export type DiagnosticDescriptor = {
   readonly repairHint: string;
   readonly argv: readonly [string, ...string[]];
   readonly rerun: readonly [string, ...string[]];
+  readonly canonicalScriptBody?: string;
   readonly focusedPathPrefixes?: readonly string[];
   readonly defaultFocused?: boolean;
+  readonly prerequisiteCheck?: readonly [string, ...string[]];
   readonly semanticRuleIds?: readonly string[];
 };
 
@@ -76,6 +78,14 @@ export function validateDiagnosticDescriptor(
     validateBoundedArgv(descriptor.argv) ??
     validateBoundedArgv(descriptor.rerun);
   if (commandError !== undefined) return { ok: false, reason: commandError };
+  if (descriptor.prerequisiteCheck !== undefined) {
+    const prerequisiteError = validatePrerequisiteArgv(
+      descriptor.prerequisiteCheck,
+    );
+    if (prerequisiteError !== undefined) {
+      return { ok: false, reason: prerequisiteError };
+    }
+  }
 
   for (const prefix of descriptor.focusedPathPrefixes ?? []) {
     if (
@@ -99,6 +109,20 @@ export function validateDiagnosticDescriptor(
     }
   }
   return { ok: true };
+}
+
+function validatePrerequisiteArgv(argv: readonly string[]): string | undefined {
+  const [executable] = argv;
+  if (
+    argv.length < 1 ||
+    argv.length > 4 ||
+    executable === undefined ||
+    !/^[a-z0-9][a-z0-9._-]*$/.test(executable) ||
+    argv.some((argument) => UNSAFE_ARG.test(argument))
+  ) {
+    return "gate prerequisites must use one bounded executable argument array";
+  }
+  return undefined;
 }
 
 function validateBoundedArgv(argv: readonly string[]): string | undefined {

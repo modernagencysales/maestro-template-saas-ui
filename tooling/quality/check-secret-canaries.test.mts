@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { describe, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import { expectDescriptorPassesAndFails } from "./src/check-test-helpers.mts";
 import { descriptor } from "./check-secret-canaries.mts";
 
@@ -13,6 +13,9 @@ describe("check:secret-canaries", () => {
   });
 
   it("detects a known fake secret canary with gitleaks", () => {
+    expect(
+      execFileSync("gitleaks", ["version"], { encoding: "utf8" }).trim(),
+    ).toBe("8.30.1");
     const dir = mkdtempSync(join(tmpdir(), "maestro-template-gitleaks-"));
     const canary = join(dir, "canary.env");
 

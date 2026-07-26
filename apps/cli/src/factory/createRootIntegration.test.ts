@@ -49,7 +49,7 @@ describe("create root integration", () => {
     );
   });
 
-  it("registers the exact ten-command factory inventory", () => {
+  it("registers the exact eleven-command factory inventory", () => {
     expect(
       createFactoryCliComposition(() => ({})).handlers.map(
         ({ command }) => command,
@@ -62,6 +62,7 @@ describe("create root integration", () => {
       "doctor",
       "preflight",
       "verify",
+      "verify-export",
       "check",
       "plan-check",
       "scaffold",
@@ -333,5 +334,5 @@ describe("create root integration", () => {
     expect(production.stderr).toContain(
       "CRUD proof is unavailable in a production environment.",
     );
-  }, 120_000);
+  }, 180_000);
 });

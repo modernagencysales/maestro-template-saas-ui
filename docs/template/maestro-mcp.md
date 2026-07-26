@@ -21,6 +21,11 @@ generation, chat state, telemetry, shell command construction, or Convex
 administration. Stdout is reserved for protocol frames; operational diagnostics
 on stderr contain fixed codes rather than request data.
 
+All four tools are read-oriented. In particular, `maestro_verify` returns an
+in-memory receipt projection and never creates `.maestro` or exports a receipt.
+The explicit `verify-export --write` mutation exists only in the CLI command
+registry and is absent from MCP tool schemas and dispatch.
+
 Claude Code consumes the plugin-local `.mcp.json`. Root integration projects the
 Codex leaf declaration to the trusted repository `.codex/config.toml`. Both
 launch the same command from the resolved target root. Removing or disabling

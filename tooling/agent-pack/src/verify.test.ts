@@ -1,3 +1,6 @@
+import { chmod, mkdtemp, readdir } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { executeAgentPackCommand } from "./contracts.js";
 import type { DiagnosticDescriptor } from "./diagnostics.js";
@@ -62,55 +65,72 @@ const runner = (
 });
 
 describe("agent-pack verification command", () => {
-  it("persists the canonical receipt after stable verification", async () => {
-    const persist = vi.fn(async () => undefined);
-    const command = createVerifyCommand({
-      descriptors: [requiredDescriptor],
-      runner: runner([
-        { gateId: "agent-pack", status: "pass", message: "Passed." },
-      ]),
-      receiptWriter: { persist },
-    });
-
+  it("fails closed when a focused selection resolves to zero gates", async () => {
+    const run = vi.fn(async () => []);
     const result = await executeAgentPackCommand(
-      command,
-      { scope: "full", changed: [] },
-      context,
-    );
-
-    expect(result.exitClass).toBe("success");
-    expect(persist).toHaveBeenCalledWith(
-      context.repo,
-      expect.objectContaining({
-        schemaVersion: 1,
-        subject: { commit: "abc123", dirty: false },
-        scope: { kind: "full", changedPaths: [], partial: false },
+      createVerifyCommand({
+        descriptors: [],
+        runner: { ...runner([]), run },
       }),
-    );
-  });
-
-  it("fails safely when the latest receipt cannot be persisted", async () => {
-    const command = createVerifyCommand({
-      descriptors: [requiredDescriptor],
-      runner: runner([
-        { gateId: "agent-pack", status: "pass", message: "Passed." },
-      ]),
-      receiptWriter: {
-        persist: async () => Promise.reject(new Error("secret-value")),
-      },
-    });
-
-    const result = await executeAgentPackCommand(
-      command,
-      { scope: "full", changed: [] },
+      { scope: "focused", changed: [] },
       context,
     );
 
     expect(result).toMatchObject({
-      exitClass: "unavailableDependency",
-      diagnostics: [{ code: "AGENT_PACK_RECEIPT_PERSIST_UNAVAILABLE" }],
+      exitClass: "findings",
+      diagnostics: [
+        {
+          code: "AGENT_PACK_VERIFY_GATE_SELECTION_EMPTY",
+          severity: "error",
+          safeToContinue: false,
+          rerun: "pnpm maestro -- verify --scope focused",
+        },
+      ],
+      data: {
+        receipt: { gates: [] },
+        summary: {
+          status: "fail",
+          requiredFailures: ["maestro/gate-selection"],
+          unavailable: ["maestro/gate-selection"],
+        },
+        requiredBlocking: true,
+      },
     });
-    expect(JSON.stringify(result)).not.toContain("secret-value");
+    expect(run).not.toHaveBeenCalled();
+  });
+
+  it("returns the canonical receipt without writing the target", async () => {
+    const targetRoot = await mkdtemp(join(tmpdir(), "maestro-verify-read-"));
+    const targetContext = {
+      ...context,
+      repo: createRepositoryContext({ cwd: targetRoot }),
+    };
+    const command = createVerifyCommand({
+      descriptors: [requiredDescriptor],
+      runner: runner([
+        { gateId: "agent-pack", status: "pass", message: "Passed." },
+      ]),
+    });
+    await chmod(targetRoot, 0o555);
+
+    const result = await executeAgentPackCommand(
+      command,
+      { scope: "full", changed: [] },
+      targetContext,
+    ).finally(() => chmod(targetRoot, 0o755));
+
+    expect(result).toMatchObject({
+      exitClass: "success",
+      mutationPosture: "read-only",
+      data: {
+        receipt: {
+          schemaVersion: 1,
+          subject: { commit: "abc123", dirty: false },
+          scope: { kind: "full", changedPaths: [], partial: false },
+        },
+      },
+    });
+    expect(await readdir(targetRoot)).toEqual([]);
   });
 
   it("binds passing full evidence into a fresh receipt", async () => {
@@ -301,6 +321,43 @@ describe("agent-pack verification command", () => {
         { code: "agent-pack", message: expect.stringContaining("unavailable") },
       ],
       data: { receipt: { gates: [{ status: "unavailable" }] } },
+    });
+  });
+
+  it("keeps an aggregate execution failure separate from attributed gates", async () => {
+    const command = createVerifyCommand({
+      descriptors: [requiredDescriptor],
+      runner: runner([
+        { gateId: "agent-pack", status: "pass", message: "Passed." },
+        {
+          gateId: "maestro/full-verify",
+          status: "fail",
+          message: "Aggregate failed.",
+          diagnostic: {
+            code: "AGENT_PACK_FULL_VERIFY_FAILED",
+            severity: "error",
+            message: "just verify failed after attribution.",
+            safeToContinue: false,
+            nextAction: "Repair the owning invariant.",
+            rerun: "just verify",
+          },
+        },
+      ]),
+    });
+
+    const result = await executeAgentPackCommand(
+      command,
+      { scope: "full", changed: [] },
+      context,
+    );
+
+    expect(result).toMatchObject({
+      exitClass: "findings",
+      diagnostics: [{ code: "AGENT_PACK_FULL_VERIFY_FAILED" }],
+      data: {
+        requiredBlocking: true,
+        receipt: { gates: [{ gateId: "agent-pack", status: "pass" }] },
+      },
     });
   });
 

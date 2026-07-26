@@ -22,7 +22,7 @@ import type { RepositoryContext } from "./repoContext.js";
 
 export type StartPreflightResult = {
   readonly safeToStart: boolean;
-  readonly auth: "not-required" | "connected" | "cancelled";
+  readonly auth: "not-required" | "connected" | "cancelled" | "unknown";
   readonly exitClass: AgentPackExitClass;
   readonly diagnostics: readonly AgentPackDiagnostic[];
   readonly readiness: {

@@ -21,7 +21,9 @@ describe("quality diagnostic registry", () => {
         gateId,
         argv: ["pnpm", descriptor.name.split(" ")[0]],
         rerun: ["pnpm", descriptor.name.split(" ")[0]],
+        canonicalScriptBody: expect.any(String),
       });
+      expect(descriptor.canonicalScriptBody.trim()).not.toBe("");
       expect(descriptor.canonicalDoc).toMatch(/^docs\/.+\.md$/);
       expect(descriptor.repairHint).not.toMatch(
         /(?:disable|skip|bypass|weaken).{0,24}(?:gate|check|test)/i,
@@ -77,6 +79,32 @@ describe("quality diagnostic registry", () => {
         .filter(({ posture }) => posture === "required")
         .every(({ evidenceClass }) => evidenceClass === "static"),
     ).toBe(true);
+  });
+
+  it("publishes a canonical non-empty default focused gate set", () => {
+    expect(
+      diagnosticRegistryDescriptors
+        .filter(({ defaultFocused }) => defaultFocused === true)
+        .map(({ gateId }) => gateId),
+    ).toEqual([
+      "gates",
+      "secret-canaries",
+      "headless-surface-contract",
+      "workflow-semantics",
+    ]);
+  });
+
+  it("publishes the real secret scanner prerequisite on its canonical gate", () => {
+    expect(
+      diagnosticRegistryDescriptors.find(
+        ({ gateId }) => gateId === "secret-canaries",
+      ),
+    ).toMatchObject({
+      prerequisiteCheck: ["gitleaks", "version"],
+      repairHint: expect.stringContaining(
+        "bash .buildkite/scripts/install-gitleaks.sh",
+      ),
+    });
   });
 
   it("passes the projection through the real Agent Pack registry contract", () => {

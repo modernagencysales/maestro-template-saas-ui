@@ -8,7 +8,9 @@ import {
   type FileHandle,
 } from "node:fs/promises";
 import { resolve } from "node:path";
-import type { VerificationReceiptWriter } from "./verify.js";
+import type { VerificationReceiptWriter } from "./receiptExport.js";
+
+export * from "./receiptExport.js";
 
 export const VERIFICATION_RECEIPT_PATH =
   ".maestro/verification-receipt.json" as const;
