@@ -102,6 +102,39 @@ describe("saas application blueprint", () => {
       }),
     ).toEqual(plan);
   });
+
+  it("projects each pre-existing workflow artifact schema binding once", () => {
+    const entries = buildSaasApplicationTargetPlan().entries;
+    const databaseSchema = entries.find(
+      ({ path }) => path === "packages/convex/confect/_generated/schema.ts",
+    )?.content;
+    const convexSchema = entries.find(
+      ({ path }) =>
+        path === "packages/convex/confect/_generated/convexSchema.ts",
+    )?.content;
+    if (!databaseSchema || !convexSchema)
+      throw new Error("missing projected Convex schemas");
+
+    expect(
+      databaseSchema.match(
+        /import workflowArtifacts from "\.\/tables\/workflowArtifacts";/gu,
+      ),
+    ).toHaveLength(1);
+    expect(databaseSchema.match(/\n {2}workflowArtifacts,\n/gu)).toHaveLength(
+      1,
+    );
+    expect(
+      convexSchema.match(
+        /import workflowArtifacts from "\.\/tables\/workflowArtifacts";/gu,
+      ),
+    ).toHaveLength(1);
+    expect(
+      convexSchema.match(
+        /\n {2}workflowArtifacts: workflowArtifacts\.tableDefinition,\n/gu,
+      ),
+    ).toHaveLength(1);
+  });
+
   it("matches the sealed alpha.1 manifest to the canonical current target plan", () => {
     const plan = buildSaasApplicationTargetPlan();
     const manifest = JSON.parse(

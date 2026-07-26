@@ -389,18 +389,14 @@ const databaseSchema = (): string => {
   value = replace(
     value,
     'import promptRegistry from "./tables/promptRegistry";',
-    'import promptRegistry from "./tables/promptRegistry";\nimport records from "./tables/records";\nimport workflowArtifacts from "./tables/workflowArtifacts";',
+    'import promptRegistry from "./tables/promptRegistry";\nimport records from "./tables/records";',
   );
   value = replace(
     value,
     "  typeof promptRegistry |",
-    "  typeof promptRegistry |\n  typeof records |\n  typeof workflowArtifacts |",
+    "  typeof promptRegistry |\n  typeof records |",
   );
-  return replace(
-    value,
-    "  promptRegistry,",
-    "  promptRegistry,\n  records,\n  workflowArtifacts,",
-  );
+  return replace(value, "  promptRegistry,", "  promptRegistry,\n  records,");
 };
 
 const convexSchema = (): string => {
@@ -408,12 +404,12 @@ const convexSchema = (): string => {
   value = replace(
     value,
     'import promptRegistry from "./tables/promptRegistry";',
-    'import promptRegistry from "./tables/promptRegistry";\nimport records from "./tables/records";\nimport workflowArtifacts from "./tables/workflowArtifacts";',
+    'import promptRegistry from "./tables/promptRegistry";\nimport records from "./tables/records";',
   );
   return replace(
     value,
     "  promptRegistry: promptRegistry.tableDefinition,",
-    "  promptRegistry: promptRegistry.tableDefinition,\n  records: records.tableDefinition,\n  workflowArtifacts: workflowArtifacts.tableDefinition,",
+    "  promptRegistry: promptRegistry.tableDefinition,\n  records: records.tableDefinition,",
   );
 };
 
