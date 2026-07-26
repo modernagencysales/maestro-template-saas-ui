@@ -37,6 +37,7 @@ describe("MCP configure CLI adapter", () => {
         "--profile",
         "dev-power",
         "--write",
+        "--privacy-reviewed",
         "--json",
       ],
       "/repo",
@@ -47,7 +48,12 @@ describe("MCP configure CLI adapter", () => {
     );
     expect(run).toHaveBeenNthCalledWith(
       1,
-      { host: "codex", profile: "dev-power", write: true },
+      {
+        host: "codex",
+        profile: "dev-power",
+        write: true,
+        privacyReviewed: true,
+      },
       "/repo",
       "json",
     );
@@ -62,7 +68,22 @@ describe("MCP configure CLI adapter", () => {
   it.each([
     [
       "write plus remove",
-      ["configure", "--host", "codex", "--write", "--remove"],
+      [
+        "configure",
+        "--host",
+        "codex",
+        "--write",
+        "--privacy-reviewed",
+        "--remove",
+      ],
+    ],
+    [
+      "write without privacy review",
+      ["configure", "--host", "codex", "--write"],
+    ],
+    [
+      "privacy review without write",
+      ["configure", "--host", "codex", "--privacy-reviewed"],
     ],
     [
       "remove plus profile",

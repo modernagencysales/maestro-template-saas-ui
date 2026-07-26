@@ -25,6 +25,9 @@ const currentPublicDocument = (path: string): string =>
     "utf8",
   );
 
+const currentSource = (path: string): string =>
+  readFileSync(new URL(`../../../../${path}`, import.meta.url), "utf8");
+
 export const REMOVED_CUSTOMER_TEMPLATE_SCRIPTS = [
   "template:init",
   "template:quickstart",
@@ -240,15 +243,24 @@ const routeTree = (): string => {
   );
 };
 
-export const buildSaasRegistrationProjections =
-  (): readonly GeneratedFile[] => [
-    {
-      path: "docs/template/agent-pack-privacy.md",
-      content: currentPublicDocument("agent-pack-privacy.md"),
-    },
+export const buildSaasRegistrationProjections = (
+  options: { readonly current?: boolean } = {},
+): readonly GeneratedFile[] => {
+  const current = options.current ?? true;
+  return [
+    ...(current
+      ? [
+          {
+            path: "docs/template/agent-pack-privacy.md",
+            content: currentPublicDocument("agent-pack-privacy.md"),
+          },
+        ]
+      : []),
     {
       path: "apps/cli/src/factory/customerComposition.ts",
-      content: source("apps/cli/src/factory/customerComposition.ts"),
+      content: current
+        ? currentSource("apps/cli/src/factory/customerComposition.ts")
+        : source("apps/cli/src/factory/customerComposition.ts"),
     },
     {
       path: "apps/cli/src/index.ts",
@@ -258,6 +270,14 @@ export const buildSaasRegistrationProjections =
       path: "apps/cli/src/factory/start.ts",
       content: source("apps/cli/src/factory/start.ts"),
     },
+    ...(current
+      ? [
+          {
+            path: "apps/cli/src/factory/supportBundle.ts",
+            content: currentSource("apps/cli/src/factory/supportBundle.ts"),
+          },
+        ]
+      : []),
     { path: "package.json", content: customerPackage() },
     {
       path: "tooling/generators/package.json",
@@ -333,8 +353,22 @@ export const buildSaasRegistrationProjections =
       "readiness/server.ts",
     ].map((path) => ({
       path: `tooling/agent-pack/src/${path}`,
-      content: source(`tooling/agent-pack/src/${path}`),
+      content:
+        current && path === "index.ts"
+          ? currentSource("tooling/agent-pack/src/customer.ts")
+          : source(`tooling/agent-pack/src/${path}`),
     })),
+    ...(current
+      ? [
+          "privacy/supportBundle.ts",
+          "privacy/supportBundleCommand.ts",
+          "privacy/nodeSupportBundleExporter.ts",
+          "privacy/support-bundle.schema.json",
+        ].map((path) => ({
+          path: `tooling/agent-pack/src/${path}`,
+          content: currentSource(`tooling/agent-pack/src/${path}`),
+        }))
+      : []),
     {
       path: "tooling/quality/check-agent-pack.mts",
       content: source("tooling/quality/check-agent-pack.mts"),
@@ -383,3 +417,4 @@ export const buildSaasRegistrationProjections =
         'export const saasApplicationRoutes = { records: "/records" } as const;\n',
     },
   ];
+};

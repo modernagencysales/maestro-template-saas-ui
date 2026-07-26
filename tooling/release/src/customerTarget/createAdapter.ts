@@ -10,8 +10,11 @@ import {
   assertReviewedBlueprintTargetPlan,
   failure,
   isObject,
+  sha256,
   validateBlueprintTargetPlan,
+  type BlueprintTargetPlan,
   type CreateFailure,
+  type CustomerReleaseAdapterFacts,
   type CustomerReleaseAdapterOptions,
   type PrepareRequest,
   type PreparedRelease,
@@ -30,8 +33,51 @@ export type {
   CustomerReleaseAdapterOptions,
 } from "./createAdapter.contract.js";
 
+export type CustomerCurrentAdapterOptions = CustomerReleaseAdapterOptions & {
+  readonly blueprintId: string;
+  readonly blueprintProvenance: string;
+};
+
 export function createCustomerReleaseAdapter(
   options: CustomerReleaseAdapterOptions,
+) {
+  return createCustomerAdapter(options, {
+    assertBlueprint: (blueprint) =>
+      assertReviewedBlueprintTargetPlan(options, blueprint),
+    facts: (_blueprint, resolved) => resolved.facts,
+  });
+}
+
+export function createCustomerCurrentAdapter(
+  options: CustomerCurrentAdapterOptions,
+) {
+  return createCustomerAdapter(options, {
+    assertBlueprint: (blueprint) => {
+      if (
+        blueprint.id !== options.blueprintId ||
+        blueprint.provenance !== options.blueprintProvenance
+      ) {
+        throw new CustomerReleaseAdapterError(
+          "release-unavailable",
+          "Current blueprint target plan does not match the reviewed authority.",
+        );
+      }
+    },
+    facts: (blueprint, resolved) => currentFacts(options, blueprint, resolved),
+  });
+}
+
+type CustomerMaterializationAuthority = {
+  readonly assertBlueprint: (blueprint: BlueprintTargetPlan) => void;
+  readonly facts: (
+    blueprint: BlueprintTargetPlan,
+    resolved: ResolvedRelease,
+  ) => CustomerReleaseAdapterFacts;
+};
+
+function createCustomerAdapter(
+  options: CustomerReleaseAdapterOptions,
+  authority: CustomerMaterializationAuthority,
 ) {
   const tokens = new WeakMap<object, TokenState>();
   return {
@@ -43,8 +89,9 @@ export function createCustomerReleaseAdapter(
           const blueprint = validateBlueprintTargetPlan(
             request.blueprintTargetPlan(),
           );
-          assertReviewedBlueprintTargetPlan(options, blueprint);
-          const templateInstance = request.templateInstance(resolved.facts, {
+          authority.assertBlueprint(blueprint);
+          const facts = authority.facts(blueprint, resolved);
+          const templateInstance = request.templateInstance(facts, {
             id: blueprint.id,
             digest: blueprint.digest,
             provenance: blueprint.provenance,
@@ -71,7 +118,7 @@ export function createCustomerReleaseAdapter(
           return {
             ok: true as const,
             token,
-            facts: resolved.facts,
+            facts,
             preview: projectPreview(preview),
           };
         });
@@ -94,7 +141,7 @@ export function createCustomerReleaseAdapter(
           const blueprint = validateBlueprintTargetPlan(
             state.request.blueprintTargetPlan(),
           );
-          assertReviewedBlueprintTargetPlan(options, blueprint);
+          authority.assertBlueprint(blueprint);
           if (blueprint.digest !== state.blueprintDigest) {
             throw new CustomerReleaseAdapterError(
               "stale-preflight",
@@ -127,6 +174,46 @@ export function createCustomerReleaseAdapter(
         return failure(error);
       }
     },
+  };
+}
+
+function currentFacts(
+  options: CustomerReleaseAdapterOptions,
+  blueprint: BlueprintTargetPlan,
+  resolved: ResolvedRelease,
+): CustomerReleaseAdapterFacts {
+  const authorityChecksum = sha256(
+    JSON.stringify({
+      kind: "unreleased-current-composition",
+      base: {
+        manifestChecksum: options.ownershipManifestChecksum,
+        ...resolved.binding,
+      },
+      blueprint: {
+        id: blueprint.id,
+        provenance: blueprint.provenance,
+        digest: blueprint.digest,
+      },
+    }),
+  );
+  const extensionSeams = [
+    ...resolved.manifest.extensionSeams.map(({ path }) => path),
+    ...blueprint.entries
+      .filter(({ ownership }) => ownership === "customer-extension")
+      .map(({ path }) => path),
+  ]
+    .filter((path, index, paths) => paths.indexOf(path) === index)
+    .sort();
+  return {
+    version: "unreleased-current",
+    tag: "unreleased-current",
+    sourceCommit: "working-tree",
+    sourceChecksum: authorityChecksum,
+    cliCompatibility: "unreleased-current",
+    agentPackCompatibility: "unreleased-current",
+    ownershipManifest: "unreleased-current-composition",
+    ownershipManifestChecksum: authorityChecksum,
+    extensionSeams,
   };
 }
 

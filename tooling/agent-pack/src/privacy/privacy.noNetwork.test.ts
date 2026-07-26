@@ -9,14 +9,15 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { spawn, spawnSync } from "node:child_process";
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { NO_NETWORK_FACTORY_CASES } from "./networkPolicy.js";
 
 const repositoryRoot = resolve(import.meta.dirname, "../../../..");
 const fixtureRoot = mkdtempSync(join(tmpdir(), "maestro-no-network-"));
 const attemptsPath = join(fixtureRoot, "attempts.ndjson");
 const customerTarget = join(fixtureRoot, "customer-app");
-const planPath = join(fixtureRoot, "plan.json");
+const planPath =
+  "tooling/agent-pack/src/privacy/no-network-plan.fixture.json" as const;
 const interceptorPath = fileURLToPath(
   new URL("./runtimeNetworkInterceptor.mjs", import.meta.url),
 );
@@ -33,13 +34,6 @@ function interceptedEnvironment(): NodeJS.ProcessEnv {
     MAESTRO_NETWORK_AUDIT_PATH: attemptsPath,
   };
 }
-
-beforeAll(() => {
-  writeFileSync(
-    planPath,
-    `${JSON.stringify({ feature: "privacy-proof", slices: [], allTaskRefs: [] })}\n`,
-  );
-});
 
 beforeEach(() => writeFileSync(attemptsPath, ""));
 
@@ -94,6 +88,15 @@ describe("privacy no-network conformance", () => {
         result.signal,
         `${testCase.id}\n${result.stdout}\n${result.stderr}`,
       ).toBeNull();
+      if (testCase.command === "start") {
+        expect(result.exitCode).toBe(0);
+      } else {
+        const structured = parseCliResult(result.stdout);
+        expect(structured).toMatchObject({
+          command: { id: testCase.command },
+        });
+        expect(structured.exitClass).not.toBe("invalidInvocation");
+      }
       expect(
         externalSyscallLines(result.stderr),
         `${testCase.id}\n${result.stderr}`,
@@ -102,6 +105,130 @@ describe("privacy no-network conformance", () => {
     },
     120_000,
   );
+
+  it("previews the MCP support bundle with outbound networking denied and no write", async () => {
+    const mcpTarget = join(fixtureRoot, "mcp-target");
+    const result = await runProcess(
+      "strace",
+      [
+        "-f",
+        "-e",
+        "trace=connect,sendto,sendmsg,sendmmsg",
+        "pnpm",
+        "exec",
+        "tsx",
+        "apps/cli/src/factory/supportBundleMcpNoNetwork.fixture.ts",
+        mcpTarget,
+      ],
+      {
+        cwd: repositoryRoot,
+        env: interceptedEnvironment(),
+        timeoutMs: 120_000,
+        maxBuffer: 10 * 1024 * 1024,
+      },
+    );
+    expect(result.error, `${result.stdout}\n${result.stderr}`).toBeUndefined();
+    expect(result.signal).toBeNull();
+    expect(result.exitCode, `${result.stdout}\n${result.stderr}`).toBe(0);
+    expect(externalSyscallLines(result.stderr)).toEqual([]);
+    expect(readAttempts()).toEqual([]);
+    const responses = result.stdout
+      .split("\n")
+      .filter(Boolean)
+      .map((line) => JSON.parse(line) as Record<string, unknown>);
+    expect(responses.at(-1)).toMatchObject({
+      id: 2,
+      result: {
+        structuredContent: {
+          mutationPosture: "preview",
+          data: { write: false, exportedBytes: null },
+        },
+      },
+    });
+    expect(existsSync(join(mcpTarget, ".maestro"))).toBe(false);
+  }, 120_000);
+
+  it("previews and exports a generated customer support bundle with no outbound attempts", async () => {
+    const generatedTarget = join(fixtureRoot, "generated-support-customer");
+    const created = spawnSync(
+      "pnpm",
+      [
+        "maestro",
+        "--",
+        "create",
+        generatedTarget,
+        "--name",
+        "No Network Support",
+        "--outcome",
+        "Export reviewed local support facts",
+        "--demo-only",
+        "--write",
+        "--privacy-reviewed",
+        "--json",
+      ],
+      {
+        cwd: repositoryRoot,
+        encoding: "utf8",
+        timeout: 120_000,
+      },
+    );
+    expect(created.status, `${created.stdout}\n${created.stderr}`).toBe(0);
+    const installed = spawnSync(
+      "pnpm",
+      ["install", "--offline", "--frozen-lockfile", "--ignore-scripts"],
+      {
+        cwd: generatedTarget,
+        encoding: "utf8",
+        timeout: 120_000,
+      },
+    );
+    expect(installed.status, `${installed.stdout}\n${installed.stderr}`).toBe(
+      0,
+    );
+
+    const preview = await traceGeneratedSupportBundle(generatedTarget, [
+      "support-bundle",
+      "--json",
+    ]);
+    const previewResult = JSON.parse(preview.stdout) as {
+      readonly mutationPosture: string;
+      readonly data: {
+        readonly previewFingerprint: string;
+        readonly write: boolean;
+        readonly exportedBytes: number | null;
+      };
+    };
+    expect(previewResult).toMatchObject({
+      mutationPosture: "preview",
+      data: { write: false, exportedBytes: null },
+    });
+    expect(existsSync(join(generatedTarget, ".maestro"))).toBe(false);
+
+    const exported = await traceGeneratedSupportBundle(generatedTarget, [
+      "support-bundle",
+      "--write",
+      "--preview-fingerprint",
+      previewResult.data.previewFingerprint,
+      "--json",
+    ]);
+    expect(JSON.parse(exported.stdout)).toMatchObject({
+      mutationPosture: "write",
+      exitClass: "success",
+      data: { write: true, exportedBytes: expect.any(Number) },
+    });
+    expect(readAttempts()).toEqual([]);
+    expect(
+      JSON.parse(
+        readFileSync(
+          join(generatedTarget, ".maestro/support/support-bundle.json"),
+          "utf8",
+        ),
+      ),
+    ).toMatchObject({
+      schemaVersion: 1,
+      handling: { automaticUpload: false, containsSecrets: false },
+    });
+  }, 180_000);
 
   it("keeps explicit external exceptions purpose-specific and user initiated", () => {
     expect(NO_NETWORK_FACTORY_CASES.map(({ command }) => command)).toEqual([
@@ -115,6 +242,7 @@ describe("privacy no-network conformance", () => {
       "check",
       "plan-check",
       "scaffold",
+      "support-bundle",
     ]);
     const policy = JSON.parse(
       readFileSync(
@@ -156,6 +284,34 @@ function readAttempts(): unknown[] {
     .map((line) => JSON.parse(line) as unknown);
 }
 
+function parseCliResult(stdout: string): Record<string, unknown> {
+  const start = stdout.indexOf('{\n  "schemaVersion"');
+  if (start < 0) throw new Error(`CLI result JSON is missing:\n${stdout}`);
+  let depth = 0;
+  let quoted = false;
+  let escaped = false;
+  for (let index = start; index < stdout.length; index += 1) {
+    const character = stdout[index];
+    if (quoted) {
+      if (escaped) escaped = false;
+      else if (character === "\\") escaped = true;
+      else if (character === '"') quoted = false;
+      continue;
+    }
+    if (character === '"') quoted = true;
+    else if (character === "{") depth += 1;
+    else if (character === "}") {
+      depth -= 1;
+      if (depth === 0)
+        return JSON.parse(stdout.slice(start, index + 1)) as Record<
+          string,
+          unknown
+        >;
+    }
+  }
+  throw new Error(`CLI result JSON is incomplete:\n${stdout}`);
+}
+
 function externalSyscallLines(trace: string): readonly string[] {
   return trace
     .split("\n")
@@ -168,17 +324,50 @@ function externalSyscallLines(trace: string): readonly string[] {
     );
 }
 
+async function traceGeneratedSupportBundle(
+  target: string,
+  argv: readonly string[],
+): Promise<Awaited<ReturnType<typeof runProcess>>> {
+  const result = await runProcess(
+    "strace",
+    [
+      "-f",
+      "-e",
+      "trace=connect,sendto,sendmsg,sendmmsg",
+      "pnpm",
+      "--silent",
+      "maestro",
+      "--",
+      ...argv,
+    ],
+    {
+      cwd: target,
+      env: interceptedEnvironment(),
+      timeoutMs: 120_000,
+      maxBuffer: 10 * 1024 * 1024,
+    },
+  );
+  expect(result.error, `${result.stdout}\n${result.stderr}`).toBeUndefined();
+  expect(result.signal, result.stderr).toBeNull();
+  expect(result.exitCode, `${result.stdout}\n${result.stderr}`).toBe(0);
+  expect(externalSyscallLines(result.stderr), result.stderr).toEqual([]);
+  expect(readAttempts()).toEqual([]);
+  return result;
+}
+
 async function runProcess(
   file: string,
   args: readonly string[],
   options: {
     readonly cwd: string;
     readonly env: NodeJS.ProcessEnv;
+    readonly stdin?: string;
     readonly timeoutMs: number;
     readonly maxBuffer: number;
   },
 ): Promise<{
   readonly error?: Error;
+  readonly exitCode: number | null;
   readonly signal: NodeJS.Signals | null;
   readonly stdout: string;
   readonly stderr: string;
@@ -187,8 +376,9 @@ async function runProcess(
     const child = spawn(file, [...args], {
       cwd: options.cwd,
       env: options.env,
-      stdio: ["ignore", "pipe", "pipe"],
+      stdio: [options.stdin === undefined ? "ignore" : "pipe", "pipe", "pipe"],
     });
+    if (options.stdin !== undefined) child.stdin?.end(options.stdin);
     let stdout = "";
     let stderr = "";
     let error: Error | undefined;
@@ -210,10 +400,11 @@ async function runProcess(
     child.once("error", (processError) => {
       error = processError;
     });
-    child.once("close", (_code, signal) => {
+    child.once("close", (code, signal) => {
       clearTimeout(timeout);
       resolveResult({
         ...(error === undefined ? {} : { error }),
+        exitCode: code,
         signal,
         stdout,
         stderr,

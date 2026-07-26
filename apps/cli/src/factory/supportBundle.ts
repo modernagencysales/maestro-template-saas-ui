@@ -4,31 +4,32 @@ import {
   type AgentPackCommand,
   type AgentPackJsonValue,
 } from "@maestro-template/agent-pack";
-import type { CliResult } from "../types";
 import { cliSuccess } from "../result";
+import type { CliResult } from "../types";
 import { runAgentPackCommandAsCli, type FactoryCliRenderMode } from "./router";
 
-export const CREATE_HELP =
-  'maestro create <target> --name "My App" --outcome "Track client requests" [--demo-only] [--write --privacy-reviewed] [--human|--details|--json]\n';
+export const SUPPORT_BUNDLE_HELP =
+  "maestro support-bundle [--output .maestro/support/<name>.json] [--write --preview-fingerprint <support_preview_sha256:...>] [--human|--details|--json]\n";
 
-export function createCreateCliHandler<Args, Data extends AgentPackJsonValue>(
-  command: AgentPackCommand<"create", Args, Data>,
-) {
+export function createSupportBundleCliHandler<
+  Args,
+  Data extends AgentPackJsonValue,
+>(command: AgentPackCommand<"support-bundle", Args, Data>) {
   return {
-    command: "create",
+    command: "support-bundle",
     run: (argv: readonly string[], cwd: string): Promise<CliResult> =>
       argv.length === 2 && argv[1] === "--help"
-        ? Promise.resolve(cliSuccess(CREATE_HELP))
-        : runCreateCli(command, argv, cwd),
+        ? Promise.resolve(cliSuccess(SUPPORT_BUNDLE_HELP))
+        : runSupportBundleCli(command, argv, cwd),
   };
 }
 
-export function runCreateCli<Args, Data extends AgentPackJsonValue>(
-  command: AgentPackCommand<"create", Args, Data>,
+function runSupportBundleCli<Args, Data extends AgentPackJsonValue>(
+  command: AgentPackCommand<"support-bundle", Args, Data>,
   argv: readonly string[],
   cwd: string,
 ): Promise<CliResult> {
-  const parsed = parseCreateCli(argv.slice(1));
+  const parsed = parseSupportBundleCli(argv.slice(1));
   return runAgentPackCommandAsCli(
     command,
     parsed.input,
@@ -41,38 +42,21 @@ export function runCreateCli<Args, Data extends AgentPackJsonValue>(
   );
 }
 
-function parseCreateCli(argv: readonly string[]): {
+function parseSupportBundleCli(argv: readonly string[]): {
   readonly input: unknown;
   readonly renderMode: FactoryCliRenderMode;
 } {
-  const target = argv[0]?.startsWith("--") ? undefined : argv[0];
-  let name: string | undefined;
-  let outcome: string | undefined;
-  let demoOnly = false;
+  let output: string | undefined;
   let write = false;
-  let privacyReviewed = false;
+  let previewFingerprint: string | undefined;
   let renderMode: FactoryCliRenderMode = "human";
   let renderSeen = false;
-  let valid = target !== undefined;
-  for (
-    let index = target === undefined ? 0 : 1;
-    index < argv.length;
-    index += 1
-  ) {
+  let valid = true;
+  for (let index = 0; index < argv.length; index += 1) {
     const token = argv[index];
-    if (token === "--demo-only") {
-      if (demoOnly) valid = false;
-      demoOnly = true;
-      continue;
-    }
     if (token === "--write") {
       if (write) valid = false;
       write = true;
-      continue;
-    }
-    if (token === "--privacy-reviewed") {
-      if (privacyReviewed) valid = false;
-      privacyReviewed = true;
       continue;
     }
     const selected = renderModeFor(token);
@@ -88,15 +72,25 @@ function parseCreateCli(argv: readonly string[]): {
       continue;
     }
     index += 1;
-    if (token === "--name" && name === undefined) name = value;
-    else if (token === "--outcome" && outcome === undefined) outcome = value;
+    if (token === "--output" && output === undefined) output = value;
+    else if (
+      token === "--preview-fingerprint" &&
+      previewFingerprint === undefined
+    )
+      previewFingerprint = value;
     else valid = false;
   }
-  if (name === undefined || outcome === undefined) valid = false;
-  if ((write && !privacyReviewed) || (!write && privacyReviewed)) valid = false;
+  if (
+    (write && previewFingerprint === undefined) ||
+    (!write && previewFingerprint)
+  )
+    valid = false;
   return {
     input: valid
-      ? { target, name, outcome, demoOnly, write, privacyReviewed }
+      ? {
+          ...(output === undefined ? {} : { output }),
+          ...(write ? { write, previewFingerprint } : {}),
+        }
       : {},
     renderMode,
   };

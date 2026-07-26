@@ -56,6 +56,12 @@ const TOOLS = [
     ),
   },
   {
+    name: "maestro_support_bundle_preview",
+    description:
+      "Preview the exact allowlisted local support bundle without writing or uploading it.",
+    inputSchema: closedSchema({}),
+  },
+  {
     name: "maestro_verify",
     description:
       "Run the existing read-oriented focused or full verification contract.",
@@ -73,12 +79,15 @@ type Commands<
   LData extends AgentPackJsonValue,
   SArgs,
   SData extends AgentPackJsonValue,
+  BArgs,
+  BData extends AgentPackJsonValue,
   VArgs,
   VData extends AgentPackJsonValue,
 > = {
   readonly preflight: AgentPackCommand<"preflight", PArgs, PData>;
   readonly planCheck: AgentPackCommand<"plan-check", LArgs, LData>;
   readonly scaffold: AgentPackCommand<"scaffold", SArgs, SData>;
+  readonly supportBundle: AgentPackCommand<"support-bundle", BArgs, BData>;
   readonly verify: AgentPackCommand<"verify", VArgs, VData>;
 };
 
@@ -89,10 +98,23 @@ export function createMaestroMcpProjection<
   LData extends AgentPackJsonValue,
   SArgs,
   SData extends AgentPackJsonValue,
+  BArgs,
+  BData extends AgentPackJsonValue,
   VArgs,
   VData extends AgentPackJsonValue,
 >(
-  commands: Commands<PArgs, PData, LArgs, LData, SArgs, SData, VArgs, VData>,
+  commands: Commands<
+    PArgs,
+    PData,
+    LArgs,
+    LData,
+    SArgs,
+    SData,
+    BArgs,
+    BData,
+    VArgs,
+    VData
+  >,
   repo: RepositoryContext,
 ): MaestroMcpProjection {
   const context = {
@@ -137,6 +159,15 @@ export function createMaestroMcpProjection<
         return projectResult(
           await executeAgentPackCommand(
             commands.scaffold,
+            decoded.input,
+            context,
+          ),
+        );
+      }
+      if (name === "maestro_support_bundle_preview") {
+        return projectResult(
+          await executeAgentPackCommand(
+            commands.supportBundle,
             decoded.input,
             context,
           ),
@@ -198,6 +229,11 @@ function decodeToolInput(
         workflowResolutions: args.workflowResolutions ?? [],
       },
     };
+  }
+  if (name === "maestro_support_bundle_preview") {
+    return hasOnly(args, [])
+      ? { ok: true, input: { write: false } }
+      : invalidArguments();
   }
   if (
     !hasOnly(args, ["scope", "changed"]) ||

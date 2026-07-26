@@ -21,6 +21,127 @@ afterEach(() => {
 });
 
 describe("materialized customer CLI runtime closure", () => {
+  it("runs privacy-aligned support preview and export from the current projection", async () => {
+    const parent = mkdtempSync(join(tmpdir(), "maestro-current-customer-cli-"));
+    temporaryRoots.push(parent);
+    const target = join(parent, "customer");
+    const created = await runCliAsync(
+      [
+        "create",
+        target,
+        "--name",
+        "Current Privacy Closure",
+        "--outcome",
+        "Inspect local support facts",
+        "--demo-only",
+        "--write",
+        "--privacy-reviewed",
+        "--json",
+      ],
+      undefined,
+      process.cwd(),
+    );
+    expect(created.exitCode, created.stderr).toBe(0);
+
+    const instancePath = join(target, "template-instance.json");
+    const instance = JSON.parse(readFileSync(instancePath, "utf8")) as {
+      readonly release: {
+        readonly version: string;
+        readonly tag: string;
+        readonly sourceCommit: string;
+        readonly sourceChecksum: string;
+      };
+      readonly ownership: {
+        readonly manifest: string;
+        readonly manifestChecksum: string;
+      };
+      readonly blueprint: { readonly digest: string };
+      readonly privacy: { readonly privacyDocument: string | null };
+    };
+    expect(instance).toMatchObject({
+      release: {
+        version: "unreleased-current",
+        tag: "unreleased-current",
+        sourceCommit: "working-tree",
+        sourceChecksum: expect.stringMatching(/^sha256:[0-9a-f]{64}$/),
+      },
+      ownership: {
+        manifest: "unreleased-current-composition",
+        manifestChecksum: expect.stringMatching(/^sha256:[0-9a-f]{64}$/),
+      },
+      privacy: {
+        privacyDocument: "docs/template/agent-pack-privacy.md",
+      },
+    });
+    expect(instance.ownership.manifestChecksum).toBe(
+      instance.release.sourceChecksum,
+    );
+    const privacyDocument = "docs/template/agent-pack-privacy.md";
+    expect(existsSync(join(target, privacyDocument))).toBe(true);
+    expect(readFileSync(join(target, privacyDocument), "utf8")).toBe(
+      readFileSync(join(process.cwd(), privacyDocument), "utf8"),
+    );
+    expect(readFileSync(instancePath, "utf8")).not.toContain("0.2.0-alpha.1");
+    expect(
+      readFileSync(
+        join(target, "apps/cli/src/factory/customerComposition.ts"),
+        "utf8",
+      ),
+    ).toContain("createSupportBundleCliHandler");
+    for (const path of [
+      "tooling/agent-pack/src/privacy/privacy.noNetwork.test.ts",
+      "tooling/agent-pack/src/privacy/runtimeNetworkInterceptor.mjs",
+    ])
+      expect(existsSync(join(target, path))).toBe(false);
+
+    execFileSync(
+      "pnpm",
+      ["install", "--offline", "--frozen-lockfile", "--ignore-scripts"],
+      { cwd: target, stdio: "pipe", timeout: 120_000 },
+    );
+    const preview = spawnSync(
+      "pnpm",
+      ["--silent", "maestro", "--", "support-bundle", "--json"],
+      { cwd: target, encoding: "utf8", timeout: 30_000 },
+    );
+    expect(preview.status, preview.stderr).toBe(0);
+    const previewResult = JSON.parse(preview.stdout) as {
+      readonly data: {
+        readonly previewFingerprint: string;
+        readonly bundle: { readonly versions: { readonly agentPack: string } };
+      };
+    };
+    expect(previewResult.data.bundle.versions.agentPack).toBe("unavailable");
+    expect(existsSync(join(target, ".maestro/support"))).toBe(false);
+
+    const exported = spawnSync(
+      "pnpm",
+      [
+        "--silent",
+        "maestro",
+        "--",
+        "support-bundle",
+        "--write",
+        "--preview-fingerprint",
+        previewResult.data.previewFingerprint,
+        "--json",
+      ],
+      { cwd: target, encoding: "utf8", timeout: 30_000 },
+    );
+    expect(exported.status, exported.stderr).toBe(0);
+    expect(
+      JSON.parse(
+        readFileSync(
+          join(target, ".maestro/support/support-bundle.json"),
+          "utf8",
+        ),
+      ),
+    ).toMatchObject({
+      handling: { automaticUpload: false, containsSecrets: false },
+      versions: { agentPack: "unavailable" },
+    });
+  }, 180_000);
+
   it("installs, imports, preflights, and supervises fake start without factory-only packages", async () => {
     const parent = mkdtempSync(join(tmpdir(), "maestro-customer-cli-"));
     temporaryRoots.push(parent);
@@ -35,6 +156,7 @@ describe("materialized customer CLI runtime closure", () => {
         "Track one customer request",
         "--demo-only",
         "--write",
+        "--privacy-reviewed",
         "--json",
       ],
       undefined,

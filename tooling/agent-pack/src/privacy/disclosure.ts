@@ -13,6 +13,7 @@ export type FirstRunPrivacyDisclosure = ReturnType<
 export function createFirstRunPrivacyDisclosure(input: {
   readonly host: PrivacyHost;
   readonly selectedProviders: readonly PrivacySelectedProvider[];
+  readonly privacyDocumentAvailable?: boolean;
 }) {
   const selected = [...new Set(input.selectedProviders)].sort();
   return {
@@ -52,12 +53,16 @@ export function createFirstRunPrivacyDisclosure(input: {
       previewBeforeExport: true,
       automaticUpload: false,
     },
-    privacyDocument: "docs/template/agent-pack-privacy.md" as const,
+    privacyDocument:
+      input.privacyDocumentAvailable === false
+        ? null
+        : ("docs/template/agent-pack-privacy.md" as const),
   };
 }
 
 export function createFirstRunPrivacyDiagnostic(
-  _disclosure: FirstRunPrivacyDisclosure,
+  disclosure: FirstRunPrivacyDisclosure,
+  options: { readonly rerun?: string } = {},
 ): AgentPackDiagnostic {
   return {
     code: "AGENT_PACK_PRIVACY_FIRST_RUN",
@@ -66,7 +71,9 @@ export function createFirstRunPrivacyDiagnostic(
       "Maestro sends no product telemetry; your selected host and external operations have separate data policies.",
     safeToContinue: true,
     nextAction:
-      "Review docs/template/agent-pack-privacy.md before enabling MCP, dev deployments, or external providers.",
-    rerun: "pnpm maestro -- create --help",
+      disclosure.privacyDocument === null
+        ? "Review this first-run disclosure before enabling MCP, dev deployments, or external providers."
+        : `Review ${disclosure.privacyDocument} before enabling MCP, dev deployments, or external providers.`,
+    rerun: options.rerun ?? "pnpm maestro -- create --help",
   };
 }

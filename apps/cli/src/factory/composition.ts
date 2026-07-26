@@ -21,6 +21,8 @@ import {
   createVerificationReceiptExportCommand,
   createRepositoryContext,
   createRepositoryLocalMcpConfigurationStore,
+  createNodeSupportBundleExporter,
+  createSupportBundleCommand,
   defineDiagnosticRegistryProjection,
   executeAgentPackCommand,
   nodePreflightFileSystem,
@@ -69,6 +71,7 @@ import { createPreflightCliHandler } from "./preflight";
 import { loadRecipeCatalogProjection } from "./recipeCatalog";
 import { createRecipeCliHandlers } from "./recipes";
 import { createScaffoldCliHandler } from "./scaffold";
+import { createSupportBundleCliHandler } from "./supportBundle";
 import {
   createComposedStartCommand,
   createStartCliHandler,
@@ -366,6 +369,15 @@ export function createFactoryCliComposition(
       }),
     ],
   });
+  const supportBundle = createSupportBundleCommand({
+    load: async () => ({
+      host: { kind: "unknown" as const },
+      providers: [{ kind: "convex" as const, posture: "unknown" as const }],
+    }),
+    exporter: createNodeSupportBundleExporter({
+      maxBytes: FACTORY_EXECUTION_POLICY.packageJsonMaxBytes,
+    }),
+  });
   const mcpStore =
     overrides.mcp?.store ??
     createRepositoryLocalMcpConfigurationStore({ execFile });
@@ -398,7 +410,7 @@ export function createFactoryCliComposition(
   const mcp = createMcpCliAdapter(({ stdin, stdout, stderr, cwd }) => {
     const repo = createRepositoryContext({ cwd });
     const projection = createMaestroMcpProjection(
-      { preflight, planCheck, scaffold, verify },
+      { preflight, planCheck, scaffold, supportBundle, verify },
       repo,
     );
     const server = createMaestroMcpServer(projection);
@@ -415,6 +427,7 @@ export function createFactoryCliComposition(
     createVerifyCliHandler(check),
     createPlanCheckCliHandler(planCheck),
     createScaffoldCliHandler(scaffold),
+    createSupportBundleCliHandler(supportBundle),
   ];
 
   return Object.freeze({

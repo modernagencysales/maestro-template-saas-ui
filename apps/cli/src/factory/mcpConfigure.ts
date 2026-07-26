@@ -3,7 +3,7 @@ import type { CliResult } from "../types";
 import type { FactoryCliRenderMode } from "./router";
 
 export const MCP_CONFIGURE_HELP =
-  "maestro mcp configure --host <claude-code|codex> [--profile <inspect|dev-power>] [--write|--remove] [--human|--details|--json]\n";
+  "maestro mcp configure --host <claude-code|codex> [--profile <inspect|dev-power>] [--write --privacy-reviewed|--remove] [--human|--details|--json]\n";
 
 type McpConfigureRunner = (
   input: unknown,
@@ -38,6 +38,7 @@ function parseMcpConfigureCli(argv: readonly string[]): {
   let profileSeen = false;
   let write = false;
   let remove = false;
+  let privacyReviewed = false;
   let renderMode: FactoryCliRenderMode = "human";
   let renderSeen = false;
   let valid = true;
@@ -50,6 +51,11 @@ function parseMcpConfigureCli(argv: readonly string[]): {
       }
       write = write || token === "--write";
       remove = remove || token === "--remove";
+      continue;
+    }
+    if (token === "--privacy-reviewed") {
+      if (privacyReviewed) valid = false;
+      privacyReviewed = true;
       continue;
     }
     const selected = renderModeFor(token);
@@ -74,13 +80,23 @@ function parseMcpConfigureCli(argv: readonly string[]): {
       else valid = false;
     } else valid = false;
   }
-  if (host === undefined || (write && remove) || (remove && profileSeen))
+  if (
+    host === undefined ||
+    (write && remove) ||
+    (remove && profileSeen) ||
+    (write && !privacyReviewed) ||
+    (!write && privacyReviewed)
+  )
     valid = false;
   return {
     input: valid
       ? remove
         ? { host, remove: true }
-        : { host, profile, ...(write ? { write: true } : {}) }
+        : {
+            host,
+            profile,
+            ...(write ? { write: true, privacyReviewed: true } : {}),
+          }
       : {},
     renderMode,
   };

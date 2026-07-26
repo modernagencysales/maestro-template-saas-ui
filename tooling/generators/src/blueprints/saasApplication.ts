@@ -1,7 +1,10 @@
 import { readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import type { GeneratedFile, TemplateBlueprint } from "../index";
-import { buildFactorySaasApplicationFiles } from "./saasApplicationFactory";
+import {
+  buildAlpha1SaasApplicationFiles,
+  buildFactorySaasApplicationFiles,
+} from "./saasApplicationFactory";
 
 export const saasApplicationBlueprint = {
   id: "saas-application",
@@ -222,6 +225,11 @@ type BlueprintTargetPlanOptions = {
   readonly firstOutcome?: string;
 };
 
+const canonicalTargetPlanOptions = {
+  name: "SaaS Application",
+  firstOutcome: "Create and review records",
+} as const satisfies BlueprintTargetPlanOptions;
+
 const targetEntryIdentity = (
   entry: BlueprintTargetPlan["entries"][number],
 ) => ({
@@ -240,8 +248,10 @@ export function buildSaasApplicationTargetPlan(
   options: BlueprintTargetPlanOptions,
 ): BlueprintTargetPlan;
 export function buildSaasApplicationTargetPlan(): BlueprintTargetPlan;
-export function buildSaasApplicationTargetPlan(): BlueprintTargetPlan {
-  return buildTargetPlan(true);
+export function buildSaasApplicationTargetPlan(
+  options: BlueprintTargetPlanOptions = canonicalTargetPlanOptions,
+): BlueprintTargetPlan {
+  return buildTargetPlan(true, options);
 }
 
 export function buildSaasApplicationAlpha1TargetPlan(
@@ -249,11 +259,12 @@ export function buildSaasApplicationAlpha1TargetPlan(
 ): BlueprintTargetPlan;
 export function buildSaasApplicationAlpha1TargetPlan(): BlueprintTargetPlan;
 export function buildSaasApplicationAlpha1TargetPlan(): BlueprintTargetPlan {
-  return buildTargetPlan(false);
+  return buildTargetPlan(false, canonicalTargetPlanOptions);
 }
 
 function buildTargetPlan(
-  includePrivacyDisclosure: boolean,
+  current: boolean,
+  options: BlueprintTargetPlanOptions,
 ): BlueprintTargetPlan {
   const replacements = new Map<string, "copy" | "generate">([
     ["apps/cli/src/index.ts", "copy"],
@@ -300,16 +311,11 @@ function buildTargetPlan(
     ["packages/convex/test/workflow-lifecycle-registration.test.ts", "copy"],
   ]);
   const customerExtensions = new Set(["CLAUDE.md", ".claude/settings.json"]);
-  const entries = buildFactorySaasApplicationFiles({
-    name: "SaaS Application",
-    firstOutcome: "Create and review records",
-  })
-    .filter(
-      ({ path }) =>
-        path !== "template-instance.json" &&
-        (includePrivacyDisclosure ||
-          path !== "docs/template/agent-pack-privacy.md"),
-    )
+  const files = current
+    ? buildFactorySaasApplicationFiles(options)
+    : buildAlpha1SaasApplicationFiles(options);
+  const entries = files
+    .filter(({ path }) => path !== "template-instance.json")
     .map(({ path, content }) => {
       const replacement = replacements.get(path);
       return customerExtensions.has(path)
@@ -337,6 +343,7 @@ function buildTargetPlan(
     "apps/cli/src/factory/customerComposition.ts",
     "apps/cli/src/index.ts",
     "apps/cli/src/factory/start.ts",
+    "apps/cli/src/factory/supportBundle.ts",
     "package.json",
     "tooling/generators/src/crud-proof.ts",
     "tooling/quality/install-lefthook-if-git.mjs",
@@ -386,6 +393,10 @@ function buildTargetPlan(
     "tooling/agent-pack/src/readiness/nodeSurface.ts",
     "tooling/agent-pack/src/readiness/presenter.ts",
     "tooling/agent-pack/src/readiness/server.ts",
+    "tooling/agent-pack/src/privacy/supportBundle.ts",
+    "tooling/agent-pack/src/privacy/supportBundleCommand.ts",
+    "tooling/agent-pack/src/privacy/nodeSupportBundleExporter.ts",
+    "tooling/agent-pack/src/privacy/support-bundle.schema.json",
     "tooling/quality/check-agent-pack.mts",
     "tooling/quality/check-customer-context.mts",
     "tooling/quality/check-convex-ai-files.mts",
@@ -407,10 +418,18 @@ function buildTargetPlan(
     "apps/web/src/routeTree.gen.ts",
     "apps/web/src/routeRegistry.generated.ts",
   ] as const;
-  const registrations = includePrivacyDisclosure
+  const currentOnlyRegistrations = new Set([
+    "docs/template/agent-pack-privacy.md",
+    "apps/cli/src/factory/supportBundle.ts",
+    "tooling/agent-pack/src/privacy/supportBundle.ts",
+    "tooling/agent-pack/src/privacy/supportBundleCommand.ts",
+    "tooling/agent-pack/src/privacy/nodeSupportBundleExporter.ts",
+    "tooling/agent-pack/src/privacy/support-bundle.schema.json",
+  ]);
+  const registrations = current
     ? registrationsWithPrivacy
     : registrationsWithPrivacy.filter(
-        (path) => path !== "docs/template/agent-pack-privacy.md",
+        (path) => !currentOnlyRegistrations.has(path),
       );
   const identity = {
     schemaVersion: 1 as const,

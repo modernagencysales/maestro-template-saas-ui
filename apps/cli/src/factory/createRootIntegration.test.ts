@@ -4,6 +4,7 @@ import {
   existsSync,
   mkdtempSync,
   readFileSync,
+  readdirSync,
   rmSync,
   symlinkSync,
   writeFileSync,
@@ -66,6 +67,7 @@ describe("create root integration", () => {
       "check",
       "plan-check",
       "scaffold",
+      "support-bundle",
     ]);
   });
 
@@ -80,7 +82,7 @@ describe("create root integration", () => {
     expect((await runCliAsync(["help"])).stdout).toContain(CREATE_HELP.trim());
   });
 
-  it("resolves the reviewed SaaS release in a non-mutating default preview", async () => {
+  it("resolves the current SaaS authority in a non-mutating default preview", async () => {
     const parent = mkdtempSync(join(tmpdir(), "maestro-create-root-"));
     temporaryRoots.push(parent);
     const target = join(parent, "customer-app");
@@ -102,11 +104,131 @@ describe("create root integration", () => {
     expect(JSON.parse(result.stdout)).toMatchObject({
       mutationPosture: "preview",
       exitClass: "success",
-      diagnostics: [],
-      data: { release: { version: "0.2.0-alpha.1" } },
+      diagnostics: [
+        expect.objectContaining({
+          code: "AGENT_PACK_PRIVACY_FIRST_RUN",
+          nextAction:
+            "Review docs/template/agent-pack-privacy.md before enabling MCP, dev deployments, or external providers.",
+        }),
+      ],
+      data: {
+        release: {
+          version: "unreleased-current",
+          tag: "unreleased-current",
+          sourceCommit: "working-tree",
+        },
+        privacy: {
+          privacyDocument: "docs/template/agent-pack-privacy.md",
+        },
+      },
     });
     expect(existsSync(target)).toBe(false);
   });
+
+  it("personalizes root create content and its deterministic digest", async () => {
+    const parent = mkdtempSync(join(tmpdir(), "maestro-create-personalized-"));
+    temporaryRoots.push(parent);
+    const requests = [
+      {
+        target: join(parent, "ledger-light"),
+        name: "Ledger Light",
+        firstOutcome: "Reconcile disputed invoices",
+      },
+      {
+        target: join(parent, "harbor-desk"),
+        name: "Harbor Desk",
+        firstOutcome: "Triage urgent member requests",
+      },
+    ] as const;
+
+    const create = async (request: (typeof requests)[number]) => {
+      const result = await runCliAsync(
+        [
+          "create",
+          request.target,
+          "--name",
+          request.name,
+          "--outcome",
+          request.firstOutcome,
+          "--demo-only",
+          "--write",
+          "--privacy-reviewed",
+          "--json",
+        ],
+        undefined,
+        repoRoot,
+      );
+      expect(result.exitCode, result.stderr).toBe(0);
+    };
+    for (const request of requests) await create(request);
+
+    const generated = requests.map((request) => {
+      const instanceBytes = readFileSync(
+        join(request.target, "template-instance.json"),
+        "utf8",
+      );
+      const contractBytes = readFileSync(
+        join(
+          request.target,
+          "generated/blueprints/saas-application/application-contract.json",
+        ),
+        "utf8",
+      );
+      const workspaceBytes = readFileSync(
+        join(request.target, "examples/saas-application/seed/workspace.json"),
+        "utf8",
+      );
+      const instance = JSON.parse(instanceBytes) as {
+        readonly blueprint: { readonly digest: string };
+        readonly personalization: {
+          readonly name: string;
+          readonly firstOutcome: string;
+          readonly demoOnly: boolean;
+        };
+      };
+      const contract = JSON.parse(contractBytes) as {
+        readonly personalization: {
+          readonly name: string;
+          readonly firstOutcome: string;
+        };
+      };
+      const workspace = JSON.parse(workspaceBytes) as {
+        readonly name: string;
+      };
+
+      expect(contract.personalization).toEqual({
+        name: request.name,
+        firstOutcome: request.firstOutcome,
+      });
+      expect(instance.personalization).toEqual({
+        ...contract.personalization,
+        demoOnly: true,
+      });
+      expect(workspace.name).toBe(`${request.name} Workspace`);
+      expect(`${contractBytes}\n${workspaceBytes}`).not.toContain(
+        "SaaS Application",
+      );
+      expect(`${contractBytes}\n${workspaceBytes}`).not.toContain(
+        "Create and review records",
+      );
+
+      return {
+        digest: instance.blueprint.digest,
+        bytes: snapshotTargetBytes(request.target),
+      };
+    });
+
+    expect(generated[0]?.digest).not.toBe(generated[1]?.digest);
+    rmSync(requests[0].target, { recursive: true, force: true });
+    await create(requests[0]);
+    const repeated = JSON.parse(
+      readFileSync(join(requests[0].target, "template-instance.json"), "utf8"),
+    ) as { readonly blueprint: { readonly digest: string } };
+    expect(repeated.blueprint.digest).toBe(generated[0]?.digest);
+    expect(snapshotTargetBytes(requests[0].target)).toEqual(
+      generated[0]?.bytes,
+    );
+  }, 30_000);
 
   it("pins the release workspace dependency in package and lock importer", () => {
     const packageJson = JSON.parse(
@@ -138,6 +260,7 @@ describe("create root integration", () => {
         "Create and review records",
         "--demo-only",
         "--write",
+        "--privacy-reviewed",
         "--json",
       ],
       undefined,
@@ -171,7 +294,14 @@ describe("create root integration", () => {
         name: "My App",
         firstOutcome: "Create and review records",
       },
+      privacy: {
+        maestro: { productTelemetry: "none", automaticUpload: false },
+        privacyDocument: "docs/template/agent-pack-privacy.md",
+      },
     });
+    expect(
+      existsSync(join(targetRoot, "docs/template/agent-pack-privacy.md")),
+    ).toBe(true);
     symlinkSync(
       join(repoRoot, "node_modules"),
       join(targetRoot, "node_modules"),
@@ -336,3 +466,20 @@ describe("create root integration", () => {
     );
   }, 180_000);
 });
+
+function snapshotTargetBytes(root: string): Readonly<Record<string, string>> {
+  const snapshot: Record<string, string> = {};
+  const visit = (directory: string, prefix: string): void => {
+    for (const entry of readdirSync(directory, { withFileTypes: true }).sort(
+      (left, right) => left.name.localeCompare(right.name),
+    )) {
+      const relativePath = prefix ? `${prefix}/${entry.name}` : entry.name;
+      const absolutePath = join(directory, entry.name);
+      if (entry.isDirectory()) visit(absolutePath, relativePath);
+      else
+        snapshot[relativePath] = readFileSync(absolutePath).toString("base64");
+    }
+  };
+  visit(root, "");
+  return snapshot;
+}

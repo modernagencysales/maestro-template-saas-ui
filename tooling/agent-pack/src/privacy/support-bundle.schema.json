@@ -16,9 +16,9 @@
       "additionalProperties": false,
       "required": ["agentPack", "cli", "template", "node"],
       "properties": {
-        "agentPack": { "$ref": "#/$defs/version" },
-        "cli": { "$ref": "#/$defs/version" },
-        "template": { "$ref": "#/$defs/version" },
+        "agentPack": { "$ref": "#/$defs/productVersion" },
+        "cli": { "$ref": "#/$defs/productVersion" },
+        "template": { "$ref": "#/$defs/productVersion" },
         "node": { "$ref": "#/$defs/version" }
       }
     },
@@ -70,6 +70,9 @@
     }
   },
   "$defs": {
+    "productVersion": {
+      "oneOf": [{ "$ref": "#/$defs/version" }, { "const": "unavailable" }]
+    },
     "version": {
       "type": "string",
       "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:-(?:alpha|beta|rc)\\.[0-9]+)?$"

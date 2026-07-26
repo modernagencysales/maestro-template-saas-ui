@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { createFactoryCliComposition } from "./composition";
 
 describe("root MCP composition", () => {
-  it("shares exactly the four accepted tools through one stdio adapter", async () => {
+  it("shares the accepted read and support-preview tools through one stdio adapter", async () => {
     const composition = createFactoryCliComposition(() => ({}));
     const output: string[] = [];
     await composition.mcp.serve({
@@ -21,6 +21,7 @@ describe("root MCP composition", () => {
       "maestro_preflight",
       "maestro_plan_check",
       "maestro_scaffold_preview",
+      "maestro_support_bundle_preview",
       "maestro_verify",
     ]);
   });
@@ -64,7 +65,14 @@ describe("root MCP composition", () => {
     expect(applied).toEqual([]);
 
     const written = await composition.mcpConfigure.run(
-      ["configure", "--host", "codex", "--write", "--json"],
+      [
+        "configure",
+        "--host",
+        "codex",
+        "--write",
+        "--privacy-reviewed",
+        "--json",
+      ],
       process.cwd(),
     );
     expect(written.exitCode).toBe(0);

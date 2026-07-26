@@ -52,12 +52,24 @@ describe("MCP configure lifecycle", () => {
     expect(result).toMatchObject({
       mutationPosture: "preview",
       exitClass: "success",
-      diagnostics: [],
+      diagnostics: [
+        expect.objectContaining({
+          code: "AGENT_PACK_PRIVACY_FIRST_RUN",
+          severity: "info",
+        }),
+      ],
       data: {
         action: "preview",
         host: "claude-code",
         profile: "inspect",
         autoStart: false,
+        privacy: {
+          host: { kind: "claude-code" },
+          providers: {
+            selected: ["convex-dev"],
+            explicitOptInRequired: true,
+          },
+        },
         receipt: {
           schemaVersion: 1,
           owner: "maestro-agent-pack",
@@ -76,13 +88,20 @@ describe("MCP configure lifecycle", () => {
     const { command } = await fixture(store);
     const result = await executeAgentPackCommand(
       command,
-      { host: "codex", profile: "dev-power", write: true },
+      {
+        host: "codex",
+        profile: "dev-power",
+        write: true,
+        privacyReviewed: true,
+      },
       context,
     );
     expect(result).toMatchObject({
       mutationPosture: "write",
       exitClass: "success",
-      diagnostics: [],
+      diagnostics: [
+        expect.objectContaining({ code: "AGENT_PACK_PRIVACY_FIRST_RUN" }),
+      ],
       data: {
         action: "apply",
         host: "codex",
@@ -102,6 +121,19 @@ describe("MCP configure lifecycle", () => {
       profile: "dev-power",
     });
     expect(JSON.stringify(receipt)).not.toContain("production");
+  });
+
+  it("refuses apply until the host/provider disclosure is reviewed", async () => {
+    const store = inertStore();
+    const { command } = await fixture(store);
+    const result = await executeAgentPackCommand(
+      command,
+      { host: "codex", write: true },
+      context,
+    );
+
+    expect(result.exitClass).toBe("invalidInvocation");
+    expect(store.apply).not.toHaveBeenCalled();
   });
 
   it("removes only the exact receipt-owned local registration", async () => {
@@ -157,7 +189,10 @@ describe("MCP configure lifecycle", () => {
   it.each([
     ["production", { host: "codex", profile: "production" }],
     ["fake", { host: "codex", profile: "fake" }],
-    ["write and remove", { host: "codex", write: true, remove: true }],
+    [
+      "write and remove",
+      { host: "codex", write: true, privacyReviewed: true, remove: true },
+    ],
     ["remove profile", { host: "codex", remove: true, profile: "inspect" }],
     ["arbitrary path", { host: "codex", path: "/tmp/config" }],
     ["arbitrary command", { host: "codex", command: "convex" }],

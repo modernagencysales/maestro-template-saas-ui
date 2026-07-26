@@ -4,7 +4,7 @@ export const SUPPORT_BUNDLE_VERSION = 1 as const;
 export const DEFAULT_SUPPORT_BUNDLE_PATH =
   ".maestro/support/support-bundle.json" as const;
 export const SUPPORT_BUNDLE_MAX_SOURCE_BYTES = 256 * 1024;
-export const SUPPORT_BUNDLE_PRODUCT_VERSION = "0.2.0-alpha.1" as const;
+export const SUPPORT_BUNDLE_PRODUCT_VERSION = "unavailable" as const;
 
 export const SUPPORT_BUNDLE_PRODUCT_VERSIONS = Object.freeze({
   agentPack: SUPPORT_BUNDLE_PRODUCT_VERSION,

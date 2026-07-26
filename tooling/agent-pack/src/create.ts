@@ -5,6 +5,13 @@ import {
   type AgentPackDiagnostic,
 } from "./contracts.js";
 import type { RepositoryContext } from "./repoContext.js";
+import {
+  createFirstRunPrivacyDiagnostic,
+  createFirstRunPrivacyDisclosure,
+  type FirstRunPrivacyDisclosure,
+} from "./privacy/disclosure.js";
+
+const PRIVACY_DOCUMENT = "docs/template/agent-pack-privacy.md";
 
 export type CustomerCreateInput = {
   readonly target: string;
@@ -12,6 +19,7 @@ export type CustomerCreateInput = {
   readonly outcome: string;
   readonly demoOnly: boolean;
   readonly write: boolean;
+  readonly privacyReviewed: boolean;
 };
 
 export type CustomerCreateReleaseFacts = {
@@ -115,12 +123,16 @@ export function createCustomerCreateCommand(
       const mutationPosture = input.write
         ? ("write" as const)
         : ("preview" as const);
+      const blueprintTargetPlan = dependencies.blueprintTargetPlan(input);
+      const disclosure = createDisclosure(
+        blueprintTargetPlan.registrations.includes(PRIVACY_DOCUMENT),
+      );
       const prepared = await dependencies.release.prepare({
         repo: context.repo,
         target: input.target,
         templateInstance: (facts, blueprint) =>
-          serializeTemplateInstance(facts, blueprint, input),
-        blueprintTargetPlan: () => dependencies.blueprintTargetPlan(input),
+          serializeTemplateInstance(facts, blueprint, input, disclosure),
+        blueprintTargetPlan: () => blueprintTargetPlan,
       });
       if (!prepared.ok) {
         return {
@@ -132,7 +144,12 @@ export function createCustomerCreateCommand(
         };
       }
 
-      const data = createData(input, prepared.facts, prepared.preview);
+      const data = createData(
+        input,
+        prepared.facts,
+        prepared.preview,
+        disclosure,
+      );
       if (prepared.preview.collisions.length > 0) {
         const diagnostic = collisionDiagnostic(input, prepared.preview);
         return {
@@ -152,8 +169,9 @@ export function createCustomerCreateCommand(
         return {
           mutationPosture,
           exitClass: "success" as const,
-          summary: "Customer app preview is ready; no files were written.",
-          diagnostics: [],
+          summary:
+            "Customer app and privacy preview are ready; no files were written.",
+          diagnostics: [privacyDiagnostic(disclosure)],
           data,
         };
       }
@@ -175,7 +193,7 @@ export function createCustomerCreateCommand(
         mutationPosture,
         exitClass: "success" as const,
         summary: "Customer app files were materialized from the release.",
-        diagnostics: [],
+        diagnostics: [privacyDiagnostic(disclosure)],
         data: { ...data, materializedFiles: materialized.files },
       };
     },
@@ -185,17 +203,28 @@ export function createCustomerCreateCommand(
 function decodeCreateInput(
   value: unknown,
 ): AgentPackArgumentResult<CustomerCreateInput> {
-  const allowed = new Set(["target", "name", "outcome", "demoOnly", "write"]);
+  const allowed = new Set([
+    "target",
+    "name",
+    "outcome",
+    "demoOnly",
+    "write",
+    "privacyReviewed",
+  ]);
   if (!isRecord(value) || !Object.keys(value).every((key) => allowed.has(key)))
     return invalidCreateInput();
   const demoOnly = value.demoOnly ?? false;
   const write = value.write ?? false;
+  const privacyReviewed = value.privacyReviewed ?? false;
   if (
     !nonEmptyString(value.target) ||
     !nonEmptyString(value.name) ||
     !nonEmptyString(value.outcome) ||
     typeof demoOnly !== "boolean" ||
-    typeof write !== "boolean"
+    typeof write !== "boolean" ||
+    typeof privacyReviewed !== "boolean" ||
+    (write && !privacyReviewed) ||
+    (!write && privacyReviewed)
   )
     return invalidCreateInput();
   return {
@@ -206,6 +235,7 @@ function decodeCreateInput(
       outcome: value.outcome.trim(),
       demoOnly,
       write,
+      privacyReviewed,
     },
   };
 }
@@ -218,9 +248,10 @@ function invalidCreateInput(): AgentPackArgumentResult<CustomerCreateInput> {
         code: "AGENT_PACK_CREATE_INVALID_ARGUMENTS",
         severity: "error",
         message:
-          "Create accepts one target plus name, outcome, demo-only, and write.",
+          "Create accepts one target plus name, outcome, demo-only, and a privacy-reviewed write.",
         safeToContinue: true,
-        nextAction: "Provide the app name and first user outcome.",
+        nextAction:
+          "Preview the app and privacy disclosure, then acknowledge it with --privacy-reviewed when writing.",
         rerun:
           'pnpm maestro -- create <target> --name "My App" --outcome "Track client requests"',
       },
@@ -232,6 +263,7 @@ function serializeTemplateInstance(
   facts: CustomerCreateReleaseFacts,
   blueprint: Pick<CustomerCreateBlueprintPlan, "id" | "digest" | "provenance">,
   input: CustomerCreateInput,
+  disclosure: FirstRunPrivacyDisclosure,
 ): string {
   return `${JSON.stringify(
     {
@@ -260,6 +292,7 @@ function serializeTemplateInstance(
         firstOutcome: input.outcome,
         demoOnly: input.demoOnly,
       },
+      privacy: disclosure,
     },
     null,
     2,
@@ -270,6 +303,7 @@ function createData(
   input: CustomerCreateInput,
   facts: CustomerCreateReleaseFacts,
   preview: CustomerCreatePreview,
+  disclosure: FirstRunPrivacyDisclosure,
 ) {
   const quotedTarget = JSON.stringify(input.target);
   return {
@@ -280,6 +314,7 @@ function createData(
       firstOutcome: input.outcome,
       demoOnly: input.demoOnly,
     },
+    privacy: disclosure,
     preview,
     followUpActions: [
       {
@@ -339,6 +374,20 @@ function collisionDiagnostic(
 
 function rerun(input: CustomerCreateInput): string {
   return `pnpm maestro -- create ${JSON.stringify(input.target)} --name ${JSON.stringify(input.name)} --outcome ${JSON.stringify(input.outcome)}${input.demoOnly ? " --demo-only" : ""}`;
+}
+
+function createDisclosure(privacyDocumentAvailable = true) {
+  return createFirstRunPrivacyDisclosure({
+    host: "unknown",
+    selectedProviders: [],
+    privacyDocumentAvailable,
+  });
+}
+
+function privacyDiagnostic(
+  disclosure: FirstRunPrivacyDisclosure,
+): AgentPackDiagnostic {
+  return createFirstRunPrivacyDiagnostic(disclosure);
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

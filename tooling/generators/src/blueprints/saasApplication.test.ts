@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import {
+  existsSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -80,6 +81,12 @@ describe("saas application blueprint", () => {
 
   it("keeps the historical alpha.1 target projection byte-authoritative", () => {
     const plan = buildSaasApplicationAlpha1TargetPlan();
+    expect(
+      buildSaasApplicationAlpha1TargetPlan({
+        name: "Compatibility Only",
+        firstOutcome: "Must not rewrite historical output",
+      }),
+    ).toEqual(plan);
     const manifest = JSON.parse(
       readFileSync(
         join(
@@ -120,7 +127,7 @@ describe("saas application blueprint", () => {
     });
   });
 
-  it("materializes the current privacy disclosure without support internals", () => {
+  it("materializes the current disclosure and customer support surface", () => {
     const targetRoot = mkdtempSync(
       join(tmpdir(), "maestro-current-customer-projection-"),
     );
@@ -147,14 +154,38 @@ describe("saas application blueprint", () => {
         plan.entries
           .map(({ path }) => path)
           .filter((path) =>
-            /supportBundle|support-bundle|privacy\.noNetwork|runtimeNetworkInterceptor/.test(
-              path,
-            ),
+            /privacy\.noNetwork|runtimeNetworkInterceptor/.test(path),
           ),
       ).toEqual([]);
+      for (const path of [
+        "apps/cli/src/factory/supportBundle.ts",
+        "tooling/agent-pack/src/privacy/supportBundle.ts",
+        "tooling/agent-pack/src/privacy/supportBundleCommand.ts",
+        "tooling/agent-pack/src/privacy/nodeSupportBundleExporter.ts",
+      ]) {
+        expect(plan.entries.map((entry) => entry.path)).toContain(path);
+        expect(existsSync(join(targetRoot, path))).toBe(true);
+      }
+      expect(
+        readFileSync(
+          join(targetRoot, "apps/cli/src/factory/customerComposition.ts"),
+          "utf8",
+        ),
+      ).toContain("createSupportBundleCliHandler");
     } finally {
       rmSync(targetRoot, { recursive: true, force: true });
     }
+  });
+
+  it("keeps current support files out of the frozen alpha.1 plan", () => {
+    const paths = buildSaasApplicationAlpha1TargetPlan().entries.map(
+      ({ path }) => path,
+    );
+    expect(paths).not.toContain("docs/template/agent-pack-privacy.md");
+    expect(paths).not.toContain("apps/cli/src/factory/supportBundle.ts");
+    expect(paths).not.toContain(
+      "tooling/agent-pack/src/privacy/supportBundle.ts",
+    );
   });
 
   it("defines a neutral workflow-optional application contract", () => {
@@ -285,6 +316,7 @@ describe("saas application blueprint", () => {
       "apps/cli/src/factory/customerComposition.ts",
       "apps/cli/src/index.ts",
       "apps/cli/src/factory/start.ts",
+      "apps/cli/src/factory/supportBundle.ts",
       "package.json",
       "tooling/generators/package.json",
       "tooling/quality/install-lefthook-if-git.mjs",
@@ -342,6 +374,10 @@ describe("saas application blueprint", () => {
       "tooling/agent-pack/src/readiness/nodeSurface.ts",
       "tooling/agent-pack/src/readiness/presenter.ts",
       "tooling/agent-pack/src/readiness/server.ts",
+      "tooling/agent-pack/src/privacy/supportBundle.ts",
+      "tooling/agent-pack/src/privacy/supportBundleCommand.ts",
+      "tooling/agent-pack/src/privacy/nodeSupportBundleExporter.ts",
+      "tooling/agent-pack/src/privacy/support-bundle.schema.json",
       "tooling/quality/check-agent-pack.mts",
       "tooling/quality/check-customer-context.mts",
       "tooling/quality/check-convex-ai-files.mts",

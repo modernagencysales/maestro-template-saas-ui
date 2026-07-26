@@ -29,13 +29,17 @@ describe("privacy boundary canaries", () => {
       diagnostics: [],
       data: { ok: true },
     }));
-    const command = (id: "preflight" | "plan-check" | "scaffold" | "verify") =>
+    const command = (
+      id: "preflight" | "plan-check" | "scaffold" | "support-bundle" | "verify",
+    ) =>
       defineAgentPackCommand({
         id,
         schemaVersion: AGENT_PACK_COMMAND_VERSION,
         decode: (input: unknown) => ({ ok: true as const, args: input }),
         mutationPosture: () =>
-          id === "scaffold" ? ("preview" as const) : ("read-only" as const),
+          id === "scaffold" || id === "support-bundle"
+            ? ("preview" as const)
+            : ("read-only" as const),
         execute,
       });
     const projection = createMaestroMcpProjection(
@@ -43,6 +47,7 @@ describe("privacy boundary canaries", () => {
         preflight: command("preflight"),
         planCheck: command("plan-check"),
         scaffold: command("scaffold"),
+        supportBundle: command("support-bundle"),
         verify: command("verify"),
       },
       repo,

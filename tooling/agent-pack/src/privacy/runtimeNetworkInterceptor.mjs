@@ -4,7 +4,9 @@ import dgram from "node:dgram";
 import http from "node:http";
 import https from "node:https";
 import net from "node:net";
+import process from "node:process";
 import tls from "node:tls";
+import { URL } from "node:url";
 import { syncBuiltinESMExports } from "node:module";
 
 const auditPath = process.env.MAESTRO_NETWORK_AUDIT_PATH;

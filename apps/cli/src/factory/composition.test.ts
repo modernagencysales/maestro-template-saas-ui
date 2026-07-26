@@ -144,6 +144,7 @@ describe("factory CLI composition", () => {
       "check",
       "plan-check",
       "scaffold",
+      "support-bundle",
     ]);
     expect(factoryCliComposition.diagnosticCount).toBe(
       diagnosticRegistryDescriptors.length,

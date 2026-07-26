@@ -56,4 +56,18 @@ describe("privacy disclosure", () => {
       rerun: "pnpm maestro -- create --help",
     });
   });
+
+  it("keeps first-run disclosure visible without dangling document authority", () => {
+    const disclosure = createFirstRunPrivacyDisclosure({
+      host: "unknown",
+      selectedProviders: [],
+      privacyDocumentAvailable: false,
+    });
+    expect(disclosure.privacyDocument).toBeNull();
+    expect(createFirstRunPrivacyDiagnostic(disclosure)).toMatchObject({
+      code: "AGENT_PACK_PRIVACY_FIRST_RUN",
+      nextAction:
+        "Review this first-run disclosure before enabling MCP, dev deployments, or external providers.",
+    });
+  });
 });

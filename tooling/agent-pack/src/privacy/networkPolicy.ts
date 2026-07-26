@@ -84,8 +84,13 @@ export const NO_NETWORK_FACTORY_CASES: readonly NoNetworkFactoryCase[] = [
       "--generator",
       "add-capability",
       "--args",
-      '{"name":"privacyFixture"}',
+      '{"name":"privacyFixture","system":"knowledge-brain","disposition":"extend","exposure":"headless"}',
       "--json",
     ],
+  },
+  {
+    id: "support-bundle-preview",
+    command: "support-bundle",
+    argv: ["support-bundle", "--json"],
   },
 ];

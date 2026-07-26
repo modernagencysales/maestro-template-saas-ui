@@ -80,24 +80,17 @@ describe("support bundle privacy contract", () => {
     expect(schema.properties.handling?.additionalProperties).toBe(false);
   });
 
-  it("loads immutable product versions that drift-check the release manifest", () => {
-    const manifest = JSON.parse(
-      readFileSync(
-        resolve(
-          import.meta.dirname,
-          "../../../../releases/v0.2.0-alpha.1/manifest.json",
-        ),
-        "utf8",
-      ),
-    ) as { readonly release: { readonly version: string } };
-
-    expect(SUPPORT_BUNDLE_PRODUCT_VERSION).toBe(manifest.release.version);
+  it("reports unavailable product versions until a release authority binds them", () => {
+    expect(SUPPORT_BUNDLE_PRODUCT_VERSION).toBe("unavailable");
     expect(SUPPORT_BUNDLE_PRODUCT_VERSIONS).toEqual({
-      agentPack: manifest.release.version,
-      cli: manifest.release.version,
-      template: manifest.release.version,
+      agentPack: "unavailable",
+      cli: "unavailable",
+      template: "unavailable",
       node: process.versions.node,
     });
+    expect(JSON.stringify(SUPPORT_BUNDLE_PRODUCT_VERSIONS)).not.toContain(
+      "0.2.0-alpha.1",
+    );
     expect(Object.isFrozen(SUPPORT_BUNDLE_PRODUCT_VERSIONS)).toBe(true);
   });
 
@@ -341,29 +334,131 @@ describe("support bundle privacy contract", () => {
     expect(existsSync(join(movedSupport, "support-bundle.json"))).toBe(false);
   });
 
-  it("fails closed on non-Linux hosts before creating a directory", async () => {
-    const targetRoot = root();
-    const preview = createSupportBundlePreview(source());
-    const exporter = createNodeSupportBundleExporter({ maxBytes: 128 * 1024 });
-    const descriptor = Object.getOwnPropertyDescriptor(process, "platform");
-    if (descriptor === undefined)
-      throw new Error("Expected the Node platform descriptor.");
+  it.each(["darwin", "win32"] as const)(
+    "writes safely and refuses overwrite on %s",
+    async (platform) => {
+      const targetRoot = root();
+      const preview = createSupportBundlePreview(source());
+      const exporter = createNodeSupportBundleExporter({
+        maxBytes: 128 * 1024,
+      });
+      await withPlatform(platform, async () => {
+        await expect(
+          exporter.export({
+            repo: createRepositoryContext({ cwd: targetRoot }),
+            output: preview.output,
+            serialized: preview.serialized,
+          }),
+        ).resolves.toEqual({ bytes: preview.bytes });
+        await expect(
+          exporter.export({
+            repo: createRepositoryContext({ cwd: targetRoot }),
+            output: preview.output,
+            serialized: preview.serialized,
+          }),
+        ).rejects.toThrow("already exists");
+      });
+      expect(readFileSync(join(targetRoot, preview.output), "utf8")).toBe(
+        preview.serialized,
+      );
+    },
+  );
 
-    Object.defineProperty(process, "platform", {
-      ...descriptor,
-      value: "darwin",
-    });
-    try {
-      await expect(
-        exporter.export({
-          repo: createRepositoryContext({ cwd: targetRoot }),
-          output: preview.output,
-          serialized: preview.serialized,
-        }),
-      ).rejects.toThrow("unavailable on this host");
+  it.each(["darwin", "win32"] as const)(
+    "refuses symlinked destinations and ancestor swaps on %s",
+    async (platform) => {
+      const preview = createSupportBundlePreview(source());
+      const symlinkRoot = root();
+      const outside = root();
+      mkdirSync(join(symlinkRoot, ".maestro"));
+      symlinkSync(outside, join(symlinkRoot, ".maestro", "support"));
+      await withPlatform(platform, async () => {
+        await expect(
+          createNodeSupportBundleExporter({ maxBytes: 128 * 1024 }).export({
+            repo: createRepositoryContext({ cwd: symlinkRoot }),
+            output: preview.output,
+            serialized: preview.serialized,
+          }),
+        ).rejects.toThrow();
+      });
+      expect(existsSync(join(outside, "support-bundle.json"))).toBe(false);
+
+      const swapRoot = root();
+      const movedMaestro = join(swapRoot, ".maestro-opened");
+      await withPlatform(platform, async () => {
+        await expect(
+          createNodeSupportBundleExporter({
+            maxBytes: 128 * 1024,
+            afterMaestroOpen: (maestroDirectory) => {
+              renameSync(maestroDirectory, movedMaestro);
+              symlinkSync(outside, maestroDirectory);
+            },
+          }).export({
+            repo: createRepositoryContext({ cwd: swapRoot }),
+            output: preview.output,
+            serialized: preview.serialized,
+          }),
+        ).rejects.toThrow("changed during export");
+      });
+      expect(existsSync(join(outside, "support"))).toBe(false);
+
+      const supportSwapRoot = root();
+      const movedSupport = join(supportSwapRoot, ".maestro", "support-opened");
+      await withPlatform(platform, async () => {
+        await expect(
+          createNodeSupportBundleExporter({
+            maxBytes: 128 * 1024,
+            afterDirectoryOpen: (supportDirectory) => {
+              renameSync(supportDirectory, movedSupport);
+              symlinkSync(outside, supportDirectory);
+            },
+          }).export({
+            repo: createRepositoryContext({ cwd: supportSwapRoot }),
+            output: preview.output,
+            serialized: preview.serialized,
+          }),
+        ).rejects.toThrow("changed during export");
+      });
+      expect(existsSync(join(outside, "support-bundle.json"))).toBe(false);
+      expect(existsSync(join(movedSupport, "support-bundle.json"))).toBe(false);
+    },
+  );
+
+  it.each(["linux", "darwin", "win32"] as const)(
+    "refuses oversized output before filesystem mutation on %s",
+    async (platform) => {
+      const targetRoot = root();
+      const preview = createSupportBundlePreview(source());
+      await withPlatform(platform, async () => {
+        await expect(
+          createNodeSupportBundleExporter({
+            maxBytes: preview.bytes - 1,
+          }).export({
+            repo: createRepositoryContext({ cwd: targetRoot }),
+            output: preview.output,
+            serialized: preview.serialized,
+          }),
+        ).rejects.toThrow("bounded export limit");
+      });
       expect(existsSync(join(targetRoot, ".maestro"))).toBe(false);
-    } finally {
-      Object.defineProperty(process, "platform", descriptor);
-    }
-  });
+    },
+  );
 });
+
+async function withPlatform<T>(
+  platform: NodeJS.Platform,
+  run: () => Promise<T>,
+): Promise<T> {
+  const descriptor = Object.getOwnPropertyDescriptor(process, "platform");
+  if (descriptor === undefined)
+    throw new Error("Expected the Node platform descriptor.");
+  Object.defineProperty(process, "platform", {
+    ...descriptor,
+    value: platform,
+  });
+  try {
+    return await run();
+  } finally {
+    Object.defineProperty(process, "platform", descriptor);
+  }
+}

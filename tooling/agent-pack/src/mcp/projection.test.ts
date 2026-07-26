@@ -1,4 +1,7 @@
-import { describe, expect, it, vi } from "vitest";
+import { existsSync, mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   AGENT_PACK_COMMAND_VERSION,
   AGENT_PACK_EXECUTION_CONTEXT_VERSION,
@@ -6,7 +9,14 @@ import {
   executeAgentPackCommand,
 } from "../contracts.js";
 import { createRepositoryContext } from "../repoContext.js";
+import { createSupportBundleCommand } from "../privacy/supportBundleCommand.js";
 import { createMaestroMcpProjection } from "./projection.js";
+
+const temporaryRoots: string[] = [];
+afterEach(() => {
+  for (const root of temporaryRoots.splice(0))
+    rmSync(root, { recursive: true, force: true });
+});
 
 const repo = createRepositoryContext({ cwd: "/target" });
 const context = {
@@ -16,12 +26,15 @@ const context = {
 };
 
 function command<
-  const Id extends "preflight" | "plan-check" | "scaffold" | "verify",
+  const Id extends
+    "preflight" | "plan-check" | "scaffold" | "support-bundle" | "verify",
 >(
   id: Id,
   execute = vi.fn(async (args: unknown) => ({
     mutationPosture:
-      id === "scaffold" ? ("preview" as const) : ("read-only" as const),
+      id === "scaffold" || id === "support-bundle"
+        ? ("preview" as const)
+        : ("read-only" as const),
     exitClass: "success" as const,
     summary: `${id} passed.`,
     diagnostics: [],
@@ -33,7 +46,9 @@ function command<
     schemaVersion: AGENT_PACK_COMMAND_VERSION,
     decode: (input: unknown) => ({ ok: true as const, args: input }),
     mutationPosture: () =>
-      id === "scaffold" ? ("preview" as const) : ("read-only" as const),
+      id === "scaffold" || id === "support-bundle"
+        ? ("preview" as const)
+        : ("read-only" as const),
     execute,
   });
 }
@@ -56,6 +71,7 @@ function fixture() {
     preflight: command("preflight"),
     planCheck: command("plan-check"),
     scaffold: command("scaffold", scaffoldExecute),
+    supportBundle: command("support-bundle"),
     verify: command("verify"),
   };
   return {
@@ -66,7 +82,7 @@ function fixture() {
 }
 
 describe("Maestro MCP projection", () => {
-  it("publishes exactly the four reviewed read-oriented tools", () => {
+  it("publishes exactly the reviewed read and preview tools", () => {
     expect(
       fixture()
         .projection.tools()
@@ -75,8 +91,64 @@ describe("Maestro MCP projection", () => {
       "maestro_preflight",
       "maestro_plan_check",
       "maestro_scaffold_preview",
+      "maestro_support_bundle_preview",
       "maestro_verify",
     ]);
+  });
+
+  it("projects support preview with an empty schema and no write authority", async () => {
+    const root = mkdtempSync(join(tmpdir(), "maestro-mcp-support-"));
+    temporaryRoots.push(root);
+    const exporter = { export: vi.fn(async () => ({ bytes: 1 })) };
+    const commands = {
+      ...fixture().commands,
+      supportBundle: createSupportBundleCommand({
+        load: async () => ({ host: { kind: "unknown" }, providers: [] }),
+        exporter,
+      }),
+    };
+    const projection = createMaestroMcpProjection(
+      commands,
+      createRepositoryContext({ cwd: root }),
+    );
+    expect(
+      projection
+        .tools()
+        .find(({ name }) => name === "maestro_support_bundle_preview"),
+    ).toMatchObject({
+      inputSchema: {
+        type: "object",
+        additionalProperties: false,
+        properties: {},
+      },
+    });
+
+    await expect(
+      projection.call("maestro_support_bundle_preview", {}),
+    ).resolves.toMatchObject({
+      isError: false,
+      structuredContent: {
+        mutationPosture: "preview",
+        data: { write: false, exportedBytes: null },
+      },
+    });
+    expect(exporter.export).not.toHaveBeenCalled();
+    expect(existsSync(join(root, ".maestro"))).toBe(false);
+  });
+
+  it.each([
+    { write: true },
+    { output: ".maestro/support/canary.json" },
+    { export: true },
+    { previewFingerprint: `support_preview_sha256:${"0".repeat(64)}` },
+  ])("rejects MCP support export authority %#", async (authority) => {
+    const { projection, commands } = fixture();
+    const result = await projection.call(
+      "maestro_support_bundle_preview",
+      authority,
+    );
+    expect(result).toMatchObject({ isError: true });
+    expect(commands.supportBundle.execute).not.toHaveBeenCalled();
   });
 
   it("returns the same typed result as direct command execution", async () => {

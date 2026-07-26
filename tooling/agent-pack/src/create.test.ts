@@ -43,7 +43,10 @@ const blueprint = {
   id: "saas-application",
   digest: `sha256:${"e".repeat(64)}`,
   provenance: "@maestro-template/generators/saas-application@1",
-  registrations: ["apps/web/src/routes/_workspace.records.tsx"],
+  registrations: [
+    "apps/web/src/routes/_workspace.records.tsx",
+    "docs/template/agent-pack-privacy.md",
+  ],
   entries: [],
 };
 
@@ -95,8 +98,19 @@ describe("customer create command", () => {
 
     expect(result.exitClass).toBe("success");
     expect(result.mutationPosture).toBe("preview");
+    expect(result.diagnostics).toEqual([
+      expect.objectContaining({
+        code: "AGENT_PACK_PRIVACY_FIRST_RUN",
+        severity: "info",
+      }),
+    ]);
     expect(test.materialize).not.toHaveBeenCalled();
     expect(result.data).toMatchObject({
+      privacy: {
+        maestro: { productTelemetry: "none", automaticUpload: false },
+        host: { kind: "unknown" },
+        providers: { explicitOptInRequired: true },
+      },
       preview: {
         writes: [
           { path: "package.json", bytes: 20 },
@@ -130,6 +144,10 @@ describe("customer create command", () => {
         name: "My App",
         firstOutcome: "Track client requests",
         demoOnly: true,
+      },
+      privacy: {
+        maestro: { productTelemetry: "none", automaticUpload: false },
+        privacyDocument: "docs/template/agent-pack-privacy.md",
       },
     });
   });
@@ -175,6 +193,7 @@ describe("customer create command", () => {
           name: "My App",
           outcome: "Create and review records",
           write: true,
+          privacyReviewed: true,
         },
         {
           ...context,
@@ -243,7 +262,7 @@ describe("customer create command", () => {
     const test = fixture();
     const result = await executeAgentPackCommand(
       createCustomerCreateCommand(test.dependencies),
-      { ...input, write: true },
+      { ...input, write: true, privacyReviewed: true },
       context,
     );
 
@@ -251,6 +270,22 @@ describe("customer create command", () => {
     expect(result.mutationPosture).toBe("write");
     expect(test.materialize).toHaveBeenCalledOnce();
     expect(result.data).toMatchObject({ materializedFiles: 3 });
+  });
+
+  it("refuses materialization until the privacy disclosure is reviewed", async () => {
+    const test = fixture();
+    const result = await executeAgentPackCommand(
+      createCustomerCreateCommand(test.dependencies),
+      { ...input, write: true },
+      context,
+    );
+
+    expect(result.exitClass).toBe("invalidInvocation");
+    expect(result.diagnostics).toEqual([
+      expect.objectContaining({ code: "AGENT_PACK_CREATE_INVALID_ARGUMENTS" }),
+    ]);
+    expect(test.dependencies.release.prepare).not.toHaveBeenCalled();
+    expect(test.materialize).not.toHaveBeenCalled();
   });
 
   it("fails closed for fixture-only or unresolved release bindings", async () => {
@@ -294,14 +329,14 @@ describe("customer create command", () => {
     const write = fixture({ collisions: ["package.json"] });
     const writeResult = await executeAgentPackCommand(
       createCustomerCreateCommand(write.dependencies),
-      { ...input, write: true },
+      { ...input, write: true, privacyReviewed: true },
       context,
     );
     expect(writeResult.exitClass).toBe("blockedMutation");
     expect(write.materialize).not.toHaveBeenCalled();
   });
 
-  it("accepts only target, name, outcome, demo-only, and write inputs", async () => {
+  it("accepts only target, name, outcome, demo-only, and reviewed writes", async () => {
     const test = fixture();
     for (const invalid of [
       { ...input, provider: "live" },
@@ -309,6 +344,7 @@ describe("customer create command", () => {
       { ...input, install: true },
       { ...input, name: " " },
       { ...input, outcome: "" },
+      { ...input, privacyReviewed: true },
     ]) {
       const result = await executeAgentPackCommand(
         createCustomerCreateCommand(test.dependencies),

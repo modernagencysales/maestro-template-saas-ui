@@ -176,6 +176,10 @@ function expectedAgentPackBarrel(): string {
     'export * from "./mcp/convexProfiles.js";',
     'export * from "./mcp/configure.js";',
     'export * from "./mcp/nodeConfigure.js";',
+    'export * from "./privacy/disclosure.js";',
+    'export * from "./privacy/supportBundle.js";',
+    'export * from "./privacy/supportBundleCommand.js";',
+    'export * from "./privacy/nodeSupportBundleExporter.js";',
   ].join("\n");
 }
 

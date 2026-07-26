@@ -53,7 +53,7 @@ export function createNodeSupportBundleExporter(input: {
       const bytes = Buffer.byteLength(request.serialized, "utf8");
       if (bytes > input.maxBytes)
         throw new Error("Support bundle exceeds the bounded export limit.");
-      if (process.platform !== "linux")
+      if (!["linux", "darwin", "win32"].includes(process.platform))
         throw new Error(
           "Race-safe support bundle export is unavailable on this host.",
         );
@@ -63,13 +63,35 @@ export function createNodeSupportBundleExporter(input: {
       const supportDirectory = dirname(destination);
       const filename = basename(destination);
 
+      if (process.platform === "darwin" || process.platform === "win32") {
+        // These hosts lack Linux's stable /proc descriptor traversal. Create an
+        // exclusive empty handle first, then write content only after file and
+        // parent identities resolve inside the repository.
+        return exportWithValidatedFileHandle({
+          repositoryRoot: await realpath(request.repo.targetRoot),
+          maestroDirectory,
+          supportDirectory,
+          destination,
+          serialized: request.serialized,
+          bytes,
+          ...(input.afterMaestroOpen === undefined
+            ? {}
+            : { afterMaestroOpen: input.afterMaestroOpen }),
+          ...(input.afterDirectoryOpen === undefined
+            ? {}
+            : { afterDirectoryOpen: input.afterDirectoryOpen }),
+        });
+      }
+
+      const descriptorRoot = "/proc/self/fd";
+
       let maestroHandle: FileHandle | undefined;
       let supportHandle: FileHandle | undefined;
       let fileHandle: FileHandle | undefined;
       let descriptorDestination: string | undefined;
       let createdFileIdentity: DirectoryIdentity | undefined;
       try {
-        await access("/proc/self/fd");
+        await access(descriptorRoot);
         const repositoryRoot = await realpath(request.repo.targetRoot);
         await ensureDirectory(maestroDirectory);
         maestroHandle = await openDirectory(maestroDirectory);
@@ -79,10 +101,11 @@ export function createNodeSupportBundleExporter(input: {
         const maestroTarget = await assertDescriptorInside(
           maestroHandle,
           repositoryRoot,
+          descriptorRoot,
         );
         await assertPathIdentity(maestroDirectory, maestroIdentity);
 
-        const descriptorSupportDirectory = `/proc/self/fd/${maestroHandle.fd}/support`;
+        const descriptorSupportDirectory = `${descriptorRoot}/${maestroHandle.fd}/support`;
         await ensureDirectory(descriptorSupportDirectory);
         supportHandle = await openDirectory(descriptorSupportDirectory);
         const supportIdentity = await directoryIdentity(supportHandle);
@@ -97,9 +120,10 @@ export function createNodeSupportBundleExporter(input: {
           supportDirectory,
           supportHandle,
           supportIdentity,
+          descriptorRoot,
         });
 
-        descriptorDestination = `/proc/self/fd/${supportHandle.fd}/${filename}`;
+        descriptorDestination = `${descriptorRoot}/${supportHandle.fd}/${filename}`;
         fileHandle = await open(
           descriptorDestination,
           constants.O_WRONLY |
@@ -124,6 +148,7 @@ export function createNodeSupportBundleExporter(input: {
           supportDirectory,
           supportHandle,
           supportIdentity,
+          descriptorRoot,
         });
         await fileHandle.close();
         fileHandle = undefined;
@@ -193,14 +218,17 @@ async function assertStableDirectories(input: {
   readonly supportDirectory: string;
   readonly supportHandle: FileHandle;
   readonly supportIdentity: DirectoryIdentity;
+  readonly descriptorRoot: string;
 }): Promise<void> {
   const currentMaestroTarget = await assertDescriptorInside(
     input.maestroHandle,
     input.repositoryRoot,
+    input.descriptorRoot,
   );
   const supportTarget = await assertDescriptorInside(
     input.supportHandle,
     input.repositoryRoot,
+    input.descriptorRoot,
   );
   if (
     currentMaestroTarget !== input.maestroTarget ||
@@ -215,13 +243,201 @@ async function assertStableDirectories(input: {
 async function assertDescriptorInside(
   handle: FileHandle,
   repositoryRoot: string,
+  descriptorRoot: string,
 ): Promise<string> {
-  const target = await realpath(`/proc/self/fd/${handle.fd}`).catch(() => {
+  const target = await realpath(`${descriptorRoot}/${handle.fd}`).catch(() => {
     throw new SupportBundleExportRaceError();
   });
   if (!isStrictlyInside(repositoryRoot, target))
     throw new SupportBundleExportRaceError();
   return target;
+}
+
+async function exportWithValidatedFileHandle(input: {
+  readonly repositoryRoot: string;
+  readonly maestroDirectory: string;
+  readonly supportDirectory: string;
+  readonly destination: string;
+  readonly serialized: string;
+  readonly bytes: number;
+  readonly afterMaestroOpen?: (
+    maestroDirectory: string,
+  ) => void | Promise<void>;
+  readonly afterDirectoryOpen?: (
+    supportDirectory: string,
+  ) => void | Promise<void>;
+}): Promise<{ readonly bytes: number }> {
+  let fileHandle: FileHandle | undefined;
+  let createdFileIdentity: DirectoryIdentity | undefined;
+  try {
+    await ensureDirectory(input.maestroDirectory);
+    const maestroIdentity = await pathDirectoryIdentity(input.maestroDirectory);
+    const maestroTarget = await assertPathDirectoryInside(
+      input.maestroDirectory,
+      maestroIdentity,
+      input.repositoryRoot,
+    );
+
+    await input.afterMaestroOpen?.(input.maestroDirectory);
+    await assertPathDirectoryInside(
+      input.maestroDirectory,
+      maestroIdentity,
+      input.repositoryRoot,
+    );
+
+    await ensureDirectory(input.supportDirectory);
+    const supportIdentity = await pathDirectoryIdentity(input.supportDirectory);
+    const supportTarget = await assertPathDirectoryInside(
+      input.supportDirectory,
+      supportIdentity,
+      maestroTarget,
+    );
+
+    await input.afterDirectoryOpen?.(input.supportDirectory);
+    await assertValidatedPathHierarchy({
+      repositoryRoot: input.repositoryRoot,
+      maestroDirectory: input.maestroDirectory,
+      maestroIdentity,
+      maestroTarget,
+      supportDirectory: input.supportDirectory,
+      supportIdentity,
+      supportTarget,
+    });
+
+    fileHandle = await open(
+      input.destination,
+      constants.O_WRONLY |
+        constants.O_CREAT |
+        constants.O_EXCL |
+        noFollowFlag(),
+      0o600,
+    );
+    const createdStatus = await fileHandle.stat();
+    if (!createdStatus.isFile()) throw new SupportBundleExportRaceError();
+    createdFileIdentity = createdStatus;
+    await assertPathFileInside(
+      input.destination,
+      createdFileIdentity,
+      supportTarget,
+    );
+    await assertValidatedPathHierarchy({
+      repositoryRoot: input.repositoryRoot,
+      maestroDirectory: input.maestroDirectory,
+      maestroIdentity,
+      maestroTarget,
+      supportDirectory: input.supportDirectory,
+      supportIdentity,
+      supportTarget,
+    });
+
+    await fileHandle.chmod(0o600);
+    await fileHandle.writeFile(input.serialized, "utf8");
+    await fileHandle.sync();
+    await assertPathFileInside(
+      input.destination,
+      createdFileIdentity,
+      supportTarget,
+    );
+    await assertValidatedPathHierarchy({
+      repositoryRoot: input.repositoryRoot,
+      maestroDirectory: input.maestroDirectory,
+      maestroIdentity,
+      maestroTarget,
+      supportDirectory: input.supportDirectory,
+      supportIdentity,
+      supportTarget,
+    });
+    await fileHandle.close();
+    fileHandle = undefined;
+    return { bytes: input.bytes };
+  } catch (error) {
+    await fileHandle?.close().catch(() => undefined);
+    fileHandle = undefined;
+    if (createdFileIdentity !== undefined) {
+      await unlinkIfIdentityMatches(
+        input.destination,
+        createdFileIdentity,
+      ).catch(() => undefined);
+    }
+    if (error instanceof SupportBundleExportRaceError) throw error;
+    if (errorCode(error) === "EEXIST")
+      throw new Error("Support bundle output already exists.");
+    throw new Error("Support bundle could not be exported safely.");
+  }
+}
+
+async function pathDirectoryIdentity(path: string): Promise<DirectoryIdentity> {
+  const status = await lstat(path).catch(() => undefined);
+  if (status === undefined || !status.isDirectory() || status.isSymbolicLink())
+    throw new SupportBundleExportRaceError();
+  return status;
+}
+
+async function assertPathDirectoryInside(
+  path: string,
+  expected: DirectoryIdentity,
+  parent: string,
+): Promise<string> {
+  await assertPathIdentity(path, expected);
+  const target = await realpath(path).catch(() => {
+    throw new SupportBundleExportRaceError();
+  });
+  if (!isStrictlyInside(parent, target))
+    throw new SupportBundleExportRaceError();
+  return target;
+}
+
+async function assertPathFileInside(
+  path: string,
+  expected: DirectoryIdentity,
+  parent: string,
+): Promise<void> {
+  const status = await lstat(path).catch(() => undefined);
+  if (
+    status === undefined ||
+    !status.isFile() ||
+    status.isSymbolicLink() ||
+    status.dev !== expected.dev ||
+    status.ino !== expected.ino
+  ) {
+    throw new SupportBundleExportRaceError();
+  }
+  const target = await realpath(path).catch(() => {
+    throw new SupportBundleExportRaceError();
+  });
+  if (!isStrictlyInside(parent, target))
+    throw new SupportBundleExportRaceError();
+}
+
+async function assertValidatedPathHierarchy(input: {
+  readonly repositoryRoot: string;
+  readonly maestroDirectory: string;
+  readonly maestroIdentity: DirectoryIdentity;
+  readonly maestroTarget: string;
+  readonly supportDirectory: string;
+  readonly supportIdentity: DirectoryIdentity;
+  readonly supportTarget: string;
+}): Promise<void> {
+  const maestroTarget = await assertPathDirectoryInside(
+    input.maestroDirectory,
+    input.maestroIdentity,
+    input.repositoryRoot,
+  );
+  const supportTarget = await assertPathDirectoryInside(
+    input.supportDirectory,
+    input.supportIdentity,
+    maestroTarget,
+  );
+  if (
+    maestroTarget !== input.maestroTarget ||
+    supportTarget !== input.supportTarget
+  ) {
+    throw new SupportBundleExportRaceError();
+  }
+}
+
+function noFollowFlag(): number {
+  return typeof constants.O_NOFOLLOW === "number" ? constants.O_NOFOLLOW : 0;
 }
 
 async function assertPathIdentity(

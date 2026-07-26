@@ -15,6 +15,11 @@ import {
   type ConvexProfilePreview,
   type HostCommand,
 } from "./convexProfiles.js";
+import {
+  createFirstRunPrivacyDiagnostic,
+  createFirstRunPrivacyDisclosure,
+  type FirstRunPrivacyDisclosure,
+} from "../privacy/disclosure.js";
 
 export type McpConfigurationHost = "claude-code" | "codex";
 export type McpConfigurationProfile = "inspect" | "dev-power";
@@ -52,6 +57,7 @@ type ConfigureArgs =
       readonly action: "preview" | "apply";
       readonly host: McpConfigurationHost;
       readonly profile: McpConfigurationProfile;
+      readonly privacyReviewed: boolean;
     }
   | { readonly action: "remove"; readonly host: McpConfigurationHost };
 
@@ -63,6 +69,7 @@ type ConfigureData = {
     "preview" | "created" | "unchanged" | "removed" | "absent" | "refused";
   readonly autoStart: false;
   readonly receipt: McpConfigurationReceipt | null;
+  readonly privacy: FirstRunPrivacyDisclosure;
 };
 
 export function createMcpConfigureCommand(input: {
@@ -114,6 +121,7 @@ async function executeConfigure(
         status: removed.status,
         autoStart: false,
         receipt: null,
+        privacy: disclosure(args.host, null),
       });
     } catch {
       return unavailable(
@@ -161,6 +169,7 @@ async function executeConfigure(
       status: "preview",
       autoStart: false,
       receipt,
+      privacy: disclosure(args.host, args.profile),
     });
   }
   try {
@@ -181,6 +190,7 @@ async function executeConfigure(
       status: applied.status,
       autoStart: false,
       receipt,
+      privacy: disclosure(args.host, args.profile),
     });
   } catch {
     return unavailable(
@@ -198,7 +208,7 @@ function decodeConfigureArgs(
 ): AgentPackArgumentResult<ConfigureArgs> {
   if (
     !isRecord(input) ||
-    !hasOnly(input, ["host", "profile", "write", "remove"])
+    !hasOnly(input, ["host", "profile", "write", "remove", "privacyReviewed"])
   ) {
     return invalidInvocation();
   }
@@ -206,13 +216,17 @@ function decodeConfigureArgs(
   const profile = input.profile ?? "inspect";
   const write = input.write ?? false;
   const remove = input.remove ?? false;
+  const privacyReviewed = input.privacyReviewed ?? false;
   if (
     (host !== "claude-code" && host !== "codex") ||
     (profile !== "inspect" && profile !== "dev-power") ||
     typeof write !== "boolean" ||
     typeof remove !== "boolean" ||
+    typeof privacyReviewed !== "boolean" ||
     (write && remove) ||
-    (remove && input.profile !== undefined)
+    (remove && input.profile !== undefined) ||
+    (write && !privacyReviewed) ||
+    (!write && privacyReviewed)
   ) {
     return invalidInvocation();
   }
@@ -226,6 +240,7 @@ function decodeConfigureArgs(
           action: write ? "apply" : "preview",
           host: safeHost,
           profile: safeProfile,
+          privacyReviewed,
         },
       };
 }
@@ -267,6 +282,7 @@ function configurationKey(
 }
 
 function success(data: ConfigureData): AgentPackCommandOutcome<ConfigureData> {
+  const showPrivacy = data.action !== "remove";
   return {
     mutationPosture: data.action === "preview" ? "preview" : "write",
     exitClass: "success",
@@ -276,7 +292,13 @@ function success(data: ConfigureData): AgentPackCommandOutcome<ConfigureData> {
         : data.action === "apply"
           ? `Convex MCP ${data.profile} configuration ${data.status} for ${data.host}.`
           : `Convex MCP configuration ${data.status} for ${data.host}.`,
-    diagnostics: [],
+    diagnostics: showPrivacy
+      ? [
+          createFirstRunPrivacyDiagnostic(data.privacy, {
+            rerun: "pnpm maestro -- mcp configure --help",
+          }),
+        ]
+      : [],
     data,
   };
 }
@@ -311,8 +333,19 @@ function unavailable(
       status: "refused",
       autoStart: false,
       receipt: null,
+      privacy: disclosure(host, profile),
     },
   };
+}
+
+function disclosure(
+  host: McpConfigurationHost,
+  profile: McpConfigurationProfile | null,
+): FirstRunPrivacyDisclosure {
+  return createFirstRunPrivacyDisclosure({
+    host,
+    selectedProviders: profile === null ? [] : ["convex-dev"],
+  });
 }
 
 function invalidInvocation() {
