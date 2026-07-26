@@ -1,4 +1,5 @@
 import { makeFunctionReference } from "convex/server";
+import { readPromotionAuthorityPrivateKeyPkcs8Base64Url } from "../shared/env";
 import {
   canonical,
   type DeployAuthorityPayload,
@@ -20,8 +21,7 @@ export const handleDeployAuthorityHttpRequest = async (
   dependencies: {
     readonly privateKeyPkcs8Base64Url: string | undefined;
   } = {
-    privateKeyPkcs8Base64Url:
-      process.env.PROMOTION_AUTHORITY_PRIVATE_KEY_PKCS8_BASE64URL,
+    privateKeyPkcs8Base64Url: readPromotionAuthorityPrivateKeyPkcs8Base64Url(),
   },
 ): Promise<Response> => {
   const scope = await parseScope(request);

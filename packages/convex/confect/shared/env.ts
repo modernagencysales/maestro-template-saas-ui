@@ -54,6 +54,9 @@ export const readNodeEnvironment = (): "production" | "test" | undefined => {
   return value === "production" || value === "test" ? value : undefined;
 };
 
+export const readPromotionAuthorityPrivateKeyPkcs8Base64Url = () =>
+  process.env.PROMOTION_AUTHORITY_PRIVATE_KEY_PKCS8_BASE64URL;
+
 export const readRequiredEnv = (name: string, env: EnvSource): string => {
   if (!(name in env)) {
     throw makeEnvConfigError(name, "missing");
