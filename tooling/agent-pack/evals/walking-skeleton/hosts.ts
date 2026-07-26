@@ -214,6 +214,8 @@ export function createHostAdapter(
                 "--ignore-rules",
                 "-c",
                 "mcp_servers={}",
+                "-c",
+                "sandbox_workspace_write.network_access=true",
                 ...(codexTransport ? codexTransportArgs(codexTransport) : []),
                 "--json",
                 "--sandbox",
