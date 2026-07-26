@@ -17,7 +17,7 @@ const REVIEWED_MANIFEST = {
     to: {
       path: "releases/v0.2.0-alpha.1/manifest.json",
       sha256:
-        "sha256:031c8ea211264d0eeb62016fd88e239890b22b66d414638440e0918e4542be6d",
+        "sha256:703933418b36e92493487ade1361b7d80b7a564895ed96984ea380e3d319758b",
     },
   },
   handoff: {

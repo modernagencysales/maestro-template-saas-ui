@@ -3282,7 +3282,7 @@
     "sha256": "sha256:2c9f49215fdfc3300cd230da5a2cfb59ce346727af3321f10f0023d8035751e4",
     "projection": {
       "path": "releases/v0.2.0-alpha.1/upgrade/app-map-impact.json",
-      "sha256": "sha256:419325a1af81cdb21e3bdf972d803d9e5f4b6b29e8551d349317298ec9da691d"
+      "sha256": "sha256:ac2af4fa3fe9f1cfe4e3431e66d2c392295591d407be5b142f7df993c8740e3d"
     }
   },
   "migrationHandoff": {
