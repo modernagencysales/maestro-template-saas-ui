@@ -196,4 +196,35 @@ describe("ADR lifecycle core", () => {
       findings: [{ code: "ADR_SUPERSEDED_STATUS_INVALID" }],
     });
   });
+
+  it.each(["proposed", "rejected"] as const)(
+    "rejects a %s successor without producing writes",
+    (status) => {
+      const prior = accepted("ADR-0002");
+      const successor = accepted("ADR-0003");
+      const result = previewAdrSupersede(
+        "ADR-0002",
+        {
+          ...successor,
+          metadata: {
+            ...successor.metadata,
+            status,
+            supersedes: ["ADR-0002"],
+          },
+        },
+        context([prior]),
+      );
+
+      expect(result).toMatchObject({
+        ok: false,
+        mutationPosture: "dry-run",
+        findings: [{ code: "ADR_SUCCESSOR_STATUS_INVALID" }],
+        writes: [],
+      });
+      expect(prior.metadata).toMatchObject({
+        status: "accepted",
+        supersededBy: null,
+      });
+    },
+  );
 });

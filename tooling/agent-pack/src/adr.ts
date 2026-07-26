@@ -357,9 +357,16 @@ export const previewAdrSupersede = (
         "Only an accepted ADR can be superseded.",
       ),
     );
+  if (successor.metadata.status !== "accepted")
+    findings.push(
+      finding(
+        "ADR_SUCCESSOR_STATUS_INVALID",
+        `Successor ADR ${successor.metadata.id} is not accepted.`,
+        "Accept the successor ADR before superseding an existing decision.",
+      ),
+    );
   if (
     prior.metadata.supersededBy !== null ||
-    successor.metadata.status !== "accepted" ||
     !successor.metadata.supersedes.includes(priorId) ||
     successor.metadata.supersededBy !== null
   )
