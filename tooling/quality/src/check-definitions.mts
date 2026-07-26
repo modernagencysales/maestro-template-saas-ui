@@ -25,6 +25,7 @@ const checkDescriptorDefinitions = {
           "pnpm check:system-catalog",
           "pnpm check:system-topology",
           "pnpm check:data-resources",
+          "pnpm check:append-only-tables",
           "pnpm check:promotion-boundary",
           "taste",
           "contract-review",
@@ -104,6 +105,7 @@ const checkDescriptorDefinitions = {
           "pnpm check:system-catalog",
           "pnpm check:system-topology",
           "pnpm check:data-resources",
+          "pnpm check:append-only-tables",
           "pnpm check:promotion-boundary",
           "pnpm check:workflow-semantics",
           "pnpm template:workflow-output-smoke",
@@ -125,6 +127,7 @@ const checkDescriptorDefinitions = {
           "check-system-catalog:",
           "check-system-topology:",
           "check-data-resources:",
+          "check-append-only-tables:",
           "check-promotion-boundary:",
           "check-workflow-semantics:",
           "check-workflow-fast:",
@@ -145,6 +148,7 @@ const checkDescriptorDefinitions = {
           "check:system-catalog",
           "check:system-topology",
           "check:data-resources",
+          "check:append-only-tables",
           "check:promotion-boundary",
           "check:workflow:fast",
         ],
@@ -157,7 +161,7 @@ const checkDescriptorDefinitions = {
           '"test:app-map"',
           '"check:app-map"',
           "pnpm check:agent-pack && pnpm check:app-map && pnpm check:deps",
-          "pnpm check:schema-migration-notes && pnpm check:system-catalog && pnpm check:system-topology && pnpm check:data-resources && pnpm check:promotion-boundary && pnpm check:layer-boundaries",
+          "pnpm check:schema-migration-notes && pnpm check:system-catalog && pnpm check:system-topology && pnpm check:data-resources && pnpm check:append-only-tables && pnpm check:promotion-boundary && pnpm check:layer-boundaries",
         ],
         message:
           "the root verify chain must run canonical system/schema ownership before layer checks",
@@ -934,6 +938,44 @@ const checkDescriptorDefinitions = {
       },
     ],
   },
+  "append-only-tables": {
+    name: "check:append-only-tables",
+    requirements: [
+      {
+        file: "tooling/quality/check-append-only-tables.mts",
+        includes: [
+          "typescript",
+          "RAW_DB_MUTATION_ALLOWLIST",
+          "DESTRUCTIVE_METHODS",
+          "parseDataResourceCatalog",
+          "packages/convex/confect",
+          "packages/convex/convex",
+        ],
+        message:
+          "append-only boundary must AST-block raw Convex destructive database access across canonical roots",
+      },
+      {
+        file: "tooling/quality/check-append-only-tables.test.mts",
+        includes: [
+          "direct and optional destructive calls by opaque ID",
+          "method declaration destructuring and destructuring assignment",
+          "nested helpers and helpers returning raw databases",
+          "dynamic computed access",
+          "unrelated mutable objects",
+          "literal table-bound writer mutations",
+          "app deadline file an ID-evidence allowance",
+          "component allowances patch-only",
+        ],
+        message:
+          "raw database boundary must prove direct, alias, helper, optional, wrapper, and escape behavior",
+      },
+      {
+        file: ".buildkite/scripts/phase1.sh",
+        includes: ["pnpm check:append-only-tables"],
+        message: "hosted deterministic CI must enforce append-only tables",
+      },
+    ],
+  },
   "app-map": {
     name: "check:app-map",
     requirements: [
@@ -1053,6 +1095,8 @@ const canonicalScriptBodies = {
   "check:ci-completeness": "tsx tooling/quality/check-ci-completeness.mts",
   "check:config-drift": "tsx tooling/quality/check-config-drift.mts",
   "check:app-map": "pnpm --dir tooling/app-map check",
+  "check:append-only-tables":
+    "tsx tooling/quality/check-append-only-tables.mts",
   "check:deps": "tsx tooling/quality/check-deps.mts",
   "check:knip": "knip --config knip.json",
   "check:route-tree": "tsx tooling/quality/check-route-tree.mts",
@@ -1134,6 +1178,18 @@ export const checkDescriptors = defineRegisteredStaticCheckDescriptors(
     "ci-completeness": { evidenceClass: "static" },
     "config-drift": { evidenceClass: "static" },
     "app-map": { evidenceClass: "static" },
+    "append-only-tables": {
+      evidenceClass: "static",
+      defaultFocused: true,
+      canonicalDoc: "docs/template/data-lifecycle.md",
+      focusedPathPrefixes: [
+        "docs/template/data-resources.json",
+        "packages/convex/confect",
+        "tooling/quality/check-append-only-tables.mts",
+        "tooling/quality/check-append-only-tables.test.mts",
+        ".buildkite/scripts/phase1.sh",
+      ],
+    },
     deps: { evidenceClass: "static" },
     knip: { evidenceClass: "static" },
     "route-tree": { evidenceClass: "static" },

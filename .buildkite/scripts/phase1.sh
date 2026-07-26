@@ -45,6 +45,7 @@ pnpm check:schema-migration-notes
 pnpm check:system-catalog
 pnpm check:system-topology
 pnpm check:data-resources
+pnpm check:append-only-tables
 pnpm check:promotion-boundary
 pnpm check:layer-boundaries
 pnpm check:secret-canaries

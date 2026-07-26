@@ -44,6 +44,9 @@ pre-push:
     data-resources:
       tags: deterministic
       run: pnpm check:data-resources
+    append-only-tables:
+      tags: deterministic
+      run: pnpm check:append-only-tables
     promotion-boundary:
       tags: deterministic
       run: pnpm check:promotion-boundary

@@ -360,6 +360,42 @@
         "docs/template/data-lifecycle.md"
       ],
       "decisionRef": "docs/template/system-catalog.md#data-lifecycle"
+    },
+    {
+      "id": "deployment-authority",
+      "name": "Deployment Authority",
+      "kind": "shared-primitive",
+      "lifecycle": "active",
+      "implementationStatus": "mixed",
+      "summary": "Owns environment-scoped release approval, signed deployment verdict, workflow census, trusted issuer, and one-time deployment-action consumption state.",
+      "responsibilities": [
+        "verify trusted deployment issuer configuration",
+        "verify release approvals against exact environment targets and commits",
+        "validate complete workflow census evidence",
+        "verify signed deployment verdicts",
+        "consume deployment actions exactly once"
+      ],
+      "aliases": [
+        "deploy approvals",
+        "deploy authority",
+        "deploy census",
+        "deploy verdicts",
+        "promotion authorization",
+        "release authority"
+      ],
+      "tables": [
+        "deployActionConsumptions",
+        "deployApprovals",
+        "deployAuthorityIssuers",
+        "deployCensusSnapshots",
+        "deployVerdicts"
+      ],
+      "canonicalEntrypoints": [
+        "packages/convex/confect/deploy/authority.spec.ts",
+        "packages/convex/confect/deployAuthority/http.ts",
+        "packages/convex/confect/deployAuthority/store.ts"
+      ],
+      "decisionRef": "docs/template/system-decisions/deployment-authority.md"
     }
   ]
 }

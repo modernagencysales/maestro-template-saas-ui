@@ -1,8 +1,11 @@
 import { type WorkId, Workpool } from "@convex-dev/workpool";
+import { DatabaseWriter } from "@confect/server";
 import { internalMutationGeneric, makeFunctionReference } from "convex/server";
 import { type GenericId, v } from "convex/values";
 import * as Either from "effect/Either";
+import * as Effect from "effect/Effect";
 import type { MutationCtx as AppMutationCtx } from "../_generated/server";
+import databaseSchema from "../../confect/_generated/schema";
 import { createMaestroWorkflowLifecycleAdapter } from "../../confect/workflows/_kit/defineMaestroWorkflow";
 import { localWorkflowComponents as components } from "../../confect/workflows/_kit/localComponentRefs";
 import {
@@ -18,6 +21,8 @@ const deadlinePool = new Workpool(components.workflowDeadlineWorkpool, {
   retryActionsByDefault: false,
 });
 const workflowComponent = components.workflow;
+const workflowRunsWriter = (ctx: AppMutationCtx) =>
+  DatabaseWriter.make(databaseSchema, ctx.db).table("workflowRuns");
 
 const callbackArgs = {
   workspaceId: v.string(),
@@ -91,10 +96,12 @@ export const schedule = internalMutationGeneric({
       requestedAt: serial.requestedAt,
       workId,
     });
-    await ctx.db.patch(args.workflowRunId, {
-      timeoutMs: args.horizonMs,
-      deadlineAt: planned.schedule.deadlineAt,
-    });
+    await Effect.runPromise(
+      workflowRunsWriter(ctx).patch(args.workflowRunId, {
+        timeoutMs: args.horizonMs,
+        deadlineAt: planned.schedule.deadlineAt,
+      }),
+    );
     return { kind: "scheduled" as const, ...serial };
   },
 });
@@ -158,15 +165,17 @@ export const fire = internalMutationGeneric({
     await createMaestroWorkflowLifecycleAdapter(workflowComponent, ctx).cancel(
       run.componentWorkflowId,
     );
-    await ctx.db.patch(runId, {
-      status: "timedOut",
-      completedAt: actualStartedAt,
-      timedOutAt: actualStartedAt,
-      timeoutErrorCode: "WORKFLOW_DEADLINE_EXPIRED",
-      timeoutSummary: "Workflow exceeded its configured deadline.",
-      lifecycleExecution: "canceled",
-      priorGenerationQuiescence: "pending",
-    });
+    await Effect.runPromise(
+      workflowRunsWriter(ctx).patch(runId, {
+        status: "timedOut",
+        completedAt: actualStartedAt,
+        timedOutAt: actualStartedAt,
+        timeoutErrorCode: "WORKFLOW_DEADLINE_EXPIRED",
+        timeoutSummary: "Workflow exceeded its configured deadline.",
+        lifecycleExecution: "canceled",
+        priorGenerationQuiescence: "pending",
+      }),
+    );
     await ctx.runMutation(admissionTransition, {
       workflowRunId: runId,
       status: "timedOut",

@@ -66,6 +66,9 @@ check-system-topology:
 check-data-resources:
     pnpm check:data-resources
 
+check-append-only-tables:
+    pnpm check:append-only-tables
+
 check-promotion-boundary:
     pnpm check:promotion-boundary
 

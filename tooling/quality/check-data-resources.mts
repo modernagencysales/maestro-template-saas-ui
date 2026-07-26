@@ -133,6 +133,25 @@ export const validateDataResources = (
       });
     }
 
+    const unavailableBoundary = `docs/template/system-decisions/${resource.system}.md`;
+    if (
+      resource.writePosture === "external-unavailable" &&
+      resource.writeAuthority !== unavailableBoundary
+    ) {
+      findings.push({
+        subject: resource.id,
+        issue: `external-unavailable write posture must point to ${unavailableBoundary}`,
+      });
+    }
+    if (
+      resource.writePosture === "implemented" &&
+      resource.writeAuthority.startsWith("docs/template/system-decisions/")
+    ) {
+      findings.push({
+        subject: resource.id,
+        issue: "implemented write posture must point to shipped code authority",
+      });
+    }
     if (!fileSystem.exists(resource.writeAuthority)) {
       findings.push({
         subject: resource.id,

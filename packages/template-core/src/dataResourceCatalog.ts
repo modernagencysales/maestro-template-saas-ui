@@ -15,8 +15,10 @@ export type DataRetention =
   | WorkspaceRetentionAction
   | "retain-until-account-delete"
   | "retain-until-organization-delete"
-  | "retain-configuration";
+  | "retain-configuration"
+  | "retain-indefinitely-no-cleanup";
 export type WorkspaceLifecyclePosture = "managed" | "excluded";
+export type DataWritePosture = "implemented" | "external-unavailable";
 
 export type DataResourceDefinition = {
   readonly id: string;
@@ -29,6 +31,7 @@ export type DataResourceDefinition = {
   readonly deleteMode: DataDeleteMode;
   readonly retention: DataRetention;
   readonly appendOnly: boolean;
+  readonly writePosture: DataWritePosture;
   readonly workspaceLifecycle: WorkspaceLifecyclePosture;
   readonly writeAuthority: string;
   readonly migrationRef: string;
@@ -68,6 +71,7 @@ const RETENTION_ACTIONS = [
   "retain-until-account-delete",
   "retain-until-organization-delete",
   "retain-configuration",
+  "retain-indefinitely-no-cleanup",
 ] as const;
 const WORKSPACE_RETENTION_ACTIONS = new Set<string>([
   "retain-until-workspace-delete",
@@ -75,6 +79,7 @@ const WORKSPACE_RETENTION_ACTIONS = new Set<string>([
   "hash-or-redact-on-export",
 ]);
 const WORKSPACE_LIFECYCLE_POSTURES = ["managed", "excluded"] as const;
+const WRITE_POSTURES = ["implemented", "external-unavailable"] as const;
 
 const record = (value: unknown, label: string): UnknownRecord => {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
@@ -157,6 +162,11 @@ const parseResource = (value: unknown): DataResourceDefinition => {
     deleteMode: member(input.deleteMode, DELETE_MODES, "data delete mode"),
     retention,
     appendOnly: input.appendOnly,
+    writePosture: member(
+      input.writePosture,
+      WRITE_POSTURES,
+      "data write posture",
+    ),
     workspaceLifecycle,
     writeAuthority: text(input.writeAuthority, "data resource write authority"),
     migrationRef: text(input.migrationRef, "data resource migration ref"),

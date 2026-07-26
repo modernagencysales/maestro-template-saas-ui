@@ -71,6 +71,8 @@ describe("quality diagnostic registry", () => {
       "posthog-readiness",
       "auth-demo-bypass",
       "workflow-graph-boundary",
+      "append-only-tables",
+      "app-map",
       "workflow-semantics",
       "recipes",
     ]);
@@ -90,6 +92,7 @@ describe("quality diagnostic registry", () => {
       "gates",
       "secret-canaries",
       "headless-surface-contract",
+      "append-only-tables",
       "workflow-semantics",
     ]);
   });
