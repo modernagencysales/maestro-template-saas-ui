@@ -155,6 +155,8 @@ const REVIEWED_ADDITIONAL_PATHS: readonly CustomerReleasePath[] = [
     "apps/cli/src/factory/supportBundleMcpNoNetwork.fixture.ts",
     "apps/cli/src/factory/upgrade.ts",
     "apps/cli/src/factory/upgrade.test.ts",
+    "tooling/agent-pack/src/privacy/privacy.noNetwork.test.ts",
+    "tooling/agent-pack/src/privacy/runtimeNetworkInterceptor.mjs",
   ].map((path): CustomerReleasePath => ({
     path,
     match: "exact",

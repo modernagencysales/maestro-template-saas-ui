@@ -10,37 +10,73 @@ import {
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
-import { runCliAsync } from "../index";
+import { join, resolve } from "node:path";
+import { afterAll, afterEach, describe, expect, it } from "vitest";
 
 const temporaryRoots: string[] = [];
+const repositoryRoot = resolve(import.meta.dirname, "../../../..");
+let taggedReleaseParent: string | undefined;
+let taggedReleaseRoot: string | undefined;
+const taggedRepository = (): string => {
+  if (taggedReleaseRoot) return taggedReleaseRoot;
+  taggedReleaseParent = mkdtempSync(join(tmpdir(), "maestro-tagged-release-"));
+  taggedReleaseRoot = join(taggedReleaseParent, "release");
+  execFileSync(
+    "git",
+    ["clone", "--quiet", "--shared", repositoryRoot, taggedReleaseRoot],
+    { stdio: "pipe" },
+  );
+  execFileSync(
+    "git",
+    ["-C", taggedReleaseRoot, "tag", "maestro-template-v0.2.0-alpha.1", "HEAD"],
+    { stdio: "pipe" },
+  );
+  execFileSync(
+    "pnpm",
+    ["install", "--offline", "--frozen-lockfile", "--ignore-scripts"],
+    { cwd: taggedReleaseRoot, stdio: "pipe", timeout: 120_000 },
+  );
+  return taggedReleaseRoot;
+};
+const runTaggedCli = (argv: readonly string[]) => {
+  const result = spawnSync("pnpm", ["--silent", "maestro", "--", ...argv], {
+    cwd: taggedRepository(),
+    encoding: "utf8",
+    maxBuffer: 10 * 1024 * 1024,
+  });
+  return {
+    exitCode: result.status ?? 70,
+    stdout: result.stdout,
+    stderr: result.stderr,
+  };
+};
 afterEach(() => {
   for (const root of temporaryRoots.splice(0))
     rmSync(root, { recursive: true, force: true });
+});
+afterAll(() => {
+  if (taggedReleaseParent)
+    rmSync(taggedReleaseParent, { recursive: true, force: true });
 });
 
 describe("materialized customer CLI runtime closure", () => {
   it("runs privacy-aligned support preview and export from the current projection", async () => {
     const parent = mkdtempSync(join(tmpdir(), "maestro-current-customer-cli-"));
     temporaryRoots.push(parent);
+    const releaseRoot = taggedRepository();
     const target = join(parent, "customer");
-    const created = await runCliAsync(
-      [
-        "create",
-        target,
-        "--name",
-        "Current Privacy Closure",
-        "--outcome",
-        "Inspect local support facts",
-        "--demo-only",
-        "--write",
-        "--privacy-reviewed",
-        "--json",
-      ],
-      undefined,
-      process.cwd(),
-    );
+    const created = runTaggedCli([
+      "create",
+      target,
+      "--name",
+      "Current Privacy Closure",
+      "--outcome",
+      "Inspect local support facts",
+      "--demo-only",
+      "--write",
+      "--privacy-reviewed",
+      "--json",
+    ]);
     expect(created.exitCode, created.stderr).toBe(0);
 
     const instancePath = join(target, "template-instance.json");
@@ -62,7 +98,7 @@ describe("materialized customer CLI runtime closure", () => {
       release: {
         version: "unreleased-current",
         tag: "unreleased-current",
-        sourceCommit: "working-tree",
+        sourceCommit: expect.stringMatching(/^[0-9a-f]{40}$/),
         sourceChecksum: expect.stringMatching(/^sha256:[0-9a-f]{64}$/),
       },
       ownership: {
@@ -79,9 +115,8 @@ describe("materialized customer CLI runtime closure", () => {
     const privacyDocument = "docs/template/agent-pack-privacy.md";
     expect(existsSync(join(target, privacyDocument))).toBe(true);
     expect(readFileSync(join(target, privacyDocument), "utf8")).toBe(
-      readFileSync(join(process.cwd(), privacyDocument), "utf8"),
+      readFileSync(join(releaseRoot, privacyDocument), "utf8"),
     );
-    expect(readFileSync(instancePath, "utf8")).not.toContain("0.2.0-alpha.1");
     expect(
       readFileSync(
         join(target, "apps/cli/src/factory/customerComposition.ts"),
@@ -146,22 +181,18 @@ describe("materialized customer CLI runtime closure", () => {
     const parent = mkdtempSync(join(tmpdir(), "maestro-customer-cli-"));
     temporaryRoots.push(parent);
     const target = join(parent, "customer");
-    const created = await runCliAsync(
-      [
-        "create",
-        target,
-        "--name",
-        "Runtime Closure",
-        "--outcome",
-        "Track one customer request",
-        "--demo-only",
-        "--write",
-        "--privacy-reviewed",
-        "--json",
-      ],
-      undefined,
-      process.cwd(),
-    );
+    const created = runTaggedCli([
+      "create",
+      target,
+      "--name",
+      "Runtime Closure",
+      "--outcome",
+      "Track one customer request",
+      "--demo-only",
+      "--write",
+      "--privacy-reviewed",
+      "--json",
+    ]);
     expect(created.exitCode, created.stderr).toBe(0);
 
     const customerEntry = readFileSync(

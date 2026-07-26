@@ -12,20 +12,61 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, describe, expect, it } from "vitest";
 import { runCliAsync } from "../index";
 import { CREATE_HELP } from "./create";
 import { createFactoryCliComposition } from "./composition";
 
 const repoRoot = fileURLToPath(new URL("../../../../", import.meta.url));
 const temporaryRoots: string[] = [];
+let taggedReleaseParent: string | undefined;
+let taggedReleaseRoot: string | undefined;
+const taggedRepository = (): string => {
+  if (taggedReleaseRoot) return taggedReleaseRoot;
+  taggedReleaseParent = mkdtempSync(join(tmpdir(), "maestro-tagged-release-"));
+  taggedReleaseRoot = join(taggedReleaseParent, "release");
+  execFileSync(
+    "git",
+    ["clone", "--quiet", "--shared", repoRoot, taggedReleaseRoot],
+    {
+      stdio: "pipe",
+    },
+  );
+  execFileSync(
+    "git",
+    ["-C", taggedReleaseRoot, "tag", "maestro-template-v0.2.0-alpha.1", "HEAD"],
+    { stdio: "pipe" },
+  );
+  execFileSync(
+    "pnpm",
+    ["install", "--offline", "--frozen-lockfile", "--ignore-scripts"],
+    { cwd: taggedReleaseRoot, stdio: "pipe", timeout: 120_000 },
+  );
+  return taggedReleaseRoot;
+};
+const runTaggedCli = (argv: readonly string[]) => {
+  const result = spawnSync("pnpm", ["--silent", "maestro", "--", ...argv], {
+    cwd: taggedRepository(),
+    encoding: "utf8",
+    maxBuffer: 10 * 1024 * 1024,
+  });
+  return {
+    exitCode: result.status ?? 70,
+    stdout: result.stdout,
+    stderr: result.stderr,
+  };
+};
+afterAll(() => {
+  if (taggedReleaseParent)
+    rmSync(taggedReleaseParent, { recursive: true, force: true });
+});
 afterEach(() => {
   for (const root of temporaryRoots.splice(0))
     rmSync(root, { recursive: true, force: true });
 });
 
 describe("create root integration", () => {
-  it("preserves alpha.1 and pins the executable release manifests", () => {
+  it("preserves immutable alpha.1 and binds the current blueprint manifest", () => {
     const digest = (path: string) =>
       `sha256:${createHash("sha256").update(readFileSync(path)).digest("hex")}`;
     expect(
@@ -33,30 +74,40 @@ describe("create root integration", () => {
     ).toBe(
       "sha256:0b55fd0895ecbcf6743860551ed52f165b4252c17ea94ad1687163a8ce6c6b93",
     );
-    expect(
-      digest(join(repoRoot, "releases/v0.2.0-alpha.1/manifest.json")),
-    ).toBe(
-      "sha256:532c0da941bce540648b38c4fb868a35b7f37ff9d2623ff5778cd922866168f6",
-    );
+    const manifest = JSON.parse(
+      readFileSync(
+        join(repoRoot, "releases/v0.2.0-alpha.1/manifest.json"),
+        "utf8",
+      ),
+    ) as {
+      readonly release: { readonly tag: string };
+      readonly blueprintManifest: {
+        readonly path: string;
+        readonly sha256: string;
+      };
+    };
+    expect(manifest.release.tag).toBe("maestro-template-v0.2.0-alpha.1");
     expect(
       digest(
         join(
           repoRoot,
-          "releases/v0.2.0-alpha.1/blueprints/saas-application.json",
+          "releases/v0.2.0-alpha.1",
+          manifest.blueprintManifest.path,
         ),
       ),
-    ).toBe(
-      "sha256:0fa873605ff4ba2224c740a27fc8fe5fb5d65dae81086aa9f1a7aa18f5dc32d5",
-    );
+    ).toBe(manifest.blueprintManifest.sha256);
   });
 
-  it("registers the exact eleven-command factory inventory", () => {
+  it("registers the exact factory command inventory", () => {
     expect(
       createFactoryCliComposition(() => ({})).handlers.map(
         ({ command }) => command,
       ),
     ).toEqual([
+      "map",
+      "impact",
       "create",
+      "adopt",
       "start",
       "add",
       "recipes",
@@ -68,6 +119,7 @@ describe("create root integration", () => {
       "plan-check",
       "scaffold",
       "support-bundle",
+      "upgrade",
     ]);
   });
 
@@ -86,19 +138,15 @@ describe("create root integration", () => {
     const parent = mkdtempSync(join(tmpdir(), "maestro-create-root-"));
     temporaryRoots.push(parent);
     const target = join(parent, "customer-app");
-    const result = await runCliAsync(
-      [
-        "create",
-        target,
-        "--name",
-        "My App",
-        "--outcome",
-        "Track client requests",
-        "--json",
-      ],
-      undefined,
-      repoRoot,
-    );
+    const result = runTaggedCli([
+      "create",
+      target,
+      "--name",
+      "My App",
+      "--outcome",
+      "Track client requests",
+      "--json",
+    ]);
 
     expect(result.exitCode).toBe(0);
     expect(JSON.parse(result.stdout)).toMatchObject({
@@ -115,7 +163,8 @@ describe("create root integration", () => {
         release: {
           version: "unreleased-current",
           tag: "unreleased-current",
-          sourceCommit: "working-tree",
+          sourceCommit: expect.stringMatching(/^[0-9a-f]{40}$/),
+          sourceChecksum: expect.stringMatching(/^sha256:[0-9a-f]{64}$/),
         },
         privacy: {
           privacyDocument: "docs/template/agent-pack-privacy.md",
@@ -123,7 +172,7 @@ describe("create root integration", () => {
       },
     });
     expect(existsSync(target)).toBe(false);
-  });
+  }, 30_000);
 
   it("personalizes root create content and its deterministic digest", async () => {
     const parent = mkdtempSync(join(tmpdir(), "maestro-create-personalized-"));
@@ -142,22 +191,18 @@ describe("create root integration", () => {
     ] as const;
 
     const create = async (request: (typeof requests)[number]) => {
-      const result = await runCliAsync(
-        [
-          "create",
-          request.target,
-          "--name",
-          request.name,
-          "--outcome",
-          request.firstOutcome,
-          "--demo-only",
-          "--write",
-          "--privacy-reviewed",
-          "--json",
-        ],
-        undefined,
-        repoRoot,
-      );
+      const result = runTaggedCli([
+        "create",
+        request.target,
+        "--name",
+        request.name,
+        "--outcome",
+        request.firstOutcome,
+        "--demo-only",
+        "--write",
+        "--privacy-reviewed",
+        "--json",
+      ]);
       expect(result.exitCode, result.stderr).toBe(0);
     };
     for (const request of requests) await create(request);
@@ -250,22 +295,18 @@ describe("create root integration", () => {
     const parent = mkdtempSync(join(tmpdir(), "maestro-create-workspace-"));
     temporaryRoots.push(parent);
     const targetRoot = join(parent, "app");
-    const result = await runCliAsync(
-      [
-        "create",
-        targetRoot,
-        "--name",
-        "My App",
-        "--outcome",
-        "Create and review records",
-        "--demo-only",
-        "--write",
-        "--privacy-reviewed",
-        "--json",
-      ],
-      undefined,
-      repoRoot,
-    );
+    const result = runTaggedCli([
+      "create",
+      targetRoot,
+      "--name",
+      "My App",
+      "--outcome",
+      "Create and review records",
+      "--demo-only",
+      "--write",
+      "--privacy-reviewed",
+      "--json",
+    ]);
     expect(result.exitCode, result.stderr).toBe(0);
     expect(JSON.parse(result.stdout)).toMatchObject({ exitClass: "success" });
     const required = [

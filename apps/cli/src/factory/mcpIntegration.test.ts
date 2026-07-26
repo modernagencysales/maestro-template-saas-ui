@@ -23,6 +23,9 @@ describe("root MCP composition", () => {
       "maestro_scaffold_preview",
       "maestro_support_bundle_preview",
       "maestro_verify",
+      "maestro_app_map",
+      "maestro_app_map_impact",
+      "maestro_build_readiness",
     ]);
   });
 

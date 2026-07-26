@@ -294,10 +294,15 @@ const customerAgentPackCheck = (): string => {
     'import { factoryWiringFindings } from "./check-agent-pack-factory-wiring.mts";\n',
     "",
   );
-  return replace(
+  value = replace(
     value,
     "  const [generated, root, wiring, verification] = await Promise.all([\n    checkSkillProjections(repoRoot),\n    checkRootSkillProjections(repoRoot),\n    factoryWiringFindings(repoRoot),\n    verificationArtifactFindings(repoRoot),\n  ]);\n  return [\n    ...generated,\n    ...root,\n    ...wiring,\n    ...verification,\n    ...(await forbiddenMcpFindings(repoRoot)),\n  ];",
     "  const [customerContext, verification] = await Promise.all([\n    customerContextFindings(repoRoot),\n    verificationArtifactFindings(repoRoot),\n  ]);\n  return [\n    ...customerContext,\n    ...verification,\n    ...(await forbiddenMcpFindings(repoRoot)),\n  ];",
+  );
+  return replace(
+    value,
+    '  console.log("Agent Pack root projections and MCP posture are valid.");',
+    '  console.log("Customer context, receipts, and MCP posture are valid.");',
   );
 };
 const customerCliEntry = (): string => {

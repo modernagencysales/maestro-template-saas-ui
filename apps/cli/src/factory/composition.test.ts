@@ -270,13 +270,20 @@ describe("factory CLI composition", () => {
       "gates",
       "secret-canaries",
       "headless-surface-contract",
+      "append-only-tables",
       "workflow-semantics",
     ];
     const secretCanariesStatus =
       spawnSync("gitleaks", ["version"], { encoding: "utf8" }).status === 0
         ? "pass"
         : "unavailable";
-    const expectedStatuses = ["pass", secretCanariesStatus, "pass", "pass"];
+    const expectedStatuses = [
+      "pass",
+      secretCanariesStatus,
+      "pass",
+      "pass",
+      "pass",
+    ];
     const verify = factoryCliComposition.handlers.find(
       ({ command }) => command === "verify",
     );
@@ -365,9 +372,10 @@ describe("factory CLI composition", () => {
       "gates",
       "secret-canaries",
       "headless-surface-contract",
+      "append-only-tables",
       "workflow-semantics",
     ];
-    const expectedStatuses = ["pass", "unavailable", "pass", "pass"];
+    const expectedStatuses = ["pass", "unavailable", "pass", "pass", "pass"];
     const cli = spawnSync(
       "pnpm",
       ["--silent", "maestro", "--", "verify", "--json"],

@@ -262,11 +262,11 @@ describe("generation-safe workflow deadlines", () => {
   });
 
   it("returns stable redacted errors without echoing run identifiers", () => {
-    const secret = "customer-secret-run-reference";
+    const sensitiveRunReference = "customer-secret-run-reference";
     const result = planWorkflowDeadlineSchedule({
       generation: {
         ...generation(),
-        workflowRunId: secret,
+        workflowRunId: sensitiveRunReference,
         generation: -1,
       },
       execution: "active",
@@ -280,8 +280,8 @@ describe("generation-safe workflow deadlines", () => {
         _tag: "WorkflowDeadlineContractError",
         code: "INVALID_GENERATION_IDENTITY",
       });
-      expect(JSON.stringify(result.left)).not.toContain(secret);
-      expect(result.left.message).not.toContain(secret);
+      expect(JSON.stringify(result.left)).not.toContain(sensitiveRunReference);
+      expect(result.left.message).not.toContain(sensitiveRunReference);
     }
   });
 });
