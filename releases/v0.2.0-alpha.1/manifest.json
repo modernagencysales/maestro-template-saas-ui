@@ -9,8 +9,8 @@
   "release": {
     "version": "0.2.0-alpha.1",
     "tag": "maestro-template-v0.2.0-alpha.1",
-    "sourceCommit": "00176706da7f8b5bf95a3924c00d172be0e2927f",
-    "sourceChecksum": "sha256:963f1680af2fb08dfd03a1d081bebe8fe678d942238e3363b9f600a3e68223b4"
+    "sourceCommit": "608b7dc40430c58a4aef8e367be6d7313c381d4c",
+    "sourceChecksum": "sha256:1097ff14db738fbf1e7a3f106810a8aecb9bf19337ae65bbda776646744ffeea"
   },
   "upgrade": {
     "schemaVersion": 1,
@@ -1511,6 +1511,14 @@
         "afterHash": "sha256:b8e5c1df2058b81144b70f93acacf7318acb6051d94705660239e992f0b68316"
       },
       {
+        "id": "upgrade-modify-packages-convex-convex-brain-pages-ts",
+        "kind": "modify",
+        "path": "packages/convex/convex/brain/pages.ts",
+        "ownership": "template-owned",
+        "beforeHash": "sha256:92a5fedc6e50fc717c67cb80914dae0d496b6493b5a67e4e8553f3d7f0487a5f",
+        "afterHash": "sha256:3774be4d25e89a1f3658f1a3c0589c2c604e8bb6db1b8460322a0d1b0ddcbbb0"
+      },
+      {
         "id": "upgrade-add-packages-convex-convex-capabilities-versions-publicationEcho-v1-ts",
         "kind": "add",
         "path": "packages/convex/convex/capabilities/_versions/publicationEcho/v1.ts",
@@ -1686,7 +1694,7 @@
         "kind": "add",
         "path": "packages/convex/test/confect-codegen-component-roots.test.ts",
         "ownership": "template-owned",
-        "afterHash": "sha256:64cc8f53204feddac89fe70d002df94603f5ba8979cd9498fd9a7a56d02a15b0"
+        "afterHash": "sha256:39214d2c2cf6fedf555ed88173e2a8f9d0d8b7695be163f1dba33a0043312171"
       },
       {
         "id": "upgrade-add-packages-convex-test-deploy-authority-test-ts",
@@ -2129,7 +2137,7 @@
         "kind": "add",
         "path": "patches/@confect__cli@9.1.5.patch",
         "ownership": "template-owned",
-        "afterHash": "sha256:74068004a43258b0a5b4ba380e983d7d591b2c6e911e0e34193df9a376841b57"
+        "afterHash": "sha256:d6f4869aa4bfd20faf0efc7ceeda1718e548361f672c7e2fca5950d4d6f72bee"
       },
       {
         "id": "upgrade-modify-pnpm-lock-yaml",
@@ -2137,7 +2145,7 @@
         "path": "pnpm-lock.yaml",
         "ownership": "template-owned",
         "beforeHash": "sha256:605969e66dcb975b9ba4bb203308456aeb75b6e2c82a607791fd2ad774d53093",
-        "afterHash": "sha256:d800fde9af1be29cf6d061a31a20c8d8b967aa44409e6cea108a45f757f4d1a0"
+        "afterHash": "sha256:3a47f059ca1edd0ad8c9a16da2e104122bc1dac61f163e6a58fc13659964dcdc"
       },
       {
         "id": "upgrade-add-schemas-maestro-adoption-work-package-schema-json",
@@ -3878,14 +3886,14 @@
   ],
   "blueprintManifest": {
     "path": "blueprints/saas-application.json",
-    "sha256": "sha256:dc7a0b248eec3ba6a16fd4df0defa1997b5954f7bf5842b1e288c6859acf2204"
+    "sha256": "sha256:becbaddc6b49607ba467c4c613e5ab5f445e2ddc4b3b74aaa4f62dd3bee5e13c"
   },
   "upgradeImpact": {
     "path": "releases/v0.2.0-alpha.1/upgrade/app-map-input.json",
-    "sha256": "sha256:12548a6c9e1b942bb31d8a3b258ed381838d74b97ef3f115f12cac251ce60312",
+    "sha256": "sha256:c490a7de394dbf1aa19c5813be2c47cf5bb30e612b8bdbe255e89e7a5980bb59",
     "projection": {
       "path": "releases/v0.2.0-alpha.1/upgrade/app-map-impact.json",
-      "sha256": "sha256:063e2176aed6839d34dc157651da118b77169b6c70a4e23e1effc72af08476ee"
+      "sha256": "sha256:2fa68bfd0a0c43d5af3987c7032a39dc34aa44779e2c6102f15fdd1c91ee252f"
     }
   },
   "migrationHandoff": {
