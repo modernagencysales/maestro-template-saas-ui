@@ -142,6 +142,11 @@ describe("full promotion authority chain", () => {
       verdict: verdictExpectation(verdict),
       lease,
     };
+    const approvalEvidence = readiness.evidence.find(
+      ({ requirement }) => requirement === "human-approval",
+    );
+    if (approvalEvidence === undefined)
+      throw new Error("production fixture needs human approval evidence");
     const approvalPayload = {
       schemaVersion: 1 as const,
       kind: "trusted-production-approval" as const,
@@ -151,9 +156,7 @@ describe("full promotion authority chain", () => {
       targetId: readiness.targetId,
       commitSha: readiness.commitSha,
       artifactHash: readiness.artifactHash,
-      approvalEvidenceFingerprint: readiness.evidence.find(
-        ({ requirement }) => requirement === "human-approval",
-      )!.fingerprint,
+      approvalEvidenceFingerprint: approvalEvidence.fingerprint,
       issuedAt: now,
       expiresAt: now + 8_000,
       nonce: "approval_nonce_0101",

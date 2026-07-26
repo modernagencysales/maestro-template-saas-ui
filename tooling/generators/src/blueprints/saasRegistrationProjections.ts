@@ -178,6 +178,8 @@ const customerPackage = (current: boolean): string => {
     "vitest run --coverage packages/template-core packages/integrations packages/search packages/storage packages/notifications packages/observability packages/convex tooling/quality tooling/workflow tooling/generators apps/cli apps/web && tsx tooling/quality/check-coverage-ratchet.mts --update";
   value.scripts["check:agent-pack"] =
     "tsx tooling/quality/check-agent-pack.mts";
+  value.scripts["check:layer-boundaries"] =
+    "depcruise --config dependency-cruiser.config.cjs apps packages tooling tests";
   value.scripts.prepare = "node tooling/quality/install-lefthook-if-git.mjs";
   value.scripts.verify = [
     "check:format",

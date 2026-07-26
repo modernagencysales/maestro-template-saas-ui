@@ -25,18 +25,18 @@ const ajv = new Ajv2020({
 });
 const validate = ajv.compile(schema);
 const upgradeManifest = releaseManifest.upgrade as UpgradeManifestV1;
-const reviewedPriorFiles = upgradeManifest.operations.flatMap((operation) =>
-  operation.beforeHash === undefined
-    ? []
-    : [
-        {
-          path:
-            operation.kind === "move" ? operation.fromPath! : operation.path,
-          ownership: operation.ownership,
-          hash: operation.beforeHash,
-        },
-      ],
-);
+const reviewedPriorFiles = upgradeManifest.operations.flatMap((operation) => {
+  if (operation.beforeHash === undefined) return [];
+  if (operation.kind === "move" && operation.fromPath === undefined)
+    throw new Error(`move operation ${operation.id} needs fromPath`);
+  return [
+    {
+      path: operation.kind === "move" ? operation.fromPath : operation.path,
+      ownership: operation.ownership,
+      hash: operation.beforeHash,
+    },
+  ];
+});
 
 describe("reviewed release upgrade manifest contract", () => {
   it("ships a schema-valid engine manifest for the one-prior transition", () => {

@@ -151,6 +151,11 @@ const fixture = (): {
     verdict: verdictExpectation(verdict),
     lease,
   };
+  const approvalEvidence = readinessInput.evidence.find(
+    ({ requirement }) => requirement === "human-approval",
+  );
+  if (approvalEvidence === undefined)
+    throw new Error("production fixture needs human approval evidence");
   const approvalPayload = {
     schemaVersion: 1 as const,
     kind: "trusted-production-approval" as const,
@@ -160,9 +165,7 @@ const fixture = (): {
     targetId: readinessInput.targetId,
     commitSha: readinessInput.commitSha,
     artifactHash: readinessInput.artifactHash,
-    approvalEvidenceFingerprint: readinessInput.evidence.find(
-      ({ requirement }) => requirement === "human-approval",
-    )!.fingerprint,
+    approvalEvidenceFingerprint: approvalEvidence.fingerprint,
     issuedAt: now,
     expiresAt: now + 50,
     nonce: "approval_nonce_0055",

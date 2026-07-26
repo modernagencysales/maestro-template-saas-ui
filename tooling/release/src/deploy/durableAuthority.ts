@@ -191,7 +191,8 @@ const isAuthorization = (input: unknown): input is DurableDeployAuthorization =>
 const payloadOf = (
   value: DurableDeployAuthorization,
 ): DurableDeployAuthorizationPayload => {
-  const { signature: _signature, ...payload } = value;
+  const { signature, ...payload } = value;
+  void signature;
   return payload;
 };
 const isSha = (value: unknown): boolean =>

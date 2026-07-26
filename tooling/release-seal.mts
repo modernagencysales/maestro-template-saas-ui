@@ -8,7 +8,7 @@ import {
   realpathSync,
   writeFileSync,
 } from "node:fs";
-import { dirname, join, relative, resolve, sep } from "node:path";
+import { join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { format as formatWithPrettier } from "prettier";
 import {
@@ -19,10 +19,30 @@ import {
   resolveCustomerReleasePath,
   type CustomerReleasePath,
 } from "./release/src/customerTarget/manifest.js";
+import type { UpgradeOperationV1 } from "./release/src/upgrade/contract.js";
 
 type Json = null | boolean | number | string | Json[] | { [key: string]: Json };
 type Args = { version: string; sourceCommit: string; check: boolean };
 type Output = { path: string; bytes: Buffer };
+type SealManifest = {
+  readonly baseManifest: { readonly path: string };
+  readonly release: Readonly<Record<string, Json>>;
+  readonly blueprintManifest: { readonly path: string };
+  readonly upgrade: Readonly<Record<string, Json>> & {
+    readonly operations: readonly UpgradeOperationV1[];
+  };
+  readonly migrationHandoff: Readonly<Record<string, Json>>;
+  readonly additionalPaths: unknown;
+};
+type PriorManifest = {
+  readonly expectedHashes?: Readonly<Record<string, string>>;
+  readonly release: { readonly sourceCommit: string };
+};
+type BlueprintManifest = {
+  readonly projectionSource: {
+    readonly assets: readonly { readonly path: string }[];
+  };
+};
 const root = realpathSync(fileURLToPath(new URL("../", import.meta.url)));
 const hash = (bytes: string | Buffer): string =>
   `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
@@ -221,9 +241,9 @@ async function build(args: Args): Promise<readonly Output[]> {
   const manifestPath = `${releaseRoot}/manifest.json`;
   const current = JSON.parse(
     readFileSync(join(root, manifestPath), "utf8"),
-  ) as any;
+  ) as SealManifest;
   const priorPath = resolve(join(root, releaseRoot), current.baseManifest.path);
-  const prior = JSON.parse(readFileSync(priorPath, "utf8")) as any;
+  const prior = JSON.parse(readFileSync(priorPath, "utf8")) as PriorManifest;
   const priorRelative = relative(root, priorPath).split(sep).join("/");
   if (!safePath(priorRelative))
     throw new Error("Prior manifest escapes repository.");
@@ -231,14 +251,14 @@ async function build(args: Args): Promise<readonly Output[]> {
   const blueprintPath = `${releaseRoot}/blueprints/saas-application.json`;
   const blueprint = JSON.parse(
     readFileSync(join(root, blueprintPath), "utf8"),
-  ) as any;
+  ) as BlueprintManifest;
   const { buildSaasApplicationTargetPlan } =
     await import("./generators/src/blueprints/saasApplication.js");
   const plan = buildSaasApplicationTargetPlan();
   const outputs: Output[] = [];
   const assets = [] as { path: string; sha256: string }[];
   const protectedCustomerSourcePaths: string[] = [];
-  for (const entry of blueprint.projectionSource.assets as { path: string }[]) {
+  for (const entry of blueprint.projectionSource.assets) {
     if (!safePath(entry.path))
       throw new Error("Blueprint asset path is unsafe.");
     const target = `${releaseRoot}/blueprints/saas-application/${entry.path}`;
@@ -268,7 +288,11 @@ async function build(args: Args): Promise<readonly Output[]> {
     provenance: plan.provenance,
     projectionSource: { sourceCommit: args.sourceCommit, assets },
     registrations: plan.registrations,
-    entries: plan.entries.map(({ content: _content, ...entry }: any) => entry),
+    entries: plan.entries.map((entry) =>
+      Object.fromEntries(
+        Object.entries(entry).filter(([key]) => key !== "content"),
+      ),
+    ),
   } as Json;
   const blueprintBytes = await json(blueprintValue);
   outputs.push({ path: blueprintPath, bytes: blueprintBytes });
@@ -292,7 +316,7 @@ async function build(args: Args): Promise<readonly Output[]> {
     Object.entries(prior.expectedHashes ?? {}) as [string, string][],
   );
   const oldKinds = new Map(
-    (current.upgrade.operations as any[])
+    current.upgrade.operations
       .filter((operation) => operation.ownership === "template-owned")
       .map((operation) => [operation.path, operation]),
   );
@@ -318,11 +342,11 @@ async function build(args: Args): Promise<readonly Output[]> {
       },
     ];
   });
-  const generated = (current.upgrade.operations as any[])
+  const generated = current.upgrade.operations
     .filter((operation) => operation.ownership === "generated")
     .map((operation) => ({ ...operation }));
   const packageEntry = plan.entries.find(
-    (entry: any) => entry.path === "package.json",
+    (entry) => entry.path === "package.json",
   );
   for (const operation of generated)
     if (operation.path === "package.json" && packageEntry)
@@ -370,7 +394,7 @@ async function build(args: Args): Promise<readonly Output[]> {
   const structural = allOperations
     .map((operation) => operation.path)
     .filter((path) =>
-      APP_MAP_INPUT_MANIFEST_V1.requiredSources.some((entry: any) =>
+      APP_MAP_INPUT_MANIFEST_V1.requiredSources.some((entry) =>
         entry.source.digestContract === "sha256-file-bytes-v1"
           ? path === entry.source.path
           : path === entry.source.path ||
@@ -439,11 +463,11 @@ async function build(args: Args): Promise<readonly Output[]> {
   let composition = blob(args.sourceCommit, compositionPath).toString("utf8");
   composition = composition
     .replace(
-      /const BASE_MANIFEST_CHECKSUM =\n  "sha256:[0-9a-f]{64}";/u,
+      /const BASE_MANIFEST_CHECKSUM =\n {2}"sha256:[0-9a-f]{64}";/u,
       `const BASE_MANIFEST_CHECKSUM =\n  "${hash(manifestBytes)}";`,
     )
     .replace(
-      /const BASE_BLUEPRINT_CHECKSUM =\n  "sha256:[0-9a-f]{64}";/u,
+      /const BASE_BLUEPRINT_CHECKSUM =\n {2}"sha256:[0-9a-f]{64}";/u,
       `const BASE_BLUEPRINT_CHECKSUM =\n  "${hash(blueprintBytes)}";`,
     )
     .replace(

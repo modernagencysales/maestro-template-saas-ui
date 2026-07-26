@@ -16,6 +16,7 @@ export default [
       ".pnpm-store/**",
       ".stryker-tmp/**",
       ".wrangler/**",
+      "tooling/agent-pack/evals/runs/**",
     ],
   },
   js.configs.recommended,

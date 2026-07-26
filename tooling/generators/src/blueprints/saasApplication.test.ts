@@ -551,6 +551,7 @@ describe("saas application blueprint", () => {
       "tooling/pr-backlog",
       "tooling/release",
       "tooling/stack",
+      "experiments",
       ".buildkite",
     ];
     const omittedScripts = new Set([
@@ -593,6 +594,7 @@ describe("saas application blueprint", () => {
       "check:coverage-ratchet",
       "coverage:update-baseline",
       "check:agent-pack",
+      "check:layer-boundaries",
       "prepare",
       "verify",
     ]);

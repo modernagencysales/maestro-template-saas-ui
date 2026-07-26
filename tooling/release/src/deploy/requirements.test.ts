@@ -250,7 +250,8 @@ describe("promotion transition requirements", () => {
     const census = value.workflowCensus;
     if (census === undefined)
       throw new Error("production fixture needs census");
-    const { workflowCensus: _workflowCensus, ...withoutCensus } = value;
+    const { workflowCensus, ...withoutCensus } = value;
+    expect(workflowCensus).toBe(census);
     expect(evaluate(withoutCensus)).toMatchObject({
       kind: "blocked",
       findings: expect.arrayContaining([

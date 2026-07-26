@@ -113,7 +113,9 @@ describe("outcome recipe catalog", () => {
     const execution = recipe.execution as {
       steps: { arguments: Record<string, unknown> }[];
     };
-    execution.steps[0]!.arguments.name = {
+    const firstStep = execution.steps[0];
+    if (firstStep === undefined) throw new Error("missing recipe step");
+    firstStep.arguments.name = {
       source: "answer",
       answerId: "undeclared",
     };
