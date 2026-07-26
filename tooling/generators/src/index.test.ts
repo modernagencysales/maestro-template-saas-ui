@@ -1546,7 +1546,10 @@ describe("template app factory generators", () => {
     );
     expect(convexWorkflow).toContain("currentAuthority,");
     const graphRunnerV2 = readFileSync(
-      join(repoRoot, "packages/convex/confect/workflows/_kit/graphRunnerV2.ts"),
+      join(
+        repoRoot,
+        "packages/convex/confect/workflows/_kit/graphRunnerV2Current.ts",
+      ),
       "utf8",
     );
     expect(graphRunnerV2).not.toContain(
@@ -1554,7 +1557,10 @@ describe("template app factory generators", () => {
     );
     expect(graphRunnerV2).toContain("generatedWorkflowContractRefs: object");
     const graphRunner = readFileSync(
-      join(repoRoot, "packages/convex/confect/workflows/_kit/graphRunner.ts"),
+      join(
+        repoRoot,
+        "packages/convex/confect/workflows/_kit/graphRunnerCurrent.ts",
+      ),
       "utf8",
     );
     expect(graphRunner).toContain("step: MaestroWorkflowContext");

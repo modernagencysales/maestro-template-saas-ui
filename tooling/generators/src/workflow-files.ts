@@ -1098,7 +1098,7 @@ export default GroupImpl.make(databaseSchema, ${name}).pipe(
     {
       path: `packages/convex/confect/workflows/${name}/v1.graph.ts`,
       content: `import * as Either from "effect/Either";
-import { defineWorkflowGraphV2 } from "../_kit/workflowBuilder";
+import { defineWorkflowGraphV2 } from "../_kit/workflowBuilderCurrent";
 import { defineWorkflowReferenceRegistry } from "../_kit/workflowReferences";
 
 export const ${name}References = defineWorkflowReferenceRegistry({
@@ -1169,7 +1169,7 @@ import * as Schema from "effect/Schema";
 import {
   buildWorkflowCapabilityArgs,
   defineWorkflowCapabilityRegistry,
-} from "../_kit/graphRunnerV2";
+} from "../_kit/graphRunnerV2Current";
 import { runWorkflowCapabilityBoundary } from "../_kit/workflowCapabilityBoundary";
 import {
   defineWorkflowRoleGrantPolicy,
@@ -1283,12 +1283,12 @@ import { components } from "../../../convex/_generated/api";
 import {
   adaptPinnedWorkflowStep,
   runDurableGraphWorkflowV2,
-} from "../../workflows/_kit/graphRunner";
-import { defineGeneratedCurrentAuthorityBinding } from "../../workflows/_kit/graphRunnerV2";
+} from "../../workflows/_kit/graphRunnerCurrent";
+import { defineGeneratedCurrentAuthorityBinding } from "../../workflows/_kit/graphRunnerV2Current";
 import {
   bindObservedWorkflowAuthority,
   loadObservedWorkflowExecutionIdentity,
-} from "../../workflows/_kit/observedStage";
+} from "../../workflows/_kit/observedStageCurrent";
 import { reconcileObservedWorkflowCompletion } from "../../workflows/_kit/lifecycleCompletion";
 import { WorkflowOnCompleteContextValidator } from "../../workflows/_kit/lifecycleState";
 import { DurableWorkflowPrincipalValidator } from "../../workflows/_kit/principal";
@@ -1474,7 +1474,7 @@ import { ${name}Graph } from "../confect/workflows/${name}/v1.graph";
 import {
   runDurableGraphWorkflowV2,
   type RunDurableGraphStep,
-} from "../confect/workflows/_kit/graphRunner";
+} from "../confect/workflows/_kit/graphRunnerCurrent";
 
 describe("${name} durable workflow scaffold", () => {
   it("runs the generated source-to-output graph", async () => {

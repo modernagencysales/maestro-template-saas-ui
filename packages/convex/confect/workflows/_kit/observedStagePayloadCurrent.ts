@@ -60,7 +60,9 @@ const stageObservationArgs = <Result>(
   stageKey: input.stageKey ?? input.nodeId,
   lifecycleGeneration: input.lifecycleGeneration,
   externalEffect: input.externalEffect,
-  observedAt: input.observedAt,
+  ...(typeof input.observedAt === "number"
+    ? { observedAt: input.observedAt }
+    : {}),
   ...(typeof input.attemptNumber === "number"
     ? { attemptNumber: input.attemptNumber }
     : {}),

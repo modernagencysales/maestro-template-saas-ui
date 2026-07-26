@@ -5,9 +5,9 @@ import {
   decodeDurableWorkflowGraphV2,
   type DurableWorkflowGraphV2,
   validateWorkflowGraphV2,
-} from "../confect/workflows/graph";
+} from "../confect/workflows/graphCurrent";
 import { defineWorkflowReferenceRegistry } from "../confect/workflows/_kit/workflowReferences";
-import { workflowNode } from "../confect/workflows/_kit/workflowBuilder";
+import { workflowNode } from "../confect/workflows/_kit/workflowBuilderCurrent";
 import { MAX_WORKFLOW_SCHEDULE_HORIZON_MS } from "../confect/workflows/_kit/workflowSchedule";
 
 const refs = defineWorkflowReferenceRegistry({

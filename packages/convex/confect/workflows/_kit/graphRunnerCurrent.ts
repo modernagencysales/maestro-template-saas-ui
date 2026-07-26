@@ -1,8 +1,13 @@
 import type { FunctionReference } from "convex/server";
-import type {
-  MaestroWorkflowEventId as ComponentEventId,
-  MaestroWorkflowId as ComponentWorkflowId,
+import {
+  defineMaestroWorkflow,
+  type MaestroWorkflowEventId as ComponentEventId,
+  type MaestroWorkflowId as ComponentWorkflowId,
 } from "./defineMaestroWorkflow";
+type MaestroWorkflowHandler = Parameters<
+  ReturnType<typeof defineMaestroWorkflow>["handler"]
+>[0];
+type MaestroWorkflowContext = Parameters<MaestroWorkflowHandler>[0];
 import type { Validator } from "convex/values";
 
 import {
@@ -18,13 +23,14 @@ import {
   validateGraphOrThrow,
 } from "./graphRunnerExecution";
 import { preflightCapabilityRegistry } from "./graphRunnerNodes";
-import { type ObservedWorkflowStageRefs } from "./observedStage";
+import { type ObservedWorkflowStageRefs } from "./observedStageCurrent";
 import {
   runCompiledDurableGraphWorkflowV2,
   type RunDurableGraphV2CompilerInput,
-} from "./graphRunnerV2";
+} from "./graphRunnerV2Current";
 import { validateWorkflowV2SubworkflowTopology } from "./subworkflows";
 import { PINNED_INLINE_CONVEX_VERSION } from "./inlineTransactions";
+import type { WorkflowScheduleOptions } from "./workflowSchedule";
 
 export type {
   WorkflowEffectAdmission,
@@ -33,13 +39,21 @@ export type {
   WorkflowV2CapabilityEnvelope,
   WorkflowSettledFailure,
   WorkflowSettledFailureRoute,
-} from "./graphRunnerV2";
+} from "./graphRunnerV2Current";
 
 export type DurableGraphStepKind = "query" | "mutation" | "action";
 
 export type DurableGraphStepRef<
   Kind extends DurableGraphStepKind = DurableGraphStepKind,
 > = FunctionReference<Kind, "internal">;
+export type DurableGraphStepOptions = WorkflowScheduleOptions &
+  Readonly<Record<string, unknown>>;
+export type DurableGraphUnscheduledStepOptions = Readonly<
+  Record<string, unknown>
+> & {
+  readonly runAt?: never;
+  readonly runAfter?: never;
+};
 
 export type { DurableGraphWorkflowRef } from "./subworkflows";
 export type { ProductWorkflowEventId } from "./events";
@@ -81,21 +95,21 @@ export type RunDurableGraphInput = {
 export type RunDurableGraphStep = {
   /** Exact component workflow identity supplied by Workflow 0.4.4. */
   readonly workflowId?: ComponentWorkflowId;
-  readonly runQuery: (
+  runQuery(
     ref: DurableGraphStepRef<"query">,
     args: Record<string, unknown>,
-    options?: Record<string, unknown>,
-  ) => Promise<unknown>;
-  readonly runMutation: (
+    options?: DurableGraphStepOptions | DurableGraphUnscheduledStepOptions,
+  ): Promise<unknown>;
+  runMutation(
     ref: DurableGraphStepRef<"mutation">,
     args: Record<string, unknown>,
-    options?: Record<string, unknown>,
-  ) => Promise<unknown>;
-  readonly runAction: (
+    options?: DurableGraphStepOptions | DurableGraphUnscheduledStepOptions,
+  ): Promise<unknown>;
+  runAction(
     ref: DurableGraphStepRef<"action">,
     args: Record<string, unknown>,
-    options?: Record<string, unknown>,
-  ) => Promise<unknown>;
+    options?: DurableGraphStepOptions | DurableGraphUnscheduledStepOptions,
+  ): Promise<unknown>;
   readonly runWorkflow?: <
     Args extends import("./subworkflows").AnyChildWorkflowArgs,
     Result,
@@ -117,6 +131,31 @@ export type RunDurableGraphStep = {
     },
   ) => Promise<Result>;
 };
+/**
+ * Checked adapter for the pinned Workflow 0.4.4 handler context. Keeping this
+ * structural assignment executable in package typecheck prevents generated
+ * runners from hiding option drift behind a whole-object assertion.
+ */
+export const adaptPinnedWorkflowStep = (
+  step: MaestroWorkflowContext,
+): RunDurableGraphStep => ({
+  workflowId: step.workflowId,
+  runQuery: (ref, args, options) =>
+    options === undefined
+      ? step.runQuery(ref, args)
+      : step.runQuery(ref, args, options),
+  runMutation: (ref, args, options) =>
+    options === undefined
+      ? step.runMutation(ref, args)
+      : step.runMutation(ref, args, options),
+  runAction: (ref, args, options) =>
+    options === undefined
+      ? step.runAction(ref, args)
+      : step.runAction(ref, args, options),
+  runWorkflow: (ref, args, options) => step.runWorkflow(ref, args, options),
+  sleep: (delayMs, options) => step.sleep(delayMs, options),
+  awaitEvent: (event) => step.awaitEvent(event),
+});
 
 export const runDurableGraphWorkflow = async (
   step: RunDurableGraphStep,

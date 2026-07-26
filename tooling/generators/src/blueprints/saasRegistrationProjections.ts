@@ -318,6 +318,21 @@ export const buildSaasRegistrationProjections = (
     ...[
       "tooling/generators/src/workflow-files.ts",
       "tooling/generators/src/workflow-predeploy.ts",
+      ...(current
+        ? [
+            "packages/convex/confect/workflows/_kit/graphRunnerCurrent.ts",
+            "packages/convex/confect/workflows/_kit/graphRunnerV2Current.ts",
+            "packages/convex/confect/workflows/_kit/observedStageCurrent.ts",
+            "packages/convex/confect/workflows/_kit/observedStagePayloadCurrent.ts",
+            "packages/convex/confect/workflows/_kit/workflowBuilderCurrent.ts",
+            "packages/convex/confect/workflows/_kit/workflowSchedule.ts",
+            "packages/convex/confect/workflows/_kit/workflowScheduledCapability.ts",
+            "packages/convex/confect/workflows/graphCurrent.ts",
+            "packages/convex/confect/workflows/graphNodeSchemaCurrent.ts",
+            "packages/convex/confect/workflows/graphSchemaCurrent.ts",
+            "packages/convex/confect/workflows/graphValidationCurrent.ts",
+          ]
+        : []),
       "packages/convex/confect/capabilities/_kit/workspaceAccess.ts",
       "packages/convex/confect/_generated/docs.ts",
       "packages/convex/confect/_generated/tables/workflowArtifacts.ts",
@@ -352,7 +367,15 @@ export const buildSaasRegistrationProjections = (
       "tooling/quality/check-workflow-policy-snapshots.mts",
       "tooling/quality/check-workflow-principal-propagation.mts",
       "tooling/quality/fixtures/workflow-policy-snapshots.json",
-    ].map((path) => ({ path, content: source(path) })),
+    ].map((path) => ({
+      path,
+      content:
+        path.endsWith("Current.ts") ||
+        path.endsWith("workflowSchedule.ts") ||
+        path.endsWith("workflowScheduledCapability.ts")
+          ? currentSource(path)
+          : source(path),
+    })),
     ...[
       "start.ts",
       "ports.ts",

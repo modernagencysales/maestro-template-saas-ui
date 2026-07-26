@@ -17,17 +17,17 @@ import {
   validateWorkflowGraphV2,
   type DurableWorkflowGraph,
   type DurableWorkflowGraphV2,
-} from "../confect/workflows/graph";
+} from "../confect/workflows/graphCurrent";
 import {
   runDurableGraphWorkflow,
   runDurableGraphWorkflowV2,
   type DurableGraphStepRef,
   type RunDurableGraphStep,
-} from "../confect/workflows/_kit/graphRunner";
+} from "../confect/workflows/_kit/graphRunnerCurrent";
 import {
   defineGeneratedCurrentAuthorityBinding,
   type GeneratedCurrentAuthorityBinding,
-} from "../confect/workflows/_kit/graphRunnerV2";
+} from "../confect/workflows/_kit/graphRunnerV2Current";
 import {
   defineWorkflowV2SubworkflowRegistry,
   defineWorkflowV2Subworkflow,
@@ -67,7 +67,7 @@ import {
   bindObservedWorkflowAuthority,
   loadObservedWorkflowExecutionIdentity,
   runObservedWorkflowStage,
-} from "../confect/workflows/_kit/observedStage";
+} from "../confect/workflows/_kit/observedStageCurrent";
 import {
   PINNED_INLINE_CONVEX_VERSION,
   inlineTransactionPreset,

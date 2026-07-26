@@ -3,12 +3,13 @@ import {
   type DurableWorkflowGraph,
   type WorkflowEdge,
   type WorkflowNode,
-} from "./graph";
+} from "./graphCurrent";
 import { isSafeConditionExpression } from "./conditionExpression";
 import type { DurableWorkflowGraphV2 } from "./graphSchema";
 import { generatedWorkflowReadyWaveLimit } from "./_kit/workpoolConfig";
 import { scheduledSubworkflowFinding } from "./_kit/subworkflows";
 import { inlineTransactionFinding } from "./_kit/inlineTransactions";
+import { unsupportedScheduledNodeFinding } from "./_kit/workflowSchedule";
 
 type ValidationState = {
   readonly errors: WorkflowGraphValidationError[];
@@ -338,6 +339,10 @@ export const validateWorkflowGraphV2 = (
     ),
     ...graph.nodes.flatMap((node) => {
       const finding = scheduledSubworkflowFinding(node);
+      return finding ? [finding] : [];
+    }),
+    ...graph.nodes.flatMap((node) => {
+      const finding = unsupportedScheduledNodeFinding(node);
       return finding ? [finding] : [];
     }),
     ...graph.nodes.flatMap((node) => {

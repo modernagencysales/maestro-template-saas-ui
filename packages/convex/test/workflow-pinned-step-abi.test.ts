@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { RunDurableGraphStep } from "../confect/workflows/_kit/graphRunner";
+import type { RunDurableGraphStep } from "../confect/workflows/_kit/graphRunnerCurrent";
 
 type ActionOptions = NonNullable<
   Parameters<RunDurableGraphStep["runAction"]>[2]
