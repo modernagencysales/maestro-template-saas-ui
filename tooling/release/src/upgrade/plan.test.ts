@@ -138,8 +138,8 @@ describe("read-only upgrade planning", () => {
     "alias/../path.ts",
     "alias/control\u0000path.ts",
     "alias/control\u0085path.ts",
-    "alias/lone-high-\ud800.ts",
-    "alias/lone-low-\udc00.ts",
+    "alias/high-\ud800-path.ts",
+    "alias/low-\udc00-path.ts",
   ])("rejects noncanonical path alias %j without mutating input", (path) => {
     const input = fixture();
     const candidate = {
@@ -163,7 +163,7 @@ describe("read-only upgrade planning", () => {
     expect(JSON.stringify(candidate)).toBe(before);
   });
 
-  it("accepts a normalized path with a valid surrogate pair without mutating input", () => {
+  it("accepts a canonical NFC path containing a valid surrogate pair", () => {
     const input = fixture();
     const candidate = {
       ...input,
@@ -172,11 +172,11 @@ describe("read-only upgrade planning", () => {
         operations: [
           ...input.manifest.operations,
           {
-            id: "unicode-pair-add",
+            id: "unicode-add",
             kind: "add",
-            path: "alias/rocket-\ud83d\ude80.ts",
+            path: "unicode/rocket-🚀.ts",
             ownership: "template-owned",
-            afterHash: `sha256:${"4".repeat(64)}`,
+            afterHash: `sha256:${"5".repeat(64)}`,
           },
         ],
       },
