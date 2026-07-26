@@ -874,7 +874,7 @@ async function forgeRetainedInput(
     scenarioId,
     resultPath: ".maestro-eval/forward-result.json",
     artifactId: contract.artifactId,
-    commandId: contract.command.id,
+    command: contract.command,
   });
   const forgedVerdict = gradeForwardEvidence({
     evidence: changedEvidence,
@@ -937,7 +937,7 @@ function fixtureHashes(
     scenarioId,
     resultPath: ".maestro-eval/forward-result.json",
     artifactId: contract.artifactId,
-    commandId: contract.command.id,
+    command: contract.command,
   });
   return {
     initialContextSha256: forwardInitialContextSha256({

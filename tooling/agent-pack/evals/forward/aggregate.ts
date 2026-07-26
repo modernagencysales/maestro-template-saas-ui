@@ -344,7 +344,7 @@ function assertCompleteReceipt(
       scenarioId: evidence.scenarioId,
       resultPath: ".maestro-eval/forward-result.json",
       artifactId: contract.artifactId,
-      commandId: contract.command.id,
+      command: contract.command,
     });
     const verifierFailures = retainedFailures.get(evidence.scenarioId) ?? [
       {

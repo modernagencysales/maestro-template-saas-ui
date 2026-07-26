@@ -145,7 +145,7 @@ export async function runForwardSuite(
         scenarioId,
         resultPath,
         artifactId: forwardScenarioContracts[scenarioId].artifactId,
-        commandId: forwardScenarioContracts[scenarioId].command.id,
+        command: forwardScenarioContracts[scenarioId].command,
       });
       await mkdir(scenarioDirectory, { recursive: true });
       try {

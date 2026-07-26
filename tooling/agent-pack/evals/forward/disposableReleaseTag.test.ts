@@ -166,7 +166,14 @@ describe("buildForwardPrompt tag authority", () => {
     runId: "prompt-test",
     resultPath: ".maestro-eval/forward-result.json",
     artifactId: "greenfield-customer",
-    commandId: "verify-greenfield-customer",
+    command: {
+      id: "verify-greenfield-customer",
+      executable: "node",
+      args: [
+        "tooling/agent-pack/evals/forward/gate-launcher.mjs",
+        "check:gates",
+      ],
+    },
   };
 
   it("allows only the evaluator-provisioned local release tag in greenfield", () => {

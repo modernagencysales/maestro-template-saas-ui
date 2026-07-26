@@ -10,6 +10,7 @@ import {
   forwardCommandAttestationSha256,
   forwardReceiptSha256,
   forwardScenarioContracts,
+  type ForwardVerifierPorts,
   verifyForwardScenario,
 } from "./verifier.js";
 
@@ -25,13 +26,39 @@ describe("greenfield tagged customer artifact verification", () => {
       scenarioId: "greenfield-tagged-customer",
       resultPath: ".maestro-eval/forward-result.json",
       artifactId: "materialization-receipt",
-      commandId: "architecture-gates",
+      command: forwardScenarioContracts["greenfield-tagged-customer"].command,
     });
 
     expect(prompt).toContain(
       "exactly one direct-child customer target template-instance.json",
     );
     expect(prompt).toContain("reviewed release and ownership binding");
+    expect(prompt).toContain(
+      "node tooling/agent-pack/evals/forward/gate-launcher.mjs check:gates",
+    );
+    expect(prompt).toContain("without substituting pnpm, tsx");
+  });
+
+  it("executes the same committed launcher printed in the blind prompt", async () => {
+    const fixture = await greenfieldFixture();
+    let executed:
+      | {
+          readonly command: string;
+          readonly args: readonly string[];
+        }
+      | undefined;
+
+    await verify(fixture, async (input) => {
+      executed = input;
+      return commandResult;
+    });
+
+    const frozen =
+      forwardScenarioContracts["greenfield-tagged-customer"].command;
+    expect(executed).toMatchObject({
+      command: frozen.executable,
+      args: frozen.args,
+    });
   });
 
   it("accepts a separate manifest-bound customer target with factory-only omissions", async () => {
@@ -160,7 +187,10 @@ async function greenfieldFixture() {
   };
 }
 
-async function verify(fixture: Awaited<ReturnType<typeof greenfieldFixture>>) {
+async function verify(
+  fixture: Awaited<ReturnType<typeof greenfieldFixture>>,
+  execute: ForwardVerifierPorts["execute"] = async () => commandResult,
+) {
   const scenarioId = "greenfield-tagged-customer" as const;
   const contract = forwardScenarioContracts[scenarioId];
   const instanceBytes = await readFile(
@@ -229,6 +259,6 @@ async function verify(fixture: Awaited<ReturnType<typeof greenfieldFixture>>) {
     candidateSha,
     scenarioId,
     evidence,
-    ports: { execute: async () => commandResult },
+    ports: { execute },
   });
 }

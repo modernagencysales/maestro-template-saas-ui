@@ -14,46 +14,59 @@ const REVIEWED_RELEASE_PATH = "releases/v0.2.0-alpha.1/manifest.json";
 
 type ScenarioContract = {
   readonly artifactId: string;
-  readonly command: { readonly id: string; readonly args: readonly string[] };
+  readonly command: {
+    readonly id: string;
+    readonly executable: string;
+    readonly args: readonly string[];
+  };
 };
+
+const gateCommand = (
+  id: string,
+  gate: string,
+): ScenarioContract["command"] => ({
+  id,
+  executable: "node",
+  args: ["tooling/agent-pack/evals/forward/gate-launcher.mjs", gate],
+});
 
 export const forwardScenarioContracts: Readonly<
   Record<ForwardScenarioId, ScenarioContract>
 > = {
   "greenfield-tagged-customer": {
     artifactId: "materialization-receipt",
-    command: { id: "architecture-gates", args: ["check:gates"] },
+    command: gateCommand("architecture-gates", "check:gates"),
   },
   "prototype-adoption": {
     artifactId: "adoption-work-package",
-    command: { id: "architecture-gates", args: ["check:gates"] },
+    command: gateCommand("architecture-gates", "check:gates"),
   },
   "safe-convex-dev": {
     artifactId: "convex-setup-receipt",
-    command: { id: "convex-ai-files", args: ["check:convex-ai-files"] },
+    command: gateCommand("convex-ai-files", "check:convex-ai-files"),
   },
   "generated-capability-workflow": {
     artifactId: "generated-workflow-receipt",
-    command: { id: "workflow-fast-gates", args: ["check:workflow:fast"] },
+    command: gateCommand("workflow-fast-gates", "check:workflow:fast"),
   },
   "architecture-gate-repair": {
     artifactId: "gate-repair-receipt",
-    command: { id: "architecture-gates", args: ["check:gates"] },
+    command: gateCommand("architecture-gates", "check:gates"),
   },
   "active-v1-version-bump": {
     artifactId: "version-bump-receipt",
-    command: {
-      id: "workflow-version-immutability",
-      args: ["check:workflow-version-immutability"],
-    },
+    command: gateCommand(
+      "workflow-version-immutability",
+      "check:workflow-version-immutability",
+    ),
   },
   "workflow-adversarial-repairs": {
     artifactId: "workflow-repair-receipt",
-    command: { id: "workflow-semantics", args: ["check:workflow-semantics"] },
+    command: gateCommand("workflow-semantics", "check:workflow-semantics"),
   },
   "promotion-upgrade-refusal": {
     artifactId: "manual-resolution-packet",
-    command: { id: "promotion-boundary", args: ["check:promotion-boundary"] },
+    command: gateCommand("promotion-boundary", "check:promotion-boundary"),
   },
 };
 
@@ -143,7 +156,7 @@ export async function verifyForwardScenario(input: {
   } else {
     const execute = input.ports?.execute ?? executeCommand;
     const result = await execute({
-      command: "pnpm",
+      command: contract.command.executable,
       args: contract.command.args,
       cwd: input.workspace,
       env: safeVerifierEnvironment(input.sessionDir),
@@ -187,7 +200,11 @@ export async function verifyForwardScenario(input: {
 export function forwardCommandAttestationSha256(input: {
   readonly candidateSha: string;
   readonly scenarioId: ForwardScenarioId;
-  readonly command: { readonly id: string; readonly args: readonly string[] };
+  readonly command: {
+    readonly id: string;
+    readonly executable: string;
+    readonly args: readonly string[];
+  };
   readonly exitCode: number;
   readonly diagnostics?: {
     readonly stdout: string;
@@ -201,7 +218,7 @@ export function forwardCommandAttestationSha256(input: {
       scenarioId: input.scenarioId,
       command: {
         id: input.command.id,
-        executable: "pnpm",
+        executable: input.command.executable,
         args: input.command.args,
       },
       exitCode: input.exitCode,
