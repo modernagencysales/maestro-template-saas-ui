@@ -6,7 +6,6 @@ import {
   createNodeExecFileAdapter,
   createNodePreflightRuntimeReader,
   createNodeSupportBundleExporter,
-  createNodeVerificationReceiptWriter,
   createPreflightCommand,
   createSupportBundleCommand,
   createVerifyCommand,
@@ -50,6 +49,7 @@ const policy = Object.freeze({
   // by this supported offline-compatible standalone fallback. packageManager
   // remains the canonical pnpm 10.12.1 authority.
   supportedPnpmVersions: ["9.15.4"],
+  minimumGitVersion: "2.31.0",
   minimumDiskBytes: 512 * 1024 * 1024,
   requiredPorts: [],
   metadataTimeoutMs: 10_000,
@@ -176,9 +176,6 @@ export function createCustomerCliComposition(
   const verify = createVerifyCommand({
     descriptors,
     runner,
-    receiptWriter: createNodeVerificationReceiptWriter({
-      maxBytes: policy.packageJsonMaxBytes,
-    }),
   });
   const check = createCheckCommand({ preflight, verify });
   const supportBundle = createSupportBundleCommand({
