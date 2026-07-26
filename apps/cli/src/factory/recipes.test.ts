@@ -4,6 +4,26 @@ import { runCliAsync } from "../index";
 import { ADD_HELP, RECIPES_HELP } from "./recipes";
 
 const repoRoot = fileURLToPath(new URL("../../../../", import.meta.url));
+const crudAnswers = [
+  "--answer",
+  "entityName=Request",
+  "--answer",
+  "canonicalOwner=access-and-tenancy",
+  "--answer",
+  "tenantScope=workspace",
+  "--answer",
+  "sensitivity=internal",
+  "--answer",
+  "pii=none",
+  "--answer",
+  "exportMode=json",
+  "--answer",
+  "deleteMode=delete",
+  "--answer",
+  "retention=retain-until-workspace-delete",
+  "--answer",
+  "appendOnly=false",
+] as const;
 
 describe("recipe CLI", () => {
   it("lists and shows reviewed recipes through versioned JSON", async () => {
@@ -37,20 +57,25 @@ describe("recipe CLI", () => {
     });
   });
 
-  it("previews add without mutation and rejects --write", async () => {
+  it("previews one closed executable plan and blocks unconfirmed writes", async () => {
     const preview = await runCliAsync(
-      [
-        "add",
-        "crud-business-entity",
-        "--answer",
-        "entityName=Request",
-        "--json",
-      ],
+      ["add", "crud-business-entity", ...crudAnswers, "--json"],
       undefined,
       repoRoot,
     );
     const write = await runCliAsync(
-      ["add", "crud-business-entity", "--write", "--json"],
+      [
+        "add",
+        "crud-business-entity",
+        ...crudAnswers,
+        "--write",
+        "--privacy-reviewed",
+        "--plan-fingerprint",
+        "recipe_plan_sha256:stale",
+        "--preflight-fingerprint",
+        "preflight_sha256:stale",
+        "--json",
+      ],
       undefined,
       repoRoot,
     );
@@ -61,10 +86,20 @@ describe("recipe CLI", () => {
       data: {
         answers: { entityName: "Request" },
         generatorPreviews: expect.any(Array),
+        plan: {
+          operations: expect.arrayContaining([
+            expect.objectContaining({
+              path: expect.stringMatching(/cP11Probe|request|Request/i),
+            }),
+          ]),
+          fingerprint: expect.stringMatching(/^recipe_plan_sha256:/),
+        },
       },
     });
     expect(JSON.parse(write.stdout)).toMatchObject({
-      exitClass: "invalidInvocation",
+      mutationPosture: "write",
+      exitClass: "blockedMutation",
+      diagnostics: [{ code: "AGENT_PACK_RECIPE_AUTHORITY_STALE" }],
     });
   });
 

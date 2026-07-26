@@ -6,6 +6,7 @@ export * from "./diagnostics.js";
 export * from "./receipt.js";
 export * from "./receiptWriter.js";
 export * from "./recipes.js";
+export * from "./recipeTransaction.js";
 export * from "./verify.js";
 export * from "./check.js";
 export * from "./nodeAdapters.js";

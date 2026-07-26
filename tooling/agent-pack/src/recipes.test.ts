@@ -17,6 +17,7 @@ const recipe = (
   id: string,
   availability: RecipeCommandProjection["availability"] = "available",
 ): RecipeCommandProjection => ({
+  schemaVersion: 2,
   id,
   outcome: `Outcome for ${id}`,
   availability,
@@ -35,8 +36,22 @@ const recipe = (
       purpose: "Preview the slice.",
     },
   ],
+  execution: {
+    version: 1,
+    mode: "greenfield-additive",
+    steps: [
+      {
+        id: "visible-slice",
+        generatorId: "add-feature",
+        arguments: {
+          name: { source: "answer", answerId: "name" },
+          disposition: { source: "literal", value: "extend" },
+        },
+      },
+    ],
+  },
   document: {
-    schemaVersion: 1,
+    schemaVersion: 2,
     id,
     outcome: `Outcome for ${id}`,
     availability: { status: availability },
@@ -61,7 +76,68 @@ const catalog: RecipeCatalogProjection = {
       : { kind: "recipe" as const, recipe: exact };
   },
 };
-const dependencies = { load: () => catalog };
+const receipt = {
+  schemaVersion: 1 as const,
+  kind: "maestro-recipe-transaction" as const,
+  status: "applied" as const,
+  recipeId: "crud-business-entity",
+  recipeSchemaVersion: 2,
+  planFingerprint: "recipe_plan_sha256:fixture",
+  preflightFingerprint: "preflight_sha256:fixture",
+  answersSha256: "sha256:answers",
+  generatorVersions: ["add-feature@1"],
+  operationPaths: ["apps/web/src/features/request.ts"],
+  provenancePaths: [
+    "docs/template/generated/provenance/add-feature/request.json",
+  ],
+  candidateCommit: null,
+  templateInstanceFingerprint: null,
+  journalPath: ".maestro/recipe-transactions/fixture/transaction.json",
+  receiptPath: ".maestro/recipe-transactions/fixture/receipt.json",
+};
+let applied = 0;
+const dependencies = {
+  load: () => catalog,
+  generators: {
+    resolve: (generatorId: string) =>
+      generatorId === "add-feature"
+        ? { supported: true as const, version: "add-feature@1" }
+        : { supported: false as const },
+    preview: async () => ({
+      ok: true as const,
+      output: {
+        files: [
+          {
+            path: "apps/web/src/features/request.ts",
+            content: "export const request = true;\n",
+            beforeSha256: null,
+          },
+        ],
+        provenancePaths: [
+          "docs/template/generated/provenance/add-feature/request.json",
+        ],
+        collisions: [],
+        semanticRuleIds: [],
+        manualFollowUp: [],
+        codegen: [],
+        focusedGates: ["pnpm --dir apps/web typecheck"],
+      },
+    }),
+  },
+  preflight: {
+    inspect: async () => ({
+      fingerprint: "preflight_sha256:fixture",
+      safeToMutate: true,
+      cleanWorktree: true,
+    }),
+  },
+  transaction: {
+    apply: async () => {
+      applied += 1;
+      return { ok: true as const, receipt };
+    },
+  },
+};
 
 describe("recipe commands", () => {
   it("previews only consequential questions and exact generator work", async () => {
@@ -82,6 +158,15 @@ describe("recipe commands", () => {
         answers: { name: "Request" },
         questions: [{ id: "name" }],
         generatorPreviews: [{ generatorId: "add-feature" }],
+        plan: {
+          fingerprint: expect.stringMatching(/^recipe_plan_sha256:/),
+          operations: [
+            expect.objectContaining({
+              path: "apps/web/src/features/request.ts",
+            }),
+          ],
+        },
+        preflightFingerprint: "preflight_sha256:fixture",
       },
     });
     expect(JSON.stringify(result)).not.toMatch(
@@ -156,15 +241,52 @@ describe("recipe commands", () => {
     });
   });
 
-  it("rejects --write-shaped input instead of mutating", async () => {
-    const result = await executeAgentPackCommand(
+  it("requires exact preview authority before applying one transaction", async () => {
+    applied = 0;
+    const preview = await executeAgentPackCommand(
       createAddRecipeCommand(dependencies),
-      { query: "crud-business-entity", write: true },
+      { query: "crud-business-entity", answers: { name: "Request" } },
       context,
     );
-    expect(result).toMatchObject({
-      mutationPosture: "read-only",
-      exitClass: "invalidInvocation",
+    const previewData = preview.data as {
+      readonly plan: { readonly fingerprint: string };
+      readonly preflightFingerprint: string;
+    };
+    const stale = await executeAgentPackCommand(
+      createAddRecipeCommand(dependencies),
+      {
+        query: "crud-business-entity",
+        answers: { name: "Request" },
+        write: true,
+        privacyReviewed: true,
+        planFingerprint: "recipe_plan_sha256:stale",
+        preflightFingerprint: previewData.preflightFingerprint,
+      },
+      context,
+    );
+    expect(stale).toMatchObject({
+      mutationPosture: "write",
+      exitClass: "blockedMutation",
+      diagnostics: [{ code: "AGENT_PACK_RECIPE_AUTHORITY_STALE" }],
     });
+    expect(applied).toBe(0);
+    const written = await executeAgentPackCommand(
+      createAddRecipeCommand(dependencies),
+      {
+        query: "crud-business-entity",
+        answers: { name: "Request" },
+        write: true,
+        privacyReviewed: true,
+        planFingerprint: previewData.plan.fingerprint,
+        preflightFingerprint: previewData.preflightFingerprint,
+      },
+      context,
+    );
+    expect(written).toMatchObject({
+      mutationPosture: "write",
+      exitClass: "success",
+      data: { receipt: { kind: "maestro-recipe-transaction" } },
+    });
+    expect(applied).toBe(1);
   });
 });

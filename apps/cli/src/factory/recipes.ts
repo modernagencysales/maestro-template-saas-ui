@@ -9,7 +9,7 @@ import { cliSuccess } from "../result";
 import { runAgentPackCommandAsCli, type FactoryCliRenderMode } from "./router";
 
 export const ADD_HELP =
-  "maestro add <outcome-or-recipe> [--answer <question>=<value>] [--human|--details|--json]\n";
+  "maestro add <outcome-or-recipe> [--answer <question>=<value>] [--write --privacy-reviewed --plan-fingerprint <recipe_plan_sha256:...> --preflight-fingerprint <preflight_sha256:...>] [--human|--details|--json]\n";
 export const RECIPES_HELP =
   "maestro recipes list|show <recipe-id> [--human|--details|--json]\n";
 
@@ -71,12 +71,36 @@ function parseAdd(argv: readonly string[]) {
   const query = argv[0];
   const answers: Record<string, string | boolean> = {};
   let renderMode: FactoryCliRenderMode = "human";
+  let write = false;
+  let privacyReviewed = false;
+  let planFingerprint: string | undefined;
+  let preflightFingerprint: string | undefined;
+  const seen = new Set<string>();
   let valid = query !== undefined && !query.startsWith("--");
   for (let index = 1; index < argv.length; index += 1) {
     const token = argv[index];
     const mode = renderModeFor(token);
     if (mode !== undefined) {
       renderMode = mode;
+      continue;
+    }
+    if (token === "--write" || token === "--privacy-reviewed") {
+      if (seen.has(token)) valid = false;
+      seen.add(token);
+      if (token === "--write") write = true;
+      else privacyReviewed = true;
+      continue;
+    }
+    if (token === "--plan-fingerprint" || token === "--preflight-fingerprint") {
+      const value = argv[index + 1];
+      if (seen.has(token) || value === undefined || value.startsWith("--")) {
+        valid = false;
+        continue;
+      }
+      seen.add(token);
+      index += 1;
+      if (token === "--plan-fingerprint") planFingerprint = value;
+      else preflightFingerprint = value;
       continue;
     }
     const pair = argv[index + 1];
@@ -95,7 +119,18 @@ function parseAdd(argv: readonly string[]) {
       value === "true" ? true : value === "false" ? false : value;
   }
   return {
-    input: valid ? { query, answers } : {},
+    input: valid
+      ? {
+          query,
+          answers,
+          write,
+          privacyReviewed,
+          ...(planFingerprint === undefined ? {} : { planFingerprint }),
+          ...(preflightFingerprint === undefined
+            ? {}
+            : { preflightFingerprint }),
+        }
+      : {},
     renderMode,
   };
 }

@@ -80,13 +80,14 @@ function projectRecipe(recipe: OutcomeRecipe): RecipeCommandProjection {
     ]: import("@maestro-template/agent-pack").AgentPackJsonValue;
   };
   return {
+    schemaVersion: recipe.schemaVersion,
     id: recipe.id,
     outcome: recipe.outcome,
     availability: recipe.availability.status,
-    questions:
-      document.consequentialQuestions as readonly import("@maestro-template/agent-pack").AgentPackJsonValue[],
+    questions: recipe.consequentialQuestions,
     generatorPreviews:
       document.generatorPreviews as readonly import("@maestro-template/agent-pack").AgentPackJsonValue[],
+    ...(recipe.execution === undefined ? {} : { execution: recipe.execution }),
     document,
   };
 }

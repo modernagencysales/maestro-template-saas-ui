@@ -22,6 +22,7 @@ import {
   createRepositoryContext,
   createRepositoryLocalMcpConfigurationStore,
   createNodeSupportBundleExporter,
+  createNodeRecipeTransaction,
   createSupportBundleCommand,
   defineDiagnosticRegistryProjection,
   executeAgentPackCommand,
@@ -29,6 +30,7 @@ import {
   parseConvexMcpProfiles,
   readInstalledConvexMcpInventory,
   serveMcpStdio,
+  sha256RecipeBytes,
   validateInstalledOfficialConvexTargets,
   type AgentPackExecutionContext,
   type McpConfigurationStore,
@@ -53,7 +55,7 @@ import {
   validatePlan,
 } from "@maestro-template/stack-tooling";
 import { WORKFLOW_SEMANTICS } from "@maestro-template/template-core/workflow-semantics";
-import { readFileSync } from "node:fs";
+import { existsSync, lstatSync, readFileSync } from "node:fs";
 import { open } from "node:fs/promises";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -262,6 +264,30 @@ export function createFactoryCliComposition(
         ),
       }),
   });
+  const inspectMutationPreflight = async (
+    repo: AgentPackExecutionContext["repo"],
+  ) => {
+    const result = await executeAgentPackCommand(
+      preflight,
+      { mode: "fake" },
+      {
+        schemaVersion: AGENT_PACK_EXECUTION_CONTEXT_VERSION,
+        invocation: "library",
+        repo,
+      },
+    );
+    return result.data === null
+      ? {
+          fingerprint: "preflight_sha256:unavailable",
+          safeToMutate: false,
+          cleanWorktree: false,
+        }
+      : {
+          fingerprint: result.data.fingerprint,
+          safeToMutate: result.data.safeToMutate,
+          cleanWorktree: result.data.facts.repository.dirty === false,
+        };
+  };
   const scaffold = createScaffoldCommand({
     generators: {
       resolve: resolveReviewedGenerator,
@@ -274,28 +300,7 @@ export function createFactoryCliComposition(
         }),
     },
     preflight: {
-      inspect: async (repo) => {
-        const result = await executeAgentPackCommand(
-          preflight,
-          { mode: "fake" },
-          {
-            schemaVersion: AGENT_PACK_EXECUTION_CONTEXT_VERSION,
-            invocation: "library",
-            repo,
-          },
-        );
-        return result.data === null
-          ? {
-              fingerprint: "preflight_sha256:unavailable",
-              safeToMutate: false,
-              cleanWorktree: false,
-            }
-          : {
-              fingerprint: result.data.fingerprint,
-              safeToMutate: result.data.safeToMutate,
-              cleanWorktree: result.data.facts.repository.dirty === false,
-            };
-      },
+      inspect: inspectMutationPreflight,
     },
     workflow: {
       semantics: WORKFLOW_SEMANTICS.map(({ id, status, repair }) => ({
@@ -310,6 +315,72 @@ export function createFactoryCliComposition(
   const recipeDependencies = {
     load: (repo: AgentPackExecutionContext["repo"]) =>
       loadRecipeCatalogProjection(repo.sourceRoot),
+    generators: {
+      resolve: (generatorId: string) => {
+        const result = resolveReviewedGenerator(generatorId);
+        return result.supported
+          ? {
+              supported: true as const,
+              version: `reviewed-generator-v1:${generatorId}`,
+            }
+          : { supported: false as const };
+      },
+      preview: async ({
+        generatorId,
+        args,
+        repo,
+      }: {
+        readonly generatorId: string;
+        readonly args: Readonly<Record<string, string | boolean>>;
+        readonly repo: AgentPackExecutionContext["repo"];
+      }) => {
+        const result = runReviewedGenerator({
+          generatorId,
+          args,
+          write: false,
+          cwd: repo.targetRoot,
+        });
+        if (!result.ok) return result;
+        try {
+          return {
+            ok: true as const,
+            output: {
+              ...result.output,
+              files: result.output.files.map((file) => {
+                if (
+                  file.path.startsWith("/") ||
+                  file.path.split(/[\\/]/u).some((part) => part === "..")
+                )
+                  throw new Error(
+                    `Reviewed generator emitted unsafe path ${file.path}.`,
+                  );
+                const target = resolve(repo.targetRoot, file.path);
+                if (!existsSync(target)) return { ...file, beforeSha256: null };
+                const stats = lstatSync(target);
+                if (!stats.isFile() || stats.isSymbolicLink())
+                  throw new Error(
+                    `Reviewed generator target is not a regular file: ${file.path}.`,
+                  );
+                return {
+                  ...file,
+                  beforeSha256: sha256RecipeBytes(readFileSync(target)),
+                };
+              }),
+            },
+          };
+        } catch (error) {
+          return {
+            ok: false as const,
+            message:
+              error instanceof Error
+                ? error.message
+                : "Recipe generator preview failed.",
+          };
+        }
+      },
+    },
+    preflight: { inspect: inspectMutationPreflight },
+    transaction: createNodeRecipeTransaction(),
   };
   const recipeHandlers = createRecipeCliHandlers({
     add: createAddRecipeCommand(recipeDependencies),
