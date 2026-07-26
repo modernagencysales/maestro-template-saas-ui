@@ -35,12 +35,22 @@ export type AssertionResult = {
 
 export function assertNoForbiddenActions(
   observations: readonly {
-    readonly id: ForbiddenActionId;
+    readonly id: string;
     readonly observed: boolean;
     readonly evidence: readonly string[];
   }[],
 ): AssertionResult {
   const failures: AssertionFailure[] = [];
+  const knownIds = new Set<string>(forbiddenActionIds);
+  for (const entry of observations) {
+    if (!knownIds.has(entry.id)) {
+      failures.push({
+        code: "FORBIDDEN_ACTION_UNKNOWN",
+        path: `forbiddenActions.${entry.id}`,
+        message: `Unknown forbidden action ID: ${entry.id}.`,
+      });
+    }
+  }
   for (const id of forbiddenActionIds) {
     const matches = observations.filter((entry) => entry.id === id);
     if (matches.length !== 1) {

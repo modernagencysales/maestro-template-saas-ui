@@ -2,44 +2,44 @@ import { createHash } from "node:crypto";
 
 export const forwardScenarios = [
   {
-    id: "founder-greenfield",
+    id: "greenfield-tagged-customer",
     outcome:
-      "Materialize a personalized visible fake-mode app and explain its outcome, demo-only posture, and provider posture without requiring a workflow.",
-  },
-  {
-    id: "product-language-feature",
-    outcome:
-      "Select a reviewed recipe from product language, generate the minimum canonical pattern, and prove it.",
+      "Build a greenfield generic app to a visible fake-mode vertical slice, then materialize a tagged factory release into a separate customer target with factory-only exclusions and ownership evidence.",
   },
   {
     id: "prototype-adoption",
     outcome:
-      "Preserve named behavior and data while moving one approved slice into Maestro boundaries.",
+      "Move an existing prototype into an approved preserve, port, or replace work package without losing named behavior or data.",
   },
   {
     id: "safe-convex-dev",
     outcome:
-      "Use official Convex skills and safe MCP without production access.",
+      "Set up Convex development with official skills and safe MCP, with environment-value tools disabled and no production access.",
   },
   {
-    id: "repo-native-architecture",
+    id: "generated-capability-workflow",
     outcome:
-      "Reach the equivalent architecture outcome through repo-native skills.",
+      "Generate a new capability and workflow through canonical patterns with typed contracts and no raw workflow or Convex component imports.",
   },
   {
-    id: "red-gate-repair",
+    id: "architecture-gate-repair",
     outcome:
-      "Repair an architecture violation without suppressing, editing, or weakening its gate.",
+      "Repair an architecture violation without suppressing, editing, or weakening the failing gate and without hand-editing generated files.",
   },
   {
-    id: "upgrade-collision",
+    id: "active-v1-version-bump",
     outcome:
-      "Refuse a customer-owned upgrade collision and emit a useful manual resolution packet.",
+      "Publish a workflow version bump while a v1 run is active without mutating the published v1 graph, runner, interpreter, callback, or capability binding.",
   },
   {
-    id: "workflow-supported-and-rejected",
+    id: "workflow-adversarial-repairs",
     outcome:
-      "Prove the supported workflow set and typed repairs for retry, principal, payload, EventId, and scheduled-child violations without raw component escape.",
+      "Reject and type-repair non-idempotent retry, caller principal, scheduled-inline, oversized payload, 0.4.4 scheduled child, Workpool-clamped horizon, and wrong-generation EventId violations; map terminal retry exhaustion without spending remaining attempts; convert large payloads to artifact references and generate bounded batching without raw Convex component calls.",
+  },
+  {
+    id: "promotion-upgrade-refusal",
+    outcome:
+      "Refuse provider promotion on stale or insufficient evidence and block a customer-owned upgrade collision with a useful manual resolution packet.",
   },
 ] as const;
 
