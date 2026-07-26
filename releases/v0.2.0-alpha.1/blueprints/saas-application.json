@@ -3,7 +3,7 @@
   "id": "saas-application",
   "provenance": "@maestro-template/generators/saas-application@1",
   "projectionSource": {
-    "sourceCommit": "ecde94a1d5d908baf84903384eb56cae326e87be",
+    "sourceCommit": "1fcfd6cf6732ddde100bb8d82790f5a7df3c98a5",
     "assets": [
       {
         "path": "base/apps/cli/src/factory/customerComposition.ts.txt",

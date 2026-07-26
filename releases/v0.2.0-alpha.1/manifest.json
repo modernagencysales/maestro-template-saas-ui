@@ -9,8 +9,8 @@
   "release": {
     "version": "0.2.0-alpha.1",
     "tag": "maestro-template-v0.2.0-alpha.1",
-    "sourceCommit": "ecde94a1d5d908baf84903384eb56cae326e87be",
-    "sourceChecksum": "sha256:b0a1246978097eec5715c28f6d374ee98eb0646664c03394dcd4b74b3395ed2a"
+    "sourceCommit": "1fcfd6cf6732ddde100bb8d82790f5a7df3c98a5",
+    "sourceChecksum": "sha256:c3260db162e4f6936b2e05b3235ab4b79a2b7695413ecd02249f18e1cd2681db"
   },
   "upgrade": {
     "schemaVersion": 1,
@@ -1170,7 +1170,7 @@
         "path": "packages/convex/confect/workflows/_kit/ownership.ts",
         "ownership": "template-owned",
         "beforeHash": "sha256:25ed4a41bf3c1ed0b35b20c37ecea03080ad864481b32f23b07d83b376594a62",
-        "afterHash": "sha256:e9bfd8504e4ff95dd6a658759a60f14ae074512db490a51bafa4019f3d7c5a6b"
+        "afterHash": "sha256:a25f6f6c068100ffeeef5925ae18a40aa16ed5e96cde4aaa0e8c3218cdc8dd6d"
       },
       {
         "id": "upgrade-add-packages-convex-confect-workflows-kit-payloadBudget-ts",
@@ -3804,14 +3804,14 @@
   ],
   "blueprintManifest": {
     "path": "blueprints/saas-application.json",
-    "sha256": "sha256:546502410108871c6b928b1d19ea58c0d4db26da390aaa839a3a0f2bd0f71124"
+    "sha256": "sha256:6293dfa850a25a24233d8a4b8899e44abffa8b767876d89e7e84b8dd351f2f72"
   },
   "upgradeImpact": {
     "path": "releases/v0.2.0-alpha.1/upgrade/app-map-input.json",
-    "sha256": "sha256:f60d86e42cd0b1efa1f1937ecefd61ead9b5bf41211dd8253767742aa5c0a708",
+    "sha256": "sha256:0bb09a7df2f6381f35a59a13c322a6cdf1ed330a71cc4ce2150725261c3ede33",
     "projection": {
       "path": "releases/v0.2.0-alpha.1/upgrade/app-map-impact.json",
-      "sha256": "sha256:9c784d527c1bcebb734050beeb3640f7e9088bd4e910963590f612fab80ce9bf"
+      "sha256": "sha256:ea72a057a05de00371ff236efe7fd0c77d4fba1c131f9adb97a823dfd611497a"
     }
   },
   "migrationHandoff": {
