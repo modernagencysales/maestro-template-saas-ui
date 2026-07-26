@@ -10,6 +10,7 @@ export * from "./verify.js";
 export * from "./check.js";
 export * from "./nodeAdapters.js";
 export * from "./officialConvex.js";
+export * from "./hostProjectionLifecycle.js";
 export * from "./preflightProbe.js";
 export * from "./providers/convex.js";
 export * from "./providers/doctor.js";
