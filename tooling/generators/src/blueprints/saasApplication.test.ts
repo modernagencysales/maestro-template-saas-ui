@@ -609,6 +609,7 @@ describe("saas application blueprint", () => {
       "deploy:doctor",
       "deploy:cloudflare",
       "convex:deploy",
+      "check:deploy-authority",
       "test:mutation",
       "check:recipes",
       "check:workflow-version-immutability",
