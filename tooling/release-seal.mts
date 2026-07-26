@@ -231,6 +231,7 @@ async function build(args: Args): Promise<readonly Output[]> {
   ) as any;
   const outputs: Output[] = [];
   const assets = [] as { path: string; sha256: string }[];
+  const protectedCustomerSourcePaths: string[] = [];
   for (const entry of blueprint.projectionSource.assets as { path: string }[]) {
     if (!safePath(entry.path))
       throw new Error("Blueprint asset path is unsafe.");
@@ -239,6 +240,7 @@ async function build(args: Args): Promise<readonly Output[]> {
       entry.path.startsWith("base/") && entry.path.endsWith(".txt")
         ? entry.path.slice(5, -4)
         : undefined;
+    if (direct) protectedCustomerSourcePaths.push(direct);
     const bytes =
       direct && hasBlob(args.sourceCommit, direct)
         ? blob(args.sourceCommit, direct)
@@ -267,7 +269,7 @@ async function build(args: Args): Promise<readonly Output[]> {
   const exclusions = parseReviewedFactoryOnlyExclusions({
     value: current.additionalPaths,
     sourcePaths: reviewedSourcePaths,
-    protectedCustomerPaths: plan.entries.map((entry: any) => entry.path),
+    protectedCustomerPaths: protectedCustomerSourcePaths,
   });
   const inventory = buildReviewedOwnershipInventory({
     sourcePaths: reviewedSourcePaths,
