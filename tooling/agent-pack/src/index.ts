@@ -32,3 +32,13 @@ export * from "./privacy/disclosure.js";
 export * from "./privacy/supportBundle.js";
 export * from "./privacy/supportBundleCommand.js";
 export * from "./privacy/nodeSupportBundleExporter.js";
+export * from "./adopt.js";
+export * from "./adoptAuthority.js";
+export * from "./adoptExecution.js";
+export * from "./adoptCheckpoint.js";
+export { verifyAdoptionReceipt } from "./adoptReceiptVerifier.js";
+export type {
+  AdoptionReceipt,
+  AdoptionReceiptFinding,
+  AdoptionReceiptVerification,
+} from "./adoptReceipt.js";

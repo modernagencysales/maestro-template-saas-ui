@@ -59,6 +59,7 @@ import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { createPlanCheckCliHandler } from "./planCheck";
 import { createAppMapCliHandlers } from "./appMap";
+import { createAdoptCliHandler } from "./adopt";
 import { createCustomerCreateComposition } from "./createComposition";
 import { createProviderDoctorCliHandler } from "./doctor";
 import {
@@ -432,6 +433,12 @@ export function createFactoryCliComposition(
   const handlers: readonly FactoryCliHandler[] = [
     ...createAppMapCliHandlers(),
     createCustomerCreateComposition(),
+    createAdoptCliHandler({
+      readFile: (path) =>
+        readBoundedFile(path, {
+          maxBytes: FACTORY_EXECUTION_POLICY.packageJsonMaxBytes,
+        }),
+    }),
     createStartCliHandler(start, startOutput),
     ...recipeHandlers,
     createProviderDoctorCliHandler(providerDoctor),
