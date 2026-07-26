@@ -426,6 +426,80 @@ describe("walking-skeleton fail-closed evidence", () => {
     }
   });
 
+  it("rejects coordinated host-authored product-name projection tampering", async () => {
+    const fixture = await completeFixture();
+    const hostContent = "host-authored product projection\n";
+    const hostProjection = {
+      ...fixtureProjection({
+        name: "Host Authored",
+        outcome: "Create and review records",
+      }),
+      digest: sha("host-authored target plan"),
+      entries: [
+        { path: ".claude/settings.json", sha256: sha(reviewedClaudeSettings) },
+        { path: "apps/web/records.ts", sha256: sha(hostContent) },
+      ],
+    };
+    await writeFile(
+      join(fixture.customerRoot, "apps/web/records.ts"),
+      hostContent,
+    );
+    const instancePath = join(fixture.customerRoot, "template-instance.json");
+    const instance = JSON.parse(await readFile(instancePath, "utf8")) as {
+      release: { sourceChecksum: string };
+      ownership: { manifestChecksum: string };
+      blueprint: { digest: string };
+      personalization: { name: string };
+    };
+    instance.personalization.name = "Host Authored";
+    instance.blueprint.digest = hostProjection.digest;
+    const releaseBytes = await readFile(
+      join(fixture.workspace, "releases/v0.2.0-alpha.1/manifest.json"),
+    );
+    const release = JSON.parse(releaseBytes.toString("utf8")) as {
+      release: {
+        tag: string;
+        sourceCommit: string;
+        sourceChecksum: string;
+      };
+    };
+    const authorityChecksum = sha(
+      JSON.stringify({
+        kind: "unreleased-current-composition",
+        candidate: { sourceCommit: candidateSha },
+        base: {
+          manifestChecksum: shaBuffer(releaseBytes),
+          tag: release.release.tag,
+          sourceCommit: release.release.sourceCommit,
+          sourceChecksum: release.release.sourceChecksum,
+        },
+        blueprint: {
+          id: hostProjection.id,
+          provenance: hostProjection.provenance,
+          digest: hostProjection.digest,
+        },
+      }),
+    );
+    instance.release.sourceChecksum = authorityChecksum;
+    instance.ownership.manifestChecksum = authorityChecksum;
+    await writeFile(instancePath, JSON.stringify(instance));
+    const candidateProjection = vi.fn<CandidateProjectionBuilder>(
+      () => hostProjection,
+    );
+
+    await expect(
+      verifyExecutableEvidence({
+        workspace: fixture.workspace,
+        candidateSha,
+        expectedProductName: "SaaS Application",
+        sessionDir: fixture.sessionDir,
+        result: validResult(),
+        ports: { command: verifierCommand, candidateProjection },
+      }),
+    ).rejects.toMatchObject({ code: "EVAL_MANIFEST_INVALID" });
+    expect(candidateProjection).not.toHaveBeenCalled();
+  });
+
   it("accepts exact reviewed Claude settings and rejects tampering", async () => {
     const fixture = await completeFixture();
     await expect(verify(fixture, canonicalCrudProof)).resolves.toBeDefined();
@@ -561,6 +635,7 @@ describe("walking-skeleton fail-closed evidence", () => {
     const evidence = await verifyExecutableEvidence({
       workspace: fixture.workspace,
       candidateSha,
+      expectedProductName: "SaaS Application",
       sessionDir: fixture.sessionDir,
       result: validResult(),
       ports: { command, browserOpen, candidateProjection: fixtureProjection },
@@ -614,6 +689,7 @@ describe("walking-skeleton fail-closed evidence", () => {
       verifyExecutableEvidence({
         workspace: fixture.workspace,
         candidateSha,
+        expectedProductName: "SaaS Application",
         sessionDir: fixture.sessionDir,
         result: validResult(),
         ports: {
@@ -642,6 +718,7 @@ describe("walking-skeleton fail-closed evidence", () => {
     const evidence = await verifyExecutableEvidence({
       workspace: fixture.workspace,
       candidateSha,
+      expectedProductName: "SaaS Application",
       sessionDir: fixture.sessionDir,
       result: validResult(),
       ports: {
@@ -692,6 +769,7 @@ describe("walking-skeleton fail-closed evidence", () => {
     const evidence = await verifyExecutableEvidence({
       workspace: fixture.workspace,
       candidateSha,
+      expectedProductName: "SaaS Application",
       sessionDir: fixture.sessionDir,
       result: validResult(),
       ports: {
@@ -731,6 +809,7 @@ describe("walking-skeleton fail-closed evidence", () => {
     const evidence = await verifyExecutableEvidence({
       workspace: fixture.workspace,
       candidateSha,
+      expectedProductName: "SaaS Application",
       sessionDir: fixture.sessionDir,
       result: validResult(),
       ports: {
@@ -774,6 +853,7 @@ describe("walking-skeleton fail-closed evidence", () => {
       verifyExecutableEvidence({
         workspace: fixture.workspace,
         candidateSha,
+        expectedProductName: "SaaS Application",
         sessionDir: fixture.sessionDir,
         result: validResult(),
         ports: {
@@ -804,6 +884,7 @@ describe("walking-skeleton fail-closed evidence", () => {
       verifyExecutableEvidence({
         workspace: fixture.workspace,
         candidateSha,
+        expectedProductName: "SaaS Application",
         sessionDir: fixture.sessionDir,
         result: validResult(),
         ports: {
@@ -1070,6 +1151,7 @@ async function verify(
   return verifyExecutableEvidence({
     workspace: fixture.workspace,
     candidateSha,
+    expectedProductName: "SaaS Application",
     sessionDir: fixture.sessionDir,
     result: validResult(),
     ports: {

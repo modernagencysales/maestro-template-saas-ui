@@ -172,6 +172,7 @@ export async function runWalkingSkeleton(
     const executableEvidence = await verifyExecutableEvidence({
       workspace,
       candidateSha: options.candidateSha,
+      expectedProductName: options.productName,
       sessionDir,
       result,
       ...(overrides.verifierPorts ? { ports: overrides.verifierPorts } : {}),

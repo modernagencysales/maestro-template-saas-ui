@@ -68,6 +68,7 @@ export type ExecutableEvidencePorts = {
 export async function verifyExecutableEvidence(input: {
   readonly workspace: string;
   readonly candidateSha: string;
+  readonly expectedProductName: string;
   readonly sessionDir: string;
   readonly result: WalkingSkeletonResult;
   readonly ports?: Partial<ExecutableEvidencePorts>;
@@ -116,6 +117,7 @@ export async function verifyExecutableEvidence(input: {
     customerRoot,
     manifestPath,
     input.candidateSha,
+    input.expectedProductName,
     input.ports?.candidateProjection ??
       createTrustedCandidateProjectionBuilder(),
   );
@@ -308,6 +310,7 @@ async function verifyReviewedReleaseProjection(
   customerRoot: string,
   instancePath: string,
   candidateSha: string,
+  expectedProductName: string,
   candidateProjection: CandidateProjectionBuilder,
 ): Promise<{
   readonly binding: unknown;
@@ -351,7 +354,8 @@ async function verifyReviewedReleaseProjection(
   if (
     !personalization ||
     typeof personalization.name !== "string" ||
-    typeof personalization.firstOutcome !== "string"
+    typeof personalization.firstOutcome !== "string" ||
+    personalization.name !== expectedProductName
   ) {
     invalidManifest();
   }
