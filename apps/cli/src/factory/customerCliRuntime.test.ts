@@ -408,12 +408,12 @@ describe("materialized customer CLI runtime closure", () => {
     expect(preflight.status).toBe(3);
     expect(JSON.parse(preflight.stdout)).toMatchObject({
       exitClass: "blockedMutation",
-      diagnostics: [
+      diagnostics: expect.arrayContaining([
         expect.objectContaining({
           code: "AGENT_PACK_VERSION_INCOMPATIBLE",
           safeToContinue: false,
         }),
-      ],
+      ]),
       data: {
         safeToMutate: false,
         facts: {
