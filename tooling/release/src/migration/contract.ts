@@ -1,9 +1,5 @@
 export type MigrationVersionRelation =
-  | "immediate-prior"
-  | "unknown"
-  | "older"
-  | "skipped"
-  | "newer";
+  "immediate-prior" | "unknown" | "older" | "skipped" | "newer";
 
 export type MigrationCounts = {
   readonly scanned: number;
@@ -34,6 +30,8 @@ export type MigrationReceiptV1 = {
   readonly migrationFingerprint: string;
   readonly status: "completed";
   readonly completedAt: string;
+  readonly issuer: { readonly id: string; readonly keyId: string };
+  readonly replayIdentity: string;
   readonly authorization: {
     readonly approved: boolean;
     readonly evidenceRef: string;
@@ -48,6 +46,16 @@ export type MigrationReceiptV1 = {
     readonly id: string;
     readonly evidenceRef: string;
   }[];
+  readonly signature: {
+    readonly algorithm: "ed25519";
+    readonly value: string;
+  };
+};
+export type MigrationReceiptAuthorityV1 = {
+  readonly issuerId: string;
+  readonly keyId: string;
+  readonly publicKeyPem: string;
+  readonly consumedReplayIdentities: readonly string[];
 };
 
 export type MigrationPlanInputV1 = {
@@ -87,6 +95,7 @@ export type MigrationPlanInputV1 = {
     readonly recovery: MigrationRecoveryV1;
   };
   readonly receipt?: MigrationReceiptV1;
+  readonly receiptAuthority?: MigrationReceiptAuthorityV1;
 };
 
 export type MigrationBlockerCode =
@@ -103,7 +112,11 @@ export type MigrationBlockerCode =
   | "MIGRATION_RECEIPT_STALE"
   | "MIGRATION_RECEIPT_TAMPERED"
   | "MIGRATION_RECEIPT_UNAUTHORIZED"
-  | "MIGRATION_RECEIPT_EVIDENCE_MISSING";
+  | "MIGRATION_RECEIPT_EVIDENCE_MISSING"
+  | "MIGRATION_RECEIPT_AUTHORITY_REQUIRED"
+  | "MIGRATION_RECEIPT_ISSUER_UNTRUSTED"
+  | "MIGRATION_RECEIPT_SIGNATURE_INVALID"
+  | "MIGRATION_RECEIPT_REPLAYED";
 
 export type MigrationResolution = {
   readonly code: MigrationBlockerCode;

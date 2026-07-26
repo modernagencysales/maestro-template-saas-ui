@@ -1,9 +1,10 @@
-import { createHash } from "node:crypto";
+import { createHash, verify } from "node:crypto";
 import type {
   MigrationCounts,
   MigrationPlanInputV1,
   MigrationPlanResult,
   MigrationReceiptV1,
+  MigrationReceiptAuthorityV1,
   MigrationRecoveryV1,
   MigrationResolution,
   MigrationVersionRelation,
@@ -109,10 +110,13 @@ const readReceipt = (value: unknown): MigrationReceiptV1 | undefined => {
       "migrationFingerprint",
       "status",
       "completedAt",
+      "issuer",
+      "replayIdentity",
       "authorization",
       "previewCounts",
       "migrateCounts",
       "evidence",
+      "signature",
     ]) ||
     value.schemaVersion !== 1 ||
     !text(value.id) ||
@@ -121,6 +125,11 @@ const readReceipt = (value: unknown): MigrationReceiptV1 | undefined => {
     !digest(value.migrationFingerprint) ||
     value.status !== "completed" ||
     !timestamp(value.completedAt) ||
+    !isRecord(value.issuer) ||
+    !onlyKeys(value.issuer, ["id", "keyId"]) ||
+    !text(value.issuer.id) ||
+    !text(value.issuer.keyId) ||
+    !text(value.replayIdentity) ||
     !isRecord(value.authorization) ||
     !onlyKeys(value.authorization, ["approved", "evidenceRef"]) ||
     typeof value.authorization.approved !== "boolean" ||
@@ -130,7 +139,11 @@ const readReceipt = (value: unknown): MigrationReceiptV1 | undefined => {
     !count(value.migrateCounts.attempted) ||
     !count(value.migrateCounts.succeeded) ||
     !count(value.migrateCounts.failed) ||
-    !Array.isArray(value.evidence)
+    !Array.isArray(value.evidence) ||
+    !isRecord(value.signature) ||
+    !onlyKeys(value.signature, ["algorithm", "value"]) ||
+    value.signature.algorithm !== "ed25519" ||
+    !text(value.signature.value)
   ) {
     return undefined;
   }
@@ -159,6 +172,8 @@ const readReceipt = (value: unknown): MigrationReceiptV1 | undefined => {
     migrationFingerprint: value.migrationFingerprint,
     status: "completed",
     completedAt: value.completedAt,
+    issuer: { id: value.issuer.id, keyId: value.issuer.keyId },
+    replayIdentity: value.replayIdentity,
     authorization: {
       approved: value.authorization.approved,
       evidenceRef: value.authorization.evidenceRef,
@@ -170,6 +185,33 @@ const readReceipt = (value: unknown): MigrationReceiptV1 | undefined => {
       failed: value.migrateCounts.failed,
     },
     evidence: evidence as MigrationReceiptV1["evidence"],
+    signature: { algorithm: "ed25519", value: value.signature.value },
+  };
+};
+const readReceiptAuthority = (
+  value: unknown,
+): MigrationReceiptAuthorityV1 | undefined => {
+  if (
+    !isRecord(value) ||
+    !onlyKeys(value, [
+      "issuerId",
+      "keyId",
+      "publicKeyPem",
+      "consumedReplayIdentities",
+    ]) ||
+    !text(value.issuerId) ||
+    !text(value.keyId) ||
+    typeof value.publicKeyPem !== "string" ||
+    value.publicKeyPem.length === 0 ||
+    !Array.isArray(value.consumedReplayIdentities) ||
+    !value.consumedReplayIdentities.every(text)
+  )
+    return undefined;
+  return {
+    issuerId: value.issuerId,
+    keyId: value.keyId,
+    publicKeyPem: value.publicKeyPem,
+    consumedReplayIdentities: [...value.consumedReplayIdentities],
   };
 };
 
@@ -183,6 +225,7 @@ const parseInput = (value: unknown): MigrationPlanInputV1 | undefined => {
       "phases",
       "migration",
       "receipt",
+      "receiptAuthority",
     ]) ||
     value.schemaVersion !== 1 ||
     !isRecord(value.transition) ||
@@ -261,6 +304,10 @@ const parseInput = (value: unknown): MigrationPlanInputV1 | undefined => {
   );
   const receipt =
     value.receipt === undefined ? undefined : readReceipt(value.receipt);
+  const receiptAuthority =
+    value.receiptAuthority === undefined
+      ? undefined
+      : readReceiptAuthority(value.receiptAuthority);
   if (
     phases.some((phase) => phase === undefined) ||
     !previewCounts ||
@@ -268,7 +315,8 @@ const parseInput = (value: unknown): MigrationPlanInputV1 | undefined => {
     evidenceRequirements.some((requirement) => requirement === undefined) ||
     new Set(evidenceRequirements.map((requirement) => requirement?.id)).size !==
       evidenceRequirements.length ||
-    (value.receipt !== undefined && !receipt)
+    (value.receipt !== undefined && !receipt) ||
+    (value.receiptAuthority !== undefined && !receiptAuthority)
   ) {
     return undefined;
   }
@@ -305,6 +353,7 @@ const parseInput = (value: unknown): MigrationPlanInputV1 | undefined => {
       recovery,
     },
     ...(receipt ? { receipt } : {}),
+    ...(receiptAuthority ? { receiptAuthority } : {}),
   };
 };
 
@@ -317,6 +366,9 @@ const canonicalize = (value: unknown): unknown => {
       .map(([key, entry]) => [key, canonicalize(entry)]),
   );
 };
+export const migrationReceiptSigningPayload = (
+  receipt: Omit<MigrationReceiptV1, "signature">,
+): Buffer => Buffer.from(JSON.stringify(canonicalize(receipt)));
 const fingerprint = (value: unknown): string =>
   `sha256:${createHash("sha256")
     .update(JSON.stringify(canonicalize(value)))
@@ -420,6 +472,54 @@ const receiptResolutions = (
 ): readonly MigrationResolution[] => {
   const receipt = input.receipt;
   if (!receipt) return [];
+  const authority = input.receiptAuthority;
+  if (!authority)
+    return [
+      resolution(
+        "MIGRATION_RECEIPT_AUTHORITY_REQUIRED",
+        "Receipt has no trusted issuer and replay-consumption authority.",
+        "Bind the issuer public key and durable consumed-replay set from release authority.",
+      ),
+    ];
+  if (
+    receipt.issuer.id !== authority.issuerId ||
+    receipt.issuer.keyId !== authority.keyId
+  )
+    return [
+      resolution(
+        "MIGRATION_RECEIPT_ISSUER_UNTRUSTED",
+        "Receipt issuer is not the release-bound trusted issuer.",
+        "Use a receipt signed by the exact release-bound issuer key.",
+      ),
+    ];
+  if (authority.consumedReplayIdentities.includes(receipt.replayIdentity))
+    return [
+      resolution(
+        "MIGRATION_RECEIPT_REPLAYED",
+        "Receipt replay identity has already been durably consumed.",
+        "Produce a fresh authorized migration receipt with a unique replay identity.",
+      ),
+    ];
+  const { signature, ...unsignedReceipt } = receipt;
+  let signatureValid = false;
+  try {
+    signatureValid = verify(
+      null,
+      migrationReceiptSigningPayload(unsignedReceipt),
+      authority.publicKeyPem,
+      Buffer.from(signature.value, "base64"),
+    );
+  } catch {
+    signatureValid = false;
+  }
+  if (!signatureValid)
+    return [
+      resolution(
+        "MIGRATION_RECEIPT_SIGNATURE_INVALID",
+        "Receipt signature does not verify against release-bound authority.",
+        "Discard the receipt and obtain a correctly signed issuer receipt.",
+      ),
+    ];
   if (receipt.migrationFingerprint !== migrationFingerprint)
     return [
       resolution(
@@ -499,6 +599,7 @@ export const planMigrationHandoff = (
     ...input,
     migration: { ...input.migration, evidenceRequirements },
     receipt: undefined,
+    receiptAuthority: undefined,
   };
   const migrationFingerprint = fingerprint(fingerprintInput);
   const resolutions = [

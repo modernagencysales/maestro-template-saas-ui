@@ -1,10 +1,10 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import type {
-  MigrationPlanInputV1,
-  MigrationReceiptV1,
-} from "./contract.js";
-import { planMigrationHandoff } from "./plan.js";
+import type { MigrationPlanInputV1, MigrationReceiptV1 } from "./contract.js";
+import {
+  migrationReceiptSigningPayload,
+  planMigrationHandoff,
+} from "./plan.js";
 import { verifyMigrationHandoff } from "./verify.js";
 
 const fixture = (): MigrationPlanInputV1 =>
@@ -14,11 +14,20 @@ const fixture = (): MigrationPlanInputV1 =>
       "utf8",
     ),
   ) as MigrationPlanInputV1;
+const keys = generateKeyPairSync("ed25519");
+const receiptAuthority = {
+  issuerId: "test-release-issuer",
+  keyId: "test-key-1",
+  publicKeyPem: keys.publicKey
+    .export({ type: "spki", format: "pem" })
+    .toString(),
+  consumedReplayIdentities: [] as string[],
+};
 
 const receiptFor = (input: MigrationPlanInputV1): MigrationReceiptV1 => {
   const plan = planMigrationHandoff(input);
   if (!plan.ok) throw new Error("fixture must plan successfully");
-  return {
+  const unsigned: Omit<MigrationReceiptV1, "signature"> = {
     schemaVersion: 1,
     id: "receipt-backfill-workflow-graph-v2",
     transitionId: input.transition.id,
@@ -26,6 +35,8 @@ const receiptFor = (input: MigrationPlanInputV1): MigrationReceiptV1 => {
     migrationFingerprint: plan.migrationFingerprint,
     status: "completed",
     completedAt: "2026-08-04T00:00:00.000Z",
+    issuer: { id: receiptAuthority.issuerId, keyId: receiptAuthority.keyId },
+    replayIdentity: "replay-backfill-workflow-graph-v2",
     authorization: {
       approved: true,
       evidenceRef: "evidence/operator-approval",
@@ -36,6 +47,17 @@ const receiptFor = (input: MigrationPlanInputV1): MigrationReceiptV1 => {
       { id: "preview-counts", evidenceRef: "evidence/preview" },
       { id: "migration-verification", evidenceRef: "evidence/verification" },
     ],
+  };
+  return {
+    ...unsigned,
+    signature: {
+      algorithm: "ed25519",
+      value: sign(
+        null,
+        migrationReceiptSigningPayload(unsigned),
+        keys.privateKey,
+      ).toString("base64"),
+    },
   };
 };
 
@@ -98,7 +120,11 @@ describe("migration receipt verification bridge", () => {
       },
       migration: {
         expectedFingerprint: fingerprintFor(handoff),
-        handoff: { ...handoff, receipt: receiptFor(handoff) },
+        handoff: {
+          ...handoff,
+          receipt: receiptFor(handoff),
+          receiptAuthority,
+        },
       },
     };
     const before = JSON.stringify(candidate);
@@ -131,7 +157,11 @@ describe("migration receipt verification bridge", () => {
         },
         migration: {
           expectedFingerprint: `sha256:${"0".repeat(64)}`,
-          handoff: { ...handoff, receipt: receiptFor(handoff) },
+          handoff: {
+            ...handoff,
+            receipt: receiptFor(handoff),
+            receiptAuthority,
+          },
         },
       }),
     ).toEqual(["MIGRATION_VERIFY_FINGERPRINT_MISMATCH"]);
@@ -164,7 +194,11 @@ describe("migration receipt verification bridge", () => {
           ...base,
           migration: {
             ...base.migration,
-            handoff: { ...handoff, receipt: invalidReceipt },
+            handoff: {
+              ...handoff,
+              receipt: invalidReceipt,
+              receiptAuthority,
+            },
           },
         }),
       ).toEqual(["MIGRATION_VERIFY_HANDOFF_INVALID"]);
@@ -187,3 +221,4 @@ describe("migration receipt verification bridge", () => {
     ]);
   });
 });
+import { generateKeyPairSync, sign } from "node:crypto";
