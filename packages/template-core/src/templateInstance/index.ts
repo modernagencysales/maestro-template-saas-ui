@@ -143,6 +143,7 @@ export class TemplateInstanceSchemaError extends Error {
 
 export interface TemplateInstanceSchemaProvider {
   readonly schemaVersion: typeof TEMPLATE_INSTANCE_SCHEMA_VERSION;
+  readonly versions: typeof CURRENT_TEMPLATE_INSTANCE_VERSIONS;
   readonly provenance: typeof TEMPLATE_INSTANCE_PROVENANCE;
   readonly compatibility: typeof TEMPLATE_INSTANCE_COMPATIBILITY;
   readonly parse: (input: unknown) => TemplateInstance;
@@ -367,6 +368,7 @@ export const serializeTemplateInstance = (instance: TemplateInstance): string =>
 export const templateInstanceSchemaProvider: TemplateInstanceSchemaProvider =
   Object.freeze({
     schemaVersion: TEMPLATE_INSTANCE_SCHEMA_VERSION,
+    versions: CURRENT_TEMPLATE_INSTANCE_VERSIONS,
     provenance: TEMPLATE_INSTANCE_PROVENANCE,
     compatibility: TEMPLATE_INSTANCE_COMPATIBILITY,
     parse: parseTemplateInstance,
