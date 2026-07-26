@@ -10,7 +10,10 @@ import {
 } from "node:fs";
 import { dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
-import { buildCustomerOwnershipInventory } from "./release/src/customerTarget/ownership.js";
+import {
+  buildCustomerOwnershipInventory,
+  classifyCustomerSourcePath,
+} from "./release/src/customerTarget/ownership.js";
 
 type Json = null | boolean | number | string | Json[] | { [key: string]: Json };
 type Args = { version: string; sourceCommit: string; check: boolean };
@@ -66,8 +69,15 @@ function assertSource(args: Args): void {
   const tree = git(["ls-tree", "-rz", "--full-tree", "-r", args.sourceCommit]);
   for (const record of tree.toString("utf8").split("\0").filter(Boolean)) {
     const mode = record.slice(0, record.indexOf(" "));
-    if (mode === "120000")
-      throw new Error("Release source contains a symlink.");
+    const separator = record.indexOf("\t");
+    const path = separator < 0 ? "" : record.slice(separator + 1);
+    if (
+      mode === "120000" &&
+      classifyCustomerSourcePath(path)?.action !== "omit"
+    )
+      throw new Error(
+        `Materialized release source contains a symlink: ${path}`,
+      );
   }
 }
 
