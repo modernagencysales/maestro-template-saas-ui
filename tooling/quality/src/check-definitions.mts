@@ -442,7 +442,7 @@ const checkDescriptorDefinitions = {
       },
       {
         file: "tsconfig.type-coverage.json",
-        includes: ["include", "exclude"],
+        includes: ["include", "exclude", "tooling/agent-pack/evals/runs/**"],
         message: "type coverage must inspect real project files",
       },
       {

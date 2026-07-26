@@ -25,6 +25,7 @@
     "apps/**/dist/**",
     "packages/**/dist/**",
     "tooling/**/dist/**",
+    "tooling/agent-pack/evals/runs/**",
     "repos/**",
     "vendor/**",
     "test-results/**"

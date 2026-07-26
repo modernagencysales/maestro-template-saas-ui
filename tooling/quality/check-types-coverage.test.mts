@@ -19,7 +19,11 @@ describe("check:types-coverage", () => {
         }),
         expect.objectContaining({
           file: "tsconfig.type-coverage.json",
-          includes: expect.arrayContaining(["include", "exclude"]),
+          includes: expect.arrayContaining([
+            "include",
+            "exclude",
+            "tooling/agent-pack/evals/runs/**",
+          ]),
         }),
         expect.objectContaining({
           file: "docs/template/type-coverage-ratchet.md",
