@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "kind": "reviewed-upgrade-impact-coverage",
   "baseRevision": "517b5bc28d1d633bef18f57610cff49800123788",
-  "subjectRevision": "d14f983de46f9f06ef44177168fca24492abaa19",
+  "subjectRevision": "8e67bc8d502b2ddf67cf0f983451296da832df3b",
   "structuralPaths": [
     "docs/template/data-resources.json",
     "docs/template/generated/provenance/add-table/workflowArtifacts.json",
@@ -499,7 +499,7 @@
   "impact": {
     "schemaVersion": 1,
     "baseRevision": "517b5bc28d1d633bef18f57610cff49800123788",
-    "subjectRevision": "d14f983de46f9f06ef44177168fca24492abaa19",
+    "subjectRevision": "8e67bc8d502b2ddf67cf0f983451296da832df3b",
     "complete": true,
     "risk": "high",
     "changedPaths": [

@@ -9,8 +9,8 @@
   "release": {
     "version": "0.2.0-alpha.1",
     "tag": "maestro-template-v0.2.0-alpha.1",
-    "sourceCommit": "d14f983de46f9f06ef44177168fca24492abaa19",
-    "sourceChecksum": "sha256:76dec529076733fabcb4a09585a070201ca01e4c0c199b8469714a2285e4761a"
+    "sourceCommit": "8e67bc8d502b2ddf67cf0f983451296da832df3b",
+    "sourceChecksum": "sha256:157b475319b15498a17e176719a974a849a89b265a638f224ce20eefac15f857"
   },
   "upgrade": {
     "schemaVersion": 1,
@@ -408,14 +408,14 @@
         "kind": "add",
         "path": "docs/template/generated/provenance/add-workflow/publicationFixture.json",
         "ownership": "template-owned",
-        "afterHash": "sha256:174f60d82036d77edf1dc24cd7f94a309c500be3a362b0496b8f06ddc2adb14f"
+        "afterHash": "sha256:855c353237bff2f4614a9cedcf05646e31446ced9e39882007e592584d9fe78a"
       },
       {
         "id": "upgrade-add-docs-template-generated-workflow-publications-json",
         "kind": "add",
         "path": "docs/template/generated/workflow-publications.json",
         "ownership": "template-owned",
-        "afterHash": "sha256:8810fc3073b838b3c30bc02efd38651a2dfa864677290d57492f88944924c5b8"
+        "afterHash": "sha256:4d716011b7053c16226036b92a08f3ca9287c068820b32569be85eb5c80399ac"
       },
       {
         "id": "upgrade-modify-docs-template-generated-workflow-semantics-md",
@@ -1444,7 +1444,7 @@
         "kind": "add",
         "path": "packages/convex/confect/workflows/publicationFixture/v1.authority.ts",
         "ownership": "template-owned",
-        "afterHash": "sha256:811b48866c70f01a941a8e4c565bed8262620174071e570a02e96a9f1a10be64"
+        "afterHash": "sha256:2695efc8dad75d7654121a7d17f6c419f865b83ed7072f7f7f9ef09edaebd897"
       },
       {
         "id": "upgrade-add-packages-convex-confect-workflows-publicationFixture-v1-graph-ts",
@@ -1458,7 +1458,7 @@
         "kind": "add",
         "path": "packages/convex/confect/workflows/publicationFixture/v1.publication.json",
         "ownership": "template-owned",
-        "afterHash": "sha256:9b31e1a45e5ff926091744467d83319da4cd57d294d64961ed73bd922567ee37"
+        "afterHash": "sha256:f4ab28ddd91fcfd0ab36f68b914de75fab883440aadae50df4ca4550b7c90a6a"
       },
       {
         "id": "upgrade-add-packages-convex-confect-workflows-publicationFixture-v1-registry-ts",
@@ -1472,7 +1472,7 @@
         "kind": "add",
         "path": "packages/convex/confect/workflows/publicationFixture/v1.release.ts",
         "ownership": "template-owned",
-        "afterHash": "sha256:f25aa141671ab3ba6ad177c5fd211924888b007874e195087c5003b4d7db4da2"
+        "afterHash": "sha256:2ed6e4b88a9953037d85e54811eb4f243244b3ff8956cfef15ab7980855bc012"
       },
       {
         "id": "upgrade-add-packages-convex-confect-workflows-stageObservations-impl-ts",
@@ -3902,14 +3902,14 @@
   ],
   "blueprintManifest": {
     "path": "blueprints/saas-application.json",
-    "sha256": "sha256:66b381c15a821c441b24e1ae1fcda5f67e6b431930e4108b4fedb02b9fb8ed00"
+    "sha256": "sha256:04dda252a7c6b1008d3397c3e80598440ca0c714a79d3ab875a9ee6d1b4fd41b"
   },
   "upgradeImpact": {
     "path": "releases/v0.2.0-alpha.1/upgrade/app-map-input.json",
-    "sha256": "sha256:b42580161e3e03fbeb4f7edd7f57c3d1f9dbc6448b4e16d8cd0ff5968a941ac8",
+    "sha256": "sha256:9e20414600ac0aacc94334b9d37d937ccf59e965dee760680d2474ccd5560782",
     "projection": {
       "path": "releases/v0.2.0-alpha.1/upgrade/app-map-impact.json",
-      "sha256": "sha256:be533ddfd7029e18e7436d8de6e6c603bfd8cd8edac5a38417a2621064eb56e6"
+      "sha256": "sha256:b998ff05f5b4416c6ab46d0c936b3bf692caa6430b328db65adcdf42f5863bd3"
     }
   },
   "migrationHandoff": {
