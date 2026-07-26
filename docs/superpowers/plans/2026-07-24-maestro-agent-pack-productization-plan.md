@@ -4066,6 +4066,48 @@ The plan is complete only when all of the following are true:
 20. Full `just verify`, release readiness, deploy-authority self-protection, and
     host install/uninstall fixtures pass on the exact release commit.
 
+### 2026-07-25 implementation closure audit
+
+This audit separates repository closure from release authority. `repo-proven`
+means the implementation and focused deterministic evidence exist on this
+branch. It does not mean the canonical tag, hosted service, credentials, or
+human approval exists. `external` means no further repository implementation can
+honestly manufacture the missing proof. `runner` means the remaining failure is
+in the verification host rather than a failing product assertion.
+
+The candidate release is sealed at `186d9d895cb5d8d81aed9322372fe2c8db21e7e6`
+from exact clean source `c057e00fe2f894957fe50d7ae560942944e2f523`. The
+canonical immutable tag must still be created by release authority; it was not
+created during implementation.
+
+|   # | Status          | Closure evidence or remaining authority                                                                                                                                                                                                                                                                              |
+| --: | :-------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+|   1 | external        | The spec and compatibility ADR are implemented here; canonical merge into `maestro-template-saas-ui` remains release-owner work.                                                                                                                                                                                     |
+|   2 | repo-proven     | Compatibility manifests, migrations, pinned official skills, resolved source authority, and managed-file checksums are executable and sealed.                                                                                                                                                                        |
+|   3 | repo-proven     | `check:workflow-semantics` passes 107 rules and 82 graph fields; builder/compiler/fixture/repair linkage is gate-checked.                                                                                                                                                                                            |
+|   4 | repo-proven     | The workflow conformance suites cover kickoff, retry, policy, principal, scheduling, bounded work, lifecycle, versioning, payload, events, reconciliation, and cleanup.                                                                                                                                              |
+|   5 | repo-proven     | Generated validators, typed-builder boundaries, identity injection, and raw primitive allowlists are enforced by static and behavioral gates.                                                                                                                                                                        |
+|   6 | repo-proven     | Published graph, runner, runtime/source closure, completion, and capability bindings are immutable; scheduled children remain rejected for the pinned runtime.                                                                                                                                                       |
+|   7 | repo-proven     | Claude Code and Codex projections, root instruction inclusion, checksummed offline Convex AI files, and plugin-free base use are implemented. Twice-per-host native proof remains under conditions 14 and 19.                                                                                                        |
+|   8 | repo-proven     | Root ownership, fake-mode MCP refusal, dev-only inspect profiles, environment-tool denial, unknown-tool failure, and production refusal are covered.                                                                                                                                                                 |
+|   9 | external        | Disposable customer materialization passes 2/2 and factory exclusions are sealed. Literal tagged-release proof awaits the canonical immutable `maestro-template-v0.2.0-alpha.1` tag.                                                                                                                                 |
+|  10 | repo-proven     | Customer CLI projection exposes the novice verbs and advanced safe contracts; the resealed CLI suite passes 21 files and 130 tests.                                                                                                                                                                                  |
+|  11 | repo-proven     | The generic SaaS blueprint and customer-only composition produce the fake-safe CRUD target; generator tests pass 11 files and 111 tests.                                                                                                                                                                             |
+|  12 | repo-proven     | Three outcome recipes, minimum-primitive guidance, Convex coaching, and product-language presentation are covered by Agent Pack recipe/context tests.                                                                                                                                                                |
+|  13 | repo-proven     | Build Readiness is a non-customer operator surface with plain-language presentation and production exclusion checks.                                                                                                                                                                                                 |
+|  14 | external        | Two real clean runs for each of Claude Code and Codex require the first-class host binaries, fresh homes, and release-owner scheduling. Synthetic aggregate acceptance is not substituted for this proof.                                                                                                            |
+|  15 | repo-proven     | App Map provenance, comparison-base handling, impact, consequential diff, and ADR linkage are deterministic gated contracts.                                                                                                                                                                                         |
+|  16 | repo-proven     | Adoption preserves prior art and the one-prior-tag exact-hash upgrade/rollback boundary is tested; the release-tooling suite passes 32 files and 285 tests.                                                                                                                                                          |
+|  17 | mixed           | Evidence classes and deploy self-protection are implemented. A trusted migration issuer/key root, durable replay-consumption service, real Convex auth/deployment, and live environment verdicts remain external.                                                                                                    |
+|  18 | repo-proven     | MCP is a thin read-oriented CLI projection; mutation and Convex dev-power remain explicit local choices. Root projection and MCP posture checks pass.                                                                                                                                                                |
+|  19 | external        | The forward verifier and anti-forgery aggregate pass structurally, but full blind Claude Code and Codex runs twice per host remain required.                                                                                                                                                                         |
+|  20 | runner/external | `review:readiness` and `review:completion` pass on `186d9d89`; focused release, CLI, generator, workflow, secret, install, and seal gates pass. `just verify` still terminates inside Turbo native typecheck with host signal 139 after format/lint, and the canonical tag/live authority proofs remain outstanding. |
+
+The implementation branch is therefore ready for release-authority and
+first-class-host closure, but it is not a canonical release and must not be
+described as one. Presence audits are supporting inventory only; the focused
+behavioral results above are the repository evidence.
+
 ## Final Product Principle
 
 > Let the coding agent think. Give it the smallest amount of Maestro and Convex
