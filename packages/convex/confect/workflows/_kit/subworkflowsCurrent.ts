@@ -100,6 +100,15 @@ export type WorkflowV2BoundedBatchBinding = {
     envelope: WorkflowV2BoundedBatchEnvelope,
   ) => MappedChildArgs;
 };
+type WorkflowV2PublishedArgumentMapper =
+  WorkflowSubworkflowRuntimeBinding["argumentMapper"] & {
+    readonly selectItems?: unknown;
+    readonly mapBatchArgs?: unknown;
+  };
+type WorkflowV2PublishedRuntimeBinding = WorkflowSubworkflowRuntimeBinding & {
+  readonly argumentMapper: WorkflowV2PublishedArgumentMapper;
+  readonly boundedBatch?: WorkflowV2BoundedBatchBinding;
+};
 
 export type WorkflowV2SubworkflowDefinition<
   Args extends ChildWorkflowArgs,
@@ -271,6 +280,7 @@ export const defineWorkflowV2SubworkflowRegistry = <
     );
     published[key] = Object.freeze({
       ...definition,
+      ...(runtime.boundedBatch ? { boundedBatch: runtime.boundedBatch } : {}),
       version,
       ref: release.runner.ref as DurableGraphWorkflowRef<
         ChildWorkflowArgs,
@@ -343,8 +353,18 @@ const assertPublishedSubworkflowDefinition = (
   reference: string,
   definition: AnyWorkflowV2SubworkflowDefinition,
   release: WorkflowRelease,
-): WorkflowSubworkflowRuntimeBinding => {
-  const runtime = release.subworkflowRuntime;
+): WorkflowV2PublishedRuntimeBinding => {
+  const runtime = release.subworkflowRuntime as
+    WorkflowV2PublishedRuntimeBinding | undefined;
+  const publishedSelector = runtime?.argumentMapper.selectItems;
+  const publishedBatchMapper = runtime?.argumentMapper.mapBatchArgs;
+  const boundedBatchMatches =
+    definition.boundedBatch === undefined
+      ? publishedSelector === undefined && publishedBatchMapper === undefined
+      : typeof publishedSelector === "function" &&
+        typeof publishedBatchMapper === "function" &&
+        definition.boundedBatch.selectItems === publishedSelector &&
+        definition.boundedBatch.mapBatchArgs === publishedBatchMapper;
   if (
     runtime === undefined ||
     !sameRuntimeDescriptor(
@@ -356,7 +376,8 @@ const assertPublishedSubworkflowDefinition = (
       runtime.resultSchema,
     ) ||
     definition.mapArgs !== runtime.argumentMapper.mapArgs ||
-    definition.resultSchema !== runtime.resultSchema.schema
+    definition.resultSchema !== runtime.resultSchema.schema ||
+    !boundedBatchMatches
   ) {
     throw makePublicError(
       "VALIDATION_FAILED",
@@ -364,7 +385,19 @@ const assertPublishedSubworkflowDefinition = (
       { reference, workflowId: release.workflowId, version: release.version },
     );
   }
-  return runtime;
+  return {
+    ...runtime,
+    ...(definition.boundedBatch
+      ? {
+          boundedBatch: Object.freeze({
+            selectItems:
+              publishedSelector as WorkflowV2BoundedBatchBinding["selectItems"],
+            mapBatchArgs:
+              publishedBatchMapper as WorkflowV2BoundedBatchBinding["mapBatchArgs"],
+          }),
+        }
+      : {}),
+  };
 };
 
 const sameRuntimeDescriptor = (
@@ -521,13 +554,13 @@ export async function runRegisteredSubworkflow({
       reservedAt: ownership.occurredAt,
     },
   };
-  assertMappedArgsSize(node, childArgs);
   let childResult: unknown;
   let receipt: Extract<
     SubworkflowRunLinkOutcome,
     { kind: "succeeded" }
   >["receipt"];
   try {
+    assertMappedArgsSize(node, childArgs);
     const rawResult = await step.runWorkflow(entry.ref, childArgs, {
       name: node.stepName,
     });
@@ -671,6 +704,12 @@ const prepareBoundedSubworkflowBatch = (input: {
       "generated batch argument mapper rejected the input",
     );
   }
+  if (!isRecord(mappedArgs)) {
+    throw boundedBatchFailure(
+      input.node,
+      "generated batch argument mapper returned invalid args",
+    );
+  }
   if (
     hasReservedWorkflowIdentityField(mappedArgs) ||
     ["workflowRunId", "idempotencyKey", "policySnapshot", "subworkflow"].some(
@@ -727,7 +766,7 @@ export const runRegisteredBoundedSubworkflowBatch = async ({
       "generated item selector rejected the input",
     );
   }
-  if (!Array.isArray(source.items)) {
+  if (!isRecord(source) || !Array.isArray(source.items)) {
     throw boundedBatchFailure(
       node,
       "generated item selector returned an invalid source",
@@ -759,13 +798,15 @@ export const runRegisteredBoundedSubworkflowBatch = async ({
     );
   }
   if (planned.right.empty) {
-    return {
+    const result: BoundedSubworkflowBatchResult = {
       kind: "empty",
       itemCount: 0,
       batchCount: 0,
       waveCount: 0,
       batches: [],
     };
+    assertBoundedBatchResultBudget(node, result);
+    return result;
   }
   const prepared = new Map<
     number,
@@ -835,14 +876,49 @@ export const runRegisteredBoundedSubworkflowBatch = async ({
           (result as PromiseFulfilledResult<(typeof completed)[number]>).value,
       ),
     );
+    assertBoundedBatchResultBudget(node, {
+      kind: "completed",
+      itemCount: planned.right.itemCount,
+      batchCount: planned.right.batchCount,
+      waveCount: planned.right.waveCount,
+      batches: completed,
+    });
   }
-  return {
+  const result: BoundedSubworkflowBatchResult = {
     kind: "completed",
     itemCount: planned.right.itemCount,
     batchCount: planned.right.batchCount,
     waveCount: planned.right.waveCount,
     batches: completed,
   };
+  assertBoundedBatchResultBudget(node, result);
+  return result;
+};
+const assertBoundedBatchResultBudget = (
+  node: BoundedSubworkflowBatchNodeV2,
+  result: BoundedSubworkflowBatchResult,
+): void => {
+  const budget = Math.min(
+    node.payloadPolicy.maxResultBytes,
+    MAX_SUBWORKFLOW_RESULT_BYTES,
+  );
+  if (!Number.isSafeInteger(budget) || budget < 0) {
+    throw boundedBatchFailure(
+      node,
+      "aggregate result budget must be a nonnegative safe integer",
+    );
+  }
+  assertJsonSafe(
+    result,
+    `Bounded subworkflow batch ${node.id} returned invalid data.`,
+  );
+  const measuredBytes = getConvexSize(result);
+  if (measuredBytes > budget) {
+    throw boundedBatchFailure(
+      node,
+      `aggregate result uses ${measuredBytes} bytes above the ${budget} bytes limit`,
+    );
+  }
 };
 const boundedBatchFailure = (
   node: BoundedSubworkflowBatchNodeV2,
@@ -876,14 +952,17 @@ export const validateWorkflowV2SubworkflowTopology = (
     (node): node is ChildWorkflowNodeV2 =>
       node.kind === "subworkflow" || node.kind === "bounded-subworkflow-batch",
   );
-  let fanOut = roots.reduce(
+  let childStarts = roots.reduce(
     (total, node) =>
-      total + (node.kind === "bounded-subworkflow-batch" ? node.fanOut : 1),
+      total +
+      (node.kind === "bounded-subworkflow-batch"
+        ? Math.ceil(node.maxItems / node.batchSize)
+        : 1),
     0,
   );
-  if (fanOut > policy.maxFanOut) {
+  if (childStarts > policy.maxFanOut) {
     throw topologyFailure(
-      `declared child fan-out ${fanOut} exceeds limit ${policy.maxFanOut}`,
+      `declared child starts ${childStarts} exceed limit ${policy.maxFanOut}`,
     );
   }
   const visit = (reference: string, depth: number, path: readonly string[]) => {
@@ -903,8 +982,8 @@ export const validateWorkflowV2SubworkflowTopology = (
     }
     const nextPath = [...path, reference];
     for (const child of entry.children) {
-      fanOut += 1;
-      if (fanOut > policy.maxFanOut) {
+      childStarts += 1;
+      if (childStarts > policy.maxFanOut) {
         throw topologyFailure(
           `declared child fan-out exceeds limit ${policy.maxFanOut}`,
         );

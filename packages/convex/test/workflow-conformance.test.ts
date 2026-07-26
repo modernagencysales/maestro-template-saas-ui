@@ -36,7 +36,11 @@ import {
   type DurableGraphWorkflowRef,
   type WorkflowV2SubworkflowRegistryEntry,
 } from "../confect/workflows/_kit/subworkflows";
-import { validateWorkflowV2SubworkflowTopology } from "../confect/workflows/_kit/subworkflowsCurrent";
+import {
+  defineWorkflowV2SubworkflowRegistry as defineCurrentWorkflowV2SubworkflowRegistry,
+  validateWorkflowV2SubworkflowTopology,
+  type WorkflowV2BoundedBatchBinding,
+} from "../confect/workflows/_kit/subworkflowsCurrent";
 import {
   activateSubworkflowRunLinkState,
   buildSubworkflowRunLinkRow,
@@ -3294,6 +3298,10 @@ type ChildResult = { readonly receiptId: string };
 const childArgumentMapper = ({ inputs }: { readonly inputs: unknown }) => ({
   requestId: String((inputs as { requestId?: unknown }).requestId),
 });
+const publishedBatchBinding: WorkflowV2BoundedBatchBinding = {
+  selectItems: () => ({ items: ["published-item"] }),
+  mapBatchArgs: ({ batch }) => ({ requestId: batch.items.join(",") }),
+};
 const childHandlerRef =
   "workflowRunners/childReceipt/v3:run" as unknown as DurableGraphWorkflowRef<
     ChildArgs,
@@ -3366,6 +3374,7 @@ const publishedSubworkflowFixture = (
     readonly requestId: string;
   } = childArgumentMapper,
   resultSchema: Schema.Schema.AnyNoContext = childResultSchema,
+  boundedBatch?: WorkflowV2BoundedBatchBinding,
 ) => {
   const graphJson = JSON.stringify({
     id: workflowId,
@@ -3387,7 +3396,9 @@ const publishedSubworkflowFixture = (
     publicationSourceModule(graphModule, graphJson),
     publicationSourceModule(
       argumentMapperModule,
-      "export const mapArgs = 1;\n",
+      boundedBatch
+        ? "export const mapArgs = 1; export const selectItems = 1; export const mapBatchArgs = 1;\n"
+        : "export const mapArgs = 1;\n",
     ),
     publicationSourceModule(
       resultSchemaModule,
@@ -3420,6 +3431,7 @@ const publishedSubworkflowFixture = (
         exportName: "mapArgs",
         schemaName: `${workflowId}.v${version}.args`,
         mapArgs,
+        ...(boundedBatch ?? {}),
       },
       resultSchema: {
         module: resultSchemaModule,
@@ -4164,6 +4176,70 @@ const completedMutationStep = (name: string) => ({
   completedAt: Date.now(),
 });
 
+describe("bounded subworkflow publication binding", () => {
+  const boundedPublication = publishedSubworkflowFixture(
+    "workflow.childReceipt",
+    3,
+    childHandlerRef,
+    [],
+    childArgumentMapper,
+    childResultSchema,
+    publishedBatchBinding,
+  );
+  const boundedPublicationRegistry = definePublicationRegistry({
+    capabilities: [],
+    workflows: [boundedPublication.release],
+  });
+  const definition = {
+    ...childWorkflowDefinition(),
+    boundedBatch: publishedBatchBinding,
+  };
+
+  it("uses selector and mapper references from the immutable publication runtime", () => {
+    const registry = defineCurrentWorkflowV2SubworkflowRegistry(
+      boundedPublicationRegistry,
+      { [childWorkflowRef]: definition },
+    );
+    expect(registry[childWorkflowRef]?.boundedBatch?.selectItems).toBe(
+      publishedBatchBinding.selectItems,
+    );
+    expect(registry[childWorkflowRef]?.boundedBatch?.mapBatchArgs).toBe(
+      publishedBatchBinding.mapBatchArgs,
+    );
+  });
+
+  it.each([
+    {
+      name: "selector drift",
+      boundedBatch: {
+        ...publishedBatchBinding,
+        selectItems: () => ({ items: ["drifted"] }),
+      },
+    },
+    {
+      name: "mapper drift",
+      boundedBatch: {
+        ...publishedBatchBinding,
+        mapBatchArgs: () => ({ requestId: "drifted" }),
+      },
+    },
+  ])("rejects $name before registry publication", ({ boundedBatch }) => {
+    expect(() =>
+      defineCurrentWorkflowV2SubworkflowRegistry(boundedPublicationRegistry, {
+        [childWorkflowRef]: { ...definition, boundedBatch },
+      }),
+    ).toThrow(/immutable release/);
+  });
+
+  it("rejects a local bounded binding absent from the immutable release", () => {
+    expect(() =>
+      defineCurrentWorkflowV2SubworkflowRegistry(childPublicationRegistry, {
+        [childWorkflowRef]: definition,
+      }),
+    ).toThrow(/immutable release/);
+  });
+});
+
 describe("bounded subworkflow batch runtime", () => {
   const registryEntry = (items: readonly string[], stable = true) => ({
     ...childWorkflowEntry,
@@ -4252,6 +4328,50 @@ describe("bounded subworkflow batch runtime", () => {
     ).toBe(true);
   });
 
+  it("accepts the aggregate result boundary and rejects one byte over budget", async () => {
+    const aggregate = {
+      kind: "completed" as const,
+      itemCount: 1,
+      batchCount: 1,
+      waveCount: 1,
+      batches: [
+        {
+          waveOrdinal: 0,
+          batchOrdinal: 0,
+          itemOrdinals: [0],
+          result: { receiptId: "receipt-a" },
+        },
+      ],
+    };
+    const aggregateBytes = getConvexSize(aggregate);
+    const runWorkflow = vi.fn(async () => ({ receiptId: "receipt-a" }));
+    const inputForBudget = (maxResultBytes: number) => ({
+      ...v2Input(
+        v2BoundedBatchGraph({
+          maxItems: 1,
+          batchSize: 1,
+          fanOut: 1,
+          payloadPolicy: { ...payloadPolicy, maxResultBytes },
+        }),
+      ),
+      principal: childPrincipal,
+      workflowRegistry: { [childWorkflowRef]: registryEntry(["a"]) },
+      capabilityRegistry: {},
+      admitEffect: async () => ({ kind: "deny" as const, reason: "not used" }),
+    });
+    const atBoundary = await runDurableGraphWorkflowV2(
+      v2Step({ runWorkflow }),
+      inputForBudget(aggregateBytes),
+    );
+    expect(atBoundary.context.batch).toEqual(aggregate);
+    await expect(
+      runDurableGraphWorkflowV2(
+        v2Step({ runWorkflow }),
+        inputForBudget(aggregateBytes - 1),
+      ),
+    ).rejects.toThrow("Workflow bounded subworkflow batch rejected.");
+  });
+
   it("makes empty input explicit without reserving or dispatching", async () => {
     const runWorkflow = vi.fn(async () => ({ receiptId: "unreachable" }));
     const runMutation = vi.fn(async () => null);
@@ -4290,6 +4410,12 @@ describe("bounded subworkflow batch runtime", () => {
       { maxDepth: 4, maxFanOut: 2 },
     ],
     [
+      "total child starts despite serial fan-out",
+      v2BoundedBatchGraph({ maxItems: 8192, batchSize: 1, fanOut: 1 }),
+      registryEntry(["a"]),
+      { maxDepth: 4, maxFanOut: 8 },
+    ],
+    [
       "registry cycle",
       v2BoundedBatchGraph(),
       { ...registryEntry(["a", "b"]), children: [childWorkflowRef] },
@@ -4319,6 +4445,77 @@ describe("bounded subworkflow batch runtime", () => {
       expect(runWorkflow).not.toHaveBeenCalled();
     },
   );
+
+  it.each([
+    {
+      name: "null selector",
+      boundedBatch: {
+        selectItems: () => null as never,
+        mapBatchArgs: publishedBatchBinding.mapBatchArgs,
+      },
+    },
+    {
+      name: "null mapper",
+      boundedBatch: {
+        selectItems: () => ({ items: ["a"] }),
+        mapBatchArgs: () => null as never,
+      },
+    },
+  ])(
+    "rejects a typed $name without reserving or dispatching",
+    async ({ boundedBatch }) => {
+      const runWorkflow = vi.fn(async () => ({ receiptId: "unreachable" }));
+      const runMutation = vi.fn(async () => null);
+      await expect(
+        runDurableGraphWorkflowV2(v2Step({ runWorkflow, runMutation }), {
+          ...v2Input(v2BoundedBatchGraph()),
+          principal: childPrincipal,
+          workflowRegistry: {
+            [childWorkflowRef]: { ...childWorkflowEntry, boundedBatch },
+          },
+          capabilityRegistry: {},
+          admitEffect: async () => ({ kind: "deny", reason: "not used" }),
+        }),
+      ).rejects.toThrow("Workflow bounded subworkflow batch rejected.");
+      expect(runMutation).not.toHaveBeenCalled();
+      expect(runWorkflow).not.toHaveBeenCalled();
+    },
+  );
+
+  it("reconciles a reservation when exact final child args exceed the budget", async () => {
+    const outcomes: unknown[] = [];
+    const runWorkflow = vi.fn(async () => ({ receiptId: "unreachable" }));
+    const runMutation = vi.fn(async (ref, args: Record<string, unknown>) => {
+      if (ref === childLinkReserveRef) {
+        return {
+          linkId: "link-final-size",
+          childWorkflowRunId: "run-final-size",
+        };
+      }
+      if (ref === childLinkReconcileRef) outcomes.push(args.outcome);
+      return null;
+    });
+    await expect(
+      runDurableGraphWorkflowV2(v2Step({ runWorkflow, runMutation }), {
+        ...v2Input(
+          v2BoundedBatchGraph({
+            maxItems: 1,
+            batchSize: 1,
+            fanOut: 1,
+            payloadPolicy: { ...payloadPolicy, maxInputBytes: 64 },
+          }),
+        ),
+        principal: childPrincipal,
+        workflowRegistry: { [childWorkflowRef]: registryEntry(["a"]) },
+        capabilityRegistry: {},
+        admitEffect: async () => ({ kind: "deny", reason: "not used" }),
+      }),
+    ).rejects.toThrow(/mapped args use/);
+    expect(runWorkflow).not.toHaveBeenCalled();
+    expect(outcomes).toEqual([
+      { kind: "failed", error: "Child workflow failed." },
+    ]);
+  });
 
   it("size-checks batch args and reconciles cancellation", async () => {
     const oversized = {
