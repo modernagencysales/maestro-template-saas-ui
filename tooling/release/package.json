@@ -5,12 +5,17 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {
-    "./customer-create": "./src/customerTarget/createAdapter.ts"
+    "./customer-create": "./src/customerTarget/createAdapter.ts",
+    "./migration": "./src/migration/index.ts",
+    "./upgrade": "./src/upgrade/index.ts"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json --outDir dist --declaration",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@maestro-template/app-map-tooling": "workspace:*"
   },
   "devDependencies": {
     "ajv": "8.18.0"

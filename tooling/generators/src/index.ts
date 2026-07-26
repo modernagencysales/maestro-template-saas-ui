@@ -22,7 +22,7 @@ import {
   parseSystemCatalog,
   type SystemCatalog,
 } from "@maestro-template/template-core/systemCatalog";
-import { planUpgrade } from "../../release/src/upgrade/plan.js";
+import { planUpgrade } from "@maestro-template/release-tooling/upgrade";
 import { gtmImplementationBlueprint } from "./blueprints/gtmImplementation";
 import {
   buildSaasApplicationFiles,

@@ -284,7 +284,10 @@ const parseInput = (value: unknown): MigrationPlanInputV1 | undefined => {
       version: value.target.version,
       relation: value.target.relation as MigrationVersionRelation,
     },
-    phases: phases as MigrationPlanInputV1["phases"],
+    phases: [
+      phases[0] as MigrationPlanInputV1["phases"][0],
+      phases[1] as MigrationPlanInputV1["phases"][1],
+    ],
     migration: {
       id: value.migration.id,
       irreversible: value.migration.irreversible,
