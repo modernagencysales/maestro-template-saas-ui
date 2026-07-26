@@ -57,6 +57,13 @@ const stateRoot = (homeDir: string, host: HostName): string =>
     host === "claude-code" ? ".claude" : ".codex",
     ".maestro-projection",
   );
+const journal = async (
+  homeDir: string,
+  host: HostName,
+): Promise<Record<string, unknown>> =>
+  JSON.parse(
+    await readFile(join(stateRoot(homeDir, host), "journal.json"), "utf8"),
+  ) as Record<string, unknown>;
 
 afterEach(async () => {
   await Promise.all(
@@ -88,6 +95,18 @@ describe.each(["claude-code", "codex"] as const)(
         version: "1.0.0",
       });
       expect(receipt.files.length).toBeGreaterThan(0);
+      expect(await journal(homeDir, host)).toMatchObject({
+        status: "CLOSED",
+        closure: "committed",
+        host,
+        homeDir,
+        transactionId: receipt.transactionId,
+        transactionRoot: join(
+          stateRoot(homeDir, host),
+          "transactions",
+          receipt.transactionId,
+        ),
+      });
       expect(
         receipt.files.every(
           ({ sourceSha256, installedSha256 }) =>
@@ -308,6 +327,11 @@ describe.each(["claude-code", "codex"] as const)(
         }),
       ).rejects.toThrow("injected host projection failure");
       expect(await readFile(managedSkill(homeDir, host), "utf8")).toBe(before);
+      expect(await journal(homeDir, host)).toMatchObject({
+        status: "CLOSED",
+        closure: "recovered",
+        currentReceiptDigest: expect.stringMatching(/^[0-9a-f]{64}$/),
+      });
       const repeated = await installVersionedHostProjection({
         host,
         repoRoot: v1,
@@ -316,6 +340,52 @@ describe.each(["claude-code", "codex"] as const)(
       });
       expect(repeated).toEqual(first);
     });
+    it.each(["missing", "intermediate-symlink"] as const)(
+      "prevalidates an active %s backup before changing recovery targets",
+      async (mode) => {
+        const homeDir = await home(host);
+        const v1 = await sourceFixture(`v1-${mode}`);
+        const v2 = await sourceFixture(`v2-${mode}`);
+        const current = await installVersionedHostProjection({
+          host,
+          repoRoot: v1,
+          homeDir,
+          version: "1",
+        });
+        await expect(
+          installVersionedHostProjection({
+            host,
+            repoRoot: v2,
+            homeDir,
+            version: "2",
+            testFailAfterMutations: 2,
+            testLeaveInterrupted: true,
+          }),
+        ).rejects.toThrow("injected host projection failure");
+        const active = await journal(homeDir, host);
+        const backupRoot = active.backupRoot as string;
+        const before = await Promise.all(
+          current.files.map(
+            async (file) => [file.path, await readFile(file.path)] as const,
+          ),
+        );
+        if (mode === "missing") {
+          await rm(
+            join(backupRoot, relative(homeDir, managedSkill(homeDir, host))),
+          );
+        } else {
+          const outside = await mkdtemp(join(tmpdir(), "maestro-backup-link-"));
+          roots.push(outside);
+          await rm(backupRoot, { recursive: true });
+          await symlink(outside, backupRoot, "dir");
+        }
+        await expect(
+          recoverInterruptedHostProjection({ host, homeDir }),
+        ).rejects.toThrow(/backup|symlink|regular/);
+        for (const [path, bytes] of before)
+          expect(await readFile(path)).toEqual(bytes);
+      },
+    );
 
     it("recovers rollback failure at delete and restore boundaries", async () => {
       const homeDir = await home(host);

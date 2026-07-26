@@ -47,14 +47,21 @@ type Planned = {
 
 type JournalUnsigned = {
   readonly schemaVersion: 1;
+  readonly status: "ACTIVE" | "CLOSED";
+  readonly closure: "committed" | "recovered" | null;
   readonly kind: "install" | "rollback";
   readonly host: HostName;
   readonly homeDir: string;
   readonly transactionId: string;
+  readonly transactionRoot: string;
   readonly backupRoot: string;
-  readonly currentReceiptDigest?: string;
+  readonly currentReceiptDigest: string | null;
   readonly previous?: HostProjectionReceiptV1;
-  readonly plannedPaths: readonly string[];
+  readonly plannedFiles: readonly {
+    readonly path: string;
+    readonly sha256: string | null;
+    readonly beforeSha256: string | null;
+  }[];
 };
 type Journal = JournalUnsigned & { readonly journalDigest: string };
 
@@ -65,6 +72,7 @@ export async function installVersionedHostProjection(input: {
   readonly version: string;
   readonly modifiedManagedFileResolution?: "backup-and-replace";
   readonly testFailAfterMutations?: number;
+  readonly testLeaveInterrupted?: boolean;
 }): Promise<HostProjectionReceiptV1> {
   await assertDisposableHome(input.homeDir, input.host);
   await recoverInterruptedHostProjection(input);
@@ -183,14 +191,30 @@ export async function installVersionedHostProjection(input: {
     await writeJson(join(transactionRoot, "previous.json"), previous);
   const journal = sealJournal({
     schemaVersion: 1,
+    status: "ACTIVE",
+    closure: null,
     kind: "install",
     host: input.host,
     homeDir: resolve(input.homeDir),
     transactionId,
+    transactionRoot,
     backupRoot,
-    ...(previous ? { currentReceiptDigest: receiptDigest(previous) } : {}),
+    currentReceiptDigest: previous ? receiptDigest(previous) : null,
     ...(previous ? { previous } : {}),
-    plannedPaths: planned.map(({ target }) => target),
+    plannedFiles: await Promise.all(
+      [
+        ...new Set([
+          ...planned.map(({ target }) => target),
+          ...(previous?.files.map(({ path }) => path) ?? []),
+        ]),
+      ].map(async (path) => ({
+        path,
+        sha256:
+          planned.find(({ target }) => resolve(target) === resolve(path))
+            ?.sourceSha256 ?? null,
+        beforeSha256: await optionalDigest(path),
+      })),
+    ),
   });
   const journalPath = statePath(input.homeDir, input.host, "journal.json");
   await writeJson(journalPath, journal);
@@ -219,7 +243,8 @@ export async function installVersionedHostProjection(input: {
         throw new Error("injected host projection failure");
     }
   } catch (error) {
-    await recoverInterruptedHostProjection(input);
+    if (!input.testLeaveInterrupted)
+      await recoverInterruptedHostProjection(input);
     throw error;
   }
   const receipt: HostProjectionReceiptV1 = {
@@ -238,14 +263,17 @@ export async function installVersionedHostProjection(input: {
   };
   await writeJson(receiptPath, receipt);
   await replaceCurrentStore(receipt);
-  await rm(journalPath, { force: true });
   await rm(stageRoot, { recursive: true, force: true });
+  await closeJournal(journalPath, journal, "committed", receipt);
   return receipt;
 }
 
 export async function rollbackHostProjection(
   receipt: HostProjectionReceiptV1,
-  options?: { readonly testFailAfterMutations?: number },
+  options?: {
+    readonly testFailAfterMutations?: number;
+    readonly testLeaveInterrupted?: boolean;
+  },
 ): Promise<HostProjectionReceiptV1> {
   await assertDisposableHome(receipt.homeDir, receipt.host);
   await recoverInterruptedHostProjection(receipt);
@@ -332,16 +360,29 @@ export async function rollbackHostProjection(
   }
   const journal = sealJournal({
     schemaVersion: 1,
+    status: "ACTIVE",
+    closure: null,
     kind: "rollback",
     host: receipt.host,
     homeDir: resolve(receipt.homeDir),
     transactionId,
+    transactionRoot,
     backupRoot,
     currentReceiptDigest: receiptDigest(current),
     previous: current,
-    plannedPaths: [
-      ...new Set([...current.files, ...previous.files].map(({ path }) => path)),
-    ],
+    plannedFiles: await Promise.all(
+      [
+        ...new Set(
+          [...current.files, ...previous.files].map(({ path }) => path),
+        ),
+      ].map(async (path) => ({
+        path,
+        sha256:
+          previous.files.find((file) => resolve(file.path) === resolve(path))
+            ?.installedSha256 ?? null,
+        beforeSha256: await optionalDigest(path),
+      })),
+    ),
   });
   const journalPath = statePath(receipt.homeDir, receipt.host, "journal.json");
   await writeJson(journalPath, journal);
@@ -370,13 +411,14 @@ export async function rollbackHostProjection(
         throw new Error("injected host rollback failure");
     }
   } catch (error) {
-    await recoverInterruptedHostProjection(receipt);
+    if (!options?.testLeaveInterrupted)
+      await recoverInterruptedHostProjection(receipt);
     throw error;
   }
   await writeJson(receiptPath, previous);
   await replaceCurrentStore(previous);
-  await rm(journalPath, { force: true });
   await rm(stageRoot, { recursive: true, force: true });
+  await closeJournal(journalPath, journal, "committed", previous);
   return previous;
 }
 
@@ -387,8 +429,13 @@ export async function removeVersionedHostProjection(
   readonly preserved: readonly string[];
 }> {
   await assertDisposableHome(receipt.homeDir, receipt.host);
-  await recoverInterruptedHostProjection(receipt);
   const receiptPath = statePath(receipt.homeDir, receipt.host, "receipt.json");
+  const persisted = await readReceipt(receiptPath);
+  if (!persisted || receiptDigest(persisted) !== receiptDigest(receipt))
+    throw new Error("remove receipt does not match persisted authority");
+  for (const file of receipt.files)
+    await assertManagedSkillTarget(receipt.homeDir, receipt.host, file.path);
+  await recoverInterruptedHostProjection(receipt);
   const authoritative = await readReceipt(receiptPath);
   if (!authoritative || receiptDigest(authoritative) !== receiptDigest(receipt))
     throw new Error("remove receipt does not match persisted authority");
@@ -402,7 +449,21 @@ export async function removeVersionedHostProjection(
       removed.push(file.path);
     } else preserved.push(file.path);
   }
-  if (preserved.length === 0) await rm(receiptPath, { force: true });
+  if (preserved.length === 0) {
+    await rm(receiptPath, { force: true });
+    await rm(statePath(receipt.homeDir, receipt.host, "current"), {
+      recursive: true,
+      force: true,
+    });
+    const journalPath = statePath(
+      receipt.homeDir,
+      receipt.host,
+      "journal.json",
+    );
+    const journal = await readJournal(journalPath);
+    if (journal)
+      await closeJournal(journalPath, journal, "committed", undefined);
+  }
   return { removed: removed.sort(), preserved: preserved.sort() };
 }
 
@@ -415,11 +476,11 @@ export async function recoverInterruptedHostProjection(input: {
   await assertSafeTarget(input.homeDir, journalPath);
   const journal = await readJournal(journalPath);
   if (!journal) return;
-  if (journal.host !== input.host || journal.homeDir !== resolve(input.homeDir))
-    throw new Error("host projection journal authority mismatch");
+  assertJournalAuthority(journal, input);
   const transactionsRoot = statePath(input.homeDir, input.host, "transactions");
   const expectedTransactionRoot = join(transactionsRoot, journal.transactionId);
   if (
+    resolve(journal.transactionRoot) !== resolve(expectedTransactionRoot) ||
     resolve(journal.backupRoot) !== resolve(expectedTransactionRoot, "backup")
   )
     throw new Error("host projection journal transaction path mismatch");
@@ -433,51 +494,157 @@ export async function recoverInterruptedHostProjection(input: {
     backupRelative.startsWith("../")
   )
     throw new Error("host projection journal backup escapes transaction state");
+  await assertSymlinkFreePath(
+    input.homeDir,
+    journal.transactionRoot,
+    "directory",
+  );
+  await assertSymlinkFreePath(input.homeDir, journal.backupRoot, "directory");
   const receiptPath = statePath(input.homeDir, input.host, "receipt.json");
   const authoritative = await readReceipt(receiptPath);
+  if (journal.status === "CLOSED") {
+    await validateClosedJournal(journal, authoritative);
+    return;
+  }
+  if (
+    journal.currentReceiptDigest !==
+    (journal.previous ? receiptDigest(journal.previous) : null)
+  )
+    throw new Error("host projection journal receipt binding mismatch");
+
+  await prevalidateActiveRecovery(journal, authoritative);
   if (
     authoritative &&
     (!journal.previous ||
       receiptDigest(authoritative) !== receiptDigest(journal.previous))
   ) {
-    for (const file of authoritative.files)
-      await assertManagedSkillTarget(input.homeDir, input.host, file.path);
-    if (!(await allReceiptFilesMatch(authoritative)))
-      throw new Error("committed host projection receipt does not match files");
     await replaceCurrentStore(authoritative);
-    await rm(journalPath, { force: true });
+    await closeJournal(journalPath, journal, "recovered", authoritative);
     return;
   }
-  for (const path of journal.plannedPaths) {
-    await assertManagedSkillTarget(input.homeDir, input.host, path);
-    await rm(path, { force: true });
+  for (const file of journal.plannedFiles) {
+    await rm(file.path, { force: true });
   }
   if (journal.previous) {
-    if (
-      !authoritative ||
-      journal.currentReceiptDigest !== receiptDigest(authoritative) ||
-      receiptDigest(journal.previous) !== receiptDigest(authoritative)
-    )
-      throw new Error("host projection journal receipt binding mismatch");
     for (const file of journal.previous.files) {
-      await assertManagedSkillTarget(input.homeDir, input.host, file.path);
       const backup = join(
         journal.backupRoot,
         relative(resolve(input.homeDir), file.path),
       );
       const bytes = await readRegularFile(backup);
-      if (digest(bytes) !== file.installedSha256)
-        throw new Error("host projection recovery backup checksum mismatch");
       await mkdir(dirname(file.path), { recursive: true });
       await writeFile(file.path, bytes);
     }
     await writeJson(receiptPath, journal.previous);
     await replaceCurrentStore(journal.previous);
   } else {
+    await rm(receiptPath, { force: true });
+  }
+  await closeJournal(journalPath, journal, "recovered", journal.previous);
+}
+
+function assertJournalAuthority(
+  journal: Journal,
+  input: { readonly host: HostName; readonly homeDir: string },
+): void {
+  if (journal.host !== input.host || journal.homeDir !== resolve(input.homeDir))
+    throw new Error("host projection journal authority mismatch");
+}
+
+async function prevalidateActiveRecovery(
+  journal: Journal,
+  authoritative: HostProjectionReceiptV1 | undefined,
+): Promise<void> {
+  const previousDigest = journal.previous
+    ? receiptDigest(journal.previous)
+    : undefined;
+  if (journal.previous) {
+    if (!authoritative)
+      throw new Error("host projection journal receipt binding mismatch");
+  } else if (authoritative?.transactionId !== journal.transactionId) {
     if (authoritative)
       throw new Error("clean-install journal conflicts with persisted receipt");
   }
-  await rm(journalPath, { force: true });
+  if (
+    authoritative &&
+    receiptDigest(authoritative) !== previousDigest &&
+    authoritative.transactionId !== journal.transactionId
+  )
+    throw new Error("committed host projection receipt transaction mismatch");
+
+  for (const file of journal.plannedFiles) {
+    await assertManagedSkillTarget(journal.homeDir, journal.host, file.path);
+    const actual = await optionalDigest(file.path);
+    if (
+      actual !== null &&
+      actual !== file.beforeSha256 &&
+      actual !== file.sha256
+    )
+      throw new Error("host projection recovery target checksum mismatch");
+    const staged = join(
+      journal.transactionRoot,
+      "stage",
+      relative(resolve(journal.homeDir), file.path),
+    );
+    await assertSymlinkFreePath(journal.homeDir, staged);
+    const stagedDigest = await optionalDigest(staged);
+    if (stagedDigest !== null && stagedDigest !== file.sha256)
+      throw new Error("host projection recovery stage checksum mismatch");
+  }
+  if (journal.previous) {
+    await validateProjectionStore(journal.previous);
+    for (const file of journal.previous.files) {
+      const backup = join(
+        journal.backupRoot,
+        relative(resolve(journal.homeDir), file.path),
+      );
+      await assertSymlinkFreePath(journal.homeDir, backup, "file");
+      const bytes = await readRegularFile(backup);
+      if (digest(bytes) !== file.installedSha256)
+        throw new Error("host projection recovery backup checksum mismatch");
+    }
+  }
+  if (authoritative && receiptDigest(authoritative) !== previousDigest) {
+    for (const file of authoritative.files)
+      await assertManagedSkillTarget(journal.homeDir, journal.host, file.path);
+    if (!(await allReceiptFilesMatch(authoritative)))
+      throw new Error("committed host projection receipt does not match files");
+  }
+}
+
+async function validateClosedJournal(
+  journal: Journal,
+  authoritative: HostProjectionReceiptV1 | undefined,
+): Promise<void> {
+  const actualDigest = authoritative ? receiptDigest(authoritative) : null;
+  if (journal.closure === null || journal.currentReceiptDigest !== actualDigest)
+    throw new Error("closed host projection journal receipt binding mismatch");
+  if (authoritative) {
+    if (
+      authoritative.host !== journal.host ||
+      authoritative.homeDir !== journal.homeDir
+    )
+      throw new Error("closed host projection journal authority mismatch");
+  }
+}
+
+async function closeJournal(
+  path: string,
+  journal: Journal,
+  closure: "committed" | "recovered",
+  receipt: HostProjectionReceiptV1 | undefined,
+): Promise<void> {
+  const { journalDigest: _discardedDigest, ...unsigned } = journal;
+  void _discardedDigest;
+  await writeJson(
+    path,
+    sealJournal({
+      ...unsigned,
+      status: "CLOSED",
+      closure,
+      currentReceiptDigest: receipt ? receiptDigest(receipt) : null,
+    }),
+  );
 }
 
 async function plan(input: {
@@ -560,6 +727,37 @@ async function assertSafeTarget(
     }
   }
 }
+async function assertSymlinkFreePath(
+  homeDir: string,
+  target: string,
+  expected?: "file" | "directory",
+): Promise<void> {
+  const home = resolve(homeDir);
+  const targetPath = resolve(target);
+  const rel = relative(home, targetPath);
+  if (rel === "" || rel === ".." || rel.startsWith("../"))
+    throw new Error("host projection target escapes disposable home");
+  let current = home;
+  for (const part of rel.split(/[\\/]/u)) {
+    current = join(current, part);
+    try {
+      const entry = await lstat(current);
+      if (entry.isSymbolicLink())
+        throw new Error(`host projection traverses symlink: ${current}`);
+      if (current === targetPath && expected === "file" && !entry.isFile())
+        throw new Error("host projection target is not a regular file");
+      if (
+        current === targetPath &&
+        expected === "directory" &&
+        !entry.isDirectory()
+      )
+        throw new Error("host projection target is not a directory");
+    } catch (error) {
+      if (code(error) === "ENOENT") return;
+      throw error;
+    }
+  }
+}
 
 function managedSkillRoot(homeDir: string, host: HostName): string {
   return join(
@@ -609,6 +807,25 @@ async function allReceiptFilesMatch(
       return false;
   }
   return true;
+}
+async function optionalDigest(path: string): Promise<string | null> {
+  const bytes = await optionalRead(path);
+  return bytes === undefined ? null : digest(bytes);
+}
+async function validateProjectionStore(
+  receipt: HostProjectionReceiptV1,
+): Promise<void> {
+  for (const file of receipt.files) {
+    const path = statePath(
+      receipt.homeDir,
+      receipt.host,
+      join("current", relative(resolve(receipt.homeDir), file.path)),
+    );
+    await assertSymlinkFreePath(receipt.homeDir, path, "file");
+    const bytes = await readRegularFile(path);
+    if (digest(bytes) !== file.installedSha256)
+      throw new Error("stored host projection checksum mismatch");
+  }
 }
 
 async function replaceCurrentStore(
@@ -704,26 +921,43 @@ async function readJournal(path: string): Promise<Journal | undefined> {
     !isRecord(candidate) ||
     !onlyKeys(candidate, [
       "schemaVersion",
+      "status",
+      "closure",
       "kind",
       "host",
       "homeDir",
       "transactionId",
+      "transactionRoot",
       "backupRoot",
       "currentReceiptDigest",
       "previous",
-      "plannedPaths",
+      "plannedFiles",
       "journalDigest",
     ]) ||
     candidate.schemaVersion !== 1 ||
+    (candidate.status !== "ACTIVE" && candidate.status !== "CLOSED") ||
+    (candidate.closure !== null &&
+      candidate.closure !== "committed" &&
+      candidate.closure !== "recovered") ||
+    (candidate.status === "ACTIVE" && candidate.closure !== null) ||
+    (candidate.status === "CLOSED" && candidate.closure === null) ||
     (candidate.kind !== "install" && candidate.kind !== "rollback") ||
     (candidate.host !== "claude-code" && candidate.host !== "codex") ||
     typeof candidate.homeDir !== "string" ||
     !transactionIdentifier(candidate.transactionId) ||
+    typeof candidate.transactionRoot !== "string" ||
     typeof candidate.backupRoot !== "string" ||
-    (candidate.currentReceiptDigest !== undefined &&
+    (candidate.currentReceiptDigest !== null &&
       !checksum(candidate.currentReceiptDigest)) ||
-    !Array.isArray(candidate.plannedPaths) ||
-    !candidate.plannedPaths.every((path) => typeof path === "string") ||
+    !Array.isArray(candidate.plannedFiles) ||
+    !candidate.plannedFiles.every(
+      (file) =>
+        isRecord(file) &&
+        onlyKeys(file, ["path", "sha256", "beforeSha256"]) &&
+        typeof file.path === "string" &&
+        (file.sha256 === null || checksum(file.sha256)) &&
+        (file.beforeSha256 === null || checksum(file.beforeSha256)),
+    ) ||
     !checksum(candidate.journalDigest)
   )
     throw new Error("host projection journal is invalid");
@@ -733,16 +967,23 @@ async function readJournal(path: string): Promise<Journal | undefined> {
       : parseReceipt(candidate.previous);
   const unsigned: JournalUnsigned = {
     schemaVersion: 1,
+    status: candidate.status,
+    closure: candidate.closure,
     kind: candidate.kind,
     host: candidate.host,
     homeDir: candidate.homeDir,
     transactionId: candidate.transactionId,
+    transactionRoot: candidate.transactionRoot,
     backupRoot: candidate.backupRoot,
-    ...(candidate.currentReceiptDigest
-      ? { currentReceiptDigest: candidate.currentReceiptDigest }
-      : {}),
+    currentReceiptDigest: candidate.currentReceiptDigest,
     ...(previous ? { previous } : {}),
-    plannedPaths: candidate.plannedPaths,
+    plannedFiles: (
+      candidate.plannedFiles as Array<Record<string, unknown>>
+    ).map((file) => ({
+      path: file.path as string,
+      sha256: file.sha256 as string | null,
+      beforeSha256: file.beforeSha256 as string | null,
+    })),
   };
   if (digestJson(unsigned) !== candidate.journalDigest)
     throw new Error("host projection journal digest mismatch");
