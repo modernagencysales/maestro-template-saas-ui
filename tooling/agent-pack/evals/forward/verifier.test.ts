@@ -14,14 +14,6 @@ import {
 } from "./verifier.js";
 
 const candidateSha = "a".repeat(40);
-const sourceCommit = "8a4420f2463bb01c59ff8a3793cd2008cbba6078";
-const release = {
-  version: "0.2.0-alpha.1",
-  tag: "maestro-template-v0.2.0-alpha.1",
-  sourceCommit,
-  sourceChecksum:
-    "sha256:7ad8b8f64ec9d6c340533b89a0348d704149de7de05919ae45084a5f3a543754",
-} as const;
 const commandResult = { exitCode: 0, stdout: "ok", stderr: "" };
 
 describe("greenfield tagged customer artifact verification", () => {
@@ -59,7 +51,10 @@ describe("greenfield tagged customer artifact verification", () => {
       "release binding drift",
       async (fixture: Awaited<ReturnType<typeof greenfieldFixture>>) => {
         await fixture.rewriteInstance({
-          release: { ...release, tag: "maestro-template-v0.2.0-alpha.1-moved" },
+          release: {
+            ...fixture.release,
+            tag: "maestro-template-v0.2.0-alpha.1-moved",
+          },
         });
       },
     ],
@@ -115,6 +110,10 @@ async function greenfieldFixture() {
     readFile(join(repositoryRoot, baseManifestPath), "utf8"),
     readFile(join(repositoryRoot, manifestPath), "utf8"),
   ]);
+  const manifest = JSON.parse(manifestBytes) as {
+    readonly release: Record<string, unknown>;
+  };
+  const release = manifest.release;
   const instancePath = `${target}/template-instance.json`;
   let instance: Record<string, unknown> = {
     schemaVersion: 1,
@@ -144,6 +143,7 @@ async function greenfieldFixture() {
     workspace,
     target,
     manifestPath,
+    release,
     get artifactPath() {
       return artifactPath;
     },
