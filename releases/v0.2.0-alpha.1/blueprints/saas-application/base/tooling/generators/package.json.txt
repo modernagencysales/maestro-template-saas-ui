@@ -15,6 +15,6 @@
     "cli": "tsx src/customer-cli.ts",
     "build": "tsc -p tsconfig.json --outDir dist --declaration",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest run --passWithNoTests"
+    "test": "vitest run --passWithNoTests --maxWorkers=1 --no-file-parallelism"
   }
 }
