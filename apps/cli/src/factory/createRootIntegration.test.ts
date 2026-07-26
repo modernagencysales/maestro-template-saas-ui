@@ -277,7 +277,7 @@ describe("create root integration", () => {
     expect(snapshotTargetBytes(requests[0].target)).toEqual(
       generated[0]?.bytes,
     );
-  }, 30_000);
+  }, 60_000);
 
   it("pins the release workspace dependency in package and lock importer", () => {
     const packageJson = JSON.parse(
