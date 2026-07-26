@@ -354,6 +354,49 @@ describe("existing-app adoption core", () => {
       });
   });
 
+  it("rejects overlapping decisions and in-place boundary escapes", () => {
+    const separate = fixture("separate-target");
+    expect(
+      previewAdoptionWorkPackage({
+        ...separate,
+        decisions: [
+          ...separate.decisions,
+          {
+            path: "src/customer.ts/nested",
+            disposition: "port" as const,
+            rationale: "Conflicts with its reviewed parent path.",
+          },
+        ],
+      }),
+    ).toMatchObject({
+      ok: false,
+      findings: expect.arrayContaining([
+        expect.objectContaining({ code: "ADOPTION_DISPOSITION_OVERLAP" }),
+      ]),
+    });
+
+    const inPlace = fixture("in-place");
+    expect(
+      previewAdoptionWorkPackage({
+        ...inPlace,
+        decisions: [
+          {
+            path: "packages/outside.ts",
+            disposition: "replace" as const,
+            rationale: "Attempts to escape the editable boundary.",
+          },
+        ],
+      }),
+    ).toMatchObject({
+      ok: false,
+      findings: expect.arrayContaining([
+        expect.objectContaining({
+          code: "ADOPTION_EDITABLE_BOUNDARY_VIOLATION",
+        }),
+      ]),
+    });
+  });
+
   it("renders identical bytes without locale-sensitive ordering and does not mutate", () => {
     const input = fixture("separate-target");
     const before = structuredClone(input);

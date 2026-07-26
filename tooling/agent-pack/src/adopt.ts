@@ -118,6 +118,18 @@ const contains = (parent: string, child: string): boolean => {
 const overlaps = (left: string, right: string): boolean =>
   left === right || contains(left, right) || contains(right, left);
 
+const relativeContains = (parent: string, child: string): boolean =>
+  child === parent || child.startsWith(`${parent}/`);
+const hasPathOverlap = (paths: readonly string[]): boolean =>
+  paths.some((path, index) =>
+    paths.some(
+      (candidate, candidateIndex) =>
+        index !== candidateIndex &&
+        (relativeContains(path, candidate) ||
+          relativeContains(candidate, path)),
+    ),
+  );
+
 const validPath = (path: string): boolean =>
   text(path) &&
   path === path.trim() &&
@@ -478,7 +490,8 @@ const packageFindings = (input: AdoptionWorkPackage): AdoptionFinding[] => {
     );
   if (
     input.editableBoundaries.some((value) => !validPath(value)) ||
-    !unique(input.editableBoundaries)
+    !unique(input.editableBoundaries) ||
+    hasPathOverlap(input.editableBoundaries)
   )
     findings.push(
       finding(
@@ -541,6 +554,31 @@ const packageFindings = (input: AdoptionWorkPackage): AdoptionFinding[] => {
         "ADOPTION_DISPOSITION_INVALID",
         "A caller-supplied preserve/port/replace/delete decision is missing or invalid.",
         "Supply each path, disposition, and rationale explicitly; the tool will not infer them.",
+      ),
+    );
+  const decisionPaths = input.decisions.map(({ path }) => path);
+  if (!unique(decisionPaths) || hasPathOverlap(decisionPaths))
+    findings.push(
+      finding(
+        "ADOPTION_DISPOSITION_OVERLAP",
+        "Adoption decisions contain duplicate or ancestor/descendant paths.",
+        "Use disjoint exact paths so no preserve, port, replace, or delete operation can overlap another.",
+      ),
+    );
+  if (
+    input.mode === "in-place" &&
+    decisionPaths.some(
+      (path) =>
+        !input.editableBoundaries.some((boundary) =>
+          relativeContains(boundary, path),
+        ),
+    )
+  )
+    findings.push(
+      finding(
+        "ADOPTION_EDITABLE_BOUNDARY_VIOLATION",
+        "An in-place adoption decision is outside every reviewed editable boundary.",
+        "Move the decision under one exact editable boundary or use a separate target.",
       ),
     );
   if (

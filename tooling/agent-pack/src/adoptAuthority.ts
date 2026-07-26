@@ -76,6 +76,9 @@ const overlaps = (left: string, right: string): boolean =>
 
 const validChecksum = (value: string): boolean =>
   /^sha256:[a-f0-9]{64}$/.test(value);
+const validRevision = (value: string | null): value is string =>
+  typeof value === "string" &&
+  (/^[0-9a-f]{40}$/.test(value) || /^[0-9a-f]{64}$/.test(value));
 
 const validateRootShape = (
   label: "source" | "target",
@@ -137,9 +140,8 @@ const templateFindings = (
       ),
     );
   if (
-    [input.template.tag, input.template.commit].some(
-      (value) => value.trim().length === 0,
-    )
+    input.template.tag.trim().length === 0 ||
+    !validRevision(input.template.commit)
   )
     findings.push(
       finding(
@@ -195,6 +197,14 @@ export const validateAdoptionAuthority = (
         "Probe an existing source and its containing worktree before admission.",
       ),
     );
+  else if (!input.source.clean)
+    findings.push(
+      finding(
+        "ADOPTION_AUTHORITY_SOURCE_DIRTY",
+        "The source worktree is not clean at its reviewed revision.",
+        "Commit or discard source changes, then rebuild the adoption baseline from the exact revision.",
+      ),
+    );
   else if (!overlaps(input.source.worktreeRoot, input.source.resolvedRoot))
     findings.push(
       finding(
@@ -203,7 +213,11 @@ export const validateAdoptionAuthority = (
         "Use the worktree identity returned by the reviewed Git boundary.",
       ),
     );
-  if (input.source.revision !== input.baseline.sourceRevision)
+  if (
+    !validRevision(input.source.revision) ||
+    !validRevision(input.baseline.sourceRevision) ||
+    input.source.revision !== input.baseline.sourceRevision
+  )
     findings.push(
       finding(
         "ADOPTION_AUTHORITY_SOURCE_STALE",
@@ -278,6 +292,18 @@ export const validateAdoptionAuthority = (
           "ADOPTION_AUTHORITY_TARGET_STALE",
           "The target revision changed after baseline review.",
           "Re-probe and reapprove the target before launch.",
+        ),
+      );
+    if (
+      input.target.exists &&
+      (!validRevision(input.target.revision) ||
+        !validRevision(input.baseline.targetRevision))
+    )
+      findings.push(
+        finding(
+          "ADOPTION_AUTHORITY_TARGET_REVISION_INVALID",
+          "The existing target is not bound to an exact Git revision.",
+          "Re-probe the clean target and bind its exact lowercase SHA-1 or SHA-256 commit.",
         ),
       );
   } else if (

@@ -56,6 +56,10 @@ const checksum = (value: string): boolean =>
 
 const compareCodeUnits = (left: string, right: string): number =>
   left < right ? -1 : left > right ? 1 : 0;
+const pathsOverlap = (left: string, right: string): boolean =>
+  left === right ||
+  left.startsWith(`${right}/`) ||
+  right.startsWith(`${left}/`);
 
 const canonical = (value: unknown): unknown =>
   Array.isArray(value)
@@ -158,6 +162,21 @@ export const compileAdoptionExecutionPlan = (
         "ADOPTION_EXECUTION_COVERAGE_INVALID",
         "Execution intents do not cover each approved decision exactly once.",
         "Supply one and only one byte contract for every caller-approved path.",
+      ),
+    );
+  if (
+    input.intents.some((intent, index) =>
+      input.intents.some(
+        (candidate, candidateIndex) =>
+          index !== candidateIndex && pathsOverlap(intent.path, candidate.path),
+      ),
+    )
+  )
+    findings.push(
+      finding(
+        "ADOPTION_EXECUTION_PATH_OVERLAP",
+        "Execution intents contain ancestor/descendant path collisions.",
+        "Compile only disjoint exact paths from the approved work package.",
       ),
     );
   if (

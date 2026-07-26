@@ -3,6 +3,9 @@ import {
   validateAdoptionAuthority,
   type AdoptionAuthorityInput,
 } from "./adoptAuthority.js";
+const sourceRevision = "1".repeat(40);
+const targetRevision = "2".repeat(40);
+const templateRevision = "3".repeat(40);
 
 const baseInput = (): AdoptionAuthorityInput => ({
   mode: "separate-target",
@@ -14,7 +17,7 @@ const baseInput = (): AdoptionAuthorityInput => ({
     exists: true,
     empty: false,
     clean: true,
-    revision: "source-commit",
+    revision: sourceRevision,
   },
   target: {
     requestedRoot: "/work/customer-app",
@@ -26,20 +29,20 @@ const baseInput = (): AdoptionAuthorityInput => ({
     revision: null,
   },
   baseline: {
-    sourceRevision: "source-commit",
+    sourceRevision,
     targetRevision: null,
   },
   template: {
     requestedRoot: "/releases/maestro-v1",
     resolvedRoot: "/releases/maestro-v1",
     tag: "maestro-template-v1",
-    commit: "template-commit",
+    commit: templateRevision,
     archiveChecksum: `sha256:${"a".repeat(64)}`,
     manifestChecksum: `sha256:${"b".repeat(64)}`,
   },
   reviewedTemplate: {
     tag: "maestro-template-v1",
-    commit: "template-commit",
+    commit: templateRevision,
     archiveChecksum: `sha256:${"a".repeat(64)}`,
     manifestChecksum: `sha256:${"b".repeat(64)}`,
   },
@@ -64,6 +67,43 @@ describe("adoption launch authority", () => {
       authorityFingerprint: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
     });
     expect(input).toEqual(before);
+  });
+
+  it.each([
+    [
+      "dirty source",
+      { source: { clean: false } },
+      "ADOPTION_AUTHORITY_SOURCE_DIRTY",
+    ],
+    [
+      "symbolic source revision",
+      { source: { revision: "HEAD" }, baseline: { sourceRevision: "HEAD" } },
+      "ADOPTION_AUTHORITY_SOURCE_STALE",
+    ],
+    [
+      "symbolic template revision",
+      {
+        template: { commit: "template-main" },
+        reviewedTemplate: { commit: "template-main" },
+      },
+      "ADOPTION_AUTHORITY_TEMPLATE_MISMATCH",
+    ],
+  ])("rejects %s authority", (_name, patch, code) => {
+    const input = baseInput();
+    const candidate = {
+      ...input,
+      source: { ...input.source, ...patch.source },
+      baseline: { ...input.baseline, ...patch.baseline },
+      template: { ...input.template, ...patch.template },
+      reviewedTemplate: {
+        ...input.reviewedTemplate,
+        ...patch.reviewedTemplate,
+      },
+    };
+    expect(validateAdoptionAuthority(candidate)).toMatchObject({
+      ok: false,
+      findings: expect.arrayContaining([expect.objectContaining({ code })]),
+    });
   });
 
   it.each([
@@ -149,17 +189,17 @@ describe("adoption launch authority", () => {
       exists: true,
       empty: true,
       clean: true,
-      revision: "target-now",
+      revision: targetRevision,
     };
 
     expect(
       validateAdoptionAuthority({
         ...input,
-        source: { ...input.source, revision: "source-now" },
+        source: { ...input.source, revision: "4".repeat(40) },
         target,
         baseline: {
-          sourceRevision: "source-before",
-          targetRevision: "target-before",
+          sourceRevision,
+          targetRevision: "5".repeat(40),
         },
       }),
     ).toMatchObject({
@@ -178,7 +218,7 @@ describe("adoption launch authority", () => {
       exists: true,
       empty: false,
       clean: false,
-      revision: "target-commit",
+      revision: targetRevision,
       worktreeRoot: null,
     };
 
@@ -221,8 +261,8 @@ describe("adoption launch authority", () => {
       mode: "in-place",
       target,
       baseline: {
-        sourceRevision: "source-commit",
-        targetRevision: "source-commit",
+        sourceRevision,
+        targetRevision: sourceRevision,
       },
     });
     const rejected = validateAdoptionAuthority({
@@ -230,8 +270,8 @@ describe("adoption launch authority", () => {
       mode: "in-place",
       target: { ...target, clean: false },
       baseline: {
-        sourceRevision: "source-commit",
-        targetRevision: "source-commit",
+        sourceRevision,
+        targetRevision: sourceRevision,
       },
     });
 

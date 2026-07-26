@@ -228,6 +228,40 @@ describe("adoption execution planning", () => {
       });
   });
 
+  it("rejects ancestor and descendant execution intents", () => {
+    const base = workPackage();
+    const first = base.decisions[0];
+    if (first === undefined) throw new Error("missing decision");
+    const firstIntent = intents().find(({ path }) => path === first.path);
+    if (firstIntent === undefined) throw new Error("missing matching intent");
+    const overlappingPackage = {
+      ...base,
+      decisions: [
+        first,
+        {
+          ...first,
+          path: `${first.path}/nested`,
+        },
+      ],
+    };
+    const overlappingIntents = [
+      firstIntent,
+      { ...firstIntent, path: `${first.path}/nested` },
+    ];
+    expect(
+      compileAdoptionExecutionPlan({
+        workPackage: overlappingPackage,
+        authority: authority(),
+        intents: overlappingIntents,
+      }),
+    ).toMatchObject({
+      ok: false,
+      findings: expect.arrayContaining([
+        expect.objectContaining({ code: "ADOPTION_EXECUTION_PATH_OVERLAP" }),
+      ]),
+    });
+  });
+
   it("rejects disposition drift from caller-approved decisions", () => {
     const changed = intents().map((intent) =>
       intent.path === "src/customer.ts"
