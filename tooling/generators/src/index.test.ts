@@ -1520,6 +1520,11 @@ describe("template app factory generators", () => {
     expect(impl).not.toContain("now:");
 
     expect(convexWorkflow).toContain("defineMaestroWorkflow");
+    expect(convexWorkflow).toContain("adaptPinnedWorkflowStep");
+    expect(convexWorkflow).toContain(
+      "runDurableGraphWorkflowV2(adaptPinnedWorkflowStep(step),",
+    );
+    expect(convexWorkflow).not.toContain("step as RunDurableGraphStep");
     expect(convexWorkflow).toContain("export const onComplete");
     expect(convexWorkflow).toContain("reconcileObservedWorkflowCompletion");
     expect(convexWorkflow).toContain("runDurableGraphWorkflow");
@@ -1548,6 +1553,13 @@ describe("template app factory generators", () => {
       "export const defineGeneratedCurrentAuthorityRef",
     );
     expect(graphRunnerV2).toContain("generatedWorkflowContractRefs: object");
+    const graphRunner = readFileSync(
+      join(repoRoot, "packages/convex/confect/workflows/_kit/graphRunner.ts"),
+      "utf8",
+    );
+    expect(graphRunner).toContain("step: MaestroWorkflowContext");
+    expect(graphRunner).toContain("options === undefined");
+    expect(graphRunner).toContain("step.runAction(ref, args, options)");
     expect(convexWorkflow).toContain("returns: WorkflowReceiptValidator");
     expect(convexWorkflow).not.toContain("returns: v.any()");
     expect(convexWorkflow).toContain("metadata");

@@ -9,6 +9,7 @@ import {
   sendEvent,
   WorkflowManager,
   type EventId,
+  type WorkflowCtx,
   type WorkflowComponent,
   type WorkflowId,
   vWorkflowId,
@@ -27,6 +28,7 @@ export const getMaestroWorkflowStatus = getStatus;
 export const MaestroWorkflowIdValidator = vWorkflowId;
 export const MaestroWorkflowResultValidator = vResultValidator;
 export type MaestroWorkflowComponent = WorkflowComponent;
+export type MaestroWorkflowContext = WorkflowCtx;
 export type MaestroWorkflowEventId<Name extends string = string> =
   EventId<Name>;
 export type MaestroWorkflowId = WorkflowId;

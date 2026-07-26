@@ -1281,8 +1281,8 @@ import { v } from "convex/values";
 import refs from "../../_generated/refs";
 import { components } from "../../../convex/_generated/api";
 import {
+  adaptPinnedWorkflowStep,
   runDurableGraphWorkflowV2,
-  type RunDurableGraphStep,
 } from "../../workflows/_kit/graphRunner";
 import { defineGeneratedCurrentAuthorityBinding } from "../../workflows/_kit/graphRunnerV2";
 import {
@@ -1411,7 +1411,7 @@ export const run = defineMaestroWorkflow(components.workflow, {
     },
   );
   const executionArgs = bindObservedWorkflowAuthority(args, executionIdentity);
-  return runDurableGraphWorkflowV2(step as RunDurableGraphStep, {
+  return runDurableGraphWorkflowV2(adaptPinnedWorkflowStep(step), {
     graph: ${name}Graph,
     inputs: executionArgs,
     principal: executionArgs.principal,

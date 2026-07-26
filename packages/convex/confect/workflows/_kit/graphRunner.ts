@@ -1,6 +1,7 @@
 import type { FunctionReference } from "convex/server";
 import type {
   MaestroWorkflowEventId as ComponentEventId,
+  MaestroWorkflowContext,
   MaestroWorkflowId as ComponentWorkflowId,
 } from "./defineMaestroWorkflow";
 import type { Validator } from "convex/values";
@@ -126,6 +127,31 @@ export type RunDurableGraphStep = {
     },
   ) => Promise<Result>;
 };
+/**
+ * Checked adapter for the pinned Workflow 0.4.4 handler context. Keeping this
+ * structural assignment executable in package typecheck prevents generated
+ * runners from hiding option drift behind a whole-object assertion.
+ */
+export const adaptPinnedWorkflowStep = (
+  step: MaestroWorkflowContext,
+): RunDurableGraphStep => ({
+  workflowId: step.workflowId,
+  runQuery: (ref, args, options) =>
+    options === undefined
+      ? step.runQuery(ref, args)
+      : step.runQuery(ref, args, options),
+  runMutation: (ref, args, options) =>
+    options === undefined
+      ? step.runMutation(ref, args)
+      : step.runMutation(ref, args, options),
+  runAction: (ref, args, options) =>
+    options === undefined
+      ? step.runAction(ref, args)
+      : step.runAction(ref, args, options),
+  runWorkflow: (ref, args, options) => step.runWorkflow(ref, args, options),
+  sleep: (delayMs, options) => step.sleep(delayMs, options),
+  awaitEvent: (event) => step.awaitEvent(event),
+});
 
 export const runDurableGraphWorkflow = async (
   step: RunDurableGraphStep,

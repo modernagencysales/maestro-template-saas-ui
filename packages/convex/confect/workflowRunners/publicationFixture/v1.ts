@@ -9,8 +9,8 @@ import { v } from "convex/values";
 import refs from "../../_generated/refs";
 import { components } from "../../../convex/_generated/api";
 import {
+  adaptPinnedWorkflowStep,
   runDurableGraphWorkflowV2,
-  type RunDurableGraphStep,
 } from "../../workflows/_kit/graphRunner";
 import { loadObservedWorkflowExecutionIdentity } from "../../workflows/_kit/observedStage";
 import { reconcileObservedWorkflowCompletion } from "../../workflows/_kit/lifecycleCompletion";
@@ -138,7 +138,7 @@ export const run = defineMaestroWorkflow(
       workflowRunId: args.workflowRunId,
     },
   );
-  return runDurableGraphWorkflowV2(step as RunDurableGraphStep, {
+  return runDurableGraphWorkflowV2(adaptPinnedWorkflowStep(step), {
     graph: publicationFixtureGraph,
     inputs: args,
     principal: args.principal,
