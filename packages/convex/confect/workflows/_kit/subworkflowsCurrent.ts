@@ -11,7 +11,7 @@ import {
   type WorkflowNodeV2,
   type WorkflowReference as WorkflowReferenceType,
 } from "../graphCurrent";
-import { planBoundedBatch } from "./boundedBatch";
+import { planBoundedBatch, type BoundedBatchPlanBatch } from "./boundedBatch";
 import { assertJsonSafe } from "./graphRunnerJson";
 import type { DurableGraphStepRef, RunDurableGraphStep } from "./graphRunner";
 import type {
@@ -625,6 +625,66 @@ export type BoundedSubworkflowBatchResult =
         readonly result: unknown;
       }[];
     };
+const prepareBoundedSubworkflowBatch = (input: {
+  readonly node: BoundedSubworkflowBatchNodeV2;
+  readonly binding: WorkflowV2BoundedBatchBinding;
+  readonly envelope: WorkflowV2SubworkflowEnvelope;
+  readonly source: WorkflowV2BoundedBatchSource;
+  readonly waveOrdinal: number;
+  readonly batch: BoundedBatchPlanBatch;
+}) => {
+  const itemOrdinals = input.batch.items.map((item) => item.ordinal);
+  const items = itemOrdinals.map((ordinal) => input.source.items[ordinal]);
+  const identityHash = sha256Hex(
+    input.node.stepName +
+      ":" +
+      input.batch.items.map((item) => item.instanceSuffix).join(","),
+  ).slice(0, 16);
+  const stepName = Schema.decodeSync(WorkflowStepName)(
+    "batch.v" + input.node.childVersion + ".i-k16-" + identityHash,
+  );
+  const childNode: SubworkflowNodeV2 = {
+    id: input.node.id + ".batch." + input.batch.ordinal,
+    kind: "subworkflow",
+    workflow: input.node.workflow,
+    childVersion: input.node.childVersion,
+    label: input.node.label + " batch " + input.batch.ordinal,
+    stepName,
+    payloadPolicy: input.node.payloadPolicy,
+    semanticRuleIds: input.node.semanticRuleIds,
+    failurePolicy: input.node.failurePolicy,
+  };
+  let mappedArgs: MappedChildArgs;
+  try {
+    mappedArgs = input.binding.mapBatchArgs({
+      ...input.envelope,
+      batch: {
+        waveOrdinal: input.waveOrdinal,
+        batchOrdinal: input.batch.ordinal,
+        itemOrdinals,
+        items,
+      },
+    });
+  } catch {
+    throw boundedBatchFailure(
+      input.node,
+      "generated batch argument mapper rejected the input",
+    );
+  }
+  if (
+    hasReservedWorkflowIdentityField(mappedArgs) ||
+    ["workflowRunId", "idempotencyKey", "policySnapshot", "subworkflow"].some(
+      (field) => field in mappedArgs,
+    )
+  ) {
+    throw boundedBatchFailure(
+      input.node,
+      "mapped args cannot override reserved workflow identity fields",
+    );
+  }
+  assertMappedArgsSize(childNode, mappedArgs);
+  return { childNode, itemOrdinals, mappedArgs };
+};
 export const runRegisteredBoundedSubworkflowBatch = async ({
   step,
   node,
@@ -707,6 +767,25 @@ export const runRegisteredBoundedSubworkflowBatch = async ({
       batches: [],
     };
   }
+  const prepared = new Map<
+    number,
+    ReturnType<typeof prepareBoundedSubworkflowBatch>
+  >();
+  for (const wave of planned.right.waves) {
+    for (const batch of wave.batches) {
+      prepared.set(
+        batch.ordinal,
+        prepareBoundedSubworkflowBatch({
+          node,
+          binding,
+          envelope,
+          source,
+          waveOrdinal: wave.ordinal,
+          batch,
+        }),
+      );
+    }
+  }
   const completed: Array<{
     readonly waveOrdinal: number;
     readonly batchOrdinal: number;
@@ -716,36 +795,14 @@ export const runRegisteredBoundedSubworkflowBatch = async ({
   for (const wave of planned.right.waves) {
     const settled = await Promise.allSettled(
       wave.batches.map(async (batch) => {
-        const itemOrdinals = batch.items.map((item) => item.ordinal);
-        const batchItems = itemOrdinals.map((ordinal) => source.items[ordinal]);
-        const identityHash = sha256Hex(
-          node.stepName +
-            ":" +
-            batch.items.map((item) => item.instanceSuffix).join(","),
-        ).slice(0, 16);
-        const stepName = Schema.decodeSync(WorkflowStepName)(
-          "batch.v" + node.childVersion + ".i-k16-" + identityHash,
-        );
-        const childNode: SubworkflowNodeV2 = {
-          id: node.id + ".batch." + batch.ordinal,
-          kind: "subworkflow",
-          workflow: node.workflow,
-          childVersion: node.childVersion,
-          label: node.label + " batch " + batch.ordinal,
-          stepName,
-          payloadPolicy: node.payloadPolicy,
-          semanticRuleIds: node.semanticRuleIds,
-          failurePolicy: node.failurePolicy,
-        };
-        const mappedArgs = binding.mapBatchArgs({
-          ...envelope,
-          batch: {
-            waveOrdinal: wave.ordinal,
-            batchOrdinal: batch.ordinal,
-            itemOrdinals,
-            items: batchItems,
-          },
-        });
+        const preparedBatch = prepared.get(batch.ordinal);
+        if (preparedBatch === undefined) {
+          throw boundedBatchFailure(
+            node,
+            "prepared batch identity is unavailable",
+          );
+        }
+        const { childNode, itemOrdinals, mappedArgs } = preparedBatch;
         const batchEntry: AnyWorkflowV2SubworkflowRegistryEntry = {
           ...entry,
           mapArgs: () => mappedArgs,

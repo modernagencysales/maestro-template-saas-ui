@@ -4292,13 +4292,13 @@ describe("bounded subworkflow batch runtime", () => {
     [
       "registry cycle",
       v2BoundedBatchGraph(),
-      { ...registryEntry(["a"]), children: [childWorkflowRef] },
+      { ...registryEntry(["a", "b"]), children: [childWorkflowRef] },
       { maxDepth: 4, maxFanOut: 8 },
     ],
     [
       "version mismatch",
       v2BoundedBatchGraph(),
-      { ...registryEntry(["a"]), version: 4 },
+      { ...registryEntry(["a", "b"]), version: 4 },
       { maxDepth: 4, maxFanOut: 8 },
     ],
   ] as const)(
@@ -4322,10 +4322,16 @@ describe("bounded subworkflow batch runtime", () => {
 
   it("size-checks batch args and reconciles cancellation", async () => {
     const oversized = {
-      ...registryEntry(["a"]),
+      ...registryEntry(["a", "b"]),
       boundedBatch: {
-        selectItems: () => ({ items: ["a"] }),
-        mapBatchArgs: () => ({ requestId: "x".repeat(2048) }),
+        selectItems: () => ({ items: ["a", "b"] }),
+        mapBatchArgs: ({
+          batch,
+        }: {
+          readonly batch: { readonly items: readonly unknown[] };
+        }) => ({
+          requestId: batch.items[0] === "a" ? "ok" : "x".repeat(2048),
+        }),
       },
     };
     const noDispatch = vi.fn(async () => ({ receiptId: "unreachable" }));
@@ -4334,6 +4340,9 @@ describe("bounded subworkflow batch runtime", () => {
         ...v2Input(
           v2BoundedBatchGraph({
             payloadPolicy: { ...payloadPolicy, maxInputBytes: 64 },
+            maxItems: 2,
+            batchSize: 1,
+            fanOut: 2,
           }),
         ),
         principal: childPrincipal,
