@@ -57,6 +57,7 @@ describe("Claude Code skill-only installation", () => {
       name: "maestro",
       version: "0.1.0",
       description: expect.any(String),
+      author: { name: "Maestro" },
     });
   });
 

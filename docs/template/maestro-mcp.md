@@ -26,10 +26,17 @@ in-memory receipt projection and never creates `.maestro` or exports a receipt.
 The explicit `verify-export --write` mutation exists only in the CLI command
 registry and is absent from MCP tool schemas and dispatch.
 
-Claude Code consumes the plugin-local `.mcp.json`. Root integration projects the
-Codex leaf declaration to the trusted repository `.codex/config.toml`. Both
-launch the same command from the resolved target root. Removing or disabling
-either declaration leaves the CLI and customer code unchanged.
+Claude Code consumes the plugin-local `.mcp.json` with `${CLAUDE_PROJECT_DIR}`
+as its working directory. Codex consumes the separate plugin-local
+`.codex-plugin/mcp.json`, which omits `cwd` so the native `-C` project remains
+authoritative instead of the plugin cache. Both declarations use pnpm silent
+mode so stdout contains JSON-RPC frames only.
+
+The Codex leaf declaration is retained for compatibility, but Codex `0.145.0`
+does not load the checked-in `.codex/config.toml` as project configuration. Do
+not claim that file is active without a newer native-host proof. Removing the
+Codex plugin removes its MCP registration without modifying that inactive leaf,
+the CLI, or customer code.
 
 Convex MCP is independent and absent in fake mode. `inspect` is the default
 explicit personal-development preview; `dev-power` has separate effects and

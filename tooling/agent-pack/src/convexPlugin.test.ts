@@ -20,7 +20,9 @@ describe("maestro-convex skill-only plugin", () => {
     )) as Record<string, unknown>;
 
     expect(manifest.name).toBe("maestro-convex");
+    expect(manifest.author).toEqual({ name: "Maestro" });
     expect(Object.keys(manifest).sort()).toEqual([
+      "author",
       "description",
       "name",
       "version",

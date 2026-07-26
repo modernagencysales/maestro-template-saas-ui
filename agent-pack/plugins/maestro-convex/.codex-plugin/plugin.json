@@ -1,0 +1,20 @@
+{
+  "name": "maestro-convex",
+  "version": "0.1.0",
+  "description": "Skill-only routing between official Convex guidance and Maestro workflow policy.",
+  "author": {
+    "name": "Maestro"
+  },
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Maestro Convex",
+    "shortDescription": "Route Convex work through official context safely.",
+    "longDescription": "Use official Convex skills for framework guidance while applying Maestro's pinned workflow compatibility and host-safety policy.",
+    "developerName": "Maestro",
+    "category": "Developer Tools",
+    "capabilities": ["Interactive"],
+    "defaultPrompt": [
+      "Route this Convex task through official skills and Maestro policy."
+    ]
+  }
+}

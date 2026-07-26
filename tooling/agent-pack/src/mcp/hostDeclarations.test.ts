@@ -17,11 +17,39 @@ describe("repo-native Maestro MCP declarations", () => {
         maestro: {
           type: "stdio",
           command: "pnpm",
-          args: ["maestro", "--", "mcp"],
+          args: ["--silent", "maestro", "--", "mcp"],
           cwd: "${CLAUDE_PROJECT_DIR}",
         },
       },
     });
+    expect(JSON.stringify(declaration)).not.toContain("convex mcp start");
+  });
+
+  it("uses a Codex-specific plugin declaration without a cache-relative cwd", async () => {
+    const manifest = JSON.parse(
+      await readFile(
+        `${repoRoot}/agent-pack/plugins/maestro/.codex-plugin/plugin.json`,
+        "utf8",
+      ),
+    ) as Record<string, unknown>;
+    const declaration = JSON.parse(
+      await readFile(
+        `${repoRoot}/agent-pack/plugins/maestro/.codex-plugin/mcp.json`,
+        "utf8",
+      ),
+    );
+
+    expect(manifest.mcpServers).toBe("./.codex-plugin/mcp.json");
+    expect(declaration).toEqual({
+      mcpServers: {
+        maestro: {
+          type: "stdio",
+          command: "pnpm",
+          args: ["--silent", "maestro", "--", "mcp"],
+        },
+      },
+    });
+    expect(JSON.stringify(declaration)).not.toContain("CLAUDE_PROJECT_DIR");
     expect(JSON.stringify(declaration)).not.toContain("convex mcp start");
   });
 
@@ -35,7 +63,7 @@ describe("repo-native Maestro MCP declarations", () => {
       [
         "[mcp_servers.maestro]",
         'command = "pnpm"',
-        'args = ["maestro", "--", "mcp"]',
+        'args = ["--silent", "maestro", "--", "mcp"]',
         'cwd = "."',
         "enabled = true",
         "",

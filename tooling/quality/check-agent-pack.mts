@@ -24,7 +24,7 @@ const FORBIDDEN_MCP_FILES = [
 const CODEX_MAESTRO_CONFIG = [
   "[mcp_servers.maestro]",
   'command = "pnpm"',
-  'args = ["maestro", "--", "mcp"]',
+  'args = ["--silent", "maestro", "--", "mcp"]',
   'cwd = "."',
   "enabled = true",
   "",

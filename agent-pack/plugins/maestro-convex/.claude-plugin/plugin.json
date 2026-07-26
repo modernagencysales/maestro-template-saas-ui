@@ -1,5 +1,8 @@
 {
   "name": "maestro-convex",
   "version": "0.1.0",
-  "description": "Skill-only routing between official Convex guidance and Maestro workflow policy."
+  "description": "Skill-only routing between official Convex guidance and Maestro workflow policy.",
+  "author": {
+    "name": "Maestro"
+  }
 }

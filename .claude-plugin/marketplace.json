@@ -1,6 +1,7 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "maestro-agent-pack",
+  "description": "Local Maestro workflow and Convex context integrations.",
   "owner": {
     "name": "Maestro"
   },
@@ -8,7 +9,7 @@
     {
       "name": "maestro",
       "source": "./agent-pack/plugins/maestro",
-      "description": "Skill-only Maestro workflow guidance."
+      "description": "Maestro workflow guidance with the repository-local Maestro MCP declaration."
     },
     {
       "name": "maestro-convex",

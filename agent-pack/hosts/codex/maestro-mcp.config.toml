@@ -1,5 +1,5 @@
 [mcp_servers.maestro]
 command = "pnpm"
-args = ["maestro", "--", "mcp"]
+args = ["--silent", "maestro", "--", "mcp"]
 cwd = "."
 enabled = true
