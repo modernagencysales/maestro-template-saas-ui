@@ -25,10 +25,22 @@ import {
 } from "../confect/workflows/_kit/workflowReferences";
 import { testConfectLayer } from "./support/confect";
 import { SeededTenancy, seedTenancy } from "./support/seedTenancy";
+import * as currentSubworkflowLinks from "../convex/workflows/subworkflowLinksCurrent";
 
 const now = 1_782_924_800_000;
 
 describe("subworkflow product run linkage", () => {
+  it("exports every current recovery function through the production module", () => {
+    expect(Object.keys(currentSubworkflowLinks).sort()).toEqual([
+      "persistUnresolvedReservation",
+      "persistUnresolvedSuccess",
+      "recoverReservation",
+      "recoverUnresolvedSuccess",
+      "reportReconciliationFailure",
+      "resolveUnresolvedSuccess",
+    ]);
+  });
+
   it("reserves, activates, and reconciles one exact child idempotently", async () => {
     const program = Effect.gen(function* () {
       const confect = yield* Effect.serviceOptional(

@@ -1413,9 +1413,16 @@ describe("template app factory generators", () => {
     expect(registry).toContain(
       "refs.internal.workflows.subworkflowLinks.reconcile",
     );
-    expect(registry).toContain(
-      "refs.internal.workflows.subworkflowLinks.reportReconciliationFailure",
-    );
+    for (const reference of [
+      "workflows/subworkflowLinksCurrent:recoverReservation",
+      "workflows/subworkflowLinksCurrent:persistUnresolvedReservation",
+      "workflows/subworkflowLinksCurrent:persistUnresolvedSuccess",
+      "workflows/subworkflowLinksCurrent:recoverUnresolvedSuccess",
+      "workflows/subworkflowLinksCurrent:resolveUnresolvedSuccess",
+      "workflows/subworkflowLinksCurrent:reportReconciliationFailure",
+    ]) {
+      expect(registry).toContain(reference);
+    }
     expect(registry).toContain(
       "refs.internal.workflows.eventInstances.allocate",
     );

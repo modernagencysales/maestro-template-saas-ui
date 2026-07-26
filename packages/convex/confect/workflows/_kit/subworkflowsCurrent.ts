@@ -3,7 +3,7 @@ import { getConvexSize, v } from "convex/values";
 import * as Either from "effect/Either";
 import * as Schema from "effect/Schema";
 
-import { makePublicError } from "../../shared/errors";
+import { makePublicError, TemplatePublicError } from "../../shared/errors";
 import { sha256Hex } from "../../shared/sha256";
 import {
   WorkflowReference,
@@ -148,6 +148,10 @@ export type WorkflowV2SubworkflowDefinition<
   readonly links: {
     readonly reserveRef: DurableGraphStepRef<"mutation">;
     readonly recoverReservationRef: DurableGraphStepRef<"query">;
+    readonly persistUnresolvedReservationRef: DurableGraphStepRef<"mutation">;
+    readonly persistUnresolvedSuccessRef: DurableGraphStepRef<"mutation">;
+    readonly recoverUnresolvedSuccessRef: DurableGraphStepRef<"query">;
+    readonly resolveUnresolvedSuccessRef: DurableGraphStepRef<"mutation">;
     readonly reconcileRef: DurableGraphStepRef<"mutation">;
     readonly reportReconciliationFailureRef: DurableGraphStepRef<"mutation">;
   };
@@ -221,6 +225,10 @@ export type AnyWorkflowV2SubworkflowRegistryEntry = {
   readonly links: {
     readonly reserveRef: DurableGraphStepRef<"mutation">;
     readonly recoverReservationRef?: DurableGraphStepRef<"query">;
+    readonly persistUnresolvedReservationRef?: DurableGraphStepRef<"mutation">;
+    readonly persistUnresolvedSuccessRef?: DurableGraphStepRef<"mutation">;
+    readonly recoverUnresolvedSuccessRef?: DurableGraphStepRef<"query">;
+    readonly resolveUnresolvedSuccessRef?: DurableGraphStepRef<"mutation">;
     readonly reconcileRef: DurableGraphStepRef<"mutation">;
     readonly reportReconciliationFailureRef: DurableGraphStepRef<"mutation">;
   };
@@ -598,18 +606,45 @@ export async function runRegisteredSubworkflow({
           recoveredReservation.linkId,
           { kind: "failed", error: "Child workflow failed." },
         );
-      } catch {
-        await reportReconciliationFailure(
-          step,
-          entry,
-          node,
-          ownership,
-          recoveredReservation.linkId,
-          "failed",
-          "SUBWORKFLOW_RESERVATION_RESPONSE_INVALID",
-        ).catch(() => undefined);
+      } catch (reconcileError) {
+        const persistReservationRef =
+          entry.links.persistUnresolvedReservationRef;
+        if (persistReservationRef === undefined) {
+          throw subworkflowFailure(
+            node,
+            "generated durable unresolved-reservation persistence is unavailable",
+          );
+        }
+        await step.runMutation(
+          persistReservationRef,
+          {
+            workspaceId: ownership.workspaceId,
+            linkId: recoveredReservation.linkId,
+            idempotencyKey,
+            occurredAt: ownership.occurredAt,
+          },
+          { name: `${node.stepName}.link.reservation-unresolved.v1` },
+        );
+        try {
+          await reportReconciliationFailure(
+            step,
+            entry,
+            node,
+            ownership,
+            recoveredReservation.linkId,
+            "failed",
+            "SUBWORKFLOW_RESERVATION_RESPONSE_INVALID",
+          );
+        } catch {
+          throw subworkflowFailure(
+            node,
+            "reservation recovery was authoritative but reconciliation and its durable report remain unresolved",
+          );
+        }
+        throw reconcileError;
       }
-    } catch {
+    } catch (recoveryError) {
+      if (recoveryError instanceof TemplatePublicError) throw recoveryError;
       throw subworkflowFailure(
         node,
         "reservation response was invalid and deterministic replay could not recover it",
@@ -638,80 +673,131 @@ export async function runRegisteredSubworkflow({
     SubworkflowRunLinkOutcome,
     { kind: "succeeded" }
   >["receipt"];
-  try {
-    assertMappedArgsSize(node, childArgs);
-    const rawResult = await step.runWorkflow(entry.ref, childArgs, {
-      name: node.stepName,
-    });
-    const decoded = Schema.decodeUnknownEither(entry.resultSchema)(rawResult);
+  const unresolvedSuccessRef = entry.links.recoverUnresolvedSuccessRef;
+  const unresolvedSuccess =
+    unresolvedSuccessRef === undefined
+      ? null
+      : readUnresolvedSuccess(
+          node,
+          await step.runQuery(
+            unresolvedSuccessRef,
+            { workspaceId: ownership.workspaceId, linkId },
+            { name: `${node.stepName}.link.success-recovery.v1` },
+          ),
+        );
+  if (unresolvedSuccess !== null) {
+    childResult = unresolvedSuccess.childResult;
+    receipt = unresolvedSuccess.receipt;
+    const decoded = Schema.decodeUnknownEither(entry.resultSchema)(childResult);
     if (Either.isLeft(decoded)) {
       throw subworkflowFailure(
         node,
-        "child returned an invalid declared result",
+        "durable unresolved child result is invalid",
       );
     }
     childResult = decoded.right;
-    assertJsonSafe(
-      childResult,
-      `Subworkflow ${node.id} returned invalid data.`,
-    );
-    const encoded = JSON.stringify(childResult);
-    if (encoded === undefined) {
-      throw subworkflowFailure(
-        node,
-        "child returned a non-serializable result",
-      );
-    }
-    if (node.payloadPolicy.resultMode === "artifact-reference") {
-      const artifact = readArtifactReference(node, childResult);
-      const referenceBytes = getConvexSize(artifact);
-      assertArtifactReferenceBudget(node, referenceBytes);
-      const owned = await step.runQuery(entry.artifacts.getOwnedRef, {
-        workspaceId: ownership.workspaceId,
-        workflowRunId: childWorkflowRunId,
-        artifactId: artifact.artifactId,
-      });
-      assertOwnedArtifactReference(node, artifact, owned, childWorkflowRunId);
-      assertStoredArtifactBudget(node, owned.measuredBytes);
-      receipt = {
-        kind: "artifact-reference",
-        artifactId: artifact.artifactId,
-        contentHash: artifact.contentHash,
-        measuredBytes: referenceBytes,
-      };
-    } else {
-      const measuredBytes = getConvexSize(childResult);
-      assertChildResultBudget(node, measuredBytes);
-      receipt = {
-        kind: "bounded-inline",
-        measuredBytes,
-        contentHash: sha256Hex(encoded),
-      };
-    }
-  } catch (error) {
-    const outcome = isPinnedWorkflowCancellation(error)
-      ? ({ kind: "canceled" } as const)
-      : ({ kind: "failed", error: "Child workflow failed." } as const);
+  } else
     try {
-      await reconcileLink(step, entry, node, ownership, linkId, outcome);
-    } catch {
-      await reportReconciliationFailure(
-        step,
-        entry,
-        node,
-        ownership,
-        linkId,
-        outcome.kind,
-      ).catch(() => undefined);
+      assertMappedArgsSize(node, childArgs);
+      const rawResult = await step.runWorkflow(entry.ref, childArgs, {
+        name: node.stepName,
+      });
+      const decoded = Schema.decodeUnknownEither(entry.resultSchema)(rawResult);
+      if (Either.isLeft(decoded)) {
+        throw subworkflowFailure(
+          node,
+          "child returned an invalid declared result",
+        );
+      }
+      childResult = decoded.right;
+      assertJsonSafe(
+        childResult,
+        `Subworkflow ${node.id} returned invalid data.`,
+      );
+      const encoded = JSON.stringify(childResult);
+      if (encoded === undefined) {
+        throw subworkflowFailure(
+          node,
+          "child returned a non-serializable result",
+        );
+      }
+      if (node.payloadPolicy.resultMode === "artifact-reference") {
+        const artifact = readArtifactReference(node, childResult);
+        const referenceBytes = getConvexSize(artifact);
+        assertArtifactReferenceBudget(node, referenceBytes);
+        const owned = await step.runQuery(entry.artifacts.getOwnedRef, {
+          workspaceId: ownership.workspaceId,
+          workflowRunId: childWorkflowRunId,
+          artifactId: artifact.artifactId,
+        });
+        assertOwnedArtifactReference(node, artifact, owned, childWorkflowRunId);
+        assertStoredArtifactBudget(node, owned.measuredBytes);
+        receipt = {
+          kind: "artifact-reference",
+          artifactId: artifact.artifactId,
+          contentHash: artifact.contentHash,
+          measuredBytes: referenceBytes,
+        };
+      } else {
+        const measuredBytes = getConvexSize(childResult);
+        assertChildResultBudget(node, measuredBytes);
+        receipt = {
+          kind: "bounded-inline",
+          measuredBytes,
+          contentHash: sha256Hex(encoded),
+        };
+      }
+    } catch (error) {
+      const outcome = isPinnedWorkflowCancellation(error)
+        ? ({ kind: "canceled" } as const)
+        : ({ kind: "failed", error: "Child workflow failed." } as const);
+      try {
+        await reconcileLink(step, entry, node, ownership, linkId, outcome);
+      } catch {
+        try {
+          await reportReconciliationFailure(
+            step,
+            entry,
+            node,
+            ownership,
+            linkId,
+            outcome.kind,
+          );
+        } catch {
+          throw subworkflowFailure(
+            node,
+            "child failure reconciliation and its durable report remain unresolved",
+          );
+        }
+      }
+      throw error;
     }
-    throw error;
-  }
   try {
     await reconcileLink(step, entry, node, ownership, linkId, {
       kind: "succeeded",
       receipt,
     });
   } catch {
+    if (unresolvedSuccess === null) {
+      const persistRef = entry.links.persistUnresolvedSuccessRef;
+      if (persistRef === undefined) {
+        throw subworkflowFailure(
+          node,
+          "generated durable unresolved-success persistence is unavailable",
+        );
+      }
+      await step.runMutation(
+        persistRef,
+        {
+          workspaceId: ownership.workspaceId,
+          linkId,
+          receipt,
+          childResult,
+          occurredAt: ownership.occurredAt,
+        },
+        { name: `${node.stepName}.link.success-unresolved.v1` },
+      );
+    }
     try {
       await reportReconciliationFailure(
         step,
@@ -731,6 +817,24 @@ export async function runRegisteredSubworkflow({
     throw subworkflowFailure(
       node,
       "child succeeded but durable link reconciliation failed",
+    );
+  }
+  if (unresolvedSuccess !== null) {
+    const resolveRef = entry.links.resolveUnresolvedSuccessRef;
+    if (resolveRef === undefined) {
+      throw subworkflowFailure(
+        node,
+        "generated durable unresolved-success resolution is unavailable",
+      );
+    }
+    await step.runMutation(
+      resolveRef,
+      {
+        workspaceId: ownership.workspaceId,
+        linkId,
+        occurredAt: ownership.occurredAt,
+      },
+      { name: `${node.stepName}.link.success-resolved.v1` },
     );
   }
   return childResult;
@@ -1217,6 +1321,53 @@ const readLinkReservation = (
   return {
     linkId: value.linkId,
     childWorkflowRunId: value.childWorkflowRunId,
+  };
+};
+
+const readUnresolvedSuccess = (
+  node: SubworkflowNodeV2,
+  value: unknown,
+): {
+  readonly receipt: Extract<
+    SubworkflowRunLinkOutcome,
+    { kind: "succeeded" }
+  >["receipt"];
+  readonly childResult: unknown;
+} | null => {
+  if (value === null || value === undefined) return null;
+  if (!isRecord(value) || !("receipt" in value)) return null;
+  if (!isRecord(value.receipt)) {
+    throw subworkflowFailure(node, "durable unresolved success is invalid");
+  }
+  const receipt = value.receipt;
+  if (
+    (receipt.kind !== "bounded-inline" &&
+      receipt.kind !== "artifact-reference") ||
+    typeof receipt.measuredBytes !== "number" ||
+    !Number.isSafeInteger(receipt.measuredBytes) ||
+    receipt.measuredBytes < 0 ||
+    receipt.measuredBytes > MAX_SUBWORKFLOW_RESULT_BYTES ||
+    typeof receipt.contentHash !== "string" ||
+    !/^[a-f0-9]{64}$/.test(receipt.contentHash) ||
+    (receipt.artifactId !== undefined &&
+      (typeof receipt.artifactId !== "string" ||
+        receipt.artifactId.length === 0))
+  ) {
+    throw subworkflowFailure(
+      node,
+      "durable unresolved success receipt is invalid",
+    );
+  }
+  return {
+    receipt: {
+      kind: receipt.kind,
+      measuredBytes: receipt.measuredBytes,
+      contentHash: receipt.contentHash,
+      ...(typeof receipt.artifactId === "string"
+        ? { artifactId: receipt.artifactId }
+        : {}),
+    },
+    childResult: value.childResult,
   };
 };
 

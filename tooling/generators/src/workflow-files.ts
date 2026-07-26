@@ -1170,6 +1170,7 @@ export const ${name}Graph = Either.getOrThrow(defineWorkflowGraphV2({
       content: `import refs from "../../_generated/refs";
 import * as Ref from "@confect/core/Ref";
 import { components } from "../../../convex/_generated/api";
+import { makeFunctionReference } from "convex/server";
 import { v } from "convex/values";
 import * as Schema from "effect/Schema";
 import {
@@ -1224,9 +1225,25 @@ export const ${name}ArtifactRefs = {
 
 export const ${name}SubworkflowLinkRefs = {
   reserveRef: refs.internal.workflows.subworkflowLinks.reserve,
+  recoverReservationRef: makeFunctionReference<"query">(
+    "workflows/subworkflowLinksCurrent:recoverReservation",
+  ),
+  persistUnresolvedReservationRef: makeFunctionReference<"mutation">(
+    "workflows/subworkflowLinksCurrent:persistUnresolvedReservation",
+  ),
+  persistUnresolvedSuccessRef: makeFunctionReference<"mutation">(
+    "workflows/subworkflowLinksCurrent:persistUnresolvedSuccess",
+  ),
+  recoverUnresolvedSuccessRef: makeFunctionReference<"query">(
+    "workflows/subworkflowLinksCurrent:recoverUnresolvedSuccess",
+  ),
+  resolveUnresolvedSuccessRef: makeFunctionReference<"mutation">(
+    "workflows/subworkflowLinksCurrent:resolveUnresolvedSuccess",
+  ),
   reconcileRef: refs.internal.workflows.subworkflowLinks.reconcile,
-  reportReconciliationFailureRef:
-    refs.internal.workflows.subworkflowLinks.reportReconciliationFailure,
+  reportReconciliationFailureRef: makeFunctionReference<"mutation">(
+    "workflows/subworkflowLinksCurrent:reportReconciliationFailure",
+  ),
 } as const;
 
 export const ${name}EventInstanceRefs = {

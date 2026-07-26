@@ -2142,7 +2142,7 @@ describe("Maestro V2 inline transaction compiler", () => {
       await expect(execution).rejects.toThrow(
         /artifact reference uses .* above the 64000 bytes limit/,
       );
-      expect(runQuery).not.toHaveBeenCalled();
+      expect(runQuery).toHaveBeenCalledOnce();
     });
 
     it.each([
@@ -2187,7 +2187,7 @@ describe("Maestro V2 inline transaction compiler", () => {
       await expect(execution).rejects.toThrow(
         /stored artifact uses .* above the 65000 bytes node limit/,
       );
-      expect(runQuery).toHaveBeenCalledOnce();
+      expect(runQuery).toHaveBeenCalledTimes(2);
     });
 
     it("keeps inline child results capped by the global inline ceiling", async () => {
@@ -3334,6 +3334,14 @@ const childLinkReserveRef =
   "workflows.subworkflowLinks.reserve" as unknown as DurableGraphStepRef<"mutation">;
 const childLinkRecoverRef =
   "workflows.subworkflowLinks.recoverReservation" as unknown as DurableGraphStepRef<"query">;
+const childLinkPersistReservationRef =
+  "workflows.subworkflowLinks.persistUnresolvedReservation" as unknown as DurableGraphStepRef<"mutation">;
+const childLinkPersistSuccessRef =
+  "workflows.subworkflowLinks.persistUnresolvedSuccess" as unknown as DurableGraphStepRef<"mutation">;
+const childLinkRecoverSuccessRef =
+  "workflows.subworkflowLinks.recoverUnresolvedSuccess" as unknown as DurableGraphStepRef<"query">;
+const childLinkResolveSuccessRef =
+  "workflows.subworkflowLinks.resolveUnresolvedSuccess" as unknown as DurableGraphStepRef<"mutation">;
 const childLinkReconcileRef =
   "workflows.subworkflowLinks.reconcile" as unknown as DurableGraphStepRef<"mutation">;
 const childLinkReportRef =
@@ -3557,6 +3565,10 @@ const childWorkflowDefinition = (
     links: {
       reserveRef: childLinkReserveRef,
       recoverReservationRef: childLinkRecoverRef,
+      persistUnresolvedReservationRef: childLinkPersistReservationRef,
+      persistUnresolvedSuccessRef: childLinkPersistSuccessRef,
+      recoverUnresolvedSuccessRef: childLinkRecoverSuccessRef,
+      resolveUnresolvedSuccessRef: childLinkResolveSuccessRef,
       reconcileRef: childLinkReconcileRef,
       reportReconciliationFailureRef: childLinkReportRef,
     },
@@ -4699,20 +4711,32 @@ describe("bounded subworkflow batch runtime", () => {
     ]);
   });
 
-  it("surfaces dual reconciliation failure and deterministically reattempts its report", async () => {
+  it("persists dual success failure and resumes without invoking the child again", async () => {
     let reportAttempts = 0;
-    const runMutation = vi.fn(async (ref) => {
+    let reconcileAttempts = 0;
+    let unresolved: unknown = null;
+    const runWorkflow = vi.fn(async () => ({ receiptId: "receipt-a" }));
+    const runMutation = vi.fn(async (ref, args: Record<string, unknown>) => {
       if (ref === childLinkReserveRef) {
         return { linkId: "link-dual", childWorkflowRunId: "run-dual" };
       }
-      if (ref === childLinkReconcileRef)
-        throw new Error("reconcile unavailable");
+      if (ref === childLinkReconcileRef) {
+        reconcileAttempts += 1;
+        if (reconcileAttempts === 1) throw new Error("reconcile unavailable");
+      }
+      if (ref === childLinkPersistSuccessRef) {
+        unresolved = { receipt: args.receipt, childResult: args.childResult };
+      }
+      if (ref === childLinkResolveSuccessRef) unresolved = null;
       if (ref === childLinkReportRef) {
         reportAttempts += 1;
-        if (reportAttempts === 1) throw new Error("report unavailable");
+        throw new Error("report unavailable");
       }
       return null;
     });
+    const runQuery = vi.fn(async (ref) =>
+      ref === childLinkRecoverSuccessRef ? unresolved : undefined,
+    );
     const input = {
       ...v2Input(v2BoundedBatchGraph({ maxItems: 1, batchSize: 1, fanOut: 1 })),
       principal: childPrincipal,
@@ -4722,15 +4746,21 @@ describe("bounded subworkflow batch runtime", () => {
     };
     const step = v2Step({
       runMutation,
-      runWorkflow: async () => ({ receiptId: "receipt-a" }),
+      runQuery,
+      runWorkflow,
     });
     await expect(runDurableGraphWorkflowV2(step, input)).rejects.toThrow(
       /durable failure report remain unresolved/,
     );
-    await expect(runDurableGraphWorkflowV2(step, input)).rejects.toThrow(
-      /durable link reconciliation failed/,
+    await expect(runDurableGraphWorkflowV2(step, input)).resolves.toMatchObject(
+      {
+        context: { batch: expect.any(Object) },
+      },
     );
-    expect(reportAttempts).toBe(2);
+    expect(reportAttempts).toBe(1);
+    expect(reconcileAttempts).toBe(2);
+    expect(runWorkflow).toHaveBeenCalledTimes(1);
+    expect(unresolved).toBeNull();
   });
 
   it.each([
