@@ -3,7 +3,7 @@
   "id": "saas-application",
   "provenance": "@maestro-template/generators/saas-application@1",
   "projectionSource": {
-    "sourceCommit": "ea7427e3484e45b52b5cc83a550754f64c2bf991",
+    "sourceCommit": "7802a8b2e1df3fa4290f008abe837df44257d593",
     "assets": [
       {
         "path": "base/apps/cli/src/factory/customerComposition.ts.txt",
@@ -1130,7 +1130,8 @@
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:4df32fb2d305b96eaff61a6fed7bd3e7bd6d41b6981781a7e3e2c54e1ac835d4"
+      "sha256": "sha256:4df32fb2d305b96eaff61a6fed7bd3e7bd6d41b6981781a7e3e2c54e1ac835d4",
+      "replaces": "copy"
     },
     {
       "path": "apps/cli/src/index.ts",
@@ -1209,7 +1210,8 @@
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:57fc28ba3e3171562e54b748e0731e260b26edb3a2be16b19a16625abdd366ad"
+      "sha256": "sha256:57fc28ba3e3171562e54b748e0731e260b26edb3a2be16b19a16625abdd366ad",
+      "replaces": "copy"
     },
     {
       "path": "docs/template/customer-context.manifest.json",
@@ -1334,7 +1336,8 @@
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:9c168f15312f6bc69a53f5dbd1eb42620cc13c54d79c1736c0ce0bebd8fa6472"
+      "sha256": "sha256:9c168f15312f6bc69a53f5dbd1eb42620cc13c54d79c1736c0ce0bebd8fa6472",
+      "replaces": "copy"
     },
     {
       "path": "packages/convex/confect/capabilities/_kit/workspaceAccess.ts",
@@ -1378,7 +1381,8 @@
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:f1da4e74fa10a4cb12a72be7cfbdc4884cae556a1df0f205cd367e4edaa69cf8"
+      "sha256": "sha256:f1da4e74fa10a4cb12a72be7cfbdc4884cae556a1df0f205cd367e4edaa69cf8",
+      "replaces": "copy"
     },
     {
       "path": "packages/convex/confect/tables/workflowRuns.ts",
@@ -1481,7 +1485,8 @@
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:023aa9b7ca1d12ab6a4530e3a2fb328deaeb545e5ca46924cefd08c8137c12a1"
+      "sha256": "sha256:023aa9b7ca1d12ab6a4530e3a2fb328deaeb545e5ca46924cefd08c8137c12a1",
+      "replaces": "copy"
     },
     {
       "path": "packages/convex/confect/workflows/_kit/observedStage.ts",
@@ -1520,7 +1525,8 @@
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:bcc1f2477b8e532624d752c056c8a028a79ee2b662bf47587144bcd7169a0322"
+      "sha256": "sha256:bcc1f2477b8e532624d752c056c8a028a79ee2b662bf47587144bcd7169a0322",
+      "replaces": "copy"
     },
     {
       "path": "packages/convex/confect/workflows/_kit/policySnapshot.ts",
@@ -1551,7 +1557,8 @@
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:733d17db9647758fe925063582cb9032f8c28ab9e793893c87e59ba99d5e5dba"
+      "sha256": "sha256:733d17db9647758fe925063582cb9032f8c28ab9e793893c87e59ba99d5e5dba",
+      "replaces": "copy"
     },
     {
       "path": "packages/convex/confect/workflows/_kit/workflowBuilderCurrent.ts",
@@ -1638,7 +1645,8 @@
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:05b3fdbcac40d9d8aabf01c781e5e015d3bac16e29532fef4e7a426270d49194"
+      "sha256": "sha256:05b3fdbcac40d9d8aabf01c781e5e015d3bac16e29532fef4e7a426270d49194",
+      "replaces": "copy"
     },
     {
       "path": "packages/convex/confect/workflows/lifecyclePersistence.ts",
@@ -1653,7 +1661,8 @@
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:353727ee6a61ada36532e84ff222d03ebbd74d837c3ab12b7f830991ab7eea92"
+      "sha256": "sha256:353727ee6a61ada36532e84ff222d03ebbd74d837c3ab12b7f830991ab7eea92",
+      "replaces": "copy"
     },
     {
       "path": "packages/convex/convex/records.ts",
@@ -1706,70 +1715,80 @@
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:b1beb61129f371c6949bef78a3b0d77d01b4e0e8504893585929b73117c64550"
+      "sha256": "sha256:b1beb61129f371c6949bef78a3b0d77d01b4e0e8504893585929b73117c64550",
+      "replaces": "copy"
     },
     {
       "path": "tooling/agent-pack/src/privacy/support-bundle.schema.json",
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:893bc5b420060292a8bd803f4a361137e05ec88d755d9a4570c07c0534f1fd91"
+      "sha256": "sha256:893bc5b420060292a8bd803f4a361137e05ec88d755d9a4570c07c0534f1fd91",
+      "replaces": "copy"
     },
     {
       "path": "tooling/agent-pack/src/privacy/supportBundle.ts",
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:b86a85f9285de0459e4b605959ff129aa5f5d54424f9006818c8fe78c93b7a2c"
+      "sha256": "sha256:b86a85f9285de0459e4b605959ff129aa5f5d54424f9006818c8fe78c93b7a2c",
+      "replaces": "copy"
     },
     {
       "path": "tooling/agent-pack/src/privacy/supportBundleCommand.ts",
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:271f6f96a01c41bca5ce4f6f6442ef1f4e12e0f1c3b8a22abe78bac08437a617"
+      "sha256": "sha256:271f6f96a01c41bca5ce4f6f6442ef1f4e12e0f1c3b8a22abe78bac08437a617",
+      "replaces": "copy"
     },
     {
       "path": "tooling/agent-pack/src/readiness/artifacts.ts",
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:2fd8bb632791dd52e71725713a2a16de264d0c8831cd234deec374c452331d6f"
+      "sha256": "sha256:2fd8bb632791dd52e71725713a2a16de264d0c8831cd234deec374c452331d6f",
+      "replaces": "copy"
     },
     {
       "path": "tooling/agent-pack/src/readiness/index.ts",
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:a0a4004d297d145de609134138633be7061833a0e07434954c6a8928faf64949"
+      "sha256": "sha256:a0a4004d297d145de609134138633be7061833a0e07434954c6a8928faf64949",
+      "replaces": "copy"
     },
     {
       "path": "tooling/agent-pack/src/readiness/nodeSurface.ts",
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:a37a70d87bf66e8bf6daaae48dc1a5cbd4c54cdbd1818d33a78e80d0028907d0"
+      "sha256": "sha256:a37a70d87bf66e8bf6daaae48dc1a5cbd4c54cdbd1818d33a78e80d0028907d0",
+      "replaces": "copy"
     },
     {
       "path": "tooling/agent-pack/src/readiness/presenter.ts",
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:3fe806a7c7d9babf686d64364908f330d664ca3ea7b67a5b8ce83233babda535"
+      "sha256": "sha256:3fe806a7c7d9babf686d64364908f330d664ca3ea7b67a5b8ce83233babda535",
+      "replaces": "copy"
     },
     {
       "path": "tooling/agent-pack/src/readiness/server.ts",
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:9d7fb867ecbd2076e36412512f17a70bdbc0f80b05d7e27385c69b0782943666"
+      "sha256": "sha256:9d7fb867ecbd2076e36412512f17a70bdbc0f80b05d7e27385c69b0782943666",
+      "replaces": "copy"
     },
     {
       "path": "tooling/agent-pack/src/receiptWriter.ts",
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:d24dfc9e8b69842bfbe0f4961bb11580e8337f1b8abab6df40c1b96652469e0b"
+      "sha256": "sha256:d24dfc9e8b69842bfbe0f4961bb11580e8337f1b8abab6df40c1b96652469e0b",
+      "replaces": "copy"
     },
     {
       "path": "tooling/agent-pack/src/start.ts",
@@ -1808,35 +1827,40 @@
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:ce77a1681cc7b4bf4dcfa4294b67aea5d0e1a77861cf1a9b14d9da05f20a7181"
+      "sha256": "sha256:ce77a1681cc7b4bf4dcfa4294b67aea5d0e1a77861cf1a9b14d9da05f20a7181",
+      "replaces": "copy"
     },
     {
       "path": "tooling/generators/src/customer-cli.ts",
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:f3644fae5b4544c0b8eb0a09857ff9031556acf48584d26ab4485fee18d5f234"
+      "sha256": "sha256:f3644fae5b4544c0b8eb0a09857ff9031556acf48584d26ab4485fee18d5f234",
+      "replaces": "copy"
     },
     {
       "path": "tooling/generators/src/customer-dispatcher.ts",
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:349b52d4cb9676c9ae8be481496d6f14fcf4b02eb258edf7ea285b591d3a055e"
+      "sha256": "sha256:349b52d4cb9676c9ae8be481496d6f14fcf4b02eb258edf7ea285b591d3a055e",
+      "replaces": "copy"
     },
     {
       "path": "tooling/generators/src/customer-runtime.ts",
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:856d69e6cce6cfe8386efffcedfd64fe5586177d6030bc95d7b9cc3330a98b46"
+      "sha256": "sha256:856d69e6cce6cfe8386efffcedfd64fe5586177d6030bc95d7b9cc3330a98b46",
+      "replaces": "copy"
     },
     {
       "path": "tooling/generators/src/customer.ts",
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:97c2491d3425360f274ab2a29411fac391917a54284cec70cc4c58e09258aea1"
+      "sha256": "sha256:97c2491d3425360f274ab2a29411fac391917a54284cec70cc4c58e09258aea1",
+      "replaces": "copy"
     },
     {
       "path": "tooling/generators/src/direct-run.ts",
@@ -1851,7 +1875,8 @@
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:8b441c030d7d8c386080f269f00727f79a3efe23c548518c00922722bd277a38"
+      "sha256": "sha256:8b441c030d7d8c386080f269f00727f79a3efe23c548518c00922722bd277a38",
+      "replaces": "copy"
     },
     {
       "path": "tooling/generators/src/workflow-predeploy.ts",
@@ -1866,14 +1891,16 @@
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:8e96afe877a9e80bd098305e5f28fb2c8df9e5edb80d43f46c95e8b685a520e9"
+      "sha256": "sha256:8e96afe877a9e80bd098305e5f28fb2c8df9e5edb80d43f46c95e8b685a520e9",
+      "replaces": "copy"
     },
     {
       "path": "tooling/generators/src/workflow-source-closure.ts",
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:d45a7b39c976fddef18ebceee98153648652c773787d9b61289ea4902a3f1ced"
+      "sha256": "sha256:d45a7b39c976fddef18ebceee98153648652c773787d9b61289ea4902a3f1ced",
+      "replaces": "copy"
     },
     {
       "path": "tooling/quality/check-agent-pack.mts",
@@ -1903,21 +1930,24 @@
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:820391a1690bf7463c08a800059b62bde429296a5a4b269d5a311c9cb24b8938"
+      "sha256": "sha256:820391a1690bf7463c08a800059b62bde429296a5a4b269d5a311c9cb24b8938",
+      "replaces": "copy"
     },
     {
       "path": "tooling/quality/check-workflow-principal-propagation.mts",
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:6bb301be1eec7e0a86c3181c25fb3352b09e8a5d3e75c845a1bcb390099caf81"
+      "sha256": "sha256:6bb301be1eec7e0a86c3181c25fb3352b09e8a5d3e75c845a1bcb390099caf81",
+      "replaces": "copy"
     },
     {
       "path": "tooling/quality/fixtures/workflow-policy-snapshots.json",
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:0b9bd9cf266b88904fa09b268e2ecae734687597e2506982e2d7460328be9b6a"
+      "sha256": "sha256:0b9bd9cf266b88904fa09b268e2ecae734687597e2506982e2d7460328be9b6a",
+      "replaces": "copy"
     },
     {
       "path": "tooling/quality/install-lefthook-if-git.mjs",
