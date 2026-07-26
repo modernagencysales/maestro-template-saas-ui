@@ -1,10 +1,14 @@
 import { execFile as nodeExecFile } from "node:child_process";
 import { createHash } from "node:crypto";
 import { readFile, readdir, stat } from "node:fs/promises";
+import { platform as nodePlatform } from "node:os";
 import { isAbsolute, relative, resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 import {
   EvaluationError,
   isRecord,
+  type BrowserOpenResult,
+  type BrowserOpener,
   type ExecutableEvidence,
   type WalkingSkeletonResult,
 } from "./contract.js";
@@ -31,13 +35,22 @@ export type ProductProof = {
   readonly read: { readonly statusCode: number; readonly record: unknown };
 };
 export type ProductProofRunner = (input: {
+  readonly workspace: string;
   readonly customerRoot: string;
   readonly env: NodeJS.ProcessEnv;
   readonly command: VerifierCommand;
-}) => Promise<ProductProof>;
+  readonly withLiveRuntime: (proof: ProductProof) => Promise<void>;
+}) => Promise<void>;
+export type BrowserOpenPort = (input: {
+  readonly url: string;
+  readonly cwd: string;
+  readonly env: NodeJS.ProcessEnv;
+  readonly command: VerifierCommand;
+}) => Promise<BrowserOpenResult>;
 export type ExecutableEvidencePorts = {
   readonly command: VerifierCommand;
   readonly productProof: ProductProofRunner;
+  readonly browserOpen: BrowserOpenPort;
 };
 
 export async function verifyExecutableEvidence(input: {
@@ -113,12 +126,51 @@ export async function verifyExecutableEvidence(input: {
   }
 
   const productProofRunner = input.ports?.productProof ?? runProductOwnedProof;
-  const productProof = await productProofRunner({
+  const browserOpen = input.ports?.browserOpen ?? createNativeBrowserOpenPort();
+  let liveEvidence:
+    | {
+        readonly productProof: ProductProof;
+        readonly record: unknown;
+        readonly browserOpenResult: BrowserOpenResult;
+      }
+    | undefined;
+  await productProofRunner({
+    workspace: input.workspace,
     customerRoot,
     env: safeVerifierEnvironment(input.sessionDir),
     command,
+    withLiveRuntime: async (productProof) => {
+      if (liveEvidence) {
+        throw new EvaluationError(
+          "EVAL_PRODUCT_PROOF_UNAVAILABLE",
+          "Product-owned proof exposed more than one live runtime.",
+        );
+      }
+      const record = validateProductProof(productProof);
+      let browserOpenResult: BrowserOpenResult;
+      try {
+        browserOpenResult = await browserOpen({
+          url: productProof.url,
+          cwd: customerRoot,
+          env: safeVerifierEnvironment(input.sessionDir),
+          command,
+        });
+      } catch {
+        browserOpenResult = {
+          status: "headless-fallback",
+          reason: "opener-failed",
+        };
+      }
+      liveEvidence = { productProof, record, browserOpenResult };
+    },
   });
-  const record = validateProductProof(productProof);
+  if (!liveEvidence) {
+    throw new EvaluationError(
+      "EVAL_PRODUCT_PROOF_UNAVAILABLE",
+      "Product-owned proof did not expose its validated live runtime.",
+    );
+  }
+  const { productProof, record, browserOpenResult } = liveEvidence;
   const recordBytes = stableStringify(record);
 
   return {
@@ -133,6 +185,10 @@ export async function verifyExecutableEvidence(input: {
         gateSet,
       }),
     },
+    browserOpen: {
+      ...browserOpenResult,
+      proofUrl: productProof.url,
+    },
     serverProof: {
       url: productProof.url,
       statusCode: productProof.read.statusCode,
@@ -141,6 +197,70 @@ export async function verifyExecutableEvidence(input: {
       source: "live-probe",
     },
   };
+}
+
+export function createNativeBrowserOpenPort(
+  platform: NodeJS.Platform = nodePlatform(),
+): BrowserOpenPort {
+  return async (input) => {
+    const opener = nativeBrowserOpener(platform, input.url);
+    if (!opener) {
+      return {
+        status: "headless-fallback",
+        reason: "unsupported-platform",
+      };
+    }
+    let result: VerifierCommandResult;
+    try {
+      result = await input.command({
+        command: opener.command,
+        args: opener.args,
+        cwd: input.cwd,
+        env: input.env,
+        timeoutMs: 10_000,
+      });
+    } catch {
+      return {
+        status: "headless-fallback",
+        opener: opener.opener,
+        reason: "opener-failed",
+      };
+    }
+    if (result.exitCode === 0) {
+      return { status: "opened", opener: opener.opener };
+    }
+    return {
+      status: "headless-fallback",
+      opener: opener.opener,
+      reason: "opener-failed",
+    };
+  };
+}
+
+function nativeBrowserOpener(
+  platform: NodeJS.Platform,
+  url: string,
+):
+  | {
+      readonly opener: BrowserOpener;
+      readonly command: string;
+      readonly args: readonly string[];
+    }
+  | undefined {
+  if (platform === "darwin") {
+    return { opener: "open", command: "open", args: [url] };
+  }
+  if (platform === "linux") {
+    return { opener: "xdg-open", command: "xdg-open", args: [url] };
+  }
+  if (platform === "win32") {
+    return {
+      opener: "explorer.exe",
+      command: "explorer.exe",
+      args: [url],
+    };
+  }
+  return undefined;
 }
 
 export function safeVerifierEnvironment(
@@ -267,10 +387,12 @@ function invalidManifest(): never {
 }
 
 export async function runProductOwnedProof(input: {
+  readonly workspace: string;
   readonly customerRoot: string;
   readonly env: NodeJS.ProcessEnv;
   readonly command: VerifierCommand;
-}): Promise<ProductProof> {
+  readonly withLiveRuntime: (proof: ProductProof) => Promise<void>;
+}): Promise<void> {
   let manifest: unknown;
   try {
     manifest = JSON.parse(
@@ -283,40 +405,148 @@ export async function runProductOwnedProof(input: {
     isRecord(manifest) && isRecord(manifest.scripts)
       ? manifest.scripts
       : undefined;
-  if (!scripts || typeof scripts["maestro:crud-proof"] !== "string") {
+  if (
+    !scripts ||
+    scripts["maestro:crud-proof"] !==
+      "tsx tooling/generators/src/crud-proof.ts --mode fake"
+  ) {
     throw new EvaluationError(
       "EVAL_PRODUCT_PROOF_UNAVAILABLE",
       "Generated customer app lacks a product-owned maestro:crud-proof command that launches fake mode and exercises create plus read after host exit.",
     );
   }
-  const result = await input.command({
+  const commandResult = await input.command({
     command: "pnpm",
     args: ["run", "maestro:crud-proof", "--", "--json"],
     cwd: input.customerRoot,
     env: input.env,
     timeoutMs: 5 * 60 * 1000,
   });
-  if (result.exitCode !== 0) {
+  if (commandResult.exitCode !== 0) {
     throw new EvaluationError(
       "EVAL_PRODUCT_PROOF_UNAVAILABLE",
       "The product-owned CRUD proof command failed.",
     );
   }
+  let commandProof: ProductProof;
   try {
-    return JSON.parse(result.stdout) as ProductProof;
-  } catch {
+    const parsed = JSON.parse(commandResult.stdout) as unknown;
+    commandProof = parseCommandProductProof(parsed);
+  } catch (error) {
+    if (error instanceof EvaluationError) throw error;
     throw new EvaluationError(
       "EVAL_PRODUCT_PROOF_UNAVAILABLE",
       "The product-owned CRUD proof command returned invalid evidence.",
     );
   }
+  let liveRuntimeSeen = false;
+  try {
+    const productModule = (await import(
+      pathToFileURL(
+        resolve(input.workspace, "tooling/generators/src/crud-proof.ts"),
+      ).href
+    )) as Record<string, unknown>;
+    if (typeof productModule.runCrudProof !== "function") {
+      throw new Error("runCrudProof export unavailable");
+    }
+    const runCrudProof = productModule.runCrudProof as (options: {
+      readonly cwd: string;
+      readonly mode: string;
+      readonly environment: NodeJS.ProcessEnv;
+      readonly withLiveRuntime: (runtime: unknown) => Promise<void>;
+    }) => Promise<unknown>;
+    await runCrudProof({
+      cwd: input.customerRoot,
+      mode: "fake",
+      environment: input.env,
+      withLiveRuntime: async (runtime) => {
+        if (liveRuntimeSeen) {
+          throw new EvaluationError(
+            "EVAL_PRODUCT_PROOF_UNAVAILABLE",
+            "Product-owned proof exposed more than one live runtime.",
+          );
+        }
+        liveRuntimeSeen = true;
+        const liveProof = parseLiveProductProof(runtime);
+        if (
+          stableStringify({
+            create: commandProof.create,
+            read: commandProof.read,
+          }) !==
+          stableStringify({ create: liveProof.create, read: liveProof.read })
+        ) {
+          throw new EvaluationError(
+            "EVAL_PRODUCT_PROOF_UNAVAILABLE",
+            "Native and live product-owned CRUD proof evidence diverged.",
+          );
+        }
+        await input.withLiveRuntime(liveProof);
+      },
+    });
+  } catch (error) {
+    if (error instanceof EvaluationError) throw error;
+    throw new EvaluationError(
+      "EVAL_PRODUCT_PROOF_UNAVAILABLE",
+      "The product-owned CRUD proof module failed.",
+    );
+  }
+  if (!liveRuntimeSeen) {
+    throw new EvaluationError(
+      "EVAL_PRODUCT_PROOF_UNAVAILABLE",
+      "The product-owned CRUD proof module did not expose a live runtime.",
+    );
+  }
+}
+
+function parseCommandProductProof(value: unknown): ProductProof {
+  if (!isRecord(value) || typeof value.url !== "string") {
+    throw new EvaluationError(
+      "EVAL_PRODUCT_PROOF_UNAVAILABLE",
+      "The product-owned CRUD proof command returned invalid evidence.",
+    );
+  }
+  return parseProductProofParts(value.url, value.create, value.read);
+}
+
+function parseLiveProductProof(runtime: unknown): ProductProof {
+  if (!isRecord(runtime) || typeof runtime.url !== "string") {
+    throw new EvaluationError(
+      "EVAL_PRODUCT_PROOF_UNAVAILABLE",
+      "The product-owned CRUD proof module returned invalid live evidence.",
+    );
+  }
+  const proof = isRecord(runtime.proof) ? runtime.proof : undefined;
+  return parseProductProofParts(runtime.url, proof?.create, proof?.read);
+}
+
+function parseProductProofParts(
+  url: string,
+  createValue: unknown,
+  readValue: unknown,
+): ProductProof {
+  const create = isRecord(createValue) ? createValue : undefined;
+  const read = isRecord(readValue) ? readValue : undefined;
+  if (
+    !create ||
+    !read ||
+    typeof create.statusCode !== "number" ||
+    typeof read.statusCode !== "number"
+  ) {
+    throw new EvaluationError(
+      "EVAL_PRODUCT_PROOF_UNAVAILABLE",
+      "The product-owned CRUD proof module returned invalid live evidence.",
+    );
+  }
+  return {
+    url,
+    create: { statusCode: create.statusCode, record: create.record },
+    read: { statusCode: read.statusCode, record: read.record },
+  };
 }
 
 function validateProductProof(proof: ProductProof): unknown {
   if (
-    !/^https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?(?:\/|$)/u.test(
-      proof.url,
-    ) ||
+    !/^http:\/\/127\.0\.0\.1:\d+\//u.test(proof.url) ||
     !success(proof.create?.statusCode) ||
     !success(proof.read?.statusCode) ||
     !isRecord(proof.create?.record) ||

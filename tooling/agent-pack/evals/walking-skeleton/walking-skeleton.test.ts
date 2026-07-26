@@ -1,10 +1,9 @@
 import { createHash } from "node:crypto";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { createServer } from "node:http";
+import { cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { mkdtemp } from "node:fs/promises";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { runCrudProof } from "../../../generators/src/crud-proof.js";
 import { aggregateWalkingSkeletonRuns } from "./aggregate.js";
 import { parseCliOptions } from "./cli.js";
@@ -15,7 +14,9 @@ import {
   type HostCommand,
 } from "./hosts.js";
 import {
+  createNativeBrowserOpenPort,
   verifyExecutableEvidence,
+  type BrowserOpenPort,
   type ProductProofRunner,
   type VerifierCommand,
 } from "./verifier.js";
@@ -92,18 +93,18 @@ describe("walking-skeleton fail-closed evidence", () => {
 
   it("accepts the frozen reviewed release binding rather than candidate HEAD", async () => {
     const fixture = await completeFixture();
-    const evidence = await verify(fixture, localCrudProof);
+    const evidence = await verify(fixture, canonicalCrudProof);
     expect(evidence.canonicalHashes.manifest).toMatch(/^sha256:/u);
   });
 
   it("accepts exact reviewed Claude settings and rejects tampering", async () => {
     const fixture = await completeFixture();
-    await expect(verify(fixture, localCrudProof)).resolves.toBeDefined();
+    await expect(verify(fixture, canonicalCrudProof)).resolves.toBeDefined();
     await writeFile(
       join(fixture.workspace, "eval-target", ".claude", "settings.json"),
       JSON.stringify({ enableAllProjectMcpServers: true }),
     );
-    await expect(verify(fixture, localCrudProof)).rejects.toMatchObject({
+    await expect(verify(fixture, canonicalCrudProof)).rejects.toMatchObject({
       code: "EVAL_MANIFEST_INVALID",
     });
   });
@@ -113,7 +114,7 @@ describe("walking-skeleton fail-closed evidence", () => {
     async (path) => {
       const fixture = await completeFixture();
       await writeFile(join(fixture.workspace, "eval-target", path), "{}\n");
-      await expect(verify(fixture, localCrudProof)).rejects.toMatchObject({
+      await expect(verify(fixture, canonicalCrudProof)).rejects.toMatchObject({
         code: "EVAL_FORBIDDEN_HOST_CONFIG",
       });
     },
@@ -131,7 +132,7 @@ describe("walking-skeleton fail-closed evidence", () => {
     };
     instance.release.sourceCommit = candidateSha;
     await writeFile(path, JSON.stringify(instance));
-    await expect(verify(fixture, localCrudProof)).rejects.toMatchObject({
+    await expect(verify(fixture, canonicalCrudProof)).rejects.toMatchObject({
       code: "EVAL_MANIFEST_INVALID",
     });
   });
@@ -155,27 +156,45 @@ describe("walking-skeleton fail-closed evidence", () => {
     });
   });
 
-  it("proves a harness-owned local server can exercise create and read", async () => {
-    const proof = await localCrudProof({
-      customerRoot: "/unused",
+  it("keeps the canonical product proof live through its continuation", async () => {
+    const fixture = await completeFixture();
+    let proofUrl: string | undefined;
+    await canonicalCrudProof({
+      workspace: fixture.workspace,
+      customerRoot: fixture.customerRoot,
       env: { PATH: "/bin" },
       command: verifierCommand,
+      withLiveRuntime: async (proof) => {
+        proofUrl = proof.url;
+        const response = await fetch(proof.url);
+        expect(response.status).toBe(200);
+        expect(await response.json()).toMatchObject({
+          id: "record_0001",
+          workspaceId: "workspace_crud_proof",
+        });
+        expect(proof.read.record).toMatchObject({ synthetic: false });
+      },
     });
-    expect(proof.create.statusCode).toBe(201);
-    expect(proof.read.record).toEqual(proof.create.record);
-    expect(proof.url).toMatch(/^http:\/\/127\.0\.0\.1:/u);
+    expect(proofUrl).toMatch(/^http:\/\/127\.0\.0\.1:/u);
+    await expect(fetch(proofUrl as string)).rejects.toThrow();
   });
 
   it("accepts the real generated CRUD proof contract", async () => {
     const fixture = await completeFixture();
     await expect(
-      verify(fixture, async ({ customerRoot }) =>
+      verify(fixture, async ({ customerRoot, withLiveRuntime }) =>
         runCrudProof({
           cwd: customerRoot,
           adapterModulePath: resolve(
             import.meta.dirname,
             "../../../../examples/saas-application/seed/source/apps/web/src/adapters/records/fake.ts",
           ),
+          withLiveRuntime: async ({ url, proof }) =>
+            withLiveRuntime({
+              url,
+              create: proof.create,
+              read: proof.read,
+            }),
         }),
       ),
     ).resolves.toMatchObject({
@@ -183,14 +202,291 @@ describe("walking-skeleton fail-closed evidence", () => {
     });
   });
 
-  it("rejects missing frozen-install evidence before product proof", async () => {
+  it("uses the default product module live and agrees with native command evidence", async () => {
+    const fixture = await completeFixture();
+    await installDefaultProductProof(fixture);
+    let nativeProofRan = false;
+    const command = vi.fn<VerifierCommand>(async (input) => {
+      if (
+        input.command === "pnpm" &&
+        input.args[0] === "run" &&
+        input.args[1] === "maestro:crud-proof"
+      ) {
+        nativeProofRan = true;
+        const proof = await runCrudProof({ cwd: input.cwd });
+        return {
+          exitCode: 0,
+          stdout: JSON.stringify(proof),
+          stderr: "failure-looking text must not decide the verdict",
+        };
+      }
+      return verifierCommand(input);
+    });
+    const browserOpen = vi.fn<BrowserOpenPort>(async ({ url }) => {
+      const response = await fetch(url);
+      expect(response.status).toBe(200);
+      expect(await response.json()).toMatchObject({ id: "record_0001" });
+      return { status: "opened", opener: "xdg-open" };
+    });
+
+    const evidence = await verifyExecutableEvidence({
+      workspace: fixture.workspace,
+      candidateSha,
+      sessionDir: fixture.sessionDir,
+      result: validResult(),
+      ports: { command, browserOpen },
+    });
+
+    expect(nativeProofRan).toBe(true);
+    expect(browserOpen).toHaveBeenCalledOnce();
+    expect(evidence.browserOpen.status).toBe("opened");
+    expect(command).toHaveBeenCalledWith(
+      expect.objectContaining({
+        command: "pnpm",
+        args: ["run", "maestro:crud-proof", "--", "--json"],
+        cwd: fixture.customerRoot,
+      }),
+    );
+    await expect(fetch(evidence.serverProof.url)).rejects.toThrow();
+  });
+
+  it("rejects native and live product-proof divergence before opening", async () => {
+    const fixture = await completeFixture();
+    await installDefaultProductProof(fixture);
+    const command = vi.fn<VerifierCommand>(async (input) => {
+      if (
+        input.command !== "pnpm" ||
+        input.args[0] !== "run" ||
+        input.args[1] !== "maestro:crud-proof"
+      ) {
+        return verifierCommand(input);
+      }
+      const proof = await runCrudProof({ cwd: input.cwd });
+      const divergentRecord = {
+        ...proof.create.record,
+        id: "record_divergent",
+      };
+      return {
+        exitCode: 0,
+        stdout: JSON.stringify({
+          ...proof,
+          create: { ...proof.create, record: divergentRecord },
+          read: { ...proof.read, record: divergentRecord },
+        }),
+        stderr: "",
+      };
+    });
+    const browserOpen = vi.fn<BrowserOpenPort>(async () => ({
+      status: "opened",
+      opener: "xdg-open",
+    }));
+
+    await expect(
+      verifyExecutableEvidence({
+        workspace: fixture.workspace,
+        candidateSha,
+        sessionDir: fixture.sessionDir,
+        result: validResult(),
+        ports: { command, browserOpen },
+      }),
+    ).rejects.toMatchObject({
+      code: "EVAL_PRODUCT_PROOF_UNAVAILABLE",
+      message: expect.stringContaining("diverged"),
+    });
+    expect(browserOpen).not.toHaveBeenCalled();
+  });
+
+  it("falls back when the injected opener fails while product proof is live", async () => {
+    const fixture = await completeFixture();
+    let fetchedRecord: unknown;
+    const browserOpen = vi.fn<BrowserOpenPort>(async ({ url }) => {
+      const response = await fetch(url);
+      expect(response.status).toBe(200);
+      fetchedRecord = await response.json();
+      throw new Error("injected opener failed");
+    });
+
+    const evidence = await verifyExecutableEvidence({
+      workspace: fixture.workspace,
+      candidateSha,
+      sessionDir: fixture.sessionDir,
+      result: validResult(),
+      ports: {
+        command: verifierCommand,
+        productProof: canonicalCrudProof,
+        browserOpen,
+      },
+    });
+
+    expect(browserOpen).toHaveBeenCalledOnce();
+    expect(fetchedRecord).toMatchObject({
+      id: "record_0001",
+      workspaceId: "workspace_crud_proof",
+    });
+    expect(evidence).toMatchObject({
+      browserOpen: {
+        status: "headless-fallback",
+        proofUrl: evidence.serverProof.url,
+        reason: "opener-failed",
+      },
+      serverProof: {
+        url: evidence.serverProof.url,
+        source: "live-probe",
+        statusCode: 200,
+      },
+    });
+    await expect(fetch(evidence.serverProof.url)).rejects.toThrow();
+  });
+
+  it("records native opened success only after fetching the live product URL", async () => {
+    const fixture = await completeFixture();
+    const browserOpen = vi.fn<BrowserOpenPort>(
+      createNativeBrowserOpenPort("linux"),
+    );
+    const command = vi.fn<VerifierCommand>(async (input) => {
+      if (input.command !== "xdg-open") return verifierCommand(input);
+      const response = await fetch(String(input.args[0]));
+      expect(response.status).toBe(200);
+      expect(await response.json()).toMatchObject({ id: "record_0001" });
+      return {
+        exitCode: 0,
+        stdout: "",
+        stderr: "Browser open failed (ignored diagnostic text).",
+      };
+    });
+
+    const evidence = await verifyExecutableEvidence({
+      workspace: fixture.workspace,
+      candidateSha,
+      sessionDir: fixture.sessionDir,
+      result: validResult(),
+      ports: { command, productProof: canonicalCrudProof, browserOpen },
+    });
+
+    expect(evidence.browserOpen).toMatchObject({
+      status: "opened",
+      opener: "xdg-open",
+    });
+    expect(command).toHaveBeenCalledWith(
+      expect.objectContaining({
+        command: "xdg-open",
+        args: [evidence.serverProof.url],
+      }),
+    );
+    await expect(fetch(evidence.serverProof.url)).rejects.toThrow();
+  });
+
+  it("records native fallback from exit status while the product URL is live", async () => {
+    const fixture = await completeFixture();
+    const browserOpen = createNativeBrowserOpenPort("linux");
+    const command = vi.fn<VerifierCommand>(async (input) => {
+      if (input.command !== "xdg-open") return verifierCommand(input);
+      expect((await fetch(String(input.args[0]))).status).toBe(200);
+      return {
+        exitCode: 1,
+        stdout: "opened",
+        stderr: "",
+      };
+    });
+
+    const evidence = await verifyExecutableEvidence({
+      workspace: fixture.workspace,
+      candidateSha,
+      sessionDir: fixture.sessionDir,
+      result: validResult(),
+      ports: { command, productProof: canonicalCrudProof, browserOpen },
+    });
+
+    expect(evidence.browserOpen).toMatchObject({
+      status: "headless-fallback",
+      opener: "xdg-open",
+      reason: "opener-failed",
+    });
+    await expect(fetch(evidence.serverProof.url)).rejects.toThrow();
+  });
+
+  it("does not let browser opener failure manufacture CRUD proof", async () => {
+    const fixture = await completeFixture();
+    const browserOpen = vi.fn<BrowserOpenPort>(async () => ({
+      status: "headless-fallback",
+      reason: "opener-failed",
+    }));
+    const productProof = vi.fn<ProductProofRunner>(
+      async ({ withLiveRuntime }) =>
+        withLiveRuntime({
+          url: "http://127.0.0.1:4173/records/record-1",
+          create: {
+            statusCode: 201,
+            record: { id: "record-1", synthetic: false },
+          },
+          read: {
+            statusCode: 404,
+            record: { id: "record-1", synthetic: false },
+          },
+        }),
+    );
+
+    await expect(
+      verifyExecutableEvidence({
+        workspace: fixture.workspace,
+        candidateSha,
+        sessionDir: fixture.sessionDir,
+        result: validResult(),
+        ports: { command: verifierCommand, productProof, browserOpen },
+      }),
+    ).rejects.toMatchObject({
+      code: "EVAL_PRODUCT_PROOF_UNAVAILABLE",
+    });
+    expect(browserOpen).not.toHaveBeenCalled();
+  });
+
+  it("rejects missing frozen-install evidence offline before product proof", async () => {
     const fixture = await completeFixture();
     await writeFile(
       join(fixture.workspace, "node_modules", ".modules.yaml"),
       "",
     );
-    await expect(verify(fixture, localCrudProof)).rejects.toMatchObject({
+    const productProof = vi.fn(canonicalCrudProof);
+    const command = vi.fn<VerifierCommand>(async (input) => {
+      if (input.command === "git") return verifierCommand(input);
+      throw new Error("Offline fixture attempted package or product access.");
+    });
+    await expect(
+      verifyExecutableEvidence({
+        workspace: fixture.workspace,
+        candidateSha,
+        sessionDir: fixture.sessionDir,
+        result: validResult(),
+        ports: { command, productProof },
+      }),
+    ).rejects.toMatchObject({
       code: "EVAL_PREREQUISITE_EVIDENCE_MISSING",
+    });
+    expect(command).toHaveBeenCalledTimes(2);
+    expect(command.mock.calls.every(([input]) => input.command === "git")).toBe(
+      true,
+    );
+    expect(productProof).not.toHaveBeenCalled();
+  });
+
+  it("isolates stale plugin config and passes the repaired rerun", async () => {
+    const fixture = await completeFixture();
+    const stalePlugin = join(
+      fixture.workspace,
+      "eval-target",
+      ".claude-plugin",
+    );
+    await mkdir(stalePlugin);
+    await writeFile(join(stalePlugin, "plugin.json"), "{}\n");
+
+    await expect(verify(fixture, canonicalCrudProof)).rejects.toMatchObject({
+      code: "EVAL_FORBIDDEN_HOST_CONFIG",
+      message: expect.stringContaining("removed before rerun"),
+    });
+
+    await rm(stalePlugin, { recursive: true });
+    await expect(verify(fixture, canonicalCrudProof)).resolves.toMatchObject({
+      serverProof: { source: "live-probe", statusCode: 200 },
     });
   });
 
@@ -319,7 +615,56 @@ async function completeFixture() {
     join(customerRoot, "package.json"),
     JSON.stringify({ scripts: {} }),
   );
-  return { workspace, sessionDir };
+  return { workspace, sessionDir, customerRoot };
+}
+
+async function installDefaultProductProof(fixture: {
+  workspace: string;
+  customerRoot: string;
+}) {
+  const sourceRoot = resolve(import.meta.dirname, "../../../..");
+  const productModuleDirectory = join(
+    fixture.workspace,
+    "tooling",
+    "generators",
+    "src",
+  );
+  const adapterDirectory = join(
+    fixture.customerRoot,
+    "apps",
+    "web",
+    "src",
+    "adapters",
+    "records",
+  );
+  await mkdir(productModuleDirectory, { recursive: true });
+  await Promise.all([
+    cp(
+      join(sourceRoot, "tooling/generators/src/crud-proof.ts"),
+      join(productModuleDirectory, "crud-proof.ts"),
+    ),
+    cp(
+      join(sourceRoot, "tooling/generators/src/direct-run.ts"),
+      join(productModuleDirectory, "direct-run.ts"),
+    ),
+    cp(
+      join(
+        sourceRoot,
+        "examples/saas-application/seed/source/apps/web/src/adapters/records",
+      ),
+      adapterDirectory,
+      { recursive: true },
+    ),
+    writeFile(
+      join(fixture.customerRoot, "package.json"),
+      JSON.stringify({
+        scripts: {
+          "maestro:crud-proof":
+            "tsx tooling/generators/src/crud-proof.ts --mode fake",
+        },
+      }),
+    ),
+  ]);
 }
 
 function validResult(): WalkingSkeletonResult {
@@ -361,46 +706,23 @@ const verifierCommand: VerifierCommand = async (input) => {
   return { exitCode: 0, stdout: '{"status":"pass"}', stderr: "" };
 };
 
-const localCrudProof: ProductProofRunner = async () => {
-  let record: Record<string, unknown> | undefined;
-  const server = createServer((request, response) => {
-    if (request.method === "POST" && request.url === "/records") {
-      record = { id: "record-1", title: "First record", synthetic: false };
-      response.writeHead(201, { "content-type": "application/json" });
-      response.end(JSON.stringify(record));
-      return;
-    }
-    if (
-      request.method === "GET" &&
-      request.url === "/records/record-1" &&
-      record
-    ) {
-      response.writeHead(200, { "content-type": "application/json" });
-      response.end(JSON.stringify(record));
-      return;
-    }
-    response.writeHead(404).end();
+const canonicalCrudProof: ProductProofRunner = async ({
+  customerRoot,
+  withLiveRuntime,
+}) => {
+  await runCrudProof({
+    cwd: customerRoot,
+    adapterModulePath: resolve(
+      import.meta.dirname,
+      "../../../../examples/saas-application/seed/source/apps/web/src/adapters/records/fake.ts",
+    ),
+    withLiveRuntime: async ({ url, proof }) =>
+      withLiveRuntime({
+        url,
+        create: proof.create,
+        read: proof.read,
+      }),
   });
-  await new Promise<void>((resolveReady) =>
-    server.listen(0, "127.0.0.1", resolveReady),
-  );
-  const address = server.address();
-  if (!address || typeof address === "string")
-    throw new Error("server unavailable");
-  const url = `http://127.0.0.1:${String(address.port)}`;
-  try {
-    const created = await fetch(`${url}/records`, { method: "POST" });
-    const read = await fetch(`${url}/records/record-1`);
-    return {
-      url,
-      create: { statusCode: created.status, record: await created.json() },
-      read: { statusCode: read.status, record: await read.json() },
-    };
-  } finally {
-    await new Promise<void>((resolveClosed, reject) =>
-      server.close((error) => (error ? reject(error) : resolveClosed())),
-    );
-  }
 };
 
 function validReceipt() {

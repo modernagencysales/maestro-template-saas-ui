@@ -42,8 +42,23 @@ export type CanonicalEvidenceHashes = {
   readonly firstRecord: string;
   readonly checkExecution: string;
 };
+export type BrowserOpener = "open" | "xdg-open" | "explorer.exe";
+export type BrowserOpenResult =
+  | {
+      readonly status: "opened";
+      readonly opener: BrowserOpener;
+    }
+  | {
+      readonly status: "headless-fallback";
+      readonly reason: "opener-failed" | "unsupported-platform";
+      readonly opener?: BrowserOpener;
+    };
+export type BrowserOpenEvidence = BrowserOpenResult & {
+  readonly proofUrl: string;
+};
 export type ExecutableEvidence = {
   readonly canonicalHashes: CanonicalEvidenceHashes;
+  readonly browserOpen: BrowserOpenEvidence;
   readonly serverProof: {
     readonly url: string;
     readonly statusCode: number;

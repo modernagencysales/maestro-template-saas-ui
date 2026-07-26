@@ -60,12 +60,20 @@ export type CrudProofReport = {
   };
 };
 
+export type CrudProofLiveRuntime = {
+  readonly url: string;
+  readonly proof: CrudProofReport;
+};
+
 export type CrudProofOptions = {
   readonly cwd?: string;
   readonly mode?: string;
   readonly environment?: NodeJS.ProcessEnv;
   readonly adapterModulePath?: string;
   readonly now?: () => number;
+  readonly withLiveRuntime?: (
+    runtime: CrudProofLiveRuntime,
+  ) => void | Promise<void>;
 };
 
 const object = (value: unknown): Record<string, unknown> | undefined =>
@@ -226,9 +234,8 @@ export const runCrudProof = async (
       throw new Error("Generated customer create did not return a record.");
     const createdAt = now();
     const readStarted = now();
-    const readResponse = await fetch(
-      `${runtime.url}/api/records/${encodeURIComponent(created.id)}?workspaceId=workspace_crud_proof`,
-    );
+    const readUrl = `${runtime.url}/api/records/${encodeURIComponent(created.id)}?workspaceId=workspace_crud_proof`;
+    const readResponse = await fetch(readUrl);
     const readBody = await readResponse.text();
     const read = object(JSON.parse(readBody));
     const readAt = now();
@@ -244,7 +251,7 @@ export const runCrudProof = async (
       );
     const createdProof = { ...created, synthetic: false };
     const readProof = { ...read, synthetic: false };
-    return {
+    const report: CrudProofReport = {
       schemaVersion: 1,
       ok: true,
       mode: "fake",
@@ -267,6 +274,8 @@ export const runCrudProof = async (
         total: Math.round(readAt - started),
       },
     };
+    await options.withLiveRuntime?.({ url: readUrl, proof: report });
+    return report;
   } finally {
     await runtime.close();
   }

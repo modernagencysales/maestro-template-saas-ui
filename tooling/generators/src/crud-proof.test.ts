@@ -51,6 +51,56 @@ describe("generated customer CRUD proof", () => {
     expect(report.read.record).toEqual(report.create.record);
   });
 
+  it("exposes the validated read through a live-runtime callback", async () => {
+    let liveUrl: string | undefined;
+    const report = await runCrudProof({
+      cwd: fixture(),
+      adapterModulePath: resolve(
+        import.meta.dirname,
+        "../../..",
+        "examples/saas-application/seed/source/apps/web/src/adapters/records/fake.ts",
+      ),
+      withLiveRuntime: async (runtime) => {
+        liveUrl = runtime.url;
+        const response = await fetch(runtime.url);
+        expect(response.status).toBe(200);
+        expect(await response.json()).toMatchObject({
+          id: runtime.proof.record.id,
+          workspaceId: "workspace_crud_proof",
+        });
+        expect(runtime.proof.read.record.synthetic).toBe(false);
+      },
+    });
+
+    expect(liveUrl).toMatch(
+      /^http:\/\/127\.0\.0\.1:\d+\/api\/records\/record_0001\?/u,
+    );
+    expect(report.read.record).toEqual(report.create.record);
+    await expect(fetch(liveUrl as string)).rejects.toThrow();
+  });
+
+  it("closes the live runtime when its callback fails", async () => {
+    let liveUrl: string | undefined;
+    await expect(
+      runCrudProof({
+        cwd: fixture(),
+        adapterModulePath: resolve(
+          import.meta.dirname,
+          "../../..",
+          "examples/saas-application/seed/source/apps/web/src/adapters/records/fake.ts",
+        ),
+        withLiveRuntime: async (runtime) => {
+          liveUrl = runtime.url;
+          expect((await fetch(runtime.url)).status).toBe(200);
+          throw new Error("consumer-failed");
+        },
+      }),
+    ).rejects.toThrow("consumer-failed");
+
+    expect(liveUrl).toBeDefined();
+    await expect(fetch(liveUrl as string)).rejects.toThrow();
+  });
+
   it("accepts the optional JSON compatibility flag in either position", () => {
     expect(parseCrudProofArgs(["--json"])).toEqual({
       mode: "fake",
