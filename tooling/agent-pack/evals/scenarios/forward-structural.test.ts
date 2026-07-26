@@ -282,7 +282,7 @@ function completeEvidence() {
         id: "check",
         exitCode: 0,
         resultCode: "ok",
-        outputSha256: hash,
+        attestationSha256: hash,
       },
     ],
     timings: [
@@ -316,8 +316,8 @@ function canonicalProjection(): ForwardCanonicalProjection {
       { id: "manifest", sha256: hash },
     ],
     commands: [
-      { id: "create", exitCode: 0, resultCode: "ok", outputSha256: hash },
-      { id: "check", exitCode: 0, resultCode: "ok", outputSha256: hash },
+      { id: "create", exitCode: 0, resultCode: "ok", attestationSha256: hash },
+      { id: "check", exitCode: 0, resultCode: "ok", attestationSha256: hash },
     ],
     forbiddenActions: forbiddenObservations(),
     receiptSha256: hash,

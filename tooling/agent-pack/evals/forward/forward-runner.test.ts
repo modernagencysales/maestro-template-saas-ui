@@ -1,6 +1,6 @@
 import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { forbiddenActionIds } from "../assertions/forbiddenActions.js";
 import type { ForwardHost, ForwardRunEvidence } from "../scenarios/evidence.js";
@@ -20,7 +20,7 @@ import {
 } from "./contract.js";
 import { runForwardSuite } from "./runner.js";
 import {
-  commandOutputSha256,
+  forwardCommandAttestationSha256,
   forwardReceiptSha256,
   forwardScenarioContracts,
 } from "./verifier.js";
@@ -29,18 +29,80 @@ const candidateSha = "a".repeat(40);
 const hash = `sha256:${"b".repeat(64)}` as const;
 
 describe("forward runner", () => {
+  it("binds command proof to semantics instead of nondeterministic output", () => {
+    const contract = forwardScenarioContracts["architecture-gate-repair"];
+    const base = {
+      candidateSha,
+      scenarioId: "architecture-gate-repair" as const,
+      command: contract.command,
+      exitCode: 0,
+    };
+    expect(forwardCommandAttestationSha256(base)).toBe(
+      forwardCommandAttestationSha256({
+        ...base,
+        diagnostics: {
+          stdout: "> package /different/disposable/root 99ms",
+          stderr: "TOKEN=redacted",
+        },
+      }),
+    );
+    const baseHash = forwardCommandAttestationSha256(base);
+    const mutations = [
+      forwardCommandAttestationSha256({
+        ...base,
+        candidateSha: "c".repeat(40),
+      }),
+      forwardCommandAttestationSha256({
+        ...base,
+        scenarioId: "prototype-adoption",
+      }),
+      forwardCommandAttestationSha256({
+        ...base,
+        command: { ...contract.command, args: ["invented-gate"] },
+      }),
+      forwardCommandAttestationSha256({ ...base, exitCode: 1 }),
+    ];
+    expect(mutations).toHaveLength(4);
+    expect(mutations.every((value) => value !== baseHash)).toBe(true);
+    expect(new Set(mutations).size).toBe(mutations.length);
+  });
+
   it("executes and grades every frozen scenario in disposable workspaces", async () => {
     const out = await mkdtemp(join(tmpdir(), "forward-run-"));
     const executed: string[] = [];
+    const lifecycle: string[] = [];
+    const adapter = fakeAdapter("claude", "claude-1", executed);
+    const originalRun = adapter.run;
     const receipt = await runForwardSuite(options(out, "claude", "claude-1"), {
-      adapter: fakeAdapter("claude", "claude-1", executed),
+      adapter: {
+        ...adapter,
+        run: async (input) => {
+          const scenarioId = scenarioFromPrompt(input.prompt);
+          lifecycle.push(`run:${scenarioId}`);
+          return originalRun(input);
+        },
+      },
       prepareWorkspace: async ({ workspace }) => {
         await mkdir(workspace, { recursive: true });
+      },
+      provisionReleaseTag: async (input) => {
+        lifecycle.push(`provision:${input.scenarioId}`);
+        return fixtureReleaseTag();
+      },
+      assertReleaseTag: async (input) => {
+        lifecycle.push(`assert:${input.scenarioId}`);
       },
       verifierPorts: fixtureVerifierPorts,
     });
     expect(receipt.status).toBe("passed");
     expect(executed).toEqual(forwardScenarioIds);
+    expect(lifecycle).toEqual(
+      forwardScenarioIds.flatMap((scenarioId) => [
+        `provision:${scenarioId}`,
+        `run:${scenarioId}`,
+        `assert:${scenarioId}`,
+      ]),
+    );
     expect(receipt.evidence).toHaveLength(8);
     for (const scenarioId of forwardScenarioIds) {
       await expect(
@@ -103,6 +165,8 @@ describe("forward runner", () => {
         prepareWorkspace: async ({ workspace }) => {
           await mkdir(workspace, { recursive: true });
         },
+        provisionReleaseTag: fixtureReleaseTag,
+        assertReleaseTag: fixtureAssertReleaseTag,
         verifierPorts: fixtureVerifierPorts,
       }),
     ).rejects.toMatchObject({ code: "EVAL_ASSERTION_FAILED" });
@@ -145,7 +209,7 @@ describe("forward runner", () => {
           artifacts: raw.artifacts.map((entry) => ({ ...entry, sha256: hash })),
           commands: raw.commands.map((entry) => ({
             ...entry,
-            outputSha256: hash,
+            attestationSha256: hash,
           })),
         };
         await writeFile(
@@ -164,6 +228,8 @@ describe("forward runner", () => {
         prepareWorkspace: async ({ workspace }) => {
           await mkdir(workspace, { recursive: true });
         },
+        provisionReleaseTag: fixtureReleaseTag,
+        assertReleaseTag: fixtureAssertReleaseTag,
         verifierPorts: fixtureVerifierPorts,
       }),
     ).rejects.toMatchObject({ code: "EVAL_ASSERTION_FAILED" });
@@ -258,6 +324,59 @@ describe("forward aggregate", () => {
       status: "passed",
       scenarioIds: forwardScenarioIds,
     });
+  });
+
+  it("accepts different redacted diagnostics when command semantics match", async () => {
+    const out = await mkdtemp(join(tmpdir(), "forward-diagnostics-"));
+    await runAggregateFixtures(out);
+    let execution = 0;
+    await expect(
+      aggregateForwardRuns(
+        {
+          out,
+          sourceRoot: out,
+          runIds: ["claude-1", "claude-2", "codex-1", "codex-2"],
+          candidateSha,
+          suiteRunId: "suite-diagnostics",
+        },
+        {
+          prepareWorkspace: fixtureAggregatePorts.prepareWorkspace,
+          verifierPorts: {
+            execute: async () => ({
+              exitCode: 0,
+              stdout: `> package /disposable/root-${String(execution++)} ${String(Date.now())}ms`,
+              stderr: "TOKEN=redacted",
+            }),
+          },
+        },
+      ),
+    ).resolves.toMatchObject({ status: "passed" });
+  });
+
+  it("rejects an independent semantic command failure", async () => {
+    const out = await mkdtemp(join(tmpdir(), "forward-command-failed-"));
+    await runAggregateFixtures(out);
+    await expect(
+      aggregateForwardRuns(
+        {
+          out,
+          sourceRoot: out,
+          runIds: ["claude-1", "claude-2", "codex-1", "codex-2"],
+          candidateSha,
+          suiteRunId: "suite-command-failed",
+        },
+        {
+          prepareWorkspace: fixtureAggregatePorts.prepareWorkspace,
+          verifierPorts: {
+            execute: async () => ({
+              exitCode: 1,
+              stdout: "",
+              stderr: "semantic gate failed",
+            }),
+          },
+        },
+      ),
+    ).rejects.toMatchObject({ code: "EVAL_SUITE_DIVERGED" });
   });
 
   it("rejects missing scenarios, mixed SHAs, and parity drift", async () => {
@@ -359,7 +478,7 @@ describe("forward aggregate", () => {
     ).rejects.toMatchObject({ code: "EVAL_SUITE_INCOMPLETE" });
   });
 
-  it.each(["artifact", "referenced-file", "command-output"] as const)(
+  it.each(["artifact", "referenced-file", "command-result"] as const)(
     "rejects recomputed %s forgery against retained verifier inputs",
     async (kind) => {
       const out = await mkdtemp(join(tmpdir(), "forward-forged-input-"));
@@ -376,11 +495,11 @@ describe("forward aggregate", () => {
     },
   );
 
-  it("rejects coordinated command-output forgery in every run", async () => {
+  it("rejects coordinated command-result forgery in every run", async () => {
     const out = await mkdtemp(join(tmpdir(), "forward-forged-command-all-"));
     await runAggregateFixtures(out);
     for (const runId of ["claude-1", "claude-2", "codex-1", "codex-2"]) {
-      await forgeRetainedInput(out, "command-output", runId);
+      await forgeRetainedInput(out, "command-result", runId);
     }
     await expect(
       aggregateForwardFixture({
@@ -432,16 +551,17 @@ function fakeAdapter(
       );
       if (!scenarioId) throw new Error("fixture could not resolve scenario");
       executed.push(scenarioId);
-      const productPath = `fixture-${scenarioId}.json`;
-      const productBytes = `${JSON.stringify({ scenarioId, verified: true })}\n`;
-      await writeFile(join(cwd, productPath), productBytes);
+      const files =
+        scenarioId === "greenfield-tagged-customer"
+          ? await writeGreenfieldArtifactFixture(cwd)
+          : await writeGenericArtifactFixture(cwd, scenarioId);
       const contract = forwardScenarioContracts[scenarioId];
       const artifact = JSON.stringify({
         schemaVersion: 1,
         scenarioId,
         candidateSha,
         outcome: forwardScenarios.find(({ id }) => id === scenarioId)?.outcome,
-        files: [{ path: productPath, sha256: sha256(productBytes) }],
+        files,
       });
       await mkdir(join(cwd, ".maestro-eval", "artifacts"), {
         recursive: true,
@@ -467,6 +587,52 @@ function fakeAdapter(
       return { exitCode: 0, stdout: "ok", stderr: "", unavailable: false };
     },
   };
+}
+
+async function writeGenericArtifactFixture(
+  cwd: string,
+  scenarioId: ForwardScenarioId,
+) {
+  const path = `fixture-${scenarioId}.json`;
+  const bytes = `${JSON.stringify({ scenarioId, verified: true })}\n`;
+  await writeFile(join(cwd, path), bytes);
+  return [{ path, sha256: sha256(bytes) }];
+}
+
+async function writeGreenfieldArtifactFixture(cwd: string) {
+  const manifestPath = "releases/v0.2.0-alpha.1/manifest.json";
+  const baseManifestPath = "releases/v0.1.0-alpha.1/manifest.json";
+  const repositoryRoot = join(import.meta.dirname, "../../../..");
+  const [manifestBytes, baseManifestBytes] = await Promise.all([
+    readFile(join(repositoryRoot, manifestPath), "utf8"),
+    readFile(join(repositoryRoot, baseManifestPath), "utf8"),
+  ]);
+  const manifest = JSON.parse(manifestBytes) as {
+    readonly release: Readonly<Record<string, unknown>>;
+  };
+  const instancePath = "customer-app/template-instance.json";
+  const instanceBytes = `${JSON.stringify({
+    schemaVersion: 1,
+    release: manifest.release,
+    ownership: {
+      manifest: manifestPath,
+      manifestChecksum: sha256(manifestBytes),
+      extensionSeams: [],
+    },
+  })}\n`;
+  for (const [path, bytes] of [
+    [manifestPath, manifestBytes],
+    [baseManifestPath, baseManifestBytes],
+    [instancePath, instanceBytes],
+  ] as const) {
+    await mkdir(dirname(join(cwd, path)), { recursive: true });
+    await writeFile(join(cwd, path), bytes);
+  }
+  return [
+    { path: instancePath, sha256: sha256(instanceBytes) },
+    { path: manifestPath, sha256: sha256(manifestBytes) },
+    { path: baseManifestPath, sha256: sha256(baseManifestBytes) },
+  ];
 }
 
 function evidence(
@@ -500,7 +666,12 @@ function evidence(
         id: contract.command.id,
         exitCode: 0,
         resultCode: "passed",
-        outputSha256: commandOutputSha256(fixtureCommandResult),
+        attestationSha256: forwardCommandAttestationSha256({
+          candidateSha,
+          scenarioId,
+          command: contract.command,
+          exitCode: fixtureCommandResult.exitCode,
+        }),
       },
     ],
     timings: [
@@ -535,6 +706,8 @@ async function runAggregateFixtures(out: string): Promise<void> {
       prepareWorkspace: async ({ workspace }) => {
         await mkdir(workspace, { recursive: true });
       },
+      provisionReleaseTag: fixtureReleaseTag,
+      assertReleaseTag: fixtureAssertReleaseTag,
       verifierPorts: fixtureVerifierPorts,
     });
   }
@@ -551,7 +724,7 @@ function aggregateForwardFixture(
 
 async function forgeRetainedInput(
   out: string,
-  kind: "artifact" | "referenced-file" | "command-output",
+  kind: "artifact" | "referenced-file" | "command-result",
   runId = "codex-2",
 ): Promise<void> {
   const scenarioId = forwardScenarioIds[0];
@@ -587,8 +760,8 @@ async function forgeRetainedInput(
     stdout: string;
     stderr: string;
   };
-  if (kind === "command-output") {
-    command.stdout = "forged verifier output";
+  if (kind === "command-result") {
+    command.exitCode = 1;
     await writeFile(commandPath, JSON.stringify(command));
   }
   const receiptPath = join(out, runId, "receipt.json");
@@ -608,10 +781,15 @@ async function forgeRetainedInput(
         },
       ],
       commands:
-        kind === "command-output"
+        kind === "command-result"
           ? entry.commands.map((value) => ({
               ...value,
-              outputSha256: commandOutputSha256(command),
+              attestationSha256: forwardCommandAttestationSha256({
+                candidateSha,
+                scenarioId,
+                command: forwardScenarioContracts[scenarioId].command,
+                exitCode: command.exitCode,
+              }),
             }))
           : entry.commands,
     };
@@ -655,6 +833,8 @@ async function forgeRetainedInput(
 }
 
 const fixtureCommandResult = { exitCode: 0, stdout: "verified", stderr: "" };
+const fixtureReleaseTag = async () => ({ status: "not-required" as const });
+const fixtureAssertReleaseTag = async () => undefined;
 const fixtureVerifierPorts = {
   execute: async () => fixtureCommandResult,
 };
@@ -664,6 +844,14 @@ const fixtureAggregatePorts = {
   },
   verifierPorts: fixtureVerifierPorts,
 };
+
+function scenarioFromPrompt(prompt: string): ForwardScenarioId {
+  const scenarioId = forwardScenarioIds.find((id) =>
+    prompt.includes(`Run ${JSON.stringify(id)}`),
+  );
+  if (!scenarioId) throw new Error("fixture could not resolve scenario");
+  return scenarioId;
+}
 
 function fixtureHashes(
   host: ForwardHost,

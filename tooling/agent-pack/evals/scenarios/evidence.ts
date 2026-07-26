@@ -32,7 +32,7 @@ export type ForwardRunEvidence = {
     readonly id: string;
     readonly exitCode: number;
     readonly resultCode: string;
-    readonly outputSha256: `sha256:${string}`;
+    readonly attestationSha256: `sha256:${string}`;
   }[];
   readonly timings: readonly {
     readonly id: string;
@@ -136,14 +136,14 @@ export function parseForwardRunEvidence(value: unknown): ForwardRunEvidence {
   parseIdentifiedArray(
     root.commands,
     "commands",
-    ["id", "exitCode", "resultCode", "outputSha256"],
+    ["id", "exitCode", "resultCode", "attestationSha256"],
     (item, path) => {
       requireValue(
         Number.isInteger(item.exitCode),
         `${path}.exitCode is invalid`,
       );
       requireString(item.resultCode, `${path}.resultCode`);
-      requireHash(item.outputSha256, `${path}.outputSha256`);
+      requireHash(item.attestationSha256, `${path}.attestationSha256`);
     },
   );
   parseIdentifiedArray(

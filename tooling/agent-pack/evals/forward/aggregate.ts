@@ -224,15 +224,13 @@ async function verifyRetainedEvidence(
       const scenarioFailures = [...result.failures];
       if (
         !result.commandResult ||
-        result.commandResult.exitCode !== commandResult.exitCode ||
-        result.commandResult.stdout !== commandResult.stdout ||
-        result.commandResult.stderr !== commandResult.stderr
+        result.commandResult.exitCode !== commandResult.exitCode
       ) {
         scenarioFailures.push({
           code: "COMMAND_RESULT_RETENTION_MISMATCH",
           path: "commands.0",
           message:
-            "Retained command output does not match the independent aggregate rerun.",
+            "Retained command result does not match the independent aggregate rerun.",
         });
       }
       failures.set(evidence.scenarioId, scenarioFailures);

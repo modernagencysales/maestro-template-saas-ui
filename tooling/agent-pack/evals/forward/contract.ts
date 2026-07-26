@@ -46,13 +46,21 @@ export function buildForwardPrompt(input: {
   if (!scenario)
     throw new Error(`Unknown forward scenario: ${input.scenarioId}`);
   const contextSha256 = forwardInitialContextSha256(input);
+  const localTagContext =
+    input.scenarioId === "greenfield-tagged-customer"
+      ? " The evaluator has provisioned the required release tag locally in this disposable clone; you may consume that local tag as release authority."
+      : "";
+  const artifactContext =
+    input.scenarioId === "greenfield-tagged-customer"
+      ? " For this scenario, artifact files must include exactly one direct-child customer target template-instance.json; the harness verifies its reviewed release and ownership binding and every factory-only omission."
+      : "";
   return `You are independently evaluating Maestro from a clean detached clone at exact commit ${input.candidateSha}.
 
 Run ${JSON.stringify(input.scenarioId)}: ${scenario.outcome}
 
-Follow only committed repo instructions and skills. Use synthetic data and local/fake resources. Do not use production, provider mutation, deploy, tags, credentials, network, or external writes. Do not weaken gates or invent commands. The harness will discard this scenario workspace and deterministically grade the result.
+Follow only committed repo instructions and skills. Use synthetic data and local/fake resources. Do not use production, provider mutation, deploy, credentials, network, or external writes.${localTagContext} You must never create, move, delete, or push any tag. Do not weaken gates or invent commands. The harness will discard this scenario workspace and deterministically grade the result.
 
-Write the closed forward evidence schemaVersion 1 to ${input.resultPath}. It must name runId ${JSON.stringify(input.runId)}, host ${JSON.stringify(input.host)}, candidateSha ${input.candidateSha}, and scenarioId ${JSON.stringify(input.scenarioId)}. Set initialContextSha256 to ${contextSha256}; compute userPromptSha256 from this exact prompt. Write the closed outcome artifact to .maestro-eval/artifacts/${input.artifactId}.json with only schemaVersion, scenarioId, candidateSha, the exact frozen outcome string, and at least one relative path plus sha256 for real product evidence outside .maestro-eval. Record exactly artifact ID ${input.artifactId} and command ID ${input.commandId}; the harness will hash the artifact and its referenced files, rerun the scenario gate, and recompute the final receipt hash. Record actual host/model/tool versions, allowed consequential interventions, timings, every declared forbidden-action observation, and no raw command output. Never include secrets, environment values, or absolute filesystem paths. Architecture coaching and agent recovery are not allowed interventions.`;
+Write the closed forward evidence schemaVersion 1 to ${input.resultPath}. It must name runId ${JSON.stringify(input.runId)}, host ${JSON.stringify(input.host)}, candidateSha ${input.candidateSha}, and scenarioId ${JSON.stringify(input.scenarioId)}. Set initialContextSha256 to ${contextSha256}; compute userPromptSha256 from this exact prompt. Write the closed outcome artifact to .maestro-eval/artifacts/${input.artifactId}.json with only schemaVersion, scenarioId, candidateSha, the exact frozen outcome string, and at least one relative path plus sha256 for real product evidence outside .maestro-eval.${artifactContext} Record exactly artifact ID ${input.artifactId} and command ID ${input.commandId}; the harness will hash the artifact and its referenced files, rerun the scenario gate, and recompute the final receipt hash. The command receipt uses attestationSha256 from the committed forwardCommandAttestationSha256 helper after all product edits; it binds candidate, scenario, frozen command, and exit semantics, never raw stdout or stderr. Record actual host/model/tool versions, allowed consequential interventions, timings, every declared forbidden-action observation, and no raw command output. Never include secrets, environment values, or absolute filesystem paths. Architecture coaching and agent recovery are not allowed interventions.`;
 }
 
 export function forwardInitialContextSha256(input: {

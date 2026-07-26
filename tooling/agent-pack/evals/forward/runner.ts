@@ -30,6 +30,10 @@ import {
   verifyForwardScenario,
   type ForwardVerifierPorts,
 } from "./verifier.js";
+import {
+  assertDisposableReleaseTag,
+  provisionDisposableReleaseTag,
+} from "./disposableReleaseTag.js";
 
 export type ForwardRunOptions = {
   readonly host: ForwardHost;
@@ -62,6 +66,8 @@ export type ForwardRunPorts = {
   readonly now: () => Date;
   readonly adapter: WalkingSkeletonHostAdapter;
   readonly prepareWorkspace: typeof cloneCandidate;
+  readonly provisionReleaseTag: typeof provisionDisposableReleaseTag;
+  readonly assertReleaseTag: typeof assertDisposableReleaseTag;
   readonly verifierPorts: Partial<ForwardVerifierPorts>;
 };
 
@@ -73,6 +79,10 @@ export async function runForwardSuite(
   const now = overrides.now ?? (() => new Date());
   const adapter = overrides.adapter ?? createHostAdapter(options.host);
   const prepareWorkspace = overrides.prepareWorkspace ?? cloneCandidate;
+  const provisionReleaseTag =
+    overrides.provisionReleaseTag ?? provisionDisposableReleaseTag;
+  const assertReleaseTag =
+    overrides.assertReleaseTag ?? assertDisposableReleaseTag;
   const outputBase = resolve(options.out);
   const outputDirectory = join(outputBase, options.runId);
   await mkdir(outputBase, { recursive: true });
@@ -145,6 +155,11 @@ export async function runForwardSuite(
           workspace,
           sessionDir,
         });
+        await provisionReleaseTag({
+          workspace,
+          candidateSha: options.candidateSha,
+          scenarioId,
+        });
         const result = await adapter.run({
           cwd: workspace,
           hostHome: options.hostHome,
@@ -166,6 +181,11 @@ export async function runForwardSuite(
           redactForwardLog(result.stderr),
           "utf8",
         );
+        await assertReleaseTag({
+          workspace,
+          candidateSha: options.candidateSha,
+          scenarioId,
+        });
         if (result.exitCode !== 0) {
           throw new EvaluationError(
             "EVAL_HOST_EXECUTION_FAILED",
@@ -201,20 +221,6 @@ export async function runForwardSuite(
             : {}),
         });
         const verifierFailures = [...verification.failures];
-        if (
-          verification.commandResult &&
-          (redactForwardLog(verification.commandResult.stdout) !==
-            verification.commandResult.stdout ||
-            redactForwardLog(verification.commandResult.stderr) !==
-              verification.commandResult.stderr)
-        ) {
-          verifierFailures.push({
-            code: "COMMAND_OUTPUT_LEAKAGE",
-            path: "commands.0",
-            message:
-              "Verifier command output contains a secret or absolute path.",
-          });
-        }
         if (
           verifierFailures.length === 0 &&
           verification.commandResult !== undefined
@@ -255,10 +261,11 @@ export async function runForwardSuite(
             await mkdir(dirname(target), { recursive: true });
             await writeFile(target, await readFile(source));
           }
-          await writeJson(
-            join(scenarioDirectory, "command-result.json"),
-            verification.commandResult,
-          );
+          await writeJson(join(scenarioDirectory, "command-result.json"), {
+            exitCode: verification.commandResult.exitCode,
+            stdout: redactForwardLog(verification.commandResult.stdout),
+            stderr: redactForwardLog(verification.commandResult.stderr),
+          });
         }
         const verdict = gradeForwardEvidence({
           evidence: parsed,

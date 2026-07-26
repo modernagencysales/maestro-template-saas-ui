@@ -10,6 +10,8 @@ import {
 import { safeVerifierEnvironment } from "../walking-skeleton/verifier.js";
 import { sha256 } from "./contract.js";
 
+const REVIEWED_RELEASE_PATH = "releases/v0.2.0-alpha.1/manifest.json";
+
 type ScenarioContract = {
   readonly artifactId: string;
   readonly command: { readonly id: string; readonly args: readonly string[] };
@@ -148,10 +150,17 @@ export async function verifyForwardScenario(input: {
     });
     verifiedCommandResult = result;
     const receipt = input.evidence.commands[0];
+    const resultCode = result.exitCode === 0 ? "passed" : "failed";
     if (
       receipt.exitCode !== result.exitCode ||
-      receipt.resultCode !== (result.exitCode === 0 ? "passed" : "failed") ||
-      receipt.outputSha256 !== commandOutputSha256(result)
+      receipt.resultCode !== resultCode ||
+      receipt.attestationSha256 !==
+        forwardCommandAttestationSha256({
+          candidateSha: input.candidateSha,
+          scenarioId: input.scenarioId,
+          command: contract.command,
+          exitCode: result.exitCode,
+        })
     ) {
       fail(
         "COMMAND_RECEIPT_MISMATCH",
@@ -175,11 +184,30 @@ export async function verifyForwardScenario(input: {
   };
 }
 
-export function commandOutputSha256(input: {
-  readonly stdout: string;
-  readonly stderr: string;
+export function forwardCommandAttestationSha256(input: {
+  readonly candidateSha: string;
+  readonly scenarioId: ForwardScenarioId;
+  readonly command: { readonly id: string; readonly args: readonly string[] };
+  readonly exitCode: number;
+  readonly diagnostics?: {
+    readonly stdout: string;
+    readonly stderr: string;
+  };
 }): `sha256:${string}` {
-  return sha256(`${input.stdout}\n---stderr---\n${input.stderr}`);
+  return sha256(
+    JSON.stringify({
+      schemaVersion: 1,
+      candidateSha: input.candidateSha,
+      scenarioId: input.scenarioId,
+      command: {
+        id: input.command.id,
+        executable: "pnpm",
+        args: input.command.args,
+      },
+      exitCode: input.exitCode,
+      resultCode: input.exitCode === 0 ? "passed" : "failed",
+    }),
+  );
 }
 
 export function forwardReceiptSha256(
@@ -259,6 +287,216 @@ async function verifyOutcomeArtifact(input: {
         `Outcome artifact file ${String(index)} hash mismatches.`,
       );
     }
+  }
+  if (input.scenarioId === "greenfield-tagged-customer") {
+    await verifyGreenfieldCustomerMaterialization({
+      workspace: input.workspace,
+      files: value.files,
+    });
+  }
+}
+
+async function verifyGreenfieldCustomerMaterialization(input: {
+  readonly workspace: string;
+  readonly files: readonly unknown[];
+}): Promise<void> {
+  const instanceEntries = input.files.filter(
+    (file): file is { readonly path: string; readonly sha256: string } =>
+      isRecord(file) &&
+      typeof file.path === "string" &&
+      /^[^/\\]+\/template-instance\.json$/u.test(file.path),
+  );
+  if (instanceEntries.length !== 1) {
+    throw new Error(
+      "Greenfield materialization requires exactly one separate direct-child customer target template-instance.json.",
+    );
+  }
+  const instanceEntry = instanceEntries[0];
+  if (!instanceEntry) throw new Error("Customer instance evidence is missing.");
+  const targetName = instanceEntry.path.slice(
+    0,
+    -"/template-instance.json".length,
+  );
+  const targetRoot = resolve(input.workspace, targetName);
+  await assertSafeDirectory(input.workspace, targetRoot);
+
+  const reviewedManifestPath = resolve(input.workspace, REVIEWED_RELEASE_PATH);
+  await assertSafeFile(input.workspace, reviewedManifestPath, true);
+  const reviewedManifestBytes = await readFile(reviewedManifestPath);
+  const reviewedManifestSha256 = sha256(reviewedManifestBytes);
+  const reviewedManifest = parseRecord(
+    reviewedManifestBytes,
+    "Reviewed customer release manifest is invalid.",
+  );
+  const reviewedRelease = recordField(
+    reviewedManifest,
+    "release",
+    "Reviewed customer release binding is missing.",
+  );
+  const additionalPaths = arrayField(
+    reviewedManifest,
+    "additionalPaths",
+    "Reviewed customer ownership additions are missing.",
+  );
+  if (
+    reviewedManifest.schemaVersion !== 1 ||
+    reviewedManifest.kind !== "composed-customer-release" ||
+    reviewedManifest.materializationStatus !== "materializable"
+  ) {
+    throw new Error("Reviewed customer release posture is invalid.");
+  }
+
+  const instance = parseRecord(
+    await readFile(resolve(targetRoot, "template-instance.json")),
+    "Customer template-instance.json is invalid.",
+  );
+  const instanceRelease = recordField(
+    instance,
+    "release",
+    "Customer release binding is missing.",
+  );
+  if (
+    typeof reviewedRelease.version !== "string" ||
+    typeof reviewedRelease.tag !== "string" ||
+    typeof reviewedRelease.sourceCommit !== "string" ||
+    instanceRelease.version !== reviewedRelease.version ||
+    instanceRelease.tag !== reviewedRelease.tag ||
+    instanceRelease.sourceCommit !== reviewedRelease.sourceCommit
+  ) {
+    throw new Error(
+      "Customer template instance does not match the reviewed version, tag, and source commit.",
+    );
+  }
+  const ownership = recordField(
+    instance,
+    "ownership",
+    "Customer ownership evidence is missing.",
+  );
+  if (
+    ownership.manifest !== REVIEWED_RELEASE_PATH ||
+    ownership.manifestChecksum !== reviewedManifestSha256
+  ) {
+    throw new Error(
+      "Customer ownership manifest path or checksum does not match reviewed authority.",
+    );
+  }
+
+  const baseManifest = recordField(
+    reviewedManifest,
+    "baseManifest",
+    "Reviewed base ownership manifest is missing.",
+  );
+  if (
+    baseManifest.path !== "../v0.1.0-alpha.1/manifest.json" ||
+    typeof baseManifest.sha256 !== "string"
+  ) {
+    throw new Error("Reviewed base ownership binding is invalid.");
+  }
+  const basePath = resolve(
+    input.workspace,
+    "releases/v0.2.0-alpha.1",
+    baseManifest.path,
+  );
+  await assertSafeFile(input.workspace, basePath, true);
+  const baseBytes = await readFile(basePath);
+  if (sha256(baseBytes) !== baseManifest.sha256) {
+    throw new Error("Base ownership manifest checksum does not match.");
+  }
+  const base = parseRecord(baseBytes, "Base ownership manifest is invalid.");
+  const ownershipRules = [
+    ...arrayField(base, "paths", "Base ownership paths are missing."),
+    ...additionalPaths,
+  ];
+  const factoryOnlyPaths = ownershipRules.flatMap((entry) => {
+    if (
+      !isRecord(entry) ||
+      typeof entry.path !== "string" ||
+      (entry.match !== "exact" && entry.match !== "subtree") ||
+      entry.ownership !== "factory-only" ||
+      entry.action !== "omit" ||
+      entry.upgrade !== "remove"
+    ) {
+      return [];
+    }
+    if (!safeRelativePath(entry.path)) {
+      throw new Error("Factory-only ownership path is unsafe.");
+    }
+    return [entry.path];
+  });
+  if (factoryOnlyPaths.length === 0) {
+    throw new Error("Reviewed ownership has no factory-only exclusions.");
+  }
+  for (const path of factoryOnlyPaths) {
+    if (await pathExists(resolve(targetRoot, path))) {
+      throw new Error(`Factory-only path leaked into customer target: ${path}`);
+    }
+  }
+}
+
+function parseRecord(bytes: Buffer, message: string): Record<string, unknown> {
+  try {
+    const value: unknown = JSON.parse(bytes.toString("utf8"));
+    if (isRecord(value)) return value;
+  } catch {
+    // Project the stable closed error below.
+  }
+  throw new Error(message);
+}
+
+function recordField(
+  value: Record<string, unknown>,
+  key: string,
+  message: string,
+): Record<string, unknown> {
+  const field = value[key];
+  if (isRecord(field)) return field;
+  throw new Error(message);
+}
+
+function arrayField(
+  value: Record<string, unknown>,
+  key: string,
+  message: string,
+): readonly unknown[] {
+  const field = value[key];
+  if (Array.isArray(field)) return field;
+  throw new Error(message);
+}
+
+function safeRelativePath(path: string): boolean {
+  return (
+    path.length > 0 &&
+    !path.startsWith("/") &&
+    !path.includes("\\") &&
+    path
+      .split("/")
+      .every((part) => part !== "" && part !== "." && part !== "..")
+  );
+}
+
+async function pathExists(path: string): Promise<boolean> {
+  try {
+    await lstat(path);
+    return true;
+  } catch (error) {
+    if (isNodeError(error) && error.code === "ENOENT") return false;
+    throw error;
+  }
+}
+
+async function assertSafeDirectory(root: string, path: string): Promise<void> {
+  const rel = relative(resolve(root), resolve(path));
+  if (rel === "" || rel === ".." || rel.startsWith("../")) {
+    throw new Error("Customer target must be separate inside the workspace.");
+  }
+  let current = resolve(root);
+  for (const part of rel.split(/[\\/]/u)) {
+    current = join(current, part);
+    const entry = await lstat(current);
+    if (entry.isSymbolicLink())
+      throw new Error("Customer target traverses a symlink.");
+    if (current === resolve(path) && !entry.isDirectory())
+      throw new Error("Customer target is not a directory.");
   }
 }
 
