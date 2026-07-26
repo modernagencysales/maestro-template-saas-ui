@@ -34,6 +34,15 @@ describe("explicit-base Git diff", () => {
       "APP_MAP_GIT_DIFF_INVALID",
     ],
     [{ explicitBaseRevision: "origin/main" }, "APP_MAP_GIT_DIFF_INVALID"],
+    [{ explicitBaseRevision: "1".repeat(7) }, "APP_MAP_GIT_DIFF_INVALID"],
+    [{ explicitBaseRevision: "1".repeat(39) }, "APP_MAP_GIT_DIFF_INVALID"],
+    [{ explicitBaseRevision: "1".repeat(41) }, "APP_MAP_GIT_DIFF_INVALID"],
+    [{ explicitBaseRevision: "1".repeat(63) }, "APP_MAP_GIT_DIFF_INVALID"],
+    [{ explicitBaseRevision: "G".repeat(40) }, "APP_MAP_GIT_DIFF_INVALID"],
+    [
+      { explicitBaseRevision: `${"1".repeat(39)}z` },
+      "APP_MAP_GIT_DIFF_INVALID",
+    ],
     [
       { explicitBaseRevision: "1".repeat(40), extra: true },
       "APP_MAP_GIT_DIFF_BASE_REQUIRED",

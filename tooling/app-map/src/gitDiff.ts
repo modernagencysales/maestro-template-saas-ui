@@ -47,7 +47,8 @@ const onlyKeys = (
   allowed: readonly string[],
 ): boolean => Object.keys(value).every((key) => allowed.includes(key));
 const revision = (value: unknown): value is string =>
-  typeof value === "string" && /^[0-9a-f]{7,64}$/u.test(value);
+  typeof value === "string" &&
+  (/^[0-9a-f]{40}$/u.test(value) || /^[0-9a-f]{64}$/u.test(value));
 const safePath = (value: unknown): value is string =>
   typeof value === "string" &&
   value.length > 0 &&

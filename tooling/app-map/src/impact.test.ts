@@ -260,7 +260,7 @@ describe("deterministic App Map impact", () => {
   });
 
   it("does not traverse invokes, projects, or persists edges", () => {
-    const mapInput = withFacts(
+    const productInput = withFacts(
       "product-topology",
       [
         {
@@ -304,6 +304,19 @@ describe("deterministic App Map impact", () => {
           to: "provider:isolated",
         },
       ],
+    );
+    const mapInput = withFacts(
+      "workflow-registry",
+      [],
+      [
+        {
+          id: "persists:route:/knowledge->workflow:source-grounded-brief@1",
+          kind: "persists",
+          from: "route:/knowledge",
+          to: "workflow:source-grounded-brief@1",
+        },
+      ],
+      productInput,
     );
     const result = buildAppMapImpact(
       input(["apps/web/src/routeTree.gen.ts"], mapInput),
