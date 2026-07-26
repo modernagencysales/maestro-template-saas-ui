@@ -5,7 +5,7 @@ import {
   type WorkflowNode,
 } from "./graphCurrent";
 import { isSafeConditionExpression } from "./conditionExpression";
-import type { DurableWorkflowGraphV2 } from "./graphSchema";
+import type { DurableWorkflowGraphV2 } from "./graphSchemaCurrent";
 import { generatedWorkflowReadyWaveLimit } from "./_kit/workpoolConfig";
 import { scheduledSubworkflowFinding } from "./_kit/subworkflows";
 import { inlineTransactionFinding } from "./_kit/inlineTransactions";

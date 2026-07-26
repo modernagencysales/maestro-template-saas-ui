@@ -673,6 +673,60 @@ const v2EventGraph = (): DurableWorkflowGraphV2 => ({
 });
 
 describe("Maestro V2 inline transaction compiler", () => {
+  it.each([
+    [
+      "agent",
+      (() => {
+        const graph = v2CapabilityGraph("query");
+        return {
+          ...graph,
+          nodes: graph.nodes.map((node) =>
+            node.kind === "capability"
+              ? {
+                  id: node.id,
+                  kind: "agent" as const,
+                  agent: capabilityRef,
+                  label: node.label,
+                  stepName: node.stepName,
+                  payloadPolicy: node.payloadPolicy,
+                  semanticRuleIds: node.semanticRuleIds,
+                  failurePolicy: { kind: "fail" as const },
+                  schedule: { kind: "runAfter" as const, delayMs: 100 },
+                }
+              : node,
+          ),
+        } satisfies DurableWorkflowGraphV2;
+      })(),
+    ],
+    [
+      "inline query",
+      (() => {
+        const graph = v2InlineGraph("query", inlineTransactionPreset("tiny"));
+        return {
+          ...graph,
+          nodes: graph.nodes.map((node) =>
+            node.kind === "capability"
+              ? {
+                  ...node,
+                  schedule: { kind: "runAfter" as const, delayMs: 100 },
+                }
+              : node,
+          ),
+        } as DurableWorkflowGraphV2;
+      })(),
+    ],
+  ] as const)(
+    "rejects a scheduled %s at the direct runtime boundary",
+    async (_name, graph) => {
+      const runQuery = vi.fn(async () => ({ unreachable: true }));
+
+      await expect(
+        runDurableGraphWorkflowV2(v2Step({ runQuery }), v2Input(graph)),
+      ).rejects.toThrow("Workflow graph V2 failed validation.");
+      expect(runQuery).not.toHaveBeenCalled();
+    },
+  );
+
   it("passes the exact tiny preset only to an inline query", async () => {
     const runQuery = vi.fn(async () => ({ ok: true }));
     await runDurableGraphWorkflowV2(v2Step({ runQuery }), {

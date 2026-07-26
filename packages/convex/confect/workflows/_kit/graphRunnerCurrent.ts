@@ -10,12 +10,12 @@ type MaestroWorkflowHandler = Parameters<
 type MaestroWorkflowContext = Parameters<MaestroWorkflowHandler>[0];
 import type { Validator } from "convex/values";
 
-import {
-  type DurableWorkflowGraph,
-  type DurableWorkflowGraphV2,
-  type WorkflowNode,
-  validateWorkflowGraphV2,
-} from "../graph";
+import type {
+  DurableWorkflowGraph,
+  DurableWorkflowGraphV2,
+  WorkflowNode,
+} from "../graphCurrent";
+import { validateWorkflowGraphV2 } from "../graphCurrent";
 import { makePublicError } from "../../shared/errors";
 import {
   readStartNode,

@@ -291,6 +291,17 @@ describe("saas application blueprint", () => {
     );
   });
 
+  it("projects the current graph runner copy target exactly once", () => {
+    const runnerPath =
+      "packages/convex/confect/workflows/_kit/graphRunnerCurrent.ts";
+    const entries = buildSaasApplicationTargetPlan().entries.filter(
+      ({ path }) => path === runnerPath,
+    );
+
+    expect(entries).toHaveLength(1);
+    expect(entries[0]).toMatchObject({ path: runnerPath, replaces: "copy" });
+  });
+
   it("emits deterministic workspace-safe CRUD and readiness contracts", async () => {
     const first = buildFactorySaasApplicationFiles({ name: "My App" });
     const second = buildFactorySaasApplicationFiles({ name: "My App" });

@@ -290,7 +290,6 @@ function buildTargetPlan(
     ["packages/convex/confect/tables/workflowRuns.ts", "copy"],
     ["packages/convex/confect/tables/workflowStageRuns.ts", "copy"],
     ["packages/convex/confect/workflows/_kit/defineMaestroWorkflow.ts", "copy"],
-    ["copy"],
     ["packages/convex/confect/workflows/_kit/graphRunnerCurrent.ts", "copy"],
     ["packages/convex/confect/workflows/_kit/graphRunnerV2Current.ts", "copy"],
     ["packages/convex/confect/workflows/_kit/observedStageCurrent.ts", "copy"],
