@@ -25,13 +25,27 @@ const digest = (value: unknown): value is string =>
 const containsControlCharacter = (value: string): boolean =>
   [...value].some((character) => {
     const codePoint = character.codePointAt(0) ?? 0;
-    return codePoint <= 31 || codePoint === 127;
+    return codePoint <= 0x1f || (codePoint >= 0x7f && codePoint <= 0x9f);
   });
+const containsUnpairedSurrogate = (value: string): boolean => {
+  for (let index = 0; index < value.length; index += 1) {
+    const codeUnit = value.charCodeAt(index);
+    if (codeUnit >= 0xd800 && codeUnit <= 0xdbff) {
+      const nextCodeUnit = value.charCodeAt(index + 1);
+      if (nextCodeUnit < 0xdc00 || nextCodeUnit > 0xdfff) return true;
+      index += 1;
+    } else if (codeUnit >= 0xdc00 && codeUnit <= 0xdfff) {
+      return true;
+    }
+  }
+  return false;
+};
 const safePath = (value: unknown): value is string =>
   text(value) &&
   !value.startsWith("/") &&
   !value.includes("\\") &&
   !containsControlCharacter(value) &&
+  !containsUnpairedSurrogate(value) &&
   value
     .split("/")
     .every((part) => part.length > 0 && part !== "." && part !== "..");

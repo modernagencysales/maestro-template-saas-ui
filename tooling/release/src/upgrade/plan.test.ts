@@ -137,6 +137,9 @@ describe("read-only upgrade planning", () => {
     "alias/./path.ts",
     "alias/../path.ts",
     "alias/control\u0000path.ts",
+    "alias/control\u0085path.ts",
+    "alias/lone-high-\ud800.ts",
+    "alias/lone-low-\udc00.ts",
   ])("rejects noncanonical path alias %j without mutating input", (path) => {
     const input = fixture();
     const candidate = {
@@ -157,6 +160,29 @@ describe("read-only upgrade planning", () => {
     };
     const before = JSON.stringify(candidate);
     expect(codes(candidate)).toEqual(["UPGRADE_INPUT_INVALID"]);
+    expect(JSON.stringify(candidate)).toBe(before);
+  });
+
+  it("accepts a normalized path with a valid surrogate pair without mutating input", () => {
+    const input = fixture();
+    const candidate = {
+      ...input,
+      manifest: {
+        ...input.manifest,
+        operations: [
+          ...input.manifest.operations,
+          {
+            id: "unicode-pair-add",
+            kind: "add",
+            path: "alias/rocket-\ud83d\ude80.ts",
+            ownership: "template-owned",
+            afterHash: `sha256:${"4".repeat(64)}`,
+          },
+        ],
+      },
+    };
+    const before = JSON.stringify(candidate);
+    expect(planUpgrade(candidate)).toMatchObject({ ok: true });
     expect(JSON.stringify(candidate)).toBe(before);
   });
 
