@@ -9,8 +9,8 @@
   "release": {
     "version": "0.2.0-alpha.1",
     "tag": "maestro-template-v0.2.0-alpha.1",
-    "sourceCommit": "c057e00fe2f894957fe50d7ae560942944e2f523",
-    "sourceChecksum": "sha256:ef926f9dd339375073cf0097b23e0fb42579e8ffb69858af51c102aed9222c0e"
+    "sourceCommit": "ebc5877672cac1a80a15dfb0f819425fbea6c88c",
+    "sourceChecksum": "sha256:6d59e2189de0b4bef677969cc7718b1f6431082df3e77aa677e8067fba860d4d"
   },
   "upgrade": {
     "schemaVersion": 1,
@@ -2426,7 +2426,7 @@
         "kind": "add",
         "path": "tooling/agent-pack/src/codexInstall.native.test.ts",
         "ownership": "template-owned",
-        "afterHash": "sha256:adff42c363f61488e0f310f1e2d95d25d7184fcbc1b3e9bf970e359afc76afb0"
+        "afterHash": "sha256:d94e92ca930f1d21d197285eceaa6538d9f0d13ba7074a49767b9573fb4f3f72"
       },
       {
         "id": "upgrade-delete-tooling-agent-pack-src-convexPlugin-test-ts",
@@ -3870,14 +3870,14 @@
   ],
   "blueprintManifest": {
     "path": "blueprints/saas-application.json",
-    "sha256": "sha256:de83fd0ff81331bfd1ebbfdd9d85de623c16e57eb1b009ece269caa68e08e27f"
+    "sha256": "sha256:6c47c7e1604279773c4e4322d7ff80356ccac29f62bf2909b758ff80be7d90a6"
   },
   "upgradeImpact": {
     "path": "releases/v0.2.0-alpha.1/upgrade/app-map-input.json",
-    "sha256": "sha256:824b374a63bd3ed13004305b3f10b2bbd5b12fe9090f3999fffc2e2f84228929",
+    "sha256": "sha256:0961bb246ac7a700a7243cf574815619331bde01b807cc0c1ea9aa4c40f2e387",
     "projection": {
       "path": "releases/v0.2.0-alpha.1/upgrade/app-map-impact.json",
-      "sha256": "sha256:548af0bcdeac46446f40376808464180cc091ae6c20ba3050dbbfb12da755893"
+      "sha256": "sha256:4777b671b846098f6e19c95c7ee5b90af263275685e4580306c3f16035f15e2a"
     }
   },
   "migrationHandoff": {
