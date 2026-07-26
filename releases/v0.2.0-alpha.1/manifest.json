@@ -9,8 +9,8 @@
   "release": {
     "version": "0.2.0-alpha.1",
     "tag": "maestro-template-v0.2.0-alpha.1",
-    "sourceCommit": "c0c5357173aecb5b21994a48781e23292c6e5e78",
-    "sourceChecksum": "sha256:d4da2deb60657b894e21f7a6d8dbc341192f7cd394ad433733d5eaff1c587707"
+    "sourceCommit": "2e81cd44c7040d6f417a5795b0c74f27389f6d2b",
+    "sourceChecksum": "sha256:e078f69d162051f8ddc06753eba5904afa585ca040a4c9163646fe21183f3247"
   },
   "upgrade": {
     "schemaVersion": 1,
@@ -617,6 +617,14 @@
         "afterHash": "sha256:0ce18bf3b18d7f3c26e0a52e8b452fd06e919e996ed606a4d47851239709dd02"
       },
       {
+        "id": "upgrade-modify-eslint-config-mjs",
+        "kind": "modify",
+        "path": "eslint.config.mjs",
+        "ownership": "template-owned",
+        "beforeHash": "sha256:47bf2363176399d8d0193b6ff876fe1fbb16d7b8d1f503106e3a723fa624634c",
+        "afterHash": "sha256:19e616074cb00d8076e47ff90bcc97250e6318d16ceb25cde60e6aee1086b6d4"
+      },
+      {
         "id": "upgrade-modify-lefthook-yml",
         "kind": "modify",
         "path": "lefthook.yml",
@@ -630,7 +638,7 @@
         "path": "package.json",
         "ownership": "generated",
         "beforeHash": "sha256:d3278e6fbfc6c3218cb0ebaad4322f459fb2a61eaa37329840ce2283e9fb2254",
-        "afterHash": "sha256:947804f89be531e60fb4c13af44838723594327157c523e22d8a97a64bfde3af"
+        "afterHash": "sha256:8e32526c2ca570845414d36a0d6af922e9c619aa54cf0b5e67d95a0583948247"
       },
       {
         "id": "upgrade-modify-packages-convex-confect-generated-convexSchema-ts",
@@ -2080,7 +2088,7 @@
         "kind": "add",
         "path": "packages/template-core/src/recipes/recipes.test.ts",
         "ownership": "template-owned",
-        "afterHash": "sha256:a28579be45aa367f34b50d1374e255440155f847de2ca29c96510d3e5c1ee448"
+        "afterHash": "sha256:59da423dde9b945a2267f24e30e5fdf99a154d37c6bb9a1c96a09b225444ca85"
       },
       {
         "id": "upgrade-add-packages-template-core-src-recipes-schema-ts",
@@ -3212,7 +3220,7 @@
         "kind": "add",
         "path": "tooling/generators/src/blueprints/saasRegistrationProjections.ts",
         "ownership": "template-owned",
-        "afterHash": "sha256:672307613d5f004aae52059b31e6a64fc7e9079b18aee7e12c805407615317f2"
+        "afterHash": "sha256:202dd3320274ab9acf5232b474b794ee60813cd9e1891e46d1c795a422545906"
       },
       {
         "id": "upgrade-add-tooling-generators-src-cli-ts",
@@ -3788,14 +3796,14 @@
   ],
   "blueprintManifest": {
     "path": "blueprints/saas-application.json",
-    "sha256": "sha256:8f3218efbe3b4b7ea31a7c897358829446dc192f92b34eb61080670ec3d105a2"
+    "sha256": "sha256:84671263f590edcaa892674e0195ceba7cbed81cea62614521d045bdd3223e98"
   },
   "upgradeImpact": {
     "path": "releases/v0.2.0-alpha.1/upgrade/app-map-input.json",
-    "sha256": "sha256:a07cb845586e00779cc252187855d6701e69fc93b57c5ad714c3fd66c119b570",
+    "sha256": "sha256:5cf01e9f51142d1987cc1d073eb09e53393dfd3640ef34740b6765829bdf4724",
     "projection": {
       "path": "releases/v0.2.0-alpha.1/upgrade/app-map-impact.json",
-      "sha256": "sha256:76d9905be45d6e2f7a9d0134100ce4dc6d2f3889217c6f77ce5b0eb5bb0b3cad"
+      "sha256": "sha256:374b7a62fe8b48e09a475ad53f9b1d8711a9f09a1f9c5d1217a4a97e1ad6ca7a"
     }
   },
   "migrationHandoff": {

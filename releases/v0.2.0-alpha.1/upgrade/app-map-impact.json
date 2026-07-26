@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "kind": "reviewed-upgrade-impact-coverage",
   "baseRevision": "517b5bc28d1d633bef18f57610cff49800123788",
-  "subjectRevision": "c0c5357173aecb5b21994a48781e23292c6e5e78",
+  "subjectRevision": "2e81cd44c7040d6f417a5795b0c74f27389f6d2b",
   "structuralPaths": [
     "docs/template/data-resources.json",
     "docs/template/generated/provenance/add-table/workflowArtifacts.json",
@@ -91,6 +91,7 @@
     "docs/template/verification-receipts.md",
     "docs/template/workflow-authoring-guide.md",
     "docs/template/workflow-versioning.md",
+    "eslint.config.mjs",
     "lefthook.yml",
     "package.json",
     "packages/convex/confect/_generated/convexSchema.ts",
@@ -499,7 +500,7 @@
   "impact": {
     "schemaVersion": 1,
     "baseRevision": "517b5bc28d1d633bef18f57610cff49800123788",
-    "subjectRevision": "c0c5357173aecb5b21994a48781e23292c6e5e78",
+    "subjectRevision": "2e81cd44c7040d6f417a5795b0c74f27389f6d2b",
     "complete": true,
     "risk": "high",
     "changedPaths": [

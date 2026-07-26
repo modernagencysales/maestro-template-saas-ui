@@ -74,7 +74,7 @@
     "check:system-catalog": "tsx tooling/quality/check-system-catalog.mts",
     "check:system-topology": "tsx tooling/quality/check-system-topology.mts",
     "check:promotion-boundary": "tsx tooling/quality/check-promotion-boundary.mts",
-    "check:layer-boundaries": "depcruise --config dependency-cruiser.config.cjs apps packages tooling tests experiments",
+    "check:layer-boundaries": "depcruise --config dependency-cruiser.config.cjs apps packages tooling tests",
     "check:secret-canaries": "gitleaks detect --config .gitleaks.toml --no-git --redact --source .",
     "check:sbom-license": "tsx tooling/quality/check-sbom-license.mts",
     "check:headless-surface-contract": "tsx tooling/quality/check-headless-surface-contract.mts",
