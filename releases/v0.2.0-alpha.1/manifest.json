@@ -9,8 +9,8 @@
   "release": {
     "version": "0.2.0-alpha.1",
     "tag": "maestro-template-v0.2.0-alpha.1",
-    "sourceCommit": "09d3dc96d32e4e2702c72e3fc3cd71940860f579",
-    "sourceChecksum": "sha256:0642193e8c04fef0839bfea545026ec330378214f2b4e51c4586870ebd83b3c0"
+    "sourceCommit": "7df7cb241e833630f6082889ae83820a22f14e34",
+    "sourceChecksum": "sha256:9cf5f265b6efe61bea5f0229ef0e2bf8a01c6f77924aaf60219b5b15519d87f0"
   },
   "upgrade": {
     "schemaVersion": 1,
@@ -2225,21 +2225,21 @@
         "kind": "add",
         "path": "tooling/agent-pack/evals/forward/aggregate.ts",
         "ownership": "template-owned",
-        "afterHash": "sha256:60258811dfff27ca5b4b2de85c5bcb2742fa67c5d939d5af881d7dc7969c0ab3"
+        "afterHash": "sha256:956d07202f8f58f17d5cb6e9564897e88e080eda84e91552efb1d90b941856f4"
       },
       {
         "id": "upgrade-add-tooling-agent-pack-evals-forward-contract-ts",
         "kind": "add",
         "path": "tooling/agent-pack/evals/forward/contract.ts",
         "ownership": "template-owned",
-        "afterHash": "sha256:fd43d1fe2ab23eee0dadab2c7420b54dade97cd9fc7589d8a21dc2d299bb02a6"
+        "afterHash": "sha256:50f56676a4696f51b0357a7cb9e81a3a317d0a61e98e42211aa6f88301d7a901"
       },
       {
         "id": "upgrade-add-tooling-agent-pack-evals-forward-disposableReleaseTag-test-ts",
         "kind": "add",
         "path": "tooling/agent-pack/evals/forward/disposableReleaseTag.test.ts",
         "ownership": "template-owned",
-        "afterHash": "sha256:7292f19edc0c974682b198dccd38fb25a1b72cfb69c6c25f61b9a55073801f31"
+        "afterHash": "sha256:845c34e7ad410c32758442eb0cfd8d6812ee2146a2f8e9f818d779f9ff46a260"
       },
       {
         "id": "upgrade-add-tooling-agent-pack-evals-forward-disposableReleaseTag-ts",
@@ -2253,28 +2253,42 @@
         "kind": "add",
         "path": "tooling/agent-pack/evals/forward/forward-runner.test.ts",
         "ownership": "template-owned",
-        "afterHash": "sha256:20003f85b2918389f600364cdff557c56df522af487580ee60647c7f3861aedd"
+        "afterHash": "sha256:5bd8bfda060330113b5fd3df117add340ce2aced023936700c885d65d2a1eae7"
+      },
+      {
+        "id": "upgrade-add-tooling-agent-pack-evals-forward-gate-launcher-mjs",
+        "kind": "add",
+        "path": "tooling/agent-pack/evals/forward/gate-launcher.mjs",
+        "ownership": "template-owned",
+        "afterHash": "sha256:5d436e0006fe62e7596a9882f82895e2e125bf60e609f268420502ef7186c8d7"
+      },
+      {
+        "id": "upgrade-add-tooling-agent-pack-evals-forward-gate-launcher-test-ts",
+        "kind": "add",
+        "path": "tooling/agent-pack/evals/forward/gate-launcher.test.ts",
+        "ownership": "template-owned",
+        "afterHash": "sha256:725c0b99ce4f6b7efac9c0ce7b04e69c5f8d83ceb558810fd401f962e8007971"
       },
       {
         "id": "upgrade-add-tooling-agent-pack-evals-forward-runner-ts",
         "kind": "add",
         "path": "tooling/agent-pack/evals/forward/runner.ts",
         "ownership": "template-owned",
-        "afterHash": "sha256:8b3189cafb681412bb8f5b67621df26bb071a2e14e35c522b6550d68b9211170"
+        "afterHash": "sha256:f645e78d52a765e46b4211a69799e1faab7a6a8acab1fd3530fb2f0fb51b6ba0"
       },
       {
         "id": "upgrade-add-tooling-agent-pack-evals-forward-verifier-test-ts",
         "kind": "add",
         "path": "tooling/agent-pack/evals/forward/verifier.test.ts",
         "ownership": "template-owned",
-        "afterHash": "sha256:a24dffbd7ca97f426c95051059fdbbfcbf434a3bb3bc522a413a4ac6790edf8c"
+        "afterHash": "sha256:dd9f576621ab8791e772dcaab788b1514953dc0b69099bb9beb724a49d35e650"
       },
       {
         "id": "upgrade-add-tooling-agent-pack-evals-forward-verifier-ts",
         "kind": "add",
         "path": "tooling/agent-pack/evals/forward/verifier.ts",
         "ownership": "template-owned",
-        "afterHash": "sha256:f16b23a8d140a5c0e41a3450c767fead2a97c01517ebe76f171f4445797b854d"
+        "afterHash": "sha256:d023b86ed9c3c9fc9c731c19789c4296a3e6ae03cfa4538c6ecbd203bc3bd68a"
       },
       {
         "id": "upgrade-add-tooling-agent-pack-evals-runs-RETENTION-md",
@@ -3939,14 +3953,14 @@
   ],
   "blueprintManifest": {
     "path": "blueprints/saas-application.json",
-    "sha256": "sha256:265fe808643179bdca02356e07a85dadb2eff998b3afa46950bb355f456bdec4"
+    "sha256": "sha256:224f24ac1833689518e7c42edbee1046c1e9fd3b577bc311ebfa6ff5dafe97be"
   },
   "upgradeImpact": {
     "path": "releases/v0.2.0-alpha.1/upgrade/app-map-input.json",
-    "sha256": "sha256:4e97a423b5a40be10cd9481ea9423d1ef4e94ae80b3348a202698407e7f40e23",
+    "sha256": "sha256:5f6742abd6f63ddbd27253fd3d90ea076aca3553b06f5ca5e8ab5cdc3e2cef88",
     "projection": {
       "path": "releases/v0.2.0-alpha.1/upgrade/app-map-impact.json",
-      "sha256": "sha256:575bd76735885a212c175aa9038f2d9989717990de390173fa2883421d4098db"
+      "sha256": "sha256:6b2d30e758c29496eaa52321e7c9607664ebf2a4a954c8e5151dfce4d2502ff2"
     }
   },
   "migrationHandoff": {
