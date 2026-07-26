@@ -4,6 +4,8 @@
   "type": "module",
   "exports": {
     "./build": "./src/build.ts",
+    "./git-diff": "./src/gitDiff.ts",
+    "./impact": "./src/impact.ts",
     "./schema": "./src/schema.ts",
     "./validate": "./src/validate.ts"
   },
