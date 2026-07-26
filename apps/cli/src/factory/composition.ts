@@ -312,10 +312,6 @@ export function createFactoryCliComposition(
       versions: facts.versions,
       workflow: facts.workflow,
       app: facts.app,
-      environment: projectCompositionEnvironmentFingerprintMaterial(
-        repo,
-        readEnvironment,
-      ),
     };
     return {
       fingerprint: `recipe_preflight_${sha256RecipeBytes(
