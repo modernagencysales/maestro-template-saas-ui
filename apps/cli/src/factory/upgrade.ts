@@ -33,19 +33,46 @@ export const createUpgradeCliHandler = (): FactoryCliHandler => ({
       const action = argv[1];
       if (action === "verify") {
         const receipt = valueAfter(argv, "--receipt");
-        if (!receipt)
-          throw new Error("upgrade verify requires --receipt <path>.");
-        const result = verifyRepositoryUpgrade(resolve(cwd, receipt));
+        const targetRoot = valueAfter(argv, "--target-root");
+        const fingerprint = valueAfter(argv, "--plan-fingerprint");
+        const journalDigest = valueAfter(argv, "--journal-digest");
+        if (!receipt || !targetRoot || !fingerprint || !journalDigest)
+          throw new Error(
+            "upgrade verify requires --receipt, --target-root, --plan-fingerprint, and --journal-digest.",
+          );
+        const result = verifyRepositoryUpgrade({
+          receiptPath: resolve(cwd, receipt),
+          targetRoot: resolve(cwd, targetRoot),
+          expectedPlanFingerprint: fingerprint,
+          expectedJournalDigest: journalDigest,
+        });
         return result.ok
           ? success(result)
           : { ...success(result), exitCode: 1 };
       }
       if (action === "rollback") {
         const receipt = valueAfter(argv, "--receipt");
-        if (!receipt)
-          throw new Error("upgrade rollback requires --receipt <path>.");
+        const targetRoot = valueAfter(argv, "--target-root");
+        const fingerprint = valueAfter(argv, "--plan-fingerprint");
+        const journalDigest = valueAfter(argv, "--journal-digest");
+        if (
+          !receipt ||
+          !targetRoot ||
+          !fingerprint ||
+          !journalDigest ||
+          !argv.includes("--write")
+        )
+          throw new Error(
+            "upgrade rollback requires --receipt, --target-root, --plan-fingerprint, --journal-digest, and --write.",
+          );
         return success({
-          rollbackReceiptPath: rollbackRepositoryUpgrade(resolve(cwd, receipt)),
+          rollbackReceiptPath: rollbackRepositoryUpgrade({
+            receiptPath: resolve(cwd, receipt),
+            targetRoot: resolve(cwd, targetRoot),
+            expectedPlanFingerprint: fingerprint,
+            expectedJournalDigest: journalDigest,
+            write: true,
+          }),
         });
       }
       if (action !== "plan" && action !== "apply-safe")
@@ -65,15 +92,17 @@ export const createUpgradeCliHandler = (): FactoryCliHandler => ({
       });
       if (action === "plan") return success(trusted);
       const fingerprint = valueAfter(argv, "--plan-fingerprint");
-      if (!fingerprint || !argv.includes("--write"))
+      const authorityFingerprint = valueAfter(argv, "--authority-fingerprint");
+      if (!fingerprint || !authorityFingerprint || !argv.includes("--write"))
         throw new Error(
-          "upgrade apply-safe requires --plan-fingerprint and --write.",
+          "upgrade apply-safe requires --plan-fingerprint, --authority-fingerprint, and --write.",
         );
       return success(
         applyRepositoryUpgrade({
           trusted,
           targetRoot: cwd,
           expectedPlanFingerprint: fingerprint,
+          expectedAuthorityFingerprint: authorityFingerprint,
           write: true,
         }),
       );

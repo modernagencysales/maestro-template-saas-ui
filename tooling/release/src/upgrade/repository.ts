@@ -9,6 +9,7 @@ import {
   mkdtempSync,
   openSync,
   readFileSync,
+  realpathSync,
   renameSync,
   rmSync,
   writeFileSync,
@@ -25,7 +26,7 @@ import { planUpgrade } from "./plan.js";
 import { verifyAppliedUpgrade } from "./verify.js";
 
 type SuccessfulPlan = Extract<UpgradePlanResult, { readonly ok: true }>;
-type UpgradeJournal = {
+type UpgradeJournalUnsigned = {
   readonly schemaVersion: 1;
   readonly kind: "maestro-upgrade-transaction";
   readonly status: "prepared" | "applied";
@@ -42,9 +43,15 @@ type UpgradeJournal = {
   readonly planInput: UpgradePlanInputV1;
 };
 
+type UpgradeJournal = UpgradeJournalUnsigned & {
+  readonly journalDigest: string;
+};
+
 export type TrustedRepositoryUpgradePlan = {
+  readonly authorityFingerprint: string;
   readonly plan: SuccessfulPlan;
   readonly planInput: UpgradePlanInputV1;
+  readonly targetRoot: string;
   readonly releaseRoot: string;
   readonly releaseRootCommit: string;
   readonly releaseManifestPath: string;
@@ -69,8 +76,38 @@ const exactCommit = (value: string): boolean =>
   /^[0-9a-f]{40}(?:[0-9a-f]{24})?$/u.test(value);
 const record = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
+const onlyKeys = (
+  value: Record<string, unknown>,
+  keys: readonly string[],
+): boolean => Object.keys(value).every((key) => keys.includes(key));
+const digest = (value: unknown): value is string =>
+  typeof value === "string" && /^sha256:[0-9a-f]{64}$/u.test(value);
 const readJson = (path: string): unknown =>
   JSON.parse(readFileSync(path, "utf8"));
+
+const canonicalRoot = (requested: string, label: string): string => {
+  const resolved = resolve(requested);
+  const canonical = realpathSync(resolved);
+  if (canonical !== resolved)
+    throw new Error(
+      `${label} must be a canonical path with no symbolic-link root.`,
+    );
+  return canonical;
+};
+
+const sealJournal = (journal: UpgradeJournalUnsigned): UpgradeJournal => ({
+  ...journal,
+  journalDigest: sha256(JSON.stringify(journal)),
+});
+
+const unsignedJournal = (journal: UpgradeJournal): UpgradeJournalUnsigned => {
+  const unsigned = { ...journal };
+  delete (unsigned as { journalDigest?: string }).journalDigest;
+  return unsigned;
+};
+
+const recomputeJournalDigest = (journal: UpgradeJournal): string =>
+  sha256(JSON.stringify(unsignedJournal(journal)));
 
 const contained = (root: string, path: string): string => {
   const absolute = resolve(root, path);
@@ -140,6 +177,16 @@ const targetVersion = (root: string): string => {
   return candidate.release.version;
 };
 
+const repositoryAuthorityFingerprint = (input: {
+  readonly targetRoot: string;
+  readonly releaseRoot: string;
+  readonly releaseRootCommit: string;
+  readonly releaseManifestHash: string;
+  readonly baseManifestHash: string;
+  readonly sourceCommit: string;
+  readonly planFingerprint: string;
+}): string => sha256(JSON.stringify(input));
+
 const durableJson = (path: string, value: unknown): void => {
   mkdirSync(dirname(path), { recursive: true });
   const temporary = `${path}.tmp`;
@@ -164,8 +211,11 @@ export const planRepositoryUpgrade = (input: {
   readonly releaseRoot: string;
   readonly toVersion: string;
 }): TrustedRepositoryUpgradePlan => {
-  const targetRoot = resolve(input.targetRoot);
-  const releaseRoot = resolve(input.releaseRoot);
+  const targetRoot = canonicalRoot(input.targetRoot, "Upgrade target root");
+  const releaseRoot = canonicalRoot(
+    input.releaseRoot,
+    "Release authority root",
+  );
   if (
     gitText(releaseRoot, ["status", "--porcelain", "--untracked-files=all"]) !==
     ""
@@ -194,6 +244,9 @@ export const planRepositoryUpgrade = (input: {
     release.release.version !== input.toVersion ||
     typeof release.release.sourceCommit !== "string" ||
     !exactCommit(release.release.sourceCommit) ||
+    typeof release.release.tag !== "string" ||
+    typeof release.release.sourceChecksum !== "string" ||
+    !digest(release.release.sourceChecksum) ||
     !record(release.baseManifest) ||
     typeof release.baseManifest.path !== "string" ||
     typeof release.baseManifest.sha256 !== "string" ||
@@ -240,6 +293,22 @@ export const planRepositoryUpgrade = (input: {
   if (sourceMergeBase !== sourceCommit)
     throw new Error(
       "Release source commit is not an ancestor of release authority HEAD.",
+    );
+  const tagCommit = gitText(releaseRoot, [
+    "rev-parse",
+    "--verify",
+    `refs/tags/${release.release.tag}^{commit}`,
+  ]);
+  if (tagCommit !== sourceCommit)
+    throw new Error(
+      "Release tag does not resolve to the reviewed source commit.",
+    );
+  const sourceChecksum = sha256(
+    gitBytes(releaseRoot, ["archive", "--format=tar", sourceCommit]),
+  );
+  if (sourceChecksum !== release.release.sourceChecksum)
+    throw new Error(
+      "Release source archive checksum does not match authority.",
     );
   const commit = gitText(targetRoot, ["rev-parse", "HEAD"]);
   const clean =
@@ -311,13 +380,24 @@ export const planRepositoryUpgrade = (input: {
     },
   });
   if (!impact.ok) throw new Error(impact.diagnostic.code);
+  const authority = {
+    targetRoot,
+    releaseRoot,
+    releaseRootCommit,
+    releaseManifestHash: sha256(releaseSource),
+    baseManifestHash,
+    sourceCommit,
+    planFingerprint: plan.planFingerprint,
+  };
   return {
+    authorityFingerprint: repositoryAuthorityFingerprint(authority),
     plan,
     planInput,
+    targetRoot,
     releaseRoot,
     releaseRootCommit,
     releaseManifestPath,
-    releaseManifestHash: sha256(releaseSource),
+    releaseManifestHash: authority.releaseManifestHash,
     baseManifestPath: baseAbsolute,
     baseManifestHash,
     sourceCommit,
@@ -327,6 +407,22 @@ export const planRepositoryUpgrade = (input: {
 
 const ensureParent = (path: string): void => {
   mkdirSync(dirname(path), { recursive: true });
+};
+
+const fsyncDirectory = (path: string): void => {
+  const descriptor = openSync(path, "r");
+  try {
+    fsyncSync(descriptor);
+  } finally {
+    closeSync(descriptor);
+  }
+};
+
+const durableRename = (source: string, destination: string): void => {
+  renameSync(source, destination);
+  fsyncDirectory(dirname(source));
+  if (dirname(destination) !== dirname(source))
+    fsyncDirectory(dirname(destination));
 };
 
 const rollbackJournal = (journal: UpgradeJournal): void => {
@@ -346,9 +442,87 @@ const rollbackJournal = (journal: UpgradeJournal): void => {
         allowMissingLeaf: true,
       });
       ensureParent(target);
-      renameSync(backup, target);
+      durableRename(backup, target);
     } else if (operation.kind === "add") {
-      rmSync(destination, { recursive: true, force: true });
+      if (existsSync(destination)) {
+        rmSync(destination, { recursive: true, force: true });
+        fsyncDirectory(dirname(destination));
+      }
+    }
+  }
+};
+
+const fileHash = (path: string): string | undefined =>
+  existsSync(path) ? sha256(readFileSync(path)) : undefined;
+
+const validateRollbackState = (
+  journal: UpgradeJournal,
+  plan: SuccessfulPlan,
+): void => {
+  for (const entry of plan.diff) {
+    const oldPath = entry.fromPath ?? entry.path;
+    const backup = noSymlinkPath(journal.backupRoot, oldPath, {
+      allowMissingLeaf: true,
+    });
+    const oldTarget = noSymlinkPath(journal.targetRoot, oldPath, {
+      allowMissingLeaf: true,
+    });
+    const destination = noSymlinkPath(journal.targetRoot, entry.path, {
+      allowMissingLeaf: true,
+    });
+    const backupHash = fileHash(backup);
+    const oldHash = fileHash(oldTarget);
+    const destinationHash = fileHash(destination);
+    if (backupHash !== undefined && backupHash !== entry.beforeHash)
+      throw new Error(
+        `Upgrade recovery backup bytes are not reviewed: ${oldPath}`,
+      );
+    if (entry.kind === "add" && backupHash !== undefined)
+      throw new Error(
+        `Upgrade recovery has an unexpected add backup: ${entry.path}`,
+      );
+
+    if (journal.status === "applied") {
+      if (entry.kind === "delete" && destinationHash !== undefined)
+        throw new Error(
+          `Upgrade recovery expected an applied deletion: ${entry.path}`,
+        );
+      if (entry.kind !== "delete" && destinationHash !== entry.afterHash)
+        throw new Error(
+          `Upgrade recovery applied bytes changed after apply: ${entry.path}`,
+        );
+      if (entry.kind === "move" && entry.fromPath && oldHash !== undefined)
+        throw new Error(
+          `Upgrade recovery move source unexpectedly exists: ${entry.fromPath}`,
+        );
+      continue;
+    }
+
+    if (backupHash === undefined) {
+      if (entry.kind !== "add" && oldHash !== entry.beforeHash)
+        throw new Error(
+          `Upgrade recovery prepared source bytes are not reviewed: ${oldPath}`,
+        );
+      if (entry.kind === "move" && destinationHash !== undefined)
+        throw new Error(
+          `Upgrade recovery prepared move destination is unexpected: ${entry.path}`,
+        );
+      if (
+        entry.kind === "add" &&
+        destinationHash !== undefined &&
+        destinationHash !== entry.afterHash
+      )
+        throw new Error(
+          `Upgrade recovery prepared add bytes are not reviewed: ${entry.path}`,
+        );
+    } else if (
+      entry.kind !== "delete" &&
+      destinationHash !== undefined &&
+      destinationHash !== entry.afterHash
+    ) {
+      throw new Error(
+        `Upgrade recovery prepared destination bytes are not reviewed: ${entry.path}`,
+      );
     }
   }
 };
@@ -357,33 +531,38 @@ export const applyRepositoryUpgrade = (input: {
   readonly trusted: TrustedRepositoryUpgradePlan;
   readonly targetRoot: string;
   readonly expectedPlanFingerprint: string;
+  readonly expectedAuthorityFingerprint: string;
   readonly write: boolean;
+  readonly onMutationBoundary?: (
+    boundary: "old-to-backup" | "stage-to-destination",
+    path: string,
+  ) => void;
 }): { readonly receiptPath: string; readonly receipt: UpgradeApplyReceipt } => {
   if (!input.write)
     throw new Error("Upgrade apply-safe requires explicit --write.");
   if (input.expectedPlanFingerprint !== input.trusted.plan.planFingerprint)
     throw new Error("Upgrade plan fingerprint is stale.");
-  const targetRoot = resolve(input.targetRoot);
+  if (input.expectedAuthorityFingerprint !== input.trusted.authorityFingerprint)
+    throw new Error("Upgrade repository authority fingerprint is stale.");
+  const targetRoot = canonicalRoot(input.targetRoot, "Upgrade target root");
+  if (targetRoot !== input.trusted.targetRoot)
+    throw new Error(
+      "Upgrade apply target does not match the exact planned target root.",
+    );
+  const trusted = planRepositoryUpgrade({
+    targetRoot,
+    releaseRoot: input.trusted.releaseRoot,
+    toVersion: input.trusted.planInput.manifest.transition.toVersion,
+  });
   if (
-    gitText(targetRoot, ["rev-parse", "HEAD"]) !==
-    input.trusted.plan.targetCommit
+    trusted.plan.planFingerprint !== input.expectedPlanFingerprint ||
+    trusted.authorityFingerprint !== input.expectedAuthorityFingerprint ||
+    trusted.releaseRootCommit !== input.trusted.releaseRootCommit ||
+    trusted.releaseManifestHash !== input.trusted.releaseManifestHash ||
+    trusted.baseManifestHash !== input.trusted.baseManifestHash ||
+    trusted.sourceCommit !== input.trusted.sourceCommit
   )
-    throw new Error("Target HEAD changed after planning.");
-  if (
-    gitText(targetRoot, ["status", "--porcelain", "--untracked-files=all"]) !==
-    ""
-  )
-    throw new Error("Target became dirty after planning.");
-  if (
-    gitText(input.trusted.releaseRoot, ["rev-parse", "HEAD"]) !==
-      input.trusted.releaseRootCommit ||
-    gitText(input.trusted.releaseRoot, [
-      "status",
-      "--porcelain",
-      "--untracked-files=all",
-    ]) !== ""
-  )
-    throw new Error("Release authority checkout changed after planning.");
+    throw new Error("Upgrade authority changed after planning.");
 
   const transactionRoot = mkdtempSync(
     join(dirname(targetRoot), `.${basename(targetRoot)}-maestro-upgrade-`),
@@ -392,30 +571,30 @@ export const applyRepositoryUpgrade = (input: {
   const backupRoot = join(transactionRoot, "backup");
   mkdirSync(stageRoot);
   mkdirSync(backupRoot);
-  const journal: UpgradeJournal = {
+  const journal = sealJournal({
     schemaVersion: 1,
     kind: "maestro-upgrade-transaction",
     status: "prepared",
-    planFingerprint: input.trusted.plan.planFingerprint,
-    manifestFingerprint: input.trusted.plan.manifestFingerprint,
-    preUpgradeCommit: input.trusted.plan.targetCommit,
-    releaseRoot: input.trusted.releaseRoot,
-    releaseRootCommit: input.trusted.releaseRootCommit,
-    releaseManifestHash: input.trusted.releaseManifestHash,
-    baseManifestHash: input.trusted.baseManifestHash,
+    planFingerprint: trusted.plan.planFingerprint,
+    manifestFingerprint: trusted.plan.manifestFingerprint,
+    preUpgradeCommit: trusted.plan.targetCommit,
+    releaseRoot: trusted.releaseRoot,
+    releaseRootCommit: trusted.releaseRootCommit,
+    releaseManifestHash: trusted.releaseManifestHash,
+    baseManifestHash: trusted.baseManifestHash,
     targetRoot,
     backupRoot,
-    promotedPaths: input.trusted.plan.diff.map(({ path }) => path),
-    planInput: input.trusted.planInput,
-  };
+    promotedPaths: trusted.plan.diff.map(({ path }) => path),
+    planInput: trusted.planInput,
+  });
   const journalPath = join(transactionRoot, "transaction.json");
   durableJson(journalPath, journal);
   try {
-    for (const entry of input.trusted.plan.diff) {
+    for (const entry of trusted.plan.diff) {
       if (entry.kind === "delete") continue;
       const bytes = gitBlob(
-        input.trusted.releaseRoot,
-        input.trusted.sourceCommit,
+        trusted.releaseRoot,
+        trusted.sourceCommit,
         entry.path,
       );
       if (sha256(bytes) !== entry.afterHash)
@@ -426,7 +605,7 @@ export const applyRepositoryUpgrade = (input: {
       ensureParent(staged);
       writeFileSync(staged, bytes);
     }
-    for (const entry of input.trusted.plan.diff) {
+    for (const entry of trusted.plan.diff) {
       const oldPath = entry.fromPath ?? entry.path;
       const oldTarget = noSymlinkPath(targetRoot, oldPath, {
         allowMissingLeaf: true,
@@ -434,14 +613,16 @@ export const applyRepositoryUpgrade = (input: {
       if (existsSync(oldTarget)) {
         const backup = contained(backupRoot, oldPath);
         ensureParent(backup);
-        renameSync(oldTarget, backup);
+        durableRename(oldTarget, backup);
+        input.onMutationBoundary?.("old-to-backup", entry.path);
       }
       if (entry.kind !== "delete") {
         const destination = noSymlinkPath(targetRoot, entry.path, {
           allowMissingLeaf: true,
         });
         ensureParent(destination);
-        renameSync(contained(stageRoot, entry.path), destination);
+        durableRename(contained(stageRoot, entry.path), destination);
+        input.onMutationBoundary?.("stage-to-destination", entry.path);
       }
     }
   } catch (error) {
@@ -449,23 +630,218 @@ export const applyRepositoryUpgrade = (input: {
     throw error;
   }
   rmSync(stageRoot, { recursive: true, force: true });
-  const receipt: UpgradeApplyReceipt = { ...journal, status: "applied" };
+  const receipt: UpgradeApplyReceipt = {
+    ...sealJournal({ ...unsignedJournal(journal), status: "applied" }),
+    status: "applied",
+  };
   const receiptPath = join(transactionRoot, "apply-receipt.json");
   durableJson(receiptPath, receipt);
   durableJson(journalPath, receipt);
   return { receiptPath, receipt };
 };
 
-export const rollbackRepositoryUpgrade = (receiptPath: string): string => {
-  const journal = readJson(receiptPath) as UpgradeJournal;
+const parseRollbackJournal = (candidate: unknown): UpgradeJournal => {
   if (
-    !record(journal) ||
-    journal.kind !== "maestro-upgrade-transaction" ||
-    (journal.status !== "prepared" && journal.status !== "applied")
+    !record(candidate) ||
+    !onlyKeys(candidate, [
+      "schemaVersion",
+      "kind",
+      "status",
+      "planFingerprint",
+      "manifestFingerprint",
+      "preUpgradeCommit",
+      "releaseRoot",
+      "releaseRootCommit",
+      "releaseManifestHash",
+      "baseManifestHash",
+      "targetRoot",
+      "backupRoot",
+      "promotedPaths",
+      "planInput",
+      "journalDigest",
+    ]) ||
+    candidate.schemaVersion !== 1 ||
+    candidate.kind !== "maestro-upgrade-transaction" ||
+    (candidate.status !== "prepared" && candidate.status !== "applied") ||
+    !digest(candidate.planFingerprint) ||
+    !digest(candidate.manifestFingerprint) ||
+    !exactCommit(String(candidate.preUpgradeCommit)) ||
+    typeof candidate.releaseRoot !== "string" ||
+    !exactCommit(String(candidate.releaseRootCommit)) ||
+    !digest(candidate.releaseManifestHash) ||
+    !digest(candidate.baseManifestHash) ||
+    typeof candidate.targetRoot !== "string" ||
+    typeof candidate.backupRoot !== "string" ||
+    !Array.isArray(candidate.promotedPaths) ||
+    !candidate.promotedPaths.every((path) => typeof path === "string") ||
+    !record(candidate.planInput) ||
+    !digest(candidate.journalDigest)
   )
     throw new Error("Upgrade recovery journal is invalid.");
+  return candidate as UpgradeJournal;
+};
+
+const validateRollbackAuthority = (input: {
+  readonly journal: UpgradeJournal;
+  readonly receiptPath: string;
+  readonly targetRoot: string;
+  readonly expectedPlanFingerprint: string;
+  readonly expectedJournalDigest: string;
+}): SuccessfulPlan => {
+  const { journal } = input;
+  if (
+    journal.journalDigest !== input.expectedJournalDigest ||
+    recomputeJournalDigest(journal) !== input.expectedJournalDigest
+  )
+    throw new Error(
+      "Upgrade recovery journal digest does not match reviewed evidence.",
+    );
+  if (journal.planFingerprint !== input.expectedPlanFingerprint)
+    throw new Error(
+      "Upgrade recovery plan fingerprint does not match reviewed evidence.",
+    );
+
+  const targetRoot = canonicalRoot(
+    input.targetRoot,
+    "Upgrade recovery target root",
+  );
+  if (input.targetRoot !== targetRoot || journal.targetRoot !== targetRoot)
+    throw new Error(
+      "Upgrade recovery target root does not match the explicit canonical target.",
+    );
+  const receiptPath = resolve(input.receiptPath);
+  if (input.receiptPath !== receiptPath)
+    throw new Error("Upgrade recovery journal path must be canonical.");
+  const transactionRoot = dirname(receiptPath);
+  if (
+    dirname(transactionRoot) !== dirname(targetRoot) ||
+    !basename(transactionRoot).startsWith(
+      `.${basename(targetRoot)}-maestro-upgrade-`,
+    ) ||
+    (basename(receiptPath) !== "transaction.json" &&
+      basename(receiptPath) !== "apply-receipt.json") ||
+    journal.backupRoot !== join(transactionRoot, "backup")
+  )
+    throw new Error(
+      "Upgrade recovery journal is not in the expected target transaction location.",
+    );
+  noSymlinkPath(dirname(targetRoot), basename(transactionRoot), {
+    allowMissingLeaf: false,
+  });
+  noSymlinkPath(transactionRoot, basename(receiptPath), {
+    allowMissingLeaf: false,
+  });
+  noSymlinkPath(transactionRoot, "backup", { allowMissingLeaf: false });
+
+  const plan = planUpgrade(journal.planInput);
+  if (
+    !plan.ok ||
+    plan.planFingerprint !== journal.planFingerprint ||
+    plan.manifestFingerprint !== journal.manifestFingerprint ||
+    plan.targetCommit !== journal.preUpgradeCommit ||
+    JSON.stringify(plan.diff.map(({ path }) => path)) !==
+      JSON.stringify(journal.promotedPaths)
+  )
+    throw new Error(
+      "Upgrade recovery journal does not reproduce the closed reviewed plan.",
+    );
+
+  if (
+    journal.releaseRoot !==
+    canonicalRoot(journal.releaseRoot, "Upgrade recovery release root")
+  )
+    throw new Error("Upgrade recovery release root is not canonical.");
+  const releaseManifestRelative = `releases/v${journal.planInput.manifest.transition.toVersion}/manifest.json`;
+  const releaseBytes = gitBlob(
+    journal.releaseRoot,
+    journal.releaseRootCommit,
+    releaseManifestRelative,
+  );
+  if (sha256(releaseBytes) !== journal.releaseManifestHash)
+    throw new Error(
+      "Upgrade recovery release manifest hash does not match authority.",
+    );
+  const release = JSON.parse(releaseBytes.toString("utf8")) as unknown;
+  if (
+    !record(release) ||
+    !record(release.release) ||
+    typeof release.release.tag !== "string" ||
+    typeof release.release.sourceCommit !== "string" ||
+    typeof release.release.sourceChecksum !== "string" ||
+    !record(release.baseManifest) ||
+    typeof release.baseManifest.path !== "string" ||
+    !record(release.upgrade)
+  )
+    throw new Error("Upgrade recovery release authority is incomplete.");
+  const releaseManifestPath = join(
+    journal.releaseRoot,
+    releaseManifestRelative,
+  );
+  const baseAbsolute = resolve(
+    dirname(releaseManifestPath),
+    release.baseManifest.path,
+  );
+  const baseRelative = relative(journal.releaseRoot, baseAbsolute);
+  const baseBytes = gitBlob(
+    journal.releaseRoot,
+    journal.releaseRootCommit,
+    baseRelative,
+  );
+  if (sha256(baseBytes) !== journal.baseManifestHash)
+    throw new Error(
+      "Upgrade recovery base manifest hash does not match authority.",
+    );
+  const tagCommit = gitText(journal.releaseRoot, [
+    "rev-parse",
+    "--verify",
+    `refs/tags/${release.release.tag}^{commit}`,
+  ]);
+  if (tagCommit !== release.release.sourceCommit)
+    throw new Error(
+      "Upgrade recovery release tag does not resolve to source authority.",
+    );
+  if (
+    sha256(
+      gitBytes(journal.releaseRoot, [
+        "archive",
+        "--format=tar",
+        release.release.sourceCommit,
+      ]),
+    ) !== release.release.sourceChecksum
+  )
+    throw new Error(
+      "Upgrade recovery source archive checksum does not match authority.",
+    );
+  const authorityPlan = planUpgrade({
+    ...journal.planInput,
+    manifest: release.upgrade,
+  });
+  if (
+    !authorityPlan.ok ||
+    authorityPlan.planFingerprint !== plan.planFingerprint ||
+    authorityPlan.manifestFingerprint !== plan.manifestFingerprint
+  )
+    throw new Error("Upgrade recovery plan does not match release authority.");
+  return plan;
+};
+
+export const rollbackRepositoryUpgrade = (input: {
+  readonly receiptPath: string;
+  readonly targetRoot: string;
+  readonly expectedPlanFingerprint: string;
+  readonly expectedJournalDigest: string;
+  readonly write: boolean;
+}): string => {
+  if (!input.write)
+    throw new Error("Upgrade rollback requires explicit --write.");
+  const journal = parseRollbackJournal(readJson(input.receiptPath));
+  const plan = validateRollbackAuthority({ ...input, journal });
+  validateRollbackState(journal, plan);
   rollbackJournal(journal);
-  const rollbackPath = join(dirname(receiptPath), "rollback-receipt.json");
+  const rollbackPath = join(
+    dirname(input.receiptPath),
+    "rollback-receipt.json",
+  );
   durableJson(rollbackPath, {
     schemaVersion: 1,
     kind: "maestro-upgrade-rollback",
@@ -476,13 +852,18 @@ export const rollbackRepositoryUpgrade = (receiptPath: string): string => {
   return rollbackPath;
 };
 
-export const verifyRepositoryUpgrade = (
-  receiptPath: string,
-): ReturnType<typeof verifyAppliedUpgrade> => {
-  const receipt = readJson(receiptPath) as UpgradeApplyReceipt;
-  const upgradedCommit = gitText(receipt.targetRoot, ["rev-parse", "HEAD"]);
+export const verifyRepositoryUpgrade = (input: {
+  readonly receiptPath: string;
+  readonly targetRoot: string;
+  readonly expectedPlanFingerprint: string;
+  readonly expectedJournalDigest: string;
+}): ReturnType<typeof verifyAppliedUpgrade> => {
+  const receipt = parseRollbackJournal(readJson(input.receiptPath));
+  if (receipt.status !== "applied") return verifyAppliedUpgrade({});
+  validateRollbackAuthority({ ...input, journal: receipt });
+  const upgradedCommit = gitText(input.targetRoot, ["rev-parse", "HEAD"]);
   const clean =
-    gitText(receipt.targetRoot, [
+    gitText(input.targetRoot, [
       "status",
       "--porcelain",
       "--untracked-files=all",
@@ -496,7 +877,7 @@ export const verifyRepositoryUpgrade = (
       hash?: string;
     }[] = [];
     if (entry.kind === "move" && entry.fromPath) {
-      const from = noSymlinkPath(receipt.targetRoot, entry.fromPath, {
+      const from = noSymlinkPath(input.targetRoot, entry.fromPath, {
         allowMissingLeaf: true,
       });
       values.push(
@@ -509,7 +890,7 @@ export const verifyRepositoryUpgrade = (
           : { path: entry.fromPath, state: "absent" },
       );
     }
-    const absolute = noSymlinkPath(receipt.targetRoot, entry.path, {
+    const absolute = noSymlinkPath(input.targetRoot, entry.path, {
       allowMissingLeaf: true,
     });
     values.push(

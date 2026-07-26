@@ -31,6 +31,11 @@ const write = (root: string, path: string, value: string): void => {
 };
 const hash = (value: string | Buffer): string =>
   `sha256:${createHash("sha256").update(value).digest("hex")}`;
+const journalHash = (value: Record<string, unknown>): string => {
+  const unsigned = { ...value };
+  delete unsigned.journalDigest;
+  return hash(JSON.stringify(unsigned));
+};
 const git = (root: string, ...args: string[]): string =>
   execFileSync("git", ["-C", root, ...args], { encoding: "utf8" }).trim();
 const init = (root: string): void => {
@@ -64,6 +69,17 @@ const setup = () => {
   init(releaseRoot);
   write(releaseRoot, path, after);
   const sourceCommit = commit(releaseRoot, "release source");
+  const tag = "maestro-template-v0.2.0-alpha.1";
+  git(releaseRoot, "tag", tag, sourceCommit);
+  const sourceChecksum = hash(
+    execFileSync("git", [
+      "-C",
+      releaseRoot,
+      "archive",
+      "--format=tar",
+      sourceCommit,
+    ]),
+  );
   const base = '{"schemaVersion":1}\n';
   const impactBytes = readFileSync(
     new URL("../../../app-map/fixtures/valid.json", import.meta.url),
@@ -81,7 +97,12 @@ const setup = () => {
         path: "../v0.1.0-alpha.1/manifest.json",
         sha256: hash(base),
       },
-      release: { version: "0.2.0-alpha.1", sourceCommit },
+      release: {
+        version: "0.2.0-alpha.1",
+        tag,
+        sourceCommit,
+        sourceChecksum,
+      },
       upgradeImpact: { path: impactPath, sha256: hash(impactBytes) },
       upgrade: {
         schemaVersion: 1,
@@ -199,6 +220,70 @@ describe("trusted repository upgrade boundary", () => {
     ).toThrow(/symbolic link/);
   });
 
+  it("refuses symbolic-link roots and apply targets other than the planned repository", () => {
+    const fixture = setup();
+    const linkedParent = temp("maestro-upgrade-linked-root-");
+    const linkedTarget = join(linkedParent, "target");
+    const linkedRelease = join(linkedParent, "release");
+    symlinkSync(fixture.targetRoot, linkedTarget);
+    symlinkSync(fixture.releaseRoot, linkedRelease);
+    expect(() =>
+      planRepositoryUpgrade({
+        targetRoot: linkedTarget,
+        releaseRoot: fixture.releaseRoot,
+        toVersion: "0.2.0-alpha.1",
+      }),
+    ).toThrow(/canonical path/);
+    expect(() =>
+      planRepositoryUpgrade({
+        targetRoot: fixture.targetRoot,
+        releaseRoot: linkedRelease,
+        toVersion: "0.2.0-alpha.1",
+      }),
+    ).toThrow(/canonical path/);
+    const trusted = planRepositoryUpgrade({
+      targetRoot: fixture.targetRoot,
+      releaseRoot: fixture.releaseRoot,
+      toVersion: "0.2.0-alpha.1",
+    });
+    const otherTarget = temp("maestro-upgrade-other-target-");
+    execFileSync("git", ["clone", "--quiet", fixture.targetRoot, otherTarget]);
+    const forged = { ...trusted, targetRoot: otherTarget };
+    expect(() =>
+      applyRepositoryUpgrade({
+        trusted: forged,
+        targetRoot: otherTarget,
+        expectedPlanFingerprint: trusted.plan.planFingerprint,
+        expectedAuthorityFingerprint: trusted.authorityFingerprint,
+        write: true,
+      }),
+    ).toThrow(/authority changed/);
+    expect(readFileSync(join(otherTarget, fixture.path), "utf8")).toBe(
+      fixture.before,
+    );
+  });
+
+  it("binds the release tag and source archive checksum", () => {
+    const fixture = setup();
+    const manifestPath = join(
+      fixture.releaseRoot,
+      "releases/v0.2.0-alpha.1/manifest.json",
+    );
+    const manifest = JSON.parse(readFileSync(manifestPath, "utf8")) as {
+      release: { sourceChecksum: string };
+    };
+    manifest.release.sourceChecksum = `sha256:${"0".repeat(64)}`;
+    writeFileSync(manifestPath, JSON.stringify(manifest));
+    commit(fixture.releaseRoot, "tampered archive checksum");
+    expect(() =>
+      planRepositoryUpgrade({
+        targetRoot: fixture.targetRoot,
+        releaseRoot: fixture.releaseRoot,
+        toVersion: "0.2.0-alpha.1",
+      }),
+    ).toThrow(/archive checksum/);
+  });
+
   it("stages exact Git source bytes, emits evidence, verifies, and rolls back", () => {
     const fixture = setup();
     const trusted = planRepositoryUpgrade({
@@ -210,6 +295,7 @@ describe("trusted repository upgrade boundary", () => {
       trusted,
       targetRoot: fixture.targetRoot,
       expectedPlanFingerprint: trusted.plan.planFingerprint,
+      expectedAuthorityFingerprint: trusted.authorityFingerprint,
       write: true,
     });
     expect(readFileSync(join(fixture.targetRoot, fixture.path), "utf8")).toBe(
@@ -220,14 +306,43 @@ describe("trusted repository upgrade boundary", () => {
       preUpgradeCommit: trusted.plan.targetCommit,
       promotedPaths: [fixture.path],
     });
+    expect(
+      verifyRepositoryUpgrade({
+        receiptPath: applied.receiptPath,
+        targetRoot: fixture.targetRoot,
+        expectedPlanFingerprint: trusted.plan.planFingerprint,
+        expectedJournalDigest: applied.receipt.journalDigest,
+      }),
+    ).toMatchObject({
+      ok: false,
+      applied: false,
+      verified: false,
+      resolutions: expect.arrayContaining([
+        expect.objectContaining({ code: "UPGRADE_VERIFY_TARGET_DIRTY" }),
+        expect.objectContaining({ code: "UPGRADE_VERIFY_COMMIT_NOT_ADVANCED" }),
+      ]),
+    });
     git(fixture.targetRoot, "add", ".");
     git(fixture.targetRoot, "commit", "--quiet", "-m", "upgrade");
-    expect(verifyRepositoryUpgrade(applied.receiptPath)).toMatchObject({
+    expect(
+      verifyRepositoryUpgrade({
+        receiptPath: applied.receiptPath,
+        targetRoot: fixture.targetRoot,
+        expectedPlanFingerprint: trusted.plan.planFingerprint,
+        expectedJournalDigest: applied.receipt.journalDigest,
+      }),
+    ).toMatchObject({
       ok: true,
       applied: true,
       verified: true,
     });
-    const rollbackReceipt = rollbackRepositoryUpgrade(applied.receiptPath);
+    const rollbackReceipt = rollbackRepositoryUpgrade({
+      receiptPath: applied.receiptPath,
+      targetRoot: fixture.targetRoot,
+      expectedPlanFingerprint: trusted.plan.planFingerprint,
+      expectedJournalDigest: applied.receipt.journalDigest,
+      write: true,
+    });
     expect(readFileSync(join(fixture.targetRoot, fixture.path), "utf8")).toBe(
       fixture.before,
     );
@@ -248,19 +363,195 @@ describe("trusted repository upgrade boundary", () => {
       trusted,
       targetRoot: fixture.targetRoot,
       expectedPlanFingerprint: trusted.plan.planFingerprint,
+      expectedAuthorityFingerprint: trusted.authorityFingerprint,
       write: true,
     });
     const transactionPath = join(
       dirname(applied.receiptPath),
       "transaction.json",
     );
-    writeFileSync(
-      transactionPath,
-      JSON.stringify({ ...applied.receipt, status: "prepared" }),
-    );
-    rollbackRepositoryUpgrade(transactionPath);
+    const prepared = { ...applied.receipt, status: "prepared" } as Record<
+      string,
+      unknown
+    >;
+    prepared.journalDigest = journalHash(prepared);
+    writeFileSync(transactionPath, JSON.stringify(prepared));
+    rollbackRepositoryUpgrade({
+      receiptPath: transactionPath,
+      targetRoot: fixture.targetRoot,
+      expectedPlanFingerprint: trusted.plan.planFingerprint,
+      expectedJournalDigest: String(prepared.journalDigest),
+      write: true,
+    });
     expect(readFileSync(join(fixture.targetRoot, fixture.path), "utf8")).toBe(
       fixture.before,
+    );
+  });
+
+  it.each(["old-to-backup", "stage-to-destination"] as const)(
+    "restores the target after an injected %s boundary failure",
+    (boundary) => {
+      const fixture = setup();
+      const trusted = planRepositoryUpgrade({
+        targetRoot: fixture.targetRoot,
+        releaseRoot: fixture.releaseRoot,
+        toVersion: "0.2.0-alpha.1",
+      });
+      expect(() =>
+        applyRepositoryUpgrade({
+          trusted,
+          targetRoot: fixture.targetRoot,
+          expectedPlanFingerprint: trusted.plan.planFingerprint,
+          expectedAuthorityFingerprint: trusted.authorityFingerprint,
+          write: true,
+          onMutationBoundary: (observed) => {
+            if (observed === boundary) throw new Error(`injected ${boundary}`);
+          },
+        }),
+      ).toThrow(`injected ${boundary}`);
+      expect(readFileSync(join(fixture.targetRoot, fixture.path), "utf8")).toBe(
+        fixture.before,
+      );
+    },
+  );
+
+  it("rejects every mutable rollback authority field before any write", () => {
+    const cases = [
+      "targetRoot",
+      "backupRoot",
+      "operationPath",
+      "planInput",
+      "planFingerprint",
+      "releaseManifestHash",
+    ] as const;
+    for (const field of cases) {
+      const fixture = setup();
+      const trusted = planRepositoryUpgrade({
+        targetRoot: fixture.targetRoot,
+        releaseRoot: fixture.releaseRoot,
+        toVersion: "0.2.0-alpha.1",
+      });
+      const applied = applyRepositoryUpgrade({
+        trusted,
+        targetRoot: fixture.targetRoot,
+        expectedPlanFingerprint: trusted.plan.planFingerprint,
+        expectedAuthorityFingerprint: trusted.authorityFingerprint,
+        write: true,
+      });
+      const victimRoot = temp("maestro-upgrade-victim-");
+      write(victimRoot, "victim.txt", "untouched\n");
+      const receipt = JSON.parse(readFileSync(applied.receiptPath, "utf8")) as {
+        targetRoot: string;
+        backupRoot: string;
+        planFingerprint: string;
+        releaseManifestHash: string;
+        planInput: {
+          target: { clean: boolean };
+          manifest: { operations: Array<{ path: string }> };
+        };
+      };
+      if (field === "targetRoot") receipt.targetRoot = victimRoot;
+      if (field === "backupRoot")
+        receipt.backupRoot = join(victimRoot, "backup");
+      if (field === "operationPath") {
+        const [operation] = receipt.planInput.manifest.operations;
+        if (!operation) throw new Error("Expected reviewed fixture operation.");
+        operation.path = "victim.txt";
+      }
+      if (field === "planInput") receipt.planInput.target.clean = false;
+      if (field === "planFingerprint")
+        receipt.planFingerprint = `sha256:${"0".repeat(64)}`;
+      if (field === "releaseManifestHash")
+        receipt.releaseManifestHash = `sha256:${"0".repeat(64)}`;
+      writeFileSync(applied.receiptPath, JSON.stringify(receipt));
+      if (field === "targetRoot")
+        expect(() =>
+          verifyRepositoryUpgrade({
+            receiptPath: applied.receiptPath,
+            targetRoot: fixture.targetRoot,
+            expectedPlanFingerprint: trusted.plan.planFingerprint,
+            expectedJournalDigest: applied.receipt.journalDigest,
+          }),
+        ).toThrow();
+      expect(() =>
+        rollbackRepositoryUpgrade({
+          receiptPath: applied.receiptPath,
+          targetRoot: fixture.targetRoot,
+          expectedPlanFingerprint: trusted.plan.planFingerprint,
+          expectedJournalDigest: applied.receipt.journalDigest,
+          write: true,
+        }),
+      ).toThrow();
+      expect(readFileSync(join(fixture.targetRoot, fixture.path), "utf8")).toBe(
+        fixture.after,
+      );
+      expect(readFileSync(join(victimRoot, "victim.txt"), "utf8")).toBe(
+        "untouched\n",
+      );
+    }
+  });
+
+  it("rejects tampered backup bytes and post-apply user edits before rollback", () => {
+    for (const field of ["backup", "target"] as const) {
+      const fixture = setup();
+      const trusted = planRepositoryUpgrade({
+        targetRoot: fixture.targetRoot,
+        releaseRoot: fixture.releaseRoot,
+        toVersion: "0.2.0-alpha.1",
+      });
+      const applied = applyRepositoryUpgrade({
+        trusted,
+        targetRoot: fixture.targetRoot,
+        expectedPlanFingerprint: trusted.plan.planFingerprint,
+        expectedAuthorityFingerprint: trusted.authorityFingerprint,
+        write: true,
+      });
+      const changedPath =
+        field === "backup"
+          ? join(applied.receipt.backupRoot, fixture.path)
+          : join(fixture.targetRoot, fixture.path);
+      writeFileSync(changedPath, "unreviewed\n");
+      expect(() =>
+        rollbackRepositoryUpgrade({
+          receiptPath: applied.receiptPath,
+          targetRoot: fixture.targetRoot,
+          expectedPlanFingerprint: trusted.plan.planFingerprint,
+          expectedJournalDigest: applied.receipt.journalDigest,
+          write: true,
+        }),
+      ).toThrow(/bytes/);
+      expect(readFileSync(changedPath, "utf8")).toBe("unreviewed\n");
+    }
+  });
+
+  it("rejects a valid journal copied outside its target transaction location", () => {
+    const fixture = setup();
+    const trusted = planRepositoryUpgrade({
+      targetRoot: fixture.targetRoot,
+      releaseRoot: fixture.releaseRoot,
+      toVersion: "0.2.0-alpha.1",
+    });
+    const applied = applyRepositoryUpgrade({
+      trusted,
+      targetRoot: fixture.targetRoot,
+      expectedPlanFingerprint: trusted.plan.planFingerprint,
+      expectedAuthorityFingerprint: trusted.authorityFingerprint,
+      write: true,
+    });
+    const copiedRoot = temp("maestro-upgrade-copied-journal-");
+    const copiedReceipt = join(copiedRoot, "apply-receipt.json");
+    writeFileSync(copiedReceipt, readFileSync(applied.receiptPath));
+    expect(() =>
+      rollbackRepositoryUpgrade({
+        receiptPath: copiedReceipt,
+        targetRoot: fixture.targetRoot,
+        expectedPlanFingerprint: trusted.plan.planFingerprint,
+        expectedJournalDigest: applied.receipt.journalDigest,
+        write: true,
+      }),
+    ).toThrow(/transaction location/);
+    expect(readFileSync(join(fixture.targetRoot, fixture.path), "utf8")).toBe(
+      fixture.after,
     );
   });
 });
