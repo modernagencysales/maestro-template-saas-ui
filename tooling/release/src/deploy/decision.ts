@@ -19,12 +19,20 @@ import {
   type PromotionRequirement,
   type PromotionRequirementEvidence,
 } from "./requirements.js";
+import {
+  verifyTrustedProductionApproval,
+  type TrustedProductionApproval,
+} from "./trustedAuthority.js";
 
 export type PromotionDecisionInput = {
   readonly verdict: unknown;
   readonly lease: unknown;
   readonly authorityExpectation: DeployAuthorityExpectation;
   readonly readiness: PromotionReadinessInput;
+  readonly trustedProductionApproval?: {
+    readonly candidate: unknown;
+    readonly expected: TrustedProductionApproval;
+  };
 };
 
 export type PromotionDecisionDependencies = Omit<
@@ -149,6 +157,38 @@ export const decidePromotion = (
     },
   );
   const findings: PromotionDecisionFinding[] = [];
+  if (input.readiness.toEnvironment === "production") {
+    const trusted = input.trustedProductionApproval;
+    const verified =
+      trusted === undefined
+        ? { ok: false as const }
+        : verifyTrustedProductionApproval(
+            trusted.candidate,
+            trusted.expected,
+            now,
+          );
+    const approvalEvidence = input.readiness.evidence.find(
+      ({ requirement }) => requirement === "human-approval",
+    );
+    if (
+      !verified.ok ||
+      approvalEvidence === undefined ||
+      verified.approval.targetId !== input.readiness.targetId ||
+      verified.approval.commitSha !== input.readiness.commitSha ||
+      verified.approval.artifactHash !== input.readiness.artifactHash ||
+      verified.approval.approvalEvidenceFingerprint !==
+        approvalEvidence.fingerprint ||
+      verified.approval.issuerClass !== input.readiness.approverClass
+    ) {
+      findings.push(
+        decisionFinding(
+          "authority",
+          "trusted-production-approval-rejected",
+          "Production approval must come from the exact trusted issuer record for this artifact.",
+        ),
+      );
+    }
+  }
   if (readiness.kind === "blocked") {
     findings.push(
       ...readiness.findings.map((finding) =>
@@ -485,7 +525,7 @@ const isAuthority = (
   input.credentialScopes.every((value) => typeof value === "string") &&
   new Set(input.credentialScopes).size === input.credentialScopes.length &&
   input.credentialScopes.every(
-    (value, index, values) => index === 0 || values[index - 1] < value,
+    (value, index, values) => index === 0 || (values[index - 1] ?? "") < value,
   ) &&
   isNonce(input.leaseNonce);
 

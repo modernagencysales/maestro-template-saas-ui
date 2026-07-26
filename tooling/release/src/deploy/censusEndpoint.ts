@@ -2,6 +2,7 @@ import {
   compileAuthorizedWorkflowCensus,
   type AuthorizedWorkflowCensus,
   type OperatorCensusAuthorization,
+  type WorkflowCensusBindingAuthority,
   type WorkflowCensusRun,
 } from "./census.js";
 
@@ -30,10 +31,18 @@ export type OperatorCensusEndpointDependencies = {
   }) => Promise<
     | {
         readonly kind: "available";
+        readonly snapshotId: string;
+        readonly pageCount: number;
+        readonly totalCount: number;
+        readonly nextCursor: null;
         readonly runs: readonly WorkflowCensusRun[];
       }
     | { readonly kind: "unavailable" }
   >;
+  readonly loadImmutableWorkflowBindings: (input: {
+    readonly scope: OperatorCensusEndpointScope;
+    readonly authorizationHash: string;
+  }) => Promise<readonly WorkflowCensusBindingAuthority[]>;
   readonly nowMs: () => number;
 };
 
@@ -64,6 +73,12 @@ export const handleOperatorWorkflowCensus = async (
     return blocked(
       "unauthorized",
       "Current operator authorization is required for this exact census scope.",
+    );
+  }
+  if (!authorizationMatchesScope(current.authorization, parsed.scope)) {
+    return blocked(
+      "unauthorized",
+      "Current operator authorization does not match the exact census scope.",
     );
   }
   const now = dependencies.nowMs();
@@ -101,11 +116,38 @@ export const handleOperatorWorkflowCensus = async (
       "Active/restartable workflow census is unavailable.",
     );
   }
+  if (
+    !isSha256(loaded.snapshotId) ||
+    !Number.isSafeInteger(loaded.pageCount) ||
+    loaded.pageCount < 1 ||
+    !Number.isSafeInteger(loaded.totalCount) ||
+    loaded.totalCount < 0 ||
+    loaded.nextCursor !== null ||
+    loaded.totalCount !== loaded.runs.length
+  ) {
+    return blocked(
+      "census-unavailable",
+      "Active/restartable workflow census snapshot is incomplete.",
+    );
+  }
+  let expectedBindings: readonly WorkflowCensusBindingAuthority[];
+  try {
+    expectedBindings = await dependencies.loadImmutableWorkflowBindings({
+      scope: parsed.scope,
+      authorizationHash: current.authorization.canonicalHash,
+    });
+  } catch {
+    return blocked(
+      "census-unavailable",
+      "Immutable workflow binding authority could not be read.",
+    );
+  }
   const compiled = compileAuthorizedWorkflowCensus(
     {
       authorization: parsed.authorization,
       expectedAuthorization: current.authorization,
       runs: loaded.runs,
+      expectedBindings,
     },
     { nowMs: () => now },
   );
@@ -117,6 +159,15 @@ export const handleOperatorWorkflowCensus = async (
   }
   return Object.freeze({ kind: "ok", census: compiled.census });
 };
+
+const authorizationMatchesScope = (
+  authorization: OperatorCensusAuthorization,
+  scope: OperatorCensusEndpointScope,
+): boolean =>
+  authorization.environment === scope.environment &&
+  authorization.targetId === scope.targetId &&
+  authorization.commitSha === scope.commitSha &&
+  authorization.artifactHash === scope.artifactHash;
 
 const parseRequest = (
   input: unknown,

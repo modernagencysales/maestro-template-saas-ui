@@ -111,7 +111,12 @@ describe("promotion verdict contract", () => {
   });
 
   it.each([
-    ["unknown field", (value: Record<string, unknown>) => (value.extra = true)],
+    [
+      "unknown field",
+      (value: Record<string, unknown>) => {
+        value.extra = true;
+      },
+    ],
     ["missing field", (value: Record<string, unknown>) => delete value.nonce],
     [
       "duplicate evidence",

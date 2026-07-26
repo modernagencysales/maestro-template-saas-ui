@@ -96,6 +96,8 @@ steps:
     if: build.branch == "main" && build.pull_request.id == null
     depends_on: "phase-1"
     command: ".buildkite/scripts/staging-deploy.sh"
+    env:
+      PROMOTION_TARGET_ID: "template-staging"
     secrets:
       - TEMPLATE_CLOUDFLARE_API_TOKEN
       - TEMPLATE_CLOUDFLARE_ACCOUNT_ID
@@ -113,6 +115,8 @@ steps:
     if: build.branch == "main" && build.pull_request.id == null
     depends_on: "production-approval"
     command: ".buildkite/scripts/production-promote.sh"
+    env:
+      PROMOTION_TARGET_ID: "template-production"
     secrets:
       - TEMPLATE_CLOUDFLARE_API_TOKEN
       - TEMPLATE_CLOUDFLARE_ACCOUNT_ID

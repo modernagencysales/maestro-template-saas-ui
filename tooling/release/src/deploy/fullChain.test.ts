@@ -13,6 +13,7 @@ import {
   decidePromotion,
   projectPromotionVerdictEvidence,
 } from "./decision.js";
+import { hashTrustedProductionApproval } from "./trustedAuthority.js";
 import { auditPromotionDecisionReceipt } from "./audit.js";
 import {
   compileAcceptedPromotionCheckpoint,
@@ -141,6 +142,26 @@ describe("full promotion authority chain", () => {
       verdict: verdictExpectation(verdict),
       lease,
     };
+    const approvalPayload = {
+      schemaVersion: 1 as const,
+      kind: "trusted-production-approval" as const,
+      issuerId: "release-board",
+      issuerClass: "release-controller" as const,
+      environment: "production" as const,
+      targetId: readiness.targetId,
+      commitSha: readiness.commitSha,
+      artifactHash: readiness.artifactHash,
+      approvalEvidenceFingerprint: readiness.evidence.find(
+        ({ requirement }) => requirement === "human-approval",
+      )!.fingerprint,
+      issuedAt: now,
+      expiresAt: now + 8_000,
+      nonce: "approval_nonce_0101",
+    };
+    const approval = {
+      ...approvalPayload,
+      canonicalHash: hashTrustedProductionApproval(approvalPayload),
+    };
 
     const decision = decidePromotion(
       {
@@ -148,6 +169,7 @@ describe("full promotion authority chain", () => {
         lease,
         authorityExpectation,
         readiness,
+        trustedProductionApproval: { candidate: approval, expected: approval },
       },
       { nowMs: () => now + 2 },
     );
@@ -230,6 +252,10 @@ describe("full promotion authority chain", () => {
           lease,
           authorityExpectation,
           readiness: driftedReadiness,
+          trustedProductionApproval: {
+            candidate: approval,
+            expected: approval,
+          },
         },
         { nowMs: () => now + 2 },
       ),

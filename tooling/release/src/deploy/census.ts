@@ -19,6 +19,8 @@ export type OperatorCensusAuthorization = OperatorCensusAuthorizationPayload & {
   readonly canonicalHash: string;
 };
 
+export const MAX_OPERATOR_CENSUS_AUTHORIZATION_TTL_MS = 2 * 60 * 1_000;
+
 export type WorkflowCensusRun = {
   readonly runFingerprint: string;
   readonly workflowId: string;
@@ -29,6 +31,11 @@ export type WorkflowCensusRun = {
   readonly capabilityBindingsHash: string;
   readonly completionBindingHash: string;
 };
+
+export type WorkflowCensusBindingAuthority = Omit<
+  WorkflowCensusRun,
+  "runFingerprint" | "status"
+>;
 
 export type AuthorizedWorkflowCensusPayload = {
   readonly schemaVersion: 1;
@@ -55,6 +62,7 @@ export type CompileWorkflowCensusInput = {
   readonly authorization: unknown;
   readonly expectedAuthorization: OperatorCensusAuthorization;
   readonly runs: readonly WorkflowCensusRun[];
+  readonly expectedBindings?: readonly WorkflowCensusBindingAuthority[];
 };
 
 export type WorkflowCensusResult =
@@ -116,8 +124,21 @@ export const compileAuthorizedWorkflowCensus = (
       "Operator census authorization is outside its validity window.",
     );
   }
+  if (
+    authorization.expiresAt - authorization.issuedAt >
+    MAX_OPERATOR_CENSUS_AUTHORIZATION_TTL_MS
+  ) {
+    return blocked(
+      "invalid-authorization",
+      "Operator census authorization exceeds the maximum lifetime.",
+    );
+  }
   const runs = parseRuns(input.runs);
   if (!runs.ok) return blocked("invalid-runs", runs.finding);
+  if (input.expectedBindings !== undefined) {
+    const finding = validateBindings(runs.value, input.expectedBindings);
+    if (finding !== undefined) return blocked("invalid-runs", finding);
+  }
   const active = runs.value.filter(({ status }) => status === "active").length;
   const restartable = runs.value.length - active;
   const payload: AuthorizedWorkflowCensusPayload = {
@@ -283,6 +304,37 @@ const authorizationPayload = (
   expiresAt: authorization.expiresAt,
   nonce: authorization.nonce,
 });
+
+const validateBindings = (
+  runs: readonly WorkflowCensusRun[],
+  bindings: readonly WorkflowCensusBindingAuthority[],
+): string | undefined => {
+  const byIdentity = new Map<string, WorkflowCensusBindingAuthority>();
+  for (const binding of bindings) {
+    const key = `${binding.workflowId}@${binding.workflowVersion}`;
+    if (byIdentity.has(key)) {
+      return "Workflow census binding authority contains duplicates.";
+    }
+    byIdentity.set(key, binding);
+  }
+  for (const run of runs) {
+    const expected = byIdentity.get(`${run.workflowId}@${run.workflowVersion}`);
+    if (expected === undefined) {
+      return `Workflow census references unknown immutable binding ${run.workflowId}@${run.workflowVersion}.`;
+    }
+    for (const field of [
+      "runnerHash",
+      "runtimeHash",
+      "capabilityBindingsHash",
+      "completionBindingHash",
+    ] as const) {
+      if (run[field] !== expected[field]) {
+        return `Workflow census ${field} does not match immutable binding ${run.workflowId}@${run.workflowVersion}.`;
+      }
+    }
+  }
+  return undefined;
+};
 
 const blocked = (
   code: Extract<WorkflowCensusResult, { kind: "blocked" }>["code"],

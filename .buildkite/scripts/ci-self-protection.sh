@@ -11,6 +11,7 @@ source "$(dirname "$0")/setup.sh"
 
 pnpm install --frozen-lockfile
 pnpm check:ci-completeness
+pnpm check:deploy-authority
 pnpm check:config-drift
 pnpm check:workflow-semantics
 pnpm check:convex-ai-files

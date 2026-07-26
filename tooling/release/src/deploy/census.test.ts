@@ -191,4 +191,12 @@ describe("authorized active/restartable workflow census", () => {
     expect(reads).toBe(1);
     expect({ auth, runs }).toEqual(before);
   });
+
+  it("rejects an excessive operator authorization lifetime", () => {
+    const long = authorization({ expiresAt: now + 60 * 60 * 1_000 });
+    expect(compile(long, long, [])).toMatchObject({
+      kind: "blocked",
+      code: "invalid-authorization",
+    });
+  });
 });

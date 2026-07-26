@@ -18,6 +18,7 @@ import {
   verifyPromotionDecisionReceipt,
   type PromotionDecisionInput,
 } from "./decision.js";
+import { hashTrustedProductionApproval } from "./trustedAuthority.js";
 
 const now = 4_000_000;
 const commitSha = "a".repeat(40);
@@ -150,6 +151,26 @@ const fixture = (): {
     verdict: verdictExpectation(verdict),
     lease,
   };
+  const approvalPayload = {
+    schemaVersion: 1 as const,
+    kind: "trusted-production-approval" as const,
+    issuerId: "release-board",
+    issuerClass: "release-controller" as const,
+    environment: "production" as const,
+    targetId: readinessInput.targetId,
+    commitSha: readinessInput.commitSha,
+    artifactHash: readinessInput.artifactHash,
+    approvalEvidenceFingerprint: readinessInput.evidence.find(
+      ({ requirement }) => requirement === "human-approval",
+    )!.fingerprint,
+    issuedAt: now,
+    expiresAt: now + 50,
+    nonce: "approval_nonce_0055",
+  };
+  const approval = {
+    ...approvalPayload,
+    canonicalHash: hashTrustedProductionApproval(approvalPayload),
+  };
   return {
     verdict,
     authorityExpectation,
@@ -158,6 +179,7 @@ const fixture = (): {
       lease,
       authorityExpectation,
       readiness: readinessInput,
+      trustedProductionApproval: { candidate: approval, expected: approval },
     },
   };
 };
@@ -287,8 +309,8 @@ describe("promotion decision composition", () => {
       kind: "blocked",
       findings: expect.arrayContaining([
         expect.objectContaining({
-          source: "binding",
-          code: "artifactHash-mismatch",
+          source: "authority",
+          code: "trusted-production-approval-rejected",
         }),
       ]),
     });

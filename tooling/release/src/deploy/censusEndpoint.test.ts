@@ -65,8 +65,31 @@ const dependencies = (
   })),
   loadActiveRestartableRuns: vi.fn(async () => ({
     kind: "available" as const,
+    snapshotId: digest("9"),
+    pageCount: 1,
+    totalCount: runs.length,
+    nextCursor: null,
     runs,
   })),
+  loadImmutableWorkflowBindings: vi.fn(async () =>
+    runs.map(
+      ({
+        workflowId,
+        workflowVersion,
+        runnerHash,
+        runtimeHash,
+        capabilityBindingsHash,
+        completionBindingHash,
+      }) => ({
+        workflowId,
+        workflowVersion,
+        runnerHash,
+        runtimeHash,
+        capabilityBindingsHash,
+        completionBindingHash,
+      }),
+    ),
+  ),
   nowMs: () => now + 1,
 });
 
@@ -128,11 +151,16 @@ describe("authorized operator workflow census endpoint", () => {
     const auth = authorization();
     const loadActiveRestartableRuns = vi.fn(async () => ({
       kind: "available" as const,
+      snapshotId: digest("9"),
+      pageCount: 1,
+      totalCount: 0,
+      nextCursor: null,
       runs: [],
     }));
     const result = await handleOperatorWorkflowCensus(request(auth), {
       authorizeCurrentOperator: async () => ({ kind: "denied" }),
       loadActiveRestartableRuns,
+      loadImmutableWorkflowBindings: async () => [],
       nowMs: () => now + 1,
     });
     expect(result).toMatchObject({ kind: "blocked", code: "unauthorized" });
@@ -178,6 +206,7 @@ describe("authorized operator workflow census endpoint", () => {
       loadActiveRestartableRuns: async () => {
         throw new Error("unavailable");
       },
+      loadImmutableWorkflowBindings: async () => [],
     };
     expect(
       await handleOperatorWorkflowCensus(request(auth), throwing),
@@ -188,6 +217,40 @@ describe("authorized operator workflow census endpoint", () => {
     ]);
     expect(
       await handleOperatorWorkflowCensus(request(auth), invalid),
+    ).toMatchObject({ kind: "blocked", code: "census-unavailable" });
+  });
+
+  it("rejects request/auth scope drift, incomplete snapshots, and unknown bindings", async () => {
+    const auth = authorization();
+    const wrongScope = dependencies(auth);
+    expect(
+      await handleOperatorWorkflowCensus(
+        { ...request(auth), targetId: "other-app" },
+        wrongScope,
+      ),
+    ).toMatchObject({ kind: "blocked", code: "unauthorized" });
+
+    const incomplete = {
+      ...dependencies(auth, [run()]),
+      loadActiveRestartableRuns: async () => ({
+        kind: "available" as const,
+        snapshotId: digest("9"),
+        pageCount: 1,
+        totalCount: 2,
+        nextCursor: null,
+        runs: [run()],
+      }),
+    };
+    expect(
+      await handleOperatorWorkflowCensus(request(auth), incomplete),
+    ).toMatchObject({ kind: "blocked", code: "census-unavailable" });
+
+    const unknown = {
+      ...dependencies(auth, [run()]),
+      loadImmutableWorkflowBindings: async () => [],
+    };
+    expect(
+      await handleOperatorWorkflowCensus(request(auth), unknown),
     ).toMatchObject({ kind: "blocked", code: "census-unavailable" });
   });
 });

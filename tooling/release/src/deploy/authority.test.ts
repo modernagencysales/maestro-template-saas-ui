@@ -95,12 +95,16 @@ describe("deploy credential lease contract", () => {
   it.each([
     [
       "unknown credential surface",
-      (value: Record<string, unknown>) => (value.secret = "no"),
+      (value: Record<string, unknown>) => {
+        value.secret = "no";
+      },
     ],
     ["missing job", (value: Record<string, unknown>) => delete value.jobId],
     [
       "wrong job class",
-      (value: Record<string, unknown>) => (value.jobClass = "general"),
+      (value: Record<string, unknown>) => {
+        value.jobClass = "general";
+      },
     ],
     [
       "duplicate scope",
