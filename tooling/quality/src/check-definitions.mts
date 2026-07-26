@@ -189,6 +189,14 @@ const checkDescriptorDefinitions = {
           "the heavyweight no-network proof must run exactly once in a dedicated serial agent-pack gate",
       },
       {
+        file: "tooling/generators/package.json",
+        includes: [
+          '"test": "vitest run --passWithNoTests --maxWorkers=1 --no-file-parallelism"',
+        ],
+        message:
+          "generator tests that exercise checked-out projections must run without file parallelism",
+      },
+      {
         file: "tooling/release/package.json",
         includes: [
           '"test": "pnpm test:unit && pnpm test:final-filesystem"',
