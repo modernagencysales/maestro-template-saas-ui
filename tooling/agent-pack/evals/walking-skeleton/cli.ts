@@ -52,6 +52,7 @@ export function parseCliOptions(
     values.has(flag),
   );
   if (switches.has("--aggregate")) {
+    rejectFlagsOutsideMode(values, aggregateValueFlags, "aggregate");
     if (transportFlagsPresent) invalidCodexTransportUse();
     const runIds = required(values, "--run-ids").split(",").filter(Boolean);
     return {
@@ -72,6 +73,7 @@ export function parseCliOptions(
     );
   }
   if (host !== "codex" && transportFlagsPresent) invalidCodexTransportUse();
+  rejectFlagsOutsideMode(values, runValueFlags, "run");
   const codexTransport =
     host === "codex" ? parseCodexTransport(values) : undefined;
   return {
@@ -98,6 +100,39 @@ const codexTransportFlags = [
   "--codex-provider",
   "--codex-base-url",
 ] as const;
+const commonValueFlags = [
+  "--suite",
+  "--source",
+  "--out",
+  "--candidate-sha",
+] as const;
+const aggregateValueFlags = new Set([
+  ...commonValueFlags,
+  "--run-ids",
+  "--suite-run-id",
+]);
+const runValueFlags = new Set([
+  ...commonValueFlags,
+  "--host",
+  "--run-id",
+  "--host-home",
+  "--product-name",
+  ...codexTransportFlags,
+]);
+const allValueFlags = new Set([...aggregateValueFlags, ...runValueFlags]);
+function rejectFlagsOutsideMode(
+  values: ReadonlyMap<string, string>,
+  allowed: ReadonlySet<string>,
+  mode: string,
+): void {
+  const unexpected = [...values.keys()].find((flag) => !allowed.has(flag));
+  if (unexpected) {
+    throw new EvaluationError(
+      "EVAL_INVALID_ARGUMENT",
+      `${unexpected} is not allowed in ${mode} mode.`,
+    );
+  }
+}
 function parseCodexTransport(
   values: ReadonlyMap<string, string>,
 ): CodexTransportV1 | undefined {
@@ -165,7 +200,19 @@ function parseFlags(argv: readonly string[]): {
         `Unexpected argument: ${flag ?? ""}`,
       );
     }
+    if (!booleanFlags.has(flag) && !allValueFlags.has(flag)) {
+      throw new EvaluationError(
+        "EVAL_INVALID_ARGUMENT",
+        `Unknown flag: ${flag}.`,
+      );
+    }
     if (booleanFlags.has(flag)) {
+      if (switches.has(flag)) {
+        throw new EvaluationError(
+          "EVAL_INVALID_ARGUMENT",
+          `Duplicate flag: ${flag}.`,
+        );
+      }
       switches.add(flag);
       continue;
     }
@@ -174,6 +221,12 @@ function parseFlags(argv: readonly string[]): {
       throw new EvaluationError(
         "EVAL_INVALID_ARGUMENT",
         `Missing value for ${flag}.`,
+      );
+    }
+    if (values.has(flag)) {
+      throw new EvaluationError(
+        "EVAL_INVALID_ARGUMENT",
+        `Duplicate flag: ${flag}.`,
       );
     }
     values.set(flag, value);

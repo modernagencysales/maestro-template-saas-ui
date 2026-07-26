@@ -211,6 +211,7 @@ export function createHostAdapter(
                 "exec",
                 "--ephemeral",
                 "--ignore-user-config",
+                "--ignore-rules",
                 "-c",
                 "mcp_servers={}",
                 ...(codexTransport ? codexTransportArgs(codexTransport) : []),

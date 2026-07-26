@@ -78,6 +78,7 @@ describe("walking-skeleton fail-closed evidence", () => {
         "exec",
         "--ephemeral",
         "--ignore-user-config",
+        "--ignore-rules",
         "mcp_servers={}",
       ]),
     );
@@ -108,6 +109,7 @@ describe("walking-skeleton fail-closed evidence", () => {
       "exec",
       "--ephemeral",
       "--ignore-user-config",
+      "--ignore-rules",
       "-c",
       "mcp_servers={}",
       "--json",
@@ -168,6 +170,7 @@ describe("walking-skeleton fail-closed evidence", () => {
       "exec",
       "--ephemeral",
       "--ignore-user-config",
+      "--ignore-rules",
       "-c",
       "mcp_servers={}",
       "-c",
@@ -191,7 +194,9 @@ describe("walking-skeleton fail-closed evidence", () => {
       "/repo",
       "test",
     ]);
-    expect(JSON.stringify(calls[0])).not.toMatch(
+    expect(
+      JSON.stringify(calls[0]).replaceAll("--ignore-rules", ""),
+    ).not.toMatch(
       /api[_-]?key|authorization|password|secret|mcpServers\..+|plugin|rules/iu,
     );
   });
@@ -246,6 +251,38 @@ describe("walking-skeleton fail-closed evidence", () => {
         [
           "--suite",
           "walking-skeleton",
+          "--aggregate",
+          "--run-ids",
+          "a,b,c,d",
+          "--candidate-sha",
+          candidateSha,
+          "--codex-model",
+          "gpt-5.6-sol",
+        ],
+        "/repo",
+      ),
+    ).toThrowError(expect.objectContaining({ code: "EVAL_INVALID_ARGUMENT" }));
+    expect(() =>
+      parseCliOptions(
+        [
+          "--suite",
+          "walking-skeleton",
+          "--aggregate",
+          "--run-ids",
+          "a,b,c,d",
+          "--candidate-sha",
+          candidateSha,
+          "--config",
+          "model_provider=remote",
+        ],
+        "/repo",
+      ),
+    ).toThrowError(expect.objectContaining({ code: "EVAL_INVALID_ARGUMENT" }));
+    expect(() =>
+      parseCliOptions(
+        [
+          "--suite",
+          "walking-skeleton",
           "--host",
           "claude",
           "--candidate-sha",
@@ -256,6 +293,61 @@ describe("walking-skeleton fail-closed evidence", () => {
           "codex-lb",
           "--codex-base-url",
           "http://127.0.0.1:2455",
+        ],
+        "/repo",
+      ),
+    ).toThrowError(expect.objectContaining({ code: "EVAL_INVALID_ARGUMENT" }));
+  });
+  it.each([
+    ["credential-shaped", ["--codex-api-key", "secret"]],
+    ["rules-shaped", ["--codex-rules", "override.md"]],
+    ["raw config", ["--config", "model_provider=remote"]],
+    ["duplicate scalar", ["--host", "codex"]],
+    ["missing value", ["--product-name"]],
+  ])("rejects %s CLI extras", (_caseName, extras) => {
+    expect(() =>
+      parseCliOptions(
+        [
+          "--suite",
+          "walking-skeleton",
+          "--host",
+          "codex",
+          "--candidate-sha",
+          candidateSha,
+          ...extras,
+        ],
+        "/repo",
+      ),
+    ).toThrowError(expect.objectContaining({ code: "EVAL_INVALID_ARGUMENT" }));
+  });
+  it("rejects unknown and Codex-only flags in Claude and aggregate modes", () => {
+    expect(() =>
+      parseCliOptions(
+        [
+          "--suite",
+          "walking-skeleton",
+          "--host",
+          "claude",
+          "--candidate-sha",
+          candidateSha,
+          "--codex-rules",
+          "override.md",
+        ],
+        "/repo",
+      ),
+    ).toThrowError(expect.objectContaining({ code: "EVAL_INVALID_ARGUMENT" }));
+    expect(() =>
+      parseCliOptions(
+        [
+          "--suite",
+          "walking-skeleton",
+          "--aggregate",
+          "--run-ids",
+          "a,b,c,d",
+          "--candidate-sha",
+          candidateSha,
+          "--host",
+          "codex",
         ],
         "/repo",
       ),
