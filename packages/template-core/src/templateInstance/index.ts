@@ -269,13 +269,16 @@ const isNamespacedExtension = (key: string): boolean =>
 const isAllowedExtension = (key: string): boolean =>
   explicitExtensionKeys.has(key) || isNamespacedExtension(key);
 
+const compareCodeUnits = (left: string, right: string): number =>
+  left < right ? -1 : left > right ? 1 : 0;
+
 const sortedUnknownKeys = (
   value: RecordValue,
   allowed: ReadonlySet<string>,
 ): readonly string[] =>
   Object.keys(value)
     .filter((key) => !allowed.has(key))
-    .sort((left, right) => left.localeCompare(right));
+    .sort(compareCodeUnits);
 
 const unknownTopLevelKeys = (
   value: RecordValue,
@@ -283,14 +286,14 @@ const unknownTopLevelKeys = (
 ): readonly string[] =>
   Object.keys(value)
     .filter((key) => !core.has(key) && !isAllowedExtension(key))
-    .sort((left, right) => left.localeCompare(right));
+    .sort(compareCodeUnits);
 
 const canonicalize = (value: unknown): unknown => {
   if (Array.isArray(value)) return value.map(canonicalize);
   if (!isRecord(value)) return value;
   return Object.fromEntries(
     Object.keys(value)
-      .sort((left, right) => left.localeCompare(right))
+      .sort(compareCodeUnits)
       .map((key) => [key, canonicalize(value[key])]),
   );
 };
@@ -968,7 +971,7 @@ const validateLegacyV0 = (
 } => {
   const topUnknown = Object.keys(input)
     .filter((key) => !legacyV0Keys.has(key) && !isNamespacedExtension(key))
-    .sort((left, right) => left.localeCompare(right));
+    .sort(compareCodeUnits);
   if (topUnknown[0] !== undefined) {
     return {
       issues: [
@@ -1214,7 +1217,7 @@ const canonicalExtensions = (input: RecordValue): RecordValue =>
   Object.fromEntries(
     Object.keys(input)
       .filter((key) => !v2CoreKeys.has(key) && isAllowedExtension(key))
-      .sort((left, right) => left.localeCompare(right))
+      .sort(compareCodeUnits)
       .map((key) => [key, canonicalize(input[key])]),
   );
 

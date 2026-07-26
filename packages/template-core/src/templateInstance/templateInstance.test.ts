@@ -491,6 +491,34 @@ describe("templateInstance compatibility authority", () => {
     );
   });
 
+  it("canonicalizes Unicode namespaced extensions by code unit", () => {
+    const parsed = templateInstanceSchemaProvider.parse({
+      ...currentInstance(),
+      "x-z": { retained: true },
+      "x-ä": { retained: true },
+      "x-a": { retained: true },
+    });
+    const keys = Object.keys(
+      JSON.parse(templateInstanceSchemaProvider.serialize(parsed)) as object,
+    );
+
+    expect(keys.slice(-3)).toEqual(["x-a", "x-z", "x-ä"]);
+  });
+
+  it("reports unknown keys in locale-independent code-unit order", () => {
+    for (const extras of [
+      { "ä-extra": true, "z-extra": true },
+      { "z-extra": true, "ä-extra": true },
+    ]) {
+      expect(() =>
+        templateInstanceSchemaProvider.parse({
+          ...currentInstance(),
+          ...extras,
+        }),
+      ).toThrow(/unsupported top-level field z-extra/);
+    }
+  });
+
   it("preserves only explicit top-level and namespaced extension seams", () => {
     const parsed = templateInstanceSchemaProvider.parse({
       ...currentInstance(),
