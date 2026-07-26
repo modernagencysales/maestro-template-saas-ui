@@ -70,6 +70,11 @@ export type ForwardVerifierPorts = {
   }) => Promise<ForwardVerifierCommandResult>;
 };
 
+export type ForwardVerificationResult = {
+  readonly failures: readonly AssertionFailure[];
+  readonly commandResult?: ForwardVerifierCommandResult;
+};
+
 export async function verifyForwardScenario(input: {
   readonly workspace: string;
   readonly sessionDir: string;
@@ -77,12 +82,13 @@ export async function verifyForwardScenario(input: {
   readonly scenarioId: ForwardScenarioId;
   readonly evidence: ForwardRunEvidence;
   readonly ports?: Partial<ForwardVerifierPorts>;
-}): Promise<readonly AssertionFailure[]> {
+}): Promise<ForwardVerificationResult> {
   const failures: AssertionFailure[] = [];
   const fail = (code: string, path: string, message: string): void => {
     failures.push({ code, path, message });
   };
   const contract = forwardScenarioContracts[input.scenarioId];
+  let verifiedCommandResult: ForwardVerifierCommandResult | undefined;
   if (
     input.evidence.artifacts.length !== 1 ||
     input.evidence.artifacts[0]?.id !== contract.artifactId
@@ -140,6 +146,7 @@ export async function verifyForwardScenario(input: {
       cwd: input.workspace,
       env: safeVerifierEnvironment(input.sessionDir),
     });
+    verifiedCommandResult = result;
     const receipt = input.evidence.commands[0];
     if (
       receipt.exitCode !== result.exitCode ||
@@ -160,9 +167,12 @@ export async function verifyForwardScenario(input: {
       "Canonical receipt hash does not match verified evidence.",
     );
   }
-  return failures.sort((left, right) =>
-    `${left.code}:${left.path}`.localeCompare(`${right.code}:${right.path}`),
-  );
+  return {
+    failures: failures.sort((left, right) =>
+      `${left.code}:${left.path}`.localeCompare(`${right.code}:${right.path}`),
+    ),
+    ...(verifiedCommandResult ? { commandResult: verifiedCommandResult } : {}),
+  };
 }
 
 export function commandOutputSha256(input: {

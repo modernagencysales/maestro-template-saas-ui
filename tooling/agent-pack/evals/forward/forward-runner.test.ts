@@ -246,14 +246,7 @@ describe("forward runner", () => {
 describe("forward aggregate", () => {
   it("accepts two equivalent passes per host", async () => {
     const out = await mkdtemp(join(tmpdir(), "forward-aggregate-"));
-    for (const [host, runId] of [
-      ["claude", "claude-1"],
-      ["claude", "claude-2"],
-      ["codex", "codex-1"],
-      ["codex", "codex-2"],
-    ] as const) {
-      await writeReceipt(out, host, runId);
-    }
+    await runAggregateFixtures(out);
     await expect(
       aggregateForwardRuns({
         out,
@@ -269,12 +262,20 @@ describe("forward aggregate", () => {
 
   it("rejects missing scenarios, mixed SHAs, and parity drift", async () => {
     const out = await mkdtemp(join(tmpdir(), "forward-diverged-"));
-    await writeReceipt(out, "claude", "claude-1");
-    await writeReceipt(out, "claude", "claude-2");
-    await writeReceipt(out, "codex", "codex-1");
-    await writeReceipt(out, "codex", "codex-2", {
-      receiptSha256: `sha256:${"c".repeat(64)}`,
-    });
+    await runAggregateFixtures(out);
+    const driftPath = join(out, "codex-2", "receipt.json");
+    const driftReceipt = JSON.parse(
+      await readFile(driftPath, "utf8"),
+    ) as ReceiptFixture;
+    const driftEvidence = driftReceipt.evidence.map((entry, index) =>
+      index === 0
+        ? { ...entry, receiptSha256: `sha256:${"c".repeat(64)}` }
+        : entry,
+    );
+    await writeFile(
+      driftPath,
+      JSON.stringify({ ...driftReceipt, evidence: driftEvidence }),
+    );
     await expect(
       aggregateForwardRuns({
         out,
@@ -303,14 +304,7 @@ describe("forward aggregate", () => {
     ],
   ])("rejects %s scenario evidence", async (_kind, mutate) => {
     const out = await mkdtemp(join(tmpdir(), "forward-catalog-"));
-    for (const [host, runId] of [
-      ["claude", "claude-1"],
-      ["claude", "claude-2"],
-      ["codex", "codex-1"],
-      ["codex", "codex-2"],
-    ] as const) {
-      await writeReceipt(out, host, runId);
-    }
+    await runAggregateFixtures(out);
     const path = join(out, "codex-2", "receipt.json");
     const receipt = JSON.parse(await readFile(path, "utf8")) as ReceiptFixture;
     await writeFile(
@@ -329,14 +323,7 @@ describe("forward aggregate", () => {
 
   it("rejects a stale or mixed receipt SHA", async () => {
     const out = await mkdtemp(join(tmpdir(), "forward-mixed-sha-"));
-    for (const [host, runId] of [
-      ["claude", "claude-1"],
-      ["claude", "claude-2"],
-      ["codex", "codex-1"],
-      ["codex", "codex-2"],
-    ] as const) {
-      await writeReceipt(out, host, runId);
-    }
+    await runAggregateFixtures(out);
     const path = join(out, "codex-2", "receipt.json");
     const receipt = JSON.parse(await readFile(path, "utf8")) as ReceiptFixture;
     await writeFile(
@@ -355,14 +342,7 @@ describe("forward aggregate", () => {
 
   it("rejects a receipt copied into a different requested run directory", async () => {
     const out = await mkdtemp(join(tmpdir(), "forward-copied-run-"));
-    for (const [host, runId] of [
-      ["claude", "claude-1"],
-      ["claude", "claude-2"],
-      ["codex", "codex-1"],
-      ["codex", "codex-2"],
-    ] as const) {
-      await writeReceipt(out, host, runId);
-    }
+    await runAggregateFixtures(out);
     const path = join(out, "codex-2", "receipt.json");
     const receipt = JSON.parse(await readFile(path, "utf8")) as ReceiptFixture;
     await writeFile(
@@ -378,6 +358,23 @@ describe("forward aggregate", () => {
       }),
     ).rejects.toMatchObject({ code: "EVAL_SUITE_INCOMPLETE" });
   });
+
+  it.each(["artifact", "referenced-file", "command-output"] as const)(
+    "rejects recomputed %s forgery against retained verifier inputs",
+    async (kind) => {
+      const out = await mkdtemp(join(tmpdir(), "forward-forged-input-"));
+      await runAggregateFixtures(out);
+      await forgeRetainedInput(out, kind);
+      await expect(
+        aggregateForwardRuns({
+          out,
+          runIds: ["claude-1", "claude-2", "codex-1", "codex-2"],
+          candidateSha,
+          suiteRunId: `suite-forged-${kind}`,
+        }),
+      ).rejects.toMatchObject({ code: "EVAL_SUITE_DIVERGED" });
+    },
+  );
 });
 
 type ReceiptFixture = {
@@ -510,87 +507,124 @@ function evidence(
   };
 }
 
-async function writeReceipt(
-  out: string,
-  host: ForwardHost,
-  runId: string,
-  override: Partial<ForwardRunEvidence> = {},
-): Promise<void> {
-  await mkdir(join(out, runId));
-  const evidenceEntries = forwardScenarioIds.map((scenarioId) => ({
-    ...evidence(host, runId, scenarioId),
-    ...override,
-  })) as ForwardRunEvidence[];
-  for (const entry of evidenceEntries) {
-    const scenarioRoot = join(out, runId, "scenarios", entry.scenarioId);
-    await mkdir(scenarioRoot, { recursive: true });
-    await writeFile(
-      join(scenarioRoot, "artifact.verified.json"),
-      aggregateArtifact(entry.scenarioId),
-    );
-    await writeFile(
-      join(scenarioRoot, "verification-summary.json"),
-      JSON.stringify({
-        schemaVersion: 1,
-        candidateSha: entry.candidateSha,
-        scenarioId: entry.scenarioId,
-        artifactSha256: entry.artifacts[0]?.sha256,
-        commandOutputSha256: entry.commands[0]?.outputSha256,
-        receiptSha256: entry.receiptSha256,
-      }),
-    );
+async function runAggregateFixtures(out: string): Promise<void> {
+  for (const [host, runId] of [
+    ["claude", "claude-1"],
+    ["claude", "claude-2"],
+    ["codex", "codex-1"],
+    ["codex", "codex-2"],
+  ] as const) {
+    await runForwardSuite(options(out, host, runId), {
+      adapter: fakeAdapter(host, runId, []),
+      prepareWorkspace: async ({ workspace }) => {
+        await mkdir(workspace, { recursive: true });
+      },
+      verifierPorts: fixtureVerifierPorts,
+    });
   }
-  const verdicts = evidenceEntries.map((entry) => {
-    const contract = forwardScenarioContracts[entry.scenarioId];
-    const prompt = buildForwardPrompt({
-      candidateSha,
-      host,
-      runId,
-      scenarioId: entry.scenarioId,
-      resultPath: ".maestro-eval/forward-result.json",
-      artifactId: contract.artifactId,
-      commandId: contract.command.id,
-    });
-    return gradeForwardEvidence({
-      evidence: entry,
-      candidateSha,
-      host,
-      runId,
-      scenarioId: entry.scenarioId,
-      initialContextSha256: forwardInitialContextSha256({
-        candidateSha,
-        host,
-        scenarioId: entry.scenarioId,
-      }),
-      userPromptSha256: sha256(prompt),
-      verifierFailures:
-        entry.receiptSha256 === forwardReceiptSha256(entry)
-          ? []
-          : [
-              {
-                code: "RECEIPT_HASH_MISMATCH",
-                path: "receiptSha256",
-                message: "fixture mismatch",
-              },
-            ],
-    });
+}
+
+async function forgeRetainedInput(
+  out: string,
+  kind: "artifact" | "referenced-file" | "command-output",
+): Promise<void> {
+  const runId = "codex-2";
+  const scenarioId = forwardScenarioIds[0];
+  if (!scenarioId) throw new Error("fixture scenario is required");
+  const scenarioRoot = join(out, runId, "scenarios", scenarioId);
+  const retainedRoot = join(scenarioRoot, "retained-verifier-inputs");
+  const artifactPath = join(
+    retainedRoot,
+    ".maestro-eval",
+    "artifacts",
+    `${forwardScenarioContracts[scenarioId].artifactId}.json`,
+  );
+  const artifact = JSON.parse(await readFile(artifactPath, "utf8")) as {
+    schemaVersion: 1;
+    scenarioId: ForwardScenarioId;
+    candidateSha: string;
+    outcome: string;
+    files: { path: string; sha256: `sha256:${string}` }[];
+    forged?: boolean;
+  };
+  if (kind === "artifact") artifact.forged = true;
+  if (kind === "referenced-file") {
+    const file = artifact.files[0];
+    if (!file) throw new Error("fixture referenced file is required");
+    const bytes = "forged product bytes\n";
+    await writeFile(join(retainedRoot, file.path), bytes);
+    file.sha256 = sha256(bytes);
+  }
+  await writeFile(artifactPath, JSON.stringify(artifact));
+  const commandPath = join(scenarioRoot, "command-result.json");
+  const command = JSON.parse(await readFile(commandPath, "utf8")) as {
+    exitCode: number;
+    stdout: string;
+    stderr: string;
+  };
+  if (kind === "command-output") {
+    command.stdout = "forged verifier output";
+    await writeFile(commandPath, JSON.stringify(command));
+  }
+  const receiptPath = join(out, runId, "receipt.json");
+  const receipt = JSON.parse(await readFile(receiptPath, "utf8")) as {
+    evidence: ForwardRunEvidence[];
+    verdicts: ReturnType<typeof gradeForwardEvidence>[];
+  };
+  const evidence = receipt.evidence.map((entry) => {
+    if (entry.scenarioId !== scenarioId) return entry;
+    const changed = {
+      ...entry,
+      artifacts: [
+        {
+          id: forwardScenarioContracts[scenarioId].artifactId,
+          sha256: sha256(JSON.stringify(artifact)),
+        },
+      ],
+      commands:
+        kind === "command-output"
+          ? entry.commands.map((value) => ({
+              ...value,
+              outputSha256: commandOutputSha256(command),
+            }))
+          : entry.commands,
+    };
+    return { ...changed, receiptSha256: forwardReceiptSha256(changed) };
   });
-  await writeFile(
-    join(out, runId, "receipt.json"),
-    JSON.stringify({
-      schemaVersion: 1,
-      suite: "forward",
-      host,
-      runId,
+  const changedEvidence = evidence.find(
+    (entry) => entry.scenarioId === scenarioId,
+  );
+  if (!changedEvidence) throw new Error("fixture evidence is required");
+  const contract = forwardScenarioContracts[scenarioId];
+  const prompt = buildForwardPrompt({
+    candidateSha,
+    host: "codex",
+    runId,
+    scenarioId,
+    resultPath: ".maestro-eval/forward-result.json",
+    artifactId: contract.artifactId,
+    commandId: contract.command.id,
+  });
+  const forgedVerdict = gradeForwardEvidence({
+    evidence: changedEvidence,
+    candidateSha,
+    host: "codex",
+    runId,
+    scenarioId,
+    initialContextSha256: forwardInitialContextSha256({
       candidateSha,
-      status: "passed",
-      startedAt: "2026-07-25T00:00:00.000Z",
-      completedAt: "2026-07-25T00:01:00.000Z",
-      outputDirectory: runId,
-      workspaceRetained: false,
-      evidence: evidenceEntries,
-      verdicts,
+      host: "codex",
+      scenarioId,
     }),
+    userPromptSha256: sha256(prompt),
+    verifierFailures: [],
+  });
+  const verdicts = receipt.verdicts.map((entry) =>
+    entry.scenarioId === scenarioId ? forgedVerdict : entry,
+  );
+  await writeFile(
+    receiptPath,
+    JSON.stringify({ ...receipt, evidence, verdicts }),
   );
 }
 

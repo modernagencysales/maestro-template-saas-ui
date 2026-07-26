@@ -1,5 +1,5 @@
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
-import { isAbsolute, join, resolve } from "node:path";
+import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import {
   parseForwardRunEvidence,
   type ForwardHost,
@@ -189,7 +189,7 @@ export async function runForwardSuite(
             `Host evidence is invalid for ${scenarioId}.`,
           );
         }
-        const verifierFailures = await verifyForwardScenario({
+        const verification = await verifyForwardScenario({
           workspace,
           sessionDir,
           candidateSha: options.candidateSha,
@@ -199,7 +199,25 @@ export async function runForwardSuite(
             ? { ports: overrides.verifierPorts }
             : {}),
         });
-        if (verifierFailures.length === 0) {
+        const verifierFailures = [...verification.failures];
+        if (
+          verification.commandResult &&
+          (redactForwardLog(verification.commandResult.stdout) !==
+            verification.commandResult.stdout ||
+            redactForwardLog(verification.commandResult.stderr) !==
+              verification.commandResult.stderr)
+        ) {
+          verifierFailures.push({
+            code: "COMMAND_OUTPUT_LEAKAGE",
+            path: "commands.0",
+            message:
+              "Verifier command output contains a secret or absolute path.",
+          });
+        }
+        if (
+          verifierFailures.length === 0 &&
+          verification.commandResult !== undefined
+        ) {
           const artifact = await readFile(
             join(
               workspace,
@@ -208,20 +226,37 @@ export async function runForwardSuite(
               `${forwardScenarioContracts[scenarioId].artifactId}.json`,
             ),
           );
-          await writeFile(
-            join(scenarioDirectory, "artifact.verified.json"),
-            artifact,
+          const retainedRoot = join(
+            scenarioDirectory,
+            "retained-verifier-inputs",
           );
+          const retainedArtifact = join(
+            retainedRoot,
+            ".maestro-eval",
+            "artifacts",
+            `${forwardScenarioContracts[scenarioId].artifactId}.json`,
+          );
+          await mkdir(dirname(retainedArtifact), { recursive: true });
+          await writeFile(retainedArtifact, artifact);
+          const artifactValue = JSON.parse(artifact.toString("utf8")) as {
+            readonly files: readonly { readonly path: string }[];
+          };
+          for (const file of artifactValue.files) {
+            const source = resolve(workspace, file.path);
+            const target = resolve(retainedRoot, file.path);
+            const rel = relative(retainedRoot, target);
+            if (rel === "" || rel === ".." || rel.startsWith("../")) {
+              throw new EvaluationError(
+                "EVAL_ASSERTION_FAILED",
+                "Verified product evidence escapes retained inputs.",
+              );
+            }
+            await mkdir(dirname(target), { recursive: true });
+            await writeFile(target, await readFile(source));
+          }
           await writeJson(
-            join(scenarioDirectory, "verification-summary.json"),
-            {
-              schemaVersion: 1,
-              candidateSha: parsed.candidateSha,
-              scenarioId,
-              artifactSha256: parsed.artifacts[0]?.sha256,
-              commandOutputSha256: parsed.commands[0]?.outputSha256,
-              receiptSha256: parsed.receiptSha256,
-            },
+            join(scenarioDirectory, "command-result.json"),
+            verification.commandResult,
           );
         }
         const verdict = gradeForwardEvidence({

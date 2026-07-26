@@ -14,7 +14,7 @@ import {
   sha256,
 } from "./contract.js";
 import type { ForwardRunReceipt } from "./runner.js";
-import { forwardReceiptSha256, forwardScenarioContracts } from "./verifier.js";
+import { forwardScenarioContracts, verifyForwardScenario } from "./verifier.js";
 
 export type ForwardSuiteVerdict = {
   readonly schemaVersion: 1;
@@ -38,8 +38,8 @@ export async function aggregateForwardRuns(input: {
     );
   }
   const receipts = await Promise.all(
-    input.runIds.map(async (runId) => {
-      const receipt = parseReceipt(
+    input.runIds.map(async (runId) =>
+      parseReceipt(
         JSON.parse(
           await readFile(
             join(resolve(input.out), runId, "receipt.json"),
@@ -47,10 +47,8 @@ export async function aggregateForwardRuns(input: {
           ),
         ),
         runId,
-      );
-      await verifyRetainedEvidence(resolve(input.out), receipt);
-      return receipt;
-    }),
+      ),
+    ),
   ).catch(() => {
     throw new EvaluationError(
       "EVAL_SUITE_INCOMPLETE",
@@ -75,7 +73,33 @@ export async function aggregateForwardRuns(input: {
       "Forward receipts contain stale or mixed candidate SHAs.",
     );
   }
-  for (const receipt of receipts) assertCompleteReceipt(receipt);
+  const retainedFailures = new Map<
+    string,
+    Awaited<ReturnType<typeof verifyRetainedEvidence>>
+  >();
+  try {
+    for (const receipt of receipts) {
+      retainedFailures.set(
+        receipt.runId,
+        await verifyRetainedEvidence(resolve(input.out), receipt),
+      );
+    }
+  } catch {
+    throw new EvaluationError(
+      "EVAL_SUITE_INCOMPLETE",
+      "Retained forward verifier inputs are missing or invalid.",
+    );
+  }
+  for (const receipt of receipts) {
+    const failures = retainedFailures.get(receipt.runId);
+    if (!failures) {
+      throw new EvaluationError(
+        "EVAL_SUITE_INCOMPLETE",
+        "Retained forward verifier results are missing.",
+      );
+    }
+    assertCompleteReceipt(receipt, failures);
+  }
   for (const scenarioId of forwardScenarioIds) {
     const projections = receipts.map(
       (receipt) =>
@@ -132,7 +156,24 @@ export async function aggregateForwardRuns(input: {
 async function verifyRetainedEvidence(
   out: string,
   receipt: ForwardRunReceipt,
-): Promise<void> {
+): Promise<
+  ReadonlyMap<
+    ForwardRunEvidence["scenarioId"],
+    readonly {
+      readonly code: string;
+      readonly path: string;
+      readonly message: string;
+    }[]
+  >
+> {
+  const failures = new Map<
+    ForwardRunEvidence["scenarioId"],
+    readonly {
+      readonly code: string;
+      readonly path: string;
+      readonly message: string;
+    }[]
+  >();
   for (const evidence of receipt.evidence) {
     const scenarioRoot = join(
       out,
@@ -140,27 +181,39 @@ async function verifyRetainedEvidence(
       "scenarios",
       evidence.scenarioId,
     );
-    const artifact = await readFile(
-      join(scenarioRoot, "artifact.verified.json"),
-    );
-    const summary = JSON.parse(
-      await readFile(join(scenarioRoot, "verification-summary.json"), "utf8"),
+    const commandResult = JSON.parse(
+      await readFile(join(scenarioRoot, "command-result.json"), "utf8"),
     ) as unknown;
-    const expected = {
-      schemaVersion: 1,
-      candidateSha: evidence.candidateSha,
-      scenarioId: evidence.scenarioId,
-      artifactSha256: evidence.artifacts[0]?.sha256,
-      commandOutputSha256: evidence.commands[0]?.outputSha256,
-      receiptSha256: evidence.receiptSha256,
-    };
     if (
-      sha256(artifact) !== evidence.artifacts[0]?.sha256 ||
-      JSON.stringify(summary) !== JSON.stringify(expected)
+      typeof commandResult !== "object" ||
+      commandResult === null ||
+      Array.isArray(commandResult) ||
+      JSON.stringify(Object.keys(commandResult).sort()) !==
+        JSON.stringify(["exitCode", "stderr", "stdout"]) ||
+      !Number.isInteger((commandResult as { exitCode?: unknown }).exitCode) ||
+      typeof (commandResult as { stdout?: unknown }).stdout !== "string" ||
+      typeof (commandResult as { stderr?: unknown }).stderr !== "string"
     ) {
-      throw new Error("retained verification evidence mismatch");
+      throw new Error("retained command result is invalid");
     }
+    const result = await verifyForwardScenario({
+      workspace: join(scenarioRoot, "retained-verifier-inputs"),
+      sessionDir: scenarioRoot,
+      candidateSha: receipt.candidateSha,
+      scenarioId: evidence.scenarioId,
+      evidence,
+      ports: {
+        execute: async () =>
+          commandResult as {
+            readonly exitCode: number;
+            readonly stdout: string;
+            readonly stderr: string;
+          },
+      },
+    });
+    failures.set(evidence.scenarioId, result.failures);
   }
+  return failures;
 }
 
 function parseReceipt(
@@ -189,7 +242,17 @@ function parseReceipt(
   return { ...receipt, evidence } as ForwardRunReceipt;
 }
 
-function assertCompleteReceipt(receipt: ForwardRunReceipt): void {
+function assertCompleteReceipt(
+  receipt: ForwardRunReceipt,
+  retainedFailures: ReadonlyMap<
+    ForwardRunEvidence["scenarioId"],
+    readonly {
+      readonly code: string;
+      readonly path: string;
+      readonly message: string;
+    }[]
+  >,
+): void {
   const ids = receipt.evidence.map(({ scenarioId }) => scenarioId);
   if (
     ids.length !== forwardScenarioIds.length ||
@@ -231,16 +294,13 @@ function assertCompleteReceipt(receipt: ForwardRunReceipt): void {
       artifactId: contract.artifactId,
       commandId: contract.command.id,
     });
-    const verifierFailures =
-      evidence.receiptSha256 === forwardReceiptSha256(evidence)
-        ? []
-        : [
-            {
-              code: "RECEIPT_HASH_MISMATCH",
-              path: "receiptSha256",
-              message: "Canonical receipt hash does not match evidence.",
-            },
-          ];
+    const verifierFailures = retainedFailures.get(evidence.scenarioId) ?? [
+      {
+        code: "RETAINED_EVIDENCE_MISSING",
+        path: "evidence",
+        message: "Retained verifier evidence is missing.",
+      },
+    ];
     const regraded = gradeForwardEvidence({
       evidence,
       candidateSha: receipt.candidateSha,
