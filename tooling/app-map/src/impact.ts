@@ -99,14 +99,32 @@ const incidentNodes = (edge: AppMapEdgeV1): readonly string[] => [
   edge.to,
 ];
 
-const connectedNodes = (
+const IMPACT_TRAVERSAL_EDGE_KINDS = ["owns", "depends-on"] as const;
+const GENERATED_EDGE_KIND = "generated-by" as const;
+
+const traverseEdges = (
   edges: readonly AppMapEdgeV1[],
   seeds: ReadonlySet<string>,
+  allowedKinds: ReadonlySet<AppMapEdgeV1["kind"]>,
 ): Set<string> => {
   const reached = new Set(seeds);
-  for (const edge of edges) {
-    if (seeds.has(edge.from)) reached.add(edge.to);
-    if (seeds.has(edge.to)) reached.add(edge.from);
+  const queue = [...seeds].sort(compareText);
+  const eligibleEdges = edges
+    .filter((edge) => allowedKinds.has(edge.kind))
+    .sort((left, right) => compareText(left.id, right.id));
+  for (let index = 0; index < queue.length; index += 1) {
+    const current = queue[index];
+    for (const edge of eligibleEdges) {
+      const next =
+        edge.from === current
+          ? edge.to
+          : edge.to === current
+            ? edge.from
+            : undefined;
+      if (next === undefined || reached.has(next)) continue;
+      reached.add(next);
+      queue.push(next);
+    }
   }
   return reached;
 };
@@ -120,9 +138,7 @@ const idsForKinds = (
     .map((node) => node.id)
     .sort(compareText);
 
-const focusedGatesFor = (
-  nodes: readonly AppMapNodeV1[],
-): readonly string[] => {
+const focusedGatesFor = (nodes: readonly AppMapNodeV1[]): readonly string[] => {
   const kinds = new Set(nodes.map((node) => node.kind));
   const gates = ["pnpm check:app-map"];
   if (kinds.has("resource") || kinds.has("table")) {
@@ -206,16 +222,19 @@ export const buildAppMapImpact = (candidate: unknown): AppMapImpactResult => {
     for (const nodeId of incidentNodes(edge)) direct.add(nodeId);
   }
 
-  const generated = new Set<string>();
-  for (const edge of built.map.edges) {
-    if (edge.kind !== "generated-by") continue;
-    if (direct.has(edge.from) && !direct.has(edge.to)) generated.add(edge.to);
-    if (direct.has(edge.to) && !direct.has(edge.from)) generated.add(edge.from);
-  }
+  const generatedReach = traverseEdges(
+    built.map.edges,
+    direct,
+    new Set([GENERATED_EDGE_KIND]),
+  );
+  const generated = new Set(
+    [...generatedReach].filter((nodeId) => !direct.has(nodeId)),
+  );
 
-  const reached = connectedNodes(
+  const reached = traverseEdges(
     built.map.edges,
     new Set([...direct, ...generated]),
+    new Set(IMPACT_TRAVERSAL_EDGE_KINDS),
   );
   const transitive = [...reached]
     .filter((id) => !direct.has(id) && !generated.has(id))

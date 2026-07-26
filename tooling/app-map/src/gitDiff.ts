@@ -24,6 +24,14 @@ export type ReadGitChangedPathsResult =
     }
   | { readonly ok: false; readonly diagnostic: GitDiffDiagnostic };
 
+export type GitComparisonBaseResult =
+  | {
+      readonly ok: true;
+      readonly baseRevision: string;
+      readonly source: "explicit" | "trusted-ci";
+    }
+  | { readonly ok: false; readonly diagnostic: GitDiffDiagnostic };
+
 export type GitDiffRunner = (
   file: string,
   args: readonly string[],
@@ -67,6 +75,64 @@ const diagnostic = (
       : "Resolve the Git comparison locally, then rerun the focused App Map impact check.",
 });
 
+export const resolveGitComparisonBase = (
+  candidate: unknown,
+): GitComparisonBaseResult => {
+  if (
+    !isRecord(candidate) ||
+    !onlyKeys(candidate, ["explicitBaseRevision", "trustedCiBaseRevision"])
+  ) {
+    return {
+      ok: false,
+      diagnostic: diagnostic(
+        "APP_MAP_GIT_DIFF_BASE_REQUIRED",
+        "A reviewed explicit or trusted CI comparison base is required.",
+      ),
+    };
+  }
+
+  const explicit = candidate.explicitBaseRevision;
+  const trustedCi = candidate.trustedCiBaseRevision;
+  if (
+    (explicit !== undefined && !revision(explicit)) ||
+    (trustedCi !== undefined && !revision(trustedCi))
+  ) {
+    return {
+      ok: false,
+      diagnostic: diagnostic(
+        "APP_MAP_GIT_DIFF_INVALID",
+        "The supplied comparison-base metadata is not an exact commit ID.",
+      ),
+    };
+  }
+  if (
+    explicit !== undefined &&
+    trustedCi !== undefined &&
+    explicit !== trustedCi
+  ) {
+    return {
+      ok: false,
+      diagnostic: diagnostic(
+        "APP_MAP_GIT_DIFF_INVALID",
+        "Explicit and trusted CI comparison bases disagree.",
+      ),
+    };
+  }
+  if (explicit !== undefined) {
+    return { ok: true, baseRevision: explicit, source: "explicit" };
+  }
+  if (trustedCi !== undefined) {
+    return { ok: true, baseRevision: trustedCi, source: "trusted-ci" };
+  }
+  return {
+    ok: false,
+    diagnostic: diagnostic(
+      "APP_MAP_GIT_DIFF_BASE_REQUIRED",
+      "No explicit or trusted CI comparison base was supplied.",
+    ),
+  };
+};
+
 export const parseGitNameStatus = (output: string): GitChangedPathsResult => {
   if (output === "") return { ok: true, changedPaths: [] };
   if (!output.endsWith("\0")) {
@@ -82,7 +148,7 @@ export const parseGitNameStatus = (output: string): GitChangedPathsResult => {
   const tokens = output.split("\0");
   tokens.pop();
   const paths: string[] = [];
-  for (let index = 0; index < tokens.length; ) {
+  for (let index = 0; index < tokens.length;) {
     const status = tokens[index++];
     if (
       status === undefined ||

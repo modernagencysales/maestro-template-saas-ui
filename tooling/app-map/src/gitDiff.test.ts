@@ -1,8 +1,53 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { parseGitNameStatus, readGitChangedPaths } from "./gitDiff";
+import {
+  parseGitNameStatus,
+  readGitChangedPaths,
+  resolveGitComparisonBase,
+} from "./gitDiff";
 
 describe("explicit-base Git diff", () => {
+  it("resolves an exact explicit or trusted CI comparison base", () => {
+    expect(
+      resolveGitComparisonBase({ explicitBaseRevision: "1".repeat(40) }),
+    ).toEqual({
+      ok: true,
+      baseRevision: "1".repeat(40),
+      source: "explicit",
+    });
+    expect(
+      resolveGitComparisonBase({ trustedCiBaseRevision: "2".repeat(40) }),
+    ).toEqual({
+      ok: true,
+      baseRevision: "2".repeat(40),
+      source: "trusted-ci",
+    });
+  });
+
+  it.each([
+    [{}, "APP_MAP_GIT_DIFF_BASE_REQUIRED"],
+    [
+      {
+        explicitBaseRevision: "1".repeat(40),
+        trustedCiBaseRevision: "2".repeat(40),
+      },
+      "APP_MAP_GIT_DIFF_INVALID",
+    ],
+    [{ explicitBaseRevision: "origin/main" }, "APP_MAP_GIT_DIFF_INVALID"],
+    [
+      { explicitBaseRevision: "1".repeat(40), extra: true },
+      "APP_MAP_GIT_DIFF_BASE_REQUIRED",
+    ],
+  ])(
+    "fails closed for absent or conflicting base metadata",
+    (candidate, code) => {
+      expect(resolveGitComparisonBase(candidate)).toMatchObject({
+        ok: false,
+        diagnostic: { code },
+      });
+    },
+  );
+
   it("parses additions, modifications, deletions, and both sides of moves", () => {
     expect(
       parseGitNameStatus(
