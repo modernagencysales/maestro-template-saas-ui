@@ -4,7 +4,13 @@ import {
   type AgentPackJsonValue,
 } from "@maestro-template/agent-pack";
 import { describe, expect, it } from "vitest";
-import { runReceiptExportCli, runVerifyCli } from "./verify";
+import {
+  CHECK_HELP,
+  createVerifyCliHandler,
+  runReceiptExportCli,
+  runVerifyCli,
+  VERIFY_HELP,
+} from "./verify";
 
 const verifyCommand = defineAgentPackCommand({
   id: "verify",
@@ -134,6 +140,37 @@ describe("verify CLI adapter", () => {
       runVerifyCli(verifyCommand, ["verify"], "/fixture"),
     ).resolves.toMatchObject({ exitCode: 0, stdout: "Verification passed.\n" });
   });
+  it.each([
+    ["verify", VERIFY_HELP],
+    ["check", CHECK_HELP],
+  ] as const)(
+    "returns %s help without executing the command",
+    async (id, help) => {
+      let executions = 0;
+      const command = defineAgentPackCommand({
+        id,
+        schemaVersion: AGENT_PACK_COMMAND_VERSION,
+        decode: (input: unknown) => ({ ok: true as const, args: input }),
+        mutationPosture: () => "read-only" as const,
+        execute: async () => {
+          executions += 1;
+          return {
+            mutationPosture: "read-only" as const,
+            exitClass: "success" as const,
+            summary: "Unexpected execution.",
+            diagnostics: [],
+            data: null,
+          };
+        },
+      });
+      const result = await createVerifyCliHandler(command).run(
+        [id, "--help"],
+        "/fixture",
+      );
+      expect(result).toEqual({ exitCode: 0, stdout: help, stderr: "" });
+      expect(executions).toBe(0);
+    },
+  );
 
   it("passes one explicit provider mode only to check", async () => {
     const checkCommand = defineAgentPackCommand({

@@ -5,7 +5,13 @@ import {
   type AgentPackJsonValue,
 } from "@maestro-template/agent-pack";
 import type { CliResult } from "../types";
+import { cliSuccess } from "../result";
 import { runAgentPackCommandAsCli, type FactoryCliRenderMode } from "./router";
+
+export const VERIFY_HELP =
+  "maestro verify [--scope focused|full] [--changed <paths>] [--human|--details|--json]\n";
+export const CHECK_HELP =
+  "maestro check [--mode fake|test|live] [--changed <paths>] [--human|--details|--json]\n";
 
 export function createVerifyCliHandler<
   CommandId extends "verify" | "check",
@@ -15,7 +21,11 @@ export function createVerifyCliHandler<
   return {
     command: command.id,
     run: (argv: readonly string[], cwd: string): Promise<CliResult> =>
-      runVerifyCli(command, argv, cwd),
+      argv.length === 2 && argv[1] === "--help"
+        ? Promise.resolve(
+            cliSuccess(command.id === "check" ? CHECK_HELP : VERIFY_HELP),
+          )
+        : runVerifyCli(command, argv, cwd),
   };
 }
 
