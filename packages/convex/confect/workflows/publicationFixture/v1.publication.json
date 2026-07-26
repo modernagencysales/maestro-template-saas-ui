@@ -9,7 +9,7 @@
   "releaseContent": {
     "workflowId": "workflow_publicationFixture",
     "version": 1,
-    "authorityChecksum": "8a8ff09ebe8b2914c501bfc354b549363822d8dfa0fe681f91c41b0b7e1d89b0",
+    "authorityChecksum": "49cf7ea81cea8c5f43ab5eae2a1901252515792f53b0a723842eabf0f7ffbc44",
     "graphModule": "packages/convex/confect/workflows/publicationFixture/v1.graph.ts",
     "graphHash": "2c4c348ac937797e21618686ab80768538f4d7484064dc33e2c0e73549312d36",
     "runnerModule": "workflowRunners/publicationFixture/v1:run",
@@ -36,7 +36,7 @@
       "checksum": "980cd9f429d0b47193ec8783252e1fb0b6589e1bd0d61fab2cdb986b1f9ffaa4"
     },
     "lifecycleContractVersion": 1,
-    "sourceClosureChecksum": "e7680b6ed35ebb9ee917386c41872329e703993e3b08c98441450136a63e26f2",
+    "sourceClosureChecksum": "aa03094f4f6877490b3169e0d08cba27406928f70493c1d7606d86da54fd7939",
     "stableStepNames": ["start.v2", "receipt.v2"],
     "semanticComplete": true,
     "isolatedFixture": true,
@@ -51,15 +51,15 @@
     "completionRef": "workflowRunners/publicationFixture/v1:onComplete",
     "runtimeVersion": "maestro-workflow-runtime.v2",
     "lifecycleContractVersion": "1",
-    "sourceClosure": "e7680b6ed35ebb9ee917386c41872329e703993e3b08c98441450136a63e26f2",
-    "authorityChecksum": "8a8ff09ebe8b2914c501bfc354b549363822d8dfa0fe681f91c41b0b7e1d89b0",
+    "sourceClosure": "aa03094f4f6877490b3169e0d08cba27406928f70493c1d7606d86da54fd7939",
+    "authorityChecksum": "49cf7ea81cea8c5f43ab5eae2a1901252515792f53b0a723842eabf0f7ffbc44",
     "stableStepNames": "start.v2,receipt.v2",
     "validators": "publicationFixture.v2.args->publicationFixture.v2.return",
     "events": "event.approvalDecision.v1:workflows.publicationFixture.approvalDecision.v1",
     "options": "retry=none;inline=independent;schedule=none",
     "dependencyManifest": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
     "interpreter": "980cd9f429d0b47193ec8783252e1fb0b6589e1bd0d61fab2cdb986b1f9ffaa4",
-    "releaseChecksum": "7b271c932a7ef9f7d93a7505ed2a714b44f948de97ce70e40c19831fc46d847a"
+    "releaseChecksum": "becd9e4ab3053d4bee260ca31874d120e08bd988d3318a7c48a0c7d81763876f"
   },
   "dependencies": [
     {
@@ -144,7 +144,7 @@
       },
       {
         "path": "packages/convex/confect/shared/env.ts",
-        "checksum": "7473178bb561d19876ee992748181d0f8d466c920bfafb949730148b8693cf95"
+        "checksum": "c6264cdd78b71d1da3ee06608b9addca40ffee991d736885b2e17615e8ae5f18"
       },
       {
         "path": "packages/convex/confect/shared/errors.ts",
@@ -459,6 +459,6 @@
         "checksum": "52eb65439e0c8325168764c78cb9583812c18a24d791bdfb744ed71418d188d1"
       }
     ],
-    "checksum": "e7680b6ed35ebb9ee917386c41872329e703993e3b08c98441450136a63e26f2"
+    "checksum": "aa03094f4f6877490b3169e0d08cba27406928f70493c1d7606d86da54fd7939"
   }
 }
