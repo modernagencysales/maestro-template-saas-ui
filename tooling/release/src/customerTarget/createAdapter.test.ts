@@ -23,7 +23,7 @@ describe("customer release create adapter", () => {
       fixture.tag,
       fixture.manifest.release.sourceCommit,
     ]);
-    await expect(prepare(fixture, adapter(fixture))).rejects.toMatchObject({
+    await expect(prepare(fixture, adapter(fixture))).resolves.toMatchObject({
       code: "release-unavailable",
       message: expect.stringMatching(
         /tag does not contain the ownership manifest/,
@@ -167,13 +167,34 @@ describe("customer release create adapter", () => {
       prepared.token,
       prepared.preview.preflightFingerprint,
     );
-    expect(stale).toMatchObject({ ok: false, code: "release-unavailable" });
+    expect(stale).toMatchObject({ ok: false, code: "stale-preflight" });
     expect(readdirSync(fixture.temporaryRoot)).toEqual([]);
     const reused = await release.materialize(
       prepared.token,
       prepared.preview.preflightFingerprint,
     );
     expect(reused).toMatchObject({ ok: false, code: "stale-preflight" });
+  });
+  it("binds materialization to the exact tag commit resolved at prepare", async () => {
+    const fixture = taggedRelease();
+    const release = adapter(fixture);
+    const prepared = await prepare(fixture, release);
+    if (!prepared.ok) throw new Error("expected prepared release");
+    git(fixture.repositoryRoot, [
+      "commit",
+      "--quiet",
+      "--allow-empty",
+      "-m",
+      "move tag without changing release bytes",
+    ]);
+    git(fixture.repositoryRoot, ["tag", "-f", fixture.tag, "HEAD"]);
+    const result = await release.materialize(
+      prepared.token,
+      prepared.preview.preflightFingerprint,
+    );
+    expect(result).toMatchObject({ ok: false, code: "stale-preflight" });
+    expect(existsSync(fixture.targetRoot)).toBe(false);
+    expect(readdirSync(fixture.temporaryRoot)).toEqual([]);
   });
 
   it.each([

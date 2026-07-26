@@ -202,6 +202,7 @@ export type TokenState = {
   readonly request: PrepareRequest;
   readonly templateInstance: string;
   readonly blueprintDigest: string;
+  readonly tagCommit: string;
 };
 
 export class CustomerReleaseAdapterError extends Error {

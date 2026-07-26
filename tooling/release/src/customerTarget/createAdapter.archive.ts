@@ -32,6 +32,7 @@ import {
 export type ResolvedRelease = {
   readonly manifest: CustomerReleaseManifest;
   readonly binding: ResolvedCustomerReleaseBinding;
+  readonly tagCommit: string;
   readonly facts: CustomerReleaseAdapterFacts;
   readonly sourceRoot: string;
 };
@@ -129,6 +130,7 @@ export function withImmutableRelease<Result>(
     return use({
       manifest,
       binding,
+      tagCommit,
       facts: releaseFacts(options, manifest),
       sourceRoot,
     });

@@ -125,6 +125,7 @@ function createCustomerAdapter(
             request,
             templateInstance,
             blueprintDigest: blueprint.digest,
+            tagCommit: resolved.tagCommit,
           });
           return {
             ok: true as const,
@@ -149,6 +150,12 @@ function createCustomerAdapter(
       if (!state) return invalidToken();
       try {
         return withImmutableRelease(options, (resolved) => {
+          if (resolved.tagCommit !== state.tagCommit) {
+            throw new CustomerReleaseAdapterError(
+              "stale-preflight",
+              "Resolved release tag changed after preview.",
+            );
+          }
           const blueprint = validateBlueprintTargetPlan(
             state.request.blueprintTargetPlan(),
           );

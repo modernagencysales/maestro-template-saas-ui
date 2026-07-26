@@ -73,6 +73,7 @@ const TEMPLATE_PREFIXES = [
   "apps/web/",
   "docs/template/",
   "examples/generic-ai-ops/",
+  "patches/",
   "packages/",
   "schemas/",
   "scripts/",

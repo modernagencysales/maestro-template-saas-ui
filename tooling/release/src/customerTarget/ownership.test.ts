@@ -4,11 +4,11 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   assertMaterializableCustomerReleaseManifest,
+  resolveCustomerReleasePath,
   validateCustomerReleaseManifest,
 } from "./manifest";
 import {
   buildCustomerOwnershipInventory,
-  CUSTOMER_OWNERSHIP_RULES,
   classifyCustomerSourcePath,
 } from "./ownership";
 import { hashSourceFiles } from "./sourceFixture.test-support";
@@ -46,6 +46,7 @@ describe("customer ownership inventory", () => {
     ["tooling/quality/check-generated-files.mts", "template-owned", "copy"],
     ["docs/template/quickstart.md", "template-owned", "copy"],
     ["examples/generic-ai-ops/seed/workspace.json", "template-owned", "copy"],
+    ["patches/@confect__cli@9.1.5.patch", "template-owned", "copy"],
     ["project.config.json", "customer-extension", "copy"],
     ["apps/web/src/routeTree.gen.ts", "generated", "generate"],
     ["docs/superpowers/specs/agent-pack.md", "factory-only", "omit"],
@@ -78,7 +79,11 @@ describe("customer ownership inventory", () => {
     const manifest = validateCustomerReleaseManifest(fixture, shippedFiles);
 
     expect(manifest.release.sourceCommit).toBe(sourceCommit);
-    expect(manifest.paths).toHaveLength(CUSTOMER_OWNERSHIP_RULES.length + 1);
+    expect(
+      sourcePaths.every((path) =>
+        Boolean(resolveCustomerReleasePath(manifest.paths, path)),
+      ),
+    ).toBe(true);
     expect(manifest.materializationStatus).toBe("fixture-only");
     expect(() =>
       assertMaterializableCustomerReleaseManifest(manifest, {
