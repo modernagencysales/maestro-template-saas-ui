@@ -84,12 +84,13 @@ const reserve = FunctionImpl.make(
         reservationKey,
         lane: admissionLane,
       }).pipe(
-        Effect.mapError(
-          () =>
+        Effect.catchTag("WorkflowAdmissionDenied", () =>
+          Effect.fail(
             new ValidationFailed({
               field: "workflow",
               message: "Subworkflow admission capacity is unavailable.",
             }),
+          ),
         ),
       );
       const writer = yield* DatabaseWriter;

@@ -2,7 +2,20 @@ import { TestConfect } from "@confect/test";
 import * as Effect from "effect/Effect";
 import * as Exit from "effect/Exit";
 import * as Schema from "effect/Schema";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+const admissionSpies = vi.hoisted(() => ({ transition: vi.fn() }));
+vi.mock("../confect/workflows/_kit/ownership", async (importOriginal) => {
+  const Effect = await import("effect/Effect");
+  const original = await importOriginal<object>();
+  return {
+    ...original,
+    transitionWorkflowAdmission: (...args: unknown[]) => {
+      admissionSpies.transition(...args);
+      return Effect.void;
+    },
+  };
+});
 
 import databaseSchema from "../confect/_generated/schema";
 import { DatabaseReader, DatabaseWriter } from "../confect/_generated/services";
@@ -19,6 +32,7 @@ import {
 
 describe("workflow lifecycle generation persistence", () => {
   it("moves a queued run to running on the first real stage dispatch", async () => {
+    admissionSpies.transition.mockClear();
     const status = await Effect.runPromise(
       Effect.gen(function* () {
         const confect = yield* Effect.serviceOptional(
@@ -53,6 +67,8 @@ describe("workflow lifecycle generation persistence", () => {
       }).pipe(Effect.provide(testConfectLayer())),
     );
     expect(status).toBe("running");
+    expect(admissionSpies.transition).toHaveBeenCalledTimes(1);
+    expect(admissionSpies.transition.mock.calls[0]?.[2]).toBe("running");
   });
 
   it("permits only the unbound eager generation zero reservation", async () => {

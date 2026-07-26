@@ -2,11 +2,20 @@ import { convexTest } from "convex-test";
 import { makeFunctionReference } from "convex/server";
 import { describe, expect, it } from "vitest";
 import schema from "../convex/workflowAdmission/schema";
+import appSchema from "../confect/_generated/convexSchema";
 
 const modules = import.meta.glob("../convex/workflowAdmission/**/*.ts");
+const appModules = {
+  ...import.meta.glob("../convex/_generated/**/*.ts"),
+  "../convex/workflowAdmissionAdapterHarness.ts": () =>
+    import("./fixtures/workflowAdmissionAdapterHarness"),
+};
 const reserve = makeFunctionReference<"mutation">("admission:reserve");
 const bind = makeFunctionReference<"mutation">("admission:bind");
 const transition = makeFunctionReference<"mutation">("admission:transition");
+const adapterExercise = makeFunctionReference<"mutation">(
+  "workflowAdmissionAdapterHarness:exercise",
+);
 const policy = {
   user: { maxActive: 1, maxQueued: 1, retryAfterMs: 10 },
   system: { maxActive: 1, maxQueued: 1, retryAfterMs: 20 },
@@ -36,6 +45,12 @@ const reserveRun = async (
 
 describe("workflow admission component", () => {
   it("enforces exact active and queued boundaries per lane and workspace", async () => {
+    const app = convexTest(appSchema, appModules);
+    app.registerComponent("workflowAdmission", schema, modules);
+    await expect(app.mutation(adapterExercise, {})).resolves.toBe(
+      "reserve-transition-release",
+    );
+
     const t = convexTest(schema, modules);
     const active = await reserveRun(t, "noisy", "active", "user");
     await t.mutation(transition, { workflowRunId: active, status: "running" });
@@ -107,6 +122,15 @@ describe("workflow admission component", () => {
       policy,
       ["legacy-user-one", "legacy-user-two"],
     );
+    await expect(
+      reserveRun(t, "legacy", "user-one", "user"),
+    ).rejects.toMatchObject({
+      data: {
+        code: "WORKFLOW_ADMISSION_DENIED",
+        saturated: "active",
+        lane: "user",
+      },
+    });
     await t.mutation(transition, { workflowRunId: system, status: "running" });
     await expect(
       reserveRun(t, "legacy", "system-two", "system"),

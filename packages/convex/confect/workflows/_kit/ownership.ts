@@ -570,7 +570,14 @@ export const reserveWorkflowAdmission = (
       legacyRunningRunIds,
       legacyQueuedRunIds,
     });
-  }).pipe(Effect.mapError(decodeAdmissionError));
+  }).pipe(
+    Effect.catchAll((error) => {
+      const decoded = decodeAdmissionError(error);
+      return decoded instanceof WorkflowAdmissionDenied
+        ? Effect.fail(decoded)
+        : Effect.die(decoded);
+    }),
+  );
 
 export const bindWorkflowAdmission = (
   mutation: Mutation,
