@@ -10,6 +10,7 @@
     "./mcp": "./src/mcp.ts",
     "./schema": "./src/schema.ts",
     "./surface": "./src/surface.ts",
+    "./upgrade-impact": "./src/upgradeImpact.ts",
     "./validate": "./src/validate.ts"
   },
   "dependencies": {

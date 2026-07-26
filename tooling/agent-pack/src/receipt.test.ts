@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  attachReviewedUpgradeImpact,
   createVerificationReceipt,
   evaluateReceiptStaleness,
   summarizeVerificationReceipt,
@@ -194,5 +195,28 @@ describe("verification receipt", () => {
         providerPostureFingerprint: base.providerPostureFingerprint,
       }),
     ).toEqual({ stale: true, reasons: ["partial-scope"] });
+  });
+
+  it("attaches only upgrade impact accepted by its canonical projector", () => {
+    const receipt = createVerificationReceipt(base);
+    const impact = {
+      authority: "reviewed-upgrade-plan",
+      planFingerprint: "sha256:fixture",
+    };
+
+    expect(
+      attachReviewedUpgradeImpact(receipt, impact, (candidate) => ({
+        ok: true as const,
+        value: candidate as typeof impact,
+      })),
+    ).toEqual({ ok: true, receipt: { ...receipt, upgradeImpact: impact } });
+    expect(
+      attachReviewedUpgradeImpact(receipt, impact, () => ({
+        ok: false as const,
+      })),
+    ).toEqual({
+      ok: false,
+      code: "VERIFICATION_RECEIPT_UPGRADE_IMPACT_INVALID",
+    });
   });
 });

@@ -84,6 +84,45 @@ export type VerificationReceiptSummary = {
   readonly unavailable: readonly string[];
 };
 
+export type UpgradeImpactReceiptResult<Impact> =
+  | {
+      readonly ok: true;
+      readonly receipt: VerificationReceipt & {
+        readonly upgradeImpact: Impact;
+      };
+    }
+  | {
+      readonly ok: false;
+      readonly code: "VERIFICATION_RECEIPT_UPGRADE_IMPACT_INVALID";
+    };
+
+export function attachReviewedUpgradeImpact<Impact>(
+  receipt: VerificationReceipt,
+  candidate: unknown,
+  project: (
+    candidate: unknown,
+  ) => { readonly ok: true; readonly value: Impact } | { readonly ok: false },
+): UpgradeImpactReceiptResult<Impact> {
+  try {
+    const projected = project(candidate);
+    if (!projected.ok) {
+      return {
+        ok: false,
+        code: "VERIFICATION_RECEIPT_UPGRADE_IMPACT_INVALID",
+      };
+    }
+    return {
+      ok: true,
+      receipt: { ...receipt, upgradeImpact: projected.value },
+    };
+  } catch {
+    return {
+      ok: false,
+      code: "VERIFICATION_RECEIPT_UPGRADE_IMPACT_INVALID",
+    };
+  }
+}
+
 export function createVerificationReceipt(
   input: VerificationReceiptInput,
 ): VerificationReceipt {
