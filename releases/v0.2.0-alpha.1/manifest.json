@@ -9,8 +9,8 @@
   "release": {
     "version": "0.2.0-alpha.1",
     "tag": "maestro-template-v0.2.0-alpha.1",
-    "sourceCommit": "ebc5877672cac1a80a15dfb0f819425fbea6c88c",
-    "sourceChecksum": "sha256:6d59e2189de0b4bef677969cc7718b1f6431082df3e77aa677e8067fba860d4d"
+    "sourceCommit": "edbec1b72ed88bc38ed1c71946e26e9e92223076",
+    "sourceChecksum": "sha256:3e65ffda4f751c4f05fa048d22e44a213e6dff08dbbf666365ef6aac98457a1e"
   },
   "upgrade": {
     "schemaVersion": 1,
@@ -408,14 +408,14 @@
         "kind": "add",
         "path": "docs/template/generated/provenance/add-workflow/publicationFixture.json",
         "ownership": "template-owned",
-        "afterHash": "sha256:6de74130a1a0f26b0e41292481dacc91e98a3f34a0df5a4575fe989ccc04d6d5"
+        "afterHash": "sha256:cec58dd7efe1636030c1fa4dff165853fb55a59f51a736498b80defc619a092e"
       },
       {
         "id": "upgrade-add-docs-template-generated-workflow-publications-json",
         "kind": "add",
         "path": "docs/template/generated/workflow-publications.json",
         "ownership": "template-owned",
-        "afterHash": "sha256:988c0b8fdf9e8a69de34f72b16db2e97abcb504537e7f342e13d8dffd29cab23"
+        "afterHash": "sha256:ece665df3a2dcb03f67d019c759d1d2c6b782883b823640dbd41fc22c2738da0"
       },
       {
         "id": "upgrade-modify-docs-template-generated-workflow-semantics-md",
@@ -604,7 +604,7 @@
         "path": "package.json",
         "ownership": "generated",
         "beforeHash": "sha256:d3278e6fbfc6c3218cb0ebaad4322f459fb2a61eaa37329840ce2283e9fb2254",
-        "afterHash": "sha256:acc52fabb69527dfdfa0c984f051963f8fe73bcc7123cce8aff36573545f89bd"
+        "afterHash": "sha256:7134099890770c27134065533b8e9c96c956e4ca0734bac17de76a5a869bfc7f"
       },
       {
         "id": "upgrade-modify-packages-convex-confect-generated-convexSchema-ts",
@@ -785,7 +785,7 @@
         "kind": "add",
         "path": "packages/convex/confect/capabilities/_versions/publicationEcho/v1.release.ts",
         "ownership": "template-owned",
-        "afterHash": "sha256:8cde59889d130504fd223a083e502630707398c88a35ab0f83a328838fe83071"
+        "afterHash": "sha256:f50999be3667cfe1449e9284f6261fa2044d2c39b7d6df33a9e84a34dc12b257"
       },
       {
         "id": "upgrade-add-packages-convex-confect-capabilities-versions-publicationEcho-v1-spec-ts",
@@ -1464,7 +1464,7 @@
         "kind": "add",
         "path": "packages/convex/confect/workflows/publicationFixture/v1.release.ts",
         "ownership": "template-owned",
-        "afterHash": "sha256:5de4165b6241a8ca74efeaf58a6e2e1866643084dde5aabacd07d1a91d9c7347"
+        "afterHash": "sha256:a7cd92f644ab8bad1b68bc73585d1e477a32ed6d18901c9c1f98333f5f35a7ee"
       },
       {
         "id": "upgrade-add-packages-convex-confect-workflows-stageObservations-impl-ts",
@@ -2222,7 +2222,7 @@
         "kind": "add",
         "path": "tooling/agent-pack/evals/forward/runner.ts",
         "ownership": "template-owned",
-        "afterHash": "sha256:639dad69463c3b089f9fe4330984d07619ac1622bfdee615431d67da6e69f000"
+        "afterHash": "sha256:c5b7b8f6d806e8f9df628b3852983b4136f9a6db47c7dbec94145dd4bbe01cd0"
       },
       {
         "id": "upgrade-add-tooling-agent-pack-evals-forward-verifier-ts",
@@ -2285,14 +2285,14 @@
         "kind": "add",
         "path": "tooling/agent-pack/evals/walking-skeleton/hosts.ts",
         "ownership": "template-owned",
-        "afterHash": "sha256:7cca92e15dc35df78e8391a97684ca0423b4e34a82e52a116d3afa0b5b9db618"
+        "afterHash": "sha256:0308d81d6ea45de4792627fdaa9a570ee5dd2e77bd0f2a2a53fd34869fb9fc8f"
       },
       {
         "id": "upgrade-add-tooling-agent-pack-evals-walking-skeleton-runner-ts",
         "kind": "add",
         "path": "tooling/agent-pack/evals/walking-skeleton/runner.ts",
         "ownership": "template-owned",
-        "afterHash": "sha256:69c5975d6863a2b62c6765943197adae439b7f80fc3cf388fee8393f6805a831"
+        "afterHash": "sha256:0edc43e9e6ef10c05c7494912fbb3c12be5e6ebfc724f650026b0cffb4a9f80b"
       },
       {
         "id": "upgrade-add-tooling-agent-pack-evals-walking-skeleton-verifier-ts",
@@ -2306,7 +2306,7 @@
         "kind": "add",
         "path": "tooling/agent-pack/evals/walking-skeleton/walking-skeleton.test.ts",
         "ownership": "template-owned",
-        "afterHash": "sha256:872fcc85ded0dc5b05657e6c547350d6408c0c51b4d5c8b0de4c82fd9177fc37"
+        "afterHash": "sha256:ea8a0af171dbed11188fbd5119f48e035da6320bdd7283f29e356dc9fff86894"
       },
       {
         "id": "upgrade-add-tooling-agent-pack-src-adopt-test-ts",
@@ -3322,14 +3322,14 @@
         "kind": "add",
         "path": "tooling/generators/src/workflow-publication-generation.test.ts",
         "ownership": "template-owned",
-        "afterHash": "sha256:2bff424e0c5f16f38464efe51e4f562a978dbe9b02e30a072f3d6e70f1b0e64a"
+        "afterHash": "sha256:ab34d3aef12ed13691fe8b89d14b69abb9557450e1baf09c06edaa1091a4a19d"
       },
       {
         "id": "upgrade-add-tooling-generators-src-workflow-publication-generation-ts",
         "kind": "add",
         "path": "tooling/generators/src/workflow-publication-generation.ts",
         "ownership": "template-owned",
-        "afterHash": "sha256:22eac84d901df76254324a04d67d1521e513b0d579bef3c76be85a0f1fb6d75b"
+        "afterHash": "sha256:75f2e609f91b82e91630b492cc08ea5e7de750e593b7cf452ce4b6a07553bb34"
       },
       {
         "id": "upgrade-add-tooling-generators-src-workflow-release-commands-test-ts",
@@ -3513,7 +3513,7 @@
         "path": "tooling/quality/src/check-definitions.mts",
         "ownership": "template-owned",
         "beforeHash": "sha256:9e119988135f4b297c528e987a4377f71faffe3830f395a407428e6da8a7963a",
-        "afterHash": "sha256:4fcfd155d21d36dabf2dffac61f272cbea33e9fe022e343d7fe37b6c5892cb8a"
+        "afterHash": "sha256:6760c0c5370c2a49486abcb55099581089dc98f45172298aa59c565e35fdc544"
       },
       {
         "id": "upgrade-modify-tooling-quality-src-diagnosticRegistry-mts",
@@ -3870,14 +3870,14 @@
   ],
   "blueprintManifest": {
     "path": "blueprints/saas-application.json",
-    "sha256": "sha256:6c47c7e1604279773c4e4322d7ff80356ccac29f62bf2909b758ff80be7d90a6"
+    "sha256": "sha256:6f62ea480864ddef419ca8b636dfb257fde7684ceb55a1d40f7928ab70fbcdee"
   },
   "upgradeImpact": {
     "path": "releases/v0.2.0-alpha.1/upgrade/app-map-input.json",
-    "sha256": "sha256:0961bb246ac7a700a7243cf574815619331bde01b807cc0c1ea9aa4c40f2e387",
+    "sha256": "sha256:81192d9fde42bf12e3c2c57d9b5837af0a1df7e785f91885d345f73e4e936d2c",
     "projection": {
       "path": "releases/v0.2.0-alpha.1/upgrade/app-map-impact.json",
-      "sha256": "sha256:4777b671b846098f6e19c95c7ee5b90af263275685e4580306c3f16035f15e2a"
+      "sha256": "sha256:85ccdc2f01d9b1506b7d2fd50f3e9b2ffac714f9d5b2df7e91a326a1ed3d94d2"
     }
   },
   "migrationHandoff": {
