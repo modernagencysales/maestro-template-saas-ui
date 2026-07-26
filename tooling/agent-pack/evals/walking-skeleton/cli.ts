@@ -12,10 +12,12 @@ import {
   runWalkingSkeleton,
   type WalkingSkeletonRunOptions,
 } from "./runner.js";
+import { buildForwardStructuralReport } from "../scenarios/forward.js";
 
 export const usage = `pnpm evals:agent-pack -- --suite walking-skeleton --host <claude|codex> [--run-id <id>] [--out <dir>] [--candidate-sha <sha>] [--host-home <dir>] [--product-name <name>]
   Codex transport override: --codex-model <id> --codex-provider <name> --codex-base-url <loopback-http-url>
-pnpm evals:agent-pack -- --suite walking-skeleton --aggregate --run-ids <claude-1,claude-2,codex-1,codex-2> [--suite-run-id <id>] [--out <dir>] [--candidate-sha <sha>]`;
+pnpm evals:agent-pack -- --suite walking-skeleton --aggregate --run-ids <claude-1,claude-2,codex-1,codex-2> [--suite-run-id <id>] [--out <dir>] [--candidate-sha <sha>]
+pnpm evals:agent-pack -- --suite forward --structural [--candidate-sha <sha>]`;
 
 type AggregateOptions = {
   readonly mode: "aggregate";
@@ -28,26 +30,53 @@ type RunOptions = {
   readonly mode: "run";
   readonly options: WalkingSkeletonRunOptions;
 };
+type ForwardStructuralOptions = {
+  readonly mode: "forward-structural";
+  readonly candidateSha: string;
+};
 
 export function parseCliOptions(
   argv: readonly string[],
   cwd: string,
   env: NodeJS.ProcessEnv = process.env,
   now: Date = new Date(),
-): RunOptions | AggregateOptions {
+): RunOptions | AggregateOptions | ForwardStructuralOptions {
   const { values, switches } = parseFlags(argv);
-  if (values.get("--suite") !== "walking-skeleton") {
+  const suite = values.get("--suite");
+  if (suite === "forward") {
+    if (!switches.has("--structural")) {
+      throw new EvaluationError(
+        "EVAL_INVALID_ARGUMENT",
+        "--suite forward requires --structural.",
+      );
+    }
+    const allowedValues = new Set(["--suite", "--source", "--candidate-sha"]);
+    const unsupported = [...values.keys()].filter(
+      (key) => !allowedValues.has(key),
+    );
+    if (unsupported.length > 0 || switches.has("--aggregate")) {
+      throw new EvaluationError(
+        "EVAL_INVALID_ARGUMENT",
+        "--suite forward --structural does not accept host or run options.",
+      );
+    }
+    const sourceRoot = resolve(cwd, values.get("--source") ?? ".");
+    const candidateSha =
+      values.get("--candidate-sha") ?? resolveHead(sourceRoot);
+    return { mode: "forward-structural", candidateSha };
+  }
+  if (suite !== "walking-skeleton") {
     throw new EvaluationError(
       "EVAL_INVALID_ARGUMENT",
-      "--suite walking-skeleton is required.",
+      "--suite must be walking-skeleton or forward.",
     );
   }
   const sourceRoot = resolve(cwd, values.get("--source") ?? ".");
+  const candidateSha = values.get("--candidate-sha") ?? resolveHead(sourceRoot);
   const out = resolve(
     cwd,
     values.get("--out") ?? "tooling/agent-pack/evals/runs",
   );
-  const candidateSha = values.get("--candidate-sha") ?? resolveHead(sourceRoot);
   const transportFlagsPresent = codexTransportFlags.some((flag) =>
     values.has(flag),
   );
@@ -167,7 +196,9 @@ export async function main(
     const result =
       parsed.mode === "run"
         ? await runWalkingSkeleton(parsed.options)
-        : await aggregateWalkingSkeletonRuns(parsed);
+        : parsed.mode === "aggregate"
+          ? await aggregateWalkingSkeletonRuns(parsed)
+          : buildForwardStructuralReport(parsed.candidateSha);
     process.stdout.write(`${JSON.stringify(result)}\n`);
   } catch (error) {
     const classified =
@@ -190,7 +221,7 @@ function parseFlags(argv: readonly string[]): {
 } {
   const values = new Map<string, string>();
   const switches = new Set<string>();
-  const booleanFlags = new Set(["--aggregate"]);
+  const booleanFlags = new Set(["--aggregate", "--structural"]);
   for (let index = 0; index < argv.length; index += 1) {
     const flag = argv[index];
     if (flag === "--") continue;
