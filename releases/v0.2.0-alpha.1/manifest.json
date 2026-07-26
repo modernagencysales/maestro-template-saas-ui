@@ -9,8 +9,8 @@
   "release": {
     "version": "0.2.0-alpha.1",
     "tag": "maestro-template-v0.2.0-alpha.1",
-    "sourceCommit": "a4007ef8e4af642e70d4b16e77e5ba842deb2096",
-    "sourceChecksum": "sha256:67408b8c8d39868a6d66763794aea2b96cd89fea509eef4693e8c4cf48e1ceab"
+    "sourceCommit": "96c07f48b02c9410cb7448243c75f32d39431c75",
+    "sourceChecksum": "sha256:7f4e8bfc1280f18b93e5caa875db3a02245c07c8549ed7d2115246ebb4ebb650"
   },
   "upgrade": {
     "schemaVersion": 1,
@@ -107,7 +107,7 @@
         "kind": "add",
         "path": "apps/cli/src/factory/customerCliRuntime.test.ts",
         "ownership": "template-owned",
-        "afterHash": "sha256:2808c5a5856e65f55720fae764879d881d7bc82e0752b5e43e0d2dad4d2cb948"
+        "afterHash": "sha256:2c16e328e13d946dbfdfda2f64ac96e7847ba484e4979e01dee79fb4f703af1d"
       },
       {
         "id": "upgrade-add-apps-cli-src-factory-customerComposition-ts",
@@ -3862,14 +3862,14 @@
   ],
   "blueprintManifest": {
     "path": "blueprints/saas-application.json",
-    "sha256": "sha256:65f7abd8a334f796b0e5338754268db9f3d7f14f22917b497398f36432aaa3a3"
+    "sha256": "sha256:d3778e9f02bc7c44aff2d93faa640d89fc95e082c349e66319fb10881a0c2418"
   },
   "upgradeImpact": {
     "path": "releases/v0.2.0-alpha.1/upgrade/app-map-input.json",
-    "sha256": "sha256:2dd27502b88096ca6d124fdc16f48fe20ce3fd7b657842a934eb82b7a0e98ec5",
+    "sha256": "sha256:64e9f224a9c9db32c435b8009c0cd96bedc9a47858a4688ec9d6eb4ab24f703d",
     "projection": {
       "path": "releases/v0.2.0-alpha.1/upgrade/app-map-impact.json",
-      "sha256": "sha256:f58b4466f8770bd267fa4542232d65aa0bfe48c145ac6bca33eee649b703444b"
+      "sha256": "sha256:80a6e501ad130325b8417b9704c0e88ff2ae09988b89a99d2f800c4093bdef86"
     }
   },
   "migrationHandoff": {
