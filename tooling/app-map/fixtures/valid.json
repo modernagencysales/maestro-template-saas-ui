@@ -1,16 +1,24 @@
 {
   "schemaVersion": 1,
+  "inputManifest": {
+    "id": "maestro-app-map-input",
+    "version": 1
+  },
   "subject": {
     "id": "reviewer-brain",
     "revision": "e9c9123"
   },
   "batches": [
     {
+      "adapterId": "system-catalog-facts",
       "adapterVersion": 1,
       "source": {
         "id": "system-catalog",
         "kind": "system-catalog",
         "path": "docs/template/system-catalog.json",
+        "subject": "repository",
+        "owner": "system-catalog",
+        "digestContract": "sha256-file-bytes-v1",
         "version": "1",
         "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
       },
@@ -64,11 +72,15 @@
       "edges": []
     },
     {
+      "adapterId": "data-resources-facts",
       "adapterVersion": 1,
       "source": {
         "id": "data-resources",
         "kind": "data-resources",
         "path": "docs/template/data-resources.json",
+        "subject": "repository",
+        "owner": "data-lifecycle",
+        "digestContract": "sha256-file-bytes-v1",
         "version": "1",
         "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
       },
@@ -107,11 +119,15 @@
       ]
     },
     {
+      "adapterId": "route-tree-facts",
       "adapterVersion": 1,
       "source": {
         "id": "route-tree",
         "kind": "route-tree",
         "path": "apps/web/src/routeTree.gen.ts",
+        "subject": "repository",
+        "owner": "router-codegen",
+        "digestContract": "sha256-file-bytes-v1",
         "version": "1",
         "digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
       },
@@ -135,11 +151,15 @@
       "edges": []
     },
     {
+      "adapterId": "product-topology-facts",
       "adapterVersion": 1,
       "source": {
         "id": "product-topology",
         "kind": "product-topology",
         "path": "docs/template/product-topology.json",
+        "subject": "repository",
+        "owner": "product-topology",
+        "digestContract": "sha256-file-bytes-v1",
         "version": "1",
         "digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
       },
@@ -176,11 +196,15 @@
       ]
     },
     {
+      "adapterId": "workflow-registry-facts",
       "adapterVersion": 1,
       "source": {
         "id": "workflow-registry",
         "kind": "workflow-registry",
-        "path": "packages/convex/confect/workflows/registry.generated.json",
+        "path": "packages/convex/confect/workflows/_generated/workflowRegistry.ts",
+        "subject": "repository",
+        "owner": "workflow-generator",
+        "digestContract": "sha256-file-bytes-v1",
         "version": "1",
         "digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
       },
@@ -194,7 +218,7 @@
           "provenance": {
             "authority": "canonical",
             "sourceId": "workflow-registry",
-            "sourcePath": "packages/convex/confect/workflows/registry.generated.json",
+            "sourcePath": "packages/convex/confect/workflows/_generated/workflowRegistry.ts",
             "sourceVersion": "1",
             "sourceDigest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
             "factId": "workflows/source-grounded-brief/versions/1"
@@ -210,7 +234,7 @@
           "provenance": {
             "authority": "canonical",
             "sourceId": "workflow-registry",
-            "sourcePath": "packages/convex/confect/workflows/registry.generated.json",
+            "sourcePath": "packages/convex/confect/workflows/_generated/workflowRegistry.ts",
             "sourceVersion": "1",
             "sourceDigest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
             "factId": "workflows/source-grounded-brief/system"
@@ -224,7 +248,7 @@
           "provenance": {
             "authority": "canonical",
             "sourceId": "workflow-registry",
-            "sourcePath": "packages/convex/confect/workflows/registry.generated.json",
+            "sourcePath": "packages/convex/confect/workflows/_generated/workflowRegistry.ts",
             "sourceVersion": "1",
             "sourceDigest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
             "factId": "workflows/source-grounded-brief/persists/brainPages"
@@ -233,47 +257,100 @@
       ]
     },
     {
+      "adapterId": "confect-contracts-facts",
+      "adapterVersion": 1,
+      "source": {
+        "id": "confect-contracts",
+        "kind": "confect-contracts",
+        "path": "packages/template-core/src/generated/confectManifest.ts",
+        "subject": "repository",
+        "owner": "confect-codegen",
+        "digestContract": "sha256-file-bytes-v1",
+        "version": "1",
+        "digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+      },
+      "nodes": [],
+      "edges": []
+    },
+    {
+      "adapterId": "workflow-semantics-facts",
+      "adapterVersion": 1,
+      "source": {
+        "id": "workflow-semantics",
+        "kind": "workflow-semantics",
+        "path": "docs/template/generated/workflow-semantics.md",
+        "subject": "repository",
+        "owner": "workflow-semantics",
+        "digestContract": "sha256-file-bytes-v1",
+        "version": "1",
+        "digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+      },
+      "nodes": [],
+      "edges": []
+    },
+    {
+      "adapterId": "headless-registry-facts",
+      "adapterVersion": 1,
+      "source": {
+        "id": "headless-registry",
+        "kind": "headless-registry",
+        "path": "packages/template-core/src/generated/confectManifest.ts",
+        "subject": "repository",
+        "owner": "confect-manifest",
+        "digestContract": "sha256-file-bytes-v1",
+        "version": "1",
+        "digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+      },
+      "nodes": [],
+      "edges": []
+    },
+    {
+      "adapterId": "workspace-metadata-facts",
+      "adapterVersion": 1,
+      "source": {
+        "id": "workspace-metadata",
+        "kind": "workspace-metadata",
+        "path": "pnpm-lock.yaml",
+        "subject": "repository",
+        "owner": "workspace-root",
+        "digestContract": "sha256-file-bytes-v1",
+        "version": "1",
+        "digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444"
+      },
+      "nodes": [],
+      "edges": []
+    },
+    {
+      "adapterId": "generator-provenance-facts",
+      "adapterVersion": 1,
+      "source": {
+        "id": "generator-provenance",
+        "kind": "generator-provenance",
+        "path": "docs/template/generated/provenance",
+        "subject": "repository",
+        "owner": "template-generators",
+        "digestContract": "sha256-canonical-tree-v1",
+        "version": "1",
+        "digest": "sha256:5555555555555555555555555555555555555555555555555555555555555555"
+      },
+      "nodes": [],
+      "edges": []
+    },
+    {
+      "adapterId": "template-instance-facts",
       "adapterVersion": 1,
       "source": {
         "id": "template-instance",
         "kind": "template-instance",
         "path": "template-instance.json",
+        "subject": "repository",
+        "owner": "template-instance-schema",
+        "digestContract": "sha256-file-bytes-v1",
         "version": "1",
         "digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
       },
-      "nodes": [
-        {
-          "id": "provider:convex",
-          "kind": "provider",
-          "group": "Connections",
-          "label": "Convex",
-          "version": "configured",
-          "provenance": {
-            "authority": "canonical",
-            "sourceId": "template-instance",
-            "sourcePath": "template-instance.json",
-            "sourceVersion": "1",
-            "sourceDigest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-            "factId": "providers/convex"
-          }
-        }
-      ],
-      "edges": [
-        {
-          "id": "owns:system:access-and-tenancy->provider:convex",
-          "kind": "owns",
-          "from": "system:access-and-tenancy",
-          "to": "provider:convex",
-          "provenance": {
-            "authority": "canonical",
-            "sourceId": "template-instance",
-            "sourcePath": "template-instance.json",
-            "sourceVersion": "1",
-            "sourceDigest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-            "factId": "providers/convex/system"
-          }
-        }
-      ]
+      "nodes": [],
+      "edges": []
     }
   ]
 }

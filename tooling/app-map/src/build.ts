@@ -5,7 +5,7 @@ import {
   type AppMapGroup,
   type AppMapV1,
 } from "./schema";
-import { validateAppMapInput } from "./validate";
+import { parseAppMapInput } from "./validate";
 
 const compareText = (left: string, right: string): number => {
   if (left < right) return -1;
@@ -37,12 +37,14 @@ const groupNodeIds = (
     .map((node) => node.id)
     .sort(compareText);
 
-export const buildAppMap = (input: AppMapBuildInputV1): AppMapBuildResult => {
-  const diagnostics = validateAppMapInput(input);
-  if (diagnostics.length > 0) return { ok: false, diagnostics };
+export const buildAppMap = (candidate: unknown): AppMapBuildResult => {
+  const parsed = parseAppMapInput(candidate);
+  if (!parsed.ok) return { ok: false, diagnostics: parsed.diagnostics };
+  const input = parsed.input;
 
   const map: AppMapV1 = {
     schemaVersion: 1,
+    inputManifest: input.inputManifest,
     subject: input.subject,
     groups: APP_MAP_GROUPS.map((name) => ({
       name,

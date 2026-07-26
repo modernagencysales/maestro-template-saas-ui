@@ -1,13 +1,21 @@
 {
   "schemaVersion": 1,
+  "inputManifest": {
+    "id": "maestro-app-map-input",
+    "version": 1
+  },
   "subject": { "id": "parallel-fixture", "revision": "fixture" },
   "batches": [
     {
+      "adapterId": "product-topology-facts",
       "adapterVersion": 1,
       "source": {
         "id": "product-topology",
         "kind": "product-topology",
         "path": "docs/template/product-topology.json",
+        "subject": "repository",
+        "owner": "product-topology",
+        "digestContract": "sha256-file-bytes-v1",
         "version": "1",
         "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
       },

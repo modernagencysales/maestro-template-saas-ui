@@ -1,7 +1,8 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, expectTypeOf, it } from "vitest";
 
 import {
   APP_MAP_GROUPS,
+  APP_MAP_INPUT_MANIFEST_V1,
   groupForNodeKind,
   type TemplateInstanceFactsAdapterV1,
 } from "./schema";
@@ -20,26 +21,57 @@ describe("App Map schema", () => {
     expect(groupForNodeKind("provider")).toBe("Connections");
   });
 
-  it("exposes a narrow V1 template-instance fact adapter", async () => {
-    const adapter: TemplateInstanceFactsAdapterV1 = {
-      adapterVersion: 1,
-      sourceId: "template-instance",
-      load: async ({ repoRoot }) => ({
-        adapterVersion: 1,
-        source: {
-          id: "template-instance",
-          kind: "template-instance",
-          path: "template-instance.json",
-          version: "1",
-          digest: `sha256:${repoRoot.length.toString().padStart(64, "0")}`,
-        },
-        nodes: [],
-        edges: [],
-      }),
-    };
+  it("closes the V1 input inventory over unique adapter and source authorities", () => {
+    expect(APP_MAP_INPUT_MANIFEST_V1).toMatchObject({
+      id: "maestro-app-map-input",
+      version: 1,
+      provenanceContract: "exact-batch-source-v1",
+    });
+    expect(APP_MAP_INPUT_MANIFEST_V1.requiredSources).toHaveLength(11);
+    expect(
+      new Set(
+        APP_MAP_INPUT_MANIFEST_V1.requiredSources.map(
+          (entry) => entry.adapter.id,
+        ),
+      ).size,
+    ).toBe(APP_MAP_INPUT_MANIFEST_V1.requiredSources.length);
+    expect(
+      new Set(
+        APP_MAP_INPUT_MANIFEST_V1.requiredSources.map(
+          (entry) => entry.source.id,
+        ),
+      ).size,
+    ).toBe(APP_MAP_INPUT_MANIFEST_V1.requiredSources.length);
 
-    const batch = await adapter.load({ repoRoot: "/customer" });
-    expect(batch.source.id).toBe("template-instance");
-    expect(adapter.sourceId).toBe("template-instance");
+    expect(
+      APP_MAP_INPUT_MANIFEST_V1.requiredSources.find(
+        (entry) => entry.source.id === "template-instance",
+      ),
+    ).toMatchObject({
+      adapter: { id: "template-instance-facts", version: 1 },
+      source: {
+        path: "template-instance.json",
+        subject: "repository",
+        owner: "template-instance-schema",
+        digestContract: "sha256-file-bytes-v1",
+      },
+      allowedFacts: {
+        nodeKinds: [],
+        edgeKinds: [],
+        ownershipTargets: [],
+      },
+    });
+  });
+
+  it("types the exact deferred template-instance adapter seam", () => {
+    expectTypeOf<
+      TemplateInstanceFactsAdapterV1["adapterId"]
+    >().toEqualTypeOf<"template-instance-facts">();
+    expectTypeOf<
+      TemplateInstanceFactsAdapterV1["adapterVersion"]
+    >().toEqualTypeOf<1>();
+    expectTypeOf<
+      TemplateInstanceFactsAdapterV1["sourceId"]
+    >().toEqualTypeOf<"template-instance">();
   });
 });

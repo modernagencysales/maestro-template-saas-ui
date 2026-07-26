@@ -30,7 +30,6 @@ describe("deterministic App Map build", () => {
       {
         name: "Connections",
         nodeIds: [
-          "provider:convex",
           "system:access-and-tenancy",
           "system:knowledge-brain",
           "system:workflow-runtime",
@@ -60,5 +59,21 @@ describe("deterministic App Map build", () => {
     expect(first.json).toBe(second.json);
     expect(first.json).toBe(serializeAppMap(first.map));
     expect(first.json.endsWith("\n")).toBe(true);
+  });
+
+  it("builds fresh normalized output without mutating canonical input", () => {
+    const input = readFixture("valid");
+    const before = JSON.stringify(input);
+    const first = buildAppMap(input);
+    const second = buildAppMap(input);
+
+    expect(first.ok).toBe(true);
+    expect(second.ok).toBe(true);
+    if (!first.ok || !second.ok) return;
+
+    expect(first.json).toBe(second.json);
+    expect(JSON.stringify(input)).toBe(before);
+    expect(first.map.subject).not.toBe(input.subject);
+    expect(first.map.sources[0]).not.toBe(input.batches[0]?.source);
   });
 });

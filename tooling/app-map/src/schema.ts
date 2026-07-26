@@ -54,6 +54,218 @@ export const APP_MAP_SOURCE_KINDS = [
 
 export type AppMapSourceKind = (typeof APP_MAP_SOURCE_KINDS)[number];
 
+export const APP_MAP_DIGEST_CONTRACTS = [
+  "sha256-file-bytes-v1",
+  "sha256-canonical-tree-v1",
+] as const;
+
+export type AppMapDigestContractV1 = (typeof APP_MAP_DIGEST_CONTRACTS)[number];
+
+const SOURCE = <
+  const AdapterId extends string,
+  const SourceId extends AppMapSourceKind,
+  const Path extends string,
+  const Owner extends string,
+>(
+  adapterId: AdapterId,
+  id: SourceId,
+  path: Path,
+  owner: Owner,
+  allowedFacts: {
+    readonly nodeKinds: readonly AppMapNodeKind[];
+    readonly edgeKinds: readonly AppMapEdgeKind[];
+    readonly ownershipTargets: readonly AppMapNodeKind[];
+  },
+  digestContract: AppMapDigestContractV1 = "sha256-file-bytes-v1",
+) => ({
+  required: true as const,
+  adapter: { id: adapterId, version: 1 as const },
+  source: {
+    id,
+    kind: id,
+    path,
+    subject: "repository" as const,
+    owner,
+    digestContract,
+  },
+  allowedFacts,
+});
+
+export const APP_MAP_INPUT_MANIFEST_V1 = {
+  id: "maestro-app-map-input" as const,
+  version: 1 as const,
+  provenanceContract: "exact-batch-source-v1" as const,
+  requiredSources: [
+    SOURCE(
+      "system-catalog-facts",
+      "system-catalog",
+      "docs/template/system-catalog.json",
+      "system-catalog",
+      {
+        nodeKinds: ["system"],
+        edgeKinds: [],
+        ownershipTargets: [],
+      },
+    ),
+    SOURCE(
+      "product-topology-facts",
+      "product-topology",
+      "docs/template/product-topology.json",
+      "product-topology",
+      {
+        nodeKinds: [
+          "resource",
+          "route",
+          "capability",
+          "workflow",
+          "agent",
+          "provider",
+          "headless-operation",
+        ],
+        edgeKinds: [
+          "owns",
+          "invokes",
+          "projects",
+          "exposes",
+          "depends-on",
+          "governed-by",
+        ],
+        ownershipTargets: [
+          "resource",
+          "route",
+          "capability",
+          "workflow",
+          "agent",
+          "provider",
+          "headless-operation",
+        ],
+      },
+    ),
+    SOURCE(
+      "data-resources-facts",
+      "data-resources",
+      "docs/template/data-resources.json",
+      "data-lifecycle",
+      {
+        nodeKinds: ["resource", "table"],
+        edgeKinds: ["owns", "persists", "depends-on", "governed-by"],
+        ownershipTargets: ["resource", "table"],
+      },
+    ),
+    SOURCE(
+      "confect-contracts-facts",
+      "confect-contracts",
+      "packages/template-core/src/generated/confectManifest.ts",
+      "confect-codegen",
+      {
+        nodeKinds: ["capability", "headless-operation"],
+        edgeKinds: ["exposes", "depends-on", "generated-by", "verified-by"],
+        ownershipTargets: [],
+      },
+    ),
+    SOURCE(
+      "workflow-registry-facts",
+      "workflow-registry",
+      "packages/convex/confect/workflows/_generated/workflowRegistry.ts",
+      "workflow-generator",
+      {
+        nodeKinds: ["workflow", "workflow-version", "agent"],
+        edgeKinds: [
+          "owns",
+          "persists",
+          "invokes",
+          "depends-on",
+          "generated-by",
+          "governed-by",
+          "verified-by",
+        ],
+        ownershipTargets: ["workflow", "workflow-version", "agent"],
+      },
+    ),
+    SOURCE(
+      "workflow-semantics-facts",
+      "workflow-semantics",
+      "docs/template/generated/workflow-semantics.md",
+      "workflow-semantics",
+      {
+        nodeKinds: ["semantic-rule"],
+        edgeKinds: ["governed-by", "verified-by"],
+        ownershipTargets: [],
+      },
+    ),
+    SOURCE(
+      "route-tree-facts",
+      "route-tree",
+      "apps/web/src/routeTree.gen.ts",
+      "router-codegen",
+      {
+        nodeKinds: ["route"],
+        edgeKinds: ["generated-by"],
+        ownershipTargets: [],
+      },
+    ),
+    SOURCE(
+      "headless-registry-facts",
+      "headless-registry",
+      "packages/template-core/src/generated/confectManifest.ts",
+      "confect-manifest",
+      {
+        nodeKinds: ["headless-operation"],
+        edgeKinds: [
+          "exposes",
+          "invokes",
+          "projects",
+          "depends-on",
+          "generated-by",
+        ],
+        ownershipTargets: [],
+      },
+    ),
+    SOURCE(
+      "workspace-metadata-facts",
+      "workspace-metadata",
+      "pnpm-lock.yaml",
+      "workspace-root",
+      {
+        nodeKinds: ["package"],
+        edgeKinds: ["depends-on"],
+        ownershipTargets: [],
+      },
+    ),
+    SOURCE(
+      "generator-provenance-facts",
+      "generator-provenance",
+      "docs/template/generated/provenance",
+      "template-generators",
+      {
+        nodeKinds: [],
+        edgeKinds: ["generated-by", "verified-by"],
+        ownershipTargets: [],
+      },
+      "sha256-canonical-tree-v1",
+    ),
+    SOURCE(
+      "template-instance-facts",
+      "template-instance",
+      "template-instance.json",
+      "template-instance-schema",
+      {
+        nodeKinds: [],
+        edgeKinds: [],
+        ownershipTargets: [],
+      },
+    ),
+  ],
+} as const;
+
+export type AppMapInputManifestEntryV1 =
+  (typeof APP_MAP_INPUT_MANIFEST_V1.requiredSources)[number];
+
+export type AppMapAdapterIdV1 = AppMapInputManifestEntryV1["adapter"]["id"];
+
+export type AppMapCanonicalSourceIdV1 =
+  AppMapInputManifestEntryV1["source"]["id"];
+
 export type AppMapProvenanceV1 = {
   readonly authority: "canonical";
   readonly sourceId: string;
@@ -67,6 +279,9 @@ export type AppMapSourceV1 = {
   readonly id: string;
   readonly kind: AppMapSourceKind;
   readonly path: string;
+  readonly subject: string;
+  readonly owner: string;
+  readonly digestContract: AppMapDigestContractV1;
   readonly version: string;
   readonly digest: string;
 };
@@ -89,6 +304,7 @@ export type AppMapEdgeV1 = {
 };
 
 export type AppMapFactBatchV1 = {
+  readonly adapterId: AppMapAdapterIdV1;
   readonly adapterVersion: 1;
   readonly source: AppMapSourceV1;
   readonly nodes: readonly AppMapNodeV1[];
@@ -97,6 +313,10 @@ export type AppMapFactBatchV1 = {
 
 export type AppMapBuildInputV1 = {
   readonly schemaVersion: 1;
+  readonly inputManifest: {
+    readonly id: typeof APP_MAP_INPUT_MANIFEST_V1.id;
+    readonly version: typeof APP_MAP_INPUT_MANIFEST_V1.version;
+  };
   readonly subject: {
     readonly id: string;
     readonly revision: string;
@@ -105,19 +325,22 @@ export type AppMapBuildInputV1 = {
 };
 
 export type CanonicalFactsAdapterV1 = {
+  readonly adapterId: AppMapAdapterIdV1;
   readonly adapterVersion: 1;
-  readonly sourceId: string;
+  readonly sourceId: AppMapCanonicalSourceIdV1;
   readonly load: (input: {
     readonly repoRoot: string;
   }) => Promise<AppMapFactBatchV1>;
 };
 
 export type TemplateInstanceFactsAdapterV1 = CanonicalFactsAdapterV1 & {
+  readonly adapterId: "template-instance-facts";
   readonly sourceId: "template-instance";
 };
 
 export type AppMapV1 = {
   readonly schemaVersion: 1;
+  readonly inputManifest: AppMapBuildInputV1["inputManifest"];
   readonly subject: AppMapBuildInputV1["subject"];
   readonly groups: readonly {
     readonly name: AppMapGroup;
