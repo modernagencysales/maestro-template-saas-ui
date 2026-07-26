@@ -15,7 +15,6 @@ import {
 import { Id } from "../_generated/id";
 import { ProductWorkflowEventId } from "../workflows/_kit/events";
 import { WorkflowStatusResult } from "../workflows/_kit/status";
-import { WorkflowAdmissionDenied } from "../workflows/_kit/workflowAdmission";
 import {
   WorkflowLifecycleRunProjection,
   WorkflowLifecycleStepProjection,
@@ -27,10 +26,6 @@ const WorkflowErrors = Schema.Union(
   WorkspaceNotFound,
   NotFound,
   ValidationFailed,
-);
-const WorkflowStartErrors = Schema.Union(
-  WorkflowErrors,
-  WorkflowAdmissionDenied,
 );
 
 const StartArgs = Schema.Struct({
@@ -115,7 +110,7 @@ export const startInteractive = defineContractFunction(
     name: "startInteractive",
     args: () => StartArgs,
     returns: () => StartReturns,
-    error: () => WorkflowStartErrors,
+    error: () => WorkflowErrors,
   }),
   {
     namespace: "workflows.publicationFixture",
@@ -129,7 +124,6 @@ export const startInteractive = defineContractFunction(
       "WorkspaceNotFound",
       "NotFound",
       "ValidationFailed",
-      "WorkflowAdmissionDenied",
     ],
     idempotent: false,
     argsSchemaName: "workflows.publicationFixture.startInteractive.args",
@@ -144,7 +138,7 @@ export const startQueued = defineContractFunction(
     name: "startQueued",
     args: () => StartArgs,
     returns: () => StartReturns,
-    error: () => WorkflowStartErrors,
+    error: () => WorkflowErrors,
   }),
   {
     namespace: "workflows.publicationFixture",
@@ -158,7 +152,6 @@ export const startQueued = defineContractFunction(
       "WorkspaceNotFound",
       "NotFound",
       "ValidationFailed",
-      "WorkflowAdmissionDenied",
     ],
     idempotent: false,
     argsSchemaName: "workflows.publicationFixture.startQueued.args",

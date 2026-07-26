@@ -1,7 +1,7 @@
 import { fileURLToPath } from "node:url";
+import { createHash } from "node:crypto";
 import { dirname, resolve } from "node:path";
 import {
-  cpSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -12,7 +12,10 @@ import { tmpdir } from "node:os";
 
 import { describe, expect, it } from "vitest";
 
-import { buildWorkflowPublicationStack } from "./workflow-publication-generation";
+import {
+  buildWorkflowPublicationStack,
+  findPublishedClosureDrift,
+} from "./workflow-publication-generation";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 
@@ -41,37 +44,30 @@ describe("bounded workflow publication regeneration", () => {
     expect(second.drift).toEqual([]);
   });
 
-  it("keeps published v1 bytes immutable when current source changes", async () => {
+  it("reports published source and artifact drift instead of masking it", () => {
     const fixtureRoot = mkdtempSync(resolve(tmpdir(), "workflow-published-"));
     try {
-      for (const path of generatedPaths) {
+      const fixtures = ["source.ts", "artifact.ts"].map((path) => {
         const target = resolve(fixtureRoot, path);
         mkdirSync(dirname(target), { recursive: true });
-        cpSync(resolve(repoRoot, path), target);
-      }
-      const descriptor = JSON.parse(
-        readFileSync(resolve(fixtureRoot, generatedPaths[5]), "utf8"),
-      ) as { readonly sourceClosure: { readonly roots: readonly string[] } };
-      const firstRoot = descriptor.sourceClosure.roots[0];
-      if (firstRoot === undefined)
-        throw new Error("Fixture source root missing");
-      const changedSource = resolve(fixtureRoot, firstRoot);
-      mkdirSync(dirname(changedSource), { recursive: true });
-      writeFileSync(changedSource, "changed current generator source\n");
-
-      const before = new Map(
-        generatedPaths.map((path) => [
+        writeFileSync(target, `published ${path}\n`);
+        return {
           path,
-          readFileSync(resolve(fixtureRoot, path), "utf8"),
-        ]),
+          checksum: createHash("sha256")
+            .update(readFileSync(target))
+            .digest("hex"),
+        };
+      });
+      expect(findPublishedClosureDrift(fixtureRoot, fixtures)).toEqual([]);
+      writeFileSync(resolve(fixtureRoot, "source.ts"), "masked source drift\n");
+      writeFileSync(
+        resolve(fixtureRoot, "artifact.ts"),
+        "masked artifact drift\n",
       );
-      const result = await buildWorkflowPublicationStack(fixtureRoot);
-
-      expect(result.drift).toEqual([]);
-      expect(result.publicationCount).toBe(2);
-      expect(result.files).toEqual(
-        generatedPaths.map((path) => ({ path, content: before.get(path) })),
-      );
+      expect(findPublishedClosureDrift(fixtureRoot, fixtures)).toEqual([
+        "source.ts",
+        "artifact.ts",
+      ]);
     } finally {
       rmSync(fixtureRoot, { recursive: true, force: true });
     }

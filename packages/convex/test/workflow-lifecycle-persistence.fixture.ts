@@ -71,7 +71,6 @@ export const seedLifecyclePersistence = (
             workflowVersion: 3,
             graphJson: '{"secret":"foreign"}',
             status: "running",
-            admissionLane: "user",
             idempotencyKey: "foreign-run-1",
             startedByUserId: "foreign-user",
             startedAt: lifecycleNow,

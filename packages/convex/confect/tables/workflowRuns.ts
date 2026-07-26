@@ -11,7 +11,6 @@ import {
 } from "../workflows/_kit/lifecycleState";
 import { DurableWorkflowPrincipal } from "../workflows/_kit/principal";
 import { WorkflowPolicySnapshot } from "../workflows/_kit/policySnapshot";
-import { WorkflowAdmissionLane } from "../workflows/_kit/workflowAdmission";
 
 export const WorkflowRunStatus = Schema.Literal(
   "queued",
@@ -30,8 +29,6 @@ export const WorkflowRunRow = Schema.Struct({
   workflowVersion: Schema.Number,
   graphJson: Schema.String,
   status: WorkflowRunStatus,
-  admissionLane: Schema.optional(WorkflowAdmissionLane),
-  startBindingHash: Schema.optional(Schema.NullOr(Schema.String)),
   idempotencyKey: Schema.String,
   startedByUserId: Schema.String,
   startedAt: Schema.Number,
@@ -77,11 +74,6 @@ export const WorkflowRunRow = Schema.Struct({
 
 export default Table.make(() => WorkflowRunRow)
   .index("by_workspace_status", ["workspaceId", "status"])
-  .index("by_workspace_admission_status", [
-    "workspaceId",
-    "admissionLane",
-    "status",
-  ])
   .index("by_workflow_version", ["workflowId", "workflowVersion"])
   .index("by_idempotency_key", ["workspaceId", "idempotencyKey"])
   .index("by_component_workflow", ["componentWorkflowId"])

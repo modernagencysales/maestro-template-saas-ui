@@ -73,6 +73,14 @@ const reserve = FunctionImpl.make(
         reader,
         projection.workspaceId,
         admissionLane,
+      ).pipe(
+        Effect.mapError(
+          () =>
+            new ValidationFailed({
+              field: "workflow",
+              message: "Subworkflow admission capacity is unavailable.",
+            }),
+        ),
       );
       const writer = yield* DatabaseWriter;
       const childWorkflowRunId = yield* writer
@@ -83,7 +91,6 @@ const reserve = FunctionImpl.make(
           workflowVersion: projection.childWorkflowVersion,
           graphJson: projection.childGraphJson,
           status: "queued",
-          admissionLane,
           idempotencyKey: subworkflowRunLinkIdempotencyKey(projection),
           startedByUserId:
             projection.principal.kind === "user"
@@ -99,6 +106,21 @@ const reserve = FunctionImpl.make(
           lifecycleGeneration: 0,
           principalSnapshot: projection.principal,
           policySnapshot: projection.policySnapshot,
+        })
+        .pipe(Effect.orDie);
+      yield* writer
+        .table("workflowRunEvents")
+        .insert({
+          workflowRunId: childWorkflowRunId,
+          sequence: occurredAt,
+          type: "workflow.admission.reserved.v1",
+          nodeId: null,
+          payloadJson: JSON.stringify({
+            workspaceId: projection.workspaceId,
+            admissionLane,
+            startBindingHash: null,
+          }),
+          createdAt: occurredAt,
         })
         .pipe(Effect.orDie);
       const linkId = yield* writer

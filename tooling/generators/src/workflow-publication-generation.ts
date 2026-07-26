@@ -65,6 +65,23 @@ const immutablePublishedPaths = [
 const sha256 = (value: string | Buffer): string =>
   createHash("sha256").update(value).digest("hex");
 
+export const findPublishedClosureDrift = (
+  cwd: string,
+  inputs: readonly {
+    readonly path: string;
+    readonly checksum: string;
+  }[],
+): readonly string[] =>
+  inputs
+    .filter(({ path, checksum }) => {
+      try {
+        return sha256(readFileSync(resolve(cwd, path))) !== checksum;
+      } catch {
+        return true;
+      }
+    })
+    .map(({ path }) => path);
+
 const canonicalize = (value: unknown): unknown => {
   if (Array.isArray(value)) return value.map(canonicalize);
   if (value !== null && typeof value === "object") {
@@ -275,12 +292,29 @@ export const buildWorkflowPublicationStack = async (
     currentCapability.lifecycle === "published" &&
     currentWorkflow.lifecycle === "published"
   ) {
+    const manifest = readJson<{
+      readonly entries: readonly PublicationEntry[];
+    }>(cwd, manifestPath);
+    const publishedArtifacts = [currentCapability, currentWorkflow].flatMap(
+      (descriptor) =>
+        manifest.entries.find(
+          (entry) =>
+            entry.kind === descriptor.kind &&
+            entry.logicalId === descriptor.logicalId &&
+            entry.version === descriptor.version,
+        )?.artifacts ?? [],
+    );
+    const drift = findPublishedClosureDrift(cwd, [
+      ...currentCapability.sourceClosure.modules,
+      ...currentWorkflow.sourceClosure.modules,
+      ...publishedArtifacts,
+    ]);
     return {
       files: immutablePublishedPaths.map((path) => ({
         path,
         content: readFileSync(resolve(cwd, path), "utf8"),
       })),
-      drift: [],
+      drift: [...new Set(drift)].sort(),
       publicationCount: 2,
     };
   }

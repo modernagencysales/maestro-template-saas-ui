@@ -6,7 +6,6 @@ import { NotFound, ValidationFailed } from "../errors";
 import { DurableWorkflowPrincipal } from "./_kit/principal";
 import { WorkflowPolicySnapshot } from "./_kit/policySnapshot";
 import { MAX_SUBWORKFLOW_RESULT_BYTES } from "./_kit/subworkflowLinks";
-import { WorkflowAdmissionDenied } from "./_kit/workflowAdmission";
 import { WorkflowReference, WorkflowStepName } from "./_kit/workflowReferences";
 
 export const SubworkflowRunLinkProjection = Schema.Struct({
@@ -97,11 +96,7 @@ export const ReportSubworkflowReconciliationFailureArgs = Schema.Struct({
   occurredAt: Schema.Number.pipe(Schema.greaterThanOrEqualTo(0)),
 });
 
-const errors = Schema.Union(
-  NotFound,
-  ValidationFailed,
-  WorkflowAdmissionDenied,
-);
+const errors = Schema.Union(NotFound, ValidationFailed);
 
 const reserve = FunctionSpec.internalMutation({
   name: "reserve",

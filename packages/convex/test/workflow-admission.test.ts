@@ -1,6 +1,7 @@
 import { TestConfect } from "@confect/test";
 import * as Effect from "effect/Effect";
 import * as Either from "effect/Either";
+import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
 import type { FunctionReference } from "convex/server";
 import { describe, expect, it } from "vitest";
@@ -9,6 +10,7 @@ import databaseSchema from "../confect/_generated/schema";
 import { DatabaseReader, DatabaseWriter } from "../confect/_generated/services";
 import {
   assertWorkflowAdmissionAvailable,
+  handleExistingWorkflowRun,
   recordStartedWorkflow,
   reserveWorkflowRun,
   sameWorkflowStartBinding,
@@ -48,6 +50,13 @@ const systemPrincipal = createWorkflowSystemPrincipal({
   reason: "scheduled fixture",
   grants: ["workflow:start"],
   kickoffAt: 1,
+});
+const systemPrincipalLater = createWorkflowSystemPrincipal({
+  workspaceId: "workspace-a",
+  systemId: "scheduler",
+  reason: "scheduled fixture",
+  grants: ["workflow:start"],
+  kickoffAt: 999,
 });
 const userPrincipal = createWorkflowUserPrincipal({
   workspaceId: "workspace-a",
@@ -314,10 +323,18 @@ describe("workspace workflow admission", () => {
               principalSnapshot: systemPrincipal,
             });
             const row = yield* reader
-              .table("workflowRuns")
-              .get(runId)
-              .pipe(Effect.orDie);
-            return row?.admissionLane ?? "missing";
+              .table("workflowRunEvents")
+              .index("by_run_type", (q) =>
+                q
+                  .eq("workflowRunId", runId)
+                  .eq("type", "workflow.admission.reserved.v1"),
+              )
+              .first()
+              .pipe(Effect.map(Option.getOrNull), Effect.orDie);
+            return row === null
+              ? "missing"
+              : (JSON.parse(row.payloadJson) as { admissionLane: string })
+                  .admissionLane;
           }),
           Schema.String,
         );
@@ -328,6 +345,61 @@ describe("workspace workflow admission", () => {
 });
 
 describe("immutable workflow start binding", () => {
+  it("ignores volatile principal and policy resolution timestamps", () => {
+    const pinnedPolicy = {
+      version: 1 as const,
+      kind: "pinned" as const,
+      schemaName: "workspace-policy",
+      policyVersionId: "policy-v1",
+      policyHash: "hash-v1",
+      resolvedAt: 1,
+    };
+    const baseline = workflowStartBindingHash(
+      startBindingInput({
+        principalSnapshot: systemPrincipal,
+        policySnapshot: pinnedPolicy,
+      }),
+      "same-key",
+    );
+    expect(
+      workflowStartBindingHash(
+        startBindingInput({
+          principalSnapshot: systemPrincipalLater,
+          policySnapshot: { ...pinnedPolicy, resolvedAt: 999 },
+          startedAt: 999,
+        }),
+        "same-key",
+      ),
+    ).toBe(baseline);
+  });
+
+  it("returns the existing component for the same intent at a later time", async () => {
+    const first = startBindingInput({ principalSnapshot: systemPrincipal });
+    const later = startBindingInput({
+      principalSnapshot: systemPrincipalLater,
+      startedAt: 999,
+    });
+    const startBindingHash = workflowStartBindingHash(first, "same-key");
+    await expect(
+      Effect.runPromise(
+        handleExistingWorkflowRun(
+          {
+            workflowId: first.workflowId,
+            workflowVersion: first.workflowVersion,
+            admissionLane: "system",
+            startBindingHash,
+            componentWorkflowId: "component-existing",
+          },
+          {
+            ...later,
+            admissionLane: "system",
+            startBindingHash: workflowStartBindingHash(later, "same-key"),
+          },
+        ),
+      ),
+    ).resolves.toBe("component-existing");
+  });
+
   it("binds version, arguments, principal, and derived lane", () => {
     const baseline = workflowStartBindingHash(startBindingInput(), "same-key");
     expect(
@@ -345,6 +417,21 @@ describe("immutable workflow start binding", () => {
     expect(
       workflowStartBindingHash(
         startBindingInput({ principalSnapshot: systemPrincipal }),
+        "same-key",
+      ),
+    ).not.toBe(baseline);
+    expect(
+      workflowStartBindingHash(
+        startBindingInput({
+          policySnapshot: {
+            version: 1,
+            kind: "pinned",
+            schemaName: "workspace-policy",
+            policyVersionId: "policy-v2",
+            policyHash: "hash-v2",
+            resolvedAt: 1,
+          },
+        }),
         "same-key",
       ),
     ).not.toBe(baseline);

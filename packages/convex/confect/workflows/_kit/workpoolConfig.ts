@@ -1,7 +1,6 @@
 import type { LogLevel, WorkpoolOptions } from "@convex-dev/workpool";
 
 import { readNodeEnvironment } from "../../shared/env";
-import { workflowAdmissionPolicy } from "./workflowAdmission";
 
 export type WorkflowEnvironment = "development" | "test" | "production";
 
@@ -39,10 +38,6 @@ const generatedWorkflowEnvironment: WorkflowEnvironment =
 
 export const generatedWorkflowWorkpoolOptions = workflowWorkpoolOptions(
   generatedWorkflowEnvironment,
-);
-
-export const generatedWorkflowAdmissionPolicy = workflowAdmissionPolicy(
-  environmentPosture[generatedWorkflowEnvironment].maxParallelism,
 );
 
 export const generatedWorkflowReadyWaveLimit =

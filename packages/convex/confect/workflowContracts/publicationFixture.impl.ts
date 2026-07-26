@@ -22,7 +22,6 @@ import {
   WorkspaceNotFound,
 } from "../errors";
 import { startWorkflowAndRecordOwnership } from "../workflows/_kit/ownership";
-import { WorkflowAdmissionDenied } from "../workflows/_kit/workflowAdmission";
 import {
   getMaestroWorkflowStatus,
   type MaestroWorkflowComponent,
@@ -48,37 +47,45 @@ const withConfectClock = <A, E, R>(
 const workflowComponent = componentsGeneric()
   .workflow as unknown as MaestroWorkflowComponent;
 
+const errorMessage = (error: unknown): string | null => {
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "message" in error &&
+    typeof error.message === "string"
+  ) {
+    return error.message;
+  }
+
+  return null;
+};
+
+const toWorkflowValidationFailed = (error: unknown): ValidationFailed =>
+  new ValidationFailed({
+    field: "workflow",
+    message: errorMessage(error) ?? "Unable to start workflow.",
+  });
+
 type WorkflowError =
   | Unauthorized
   | MemberNotInWorkspace
   | WorkspaceNotFound
   | NotFound
   | ValidationFailed;
-type WorkflowStartError = WorkflowError | WorkflowAdmissionDenied;
 
-const isWorkflowError = (error: unknown): error is WorkflowError =>
-  error instanceof Unauthorized ||
-  error instanceof MemberNotInWorkspace ||
-  error instanceof WorkspaceNotFound ||
-  error instanceof NotFound ||
-  error instanceof ValidationFailed;
-const toWorkflowValidationFailed = (): ValidationFailed =>
-  new ValidationFailed({
-    field: "workflow",
-    message: "Workflow operation failed.",
-  });
-const toWorkflowError = (error: unknown): WorkflowError =>
-  isWorkflowError(error) ? error : toWorkflowValidationFailed();
-const preserveWorkflowStartErrors = <A, R>(
-  effect: Effect.Effect<A, unknown, R>,
-): Effect.Effect<A, WorkflowStartError, R> =>
-  effect.pipe(
-    Effect.catchAll((error) =>
-      isWorkflowError(error) || error instanceof WorkflowAdmissionDenied
-        ? Effect.fail(error)
-        : Effect.die(error),
-    ),
-  );
+const toWorkflowError = (error: unknown): WorkflowError => {
+  if (
+    error instanceof Unauthorized ||
+    error instanceof MemberNotInWorkspace ||
+    error instanceof WorkspaceNotFound ||
+    error instanceof NotFound ||
+    error instanceof ValidationFailed
+  ) {
+    return error;
+  }
+
+  return toWorkflowValidationFailed(error);
+};
 
 const findWorkflowRun = (
   workspaceId: GenericId<"workspaces">,
@@ -161,7 +168,7 @@ const startWithProfile = (
           publicationFixtureV1Release.runner.functionReference,
         releaseChecksum: publicationFixtureV1Release.releaseChecksum,
       },
-    });
+    }).pipe(Effect.mapError(toWorkflowValidationFailed));
     const run = yield* findWorkflowRun(workspaceId, componentWorkflowId);
 
     return {
@@ -170,7 +177,7 @@ const startWithProfile = (
       workflowRunId: run._id,
       componentWorkflowId,
     };
-  }).pipe(preserveWorkflowStartErrors);
+  }).pipe(Effect.mapError(toWorkflowError));
 
 const startInteractiveImpl = FunctionImpl.make(
   databaseSchema,
