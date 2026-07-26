@@ -23,3 +23,16 @@ diff --git a/dist/utils.mjs b/dist/utils.mjs
 +		return relativeSegments[0] === "components" || PRESERVED_APP_MODULES.has(relativeSegments.join("/"));
 +	};
 +	return pipe(yield* pipe(yield* fs.readDirectory(convexDirectory, { recursive: true }), Array.filter((convexPath) => path.extname(convexPath) === ".ts" && !isPreservedAppModule(convexPath) && !RESERVED_CONVEX_TS_FILE_NAMES.has(path.basename(convexPath)) && path.basename(path.dirname(convexPath)) !== "_generated"), Effect.forEach((groupModulePath) => fromGroupModulePath(groupModulePath))), HashSet.fromIterable, GroupPaths.make);
+diff --git a/dist/templates.mjs b/dist/templates.mjs
+--- a/dist/templates.mjs
++++ b/dist/templates.mjs
+@@ -16 +16,8 @@
+-	yield* Effect.forEach(functionNames, (functionName) => cbw.writeLine(`export const ${functionName} = registeredFunctions.${functionName};`));
++	yield* Effect.forEach(functionNames, (functionName) => {
++		const declaration = `export const ${functionName} = registeredFunctions.${functionName};`;
++		if (declaration.length <= 80) return cbw.writeLine(declaration);
++		return Effect.gen(function* () {
++			yield* cbw.writeLine(`export const ${functionName} =`);
++			yield* cbw.writeLine(`  registeredFunctions.${functionName};`);
++		});
++	});

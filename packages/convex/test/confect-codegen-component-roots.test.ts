@@ -7,9 +7,11 @@ import { describe, expect, it } from "vitest";
 const packageRoot = resolve(import.meta.dirname, "..");
 const repositoryRoot = resolve(packageRoot, "../..");
 const protectedFunctions = [
+  "convex/brain/pages.ts",
   "convex/components/workflowAdmission/admission.ts",
   "convex/components/workflowDeadline/deadlines.ts",
   "convex/workflows/deadlinesCurrent.ts",
+  "convex/workflows/subworkflowLinks.ts",
 ] as const;
 const digest = (path: string): string =>
   createHash("sha256")

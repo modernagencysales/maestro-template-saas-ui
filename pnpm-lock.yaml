@@ -16,7 +16,7 @@ overrides:
 
 patchedDependencies:
   "@confect/cli@9.1.5":
-    hash: zxkafo57samnsyru7j4rvgbphi
+    hash: m5j3ddx72hfvi57zsownt6u3ke
     path: patches/@confect__cli@9.1.5.patch
 
 importers:
@@ -264,7 +264,7 @@ importers:
         version: 0.51.4(@types/hast@3.0.4)
       "@confect/cli":
         specifier: 9.1.5
-        version: 9.1.5(patch_hash=zxkafo57samnsyru7j4rvgbphi)(@confect/core@9.1.5(convex@1.42.1(react@19.1.0))(effect@3.21.4))(@confect/server@9.1.5(qqvtpth5wejrfl6hs3fy73imny))(@effect/cluster@0.58.0(@effect/platform@0.96.2(effect@3.21.4))(@effect/rpc@0.75.1(@effect/platform@0.96.2(effect@3.21.4))(effect@3.21.4))(@effect/sql@0.51.1(@effect/experimental@0.60.0(@effect/platform@0.96.2(effect@3.21.4))(effect@3.21.4))(@effect/platform@0.96.2(effect@3.21.4))(effect@3.21.4))(@effect/workflow@0.18.2(@effect/experimental@0.60.0(@effect/platform@0.96.2(effect@3.21.4))(effect@3.21.4))(@effect/platform@0.96.2(effect@3.21.4))(@effect/rpc@0.75.1(@effect/platform@0.96.2(effect@3.21.4))(effect@3.21.4))(effect@3.21.4))(effect@3.21.4))(@effect/rpc@0.75.1(@effect/platform@0.96.2(effect@3.21.4))(effect@3.21.4))(@effect/sql@0.51.1(@effect/experimental@0.60.0(@effect/platform@0.96.2(effect@3.21.4))(effect@3.21.4))(@effect/platform@0.96.2(effect@3.21.4))(effect@3.21.4))(@effect/typeclass@0.40.0(effect@3.21.4))(effect@3.21.4)
+        version: 9.1.5(patch_hash=m5j3ddx72hfvi57zsownt6u3ke)(@confect/core@9.1.5(convex@1.42.1(react@19.1.0))(effect@3.21.4))(@confect/server@9.1.5(qqvtpth5wejrfl6hs3fy73imny))(@effect/cluster@0.58.0(@effect/platform@0.96.2(effect@3.21.4))(@effect/rpc@0.75.1(@effect/platform@0.96.2(effect@3.21.4))(effect@3.21.4))(@effect/sql@0.51.1(@effect/experimental@0.60.0(@effect/platform@0.96.2(effect@3.21.4))(effect@3.21.4))(@effect/platform@0.96.2(effect@3.21.4))(effect@3.21.4))(@effect/workflow@0.18.2(@effect/experimental@0.60.0(@effect/platform@0.96.2(effect@3.21.4))(effect@3.21.4))(@effect/platform@0.96.2(effect@3.21.4))(@effect/rpc@0.75.1(@effect/platform@0.96.2(effect@3.21.4))(effect@3.21.4))(effect@3.21.4))(effect@3.21.4))(@effect/rpc@0.75.1(@effect/platform@0.96.2(effect@3.21.4))(effect@3.21.4))(@effect/sql@0.51.1(@effect/experimental@0.60.0(@effect/platform@0.96.2(effect@3.21.4))(effect@3.21.4))(@effect/platform@0.96.2(effect@3.21.4))(effect@3.21.4))(@effect/typeclass@0.40.0(effect@3.21.4))(effect@3.21.4)
       "@confect/core":
         specifier: 9.1.5
         version: 9.1.5(convex@1.42.1(react@19.1.0))(effect@3.21.4)
@@ -9890,7 +9890,7 @@ snapshots:
       react: 19.1.0
       react-dom: 19.1.0(react@19.1.0)
 
-  "@confect/cli@9.1.5(patch_hash=zxkafo57samnsyru7j4rvgbphi)(@confect/core@9.1.5(convex@1.42.1(react@19.1.0))(effect@3.21.4))(@confect/server@9.1.5(qqvtpth5wejrfl6hs3fy73imny))(@effect/cluster@0.58.0(@effect/platform@0.96.2(effect@3.21.4))(@effect/rpc@0.75.1(@effect/platform@0.96.2(effect@3.21.4))(effect@3.21.4))(@effect/sql@0.51.1(@effect/experimental@0.60.0(@effect/platform@0.96.2(effect@3.21.4))(effect@3.21.4))(@effect/platform@0.96.2(effect@3.21.4))(effect@3.21.4))(@effect/workflow@0.18.2(@effect/experimental@0.60.0(@effect/platform@0.96.2(effect@3.21.4))(effect@3.21.4))(@effect/platform@0.96.2(effect@3.21.4))(@effect/rpc@0.75.1(@effect/platform@0.96.2(effect@3.21.4))(effect@3.21.4))(effect@3.21.4))(effect@3.21.4))(@effect/rpc@0.75.1(@effect/platform@0.96.2(effect@3.21.4))(effect@3.21.4))(@effect/sql@0.51.1(@effect/experimental@0.60.0(@effect/platform@0.96.2(effect@3.21.4))(effect@3.21.4))(@effect/platform@0.96.2(effect@3.21.4))(effect@3.21.4))(@effect/typeclass@0.40.0(effect@3.21.4))(effect@3.21.4)":
+  "@confect/cli@9.1.5(patch_hash=m5j3ddx72hfvi57zsownt6u3ke)(@confect/core@9.1.5(convex@1.42.1(react@19.1.0))(effect@3.21.4))(@confect/server@9.1.5(qqvtpth5wejrfl6hs3fy73imny))(@effect/cluster@0.58.0(@effect/platform@0.96.2(effect@3.21.4))(@effect/rpc@0.75.1(@effect/platform@0.96.2(effect@3.21.4))(effect@3.21.4))(@effect/sql@0.51.1(@effect/experimental@0.60.0(@effect/platform@0.96.2(effect@3.21.4))(effect@3.21.4))(@effect/platform@0.96.2(effect@3.21.4))(effect@3.21.4))(@effect/workflow@0.18.2(@effect/experimental@0.60.0(@effect/platform@0.96.2(effect@3.21.4))(effect@3.21.4))(@effect/platform@0.96.2(effect@3.21.4))(@effect/rpc@0.75.1(@effect/platform@0.96.2(effect@3.21.4))(effect@3.21.4))(effect@3.21.4))(effect@3.21.4))(@effect/rpc@0.75.1(@effect/platform@0.96.2(effect@3.21.4))(effect@3.21.4))(@effect/sql@0.51.1(@effect/experimental@0.60.0(@effect/platform@0.96.2(effect@3.21.4))(effect@3.21.4))(@effect/platform@0.96.2(effect@3.21.4))(effect@3.21.4))(@effect/typeclass@0.40.0(effect@3.21.4))(effect@3.21.4)":
     dependencies:
       "@confect/core": 9.1.5(convex@1.42.1(react@19.1.0))(effect@3.21.4)
       "@confect/server": 9.1.5(qqvtpth5wejrfl6hs3fy73imny)
