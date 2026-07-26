@@ -288,24 +288,20 @@ export function buildReviewedAdditionalPaths(input: {
 }): readonly CustomerReleasePath[] {
   if (!Array.isArray(input.value))
     throw new Error("Release additionalPaths must be an array.");
-  const reviewedIdentities = new Set(
-    REVIEWED_ADDITIONAL_PATHS.map((rule) => `${rule.match}:${rule.path}`),
-  );
   const configuredFactoryRules = input.value.filter((raw) => {
     if (!isRecord(raw)) return true;
     const identity = `${String(raw.match)}:${String(raw.path)}`;
-    if (raw.ownership !== "factory-only") {
-      const reviewed = REVIEWED_ADDITIONAL_PATHS.find(
-        (rule) => `${rule.match}:${rule.path}` === identity,
-      );
-      if (
-        reviewed === undefined ||
-        JSON.stringify(raw) !== JSON.stringify(reviewed)
-      )
+    const reviewed = REVIEWED_ADDITIONAL_PATHS.find(
+      (rule) => `${rule.match}:${rule.path}` === identity,
+    );
+    if (reviewed !== undefined) {
+      if (JSON.stringify(raw) !== JSON.stringify(reviewed))
         throw new Error(`Release additional path is not reviewed: ${identity}`);
       return false;
     }
-    return !reviewedIdentities.has(identity);
+    if (raw.ownership !== "factory-only")
+      throw new Error(`Release additional path is not reviewed: ${identity}`);
+    return true;
   });
   const configured = parseReviewedFactoryOnlyExclusions({
     value: configuredFactoryRules,
