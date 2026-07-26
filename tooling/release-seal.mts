@@ -36,6 +36,7 @@ type SealManifest = {
 };
 type PriorManifest = {
   readonly expectedHashes?: Readonly<Record<string, string>>;
+  readonly paths?: readonly CustomerReleasePath[];
   readonly release: { readonly sourceCommit: string };
 };
 type BlueprintManifest = {
@@ -142,6 +143,50 @@ function slug(path: string): string {
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
+const REVIEWED_ADDITIONAL_PATHS: readonly CustomerReleasePath[] = [
+  {
+    path: "docs/agent",
+    match: "subtree",
+    ownership: "template-owned",
+    action: "copy",
+    upgrade: "replace",
+  },
+  {
+    path: "patches",
+    match: "subtree",
+    ownership: "template-owned",
+    action: "copy",
+    upgrade: "replace",
+  },
+  {
+    path: "tooling/app-map/INTEGRATION_REQUEST.md",
+    match: "exact",
+    ownership: "factory-only",
+    action: "omit",
+    upgrade: "remove",
+  },
+  {
+    path: "tooling/app-map",
+    match: "subtree",
+    ownership: "template-owned",
+    action: "copy",
+    upgrade: "replace",
+  },
+  {
+    path: "tooling/release-seal.mts",
+    match: "exact",
+    ownership: "factory-only",
+    action: "omit",
+    upgrade: "remove",
+  },
+  {
+    path: "tooling/release-seal.test.mts",
+    match: "exact",
+    ownership: "factory-only",
+    action: "omit",
+    upgrade: "remove",
+  },
+] as const;
 
 export function parseReviewedFactoryOnlyExclusions(input: {
   readonly value: unknown;
@@ -235,6 +280,51 @@ export function buildReviewedOwnershipInventory(input: {
   );
 }
 
+export function buildReviewedAdditionalPaths(input: {
+  readonly value: unknown;
+  readonly sourcePaths: readonly string[];
+  readonly protectedCustomerPaths: readonly string[];
+  readonly basePaths: readonly CustomerReleasePath[];
+}): readonly CustomerReleasePath[] {
+  if (!Array.isArray(input.value))
+    throw new Error("Release additionalPaths must be an array.");
+  const reviewedIdentities = new Set(
+    REVIEWED_ADDITIONAL_PATHS.map((rule) => `${rule.match}:${rule.path}`),
+  );
+  const configuredFactoryRules = input.value.filter((raw) => {
+    if (!isRecord(raw)) return true;
+    const identity = `${String(raw.match)}:${String(raw.path)}`;
+    if (raw.ownership !== "factory-only") {
+      const reviewed = REVIEWED_ADDITIONAL_PATHS.find(
+        (rule) => `${rule.match}:${rule.path}` === identity,
+      );
+      if (
+        reviewed === undefined ||
+        JSON.stringify(raw) !== JSON.stringify(reviewed)
+      )
+        throw new Error(`Release additional path is not reviewed: ${identity}`);
+      return false;
+    }
+    return !reviewedIdentities.has(identity);
+  });
+  const configured = parseReviewedFactoryOnlyExclusions({
+    value: configuredFactoryRules,
+    sourcePaths: input.sourcePaths,
+    protectedCustomerPaths: input.protectedCustomerPaths,
+  });
+  const rules = [...configured, ...REVIEWED_ADDITIONAL_PATHS].sort(
+    (left, right) =>
+      `${left.path}:${left.match}`.localeCompare(
+        `${right.path}:${right.match}`,
+      ),
+  );
+  for (const path of input.sourcePaths) {
+    if (!resolveCustomerReleasePath([...input.basePaths, ...rules], path))
+      throw new Error(`Unclassified reviewed release source path: ${path}`);
+  }
+  return rules;
+}
+
 async function build(args: Args): Promise<readonly Output[]> {
   assertSource(args);
   const releaseRoot = `releases/v${args.version}`;
@@ -298,11 +388,15 @@ async function build(args: Args): Promise<readonly Output[]> {
   outputs.push({ path: blueprintPath, bytes: blueprintBytes });
 
   const reviewedSourcePaths = sourcePaths(args.sourceCommit);
-  const exclusions = parseReviewedFactoryOnlyExclusions({
+  const additionalPaths = buildReviewedAdditionalPaths({
     value: current.additionalPaths,
     sourcePaths: reviewedSourcePaths,
     protectedCustomerPaths: protectedCustomerSourcePaths,
+    basePaths: prior.paths ?? [],
   });
+  const exclusions = additionalPaths.filter(
+    (entry) => entry.ownership === "factory-only",
+  );
   const inventory = buildReviewedOwnershipInventory({
     sourcePaths: reviewedSourcePaths,
     exclusions,
@@ -455,6 +549,7 @@ async function build(args: Args): Promise<readonly Output[]> {
       path: migrationPath,
       sha256: hash(migrationBytes),
     },
+    additionalPaths,
   } as Json;
   const manifestBytes = await json(manifestValue);
   outputs.push({ path: manifestPath, bytes: manifestBytes });

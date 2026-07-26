@@ -153,6 +153,17 @@ const resolveImports = (
   return resolvedPaths;
 };
 
+const isMutableGeneratedProjection = (
+  repositoryRoot: string,
+  absolutePath: string,
+): boolean => {
+  const path = normalizedSourcePath(repositoryRoot, absolutePath);
+  return (
+    path.includes("/confect/_generated/") ||
+    path === "packages/convex/confect/http.ts"
+  );
+};
+
 export const buildResolvedSourceClosure = (
   cwd: string,
   roots: readonly string[],
@@ -181,6 +192,9 @@ export const buildResolvedSourceClosure = (
           absolutePath,
           specifier,
           (candidate) => overlay.has(candidate) || existsSync(candidate),
+        ).filter(
+          (candidate) =>
+            !isMutableGeneratedProjection(repositoryRoot, candidate),
         ),
       );
     }

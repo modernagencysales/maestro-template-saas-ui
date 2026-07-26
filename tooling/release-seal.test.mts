@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildReviewedAdditionalPaths,
   buildReviewedOwnershipInventory,
   parseReviewedFactoryOnlyExclusions,
 } from "./release-seal.mjs";
@@ -13,6 +14,65 @@ const factoryRule = (path: string, match: "exact" | "subtree") => ({
 });
 
 describe("release seal factory-only exclusions", () => {
+  it("classifies reviewed customer additions and omits reviewed factory files", () => {
+    const sourcePaths = [
+      "README.md",
+      "docs/agent/host-projection-lifecycle.md",
+      "patches/@confect__cli@9.1.5.patch",
+      "tooling/app-map/INTEGRATION_REQUEST.md",
+      "tooling/app-map/src/build.ts",
+      "tooling/release-seal.mts",
+      "tooling/release-seal.test.mts",
+    ];
+    const paths = buildReviewedAdditionalPaths({
+      value: [],
+      sourcePaths,
+      protectedCustomerPaths: [],
+      basePaths: [
+        {
+          path: "README.md",
+          match: "exact",
+          ownership: "customer-extension",
+          action: "copy",
+          upgrade: "preserve",
+        },
+      ],
+    });
+    expect(paths).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          path: "docs/agent",
+          ownership: "template-owned",
+          action: "copy",
+        }),
+        expect.objectContaining({
+          path: "tooling/app-map/INTEGRATION_REQUEST.md",
+          ownership: "factory-only",
+          action: "omit",
+        }),
+        expect.objectContaining({
+          path: "tooling/app-map",
+          ownership: "template-owned",
+          action: "copy",
+        }),
+        expect.objectContaining({
+          path: "tooling/release-seal.mts",
+          ownership: "factory-only",
+          action: "omit",
+        }),
+      ]),
+    );
+  });
+  it("fails closed when a source path has no reviewed classification", () => {
+    expect(() =>
+      buildReviewedAdditionalPaths({
+        value: [],
+        sourcePaths: ["unknown/new-root.txt"],
+        protectedCustomerPaths: [],
+        basePaths: [],
+      }),
+    ).toThrow(/Unclassified reviewed release source path/);
+  });
   it("derives explicit reviewed exclusions before inventory classification", () => {
     const sourcePaths = [
       "README.md",

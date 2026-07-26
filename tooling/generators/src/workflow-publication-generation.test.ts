@@ -72,4 +72,31 @@ describe("bounded workflow publication regeneration", () => {
       rmSync(fixtureRoot, { recursive: true, force: true });
     }
   });
+
+  it("keeps mutable generated schema and HTTP projections outside the published closure", async () => {
+    const paths = [
+      "packages/convex/confect/_generated/schema.ts",
+      "packages/convex/confect/http.ts",
+    ] as const;
+    const originals = new Map(
+      paths.map((path) => [
+        path,
+        readFileSync(resolve(repoRoot, path), "utf8"),
+      ]),
+    );
+    try {
+      for (const path of paths) {
+        writeFileSync(
+          resolve(repoRoot, path),
+          `${originals.get(path)}\n// unrelated generated projection change\n`,
+        );
+      }
+      const result = await buildWorkflowPublicationStack(repoRoot);
+      expect(result.drift).toEqual([]);
+    } finally {
+      for (const [path, source] of originals) {
+        writeFileSync(resolve(repoRoot, path), source);
+      }
+    }
+  });
 });

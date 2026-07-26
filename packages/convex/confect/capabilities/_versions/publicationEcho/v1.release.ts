@@ -1,6 +1,5 @@
-import * as Ref from "@confect/core/Ref";
+import { makeFunctionReference, type FunctionReference } from "convex/server";
 
-import refs from "../../../_generated/refs";
 import { defineCapabilityRelease } from "../../../workflows/_kit/publication";
 import { publicationEchoV1Authority } from "./v1.authority";
 
@@ -9,9 +8,9 @@ export const publicationEchoV1Release = defineCapabilityRelease({
   version: 1,
   lifecycle: "published",
   authority: publicationEchoV1Authority,
-  functionRef: Ref.getFunctionReference(
-    refs.internal.capabilities._versions.publicationEcho.v1.run,
-  ),
+  functionRef: makeFunctionReference<"mutation">(
+    "capabilities/_versions/publicationEcho/v1:run",
+  ) as unknown as FunctionReference<"mutation", "internal">,
   functionReference: "capabilities/_versions/publicationEcho/v1:run",
   argsSchema: "capabilities.publicationEcho.v1.args",
   returnSchema: "capabilities.publicationEcho.v1.result",

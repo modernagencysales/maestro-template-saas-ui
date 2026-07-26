@@ -1,4 +1,4 @@
-import { spawnSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
@@ -24,29 +24,45 @@ const repositoryRoot = resolve(
 describe("final materialized customer filesystem", () => {
   it("audits the real disposable final target, not preview writes", () => {
     const parent = mkdtempSync(join(tmpdir(), "maestro-final-filesystem-"));
-    const targetRoot = join(parent, "customer-app");
-    const result = spawnSync(
-      "pnpm",
-      [
-        "maestro",
-        "--",
-        "create",
-        targetRoot,
-        "--name",
-        "Final Filesystem Audit",
-        "--outcome",
-        "Audit the materialized customer artifact",
-        "--write",
-        "--json",
-      ],
-      {
-        cwd: repositoryRoot,
-        encoding: "utf8",
-        maxBuffer: 10 * 1024 * 1024,
-      },
-    );
-
     try {
+      const releaseRoot = join(parent, "release");
+      const targetRoot = join(parent, "customer-app");
+      execFileSync(
+        "git",
+        ["clone", "--quiet", "--shared", repositoryRoot, releaseRoot],
+        { stdio: "pipe" },
+      );
+      execFileSync(
+        "git",
+        ["-C", releaseRoot, "tag", "maestro-template-v0.2.0-alpha.1", "HEAD"],
+        { stdio: "pipe" },
+      );
+      execFileSync(
+        "pnpm",
+        ["install", "--offline", "--frozen-lockfile", "--ignore-scripts"],
+        { cwd: releaseRoot, stdio: "pipe" },
+      );
+      const result = spawnSync(
+        "pnpm",
+        [
+          "maestro",
+          "--",
+          "create",
+          targetRoot,
+          "--name",
+          "Final Filesystem Audit",
+          "--outcome",
+          "Audit the materialized customer artifact",
+          "--write",
+          "--privacy-reviewed",
+          "--json",
+        ],
+        {
+          cwd: releaseRoot,
+          encoding: "utf8",
+          maxBuffer: 10 * 1024 * 1024,
+        },
+      );
       expect(result.status, `${result.stdout}\n${result.stderr}`).toBe(0);
       const tree = enumerateFinalCustomerTree(targetRoot);
       assertNoPathEscape(tree.root, tree.files);

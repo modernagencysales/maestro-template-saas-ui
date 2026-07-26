@@ -1,6 +1,5 @@
-import * as Ref from "@confect/core/Ref";
+import { makeFunctionReference, type FunctionReference } from "convex/server";
 
-import refs from "../../_generated/refs";
 import { publicationEchoV1Release } from "../../capabilities/_versions/publicationEcho/v1.release";
 import { defineWorkflowRelease } from "../_kit/publication";
 import { publicationFixtureGraph } from "./v1.graph";
@@ -16,9 +15,9 @@ export const publicationFixtureV1Release = defineWorkflowRelease({
     "packages/convex/confect/workflows/publicationFixture/v1.graph.ts",
   graphHash: "2c4c348ac937797e21618686ab80768538f4d7484064dc33e2c0e73549312d36",
   runner: {
-    ref: Ref.getFunctionReference(
-      refs.internal.workflowRunners.publicationFixture.v1.run,
-    ),
+    ref: makeFunctionReference<"mutation">(
+      "workflowRunners/publicationFixture/v1:run",
+    ) as unknown as FunctionReference<"mutation", "internal">,
     module: "workflowRunners/publicationFixture/v1:run",
     functionReference: "workflowRunners/publicationFixture/v1:run",
   },
@@ -29,9 +28,9 @@ export const publicationFixtureV1Release = defineWorkflowRelease({
     },
   ],
   completion: {
-    ref: Ref.getFunctionReference(
-      refs.internal.workflowRunners.publicationFixture.v1.onComplete,
-    ),
+    ref: makeFunctionReference<"mutation">(
+      "workflowRunners/publicationFixture/v1:onComplete",
+    ) as unknown as FunctionReference<"mutation", "internal">,
     module: "workflowRunners/publicationFixture/v1:onComplete",
     version: 1,
   },

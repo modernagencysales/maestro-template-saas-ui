@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { execFileSync } from "node:child_process";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { format } from "prettier";
@@ -61,6 +62,20 @@ const immutablePublishedPaths = [
   workflowDescriptorPath,
   workflowReleasePath,
 ] as const;
+const unreleasedFixtureTag = "maestro-template-v0.2.0-alpha.1";
+
+export const assertUnreleasedV1RepairAllowed = (cwd: string): void => {
+  const matchingTags = execFileSync(
+    "git",
+    ["-C", cwd, "tag", "--list", unreleasedFixtureTag],
+    { encoding: "utf8" },
+  ).trim();
+  if (matchingTags !== "") {
+    throw new Error(
+      `Refusing to repair published V1 fixtures after ${unreleasedFixtureTag} exists`,
+    );
+  }
+};
 
 const sha256 = (value: string | Buffer): string =>
   createHash("sha256").update(value).digest("hex");
@@ -279,6 +294,7 @@ const generatedWorkflowDocs = async (): Promise<
 
 export const buildWorkflowPublicationStack = async (
   cwd: string,
+  options: { readonly repairUnreleasedV1?: boolean } = {},
 ): Promise<WorkflowPublicationGenerationResult> => {
   const currentCapability = readJson<ReleaseDescriptor>(
     cwd,
@@ -290,7 +306,8 @@ export const buildWorkflowPublicationStack = async (
   );
   if (
     currentCapability.lifecycle === "published" &&
-    currentWorkflow.lifecycle === "published"
+    currentWorkflow.lifecycle === "published" &&
+    !options.repairUnreleasedV1
   ) {
     const manifest = readJson<{
       readonly entries: readonly PublicationEntry[];
@@ -317,6 +334,15 @@ export const buildWorkflowPublicationStack = async (
       drift: [...new Set(drift)].sort(),
       publicationCount: 2,
     };
+  }
+  if (options.repairUnreleasedV1) {
+    if (
+      currentCapability.lifecycle !== "published" ||
+      currentWorkflow.lifecycle !== "published"
+    ) {
+      throw new Error("Unreleased V1 repair requires published fixtures");
+    }
+    assertUnreleasedV1RepairAllowed(cwd);
   }
   const capability = refreshDescriptor(cwd, currentCapability);
   const workflow = refreshDescriptor(
@@ -424,8 +450,9 @@ export const buildWorkflowPublicationStack = async (
 export const regenerateWorkflowPublicationStack = async (
   cwd: string,
   write: boolean,
+  options: { readonly repairUnreleasedV1?: boolean } = {},
 ): Promise<WorkflowPublicationGenerationResult> => {
-  const result = await buildWorkflowPublicationStack(cwd);
+  const result = await buildWorkflowPublicationStack(cwd, options);
   if (write) {
     for (const file of result.files) {
       const target = resolve(cwd, file.path);
@@ -442,7 +469,15 @@ const isDirectRun = (): boolean =>
 
 if (isDirectRun()) {
   const write = process.argv.includes("--write");
-  const result = await regenerateWorkflowPublicationStack(process.cwd(), write);
+  const repairUnreleasedV1 = process.argv.includes("--repair-unreleased-v1");
+  if (repairUnreleasedV1 && !write) {
+    throw new Error("--repair-unreleased-v1 requires --write");
+  }
+  const result = await regenerateWorkflowPublicationStack(
+    process.cwd(),
+    write,
+    { repairUnreleasedV1 },
+  );
   process.stdout.write(
     `${JSON.stringify(
       {
@@ -451,6 +486,7 @@ if (isDirectRun()) {
         driftCount: result.drift.length,
         drift: result.drift,
         wrote: write,
+        repairedUnreleasedV1: repairUnreleasedV1,
       },
       null,
       2,
