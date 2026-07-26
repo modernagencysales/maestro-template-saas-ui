@@ -1238,6 +1238,7 @@ export const buildTableFiles = (
         appendOnly: options.appendOnly ?? false,
         workspaceLifecycle:
           options.tenantScope === "workspace" ? "managed" : "excluded",
+        writePosture: "implemented",
         writeAuthority,
         migrationRef: decisionPath,
         detail: description,

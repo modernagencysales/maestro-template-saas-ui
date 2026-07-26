@@ -6,18 +6,8 @@
     "background automation",
     "scheduled approval action"
   ],
-  "outcome": "Run one approval-gated background operation only when every exact workflow primitive is supported.",
-  "availability": {
-    "status": "unavailable",
-    "reason": "The semantic ledger intentionally restricts runAction, so the complete approval/background operation cannot be claimed.",
-    "requiredSemanticPrimitives": [
-      "WF-DEFINE",
-      "WF-STEP-MUTATION",
-      "WF-STEP-ACTION",
-      "WF-START-QUEUED",
-      "WF-STATUS"
-    ]
-  },
+  "outcome": "Run one approval-gated background operation through the supported typed workflow path.",
+  "availability": { "status": "available" },
   "consequentialQuestions": [
     {
       "id": "consequentialEffect",
@@ -57,9 +47,9 @@
       "evidence": "Replace the action fixture body behind its existing typed approval contract."
     },
     {
-      "kind": "template-gap",
+      "kind": "pattern-instance",
       "target": "WF-STEP-ACTION",
-      "evidence": "The ledger blocks action generation until retry and idempotency posture is compiled."
+      "evidence": "The semantic ledger, compiler, retry posture, and idempotency gates support the reviewed action step."
     }
   ],
   "generatorPreviews": [
@@ -71,7 +61,7 @@
     {
       "generatorId": "add-workflow",
       "command": "pnpm template:add-workflow -- --name <approvedAutomation> --system action-automation --disposition extend",
-      "purpose": "Blocked preview until every required semantic rule reports supported."
+      "purpose": "Preview the supported typed approval, queued execution, retry, and status path."
     }
   ],
   "providerReferences": [

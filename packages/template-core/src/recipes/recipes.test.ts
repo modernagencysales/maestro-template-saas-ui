@@ -56,10 +56,7 @@ describe("outcome recipe catalog", () => {
         expect.objectContaining({
           id: "approval-background-automation",
           availability: expect.objectContaining({
-            status: "unavailable",
-            requiredSemanticPrimitives: expect.arrayContaining([
-              "WF-STEP-ACTION",
-            ]),
+            status: "available",
           }),
         }),
       ]),
