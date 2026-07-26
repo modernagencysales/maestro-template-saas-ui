@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "kind": "reviewed-upgrade-impact-coverage",
   "baseRevision": "517b5bc28d1d633bef18f57610cff49800123788",
-  "subjectRevision": "0ec63e21c3d1b835ad03390287987053c0af2adf",
+  "subjectRevision": "284b55bb9d50b4fc2924f712472d29cf05644d10",
   "structuralPaths": [
     "docs/template/data-resources.json",
     "docs/template/generated/provenance/add-table/workflowArtifacts.json",
@@ -21,7 +21,6 @@
     "apps/cli/src/commands.ts",
     "apps/cli/src/direct-run.test.ts",
     "apps/cli/src/factory/adopt.test.ts",
-    "apps/cli/src/factory/adopt.ts",
     "apps/cli/src/factory/adoptFileReader.ts",
     "apps/cli/src/factory/appMap.test.ts",
     "apps/cli/src/factory/appMap.ts",
@@ -35,7 +34,6 @@
     "apps/cli/src/factory/environment.ts",
     "apps/cli/src/factory/planCheck.ts",
     "apps/cli/src/factory/preflight.test.ts",
-    "apps/cli/src/factory/recipeCatalog.ts",
     "apps/cli/src/factory/recipes.test.ts",
     "apps/cli/src/factory/recipes.ts",
     "apps/cli/src/factory/router.test.ts",
@@ -43,9 +41,7 @@
     "apps/cli/src/factory/start.ts",
     "apps/cli/src/factory/supportBundle.test.ts",
     "apps/cli/src/factory/supportBundle.ts",
-    "apps/cli/src/factory/supportBundleMcpNoNetwork.fixture.ts",
     "apps/cli/src/factory/upgrade.test.ts",
-    "apps/cli/src/factory/upgrade.ts",
     "apps/cli/src/factory/verify.test.ts",
     "apps/cli/src/factory/verify.ts",
     "apps/cli/src/index.test.ts",
@@ -500,7 +496,7 @@
   "impact": {
     "schemaVersion": 1,
     "baseRevision": "517b5bc28d1d633bef18f57610cff49800123788",
-    "subjectRevision": "0ec63e21c3d1b835ad03390287987053c0af2adf",
+    "subjectRevision": "284b55bb9d50b4fc2924f712472d29cf05644d10",
     "complete": true,
     "risk": "high",
     "changedPaths": [
