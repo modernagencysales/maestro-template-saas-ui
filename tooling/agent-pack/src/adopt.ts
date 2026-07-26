@@ -120,104 +120,225 @@ const overlaps = (left: string, right: string): boolean =>
 
 const validPath = (path: string): boolean =>
   text(path) &&
+  path === path.trim() &&
   !isAbsolute(path) &&
   !path.includes("\\") &&
-  !path.split("/").includes("..");
+  !path.includes("//") &&
+  !path.endsWith("/") &&
+  !path
+    .split("/")
+    .some(
+      (part) =>
+        part === "." ||
+        part === ".." ||
+        [...part].some(
+          (character) =>
+            character.charCodeAt(0) <= 0x20 || character.charCodeAt(0) === 0x7f,
+        ),
+    );
 
-const extraKeys = (
-  value: object,
-  allowed: readonly string[],
-  label: string,
-): AdoptionFinding[] =>
-  Object.keys(value)
-    .filter((key) => !allowed.includes(key))
+type RuntimeShape =
+  | { readonly kind: "literal"; readonly value: unknown }
+  | { readonly kind: "string"; readonly values?: readonly string[] }
+  | { readonly kind: "boolean" }
+  | { readonly kind: "nullable"; readonly item: RuntimeShape }
+  | {
+      readonly kind: "array";
+      readonly item: RuntimeShape;
+      readonly minItems?: number;
+    }
+  | {
+      readonly kind: "object";
+      readonly fields: Readonly<Record<string, RuntimeShape>>;
+    };
+
+const stringShape = { kind: "string" } as const;
+const stringArray = { kind: "array", item: stringShape } as const;
+const nonemptyStringArray = {
+  kind: "array",
+  item: stringShape,
+  minItems: 1,
+} as const;
+const mappingShape: RuntimeShape = {
+  kind: "object",
+  fields: { source: stringShape, target: stringShape, rule: stringShape },
+};
+const worktreeShape: RuntimeShape = {
+  kind: "object",
+  fields: { clean: { kind: "boolean" }, revision: stringShape },
+};
+const adoptionShape: RuntimeShape = {
+  kind: "object",
+  fields: {
+    $schema: {
+      kind: "literal",
+      value:
+        "https://maestro.local/schemas/maestro-adoption-work-package.schema.json",
+    },
+    schemaVersion: { kind: "literal", value: 1 },
+    id: stringShape,
+    mode: {
+      kind: "string",
+      values: ["separate-target", "in-place"],
+    },
+    sourceReadOnly: { kind: "literal", value: true },
+    roots: {
+      kind: "object",
+      fields: {
+        source: stringShape,
+        target: stringShape,
+        sourceWorktree: stringShape,
+        targetWorktree: stringShape,
+      },
+    },
+    worktrees: {
+      kind: "object",
+      fields: { source: worktreeShape, target: worktreeShape },
+    },
+    baseline: {
+      kind: "object",
+      fields: {
+        sourceEvidence: nonemptyStringArray,
+        targetEvidence: nonemptyStringArray,
+      },
+    },
+    editableBoundaries: stringArray,
+    mappings: {
+      kind: "object",
+      fields: {
+        identity: { kind: "array", item: mappingShape, minItems: 1 },
+        tenant: { kind: "array", item: mappingShape, minItems: 1 },
+        data: { kind: "array", item: mappingShape, minItems: 1 },
+      },
+    },
+    compatibility: {
+      kind: "object",
+      fields: {
+        template: stringShape,
+        agentPack: stringShape,
+        requirements: nonemptyStringArray,
+      },
+    },
+    decisions: {
+      kind: "array",
+      minItems: 1,
+      item: {
+        kind: "object",
+        fields: {
+          path: stringShape,
+          disposition: {
+            kind: "string",
+            values: ["preserve", "port", "replace", "delete"],
+          },
+          rationale: stringShape,
+        },
+      },
+    },
+    cutover: {
+      kind: "object",
+      fields: {
+        strategy: stringShape,
+        steps: nonemptyStringArray,
+        readinessEvidence: nonemptyStringArray,
+      },
+    },
+    deletion: {
+      kind: "object",
+      fields: {
+        timing: {
+          kind: "string",
+          values: ["never", "after-approved-cutover", "during-adoption"],
+        },
+        paths: stringArray,
+      },
+    },
+    approval: {
+      kind: "object",
+      fields: {
+        status: { kind: "string", values: ["pending", "approved"] },
+        approverClass: stringShape,
+        evidence: { kind: "nullable", item: stringShape },
+      },
+    },
+    rollback: {
+      kind: "object",
+      fields: {
+        strategy: stringShape,
+        evidence: stringShape,
+        restoresSource: { kind: "boolean" },
+      },
+    },
+    inPlace: {
+      kind: "object",
+      fields: {
+        justification: { kind: "nullable", item: stringShape },
+      },
+    },
+  },
+};
+
+const schemaInvalid = (path: string, expected: string): AdoptionFinding =>
+  finding(
+    "ADOPTION_SCHEMA_INVALID",
+    `${path} must be ${expected}.`,
+    "Supply every required field with the exact type declared by the closed adoption schema.",
+  );
+
+const validateRuntimeShape = (
+  value: unknown,
+  shape: RuntimeShape,
+  path = "work package",
+): AdoptionFinding[] => {
+  if (shape.kind === "literal")
+    return value === shape.value
+      ? []
+      : [schemaInvalid(path, JSON.stringify(shape.value))];
+  if (shape.kind === "string")
+    return typeof value === "string" &&
+      (!shape.values || shape.values.includes(value))
+      ? []
+      : [schemaInvalid(path, shape.values?.join(" | ") ?? "a string")];
+  if (shape.kind === "boolean")
+    return typeof value === "boolean" ? [] : [schemaInvalid(path, "boolean")];
+  if (shape.kind === "nullable")
+    return value === null ? [] : validateRuntimeShape(value, shape.item, path);
+  if (shape.kind === "array")
+    return Array.isArray(value)
+      ? [
+          ...(shape.minItems !== undefined && value.length < shape.minItems
+            ? [
+                schemaInvalid(
+                  path,
+                  `an array with at least ${shape.minItems} item`,
+                ),
+              ]
+            : []),
+          ...value.flatMap((item, index) =>
+            validateRuntimeShape(item, shape.item, `${path}[${index}]`),
+          ),
+        ]
+      : [schemaInvalid(path, "an array")];
+  if (value === null || typeof value !== "object" || Array.isArray(value))
+    return [schemaInvalid(path, "an object")];
+  const object = value as Record<string, unknown>;
+  const findings = Object.keys(object)
+    .filter((key) => !(key in shape.fields))
     .map((key) =>
       finding(
         "ADOPTION_SCHEMA_CLOSED",
-        `${label} contains unknown field: ${key}`,
+        `${path} contains unknown field: ${key}`,
         "Remove fields that are not declared by the adoption work-package schema.",
       ),
     );
-
-const closedSchemaFindings = (
-  input: AdoptionWorkPackage,
-): AdoptionFinding[] => [
-  ...extraKeys(
-    input,
-    [
-      "$schema",
-      "schemaVersion",
-      "id",
-      "mode",
-      "sourceReadOnly",
-      "roots",
-      "worktrees",
-      "baseline",
-      "editableBoundaries",
-      "mappings",
-      "compatibility",
-      "decisions",
-      "cutover",
-      "deletion",
-      "approval",
-      "rollback",
-      "inPlace",
-    ],
-    "work package",
-  ),
-  ...extraKeys(
-    input.roots,
-    ["source", "target", "sourceWorktree", "targetWorktree"],
-    "roots",
-  ),
-  ...extraKeys(input.worktrees, ["source", "target"], "worktrees"),
-  ...extraKeys(
-    input.worktrees.source,
-    ["clean", "revision"],
-    "source worktree",
-  ),
-  ...extraKeys(
-    input.worktrees.target,
-    ["clean", "revision"],
-    "target worktree",
-  ),
-  ...extraKeys(
-    input.baseline,
-    ["sourceEvidence", "targetEvidence"],
-    "baseline",
-  ),
-  ...extraKeys(input.mappings, ["identity", "tenant", "data"], "mappings"),
-  ...Object.entries(input.mappings).flatMap(([kind, mappings]) =>
-    mappings.flatMap((mapping) =>
-      extraKeys(mapping, ["source", "target", "rule"], `${kind} mapping`),
-    ),
-  ),
-  ...extraKeys(
-    input.compatibility,
-    ["template", "agentPack", "requirements"],
-    "compatibility",
-  ),
-  ...input.decisions.flatMap((decision) =>
-    extraKeys(decision, ["path", "disposition", "rationale"], "decision"),
-  ),
-  ...extraKeys(
-    input.cutover,
-    ["strategy", "steps", "readinessEvidence"],
-    "cutover",
-  ),
-  ...extraKeys(input.deletion, ["timing", "paths"], "deletion"),
-  ...extraKeys(
-    input.approval,
-    ["status", "approverClass", "evidence"],
-    "approval",
-  ),
-  ...extraKeys(
-    input.rollback,
-    ["strategy", "evidence", "restoresSource"],
-    "rollback",
-  ),
-  ...extraKeys(input.inPlace, ["justification"], "inPlace"),
-];
+  for (const [key, field] of Object.entries(shape.fields)) {
+    findings.push(
+      ...(key in object
+        ? validateRuntimeShape(object[key], field, `${path}.${key}`)
+        : [schemaInvalid(`${path}.${key}`, "present")]),
+    );
+  }
+  return findings;
+};
 
 const preflightFindings = (input: PreflightInput): AdoptionFinding[] => {
   const findings: AdoptionFinding[] = [];
@@ -310,6 +431,14 @@ const preflightFindings = (input: PreflightInput): AdoptionFinding[] => {
           "Declare at least one bounded editable target path.",
         ),
       );
+    if (!input.rollback.restoresSource)
+      findings.push(
+        finding(
+          "ADOPTION_IN_PLACE_ROLLBACK_UNSAFE",
+          "In-place adoption rollback does not restore the source.",
+          "Require rollback.restoresSource=true before approving in-place adoption.",
+        ),
+      );
   }
   if (!text(input.rollback.strategy) || !text(input.rollback.evidence))
     findings.push(
@@ -323,10 +452,7 @@ const preflightFindings = (input: PreflightInput): AdoptionFinding[] => {
 };
 
 const packageFindings = (input: AdoptionWorkPackage): AdoptionFinding[] => {
-  const findings = [
-    ...closedSchemaFindings(input),
-    ...preflightFindings(input),
-  ];
+  const findings = preflightFindings(input);
   if (!text(input.id) || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(input.id))
     findings.push(
       finding(
@@ -374,6 +500,19 @@ const packageFindings = (input: AdoptionWorkPackage): AdoptionFinding[] => {
           `Supply explicit source, target, and rule fields for ${kind}.`,
         ),
       );
+    const remainingPaths = [
+      ...input.deletion.paths,
+      input.rollback.evidence,
+      ...(input.approval.evidence === null ? [] : [input.approval.evidence]),
+    ];
+    if (remainingPaths.some((value) => !validPath(value)))
+      findings.push(
+        finding(
+          "ADOPTION_PATH_INVALID",
+          "Adoption evidence or deletion paths are not canonical POSIX relative paths.",
+          "Use nonempty POSIX relative paths without aliases, whitespace, controls, traversal, or repeated separators.",
+        ),
+      );
   }
   if (
     !text(input.compatibility.template) ||
@@ -414,17 +553,30 @@ const packageFindings = (input: AdoptionWorkPackage): AdoptionFinding[] => {
         "Declare cutover strategy, steps, readiness evidence, and approver class.",
       ),
     );
-  const deletes = input.decisions.filter(
-    ({ disposition }) => disposition === "delete",
-  );
+  const deletes = input.decisions
+    .filter(({ disposition }) => disposition === "delete")
+    .map(({ path }) => path);
+  const declaredDeletes = input.deletion.paths;
+  if (
+    !unique(declaredDeletes) ||
+    deletes.length !== declaredDeletes.length ||
+    deletes.some((path) => !declaredDeletes.includes(path)) ||
+    declaredDeletes.some((path) => !deletes.includes(path))
+  )
+    findings.push(
+      finding(
+        "ADOPTION_DELETION_SET_MISMATCH",
+        "Deletion paths do not exactly match caller delete decisions.",
+        "Declare each delete decision path exactly once and no additional deletion paths.",
+      ),
+    );
   if (
     input.deletion.timing === "during-adoption" ||
     (deletes.length > 0 &&
       (input.deletion.timing !== "after-approved-cutover" ||
         input.approval.status !== "approved" ||
         !input.approval.evidence ||
-        !input.rollback.restoresSource ||
-        deletes.some(({ path }) => !input.deletion.paths.includes(path))))
+        !input.rollback.restoresSource))
   )
     findings.push(
       finding(
@@ -442,15 +594,19 @@ const canonical = (value: unknown): unknown =>
     : value !== null && typeof value === "object"
       ? Object.fromEntries(
           Object.entries(value)
-            .sort(([left], [right]) => left.localeCompare(right))
+            .sort(([left], [right]) =>
+              left < right ? -1 : left > right ? 1 : 0,
+            )
             .map(([key, item]) => [key, canonical(item)]),
         )
       : value;
 
-export const previewAdoptionPreflight = (
-  input: PreflightInput,
-): AdoptionPreview => {
-  const findings = preflightFindings(input);
+export const previewAdoptionPreflight = (input: unknown): AdoptionPreview => {
+  const schemaFindings = validateRuntimeShape(input, adoptionShape);
+  const findings =
+    schemaFindings.length === 0
+      ? preflightFindings(input as AdoptionWorkPackage)
+      : schemaFindings;
   return {
     ok: findings.length === 0,
     mutationPosture: "dry-run",
@@ -459,10 +615,17 @@ export const previewAdoptionPreflight = (
   };
 };
 
-export const previewAdoptionWorkPackage = (
-  input: AdoptionWorkPackage,
-): AdoptionPreview => {
-  const findings = packageFindings(input);
+export const previewAdoptionWorkPackage = (input: unknown): AdoptionPreview => {
+  const schemaFindings = validateRuntimeShape(input, adoptionShape);
+  if (schemaFindings.length > 0)
+    return {
+      ok: false,
+      mutationPosture: "dry-run",
+      findings: schemaFindings,
+      artifact: null,
+    };
+  const workPackage = input as AdoptionWorkPackage;
+  const findings = packageFindings(workPackage);
   return {
     ok: findings.length === 0,
     mutationPosture: "dry-run",
@@ -470,8 +633,8 @@ export const previewAdoptionWorkPackage = (
     artifact:
       findings.length === 0
         ? {
-            path: `adoption/${input.id}.work-package.json`,
-            content: `${JSON.stringify(canonical(input), null, 2)}\n`,
+            path: `adoption/${workPackage.id}.work-package.json`,
+            content: `${JSON.stringify(canonical(workPackage), null, 2)}\n`,
           }
         : null,
   };

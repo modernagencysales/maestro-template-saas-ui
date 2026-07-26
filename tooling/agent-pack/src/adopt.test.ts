@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   previewAdoptionPreflight,
   previewAdoptionWorkPackage,
@@ -118,7 +118,7 @@ describe("existing-app adoption core", () => {
 
     expect(result).toMatchObject({
       ok: false,
-      findings: [{ code: "ADOPTION_DISPOSITION_INVALID" }],
+      findings: [{ code: "ADOPTION_SCHEMA_INVALID" }],
       artifact: null,
     });
   });
@@ -162,5 +162,168 @@ describe("existing-app adoption core", () => {
       "inPlace",
     ])
       expect(schema.properties[key]?.additionalProperties).toBe(false);
+  });
+
+  it.each([
+    "alpha//beta",
+    ".",
+    "./alpha",
+    "alpha/./beta",
+    "..",
+    "alpha/../beta",
+    "alpha/",
+    "alpha\\beta",
+    "/alpha",
+    " alpha",
+    "alpha ",
+    "alpha\tbeta",
+    "alpha\u0000beta",
+  ])(
+    "rejects non-canonical POSIX path alias %j in runtime and schema",
+    (path) => {
+      const input = fixture("separate-target");
+      const before = structuredClone(input);
+      const result = previewAdoptionWorkPackage({
+        ...input,
+        baseline: { ...input.baseline, sourceEvidence: [path] },
+      });
+      const schema = JSON.parse(
+        readFileSync(
+          resolve(
+            import.meta.dirname,
+            "../../../schemas/maestro-adoption-work-package.schema.json",
+          ),
+          "utf8",
+        ),
+      ) as {
+        readonly $defs: { readonly relativePath: { readonly pattern: string } };
+      };
+
+      expect(result).toMatchObject({
+        ok: false,
+        findings: expect.arrayContaining([
+          expect.objectContaining({ code: "ADOPTION_BASELINE_INCOMPLETE" }),
+        ]),
+        artifact: null,
+      });
+      expect(new RegExp(schema.$defs.relativePath.pattern).test(path)).toBe(
+        false,
+      );
+      expect(input).toEqual(before);
+    },
+  );
+
+  it.each([
+    { schemaVersion: 2 },
+    { mode: "automatic" },
+    { rollback: undefined },
+    { worktrees: { target: { clean: "yes", revision: "x" } } },
+    { roots: { source: 42 } },
+    { mappings: { tenant: [{ source: "x", target: "y", rule: 7 }] } },
+  ])("fails closed on malformed runtime shape %#", (change) => {
+    const input = fixture("separate-target") as unknown as Record<
+      string,
+      unknown
+    >;
+    const malformed = structuredClone(input);
+    for (const [key, value] of Object.entries(change)) {
+      if (value === undefined) delete malformed[key];
+      else if (
+        value !== null &&
+        typeof value === "object" &&
+        !Array.isArray(value) &&
+        malformed[key] !== null &&
+        typeof malformed[key] === "object"
+      )
+        malformed[key] = {
+          ...(malformed[key] as Record<string, unknown>),
+          ...value,
+        };
+      else malformed[key] = value;
+    }
+    const before = structuredClone(malformed);
+
+    expect(previewAdoptionWorkPackage(malformed)).toMatchObject({
+      ok: false,
+      findings: expect.arrayContaining([
+        expect.objectContaining({ code: "ADOPTION_SCHEMA_INVALID" }),
+      ]),
+      artifact: null,
+    });
+    expect(malformed).toEqual(before);
+  });
+
+  it("requires source-restoring rollback and a non-dot in-place boundary", () => {
+    const input = fixture("in-place");
+    const result = previewAdoptionWorkPackage({
+      ...input,
+      editableBoundaries: ["."],
+      rollback: { ...input.rollback, restoresSource: false },
+    });
+
+    expect(result).toMatchObject({
+      ok: false,
+      findings: expect.arrayContaining([
+        expect.objectContaining({ code: "ADOPTION_IN_PLACE_ROLLBACK_UNSAFE" }),
+        expect.objectContaining({ code: "ADOPTION_EDITABLE_BOUNDARY_INVALID" }),
+      ]),
+      artifact: null,
+    });
+  });
+
+  it("requires deletion paths to exactly equal caller delete decisions", () => {
+    const base = fixture("separate-target");
+    const safe = {
+      ...base,
+      decisions: [
+        ...base.decisions,
+        {
+          path: "src/obsolete.ts",
+          disposition: "delete" as const,
+          rationale: "Remove only after approved cutover.",
+        },
+      ],
+      deletion: {
+        timing: "after-approved-cutover" as const,
+        paths: ["src/obsolete.ts"],
+      },
+      approval: {
+        ...base.approval,
+        status: "approved" as const,
+        evidence: "evidence/delete-approval.json",
+      },
+    };
+
+    expect(previewAdoptionWorkPackage(safe).ok).toBe(true);
+    for (const paths of [[], ["src/obsolete.ts", "src/extra.ts"]])
+      expect(
+        previewAdoptionWorkPackage({
+          ...safe,
+          deletion: { ...safe.deletion, paths },
+        }),
+      ).toMatchObject({
+        ok: false,
+        findings: expect.arrayContaining([
+          expect.objectContaining({ code: "ADOPTION_DELETION_SET_MISMATCH" }),
+        ]),
+        artifact: null,
+      });
+  });
+
+  it("renders identical bytes without locale-sensitive ordering and does not mutate", () => {
+    const input = fixture("separate-target");
+    const before = structuredClone(input);
+    const first = previewAdoptionWorkPackage(input).artifact?.content;
+    const localeCompare = vi
+      .spyOn(String.prototype, "localeCompare")
+      .mockImplementation(() => {
+        throw new Error("locale-sensitive ordering is forbidden");
+      });
+    try {
+      expect(previewAdoptionWorkPackage(input).artifact?.content).toBe(first);
+    } finally {
+      localeCompare.mockRestore();
+    }
+    expect(input).toEqual(before);
   });
 });
