@@ -1,16 +1,22 @@
 import {
+  cpSync,
   mkdtempSync,
   mkdirSync,
   readFileSync,
+  readdirSync,
   realpathSync,
   symlinkSync,
+  unlinkSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { createRepositoryContext } from "./repoContext.js";
-import { createNodeRecipeTransaction } from "./recipeTransaction.js";
+import {
+  createNodeRecipeTransaction,
+  recoverRecipeTransaction,
+} from "./recipeTransaction.js";
 import {
   fingerprintRecipePlan,
   sha256RecipeBytes,
@@ -72,6 +78,15 @@ const fixture = () => {
   };
 };
 
+const planRoot = (value: ReturnType<typeof fixture>) =>
+  join(
+    value.root,
+    ".maestro/recipe-transactions",
+    value.plan.fingerprint.replace(/[^a-zA-Z0-9]/gu, "-"),
+  );
+const attemptRoot = (value: ReturnType<typeof fixture>, number = 1) =>
+  join(planRoot(value), `attempt-${String(number).padStart(4, "0")}`);
+
 describe("atomic recipe transaction", () => {
   it("applies replacements and creates in one journaled receipt", async () => {
     const value = fixture();
@@ -105,6 +120,121 @@ describe("atomic recipe transaction", () => {
     ).toThrow();
   });
 
+  it.each([
+    "after-backup-rename-before-journal",
+    "after-install-rename-before-journal",
+    "after-installed-journal",
+  ] as const)(
+    "recovers the exact preimage from crash window %s",
+    async (crashAt) => {
+      const value = fixture();
+      await expect(
+        createNodeRecipeTransaction({ crashAt }).apply(value.request),
+      ).resolves.toMatchObject({
+        ok: false,
+        message: expect.stringMatching(/Injected process crash/),
+      });
+
+      expect(recoverRecipeTransaction(value.request)).toMatchObject({
+        ok: true,
+        recoveredAttempts: 1,
+      });
+      expect(readFileSync(join(value.root, "catalog/data.json"), "utf8")).toBe(
+        "old\n",
+      );
+      expect(() =>
+        readFileSync(join(value.root, "feature/request.ts")),
+      ).toThrow();
+      expect(recoverRecipeTransaction(value.request)).toEqual({
+        ok: true,
+        recoveredAttempts: 0,
+      });
+    },
+  );
+
+  it("retains recovered evidence and retries in the next numbered attempt", async () => {
+    const value = fixture();
+    await createNodeRecipeTransaction({
+      crashAt: "after-install-rename-before-journal",
+    }).apply(value.request);
+
+    await expect(
+      createNodeRecipeTransaction().apply(value.request),
+    ).resolves.toMatchObject({ ok: true });
+    expect(readdirSync(planRoot(value)).sort()).toEqual([
+      "attempt-0001",
+      "attempt-0002",
+    ]);
+    expect(
+      JSON.parse(
+        readFileSync(join(attemptRoot(value), "transaction.json"), "utf8"),
+      ),
+    ).toMatchObject({ status: "rolled-back" });
+    expect(
+      JSON.parse(
+        readFileSync(join(attemptRoot(value, 2), "transaction.json"), "utf8"),
+      ),
+    ).toMatchObject({ status: "applied" });
+  });
+
+  it("rejects tampered journals and backups instead of guessing", async () => {
+    const journalTamper = fixture();
+    await createNodeRecipeTransaction({
+      crashAt: "after-backup-rename-before-journal",
+    }).apply(journalTamper.request);
+    const journalPath = join(attemptRoot(journalTamper), "transaction.json");
+    const journal = JSON.parse(readFileSync(journalPath, "utf8")) as {
+      status: string;
+    };
+    journal.status = "rolled-back";
+    writeFileSync(journalPath, `${JSON.stringify(journal)}\n`);
+    expect(recoverRecipeTransaction(journalTamper.request)).toMatchObject({
+      ok: false,
+      message: expect.stringMatching(/authentication failed/),
+    });
+
+    const backupTamper = fixture();
+    await createNodeRecipeTransaction({
+      crashAt: "after-backup-rename-before-journal",
+    }).apply(backupTamper.request);
+    writeFileSync(
+      join(attemptRoot(backupTamper), "backup/catalog/data.json"),
+      "tampered\n",
+    );
+    expect(recoverRecipeTransaction(backupTamper.request)).toMatchObject({
+      ok: false,
+      message: expect.stringMatching(/mechanically prove/),
+    });
+  });
+
+  it("rejects copied journals with the wrong roots and recovery symlinks", async () => {
+    const source = fixture();
+    await createNodeRecipeTransaction({
+      crashAt: "after-backup-rename-before-journal",
+    }).apply(source.request);
+    const copied = fixture();
+    mkdirSync(planRoot(copied), { recursive: true });
+    cpSync(attemptRoot(source), attemptRoot(copied), { recursive: true });
+    expect(recoverRecipeTransaction(copied.request)).toMatchObject({
+      ok: false,
+      message: expect.stringMatching(/exact reviewed authority/),
+    });
+
+    const symlink = fixture();
+    await createNodeRecipeTransaction({
+      crashAt: "after-backup-rename-before-journal",
+    }).apply(symlink.request);
+    const backup = join(attemptRoot(symlink), "backup/catalog/data.json");
+    const outside = join(symlink.root, "outside-backup");
+    writeFileSync(outside, "old\n");
+    unlinkSync(backup);
+    symlinkSync(outside, backup);
+    expect(recoverRecipeTransaction(symlink.request)).toMatchObject({
+      ok: false,
+      message: expect.stringMatching(/symlink|not a regular file/),
+    });
+  });
+
   it("fails closed on target drift, replay, and symlink traversal", async () => {
     const drift = fixture();
     writeFileSync(join(drift.root, "catalog/data.json"), "drift\n");
@@ -122,22 +252,6 @@ describe("atomic recipe transaction", () => {
     ).resolves.toMatchObject({
       ok: false,
       message: expect.stringMatching(/replay/),
-    });
-
-    const interrupted = fixture();
-    const transactionId = interrupted.plan.fingerprint.replace(
-      /[^a-zA-Z0-9]/gu,
-      "-",
-    );
-    mkdirSync(
-      join(interrupted.root, ".maestro/recipe-transactions", transactionId),
-      { recursive: true },
-    );
-    await expect(
-      createNodeRecipeTransaction().apply(interrupted.request),
-    ).resolves.toMatchObject({
-      ok: false,
-      message: expect.stringMatching(/interrupted journals fail closed/),
     });
 
     const symlink = fixture();

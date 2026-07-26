@@ -7,12 +7,14 @@ import {
   mkdirSync,
   openSync,
   readFileSync,
+  readdirSync,
   realpathSync,
   renameSync,
   rmSync,
   statSync,
   writeFileSync,
 } from "node:fs";
+import type { Stats } from "node:fs";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import type { RepositoryContext } from "./repoContext.js";
 import {
@@ -28,173 +30,267 @@ type TransactionRequest = {
   readonly preflightFingerprint: string;
   readonly answersSha256: string;
 };
-type Journal = {
+type OperationState =
+  | "staged"
+  | "backup-pending"
+  | "backed-up"
+  | "install-pending"
+  | "installed"
+  | "rolled-back";
+type JournalOperation = {
+  readonly path: string;
+  readonly targetPath: string;
+  readonly stagePath: string;
+  readonly backupPath: string;
+  readonly beforeSha256: string | null;
+  readonly contentSha256: string;
+  readonly state: OperationState;
+};
+type UnsignedJournal = {
   readonly schemaVersion: 1;
   readonly kind: "maestro-recipe-transaction-journal";
-  readonly status: "staging" | "applying" | "rolled-back" | "applied";
+  readonly status:
+    "staging" | "applying" | "rolling-back" | "rolled-back" | "applied";
   readonly targetRoot: string;
+  readonly transactionRoot: string;
+  readonly recipeId: string;
+  readonly recipeSchemaVersion: number;
   readonly planFingerprint: string;
   readonly preflightFingerprint: string;
-  readonly operations: readonly {
-    readonly path: string;
-    readonly beforeSha256: string | null;
-    readonly contentSha256: string;
-  }[];
+  readonly answersSha256: string;
+  readonly operations: readonly JournalOperation[];
   readonly createdDirectories: readonly string[];
-  readonly completedOperations: number;
   readonly error?: string;
 };
-
-export function createNodeRecipeTransaction(options?: {
+type Journal = UnsignedJournal & { readonly journalDigest: string };
+type CrashPoint =
+  | "after-backup-rename-before-journal"
+  | "after-install-rename-before-journal"
+  | "after-installed-journal";
+type TransactionOptions = {
   readonly failAfterOperation?: number;
-}) {
+  readonly crashAt?: CrashPoint;
+};
+type RecoveryResult =
+  | { readonly ok: true; readonly recoveredAttempts: number }
+  | { readonly ok: false; readonly message: string };
+
+class SimulatedProcessCrash extends Error {}
+
+export function createNodeRecipeTransaction(options?: TransactionOptions) {
   return {
     apply: async (request: TransactionRequest) =>
       applyRecipeTransaction(request, options),
+    recover: async (request: TransactionRequest) =>
+      recoverRecipeTransaction(request),
   };
+}
+
+export function recoverRecipeTransaction(
+  request: TransactionRequest,
+): RecoveryResult {
+  try {
+    const authority = validateAuthority(request);
+    const planRoot = planTransactionRoot(
+      authority.targetRoot,
+      authority.fingerprint,
+    );
+    if (!existsSync(planRoot)) return { ok: true, recoveredAttempts: 0 };
+    assertDirectory(planRoot, "Recipe transaction plan root");
+    const attempts = readdirSync(planRoot, { withFileTypes: true })
+      .filter(
+        (entry) => entry.isDirectory() && /^attempt-\d{4,}$/u.test(entry.name),
+      )
+      .map(({ name }) => name)
+      .sort();
+    const unexpected = readdirSync(planRoot, { withFileTypes: true }).filter(
+      (entry) => !(entry.isDirectory() && /^attempt-\d{4,}$/u.test(entry.name)),
+    );
+    if (unexpected.length > 0)
+      throw new Error(
+        `Recipe transaction evidence contains an unexpected entry: ${unexpected[0]?.name ?? "unknown"}.`,
+      );
+    let recoveredAttempts = 0;
+    for (const attempt of attempts) {
+      const transactionRoot = containedPath(planRoot, attempt);
+      const journalPath = join(transactionRoot, "transaction.json");
+      const journal = readAuthenticatedJournal(journalPath);
+      validateJournalAuthority(journal, request, authority, transactionRoot);
+      if (journal.status === "applied") {
+        assertExactOutputs(journal);
+        throw new Error(
+          "Recipe transaction replay rejected: this exact reviewed plan was already applied.",
+        );
+      }
+      if (journal.status === "rolled-back") {
+        if (journal.operations.some(({ state }) => state !== "rolled-back"))
+          throw new Error(
+            "Recipe transaction journal has an invalid rolled-back closure.",
+          );
+        assertExactPreimages(journal);
+        continue;
+      }
+      rollbackJournal(journalPath, journal);
+      recoveredAttempts += 1;
+    }
+    return { ok: true, recoveredAttempts };
+  } catch (error) {
+    return { ok: false, message: message(error) };
+  }
 }
 
 function applyRecipeTransaction(
   request: TransactionRequest,
-  options?: { readonly failAfterOperation?: number },
+  options?: TransactionOptions,
 ):
   | { readonly ok: true; readonly receipt: RecipeTransactionReceipt }
   | { readonly ok: false; readonly message: string } {
   try {
-    const targetRoot = canonicalTargetRoot(request.repo.targetRoot);
-    if (targetRoot !== request.plan.targetRoot)
-      throw new Error(
-        "Recipe plan target root no longer matches the canonical target.",
-      );
-    const { fingerprint, ...unsigned } = request.plan;
-    if (fingerprintRecipePlan(unsigned) !== fingerprint)
-      throw new Error(
-        "Recipe plan fingerprint does not reproduce the exact plan.",
-      );
-    const transactionId = fingerprint.replace(/[^a-zA-Z0-9]/gu, "-");
-    const transactionRoot = containedPath(
-      targetRoot,
-      `.maestro/recipe-transactions/${transactionId}`,
+    const authority = validateAuthority(request);
+    const recovery = recoverRecipeTransaction(request);
+    if (!recovery.ok) throw new Error(recovery.message);
+    validatePlannedOperations(authority.targetRoot, request.plan);
+    const planRoot = planTransactionRoot(
+      authority.targetRoot,
+      authority.fingerprint,
     );
-    if (existsSync(transactionRoot))
-      throw new Error(
-        "Recipe transaction already exists; replay and interrupted journals fail closed.",
-      );
     const createdDirectories: string[] = [];
     ensureDirectory(
-      targetRoot,
+      authority.targetRoot,
       ".maestro/recipe-transactions",
       createdDirectories,
     );
+    if (!existsSync(planRoot)) {
+      mkdirSync(planRoot);
+      fsyncDirectory(dirname(planRoot));
+      createdDirectories.push(relative(authority.targetRoot, planRoot));
+    } else assertDirectory(planRoot, "Recipe transaction plan root");
+    const attemptNumber = nextAttemptNumber(planRoot);
+    const transactionRoot = containedPath(
+      planRoot,
+      `attempt-${String(attemptNumber).padStart(4, "0")}`,
+    );
     mkdirSync(transactionRoot);
-    createdDirectories.push(relative(targetRoot, transactionRoot));
+    fsyncDirectory(planRoot);
+    createdDirectories.push(relative(authority.targetRoot, transactionRoot));
     const stageRoot = join(transactionRoot, "stage");
     const backupRoot = join(transactionRoot, "backup");
     mkdirSync(stageRoot);
     mkdirSync(backupRoot);
+    fsyncDirectory(transactionRoot);
     const journalPath = join(transactionRoot, "transaction.json");
     const receiptPath = join(transactionRoot, "receipt.json");
+    const operations: JournalOperation[] = [];
     for (const operation of request.plan.operations) {
-      const target = validateOperationTarget(targetRoot, operation.path);
-      const before = existsSync(target)
-        ? sha256RecipeBytes(readRegularFile(target))
-        : null;
-      if (before !== operation.beforeSha256)
-        throw new Error(
-          `Recipe target drifted after preview: ${operation.path}.`,
-        );
-      if (sha256RecipeBytes(operation.content) !== operation.contentSha256)
-        throw new Error(
-          `Recipe operation content hash drifted: ${operation.path}.`,
-        );
+      const target = validateOperationTarget(
+        authority.targetRoot,
+        operation.path,
+      );
       const staged = containedPath(stageRoot, operation.path);
+      const backup = containedPath(backupRoot, operation.path);
       mkdirSync(dirname(staged), { recursive: true });
       durableFile(staged, operation.content);
+      operations.push({
+        path: operation.path,
+        targetPath: relative(authority.targetRoot, target),
+        stagePath: relative(authority.targetRoot, staged),
+        backupPath: relative(authority.targetRoot, backup),
+        beforeSha256: operation.beforeSha256,
+        contentSha256: operation.contentSha256,
+        state: "staged",
+      });
     }
-    let journal: Journal = {
+    let journal = signJournal({
       schemaVersion: 1,
       kind: "maestro-recipe-transaction-journal",
       status: "staging",
-      targetRoot,
-      planFingerprint: fingerprint,
+      targetRoot: authority.targetRoot,
+      transactionRoot,
+      recipeId: request.plan.recipeId,
+      recipeSchemaVersion: request.plan.recipeSchemaVersion,
+      planFingerprint: authority.fingerprint,
       preflightFingerprint: request.preflightFingerprint,
-      operations: request.plan.operations.map(
-        ({ path, beforeSha256, contentSha256 }) => ({
-          path,
-          beforeSha256,
-          contentSha256,
-        }),
-      ),
+      answersSha256: request.answersSha256,
+      operations,
       createdDirectories,
-      completedOperations: 0,
-    };
+    });
     durableJson(journalPath, journal);
-    journal = { ...journal, status: "applying" };
-    durableJson(journalPath, journal);
+    journal = transition(journalPath, journal, { status: "applying" });
     try {
       for (const [index, operation] of request.plan.operations.entries()) {
-        const target = containedPath(targetRoot, operation.path);
-        const backup = containedPath(backupRoot, operation.path);
-        let backupMoved = false;
+        const journalOperation = journal.operations[index];
+        if (!journalOperation)
+          throw new Error("Recipe journal operation is missing.");
+        const target = containedPath(
+          authority.targetRoot,
+          journalOperation.targetPath,
+        );
+        const backup = containedPath(
+          authority.targetRoot,
+          journalOperation.backupPath,
+        );
+        const staged = containedPath(
+          authority.targetRoot,
+          journalOperation.stagePath,
+        );
         if (operation.beforeSha256 !== null) {
           mkdirSync(dirname(backup), { recursive: true });
+          journal = transitionOperation(
+            journalPath,
+            journal,
+            index,
+            "backup-pending",
+          );
           renameSync(target, backup);
-          backupMoved = true;
           fsyncDirectory(dirname(target));
           fsyncDirectory(dirname(backup));
+          crash(options, "after-backup-rename-before-journal");
+          journal = transitionOperation(
+            journalPath,
+            journal,
+            index,
+            "backed-up",
+          );
         }
-        ensureOperationParent(targetRoot, dirname(target), createdDirectories);
-        const staged = containedPath(stageRoot, operation.path);
-        try {
-          renameSync(staged, target);
-        } catch (error) {
-          if (backupMoved) renameSync(backup, target);
-          throw error;
-        }
-        fsyncDirectory(dirname(target));
-        journal = {
-          ...journal,
+        ensureOperationParent(
+          authority.targetRoot,
+          dirname(target),
           createdDirectories,
-          completedOperations: index + 1,
-        };
-        durableJson(journalPath, journal);
+        );
+        journal = transitionOperation(
+          journalPath,
+          journal,
+          index,
+          "install-pending",
+          createdDirectories,
+        );
+        renameSync(staged, target);
+        fsyncDirectory(dirname(staged));
+        fsyncDirectory(dirname(target));
+        crash(options, "after-install-rename-before-journal");
+        journal = transitionOperation(journalPath, journal, index, "installed");
+        crash(options, "after-installed-journal");
         if (options?.failAfterOperation === index + 1)
           throw new Error(
             `Injected recipe transaction failure after operation ${index + 1}.`,
           );
       }
     } catch (error) {
-      rollbackApplied(
-        targetRoot,
-        backupRoot,
-        request.plan,
-        journal.completedOperations,
-      );
-      cleanupCreatedDirectories(
-        targetRoot,
-        createdDirectories,
-        transactionRoot,
-      );
-      journal = {
-        ...journal,
-        status: "rolled-back",
-        error: message(error),
-      };
-      durableJson(journalPath, journal);
+      if (error instanceof SimulatedProcessCrash) throw error;
+      rollbackJournal(journalPath, journal, message(error));
       return {
         ok: false,
-        message: `Recipe transaction rolled back: ${message(error)} Journal: ${relative(targetRoot, journalPath)}.`,
+        message: `Recipe transaction rolled back: ${message(error)} Journal: ${relative(authority.targetRoot, journalPath)}.`,
       };
     }
-    journal = { ...journal, status: "applied" };
-    durableJson(journalPath, journal);
+    journal = transition(journalPath, journal, { status: "applied" });
     const receipt: RecipeTransactionReceipt = {
       schemaVersion: 1,
       kind: "maestro-recipe-transaction",
       status: "applied",
       recipeId: request.plan.recipeId,
       recipeSchemaVersion: request.plan.recipeSchemaVersion,
-      planFingerprint: fingerprint,
+      planFingerprint: authority.fingerprint,
       preflightFingerprint: request.preflightFingerprint,
       answersSha256: request.answersSha256,
       generatorVersions: request.plan.steps.map(
@@ -202,10 +298,12 @@ function applyRecipeTransaction(
       ),
       operationPaths: request.plan.operations.map(({ path }) => path),
       provenancePaths: request.plan.provenancePaths,
-      candidateCommit: gitHead(targetRoot),
-      templateInstanceFingerprint: templateInstanceFingerprint(targetRoot),
-      journalPath: relative(targetRoot, journalPath),
-      receiptPath: relative(targetRoot, receiptPath),
+      candidateCommit: gitHead(authority.targetRoot),
+      templateInstanceFingerprint: templateInstanceFingerprint(
+        authority.targetRoot,
+      ),
+      journalPath: relative(authority.targetRoot, journalPath),
+      receiptPath: relative(authority.targetRoot, receiptPath),
     };
     durableJson(receiptPath, receipt);
     return { ok: true, receipt };
@@ -214,27 +312,344 @@ function applyRecipeTransaction(
   }
 }
 
-function rollbackApplied(
+function validatePlannedOperations(
   targetRoot: string,
-  backupRoot: string,
   plan: RecipeExecutionPlan,
-  completed: number,
 ): void {
-  for (const operation of [...plan.operations.slice(0, completed)].reverse()) {
-    const target = containedPath(targetRoot, operation.path);
-    if (operation.beforeSha256 === null) rmSync(target, { force: true });
-    else {
-      const backup = containedPath(backupRoot, operation.path);
-      if (!existsSync(backup))
-        throw new Error(
-          `Recipe rollback backup is missing: ${operation.path}.`,
-        );
-      renameSync(backup, target);
-      fsyncDirectory(dirname(target));
-    }
+  for (const operation of plan.operations) {
+    const target = validateOperationTarget(targetRoot, operation.path);
+    if (hashIfRegularFile(target) !== operation.beforeSha256)
+      throw new Error(
+        `Recipe target drifted after preview: ${operation.path}.`,
+      );
+    if (sha256RecipeBytes(operation.content) !== operation.contentSha256)
+      throw new Error(
+        `Recipe operation content hash drifted: ${operation.path}.`,
+      );
   }
 }
 
+function rollbackJournal(
+  journalPath: string,
+  original: Journal,
+  error?: string,
+): void {
+  let journal = transition(journalPath, original, {
+    status: "rolling-back",
+    ...(error === undefined ? {} : { error }),
+  });
+  for (let index = journal.operations.length - 1; index >= 0; index -= 1) {
+    const operation = journal.operations[index];
+    if (!operation) continue;
+    restoreOperation(journal, operation);
+    journal = transitionOperation(journalPath, journal, index, "rolled-back");
+  }
+  assertExactPreimages(journal);
+  cleanupCreatedDirectories(
+    journal.targetRoot,
+    journal.createdDirectories,
+    journal.transactionRoot,
+  );
+  transition(journalPath, journal, { status: "rolled-back" });
+}
+
+function restoreOperation(journal: Journal, operation: JournalOperation): void {
+  const target = containedPath(journal.targetRoot, operation.targetPath);
+  const staged = containedPath(journal.targetRoot, operation.stagePath);
+  const backup = containedPath(journal.targetRoot, operation.backupPath);
+  const targetHash = hashIfRegularFile(target);
+  const stageHash = hashIfRegularFile(staged);
+  const backupHash = hashIfRegularFile(backup);
+  if (stageHash !== null && stageHash !== operation.contentSha256)
+    throw new Error(
+      `Recipe recovery staged file was tampered: ${operation.path}.`,
+    );
+  if (operation.beforeSha256 === null) {
+    if (backupHash !== null)
+      throw new Error(
+        `Recipe recovery found an impossible backup: ${operation.path}.`,
+      );
+    if (targetHash === operation.contentSha256) {
+      rmSync(target);
+      fsyncDirectory(dirname(target));
+      return;
+    }
+    if (targetHash === null) return;
+    throw new Error(`Recipe recovery target was tampered: ${operation.path}.`);
+  }
+  const before = operation.beforeSha256;
+  if (targetHash === before && backupHash === null) return;
+  if (backupHash === before && targetHash === operation.contentSha256) {
+    rmSync(target);
+    fsyncDirectory(dirname(target));
+    renameSync(backup, target);
+    fsyncDirectory(dirname(backup));
+    fsyncDirectory(dirname(target));
+    return;
+  }
+  if (backupHash === before && targetHash === null) {
+    renameSync(backup, target);
+    fsyncDirectory(dirname(backup));
+    fsyncDirectory(dirname(target));
+    return;
+  }
+  if (targetHash === operation.contentSha256 && backupHash === null)
+    throw new Error(
+      `Recipe recovery cannot restore a missing backup: ${operation.path}.`,
+    );
+  throw new Error(
+    `Recipe recovery cannot mechanically prove the preimage: ${operation.path}.`,
+  );
+}
+
+function assertExactPreimages(journal: Journal): void {
+  for (const operation of journal.operations) {
+    const target = containedPath(journal.targetRoot, operation.targetPath);
+    const staged = containedPath(journal.targetRoot, operation.stagePath);
+    const backup = containedPath(journal.targetRoot, operation.backupPath);
+    const actual = hashIfRegularFile(target);
+    if (actual !== operation.beforeSha256)
+      throw new Error(
+        `Recipe recovery preimage does not match: ${operation.path}.`,
+      );
+    if (hashIfRegularFile(backup) !== null)
+      throw new Error(
+        `Recipe recovery retained an unexpected backup: ${operation.path}.`,
+      );
+    const stageHash = hashIfRegularFile(staged);
+    if (stageHash !== null && stageHash !== operation.contentSha256)
+      throw new Error(
+        `Recipe recovery staged file was tampered: ${operation.path}.`,
+      );
+  }
+}
+
+function assertExactOutputs(journal: Journal): void {
+  if (journal.operations.some(({ state }) => state !== "installed"))
+    throw new Error(
+      "Recipe transaction journal has an invalid applied closure.",
+    );
+  for (const operation of journal.operations) {
+    const target = containedPath(journal.targetRoot, operation.targetPath);
+    const staged = containedPath(journal.targetRoot, operation.stagePath);
+    const backup = containedPath(journal.targetRoot, operation.backupPath);
+    if (hashIfRegularFile(target) !== operation.contentSha256)
+      throw new Error(
+        `Applied recipe transaction target does not match: ${operation.path}.`,
+      );
+    if (hashIfRegularFile(staged) !== null)
+      throw new Error(
+        `Applied recipe transaction retained staged output: ${operation.path}.`,
+      );
+    if (hashIfRegularFile(backup) !== operation.beforeSha256)
+      throw new Error(
+        `Applied recipe transaction backup does not match: ${operation.path}.`,
+      );
+  }
+}
+
+function validateAuthority(request: TransactionRequest): {
+  targetRoot: string;
+  fingerprint: string;
+} {
+  const targetRoot = canonicalTargetRoot(request.repo.targetRoot);
+  if (targetRoot !== request.plan.targetRoot)
+    throw new Error(
+      "Recipe plan target root no longer matches the canonical target.",
+    );
+  const { fingerprint, ...unsigned } = request.plan;
+  if (fingerprintRecipePlan(unsigned) !== fingerprint)
+    throw new Error(
+      "Recipe plan fingerprint does not reproduce the exact plan.",
+    );
+  return { targetRoot, fingerprint };
+}
+
+function validateJournalAuthority(
+  journal: Journal,
+  request: TransactionRequest,
+  authority: { targetRoot: string; fingerprint: string },
+  transactionRoot: string,
+): void {
+  if (
+    journal.targetRoot !== authority.targetRoot ||
+    journal.transactionRoot !== transactionRoot ||
+    journal.recipeId !== request.plan.recipeId ||
+    journal.recipeSchemaVersion !== request.plan.recipeSchemaVersion ||
+    journal.planFingerprint !== authority.fingerprint ||
+    journal.preflightFingerprint !== request.preflightFingerprint ||
+    journal.answersSha256 !== request.answersSha256
+  )
+    throw new Error(
+      "Recipe transaction journal does not match the exact reviewed authority.",
+    );
+  if (journal.operations.length !== request.plan.operations.length)
+    throw new Error(
+      "Recipe transaction journal operation count does not match.",
+    );
+  const stageRoot = join(transactionRoot, "stage");
+  const backupRoot = join(transactionRoot, "backup");
+  for (const [index, planned] of request.plan.operations.entries()) {
+    const actual = journal.operations[index];
+    if (
+      !actual ||
+      actual.path !== planned.path ||
+      actual.targetPath !== planned.path ||
+      actual.stagePath !==
+        relative(
+          authority.targetRoot,
+          containedPath(stageRoot, planned.path),
+        ) ||
+      actual.backupPath !==
+        relative(
+          authority.targetRoot,
+          containedPath(backupRoot, planned.path),
+        ) ||
+      actual.beforeSha256 !== planned.beforeSha256 ||
+      actual.contentSha256 !== planned.contentSha256
+    )
+      throw new Error(
+        `Recipe transaction journal operation does not match: ${planned.path}.`,
+      );
+    validateOperationTarget(authority.targetRoot, actual.targetPath);
+    validateOperationTarget(authority.targetRoot, actual.stagePath);
+    validateOperationTarget(authority.targetRoot, actual.backupPath);
+  }
+  for (const path of journal.createdDirectories)
+    validateDirectoryPath(authority.targetRoot, path);
+}
+
+function readAuthenticatedJournal(path: string): Journal {
+  const raw = readRegularFile(path).toString("utf8");
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    throw new Error("Recipe transaction journal is not valid JSON.");
+  }
+  if (!isJournal(parsed))
+    throw new Error("Recipe transaction journal schema is invalid.");
+  const { journalDigest, ...unsigned } = parsed;
+  if (journalDigest !== journalDigestFor(unsigned))
+    throw new Error("Recipe transaction journal authentication failed.");
+  return parsed;
+}
+
+function isJournal(value: unknown): value is Journal {
+  if (typeof value !== "object" || value === null) return false;
+  const journal = value as Partial<Journal>;
+  return (
+    journal.schemaVersion === 1 &&
+    journal.kind === "maestro-recipe-transaction-journal" &&
+    ["staging", "applying", "rolling-back", "rolled-back", "applied"].includes(
+      journal.status ?? "",
+    ) &&
+    typeof journal.targetRoot === "string" &&
+    typeof journal.transactionRoot === "string" &&
+    typeof journal.recipeId === "string" &&
+    typeof journal.recipeSchemaVersion === "number" &&
+    typeof journal.planFingerprint === "string" &&
+    typeof journal.preflightFingerprint === "string" &&
+    typeof journal.answersSha256 === "string" &&
+    Array.isArray(journal.operations) &&
+    journal.operations.every(
+      (operation) =>
+        typeof operation === "object" &&
+        operation !== null &&
+        typeof operation.path === "string" &&
+        typeof operation.targetPath === "string" &&
+        typeof operation.stagePath === "string" &&
+        typeof operation.backupPath === "string" &&
+        (operation.beforeSha256 === null ||
+          typeof operation.beforeSha256 === "string") &&
+        typeof operation.contentSha256 === "string" &&
+        [
+          "staged",
+          "backup-pending",
+          "backed-up",
+          "install-pending",
+          "installed",
+          "rolled-back",
+        ].includes(operation.state),
+    ) &&
+    Array.isArray(journal.createdDirectories) &&
+    journal.createdDirectories.every((path) => typeof path === "string") &&
+    typeof journal.journalDigest === "string"
+  );
+}
+
+function signJournal(unsigned: UnsignedJournal): Journal {
+  return { ...unsigned, journalDigest: journalDigestFor(unsigned) };
+}
+function journalDigestFor(unsigned: UnsignedJournal): string {
+  return sha256RecipeBytes(JSON.stringify(unsigned));
+}
+function transition(
+  path: string,
+  journal: Journal,
+  change: Partial<Pick<UnsignedJournal, "status" | "error">>,
+): Journal {
+  const unsigned = unsignedJournal(journal);
+  const next = signJournal({ ...unsigned, ...change });
+  durableJson(path, next);
+  return next;
+}
+function transitionOperation(
+  path: string,
+  journal: Journal,
+  index: number,
+  state: OperationState,
+  createdDirectories: readonly string[] = journal.createdDirectories,
+): Journal {
+  const operations = journal.operations.map((operation, operationIndex) =>
+    operationIndex === index ? { ...operation, state } : operation,
+  );
+  const unsigned = unsignedJournal(journal);
+  const next = signJournal({ ...unsigned, operations, createdDirectories });
+  durableJson(path, next);
+  return next;
+}
+
+function unsignedJournal(journal: Journal): UnsignedJournal {
+  return {
+    schemaVersion: journal.schemaVersion,
+    kind: journal.kind,
+    status: journal.status,
+    targetRoot: journal.targetRoot,
+    transactionRoot: journal.transactionRoot,
+    recipeId: journal.recipeId,
+    recipeSchemaVersion: journal.recipeSchemaVersion,
+    planFingerprint: journal.planFingerprint,
+    preflightFingerprint: journal.preflightFingerprint,
+    answersSha256: journal.answersSha256,
+    operations: journal.operations,
+    createdDirectories: journal.createdDirectories,
+    ...(journal.error === undefined ? {} : { error: journal.error }),
+  };
+}
+
+function crash(
+  options: TransactionOptions | undefined,
+  point: CrashPoint,
+): void {
+  if (options?.crashAt === point)
+    throw new SimulatedProcessCrash(`Injected process crash: ${point}.`);
+}
+function planTransactionRoot(targetRoot: string, fingerprint: string): string {
+  const transactionId = fingerprint.replace(/[^a-zA-Z0-9]/gu, "-");
+  return containedPath(
+    targetRoot,
+    `.maestro/recipe-transactions/${transactionId}`,
+  );
+}
+function nextAttemptNumber(planRoot: string): number {
+  const numbers = readdirSync(planRoot, { withFileTypes: true })
+    .filter(
+      (entry) => entry.isDirectory() && /^attempt-\d{4,}$/u.test(entry.name),
+    )
+    .map(({ name }) => Number(name.slice("attempt-".length)));
+  return numbers.length === 0 ? 1 : Math.max(...numbers) + 1;
+}
 function canonicalTargetRoot(root: string): string {
   const resolved = resolve(root);
   const canonical = realpathSync(resolved);
@@ -249,14 +664,26 @@ function validateOperationTarget(root: string, path: string): string {
   let current = root;
   for (const part of path.split("/")) {
     current = join(current, part);
-    if (!existsSync(current)) continue;
-    const stats = lstatSync(current);
+    const stats = lstatIfExists(current);
+    if (stats === null) continue;
     if (stats.isSymbolicLink())
       throw new Error(`Recipe path crosses a symlink: ${path}.`);
     if (current !== target && !stats.isDirectory())
       throw new Error(`Recipe path parent is not a directory: ${path}.`);
     if (current === target && !stats.isFile())
       throw new Error(`Recipe target is not a regular file: ${path}.`);
+  }
+  return target;
+}
+function validateDirectoryPath(root: string, path: string): string {
+  const target = containedPath(root, path);
+  let current = root;
+  for (const part of path.split("/")) {
+    current = join(current, part);
+    const stats = lstatIfExists(current);
+    if (stats === null) continue;
+    if (stats.isSymbolicLink() || !stats.isDirectory())
+      throw new Error(`Recipe journal directory path is unsafe: ${path}.`);
   }
   return target;
 }
@@ -298,6 +725,7 @@ function ensureOperationParent(
         );
     } else {
       mkdirSync(current);
+      fsyncDirectory(dirname(current));
       created.push(relative(root, current));
     }
   }
@@ -313,6 +741,7 @@ function cleanupCreatedDirectories(
       continue;
     try {
       rmSync(absolute, { recursive: false });
+      fsyncDirectory(dirname(absolute));
     } catch {
       // A nonempty directory contains pre-existing or retained evidence.
     }
@@ -348,10 +777,27 @@ function fsyncDirectory(path: string): void {
     closeSync(fd);
   }
 }
+function assertDirectory(path: string, label: string): void {
+  const stats = lstatSync(path);
+  if (!stats.isDirectory() || stats.isSymbolicLink())
+    throw new Error(`${label} is not a real directory.`);
+}
+function hashIfRegularFile(path: string): string | null {
+  if (lstatIfExists(path) === null) return null;
+  return sha256RecipeBytes(readRegularFile(path));
+}
+function lstatIfExists(path: string): Stats | null {
+  try {
+    return lstatSync(path);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
+    throw error;
+  }
+}
 function readRegularFile(path: string): Buffer {
   const stats = lstatSync(path);
   if (!stats.isFile() || stats.isSymbolicLink())
-    throw new Error(`Recipe target is not a regular file: ${path}.`);
+    throw new Error(`Recipe path is not a regular file: ${path}.`);
   return readFileSync(path);
 }
 function gitHead(root: string): string | null {
