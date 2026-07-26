@@ -50,6 +50,8 @@ const FACTORY_ONLY_EXACT = new Set([
   "docs/template/porting-roadmap.md",
   "docs/template/post-port-backlog.md",
   "tooling/app-map/INTEGRATION_REQUEST.md",
+  "tooling/release-seal.mts",
+  "tooling/release-seal.test.mts",
 ]);
 
 const FACTORY_ONLY_NESTED_PREFIXES = ["docs/template/extraction/"] as const;
