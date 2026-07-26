@@ -14,6 +14,10 @@ import {
   buildCustomerOwnershipInventory,
   classifyCustomerSourcePath,
 } from "./release/src/customerTarget/ownership.js";
+import {
+  resolveCustomerReleasePath,
+  type CustomerReleasePath,
+} from "./release/src/customerTarget/manifest.js";
 
 type Json = null | boolean | number | string | Json[] | { [key: string]: Json };
 type Args = { version: string; sourceCommit: string; check: boolean };
@@ -113,6 +117,101 @@ function slug(path: string): string {
   return path.replace(/[^a-zA-Z0-9]+/gu, "-").replace(/^-|-$/gu, "");
 }
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
+export function parseReviewedFactoryOnlyExclusions(input: {
+  readonly value: unknown;
+  readonly sourcePaths: readonly string[];
+  readonly protectedCustomerPaths: readonly string[];
+}): readonly CustomerReleasePath[] {
+  if (!Array.isArray(input.value))
+    throw new Error("Release additionalPaths must be an array.");
+  const source = new Set(input.sourcePaths);
+  const rules = input.value.map((raw, index): CustomerReleasePath => {
+    if (
+      !isRecord(raw) ||
+      JSON.stringify(Object.keys(raw).sort()) !==
+        JSON.stringify(
+          ["action", "match", "ownership", "path", "upgrade"].sort(),
+        ) ||
+      typeof raw.path !== "string" ||
+      !safePath(raw.path) ||
+      (raw.match !== "exact" && raw.match !== "subtree") ||
+      raw.ownership !== "factory-only" ||
+      raw.action !== "omit" ||
+      raw.upgrade !== "remove"
+    ) {
+      throw new Error(
+        `Release factory-only exclusion ${String(index)} is invalid.`,
+      );
+    }
+    const matchesSource =
+      raw.match === "exact"
+        ? source.has(raw.path)
+        : input.sourcePaths.some(
+            (path) => path === raw.path || path.startsWith(`${raw.path}/`),
+          );
+    if (!matchesSource)
+      throw new Error(`Release exclusion has no source path: ${raw.path}`);
+    return {
+      path: raw.path,
+      match: raw.match,
+      ownership: "factory-only",
+      action: "omit",
+      upgrade: "remove",
+    };
+  });
+  const identities = new Set<string>();
+  for (const rule of rules) {
+    const identity = `${rule.match}:${rule.path}`;
+    if (identities.has(identity))
+      throw new Error(`Duplicate release exclusion: ${identity}`);
+    identities.add(identity);
+  }
+  for (const [index, left] of rules.entries()) {
+    for (const right of rules.slice(index + 1)) {
+      if (
+        left.path === right.path ||
+        left.path.startsWith(`${right.path}/`) ||
+        right.path.startsWith(`${left.path}/`)
+      ) {
+        throw new Error(
+          `Overlapping release exclusions: ${left.path}, ${right.path}`,
+        );
+      }
+    }
+  }
+  for (const path of input.protectedCustomerPaths) {
+    if (!safePath(path))
+      throw new Error(`Protected customer path is unsafe: ${path}`);
+    if (resolveCustomerReleasePath(rules, path))
+      throw new Error(
+        `Factory-only exclusion collides with customer-shipped path: ${path}`,
+      );
+  }
+  return [...rules].sort((left, right) =>
+    `${left.path}:${left.match}`.localeCompare(`${right.path}:${right.match}`),
+  );
+}
+
+export function buildReviewedOwnershipInventory(input: {
+  readonly sourcePaths: readonly string[];
+  readonly exclusions: readonly CustomerReleasePath[];
+}): readonly CustomerReleasePath[] {
+  const excluded: CustomerReleasePath[] = [];
+  const remaining: string[] = [];
+  for (const path of input.sourcePaths) {
+    const exclusion = resolveCustomerReleasePath(input.exclusions, path);
+    if (exclusion) {
+      excluded.push({ ...exclusion, path, match: "exact" });
+    } else remaining.push(path);
+  }
+  return [...buildCustomerOwnershipInventory(remaining), ...excluded].sort(
+    (left, right) => left.path.localeCompare(right.path),
+  );
+}
+
 async function build(args: Args): Promise<readonly Output[]> {
   assertSource(args);
   const releaseRoot = `releases/v${args.version}`;
@@ -150,9 +249,8 @@ async function build(args: Args): Promise<readonly Output[]> {
   if (!args.check) apply(outputs);
   else assertOutputs(outputs);
 
-  const { buildSaasApplicationTargetPlan } = await import(
-    "./generators/src/blueprints/saasApplication.js"
-  );
+  const { buildSaasApplicationTargetPlan } =
+    await import("./generators/src/blueprints/saasApplication.js");
   const plan = buildSaasApplicationTargetPlan();
   const blueprintValue = {
     schemaVersion: plan.schemaVersion,
@@ -165,9 +263,16 @@ async function build(args: Args): Promise<readonly Output[]> {
   const blueprintBytes = json(blueprintValue);
   outputs.push({ path: blueprintPath, bytes: blueprintBytes });
 
-  const inventory = buildCustomerOwnershipInventory(
-    sourcePaths(args.sourceCommit),
-  );
+  const reviewedSourcePaths = sourcePaths(args.sourceCommit);
+  const exclusions = parseReviewedFactoryOnlyExclusions({
+    value: current.additionalPaths,
+    sourcePaths: reviewedSourcePaths,
+    protectedCustomerPaths: plan.entries.map((entry: any) => entry.path),
+  });
+  const inventory = buildReviewedOwnershipInventory({
+    sourcePaths: reviewedSourcePaths,
+    exclusions,
+  });
   const currentTemplate = new Map(
     inventory
       .filter((entry) => entry.ownership === "template-owned")
@@ -336,18 +441,23 @@ function apply(outputs: readonly Output[]): void {
   }
 }
 
-build(parseArgs(process.argv.slice(2)))
-  .then((outputs) => {
-    const args = parseArgs(process.argv.slice(2));
-    if (args.check) assertOutputs(outputs);
-    else apply(outputs);
-    process.stdout.write(
-      `${args.check ? "verified" : "sealed"} ${args.version} from ${args.sourceCommit}\n`,
-    );
-  })
-  .catch((error: unknown) => {
-    process.stderr.write(
-      `${error instanceof Error ? error.message : "release seal failed"}\n`,
-    );
-    process.exitCode = 1;
-  });
+const isDirectRun =
+  process.argv[1] !== undefined &&
+  import.meta.url === new URL(`file://${resolve(process.argv[1])}`).href;
+if (isDirectRun) {
+  build(parseArgs(process.argv.slice(2)))
+    .then((outputs) => {
+      const args = parseArgs(process.argv.slice(2));
+      if (args.check) assertOutputs(outputs);
+      else apply(outputs);
+      process.stdout.write(
+        `${args.check ? "verified" : "sealed"} ${args.version} from ${args.sourceCommit}\n`,
+      );
+    })
+    .catch((error: unknown) => {
+      process.stderr.write(
+        `${error instanceof Error ? error.message : "release seal failed"}\n`,
+      );
+      process.exitCode = 1;
+    });
+}
