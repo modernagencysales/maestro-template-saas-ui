@@ -1,0 +1,279 @@
+{
+  "schemaVersion": 1,
+  "subject": {
+    "id": "reviewer-brain",
+    "revision": "e9c9123"
+  },
+  "batches": [
+    {
+      "adapterVersion": 1,
+      "source": {
+        "id": "system-catalog",
+        "kind": "system-catalog",
+        "path": "docs/template/system-catalog.json",
+        "version": "1",
+        "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "nodes": [
+        {
+          "id": "system:access-and-tenancy",
+          "kind": "system",
+          "group": "Connections",
+          "label": "Access And Tenancy",
+          "version": "1",
+          "provenance": {
+            "authority": "canonical",
+            "sourceId": "system-catalog",
+            "sourcePath": "docs/template/system-catalog.json",
+            "sourceVersion": "1",
+            "sourceDigest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "factId": "systems/access-and-tenancy"
+          }
+        },
+        {
+          "id": "system:knowledge-brain",
+          "kind": "system",
+          "group": "Connections",
+          "label": "Knowledge Brain",
+          "version": "1",
+          "provenance": {
+            "authority": "canonical",
+            "sourceId": "system-catalog",
+            "sourcePath": "docs/template/system-catalog.json",
+            "sourceVersion": "1",
+            "sourceDigest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "factId": "systems/knowledge-brain"
+          }
+        },
+        {
+          "id": "system:workflow-runtime",
+          "kind": "system",
+          "group": "Connections",
+          "label": "Workflow Runtime",
+          "version": "1",
+          "provenance": {
+            "authority": "canonical",
+            "sourceId": "system-catalog",
+            "sourcePath": "docs/template/system-catalog.json",
+            "sourceVersion": "1",
+            "sourceDigest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "factId": "systems/workflow-runtime"
+          }
+        }
+      ],
+      "edges": []
+    },
+    {
+      "adapterVersion": 1,
+      "source": {
+        "id": "data-resources",
+        "kind": "data-resources",
+        "path": "docs/template/data-resources.json",
+        "version": "1",
+        "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "nodes": [
+        {
+          "id": "table:brainPages",
+          "kind": "table",
+          "group": "Data",
+          "label": "Brain Pages",
+          "version": "1",
+          "provenance": {
+            "authority": "canonical",
+            "sourceId": "data-resources",
+            "sourcePath": "docs/template/data-resources.json",
+            "sourceVersion": "1",
+            "sourceDigest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "factId": "resources/brainPages"
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "owns:system:knowledge-brain->table:brainPages",
+          "kind": "owns",
+          "from": "system:knowledge-brain",
+          "to": "table:brainPages",
+          "provenance": {
+            "authority": "canonical",
+            "sourceId": "data-resources",
+            "sourcePath": "docs/template/data-resources.json",
+            "sourceVersion": "1",
+            "sourceDigest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "factId": "resources/brainPages/system"
+          }
+        }
+      ]
+    },
+    {
+      "adapterVersion": 1,
+      "source": {
+        "id": "route-tree",
+        "kind": "route-tree",
+        "path": "apps/web/src/routeTree.gen.ts",
+        "version": "1",
+        "digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      },
+      "nodes": [
+        {
+          "id": "route:/knowledge",
+          "kind": "route",
+          "group": "Screens",
+          "label": "Knowledge",
+          "version": "1",
+          "provenance": {
+            "authority": "canonical",
+            "sourceId": "route-tree",
+            "sourcePath": "apps/web/src/routeTree.gen.ts",
+            "sourceVersion": "1",
+            "sourceDigest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "factId": "routes/knowledge"
+          }
+        }
+      ],
+      "edges": []
+    },
+    {
+      "adapterVersion": 1,
+      "source": {
+        "id": "product-topology",
+        "kind": "product-topology",
+        "path": "docs/template/product-topology.json",
+        "version": "1",
+        "digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+      },
+      "nodes": [],
+      "edges": [
+        {
+          "id": "owns:system:knowledge-brain->route:/knowledge",
+          "kind": "owns",
+          "from": "system:knowledge-brain",
+          "to": "route:/knowledge",
+          "provenance": {
+            "authority": "canonical",
+            "sourceId": "product-topology",
+            "sourcePath": "docs/template/product-topology.json",
+            "sourceVersion": "1",
+            "sourceDigest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "factId": "resources/routes/knowledge/system"
+          }
+        },
+        {
+          "id": "projects:route:/knowledge->table:brainPages",
+          "kind": "projects",
+          "from": "route:/knowledge",
+          "to": "table:brainPages",
+          "provenance": {
+            "authority": "canonical",
+            "sourceId": "product-topology",
+            "sourcePath": "docs/template/product-topology.json",
+            "sourceVersion": "1",
+            "sourceDigest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "factId": "resources/routes/knowledge/dependencies/brainPages"
+          }
+        }
+      ]
+    },
+    {
+      "adapterVersion": 1,
+      "source": {
+        "id": "workflow-registry",
+        "kind": "workflow-registry",
+        "path": "packages/convex/confect/workflows/registry.generated.json",
+        "version": "1",
+        "digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      },
+      "nodes": [
+        {
+          "id": "workflow:source-grounded-brief@1",
+          "kind": "workflow-version",
+          "group": "Automations",
+          "label": "Source Grounded Brief v1",
+          "version": "1",
+          "provenance": {
+            "authority": "canonical",
+            "sourceId": "workflow-registry",
+            "sourcePath": "packages/convex/confect/workflows/registry.generated.json",
+            "sourceVersion": "1",
+            "sourceDigest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+            "factId": "workflows/source-grounded-brief/versions/1"
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "owns:system:workflow-runtime->workflow:source-grounded-brief@1",
+          "kind": "owns",
+          "from": "system:workflow-runtime",
+          "to": "workflow:source-grounded-brief@1",
+          "provenance": {
+            "authority": "canonical",
+            "sourceId": "workflow-registry",
+            "sourcePath": "packages/convex/confect/workflows/registry.generated.json",
+            "sourceVersion": "1",
+            "sourceDigest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+            "factId": "workflows/source-grounded-brief/system"
+          }
+        },
+        {
+          "id": "persists:workflow:source-grounded-brief@1->table:brainPages",
+          "kind": "persists",
+          "from": "workflow:source-grounded-brief@1",
+          "to": "table:brainPages",
+          "provenance": {
+            "authority": "canonical",
+            "sourceId": "workflow-registry",
+            "sourcePath": "packages/convex/confect/workflows/registry.generated.json",
+            "sourceVersion": "1",
+            "sourceDigest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+            "factId": "workflows/source-grounded-brief/persists/brainPages"
+          }
+        }
+      ]
+    },
+    {
+      "adapterVersion": 1,
+      "source": {
+        "id": "template-instance",
+        "kind": "template-instance",
+        "path": "template-instance.json",
+        "version": "1",
+        "digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      },
+      "nodes": [
+        {
+          "id": "provider:convex",
+          "kind": "provider",
+          "group": "Connections",
+          "label": "Convex",
+          "version": "configured",
+          "provenance": {
+            "authority": "canonical",
+            "sourceId": "template-instance",
+            "sourcePath": "template-instance.json",
+            "sourceVersion": "1",
+            "sourceDigest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+            "factId": "providers/convex"
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "owns:system:access-and-tenancy->provider:convex",
+          "kind": "owns",
+          "from": "system:access-and-tenancy",
+          "to": "provider:convex",
+          "provenance": {
+            "authority": "canonical",
+            "sourceId": "template-instance",
+            "sourcePath": "template-instance.json",
+            "sourceVersion": "1",
+            "sourceDigest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+            "factId": "providers/convex/system"
+          }
+        }
+      ]
+    }
+  ]
+}
