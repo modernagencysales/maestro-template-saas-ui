@@ -36,7 +36,7 @@ export class WorkflowAdmissionDenied extends Schema.TaggedError<WorkflowAdmissio
     saturated: Schema.Literal("active", "queued"),
     active: Schema.Number.pipe(Schema.int(), Schema.greaterThanOrEqualTo(0)),
     queued: Schema.Number.pipe(Schema.int(), Schema.greaterThanOrEqualTo(0)),
-    limit: Schema.Number.pipe(Schema.int(), Schema.greaterThan(0)),
+    limit: Schema.Number.pipe(Schema.int(), Schema.greaterThanOrEqualTo(0)),
     retryAfterMs: Schema.Number.pipe(Schema.int(), Schema.greaterThan(0)),
   },
 ) {}

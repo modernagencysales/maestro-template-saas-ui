@@ -1,6 +1,12 @@
 import { start, type WorkflowId } from "@convex-dev/workflow";
-import type { FunctionArgs, FunctionReference } from "convex/server";
-import type { GenericId } from "convex/values";
+import {
+  componentsGeneric,
+  type FunctionArgs,
+  type FunctionReference,
+  type GenericDataModel,
+  type GenericMutationCtx,
+} from "convex/server";
+import type { GenericId, Value } from "convex/values";
 import type * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
@@ -24,7 +30,6 @@ import {
 import type { DurableWorkflowPrincipal } from "./principal";
 import type { WorkflowPolicySnapshot } from "./policySnapshot";
 import {
-  decideWorkflowAdmission,
   workflowAdmissionPolicy,
   WorkflowAdmissionDenied,
   type WorkflowAdmissionLane,
@@ -155,13 +160,19 @@ export const startWorkflowAndRecordOwnership = <
       return existingWorkflowId;
     }
 
-    yield* assertWorkflowAdmissionAvailable(
-      reader,
-      normalizedInput.workspaceId,
-      normalizedInput.admissionLane,
-    );
+    yield* reserveWorkflowAdmission(mutationCtx, reader, {
+      reservationKey: normalizedInput.idempotencyKey,
+      workspaceId: normalizedInput.workspaceId,
+      lane: normalizedInput.admissionLane,
+    });
 
     const reservationId = yield* reserveWorkflowRun(writer, normalizedInput);
+    yield* bindWorkflowAdmission(
+      mutationCtx,
+      normalizedInput.workspaceId,
+      normalizedInput.idempotencyKey,
+      reservationId,
+    );
     const completionContext = workflowOnCompleteContext(
       normalizedInput,
       reservationId,
@@ -184,6 +195,9 @@ export const startWorkflowAndRecordOwnership = <
       componentWorkflowId,
       normalizedInput.kickoffProfile,
     );
+    if (normalizedInput.kickoffProfile === "eager-first-poll") {
+      yield* transitionWorkflowAdmission(mutationCtx, reservationId, "running");
+    }
     return componentWorkflowId;
   });
 
@@ -499,73 +513,154 @@ const canonicalStartValue = (value: unknown): string => {
   throw new TypeError("Workflow start arguments are not canonical values.");
 };
 
-export const assertWorkflowAdmissionAvailable = (
+type AdmissionRunStatus =
+  "queued" | "running" | "completed" | "failed" | "canceled" | "timedOut";
+type AdmissionComponentReference = FunctionReference<
+  "mutation",
+  "public",
+  Record<string, Value>,
+  Value | null
+>;
+type AdmissionComponent = {
+  reserve: AdmissionComponentReference;
+  bind: AdmissionComponentReference;
+  transition: AdmissionComponentReference;
+};
+const admissionComponents = componentsGeneric() as unknown as Record<
+  string,
+  Record<string, AdmissionComponent>
+>;
+const registeredAdmissionComponent =
+  admissionComponents.workflowAdmission?.admission;
+if (registeredAdmissionComponent === undefined) {
+  throw new TypeError("Workflow admission component is not registered.");
+}
+const admissionComponent: AdmissionComponent = registeredAdmissionComponent;
+
+export const reserveWorkflowAdmission = (
+  mutation: Mutation,
   reader: Reader,
-  workspaceId: string,
-  lane: WorkflowAdmissionLane,
-  policy: WorkflowAdmissionPolicy = workflowAdmissionPolicy(
-    generatedWorkflowReadyWaveLimit,
-  ),
+  input: {
+    workspaceId: string;
+    reservationKey: string;
+    lane: WorkflowAdmissionLane;
+    policy?: WorkflowAdmissionPolicy;
+  },
 ) =>
   Effect.gen(function* () {
-    const budget = policy[lane];
-    const [active, queued] = yield* Effect.all([
-      countWorkflowRunsForAdmission(
+    const policy =
+      input.policy ?? workflowAdmissionPolicy(generatedWorkflowReadyWaveLimit);
+    const [legacyRunningRunIds, legacyQueuedRunIds] = yield* Effect.all([
+      legacyWorkflowRunIds(
         reader,
-        workspaceId,
-        lane,
+        input.workspaceId,
         "running",
-        budget.maxActive,
-        policy.user.maxActive + policy.system.maxActive,
+        policy.user.maxActive,
       ),
-      countWorkflowRunsForAdmission(
+      legacyWorkflowRunIds(
         reader,
-        workspaceId,
-        lane,
+        input.workspaceId,
         "queued",
-        budget.maxQueued,
-        policy.user.maxQueued + policy.system.maxQueued,
+        policy.user.maxQueued,
       ),
     ]);
-    const decision = decideWorkflowAdmission(lane, { active, queued }, policy);
-    if (decision.kind === "deny") {
-      return yield* new WorkflowAdmissionDenied({
-        lane: decision.lane,
-        saturated: decision.saturated,
-        active: decision.active,
-        queued: decision.queued,
-        limit: decision.limit,
-        retryAfterMs: decision.retryAfterMs,
-      });
-    }
+    yield* runAdmissionComponentMutation(mutation, admissionComponent.reserve, {
+      ...input,
+      policy,
+      legacyRunningRunIds,
+      legacyQueuedRunIds,
+    });
+  }).pipe(Effect.mapError(decodeAdmissionError));
+
+export const bindWorkflowAdmission = (
+  mutation: Mutation,
+  workspaceId: string,
+  reservationKey: string,
+  workflowRunId: GenericId<"workflowRuns">,
+) =>
+  runAdmissionComponentMutation(mutation, admissionComponent.bind, {
+    workspaceId,
+    reservationKey,
+    workflowRunId,
   });
 
-const countWorkflowRunsForAdmission = (
+export const transitionWorkflowAdmission = (
+  mutation: Mutation,
+  workflowRunId: GenericId<"workflowRuns">,
+  status: AdmissionRunStatus,
+) =>
+  runAdmissionComponentMutation(mutation, admissionComponent.transition, {
+    workflowRunId,
+    status,
+  });
+
+const legacyWorkflowRunIds = (
   reader: Reader,
   workspaceId: string,
-  lane: WorkflowAdmissionLane,
   status: "queued" | "running",
   limit: number,
-  candidateLimit: number,
 ) =>
-  Effect.gen(function* () {
-    const candidates = yield* reader
-      .table("workflowRuns")
-      .index("by_workspace_status", (q) =>
-        q.eq("workspaceId", workspaceId).eq("status", status),
-      )
-      .take(candidateLimit + 1)
-      .pipe(Effect.orDie);
-    if (candidates.length > candidateLimit) return limit;
-    let count = 0;
-    for (const run of candidates) {
-      const admission = yield* readWorkflowAdmission(reader, run._id);
-      const runLane = admission?.admissionLane ?? "user";
-      if (runLane === lane) count += 1;
-      if (count >= limit) return count;
-    }
-    return count;
+  limit === 0
+    ? Effect.succeed([] as string[])
+    : reader
+        .table("workflowRuns")
+        .index("by_workspace_status", (q) =>
+          q.eq("workspaceId", workspaceId).eq("status", status),
+        )
+        .take(limit)
+        .pipe(
+          Effect.map((runs) => runs.map((run) => String(run._id))),
+          Effect.orDie,
+        );
+
+const runAdmissionComponentMutation = (
+  mutation: Mutation,
+  reference: AdmissionComponentReference,
+  args: Record<string, Value>,
+) =>
+  Effect.tryPromise({
+    try: () =>
+      (mutation as unknown as GenericMutationCtx<GenericDataModel>).runMutation(
+        reference,
+        args,
+      ),
+    catch: (error) => error,
   });
+
+export const decodeAdmissionError = (error: unknown): unknown => {
+  const data =
+    typeof error === "object" && error !== null && "data" in error
+      ? (error as { data: unknown }).data
+      : error;
+  if (
+    typeof data === "object" &&
+    data !== null &&
+    "code" in data &&
+    data.code === "WORKFLOW_ADMISSION_DENIED" &&
+    "lane" in data &&
+    (data.lane === "user" || data.lane === "system") &&
+    "saturated" in data &&
+    (data.saturated === "active" || data.saturated === "queued") &&
+    "active" in data &&
+    typeof data.active === "number" &&
+    "queued" in data &&
+    typeof data.queued === "number" &&
+    "limit" in data &&
+    typeof data.limit === "number" &&
+    "retryAfterMs" in data &&
+    typeof data.retryAfterMs === "number"
+  ) {
+    return new WorkflowAdmissionDenied({
+      lane: data.lane,
+      saturated: data.saturated,
+      active: data.active,
+      queued: data.queued,
+      limit: data.limit,
+      retryAfterMs: data.retryAfterMs,
+    });
+  }
+  return error;
+};
 
 const optionalRunFields = (input: WorkflowRunReservationInput) => ({
   ...definedFields({
@@ -647,10 +742,25 @@ export const recordStartedWorkflow = (
   componentWorkflowId: WorkflowId,
   kickoffProfile: "eager-first-poll" | "queued",
 ) =>
-  writer
-    .table("workflowRuns")
-    .patch(reservationId, {
-      ...(kickoffProfile === "eager-first-poll" ? { status: "running" } : {}),
-      componentWorkflowId,
-    })
-    .pipe(Effect.orDie);
+  Effect.gen(function* () {
+    yield* writer
+      .table("workflowRuns")
+      .patch(reservationId, {
+        ...(kickoffProfile === "eager-first-poll" ? { status: "running" } : {}),
+        componentWorkflowId,
+      })
+      .pipe(Effect.orDie);
+  });
+
+export const recordWorkflowAdmissionStatus = (
+  writer: Writer,
+  workflowRunId: GenericId<"workflowRuns">,
+  status:
+    "queued" | "running" | "completed" | "failed" | "canceled" | "timedOut",
+) =>
+  Effect.gen(function* () {
+    yield* writer
+      .table("workflowRuns")
+      .patch(workflowRunId, { status })
+      .pipe(Effect.orDie);
+  });

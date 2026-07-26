@@ -5,6 +5,7 @@ import workpool from "@convex-dev/workpool/convex.config";
 import posthog from "@posthog/convex/convex.config.js";
 import { defineApp } from "convex/server";
 import { v } from "convex/values";
+import workflowAdmission from "./workflowAdmission/convex.config";
 
 const app = defineApp({
   env: {
@@ -21,6 +22,7 @@ app.use(posthog, {
 });
 app.use(workpool, { name: "workpool" });
 app.use(workflow, { name: "workflow" });
+app.use(workflowAdmission, { name: "workflowAdmission" });
 app.use(migrations, { name: "migrations" });
 app.use(prosemirrorSync);
 

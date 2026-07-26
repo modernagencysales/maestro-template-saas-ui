@@ -1,6 +1,7 @@
 import { FunctionImpl, GroupImpl } from "@confect/server";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
+import type { GenericId } from "convex/values";
 
 import databaseSchema from "../_generated/schema";
 import {
@@ -18,6 +19,7 @@ import {
 import lifecycle from "./lifecycle.spec";
 import { reconcileWorkflowCompletion } from "./lifecycleReconciliation";
 import { runBoundedWorkflowRetentionSweep } from "./_kit/lifecycleSweep";
+import { transitionWorkflowAdmission } from "./_kit/ownership";
 
 const cancel = FunctionImpl.make(databaseSchema, lifecycle, "cancel", (args) =>
   Effect.gen(function* () {
@@ -130,7 +132,11 @@ const reconcileCompletion = FunctionImpl.make(
     Effect.gen(function* () {
       const reader = yield* DatabaseReader;
       const writer = yield* DatabaseWriter;
-      return yield* reconcileWorkflowCompletion(reader, writer, args).pipe(
+      const reconciled = yield* reconcileWorkflowCompletion(
+        reader,
+        writer,
+        args,
+      ).pipe(
         Effect.mapError(
           (error) =>
             new ValidationFailed({
@@ -139,6 +145,17 @@ const reconcileCompletion = FunctionImpl.make(
             }),
         ),
       );
+      const mutation = yield* MutationCtx;
+      yield* transitionWorkflowAdmission(
+        mutation,
+        args.context.workflowRunId as GenericId<"workflowRuns">,
+        reconciled.status === "success"
+          ? "completed"
+          : reconciled.status === "failed"
+            ? "failed"
+            : "canceled",
+      ).pipe(Effect.orDie);
+      return reconciled;
     }),
 );
 

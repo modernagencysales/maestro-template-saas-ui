@@ -1,7 +1,18 @@
 import { TestConfect } from "@confect/test";
 import * as Effect from "effect/Effect";
 import * as Schema from "effect/Schema";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+vi.mock("../confect/workflows/_kit/ownership", async (importOriginal) => {
+  const Effect = await import("effect/Effect");
+  const original = await importOriginal<object>();
+  return {
+    ...original,
+    bindWorkflowAdmission: () => Effect.void,
+    reserveWorkflowAdmission: () => Effect.void,
+    transitionWorkflowAdmission: () => Effect.void,
+  };
+});
 
 import refs from "../confect/_generated/refs";
 import { Id } from "../confect/_generated/id";

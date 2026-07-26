@@ -1,7 +1,13 @@
 import { TestConfect } from "@confect/test";
 import * as Effect from "effect/Effect";
 import * as Schema from "effect/Schema";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+vi.mock("../confect/workflows/_kit/ownership", async (importOriginal) => {
+  const Effect = await import("effect/Effect");
+  const original = await importOriginal<object>();
+  return { ...original, transitionWorkflowAdmission: () => Effect.void };
+});
 
 import databaseSchema from "../confect/_generated/schema";
 import { DatabaseReader, DatabaseWriter } from "../confect/_generated/services";

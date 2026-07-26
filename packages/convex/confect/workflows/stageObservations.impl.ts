@@ -6,7 +6,12 @@ import type * as Context from "effect/Context";
 import type { GenericId } from "convex/values";
 
 import databaseSchema from "../_generated/schema";
-import { DatabaseReader, DatabaseWriter } from "../_generated/services";
+import {
+  DatabaseReader,
+  DatabaseWriter,
+  MutationCtx,
+} from "../_generated/services";
+import { transitionWorkflowAdmission } from "./_kit/ownership";
 import stageObservations from "./stageObservations.spec";
 
 const executionIdentity = FunctionImpl.make(
@@ -85,6 +90,10 @@ export const markWorkflowRunDispatched = (
         .table("workflowRuns")
         .patch(run._id, { status: "running" })
         .pipe(Effect.orDie);
+      const mutation = yield* MutationCtx;
+      yield* transitionWorkflowAdmission(mutation, run._id, "running").pipe(
+        Effect.orDie,
+      );
     }
   });
 

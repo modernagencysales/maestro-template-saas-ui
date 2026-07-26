@@ -5,9 +5,17 @@ import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
 
 import databaseSchema from "../_generated/schema";
-import { DatabaseReader, DatabaseWriter } from "../_generated/services";
+import {
+  DatabaseReader,
+  DatabaseWriter,
+  MutationCtx,
+} from "../_generated/services";
 import { NotFound, ValidationFailed } from "../errors";
-import { assertWorkflowAdmissionAvailable } from "./_kit/ownership";
+import {
+  bindWorkflowAdmission,
+  reserveWorkflowAdmission,
+  transitionWorkflowAdmission,
+} from "./_kit/ownership";
 import {
   activateSubworkflowRunLinkState,
   buildSubworkflowRunLinkRow,
@@ -69,11 +77,13 @@ const reserve = FunctionImpl.make(
       }
       const admissionLane =
         projection.principal.kind === "system" ? "system" : "user";
-      yield* assertWorkflowAdmissionAvailable(
-        reader,
-        projection.workspaceId,
-        admissionLane,
-      ).pipe(
+      const mutation = yield* MutationCtx;
+      const reservationKey = subworkflowRunLinkIdempotencyKey(projection);
+      yield* reserveWorkflowAdmission(mutation, reader, {
+        workspaceId: projection.workspaceId,
+        reservationKey,
+        lane: admissionLane,
+      }).pipe(
         Effect.mapError(
           () =>
             new ValidationFailed({
@@ -108,6 +118,12 @@ const reserve = FunctionImpl.make(
           policySnapshot: projection.policySnapshot,
         })
         .pipe(Effect.orDie);
+      yield* bindWorkflowAdmission(
+        mutation,
+        projection.workspaceId,
+        reservationKey,
+        childWorkflowRunId,
+      ).pipe(Effect.orDie);
       yield* writer
         .table("workflowRunEvents")
         .insert({
@@ -201,6 +217,7 @@ const activate = FunctionImpl.make(
       });
       if (next !== link) {
         const writer = yield* DatabaseWriter;
+        const mutation = yield* MutationCtx;
         yield* writer
           .table("workflowRunLinks")
           .patch(args.linkId, {
@@ -216,6 +233,11 @@ const activate = FunctionImpl.make(
             status: "running",
           })
           .pipe(Effect.orDie);
+        yield* transitionWorkflowAdmission(
+          mutation,
+          args.childWorkflowRunId,
+          "running",
+        ).pipe(Effect.orDie);
       }
       return {
         status: "running" as const,
@@ -262,6 +284,7 @@ const reconcile = FunctionImpl.make(
       });
       if (next !== existing) {
         const writer = yield* DatabaseWriter;
+        const mutation = yield* MutationCtx;
         yield* writer
           .table("workflowRunLinks")
           .patch(linkId, {
@@ -288,6 +311,15 @@ const reconcile = FunctionImpl.make(
               : { failedAt: occurredAt }),
           })
           .pipe(Effect.orDie);
+        yield* transitionWorkflowAdmission(
+          mutation,
+          childWorkflowRunId,
+          next.status === "succeeded"
+            ? "completed"
+            : next.status === "canceled"
+              ? "canceled"
+              : "failed",
+        ).pipe(Effect.orDie);
       }
       return { status: next.status as "succeeded" | "failed" | "canceled" };
     }),
@@ -377,16 +409,17 @@ const normalizeOutcome = (outcome: {
     return { kind: "failed", error: outcome.error ?? "Child workflow failed." };
   }
   if (outcome.kind === "canceled") return { kind: "canceled" };
-  if (!outcome.receipt) throw new Error("Subworkflow receipt is unavailable.");
+  const receipt = Option.getOrThrowWith(
+    Option.fromNullable(outcome.receipt),
+    () => new Error("Subworkflow receipt is unavailable."),
+  );
   return {
     kind: "succeeded",
     receipt: {
-      kind: outcome.receipt.kind,
-      measuredBytes: outcome.receipt.measuredBytes,
-      contentHash: outcome.receipt.contentHash,
-      ...(outcome.receipt.artifactId
-        ? { artifactId: outcome.receipt.artifactId }
-        : {}),
+      kind: receipt.kind,
+      measuredBytes: receipt.measuredBytes,
+      contentHash: receipt.contentHash,
+      ...(receipt.artifactId ? { artifactId: receipt.artifactId } : {}),
     },
   };
 };
