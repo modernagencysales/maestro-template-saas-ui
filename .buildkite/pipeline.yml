@@ -91,10 +91,20 @@ steps:
     agents:
       queue: "linux-large"
 
+  - label: ":shield: staging authority preflight"
+    key: "staging-authority-preflight"
+    if: build.branch == "main" && build.pull_request.id == null
+    depends_on: "phase-1"
+    command:
+      "pnpm exec tsx tooling/release/src/deploy/authorityCli.ts staging
+      ${BUILDKITE_COMMIT} template-staging"
+    agents:
+      queue: "linux-small"
+
   - label: ":rocket: staging deploy"
     key: "staging-deploy"
     if: build.branch == "main" && build.pull_request.id == null
-    depends_on: "phase-1"
+    depends_on: "staging-authority-preflight"
     command: ".buildkite/scripts/staging-deploy.sh"
     env:
       PROMOTION_TARGET_ID: "template-staging"
@@ -110,10 +120,20 @@ steps:
     if: build.branch == "main" && build.pull_request.id == null
     depends_on: "staging-deploy"
 
+  - label: ":shield: production authority preflight"
+    key: "production-authority-preflight"
+    if: build.branch == "main" && build.pull_request.id == null
+    depends_on: "production-approval"
+    command:
+      "pnpm exec tsx tooling/release/src/deploy/authorityCli.ts production
+      ${BUILDKITE_COMMIT} template-production"
+    agents:
+      queue: "linux-small"
+
   - label: ":rocket: production promote"
     key: "production-promote"
     if: build.branch == "main" && build.pull_request.id == null
-    depends_on: "production-approval"
+    depends_on: "production-authority-preflight"
     command: ".buildkite/scripts/production-promote.sh"
     env:
       PROMOTION_TARGET_ID: "template-production"

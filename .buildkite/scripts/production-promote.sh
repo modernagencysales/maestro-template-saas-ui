@@ -21,14 +21,14 @@ CLOUDFLARE_API_TOKEN="${CLOUDFLARE_API_TOKEN:-${TEMPLATE_CLOUDFLARE_API_TOKEN:-}
 CLOUDFLARE_ACCOUNT_ID="${CLOUDFLARE_ACCOUNT_ID:-${TEMPLATE_CLOUDFLARE_ACCOUNT_ID:-}}"
 export CONVEX_DEPLOY_KEY CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID
 
-pnpm exec tsx tooling/release/src/index.ts deploy-authority-check production "${BUILDKITE_COMMIT}" "${PROMOTION_TARGET_ID}"
+pnpm exec tsx tooling/release/src/deploy/authorityCli.ts production "${BUILDKITE_COMMIT}" "${PROMOTION_TARGET_ID}"
 pnpm exec tsx tooling/release/src/index.ts deploy-doctor production
 pnpm exec tsx tooling/release/src/index.ts promote-plan "${STAGED_SHA}" "${CURRENT_SHA}"
 
 # Backend first: CONVEX_DEPLOY_KEY (validated by deploy-doctor) targets the
 # production deployment; the seed is idempotent and only creates the fixed
 # demo workspace. The frontend below is built against the same deployment.
-(cd packages/convex && pnpm exec convex deploy -y)
+DEPLOY_ENVIRONMENT=production pnpm exec tsx tooling/release/src/deploy/guardedDeploy.ts convex
 (cd packages/convex && pnpm exec convex run demo/showcase:seed)
 
 VITE_CONVEX_URL="${VITE_CONVEX_URL:-$(node scripts/_project-config.mjs get production convexUrl)}"
@@ -36,7 +36,5 @@ export VITE_CONVEX_URL
 
 pnpm build
 pnpm smoke:web-static
-pnpm dlx wrangler@latest pages deploy apps/web/dist/client \
-  --project-name "${PROJECT_NAME}" \
-  --branch "${PRODUCTION_BRANCH}" \
-  --commit-dirty=true
+CLOUDFLARE_PAGES_PROJECT="${PROJECT_NAME}" CLOUDFLARE_PAGES_BRANCH="${PRODUCTION_BRANCH}" DEPLOY_ENVIRONMENT=production \
+  pnpm exec tsx tooling/release/src/deploy/guardedDeploy.ts cloudflare

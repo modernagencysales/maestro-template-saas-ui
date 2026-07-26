@@ -1,11 +1,6 @@
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { join, resolve } from "node:path";
-import {
-  verifyAcceptedPromotionCheckpoint,
-  type AcceptedPromotionCheckpoint,
-} from "./deploy/checkpoint.js";
-
 export * from "./deploy/audit.js";
 export * from "./deploy/authority.js";
 export * from "./deploy/census.js";
@@ -14,6 +9,7 @@ export * from "./deploy/checkpoint.js";
 export * from "./deploy/consumption.js";
 export * from "./deploy/contract.js";
 export * from "./deploy/decision.js";
+export * from "./deploy/durableAuthority.js";
 export { evaluatePromotionRequirements } from "./deploy/requirements.js";
 export type {
   PromotionEnvironment,
@@ -138,61 +134,6 @@ export type DeployPlan = {
   readonly convexDeployName: string;
   readonly refusal?: string;
   readonly alert?: ReleaseAlertPlan;
-};
-
-export type DeployAuthorityCheck =
-  | { readonly ok: true; readonly checkpoint: AcceptedPromotionCheckpoint }
-  | { readonly ok: false; readonly refusal: string };
-
-export const checkDeployAuthorityFromEnvironment = (options: {
-  readonly environment: DeployEnvironmentName;
-  readonly commitSha: string;
-  readonly targetId: string;
-  readonly env?: NodeJS.ProcessEnv;
-  readonly nowMs?: number;
-}): DeployAuthorityCheck => {
-  const env = options.env ?? process.env;
-  const candidatePath = env.PROMOTION_CHECKPOINT_PATH;
-  const trustedPath = env.TRUSTED_PROMOTION_CHECKPOINT_PATH;
-  if (!candidatePath || !trustedPath) {
-    return {
-      ok: false,
-      refusal: "Missing trusted promotion checkpoint paths.",
-    };
-  }
-  try {
-    const candidate = JSON.parse(readFileSync(candidatePath, "utf8"));
-    const trusted = JSON.parse(
-      readFileSync(trustedPath, "utf8"),
-    ) as AcceptedPromotionCheckpoint;
-    const verified = verifyAcceptedPromotionCheckpoint(
-      candidate,
-      trusted,
-      options.nowMs ?? Date.now(),
-    );
-    if (!verified.ok)
-      return {
-        ok: false,
-        refusal: `Promotion checkpoint rejected: ${verified.code}.`,
-      };
-    if (
-      verified.checkpoint.toEnvironment !== options.environment ||
-      verified.checkpoint.commitSha !== options.commitSha ||
-      verified.checkpoint.targetId !== options.targetId
-    ) {
-      return {
-        ok: false,
-        refusal:
-          "Promotion checkpoint does not match exact environment, commit, and target.",
-      };
-    }
-    return { ok: true, checkpoint: verified.checkpoint };
-  } catch {
-    return {
-      ok: false,
-      refusal: "Promotion checkpoint could not be read or verified.",
-    };
-  }
 };
 
 export type ReleaseAlertPlan = {
@@ -1050,7 +991,7 @@ export const runReleaseCli = (
     return {
       exitCode: 0,
       stdout:
-        "release-tooling smoke-web-static | review-readiness | review-completion | client-release <template-version> <client-version> | deploy-authority-check <staging|production> <sha> <target> | deploy-doctor [staging|production] | deploy-plan staging <sha> | promote-plan <staged-sha> <current-sha>\n",
+        "release-tooling smoke-web-static | review-readiness | review-completion | client-release <template-version> <client-version> | deploy-doctor [staging|production] | deploy-plan staging <sha> | promote-plan <staged-sha> <current-sha>\n",
       stderr: "",
     };
   }
@@ -1129,36 +1070,6 @@ export const runReleaseCli = (
       stdout: `${JSON.stringify(report, null, 2)}\n`,
       stderr: "",
     };
-  }
-
-  if (command === "deploy-authority-check") {
-    const environment = argv[1];
-    const commitSha = argv[2];
-    const targetId = argv[3];
-    if (
-      (environment !== "staging" && environment !== "production") ||
-      !commitSha ||
-      !targetId
-    ) {
-      return {
-        exitCode: 1,
-        stdout: "",
-        stderr:
-          "Usage: deploy-authority-check <staging|production> <sha> <target>\n",
-      };
-    }
-    const result = checkDeployAuthorityFromEnvironment({
-      environment,
-      commitSha,
-      targetId,
-    });
-    return result.ok
-      ? {
-          exitCode: 0,
-          stdout: `${JSON.stringify(result, null, 2)}\n`,
-          stderr: "",
-        }
-      : { exitCode: 1, stdout: "", stderr: `${result.refusal}\n` };
   }
 
   if (command === "deploy-plan") {

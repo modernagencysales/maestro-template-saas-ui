@@ -2,6 +2,8 @@ import { describe, expect, it, vi } from "vitest";
 
 import {
   hashOperatorCensusAuthorizationPayload,
+  hashWorkflowCensusRun,
+  hashWorkflowCensusSnapshot,
   type OperatorCensusAuthorization,
   type OperatorCensusAuthorizationPayload,
   type WorkflowCensusRun,
@@ -44,52 +46,55 @@ const request = (auth: OperatorCensusAuthorization) => ({
   authorization: auth,
 });
 
-const run = (): WorkflowCensusRun => ({
-  runFingerprint: digest("1"),
-  workflowId: "billing-workflow",
-  workflowVersion: 3,
-  status: "active",
-  runnerHash: digest("c"),
-  runtimeHash: digest("d"),
-  capabilityBindingsHash: digest("e"),
-  completionBindingHash: digest("f"),
+const run = (): WorkflowCensusRun => {
+  const payload = {
+    workflowId: "billing-workflow",
+    workflowVersion: 3,
+    status: "active",
+    runnerHash: digest("c"),
+    runtimeHash: digest("d"),
+    capabilityBindingsHash: digest("e"),
+    completionBindingHash: digest("f"),
+  } as const;
+  return { ...payload, runFingerprint: hashWorkflowCensusRun(payload) };
+};
+
+const bindingFor = ({
+  workflowId,
+  workflowVersion,
+  runnerHash,
+  runtimeHash,
+  capabilityBindingsHash,
+  completionBindingHash,
+}: WorkflowCensusRun) => ({
+  workflowId,
+  workflowVersion,
+  runnerHash,
+  runtimeHash,
+  capabilityBindingsHash,
+  completionBindingHash,
 });
+
+const snapshot = (runs: readonly WorkflowCensusRun[]) => {
+  const payload = {
+    pageCount: 1,
+    totalCount: runs.length,
+    nextCursor: null,
+    runs,
+    immutableBindings: runs.map(bindingFor),
+  } as const;
+  return { ...payload, snapshotId: hashWorkflowCensusSnapshot(payload) };
+};
 
 const dependencies = (
   auth: OperatorCensusAuthorization,
   runs: readonly WorkflowCensusRun[] = [],
 ): OperatorCensusEndpointDependencies => ({
-  authorizeCurrentOperator: vi.fn(async () => ({
+  readAuthorizedCensusTransaction: vi.fn(async () => ({
     kind: "authorized" as const,
     authorization: auth,
+    ...snapshot(runs),
   })),
-  loadActiveRestartableRuns: vi.fn(async () => ({
-    kind: "available" as const,
-    snapshotId: digest("9"),
-    pageCount: 1,
-    totalCount: runs.length,
-    nextCursor: null,
-    runs,
-  })),
-  loadImmutableWorkflowBindings: vi.fn(async () =>
-    runs.map(
-      ({
-        workflowId,
-        workflowVersion,
-        runnerHash,
-        runtimeHash,
-        capabilityBindingsHash,
-        completionBindingHash,
-      }) => ({
-        workflowId,
-        workflowVersion,
-        runnerHash,
-        runtimeHash,
-        capabilityBindingsHash,
-        completionBindingHash,
-      }),
-    ),
-  ),
   nowMs: () => now + 1,
 });
 
@@ -112,15 +117,14 @@ describe("authorized operator workflow census endpoint", () => {
       },
     });
     expect(Object.keys(result).sort()).toEqual(["census", "kind"]);
-    expect(deps.authorizeCurrentOperator).toHaveBeenCalledOnce();
-    expect(deps.loadActiveRestartableRuns).toHaveBeenCalledWith({
+    expect(deps.readAuthorizedCensusTransaction).toHaveBeenCalledWith({
       scope: {
         environment: "production",
         targetId: "customer-app",
         commitSha: auth.commitSha,
         artifactHash: auth.artifactHash,
       },
-      authorizationHash: auth.canonicalHash,
+      candidateAuthorization: auth,
     });
   });
 
@@ -149,22 +153,15 @@ describe("authorized operator workflow census endpoint", () => {
 
   it("denies before census access when current operator authorization fails", async () => {
     const auth = authorization();
-    const loadActiveRestartableRuns = vi.fn(async () => ({
-      kind: "available" as const,
-      snapshotId: digest("9"),
-      pageCount: 1,
-      totalCount: 0,
-      nextCursor: null,
-      runs: [],
+    const readAuthorizedCensusTransaction = vi.fn(async () => ({
+      kind: "denied" as const,
     }));
     const result = await handleOperatorWorkflowCensus(request(auth), {
-      authorizeCurrentOperator: async () => ({ kind: "denied" }),
-      loadActiveRestartableRuns,
-      loadImmutableWorkflowBindings: async () => [],
+      readAuthorizedCensusTransaction,
       nowMs: () => now + 1,
     });
     expect(result).toMatchObject({ kind: "blocked", code: "unauthorized" });
-    expect(loadActiveRestartableRuns).not.toHaveBeenCalled();
+    expect(readAuthorizedCensusTransaction).toHaveBeenCalledOnce();
   });
 
   it("denies stale, tampered, or scope-mismatched authorization before census access", async () => {
@@ -180,7 +177,6 @@ describe("authorized operator workflow census endpoint", () => {
         { ...deps, nowMs: () => clock },
       );
       expect(result).toMatchObject({ kind: "blocked", code: "unauthorized" });
-      expect(deps.loadActiveRestartableRuns).not.toHaveBeenCalled();
     }
   });
 
@@ -195,18 +191,16 @@ describe("authorized operator workflow census endpoint", () => {
       kind: "blocked",
       code: "invalid-request",
     });
-    expect(deps.authorizeCurrentOperator).not.toHaveBeenCalled();
-    expect(deps.loadActiveRestartableRuns).not.toHaveBeenCalled();
+    expect(deps.readAuthorizedCensusTransaction).not.toHaveBeenCalled();
   });
 
   it("fails closed when census reading throws or returns invalid bindings", async () => {
     const auth = authorization();
     const throwing = {
       ...dependencies(auth),
-      loadActiveRestartableRuns: async () => {
+      readAuthorizedCensusTransaction: async () => {
         throw new Error("unavailable");
       },
-      loadImmutableWorkflowBindings: async () => [],
     };
     expect(
       await handleOperatorWorkflowCensus(request(auth), throwing),
@@ -232,13 +226,15 @@ describe("authorized operator workflow census endpoint", () => {
 
     const incomplete = {
       ...dependencies(auth, [run()]),
-      loadActiveRestartableRuns: async () => ({
-        kind: "available" as const,
+      readAuthorizedCensusTransaction: async () => ({
+        kind: "authorized" as const,
+        authorization: auth,
         snapshotId: digest("9"),
         pageCount: 1,
         totalCount: 2,
         nextCursor: null,
         runs: [run()],
+        immutableBindings: [],
       }),
     };
     expect(
@@ -247,10 +243,51 @@ describe("authorized operator workflow census endpoint", () => {
 
     const unknown = {
       ...dependencies(auth, [run()]),
-      loadImmutableWorkflowBindings: async () => [],
+      readAuthorizedCensusTransaction: async () => ({
+        kind: "authorized" as const,
+        authorization: auth,
+        ...(() => {
+          const payload = {
+            pageCount: 1,
+            totalCount: 1,
+            nextCursor: null,
+            runs: [run()],
+            immutableBindings: [],
+          } as const;
+          return {
+            ...payload,
+            snapshotId: hashWorkflowCensusSnapshot(payload),
+          };
+        })(),
+      }),
     };
     expect(
       await handleOperatorWorkflowCensus(request(auth), unknown),
+    ).toMatchObject({ kind: "blocked", code: "census-unavailable" });
+  });
+
+  it("rejects forged run and snapshot fingerprints", async () => {
+    const auth = authorization();
+    const forgedRun = { ...run(), runFingerprint: digest("1") };
+    expect(
+      await handleOperatorWorkflowCensus(
+        request(auth),
+        dependencies(auth, [forgedRun]),
+      ),
+    ).toMatchObject({ kind: "blocked", code: "census-unavailable" });
+
+    const valid = snapshot([run()]);
+    const forgedSnapshot = {
+      ...dependencies(auth),
+      readAuthorizedCensusTransaction: async () => ({
+        kind: "authorized" as const,
+        authorization: auth,
+        ...valid,
+        snapshotId: digest("9"),
+      }),
+    };
+    expect(
+      await handleOperatorWorkflowCensus(request(auth), forgedSnapshot),
     ).toMatchObject({ kind: "blocked", code: "census-unavailable" });
   });
 });

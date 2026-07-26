@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   compileAuthorizedWorkflowCensus,
   hashOperatorCensusAuthorizationPayload,
+  hashWorkflowCensusRun,
   toPromotionWorkflowCensus,
   type OperatorCensusAuthorization,
   type OperatorCensusAuthorizationPayload,
@@ -35,18 +36,27 @@ const authorization = (
 };
 
 const run = (
-  runFingerprint: string,
+  workflowId: string,
   status: WorkflowCensusRun["status"],
-): WorkflowCensusRun => ({
-  runFingerprint,
-  workflowId: "billing-workflow",
-  workflowVersion: 4,
-  status,
-  runnerHash: digest("c"),
-  runtimeHash: digest("d"),
-  capabilityBindingsHash: digest("e"),
-  completionBindingHash: digest("f"),
-});
+): WorkflowCensusRun => {
+  const payload = {
+    workflowId,
+    workflowVersion: 4,
+    status,
+    runnerHash: digest("c"),
+    runtimeHash: digest("d"),
+    capabilityBindingsHash: digest("e"),
+    completionBindingHash: digest("f"),
+  } as const;
+  return { ...payload, runFingerprint: hashWorkflowCensusRun(payload) };
+};
+
+const canonicalRuns = (
+  runs: readonly WorkflowCensusRun[],
+): readonly WorkflowCensusRun[] =>
+  [...runs].sort((left, right) =>
+    left.runFingerprint.localeCompare(right.runFingerprint),
+  );
 
 const compile = (
   actual: unknown,
@@ -98,11 +108,11 @@ describe("authorized active/restartable workflow census", () => {
 
   it("counts active and restartable runs with every versioned binding", () => {
     const auth = authorization();
-    const runs = [
-      run(digest("1"), "active"),
-      run(digest("2"), "restartable"),
-      run(digest("3"), "active"),
-    ];
+    const runs = canonicalRuns([
+      run("billing-workflow", "active"),
+      run("email-workflow", "restartable"),
+      run("report-workflow", "active"),
+    ]);
     const result = compile(auth, auth, runs);
     expect(result).toMatchObject({
       kind: "compiled",
@@ -158,8 +168,12 @@ describe("authorized active/restartable workflow census", () => {
 
   it("rejects missing bindings, duplicate runs, and reordered runs", () => {
     const auth = authorization();
-    const first = run(digest("1"), "active");
-    const second = run(digest("2"), "restartable");
+    const [first, second] = canonicalRuns([
+      run("billing-workflow", "active"),
+      run("email-workflow", "restartable"),
+    ]);
+    if (first === undefined || second === undefined)
+      throw new Error("fixtures");
     expect(
       compile(auth, auth, [{ ...first, completionBindingHash: "missing" }]),
     ).toMatchObject({ kind: "blocked", code: "invalid-runs" });
@@ -171,11 +185,14 @@ describe("authorized active/restartable workflow census", () => {
       kind: "blocked",
       code: "invalid-runs",
     });
+    expect(
+      compile(auth, auth, [{ ...first, runFingerprint: digest("1") }]),
+    ).toMatchObject({ kind: "blocked", code: "invalid-runs" });
   });
 
   it("uses one injected clock and does not mutate authorization or runs", () => {
     const auth = authorization();
-    const runs = [run(digest("1"), "active")];
+    const runs = [run("billing-workflow", "active")];
     const before = structuredClone({ auth, runs });
     let reads = 0;
     const result = compileAuthorizedWorkflowCensus(

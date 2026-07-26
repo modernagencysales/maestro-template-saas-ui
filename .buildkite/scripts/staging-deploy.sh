@@ -16,13 +16,13 @@ CLOUDFLARE_API_TOKEN="${CLOUDFLARE_API_TOKEN:-${TEMPLATE_CLOUDFLARE_API_TOKEN:-}
 CLOUDFLARE_ACCOUNT_ID="${CLOUDFLARE_ACCOUNT_ID:-${TEMPLATE_CLOUDFLARE_ACCOUNT_ID:-}}"
 export CONVEX_DEPLOY_KEY CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID
 
-pnpm exec tsx tooling/release/src/index.ts deploy-authority-check staging "${BUILDKITE_COMMIT}" "${PROMOTION_TARGET_ID}"
+pnpm exec tsx tooling/release/src/deploy/authorityCli.ts staging "${BUILDKITE_COMMIT}" "${PROMOTION_TARGET_ID}"
 pnpm exec tsx tooling/release/src/index.ts deploy-doctor staging
 
 # Backend first: CONVEX_DEPLOY_KEY (validated by deploy-doctor) targets the
 # environment's deployment; the seed is idempotent and only creates the fixed
 # demo workspace. The frontend below is built against the same deployment.
-(cd packages/convex && pnpm exec convex deploy -y)
+DEPLOY_ENVIRONMENT=staging pnpm exec tsx tooling/release/src/deploy/guardedDeploy.ts convex
 (cd packages/convex && pnpm exec convex run demo/showcase:seed)
 
 VITE_CONVEX_URL="${VITE_CONVEX_URL:-$(node scripts/_project-config.mjs get staging convexUrl)}"
@@ -30,10 +30,8 @@ export VITE_CONVEX_URL
 
 pnpm build
 pnpm smoke:web-static
-pnpm dlx wrangler@latest pages deploy apps/web/dist/client \
-  --project-name "${PROJECT_NAME}" \
-  --branch "${BRANCH_NAME}" \
-  --commit-dirty=true
+CLOUDFLARE_PAGES_PROJECT="${PROJECT_NAME}" CLOUDFLARE_PAGES_BRANCH="${BRANCH_NAME}" DEPLOY_ENVIRONMENT=staging \
+  pnpm exec tsx tooling/release/src/deploy/guardedDeploy.ts cloudflare
 
 if command -v buildkite-agent >/dev/null 2>&1; then
   buildkite-agent meta-data set staged-sha "${COMMIT_SHA}"

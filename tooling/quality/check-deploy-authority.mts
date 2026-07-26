@@ -1,85 +1,239 @@
-import { readFileSync, readdirSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+
+type DeployPolicy = {
+  readonly schemaVersion: 1;
+  readonly primitiveOwner: string;
+  readonly packageRoutes: Readonly<Record<string, string>>;
+  readonly jobs: Readonly<
+    Record<
+      "staging" | "production",
+      {
+        readonly preflight: string;
+        readonly approval: string;
+        readonly deploy: string;
+        readonly script: string;
+      }
+    >
+  >;
+  readonly credentialSecrets: readonly string[];
+};
+
+export const deployPolicySha256 = (source: string): string =>
+  `sha256:${createHash("sha256").update(source).digest("hex")}`;
 
 export const validateDeployAuthoritySources = (input: {
-  readonly scripts: Readonly<Record<string, string>>;
+  readonly sources: Readonly<Record<string, string>>;
+  readonly packageScripts: Readonly<Record<string, string>>;
   readonly pipeline: string;
   readonly selfProtection: string;
+  readonly policySource: string;
+  readonly trustedPolicySha256?: string;
+  readonly buildkite?: boolean;
 }): readonly string[] => {
   const failures: string[] = [];
-  for (const [name, source] of Object.entries(input.scripts)) {
-    const deployOffsets = [
-      ...source.matchAll(/convex deploy|pages deploy/g),
-    ].map((match) => match.index ?? -1);
-    if (deployOffsets.length === 0) continue;
-    const gate = source.indexOf("deploy-authority-check");
-    if (gate < 0 || deployOffsets.some((offset) => gate >= offset)) {
-      failures.push(
-        `${name}: deploy authority check must precede every deploy command`,
-      );
-    }
-    if (
-      !source.includes('"${BUILDKITE_COMMIT}"') ||
-      !source.includes('"${PROMOTION_TARGET_ID}"')
-    ) {
-      failures.push(
-        `${name}: authority check must bind exact Buildkite commit and promotion target`,
-      );
-    }
-  }
-  for (const [key, script] of [
-    ["staging-deploy", "staging-deploy.sh"],
-    ["production-promote", "production-promote.sh"],
-  ] as const) {
-    if (
-      !input.pipeline.includes(`key: "${key}"`) ||
-      !input.pipeline.includes(`command: ".buildkite/scripts/${script}"`)
-    ) {
-      failures.push(`pipeline must route ${key} through ${script}`);
-    }
-  }
-  if (!input.pipeline.includes('depends_on: "production-approval"')) {
-    failures.push(
-      "production promotion must remain ordered after explicit approval",
-    );
+  let policy: DeployPolicy;
+  try {
+    policy = JSON.parse(input.policySource) as DeployPolicy;
+  } catch {
+    return ["deploy policy manifest must be valid JSON"];
   }
   if (
-    !input.pipeline.includes('key: "ci-self-protection"') ||
-    !input.selfProtection.includes("check:deploy-authority")
+    policy.schemaVersion !== 1 ||
+    typeof policy.primitiveOwner !== "string" ||
+    !policy.packageRoutes ||
+    !policy.jobs?.staging ||
+    !policy.jobs.production ||
+    !Array.isArray(policy.credentialSecrets)
+  ) {
+    return ["deploy policy manifest has an invalid shape"];
+  }
+
+  const actualPolicyHash = deployPolicySha256(input.policySource);
+  if (input.buildkite && !input.trustedPolicySha256) {
+    failures.push("Buildkite must provide TRUSTED_DEPLOY_POLICY_SHA256");
+  } else if (
+    input.trustedPolicySha256 !== undefined &&
+    input.trustedPolicySha256 !== actualPolicyHash
   ) {
     failures.push(
-      "secretless CI self-protection must run the deploy-authority gate",
+      "trusted deploy policy hash does not match the repository policy",
     );
   }
-  for (const secret of [
-    "TEMPLATE_CLOUDFLARE_API_TOKEN",
-    "TEMPLATE_CLOUDFLARE_ACCOUNT_ID",
-    "TEMPLATE_CONVEX_DEPLOY_KEY",
-  ]) {
-    const declarations =
-      input.pipeline.match(new RegExp(`^\\s+- ${secret}$`, "gm")) ?? [];
-    if (declarations.length !== 2)
+
+  const primitiveOwners: string[] = [];
+  for (const [name, source] of Object.entries(input.sources)) {
+    if (!containsDeployPrimitive(source)) continue;
+    primitiveOwners.push(name);
+    if (name !== policy.primitiveOwner) {
+      failures.push(`${name}: raw deploy primitive bypasses the guarded owner`);
+    }
+  }
+  if (!primitiveOwners.includes(policy.primitiveOwner)) {
+    failures.push(
+      "guarded deploy owner must contain the only raw deploy primitives",
+    );
+  }
+  const owner = input.sources[policy.primitiveOwner] ?? "";
+  if (
+    !owner.includes("await requestDurableDeployAuthorization") ||
+    owner.indexOf("await requestDurableDeployAuthorization") >
+      owner.indexOf("const result = spawnSync")
+  ) {
+    failures.push(
+      "guarded deploy owner must consume durable authority before spawning",
+    );
+  }
+
+  for (const [alias, route] of Object.entries(policy.packageRoutes)) {
+    if (input.packageScripts[alias] !== route) {
       failures.push(
-        `${secret} must be scoped only to the two gated deploy jobs`,
+        `${alias}: package alias must route exactly through ${route}`,
       );
+    }
+  }
+  for (const [alias, source] of Object.entries(input.packageScripts)) {
+    if (containsDeployPrimitive(source)) {
+      failures.push(`${alias}: package script contains a raw deploy primitive`);
+    }
+  }
+
+  for (const [environment, job] of Object.entries(policy.jobs) as [
+    "staging" | "production",
+    DeployPolicy["jobs"]["staging"],
+  ][]) {
+    const preflight = pipelineBlock(input.pipeline, job.preflight);
+    const deploy = pipelineBlock(input.pipeline, job.deploy);
+    if (!preflight) {
+      failures.push(`pipeline is missing ${job.preflight}`);
+    } else {
+      if (!preflight.includes(`depends_on: "${job.approval}"`))
+        failures.push(`${job.preflight} must depend on ${job.approval}`);
+      if (!preflight.includes(`authorityCli.ts ${environment}`))
+        failures.push(
+          `${job.preflight} must call the durable authority preflight`,
+        );
+      if (preflight.includes("secrets:"))
+        failures.push(`${job.preflight} must remain secretless`);
+    }
+    if (!deploy) {
+      failures.push(`pipeline is missing ${job.deploy}`);
+    } else {
+      if (!deploy.includes(`depends_on: "${job.preflight}"`))
+        failures.push(`${job.deploy} must depend on ${job.preflight}`);
+      if (!deploy.includes(`command: "${job.script}"`))
+        failures.push(`${job.deploy} must route through ${job.script}`);
+      for (const secret of policy.credentialSecrets) {
+        if (!deploy.includes(`- ${secret}`))
+          failures.push(`${job.deploy} must retain scoped ${secret}`);
+      }
+    }
+    const script = input.sources[job.script] ?? "";
+    if (
+      !script.includes(`authorityCli.ts ${environment}`) ||
+      !script.includes("guardedDeploy.ts convex") ||
+      !script.includes("guardedDeploy.ts cloudflare")
+    ) {
+      failures.push(
+        `${job.script} must reauthorize and route both deploy actions`,
+      );
+    }
+  }
+
+  for (const secret of policy.credentialSecrets) {
+    const declarations = input.pipeline.match(
+      new RegExp(`^\\s+- ${escapeRegex(secret)}$`, "gm"),
+    );
+    if ((declarations ?? []).length !== 2)
+      failures.push(`${secret} must be scoped only to the two deploy jobs`);
+  }
+  if (!input.selfProtection.includes("check:deploy-authority")) {
+    failures.push(
+      "secretless CI self-protection must run check:deploy-authority",
+    );
   }
   return failures;
 };
 
-const root = process.cwd();
-const scriptsDir = resolve(root, ".buildkite/scripts");
-const scripts = Object.fromEntries(
-  readdirSync(scriptsDir)
-    .filter((name) => name.endsWith(".sh"))
-    .map((name) => [name, readFileSync(resolve(scriptsDir, name), "utf8")]),
-);
-const failures = validateDeployAuthoritySources({
-  scripts,
-  pipeline: readFileSync(resolve(root, ".buildkite/pipeline.yml"), "utf8"),
-  selfProtection: readFileSync(
-    resolve(scriptsDir, "ci-self-protection.sh"),
+const containsDeployPrimitive = (source: string): boolean => {
+  const normalized = source
+    .replace(/\/\*[\s\S]*?\*\/|^\s*\/\/.*$|^\s*#.*$/gm, " ")
+    .replace(/["'`,()[\]{}]/g, " ")
+    .replace(/\s+/g, " ")
+    .toLowerCase();
+  return (
+    /\bconvex\s+deploy\b/.test(normalized) ||
+    /\bwrangler(?:@[^\s]+)?\s+pages\s+deploy\b/.test(normalized)
+  );
+};
+
+const pipelineBlock = (pipeline: string, key: string): string | undefined => {
+  const lines = pipeline.split("\n");
+  const keyIndex = lines.findIndex((line) => line.trim() === `key: "${key}"`);
+  if (keyIndex < 0) return undefined;
+  let start = keyIndex;
+  while (start > 0 && !lines[start]?.startsWith("  - ")) start -= 1;
+  let end = keyIndex + 1;
+  while (end < lines.length && !lines[end]?.startsWith("  - ")) end += 1;
+  return lines.slice(start, end).join("\n");
+};
+
+const escapeRegex = (value: string): string =>
+  value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+if (
+  process.argv[1] !== undefined &&
+  resolve(process.argv[1]) === fileURLToPath(import.meta.url)
+) {
+  const root = process.cwd();
+  const policySource = readFileSync(
+    resolve(root, "tooling/release/deploy-policy.json"),
     "utf8",
-  ),
-});
-if (failures.length > 0) throw new Error(failures.join("\n"));
-console.log("check:deploy-authority passed");
+  );
+  const executableFiles = execFileSync(
+    "git",
+    ["ls-files", "--cached", "--others", "--exclude-standard"],
+    {
+      cwd: root,
+      encoding: "utf8",
+    },
+  )
+    .trim()
+    .split("\n")
+    .filter(
+      (name) =>
+        /(?:^|\/)(?:[^/]+\.)?(?:sh|ts|mts|cts|js|mjs|cjs)$/.test(name) &&
+        !/(?:^|\/)(?:test|tests|__tests__)(?:\/|\.)|\.(?:test|spec)\./.test(
+          name,
+        ) &&
+        !name.endsWith("check-deploy-authority.mts"),
+    );
+  const sources = Object.fromEntries(
+    executableFiles.map((name) => [
+      name,
+      readFileSync(resolve(root, name), "utf8"),
+    ]),
+  );
+  const packageJson = JSON.parse(
+    readFileSync(resolve(root, "package.json"), "utf8"),
+  ) as { readonly scripts?: Readonly<Record<string, string>> };
+  const failures = validateDeployAuthoritySources({
+    sources,
+    packageScripts: packageJson.scripts ?? {},
+    pipeline: readFileSync(resolve(root, ".buildkite/pipeline.yml"), "utf8"),
+    selfProtection: readFileSync(
+      resolve(root, ".buildkite/scripts/ci-self-protection.sh"),
+      "utf8",
+    ),
+    policySource,
+    trustedPolicySha256: process.env.TRUSTED_DEPLOY_POLICY_SHA256,
+    buildkite: process.env.BUILDKITE === "true",
+  });
+  if (failures.length > 0) throw new Error(failures.join("\n"));
+  console.log(
+    `check:deploy-authority passed (${deployPolicySha256(policySource)})`,
+  );
+}

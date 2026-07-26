@@ -31,11 +31,22 @@ export type WorkflowCensusRun = {
   readonly capabilityBindingsHash: string;
   readonly completionBindingHash: string;
 };
+export type WorkflowCensusRunPayload = Omit<
+  WorkflowCensusRun,
+  "runFingerprint"
+>;
 
 export type WorkflowCensusBindingAuthority = Omit<
   WorkflowCensusRun,
   "runFingerprint" | "status"
 >;
+export type WorkflowCensusSnapshotPayload = {
+  readonly pageCount: number;
+  readonly totalCount: number;
+  readonly nextCursor: null;
+  readonly runs: readonly WorkflowCensusRun[];
+  readonly immutableBindings: readonly WorkflowCensusBindingAuthority[];
+};
 
 export type AuthorizedWorkflowCensusPayload = {
   readonly schemaVersion: 1;
@@ -84,6 +95,11 @@ export type WorkflowCensusDependencies = {
 export const hashOperatorCensusAuthorizationPayload = (
   payload: OperatorCensusAuthorizationPayload,
 ): string => sha256(canonicalJson(payload));
+export const hashWorkflowCensusRun = (run: WorkflowCensusRunPayload): string =>
+  sha256(canonicalJson(run));
+export const hashWorkflowCensusSnapshot = (
+  snapshot: WorkflowCensusSnapshotPayload,
+): string => sha256(canonicalJson(snapshot));
 
 export const compileAuthorizedWorkflowCensus = (
   input: CompileWorkflowCensusInput,
@@ -259,16 +275,25 @@ const parseRuns = (
         finding: `Workflow census run ${index} is invalid or missing a versioned binding fingerprint.`,
       };
     }
+    const payload: WorkflowCensusRunPayload = {
+      workflowId: run.workflowId,
+      workflowVersion: run.workflowVersion as number,
+      status: run.status,
+      runnerHash: run.runnerHash,
+      runtimeHash: run.runtimeHash,
+      capabilityBindingsHash: run.capabilityBindingsHash,
+      completionBindingHash: run.completionBindingHash,
+    };
+    if (run.runFingerprint !== hashWorkflowCensusRun(payload)) {
+      return {
+        ok: false,
+        finding: `Workflow census run ${index} fingerprint does not match its canonical versioned bindings.`,
+      };
+    }
     parsed.push(
       Object.freeze({
         runFingerprint: run.runFingerprint,
-        workflowId: run.workflowId,
-        workflowVersion: run.workflowVersion as number,
-        status: run.status,
-        runnerHash: run.runnerHash,
-        runtimeHash: run.runtimeHash,
-        capabilityBindingsHash: run.capabilityBindingsHash,
-        completionBindingHash: run.completionBindingHash,
+        ...payload,
       }),
     );
   }
@@ -316,6 +341,9 @@ const validateBindings = (
       return "Workflow census binding authority contains duplicates.";
     }
     byIdentity.set(key, binding);
+  }
+  if (byIdentity.size !== runs.length) {
+    return "Workflow census binding authority must exactly cover the census runs.";
   }
   for (const run of runs) {
     const expected = byIdentity.get(`${run.workflowId}@${run.workflowVersion}`);
