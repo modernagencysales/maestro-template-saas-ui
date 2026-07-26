@@ -1,4 +1,4 @@
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import {
   existsSync,
   lstatSync,
@@ -181,8 +181,19 @@ export function runFinalCustomerCompileGates(root: string): void {
     ["pnpm", ["check:workflow-principal-propagation"]],
     ["pnpm", ["--dir", "packages/convex", "typecheck"]],
     ["pnpm", ["--dir", "apps/web", "build"]],
-  ] as const)
-    execFileSync(command, args, { cwd: root, env, stdio: "pipe" });
+  ] as const) {
+    const result = spawnSync(command, args, {
+      cwd: root,
+      env,
+      encoding: "utf8",
+      maxBuffer: 10 * 1024 * 1024,
+    });
+    if (result.status !== 0) {
+      throw new Error(
+        `${command} ${args.join(" ")} failed (${result.status ?? "signal"})\n${result.stdout}\n${result.stderr}`,
+      );
+    }
+  }
 }
 
 export function assertNoPathEscape(

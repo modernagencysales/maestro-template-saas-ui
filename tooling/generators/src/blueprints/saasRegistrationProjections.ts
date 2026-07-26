@@ -301,6 +301,39 @@ const customerAgentPackCheck = (): string => {
     "  const [customerContext, verification] = await Promise.all([\n    customerContextFindings(repoRoot),\n    verificationArtifactFindings(repoRoot),\n  ]);\n  return [\n    ...customerContext,\n    ...verification,\n    ...(await forbiddenMcpFindings(repoRoot)),\n  ];",
   );
 };
+const customerCliEntry = (): string => {
+  let value = currentSource("apps/cli/src/index.ts");
+  value = replace(
+    value,
+    'import { createFactoryCliComposition } from "./factory/composition";',
+    'import { createCustomerCliComposition } from "./factory/customerComposition";',
+  );
+  value = replace(
+    value,
+    "const factoryCliComposition = createFactoryCliComposition(() => process.env);",
+    "const customerCliComposition = createCustomerCliComposition(() => process.env);",
+  );
+  value = replace(
+    value,
+    '  if (normalized[0] === "mcp" && normalized[1] === "configure") {\n    return factoryCliComposition.mcpConfigure.run(normalized.slice(1), cwd);\n  }\n',
+    "",
+  );
+  value = replace(
+    value,
+    "      factoryCliComposition.handlers,",
+    "      customerCliComposition.handlers,",
+  );
+  value = replace(
+    value,
+    '  const normalized = normalizeCliArgv(argv);\n  if (normalized.length === 1 && normalized[0] === "mcp") {\n    await factoryCliComposition.mcp.serve(streams);\n    return;\n  }\n  const result = await runCliAsync(normalized, config, streams.cwd);',
+    "  const result = await runCliAsync(argv, config, streams.cwd);",
+  );
+  return replace(
+    value,
+    '    process.stderr.write("MCP_SERVER_ERROR startup\\n");',
+    '    process.stderr.write("CLI_STARTUP_ERROR\\n");',
+  );
+};
 
 const customerContextSource = (path: string): string => {
   const content = releasedSource(`customer-context/${path}`);
@@ -481,7 +514,7 @@ export const buildSaasRegistrationProjections = (
     },
     {
       path: "apps/cli/src/index.ts",
-      content: source("apps/cli/src/index.ts"),
+      content: customerCliEntry(),
     },
     {
       path: "apps/cli/src/factory/start.ts",

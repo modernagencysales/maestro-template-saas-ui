@@ -144,6 +144,19 @@ function slug(path: string): string {
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 const REVIEWED_ADDITIONAL_PATHS: readonly CustomerReleasePath[] = [
+  ...[
+    "apps/cli/src/factory/adopt.ts",
+    "apps/cli/src/factory/composition.ts",
+    "apps/cli/src/factory/recipeCatalog.ts",
+    "apps/cli/src/factory/supportBundleMcpNoNetwork.fixture.ts",
+    "apps/cli/src/factory/upgrade.ts",
+  ].map((path): CustomerReleasePath => ({
+    path,
+    match: "exact",
+    ownership: "factory-only",
+    action: "omit",
+    upgrade: "remove",
+  })),
   {
     path: "docs/agent",
     match: "subtree",
