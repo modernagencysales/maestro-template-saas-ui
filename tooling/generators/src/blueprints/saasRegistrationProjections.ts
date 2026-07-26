@@ -144,7 +144,6 @@ export const CUSTOMER_ROOT_SCRIPTS = [
   "review:contract",
   "taste",
   "taste:eval",
-  "check:deploy-authority",
   "verify",
   "coverage:update-baseline",
   "prepare",

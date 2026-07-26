@@ -6,7 +6,7 @@ import {
   validateDeployAuthoritySources,
 } from "./check-deploy-authority.mts";
 
-const root = process.cwd();
+const root = resolve(import.meta.dirname, "../..");
 const source = (name: string) => readFileSync(resolve(root, name), "utf8");
 const policySource = () => source("tooling/release/deploy-policy.json");
 const fixture = () => {

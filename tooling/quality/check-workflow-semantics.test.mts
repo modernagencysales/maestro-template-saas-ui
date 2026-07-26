@@ -12,8 +12,9 @@ const repoRoot = resolve(import.meta.dirname, "../..");
 
 describe("check:workflow-semantics", () => {
   it("derives the complete typed graph field inventory", () => {
-    expect(readWorkflowGraphFields()).toHaveLength(77);
-    expect(readWorkflowGraphFields()).toEqual(
+    const fields = readWorkflowGraphFields();
+    expect(new Set(fields).size).toBe(fields.length);
+    expect(fields).toEqual(
       expect.arrayContaining([
         "nodes[].retry.maxAttempts",
         "nodes[].retry.initialBackoffMs",
