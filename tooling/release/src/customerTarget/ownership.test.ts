@@ -54,6 +54,7 @@ describe("customer ownership inventory", () => {
     ["tooling/evals/package.json", "factory-only", "omit"],
     ["apps/voice-relay/package.json", "factory-only", "omit"],
     ["examples/gtm-implementation/README.md", "factory-only", "omit"],
+    [".codex/config.toml", "factory-only", "omit"],
   ])("pins %s ownership", (path, ownership, action) => {
     expect(classifyCustomerSourcePath(path)).toMatchObject({
       path,

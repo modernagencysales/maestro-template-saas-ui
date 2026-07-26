@@ -16,6 +16,7 @@ const FACTORY_ONLY_PREFIXES = [
   ".buildkite/",
   ".claude-plugin/",
   ".claude/",
+  ".codex/",
   ".github/",
   ".qlty/",
   ".vscode/",
