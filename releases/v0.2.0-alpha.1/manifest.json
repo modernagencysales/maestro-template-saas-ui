@@ -3290,6 +3290,7 @@
     "executionAvailable": false,
     "filePhase": "backward-compatible-code",
     "requiredBefore": "migrate",
-    "path": "releases/v0.2.0-alpha.1/migrations/manifest.json"
+    "path": "releases/v0.2.0-alpha.1/migrations/manifest.json",
+    "sha256": "sha256:25cb20158c1c8ae1b830cc4116a416f0149c4ce89b461c0a6dec041fa7c6ec94"
   }
 }

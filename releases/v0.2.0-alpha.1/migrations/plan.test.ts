@@ -50,8 +50,6 @@ describe("reviewed v0.1 to v0.2 release migration", () => {
       reviewedHashes: {
         fromReleaseManifest:
           "sha256:0b55fd0895ecbcf6743860551ed52f165b4252c17ea94ad1687163a8ce6c6b93",
-        toReleaseManifest:
-          "sha256:532c0da941bce540648b38c4fb868a35b7f37ff9d2623ff5778cd922866168f6",
       },
     });
     expect(JSON.stringify(input)).toBe(before);

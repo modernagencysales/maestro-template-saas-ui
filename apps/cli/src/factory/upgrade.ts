@@ -4,12 +4,8 @@ import {
   rollbackRepositoryUpgrade,
   verifyRepositoryUpgrade,
 } from "@maestro-template/release-tooling/upgrade";
-import {
-  planMigrationHandoff,
-  verifyMigrationHandoff,
-} from "@maestro-template/release-tooling/migration";
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { lstatSync, readFileSync, realpathSync, statSync } from "node:fs";
+import { isAbsolute, relative, resolve, sep } from "node:path";
 import type { CliResult } from "../types";
 import type { FactoryCliHandler } from "./router";
 
@@ -30,13 +26,43 @@ const failure = (error: unknown): CliResult => ({
   stdout: "",
   stderr: `${error instanceof Error ? error.message : "Upgrade command failed."}\n`,
 });
-const inputJson = (cwd: string, argv: readonly string[]): unknown => {
+export const readMigrationVerificationInput = (
+  cwd: string,
+  argv: readonly string[],
+): unknown => {
   const input = valueAfter(argv, "--input");
-  if (!input)
+  if (!input) throw new Error("upgrade migration-verify requires --input.");
+  try {
+    if (isAbsolute(input)) throw new Error("unsafe");
+    const root = realpathSync(resolve(cwd));
+    const absolute = resolve(root, input);
+    const rel = relative(root, absolute);
+    if (rel === "" || rel === ".." || rel.startsWith(`..${sep}`))
+      throw new Error("unsafe");
+    let current = root;
+    for (const part of rel.split(sep)) {
+      current = resolve(current, part);
+      if (lstatSync(current).isSymbolicLink()) throw new Error("unsafe");
+    }
+    const stat = statSync(absolute);
+    if (!stat.isFile() || stat.size > 1024 * 1024) throw new Error("unsafe");
+    return JSON.parse(readFileSync(absolute, "utf8")) as unknown;
+  } catch {
+    throw new Error("Migration verification input could not be read.");
+  }
+};
+const migrationAuthority = (cwd: string, argv: readonly string[]) => {
+  const releaseRoot = valueAfter(argv, "--release-root");
+  const toVersion = valueAfter(argv, "--to");
+  if (!releaseRoot || !toVersion)
     throw new Error(
-      "upgrade migration-plan/migration-verify requires --input.",
+      "upgrade migration-plan/migration-verify requires --release-root and --to.",
     );
-  return JSON.parse(readFileSync(resolve(cwd, input), "utf8")) as unknown;
+  return planRepositoryUpgrade({
+    targetRoot: cwd,
+    releaseRoot: resolve(cwd, releaseRoot),
+    toVersion,
+  });
 };
 
 export const createUpgradeCliHandler = (): FactoryCliHandler => ({
@@ -45,16 +71,44 @@ export const createUpgradeCliHandler = (): FactoryCliHandler => ({
     try {
       const action = argv[1];
       if (action === "migration-plan") {
-        const result = planMigrationHandoff(inputJson(cwd, argv));
-        return result.ok
-          ? success(result)
-          : { ...success(result), exitCode: 1 };
+        const trusted = migrationAuthority(cwd, argv);
+        return success({
+          ok: true,
+          schemaVersion: 1,
+          mode: "plan-only",
+          ...trusted.migration,
+          fileUpgrade: {
+            blocked: trusted.migration.required,
+            ...(trusted.migration.required
+              ? { code: "MIGRATION_EXTERNAL_AUTHORITY_UNAVAILABLE" }
+              : {}),
+          },
+        });
       }
       if (action === "migration-verify") {
-        const result = verifyMigrationHandoff(inputJson(cwd, argv));
-        return result.ok
-          ? success(result)
-          : { ...success(result), exitCode: 1 };
+        const trusted = migrationAuthority(cwd, argv);
+        readMigrationVerificationInput(cwd, argv);
+        return {
+          ...success({
+            ok: false,
+            schemaVersion: 1,
+            mode: "verify-only",
+            writeAvailable: false,
+            transitionId: trusted.migration.transitionId,
+            fileUpgradePlanFingerprint:
+              trusted.migration.fileUpgradePlanFingerprint,
+            resolutions: [
+              {
+                code: "MIGRATION_EXTERNAL_AUTHORITY_UNAVAILABLE",
+                message:
+                  "No externally trusted receipt issuer or durable replay-consumption authority is configured.",
+                repair:
+                  "Configure the release-pinned issuer and durable receipt-consumption service before apply.",
+              },
+            ],
+          }),
+          exitCode: 1,
+        };
       }
       if (action === "verify") {
         const receipt = valueAfter(argv, "--receipt");

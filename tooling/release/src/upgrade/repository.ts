@@ -62,6 +62,15 @@ export type TrustedRepositoryUpgradePlan = {
   readonly sourceCommit: string;
   readonly sourceTag: string;
   readonly sourceChecksum: string;
+  readonly migration: {
+    readonly required: boolean;
+    readonly executionAvailable: false;
+    readonly manifestPath: string;
+    readonly manifestHash: string;
+    readonly transitionId: string;
+    readonly migrationId: string;
+    readonly fileUpgradePlanFingerprint: string;
+  };
   readonly impact: unknown;
 };
 
@@ -191,6 +200,8 @@ const repositoryAuthorityFingerprint = (input: {
   readonly sourceCommit: string;
   readonly sourceTag: string;
   readonly sourceChecksum: string;
+  readonly migrationManifestHash: string;
+  readonly migrationRequired: boolean;
   readonly planFingerprint: string;
 }): string => sha256(JSON.stringify(input));
 
@@ -258,6 +269,12 @@ export const planRepositoryUpgrade = (input: {
     typeof release.baseManifest.path !== "string" ||
     typeof release.baseManifest.sha256 !== "string" ||
     !record(release.upgrade) ||
+    !record(release.migrationHandoff) ||
+    typeof release.migrationHandoff.required !== "boolean" ||
+    release.migrationHandoff.executionAvailable !== false ||
+    typeof release.migrationHandoff.path !== "string" ||
+    typeof release.migrationHandoff.sha256 !== "string" ||
+    !digest(release.migrationHandoff.sha256) ||
     !record(release.upgradeImpact) ||
     typeof release.upgradeImpact.path !== "string" ||
     typeof release.upgradeImpact.sha256 !== "string" ||
@@ -297,6 +314,37 @@ export const planRepositoryUpgrade = (input: {
   const manifest = release.upgrade as UpgradeManifestV1;
   if (!Array.isArray(manifest.operations) || manifest.operations.length === 0)
     throw new Error("Reviewed release upgrade has no file operations.");
+  const migrationManifestPath = String(release.migrationHandoff.path);
+  noSymlinkPath(releaseRoot, migrationManifestPath, {
+    allowMissingLeaf: false,
+  });
+  const migrationManifestBytes = gitBlob(
+    releaseRoot,
+    releaseRootCommit,
+    migrationManifestPath,
+  );
+  const migrationManifestHash = sha256(migrationManifestBytes);
+  if (migrationManifestHash !== release.migrationHandoff.sha256)
+    throw new Error("Pinned migration handoff bytes do not match authority.");
+  const migrationManifest = JSON.parse(
+    migrationManifestBytes.toString("utf8"),
+  ) as unknown;
+  if (
+    !record(migrationManifest) ||
+    migrationManifest.schemaVersion !== 1 ||
+    !record(migrationManifest.transition) ||
+    migrationManifest.transition.id !== manifest.transition.id ||
+    migrationManifest.transition.fromVersion !==
+      manifest.transition.fromVersion ||
+    migrationManifest.transition.toVersion !== manifest.transition.toVersion ||
+    !record(migrationManifest.handoff) ||
+    typeof migrationManifest.handoff.migrationId !== "string" ||
+    !record(migrationManifest.receiptAuthority) ||
+    migrationManifest.receiptAuthority.available !== false
+  )
+    throw new Error(
+      "Pinned migration handoff does not match release authority.",
+    );
   const sourceCommit = release.release.sourceCommit;
   let sourceMergeBase: string;
   try {
@@ -441,6 +489,8 @@ export const planRepositoryUpgrade = (input: {
     sourceCommit,
     sourceTag: release.release.tag,
     sourceChecksum,
+    migrationManifestHash,
+    migrationRequired: release.migrationHandoff.required,
     planFingerprint: plan.planFingerprint,
   };
   return {
@@ -457,6 +507,15 @@ export const planRepositoryUpgrade = (input: {
     sourceCommit,
     sourceTag: release.release.tag,
     sourceChecksum,
+    migration: {
+      required: release.migrationHandoff.required,
+      executionAvailable: false,
+      manifestPath: migrationManifestPath,
+      manifestHash: migrationManifestHash,
+      transitionId: manifest.transition.id,
+      migrationId: migrationManifest.handoff.migrationId,
+      fileUpgradePlanFingerprint: plan.planFingerprint,
+    },
     impact: {
       graph: impact.value,
       pinned: projection.impact,
@@ -625,6 +684,10 @@ export const applyRepositoryUpgrade = (input: {
     trusted.sourceChecksum !== input.trusted.sourceChecksum
   )
     throw new Error("Upgrade authority changed after planning.");
+  if (trusted.migration.required)
+    throw new Error(
+      "Upgrade apply requires an externally trusted, release-bound migration receipt and durable replay-consumption authority.",
+    );
   let tagCommit: string;
   try {
     tagCommit = gitText(trusted.releaseRoot, [

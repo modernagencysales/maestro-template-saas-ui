@@ -87,6 +87,7 @@ const setup = () => {
   );
   const impactPath = "tooling/app-map/input.json";
   const projectionPath = "tooling/app-map/impact.json";
+  const migrationPath = "releases/v0.2.0-alpha.1/migrations/manifest.json";
   write(releaseRoot, "releases/v0.1.0-alpha.1/manifest.json", base);
   mkdirSync(dirname(join(releaseRoot, impactPath)), { recursive: true });
   writeFileSync(join(releaseRoot, impactPath), impactBytes);
@@ -109,6 +110,19 @@ const setup = () => {
     }),
   );
   writeFileSync(join(releaseRoot, projectionPath), projectionBytes);
+  const migrationBytes = Buffer.from(
+    JSON.stringify({
+      schemaVersion: 1,
+      transition: {
+        id: "template-0.1-to-0.2",
+        fromVersion: "0.1.0-alpha.1",
+        toVersion: "0.2.0-alpha.1",
+      },
+      handoff: { migrationId: "fixture-migration" },
+      receiptAuthority: { available: false },
+    }),
+  );
+  write(releaseRoot, migrationPath, migrationBytes.toString("utf8"));
   write(
     releaseRoot,
     "releases/v0.2.0-alpha.1/manifest.json",
@@ -131,6 +145,12 @@ const setup = () => {
           path: projectionPath,
           sha256: hash(projectionBytes),
         },
+      },
+      migrationHandoff: {
+        required: false,
+        executionAvailable: false,
+        path: migrationPath,
+        sha256: hash(migrationBytes),
       },
       upgrade: {
         schemaVersion: 1,
@@ -190,6 +210,13 @@ describe("trusted repository upgrade boundary", () => {
       },
       pinned: { complete: true, changedPaths: [fixture.path] },
       ownershipCoveredPaths: [],
+    });
+    expect(trusted.migration).toMatchObject({
+      required: false,
+      executionAvailable: false,
+      transitionId: "template-0.1-to-0.2",
+      migrationId: "fixture-migration",
+      fileUpgradePlanFingerprint: trusted.plan.planFingerprint,
     });
   });
 
@@ -333,6 +360,37 @@ describe("trusted repository upgrade boundary", () => {
         write: true,
       }),
     ).toThrow(/external immutable release tag/);
+    expect(readFileSync(join(fixture.targetRoot, fixture.path), "utf8")).toBe(
+      fixture.before,
+    );
+  });
+  it("derives required migration from release authority and blocks apply before writes", () => {
+    const fixture = setup();
+    const manifestPath = join(
+      fixture.releaseRoot,
+      "releases/v0.2.0-alpha.1/manifest.json",
+    );
+    const manifest = JSON.parse(readFileSync(manifestPath, "utf8")) as {
+      migrationHandoff: { required: boolean };
+    };
+    manifest.migrationHandoff.required = true;
+    writeFileSync(manifestPath, JSON.stringify(manifest));
+    commit(fixture.releaseRoot, "require migration receipt");
+    const trusted = planRepositoryUpgrade({
+      targetRoot: fixture.targetRoot,
+      releaseRoot: fixture.releaseRoot,
+      toVersion: "0.2.0-alpha.1",
+    });
+    expect(trusted.migration.required).toBe(true);
+    expect(() =>
+      applyRepositoryUpgrade({
+        trusted,
+        targetRoot: fixture.targetRoot,
+        expectedPlanFingerprint: trusted.plan.planFingerprint,
+        expectedAuthorityFingerprint: trusted.authorityFingerprint,
+        write: true,
+      }),
+    ).toThrow(/externally trusted, release-bound migration receipt/);
     expect(readFileSync(join(fixture.targetRoot, fixture.path), "utf8")).toBe(
       fixture.before,
     );

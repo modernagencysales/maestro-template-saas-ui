@@ -16,8 +16,6 @@ const REVIEWED_MANIFEST = {
     },
     to: {
       path: "releases/v0.2.0-alpha.1/manifest.json",
-      sha256:
-        "sha256:703933418b36e92493487ade1361b7d80b7a564895ed96984ea380e3d319758b",
     },
   },
   handoff: {
@@ -27,11 +25,11 @@ const REVIEWED_MANIFEST = {
       sha256:
         "sha256:3fb88ae7345884b8e8b74e67b04910770183b5150412cc86bd25f950fe56b9b6",
     },
-    planner: {
-      path: "tooling/release/src/migration/plan.ts",
-      sha256:
-        "sha256:7ea892fe29ef1e7339bcc39f4aafaf40680487502f3344c11ffb2a867c01bedd",
-    },
+  },
+  receiptAuthority: {
+    available: false,
+    requiredProof: "ed25519-release-bound-receipt-v1",
+    durableReplayConsumptionRequired: true,
   },
   steps: [
     "expand",
@@ -69,9 +67,7 @@ export type ReleaseMigrationPlanResult =
       readonly migrationFingerprint: string;
       readonly reviewedHashes: {
         readonly fromReleaseManifest: string;
-        readonly toReleaseManifest: string;
         readonly handoffFixture: string;
-        readonly handoffPlanner: string;
       };
       readonly steps: typeof REVIEWED_MANIFEST.steps;
       readonly rollback: typeof REVIEWED_MANIFEST.rollback;
@@ -257,9 +253,7 @@ export const planReviewedReleaseMigration = (
     migrationFingerprint,
     reviewedHashes: {
       fromReleaseManifest: REVIEWED_MANIFEST.releaseManifests.from.sha256,
-      toReleaseManifest: REVIEWED_MANIFEST.releaseManifests.to.sha256,
       handoffFixture: REVIEWED_MANIFEST.handoff.fixture.sha256,
-      handoffPlanner: REVIEWED_MANIFEST.handoff.planner.sha256,
     },
     steps: REVIEWED_MANIFEST.steps,
     rollback: REVIEWED_MANIFEST.rollback,
