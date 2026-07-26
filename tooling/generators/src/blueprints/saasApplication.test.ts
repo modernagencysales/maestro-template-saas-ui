@@ -25,6 +25,7 @@ import {
 } from "./saasApplication";
 import { buildFactorySaasApplicationFiles } from "./saasApplicationFactory";
 import {
+  CUSTOMER_ROOT_SCRIPTS,
   CURRENT_GENERATOR_GATE_SCRIPTS,
   REMOVED_CUSTOMER_TEMPLATE_SCRIPTS,
 } from "./saasRegistrationProjections";
@@ -92,7 +93,7 @@ describe("saas application blueprint", () => {
     });
   });
 
-  it("keeps the historical alpha.1 target projection byte-authoritative", () => {
+  it("keeps historical alpha.1 personalization inert", () => {
     const plan = buildSaasApplicationAlpha1TargetPlan();
     expect(
       buildSaasApplicationAlpha1TargetPlan({
@@ -100,6 +101,9 @@ describe("saas application blueprint", () => {
         firstOutcome: "Must not rewrite historical output",
       }),
     ).toEqual(plan);
+  });
+  it("matches the sealed alpha.1 manifest to the canonical current target plan", () => {
+    const plan = buildSaasApplicationTargetPlan();
     const manifest = JSON.parse(
       readFileSync(
         join(
@@ -221,7 +225,7 @@ describe("saas application blueprint", () => {
     );
   });
 
-  it("pins replacement projections to the reviewed release source", () => {
+  it("derives replacement projections from checked-out repository source", () => {
     const checkoutSpecPath = join(
       repoRoot,
       "packages/convex/confect/_generated/spec.ts",
@@ -239,7 +243,8 @@ describe("saas application blueprint", () => {
       writeFileSync(checkoutSpecPath, originalCheckoutSpec);
     }
 
-    expect(after).toEqual(before);
+    expect(after).not.toEqual(before);
+    expect(after.digest).not.toBe(before.digest);
     const projectedSpec = after.entries.find(
       ({ path }) => path === "packages/convex/confect/_generated/spec.ts",
     );
@@ -249,9 +254,10 @@ describe("saas application blueprint", () => {
     expect(projectedSpec?.content).toContain(
       'import records from "../records/records.spec";',
     );
-    expect(projectedSpec?.content).not.toContain(
-      "unrelated integration registration",
+    expect(projectedSpec?.content).toContain(
+      "// unrelated integration registration",
     );
+    expect(buildSaasApplicationTargetPlan({ name: "My App" })).toEqual(before);
     for (const path of ["CLAUDE.md", ".claude/settings.json"]) {
       expect(after.entries.find((entry) => entry.path === path)).toMatchObject({
         ownership: "customer-extension",
@@ -558,11 +564,17 @@ describe("saas application blueprint", () => {
       "stack:merge",
       "evals:agent-pack",
       "evals",
+      "release:seal",
       "smoke:web-static",
+      "smoke:hosted",
+      "smoke:hosted:browser",
+      "smoke:hosted:a11y",
+      "smoke:hosted:visual",
       "review:readiness",
       "review:completion",
       "deploy:doctor",
       "deploy:cloudflare",
+      "convex:deploy",
       "test:mutation",
       "check:recipes",
       "check:workflow-version-immutability",
@@ -572,16 +584,7 @@ describe("saas application blueprint", () => {
       readFileSync(join(repoRoot, "package.json"), "utf8"),
     ) as typeof root;
     expect(Object.keys(root.scripts)).toEqual([
-      ...Object.keys(factory.scripts).filter(
-        (name) =>
-          !omittedScripts.has(name) &&
-          (!REMOVED_CUSTOMER_TEMPLATE_SCRIPTS.includes(
-            name as (typeof REMOVED_CUSTOMER_TEMPLATE_SCRIPTS)[number],
-          ) ||
-            CURRENT_GENERATOR_GATE_SCRIPTS.includes(
-              name as (typeof CURRENT_GENERATOR_GATE_SCRIPTS)[number],
-            )),
-      ),
+      ...CUSTOMER_ROOT_SCRIPTS,
       "maestro:crud-proof",
       "template:smoke",
     ]);

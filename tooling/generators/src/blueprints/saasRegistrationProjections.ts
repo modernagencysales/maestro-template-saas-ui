@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import type { GeneratedFile } from "../index";
 
 const asset = (path: string): string =>
@@ -10,7 +10,7 @@ const asset = (path: string): string =>
     "utf8",
   );
 
-const source = (path: string): string =>
+const releasedSource = (path: string): string =>
   readFileSync(
     new URL(
       `../../../../releases/v0.2.0-alpha.1/blueprints/saas-application/base/${path}.txt`,
@@ -25,9 +25,12 @@ const currentPublicDocument = (path: string): string =>
     "utf8",
   );
 
-const currentSource = (path: string): string =>
-  readFileSync(new URL(`../../../../${path}`, import.meta.url), "utf8");
+const currentSource = (path: string): string => {
+  const url = new URL(`../../../../${path}`, import.meta.url);
+  return existsSync(url) ? readFileSync(url, "utf8") : releasedSource(path);
+};
 
+const source = (path: string): string => currentSource(path);
 const currentGeneratorSource = (path: string): string =>
   readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
 
@@ -53,10 +56,183 @@ export const CURRENT_GENERATOR_GATE_SCRIPTS = [
   "template:prototype",
 ] as const;
 
+export const CUSTOMER_ROOT_SCRIPTS = [
+  "maestro",
+  "format",
+  "check:format",
+  "lint",
+  "typecheck",
+  "check:effect-diagnostics",
+  "test",
+  "test:tooling",
+  "test:app-map",
+  "test:workflow",
+  "test:convex-compat",
+  "build",
+  "confect:codegen",
+  "confect:manifest",
+  "confect:dev",
+  "convex:dev",
+  "dev:backend",
+  "template:doctor",
+  "template:quickstart",
+  "template:seed-demo",
+  "template:handoff",
+  "template:systems",
+  "template:prototype",
+  "template:add-client-domain",
+  "template:add-feature",
+  "template:add-capability",
+  "template:add-table",
+  "template:add-workflow",
+  "template:bump-workflow",
+  "template:bump-capability",
+  "template:publish-workflow",
+  "template:publish-capability",
+  "template:add-agent",
+  "template:add-agent-seat",
+  "template:promote-capability",
+  "template:promote-workflow",
+  "pattern-fit",
+  "check:convex",
+  "check:confect-compat",
+  "check:convex-compat",
+  "check:ci-completeness",
+  "check:config-drift",
+  "check:deps",
+  "check:knip",
+  "check:route-tree",
+  "check:frontend-effect-boundary",
+  "check:env-boundary",
+  "check:provider-boundary",
+  "check:logging-boundary",
+  "check:access-audit-events",
+  "check:coverage-ratchet",
+  "check:types-coverage",
+  "check:gates",
+  "check:debt",
+  "check:generators",
+  "check:docs-freshness",
+  "check:generated-files",
+  "check:confect-v9",
+  "check:confect-contracts",
+  "check:workflow-graph-boundary",
+  "check:workflow-policy-snapshots",
+  "check:workflow-principal-propagation",
+  "check:workflow-semantics",
+  "check:workflow:fast",
+  "check:schema-migration-notes",
+  "data-resources:generate",
+  "check:data-resources",
+  "check:append-only-tables",
+  "check:system-catalog",
+  "check:system-topology",
+  "check:promotion-boundary",
+  "check:layer-boundaries",
+  "check:secret-canaries",
+  "check:sbom-license",
+  "check:headless-surface-contract",
+  "check:posthog-readiness",
+  "check:confect-manifest",
+  "check:effectified-api-proof",
+  "check:auth-demo-bypass",
+  "check:pr-health",
+  "check:unresolved-review-threads",
+  "check:merge-conflicts",
+  "check:qlty",
+  "contract-review",
+  "review:contract",
+  "taste",
+  "taste:eval",
+  "check:deploy-authority",
+  "verify",
+  "coverage:update-baseline",
+  "prepare",
+  "convex:codegen",
+  "convex:ai-files:install",
+  "convex:ai-files:status",
+  "check:convex-ai-files",
+  "check:agent-pack",
+  "check:app-map",
+] as const;
+
 const customerPackage = (current: boolean): string => {
   const value = JSON.parse(source("package.json")) as {
     scripts: Record<string, string>;
   };
+  const sourceScripts = value.scripts;
+  value.scripts = Object.fromEntries(
+    CUSTOMER_ROOT_SCRIPTS.map((name) => {
+      const command = sourceScripts[name];
+      if (command === undefined) {
+        throw new Error(`missing customer root script: ${name}`);
+      }
+      return [name, command];
+    }),
+  );
+  value.scripts["test:tooling"] =
+    "pnpm --dir tooling/quality test && pnpm --dir tooling/workflow test && pnpm --dir tooling/generators test";
+  value.scripts["check:coverage-ratchet"] =
+    "vitest run --coverage --maxWorkers=1 --no-file-parallelism packages/template-core packages/integrations packages/search packages/storage packages/notifications packages/observability packages/convex tooling/quality tooling/workflow tooling/generators apps/cli apps/web && tsx tooling/quality/check-coverage-ratchet.mts";
+  value.scripts["coverage:update-baseline"] =
+    "vitest run --coverage packages/template-core packages/integrations packages/search packages/storage packages/notifications packages/observability packages/convex tooling/quality tooling/workflow tooling/generators apps/cli apps/web && tsx tooling/quality/check-coverage-ratchet.mts --update";
+  value.scripts["check:agent-pack"] =
+    "tsx tooling/quality/check-agent-pack.mts";
+  value.scripts.prepare = "node tooling/quality/install-lefthook-if-git.mjs";
+  value.scripts.verify = [
+    "check:format",
+    "lint",
+    "typecheck",
+    "check:effect-diagnostics",
+    "test",
+    "test:tooling",
+    "test:workflow",
+    "build",
+    "check:ci-completeness",
+    "check:config-drift",
+    "check:convex-ai-files",
+    "check:agent-pack",
+    "check:app-map",
+    "check:deps",
+    "check:knip",
+    "check:route-tree",
+    "check:frontend-effect-boundary",
+    "check:env-boundary",
+    "check:provider-boundary",
+    "check:logging-boundary",
+    "check:access-audit-events",
+    "check:coverage-ratchet",
+    "check:types-coverage",
+    "check:gates",
+    "check:debt",
+    "check:generators",
+    "check:docs-freshness",
+    "check:generated-files",
+    "check:confect-v9",
+    "check:confect-contracts",
+    "check:confect-compat",
+    "check:effectified-api-proof",
+    "check:workflow-semantics",
+    "check:workflow-graph-boundary",
+    "check:workflow-policy-snapshots",
+    "check:workflow-principal-propagation",
+    "check:workflow:fast",
+    "check:schema-migration-notes",
+    "check:system-catalog",
+    "check:system-topology",
+    "check:data-resources",
+    "check:append-only-tables",
+    "check:promotion-boundary",
+    "check:layer-boundaries",
+    "check:secret-canaries",
+    "check:sbom-license",
+    "check:confect-manifest",
+    "check:headless-surface-contract",
+    "check:posthog-readiness",
+    "check:auth-demo-bypass",
+  ]
+    .map((name) => `pnpm ${name}`)
+    .join(" && ");
   for (const name of REMOVED_CUSTOMER_TEMPLATE_SCRIPTS) {
     if (
       !current ||
@@ -105,8 +281,27 @@ const customerGeneratorPackage = (): string => {
   return `${JSON.stringify(value, null, 2)}\n`;
 };
 
+const customerAgentPackCheck = (): string => {
+  let value = currentSource("tooling/quality/check-agent-pack.mts");
+  value = replace(
+    value,
+    'import {\n  checkRootSkillProjections,\n  checkSkillProjections,\n} from "../agent-pack/src/syncSkills.js";\n',
+    'import { customerContextFindings } from "./check-customer-context.mts";\n',
+  );
+  value = replace(
+    value,
+    'import { factoryWiringFindings } from "./check-agent-pack-factory-wiring.mts";\n',
+    "",
+  );
+  return replace(
+    value,
+    "  const [generated, root, wiring, verification] = await Promise.all([\n    checkSkillProjections(repoRoot),\n    checkRootSkillProjections(repoRoot),\n    factoryWiringFindings(repoRoot),\n    verificationArtifactFindings(repoRoot),\n  ]);\n  return [\n    ...generated,\n    ...root,\n    ...wiring,\n    ...verification,\n    ...(await forbiddenMcpFindings(repoRoot)),\n  ];",
+    "  const [customerContext, verification] = await Promise.all([\n    customerContextFindings(repoRoot),\n    verificationArtifactFindings(repoRoot),\n  ]);\n  return [\n    ...customerContext,\n    ...verification,\n    ...(await forbiddenMcpFindings(repoRoot)),\n  ];",
+  );
+};
+
 const customerContextSource = (path: string): string => {
-  const content = source(`customer-context/${path}`);
+  const content = releasedSource(`customer-context/${path}`);
   if (path === ".claude/settings.json") return content;
   return content.endsWith("\n\n") ? content.slice(0, -1) : content;
 };
@@ -422,15 +617,17 @@ export const buildSaasRegistrationProjections = (
       : []),
     {
       path: "tooling/quality/check-agent-pack.mts",
-      content: source("tooling/quality/check-agent-pack.mts"),
+      content: customerAgentPackCheck(),
     },
     {
       path: "tooling/quality/check-customer-context.mts",
-      content: source("tooling/quality/check-customer-context.mts"),
+      content: releasedSource("tooling/quality/check-customer-context.mts"),
     },
     {
       path: "tooling/quality/check-convex-ai-files.mts",
-      content: source("tooling/quality/check-convex-ai-files.mts"),
+      content: currentGeneratorSource(
+        "blueprints/customer/check-convex-ai-files.mts",
+      ),
     },
     ...customerContextProjections(),
     {
