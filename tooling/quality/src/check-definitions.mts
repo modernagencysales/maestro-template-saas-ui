@@ -1133,6 +1133,7 @@ export const checkDescriptors = defineRegisteredStaticCheckDescriptors(
   {
     "ci-completeness": { evidenceClass: "static" },
     "config-drift": { evidenceClass: "static" },
+    "app-map": { evidenceClass: "static" },
     deps: { evidenceClass: "static" },
     knip: { evidenceClass: "static" },
     "route-tree": { evidenceClass: "static" },
