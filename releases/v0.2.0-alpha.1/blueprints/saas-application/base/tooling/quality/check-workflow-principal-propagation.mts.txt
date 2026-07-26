@@ -45,7 +45,7 @@ if (!principalAuthority.includes("version: v.literal(2)"))
 for (const required of [
   "principal: DurableWorkflowPrincipalValidator",
   "policySnapshot: WorkflowPolicySnapshotValidator",
-  "policySnapshot: args.policySnapshot",
+  "policySnapshot: executionArgs.policySnapshot",
 ]) {
   if (!runner.includes(required))
     findings.push(`generated runner misses ${required}`);

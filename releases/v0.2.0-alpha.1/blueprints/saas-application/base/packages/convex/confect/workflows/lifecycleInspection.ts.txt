@@ -4,6 +4,7 @@ import * as Option from "effect/Option";
 
 import { DatabaseReader } from "../_generated/services";
 import type { WorkflowRestartInspection } from "./_kit/lifecycleControls";
+import { decodeSubworkflowRunLinkIdentity } from "./_kit/subworkflowLinks";
 import { WorkflowLifecyclePersistenceError } from "./lifecyclePersistence";
 
 type Reader = Context.Tag.Service<typeof DatabaseReader>;
@@ -23,35 +24,38 @@ export const inspectWorkflowRetention = (
         input.workflowRunId as import("convex/values").GenericId<"workflowRuns">,
       )
       .pipe(Effect.orDie);
-    const links = yield* reader
-      .table("workflowRunLinks")
-      .index("by_workspace_and_parent", (q) =>
-        q
-          .eq("workspaceId", input.workspaceId)
-          .eq("parentWorkflowId", input.componentWorkflowId),
-      )
-      .collect()
-      .pipe(Effect.orDie);
+    const links = yield* readParentLinks(reader, input);
     const evidence = yield* reader
       .table("workflowRunEvidenceSnapshots")
       .index("by_run", (q) => q.eq("workflowRunId", input.workflowRunId))
       .collect()
       .pipe(Effect.orDie);
-    const childRuns = yield* Effect.forEach(
-      links.flatMap((link) =>
-        link.childWorkflowId ? [link.childWorkflowId] : [],
-      ),
-      (childWorkflowId) =>
-        reader
+    const childRuns = yield* Effect.forEach(links, (link) => {
+      const identity = decodeSubworkflowRunLinkIdentity(link);
+      if (identity.childWorkflowRunId !== null) {
+        return reader
           .table("workflowRuns")
-          .index("by_workspace_component_workflow", (q) =>
-            q
-              .eq("workspaceId", input.workspaceId)
-              .eq("componentWorkflowId", childWorkflowId),
+          .get(
+            identity.childWorkflowRunId as import("convex/values").GenericId<"workflowRuns">,
           )
-          .first()
-          .pipe(Effect.map(Option.getOrNull), Effect.orDie),
-    );
+          .pipe(Effect.orDie);
+      }
+      const childComponentWorkflowId =
+        identity.schemaVersion === 1
+          ? identity.historicalChildComponentId
+          : link.childWorkflowId;
+      return childComponentWorkflowId
+        ? reader
+            .table("workflowRuns")
+            .index("by_workspace_component_workflow", (q) =>
+              q
+                .eq("workspaceId", input.workspaceId)
+                .eq("componentWorkflowId", childComponentWorkflowId),
+            )
+            .first()
+            .pipe(Effect.map(Option.getOrNull), Effect.orDie)
+        : Effect.succeed(null);
+    });
     const childDeadlines = childRuns.flatMap((child) =>
       child
         ? [
@@ -97,15 +101,7 @@ export const inspectWorkflowExposedWork = (
       .index("by_run", (q) => q.eq("workflowRunId", input.workflowRunId))
       .collect()
       .pipe(Effect.orDie);
-    const children = yield* reader
-      .table("workflowRunLinks")
-      .index("by_workspace_and_parent", (q) =>
-        q
-          .eq("workspaceId", input.workspaceId)
-          .eq("parentWorkflowId", input.componentWorkflowId),
-      )
-      .collect()
-      .pipe(Effect.orDie);
+    const children = yield* readParentLinks(reader, input);
     return {
       inProgressSteps: stages
         .filter(
@@ -119,6 +115,41 @@ export const inspectWorkflowExposedWork = (
         .map((child) => child.relationId),
     };
   });
+
+const readParentLinks = (
+  reader: Reader,
+  input: {
+    readonly workspaceId: string;
+    readonly workflowRunId: string;
+    readonly componentWorkflowId: string;
+  },
+) =>
+  Effect.all([
+    reader
+      .table("workflowRunLinks")
+      .index("by_workspace_and_parent", (q) =>
+        q
+          .eq("workspaceId", input.workspaceId)
+          .eq("parentWorkflowId", input.workflowRunId),
+      )
+      .collect()
+      .pipe(Effect.orDie),
+    reader
+      .table("workflowRunLinks")
+      .index("by_workspace_and_parent", (q) =>
+        q
+          .eq("workspaceId", input.workspaceId)
+          .eq("parentWorkflowId", input.componentWorkflowId),
+      )
+      .collect()
+      .pipe(Effect.orDie),
+  ]).pipe(
+    Effect.map(([productRows, historicalRows]) => [
+      ...new Map(
+        [...productRows, ...historicalRows].map((row) => [row._id, row]),
+      ).values(),
+    ]),
+  );
 
 export const inspectWorkflowRestart = (
   reader: Reader,

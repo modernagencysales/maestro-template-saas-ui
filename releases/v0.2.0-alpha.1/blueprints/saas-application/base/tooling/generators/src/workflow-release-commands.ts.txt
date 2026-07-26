@@ -1,12 +1,13 @@
 import { createHash } from "node:crypto";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+
 import {
-  existsSync,
-  mkdirSync,
-  realpathSync,
-  readFileSync,
-  writeFileSync,
-} from "node:fs";
-import { dirname, relative, resolve, sep } from "node:path";
+  buildResolvedSourceClosure,
+  type SourceClosure,
+} from "./workflow-source-closure";
+
+export type { SourceClosure } from "./workflow-source-closure";
 
 type ReleaseKind = "workflow" | "capability";
 type Lifecycle = "draft" | "published" | "retired";
@@ -41,15 +42,6 @@ export type ReleaseDescriptor = {
     readonly path: string;
   }[];
   readonly sourceClosure: SourceClosure;
-};
-
-export type SourceClosure = {
-  readonly roots: readonly string[];
-  readonly modules: readonly {
-    readonly path: string;
-    readonly checksum: string;
-  }[];
-  readonly checksum: string;
 };
 
 type PublicationEntry = Omit<
@@ -93,106 +85,11 @@ const checksumManifest = (
   manifest: Omit<PublicationManifest, "manifestChecksum">,
 ) => sha256(canonicalJson(manifest));
 
-const normalizedRelativePath = (root: string, absolutePath: string): string => {
-  const path = relative(root, absolutePath).split(sep).join("/");
-  if (path === ".." || path.startsWith("../")) {
-    throw new Error(`Source closure escaped repository root: ${absolutePath}`);
-  }
-  return path;
-};
-
-const importSpecifiers = (source: string): readonly string[] => {
-  const specifiers: string[] = [];
-  const pattern =
-    /(?:import|export)\s+(?:[^"']*?\sfrom\s*)?["']([^"']+)["']|import\s*\(\s*["']([^"']+)["']\s*\)/g;
-  for (const match of source.matchAll(pattern)) {
-    const specifier = match[1] ?? match[2];
-    if (specifier?.startsWith(".")) specifiers.push(specifier);
-  }
-  return specifiers;
-};
-
-const resolveImports = (
-  fromPath: string,
-  specifier: string,
-  pathExists: (path: string) => boolean,
-): readonly string[] => {
-  const base = resolve(dirname(fromPath), specifier);
-  const sourceBase = base.replace(/\.(?:c|m)?js$/, "");
-  const candidates = [
-    base,
-    `${base}.ts`,
-    `${base}.tsx`,
-    `${base}.mts`,
-    `${base}.js`,
-    `${base}.d.ts`,
-    `${sourceBase}.ts`,
-    `${sourceBase}.tsx`,
-    `${sourceBase}.mts`,
-    `${sourceBase}.js`,
-    `${sourceBase}.d.ts`,
-    resolve(base, "index.ts"),
-    resolve(base, "index.tsx"),
-    resolve(base, "index.mts"),
-    resolve(base, "index.js"),
-    resolve(base, "index.d.ts"),
-  ];
-  const resolvedPaths = [...new Set(candidates.filter(pathExists))];
-  if (resolvedPaths.length === 0) {
-    throw new Error(`Unresolved import ${specifier} from ${fromPath}`);
-  }
-  return resolvedPaths;
-};
-
 export const buildAuthoritativeSourceClosure = (
   cwd: string,
   roots: readonly string[],
   overlay: ReadonlyMap<string, string> = new Map(),
-): SourceClosure => {
-  const repositoryRoot = realpathSync(resolve(cwd));
-  const pending = roots.map((root) => resolve(repositoryRoot, root));
-  const sources = new Map<string, string>();
-  while (pending.length > 0) {
-    const requestedPath = pending.pop();
-    if (!requestedPath) continue;
-    if (!overlay.has(requestedPath) && !existsSync(requestedPath)) {
-      throw new Error(`Source closure root is missing: ${requestedPath}`);
-    }
-    const absolutePath = overlay.has(requestedPath)
-      ? requestedPath
-      : realpathSync(requestedPath);
-    normalizedRelativePath(repositoryRoot, absolutePath);
-    if (sources.has(absolutePath)) continue;
-    const source =
-      overlay.get(absolutePath) ?? readFileSync(absolutePath, "utf8");
-    sources.set(absolutePath, source);
-    for (const specifier of importSpecifiers(source)) {
-      pending.push(
-        ...resolveImports(
-          absolutePath,
-          specifier,
-          (candidate) => overlay.has(candidate) || existsSync(candidate),
-        ),
-      );
-    }
-  }
-  const modules = [...sources]
-    .map(([path, source]) => ({
-      path: normalizedRelativePath(repositoryRoot, path),
-      checksum: sha256(source),
-    }))
-    .sort((left, right) => left.path.localeCompare(right.path));
-  const normalizedRoots = roots
-    .map((root) =>
-      normalizedRelativePath(repositoryRoot, resolve(repositoryRoot, root)),
-    )
-    .sort();
-  return {
-    roots: normalizedRoots,
-    modules,
-    checksum: sha256(canonicalJson({ roots: normalizedRoots, modules })),
-  };
-};
+): SourceClosure => buildResolvedSourceClosure(cwd, roots, overlay);
 
 const assertAuthoritativeSourceClosure = (
   cwd: string,

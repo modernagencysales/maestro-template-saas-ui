@@ -22,7 +22,7 @@ import type { RepositoryContext } from "./repoContext.js";
 
 export type StartPreflightResult = {
   readonly safeToStart: boolean;
-  readonly auth: "not-required" | "connected" | "cancelled";
+  readonly auth: "not-required" | "connected" | "cancelled" | "unknown";
   readonly exitClass: AgentPackExitClass;
   readonly diagnostics: readonly AgentPackDiagnostic[];
   readonly readiness: {
@@ -408,4 +408,3 @@ function record(value: unknown): value is Record<string, unknown> {
 function nonempty(value: unknown): value is string {
   return typeof value === "string" && value.trim() !== "";
 }
-

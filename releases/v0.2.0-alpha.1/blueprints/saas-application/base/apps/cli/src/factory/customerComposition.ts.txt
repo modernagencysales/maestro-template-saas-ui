@@ -2,11 +2,12 @@ import {
   createCheckCommand,
   createComposedPreflightProbe,
   createExecFileVerificationRunner,
-  createNodeExecFileAdapter,
   createNodeBuildReadinessSurface,
+  createNodeExecFileAdapter,
   createNodePreflightRuntimeReader,
-  createNodeVerificationReceiptWriter,
+  createNodeSupportBundleExporter,
   createPreflightCommand,
+  createSupportBundleCommand,
   createVerifyCommand,
   defineDiagnosticRegistryProjection,
   nodePreflightFileSystem,
@@ -37,12 +38,18 @@ import {
   createStartOutputBoundary,
   parseStartTargetInstance,
 } from "./start";
+import { createSupportBundleCliHandler } from "./supportBundle";
 import { createVerifyCliHandler } from "./verify";
 import type { FactoryCliHandler } from "./router";
 
 const policy = Object.freeze({
   supportedPlatforms: ["linux", "darwin", "win32"],
   supportedNodeMajors: [22],
+  // The customer lockfile is lockfileVersion 9 and is reproducibly installable
+  // by this supported offline-compatible standalone fallback. packageManager
+  // remains the canonical pnpm 10.12.1 authority.
+  supportedPnpmVersions: ["9.15.4"],
+  minimumGitVersion: "2.31.0",
   minimumDiskBytes: 512 * 1024 * 1024,
   requiredPorts: [],
   metadataTimeoutMs: 10_000,
@@ -169,16 +176,23 @@ export function createCustomerCliComposition(
   const verify = createVerifyCommand({
     descriptors,
     runner,
-    receiptWriter: createNodeVerificationReceiptWriter({
+  });
+  const check = createCheckCommand({ preflight, verify });
+  const supportBundle = createSupportBundleCommand({
+    load: async () => ({
+      host: { kind: "unknown" as const },
+      providers: [{ kind: "convex" as const, posture: "unknown" as const }],
+    }),
+    exporter: createNodeSupportBundleExporter({
       maxBytes: policy.packageJsonMaxBytes,
     }),
   });
-  const check = createCheckCommand({ preflight, verify });
   const handlers: readonly FactoryCliHandler[] = [
     createStartCliHandler(start, output),
     createPreflightCliHandler(preflight),
     createVerifyCliHandler(verify),
     createVerifyCliHandler(check),
+    createSupportBundleCliHandler(supportBundle),
   ];
   return Object.freeze({
     handlers,

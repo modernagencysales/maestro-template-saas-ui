@@ -244,4 +244,3 @@ function nonempty(value: unknown): value is string {
 function prefixed(value: unknown, prefix: string): value is string {
   return typeof value === "string" && value.startsWith(prefix);
 }
-

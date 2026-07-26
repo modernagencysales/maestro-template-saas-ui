@@ -1,7 +1,10 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import process from "node:process";
-import { customerContextFindings } from "./check-customer-context.mts";
+import {
+  checkRootSkillProjections,
+  checkSkillProjections,
+} from "../agent-pack/src/syncSkills.js";
 import { AGENT_PACK_COMMAND_VERSION } from "../agent-pack/src/contracts.js";
 import {
   evaluateReceiptStaleness,
@@ -9,6 +12,7 @@ import {
   VERIFICATION_RECEIPT_VERSION,
   type VerificationReceipt,
 } from "../agent-pack/src/receipt.js";
+import { factoryWiringFindings } from "./check-agent-pack-factory-wiring.mts";
 
 const FORBIDDEN_MCP_FILES = [
   ".mcp.json",
@@ -20,7 +24,7 @@ const FORBIDDEN_MCP_FILES = [
 const CODEX_MAESTRO_CONFIG = [
   "[mcp_servers.maestro]",
   'command = "pnpm"',
-  'args = ["maestro", "--", "mcp"]',
+  'args = ["--silent", "maestro", "--", "mcp"]',
   'cwd = "."',
   "enabled = true",
   "",
@@ -29,12 +33,16 @@ const CODEX_MAESTRO_CONFIG = [
 export async function checkAgentPack(
   repoRoot: string,
 ): Promise<readonly string[]> {
-  const [context, verification] = await Promise.all([
-    customerContextFindings(repoRoot),
+  const [generated, root, wiring, verification] = await Promise.all([
+    checkSkillProjections(repoRoot),
+    checkRootSkillProjections(repoRoot),
+    factoryWiringFindings(repoRoot),
     verificationArtifactFindings(repoRoot),
   ]);
   return [
-    ...context,
+    ...generated,
+    ...root,
+    ...wiring,
     ...verification,
     ...(await forbiddenMcpFindings(repoRoot)),
   ];
@@ -261,5 +269,5 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     );
     process.exit(1);
   }
-  console.log("Customer context, receipts, and MCP posture are valid.");
+  console.log("Agent Pack root projections and MCP posture are valid.");
 }

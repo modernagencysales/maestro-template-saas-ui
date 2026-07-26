@@ -16,7 +16,6 @@ import {
   type EnvironmentFingerprint,
   type ProvidersFingerprint,
   type RepositoryFingerprint,
-  type VerificationReceipt,
   type VerificationSubject,
 } from "./receipt.js";
 import type { RepositoryContext } from "./repoContext.js";
@@ -31,6 +30,7 @@ export type VerificationRunObservation = {
   readonly status: GateObservationStatus;
   readonly message: string;
   readonly semanticRuleIds?: readonly string[];
+  readonly diagnostic?: AgentPackDiagnostic;
 };
 
 export type VerificationRunRequest = {
@@ -57,17 +57,9 @@ export type VerificationRunner = {
   ) => Promise<readonly VerificationRunObservation[]>;
 };
 
-export type VerificationReceiptWriter = {
-  readonly persist: (
-    repo: RepositoryContext,
-    receipt: VerificationReceipt,
-  ) => Promise<void>;
-};
-
 export function createVerifyCommand(input: {
   readonly descriptors: readonly DiagnosticDescriptor[];
   readonly runner: VerificationRunner;
-  readonly receiptWriter?: VerificationReceiptWriter;
 }) {
   const registry = defineDiagnosticRegistryProjection(input.descriptors);
   return defineAgentPackCommand({
@@ -78,15 +70,36 @@ export function createVerifyCommand(input: {
     execute: async (args, context) => {
       const descriptors = selectDescriptors(registry, args);
       const facts = await input.runner.inspect(context.repo);
-      const observed = await input.runner.run({
-        repo: context.repo,
-        scope: args.scope,
-        changed: args.changed,
-        descriptors,
-      });
+      const selectionDiagnostics =
+        descriptors.length === 0
+          ? [
+              {
+                code: "AGENT_PACK_VERIFY_GATE_SELECTION_EMPTY",
+                severity: "error" as const,
+                message:
+                  "Verification resolved no canonical gates for the requested scope.",
+                safeToContinue: false,
+                nextAction:
+                  "Restore the canonical diagnostic registry or choose changed paths owned by a registered gate.",
+                rerun: "pnpm maestro -- verify --scope focused",
+              },
+            ]
+          : [];
+      const observed =
+        descriptors.length === 0
+          ? []
+          : await input.runner.run({
+              repo: context.repo,
+              scope: args.scope,
+              changed: args.changed,
+              descriptors,
+            });
       const after = await input.runner.inspect(context.repo);
       const observations = completeObservations(descriptors, observed);
       const metadataDiagnostics = verificationContextDiagnostics(facts, after);
+      const runnerDiagnostics = observed.flatMap((observation) =>
+        observation.diagnostic === undefined ? [] : [observation.diagnostic],
+      );
       const receipt = createVerificationReceipt({
         createdAt: facts.createdAt,
         command: { id: "verify", version: AGENT_PACK_COMMAND_VERSION },
@@ -110,13 +123,10 @@ export function createVerifyCommand(input: {
           semanticRuleIds: [...(observation.semanticRuleIds ?? [])],
         })),
       });
-      const receiptDiagnostic =
-        metadataDiagnostics.length === 0 && input.receiptWriter !== undefined
-          ? await persistReceipt(input.receiptWriter, context.repo, receipt)
-          : undefined;
       const diagnostics = [
+        ...selectionDiagnostics,
         ...metadataDiagnostics,
-        ...(receiptDiagnostic === undefined ? [] : [receiptDiagnostic]),
+        ...runnerDiagnostics,
         ...observations.flatMap(({ descriptor, observation }) =>
           observation.status === "pass"
             ? []
@@ -131,27 +141,33 @@ export function createVerifyCommand(input: {
               ],
         ),
       ];
-      const summary = summarizeVerificationReceipt(receipt);
+      const summarized = summarizeVerificationReceipt(receipt);
+      const summary =
+        descriptors.length === 0
+          ? {
+              status: "fail" as const,
+              requiredFailures: ["maestro/gate-selection"],
+              advisoryFailures: [],
+              unavailable: ["maestro/gate-selection"],
+            }
+          : summarized;
       const requiredBlocking =
+        selectionDiagnostics.length > 0 ||
         summary.requiredFailures.length > 0 ||
         metadataDiagnostics.length > 0 ||
-        receiptDiagnostic !== undefined;
+        runnerDiagnostics.some(({ severity }) => severity === "error");
       return {
         mutationPosture: "read-only" as const,
         exitClass:
-          receiptDiagnostic !== undefined
-            ? ("unavailableDependency" as const)
-            : diagnostics.length === 0
-              ? ("success" as const)
-              : ("findings" as const),
+          diagnostics.length === 0
+            ? ("success" as const)
+            : ("findings" as const),
         summary:
-          receiptDiagnostic !== undefined
-            ? "Verification completed, but its latest receipt could not be persisted."
-            : diagnostics.length === 0
-              ? "Verification passed."
-              : requiredBlocking
-                ? "Verification found required failures."
-                : "Required verification passed with advisory findings.",
+          diagnostics.length === 0
+            ? "Verification passed."
+            : requiredBlocking
+              ? "Verification found required failures."
+              : "Required verification passed with advisory findings.",
         diagnostics,
         data: { receipt, summary, requiredBlocking },
       };
@@ -159,28 +175,7 @@ export function createVerifyCommand(input: {
   });
 }
 
-async function persistReceipt(
-  writer: VerificationReceiptWriter,
-  repo: RepositoryContext,
-  receipt: VerificationReceipt,
-): Promise<AgentPackDiagnostic | undefined> {
-  try {
-    await writer.persist(repo, receipt);
-    return undefined;
-  } catch {
-    return {
-      code: "AGENT_PACK_RECEIPT_PERSIST_UNAVAILABLE",
-      severity: "error",
-      message: "The latest verification receipt could not be persisted safely.",
-      safeToContinue: false,
-      nextAction:
-        "Restore the target-local .maestro receipt directory and rerun verification.",
-      rerun: "pnpm maestro -- verify --scope focused",
-    };
-  }
-}
-
-function decodeVerifyInput(
+export function decodeVerifyInput(
   input: unknown,
 ): AgentPackArgumentResult<VerifyInput> {
   if (
@@ -328,4 +323,3 @@ function completeObservations(
     },
   }));
 }
-

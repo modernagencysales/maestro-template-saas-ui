@@ -1,7 +1,4 @@
-import {
-  renderGeneratedFailureRouteCompiler,
-  renderGeneratedWorkflowPredeploySource,
-} from "./workflow-predeploy";
+import { renderGeneratedWorkflowPredeploySource } from "./workflow-predeploy";
 
 export type SystemGeneratorDisposition = "reuse" | "extend";
 
@@ -63,10 +60,7 @@ const withGeneratorProvenance = (
     readonly disposition: SystemGeneratorDisposition;
   },
 ): readonly GeneratedFile[] => {
-  const commandFamily =
-    generator === "private-package"
-      ? "template:private-package:import"
-      : `template:${generator}`;
+  const commandFamily = `template:${generator}`;
 
   return [
     ...files,
@@ -105,7 +99,7 @@ const guardedDefault = (constructor: string, compiler: string) => ({
   posture: "guarded-default" as const,
   constructor,
   compiler,
-  fixture: "tooling/generators/src/index.test.ts",
+  fixture: "tooling/generators/src/customer-runtime.test.ts",
 });
 
 const workflowGeneratorSemanticCoverage = {
@@ -130,9 +124,29 @@ const workflowGeneratorSemanticCoverage = {
   "WF-NODE-ID": generated("WorkflowNode.id", "journal step identity"),
   "WF-NODE-KIND": generated("WorkflowNodeKind", "node executor lookup"),
   "WF-NODE-LABEL": generated("WorkflowNode.label", "receipt projection"),
+  "WF-NODE-FUNCTION-KIND": generated(
+    "workflowNode action/query/mutation constructors",
+    "exact generated registry kind dispatch",
+    "packages/convex/test/workflow-conformance.test.ts",
+  ),
   "WF-NODE-RETRY": generated(
     "WorkflowActionNodeV2.retry with WorkflowEffectContract",
     "exact guarded runAction retry options",
+  ),
+  "WF-FAILURE-COMPENSATION-STEPS": generated(
+    "WorkflowFailurePolicy.steps",
+    "completed-node filtering and reverse-order execution",
+    "packages/convex/test/workflow-conformance.test.ts",
+  ),
+  "WF-FAILURE-COMPENSATION-NODE": generated(
+    "WorkflowCompensationStep.forNodeId",
+    "completed-node filtering before compensation dispatch",
+    "packages/convex/test/workflow-conformance.test.ts",
+  ),
+  "WF-STEP-ACTION": generated(
+    "workflowNode.action with WorkflowEffectContract",
+    "guarded runAction with stable name and exact retry",
+    "packages/convex/test/workflow-conformance.test.ts",
   ),
   "WF-NODE-TRANSACTION": guardedDefault(
     "workflowNode query/mutation constructors",
@@ -141,12 +155,12 @@ const workflowGeneratorSemanticCoverage = {
   "WF-NODE-EVENT-DEFINITION": generated(
     "defineWorkflowEvent + defineWorkflowV2EventRegistry",
     "exact generated event registry entry",
-    "tooling/generators/src/index.test.ts",
+    "tooling/generators/src/customer-runtime.test.ts",
   ),
   "WF-NODE-EVENT-SCHEMA": generated(
     "WorkflowEventDefinition schema + validator",
     "shared generated await and delivery validator",
-    "tooling/generators/src/index.test.ts",
+    "tooling/generators/src/customer-runtime.test.ts",
   ),
   "WF-NODE-EVENT-INSTANCE": generated(
     "WorkflowEventNodeV2.eventInstanceKey + ProductWorkflowEventId",
@@ -222,7 +236,7 @@ const workflowGeneratorSemanticCoverage = {
   "WF-SEND-EVENT": generated(
     "generated workflowContracts.sendEvent selector",
     "authenticated translation to component-owned EventId",
-    "tooling/generators/src/index.test.ts",
+    "tooling/generators/src/customer-runtime.test.ts",
   ),
   "WF-CREATE-EVENT": guardedDefault(
     "generated internal event allocation refs",
@@ -265,6 +279,7 @@ import { ProductWorkflowEventId } from "../workflows/_kit/events";
 import { DurableWorkflowPrincipal } from "../workflows/_kit/principal";
 import { WorkflowCurrentAuthorityReceipt } from "../workflows/_kit/principalAuthorization";
 import { WorkflowStatusResult } from "../workflows/_kit/status";
+import { WorkflowAdmissionDenied } from "../workflows/_kit/workflowAdmission";
 import {
   WorkflowLifecycleRunProjection,
   WorkflowLifecycleStepProjection,
@@ -276,6 +291,10 @@ const WorkflowErrors = Schema.Union(
   WorkspaceNotFound,
   NotFound,
   ValidationFailed,
+);
+const WorkflowStartErrors = Schema.Union(
+  WorkflowErrors,
+  WorkflowAdmissionDenied,
 );
 
 const StartArgs = Schema.Struct({
@@ -378,7 +397,7 @@ export const startInteractive = defineContractFunction(
     name: "startInteractive",
     args: () => StartArgs,
     returns: () => StartReturns,
-    error: () => WorkflowErrors,
+    error: () => WorkflowStartErrors,
   }),
   {
     namespace: "workflows.${name}",
@@ -392,6 +411,7 @@ export const startInteractive = defineContractFunction(
       "WorkspaceNotFound",
       "NotFound",
       "ValidationFailed",
+      "WorkflowAdmissionDenied",
     ],
     idempotent: false,
     argsSchemaName: "workflows.${name}.startInteractive.args",
@@ -406,7 +426,7 @@ export const startQueued = defineContractFunction(
     name: "startQueued",
     args: () => StartArgs,
     returns: () => StartReturns,
-    error: () => WorkflowErrors,
+    error: () => WorkflowStartErrors,
   }),
   {
     namespace: "workflows.${name}",
@@ -420,6 +440,7 @@ export const startQueued = defineContractFunction(
       "WorkspaceNotFound",
       "NotFound",
       "ValidationFailed",
+      "WorkflowAdmissionDenied",
     ],
     idempotent: false,
     argsSchemaName: "workflows.${name}.startQueued.args",
@@ -689,6 +710,7 @@ import {
   WorkspaceNotFound,
 } from "../errors";
 import { startWorkflowAndRecordOwnership } from "../workflows/_kit/ownership";
+import { WorkflowAdmissionDenied } from "../workflows/_kit/workflowAdmission";
 import {
   createWorkflowUserPrincipal,
   type DurableWorkflowPrincipal,
@@ -762,23 +784,10 @@ const ${name}OnCompleteRef = makeFunctionReference<
   null
 >;
 
-const errorMessage = (error: unknown): string | null => {
-  if (
-    typeof error === "object" &&
-    error !== null &&
-    "message" in error &&
-    typeof error.message === "string"
-  ) {
-    return error.message;
-  }
-
-  return null;
-};
-
-const toWorkflowValidationFailed = (error: unknown): ValidationFailed =>
+const toWorkflowPolicyValidationFailed = (): ValidationFailed =>
   new ValidationFailed({
-    field: "workflow",
-    message: errorMessage(error) ?? "Unable to start workflow.",
+    field: "workflowPolicy",
+    message: "Workflow policy could not be resolved.",
   });
 
 type WorkflowError =
@@ -787,20 +796,31 @@ type WorkflowError =
   | WorkspaceNotFound
   | NotFound
   | ValidationFailed;
+type WorkflowStartError = WorkflowError | WorkflowAdmissionDenied;
 
-const toWorkflowError = (error: unknown): WorkflowError => {
-  if (
+const isWorkflowError = (error: unknown): error is WorkflowError =>
     error instanceof Unauthorized ||
     error instanceof MemberNotInWorkspace ||
     error instanceof WorkspaceNotFound ||
     error instanceof NotFound ||
-    error instanceof ValidationFailed
-  ) {
-    return error;
-  }
-
-  return toWorkflowValidationFailed(error);
-};
+    error instanceof ValidationFailed;
+const toWorkflowValidationFailed = (): ValidationFailed =>
+  new ValidationFailed({
+    field: "workflow",
+    message: "Workflow operation failed.",
+  });
+const toWorkflowError = (error: unknown): WorkflowError =>
+  isWorkflowError(error) ? error : toWorkflowValidationFailed();
+const preserveWorkflowStartErrors = <A, R>(
+  effect: Effect.Effect<A, unknown, R>,
+): Effect.Effect<A, WorkflowStartError, R> =>
+  effect.pipe(
+    Effect.catchAll((error) =>
+      isWorkflowError(error) || error instanceof WorkflowAdmissionDenied
+        ? Effect.fail(error)
+        : Effect.die(error),
+    ),
+  );
 
 const findWorkflowRun = (
   workspaceId: GenericId<"workspaces">,
@@ -853,7 +873,7 @@ const startWithProfile = (
       const policySnapshot = yield* resolveWorkflowPolicySnapshotForRun(
         ${name}Graph.policyPosture,
         { workspaceId, resolvedAt: startedAt },
-      ).pipe(Effect.mapError(toWorkflowValidationFailed));
+      ).pipe(Effect.mapError(toWorkflowPolicyValidationFailed));
       const componentWorkflowId = yield* startWorkflowAndRecordOwnership({
         workflowRef: ${name}RunRef,
         onCompleteRef: ${name}OnCompleteRef,
@@ -876,7 +896,7 @@ const startWithProfile = (
         workflowKind: "workflow.${name}",
         kickoffProfile:
           kickoffProfile === "interactive" ? "eager-first-poll" : "queued",
-      }).pipe(Effect.mapError(toWorkflowValidationFailed));
+      });
       const run = yield* findWorkflowRun(workspaceId, componentWorkflowId);
 
       return {
@@ -885,7 +905,7 @@ const startWithProfile = (
         workflowRunId: run._id,
         componentWorkflowId,
       };
-  }).pipe(Effect.mapError(toWorkflowError));
+  }).pipe(preserveWorkflowStartErrors);
 
 const startInteractiveImpl = FunctionImpl.make(
   databaseSchema,
@@ -905,10 +925,12 @@ const authorizeConsequentialImpl = FunctionImpl.make(
           membershipId: "workflow-actor",
         });
       }
-      const access = yield* requireConsequentialWorkflowAuthority(
-        args.principal,
-        args.requiredGrants,
-        ${name}CurrentGrantPolicy,
+      const access = yield* withConfectClock(
+        requireConsequentialWorkflowAuthority(
+          args.principal,
+          args.requiredGrants,
+          ${name}CurrentGrantPolicy,
+        ),
       );
       return {
         kind: "workflow-current-authority" as const,
@@ -1082,7 +1104,7 @@ export default GroupImpl.make(databaseSchema, ${name}).pipe(
     {
       path: `packages/convex/confect/workflows/${name}/v1.graph.ts`,
       content: `import * as Either from "effect/Either";
-import { defineWorkflowGraphV2 } from "../_kit/workflowBuilder";
+import { defineWorkflowGraphV2 } from "../_kit/workflowBuilderCurrent";
 import { defineWorkflowReferenceRegistry } from "../_kit/workflowReferences";
 
 export const ${name}References = defineWorkflowReferenceRegistry({
@@ -1148,12 +1170,13 @@ export const ${name}Graph = Either.getOrThrow(defineWorkflowGraphV2({
       content: `import refs from "../../_generated/refs";
 import * as Ref from "@confect/core/Ref";
 import { components } from "../../../convex/_generated/api";
+import { makeFunctionReference } from "convex/server";
 import { v } from "convex/values";
 import * as Schema from "effect/Schema";
 import {
   buildWorkflowCapabilityArgs,
   defineWorkflowCapabilityRegistry,
-} from "../_kit/graphRunnerV2";
+} from "../_kit/graphRunnerV2Current";
 import { runWorkflowCapabilityBoundary } from "../_kit/workflowCapabilityBoundary";
 import {
   defineWorkflowRoleGrantPolicy,
@@ -1163,7 +1186,7 @@ import {
   defineWorkflowEvent,
   defineWorkflowV2EventRegistry,
 } from "../_kit/events";
-import { defineWorkflowV2SubworkflowRegistry } from "../_kit/subworkflows";
+import { defineEmptyWorkflowV2SubworkflowRegistry } from "../_kit/subworkflowsCurrent";
 import { generatedWorkflowSubworkflowPolicy } from "../_kit/workpoolConfig";
 import { ${name}References } from "./v1.graph";
 
@@ -1202,7 +1225,25 @@ export const ${name}ArtifactRefs = {
 
 export const ${name}SubworkflowLinkRefs = {
   reserveRef: refs.internal.workflows.subworkflowLinks.reserve,
+  recoverReservationRef: makeFunctionReference<"query">(
+    "workflows/subworkflowLinksCurrent:recoverReservation",
+  ),
+  persistUnresolvedReservationRef: makeFunctionReference<"mutation">(
+    "workflows/subworkflowLinksCurrent:persistUnresolvedReservation",
+  ),
+  persistUnresolvedSuccessRef: makeFunctionReference<"mutation">(
+    "workflows/subworkflowLinksCurrent:persistUnresolvedSuccess",
+  ),
+  recoverUnresolvedSuccessRef: makeFunctionReference<"query">(
+    "workflows/subworkflowLinksCurrent:recoverUnresolvedSuccess",
+  ),
+  resolveUnresolvedSuccessRef: makeFunctionReference<"mutation">(
+    "workflows/subworkflowLinksCurrent:resolveUnresolvedSuccess",
+  ),
   reconcileRef: refs.internal.workflows.subworkflowLinks.reconcile,
+  reportReconciliationFailureRef: makeFunctionReference<"mutation">(
+    "workflows/subworkflowLinksCurrent:reportReconciliationFailure",
+  ),
 } as const;
 
 export const ${name}EventInstanceRefs = {
@@ -1234,12 +1275,16 @@ export const ${name}EventRegistry = defineWorkflowV2EventRegistry({
 });
 
 /**
- * Generated immutable child registry. Every entry declares its exact version,
- * typed Args/Result mapping, transitive children, principal narrowing, and the
- * shared typed workflowRunLinks reserve/reconcile refs above.
+ * Generated immutable child registry. Every entry binds its exact version,
+ * graph snapshot, stable generated runner reference, mapper/result export
+ * descriptors, typed Args/Result mapping, transitive children, principal
+ * narrowing, and the shared typed workflowRunLinks reserve/reconcile refs.
+ * Cascade cancellation and cleanup remain restricted lifecycle operations.
+ * Bounded batch entries additionally provide generated selectItems and
+ * mapBatchArgs functions; maxItems, batchSize, and fanOut stay in the graph.
  */
 export const ${name}SubworkflowRegistry =
-  defineWorkflowV2SubworkflowRegistry({});
+  defineEmptyWorkflowV2SubworkflowRegistry();
 
 export const ${name}SubworkflowPolicy = generatedWorkflowSubworkflowPolicy;
 `,
@@ -1261,16 +1306,19 @@ import { v } from "convex/values";
 import refs from "../../_generated/refs";
 import { components } from "../../../convex/_generated/api";
 import {
+  adaptPinnedWorkflowStep,
   runDurableGraphWorkflowV2,
-  type RunDurableGraphStep,
-} from "../../workflows/_kit/graphRunner";
-import { defineGeneratedCurrentAuthorityBinding } from "../../workflows/_kit/graphRunnerV2";
-import { loadObservedWorkflowExecutionIdentity } from "../../workflows/_kit/observedStage";
+} from "../../workflows/_kit/graphRunnerCurrent";
+import { defineGeneratedCurrentAuthorityBinding } from "../../workflows/_kit/graphRunnerV2Current";
+import {
+  bindObservedWorkflowAuthority,
+  loadObservedWorkflowExecutionIdentity,
+} from "../../workflows/_kit/observedStageCurrent";
 import { reconcileObservedWorkflowCompletion } from "../../workflows/_kit/lifecycleCompletion";
 import { WorkflowOnCompleteContextValidator } from "../../workflows/_kit/lifecycleState";
 import { DurableWorkflowPrincipalValidator } from "../../workflows/_kit/principal";
 import { WorkflowPolicySnapshotValidator } from "../../workflows/_kit/policySnapshot";
-import type { RunDurableGraphV2CompilerInput } from "../../workflows/_kit/graphRunnerV2";
+import { SubworkflowExecutionContextValidator } from "../../workflows/_kit/subworkflowsCurrent";
 import { ${name}Graph } from "../../workflows/${name}/v1.graph";
 import {
   ${name}EventRegistry,
@@ -1289,6 +1337,9 @@ const recordStageStarted = Ref.getFunctionReference(
 );
 const reconcileCompletionRef = Ref.getFunctionReference(
   refs.internal.workflows.lifecycle.reconcileCompletion,
+);
+const activateSubworkflowRef = Ref.getFunctionReference(
+  refs.internal.workflows.subworkflowLinks.activate,
 );
 const currentAuthority = defineGeneratedCurrentAuthorityBinding(
   ${name}Graph,
@@ -1330,7 +1381,6 @@ export const onComplete = internalMutationGeneric({
   },
 });
 
-${renderGeneratedFailureRouteCompiler(`${name}Graph`)}
 const metadata = {
   workflowId: ${name}Graph.id,
   workflowVersion: ${name}Graph.version,
@@ -1370,6 +1420,7 @@ export const run = defineMaestroWorkflow(components.workflow, {
     idempotencyKey: v.string(),
     principal: DurableWorkflowPrincipalValidator,
     policySnapshot: WorkflowPolicySnapshotValidator,
+    subworkflow: v.optional(SubworkflowExecutionContextValidator),
   },
   returns: WorkflowReceiptValidator,
 }, metadata).handler(async (step, args): Promise<WorkflowReceipt> => {
@@ -1379,13 +1430,17 @@ export const run = defineMaestroWorkflow(components.workflow, {
     {
     workspaceId: args.workspaceId,
     workflowRunId: args.workflowRunId,
+    ...(args.subworkflow
+      ? { subworkflow: args.subworkflow, activateSubworkflowRef }
+      : {}),
     },
   );
-  return runDurableGraphWorkflowV2(step as RunDurableGraphStep, {
+  const executionArgs = bindObservedWorkflowAuthority(args, executionIdentity);
+  return runDurableGraphWorkflowV2(adaptPinnedWorkflowStep(step), {
     graph: ${name}Graph,
-    inputs: args,
-    principal: args.principal,
-    policySnapshot: args.policySnapshot,
+    inputs: executionArgs,
+    principal: executionArgs.principal,
+    policySnapshot: executionArgs.policySnapshot,
     currentAuthority,
     effectIdentity: {
       workspaceId: args.workspaceId,
@@ -1397,7 +1452,6 @@ export const run = defineMaestroWorkflow(components.workflow, {
     workflowRegistry: ${name}SubworkflowRegistry,
     eventRegistry: ${name}EventRegistry,
     subworkflowPolicy: ${name}SubworkflowPolicy,
-    failureRoutes,
     projectOutput: () => ({ workflowId: ${name}Graph.id, status: "completed" as const }),
   });
 });
@@ -1445,7 +1499,7 @@ import { ${name}Graph } from "../confect/workflows/${name}/v1.graph";
 import {
   runDurableGraphWorkflowV2,
   type RunDurableGraphStep,
-} from "../confect/workflows/_kit/graphRunner";
+} from "../confect/workflows/_kit/graphRunnerCurrent";
 
 describe("${name} durable workflow scaffold", () => {
   it("runs the generated source-to-output graph", async () => {
@@ -1530,8 +1584,8 @@ Canonical system: \`${options.system}\` (\`${options.disposition}\`).
 4. Keep React Flow as a projection of \`${name}/v1.graph.ts\`; do not persist canvas node state as the workflow contract.
 5. Generated event nodes require \`workflowContracts.${name}.sendEvent\`; callers select an owned opaque ID or generated definition key and never provide workspace, principal, or raw component names.
 6. Generated capability nodes require registry entries with generated internal refs, concrete \`buildArgs\` and logical instance-key mappers, and complete effect/guard/redaction/evidence contracts.
-7. Generated subworkflow entries require an immutable child version, typed Args/Result schemas, declared transitive children, principal posture, and \`${name}SubworkflowLinkRefs\`; cycle, depth, and fan-out checks run before child dispatch.
-8. Workflow 0.4.4 scheduled children remain rejected; use a named sleep plus an unscheduled child only as a deliberately non-equivalent alternative.
+7. Generated subworkflow entries require one immutable publication binding for the child graph snapshot, stable generated runner-reference identity, stable mapper/result export descriptors, lifecycle contract, typed Args/Result schemas, declared transitive children, principal posture, and \`${name}SubworkflowLinkRefs\`; cycle, depth, and fan-out checks run before child dispatch.
+8. The child registry exposes reserve, reconcile, and reconciliation-failure reporting only. Cascade cancellation and cleanup remain restricted until product lifecycle controls drive them end to end. Workflow 0.4.4 scheduled children remain rejected; use a named sleep plus an unscheduled child only as a deliberately non-equivalent alternative.
 9. Query and mutation capabilities use independent Workpool transactions by default. Inline is restricted to declared small atomic work: novice authors choose \`tiny\` or \`small-atomic\`; raw counters require the reviewed advanced constructor. Actions and scheduled steps cannot be inline.
 10. Cancel is cooperative: an already-running action may finish, and compensation is a separate explicit workflow. Restart refuses unstable anchors, active Workpool/exposed work, and downstream external actions without generation-scoped dedupe evidence.
 11. Cleanup is retention-gated and never claims full component deletion. Schedule bounded calls to \`workflows.lifecycle.sweepRetention\`; pinned Workflow 0.4.4 may leave never-awaited events or failed completion records as explicitly unverifiable residuals.

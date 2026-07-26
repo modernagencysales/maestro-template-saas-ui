@@ -7,9 +7,7 @@ import { makePublicError } from "../../shared/errors";
 import {
   evaluateSafeConditionExpression,
   type DurableWorkflowGraphV2,
-  type WorkflowCapabilityReference,
   type WorkflowNodeV2,
-  type WorkflowStepName,
 } from "../graph";
 import {
   deriveLogicalEffectKey,
@@ -41,6 +39,13 @@ import {
   assertWorkflowPayloadBudget,
   observeWorkflowPayload,
 } from "./payloadBudget";
+import {
+  decodeWorkflowSettledFailure,
+  declaredWorkflowFailureRoute,
+  sameWorkflowSettledFailure,
+  type WorkflowFailureRoute,
+  type WorkflowSettledFailure,
+} from "./failurePolicy";
 import {
   assertWorkflowPrincipalAuthority,
   DurableWorkflowPrincipal,
@@ -96,6 +101,10 @@ export type WorkflowV2ActionCapabilityEntry =
       readonly requiredGrants: readonly string[];
       readonly boundary: "generated-current-authority";
     };
+    readonly compensation?: Pick<
+      CapabilityNodeV2,
+      "payloadPolicy" | "semanticRuleIds"
+    >;
   };
 
 const generatedCurrentAuthorityBindingBrand = Symbol(
@@ -217,9 +226,6 @@ export type RunDurableGraphV2CompilerInput<
     readonly contract: WorkflowEffectContract;
     readonly logicalEffectKey: LogicalEffectKey;
   }) => Promise<WorkflowEffectAdmission>;
-  readonly failureRoutes?: Readonly<
-    Record<string, WorkflowSettledFailureRoute>
-  >;
   readonly workflowRegistry?: Readonly<
     Record<string, AnyWorkflowV2SubworkflowRegistryEntry>
   >;
@@ -231,25 +237,20 @@ export type RunDurableGraphV2CompilerInput<
   }) => Result;
 };
 
-export type WorkflowSettledFailure = {
-  readonly _tag: "WorkflowSettledFailure";
-  readonly code: string;
-  readonly message: string;
-};
+export type WorkflowSettledFailureRoute = WorkflowFailureRoute;
+export type { WorkflowSettledFailure };
 
-export type WorkflowSettledFailureRoute =
-  | {
-      readonly kind: "error-edge";
-      readonly edgeId: string;
-      readonly failure: WorkflowSettledFailure;
-    }
-  | {
-      readonly kind: "compensation";
-      readonly edgeId: string;
-      readonly capability: WorkflowCapabilityReference;
-      readonly stepName: WorkflowStepName;
-      readonly failure: WorkflowSettledFailure;
-    };
+class WorkflowCompensationFailure extends Error {
+  readonly failure: WorkflowSettledFailure;
+  readonly stepName: string;
+
+  constructor(stepName: string, failure: WorkflowSettledFailure) {
+    super(`Workflow compensation ${stepName} failed with ${failure.code}.`);
+    this.name = "WorkflowCompensationFailure";
+    this.failure = failure;
+    this.stepName = stepName;
+  }
+}
 
 export const runCompiledDurableGraphWorkflowV2 = async <
   Result extends Record<string, unknown>,
@@ -278,8 +279,9 @@ export const runCompiledDurableGraphWorkflowV2 = async <
     }).predictedJournalBytes;
   }
   const failureRoutes = validateFailureRoutes(
-    input,
+    input.graph,
     edgeIndexes.outgoingByNode,
+    input.capabilityRegistry,
   );
   const traversal: TraversalSnapshot = {
     incomingByNode: edgeIndexes.incomingByNode,
@@ -327,11 +329,49 @@ export const runCompiledDurableGraphWorkflowV2 = async <
         ),
       ),
     );
+    const firstRejected = outcomes.find(
+      (outcome): outcome is PromiseRejectedResult =>
+        outcome.status === "rejected",
+    );
+    if (firstRejected !== undefined) throw firstRejected.reason;
     let firstUnhandledFailure: unknown;
     let hasUnhandledFailure = false;
+    const routedFailureNodeIds = new Set<string>();
     for (const [index, node] of wave.entries()) {
       const outcome = outcomes[index];
       if (outcome?.status === "fulfilled") {
+        const settledFailure = decodeWorkflowSettledFailure(outcome.value);
+        if (settledFailure !== undefined) {
+          const route = failureRoutes.get(node.id);
+          if (
+            route === undefined ||
+            !sameWorkflowSettledFailure(settledFailure, route.failure)
+          ) {
+            if (!hasUnhandledFailure) {
+              firstUnhandledFailure = validationFailure(
+                node,
+                route === undefined
+                  ? `returned typed failure ${settledFailure.code} without a declared route`
+                  : `returned typed failure ${settledFailure.code} that does not match the declared route`,
+              );
+            }
+            hasUnhandledFailure = true;
+            continue;
+          }
+          observedJournalBytes = observeWorkflowPayload({
+            nodeId: node.id,
+            observedJournalBytes,
+            value: route.failure,
+          }).observedJournalBytes;
+          context[node.id] = route.failure;
+          completed.add(node.id);
+          routedFailureNodeIds.add(node.id);
+          passedEdges.add(route.edgeId);
+          for (const edge of edgeIndexes.outgoingByNode.get(node.id) ?? []) {
+            if (edge.id !== route.edgeId) failedEdges.add(edge.id);
+          }
+          continue;
+        }
         observedJournalBytes = observeWorkflowPayload({
           nodeId: node.id,
           observedJournalBytes,
@@ -340,32 +380,27 @@ export const runCompiledDurableGraphWorkflowV2 = async <
         context[node.id] = outcome.value;
         completed.add(node.id);
       } else if (outcome?.status === "rejected") {
-        const route = failureRoutes.get(node.id);
-        if (route === undefined) {
-          if (!hasUnhandledFailure) firstUnhandledFailure = outcome.reason;
-          hasUnhandledFailure = true;
-          continue;
-        }
-        context[node.id] = route.failure;
-        completed.add(node.id);
-        passedEdges.add(route.edgeId);
-        for (const edge of edgeIndexes.outgoingByNode.get(node.id) ?? []) {
-          if (edge.id !== route.edgeId) failedEdges.add(edge.id);
-        }
+        if (!hasUnhandledFailure) firstUnhandledFailure = outcome.reason;
+        hasUnhandledFailure = true;
       }
     }
     for (const [index, node] of wave.entries()) {
       const route = failureRoutes.get(node.id);
       if (
-        outcomes[index]?.status === "rejected" &&
+        outcomes[index]?.status === "fulfilled" &&
+        routedFailureNodeIds.has(node.id) &&
         route?.kind === "compensation"
       ) {
-        await runCompensation(step, input, node, route, context);
+        await runCompensation(step, input, node, route, context, completed);
       }
     }
     if (hasUnhandledFailure) throw firstUnhandledFailure;
     for (const [index, node] of wave.entries()) {
-      if (outcomes[index]?.status !== "fulfilled") continue;
+      if (
+        outcomes[index]?.status !== "fulfilled" ||
+        routedFailureNodeIds.has(node.id)
+      )
+        continue;
       for (const edge of edgeIndexes.outgoingByNode.get(node.id) ?? []) {
         if (failureRoutes.get(node.id)?.edgeId === edge.id) {
           failedEdges.add(edge.id);
@@ -426,16 +461,22 @@ const executeObservedNode = <Result extends Record<string, unknown>>(
   });
 };
 
-const validateFailureRoutes = <Result extends Record<string, unknown>>(
-  input: RunDurableGraphV2CompilerInput<Result>,
+const validateFailureRoutes = (
+  graph: DurableWorkflowGraphV2,
   outgoingByNode: ReadonlyMap<
     string,
     readonly DurableWorkflowGraphV2["edges"][number][]
   >,
+  capabilityRegistry: Readonly<Record<string, WorkflowV2CapabilityEntry>>,
 ): ReadonlyMap<string, WorkflowSettledFailureRoute> => {
-  const routes = new Map(Object.entries(input.failureRoutes ?? {}));
+  const routes = new Map<string, WorkflowSettledFailureRoute>();
+  for (const node of graph.nodes) {
+    if (!("failurePolicy" in node)) continue;
+    const route = declaredWorkflowFailureRoute(node.failurePolicy);
+    if (route !== undefined) routes.set(node.id, route);
+  }
   for (const [nodeId, route] of routes) {
-    const node = input.graph.nodes.find((candidate) => candidate.id === nodeId);
+    const node = graph.nodes.find((candidate) => candidate.id === nodeId);
     const edge = (outgoingByNode.get(nodeId) ?? []).find(
       (candidate) => candidate.id === route.edgeId,
     );
@@ -452,6 +493,20 @@ const validateFailureRoutes = <Result extends Record<string, unknown>>(
         "failure route must use the typed settled failure envelope",
       );
     }
+    if (route.kind === "compensation") {
+      for (const step of route.steps) {
+        const compensation = capabilityRegistry[step.capability];
+        if (
+          compensation?.kind !== "action" ||
+          compensation.compensation === undefined
+        ) {
+          throw validationFailure(
+            node,
+            `compensation ${step.stepName} requires an action registry entry with immutable compensation payload policy and semantic provenance`,
+          );
+        }
+      }
+    }
   }
   return routes;
 };
@@ -462,34 +517,59 @@ const runCompensation = async <Result extends Record<string, unknown>>(
   node: WorkflowNodeV2,
   route: Extract<WorkflowSettledFailureRoute, { kind: "compensation" }>,
   context: Readonly<Record<string, unknown>>,
+  completed: ReadonlySet<string>,
 ): Promise<void> => {
-  const compensation = input.capabilityRegistry[route.capability];
-  if (compensation?.kind !== "action") {
-    throw validationFailure(
-      node,
-      `missing generated action registry entry for compensation capability ${route.capability}`,
+  const eligible = route.steps.filter(({ forNodeId }) =>
+    completed.has(forNodeId),
+  );
+  for (const [reverseIndex, compensationStep] of [...eligible]
+    .reverse()
+    .entries()) {
+    const compensation = input.capabilityRegistry[compensationStep.capability];
+    if (
+      compensation?.kind !== "action" ||
+      compensation.compensation === undefined
+    ) {
+      throw validationFailure(
+        node,
+        `compensation ${compensationStep.stepName} lost its immutable registry binding`,
+      );
+    }
+    const compensationNode: Extract<
+      CapabilityNodeV2,
+      { functionKind: "action" }
+    > = {
+      id: `${node.id}.compensation.${reverseIndex}`,
+      kind: "capability",
+      functionKind: "action",
+      capability: compensationStep.capability,
+      label: `Compensate ${compensationStep.forNodeId}`,
+      stepName: compensationStep.stepName,
+      payloadPolicy: compensation.compensation.payloadPolicy,
+      semanticRuleIds: compensation.compensation.semanticRuleIds,
+      failurePolicy: { kind: "fail" },
+    };
+    const result = await runActionNode(
+      step,
+      input,
+      compensationNode,
+      compensation,
+      {
+        inputs: input.inputs,
+        context,
+        node: compensationNode,
+        principal: input.principal,
+        policySnapshot: input.policySnapshot,
+      },
     );
+    const settledFailure = decodeWorkflowSettledFailure(result);
+    if (settledFailure !== undefined) {
+      throw new WorkflowCompensationFailure(
+        compensationStep.stepName,
+        settledFailure,
+      );
+    }
   }
-  const compensationNode: Extract<
-    CapabilityNodeV2,
-    { functionKind: "action" }
-  > = {
-    id: `${node.id}.compensation`,
-    kind: "capability",
-    functionKind: "action",
-    capability: route.capability,
-    label: `Compensate ${node.label}`,
-    stepName: route.stepName,
-    payloadPolicy: node.payloadPolicy,
-    semanticRuleIds: node.semanticRuleIds,
-  };
-  await runActionNode(step, input, compensationNode, compensation, {
-    inputs: input.inputs,
-    context,
-    node: compensationNode,
-    principal: input.principal,
-    policySnapshot: input.policySnapshot,
-  });
 };
 
 const executeNode = async <Result extends Record<string, unknown>>(
@@ -508,6 +588,12 @@ const executeNode = async <Result extends Record<string, unknown>>(
         `missing generated workflow registry entry ${node.workflow}`,
       );
     }
+    if (!step.workflowId) {
+      throw validationFailure(
+        node,
+        "parent component identity is unavailable for subworkflow linkage",
+      );
+    }
     return runRegisteredSubworkflow({
       step,
       node,
@@ -518,7 +604,8 @@ const executeNode = async <Result extends Record<string, unknown>>(
       policySnapshot: input.policySnapshot,
       ownership: {
         workspaceId: input.effectIdentity.workspaceId,
-        parentWorkflowId: input.effectIdentity.workflowRunId,
+        parentWorkflowRunId: input.effectIdentity.workflowRunId,
+        parentComponentWorkflowId: step.workflowId,
         parentWorkflowVersion: input.graph.version,
         generation: input.effectIdentity.generation,
         occurredAt: input.effectIdentity.occurredAt,

@@ -18,8 +18,11 @@ export type GeneratedWorkflowFailurePolicy =
   | {
       readonly kind: "compensation";
       readonly edgeId: string;
-      readonly capability: string;
-      readonly stepName: string;
+      readonly steps: readonly {
+        readonly forNodeId: string;
+        readonly capability: string;
+        readonly stepName: string;
+      }[];
       readonly failure: GeneratedWorkflowSettledFailure;
     };
 
@@ -76,13 +79,20 @@ const sameFailureRoute = (
   declared.failure.message === requested.failure.message &&
   (declared.kind !== "compensation" ||
     (requested.kind === "compensation" &&
-      declared.capability === requested.capability &&
-      declared.stepName === requested.stepName));
+      declared.steps.length === requested.steps.length &&
+      declared.steps.every((step, index) => {
+        const requestedStep = requested.steps[index];
+        return (
+          requestedStep !== undefined &&
+          step.forNodeId === requestedStep.forNodeId &&
+          step.capability === requestedStep.capability &&
+          step.stepName === requestedStep.stepName
+        );
+      })));
 
 /**
- * Projects the graph declaration into the exact runner failureRoutes shape.
- * Optional requested routes exist only for import/promotion callers and must be
- * byte-for-byte semantic projections of a node declaration.
+ * Verifies import/promotion requests against graph-native failure policies.
+ * The runtime compiler reads those policies directly from the immutable graph.
  */
 export const compileGeneratedWorkflowFailureRoutes = (
   nodes: readonly GeneratedWorkflowFailureNode[],
@@ -136,28 +146,6 @@ export const buildWorkflowPredeployPlan = <Environment, Options>(input: {
   if (findings.length > 0) throw new WorkflowPredeployGenerationError(findings);
   return { environment: input.environment, workpoolDeclarations };
 };
-
-export const renderGeneratedFailureRouteCompiler = (
-  graphName: string,
-): string => `type GeneratedFailureRoute = NonNullable<
-  RunDurableGraphV2CompilerInput<WorkflowReceipt>["failureRoutes"]
->[string];
-type GeneratedFailurePolicy =
-  | { readonly kind: "fail" }
-  | GeneratedFailureRoute;
-const failureRoutes = Object.fromEntries(
-  ${graphName}.nodes.flatMap((node) => {
-    const policy = (node as typeof node & {
-      readonly failurePolicy?: GeneratedFailurePolicy;
-    }).failurePolicy;
-    return policy === undefined || policy.kind === "fail"
-      ? []
-      : [[node.id, policy] as const];
-  }),
-) satisfies NonNullable<
-  RunDurableGraphV2CompilerInput<WorkflowReceipt>["failureRoutes"]
->;
-`;
 
 export const renderGeneratedWorkflowPredeploySource = (
   workflowName: string,

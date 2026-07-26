@@ -116,4 +116,3 @@ function title(value: string): string {
 }
 
 const styles = `:root{color-scheme:light dark;font:16px/1.5 system-ui}body{margin:0;background:#101820;color:#f4f7f8}main{max-width:880px;margin:auto;padding:3rem 1.25rem}header,section,details{background:#172631;border:1px solid #34505e;border-radius:14px;margin:1rem 0;padding:1.25rem}h1,h2,h3{line-height:1.15}.eyebrow{color:#76d7c4;text-transform:uppercase;letter-spacing:.08em}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:.75rem}article{background:#203744;border-radius:10px;padding:.75rem}code{color:#8ce8d5;overflow-wrap:anywhere}`;
-
