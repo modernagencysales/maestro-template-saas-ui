@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "kind": "reviewed-upgrade-impact-coverage",
   "baseRevision": "517b5bc28d1d633bef18f57610cff49800123788",
-  "subjectRevision": "1e31e9d459cca77c79a6cbb85d2b5c59a00ad847",
+  "subjectRevision": "dec82e2fff42969d38ca4781fac8d3a39b5c5e75",
   "structuralPaths": [
     "docs/template/data-resources.json",
     "docs/template/generated/provenance/add-table/workflowArtifacts.json",
@@ -482,6 +482,7 @@
     "tooling/quality/check-types-coverage.test.mts",
     "tooling/quality/check-workflow-policy-snapshots.mts",
     "tooling/quality/check-workflow-principal-propagation.mts",
+    "tooling/quality/check-workflow-semantics.test.mts",
     "tooling/quality/check-workflow-version-immutability.mts",
     "tooling/quality/check-workflow-version-immutability.test.mts",
     "tooling/quality/fixtures/workflow-policy-snapshots.json",
@@ -494,7 +495,7 @@
   "impact": {
     "schemaVersion": 1,
     "baseRevision": "517b5bc28d1d633bef18f57610cff49800123788",
-    "subjectRevision": "1e31e9d459cca77c79a6cbb85d2b5c59a00ad847",
+    "subjectRevision": "dec82e2fff42969d38ca4781fac8d3a39b5c5e75",
     "complete": true,
     "risk": "high",
     "changedPaths": [

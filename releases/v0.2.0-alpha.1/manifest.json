@@ -9,8 +9,8 @@
   "release": {
     "version": "0.2.0-alpha.1",
     "tag": "maestro-template-v0.2.0-alpha.1",
-    "sourceCommit": "1e31e9d459cca77c79a6cbb85d2b5c59a00ad847",
-    "sourceChecksum": "sha256:ea26f5b6d0a15245dad290f5f48f2c9ce80de19e192efec7ac178eb7a54d155a"
+    "sourceCommit": "dec82e2fff42969d38ca4781fac8d3a39b5c5e75",
+    "sourceChecksum": "sha256:7ca1c6babcf1008eea677ef433bb1489ed4d060f94c3d1cd247d8fe7da36a0a7"
   },
   "upgrade": {
     "schemaVersion": 1,
@@ -596,7 +596,7 @@
         "path": "package.json",
         "ownership": "generated",
         "beforeHash": "sha256:d3278e6fbfc6c3218cb0ebaad4322f459fb2a61eaa37329840ce2283e9fb2254",
-        "afterHash": "sha256:8e32526c2ca570845414d36a0d6af922e9c619aa54cf0b5e67d95a0583948247"
+        "afterHash": "sha256:acc52fabb69527dfdfa0c984f051963f8fe73bcc7123cce8aff36573545f89bd"
       },
       {
         "id": "upgrade-modify-packages-convex-confect-generated-convexSchema-ts",
@@ -3179,7 +3179,7 @@
         "kind": "add",
         "path": "tooling/generators/src/blueprints/saasRegistrationProjections.ts",
         "ownership": "template-owned",
-        "afterHash": "sha256:b73a6a8ed1bf89ddd0303254ea5fb78585f00607daf6220b5bbfb0da7f087cd6"
+        "afterHash": "sha256:be804b1811c2ac233b29dd5e37de0246c705eb2286177fd0eb3db3cca6a823cd"
       },
       {
         "id": "upgrade-add-tooling-generators-src-cli-ts",
@@ -3362,7 +3362,7 @@
         "kind": "add",
         "path": "tooling/quality/check-agent-pack-factory-wiring.mts",
         "ownership": "template-owned",
-        "afterHash": "sha256:915576b28bcedbc33ebd06251ded5dcd41d205ffea652dfb893c2dbb03c1894f"
+        "afterHash": "sha256:dc9860aec8310d2db1bf21706f2e744a25489c6961bd4296d8e3558d6e9940ba"
       },
       {
         "id": "upgrade-modify-tooling-quality-check-agent-pack-mts",
@@ -3430,7 +3430,7 @@
         "kind": "add",
         "path": "tooling/quality/check-deploy-authority.test.mts",
         "ownership": "template-owned",
-        "afterHash": "sha256:263413eeb97e245b5b359b3f10f4b154dd314b6f05778aa555c2644b91b6931f"
+        "afterHash": "sha256:563255ab602eacda4757ee5503c654ed8ee3280ba500b9e9b6c24c471e9e5fb5"
       },
       {
         "id": "upgrade-add-tooling-quality-check-recipes-mts",
@@ -3475,6 +3475,14 @@
         "path": "tooling/quality/check-workflow-principal-propagation.mts",
         "ownership": "template-owned",
         "afterHash": "sha256:6bb301be1eec7e0a86c3181c25fb3352b09e8a5d3e75c845a1bcb390099caf81"
+      },
+      {
+        "id": "upgrade-modify-tooling-quality-check-workflow-semantics-test-mts",
+        "kind": "modify",
+        "path": "tooling/quality/check-workflow-semantics.test.mts",
+        "ownership": "template-owned",
+        "beforeHash": "sha256:b7b0138fda581910175623063fe3ef0778180282a2e70c9b0318b4130a9931f6",
+        "afterHash": "sha256:cad954678df02a469e679dabe54a48416a8e3030d6c771c158bfd49a16b178cc"
       },
       {
         "id": "upgrade-add-tooling-quality-check-workflow-version-immutability-mts",
@@ -3846,14 +3854,14 @@
   ],
   "blueprintManifest": {
     "path": "blueprints/saas-application.json",
-    "sha256": "sha256:e13d6d51d00bba821a3640fbde26a80e81e4d6049b45f9d3812c9f5316e2ab95"
+    "sha256": "sha256:092169ba6ade0b3d853c56979cd71ff06c53024cebd9432dfc0d3004b9d25a58"
   },
   "upgradeImpact": {
     "path": "releases/v0.2.0-alpha.1/upgrade/app-map-input.json",
-    "sha256": "sha256:22f3daf94e97b00459b4ebce8457ae4561eed409b30d462c3483ab46c96f2abe",
+    "sha256": "sha256:db5bebe67367b97828e9fe4d1a856bf99ff8afd694e4989eef3a58a48df43b9a",
     "projection": {
       "path": "releases/v0.2.0-alpha.1/upgrade/app-map-impact.json",
-      "sha256": "sha256:6595d8453762fa0058f11f9b29285df442e19ad6c408db937f1c06ed706966fb"
+      "sha256": "sha256:37702290b104acca60b2b3cd1a5016ce49b49800912181107ea6337a48872fb2"
     }
   },
   "migrationHandoff": {
