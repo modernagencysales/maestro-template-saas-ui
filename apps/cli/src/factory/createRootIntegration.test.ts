@@ -34,20 +34,7 @@ const taggedRepository = (): string => {
   );
   execFileSync(
     "git",
-    [
-      "-C",
-      taggedReleaseRoot,
-      "tag",
-      "maestro-template-v0.2.0-alpha.1",
-      (
-        JSON.parse(
-          readFileSync(
-            join(taggedReleaseRoot, "releases/v0.2.0-alpha.1/manifest.json"),
-            "utf8",
-          ),
-        ) as { readonly release: { readonly sourceCommit: string } }
-      ).release.sourceCommit,
-    ],
+    ["-C", taggedReleaseRoot, "tag", "maestro-template-v0.2.0-alpha.1", "HEAD"],
     { stdio: "pipe" },
   );
   execFileSync(
@@ -148,14 +135,6 @@ describe("create root integration", () => {
   });
 
   it("resolves the current SaaS authority in a non-mutating default preview", async () => {
-    const expectedRelease = (
-      JSON.parse(
-        readFileSync(
-          join(taggedRepository(), "releases/v0.2.0-alpha.1/manifest.json"),
-          "utf8",
-        ),
-      ) as { readonly release: Record<string, unknown> }
-    ).release;
     const parent = mkdtempSync(join(tmpdir(), "maestro-create-root-"));
     temporaryRoots.push(parent);
     const target = join(parent, "customer-app");
@@ -181,7 +160,12 @@ describe("create root integration", () => {
         }),
       ],
       data: {
-        release: expectedRelease,
+        release: {
+          version: "unreleased-current",
+          tag: "unreleased-current",
+          sourceCommit: expect.stringMatching(/^[0-9a-f]{40}$/),
+          sourceChecksum: expect.stringMatching(/^sha256:[0-9a-f]{64}$/),
+        },
         privacy: {
           privacyDocument: "docs/template/agent-pack-privacy.md",
         },

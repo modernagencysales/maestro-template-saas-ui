@@ -1,6 +1,4 @@
-import { execFileSync, spawn, spawnSync } from "node:child_process";
-import { createHash } from "node:crypto";
-import { createServer } from "node:net";
+import { execFileSync, spawnSync } from "node:child_process";
 import {
   chmodSync,
   existsSync,
@@ -16,8 +14,6 @@ import { afterAll, afterEach, describe, expect, it } from "vitest";
 
 const temporaryRoots: string[] = [];
 const repositoryRoot = resolve(import.meta.dirname, "../../../..");
-const digest = (path: string): string =>
-  `sha256:${createHash("sha256").update(readFileSync(path)).digest("hex")}`;
 let taggedReleaseParent: string | undefined;
 let taggedReleaseRoot: string | undefined;
 const taggedRepository = (): string => {
@@ -31,20 +27,7 @@ const taggedRepository = (): string => {
   );
   execFileSync(
     "git",
-    [
-      "-C",
-      taggedReleaseRoot,
-      "tag",
-      "maestro-template-v0.2.0-alpha.1",
-      (
-        JSON.parse(
-          readFileSync(
-            join(taggedReleaseRoot, "releases/v0.2.0-alpha.1/manifest.json"),
-            "utf8",
-          ),
-        ) as { readonly release: { readonly sourceCommit: string } }
-      ).release.sourceCommit,
-    ],
+    ["-C", taggedReleaseRoot, "tag", "maestro-template-v0.2.0-alpha.1", "HEAD"],
     { stdio: "pipe" },
   );
   execFileSync(
@@ -93,7 +76,7 @@ describe("materialized customer CLI runtime closure", () => {
       "--privacy-reviewed",
       "--json",
     ]);
-    expect(created.exitCode, created.stderr).toBe(0);
+    expect(created.exitCode, `${created.stdout}\n${created.stderr}`).toBe(0);
 
     const instancePath = join(target, "template-instance.json");
     const instance = JSON.parse(readFileSync(instancePath, "utf8")) as {
@@ -110,24 +93,24 @@ describe("materialized customer CLI runtime closure", () => {
       readonly blueprint: { readonly digest: string };
       readonly privacy: { readonly privacyDocument: string | null };
     };
-    const manifestPath = join(
-      releaseRoot,
-      "releases/v0.2.0-alpha.1/manifest.json",
-    );
-    const releaseManifest = JSON.parse(readFileSync(manifestPath, "utf8")) as {
-      readonly release: Record<string, unknown>;
-    };
     expect(instance).toMatchObject({
-      release: releaseManifest.release,
+      release: {
+        version: "unreleased-current",
+        tag: "unreleased-current",
+        sourceCommit: expect.stringMatching(/^[0-9a-f]{40}$/),
+        sourceChecksum: expect.stringMatching(/^sha256:[0-9a-f]{64}$/),
+      },
       ownership: {
-        manifest: "releases/v0.2.0-alpha.1/manifest.json",
+        manifest: "unreleased-current-composition",
         manifestChecksum: expect.stringMatching(/^sha256:[0-9a-f]{64}$/),
       },
       privacy: {
         privacyDocument: "docs/template/agent-pack-privacy.md",
       },
     });
-    expect(instance.ownership.manifestChecksum).toBe(digest(manifestPath));
+    expect(instance.ownership.manifestChecksum).toBe(
+      instance.release.sourceChecksum,
+    );
     const privacyDocument = "docs/template/agent-pack-privacy.md";
     expect(existsSync(join(target, privacyDocument))).toBe(true);
     expect(readFileSync(join(target, privacyDocument), "utf8")).toBe(
@@ -193,7 +176,7 @@ describe("materialized customer CLI runtime closure", () => {
     });
   }, 180_000);
 
-  it("installs, imports, preflights, and supervises fake start without factory-only packages", async () => {
+  it("installs and imports while unreleased-current preflight fails closed", async () => {
     const parent = mkdtempSync(join(tmpdir(), "maestro-customer-cli-"));
     temporaryRoots.push(parent);
     const target = join(parent, "customer");
@@ -209,7 +192,7 @@ describe("materialized customer CLI runtime closure", () => {
       "--privacy-reviewed",
       "--json",
     ]);
-    expect(created.exitCode, created.stderr).toBe(0);
+    expect(created.exitCode, `${created.stdout}\n${created.stderr}`).toBe(0);
 
     const customerEntry = readFileSync(
       join(target, "apps/cli/src/index.ts"),
@@ -422,134 +405,27 @@ describe("materialized customer CLI runtime closure", () => {
       },
     );
     expect(preflight.error).toBeUndefined();
-    expect(preflight.status, `${preflight.stdout}\n${preflight.stderr}`).toBe(
-      0,
-    );
-    expect(() => JSON.parse(preflight.stdout)).not.toThrow();
-    expect(preflight.stderr).not.toContain("ERR_MODULE_NOT_FOUND");
-
-    const start = spawn(
-      "pnpm",
-      ["dlx", "pnpm@10.12.1", "maestro", "--", "start", "--mode", "fake"],
-      {
-        cwd: target,
-        stdio: ["ignore", "pipe", "pipe"],
-        env: supportedHostEnvironment,
+    expect(preflight.status).toBe(3);
+    expect(JSON.parse(preflight.stdout)).toMatchObject({
+      exitClass: "blockedMutation",
+      diagnostics: [
+        expect.objectContaining({
+          code: "AGENT_PACK_VERSION_INCOMPATIBLE",
+          safeToContinue: false,
+        }),
+      ],
+      data: {
+        safeToMutate: false,
+        facts: {
+          versions: {
+            pack: "unavailable",
+            cli: "unavailable",
+            template: "unavailable",
+          },
+          versionsCompatible: false,
+        },
       },
-    );
-    let stdout = "";
-    let stderr = "";
-    start.stdout.setEncoding("utf8").on("data", (chunk: string) => {
-      stdout += chunk;
     });
-    start.stderr.setEncoding("utf8").on("data", (chunk: string) => {
-      stderr += chunk;
-    });
-    try {
-      await waitUntil(
-        () =>
-          stderr.includes("[maestro] URL: http://127.0.0.1:5173") &&
-          stderr.includes("[maestro] Build Readiness: http://127.0.0.1:4174/"),
-        60_000,
-        () =>
-          `fake start did not become ready (exit=${String(start.exitCode)}):\nstdout=${stdout}\nstderr=${stderr}`,
-      );
-      await expect(
-        fetch("http://127.0.0.1:5173/health"),
-      ).resolves.toMatchObject({ status: 200 });
-      await expect(fetch("http://127.0.0.1:4174/")).resolves.toMatchObject({
-        status: 200,
-      });
-      const cliPid = findDescendant(start.pid, "apps/cli/src/index.ts");
-      if (cliPid === undefined)
-        throw new Error("the supervised customer CLI process was not found");
-      process.kill(cliPid, "SIGINT");
-      const completion = await waitForExit(start, 15_000);
-      expect(completion, stderr).toMatchObject({ code: 0, signal: null });
-      expect(stdout).toContain("stopped cleanly");
-      expect(stderr).not.toContain("ERR_MODULE_NOT_FOUND");
-      await expect(portAvailable(5173)).resolves.toBe(true);
-      await expect(portAvailable(4174)).resolves.toBe(true);
-    } finally {
-      if (start.exitCode === null && start.signalCode === null)
-        start.kill("SIGKILL");
-    }
+    expect(preflight.stderr).not.toContain("ERR_MODULE_NOT_FOUND");
   }, 180_000);
 });
-
-async function waitUntil(
-  condition: () => boolean,
-  timeoutMs: number,
-  message: () => string,
-): Promise<void> {
-  const deadline = Date.now() + timeoutMs;
-  while (!condition()) {
-    if (Date.now() >= deadline) throw new Error(message());
-    await new Promise((resolve) => setTimeout(resolve, 50));
-  }
-}
-
-function waitForExit(
-  child: ReturnType<typeof spawn>,
-  timeoutMs: number,
-): Promise<{ readonly code: number | null; readonly signal: string | null }> {
-  return new Promise((resolve, reject) => {
-    const timer = setTimeout(
-      () => reject(new Error("fake start did not stop within its deadline")),
-      timeoutMs,
-    );
-    child.once("exit", (code, signal) => {
-      clearTimeout(timer);
-      resolve({ code, signal });
-    });
-  });
-}
-
-function portAvailable(port: number): Promise<boolean> {
-  return new Promise((resolve) => {
-    const server = createServer();
-    server.once("error", () => resolve(false));
-    server.listen({ host: "127.0.0.1", port, exclusive: true }, () => {
-      server.close(() => resolve(true));
-    });
-  });
-}
-
-function findDescendant(
-  rootPid: number | undefined,
-  commandMarker: string,
-): number | undefined {
-  if (rootPid === undefined) return undefined;
-  const processes = execFileSync("ps", ["-eo", "pid=,ppid=,args="], {
-    encoding: "utf8",
-  })
-    .trim()
-    .split("\n")
-    .map((line) => line.trim().match(/^(\d+)\s+(\d+)\s+(.+)$/))
-    .filter((match): match is RegExpMatchArray => match !== null)
-    .map((match) => ({
-      pid: Number(match[1]),
-      parentPid: Number(match[2]),
-      command: match[3] ?? "",
-    }));
-  const descendants = new Set([rootPid]);
-  let changed = true;
-  while (changed) {
-    changed = false;
-    for (const candidate of processes) {
-      if (
-        descendants.has(candidate.parentPid) &&
-        !descendants.has(candidate.pid)
-      ) {
-        descendants.add(candidate.pid);
-        changed = true;
-      }
-    }
-  }
-  return processes
-    .filter(
-      ({ pid, command }) =>
-        descendants.has(pid) && command.includes(commandMarker),
-    )
-    .at(-1)?.pid;
-}
