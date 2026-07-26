@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "kind": "reviewed-upgrade-impact-coverage",
   "baseRevision": "517b5bc28d1d633bef18f57610cff49800123788",
-  "subjectRevision": "5e77eff44d761609efa2e487707e1c83c93f1645",
+  "subjectRevision": "c0c5357173aecb5b21994a48781e23292c6e5e78",
   "structuralPaths": [
     "docs/template/data-resources.json",
     "docs/template/generated/provenance/add-table/workflowArtifacts.json",
@@ -442,6 +442,7 @@
     "tooling/eslint-plugin-template/rules/__tests__/rules.test.mjs",
     "tooling/eslint-plugin-template/rules/typed-convex-errors.mjs",
     "tooling/generators/package.json",
+    "tooling/generators/src/blueprints/customer/check-convex-ai-files.mts",
     "tooling/generators/src/blueprints/gtmImplementation.ts",
     "tooling/generators/src/blueprints/saasApplicationFactory.ts",
     "tooling/generators/src/blueprints/saasRegistrationProjections.ts",
@@ -498,7 +499,7 @@
   "impact": {
     "schemaVersion": 1,
     "baseRevision": "517b5bc28d1d633bef18f57610cff49800123788",
-    "subjectRevision": "5e77eff44d761609efa2e487707e1c83c93f1645",
+    "subjectRevision": "c0c5357173aecb5b21994a48781e23292c6e5e78",
     "complete": true,
     "risk": "high",
     "changedPaths": [

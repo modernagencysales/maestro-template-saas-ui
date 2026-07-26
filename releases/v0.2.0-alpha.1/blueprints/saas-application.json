@@ -3,7 +3,7 @@
   "id": "saas-application",
   "provenance": "@maestro-template/generators/saas-application@1",
   "projectionSource": {
-    "sourceCommit": "5e77eff44d761609efa2e487707e1c83c93f1645",
+    "sourceCommit": "c0c5357173aecb5b21994a48781e23292c6e5e78",
     "assets": [
       {
         "path": "base/apps/cli/src/factory/customerComposition.ts.txt",
@@ -19,7 +19,7 @@
       },
       {
         "path": "base/apps/web/src/routeTree.gen.ts.txt",
-        "sha256": "sha256:e3e426b3985f11ac5f985c659b147213c3ee94ee48511683d82995255ec6a08b"
+        "sha256": "sha256:45223c1a9c9f7e26f2f662b2f1fb1f88c984df3af5a251f6a2e176e39abd066a"
       },
       {
         "path": "base/customer-context.manifest.json",
@@ -299,11 +299,11 @@
       },
       {
         "path": "base/package.json.txt",
-        "sha256": "sha256:23235d123f5f8f1d7dd8e0220dd1a3172692309c0b30f8e423bec24414b1b58f"
+        "sha256": "sha256:947804f89be531e60fb4c13af44838723594327157c523e22d8a97a64bfde3af"
       },
       {
         "path": "base/packages/convex/confect/_generated/convexSchema.ts.txt",
-        "sha256": "sha256:5cc72381aaa64de0320a43ace0aa7757951cb4cda75d02347bfd4c1973cbfae6"
+        "sha256": "sha256:d65cd33b0fdecfed577e85fa3fa207dd780cec086a475747dbb0bbd6d0ffee93"
       },
       {
         "path": "base/packages/convex/confect/_generated/docs.ts.txt",
@@ -311,15 +311,15 @@
       },
       {
         "path": "base/packages/convex/confect/_generated/id.ts.txt",
-        "sha256": "sha256:e0435553f5276e0107af238b4f1b93676ea931c7122f9c77f21007cffbdb9a2a"
+        "sha256": "sha256:7529b0cde969cb2978da99989744512b288c0cb50967aad99ab90ffe3181fdd3"
       },
       {
         "path": "base/packages/convex/confect/_generated/schema.ts.txt",
-        "sha256": "sha256:9eda109a639d2d7875e2049d79888f0cf1863276eec1c71b44edcb900b0c7385"
+        "sha256": "sha256:d652c4cc37f96eb7f262fc8b0446662ea04bbb89676a77b288ecd2d433697331"
       },
       {
         "path": "base/packages/convex/confect/_generated/spec.ts.txt",
-        "sha256": "sha256:341f16e78e2a4fd068d22aa8521a4cdd4ecef0cbe7a7f849c7d2b2a04433eee9"
+        "sha256": "sha256:60223a158f95e346701074e6ab4f835d41045df99f5938768ef21d1c3950690d"
       },
       {
         "path": "base/packages/convex/confect/_generated/tables/workflowArtifacts.ts.txt",
@@ -443,7 +443,7 @@
       },
       {
         "path": "base/tooling/agent-pack/src/index.ts.txt",
-        "sha256": "sha256:aa01317d0d5947621549e90dafed40babc8d8b54b4f3fdc9c5b050fc41f68b26"
+        "sha256": "sha256:9c96727e5827ca6035048b3a2dafc27b422ed77e10a9bcfa896b067b6f059cd3"
       },
       {
         "path": "base/tooling/agent-pack/src/ports.ts.txt",
@@ -483,7 +483,7 @@
       },
       {
         "path": "base/tooling/generators/package.json.txt",
-        "sha256": "sha256:976d5bfadc5ddcf3cc181454c9997c6b3f7be5a3fb929f965e2d43eee738d577"
+        "sha256": "sha256:563f19fa97642c35a9df37aadb783d6e61514b7b73a9a675bdf0c7ce05bd8605"
       },
       {
         "path": "base/tooling/generators/src/blueprints/gtmImplementation.ts.txt",
@@ -527,11 +527,11 @@
       },
       {
         "path": "base/tooling/quality/check-agent-pack.mts.txt",
-        "sha256": "sha256:2de0c3fe8719b718289dffb5236a1773af60f41babc681f1230b360bace2eb6f"
+        "sha256": "sha256:4edf0472558647936c6f224d0968f935c94436efb6455fe097dc48c89ed1f7df"
       },
       {
         "path": "base/tooling/quality/check-convex-ai-files.mts.txt",
-        "sha256": "sha256:81a5a683072c9ca13ec8cace1144e9402c8a107f8834ad849bc9a4522c08da81"
+        "sha256": "sha256:f1607bb7021242a7b31c7c711a584f971d2b968ed3a7fda08c337c80e3ef4336"
       },
       {
         "path": "base/tooling/quality/check-customer-context.mts.txt",
@@ -1271,7 +1271,7 @@
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:6643b87c9272f6777159a287c48ec4be81d9a853780d6ea068d903f6137f7197",
+      "sha256": "sha256:947804f89be531e60fb4c13af44838723594327157c523e22d8a97a64bfde3af",
       "replaces": "generate"
     },
     {
@@ -1879,7 +1879,7 @@
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:2de0c3fe8719b718289dffb5236a1773af60f41babc681f1230b360bace2eb6f",
+      "sha256": "sha256:4edf0472558647936c6f224d0968f935c94436efb6455fe097dc48c89ed1f7df",
       "replaces": "copy"
     },
     {
@@ -1887,7 +1887,7 @@
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:81a5a683072c9ca13ec8cace1144e9402c8a107f8834ad849bc9a4522c08da81",
+      "sha256": "sha256:f1607bb7021242a7b31c7c711a584f971d2b968ed3a7fda08c337c80e3ef4336",
       "replaces": "copy"
     },
     {

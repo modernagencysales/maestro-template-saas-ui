@@ -9,11 +9,13 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { saasApplicationRoutes } from './routeRegistry.generated'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as WorkspaceWorkflowsRouteImport } from './routes/_workspace.workflows'
 import { Route as WorkspaceSourcesRouteImport } from './routes/_workspace.sources'
 import { Route as WorkspaceSettingsRouteImport } from './routes/_workspace.settings'
 import { Route as WorkspaceRunsRouteImport } from './routes/_workspace.runs'
+import { Route as WorkspaceRecordsRouteImport } from './routes/_workspace.records'
 import { Route as WorkspaceOnboardingRouteImport } from './routes/_workspace.onboarding'
 import { Route as WorkspaceNotificationsRouteImport } from './routes/_workspace.notifications'
 import { Route as WorkspaceLegalRouteImport } from './routes/_workspace.legal'
@@ -53,6 +55,11 @@ const WorkspaceSettingsRoute = WorkspaceSettingsRouteImport.update({
 const WorkspaceRunsRoute = WorkspaceRunsRouteImport.update({
   id: '/_workspace/runs',
   path: '/runs',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WorkspaceRecordsRoute = WorkspaceRecordsRouteImport.update({
+  id: '/_workspace/records',
+  path: saasApplicationRoutes.records,
   getParentRoute: () => rootRouteImport,
 } as any)
 const WorkspaceOnboardingRoute = WorkspaceOnboardingRouteImport.update({
@@ -148,6 +155,7 @@ export interface FileRoutesByFullPath {
   '/legal': typeof WorkspaceLegalRoute
   '/notifications': typeof WorkspaceNotificationsRoute
   '/onboarding': typeof WorkspaceOnboardingRoute
+  '/records': typeof WorkspaceRecordsRoute
   '/runs': typeof WorkspaceRunsRoute
   '/settings': typeof WorkspaceSettingsRoute
   '/sources': typeof WorkspaceSourcesRoute
@@ -170,6 +178,7 @@ export interface FileRoutesByTo {
   '/legal': typeof WorkspaceLegalRoute
   '/notifications': typeof WorkspaceNotificationsRoute
   '/onboarding': typeof WorkspaceOnboardingRoute
+  '/records': typeof WorkspaceRecordsRoute
   '/runs': typeof WorkspaceRunsRoute
   '/settings': typeof WorkspaceSettingsRoute
   '/sources': typeof WorkspaceSourcesRoute
@@ -193,6 +202,7 @@ export interface FileRoutesById {
   '/_workspace/legal': typeof WorkspaceLegalRoute
   '/_workspace/notifications': typeof WorkspaceNotificationsRoute
   '/_workspace/onboarding': typeof WorkspaceOnboardingRoute
+  '/_workspace/records': typeof WorkspaceRecordsRoute
   '/_workspace/runs': typeof WorkspaceRunsRoute
   '/_workspace/settings': typeof WorkspaceSettingsRoute
   '/_workspace/sources': typeof WorkspaceSourcesRoute
@@ -217,6 +227,7 @@ export interface FileRouteTypes {
     | '/legal'
     | '/notifications'
     | '/onboarding'
+    | '/records'
     | '/runs'
     | '/settings'
     | '/sources'
@@ -239,6 +250,7 @@ export interface FileRouteTypes {
     | '/legal'
     | '/notifications'
     | '/onboarding'
+    | '/records'
     | '/runs'
     | '/settings'
     | '/sources'
@@ -261,6 +273,7 @@ export interface FileRouteTypes {
     | '/_workspace/legal'
     | '/_workspace/notifications'
     | '/_workspace/onboarding'
+    | '/_workspace/records'
     | '/_workspace/runs'
     | '/_workspace/settings'
     | '/_workspace/sources'
@@ -284,6 +297,7 @@ export interface RootRouteChildren {
   WorkspaceLegalRoute: typeof WorkspaceLegalRoute
   WorkspaceNotificationsRoute: typeof WorkspaceNotificationsRoute
   WorkspaceOnboardingRoute: typeof WorkspaceOnboardingRoute
+  WorkspaceRecordsRoute: typeof WorkspaceRecordsRoute
   WorkspaceRunsRoute: typeof WorkspaceRunsRoute
   WorkspaceSettingsRoute: typeof WorkspaceSettingsRoute
   WorkspaceSourcesRoute: typeof WorkspaceSourcesRoute
@@ -318,6 +332,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof WorkspaceSettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_workspace/records': {
+      id: '/_workspace/records'
+      path: '/records'
+      fullPath: '/records'
+      preLoaderRoute: typeof WorkspaceRecordsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_workspace/runs': {
@@ -452,6 +473,7 @@ const rootRouteChildren: RootRouteChildren = {
   WorkspaceLegalRoute: WorkspaceLegalRoute,
   WorkspaceNotificationsRoute: WorkspaceNotificationsRoute,
   WorkspaceOnboardingRoute: WorkspaceOnboardingRoute,
+  WorkspaceRecordsRoute: WorkspaceRecordsRoute,
   WorkspaceRunsRoute: WorkspaceRunsRoute,
   WorkspaceSettingsRoute: WorkspaceSettingsRoute,
   WorkspaceSourcesRoute: WorkspaceSourcesRoute,

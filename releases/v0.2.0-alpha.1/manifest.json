@@ -9,8 +9,8 @@
   "release": {
     "version": "0.2.0-alpha.1",
     "tag": "maestro-template-v0.2.0-alpha.1",
-    "sourceCommit": "5e77eff44d761609efa2e487707e1c83c93f1645",
-    "sourceChecksum": "sha256:7dcbc9f23c92c918968be532e9f7e44c6e24f27ef76f7c4cf0dbd2a3481e611b"
+    "sourceCommit": "c0c5357173aecb5b21994a48781e23292c6e5e78",
+    "sourceChecksum": "sha256:d4da2deb60657b894e21f7a6d8dbc341192f7cd394ad433733d5eaff1c587707"
   },
   "upgrade": {
     "schemaVersion": 1,
@@ -630,7 +630,7 @@
         "path": "package.json",
         "ownership": "generated",
         "beforeHash": "sha256:d3278e6fbfc6c3218cb0ebaad4322f459fb2a61eaa37329840ce2283e9fb2254",
-        "afterHash": "sha256:6643b87c9272f6777159a287c48ec4be81d9a853780d6ea068d903f6137f7197"
+        "afterHash": "sha256:947804f89be531e60fb4c13af44838723594327157c523e22d8a97a64bfde3af"
       },
       {
         "id": "upgrade-modify-packages-convex-confect-generated-convexSchema-ts",
@@ -1690,7 +1690,7 @@
         "path": "packages/convex/convex/workflows/subworkflowLinks.ts",
         "ownership": "template-owned",
         "beforeHash": "sha256:bc9a83346737b4b5a8fedcb68851c36c06c2cef4c868f0b338263e7ff31dbd8a",
-        "afterHash": "sha256:a43488a1a1ab2cceea29159f4353fffa2d053186e94d8c41ddde633072d3eec8"
+        "afterHash": "sha256:b85b3dbab6ccf6384965b3318dcb43613801da32bc467b86adcc4592cb5f5cf8"
       },
       {
         "id": "upgrade-add-packages-convex-convex-workflows-subworkflowLinksCurrent-ts",
@@ -3186,6 +3186,13 @@
         "afterHash": "sha256:976d5bfadc5ddcf3cc181454c9997c6b3f7be5a3fb929f965e2d43eee738d577"
       },
       {
+        "id": "upgrade-add-tooling-generators-src-blueprints-customer-check-convex-ai-files-mts",
+        "kind": "add",
+        "path": "tooling/generators/src/blueprints/customer/check-convex-ai-files.mts",
+        "ownership": "template-owned",
+        "afterHash": "sha256:f1607bb7021242a7b31c7c711a584f971d2b968ed3a7fda08c337c80e3ef4336"
+      },
+      {
         "id": "upgrade-modify-tooling-generators-src-blueprints-gtmImplementation-ts",
         "kind": "modify",
         "path": "tooling/generators/src/blueprints/gtmImplementation.ts",
@@ -3205,7 +3212,7 @@
         "kind": "add",
         "path": "tooling/generators/src/blueprints/saasRegistrationProjections.ts",
         "ownership": "template-owned",
-        "afterHash": "sha256:091dffe8f30870ddee9040d4052e8fa7cccfd7cf97629be178f34b9823dc94b5"
+        "afterHash": "sha256:672307613d5f004aae52059b31e6a64fc7e9079b18aee7e12c805407615317f2"
       },
       {
         "id": "upgrade-add-tooling-generators-src-cli-ts",
@@ -3310,7 +3317,7 @@
         "kind": "add",
         "path": "tooling/generators/src/upgrade-wiring.test.ts",
         "ownership": "template-owned",
-        "afterHash": "sha256:6920e4d56ec41e2718f4073a2bd0e227d05dbcf7efac0943a3d411e03f6d250d"
+        "afterHash": "sha256:63789133eb0fb9688decb3ebe39a52a4e03a5f6d79e8fc879155c880afede089"
       },
       {
         "id": "upgrade-add-tooling-generators-src-workflow-files-test-ts",
@@ -3411,7 +3418,7 @@
         "kind": "add",
         "path": "tooling/quality/check-append-only-tables.mts",
         "ownership": "template-owned",
-        "afterHash": "sha256:f2ef79911a4e580cc58e2ab180725f21206bb15c77a276a6316983a3bf0e24be"
+        "afterHash": "sha256:457c518360a7b885241854dae3fd1689d98d632592166864913c675e14d81ca9"
       },
       {
         "id": "upgrade-add-tooling-quality-check-append-only-tables-test-mts",
@@ -3781,14 +3788,14 @@
   ],
   "blueprintManifest": {
     "path": "blueprints/saas-application.json",
-    "sha256": "sha256:6565af5f3582e270c20bc8ab0b628564c52da7afcc3cdf672beaae5d99a75685"
+    "sha256": "sha256:8f3218efbe3b4b7ea31a7c897358829446dc192f92b34eb61080670ec3d105a2"
   },
   "upgradeImpact": {
     "path": "releases/v0.2.0-alpha.1/upgrade/app-map-input.json",
-    "sha256": "sha256:80db84ee4ea7435fae0569d2e8367ca3ac1dd292830e1b4b8f89895f55e2b59a",
+    "sha256": "sha256:a07cb845586e00779cc252187855d6701e69fc93b57c5ad714c3fd66c119b570",
     "projection": {
       "path": "releases/v0.2.0-alpha.1/upgrade/app-map-impact.json",
-      "sha256": "sha256:031c933c0d48e28ca048a2040d59406fde98aa133f11f8053aa2f2800faa6930"
+      "sha256": "sha256:76d9905be45d6e2f7a9d0134100ce4dc6d2f3889217c6f77ce5b0eb5bb0b3cad"
     }
   },
   "migrationHandoff": {

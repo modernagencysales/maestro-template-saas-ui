@@ -31,6 +31,8 @@ import organizationMembers from "./tables/organizationMembers";
 import organizations from "./tables/organizations";
 import policies from "./tables/policies";
 import promptRegistry from "./tables/promptRegistry";
+import records from "./tables/records";
+import workflowArtifacts from "./tables/workflowArtifacts";
 import transformBlocks from "./tables/transformBlocks";
 import transformDefinitions from "./tables/transformDefinitions";
 import transformRuns from "./tables/transformRuns";
@@ -83,6 +85,8 @@ export default $defineSchema({
   organizations: organizations.tableDefinition,
   policies: policies.tableDefinition,
   promptRegistry: promptRegistry.tableDefinition,
+  records: records.tableDefinition,
+  workflowArtifacts: workflowArtifacts.tableDefinition,
   transformBlocks: transformBlocks.tableDefinition,
   transformDefinitions: transformDefinitions.tableDefinition,
   transformRuns: transformRuns.tableDefinition,

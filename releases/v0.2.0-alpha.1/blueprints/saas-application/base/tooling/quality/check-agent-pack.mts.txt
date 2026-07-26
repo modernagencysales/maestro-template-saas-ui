@@ -1,10 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import process from "node:process";
-import {
-  checkRootSkillProjections,
-  checkSkillProjections,
-} from "../agent-pack/src/syncSkills.js";
+import { customerContextFindings } from "./check-customer-context.mts";
 import { AGENT_PACK_COMMAND_VERSION } from "../agent-pack/src/contracts.js";
 import {
   evaluateReceiptStaleness,
@@ -12,7 +9,6 @@ import {
   VERIFICATION_RECEIPT_VERSION,
   type VerificationReceipt,
 } from "../agent-pack/src/receipt.js";
-import { factoryWiringFindings } from "./check-agent-pack-factory-wiring.mts";
 
 const FORBIDDEN_MCP_FILES = [
   ".mcp.json",
@@ -33,16 +29,12 @@ const CODEX_MAESTRO_CONFIG = [
 export async function checkAgentPack(
   repoRoot: string,
 ): Promise<readonly string[]> {
-  const [generated, root, wiring, verification] = await Promise.all([
-    checkSkillProjections(repoRoot),
-    checkRootSkillProjections(repoRoot),
-    factoryWiringFindings(repoRoot),
+  const [customerContext, verification] = await Promise.all([
+    customerContextFindings(repoRoot),
     verificationArtifactFindings(repoRoot),
   ]);
   return [
-    ...generated,
-    ...root,
-    ...wiring,
+    ...customerContext,
     ...verification,
     ...(await forbiddenMcpFindings(repoRoot)),
   ];
