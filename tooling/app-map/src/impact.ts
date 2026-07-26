@@ -1,4 +1,5 @@
 import { buildAppMap } from "./build";
+import { isExactGitRevision } from "./gitDiff";
 import type {
   AppMapEdgeV1,
   AppMapNodeKind,
@@ -56,8 +57,6 @@ const onlyKeys = (
   value: Readonly<Record<string, unknown>>,
   allowed: readonly string[],
 ): boolean => Object.keys(value).every((key) => allowed.includes(key));
-const revision = (value: unknown): value is string =>
-  typeof value === "string" && /^[0-9a-f]{7,64}$/u.test(value);
 const safePath = (value: unknown): value is string =>
   typeof value === "string" &&
   value.length > 0 &&
@@ -191,7 +190,7 @@ export const buildAppMapImpact = (candidate: unknown): AppMapImpactResult => {
       "changedPaths",
     ]) ||
     candidate.schemaVersion !== 1 ||
-    !revision(candidate.baseRevision) ||
+    !isExactGitRevision(candidate.baseRevision) ||
     !Array.isArray(candidate.changedPaths) ||
     !candidate.changedPaths.every(safePath)
   ) {

@@ -46,7 +46,7 @@ const onlyKeys = (
   value: Readonly<Record<string, unknown>>,
   allowed: readonly string[],
 ): boolean => Object.keys(value).every((key) => allowed.includes(key));
-const revision = (value: unknown): value is string =>
+export const isExactGitRevision = (value: unknown): value is string =>
   typeof value === "string" &&
   (/^[0-9a-f]{40}$/u.test(value) || /^[0-9a-f]{64}$/u.test(value));
 const safePath = (value: unknown): value is string =>
@@ -95,8 +95,8 @@ export const resolveGitComparisonBase = (
   const explicit = candidate.explicitBaseRevision;
   const trustedCi = candidate.trustedCiBaseRevision;
   if (
-    (explicit !== undefined && !revision(explicit)) ||
-    (trustedCi !== undefined && !revision(trustedCi))
+    (explicit !== undefined && !isExactGitRevision(explicit)) ||
+    (trustedCi !== undefined && !isExactGitRevision(trustedCi))
   ) {
     return {
       ok: false,
@@ -201,8 +201,8 @@ export const readGitChangedPaths = async (
   if (
     !isRecord(candidate) ||
     !onlyKeys(candidate, ["repoRoot", "baseRevision", "headRevision"]) ||
-    !revision(candidate.baseRevision) ||
-    !revision(candidate.headRevision)
+    !isExactGitRevision(candidate.baseRevision) ||
+    !isExactGitRevision(candidate.headRevision)
   ) {
     return {
       ok: false,

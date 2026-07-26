@@ -382,8 +382,24 @@ describe("deterministic App Map impact", () => {
     expect(first).toEqual(second);
   });
 
+  it.each(["1".repeat(40), "a".repeat(64)])(
+    "accepts an exact lowercase Git revision",
+    (baseRevision) => {
+      expect(buildAppMapImpact({ ...input([]), baseRevision })).toMatchObject({
+        ok: true,
+        impact: { baseRevision },
+      });
+    },
+  );
+
   it.each([
     [{ ...input([]), baseRevision: "origin/main" }],
+    [{ ...input([]), baseRevision: "1".repeat(7) }],
+    [{ ...input([]), baseRevision: "1".repeat(39) }],
+    [{ ...input([]), baseRevision: "1".repeat(41) }],
+    [{ ...input([]), baseRevision: "1".repeat(63) }],
+    [{ ...input([]), baseRevision: "A".repeat(40) }],
+    [{ ...input([]), baseRevision: `${"1".repeat(39)}z` }],
     [{ ...input([]), changedPaths: ["../outside"] }],
     [{ ...input([]), extra: true }],
     [{ ...input([]), mapInput: { ...readFixture("valid"), batches: [] } }],
