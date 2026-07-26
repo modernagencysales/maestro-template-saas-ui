@@ -15,6 +15,9 @@ describe("check:ci-completeness", () => {
 
     expect(requirements).toContain("turbo run typecheck --concurrency=1");
     expect(requirements).toContain(
+      "pnpm --dir packages/convex test:workflow-conformance",
+    );
+    expect(requirements).toContain(
       "pnpm --dir apps/cli test:create-root-integration",
     );
     expect(requirements).toContain(

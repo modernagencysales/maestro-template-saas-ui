@@ -17,7 +17,8 @@
   "scripts": {
     "build": "tsc -p tsconfig.json --outDir dist --declaration",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest run --passWithNoTests --maxWorkers=1 --no-file-parallelism",
+    "test": "vitest run --passWithNoTests --maxWorkers=1 --no-file-parallelism --exclude test/workflow-conformance.test.ts",
+    "test:workflow-conformance": "vitest run test/workflow-conformance.test.ts --passWithNoTests --maxWorkers=1 --no-file-parallelism",
     "test:contract": "vitest run test/*contract*.test.ts test/**/contract*.test.ts",
     "confect:codegen": "confect codegen",
     "confect:dev": "confect dev",
