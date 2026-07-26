@@ -1,0 +1,128 @@
+import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { describe, expect, it } from "vitest";
+import {
+  ReleaseTemplateInstanceCompatibilityError,
+  createReleaseTemplateInstanceConsumer,
+  type ReleaseTemplateInstanceMigration,
+  type ReleaseTemplateInstanceSchemaProvider,
+} from "./templateInstance";
+
+const templateCoreModulePath: string =
+  "../../../../packages/template-core/src/templateInstance/index";
+const generatorMigrationModulePath: string =
+  "../../../generators/src/templateInstanceMigration";
+
+const templateCore = (await import(templateCoreModulePath)) as unknown as {
+  readonly templateInstanceSchemaProvider: ReleaseTemplateInstanceSchemaProvider;
+};
+const generatorMigration = (await import(
+  generatorMigrationModulePath
+)) as unknown as {
+  readonly createTemplateInstanceMigration: (
+    provider: ReleaseTemplateInstanceSchemaProvider,
+  ) => ReleaseTemplateInstanceMigration;
+};
+
+const migration = generatorMigration.createTemplateInstanceMigration(
+  templateCore.templateInstanceSchemaProvider,
+);
+const consumer = createReleaseTemplateInstanceConsumer(
+  templateCore.templateInstanceSchemaProvider,
+  migration,
+);
+
+const digest = (path: string): string =>
+  createHash("sha256").update(readFileSync(path)).digest("hex");
+
+describe("release templateInstance consumer", () => {
+  it("normalizes the CP-5 current release instance through the canonical schema", () => {
+    const serialized = consumer.prepare(
+      JSON.stringify({
+        schemaVersion: 1,
+        release: {
+          version: "0.2.0-alpha.1",
+          tag: "maestro-template-v0.2.0-alpha.1",
+          sourceCommit: "10516dfc7470d9cfa68b250550576298f76042f4",
+          sourceChecksum:
+            "sha256:56bdac01542086dd4d284f7e24ed272e5cec5870b46a47f351f113271dd8de69",
+        },
+        compatibility: {
+          cli: ">=0.1.0-alpha.1 <0.2.0",
+          agentPack: ">=0.1.0-alpha.1 <0.2.0",
+        },
+        personalization: { name: "Customer App" },
+        "x-customer": { retained: true },
+      }),
+    );
+    const instance =
+      templateCore.templateInstanceSchemaProvider.parseText(serialized);
+
+    expect(instance).toMatchObject({
+      schemaVersion: 2,
+      versions: {
+        pack: "0.1.0-alpha.1",
+        cli: "0.1.0-alpha.1",
+        template: "0.2.0-alpha.1",
+        workflowSchema: 2,
+        compatibilitySet: 1,
+      },
+      support: { state: "supported", deprecationDate: null },
+      provenance: {
+        owner: "@maestro-template/template-core/templateInstance",
+        schemaVersion: 2,
+        compatibilitySet: 1,
+      },
+      "x-customer": { retained: true },
+    });
+  });
+
+  it("returns the stable resolution packet instead of composing skipped upgrades", () => {
+    expect(() =>
+      consumer.prepare(
+        JSON.stringify({
+          schemaVersion: 1,
+          release: {
+            version: "0.1.0-alpha.0",
+            tag: "maestro-template-v0.1.0-alpha.0",
+          },
+        }),
+      ),
+    ).toThrow(ReleaseTemplateInstanceCompatibilityError);
+
+    try {
+      consumer.prepare(
+        JSON.stringify({
+          schemaVersion: 1,
+          release: {
+            version: "0.1.0-alpha.0",
+            tag: "maestro-template-v0.1.0-alpha.0",
+          },
+        }),
+      );
+    } catch (error) {
+      expect(error).toBeInstanceOf(ReleaseTemplateInstanceCompatibilityError);
+      expect(
+        (error as ReleaseTemplateInstanceCompatibilityError).resolution,
+      ).toMatchObject({
+        status: "unsupported",
+        code: "TEMPLATE_INSTANCE_UNSUPPORTED_RELEASE_GAP",
+        safeToContinueReadOnly: true,
+        recovery: {
+          kind: "restore-supported-tag",
+        },
+      });
+    }
+  });
+
+  it("keeps both checked-in alpha release manifests byte-identical", () => {
+    const repositoryRoot = resolve(import.meta.dirname, "../../../..");
+    expect(
+      digest(resolve(repositoryRoot, "releases/v0.1.0-alpha.1/manifest.json")),
+    ).toBe("0b55fd0895ecbcf6743860551ed52f165b4252c17ea94ad1687163a8ce6c6b93");
+    expect(
+      digest(resolve(repositoryRoot, "releases/v0.2.0-alpha.1/manifest.json")),
+    ).toBe("532c0da941bce540648b38c4fb868a35b7f37ff9d2623ff5778cd922866168f6");
+  });
+});

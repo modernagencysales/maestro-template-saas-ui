@@ -22,6 +22,7 @@ import {
   type TokenState,
 } from "./createAdapter.contract.js";
 import type { CustomerReleaseManifest } from "./manifest.js";
+import type { ReleaseTemplateInstanceConsumer } from "./templateInstance.js";
 import {
   materializeCustomerTarget,
   previewCustomerTarget,
@@ -41,12 +42,17 @@ export type CustomerCurrentAdapterOptions = CustomerReleaseAdapterOptions & {
 
 export function createCustomerReleaseAdapter(
   options: CustomerReleaseAdapterOptions,
+  templateInstances?: ReleaseTemplateInstanceConsumer,
 ) {
-  return createCustomerAdapter(options, {
-    assertBlueprint: (blueprint) =>
-      assertReviewedBlueprintTargetPlan(options, blueprint),
-    facts: (_blueprint, resolved) => resolved.facts,
-  });
+  return createCustomerAdapter(
+    options,
+    {
+      assertBlueprint: (blueprint) =>
+        assertReviewedBlueprintTargetPlan(options, blueprint),
+      facts: (_blueprint, resolved) => resolved.facts,
+    },
+    templateInstances,
+  );
 }
 
 export function createCustomerCurrentAdapter(
@@ -79,6 +85,7 @@ type CustomerMaterializationAuthority = {
 function createCustomerAdapter(
   options: CustomerReleaseAdapterOptions,
   authority: CustomerMaterializationAuthority,
+  templateInstances?: ReleaseTemplateInstanceConsumer,
 ) {
   const tokens = new WeakMap<object, TokenState>();
   return {
@@ -92,11 +99,14 @@ function createCustomerAdapter(
           );
           authority.assertBlueprint(blueprint);
           const facts = authority.facts(blueprint, resolved);
-          const templateInstance = request.templateInstance(facts, {
+          const rawTemplateInstance = request.templateInstance(facts, {
             id: blueprint.id,
             digest: blueprint.digest,
             provenance: blueprint.provenance,
           });
+          const templateInstance = templateInstances
+            ? templateInstances.prepare(rawTemplateInstance)
+            : rawTemplateInstance;
           const generatedFiles = generatedEntries(
             resolved.manifest,
             resolved.sourceRoot,
