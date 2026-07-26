@@ -5,6 +5,11 @@ import {
   TEMPLATE_INSTANCE_EXTENSION_CONTRACT,
   TEMPLATE_INSTANCE_PROVENANCE,
   TEMPLATE_INSTANCE_SCHEMA_VERSION,
+  PROVIDER_ENVIRONMENTS,
+  isProviderVerifiedFor,
+  migrateLegacyGlobalProviderPosture,
+  parseProviderPosture,
+  serializeProviderPosture,
   resolveTemplateInstanceCompatibility,
   templateInstanceSchemaProvider,
   type TemplateInstanceCompatibilityInput,
@@ -35,6 +40,245 @@ const currentInstance = () => ({
   support: { ...currentSupport },
   provenance: { ...TEMPLATE_INSTANCE_PROVENANCE },
 });
+
+const postureFuture = "2030-01-01T00:00:00.000Z";
+const posturePast = "2020-01-01T00:00:00.000Z";
+const postureNow = new Date("2026-07-25T00:00:00.000Z");
+
+describe("templateInstance provider posture", () => {
+  it("scopes verification to one exact environment", () => {
+    const posture = parseProviderPosture({
+      schemaVersion: 1,
+      providers: {
+        posthog: postureProvider({
+          dev: verifiedPosture("receipt:posthog-dev", postureFuture),
+        }),
+      },
+    });
+
+    expect(isProviderVerifiedFor(posture, "posthog", "dev", postureNow)).toBe(
+      true,
+    );
+    for (const environment of ["preview", "staging", "production"] as const) {
+      expect(
+        isProviderVerifiedFor(posture, "posthog", environment, postureNow),
+      ).toBe(false);
+    }
+  });
+
+  it("keeps provider states independent within one environment", () => {
+    const posture = parseProviderPosture({
+      schemaVersion: 1,
+      providers: {
+        posthog: postureProvider({
+          preview: verifiedPosture("receipt:posthog-preview", postureFuture),
+        }),
+        mailersend: postureProvider({ preview: postureState("fake") }),
+      },
+    });
+
+    expect(posture.providers.posthog?.environments.preview.state).toBe(
+      "verified",
+    );
+    expect(posture.providers.mailersend?.environments.preview.state).toBe(
+      "fake",
+    );
+  });
+
+  it("requires fresh verification evidence and secret names only", () => {
+    const posture = parseProviderPosture({
+      schemaVersion: 1,
+      providers: {
+        posthog: postureProvider({
+          dev: verifiedPosture("receipt:posthog-dev", posturePast),
+        }),
+      },
+    });
+    expect(isProviderVerifiedFor(posture, "posthog", "dev", postureNow)).toBe(
+      false,
+    );
+
+    const input = {
+      schemaVersion: 1,
+      providers: {
+        posthog: postureProvider({
+          dev: {
+            state: "configured",
+            evidence: [
+              {
+                kind: "configuration",
+                ref: "receipt:posthog-dev",
+                secretNames: ["sk-live-secret"],
+                expiresAt: postureFuture,
+              },
+            ],
+          },
+        }),
+      },
+    };
+    expect(() => parseProviderPosture(input)).toThrow(
+      /must contain a secret name only/,
+    );
+    expect(() =>
+      parseProviderPosture({
+        ...input,
+        providers: {
+          posthog: postureProvider({
+            dev: {
+              state: "configured",
+              evidence: [
+                {
+                  kind: "configuration",
+                  ref: "receipt:posthog-dev",
+                  secretNames: ["POSTHOG_API_KEY"],
+                  secretValue: "forbidden",
+                  expiresAt: postureFuture,
+                },
+              ],
+            },
+          }),
+        },
+      }),
+    ).toThrow(/unknown field secretValue/);
+  });
+
+  it("fails closed on unknown fields, states, and environments", () => {
+    const base = {
+      schemaVersion: 1,
+      providers: { posthog: postureProvider({}) },
+    };
+    expect(() => parseProviderPosture({ ...base, extra: true })).toThrow(
+      /unknown field extra/,
+    );
+    expect(() =>
+      parseProviderPosture({
+        ...base,
+        providers: {
+          posthog: postureProvider({ dev: postureState("invented") }),
+        },
+      }),
+    ).toThrow(/state is unknown/);
+    expect(() =>
+      parseProviderPosture({
+        ...base,
+        providers: {
+          posthog: {
+            environments: {
+              ...postureProvider({}).environments,
+              qa: postureState("fake"),
+            },
+          },
+        },
+      }),
+    ).toThrow(/unknown field qa/);
+    for (const extras of [
+      { "ä-extra": true, "z-extra": true },
+      { "z-extra": true, "ä-extra": true },
+    ]) {
+      expect(() => parseProviderPosture({ ...base, ...extras })).toThrow(
+        /unknown field z-extra/,
+      );
+    }
+  });
+
+  it("migrates global fake, test, and live conservatively", () => {
+    for (const mode of ["fake", "test", "live"] as const) {
+      const posture = migrateLegacyGlobalProviderPosture({
+        providerMode: mode,
+        providerIds: ["posthog"],
+      });
+      const environments = posture.providers.posthog?.environments;
+      expect(
+        Object.values(environments ?? {}).every(
+          ({ state }) => state !== "verified",
+        ),
+      ).toBe(true);
+      expect(environments?.production).toEqual({
+        state: "unavailable",
+        evidence: [],
+      });
+      expect(environments?.preview.state).toBe("unavailable");
+      expect(environments?.staging.state).toBe("unavailable");
+    }
+  });
+
+  it("serializes independently of key insertion order and locale", () => {
+    const left = parseProviderPosture({
+      schemaVersion: 1,
+      providers: {
+        "z-provider": postureProvider({}),
+        "a-provider": postureProvider({
+          dev: {
+            state: "configured",
+            evidence: [
+              postureEvidence("fixture:z", ["Z_SECRET", "A_SECRET"]),
+              postureEvidence("fixture:a", []),
+            ],
+          },
+        }),
+      },
+    });
+    const right = parseProviderPosture({
+      providers: {
+        "a-provider": postureProvider({
+          dev: {
+            evidence: [
+              postureEvidence("fixture:a", []),
+              postureEvidence("fixture:z", ["A_SECRET", "Z_SECRET"]),
+            ],
+            state: "configured",
+          },
+        }),
+        "z-provider": postureProvider({}),
+      },
+      schemaVersion: 1,
+    });
+    expect(serializeProviderPosture(left)).toBe(
+      serializeProviderPosture(right),
+    );
+    expect(Object.keys(left.providers)).toEqual(["a-provider", "z-provider"]);
+  });
+});
+
+function postureProvider(
+  overrides: Partial<Record<(typeof PROVIDER_ENVIRONMENTS)[number], unknown>>,
+) {
+  return {
+    environments: Object.fromEntries(
+      PROVIDER_ENVIRONMENTS.map((environment) => [
+        environment,
+        overrides[environment] ?? postureState("unavailable"),
+      ]),
+    ),
+  };
+}
+
+function postureState(value: string) {
+  return { state: value, evidence: [] };
+}
+
+function verifiedPosture(ref: string, expiresAt: string) {
+  return {
+    state: "verified",
+    evidence: [
+      {
+        kind: "verification",
+        ref,
+        secretNames: ["POSTHOG_API_KEY"],
+        expiresAt,
+      },
+    ],
+  };
+}
+
+function postureEvidence(ref: string, secretNames: readonly string[]) {
+  return {
+    kind: "configuration",
+    ref,
+    secretNames,
+    expiresAt: postureFuture,
+  };
+}
 
 const legacyOne = (
   release: { readonly version: string; readonly tag: string } = currentRelease,

@@ -1301,3 +1301,5 @@ export const templateInstanceSchemaProvider: TemplateInstanceSchemaProvider =
     serialize: serializeTemplateInstance,
     resolve: resolveTemplateInstanceCompatibility,
   });
+
+export * from "./providerPosture.js";
