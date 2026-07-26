@@ -9,8 +9,8 @@
   "release": {
     "version": "0.2.0-alpha.1",
     "tag": "maestro-template-v0.2.0-alpha.1",
-    "sourceCommit": "7802a8b2e1df3fa4290f008abe837df44257d593",
-    "sourceChecksum": "sha256:e44a4b93d76c851a6ef48ec29a9955b51278a97bc5521f51d91376b31dd66e55"
+    "sourceCommit": "0ec63e21c3d1b835ad03390287987053c0af2adf",
+    "sourceChecksum": "sha256:16cda11a26e8577b1e00cc5c79d6622de8dce248433873a55e9c6adc27df3b74"
   },
   "upgrade": {
     "schemaVersion": 1,
@@ -3045,13 +3045,6 @@
         "afterHash": "sha256:ebdd7f91e48717defd02c9181c2b71ccd0c2adec40864e39d90ef6df3f555224"
       },
       {
-        "id": "upgrade-add-tooling-app-map-src-mcp-test-ts",
-        "kind": "add",
-        "path": "tooling/app-map/src/mcp.test.ts",
-        "ownership": "template-owned",
-        "afterHash": "sha256:56959186db517b334de6b87c03b43313b02cf587c8b49ee44fe09e6bf791b8cf"
-      },
-      {
         "id": "upgrade-add-tooling-app-map-src-mcp-ts",
         "kind": "add",
         "path": "tooling/app-map/src/mcp.ts",
@@ -3781,6 +3774,13 @@
       "upgrade": "remove"
     },
     {
+      "path": "tooling/app-map/src/mcp.test.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
       "path": "tooling/generators/src/blueprints/saasApplication.test.ts",
       "match": "exact",
       "ownership": "factory-only",
@@ -3846,14 +3846,14 @@
   ],
   "blueprintManifest": {
     "path": "blueprints/saas-application.json",
-    "sha256": "sha256:8f88ad36a72d2e5b2e40c0f04778cb40ac1939f14c79d59d3fdbc9d511d1a120"
+    "sha256": "sha256:4e785a62f3dbb75688c2b958c3b89b1e41756b377282b8ec5c066ca27719e1e7"
   },
   "upgradeImpact": {
     "path": "releases/v0.2.0-alpha.1/upgrade/app-map-input.json",
-    "sha256": "sha256:85be37a639df74548375f759354c0bc3d06e6fc534d54cc92f483de3b98ebdb4",
+    "sha256": "sha256:9a24ad9b0e4683b6dd395c12c339c03fb666c373c52025099b318ba743e40533",
     "projection": {
       "path": "releases/v0.2.0-alpha.1/upgrade/app-map-impact.json",
-      "sha256": "sha256:586d92156608ee3cdb1dd93db4d0bdcae12461d8eb478e8a1ae3cdfff883c008"
+      "sha256": "sha256:1135776fb58e35ecc1ab74500305db2a77804fd8363739acefa2fec3a7fe540f"
     }
   },
   "migrationHandoff": {
