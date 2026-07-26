@@ -39,6 +39,21 @@ type DeadlineSchedule = WorkflowDeadlineSchedule;
 const fireRef = makeFunctionReference<"mutation">(
   "workflows/deadlinesCurrent:fire",
 );
+const recoverRef = makeFunctionReference<"mutation">(
+  "workflows/deadlinesCurrent:recover",
+);
+
+const enqueueDeadline = (
+  ctx: AppMutationCtx,
+  serial: ReturnType<typeof serialize>,
+  runAt: number,
+) =>
+  deadlinePool.enqueueMutation(ctx, fireRef, serial, {
+    runAt,
+    name: "workflow-deadline",
+    onComplete: recoverRef,
+    context: serial,
+  });
 
 export const schedule = internalMutation({
   args: {
@@ -73,10 +88,7 @@ export const schedule = internalMutation({
       return { kind: "scheduled" as const, ...serial };
     if (prepared.priorWorkId)
       await deadlinePool.cancel(ctx, prepared.priorWorkId as WorkId);
-    const workId = await deadlinePool.enqueueMutation(ctx, fireRef, serial, {
-      runAt: planned.schedule.runAt,
-      name: "workflow-deadline",
-    });
+    const workId = await enqueueDeadline(ctx, serial, planned.schedule.runAt);
     await ctx.runMutation(deadlineComponent.bind, {
       scheduleKey: serial.scheduleKey,
       requestedAt: serial.requestedAt,
@@ -164,6 +176,37 @@ export const fire = internalMutation({
     });
     await observe(ctx, callbackSchedule, decision.facts, undefined, "timedOut");
     return null;
+  },
+});
+
+export const recover = deadlinePool.defineOnComplete({
+  context: v.object(callbackArgs),
+  handler: async (ctx, { workId, context, result }) => {
+    if (result.kind !== "failed") return;
+    const failedAt = Date.now();
+    const retry = await ctx.runMutation(deadlineComponent.prepareRetry, {
+      scheduleKey: context.scheduleKey,
+      requestedAt: context.requestedAt,
+      completedWorkId: workId,
+      failedAt,
+    });
+    if (retry.kind !== "retry") return;
+    const nextWorkId = await deadlinePool.enqueueMutation(
+      ctx,
+      fireRef,
+      context,
+      {
+        runAt: retry.retryAt,
+        name: "workflow-deadline-recovery",
+        onComplete: recoverRef,
+        context,
+      },
+    );
+    await ctx.runMutation(deadlineComponent.bind, {
+      scheduleKey: context.scheduleKey,
+      requestedAt: context.requestedAt,
+      workId: nextWorkId,
+    });
   },
 });
 

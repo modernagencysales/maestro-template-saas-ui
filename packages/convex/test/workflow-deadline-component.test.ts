@@ -9,6 +9,9 @@ const modules = {
 };
 const prepare = makeFunctionReference<"mutation">("deadlines:prepare");
 const bind = makeFunctionReference<"mutation">("deadlines:bind");
+const prepareRetry = makeFunctionReference<"mutation">(
+  "deadlines:prepareRetry",
+);
 const current = makeFunctionReference<"query">("deadlines:current");
 const observe = makeFunctionReference<"mutation">("deadlines:observe");
 const beginReconcile = makeFunctionReference<"query">(
@@ -115,5 +118,45 @@ describe("workflow deadline component", () => {
     await expect(
       t.mutation(prepare, { ...schedule(), workspaceId: "workspace-b" }),
     ).rejects.toMatchObject({ data: "WORKFLOW_DEADLINE_IDENTITY_CONFLICT" });
+  });
+
+  it("persists bounded retry attempts and rejects duplicate completion recovery", async () => {
+    const t = convexTest(schema, modules);
+    await t.mutation(prepare, schedule());
+    await t.mutation(bind, {
+      scheduleKey: schedule().scheduleKey,
+      requestedAt: schedule().requestedAt,
+      workId: "work-a",
+    });
+    await expect(
+      t.mutation(prepareRetry, {
+        scheduleKey: schedule().scheduleKey,
+        requestedAt: schedule().requestedAt,
+        completedWorkId: "work-a",
+        failedAt: 2_000,
+      }),
+    ).resolves.toEqual({ kind: "retry", attemptCount: 1, retryAt: 2_250 });
+    await expect(
+      t.mutation(prepareRetry, {
+        scheduleKey: schedule().scheduleKey,
+        requestedAt: schedule().requestedAt,
+        completedWorkId: "work-a",
+        failedAt: 2_001,
+      }),
+    ).resolves.toEqual({ kind: "stale" });
+    await t.mutation(bind, {
+      scheduleKey: schedule().scheduleKey,
+      requestedAt: schedule().requestedAt,
+      workId: "work-b",
+    });
+    await expect(
+      t.query(current, { workflowRunId: "run-a", generation: 0 }),
+    ).resolves.toMatchObject({
+      state: "retryScheduled",
+      workId: "work-b",
+      attemptCount: 1,
+      retryAt: 2_250,
+      lastFailureAt: 2_000,
+    });
   });
 });

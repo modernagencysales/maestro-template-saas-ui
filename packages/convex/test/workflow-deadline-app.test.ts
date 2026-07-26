@@ -35,6 +35,9 @@ const scheduleRef = makeFunctionReference<"mutation">(
 const fireRef = makeFunctionReference<"mutation">(
   "workflows/deadlinesCurrent:fire",
 );
+const recoverRef = makeFunctionReference<"mutation">(
+  "workflows/deadlinesCurrent:recover",
+);
 const admitRunningRef = makeFunctionReference<"mutation">(
   "workflowDeadlineHarness:admitRunning",
 );
@@ -226,6 +229,73 @@ describe("workflow deadline app adapter", () => {
       workId: "invalid-work-id",
       state: "scheduled",
     });
+  });
+
+  it("durably retries a failed expiry transition and ignores duplicate recovery", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(20_000);
+    const t = convexTest(appSchema, appModules);
+    registerComponents(t);
+    const { workspaceId, workflowRunId } = await seedRun(t, "retry-once");
+    await t.mutation(admitRunningRef, {
+      workspaceId: String(workspaceId),
+      workflowRunId: String(workflowRunId),
+      reservationKey: "retry-once",
+    });
+    const scheduled = await t.mutation(scheduleRef, {
+      workspaceId,
+      workflowRunId,
+      requestedAt: 20_000,
+      horizonMs: 500,
+    });
+    const callback = deadlineCallback(scheduled);
+    const current = await t.query(currentDeadlineRef, {
+      workflowRunId: String(workflowRunId),
+      generation: 0,
+    });
+    expect(current?.workId).toEqual(expect.any(String));
+    vi.setSystemTime(20_525);
+    await expect(t.mutation(fireRef, callback)).rejects.toThrow(
+      "INJECTED_WORKFLOW_CANCEL_FAILURE",
+    );
+    await expect(
+      t.run(async (ctx) => await ctx.db.get(workflowRunId)),
+    ).resolves.toMatchObject({
+      status: "running",
+      lifecycleExecution: "active",
+    });
+
+    const completion = {
+      workId: current?.workId,
+      context: callback,
+      result: { kind: "failed" as const, error: "redacted transition failure" },
+    };
+    await t.mutation(recoverRef, completion);
+    await expect(
+      t.query(currentDeadlineRef, {
+        workflowRunId: String(workflowRunId),
+        generation: 0,
+      }),
+    ).resolves.toMatchObject({
+      state: "retryScheduled",
+      attemptCount: 1,
+      retryAt: 20_775,
+    });
+
+    await expect(t.mutation(fireRef, callback)).resolves.toBeNull();
+    await t.mutation(recoverRef, completion);
+    await expect(
+      t.run(async (ctx) => await ctx.db.get(workflowRunId)),
+    ).resolves.toMatchObject({
+      status: "timedOut",
+      lifecycleExecution: "canceled",
+    });
+    await expect(
+      t.query(currentDeadlineRef, {
+        workflowRunId: String(workflowRunId),
+        generation: 0,
+      }),
+    ).resolves.toMatchObject({ state: "timedOut", attemptCount: 1 });
   });
 
   it("schedules generation N+1 at the original absolute deadline", async () => {

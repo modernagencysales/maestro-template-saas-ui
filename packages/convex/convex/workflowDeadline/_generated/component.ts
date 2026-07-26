@@ -18,8 +18,18 @@ type ScheduleArgs = {
 type ScheduleDocument = ScheduleArgs & {
   _id: string;
   _creationTime: number;
-  state: "preparing" | "scheduled" | "timedOut" | "reconciled" | "noOp";
+  state:
+    | "preparing"
+    | "scheduled"
+    | "retryScheduled"
+    | "timedOut"
+    | "reconciled"
+    | "noOp"
+    | "failed";
   workId?: string;
+  attemptCount?: number;
+  retryAt?: number;
+  lastFailureAt?: number;
   actualStartedAt?: number;
   latenessMs?: number;
   expired?: boolean;
@@ -42,6 +52,20 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           kind: "create" | "replace" | "replay";
           priorWorkId: string | null;
         },
+        Name
+      >;
+      prepareRetry: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          scheduleKey: string;
+          requestedAt: number;
+          completedWorkId: string;
+          failedAt: number;
+        },
+        | { kind: "stale" }
+        | { kind: "exhausted"; attemptCount: number }
+        | { kind: "retry"; attemptCount: number; retryAt: number },
         Name
       >;
       bind: FunctionReference<

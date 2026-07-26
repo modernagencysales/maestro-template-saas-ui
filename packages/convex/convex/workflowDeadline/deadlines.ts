@@ -14,6 +14,9 @@ const schedule = {
   runAt: v.number(),
 };
 
+const MAX_RECOVERY_ATTEMPTS = 5;
+const RECOVERY_BACKOFF_MS = 250;
+
 export const prepare = mutation({
   args: schedule,
   handler: async (ctx, args) => {
@@ -36,7 +39,12 @@ export const prepare = mutation({
         existing.horizonMs === args.horizonMs &&
         existing.deadlineAt === args.deadlineAt &&
         existing.runAt === args.runAt;
-      if (exact && existing.state === "scheduled" && existing.workId) {
+      if (
+        exact &&
+        (existing.state === "scheduled" ||
+          existing.state === "retryScheduled") &&
+        existing.workId
+      ) {
         return { kind: "replay" as const, priorWorkId: existing.workId };
       }
       const priorWorkId = existing.workId;
@@ -49,11 +57,64 @@ export const prepare = mutation({
         expired: undefined,
         expiredByMs: undefined,
         noOpReason: undefined,
+        attemptCount: 0,
+        retryAt: undefined,
+        lastFailureAt: undefined,
       });
       return { kind: "replace" as const, priorWorkId: priorWorkId ?? null };
     }
-    await ctx.db.insert("schedules", { ...args, state: "preparing" });
+    await ctx.db.insert("schedules", {
+      ...args,
+      state: "preparing",
+      attemptCount: 0,
+    });
     return { kind: "create" as const, priorWorkId: null };
+  },
+});
+
+export const prepareRetry = mutation({
+  args: {
+    scheduleKey: v.string(),
+    requestedAt: v.number(),
+    completedWorkId: v.string(),
+    failedAt: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const existing = await ctx.db
+      .query("schedules")
+      .withIndex("schedule_key", (q) => q.eq("scheduleKey", args.scheduleKey))
+      .unique();
+    if (
+      !existing ||
+      existing.requestedAt !== args.requestedAt ||
+      existing.workId !== args.completedWorkId ||
+      existing.state === "timedOut" ||
+      existing.state === "reconciled" ||
+      existing.state === "noOp" ||
+      existing.state === "failed"
+    ) {
+      return { kind: "stale" as const };
+    }
+    const attemptCount = (existing.attemptCount ?? 0) + 1;
+    if (attemptCount > MAX_RECOVERY_ATTEMPTS) {
+      await ctx.db.patch(existing._id, {
+        state: "failed",
+        attemptCount,
+        lastFailureAt: args.failedAt,
+        retryAt: undefined,
+      });
+      return { kind: "exhausted" as const, attemptCount };
+    }
+    const retryAt =
+      args.failedAt + RECOVERY_BACKOFF_MS * 2 ** (attemptCount - 1);
+    await ctx.db.patch(existing._id, {
+      state: "preparing",
+      workId: undefined,
+      attemptCount,
+      lastFailureAt: args.failedAt,
+      retryAt,
+    });
+    return { kind: "retry" as const, attemptCount, retryAt };
   },
 });
 
@@ -75,7 +136,7 @@ export const bind = mutation({
       throw new ConvexError("WORKFLOW_DEADLINE_WORK_BINDING_CONFLICT");
     }
     await ctx.db.patch(existing._id, {
-      state: "scheduled",
+      state: (existing.attemptCount ?? 0) > 0 ? "retryScheduled" : "scheduled",
       workId: args.workId,
     });
     return null;
