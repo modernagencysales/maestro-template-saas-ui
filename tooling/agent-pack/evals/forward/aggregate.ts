@@ -7,7 +7,14 @@ import {
 } from "../scenarios/evidence.js";
 import { forwardScenarioIds } from "../scenarios/forward.js";
 import { EvaluationError } from "../walking-skeleton/contract.js";
+import {
+  buildForwardPrompt,
+  forwardInitialContextSha256,
+  gradeForwardEvidence,
+  sha256,
+} from "./contract.js";
 import type { ForwardRunReceipt } from "./runner.js";
+import { forwardReceiptSha256, forwardScenarioContracts } from "./verifier.js";
 
 export type ForwardSuiteVerdict = {
   readonly schemaVersion: 1;
@@ -31,16 +38,19 @@ export async function aggregateForwardRuns(input: {
     );
   }
   const receipts = await Promise.all(
-    input.runIds.map(async (runId) =>
-      parseReceipt(
+    input.runIds.map(async (runId) => {
+      const receipt = parseReceipt(
         JSON.parse(
           await readFile(
             join(resolve(input.out), runId, "receipt.json"),
             "utf8",
           ),
         ),
-      ),
-    ),
+        runId,
+      );
+      await verifyRetainedEvidence(resolve(input.out), receipt);
+      return receipt;
+    }),
   ).catch(() => {
     throw new EvaluationError(
       "EVAL_SUITE_INCOMPLETE",
@@ -119,7 +129,44 @@ export async function aggregateForwardRuns(input: {
   return verdict;
 }
 
-function parseReceipt(value: unknown): ForwardRunReceipt {
+async function verifyRetainedEvidence(
+  out: string,
+  receipt: ForwardRunReceipt,
+): Promise<void> {
+  for (const evidence of receipt.evidence) {
+    const scenarioRoot = join(
+      out,
+      receipt.runId,
+      "scenarios",
+      evidence.scenarioId,
+    );
+    const artifact = await readFile(
+      join(scenarioRoot, "artifact.verified.json"),
+    );
+    const summary = JSON.parse(
+      await readFile(join(scenarioRoot, "verification-summary.json"), "utf8"),
+    ) as unknown;
+    const expected = {
+      schemaVersion: 1,
+      candidateSha: evidence.candidateSha,
+      scenarioId: evidence.scenarioId,
+      artifactSha256: evidence.artifacts[0]?.sha256,
+      commandOutputSha256: evidence.commands[0]?.outputSha256,
+      receiptSha256: evidence.receiptSha256,
+    };
+    if (
+      sha256(artifact) !== evidence.artifacts[0]?.sha256 ||
+      JSON.stringify(summary) !== JSON.stringify(expected)
+    ) {
+      throw new Error("retained verification evidence mismatch");
+    }
+  }
+}
+
+function parseReceipt(
+  value: unknown,
+  expectedRunId: string,
+): ForwardRunReceipt {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
     throw new Error("invalid receipt");
   }
@@ -130,8 +177,11 @@ function parseReceipt(value: unknown): ForwardRunReceipt {
     receipt.status !== "passed" ||
     (receipt.host !== "claude" && receipt.host !== "codex") ||
     typeof receipt.runId !== "string" ||
+    receipt.runId !== expectedRunId ||
+    receipt.outputDirectory !== expectedRunId ||
     typeof receipt.candidateSha !== "string" ||
-    !Array.isArray(receipt.evidence)
+    !Array.isArray(receipt.evidence) ||
+    !Array.isArray(receipt.verdicts)
   ) {
     throw new Error("invalid receipt");
   }
@@ -163,5 +213,60 @@ function assertCompleteReceipt(receipt: ForwardRunReceipt): void {
       "EVAL_SUITE_DIVERGED",
       "A forward receipt contains stale or cross-run evidence.",
     );
+  }
+  if (receipt.verdicts.length !== forwardScenarioIds.length) {
+    throw new EvaluationError(
+      "EVAL_SUITE_INCOMPLETE",
+      "A forward receipt does not contain every stored scenario verdict.",
+    );
+  }
+  for (const evidence of receipt.evidence) {
+    const contract = forwardScenarioContracts[evidence.scenarioId];
+    const prompt = buildForwardPrompt({
+      candidateSha: receipt.candidateSha,
+      host: receipt.host,
+      runId: receipt.runId,
+      scenarioId: evidence.scenarioId,
+      resultPath: ".maestro-eval/forward-result.json",
+      artifactId: contract.artifactId,
+      commandId: contract.command.id,
+    });
+    const verifierFailures =
+      evidence.receiptSha256 === forwardReceiptSha256(evidence)
+        ? []
+        : [
+            {
+              code: "RECEIPT_HASH_MISMATCH",
+              path: "receiptSha256",
+              message: "Canonical receipt hash does not match evidence.",
+            },
+          ];
+    const regraded = gradeForwardEvidence({
+      evidence,
+      candidateSha: receipt.candidateSha,
+      host: receipt.host,
+      runId: receipt.runId,
+      scenarioId: evidence.scenarioId,
+      initialContextSha256: forwardInitialContextSha256({
+        candidateSha: receipt.candidateSha,
+        host: receipt.host,
+        scenarioId: evidence.scenarioId,
+      }),
+      userPromptSha256: sha256(prompt),
+      verifierFailures,
+    });
+    const stored = receipt.verdicts.find(
+      ({ scenarioId }) => scenarioId === evidence.scenarioId,
+    );
+    if (
+      regraded.status !== "passed" ||
+      !stored ||
+      JSON.stringify(stored) !== JSON.stringify(regraded)
+    ) {
+      throw new EvaluationError(
+        "EVAL_SUITE_DIVERGED",
+        `Forward receipt verdict cannot be reproduced for ${evidence.scenarioId}.`,
+      );
+    }
   }
 }

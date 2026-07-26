@@ -24,6 +24,11 @@ import {
   sha256,
   type ForwardScenarioVerdict,
 } from "./contract.js";
+import {
+  forwardScenarioContracts,
+  verifyForwardScenario,
+  type ForwardVerifierPorts,
+} from "./verifier.js";
 
 export type ForwardRunOptions = {
   readonly host: ForwardHost;
@@ -56,6 +61,7 @@ export type ForwardRunPorts = {
   readonly now: () => Date;
   readonly adapter: WalkingSkeletonHostAdapter;
   readonly prepareWorkspace: typeof cloneCandidate;
+  readonly verifierPorts: Partial<ForwardVerifierPorts>;
 };
 
 export async function runForwardSuite(
@@ -111,6 +117,12 @@ export async function runForwardSuite(
       hostHome: options.hostHome,
       sessionDir,
     });
+    if (adapter.isolation !== "workspace-offline") {
+      throw new EvaluationError(
+        "EVAL_HOST_ISOLATION_UNAVAILABLE",
+        `${options.host} does not expose a verified offline workspace-only transport.`,
+      );
+    }
     for (const scenarioId of forwardScenarioIds) {
       const scenarioDirectory = join(outputDirectory, "scenarios", scenarioId);
       const workspace = join(scenarioDirectory, "workspace");
@@ -121,6 +133,8 @@ export async function runForwardSuite(
         runId: options.runId,
         scenarioId,
         resultPath,
+        artifactId: forwardScenarioContracts[scenarioId].artifactId,
+        commandId: forwardScenarioContracts[scenarioId].command.id,
       });
       await mkdir(scenarioDirectory, { recursive: true });
       try {
@@ -136,6 +150,7 @@ export async function runForwardSuite(
           sessionDir,
           prompt,
           timeoutMs: options.timeoutMs ?? 45 * 60 * 1000,
+          networkAccess: false,
           ...(options.codexTransport
             ? { codexTransport: options.codexTransport }
             : {}),
@@ -174,6 +189,41 @@ export async function runForwardSuite(
             `Host evidence is invalid for ${scenarioId}.`,
           );
         }
+        const verifierFailures = await verifyForwardScenario({
+          workspace,
+          sessionDir,
+          candidateSha: options.candidateSha,
+          scenarioId,
+          evidence: parsed,
+          ...(overrides.verifierPorts
+            ? { ports: overrides.verifierPorts }
+            : {}),
+        });
+        if (verifierFailures.length === 0) {
+          const artifact = await readFile(
+            join(
+              workspace,
+              ".maestro-eval",
+              "artifacts",
+              `${forwardScenarioContracts[scenarioId].artifactId}.json`,
+            ),
+          );
+          await writeFile(
+            join(scenarioDirectory, "artifact.verified.json"),
+            artifact,
+          );
+          await writeJson(
+            join(scenarioDirectory, "verification-summary.json"),
+            {
+              schemaVersion: 1,
+              candidateSha: parsed.candidateSha,
+              scenarioId,
+              artifactSha256: parsed.artifacts[0]?.sha256,
+              commandOutputSha256: parsed.commands[0]?.outputSha256,
+              receiptSha256: parsed.receiptSha256,
+            },
+          );
+        }
         const verdict = gradeForwardEvidence({
           evidence: parsed,
           candidateSha: options.candidateSha,
@@ -186,12 +236,13 @@ export async function runForwardSuite(
             scenarioId,
           }),
           userPromptSha256: sha256(prompt),
+          verifierFailures,
         });
         evidence.push(parsed);
         verdicts.push(verdict);
         await writeJson(
           join(scenarioDirectory, "evidence.redacted.json"),
-          redactJson(parsed),
+          redactForwardJson(parsed),
         );
         await writeJson(join(scenarioDirectory, "verdict.json"), verdict);
         if (verdict.status !== "passed") {
@@ -217,11 +268,14 @@ export async function runForwardSuite(
     errorCode = classified.code;
     status =
       classified.code === "EVAL_HOST_EXECUTABLE_UNAVAILABLE" ||
-      classified.code === "EVAL_HOST_AUTH_REQUIRED"
+      classified.code === "EVAL_HOST_AUTH_REQUIRED" ||
+      classified.code === "EVAL_HOST_ISOLATION_UNAVAILABLE"
         ? "blocked-external"
         : "failed";
     await writeRetention(outputDirectory, startedAt, true);
-    await writeJson(join(outputDirectory, "receipt.json"), buildReceipt());
+    const receipt = buildReceipt();
+    await writeJson(join(outputDirectory, "receipt.json"), receipt);
+    if (status === "blocked-external") return receipt;
     throw classified;
   } finally {
     await rm(sessionDir, { recursive: true, force: true });
@@ -240,13 +294,13 @@ export async function runForwardSuite(
       status,
       startedAt,
       completedAt: now().toISOString(),
-      outputDirectory,
+      outputDirectory: relativeOutputDirectory(options.out, outputDirectory),
       workspaceRetained: false,
       evidence:
         status === "passed"
           ? evidence
           : (evidence.map((entry) =>
-              redactJson(entry),
+              redactForwardJson(entry),
             ) as ForwardRunEvidence[]),
       verdicts,
       ...(errorCode ? { errorCode } : {}),
@@ -323,4 +377,28 @@ function redactForwardLog(value: string): string {
       (match, path: string) => match.replace(path, "[REDACTED_PATH]"),
     )
     .replace(/[A-Za-z]:\\[^\s"']+/gu, "[REDACTED_PATH]");
+}
+
+function redactForwardJson(value: unknown): unknown {
+  const redacted = redactJson(value);
+  if (typeof redacted === "string") return redactForwardLog(redacted);
+  if (Array.isArray(redacted)) return redacted.map(redactForwardJson);
+  if (redacted === null || typeof redacted !== "object") return redacted;
+  return Object.fromEntries(
+    Object.entries(redacted).map(([key, entry]) => [
+      key,
+      redactForwardJson(entry),
+    ]),
+  );
+}
+
+function relativeOutputDirectory(out: string, directory: string): string {
+  const relative = directory.slice(resolve(out).length + 1);
+  if (relative.length === 0 || relative.startsWith("..")) {
+    throw new EvaluationError(
+      "EVAL_INVALID_ARGUMENT",
+      "Run output directory escapes --out.",
+    );
+  }
+  return relative;
 }

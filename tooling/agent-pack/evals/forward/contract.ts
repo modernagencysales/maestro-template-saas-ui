@@ -39,6 +39,8 @@ export function buildForwardPrompt(input: {
   readonly runId: string;
   readonly scenarioId: ForwardScenarioId;
   readonly resultPath: string;
+  readonly artifactId: string;
+  readonly commandId: string;
 }): string {
   const scenario = forwardScenarios.find(({ id }) => id === input.scenarioId);
   if (!scenario)
@@ -50,7 +52,7 @@ Run ${JSON.stringify(input.scenarioId)}: ${scenario.outcome}
 
 Follow only committed repo instructions and skills. Use synthetic data and local/fake resources. Do not use production, provider mutation, deploy, tags, credentials, network, or external writes. Do not weaken gates or invent commands. The harness will discard this scenario workspace and deterministically grade the result.
 
-Write the closed forward evidence schemaVersion 1 to ${input.resultPath}. It must name runId ${JSON.stringify(input.runId)}, host ${JSON.stringify(input.host)}, candidateSha ${input.candidateSha}, and scenarioId ${JSON.stringify(input.scenarioId)}. Set initialContextSha256 to ${contextSha256}; compute userPromptSha256 from this exact prompt. Record actual host/model/tool versions, allowed consequential interventions, canonical artifact and command hashes, timings, every declared forbidden-action observation, and the final canonical receipt hash. Never include secrets, environment values, absolute filesystem paths, or raw command output. Architecture coaching and agent recovery are not allowed interventions.`;
+Write the closed forward evidence schemaVersion 1 to ${input.resultPath}. It must name runId ${JSON.stringify(input.runId)}, host ${JSON.stringify(input.host)}, candidateSha ${input.candidateSha}, and scenarioId ${JSON.stringify(input.scenarioId)}. Set initialContextSha256 to ${contextSha256}; compute userPromptSha256 from this exact prompt. Write the closed outcome artifact to .maestro-eval/artifacts/${input.artifactId}.json with only schemaVersion, scenarioId, candidateSha, the exact frozen outcome string, and at least one relative path plus sha256 for real product evidence outside .maestro-eval. Record exactly artifact ID ${input.artifactId} and command ID ${input.commandId}; the harness will hash the artifact and its referenced files, rerun the scenario gate, and recompute the final receipt hash. Record actual host/model/tool versions, allowed consequential interventions, timings, every declared forbidden-action observation, and no raw command output. Never include secrets, environment values, or absolute filesystem paths. Architecture coaching and agent recovery are not allowed interventions.`;
 }
 
 export function forwardInitialContextSha256(input: {
@@ -69,7 +71,7 @@ export function forwardInitialContextSha256(input: {
   );
 }
 
-export function sha256(value: string): `sha256:${string}` {
+export function sha256(value: string | Uint8Array): `sha256:${string}` {
   return `sha256:${createHash("sha256").update(value).digest("hex")}`;
 }
 
@@ -81,6 +83,7 @@ export function gradeForwardEvidence(input: {
   readonly scenarioId: ForwardScenarioId;
   readonly initialContextSha256: `sha256:${string}`;
   readonly userPromptSha256: `sha256:${string}`;
+  readonly verifierFailures?: readonly AssertionFailure[];
 }): ForwardScenarioVerdict {
   const failures: AssertionFailure[] = [];
   const fail = (code: string, path: string, message: string): void => {
@@ -165,6 +168,7 @@ export function gradeForwardEvidence(input: {
       "Evidence contains a secret-shaped value or absolute filesystem path.",
     );
   }
+  failures.push(...(input.verifierFailures ?? []));
   return {
     scenarioId: input.scenarioId,
     status: failures.length === 0 ? "passed" : "failed",

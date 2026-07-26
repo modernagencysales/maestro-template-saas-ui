@@ -372,7 +372,8 @@ function exitCode(code: EvaluationErrorCode): number {
     return 2;
   if (
     code === "EVAL_HOST_EXECUTABLE_UNAVAILABLE" ||
-    code === "EVAL_HOST_AUTH_REQUIRED"
+    code === "EVAL_HOST_AUTH_REQUIRED" ||
+    code === "EVAL_HOST_ISOLATION_UNAVAILABLE"
   )
     return 3;
   if (code === "EVAL_SUITE_INCOMPLETE" || code === "EVAL_SUITE_DIVERGED")

@@ -27,6 +27,7 @@ export type CodexTransportV1 = {
 };
 export type WalkingSkeletonHostAdapter = {
   readonly host: EvaluationHost;
+  readonly isolation?: "workspace-offline" | "unverified";
   readonly preflight: (input: {
     readonly cwd: string;
     readonly hostHome: string;
@@ -39,6 +40,7 @@ export type WalkingSkeletonHostAdapter = {
     readonly prompt: string;
     readonly timeoutMs: number;
     readonly codexTransport?: CodexTransportV1;
+    readonly networkAccess?: boolean;
   }) => Promise<HostCommandResult>;
 };
 
@@ -157,6 +159,7 @@ export function createHostAdapter(
     safeHostEnvironment({ host, hostHome, sessionDir });
   return {
     host,
+    isolation: host === "codex" ? "workspace-offline" : "unverified",
     preflight: async ({ cwd, hostHome, sessionDir }) => {
       const env = environment(hostHome, sessionDir);
       const version = await execute({
@@ -191,7 +194,15 @@ export function createHostAdapter(
         );
       }
     },
-    run: ({ cwd, hostHome, sessionDir, prompt, timeoutMs, codexTransport }) =>
+    run: ({
+      cwd,
+      hostHome,
+      sessionDir,
+      prompt,
+      timeoutMs,
+      codexTransport,
+      networkAccess,
+    }) =>
       execute({
         command,
         args:
@@ -215,7 +226,7 @@ export function createHostAdapter(
                 "-c",
                 "mcp_servers={}",
                 "-c",
-                "sandbox_workspace_write.network_access=true",
+                `sandbox_workspace_write.network_access=${String(networkAccess ?? true)}`,
                 ...(codexTransport ? codexTransportArgs(codexTransport) : []),
                 "-c",
                 'model_reasoning_effort="medium"',
