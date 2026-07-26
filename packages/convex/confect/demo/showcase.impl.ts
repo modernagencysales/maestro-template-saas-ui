@@ -114,6 +114,7 @@ const seed = FunctionImpl.make(databaseSchema, showcase, "seed", () =>
           workflowVersion: run.workflowVersion,
           graphJson: demoGraphJson,
           status: run.status,
+          admissionLane: "user",
           idempotencyKey: `demo-seed-${String(index)}`,
           startedByUserId: "user_demo_operator",
           startedAt: run.startedAt,

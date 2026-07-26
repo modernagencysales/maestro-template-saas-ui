@@ -279,6 +279,7 @@ import { ProductWorkflowEventId } from "../workflows/_kit/events";
 import { DurableWorkflowPrincipal } from "../workflows/_kit/principal";
 import { WorkflowCurrentAuthorityReceipt } from "../workflows/_kit/principalAuthorization";
 import { WorkflowStatusResult } from "../workflows/_kit/status";
+import { WorkflowAdmissionDenied } from "../workflows/_kit/workflowAdmission";
 import {
   WorkflowLifecycleRunProjection,
   WorkflowLifecycleStepProjection,
@@ -290,6 +291,10 @@ const WorkflowErrors = Schema.Union(
   WorkspaceNotFound,
   NotFound,
   ValidationFailed,
+);
+const WorkflowStartErrors = Schema.Union(
+  WorkflowErrors,
+  WorkflowAdmissionDenied,
 );
 
 const StartArgs = Schema.Struct({
@@ -392,7 +397,7 @@ export const startInteractive = defineContractFunction(
     name: "startInteractive",
     args: () => StartArgs,
     returns: () => StartReturns,
-    error: () => WorkflowErrors,
+    error: () => WorkflowStartErrors,
   }),
   {
     namespace: "workflows.${name}",
@@ -406,6 +411,7 @@ export const startInteractive = defineContractFunction(
       "WorkspaceNotFound",
       "NotFound",
       "ValidationFailed",
+      "WorkflowAdmissionDenied",
     ],
     idempotent: false,
     argsSchemaName: "workflows.${name}.startInteractive.args",
@@ -420,7 +426,7 @@ export const startQueued = defineContractFunction(
     name: "startQueued",
     args: () => StartArgs,
     returns: () => StartReturns,
-    error: () => WorkflowErrors,
+    error: () => WorkflowStartErrors,
   }),
   {
     namespace: "workflows.${name}",
@@ -434,6 +440,7 @@ export const startQueued = defineContractFunction(
       "WorkspaceNotFound",
       "NotFound",
       "ValidationFailed",
+      "WorkflowAdmissionDenied",
     ],
     idempotent: false,
     argsSchemaName: "workflows.${name}.startQueued.args",
@@ -703,6 +710,7 @@ import {
   WorkspaceNotFound,
 } from "../errors";
 import { startWorkflowAndRecordOwnership } from "../workflows/_kit/ownership";
+import { WorkflowAdmissionDenied } from "../workflows/_kit/workflowAdmission";
 import {
   createWorkflowUserPrincipal,
   type DurableWorkflowPrincipal,
@@ -801,6 +809,7 @@ type WorkflowError =
   | WorkspaceNotFound
   | NotFound
   | ValidationFailed;
+type WorkflowStartError = WorkflowError | WorkflowAdmissionDenied;
 
 const toWorkflowError = (error: unknown): WorkflowError => {
   if (
@@ -815,6 +824,8 @@ const toWorkflowError = (error: unknown): WorkflowError => {
 
   return toWorkflowValidationFailed(error);
 };
+const toWorkflowStartError = (error: unknown): WorkflowStartError =>
+  error instanceof WorkflowAdmissionDenied ? error : toWorkflowError(error);
 
 const findWorkflowRun = (
   workspaceId: GenericId<"workspaces">,
@@ -890,7 +901,7 @@ const startWithProfile = (
         workflowKind: "workflow.${name}",
         kickoffProfile:
           kickoffProfile === "interactive" ? "eager-first-poll" : "queued",
-      }).pipe(Effect.mapError(toWorkflowValidationFailed));
+      }).pipe(Effect.mapError(toWorkflowStartError));
       const run = yield* findWorkflowRun(workspaceId, componentWorkflowId);
 
       return {
@@ -899,7 +910,7 @@ const startWithProfile = (
         workflowRunId: run._id,
         componentWorkflowId,
       };
-  }).pipe(Effect.mapError(toWorkflowError));
+  }).pipe(Effect.mapError(toWorkflowStartError));
 
 const startInteractiveImpl = FunctionImpl.make(
   databaseSchema,

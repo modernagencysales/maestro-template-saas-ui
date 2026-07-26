@@ -22,6 +22,13 @@ import {
 } from "./publication";
 import type { DurableWorkflowPrincipal } from "./principal";
 import type { WorkflowPolicySnapshot } from "./policySnapshot";
+import {
+  decideWorkflowAdmission,
+  WorkflowAdmissionDenied,
+  type WorkflowAdmissionLane,
+  type WorkflowAdmissionPolicy,
+} from "./workflowAdmission";
+import { generatedWorkflowAdmissionPolicy } from "./workpoolConfig";
 
 type Reader = Context.Tag.Service<typeof DatabaseReader>;
 type Writer = Context.Tag.Service<typeof DatabaseWriter>;
@@ -45,6 +52,7 @@ export type WorkflowRunReservationInput = Pick<
   | "sourceRunId"
   | "timeoutMs"
   | "deadlineAt"
+  | "admissionLane"
 > & {
   readonly principalSnapshot?: DurableWorkflowPrincipal;
   readonly policySnapshot?: WorkflowPolicySnapshot;
@@ -72,6 +80,7 @@ export type StartWorkflowOwnershipInput<
   readonly timeoutMs?: number;
   readonly deadlineAt?: number;
   readonly kickoffProfile: "eager-first-poll" | "queued";
+  readonly admissionLane?: WorkflowAdmissionLane;
   readonly principalSnapshot?: DurableWorkflowPrincipal;
   readonly policySnapshot?: WorkflowPolicySnapshot;
   readonly publication?: {
@@ -124,7 +133,11 @@ export const startWorkflowAndRecordOwnership = <
     const reader = yield* DatabaseReader;
     const writer = yield* DatabaseWriter;
     const mutationCtx = yield* MutationCtx;
-    const normalizedInput = { ...input, idempotencyKey };
+    const normalizedInput = {
+      ...input,
+      idempotencyKey,
+      admissionLane: resolveWorkflowAdmissionLane(input),
+    };
     const existing = yield* readExistingWorkflowRun(reader, normalizedInput);
 
     const existingWorkflowId = yield* handleExistingWorkflowRun(
@@ -134,6 +147,12 @@ export const startWorkflowAndRecordOwnership = <
     if (existingWorkflowId) {
       return existingWorkflowId;
     }
+
+    yield* assertWorkflowAdmissionAvailable(
+      reader,
+      normalizedInput.workspaceId,
+      normalizedInput.admissionLane,
+    );
 
     const reservationId = yield* reserveWorkflowRun(writer, normalizedInput);
     const completionContext = workflowOnCompleteContext(
@@ -219,6 +238,7 @@ export const reserveWorkflowRun = (
         workflowVersion: input.workflowVersion,
         graphJson: input.graphJson,
         status: "queued",
+        admissionLane: resolveWorkflowAdmissionLane(input),
         idempotencyKey: input.idempotencyKey,
         startedByUserId: input.startedByUserId,
         startedAt: input.startedAt,
@@ -267,6 +287,88 @@ export const initialWorkflowLifecycleFields = (input: {
     onCompleteContext: null,
   } as const;
 };
+
+const resolveWorkflowAdmissionLane = (input: {
+  readonly admissionLane?: WorkflowAdmissionLane;
+  readonly principalSnapshot?: DurableWorkflowPrincipal;
+}): WorkflowAdmissionLane =>
+  input.admissionLane ??
+  (input.principalSnapshot?.kind === "system" ? "system" : "user");
+
+export const assertWorkflowAdmissionAvailable = (
+  reader: Reader,
+  workspaceId: string,
+  lane: WorkflowAdmissionLane,
+  policy: WorkflowAdmissionPolicy = generatedWorkflowAdmissionPolicy,
+) =>
+  Effect.gen(function* () {
+    const budget = policy[lane];
+    const [active, queued] = yield* Effect.all([
+      countWorkflowRunsForAdmission(
+        reader,
+        workspaceId,
+        lane,
+        "running",
+        budget.maxActive,
+      ),
+      countWorkflowRunsForAdmission(
+        reader,
+        workspaceId,
+        lane,
+        "queued",
+        budget.maxQueued,
+      ),
+    ]);
+    const decision = decideWorkflowAdmission(lane, { active, queued }, policy);
+    if (decision.kind === "deny") {
+      return yield* new WorkflowAdmissionDenied({
+        lane: decision.lane,
+        saturated: decision.saturated,
+        active: decision.active,
+        queued: decision.queued,
+        limit: decision.limit,
+        retryAfterMs: decision.retryAfterMs,
+      });
+    }
+  });
+
+const countWorkflowRunsForAdmission = (
+  reader: Reader,
+  workspaceId: string,
+  lane: WorkflowAdmissionLane,
+  status: "queued" | "running",
+  limit: number,
+) =>
+  Effect.gen(function* () {
+    const laneCount = yield* reader
+      .table("workflowRuns")
+      .index("by_workspace_admission_status", (q) =>
+        q
+          .eq("workspaceId", workspaceId)
+          .eq("admissionLane", lane)
+          .eq("status", status),
+      )
+      .take(limit)
+      .pipe(
+        Effect.map((runs) => runs.length),
+        Effect.orDie,
+      );
+    if (lane !== "user" || laneCount >= limit) return laneCount;
+    const legacyCount = yield* reader
+      .table("workflowRuns")
+      .index("by_workspace_admission_status", (q) =>
+        q
+          .eq("workspaceId", workspaceId)
+          .eq("admissionLane", undefined)
+          .eq("status", status),
+      )
+      .take(limit - laneCount)
+      .pipe(
+        Effect.map((runs) => runs.length),
+        Effect.orDie,
+      );
+    return laneCount + legacyCount;
+  });
 
 const optionalRunFields = (input: WorkflowRunReservationInput) => ({
   ...definedFields({

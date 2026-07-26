@@ -7,6 +7,7 @@ import * as Option from "effect/Option";
 import databaseSchema from "../_generated/schema";
 import { DatabaseReader, DatabaseWriter } from "../_generated/services";
 import { NotFound, ValidationFailed } from "../errors";
+import { assertWorkflowAdmissionAvailable } from "./_kit/ownership";
 import {
   activateSubworkflowRunLinkState,
   buildSubworkflowRunLinkRow,
@@ -66,6 +67,13 @@ const reserve = FunctionImpl.make(
             childWorkflowRunId as import("convex/values").GenericId<"workflowRuns">,
         };
       }
+      const admissionLane =
+        projection.principal.kind === "system" ? "system" : "user";
+      yield* assertWorkflowAdmissionAvailable(
+        reader,
+        projection.workspaceId,
+        admissionLane,
+      );
       const writer = yield* DatabaseWriter;
       const childWorkflowRunId = yield* writer
         .table("workflowRuns")
@@ -75,6 +83,7 @@ const reserve = FunctionImpl.make(
           workflowVersion: projection.childWorkflowVersion,
           graphJson: projection.childGraphJson,
           status: "queued",
+          admissionLane,
           idempotencyKey: subworkflowRunLinkIdempotencyKey(projection),
           startedByUserId:
             projection.principal.kind === "user"

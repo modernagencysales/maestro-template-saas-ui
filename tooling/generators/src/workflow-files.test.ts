@@ -44,4 +44,19 @@ describe("customer-safe workflow generator leaf", () => {
       /@maestro-template\/template-core|blueprints\/|workflow-release-commands|tooling\/(?:release|stack|agent-pack)|node:fs|writeFileSync|mkdirSync|fetch\(/,
     );
   });
+  it("keeps typed capacity errors on public kickoff only", () => {
+    const files = buildWorkflowFiles({
+      name: "capacity fixture",
+      system: "workflow-runtime",
+      disposition: "extend",
+    }).files;
+    const spec = files.find((file) => file.path.endsWith(".spec.ts"))?.content;
+    const impl = files.find((file) => file.path.endsWith(".impl.ts"))?.content;
+    expect(spec).toContain("const WorkflowStartErrors = Schema.Union(");
+    expect(spec).toContain('"WorkflowAdmissionDenied"');
+    expect(impl).toContain(
+      "error instanceof WorkflowAdmissionDenied ? error : toWorkflowError(error)",
+    );
+    expect(impl).toContain("Effect.mapError(toWorkflowStartError)");
+  });
 });

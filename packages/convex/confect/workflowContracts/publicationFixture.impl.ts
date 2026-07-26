@@ -22,6 +22,7 @@ import {
   WorkspaceNotFound,
 } from "../errors";
 import { startWorkflowAndRecordOwnership } from "../workflows/_kit/ownership";
+import { WorkflowAdmissionDenied } from "../workflows/_kit/workflowAdmission";
 import {
   getMaestroWorkflowStatus,
   type MaestroWorkflowComponent,
@@ -72,6 +73,7 @@ type WorkflowError =
   | WorkspaceNotFound
   | NotFound
   | ValidationFailed;
+type WorkflowStartError = WorkflowError | WorkflowAdmissionDenied;
 
 const toWorkflowError = (error: unknown): WorkflowError => {
   if (
@@ -86,6 +88,8 @@ const toWorkflowError = (error: unknown): WorkflowError => {
 
   return toWorkflowValidationFailed(error);
 };
+const toWorkflowStartError = (error: unknown): WorkflowStartError =>
+  error instanceof WorkflowAdmissionDenied ? error : toWorkflowError(error);
 
 const findWorkflowRun = (
   workspaceId: GenericId<"workspaces">,
@@ -168,7 +172,7 @@ const startWithProfile = (
           publicationFixtureV1Release.runner.functionReference,
         releaseChecksum: publicationFixtureV1Release.releaseChecksum,
       },
-    }).pipe(Effect.mapError(toWorkflowValidationFailed));
+    }).pipe(Effect.mapError(toWorkflowStartError));
     const run = yield* findWorkflowRun(workspaceId, componentWorkflowId);
 
     return {
@@ -177,7 +181,7 @@ const startWithProfile = (
       workflowRunId: run._id,
       componentWorkflowId,
     };
-  }).pipe(Effect.mapError(toWorkflowError));
+  }).pipe(Effect.mapError(toWorkflowStartError));
 
 const startInteractiveImpl = FunctionImpl.make(
   databaseSchema,

@@ -3,7 +3,7 @@ import type { GeneratedPublicationAuthority } from "../_kit/publication";
 export const publicationFixtureV1Authority = {
   schemaVersion: 1,
   descriptorChecksum:
-    "043e801b92da7ad5459d900edf1c591758f5ae30befa18507dfb93086cb51413",
+    "92fb8ea3eac2a688e06b5121ebae9ff8c2899e9ae660791bc51ff3564984af9a",
   sourceClosure: {
     roots: [
       "packages/convex/confect/workflowRunners/publicationFixture/v1.impl.ts",
@@ -563,7 +563,7 @@ export const publicationFixtureV1Authority = {
       {
         path: "packages/convex/confect/demo/showcase.impl.ts",
         checksum:
-          "49fb0009cb564772d2f42d45139514e4fc9cf1f82766c85a787f5a75e4c86c43",
+          "8ac809e23cdf4ae50b60674391b7656d1448f30d1512f7de312942d2296dd0d6",
       },
       {
         path: "packages/convex/confect/demo/showcase.spec.ts",
@@ -1018,7 +1018,7 @@ export const publicationFixtureV1Authority = {
       {
         path: "packages/convex/confect/tables/workflowRuns.ts",
         checksum:
-          "9eb5d08187a3f32cc34d61996a9eebfd6f79624cd4c28a232757cffafe27dde6",
+          "0173bed1932586f05cb07df435292573f3cbfbc8d34fd519fcc3e4fffb296658",
       },
       {
         path: "packages/convex/confect/tables/workflowStageRuns.ts",
@@ -1038,7 +1038,7 @@ export const publicationFixtureV1Authority = {
       {
         path: "packages/convex/confect/workflowContracts/publicationFixture.spec.ts",
         checksum:
-          "9b3d4f58a8217f128b3a0db8f560ebe7c04be0b7739d6635aca942bd42079c97",
+          "aef2cc227a9ca8fec8501692687a00224270e5528b559dcc4bdd4b8c748f7db3",
       },
       {
         path: "packages/convex/confect/workflowRunners/publicationFixture/v1.impl.ts",
@@ -1171,6 +1171,11 @@ export const publicationFixtureV1Authority = {
           "13d7da74558350c43ee7a8bc45ea41ea00ff0454ac84b36066a7c9b52997d9cc",
       },
       {
+        path: "packages/convex/confect/workflows/_kit/workflowAdmission.ts",
+        checksum:
+          "b361ee4812772ee4e87e90a554626170ff376750f17f04ea3d7b1fc8d803e3a2",
+      },
+      {
         path: "packages/convex/confect/workflows/_kit/workflowArtifacts.ts",
         checksum:
           "733d17db9647758fe925063582cb9032f8c28ab9e793893c87e59ba99d5e5dba",
@@ -1188,7 +1193,7 @@ export const publicationFixtureV1Authority = {
       {
         path: "packages/convex/confect/workflows/_kit/workpoolConfig.ts",
         checksum:
-          "382232d4b15ed7abb1a8b9b7858ecee3638866b9a8bf88180f19e91a5cda49b7",
+          "cbf963fee389352c3c8ce0e4a76efeff4a62d552243e8ed6c3112156a59cf593",
       },
       {
         path: "packages/convex/confect/workflows/artifacts.spec.ts",
@@ -1338,7 +1343,7 @@ export const publicationFixtureV1Authority = {
       {
         path: "packages/convex/confect/workflows/subworkflowLinks.spec.ts",
         checksum:
-          "44b26b71f9e2af60cd242d369b8624f95e56743fe1192df8d2a9ca28c0b589ec",
+          "d4535d922113121eb37eca9425ae4892c1b10f58062e1985724127c84c542e53",
       },
       {
         path: "packages/convex/convex/_generated/api.d.ts",
@@ -1467,6 +1472,6 @@ export const publicationFixtureV1Authority = {
       },
     ],
     checksum:
-      "754e681d5cdb6f3d73d0b68f4d83dba5bb30621a8bae4f0d1e133155e55edb6f",
+      "dfc30b9681bda6b25d949e4e4d460da04d3f29cdb4c5d3c17a0fca88baa96ba2",
   },
 } as const satisfies GeneratedPublicationAuthority;

@@ -3,7 +3,7 @@ import type { GeneratedPublicationAuthority } from "../../../workflows/_kit/publ
 export const publicationEchoV1Authority = {
   schemaVersion: 1,
   descriptorChecksum:
-    "c62b405fd74a90171ea894a2ac1699b34659ad27aa05d43beb4f283c04e8f581",
+    "c3dc80d3180f854f246aa796348d6e40ab30ec7174ea797dd0a8d002cc127507",
   sourceClosure: {
     roots: [
       "packages/convex/confect/capabilities/_versions/publicationEcho/v1.impl.ts",
@@ -545,7 +545,7 @@ export const publicationEchoV1Authority = {
       {
         path: "packages/convex/confect/tables/workflowRuns.ts",
         checksum:
-          "9eb5d08187a3f32cc34d61996a9eebfd6f79624cd4c28a232757cffafe27dde6",
+          "0173bed1932586f05cb07df435292573f3cbfbc8d34fd519fcc3e4fffb296658",
       },
       {
         path: "packages/convex/confect/tables/workflowStageRuns.ts",
@@ -578,6 +578,11 @@ export const publicationEchoV1Authority = {
           "e7efe3c84e5c9140950b70ca02e0dc71db2e3dd5b616e09f7b0fdd04cf0419a0",
       },
       {
+        path: "packages/convex/confect/workflows/_kit/workflowAdmission.ts",
+        checksum:
+          "b361ee4812772ee4e87e90a554626170ff376750f17f04ea3d7b1fc8d803e3a2",
+      },
+      {
         path: "packages/convex/confect/workflows/_kit/workflowArtifacts.ts",
         checksum:
           "733d17db9647758fe925063582cb9032f8c28ab9e793893c87e59ba99d5e5dba",
@@ -594,6 +599,6 @@ export const publicationEchoV1Authority = {
       },
     ],
     checksum:
-      "fd925795e29f209c349be954925ba3ecb130d2121061a912807d21cc4f10fdac",
+      "3c967c70fff38533ffbbdee16e0c93a4502047494dba1baa331fe61e1bb9d513",
   },
 } as const satisfies GeneratedPublicationAuthority;
