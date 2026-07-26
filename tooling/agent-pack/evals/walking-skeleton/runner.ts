@@ -1,5 +1,13 @@
 import { execFile } from "node:child_process";
-import { mkdir, readFile, realpath, rm, writeFile } from "node:fs/promises";
+import {
+  mkdir,
+  mkdtemp,
+  readFile,
+  realpath,
+  rm,
+  writeFile,
+} from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { isAbsolute, join, resolve } from "node:path";
 import { promisify } from "node:util";
 import {
@@ -90,9 +98,8 @@ export async function runWalkingSkeleton(
 
   const startedAt = now().toISOString();
   const workspace = join(outputDirectory, "workspace");
-  const sessionDir = join(outputDirectory, "session");
+  const sessionDir = await mkdtemp(join(tmpdir(), "maestro-walking-"));
   const resultPath = ".maestro-eval/walking-skeleton-result.json";
-  await mkdir(sessionDir);
   await writeFile(
     join(sessionDir, "empty-mcp.json"),
     '{"mcpServers":{}}\n',

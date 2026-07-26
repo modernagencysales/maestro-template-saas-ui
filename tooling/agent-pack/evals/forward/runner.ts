@@ -1,4 +1,5 @@
-import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import {
   parseForwardRunEvidence,
@@ -95,10 +96,9 @@ export async function runForwardSuite(
     );
   }
   const startedAt = now().toISOString();
-  const sessionDir = join(outputDirectory, "session");
+  const sessionDir = await mkdtemp(join(tmpdir(), "maestro-forward-"));
   const evidence: ForwardRunEvidence[] = [];
   const verdicts: ForwardScenarioVerdict[] = [];
-  await mkdir(sessionDir);
   await writeFile(
     join(sessionDir, "empty-mcp.json"),
     '{"mcpServers":{}}\n',
@@ -221,6 +221,13 @@ export async function runForwardSuite(
             : {}),
         });
         const verifierFailures = [...verification.failures];
+        if (verification.commandResult !== undefined) {
+          await writeJson(join(scenarioDirectory, "command-result.json"), {
+            exitCode: verification.commandResult.exitCode,
+            stdout: redactForwardLog(verification.commandResult.stdout),
+            stderr: redactForwardLog(verification.commandResult.stderr),
+          });
+        }
         if (
           verifierFailures.length === 0 &&
           verification.commandResult !== undefined
@@ -261,11 +268,6 @@ export async function runForwardSuite(
             await mkdir(dirname(target), { recursive: true });
             await writeFile(target, await readFile(source));
           }
-          await writeJson(join(scenarioDirectory, "command-result.json"), {
-            exitCode: verification.commandResult.exitCode,
-            stdout: redactForwardLog(verification.commandResult.stdout),
-            stderr: redactForwardLog(verification.commandResult.stderr),
-          });
         }
         const verdict = gradeForwardEvidence({
           evidence: parsed,

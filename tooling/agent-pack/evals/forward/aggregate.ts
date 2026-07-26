@@ -1,4 +1,5 @@
 import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import type { AssertionFailure } from "../assertions/forbiddenActions.js";
 import { assertForwardParity } from "../assertions/parity.js";
@@ -186,8 +187,9 @@ async function verifyRetainedEvidence(
     readonly AssertionFailure[]
   >();
   const verificationRoot = await mkdtemp(join(out, ".forward-aggregate-"));
-  const sessionDir = join(verificationRoot, "session");
-  await mkdir(sessionDir);
+  const sessionDir = await mkdtemp(
+    join(tmpdir(), "maestro-forward-aggregate-"),
+  );
   try {
     for (const evidence of receipt.evidence) {
       const scenarioRoot = join(
@@ -237,6 +239,7 @@ async function verifyRetainedEvidence(
     }
   } finally {
     await rm(verificationRoot, { recursive: true, force: true });
+    await rm(sessionDir, { recursive: true, force: true });
   }
   return failures;
 }

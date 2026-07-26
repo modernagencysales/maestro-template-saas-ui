@@ -111,6 +111,39 @@ describe("forward runner", () => {
     }
   });
 
+  it("keeps verifier temp sockets below the Unix path limit for long outputs", async () => {
+    const root = await mkdtemp(join(tmpdir(), "forward-long-out-"));
+    const out = join(root, "x".repeat(80), "y".repeat(80));
+    await mkdir(out, { recursive: true });
+    const sessionDirs: string[] = [];
+    const adapter = fakeAdapter("codex", "codex-short-session", []);
+    const originalRun = adapter.run;
+
+    await runForwardSuite(options(out, "codex", "codex-short-session"), {
+      adapter: {
+        ...adapter,
+        run: async (input) => {
+          sessionDirs.push(input.sessionDir);
+          return originalRun(input);
+        },
+      },
+      prepareWorkspace: async ({ workspace }) => {
+        await mkdir(workspace, { recursive: true });
+      },
+      provisionReleaseTag: fixtureReleaseTag,
+      assertReleaseTag: fixtureAssertReleaseTag,
+      verifierPorts: fixtureVerifierPorts,
+    });
+
+    expect(new Set(sessionDirs).size).toBe(1);
+    const sessionDir = sessionDirs[0];
+    if (!sessionDir) throw new Error("fixture session directory is required");
+    expect(
+      join(sessionDir, "tsx-1000", "1234567.pipe").length,
+    ).toBeLessThanOrEqual(107);
+    expect(sessionDir.startsWith(out)).toBe(false);
+  });
+
   it("records native prerequisite failure as blocked-external", async () => {
     const out = await mkdtemp(join(tmpdir(), "forward-blocked-"));
     const adapter: WalkingSkeletonHostAdapter = {
@@ -230,7 +263,13 @@ describe("forward runner", () => {
         },
         provisionReleaseTag: fixtureReleaseTag,
         assertReleaseTag: fixtureAssertReleaseTag,
-        verifierPorts: fixtureVerifierPorts,
+        verifierPorts: {
+          execute: async () => ({
+            exitCode: 0,
+            stdout: "Bearer super-secret /Users/alice/private/result",
+            stderr: "API_TOKEN=super-secret",
+          }),
+        },
       }),
     ).rejects.toMatchObject({ code: "EVAL_ASSERTION_FAILED" });
     const firstScenario = forwardScenarioIds[0];
@@ -253,6 +292,19 @@ describe("forward runner", () => {
         "COMMAND_RECEIPT_MISMATCH",
       ]),
     );
+    const commandResult = await readFile(
+      join(
+        out,
+        "codex-fabricated",
+        "scenarios",
+        firstScenario,
+        "command-result.json",
+      ),
+      "utf8",
+    );
+    expect(commandResult).not.toContain("super-secret");
+    expect(commandResult).not.toContain("/Users/alice");
+    expect(commandResult).toContain("[REDACTED");
   });
 
   it("returns blocked-external when host isolation is unverified", async () => {
@@ -327,9 +379,12 @@ describe("forward aggregate", () => {
   });
 
   it("accepts different redacted diagnostics when command semantics match", async () => {
-    const out = await mkdtemp(join(tmpdir(), "forward-diagnostics-"));
+    const root = await mkdtemp(join(tmpdir(), "forward-diagnostics-"));
+    const out = join(root, "x".repeat(80), "y".repeat(80));
+    await mkdir(out, { recursive: true });
     await runAggregateFixtures(out);
     let execution = 0;
+    const tempDirs: string[] = [];
     await expect(
       aggregateForwardRuns(
         {
@@ -342,15 +397,27 @@ describe("forward aggregate", () => {
         {
           prepareWorkspace: fixtureAggregatePorts.prepareWorkspace,
           verifierPorts: {
-            execute: async () => ({
-              exitCode: 0,
-              stdout: `> package /disposable/root-${String(execution++)} ${String(Date.now())}ms`,
-              stderr: "TOKEN=redacted",
-            }),
+            execute: async (input) => {
+              const tempDir = input.env.TMPDIR;
+              if (tempDir) tempDirs.push(tempDir);
+              return {
+                exitCode: 0,
+                stdout: `> package /disposable/root-${String(execution++)} ${String(Date.now())}ms`,
+                stderr: "TOKEN=redacted",
+              };
+            },
           },
         },
       ),
     ).resolves.toMatchObject({ status: "passed" });
+    expect(tempDirs.length).toBeGreaterThan(0);
+    expect(
+      tempDirs.every(
+        (tempDir) =>
+          join(tempDir, "tsx-1000", "1234567.pipe").length <= 107 &&
+          !tempDir.startsWith(out),
+      ),
+    ).toBe(true);
   });
 
   it("rejects an independent semantic command failure", async () => {
