@@ -5,17 +5,17 @@
     {
       "id": "approval-background-automation",
       "file": "approval-background-automation.json",
-      "sha256": "sha256:3d9b8c294510c5c43e18a26d0400d8bf3a3d4934f71160c0c8458d5b5f3b79c3"
+      "sha256": "sha256:8a0926556b80c6b8dd1ed519f5035612a9ad263918c3124936d3fa1699315a77"
     },
     {
       "id": "crud-business-entity",
       "file": "crud-business-entity.json",
-      "sha256": "sha256:5467adf217d0d98516a9b5ee6a7622096cd028557d8e06c51e7e5af8fb722344"
+      "sha256": "sha256:e10ea2e49d6bbfa6c90995462d4c31343a2ff1307b1d2e80c92707f4314904b6"
     },
     {
       "id": "validated-file-import",
       "file": "validated-file-import.json",
-      "sha256": "sha256:05182fd758da9200c6e397f84b6cc64e0d30a94820e777bd15f52a0c7d55ae5f"
+      "sha256": "sha256:39b41dbd9cacad01074cc37f345cb3c18e56121fe921033b817e4b6e465c5220"
     }
   ]
 }

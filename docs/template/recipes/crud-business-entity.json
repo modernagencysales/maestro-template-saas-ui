@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "crud-business-entity",
   "aliases": [
     "add records",
@@ -22,9 +22,57 @@
       "answerKind": "text"
     },
     {
-      "id": "sensitiveData",
-      "prompt": "Will this item contain personal or sensitive data?",
-      "why": "This determines lifecycle, export, delete, and retention posture.",
+      "id": "tenantScope",
+      "prompt": "Who owns each item?",
+      "why": "The exact tenant scope controls authorization and indexes.",
+      "answerKind": "choice",
+      "choices": ["global", "organization", "workspace", "user"]
+    },
+    {
+      "id": "sensitivity",
+      "prompt": "How sensitive is the item data?",
+      "why": "The reviewed classification controls handling and disclosure.",
+      "answerKind": "choice",
+      "choices": ["public", "internal", "confidential", "restricted"]
+    },
+    {
+      "id": "pii",
+      "prompt": "Which fields contain personal data? Use a comma-separated list or none.",
+      "why": "PII must be declared explicitly for export, deletion, and retention gates.",
+      "answerKind": "text"
+    },
+    {
+      "id": "exportMode",
+      "prompt": "How should this item be exported?",
+      "why": "Export behavior is part of the durable lifecycle contract.",
+      "answerKind": "choice",
+      "choices": ["markdown", "json", "redacted-json", "not-applicable"]
+    },
+    {
+      "id": "deleteMode",
+      "prompt": "What should deletion do?",
+      "why": "Deletion behavior cannot be inferred from a generic sensitivity answer.",
+      "answerKind": "choice",
+      "choices": ["delete", "redact", "retain-audit", "not-applicable"]
+    },
+    {
+      "id": "retention",
+      "prompt": "Which reviewed retention policy applies?",
+      "why": "Retention is an explicit architectural decision.",
+      "answerKind": "choice",
+      "choices": [
+        "retain-until-workspace-delete",
+        "retain-audit-window",
+        "hash-or-redact-on-export",
+        "retain-until-account-delete",
+        "retain-until-organization-delete",
+        "retain-configuration"
+      ]
+    },
+    {
+      "id": "appendOnly",
+      "prompt": "Is this an append-only record?",
+      "why": "Append-only storage changes mutation and cleanup behavior.",
       "answerKind": "boolean"
     }
   ],
@@ -55,7 +103,7 @@
   "generatorPreviews": [
     {
       "generatorId": "add-table",
-      "command": "pnpm template:add-table -- --name <entityName> --system <canonicalOwner> --disposition extend",
+      "command": "pnpm template:add-table -- --name <entityName> --system <canonicalOwner> --disposition extend --tenant-scope <tenantScope> --sensitivity <sensitivity> --pii <pii> --export-mode <exportMode> --delete-mode <deleteMode> --retention <retention> [--append-only]",
       "purpose": "Preview table, lifecycle metadata, migration note, and ownership provenance."
     },
     {
@@ -64,6 +112,37 @@
       "purpose": "Preview capability, contract, adapter, feature, screen, route, states, and tests."
     }
   ],
+  "execution": {
+    "version": 1,
+    "mode": "greenfield-additive",
+    "steps": [
+      {
+        "id": "durable-table",
+        "generatorId": "add-table",
+        "arguments": {
+          "name": { "source": "answer", "answerId": "entityName" },
+          "system": { "source": "answer", "answerId": "canonicalOwner" },
+          "disposition": { "source": "literal", "value": "extend" },
+          "tenantScope": { "source": "answer", "answerId": "tenantScope" },
+          "sensitivity": { "source": "answer", "answerId": "sensitivity" },
+          "pii": { "source": "answer", "answerId": "pii" },
+          "exportMode": { "source": "answer", "answerId": "exportMode" },
+          "deleteMode": { "source": "answer", "answerId": "deleteMode" },
+          "retention": { "source": "answer", "answerId": "retention" },
+          "appendOnly": { "source": "answer", "answerId": "appendOnly" }
+        }
+      },
+      {
+        "id": "visible-slice",
+        "generatorId": "add-feature",
+        "arguments": {
+          "name": { "source": "answer", "answerId": "entityName" },
+          "system": { "source": "answer", "answerId": "canonicalOwner" },
+          "disposition": { "source": "literal", "value": "extend" }
+        }
+      }
+    ]
+  },
   "providerReferences": [
     {
       "id": "none",

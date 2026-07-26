@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "validated-file-import",
   "aliases": ["import a csv", "upload a data set", "validated file upload"],
   "outcome": "Import a bounded file or data set with validation, evidence, and rollback-safe writes.",

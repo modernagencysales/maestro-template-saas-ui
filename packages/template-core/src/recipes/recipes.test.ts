@@ -37,6 +37,20 @@ describe("outcome recipe catalog", () => {
           id: "crud-business-entity",
           minimumPrimitive: expect.any(String),
           consequentialQuestions: expect.any(Array),
+          execution: expect.objectContaining({
+            version: 1,
+            mode: "greenfield-additive",
+            steps: [
+              expect.objectContaining({
+                id: "durable-table",
+                generatorId: "add-table",
+              }),
+              expect.objectContaining({
+                id: "visible-slice",
+                generatorId: "add-feature",
+              }),
+            ],
+          }),
           escalationTriggers: expect.any(Array),
         }),
         expect.objectContaining({
@@ -93,5 +107,21 @@ describe("outcome recipe catalog", () => {
     >;
     recipe.availability = { status: "invented" };
     expect(() => parseOutcomeRecipe(recipe)).toThrow(/availability status/);
+  });
+
+  it("fails closed when executable bindings reference undeclared answers", () => {
+    const recipe = JSON.parse(
+      sourceBytes.get("crud-business-entity.json") ?? "{}",
+    ) as Record<string, unknown>;
+    const execution = recipe.execution as {
+      steps: { arguments: Record<string, unknown> }[];
+    };
+    execution.steps[0]!.arguments.name = {
+      source: "answer",
+      answerId: "undeclared",
+    };
+    expect(() => parseOutcomeRecipe(recipe)).toThrow(
+      /references unknown answer undeclared/,
+    );
   });
 });
