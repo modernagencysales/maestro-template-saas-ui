@@ -294,12 +294,16 @@ export const validateAdrCatalog = (
       const successor = records.find(
         ({ metadata }) => metadata.id === supersededBy,
       );
-      if (!successor || !successor.metadata.supersedes.includes(id))
+      if (
+        !successor ||
+        successor.metadata.status !== "accepted" ||
+        !successor.metadata.supersedes.includes(id)
+      )
         findings.push(
           finding(
             "ADR_SUPERSESSION_INCONSISTENT",
             `ADR ${id} lacks a matching successor link.`,
-            "Link the accepted successor in both directions.",
+            "Link an accepted successor in both directions.",
           ),
         );
     } else if (supersededBy !== null) {

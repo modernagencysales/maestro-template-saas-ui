@@ -227,4 +227,56 @@ describe("ADR lifecycle core", () => {
       });
     },
   );
+
+  it.each(["proposed", "rejected"] as const)(
+    "catalog validation rejects a %s successor without mutation",
+    (status) => {
+      const prior = {
+        ...accepted("ADR-0002"),
+        metadata: {
+          ...accepted("ADR-0002").metadata,
+          status: "superseded" as const,
+          supersededBy: "ADR-0003",
+        },
+      };
+      const successor = {
+        ...accepted("ADR-0003"),
+        metadata: {
+          ...accepted("ADR-0003").metadata,
+          status,
+          supersedes: ["ADR-0002"],
+        },
+      };
+      const records = [prior, successor] as const;
+      const before = structuredClone(records);
+
+      expect(validateAdrCatalog(records, context())).toEqual([
+        expect.objectContaining({ code: "ADR_SUPERSESSION_INCONSISTENT" }),
+      ]);
+      expect(records).toEqual(before);
+    },
+  );
+
+  it("catalog validation accepts an accepted successor without mutation", () => {
+    const prior = {
+      ...accepted("ADR-0002"),
+      metadata: {
+        ...accepted("ADR-0002").metadata,
+        status: "superseded" as const,
+        supersededBy: "ADR-0003",
+      },
+    };
+    const successor = {
+      ...accepted("ADR-0003"),
+      metadata: {
+        ...accepted("ADR-0003").metadata,
+        supersedes: ["ADR-0002"],
+      },
+    };
+    const records = [prior, successor] as const;
+    const before = structuredClone(records);
+
+    expect(validateAdrCatalog(records, context())).toEqual([]);
+    expect(records).toEqual(before);
+  });
 });
