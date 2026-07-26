@@ -268,6 +268,7 @@ function buildTargetPlan(
 ): BlueprintTargetPlan {
   const replacements = new Map<string, "copy" | "generate">([
     ["apps/cli/src/index.ts", "copy"],
+    ["apps/cli/src/factory/customerComposition.ts", "copy"],
     ["apps/cli/src/factory/start.ts", "copy"],
     ["package.json", "generate"],
     ["tooling/generators/package.json", "copy"],
