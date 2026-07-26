@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "transition": {
+    "id": "template-0.1-to-0.2",
+    "fromVersion": "0.1.0-alpha.1",
+    "toVersion": "0.2.0-alpha.1",
+    "immediatePriorVersion": "0.1.0-alpha.1"
+  },
+  "target": {
+    "version": "0.1.0-alpha.1",
+    "relation": "immediate-prior"
+  },
+  "phases": [
+    {
+      "kind": "expand",
+      "evidenceRef": "evidence/template-instance-v2-schema"
+    },
+    {
+      "kind": "backward-compatible-code",
+      "evidenceRef": "evidence/template-instance-v1-v2-readers"
+    }
+  ],
+  "migration": {
+    "id": "backfill-template-instance-v2",
+    "irreversible": false,
+    "operatorCommand": "pnpm maestro -- migration run backfill-template-instance-v2 --write",
+    "previewCounts": {
+      "scanned": 6,
+      "eligible": 4,
+      "alreadyCompatible": 2
+    },
+    "migrateCounts": { "planned": 4 },
+    "compatibilityWindow": {
+      "startsAt": "2026-08-01T00:00:00.000Z",
+      "endsAt": "2026-08-15T00:00:00.000Z",
+      "contractNotBefore": "2026-08-15T00:00:00.000Z"
+    },
+    "evidenceRequirements": [
+      {
+        "id": "preview-counts",
+        "detail": "Capture aggregate template-instance preview counts."
+      },
+      {
+        "id": "migration-verification",
+        "detail": "Verify old and new template-instance readers during the compatibility window."
+      }
+    ],
+    "recovery": {
+      "kind": "rollback",
+      "operatorCommand": "pnpm maestro -- migration rollback backfill-template-instance-v2 --write",
+      "evidenceRequirement": "Retain the original template-instance document and rollback receipt."
+    }
+  }
+}

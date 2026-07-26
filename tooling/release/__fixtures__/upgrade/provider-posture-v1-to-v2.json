@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "transition": {
+    "id": "template-0.1-to-0.2",
+    "fromVersion": "0.1.0-alpha.1",
+    "toVersion": "0.2.0-alpha.1",
+    "immediatePriorVersion": "0.1.0-alpha.1"
+  },
+  "target": {
+    "version": "0.1.0-alpha.1",
+    "relation": "immediate-prior"
+  },
+  "phases": [
+    {
+      "kind": "expand",
+      "evidenceRef": "evidence/provider-posture-v2-schema"
+    },
+    {
+      "kind": "backward-compatible-code",
+      "evidenceRef": "evidence/provider-posture-v1-v2-readers"
+    }
+  ],
+  "migration": {
+    "id": "normalize-provider-posture-v2",
+    "irreversible": true,
+    "operatorCommand": "pnpm maestro -- migration run normalize-provider-posture-v2 --write",
+    "previewCounts": {
+      "scanned": 8,
+      "eligible": 5,
+      "alreadyCompatible": 3
+    },
+    "migrateCounts": { "planned": 5 },
+    "compatibilityWindow": {
+      "startsAt": "2026-08-01T00:00:00.000Z",
+      "endsAt": "2026-08-15T00:00:00.000Z",
+      "contractNotBefore": "2026-08-15T00:00:00.000Z"
+    },
+    "evidenceRequirements": [
+      {
+        "id": "preview-counts",
+        "detail": "Capture aggregate provider-posture preview counts without provider payloads."
+      },
+      {
+        "id": "migration-verification",
+        "detail": "Verify old and new provider-posture readers without changing live providers."
+      }
+    ],
+    "recovery": {
+      "kind": "roll-forward-only",
+      "reason": "Normalized posture evidence cannot be reconstructed from the legacy global mode.",
+      "operatorCommand": "pnpm maestro -- migration roll-forward normalize-provider-posture-v2 --write",
+      "approvalEvidenceRef": "evidence/provider-posture-operator-approval",
+      "backupOrExportEvidenceRef": "evidence/provider-posture-pre-migration-export",
+      "rollForwardPlan": "Apply the reviewed provider-posture repair migration and issue a replacement receipt."
+    }
+  }
+}
