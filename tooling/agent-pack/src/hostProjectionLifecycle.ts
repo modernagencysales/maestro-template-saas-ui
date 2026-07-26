@@ -80,6 +80,12 @@ export async function installVersionedHostProjection(input: {
   const receiptPath = statePath(input.homeDir, input.host, "receipt.json");
   const previous = await readReceipt(receiptPath);
   if (
+    previous &&
+    (previous.host !== input.host ||
+      previous.homeDir !== resolve(input.homeDir))
+  )
+    throw new Error("host projection receipt authority mismatch");
+  if (
     previous?.version === input.version &&
     previous.sourceChecksum === sourceChecksum &&
     (await allReceiptFilesMatch(previous))
@@ -233,12 +239,38 @@ export async function rollbackHostProjection(
   );
   if (!receipt.rollbackRoot)
     throw new Error("host projection has no prior version to roll back");
+  const transactionsRoot = statePath(
+    receipt.homeDir,
+    receipt.host,
+    "transactions",
+  );
+  const rollbackRelative = relative(
+    resolve(transactionsRoot),
+    resolve(receipt.rollbackRoot),
+  );
+  if (
+    rollbackRelative === "" ||
+    rollbackRelative === ".." ||
+    rollbackRelative.startsWith("../")
+  )
+    throw new Error("host projection rollback root escapes transaction state");
+  await assertSafeTarget(
+    receipt.homeDir,
+    join(receipt.rollbackRoot, "previous.json"),
+  );
+  for (const file of receipt.files)
+    await assertSafeTarget(receipt.homeDir, file.path);
   if (!(await allReceiptFilesMatch(receipt)))
     throw new Error("current host projection was modified; rollback refused");
   const previous = await readReceipt(
     join(receipt.rollbackRoot, "previous.json"),
   );
   if (!previous) throw new Error("prior host projection receipt is missing");
+  if (
+    previous.host !== receipt.host ||
+    previous.homeDir !== resolve(receipt.homeDir)
+  )
+    throw new Error("prior host projection receipt authority mismatch");
   const backupRoot = join(receipt.rollbackRoot, "backup");
   for (const file of receipt.files) await rm(file.path, { force: true });
   for (const file of previous.files) {
@@ -298,12 +330,24 @@ export async function recoverInterruptedHostProjection(input: {
   if (!journal) return;
   if (journal.host !== input.host || journal.homeDir !== resolve(input.homeDir))
     throw new Error("host projection journal authority mismatch");
+  const transactionsRoot = statePath(input.homeDir, input.host, "transactions");
+  const backupRelative = relative(
+    resolve(transactionsRoot),
+    resolve(journal.backupRoot),
+  );
+  if (
+    backupRelative === "" ||
+    backupRelative === ".." ||
+    backupRelative.startsWith("../")
+  )
+    throw new Error("host projection journal backup escapes transaction state");
   for (const path of journal.plannedPaths) {
     await assertSafeTarget(input.homeDir, path);
     await rm(path, { force: true });
   }
   if (journal.previous) {
     for (const file of journal.previous.files) {
+      await assertSafeTarget(input.homeDir, file.path);
       const backup = join(
         journal.backupRoot,
         relative(resolve(input.homeDir), file.path),
@@ -463,7 +507,45 @@ function statePath(homeDir: string, host: HostName, child: string): string {
 async function readReceipt(
   path: string,
 ): Promise<HostProjectionReceiptV1 | undefined> {
-  return readJson<HostProjectionReceiptV1>(path);
+  const candidate = await readJson<unknown>(path);
+  if (candidate === undefined) return undefined;
+  if (
+    !isRecord(candidate) ||
+    candidate.schemaVersion !== 1 ||
+    (candidate.host !== "claude-code" && candidate.host !== "codex") ||
+    typeof candidate.homeDir !== "string" ||
+    typeof candidate.version !== "string" ||
+    typeof candidate.transactionId !== "string" ||
+    !checksum(candidate.sourceChecksum) ||
+    !Array.isArray(candidate.files) ||
+    (candidate.rollbackRoot !== undefined &&
+      typeof candidate.rollbackRoot !== "string")
+  )
+    throw new Error("host projection receipt is invalid");
+  const files = candidate.files.map((file) => {
+    if (
+      !isRecord(file) ||
+      typeof file.path !== "string" ||
+      !checksum(file.sourceSha256) ||
+      !checksum(file.installedSha256)
+    )
+      throw new Error("host projection receipt file is invalid");
+    return {
+      path: file.path,
+      sourceSha256: file.sourceSha256,
+      installedSha256: file.installedSha256,
+    };
+  });
+  return {
+    schemaVersion: 1,
+    host: candidate.host,
+    homeDir: candidate.homeDir,
+    version: candidate.version,
+    transactionId: candidate.transactionId,
+    sourceChecksum: candidate.sourceChecksum,
+    files,
+    ...(candidate.rollbackRoot ? { rollbackRoot: candidate.rollbackRoot } : {}),
+  };
 }
 
 async function readJson<T>(path: string): Promise<T | undefined> {
@@ -495,6 +577,14 @@ async function optionalRead(path: string): Promise<Buffer | undefined> {
 
 function digest(bytes: Uint8Array): string {
   return createHash("sha256").update(bytes).digest("hex");
+}
+
+function checksum(value: unknown): value is string {
+  return typeof value === "string" && /^[0-9a-f]{64}$/u.test(value);
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function code(error: unknown): unknown {

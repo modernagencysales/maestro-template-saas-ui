@@ -13,6 +13,13 @@ import { basename, dirname, join, relative, resolve } from "node:path";
 import { tmpdir } from "node:os";
 
 export type HostName = "claude-code" | "codex";
+export {
+  installVersionedHostProjection,
+  recoverInterruptedHostProjection,
+  removeVersionedHostProjection,
+  rollbackHostProjection,
+} from "./hostProjectionLifecycle.js";
+export type { HostProjectionReceiptV1 } from "./hostProjectionLifecycle.js";
 
 export type HostInstallReceipt = {
   readonly host: HostName;
