@@ -7,6 +7,8 @@ import {
   validateWorkflowGraphV2,
 } from "../confect/workflows/graph";
 import { defineWorkflowReferenceRegistry } from "../confect/workflows/_kit/workflowReferences";
+import { workflowNode } from "../confect/workflows/_kit/workflowBuilder";
+import { MAX_WORKFLOW_SCHEDULE_HORIZON_MS } from "../confect/workflows/_kit/workflowSchedule";
 
 const refs = defineWorkflowReferenceRegistry({
   capabilities: {
@@ -138,6 +140,113 @@ describe("durable workflow graph V2 schema", () => {
         }),
       ),
     ).toBe(true);
+  });
+
+  it("authors scheduled eligible capabilities through explicit constructors", () => {
+    const common = {
+      id: "scheduled",
+      kind: "capability" as const,
+      capability: refs.capabilities.sendBrief,
+      label: "Scheduled capability",
+      stepName: "scheduled.v2",
+      payloadPolicy,
+      semanticRuleIds: ["WF-NODE-SCHEDULE"] as const,
+      failurePolicy: { kind: "fail" as const },
+    };
+    expect(
+      workflowNode.scheduledAction(
+        { ...common, functionKind: "action" },
+        { kind: "runAfter", delayMs: 100 },
+        1_000,
+      ),
+    ).toMatchObject({ schedule: { kind: "runAfter", delayMs: 100 } });
+    expect(
+      workflowNode.scheduledQuery(
+        { ...common, functionKind: "query" },
+        { kind: "runAt", timestamp: 1_100 },
+        1_000,
+      ),
+    ).toMatchObject({
+      transaction: { kind: "independent" },
+      schedule: { kind: "runAt", timestamp: 1_100 },
+    });
+    expect(
+      workflowNode.scheduledMutation(
+        { ...common, functionKind: "mutation" },
+        { kind: "runAfter", delayMs: 100 },
+        1_000,
+      ),
+    ).toMatchObject({
+      transaction: { kind: "independent" },
+      schedule: { kind: "runAfter", delayMs: 100 },
+    });
+    expect(() =>
+      workflowNode.scheduledAction(
+        { ...common, functionKind: "action" },
+        { kind: "runAt", timestamp: 999 },
+        1_000,
+      ),
+    ).toThrow(/earlier than the workflow dispatch clock/);
+  });
+
+  it.each([
+    ["fractional runAfter", { kind: "runAfter", delayMs: 1.5 }],
+    ["nonfinite runAt", { kind: "runAt", timestamp: Number.NaN }],
+    [
+      "over-horizon runAfter",
+      {
+        kind: "runAfter",
+        delayMs: MAX_WORKFLOW_SCHEDULE_HORIZON_MS + 1,
+      },
+    ],
+    [
+      "both scheduling fields",
+      { kind: "runAt", timestamp: 1_100, delayMs: 100 },
+    ],
+  ])("rejects %s during runtime graph decode", (_name, schedule) => {
+    const result = decodeDurableWorkflowGraphV2({
+      ...validGraph,
+      nodes: [
+        validGraph.nodes[0],
+        {
+          id: "act",
+          kind: "capability",
+          functionKind: "action",
+          capability: refs.capabilities.sendBrief,
+          label: "Send brief",
+          stepName: "act.v2",
+          payloadPolicy,
+          semanticRuleIds: ["WF-NODE-SCHEDULE"],
+          failurePolicy: { kind: "fail" },
+          schedule,
+        },
+        validGraph.nodes[1],
+      ],
+    });
+    expect(Either.isLeft(result)).toBe(true);
+  });
+
+  it("rejects scheduled agents before compiler dispatch", () => {
+    const agent = {
+      id: "agent",
+      kind: "agent",
+      agent: refs.capabilities.agentSeat,
+      label: "Agent",
+      stepName: "agent.v2",
+      payloadPolicy,
+      semanticRuleIds: ["WF-NODE-SCHEDULE"],
+      failurePolicy: { kind: "fail" },
+      schedule: { kind: "runAfter", delayMs: 100 },
+    } as const;
+    const decoded = Either.getOrThrow(
+      decodeDurableWorkflowGraphV2({
+        ...validGraph,
+        nodes: [validGraph.nodes[0], agent, validGraph.nodes[1]],
+      }),
+    );
+    expect(validateWorkflowGraphV2(decoded)).toContain(
+      "node agent cannot use runAfter; scheduling is supported only for action and independent query/mutation capability nodes",
+    );
   });
 
   it.each([

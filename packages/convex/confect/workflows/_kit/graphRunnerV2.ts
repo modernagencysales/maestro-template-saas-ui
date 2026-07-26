@@ -15,7 +15,12 @@ import {
   type LogicalEffectKey,
   type WorkflowEffectContract,
 } from "./effectReservations";
-import type { DurableGraphStepRef, RunDurableGraphStep } from "./graphRunner";
+import type {
+  DurableGraphStepOptions,
+  DurableGraphStepRef,
+  DurableGraphUnscheduledStepOptions,
+  RunDurableGraphStep,
+} from "./graphRunner";
 import {
   buildEdgeIndexes,
   findReadyWave,
@@ -51,6 +56,10 @@ import {
   DurableWorkflowPrincipal,
   hasReservedWorkflowIdentityField,
 } from "./principal";
+import {
+  compileWorkflowSchedule,
+  type WorkflowScheduleOptions,
+} from "./workflowSchedule";
 
 type CapabilityNodeV2 = Extract<WorkflowNodeV2, { kind: "capability" }>;
 type CapabilityKindV2 = CapabilityNodeV2["functionKind"];
@@ -218,6 +227,8 @@ export type RunDurableGraphV2CompilerInput<
     readonly generation: number;
     readonly occurredAt: number;
   };
+  /** Deterministic workflow clock read immediately before scheduled dispatch. */
+  readonly scheduleNowMs?: () => number;
   readonly observability?: ObservedWorkflowStageRefs;
   readonly subworkflowPolicy?: import("./subworkflows").WorkflowV2SubworkflowPolicy;
   readonly admitEffect: (input: {
@@ -713,9 +724,12 @@ const capabilityStepOptions = <Result extends Record<string, unknown>>(
   input: RunDurableGraphV2CompilerInput<Result>,
   node: Extract<CapabilityNodeV2, { functionKind: "query" | "mutation" }>,
   entry: WorkflowV2CapabilityEntry,
-): Readonly<Record<string, unknown>> => {
+): DurableGraphStepOptions | DurableGraphUnscheduledStepOptions => {
   if (node.transaction.kind === "independent") {
-    return { name: node.stepName };
+    return {
+      name: node.stepName,
+      ...scheduledStepOptions(input, node),
+    };
   }
   assertInlineTransactionPreflight({
     convexVersion: input.convexVersion,
@@ -736,6 +750,7 @@ const runActionNode = async <Result extends Record<string, unknown>>(
   entry: WorkflowV2ActionCapabilityEntry,
   envelope: WorkflowV2CapabilityEnvelope,
 ): Promise<unknown> => {
+  const scheduleOptions = scheduledStepOptions(input, node);
   const authorization = assertExternalAuthorizationBoundary(input, node, entry);
   const validated = validateWorkflowEffectContract(
     entry.effectContract,
@@ -844,6 +859,7 @@ const runActionNode = async <Result extends Record<string, unknown>>(
       validated.right.strategy === "non-retriable" || node.retry === undefined
         ? false
         : node.retry,
+    ...scheduleOptions,
   } as const;
   try {
     const result = await step.runAction(entry.ref, args, options);
@@ -855,6 +871,24 @@ const runActionNode = async <Result extends Record<string, unknown>>(
     }
     throw error;
   }
+};
+
+const scheduledStepOptions = <Result extends Record<string, unknown>>(
+  input: RunDurableGraphV2CompilerInput<Result>,
+  node: WorkflowNodeV2,
+): WorkflowScheduleOptions | DurableGraphUnscheduledStepOptions => {
+  if (!("schedule" in node) || node.schedule === undefined) return {};
+  const result = compileWorkflowSchedule(
+    node.schedule,
+    input.scheduleNowMs?.() ?? Date.now(),
+  );
+  if (Either.isLeft(result)) {
+    throw validationFailure(
+      node,
+      `${result.left.code}: ${result.left.message}`,
+    );
+  }
+  return result.right;
 };
 
 const assertExternalAuthorizationBoundary = <

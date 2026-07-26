@@ -15,6 +15,7 @@ import {
   WorkflowFailOnlyPolicy,
   WorkflowFailurePolicy,
 } from "./_kit/failurePolicy";
+import { MAX_WORKFLOW_SCHEDULE_HORIZON_MS } from "./_kit/workflowSchedule";
 
 export const WorkflowNodeKind = S.Literal(
   "source",
@@ -51,6 +52,18 @@ export type WorkflowNode = S.Schema.Type<typeof WorkflowNode>;
 const PositiveInteger = S.Number.pipe(S.finite(), S.int(), S.greaterThan(0));
 const NonNegativeFinite = S.Number.pipe(S.finite(), S.greaterThanOrEqualTo(0));
 const PositiveFinite = S.Number.pipe(S.finite(), S.greaterThan(0));
+const NonNegativeSafeInteger = S.Number.pipe(
+  S.finite(),
+  S.int(),
+  S.greaterThanOrEqualTo(0),
+  S.lessThanOrEqualTo(Number.MAX_SAFE_INTEGER),
+);
+const PositiveScheduleDelay = S.Number.pipe(
+  S.finite(),
+  S.int(),
+  S.greaterThan(0),
+  S.lessThanOrEqualTo(MAX_WORKFLOW_SCHEDULE_HORIZON_MS),
+);
 
 export const WorkflowRetryConfigV2 = S.Struct({
   maxAttempts: PositiveInteger,
@@ -59,8 +72,8 @@ export const WorkflowRetryConfigV2 = S.Struct({
 });
 
 export const WorkflowSchedule = S.Union(
-  S.Struct({ kind: S.Literal("runAfter"), delayMs: PositiveFinite }),
-  S.Struct({ kind: S.Literal("runAt"), timestamp: NonNegativeFinite }),
+  S.Struct({ kind: S.Literal("runAfter"), delayMs: PositiveScheduleDelay }),
+  S.Struct({ kind: S.Literal("runAt"), timestamp: NonNegativeSafeInteger }),
 );
 
 export const WorkflowPayloadPolicy = S.Struct({

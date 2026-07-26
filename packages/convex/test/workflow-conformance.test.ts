@@ -1340,9 +1340,8 @@ describe("Maestro V2 inline transaction compiler", () => {
   it("fails closed before reserving a child when the parent component identity is unavailable", async () => {
     const runWorkflow = vi.fn(async () => ({ receiptId: "unreachable" }));
     const runMutation = vi.fn(async () => ({ linkId: "unreachable" }));
-    const { workflowId: _componentWorkflowId, ...stepWithoutIdentity } = v2Step(
-      { runWorkflow, runMutation },
-    );
+    const stepWithoutIdentity = { ...v2Step({ runWorkflow, runMutation }) };
+    delete stepWithoutIdentity.workflowId;
     await expect(
       runDurableGraphWorkflowV2(stepWithoutIdentity, {
         ...v2Input(v2SubworkflowGraph()),
@@ -1444,6 +1443,10 @@ describe("Maestro V2 inline transaction compiler", () => {
         },
       }),
     ).toThrow(/immutable release/);
+    const childSubworkflowRuntime = childPublication.release.subworkflowRuntime;
+    if (childSubworkflowRuntime === undefined) {
+      throw new Error("expected the child fixture to be a subworkflow");
+    }
     const forgedGraphJson = childPublication.graphJson.replace(
       '"nodes":[]',
       '"nodes":[{"id":"attacker"}]',
@@ -1455,7 +1458,7 @@ describe("Maestro V2 inline transaction compiler", () => {
           {
             ...childPublication.release,
             subworkflowRuntime: {
-              ...childPublication.release.subworkflowRuntime!,
+              ...childSubworkflowRuntime,
               graphJson: forgedGraphJson,
               graphSnapshotHash: sha256Hex(forgedGraphJson),
             },
@@ -2174,6 +2177,118 @@ describe("Maestro V2 inline transaction compiler", () => {
       );
     },
   );
+
+  it.each([
+    ["query", { kind: "runAfter", delayMs: 250 }, { runAfter: 250 }],
+    ["mutation", { kind: "runAt", timestamp: 1_250 }, { runAt: 1_250 }],
+  ] as const)(
+    "passes the stable name and exact %s scheduling option",
+    async (functionKind, schedule, expectedSchedule) => {
+      const ref =
+        `compiler.v2.${functionKind}` as unknown as DurableGraphStepRef<
+          typeof functionKind
+        >;
+      const runQuery = vi.fn(async () => ({ accepted: true }));
+      const runMutation = vi.fn(async () => ({ accepted: true }));
+      const graph = v2CapabilityGraph(functionKind, undefined, schedule);
+      const capabilityRegistry =
+        functionKind === "query"
+          ? {
+              [capabilityRef]: {
+                kind: "query" as const,
+                ref: ref as DurableGraphStepRef<"query">,
+                effectClass: "none" as const,
+                buildArgs: () => ({}),
+              },
+            }
+          : {
+              [capabilityRef]: {
+                kind: "mutation" as const,
+                ref: ref as DurableGraphStepRef<"mutation">,
+                effectClass: "none" as const,
+                buildArgs: () => ({}),
+              },
+            };
+
+      await runDurableGraphWorkflowV2(v2Step({ runQuery, runMutation }), {
+        ...v2Input(graph),
+        scheduleNowMs: () => 1_000,
+        capabilityRegistry,
+        admitEffect: async () => ({ kind: "deny", reason: "not used" }),
+      });
+
+      const runner = functionKind === "query" ? runQuery : runMutation;
+      expect(runner).toHaveBeenCalledWith(
+        ref,
+        {},
+        {
+          name: "charge.v2",
+          ...expectedSchedule,
+        },
+      );
+    },
+  );
+
+  it("combines action retry posture with exactly one schedule option", async () => {
+    const actionRef =
+      "compiler.v2.action" as unknown as DurableGraphStepRef<"action">;
+    const runAction = vi.fn(async () => ({ accepted: true }));
+    const graph = v2CapabilityGraph("action", undefined, {
+      kind: "runAfter",
+      delayMs: 250,
+    });
+
+    await runDurableGraphWorkflowV2(v2Step({ runAction }), {
+      ...v2ExternalInput(graph),
+      scheduleNowMs: () => 1_000,
+      capabilityRegistry: {
+        [capabilityRef]: {
+          kind: "action",
+          ref: actionRef,
+          effectClass: "external",
+          authorization: externalAuthorization,
+          effectContract: nonRetriableContract,
+          instanceKey: () => "invoice-42",
+          buildArgs: () => ({}),
+        },
+      },
+      admitEffect: async () => ({ kind: "dispatch" }),
+    });
+
+    expect(runAction).toHaveBeenCalledWith(
+      actionRef,
+      {},
+      {
+        name: "charge.v2",
+        retry: false,
+        runAfter: 250,
+      },
+    );
+  });
+
+  it("rejects a past runAt before capability dispatch", async () => {
+    const runQuery = vi.fn(async () => ({ accepted: true }));
+    const graph = v2CapabilityGraph("query", undefined, {
+      kind: "runAt",
+      timestamp: 999,
+    });
+    await expect(
+      runDurableGraphWorkflowV2(v2Step({ runQuery }), {
+        ...v2Input(graph),
+        scheduleNowMs: () => 1_000,
+        capabilityRegistry: {
+          [capabilityRef]: {
+            kind: "query",
+            ref: "compiler.v2.query" as unknown as DurableGraphStepRef<"query">,
+            effectClass: "none",
+            buildArgs: () => ({}),
+          },
+        },
+        admitEffect: async () => ({ kind: "deny", reason: "not used" }),
+      }),
+    ).rejects.toThrow(/SCHEDULE_IN_PAST/);
+    expect(runQuery).not.toHaveBeenCalled();
+  });
 
   it("passes the stable name and exact explicit retry options", async () => {
     const actionRef =
@@ -3401,6 +3516,9 @@ const currentAuthorityReceipt = {
 const v2CapabilityGraph = (
   functionKind: "action" | "query" | "mutation",
   retry?: { maxAttempts: number; initialBackoffMs: number; base: number },
+  schedule?:
+    | { readonly kind: "runAfter"; readonly delayMs: number }
+    | { readonly kind: "runAt"; readonly timestamp: number },
 ): DurableWorkflowGraphV2 => ({
   schemaVersion: 2,
   id: "compiler-v2",
@@ -3435,6 +3553,7 @@ const v2CapabilityGraph = (
           semanticRuleIds: [],
           failurePolicy: { kind: "fail" },
           ...(retry ? { retry } : {}),
+          ...(schedule ? { schedule } : {}),
         }
       : {
           id: "charge",
@@ -3447,6 +3566,7 @@ const v2CapabilityGraph = (
           semanticRuleIds: [],
           failurePolicy: { kind: "fail" },
           transaction: { kind: "independent" },
+          ...(schedule ? { schedule } : {}),
         },
     {
       id: "output",

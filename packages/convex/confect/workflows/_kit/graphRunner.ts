@@ -25,6 +25,7 @@ import {
 } from "./graphRunnerV2";
 import { validateWorkflowV2SubworkflowTopology } from "./subworkflows";
 import { PINNED_INLINE_CONVEX_VERSION } from "./inlineTransactions";
+import type { WorkflowScheduleOptions } from "./workflowSchedule";
 
 export type {
   WorkflowEffectAdmission,
@@ -40,6 +41,14 @@ export type DurableGraphStepKind = "query" | "mutation" | "action";
 export type DurableGraphStepRef<
   Kind extends DurableGraphStepKind = DurableGraphStepKind,
 > = FunctionReference<Kind, "internal">;
+export type DurableGraphStepOptions = WorkflowScheduleOptions &
+  Readonly<Record<string, unknown>>;
+export type DurableGraphUnscheduledStepOptions = Readonly<
+  Record<string, unknown>
+> & {
+  readonly runAt?: never;
+  readonly runAfter?: never;
+};
 
 export type { DurableGraphWorkflowRef } from "./subworkflows";
 export type { ProductWorkflowEventId } from "./events";
@@ -81,21 +90,21 @@ export type RunDurableGraphInput = {
 export type RunDurableGraphStep = {
   /** Exact component workflow identity supplied by Workflow 0.4.4. */
   readonly workflowId?: ComponentWorkflowId;
-  readonly runQuery: (
+  runQuery(
     ref: DurableGraphStepRef<"query">,
     args: Record<string, unknown>,
-    options?: Record<string, unknown>,
-  ) => Promise<unknown>;
-  readonly runMutation: (
+    options?: DurableGraphStepOptions | DurableGraphUnscheduledStepOptions,
+  ): Promise<unknown>;
+  runMutation(
     ref: DurableGraphStepRef<"mutation">,
     args: Record<string, unknown>,
-    options?: Record<string, unknown>,
-  ) => Promise<unknown>;
-  readonly runAction: (
+    options?: DurableGraphStepOptions | DurableGraphUnscheduledStepOptions,
+  ): Promise<unknown>;
+  runAction(
     ref: DurableGraphStepRef<"action">,
     args: Record<string, unknown>,
-    options?: Record<string, unknown>,
-  ) => Promise<unknown>;
+    options?: DurableGraphStepOptions | DurableGraphUnscheduledStepOptions,
+  ): Promise<unknown>;
   readonly runWorkflow?: <
     Args extends import("./subworkflows").AnyChildWorkflowArgs,
     Result,

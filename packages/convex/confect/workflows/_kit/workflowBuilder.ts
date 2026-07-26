@@ -14,6 +14,7 @@ import {
   WorkflowMutationNodeV2,
   WorkflowOutputNodeV2,
   WorkflowQueryNodeV2,
+  WorkflowSchedule,
   WorkflowSourceNodeV2,
   WorkflowSubworkflowNodeV2,
 } from "../graphNodeSchema";
@@ -29,6 +30,7 @@ import {
   type ReviewedInlineTransaction,
 } from "./inlineTransactions";
 import { unsupportedWorkflowFailurePolicyFinding } from "./failurePolicy";
+import { assertWorkflowSchedule } from "./workflowSchedule";
 
 type SourceNode = Schema.Schema.Type<typeof WorkflowSourceNodeV2>;
 type ActionNode = Schema.Schema.Type<typeof WorkflowActionNodeV2>;
@@ -39,6 +41,7 @@ type DelayNode = Schema.Schema.Type<typeof WorkflowDelayNodeV2>;
 type EventNode = Schema.Schema.Type<typeof WorkflowEventNodeV2>;
 type SubworkflowNode = Schema.Schema.Type<typeof WorkflowSubworkflowNodeV2>;
 type OutputNode = Schema.Schema.Type<typeof WorkflowOutputNodeV2>;
+type Schedule = Schema.Schema.Type<typeof WorkflowSchedule>;
 
 type IndependentQueryNode = Extract<
   QueryNode,
@@ -59,13 +62,29 @@ type InlineMutationNode = Extract<
 
 export const workflowNode = {
   source: (input: SourceNode): SourceNode => input,
-  action: (input: ActionNode): ActionNode => input,
+  action: (input: Omit<ActionNode, "schedule">): ActionNode => input,
+  scheduledAction: (
+    input: Omit<ActionNode, "schedule">,
+    schedule: Schedule,
+    nowMs: number,
+  ): ActionNode => {
+    assertWorkflowSchedule(schedule, nowMs);
+    return { ...input, schedule };
+  },
   query: (
-    input: Omit<IndependentQueryNode, "transaction">,
+    input: Omit<IndependentQueryNode, "transaction" | "schedule">,
   ): IndependentQueryNode => ({
     ...input,
     transaction: { kind: "independent" },
   }),
+  scheduledQuery: (
+    input: Omit<IndependentQueryNode, "transaction" | "schedule">,
+    schedule: Schedule,
+    nowMs: number,
+  ): IndependentQueryNode => {
+    assertWorkflowSchedule(schedule, nowMs);
+    return { ...input, transaction: { kind: "independent" }, schedule };
+  },
   inlineQuery: (
     input: Omit<InlineQueryNode, "transaction">,
     preset: InlineTransactionPresetName,
@@ -74,11 +93,19 @@ export const workflowNode = {
     transaction: inlineTransactionPreset(preset),
   }),
   mutation: (
-    input: Omit<IndependentMutationNode, "transaction">,
+    input: Omit<IndependentMutationNode, "transaction" | "schedule">,
   ): IndependentMutationNode => ({
     ...input,
     transaction: { kind: "independent" },
   }),
+  scheduledMutation: (
+    input: Omit<IndependentMutationNode, "transaction" | "schedule">,
+    schedule: Schedule,
+    nowMs: number,
+  ): IndependentMutationNode => {
+    assertWorkflowSchedule(schedule, nowMs);
+    return { ...input, transaction: { kind: "independent" }, schedule };
+  },
   inlineMutation: (
     input: Omit<InlineMutationNode, "transaction">,
     preset: InlineTransactionPresetName,
@@ -96,7 +123,7 @@ export const workflowNode = {
       transaction: ReviewedInlineTransaction,
     ): InlineMutationNode => ({ ...input, transaction }),
   },
-  agent: (input: AgentNode): AgentNode => input,
+  agent: (input: Omit<AgentNode, "schedule">): AgentNode => input,
   delay: (input: DelayNode): DelayNode => input,
   event: (input: EventNode): EventNode => input,
   subworkflow: (input: Omit<SubworkflowNode, "schedule">): SubworkflowNode =>

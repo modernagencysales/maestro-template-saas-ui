@@ -1,10 +1,10 @@
 import * as Data from "effect/Data";
 import * as Either from "effect/Either";
-
-const DAY_MS = 24 * 60 * 60 * 1_000;
+import { MAX_WORKFLOW_SCHEDULE_HORIZON_MS } from "./workflowSchedule";
 
 /** Pinned Workpool 0.4.7 silently clamps schedules beyond four years. */
-export const MAX_WORKFLOW_DEADLINE_HORIZON_MS = 4 * 365 * DAY_MS;
+export const MAX_WORKFLOW_DEADLINE_HORIZON_MS =
+  MAX_WORKFLOW_SCHEDULE_HORIZON_MS;
 
 export type WorkflowDeadlineExecution = "active" | "terminal" | "canceled";
 
