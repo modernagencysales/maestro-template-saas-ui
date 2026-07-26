@@ -94,12 +94,15 @@ describe("recipe CLI", () => {
           ]),
           fingerprint: expect.stringMatching(/^recipe_plan_sha256:/),
         },
+        confirmationCommand: expect.stringMatching(
+          /--write.*--privacy-reviewed.*--plan-fingerprint.*--preflight-fingerprint/,
+        ),
       },
     });
     expect(JSON.parse(write.stdout)).toMatchObject({
       mutationPosture: "write",
       exitClass: "blockedMutation",
-      diagnostics: [{ code: "AGENT_PACK_RECIPE_AUTHORITY_STALE" }],
+      diagnostics: [{ code: "AGENT_PACK_RECIPE_COLLISION" }],
     });
   });
 

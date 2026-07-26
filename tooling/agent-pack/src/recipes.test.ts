@@ -167,6 +167,9 @@ describe("recipe commands", () => {
           ],
         },
         preflightFingerprint: "preflight_sha256:fixture",
+        confirmationCommand: expect.stringMatching(
+          /--write.*--privacy-reviewed.*--plan-fingerprint.*--preflight-fingerprint/,
+        ),
       },
     });
     expect(JSON.stringify(result)).not.toMatch(
@@ -193,6 +196,57 @@ describe("recipe commands", () => {
         ],
         backlogRef: "AP-009 outcome recipe library",
       },
+    });
+  });
+
+  it("fails closed for unreviewed generators and unsafe generated paths", async () => {
+    const unreviewed = await executeAgentPackCommand(
+      createAddRecipeCommand({
+        ...dependencies,
+        generators: {
+          ...dependencies.generators,
+          resolve: () => ({ supported: false as const }),
+        },
+      }),
+      { query: "crud-business-entity", answers: { name: "Request" } },
+      context,
+    );
+    expect(unreviewed).toMatchObject({
+      exitClass: "findings",
+      diagnostics: [{ code: "AGENT_PACK_RECIPE_GENERATOR_UNREVIEWED" }],
+    });
+
+    const unsafe = await executeAgentPackCommand(
+      createAddRecipeCommand({
+        ...dependencies,
+        generators: {
+          ...dependencies.generators,
+          preview: async () => ({
+            ok: true as const,
+            output: {
+              files: [
+                {
+                  path: "../escape.ts",
+                  content: "unsafe\n",
+                  beforeSha256: null,
+                },
+              ],
+              provenancePaths: [],
+              collisions: [],
+              semanticRuleIds: [],
+              manualFollowUp: [],
+              codegen: [],
+              focusedGates: [],
+            },
+          }),
+        },
+      }),
+      { query: "crud-business-entity", answers: { name: "Request" } },
+      context,
+    );
+    expect(unsafe).toMatchObject({
+      exitClass: "findings",
+      diagnostics: [{ code: "AGENT_PACK_RECIPE_PATH_ESCAPE" }],
     });
   });
 

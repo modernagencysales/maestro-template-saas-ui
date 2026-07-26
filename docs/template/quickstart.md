@@ -1,5 +1,8 @@
 # Template Quickstart
 
+For the novice `add` journey and its copy/paste atomic confirmation command, see
+[Executable Outcome Recipes](./executable-recipes.md).
+
 This private template is an opinionated app factory for B2B AI/GTM software,
 custom Brain builds, and implementation consulting prototypes. It starts in fake
 mode so a reviewer can see the architecture, seeded Brain, first workflow, and

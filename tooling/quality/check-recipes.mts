@@ -83,7 +83,9 @@ function checkOwners(
 }
 
 function checkGenerators(recipe: OutcomeRecipe, findings: string[]): void {
+  const previewIds = new Set<string>();
   for (const preview of recipe.generatorPreviews) {
+    previewIds.add(preview.generatorId);
     const descriptor = REVIEWED_GENERATOR_DESCRIPTORS.find(
       ({ generatorId }) => generatorId === preview.generatorId,
     );
@@ -92,6 +94,46 @@ function checkGenerators(recipe: OutcomeRecipe, findings: string[]): void {
     else if (!preview.command.startsWith(`${descriptor.command} -- `))
       findings.push(
         `${recipe.id}: ${preview.generatorId} command must start with ${descriptor.command} --`,
+      );
+  }
+  if (recipe.id === "crud-business-entity" && recipe.execution === undefined)
+    findings.push(`${recipe.id}: executable generator binding is required`);
+  for (const step of recipe.execution?.steps ?? []) {
+    if (
+      !REVIEWED_GENERATOR_DESCRIPTORS.some(
+        ({ generatorId }) => generatorId === step.generatorId,
+      )
+    )
+      findings.push(
+        `${recipe.id}: execution names unknown generator ${step.generatorId}`,
+      );
+    if (!previewIds.has(step.generatorId))
+      findings.push(
+        `${recipe.id}: execution generator ${step.generatorId} lacks its human preview`,
+      );
+  }
+  if (recipe.id === "crud-business-entity") {
+    const table = recipe.execution?.steps.find(
+      ({ generatorId }) => generatorId === "add-table",
+    );
+    const required = [
+      "name",
+      "system",
+      "disposition",
+      "tenantScope",
+      "sensitivity",
+      "pii",
+      "exportMode",
+      "deleteMode",
+      "retention",
+      "appendOnly",
+    ];
+    const missing = required.filter(
+      (argument) => table?.arguments[argument] === undefined,
+    );
+    if (missing.length > 0)
+      findings.push(
+        `${recipe.id}: add-table execution lacks explicit bindings for ${missing.join(", ")}`,
       );
   }
 }

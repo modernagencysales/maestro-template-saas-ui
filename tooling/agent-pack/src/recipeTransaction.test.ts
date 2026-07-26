@@ -124,6 +124,22 @@ describe("atomic recipe transaction", () => {
       message: expect.stringMatching(/replay/),
     });
 
+    const interrupted = fixture();
+    const transactionId = interrupted.plan.fingerprint.replace(
+      /[^a-zA-Z0-9]/gu,
+      "-",
+    );
+    mkdirSync(
+      join(interrupted.root, ".maestro/recipe-transactions", transactionId),
+      { recursive: true },
+    );
+    await expect(
+      createNodeRecipeTransaction().apply(interrupted.request),
+    ).resolves.toMatchObject({
+      ok: false,
+      message: expect.stringMatching(/interrupted journals fail closed/),
+    });
+
     const symlink = fixture();
     mkdirSync(join(symlink.root, "outside"));
     symlinkSync(join(symlink.root, "outside"), join(symlink.root, "feature"));

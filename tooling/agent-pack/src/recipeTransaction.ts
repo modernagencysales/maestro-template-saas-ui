@@ -1,7 +1,6 @@
 import { execFileSync } from "node:child_process";
 import {
   closeSync,
-  copyFileSync,
   existsSync,
   fsyncSync,
   lstatSync,
@@ -136,14 +135,22 @@ function applyRecipeTransaction(
       for (const [index, operation] of request.plan.operations.entries()) {
         const target = containedPath(targetRoot, operation.path);
         const backup = containedPath(backupRoot, operation.path);
+        let backupMoved = false;
         if (operation.beforeSha256 !== null) {
           mkdirSync(dirname(backup), { recursive: true });
-          copyFileSync(target, backup);
-          fsyncFile(backup);
+          renameSync(target, backup);
+          backupMoved = true;
+          fsyncDirectory(dirname(target));
+          fsyncDirectory(dirname(backup));
         }
         ensureOperationParent(targetRoot, dirname(target), createdDirectories);
         const staged = containedPath(stageRoot, operation.path);
-        renameSync(staged, target);
+        try {
+          renameSync(staged, target);
+        } catch (error) {
+          if (backupMoved) renameSync(backup, target);
+          throw error;
+        }
         fsyncDirectory(dirname(target));
         journal = {
           ...journal,
