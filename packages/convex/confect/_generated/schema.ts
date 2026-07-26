@@ -13,6 +13,11 @@ import claims from "./tables/claims";
 import concepts from "./tables/concepts";
 import contextPacks from "./tables/contextPacks";
 import creditLedger from "./tables/creditLedger";
+import deployActionConsumptions from "./tables/deployActionConsumptions";
+import deployApprovals from "./tables/deployApprovals";
+import deployAuthorityIssuers from "./tables/deployAuthorityIssuers";
+import deployCensusSnapshots from "./tables/deployCensusSnapshots";
+import deployVerdicts from "./tables/deployVerdicts";
 import documentAnnotations from "./tables/documentAnnotations";
 import documentVersions from "./tables/documentVersions";
 import documents from "./tables/documents";
@@ -60,6 +65,11 @@ const databaseSchema: $DatabaseSchema.DatabaseSchema<
   typeof concepts |
   typeof contextPacks |
   typeof creditLedger |
+  typeof deployActionConsumptions |
+  typeof deployApprovals |
+  typeof deployAuthorityIssuers |
+  typeof deployCensusSnapshots |
+  typeof deployVerdicts |
   typeof documentAnnotations |
   typeof documentVersions |
   typeof documents |
@@ -106,6 +116,11 @@ const databaseSchema: $DatabaseSchema.DatabaseSchema<
   concepts,
   contextPacks,
   creditLedger,
+  deployActionConsumptions,
+  deployApprovals,
+  deployAuthorityIssuers,
+  deployCensusSnapshots,
+  deployVerdicts,
   documentAnnotations,
   documentVersions,
   documents,

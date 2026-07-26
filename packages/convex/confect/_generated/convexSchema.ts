@@ -13,6 +13,11 @@ import claims from "./tables/claims";
 import concepts from "./tables/concepts";
 import contextPacks from "./tables/contextPacks";
 import creditLedger from "./tables/creditLedger";
+import deployActionConsumptions from "./tables/deployActionConsumptions";
+import deployApprovals from "./tables/deployApprovals";
+import deployAuthorityIssuers from "./tables/deployAuthorityIssuers";
+import deployCensusSnapshots from "./tables/deployCensusSnapshots";
+import deployVerdicts from "./tables/deployVerdicts";
 import documentAnnotations from "./tables/documentAnnotations";
 import documentVersions from "./tables/documentVersions";
 import documents from "./tables/documents";
@@ -60,6 +65,11 @@ export default $defineSchema({
   concepts: concepts.tableDefinition,
   contextPacks: contextPacks.tableDefinition,
   creditLedger: creditLedger.tableDefinition,
+  deployActionConsumptions: deployActionConsumptions.tableDefinition,
+  deployApprovals: deployApprovals.tableDefinition,
+  deployAuthorityIssuers: deployAuthorityIssuers.tableDefinition,
+  deployCensusSnapshots: deployCensusSnapshots.tableDefinition,
+  deployVerdicts: deployVerdicts.tableDefinition,
   documentAnnotations: documentAnnotations.tableDefinition,
   documentVersions: documentVersions.tableDefinition,
   documents: documents.tableDefinition,

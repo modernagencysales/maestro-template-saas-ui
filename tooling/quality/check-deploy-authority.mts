@@ -24,6 +24,14 @@ type DeployPolicy = {
 
 export const deployPolicySha256 = (source: string): string =>
   `sha256:${createHash("sha256").update(source).digest("hex")}`;
+export const deployTrustRootSha256 = (
+  members: Readonly<Record<string, string>>,
+): string => {
+  const manifest = Object.keys(members)
+    .sort()
+    .map((path) => ({ path, sha256: deployPolicySha256(members[path] ?? "") }));
+  return deployPolicySha256(JSON.stringify(manifest));
+};
 
 export const validateDeployAuthoritySources = (input: {
   readonly sources: Readonly<Record<string, string>>;
@@ -31,10 +39,25 @@ export const validateDeployAuthoritySources = (input: {
   readonly pipeline: string;
   readonly selfProtection: string;
   readonly policySource: string;
-  readonly trustedPolicySha256?: string;
+  readonly trustMembers: Readonly<Record<string, string>>;
+  readonly trustedDeployRootSha256?: string;
   readonly buildkite?: boolean;
 }): readonly string[] => {
   const failures: string[] = [];
+  const expectedTrustMembers = [
+    "tooling/quality/check-deploy-authority.mts",
+    "tooling/release/deploy-policy.json",
+    "tooling/release/keys/deploy-authority-public-key.pem",
+  ];
+  if (
+    JSON.stringify(Object.keys(input.trustMembers).sort()) !==
+      JSON.stringify(expectedTrustMembers.sort()) ||
+    input.trustMembers["tooling/release/deploy-policy.json"] !==
+      input.policySource
+  )
+    failures.push(
+      "deploy trust bundle must contain the exact canonical members",
+    );
   let policy: DeployPolicy;
   try {
     policy = JSON.parse(input.policySource) as DeployPolicy;
@@ -52,15 +75,15 @@ export const validateDeployAuthoritySources = (input: {
     return ["deploy policy manifest has an invalid shape"];
   }
 
-  const actualPolicyHash = deployPolicySha256(input.policySource);
-  if (input.buildkite && !input.trustedPolicySha256) {
-    failures.push("Buildkite must provide TRUSTED_DEPLOY_POLICY_SHA256");
+  const actualTrustRoot = deployTrustRootSha256(input.trustMembers);
+  if (input.buildkite && !input.trustedDeployRootSha256) {
+    failures.push("Buildkite must provide TRUSTED_DEPLOY_ROOT_SHA256");
   } else if (
-    input.trustedPolicySha256 !== undefined &&
-    input.trustedPolicySha256 !== actualPolicyHash
+    input.trustedDeployRootSha256 !== undefined &&
+    input.trustedDeployRootSha256 !== actualTrustRoot
   ) {
     failures.push(
-      "trusted deploy policy hash does not match the repository policy",
+      "trusted deploy root does not match verifier, policy, and public-key bytes",
     );
   }
 
@@ -193,6 +216,22 @@ if (
     resolve(root, "tooling/release/deploy-policy.json"),
     "utf8",
   );
+  const trustBundleSource = readFileSync(
+    resolve(root, "tooling/release/deploy-trust-bundle.json"),
+    "utf8",
+  );
+  const trustBundle = JSON.parse(trustBundleSource) as {
+    readonly schemaVersion: number;
+    readonly members: readonly string[];
+  };
+  if (trustBundle.schemaVersion !== 1 || !Array.isArray(trustBundle.members))
+    throw new Error("deploy trust bundle manifest has an invalid shape");
+  const trustMembers = Object.fromEntries(
+    trustBundle.members.map((name) => [
+      name,
+      readFileSync(resolve(root, name), "utf8"),
+    ]),
+  );
   const executableFiles = execFileSync(
     "git",
     ["ls-files", "--cached", "--others", "--exclude-standard"],
@@ -206,6 +245,7 @@ if (
     .filter(
       (name) =>
         /(?:^|\/)(?:[^/]+\.)?(?:sh|ts|mts|cts|js|mjs|cjs)$/.test(name) &&
+        !name.includes("/_generated/") &&
         !/(?:^|\/)(?:test|tests|__tests__)(?:\/|\.)|\.(?:test|spec)\./.test(
           name,
         ) &&
@@ -229,11 +269,12 @@ if (
       "utf8",
     ),
     policySource,
-    trustedPolicySha256: process.env.TRUSTED_DEPLOY_POLICY_SHA256,
+    trustMembers,
+    trustedDeployRootSha256: process.env.TRUSTED_DEPLOY_ROOT_SHA256,
     buildkite: process.env.BUILDKITE === "true",
   });
   if (failures.length > 0) throw new Error(failures.join("\n"));
   console.log(
-    `check:deploy-authority passed (${deployPolicySha256(policySource)})`,
+    `check:deploy-authority passed (${deployTrustRootSha256(trustMembers)})`,
   );
 }

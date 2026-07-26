@@ -77,6 +77,16 @@ const checkDescriptorDefinitions = {
         message: "secretless self-protection step must run the shape pins",
       },
       {
+        file: "tooling/release/deploy-trust-bundle.json",
+        includes: [
+          "tooling/quality/check-deploy-authority.mts",
+          "tooling/release/deploy-policy.json",
+          "tooling/release/keys/deploy-authority-public-key.pem",
+        ],
+        message:
+          "deploy trust bundle must cover verifier, policy, and public key",
+      },
+      {
         file: "tooling/release/deploy-policy.json",
         includes: [
           "tooling/release/src/deploy/guardedDeploy.ts",

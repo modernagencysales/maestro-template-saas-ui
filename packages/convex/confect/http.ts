@@ -1,6 +1,7 @@
 import { confectManifest } from "@maestro-template/template-core/generated/confectManifest";
 import { httpActionGeneric, httpRouter } from "convex/server";
 import { api } from "../convex/_generated/api";
+import { handleDeployAuthorityHttpRequest } from "./deployAuthority/http";
 import {
   executeHeadlessOperation,
   type HeadlessExecutorRequest,
@@ -274,6 +275,19 @@ export const handleTemplateHttpRequest = async (
  */
 const buildTemplateHttpRouter = () => {
   const router = httpRouter();
+  router.route({
+    path: "/deploy-authority/consume",
+    method: "POST",
+    handler: httpActionGeneric((ctx, request) =>
+      handleDeployAuthorityHttpRequest(
+        {
+          runMutation: (reference, scope) =>
+            ctx.runMutation(reference as never, scope as never),
+        },
+        request,
+      ),
+    ),
+  });
   const handler = httpActionGeneric(async (ctx, request) => {
     const headlessCtx: HeadlessHttpCtx = {
       runQuery: (ref, input) => ctx.runQuery(ref as never, input as never),
