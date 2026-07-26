@@ -51,9 +51,9 @@ export const publicationFixtureV1Release = defineWorkflowRelease({
   },
   lifecycleContractVersion: 1,
   sourceClosureChecksum:
-    "5e88cbb67c0eefba959d351aa0f5f3f118afdc6fb745cb442f7a06b58c3289a0",
+    "e7680b6ed35ebb9ee917386c41872329e703993e3b08c98441450136a63e26f2",
   releaseChecksum:
-    "d3cf43f095eff44cea0cfc9ed30f60af18b1ee39d1c95f3c95ef00d4ffe724a5",
+    "7b271c932a7ef9f7d93a7505ed2a714b44f948de97ce70e40c19831fc46d847a",
   stableStepNames: ["start.v2", "receipt.v2"],
   semanticComplete: true,
   isolatedFixture: true,

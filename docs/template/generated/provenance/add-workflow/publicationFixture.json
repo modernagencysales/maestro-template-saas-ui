@@ -32,10 +32,10 @@
       }
     ],
     "manifestPath": "docs/template/generated/workflow-publications.json",
-    "manifestChecksum": "cee1d4b5786a9f8d7f7d3781a444ad5ce1fd67a9c46303e5fd42eed9e436ce33",
-    "authorityChecksum": "97156388c77f7343c8b620120c5bbe2f2529b6dec4db6e9d0191f5409898f41f",
-    "authorityArtifactChecksum": "549ab1bb0627c459ce869e7d9efde66b3cc99c36122100bc729aaef1c5acdc02",
-    "sourceClosureChecksum": "5e88cbb67c0eefba959d351aa0f5f3f118afdc6fb745cb442f7a06b58c3289a0",
-    "releaseChecksum": "d3cf43f095eff44cea0cfc9ed30f60af18b1ee39d1c95f3c95ef00d4ffe724a5"
+    "manifestChecksum": "268bfe94956ca771366ef37bb797eb49e4b7e38d26e9a0322c5cd7999474a802",
+    "authorityChecksum": "8a8ff09ebe8b2914c501bfc354b549363822d8dfa0fe681f91c41b0b7e1d89b0",
+    "authorityArtifactChecksum": "811b48866c70f01a941a8e4c565bed8262620174071e570a02e96a9f1a10be64",
+    "sourceClosureChecksum": "e7680b6ed35ebb9ee917386c41872329e703993e3b08c98441450136a63e26f2",
+    "releaseChecksum": "7b271c932a7ef9f7d93a7505ed2a714b44f948de97ce70e40c19831fc46d847a"
   }
 }

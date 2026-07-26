@@ -3,7 +3,7 @@ import type { GeneratedPublicationAuthority } from "../_kit/publication";
 export const publicationFixtureV1Authority = {
   schemaVersion: 1,
   descriptorChecksum:
-    "97156388c77f7343c8b620120c5bbe2f2529b6dec4db6e9d0191f5409898f41f",
+    "8a8ff09ebe8b2914c501bfc354b549363822d8dfa0fe681f91c41b0b7e1d89b0",
   sourceClosure: {
     roots: [
       "packages/convex/confect/workflowRunners/publicationFixture/v1.impl.ts",
@@ -343,7 +343,7 @@ export const publicationFixtureV1Authority = {
       {
         path: "packages/convex/convex/brain/pages.ts",
         checksum:
-          "92a5fedc6e50fc717c67cb80914dae0d496b6493b5a67e4e8553f3d7f0487a5f",
+          "3774be4d25e89a1f3658f1a3c0589c2c604e8bb6db1b8460322a0d1b0ddcbbb0",
       },
       {
         path: "packages/convex/convex/capabilities/catalog.ts",
@@ -422,6 +422,6 @@ export const publicationFixtureV1Authority = {
       },
     ],
     checksum:
-      "5e88cbb67c0eefba959d351aa0f5f3f118afdc6fb745cb442f7a06b58c3289a0",
+      "e7680b6ed35ebb9ee917386c41872329e703993e3b08c98441450136a63e26f2",
   },
 } as const satisfies GeneratedPublicationAuthority;
