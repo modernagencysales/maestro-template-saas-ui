@@ -9,8 +9,8 @@
   "release": {
     "version": "0.2.0-alpha.1",
     "tag": "maestro-template-v0.2.0-alpha.1",
-    "sourceCommit": "7df7cb241e833630f6082889ae83820a22f14e34",
-    "sourceChecksum": "sha256:9cf5f265b6efe61bea5f0229ef0e2bf8a01c6f77924aaf60219b5b15519d87f0"
+    "sourceCommit": "80b602aa73cb6c36d675c8f107e086f95db16b5f",
+    "sourceChecksum": "sha256:8f2055835bdddf88890b40db23d14e35e87e3ff90382bb11cc20f4dc5f53026c"
   },
   "upgrade": {
     "schemaVersion": 1,
@@ -2260,14 +2260,14 @@
         "kind": "add",
         "path": "tooling/agent-pack/evals/forward/gate-launcher.mjs",
         "ownership": "template-owned",
-        "afterHash": "sha256:5d436e0006fe62e7596a9882f82895e2e125bf60e609f268420502ef7186c8d7"
+        "afterHash": "sha256:f7cfc2d46086de0f6d964f67a6e526216a3087beaec11d77195611b2db07395b"
       },
       {
         "id": "upgrade-add-tooling-agent-pack-evals-forward-gate-launcher-test-ts",
         "kind": "add",
         "path": "tooling/agent-pack/evals/forward/gate-launcher.test.ts",
         "ownership": "template-owned",
-        "afterHash": "sha256:725c0b99ce4f6b7efac9c0ce7b04e69c5f8d83ceb558810fd401f962e8007971"
+        "afterHash": "sha256:3b8ebf5c773541e1956663fb2be3ce43c8c3ef8cdbb487493080970b8b9c0eb6"
       },
       {
         "id": "upgrade-add-tooling-agent-pack-evals-forward-runner-ts",
@@ -3953,14 +3953,14 @@
   ],
   "blueprintManifest": {
     "path": "blueprints/saas-application.json",
-    "sha256": "sha256:224f24ac1833689518e7c42edbee1046c1e9fd3b577bc311ebfa6ff5dafe97be"
+    "sha256": "sha256:8ee25c22fcf7d1e159fb98c357aa8bc4c23c7c4059213a411cb841d7fec6143b"
   },
   "upgradeImpact": {
     "path": "releases/v0.2.0-alpha.1/upgrade/app-map-input.json",
-    "sha256": "sha256:5f6742abd6f63ddbd27253fd3d90ea076aca3553b06f5ca5e8ab5cdc3e2cef88",
+    "sha256": "sha256:0ec5a93ca428530ec25684ae9b90e7ac44827579e6273236b7807fe9f108cb3d",
     "projection": {
       "path": "releases/v0.2.0-alpha.1/upgrade/app-map-impact.json",
-      "sha256": "sha256:6b2d30e758c29496eaa52321e7c9607664ebf2a4a954c8e5151dfce4d2502ff2"
+      "sha256": "sha256:78ecadee9f506da1875ad75d660fa157f0bdb3c8719110c9b1032dded830459e"
     }
   },
   "migrationHandoff": {
