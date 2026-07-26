@@ -9,8 +9,8 @@
   "release": {
     "version": "0.2.0-alpha.1",
     "tag": "maestro-template-v0.2.0-alpha.1",
-    "sourceCommit": "6166c37a056eb2f60c1e661dbc46d1116b8c617b",
-    "sourceChecksum": "sha256:0346cc73b5901ec9a62ffdd72734d031f99123dddb3e23aeb30753c4d62a96f2"
+    "sourceCommit": "00176706da7f8b5bf95a3924c00d172be0e2927f",
+    "sourceChecksum": "sha256:963f1680af2fb08dfd03a1d081bebe8fe678d942238e3363b9f600a3e68223b4"
   },
   "upgrade": {
     "schemaVersion": 1,
@@ -604,7 +604,7 @@
         "path": "package.json",
         "ownership": "generated",
         "beforeHash": "sha256:d3278e6fbfc6c3218cb0ebaad4322f459fb2a61eaa37329840ce2283e9fb2254",
-        "afterHash": "sha256:acc52fabb69527dfdfa0c984f051963f8fe73bcc7123cce8aff36573545f89bd"
+        "afterHash": "sha256:b2e8817bed8e1544d47ca37808651eef58b4b6893177891f7a3891f00068d1ea"
       },
       {
         "id": "upgrade-modify-packages-convex-confect-generated-convexSchema-ts",
@@ -3397,6 +3397,14 @@
         "afterHash": "sha256:b32737caf829f2946315b2052b22f587110e1ecc078ef07141eca08b7d0fb6a1"
       },
       {
+        "id": "upgrade-modify-tooling-quality-check-ci-completeness-test-mts",
+        "kind": "modify",
+        "path": "tooling/quality/check-ci-completeness.test.mts",
+        "ownership": "template-owned",
+        "beforeHash": "sha256:f8102fa1bf41d3dacc31faee6671fe1169f5ae19038b31e37829e70915382831",
+        "afterHash": "sha256:5ca3624df870b7484096ca547f72432f89f5709aaa3c9f312e31c174e706911c"
+      },
+      {
         "id": "upgrade-modify-tooling-quality-check-confect-compat-mts",
         "kind": "modify",
         "path": "tooling/quality/check-confect-compat.mts",
@@ -3513,7 +3521,7 @@
         "path": "tooling/quality/src/check-definitions.mts",
         "ownership": "template-owned",
         "beforeHash": "sha256:9e119988135f4b297c528e987a4377f71faffe3830f395a407428e6da8a7963a",
-        "afterHash": "sha256:6760c0c5370c2a49486abcb55099581089dc98f45172298aa59c565e35fdc544"
+        "afterHash": "sha256:c40d4502282d95ab2c5e130574b3abad3db8bd7d7f2ec3d394955d675d13497b"
       },
       {
         "id": "upgrade-modify-tooling-quality-src-diagnosticRegistry-mts",
@@ -3870,14 +3878,14 @@
   ],
   "blueprintManifest": {
     "path": "blueprints/saas-application.json",
-    "sha256": "sha256:243d9866efbc15a06bf10a22bd9e7d8ad8dc306135d2179519804f6fdf9e1eaf"
+    "sha256": "sha256:dc7a0b248eec3ba6a16fd4df0defa1997b5954f7bf5842b1e288c6859acf2204"
   },
   "upgradeImpact": {
     "path": "releases/v0.2.0-alpha.1/upgrade/app-map-input.json",
-    "sha256": "sha256:1b05afa1d790ef6c710846c5a94e53157d285dabab57e7246095d2e9b0d6bd4e",
+    "sha256": "sha256:12548a6c9e1b942bb31d8a3b258ed381838d74b97ef3f115f12cac251ce60312",
     "projection": {
       "path": "releases/v0.2.0-alpha.1/upgrade/app-map-impact.json",
-      "sha256": "sha256:1f64fa87b547c9126879340fb3bb609848b6bb5a162e719c4d336481aa23547b"
+      "sha256": "sha256:063e2176aed6839d34dc157651da118b77169b6c70a4e23e1effc72af08476ee"
     }
   },
   "migrationHandoff": {
