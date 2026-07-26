@@ -1,4 +1,5 @@
 import { execFileSync, spawn, spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { createServer } from "node:net";
 import {
   chmodSync,
@@ -15,6 +16,8 @@ import { afterAll, afterEach, describe, expect, it } from "vitest";
 
 const temporaryRoots: string[] = [];
 const repositoryRoot = resolve(import.meta.dirname, "../../../..");
+const digest = (path: string): string =>
+  `sha256:${createHash("sha256").update(readFileSync(path)).digest("hex")}`;
 let taggedReleaseParent: string | undefined;
 let taggedReleaseRoot: string | undefined;
 const taggedRepository = (): string => {
@@ -28,7 +31,20 @@ const taggedRepository = (): string => {
   );
   execFileSync(
     "git",
-    ["-C", taggedReleaseRoot, "tag", "maestro-template-v0.2.0-alpha.1", "HEAD"],
+    [
+      "-C",
+      taggedReleaseRoot,
+      "tag",
+      "maestro-template-v0.2.0-alpha.1",
+      (
+        JSON.parse(
+          readFileSync(
+            join(taggedReleaseRoot, "releases/v0.2.0-alpha.1/manifest.json"),
+            "utf8",
+          ),
+        ) as { readonly release: { readonly sourceCommit: string } }
+      ).release.sourceCommit,
+    ],
     { stdio: "pipe" },
   );
   execFileSync(
@@ -94,24 +110,24 @@ describe("materialized customer CLI runtime closure", () => {
       readonly blueprint: { readonly digest: string };
       readonly privacy: { readonly privacyDocument: string | null };
     };
+    const manifestPath = join(
+      releaseRoot,
+      "releases/v0.2.0-alpha.1/manifest.json",
+    );
+    const releaseManifest = JSON.parse(readFileSync(manifestPath, "utf8")) as {
+      readonly release: Record<string, unknown>;
+    };
     expect(instance).toMatchObject({
-      release: {
-        version: "unreleased-current",
-        tag: "unreleased-current",
-        sourceCommit: expect.stringMatching(/^[0-9a-f]{40}$/),
-        sourceChecksum: expect.stringMatching(/^sha256:[0-9a-f]{64}$/),
-      },
+      release: releaseManifest.release,
       ownership: {
-        manifest: "unreleased-current-composition",
+        manifest: "releases/v0.2.0-alpha.1/manifest.json",
         manifestChecksum: expect.stringMatching(/^sha256:[0-9a-f]{64}$/),
       },
       privacy: {
         privacyDocument: "docs/template/agent-pack-privacy.md",
       },
     });
-    expect(instance.ownership.manifestChecksum).toBe(
-      instance.release.sourceChecksum,
-    );
+    expect(instance.ownership.manifestChecksum).toBe(digest(manifestPath));
     const privacyDocument = "docs/template/agent-pack-privacy.md";
     expect(existsSync(join(target, privacyDocument))).toBe(true);
     expect(readFileSync(join(target, privacyDocument), "utf8")).toBe(
@@ -406,7 +422,9 @@ describe("materialized customer CLI runtime closure", () => {
       },
     );
     expect(preflight.error).toBeUndefined();
-    expect(preflight.status, preflight.stderr).toBe(0);
+    expect(preflight.status, `${preflight.stdout}\n${preflight.stderr}`).toBe(
+      0,
+    );
     expect(() => JSON.parse(preflight.stdout)).not.toThrow();
     expect(preflight.stderr).not.toContain("ERR_MODULE_NOT_FOUND");
 

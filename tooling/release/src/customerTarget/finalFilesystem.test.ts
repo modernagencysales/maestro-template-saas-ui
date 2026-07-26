@@ -34,7 +34,20 @@ describe("final materialized customer filesystem", () => {
       );
       execFileSync(
         "git",
-        ["-C", releaseRoot, "tag", "maestro-template-v0.2.0-alpha.1", "HEAD"],
+        [
+          "-C",
+          releaseRoot,
+          "tag",
+          "maestro-template-v0.2.0-alpha.1",
+          (
+            JSON.parse(
+              readFileSync(
+                join(releaseRoot, "releases/v0.2.0-alpha.1/manifest.json"),
+                "utf8",
+              ),
+            ) as { readonly release: { readonly sourceCommit: string } }
+          ).release.sourceCommit,
+        ],
         { stdio: "pipe" },
       );
       execFileSync(
