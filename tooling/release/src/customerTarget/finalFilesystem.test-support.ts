@@ -1,4 +1,5 @@
-import { execFileSync, spawnSync } from "node:child_process";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 import {
   existsSync,
   lstatSync,
@@ -7,6 +8,7 @@ import {
   realpathSync,
 } from "node:fs";
 import { dirname, relative, resolve, sep } from "node:path";
+const execFileAsync = promisify(execFile);
 
 export type FinalCustomerTree = {
   readonly root: string;
@@ -163,18 +165,20 @@ function packageScripts(path: string): Readonly<Record<string, string>> {
   );
 }
 
-export function runFinalCustomerCompileGates(root: string): void {
+export async function runFinalCustomerCompileGates(
+  root: string,
+): Promise<void> {
   const env = {
     ...process.env,
     CI: "1",
     CONVEX_DEPLOYMENT: "",
     CONVEX_URL: "",
   };
-  execFileSync("pnpm", ["install", "--frozen-lockfile", "--ignore-scripts"], {
-    cwd: root,
-    env,
-    stdio: "pipe",
-  });
+  await execFileAsync(
+    "pnpm",
+    ["install", "--frozen-lockfile", "--ignore-scripts"],
+    { cwd: root, env, maxBuffer: 10 * 1024 * 1024 },
+  );
   for (const [command, args] of [
     ["pnpm", ["--dir", "apps/cli", "typecheck"]],
     ["pnpm", ["check:workflow-policy-snapshots"]],
@@ -182,17 +186,11 @@ export function runFinalCustomerCompileGates(root: string): void {
     ["pnpm", ["--dir", "packages/convex", "typecheck"]],
     ["pnpm", ["--dir", "apps/web", "build"]],
   ] as const) {
-    const result = spawnSync(command, args, {
+    await execFileAsync(command, args, {
       cwd: root,
       env,
-      encoding: "utf8",
       maxBuffer: 10 * 1024 * 1024,
     });
-    if (result.status !== 0) {
-      throw new Error(
-        `${command} ${args.join(" ")} failed (${result.status ?? "signal"})\n${result.stdout}\n${result.stderr}`,
-      );
-    }
   }
 }
 

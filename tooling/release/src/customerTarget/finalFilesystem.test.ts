@@ -1,4 +1,5 @@
-import { execFileSync, spawnSync } from "node:child_process";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
@@ -16,33 +17,38 @@ import {
   runFinalCustomerCompileGates,
 } from "./finalFilesystem.test-support.js";
 
+const execFileAsync = promisify(execFile);
 const repositoryRoot = resolve(
   dirname(fileURLToPath(import.meta.url)),
   "../../../..",
 );
 
 describe("final materialized customer filesystem", () => {
-  it("audits the real disposable final target, not preview writes", () => {
+  it("audits the real disposable final target, not preview writes", async () => {
     const parent = mkdtempSync(join(tmpdir(), "maestro-final-filesystem-"));
     try {
       const releaseRoot = join(parent, "release");
       const targetRoot = join(parent, "customer-app");
-      execFileSync(
-        "git",
-        ["clone", "--quiet", "--shared", repositoryRoot, releaseRoot],
-        { stdio: "pipe" },
-      );
-      execFileSync(
-        "git",
-        ["-C", releaseRoot, "tag", "maestro-template-v0.2.0-alpha.1", "HEAD"],
-        { stdio: "pipe" },
-      );
-      execFileSync(
+      await execFileAsync("git", [
+        "clone",
+        "--quiet",
+        "--shared",
+        repositoryRoot,
+        releaseRoot,
+      ]);
+      await execFileAsync("git", [
+        "-C",
+        releaseRoot,
+        "tag",
+        "maestro-template-v0.2.0-alpha.1",
+        "HEAD",
+      ]);
+      await execFileAsync(
         "pnpm",
         ["install", "--offline", "--frozen-lockfile", "--ignore-scripts"],
-        { cwd: releaseRoot, stdio: "pipe" },
+        { cwd: releaseRoot, maxBuffer: 10 * 1024 * 1024 },
       );
-      const result = spawnSync(
+      await execFileAsync(
         "pnpm",
         [
           "maestro",
@@ -63,7 +69,6 @@ describe("final materialized customer filesystem", () => {
           maxBuffer: 10 * 1024 * 1024,
         },
       );
-      expect(result.status, `${result.stdout}\n${result.stderr}`).toBe(0);
       const tree = enumerateFinalCustomerTree(targetRoot);
       assertNoPathEscape(tree.root, tree.files);
       expect(tree.files).not.toContain(
@@ -77,7 +82,7 @@ describe("final materialized customer filesystem", () => {
         ),
       ).toEqual([]);
       assertFinalCustomerFilesystem(tree);
-      runFinalCustomerCompileGates(tree.root);
+      await runFinalCustomerCompileGates(tree.root);
     } finally {
       rmSync(parent, { recursive: true, force: true });
     }
