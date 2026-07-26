@@ -264,10 +264,10 @@ export function createFactoryCliComposition(
         ),
       }),
   });
-  const inspectMutationPreflight = async (
+  const inspectPreflightResult = async (
     repo: AgentPackExecutionContext["repo"],
-  ) => {
-    const result = await executeAgentPackCommand(
+  ) =>
+    executeAgentPackCommand(
       preflight,
       { mode: "fake" },
       {
@@ -276,6 +276,10 @@ export function createFactoryCliComposition(
         repo,
       },
     );
+  const inspectMutationPreflight = async (
+    repo: AgentPackExecutionContext["repo"],
+  ) => {
+    const result = await inspectPreflightResult(repo);
     return result.data === null
       ? {
           fingerprint: "preflight_sha256:unavailable",
@@ -287,6 +291,39 @@ export function createFactoryCliComposition(
           safeToMutate: result.data.safeToMutate,
           cleanWorktree: result.data.facts.repository.dirty === false,
         };
+  };
+  const inspectRecipePreflight = async (
+    repo: AgentPackExecutionContext["repo"],
+  ) => {
+    const result = await inspectPreflightResult(repo);
+    if (result.data === null)
+      return {
+        fingerprint: "recipe_preflight_sha256:unavailable",
+        safeToMutate: false,
+        cleanWorktree: false,
+      };
+    const { facts } = result.data;
+    const stableMutationEvidence = {
+      repo,
+      host: facts.host,
+      prerequisites: { dependencies: facts.prerequisites.dependencies },
+      repository: facts.repository,
+      versionsCompatible: facts.versionsCompatible,
+      versions: facts.versions,
+      workflow: facts.workflow,
+      app: facts.app,
+      environment: projectCompositionEnvironmentFingerprintMaterial(
+        repo,
+        readEnvironment,
+      ),
+    };
+    return {
+      fingerprint: `recipe_preflight_${sha256RecipeBytes(
+        JSON.stringify(stableMutationEvidence),
+      )}`,
+      safeToMutate: result.data.safeToMutate,
+      cleanWorktree: facts.repository.dirty === false,
+    };
   };
   const scaffold = createScaffoldCommand({
     generators: {
@@ -379,7 +416,7 @@ export function createFactoryCliComposition(
         }
       },
     },
-    preflight: { inspect: inspectMutationPreflight },
+    preflight: { inspect: inspectRecipePreflight },
     transaction: createNodeRecipeTransaction(),
   };
   const recipeHandlers = createRecipeCliHandlers({

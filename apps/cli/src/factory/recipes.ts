@@ -9,7 +9,7 @@ import { cliSuccess } from "../result";
 import { runAgentPackCommandAsCli, type FactoryCliRenderMode } from "./router";
 
 export const ADD_HELP =
-  "maestro add <outcome-or-recipe> [--answer <question>=<value>] [--write --privacy-reviewed --plan-fingerprint <recipe_plan_sha256:...> --preflight-fingerprint <preflight_sha256:...>] [--human|--details|--json]\n";
+  "maestro add <outcome-or-recipe> [--answer <question>=<value>] [--write --privacy-reviewed --plan-fingerprint <recipe_plan_sha256:...> --preflight-fingerprint <recipe_preflight_sha256:...>] [--human|--details|--json]\n";
 export const RECIPES_HELP =
   "maestro recipes list|show <recipe-id> [--human|--details|--json]\n";
 
