@@ -60,6 +60,10 @@ import {
   compileWorkflowSchedule,
   type WorkflowScheduleOptions,
 } from "./workflowSchedule";
+import {
+  buildWorkflowScheduledCapabilityInvocation,
+  type WorkflowScheduledCapabilityRequest,
+} from "./workflowScheduledCapability";
 
 type CapabilityNodeV2 = Extract<WorkflowNodeV2, { kind: "capability" }>;
 type CapabilityKindV2 = CapabilityNodeV2["functionKind"];
@@ -105,6 +109,19 @@ export type WorkflowV2ActionCapabilityEntry =
     readonly effectContract: WorkflowEffectContract;
     readonly instanceKey: (envelope: WorkflowV2CapabilityEnvelope) => string;
     readonly terminalError?: (error: unknown) => string | undefined;
+    readonly scheduled?: {
+      /** Generated wrapper ref; never the external provider/action ref. */
+      readonly ref: DurableGraphStepRef<"action">;
+      readonly deadlineAt: (input: {
+        readonly envelope: WorkflowV2CapabilityEnvelope & {
+          readonly logicalEffectKey: LogicalEffectKey;
+        };
+        readonly request: Omit<
+          WorkflowScheduledCapabilityRequest,
+          "schemaVersion" | "deadlineAt"
+        >;
+      }) => number;
+    };
     readonly authorization?: {
       readonly kind: "consequential";
       readonly requiredGrants: readonly string[];
@@ -466,7 +483,9 @@ const executeObservedNode = <Result extends Record<string, unknown>>(
       node.functionKind === "action" &&
       capability?.kind === "action" &&
       capability.effectClass === "external",
-    observedAt: input.effectIdentity.occurredAt,
+    ...(!("schedule" in node) || node.schedule === undefined
+      ? { observedAt: input.effectIdentity.occurredAt }
+      : {}),
     order,
     run: () => executeNode(step, input, node, context),
   });
@@ -728,7 +747,7 @@ const capabilityStepOptions = <Result extends Record<string, unknown>>(
   if (node.transaction.kind === "independent") {
     return {
       name: node.stepName,
-      ...scheduledStepOptions(input, node),
+      ...compileScheduledStep(input, node).options,
     };
   }
   assertInlineTransactionPreflight({
@@ -750,7 +769,7 @@ const runActionNode = async <Result extends Record<string, unknown>>(
   entry: WorkflowV2ActionCapabilityEntry,
   envelope: WorkflowV2CapabilityEnvelope,
 ): Promise<unknown> => {
-  const scheduleOptions = scheduledStepOptions(input, node);
+  const compiledSchedule = compileScheduledStep(input, node);
   const authorization = assertExternalAuthorizationBoundary(input, node, entry);
   const validated = validateWorkflowEffectContract(
     entry.effectContract,
@@ -775,6 +794,51 @@ const runActionNode = async <Result extends Record<string, unknown>>(
     stepName: node.stepName,
     instanceKey,
   });
+  const capabilityEnvelope = { ...envelope, logicalEffectKey };
+  const args = entry.buildArgs(capabilityEnvelope);
+  assertCapabilityArgs(node, args);
+  if (
+    validated.right.strategy === "provider-native" &&
+    readArgumentPath(args, validated.right.keyArgumentPath) !== logicalEffectKey
+  ) {
+    throw validationFailure(
+      node,
+      `capability ${node.capability} must map the derived logical effect key at ${validated.right.keyArgumentPath}`,
+    );
+  }
+  let dispatchRef = entry.ref;
+  let dispatchArgs = args;
+  if (compiledSchedule.request !== undefined) {
+    if (entry.scheduled === undefined) {
+      throw validationFailure(
+        node,
+        `scheduled action ${node.capability} requires a generated scheduled wrapper binding`,
+      );
+    }
+    const deadlineAt = entry.scheduled.deadlineAt({
+      envelope: capabilityEnvelope,
+      request: compiledSchedule.request,
+    });
+    try {
+      dispatchArgs = {
+        invocation: buildWorkflowScheduledCapabilityInvocation({
+          requestedAt: compiledSchedule.request.requestedAt,
+          requestedSchedule: compiledSchedule.request.requestedSchedule,
+          deadlineAt,
+          principal: input.principal,
+          policySnapshot: input.policySnapshot,
+          delegateArgs: args,
+        }),
+      };
+    } catch (error) {
+      throw validationFailure(
+        node,
+        error instanceof Error ? error.message : "invalid scheduled wrapper",
+      );
+    }
+    assertCapabilityArgs(node, dispatchArgs);
+    dispatchRef = entry.scheduled.ref;
+  }
   if (authorization) {
     await reauthorizeExternalAction(step, input, node, authorization);
   }
@@ -842,27 +906,16 @@ const runActionNode = async <Result extends Record<string, unknown>>(
       `capability ${node.capability} cannot replay without an exact provider-key contract`,
     );
   }
-  const args = entry.buildArgs({ ...envelope, logicalEffectKey });
-  assertCapabilityArgs(node, args);
-  if (
-    validated.right.strategy === "provider-native" &&
-    readArgumentPath(args, validated.right.keyArgumentPath) !== logicalEffectKey
-  ) {
-    throw validationFailure(
-      node,
-      `capability ${node.capability} must map the derived logical effect key at ${validated.right.keyArgumentPath}`,
-    );
-  }
   const options = {
     name: node.stepName,
     retry:
       validated.right.strategy === "non-retriable" || node.retry === undefined
         ? false
         : node.retry,
-    ...scheduleOptions,
+    ...compiledSchedule.options,
   } as const;
   try {
-    const result = await step.runAction(entry.ref, args, options);
+    const result = await step.runAction(dispatchRef, dispatchArgs, options);
     return assertCapabilityResult(node, result);
   } catch (error) {
     const terminalMessage = entry.terminalError?.(error);
@@ -873,22 +926,41 @@ const runActionNode = async <Result extends Record<string, unknown>>(
   }
 };
 
-const scheduledStepOptions = <Result extends Record<string, unknown>>(
+type CompiledScheduledStep = {
+  readonly options:
+    WorkflowScheduleOptions | DurableGraphUnscheduledStepOptions;
+  readonly request?: Omit<
+    WorkflowScheduledCapabilityRequest,
+    "schemaVersion" | "deadlineAt"
+  >;
+};
+const compileScheduledStep = <Result extends Record<string, unknown>>(
   input: RunDurableGraphV2CompilerInput<Result>,
   node: WorkflowNodeV2,
-): WorkflowScheduleOptions | DurableGraphUnscheduledStepOptions => {
-  if (!("schedule" in node) || node.schedule === undefined) return {};
-  const result = compileWorkflowSchedule(
-    node.schedule,
-    input.scheduleNowMs?.() ?? Date.now(),
-  );
+): CompiledScheduledStep => {
+  if (!("schedule" in node) || node.schedule === undefined) {
+    return { options: {} };
+  }
+  const requestedAt = input.scheduleNowMs?.() ?? Date.now();
+  const result = compileWorkflowSchedule(node.schedule, requestedAt);
   if (Either.isLeft(result)) {
     throw validationFailure(
       node,
       `${result.left.code}: ${result.left.message}`,
     );
   }
-  return result.right;
+  const requestedStartAt =
+    node.schedule.kind === "runAt"
+      ? node.schedule.timestamp
+      : requestedAt + node.schedule.delayMs;
+  return {
+    options: result.right,
+    request: {
+      requestedAt,
+      requestedSchedule: node.schedule,
+      requestedStartAt,
+    },
+  };
 };
 
 const assertExternalAuthorizationBoundary = <

@@ -2232,19 +2232,34 @@ describe("Maestro V2 inline transaction compiler", () => {
   it("combines action retry posture with exactly one schedule option", async () => {
     const actionRef =
       "compiler.v2.action" as unknown as DurableGraphStepRef<"action">;
+    const scheduledWrapperRef =
+      "compiler.v2.action.scheduled" as unknown as DurableGraphStepRef<"action">;
+    const recordStageStarted = "stage.started" as never;
+    const recordStageFinished = "stage.finished" as never;
     const runAction = vi.fn(async () => ({ accepted: true }));
+    const runMutation = vi.fn(
+      async (...args: [unknown, Record<string, unknown>]) => {
+        void args;
+        return null;
+      },
+    );
     const graph = v2CapabilityGraph("action", undefined, {
       kind: "runAfter",
       delayMs: 250,
     });
 
-    await runDurableGraphWorkflowV2(v2Step({ runAction }), {
+    await runDurableGraphWorkflowV2(v2Step({ runAction, runMutation }), {
       ...v2ExternalInput(graph),
       scheduleNowMs: () => 1_000,
+      observability: { recordStageStarted, recordStageFinished },
       capabilityRegistry: {
         [capabilityRef]: {
           kind: "action",
           ref: actionRef,
+          scheduled: {
+            ref: scheduledWrapperRef,
+            deadlineAt: () => 2_000,
+          },
           effectClass: "external",
           authorization: externalAuthorization,
           effectContract: nonRetriableContract,
@@ -2256,14 +2271,62 @@ describe("Maestro V2 inline transaction compiler", () => {
     });
 
     expect(runAction).toHaveBeenCalledWith(
-      actionRef,
-      {},
+      scheduledWrapperRef,
+      {
+        invocation: {
+          request: {
+            schemaVersion: 1,
+            requestedAt: 1_000,
+            requestedSchedule: { kind: "runAfter", delayMs: 250 },
+            requestedStartAt: 1_250,
+            deadlineAt: 2_000,
+          },
+          authority: {
+            principal: v2ExternalInput(graph).principal,
+            policySnapshot: childPolicySnapshot,
+          },
+          delegateArgs: {},
+        },
+      },
       {
         name: "charge.v2",
         retry: false,
         runAfter: 250,
       },
     );
+    const started = runMutation.mock.calls.find(
+      ([ref, args]) => ref === recordStageStarted && args.nodeId === "charge",
+    );
+    expect(started?.[1]).not.toHaveProperty("observedAt");
+  });
+
+  it("rejects a scheduled action without a generated wrapper before effect admission", async () => {
+    const runAction = vi.fn(async () => ({ unreachable: true }));
+    const admitEffect = vi.fn(async () => ({ kind: "dispatch" as const }));
+    const graph = v2CapabilityGraph("action", undefined, {
+      kind: "runAfter",
+      delayMs: 250,
+    });
+    await expect(
+      runDurableGraphWorkflowV2(v2Step({ runAction }), {
+        ...v2ExternalInput(graph),
+        scheduleNowMs: () => 1_000,
+        capabilityRegistry: {
+          [capabilityRef]: {
+            kind: "action",
+            ref: "compiler.v2.action" as unknown as DurableGraphStepRef<"action">,
+            effectClass: "external",
+            authorization: externalAuthorization,
+            effectContract: nonRetriableContract,
+            instanceKey: () => "invoice-42",
+            buildArgs: () => ({}),
+          },
+        },
+        admitEffect,
+      }),
+    ).rejects.toThrow(/requires a generated scheduled wrapper binding/);
+    expect(admitEffect).not.toHaveBeenCalled();
+    expect(runAction).not.toHaveBeenCalled();
   });
 
   it("rejects a past runAt before capability dispatch", async () => {
