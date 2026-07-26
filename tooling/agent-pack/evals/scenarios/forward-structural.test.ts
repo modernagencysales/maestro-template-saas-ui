@@ -72,9 +72,55 @@ describe("forward structural ABI", () => {
         "/repo",
       ),
     ).toEqual({ mode: "forward-structural", candidateSha });
+    expect(
+      parseCliOptions(
+        [
+          "--suite",
+          "forward",
+          "--host",
+          "claude",
+          "--candidate-sha",
+          candidateSha,
+        ],
+        "/repo",
+      ),
+    ).toMatchObject({
+      mode: "forward-run",
+      options: { host: "claude", candidateSha },
+    });
+    expect(
+      parseCliOptions(
+        [
+          "--suite",
+          "forward",
+          "--aggregate",
+          "--run-ids",
+          "claude-1,claude-2,codex-1,codex-2",
+          "--candidate-sha",
+          candidateSha,
+        ],
+        "/repo",
+      ),
+    ).toMatchObject({
+      mode: "forward-aggregate",
+      candidateSha,
+      runIds: ["claude-1", "claude-2", "codex-1", "codex-2"],
+    });
     expect(() =>
-      parseCliOptions(["--suite", "forward", "--host", "claude"], "/repo"),
-    ).toThrow("--suite forward requires --structural");
+      parseCliOptions(
+        [
+          "--suite",
+          "forward",
+          "--host",
+          "claude",
+          "--product-name",
+          "unsupported",
+          "--candidate-sha",
+          candidateSha,
+        ],
+        "/repo",
+      ),
+    ).toThrow("--product-name is not allowed in forward run mode");
   });
 
   it("publishes the exact frozen scenario catalog", () => {

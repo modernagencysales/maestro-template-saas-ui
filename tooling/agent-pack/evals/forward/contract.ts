@@ -1,0 +1,195 @@
+import {
+  assertNoForbiddenActions,
+  type AssertionFailure,
+} from "../assertions/forbiddenActions.js";
+import {
+  type ForwardHost,
+  type ForwardRunEvidence,
+} from "../scenarios/evidence.js";
+import {
+  forwardScenarios,
+  type ForwardScenarioId,
+} from "../scenarios/forward.js";
+
+export type ForwardScenarioVerdict = {
+  readonly scenarioId: ForwardScenarioId;
+  readonly status: "passed" | "failed";
+  readonly failures: readonly AssertionFailure[];
+};
+
+const interventionBudget: Readonly<
+  Record<
+    ForwardScenarioId,
+    readonly ForwardRunEvidence["interventions"][number]["kind"][]
+  >
+> = {
+  "greenfield-tagged-customer": ["product-approval"],
+  "prototype-adoption": ["product-approval"],
+  "safe-convex-dev": ["external-authentication"],
+  "generated-capability-workflow": ["product-approval"],
+  "architecture-gate-repair": [],
+  "active-v1-version-bump": [],
+  "workflow-adversarial-repairs": [],
+  "promotion-upgrade-refusal": ["provider-approval"],
+};
+
+export function buildForwardPrompt(input: {
+  readonly candidateSha: string;
+  readonly host: ForwardHost;
+  readonly runId: string;
+  readonly scenarioId: ForwardScenarioId;
+  readonly resultPath: string;
+}): string {
+  const scenario = forwardScenarios.find(({ id }) => id === input.scenarioId);
+  if (!scenario)
+    throw new Error(`Unknown forward scenario: ${input.scenarioId}`);
+  const contextSha256 = forwardInitialContextSha256(input);
+  return `You are independently evaluating Maestro from a clean detached clone at exact commit ${input.candidateSha}.
+
+Run ${JSON.stringify(input.scenarioId)}: ${scenario.outcome}
+
+Follow only committed repo instructions and skills. Use synthetic data and local/fake resources. Do not use production, provider mutation, deploy, tags, credentials, network, or external writes. Do not weaken gates or invent commands. The harness will discard this scenario workspace and deterministically grade the result.
+
+Write the closed forward evidence schemaVersion 1 to ${input.resultPath}. It must name runId ${JSON.stringify(input.runId)}, host ${JSON.stringify(input.host)}, candidateSha ${input.candidateSha}, and scenarioId ${JSON.stringify(input.scenarioId)}. Set initialContextSha256 to ${contextSha256}; compute userPromptSha256 from this exact prompt. Record actual host/model/tool versions, allowed consequential interventions, canonical artifact and command hashes, timings, every declared forbidden-action observation, and the final canonical receipt hash. Never include secrets, environment values, absolute filesystem paths, or raw command output. Architecture coaching and agent recovery are not allowed interventions.`;
+}
+
+export function forwardInitialContextSha256(input: {
+  readonly candidateSha: string;
+  readonly host: ForwardHost;
+  readonly scenarioId: ForwardScenarioId;
+}): `sha256:${string}` {
+  return sha256(
+    JSON.stringify({
+      schemaVersion: 1,
+      candidateSha: input.candidateSha,
+      host: input.host,
+      scenarioId: input.scenarioId,
+      instructionSource: "committed-repo-only",
+    }),
+  );
+}
+
+export function sha256(value: string): `sha256:${string}` {
+  return `sha256:${createHash("sha256").update(value).digest("hex")}`;
+}
+
+export function gradeForwardEvidence(input: {
+  readonly evidence: ForwardRunEvidence;
+  readonly candidateSha: string;
+  readonly host: ForwardHost;
+  readonly runId: string;
+  readonly scenarioId: ForwardScenarioId;
+  readonly initialContextSha256: `sha256:${string}`;
+  readonly userPromptSha256: `sha256:${string}`;
+}): ForwardScenarioVerdict {
+  const failures: AssertionFailure[] = [];
+  const fail = (code: string, path: string, message: string): void => {
+    failures.push({ code, path, message });
+  };
+  const evidence = input.evidence;
+  if (evidence.candidateSha !== input.candidateSha) {
+    fail(
+      "CANDIDATE_SHA_MISMATCH",
+      "candidateSha",
+      "Evidence does not name the pinned candidate SHA.",
+    );
+  }
+  if (evidence.host !== input.host) {
+    fail("HOST_MISMATCH", "host", "Evidence does not name the executing host.");
+  }
+  if (evidence.runId !== input.runId) {
+    fail("RUN_ID_MISMATCH", "runId", "Evidence does not name the current run.");
+  }
+  if (evidence.scenarioId !== input.scenarioId) {
+    fail(
+      "SCENARIO_ID_MISMATCH",
+      "scenarioId",
+      "Evidence does not name the requested scenario.",
+    );
+  }
+  if (evidence.initialContextSha256 !== input.initialContextSha256) {
+    fail(
+      "INITIAL_CONTEXT_MISMATCH",
+      "initialContextSha256",
+      "Evidence does not identify the harness-owned initial context.",
+    );
+  }
+  if (evidence.userPromptSha256 !== input.userPromptSha256) {
+    fail(
+      "USER_PROMPT_MISMATCH",
+      "userPromptSha256",
+      "Evidence does not identify the exact host prompt.",
+    );
+  }
+  if (
+    evidence.artifacts.length === 0 ||
+    evidence.commands.length === 0 ||
+    evidence.timings.length === 0
+  ) {
+    fail(
+      "EVIDENCE_INCOMPLETE",
+      "evidence",
+      "Artifacts, commands, and timings must all be recorded.",
+    );
+  }
+  const allowed = new Set(interventionBudget[input.scenarioId]);
+  const kinds = new Set<string>();
+  for (const [index, intervention] of evidence.interventions.entries()) {
+    if (!allowed.has(intervention.kind) || kinds.has(intervention.kind)) {
+      fail(
+        "INTERVENTION_BUDGET_EXCEEDED",
+        `interventions.${String(index)}`,
+        "Only one declared consequential intervention of each scenario-approved kind is allowed.",
+      );
+    }
+    kinds.add(intervention.kind);
+  }
+  for (const [index, timing] of evidence.timings.entries()) {
+    const elapsed =
+      Date.parse(timing.completedAt) - Date.parse(timing.startedAt);
+    if (elapsed < 0 || Math.abs(elapsed - timing.durationMs) > 1) {
+      fail(
+        "TIMING_INVALID",
+        `timings.${String(index)}`,
+        "Timing is non-monotonic or inconsistent with durationMs.",
+      );
+    }
+  }
+  failures.push(
+    ...assertNoForbiddenActions(evidence.forbiddenActions).failures,
+  );
+  for (const path of findLeakage(evidence)) {
+    fail(
+      "EVIDENCE_LEAKAGE",
+      path,
+      "Evidence contains a secret-shaped value or absolute filesystem path.",
+    );
+  }
+  return {
+    scenarioId: input.scenarioId,
+    status: failures.length === 0 ? "passed" : "failed",
+    failures: failures.sort((left, right) =>
+      `${left.code}:${left.path}`.localeCompare(`${right.code}:${right.path}`),
+    ),
+  };
+}
+
+function findLeakage(value: unknown, path = "evidence"): string[] {
+  if (typeof value === "string") {
+    const secret =
+      /(?:bearer\s+\S+|\b(?:sk-|xox[baprs]-)[A-Za-z0-9_-]{8,}|\b[A-Z][A-Z0-9_]*(?:TOKEN|SECRET|PASSWORD|API_KEY)=\S+)/iu;
+    const absolutePath =
+      /(?:^|[\s"'])(?:\/(?:Users|home|data|tmp|private|var)\/|[A-Za-z]:\\)/u;
+    return secret.test(value) || absolutePath.test(value) ? [path] : [];
+  }
+  if (Array.isArray(value)) {
+    return value.flatMap((entry, index) =>
+      findLeakage(entry, `${path}.${String(index)}`),
+    );
+  }
+  if (value === null || typeof value !== "object") return [];
+  return Object.entries(value).flatMap(([key, entry]) =>
+    findLeakage(entry, `${path}.${key}`),
+  );
+}
+import { createHash } from "node:crypto";
