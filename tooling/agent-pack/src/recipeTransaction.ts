@@ -154,16 +154,18 @@ function applyRecipeTransaction(
       authority.targetRoot,
       authority.fingerprint,
     );
-    const createdDirectories: string[] = [];
+    const filesystemCreatedDirectories: string[] = [];
     ensureDirectory(
       authority.targetRoot,
       ".maestro/recipe-transactions",
-      createdDirectories,
+      filesystemCreatedDirectories,
     );
     if (!existsSync(planRoot)) {
       mkdirSync(planRoot);
       fsyncDirectory(dirname(planRoot));
-      createdDirectories.push(relative(authority.targetRoot, planRoot));
+      filesystemCreatedDirectories.push(
+        relative(authority.targetRoot, planRoot),
+      );
     } else assertDirectory(planRoot, "Recipe transaction plan root");
     const attemptNumber = nextAttemptNumber(planRoot);
     const transactionRoot = containedPath(
@@ -172,7 +174,9 @@ function applyRecipeTransaction(
     );
     mkdirSync(transactionRoot);
     fsyncDirectory(planRoot);
-    createdDirectories.push(relative(authority.targetRoot, transactionRoot));
+    filesystemCreatedDirectories.push(
+      relative(authority.targetRoot, transactionRoot),
+    );
     const stageRoot = join(transactionRoot, "stage");
     const backupRoot = join(transactionRoot, "backup");
     mkdirSync(stageRoot);
@@ -212,7 +216,7 @@ function applyRecipeTransaction(
       preflightFingerprint: request.preflightFingerprint,
       answersSha256: request.answersSha256,
       operations,
-      createdDirectories,
+      createdDirectories: canonicalCleanupDirectories(request.plan.operations),
     });
     durableJson(journalPath, journal);
     journal = transition(journalPath, journal, { status: "applying" });
@@ -255,14 +259,13 @@ function applyRecipeTransaction(
         ensureOperationParent(
           authority.targetRoot,
           dirname(target),
-          createdDirectories,
+          filesystemCreatedDirectories,
         );
         journal = transitionOperation(
           journalPath,
           journal,
           index,
           "install-pending",
-          createdDirectories,
         );
         renameSync(staged, target);
         fsyncDirectory(dirname(staged));
@@ -517,6 +520,16 @@ function validateJournalAuthority(
   }
   for (const path of journal.createdDirectories)
     validateDirectoryPath(authority.targetRoot, path);
+  const expectedCleanupDirectories = canonicalCleanupDirectories(
+    request.plan.operations,
+  );
+  if (
+    JSON.stringify(journal.createdDirectories) !==
+    JSON.stringify(expectedCleanupDirectories)
+  )
+    throw new Error(
+      "Recipe transaction journal cleanup directory authority does not match the reviewed plan.",
+    );
 }
 
 function readAuthenticatedJournal(path: string): Journal {
@@ -599,15 +612,29 @@ function transitionOperation(
   journal: Journal,
   index: number,
   state: OperationState,
-  createdDirectories: readonly string[] = journal.createdDirectories,
 ): Journal {
   const operations = journal.operations.map((operation, operationIndex) =>
     operationIndex === index ? { ...operation, state } : operation,
   );
   const unsigned = unsignedJournal(journal);
-  const next = signJournal({ ...unsigned, operations, createdDirectories });
+  const next = signJournal({ ...unsigned, operations });
   durableJson(path, next);
   return next;
+}
+
+function canonicalCleanupDirectories(
+  operations: readonly { readonly path: string }[],
+): readonly string[] {
+  const directories = new Set<string>();
+  for (const operation of operations) {
+    const parts = operation.path.split(/[\\/]/u);
+    for (let length = 1; length < parts.length; length += 1)
+      directories.add(parts.slice(0, length).join("/"));
+  }
+  return [...directories].sort((left, right) => {
+    const depth = left.split("/").length - right.split("/").length;
+    return depth === 0 ? left.localeCompare(right) : depth;
+  });
 }
 
 function unsignedJournal(journal: Journal): UnsignedJournal {

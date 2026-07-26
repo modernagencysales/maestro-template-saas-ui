@@ -86,6 +86,20 @@ const planRoot = (value: ReturnType<typeof fixture>) =>
   );
 const attemptRoot = (value: ReturnType<typeof fixture>, number = 1) =>
   join(planRoot(value), `attempt-${String(number).padStart(4, "0")}`);
+const rewriteCleanupAuthority = (
+  value: ReturnType<typeof fixture>,
+  mutate: (directories: string[]) => string[],
+) => {
+  const journalPath = join(attemptRoot(value), "transaction.json");
+  const journal = JSON.parse(readFileSync(journalPath, "utf8")) as Record<
+    string,
+    unknown
+  > & { createdDirectories: string[] };
+  journal.createdDirectories = mutate([...journal.createdDirectories]);
+  delete journal.journalDigest;
+  journal.journalDigest = sha256RecipeBytes(JSON.stringify(journal));
+  writeFileSync(journalPath, `${JSON.stringify(journal, null, 2)}\n`);
+};
 
 describe("atomic recipe transaction", () => {
   it("applies replacements and creates in one journaled receipt", async () => {
@@ -234,6 +248,56 @@ describe("atomic recipe transaction", () => {
       message: expect.stringMatching(/symlink|not a regular file/),
     });
   });
+
+  it.each([
+    {
+      name: "an unrelated in-target directory",
+      mutate: (directories: string[]) => [...directories, "unrelated-empty"],
+    },
+    {
+      name: "reordered entries",
+      mutate: (directories: string[]) => directories.reverse(),
+    },
+    {
+      name: "a duplicate entry",
+      mutate: (directories: string[]) => {
+        const [first] = directories;
+        return first === undefined ? directories : [first, ...directories];
+      },
+    },
+    {
+      name: "an unreviewed parent entry",
+      mutate: (directories: string[]) => [".maestro", ...directories],
+    },
+  ])(
+    "rejects recomputed-digest cleanup authority with $name before mutation",
+    async ({ mutate }) => {
+      const value = fixture();
+      const unrelated = join(value.root, "unrelated-empty");
+      const untouched = join(value.root, "untouched.txt");
+      mkdirSync(unrelated);
+      writeFileSync(untouched, "untouched bytes\n");
+      await createNodeRecipeTransaction({
+        crashAt: "after-install-rename-before-journal",
+      }).apply(value.request);
+      const partialTargetBytes = readFileSync(
+        join(value.root, "catalog/data.json"),
+      );
+      const untouchedBytes = readFileSync(untouched);
+
+      rewriteCleanupAuthority(value, mutate);
+
+      expect(recoverRecipeTransaction(value.request)).toMatchObject({
+        ok: false,
+        message: expect.stringMatching(/cleanup directory authority/),
+      });
+      expect(readFileSync(join(value.root, "catalog/data.json"))).toEqual(
+        partialTargetBytes,
+      );
+      expect(readFileSync(untouched)).toEqual(untouchedBytes);
+      expect(readdirSync(unrelated)).toEqual([]);
+    },
+  );
 
   it("fails closed on target drift, replay, and symlink traversal", async () => {
     const drift = fixture();
