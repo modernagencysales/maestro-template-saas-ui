@@ -560,6 +560,9 @@ importers:
 
   tooling/generators:
     dependencies:
+      "@maestro-template/release-tooling":
+        specifier: workspace:*
+        version: link:../release
       "@maestro-template/template-core":
         specifier: workspace:*
         version: link:../../packages/template-core
@@ -573,6 +576,11 @@ importers:
         version: link:../../packages/template-core
 
   tooling/release:
+    dependencies:
+      "@maestro-template/app-map-tooling":
+        specifier: workspace:*
+        version: link:../app-map
+
     devDependencies:
       ajv:
         specifier: 8.18.0
