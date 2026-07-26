@@ -216,6 +216,8 @@ export function createHostAdapter(
                 "mcp_servers={}",
                 "-c",
                 "sandbox_workspace_write.network_access=true",
+                "-c",
+                'model_reasoning_effort="medium"',
                 ...(codexTransport ? codexTransportArgs(codexTransport) : []),
                 "--json",
                 "--sandbox",

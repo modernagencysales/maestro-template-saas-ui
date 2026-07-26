@@ -81,6 +81,7 @@ describe("walking-skeleton fail-closed evidence", () => {
         "--ignore-rules",
         "mcp_servers={}",
         "sandbox_workspace_write.network_access=true",
+        'model_reasoning_effort="medium"',
       ]),
     );
     expect(
@@ -115,6 +116,8 @@ describe("walking-skeleton fail-closed evidence", () => {
       "mcp_servers={}",
       "-c",
       "sandbox_workspace_write.network_access=true",
+      "-c",
+      'model_reasoning_effort="medium"',
       "--json",
       "--sandbox",
       "workspace-write",
@@ -178,6 +181,8 @@ describe("walking-skeleton fail-closed evidence", () => {
       "mcp_servers={}",
       "-c",
       "sandbox_workspace_write.network_access=true",
+      "-c",
+      'model_reasoning_effort="medium"',
       "-c",
       'model="gpt-5.6-sol"',
       "-c",
