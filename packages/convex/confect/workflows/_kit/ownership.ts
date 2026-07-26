@@ -9,6 +9,7 @@ import {
 } from "convex/server";
 import type { GenericId, Value } from "convex/values";
 import type * as Context from "effect/Context";
+import * as Data from "effect/Data";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
 
@@ -52,6 +53,9 @@ type ExistingWorkflowRun = {
 const scheduleDeadlineRef = makeFunctionReference<"mutation">(
   "workflows/deadlinesCurrent:schedule",
 );
+class AdmissionComponentMutationFailed extends Data.TaggedError(
+  "AdmissionComponentMutationFailed",
+)<{ readonly cause: unknown }> {}
 
 export type WorkflowRunReservationInput = Pick<
   StartWorkflowOwnershipInput<FunctionReference<"mutation", "internal">>,
@@ -678,14 +682,16 @@ const runAdmissionComponentMutation = (
         reference,
         args,
       ),
-    catch: (error) => error,
+    catch: (error) => new AdmissionComponentMutationFailed({ cause: error }),
   });
 
 export const decodeAdmissionError = (error: unknown): unknown => {
+  const cause =
+    error instanceof AdmissionComponentMutationFailed ? error.cause : error;
   const data =
-    typeof error === "object" && error !== null && "data" in error
-      ? (error as { data: unknown }).data
-      : error;
+    typeof cause === "object" && cause !== null && "data" in cause
+      ? (cause as { data: unknown }).data
+      : cause;
   if (
     typeof data === "object" &&
     data !== null &&
@@ -796,15 +802,13 @@ export const recordStartedWorkflow = (
   componentWorkflowId: WorkflowId,
   kickoffProfile: "eager-first-poll" | "queued",
 ) =>
-  Effect.gen(function* () {
-    yield* writer
-      .table("workflowRuns")
-      .patch(reservationId, {
-        ...(kickoffProfile === "eager-first-poll" ? { status: "running" } : {}),
-        componentWorkflowId,
-      })
-      .pipe(Effect.orDie);
-  });
+  writer
+    .table("workflowRuns")
+    .patch(reservationId, {
+      ...(kickoffProfile === "eager-first-poll" ? { status: "running" } : {}),
+      componentWorkflowId,
+    })
+    .pipe(Effect.orDie);
 
 export const recordWorkflowAdmissionStatus = (
   writer: Writer,
@@ -812,9 +816,7 @@ export const recordWorkflowAdmissionStatus = (
   status:
     "queued" | "running" | "completed" | "failed" | "canceled" | "timedOut",
 ) =>
-  Effect.gen(function* () {
-    yield* writer
-      .table("workflowRuns")
-      .patch(workflowRunId, { status })
-      .pipe(Effect.orDie);
-  });
+  writer
+    .table("workflowRuns")
+    .patch(workflowRunId, { status })
+    .pipe(Effect.orDie);
