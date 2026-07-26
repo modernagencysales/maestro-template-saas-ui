@@ -13,5 +13,5 @@
     "types": ["node", "vitest/globals"]
   },
   "include": ["src/**/*.ts", "evals/**/*.ts"],
-  "exclude": ["**/*.test.ts"]
+  "exclude": ["**/*.test.ts", "evals/runs/**"]
 }
