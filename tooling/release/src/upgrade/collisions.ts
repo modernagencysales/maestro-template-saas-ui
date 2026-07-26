@@ -59,23 +59,23 @@ export const analyzeUpgradeSafety = (
 } => {
   const resolutions: UpgradeResolution[] = [];
   const files = new Map(target.files.map((file) => [file.path, file]));
-  const moveSources = new Map<string, UpgradeOperationV1[]>();
-  const destinations = new Map<string, UpgradeOperationV1[]>();
+  const pathParticipation = new Map<string, UpgradeOperationV1[]>();
 
-  for (const operation of manifest.operations) {
-    destinations.set(operation.path, [
-      ...(destinations.get(operation.path) ?? []),
+  const participate = (path: string, operation: UpgradeOperationV1): void => {
+    pathParticipation.set(path, [
+      ...(pathParticipation.get(path) ?? []),
       operation,
     ]);
+  };
+
+  for (const operation of manifest.operations) {
+    participate(operation.path, operation);
     if (operation.kind === "move" && operation.fromPath) {
-      moveSources.set(operation.fromPath, [
-        ...(moveSources.get(operation.fromPath) ?? []),
-        operation,
-      ]);
+      participate(operation.fromPath, operation);
     }
   }
 
-  for (const [path, operations] of [...moveSources, ...destinations]) {
+  for (const [path, operations] of pathParticipation) {
     if (operations.length < 2) continue;
     for (const operation of operations) {
       resolutions.push(

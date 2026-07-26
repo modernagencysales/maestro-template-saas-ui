@@ -22,11 +22,19 @@ const text = (value: unknown): value is string =>
   value === value.normalize("NFC");
 const digest = (value: unknown): value is string =>
   typeof value === "string" && /^sha256:[0-9a-f]{64}$/u.test(value);
+const containsControlCharacter = (value: string): boolean =>
+  [...value].some((character) => {
+    const codePoint = character.codePointAt(0) ?? 0;
+    return codePoint <= 31 || codePoint === 127;
+  });
 const safePath = (value: unknown): value is string =>
   text(value) &&
   !value.startsWith("/") &&
   !value.includes("\\") &&
-  value.split("/").every((part) => part !== "." && part !== "..");
+  !containsControlCharacter(value) &&
+  value
+    .split("/")
+    .every((part) => part.length > 0 && part !== "." && part !== "..");
 const onlyKeys = (
   value: Record<string, unknown>,
   keys: readonly string[],

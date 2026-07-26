@@ -104,6 +104,62 @@ describe("read-only upgrade planning", () => {
     );
   });
 
+  it("rejects a move source reused by another operation without mutating input", () => {
+    const input = fixture();
+    const move = input.manifest.operations.find(({ kind }) => kind === "move");
+    expect(move?.fromPath).toBeDefined();
+    if (!move?.fromPath || !move.beforeHash || !move.afterHash) return;
+    const candidate = {
+      ...input,
+      manifest: {
+        ...input.manifest,
+        operations: [
+          ...input.manifest.operations,
+          {
+            id: "modify-move-source",
+            kind: "modify",
+            path: move.fromPath,
+            ownership: "template-owned",
+            beforeHash: move.beforeHash,
+            afterHash: move.afterHash,
+          },
+        ],
+      },
+    };
+    const before = JSON.stringify(candidate);
+    expect(codes(candidate)).toContain("UPGRADE_MOVE_AMBIGUOUS");
+    expect(JSON.stringify(candidate)).toBe(before);
+  });
+
+  it.each([
+    "alias//path.ts",
+    "alias/path.ts/",
+    "alias/./path.ts",
+    "alias/../path.ts",
+    "alias/control\u0000path.ts",
+  ])("rejects noncanonical path alias %j without mutating input", (path) => {
+    const input = fixture();
+    const candidate = {
+      ...input,
+      manifest: {
+        ...input.manifest,
+        operations: [
+          ...input.manifest.operations,
+          {
+            id: "aliased-add",
+            kind: "add",
+            path,
+            ownership: "template-owned",
+            afterHash: `sha256:${"4".repeat(64)}`,
+          },
+        ],
+      },
+    };
+    const before = JSON.stringify(candidate);
+    expect(codes(candidate)).toEqual(["UPGRADE_INPUT_INVALID"]);
+    expect(JSON.stringify(candidate)).toBe(before);
+  });
+
   it.each([
     ["manual-review", "UPGRADE_MANUAL_REVIEW"],
     ["data-migration", "UPGRADE_DATA_MIGRATION"],
