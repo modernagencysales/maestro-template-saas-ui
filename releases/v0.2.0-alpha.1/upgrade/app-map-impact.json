@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "kind": "reviewed-upgrade-impact-coverage",
   "baseRevision": "517b5bc28d1d633bef18f57610cff49800123788",
-  "subjectRevision": "cc152114d40996a3ea0e949b3c2c0fa5e3d918c7",
+  "subjectRevision": "d14f983de46f9f06ef44177168fca24492abaa19",
   "structuralPaths": [
     "docs/template/data-resources.json",
     "docs/template/generated/provenance/add-table/workflowArtifacts.json",
@@ -122,6 +122,7 @@
     "packages/convex/confect/deployAuthority/store.ts",
     "packages/convex/confect/http.ts",
     "packages/convex/confect/ops/dataResources.generated.ts",
+    "packages/convex/confect/shared/env.ts",
     "packages/convex/confect/tables/deployActionConsumptions.ts",
     "packages/convex/confect/tables/deployApprovals.ts",
     "packages/convex/confect/tables/deployAuthorityIssuers.ts",
@@ -498,7 +499,7 @@
   "impact": {
     "schemaVersion": 1,
     "baseRevision": "517b5bc28d1d633bef18f57610cff49800123788",
-    "subjectRevision": "cc152114d40996a3ea0e949b3c2c0fa5e3d918c7",
+    "subjectRevision": "d14f983de46f9f06ef44177168fca24492abaa19",
     "complete": true,
     "risk": "high",
     "changedPaths": [
