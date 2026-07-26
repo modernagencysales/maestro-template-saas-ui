@@ -9,8 +9,8 @@
   "release": {
     "version": "0.2.0-alpha.1",
     "tag": "maestro-template-v0.2.0-alpha.1",
-    "sourceCommit": "3562915a77b887150eaa3eb2e17e36a051872ba6",
-    "sourceChecksum": "sha256:4dc7d363c908e34f67088d8e5b92e032b96957bc170aaf04989d7eb5b784caf7"
+    "sourceCommit": "767900eee6591e71ad91a4965c1ea959953a883e",
+    "sourceChecksum": "sha256:541b9cdf9662279e826b235628a359911f04dd5800e68bc994763e64abe5ace5"
   },
   "upgrade": {
     "schemaVersion": 1,
@@ -2225,7 +2225,7 @@
         "kind": "add",
         "path": "tooling/agent-pack/evals/forward/aggregate.ts",
         "ownership": "template-owned",
-        "afterHash": "sha256:cd9b634972c8802cbece27e83c8f682a8a8008a39b3b33b393b48d11e1fabecb"
+        "afterHash": "sha256:5bc9999cf40d9ae03c5e333788546d4e8db38e8b5d293bc4202f243931be5747"
       },
       {
         "id": "upgrade-add-tooling-agent-pack-evals-forward-contract-ts",
@@ -2253,14 +2253,14 @@
         "kind": "add",
         "path": "tooling/agent-pack/evals/forward/forward-runner.test.ts",
         "ownership": "template-owned",
-        "afterHash": "sha256:9b01a08cd43838d4713cce199ffc74cb90091e370be88e8ea23022757526969b"
+        "afterHash": "sha256:20003f85b2918389f600364cdff557c56df522af487580ee60647c7f3861aedd"
       },
       {
         "id": "upgrade-add-tooling-agent-pack-evals-forward-runner-ts",
         "kind": "add",
         "path": "tooling/agent-pack/evals/forward/runner.ts",
         "ownership": "template-owned",
-        "afterHash": "sha256:41659f81e0f8a87c062602d5f6e182353522b50bf97ea71eaeb45ca6b2bab626"
+        "afterHash": "sha256:8b3189cafb681412bb8f5b67621df26bb071a2e14e35c522b6550d68b9211170"
       },
       {
         "id": "upgrade-add-tooling-agent-pack-evals-forward-verifier-test-ts",
@@ -2337,7 +2337,7 @@
         "kind": "add",
         "path": "tooling/agent-pack/evals/walking-skeleton/runner.ts",
         "ownership": "template-owned",
-        "afterHash": "sha256:0edc43e9e6ef10c05c7494912fbb3c12be5e6ebfc724f650026b0cffb4a9f80b"
+        "afterHash": "sha256:40ac31797b2c4f37344aac34831737c2b8be7004413f64f5c87f91bc37cd965c"
       },
       {
         "id": "upgrade-add-tooling-agent-pack-evals-walking-skeleton-verifier-ts",
@@ -3939,14 +3939,14 @@
   ],
   "blueprintManifest": {
     "path": "blueprints/saas-application.json",
-    "sha256": "sha256:ea22d873c0514a1b4eb6081b0ae086ff49b63b4c803dc55507a43ce4187f8540"
+    "sha256": "sha256:5fb4127e28f4bf9972996fee659beaa7c8fb0b609e9a25c5801d46bc86e1c400"
   },
   "upgradeImpact": {
     "path": "releases/v0.2.0-alpha.1/upgrade/app-map-input.json",
-    "sha256": "sha256:7d86b24c968a11f5442288ea1b790111261d5db6d625d04aacca2ed8e5db31c2",
+    "sha256": "sha256:a39edaa6107de8fe4ed9a1fe84f11cbb1cf9ccc23a62960e20ef3fd2c915dff7",
     "projection": {
       "path": "releases/v0.2.0-alpha.1/upgrade/app-map-impact.json",
-      "sha256": "sha256:b5936a526caa496b82a247f82c2ba34a92e4fed2c4aa387bb6cff1682b9c1633"
+      "sha256": "sha256:003fd080c2a1426d502ad710549503de211529eba64458e0b27b9b58d2cde84f"
     }
   },
   "migrationHandoff": {
