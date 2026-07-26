@@ -20,6 +20,7 @@ describe("release seal factory-only exclusions", () => {
       "docs/agent/host-projection-lifecycle.md",
       "patches/@confect__cli@9.1.5.patch",
       "tooling/app-map/INTEGRATION_REQUEST.md",
+      "tooling/app-map/src/mcp.test.ts",
       "tooling/app-map/src/build.ts",
       "tooling/release-seal.mts",
       "tooling/release-seal.test.mts",
@@ -47,6 +48,11 @@ describe("release seal factory-only exclusions", () => {
         }),
         expect.objectContaining({
           path: "tooling/app-map/INTEGRATION_REQUEST.md",
+          ownership: "factory-only",
+          action: "omit",
+        }),
+        expect.objectContaining({
+          path: "tooling/app-map/src/mcp.test.ts",
           ownership: "factory-only",
           action: "omit",
         }),

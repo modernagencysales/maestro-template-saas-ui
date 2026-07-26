@@ -166,6 +166,13 @@ const REVIEWED_ADDITIONAL_PATHS: readonly CustomerReleasePath[] = [
     upgrade: "remove",
   },
   {
+    path: "tooling/app-map/src/mcp.test.ts",
+    match: "exact",
+    ownership: "factory-only",
+    action: "omit",
+    upgrade: "remove",
+  },
+  {
     path: "tooling/app-map",
     match: "subtree",
     ownership: "template-owned",
