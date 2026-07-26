@@ -94,6 +94,39 @@ describe("reviewed generator operation", () => {
     if (!reviewed.ok) throw new Error(reviewed.message);
     expect(reviewed.output.files).toEqual(JSON.parse(direct.stdout).files);
   });
+  it("treats reviewed mutable catalogs as replacements, not customer collisions", () => {
+    const reviewed = runReviewedGenerator({
+      generatorId: "add-table",
+      args: {
+        name: "ReviewedCatalogFixture",
+        system: "access-and-tenancy",
+        disposition: "extend",
+        tenantScope: "workspace",
+        sensitivity: "internal",
+        pii: "none",
+        exportMode: "json",
+        deleteMode: "delete",
+        retention: "retain-until-workspace-delete",
+        appendOnly: false,
+      },
+      write: false,
+      cwd: repoRoot,
+    });
+    expect(reviewed).toMatchObject({ ok: true });
+    if (!reviewed.ok) throw new Error(reviewed.message);
+    expect(reviewed.output.files.map(({ path }) => path)).toEqual(
+      expect.arrayContaining([
+        "docs/template/system-catalog.json",
+        "docs/template/data-resources.json",
+      ]),
+    );
+    expect(reviewed.output.collisions).not.toEqual(
+      expect.arrayContaining([
+        "docs/template/system-catalog.json",
+        "docs/template/data-resources.json",
+      ]),
+    );
+  });
 
   it("exposes one reviewed descriptor registry without changing CLI entrypoints", () => {
     expect(resolveReviewedGenerator("add-capability")).toEqual({

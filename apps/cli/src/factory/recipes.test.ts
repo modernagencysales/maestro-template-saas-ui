@@ -102,7 +102,7 @@ describe("recipe CLI", () => {
     expect(JSON.parse(write.stdout)).toMatchObject({
       mutationPosture: "write",
       exitClass: "blockedMutation",
-      diagnostics: [{ code: "AGENT_PACK_RECIPE_COLLISION" }],
+      diagnostics: [{ code: "AGENT_PACK_RECIPE_AUTHORITY_STALE" }],
     });
   });
 

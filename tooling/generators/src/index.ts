@@ -3994,8 +3994,7 @@ export const runGeneratorCli = (
       const candidate = JSON.parse(readFileSync(outputPath, "utf8")) as unknown;
       const planned = planUpgrade(candidate);
       const report =
-        planned.ok &&
-        !reviewedTransitionMatches(candidate, args.from, args.to)
+        planned.ok && !reviewedTransitionMatches(candidate, args.from, args.to)
           ? planUpgrade({
               schemaVersion: 1,
               reviewedInput: candidate,
@@ -4192,8 +4191,13 @@ export function runReviewedGenerator(
   }
   const parsed = parseReviewedGeneratorResult(preview.stdout);
   if (!parsed.ok) return parsed;
+  const reviewedMutableCatalogs = new Set([
+    "docs/template/system-catalog.json",
+    "docs/template/data-resources.json",
+  ]);
   const collisions = parsed.files
     .map(({ path }) => path)
+    .filter((path) => !reviewedMutableCatalogs.has(path))
     .filter((path) => existsSync(resolve(request.cwd, path)));
   const output = projectReviewedOutput(parsed.value, descriptor, collisions);
   if (!request.write) return { ok: true, output };
