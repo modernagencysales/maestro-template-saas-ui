@@ -11,8 +11,10 @@ type HostCompatibility = {
   readonly templateTag: string;
   readonly packRange: string;
   readonly cliRange: string;
-  readonly supportState: "supported" | "deprecated";
+  readonly supportState: "supported" | "planned";
   readonly deprecationDate: string | null;
+  readonly releaseAvailability: "unavailable";
+  readonly releaseEvidence: "workspace-only" | "fixture-only";
 };
 
 export type ReleaseTemplateInstanceResolution = {
@@ -41,14 +43,7 @@ export interface ReleaseTemplateInstanceSchemaProvider<
   readonly parse: (input: unknown) => Instance;
   readonly parseText: (raw: string) => Instance;
   readonly serialize: (instance: Instance) => string;
-  readonly resolve: (input: {
-    readonly schemaVersion?: number;
-    readonly versions?: Partial<VersionFacts>;
-    readonly release?: {
-      readonly version?: string;
-      readonly tag?: string;
-    };
-  }) => ReleaseTemplateInstanceResolution;
+  readonly resolve: (input: unknown) => ReleaseTemplateInstanceResolution;
 }
 
 export type ReleaseTemplateInstanceMigration<
@@ -102,6 +97,9 @@ export const createReleaseTemplateInstanceConsumer = <
 
     const migrated = migration.migrateTemplateInstance(input);
     if (!migrated.ok) {
+      throw new ReleaseTemplateInstanceCompatibilityError(migrated.resolution);
+    }
+    if (migrated.resolution.status !== "compatible") {
       throw new ReleaseTemplateInstanceCompatibilityError(migrated.resolution);
     }
     return schema.serialize(schema.parse(migrated.instance));

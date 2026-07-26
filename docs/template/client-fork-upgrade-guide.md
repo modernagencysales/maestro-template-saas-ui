@@ -1,35 +1,60 @@
 # Client Fork Upgrade Guide
 
-Client forks should upgrade from tagged template releases.
+Client forks should upgrade from immutable tagged template releases after those
+releases actually exist. This repository currently has no `maestro-template-*`
+Git tags. The checked-in `v0.1.0-alpha.1` manifest is fixture-only and
+unpublished; it is not an available recovery source.
 
 ## Template Instance Compatibility
 
 `packages/template-core/src/templateInstance/` is the canonical authority for
 the template-instance schema and its pack, CLI, template, workflow-schema, and
 compatibility-set versions. Its `compatibility.current` and
-`compatibility.previous` entries are the only host-range, support-state, and
-deprecation-date claims. Documentation and consumers must project those values
-rather than restating them.
+`compatibility.previous` entries are the only host-range, support-state,
+release-availability, release-evidence, and deprecation-date claims.
+Documentation and consumers must project those values rather than restating
+them.
 
 Compatibility returns one stable `compatible`, `migratable`, `unsupported`, or
 `newer` packet. Every packet includes a code, read-only continuation safety, the
 last supported pack/CLI/template tag, one recovery action, and canonical schema
-provenance. V1 does not infer broad SemVer support: only the current tag and
-exactly one previous tag are recognized. Older, skipped, or unknown release
-identities are unsupported; a higher schema or compatibility-set version is
-newer than this tool.
+provenance plus the exact axis and reason that controlled the decision. V1 does
+not infer broad SemVer support. It recognizes only exact declared identities and
+values for schema, tag, compatibility set, pack, CLI, template, workflow schema,
+legacy Agent Pack/CLI ranges, host ranges, support, and provenance. A higher
+integer schema, workflow-schema, or compatibility-set value is newer; every
+missing, malformed, unknown, reordered-with-different-values, or other
+mismatched axis fails closed and never reports compatible.
+
+The current and previous strings are declared tag identities, not evidence that
+Git tags exist. The previous `v0.1.0-alpha.1` identity is modeled as
+`planned`/`unavailable` with `fixture-only` evidence. Its pure instance-schema
+normalization can be inspected, but there is no published previous-tag upgrade
+or restore path. Do not tell a user to restore that tag. Until release authority
+publishes and binds a real tag, preserve the input and continue read-only.
 
 The generator migration is pure and versioned. It can normalize the prior
-instance shapes without writing a file, and it preserves unknown top-level
-customer extension fields. Keep the original file in Git or dry-run evidence
-before a caller writes migrated bytes. This contract does not provide an upgrade
-apply engine or a reverse migration.
+instance shapes without writing a file. It accepts only exact supported integer
+schema versions or the positively identified, closed legacy V0 generator shape;
+missing identity, fractional/non-finite versions, unknown versions, and future
+versions return a non-mutating resolution.
+
+The extension contract is closed. Authority objects (`versions`,
+`compatibility`, `support`, and `provenance`) reject unknown nested fields.
+Customer data is preserved only in the named top-level seams `blueprint`,
+`ownership`, `personalization`, and `customerExtension`; the declared legacy V0
+application projection fields; or a non-empty top-level `x-<namespace>` seam.
+Other top-level fields are rejected. Canonical serialization normalizes object
+key order, so insertion order does not change acceptance or output. Keep the
+original file in Git or dry-run evidence before any separately authorized write.
+This contract does not provide an upgrade apply engine or a reverse migration.
 
 ## Upgrade Flow
 
 1. Read the template changelog.
-2. Resolve `template-instance.json` compatibility and stop on `unsupported` or
-   `newer`; read-only inspection remains safe.
+2. Resolve `template-instance.json` compatibility and stop on `unsupported`,
+   `newer`, or a `planned-unavailable` migration basis; read-only inspection
+   remains safe.
 3. Run
    `pnpm template:upgrade -- --from <client-version> --to <template-version>`.
 4. Run

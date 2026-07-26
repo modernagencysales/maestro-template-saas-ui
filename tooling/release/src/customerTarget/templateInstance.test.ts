@@ -78,6 +78,39 @@ describe("release templateInstance consumer", () => {
     });
   });
 
+  it("rejects the planned-unavailable previous fixture path truthfully", () => {
+    try {
+      consumer.prepare(
+        JSON.stringify({
+          schemaVersion: 1,
+          release: {
+            version: "0.1.0-alpha.1",
+            tag: "maestro-template-v0.1.0-alpha.1",
+          },
+          compatibility: {
+            cli: ">=0.1.0-alpha.1 <0.2.0",
+            agentPack: ">=0.1.0-alpha.1 <0.2.0",
+          },
+          ownership: {
+            manifest: "releases/v0.1.0-alpha.1/manifest.json",
+          },
+        }),
+      );
+      throw new Error("expected previous fixture path to be unavailable");
+    } catch (error) {
+      expect(error).toBeInstanceOf(ReleaseTemplateInstanceCompatibilityError);
+      expect(
+        (error as ReleaseTemplateInstanceCompatibilityError).resolution,
+      ).toMatchObject({
+        status: "migratable",
+        code: "TEMPLATE_INSTANCE_MIGRATION_PLANNED_UNAVAILABLE",
+        basis: { axis: "templateTag", reason: "planned-unavailable" },
+        recovery: { kind: "migration-planned" },
+      });
+      expect((error as Error).message).not.toMatch(/restore|previous tag/i);
+    }
+  });
+
   it("returns the stable resolution packet instead of composing skipped upgrades", () => {
     expect(() =>
       consumer.prepare(
@@ -87,6 +120,11 @@ describe("release templateInstance consumer", () => {
             version: "0.1.0-alpha.0",
             tag: "maestro-template-v0.1.0-alpha.0",
           },
+          compatibility: {
+            cli: ">=0.1.0-alpha.1 <0.2.0",
+            agentPack: ">=0.1.0-alpha.1 <0.2.0",
+          },
+          ownership: { manifest: "unpublished-fixture" },
         }),
       ),
     ).toThrow(ReleaseTemplateInstanceCompatibilityError);
@@ -99,6 +137,11 @@ describe("release templateInstance consumer", () => {
             version: "0.1.0-alpha.0",
             tag: "maestro-template-v0.1.0-alpha.0",
           },
+          compatibility: {
+            cli: ">=0.1.0-alpha.1 <0.2.0",
+            agentPack: ">=0.1.0-alpha.1 <0.2.0",
+          },
+          ownership: { manifest: "unpublished-fixture" },
         }),
       );
     } catch (error) {
@@ -110,11 +153,41 @@ describe("release templateInstance consumer", () => {
         code: "TEMPLATE_INSTANCE_UNSUPPORTED_RELEASE_GAP",
         safeToContinueReadOnly: true,
         recovery: {
-          kind: "restore-supported-tag",
+          kind: "inspect-only",
         },
       });
     }
   });
+
+  it.each([
+    ["{}", "TEMPLATE_INSTANCE_MALFORMED"],
+    [
+      JSON.stringify({
+        schemaVersion: 1.5,
+        release: {
+          version: "0.2.0-alpha.1",
+          tag: "maestro-template-v0.2.0-alpha.1",
+        },
+      }),
+      "TEMPLATE_INSTANCE_MALFORMED",
+    ],
+  ])(
+    "rejects malformed migration input without changing the source bytes",
+    (raw, code) => {
+      const original = raw;
+      expect(() => consumer.prepare(raw)).toThrow(
+        ReleaseTemplateInstanceCompatibilityError,
+      );
+      try {
+        consumer.prepare(raw);
+      } catch (error) {
+        expect(
+          (error as ReleaseTemplateInstanceCompatibilityError).resolution.code,
+        ).toBe(code);
+      }
+      expect(raw).toBe(original);
+    },
+  );
 
   it("keeps both checked-in alpha release manifests byte-identical", () => {
     const repositoryRoot = resolve(import.meta.dirname, "../../../..");

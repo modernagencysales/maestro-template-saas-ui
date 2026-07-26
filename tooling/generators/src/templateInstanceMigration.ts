@@ -11,8 +11,10 @@ type HostCompatibility = {
   readonly templateTag: string;
   readonly packRange: string;
   readonly cliRange: string;
-  readonly supportState: "supported" | "deprecated";
+  readonly supportState: "supported" | "planned";
   readonly deprecationDate: string | null;
+  readonly releaseAvailability: "unavailable";
+  readonly releaseEvidence: "workspace-only" | "fixture-only";
 };
 
 type VersionFacts = {
@@ -45,14 +47,7 @@ export interface TemplateInstanceMigrationProvider<
   };
   readonly parse: (input: unknown) => Instance;
   readonly serialize: (instance: Instance) => string;
-  readonly resolve: (input: {
-    readonly schemaVersion?: number;
-    readonly versions?: Partial<VersionFacts>;
-    readonly release?: {
-      readonly version?: string;
-      readonly tag?: string;
-    };
-  }) => ResolutionPacket;
+  readonly resolve: (input: unknown) => ResolutionPacket;
 }
 
 type CompatibilityProvider = Pick<
@@ -73,7 +68,7 @@ export type TemplateInstanceMigrationResult<
     }
   | {
       readonly ok: false;
-      readonly fromSchemaVersion: number;
+      readonly fromSchemaVersion: number | null;
       readonly toSchemaVersion: number;
       readonly appliedMigrations: readonly [];
       readonly resolution: ResolutionPacket;
@@ -83,8 +78,13 @@ export type TemplateInstanceMigrationResult<
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   value !== null && typeof value === "object" && !Array.isArray(value);
 
-const schemaVersionOf = (input: Record<string, unknown>): number =>
-  typeof input.schemaVersion === "number" ? input.schemaVersion : 0;
+const schemaVersionOf = (input: Record<string, unknown>): number | null => {
+  if (input.schemaVersion === undefined) return 0;
+  return typeof input.schemaVersion === "number" &&
+    Number.isFinite(input.schemaVersion)
+    ? input.schemaVersion
+    : null;
+};
 
 const releaseOf = (
   provider: CompatibilityProvider,
@@ -125,29 +125,6 @@ const releaseOf = (
     };
   }
   return { version: legacyVersion };
-};
-
-const compatibilityInput = (
-  provider: CompatibilityProvider,
-  input: Record<string, unknown>,
-) => {
-  const versions = isRecord(input.versions) ? input.versions : undefined;
-  return {
-    schemaVersion: schemaVersionOf(input),
-    ...(versions === undefined
-      ? {}
-      : {
-          versions: {
-            ...(typeof versions.template === "string"
-              ? { template: versions.template }
-              : {}),
-            ...(typeof versions.compatibilitySet === "number"
-              ? { compatibilitySet: versions.compatibilitySet }
-              : {}),
-          },
-        }),
-    release: releaseOf(provider, input),
-  };
 };
 
 const migrateZeroToOne = (
@@ -195,6 +172,8 @@ export const createTemplateInstanceMigration = <
       support: {
         state: host.supportState,
         deprecationDate: host.deprecationDate,
+        releaseAvailability: host.releaseAvailability,
+        releaseEvidence: host.releaseEvidence,
       },
       provenance: provider.provenance,
     });
@@ -206,21 +185,21 @@ export const createTemplateInstanceMigration = <
     if (!isRecord(input)) {
       return {
         ok: false,
-        fromSchemaVersion: 0,
+        fromSchemaVersion: null,
         toSchemaVersion: provider.schemaVersion,
         appliedMigrations: [],
-        resolution: provider.resolve({}),
+        resolution: provider.resolve(input),
         original: input,
       };
     }
 
     const fromSchemaVersion = schemaVersionOf(input);
-    const beforeResolution = provider.resolve(
-      compatibilityInput(provider, input),
-    );
+    const beforeResolution = provider.resolve(input);
     if (
       beforeResolution.status === "newer" ||
       beforeResolution.status === "unsupported" ||
+      fromSchemaVersion === null ||
+      !Number.isInteger(fromSchemaVersion) ||
       fromSchemaVersion < 0 ||
       fromSchemaVersion > provider.schemaVersion
     ) {
