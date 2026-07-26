@@ -1,5 +1,6 @@
 import {
   cpSync,
+  existsSync,
   mkdtempSync,
   mkdirSync,
   readFileSync,
@@ -103,8 +104,10 @@ const rewriteCleanupAuthority = (
   const journal = JSON.parse(readFileSync(journalPath, "utf8")) as Record<
     string,
     unknown
-  > & { createdDirectories: string[] };
-  journal.createdDirectories = mutate([...journal.createdDirectories]);
+  > & { actualCreatedDirectories: string[] };
+  journal.actualCreatedDirectories = mutate([
+    ...journal.actualCreatedDirectories,
+  ]);
   delete journal.journalDigest;
   journal.journalDigest = sha256RecipeBytes(JSON.stringify(journal));
   writeFileSync(journalPath, `${JSON.stringify(journal, null, 2)}\n`);
@@ -170,6 +173,26 @@ describe("atomic recipe transaction", () => {
     expect(
       readFileSync(join(recovered.root, "catalog/data.json"), "utf8"),
     ).toBe("old\n");
+  });
+
+  it("cleans only earlier attempt-created parents when a later missing parent appears externally", async () => {
+    const value = fixture();
+    await createNodeRecipeTransaction({
+      crashAt: "after-installed-journal",
+      crashAtOperation: 2,
+    }).apply(value.request);
+    const laterParent = join(value.root, "reports");
+    mkdirSync(laterParent);
+
+    expect(recoverRecipeTransaction(value.request)).toMatchObject({
+      ok: true,
+      recoveredAttempts: 1,
+    });
+    expect(existsSync(join(value.root, "feature"))).toBe(false);
+    expect(readdirSync(laterParent)).toEqual([]);
+    expect(readFileSync(join(value.root, "catalog/data.json"), "utf8")).toBe(
+      "old\n",
+    );
   });
 
   it.each([
@@ -317,6 +340,7 @@ describe("atomic recipe transaction", () => {
       writeFileSync(untouched, "untouched bytes\n");
       await createNodeRecipeTransaction({
         crashAt: "after-install-rename-before-journal",
+        crashAtOperation: 3,
       }).apply(value.request);
       const partialTargetBytes = readFileSync(
         join(value.root, "catalog/data.json"),

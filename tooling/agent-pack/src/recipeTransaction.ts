@@ -10,6 +10,7 @@ import {
   readdirSync,
   realpathSync,
   renameSync,
+  rmdirSync,
   rmSync,
   statSync,
   writeFileSync,
@@ -60,7 +61,9 @@ type UnsignedJournal = {
   readonly answersSha256: string;
   readonly operations: readonly JournalOperation[];
   readonly allowedCleanupDirectories: readonly string[];
-  readonly createdDirectories: readonly string[];
+  readonly missingPreimageDirectories: readonly string[];
+  readonly actualCreatedDirectories: readonly string[];
+  readonly pendingCleanupDirectory: string | null;
   readonly error?: string;
 };
 type Journal = UnsignedJournal & { readonly journalDigest: string };
@@ -116,8 +119,17 @@ export function recoverRecipeTransaction(
     for (const attempt of attempts) {
       const transactionRoot = containedPath(planRoot, attempt);
       const journalPath = join(transactionRoot, "transaction.json");
-      const journal = readAuthenticatedJournal(journalPath);
+      let journal = readAuthenticatedJournal(journalPath);
       validateJournalAuthority(journal, request, authority, transactionRoot);
+      if (
+        (journal.status === "applied" || journal.status === "rolled-back") &&
+        journal.pendingCleanupDirectory !== null
+      )
+        throw new Error(
+          "Recipe transaction journal closure retains cleanup intent.",
+        );
+      if (journal.pendingCleanupDirectory !== null)
+        journal = reconcilePendingCleanup(journalPath, journal);
       if (journal.status === "applied") {
         assertExactOutputs(journal);
         throw new Error(
@@ -189,7 +201,7 @@ function applyRecipeTransaction(
     const allowedCleanupDirectories = canonicalCleanupDirectories(
       request.plan.operations,
     );
-    const createdCleanupDirectories = prepareCleanupDirectoryWitnesses(
+    const missingPreimageDirectories = prepareCleanupDirectoryWitnesses(
       authority.targetRoot,
       transactionRoot,
       allowedCleanupDirectories,
@@ -227,7 +239,9 @@ function applyRecipeTransaction(
       answersSha256: request.answersSha256,
       operations,
       allowedCleanupDirectories,
-      createdDirectories: createdCleanupDirectories,
+      missingPreimageDirectories,
+      actualCreatedDirectories: [],
+      pendingCleanupDirectory: null,
     });
     durableJson(journalPath, journal);
     journal = transition(journalPath, journal, { status: "applying" });
@@ -267,10 +281,11 @@ function applyRecipeTransaction(
             "backed-up",
           );
         }
-        ensureOperationParent(
+        journal = ensureOperationParentJournaled(
           authority.targetRoot,
           dirname(target),
-          filesystemCreatedDirectories,
+          journalPath,
+          journal,
         );
         journal = transitionOperation(
           journalPath,
@@ -361,7 +376,7 @@ function rollbackJournal(
   assertExactPreimages(journal);
   cleanupCreatedDirectories(
     journal.targetRoot,
-    journal.createdDirectories,
+    journal.actualCreatedDirectories,
     journal.transactionRoot,
   );
   transition(journalPath, journal, { status: "rolled-back" });
@@ -539,27 +554,53 @@ function validateJournalAuthority(
     throw new Error(
       "Recipe transaction journal cleanup allowlist does not match the reviewed plan.",
     );
-  const claimed = new Set(journal.createdDirectories);
-  const canonicalClaim = expectedAllowedDirectories.filter((path) =>
-    claimed.has(path),
+  const missingPreimages = readCleanupDirectoryWitnesses(
+    transactionRoot,
+    expectedAllowedDirectories,
+    "missing-preimage-witnesses",
   );
   if (
-    claimed.size !== journal.createdDirectories.length ||
-    JSON.stringify(journal.createdDirectories) !==
+    JSON.stringify(journal.missingPreimageDirectories) !==
+    JSON.stringify(missingPreimages)
+  )
+    throw new Error(
+      "Recipe transaction journal missing-preimage authority does not match attempt evidence.",
+    );
+  const claimed = new Set(journal.actualCreatedDirectories);
+  const canonicalClaim = missingPreimages.filter((path) => claimed.has(path));
+  if (
+    claimed.size !== journal.actualCreatedDirectories.length ||
+    JSON.stringify(journal.actualCreatedDirectories) !==
       JSON.stringify(canonicalClaim)
   )
     throw new Error(
       "Recipe transaction journal cleanup directory authority is not a canonical reviewed subset.",
     );
-  const witnessed = readCleanupDirectoryWitnesses(
+  if (
+    journal.pendingCleanupDirectory !== null &&
+    (!missingPreimages.includes(journal.pendingCleanupDirectory) ||
+      claimed.has(journal.pendingCleanupDirectory))
+  )
+    throw new Error(
+      "Recipe transaction journal pending cleanup authority is invalid.",
+    );
+  const actuallyWitnessed = readCleanupDirectoryWitnesses(
     transactionRoot,
-    expectedAllowedDirectories,
+    missingPreimages,
+    "actual-created-witnesses",
   );
-  if (JSON.stringify(journal.createdDirectories) !== JSON.stringify(witnessed))
+  const journalOrPending = missingPreimages.filter(
+    (path) => claimed.has(path) || journal.pendingCleanupDirectory === path,
+  );
+  if (
+    JSON.stringify(actuallyWitnessed) !==
+      JSON.stringify(journal.actualCreatedDirectories) &&
+    JSON.stringify(actuallyWitnessed) !== JSON.stringify(journalOrPending)
+  )
     throw new Error(
       "Recipe transaction journal cleanup directory authority does not match attempt evidence.",
     );
-  for (const path of journal.createdDirectories)
+  for (const path of journal.actualCreatedDirectories)
     validateDirectoryPath(authority.targetRoot, path);
 }
 
@@ -616,8 +657,16 @@ function isJournal(value: unknown): value is Journal {
           "rolled-back",
         ].includes(operation.state),
     ) &&
-    Array.isArray(journal.createdDirectories) &&
-    journal.createdDirectories.every((path) => typeof path === "string") &&
+    Array.isArray(journal.missingPreimageDirectories) &&
+    journal.missingPreimageDirectories.every(
+      (path) => typeof path === "string",
+    ) &&
+    Array.isArray(journal.actualCreatedDirectories) &&
+    journal.actualCreatedDirectories.every(
+      (path) => typeof path === "string",
+    ) &&
+    (journal.pendingCleanupDirectory === null ||
+      typeof journal.pendingCleanupDirectory === "string") &&
     Array.isArray(journal.allowedCleanupDirectories) &&
     journal.allowedCleanupDirectories.every(
       (path) => typeof path === "string",
@@ -657,6 +706,31 @@ function transitionOperation(
   return next;
 }
 
+function transitionCleanup(
+  path: string,
+  journal: Journal,
+  actualCreatedDirectories: readonly string[],
+  pendingCleanupDirectory: string | null,
+): Journal {
+  const unsigned = unsignedJournal(journal);
+  const next = signJournal({
+    ...unsigned,
+    actualCreatedDirectories,
+    pendingCleanupDirectory,
+  });
+  durableJson(path, next);
+  return next;
+}
+
+function reconcilePendingCleanup(path: string, journal: Journal): Journal {
+  const witnessed = readCleanupDirectoryWitnesses(
+    journal.transactionRoot,
+    journal.missingPreimageDirectories,
+    "actual-created-witnesses",
+  );
+  return transitionCleanup(path, journal, witnessed, null);
+}
+
 function canonicalCleanupDirectories(
   operations: readonly { readonly path: string }[],
 ): readonly string[] {
@@ -677,8 +751,9 @@ function prepareCleanupDirectoryWitnesses(
   transactionRoot: string,
   allowedDirectories: readonly string[],
 ): readonly string[] {
-  const witnessRoot = join(transactionRoot, "cleanup-witnesses");
+  const witnessRoot = join(transactionRoot, "missing-preimage-witnesses");
   mkdirSync(witnessRoot);
+  mkdirSync(join(transactionRoot, "actual-created-witnesses"));
   fsyncDirectory(transactionRoot);
   const created: string[] = [];
   for (const path of allowedDirectories) {
@@ -700,8 +775,9 @@ function prepareCleanupDirectoryWitnesses(
 function readCleanupDirectoryWitnesses(
   transactionRoot: string,
   allowedDirectories: readonly string[],
+  witnessDirectory: "missing-preimage-witnesses" | "actual-created-witnesses",
 ): readonly string[] {
-  const witnessRoot = join(transactionRoot, "cleanup-witnesses");
+  const witnessRoot = join(transactionRoot, witnessDirectory);
   assertDirectory(witnessRoot, "Recipe cleanup witness root");
   const witnessed = new Set<string>();
   for (const entry of readdirSync(witnessRoot, { withFileTypes: true })) {
@@ -744,7 +820,9 @@ function unsignedJournal(journal: Journal): UnsignedJournal {
     answersSha256: journal.answersSha256,
     operations: journal.operations,
     allowedCleanupDirectories: journal.allowedCleanupDirectories,
-    createdDirectories: journal.createdDirectories,
+    missingPreimageDirectories: journal.missingPreimageDirectories,
+    actualCreatedDirectories: journal.actualCreatedDirectories,
+    pendingCleanupDirectory: journal.pendingCleanupDirectory,
     ...(journal.error === undefined ? {} : { error: journal.error }),
   };
 }
@@ -855,6 +933,58 @@ function ensureOperationParent(
     }
   }
 }
+function ensureOperationParentJournaled(
+  root: string,
+  directory: string,
+  journalPath: string,
+  initial: Journal,
+): Journal {
+  const rel = relative(root, directory);
+  let current = root;
+  let journal = initial;
+  for (const part of rel.split(/[\\/]/u).filter(Boolean)) {
+    current = join(current, part);
+    const relativeDirectory = relative(root, current).split(/[\\/]/u).join("/");
+    const stats = lstatIfExists(current);
+    if (stats !== null) {
+      if (!stats.isDirectory() || stats.isSymbolicLink())
+        throw new Error(`Recipe parent path is unsafe: ${relativeDirectory}.`);
+      continue;
+    }
+    if (!journal.missingPreimageDirectories.includes(relativeDirectory))
+      throw new Error(
+        `Recipe directory creation lacks missing-preimage authority: ${relativeDirectory}.`,
+      );
+    journal = transitionCleanup(
+      journalPath,
+      journal,
+      journal.actualCreatedDirectories,
+      relativeDirectory,
+    );
+    mkdirSync(current);
+    fsyncDirectory(dirname(current));
+    fsyncDirectory(current);
+    durableFile(
+      join(
+        journal.transactionRoot,
+        "actual-created-witnesses",
+        `${sha256RecipeBytes(relativeDirectory)}.json`,
+      ),
+      `${JSON.stringify({ path: relativeDirectory })}\n`,
+    );
+    const created = new Set([
+      ...journal.actualCreatedDirectories,
+      relativeDirectory,
+    ]);
+    journal = transitionCleanup(
+      journalPath,
+      journal,
+      journal.missingPreimageDirectories.filter((path) => created.has(path)),
+      null,
+    );
+  }
+  return journal;
+}
 function cleanupCreatedDirectories(
   root: string,
   created: readonly string[],
@@ -865,7 +995,7 @@ function cleanupCreatedDirectories(
     if (absolute === retainedRoot || retainedRoot.startsWith(`${absolute}/`))
       continue;
     try {
-      rmSync(absolute, { recursive: false });
+      rmdirSync(absolute);
       fsyncDirectory(dirname(absolute));
     } catch {
       // A nonempty directory contains pre-existing or retained evidence.
