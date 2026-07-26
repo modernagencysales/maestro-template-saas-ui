@@ -33,10 +33,10 @@ import {
   defineWorkflowV2Subworkflow,
   runRegisteredSubworkflow,
   scheduledSubworkflowFinding,
-  validateWorkflowV2SubworkflowTopology,
   type DurableGraphWorkflowRef,
   type WorkflowV2SubworkflowRegistryEntry,
 } from "../confect/workflows/_kit/subworkflows";
+import { validateWorkflowV2SubworkflowTopology } from "../confect/workflows/_kit/subworkflowsCurrent";
 import {
   activateSubworkflowRunLinkState,
   buildSubworkflowRunLinkRow,
@@ -3728,6 +3728,39 @@ const v2SubworkflowNode = (maxInputBytes = 1024) => ({
   failurePolicy: { kind: "fail" as const },
 });
 
+const v2BoundedBatchGraph = (
+  overrides: Partial<
+    Extract<
+      DurableWorkflowGraphV2["nodes"][number],
+      { kind: "bounded-subworkflow-batch" }
+    >
+  > = {},
+): DurableWorkflowGraphV2 => {
+  const { source, output, ...graph } = v2SubworkflowTemplate();
+  const batch = {
+    id: "batch",
+    kind: "bounded-subworkflow-batch" as const,
+    workflow: childWorkflowRef,
+    childVersion: 3,
+    label: "Child receipt batches",
+    stepName: Schema.decodeSync(WorkflowStepName)("batch.v2"),
+    payloadPolicy,
+    semanticRuleIds: ["WF-NODE-SUBWORKFLOW", "WF-NODE-CHILD-VERSION"] as const,
+    failurePolicy: { kind: "fail" as const },
+    maxItems: 5,
+    batchSize: 2,
+    fanOut: 2,
+    ...overrides,
+  };
+  return {
+    ...graph,
+    nodes: [source, batch, output],
+    edges: [
+      { id: "source-batch", sourceNodeId: "source", targetNodeId: "batch" },
+      { id: "batch-output", sourceNodeId: "batch", targetNodeId: "output" },
+    ],
+  };
+};
 const v2SubworkflowGraph = (maxInputBytes = 1024): DurableWorkflowGraphV2 => {
   const { source, output, ...graph } = v2SubworkflowTemplate();
   return {
@@ -4129,4 +4162,214 @@ const completedMutationStep = (name: string) => ({
   runResult: { kind: "success" as const, returnValue: name },
   startedAt: Date.now(),
   completedAt: Date.now(),
+});
+
+describe("bounded subworkflow batch runtime", () => {
+  const registryEntry = (items: readonly string[], stable = true) => ({
+    ...childWorkflowEntry,
+    boundedBatch: {
+      selectItems: () => ({
+        items,
+        ...(stable
+          ? { stableIdentities: items.map((item) => "item-" + item) }
+          : {}),
+      }),
+      mapBatchArgs: (envelope: {
+        readonly batch: { readonly items: readonly unknown[] };
+      }) => ({
+        requestId: envelope.batch.items.join(","),
+      }),
+    },
+  });
+
+  it("runs stable batches in bounded waves through the immutable child registry", async () => {
+    const starts: string[] = [];
+    let active = 0;
+    let maximumActive = 0;
+    const runWorkflow = vi.fn(
+      async (
+        _ref,
+        args: Record<string, unknown>,
+        _options?: Record<string, unknown>,
+      ) => {
+        void _options;
+        starts.push(String(args.requestId));
+        active += 1;
+        maximumActive = Math.max(maximumActive, active);
+        await new Promise((resolve) => setTimeout(resolve, 1));
+        active -= 1;
+        return { receiptId: "receipt-" + String(args.requestId) };
+      },
+    );
+    const runMutation = vi.fn(async (ref, args: Record<string, unknown>) => {
+      if (ref === childLinkReserveRef) {
+        const projection = args.projection as { readonly stepName: string };
+        return {
+          linkId: "link-" + projection.stepName,
+          childWorkflowRunId: "run-" + projection.stepName,
+        };
+      }
+      return null;
+    });
+    const result = await runDurableGraphWorkflowV2(
+      v2Step({ runWorkflow, runMutation }),
+      {
+        ...v2Input(v2BoundedBatchGraph()),
+        principal: childPrincipal,
+        workflowRegistry: {
+          [childWorkflowRef]: registryEntry(["a", "b", "c", "d", "e"]),
+        },
+        capabilityRegistry: {},
+        admitEffect: async () => ({ kind: "deny", reason: "not used" }),
+      },
+    );
+    expect(starts).toEqual(["a,b", "c,d", "e"]);
+    expect(maximumActive).toBe(2);
+    expect(runWorkflow).toHaveBeenCalledTimes(3);
+    expect(
+      runWorkflow.mock.calls.every((call) => {
+        const options = call[2] as Record<string, unknown>;
+        return (
+          "name" in options && !("runAt" in options) && !("runAfter" in options)
+        );
+      }),
+    ).toBe(true);
+    expect(
+      runWorkflow.mock.calls.map((call) => (call[1] as ChildArgs).principal),
+    ).toEqual([childPrincipal, childPrincipal, childPrincipal]);
+    expect(result.context.batch).toMatchObject({
+      kind: "completed",
+      itemCount: 5,
+      batchCount: 3,
+      waveCount: 2,
+    });
+    const names = runWorkflow.mock.calls.map(
+      (call) => (call[2] as { name: string }).name,
+    );
+    expect(new Set(names).size).toBe(3);
+    expect(
+      names.every((name) => /^batch\.v3\.i-k16-[a-f0-9]{16}$/.test(name)),
+    ).toBe(true);
+  });
+
+  it("makes empty input explicit without reserving or dispatching", async () => {
+    const runWorkflow = vi.fn(async () => ({ receiptId: "unreachable" }));
+    const runMutation = vi.fn(async () => null);
+    const result = await runDurableGraphWorkflowV2(
+      v2Step({ runWorkflow, runMutation }),
+      {
+        ...v2Input(v2BoundedBatchGraph()),
+        principal: childPrincipal,
+        workflowRegistry: { [childWorkflowRef]: registryEntry([]) },
+        capabilityRegistry: {},
+        admitEffect: async () => ({ kind: "deny", reason: "not used" }),
+      },
+    );
+    expect(result.context.batch).toEqual({
+      kind: "empty",
+      itemCount: 0,
+      batchCount: 0,
+      waveCount: 0,
+      batches: [],
+    });
+    expect(runMutation).not.toHaveBeenCalled();
+    expect(runWorkflow).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    [
+      "selected overflow",
+      v2BoundedBatchGraph({ maxItems: 2 }),
+      registryEntry(["a", "b", "c"]),
+      { maxDepth: 4, maxFanOut: 8 },
+    ],
+    [
+      "fan-out budget",
+      v2BoundedBatchGraph({ fanOut: 3 }),
+      registryEntry(["a"]),
+      { maxDepth: 4, maxFanOut: 2 },
+    ],
+    [
+      "registry cycle",
+      v2BoundedBatchGraph(),
+      { ...registryEntry(["a"]), children: [childWorkflowRef] },
+      { maxDepth: 4, maxFanOut: 8 },
+    ],
+    [
+      "version mismatch",
+      v2BoundedBatchGraph(),
+      { ...registryEntry(["a"]), version: 4 },
+      { maxDepth: 4, maxFanOut: 8 },
+    ],
+  ] as const)(
+    "rejects %s before child dispatch",
+    async (_name, graph, entry, subworkflowPolicy) => {
+      const runWorkflow = vi.fn(async () => ({ receiptId: "unreachable" }));
+      const runMutation = vi.fn(async () => null);
+      await expect(
+        runDurableGraphWorkflowV2(v2Step({ runWorkflow, runMutation }), {
+          ...v2Input(graph),
+          principal: childPrincipal,
+          workflowRegistry: { [childWorkflowRef]: entry },
+          subworkflowPolicy,
+          capabilityRegistry: {},
+          admitEffect: async () => ({ kind: "deny", reason: "not used" }),
+        }),
+      ).rejects.toThrow();
+      expect(runWorkflow).not.toHaveBeenCalled();
+    },
+  );
+
+  it("size-checks batch args and reconciles cancellation", async () => {
+    const oversized = {
+      ...registryEntry(["a"]),
+      boundedBatch: {
+        selectItems: () => ({ items: ["a"] }),
+        mapBatchArgs: () => ({ requestId: "x".repeat(2048) }),
+      },
+    };
+    const noDispatch = vi.fn(async () => ({ receiptId: "unreachable" }));
+    await expect(
+      runDurableGraphWorkflowV2(v2Step({ runWorkflow: noDispatch }), {
+        ...v2Input(
+          v2BoundedBatchGraph({
+            payloadPolicy: { ...payloadPolicy, maxInputBytes: 64 },
+          }),
+        ),
+        principal: childPrincipal,
+        workflowRegistry: { [childWorkflowRef]: oversized },
+        capabilityRegistry: {},
+        admitEffect: async () => ({ kind: "deny", reason: "not used" }),
+      }),
+    ).rejects.toThrow(/mapped args use/);
+    expect(noDispatch).not.toHaveBeenCalled();
+
+    const reconciled: Record<string, unknown>[] = [];
+    const runMutation = vi.fn(async (ref, args: Record<string, unknown>) => {
+      if (ref === childLinkReserveRef) {
+        return { linkId: "link-cancel", childWorkflowRunId: "run-cancel" };
+      }
+      if (ref === childLinkReconcileRef) reconciled.push(args);
+      return null;
+    });
+    await expect(
+      runDurableGraphWorkflowV2(
+        v2Step({
+          runMutation,
+          runWorkflow: async () => {
+            throw new Error("Canceled");
+          },
+        }),
+        {
+          ...v2Input(v2BoundedBatchGraph({ batchSize: 1, fanOut: 1 })),
+          principal: childPrincipal,
+          workflowRegistry: { [childWorkflowRef]: registryEntry(["a"]) },
+          capabilityRegistry: {},
+          admitEffect: async () => ({ kind: "deny", reason: "not used" }),
+        },
+      ),
+    ).rejects.toThrow("Canceled");
+    expect(reconciled).toHaveLength(1);
+    expect(reconciled[0]?.outcome).toEqual({ kind: "canceled" });
+  });
 });

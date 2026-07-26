@@ -7,6 +7,8 @@ import {
 import { isSafeConditionExpression } from "./conditionExpression";
 import type { DurableWorkflowGraphV2 } from "./graphSchemaCurrent";
 import { generatedWorkflowReadyWaveLimit } from "./_kit/workpoolConfig";
+import * as Either from "effect/Either";
+import { planBoundedBatch } from "./_kit/boundedBatch";
 import { scheduledSubworkflowFinding } from "./_kit/subworkflows";
 import { inlineTransactionFinding } from "./_kit/inlineTransactions";
 import { unsupportedScheduledNodeFinding } from "./_kit/workflowSchedule";
@@ -346,6 +348,28 @@ export const validateWorkflowGraphV2 = (
       return finding ? [finding] : [];
     }),
     ...graph.nodes.flatMap((node) => {
+      if (node.kind !== "bounded-subworkflow-batch") return [];
+      const planned = planBoundedBatch({
+        maxItems: node.maxItems,
+        batchSize: node.batchSize,
+        fanOut: node.fanOut,
+        items: { kind: "ordinals", count: node.maxItems },
+      });
+      return Either.isLeft(planned)
+        ? [
+            {
+              _tag: "BoundedBatchV2" as const,
+              nodeId: node.id,
+              code: planned.left.code,
+              reason: planned.left.safeMessage,
+              repair:
+                "Declare positive maxItems, batchSize, and fanOut within the documented limits; use a versioned bounded subworkflow instead of a raw loop.",
+              rerun: "pnpm check:workflow:fast" as const,
+            },
+          ]
+        : [];
+    }),
+    ...graph.nodes.flatMap((node) => {
       if (!("failurePolicy" in node) || node.failurePolicy.kind === "fail") {
         return [];
       }
@@ -439,6 +463,14 @@ const validateReadyWaveBound = (
 
 export type WorkflowGraphV2Finding =
   | string
+  | {
+      readonly _tag: "BoundedBatchV2";
+      readonly nodeId: string;
+      readonly code: import("./_kit/boundedBatch").BoundedBatchPlanErrorCode;
+      readonly reason: "Bounded batch plan rejected.";
+      readonly repair: string;
+      readonly rerun: "pnpm check:workflow:fast";
+    }
   | {
       readonly _tag: "DanglingEdgeV2";
       readonly edgeId: string;

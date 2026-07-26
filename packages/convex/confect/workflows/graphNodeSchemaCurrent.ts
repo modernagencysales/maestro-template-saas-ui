@@ -197,6 +197,15 @@ export const WorkflowSubworkflowNodeV2 = S.Struct({
   childVersion: PositiveInteger,
   schedule: S.optional(WorkflowSchedule),
 });
+export const WorkflowBoundedSubworkflowBatchNodeV2 = S.Struct({
+  ...WorkflowExecutableV2BaseFields,
+  kind: S.Literal("bounded-subworkflow-batch"),
+  workflow: WorkflowReference,
+  childVersion: PositiveInteger,
+  maxItems: PositiveInteger,
+  batchSize: PositiveInteger,
+  fanOut: PositiveInteger,
+});
 
 export const WorkflowOutputNodeV2 = S.Struct({
   ...WorkflowNodeV2BaseFields,
@@ -212,6 +221,7 @@ export const WorkflowNodeV2 = S.Union(
   WorkflowDelayNodeV2,
   WorkflowEventNodeV2,
   WorkflowSubworkflowNodeV2,
+  WorkflowBoundedSubworkflowBatchNodeV2,
   WorkflowOutputNodeV2,
 );
 

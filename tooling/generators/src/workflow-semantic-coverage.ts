@@ -49,6 +49,21 @@ export const workflowGeneratorSemanticCoverage = defineWorkflowSemanticCoverage(
       "exact generated registry kind dispatch",
       "packages/convex/test/workflow-conformance.test.ts",
     ),
+    "WF-BATCH-MAX-ITEMS": generated(
+      "WorkflowBoundedSubworkflowBatchNodeV2.maxItems",
+      "pre-dispatch selected-item ceiling",
+      "packages/convex/test/workflow-conformance.test.ts",
+    ),
+    "WF-BATCH-SIZE": generated(
+      "WorkflowBoundedSubworkflowBatchNodeV2.batchSize",
+      "deterministic contiguous partition",
+      "packages/convex/test/workflow-conformance.test.ts",
+    ),
+    "WF-BATCH-FAN-OUT": generated(
+      "WorkflowBoundedSubworkflowBatchNodeV2.fanOut",
+      "bounded Workpool child waves",
+      "packages/convex/test/workflow-conformance.test.ts",
+    ),
     "WF-NODE-RETRY": generated(
       "WorkflowActionNodeV2.retry with WorkflowEffectContract",
       "exact guarded runAction retry options",

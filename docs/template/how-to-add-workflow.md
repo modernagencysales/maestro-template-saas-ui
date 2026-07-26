@@ -94,6 +94,17 @@ Cancellation is projected as cascading while cleanup remains `cascade-async`;
 neither is described as atomic rollback or immediate deletion. Scheduled child
 options remain rejected on Workflow 0.4.4.
 
+Bounded repeated work uses workflowNode.boundedSubworkflowBatch with explicit
+maxItems, batchSize, and fanOut. The generated registry entry owns the typed
+item selector and batch argument mapper, pins the exact immutable child version,
+and may inherit or narrow the parent principal. Stable item identities produce
+stable batch step/link identities; otherwise deterministic ordinals are used.
+Empty input returns an explicit empty batch receipt. Invalid counts, raw
+loops/cycles, excess nesting/fan-out, oversized args, and registry/version drift
+fail before child dispatch with repair guidance. Batches start in deterministic
+waves; Workflow Workpool remains the only concurrency and scheduling boundary,
+and no child receives runAt or runAfter on Workflow 0.4.4.
+
 Public start args contain business input only. Keep the generated
 server-constructed V2 principal and policy snapshot in ownership, runner, and
 capability arguments. For policy-dependent workflows, resolve an exact policy

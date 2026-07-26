@@ -1,4 +1,4 @@
-import type { RunObservedWorkflowStageInput } from "./observedStage";
+import type { RunObservedWorkflowStageInput } from "./observedStageCurrent";
 import { getConvexSize, type Value } from "convex/values";
 
 import { sha256Hex } from "../../shared/sha256";

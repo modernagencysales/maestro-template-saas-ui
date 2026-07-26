@@ -414,3 +414,63 @@ describe("durable workflow graph V2 schema", () => {
     ).toBe(true);
   });
 });
+
+describe("bounded subworkflow batch graph V2", () => {
+  const node = workflowNode.boundedSubworkflowBatch({
+    id: "batch",
+    kind: "bounded-subworkflow-batch",
+    workflow: refs.workflows.child,
+    childVersion: 1,
+    label: "Process bounded batches",
+    stepName: "batch.v2",
+    payloadPolicy,
+    semanticRuleIds: ["WF-NODE-KIND"],
+    failurePolicy: { kind: "fail" },
+    maxItems: 8,
+    batchSize: 2,
+    fanOut: 2,
+  });
+  const graph = (overrides: Partial<typeof node> = {}) => ({
+    ...validGraph,
+    nodes: [
+      validGraph.nodes[0],
+      { ...node, ...overrides },
+      validGraph.nodes[1],
+    ],
+    edges: [
+      { id: "source_batch", sourceNodeId: "source", targetNodeId: "batch" },
+      { id: "batch_receipt", sourceNodeId: "batch", targetNodeId: "receipt" },
+    ],
+  });
+
+  it("decodes the explicit current-only bounded batch node", () => {
+    expect(Either.isRight(decodeDurableWorkflowGraphV2(graph()))).toBe(true);
+  });
+
+  it.each([
+    ["maxItems", 8_193, "BOUND_EXCEEDED"],
+    ["batchSize", 9, "BATCH_SIZE_EXCEEDS_MAX_ITEMS"],
+    ["fanOut", 8_193, "BOUND_EXCEEDED"],
+  ] as const)(
+    "rejects invalid %s before dispatch with redacted repair guidance",
+    (field, value, code) => {
+      const decoded = Either.getOrThrow(
+        decodeDurableWorkflowGraphV2(graph({ [field]: value })),
+      );
+      expect(validateWorkflowGraphV2(decoded)).toContainEqual({
+        _tag: "BoundedBatchV2",
+        nodeId: "batch",
+        code,
+        reason: "Bounded batch plan rejected.",
+        repair: expect.stringContaining("versioned bounded subworkflow"),
+        rerun: "pnpm check:workflow:fast",
+      });
+    },
+  );
+
+  it("rejects raw zero bounds during strict decode", () => {
+    expect(
+      Either.isLeft(decodeDurableWorkflowGraphV2(graph({ maxItems: 0 }))),
+    ).toBe(true);
+  });
+});

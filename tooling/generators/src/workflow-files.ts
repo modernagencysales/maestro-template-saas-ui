@@ -1185,7 +1185,7 @@ import {
   defineWorkflowEvent,
   defineWorkflowV2EventRegistry,
 } from "../_kit/events";
-import { defineEmptyWorkflowV2SubworkflowRegistry } from "../_kit/subworkflows";
+import { defineEmptyWorkflowV2SubworkflowRegistry } from "../_kit/subworkflowsCurrent";
 import { generatedWorkflowSubworkflowPolicy } from "../_kit/workpoolConfig";
 import { ${name}References } from "./v1.graph";
 
@@ -1263,6 +1263,8 @@ export const ${name}EventRegistry = defineWorkflowV2EventRegistry({
  * descriptors, typed Args/Result mapping, transitive children, principal
  * narrowing, and the shared typed workflowRunLinks reserve/reconcile refs.
  * Cascade cancellation and cleanup remain restricted lifecycle operations.
+ * Bounded batch entries additionally provide generated selectItems and
+ * mapBatchArgs functions; maxItems, batchSize, and fanOut stay in the graph.
  */
 export const ${name}SubworkflowRegistry =
   defineEmptyWorkflowV2SubworkflowRegistry();
@@ -1299,7 +1301,7 @@ import { reconcileObservedWorkflowCompletion } from "../../workflows/_kit/lifecy
 import { WorkflowOnCompleteContextValidator } from "../../workflows/_kit/lifecycleState";
 import { DurableWorkflowPrincipalValidator } from "../../workflows/_kit/principal";
 import { WorkflowPolicySnapshotValidator } from "../../workflows/_kit/policySnapshot";
-import { SubworkflowExecutionContextValidator } from "../../workflows/_kit/subworkflows";
+import { SubworkflowExecutionContextValidator } from "../../workflows/_kit/subworkflowsCurrent";
 import { ${name}Graph } from "../../workflows/${name}/v1.graph";
 import {
   ${name}EventRegistry,

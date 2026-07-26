@@ -28,7 +28,7 @@ import {
   runCompiledDurableGraphWorkflowV2,
   type RunDurableGraphV2CompilerInput,
 } from "./graphRunnerV2Current";
-import { validateWorkflowV2SubworkflowTopology } from "./subworkflows";
+import { validateWorkflowV2SubworkflowTopology } from "./subworkflowsCurrent";
 import { PINNED_INLINE_CONVEX_VERSION } from "./inlineTransactions";
 import type { WorkflowScheduleOptions } from "./workflowSchedule";
 
@@ -55,7 +55,7 @@ export type DurableGraphUnscheduledStepOptions = Readonly<
   readonly runAfter?: never;
 };
 
-export type { DurableGraphWorkflowRef } from "./subworkflows";
+export type { DurableGraphWorkflowRef } from "./subworkflowsCurrent";
 export type { ProductWorkflowEventId } from "./events";
 
 export type DurableGraphCapabilityEnvelope = {
@@ -111,10 +111,10 @@ export type RunDurableGraphStep = {
     options?: DurableGraphStepOptions | DurableGraphUnscheduledStepOptions,
   ): Promise<unknown>;
   readonly runWorkflow?: <
-    Args extends import("./subworkflows").AnyChildWorkflowArgs,
+    Args extends import("./subworkflowsCurrent").AnyChildWorkflowArgs,
     Result,
   >(
-    ref: import("./subworkflows").DurableGraphWorkflowRef<Args, Result>,
+    ref: import("./subworkflowsCurrent").DurableGraphWorkflowRef<Args, Result>,
     args: Args,
     options?: { readonly name?: string },
   ) => Promise<unknown>;
@@ -203,7 +203,8 @@ export const runDurableGraphWorkflowV2 = async <
     (node) => node.kind !== "source" && node.kind !== "output",
   );
   const subworkflowNodes = executable.filter(
-    (node) => node.kind === "subworkflow",
+    (node) =>
+      node.kind === "subworkflow" || node.kind === "bounded-subworkflow-batch",
   );
   const eventNodes = executable.filter((node) => node.kind === "event");
   const capabilityNodes = executable.filter(

@@ -17,6 +17,7 @@ import {
   WorkflowSchedule,
   WorkflowSourceNodeV2,
   WorkflowSubworkflowNodeV2,
+  WorkflowBoundedSubworkflowBatchNodeV2,
 } from "../graphNodeSchemaCurrent";
 import { validateWorkflowGraphV2 } from "../graphValidationCurrent";
 import type { WorkflowGraphV2Finding } from "../graphValidationCurrent";
@@ -40,6 +41,9 @@ type AgentNode = Schema.Schema.Type<typeof WorkflowAgentNodeV2>;
 type DelayNode = Schema.Schema.Type<typeof WorkflowDelayNodeV2>;
 type EventNode = Schema.Schema.Type<typeof WorkflowEventNodeV2>;
 type SubworkflowNode = Schema.Schema.Type<typeof WorkflowSubworkflowNodeV2>;
+type BoundedSubworkflowBatchNode = Schema.Schema.Type<
+  typeof WorkflowBoundedSubworkflowBatchNodeV2
+>;
 type OutputNode = Schema.Schema.Type<typeof WorkflowOutputNodeV2>;
 type Schedule = Schema.Schema.Type<typeof WorkflowSchedule>;
 
@@ -128,6 +132,9 @@ export const workflowNode = {
   event: (input: EventNode): EventNode => input,
   subworkflow: (input: Omit<SubworkflowNode, "schedule">): SubworkflowNode =>
     input,
+  boundedSubworkflowBatch: (
+    input: BoundedSubworkflowBatchNode,
+  ): BoundedSubworkflowBatchNode => input,
   output: (input: OutputNode): OutputNode => input,
 } as const;
 

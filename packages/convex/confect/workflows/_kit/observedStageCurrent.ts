@@ -8,7 +8,7 @@ import {
   recordStageStarted,
   recordStageSucceeded,
 } from "./observedStagePayloadCurrent";
-import type { SubworkflowExecutionContext } from "./subworkflows";
+import type { SubworkflowExecutionContext } from "./subworkflowsCurrent";
 import {
   DurableWorkflowPrincipal,
   type DurableWorkflowPrincipal as DurableWorkflowPrincipalType,
@@ -165,7 +165,8 @@ export type RunObservedWorkflowStageInput<Result> = {
   readonly componentWorkflowId?: string;
   readonly nodeId: string;
   readonly label: string;
-  readonly kind: WorkflowNodeKind | "subworkflow" | "event";
+  readonly kind:
+    WorkflowNodeKind | "subworkflow" | "bounded-subworkflow-batch" | "event";
   readonly stageKey?: string;
   readonly lifecycleGeneration?: number;
   readonly externalEffect?: boolean;

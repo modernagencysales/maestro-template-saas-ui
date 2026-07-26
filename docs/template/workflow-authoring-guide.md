@@ -94,6 +94,19 @@ Failures:
   result is preserved.
 - All outputs must be Convex JSON-safe.
 
+## Bounded Repeated Work
+
+Use the current-only bounded-subworkflow-batch V2 node for dynamic repeated
+work. Declare positive maxItems, batchSize, and fanOut; bind it to one exact
+published child workflow/version through the generated registry; and provide a
+typed selectItems plus mapBatchArgs binding. Prefer stable item identities;
+ordinal identities are deterministic when no domain identity exists. The runner
+rejects overflow, invalid identities, cycles, excess depth/fan-out, version
+drift, and oversized mapped args before starting a child. It returns an explicit
+empty receipt for zero items, uses stable child/link names across replay, and
+waits for every started child in a wave to reconcile before advancing. Workpool
+remains the only scheduler; scheduled children are still unsupported on 0.4.4.
+
 ## Durable Runtime Boundary
 
 Generated workflow replay handlers live in

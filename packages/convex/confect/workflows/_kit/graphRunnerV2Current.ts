@@ -28,8 +28,9 @@ import {
 } from "./graphRunnerTraversal";
 import {
   runRegisteredSubworkflow,
+  runRegisteredBoundedSubworkflowBatch,
   type AnyWorkflowV2SubworkflowRegistryEntry,
-} from "./subworkflows";
+} from "./subworkflowsCurrent";
 import {
   runRegisteredWorkflowEvent,
   type AnyWorkflowV2EventRegistryEntry,
@@ -247,7 +248,7 @@ export type RunDurableGraphV2CompilerInput<
   /** Deterministic workflow clock read immediately before scheduled dispatch. */
   readonly scheduleNowMs?: () => number;
   readonly observability?: ObservedWorkflowStageRefs;
-  readonly subworkflowPolicy?: import("./subworkflows").WorkflowV2SubworkflowPolicy;
+  readonly subworkflowPolicy?: import("./subworkflowsCurrent").WorkflowV2SubworkflowPolicy;
   readonly admitEffect: (input: {
     readonly node: CapabilityNodeV2;
     readonly capability: string;
@@ -610,6 +611,38 @@ const executeNode = async <Result extends Record<string, unknown>>(
 ): Promise<unknown> => {
   if (node.kind === "source") return input.inputs;
   if (node.kind === "output") return input.projectOutput({ context });
+  if (node.kind === "bounded-subworkflow-batch") {
+    const entry = input.workflowRegistry?.[node.workflow];
+    if (!entry) {
+      throw validationFailure(
+        node,
+        "missing generated workflow registry entry " + node.workflow,
+      );
+    }
+    if (!step.workflowId) {
+      throw validationFailure(
+        node,
+        "parent component identity is unavailable for bounded subworkflow linkage",
+      );
+    }
+    return runRegisteredBoundedSubworkflowBatch({
+      step,
+      node,
+      entry,
+      inputs: input.inputs,
+      context,
+      principal: input.principal,
+      policySnapshot: input.policySnapshot,
+      ownership: {
+        workspaceId: input.effectIdentity.workspaceId,
+        parentWorkflowRunId: input.effectIdentity.workflowRunId,
+        parentComponentWorkflowId: step.workflowId,
+        parentWorkflowVersion: input.graph.version,
+        generation: input.effectIdentity.generation,
+        occurredAt: input.effectIdentity.occurredAt,
+      },
+    });
+  }
   if (node.kind === "subworkflow") {
     const entry = input.workflowRegistry?.[node.workflow];
     if (!entry) {
