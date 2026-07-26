@@ -2,8 +2,14 @@
   "name": "@maestro-template/app-map-tooling",
   "private": true,
   "type": "module",
+  "exports": {
+    "./build": "./src/build.ts",
+    "./schema": "./src/schema.ts",
+    "./validate": "./src/validate.ts"
+  },
   "scripts": {
     "build:fixture": "tsx src/fixture-build.ts",
+    "check": "pnpm lint && pnpm typecheck && pnpm test",
     "lint": "eslint src --max-warnings 0",
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json --noEmit"
