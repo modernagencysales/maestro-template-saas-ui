@@ -9,8 +9,8 @@
   "release": {
     "version": "0.2.0-alpha.1",
     "tag": "maestro-template-v0.2.0-alpha.1",
-    "sourceCommit": "05ea28561570ea7767e2058f6260f82768b8d9a5",
-    "sourceChecksum": "sha256:76f6b05274c19ebe18bfca9a8d9a103e84b1d778b5ed10b92771ebcf1967d970"
+    "sourceCommit": "c057e00fe2f894957fe50d7ae560942944e2f523",
+    "sourceChecksum": "sha256:ef926f9dd339375073cf0097b23e0fb42579e8ffb69858af51c102aed9222c0e"
   },
   "upgrade": {
     "schemaVersion": 1,
@@ -1738,6 +1738,14 @@
         "afterHash": "sha256:673789e0b7cbd639d5ef6a6df8c6868df460bd4467970b9daa4821b5734ac03d"
       },
       {
+        "id": "upgrade-modify-packages-convex-test-http-docs-test-ts",
+        "kind": "modify",
+        "path": "packages/convex/test/http-docs.test.ts",
+        "ownership": "template-owned",
+        "beforeHash": "sha256:36069b53069ced694a36114db2be1b9af67be9982f5b52aab1c05d2f1eeca4ee",
+        "afterHash": "sha256:d0a8bc40464244a611654ac3e2b6385103e58203741ab489bca56798284ee3e2"
+      },
+      {
         "id": "upgrade-add-packages-convex-test-publicationFixture-workflow-test-ts",
         "kind": "add",
         "path": "packages/convex/test/publicationFixture.workflow.test.ts",
@@ -2469,7 +2477,7 @@
         "kind": "add",
         "path": "tooling/agent-pack/src/hostProjectionLifecycle.test.ts",
         "ownership": "template-owned",
-        "afterHash": "sha256:c61a7bf120c11d0cc03a23b6b1a561534df1b1e4287aaec371a047422f204235"
+        "afterHash": "sha256:7ba764cc4f9c240beb68375caa838b2036dd870dc50405b012235c8af26ec940"
       },
       {
         "id": "upgrade-add-tooling-agent-pack-src-hostProjectionLifecycle-ts",
@@ -3862,14 +3870,14 @@
   ],
   "blueprintManifest": {
     "path": "blueprints/saas-application.json",
-    "sha256": "sha256:93f0c722202de451de8bacf9449e3af1c67ae3c59b1d6b8106693d2d025b23b5"
+    "sha256": "sha256:de83fd0ff81331bfd1ebbfdd9d85de623c16e57eb1b009ece269caa68e08e27f"
   },
   "upgradeImpact": {
     "path": "releases/v0.2.0-alpha.1/upgrade/app-map-input.json",
-    "sha256": "sha256:bcaec154e6bacbca44aa665e7992e80e381caf637cf5d22986004188614a7b20",
+    "sha256": "sha256:824b374a63bd3ed13004305b3f10b2bbd5b12fe9090f3999fffc2e2f84228929",
     "projection": {
       "path": "releases/v0.2.0-alpha.1/upgrade/app-map-impact.json",
-      "sha256": "sha256:d75a98c3bf23f341c51c83d1f84c4dd7d3f308f72704e3f25788681f6031be5b"
+      "sha256": "sha256:548af0bcdeac46446f40376808464180cc091ae6c20ba3050dbbfb12da755893"
     }
   },
   "migrationHandoff": {

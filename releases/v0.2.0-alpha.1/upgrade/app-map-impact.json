@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "kind": "reviewed-upgrade-impact-coverage",
   "baseRevision": "517b5bc28d1d633bef18f57610cff49800123788",
-  "subjectRevision": "05ea28561570ea7767e2058f6260f82768b8d9a5",
+  "subjectRevision": "c057e00fe2f894957fe50d7ae560942944e2f523",
   "structuralPaths": [
     "docs/template/data-resources.json",
     "docs/template/generated/provenance/add-table/workflowArtifacts.json",
@@ -244,6 +244,7 @@
     "packages/convex/test/fixtures/workflow-deadline-workflow/schema.ts",
     "packages/convex/test/fixtures/workflow-deadline-workflow/workflow.ts",
     "packages/convex/test/fixtures/workflowAdmissionAdapterHarness.ts",
+    "packages/convex/test/http-docs.test.ts",
     "packages/convex/test/publicationFixture.workflow.test.ts",
     "packages/convex/test/workflow-admission-component.test.ts",
     "packages/convex/test/workflow-admission.test.ts",
@@ -494,7 +495,7 @@
   "impact": {
     "schemaVersion": 1,
     "baseRevision": "517b5bc28d1d633bef18f57610cff49800123788",
-    "subjectRevision": "05ea28561570ea7767e2058f6260f82768b8d9a5",
+    "subjectRevision": "c057e00fe2f894957fe50d7ae560942944e2f523",
     "complete": true,
     "risk": "high",
     "changedPaths": [
