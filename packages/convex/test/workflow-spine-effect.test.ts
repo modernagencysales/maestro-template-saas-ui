@@ -238,9 +238,9 @@ describe("workflow ownership", () => {
     );
 
     expect(result).toMatchObject({
-      code: "VALIDATION_FAILED",
+      _tag: "ValidationFailed",
+      field: "idempotencyKey",
       message: "idempotencyKey must not have leading or trailing whitespace.",
-      details: { idempotencyKey: " workflow-run-001 " },
     });
   });
 });
