@@ -9,6 +9,7 @@ import { aggregateWalkingSkeletonRuns } from "./aggregate.js";
 import { parseCliOptions } from "./cli.js";
 import type { WalkingSkeletonResult } from "./contract.js";
 import {
+  claudeSandboxSettings,
   createHostAdapter,
   executeHostCommand,
   safeHostEnvironment,
@@ -125,6 +126,68 @@ describe("walking-skeleton fail-closed evidence", () => {
         source: { PATH: "/bin", CONVEX_DEPLOY_KEY: "secret" },
       }).CONVEX_DEPLOY_KEY,
     ).toBeUndefined();
+  });
+  it("requires Claude's fail-closed offline Bash sandbox", async () => {
+    const calls: HostCommand[] = [];
+    const adapter = createHostAdapter("claude", async (input) => {
+      calls.push(input);
+      return {
+        exitCode: 0,
+        stdout: "authenticated",
+        stderr: "",
+        unavailable: false,
+      };
+    });
+    expect(adapter.isolation).toBe("workspace-offline");
+    await adapter.preflight({
+      cwd: "/repo",
+      hostHome: "/auth",
+      sessionDir: "/run",
+    });
+    await adapter.run({
+      cwd: "/repo",
+      hostHome: "/auth",
+      sessionDir: "/run",
+      prompt: "test",
+      timeoutMs: 1_000,
+      networkAccess: false,
+    });
+    expect(calls.map(({ command }) => command)).toEqual([
+      "claude",
+      "claude",
+      "bwrap",
+      "socat",
+      "claude",
+    ]);
+    expect(calls[4]?.args).toEqual(
+      expect.arrayContaining([
+        "--setting-sources",
+        "project",
+        "--tools",
+        "--allowedTools",
+        "Bash",
+        "--disallowedTools",
+        "WebFetch,WebSearch,Agent,Task",
+        "--strict-mcp-config",
+      ]),
+    );
+    expect(calls[4]?.args).not.toContain("--safe-mode");
+    expect(JSON.parse(claudeSandboxSettings("/auth"))).toEqual({
+      enableAllProjectMcpServers: false,
+      enabledPlugins: {},
+      permissions: {
+        allow: ["Bash"],
+        deny: ["WebFetch", "WebSearch", "Agent", "Task"],
+      },
+      sandbox: {
+        enabled: true,
+        autoAllowBashIfSandboxed: true,
+        failIfUnavailable: true,
+        allowUnsandboxedCommands: false,
+        filesystem: { denyRead: ["/auth"], denyWrite: ["/auth"] },
+        network: { allowedDomains: [], deniedDomains: ["*"] },
+      },
+    });
   });
 
   it("preserves the exact default Codex command without transport", async () => {

@@ -14,6 +14,7 @@ import {
   type WalkingSkeletonVerdict,
 } from "./contract.js";
 import {
+  claudeSandboxSettings,
   createHostAdapter,
   type CodexTransportV1,
   type WalkingSkeletonHostAdapter,
@@ -99,7 +100,7 @@ export async function runWalkingSkeleton(
   );
   await writeFile(
     join(sessionDir, "claude-settings.json"),
-    '{"enableAllProjectMcpServers":false,"enabledPlugins":{}}\n',
+    claudeSandboxSettings(options.hostHome),
     "utf8",
   );
   await writeJson(join(outputDirectory, "metadata.json"), {

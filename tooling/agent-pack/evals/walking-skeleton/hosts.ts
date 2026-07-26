@@ -43,6 +43,31 @@ export type WalkingSkeletonHostAdapter = {
     readonly networkAccess?: boolean;
   }) => Promise<HostCommandResult>;
 };
+export function claudeSandboxSettings(hostHome: string): string {
+  return `${JSON.stringify(
+    {
+      enableAllProjectMcpServers: false,
+      enabledPlugins: {},
+      permissions: {
+        allow: ["Bash"],
+        deny: ["WebFetch", "WebSearch", "Agent", "Task"],
+      },
+      sandbox: {
+        enabled: true,
+        autoAllowBashIfSandboxed: true,
+        failIfUnavailable: true,
+        allowUnsandboxedCommands: false,
+        filesystem: {
+          denyRead: [hostHome],
+          denyWrite: [hostHome],
+        },
+        network: { allowedDomains: [], deniedDomains: ["*"] },
+      },
+    },
+    null,
+    2,
+  )}\n`;
+}
 
 const providerIdentifier = /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/u;
 const modelIdentifier = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/u;
@@ -159,7 +184,7 @@ export function createHostAdapter(
     safeHostEnvironment({ host, hostHome, sessionDir });
   return {
     host,
-    isolation: host === "codex" ? "workspace-offline" : "unverified",
+    isolation: "workspace-offline",
     preflight: async ({ cwd, hostHome, sessionDir }) => {
       const env = environment(hostHome, sessionDir);
       const version = await execute({
@@ -193,6 +218,29 @@ export function createHostAdapter(
           `${host} authentication is unavailable; authenticate outside the harness and rerun.`,
         );
       }
+      if (host === "claude") {
+        for (const [dependency, args] of [
+          ["bwrap", ["--version"]],
+          ["socat", ["-V"]],
+        ] as const) {
+          const sandboxDependency = await execute({
+            command: dependency,
+            args,
+            cwd,
+            env,
+            timeoutMs: 10_000,
+          });
+          if (
+            sandboxDependency.unavailable ||
+            sandboxDependency.exitCode !== 0
+          ) {
+            throw new EvaluationError(
+              "EVAL_HOST_ISOLATION_UNAVAILABLE",
+              `Claude sandbox dependency is unavailable: ${dependency}.`,
+            );
+          }
+        }
+      }
     },
     run: ({
       cwd,
@@ -210,6 +258,14 @@ export function createHostAdapter(
             ? [
                 "-p",
                 prompt,
+                "--setting-sources",
+                "project",
+                "--tools",
+                "Bash",
+                "--allowedTools",
+                "Bash",
+                "--disallowedTools",
+                "WebFetch,WebSearch,Agent,Task",
                 "--output-format",
                 "json",
                 "--strict-mcp-config",
