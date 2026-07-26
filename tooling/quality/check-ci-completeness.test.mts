@@ -14,6 +14,9 @@ describe("check:ci-completeness", () => {
     const requirements = JSON.stringify(descriptor.requirements);
 
     expect(requirements).toContain("turbo run typecheck --concurrency=1");
+    expect(requirements).toContain(
+      "pnpm --dir apps/cli test:create-root-integration",
+    );
     expect(requirements).toContain("check:system-topology");
     expect(requirements).toContain("check:data-resources");
     expect(requirements).toContain("check:promotion-boundary");

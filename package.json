@@ -9,7 +9,7 @@
     "lint": "eslint .",
     "typecheck": "turbo run typecheck --concurrency=1",
     "check:effect-diagnostics": "effect-language-service diagnostics --project packages/convex/tsconfig.json --format github-actions --strict",
-    "test": "turbo run test --filter=!@maestro-template/release-tooling && pnpm --dir tooling/release test:unit && pnpm test:release-filesystem",
+    "test": "turbo run test --filter=!@maestro-template/release-tooling && pnpm --dir apps/cli test:create-root-integration && pnpm --dir tooling/release test:unit && pnpm test:release-filesystem",
     "test:release-filesystem": "pnpm --dir tooling/release test:final-filesystem",
     "test:tooling": "pnpm --dir tooling/quality test && pnpm --dir tooling/workflow test && pnpm --dir tooling/generators test && pnpm --dir tooling/evals test && pnpm --dir tooling/release test:unit",
     "test:app-map": "pnpm --dir tooling/app-map test",
