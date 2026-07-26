@@ -9,8 +9,8 @@
   "release": {
     "version": "0.2.0-alpha.1",
     "tag": "maestro-template-v0.2.0-alpha.1",
-    "sourceCommit": "2e81cd44c7040d6f417a5795b0c74f27389f6d2b",
-    "sourceChecksum": "sha256:e078f69d162051f8ddc06753eba5904afa585ca040a4c9163646fe21183f3247"
+    "sourceCommit": "ecde94a1d5d908baf84903384eb56cae326e87be",
+    "sourceChecksum": "sha256:b0a1246978097eec5715c28f6d374ee98eb0646664c03394dcd4b74b3395ed2a"
   },
   "upgrade": {
     "schemaVersion": 1,
@@ -3122,6 +3122,14 @@
         "afterHash": "sha256:eb34e12840357a39a981fd6533887d53b5f5c50d224985f177da7f810a000187"
       },
       {
+        "id": "upgrade-modify-tooling-confect-manifest-tsconfig-json",
+        "kind": "modify",
+        "path": "tooling/confect-manifest/tsconfig.json",
+        "ownership": "template-owned",
+        "beforeHash": "sha256:5bf17f95d75bc698656ab5c70d97defbcb6ec8fda67ee4b501c03ebb4194a89a",
+        "afterHash": "sha256:768f04d1dd92c0598c63d2f99938de62fd42665b7cfd307c81e6f5f8e733eca1"
+      },
+      {
         "id": "upgrade-modify-tooling-convex-compat-fixtures-candidate-json",
         "kind": "modify",
         "path": "tooling/convex-compat/__fixtures__/candidate.json",
@@ -3796,14 +3804,14 @@
   ],
   "blueprintManifest": {
     "path": "blueprints/saas-application.json",
-    "sha256": "sha256:84671263f590edcaa892674e0195ceba7cbed81cea62614521d045bdd3223e98"
+    "sha256": "sha256:546502410108871c6b928b1d19ea58c0d4db26da390aaa839a3a0f2bd0f71124"
   },
   "upgradeImpact": {
     "path": "releases/v0.2.0-alpha.1/upgrade/app-map-input.json",
-    "sha256": "sha256:5cf01e9f51142d1987cc1d073eb09e53393dfd3640ef34740b6765829bdf4724",
+    "sha256": "sha256:f60d86e42cd0b1efa1f1937ecefd61ead9b5bf41211dd8253767742aa5c0a708",
     "projection": {
       "path": "releases/v0.2.0-alpha.1/upgrade/app-map-impact.json",
-      "sha256": "sha256:374b7a62fe8b48e09a475ad53f9b1d8711a9f09a1f9c5d1217a4a97e1ad6ca7a"
+      "sha256": "sha256:9c784d527c1bcebb734050beeb3640f7e9088bd4e910963590f612fab80ce9bf"
     }
   },
   "migrationHandoff": {

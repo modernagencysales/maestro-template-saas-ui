@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "kind": "reviewed-upgrade-impact-coverage",
   "baseRevision": "517b5bc28d1d633bef18f57610cff49800123788",
-  "subjectRevision": "2e81cd44c7040d6f417a5795b0c74f27389f6d2b",
+  "subjectRevision": "ecde94a1d5d908baf84903384eb56cae326e87be",
   "structuralPaths": [
     "docs/template/data-resources.json",
     "docs/template/generated/provenance/add-table/workflowArtifacts.json",
@@ -434,6 +434,7 @@
     "tooling/app-map/src/validate.test.ts",
     "tooling/app-map/src/validate.ts",
     "tooling/app-map/tsconfig.json",
+    "tooling/confect-manifest/tsconfig.json",
     "tooling/convex-compat/__fixtures__/candidate.json",
     "tooling/convex-compat/__fixtures__/current.json",
     "tooling/convex-compat/src/candidate-install.test.ts",
@@ -500,7 +501,7 @@
   "impact": {
     "schemaVersion": 1,
     "baseRevision": "517b5bc28d1d633bef18f57610cff49800123788",
-    "subjectRevision": "2e81cd44c7040d6f417a5795b0c74f27389f6d2b",
+    "subjectRevision": "ecde94a1d5d908baf84903384eb56cae326e87be",
     "complete": true,
     "risk": "high",
     "changedPaths": [
