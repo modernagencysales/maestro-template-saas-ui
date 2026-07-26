@@ -146,10 +146,15 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 const REVIEWED_ADDITIONAL_PATHS: readonly CustomerReleasePath[] = [
   ...[
     "apps/cli/src/factory/adopt.ts",
+    "apps/cli/src/factory/adopt.test.ts",
     "apps/cli/src/factory/composition.ts",
+    "apps/cli/src/factory/composition.test.ts",
+    "apps/cli/src/factory/createRootIntegration.test.ts",
+    "apps/cli/src/factory/mcpIntegration.test.ts",
     "apps/cli/src/factory/recipeCatalog.ts",
     "apps/cli/src/factory/supportBundleMcpNoNetwork.fixture.ts",
     "apps/cli/src/factory/upgrade.ts",
+    "apps/cli/src/factory/upgrade.test.ts",
   ].map((path): CustomerReleasePath => ({
     path,
     match: "exact",
