@@ -5,4 +5,5 @@ export * from "./recovery.js";
 export * from "./recoveryAudit.js";
 export * from "./recoveryCheckpoint.js";
 export * from "./recoveryVerify.js";
+export * from "./repository.js";
 export * from "./verify.js";

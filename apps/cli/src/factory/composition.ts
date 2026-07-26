@@ -86,6 +86,7 @@ import {
   createReceiptExportCliHandler,
   createVerifyCliHandler,
 } from "./verify";
+import { createUpgradeCliHandler } from "./upgrade";
 import { runAgentPackCommandAsCli, type FactoryCliHandler } from "./router";
 
 export const FACTORY_EXECUTION_POLICY = Object.freeze({
@@ -452,6 +453,7 @@ export function createFactoryCliComposition(
     createPlanCheckCliHandler(planCheck),
     createScaffoldCliHandler(scaffold),
     createSupportBundleCliHandler(supportBundle),
+    createUpgradeCliHandler(),
   ];
 
   return Object.freeze({

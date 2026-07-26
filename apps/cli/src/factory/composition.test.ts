@@ -129,7 +129,7 @@ async function configuredGitTarget(): Promise<string> {
 }
 
 describe("factory CLI composition", () => {
-  it("binds one explicit policy to canonical readers and fifteen commands", () => {
+  it("binds one explicit policy to canonical readers and sixteen commands", () => {
     expect(
       factoryCliComposition.handlers.map(({ command }) => command),
     ).toEqual([
@@ -148,6 +148,7 @@ describe("factory CLI composition", () => {
       "plan-check",
       "scaffold",
       "support-bundle",
+      "upgrade",
     ]);
     expect(factoryCliComposition.diagnosticCount).toBe(
       diagnosticRegistryDescriptors.length,
@@ -165,7 +166,7 @@ describe("factory CLI composition", () => {
 
   it("imports generator and quality sources without running either CLI", () => {
     expect(process.exitCode).toBeUndefined();
-    expect(factoryCliComposition.handlers).toHaveLength(15);
+    expect(factoryCliComposition.handlers).toHaveLength(16);
   });
 
   it("routes exact start help without spawning", async () => {

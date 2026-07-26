@@ -337,8 +337,19 @@ export const planUpgrade = (candidate: unknown): UpgradePlanResult => {
   const normalizedManifest = normalizeManifest(input.manifest);
   const relation = relationshipResolution(input);
   const analysis = analyzeUpgradeSafety(normalizedManifest, input.target);
+  const targetClean: UpgradeResolution[] = input.target.clean
+    ? []
+    : [
+        {
+          code: "UPGRADE_TARGET_DIRTY" as const,
+          message: "Upgrade planning requires a clean committed target.",
+          repair:
+            "Commit or discard target changes, then rebuild the plan from Git.",
+        },
+      ];
   const resolutions = [
     ...(relation ? [relation] : []),
+    ...targetClean,
     ...normalizedManifest.requirements.map(requirementResolution),
     ...analysis.resolutions,
   ].sort((left, right) => {
