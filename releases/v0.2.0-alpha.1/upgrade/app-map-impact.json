@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "kind": "reviewed-upgrade-impact-coverage",
   "baseRevision": "517b5bc28d1d633bef18f57610cff49800123788",
-  "subjectRevision": "284b55bb9d50b4fc2924f712472d29cf05644d10",
+  "subjectRevision": "edb8590a8c04b9ade49879a66f4ae88cab083051",
   "structuralPaths": [
     "docs/template/data-resources.json",
     "docs/template/generated/provenance/add-table/workflowArtifacts.json",
@@ -20,7 +20,6 @@
     "apps/cli/package.json",
     "apps/cli/src/commands.ts",
     "apps/cli/src/direct-run.test.ts",
-    "apps/cli/src/factory/adopt.test.ts",
     "apps/cli/src/factory/adoptFileReader.ts",
     "apps/cli/src/factory/appMap.test.ts",
     "apps/cli/src/factory/appMap.ts",
@@ -41,7 +40,6 @@
     "apps/cli/src/factory/start.ts",
     "apps/cli/src/factory/supportBundle.test.ts",
     "apps/cli/src/factory/supportBundle.ts",
-    "apps/cli/src/factory/upgrade.test.ts",
     "apps/cli/src/factory/verify.test.ts",
     "apps/cli/src/factory/verify.ts",
     "apps/cli/src/index.test.ts",
@@ -496,7 +494,7 @@
   "impact": {
     "schemaVersion": 1,
     "baseRevision": "517b5bc28d1d633bef18f57610cff49800123788",
-    "subjectRevision": "284b55bb9d50b4fc2924f712472d29cf05644d10",
+    "subjectRevision": "edb8590a8c04b9ade49879a66f4ae88cab083051",
     "complete": true,
     "risk": "high",
     "changedPaths": [

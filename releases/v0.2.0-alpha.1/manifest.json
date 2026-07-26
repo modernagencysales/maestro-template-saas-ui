@@ -9,8 +9,8 @@
   "release": {
     "version": "0.2.0-alpha.1",
     "tag": "maestro-template-v0.2.0-alpha.1",
-    "sourceCommit": "284b55bb9d50b4fc2924f712472d29cf05644d10",
-    "sourceChecksum": "sha256:04ebbf75a39efd02fb53039c7f210eb9093971eb4e82e69938ebb2fbce7124b4"
+    "sourceCommit": "edb8590a8c04b9ade49879a66f4ae88cab083051",
+    "sourceChecksum": "sha256:b6ec248e41f3c4d0cc57fb50e41da0cb0489523ca95d9a275a245ebaa795a62a"
   },
   "upgrade": {
     "schemaVersion": 1,
@@ -51,13 +51,6 @@
         "path": "apps/cli/src/direct-run.test.ts",
         "ownership": "template-owned",
         "beforeHash": "sha256:34b8fd220db64bd577102cff20cdd4f08e6217cc3a6184ae523cfe9f5f628946"
-      },
-      {
-        "id": "upgrade-add-apps-cli-src-factory-adopt-test-ts",
-        "kind": "add",
-        "path": "apps/cli/src/factory/adopt.test.ts",
-        "ownership": "template-owned",
-        "afterHash": "sha256:ad261d43e428598f5e818a6ad79576423a90b3aab24527953236c3dcc693e5f2"
       },
       {
         "id": "upgrade-add-apps-cli-src-factory-adoptFileReader-ts",
@@ -198,13 +191,6 @@
         "path": "apps/cli/src/factory/supportBundle.ts",
         "ownership": "template-owned",
         "afterHash": "sha256:4df32fb2d305b96eaff61a6fed7bd3e7bd6d41b6981781a7e3e2c54e1ac835d4"
-      },
-      {
-        "id": "upgrade-add-apps-cli-src-factory-upgrade-test-ts",
-        "kind": "add",
-        "path": "apps/cli/src/factory/upgrade.test.ts",
-        "ownership": "template-owned",
-        "afterHash": "sha256:6c0031d0fafd740f7a7083da9ed2daf14317f775225497e017b207df5618aa4c"
       },
       {
         "id": "upgrade-delete-apps-cli-src-factory-verify-test-ts",
@@ -3571,6 +3557,13 @@
       "upgrade": "remove"
     },
     {
+      "path": "apps/cli/src/factory/adopt.test.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
       "path": "apps/cli/src/factory/adopt.ts",
       "match": "exact",
       "ownership": "factory-only",
@@ -3691,6 +3684,13 @@
     },
     {
       "path": "apps/cli/src/factory/supportBundleMcpNoNetwork.fixture.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "apps/cli/src/factory/upgrade.test.ts",
       "match": "exact",
       "ownership": "factory-only",
       "action": "omit",
@@ -3846,14 +3846,14 @@
   ],
   "blueprintManifest": {
     "path": "blueprints/saas-application.json",
-    "sha256": "sha256:be3f8cbda25c29be390795e18f8ac132e4659ec906eb74e877e262dec15e8a80"
+    "sha256": "sha256:e7d67b7ffad4ef220f7c1b8a03558084bfa1fee6345e8a2dd78ec02612e72543"
   },
   "upgradeImpact": {
     "path": "releases/v0.2.0-alpha.1/upgrade/app-map-input.json",
-    "sha256": "sha256:4106bb679fa7eaeb111e6eb2a71d161bfc1864e013f6ddd16ddae86b9b408ae4",
+    "sha256": "sha256:06edb0418e0916dac4e00ebe27d67dcc1c26da9f16b705babe9a4333c73e055d",
     "projection": {
       "path": "releases/v0.2.0-alpha.1/upgrade/app-map-impact.json",
-      "sha256": "sha256:539a37cf9d9abc07702fbf6e59ef15f842c3dc4e751922c392a22d45e39d4596"
+      "sha256": "sha256:b04bc77ee142f1654e7b334640e8d2bd2d14a5bff3d178979bee62810bba7ede"
     }
   },
   "migrationHandoff": {
