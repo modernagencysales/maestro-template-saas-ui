@@ -169,6 +169,7 @@ const customerPackage = (current: boolean): string => {
       return [name, command];
     }),
   );
+  value.scripts.test = "turbo run test";
   value.scripts["test:tooling"] =
     "pnpm --dir tooling/quality test && pnpm --dir tooling/workflow test && pnpm --dir tooling/generators test";
   value.scripts["check:coverage-ratchet"] =

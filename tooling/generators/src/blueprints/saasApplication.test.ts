@@ -611,6 +611,7 @@ describe("saas application blueprint", () => {
       "convex:deploy",
       "check:deploy-authority",
       "test:mutation",
+      "test:release-filesystem",
       "check:recipes",
       "check:workflow-version-immutability",
       "check:workflow-publication-generation",
@@ -624,6 +625,7 @@ describe("saas application blueprint", () => {
       "template:smoke",
     ]);
     const rewritten = new Set([
+      "test",
       "test:tooling",
       "check:coverage-ratchet",
       "coverage:update-baseline",
@@ -670,6 +672,7 @@ describe("saas application blueprint", () => {
     expect(root.scripts["template:smoke"]).toBe(
       "tsx tooling/generators/src/customer-cli.ts smoke",
     );
+    expect(root.scripts.test).toBe("turbo run test");
     for (const name of CURRENT_GENERATOR_GATE_SCRIPTS) {
       expect(root.scripts[name]).toContain(
         "tooling/generators/src/customer-cli.ts",
