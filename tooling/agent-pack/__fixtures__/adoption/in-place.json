@@ -11,8 +11,25 @@
     "targetWorktree": "/workspace/reviewed-app"
   },
   "worktrees": {
-    "source": { "clean": true, "revision": "reviewed-baseline" },
-    "target": { "clean": true, "revision": "reviewed-baseline" }
+    "source": {
+      "exists": true,
+      "clean": true,
+      "revision": "1111111111111111111111111111111111111111"
+    },
+    "target": {
+      "exists": true,
+      "clean": true,
+      "revision": "1111111111111111111111111111111111111111"
+    }
+  },
+  "authority": {
+    "fingerprint": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "template": {
+      "tag": "maestro-template-v1",
+      "commit": "3333333333333333333333333333333333333333",
+      "archiveChecksum": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "manifestChecksum": "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+    }
   },
   "baseline": {
     "sourceEvidence": ["evidence/source-baseline.json"],

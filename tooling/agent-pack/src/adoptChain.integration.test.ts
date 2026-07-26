@@ -25,16 +25,7 @@ describe("customer adoption authority chain", () => {
         "utf8",
       ),
     ) as AdoptionWorkPackage;
-    const workPackage: AdoptionWorkPackage = {
-      ...fixture,
-      approval: {
-        ...fixture.approval,
-        status: "approved",
-        evidence: "evidence/adoption-approval.json",
-      },
-    };
-    const before = structuredClone(workPackage);
-    const authority = validateAdoptionAuthority({
+    const authorityInput = {
       mode: "separate-target",
       sourceReadOnly: true,
       source: {
@@ -77,10 +68,24 @@ describe("customer adoption authority chain", () => {
         { label: "factory", resolvedRoot: "/factory" },
         { label: "home", resolvedRoot: "/home/operator" },
       ],
-    });
+    } as const;
+    const authority = validateAdoptionAuthority(authorityInput);
     expect(authority.ok).toBe(true);
     if (authority.authorityFingerprint === null)
       throw new Error("expected authority fingerprint");
+    const workPackage: AdoptionWorkPackage = {
+      ...fixture,
+      authority: {
+        ...fixture.authority,
+        fingerprint: authority.authorityFingerprint,
+      },
+      approval: {
+        ...fixture.approval,
+        status: "approved",
+        evidence: "evidence/adoption-approval.json",
+      },
+    };
+    const before = structuredClone(workPackage);
 
     const intents: AdoptionExecutionIntent[] = [
       {
@@ -107,7 +112,7 @@ describe("customer adoption authority chain", () => {
     ];
     const planResult = compileAdoptionExecutionPlan({
       workPackage,
-      authority,
+      authority: authorityInput,
       intents,
     });
     expect(planResult.ok).toBe(true);

@@ -1,7 +1,10 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import type { AdoptionAuthorityResult } from "./adoptAuthority.js";
+import {
+  validateAdoptionAuthority,
+  type AdoptionAuthorityInput,
+} from "./adoptAuthority.js";
 import type { AdoptionWorkPackage } from "./adopt.js";
 import {
   compileAdoptionExecutionPlan,
@@ -21,8 +24,15 @@ const workPackage = (): AdoptionWorkPackage => {
       "utf8",
     ),
   ) as AdoptionWorkPackage;
+  const acceptedAuthority = validateAdoptionAuthority(authority());
+  if (acceptedAuthority.authorityFingerprint === null)
+    throw new Error("expected accepted authority");
   return {
     ...fixture,
+    authority: {
+      ...fixture.authority,
+      fingerprint: acceptedAuthority.authorityFingerprint,
+    },
     approval: {
       ...fixture.approval,
       status: "approved",
@@ -31,11 +41,46 @@ const workPackage = (): AdoptionWorkPackage => {
   };
 };
 
-const authority = (): AdoptionAuthorityResult => ({
-  ok: true,
-  mutationPosture: "read-only",
-  findings: [],
-  authorityFingerprint: checksum("a"),
+const authority = (): AdoptionAuthorityInput => ({
+  mode: "separate-target",
+  sourceReadOnly: true,
+  source: {
+    requestedRoot: "/workspace/legacy-crm",
+    resolvedRoot: "/workspace/legacy-crm",
+    worktreeRoot: "/workspace/legacy-crm",
+    exists: true,
+    empty: false,
+    clean: true,
+    revision: "1".repeat(40),
+  },
+  target: {
+    requestedRoot: "/workspace/maestro-crm",
+    resolvedRoot: "/workspace/maestro-crm",
+    worktreeRoot: "/workspace/maestro-crm",
+    exists: true,
+    empty: true,
+    clean: true,
+    revision: "2".repeat(40),
+  },
+  baseline: {
+    sourceRevision: "1".repeat(40),
+    targetRevision: "2".repeat(40),
+  },
+  template: {
+    requestedRoot: "/releases/maestro-v1",
+    resolvedRoot: "/releases/maestro-v1",
+    tag: "maestro-template-v1",
+    commit: "3".repeat(40),
+    archiveChecksum: checksum("1"),
+    manifestChecksum: checksum("2"),
+  },
+  reviewedTemplate: {
+    tag: "maestro-template-v1",
+    commit: "3".repeat(40),
+    archiveChecksum: checksum("1"),
+    manifestChecksum: checksum("2"),
+  },
+  protectedRoots: [{ label: "factory", resolvedRoot: "/factory" }],
 });
 
 const intents = (): AdoptionExecutionIntent[] => [
@@ -90,7 +135,9 @@ describe("adoption execution planning", () => {
         readonly operations: readonly { readonly path: string }[];
       }[];
     };
-    expect(artifact.authorityFingerprint).toBe(checksum("a"));
+    expect(artifact.authorityFingerprint).toBe(
+      validateAdoptionAuthority(authority()).authorityFingerprint,
+    );
     expect(artifact.phases.map(({ name }) => name)).toEqual([
       "stage",
       "verify",
@@ -102,6 +149,71 @@ describe("adoption execution planning", () => {
       "src/customer.ts",
     ]);
     expect(input).toEqual(before);
+  });
+
+  it("accepts a disjoint absent target and rejects invented target revision facts", () => {
+    const absentAuthority: AdoptionAuthorityInput = {
+      ...authority(),
+      target: {
+        ...authority().target,
+        worktreeRoot: null,
+        exists: false,
+        empty: null,
+        clean: null,
+        revision: null,
+      },
+      baseline: {
+        ...authority().baseline,
+        targetRevision: null,
+      },
+    };
+    const accepted = validateAdoptionAuthority(absentAuthority);
+    if (accepted.authorityFingerprint === null)
+      throw new Error("expected absent-target authority");
+    const base = workPackage();
+    const absentPackage: AdoptionWorkPackage = {
+      ...base,
+      roots: { ...base.roots, targetWorktree: null },
+      worktrees: {
+        ...base.worktrees,
+        target: { exists: false, clean: null, revision: null },
+      },
+      authority: {
+        ...base.authority,
+        fingerprint: accepted.authorityFingerprint,
+      },
+    };
+    expect(
+      compileAdoptionExecutionPlan({
+        workPackage: absentPackage,
+        authority: absentAuthority,
+        intents: intents(),
+      }),
+    ).toMatchObject({ ok: true, findings: [] });
+    expect(
+      compileAdoptionExecutionPlan({
+        workPackage: {
+          ...absentPackage,
+          worktrees: {
+            ...absentPackage.worktrees,
+            target: {
+              exists: true,
+              clean: true,
+              revision: "2".repeat(40),
+            },
+          },
+        },
+        authority: absentAuthority,
+        intents: intents(),
+      }),
+    ).toMatchObject({
+      ok: false,
+      findings: expect.arrayContaining([
+        expect.objectContaining({
+          code: "ADOPTION_EXECUTION_WORK_PACKAGE_INVALID",
+        }),
+      ]),
+    });
   });
 
   it("defers exact delete decisions until a distinct post-cutover phase", () => {
@@ -150,10 +262,9 @@ describe("adoption execution planning", () => {
   });
 
   it("fails closed without an accepted authority fingerprint", () => {
-    const rejectedAuthority: AdoptionAuthorityResult = {
+    const rejectedAuthority: AdoptionAuthorityInput = {
       ...authority(),
-      ok: false,
-      authorityFingerprint: null,
+      source: { ...authority().source, clean: false },
     };
 
     expect(
@@ -166,6 +277,50 @@ describe("adoption execution planning", () => {
       ok: false,
       findings: [{ code: "ADOPTION_EXECUTION_AUTHORITY_REQUIRED" }],
       artifact: null,
+    });
+  });
+
+  it("rejects authority substitution and stale worktree facts", () => {
+    const base = workPackage();
+    const packageForAnotherSource: AdoptionWorkPackage = {
+      ...base,
+      roots: { ...base.roots, source: "/workspace/other-crm" },
+    };
+    expect(
+      compileAdoptionExecutionPlan({
+        workPackage: packageForAnotherSource,
+        authority: authority(),
+        intents: intents(),
+      }),
+    ).toMatchObject({
+      ok: false,
+      findings: expect.arrayContaining([
+        expect.objectContaining({
+          code: "ADOPTION_EXECUTION_AUTHORITY_MISMATCH",
+        }),
+      ]),
+    });
+
+    const dirty: AdoptionWorkPackage = {
+      ...base,
+      worktrees: {
+        ...base.worktrees,
+        source: { ...base.worktrees.source, clean: false, revision: "HEAD" },
+      },
+    };
+    expect(
+      compileAdoptionExecutionPlan({
+        workPackage: dirty,
+        authority: authority(),
+        intents: intents(),
+      }),
+    ).toMatchObject({
+      ok: false,
+      findings: expect.arrayContaining([
+        expect.objectContaining({
+          code: "ADOPTION_EXECUTION_WORK_PACKAGE_INVALID",
+        }),
+      ]),
     });
   });
 

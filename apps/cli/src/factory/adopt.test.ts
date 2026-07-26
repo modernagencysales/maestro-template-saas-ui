@@ -1,6 +1,10 @@
 import { readFileSync } from "node:fs";
+import { mkdtemp, readdir, rm, symlink, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { createAdoptCliHandler } from "./adopt";
+import { readBoundedAdoptionPacket } from "./adoptFileReader";
 
 const sha = (value: string) => value.repeat(40);
 const authority = {
@@ -135,5 +139,39 @@ describe("adopt CLI", () => {
       readFile: async () => JSON.stringify(authority),
     }).run(argv, "/repo");
     expect(result.exitCode).not.toBe(0);
+  });
+
+  it("rejects packet symlinks without changing the filesystem", async () => {
+    const root = await mkdtemp(join(tmpdir(), "maestro-adopt-root-"));
+    const outside = await mkdtemp(join(tmpdir(), "maestro-adopt-outside-"));
+    try {
+      const externalPacket = join(outside, "authority.json");
+      await writeFile(externalPacket, JSON.stringify(authority), "utf8");
+      await symlink(externalPacket, join(root, "authority.json"));
+      const snapshot = async () =>
+        [...(await readdir(root, { recursive: true }))].sort();
+      const before = await snapshot();
+      const result = await createAdoptCliHandler({
+        readFile: (repositoryRoot, path) =>
+          readBoundedAdoptionPacket(repositoryRoot, path, 256 * 1024),
+      }).run(
+        [
+          "adopt",
+          "preflight",
+          "--source",
+          "source",
+          "--target",
+          "target",
+          "--authority",
+          "authority.json",
+        ],
+        root,
+      );
+      expect(result.exitCode).toBe(2);
+      expect(await snapshot()).toEqual(before);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+      await rm(outside, { recursive: true, force: true });
+    }
   });
 });

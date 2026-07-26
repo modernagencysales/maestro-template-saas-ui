@@ -162,6 +162,31 @@ describe("adoption launch authority", () => {
       ]),
     });
   });
+  it("rejects an in-place mutation root inside a protected root", () => {
+    const input = baseInput();
+    const shared = { ...input.source };
+    expect(
+      validateAdoptionAuthority({
+        ...input,
+        mode: "in-place",
+        target: shared,
+        baseline: {
+          sourceRevision,
+          targetRevision: sourceRevision,
+        },
+        protectedRoots: [
+          { label: "factory", resolvedRoot: "/work/existing-app" },
+        ],
+      }),
+    ).toMatchObject({
+      ok: false,
+      findings: expect.arrayContaining([
+        expect.objectContaining({
+          code: "ADOPTION_AUTHORITY_PROTECTED_ROOT",
+        }),
+      ]),
+    });
+  });
 
   it("keeps the immutable template release disjoint from source and target", () => {
     const input = baseInput();

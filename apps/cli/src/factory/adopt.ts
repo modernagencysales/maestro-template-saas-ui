@@ -12,7 +12,8 @@ import type { FactoryCliHandler } from "./router";
 export const ADOPT_HELP =
   "maestro adopt preflight --source <path> --target <path> --authority <json> | maestro adopt work-package --source <path> --target <path> --input <json> --out <path> [--json] (dry-run only; --write and cutover are unsupported)";
 
-type ReadFile = (path: string) => Promise<string>;
+type ReadFile = (root: string, path: string) => Promise<string>;
+type PacketReader = (path: string) => Promise<string>;
 
 const within = (root: string, path: string): string | null => {
   const absolute = resolve(root, path);
@@ -62,8 +63,10 @@ const invalid = (message: string): CliResult => ({
   stderr: `${message}\n${ADOPT_HELP}\n`,
 });
 
-const parseJson = async (readFile: ReadFile, path: string): Promise<unknown> =>
-  JSON.parse(await readFile(path)) as unknown;
+const parseJson = async (
+  readFile: PacketReader,
+  path: string,
+): Promise<unknown> => JSON.parse(await readFile(path)) as unknown;
 
 export const createAdoptCliHandler = (dependencies: {
   readonly readFile: ReadFile;
@@ -103,7 +106,10 @@ export const createAdoptCliHandler = (dependencies: {
     try {
       const source = resolve(cwd, sourceArg);
       const target = resolve(cwd, targetArg);
-      const packet = await parseJson(dependencies.readFile, packetPath);
+      const packet = await parseJson(
+        (path) => dependencies.readFile(cwd, path),
+        packetPath,
+      );
       if (parsed.subcommand === "preflight") {
         const authority = packet as AdoptionAuthorityInput;
         if (

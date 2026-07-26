@@ -1,7 +1,10 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import type { AdoptionAuthorityResult } from "./adoptAuthority.js";
+import {
+  validateAdoptionAuthority,
+  type AdoptionAuthorityInput,
+} from "./adoptAuthority.js";
 import type { AdoptionWorkPackage } from "./adopt.js";
 import {
   compileAdoptionExecutionPlan,
@@ -11,6 +14,49 @@ import { verifyAdoptionReceipt, type AdoptionReceipt } from "./adoptReceipt.js";
 
 const checksum = (character: string): string =>
   `sha256:${character.repeat(64)}`;
+const authority = (): AdoptionAuthorityInput => ({
+  mode: "separate-target",
+  sourceReadOnly: true,
+  source: {
+    requestedRoot: "/workspace/legacy-crm",
+    resolvedRoot: "/workspace/legacy-crm",
+    worktreeRoot: "/workspace/legacy-crm",
+    exists: true,
+    empty: false,
+    clean: true,
+    revision: "1".repeat(40),
+  },
+  target: {
+    requestedRoot: "/workspace/maestro-crm",
+    resolvedRoot: "/workspace/maestro-crm",
+    worktreeRoot: "/workspace/maestro-crm",
+    exists: true,
+    empty: true,
+    clean: true,
+    revision: "2".repeat(40),
+  },
+  baseline: { sourceRevision: "1".repeat(40), targetRevision: "2".repeat(40) },
+  template: {
+    requestedRoot: "/releases/maestro-v1",
+    resolvedRoot: "/releases/maestro-v1",
+    tag: "maestro-template-v1",
+    commit: "3".repeat(40),
+    archiveChecksum: checksum("1"),
+    manifestChecksum: checksum("2"),
+  },
+  reviewedTemplate: {
+    tag: "maestro-template-v1",
+    commit: "3".repeat(40),
+    archiveChecksum: checksum("1"),
+    manifestChecksum: checksum("2"),
+  },
+  protectedRoots: [{ label: "factory", resolvedRoot: "/factory" }],
+});
+const authorityFingerprint = (): string => {
+  const value = validateAdoptionAuthority(authority()).authorityFingerprint;
+  if (value === null) throw new Error("expected authority fingerprint");
+  return value;
+};
 
 const planArtifact = () => {
   const fixture = JSON.parse(
@@ -24,6 +70,7 @@ const planArtifact = () => {
   ) as AdoptionWorkPackage;
   const workPackage: AdoptionWorkPackage = {
     ...fixture,
+    authority: { ...fixture.authority, fingerprint: authorityFingerprint() },
     approval: {
       ...fixture.approval,
       status: "approved",
@@ -53,15 +100,9 @@ const planArtifact = () => {
       rollbackChecksum: checksum("e"),
     },
   ];
-  const authority: AdoptionAuthorityResult = {
-    ok: true,
-    mutationPosture: "read-only",
-    findings: [],
-    authorityFingerprint: checksum("a"),
-  };
   const result = compileAdoptionExecutionPlan({
     workPackage,
-    authority,
+    authority: authority(),
     intents,
   });
   if (result.artifact === null) throw new Error("expected execution plan");
@@ -71,7 +112,7 @@ const planArtifact = () => {
 const validReceipt = (planDigest: string): AdoptionReceipt => ({
   schemaVersion: 1,
   executionPlanDigest: planDigest,
-  authorityFingerprint: checksum("a"),
+  authorityFingerprint: authorityFingerprint(),
   outcome: "completed",
   phases: {
     staged: [
@@ -138,7 +179,7 @@ const verify = (receipt: unknown, reviewedDigest?: string) => {
   return verifyAdoptionReceipt({
     executionPlan,
     reviewedExecutionPlanDigest: reviewedDigest ?? executionPlan.digest,
-    authorityFingerprint: checksum("a"),
+    authorityFingerprint: authorityFingerprint(),
     receipt,
   });
 };

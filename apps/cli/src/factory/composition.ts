@@ -60,6 +60,7 @@ import { pathToFileURL } from "node:url";
 import { createPlanCheckCliHandler } from "./planCheck";
 import { createAppMapCliHandlers } from "./appMap";
 import { createAdoptCliHandler } from "./adopt";
+import { readBoundedAdoptionPacket } from "./adoptFileReader";
 import { createCustomerCreateComposition } from "./createComposition";
 import { createProviderDoctorCliHandler } from "./doctor";
 import {
@@ -434,10 +435,12 @@ export function createFactoryCliComposition(
     ...createAppMapCliHandlers(),
     createCustomerCreateComposition(),
     createAdoptCliHandler({
-      readFile: (path) =>
-        readBoundedFile(path, {
-          maxBytes: FACTORY_EXECUTION_POLICY.packageJsonMaxBytes,
-        }),
+      readFile: (root, path) =>
+        readBoundedAdoptionPacket(
+          root,
+          path,
+          FACTORY_EXECUTION_POLICY.packageJsonMaxBytes,
+        ),
     }),
     createStartCliHandler(start, startOutput),
     ...recipeHandlers,

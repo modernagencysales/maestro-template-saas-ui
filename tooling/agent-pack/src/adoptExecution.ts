@@ -1,5 +1,9 @@
 import { createHash } from "node:crypto";
-import type { AdoptionAuthorityResult } from "./adoptAuthority.js";
+import {
+  validateAdoptionAuthority,
+  type AdoptionAuthorityInput,
+  type AdoptionAuthorityResult,
+} from "./adoptAuthority.js";
 import {
   previewAdoptionWorkPackage,
   type AdoptionDisposition,
@@ -16,7 +20,7 @@ export type AdoptionExecutionIntent = {
 
 export type AdoptionExecutionInput = {
   readonly workPackage: AdoptionWorkPackage;
-  readonly authority: AdoptionAuthorityResult;
+  readonly authority: AdoptionAuthorityInput;
   readonly intents: readonly AdoptionExecutionIntent[];
 };
 
@@ -108,20 +112,58 @@ const validByteContract = (intent: AdoptionExecutionIntent): boolean => {
   );
 };
 
+const authorityMatchesWorkPackage = (
+  workPackage: AdoptionWorkPackage,
+  authorityInput: AdoptionAuthorityInput,
+  authority: AdoptionAuthorityResult,
+): boolean =>
+  authority.ok &&
+  authority.authorityFingerprint !== null &&
+  workPackage.authority.fingerprint === authority.authorityFingerprint &&
+  workPackage.mode === authorityInput.mode &&
+  workPackage.sourceReadOnly === authorityInput.sourceReadOnly &&
+  workPackage.roots.source === authorityInput.source.resolvedRoot &&
+  workPackage.roots.target === authorityInput.target.resolvedRoot &&
+  workPackage.roots.sourceWorktree === authorityInput.source.worktreeRoot &&
+  workPackage.roots.targetWorktree === authorityInput.target.worktreeRoot &&
+  workPackage.worktrees.source.exists === authorityInput.source.exists &&
+  workPackage.worktrees.target.exists === authorityInput.target.exists &&
+  workPackage.worktrees.source.clean === authorityInput.source.clean &&
+  workPackage.worktrees.target.clean === authorityInput.target.clean &&
+  workPackage.worktrees.source.revision === authorityInput.source.revision &&
+  workPackage.worktrees.target.revision === authorityInput.target.revision &&
+  workPackage.authority.template.tag === authorityInput.template.tag &&
+  workPackage.authority.template.commit === authorityInput.template.commit &&
+  workPackage.authority.template.archiveChecksum ===
+    authorityInput.template.archiveChecksum &&
+  workPackage.authority.template.manifestChecksum ===
+    authorityInput.template.manifestChecksum;
+
 export const compileAdoptionExecutionPlan = (
   input: AdoptionExecutionInput,
 ): AdoptionExecutionResult => {
   const findings: AdoptionExecutionFinding[] = [];
+  const authority = validateAdoptionAuthority(input.authority);
   if (
-    !input.authority.ok ||
-    input.authority.authorityFingerprint === null ||
-    !checksum(input.authority.authorityFingerprint)
+    !authority.ok ||
+    authority.authorityFingerprint === null ||
+    !checksum(authority.authorityFingerprint)
   )
     findings.push(
       finding(
         "ADOPTION_EXECUTION_AUTHORITY_REQUIRED",
         "Execution planning lacks an accepted launch-authority fingerprint.",
         "Validate current source, target, worktree, and release facts before planning execution.",
+      ),
+    );
+  else if (
+    !authorityMatchesWorkPackage(input.workPackage, input.authority, authority)
+  )
+    findings.push(
+      finding(
+        "ADOPTION_EXECUTION_AUTHORITY_MISMATCH",
+        "The work package does not match the recomputed launch authority.",
+        "Rebuild and reapprove the package from the exact clean roots, revisions, and immutable template binding.",
       ),
     );
 
@@ -227,7 +269,7 @@ export const compileAdoptionExecutionPlan = (
   const plan = {
     schemaVersion: 1,
     id: `${input.workPackage.id}-execution`,
-    authorityFingerprint: input.authority.authorityFingerprint,
+    authorityFingerprint: authority.authorityFingerprint,
     workPackageDigest: hash(preview.artifact.content),
     sourceReadOnlyDuringExecution: true,
     phases: [

@@ -181,6 +181,27 @@ export const validateAdoptionAuthority = (
     ...validateRootShape("target", input.target),
     ...templateFindings(input),
   ];
+  for (const protectedRoot of input.protectedRoots) {
+    if (
+      protectedRoot.label.trim().length === 0 ||
+      !canonicalAbsolute(protectedRoot.resolvedRoot)
+    )
+      findings.push(
+        finding(
+          "ADOPTION_AUTHORITY_PROTECTED_ROOT_INVALID",
+          "A protected authority root is missing a label or canonical absolute path.",
+          "Supply each protected root from the reviewed canonical realpath boundary.",
+        ),
+      );
+    else if (overlaps(protectedRoot.resolvedRoot, input.target.resolvedRoot))
+      findings.push(
+        finding(
+          "ADOPTION_AUTHORITY_PROTECTED_ROOT",
+          `The mutation root overlaps protected root ${protectedRoot.label}.`,
+          "Choose a mutation root outside every protected root in both containment directions.",
+        ),
+      );
+  }
   if (!input.sourceReadOnly)
     findings.push(
       finding(
@@ -251,15 +272,6 @@ export const validateAdoptionAuthority = (
           "Choose a disjoint customer target beside the read-only source.",
         ),
       );
-    for (const protectedRoot of input.protectedRoots)
-      if (overlaps(protectedRoot.resolvedRoot, input.target.resolvedRoot))
-        findings.push(
-          finding(
-            "ADOPTION_AUTHORITY_PROTECTED_ROOT",
-            `The target overlaps protected root ${protectedRoot.label}.`,
-            "Choose a target outside every protected root in both containment directions.",
-          ),
-        );
     if (input.target.exists) {
       if (!input.target.empty)
         findings.push(

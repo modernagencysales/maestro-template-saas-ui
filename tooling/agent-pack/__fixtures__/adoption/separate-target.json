@@ -11,8 +11,25 @@
     "targetWorktree": "/workspace/maestro-crm"
   },
   "worktrees": {
-    "source": { "clean": false, "revision": "legacy-baseline" },
-    "target": { "clean": true, "revision": "maestro-baseline" }
+    "source": {
+      "exists": true,
+      "clean": true,
+      "revision": "1111111111111111111111111111111111111111"
+    },
+    "target": {
+      "exists": true,
+      "clean": true,
+      "revision": "2222222222222222222222222222222222222222"
+    }
+  },
+  "authority": {
+    "fingerprint": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "template": {
+      "tag": "maestro-template-v1",
+      "commit": "3333333333333333333333333333333333333333",
+      "archiveChecksum": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "manifestChecksum": "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+    }
   },
   "baseline": {
     "sourceEvidence": ["evidence/source-tests.json"],

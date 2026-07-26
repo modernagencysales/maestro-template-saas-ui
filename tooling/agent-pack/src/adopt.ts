@@ -3,7 +3,17 @@ import { isAbsolute, relative, resolve } from "node:path";
 export type AdoptionDisposition = "preserve" | "port" | "replace" | "delete";
 export type AdoptionMode = "separate-target" | "in-place";
 
-type WorktreeFacts = { readonly clean: boolean; readonly revision: string };
+type WorktreeFacts = {
+  readonly exists: boolean;
+  readonly clean: boolean | null;
+  readonly revision: string | null;
+};
+type ImmutableTemplateBinding = {
+  readonly tag: string;
+  readonly commit: string;
+  readonly archiveChecksum: string;
+  readonly manifestChecksum: string;
+};
 type Mapping = {
   readonly source: string;
   readonly target: string;
@@ -20,11 +30,15 @@ export type AdoptionWorkPackage = {
     readonly source: string;
     readonly target: string;
     readonly sourceWorktree: string;
-    readonly targetWorktree: string;
+    readonly targetWorktree: string | null;
   };
   readonly worktrees: {
     readonly source: WorktreeFacts;
     readonly target: WorktreeFacts;
+  };
+  readonly authority: {
+    readonly fingerprint: string;
+    readonly template: ImmutableTemplateBinding;
   };
   readonly baseline: {
     readonly sourceEvidence: readonly string[];
@@ -148,6 +162,10 @@ const validPath = (path: string): boolean =>
             character.charCodeAt(0) <= 0x20 || character.charCodeAt(0) === 0x7f,
         ),
     );
+const validChecksum = (value: string): boolean =>
+  /^sha256:[a-f0-9]{64}$/.test(value);
+const validRevision = (value: string): boolean =>
+  /^[0-9a-f]{40}$/.test(value) || /^[0-9a-f]{64}$/.test(value);
 
 type RuntimeShape =
   | { readonly kind: "literal"; readonly value: unknown }
@@ -177,7 +195,11 @@ const mappingShape: RuntimeShape = {
 };
 const worktreeShape: RuntimeShape = {
   kind: "object",
-  fields: { clean: { kind: "boolean" }, revision: stringShape },
+  fields: {
+    exists: { kind: "boolean" },
+    clean: { kind: "nullable", item: { kind: "boolean" } },
+    revision: { kind: "nullable", item: stringShape },
+  },
 };
 const adoptionShape: RuntimeShape = {
   kind: "object",
@@ -200,12 +222,27 @@ const adoptionShape: RuntimeShape = {
         source: stringShape,
         target: stringShape,
         sourceWorktree: stringShape,
-        targetWorktree: stringShape,
+        targetWorktree: { kind: "nullable", item: stringShape },
       },
     },
     worktrees: {
       kind: "object",
       fields: { source: worktreeShape, target: worktreeShape },
+    },
+    authority: {
+      kind: "object",
+      fields: {
+        fingerprint: stringShape,
+        template: {
+          kind: "object",
+          fields: {
+            tag: stringShape,
+            commit: stringShape,
+            archiveChecksum: stringShape,
+            manifestChecksum: stringShape,
+          },
+        },
+      },
     },
     baseline: {
       kind: "object",
@@ -359,8 +396,16 @@ const preflightFindings = (input: PreflightInput): AdoptionFinding[] => {
   const source = normalized(input.roots.source);
   const target = normalized(input.roots.target);
   const sourceWorktree = normalized(input.roots.sourceWorktree);
-  const targetWorktree = normalized(input.roots.targetWorktree);
-  if (!source || !target || !sourceWorktree || !targetWorktree)
+  const targetWorktree =
+    input.roots.targetWorktree === null
+      ? null
+      : normalized(input.roots.targetWorktree);
+  if (
+    !source ||
+    !target ||
+    !sourceWorktree ||
+    (input.roots.targetWorktree !== null && !targetWorktree)
+  )
     findings.push(
       finding(
         "ADOPTION_ROOT_INVALID",
@@ -393,7 +438,7 @@ const preflightFindings = (input: PreflightInput): AdoptionFinding[] => {
           "Choose disjoint source and target roots.",
         ),
       );
-    if (!input.worktrees.target.clean)
+    if (input.worktrees.target.exists && input.worktrees.target.clean !== true)
       findings.push(
         finding(
           "ADOPTION_TARGET_DIRTY",
@@ -467,6 +512,42 @@ const preflightFindings = (input: PreflightInput): AdoptionFinding[] => {
 
 const packageFindings = (input: AdoptionWorkPackage): AdoptionFinding[] => {
   const findings = preflightFindings(input);
+  if (
+    !input.worktrees.source.exists ||
+    input.worktrees.source.clean !== true ||
+    input.worktrees.source.revision === null ||
+    !validRevision(input.worktrees.source.revision) ||
+    (input.worktrees.target.exists
+      ? input.roots.targetWorktree === null ||
+        input.worktrees.target.clean !== true ||
+        input.worktrees.target.revision === null ||
+        !validRevision(input.worktrees.target.revision)
+      : input.roots.targetWorktree !== null ||
+        input.worktrees.target.clean !== null ||
+        input.worktrees.target.revision !== null ||
+        input.mode === "in-place")
+  )
+    findings.push(
+      finding(
+        "ADOPTION_WORKTREE_BINDING_INVALID",
+        "The work package is not bound to exact clean source and target revisions.",
+        "Rebuild the package from clean worktrees at lowercase SHA-1 or SHA-256 revisions.",
+      ),
+    );
+  if (
+    !validChecksum(input.authority.fingerprint) ||
+    !text(input.authority.template.tag) ||
+    !validRevision(input.authority.template.commit) ||
+    !validChecksum(input.authority.template.archiveChecksum) ||
+    !validChecksum(input.authority.template.manifestChecksum)
+  )
+    findings.push(
+      finding(
+        "ADOPTION_AUTHORITY_BINDING_INVALID",
+        "The work package lacks an exact launch-authority and immutable template binding.",
+        "Bind the computed authority fingerprint and reviewed template tag, commit, archive checksum, and manifest checksum.",
+      ),
+    );
   if (!text(input.id) || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(input.id))
     findings.push(
       finding(
