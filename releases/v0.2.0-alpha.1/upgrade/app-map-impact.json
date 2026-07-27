@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "kind": "reviewed-upgrade-impact-coverage",
   "baseRevision": "517b5bc28d1d633bef18f57610cff49800123788",
-  "subjectRevision": "80b602aa73cb6c36d675c8f107e086f95db16b5f",
+  "subjectRevision": "f4516c613d06ae0cf0fb202f86c0765374f413c9",
   "structuralPaths": [
     "docs/template/data-resources.json",
     "docs/template/generated/provenance/add-table/workflowArtifacts.json",
@@ -18,6 +18,7 @@
   "ownershipCoveredPaths": [
     ".gitignore",
     ".gitleaks.toml",
+    ".npmrc",
     "apps/cli/package.json",
     "apps/cli/src/commands.ts",
     "apps/cli/src/direct-run.test.ts",
@@ -506,7 +507,7 @@
   "impact": {
     "schemaVersion": 1,
     "baseRevision": "517b5bc28d1d633bef18f57610cff49800123788",
-    "subjectRevision": "80b602aa73cb6c36d675c8f107e086f95db16b5f",
+    "subjectRevision": "f4516c613d06ae0cf0fb202f86c0765374f413c9",
     "complete": true,
     "risk": "high",
     "changedPaths": [
