@@ -1,0 +1,11 @@
+# Workflow Authoring
+
+Read these repository authorities before changing workflow behavior:
+
+1. `docs/template/convex-workflow-compatibility.md`
+2. `docs/template/workflow-authoring-guide.md`
+3. `docs/template/how-to-add-workflow.md`
+
+Author workflow graphs through `pnpm template:add-workflow`. Workflow steps call
+capabilities; they do not call provider adapters directly. Run
+`pnpm check:workflow:fast` before broader verification.

@@ -1,11 +1,41 @@
 # Template Quickstart
 
+For the novice `add` journey and its copy/paste atomic confirmation command, see
+[Executable Outcome Recipes](./executable-recipes.md).
+
 This private template is an opinionated app factory for B2B AI/GTM software,
 custom Brain builds, and implementation consulting prototypes. It starts in fake
 mode so a reviewer can see the architecture, seeded Brain, first workflow, and
 Trust Receipt without live provider setup.
 
 ## 10-Minute Local Fake Mode
+
+For a customer app, preview a reviewed release first:
+
+```bash
+pnpm maestro -- create ../my-app --name "My App" --outcome "Track client requests" --demo-only
+pnpm maestro -- create ../my-app --name "My App" --outcome "Track client requests" --demo-only --write
+```
+
+Create asks only for the name, first outcome, and demo-only posture. The first
+command writes nothing; the second materializes only after an exact external
+tag, commit, and archive-checksum binding passes. Follow the single next command
+printed by create. Install dependencies and initialize Git only after reviewing
+their separate approval items. See the
+[customer target contract](./customer-target-contract.md).
+
+From the completed customer target, the shortest visible-app path is:
+
+```bash
+pnpm install
+pnpm maestro -- start
+```
+
+The default fake mode starts only the web app, requires no Convex account, and
+prints the personalized app name, first outcome, URL, and `/health` readiness
+route only after that route responds successfully. Use `--mode local` only for
+the reviewed local Convex stack and `--mode dev` only with an authenticated
+personal dev deployment. See [local start modes](./start-modes.md).
 
 Copy-paste path:
 
@@ -18,7 +48,7 @@ pnpm template:seed-demo -- --blueprint source-grounded-gtm-brain --write
 pnpm template:systems -- --query knowledge
 pnpm template:add-client-domain -- --name customerContext --system knowledge-brain --disposition extend --write
 pnpm template:handoff -- --mode fake --write
-pnpm --dir apps/web dev
+pnpm maestro -- start
 ```
 
 This is the fastest reviewer path: install, generate the client fork packet,
@@ -29,6 +59,10 @@ The first command must run with `--write`. `template:quickstart -- --write`
 creates `template-instance.json`; `template:doctor -- --mode fake` expects
 `template-instance.json` and will fail if you only previewed quickstart output.
 Commands without `--write` are dry-run previews.
+
+Before the first write, run `pnpm maestro -- preflight` and follow the
+[preflight readiness guide](./preflight.md) if it reports a blocked target or
+unsupported host posture.
 
 1. Install dependencies with `pnpm install`.
 2. Review `.env.example` and [env-manifest.md](./env-manifest.md). Keep the fake
@@ -43,7 +77,7 @@ Commands without `--write` are dry-run previews.
    `pnpm template:seed-demo -- --blueprint source-grounded-gtm-brain --write`.
 7. Change the first client noun with
    `pnpm template:add-client-domain -- --name customerContext --system knowledge-brain --disposition extend --write`.
-8. Start the app with `pnpm --dir apps/web dev`.
+8. Start the app with `pnpm maestro -- start`.
 9. Review the generated implementation brief at
    `docs/template/generated/implementation-brief.md`.
 10. Preview the handoff packet with
@@ -57,8 +91,9 @@ route is the first copyable mutation slice: `Plan export` and `Plan delete`
 update local fake-safe state until a real Convex URL and workspace are
 configured.
 
-Expected local URL: `http://127.0.0.1:5173/` unless Vite selects another free
-port. Expected generated files:
+Expected local URL: `http://127.0.0.1:5173/`; start uses strict port binding and
+reports a collision rather than selecting an unannounced port. The readiness
+route is `http://127.0.0.1:5173/health`. Expected generated files:
 
 - `template-instance.json`
 - `docs/template/generated/implementation-brief.md`

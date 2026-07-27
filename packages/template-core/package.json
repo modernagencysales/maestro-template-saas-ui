@@ -24,7 +24,18 @@
     "./productTopology": {
       "types": "./src/productTopology.ts",
       "default": "./src/productTopology.ts"
+    },
+    "./templateInstance": {
+      "types": "./src/templateInstance/index.ts",
+      "default": "./src/templateInstance/index.ts"
+    },
+    "./workflow-semantics": {
+      "types": "./src/workflow-semantics/contract.ts",
+      "default": "./src/workflow-semantics/contract.ts"
     }
+  },
+  "dependencies": {
+    "effect": "3.21.4"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json --outDir dist --declaration",

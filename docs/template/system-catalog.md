@@ -103,6 +103,14 @@ Canonical ID: `data-lifecycle`. Reuse it for DSAR, export, retention, redaction,
 privacy, and guarded deletion planning. Every other system still owns the
 lifecycle metadata for its own tables.
 
+## Deployment Authority
+
+Canonical ID: `deployment-authority`. Reuse it for environment-level release
+approval, signed deploy verdicts, trusted issuers, complete workflow census
+evidence, and one-time promotion-action consumption. It consumes immutable
+Workflow Runtime evidence but does not own workflow execution, and its global
+release-control records are not workspace DSAR data.
+
 ## Introducing A System
 
 An introduction decision must state:

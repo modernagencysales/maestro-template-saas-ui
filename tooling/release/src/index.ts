@@ -1,6 +1,27 @@
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { join, resolve } from "node:path";
+export * from "./deploy/audit.js";
+export * from "./deploy/authority.js";
+export * from "./deploy/census.js";
+export * from "./deploy/censusEndpoint.js";
+export * from "./deploy/checkpoint.js";
+export * from "./deploy/consumption.js";
+export * from "./deploy/contract.js";
+export * from "./deploy/decision.js";
+export * from "./deploy/durableAuthority.js";
+export { evaluatePromotionRequirements } from "./deploy/requirements.js";
+export type {
+  PromotionEnvironment,
+  PromotionReadinessInput,
+  PromotionReadinessResult,
+  PromotionRequirement,
+  PromotionRequirementEvidence,
+  PromotionRequirementFinding,
+} from "./deploy/requirements.js";
+export * from "./deploy/trustedAuthority.js";
+export * from "./deploy/verdict.js";
+export * from "./deploy/verify.js";
 
 export type WebStaticSmokeReport = {
   readonly ok: boolean;

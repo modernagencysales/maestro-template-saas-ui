@@ -5,6 +5,8 @@ env:
 # pnpm verify
 # pnpm check:ci-completeness
 # pnpm check:config-drift
+# pnpm check:convex-ai-files
+# pnpm check:agent-pack
 # pnpm check:deps
 # pnpm check:knip
 # pnpm check:route-tree
@@ -17,11 +19,14 @@ env:
 # pnpm check:generated-files
 # pnpm check:confect-contracts
 # pnpm check:confect-compat
+# pnpm check:workflow-semantics
+# pnpm template:workflow-output-smoke
 # pnpm check:workflow-graph-boundary
 # pnpm check:schema-migration-notes
 # pnpm check:system-catalog
 # pnpm check:system-topology
 # pnpm check:data-resources
+# pnpm check:append-only-tables
 # pnpm check:promotion-boundary
 # pnpm check:layer-boundaries
 # pnpm check:secret-canaries
@@ -87,11 +92,23 @@ steps:
     agents:
       queue: "linux-large"
 
+  - label: ":shield: staging authority preflight"
+    key: "staging-authority-preflight"
+    if: build.branch == "main" && build.pull_request.id == null
+    depends_on: "phase-1"
+    command:
+      "pnpm exec tsx tooling/release/src/deploy/authorityCli.ts staging
+      ${BUILDKITE_COMMIT} template-staging"
+    agents:
+      queue: "linux-small"
+
   - label: ":rocket: staging deploy"
     key: "staging-deploy"
     if: build.branch == "main" && build.pull_request.id == null
-    depends_on: "phase-1"
+    depends_on: "staging-authority-preflight"
     command: ".buildkite/scripts/staging-deploy.sh"
+    env:
+      PROMOTION_TARGET_ID: "template-staging"
     secrets:
       - TEMPLATE_CLOUDFLARE_API_TOKEN
       - TEMPLATE_CLOUDFLARE_ACCOUNT_ID
@@ -104,11 +121,23 @@ steps:
     if: build.branch == "main" && build.pull_request.id == null
     depends_on: "staging-deploy"
 
+  - label: ":shield: production authority preflight"
+    key: "production-authority-preflight"
+    if: build.branch == "main" && build.pull_request.id == null
+    depends_on: "production-approval"
+    command:
+      "pnpm exec tsx tooling/release/src/deploy/authorityCli.ts production
+      ${BUILDKITE_COMMIT} template-production"
+    agents:
+      queue: "linux-small"
+
   - label: ":rocket: production promote"
     key: "production-promote"
     if: build.branch == "main" && build.pull_request.id == null
-    depends_on: "production-approval"
+    depends_on: "production-authority-preflight"
     command: ".buildkite/scripts/production-promote.sh"
+    env:
+      PROMOTION_TARGET_ID: "template-production"
     secrets:
       - TEMPLATE_CLOUDFLARE_API_TOKEN
       - TEMPLATE_CLOUDFLARE_ACCOUNT_ID

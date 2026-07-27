@@ -1,0 +1,57 @@
+{
+  "feature": "phase-1-wp-1.9-principal-policy",
+  "classification": "fixture-to-real",
+  "system": "workflow-runtime",
+  "disposition": "extend",
+  "slices": [
+    {
+      "id": 1,
+      "commit": "2f8a484",
+      "intention": "persist versioned principal and exact policy authority with a nullable legacy migration seam",
+      "acceptance": [
+        "server-owned V2 user and system principals",
+        "explicit none or pinned policy snapshot",
+        "nullable workflowRuns migration fields",
+        "legacy active-run adapter"
+      ]
+    },
+    {
+      "id": 2,
+      "commit": "0ea6a89",
+      "intention": "propagate pinned authority through generated starts, runners, capability mappings, and executable gates",
+      "acceptance": [
+        "public start omits identity fields",
+        "generated runner accepts principal and policy",
+        "capability mapper rejects reserved overrides",
+        "policy drift and latest reads fail gates"
+      ]
+    },
+    {
+      "id": 3,
+      "commit": "0ac9006",
+      "intention": "reauthorize consequential effects against current tenant membership",
+      "acceptance": [
+        "current membership reauthorization without ambient identity",
+        "V2 external authorization posture",
+        "system-principal user-grant restriction",
+        "authoring and threat-model guidance"
+      ]
+    },
+    {
+      "id": 4,
+      "commit": "packet-head",
+      "intention": "close child, restart, and legacy propagation evidence",
+      "acceptance": [
+        "child grant narrowing and policy inheritance",
+        "restart preserves original policy args",
+        "legacy and V2 principals share typed event/child surfaces",
+        "V2 capabilities validate tenant before dispatch"
+      ]
+    }
+  ],
+  "excluded": [
+    "WP-1.10 completion reconciliation",
+    "new policy registry",
+    "application workflow publication"
+  ]
+}

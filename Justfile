@@ -24,8 +24,14 @@ test:
 test-tooling:
     pnpm test:tooling
 
+test-app-map:
+    pnpm test:app-map
+
 test-workflow:
     pnpm test:workflow
+
+test-convex-compat:
+    pnpm test:convex-compat
 
 test-pr-backlog:
     pnpm test:pr-backlog
@@ -60,11 +66,36 @@ check-system-topology:
 check-data-resources:
     pnpm check:data-resources
 
+check-append-only-tables:
+    pnpm check:append-only-tables
+
 check-promotion-boundary:
     pnpm check:promotion-boundary
 
 check-convex:
     pnpm check:convex
+
+check-convex-compat:
+    pnpm check:convex-compat
+
+
+check-convex-ai-files:
+    pnpm check:convex-ai-files
+
+check-agent-pack:
+    pnpm check:agent-pack
+
+check-app-map:
+    pnpm check:app-map
+
+check-workflow-output-smoke:
+    pnpm template:workflow-output-smoke
+
+check-workflow-semantics:
+    pnpm check:workflow-semantics
+
+check-workflow-fast:
+    pnpm check:workflow:fast
 
 coverage:
     pnpm check:coverage-ratchet

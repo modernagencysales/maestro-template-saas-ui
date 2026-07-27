@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "host": "codex",
+  "skillRoot": ".codex/skills",
+  "projections": [
+    {
+      "source": "agent-pack/skills/maestro",
+      "destination": ".codex/skills/maestro"
+    },
+    {
+      "source": "agent-pack/plugins/maestro-convex/skills/maestro-convex",
+      "destination": ".codex/skills/maestro-convex"
+    },
+    {
+      "source": "agent-pack/official-convex/skills",
+      "destination": ".codex/skills"
+    }
+  ],
+  "forbiddenWrites": [".codex/config.toml", ".mcp.json"],
+  "mcpPolicy": "repo-native-maestro-only-no-host-write",
+  "removalPolicy": "receipt-checksum-owned-files-only"
+}

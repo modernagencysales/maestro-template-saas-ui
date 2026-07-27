@@ -1,5 +1,6 @@
 {
   "feature": "demo",
+  "adrRefs": ["docs/template/adr/0002-maestro-graph-over-convex-workflow.md"],
   "allTaskRefs": ["t1"],
   "slices": [
     {

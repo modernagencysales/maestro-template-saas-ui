@@ -1,5 +1,6 @@
 import {
   existsSync,
+  lstatSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -7,6 +8,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
+import { createHash } from "node:crypto";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { JsxEmit, ModuleKind, ScriptTarget, transpileModule } from "typescript";
@@ -30,18 +32,344 @@ import {
   buildWorkflowPromotionFiles,
   doctorTemplateInstance,
   requiredEnvNamesForProvider,
+  resolveReviewedGenerator,
+  REVIEWED_GENERATOR_DESCRIPTORS,
+  runReviewedGenerator,
   runGeneratorCli,
 } from "./index";
 import { gtmImplementationBlueprint } from "./blueprints/gtmImplementation";
 import {
+  copyRepoForSmoke,
+  repoRootFromScript,
+  runnerOwnershipFinding,
+  runSmokeCommand,
+  shouldCopyPath,
   smokeWorkflowName,
+  sourceFingerprint,
   workflowOutputSmokeScriptName,
 } from "./workflow-output-smoke";
+import {
+  buildWorkflowPredeployPlan,
+  compileGeneratedWorkflowFailureRoutes,
+  WorkflowPredeployGenerationError,
+} from "./workflow-predeploy";
 
 const testDir = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(testDir, "../../..");
 
+describe("reviewed generator operation", () => {
+  const request = {
+    generatorId: "add-capability",
+    args: {
+      name: "agentPackParity",
+      system: "knowledge-brain",
+      disposition: "extend",
+      exposure: "headless",
+    },
+  } as const;
+
+  it("returns the exact canonical preview bytes", () => {
+    const direct = runGeneratorCli(
+      [
+        "add-capability",
+        "--name",
+        request.args.name,
+        "--system",
+        request.args.system,
+        "--disposition",
+        request.args.disposition,
+        "--exposure",
+        request.args.exposure,
+      ],
+      repoRoot,
+    );
+    const reviewed = runReviewedGenerator({
+      ...request,
+      write: false,
+      cwd: repoRoot,
+    });
+
+    expect(direct.exitCode).toBe(0);
+    expect(reviewed).toMatchObject({ ok: true, output: { collisions: [] } });
+    if (!reviewed.ok) throw new Error(reviewed.message);
+    expect(reviewed.output.files).toEqual(JSON.parse(direct.stdout).files);
+  });
+  it("treats reviewed mutable catalogs as replacements, not customer collisions", () => {
+    const reviewed = runReviewedGenerator({
+      generatorId: "add-table",
+      args: {
+        name: "ReviewedCatalogFixture",
+        system: "access-and-tenancy",
+        disposition: "extend",
+        tenantScope: "workspace",
+        sensitivity: "internal",
+        pii: "none",
+        exportMode: "json",
+        deleteMode: "delete",
+        retention: "retain-until-workspace-delete",
+        appendOnly: false,
+      },
+      write: false,
+      cwd: repoRoot,
+    });
+    expect(reviewed).toMatchObject({ ok: true });
+    if (!reviewed.ok) throw new Error(reviewed.message);
+    expect(reviewed.output.files.map(({ path }) => path)).toEqual(
+      expect.arrayContaining([
+        "docs/template/system-catalog.json",
+        "docs/template/data-resources.json",
+      ]),
+    );
+    expect(reviewed.output.collisions).not.toEqual(
+      expect.arrayContaining([
+        "docs/template/system-catalog.json",
+        "docs/template/data-resources.json",
+      ]),
+    );
+  });
+
+  it("exposes one reviewed descriptor registry without changing CLI entrypoints", () => {
+    expect(resolveReviewedGenerator("add-capability")).toEqual({
+      supported: true,
+    });
+    expect(resolveReviewedGenerator("invent-widget")).toMatchObject({
+      supported: false,
+      nearest: [REVIEWED_GENERATOR_DESCRIPTORS[0]],
+    });
+    expect(runGeneratorCli(["help"], repoRoot).stdout).toContain(
+      "template:add-capability --name <name>",
+    );
+    expect(runGeneratorCli(["help"], repoRoot).stdout).toContain(
+      "template:bump-workflow --name <name> --from <N> --to <N+1>",
+    );
+    expect(runGeneratorCli(["help"], repoRoot).stdout).toContain(
+      "template:publish-capability --name <name> --version <N>",
+    );
+  });
+
+  it("refuses reviewed writes when any generated path exists", () => {
+    const cwd = mkdtempSync(join(tmpdir(), "maestro-reviewed-generator-"));
+    try {
+      const preview = runReviewedGenerator({ ...request, write: false, cwd });
+      if (!preview.ok) throw new Error(preview.message);
+      const occupied = preview.output.files[0];
+      if (occupied === undefined) throw new Error("missing generated fixture");
+      const occupiedPath = join(cwd, occupied.path);
+      mkdirSync(dirname(occupiedPath), { recursive: true });
+      writeFileSync(occupiedPath, "user-owned\n");
+
+      expect(
+        runReviewedGenerator({ ...request, write: true, cwd }),
+      ).toMatchObject({
+        ok: false,
+        message: expect.stringContaining("existing paths"),
+      });
+      expect(readFileSync(occupiedPath, "utf8")).toBe("user-owned\n");
+    } finally {
+      rmSync(cwd, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("workflow generator predeploy projection", () => {
+  const failure = {
+    _tag: "WorkflowSettledFailure",
+    code: "PROVIDER_REJECTED",
+    message: "Provider rejected the request.",
+  } as const;
+
+  it("projects declared error-edge and compensation policies", () => {
+    expect(
+      compileGeneratedWorkflowFailureRoutes([
+        {
+          id: "charge",
+          failurePolicy: {
+            kind: "error-edge",
+            edgeId: "charge-error",
+            failure,
+          },
+        },
+        {
+          id: "notify",
+          failurePolicy: {
+            kind: "compensation",
+            edgeId: "notify-compensated",
+            steps: [
+              {
+                forNodeId: "notify",
+                capability: "capability.retractNotification.v2",
+                stepName: "retract-notification.v2",
+              },
+            ],
+            failure,
+          },
+        },
+        { id: "receipt", failurePolicy: { kind: "fail" } },
+      ]),
+    ).toEqual({
+      charge: {
+        kind: "error-edge",
+        edgeId: "charge-error",
+        failure,
+      },
+      notify: {
+        kind: "compensation",
+        edgeId: "notify-compensated",
+        steps: [
+          {
+            forNodeId: "notify",
+            capability: "capability.retractNotification.v2",
+            stepName: "retract-notification.v2",
+          },
+        ],
+        failure,
+      },
+    });
+  });
+
+  it("rejects routing not declared by the generated node", () => {
+    expect(() =>
+      compileGeneratedWorkflowFailureRoutes(
+        [{ id: "charge", failurePolicy: { kind: "fail" } }],
+        {
+          charge: {
+            kind: "error-edge",
+            edgeId: "charge-error",
+            failure,
+          },
+        },
+      ),
+    ).toThrowError(
+      new WorkflowPredeployGenerationError([
+        "charge: undeclared error-edge routing; declare nodes[].failurePolicy or retain fail behavior",
+      ]),
+    );
+  });
+
+  it("fails predeploy generation on conflicting environment Workpools", () => {
+    type Options = {
+      readonly maxParallelism: number;
+      readonly retryActionsByDefault: boolean;
+    };
+    const workflowWorkpoolConfigurationFindings = (
+      _environment: "production",
+      declarations: readonly {
+        readonly component: string;
+        readonly options: Options;
+      }[],
+    ): readonly string[] =>
+      declarations.flatMap(({ component, options }) =>
+        options.maxParallelism === 20 && !options.retryActionsByDefault
+          ? []
+          : [
+              `${component}: Workpool configuration conflicts with the production workflow budget`,
+            ],
+      );
+
+    expect(() =>
+      buildWorkflowPredeployPlan({
+        environment: "production" as const,
+        declarationGroups: [
+          {
+            component: "workflow",
+            options: { maxParallelism: 20, retryActionsByDefault: false },
+          },
+          [
+            {
+              component: "workflow-shadow",
+              options: {
+                maxParallelism: 3,
+                retryActionsByDefault: true,
+              },
+            },
+          ],
+        ],
+        workflowWorkpoolConfigurationFindings,
+      }),
+    ).toThrow("workflow-shadow: Workpool configuration conflicts");
+  });
+});
+
 describe("template app factory generators", () => {
+  it("exercises workflow smoke path filtering and tiny-tree copying", () => {
+    const root = mkdtempSync(join(tmpdir(), "workflow-smoke-source-"));
+    const targetParent = mkdtempSync(join(tmpdir(), "workflow-smoke-target-"));
+    const target = join(targetParent, "repo");
+    try {
+      mkdirSync(join(root, "kept"), { recursive: true });
+      mkdirSync(join(root, "node_modules"), { recursive: true });
+      mkdirSync(join(root, "packages/convex"), { recursive: true });
+      writeFileSync(join(root, "kept/value.ts"), "export const value = 1;\n");
+      writeFileSync(join(root, ".env.secret"), "SECRET=hidden\n");
+      writeFileSync(join(root, "node_modules/marker"), "shared\n");
+      writeFileSync(join(root, "packages/convex/.env.local"), "LOCAL=fake\n");
+
+      expect(repoRootFromScript()).toBe(repoRoot);
+      expect(shouldCopyPath(root, root)).toBe(true);
+      expect(shouldCopyPath(root, join(root, "kept/value.ts"))).toBe(true);
+      expect(shouldCopyPath(root, join(root, "node_modules/marker"))).toBe(
+        false,
+      );
+      expect(shouldCopyPath(root, join(root, ".env.secret"))).toBe(false);
+
+      copyRepoForSmoke(root, target);
+      expect(readFileSync(join(target, "kept/value.ts"), "utf8")).toContain(
+        "value = 1",
+      );
+      expect(existsSync(join(target, ".env.secret"))).toBe(false);
+      expect(lstatSync(join(target, "node_modules")).isSymbolicLink()).toBe(
+        true,
+      );
+      expect(
+        readFileSync(join(target, "packages/convex/.env.local"), "utf8"),
+      ).toContain("LOCAL=fake");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+      rmSync(targetParent, { recursive: true, force: true });
+    }
+  });
+
+  it("runs smoke commands and fingerprints their owned source", () => {
+    runSmokeCommand(repoRoot, {
+      label: "fast success",
+      command: process.execPath,
+      args: ["-e", "process.exit(0)"],
+    });
+    expect(() =>
+      runSmokeCommand(repoRoot, {
+        label: "fast failure",
+        command: process.execPath,
+        args: ["-e", "process.exit(3)"],
+      }),
+    ).toThrow("fast failure failed with exit code 3");
+
+    expect(sourceFingerprint("runner-a")).toHaveLength(64);
+    expect(sourceFingerprint("runner-a")).not.toBe(
+      sourceFingerprint("runner-b"),
+    );
+  });
+
+  it("detects corrupted and deleted owned runner projections", () => {
+    const root = mkdtempSync(join(tmpdir(), "runner-ownership-"));
+    const runner = join(root, "runner.ts");
+    const expectedSource = "export const run = true;\n";
+    const expectedFingerprint = createHash("sha256")
+      .update(expectedSource)
+      .digest("hex");
+    try {
+      writeFileSync(runner, `${expectedSource}// corrupt\n`);
+      expect(runnerOwnershipFinding(runner, expectedFingerprint)).toContain(
+        "fingerprint changed",
+      );
+      rmSync(runner);
+      expect(runnerOwnershipFinding(runner, expectedFingerprint)).toBe(
+        "runner projection is missing",
+      );
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
   it("ships demo-safe GTM implementation seed fixtures", () => {
     const accounts = JSON.parse(
       readFileSync(
@@ -570,7 +898,7 @@ describe("template app factory generators", () => {
 
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain(
-      "Supported blueprints: source-grounded-gtm-brain, gtm-implementation",
+      "Supported blueprints: source-grounded-gtm-brain, gtm-implementation, saas-application",
     );
     expect(result.stdout).toContain(
       "Planned blueprints: implementation-consulting-brain, internal-ops-agent-workspace, custom-domain-ai-app",
@@ -598,6 +926,7 @@ describe("template app factory generators", () => {
     );
     expect(result.stderr).toContain("source-grounded-gtm-brain");
     expect(result.stderr).toContain("gtm-implementation");
+    expect(result.stderr).toContain("saas-application");
   });
 
   it("doctors fake instances without requiring live secrets", () => {
@@ -1069,30 +1398,116 @@ describe("template app factory generators", () => {
     expect(generated.files.map((file) => file.path)).toEqual([
       "packages/convex/confect/workflowContracts/sourceGroundedPlan.spec.ts",
       "packages/convex/confect/workflowContracts/sourceGroundedPlan.impl.ts",
-      "packages/convex/confect/workflows/sourceGroundedPlan.graph.ts",
-      "packages/convex/convex/workflowRunners/sourceGroundedPlan.ts",
+      "packages/convex/confect/workflows/sourceGroundedPlan/v1.graph.ts",
+      "packages/convex/confect/workflows/sourceGroundedPlan/v1.registry.ts",
+      "packages/convex/confect/workflows/sourceGroundedPlan.predeploy.ts",
+      "packages/convex/confect/workflowRunners/sourceGroundedPlan/v1.ts",
+      "packages/convex/confect/workflowRunners/sourceGroundedPlan/v1.spec.ts",
+      "packages/convex/confect/workflowRunners/sourceGroundedPlan/v1.impl.ts",
       "packages/convex/test/sourceGroundedPlan.workflow.test.ts",
+      "docs/template/generated/workflows/sourceGroundedPlan.semantics.json",
       "docs/template/generated/workflows/sourceGroundedPlan.md",
       "docs/template/generated/provenance/add-workflow/sourceGroundedPlan.json",
     ]);
-    expect(generated.files[3]?.path).toBe(
-      "packages/convex/convex/workflowRunners/sourceGroundedPlan.ts",
+    expect(generated.files[5]?.path).toBe(
+      "packages/convex/confect/workflowRunners/sourceGroundedPlan/v1.ts",
     );
     const spec = generated.files[0]?.content ?? "";
     const impl = generated.files[1]?.content ?? "";
     const graph = generated.files[2]?.content ?? "";
-    const convexWorkflow = generated.files[3]?.content ?? "";
-    const docs = generated.files[5]?.content ?? "";
+    const registry = generated.files[3]?.content ?? "";
+    const predeploy = generated.files[4]?.content ?? "";
+    const convexWorkflow = generated.files[5]?.content ?? "";
+    const runnerSpec = generated.files[6]?.content ?? "";
+    const runnerImpl = generated.files[7]?.content ?? "";
+    const semantics = generated.files[9]?.content ?? "";
+    const docs = generated.files[10]?.content ?? "";
+
+    expect(registry).toContain("defineWorkflowCapabilityRegistry");
+    expect(registry).toContain("buildWorkflowCapabilityArgs");
+    expect(registry).toContain("sourceGroundedPlanCapabilityArgs");
+    expect(registry).toContain("runWorkflowCapabilityBoundary");
+    expect(registry).toContain("sourceGroundedPlanCapabilityBoundary");
+    expect(registry).toContain("sourceGroundedPlanConsequentialAuthority");
+    expect(registry).toContain("sourceGroundedPlanArtifactRefs");
+    expect(registry).toContain("refs.internal.workflows.artifacts.put");
+    expect(registry).toContain("refs.internal.workflows.artifacts.getOwned");
+    expect(registry).toContain("defineEmptyWorkflowV2SubworkflowRegistry");
+    expect(registry).toContain("defineWorkflowV2EventRegistry");
+    expect(registry).toContain("defineWorkflowEvent");
+    expect(registry).toContain("sourceGroundedPlanApprovalDecisionEvent");
+    expect(registry).toContain(
+      "validator: v.object({ approved: v.boolean() })",
+    );
+    expect(registry).toContain("generatedWorkflowSubworkflowPolicy");
+    expect(registry).toContain(
+      "refs.internal.workflows.subworkflowLinks.reserve",
+    );
+    expect(registry).toContain(
+      "refs.internal.workflows.subworkflowLinks.reconcile",
+    );
+    for (const reference of [
+      "workflows/subworkflowLinksCurrent:recoverReservation",
+      "workflows/subworkflowLinksCurrent:persistUnresolvedReservation",
+      "workflows/subworkflowLinksCurrent:persistUnresolvedSuccess",
+      "workflows/subworkflowLinksCurrent:recoverUnresolvedSuccess",
+      "workflows/subworkflowLinksCurrent:resolveUnresolvedSuccess",
+      "workflows/subworkflowLinksCurrent:reportReconciliationFailure",
+    ]) {
+      expect(registry).toContain(reference);
+    }
+    expect(registry).toContain(
+      "refs.internal.workflows.eventInstances.allocate",
+    );
+    expect(registry).toContain(
+      "refs.internal.workflows.eventInstances.reconcile",
+    );
+    expect(registry).toContain("Ref.getFunctionReference");
+    expect(registry).toContain("components.workflow.journal.load");
+    expect(registry).toContain("components.workflow.event.create");
+    expect(convexWorkflow).toContain("eventRegistry:");
+    expect(spec).toContain('name: "sendEvent"');
+    expect(spec).toContain('name: "cancel"');
+    expect(spec).toContain('name: "restart"');
+    expect(spec).toContain('name: "listSteps"');
+    expect(spec).toContain('name: "cleanup"');
+    expect(spec).toContain('kind: Schema.Literal("id")');
+    expect(spec).toContain('kind: Schema.Literal("definition")');
+    expect(spec).not.toContain("const ApproveArgs");
+    expect(impl).toContain("refs.internal.workflows.eventInstances.send");
+    expect(impl).toContain("validateWorkflowEventDelivery");
+    expect(impl).not.toContain("nodeId");
+    expect(registry).toContain("internal refs");
+    expect(registry).toContain("dedupe/restart horizons");
+    expect(registry).toContain("guard postures");
+    expect(registry).toContain("redaction policy");
+    expect(registry).toContain("fixture evidence");
+    expect(registry).toContain("defineWorkflowRoleGrantPolicy");
+    expect(registry).toContain(
+      "runner,\n * not an entry or caller, owns the fixed current-authority query ref",
+    );
+    expect(registry).not.toContain(
+      'boundary: "generated-current-authority", ref',
+    );
+    expect(spec).toContain("export const authorizeConsequential");
+    expect(spec).toContain("returns: () => WorkflowCurrentAuthorityReceipt");
+    expect(impl).toContain("requireConsequentialWorkflowAuthority(");
+    expect(impl).toContain("sourceGroundedPlanCurrentGrantPolicy");
 
     expect(spec).toContain("defineContractFunction");
     expect(spec).toContain("export const manifest");
     expect(spec).toContain("export const schemaRegistry");
-    expect(spec).toContain('operationId: "workflows.sourceGroundedPlan.start"');
     expect(spec).toContain(
-      'argsSchemaName: "workflows.sourceGroundedPlan.start.args"',
+      'operationId: "workflows.sourceGroundedPlan.startInteractive"',
     );
     expect(spec).toContain(
-      'returnsSchemaName: "workflows.sourceGroundedPlan.start.returns"',
+      'operationId: "workflows.sourceGroundedPlan.startQueued"',
+    );
+    expect(spec).toContain(
+      'argsSchemaName: "workflows.sourceGroundedPlan.startInteractive.args"',
+    );
+    expect(spec).toContain(
+      'returnsSchemaName: "workflows.sourceGroundedPlan.startInteractive.returns"',
     );
     expect(spec).toContain(
       'argsSchemaName: "workflows.sourceGroundedPlan.status.args"',
@@ -1101,25 +1516,42 @@ describe("template app factory generators", () => {
       'returnsSchemaName: "workflows.sourceGroundedPlan.status.returns"',
     );
     expect(spec).toContain(
-      'argsSchemaName: "workflows.sourceGroundedPlan.approve.args"',
+      'argsSchemaName: "workflows.sourceGroundedPlan.sendEvent.args"',
     );
     expect(spec).toContain(
-      'returnsSchemaName: "workflows.sourceGroundedPlan.approve.returns"',
+      'returnsSchemaName: "workflows.sourceGroundedPlan.sendEvent.returns"',
     );
     expect(spec).toContain("WorkflowStatusResult");
 
     expect(impl).toContain("startWorkflowAndRecordOwnership");
+    expect(impl).toContain("createWorkflowUserPrincipal");
+    expect(impl).toContain("resolveWorkflowPolicySnapshotForRun");
+    expect(impl).toContain("readonly principal: DurableWorkflowPrincipal");
+    expect(impl).toContain("readonly policySnapshot: WorkflowPolicySnapshot");
+    expect(impl).not.toContain(
+      'readonly version: 1;\n      readonly kind: "user"',
+    );
+    expect(impl).toContain("principalSnapshot: principal");
+    expect(impl).toContain("policySnapshot,");
+    expect(impl).not.toContain("authEpoch: 1");
+    expect(impl).toContain("onCompleteRef: sourceGroundedPlanOnCompleteRef");
+    expect(impl).toContain("refs.internal.workflows.lifecycle.restart");
+    expect(impl).toContain("refs.internal.workflows.lifecycle.cleanup");
     expect(impl).toContain("makeFunctionReference");
-    expect(impl).toContain('"workflowRunners/sourceGroundedPlan:run"');
+    expect(impl).toContain('"workflowRunners/sourceGroundedPlan/v1:run"');
     expect(impl).not.toContain('"workflows/sourceGroundedPlan:run"');
     expect(impl).not.toContain("../../convex/_generated/api");
     expect(impl).toContain("toWorkflowValidationFailed");
     expect(impl).toContain("Effect.mapError(toWorkflowError)");
     expect(impl).toContain("Effect.mapError(toWorkflowValidationFailed)");
-    expect(impl).toContain("workflowArgs:");
+    expect(impl).not.toContain("workflowArgs:");
+    expect(impl).toContain("buildWorkflowArgs: (workflowRunId) =>");
+    expect(impl).toContain("workflowRunId,");
     expect(impl).toContain("startedAt:");
     expect(impl).toContain("const runProjection = {");
     expect(impl).toContain("...(run.timeoutSummary !== undefined");
+    expect(impl).toContain("...(run.lifecycleGeneration !== undefined");
+    expect(impl).toContain("...(run.componentResidualState !== undefined");
     expect(impl).toContain(
       "return projectWorkflowStatus(rawStatus, runProjection)",
     );
@@ -1127,28 +1559,177 @@ describe("template app factory generators", () => {
     expect(impl).not.toMatch(/\bargs:\s*\{ workspaceId, idempotencyKey \}/);
     expect(impl).not.toContain("now:");
 
-    expect(convexWorkflow).toContain("defineWorkflow");
+    expect(convexWorkflow).toContain("defineMaestroWorkflow");
+    expect(convexWorkflow).toContain("adaptPinnedWorkflowStep");
+    expect(convexWorkflow).toContain(
+      "runDurableGraphWorkflowV2(adaptPinnedWorkflowStep(step),",
+    );
+    expect(convexWorkflow).not.toContain("step as RunDurableGraphStep");
+    expect(convexWorkflow).toContain("export const onComplete");
+    expect(convexWorkflow).toContain("reconcileObservedWorkflowCompletion");
     expect(convexWorkflow).toContain("runDurableGraphWorkflow");
-    expect(convexWorkflow).toContain("policySnapshot: {}");
-    expect(convexWorkflow).toContain("capabilityRegistry: {}");
+    expect(convexWorkflow).toContain("DurableWorkflowPrincipalValidator");
+    expect(convexWorkflow).toContain("WorkflowPolicySnapshotValidator");
+    expect(convexWorkflow).not.toContain("const WorkflowPrincipalValidator");
+    expect(convexWorkflow).not.toContain(
+      "const WorkflowPolicySnapshotValidator",
+    );
+    expect(convexWorkflow).not.toContain("policySnapshot: args.policySnapshot");
+    expect(convexWorkflow).toContain("WorkflowReceiptValidator");
+    expect(convexWorkflow).toContain(
+      "principal: DurableWorkflowPrincipalValidator",
+    );
+    expect(convexWorkflow).toContain("defineGeneratedCurrentAuthorityBinding");
+    expect(convexWorkflow).not.toContain("defineGeneratedCurrentAuthorityRef");
+    expect(convexWorkflow).toContain(
+      "refs.internal.workflowContracts.sourceGroundedPlan.authorizeConsequential",
+    );
+    expect(convexWorkflow).toContain("currentAuthority,");
+    const graphRunnerV2 = readFileSync(
+      join(
+        repoRoot,
+        "packages/convex/confect/workflows/_kit/graphRunnerV2Current.ts",
+      ),
+      "utf8",
+    );
+    expect(graphRunnerV2).not.toContain(
+      "export const defineGeneratedCurrentAuthorityRef",
+    );
+    expect(graphRunnerV2).toContain("generatedWorkflowContractRefs: object");
+    const graphRunner = readFileSync(
+      join(
+        repoRoot,
+        "packages/convex/confect/workflows/_kit/graphRunnerCurrent.ts",
+      ),
+      "utf8",
+    );
+    expect(graphRunner).toContain("step: MaestroWorkflowContext");
+    expect(graphRunner).toContain("options === undefined");
+    expect(graphRunner).toContain("step.runAction(ref, args, options)");
+    expect(convexWorkflow).toContain("returns: WorkflowReceiptValidator");
+    expect(convexWorkflow).not.toContain("returns: v.any()");
+    expect(convexWorkflow).toContain("metadata");
+    expect(convexWorkflow).not.toContain("failureRoutes");
+    expect(convexWorkflow).not.toContain("GeneratedFailurePolicy");
+    expect(convexWorkflow).toContain("sourceGroundedPlanSubworkflowRegistry");
+    expect(convexWorkflow).toContain("sourceGroundedPlanSubworkflowPolicy");
+    expect(convexWorkflow).toContain("SubworkflowExecutionContextValidator");
+    expect(convexWorkflow).toContain(
+      "refs.internal.workflows.subworkflowLinks.activate",
+    );
+    expect(convexWorkflow).toContain(
+      "subworkflow: v.optional(SubworkflowExecutionContextValidator)",
+    );
+    expect(convexWorkflow).toContain("activateSubworkflowRef");
+    expect(convexWorkflow).toContain("bindObservedWorkflowAuthority");
+    expect(convexWorkflow).toContain(
+      "const executionArgs = bindObservedWorkflowAuthority(args, executionIdentity)",
+    );
+    expect(convexWorkflow).toContain("inputs: executionArgs");
+    expect(convexWorkflow).toContain("principal: executionArgs.principal");
+    expect(convexWorkflow).toContain(
+      "policySnapshot: executionArgs.policySnapshot",
+    );
+    expect(convexWorkflow).toContain("workflowRunId: args.workflowRunId");
+    expect(convexWorkflow).toContain(
+      "refs.internal.workflows.stageObservations",
+    );
+    expect(convexWorkflow).toContain(
+      "generation: executionIdentity.generation",
+    );
+    expect(convexWorkflow).toContain(
+      "occurredAt: executionIdentity.observedAt",
+    );
+    expect(convexWorkflow).not.toContain("generation: 0");
+    expect(convexWorkflow).toContain("stageObservations.recordStarted");
+    expect(convexWorkflow).toContain(
+      "observability: { recordStageStarted, recordStageFinished }",
+    );
+    expect(predeploy).toContain(
+      "collectSourceGroundedPlanWorkflowWorkpoolDeclarations",
+    );
+    expect(predeploy).toContain("workflowWorkpoolConfigurationFindings(");
+    expect(predeploy).toContain("Workflow predeploy generation failed");
+    expect(runnerSpec).toContain("FunctionSpec.convexInternalMutation");
+    expect(runnerSpec).toContain('("onComplete")');
+    expect(runnerImpl).toContain("FunctionImpl.make");
+    expect(semantics).toContain('"WF-DEFINE"');
+    expect(semantics).toContain('"posture": "generated"');
+    expect(semantics).toContain('"WF-NODE-RETRY"');
+    expect(semantics).toContain('"posture": "guarded-default"');
+    expect(semantics).toContain('"WF-NODE-EVENT-DEFINITION"');
+    expect(semantics).toContain('"WF-NODE-EVENT-SCHEMA"');
+    expect(semantics).toContain('"WF-NODE-EVENT-INSTANCE"');
+    expect(semantics).toContain('"WF-STEP-EVENT"');
+    expect(semantics).toContain('"WF-SEND-EVENT"');
+    expect(semantics).toContain('"WF-CREATE-EVENT"');
+    expect(semantics).toContain(
+      '"compiler": "internal persisted generation allocation only"',
+    );
+    expect(JSON.parse(semantics)).toMatchObject(
+      Object.fromEntries(
+        [
+          "WF-NODE-TRANSACTION",
+          "WF-TRANSACTION-KIND",
+          "WF-TRANSACTION-LIMITS",
+          "WF-TRANSACTION-BYTES-READ",
+          "WF-TRANSACTION-BYTES-WRITTEN",
+          "WF-TRANSACTION-DATABASE-QUERIES",
+          "WF-TRANSACTION-DOCUMENTS-READ",
+          "WF-TRANSACTION-DOCUMENTS-WRITTEN",
+          "WF-TRANSACTION-FUNCTIONS-SCHEDULED",
+          "WF-TRANSACTION-SCHEDULED-FUNCTION-ARGS-BYTES",
+        ].map((id) => [id, { posture: "guarded-default" }]),
+      ),
+    );
+    expect(semantics).not.toContain('"WF-HANDLER-DATE"');
 
-    expect(graph).toContain("satisfies DurableWorkflowGraph");
+    expect(graph).toContain("defineWorkflowGraphV2");
+    expect(graph).toContain("defineWorkflowReferenceRegistry");
+    expect(graph).toContain("version: 2");
+    expect(graph).toContain('stepName: "start.v2"');
+    expect(graph).toContain('name: "interactive"');
+    expect(graph).toContain('name: "queued"');
     expect(graph).toContain('kind: "source"');
     expect(graph).toContain('kind: "output"');
     expect(graph).not.toContain('kind: "capability"');
     expect(graph).not.toContain('kind: "approval"');
+    expect(registry).toContain("independent Workpool transaction");
+    expect(registry).not.toContain("transactionLimits:");
 
     expect(docs).toContain(
-      "packages/convex/convex/workflowRunners/sourceGroundedPlan.ts",
+      "packages/convex/confect/workflowRunners/sourceGroundedPlan/v1.ts",
     );
-    expect(docs).toContain(
-      "plain Convex `defineWorkflow` durable replay handler",
-    );
+    expect(docs).toContain("immutable-version Confect-owned runner source");
     expect(docs).not.toContain("packages/convex/convex/workflows/");
     expect(docs).toContain("pnpm confect:codegen");
     expect(docs).toContain("pnpm --dir packages/convex exec convex codegen");
-    expect(docs).toContain("workflowContracts.sourceGroundedPlan.approve");
-    expect(docs).toContain("concrete `buildArgs` mappers");
+    expect(docs).toContain("workflowContracts.sourceGroundedPlan.sendEvent");
+    expect(docs).toContain(
+      "concrete `buildArgs` and logical instance-key mappers",
+    );
+    expect(docs).toContain("`tiny` or `small-atomic`");
+    expect(docs).toContain("reviewed advanced constructor");
+    expect(docs).toContain("cycle, depth, and fan-out checks");
+    expect(docs).toContain("stable generated runner-reference identity");
+    expect(docs).toContain("stable mapper/result export descriptors");
+    expect(docs).toContain(
+      "The child registry exposes reserve, reconcile, and reconciliation-failure reporting only",
+    );
+    expect(docs).toContain(
+      "Cascade cancellation and cleanup remain restricted",
+    );
+    expect(docs).toContain("scheduled children remain rejected");
+    expect(docs).toContain("already-running action may finish");
+    expect(docs).toContain("never claims full component deletion");
+    expect(spec).toContain("startInteractive");
+    expect(spec).toContain("startQueued");
+    expect(spec).not.toContain("kickoffMode");
+    expect(impl).toContain('startWithProfile("interactive"');
+    expect(impl).toContain('startWithProfile("queued"');
+    expect(impl).toContain('kickoffProfile === "interactive"');
+    expect(impl).toContain("principal:");
+    expect(impl).toContain("actorId: access.userId");
   });
 
   it("writes generated workflow files through the CLI", () => {
@@ -1176,11 +1757,11 @@ describe("template app factory generators", () => {
       );
       const graphPath = join(
         cwd,
-        "packages/convex/confect/workflows/sourceGroundedPlan.graph.ts",
+        "packages/convex/confect/workflows/sourceGroundedPlan/v1.graph.ts",
       );
       const workflowPath = join(
         cwd,
-        "packages/convex/convex/workflowRunners/sourceGroundedPlan.ts",
+        "packages/convex/confect/workflowRunners/sourceGroundedPlan/v1.ts",
       );
 
       expect(result.exitCode).toBe(0);
@@ -1346,6 +1927,9 @@ describe("template app factory generators", () => {
     );
     expect(existsSync(smokeScriptPath)).toBe(true);
     expect(smokeWorkflowName).toBe("generatedWorkflowSmoke");
+    const smokeSource = readFileSync(smokeScriptPath, "utf8");
+    expect(smokeSource).toContain("requiresDeployment");
+    expect(smokeSource).toContain("Generated workflow runner is missing");
   });
 
   it("builds production-target capability promotion files", () => {
@@ -1543,23 +2127,6 @@ describe("template app factory generators", () => {
         "pnpm review:readiness",
         "pnpm check:confect-contracts",
       ]),
-    });
-  });
-
-  it("prints a client-fork upgrade report through the CLI", () => {
-    const result = runGeneratorCli([
-      "upgrade",
-      "--from",
-      "client-v1.0.0",
-      "--to",
-      "template-v1.1.0",
-    ]);
-
-    expect(result.exitCode).toBe(0);
-    expect(JSON.parse(result.stdout)).toMatchObject({
-      from: "client-v1.0.0",
-      to: "template-v1.1.0",
-      ok: true,
     });
   });
 

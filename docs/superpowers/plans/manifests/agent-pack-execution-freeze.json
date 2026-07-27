@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 1,
+  "program": "maestro-agent-pack",
+  "recordingMode": "retrospective-reconstruction",
+  "executionBase": {
+    "sha": "cdd5e8c01c65963cf3f813a750bced9d3a43f601",
+    "sourceRef": "origin/main",
+    "observedAtPlanFreeze": "2026-07-24T20:41:16-04:00"
+  },
+  "planFreeze": {
+    "commit": "19e3c2bfbb0a3f8b0be17d12910d01347b1391f6",
+    "productizationPlan": {
+      "path": "docs/superpowers/plans/2026-07-24-maestro-agent-pack-productization-plan.md",
+      "sha256": "f9c10571a616ea9e5ba75532f44f2ef272a95c8337145006d41431c4aedd90cc"
+    },
+    "executionPlan": {
+      "path": "docs/superpowers/plans/2026-07-24-maestro-agent-pack-multi-agent-execution-plan.md",
+      "sha256": "20bb097366eb866471ebab9fbc4cf610fe47ba0a72e0016108cf6d96f83b995c"
+    },
+    "approvedPlanDelta": []
+  },
+  "dependencyInventory": {
+    "node": "22.12.0",
+    "pnpm": "10.12.1",
+    "convex": "1.42.1",
+    "convexTest": "0.0.54",
+    "workflow": "0.4.4",
+    "workpool": "0.4.7",
+    "migrations": "0.3.5",
+    "officialAgentSkillsCommit": "ec1e6baae7d86c7843c22938c75979c016f5c6e9",
+    "skillsInstaller": "skills@1.5.20"
+  },
+  "integration": {
+    "branch": "codex/ap-integration",
+    "worktree": "/data/projects/maestro-agent-pack-20260724",
+    "workerWorktreeRoot": "/data/projects/maestro-agent-pack-worktrees"
+  },
+  "workstreams": [
+    {
+      "id": "A",
+      "branch": "codex/ap-a-architecture",
+      "owner": "architecture-contracts"
+    },
+    { "id": "B", "branch": "codex/ap-b-workflow", "owner": "workflow-runtime" },
+    { "id": "C", "branch": "codex/ap-c-hosts", "owner": "host-bootstrap" },
+    { "id": "D", "branch": "codex/ap-d-cli", "owner": "cli-and-mcp-platform" },
+    { "id": "E", "branch": "codex/ap-e-customer", "owner": "customer-journey" },
+    {
+      "id": "F",
+      "branch": "codex/ap-f-evals",
+      "owner": "independent-evaluation-and-release"
+    },
+    {
+      "id": "G",
+      "branch": "codex/ap-g-upgrades",
+      "owner": "compatibility-and-upgrades"
+    },
+    {
+      "id": "H",
+      "branch": "codex/ap-h-promotion",
+      "owner": "promotion-and-evidence"
+    }
+  ],
+  "leasePolicy": {
+    "controller": "root",
+    "maximumConcurrentWorkers": 3,
+    "oneHolderPerHotspot": true,
+    "generatedConflicts": "regenerate-never-hand-edit",
+    "sharedHotspots": [
+      "package.json",
+      "pnpm-lock.yaml",
+      "Justfile",
+      "lefthook.yml",
+      "eslint.config.mjs",
+      ".buildkite/pipeline.yml",
+      "AGENTS.md",
+      "CLAUDE.md",
+      "tooling/quality/src/check-definitions.mts",
+      "apps/cli/src",
+      "tooling/agent-pack/src",
+      "tooling/generators/src/index.ts",
+      "tooling/release/src/index.ts"
+    ]
+  }
+}

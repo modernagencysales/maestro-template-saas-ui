@@ -9,6 +9,7 @@ paths = [
   '''(^|/)vendor/''',
   '''(^|/)test-results/''',
   '''(^|/)coverage/''',
+  '''^tooling/agent-pack/evals/runs/''',
   '''(^|/).stryker-tmp/''',
   '''(^|/)\.pnpm-store/'''
 ]

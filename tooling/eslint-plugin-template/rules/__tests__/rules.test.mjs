@@ -15,6 +15,7 @@ import requireMinroleOnWrite from "../require-minrole-on-write.mjs";
 import workflowStepsAreCapabilities from "../workflow-steps-are-capabilities.mjs";
 import workflowHandlerDeterminism from "../workflow-handler-determinism.mjs";
 import workflowPolicySnapshot from "../workflow-policy-snapshot.mjs";
+import noRawWorkflowPrimitives from "../no-raw-workflow-primitives.mjs";
 import noCrossDomainValueImport from "../no-cross-domain-value-import.mjs";
 import noRawScheduler from "../no-raw-scheduler.mjs";
 import frontendRouteThin from "../frontend-route-thin.mjs";
@@ -35,6 +36,10 @@ const HTTP = "packages/convex/confect/http.ts";
 const WORKFLOW = "packages/convex/confect/workflows/x.ts";
 const WORKFLOW_TEST = "packages/convex/confect/workflows/x.test.ts";
 const INTERPRETER = "packages/convex/confect/workflows/runGraph.ts";
+const GENERATED_RUNNER =
+  "packages/convex/confect/workflowRunners/generatedBrief.ts";
+const PROJECTED_RUNNER =
+  "packages/convex/convex/workflowRunners/generatedBrief.ts";
 const DOMAIN = "packages/convex/confect/capabilities/batch.domain.ts";
 const DOMAIN_DIR = "packages/convex/confect/domain/batch.ts";
 const DOMAIN_TEST = "packages/convex/confect/capabilities/batch.domain.test.ts";
@@ -56,17 +61,47 @@ tester.run("typed-convex-errors", typedConvexErrors, {
       filename: TEST_FILE,
       code: "export function f() { throw new Error('test ok'); }",
     },
+    // workflow planners are not client-callable boundaries
+    {
+      filename: WORKFLOW,
+      code: "export function validate() { throw new Error('invariant'); }",
+    },
   ],
   invalid: [
     {
       filename: CAP,
-      code: "export function f() { throw new Error('bad'); }",
+      code: "export const f = mutation({ handler: () => { throw new Error('bad'); } });",
+      errors: [{ messageId: "typed" }],
+    },
+    {
+      filename: CAP,
+      code: "const handler = () => { throw new Error('bad'); }; export const f = mutation({ handler });",
+      errors: [{ messageId: "typed" }],
+    },
+    {
+      filename: CAP,
+      code: "const original = () => { throw new Error('bad'); }; const handler = original; export const f = mutation({ handler });",
+      errors: [{ messageId: "typed" }],
+    },
+    {
+      filename: CAP,
+      code: "import { mutation as registerMutation } from './_generated/server'; const handler = () => { throw new Error('bad'); }; export const f = registerMutation({ handler });",
+      errors: [{ messageId: "typed" }],
+    },
+    {
+      filename: CAP,
+      code: "const registerMutation = mutation; const handler = () => { throw new Error('bad'); }; export const f = registerMutation({ handler });",
       errors: [{ messageId: "typed" }],
     },
     // the confect HTTP router (confect/http.ts) is a boundary layer too
     {
       filename: HTTP,
-      code: "export function f() { throw new Error('bad'); }",
+      code: "export const f = httpAction(() => { throw new Error('bad'); });",
+      errors: [{ messageId: "typed" }],
+    },
+    {
+      filename: WORKFLOW,
+      code: "export const run = defineWorkflow(c, {}).handler(() => { throw new Error('bad'); });",
       errors: [{ messageId: "typed" }],
     },
   ],
@@ -391,30 +426,39 @@ tester.run("workflow-handler-determinism", workflowHandlerDeterminism, {
       filename: WORKFLOW_TEST,
       code: "export const run = defineWorkflow(c, {}).handler(() => Date.now());",
     },
-  ],
-  invalid: [
-    // Date.now() inside a defineWorkflow(…).handler body
+    // Upstream patches these core globals for deterministic replay. Maestro
+    // permits the normalized forms rather than misreporting an upstream gap.
     {
       filename: WORKFLOW,
-      code: "export const run = defineWorkflow(c, {}).handler(() => { const t = Date.now(); return t; });",
-      errors: [{ messageId: "nondeterministic" }],
+      code: "export const run = defineWorkflow(c, {}).handler(() => [Date.now(), new Date(), Math.random()]);",
     },
+    {
+      filename: GENERATED_RUNNER,
+      code: "export const run = defineMaestroWorkflow(c, {}).handler(() => [Date.now(), Math.random()]);",
+    },
+  ],
+  invalid: [
     // ctx.db.get(...) inside a handler (a db read)
     {
       filename: WORKFLOW,
       code: "export const run = defineWorkflow(c, {}).handler(async (step, ctx) => { return ctx.db.get(id); });",
       errors: [{ messageId: "nondeterministic" }],
     },
-    // new Date(...) inside a handler
     {
-      filename: WORKFLOW,
-      code: "export const run = defineWorkflow(c, {}).handler(() => new Date());",
+      filename: GENERATED_RUNNER,
+      code: "export const run = defineMaestroWorkflow(c, {}).handler(() => fetch('https://x'));",
       errors: [{ messageId: "nondeterministic" }],
     },
-    // Math.random() inside a handler
+    // Locale/timezone-sensitive formatting is deliberately restricted because
+    // the pinned runtime does not normalize Intl or Date locale methods.
     {
       filename: WORKFLOW,
-      code: "export const run = defineWorkflow(c, {}).handler(() => Math.random());",
+      code: "export const run = defineWorkflow(c, {}).handler(() => new Intl.DateTimeFormat().format(new Date()));",
+      errors: [{ messageId: "nondeterministic" }],
+    },
+    {
+      filename: WORKFLOW,
+      code: "export const run = defineWorkflow(c, {}).handler(() => new Date().toLocaleString());",
       errors: [{ messageId: "nondeterministic" }],
     },
     // crypto.randomUUID() inside a handler
@@ -457,8 +501,63 @@ tester.run("workflow-handler-determinism", workflowHandlerDeterminism, {
     // a banned token in a NESTED callback inside the handler still runs at replay
     {
       filename: WORKFLOW,
-      code: "export const run = defineWorkflow(c, {}).handler((step, xs) => xs.map(() => Date.now()));",
+      code: "export const run = defineWorkflow(c, {}).handler((step, xs) => xs.map(() => process.env.KEY));",
       errors: [{ messageId: "nondeterministic" }],
+    },
+  ],
+});
+
+tester.run("no-raw-workflow-primitives", noRawWorkflowPrimitives, {
+  valid: [
+    {
+      filename:
+        "packages/convex/confect/workflows/_kit/defineMaestroWorkflow.ts",
+      code: 'import { WorkflowManager } from "@convex-dev/workflow"; const manager = new WorkflowManager(c);',
+    },
+    {
+      filename: "packages/convex/confect/workflows/_kit/ownership.ts",
+      code: 'import { start, WorkflowId } from "@convex-dev/workflow";',
+    },
+    {
+      filename: "packages/convex/confect/workflows/_kit/status.ts",
+      code: 'import type { WorkflowStatus } from "@convex-dev/workflow";',
+    },
+    {
+      filename: CAP,
+      code: 'import { startGeneratedWorkflow } from "../workflows/_kit";',
+    },
+  ],
+  invalid: [
+    {
+      filename: CAP,
+      code: 'import { defineWorkflow } from "@convex-dev/workflow";',
+      errors: [{ messageId: "raw" }],
+    },
+    {
+      filename: PROJECTED_RUNNER,
+      code: 'import { WorkflowManager } from "@convex-dev/workflow"; const manager = new WorkflowManager(c);',
+      errors: [{ messageId: "raw" }, { messageId: "manager" }],
+    },
+    {
+      filename:
+        "packages/convex/confect/workflows/_kit/defineMaestroWorkflow.test.ts",
+      code: 'import { WorkflowManager } from "@convex-dev/workflow"; const manager = new WorkflowManager(c);',
+      errors: [{ messageId: "raw" }, { messageId: "manager" }],
+    },
+    {
+      filename: "packages/convex/confect/workflows/_kit/graphRunner.ts",
+      code: 'import { WorkflowId } from "@convex-dev/workflow";',
+      errors: [{ messageId: "raw" }],
+    },
+    {
+      filename: "packages/convex/confect/workflows/_kit/ownership.ts",
+      code: 'import { WorkflowManager } from "@convex-dev/workflow"; const manager = new WorkflowManager(c);',
+      errors: [{ messageId: "manager" }],
+    },
+    {
+      filename: "packages/convex/confect/workflows/_kit/status.ts",
+      code: 'import { WorkflowManager } from "@convex-dev/workflow"; const manager = new WorkflowManager(c);',
+      errors: [{ messageId: "manager" }],
     },
   ],
 });

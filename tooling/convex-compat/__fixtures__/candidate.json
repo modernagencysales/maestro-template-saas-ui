@@ -1,0 +1,22 @@
+{
+  "name": "workpool-0.4.8",
+  "versions": {
+    "convex": "1.42.3",
+    "workflow": "0.4.4",
+    "workpool": "0.4.8",
+    "convexTest": "0.0.54"
+  },
+  "authority": "candidate",
+  "expected": "fail",
+  "expectedProductionSupport": "unsupported",
+  "proofs": [
+    "fresh-frozen-install-workpool-0.4.8",
+    "component-state-machine-duplicate-completion-behavior",
+    "component-state-machine-duplicate-cancellation-behavior",
+    "source-order-regression-explanation"
+  ],
+  "missingProofs": [
+    "WF-WORKPOOL-DUPLICATE-COMPLETION",
+    "WF-WORKPOOL-CANCEL-RACE"
+  ]
+}

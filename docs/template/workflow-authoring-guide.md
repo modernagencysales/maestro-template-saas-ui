@@ -3,6 +3,17 @@
 Workflows compose capabilities. They do not call provider SDKs, repos, or raw
 Convex functions directly.
 
+The accepted architecture decision is
+[ADR 0002](./adr/0002-maestro-graph-over-convex-workflow.md). Before authoring
+or changing a primitive, read the canonical
+[Convex workflow compatibility record](./convex-workflow-compatibility.md). It
+distinguishes upstream behavior, current implementation gaps, and deliberately
+stricter Maestro policy.
+
+Version bumps, immutable publication, retirement, and rollback follow the
+[workflow versioning guide](./workflow-versioning.md). Generated application
+workflows remain draft until their semantic and publication gates are accepted.
+
 ## Workflow Definition
 
 Each workflow declares:
@@ -83,6 +94,19 @@ Failures:
   result is preserved.
 - All outputs must be Convex JSON-safe.
 
+## Bounded Repeated Work
+
+Use the current-only bounded-subworkflow-batch V2 node for dynamic repeated
+work. Declare positive maxItems, batchSize, and fanOut; bind it to one exact
+published child workflow/version through the generated registry; and provide a
+typed selectItems plus mapBatchArgs binding. Prefer stable item identities;
+ordinal identities are deterministic when no domain identity exists. The runner
+rejects overflow, invalid identities, cycles, excess depth/fan-out, version
+drift, and oversized mapped args before starting a child. It returns an explicit
+empty receipt for zero items, uses stable child/link names across replay, and
+waits for every started child in a wave to reconcile before advancing. Workpool
+remains the only scheduler; scheduled children are still unsupported on 0.4.4.
+
 ## Durable Runtime Boundary
 
 Generated workflow replay handlers live in
@@ -91,6 +115,67 @@ Generated workflow replay handlers live in
 event, cancel, restart, cleanup, manifest, and capability step contracts. Do not
 move replay handlers into Confect impl files: the workflow component is the
 durable runtime, while Confect is the typed contract layer around it.
+
+## Tenant-Safe Lifecycle
+
+Generated start results include the tenant-owned `workflowRunId`. Generated
+contracts use that ID for authenticated cancel, restart, step pagination, and
+cleanup; list and list-by-name results are tenant-filtered, bounded product
+projections. Component IDs are never accepted as cross-workspace authority.
+
+Cancellation is cooperative, so an action already running may finish.
+Compensation is modeled as a separate explicit workflow. Restart accepts only
+the beginning or a unique stable step instance and fails closed until the
+selected generation has no exposed Workpool work. Its graph inspection is
+generation-scoped and every downstream external action must have a matching
+restart-safe reservation with a sufficient dedupe horizon. Query and mutation
+steps are not classified as external effects.
+
+Cleanup waits for terminal quiescence, parent/child links, and the longest
+required evidence-retention deadline. Retention automation invokes the bounded
+`workflows.lifecycle.sweepRetention` control. The product may report
+`product-cleaned` after all exposed work is reconciled while separately
+recording `component-residuals-unverifiable` for hidden component records. This
+is deliberately not a full-deletion guarantee.
+
+Generated `onComplete` context contains only validated, size-bounded stable
+workspace, run, workflow-version, and generation identifiers. Reconciliation
+accepts each terminal outcome exactly once: an identical replay is a no-op and a
+conflicting replay returns a redacted conflict without overwriting the first
+accepted result.
+
+## Payloads And Artifacts
+
+Every generated capability measures Convex values before dispatch and before
+returning to Workpool. Nodes reserve a fixed maximum inline result or declare
+`artifact-reference`; cumulative reservations are checked before execution and
+observed sizes are checked after each await. Events, child arguments, completion
+context, workflow returns, and product projections have smaller Maestro limits
+than their pinned upstream ceilings.
+
+Large values go through the generated `workflowArtifacts` capability. The
+durable graph receives only its tenant/run/version/generation-bound artifact ID,
+hash, measured size, and sensitivity. Stage records contain bounded receipts,
+never the value. Provider exceptions are converted to a fixed redacted failure
+before component persistence; do not include SDK messages, stacks, previews,
+tokens, webhook bodies, or unnecessary PII.
+
+## Principal And Policy Replay
+
+Public starts never accept actor, role, grants, auth epoch, or system-principal
+fields. The authenticated Confect mutation constructs a V2 principal and an
+explicit `none` or exact version/hash policy snapshot, persists both with the
+run, and passes them through the generated runner. Capability mappers append
+those fields after rejecting reserved-field overrides. Child workflows inherit
+the principal or receive a grant subset; widening is invalid.
+
+Pinned policy drives deterministic business decisions through sleep, events,
+children, and restart. It is never replaced with the latest active policy.
+Immediately before a consequential action, the generated capability boundary
+reloads current membership for the persisted actor and tenant. Revocation, role
+downgrade, or missing current grants blocks the effect without changing the
+pinned decision. Legacy active runs may finish non-consequential work but must
+reauthorize before starting an external effect.
 
 ## Reviewer-Safe Run Receipt
 

@@ -1,0 +1,13 @@
+{
+  "name": "@maestro-template/convex-compat",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "vitest run --maxWorkers=1 --no-file-parallelism",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "vitest": "^3.2.6"
+  }
+}

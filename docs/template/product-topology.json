@@ -372,6 +372,16 @@
       "lifecycle": "active"
     },
     {
+      "id": "headless:deployment-authority",
+      "kind": "headless",
+      "system": "deployment-authority",
+      "path": "packages/convex/confect/deployAuthority/http.ts",
+      "responsibility": "authorize exact environment deployment actions from signed approvals and complete workflow census evidence",
+      "surfaces": ["api", "internal"],
+      "uses": ["workflow-runtime"],
+      "lifecycle": "active"
+    },
+    {
       "id": "headless:error-envelope",
       "kind": "headless",
       "system": "access-and-tenancy",

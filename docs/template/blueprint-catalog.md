@@ -1,14 +1,38 @@
 # Blueprint Catalog
 
-Blueprints are packages of opinion for common B2B AI/GTM implementation apps.
-They make the first fork fast without locking client-specific business logic
-into template core.
+Blueprints are packages of opinion for common application shapes. They make the
+first fork fast without locking client-specific business logic into template
+core.
 
-Status note: `source-grounded-gtm-brain` is the default implemented generator
-blueprint. `gtm-implementation` is an optional implemented blueprint pack for
-more specific B2B GTM software. The other blueprints are strategic catalog
+Status note: `source-grounded-gtm-brain` remains the default implemented
+generator blueprint. `saas-application` is the implemented lowest-assumption
+application path, and `gtm-implementation` remains an optional implemented pack
+for more specific B2B GTM software. The other blueprints are strategic catalog
 targets until their generator support, seed data, tests, and handoff docs land.
 Do not present a planned blueprint as a working quickstart path.
+
+## `saas-application`
+
+Status: implemented workflow-optional application blueprint.
+
+Use this for a neutral, renameable workspace application whose first useful loop
+is create/list/read for one `record` entity. Its base primitive is table/route
+CRUD, not a workflow or agent.
+
+- Tenancy: every operation requires a workspace identity and member access.
+- UI: list, detail, create, empty, loading, and error states through the
+  existing business shell, adapter, feature, screen, and route layers.
+- Contracts: web and headless surfaces project the same list/read/create IDs.
+- Fake mode: deterministic in-memory CRUD performs a real first create/read.
+- Local mode: the Confect/Convex adapter is labeled a seam until generated refs
+  and focused evidence are present; it never returns placeholder success.
+- Providers: none required. Live providers are unavailable until explicitly
+  selected and reviewed.
+- Automation: unavailable unless the semantic ledger supports every exact
+  primitive of a separately selected optional variant.
+- Rename for a fork: `record`, its route label, and the synthetic welcome row.
+
+See [the SaaS application blueprint](./blueprints/saas-application.md).
 
 ## `source-grounded-gtm-brain`
 

@@ -85,6 +85,7 @@ The planner covers these workspace-owned resources:
 - `workspaceMembers`
 - `brainPages`
 - `workflowRuns`
+- `workflowArtifacts`
 - `workflowStageRuns`
 - `workflowRunEvents`
 - `workflowRunEvidenceSnapshots`
@@ -118,6 +119,51 @@ The planner covers these workspace-owned resources:
 - `actionDigests`
 - `versionedEntries`
 - `versionFreshness`
+
+## Deployment Authority Resources
+
+Deployment authority is global environment release-control state. The five
+resources below are deliberately `workspaceLifecycle: excluded`; they must not
+be projected into a workspace export, deletion, or retention plan merely because
+their census derives from Workflow Runtime evidence.
+
+- `deployAuthorityIssuers`: mutable global trust configuration. Disable or
+  rotate issuers through an operator-reviewed migration; retain configuration
+  while it is needed to verify authority history.
+- `deployApprovals`: append-only signed approval evidence. `expiresAt` ends its
+  authorization eligibility; it does not imply immediate physical deletion.
+- `deployCensusSnapshots`: append-only complete workflow-binding evidence.
+  `expiresAt` ends its authorization eligibility; it does not imply immediate
+  physical deletion.
+- `deployVerdicts`: append-only signed verdict evidence. `expiresAt` ends its
+  authorization eligibility; it does not imply immediate physical deletion.
+- `deployActionConsumptions`: append-only one-time action receipts retained to
+  prove replay prevention and deployment history.
+
+The signed evidence and consumption rows are retained indefinitely because the
+template ships no destructive cleanup authority. Expiry ends authorization
+eligibility but does not delete data. A client that enables cleanup must first
+define an explicit audit window, preserve issuer/signature verification over
+retained history, and promote the job through the normal migration and authority
+gates. The live authority route only verifies and consumes these records today;
+provisioning or rotation of issuers, approvals, census snapshots, and verdicts
+requires a separately reviewed operator path and must not be inferred from the
+presence of the tables.
+
+### Append-only mutation boundary
+
+`pnpm check:append-only-tables` parses every TypeScript and TSX source under the
+canonical `packages/convex/confect` and `packages/convex/convex` roots. It does
+not infer a target table from nearby queries. Instead, it conservatively rejects
+raw Convex database `delete`, `patch`, and `replace` calls reached through
+`ctx.db`, property or element access, destructured or assigned methods, aliases,
+locally called helpers, helper returns, and dynamic computed access. A bare
+local identifier named `db` is not treated as Convex provenance. Inserts and
+literal table-bound `writer.table(...)` operations are allowed. The only
+raw-write exceptions are exact path-and-`patch` entries for the two
+component-local databases; the gate verifies the component path and real
+generated-server import. Comments, unrelated table queries, and unrelated `Id`
+evidence cannot satisfy an exception.
 
 ## Export Posture
 
@@ -201,6 +247,9 @@ The implemented retention hooks are:
   on export.
 - Workflow run links: retain for the audit window with their parent-child run
   provenance.
+- Workflow artifacts: immutable and content-addressed; retain through the
+  longest owning-run restart, dedupe, child, evidence, and explicit reference
+  window, then delete only after product cleanup completes.
 - Billing plans: retain until workspace deletion as tenant billing
   configuration.
 - Scoped policies: retain until workspace deletion as tenant configuration.

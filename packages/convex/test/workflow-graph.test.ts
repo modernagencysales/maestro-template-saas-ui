@@ -218,6 +218,27 @@ describe("workflow graph model", () => {
     );
   });
 
+  it("rejects V1 any-successful joins without a proven loser policy", () => {
+    expect(
+      validateWorkflowGraph({
+        ...validGraph,
+        joins: [
+          {
+            nodeId: "receipt",
+            strategy: "any-successful",
+            sourceNodeIds: ["brief"],
+          },
+        ],
+      }),
+    ).toContainEqual(
+      new WorkflowGraphValidationError.InvalidJoin({
+        nodeId: "receipt",
+        reason:
+          "any-successful join cannot prove losing work is resolved; use all-successful until a typed mutually-exclusive branch or loser policy is declared",
+      }),
+    );
+  });
+
   it("rejects invalid condition expressions", () => {
     expect(
       validateWorkflowGraph({

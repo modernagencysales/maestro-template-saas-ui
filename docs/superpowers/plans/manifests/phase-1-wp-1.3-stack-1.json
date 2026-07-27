@@ -1,0 +1,179 @@
+{
+  "feature": "phase-1-wp-1.3-deterministic-ready-waves",
+  "slices": [
+    {
+      "id": 1,
+      "branch": "codex/ap-b-workflow",
+      "intention": "dispatch complete ready waves through a stable observation barrier and centralize the bounded Workpool posture",
+      "layers": ["workflows", "checks"],
+      "contractRiskIds": [
+        "ambient-time-inline",
+        "bare-error-not-typed",
+        "schema-runtime-validator-export",
+        "policy-data-hardcoded",
+        "duplicated-closed-union",
+        "workspace-guard",
+        "invalid-test-fixture-or-cast",
+        "branching-logic-needs-boundary-tests",
+        "unjustified-cap-or-threshold",
+        "prompt-model-policy-boundary",
+        "type-escape-or-cast",
+        "existing-module-repair-checklist"
+      ],
+      "existingModuleRepairChecklist": {
+        "existingTargetModules": [
+          "packages/convex/confect/workflows/_kit/graphRunnerExecution.ts",
+          "packages/convex/confect/workflows/_kit/graphRunnerV2.ts",
+          "packages/convex/confect/workflows/_kit/defineMaestroWorkflow.ts"
+        ],
+        "repairStrategy": "extend",
+        "compatibilityRisks": [
+          "Sibling steps remain serialized",
+          "Completion timing becomes semantic order",
+          "Workflow managers construct conflicting Workpool limits"
+        ],
+        "policyDataOwnership": "packages/convex/confect/workflows/_kit/workpoolConfig.ts",
+        "promptVersioningImpact": "None; operational parallelism is receipted posture and does not change replay identity.",
+        "evalOrGateCoverage": [
+          "pnpm --dir packages/convex test workflow-spine-effect workflow-definition workflow-conformance",
+          "pnpm check:workflow-semantics",
+          "pnpm check:workflow-graph-boundary"
+        ]
+      },
+      "workPackages": [
+        {
+          "kind": "fixture-to-real",
+          "target": "WP-1.3 serial graph execution queue",
+          "followUpGates": [
+            "pnpm --dir packages/convex test workflow-spine-effect workflow-definition workflow-conformance",
+            "pnpm check:workflow-semantics",
+            "pnpm check:workflow-graph-boundary"
+          ]
+        }
+      ],
+      "taskRefs": ["WP-1.3"],
+      "rationale": "The component must start independent siblings before deterministic traversal can apply their results.",
+      "estLines": 300
+    },
+    {
+      "id": 2,
+      "branch": "codex/ap-b-workflow",
+      "intention": "compute V2 ready waves from one immutable edge and join snapshot and apply settled results in declared graph order",
+      "layers": ["workflows", "checks"],
+      "contractRiskIds": [
+        "ambient-time-inline",
+        "bare-error-not-typed",
+        "schema-runtime-validator-export",
+        "policy-data-hardcoded",
+        "duplicated-closed-union",
+        "workspace-guard",
+        "invalid-test-fixture-or-cast",
+        "branching-logic-needs-boundary-tests",
+        "unjustified-cap-or-threshold",
+        "prompt-model-policy-boundary",
+        "type-escape-or-cast",
+        "existing-module-repair-checklist"
+      ],
+      "existingModuleRepairChecklist": {
+        "existingTargetModules": [
+          "packages/convex/confect/workflows/_kit/graphRunnerTraversal.ts",
+          "packages/convex/confect/workflows/_kit/graphRunnerV2.ts",
+          "packages/convex/test/workflow-conformance.test.ts"
+        ],
+        "repairStrategy": "extend",
+        "compatibilityRisks": [
+          "A join advances from a partial wave",
+          "Output returns while a required sibling is running",
+          "Reverse completion order changes durable context order"
+        ],
+        "policyDataOwnership": "packages/template-core/src/workflow-semantics/contract.ts",
+        "promptVersioningImpact": "None; this compiles the already-versioned graph join and edge contract.",
+        "evalOrGateCoverage": [
+          "pnpm --dir packages/convex test workflow-conformance",
+          "pnpm --dir packages/convex test workflow-spine-effect",
+          "pnpm check:workflow-semantics",
+          "pnpm check:workflow-graph-boundary",
+          "pnpm stack:check"
+        ]
+      },
+      "workPackages": [
+        {
+          "kind": "fixture-to-real",
+          "target": "WP-1.3 V2 ready-wave traversal snapshot",
+          "followUpGates": [
+            "pnpm --dir packages/convex test workflow-conformance",
+            "pnpm --dir packages/convex test workflow-spine-effect",
+            "pnpm check:workflow-semantics",
+            "pnpm check:workflow-graph-boundary",
+            "pnpm stack:check"
+          ]
+        }
+      ],
+      "taskRefs": ["WP-1.3"],
+      "rationale": "V2 must consume the same stable readiness semantics after the wave dispatch barrier exists.",
+      "estLines": 220
+    },
+    {
+      "id": 3,
+      "branch": "codex/ap-b-workflow",
+      "intention": "compile typed failure and compensation outcomes and reject unbounded materialized fan-out",
+      "layers": ["schema", "workflows", "checks"],
+      "contractRiskIds": [
+        "schema-runtime-validator-export",
+        "ambient-time-inline",
+        "bare-error-not-typed",
+        "policy-data-hardcoded",
+        "duplicated-closed-union",
+        "workspace-guard",
+        "invalid-test-fixture-or-cast",
+        "branching-logic-needs-boundary-tests",
+        "unjustified-cap-or-threshold",
+        "prompt-model-policy-boundary",
+        "type-escape-or-cast",
+        "existing-module-repair-checklist"
+      ],
+      "existingModuleRepairChecklist": {
+        "existingTargetModules": [
+          "packages/convex/confect/workflows/graphEdgeSchema.ts",
+          "packages/convex/confect/workflows/graphValidation.ts",
+          "packages/convex/confect/workflows/_kit/graphRunnerV2.ts",
+          "packages/convex/confect/workflows/_kit/workpoolConfig.ts"
+        ],
+        "repairStrategy": "extend",
+        "compatibilityRisks": [
+          "Successful sibling evidence is described as rolled back",
+          "A failure edge is inferred from an exception name",
+          "A graph materializes an unbounded ready wave"
+        ],
+        "policyDataOwnership": "packages/template-core/src/workflow-semantics/contract.ts",
+        "promptVersioningImpact": "Typed outcome routing changes the immutable graph contract and requires a new workflow version.",
+        "evalOrGateCoverage": [
+          "pnpm --dir packages/convex test workflow-graph workflow-definition workflow-conformance",
+          "pnpm --dir packages/convex typecheck",
+          "pnpm check:workflow-semantics",
+          "pnpm check:workflow-graph-boundary",
+          "pnpm stack:check docs/superpowers/plans/manifests/phase-1-wp-1.3-stack-1.json"
+        ]
+      },
+      "workPackages": [
+        {
+          "kind": "template-gap",
+          "target": "WP-1.3 typed settled outcome and bounded fan-out contract",
+          "followUpGates": [
+            "pnpm --dir packages/convex test workflow-graph workflow-definition workflow-conformance",
+            "pnpm --dir packages/convex typecheck",
+            "pnpm check:workflow-semantics",
+            "pnpm check:workflow-graph-boundary",
+            "pnpm stack:check docs/superpowers/plans/manifests/phase-1-wp-1.3-stack-1.json"
+          ],
+          "templateBacklogRef": "AP-002 Convex workflow semantic compatibility",
+          "templateResolutionPath": "Add Agent-A-owned typed outcome fields, then compile stable success, failure, and compensation routing without an atomic-wave claim."
+        }
+      ],
+      "taskRefs": ["WP-1.3"],
+      "rationale": "The runtime now rejects unresolved V1 races and over-budget materialization, then applies declared typed error-edge or compensation routes only after the settled barrier while preserving journal-backed sibling reuse without an atomic-wave claim.",
+      "estLines": 300
+    }
+  ],
+  "allTaskRefs": ["WP-1.3"]
+}

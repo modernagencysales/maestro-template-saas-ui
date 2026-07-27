@@ -1,0 +1,8 @@
+{
+  "name": "maestro",
+  "version": "0.1.0",
+  "description": "Maestro workflow guidance with the repository-local Maestro MCP declaration.",
+  "author": {
+    "name": "Maestro"
+  }
+}

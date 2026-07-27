@@ -9,7 +9,7 @@ import {
   missingContractRiskIdsForLayers,
   unknownContractRiskIds,
   type ContractRiskId,
-} from "./contract-risk-registry.mts";
+} from "./contract-risk-registry.mjs";
 
 type Slice = {
   readonly id: number;
@@ -50,6 +50,11 @@ export type StackPlan = {
   readonly feature: string;
   readonly slices: readonly Slice[];
   readonly allTaskRefs: readonly string[];
+  readonly adrRefs?: readonly string[];
+};
+
+export type StackPlanValidationOptions = {
+  readonly reviewedAdrRefs?: ReadonlySet<string>;
 };
 
 // invariant: the per-PR changed-source-line budget (AGENTS.md §Workflow). A
@@ -91,8 +96,18 @@ function rank(layer: string): number {
   return i === -1 ? LAYER_ORDER.length : i; // unknown layers sort last (no constraint)
 }
 
-export function validatePlan(plan: StackPlan): string[] {
+const ADR_REF_PATTERN =
+  /^docs\/template\/adr\/\d{4}-[a-z0-9]+(?:-[a-z0-9]+)*\.md$/;
+
+export function validatePlan(
+  input: unknown,
+  options: StackPlanValidationOptions = {},
+): string[] {
+  if (!isStackPlan(input)) return ["plan must match the StackPlan shape"];
+  const plan = input;
   const errors: string[] = [];
+
+  errors.push(...validateAdrRefs(plan.adrRefs ?? [], options.reviewedAdrRefs));
 
   for (const s of plan.slices) {
     if (s.estLines > MAX_EST_LINES)
@@ -143,6 +158,31 @@ export function validatePlan(plan: StackPlan): string[] {
   for (const ref of plan.allTaskRefs)
     if (!shipped.has(ref)) errors.push(`stack does not cover task ${ref}`);
 
+  return errors;
+}
+
+function validateAdrRefs(
+  adrRefs: readonly string[],
+  reviewedAdrRefs: ReadonlySet<string> | undefined,
+): string[] {
+  const errors: string[] = [];
+  const seen = new Set<string>();
+  for (const [index, adrRef] of adrRefs.entries()) {
+    if (!ADR_REF_PATTERN.test(adrRef)) {
+      errors.push(
+        `adrRefs[${index}] must be an authoritative docs/template/adr/NNNN-name.md path`,
+      );
+      continue;
+    }
+    if (seen.has(adrRef)) {
+      errors.push(`adrRefs[${index}] duplicates ${adrRef}`);
+      continue;
+    }
+    seen.add(adrRef);
+    if (reviewedAdrRefs !== undefined && !reviewedAdrRefs.has(adrRef)) {
+      errors.push(`adrRefs[${index}] does not name an existing accepted ADR`);
+    }
+  }
   return errors;
 }
 
@@ -255,4 +295,74 @@ function nonEmptyStringArray(value: unknown): value is readonly string[] {
   return (
     Array.isArray(value) && value.length > 0 && value.every(nonEmptyString)
   );
+}
+
+function stringArray(value: unknown): value is readonly string[] {
+  return (
+    Array.isArray(value) && value.every((item) => typeof item === "string")
+  );
+}
+
+function isStackPlan(value: unknown): value is StackPlan {
+  return (
+    isRecord(value) &&
+    nonEmptyString(value.feature) &&
+    Array.isArray(value.slices) &&
+    value.slices.every(isSlice) &&
+    stringArray(value.allTaskRefs) &&
+    (value.adrRefs === undefined || stringArray(value.adrRefs))
+  );
+}
+
+function isSlice(value: unknown): value is Slice {
+  return (
+    isRecord(value) &&
+    Number.isInteger(value.id) &&
+    nonEmptyString(value.branch) &&
+    nonEmptyString(value.intention) &&
+    stringArray(value.layers) &&
+    stringArray(value.contractRiskIds) &&
+    Array.isArray(value.workPackages) &&
+    value.workPackages.every(isWorkPackage) &&
+    stringArray(value.taskRefs) &&
+    typeof value.rationale === "string" &&
+    typeof value.estLines === "number" &&
+    Number.isFinite(value.estLines) &&
+    (value.existingModuleRepairChecklist === undefined ||
+      isExistingModuleRepairChecklist(value.existingModuleRepairChecklist))
+  );
+}
+
+function isWorkPackage(value: unknown): value is WorkPackage {
+  return (
+    isRecord(value) &&
+    typeof value.kind === "string" &&
+    typeof value.target === "string" &&
+    stringArray(value.followUpGates) &&
+    (value.generatorCommand === undefined ||
+      typeof value.generatorCommand === "string") &&
+    (value.templateBacklogRef === undefined ||
+      typeof value.templateBacklogRef === "string") &&
+    (value.templateResolutionPath === undefined ||
+      typeof value.templateResolutionPath === "string") &&
+    (value.notes === undefined || typeof value.notes === "string")
+  );
+}
+
+function isExistingModuleRepairChecklist(
+  value: unknown,
+): value is ExistingModuleRepairChecklist {
+  return (
+    isRecord(value) &&
+    stringArray(value.existingTargetModules) &&
+    typeof value.repairStrategy === "string" &&
+    stringArray(value.compatibilityRisks) &&
+    typeof value.policyDataOwnership === "string" &&
+    typeof value.promptVersioningImpact === "string" &&
+    stringArray(value.evalOrGateCoverage)
+  );
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }

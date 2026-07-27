@@ -1,0 +1,210 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://maestro.local/schemas/maestro-adoption-work-package.schema.json",
+  "title": "Maestro existing-application adoption work package",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schemaVersion",
+    "id",
+    "mode",
+    "sourceReadOnly",
+    "roots",
+    "worktrees",
+    "baseline",
+    "editableBoundaries",
+    "mappings",
+    "compatibility",
+    "decisions",
+    "cutover",
+    "deletion",
+    "approval",
+    "rollback",
+    "inPlace"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "https://maestro.local/schemas/maestro-adoption-work-package.schema.json"
+    },
+    "schemaVersion": { "const": 1 },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+    },
+    "mode": { "enum": ["separate-target", "in-place"] },
+    "sourceReadOnly": { "const": true },
+    "roots": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source", "target", "sourceWorktree", "targetWorktree"],
+      "properties": {
+        "source": { "$ref": "#/$defs/absolutePath" },
+        "target": { "$ref": "#/$defs/absolutePath" },
+        "sourceWorktree": { "$ref": "#/$defs/absolutePath" },
+        "targetWorktree": { "$ref": "#/$defs/absolutePath" }
+      }
+    },
+    "worktrees": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source", "target"],
+      "properties": {
+        "source": { "$ref": "#/$defs/worktree" },
+        "target": { "$ref": "#/$defs/worktree" }
+      }
+    },
+    "baseline": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sourceEvidence", "targetEvidence"],
+      "properties": {
+        "sourceEvidence": { "$ref": "#/$defs/nonemptyPaths" },
+        "targetEvidence": { "$ref": "#/$defs/nonemptyPaths" }
+      }
+    },
+    "editableBoundaries": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/relativePath" }
+    },
+    "mappings": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["identity", "tenant", "data"],
+      "properties": {
+        "identity": { "$ref": "#/$defs/mappings" },
+        "tenant": { "$ref": "#/$defs/mappings" },
+        "data": { "$ref": "#/$defs/mappings" }
+      }
+    },
+    "compatibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["template", "agentPack", "requirements"],
+      "properties": {
+        "template": { "$ref": "#/$defs/text" },
+        "agentPack": { "$ref": "#/$defs/text" },
+        "requirements": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/text" }
+        }
+      }
+    },
+    "decisions": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "disposition", "rationale"],
+        "properties": {
+          "path": { "$ref": "#/$defs/relativePath" },
+          "disposition": {
+            "enum": ["preserve", "port", "replace", "delete"]
+          },
+          "rationale": { "$ref": "#/$defs/text" }
+        }
+      }
+    },
+    "cutover": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["strategy", "steps", "readinessEvidence"],
+      "properties": {
+        "strategy": { "$ref": "#/$defs/text" },
+        "steps": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/text" }
+        },
+        "readinessEvidence": { "$ref": "#/$defs/nonemptyPaths" }
+      }
+    },
+    "deletion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["timing", "paths"],
+      "properties": {
+        "timing": {
+          "enum": ["never", "after-approved-cutover", "during-adoption"]
+        },
+        "paths": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/relativePath" }
+        }
+      }
+    },
+    "approval": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "approverClass", "evidence"],
+      "properties": {
+        "status": { "enum": ["pending", "approved"] },
+        "approverClass": { "$ref": "#/$defs/text" },
+        "evidence": {
+          "anyOf": [{ "$ref": "#/$defs/relativePath" }, { "type": "null" }]
+        }
+      }
+    },
+    "rollback": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["strategy", "evidence", "restoresSource"],
+      "properties": {
+        "strategy": { "$ref": "#/$defs/text" },
+        "evidence": { "$ref": "#/$defs/relativePath" },
+        "restoresSource": { "type": "boolean" }
+      }
+    },
+    "inPlace": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["justification"],
+      "properties": {
+        "justification": {
+          "anyOf": [{ "$ref": "#/$defs/text" }, { "type": "null" }]
+        }
+      }
+    }
+  },
+  "$defs": {
+    "text": { "type": "string", "minLength": 1 },
+    "absolutePath": { "type": "string", "pattern": "^(?:/|[A-Za-z]:\\\\)" },
+    "relativePath": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!/)(?!.*//)(?!.*(?:^|/)\\.{1,2}(?:/|$))(?!.*[\\\\\\u0000-\\u0020\\u007f])[^/\\\\]+(?:/[^/\\\\]+)*$"
+    },
+    "nonemptyPaths": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/relativePath" }
+    },
+    "worktree": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["clean", "revision"],
+      "properties": {
+        "clean": { "type": "boolean" },
+        "revision": { "$ref": "#/$defs/text" }
+      }
+    },
+    "mappings": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["source", "target", "rule"],
+        "properties": {
+          "source": { "$ref": "#/$defs/text" },
+          "target": { "$ref": "#/$defs/text" },
+          "rule": { "$ref": "#/$defs/text" }
+        }
+      }
+    }
+  }
+}

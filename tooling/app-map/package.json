@@ -1,0 +1,34 @@
+{
+  "name": "@maestro-template/app-map-tooling",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./build": "./src/build.ts",
+    "./composition": "./src/composition.ts",
+    "./git-diff": "./src/gitDiff.ts",
+    "./impact": "./src/impact.ts",
+    "./mcp": "./src/mcp.ts",
+    "./schema": "./src/schema.ts",
+    "./surface": "./src/surface.ts",
+    "./upgrade-impact": "./src/upgradeImpact.ts",
+    "./validate": "./src/validate.ts"
+  },
+  "dependencies": {
+    "@maestro-template/template-core": "workspace:*",
+    "typescript": "^5.9.3",
+    "yaml": "^2.9.0"
+  },
+  "scripts": {
+    "build:fixture": "tsx src/fixture-build.ts",
+    "check": "pnpm lint && pnpm typecheck && pnpm test",
+    "lint": "eslint src --max-warnings 0",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "eslint": "^9.0.0",
+    "tsx": "^4.0.0",
+    "vitest": "^3.0.0"
+  }
+}

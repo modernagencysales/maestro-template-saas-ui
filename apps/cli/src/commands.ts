@@ -13,6 +13,8 @@ import {
   type ProviderMode,
 } from "@maestro-template/integrations";
 import { parseNamedArgs } from "./namedArgs";
+import { CREATE_HELP } from "./factory/create";
+import { START_HELP } from "./factory/start";
 import { cliFailure, cliSuccess, formatJsonOutput } from "./result";
 import type {
   CliCapabilityRequest,
@@ -43,6 +45,15 @@ const helpResult = (): CliResult =>
       "maestro-template mcp tools",
       "maestro-template mcp call <toolName>",
       "maestro-template integrations report [fake|test|live]",
+      "maestro preflight [--mode fake|test|live] [--details|--json]",
+      "maestro verify [--scope focused|full] [--changed <paths>] [--details|--json]",
+      "maestro check [--mode fake|test|live] [--changed <paths>] [--details|--json]",
+      CREATE_HELP.trim(),
+      START_HELP.trim(),
+      "maestro plan-check --plan <manifest.json> [--details|--json]",
+      "maestro scaffold --generator <id> --args <json-object> [--write --preflight-fingerprint <preflight_sha256:...>] [--details|--json]",
+      "maestro mcp",
+      "maestro mcp configure --host <claude-code|codex> [--profile <inspect|dev-power>] [--write|--remove] [--human|--details|--json]",
     ].join("\n") + "\n",
   );
 

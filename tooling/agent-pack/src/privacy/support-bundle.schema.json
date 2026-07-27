@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://maestro.local/schemas/agent-pack-support-bundle-v1.json",
+  "title": "Maestro Agent Pack Support Bundle",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "bundleId", "versions", "posture", "handling"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "bundleId": {
+      "type": "string",
+      "pattern": "^support_bundle_sha256:[0-9a-f]{64}$"
+    },
+    "versions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["agentPack", "cli", "template", "node"],
+      "properties": {
+        "agentPack": { "$ref": "#/$defs/productVersion" },
+        "cli": { "$ref": "#/$defs/productVersion" },
+        "template": { "$ref": "#/$defs/productVersion" },
+        "node": { "$ref": "#/$defs/version" }
+      }
+    },
+    "posture": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["host", "providers"],
+      "properties": {
+        "host": {
+          "enum": ["claude-code", "codex", "other", "unknown"]
+        },
+        "providers": {
+          "type": "array",
+          "maxItems": 16,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["kind", "posture"],
+            "properties": {
+              "kind": { "enum": ["convex", "model", "other"] },
+              "posture": {
+                "enum": [
+                  "not-configured",
+                  "local-only",
+                  "external-user-selected",
+                  "unknown"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "handling": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "automaticUpload",
+        "containsCustomerData",
+        "containsEnvironmentValues",
+        "containsSecrets"
+      ],
+      "properties": {
+        "automaticUpload": { "const": false },
+        "containsCustomerData": { "const": false },
+        "containsEnvironmentValues": { "const": false },
+        "containsSecrets": { "const": false }
+      }
+    }
+  },
+  "$defs": {
+    "productVersion": {
+      "oneOf": [{ "$ref": "#/$defs/version" }, { "const": "unavailable" }]
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:-(?:alpha|beta|rc)\\.[0-9]+)?$"
+    }
+  }
+}

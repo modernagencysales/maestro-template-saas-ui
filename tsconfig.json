@@ -17,6 +17,7 @@
     { "path": "./packages/observability" },
     { "path": "./packages/search" },
     { "path": "./tooling/workflow" },
+    { "path": "./tooling/agent-pack" },
     { "path": "./tooling/quality" },
     { "path": "./tooling/generators" },
     { "path": "./tooling/evals" },

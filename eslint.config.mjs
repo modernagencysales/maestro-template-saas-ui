@@ -16,6 +16,7 @@ export default [
       ".pnpm-store/**",
       ".stryker-tmp/**",
       ".wrangler/**",
+      "tooling/agent-pack/evals/runs/**",
     ],
   },
   js.configs.recommended,
@@ -66,6 +67,20 @@ export default [
       "template/workflow-policy-snapshot": "error",
       "template/no-cross-domain-value-import": "error",
       "template/no-raw-scheduler": "error",
+      "template/no-raw-workflow-primitives": "error",
+    },
+  },
+  {
+    files: [
+      "packages/convex/convex/workflowRunners/**/*.ts",
+      "apps/**/*.{ts,tsx}",
+    ],
+    plugins: { template: templatePlugin },
+    rules: {
+      "template/no-raw-workflow-primitives": "error",
+      "template/workflow-handler-determinism": "error",
+      "template/workflow-steps-are-capabilities": "error",
+      "template/workflow-policy-snapshot": "error",
     },
   },
   {

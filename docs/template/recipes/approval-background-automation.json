@@ -1,0 +1,112 @@
+{
+  "schemaVersion": 2,
+  "id": "approval-background-automation",
+  "aliases": [
+    "approve then run",
+    "background automation",
+    "scheduled approval action"
+  ],
+  "outcome": "Run one approval-gated background operation through the supported typed workflow path.",
+  "availability": { "status": "available" },
+  "consequentialQuestions": [
+    {
+      "id": "consequentialEffect",
+      "prompt": "What exact consequential effect would approval permit?",
+      "why": "The approved intent, capability, and audit receipt must name one bounded effect.",
+      "answerKind": "text"
+    },
+    {
+      "id": "approverRole",
+      "prompt": "Which existing workspace role may approve it?",
+      "why": "Approval is an authorization boundary, not a UI confirmation.",
+      "answerKind": "text"
+    },
+    {
+      "id": "retrySafe",
+      "prompt": "Is the effect idempotent under retry with a stable key?",
+      "why": "Background retries cannot duplicate a consequential action.",
+      "answerKind": "boolean"
+    }
+  ],
+  "canonicalSystems": [
+    {
+      "id": "action-automation",
+      "disposition": "extend",
+      "role": "Approval receipts, queued action intent, idempotency, and audit state."
+    },
+    {
+      "id": "workflow-runtime",
+      "disposition": "reuse",
+      "role": "Durable queued execution only after every named semantic primitive is supported."
+    }
+  ],
+  "classifications": [
+    {
+      "kind": "fixture-to-real",
+      "target": "ops/actions",
+      "evidence": "Replace the action fixture body behind its existing typed approval contract."
+    },
+    {
+      "kind": "pattern-instance",
+      "target": "WF-STEP-ACTION",
+      "evidence": "The semantic ledger, compiler, retry posture, and idempotency gates support the reviewed action step."
+    }
+  ],
+  "generatorPreviews": [
+    {
+      "generatorId": "add-capability",
+      "command": "pnpm template:add-capability -- --name <approvedOperation> --system action-automation --disposition extend",
+      "purpose": "Preview the authenticated, audited, idempotent operation boundary."
+    },
+    {
+      "generatorId": "add-workflow",
+      "command": "pnpm template:add-workflow -- --name <approvedAutomation> --system action-automation --disposition extend",
+      "purpose": "Preview the supported typed approval, queued execution, retry, and status path."
+    }
+  ],
+  "providerReferences": [
+    {
+      "id": "effect-specific-adapter",
+      "posture": "optional-reviewed",
+      "note": "No provider is selected or configured by this recipe; live adapters require separate review."
+    }
+  ],
+  "migrationRisks": [
+    "Approval and action rows are audit anchors and need explicit retention and redaction.",
+    "Retries require stable idempotency keys and a tested duplicate-delivery posture.",
+    "Enabling a missing primitive without semantic-ledger evidence creates false workflow support."
+  ],
+  "focusedGates": [
+    "pnpm check:workflow:fast",
+    "pnpm check:confect-contracts",
+    "pnpm check:data-resources",
+    "pnpm check:provider-boundary"
+  ],
+  "doneState": [
+    "Every required semantic rule is supported by the live ledger.",
+    "An authorized approver can approve one bounded intent and receives an audit receipt.",
+    "Queued retry evidence proves the external effect is not duplicated."
+  ],
+  "minimumPrimitive": "A typed approval mutation plus queued workflow steps for mutation, action, status, and idempotent retry.",
+  "whenNotToUse": [
+    "Any required semantic primitive is restricted, unsupported, or unmapped.",
+    "The operation is a simple synchronous table mutation with no pause or external effect."
+  ],
+  "escalationTriggers": [
+    {
+      "from": "table-route",
+      "to": "capability",
+      "when": "The operation becomes consequential and requires policy or approval."
+    },
+    {
+      "from": "capability",
+      "to": "workflow",
+      "when": "Execution must queue, pause for approval, retry, or resume."
+    },
+    {
+      "from": "workflow",
+      "to": "agent",
+      "when": "A reviewed nondeterministic actor must choose among explicitly granted capabilities."
+    }
+  ]
+}

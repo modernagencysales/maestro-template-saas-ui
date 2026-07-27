@@ -1,6 +1,10 @@
-import type { StaticCheckDescriptor } from "./gate.mts";
+import type {
+  RegisteredStaticCheckDescriptor,
+  StaticCheckDescriptor,
+  StaticCheckDiagnosticMetadata,
+} from "./gate.mts";
 
-export const checkDescriptors = {
+const checkDescriptorDefinitions = {
   "ci-completeness": {
     name: "check:ci-completeness",
     requirements: [
@@ -11,17 +15,26 @@ export const checkDescriptors = {
           "pnpm verify",
           "pnpm check:ci-completeness",
           "pnpm check:config-drift",
+          "pnpm check:convex-ai-files",
+          "pnpm check:agent-pack",
           "pnpm check:confect-contracts",
           "pnpm check:confect-compat",
           "pnpm check:workflow-graph-boundary",
+          "pnpm check:workflow-semantics",
+          "pnpm template:workflow-output-smoke",
           "pnpm check:system-catalog",
           "pnpm check:system-topology",
           "pnpm check:data-resources",
+          "pnpm check:append-only-tables",
           "pnpm check:promotion-boundary",
           "taste",
           "contract-review",
           "staging-deploy",
+          "staging-authority-preflight",
+          "production-authority-preflight",
           "production-promote.sh",
+          'depends_on: "staging-authority-preflight"',
+          'depends_on: "production-authority-preflight"',
         ],
         message: "Buildkite pipeline must include deterministic and AI gates",
       },
@@ -54,8 +67,37 @@ export const checkDescriptors = {
       },
       {
         file: ".buildkite/scripts/ci-self-protection.sh",
-        includes: ["check:ci-completeness", "check:config-drift"],
+        includes: [
+          "check:ci-completeness",
+          "check:deploy-authority",
+          "check:config-drift",
+          "check:convex-ai-files",
+          "check:agent-pack",
+          "check:app-map",
+          "check:workflow-semantics",
+        ],
         message: "secretless self-protection step must run the shape pins",
+      },
+      {
+        file: "tooling/release/deploy-trust-bundle.json",
+        includes: [
+          "tooling/quality/check-deploy-authority.mts",
+          "tooling/release/deploy-policy.json",
+          "tooling/release/keys/deploy-authority-public-key.pem",
+        ],
+        message:
+          "deploy trust bundle must cover verifier, policy, and public key",
+      },
+      {
+        file: "tooling/release/deploy-policy.json",
+        includes: [
+          "tooling/release/src/deploy/guardedDeploy.ts",
+          "staging-authority-preflight",
+          "production-authority-preflight",
+          "TEMPLATE_CONVEX_DEPLOY_KEY",
+        ],
+        message:
+          "deploy policy must pin the guarded primitive owner, preflights, and credential scope",
       },
       {
         file: ".buildkite/scripts/phase1.sh",
@@ -63,7 +105,13 @@ export const checkDescriptors = {
           "pnpm check:system-catalog",
           "pnpm check:system-topology",
           "pnpm check:data-resources",
+          "pnpm check:append-only-tables",
           "pnpm check:promotion-boundary",
+          "pnpm check:workflow-semantics",
+          "pnpm template:workflow-output-smoke",
+          "pnpm check:convex-ai-files",
+          "pnpm check:agent-pack",
+          "pnpm check:app-map",
         ],
         message:
           "hosted deterministic CI must run system, data, and promotion gates",
@@ -79,7 +127,15 @@ export const checkDescriptors = {
           "check-system-catalog:",
           "check-system-topology:",
           "check-data-resources:",
+          "check-append-only-tables:",
           "check-promotion-boundary:",
+          "check-workflow-semantics:",
+          "check-workflow-fast:",
+          "check-convex-ai-files:",
+          "check-agent-pack:",
+          "test-app-map:",
+          "check-app-map:",
+          "check-workflow-output-smoke:",
         ],
         message: "Justfile must keep the canonical gate recipe names",
       },
@@ -92,7 +148,9 @@ export const checkDescriptors = {
           "check:system-catalog",
           "check:system-topology",
           "check:data-resources",
+          "check:append-only-tables",
           "check:promotion-boundary",
+          "check:workflow:fast",
         ],
         message: "lefthook must run shifted-left gates and rubric injection",
       },
@@ -100,10 +158,62 @@ export const checkDescriptors = {
         file: "package.json",
         includes: [
           '"verify"',
-          "pnpm check:schema-migration-notes && pnpm check:system-catalog && pnpm check:system-topology && pnpm check:data-resources && pnpm check:promotion-boundary && pnpm check:layer-boundaries",
+          '"typecheck": "turbo run typecheck --concurrency=1"',
+          '"test:release-filesystem"',
+          '"test:app-map"',
+          '"check:app-map"',
+          "turbo run test --filter=!@maestro-template/release-tooling && pnpm --dir packages/convex test:workflow-conformance && pnpm --dir apps/cli test:create-root-integration && pnpm --dir tooling/agent-pack test:privacy-no-network && pnpm --dir tooling/release test:unit && pnpm test:release-filesystem",
+          'pnpm --dir tooling/evals test && pnpm --dir tooling/release test:unit"',
+          "pnpm check:agent-pack && pnpm check:app-map && pnpm check:deps",
+          "pnpm check:schema-migration-notes && pnpm check:system-catalog && pnpm check:system-topology && pnpm check:data-resources && pnpm check:append-only-tables && pnpm check:promotion-boundary && pnpm check:layer-boundaries",
         ],
         message:
           "the root verify chain must run canonical system/schema ownership before layer checks",
+      },
+      {
+        file: "apps/cli/package.json",
+        includes: [
+          "--exclude src/factory/createRootIntegration.test.ts",
+          "vitest run src/factory/createRootIntegration.test.ts --passWithNoTests --maxWorkers=1 --no-file-parallelism",
+        ],
+        message:
+          "the heavyweight create integration proof must run exactly once in a dedicated serial CLI gate",
+      },
+      {
+        file: "packages/convex/package.json",
+        includes: [
+          "--exclude test/workflow-conformance.test.ts",
+          "vitest run test/workflow-conformance.test.ts --passWithNoTests --maxWorkers=1 --no-file-parallelism",
+        ],
+        message:
+          "workflow conformance must run exactly once outside the Turbo-wide resource wave",
+      },
+      {
+        file: "tooling/agent-pack/package.json",
+        includes: [
+          "--exclude src/privacy/privacy.noNetwork.test.ts",
+          "vitest run src/privacy/privacy.noNetwork.test.ts --maxWorkers=1 --no-file-parallelism",
+        ],
+        message:
+          "the heavyweight no-network proof must run exactly once in a dedicated serial agent-pack gate",
+      },
+      {
+        file: "tooling/generators/package.json",
+        includes: [
+          '"test": "vitest run --passWithNoTests --maxWorkers=1 --no-file-parallelism"',
+        ],
+        message:
+          "generator tests that exercise checked-out projections must run without file parallelism",
+      },
+      {
+        file: "tooling/release/package.json",
+        includes: [
+          '"test": "pnpm test:unit && pnpm test:final-filesystem"',
+          "--exclude src/customerTarget/finalFilesystem.test.ts",
+          "vitest run src/customerTarget/finalFilesystem.test.ts --passWithNoTests --maxWorkers=1 --no-file-parallelism",
+        ],
+        message:
+          "the heavyweight customer filesystem proof must run exactly once in a dedicated serial release gate",
       },
       {
         file: ".buildkite/scripts/taste.sh",
@@ -154,6 +264,8 @@ export const checkDescriptors = {
         includes: [
           "check:ci-completeness",
           "check:config-drift",
+          "check:convex-ai-files",
+          "check:agent-pack",
           "check:confect-v9",
           "check:confect-contracts",
           "check:confect-compat",
@@ -166,6 +278,7 @@ export const checkDescriptors = {
           "check:data-resources",
           "check:promotion-boundary",
           "check:workflow-graph-boundary",
+          "check:workflow-semantics",
           "contract-review",
           "taste:eval",
           "test:mutation",
@@ -206,9 +319,10 @@ export const checkDescriptors = {
           "deploy-doctor staging",
           "scripts/_project-config.mjs get staging cloudflarePagesProject",
           "scripts/_project-config.mjs get staging convexUrl",
-          "convex deploy",
+          "authorityCli.ts staging",
+          "guardedDeploy.ts convex",
           "convex run demo/showcase:seed",
-          "pages deploy apps/web/dist/client",
+          "guardedDeploy.ts cloudflare",
           "buildkite-agent meta-data set staged-sha",
         ],
         message:
@@ -220,9 +334,10 @@ export const checkDescriptors = {
           "deploy-doctor production",
           "promote-plan",
           "scripts/_project-config.mjs get production convexUrl",
-          "convex deploy",
+          "authorityCli.ts production",
+          "guardedDeploy.ts convex",
           "convex run demo/showcase:seed",
-          "pages deploy apps/web/dist/client",
+          "guardedDeploy.ts cloudflare",
           "buildkite-agent meta-data get staged-sha",
         ],
         message:
@@ -319,6 +434,7 @@ export const checkDescriptors = {
       {
         file: "package.json",
         includes: [
+          "--max-old-space-size=8192",
           "type-coverage --project tsconfig.type-coverage.json --at-least 99.7",
         ],
         message:
@@ -326,12 +442,22 @@ export const checkDescriptors = {
       },
       {
         file: "tsconfig.type-coverage.json",
-        includes: ["include", "exclude"],
-        message: "type coverage must inspect real project files",
+        includes: [
+          "include",
+          "exclude",
+          "**/*.test.*",
+          "**/*.spec.*",
+          "**/__tests__/**",
+          "packages/convex/test/**",
+          "tests/**",
+          "tooling/agent-pack/evals/runs/**",
+        ],
+        message:
+          "type coverage must inspect source while excluding generated eval workspaces and test files",
       },
       {
         file: "docs/template/type-coverage-ratchet.md",
-        includes: ["99.7", "100%"],
+        includes: ["99.7", "100%", "source-only", "strict TypeScript"],
         message:
           "type coverage ratchet must be documented until it reaches 100%",
       },
@@ -551,16 +677,22 @@ export const checkDescriptors = {
     name: "check:confect-compat",
     requirements: [
       {
+        file: "docs/template/convex-compatibility.json",
+        includes: [
+          '"schemaVersion": 1',
+          '"@confect/server": "9.1.5"',
+          '"effect": "3.21.4"',
+          '"convex-test": "0.0.54"',
+        ],
+        message: "machine compatibility authority must pin the tested set",
+      },
+      {
         file: "docs/template/confect-effect-guide.md",
         includes: [
           "@confect/server",
-          "9.1.5",
           "effect",
-          "3.21.4",
           "@effect/platform-node",
-          "0.106.0",
           "convex-test",
-          "0.0.54",
           "check:confect-compat",
         ],
         message:
@@ -568,15 +700,7 @@ export const checkDescriptors = {
       },
       {
         file: "packages/convex/package.json",
-        includes: [
-          '"@confect/core": "9.1.5"',
-          '"@confect/server": "9.1.5"',
-          '"@confect/test": "9.1.5"',
-          '"@effect/platform-node": "0.106.0"',
-          '"convex-test": "0.0.54"',
-          '"confect:codegen"',
-          '"check:convex"',
-        ],
+        includes: ['"confect:codegen"', '"check:convex"'],
         message:
           "Convex package must pin Confect-compatible runtime and codegen scripts",
       },
@@ -873,7 +997,328 @@ export const checkDescriptors = {
       },
     ],
   },
+  "append-only-tables": {
+    name: "check:append-only-tables",
+    requirements: [
+      {
+        file: "tooling/quality/check-append-only-tables.mts",
+        includes: [
+          "typescript",
+          "RAW_DB_MUTATION_ALLOWLIST",
+          "DESTRUCTIVE_METHODS",
+          "parseDataResourceCatalog",
+          "packages/convex/confect",
+          "packages/convex/convex",
+        ],
+        message:
+          "append-only boundary must AST-block raw Convex destructive database access across canonical roots",
+      },
+      {
+        file: "tooling/quality/check-append-only-tables.test.mts",
+        includes: [
+          "direct and optional destructive calls by opaque ID",
+          "method declaration destructuring and destructuring assignment",
+          "nested helpers and helpers returning raw databases",
+          "dynamic computed access",
+          "unrelated mutable objects",
+          "literal table-bound writer mutations",
+          "app deadline file an ID-evidence allowance",
+          "component allowances patch-only",
+        ],
+        message:
+          "raw database boundary must prove direct, alias, helper, optional, wrapper, and escape behavior",
+      },
+      {
+        file: ".buildkite/scripts/phase1.sh",
+        includes: ["pnpm check:append-only-tables"],
+        message: "hosted deterministic CI must enforce append-only tables",
+      },
+    ],
+  },
+  "app-map": {
+    name: "check:app-map",
+    requirements: [
+      {
+        file: "tooling/app-map/package.json",
+        includes: [
+          '"check": "pnpm lint && pnpm typecheck && pnpm test"',
+          '"./composition"',
+          '"./mcp"',
+          '"./surface"',
+        ],
+        message: "App Map package must expose one closed deterministic check",
+      },
+      {
+        file: "tooling/app-map/src/schema.ts",
+        includes: [
+          "APP_MAP_INPUT_MANIFEST_V1",
+          "generator-provenance-facts",
+          "template-instance-facts",
+        ],
+        message: "App Map must retain the frozen eleven-source input manifest",
+      },
+      {
+        file: "tooling/app-map/src/composition.test.ts",
+        includes: [
+          "toHaveLength(11)",
+          "must project facts",
+          "serializeAppMap(first.build.map)",
+          "serializeAppMap(second.build.map)",
+        ],
+        message:
+          "App Map composition must prove complete sources and byte-stable double builds",
+      },
+      {
+        file: ".buildkite/scripts/phase1.sh",
+        includes: ["pnpm check:app-map"],
+        message: "Hosted deterministic CI must run the App Map gate",
+      },
+    ],
+  },
+  "workflow-semantics": {
+    name: "check:workflow-semantics",
+    requirements: [
+      {
+        file: "packages/template-core/src/workflow-semantics/contract.ts",
+        includes: [
+          "WORKFLOW_GRAPH_FIELDS",
+          "OFFICIAL_WORKFLOW_PRIMITIVES",
+          "WF-HANDLER-DATE",
+          "WF-HANDLER-RANDOM",
+        ],
+        message: "workflow semantics must have one executable support ledger",
+      },
+      {
+        file: "tooling/quality/check-workflow-semantics.mts",
+        includes: [
+          "WF-GRAPH-UNMAPPED",
+          "readWorkflowGraphFields",
+          "WF-DOC-PROJECTION",
+        ],
+        message: "workflow semantic gate must inspect schemas and real runners",
+      },
+      {
+        file: "docs/template/generated/workflow-semantics.md",
+        includes: ["Generated Workflow Semantics", "WF-HANDLER-DATE"],
+        message: "workflow semantics docs must be generated from the ledger",
+      },
+    ],
+  },
+  recipes: {
+    name: "check:recipes",
+    requirements: [
+      {
+        file: "tooling/quality/check-recipes.mts",
+        includes: ["checkRecipes", "index.generated.json"],
+        message: "recipe validation must inspect the live generated index",
+      },
+      {
+        file: "docs/template/recipes/index.generated.json",
+        includes: ["schemaVersion", "recipes"],
+        message: "recipe discovery must use the generated canonical index",
+      },
+    ],
+  },
+  taste: {
+    name: "taste:eval",
+    requirements: [],
+  },
+  "contract-review": {
+    name: "review:contract",
+    requirements: [],
+  },
 } satisfies Record<string, StaticCheckDescriptor>;
+
+type DiagnosticOverride = Pick<StaticCheckDiagnosticMetadata, "evidenceClass"> &
+  Partial<
+    Pick<
+      StaticCheckDiagnosticMetadata,
+      | "posture"
+      | "canonicalDoc"
+      | "repairHint"
+      | "focusedPathPrefixes"
+      | "defaultFocused"
+      | "prerequisiteCheck"
+      | "semanticRuleIds"
+    >
+  >;
+
+type RegisteredCheckDescriptors<
+  Definitions extends Record<string, StaticCheckDescriptor>,
+> = {
+  readonly [GateId in keyof Definitions]: Definitions[GateId] &
+    RegisteredStaticCheckDescriptor & { readonly gateId: GateId };
+};
+
+const canonicalScriptBodies = {
+  "check:ci-completeness": "tsx tooling/quality/check-ci-completeness.mts",
+  "check:config-drift": "tsx tooling/quality/check-config-drift.mts",
+  "check:app-map": "pnpm --dir tooling/app-map check",
+  "check:append-only-tables":
+    "tsx tooling/quality/check-append-only-tables.mts",
+  "check:deps": "tsx tooling/quality/check-deps.mts",
+  "check:knip": "knip --config knip.json",
+  "check:route-tree": "tsx tooling/quality/check-route-tree.mts",
+  "check:types-coverage":
+    "node --max-old-space-size=8192 node_modules/type-coverage/bin/type-coverage --project tsconfig.type-coverage.json --at-least 99.7",
+  "check:gates": "tsx tooling/quality/check-gates.mts",
+  "check:debt": "tsx tooling/quality/check-debt.mts",
+  "check:generators": "tsx tooling/quality/check-generators.mts",
+  "check:docs-freshness": "tsx tooling/quality/check-docs-freshness.mts",
+  "check:generated-files": "tsx tooling/quality/check-generated-files.mts",
+  "check:confect-contracts": "tsx tooling/quality/check-confect-contracts.mts",
+  "check:confect-compat": "tsx tooling/quality/check-confect-compat.mts",
+  "check:schema-migration-notes":
+    "tsx tooling/quality/check-schema-migration-notes.mts",
+  "check:layer-boundaries":
+    "depcruise --config dependency-cruiser.config.cjs apps packages tooling tests experiments",
+  "check:secret-canaries":
+    "gitleaks detect --config .gitleaks.toml --no-git --redact --source .",
+  "check:sbom-license": "tsx tooling/quality/check-sbom-license.mts",
+  "check:headless-surface-contract":
+    "tsx tooling/quality/check-headless-surface-contract.mts",
+  "check:posthog-readiness": "tsx tooling/quality/check-posthog-readiness.mts",
+  "check:auth-demo-bypass": "tsx tooling/quality/check-auth-demo-bypass.mts",
+  "check:workflow-graph-boundary":
+    "tsx tooling/quality/check-workflow-graph-boundary.mts",
+  "check:workflow-semantics":
+    "tsx tooling/quality/check-workflow-semantics.mts",
+  "check:recipes": "tsx tooling/quality/check-recipes.mts",
+  "taste:eval": "tsx tooling/quality/taste-eval.mts",
+  "review:contract": "pnpm contract-review",
+} as const;
+
+function defineRegisteredStaticCheckDescriptors<
+  const Definitions extends Record<string, StaticCheckDescriptor>,
+>(
+  definitions: Definitions,
+  overrides: { readonly [GateId in keyof Definitions]: DiagnosticOverride },
+): RegisteredCheckDescriptors<Definitions> {
+  return Object.fromEntries(
+    Object.entries(definitions).map(([gateId, descriptor]) => {
+      const override = overrides[gateId];
+      const [script] = descriptor.name.split(" ");
+      if (script === undefined || script.length === 0) {
+        throw new Error(
+          `${gateId}: check descriptor must name an exact script`,
+        );
+      }
+      const command = ["pnpm", script] as const;
+      const canonicalScriptBody =
+        canonicalScriptBodies[script as keyof typeof canonicalScriptBodies];
+      if (canonicalScriptBody === undefined) {
+        throw new Error(`${gateId}: canonical script body is not registered`);
+      }
+      return [
+        gateId,
+        {
+          ...descriptor,
+          gateId,
+          posture: "required" as const,
+          canonicalDoc: "docs/rule-coverage.md",
+          repairHint:
+            "Repair the reported invariant in its owning source and rerun this check.",
+          argv: command,
+          rerun: command,
+          canonicalScriptBody,
+          focusedPathPrefixes: [
+            ...new Set(descriptor.requirements.map(({ file }) => file)),
+          ],
+          ...override,
+        },
+      ];
+    }),
+  ) as unknown as RegisteredCheckDescriptors<Definitions>;
+}
+
+export const checkDescriptors = defineRegisteredStaticCheckDescriptors(
+  checkDescriptorDefinitions,
+  {
+    "ci-completeness": { evidenceClass: "static" },
+    "config-drift": { evidenceClass: "static" },
+    "app-map": { evidenceClass: "static" },
+    "append-only-tables": {
+      evidenceClass: "static",
+      defaultFocused: true,
+      canonicalDoc: "docs/template/data-lifecycle.md",
+      focusedPathPrefixes: [
+        "docs/template/data-resources.json",
+        "packages/convex/confect",
+        "tooling/quality/check-append-only-tables.mts",
+        "tooling/quality/check-append-only-tables.test.mts",
+        ".buildkite/scripts/phase1.sh",
+      ],
+    },
+    deps: { evidenceClass: "static" },
+    knip: { evidenceClass: "static" },
+    "route-tree": { evidenceClass: "static" },
+    "types-coverage": { evidenceClass: "static" },
+    gates: { evidenceClass: "static", defaultFocused: true },
+    debt: { evidenceClass: "static" },
+    generators: { evidenceClass: "static" },
+    "docs-freshness": { evidenceClass: "static" },
+    "generated-files": { evidenceClass: "static" },
+    "confect-contracts": { evidenceClass: "static" },
+    "confect-compat": { evidenceClass: "static" },
+    "schema-migration-notes": { evidenceClass: "static" },
+    "layer-boundaries": { evidenceClass: "static" },
+    "secret-canaries": {
+      evidenceClass: "static",
+      defaultFocused: true,
+      prerequisiteCheck: ["gitleaks", "version"],
+      repairHint:
+        "Install the checksum-pinned scanner with bash .buildkite/scripts/install-gitleaks.sh, then rerun this check.",
+    },
+    "sbom-license": { evidenceClass: "static" },
+    "headless-surface-contract": {
+      evidenceClass: "static",
+      defaultFocused: true,
+    },
+    "posthog-readiness": { evidenceClass: "static" },
+    "auth-demo-bypass": { evidenceClass: "static" },
+    "workflow-graph-boundary": { evidenceClass: "static" },
+    "workflow-semantics": {
+      evidenceClass: "static",
+      defaultFocused: true,
+      canonicalDoc: "docs/template/generated/workflow-semantics.md",
+      semanticRuleIds: [
+        "WF-CONTRACT",
+        "WF-DOC-PROJECTION",
+        "WF-GRAPH-STALE",
+        "WF-GRAPH-UNMAPPED",
+      ],
+    },
+    recipes: {
+      evidenceClass: "static",
+      canonicalDoc:
+        "docs/superpowers/plans/2026-07-24-maestro-agent-pack-productization-plan.md",
+      focusedPathPrefixes: [
+        "packages/template-core/src/recipes",
+        "docs/template/recipes",
+        "docs/template/recipes/index.generated.json",
+        "tooling/agent-pack/src/recipes.ts",
+        "tooling/quality/check-recipes.mts",
+      ],
+      semanticRuleIds: ["WP-4.3"],
+    },
+    taste: {
+      posture: "advisory",
+      evidenceClass: "advisory",
+      canonicalDoc: "docs/template/reviewer-guide.md",
+      repairHint:
+        "Review the reported product-quality finding in the affected surface.",
+      focusedPathPrefixes: ["apps/", "packages/", "tooling/"],
+    },
+    "contract-review": {
+      posture: "advisory",
+      evidenceClass: "advisory",
+      canonicalDoc: "docs/template/reviewer-guide.md",
+      repairHint:
+        "Review the reported contract finding at its owning boundary.",
+      focusedPathPrefixes: ["apps/", "packages/", "tooling/"],
+    },
+  },
+);
 
 export type CheckName = keyof typeof checkDescriptors;
 

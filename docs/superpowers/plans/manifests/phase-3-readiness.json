@@ -1,0 +1,134 @@
+{
+  "feature": "phase-3-readiness-and-verification",
+  "slices": [
+    {
+      "id": 1,
+      "branch": "codex/ap-d-cli",
+      "intention": "compose safe preflight facts and freeze their mutation fingerprint",
+      "layers": ["checks"],
+      "contractRiskIds": [
+        "ambient-time-inline",
+        "schema-runtime-validator-export",
+        "policy-data-hardcoded",
+        "duplicated-closed-union",
+        "invalid-test-fixture-or-cast",
+        "branching-logic-needs-boundary-tests",
+        "unjustified-cap-or-threshold",
+        "type-escape-or-cast"
+      ],
+      "workPackages": [
+        {
+          "kind": "fixture-to-real",
+          "target": "WP-3.2 template:doctor and readiness readers composed through tooling/agent-pack/src/preflight.ts",
+          "followUpGates": [
+            "pnpm --dir tooling/agent-pack test preflight",
+            "pnpm --dir tooling/agent-pack typecheck",
+            "pnpm check:workflow:fast"
+          ],
+          "notes": "The real boundary is an injected read-only host/repository probe; fixtures cover recovery and fingerprint stability without network or authentication."
+        }
+      ],
+      "taskRefs": ["WP-3.2-preflight"],
+      "rationale": "Mutation safety needs a deterministic snapshot before any later write command can proceed.",
+      "estLines": 290
+    },
+    {
+      "id": 2,
+      "branch": "codex/ap-d-cli",
+      "intention": "freeze diagnostic descriptors and verification receipt staleness",
+      "layers": ["checks"],
+      "contractRiskIds": [
+        "ambient-time-inline",
+        "schema-runtime-validator-export",
+        "policy-data-hardcoded",
+        "duplicated-closed-union",
+        "invalid-test-fixture-or-cast",
+        "branching-logic-needs-boundary-tests",
+        "unjustified-cap-or-threshold",
+        "type-escape-or-cast"
+      ],
+      "workPackages": [
+        {
+          "kind": "fixture-to-real",
+          "target": "WP-3.4 heterogeneous gate results projected through diagnostics.ts and receipt.ts",
+          "followUpGates": [
+            "pnpm --dir tooling/agent-pack test diagnostics receipt",
+            "pnpm --dir tooling/agent-pack typecheck",
+            "pnpm --dir tooling/quality test"
+          ],
+          "notes": "Raw gates remain authoritative; the leaf contract preserves required/advisory posture, evidence class, commit/environment binding, and safe repair metadata."
+        }
+      ],
+      "taskRefs": ["WP-3.4-receipt"],
+      "rationale": "Verification cannot be truthful until evidence strength and staleness are explicit data.",
+      "estLines": 290
+    },
+    {
+      "id": 3,
+      "branch": "codex/ap-d-cli",
+      "intention": "project preflight through the shared factory CLI executor",
+      "layers": ["apps"],
+      "contractRiskIds": [
+        "invalid-test-fixture-or-cast",
+        "auth-cross-workspace-coverage",
+        "type-escape-or-cast",
+        "inactive-client-subscription"
+      ],
+      "workPackages": [
+        {
+          "kind": "fixture-to-real",
+          "target": "WP-3.2 apps/cli/src/factory/preflight.ts projection",
+          "followUpGates": [
+            "pnpm --dir apps/cli test preflight",
+            "pnpm --dir apps/cli typecheck",
+            "pnpm maestro -- preflight --json"
+          ],
+          "notes": "The adapter only selects rendering and invokes the shared AgentPackCommand; central router registration remains root-owned."
+        }
+      ],
+      "taskRefs": ["WP-3.2-cli"],
+      "rationale": "CLI rendering must remain a projection of the same result future MCP consumes.",
+      "estLines": 220
+    },
+    {
+      "id": 4,
+      "branch": "codex/ap-d-cli",
+      "intention": "select and execute truthful verification scopes through shared CLI commands",
+      "layers": ["checks", "apps"],
+      "contractRiskIds": [
+        "ambient-time-inline",
+        "schema-runtime-validator-export",
+        "policy-data-hardcoded",
+        "duplicated-closed-union",
+        "invalid-test-fixture-or-cast",
+        "branching-logic-needs-boundary-tests",
+        "unjustified-cap-or-threshold",
+        "auth-cross-workspace-coverage",
+        "type-escape-or-cast",
+        "inactive-client-subscription"
+      ],
+      "workPackages": [
+        {
+          "kind": "fixture-to-real",
+          "target": "WP-3.4 verify/check projection over canonical gate descriptors and commands",
+          "followUpGates": [
+            "pnpm --dir tooling/agent-pack test verify",
+            "pnpm --dir apps/cli test verify",
+            "pnpm check:gates",
+            "pnpm check:ci-completeness"
+          ],
+          "notes": "Focused scope selects declared commands only; full scope delegates to just verify, and no repair path edits a gate."
+        }
+      ],
+      "taskRefs": ["WP-3.4-verify"],
+      "rationale": "One shared command must bind raw gate evidence into an honest receipt before novice check can summarize it.",
+      "estLines": 300
+    }
+  ],
+  "allTaskRefs": [
+    "WP-3.2-preflight",
+    "WP-3.2-cli",
+    "WP-3.4-receipt",
+    "WP-3.4-verify"
+  ]
+}

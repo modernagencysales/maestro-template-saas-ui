@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "members": [
+    "tooling/quality/check-deploy-authority.mts",
+    "tooling/release/deploy-policy.json",
+    "tooling/release/keys/deploy-authority-public-key.pem"
+  ]
+}

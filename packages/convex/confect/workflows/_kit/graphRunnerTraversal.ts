@@ -13,6 +13,28 @@ export type TraversalSnapshot = {
   readonly failedEdges: ReadonlySet<string>;
 };
 
+type ReadyWaveNode = { readonly id: string };
+
+export const findReadyWave = <Node extends ReadyWaveNode>(
+  nodes: readonly Node[],
+  snapshot: TraversalSnapshot,
+): readonly Node[] => {
+  const declaredOrder = new Map(
+    nodes.map((node, index) => [node.id, index] as const),
+  );
+  return nodes
+    .filter(
+      (node) =>
+        !snapshot.completedNodes.has(node.id) && isNodeReady(node, snapshot),
+    )
+    .sort(
+      (left, right) =>
+        (declaredOrder.get(left.id) ?? Number.MAX_SAFE_INTEGER) -
+          (declaredOrder.get(right.id) ?? Number.MAX_SAFE_INTEGER) ||
+        left.id.localeCompare(right.id),
+    );
+};
+
 type SkippedNodeResolver = {
   readonly isNodeSkipped: (nodeId: string) => boolean;
 };
@@ -32,7 +54,7 @@ export const buildEdgeIndexes = (
 });
 
 export const isNodeReady = (
-  node: WorkflowNode,
+  node: Pick<WorkflowNode, "id">,
   snapshot: TraversalSnapshot,
 ): boolean => {
   const incoming = snapshot.incomingByNode.get(node.id) ?? [];

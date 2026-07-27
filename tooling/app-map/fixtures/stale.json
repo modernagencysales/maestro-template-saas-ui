@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "inputManifest": {
+    "id": "maestro-app-map-input",
+    "version": 1
+  },
+  "subject": { "id": "stale-fixture", "revision": "fixture" },
+  "batches": [
+    {
+      "adapterId": "product-topology-facts",
+      "adapterVersion": 1,
+      "source": {
+        "id": "product-topology",
+        "kind": "product-topology",
+        "path": "docs/template/product-topology.json",
+        "subject": "repository",
+        "owner": "product-topology",
+        "digestContract": "sha256-file-bytes-v1",
+        "version": "2",
+        "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "nodes": [
+        {
+          "id": "system:knowledge-brain",
+          "kind": "system",
+          "group": "Connections",
+          "label": "Knowledge Brain",
+          "version": "1",
+          "provenance": {
+            "authority": "canonical",
+            "sourceId": "product-topology",
+            "sourcePath": "docs/template/product-topology.json",
+            "sourceVersion": "2",
+            "sourceDigest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "factId": "systems/knowledge-brain"
+          }
+        },
+        {
+          "id": "route:/stale",
+          "kind": "route",
+          "group": "Screens",
+          "label": "Stale Screen",
+          "version": "1",
+          "provenance": {
+            "authority": "canonical",
+            "sourceId": "product-topology",
+            "sourcePath": "docs/template/product-topology.json",
+            "sourceVersion": "1",
+            "sourceDigest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "factId": "resources/routes/stale"
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "owns:system:knowledge-brain->route:/stale",
+          "kind": "owns",
+          "from": "system:knowledge-brain",
+          "to": "route:/stale",
+          "provenance": {
+            "authority": "canonical",
+            "sourceId": "product-topology",
+            "sourcePath": "docs/template/product-topology.json",
+            "sourceVersion": "2",
+            "sourceDigest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "factId": "resources/routes/stale/system"
+          }
+        }
+      ]
+    }
+  ]
+}

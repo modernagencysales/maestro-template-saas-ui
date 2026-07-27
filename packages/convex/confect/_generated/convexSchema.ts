@@ -13,6 +13,11 @@ import claims from "./tables/claims";
 import concepts from "./tables/concepts";
 import contextPacks from "./tables/contextPacks";
 import creditLedger from "./tables/creditLedger";
+import deployActionConsumptions from "./tables/deployActionConsumptions";
+import deployApprovals from "./tables/deployApprovals";
+import deployAuthorityIssuers from "./tables/deployAuthorityIssuers";
+import deployCensusSnapshots from "./tables/deployCensusSnapshots";
+import deployVerdicts from "./tables/deployVerdicts";
 import documentAnnotations from "./tables/documentAnnotations";
 import documentVersions from "./tables/documentVersions";
 import documents from "./tables/documents";
@@ -34,6 +39,9 @@ import users from "./tables/users";
 import versionFreshness from "./tables/versionFreshness";
 import versionedEntries from "./tables/versionedEntries";
 import webhookEvents from "./tables/webhookEvents";
+import workflowArtifacts from "./tables/workflowArtifacts";
+import workflowEffectReservations from "./tables/workflowEffectReservations";
+import workflowEventInstances from "./tables/workflowEventInstances";
 import workflowRunContextManifests from "./tables/workflowRunContextManifests";
 import workflowRunEvents from "./tables/workflowRunEvents";
 import workflowRunEvidenceSnapshots from "./tables/workflowRunEvidenceSnapshots";
@@ -57,6 +65,11 @@ export default $defineSchema({
   concepts: concepts.tableDefinition,
   contextPacks: contextPacks.tableDefinition,
   creditLedger: creditLedger.tableDefinition,
+  deployActionConsumptions: deployActionConsumptions.tableDefinition,
+  deployApprovals: deployApprovals.tableDefinition,
+  deployAuthorityIssuers: deployAuthorityIssuers.tableDefinition,
+  deployCensusSnapshots: deployCensusSnapshots.tableDefinition,
+  deployVerdicts: deployVerdicts.tableDefinition,
   documentAnnotations: documentAnnotations.tableDefinition,
   documentVersions: documentVersions.tableDefinition,
   documents: documents.tableDefinition,
@@ -78,6 +91,9 @@ export default $defineSchema({
   versionFreshness: versionFreshness.tableDefinition,
   versionedEntries: versionedEntries.tableDefinition,
   webhookEvents: webhookEvents.tableDefinition,
+  workflowArtifacts: workflowArtifacts.tableDefinition,
+  workflowEffectReservations: workflowEffectReservations.tableDefinition,
+  workflowEventInstances: workflowEventInstances.tableDefinition,
   workflowRunContextManifests: workflowRunContextManifests.tableDefinition,
   workflowRunEvents: workflowRunEvents.tableDefinition,
   workflowRunEvidenceSnapshots: workflowRunEvidenceSnapshots.tableDefinition,

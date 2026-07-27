@@ -15,6 +15,7 @@ const catalog = {
       deleteMode: "delete",
       retention: "retain-until-workspace-delete",
       appendOnly: false,
+      writePosture: "implemented",
       workspaceLifecycle: "managed",
       writeAuthority: "packages/convex/confect/brain",
       migrationRef: "docs/template/data-lifecycle.md#current-resources",
@@ -73,6 +74,13 @@ describe("data resource catalog", () => {
         ],
       },
       "managed workspace resource must use a workspace retention action",
+    ],
+    [
+      {
+        ...catalog,
+        resources: [{ ...catalog.resources[0], writePosture: "planned" }],
+      },
+      "invalid data write posture",
     ],
   ])("rejects malformed resource contracts: %#", (value, message) => {
     expect(() => parseDataResourceCatalog(value)).toThrow(message);

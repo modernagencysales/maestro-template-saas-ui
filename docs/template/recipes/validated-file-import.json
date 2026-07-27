@@ -1,0 +1,109 @@
+{
+  "schemaVersion": 2,
+  "id": "validated-file-import",
+  "aliases": ["import a csv", "upload a data set", "validated file upload"],
+  "outcome": "Import a bounded file or data set with validation, evidence, and rollback-safe writes.",
+  "availability": { "status": "available" },
+  "consequentialQuestions": [
+    {
+      "id": "format",
+      "prompt": "Which one bounded input format must the first import accept?",
+      "why": "Validation and error reporting must be exact before writes are admitted.",
+      "answerKind": "choice",
+      "choices": ["csv", "json", "markdown"]
+    },
+    {
+      "id": "canonicalOwner",
+      "prompt": "Which existing canonical system owns the imported records?",
+      "why": "Imported bytes do not create a new lifecycle owner.",
+      "answerKind": "text"
+    },
+    {
+      "id": "allOrNothing",
+      "prompt": "Must any invalid row reject the entire import?",
+      "why": "This selects transaction bounds and the rollback receipt shown to the user.",
+      "answerKind": "boolean"
+    }
+  ],
+  "canonicalSystems": [
+    {
+      "id": "transforms",
+      "disposition": "extend",
+      "role": "Validation, normalized output, input hashes, and transform evidence."
+    },
+    {
+      "id": "data-lifecycle",
+      "disposition": "extend",
+      "role": "Retention and deletion posture for source bytes and imported rows."
+    }
+  ],
+  "classifications": [
+    {
+      "kind": "fixture-to-real",
+      "target": "ops/transforms",
+      "evidence": "Replace the deterministic transform body while preserving its typed spec and failures."
+    },
+    {
+      "kind": "pattern-instance",
+      "target": "template:add-feature",
+      "evidence": "Generate the upload review surface and headless contract through canonical layers."
+    }
+  ],
+  "generatorPreviews": [
+    {
+      "generatorId": "add-table",
+      "command": "pnpm template:add-table -- --name <importedEntity> --system <canonicalOwner> --disposition extend",
+      "purpose": "Preview durable rows and their migration and lifecycle registrations."
+    },
+    {
+      "generatorId": "add-feature",
+      "command": "pnpm template:add-feature -- --name <importName> --system transforms --disposition extend",
+      "purpose": "Preview validation, review, failure, rollback receipt, and import result surfaces."
+    }
+  ],
+  "providerReferences": [
+    {
+      "id": "object-storage",
+      "posture": "optional-reviewed",
+      "note": "Use only when retained source files exceed bounded inline handling; fake/local remains the default."
+    }
+  ],
+  "migrationRisks": [
+    "Partial writes are forbidden: validate and stage before the bounded transaction or batch journal promotes rows.",
+    "Schema changes need an explicit compatibility and re-import decision.",
+    "Source bytes, rejected rows, and error details need reviewed retention and redaction."
+  ],
+  "focusedGates": [
+    "pnpm check:confect-contracts",
+    "pnpm check:data-resources",
+    "pnpm check:schema-migration-notes",
+    "pnpm check:secret-canaries"
+  ],
+  "doneState": [
+    "A valid fixture imports deterministically and returns counts plus an input hash.",
+    "An invalid fixture reports bounded row errors and produces no target mutation.",
+    "An interrupted write resumes or rolls back without duplicate rows."
+  ],
+  "minimumPrimitive": "A bounded parser, typed validation result, staged write set, and hash-confirmed rollback receipt.",
+  "whenNotToUse": [
+    "The input is an unbounded stream requiring a separately reviewed ingestion design.",
+    "The source must call a live provider before fake/local validation is proven."
+  ],
+  "escalationTriggers": [
+    {
+      "from": "table-route",
+      "to": "capability",
+      "when": "Import admission needs policy, audit, deduplication, or tenant quota checks."
+    },
+    {
+      "from": "capability",
+      "to": "workflow",
+      "when": "Validated batches must pause, retry, or resume beyond one bounded transaction."
+    },
+    {
+      "from": "workflow",
+      "to": "agent",
+      "when": "Ambiguous mappings require a nondeterministic proposal with explicit human review."
+    }
+  ]
+}

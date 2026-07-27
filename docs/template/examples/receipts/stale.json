@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "createdAt": "2026-07-24T12:10:00.000Z",
+  "command": { "id": "verify", "version": 1 },
+  "subject": { "commit": "fedcba9876543210", "dirty": false },
+  "fingerprints": {
+    "repository": "repository_sha256:stale-example",
+    "environment": "environment_sha256:stale-example",
+    "providerPosture": "providers_sha256:fake-example"
+  },
+  "scope": {
+    "kind": "focused",
+    "changedPaths": ["tooling/agent-pack"],
+    "partial": true
+  },
+  "gates": [
+    {
+      "gateId": "check:agent-pack",
+      "posture": "required",
+      "evidenceClass": "behavioral",
+      "status": "pass",
+      "semanticRuleIds": []
+    }
+  ]
+}

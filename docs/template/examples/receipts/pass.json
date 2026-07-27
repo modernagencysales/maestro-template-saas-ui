@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "createdAt": "2026-07-24T12:00:00.000Z",
+  "command": { "id": "verify", "version": 1 },
+  "subject": { "commit": "0123456789abcdef", "dirty": false },
+  "fingerprints": {
+    "repository": "repository_sha256:pass-example",
+    "environment": "environment_sha256:pass-example",
+    "providerPosture": "providers_sha256:fake-example"
+  },
+  "scope": { "kind": "full", "changedPaths": [], "partial": false },
+  "gates": [
+    {
+      "gateId": "check:agent-pack",
+      "posture": "required",
+      "evidenceClass": "behavioral",
+      "status": "pass",
+      "semanticRuleIds": []
+    }
+  ]
+}

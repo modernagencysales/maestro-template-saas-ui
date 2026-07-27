@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "manifest": {
+    "schemaVersion": 1,
+    "transition": {
+      "id": "template-0.1-to-0.2",
+      "fromVersion": "0.1.0-alpha.1",
+      "toVersion": "0.2.0-alpha.1",
+      "immediatePriorVersion": "0.1.0-alpha.1"
+    },
+    "operations": [
+      {
+        "id": "modify-config",
+        "kind": "modify",
+        "path": "config/template.ts",
+        "ownership": "template-owned",
+        "beforeHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "afterHash": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      {
+        "id": "regenerate-routes",
+        "kind": "regenerate",
+        "path": "apps/web/src/routeTree.gen.ts",
+        "ownership": "generated",
+        "beforeHash": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "afterHash": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+      },
+      {
+        "id": "move-policy",
+        "kind": "move",
+        "fromPath": "config/policy-old.ts",
+        "path": "config/policy.ts",
+        "ownership": "template-owned",
+        "beforeHash": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "afterHash": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      },
+      {
+        "id": "add-readme",
+        "kind": "add",
+        "path": "docs/template/new.md",
+        "ownership": "template-owned",
+        "afterHash": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+      }
+    ],
+    "requirements": []
+  },
+  "target": {
+    "version": "0.1.0-alpha.1",
+    "relation": "immediate-prior",
+    "commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "clean": true,
+    "files": [
+      {
+        "path": "config/template.ts",
+        "ownership": "template-owned",
+        "hash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      {
+        "path": "apps/web/src/routeTree.gen.ts",
+        "ownership": "generated",
+        "hash": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      },
+      {
+        "path": "config/policy-old.ts",
+        "ownership": "template-owned",
+        "hash": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      }
+    ]
+  }
+}

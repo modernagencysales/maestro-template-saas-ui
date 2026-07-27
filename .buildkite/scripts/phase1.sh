@@ -23,6 +23,9 @@ export PATH="${HOME}/.local/bin:${PATH}"
 pnpm verify
 pnpm check:ci-completeness
 pnpm check:config-drift
+pnpm check:convex-ai-files
+pnpm check:agent-pack
+pnpm check:app-map
 pnpm check:deps
 pnpm check:knip
 pnpm check:route-tree
@@ -35,11 +38,14 @@ pnpm check:docs-freshness
 pnpm check:generated-files
 pnpm check:confect-contracts
 pnpm check:confect-compat
+pnpm check:workflow-semantics
+pnpm template:workflow-output-smoke
 pnpm check:workflow-graph-boundary
 pnpm check:schema-migration-notes
 pnpm check:system-catalog
 pnpm check:system-topology
 pnpm check:data-resources
+pnpm check:append-only-tables
 pnpm check:promotion-boundary
 pnpm check:layer-boundaries
 pnpm check:secret-canaries

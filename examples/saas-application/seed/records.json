@@ -1,0 +1,9 @@
+[
+  {
+    "id": "record_welcome",
+    "workspaceId": "workspace_my_app",
+    "title": "Welcome record",
+    "detail": "A deterministic fake record that can be renamed or deleted.",
+    "synthetic": true
+  }
+]

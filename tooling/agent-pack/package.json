@@ -1,0 +1,18 @@
+{
+  "name": "@maestro-template/agent-pack",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@maestro-template/template-core": "workspace:*"
+  },
+  "scripts": {
+    "test": "vitest run --exclude src/privacy/privacy.noNetwork.test.ts",
+    "test:privacy-no-network": "vitest run src/privacy/privacy.noNetwork.test.ts --maxWorkers=1 --no-file-parallelism",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  }
+}

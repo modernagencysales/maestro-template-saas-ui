@@ -3,6 +3,11 @@
 Client forks consume tagged template releases. Random file copying from template
 `main` is not a supported upgrade path.
 
+Customer create additionally requires the published tag to resolve to the exact
+manifest commit and source-archive checksum. A `fixture-only` manifest may pass
+contract tests but must never materialize a target. See the
+[customer target contract](./customer-target-contract.md).
+
 ## Release Steps
 
 1. Run focused tests for changed packages.
@@ -15,7 +20,8 @@ Client forks consume tagged template releases. Random file copying from template
 6. Run
    `pnpm --dir tooling/release exec tsx src/index.ts client-release <template-version> <client-version>`
    for any client fork being promoted from this release.
-7. Tag the release.
+7. Publish the immutable tag and archive, then record and verify their exact
+   commit and checksum before marking its customer manifest materializable.
 
 ## Deploy Alert Plans
 

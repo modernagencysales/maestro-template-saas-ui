@@ -1,0 +1,356 @@
+{
+  "schemaVersion": 1,
+  "inputManifest": {
+    "id": "maestro-app-map-input",
+    "version": 1
+  },
+  "subject": {
+    "id": "reviewer-brain",
+    "revision": "e9c9123"
+  },
+  "batches": [
+    {
+      "adapterId": "system-catalog-facts",
+      "adapterVersion": 1,
+      "source": {
+        "id": "system-catalog",
+        "kind": "system-catalog",
+        "path": "docs/template/system-catalog.json",
+        "subject": "repository",
+        "owner": "system-catalog",
+        "digestContract": "sha256-file-bytes-v1",
+        "version": "1",
+        "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "nodes": [
+        {
+          "id": "system:access-and-tenancy",
+          "kind": "system",
+          "group": "Connections",
+          "label": "Access And Tenancy",
+          "version": "1",
+          "provenance": {
+            "authority": "canonical",
+            "sourceId": "system-catalog",
+            "sourcePath": "docs/template/system-catalog.json",
+            "sourceVersion": "1",
+            "sourceDigest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "factId": "systems/access-and-tenancy"
+          }
+        },
+        {
+          "id": "system:knowledge-brain",
+          "kind": "system",
+          "group": "Connections",
+          "label": "Knowledge Brain",
+          "version": "1",
+          "provenance": {
+            "authority": "canonical",
+            "sourceId": "system-catalog",
+            "sourcePath": "docs/template/system-catalog.json",
+            "sourceVersion": "1",
+            "sourceDigest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "factId": "systems/knowledge-brain"
+          }
+        },
+        {
+          "id": "system:workflow-runtime",
+          "kind": "system",
+          "group": "Connections",
+          "label": "Workflow Runtime",
+          "version": "1",
+          "provenance": {
+            "authority": "canonical",
+            "sourceId": "system-catalog",
+            "sourcePath": "docs/template/system-catalog.json",
+            "sourceVersion": "1",
+            "sourceDigest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "factId": "systems/workflow-runtime"
+          }
+        }
+      ],
+      "edges": []
+    },
+    {
+      "adapterId": "data-resources-facts",
+      "adapterVersion": 1,
+      "source": {
+        "id": "data-resources",
+        "kind": "data-resources",
+        "path": "docs/template/data-resources.json",
+        "subject": "repository",
+        "owner": "data-lifecycle",
+        "digestContract": "sha256-file-bytes-v1",
+        "version": "1",
+        "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "nodes": [
+        {
+          "id": "table:brainPages",
+          "kind": "table",
+          "group": "Data",
+          "label": "Brain Pages",
+          "version": "1",
+          "provenance": {
+            "authority": "canonical",
+            "sourceId": "data-resources",
+            "sourcePath": "docs/template/data-resources.json",
+            "sourceVersion": "1",
+            "sourceDigest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "factId": "resources/brainPages"
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "owns:system:knowledge-brain->table:brainPages",
+          "kind": "owns",
+          "from": "system:knowledge-brain",
+          "to": "table:brainPages",
+          "provenance": {
+            "authority": "canonical",
+            "sourceId": "data-resources",
+            "sourcePath": "docs/template/data-resources.json",
+            "sourceVersion": "1",
+            "sourceDigest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "factId": "resources/brainPages/system"
+          }
+        }
+      ]
+    },
+    {
+      "adapterId": "route-tree-facts",
+      "adapterVersion": 1,
+      "source": {
+        "id": "route-tree",
+        "kind": "route-tree",
+        "path": "apps/web/src/routeTree.gen.ts",
+        "subject": "repository",
+        "owner": "router-codegen",
+        "digestContract": "sha256-file-bytes-v1",
+        "version": "1",
+        "digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      },
+      "nodes": [
+        {
+          "id": "route:/knowledge",
+          "kind": "route",
+          "group": "Screens",
+          "label": "Knowledge",
+          "version": "1",
+          "provenance": {
+            "authority": "canonical",
+            "sourceId": "route-tree",
+            "sourcePath": "apps/web/src/routeTree.gen.ts",
+            "sourceVersion": "1",
+            "sourceDigest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "factId": "routes/knowledge"
+          }
+        }
+      ],
+      "edges": []
+    },
+    {
+      "adapterId": "product-topology-facts",
+      "adapterVersion": 1,
+      "source": {
+        "id": "product-topology",
+        "kind": "product-topology",
+        "path": "docs/template/product-topology.json",
+        "subject": "repository",
+        "owner": "product-topology",
+        "digestContract": "sha256-file-bytes-v1",
+        "version": "1",
+        "digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+      },
+      "nodes": [],
+      "edges": [
+        {
+          "id": "owns:system:knowledge-brain->route:/knowledge",
+          "kind": "owns",
+          "from": "system:knowledge-brain",
+          "to": "route:/knowledge",
+          "provenance": {
+            "authority": "canonical",
+            "sourceId": "product-topology",
+            "sourcePath": "docs/template/product-topology.json",
+            "sourceVersion": "1",
+            "sourceDigest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "factId": "resources/routes/knowledge/system"
+          }
+        },
+        {
+          "id": "projects:route:/knowledge->table:brainPages",
+          "kind": "projects",
+          "from": "route:/knowledge",
+          "to": "table:brainPages",
+          "provenance": {
+            "authority": "canonical",
+            "sourceId": "product-topology",
+            "sourcePath": "docs/template/product-topology.json",
+            "sourceVersion": "1",
+            "sourceDigest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "factId": "resources/routes/knowledge/dependencies/brainPages"
+          }
+        }
+      ]
+    },
+    {
+      "adapterId": "workflow-registry-facts",
+      "adapterVersion": 1,
+      "source": {
+        "id": "workflow-registry",
+        "kind": "workflow-registry",
+        "path": "packages/convex/confect/workflows/_generated/workflowRegistry.ts",
+        "subject": "repository",
+        "owner": "workflow-generator",
+        "digestContract": "sha256-file-bytes-v1",
+        "version": "1",
+        "digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      },
+      "nodes": [
+        {
+          "id": "workflow:source-grounded-brief@1",
+          "kind": "workflow-version",
+          "group": "Automations",
+          "label": "Source Grounded Brief v1",
+          "version": "1",
+          "provenance": {
+            "authority": "canonical",
+            "sourceId": "workflow-registry",
+            "sourcePath": "packages/convex/confect/workflows/_generated/workflowRegistry.ts",
+            "sourceVersion": "1",
+            "sourceDigest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+            "factId": "workflows/source-grounded-brief/versions/1"
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "owns:system:workflow-runtime->workflow:source-grounded-brief@1",
+          "kind": "owns",
+          "from": "system:workflow-runtime",
+          "to": "workflow:source-grounded-brief@1",
+          "provenance": {
+            "authority": "canonical",
+            "sourceId": "workflow-registry",
+            "sourcePath": "packages/convex/confect/workflows/_generated/workflowRegistry.ts",
+            "sourceVersion": "1",
+            "sourceDigest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+            "factId": "workflows/source-grounded-brief/system"
+          }
+        },
+        {
+          "id": "persists:workflow:source-grounded-brief@1->table:brainPages",
+          "kind": "persists",
+          "from": "workflow:source-grounded-brief@1",
+          "to": "table:brainPages",
+          "provenance": {
+            "authority": "canonical",
+            "sourceId": "workflow-registry",
+            "sourcePath": "packages/convex/confect/workflows/_generated/workflowRegistry.ts",
+            "sourceVersion": "1",
+            "sourceDigest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+            "factId": "workflows/source-grounded-brief/persists/brainPages"
+          }
+        }
+      ]
+    },
+    {
+      "adapterId": "confect-contracts-facts",
+      "adapterVersion": 1,
+      "source": {
+        "id": "confect-contracts",
+        "kind": "confect-contracts",
+        "path": "packages/template-core/src/generated/confectManifest.ts",
+        "subject": "repository",
+        "owner": "confect-codegen",
+        "digestContract": "sha256-file-bytes-v1",
+        "version": "1",
+        "digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+      },
+      "nodes": [],
+      "edges": []
+    },
+    {
+      "adapterId": "workflow-semantics-facts",
+      "adapterVersion": 1,
+      "source": {
+        "id": "workflow-semantics",
+        "kind": "workflow-semantics",
+        "path": "docs/template/generated/workflow-semantics.md",
+        "subject": "repository",
+        "owner": "workflow-semantics",
+        "digestContract": "sha256-file-bytes-v1",
+        "version": "1",
+        "digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+      },
+      "nodes": [],
+      "edges": []
+    },
+    {
+      "adapterId": "headless-registry-facts",
+      "adapterVersion": 1,
+      "source": {
+        "id": "headless-registry",
+        "kind": "headless-registry",
+        "path": "packages/template-core/src/generated/confectManifest.ts",
+        "subject": "repository",
+        "owner": "confect-manifest",
+        "digestContract": "sha256-file-bytes-v1",
+        "version": "1",
+        "digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+      },
+      "nodes": [],
+      "edges": []
+    },
+    {
+      "adapterId": "workspace-metadata-facts",
+      "adapterVersion": 1,
+      "source": {
+        "id": "workspace-metadata",
+        "kind": "workspace-metadata",
+        "path": "pnpm-lock.yaml",
+        "subject": "repository",
+        "owner": "workspace-root",
+        "digestContract": "sha256-file-bytes-v1",
+        "version": "1",
+        "digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444"
+      },
+      "nodes": [],
+      "edges": []
+    },
+    {
+      "adapterId": "generator-provenance-facts",
+      "adapterVersion": 1,
+      "source": {
+        "id": "generator-provenance",
+        "kind": "generator-provenance",
+        "path": "docs/template/generated/provenance",
+        "subject": "repository",
+        "owner": "template-generators",
+        "digestContract": "sha256-canonical-tree-v1",
+        "version": "1",
+        "digest": "sha256:5555555555555555555555555555555555555555555555555555555555555555"
+      },
+      "nodes": [],
+      "edges": []
+    },
+    {
+      "adapterId": "template-instance-facts",
+      "adapterVersion": 1,
+      "source": {
+        "id": "template-instance",
+        "kind": "template-instance",
+        "path": "template-instance.json",
+        "subject": "repository",
+        "owner": "template-instance-schema",
+        "digestContract": "sha256-file-bytes-v1",
+        "version": "1",
+        "digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      },
+      "nodes": [],
+      "edges": []
+    }
+  ]
+}

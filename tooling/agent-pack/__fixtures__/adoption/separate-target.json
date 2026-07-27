@@ -1,0 +1,108 @@
+{
+  "$schema": "https://maestro.local/schemas/maestro-adoption-work-package.schema.json",
+  "schemaVersion": 1,
+  "id": "adopt-existing-crm",
+  "mode": "separate-target",
+  "sourceReadOnly": true,
+  "roots": {
+    "source": "/workspace/legacy-crm",
+    "target": "/workspace/maestro-crm",
+    "sourceWorktree": "/workspace/legacy-crm",
+    "targetWorktree": "/workspace/maestro-crm"
+  },
+  "worktrees": {
+    "source": {
+      "exists": true,
+      "clean": true,
+      "revision": "1111111111111111111111111111111111111111"
+    },
+    "target": {
+      "exists": true,
+      "clean": true,
+      "revision": "2222222222222222222222222222222222222222"
+    }
+  },
+  "authority": {
+    "fingerprint": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "template": {
+      "tag": "maestro-template-v1",
+      "commit": "3333333333333333333333333333333333333333",
+      "archiveChecksum": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "manifestChecksum": "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+    }
+  },
+  "baseline": {
+    "sourceEvidence": ["evidence/source-tests.json"],
+    "targetEvidence": ["evidence/target-preflight.json"]
+  },
+  "editableBoundaries": [
+    "apps/web/src/features/crm",
+    "packages/convex/confect/crm"
+  ],
+  "mappings": {
+    "identity": [
+      {
+        "source": "legacyUserId",
+        "target": "userId",
+        "rule": "verified lookup"
+      }
+    ],
+    "tenant": [
+      {
+        "source": "accountId",
+        "target": "workspaceId",
+        "rule": "approved account mapping"
+      }
+    ],
+    "data": [
+      {
+        "source": "customers",
+        "target": "crmRecords",
+        "rule": "validated staged import"
+      }
+    ]
+  },
+  "compatibility": {
+    "template": "0.2.0-alpha.1",
+    "agentPack": "0.2.0-alpha.1",
+    "requirements": ["Node 22", "Convex compatibility set"]
+  },
+  "decisions": [
+    {
+      "path": "src/customer.ts",
+      "disposition": "port",
+      "rationale": "Move behavior through the CRM capability."
+    },
+    {
+      "path": "src/theme.css",
+      "disposition": "preserve",
+      "rationale": "Retain approved visual tokens."
+    },
+    {
+      "path": "src/auth.ts",
+      "disposition": "replace",
+      "rationale": "Use canonical workspace identity."
+    }
+  ],
+  "cutover": {
+    "strategy": "parallel-then-switch",
+    "steps": [
+      "Validate staged import",
+      "Approve tenant mapping",
+      "Switch reviewed traffic"
+    ],
+    "readinessEvidence": ["evidence/cutover-readiness.json"]
+  },
+  "deletion": { "timing": "never", "paths": [] },
+  "approval": {
+    "status": "pending",
+    "approverClass": "application-owner",
+    "evidence": null
+  },
+  "rollback": {
+    "strategy": "Route traffic to the source and discard the unapproved target.",
+    "evidence": "evidence/rollback-drill.json",
+    "restoresSource": true
+  },
+  "inPlace": { "justification": null }
+}

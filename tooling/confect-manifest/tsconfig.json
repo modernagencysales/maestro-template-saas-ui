@@ -9,6 +9,8 @@
     "src/**/*.ts",
     "src/**/*.mts",
     "src/**/*.tsx",
-    "../../packages/convex/confect/**/*.ts"
+    "../../packages/convex/confect/**/*.ts",
+    "../../packages/convex/convex/components/workflowAdmission/**/*.ts",
+    "../../packages/convex/convex/components/workflowDeadline/**/*.ts"
   ]
 }

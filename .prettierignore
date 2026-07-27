@@ -16,3 +16,8 @@ packages/convex/convex/_generated/
 packages/convex/convex/brain/pages.ts
 apps/web/src/routeTree.gen.ts
 .pnpm-store/
+AGENTS.md
+CLAUDE.md
+agent-pack/official-convex/managed/convex-section.md
+agent-pack/official-convex/managed/guidelines.md
+packages/convex/convex/_generated/ai/guidelines.md

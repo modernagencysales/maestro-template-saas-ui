@@ -108,4 +108,50 @@ describe("check:data-resources", () => {
         "generated data-resource runtime is stale; run pnpm data-resources:generate",
     });
   });
+
+  it("fails closed when write posture and authority boundary disagree", () => {
+    const first = resources.resources[0];
+    if (first === undefined) throw new Error("expected fixture resource");
+    const unavailable = {
+      ...resources,
+      resources: [
+        {
+          ...first,
+          writePosture: "external-unavailable" as const,
+          writeAuthority: "packages/convex/confect/brain",
+        },
+        ...resources.resources.slice(1),
+      ],
+    };
+    const implementedDoc = {
+      ...resources,
+      resources: [
+        {
+          ...first,
+          writePosture: "implemented" as const,
+          writeAuthority: "docs/template/system-decisions/knowledge-brain.md",
+        },
+        ...resources.resources.slice(1),
+      ],
+    };
+
+    expect(
+      validateDataResources(
+        systems,
+        unavailable,
+        fakeFileSystem({ runtime: renderDataResourceRuntime(unavailable) }),
+      ).map(({ issue }) => issue),
+    ).toContain(
+      "external-unavailable write posture must point to docs/template/system-decisions/access-and-tenancy.md",
+    );
+    expect(
+      validateDataResources(
+        systems,
+        implementedDoc,
+        fakeFileSystem({ runtime: renderDataResourceRuntime(implementedDoc) }),
+      ).map(({ issue }) => issue),
+    ).toContain(
+      "implemented write posture must point to shipped code authority",
+    );
+  });
 });

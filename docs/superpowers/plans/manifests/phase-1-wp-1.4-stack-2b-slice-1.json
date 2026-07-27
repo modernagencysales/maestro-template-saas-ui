@@ -1,0 +1,66 @@
+{
+  "feature": "phase-1-wp-1.4-typed-event-persistence-2b-slice-1",
+  "slices": [
+    {
+      "id": 1,
+      "branch": "codex/ap-b-workflow",
+      "intention": "persist generation-bound event instances and journal fresh allocation before typed await",
+      "layers": ["workflows", "storage", "generators", "checks"],
+      "contractRiskIds": [
+        "ambient-time-inline",
+        "bare-error-not-typed",
+        "workspace-guard",
+        "schema-runtime-validator-export",
+        "policy-data-hardcoded",
+        "duplicated-closed-union",
+        "invalid-test-fixture-or-cast",
+        "branching-logic-needs-boundary-tests",
+        "unjustified-cap-or-threshold",
+        "prompt-model-policy-boundary",
+        "type-escape-or-cast",
+        "existing-module-repair-checklist"
+      ],
+      "existingModuleRepairChecklist": {
+        "existingTargetModules": [
+          "packages/convex/confect/workflows/_kit/events.ts",
+          "packages/convex/confect/workflows/_kit/graphRunner.ts",
+          "packages/convex/confect/workflows/_kit/graphRunnerV2.ts",
+          "tooling/generators/src/index.ts"
+        ],
+        "repairStrategy": "extend",
+        "compatibilityRisks": [
+          "A restarted wait reuses a stale or pre-sent prior-generation event",
+          "Duplicate allocation creates two active product identities",
+          "Principal, creator capability, or ownership drift reaches await",
+          "Cancellation or cleanup falsely claims deletion unsupported by Workflow 0.4.4"
+        ],
+        "policyDataOwnership": "packages/template-core/src/workflow-semantics/contract.ts",
+        "promptVersioningImpact": "Event definition, instance key, component workflow generation, principal, creator capability, and stable allocation step names are journaled immutable inputs.",
+        "evalOrGateCoverage": [
+          "pnpm --dir packages/convex test workflow-conformance",
+          "pnpm --dir packages/convex typecheck",
+          "pnpm template:workflow-output-smoke",
+          "pnpm check:confect-contracts"
+        ]
+      },
+      "workPackages": [
+        {
+          "kind": "template-gap",
+          "target": "WP-1.4 persisted typed event instances",
+          "followUpGates": [
+            "pnpm --dir packages/convex test workflow-conformance",
+            "pnpm --dir packages/convex typecheck",
+            "pnpm template:workflow-output-smoke",
+            "pnpm check:confect-contracts"
+          ],
+          "templateBacklogRef": "AP-002 Convex workflow semantic compatibility",
+          "templateResolutionPath": "Extend workflow-runtime with a dedicated generated Confect table and internal allocation/reconciliation refs; generated workflows journal component generation, event creation, and persisted ownership before awaiting by ID."
+        }
+      ],
+      "taskRefs": ["WP-1.4"],
+      "rationale": "Restart-safe approvals require an application-owned event identity whose generation and creator projection are durable before the component wait begins.",
+      "estLines": 300
+    }
+  ],
+  "allTaskRefs": ["WP-1.4"]
+}

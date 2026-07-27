@@ -1,0 +1,79 @@
+{
+  "$schema": "https://maestro.local/schemas/maestro-adoption-work-package.schema.json",
+  "schemaVersion": 1,
+  "id": "adopt-in-place-reviewed",
+  "mode": "in-place",
+  "sourceReadOnly": true,
+  "roots": {
+    "source": "/workspace/reviewed-app",
+    "target": "/workspace/reviewed-app",
+    "sourceWorktree": "/workspace/reviewed-app",
+    "targetWorktree": "/workspace/reviewed-app"
+  },
+  "worktrees": {
+    "source": {
+      "exists": true,
+      "clean": true,
+      "revision": "1111111111111111111111111111111111111111"
+    },
+    "target": {
+      "exists": true,
+      "clean": true,
+      "revision": "1111111111111111111111111111111111111111"
+    }
+  },
+  "authority": {
+    "fingerprint": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "template": {
+      "tag": "maestro-template-v1",
+      "commit": "3333333333333333333333333333333333333333",
+      "archiveChecksum": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "manifestChecksum": "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+    }
+  },
+  "baseline": {
+    "sourceEvidence": ["evidence/source-baseline.json"],
+    "targetEvidence": ["evidence/source-baseline.json"]
+  },
+  "editableBoundaries": ["apps/web/src/features/adoption"],
+  "mappings": {
+    "identity": [
+      { "source": "userId", "target": "userId", "rule": "unchanged" }
+    ],
+    "tenant": [
+      { "source": "workspaceId", "target": "workspaceId", "rule": "unchanged" }
+    ],
+    "data": [{ "source": "records", "target": "records", "rule": "unchanged" }]
+  },
+  "compatibility": {
+    "template": "0.2.0-alpha.1",
+    "agentPack": "0.2.0-alpha.1",
+    "requirements": ["Reviewed in-place compatibility"]
+  },
+  "decisions": [
+    {
+      "path": "apps/web/src/features/adoption",
+      "disposition": "preserve",
+      "rationale": "Already follows the accepted boundary."
+    }
+  ],
+  "cutover": {
+    "strategy": "reviewed-in-place",
+    "steps": ["Checkpoint baseline", "Apply bounded change", "Rerun evidence"],
+    "readinessEvidence": ["evidence/in-place-readiness.json"]
+  },
+  "deletion": { "timing": "never", "paths": [] },
+  "approval": {
+    "status": "approved",
+    "approverClass": "application-owner",
+    "evidence": "evidence/in-place-approval.json"
+  },
+  "rollback": {
+    "strategy": "Restore the reviewed baseline commit.",
+    "evidence": "evidence/in-place-rollback.json",
+    "restoresSource": true
+  },
+  "inPlace": {
+    "justification": "The app already uses Maestro boundaries and has an isolated editable path."
+  }
+}

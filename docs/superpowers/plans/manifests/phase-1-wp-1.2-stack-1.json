@@ -1,0 +1,234 @@
+{
+  "feature": "phase-1-wp-1.2-explicit-retry-idempotency",
+  "slices": [
+    {
+      "id": 1,
+      "branch": "codex/ap-b-workflow",
+      "intention": "generate the workspace-scoped workflow effect reservation resource with lifecycle and migration metadata",
+      "layers": ["schema"],
+      "contractRiskIds": [
+        "schema-runtime-validator-export",
+        "ambient-time-inline",
+        "bare-error-not-typed",
+        "capability-helper-or-logic",
+        "policy-data-hardcoded",
+        "duplicated-closed-union",
+        "workspace-guard",
+        "invalid-test-fixture-or-cast",
+        "branching-logic-needs-boundary-tests",
+        "unjustified-cap-or-threshold",
+        "prompt-model-policy-boundary",
+        "auth-cross-workspace-coverage",
+        "type-escape-or-cast",
+        "existing-module-repair-checklist"
+      ],
+      "existingModuleRepairChecklist": {
+        "existingTargetModules": [
+          "packages/convex/confect/workflows/_kit/graphRunner.ts",
+          "packages/convex/confect/workflows/_kit/graphRunnerNodes.ts",
+          "packages/convex/confect/workflows/graphValidation.ts",
+          "packages/convex/test/workflow-conformance.test.ts"
+        ],
+        "repairStrategy": "extend",
+        "compatibilityRisks": [
+          "Action retry options remain accepted but discarded",
+          "Non-retriable actions receive more than one attempt",
+          "Query and mutation nodes inherit action retry semantics"
+        ],
+        "policyDataOwnership": "packages/template-core/src/workflow-semantics/contract.ts",
+        "promptVersioningImpact": "Generated action steps must declare an explicit retry/idempotency strategy rather than a boolean claim.",
+        "evalOrGateCoverage": [
+          "pnpm --dir packages/convex test workflow-conformance",
+          "pnpm check:workflow-semantics",
+          "pnpm check:workflow-graph-boundary"
+        ]
+      },
+      "workPackages": [
+        {
+          "kind": "pattern-instance",
+          "target": "packages/convex/confect/tables/workflowEffectReservations.ts",
+          "generatorCommand": "pnpm template:add-table -- --name workflowEffectReservations --system workflow-runtime --disposition extend --tenant-scope workspace --sensitivity confidential --pii none --export-mode redacted-json --delete-mode retain-audit --retention retain-audit-window --append-only --write",
+          "followUpGates": [
+            "pnpm --dir packages/convex test workflow-conformance",
+            "pnpm check:workflow-semantics",
+            "pnpm check:workflow-graph-boundary"
+          ]
+        }
+      ],
+      "taskRefs": ["WP-1.2"],
+      "rationale": "Retry authorization requires a declared durable ownership and lifecycle boundary before runtime transitions are implemented.",
+      "estLines": 290
+    },
+    {
+      "id": 2,
+      "branch": "codex/ap-b-workflow",
+      "intention": "define the pure three-strategy retry contract, logical effect identity, and reservation transition machine",
+      "layers": ["domain"],
+      "contractRiskIds": [
+        "schema-runtime-validator-export",
+        "ambient-time-inline",
+        "bare-error-not-typed",
+        "capability-helper-or-logic",
+        "policy-data-hardcoded",
+        "duplicated-closed-union",
+        "workspace-guard",
+        "invalid-test-fixture-or-cast",
+        "branching-logic-needs-boundary-tests",
+        "unjustified-cap-or-threshold",
+        "prompt-model-policy-boundary",
+        "auth-cross-workspace-coverage",
+        "type-escape-or-cast",
+        "existing-module-repair-checklist"
+      ],
+      "existingModuleRepairChecklist": {
+        "existingTargetModules": [
+          "packages/convex/confect/tables/workflowRuns.ts",
+          "docs/template/data-resources.json",
+          "docs/template/system-catalog.json"
+        ],
+        "repairStrategy": "extend",
+        "compatibilityRisks": [
+          "Effect reservations omit workspace ownership",
+          "Raw provider payloads enter durable storage",
+          "Rollback deletes unresolved ambiguous effects"
+        ],
+        "policyDataOwnership": "docs/template/data-resources.json",
+        "promptVersioningImpact": "None; the resource is an internal workflow safety boundary.",
+        "evalOrGateCoverage": [
+          "pnpm check:data-resources",
+          "pnpm check:system-catalog",
+          "pnpm check:confect-contracts"
+        ]
+      },
+      "workPackages": [
+        {
+          "kind": "fixture-to-real",
+          "target": "WP-1.2 typed retry strategy and effect reservation state machine",
+          "followUpGates": [
+            "pnpm confect:codegen",
+            "pnpm check:data-resources",
+            "pnpm check:system-catalog",
+            "pnpm check:confect-contracts"
+          ]
+        }
+      ],
+      "taskRefs": ["WP-1.2"],
+      "rationale": "Pure deterministic transitions pin ambiguity and redispatch behavior before persistence and provider boundaries are added.",
+      "estLines": 290
+    },
+    {
+      "id": 3,
+      "branch": "codex/ap-b-workflow",
+      "intention": "implement workspace-guarded reservation persistence, provider correlation, reconciliation, and denial checks",
+      "layers": ["capabilities"],
+      "contractRiskIds": [
+        "ambient-time-inline",
+        "bare-error-not-typed",
+        "capability-helper-or-logic",
+        "schema-runtime-validator-export",
+        "policy-data-hardcoded",
+        "duplicated-closed-union",
+        "workspace-guard",
+        "invalid-test-fixture-or-cast",
+        "branching-logic-needs-boundary-tests",
+        "unjustified-cap-or-threshold",
+        "prompt-model-policy-boundary",
+        "auth-cross-workspace-coverage",
+        "type-escape-or-cast",
+        "existing-module-repair-checklist"
+      ],
+      "existingModuleRepairChecklist": {
+        "existingTargetModules": [
+          "packages/convex/confect/workflows/_kit/graphRunnerNodes.ts",
+          "packages/convex/confect/workflows/_kit/ownership.ts",
+          "packages/convex/test/workflow-conformance.test.ts"
+        ],
+        "repairStrategy": "extend",
+        "compatibilityRisks": [
+          "Concurrent generations dispatch the same external effect twice",
+          "Ambiguous provider acceptance is guessed retryable",
+          "Approval, quota, or spend checks are bypassed on retry"
+        ],
+        "policyDataOwnership": "packages/convex/confect/workflows/_kit/effectReservations.ts",
+        "promptVersioningImpact": "Receipts distinguish logical invocation from unknown provider/workpool attempt count.",
+        "evalOrGateCoverage": [
+          "pnpm --dir packages/convex test workflow-conformance",
+          "pnpm check:confect-contracts",
+          "pnpm check:workflow-graph-boundary"
+        ]
+      },
+      "workPackages": [
+        {
+          "kind": "fixture-to-real",
+          "target": "WP-1.2 workflow effect reservation and reconciliation runtime",
+          "followUpGates": [
+            "pnpm --dir packages/convex test workflow-conformance",
+            "pnpm check:confect-contracts",
+            "pnpm check:workflow-graph-boundary"
+          ]
+        }
+      ],
+      "taskRefs": ["WP-1.2"],
+      "rationale": "State transitions and fault behavior follow the generated resource and typed compiler contract.",
+      "estLines": 300
+    },
+    {
+      "id": 4,
+      "branch": "codex/ap-b-workflow",
+      "intention": "compile exact action options, project registry evidence through generation, and close the duplicate, ambiguity, denial, expiry, and receipt matrix",
+      "layers": ["workflows"],
+      "contractRiskIds": [
+        "schema-runtime-validator-export",
+        "ambient-time-inline",
+        "bare-error-not-typed",
+        "capability-helper-or-logic",
+        "policy-data-hardcoded",
+        "workspace-guard",
+        "auth-cross-workspace-coverage",
+        "invalid-test-fixture-or-cast",
+        "branching-logic-needs-boundary-tests",
+        "unjustified-cap-or-threshold",
+        "prompt-model-policy-boundary",
+        "type-escape-or-cast",
+        "existing-module-repair-checklist"
+      ],
+      "existingModuleRepairChecklist": {
+        "existingTargetModules": [
+          "tooling/generators/src/index.ts",
+          "tooling/generators/src/index.test.ts",
+          "packages/convex/test/workflow-conformance.test.ts"
+        ],
+        "repairStrategy": "extend",
+        "compatibilityRisks": [
+          "Generated registries omit required safety evidence",
+          "Dedupe horizon is shorter than retry plus restart",
+          "Receipts fabricate an action attempt count"
+        ],
+        "policyDataOwnership": "packages/template-core/src/workflow-semantics/contract.ts",
+        "promptVersioningImpact": "Generated registry entries and receipts expose explicit strategy and honest attempt evidence.",
+        "evalOrGateCoverage": [
+          "pnpm --dir packages/convex test workflow-conformance",
+          "pnpm --dir tooling/generators test workflow",
+          "pnpm check:workflow-semantics",
+          "pnpm check:confect-contracts"
+        ]
+      },
+      "workPackages": [
+        {
+          "kind": "fixture-to-real",
+          "target": "WP-1.2 generated retry registry and adversarial conformance matrix",
+          "followUpGates": [
+            "pnpm --dir packages/convex test workflow-conformance",
+            "pnpm --dir tooling/generators test workflow",
+            "pnpm check:workflow-semantics",
+            "pnpm check:confect-contracts"
+          ]
+        }
+      ],
+      "taskRefs": ["WP-1.2"],
+      "rationale": "Generation and behavioral evidence close only after the compiler, resource, and state machine agree.",
+      "estLines": 300
+    }
+  ],
+  "allTaskRefs": ["WP-1.2"]
+}

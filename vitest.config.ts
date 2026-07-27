@@ -23,7 +23,12 @@ export default defineConfig({
   test: {
     globals: false,
     include: ["**/*.test.{ts,tsx,mts,mjs}"],
-    exclude: ["**/node_modules/**", "**/dist/**", "repos/**"],
+    exclude: [
+      "**/node_modules/**",
+      "**/dist/**",
+      "repos/**",
+      "tooling/agent-pack/evals/runs/**",
+    ],
     coverage: {
       provider: "v8",
       reporter: ["text-summary", "json-summary"],

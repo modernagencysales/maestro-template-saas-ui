@@ -2,6 +2,11 @@
   "name": "@maestro-template/stack-tooling",
   "private": true,
   "type": "module",
+  "main": "index.mts",
+  "types": "index.mts",
+  "exports": {
+    ".": "./index.mts"
+  },
   "scripts": {
     "test": "vitest run --passWithNoTests"
   }

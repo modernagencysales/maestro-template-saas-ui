@@ -1,0 +1,12 @@
+interface:
+  display_name: "Maestro"
+  short_description:
+    "Build and verify apps through Maestro's repo-native workflows."
+  default_prompt:
+    "Use the Maestro repository guidance to route this request through the
+    smallest supported workflow, capability, or generator path, then run the
+    focused verification gates. Do not configure or launch MCP unless the user
+    explicitly opts in to a supported profile."
+
+policy:
+  allow_implicit_invocation: true

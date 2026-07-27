@@ -24,6 +24,10 @@ below for behavioral proof. `host-test-slot` is optional internal host tooling
 that serializes expensive tests; on a fresh external clone, use the command
 after it directly, such as `pnpm test` or `pnpm verify`.
 
+Structured Maestro verification output follows the versioned contract and
+examples in [verification-receipts.md](./verification-receipts.md); raw gate
+commands remain authoritative.
+
 Start the reference app:
 
 ```bash

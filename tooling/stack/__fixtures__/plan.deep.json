@@ -7,6 +7,7 @@
       "branch": "feat/demo-1",
       "intention": "x",
       "layers": ["schema"],
+      "contractRiskIds": [],
       "workPackages": [
         {
           "kind": "fixture-to-real",
@@ -23,6 +24,7 @@
       "branch": "feat/demo-2",
       "intention": "x",
       "layers": ["checks"],
+      "contractRiskIds": [],
       "workPackages": [
         {
           "kind": "pattern-instance",
@@ -40,6 +42,7 @@
       "branch": "feat/demo-3",
       "intention": "x",
       "layers": ["domain"],
+      "contractRiskIds": [],
       "workPackages": [
         {
           "kind": "pattern-instance",
@@ -57,6 +60,7 @@
       "branch": "feat/demo-4",
       "intention": "x",
       "layers": ["capabilities"],
+      "contractRiskIds": [],
       "workPackages": [
         {
           "kind": "pattern-instance",
@@ -77,6 +81,7 @@
       "branch": "feat/demo-5",
       "intention": "x",
       "layers": ["workflows"],
+      "contractRiskIds": [],
       "workPackages": [
         {
           "kind": "pattern-instance",

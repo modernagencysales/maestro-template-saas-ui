@@ -1,0 +1,166 @@
+{
+  "feature": "phase-0-doctrine-and-compatibility",
+  "slices": [
+    {
+      "id": 1,
+      "branch": "codex/ap-a-architecture-s01",
+      "intention": "canonicalize the approved agent-pack product contract",
+      "layers": [],
+      "contractRiskIds": [],
+      "workPackages": [
+        {
+          "kind": "template-gap",
+          "target": "WP-0.1 canonical product specification",
+          "followUpGates": [
+            "pnpm exec prettier --check docs/superpowers/specs/2026-07-10-maestro-agent-pack-design.md docs/template/porting-backlog.md docs/template/porting-roadmap.md",
+            "git diff --check"
+          ],
+          "templateBacklogRef": "AP-001 agent-pack canonical product contract",
+          "templateResolutionPath": "Promote the approved read-only prior-art specification into the canonical repository and link it from the roadmap."
+        }
+      ],
+      "taskRefs": ["WP-0.1"],
+      "rationale": "Documentation-only authority must land before compatibility policy depends on it.",
+      "estLines": 220
+    },
+    {
+      "id": 2,
+      "branch": "codex/ap-a-architecture-s02",
+      "intention": "record Maestro-over-Convex workflow policy and correct determinism claims",
+      "layers": ["checks"],
+      "contractRiskIds": [
+        "ambient-time-inline",
+        "schema-runtime-validator-export",
+        "policy-data-hardcoded",
+        "duplicated-closed-union",
+        "invalid-test-fixture-or-cast",
+        "branching-logic-needs-boundary-tests",
+        "unjustified-cap-or-threshold",
+        "type-escape-or-cast",
+        "existing-module-repair-checklist"
+      ],
+      "existingModuleRepairChecklist": {
+        "existingTargetModules": [
+          "tooling/eslint-plugin-template/rules/workflow-handler-determinism.mjs",
+          "docs/template/workflow-authoring-guide.md",
+          "docs/template/how-to-add-workflow.md"
+        ],
+        "repairStrategy": "repair",
+        "compatibilityRisks": [
+          "Incorrect upstream Date/random claims",
+          "Current implementation gaps presented as supported semantics"
+        ],
+        "policyDataOwnership": "ADR 0002 and the canonical Convex workflow compatibility document",
+        "promptVersioningImpact": "None; this slice changes executable lint policy and authoring guidance.",
+        "evalOrGateCoverage": [
+          "pnpm --dir tooling/eslint-plugin-template test",
+          "pnpm check:workflow-graph-boundary",
+          "pnpm check:docs-freshness"
+        ]
+      },
+      "workPackages": [
+        {
+          "kind": "template-gap",
+          "target": "WP-0.2 Maestro-over-Convex workflow decision",
+          "followUpGates": [
+            "pnpm --dir tooling/eslint-plugin-template test",
+            "pnpm check:workflow-graph-boundary",
+            "pnpm check:docs-freshness"
+          ],
+          "templateBacklogRef": "AP-002 Convex workflow semantic compatibility",
+          "templateResolutionPath": "Promote the compatibility decision into ADR 0002 and one canonical workflow reference."
+        }
+      ],
+      "taskRefs": ["WP-0.2"],
+      "rationale": "The policy record and truthful lint diagnostics form one reviewable compatibility decision.",
+      "estLines": 260
+    },
+    {
+      "id": 3,
+      "branch": "codex/ap-a-architecture-s03",
+      "intention": "pin and execute the Convex component compatibility matrix",
+      "layers": ["checks"],
+      "contractRiskIds": [
+        "ambient-time-inline",
+        "schema-runtime-validator-export",
+        "policy-data-hardcoded",
+        "duplicated-closed-union",
+        "invalid-test-fixture-or-cast",
+        "branching-logic-needs-boundary-tests",
+        "unjustified-cap-or-threshold",
+        "type-escape-or-cast",
+        "existing-module-repair-checklist"
+      ],
+      "existingModuleRepairChecklist": {
+        "existingTargetModules": [
+          "tooling/quality/check-confect-compat.mts",
+          "packages/convex/package.json"
+        ],
+        "repairStrategy": "extend",
+        "compatibilityRisks": [
+          "Package declarations drift from the tested matrix",
+          "Candidate results mutate the working lockfile"
+        ],
+        "policyDataOwnership": "docs/template/convex-compatibility.json",
+        "promptVersioningImpact": "None; compatibility facts become machine-readable.",
+        "evalOrGateCoverage": [
+          "pnpm --dir tooling/convex-compat test",
+          "pnpm check:confect-compat",
+          "pnpm check:config-drift"
+        ]
+      },
+      "workPackages": [
+        {
+          "kind": "template-gap",
+          "target": "WP-0.3 pinned Convex compatibility matrix",
+          "followUpGates": [
+            "pnpm --dir tooling/convex-compat test",
+            "pnpm check:confect-compat",
+            "pnpm check:config-drift"
+          ],
+          "templateBacklogRef": "AP-002 Convex workflow semantic compatibility",
+          "templateResolutionPath": "Promote dependency knowledge into an executable matrix and source-level regression inventory."
+        }
+      ],
+      "taskRefs": ["WP-0.3"],
+      "rationale": "The matrix is an independent compatibility boundary consumed by later semantic fixtures.",
+      "estLines": 290
+    },
+    {
+      "id": 4,
+      "branch": "codex/ap-a-architecture-s04",
+      "intention": "characterize supported and rejected workflow behavior",
+      "layers": ["checks", "workflows"],
+      "contractRiskIds": [
+        "ambient-time-inline",
+        "bare-error-not-typed",
+        "schema-runtime-validator-export",
+        "policy-data-hardcoded",
+        "duplicated-closed-union",
+        "workspace-guard",
+        "invalid-test-fixture-or-cast",
+        "branching-logic-needs-boundary-tests",
+        "unjustified-cap-or-threshold",
+        "prompt-model-policy-boundary",
+        "type-escape-or-cast"
+      ],
+      "workPackages": [
+        {
+          "kind": "template-gap",
+          "target": "WP-0.4 behavioral workflow conformance fixtures",
+          "followUpGates": [
+            "pnpm --dir packages/convex test workflow-conformance",
+            "pnpm --dir tooling/generators test",
+            "pnpm template:workflow-output-smoke"
+          ],
+          "templateBacklogRef": "AP-002 Convex workflow semantic compatibility",
+          "templateResolutionPath": "Promote workflow correctness from source-shape assumptions to generated and behavioral conformance."
+        }
+      ],
+      "taskRefs": ["WP-0.4"],
+      "rationale": "Green characterization fixtures consume the pinned policy and version matrix without anticipating Phase 1 repairs.",
+      "estLines": 300
+    }
+  ],
+  "allTaskRefs": ["WP-0.1", "WP-0.2", "WP-0.3", "WP-0.4"]
+}

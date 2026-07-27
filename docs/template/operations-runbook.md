@@ -13,6 +13,11 @@
 
 ## CI And AI Gate Verdicts
 
+Use [verification-receipts.md](./verification-receipts.md) when consuming or
+archiving Maestro gate evidence. It defines required versus advisory posture,
+evidence strength, unavailable states, and receipt staleness; the underlying
+gate commands remain authoritative.
+
 Deterministic gates are authoritative and run before AI gates. AI gates are
 additional review signals and must fail closed when provider auth, parseable
 JSON/text verdicts, or Buildkite metadata are missing.

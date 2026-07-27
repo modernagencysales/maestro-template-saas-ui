@@ -56,6 +56,15 @@ layers, add the missing boundary instead.
   workflows or call capabilities; they do not call repos or adapters directly.
 - Runtime-authored capabilities are data, not arbitrary code. Promotion to
   generated Confect source is the compile-time safety path.
+- Author workflows only through `pnpm template:add-workflow`; its Confect-owned
+  runner source is the single raw Convex Workflow boundary. Do not import
+  `@convex-dev/workflow`, instantiate `WorkflowManager`, or call lifecycle/event
+  helpers from application code. Exact compatibility fixtures are the only
+  non-generated exception; there is no inline suppression or project allowlist.
+- Run `pnpm check:workflow:fast` while authoring. Semantic diagnostics include a
+  stable rule id, reason, repair, and rerun command. The generated support
+  ledger is
+  [workflow-semantics.md](docs/template/generated/workflow-semantics.md).
 
 ## Reference Fixture Implementations
 
@@ -225,3 +234,17 @@ This project vendors external repositories under `repos/`.
 When rules conflict, prefer tenant safety, generated contracts, typed errors,
 redaction, and small focused changes. If still ambiguous, write the assumption
 in the PR description or implementation note and ask for rule review.
+
+<!-- convex-ai-start -->
+
+This project uses [Convex](https://convex.dev) as its backend.
+
+When working on Convex code, **always read
+`packages/convex/convex/_generated/ai/guidelines.md` first** for important guidelines on
+how to correctly use Convex APIs and patterns. The file contains rules that
+override what you may have learned about Convex from training data.
+
+Convex agent skills for common tasks can be installed by running
+`npx convex ai-files install`.
+
+<!-- convex-ai-end -->

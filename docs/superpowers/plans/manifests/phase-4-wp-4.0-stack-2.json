@@ -1,0 +1,128 @@
+{
+  "feature": "phase-4-wp-4.0-customer-materializer",
+  "slices": [
+    {
+      "id": 1,
+      "branch": "codex/wp4-release-manifest",
+      "intention": "classify the complete tagged source inventory and promote only an exhaustive release manifest to materializable",
+      "layers": ["checks", "domain"],
+      "contractRiskIds": [
+        "ambient-time-inline",
+        "bare-error-not-typed",
+        "schema-runtime-validator-export",
+        "policy-data-hardcoded",
+        "duplicated-closed-union",
+        "invalid-test-fixture-or-cast",
+        "branching-logic-needs-boundary-tests",
+        "unjustified-cap-or-threshold",
+        "type-escape-or-cast",
+        "existing-module-repair-checklist"
+      ],
+      "existingModuleRepairChecklist": {
+        "existingTargetModules": [
+          "tooling/release/src/customerTarget/manifest.ts",
+          "releases/v0.1.0-alpha.1/manifest.json"
+        ],
+        "repairStrategy": "extend",
+        "compatibilityRisks": [
+          "A partial or unknown source inventory is labeled materializable",
+          "A customer extension or factory-only path receives the wrong upgrade posture",
+          "Expected source hashes drift from the immutable tagged source"
+        ],
+        "policyDataOwnership": "tooling/release/src/customerTarget/ownership.ts",
+        "promptVersioningImpact": "None; this slice fixes release ownership and copy policy only.",
+        "evalOrGateCoverage": [
+          "pnpm --dir tooling/release test customerTarget",
+          "pnpm --dir tooling/release typecheck",
+          "pnpm stack:check docs/superpowers/plans/manifests/phase-4-wp-4.0-stack-2.json"
+        ]
+      },
+      "workPackages": [
+        {
+          "kind": "template-gap",
+          "target": "WP-4.0 authoritative customer ownership inventory",
+          "followUpGates": [
+            "pnpm --dir tooling/release test customerTarget",
+            "pnpm --dir tooling/release typecheck"
+          ],
+          "templateBacklogRef": "AP-007 first-run visible app",
+          "templateResolutionPath": "Promote an exhaustive immutable source inventory into the single customer release manifest contract before allowing materialization."
+        }
+      ],
+      "taskRefs": ["WP-4.0-stack-2-ownership"],
+      "rationale": "Materialization cannot be safe until every tagged source path has an explicit customer ownership, operation, and upgrade decision.",
+      "estLines": 280
+    },
+    {
+      "id": 2,
+      "branch": "codex/wp4-release-manifest",
+      "intention": "produce a fail-closed customer-target preview from immutable preflight state without mutating either repository",
+      "layers": ["checks", "domain", "adapters"],
+      "contractRiskIds": [
+        "ambient-time-inline",
+        "bare-error-not-typed",
+        "schema-runtime-validator-export",
+        "policy-data-hardcoded",
+        "duplicated-closed-union",
+        "invalid-test-fixture-or-cast",
+        "branching-logic-needs-boundary-tests",
+        "unjustified-cap-or-threshold",
+        "type-escape-or-cast"
+      ],
+      "workPackages": [
+        {
+          "kind": "template-gap",
+          "target": "WP-4.0 customer target path safety and exact preview",
+          "followUpGates": [
+            "pnpm --dir tooling/release test customerTarget",
+            "pnpm --dir tooling/release typecheck"
+          ],
+          "templateBacklogRef": "AP-007 first-run visible app",
+          "templateResolutionPath": "Bind source and target preflight fingerprints to an exact path, omission, collision, and byte-size preview; refuse unsafe or ambiguous roots before writes."
+        }
+      ],
+      "taskRefs": ["WP-4.0-stack-2-preview"],
+      "rationale": "Preview is the default customer operation and must prove target separation, path containment, source cleanliness, hashes, and collision posture without mutation.",
+      "estLines": 300
+    },
+    {
+      "id": 3,
+      "branch": "codex/wp4-release-manifest",
+      "intention": "stage exact bytes and promote or roll back the customer target without exposing partial writes",
+      "layers": ["checks", "domain", "adapters"],
+      "contractRiskIds": [
+        "ambient-time-inline",
+        "bare-error-not-typed",
+        "schema-runtime-validator-export",
+        "policy-data-hardcoded",
+        "duplicated-closed-union",
+        "invalid-test-fixture-or-cast",
+        "branching-logic-needs-boundary-tests",
+        "unjustified-cap-or-threshold",
+        "type-escape-or-cast"
+      ],
+      "workPackages": [
+        {
+          "kind": "template-gap",
+          "target": "WP-4.0 staged customer materialization and hash-confirmed rollback",
+          "followUpGates": [
+            "pnpm --dir tooling/release test customerTarget",
+            "pnpm --dir tooling/release typecheck",
+            "pnpm check:generated-files",
+            "pnpm check:secret-canaries"
+          ],
+          "templateBacklogRef": "AP-007 first-run visible app",
+          "templateResolutionPath": "Write only into a sibling staging directory, verify every byte and preflight fingerprint, then rename into an absent target; recover interrupted staging and remove only journaled files whose hashes still match."
+        }
+      ],
+      "taskRefs": ["WP-4.0-stack-2-materialize"],
+      "rationale": "A separate staged tree and hash-confirmed recovery keep interruption, stale preflight, and write failures from mutating customer work.",
+      "estLines": 300
+    }
+  ],
+  "allTaskRefs": [
+    "WP-4.0-stack-2-ownership",
+    "WP-4.0-stack-2-preview",
+    "WP-4.0-stack-2-materialize"
+  ]
+}

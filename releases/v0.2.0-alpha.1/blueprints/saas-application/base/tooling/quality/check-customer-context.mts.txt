@@ -1,0 +1,162 @@
+import { createHash } from "node:crypto";
+import { readdir, readFile } from "node:fs/promises";
+import { isAbsolute, join, relative } from "node:path";
+
+const MANIFEST_PATH = "docs/template/customer-context.manifest.json";
+const MANIFEST_SHA256 =
+  "sha256:4bf94873ab73b6ae146f4f4c6c4766592d3b767233c0b148a26b1e0e1cf3e3a3";
+const START_MARKER = "<!-- convex-ai-start -->";
+const END_MARKER = "<!-- convex-ai-end -->";
+const MANAGED_SKILL_ROOTS = [".agents/skills", ".claude/skills"] as const;
+
+export async function customerContextFindings(
+  repoRoot: string,
+): Promise<readonly string[]> {
+  const bytes = await optionalRead(join(repoRoot, MANIFEST_PATH));
+  if (bytes === undefined) return ["customer-context:missing-manifest"];
+  if (sha256(bytes) !== MANIFEST_SHA256)
+    return ["customer-context:manifest-checksum"];
+  let value: unknown;
+  try {
+    value = JSON.parse(bytes.toString("utf8"));
+  } catch {
+    return ["customer-context:invalid-manifest"];
+  }
+  if (
+    !isRecord(value) ||
+    value.schemaVersion !== 1 ||
+    !Array.isArray(value.files)
+  )
+    return ["customer-context:invalid-manifest"];
+  const findings: string[] = [];
+  const expectedSkillFiles = new Set<string>();
+  for (const item of value.files) {
+    if (
+      !isRecord(item) ||
+      typeof item.path !== "string" ||
+      typeof item.sha256 !== "string" ||
+      !safeRelative(item.path)
+    ) {
+      findings.push("customer-context:invalid-entry");
+      continue;
+    }
+    if (MANAGED_SKILL_ROOTS.some((root) => item.path.startsWith(`${root}/`)))
+      expectedSkillFiles.add(item.path);
+    const installed = await optionalRead(join(repoRoot, item.path));
+    if (installed === undefined)
+      findings.push(`customer-context:missing:${item.path}`);
+    else if (item.validation === "managed-convex-section") {
+      const content = installed.toString("utf8");
+      const section = managedSection(content);
+      if (
+        section === undefined ||
+        sha256(section) !== item.sha256 ||
+        (item.path === "CLAUDE.md" && !hasClaudeInclude(content))
+      )
+        findings.push(`customer-context:checksum:${item.path}`);
+    } else if (item.validation === "safe-claude-settings") {
+      if (
+        sha256(installed) !== item.sha256 ||
+        !safeClaudeSettings(installed.toString("utf8"))
+      )
+        findings.push(`customer-context:unsafe-settings:${item.path}`);
+    } else if (
+      item.validation !== undefined ||
+      sha256(installed) !== item.sha256
+    )
+      findings.push(`customer-context:checksum:${item.path}`);
+  }
+  for (const root of MANAGED_SKILL_ROOTS) {
+    for (const installed of await filesUnder(join(repoRoot, root))) {
+      const path = relative(repoRoot, installed).replaceAll("\\", "/");
+      if (!expectedSkillFiles.has(path))
+        findings.push(`customer-context:extra:${path}`);
+    }
+  }
+  return findings;
+}
+
+function managedSection(content: string): Buffer | undefined {
+  const start = content.indexOf(START_MARKER);
+  const end = content.indexOf(END_MARKER);
+  return start < 0 || end < start
+    ? undefined
+    : Buffer.from(
+        `${content.slice(start, end + END_MARKER.length).trimEnd()}\n`,
+      );
+}
+
+function hasClaudeInclude(content: string): boolean {
+  const start = content.indexOf(START_MARKER);
+  const end = content.indexOf(END_MARKER);
+  let include = content.indexOf("@AGENTS.md");
+  while (include >= 0) {
+    if (start < 0 || end < start || include < start || include > end)
+      return true;
+    include = content.indexOf("@AGENTS.md", include + 1);
+  }
+  return false;
+}
+
+function safeClaudeSettings(content: string): boolean {
+  try {
+    const value: unknown = JSON.parse(content);
+    return (
+      isRecord(value) &&
+      value.enableAllProjectMcpServers === false &&
+      !("hooks" in value) &&
+      !("mcpServers" in value) &&
+      !("permissions" in value)
+    );
+  } catch {
+    return false;
+  }
+}
+
+async function filesUnder(root: string): Promise<readonly string[]> {
+  let entries;
+  try {
+    entries = await readdir(root, { withFileTypes: true });
+  } catch (error) {
+    if (errorCode(error) === "ENOENT") return [];
+    throw error;
+  }
+  const files: string[] = [];
+  for (const entry of entries) {
+    const path = join(root, entry.name);
+    if (entry.isDirectory()) files.push(...(await filesUnder(path)));
+    else if (entry.isFile()) files.push(path);
+  }
+  return files;
+}
+
+function safeRelative(path: string): boolean {
+  return (
+    path !== "" &&
+    !isAbsolute(path) &&
+    !path.split(/[\\/]/).some((part) => part === ".." || part === "")
+  );
+}
+
+async function optionalRead(path: string): Promise<Buffer | undefined> {
+  try {
+    return await readFile(path);
+  } catch (error) {
+    if (errorCode(error) === "ENOENT") return undefined;
+    throw error;
+  }
+}
+
+function sha256(value: Uint8Array): string {
+  return `sha256:${createHash("sha256").update(value).digest("hex")}`;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function errorCode(error: unknown): unknown {
+  return error !== null && typeof error === "object" && "code" in error
+    ? error.code
+    : undefined;
+}

@@ -13,6 +13,11 @@ import claims from "./tables/claims";
 import concepts from "./tables/concepts";
 import contextPacks from "./tables/contextPacks";
 import creditLedger from "./tables/creditLedger";
+import deployActionConsumptions from "./tables/deployActionConsumptions";
+import deployApprovals from "./tables/deployApprovals";
+import deployAuthorityIssuers from "./tables/deployAuthorityIssuers";
+import deployCensusSnapshots from "./tables/deployCensusSnapshots";
+import deployVerdicts from "./tables/deployVerdicts";
 import documentAnnotations from "./tables/documentAnnotations";
 import documentVersions from "./tables/documentVersions";
 import documents from "./tables/documents";
@@ -34,6 +39,9 @@ import users from "./tables/users";
 import versionFreshness from "./tables/versionFreshness";
 import versionedEntries from "./tables/versionedEntries";
 import webhookEvents from "./tables/webhookEvents";
+import workflowArtifacts from "./tables/workflowArtifacts";
+import workflowEffectReservations from "./tables/workflowEffectReservations";
+import workflowEventInstances from "./tables/workflowEventInstances";
 import workflowRunContextManifests from "./tables/workflowRunContextManifests";
 import workflowRunEvents from "./tables/workflowRunEvents";
 import workflowRunEvidenceSnapshots from "./tables/workflowRunEvidenceSnapshots";
@@ -57,6 +65,11 @@ const databaseSchema: $DatabaseSchema.DatabaseSchema<
   typeof concepts |
   typeof contextPacks |
   typeof creditLedger |
+  typeof deployActionConsumptions |
+  typeof deployApprovals |
+  typeof deployAuthorityIssuers |
+  typeof deployCensusSnapshots |
+  typeof deployVerdicts |
   typeof documentAnnotations |
   typeof documentVersions |
   typeof documents |
@@ -78,6 +91,9 @@ const databaseSchema: $DatabaseSchema.DatabaseSchema<
   typeof versionFreshness |
   typeof versionedEntries |
   typeof webhookEvents |
+  typeof workflowArtifacts |
+  typeof workflowEffectReservations |
+  typeof workflowEventInstances |
   typeof workflowRunContextManifests |
   typeof workflowRunEvents |
   typeof workflowRunEvidenceSnapshots |
@@ -100,6 +116,11 @@ const databaseSchema: $DatabaseSchema.DatabaseSchema<
   concepts,
   contextPacks,
   creditLedger,
+  deployActionConsumptions,
+  deployApprovals,
+  deployAuthorityIssuers,
+  deployCensusSnapshots,
+  deployVerdicts,
   documentAnnotations,
   documentVersions,
   documents,
@@ -121,6 +142,9 @@ const databaseSchema: $DatabaseSchema.DatabaseSchema<
   versionFreshness,
   versionedEntries,
   webhookEvents,
+  workflowArtifacts,
+  workflowEffectReservations,
+  workflowEventInstances,
   workflowRunContextManifests,
   workflowRunEvents,
   workflowRunEvidenceSnapshots,

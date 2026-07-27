@@ -1,0 +1,230 @@
+{
+  "WF-GRAPH-ID": {
+    "posture": "generated",
+    "constructor": "DurableWorkflowGraph.id",
+    "compiler": "workflow release id",
+    "fixture": "packages/convex/test/<name>.workflow.test.ts"
+  },
+  "WF-GRAPH-VERSION": {
+    "posture": "generated",
+    "constructor": "DurableWorkflowGraph.version",
+    "compiler": "immutable graph version",
+    "fixture": "packages/convex/test/<name>.workflow.test.ts"
+  },
+  "WF-GRAPH-START": {
+    "posture": "generated",
+    "constructor": "DurableWorkflowGraph.startNodeId",
+    "compiler": "source node selection",
+    "fixture": "packages/convex/test/<name>.workflow.test.ts"
+  },
+  "WF-GRAPH-NODES": {
+    "posture": "generated",
+    "constructor": "DurableWorkflowGraph.nodes",
+    "compiler": "runDurableGraphWorkflow",
+    "fixture": "packages/convex/test/<name>.workflow.test.ts"
+  },
+  "WF-GRAPH-EDGES": {
+    "posture": "generated",
+    "constructor": "DurableWorkflowGraph.edges",
+    "compiler": "ready-node traversal",
+    "fixture": "packages/convex/test/<name>.workflow.test.ts"
+  },
+  "WF-GRAPH-JOINS": {
+    "posture": "generated",
+    "constructor": "DurableWorkflowGraph.joins",
+    "compiler": "join readiness",
+    "fixture": "packages/convex/test/<name>.workflow.test.ts"
+  },
+  "WF-NODE-ID": {
+    "posture": "generated",
+    "constructor": "WorkflowNode.id",
+    "compiler": "journal step identity",
+    "fixture": "packages/convex/test/<name>.workflow.test.ts"
+  },
+  "WF-NODE-KIND": {
+    "posture": "generated",
+    "constructor": "WorkflowNodeKind",
+    "compiler": "node executor lookup",
+    "fixture": "packages/convex/test/<name>.workflow.test.ts"
+  },
+  "WF-NODE-LABEL": {
+    "posture": "generated",
+    "constructor": "WorkflowNode.label",
+    "compiler": "receipt projection",
+    "fixture": "packages/convex/test/<name>.workflow.test.ts"
+  },
+  "WF-NODE-FUNCTION-KIND": {
+    "posture": "generated",
+    "constructor": "workflowNode action/query/mutation constructors",
+    "compiler": "exact generated registry kind dispatch",
+    "fixture": "packages/convex/test/workflow-conformance.test.ts"
+  },
+  "WF-NODE-RETRY": {
+    "posture": "generated",
+    "constructor": "WorkflowActionNodeV2.retry with WorkflowEffectContract",
+    "compiler": "exact guarded runAction retry options",
+    "fixture": "packages/convex/test/<name>.workflow.test.ts"
+  },
+  "WF-FAILURE-COMPENSATION-STEPS": {
+    "posture": "generated",
+    "constructor": "WorkflowFailurePolicy.steps",
+    "compiler": "completed-node filtering and reverse-order execution",
+    "fixture": "packages/convex/test/workflow-conformance.test.ts"
+  },
+  "WF-FAILURE-COMPENSATION-NODE": {
+    "posture": "generated",
+    "constructor": "WorkflowCompensationStep.forNodeId",
+    "compiler": "completed-node filtering before compensation dispatch",
+    "fixture": "packages/convex/test/workflow-conformance.test.ts"
+  },
+  "WF-STEP-ACTION": {
+    "posture": "generated",
+    "constructor": "workflowNode.action with WorkflowEffectContract",
+    "compiler": "guarded runAction with stable name and exact retry",
+    "fixture": "packages/convex/test/workflow-conformance.test.ts"
+  },
+  "WF-NODE-TRANSACTION": {
+    "posture": "guarded-default",
+    "constructor": "workflowNode query/mutation constructors",
+    "compiler": "independent by default; guarded inline options",
+    "fixture": "tooling/generators/src/customer-runtime.test.ts"
+  },
+  "WF-NODE-EVENT-DEFINITION": {
+    "posture": "generated",
+    "constructor": "defineWorkflowEvent + defineWorkflowV2EventRegistry",
+    "compiler": "exact generated event registry entry",
+    "fixture": "tooling/generators/src/customer-runtime.test.ts"
+  },
+  "WF-NODE-EVENT-SCHEMA": {
+    "posture": "generated",
+    "constructor": "WorkflowEventDefinition schema + validator",
+    "compiler": "shared generated await and delivery validator",
+    "fixture": "tooling/generators/src/customer-runtime.test.ts"
+  },
+  "WF-NODE-EVENT-INSTANCE": {
+    "posture": "generated",
+    "constructor": "WorkflowEventNodeV2.eventInstanceKey + ProductWorkflowEventId",
+    "compiler": "persisted owned event allocation",
+    "fixture": "packages/convex/test/workflow-conformance.test.ts"
+  },
+  "WF-RETRY-MAX-ATTEMPTS": {
+    "posture": "generated",
+    "constructor": "WorkflowRetryConfigV2.maxAttempts",
+    "compiler": "validated runAction.retry.maxAttempts",
+    "fixture": "packages/convex/test/<name>.workflow.test.ts"
+  },
+  "WF-RETRY-BACKOFF": {
+    "posture": "guarded-default",
+    "constructor": "WorkflowRetryConfig.backoffMs",
+    "compiler": "literal zero until Phase 1 compiler support",
+    "fixture": "tooling/generators/src/customer-runtime.test.ts"
+  },
+  "WF-RETRY-INITIAL-BACKOFF": {
+    "posture": "generated",
+    "constructor": "WorkflowRetryConfigV2.initialBackoffMs",
+    "compiler": "validated runAction.retry.initialBackoffMs",
+    "fixture": "packages/convex/test/<name>.workflow.test.ts"
+  },
+  "WF-RETRY-BASE": {
+    "posture": "generated",
+    "constructor": "WorkflowRetryConfigV2.base",
+    "compiler": "validated runAction.retry.base",
+    "fixture": "packages/convex/test/<name>.workflow.test.ts"
+  },
+  "WF-TRANSACTION-KIND": {
+    "posture": "guarded-default",
+    "constructor": "WorkflowIndependentTransaction | WorkflowInlineTransaction",
+    "compiler": "independent or guarded inline compiler branch",
+    "fixture": "tooling/generators/src/customer-runtime.test.ts"
+  },
+  "WF-TRANSACTION-LIMITS": {
+    "posture": "guarded-default",
+    "constructor": "inlineTransactionPreset | reviewedInlineTransaction",
+    "compiler": "validated step transactionLimits",
+    "fixture": "tooling/generators/src/customer-runtime.test.ts"
+  },
+  "WF-TRANSACTION-BYTES-READ": {
+    "posture": "guarded-default",
+    "constructor": "InlineTransactionLimits.bytesRead",
+    "compiler": "transactionLimits.bytesRead",
+    "fixture": "tooling/generators/src/customer-runtime.test.ts"
+  },
+  "WF-TRANSACTION-BYTES-WRITTEN": {
+    "posture": "guarded-default",
+    "constructor": "InlineTransactionLimits.bytesWritten",
+    "compiler": "transactionLimits.bytesWritten",
+    "fixture": "tooling/generators/src/customer-runtime.test.ts"
+  },
+  "WF-TRANSACTION-DATABASE-QUERIES": {
+    "posture": "guarded-default",
+    "constructor": "InlineTransactionLimits.databaseQueries",
+    "compiler": "transactionLimits.databaseQueries",
+    "fixture": "tooling/generators/src/customer-runtime.test.ts"
+  },
+  "WF-TRANSACTION-DOCUMENTS-READ": {
+    "posture": "guarded-default",
+    "constructor": "InlineTransactionLimits.documentsRead",
+    "compiler": "transactionLimits.documentsRead",
+    "fixture": "tooling/generators/src/customer-runtime.test.ts"
+  },
+  "WF-TRANSACTION-DOCUMENTS-WRITTEN": {
+    "posture": "guarded-default",
+    "constructor": "InlineTransactionLimits.documentsWritten",
+    "compiler": "transactionLimits.documentsWritten",
+    "fixture": "tooling/generators/src/customer-runtime.test.ts"
+  },
+  "WF-TRANSACTION-FUNCTIONS-SCHEDULED": {
+    "posture": "guarded-default",
+    "constructor": "InlineTransactionLimits.functionsScheduled",
+    "compiler": "transactionLimits.functionsScheduled",
+    "fixture": "tooling/generators/src/customer-runtime.test.ts"
+  },
+  "WF-TRANSACTION-SCHEDULED-FUNCTION-ARGS-BYTES": {
+    "posture": "guarded-default",
+    "constructor": "InlineTransactionLimits.scheduledFunctionArgsBytes",
+    "compiler": "transactionLimits.scheduledFunctionArgsBytes",
+    "fixture": "tooling/generators/src/customer-runtime.test.ts"
+  },
+  "WF-EDGE-ID": {
+    "posture": "generated",
+    "constructor": "WorkflowEdge.id",
+    "compiler": "edge identity",
+    "fixture": "packages/convex/test/<name>.workflow.test.ts"
+  },
+  "WF-EDGE-SOURCE": {
+    "posture": "generated",
+    "constructor": "WorkflowEdge.sourceNodeId",
+    "compiler": "ready-node traversal",
+    "fixture": "packages/convex/test/<name>.workflow.test.ts"
+  },
+  "WF-EDGE-TARGET": {
+    "posture": "generated",
+    "constructor": "WorkflowEdge.targetNodeId",
+    "compiler": "ready-node traversal",
+    "fixture": "packages/convex/test/<name>.workflow.test.ts"
+  },
+  "WF-STEP-EVENT": {
+    "posture": "generated",
+    "constructor": "runRegisteredWorkflowEvent",
+    "compiler": "ID-bound await and persisted consumed reconciliation",
+    "fixture": "packages/convex/test/workflow-conformance.test.ts"
+  },
+  "WF-SEND-EVENT": {
+    "posture": "generated",
+    "constructor": "generated workflowContracts.sendEvent selector",
+    "compiler": "authenticated translation to component-owned EventId",
+    "fixture": "tooling/generators/src/customer-runtime.test.ts"
+  },
+  "WF-CREATE-EVENT": {
+    "posture": "guarded-default",
+    "constructor": "generated internal event allocation refs",
+    "compiler": "internal persisted generation allocation only",
+    "fixture": "tooling/generators/src/customer-runtime.test.ts"
+  },
+  "WF-DEFINE": {
+    "posture": "generated",
+    "constructor": "defineMaestroWorkflow",
+    "compiler": "Confect-owned registered runner",
+    "fixture": "tooling/generators/src/workflow-output-smoke.ts"
+  }
+}

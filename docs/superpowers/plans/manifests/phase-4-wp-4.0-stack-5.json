@@ -1,0 +1,112 @@
+{
+  "feature": "phase-4-wp-4.0-create-root-wiring",
+  "slices": [
+    {
+      "id": 1,
+      "branch": "codex/wp4-create-wiring",
+      "intention": "pin the six-command create composition, exact help, fixture-only preview refusal, dependency parity, and root self-protection",
+      "layers": ["checks"],
+      "contractRiskIds": [
+        "ambient-time-inline",
+        "schema-runtime-validator-export",
+        "policy-data-hardcoded",
+        "duplicated-closed-union",
+        "invalid-test-fixture-or-cast",
+        "branching-logic-needs-boundary-tests",
+        "unjustified-cap-or-threshold",
+        "type-escape-or-cast"
+      ],
+      "workPackages": [
+        {
+          "kind": "template-gap",
+          "target": "WP-4.0 create root integration fixtures and wiring pins",
+          "followUpGates": [
+            "pnpm --dir apps/cli exec vitest run src/factory/createRootIntegration.test.ts",
+            "pnpm --dir tooling/quality exec vitest run check-agent-pack.test.mts"
+          ],
+          "templateBacklogRef": "AP-007 first-run visible app",
+          "templateResolutionPath": "Self-protect the accepted create leaves when mechanically registering them in the root CLI composition."
+        }
+      ],
+      "taskRefs": ["WP-4.0-stack-5-root-tests"],
+      "rationale": "Root wiring must remain fail-closed and mechanically pinned without expanding create semantics.",
+      "estLines": 280
+    },
+    {
+      "id": 2,
+      "branch": "codex/wp4-create-wiring",
+      "intention": "publish the accepted create leaves through package exports and exact workspace dependency metadata",
+      "layers": ["adapters"],
+      "contractRiskIds": [],
+      "workPackages": [
+        {
+          "kind": "template-gap",
+          "target": "WP-4.0 create package exports and lock importer",
+          "followUpGates": [
+            "pnpm --dir apps/cli typecheck",
+            "pnpm check:agent-pack"
+          ],
+          "templateBacklogRef": "AP-007 first-run visible app",
+          "templateResolutionPath": "Expose only the accepted Agent Pack command and release adapter and pin the CLI workspace link without installing dependencies."
+        }
+      ],
+      "taskRefs": ["WP-4.0-stack-5-package-wiring"],
+      "rationale": "The CLI must resolve the accepted leaves through reviewed workspace metadata rather than relative imports.",
+      "estLines": 80
+    },
+    {
+      "id": 3,
+      "branch": "codex/wp4-create-wiring",
+      "intention": "instantiate one create adapter and command with the literal reviewed fixture binding and trusted host boundaries",
+      "layers": ["adapters"],
+      "contractRiskIds": [],
+      "workPackages": [
+        {
+          "kind": "template-gap",
+          "target": "WP-4.0 create factory composition",
+          "followUpGates": [
+            "pnpm --dir apps/cli test create",
+            "pnpm --dir apps/cli typecheck"
+          ],
+          "templateBacklogRef": "AP-007 first-run visible app",
+          "templateResolutionPath": "Compose the accepted release adapter and create command with the trusted repository root, homedir boundary, reviewed manifest checksum, and absent tag refusal."
+        }
+      ],
+      "taskRefs": ["WP-4.0-stack-5-create-composition"],
+      "rationale": "One singleton handler must preserve preview-first behavior while the fixture-only release remains unavailable.",
+      "estLines": 100
+    },
+    {
+      "id": 4,
+      "branch": "codex/wp4-create-wiring",
+      "intention": "register create in the shared factory inventory and project its exact help through the existing CLI",
+      "layers": ["apps"],
+      "contractRiskIds": [
+        "invalid-test-fixture-or-cast",
+        "auth-cross-workspace-coverage",
+        "type-escape-or-cast",
+        "inactive-client-subscription"
+      ],
+      "workPackages": [
+        {
+          "kind": "template-gap",
+          "target": "WP-4.0 create CLI registration and help",
+          "followUpGates": [
+            "pnpm --dir apps/cli exec vitest run src/factory/createRootIntegration.test.ts"
+          ],
+          "templateBacklogRef": "AP-007 first-run visible app",
+          "templateResolutionPath": "Add create to the existing shared handler registry and reuse the leaf help constant without changing MCP dispatch."
+        }
+      ],
+      "taskRefs": ["WP-4.0-stack-5-create-registration"],
+      "rationale": "The customer command becomes reachable through the canonical CLI with no parallel executor or MCP behavior change.",
+      "estLines": 40
+    }
+  ],
+  "allTaskRefs": [
+    "WP-4.0-stack-5-root-tests",
+    "WP-4.0-stack-5-package-wiring",
+    "WP-4.0-stack-5-create-composition",
+    "WP-4.0-stack-5-create-registration"
+  ]
+}
