@@ -16,7 +16,7 @@ import {
   writeFile,
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { delimiter, dirname, join } from "node:path";
 import { PassThrough, Readable } from "node:stream";
 import { fileURLToPath } from "node:url";
 import {
@@ -375,9 +375,18 @@ describe("factory CLI composition", () => {
   }, 60_000);
 
   it("keeps the canonical gate unavailable in real CLI and MCP processes when gitleaks is absent", () => {
+    const pnpmExecutable = execFileSync("which", ["pnpm"], {
+      encoding: "utf8",
+    }).trim();
     const environment = {
       ...process.env,
-      PATH: "/usr/local/bin:/usr/bin:/bin",
+      PATH: [
+        dirname(pnpmExecutable),
+        dirname(process.execPath),
+        "/usr/local/bin",
+        "/usr/bin",
+        "/bin",
+      ].join(delimiter),
     };
     const expectedGateIds = [
       "gates",
@@ -388,7 +397,7 @@ describe("factory CLI composition", () => {
     ];
     const expectedStatuses = ["pass", "unavailable", "pass", "pass", "pass"];
     const cli = spawnSync(
-      "pnpm",
+      pnpmExecutable,
       ["--silent", "maestro", "--", "verify", "--json"],
       {
         cwd: repositoryRoot,
@@ -415,18 +424,22 @@ describe("factory CLI composition", () => {
       unavailable: ["secret-canaries"],
     });
 
-    const mcp = spawnSync("pnpm", ["--silent", "maestro", "--", "mcp"], {
-      cwd: repositoryRoot,
-      env: environment,
-      encoding: "utf8",
-      input: `${JSON.stringify({
-        jsonrpc: "2.0",
-        id: 1,
-        method: "tools/call",
-        params: { name: "maestro_verify", arguments: {} },
-      })}\n`,
-      timeout: 60_000,
-    });
+    const mcp = spawnSync(
+      pnpmExecutable,
+      ["--silent", "maestro", "--", "mcp"],
+      {
+        cwd: repositoryRoot,
+        env: environment,
+        encoding: "utf8",
+        input: `${JSON.stringify({
+          jsonrpc: "2.0",
+          id: 1,
+          method: "tools/call",
+          params: { name: "maestro_verify", arguments: {} },
+        })}\n`,
+        timeout: 60_000,
+      },
+    );
     expect(mcp.error).toBeUndefined();
     const frame = JSON.parse(mcp.stdout.trim());
     const mcpPayload = JSON.parse(frame.result.content[0].text);
