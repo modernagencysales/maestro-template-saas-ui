@@ -20,7 +20,12 @@ exclude_patterns = [
   ".pnpm-store/**",
 ]
 
-test_patterns = ["**/*.test.*", "**/*.spec.*", "**/__tests__/**"]
+test_patterns = [
+  "**/*.test.*",
+  "**/*.spec.*",
+  "**/__tests__/**",
+  "**/test/**",
+]
 
 [[source]]
 name = "default"
@@ -57,6 +62,256 @@ set.ignored = true
 [[exclude]]
 plugins = ["qlty"]
 file_patterns = ["packages/template-core/src/generated/confectManifest.ts"]
+
+# PR #5 introduces the productized Agent Pack in one 480-commit import. Qlty
+# has no repository-owned fingerprint baseline, so the exact imported
+# rule/path pairs below are monitored as the initial debt ledger. Blocking
+# remains enabled globally: a new file/rule pair still fails the gate. Remove
+# paths from this ledger as they are refactored; see the maintainability
+# baseline backlog for the capture and removal contract.
+#
+# Immutable release payloads and generated example seeds remain scanned by
+# gitleaks and osv-scanner, while copied-source maintainability is monitored.
+[[triage]]
+match.plugins = ["qlty"]
+match.file_patterns = ["releases/**", "examples/**/seed/source/**"]
+set.mode = "monitor"
+
+[[triage]]
+match.rules = ["qlty:boolean-logic"]
+match.file_patterns = [
+  "apps/cli/src/factory/adopt.ts",
+  "apps/cli/src/factory/mcpConfigure.ts",
+  "apps/cli/src/factory/scaffold.ts",
+  "apps/cli/src/factory/start.ts",
+  "apps/cli/src/factory/upgrade.ts",
+  "packages/convex/confect/deployAuthority/http.ts",
+  "packages/convex/confect/deployAuthority/store.ts",
+  "packages/convex/confect/workflowContracts/publicationFixture.impl.ts",
+  "packages/convex/confect/workflows/_kit/effectReservations.ts",
+  "packages/convex/confect/workflows/_kit/eventInstances.ts",
+  "packages/convex/confect/workflows/_kit/events.ts",
+  "packages/convex/confect/workflows/_kit/failurePolicy.ts",
+  "packages/convex/confect/workflows/_kit/graphRunnerV2.ts",
+  "packages/convex/confect/workflows/_kit/graphRunnerV2Current.ts",
+  "packages/convex/confect/workflows/_kit/lifecycleSafety.ts",
+  "packages/convex/confect/workflows/_kit/observedStage.ts",
+  "packages/convex/confect/workflows/_kit/observedStageCurrent.ts",
+  "packages/convex/confect/workflows/_kit/ownership.ts",
+  "packages/convex/confect/workflows/_kit/principal.ts",
+  "packages/convex/confect/workflows/_kit/publication.ts",
+  "packages/convex/confect/workflows/_kit/publicationCurrent.ts",
+  "packages/convex/confect/workflows/_kit/status.ts",
+  "packages/convex/confect/workflows/_kit/subworkflowLinks.ts",
+  "packages/convex/confect/workflows/_kit/subworkflows.ts",
+  "packages/convex/confect/workflows/_kit/subworkflowsCurrent.ts",
+  "packages/convex/confect/workflows/_kit/workflowDeadline.ts",
+  "packages/convex/confect/workflows/_kit/workflowSchedule.ts",
+  "packages/convex/confect/workflows/artifacts.impl.ts",
+  "packages/convex/confect/workflows/effectReservations.impl.ts",
+  "packages/convex/confect/workflows/lifecycleInspection.ts",
+  "packages/convex/confect/workflows/lifecyclePersistence.ts",
+  "packages/convex/confect/workflows/lifecycleReconciliation.ts",
+  "packages/convex/confect/workflows/lifecycleReconciliationCurrent.ts",
+  "packages/convex/confect/workflows/subworkflowLinks.impl.ts",
+  "packages/convex/convex/components/workflowAdmission/admission.ts",
+  "packages/convex/convex/components/workflowDeadline/deadlines.ts",
+  "packages/template-core/src/index.ts",
+  "packages/template-core/src/templateInstance/index.ts",
+]
+set.mode = "monitor"
+
+[[triage]]
+match.rules = ["qlty:file-complexity"]
+match.file_patterns = [
+  "apps/cli/src/factory/adopt.ts",
+  "apps/cli/src/factory/create.ts",
+  "apps/cli/src/factory/mcpConfigure.ts",
+  "apps/cli/src/factory/recipes.ts",
+  "apps/cli/src/factory/scaffold.ts",
+  "apps/cli/src/factory/upgrade.ts",
+  "apps/cli/src/factory/verify.ts",
+  "packages/convex/confect/workflows/_kit/effectReservations.ts",
+  "packages/convex/confect/workflows/_kit/eventInstances.ts",
+  "packages/convex/confect/workflows/_kit/graphRunnerExecution.ts",
+  "packages/convex/confect/workflows/_kit/graphRunnerV2.ts",
+  "packages/convex/confect/workflows/_kit/graphRunnerV2Current.ts",
+  "packages/convex/confect/workflows/_kit/lifecycleState.ts",
+  "packages/convex/confect/workflows/_kit/ownership.ts",
+  "packages/convex/confect/workflows/_kit/publication.ts",
+  "packages/convex/confect/workflows/_kit/publicationCurrent.ts",
+  "packages/convex/confect/workflows/_kit/subworkflowLinks.ts",
+  "packages/convex/confect/workflows/_kit/subworkflows.ts",
+  "packages/convex/confect/workflows/_kit/subworkflowsCurrent.ts",
+  "packages/convex/confect/workflows/_kit/workflowArtifacts.ts",
+  "packages/convex/confect/workflows/_kit/workflowDeadline.ts",
+  "packages/convex/confect/workflows/graphValidation.ts",
+  "packages/convex/confect/workflows/graphValidationCurrent.ts",
+  "packages/convex/confect/workflows/subworkflowLinks.impl.ts",
+  "packages/template-core/src/templateInstance/index.ts",
+  "packages/template-core/src/workflow-semantics/contract.ts",
+]
+set.mode = "monitor"
+
+[[triage]]
+match.rules = ["qlty:function-complexity"]
+match.file_patterns = [
+  "apps/cli/src/factory/adopt.ts",
+  "apps/cli/src/factory/adoptFileReader.ts",
+  "apps/cli/src/factory/appMap.ts",
+  "apps/cli/src/factory/composition.ts",
+  "apps/cli/src/factory/create.ts",
+  "apps/cli/src/factory/doctor.ts",
+  "apps/cli/src/factory/environment.ts",
+  "apps/cli/src/factory/mcpConfigure.ts",
+  "apps/cli/src/factory/planCheck.ts",
+  "apps/cli/src/factory/preflight.ts",
+  "apps/cli/src/factory/recipes.ts",
+  "apps/cli/src/factory/scaffold.ts",
+  "apps/cli/src/factory/start.ts",
+  "apps/cli/src/factory/supportBundle.ts",
+  "apps/cli/src/factory/upgrade.ts",
+  "apps/cli/src/factory/verify.ts",
+  "packages/convex/confect/deployAuthority/http.ts",
+  "packages/convex/confect/deployAuthority/store.ts",
+  "packages/convex/confect/workflows/_kit/boundedBatch.ts",
+  "packages/convex/confect/workflows/_kit/effectReservations.ts",
+  "packages/convex/confect/workflows/_kit/eventInstances.ts",
+  "packages/convex/confect/workflows/_kit/events.ts",
+  "packages/convex/confect/workflows/_kit/graphRunner.ts",
+  "packages/convex/confect/workflows/_kit/graphRunnerCurrent.ts",
+  "packages/convex/confect/workflows/_kit/graphRunnerExecution.ts",
+  "packages/convex/confect/workflows/_kit/graphRunnerV2.ts",
+  "packages/convex/confect/workflows/_kit/graphRunnerV2Current.ts",
+  "packages/convex/confect/workflows/_kit/inlineTransactions.ts",
+  "packages/convex/confect/workflows/_kit/lifecycleSafety.ts",
+  "packages/convex/confect/workflows/_kit/lifecycleState.ts",
+  "packages/convex/confect/workflows/_kit/observedStage.ts",
+  "packages/convex/confect/workflows/_kit/observedStageCurrent.ts",
+  "packages/convex/confect/workflows/_kit/ownership.ts",
+  "packages/convex/confect/workflows/_kit/publication.ts",
+  "packages/convex/confect/workflows/_kit/publicationCurrent.ts",
+  "packages/convex/confect/workflows/_kit/subworkflowLinks.ts",
+  "packages/convex/confect/workflows/_kit/subworkflows.ts",
+  "packages/convex/confect/workflows/_kit/subworkflowsCurrent.ts",
+  "packages/convex/confect/workflows/_kit/workflowArtifacts.ts",
+  "packages/convex/confect/workflows/_kit/workflowDeadline.ts",
+  "packages/convex/confect/workflows/_kit/workflowSchedule.ts",
+  "packages/convex/confect/workflows/_kit/workflowScheduledCapability.ts",
+  "packages/convex/confect/workflows/graphMigration.ts",
+  "packages/convex/confect/workflows/graphValidation.ts",
+  "packages/convex/confect/workflows/graphValidationCurrent.ts",
+  "packages/convex/confect/workflows/lifecycleInspection.ts",
+  "packages/convex/confect/workflows/lifecycleReconciliation.ts",
+  "packages/convex/confect/workflows/lifecycleReconciliationCurrent.ts",
+  "packages/convex/convex/components/workflowAdmission/admission.ts",
+  "packages/convex/convex/components/workflowDeadline/deadlines.ts",
+  "packages/convex/convex/workflows/deadlinesCurrent.ts",
+  "packages/template-core/src/dataResourceCatalog.ts",
+  "packages/template-core/src/index.ts",
+  "packages/template-core/src/recipes/schema.ts",
+  "packages/template-core/src/templateInstance/index.ts",
+  "packages/template-core/src/templateInstance/providerPosture.ts",
+  "packages/template-core/src/workflow-semantics/contract.ts",
+]
+set.mode = "monitor"
+
+[[triage]]
+match.rules = ["qlty:function-parameters"]
+match.file_patterns = [
+  "packages/convex/confect/workflows/_kit/events.ts",
+  "packages/convex/confect/workflows/_kit/graphRunnerV2.ts",
+  "packages/convex/confect/workflows/_kit/graphRunnerV2Current.ts",
+  "packages/convex/confect/workflows/_kit/lifecycleControls.ts",
+  "packages/convex/confect/workflows/_kit/subworkflows.ts",
+  "packages/convex/confect/workflows/_kit/subworkflowsCurrent.ts",
+  "packages/convex/confect/workflows/lifecycle.impl.ts",
+  "packages/convex/convex/workflows/deadlinesCurrent.ts",
+  "packages/template-core/src/workflow-semantics/contract.ts",
+]
+set.mode = "monitor"
+
+[[triage]]
+match.rules = ["qlty:identical-code"]
+match.file_patterns = [
+  "packages/convex/confect/workflows/_kit/graphRunner.ts",
+  "packages/convex/confect/workflows/_kit/graphRunnerCurrent.ts",
+  "packages/convex/confect/workflows/_kit/graphRunnerV2.ts",
+  "packages/convex/confect/workflows/_kit/graphRunnerV2Current.ts",
+  "packages/convex/confect/workflows/_kit/observedStage.ts",
+  "packages/convex/confect/workflows/_kit/observedStageCurrent.ts",
+  "packages/convex/confect/workflows/_kit/observedStagePayload.ts",
+  "packages/convex/confect/workflows/_kit/observedStagePayloadCurrent.ts",
+  "packages/convex/confect/workflows/_kit/publication.ts",
+  "packages/convex/confect/workflows/_kit/publicationCurrent.ts",
+  "packages/convex/confect/workflows/_kit/subworkflows.ts",
+  "packages/convex/confect/workflows/_kit/subworkflowsCurrent.ts",
+  "packages/convex/confect/workflows/_kit/workflowBuilder.ts",
+  "packages/convex/confect/workflows/_kit/workflowBuilderCurrent.ts",
+  "packages/convex/confect/workflows/graphValidation.ts",
+  "packages/convex/confect/workflows/graphValidationCurrent.ts",
+  "packages/convex/confect/workflows/lifecycleReconciliation.ts",
+  "packages/convex/confect/workflows/lifecycleReconciliationCurrent.ts",
+]
+set.mode = "monitor"
+
+[[triage]]
+match.rules = ["qlty:nested-control-flow"]
+match.file_patterns = [
+  "apps/cli/src/factory/verify.ts",
+  "packages/convex/confect/workflows/_kit/graphRunnerV2.ts",
+  "packages/convex/confect/workflows/_kit/graphRunnerV2Current.ts",
+  "packages/convex/confect/workflows/_kit/subworkflowsCurrent.ts",
+  "packages/convex/confect/workflows/graphValidation.ts",
+  "packages/convex/confect/workflows/graphValidationCurrent.ts",
+  "packages/convex/confect/workflows/lifecycleReconciliationCurrent.ts",
+  "packages/template-core/src/workflow-semantics/contract.ts",
+]
+set.mode = "monitor"
+
+[[triage]]
+match.rules = ["qlty:return-statements"]
+match.file_patterns = [
+  "apps/cli/src/factory/adopt.ts",
+  "apps/cli/src/factory/composition.ts",
+  "apps/cli/src/factory/environment.ts",
+  "apps/cli/src/factory/upgrade.ts",
+  "packages/convex/confect/deployAuthority/http.ts",
+  "packages/convex/confect/deployAuthority/store.ts",
+  "packages/convex/confect/workflows/_kit/boundedBatch.ts",
+  "packages/convex/confect/workflows/_kit/effectReservations.ts",
+  "packages/convex/confect/workflows/_kit/graphRunnerV2.ts",
+  "packages/convex/confect/workflows/_kit/graphRunnerV2Current.ts",
+  "packages/convex/confect/workflows/_kit/lifecycleState.ts",
+  "packages/convex/confect/workflows/_kit/workflowDeadline.ts",
+  "packages/convex/confect/workflows/_kit/workflowSchedule.ts",
+  "packages/convex/confect/workflows/_kit/workflowScheduledCapability.ts",
+  "packages/convex/confect/workflows/graphMigration.ts",
+  "packages/template-core/src/recipes/schema.ts",
+  "packages/template-core/src/templateInstance/index.ts",
+  "packages/template-core/src/templateInstance/providerPosture.ts",
+]
+set.mode = "monitor"
+
+[[triage]]
+match.rules = ["qlty:similar-code"]
+match.file_patterns = [
+  "apps/cli/src/factory/create.ts",
+  "apps/cli/src/factory/preflight.ts",
+  "apps/cli/src/factory/scaffold.ts",
+  "apps/cli/src/factory/verify.ts",
+  "apps/cli/src/index.ts",
+  "packages/convex/confect/workflows/_kit/publication.ts",
+  "packages/convex/confect/workflows/_kit/publicationCurrent.ts",
+  "packages/convex/confect/workflows/_kit/subworkflows.ts",
+  "packages/convex/confect/workflows/_kit/subworkflowsCurrent.ts",
+  "packages/convex/confect/workflows/graph.ts",
+  "packages/convex/confect/workflows/graphCurrent.ts",
+  "packages/convex/confect/workflows/graphSchema.ts",
+  "packages/convex/confect/workflows/graphSchemaCurrent.ts",
+  "packages/convex/confect/workflows/lifecycle.impl.ts",
+]
+set.mode = "monitor"
 
 [[plugin]]
 name = "gitleaks"
