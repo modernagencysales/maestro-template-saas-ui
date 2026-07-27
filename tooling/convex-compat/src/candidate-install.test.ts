@@ -1,4 +1,4 @@
-import { execFileSync } from "node:child_process";
+import { execFile, execFileSync } from "node:child_process";
 import {
   cpSync,
   mkdtempSync,
@@ -8,6 +8,7 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import { promisify } from "node:util";
 import {
   createSourceFile,
   isFunctionDeclaration,
@@ -36,6 +37,7 @@ type CompatibilitySet = (typeof compatibilitySets)[number];
 
 const installations = new Map<CompatibilitySet["name"], string>();
 const repoRoot = resolve(import.meta.dirname, "../../..");
+const execFileAsync = promisify(execFile);
 
 const runPnpm = (root: string, ...args: readonly string[]): string =>
   execFileSync("pnpm", [...args], {
@@ -44,8 +46,18 @@ const runPnpm = (root: string, ...args: readonly string[]): string =>
     stdio: "pipe",
   });
 
+const runPnpmAsync = async (
+  root: string,
+  ...args: readonly string[]
+): Promise<void> => {
+  await execFileAsync("pnpm", [...args], {
+    cwd: root,
+    encoding: "utf8",
+  });
+};
+
 describe("isolated Workpool compatibility behavior", () => {
-  beforeAll(() => {
+  beforeAll(async () => {
     for (const set of compatibilitySets) {
       const root = mkdtempSync(
         join(tmpdir(), `maestro-workpool-${set.workpool.replaceAll(".", "")}-`),
@@ -68,8 +80,18 @@ describe("isolated Workpool compatibility behavior", () => {
           },
         }),
       );
-      runPnpm(root, "install", "--ignore-workspace", "--lockfile-only");
-      runPnpm(root, "install", "--ignore-workspace", "--frozen-lockfile");
+      await runPnpmAsync(
+        root,
+        "install",
+        "--ignore-workspace",
+        "--lockfile-only",
+      );
+      await runPnpmAsync(
+        root,
+        "install",
+        "--ignore-workspace",
+        "--frozen-lockfile",
+      );
 
       cpSync(
         join(root, "node_modules/@convex-dev/workpool/src"),
