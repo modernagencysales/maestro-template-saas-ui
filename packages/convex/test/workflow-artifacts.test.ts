@@ -31,7 +31,7 @@ const draft = (content: Value = { body: "large customer value" }) => ({
   workflowId: "workflow.brief",
   workflowVersion: 2,
   lifecycleGeneration: 1,
-  referenceKey: "brief-result.v2",
+  referenceKey: "fixture",
   kind: "capability-result" as const,
   sensitivity: "confidential" as const,
   content,

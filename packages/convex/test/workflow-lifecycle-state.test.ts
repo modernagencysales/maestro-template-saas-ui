@@ -266,7 +266,7 @@ describe("workflow lifecycle persistence leaves", () => {
             workflowId: "workflow.invoice",
             workflowVersion: 3,
             graphJson: "{}",
-            idempotencyKey: "invoice-persisted-1",
+            idempotencyKey: "fixture",
             startedByUserId: "user-a",
             startedAt: 1,
           });
@@ -276,7 +276,7 @@ describe("workflow lifecycle persistence leaves", () => {
             .index("by_idempotency_key", (q) =>
               q
                 .eq("workspaceId", "workspace-a")
-                .eq("idempotencyKey", "invoice-persisted-1"),
+                .eq("idempotencyKey", "fixture"),
             )
             .first()
             .pipe(Effect.map(Option.getOrNull), Effect.orDie);

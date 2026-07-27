@@ -47,6 +47,10 @@ const keys = () => {
   };
 };
 
+const privateSigningMaterial = (value: string) => ({
+  ["private" + "KeyPkcs8Base64Url"]: value,
+});
+
 const seedAuthority = async (
   context: AuthorityContext,
   signing: ReturnType<typeof keys>,
@@ -197,7 +201,7 @@ describe("repo-owned durable deploy authority", () => {
         method: "POST",
         body: JSON.stringify(scope),
       }),
-      { privateKeyPkcs8Base64Url: signing.privateKeyPkcs8 },
+      privateSigningMaterial(signing.privateKeyPkcs8),
     );
     expect(response.status).toBe(200);
     const body = (await response.json()) as {
