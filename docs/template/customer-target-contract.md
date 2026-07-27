@@ -17,12 +17,19 @@ and total install bytes without changing the source or target. `--write` is the
 only create write approval and still refuses dirty sources, unsafe roots,
 changed preflight evidence, collisions, and ambiguous non-empty targets.
 
-Successful materialization writes `template-instance.json` with:
+Successful materialization from the public `pnpm maestro -- create` command
+writes `template-instance.json` with:
 
-- immutable release version, tag, commit, and source-archive checksum;
+- immutable release version, tag, commit, and source/composition checksum;
 - CLI and Agent Pack compatibility;
-- ownership manifest path, checksum, and extension seams;
+- ownership authority identifier, checksum, and extension seams;
 - visible app name, first-outcome seed, and demo-only posture.
+
+The public create composition binds generated output to the current clean
+checkout. When that checkout is exactly the reviewed immutable release tag,
+`template-instance.json` records the release version, tag, tagged commit, and a
+composition checksum. A commit beyond the tag stays explicitly labeled
+`unreleased-current`; it must not present itself as a published release.
 
 The output contains exactly one next command: start the new target. Dependency
 installation and Git initialization are listed separately with

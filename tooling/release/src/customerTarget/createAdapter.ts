@@ -201,9 +201,13 @@ function currentFacts(
   resolved: ResolvedRelease,
 ): CustomerReleaseAdapterFacts {
   const candidateCommit = resolveCleanCandidateCommit(options.repositoryRoot);
+  const isExactTaggedComposition = candidateCommit === resolved.tagCommit;
+  const compositionKind = isExactTaggedComposition
+    ? "tagged-current-composition"
+    : "unreleased-current-composition";
   const authorityChecksum = sha256(
     JSON.stringify({
-      kind: "unreleased-current-composition",
+      kind: compositionKind,
       candidate: { sourceCommit: candidateCommit },
       base: {
         manifestChecksum: options.ownershipManifestChecksum,
@@ -225,13 +229,19 @@ function currentFacts(
     .filter((path, index, paths) => paths.indexOf(path) === index)
     .sort();
   return {
-    version: "unreleased-current",
-    tag: "unreleased-current",
+    version: isExactTaggedComposition
+      ? resolved.facts.version
+      : "unreleased-current",
+    tag: isExactTaggedComposition ? resolved.facts.tag : "unreleased-current",
     sourceCommit: candidateCommit,
     sourceChecksum: authorityChecksum,
-    cliCompatibility: "unreleased-current",
-    agentPackCompatibility: "unreleased-current",
-    ownershipManifest: "unreleased-current-composition",
+    cliCompatibility: isExactTaggedComposition
+      ? resolved.facts.cliCompatibility
+      : "unreleased-current",
+    agentPackCompatibility: isExactTaggedComposition
+      ? resolved.facts.agentPackCompatibility
+      : "unreleased-current",
+    ownershipManifest: compositionKind,
     ownershipManifestChecksum: authorityChecksum,
     extensionSeams,
   };

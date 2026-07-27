@@ -35,7 +35,14 @@ const taggedRepository = (): string => {
   );
   execFileSync(
     "git",
-    ["-C", taggedReleaseRoot, "tag", "maestro-template-v0.2.0-alpha.1", "HEAD"],
+    [
+      "-C",
+      taggedReleaseRoot,
+      "tag",
+      "--force",
+      "maestro-template-v0.2.0-alpha.1",
+      "HEAD",
+    ],
     { stdio: "pipe" },
   );
   execFileSync(
@@ -138,7 +145,7 @@ describe("create root integration", () => {
     expect((await runCliAsync(["help"])).stdout).toContain(CREATE_HELP.trim());
   });
 
-  it("resolves the current SaaS authority in a non-mutating default preview", async () => {
+  it("resolves the immutable SaaS authority in a non-mutating default preview", async () => {
     const parent = mkdtempSync(join(tmpdir(), "maestro-create-root-"));
     temporaryRoots.push(parent);
     const target = join(parent, "customer-app");
@@ -165,9 +172,9 @@ describe("create root integration", () => {
       ],
       data: {
         release: {
-          version: "unreleased-current",
-          tag: "unreleased-current",
-          sourceCommit: expect.stringMatching(/^[0-9a-f]{40}$/),
+          version: "0.2.0-alpha.1",
+          tag: "maestro-template-v0.2.0-alpha.1",
+          sourceCommit: "de1bac52bbd33745d2a0fecf8e1cb6ec5732310d",
           sourceChecksum: expect.stringMatching(/^sha256:[0-9a-f]{64}$/),
         },
         privacy: {

@@ -27,7 +27,14 @@ const taggedRepository = (): string => {
   );
   execFileSync(
     "git",
-    ["-C", taggedReleaseRoot, "tag", "maestro-template-v0.2.0-alpha.1", "HEAD"],
+    [
+      "-C",
+      taggedReleaseRoot,
+      "tag",
+      "--force",
+      "maestro-template-v0.2.0-alpha.1",
+      "HEAD",
+    ],
     { stdio: "pipe" },
   );
   execFileSync(
@@ -98,13 +105,13 @@ describe("materialized customer CLI runtime closure", () => {
     };
     expect(instance).toMatchObject({
       release: {
-        version: "unreleased-current",
-        tag: "unreleased-current",
+        version: "0.2.0-alpha.1",
+        tag: "maestro-template-v0.2.0-alpha.1",
         sourceCommit: expect.stringMatching(/^[0-9a-f]{40}$/),
         sourceChecksum: expect.stringMatching(/^sha256:[0-9a-f]{64}$/),
       },
       ownership: {
-        manifest: "unreleased-current-composition",
+        manifest: "tagged-current-composition",
         manifestChecksum: expect.stringMatching(/^sha256:[0-9a-f]{64}$/),
       },
       privacy: {
@@ -179,7 +186,7 @@ describe("materialized customer CLI runtime closure", () => {
     });
   }, 180_000);
 
-  it("installs and imports while unreleased-current preflight fails closed", async () => {
+  it("installs and imports while immutable-tag preflight fails closed", async () => {
     const parent = mkdtempSync(join(tmpdir(), "maestro-customer-cli-"));
     temporaryRoots.push(parent);
     const target = join(parent, "customer");
