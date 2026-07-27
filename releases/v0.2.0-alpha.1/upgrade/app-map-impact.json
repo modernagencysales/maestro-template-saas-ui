@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "kind": "reviewed-upgrade-impact-coverage",
   "baseRevision": "517b5bc28d1d633bef18f57610cff49800123788",
-  "subjectRevision": "f4516c613d06ae0cf0fb202f86c0765374f413c9",
+  "subjectRevision": "d5557cfbbb1cc0cd42459440736991e596b3f8b9",
   "structuralPaths": [
     "docs/template/data-resources.json",
     "docs/template/generated/provenance/add-table/workflowArtifacts.json",
@@ -65,6 +65,7 @@
     "docs/template/convex-workflow-compatibility.md",
     "docs/template/customer-target-contract.md",
     "docs/template/data-lifecycle.md",
+    "docs/template/env-manifest.json",
     "docs/template/executable-recipes.md",
     "docs/template/existing-app-adoption.md",
     "docs/template/generated/workflow-publications.json",
@@ -73,6 +74,7 @@
     "docs/template/how-to-add-workflow.md",
     "docs/template/maestro-mcp.md",
     "docs/template/preflight.md",
+    "docs/template/qlty-maintainability-baseline.md",
     "docs/template/quickstart.md",
     "docs/template/recipes/approval-background-automation.json",
     "docs/template/recipes/crud-business-entity.json",
@@ -507,7 +509,7 @@
   "impact": {
     "schemaVersion": 1,
     "baseRevision": "517b5bc28d1d633bef18f57610cff49800123788",
-    "subjectRevision": "f4516c613d06ae0cf0fb202f86c0765374f413c9",
+    "subjectRevision": "d5557cfbbb1cc0cd42459440736991e596b3f8b9",
     "complete": true,
     "risk": "high",
     "changedPaths": [

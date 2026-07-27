@@ -3,7 +3,7 @@
   "id": "saas-application",
   "provenance": "@maestro-template/generators/saas-application@1",
   "projectionSource": {
-    "sourceCommit": "f4516c613d06ae0cf0fb202f86c0765374f413c9",
+    "sourceCommit": "d5557cfbbb1cc0cd42459440736991e596b3f8b9",
     "assets": [
       {
         "path": "base/apps/cli/src/factory/customerComposition.ts.txt",
@@ -451,7 +451,7 @@
       },
       {
         "path": "base/tooling/agent-pack/src/readiness/artifacts.ts.txt",
-        "sha256": "sha256:2fd8bb632791dd52e71725713a2a16de264d0c8831cd234deec374c452331d6f"
+        "sha256": "sha256:2ad9d7c6efa28b38f8809d22fcaa7fa3a2f8020499d0d7dfdac1e450387096b6"
       },
       {
         "path": "base/tooling/agent-pack/src/readiness/index.ts.txt",
@@ -463,11 +463,11 @@
       },
       {
         "path": "base/tooling/agent-pack/src/readiness/presenter.ts.txt",
-        "sha256": "sha256:3fe806a7c7d9babf686d64364908f330d664ca3ea7b67a5b8ce83233babda535"
+        "sha256": "sha256:69f06e8391dd905a0f0ba2a458e8c32f73fd2bbd81b9342ef099e2bff78c59db"
       },
       {
         "path": "base/tooling/agent-pack/src/readiness/server.ts.txt",
-        "sha256": "sha256:9d7fb867ecbd2076e36412512f17a70bdbc0f80b05d7e27385c69b0782943666"
+        "sha256": "sha256:7a3e5890f7a1d40d6f4896a5970906394024f33505c3a5bf3ffe9872e29e4b25"
       },
       {
         "path": "base/tooling/agent-pack/src/receiptWriter.ts.txt",
@@ -1747,7 +1747,7 @@
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:2fd8bb632791dd52e71725713a2a16de264d0c8831cd234deec374c452331d6f",
+      "sha256": "sha256:2ad9d7c6efa28b38f8809d22fcaa7fa3a2f8020499d0d7dfdac1e450387096b6",
       "replaces": "copy"
     },
     {
@@ -1771,7 +1771,7 @@
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:3fe806a7c7d9babf686d64364908f330d664ca3ea7b67a5b8ce83233babda535",
+      "sha256": "sha256:69f06e8391dd905a0f0ba2a458e8c32f73fd2bbd81b9342ef099e2bff78c59db",
       "replaces": "copy"
     },
     {
@@ -1779,7 +1779,7 @@
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:9d7fb867ecbd2076e36412512f17a70bdbc0f80b05d7e27385c69b0782943666",
+      "sha256": "sha256:7a3e5890f7a1d40d6f4896a5970906394024f33505c3a5bf3ffe9872e29e4b25",
       "replaces": "copy"
     },
     {

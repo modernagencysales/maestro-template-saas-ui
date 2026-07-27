@@ -9,8 +9,8 @@
   "release": {
     "version": "0.2.0-alpha.1",
     "tag": "maestro-template-v0.2.0-alpha.1",
-    "sourceCommit": "f4516c613d06ae0cf0fb202f86c0765374f413c9",
-    "sourceChecksum": "sha256:3ef28e915bb812f4ef52d4ab88aae21d43a33654b2e7938e6a24f5068a05a66b"
+    "sourceCommit": "d5557cfbbb1cc0cd42459440736991e596b3f8b9",
+    "sourceChecksum": "sha256:5f00b45f5aaba71e72535e86a5867e36ca0b579e56194e67c179f32dcf0fea49"
   },
   "upgrade": {
     "schemaVersion": 1,
@@ -391,6 +391,14 @@
         "afterHash": "sha256:c7c7406a09a9aa1b85ba4c6f6a045a97b069f999be5e321e6440fb998a64f0fa"
       },
       {
+        "id": "upgrade-modify-docs-template-env-manifest-json",
+        "kind": "modify",
+        "path": "docs/template/env-manifest.json",
+        "ownership": "template-owned",
+        "beforeHash": "sha256:876b76be352ff00b8f7c3da4bf43fc2e36c53aee871e7a18d6de9a54bff0c392",
+        "afterHash": "sha256:84ce2e18679e5ef28637be72c9be414b74be91f2be1f3e0a324a2d4078291885"
+      },
+      {
         "id": "upgrade-add-docs-template-executable-recipes-md",
         "kind": "add",
         "path": "docs/template/executable-recipes.md",
@@ -477,6 +485,13 @@
         "ownership": "template-owned",
         "beforeHash": "sha256:58449176982ec249a887f5e4eea44a6a6bc48e1e100a5b114d8e2c5150d0041a",
         "afterHash": "sha256:00a9802922bf2eeb666f2b02955272377e1571e24729150c5cd2460817e5d184"
+      },
+      {
+        "id": "upgrade-add-docs-template-qlty-maintainability-baseline-md",
+        "kind": "add",
+        "path": "docs/template/qlty-maintainability-baseline.md",
+        "ownership": "template-owned",
+        "afterHash": "sha256:bb622f4765eed62f0990439b252e793f1cff3a755eebe56b1689198a6859ca59"
       },
       {
         "id": "upgrade-modify-docs-template-quickstart-md",
@@ -1725,7 +1740,7 @@
         "kind": "add",
         "path": "packages/convex/test/deploy-authority.test.ts",
         "ownership": "template-owned",
-        "afterHash": "sha256:56a6a6c2841903b7313094a0393cc55bac3e40bb87a3a7c5a2adfd6c39893c72"
+        "afterHash": "sha256:ae6292058c3e0fb7060571907abeb430b3ede0a9b54eb2491d528fb4409f2553"
       },
       {
         "id": "upgrade-add-packages-convex-test-fixtures-workflow-deadline-harness-ts",
@@ -1803,7 +1818,7 @@
         "kind": "add",
         "path": "packages/convex/test/workflow-artifacts.test.ts",
         "ownership": "template-owned",
-        "afterHash": "sha256:fcf1633857d9e94ed61311a5af2ab8f10c2eefb291b420402149599b8d451719"
+        "afterHash": "sha256:2fc87ef012a405cc29f4c90a351cb3942ccad3df67988667b493be8c8d3a81d5"
       },
       {
         "id": "upgrade-add-packages-convex-test-workflow-bounded-batch-test-ts",
@@ -1969,7 +1984,7 @@
         "kind": "add",
         "path": "packages/convex/test/workflow-lifecycle-state.test.ts",
         "ownership": "template-owned",
-        "afterHash": "sha256:0c9035066c089e35f257c70ae6471c5b99fb172bcb494f9a7dcce0e452dab0dd"
+        "afterHash": "sha256:13c676fa366a6c674bc312c10588bb444acd4fe2313e82a0d39dbe9efa20b693"
       },
       {
         "id": "upgrade-add-packages-convex-test-workflow-lifecycle-sweep-test-ts",
@@ -2122,7 +2137,7 @@
         "kind": "add",
         "path": "packages/template-core/src/templateInstance/templateInstance.test.ts",
         "ownership": "template-owned",
-        "afterHash": "sha256:2c96ab9048a35f776ca4ae0d4f265cb724269cfc6071ff104f279063538b690f"
+        "afterHash": "sha256:437764caf9fdf3cb9db9da8b5f1ab86ee588f09a80a993dd83c0cb2f05f9e4da"
       },
       {
         "id": "upgrade-modify-packages-template-core-src-workflow-semantics-contract-test-ts",
@@ -2169,7 +2184,7 @@
         "path": "pnpm-lock.yaml",
         "ownership": "template-owned",
         "beforeHash": "sha256:605969e66dcb975b9ba4bb203308456aeb75b6e2c82a607791fd2ad774d53093",
-        "afterHash": "sha256:ef9a747d38983f95fd8dbd1817b9291b87464b9ac4f979016830cf99565ae8ee"
+        "afterHash": "sha256:5d087336ff15f6d8346501fc9f6404d89e2b39fef20a7d7215fed19114c10e50"
       },
       {
         "id": "upgrade-add-schemas-maestro-adoption-work-package-schema-json",
@@ -2381,7 +2396,7 @@
         "path": "tooling/agent-pack/package.json",
         "ownership": "template-owned",
         "beforeHash": "sha256:283f5ab4cff2066948d3e8cec73267359753e316fed0eaea092029b807d4bfb1",
-        "afterHash": "sha256:e83c36613e9bd57b49136633496046d9612ac7550f67e28140fea426f788aac5"
+        "afterHash": "sha256:0dacf484e4f040c99310cd23ac83ee5c9b6016f2f0366b50d00553c5d0250cfb"
       },
       {
         "id": "upgrade-add-tooling-agent-pack-src-adopt-test-ts",
@@ -2776,14 +2791,14 @@
         "kind": "add",
         "path": "tooling/agent-pack/src/readiness/artifacts.test.ts",
         "ownership": "template-owned",
-        "afterHash": "sha256:b4ed861a39641e883d9120ba76aa6b9def6dd12507f575b4fdd1d5fbff32f442"
+        "afterHash": "sha256:18f75730c40e390c76da8600fb758c7ff9f35aeea3789ae5cf49dde0cf1d60f4"
       },
       {
         "id": "upgrade-add-tooling-agent-pack-src-readiness-artifacts-ts",
         "kind": "add",
         "path": "tooling/agent-pack/src/readiness/artifacts.ts",
         "ownership": "template-owned",
-        "afterHash": "sha256:2fd8bb632791dd52e71725713a2a16de264d0c8831cd234deec374c452331d6f"
+        "afterHash": "sha256:2ad9d7c6efa28b38f8809d22fcaa7fa3a2f8020499d0d7dfdac1e450387096b6"
       },
       {
         "id": "upgrade-add-tooling-agent-pack-src-readiness-index-ts",
@@ -2804,28 +2819,28 @@
         "kind": "add",
         "path": "tooling/agent-pack/src/readiness/presenter.test.ts",
         "ownership": "template-owned",
-        "afterHash": "sha256:7e42583b5a895180cb3c12a34abe55d95cb8ffbe30d900958ad2eed631004815"
+        "afterHash": "sha256:aca719676da0b6a0a52da18aabd6c217901710acc3bceb50c137fd809f46cf3f"
       },
       {
         "id": "upgrade-add-tooling-agent-pack-src-readiness-presenter-ts",
         "kind": "add",
         "path": "tooling/agent-pack/src/readiness/presenter.ts",
         "ownership": "template-owned",
-        "afterHash": "sha256:3fe806a7c7d9babf686d64364908f330d664ca3ea7b67a5b8ce83233babda535"
+        "afterHash": "sha256:69f06e8391dd905a0f0ba2a458e8c32f73fd2bbd81b9342ef099e2bff78c59db"
       },
       {
         "id": "upgrade-add-tooling-agent-pack-src-readiness-readiness-visual-test-ts",
         "kind": "add",
         "path": "tooling/agent-pack/src/readiness/readiness-visual.test.ts",
         "ownership": "template-owned",
-        "afterHash": "sha256:35f291fa4f76b12bfdd67de578f6ff47d2d319fb6b2f1255996156f3f906d05a"
+        "afterHash": "sha256:7ca751f410724292a5a5d188c6564be183cbe5d98daaee57c02b68c2408d2af1"
       },
       {
         "id": "upgrade-add-tooling-agent-pack-src-readiness-server-ts",
         "kind": "add",
         "path": "tooling/agent-pack/src/readiness/server.ts",
         "ownership": "template-owned",
-        "afterHash": "sha256:9d7fb867ecbd2076e36412512f17a70bdbc0f80b05d7e27385c69b0782943666"
+        "afterHash": "sha256:7a3e5890f7a1d40d6f4896a5970906394024f33505c3a5bf3ffe9872e29e4b25"
       },
       {
         "id": "upgrade-modify-tooling-agent-pack-src-receipt-test-ts",
@@ -3961,14 +3976,14 @@
   ],
   "blueprintManifest": {
     "path": "blueprints/saas-application.json",
-    "sha256": "sha256:4ef11638b185b57334d75dc3b91219bbcd2352703e43579489122a6f11f49ad6"
+    "sha256": "sha256:9d6c6c81523ac983d8d4484d3f818fd6cf83e28066be35ca0dbe089d9b0b20db"
   },
   "upgradeImpact": {
     "path": "releases/v0.2.0-alpha.1/upgrade/app-map-input.json",
-    "sha256": "sha256:0397bb0576da6a262c67388185be136551e5ab8b5d8947dd56483dae34100dc9",
+    "sha256": "sha256:8b020fd70a8064037ffca0e971be87ac9365a2065cf7a45ef51839aa9b6c6470",
     "projection": {
       "path": "releases/v0.2.0-alpha.1/upgrade/app-map-impact.json",
-      "sha256": "sha256:9dd9e08f0056e2a3e5b57734aa4856632589b42cb2d050809dea8edafb784ad8"
+      "sha256": "sha256:d688fbd4075b302891abc96a3ace19a6369316f9162e774f3173d5b2ba9bb9e2"
     }
   },
   "migrationHandoff": {
