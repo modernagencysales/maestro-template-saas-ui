@@ -47,9 +47,12 @@ const keys = () => {
   };
 };
 
-const privateSigningMaterial = (value: string) => ({
-  ["private" + "KeyPkcs8Base64Url"]: value,
-});
+const privateSigningMaterial = (
+  value: string,
+): Parameters<typeof handleDeployAuthorityHttpRequest>[2] =>
+  ({
+    ["private" + "KeyPkcs8Base64Url"]: value,
+  }) as Parameters<typeof handleDeployAuthorityHttpRequest>[2];
 
 const seedAuthority = async (
   context: AuthorityContext,
