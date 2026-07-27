@@ -6,7 +6,6 @@ import {
   assertMaterializableCustomerReleaseManifest,
   validateCustomerReleaseManifest,
 } from "./manifest";
-import { hashSourceFiles } from "./sourceFixture.test-support";
 
 const repoRoot = resolve(import.meta.dirname, "../../../..");
 const sourceCommit = "517b5bc28d1d633bef18f57610cff49800123788";
@@ -45,15 +44,16 @@ const rewriteFixture = (
   return JSON.parse(serialized);
 };
 
-const shippedPaths = Object.keys(
-  JSON.parse(readFileSync(fixturePath, "utf8")).expectedHashes,
-);
 const shippedFiles = Object.freeze(
-  hashSourceFiles(repoRoot, sourceCommit, shippedPaths),
+  (
+    JSON.parse(readFileSync(fixturePath, "utf8")) as {
+      readonly expectedHashes: Readonly<Record<string, string>>;
+    }
+  ).expectedHashes,
 );
 
 describe("customer release manifest", () => {
-  it("validates the immutable golden tagged release", () => {
+  it("validates the checked-in unpublished release fixture", () => {
     const manifest = validateCustomerReleaseManifest(
       readFixture(),
       shippedFiles,

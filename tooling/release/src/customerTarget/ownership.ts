@@ -27,6 +27,7 @@ const FACTORY_ONLY_PREFIXES = [
   "docs/superpowers/",
   "examples/gtm-context-app/",
   "examples/gtm-implementation/",
+  "examples/saas-application/",
   "experiments/",
   "releases/",
   "repos/",
