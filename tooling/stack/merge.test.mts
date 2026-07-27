@@ -1,8 +1,17 @@
-import { expect, test, vi } from "vitest";
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { REQUIRED_CHECKS, type Runner } from "./exec.mts";
 import { mergeStack } from "./merge.mts";
 
 const BUILDKITE_AGGREGATE_CHECK = "buildkite/maestro-template-ci";
+
+beforeEach(() => {
+  vi.stubEnv("GH_REPO", "");
+  vi.stubEnv("GITHUB_REPOSITORY", "");
+});
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
 
 function successStatuses() {
   return {
