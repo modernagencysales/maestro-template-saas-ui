@@ -17,6 +17,12 @@ const view = presentBuildReadiness({
     diagnostics: [],
   },
   providers: [{ id: "convex", posture: "sample" }],
+  providerEnvironments: [
+    {
+      environment: "dev",
+      providers: [{ id: "convex", state: "unavailable", evidence: [] }],
+    },
+  ],
   surfaces: [{ id: "fake-record-crud", kind: "data", status: "fake" }],
   receipt: null,
 });
@@ -34,6 +40,8 @@ describe("readiness visual", () => {
     expect(html.indexOf("<details")).toBeLessThan(
       html.indexOf("fake-record-crud"),
     );
+    expect(html).toContain("Provider environments");
+    expect(html).toContain("convex=<code>unavailable</code>");
     expect(html).not.toMatch(/secret-value|deploy-key-value/i);
   });
 });

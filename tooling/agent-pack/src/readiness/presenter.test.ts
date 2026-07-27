@@ -19,6 +19,7 @@ const input = (overrides: Partial<BuildReadinessInput> = {}) => ({
     diagnostics: [],
   },
   providers: [{ id: "convex", posture: "sample" as const }],
+  providerEnvironments: [],
   surfaces: [
     {
       id: "workspace-membership",
@@ -73,6 +74,62 @@ describe("build readiness presenter", () => {
 
     expect(view.summary.automations).toBe("Selected and review-gated");
     expect(view.selection.recipe).toContain("approval-background-automation");
+  });
+
+  it("projects independent per-environment provider posture", () => {
+    const view = presentBuildReadiness(
+      input({
+        providerEnvironments: [
+          {
+            environment: "dev",
+            providers: [
+              { id: "email", state: "fake", evidence: [] },
+              {
+                id: "llm",
+                state: "verified",
+                evidence: [
+                  {
+                    kind: "verification",
+                    ref: "receipt:llm-dev",
+                    secretNames: ["LLM_API_KEY"],
+                    expiresAt: "2026-08-02T12:00:00.000Z",
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            environment: "production",
+            providers: [{ id: "llm", state: "seam", evidence: [] }],
+          },
+        ],
+      }),
+    );
+
+    expect(view.details.providerEnvironments).toEqual([
+      {
+        environment: "dev",
+        providers: [
+          { id: "email", state: "fake", evidence: [] },
+          {
+            id: "llm",
+            state: "verified",
+            evidence: [
+              {
+                kind: "verification",
+                ref: "receipt:llm-dev",
+                secretNames: ["LLM_API_KEY"],
+                expiresAt: "2026-08-02T12:00:00.000Z",
+              },
+            ],
+          },
+        ],
+      },
+      {
+        environment: "production",
+        providers: [{ id: "llm", state: "seam", evidence: [] }],
+      },
+    ]);
   });
 
   it("presents receipt subject and staleness without exposing fingerprints", () => {

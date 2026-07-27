@@ -1,3 +1,8 @@
+import {
+  PROVIDER_ENVIRONMENTS,
+  migrateLegacyGlobalProviderPosture,
+  type LegacyGlobalProviderMode,
+} from "@maestro-template/template-core/templateInstance";
 import { resolve } from "node:path";
 import {
   evaluateReceiptStaleness,
@@ -70,6 +75,7 @@ export async function loadBuildReadinessInput(input: {
   const surfaces = parseSurfaces(readiness.surfaces);
   const automation = record(readiness.automation);
   const receipt = await optionalReceipt(input);
+  const providerEnvironments = projectProviderEnvironments(instance);
   return {
     app: {
       name: personalization.name,
@@ -88,9 +94,44 @@ export async function loadBuildReadinessInput(input: {
       diagnostics: input.preflight.diagnostics.map(({ rerun }) => ({ rerun })),
     },
     providers: input.preflight.providers.map((provider) => ({ ...provider })),
+    providerEnvironments,
     surfaces,
     receipt,
   };
+}
+
+function projectProviderEnvironments(
+  instance: Record<string, unknown>,
+): BuildReadinessInput["providerEnvironments"] {
+  const providerMode = instance.providerMode;
+  const providerIds = Object.keys(record(instance.providers));
+  if (providerMode === undefined && providerIds.length === 0) return [];
+  if (!legacyProviderMode(providerMode) || providerIds.length === 0)
+    throw new Error("Template instance readiness facts are invalid.");
+  const posture = migrateLegacyGlobalProviderPosture({
+    providerMode,
+    providerIds,
+  });
+  return PROVIDER_ENVIRONMENTS.map((environment) => ({
+    environment,
+    providers: Object.entries(posture.providers).map(([id, provider]) => {
+      const environmentPosture = provider.environments[environment];
+      return {
+        id,
+        state: environmentPosture.state,
+        evidence: environmentPosture.evidence.map(
+          ({ secretNames, ...entry }) => ({
+            ...entry,
+            secretNames: [...secretNames],
+          }),
+        ),
+      };
+    }),
+  }));
+}
+
+function legacyProviderMode(value: unknown): value is LegacyGlobalProviderMode {
+  return value === "fake" || value === "test" || value === "live";
 }
 
 async function requiredArtifact(

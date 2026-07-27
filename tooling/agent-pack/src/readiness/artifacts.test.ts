@@ -38,6 +38,8 @@ function files(receipt?: unknown) {
           id: "saas-application",
           workflowPosture: "optional-unavailable",
         },
+        providerMode: "fake",
+        providers: { convex: "fake" },
         ignoredSecret: "deploy-key-value",
       }),
     ],
@@ -102,6 +104,32 @@ describe("readiness canonical artifact adapter", () => {
       },
       blueprint: { id: "saas-application", workflowSelected: false },
       recipe: null,
+      providerEnvironments: [
+        {
+          environment: "fake",
+          providers: [{ id: "convex", state: "fake", evidence: [] }],
+        },
+        {
+          environment: "local",
+          providers: [{ id: "convex", state: "fake", evidence: [] }],
+        },
+        {
+          environment: "dev",
+          providers: [{ id: "convex", state: "unavailable", evidence: [] }],
+        },
+        {
+          environment: "preview",
+          providers: [{ id: "convex", state: "unavailable", evidence: [] }],
+        },
+        {
+          environment: "staging",
+          providers: [{ id: "convex", state: "unavailable", evidence: [] }],
+        },
+        {
+          environment: "production",
+          providers: [{ id: "convex", state: "unavailable", evidence: [] }],
+        },
+      ],
       surfaces: [
         { id: "workspace-membership", kind: "screen", status: "real" },
         { id: "fake-record-crud", kind: "data", status: "fake" },

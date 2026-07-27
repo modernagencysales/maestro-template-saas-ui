@@ -66,6 +66,17 @@ export function renderReadinessHtml(view: BuildReadinessView): string {
         `<li>${escapeHtml(id)}: <code>${posture}</code></li>`,
     )
     .join("");
+  const providerEnvironments = view.details.providerEnvironments
+    .map(
+      ({ environment, providers: environmentProviders }) =>
+        `<li>${escapeHtml(environment)}: ${environmentProviders
+          .map(
+            ({ id, state }) =>
+              `${escapeHtml(id)}=<code>${escapeHtml(state)}</code>`,
+          )
+          .join(", ")}</li>`,
+    )
+    .join("");
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${escapeHtml(view.title)}</title><style>${styles}</style></head>
@@ -76,7 +87,7 @@ export function renderReadinessHtml(view: BuildReadinessView): string {
 <section><h2>Selected build</h2><p>Blueprint: ${escapeHtml(view.selection.blueprint)}</p><p>Recipe: ${escapeHtml(view.selection.recipe)}</p></section>
 <section><h2>Latest verification</h2><p>${escapeHtml(view.receipt.status)} — ${escapeHtml(view.receipt.subject)}</p>${view.receipt.detail ? `<p>${escapeHtml(view.receipt.detail)}</p>` : ""}</section>
 <section><h2>Next action</h2><ol>${actions}</ol></section>
-<details><summary>Technical details</summary><p>Preflight: <code>${view.details.preflight}</code></p><h3>Surfaces</h3><ul>${surfaces}</ul><h3>Providers</h3><ul>${providers}</ul></details>
+<details><summary>Technical details</summary><p>Preflight: <code>${view.details.preflight}</code></p><h3>Surfaces</h3><ul>${surfaces}</ul><h3>Providers</h3><ul>${providers}</ul><h3>Provider environments</h3><ul>${providerEnvironments}</ul></details>
 </main></body></html>`;
 }
 

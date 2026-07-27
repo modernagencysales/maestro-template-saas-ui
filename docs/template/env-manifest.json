@@ -1,6 +1,39 @@
 {
   "schemaVersion": 1,
   "description": "Machine-readable environment manifest for the Maestro Template fake-first SaaS starter.",
+  "providerPosture": {
+    "schemaVersion": 1,
+    "environments": [
+      "fake",
+      "local",
+      "dev",
+      "preview",
+      "staging",
+      "production"
+    ],
+    "states": [
+      "fake",
+      "seam",
+      "configured",
+      "verified",
+      "disabled",
+      "unavailable"
+    ],
+    "evidence": {
+      "fields": ["kind", "ref", "secretNames", "expiresAt"],
+      "secretValuesAllowed": false
+    },
+    "providerConfigurationNames": {
+      "convex": ["CONVEX_DEPLOYMENT", "VITE_CONVEX_URL", "CONVEX_SITE_URL"],
+      "workos": ["WORKOS_CLIENT_ID", "WORKOS_ORGANIZATION_ID"],
+      "posthog": ["POSTHOG_PROJECT_TOKEN", "POSTHOG_HOST"],
+      "dodo": ["DODO_ENVIRONMENT"],
+      "email": ["MAILERSEND_FROM_EMAIL", "EMAIL_DISABLED"],
+      "llm": ["LLM_PROVIDER_MODE", "LLM_DISABLED"],
+      "search": ["SEARCH_PROVIDER"],
+      "storage": ["STORAGE_PROVIDER"]
+    }
+  },
   "variables": [
     {
       "name": "APP_NAME",

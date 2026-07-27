@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   CURRENT_TEMPLATE_INSTANCE_VERSIONS,
@@ -6,6 +7,7 @@ import {
   TEMPLATE_INSTANCE_PROVENANCE,
   TEMPLATE_INSTANCE_SCHEMA_VERSION,
   PROVIDER_ENVIRONMENTS,
+  PROVIDER_POSTURE_STATES,
   isProviderVerifiedFor,
   migrateLegacyGlobalProviderPosture,
   parseProviderPosture,
@@ -46,6 +48,65 @@ const posturePast = "2020-01-01T00:00:00.000Z";
 const postureNow = new Date("2026-07-25T00:00:00.000Z");
 
 describe("templateInstance provider posture", () => {
+  it("pins the reviewed legacy migration fixture to the conservative contract", () => {
+    const fixture = JSON.parse(
+      readFileSync(
+        new URL(
+          "../../../../tooling/release/__fixtures__/upgrade/provider-posture-v1-to-v2.contract.json",
+          import.meta.url,
+        ),
+        "utf8",
+      ),
+    ) as {
+      readonly before: {
+        readonly providerMode: "live";
+        readonly providerIds: readonly string[];
+      };
+      readonly after: unknown;
+    };
+
+    const migrated = migrateLegacyGlobalProviderPosture(fixture.before);
+    expect(migrated).toEqual(fixture.after);
+    expect(parseProviderPosture(fixture.after)).toEqual(migrated);
+  });
+
+  it("projects canonical posture metadata by configuration name only", () => {
+    const manifest = JSON.parse(
+      readFileSync(
+        new URL("../../../../docs/template/env-manifest.json", import.meta.url),
+        "utf8",
+      ),
+    ) as {
+      readonly providerPosture: {
+        readonly schemaVersion: number;
+        readonly environments: readonly string[];
+        readonly states: readonly string[];
+        readonly evidence: {
+          readonly fields: readonly string[];
+          readonly secretValuesAllowed: boolean;
+        };
+        readonly providerConfigurationNames: Readonly<
+          Record<string, readonly string[]>
+        >;
+      };
+    };
+
+    expect(manifest.providerPosture).toMatchObject({
+      schemaVersion: 1,
+      environments: PROVIDER_ENVIRONMENTS,
+      states: PROVIDER_POSTURE_STATES,
+      evidence: {
+        fields: ["kind", "ref", "secretNames", "expiresAt"],
+        secretValuesAllowed: false,
+      },
+    });
+    expect(
+      Object.values(manifest.providerPosture.providerConfigurationNames)
+        .flat()
+        .every((name) => /^[A-Z][A-Z0-9_]*$/u.test(name)),
+    ).toBe(true);
+  });
+
   it("scopes verification to one exact environment", () => {
     const posture = parseProviderPosture({
       schemaVersion: 1,

@@ -1,4 +1,8 @@
 import type {
+  ProviderEnvironment,
+  ProviderEnvironmentPosture,
+} from "@maestro-template/template-core/templateInstance";
+import type {
   ReceiptStaleness,
   ReceiptStalenessReason,
   VerificationReceiptSummary,
@@ -6,6 +10,14 @@ import type {
 } from "../receipt.js";
 
 export type ReadinessSurfaceStatus = "real" | "fake" | "seam" | "unverified";
+export type ReadinessProviderEnvironment = {
+  readonly environment: ProviderEnvironment;
+  readonly providers: readonly {
+    readonly id: string;
+    readonly state: ProviderEnvironmentPosture["state"];
+    readonly evidence: ProviderEnvironmentPosture["evidence"];
+  }[];
+};
 export type BuildReadinessInput = {
   readonly app: {
     readonly name: string;
@@ -31,6 +43,7 @@ export type BuildReadinessInput = {
     readonly id: string;
     readonly posture: "sample" | "local" | "test" | "live" | "missing";
   }[];
+  readonly providerEnvironments: readonly ReadinessProviderEnvironment[];
   readonly surfaces: readonly {
     readonly id: string;
     readonly kind: "screen" | "data" | "automation" | "connection" | "other";
@@ -66,6 +79,7 @@ export type BuildReadinessView = {
   readonly details: {
     readonly surfaces: readonly BuildReadinessInput["surfaces"][number][];
     readonly providers: readonly BuildReadinessInput["providers"][number][];
+    readonly providerEnvironments: BuildReadinessInput["providerEnvironments"];
     readonly preflight: "ready" | "unverified";
   };
 };
@@ -103,6 +117,18 @@ export function presentBuildReadiness(
     details: {
       surfaces: input.surfaces.map((surface) => ({ ...surface })),
       providers: input.providers.map((provider) => ({ ...provider })),
+      providerEnvironments: input.providerEnvironments.map(
+        ({ environment, providers }) => ({
+          environment,
+          providers: providers.map(({ evidence, ...provider }) => ({
+            ...provider,
+            evidence: evidence.map(({ secretNames, ...entry }) => ({
+              ...entry,
+              secretNames: [...secretNames],
+            })),
+          })),
+        }),
+      ),
       preflight: input.preflight.safeToStart ? "ready" : "unverified",
     },
   };
