@@ -174,7 +174,13 @@ describe("create root integration", () => {
         release: {
           version: "0.2.0-alpha.1",
           tag: "maestro-template-v0.2.0-alpha.1",
-          sourceCommit: "de1bac52bbd33745d2a0fecf8e1cb6ec5732310d",
+          sourceCommit: execFileSync(
+            "git",
+            ["-C", repoRoot, "rev-parse", "HEAD"],
+            {
+              encoding: "utf8",
+            },
+          ).trim(),
           sourceChecksum: expect.stringMatching(/^sha256:[0-9a-f]{64}$/),
         },
         privacy: {
