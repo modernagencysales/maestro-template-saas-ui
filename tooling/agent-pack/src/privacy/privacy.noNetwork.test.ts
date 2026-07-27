@@ -29,7 +29,14 @@ const taggedRepository = (): string => {
   );
   execFileSync(
     "git",
-    ["-C", taggedReleaseRoot, "tag", "maestro-template-v0.2.0-alpha.1", "HEAD"],
+    [
+      "-C",
+      taggedReleaseRoot,
+      "tag",
+      "--force",
+      "maestro-template-v0.2.0-alpha.1",
+      "HEAD",
+    ],
     { stdio: "pipe" },
   );
   execFileSync(
