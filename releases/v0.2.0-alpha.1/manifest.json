@@ -9,8 +9,8 @@
   "release": {
     "version": "0.2.0-alpha.1",
     "tag": "maestro-template-v0.2.0-alpha.1",
-    "sourceCommit": "d5557cfbbb1cc0cd42459440736991e596b3f8b9",
-    "sourceChecksum": "sha256:5f00b45f5aaba71e72535e86a5867e36ca0b579e56194e67c179f32dcf0fea49"
+    "sourceCommit": "5b7fa67e45d5aa81faa13f19bb2f8c092347686d",
+    "sourceChecksum": "sha256:cd597cf2867cc12206a0ad0a3a32919d08baa9cb504a4a5b34fcbcba65a2ae0c"
   },
   "upgrade": {
     "schemaVersion": 1,
@@ -1740,7 +1740,7 @@
         "kind": "add",
         "path": "packages/convex/test/deploy-authority.test.ts",
         "ownership": "template-owned",
-        "afterHash": "sha256:ae6292058c3e0fb7060571907abeb430b3ede0a9b54eb2491d528fb4409f2553"
+        "afterHash": "sha256:9bc41976367916532af4987b5abb901002fed976012191e06ae137a4a6387c83"
       },
       {
         "id": "upgrade-add-packages-convex-test-fixtures-workflow-deadline-harness-ts",
@@ -3976,14 +3976,14 @@
   ],
   "blueprintManifest": {
     "path": "blueprints/saas-application.json",
-    "sha256": "sha256:9d6c6c81523ac983d8d4484d3f818fd6cf83e28066be35ca0dbe089d9b0b20db"
+    "sha256": "sha256:c219057621bad35ea4a37699db06704a6961524deeefbec58486983e8ca24cf0"
   },
   "upgradeImpact": {
     "path": "releases/v0.2.0-alpha.1/upgrade/app-map-input.json",
-    "sha256": "sha256:8b020fd70a8064037ffca0e971be87ac9365a2065cf7a45ef51839aa9b6c6470",
+    "sha256": "sha256:4abdf10f35eabdfd3915a22579d85ed2ea781f206910716b7d673ccb9106ba45",
     "projection": {
       "path": "releases/v0.2.0-alpha.1/upgrade/app-map-impact.json",
-      "sha256": "sha256:d688fbd4075b302891abc96a3ace19a6369316f9162e774f3173d5b2ba9bb9e2"
+      "sha256": "sha256:0ca2e1f045ea58ed1609f55aca57bad2b48e797a75b540e9674dd0925fb99bbd"
     }
   },
   "migrationHandoff": {
