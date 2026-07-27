@@ -162,13 +162,16 @@ const checkDescriptorDefinitions = {
           '"test:release-filesystem"',
           '"test:app-map"',
           '"check:app-map"',
+          "--exclude apps/cli/src/factory/customerCliRuntime.test.ts",
+          "--exclude apps/cli/src/factory/createRootIntegration.test.ts",
+          "--exclude tooling/release/src/customerTarget/finalFilesystem.test.ts",
           "turbo run test --filter=!@maestro-template/release-tooling --filter=!@maestro-template/agent-pack --filter=!@maestro-template/cli --filter=!@maestro-template/convex-compat && pnpm --dir tooling/agent-pack test && pnpm --dir apps/cli test && pnpm --dir tooling/convex-compat test && pnpm --dir packages/convex test:workflow-conformance && pnpm --dir apps/cli test:customer-cli-runtime && pnpm --dir apps/cli test:create-root-integration && pnpm --dir tooling/agent-pack test:privacy-no-network && pnpm --dir tooling/release test:unit && pnpm test:release-filesystem",
           'pnpm --dir tooling/evals test && pnpm --dir tooling/release test:unit"',
           "pnpm check:agent-pack && pnpm check:app-map && pnpm check:deps",
           "pnpm check:schema-migration-notes && pnpm check:system-catalog && pnpm check:system-topology && pnpm check:data-resources && pnpm check:append-only-tables && pnpm check:promotion-boundary && pnpm check:layer-boundaries",
         ],
         message:
-          "the root verify chain must run canonical system/schema ownership before layer checks",
+          "the root verify chain must run heavyweight proofs once and canonical system/schema ownership before layer checks",
       },
       {
         file: "apps/cli/package.json",
