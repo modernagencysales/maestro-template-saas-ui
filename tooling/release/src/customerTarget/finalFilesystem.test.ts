@@ -40,6 +40,7 @@ describe("final materialized customer filesystem", () => {
         "-C",
         releaseRoot,
         "tag",
+        "--force",
         "maestro-template-v0.2.0-alpha.1",
         "HEAD",
       ]);
