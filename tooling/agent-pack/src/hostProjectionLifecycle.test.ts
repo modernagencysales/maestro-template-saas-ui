@@ -385,6 +385,7 @@ describe.each(["claude-code", "codex"] as const)(
         for (const [path, bytes] of before)
           expect(await readFile(path)).toEqual(bytes);
       },
+      10_000,
     );
 
     it("recovers rollback failure at delete and restore boundaries", async () => {

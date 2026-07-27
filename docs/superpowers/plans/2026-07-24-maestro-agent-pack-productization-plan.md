@@ -4108,6 +4108,65 @@ first-class-host closure, but it is not a canonical release and must not be
 described as one. Presence audits are supporting inventory only; the focused
 behavioral results above are the repository evidence.
 
+### 2026-07-27 post-merge terminal audit
+
+This section supersedes candidate pointers in the earlier audit without
+rewriting their historical truth. PR #5 was integrated into
+`maestro-template-saas-ui` by squash commit
+`0da23625eb366cea3a7f7bfb16b4f33d967de190`. The squash exposed repository-wide
+test contention that the feature-branch ancestry had hidden. The repair now runs
+Agent Pack, customer CLI, and Convex compatibility suites outside Turbo's
+parallel package batch, retains the canonical serial proofs, uses full GitHub
+checkout history, and keeps the CI-completeness gate bound to that exact chain.
+
+Release `0.2.0-alpha.1` is resealed at candidate
+`cd5a4714d78b39aca178d420bdd9f5974105d3e8` from exact clean source
+`20ea56a983b25f37505e7f1681499e5fc005e8bb`. This reseal reflects executable CI
+source changes; it is not an attempt to bind old receipts to new content.
+
+The pinned repository toolchain is pnpm `10.12.1`. With that toolchain, the
+terminal evidence is:
+
+```text
+pnpm release:seal --version 0.2.0-alpha.1 \
+  --source-commit 20ea56a983b25f37505e7f1681499e5fc005e8bb --check
+verified 0.2.0-alpha.1 from 20ea56a983b25f37505e7f1681499e5fc005e8bb
+
+just verify
+Test Files 273 passed (273)
+Tests 1904 passed (1904)
+coverage ratchet — lines 77.75%, functions 85.38%, branches 80.7%, statements 77.75% (baseline held)
+(171059 / 171393) 99.80%
+type-coverage success.
+check:workflow-semantics passed (107 rules, 82 graph fields)
+no dependency violations found (4452 modules, 16063 dependencies cruised)
+no leaks found
+exit 0
+```
+
+Two preserved blind Codex receipts remain valid evidence for their original
+candidate `df5925e1`, and only that candidate:
+
+```text
+/data/projects/maestro-agent-pack-forward-20260726-release-df5925e1/release-df5925-codex-2/receipt.json
+sha256 4b3877c9c111546015672a00421d98f631a68f51680f56dcbad92b6fb3115edc
+
+/data/projects/maestro-agent-pack-forward-20260726-release-df5925e1/release-df5925-codex-4/receipt.json
+sha256 a38c8727aa61c270377a084046e2165593a8b5bfa208ee157628a0bddb97ca03
+```
+
+They do not prove `cd5a4714`, do not establish a four-host aggregate, and do not
+substitute for Claude Code UAT. Claude Code testing remains user UAT and is
+outside this implementation closure. `review:readiness` and `review:completion`
+remain presence audits rather than behavioral release authority.
+
+Repository implementation and deterministic local gates are therefore green,
+subject to the required GitHub `quality` verdict on the post-merge repair PR.
+The canonical release tag is still absent. Trusted migration issuer/key-root
+operation, durable replay consumption, real Convex authentication/deployment,
+and live environment verdicts remain external release or operations authority;
+this audit makes no production-deployment claim.
+
 ## Final Product Principle
 
 > Let the coding agent think. Give it the smallest amount of Maestro and Convex

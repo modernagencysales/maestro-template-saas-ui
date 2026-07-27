@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "kind": "reviewed-upgrade-impact-coverage",
   "baseRevision": "517b5bc28d1d633bef18f57610cff49800123788",
-  "subjectRevision": "5b7fa67e45d5aa81faa13f19bb2f8c092347686d",
+  "subjectRevision": "20ea56a983b25f37505e7f1681499e5fc005e8bb",
   "structuralPaths": [
     "docs/template/data-resources.json",
     "docs/template/generated/provenance/add-table/workflowArtifacts.json",
@@ -442,6 +442,7 @@
     "tooling/confect-manifest/tsconfig.json",
     "tooling/convex-compat/__fixtures__/candidate.json",
     "tooling/convex-compat/__fixtures__/current.json",
+    "tooling/convex-compat/package.json",
     "tooling/convex-compat/src/candidate-install.test.ts",
     "tooling/convex-compat/src/matrix.test.ts",
     "tooling/convex-compat/src/matrix.ts",
@@ -509,7 +510,7 @@
   "impact": {
     "schemaVersion": 1,
     "baseRevision": "517b5bc28d1d633bef18f57610cff49800123788",
-    "subjectRevision": "5b7fa67e45d5aa81faa13f19bb2f8c092347686d",
+    "subjectRevision": "20ea56a983b25f37505e7f1681499e5fc005e8bb",
     "complete": true,
     "risk": "high",
     "changedPaths": [

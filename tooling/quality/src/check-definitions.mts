@@ -162,7 +162,7 @@ const checkDescriptorDefinitions = {
           '"test:release-filesystem"',
           '"test:app-map"',
           '"check:app-map"',
-          "turbo run test --filter=!@maestro-template/release-tooling && pnpm --dir packages/convex test:workflow-conformance && pnpm --dir apps/cli test:create-root-integration && pnpm --dir tooling/agent-pack test:privacy-no-network && pnpm --dir tooling/release test:unit && pnpm test:release-filesystem",
+          "turbo run test --filter=!@maestro-template/release-tooling --filter=!@maestro-template/agent-pack --filter=!@maestro-template/cli --filter=!@maestro-template/convex-compat && pnpm --dir tooling/agent-pack test && pnpm --dir apps/cli test && pnpm --dir tooling/convex-compat test && pnpm --dir packages/convex test:workflow-conformance && pnpm --dir apps/cli test:create-root-integration && pnpm --dir tooling/agent-pack test:privacy-no-network && pnpm --dir tooling/release test:unit && pnpm test:release-filesystem",
           'pnpm --dir tooling/evals test && pnpm --dir tooling/release test:unit"',
           "pnpm check:agent-pack && pnpm check:app-map && pnpm check:deps",
           "pnpm check:schema-migration-notes && pnpm check:system-catalog && pnpm check:system-topology && pnpm check:data-resources && pnpm check:append-only-tables && pnpm check:promotion-boundary && pnpm check:layer-boundaries",
