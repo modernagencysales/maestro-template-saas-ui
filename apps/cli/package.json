@@ -11,7 +11,8 @@
   "scripts": {
     "build": "tsc -p tsconfig.json --outDir dist --declaration",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest run --passWithNoTests --exclude src/factory/createRootIntegration.test.ts",
+    "test": "vitest run --passWithNoTests --exclude src/factory/createRootIntegration.test.ts --exclude src/factory/customerCliRuntime.test.ts",
+    "test:customer-cli-runtime": "vitest run src/factory/customerCliRuntime.test.ts --passWithNoTests --maxWorkers=1 --no-file-parallelism",
     "test:create-root-integration": "vitest run src/factory/createRootIntegration.test.ts --passWithNoTests --maxWorkers=1 --no-file-parallelism"
   },
   "dependencies": {
