@@ -57,7 +57,7 @@ import {
 import { WORKFLOW_SEMANTICS } from "@maestro-template/template-core/workflow-semantics";
 import { existsSync, lstatSync, readFileSync } from "node:fs";
 import { open } from "node:fs/promises";
-import { resolve } from "node:path";
+import { isAbsolute, resolve, win32 } from "node:path";
 import { pathToFileURL } from "node:url";
 import { createPlanCheckCliHandler } from "./planCheck";
 import { createAppMapCliHandlers } from "./appMap";
@@ -90,6 +90,14 @@ import {
 } from "./verify";
 import { createUpgradeCliHandler } from "./upgrade";
 import { runAgentPackCommandAsCli, type FactoryCliHandler } from "./router";
+
+export function isUnsafeReviewedGeneratorPath(filePath: string): boolean {
+  return (
+    isAbsolute(filePath) ||
+    win32.isAbsolute(filePath) ||
+    filePath.split(/[\\/]/u).some((part) => part === "..")
+  );
+}
 
 export const FACTORY_EXECUTION_POLICY = Object.freeze({
   supportedPlatforms: ["linux", "darwin", "win32"],
@@ -380,10 +388,7 @@ export function createFactoryCliComposition(
             output: {
               ...result.output,
               files: result.output.files.map((file) => {
-                if (
-                  file.path.startsWith("/") ||
-                  file.path.split(/[\\/]/u).some((part) => part === "..")
-                )
+                if (isUnsafeReviewedGeneratorPath(file.path))
                   throw new Error(
                     `Reviewed generator emitted unsafe path ${file.path}.`,
                   );

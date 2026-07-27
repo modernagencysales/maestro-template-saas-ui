@@ -22,6 +22,7 @@ import { fileURLToPath } from "node:url";
 import {
   FACTORY_EXECUTION_POLICY,
   createFactoryCliComposition,
+  isUnsafeReviewedGeneratorPath,
   projectCompositionEnvironment,
   projectCompositionProviderPosture,
 } from "./composition";
@@ -167,6 +168,16 @@ describe("factory CLI composition", () => {
   it("imports generator and quality sources without running either CLI", () => {
     expect(process.exitCode).toBeUndefined();
     expect(factoryCliComposition.handlers).toHaveLength(16);
+  });
+
+  it("rejects absolute and parent-traversing reviewed generator paths", () => {
+    expect(isUnsafeReviewedGeneratorPath("/tmp/outside.ts")).toBe(true);
+    expect(isUnsafeReviewedGeneratorPath("C:\\outside\\file.ts")).toBe(true);
+    expect(isUnsafeReviewedGeneratorPath("\\\\server\\share\\file.ts")).toBe(
+      true,
+    );
+    expect(isUnsafeReviewedGeneratorPath("src/../outside.ts")).toBe(true);
+    expect(isUnsafeReviewedGeneratorPath("src/inside.ts")).toBe(false);
   });
 
   it("routes exact start help without spawning", async () => {
