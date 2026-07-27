@@ -117,54 +117,50 @@ const generatedOverride = (
 };
 
 describe("closed App Map composition", () => {
-  it(
-    "loads all eleven exact-revision sources and builds byte-stably",
-    async () => {
-      const fixture = fixtureRepository();
-      const first = await composeAppMap({
-        repoRoot: fixture.root,
-        revision: fixture.revision,
-      });
-      // Exact-revision composition must ignore dirty canonical working-tree bytes.
-      writeFileSync(join(fixture.root, "template-instance.json"), "{}\n");
-      const second = await composeAppMap({
-        repoRoot: fixture.root,
-        revision: fixture.revision,
-      });
-      expect(first.ok, first.ok ? undefined : first.message).toBe(true);
-      expect(second.ok, second.ok ? undefined : second.message).toBe(true);
-      if (!first.ok || !second.ok) return;
-      expect(first.input.batches).toHaveLength(11);
-      for (const batch of first.input.batches) {
-        const facts = [...batch.nodes, ...batch.edges];
-        if (batch.source.id === "template-instance") {
-          expect(facts).toHaveLength(0);
-          continue;
-        }
-        expect(
-          facts.length,
-          `${batch.source.id} must project facts`,
-        ).toBeGreaterThan(0);
-        expect(
-          facts.every(
-            (fact) =>
-              fact.provenance.sourceId === batch.source.id &&
-              fact.provenance.sourceVersion === fixture.revision &&
-              fact.provenance.sourceDigest === batch.source.digest,
-          ),
-        ).toBe(true);
+  it("loads all eleven exact-revision sources and builds byte-stably", async () => {
+    const fixture = fixtureRepository();
+    const first = await composeAppMap({
+      repoRoot: fixture.root,
+      revision: fixture.revision,
+    });
+    // Exact-revision composition must ignore dirty canonical working-tree bytes.
+    writeFileSync(join(fixture.root, "template-instance.json"), "{}\n");
+    const second = await composeAppMap({
+      repoRoot: fixture.root,
+      revision: fixture.revision,
+    });
+    expect(first.ok, first.ok ? undefined : first.message).toBe(true);
+    expect(second.ok, second.ok ? undefined : second.message).toBe(true);
+    if (!first.ok || !second.ok) return;
+    expect(first.input.batches).toHaveLength(11);
+    for (const batch of first.input.batches) {
+      const facts = [...batch.nodes, ...batch.edges];
+      if (batch.source.id === "template-instance") {
+        expect(facts).toHaveLength(0);
+        continue;
       }
       expect(
-        first.input.batches.find(
-          ({ source }) => source.id === "template-instance",
+        facts.length,
+        `${batch.source.id} must project facts`,
+      ).toBeGreaterThan(0);
+      expect(
+        facts.every(
+          (fact) =>
+            fact.provenance.sourceId === batch.source.id &&
+            fact.provenance.sourceVersion === fixture.revision &&
+            fact.provenance.sourceDigest === batch.source.digest,
         ),
-      ).toMatchObject({ nodes: [], edges: [] });
-      expect(serializeAppMap(first.build.map)).toBe(
-        serializeAppMap(second.build.map),
-      );
-    },
-    20_000,
-  );
+      ).toBe(true);
+    }
+    expect(
+      first.input.batches.find(
+        ({ source }) => source.id === "template-instance",
+      ),
+    ).toMatchObject({ nodes: [], edges: [] });
+    expect(serializeAppMap(first.build.map)).toBe(
+      serializeAppMap(second.build.map),
+    );
+  }, 20_000);
 
   it("rejects symbolic revisions before reading canonical sources", async () => {
     await expect(
@@ -175,44 +171,40 @@ describe("closed App Map composition", () => {
     });
   });
 
-  it(
-    "composes a factory revision only from exact reviewed generated facts",
-    async () => {
-      const fixture = fixtureRepository({ templateInstance: false });
-      const missing = await composeAppMap({
-        repoRoot: fixture.root,
-        revision: fixture.revision,
-      });
-      expect(missing).toMatchObject({ ok: false });
-      const override = generatedOverride(fixture.revision);
-      const first = await composeAppMap({
-        repoRoot: fixture.root,
-        revision: fixture.revision,
-        generatedSourceOverrides: [override],
-      });
-      const second = await composeAppMap({
-        repoRoot: fixture.root,
-        revision: fixture.revision,
-        generatedSourceOverrides: [override],
-      });
-      expect(first.ok, first.ok ? undefined : first.message).toBe(true);
-      expect(second.ok, second.ok ? undefined : second.message).toBe(true);
-      if (!first.ok || !second.ok) return;
-      expect(
-        first.input.batches.find(
-          ({ source }) => source.id === "template-instance",
-        )?.source,
-      ).toMatchObject({
-        version: fixture.revision,
-        digest: override.bytesDigest,
-        generation: override.generation,
-      });
-      expect(serializeAppMap(first.build.map)).toBe(
-        serializeAppMap(second.build.map),
-      );
-    },
-    20_000,
-  );
+  it("composes a factory revision only from exact reviewed generated facts", async () => {
+    const fixture = fixtureRepository({ templateInstance: false });
+    const missing = await composeAppMap({
+      repoRoot: fixture.root,
+      revision: fixture.revision,
+    });
+    expect(missing).toMatchObject({ ok: false });
+    const override = generatedOverride(fixture.revision);
+    const first = await composeAppMap({
+      repoRoot: fixture.root,
+      revision: fixture.revision,
+      generatedSourceOverrides: [override],
+    });
+    const second = await composeAppMap({
+      repoRoot: fixture.root,
+      revision: fixture.revision,
+      generatedSourceOverrides: [override],
+    });
+    expect(first.ok, first.ok ? undefined : first.message).toBe(true);
+    expect(second.ok, second.ok ? undefined : second.message).toBe(true);
+    if (!first.ok || !second.ok) return;
+    expect(
+      first.input.batches.find(
+        ({ source }) => source.id === "template-instance",
+      )?.source,
+    ).toMatchObject({
+      version: fixture.revision,
+      digest: override.bytesDigest,
+      generation: override.generation,
+    });
+    expect(serializeAppMap(first.build.map)).toBe(
+      serializeAppMap(second.build.map),
+    );
+  }, 20_000);
 
   it.each(["digest", "revision", "bytes", "extra"] as const)(
     "rejects %s generated-source override drift",
