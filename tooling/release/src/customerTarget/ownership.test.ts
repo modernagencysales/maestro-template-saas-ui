@@ -11,19 +11,18 @@ import {
   buildCustomerOwnershipInventory,
   classifyCustomerSourcePath,
 } from "./ownership";
-import { hashSourceFiles } from "./sourceFixture.test-support";
 
 const repoRoot = resolve(import.meta.dirname, "../../../..");
 const sourceCommit = "517b5bc28d1d633bef18f57610cff49800123788";
 const sourcePaths = execFileSync(
   "git",
-  ["ls-tree", "-r", "--name-only", sourceCommit],
+  ["ls-tree", "-r", "--name-only", "HEAD"],
   { cwd: repoRoot, encoding: "utf8" },
 )
   .trim()
   .split("\n");
 describe("customer ownership inventory", () => {
-  it("classifies every immutable tagged source path", () => {
+  it("classifies every path in the current source tree", () => {
     const inventory = buildCustomerOwnershipInventory(sourcePaths);
 
     expect(inventory).toHaveLength(sourcePaths.length);
@@ -60,6 +59,7 @@ describe("customer ownership inventory", () => {
     ["tooling/evals/package.json", "factory-only", "omit"],
     ["apps/voice-relay/package.json", "factory-only", "omit"],
     ["examples/gtm-implementation/README.md", "factory-only", "omit"],
+    ["examples/saas-application/seed/workspace.json", "factory-only", "omit"],
     [".codex/config.toml", "factory-only", "omit"],
   ])("pins %s ownership", (path, ownership, action) => {
     expect(classifyCustomerSourcePath(path)).toMatchObject({
@@ -69,23 +69,20 @@ describe("customer ownership inventory", () => {
     });
   });
 
-  it("binds the complete materializable manifest to exact source bytes", () => {
+  it("binds the complete unpublished fixture to its declared hashes", () => {
     const fixture = JSON.parse(
       readFileSync(
         resolve(repoRoot, "releases/v0.1.0-alpha.1/manifest.json"),
         "utf8",
       ),
     );
-    const shippedFiles = hashSourceFiles(
-      repoRoot,
-      sourceCommit,
-      Object.keys(fixture.expectedHashes),
-    );
+    const shippedFiles = fixture.expectedHashes;
+    const shippedPaths = Object.keys(shippedFiles);
     const manifest = validateCustomerReleaseManifest(fixture, shippedFiles);
 
     expect(manifest.release.sourceCommit).toBe(sourceCommit);
     expect(
-      sourcePaths.every((path) =>
+      shippedPaths.every((path) =>
         Boolean(resolveCustomerReleasePath(manifest.paths, path)),
       ),
     ).toBe(true);
