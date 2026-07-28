@@ -366,6 +366,9 @@ describe("create root integration", () => {
     expect(
       existsSync(join(targetRoot, "docs/template/agent-pack-privacy.md")),
     ).toBe(true);
+    expect(
+      readFileSync(join(targetRoot, "packages/convex/tsconfig.json"), "utf8"),
+    ).toContain('"confect/**/*.json"');
     symlinkSync(
       join(repoRoot, "node_modules"),
       join(targetRoot, "node_modules"),
