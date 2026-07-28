@@ -260,9 +260,9 @@
     {
       "path": ".claude/settings.json",
       "match": "exact",
-      "ownership": "template-owned",
-      "action": "copy",
-      "upgrade": "replace"
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate"
     },
     {
       "path": "tooling/generators/src/blueprints/saasApplicationFactory.ts",
