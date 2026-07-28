@@ -243,14 +243,19 @@ export type ReviewedGeneratorDescriptor = {
     | "add-agent"
     | "add-agent-seat";
   readonly command: `pnpm template:${string}`;
+  readonly codegen: readonly string[];
   readonly focusedGates: readonly string[];
 };
+
+const backendCodegen = ["pnpm confect:codegen", "pnpm confect:manifest"];
+const featureCodegen = [...backendCodegen, "pnpm --dir apps/web build"];
 
 export const REVIEWED_GENERATOR_DESCRIPTORS: readonly ReviewedGeneratorDescriptor[] =
   [
     {
       generatorId: "add-feature",
       command: "pnpm template:add-feature",
+      codegen: featureCodegen,
       focusedGates: [
         "pnpm check:confect-contracts",
         "pnpm --dir apps/web typecheck",
@@ -259,6 +264,7 @@ export const REVIEWED_GENERATOR_DESCRIPTORS: readonly ReviewedGeneratorDescripto
     {
       generatorId: "add-table",
       command: "pnpm template:add-table",
+      codegen: backendCodegen,
       focusedGates: [
         "pnpm check:data-resources",
         "pnpm check:schema-migration-notes",
@@ -267,21 +273,25 @@ export const REVIEWED_GENERATOR_DESCRIPTORS: readonly ReviewedGeneratorDescripto
     {
       generatorId: "add-capability",
       command: "pnpm template:add-capability",
+      codegen: backendCodegen,
       focusedGates: ["pnpm check:confect-contracts"],
     },
     {
       generatorId: "add-workflow",
       command: "pnpm template:add-workflow",
+      codegen: backendCodegen,
       focusedGates: ["pnpm check:workflow-graph-boundary"],
     },
     {
       generatorId: "add-agent",
       command: "pnpm template:add-agent",
+      codegen: backendCodegen,
       focusedGates: ["pnpm check:confect-contracts"],
     },
     {
       generatorId: "add-agent-seat",
       command: "pnpm template:add-agent-seat",
+      codegen: backendCodegen,
       focusedGates: ["pnpm check:confect-contracts"],
     },
   ];
@@ -360,7 +370,7 @@ export const runReviewedGenerator = (request: {
       collisions,
       semanticRuleIds: [] as readonly string[],
       manualFollowUp: value.followUp ?? [],
-      codegen: ["pnpm confect:codegen", "pnpm confect:manifest"],
+      codegen: descriptor.codegen,
       focusedGates: descriptor.focusedGates,
     },
   };

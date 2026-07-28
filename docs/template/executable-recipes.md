@@ -100,12 +100,17 @@ reviewed plan.
 Run the focused gates listed by the recipe. For `crud-business-entity`:
 
 ```bash
+pnpm confect:codegen
+pnpm confect:manifest
+pnpm --dir apps/web build
 pnpm check:system-catalog
 pnpm check:data-resources
 pnpm check:schema-migration-notes
+pnpm check:confect-contracts
 pnpm --dir apps/web typecheck
 ```
 
-Regenerate Confect outputs when backend contracts changed, inspect the receipt,
-then commit the generated files, governance updates, focused tests, provenance,
-and receipt as one coherent product slice.
+The successful write prints codegen and focused gates in dependency order. The
+web build regenerates TanStack's route tree before the route typecheck. Inspect
+the receipt, then commit generated files, governance updates, focused tests,
+provenance, and receipt as one coherent product slice.

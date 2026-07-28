@@ -119,7 +119,11 @@ const dependencies = {
         collisions: [],
         semanticRuleIds: [],
         manualFollowUp: [],
-        codegen: [],
+        codegen: [
+          "pnpm confect:codegen",
+          "pnpm confect:manifest",
+          "pnpm --dir apps/web build",
+        ],
         focusedGates: ["pnpm --dir apps/web typecheck"],
       },
     }),
@@ -160,6 +164,11 @@ describe("recipe commands", () => {
         generatorPreviews: [{ generatorId: "add-feature" }],
         plan: {
           fingerprint: expect.stringMatching(/^recipe_plan_sha256:/),
+          codegen: [
+            "pnpm confect:codegen",
+            "pnpm confect:manifest",
+            "pnpm --dir apps/web build",
+          ],
           operations: [
             expect.objectContaining({
               path: "apps/web/src/features/request.ts",
@@ -380,8 +389,17 @@ describe("recipe commands", () => {
     expect(written).toMatchObject({
       mutationPosture: "write",
       exitClass: "success",
-      data: { receipt: { kind: "maestro-recipe-transaction" } },
+      data: {
+        receipt: { kind: "maestro-recipe-transaction" },
+        followUpActions: [
+          { command: "pnpm confect:codegen" },
+          { command: "pnpm confect:manifest" },
+          { command: "pnpm --dir apps/web build" },
+          { command: "pnpm --dir apps/web typecheck" },
+        ],
+      },
     });
+    expect(written.data).not.toHaveProperty("confirmationCommand");
     expect(applied).toBe(1);
   });
 });

@@ -70,6 +70,7 @@ const fixture = () => {
     collisions: [],
     provenancePaths: ["feature/request.ts"],
     semanticRuleIds: [],
+    codegen: [],
     focusedGates: [],
   };
   const plan: RecipeExecutionPlan = {

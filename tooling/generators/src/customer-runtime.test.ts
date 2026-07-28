@@ -169,6 +169,39 @@ describe("customer generator runtime", () => {
     }
   });
 
+  it("generates a feature route before running its typecheck gate", () => {
+    const cwd = mkdtempSync(join(tmpdir(), "maestro-customer-feature-review-"));
+    try {
+      seedCatalogs(cwd);
+      const reviewed = runReviewedGenerator({
+        generatorId: "add-feature",
+        args: {
+          name: "customerNotes",
+          system: "knowledge-brain",
+          disposition: "extend",
+        },
+        write: false,
+        cwd,
+      });
+
+      expect(reviewed).toMatchObject({
+        ok: true,
+        output: {
+          codegen: [
+            "pnpm confect:codegen",
+            "pnpm confect:manifest",
+            "pnpm --dir apps/web build",
+          ],
+          focusedGates: expect.arrayContaining([
+            "pnpm --dir apps/web typecheck",
+          ]),
+        },
+      });
+    } finally {
+      rmSync(cwd, { recursive: true, force: true });
+    }
+  });
+
   it("runs the safe smoke command", () => {
     const result = runCustomerGeneratorCli(["smoke"], repoRoot);
     expect(result.exitCode).toBe(0);

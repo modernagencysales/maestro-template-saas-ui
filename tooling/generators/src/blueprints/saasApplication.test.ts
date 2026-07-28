@@ -507,6 +507,14 @@ describe("saas application blueprint", () => {
         file.content,
       );
     }
+    const routeTree = first.find(
+      ({ path }) => path === "apps/web/src/routeTree.gen.ts",
+    )?.content;
+    expect(routeTree).toContain("path: '/records'");
+    expect(routeTree).not.toContain("saasApplicationRoutes");
+    expect(routeTree?.indexOf("'/_workspace/runs': {")).toBeLessThan(
+      routeTree?.indexOf("'/_workspace/records': {") ?? -1,
+    );
 
     const contract = JSON.parse(
       first.find(({ path }) => path.endsWith("application-contract.json"))

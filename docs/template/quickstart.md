@@ -115,21 +115,20 @@ all diagnostics and context facts, add `--details`.
 Run the focused gates named by the recipe. For the CRUD recipe they include:
 
 ```bash
+pnpm confect:codegen
+pnpm confect:manifest
+pnpm --dir apps/web build
 pnpm check:system-catalog
 pnpm check:data-resources
 pnpm check:schema-migration-notes
+pnpm check:confect-contracts
 pnpm --dir apps/web typecheck
 ```
 
-When a change affects Confect source, regenerate and verify its projections:
-
-```bash
-pnpm confect:codegen
-pnpm confect:manifest
-pnpm check:confect-contracts
-```
-
-Generated Confect and Convex files are outputs, not hand-editing surfaces.
+The successful write prints these commands in dependency order. The web build
+regenerates TanStack's route tree before TypeScript checks the new file route.
+Generated route, Confect, and Convex files are outputs, not hand-editing
+surfaces.
 
 ## 6. Start in fake mode
 

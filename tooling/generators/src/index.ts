@@ -4069,6 +4069,7 @@ export type ReviewedGeneratorDescriptor = {
 };
 
 const backendCodegen = ["pnpm confect:codegen", "pnpm confect:manifest"];
+const featureCodegen = [...backendCodegen, "pnpm --dir apps/web build"];
 const backendGates = ["pnpm check:confect-contracts"];
 
 export const REVIEWED_GENERATOR_DESCRIPTORS = [
@@ -4085,7 +4086,7 @@ export const REVIEWED_GENERATOR_DESCRIPTORS = [
     recipe: "docs/template/app-factory-guide.md",
     command: "pnpm template:add-feature",
     argumentNames: ["name", "system", "disposition", "description"],
-    codegen: backendCodegen,
+    codegen: featureCodegen,
     focusedGates: [...backendGates, "pnpm --dir apps/web typecheck"],
   },
   {
