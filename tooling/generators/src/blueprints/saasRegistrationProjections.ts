@@ -574,6 +574,10 @@ export const buildSaasRegistrationProjections = (
             path: "docs/template/agent-pack-privacy.md",
             content: currentPublicDocument("agent-pack-privacy.md"),
           },
+          {
+            path: "docs/template/preflight.md",
+            content: currentPublicDocument("preflight.md"),
+          },
         ]
       : []),
     {

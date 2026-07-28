@@ -91,6 +91,17 @@ describe("saas application blueprint", () => {
         "utf8",
       ),
     });
+    expect(
+      plan.entries.find(({ path }) => path === "docs/template/preflight.md"),
+    ).toMatchObject({
+      ownership: "generated",
+      action: "generate",
+      upgrade: "regenerate",
+      content: readFileSync(
+        join(repoRoot, "docs/template/preflight.md"),
+        "utf8",
+      ),
+    });
     expect(plan.entries.find(({ path }) => path === "README.md")).toMatchObject(
       {
         ownership: "generated",
@@ -433,6 +444,7 @@ describe("saas application blueprint", () => {
       "generated/blueprints/saas-application/readiness.json",
       "README.md",
       "docs/template/agent-pack-privacy.md",
+      "docs/template/preflight.md",
       "apps/cli/src/factory/customerComposition.ts",
       "apps/cli/src/index.ts",
       "apps/cli/src/factory/start.ts",

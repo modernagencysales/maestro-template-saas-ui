@@ -548,6 +548,7 @@ function buildTargetPlan(
   const registrationsWithPrivacy = [
     "README.md",
     "docs/template/agent-pack-privacy.md",
+    "docs/template/preflight.md",
     "apps/cli/src/factory/customerComposition.ts",
     "apps/cli/src/index.ts",
     "apps/cli/src/factory/start.ts",
