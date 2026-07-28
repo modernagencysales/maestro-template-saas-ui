@@ -256,20 +256,6 @@ describe("agent-pack preflight", () => {
       "AGENT_PACK_INSTALL_MISSING",
     ],
     [
-      "offline",
-      (f: PreflightFacts) => ({ ...f, network: "offline" as const }),
-      "AGENT_PACK_OFFLINE",
-    ],
-    [
-      "unknown network",
-      (f: PreflightFacts) => ({
-        ...f,
-        network: "unknown" as const,
-        observationDiagnostics: { network: "Registry probe timed out." },
-      }),
-      "AGENT_PACK_NETWORK_UNKNOWN",
-    ],
-    [
       "ambiguous roots",
       (f: PreflightFacts) => ({
         ...f,
@@ -344,6 +330,41 @@ describe("agent-pack preflight", () => {
       }
     },
   );
+
+  it.each(["offline", "unknown"] as const)(
+    "keeps fake mode successful when network posture is %s",
+    async (network) => {
+      const result = await executeAgentPackCommand(
+        createPreflightCommand({
+          inspect: async () => ({ ...readyFacts(), network }),
+        }),
+        { mode: "fake" },
+        context,
+      );
+
+      expect(result).toMatchObject({
+        exitClass: "success",
+        diagnostics: [],
+        data: { safeToMutate: true },
+      });
+    },
+  );
+
+  it("reports offline posture when the requested mode needs network access", async () => {
+    const result = await executeAgentPackCommand(
+      createPreflightCommand({
+        inspect: async () => ({ ...readyFacts(), network: "offline" }),
+      }),
+      { mode: "test" },
+      context,
+    );
+
+    expect(result).toMatchObject({
+      exitClass: "findings",
+      diagnostics: [{ code: "AGENT_PACK_OFFLINE" }],
+      data: { safeToMutate: true },
+    });
+  });
 
   it("blocks when dirty state, collisions, or the Git root could not be observed", async () => {
     const facts = readyFacts();

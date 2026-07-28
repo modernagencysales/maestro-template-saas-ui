@@ -157,7 +157,7 @@ export function createPreflightCommand(probe: PreflightProbe) {
       const fingerprintBinding = isPreflightObservation(inspected)
         ? inspected.fingerprintBinding
         : "environment_binding_sha256:unavailable";
-      const diagnostics = preflightDiagnostics(facts);
+      const diagnostics = preflightDiagnostics(facts, input.mode);
       const safeToMutate = !diagnostics.some(
         ({ code }) => unavailableCodes.has(code) || blockedCodes.has(code),
       );
@@ -233,6 +233,7 @@ function decodePreflightInput(
 
 function preflightDiagnostics(
   facts: PreflightFacts,
+  mode: PreflightMode,
 ): readonly AgentPackDiagnostic[] {
   const diagnostics: AgentPackDiagnostic[] = [];
   const add = (
@@ -287,7 +288,7 @@ function preflightDiagnostics(
     "pnpm install --frozen-lockfile",
   );
   add(
-    facts.network === "offline",
+    mode !== "fake" && facts.network === "offline",
     "AGENT_PACK_OFFLINE",
     "The host is offline; committed checks remain available.",
     true,
@@ -295,7 +296,7 @@ function preflightDiagnostics(
     "pnpm maestro -- preflight --mode fake",
   );
   add(
-    facts.network === "unknown",
+    mode !== "fake" && facts.network === "unknown",
     "AGENT_PACK_NETWORK_UNKNOWN",
     observationMessage(
       facts,
