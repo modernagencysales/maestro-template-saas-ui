@@ -3,7 +3,7 @@
   "id": "saas-application",
   "provenance": "@maestro-template/generators/saas-application@1",
   "projectionSource": {
-    "sourceCommit": "d85e57b364950027d0968137a82da083f88be975",
+    "sourceCommit": "b8e214166f1fe68319b4d714200d40173f8f6433",
     "assets": [
       {
         "path": "base/apps/cli/src/factory/customerComposition.ts.txt",
@@ -31,7 +31,7 @@
       },
       {
         "path": "base/package.json.txt",
-        "sha256": "sha256:b2e8817bed8e1544d47ca37808651eef58b4b6893177891f7a3891f00068d1ea"
+        "sha256": "sha256:53f07e849c08523c1cbbf10732c1fad4f062324723f20039af341c73b28a1d7c"
       },
       {
         "path": "base/packages/convex/confect/_generated/spec.ts.txt",
@@ -420,10 +420,11 @@
     },
     {
       "path": ".claude/settings.json",
-      "ownership": "customer-extension",
-      "action": "copy",
-      "upgrade": "preserve",
-      "sha256": "sha256:7825364f57b5c5f07c64d5c5bbbaa8046a6c1c21d3216112cc86f99d2e5b6ccc"
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:7825364f57b5c5f07c64d5c5bbbaa8046a6c1c21d3216112cc86f99d2e5b6ccc",
+      "replaces": "copy"
     },
     {
       "path": ".claude/skills/convex-create-component/agents/openai.yaml",
@@ -640,7 +641,7 @@
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:ff67d36c34def5b28ae667710554585c4b4ae1b7d6ae12ee2770ff5fe3c9acb9",
+      "sha256": "sha256:e90e598a4badb5157d2dbf8e6a73e424d5c9404ed129885e41f5053bb75a945d",
       "replaces": "copy"
     },
     {
@@ -877,7 +878,7 @@
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:b2e8817bed8e1544d47ca37808651eef58b4b6893177891f7a3891f00068d1ea",
+      "sha256": "sha256:53f07e849c08523c1cbbf10732c1fad4f062324723f20039af341c73b28a1d7c",
       "replaces": "generate"
     },
     {

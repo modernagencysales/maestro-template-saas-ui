@@ -9,8 +9,8 @@
   "release": {
     "version": "0.2.0-alpha.2",
     "tag": "maestro-template-v0.2.0-alpha.2",
-    "sourceCommit": "d85e57b364950027d0968137a82da083f88be975",
-    "sourceChecksum": "sha256:ea6ef4772c2166e9217acfa32071a593315e40cf83ae2eb1003806a49eea2b98"
+    "sourceCommit": "b8e214166f1fe68319b4d714200d40173f8f6433",
+    "sourceChecksum": "sha256:de63c0017dfbc571e623be1ca53d17379e2adecc9e47470931442bae3bce33b5"
   },
   "upgrade": {
     "schemaVersion": 1,
@@ -27,7 +27,7 @@
         "path": ".prettierignore",
         "ownership": "template-owned",
         "beforeHash": "sha256:4f67327ecae20f0e281db9123e4a821e22551046a303fb15d1e70a37e86107c3",
-        "afterHash": "sha256:ff67d36c34def5b28ae667710554585c4b4ae1b7d6ae12ee2770ff5fe3c9acb9"
+        "afterHash": "sha256:e90e598a4badb5157d2dbf8e6a73e424d5c9404ed129885e41f5053bb75a945d"
       },
       {
         "id": "upgrade-modify-AGENTS-md",
@@ -51,7 +51,7 @@
         "path": "apps/cli/src/factory/customerCliRuntime.test.ts",
         "ownership": "template-owned",
         "beforeHash": "sha256:3ec66ec88b03446f1a9ee684aa166e40dc6fc6fc813bb7a10cdbb9e397ed367c",
-        "afterHash": "sha256:213598e44cbb314805842f87aeb7726e986d3883b8f50085da1354140e975467"
+        "afterHash": "sha256:1d9b42f29bb482f0fc5e9f7dd7077a3b2815f6458ee9c96d095514780dbfb086"
       },
       {
         "id": "upgrade-modify-apps-cli-src-factory-customerComposition-ts",
@@ -302,7 +302,7 @@
   ],
   "blueprintManifest": {
     "path": "blueprints/saas-application.json",
-    "sha256": "sha256:91f793983e90204a6e0bd796ca2dda7b3586f46c5f1145478f36cfc97c6aedab"
+    "sha256": "sha256:5b3a25d1098228624b3897806d7b9a707659a5d044b711dc49a596dc439a1b6f"
   },
   "migrationHandoff": {
     "required": false,
@@ -314,10 +314,10 @@
   },
   "upgradeImpact": {
     "path": "releases/v0.2.0-alpha.2/upgrade/app-map-input.json",
-    "sha256": "sha256:d3b79265601f2ddad7c2cbfdc8699ae08ec12c8363ca5031eb18bbeae6349d84",
+    "sha256": "sha256:a59708dc71b6ef5e294d15b7efa239131cedb7236e20757b8d3828314c5d2ebe",
     "projection": {
       "path": "releases/v0.2.0-alpha.2/upgrade/app-map-impact.json",
-      "sha256": "sha256:8d2cd4d8a6e46eeda3a0688a862463f82d21e8a7d58b6e896287351b10e07ea4"
+      "sha256": "sha256:f7f67a42937f7c348bdcf0c1773201d3e0ab7795b5be0e1e181dd31601c634a1"
     }
   }
 }
