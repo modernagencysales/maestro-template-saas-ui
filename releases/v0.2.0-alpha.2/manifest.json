@@ -9,8 +9,8 @@
   "release": {
     "version": "0.2.0-alpha.2",
     "tag": "maestro-template-v0.2.0-alpha.2",
-    "sourceCommit": "50bb2fc1064d5c737aec827617aaf64a6ff58f6c",
-    "sourceChecksum": "sha256:7ad8c63fc58fe31be7e547891f45bf00803aba45bb057e0d1312dc8c10d4d3c6"
+    "sourceCommit": "b217b37907674060cdd13c5e5c9592479416c2bc",
+    "sourceChecksum": "sha256:45f07bbabfd7efa932eb00ed3669a92c75a9a2c6c13c7fa93e3f306aaaff742a"
   },
   "upgrade": {
     "schemaVersion": 1,
@@ -165,12 +165,28 @@
         "afterHash": "sha256:c3156fa4b504835f7e767638281246ce6df06974e4a45ea80c121a56a39f9f18"
       },
       {
+        "id": "upgrade-modify-tooling-agent-pack-src-recipes-test-ts",
+        "kind": "modify",
+        "path": "tooling/agent-pack/src/recipes.test.ts",
+        "ownership": "template-owned",
+        "beforeHash": "sha256:dd602b17fd36194e39e19f3ee2a162099df58fba3cbf2f33229ac89cebbb6db1",
+        "afterHash": "sha256:28c46485c79a4b7bc3b2291ca21c92cee21f7a49d69e18b9ef6af66eb61a81d7"
+      },
+      {
+        "id": "upgrade-modify-tooling-agent-pack-src-recipes-ts",
+        "kind": "modify",
+        "path": "tooling/agent-pack/src/recipes.ts",
+        "ownership": "template-owned",
+        "beforeHash": "sha256:afb3b602bd01b8ef4affcc4544bfed72f686f945f2b77f0efb4cc4b3e27d628a",
+        "afterHash": "sha256:2db16c9fc22674dc3a97f6048f21858b1fd6ca00affa7552ecb8ce6d217b69b4"
+      },
+      {
         "id": "upgrade-modify-tooling-generators-src-customer-dispatcher-ts",
         "kind": "modify",
         "path": "tooling/generators/src/customer-dispatcher.ts",
         "ownership": "template-owned",
         "beforeHash": "sha256:349b52d4cb9676c9ae8be481496d6f14fcf4b02eb258edf7ea285b591d3a055e",
-        "afterHash": "sha256:7b1ca0edc343435141cb7a6970725a37ad47b406942a30623fec0c4dfef5e65c"
+        "afterHash": "sha256:6f16ae62d1fd4f0dba375e602ef44b5e250e97f14ff454c54e2f5ec47cdfc5bc"
       },
       {
         "id": "upgrade-modify-tooling-generators-src-customer-runtime-test-ts",
@@ -178,7 +194,7 @@
         "path": "tooling/generators/src/customer-runtime.test.ts",
         "ownership": "template-owned",
         "beforeHash": "sha256:3b910fc47bb1434b857d0787bf0b3ba85d0afdf1bf892ec0e07d62584c6f5466",
-        "afterHash": "sha256:a3a4c16c233b0985e1b2a3089a9c22c27febfc3975065ad9a623b8fc303d15f7"
+        "afterHash": "sha256:cf72e6093502af867be320a13446c01475b0c877e7d7a7154107c548b4fc5e8c"
       },
       {
         "id": "upgrade-modify-tooling-generators-src-customer-runtime-ts",
@@ -246,7 +262,7 @@
   ],
   "blueprintManifest": {
     "path": "blueprints/saas-application.json",
-    "sha256": "sha256:d8c6fbee299162a8da8fe276cc3c7cb20e3daf74c891af1ac3b31dfb4ddc04e1"
+    "sha256": "sha256:0177c984ff8079178cf41f7426610cb06dcaa951a7b6d210ecf5401245ecbf07"
   },
   "migrationHandoff": {
     "required": false,
@@ -258,10 +274,10 @@
   },
   "upgradeImpact": {
     "path": "releases/v0.2.0-alpha.2/upgrade/app-map-input.json",
-    "sha256": "sha256:3e9e03597caeccb7a21690904b3e4a7b7e9245891b19475feedede485604f68e",
+    "sha256": "sha256:fa941a5bc7bb781a4d0b5dba60ea47359d391b2386599343e41a3f021ee3fd5d",
     "projection": {
       "path": "releases/v0.2.0-alpha.2/upgrade/app-map-impact.json",
-      "sha256": "sha256:717fa179f1e573e7b9cb3d66c377748e5416ac749bdb850823555b9b3ac9056e"
+      "sha256": "sha256:8d98a07279c2398ec872c30322398e6a0fbb652de2ce592949ebb069446cd089"
     }
   }
 }

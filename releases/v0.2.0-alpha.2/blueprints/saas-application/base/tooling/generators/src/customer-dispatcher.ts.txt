@@ -331,13 +331,14 @@ export const runReviewedGenerator = (request: {
     readonly files: readonly GeneratedFile[];
     readonly followUp?: readonly string[];
   };
-  const mutableCatalogs = new Set([
+  const reviewedMutablePaths = new Set([
     "docs/template/system-catalog.json",
     "docs/template/data-resources.json",
+    "packages/convex/confect/ops/dataResources.generated.ts",
   ]);
   const collisions = value.files
     .map((file) => file.path)
-    .filter((path) => !mutableCatalogs.has(path))
+    .filter((path) => !reviewedMutablePaths.has(path))
     .filter((path) => existsSync(resolve(request.cwd, path)));
   if (request.write && collisions.length)
     return {
