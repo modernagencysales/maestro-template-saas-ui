@@ -86,6 +86,7 @@ describe("saas application blueprint", () => {
       ownership: "generated",
       action: "generate",
       upgrade: "regenerate",
+      replaces: "copy",
       content: readFileSync(
         join(repoRoot, "docs/template/agent-pack-privacy.md"),
         "utf8",

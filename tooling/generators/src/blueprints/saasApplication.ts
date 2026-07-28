@@ -422,6 +422,7 @@ function buildTargetPlan(
     ["apps/cli/src/factory/recipes.ts", "copy"],
     ["apps/cli/src/factory/supportBundle.ts", "copy"],
     ["docs/template/agent-pack-privacy.md", "copy"],
+    ["docs/template/preflight.md", "copy"],
     ["package.json", "generate"],
     ["tooling/confect-manifest/tsconfig.json", "copy"],
     ["packages/convex/confect/_generated/tables/workflowArtifacts.ts", "copy"],
