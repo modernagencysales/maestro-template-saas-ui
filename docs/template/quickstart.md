@@ -58,6 +58,9 @@ The baseline commit is intentional. Preflight and recipe writes require a clean
 target so they can distinguish their changes from yours. Create never runs Git,
 package installation, authentication, or a server on your behalf.
 
+See the [Preflight guide](./preflight.md) for the facts it checks, its read-only
+boundary, and the difference between the concise, detailed, and JSON views.
+
 ## 3. Ask the generated app what it supports
 
 ```bash
