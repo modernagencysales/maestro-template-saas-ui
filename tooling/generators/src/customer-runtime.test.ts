@@ -193,6 +193,7 @@ describe("customer generator runtime", () => {
           codegen: [
             "pnpm confect:codegen",
             "pnpm confect:manifest",
+            "pnpm format",
             "pnpm --dir apps/web build",
           ],
           focusedGates: expect.arrayContaining([
@@ -200,6 +201,11 @@ describe("customer generator runtime", () => {
           ]),
         },
       });
+      if (!reviewed.ok) throw new Error(reviewed.message);
+      expect(
+        reviewed.output.files.find(({ path }) => path.endsWith("/fixtures.ts"))
+          ?.content,
+      ).not.toContain("[0]!");
     } finally {
       rmSync(cwd, { recursive: true, force: true });
     }

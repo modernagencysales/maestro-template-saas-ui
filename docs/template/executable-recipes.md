@@ -102,6 +102,7 @@ Run the focused gates listed by the recipe. For `crud-business-entity`:
 ```bash
 pnpm confect:codegen
 pnpm confect:manifest
+pnpm format
 pnpm --dir apps/web build
 pnpm check:system-catalog
 pnpm check:data-resources

@@ -117,6 +117,7 @@ Run the focused gates named by the recipe. For the CRUD recipe they include:
 ```bash
 pnpm confect:codegen
 pnpm confect:manifest
+pnpm format
 pnpm --dir apps/web build
 pnpm check:system-catalog
 pnpm check:data-resources

@@ -414,7 +414,9 @@ describe("saas application blueprint", () => {
       "apps/cli/src/factory/recipeCatalog.ts",
       "apps/cli/src/factory/recipes.ts",
       "apps/cli/src/factory/supportBundle.ts",
+      ".prettierignore",
       "package.json",
+      "tooling/confect-manifest/tsconfig.json",
       "tooling/generators/package.json",
       "tooling/quality/install-lefthook-if-git.mjs",
       "tooling/generators/src/customer.ts",
@@ -515,6 +517,19 @@ describe("saas application blueprint", () => {
     expect(routeTree?.indexOf("'/_workspace/runs': {")).toBeLessThan(
       routeTree?.indexOf("'/_workspace/records': {") ?? -1,
     );
+    expect(
+      first.find(
+        ({ path }) => path === "tooling/quality/install-lefthook-if-git.mjs",
+      )?.content,
+    ).toContain("/* global process */");
+    expect(
+      first.find(({ path }) => path === ".prettierignore")?.content,
+    ).toContain(".maestro/");
+    expect(
+      first.find(
+        ({ path }) => path === "tooling/confect-manifest/tsconfig.json",
+      )?.content,
+    ).toContain("../../packages/convex/confect/**/*.json");
 
     const contract = JSON.parse(
       first.find(({ path }) => path.endsWith("application-contract.json"))

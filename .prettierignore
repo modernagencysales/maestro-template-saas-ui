@@ -5,6 +5,7 @@ dist/
 coverage/
 .stryker-tmp/
 .turbo/
+.maestro/
 apps/*/dist/
 packages/*/dist/
 tooling/*/dist/

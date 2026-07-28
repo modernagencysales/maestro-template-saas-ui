@@ -247,7 +247,11 @@ export type ReviewedGeneratorDescriptor = {
   readonly focusedGates: readonly string[];
 };
 
-const backendCodegen = ["pnpm confect:codegen", "pnpm confect:manifest"];
+const backendCodegen = [
+  "pnpm confect:codegen",
+  "pnpm confect:manifest",
+  "pnpm format",
+];
 const featureCodegen = [...backendCodegen, "pnpm --dir apps/web build"];
 
 export const REVIEWED_GENERATOR_DESCRIPTORS: readonly ReviewedGeneratorDescriptor[] =

@@ -122,6 +122,7 @@ const dependencies = {
         codegen: [
           "pnpm confect:codegen",
           "pnpm confect:manifest",
+          "pnpm format",
           "pnpm --dir apps/web build",
         ],
         focusedGates: ["pnpm --dir apps/web typecheck"],
@@ -167,6 +168,7 @@ describe("recipe commands", () => {
           codegen: [
             "pnpm confect:codegen",
             "pnpm confect:manifest",
+            "pnpm format",
             "pnpm --dir apps/web build",
           ],
           operations: [
@@ -394,6 +396,7 @@ describe("recipe commands", () => {
         followUpActions: [
           { command: "pnpm confect:codegen" },
           { command: "pnpm confect:manifest" },
+          { command: "pnpm format" },
           { command: "pnpm --dir apps/web build" },
           { command: "pnpm --dir apps/web typecheck" },
         ],

@@ -536,14 +536,19 @@ export const buildSaasRegistrationProjections = (
           },
         ]
       : []),
+    { path: ".prettierignore", content: currentSource(".prettierignore") },
     { path: "package.json", content: customerPackage(current) },
+    {
+      path: "tooling/confect-manifest/tsconfig.json",
+      content: currentSource("tooling/confect-manifest/tsconfig.json"),
+    },
     {
       path: "tooling/generators/package.json",
       content: customerGeneratorPackage(),
     },
     {
       path: "tooling/quality/install-lefthook-if-git.mjs",
-      content: source("tooling/quality/install-lefthook-if-git.mjs"),
+      content: `/* global process */\n\n${source("tooling/quality/install-lefthook-if-git.mjs")}`,
     },
     ...(
       [
