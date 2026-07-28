@@ -25,6 +25,7 @@ import {
   assertMaterializableCustomerReleaseManifest,
   resolveCustomerReleasePath,
   validateCustomerReleaseManifest,
+  type CustomerReleasePath,
   type CustomerReleaseManifest,
   type ResolvedCustomerReleaseBinding,
 } from "./manifest.js";
@@ -223,14 +224,13 @@ function resolveReleaseDefinitionAt(input: {
     ...(Array.isArray(base.manifest.paths) ? base.manifest.paths : []),
     ...value.additionalPaths,
   ];
-  const expectedHashes = isRecord(base.manifest.expectedHashes)
-    ? Object.fromEntries(
-        Object.entries(base.manifest.expectedHashes).filter(
-          ([path]) =>
-            resolveCustomerReleasePath(paths, path)?.action === "copy",
-        ),
-      )
-    : base.manifest.expectedHashes;
+  const expectedHashes = composedExpectedHashes(
+    base.manifest.expectedHashes,
+    paths,
+    isRecord(value.upgrade) && Array.isArray(value.upgrade.operations)
+      ? value.upgrade.operations
+      : [],
+  );
   return {
     deriveExpectedHashes:
       value.deriveExpectedHashesFromArchive === true ||
@@ -244,6 +244,35 @@ function resolveReleaseDefinitionAt(input: {
       expectedHashes,
     },
   };
+}
+
+export function composedExpectedHashes(
+  baseExpectedHashes: unknown,
+  paths: readonly CustomerReleasePath[],
+  operations: readonly unknown[],
+): Readonly<Record<string, unknown>> {
+  const expected = isRecord(baseExpectedHashes)
+    ? Object.fromEntries(
+        Object.entries(baseExpectedHashes).filter(
+          ([path]) =>
+            resolveCustomerReleasePath(paths, path)?.action === "copy",
+        ),
+      )
+    : {};
+  for (const operation of operations) {
+    if (!isRecord(operation) || typeof operation.path !== "string") continue;
+    if (resolveCustomerReleasePath(paths, operation.path)?.action !== "copy")
+      continue;
+    if (operation.kind === "delete") {
+      delete expected[operation.path];
+    } else if (
+      (operation.kind === "add" || operation.kind === "modify") &&
+      typeof operation.afterHash === "string"
+    ) {
+      expected[operation.path] = operation.afterHash;
+    }
+  }
+  return expected;
 }
 
 function resolveReviewedCommit(repositoryRoot: string, commit: string): string {
