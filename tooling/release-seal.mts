@@ -190,6 +190,13 @@ function resolvePriorManifest(
   };
 }
 const REVIEWED_ADDITIONAL_PATHS: readonly CustomerReleasePath[] = [
+  {
+    path: ".claude/settings.json",
+    match: "exact",
+    ownership: "template-owned",
+    action: "copy",
+    upgrade: "replace",
+  },
   ...[
     "apps/cli/src/factory/adopt.ts",
     "apps/cli/src/factory/adopt.test.ts",

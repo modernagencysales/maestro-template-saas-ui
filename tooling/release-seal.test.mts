@@ -16,6 +16,7 @@ const factoryRule = (path: string, match: "exact" | "subtree") => ({
 describe("release seal factory-only exclusions", () => {
   it("classifies reviewed customer additions and omits reviewed factory files", () => {
     const sourcePaths = [
+      ".claude/settings.json",
       "README.md",
       "docs/agent/host-projection-lifecycle.md",
       "patches/@confect__cli@9.1.5.patch",
@@ -41,6 +42,11 @@ describe("release seal factory-only exclusions", () => {
     });
     expect(paths).toEqual(
       expect.arrayContaining([
+        expect.objectContaining({
+          path: ".claude/settings.json",
+          ownership: "template-owned",
+          action: "copy",
+        }),
         expect.objectContaining({
           path: "docs/agent",
           ownership: "template-owned",
