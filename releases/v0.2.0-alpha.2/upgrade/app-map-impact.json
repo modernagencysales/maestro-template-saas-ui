@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "kind": "reviewed-upgrade-impact-coverage",
   "baseRevision": "de1bac52bbd33745d2a0fecf8e1cb6ec5732310d",
-  "subjectRevision": "94c5c09f32a640c68d0e1e42c185b93c55ad0ce4",
+  "subjectRevision": "4a730ff3e75794021a532c5f52e7298be1aa76a3",
   "structuralPaths": [],
   "ownershipCoveredPaths": [
     "AGENTS.md",
@@ -21,6 +21,8 @@
     "tooling/agent-pack/src/customer.ts",
     "tooling/agent-pack/src/nodeAdapters.test.ts",
     "tooling/agent-pack/src/nodeAdapters.ts",
+    "tooling/agent-pack/src/preflight.test.ts",
+    "tooling/agent-pack/src/preflight.ts",
     "tooling/generators/src/customer-dispatcher.ts",
     "tooling/generators/src/customer-runtime.test.ts",
     "tooling/generators/src/customer-runtime.ts",
@@ -29,7 +31,7 @@
   "impact": {
     "schemaVersion": 1,
     "baseRevision": "de1bac52bbd33745d2a0fecf8e1cb6ec5732310d",
-    "subjectRevision": "94c5c09f32a640c68d0e1e42c185b93c55ad0ce4",
+    "subjectRevision": "4a730ff3e75794021a532c5f52e7298be1aa76a3",
     "complete": true,
     "risk": "low",
     "changedPaths": [],
