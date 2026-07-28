@@ -51,11 +51,11 @@ afterEach(async () => {
       .splice(0)
       .map((root) => rm(root, { recursive: true, force: true })),
   );
-});
+}, 60_000);
 afterAll(async () => {
   if (taggedReleaseParent)
     await rm(taggedReleaseParent, { recursive: true, force: true });
-});
+}, 60_000);
 
 describe("materialized customer CLI runtime closure", () => {
   it("runs privacy-aligned support preview and export from the current projection", async () => {
