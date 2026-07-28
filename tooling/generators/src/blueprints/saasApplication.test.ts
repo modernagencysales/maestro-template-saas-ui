@@ -135,46 +135,48 @@ describe("saas application blueprint", () => {
     ).toHaveLength(1);
   });
 
-  it("matches the sealed alpha.1 manifest to the canonical current target plan", () => {
-    const plan = buildSaasApplicationTargetPlan();
-    const manifest = JSON.parse(
-      readFileSync(
-        join(
-          repoRoot,
-          "releases/v0.2.0-alpha.1/blueprints/saas-application.json",
-        ),
-        "utf8",
-      ),
+  it("keeps the sealed alpha.1 manifest and assets immutable", () => {
+    const releaseRoot = join(repoRoot, "releases/v0.2.0-alpha.1");
+    const blueprintPath = join(releaseRoot, "blueprints/saas-application.json");
+    const release = JSON.parse(
+      readFileSync(join(releaseRoot, "manifest.json"), "utf8"),
     ) as {
-      readonly schemaVersion: number;
-      readonly id: string;
-      readonly provenance: string;
-      readonly registrations: readonly string[];
-      readonly entries: readonly unknown[];
+      readonly release: { readonly version: string; readonly tag: string };
+      readonly blueprintManifest: {
+        readonly path: string;
+        readonly sha256: string;
+      };
     };
+    const blueprintBytes = readFileSync(blueprintPath);
+    const blueprint = JSON.parse(blueprintBytes.toString("utf8")) as {
+      readonly projectionSource: {
+        readonly assets: readonly {
+          readonly path: string;
+          readonly sha256: string;
+        }[];
+      };
+    };
+    const digest = (bytes: Buffer): string =>
+      `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
 
-    expect({
-      schemaVersion: plan.schemaVersion,
-      id: plan.id,
-      provenance: plan.provenance,
-      registrations: plan.registrations,
-      entries: plan.entries.map(
-        ({ path, ownership, action, upgrade, sha256, replaces }) => ({
-          path,
-          ownership,
-          action,
-          upgrade,
-          sha256,
-          ...(replaces === undefined ? {} : { replaces }),
-        }),
-      ),
-    }).toEqual({
-      schemaVersion: manifest.schemaVersion,
-      id: manifest.id,
-      provenance: manifest.provenance,
-      registrations: manifest.registrations,
-      entries: manifest.entries,
+    expect(release.release).toMatchObject({
+      version: "0.2.0-alpha.1",
+      tag: "maestro-template-v0.2.0-alpha.1",
     });
+    expect(release.blueprintManifest).toMatchObject({
+      path: "blueprints/saas-application.json",
+      sha256: digest(blueprintBytes),
+    });
+    for (const asset of blueprint.projectionSource.assets) {
+      expect(
+        digest(
+          readFileSync(
+            join(releaseRoot, "blueprints/saas-application", asset.path),
+          ),
+        ),
+        asset.path,
+      ).toBe(asset.sha256);
+    }
   });
 
   it("materializes the current disclosure and customer support surface", () => {
@@ -285,7 +287,7 @@ describe("saas application blueprint", () => {
       'import ops_versioning from "../ops/versioning.spec";',
     );
     expect(projectedSpec?.content).toContain(
-      'import records from "../records/records.spec";',
+      'import records from "../records.spec";',
     );
     expect(projectedSpec?.content).toContain(
       "// unrelated integration registration",
@@ -375,14 +377,20 @@ describe("saas application blueprint", () => {
       "examples/saas-application/seed/source.json",
       "examples/saas-application/seed/crud-scenario.json",
       "packages/convex/confect/tables/records.ts",
-      "packages/convex/confect/records/records.spec.ts",
-      "packages/convex/confect/records/records.impl.ts",
+      "packages/convex/confect/records.spec.ts",
+      "packages/convex/confect/records.impl.ts",
       "apps/web/src/adapters/records/contract.ts",
       "apps/web/src/adapters/records/fake.ts",
       "apps/web/src/features/records/model.ts",
       "apps/web/src/features/records/records-surface.tsx",
       "apps/web/src/screens/records-screen.tsx",
       "apps/web/src/routes/_workspace.records.tsx",
+      "docs/template/system-catalog.json",
+      "docs/template/data-resources.json",
+      "docs/template/product-topology.json",
+      "packages/convex/confect/ops/dataResources.generated.ts",
+      "docs/template/system-decisions/record-management.md",
+      "docs/template/schema-decisions/records.md",
       "generated/blueprints/saas-application/application-contract.json",
       "generated/blueprints/saas-application/surface-contract.json",
       "generated/blueprints/saas-application/readiness.json",
@@ -390,6 +398,9 @@ describe("saas application blueprint", () => {
       "apps/cli/src/factory/customerComposition.ts",
       "apps/cli/src/index.ts",
       "apps/cli/src/factory/start.ts",
+      "apps/cli/src/factory/customerRecipes.ts",
+      "apps/cli/src/factory/recipeCatalog.ts",
+      "apps/cli/src/factory/recipes.ts",
       "apps/cli/src/factory/supportBundle.ts",
       "package.json",
       "tooling/generators/package.json",
@@ -419,7 +430,6 @@ describe("saas application blueprint", () => {
       "packages/convex/confect/capabilities/_kit/workspaceAccess.ts",
       "packages/convex/confect/_generated/docs.ts",
       "packages/convex/confect/_generated/tables/workflowArtifacts.ts",
-      "packages/convex/confect/ops/dataResources.generated.ts",
       "packages/convex/confect/tables/workflowArtifacts.ts",
       "packages/convex/confect/tables/workflowRuns.ts",
       "packages/convex/confect/tables/workflowStageRuns.ts",
@@ -454,6 +464,8 @@ describe("saas application blueprint", () => {
       "tooling/agent-pack/src/ports.ts",
       "tooling/agent-pack/src/verify.ts",
       "tooling/agent-pack/src/receiptWriter.ts",
+      "tooling/agent-pack/src/recipes.ts",
+      "tooling/agent-pack/src/recipeTransaction.ts",
       "tooling/agent-pack/src/index.ts",
       "tooling/agent-pack/src/readiness/artifacts.ts",
       "tooling/agent-pack/src/readiness/index.ts",

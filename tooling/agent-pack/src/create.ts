@@ -318,19 +318,37 @@ function createData(
     preview,
     followUpActions: [
       {
-        id: "install",
-        command: `pnpm --dir ${quotedTarget} install`,
-        requiresApproval: true,
-        executed: false,
-      },
-      {
         id: "git-init",
         command: `git -C ${quotedTarget} init`,
         requiresApproval: true,
         executed: false,
       },
+      {
+        id: "install",
+        command: `pnpm --dir ${quotedTarget} install --frozen-lockfile`,
+        requiresApproval: true,
+        executed: false,
+      },
+      {
+        id: "git-add",
+        command: `git -C ${quotedTarget} add .`,
+        requiresApproval: true,
+        executed: false,
+      },
+      {
+        id: "git-commit",
+        command: `git -C ${quotedTarget} commit -m "chore: initialize app from Maestro"`,
+        requiresApproval: true,
+        executed: false,
+      },
+      {
+        id: "preflight",
+        command: `pnpm --dir ${quotedTarget} maestro -- preflight --mode fake`,
+        requiresApproval: true,
+        executed: false,
+      },
     ],
-    nextCommand: `pnpm --dir ${quotedTarget} maestro -- start`,
+    nextCommand: `pnpm --dir ${quotedTarget} maestro -- start --mode fake`,
   } as const;
 }
 

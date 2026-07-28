@@ -90,6 +90,7 @@ export const runCustomerGeneratorCli = (
   argv: readonly string[],
   cwd = process.cwd(),
 ): CustomerCommandResult => {
+  if (argv[0] === "--") return runCustomerGeneratorCli(argv.slice(1), cwd);
   try {
     const command = argv[0];
     if (!command || command === "help")

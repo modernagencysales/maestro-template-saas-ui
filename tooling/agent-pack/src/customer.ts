@@ -14,6 +14,8 @@ export * from "./verificationRunner.js";
 export * from "./planCheck.js";
 export * from "./scaffold.js";
 export * from "./create.js";
+export * from "./recipes.js";
+export * from "./recipeTransaction.js";
 export * from "./ports.js";
 export * from "./processSupervisor.js";
 export * from "./start.js";

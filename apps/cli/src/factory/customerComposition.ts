@@ -32,6 +32,7 @@ import {
   type CompositionEnvironmentReader,
 } from "./environment";
 import { createPreflightCliHandler } from "./preflight";
+import { createCustomerRecipeCliHandlers } from "./customerRecipes";
 import {
   createComposedStartCommand,
   createStartCliHandler,
@@ -187,8 +188,10 @@ export function createCustomerCliComposition(
       maxBytes: policy.packageJsonMaxBytes,
     }),
   });
+  const recipeHandlers = createCustomerRecipeCliHandlers(preflight);
   const handlers: readonly FactoryCliHandler[] = [
     createStartCliHandler(start, output),
+    ...recipeHandlers,
     createPreflightCliHandler(preflight),
     createVerifyCliHandler(verify),
     createVerifyCliHandler(check),

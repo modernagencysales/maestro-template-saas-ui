@@ -146,6 +146,27 @@ function resolveReleaseDefinition(
   readonly manifest: Record<string, unknown>;
   readonly deriveExpectedHashes: boolean;
 } {
+  return resolveReleaseDefinitionAt({
+    options,
+    manifestPath: options.manifestPath,
+    value,
+    requireBlueprintBinding: true,
+    visited: new Set<string>(),
+  });
+}
+
+function resolveReleaseDefinitionAt(input: {
+  readonly options: CustomerReleaseAdapterOptions;
+  readonly manifestPath: string;
+  readonly value: unknown;
+  readonly requireBlueprintBinding: boolean;
+  readonly visited: Set<string>;
+}): {
+  readonly manifest: Record<string, unknown>;
+  readonly deriveExpectedHashes: boolean;
+} {
+  const { options, manifestPath, value, requireBlueprintBinding, visited } =
+    input;
   if (!isRecord(value)) {
     throw new CustomerReleaseAdapterError(
       "release-unavailable",
@@ -155,24 +176,35 @@ function resolveReleaseDefinition(
   if (value.kind !== "composed-customer-release") {
     return { manifest: value, deriveExpectedHashes: false };
   }
+  const blueprintBindingInvalid =
+    requireBlueprintBinding &&
+    (!isRecord(value.blueprintManifest) ||
+      typeof value.blueprintManifest.path !== "string" ||
+      value.blueprintManifest.sha256 !== options.blueprintManifestChecksum ||
+      resolve(manifestPath, "..", value.blueprintManifest.path) !==
+        resolve(options.blueprintManifestPath));
   if (
     !isRecord(value.baseManifest) ||
     typeof value.baseManifest.path !== "string" ||
     typeof value.baseManifest.sha256 !== "string" ||
     !Array.isArray(value.additionalPaths) ||
     !isRecord(value.release) ||
-    !isRecord(value.blueprintManifest) ||
-    typeof value.blueprintManifest.path !== "string" ||
-    value.blueprintManifest.sha256 !== options.blueprintManifestChecksum ||
-    resolve(options.manifestPath, "..", value.blueprintManifest.path) !==
-      resolve(options.blueprintManifestPath)
+    blueprintBindingInvalid
   ) {
     throw new CustomerReleaseAdapterError(
       "release-unavailable",
       "Composed customer release descriptor is invalid.",
     );
   }
-  const basePath = resolve(options.manifestPath, "..", value.baseManifest.path);
+  const basePath = resolve(manifestPath, "..", value.baseManifest.path);
+  const canonicalBasePath = realpathSync(basePath);
+  if (visited.has(canonicalBasePath)) {
+    throw new CustomerReleaseAdapterError(
+      "release-unavailable",
+      "Composed customer release contains a manifest cycle.",
+    );
+  }
+  visited.add(canonicalBasePath);
   const baseBytes = readFileSync(basePath);
   if (sha256(baseBytes) !== value.baseManifest.sha256) {
     throw new CustomerReleaseAdapterError(
@@ -180,29 +212,31 @@ function resolveReleaseDefinition(
       "Base ownership manifest checksum is not reviewed.",
     );
   }
-  const base = parseManifest(baseBytes);
-  if (!isRecord(base)) {
-    throw new CustomerReleaseAdapterError(
-      "release-unavailable",
-      "Base ownership manifest is invalid.",
-    );
-  }
+  const base = resolveReleaseDefinitionAt({
+    options,
+    manifestPath: basePath,
+    value: parseManifest(baseBytes),
+    requireBlueprintBinding: false,
+    visited,
+  });
   const paths = [
-    ...(Array.isArray(base.paths) ? base.paths : []),
+    ...(Array.isArray(base.manifest.paths) ? base.manifest.paths : []),
     ...value.additionalPaths,
   ];
-  const expectedHashes = isRecord(base.expectedHashes)
+  const expectedHashes = isRecord(base.manifest.expectedHashes)
     ? Object.fromEntries(
-        Object.entries(base.expectedHashes).filter(
+        Object.entries(base.manifest.expectedHashes).filter(
           ([path]) =>
             resolveCustomerReleasePath(paths, path)?.action === "copy",
         ),
       )
-    : base.expectedHashes;
+    : base.manifest.expectedHashes;
   return {
-    deriveExpectedHashes: value.deriveExpectedHashesFromArchive === true,
+    deriveExpectedHashes:
+      value.deriveExpectedHashesFromArchive === true ||
+      base.deriveExpectedHashes,
     manifest: {
-      ...base,
+      ...base.manifest,
       materializationStatus: value.materializationStatus,
       fixtureReason: undefined,
       release: value.release,

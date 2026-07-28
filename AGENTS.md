@@ -1,9 +1,39 @@
 # Agent Instructions
 
-This repo is a private internal template for custom AI brain and workflow apps.
-Treat it as product infrastructure: preserve the generic framework, avoid
-project-specific business logic, and keep the repo easy for future agents to
-inspect and extend.
+This repository is both the Maestro app factory and, after `maestro create`, the
+base of a generated customer app. Treat it as product infrastructure: preserve
+the generic framework, avoid project-specific business logic in the factory,
+and leave the repository easier for the next person or agent to inspect.
+
+## Identify The Repository Mode
+
+- A factory checkout contains `releases/` and
+  `apps/cli/src/factory/createComposition.ts`. Use it to preview and create a
+  separate target. Never build a customer product directly in the factory.
+- A generated customer target contains `template-instance.json`. Build the
+  product there and preserve the immutable release facts in that file.
+- If neither marker exists, stop and report that the repository mode is
+  ambiguous before writing files.
+
+In either mode, begin with `pnpm maestro -- preflight --mode fake`. In a
+customer target, then run `pnpm maestro -- recipes list` and
+`pnpm template:systems -- --query <responsibility-or-table>` before choosing a
+generator. Preview is the default. A write must be explicit, use the exact
+confirmation command when one is returned, and be followed by the focused gates
+named in the preview.
+
+The supported customer loop is:
+
+```text
+preflight -> recipes/system lookup -> preview -> reviewed write
+          -> focused verification -> start --mode fake
+```
+
+Do not bypass this loop by copying factory files, hand-editing generated files,
+inventing a parallel system, or weakening a red gate. Read
+`docs/template/quickstart.md`, `docs/template/app-factory-guide.md`, and
+`docs/template/customer-target-contract.md` when onboarding or changing the
+factory/customer boundary.
 
 ## Layer Law
 

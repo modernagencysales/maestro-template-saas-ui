@@ -423,7 +423,7 @@ const confectSpec = (): string => {
   value = replace(
     value,
     'import ops_versioning from "../ops/versioning.spec";',
-    'import ops_versioning from "../ops/versioning.spec";\nimport records from "../records/records.spec";',
+    'import ops_versioning from "../ops/versioning.spec";\nimport records from "../records.spec";',
   );
   value = replace(
     value,
@@ -521,6 +521,18 @@ export const buildSaasRegistrationProjections = (
       path: "apps/cli/src/factory/start.ts",
       content: source("apps/cli/src/factory/start.ts"),
     },
+    {
+      path: "apps/cli/src/factory/customerRecipes.ts",
+      content: currentSource("apps/cli/src/factory/customerRecipes.ts"),
+    },
+    {
+      path: "apps/cli/src/factory/recipeCatalog.ts",
+      content: currentSource("apps/cli/src/factory/recipeCatalog.ts"),
+    },
+    {
+      path: "apps/cli/src/factory/recipes.ts",
+      content: currentSource("apps/cli/src/factory/recipes.ts"),
+    },
     ...(current
       ? [
           {
@@ -582,7 +594,6 @@ export const buildSaasRegistrationProjections = (
       "packages/convex/confect/capabilities/_kit/workspaceAccess.ts",
       "packages/convex/confect/_generated/docs.ts",
       "packages/convex/confect/_generated/tables/workflowArtifacts.ts",
-      "packages/convex/confect/ops/dataResources.generated.ts",
       "packages/convex/confect/tables/workflowArtifacts.ts",
       "packages/convex/confect/tables/workflowRuns.ts",
       "packages/convex/confect/tables/workflowStageRuns.ts",
@@ -627,6 +638,8 @@ export const buildSaasRegistrationProjections = (
       "ports.ts",
       "verify.ts",
       "receiptWriter.ts",
+      "recipes.ts",
+      "recipeTransaction.ts",
       "index.ts",
       "readiness/artifacts.ts",
       "readiness/index.ts",
@@ -687,7 +700,7 @@ export const buildSaasRegistrationProjections = (
     {
       path: "packages/convex/confect/_generated/registeredFunctions/records.ts",
       content:
-        'import { RegisteredConvexFunction, RegisteredFunctions } from "@confect/server";\nimport databaseSchema from "../schema";\nimport records from "../../records/records.impl";\n\nexport default RegisteredFunctions.buildForGroup<typeof import("../../records/records.spec")["default"]>(databaseSchema, records, RegisteredConvexFunction.make);\n',
+        'import { RegisteredConvexFunction, RegisteredFunctions } from "@confect/server";\nimport databaseSchema from "../schema";\nimport records from "../../records.impl";\n\nexport default RegisteredFunctions.buildForGroup<typeof import("../../records.spec")["default"]>(databaseSchema, records, RegisteredConvexFunction.make);\n',
     },
     {
       path: "packages/convex/convex/records.ts",

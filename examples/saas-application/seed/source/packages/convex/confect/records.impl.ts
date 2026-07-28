@@ -2,10 +2,10 @@ import { FunctionImpl, GroupImpl } from "@confect/server";
 import * as Clock from "effect/Clock";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
-import databaseSchema from "../_generated/schema";
-import { DatabaseReader, DatabaseWriter } from "../_generated/services";
-import { requireWorkspaceAccess } from "../capabilities/_kit/workspaceAccess";
-import { NotFound, ValidationFailed } from "../errors";
+import databaseSchema from "./_generated/schema";
+import { DatabaseReader, DatabaseWriter } from "./_generated/services";
+import { requireWorkspaceAccess } from "./capabilities/_kit/workspaceAccess";
+import { NotFound, ValidationFailed } from "./errors";
 import records from "./records.spec";
 
 const withClock = <A, E, R>(effect: Effect.Effect<A, E, R>) =>

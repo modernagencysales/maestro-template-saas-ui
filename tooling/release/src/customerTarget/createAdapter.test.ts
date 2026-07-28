@@ -1,4 +1,10 @@
-import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  readdirSync,
+  writeFileSync,
+} from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
@@ -85,6 +91,71 @@ describe("customer release create adapter", () => {
       ),
     ).toMatchObject({ name: "My App", release: { tag: fixture.tag } });
     expect(readdirSync(fixture.temporaryRoot)).toEqual([]);
+  });
+
+  it("resolves nested composed releases through the original ownership manifest", async () => {
+    const fixture = taggedRelease();
+    const releaseRoot = join(fixture.repositoryRoot, "releases");
+    mkdirSync(releaseRoot);
+    const basePath = join(releaseRoot, "base.json");
+    const middlePath = join(releaseRoot, "middle.json");
+    const currentPath = join(releaseRoot, "current.json");
+    const blueprintPath = join(releaseRoot, "blueprint.json");
+    writeFileSync(basePath, `${JSON.stringify(fixture.manifest, null, 2)}\n`);
+    const middle = {
+      kind: "composed-customer-release",
+      materializationStatus: "materializable",
+      baseManifest: {
+        path: "base.json",
+        sha256: hash(readFileSync(basePath)),
+      },
+      release: fixture.manifest.release,
+      additionalPaths: [],
+      deriveExpectedHashesFromArchive: true,
+    };
+    writeFileSync(middlePath, `${JSON.stringify(middle, null, 2)}\n`);
+    writeFileSync(blueprintPath, readFileSync(fixture.blueprintManifestPath));
+    const current = {
+      ...middle,
+      baseManifest: {
+        path: "middle.json",
+        sha256: hash(readFileSync(middlePath)),
+      },
+      blueprintManifest: {
+        path: "blueprint.json",
+        sha256: hash(readFileSync(blueprintPath)),
+      },
+    };
+    writeFileSync(currentPath, `${JSON.stringify(current, null, 2)}\n`);
+    git(fixture.repositoryRoot, ["add", "releases"]);
+    git(fixture.repositoryRoot, [
+      "commit",
+      "--quiet",
+      "-m",
+      "compose nested release",
+    ]);
+    git(fixture.repositoryRoot, ["tag", "-f", fixture.tag, "HEAD"]);
+    const release = createCustomerReleaseAdapter({
+      repositoryRoot: fixture.repositoryRoot,
+      manifestPath: currentPath,
+      ownershipManifestChecksum: hash(readFileSync(currentPath)),
+      tag: fixture.tag,
+      homeRoot: fixture.homeRoot,
+      temporaryRoot: fixture.temporaryRoot,
+      blueprintManifestPath: blueprintPath,
+      blueprintManifestChecksum: hash(readFileSync(blueprintPath)),
+    });
+
+    const result = await prepare(fixture, release);
+    expect(result, JSON.stringify(result)).toMatchObject({
+      ok: true,
+      facts: { tag: fixture.tag },
+      preview: {
+        writes: expect.arrayContaining([
+          expect.objectContaining({ path: "runtime.txt" }),
+        ]),
+      },
+    });
   });
 
   it.each([

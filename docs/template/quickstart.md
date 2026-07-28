@@ -1,191 +1,191 @@
 # Template Quickstart
 
-For the novice `add` journey and its copy/paste atomic confirmation command, see
-[Executable Outcome Recipes](./executable-recipes.md).
+This walkthrough exercises the same path an external tester should use. It
+creates a separate Launch Tracker app, establishes a clean baseline, uses the
+generated CLI to inspect the architecture, previews a change, and starts the app
+without live accounts or secrets.
 
-This private template is an opinionated app factory for B2B AI/GTM software,
-custom Brain builds, and implementation consulting prototypes. It starts in fake
-mode so a reviewer can see the architecture, seeded Brain, first workflow, and
-Trust Receipt without live provider setup.
+## 1. Prepare the factory
 
-## 10-Minute Local Fake Mode
-
-For a customer app, preview a reviewed release first:
+Requirements: Git, Node 22, Corepack, and pnpm.
 
 ```bash
-pnpm maestro -- create ../my-app --name "My App" --outcome "Track client requests" --demo-only
-pnpm maestro -- create ../my-app --name "My App" --outcome "Track client requests" --demo-only --write
+git clone https://github.com/modernagencysales/maestro-template-saas-ui.git
+cd maestro-template-saas-ui
+git checkout maestro-template-v0.2.0-alpha.2
+corepack enable
+pnpm install --frozen-lockfile
 ```
 
-Create asks only for the name, first outcome, and demo-only posture. The first
-command writes nothing; the second materializes only after an exact external
-tag, commit, and archive-checksum binding passes. Follow the single next command
-printed by create. Install dependencies and initialize Git only after reviewing
-their separate approval items. See the
-[customer target contract](./customer-target-contract.md).
+The tag matters. Customer creation is bound to an immutable release manifest,
+source commit, source archive checksum, and blueprint checksum. A random copy of
+the factory branch is not a release.
 
-From the completed customer target, the shortest visible-app path is:
+## 2. Preview and create Launch Tracker
+
+Preview first. This command does not create the target directory:
 
 ```bash
-pnpm install
-pnpm maestro -- start
+pnpm maestro -- create ../launch-tracker \
+  --name "Launch Tracker" \
+  --outcome "Track launch tasks and blockers" \
+  --demo-only
 ```
 
-The default fake mode starts only the web app, requires no Convex account, and
-prints the personalized app name, first outcome, URL, and `/health` readiness
-route only after that route responds successfully. Use `--mode local` only for
-the reviewed local Convex stack and `--mode dev` only with an authenticated
-personal dev deployment. See [local start modes](./start-modes.md).
-
-Copy-paste path:
+Review the listed writes, omissions, collisions, release facts, and privacy
+notice. Then approve that exact materialization:
 
 ```bash
-pnpm install
-pnpm template:quickstart -- --blueprint source-grounded-gtm-brain --name "Client Brain" --write
-pnpm template:intake -- --name "Client Brain" --write
-pnpm template:doctor -- --mode fake
-pnpm template:seed-demo -- --blueprint source-grounded-gtm-brain --write
-pnpm template:systems -- --query knowledge
-pnpm template:add-client-domain -- --name customerContext --system knowledge-brain --disposition extend --write
-pnpm template:handoff -- --mode fake --write
-pnpm maestro -- start
+pnpm maestro -- create ../launch-tracker \
+  --name "Launch Tracker" \
+  --outcome "Track launch tasks and blockers" \
+  --demo-only \
+  --write \
+  --privacy-reviewed
 ```
 
-This is the fastest reviewer path: install, generate the client fork packet,
-create the intake brief, prove fake-mode readiness, seed the source-backed
-Brain, generate the handoff packet, and open the TanStack Start reference app.
+Create prints the remaining commands in order. Run them rather than guessing:
 
-The first command must run with `--write`. `template:quickstart -- --write`
-creates `template-instance.json`; `template:doctor -- --mode fake` expects
-`template-instance.json` and will fail if you only previewed quickstart output.
-Commands without `--write` are dry-run previews.
+```bash
+git -C ../launch-tracker init
+pnpm --dir ../launch-tracker install --frozen-lockfile
+git -C ../launch-tracker add .
+git -C ../launch-tracker commit -m "chore: initialize app from Maestro"
+pnpm --dir ../launch-tracker maestro -- preflight --mode fake
+```
 
-Before the first write, run `pnpm maestro -- preflight` and follow the
-[preflight readiness guide](./preflight.md) if it reports a blocked target or
-unsupported host posture.
+The baseline commit is intentional. Preflight and recipe writes require a clean
+target so they can distinguish their changes from yours. Create never runs Git,
+package installation, authentication, or a server on your behalf.
 
-1. Install dependencies with `pnpm install`.
-2. Review `.env.example` and [env-manifest.md](./env-manifest.md). Keep the fake
-   defaults unless this is a test/live provider setup. Leave `VITE_CONVEX_URL`
-   blank for fake-safe local web mode.
-3. Generate the default client fork scaffold:
-   `pnpm template:quickstart -- --name "Client Brain" --write`.
-4. Generate the first discovery brief with
-   `pnpm template:intake -- --name "Client Brain" --write`.
-5. Check fake-mode readiness with `pnpm template:doctor -- --mode fake`.
-6. Seed deterministic demo context with
-   `pnpm template:seed-demo -- --blueprint source-grounded-gtm-brain --write`.
-7. Change the first client noun with
-   `pnpm template:add-client-domain -- --name customerContext --system knowledge-brain --disposition extend --write`.
-8. Start the app with `pnpm maestro -- start`.
-9. Review the generated implementation brief at
-   `docs/template/generated/implementation-brief.md`.
-10. Preview the handoff packet with
-    `pnpm template:handoff -- --mode fake --write`.
+## 3. Ask the generated app what it supports
 
-Expected first screen: the Saas UI dashboard at `/`, with priority-account
-cards, a live workflow-runs card, and a golden-path architecture card. With
-`VITE_CONVEX_URL` blank, the workflow-runs card must say Convex is not
-configured rather than attempting a fake network call. The `/data-lifecycle`
-route is the first copyable mutation slice: `Plan export` and `Plan delete`
-update local fake-safe state until a real Convex URL and workspace are
-configured.
+```bash
+cd ../launch-tracker
+pnpm maestro -- recipes list
+pnpm maestro -- recipes show crud-business-entity
+pnpm template:systems -- --query records
+```
 
-Expected local URL: `http://127.0.0.1:5173/`; start uses strict port binding and
-reports a collision rather than selecting an unannounced port. The readiness
-route is `http://127.0.0.1:5173/health`. Expected generated files:
+The starter already contains the canonical `record-management` system, one
+workspace-owned `records` table, lifecycle metadata, and the `/records` route.
+System lookup is part of the method: reuse or extend an existing owner instead
+of introducing another subsystem with a different noun.
 
-- `template-instance.json`
-- `docs/template/generated/implementation-brief.md`
-- `docs/template/generated/client-intake.md`
-- `generated/app-factory/day-0-loop.json`
-- `examples/demo-seed/source-grounded-gtm-brain/demo-seed.json`
-- `docs/template/generated/handoff-packet.md`
+Useful inspection files are:
 
-`template-instance.json` is the Day-0 manifest. It records the app name, package
-scope, blueprint, enabled modules, local/preview/production environments,
-deployment targets, required secret names, redaction posture, source/demo-data
-posture, and fake/test/live provider mode. `template:doctor -- --mode live` may
-list missing secret names from this posture, but it must never print secret
-values.
+- `template-instance.json` — immutable release and app personalization facts.
+- `docs/template/system-catalog.json` — canonical responsibility and table
+  ownership.
+- `docs/template/product-topology.json` — routes, capabilities, workflows, and
+  provider relationships.
+- `docs/template/data-resources.json` — tenant, export, deletion, and retention
+  posture.
+- `AGENTS.md` — rules for agents working in the generated app.
 
-The default blueprint is `source-grounded-gtm-brain`. It creates a source-backed
-Brain using markdown, links, and notes; a first capability named
-`summarizeSource`; a first workflow named `sourceGroundedPlan`; and a first
-agent named `gtmBrainPlanner`.
+## 4. Preview a second business entity
 
-The 10-minute path is successful only when a reviewer can see the whole loop:
-seeded sources, generated context, the first workflow, a Trust Receipt, and the
-next commands for turning the fork into a client-specific app. If any part of
-that loop is fake, the generated handoff packet must say so.
+This example adds a `Milestone` table and visible slice under the existing
+record-management authority:
 
-## Day-0 Factory Loop
+```bash
+pnpm maestro -- add crud-business-entity \
+  --answer entityName=Milestone \
+  --answer canonicalOwner=record-management \
+  --answer tenantScope=workspace \
+  --answer sensitivity=internal \
+  --answer pii=none \
+  --answer exportMode=json \
+  --answer deleteMode=delete \
+  --answer retention=retain-until-workspace-delete \
+  --answer appendOnly=false
+```
 
-Use this when the goal is speed from client idea to useful prototype:
+The default is a non-mutating preview. It prints an exact confirmation command
+containing the reviewed plan fingerprint and clean-preflight fingerprint. Copy
+that command unchanged to write. The write re-previews every generator, stages
+all files, refuses collisions or changed evidence, and retains a recovery
+journal and receipt under `.maestro/recipe-transactions/`.
 
-1. Pick the closest blueprint.
-2. Run `template:quickstart` and `template:seed-demo`.
-3. Run `template:intake` to capture the first discovery map.
-4. Query the canonical system catalog and change one client noun with
-   `template:add-client-domain -- --system <canonical-id> --disposition reuse|extend`.
-5. Add or rename one capability.
-6. Add or rename one workflow.
-7. Run the fake doctor and focused generator checks.
-8. Open the app and inspect Brain, workflow, and receipt pages.
-9. Generate the handoff packet and implementation brief.
+If you only want to understand the machine contract, add `--json`. If you want
+all diagnostics and context facts, add `--details`.
 
-This loop is the app-factory contract. New template features should make one of
-these steps faster, safer, or more legible.
+## 5. Verify the affected contracts
 
-## 30-Minute Client Discovery Mode
+Run the focused gates named by the recipe. For the CRUD recipe they include:
 
-Use the generated implementation brief as the discovery map:
+```bash
+pnpm check:system-catalog
+pnpm check:data-resources
+pnpm check:schema-migration-notes
+pnpm --dir apps/web typecheck
+```
 
-- Confirm client nouns: workspace, sources, context packs, capabilities,
-  workflows, agents, and Trust Receipts.
-- Inventory source types: markdown, links, notes, documents, CRM exports,
-  meetings, and approved internal systems.
-- Decide provider posture: fake, test, or live-ready for WorkOS, PostHog, Dodo,
-  MailerSend, OpenRouter-compatible LLMs, storage, and search.
-- Identify the first useful workflow that connects client context to an
-  auditable output.
-- Keep client-specific prompts, integrations, and business logic in generated
-  modules or private packages until reviewed.
+When a change affects Confect source, regenerate and verify its projections:
 
-## One-Day Prototype Mode
+```bash
+pnpm confect:codegen
+pnpm confect:manifest
+pnpm check:confect-contracts
+```
 
-1. Generate the quickstart files.
-2. Search the catalog, then explore uncertain behavior under the sandbox with
-   `pnpm template:prototype -- --name "<feature>" --system <canonical-id> --disposition extend --hypothesis "<expected learning>" --write`.
-3. Record the learning and promote the useful behavior as a complete slice with
-   `pnpm template:add-feature -- --name "<feature>" --system <canonical-id> --disposition extend --write`.
-4. Add a workflow with
-   `pnpm template:add-workflow -- --name "<workflow>" --system <canonical-id> --disposition extend --write`.
-5. Regenerate Convex refs, typecheck the Convex package, and keep
-   `template:promote-workflow` only for older reviewed or private-package
-   workflow artifacts. `template:add-workflow -- --write` already writes the
-   production-target workflow paths.
-6. Wire the generated refs into the Saas UI business surfaces, API, CLI, and MCP
-   surfaces.
-7. Add focused tests for the capability, workflow graph, provider posture, and
-   Trust Receipt.
-8. Run `pnpm review:readiness` before handoff.
+Generated Confect and Convex files are outputs, not hand-editing surfaces.
 
-The first files a worker should inspect are `AGENTS.md`,
-`docs/template/blueprint-catalog.md`, `docs/template/system-catalog.md`,
-`docs/template/generator-output-contract.md`, `template-instance.json`, and the
-generated implementation brief.
+## 6. Start in fake mode
 
-## Design Commitments
+```bash
+pnpm maestro -- start --mode fake
+```
 
-- TanStack Start is the frontend direction; Convex, Confect, and Effect own
-  durable backend contracts.
-- Saas UI and the template block layer own UI primitives.
-- React Flow is only the workflow interaction layer; durable workflow graphs
-  stay outside React Flow node and edge arrays.
-- The Brain is source-backed by default. RAG is an optional extension, not the
-  default truth model.
-- Fake providers are the default until a client setup explicitly configures live
-  adapters.
-- Provider setup is centralized in [env-manifest.md](./env-manifest.md);
-  generated docs list secret names, never secret values.
+Start uses a strict port, waits for `/health`, and only then prints the app URL.
+Fake mode starts the web app without a Convex account or live provider secret.
+Use `--mode local` only for the reviewed local Convex stack and `--mode dev`
+only with an authenticated personal development deployment. See
+[Start Modes](./start-modes.md).
+
+The first app proof is simple: open `/records`, create a record, return to the
+list, and open its detail. Verify loading, empty, error, list, detail, and
+create states. The neutral `record` noun is meant to be renamed.
+
+## The method in one page
+
+```text
+preflight
+  -> inspect recipes and canonical ownership
+  -> preview exact operations
+  -> review privacy, lifecycle, and collisions
+  -> write with unchanged authority fingerprints
+  -> run focused deterministic gates
+  -> start in fake mode
+```
+
+Use the smallest primitive that fits:
+
+- A table and route for ordinary workspace CRUD.
+- A capability when policy, approval, audit, entitlement, or cross-resource
+  validation is required.
+- A workflow when work must pause, retry, wait, or resume.
+- An agent only when a nondeterministic actor needs explicit tools to choose
+  among reviewed operations.
+
+Uncertain behavior begins under `template:prototype`. Learned behavior is
+promoted by re-scaffolding through the matching `template:add-*` command; an
+experiment is never imported directly into production.
+
+## Before sharing a generated app
+
+At minimum, run:
+
+```bash
+pnpm check:format
+pnpm lint
+pnpm typecheck
+pnpm test
+pnpm build
+pnpm check:system-catalog
+pnpm check:system-topology
+pnpm check:data-resources
+```
+
+Then commit the generated receipt and relevant provenance alongside the code.
+Use `pnpm verify` for the exhaustive handoff gate.

@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "id": "saas-application",
+  "provenance": "@maestro-template/generators/saas-application@1",
+  "projectionSource": {
+    "sourceCommit": "0000000000000000000000000000000000000000",
+    "assets": [
+      {
+        "path": "base/apps/cli/src/factory/customerComposition.ts.txt",
+        "sha256": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      {
+        "path": "base/apps/cli/src/factory/customerRecipes.ts.txt",
+        "sha256": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      {
+        "path": "base/apps/cli/src/factory/recipes.ts.txt",
+        "sha256": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      {
+        "path": "base/docs/template/data-resources.json.txt",
+        "sha256": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      {
+        "path": "base/docs/template/product-topology.json.txt",
+        "sha256": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      {
+        "path": "base/docs/template/system-catalog.json.txt",
+        "sha256": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      {
+        "path": "base/package.json.txt",
+        "sha256": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      {
+        "path": "base/packages/convex/confect/_generated/spec.ts.txt",
+        "sha256": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      {
+        "path": "base/packages/convex/confect/ops/dataResources.generated.ts.txt",
+        "sha256": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      {
+        "path": "base/tooling/agent-pack/src/index.ts.txt",
+        "sha256": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      {
+        "path": "base/tooling/agent-pack/src/recipes.ts.txt",
+        "sha256": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      {
+        "path": "base/tooling/agent-pack/src/recipeTransaction.ts.txt",
+        "sha256": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      {
+        "path": "base/tooling/generators/src/customer-dispatcher.ts.txt",
+        "sha256": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      {
+        "path": "base/tooling/generators/src/customer-runtime.ts.txt",
+        "sha256": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+      }
+    ]
+  },
+  "registrations": [],
+  "entries": []
+}

@@ -3,6 +3,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   parseDataResourceCatalog,
+  renderDataResourceRuntime,
   type DataDeleteMode,
   type DataExportMode,
   type DataResourceCatalog,
@@ -1297,6 +1298,10 @@ query that proves the table is necessary before approving this decision.
     {
       path: "docs/template/data-resources.json",
       content: `${JSON.stringify(nextDataResources, null, 2)}\n`,
+    },
+    {
+      path: "packages/convex/confect/ops/dataResources.generated.ts",
+      content: renderDataResourceRuntime(nextDataResources),
     },
   ];
 

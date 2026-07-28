@@ -1,154 +1,163 @@
 # App Factory Guide
 
-The app factory flow creates a client-specific app from this private template
-without copying project-specific business logic into the core framework.
+The app factory turns a reviewed template release into a separate,
+client-specific application. It combines an opinionated starter with explicit
+customization seams and deterministic architecture controls.
 
-## Factory Principles
+## Factory and customer are different modes
 
-- Start from a documented blueprint in
-  [blueprint-catalog.md](./blueprint-catalog.md).
-- Treat `source-grounded-gtm-brain` as the implemented baseline until the other
-  blueprint packs have generator support, deterministic seed data, tests, and
-  handoff docs.
-- Use `gtm-implementation` when the first client app should be account-centric
-  GTM software with CRM, Drive, Notion, and generated reporting seams.
-- Start from fake providers and synthetic demo data.
-- Use [env-manifest.md](./env-manifest.md) as the provider setup source of
-  truth.
-- Query [system-catalog.md](./system-catalog.md) before adding nouns or durable
-  resources; reuse or extend an existing canonical owner by default.
-- Add client domain nouns through generators.
-- Keep Confect specs, generated manifest/headless metadata, generated ref
-  mappings, frontend adapters, docs, and tests together.
-- Promote runtime-authored capabilities to generated source when compile-time
-  guarantees matter.
-- Keep private client packages separate from the template core.
-- Explore uncertain behavior with `template:prototype`; promote understood
-  behavior with `template:add-feature`.
+The factory checkout owns release composition, blueprints, ownership rules, and
+the `create` boundary. A generated target owns the customer product. You can
+identify them mechanically:
 
-## Default Flow
+- Factory: `releases/` and `apps/cli/src/factory/createComposition.ts` exist.
+- Customer: `template-instance.json` exists.
 
-Fastest usable factory command sequence:
+Never implement client business logic in the factory and never copy current
+factory files into a customer target. Create from an immutable release; upgrade
+through reviewed release operations.
 
-```bash
-pnpm template:quickstart -- --blueprint source-grounded-gtm-brain --name "Client Brain" --write
-pnpm template:intake -- --name "Client Brain" --write
-pnpm template:doctor -- --mode fake
-pnpm template:seed-demo -- --blueprint source-grounded-gtm-brain --write
-pnpm template:handoff -- --mode fake --write
+## The supported method
+
+```text
+orient -> choose outcome -> find owner -> preview -> approve
+       -> atomic write -> focused proof -> run
 ```
 
-This sequence should stay cheap, deterministic, fake-provider safe, and suitable
-for investor diligence or a first client discovery call.
+### 1. Orient
 
-For a GTM-specific fork, swap the first command to:
+Run fake-mode preflight and inspect the generated instance:
 
 ```bash
-pnpm template:quickstart -- --blueprint gtm-implementation --name "GTM Brain" --write
+pnpm maestro -- preflight --mode fake
 ```
 
-That adds optional provider seam metadata for CRM, Drive, and Notion plus
-reporting surface seams. These are generated/private-package starting points,
-not template-core assumptions.
+Preflight reports repository, release, host, dependency, workflow, provider, and
+app posture. Resolve blocking findings before mutation; do not suppress them.
 
-1. Run
-   `pnpm template:quickstart -- --blueprint source-grounded-gtm-brain --name "Client Brain" --write`.
-2. Generate and review the intake brief with
-   `pnpm template:intake -- --name "Client Brain" --write`.
-3. Review `template-instance.json`,
-   `docs/template/generated/implementation-brief.md`, and
-   `docs/template/generated/handoff-packet.md`.
-4. Seed reviewer-safe fake data with
-   `pnpm template:seed-demo -- --blueprint source-grounded-gtm-brain --write`.
-5. Run `pnpm template:doctor -- --mode fake`.
-6. Add a first capability with
-   `pnpm template:add-capability -- --name summarizeSource --system knowledge-brain --disposition extend --write`.
-7. Add a first workflow with
-   `pnpm template:add-workflow -- --name sourceGroundedPlan --system knowledge-brain --disposition extend --write`.
-8. Regenerate generated contracts before wiring generated wrappers:
-   `pnpm confect:codegen`, `pnpm confect:manifest`, then the relevant focused
-   tests and gates for the changed surface. Run Convex codegen only when the
-   generated slice also changes Convex deployment refs. In the template repo,
-   use `pnpm template:workflow-output-smoke` to repeat workflow output checks in
-   an isolated temp copy.
-9. Use `template:promote-workflow` only when migrating older reviewed workflow
-   artifacts or private-package workflow modules into production-target paths.
-   New `template:add-workflow -- --write` output is already production-target.
-10. Import reviewed private packages with
-    `pnpm template:private-package:import -- --fixture <fixture> --system <id> --disposition reuse|extend --write`;
-    keep generated source modules under `private-packages/<package>/` until
-    review.
-11. Add domain modules with
-    `template:add-client-domain -- --system <id> --disposition reuse|extend`.
-12. Add a complete user-facing slice with
-    `template:add-feature -- --name <name> --system <id> --disposition reuse|extend --write`.
-    Add lower-level capabilities, workflows, agents, Brain schemas, API
-    surfaces, source types, notifications, admin surfaces, and data lifecycle
-    resources through their matching generators.
-13. Run focused verification for each generated change.
-14. Run `pnpm template:handoff -- --mode fake --write` and full verification
-    before a client handoff.
+### 2. Choose an outcome
 
-See `docs/template/quickstart.md` for the 10-minute fake-mode path, 30-minute
-client discovery path, and one-day prototype path.
+```bash
+pnpm maestro -- recipes list
+pnpm maestro -- recipes show crud-business-entity
+```
 
-Use [client-intake-wizard.md](./client-intake-wizard.md) and
-[client-intake-questionnaire.md](./client-intake-questionnaire.md) before
-customizing a fork. Generated and promoted slices must follow
-[generator-output-contract.md](./generator-output-contract.md). Handoffs should
-follow [client-handoff-packet.md](./client-handoff-packet.md). Template releases
-and client upgrades should follow
-[template-release-process.md](./template-release-process.md).
+Recipes are versioned product outcomes, not free-form code prompts. Each recipe
+states its consequential questions, minimum primitive, generated operations,
+focused gates, done state, and escalation triggers. If no recipe fits, use the
+closest lower-level generator or record a template gap rather than pretending a
+near match is exact.
 
-`template:init` remains available for low-level manifest-only initialization.
-Use it when you need just `template-instance.json`; use `template:quickstart`
-when you want the instance, implementation brief, demo seed, and handoff packet
-together.
+### 3. Find the canonical owner
 
-## Quickstart Value Loop
+Read `docs/template/system-catalog.md`, `product-topology.md`, and
+`data-lifecycle.md`, then query the catalog:
 
-The factory is working when a new fork can move through this loop without live
-secrets:
+```bash
+pnpm template:systems -- --query <responsibility-or-table>
+```
 
-1. Generate an instance from the implemented blueprint.
-2. Generate an intake brief that maps the client’s business outcome, sources,
-   first workflow, provider posture, and handoff risks.
-3. Seed a synthetic Brain with markdown, links, and notes.
-4. Run or inspect the first source-grounded workflow.
-5. Inspect the Trust Receipt and provider posture.
-6. Change one client noun, capability, or workflow through a generator.
-7. Re-run fake doctor checks and generate a handoff packet.
+Record `reuse` or `extend` for normal work. Introducing, replacing, or retiring
+a system requires a reviewed decision. A new durable table is incomplete until
+the system catalog, data-resource catalog, topology, migration decision, and
+runtime lifecycle projection agree.
 
-Any new blueprint, provider, frontend route, or backend primitive should either
-participate in this loop or clearly explain why it is optional.
+### 4. Preview and approve
 
-## Client Forks
+All `maestro add` and `template:*` generators preview by default. Preview should
+name exact files, collisions, ownership, provenance, and follow-up gates.
 
-Client forks should consume template releases, not copy random files from the
-template main branch. Use
-`pnpm template:upgrade -- --from <client-version> --to <template-version>` to
-compare a client fork against a template release and list migrations, env
-changes, contract diffs, and manual review items.
+`maestro add` returns a copy/paste confirmation command with the exact plan and
+preflight fingerprints. Run it unchanged. Lower-level generators require an
+explicit `--write` after review.
 
-Before a fork is handed to a client or investor reviewer, run
-`pnpm --dir tooling/release exec tsx src/index.ts client-release <template-version> <client-version>`.
-This confirms the generated intake brief, implementation brief, provider
-checklist, handoff packet, env manifest, and `template-instance.json` are
-present for review.
+### 5. Prove the affected contract
 
-## Instance Doctor
+Use the focused gates emitted by the recipe or matching
+`docs/template/how-to-add-*` playbook. Typical proof includes typecheck, focused
+tests, system ownership, topology, data lifecycle, schema migration notes,
+Confect contracts, and route generation. Regenerate Confect/Convex outputs;
+never edit them by hand.
 
-`template:doctor` verifies the generated instance file has core modules,
-provider posture, and fake-mode readiness. Fake mode must not require live
-secrets. Live mode reports provider warnings until WorkOS, Convex, PostHog,
-Dodo, email, LLM, and storage providers are configured. Provider requirements
-come from `docs/template/env-manifest.json`, so doctor output stays aligned with
-`.env.example`, deploy config, and provider descriptors.
+### 6. Run fake first
 
-## Handoff Acceptance
+```bash
+pnpm maestro -- start --mode fake
+```
 
-A client fork is ready for a technical handoff when `template:doctor`, focused
-generator tests, Confect contract checks, workflow graph boundary checks, secret
-canaries, hosted smoke tests, and `pnpm review:readiness` all pass. The handoff
-packet should identify any deterministic template runners that still need to be
-replaced with SDK-backed provider calls or production Confect runner services.
+Fake mode is the default because it proves the UI and contract shape without
+external credentials. Local and dev modes are separate reviewed transitions;
+live provider SDKs stay behind provider adapters and are never imported into web
+code.
+
+## Choosing the smallest primitive
+
+Use a table and route for ordinary tenant-owned CRUD. Escalate only when the
+behavior requires it:
+
+- Capability: policy, approval, audit, entitlement, or cross-resource
+  validation.
+- Workflow: pause, retry, wait, schedule, resume, or durable multi-step work.
+- Agent: nondeterministic selection among explicit reviewed tools.
+
+This keeps web, API, CLI, MCP, and agent surfaces as projections of the same
+authority instead of separate implementations.
+
+## Customization seams
+
+The starter is meant to look and behave like a real business app while staying
+adaptable:
+
+- Keep the shared Saas UI shell; customize blocks, tokens, feature adapters,
+  generated routes, and view models.
+- Keep durable behavior in Confect specs/implementations and canonical domain
+  services; do not duplicate it in a route or CLI handler.
+- Keep provider-specific code inside adapters.
+- Keep customer wording and composition in customer extension or generated paths
+  recorded by the release manifest.
+- Use `template:prototype` for uncertain behavior. Promote what you learn by
+  re-scaffolding with the matching production generator, not by importing the
+  experiment.
+
+## Direct generators
+
+Use an outcome recipe when it fits. Use lower-level generators for narrower
+work:
+
+```bash
+pnpm template:add-client-domain -- --name launchLanguage --system record-management --disposition extend
+pnpm template:add-table -- --name milestone --system record-management --disposition extend ...
+pnpm template:add-feature -- --name milestone --system record-management --disposition extend
+pnpm template:add-capability -- --name approveMilestone --system record-management --disposition extend
+pnpm template:add-workflow -- --name milestoneReview --system record-management --disposition extend
+pnpm template:add-agent -- --name launchCoordinator --system record-management --disposition extend
+```
+
+Run each once as a preview, then repeat with `--write` only after reviewing the
+output. Backend generators require a canonical `--system` and
+`--disposition reuse|extend` and write provenance for both.
+
+Factory maintainers can use `template:quickstart` to preview the broader
+blueprints recorded in [Blueprint Catalog](./blueprint-catalog.md).
+`template:init` is the lower-level manifest-only factory primitive; customer
+targets already have `template-instance.json` from `maestro create` and should
+not initialize a second instance. Every maintained generator must satisfy the
+[Generator Output Contract](./generator-output-contract.md).
+
+## Handoff standard
+
+A generated app is ready to share when:
+
+- fake preflight passes from a clean baseline;
+- the first user outcome works through the UI;
+- ownership, topology, data lifecycle, and migration gates pass;
+- Confect refs and wrappers regenerate without drift;
+- focused tests, typecheck, lint, format, and build pass;
+- fake start reports a healthy URL;
+- remaining fake, seam, unavailable, and live surfaces are labeled honestly;
+- recipe receipts and generator provenance are committed with the change.
+
+Use [Template Quickstart](./quickstart.md) for the copy/paste tester path,
+[Executable Outcome Recipes](./executable-recipes.md) for transactional adds,
+and [Customer Target Contract](./customer-target-contract.md) for the release
+and filesystem safety boundary.

@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 1,
+  "kind": "composed-customer-release",
+  "materializationStatus": "materializable",
+  "baseManifest": {
+    "path": "../v0.2.0-alpha.1/manifest.json",
+    "sha256": "sha256:dc00f1dc686c766a472c92d4881cdde4b6b6f47bc6d489f3df2574a741954579"
+  },
+  "release": {
+    "version": "0.2.0-alpha.2",
+    "tag": "maestro-template-v0.2.0-alpha.2",
+    "sourceCommit": "0000000000000000000000000000000000000000",
+    "sourceChecksum": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "upgrade": {
+    "schemaVersion": 1,
+    "transition": {
+      "id": "template-0.2-alpha.1-to-alpha.2",
+      "fromVersion": "0.2.0-alpha.1",
+      "toVersion": "0.2.0-alpha.2",
+      "immediatePriorVersion": "0.2.0-alpha.1"
+    },
+    "operations": [],
+    "requirements": []
+  },
+  "deriveExpectedHashesFromArchive": true,
+  "additionalPaths": [
+    {
+      "path": "tooling/generators/src/blueprints/saasApplicationFactory.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "tooling/generators/src/blueprints/saasRegistrationProjections.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "tooling/generators/src/cli.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "tooling/generators/src/customer-closure.test.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "tooling/generators/src/upgrade-wiring.test.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "tooling/generators/src/workflow-files.test.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    }
+  ],
+  "blueprintManifest": {
+    "path": "blueprints/saas-application.json",
+    "sha256": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "migrationHandoff": {
+    "required": false,
+    "executionAvailable": false,
+    "filePhase": "backward-compatible-code",
+    "requiredBefore": "migrate",
+    "path": "releases/v0.2.0-alpha.2/migrations/manifest.json",
+    "sha256": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+  }
+}
