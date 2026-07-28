@@ -13,16 +13,8 @@ import {
   type ProviderMode,
 } from "@maestro-template/integrations";
 import { parseNamedArgs } from "./namedArgs";
-import { ADOPT_HELP } from "./factory/adopt";
 import { CREATE_HELP } from "./factory/create";
-import { DOCTOR_HELP } from "./factory/doctor";
-import { MCP_CONFIGURE_HELP } from "./factory/mcpConfigure";
-import { PLAN_CHECK_HELP } from "./factory/planCheck";
-import { ADD_HELP, RECIPES_HELP } from "./factory/recipes";
-import { SCAFFOLD_HELP } from "./factory/scaffold";
 import { START_HELP } from "./factory/start";
-import { SUPPORT_BUNDLE_HELP } from "./factory/supportBundle";
-import { CHECK_HELP, VERIFY_HELP } from "./factory/verify";
 import { cliFailure, cliSuccess, formatJsonOutput } from "./result";
 import type {
   CliCapabilityRequest,
@@ -52,20 +44,20 @@ const helpResult = (): CliResult =>
       "",
       "Generated app loop (preflight -> inspect -> preview -> write -> verify -> run):",
       "  maestro preflight [--mode fake|test|live] [--details|--json]",
-      `  ${RECIPES_HELP.trim()}`,
-      `  ${ADD_HELP.trim()}`,
-      `  ${VERIFY_HELP.trim()}`,
-      `  ${CHECK_HELP.trim()}`,
+      "  maestro recipes list|show <recipe-id> [--human|--details|--json]",
+      "  maestro add <outcome-or-recipe> [--answer <question>=<value>] [--write --privacy-reviewed --plan-fingerprint <fingerprint> --preflight-fingerprint <fingerprint>] [--human|--details|--json]",
+      "  maestro verify [--scope focused|full] [--changed <paths>] [--human|--details|--json]",
+      "  maestro check [--mode fake|test|live] [--changed <paths>] [--human|--details|--json]",
       `  ${START_HELP.trim()}`,
-      `  ${SUPPORT_BUNDLE_HELP.trim()}`,
+      "  maestro support-bundle [--output <path>] [--write --preview-fingerprint <fingerprint>] [--human|--details|--json]",
       "",
       "Advanced factory and operator commands:",
-      `  ${PLAN_CHECK_HELP.trim()}`,
-      `  ${SCAFFOLD_HELP.trim()}`,
-      `  ${DOCTOR_HELP.trim()}`,
-      `  ${ADOPT_HELP.trim()}`,
+      "  maestro plan-check --plan <manifest.json> [--human|--details|--json]",
+      "  maestro scaffold --generator <id> --args <json-object> [--write --preflight-fingerprint <fingerprint>] [--human|--details|--json]",
+      "  maestro doctor <provider> --environment fake|local|dev|preview|staging [--human|--details|--json]",
+      "  maestro adopt preflight|work-package ... (dry-run only)",
       "  maestro mcp",
-      `  ${MCP_CONFIGURE_HELP.trim()}`,
+      "  maestro mcp configure --host <claude-code|codex> [--profile <inspect|dev-power>] [--write --privacy-reviewed|--remove] [--human|--details|--json]",
       "",
       "Shared headless surfaces:",
       "maestro-template describe",

@@ -1,4 +1,5 @@
 import { execFileSync, spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import {
   chmodSync,
   existsSync,
@@ -107,6 +108,11 @@ describe("materialized customer CLI runtime closure", () => {
       },
     });
     expect(instance.ownership.manifestChecksum).toBe(
+      `sha256:${createHash("sha256")
+        .update(readFileSync(join(releaseRoot, instance.ownership.manifest)))
+        .digest("hex")}`,
+    );
+    expect(instance.ownership.manifestChecksum).not.toBe(
       instance.release.sourceChecksum,
     );
     const privacyDocument = "docs/template/agent-pack-privacy.md";
