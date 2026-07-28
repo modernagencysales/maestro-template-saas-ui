@@ -65,6 +65,7 @@ const CUSTOMER_EXTENSION_EXACT = new Set([
 ]);
 
 const GENERATED_EXACT = new Set([
+  ".claude/settings.json",
   "Justfile",
   "package.json",
   "tsconfig.json",
@@ -95,7 +96,6 @@ const TEMPLATE_PREFIXES = [
 ] as const;
 
 const TEMPLATE_ROOT_FILES = new Set([
-  ".claude/settings.json",
   ".gitignore",
   ".gitleaks.toml",
   ".npmrc",

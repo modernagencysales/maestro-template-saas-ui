@@ -193,9 +193,9 @@ const REVIEWED_ADDITIONAL_PATHS: readonly CustomerReleasePath[] = [
   {
     path: ".claude/settings.json",
     match: "exact",
-    ownership: "template-owned",
-    action: "copy",
-    upgrade: "replace",
+    ownership: "generated",
+    action: "generate",
+    upgrade: "regenerate",
   },
   ...[
     "apps/cli/src/factory/adopt.ts",

@@ -355,7 +355,7 @@ describe("saas application blueprint", () => {
       ownership: "generated",
       action: "generate",
       upgrade: "regenerate",
-      replaces: "copy",
+      replaces: "generate",
     });
     expect(
       after.entries.find((entry) => entry.path === "skills-lock.json"),

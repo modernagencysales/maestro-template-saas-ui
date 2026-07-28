@@ -413,7 +413,7 @@ function buildTargetPlan(
   options: BlueprintTargetPlanOptions,
 ): BlueprintTargetPlan {
   const replacements = new Map<string, "copy" | "generate">([
-    [".claude/settings.json", "copy"],
+    [".claude/settings.json", "generate"],
     [".prettierignore", "copy"],
     ["README.md", "copy"],
     ["apps/cli/src/index.ts", "copy"],

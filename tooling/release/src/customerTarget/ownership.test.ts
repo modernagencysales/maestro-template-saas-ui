@@ -40,7 +40,7 @@ describe("customer ownership inventory", () => {
   });
 
   it.each([
-    [".claude/settings.json", "template-owned", "copy"],
+    [".claude/settings.json", "generated", "generate"],
     ["apps/web/src/routes/index.tsx", "template-owned", "copy"],
     ["tooling/generators/src/index.ts", "template-owned", "copy"],
     ["tooling/quality/check-generated-files.mts", "template-owned", "copy"],

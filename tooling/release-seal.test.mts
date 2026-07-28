@@ -44,8 +44,8 @@ describe("release seal factory-only exclusions", () => {
       expect.arrayContaining([
         expect.objectContaining({
           path: ".claude/settings.json",
-          ownership: "template-owned",
-          action: "copy",
+          ownership: "generated",
+          action: "generate",
         }),
         expect.objectContaining({
           path: "docs/agent",
