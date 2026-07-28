@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "kind": "reviewed-upgrade-impact-coverage",
   "baseRevision": "de1bac52bbd33745d2a0fecf8e1cb6ec5732310d",
-  "subjectRevision": "99dd32a8923751354c512885b3d399d878b074e5",
+  "subjectRevision": "c8de463e3e571427d272a1267c33662052a9e47b",
   "structuralPaths": [],
   "ownershipCoveredPaths": [
     "AGENTS.md",
@@ -34,7 +34,7 @@
   "impact": {
     "schemaVersion": 1,
     "baseRevision": "de1bac52bbd33745d2a0fecf8e1cb6ec5732310d",
-    "subjectRevision": "99dd32a8923751354c512885b3d399d878b074e5",
+    "subjectRevision": "c8de463e3e571427d272a1267c33662052a9e47b",
     "complete": true,
     "risk": "low",
     "changedPaths": [],
