@@ -197,6 +197,13 @@ const REVIEWED_ADDITIONAL_PATHS: readonly CustomerReleasePath[] = [
     action: "generate",
     upgrade: "regenerate",
   },
+  {
+    path: "tooling/release/__fixtures__/upgrade/provider-posture-v1-to-v2.contract.json",
+    match: "exact",
+    ownership: "template-owned",
+    action: "copy",
+    upgrade: "replace",
+  },
   ...[
     "apps/cli/src/factory/adopt.ts",
     "apps/cli/src/factory/adopt.test.ts",

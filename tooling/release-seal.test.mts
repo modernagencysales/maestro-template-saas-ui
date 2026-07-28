@@ -23,6 +23,7 @@ describe("release seal factory-only exclusions", () => {
       "tooling/app-map/INTEGRATION_REQUEST.md",
       "tooling/app-map/src/mcp.test.ts",
       "tooling/app-map/src/build.ts",
+      "tooling/release/__fixtures__/upgrade/provider-posture-v1-to-v2.contract.json",
       "tooling/release-seal.mts",
       "tooling/release-seal.test.mts",
     ];
@@ -64,6 +65,11 @@ describe("release seal factory-only exclusions", () => {
         }),
         expect.objectContaining({
           path: "tooling/app-map",
+          ownership: "template-owned",
+          action: "copy",
+        }),
+        expect.objectContaining({
+          path: "tooling/release/__fixtures__/upgrade/provider-posture-v1-to-v2.contract.json",
           ownership: "template-owned",
           action: "copy",
         }),
