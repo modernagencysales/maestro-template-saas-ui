@@ -11,11 +11,11 @@ const TRUSTED_REPOSITORY_ROOT = fileURLToPath(
 );
 const BASE_MANIFEST_PATH = "releases/v0.2.0-alpha.2/manifest.json";
 const BASE_MANIFEST_CHECKSUM =
-  "sha256:dcc3c603826b1c7ea1bc5f3693419b5ef3d28911718a11edcabcc3e463c312c2";
+  "sha256:35b623ee4d1a6fccf354f5aeff0eb9d66792f4ab49f6f3c49994cc74999baa2c";
 const BASE_BLUEPRINT_CHECKSUM =
-  "sha256:027121b651705d024053e1e9863c11b5b37e14538157a7887e52fd4df47193f3";
+  "sha256:7a21c9d6e12db02cbeaaee8487ce050e0a1ddd74d39612d98f48d927baf4361d";
 const BASE_TAG = "maestro-template-v0.2.0-alpha.2";
-const BASE_COMMIT = "94b8504257af12bb7405ac094cea49c011f2e94e";
+const BASE_COMMIT = "dd267a94c7a43767f4448e9a32545d7abb5e298f";
 
 export function createCustomerCreateComposition() {
   const release = createCustomerReleaseAdapter({
