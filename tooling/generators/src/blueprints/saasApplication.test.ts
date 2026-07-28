@@ -105,6 +105,17 @@ describe("saas application blueprint", () => {
     expect(
       plan.entries.find(({ path }) => path === "README.md")?.content,
     ).not.toContain("maestro -- create");
+    for (const path of [
+      ".prettierignore",
+      "tooling/confect-manifest/tsconfig.json",
+    ]) {
+      expect(plan.entries.find((entry) => entry.path === path)).toMatchObject({
+        ownership: "generated",
+        action: "generate",
+        upgrade: "regenerate",
+        replaces: "copy",
+      });
+    }
   });
 
   it("keeps historical alpha.1 personalization inert", () => {

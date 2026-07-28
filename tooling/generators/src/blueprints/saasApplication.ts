@@ -413,6 +413,7 @@ function buildTargetPlan(
   options: BlueprintTargetPlanOptions,
 ): BlueprintTargetPlan {
   const replacements = new Map<string, "copy" | "generate">([
+    [".prettierignore", "copy"],
     ["README.md", "copy"],
     ["apps/cli/src/index.ts", "copy"],
     ["apps/cli/src/factory/customerComposition.ts", "copy"],
@@ -422,6 +423,7 @@ function buildTargetPlan(
     ["apps/cli/src/factory/supportBundle.ts", "copy"],
     ["docs/template/agent-pack-privacy.md", "copy"],
     ["package.json", "generate"],
+    ["tooling/confect-manifest/tsconfig.json", "copy"],
     ["packages/convex/confect/_generated/tables/workflowArtifacts.ts", "copy"],
     ["packages/convex/confect/tables/workflowArtifacts.ts", "copy"],
     ["packages/convex/confect/workflows/_kit/lifecycleSweep.ts", "copy"],
