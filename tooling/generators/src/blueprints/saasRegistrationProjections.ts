@@ -34,6 +34,76 @@ const source = (path: string): string => currentSource(path);
 const currentGeneratorSource = (path: string): string =>
   readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
 
+const customerReadme = (): string => `# Generated Maestro App
+
+This is a customer application generated from an immutable Maestro release. Its
+release, blueprint, and personalization facts live in \`template-instance.json\`.
+Build the product in this repository. Do not run \`maestro create\` here and do
+not copy files from a newer factory checkout.
+
+## Start here
+
+Requirements: Git, Node 22, Corepack, and pnpm.
+
+\`\`\`bash
+corepack enable
+pnpm install --frozen-lockfile
+pnpm maestro -- preflight --mode fake
+pnpm maestro -- recipes list
+pnpm maestro -- recipes show crud-business-entity
+pnpm template:systems -- --query records
+pnpm maestro -- start --mode fake
+\`\`\`
+
+The starter includes a neutral, workspace-owned \`record\` slice. Open the URL
+printed after \`/health\` becomes ready, then exercise \`/records\`: create a
+record, return to the list, and open its detail. Rename the noun when you build
+the first real product outcome.
+
+## The method
+
+\`\`\`text
+preflight -> recipes/system lookup -> preview -> reviewed write
+          -> focused verification -> start --mode fake
+\`\`\`
+
+Preview is the default. Before adding a subsystem or table, query the canonical
+owner. A recipe write must use the exact confirmation command returned by the
+preview; it rechecks the plan and clean-preflight fingerprints and retains a
+receipt under \`.maestro/recipe-transactions/\`.
+
+For the copy/paste CRUD walkthrough, use
+[Template Quickstart](./docs/template/quickstart.md). The broader method is in
+[App Factory Guide](./docs/template/app-factory-guide.md), and recipe safety is
+documented in
+[Executable Outcome Recipes](./docs/template/executable-recipes.md).
+
+## Guidance for agents
+
+Start with [AGENTS.md](./AGENTS.md). Keep the shared Saas UI shell and customize
+through blocks, tokens, feature adapters, generated routes, view models, and
+typed contracts. Do not hand-edit generated Confect, Convex, or route-tree
+files, invent parallel ownership, or weaken a failing gate.
+
+## Before sharing
+
+Run the focused commands printed by each successful write. At minimum:
+
+\`\`\`bash
+pnpm check:format
+pnpm lint
+pnpm typecheck
+pnpm test
+pnpm build
+pnpm check:system-catalog
+pnpm check:system-topology
+pnpm check:data-resources
+\`\`\`
+
+Use \`pnpm verify\` for the exhaustive handoff gate. Fake mode requires no live
+provider credentials and must not contain production or customer data.
+`;
+
 export const REMOVED_CUSTOMER_TEMPLATE_SCRIPTS = [
   "template:init",
   "template:quickstart",
@@ -496,6 +566,10 @@ export const buildSaasRegistrationProjections = (
   return [
     ...(current
       ? [
+          {
+            path: "README.md",
+            content: customerReadme(),
+          },
           {
             path: "docs/template/agent-pack-privacy.md",
             content: currentPublicDocument("agent-pack-privacy.md"),

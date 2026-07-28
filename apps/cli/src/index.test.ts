@@ -12,14 +12,21 @@ describe("maestro-template CLI", () => {
     expect(JSON.parse(result.stdout)).toMatchObject({ valid: true });
   });
 
-  it("prints exact planning and scaffolding help", async () => {
-    expect(runCli(["help"]).stdout).toContain(
-      "maestro plan-check --plan <manifest.json> [--details|--json]",
+  it("prints the repository modes and supported customer loop", async () => {
+    const help = runCli(["help"]).stdout;
+    expect(help).toContain("factory checkout: contains releases/");
+    expect(help).toContain("generated app: contains template-instance.json");
+    expect(help).toContain(
+      "preflight -> inspect -> preview -> write -> verify -> run",
     );
-    expect(runCli(["help"]).stdout).toContain("maestro mcp\n");
-    expect(runCli(["help"]).stdout).toContain(
-      "maestro mcp configure --host <claude-code|codex>",
+    expect(help).toContain("maestro recipes list|show <recipe-id>");
+    expect(help).toContain("maestro add <outcome-or-recipe>");
+    expect(help).toContain("maestro support-bundle");
+    expect(help).toContain(
+      "maestro plan-check --plan <manifest.json> [--human|--details|--json]",
     );
+    expect(help).toContain("maestro mcp\n");
+    expect(help).toContain("maestro mcp configure --host <claude-code|codex>");
     await expect(runCliAsync(["scaffold", "--help"])).resolves.toMatchObject({
       exitCode: 0,
       stdout: expect.stringContaining(

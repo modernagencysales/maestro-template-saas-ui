@@ -91,6 +91,20 @@ describe("saas application blueprint", () => {
         "utf8",
       ),
     });
+    expect(plan.entries.find(({ path }) => path === "README.md")).toMatchObject(
+      {
+        ownership: "generated",
+        action: "generate",
+        upgrade: "regenerate",
+        replaces: "copy",
+        content: expect.stringContaining(
+          "This is a customer application generated from an immutable Maestro release.",
+        ),
+      },
+    );
+    expect(
+      plan.entries.find(({ path }) => path === "README.md")?.content,
+    ).not.toContain("maestro -- create");
   });
 
   it("keeps historical alpha.1 personalization inert", () => {
@@ -406,6 +420,7 @@ describe("saas application blueprint", () => {
       "generated/blueprints/saas-application/application-contract.json",
       "generated/blueprints/saas-application/surface-contract.json",
       "generated/blueprints/saas-application/readiness.json",
+      "README.md",
       "docs/template/agent-pack-privacy.md",
       "apps/cli/src/factory/customerComposition.ts",
       "apps/cli/src/index.ts",

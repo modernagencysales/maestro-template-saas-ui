@@ -13,8 +13,16 @@ import {
   type ProviderMode,
 } from "@maestro-template/integrations";
 import { parseNamedArgs } from "./namedArgs";
+import { ADOPT_HELP } from "./factory/adopt";
 import { CREATE_HELP } from "./factory/create";
+import { DOCTOR_HELP } from "./factory/doctor";
+import { MCP_CONFIGURE_HELP } from "./factory/mcpConfigure";
+import { PLAN_CHECK_HELP } from "./factory/planCheck";
+import { ADD_HELP, RECIPES_HELP } from "./factory/recipes";
+import { SCAFFOLD_HELP } from "./factory/scaffold";
 import { START_HELP } from "./factory/start";
+import { SUPPORT_BUNDLE_HELP } from "./factory/supportBundle";
+import { CHECK_HELP, VERIFY_HELP } from "./factory/verify";
 import { cliFailure, cliSuccess, formatJsonOutput } from "./result";
 import type {
   CliCapabilityRequest,
@@ -35,6 +43,31 @@ const providerModes = new Set<ProviderMode>(["fake", "test", "live"]);
 const helpResult = (): CliResult =>
   cliSuccess(
     [
+      "Maestro has two repository modes:",
+      "  factory checkout: contains releases/; create a separate app here",
+      "  generated app: contains template-instance.json; build the product here",
+      "",
+      "Factory checkout:",
+      `  ${CREATE_HELP.trim()}`,
+      "",
+      "Generated app loop (preflight -> inspect -> preview -> write -> verify -> run):",
+      "  maestro preflight [--mode fake|test|live] [--details|--json]",
+      `  ${RECIPES_HELP.trim()}`,
+      `  ${ADD_HELP.trim()}`,
+      `  ${VERIFY_HELP.trim()}`,
+      `  ${CHECK_HELP.trim()}`,
+      `  ${START_HELP.trim()}`,
+      `  ${SUPPORT_BUNDLE_HELP.trim()}`,
+      "",
+      "Advanced factory and operator commands:",
+      `  ${PLAN_CHECK_HELP.trim()}`,
+      `  ${SCAFFOLD_HELP.trim()}`,
+      `  ${DOCTOR_HELP.trim()}`,
+      `  ${ADOPT_HELP.trim()}`,
+      "  maestro mcp",
+      `  ${MCP_CONFIGURE_HELP.trim()}`,
+      "",
+      "Shared headless surfaces:",
       "maestro-template describe",
       "maestro-template operations list",
       "maestro-template operations get <id>",
@@ -45,15 +78,6 @@ const helpResult = (): CliResult =>
       "maestro-template mcp tools",
       "maestro-template mcp call <toolName>",
       "maestro-template integrations report [fake|test|live]",
-      "maestro preflight [--mode fake|test|live] [--details|--json]",
-      "maestro verify [--scope focused|full] [--changed <paths>] [--details|--json]",
-      "maestro check [--mode fake|test|live] [--changed <paths>] [--details|--json]",
-      CREATE_HELP.trim(),
-      START_HELP.trim(),
-      "maestro plan-check --plan <manifest.json> [--details|--json]",
-      "maestro scaffold --generator <id> --args <json-object> [--write --preflight-fingerprint <preflight_sha256:...>] [--details|--json]",
-      "maestro mcp",
-      "maestro mcp configure --host <claude-code|codex> [--profile <inspect|dev-power>] [--write|--remove] [--human|--details|--json]",
     ].join("\n") + "\n",
   );
 

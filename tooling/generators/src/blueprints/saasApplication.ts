@@ -413,6 +413,7 @@ function buildTargetPlan(
   options: BlueprintTargetPlanOptions,
 ): BlueprintTargetPlan {
   const replacements = new Map<string, "copy" | "generate">([
+    ["README.md", "copy"],
     ["apps/cli/src/index.ts", "copy"],
     ["apps/cli/src/factory/customerComposition.ts", "copy"],
     ["apps/cli/src/factory/start.ts", "copy"],
@@ -543,6 +544,7 @@ function buildTargetPlan(
     })
     .sort((left, right) => left.path.localeCompare(right.path));
   const registrationsWithPrivacy = [
+    "README.md",
     "docs/template/agent-pack-privacy.md",
     "apps/cli/src/factory/customerComposition.ts",
     "apps/cli/src/index.ts",
