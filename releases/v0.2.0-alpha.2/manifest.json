@@ -9,8 +9,8 @@
   "release": {
     "version": "0.2.0-alpha.2",
     "tag": "maestro-template-v0.2.0-alpha.2",
-    "sourceCommit": "a9955dd6f60974287fe20cbc7f365768e3bb36d8",
-    "sourceChecksum": "sha256:584c022a03429ed2c66556a402577c322fe023c24ff34d06ad3ea655fb1951c8"
+    "sourceCommit": "94c5c09f32a640c68d0e1e42c185b93c55ad0ce4",
+    "sourceChecksum": "sha256:5a3dd758d223326358a11c0eb608787ded6d0585bbbf75c6c9fa79a7a3d90e40"
   },
   "upgrade": {
     "schemaVersion": 1,
@@ -28,62 +28,6 @@
         "ownership": "template-owned",
         "beforeHash": "sha256:8f191b1ea45fdc13d56b8990eace9fa00978fe7a008d483b4933123b29b1485e",
         "afterHash": "sha256:244d964bd78a948a20ee77e5e6c8e635649d23c6147d6b9912a3b77909adf034"
-      },
-      {
-        "id": "upgrade-add-apps-cli-src-direct-run-test-ts",
-        "kind": "add",
-        "path": "apps/cli/src/direct-run.test.ts",
-        "ownership": "template-owned",
-        "afterHash": "sha256:8073a4d39cd23e5b528b1f602340cf4dc4d7f0c725f3447a9ee728bc285af835"
-      },
-      {
-        "id": "upgrade-add-apps-cli-src-factory-adopt-test-ts",
-        "kind": "add",
-        "path": "apps/cli/src/factory/adopt.test.ts",
-        "ownership": "template-owned",
-        "afterHash": "sha256:ad261d43e428598f5e818a6ad79576423a90b3aab24527953236c3dcc693e5f2"
-      },
-      {
-        "id": "upgrade-add-apps-cli-src-factory-adopt-ts",
-        "kind": "add",
-        "path": "apps/cli/src/factory/adopt.ts",
-        "ownership": "template-owned",
-        "afterHash": "sha256:b02462e8112db32c22b386a005d528bf43211135a7c8627bd37a6cd5aa7aef3e"
-      },
-      {
-        "id": "upgrade-add-apps-cli-src-factory-composition-test-ts",
-        "kind": "add",
-        "path": "apps/cli/src/factory/composition.test.ts",
-        "ownership": "template-owned",
-        "afterHash": "sha256:6a7cf66646e3c1ef6cac0d426e1c13aeb480853ac891243bdb083a431a7db2a4"
-      },
-      {
-        "id": "upgrade-add-apps-cli-src-factory-composition-ts",
-        "kind": "add",
-        "path": "apps/cli/src/factory/composition.ts",
-        "ownership": "template-owned",
-        "afterHash": "sha256:15fa16e4e77316ed33cef7979a1a5755d6f677f0282ffd2e4b9b4be16f27e802"
-      },
-      {
-        "id": "upgrade-add-apps-cli-src-factory-create-test-ts",
-        "kind": "add",
-        "path": "apps/cli/src/factory/create.test.ts",
-        "ownership": "template-owned",
-        "afterHash": "sha256:a6b338a7206c447c83111166f2bc3204ce0445f9379c2d55a4a99ab7e115de5f"
-      },
-      {
-        "id": "upgrade-add-apps-cli-src-factory-createComposition-ts",
-        "kind": "add",
-        "path": "apps/cli/src/factory/createComposition.ts",
-        "ownership": "template-owned",
-        "afterHash": "sha256:acccf4adf62f8d3c3061c15f1bfd3fcd9bc13248b5df94c76585130cc1dc4544"
-      },
-      {
-        "id": "upgrade-add-apps-cli-src-factory-createRootIntegration-test-ts",
-        "kind": "add",
-        "path": "apps/cli/src/factory/createRootIntegration.test.ts",
-        "ownership": "template-owned",
-        "afterHash": "sha256:73a6e1ad1c7abdb23e5f665ac1690af87c983c361c4f76a04e3d24dad991347e"
       },
       {
         "id": "upgrade-modify-apps-cli-src-factory-customerCliRuntime-test-ts",
@@ -107,118 +51,6 @@
         "path": "apps/cli/src/factory/customerRecipes.ts",
         "ownership": "template-owned",
         "afterHash": "sha256:52fa7d322e27ae824c5e503ea48975c9aab9c6f01eac7bae1aba0b47603ded1a"
-      },
-      {
-        "id": "upgrade-add-apps-cli-src-factory-mcp-test-ts",
-        "kind": "add",
-        "path": "apps/cli/src/factory/mcp.test.ts",
-        "ownership": "template-owned",
-        "afterHash": "sha256:eb580f8814d3cbcc28f1153703bce461ef0fe63b4a559852bd6ca37dcffb9608"
-      },
-      {
-        "id": "upgrade-add-apps-cli-src-factory-mcp-ts",
-        "kind": "add",
-        "path": "apps/cli/src/factory/mcp.ts",
-        "ownership": "template-owned",
-        "afterHash": "sha256:5a103f494febba91101b370bb0370bba36110c03aead7219333651185a906247"
-      },
-      {
-        "id": "upgrade-add-apps-cli-src-factory-mcpConfigure-test-ts",
-        "kind": "add",
-        "path": "apps/cli/src/factory/mcpConfigure.test.ts",
-        "ownership": "template-owned",
-        "afterHash": "sha256:0c647cbae7ffb04afe9828812153b33836104a013616c64d4cc09a327db4f20e"
-      },
-      {
-        "id": "upgrade-add-apps-cli-src-factory-mcpConfigure-ts",
-        "kind": "add",
-        "path": "apps/cli/src/factory/mcpConfigure.ts",
-        "ownership": "template-owned",
-        "afterHash": "sha256:c9a774ee7291693ae47aa00596654985996e17d5a3fe2b914ad90886e7e59dbb"
-      },
-      {
-        "id": "upgrade-add-apps-cli-src-factory-mcpIntegration-test-ts",
-        "kind": "add",
-        "path": "apps/cli/src/factory/mcpIntegration.test.ts",
-        "ownership": "template-owned",
-        "afterHash": "sha256:e1ef846ef417e001e0a670505ec7c603848cda9444549fd97c57415d9d21b6cb"
-      },
-      {
-        "id": "upgrade-add-apps-cli-src-factory-planCheck-test-ts",
-        "kind": "add",
-        "path": "apps/cli/src/factory/planCheck.test.ts",
-        "ownership": "template-owned",
-        "afterHash": "sha256:8b6b6156ba5588e3ce7d5d73ceafa3812a023fe4d5918599e05104a4af7cbf57"
-      },
-      {
-        "id": "upgrade-add-apps-cli-src-factory-preflight-test-ts",
-        "kind": "add",
-        "path": "apps/cli/src/factory/preflight.test.ts",
-        "ownership": "template-owned",
-        "afterHash": "sha256:b7cf31be2d7721481a49b31c21221fc0aae485c38e5dede76a93cb884014b2d6"
-      },
-      {
-        "id": "upgrade-add-apps-cli-src-factory-recipeCatalog-ts",
-        "kind": "add",
-        "path": "apps/cli/src/factory/recipeCatalog.ts",
-        "ownership": "template-owned",
-        "afterHash": "sha256:e81c2fb4dd383c8bd289947f2960b2c210f860f5e7e60dc3726435343d540d7b"
-      },
-      {
-        "id": "upgrade-add-apps-cli-src-factory-router-test-ts",
-        "kind": "add",
-        "path": "apps/cli/src/factory/router.test.ts",
-        "ownership": "template-owned",
-        "afterHash": "sha256:45f545d16f0182c3a2ff3f148fb5290ef75f0ee730ffab788dcfeb57ee0240cf"
-      },
-      {
-        "id": "upgrade-add-apps-cli-src-factory-scaffold-test-ts",
-        "kind": "add",
-        "path": "apps/cli/src/factory/scaffold.test.ts",
-        "ownership": "template-owned",
-        "afterHash": "sha256:68b07c9a1aeb49340fc0274a2c99ac07cdc5e5a687592c0da3ee27d3115f646a"
-      },
-      {
-        "id": "upgrade-add-apps-cli-src-factory-start-test-ts",
-        "kind": "add",
-        "path": "apps/cli/src/factory/start.test.ts",
-        "ownership": "template-owned",
-        "afterHash": "sha256:b45fda214ea4a7d31a19e2ae3571bdcdf7d92bbf861a8f99624c6b07c7985fcb"
-      },
-      {
-        "id": "upgrade-add-apps-cli-src-factory-supportBundleMcpNoNetwork-fixture-ts",
-        "kind": "add",
-        "path": "apps/cli/src/factory/supportBundleMcpNoNetwork.fixture.ts",
-        "ownership": "template-owned",
-        "afterHash": "sha256:6390332fff11b3d4a7864bd46a662369a8dbeb2109a96be2cdfe8f32136234dd"
-      },
-      {
-        "id": "upgrade-add-apps-cli-src-factory-upgrade-test-ts",
-        "kind": "add",
-        "path": "apps/cli/src/factory/upgrade.test.ts",
-        "ownership": "template-owned",
-        "afterHash": "sha256:6c0031d0fafd740f7a7083da9ed2daf14317f775225497e017b207df5618aa4c"
-      },
-      {
-        "id": "upgrade-add-apps-cli-src-factory-upgrade-ts",
-        "kind": "add",
-        "path": "apps/cli/src/factory/upgrade.ts",
-        "ownership": "template-owned",
-        "afterHash": "sha256:e48da56c4f652dfaa8565af6e2ece6dcc698100edf77ed7c00d7567a82f100b8"
-      },
-      {
-        "id": "upgrade-add-apps-cli-src-factory-verify-test-ts",
-        "kind": "add",
-        "path": "apps/cli/src/factory/verify.test.ts",
-        "ownership": "template-owned",
-        "afterHash": "sha256:3ca37fc2c7e1e1da9969af1bf4cd22a25585adcbcc1206d08342b66e3b13dacd"
-      },
-      {
-        "id": "upgrade-add-apps-cli-src-index-test-ts",
-        "kind": "add",
-        "path": "apps/cli/src/index.test.ts",
-        "ownership": "template-owned",
-        "afterHash": "sha256:373aec611bf6e311bc95066ddfcb6a1b80840e9bad10c70ecc21319b35db0dd0"
       },
       {
         "id": "upgrade-modify-docs-template-app-factory-guide-md",
@@ -277,13 +109,6 @@
         "afterHash": "sha256:30b0bbe6cee5e011b6972d38d58b4ca83fbe9fa5cbaaae82aacb70912dcc1488"
       },
       {
-        "id": "upgrade-add-tooling-agent-pack-src-convexPlugin-test-ts",
-        "kind": "add",
-        "path": "tooling/agent-pack/src/convexPlugin.test.ts",
-        "ownership": "template-owned",
-        "afterHash": "sha256:76598942207f71892cc8fd20c36f3a73db6f78f665ac62188d1153657f665c0c"
-      },
-      {
         "id": "upgrade-modify-tooling-agent-pack-src-create-test-ts",
         "kind": "modify",
         "path": "tooling/agent-pack/src/create.test.ts",
@@ -308,132 +133,6 @@
         "afterHash": "sha256:3fe14ee1c219624af13b32d5bdf506660bde486464476c0d386c4a050111c0b5"
       },
       {
-        "id": "upgrade-add-tooling-agent-pack-src-mcp-configure-test-ts",
-        "kind": "add",
-        "path": "tooling/agent-pack/src/mcp/configure.test.ts",
-        "ownership": "template-owned",
-        "afterHash": "sha256:0a7d9799f083c29a45fffcc95675b8fb9b70184e395bef59b1e40389df2ec3ef"
-      },
-      {
-        "id": "upgrade-add-tooling-agent-pack-src-mcp-configure-ts",
-        "kind": "add",
-        "path": "tooling/agent-pack/src/mcp/configure.ts",
-        "ownership": "template-owned",
-        "afterHash": "sha256:f0fb7eb7623583209f7bee670d31206fd121e66f333d6666bb1fd73a4d444a60"
-      },
-      {
-        "id": "upgrade-add-tooling-agent-pack-src-mcp-convexProfiles-test-ts",
-        "kind": "add",
-        "path": "tooling/agent-pack/src/mcp/convexProfiles.test.ts",
-        "ownership": "template-owned",
-        "afterHash": "sha256:a15c54b695ab4d132908ea04f3638829e10db08f0e4c7837e97f8b0a023fcb66"
-      },
-      {
-        "id": "upgrade-add-tooling-agent-pack-src-mcp-convexProfiles-ts",
-        "kind": "add",
-        "path": "tooling/agent-pack/src/mcp/convexProfiles.ts",
-        "ownership": "template-owned",
-        "afterHash": "sha256:db3a61b8d902ad398b40f6d007dfa4c923e75415ab90035672af298eb54869d7"
-      },
-      {
-        "id": "upgrade-add-tooling-agent-pack-src-mcp-hostDeclarations-test-ts",
-        "kind": "add",
-        "path": "tooling/agent-pack/src/mcp/hostDeclarations.test.ts",
-        "ownership": "template-owned",
-        "afterHash": "sha256:a46bb33b953b3d549359577ca4d9e198d950f1c29e16911d623c81352295ff03"
-      },
-      {
-        "id": "upgrade-add-tooling-agent-pack-src-mcp-nodeConfigure-test-ts",
-        "kind": "add",
-        "path": "tooling/agent-pack/src/mcp/nodeConfigure.test.ts",
-        "ownership": "template-owned",
-        "afterHash": "sha256:86ceb1acd008f1184190ffd97a2203616fa0737aa1dbd5b9fcb72385fd9b7bc0"
-      },
-      {
-        "id": "upgrade-add-tooling-agent-pack-src-mcp-nodeConfigure-ts",
-        "kind": "add",
-        "path": "tooling/agent-pack/src/mcp/nodeConfigure.ts",
-        "ownership": "template-owned",
-        "afterHash": "sha256:05432832c1c64f75490fdd15cb5e4f117547e2d0ef3ca0ac028db0e53450a9ef"
-      },
-      {
-        "id": "upgrade-add-tooling-agent-pack-src-mcp-nodeConfigureClaude-ts",
-        "kind": "add",
-        "path": "tooling/agent-pack/src/mcp/nodeConfigureClaude.ts",
-        "ownership": "template-owned",
-        "afterHash": "sha256:3798c33943833beeec0d0aea98ab75037c14160fd0101f09128ce3a73aec09ac"
-      },
-      {
-        "id": "upgrade-add-tooling-agent-pack-src-mcp-nodeConfigureCodex-ts",
-        "kind": "add",
-        "path": "tooling/agent-pack/src/mcp/nodeConfigureCodex.ts",
-        "ownership": "template-owned",
-        "afterHash": "sha256:015bbf4d5682591bddd080bde9b8b81aa56cac88e2872003378839ca28741054"
-      },
-      {
-        "id": "upgrade-add-tooling-agent-pack-src-mcp-nodeConfigureInventory-ts",
-        "kind": "add",
-        "path": "tooling/agent-pack/src/mcp/nodeConfigureInventory.ts",
-        "ownership": "template-owned",
-        "afterHash": "sha256:28c2844c511d57ae11659cf9cbdcbf664dc14d498d08cb42cb1a0e155bab7b2f"
-      },
-      {
-        "id": "upgrade-add-tooling-agent-pack-src-mcp-nodeConfigureIo-ts",
-        "kind": "add",
-        "path": "tooling/agent-pack/src/mcp/nodeConfigureIo.ts",
-        "ownership": "template-owned",
-        "afterHash": "sha256:b08e6092e0863890426388a5cfe7d6416fa3d1e9619a8e9c872ea8279eec4d31"
-      },
-      {
-        "id": "upgrade-add-tooling-agent-pack-src-mcp-nodeConfigureShared-ts",
-        "kind": "add",
-        "path": "tooling/agent-pack/src/mcp/nodeConfigureShared.ts",
-        "ownership": "template-owned",
-        "afterHash": "sha256:c437a5970c673bb5b84e2b93ad171455692701694bd3ed5af14af770e7940e0c"
-      },
-      {
-        "id": "upgrade-add-tooling-agent-pack-src-mcp-projection-test-ts",
-        "kind": "add",
-        "path": "tooling/agent-pack/src/mcp/projection.test.ts",
-        "ownership": "template-owned",
-        "afterHash": "sha256:60cad9a5d18529d1ad83f20906ebfbc9711ec403a4ab43dc750426cc56b123bb"
-      },
-      {
-        "id": "upgrade-add-tooling-agent-pack-src-mcp-projection-ts",
-        "kind": "add",
-        "path": "tooling/agent-pack/src/mcp/projection.ts",
-        "ownership": "template-owned",
-        "afterHash": "sha256:2cc154f2c7d88b015bac9823ab916da62ea5a28a481f308eba22ba6183c76263"
-      },
-      {
-        "id": "upgrade-add-tooling-agent-pack-src-mcp-protocol-test-ts",
-        "kind": "add",
-        "path": "tooling/agent-pack/src/mcp/protocol.test.ts",
-        "ownership": "template-owned",
-        "afterHash": "sha256:d52d0b866fff24c6cf59828a9e045825c1ec61515df86edd665390581812f1a4"
-      },
-      {
-        "id": "upgrade-add-tooling-agent-pack-src-mcp-protocol-ts",
-        "kind": "add",
-        "path": "tooling/agent-pack/src/mcp/protocol.ts",
-        "ownership": "template-owned",
-        "afterHash": "sha256:80f7e81ad383bdfdfc8551e1f2a63f0efa53fc7487aec6e84ff2556f5d47fabc"
-      },
-      {
-        "id": "upgrade-add-tooling-agent-pack-src-mcp-server-test-ts",
-        "kind": "add",
-        "path": "tooling/agent-pack/src/mcp/server.test.ts",
-        "ownership": "template-owned",
-        "afterHash": "sha256:edd438a363f7ff3932ac629426c96a27960f485650d77d19f6171905fd41ad6e"
-      },
-      {
-        "id": "upgrade-add-tooling-agent-pack-src-mcp-server-ts",
-        "kind": "add",
-        "path": "tooling/agent-pack/src/mcp/server.ts",
-        "ownership": "template-owned",
-        "afterHash": "sha256:895abc9f2c5e6f23d7a0d499c3985a1a3c0d23f79b8afbf87e8a5fce0ee778b5"
-      },
-      {
         "id": "upgrade-modify-tooling-agent-pack-src-nodeAdapters-test-ts",
         "kind": "modify",
         "path": "tooling/agent-pack/src/nodeAdapters.test.ts",
@@ -448,48 +147,6 @@
         "ownership": "template-owned",
         "beforeHash": "sha256:641ac8384be8ed529dc161efb8f6ec26abdc4951cb34b77c92a465156900fe60",
         "afterHash": "sha256:7becd56970b92da9bf73e521e06cbd5ab4b774ed1fb0a30549ef5a8fc6c5c9e3"
-      },
-      {
-        "id": "upgrade-add-tooling-agent-pack-src-pluginContract-ts",
-        "kind": "add",
-        "path": "tooling/agent-pack/src/pluginContract.ts",
-        "ownership": "template-owned",
-        "afterHash": "sha256:9925a07f4d6e9a54ace8c31f3069d0c31241c880d83bf47c7505dd6a936aa482"
-      },
-      {
-        "id": "upgrade-add-tooling-agent-pack-src-privacy-privacy-noNetwork-test-ts",
-        "kind": "add",
-        "path": "tooling/agent-pack/src/privacy/privacy.noNetwork.test.ts",
-        "ownership": "template-owned",
-        "afterHash": "sha256:9d1a26423d21044d73fca8e6a7d33b79998d038bcfb9849977200e5071388c98"
-      },
-      {
-        "id": "upgrade-add-tooling-agent-pack-src-privacy-runtimeNetworkInterceptor-mjs",
-        "kind": "add",
-        "path": "tooling/agent-pack/src/privacy/runtimeNetworkInterceptor.mjs",
-        "ownership": "template-owned",
-        "afterHash": "sha256:cce9af94ed2593302b800efcc6d875c92a9ba61eeef5aec954b15f9f0ea7cfab"
-      },
-      {
-        "id": "upgrade-add-tooling-app-map-src-mcp-test-ts",
-        "kind": "add",
-        "path": "tooling/app-map/src/mcp.test.ts",
-        "ownership": "template-owned",
-        "afterHash": "sha256:56959186db517b334de6b87c03b43313b02cf587c8b49ee44fe09e6bf791b8cf"
-      },
-      {
-        "id": "upgrade-add-tooling-generators-src-blueprints-saasApplication-test-ts",
-        "kind": "add",
-        "path": "tooling/generators/src/blueprints/saasApplication.test.ts",
-        "ownership": "template-owned",
-        "afterHash": "sha256:4be0c510a72c102142483e891b0fb51adb813f238298ec2ac0435edff8d7dc59"
-      },
-      {
-        "id": "upgrade-add-tooling-generators-src-blueprints-saasApplication-ts",
-        "kind": "add",
-        "path": "tooling/generators/src/blueprints/saasApplication.ts",
-        "ownership": "template-owned",
-        "afterHash": "sha256:732a3dc1cd17072c56eb82eea5cd566c0e9490f0eb3ee179067405a8d5754103"
       },
       {
         "id": "upgrade-modify-tooling-generators-src-customer-dispatcher-ts",
@@ -514,41 +171,6 @@
         "ownership": "template-owned",
         "beforeHash": "sha256:856d69e6cce6cfe8386efffcedfd64fe5586177d6030bc95d7b9cc3330a98b46",
         "afterHash": "sha256:3dd9825205db7b680911519db286663160ea8a2054e8eb15a24dd929feb85857"
-      },
-      {
-        "id": "upgrade-add-tooling-generators-src-direct-run-test-ts",
-        "kind": "add",
-        "path": "tooling/generators/src/direct-run.test.ts",
-        "ownership": "template-owned",
-        "afterHash": "sha256:8608ed8f7379f9a609587f7cf4d32dbcc42bb58d6f235ba24f9a8a55a236167b"
-      },
-      {
-        "id": "upgrade-add-tooling-generators-src-index-test-ts",
-        "kind": "add",
-        "path": "tooling/generators/src/index.test.ts",
-        "ownership": "template-owned",
-        "afterHash": "sha256:a47cbeaf4a7a7fcb39ff8544d402d6e171095c206af0574eb644bb82582640b5"
-      },
-      {
-        "id": "upgrade-add-tooling-generators-src-index-ts",
-        "kind": "add",
-        "path": "tooling/generators/src/index.ts",
-        "ownership": "template-owned",
-        "afterHash": "sha256:b2e4826b705316a8a6f67d16e7b4147482e890e00dd53ae57769db20e806aa12"
-      },
-      {
-        "id": "upgrade-add-tooling-generators-src-workflow-output-smoke-ts",
-        "kind": "add",
-        "path": "tooling/generators/src/workflow-output-smoke.ts",
-        "ownership": "template-owned",
-        "afterHash": "sha256:8630c9c437139b38f815844f4ec3e264b0bd7bd0c7833d9bc7c414c8ad83785e"
-      },
-      {
-        "id": "upgrade-add-tooling-generators-src-workflow-semantic-coverage-ts",
-        "kind": "add",
-        "path": "tooling/generators/src/workflow-semantic-coverage.ts",
-        "ownership": "template-owned",
-        "afterHash": "sha256:3bb335b212712633da78e0388ffc8d43fe4773fabb4a39055b7f0d7f47ab2562"
       },
       {
         "id": "upgrade-modify-tooling-quality-check-data-resources-mts",
@@ -608,7 +230,7 @@
   ],
   "blueprintManifest": {
     "path": "blueprints/saas-application.json",
-    "sha256": "sha256:21a170fe44ed9acb7262f05b37254c151ae8bc2dcbb82f3fae8885e410108974"
+    "sha256": "sha256:7b187e2fb075d85adf949df4bc101fe2b953a8cb9e6bfbb1093e98910958a600"
   },
   "migrationHandoff": {
     "required": false,
@@ -620,10 +242,10 @@
   },
   "upgradeImpact": {
     "path": "releases/v0.2.0-alpha.2/upgrade/app-map-input.json",
-    "sha256": "sha256:60129920adcdef152fc8bd126ba200a8efcdf8d67c432136ce03b5e3264b8656",
+    "sha256": "sha256:29ca39a86cb70ec913da3c6fe08d4971776072e7fe79be5f53aa73474c7a5349",
     "projection": {
       "path": "releases/v0.2.0-alpha.2/upgrade/app-map-impact.json",
-      "sha256": "sha256:aaa578c4e5fdb1400b81979672a61eaae9fa7addbfd9dacbf15ffb0c740f5bdd"
+      "sha256": "sha256:6ba32357cf6bf94929e6eb540b624c9a216109640d9565b7082b7fc9fb36fb46"
     }
   }
 }
