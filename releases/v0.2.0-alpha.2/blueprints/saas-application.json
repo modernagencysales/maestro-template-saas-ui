@@ -3,7 +3,7 @@
   "id": "saas-application",
   "provenance": "@maestro-template/generators/saas-application@1",
   "projectionSource": {
-    "sourceCommit": "dd267a94c7a43767f4448e9a32545d7abb5e298f",
+    "sourceCommit": "71147b230c61e2c91fa8feded1a01b75be8006b5",
     "assets": [
       {
         "path": "base/apps/cli/src/factory/customerComposition.ts.txt",
@@ -66,6 +66,7 @@
   "registrations": [
     "README.md",
     "docs/template/agent-pack-privacy.md",
+    "docs/template/preflight.md",
     "apps/cli/src/factory/customerComposition.ts",
     "apps/cli/src/index.ts",
     "apps/cli/src/factory/start.ts",
@@ -783,6 +784,13 @@
       "upgrade": "regenerate",
       "sha256": "sha256:70323ad2666e2b8c9a05b3879d1ce2cd90b725de9c8d277c7a5d3d0e11d188d3",
       "replaces": "copy"
+    },
+    {
+      "path": "docs/template/preflight.md",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:4932ee846d8b62764de4f26b7f89ebad9f06dff670b1713bdd1835b30b93194c"
     },
     {
       "path": "docs/template/product-topology.json",
