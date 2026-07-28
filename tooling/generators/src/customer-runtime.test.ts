@@ -151,6 +151,9 @@ describe("customer generator runtime", () => {
         "packages/convex/confect/ops/dataResources.generated.ts",
       );
       expect(reviewed.output.collisions).toEqual([]);
+      expect(reviewed.output.focusedGates).toContain(
+        "pnpm check:system-catalog",
+      );
 
       const occupiedLeaf = join(
         cwd,

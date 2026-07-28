@@ -4117,6 +4117,7 @@ export const REVIEWED_GENERATOR_DESCRIPTORS = [
     codegen: backendCodegen,
     focusedGates: [
       ...backendGates,
+      "pnpm check:system-catalog",
       "pnpm check:data-resources",
       "pnpm check:schema-migration-notes",
     ],

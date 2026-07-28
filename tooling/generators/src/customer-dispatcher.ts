@@ -266,6 +266,7 @@ export const REVIEWED_GENERATOR_DESCRIPTORS: readonly ReviewedGeneratorDescripto
       command: "pnpm template:add-table",
       codegen: backendCodegen,
       focusedGates: [
+        "pnpm check:system-catalog",
         "pnpm check:data-resources",
         "pnpm check:schema-migration-notes",
       ],
