@@ -4195,6 +4195,7 @@ export function runReviewedGenerator(
   const reviewedMutableCatalogs = new Set([
     "docs/template/system-catalog.json",
     "docs/template/data-resources.json",
+    "packages/convex/confect/ops/dataResources.generated.ts",
   ]);
   const collisions = parsed.files
     .map(({ path }) => path)

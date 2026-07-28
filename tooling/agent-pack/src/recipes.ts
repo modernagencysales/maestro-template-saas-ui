@@ -242,10 +242,22 @@ export function createAddRecipeCommand(
         );
       const preflight = await dependencies.preflight.inspect(context.repo);
       const plan = planResult.plan;
-      const data = {
+      const planData = {
         ...baseData,
         plan,
         preflightFingerprint: preflight.fingerprint,
+      };
+      if (plan.collisions.length > 0)
+        return blocked(
+          mutationPosture,
+          "AGENT_PACK_RECIPE_COLLISION",
+          `Recipe paths collide with customer-owned files: ${plan.collisions.join(", ")}.`,
+          "Choose a reviewed new entity name or extend the existing slice deliberately.",
+          addRerun(input, false),
+          planData,
+        );
+      const data = {
+        ...planData,
         confirmationCommand: addRerun(
           {
             ...input,
@@ -270,15 +282,6 @@ export function createAddRecipeCommand(
           "Recipe writes require the existing privacy review acknowledgement.",
           "Review the recipe operations and privacy posture, then pass --privacy-reviewed.",
           data.confirmationCommand,
-          data,
-        );
-      if (plan.collisions.length > 0)
-        return blocked(
-          mutationPosture,
-          "AGENT_PACK_RECIPE_COLLISION",
-          `Recipe paths collide with customer-owned files: ${plan.collisions.join(", ")}.`,
-          "Choose a reviewed new entity name or extend the existing slice deliberately.",
-          addRerun(input, false),
           data,
         );
       if (
@@ -625,7 +628,7 @@ function blocked(
     summary:
       mutationPosture === "write"
         ? "Recipe write was blocked."
-        : "Recipe preview needs reviewed answers.",
+        : "Recipe preview found blocking findings.",
     diagnostics: [
       {
         code,

@@ -177,6 +177,47 @@ describe("recipe commands", () => {
     );
   });
 
+  it("blocks collision previews without emitting write authority", async () => {
+    const result = await executeAgentPackCommand(
+      createAddRecipeCommand({
+        ...dependencies,
+        generators: {
+          ...dependencies.generators,
+          preview: async () => ({
+            ok: true as const,
+            output: {
+              files: [
+                {
+                  path: "apps/web/src/features/request.ts",
+                  content: "export const request = true;\n",
+                  beforeSha256: "sha256:customer-owned",
+                },
+              ],
+              provenancePaths: [],
+              collisions: ["apps/web/src/features/request.ts"],
+              semanticRuleIds: [],
+              manualFollowUp: [],
+              codegen: [],
+              focusedGates: [],
+            },
+          }),
+        },
+      }),
+      { query: "crud-business-entity", answers: { name: "Request" } },
+      context,
+    );
+
+    expect(result).toMatchObject({
+      mutationPosture: "preview",
+      exitClass: "findings",
+      diagnostics: [{ code: "AGENT_PACK_RECIPE_COLLISION" }],
+      data: {
+        plan: { collisions: ["apps/web/src/features/request.ts"] },
+      },
+    });
+    expect(result.data).not.toHaveProperty("confirmationCommand");
+  });
+
   it("returns adjacent reviewed recipes and a template-gap for unknown language", async () => {
     const result = await executeAgentPackCommand(
       createAddRecipeCommand(dependencies),
