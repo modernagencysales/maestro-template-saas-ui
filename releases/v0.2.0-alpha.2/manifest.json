@@ -9,8 +9,8 @@
   "release": {
     "version": "0.2.0-alpha.2",
     "tag": "maestro-template-v0.2.0-alpha.2",
-    "sourceCommit": "c8de463e3e571427d272a1267c33662052a9e47b",
-    "sourceChecksum": "sha256:06d3d7d324307b415e237129ed98e44c8d92a4f7f3eff134ae51e5112a4ddd6a"
+    "sourceCommit": "af6c536a426043886c0f8e76aa3d41494e94a181",
+    "sourceChecksum": "sha256:dfc4c708f59fdb856f2348b0f9de802d86cf8ccecbb0fe69310e166dcb0511eb"
   },
   "upgrade": {
     "schemaVersion": 1,
@@ -22,12 +22,28 @@
     },
     "operations": [
       {
+        "id": "upgrade-modify-prettierignore",
+        "kind": "modify",
+        "path": ".prettierignore",
+        "ownership": "template-owned",
+        "beforeHash": "sha256:4f67327ecae20f0e281db9123e4a821e22551046a303fb15d1e70a37e86107c3",
+        "afterHash": "sha256:ff67d36c34def5b28ae667710554585c4b4ae1b7d6ae12ee2770ff5fe3c9acb9"
+      },
+      {
         "id": "upgrade-modify-AGENTS-md",
         "kind": "modify",
         "path": "AGENTS.md",
         "ownership": "template-owned",
         "beforeHash": "sha256:8f191b1ea45fdc13d56b8990eace9fa00978fe7a008d483b4933123b29b1485e",
         "afterHash": "sha256:244d964bd78a948a20ee77e5e6c8e635649d23c6147d6b9912a3b77909adf034"
+      },
+      {
+        "id": "upgrade-modify-apps-cli-src-commands-ts",
+        "kind": "modify",
+        "path": "apps/cli/src/commands.ts",
+        "ownership": "template-owned",
+        "beforeHash": "sha256:81e6a7f7edd9be289804580a6f2eeea095fb12af807d1fc4a0a572c947137d30",
+        "afterHash": "sha256:e6feeffb31840f3d277e5896edfa56a260e959e7afd3e8ce9dbdc1f8bf20f472"
       },
       {
         "id": "upgrade-modify-apps-cli-src-factory-customerCliRuntime-test-ts",
@@ -74,7 +90,7 @@
         "path": "docs/template/executable-recipes.md",
         "ownership": "template-owned",
         "beforeHash": "sha256:643d71d44574ead6158ba21f4228e0129a9c6a67ce6c39393d50882000ac70e1",
-        "afterHash": "sha256:1169ddf51ff72cb82469ee09279772a251093b7ad1f2a679ca7bf726d2ca2b5b"
+        "afterHash": "sha256:f020fe2fe418e1ca1932b8f4cdb7de2645b316aa85ae58db64bbb114fe4c85fa"
       },
       {
         "id": "upgrade-modify-docs-template-quickstart-md",
@@ -82,7 +98,7 @@
         "path": "docs/template/quickstart.md",
         "ownership": "template-owned",
         "beforeHash": "sha256:aa85dd42a4252296c150995f2de6205d78fb3dca6ee539fb04d597a5697ee56f",
-        "afterHash": "sha256:fe11a5092b0ce4656ade897fa974a6103b6f9afda3ffed007b1166a1638b9ff8"
+        "afterHash": "sha256:7810ed6ed8df04b701a9a2e56b2b8ace204b179b75a2a334e84113048732e038"
       },
       {
         "id": "upgrade-modify-packages-template-core-src-dataResourceCatalog-ts",
@@ -170,7 +186,7 @@
         "path": "tooling/agent-pack/src/recipes.test.ts",
         "ownership": "template-owned",
         "beforeHash": "sha256:dd602b17fd36194e39e19f3ee2a162099df58fba3cbf2f33229ac89cebbb6db1",
-        "afterHash": "sha256:5d13e5d223e7e86a3969c0f307d00c9bd6764cc203d009e1d74933a0d00167f9"
+        "afterHash": "sha256:48f7d8f7a4690c8faf9dcc4b97f9f565118903da2a8d9c864a001090291a7a5c"
       },
       {
         "id": "upgrade-modify-tooling-agent-pack-src-recipes-ts",
@@ -189,12 +205,20 @@
         "afterHash": "sha256:3bec132dd0f78d0db36289c5a4402f8d370b8f6d2d10895b72948740f24ba35f"
       },
       {
+        "id": "upgrade-modify-tooling-confect-manifest-tsconfig-json",
+        "kind": "modify",
+        "path": "tooling/confect-manifest/tsconfig.json",
+        "ownership": "template-owned",
+        "beforeHash": "sha256:768f04d1dd92c0598c63d2f99938de62fd42665b7cfd307c81e6f5f8e733eca1",
+        "afterHash": "sha256:f30f8906c7e1769ecde287df6d71214511195b8cd4a15ce8084b3e89068a73bc"
+      },
+      {
         "id": "upgrade-modify-tooling-generators-src-customer-dispatcher-ts",
         "kind": "modify",
         "path": "tooling/generators/src/customer-dispatcher.ts",
         "ownership": "template-owned",
         "beforeHash": "sha256:349b52d4cb9676c9ae8be481496d6f14fcf4b02eb258edf7ea285b591d3a055e",
-        "afterHash": "sha256:ceb5141d4cc07c5bb242e319929b89f0546062f67fef90f2ad6144a8bb7c3a44"
+        "afterHash": "sha256:6d72166e8aca72cae393393a70bfc0e26744cb87d67f29bf6e982c3c098f285e"
       },
       {
         "id": "upgrade-modify-tooling-generators-src-customer-runtime-test-ts",
@@ -202,7 +226,7 @@
         "path": "tooling/generators/src/customer-runtime.test.ts",
         "ownership": "template-owned",
         "beforeHash": "sha256:3b910fc47bb1434b857d0787bf0b3ba85d0afdf1bf892ec0e07d62584c6f5466",
-        "afterHash": "sha256:ab1f749cd0888874783c8a4bf6386440e148f733f76a9708b7550187ddb0569a"
+        "afterHash": "sha256:b09c3d29375f164b7d4650ff0cb25d580894954f81feab155fb59c31e7b08aa5"
       },
       {
         "id": "upgrade-modify-tooling-generators-src-customer-runtime-ts",
@@ -210,7 +234,7 @@
         "path": "tooling/generators/src/customer-runtime.ts",
         "ownership": "template-owned",
         "beforeHash": "sha256:856d69e6cce6cfe8386efffcedfd64fe5586177d6030bc95d7b9cc3330a98b46",
-        "afterHash": "sha256:3dd9825205db7b680911519db286663160ea8a2054e8eb15a24dd929feb85857"
+        "afterHash": "sha256:dd3c504edd20dcaa4b726c7ac23c1fa6e75e07be47d412a8ce4342eae2c89ce4"
       },
       {
         "id": "upgrade-modify-tooling-quality-check-data-resources-mts",
@@ -270,7 +294,7 @@
   ],
   "blueprintManifest": {
     "path": "blueprints/saas-application.json",
-    "sha256": "sha256:77769c755d68fb4f31a29b4f3ece4deaf776a19dab1c80a646c7c072bee87dde"
+    "sha256": "sha256:70890deccaeb1167d76eecc0287cf7d8a06b71dc6c24a0812d8fa84fd1501eac"
   },
   "migrationHandoff": {
     "required": false,
@@ -282,10 +306,10 @@
   },
   "upgradeImpact": {
     "path": "releases/v0.2.0-alpha.2/upgrade/app-map-input.json",
-    "sha256": "sha256:69a58f2ff2813cb99ab0e00547a1e377c80257f7319d96061ad9cba4e6d0828d",
+    "sha256": "sha256:eecdbdacd466e94cc853749a7c612d3cccd472009ce45da3438bdc4c1cc803e9",
     "projection": {
       "path": "releases/v0.2.0-alpha.2/upgrade/app-map-impact.json",
-      "sha256": "sha256:b57b02f207923aca7d32109776c649a20910c274825e2161b20e761aec92cfbc"
+      "sha256": "sha256:47bbdc499d36850dbce14df59466eb93cca94921a10d1a7b17954c13f83ac71d"
     }
   }
 }

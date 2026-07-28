@@ -994,23 +994,23 @@ export const present${pascalName} = (
       path: `${featurePath}/fixtures.ts`,
       content: `import type { ${pascalName}FeatureState, ${pascalName}Item } from "./model";
 
-export const fake${pascalName}Items: readonly ${pascalName}Item[] = [
-  {
-    id: "${name}-demo-1",
-    label: "Example account",
-    detail: "Synthetic fixture for customer.example; never use customer data here.",
-  },
-];
+const fake${pascalName}Item: ${pascalName}Item = {
+  id: "${name}-demo-1",
+  label: "Example account",
+  detail: "Synthetic fixture for customer.example; never use customer data here.",
+};
+
+export const fake${pascalName}Items: readonly ${pascalName}Item[] = [fake${pascalName}Item];
 
 export const fake${pascalName}States = {
   loading: { status: "loading" },
   empty: { status: "empty" },
   ready: { status: "ready", items: fake${pascalName}Items },
-  edit: { status: "edit", draft: fake${pascalName}Items[0]! },
+  edit: { status: "edit", draft: fake${pascalName}Item },
   skipped: { status: "skipped", reason: "Feature flag is disabled." },
   typedError: { status: "typed-error", error: "Forbidden" },
   transportError: { status: "transport-error", message: "Demo transport unavailable." },
-  success: { status: "success", item: fake${pascalName}Items[0]! },
+  success: { status: "success", item: fake${pascalName}Item },
 } as const satisfies Record<string, ${pascalName}FeatureState>;
 `,
     },

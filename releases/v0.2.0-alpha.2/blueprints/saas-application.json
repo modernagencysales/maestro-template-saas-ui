@@ -3,7 +3,7 @@
   "id": "saas-application",
   "provenance": "@maestro-template/generators/saas-application@1",
   "projectionSource": {
-    "sourceCommit": "c8de463e3e571427d272a1267c33662052a9e47b",
+    "sourceCommit": "af6c536a426043886c0f8e76aa3d41494e94a181",
     "assets": [
       {
         "path": "base/apps/cli/src/factory/customerComposition.ts.txt",
@@ -55,15 +55,16 @@
       },
       {
         "path": "base/tooling/generators/src/customer-dispatcher.ts.txt",
-        "sha256": "sha256:ceb5141d4cc07c5bb242e319929b89f0546062f67fef90f2ad6144a8bb7c3a44"
+        "sha256": "sha256:6d72166e8aca72cae393393a70bfc0e26744cb87d67f29bf6e982c3c098f285e"
       },
       {
         "path": "base/tooling/generators/src/customer-runtime.ts.txt",
-        "sha256": "sha256:3dd9825205db7b680911519db286663160ea8a2054e8eb15a24dd929feb85857"
+        "sha256": "sha256:dd3c504edd20dcaa4b726c7ac23c1fa6e75e07be47d412a8ce4342eae2c89ce4"
       }
     ]
   },
   "registrations": [
+    "README.md",
     "docs/template/agent-pack-privacy.md",
     "apps/cli/src/factory/customerComposition.ts",
     "apps/cli/src/index.ts",
@@ -632,6 +633,13 @@
       "action": "generate",
       "upgrade": "regenerate",
       "sha256": "sha256:d0fc889b645ea292dc301968c2113e624c119381ebd82bfe628b6ca1585c6129"
+    },
+    {
+      "path": ".prettierignore",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:ff67d36c34def5b28ae667710554585c4b4ae1b7d6ae12ee2770ff5fe3c9acb9"
     },
     {
       "path": "apps/cli/src/factory/customerComposition.ts",
@@ -1273,6 +1281,14 @@
       "replaces": "copy"
     },
     {
+      "path": "README.md",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:b963cf5d80eeea306e12e0a82d87e3ed1ec7c4e3406eed1b70573e22292f7a2e",
+      "replaces": "copy"
+    },
+    {
       "path": "skills-lock.json",
       "ownership": "generated",
       "action": "generate",
@@ -1408,6 +1424,13 @@
       "replaces": "copy"
     },
     {
+      "path": "tooling/confect-manifest/tsconfig.json",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:f30f8906c7e1769ecde287df6d71214511195b8cd4a15ce8084b3e89068a73bc"
+    },
+    {
       "path": "tooling/generators/package.json",
       "ownership": "generated",
       "action": "generate",
@@ -1444,7 +1467,7 @@
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:ceb5141d4cc07c5bb242e319929b89f0546062f67fef90f2ad6144a8bb7c3a44",
+      "sha256": "sha256:6d72166e8aca72cae393393a70bfc0e26744cb87d67f29bf6e982c3c098f285e",
       "replaces": "copy"
     },
     {
@@ -1452,7 +1475,7 @@
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:3dd9825205db7b680911519db286663160ea8a2054e8eb15a24dd929feb85857",
+      "sha256": "sha256:dd3c504edd20dcaa4b726c7ac23c1fa6e75e07be47d412a8ce4342eae2c89ce4",
       "replaces": "copy"
     },
     {
@@ -1555,7 +1578,7 @@
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:bab60cd0103007cb53babe29d02b5736448c7e39391cfd113465820b6e915ffb"
+      "sha256": "sha256:8c4403fdb795fe1b0fb08340344564d038a17de9061c8d2bac5f6d7c60a90d3f"
     }
   ]
 }
