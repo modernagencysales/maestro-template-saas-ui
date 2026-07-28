@@ -200,8 +200,8 @@ export function assertReviewedBlueprintTargetPlan(
       if (!isRecord(reviewed) || reviewed.path !== entry.path) return false;
       if (!parameterized.has(entry.path))
         return JSON.stringify(entry) === JSON.stringify(reviewed);
-      const { sha256: _actualSha256, ...actualShape } = entry;
-      const { sha256: _reviewedSha256, ...reviewedShape } = reviewed;
+      const actualShape = withoutSha256(entry);
+      const reviewedShape = withoutSha256(reviewed);
       return JSON.stringify(actualShape) === JSON.stringify(reviewedShape);
     }) &&
     parameterizedEntries.every((path) =>
@@ -332,6 +332,12 @@ export function failure(error: unknown): CreateFailure {
 
 export function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function withoutSha256(value: object): Record<string, unknown> {
+  return Object.fromEntries(
+    Object.entries(value).filter(([key]) => key !== "sha256"),
+  );
 }
 
 export function isObject(value: unknown): value is object {
