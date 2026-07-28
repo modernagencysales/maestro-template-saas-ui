@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "kind": "reviewed-upgrade-impact-coverage",
   "baseRevision": "de1bac52bbd33745d2a0fecf8e1cb6ec5732310d",
-  "subjectRevision": "6121bddd7ccf5f05c3405ab75e34c256e7fbef6a",
+  "subjectRevision": "d85e57b364950027d0968137a82da083f88be975",
   "structuralPaths": [],
   "ownershipCoveredPaths": [
     ".prettierignore",
@@ -15,6 +15,7 @@
     "docs/template/customer-target-contract.md",
     "docs/template/executable-recipes.md",
     "docs/template/quickstart.md",
+    "packages/convex/tsconfig.json",
     "packages/template-core/src/dataResourceCatalog.ts",
     "tooling/agent-pack/src/contracts.test.ts",
     "tooling/agent-pack/src/contracts.ts",
@@ -37,7 +38,7 @@
   "impact": {
     "schemaVersion": 1,
     "baseRevision": "de1bac52bbd33745d2a0fecf8e1cb6ec5732310d",
-    "subjectRevision": "6121bddd7ccf5f05c3405ab75e34c256e7fbef6a",
+    "subjectRevision": "d85e57b364950027d0968137a82da083f88be975",
     "complete": true,
     "risk": "low",
     "changedPaths": [],

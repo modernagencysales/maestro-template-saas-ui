@@ -9,8 +9,8 @@
   "release": {
     "version": "0.2.0-alpha.2",
     "tag": "maestro-template-v0.2.0-alpha.2",
-    "sourceCommit": "6121bddd7ccf5f05c3405ab75e34c256e7fbef6a",
-    "sourceChecksum": "sha256:c832af27d6bf3bfc2dde64ba2b585f18fcbdb2260103c218218d525828f3ec00"
+    "sourceCommit": "d85e57b364950027d0968137a82da083f88be975",
+    "sourceChecksum": "sha256:ea6ef4772c2166e9217acfa32071a593315e40cf83ae2eb1003806a49eea2b98"
   },
   "upgrade": {
     "schemaVersion": 1,
@@ -99,6 +99,14 @@
         "ownership": "template-owned",
         "beforeHash": "sha256:aa85dd42a4252296c150995f2de6205d78fb3dca6ee539fb04d597a5697ee56f",
         "afterHash": "sha256:7747e5bce3fc09de43d4fadfe406ac86678f7026c207cc0c77607f63b4d98910"
+      },
+      {
+        "id": "upgrade-modify-packages-convex-tsconfig-json",
+        "kind": "modify",
+        "path": "packages/convex/tsconfig.json",
+        "ownership": "template-owned",
+        "beforeHash": "sha256:cac978ff72b0ecfdac6158ec519ede32d21bbc28bbc5cbfba99c5077baf2e597",
+        "afterHash": "sha256:9aad6d1e5e60ac255ad1ea6aa23563dbf34f1e0658447ff4c42f30f3af3a3f25"
       },
       {
         "id": "upgrade-modify-packages-template-core-src-dataResourceCatalog-ts",
@@ -294,7 +302,7 @@
   ],
   "blueprintManifest": {
     "path": "blueprints/saas-application.json",
-    "sha256": "sha256:c83a512aee78b328e649333eb51ad788542096142600082eaa8f521bdcdf8d9c"
+    "sha256": "sha256:91f793983e90204a6e0bd796ca2dda7b3586f46c5f1145478f36cfc97c6aedab"
   },
   "migrationHandoff": {
     "required": false,
@@ -306,10 +314,10 @@
   },
   "upgradeImpact": {
     "path": "releases/v0.2.0-alpha.2/upgrade/app-map-input.json",
-    "sha256": "sha256:10712540e8791e33d5ddff7c8b947cd35d0c024c418e3b468e89244eb8100195",
+    "sha256": "sha256:d3b79265601f2ddad7c2cbfdc8699ae08ec12c8363ca5031eb18bbeae6349d84",
     "projection": {
       "path": "releases/v0.2.0-alpha.2/upgrade/app-map-impact.json",
-      "sha256": "sha256:e470c199a0c3f7d988f0d0f16b02cfc0ae2c47404f37af4220604a5de2a8a077"
+      "sha256": "sha256:8d2cd4d8a6e46eeda3a0688a862463f82d21e8a7d58b6e896287351b10e07ea4"
     }
   }
 }
