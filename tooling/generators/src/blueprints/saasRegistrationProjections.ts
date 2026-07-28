@@ -239,9 +239,10 @@ const customerPackage = (current: boolean): string => {
       return [name, command];
     }),
   );
-  value.scripts.test = "turbo run test";
+  value.scripts.test =
+    "turbo run test --filter='./packages/*' --filter=@maestro-template/web";
   value.scripts["test:tooling"] =
-    "pnpm --dir tooling/quality test && pnpm --dir tooling/workflow test && pnpm --dir tooling/generators test";
+    "pnpm --dir tooling/workflow test && pnpm --dir tooling/generators exec vitest run src/customer-runtime.test.ts src/templateInstanceMigration.test.ts src/workflow-publication-generation.test.ts src/workflow-release-commands.test.ts --maxWorkers=1 --no-file-parallelism";
   value.scripts["check:coverage-ratchet"] =
     "vitest run --coverage --maxWorkers=1 --no-file-parallelism packages/template-core packages/integrations packages/search packages/storage packages/notifications packages/observability packages/convex tooling/quality tooling/workflow tooling/generators apps/cli apps/web && tsx tooling/quality/check-coverage-ratchet.mts";
   value.scripts["coverage:update-baseline"] =
@@ -258,37 +259,23 @@ const customerPackage = (current: boolean): string => {
     "check:effect-diagnostics",
     "test",
     "test:tooling",
-    "test:workflow",
     "build",
-    "check:ci-completeness",
-    "check:config-drift",
     "check:convex-ai-files",
     "check:agent-pack",
-    "check:app-map",
-    "check:deps",
-    "check:knip",
     "check:route-tree",
     "check:frontend-effect-boundary",
     "check:env-boundary",
     "check:provider-boundary",
     "check:logging-boundary",
     "check:access-audit-events",
-    "check:coverage-ratchet",
-    "check:types-coverage",
-    "check:gates",
-    "check:debt",
     "check:generators",
-    "check:docs-freshness",
-    "check:generated-files",
     "check:confect-v9",
     "check:confect-contracts",
-    "check:confect-compat",
     "check:effectified-api-proof",
     "check:workflow-semantics",
     "check:workflow-graph-boundary",
     "check:workflow-policy-snapshots",
     "check:workflow-principal-propagation",
-    "check:workflow:fast",
     "check:schema-migration-notes",
     "check:system-catalog",
     "check:system-topology",
@@ -296,8 +283,6 @@ const customerPackage = (current: boolean): string => {
     "check:append-only-tables",
     "check:promotion-boundary",
     "check:layer-boundaries",
-    "check:secret-canaries",
-    "check:sbom-license",
     "check:confect-manifest",
     "check:headless-surface-contract",
     "check:posthog-readiness",

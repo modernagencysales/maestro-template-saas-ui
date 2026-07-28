@@ -6,6 +6,7 @@ coverage/
 .stryker-tmp/
 .turbo/
 .maestro/
+.claude/settings.json
 apps/*/dist/
 packages/*/dist/
 tooling/*/dist/

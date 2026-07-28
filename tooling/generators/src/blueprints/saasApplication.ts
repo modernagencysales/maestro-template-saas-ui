@@ -413,6 +413,7 @@ function buildTargetPlan(
   options: BlueprintTargetPlanOptions,
 ): BlueprintTargetPlan {
   const replacements = new Map<string, "copy" | "generate">([
+    [".claude/settings.json", "copy"],
     [".prettierignore", "copy"],
     ["README.md", "copy"],
     ["apps/cli/src/index.ts", "copy"],
@@ -518,7 +519,7 @@ function buildTargetPlan(
     ["packages/convex/test/workflow-lifecycle-controls.fixture.ts", "copy"],
     ["packages/convex/test/workflow-lifecycle-registration.test.ts", "copy"],
   ]);
-  const customerExtensions = new Set(["CLAUDE.md", ".claude/settings.json"]);
+  const customerExtensions = new Set(["CLAUDE.md"]);
   const files = current
     ? buildFactorySaasApplicationFiles(options)
     : buildAlpha1SaasApplicationFiles(options);

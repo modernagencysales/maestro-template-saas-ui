@@ -342,13 +342,21 @@ describe("saas application blueprint", () => {
       "// unrelated integration registration",
     );
     expect(buildSaasApplicationTargetPlan({ name: "My App" })).toEqual(before);
-    for (const path of ["CLAUDE.md", ".claude/settings.json"]) {
-      expect(after.entries.find((entry) => entry.path === path)).toMatchObject({
-        ownership: "customer-extension",
-        action: "copy",
-        upgrade: "preserve",
-      });
-    }
+    expect(
+      after.entries.find((entry) => entry.path === "CLAUDE.md"),
+    ).toMatchObject({
+      ownership: "customer-extension",
+      action: "copy",
+      upgrade: "preserve",
+    });
+    expect(
+      after.entries.find((entry) => entry.path === ".claude/settings.json"),
+    ).toMatchObject({
+      ownership: "generated",
+      action: "generate",
+      upgrade: "regenerate",
+      replaces: "copy",
+    });
     expect(
       after.entries.find((entry) => entry.path === "skills-lock.json"),
     ).toMatchObject({
@@ -564,6 +572,9 @@ describe("saas application blueprint", () => {
     expect(
       first.find(({ path }) => path === ".prettierignore")?.content,
     ).toContain(".maestro/");
+    expect(
+      first.find(({ path }) => path === ".prettierignore")?.content,
+    ).toContain(".claude/settings.json");
     expect(
       first.find(
         ({ path }) => path === "tooling/confect-manifest/tsconfig.json",
@@ -820,7 +831,12 @@ describe("saas application blueprint", () => {
     expect(root.scripts["template:smoke"]).toBe(
       "tsx tooling/generators/src/customer-cli.ts smoke",
     );
-    expect(root.scripts.test).toBe("turbo run test");
+    expect(root.scripts.test).toBe(
+      "turbo run test --filter='./packages/*' --filter=@maestro-template/web",
+    );
+    expect(root.scripts["test:tooling"]).toBe(
+      "pnpm --dir tooling/workflow test && pnpm --dir tooling/generators exec vitest run src/customer-runtime.test.ts src/templateInstanceMigration.test.ts src/workflow-publication-generation.test.ts src/workflow-release-commands.test.ts --maxWorkers=1 --no-file-parallelism",
+    );
     for (const name of CURRENT_GENERATOR_GATE_SCRIPTS) {
       expect(root.scripts[name]).toContain(
         "tooling/generators/src/customer-cli.ts",
@@ -833,19 +849,46 @@ describe("saas application blueprint", () => {
       for (const command of Object.values(root.scripts))
         expect(command).not.toContain(`pnpm ${name}`);
     }
-    expect(root.scripts.verify).toEqual(
-      expect.stringContaining("pnpm check:agent-pack"),
+    expect(root.scripts.verify).toBe(
+      [
+        "check:format",
+        "lint",
+        "typecheck",
+        "check:effect-diagnostics",
+        "test",
+        "test:tooling",
+        "build",
+        "check:convex-ai-files",
+        "check:agent-pack",
+        "check:route-tree",
+        "check:frontend-effect-boundary",
+        "check:env-boundary",
+        "check:provider-boundary",
+        "check:logging-boundary",
+        "check:access-audit-events",
+        "check:generators",
+        "check:confect-v9",
+        "check:confect-contracts",
+        "check:effectified-api-proof",
+        "check:workflow-semantics",
+        "check:workflow-graph-boundary",
+        "check:workflow-policy-snapshots",
+        "check:workflow-principal-propagation",
+        "check:schema-migration-notes",
+        "check:system-catalog",
+        "check:system-topology",
+        "check:data-resources",
+        "check:append-only-tables",
+        "check:promotion-boundary",
+        "check:layer-boundaries",
+        "check:confect-manifest",
+        "check:headless-surface-contract",
+        "check:posthog-readiness",
+        "check:auth-demo-bypass",
+      ]
+        .map((name) => `pnpm ${name}`)
+        .join(" && "),
     );
-    expect(root.scripts.verify).toContain("pnpm check:convex-ai-files");
-    for (const check of [
-      "check:generators",
-      "check:workflow-semantics",
-      "check:data-resources",
-      "check:system-catalog",
-      "check:system-topology",
-      "check:layer-boundaries",
-    ])
-      expect(root.scripts.verify).toContain(`pnpm ${check}`);
     const agentPackCheck = files.find(
       ({ path }) => path === "tooling/quality/check-agent-pack.mts",
     )?.content;

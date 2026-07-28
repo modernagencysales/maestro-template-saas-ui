@@ -47,6 +47,11 @@ describe("customer ownership inventory", () => {
     ["tooling/app-map/INTEGRATION_REQUEST.md", "factory-only", "omit"],
     ["tooling/release-seal.mts", "factory-only", "omit"],
     ["tooling/release-seal.test.mts", "factory-only", "omit"],
+    [
+      "tooling/release/__fixtures__/upgrade/provider-posture-v1-to-v2.contract.json",
+      "template-owned",
+      "copy",
+    ],
     ["docs/agent/host-projection-lifecycle.md", "template-owned", "copy"],
     ["docs/template/quickstart.md", "template-owned", "copy"],
     ["examples/generic-ai-ops/seed/workspace.json", "template-owned", "copy"],

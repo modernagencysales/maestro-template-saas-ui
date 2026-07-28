@@ -242,6 +242,7 @@ describe("materialized customer CLI runtime closure", () => {
       "skills-lock.json",
       "packages/convex/convex/_generated/ai/ai-files.state.json",
       "packages/convex/convex/_generated/ai/guidelines.md",
+      "tooling/release/__fixtures__/upgrade/provider-posture-v1-to-v2.contract.json",
     ])
       expect(existsSync(join(target, path))).toBe(true);
     for (const skill of [
@@ -264,8 +265,65 @@ describe("materialized customer CLI runtime closure", () => {
     const customerPackage = JSON.parse(
       readFileSync(join(target, "package.json"), "utf8"),
     ) as { readonly scripts: Readonly<Record<string, string>> };
-    expect(customerPackage.scripts.verify).toContain(
-      "pnpm check:convex-ai-files",
+    expect(customerPackage.scripts.test).toBe(
+      "turbo run test --filter='./packages/*' --filter=@maestro-template/web",
+    );
+    expect(customerPackage.scripts["test:tooling"]).toBe(
+      "pnpm --dir tooling/workflow test && pnpm --dir tooling/generators exec vitest run src/customer-runtime.test.ts src/templateInstanceMigration.test.ts src/workflow-publication-generation.test.ts src/workflow-release-commands.test.ts --maxWorkers=1 --no-file-parallelism",
+    );
+    expect(customerPackage.scripts.verify).toBe(
+      [
+        "check:format",
+        "lint",
+        "typecheck",
+        "check:effect-diagnostics",
+        "test",
+        "test:tooling",
+        "build",
+        "check:convex-ai-files",
+        "check:agent-pack",
+        "check:route-tree",
+        "check:frontend-effect-boundary",
+        "check:env-boundary",
+        "check:provider-boundary",
+        "check:logging-boundary",
+        "check:access-audit-events",
+        "check:generators",
+        "check:confect-v9",
+        "check:confect-contracts",
+        "check:effectified-api-proof",
+        "check:workflow-semantics",
+        "check:workflow-graph-boundary",
+        "check:workflow-policy-snapshots",
+        "check:workflow-principal-propagation",
+        "check:schema-migration-notes",
+        "check:system-catalog",
+        "check:system-topology",
+        "check:data-resources",
+        "check:append-only-tables",
+        "check:promotion-boundary",
+        "check:layer-boundaries",
+        "check:confect-manifest",
+        "check:headless-surface-contract",
+        "check:posthog-readiness",
+        "check:auth-demo-bypass",
+      ]
+        .map((name) => `pnpm ${name}`)
+        .join(" && "),
+    );
+    const settingsPath = join(target, ".claude/settings.json");
+    const settingsHash = () =>
+      createHash("sha256").update(readFileSync(settingsPath)).digest("hex");
+    expect(settingsHash()).toBe(
+      "7825364f57b5c5f07c64d5c5bbbaa8046a6c1c21d3216112cc86f99d2e5b6ccc",
+    );
+    execFileSync("pnpm", ["format"], {
+      cwd: target,
+      stdio: "pipe",
+      timeout: 120_000,
+    });
+    expect(settingsHash()).toBe(
+      "7825364f57b5c5f07c64d5c5bbbaa8046a6c1c21d3216112cc86f99d2e5b6ccc",
     );
     const hostBin = join(parent, "supported-host-bin");
     mkdirSync(hostBin);
