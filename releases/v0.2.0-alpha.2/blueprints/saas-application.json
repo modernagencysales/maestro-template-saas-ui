@@ -3,7 +3,7 @@
   "id": "saas-application",
   "provenance": "@maestro-template/generators/saas-application@1",
   "projectionSource": {
-    "sourceCommit": "b217b37907674060cdd13c5e5c9592479416c2bc",
+    "sourceCommit": "99dd32a8923751354c512885b3d399d878b074e5",
     "assets": [
       {
         "path": "base/apps/cli/src/factory/customerComposition.ts.txt",
@@ -47,7 +47,7 @@
       },
       {
         "path": "base/tooling/agent-pack/src/recipes.ts.txt",
-        "sha256": "sha256:2db16c9fc22674dc3a97f6048f21858b1fd6ca00affa7552ecb8ce6d217b69b4"
+        "sha256": "sha256:391d0dc2080a1828ca0192c4b4c0c84e1f1774ca681843a7588ac4e23c4a9fc5"
       },
       {
         "path": "base/tooling/agent-pack/src/recipeTransaction.ts.txt",
@@ -55,7 +55,7 @@
       },
       {
         "path": "base/tooling/generators/src/customer-dispatcher.ts.txt",
-        "sha256": "sha256:6f16ae62d1fd4f0dba375e602ef44b5e250e97f14ff454c54e2f5ec47cdfc5bc"
+        "sha256": "sha256:9f8a901a678c0265d4e9509f0060a13d5a0bd452a7a257c48cd4a6ebf258ba3a"
       },
       {
         "path": "base/tooling/generators/src/customer-runtime.ts.txt",
@@ -735,7 +735,7 @@
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:45223c1a9c9f7e26f2f662b2f1fb1f88c984df3af5a251f6a2e176e39abd066a",
+      "sha256": "sha256:b1231ee91e2e0da88d1dc9a7f2785cd36678951bc28be3b141c403fd224703fe",
       "replaces": "generate"
     },
     {
@@ -1380,7 +1380,7 @@
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:2db16c9fc22674dc3a97f6048f21858b1fd6ca00affa7552ecb8ce6d217b69b4",
+      "sha256": "sha256:391d0dc2080a1828ca0192c4b4c0c84e1f1774ca681843a7588ac4e23c4a9fc5",
       "replaces": "copy"
     },
     {
@@ -1444,7 +1444,7 @@
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:6f16ae62d1fd4f0dba375e602ef44b5e250e97f14ff454c54e2f5ec47cdfc5bc",
+      "sha256": "sha256:9f8a901a678c0265d4e9509f0060a13d5a0bd452a7a257c48cd4a6ebf258ba3a",
       "replaces": "copy"
     },
     {

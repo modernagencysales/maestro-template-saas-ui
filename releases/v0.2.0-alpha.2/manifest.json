@@ -9,8 +9,8 @@
   "release": {
     "version": "0.2.0-alpha.2",
     "tag": "maestro-template-v0.2.0-alpha.2",
-    "sourceCommit": "b217b37907674060cdd13c5e5c9592479416c2bc",
-    "sourceChecksum": "sha256:45f07bbabfd7efa932eb00ed3669a92c75a9a2c6c13c7fa93e3f306aaaff742a"
+    "sourceCommit": "99dd32a8923751354c512885b3d399d878b074e5",
+    "sourceChecksum": "sha256:f15c71b6b6290052f35d758b352949773d443e56f034fc08b3d539ec93bc19bf"
   },
   "upgrade": {
     "schemaVersion": 1,
@@ -74,7 +74,7 @@
         "path": "docs/template/executable-recipes.md",
         "ownership": "template-owned",
         "beforeHash": "sha256:643d71d44574ead6158ba21f4228e0129a9c6a67ce6c39393d50882000ac70e1",
-        "afterHash": "sha256:dbf533f1d39478ba3735c94aeff40f3ad1770bcded894495707a135118e7029b"
+        "afterHash": "sha256:1169ddf51ff72cb82469ee09279772a251093b7ad1f2a679ca7bf726d2ca2b5b"
       },
       {
         "id": "upgrade-modify-docs-template-quickstart-md",
@@ -82,7 +82,7 @@
         "path": "docs/template/quickstart.md",
         "ownership": "template-owned",
         "beforeHash": "sha256:aa85dd42a4252296c150995f2de6205d78fb3dca6ee539fb04d597a5697ee56f",
-        "afterHash": "sha256:88bb631ec2fd409e1c1c19a4a419cb126a7fc85213f0742293d53a2e210823d4"
+        "afterHash": "sha256:fe11a5092b0ce4656ade897fa974a6103b6f9afda3ffed007b1166a1638b9ff8"
       },
       {
         "id": "upgrade-modify-packages-template-core-src-dataResourceCatalog-ts",
@@ -170,7 +170,7 @@
         "path": "tooling/agent-pack/src/recipes.test.ts",
         "ownership": "template-owned",
         "beforeHash": "sha256:dd602b17fd36194e39e19f3ee2a162099df58fba3cbf2f33229ac89cebbb6db1",
-        "afterHash": "sha256:28c46485c79a4b7bc3b2291ca21c92cee21f7a49d69e18b9ef6af66eb61a81d7"
+        "afterHash": "sha256:5d13e5d223e7e86a3969c0f307d00c9bd6764cc203d009e1d74933a0d00167f9"
       },
       {
         "id": "upgrade-modify-tooling-agent-pack-src-recipes-ts",
@@ -178,7 +178,15 @@
         "path": "tooling/agent-pack/src/recipes.ts",
         "ownership": "template-owned",
         "beforeHash": "sha256:afb3b602bd01b8ef4affcc4544bfed72f686f945f2b77f0efb4cc4b3e27d628a",
-        "afterHash": "sha256:2db16c9fc22674dc3a97f6048f21858b1fd6ca00affa7552ecb8ce6d217b69b4"
+        "afterHash": "sha256:391d0dc2080a1828ca0192c4b4c0c84e1f1774ca681843a7588ac4e23c4a9fc5"
+      },
+      {
+        "id": "upgrade-modify-tooling-agent-pack-src-recipeTransaction-test-ts",
+        "kind": "modify",
+        "path": "tooling/agent-pack/src/recipeTransaction.test.ts",
+        "ownership": "template-owned",
+        "beforeHash": "sha256:33813098d2e9cc99da4d7e8d90198fb32d357dbe68871867fbd5f7470a6eb57e",
+        "afterHash": "sha256:3bec132dd0f78d0db36289c5a4402f8d370b8f6d2d10895b72948740f24ba35f"
       },
       {
         "id": "upgrade-modify-tooling-generators-src-customer-dispatcher-ts",
@@ -186,7 +194,7 @@
         "path": "tooling/generators/src/customer-dispatcher.ts",
         "ownership": "template-owned",
         "beforeHash": "sha256:349b52d4cb9676c9ae8be481496d6f14fcf4b02eb258edf7ea285b591d3a055e",
-        "afterHash": "sha256:6f16ae62d1fd4f0dba375e602ef44b5e250e97f14ff454c54e2f5ec47cdfc5bc"
+        "afterHash": "sha256:9f8a901a678c0265d4e9509f0060a13d5a0bd452a7a257c48cd4a6ebf258ba3a"
       },
       {
         "id": "upgrade-modify-tooling-generators-src-customer-runtime-test-ts",
@@ -194,7 +202,7 @@
         "path": "tooling/generators/src/customer-runtime.test.ts",
         "ownership": "template-owned",
         "beforeHash": "sha256:3b910fc47bb1434b857d0787bf0b3ba85d0afdf1bf892ec0e07d62584c6f5466",
-        "afterHash": "sha256:cf72e6093502af867be320a13446c01475b0c877e7d7a7154107c548b4fc5e8c"
+        "afterHash": "sha256:0fbe4720220262048b65f6c9464155a515c6b96f6dba4772517d70bbfe047e62"
       },
       {
         "id": "upgrade-modify-tooling-generators-src-customer-runtime-ts",
@@ -262,7 +270,7 @@
   ],
   "blueprintManifest": {
     "path": "blueprints/saas-application.json",
-    "sha256": "sha256:0177c984ff8079178cf41f7426610cb06dcaa951a7b6d210ecf5401245ecbf07"
+    "sha256": "sha256:9b9f6a49d35d634a697f1a11bb454d3b126646b4e2dc60e0ebe7eb82314e75c0"
   },
   "migrationHandoff": {
     "required": false,
@@ -274,10 +282,10 @@
   },
   "upgradeImpact": {
     "path": "releases/v0.2.0-alpha.2/upgrade/app-map-input.json",
-    "sha256": "sha256:fa941a5bc7bb781a4d0b5dba60ea47359d391b2386599343e41a3f021ee3fd5d",
+    "sha256": "sha256:3ac8fd45d1942a4bdb00207cd8ef0f7d1296395c5cc31ab35a67b704c5006396",
     "projection": {
       "path": "releases/v0.2.0-alpha.2/upgrade/app-map-impact.json",
-      "sha256": "sha256:8d98a07279c2398ec872c30322398e6a0fbb652de2ce592949ebb069446cd089"
+      "sha256": "sha256:2631dab5a3a094c43a8d393b1cafc7c764b0510158f235715b801e685cd226c0"
     }
   }
 }

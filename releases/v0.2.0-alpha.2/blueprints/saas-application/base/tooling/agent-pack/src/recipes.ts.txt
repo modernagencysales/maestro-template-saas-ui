@@ -84,6 +84,7 @@ export type RecipeExecutionPlan = {
   readonly collisions: readonly string[];
   readonly provenancePaths: readonly string[];
   readonly semanticRuleIds: readonly string[];
+  readonly codegen: readonly string[];
   readonly focusedGates: readonly string[];
   readonly fingerprint: string;
 };
@@ -320,7 +321,13 @@ export function createAddRecipeCommand(
             exitClass: "success" as const,
             summary: `Applied recipe ${recipe.id} atomically.`,
             diagnostics: [],
-            data: { ...data, receipt: applied.receipt },
+            data: {
+              ...planData,
+              receipt: applied.receipt,
+              followUpActions: [...plan.codegen, ...plan.focusedGates].map(
+                (command) => ({ command }),
+              ),
+            },
           }
         : blocked(
             mutationPosture,
@@ -353,6 +360,7 @@ async function buildPlan(
   const collisions = new Set<string>();
   const provenance = new Set<string>();
   const semanticRules = new Set<string>();
+  const codegen = new Set<string>();
   const focusedGates = new Set<string>();
   const paths = new Set<string>();
   for (const step of recipe.execution?.steps ?? []) {
@@ -404,6 +412,7 @@ async function buildPlan(
       collisions.add(collision);
     for (const path of preview.output.provenancePaths) provenance.add(path);
     for (const id of preview.output.semanticRuleIds) semanticRules.add(id);
+    for (const command of preview.output.codegen) codegen.add(command);
     for (const gate of preview.output.focusedGates) focusedGates.add(gate);
     for (const file of preview.output.files) {
       if (!safeRelativePath(file.path))
@@ -442,6 +451,7 @@ async function buildPlan(
     collisions: [...collisions].sort(),
     provenancePaths: [...provenance].sort(),
     semanticRuleIds: [...semanticRules].sort(),
+    codegen: [...codegen],
     focusedGates: [...focusedGates].sort(),
   };
   return {
