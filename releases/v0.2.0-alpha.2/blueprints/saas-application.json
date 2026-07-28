@@ -3,7 +3,7 @@
   "id": "saas-application",
   "provenance": "@maestro-template/generators/saas-application@1",
   "projectionSource": {
-    "sourceCommit": "4a730ff3e75794021a532c5f52e7298be1aa76a3",
+    "sourceCommit": "50bb2fc1064d5c737aec827617aaf64a6ff58f6c",
     "assets": [
       {
         "path": "base/apps/cli/src/factory/customerComposition.ts.txt",
@@ -163,6 +163,12 @@
     "apps/web/src/routes/_workspace.records.tsx",
     "apps/web/src/routeTree.gen.ts",
     "apps/web/src/routeRegistry.generated.ts"
+  ],
+  "parameterizedEntries": [
+    "examples/saas-application/seed/crud-scenario.json",
+    "examples/saas-application/seed/records.json",
+    "examples/saas-application/seed/workspace.json",
+    "generated/blueprints/saas-application/application-contract.json"
   ],
   "entries": [
     {
