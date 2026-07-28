@@ -471,7 +471,7 @@ async function build(args: Args): Promise<readonly Output[]> {
     protectedCustomerPaths: protectedCustomerSourcePaths,
     basePaths: prior.paths ?? [],
   });
-  const exclusions = additionalPaths.filter(
+  const exclusions = [...(prior.paths ?? []), ...additionalPaths].filter(
     (entry) => entry.ownership === "factory-only",
   );
   const inventory = buildReviewedOwnershipInventory({
