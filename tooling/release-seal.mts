@@ -4,11 +4,12 @@ import { execFileSync } from "node:child_process";
 import {
   existsSync,
   lstatSync,
+  mkdirSync,
   readFileSync,
   realpathSync,
   writeFileSync,
 } from "node:fs";
-import { join, relative, resolve, sep } from "node:path";
+import { dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { format as formatWithPrettier } from "prettier";
 import {
@@ -662,6 +663,7 @@ function apply(outputs: readonly Output[]): void {
       (!lstatSync(target).isFile() || lstatSync(target).isSymbolicLink())
     )
       throw new Error(`Release output is not a regular file: ${path}`);
+    mkdirSync(dirname(target), { recursive: true });
     writeFileSync(target, bytes);
   }
 }
