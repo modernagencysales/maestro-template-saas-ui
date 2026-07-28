@@ -3,7 +3,7 @@
   "id": "saas-application",
   "provenance": "@maestro-template/generators/saas-application@1",
   "projectionSource": {
-    "sourceCommit": "5bf39114e87f5db3ddcbf9b5f1ba1b3a6018cf79",
+    "sourceCommit": "d7f77f7cc5c62171fac76af4f01aa21d275b208f",
     "assets": [
       {
         "path": "base/apps/cli/src/factory/customerComposition.ts.txt",
@@ -424,7 +424,7 @@
       "action": "generate",
       "upgrade": "regenerate",
       "sha256": "sha256:7825364f57b5c5f07c64d5c5bbbaa8046a6c1c21d3216112cc86f99d2e5b6ccc",
-      "replaces": "copy"
+      "replaces": "generate"
     },
     {
       "path": ".claude/skills/convex-create-component/agents/openai.yaml",
