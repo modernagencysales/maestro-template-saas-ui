@@ -448,7 +448,7 @@ describe("Node Agent Pack adapters", () => {
     );
   });
 
-  it("uses Git-committed release authority and rejects target self-certification", async () => {
+  it("uses packaged release authority without requiring template refs in customer Git", async () => {
     const root = await mkdtemp(join(tmpdir(), "maestro-packaged-preflight-"));
     await Promise.all(
       [
@@ -456,8 +456,8 @@ describe("Node Agent Pack adapters", () => {
         "apps/cli",
         "tooling/agent-pack",
         "packages/convex",
+        "docs/template",
         ".agents/skills/maestro",
-        "agent-pack/generated/codex/.agents/skills/maestro",
       ].map((path) => mkdir(join(root, path), { recursive: true })),
     );
     const skill = "managed packaged skill\n";
@@ -513,7 +513,7 @@ describe("Node Agent Pack adapters", () => {
       ),
       writeFile(join(root, "template-instance.json"), templateInstance()),
       writeFile(
-        join(root, "customer-context.manifest.json"),
+        join(root, "docs/template/customer-context.manifest.json"),
         JSON.stringify({
           schemaVersion: 1,
           files: [
@@ -525,13 +525,6 @@ describe("Node Agent Pack adapters", () => {
         }),
       ),
       writeFile(join(root, ".agents/skills/maestro/SKILL.md"), skill),
-      writeFile(
-        join(
-          root,
-          "agent-pack/generated/codex/.agents/skills/maestro/SKILL.md",
-        ),
-        skill,
-      ),
     ]);
     const execute = async (file: string, args: readonly string[]) => {
       const command = `${file} ${args.join(" ")}`;
@@ -543,10 +536,6 @@ describe("Node Agent Pack adapters", () => {
         "git worktree list --porcelain": "worktree unavailable\n",
         "git rev-parse HEAD": `${canonicalCommit}\n`,
         "git rev-parse --show-toplevel": `${root}\n`,
-        [`git rev-parse --verify ${releaseCommit}^{commit}`]: `${releaseCommit}\n`,
-        [`git rev-parse --verify refs/tags/${release.tag}^{commit}`]: `${releaseCommit}\n`,
-        [`git show ${canonicalCommit}:releases/v0.2.0-alpha.1/manifest.json`]:
-          canonicalManifest,
         "git status --porcelain=v1 -z --untracked-files=all": "",
         "git status --porcelain=v1 -- docs/template/generated packages/template-core/src/generated":
           "",
@@ -586,7 +575,7 @@ describe("Node Agent Pack adapters", () => {
 
     await writeFile(
       join(root, "template-instance.json"),
-      templateInstance(`sha256:${"e".repeat(64)}`),
+      templateInstance("invalid-checksum"),
     );
     await expect(
       runtime.inspect({ mode: "fake" }, repo),
@@ -603,21 +592,6 @@ describe("Node Agent Pack adapters", () => {
     await writeFile(
       join(root, ".agents/skills/maestro/SKILL.md"),
       "locally modified packaged skill\n",
-    );
-    const tamperedHash = createHash("sha256")
-      .update("locally modified packaged skill\n")
-      .digest("hex");
-    await writeFile(
-      join(root, "customer-context.manifest.json"),
-      JSON.stringify({
-        schemaVersion: 1,
-        files: [
-          {
-            path: ".agents/skills/maestro/SKILL.md",
-            sha256: `sha256:${tamperedHash}`,
-          },
-        ],
-      }),
     );
     await expect(
       runtime.inspect({ mode: "fake" }, repo),

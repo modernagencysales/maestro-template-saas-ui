@@ -34,11 +34,6 @@ const taggedRepository = (): string => {
     },
   );
   execFileSync(
-    "git",
-    ["-C", taggedReleaseRoot, "tag", "maestro-template-v0.2.0-alpha.1", "HEAD"],
-    { stdio: "pipe" },
-  );
-  execFileSync(
     "pnpm",
     ["install", "--offline", "--frozen-lockfile", "--ignore-scripts"],
     { cwd: taggedReleaseRoot, stdio: "pipe", timeout: 120_000 },
@@ -138,7 +133,7 @@ describe("create root integration", () => {
     expect((await runCliAsync(["help"])).stdout).toContain(CREATE_HELP.trim());
   });
 
-  it("resolves the current SaaS authority in a non-mutating default preview", async () => {
+  it("resolves the immutable SaaS authority in a non-mutating default preview", async () => {
     const parent = mkdtempSync(join(tmpdir(), "maestro-create-root-"));
     temporaryRoots.push(parent);
     const target = join(parent, "customer-app");
@@ -165,8 +160,8 @@ describe("create root integration", () => {
       ],
       data: {
         release: {
-          version: "unreleased-current",
-          tag: "unreleased-current",
+          version: "0.2.0-alpha.2",
+          tag: "maestro-template-v0.2.0-alpha.2",
           sourceCommit: expect.stringMatching(/^[0-9a-f]{40}$/),
           sourceChecksum: expect.stringMatching(/^sha256:[0-9a-f]{64}$/),
         },
@@ -176,6 +171,30 @@ describe("create root integration", () => {
       },
     });
     expect(existsSync(target)).toBe(false);
+  }, 30_000);
+
+  it("prints the complete copy-paste onboarding sequence after create", () => {
+    const parent = mkdtempSync(join(tmpdir(), "maestro-create-human-"));
+    temporaryRoots.push(parent);
+    const target = join(parent, "customer-app");
+    const result = runTaggedCli([
+      "create",
+      target,
+      "--name",
+      "My App",
+      "--outcome",
+      "Track client requests",
+      "--write",
+      "--privacy-reviewed",
+    ]);
+
+    expect(result.exitCode, `${result.stdout}\n${result.stderr}`).toBe(0);
+    expect(result.stdout).toContain(`git -C ${JSON.stringify(target)} init`);
+    expect(result.stdout).toContain(
+      `pnpm --dir ${JSON.stringify(target)} install --frozen-lockfile`,
+    );
+    expect(result.stdout).toContain("maestro -- preflight --mode fake");
+    expect(result.stdout).toContain("maestro -- start --mode fake");
   }, 30_000);
 
   it("personalizes root create content and its deterministic digest", async () => {

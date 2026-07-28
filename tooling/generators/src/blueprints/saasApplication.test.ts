@@ -565,6 +565,68 @@ describe("saas application blueprint", () => {
     });
   });
 
+  it("ships canonical ownership, lifecycle, and topology for the record slice", () => {
+    const entries = new Map(
+      buildSaasApplicationTargetPlan().entries.map((entry) => [
+        entry.path,
+        entry.content,
+      ]),
+    );
+    const systems = JSON.parse(
+      entries.get("docs/template/system-catalog.json") ?? "{}",
+    ) as {
+      readonly systems?: readonly {
+        readonly id: string;
+        readonly tables: readonly string[];
+      }[];
+    };
+    const resources = JSON.parse(
+      entries.get("docs/template/data-resources.json") ?? "{}",
+    ) as {
+      readonly resources?: readonly {
+        readonly id: string;
+        readonly system: string;
+        readonly workspaceLifecycle: string;
+      }[];
+    };
+    const topology = JSON.parse(
+      entries.get("docs/template/product-topology.json") ?? "{}",
+    ) as {
+      readonly resources?: readonly {
+        readonly path: string;
+        readonly system: string;
+      }[];
+    };
+
+    expect(systems.systems).toContainEqual(
+      expect.objectContaining({
+        id: "record-management",
+        tables: ["records"],
+      }),
+    );
+    expect(resources.resources).toContainEqual(
+      expect.objectContaining({
+        id: "records",
+        system: "record-management",
+        workspaceLifecycle: "managed",
+      }),
+    );
+    expect(topology.resources).toContainEqual(
+      expect.objectContaining({
+        path: "apps/web/src/routes/_workspace.records.tsx",
+        system: "record-management",
+      }),
+    );
+    expect(
+      entries.has("docs/template/system-decisions/record-management.md"),
+    ).toBe(true);
+    expect(entries.has("docs/template/schema-decisions/records.md")).toBe(true);
+    expect(entries.has("packages/convex/confect/records.spec.ts")).toBe(true);
+    expect(entries.has("packages/convex/confect/records/records.spec.ts")).toBe(
+      false,
+    );
+  });
+
   it("projects a customer-only root script closure", () => {
     const files = buildFactorySaasApplicationFiles({ name: "My App" });
     const customerContext = JSON.parse(

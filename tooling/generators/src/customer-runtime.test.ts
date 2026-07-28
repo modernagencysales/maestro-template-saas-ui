@@ -28,6 +28,21 @@ const seedCatalogs = (cwd: string): void => {
 };
 
 describe("customer generator runtime", () => {
+  it("normalizes the pnpm argument separator before dispatch", () => {
+    const result = runCustomerGeneratorCli([
+      "--",
+      "systems",
+      "--query",
+      "workflows",
+    ]);
+    expect(result.exitCode).toBe(0);
+    expect(JSON.parse(result.stdout)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: "workflow-runtime" }),
+      ]),
+    );
+  });
+
   it.each([
     ["add-capability", "customerReview"],
     ["add-workflow", "customerReviewFlow"],
