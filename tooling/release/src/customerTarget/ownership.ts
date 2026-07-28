@@ -95,6 +95,7 @@ const TEMPLATE_PREFIXES = [
 ] as const;
 
 const TEMPLATE_ROOT_FILES = new Set([
+  ".claude/settings.json",
   ".gitignore",
   ".gitleaks.toml",
   ".npmrc",
