@@ -103,6 +103,18 @@ describe("saas application blueprint", () => {
     ).toEqual(plan);
   });
 
+  it("limits current personalization to reviewed app identity files", () => {
+    expect(buildSaasApplicationTargetPlan().parameterizedEntries).toEqual([
+      "examples/saas-application/seed/crud-scenario.json",
+      "examples/saas-application/seed/records.json",
+      "examples/saas-application/seed/workspace.json",
+      "generated/blueprints/saas-application/application-contract.json",
+    ]);
+    expect(buildSaasApplicationAlpha1TargetPlan().parameterizedEntries).toEqual(
+      [],
+    );
+  });
+
   it("projects each pre-existing workflow artifact schema binding once", () => {
     const entries = buildSaasApplicationTargetPlan().entries;
     const databaseSchema = entries.find(

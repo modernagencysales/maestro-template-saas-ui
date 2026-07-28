@@ -455,6 +455,7 @@ async function build(args: Args): Promise<readonly Output[]> {
     provenance: plan.provenance,
     projectionSource: { sourceCommit: args.sourceCommit, assets },
     registrations: plan.registrations,
+    parameterizedEntries: plan.parameterizedEntries,
     entries: plan.entries.map((entry) =>
       Object.fromEntries(
         Object.entries(entry).filter(([key]) => key !== "content"),

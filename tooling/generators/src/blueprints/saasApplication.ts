@@ -338,6 +338,7 @@ export type BlueprintTargetPlan = {
   readonly id: "saas-application";
   readonly provenance: "@maestro-template/generators/saas-application@1";
   readonly registrations: readonly string[];
+  readonly parameterizedEntries: readonly string[];
   readonly entries: readonly ({
     readonly path: string;
     readonly sha256: string;
@@ -367,6 +368,13 @@ const canonicalTargetPlanOptions = {
   name: "SaaS Application",
   firstOutcome: "Create and review records",
 } as const satisfies BlueprintTargetPlanOptions;
+
+export const SAAS_APPLICATION_PARAMETERIZED_ENTRIES = [
+  "examples/saas-application/seed/crud-scenario.json",
+  "examples/saas-application/seed/records.json",
+  "examples/saas-application/seed/workspace.json",
+  "generated/blueprints/saas-application/application-contract.json",
+] as const;
 
 const targetEntryIdentity = (
   entry: BlueprintTargetPlan["entries"][number],
@@ -659,7 +667,12 @@ function buildTargetPlan(
     registrations,
     entries: entries.map(targetEntryIdentity),
   };
-  return { ...identity, entries, digest: sha256(JSON.stringify(identity)) };
+  return {
+    ...identity,
+    parameterizedEntries: current ? SAAS_APPLICATION_PARAMETERIZED_ENTRIES : [],
+    entries,
+    digest: sha256(JSON.stringify(identity)),
+  };
 }
 
 export const buildSaasApplicationHandoff = (

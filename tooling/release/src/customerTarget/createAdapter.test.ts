@@ -158,6 +158,43 @@ describe("customer release create adapter", () => {
     });
   });
 
+  it("allows only release-reviewed blueprint entries to be personalized", async () => {
+    const fixture = taggedRelease();
+    const reviewed = JSON.parse(
+      readFileSync(fixture.blueprintManifestPath, "utf8"),
+    ) as Record<string, unknown>;
+    reviewed.parameterizedEntries = ["generated/fixture-blueprint.txt"];
+    writeFileSync(
+      fixture.blueprintManifestPath,
+      `${JSON.stringify(reviewed, null, 2)}\n`,
+    );
+    fixture.blueprintManifestChecksum = hash(
+      readFileSync(fixture.blueprintManifestPath),
+    );
+    const release = adapter(fixture);
+    const result = await release.prepare({
+      repo: {
+        workingDirectory: fixture.repositoryRoot,
+        sourceRoot: fixture.repositoryRoot,
+      },
+      target: fixture.targetRoot,
+      blueprintTargetPlan: () => blueprintTargetPlan("personalized app\n"),
+      templateInstance: (facts) =>
+        `${JSON.stringify({ name: "Personalized App", release: facts })}\n`,
+    });
+
+    expect(result).toMatchObject({
+      ok: true,
+      preview: {
+        writes: expect.arrayContaining([
+          expect.objectContaining({
+            path: "generated/fixture-blueprint.txt",
+          }),
+        ]),
+      },
+    });
+  });
+
   it.each([
     [
       "ownership manifest",

@@ -62,6 +62,7 @@ export type BlueprintTargetFacts = {
 export type BlueprintTargetPlan = BlueprintTargetFacts & {
   readonly schemaVersion: 1;
   readonly registrations: readonly string[];
+  readonly parameterizedEntries?: readonly string[];
   readonly entries: readonly ({
     readonly path: string;
     readonly sha256: string;
@@ -104,6 +105,11 @@ export function validateBlueprintTargetPlan(
     new Set(paths).size !== paths.length ||
     value.registrations.some((path) => !paths.includes(path)) ||
     new Set(value.registrations).size !== value.registrations.length ||
+    (value.parameterizedEntries !== undefined &&
+      (!Array.isArray(value.parameterizedEntries) ||
+        value.parameterizedEntries.some((path) => !paths.includes(path)) ||
+        new Set(value.parameterizedEntries).size !==
+          value.parameterizedEntries.length)) ||
     value.entries.some(
       (entry) =>
         !(
@@ -160,21 +166,48 @@ export function assertReviewedBlueprintTargetPlan(
       "Blueprint ownership manifest is invalid.",
     );
   }
+  const parameterizedEntries = Array.isArray(manifest.parameterizedEntries)
+    ? manifest.parameterizedEntries
+    : [];
+  if (
+    !parameterizedEntries.every((path) => typeof path === "string") ||
+    new Set(parameterizedEntries).size !== parameterizedEntries.length
+  ) {
+    throw new CustomerReleaseAdapterError(
+      "release-unavailable",
+      "Blueprint parameterization authority is invalid.",
+    );
+  }
+  const expectedEntries = manifest.entries;
+  const actualEntries = plan.entries.map(targetEntryIdentity);
   const expected = JSON.stringify({
     schemaVersion: manifest.schemaVersion,
     id: manifest.id,
     provenance: manifest.provenance,
     registrations: manifest.registrations,
-    entries: manifest.entries,
   });
   const actual = JSON.stringify({
     schemaVersion: plan.schemaVersion,
     id: plan.id,
     provenance: plan.provenance,
     registrations: plan.registrations,
-    entries: plan.entries.map(targetEntryIdentity),
   });
-  if (actual !== expected) {
+  const parameterized = new Set(parameterizedEntries);
+  const entriesMatch =
+    actualEntries.length === expectedEntries.length &&
+    actualEntries.every((entry, index) => {
+      const reviewed = expectedEntries[index];
+      if (!isRecord(reviewed) || reviewed.path !== entry.path) return false;
+      if (!parameterized.has(entry.path))
+        return JSON.stringify(entry) === JSON.stringify(reviewed);
+      const { sha256: _actualSha256, ...actualShape } = entry;
+      const { sha256: _reviewedSha256, ...reviewedShape } = reviewed;
+      return JSON.stringify(actualShape) === JSON.stringify(reviewedShape);
+    }) &&
+    parameterizedEntries.every((path) =>
+      expectedEntries.some((entry) => isRecord(entry) && entry.path === path),
+    );
+  if (actual !== expected || !entriesMatch) {
     throw new CustomerReleaseAdapterError(
       "release-unavailable",
       "Blueprint target plan is not owned by the reviewed release.",
