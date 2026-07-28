@@ -79,6 +79,20 @@ describe("release seal factory-only exclusions", () => {
       }),
     ).toThrow(/Unclassified reviewed release source path/);
   });
+  it("inherits an identical reviewed exclusion without duplicating authority", () => {
+    const inherited = factoryRule(
+      "apps/cli/src/factory/adopt.test.ts",
+      "exact",
+    );
+    const paths = buildReviewedAdditionalPaths({
+      value: [],
+      sourcePaths: ["apps/cli/src/factory/adopt.test.ts"],
+      protectedCustomerPaths: [],
+      basePaths: [inherited],
+    });
+
+    expect(paths).not.toContainEqual(inherited);
+  });
   it("derives explicit reviewed exclusions before inventory classification", () => {
     const sourcePaths = [
       "README.md",

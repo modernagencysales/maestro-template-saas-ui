@@ -381,12 +381,23 @@ export function buildReviewedAdditionalPaths(input: {
     sourcePaths: input.sourcePaths,
     protectedCustomerPaths: input.protectedCustomerPaths,
   });
-  const rules = [...configured, ...REVIEWED_ADDITIONAL_PATHS].sort(
-    (left, right) =>
+  const rules = [...configured, ...REVIEWED_ADDITIONAL_PATHS]
+    .filter((candidate) => {
+      const inherited = input.basePaths.find(
+        (entry) =>
+          entry.path === candidate.path && entry.match === candidate.match,
+      );
+      if (inherited === undefined) return true;
+      if (JSON.stringify(inherited) === JSON.stringify(candidate)) return false;
+      throw new Error(
+        `Release additional path conflicts with inherited authority: ${candidate.match}:${candidate.path}`,
+      );
+    })
+    .sort((left, right) =>
       `${left.path}:${left.match}`.localeCompare(
         `${right.path}:${right.match}`,
       ),
-  );
+    );
   for (const path of input.sourcePaths) {
     if (!resolveCustomerReleasePath([...input.basePaths, ...rules], path))
       throw new Error(`Unclassified reviewed release source path: ${path}`);
