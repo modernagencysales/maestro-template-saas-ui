@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "kind": "reviewed-upgrade-impact-coverage",
   "baseRevision": "de1bac52bbd33745d2a0fecf8e1cb6ec5732310d",
-  "subjectRevision": "10df4a52625611d94f651298f7f18d3ed813e871",
+  "subjectRevision": "7708c01f1a4319632604270cb003fb01960683a9",
   "structuralPaths": [],
   "ownershipCoveredPaths": [
     ".prettierignore",
@@ -35,12 +35,14 @@
     "tooling/generators/src/customer-runtime.test.ts",
     "tooling/generators/src/customer-runtime.ts",
     "tooling/quality/check-data-resources.mts",
+    "tooling/quality/check-posthog-readiness.mts",
+    "tooling/quality/check-posthog-readiness.test.mts",
     "tooling/release/__fixtures__/upgrade/provider-posture-v1-to-v2.contract.json"
   ],
   "impact": {
     "schemaVersion": 1,
     "baseRevision": "de1bac52bbd33745d2a0fecf8e1cb6ec5732310d",
-    "subjectRevision": "10df4a52625611d94f651298f7f18d3ed813e871",
+    "subjectRevision": "7708c01f1a4319632604270cb003fb01960683a9",
     "complete": true,
     "risk": "low",
     "changedPaths": [],

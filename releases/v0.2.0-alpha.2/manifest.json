@@ -9,8 +9,8 @@
   "release": {
     "version": "0.2.0-alpha.2",
     "tag": "maestro-template-v0.2.0-alpha.2",
-    "sourceCommit": "10df4a52625611d94f651298f7f18d3ed813e871",
-    "sourceChecksum": "sha256:de1261c6f4416911b5f4747f87a8751b117fd773efca9716757ff471833344f2"
+    "sourceCommit": "7708c01f1a4319632604270cb003fb01960683a9",
+    "sourceChecksum": "sha256:df13ef371a6ce219fe45a5e8b03e7499453620da42e4da35df3bde44ec6290e8"
   },
   "upgrade": {
     "schemaVersion": 1,
@@ -260,6 +260,22 @@
         "afterHash": "sha256:ba50a51a6f06b109f286e55e0bfbed0887465aa6e792763c6317c3ff17e31c37"
       },
       {
+        "id": "upgrade-modify-tooling-quality-check-posthog-readiness-mts",
+        "kind": "modify",
+        "path": "tooling/quality/check-posthog-readiness.mts",
+        "ownership": "template-owned",
+        "beforeHash": "sha256:4c8d5f290d0fac0d07b8b47dab11da6a59b81a8f265f9650291a31d92d0002b4",
+        "afterHash": "sha256:9e7d1df5afaf65aaaba8075427507c1378c7d7058deb241d7d5802d82ee852d0"
+      },
+      {
+        "id": "upgrade-modify-tooling-quality-check-posthog-readiness-test-mts",
+        "kind": "modify",
+        "path": "tooling/quality/check-posthog-readiness.test.mts",
+        "ownership": "template-owned",
+        "beforeHash": "sha256:96067085802d0e09a3bb4d9511d9d469a57b96d4dc9885844787dc7d0650428b",
+        "afterHash": "sha256:c4a1a96cc21e5e3c7e1d14cd6ed38f777bb1773ea14dbbf3ad5143939c2b825f"
+      },
+      {
         "id": "upgrade-add-tooling-release-fixtures-upgrade-provider-posture-v1-to-v2-contract-json",
         "kind": "add",
         "path": "tooling/release/__fixtures__/upgrade/provider-posture-v1-to-v2.contract.json",
@@ -330,7 +346,7 @@
   ],
   "blueprintManifest": {
     "path": "blueprints/saas-application.json",
-    "sha256": "sha256:2a21a64e4a293d0862d6fc67636cc56391f1e9164607fa752d04e8f5bede6f08"
+    "sha256": "sha256:f5288c630bdf4a866d3e485cc3f4dca3584003baa3f62d919ede5b347c7a59b7"
   },
   "migrationHandoff": {
     "required": false,
@@ -342,10 +358,10 @@
   },
   "upgradeImpact": {
     "path": "releases/v0.2.0-alpha.2/upgrade/app-map-input.json",
-    "sha256": "sha256:f218d0040a0ad812033ae02f91ff8d006543f0d9895ffbb51c3af213befc934c",
+    "sha256": "sha256:57abdf2d02707c8ae04496d9a6013d5baac9d5216edc2bd0648d67b03128f03d",
     "projection": {
       "path": "releases/v0.2.0-alpha.2/upgrade/app-map-impact.json",
-      "sha256": "sha256:fd89c3f062167a1ea31a5f11e6168725c5e2e89a4060ca94bc93c5c0da24da45"
+      "sha256": "sha256:66445514dd81e96e436ff4bcc5797848d026a16ab7bec3494c44adcb73da0dcb"
     }
   }
 }
