@@ -159,13 +159,33 @@ export const validatePromotionAuthorityEndpoint = (
     } catch {
       throw new Error("Target Convex URL is invalid.");
     }
-    if (authority.origin === target.origin) {
+    if (
+      authority.origin === target.origin ||
+      sharesConvexDeployment(authority, target)
+    ) {
       throw new Error(
         "Durable promotion authority must use an independent HTTPS base URL.",
       );
     }
   }
   return authority.origin;
+};
+
+const sharesConvexDeployment = (left: URL, right: URL): boolean => {
+  const leftDeployment = convexDeploymentIdentity(left);
+  return (
+    leftDeployment !== undefined &&
+    leftDeployment === convexDeploymentIdentity(right)
+  );
+};
+
+const convexDeploymentIdentity = (url: URL): string | undefined => {
+  for (const suffix of [".convex.cloud", ".convex.site"] as const) {
+    if (!url.hostname.endsWith(suffix)) continue;
+    const deployment = url.hostname.slice(0, -suffix.length);
+    return /^[a-z0-9-]+$/u.test(deployment) ? deployment : undefined;
+  }
+  return undefined;
 };
 
 const parseScope = (input: unknown): DurableDeployScope | undefined => {

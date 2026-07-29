@@ -219,6 +219,65 @@ describe("durable deploy authority", () => {
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
+  it("blocks matching Convex cloud and site deployment identities without network", async () => {
+    const signing = keys();
+    const fetchSpy = vi.fn() as unknown as typeof fetch;
+    for (const [endpoint, targetConvexUrl] of [
+      [
+        "https://exciting-cat-536.convex.site",
+        "https://exciting-cat-536.convex.cloud",
+      ],
+      [
+        "https://exciting-cat-536.convex.cloud",
+        "https://exciting-cat-536.convex.site",
+      ],
+      [
+        "https://EXCITING-CAT-536.CONVEX.SITE",
+        "https://Exciting-Cat-536.Convex.Cloud",
+      ],
+    ] as const) {
+      await expect(
+        runDurableDeployAuthorityPreflight(
+          ["staging", "a".repeat(40), "template-staging", targetConvexUrl],
+          {
+            endpoint,
+            publicKeyPem: signing.publicKeyPem,
+            nowMs: () => now,
+            fetch: fetchSpy,
+          },
+        ),
+      ).rejects.toThrow(/independent HTTPS base URL/);
+    }
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("allows distinct Convex deployment identities", async () => {
+    const signing = keys();
+    const requested = scope("preflight");
+    const server = await handleDurableDeployAuthority(requested, {
+      store: transactionalStore(),
+      sign: signing.sign,
+    });
+    const fetchSpy = responseFetch(server);
+    await expect(
+      runDurableDeployAuthorityPreflight(
+        [
+          requested.environment,
+          requested.commitSha,
+          requested.targetId,
+          "https://target-deployment.convex.cloud",
+        ],
+        {
+          endpoint: "https://independent-authority.convex.site",
+          publicKeyPem: signing.publicKeyPem,
+          nowMs: () => now + 1,
+          fetch: fetchSpy,
+        },
+      ),
+    ).resolves.toBeUndefined();
+    expect(fetchSpy).toHaveBeenCalledOnce();
+  });
+
   it("rejects every exact-scope field mismatch", async () => {
     const signing = keys();
     const requested = scope("convex");
