@@ -27,6 +27,7 @@ import {
 import { buildFactorySaasApplicationFiles } from "./saasApplicationFactory";
 import {
   CUSTOMER_ROOT_SCRIPTS,
+  CURRENT_SAAS_DEPLOY_AUTHORITY_TABLE_CLOSURE,
   CURRENT_GENERATOR_GATE_SCRIPTS,
   REMOVED_CUSTOMER_TEMPLATE_SCRIPTS,
 } from "./saasRegistrationProjections";
@@ -138,6 +139,9 @@ describe("saas application blueprint", () => {
 
   it("matches the sealed alpha.1 manifest to its historical assets and current structure", () => {
     const plan = buildSaasApplicationTargetPlan();
+    const postAlphaCurrentPaths = new Set<string>(
+      CURRENT_SAAS_DEPLOY_AUTHORITY_TABLE_CLOSURE,
+    );
     const releaseRoot = join(
       repoRoot,
       "releases/v0.2.0-alpha.1/blueprints/saas-application",
@@ -176,16 +180,18 @@ describe("saas application blueprint", () => {
       schemaVersion: plan.schemaVersion,
       id: plan.id,
       provenance: plan.provenance,
-      registrations: plan.registrations,
-      entries: plan.entries.map(
-        ({ path, ownership, action, upgrade, replaces }) => ({
+      registrations: plan.registrations.filter(
+        (path) => !postAlphaCurrentPaths.has(path),
+      ),
+      entries: plan.entries
+        .filter(({ path }) => !postAlphaCurrentPaths.has(path))
+        .map(({ path, ownership, action, upgrade, replaces }) => ({
           path,
           ownership,
           action,
           upgrade,
           ...(replaces === undefined ? {} : { replaces }),
-        }),
-      ),
+        })),
     }).toEqual({
       schemaVersion: manifest.schemaVersion,
       id: manifest.id,
@@ -513,6 +519,7 @@ describe("saas application blueprint", () => {
       "packages/convex/confect/capabilities/_kit/workspaceAccess.ts",
       "packages/convex/confect/_generated/docs.ts",
       "packages/convex/confect/_generated/tables/workflowArtifacts.ts",
+      ...CURRENT_SAAS_DEPLOY_AUTHORITY_TABLE_CLOSURE,
       "packages/convex/confect/ops/dataResources.generated.ts",
       "packages/convex/confect/tables/workflowArtifacts.ts",
       "packages/convex/confect/tables/workflowRuns.ts",

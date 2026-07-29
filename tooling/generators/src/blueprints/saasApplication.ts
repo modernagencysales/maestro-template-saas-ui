@@ -5,6 +5,7 @@ import {
   buildAlpha1SaasApplicationFiles,
   buildFactorySaasApplicationFiles,
 } from "./saasApplicationFactory";
+import { CURRENT_SAAS_DEPLOY_AUTHORITY_TABLE_CLOSURE } from "./saasRegistrationProjections";
 
 export const saasApplicationBlueprint = {
   id: "saas-application",
@@ -403,6 +404,7 @@ function buildTargetPlan(
     "packages/convex/confect/capabilities/_kit/workspaceAccess.ts",
     "packages/convex/confect/_generated/docs.ts",
     "packages/convex/confect/_generated/tables/workflowArtifacts.ts",
+    ...(current ? CURRENT_SAAS_DEPLOY_AUTHORITY_TABLE_CLOSURE : []),
     "packages/convex/confect/ops/dataResources.generated.ts",
     "packages/convex/confect/tables/workflowArtifacts.ts",
     "packages/convex/confect/tables/workflowRuns.ts",
