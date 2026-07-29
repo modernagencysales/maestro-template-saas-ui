@@ -47,6 +47,8 @@ introduced. Sub-slices reuse or extend these canonical patterns:
 5. Workflow emission: `template:add-workflow` plus its focused semantic gates.
 6. Headless parity: one operation/ref projection for API, CLI, MCP, and OpenAPI.
 7. Acceptance: public create command followed by untouched-customer gates.
+8. Post-remediation compatibility upgrade: Confect v10 next.8 plus Effect v4,
+   with a second clean-customer acceptance run after the defect union is closed.
 
 ## Primary inventory
 
@@ -230,6 +232,62 @@ prove:
 - Status: upstream implementation fixed; final fixed status waits for untouched
   fresh-customer proof. Implementation commit: `c40e6f33`.
 
+### Safe create handoff cluster
+
+- ID/title: F-005 (Factory follow-up order can mutate a parent Git repository).
+- Original posture: worked around/critical.
+- Confirmed reproduction: create returned install before Git initialization; a
+  customer under an ancestor worktree ran the prepare hook against that parent
+  and installed Lefthook there.
+- Regression/fix: `28c0cbfc` makes Git initialization precede the pinned frozen
+  install and adds a Node-only installer that requires the resolved Git
+  top-level to equal the real current directory. Ancestor worktrees are skipped.
+- Focused result: agent-pack create and hook tests pass 9/9; scoped ESLint,
+  agent-pack/quality typechecks, formatting, and projection checks pass.
+- Clean-customer evidence: pending final isolated public acceptance.
+- Status: source fixed; final fixed status waits for clean-customer proof.
+
+### Customer workspace closure cluster
+
+- IDs/titles: F-013 (Generated workspace has unresolved internal dependencies),
+  F-022 (Generated CLI package omits required internal runtime), and exact
+  external overlap ES-F-14.
+- Original posture: worked around/critical, worked around/high, and fixed only
+  in the external product.
+- Confirmed reproduction: the customer retained three `workspace:*` links to
+  omitted release/stack packages; frozen install passed only because stale
+  lockfile bytes masked the invalid graph, while lockfile refresh failed.
+- Regression/fix: `9ea96531` derives customer package manifests from the
+  retained runtime and validates every workspace link; `50823f6f` declares the
+  package-manifest and lockfile replacements in the target plan.
+- Focused result: SaaS blueprint tests pass 17/17. A committed tagged public
+  customer passed pinned frozen install, explicit workspace-graph validation,
+  offline lockfile-only refresh, and runtime import in the selected integration
+  test.
+- Clean-customer evidence: the focused public customer is green; final full
+  acceptance remains pending.
+- Status: upstream implementation fixed; final fixed status waits for the full
+  untouched-customer contract.
+
+### Generated workflow compile cluster
+
+- IDs/titles: F-017 (Generated workflow files do not pass focused lint or
+  typecheck), plus exact ES-F-28 and ES-F-39 emitter overlaps.
+- Original posture: worked around/critical; external findings fixed only in the
+  product.
+- Confirmed reproduction: the customer workflow emitter imported raw Workflow
+  component primitives and emitted policy/error/environment expressions that
+  failed its own ESLint and isolated Convex typecheck.
+- Regression/fix: `55f6aae5` extends the generated-output smoke to lint the
+  contract and runner and compile the isolated generated Convex package, then
+  repairs the canonical emitter. No generated file was hand-edited.
+- Focused result: focused Vitest passes 2/2; scoped ESLint, generator typecheck,
+  formatting, and `template:workflow-output-smoke` exit zero. Deployment-bound
+  Convex ref generation is truthfully skipped because `CONVEX_DEPLOYMENT` is
+  unset.
+- Clean-customer evidence: pending final isolated public acceptance.
+- Status: source fixed; final fixed status waits for clean-customer proof.
+
 ### MCP generated-name round-trip cluster
 
 - ID/title: F-018 (Advertised fallback MCP tool names cannot be called).
@@ -277,6 +335,30 @@ prove:
   `headless-surface-contract: ok`.
 - Clean-customer evidence: pending the canonical customer headless projection
   and isolated public acceptance run.
+- Status: upstream implementation fixed; final fixed status waits for untouched
+  fresh-customer proof and the coherent commit coordinate.
+
+### Customer MCP stdio cluster
+
+- ID/title: F-020 (Generated app has no real MCP stdio server).
+- Original posture: open/critical.
+- Confirmed reproduction: customer materialization retained MCP protocol/server
+  sources but deliberately removed the `runCliEntry` stdio branch; `maestro mcp`
+  therefore returned `Unknown command: mcp`.
+- Regression: Agent Pack tests require a composition to publish only commands it
+  actually retains. Customer composition tests exercise initialize, tools/list,
+  a successful tools/call, unknown-tool, and malformed-input frames over stdio.
+  The release-shaped customer runtime test repeats the five-frame contract.
+- Canonical fix: the Agent Pack MCP projection now filters from one reviewed
+  descriptor set by the supplied command composition. Customer composition
+  exposes only preflight, support preview, and verify, and customer CLI
+  projection retains the canonical stdio entry without restoring factory-only
+  configure authority.
+- Focused result: Agent Pack MCP tests pass 21/21, customer stdio composition
+  passes 1/1, SaaS blueprint tests pass 17/17, and Agent Pack, CLI, and
+  generator typechecks exit zero.
+- Clean-customer evidence: pending the post-commit release-shaped MCP test and
+  final isolated public acceptance.
 - Status: upstream implementation fixed; final fixed status waits for untouched
   fresh-customer proof and the coherent commit coordinate.
 

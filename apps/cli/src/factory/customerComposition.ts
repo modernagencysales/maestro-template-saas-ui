@@ -2,15 +2,19 @@ import {
   createCheckCommand,
   createComposedPreflightProbe,
   createExecFileVerificationRunner,
+  createMaestroMcpProjection,
+  createMaestroMcpServer,
   createNodeBuildReadinessSurface,
   createNodeExecFileAdapter,
   createNodePreflightRuntimeReader,
   createNodeSupportBundleExporter,
   createPreflightCommand,
+  createRepositoryContext,
   createSupportBundleCommand,
   createVerifyCommand,
   defineDiagnosticRegistryProjection,
   nodePreflightFileSystem,
+  serveMcpStdio,
   type NodePreflightPolicy,
 } from "@maestro-template/agent-pack";
 import {
@@ -32,6 +36,7 @@ import {
   type CompositionEnvironmentReader,
 } from "./environment";
 import { createPreflightCliHandler } from "./preflight";
+import { createMcpCliAdapter } from "./mcp";
 import {
   createComposedStartCommand,
   createStartCliHandler,
@@ -172,6 +177,18 @@ export function createCustomerCliComposition(
       maxBytes: policy.packageJsonMaxBytes,
     }),
   });
+  const mcp = createMcpCliAdapter(({ stdin, stdout, stderr, cwd }) => {
+    const projection = createMaestroMcpProjection(
+      { preflight, supportBundle, verify },
+      createRepositoryContext({ cwd }),
+    );
+    return serveMcpStdio({
+      stdin,
+      stdout,
+      stderr,
+      server: createMaestroMcpServer(projection),
+    });
+  });
   const handlers: readonly FactoryCliHandler[] = [
     createStartCliHandler(start, output),
     createPreflightCliHandler(preflight),
@@ -181,6 +198,7 @@ export function createCustomerCliComposition(
   ];
   return Object.freeze({
     handlers,
+    mcp,
     diagnosticCount: descriptors.length,
     workflowRuleCount: workflowRules.length,
   });

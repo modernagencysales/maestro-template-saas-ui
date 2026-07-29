@@ -414,15 +414,10 @@ const customerCliEntry = (): string => {
     "      factoryCliComposition.handlers,",
     "      customerCliComposition.handlers,",
   );
-  value = replace(
-    value,
-    '  const normalized = normalizeCliArgv(argv);\n  if (normalized.length === 1 && normalized[0] === "mcp") {\n    await factoryCliComposition.mcp.serve(streams);\n    return;\n  }\n  const result = await runCliAsync(normalized, config, streams.cwd);',
-    "  const result = await runCliAsync(argv, config, streams.cwd);",
-  );
   return replace(
     value,
-    '    process.stderr.write("MCP_SERVER_ERROR startup\\n");',
-    '    process.stderr.write("CLI_STARTUP_ERROR\\n");',
+    "    await factoryCliComposition.mcp.serve(streams);",
+    "    await customerCliComposition.mcp.serve(streams);",
   );
 };
 
