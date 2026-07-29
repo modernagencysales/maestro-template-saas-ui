@@ -260,8 +260,11 @@ describe("materialized customer CLI runtime closure", () => {
         true,
       );
     }
-    for (const path of ["agent-pack", "tooling/stack", "tooling/release"])
+    for (const path of ["agent-pack", "tooling/stack", "tooling/release/src"])
       expect(existsSync(join(target, path))).toBe(false);
+    expect(existsSync(join(target, "tooling/release/package.json"))).toBe(
+      false,
+    );
     const customerPackage = JSON.parse(
       readFileSync(join(target, "package.json"), "utf8"),
     ) as { readonly scripts: Readonly<Record<string, string>> };
