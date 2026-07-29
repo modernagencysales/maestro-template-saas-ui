@@ -426,5 +426,38 @@ prove:
 - Status: upstream implementation fixed; final fixed status waits for the
   isolated clean-customer acceptance run.
 
+### Frontend peer compatibility cluster
+
+- ID/title: F-023 (Generated frontend dependency pins violate Saas UI peer
+  ranges).
+- Original posture: open/medium.
+- Confirmed reproduction: `apps/web/package.json` pinned React and ReactDOM
+  `19.1.0`, while the installed `@saas-ui/react@3.0.0-next.51` and
+  `@saas-ui-pro/react@1.0.0-next.4` packages both declare `^19.1.1` React and
+  ReactDOM peers. The new compatibility regression failed against those
+  authoritative installed package manifests before the repair.
+- Root cause: the React pair was pinned one patch below the tested Saas UI
+  stack's minimum after the Saas UI packages advanced their peer contract; the
+  application manifest and peer-resolved lock snapshots were not advanced
+  together.
+- Regression: `apps/web/src/dependency-compatibility.test.ts` reads the web
+  manifest plus both installed Saas UI manifests, requires equal React and
+  ReactDOM pins, and proves each pin satisfies every declared React peer range.
+- Canonical fix: `apps/web/package.json` now pins React and ReactDOM together at
+  `19.1.1`; `pnpm-lock.yaml` was regenerated with pnpm `10.12.1` and formatted
+  without refreshing unrelated dependency versions. No Confect, Effect, Saas UI,
+  or framework package was upgraded.
+- Focused result: the red-to-green compatibility test passes 1/1; a pinned
+  frozen install succeeds with the resolution step skipped and no peer warning;
+  web typecheck exits zero; all 27 web files and 102 tests pass; the production
+  client/SSR build succeeds; `check:deps`, `check:route-tree`, scoped ESLint,
+  and formatting pass. The existing large client-chunk warning is preserved as
+  separate F-027 evidence and was not suppressed or threshold-adjusted.
+- Clean-customer evidence: source compatibility and the template workspace are
+  green; final untouched fresh-customer frozen install and full acceptance
+  remain pending.
+- Status: upstream implementation fixed; final fixed status waits for the
+  isolated clean-customer acceptance run.
+
 No full acceptance command is yet claimed passing. Exact command outputs and
 commit coordinates will be added only after observation.
