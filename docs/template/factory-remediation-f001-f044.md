@@ -131,6 +131,9 @@ prove:
   clean; Signal Scout dirty only in its read-only evidence ledger.
 - 2026-07-29: template fast-forwarded without conflict to current `origin/main`
   at `f55653a0`; no other Agent Mail reservations were active.
+- 2026-07-29: restored every root `template:*` package script to the executable
+  generator boundary, then added exact leaf help for all 15 retained customer
+  commands. Both direct argv and pnpm-forwarded `--` argv shapes now pass.
 
 ## Verification evidence
 
@@ -154,10 +157,42 @@ prove:
 - Focused result:
   `npx --yes pnpm@10.12.1 --dir tooling/generators exec vitest run src/direct-run.test.ts --maxWorkers=1 --no-file-parallelism`
   passes 2/2.
-- Remaining: F-001 still needs dependency-free preinstall diagnosis; F-008 still
-  needs customer script/handler closure proof; F-015 and ES-F-05 remain
-  reproduced because `template:add-table -- --help` exits 1 with missing name.
+- Commit: `a249e744 fix: restore generator entrypoints`.
+- Remaining: F-001 still needs dependency-free preinstall diagnosis and F-008
+  still needs full fresh-customer script/handler closure proof.
 - Status: partial fix; no primary ID is closed by this commit alone.
+
+### Generator leaf-help cluster
+
+- IDs/titles: F-015 (Supported customer generators have no command-level help)
+  and ES-F-05 (Documented scaffold help command was unavailable). F-008
+  (Customer package scripts advertise unsupported generator commands) shares the
+  registry/dispatch root cause but remains open pending clean-customer closure.
+  ES-F-47 concerns the product CLI's workflow surface and is retained separately
+  rather than falsely deduplicated with generator help.
+- Original posture: F-015 open/medium; ES-F-05 open in the immutable
+  external-user release; F-008 open/critical.
+- Confirmed reproduction: before this repair,
+  `npx --yes pnpm@10.12.1 --silent template:add-table -- --help` exited 1 with
+  `Missing required --name for add-table`. The generator dispatcher had no
+  per-command help registry, and pnpm's standalone `--` forwarding separator was
+  interpreted as a command argument.
+- Regression: `customer-runtime.test.ts` covers `--help` and `-h` for every
+  command exported by `CUSTOMER_COMMANDS`, in both direct and pnpm-forwarded
+  argv shapes. `index.test.ts` independently covers representative root leaf
+  commands and pins executable package-script owners.
+- Canonical fix: `tooling/generators/src/customer-dispatcher.ts` owns the exact
+  customer help registry; `tooling/generators/src/index.ts` selects the matching
+  root usage line; both boundaries normalize standalone package-manager
+  separators. Tests are in `customer-runtime.test.ts` and `index.test.ts`.
+- Focused result:
+  `npx --yes pnpm@10.12.1 exec vitest run tooling/generators/src/customer-runtime.test.ts tooling/generators/src/customer-closure.test.ts tooling/generators/src/index.test.ts tooling/generators/src/direct-run.test.ts --maxWorkers=1 --no-file-parallelism`
+  passes 81/81; `npx --yes pnpm@10.12.1 --dir tooling/generators typecheck`
+  exits zero. Real package invocations for `template:add-table -- --help` and
+  `template:add-workflow -- -h` both exit zero and print their exact usage.
+- Clean-customer evidence: pending the isolated public materialization run.
+- Status: upstream implementation fixed; final fixed status waits for untouched
+  fresh-customer proof and the coherent commit coordinate.
 
 No full acceptance command is yet claimed passing. Exact command outputs and
 commit coordinates will be added only after observation.

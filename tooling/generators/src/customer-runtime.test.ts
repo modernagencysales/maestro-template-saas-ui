@@ -9,7 +9,10 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { runCustomerGeneratorCli } from "./customer-dispatcher";
+import {
+  CUSTOMER_COMMANDS,
+  runCustomerGeneratorCli,
+} from "./customer-dispatcher";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../../..");
 
@@ -28,6 +31,20 @@ const seedCatalogs = (cwd: string): void => {
 };
 
 describe("customer generator runtime", () => {
+  it.each(CUSTOMER_COMMANDS)("publishes exact help for %s", (command) => {
+    for (const flag of ["--help", "-h"]) {
+      for (const argv of [
+        [command, flag],
+        [command, "--", flag],
+      ]) {
+        const result = runCustomerGeneratorCli(argv, repoRoot);
+        expect(result.exitCode).toBe(0);
+        expect(result.stderr).toBe("");
+        expect(result.stdout).toContain(`template:${command}`);
+      }
+    }
+  });
+
   it.each([
     ["add-capability", "customerReview"],
     ["add-workflow", "customerReviewFlow"],

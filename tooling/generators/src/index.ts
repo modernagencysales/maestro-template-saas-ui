@@ -3423,7 +3423,19 @@ export const runGeneratorCli = (
   readonly stderr: string;
 } => {
   try {
-    const args = parseArgs(argv);
+    const cliArgv = argv.filter((argument) => argument !== "--");
+    const args = parseArgs(cliArgv);
+    if (
+      args.command !== undefined &&
+      (cliArgv[1] === "--help" || cliArgv[1] === "-h")
+    ) {
+      const prefix = `template:${args.command}`;
+      const usage = runGeneratorCli(["help"], cwd)
+        .stdout.split("\n")
+        .find((line) => line === prefix || line.startsWith(`${prefix} `));
+      if (usage !== undefined)
+        return { exitCode: 0, stdout: `${usage}\n`, stderr: "" };
+    }
     const outputPath = resolve(cwd, args.path);
     const catalogRoot = existsSync(systemCatalogPath(cwd))
       ? cwd

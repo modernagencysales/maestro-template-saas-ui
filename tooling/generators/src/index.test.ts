@@ -911,6 +911,25 @@ describe("template app factory generators", () => {
     expect(result.stdout).toContain("template:add-agent-seat");
   });
 
+  it.each(["add-table", "add-workflow", "systems", "doctor"])(
+    "prints exact leaf help for %s",
+    (command) => {
+      for (const flag of ["--help", "-h"]) {
+        for (const argv of [
+          [command, flag],
+          [command, "--", flag],
+        ]) {
+          const result = runGeneratorCli(argv);
+          expect(result.exitCode).toBe(0);
+          expect(result.stderr).toBe("");
+          expect(result.stdout).toMatch(
+            new RegExp(`^template:${command}(?: |\\n)`),
+          );
+        }
+      }
+    },
+  );
+
   it("rejects planned blueprints with a useful error", () => {
     const result = runGeneratorCli([
       "quickstart",
@@ -1920,10 +1939,10 @@ describe("template app factory generators", () => {
       "tsx tooling/generators/src/workflow-output-smoke.ts",
     );
     expect(rootPackage.scripts?.["template:add-agent"]).toBe(
-      "tsx tooling/generators/src/index.ts add-agent",
+      "tsx tooling/generators/src/cli.ts add-agent",
     );
     expect(rootPackage.scripts?.["template:add-agent-seat"]).toBe(
-      "tsx tooling/generators/src/index.ts add-agent-seat",
+      "tsx tooling/generators/src/cli.ts add-agent-seat",
     );
     expect(existsSync(smokeScriptPath)).toBe(true);
     expect(smokeWorkflowName).toBe("generatedWorkflowSmoke");

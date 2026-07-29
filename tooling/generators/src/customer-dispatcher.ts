@@ -84,26 +84,70 @@ const customerCommands = [
   "smoke",
 ] as const;
 
-export const CUSTOMER_COMMANDS: readonly string[] = customerCommands;
+type CustomerCommand = (typeof customerCommands)[number];
+
+const customerCommandHelp = {
+  "add-feature":
+    "template:add-feature --name <name> --system <canonical-id> --disposition reuse|extend [--description <text>] [--write]",
+  "add-table":
+    "template:add-table --name <name> --system <canonical-id> --disposition extend --tenant-scope global|organization|workspace|user --sensitivity public|internal|confidential|restricted --pii <comma-list|none> --export-mode markdown|json|redacted-json|not-applicable --delete-mode delete|redact|retain-audit|not-applicable --retention <action> [--append-only] [--description <text>] [--write]",
+  "add-capability":
+    "template:add-capability --name <name> --system <canonical-id> --disposition reuse|extend [--description <text>] [--exposure web|workflow|headless] [--write]",
+  "add-workflow":
+    "template:add-workflow --name <name> --system <canonical-id> --disposition reuse|extend [--description <text>] [--write]",
+  "add-agent":
+    "template:add-agent --name <name> --system <canonical-id> --disposition reuse|extend [--description <text>] [--write]",
+  "add-agent-seat":
+    "template:add-agent-seat --name <name> --system <canonical-id> --disposition reuse|extend [--description <text>] [--write]",
+  "promote-capability":
+    "template:promote-capability --name <name> --system <canonical-id> --disposition reuse|extend [--description <text>] [--write]",
+  "promote-workflow":
+    "template:promote-workflow --name <name> --system <canonical-id> --disposition reuse|extend [--description <text>] [--write]",
+  "bump-capability":
+    "template:bump-capability --name <name> --from <N> --to <N+1> [--write]",
+  "bump-workflow":
+    "template:bump-workflow --name <name> --from <N> --to <N+1> [--write]",
+  "publish-capability":
+    "template:publish-capability --name <name> --version <N>",
+  "publish-workflow": "template:publish-workflow --name <name> --version <N>",
+  doctor: "template:doctor [--path <template-instance.json>]",
+  systems:
+    "template:systems [--query <exact-id-alias-responsibility-or-table>]",
+  smoke: "template:smoke",
+} as const satisfies Readonly<Record<CustomerCommand, string>>;
+
+export const CUSTOMER_COMMANDS: readonly CustomerCommand[] = customerCommands;
+
+const help = (command: CustomerCommand): CustomerCommandResult => ({
+  exitCode: 0,
+  stdout: `${customerCommandHelp[command]}\n`,
+  stderr: "",
+});
 
 export const runCustomerGeneratorCli = (
   argv: readonly string[],
   cwd = process.cwd(),
 ): CustomerCommandResult => {
   try {
-    const command = argv[0];
+    const cliArgv = argv.filter((argument) => argument !== "--");
+    const command = cliArgv[0];
     if (!command || command === "help")
       return json({ commands: customerCommands });
-    const name = valueAfter(argv, "--name");
-    const description = valueAfter(argv, "--description");
-    const write = argv.includes("--write");
+    if (
+      customerCommands.includes(command as CustomerCommand) &&
+      (cliArgv[1] === "--help" || cliArgv[1] === "-h")
+    )
+      return help(command as CustomerCommand);
+    const name = valueAfter(cliArgv, "--name");
+    const description = valueAfter(cliArgv, "--description");
+    const write = cliArgv.includes("--write");
     const finish = (value: { readonly files: readonly GeneratedFile[] }) => {
       if (write) writeFiles(value.files, cwd);
       return json(value);
     };
     if (command === "systems") {
       const catalog = readSystemCatalog(cwd);
-      const query = valueAfter(argv, "--query");
+      const query = valueAfter(cliArgv, "--query");
       return json(
         query
           ? findCanonicalSystems(catalog, normalizeSystemLookup(query))
@@ -113,7 +157,7 @@ export const runCustomerGeneratorCli = (
     if (command === "doctor") {
       const path = resolve(
         cwd,
-        valueAfter(argv, "--path") ?? "template-instance.json",
+        valueAfter(cliArgv, "--path") ?? "template-instance.json",
       );
       return json(
         doctorTemplateInstance(
@@ -140,8 +184,8 @@ export const runCustomerGeneratorCli = (
           cwd,
           kind: command.endsWith("workflow") ? "workflow" : "capability",
           name,
-          from: valueAfter(argv, "--from"),
-          to: valueAfter(argv, "--to"),
+          from: valueAfter(cliArgv, "--from"),
+          to: valueAfter(cliArgv, "--to"),
           write,
         }),
       );
@@ -152,18 +196,18 @@ export const runCustomerGeneratorCli = (
           cwd,
           kind: command.endsWith("workflow") ? "workflow" : "capability",
           name,
-          version: valueAfter(argv, "--version"),
+          version: valueAfter(cliArgv, "--version"),
         }),
       );
     }
-    const owner = ownership(argv);
+    const owner = ownership(cliArgv);
     const common = { name, ...owner, ...(description ? { description } : {}) };
     if (command === "add-feature") return finish(buildFeatureFiles(common));
     if (command === "add-capability")
       return finish(
         buildCapabilityFiles({
           ...common,
-          exposure: (valueAfter(argv, "--exposure") ?? "headless") as
+          exposure: (valueAfter(cliArgv, "--exposure") ?? "headless") as
             "web" | "workflow" | "headless",
         }),
       );
@@ -178,7 +222,7 @@ export const runCustomerGeneratorCli = (
       if (owner.disposition !== "extend")
         throw new Error("New durable tables must use --disposition extend");
       const required = (flag: string): string => {
-        const value = valueAfter(argv, flag);
+        const value = valueAfter(cliArgv, flag);
         if (!value) throw new Error(`Missing required ${flag} for add-table`);
         return value;
       };
@@ -210,7 +254,7 @@ export const runCustomerGeneratorCli = (
               | "retain-until-account-delete"
               | "retain-until-organization-delete"
               | "retain-configuration",
-            appendOnly: argv.includes("--append-only"),
+            appendOnly: cliArgv.includes("--append-only"),
           },
           {
             systems: readSystemCatalog(cwd),
