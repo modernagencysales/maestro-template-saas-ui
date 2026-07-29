@@ -2,7 +2,7 @@ import { makeFunctionReference } from "convex/server";
 import {
   readPromotionAuthorityMode,
   readPromotionAuthorityPrivateKeyPkcs8Base64Url,
-} from "../shared/env";
+} from "./env";
 import {
   canonical,
   type DeployAuthorityPayload,

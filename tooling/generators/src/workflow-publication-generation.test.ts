@@ -48,7 +48,11 @@ describe("bounded workflow publication regeneration", () => {
   it("reports published source and artifact drift instead of masking it", () => {
     const fixtureRoot = mkdtempSync(resolve(tmpdir(), "workflow-published-"));
     try {
-      const fixtures = ["source.ts", "artifact.ts"].map((path) => {
+      const fixtures = [
+        "source.ts",
+        "artifact.ts",
+        "packages/convex/convex/_generated/api.js",
+      ].map((path) => {
         const target = resolve(fixtureRoot, path);
         mkdirSync(dirname(target), { recursive: true });
         writeFileSync(target, `published ${path}\n`);
@@ -65,9 +69,14 @@ describe("bounded workflow publication regeneration", () => {
         resolve(fixtureRoot, "artifact.ts"),
         "masked artifact drift\n",
       );
+      writeFileSync(
+        resolve(fixtureRoot, "packages/convex/convex/_generated/api.js"),
+        "masked runtime projection drift\n",
+      );
       expect(findPublishedClosureDrift(fixtureRoot, fixtures)).toEqual([
         "source.ts",
         "artifact.ts",
+        "packages/convex/convex/_generated/api.js",
       ]);
     } finally {
       rmSync(fixtureRoot, { recursive: true, force: true });
@@ -100,6 +109,7 @@ describe("bounded workflow publication regeneration", () => {
   it("keeps mutable generated schema and HTTP projections outside the published closure", async () => {
     const paths = [
       "packages/convex/confect/_generated/schema.ts",
+      "packages/convex/convex/_generated/api.d.ts",
       "packages/convex/confect/http.ts",
     ] as const;
     const originals = new Map(

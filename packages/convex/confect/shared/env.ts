@@ -1,5 +1,4 @@
 import * as Schema from "effect/Schema";
-import { env as convexEnv } from "../../convex/_generated/server";
 
 export {
   loadTemplateRuntimeConfig,
@@ -55,18 +54,8 @@ export const readNodeEnvironment = (): "production" | "test" | undefined => {
   return value === "production" || value === "test" ? value : undefined;
 };
 
-const readConvexEnvString = (name: string): string | undefined => {
-  const value: unknown = Reflect.get(convexEnv, name);
-  return typeof value === "string" ? value : undefined;
-};
-
 export const readPromotionAuthorityPrivateKeyPkcs8Base64Url = () =>
-  readConvexEnvString("PROMOTION_AUTHORITY_PRIVATE_KEY_PKCS8_BASE64URL");
-
-export const readPromotionAuthorityMode = (): "authority" | undefined =>
-  readConvexEnvString("PROMOTION_AUTHORITY_MODE") === "authority"
-    ? "authority"
-    : undefined;
+  process.env.PROMOTION_AUTHORITY_PRIVATE_KEY_PKCS8_BASE64URL;
 
 export const readRequiredEnv = (name: string, env: EnvSource): string => {
   if (!(name in env)) {

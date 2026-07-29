@@ -29,6 +29,22 @@ rule/path pairs present in this capture therefore use `set.mode = "monitor"` in
 new path still fails the gate. The entries are a debt ledger, not an exemption
 for neighboring code.
 
+## Deployment-authority launch ledger
+
+The deployment-authority successor adds seven exact rule/path pairs that Qlty
+reports against the release candidate: boolean logic, file complexity, function
+complexity, return statements, and similar code in
+`packages/convex/confect/deployAuthority/admin.ts`; file complexity in
+`packages/convex/confect/deployAuthority/store.ts`; and boolean logic in
+`scripts/_project-config.mjs`. The focused deployment-authority tests and the
+combined 46-test candidate gate pass, so template maintainers own these pairs as
+explicit launch debt while authorization behavior is kept stable.
+
+Remove each pair as soon as a behavior-preserving extraction brings that rule
+below its configured threshold. Proof requires the focused deployment-authority
+tests, the configuration-drift tests for `_project-config.mjs`, and the commands
+in the removal contract below. New rules or neighboring paths remain blocking.
+
 ## Removal contract
 
 When a listed path is refactored:

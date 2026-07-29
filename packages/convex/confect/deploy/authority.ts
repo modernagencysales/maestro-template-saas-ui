@@ -8,7 +8,7 @@ import { v } from "convex/values";
 import {
   readPromotionAuthorityMode,
   readPromotionAuthorityPrivateKeyPkcs8Base64Url,
-} from "../shared/env";
+} from "../deployAuthority/env";
 import {
   authenticateDeployAuthorityOperator,
   exportAuthorityAudit,

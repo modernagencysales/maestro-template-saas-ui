@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { spawnSync } from "node:child_process";
 import {
   existsSync,
   mkdirSync,
@@ -135,8 +136,12 @@ describe("saas application blueprint", () => {
     ).toHaveLength(1);
   });
 
-  it("matches the sealed alpha.1 manifest to the canonical current target plan", () => {
+  it("matches the sealed alpha.1 manifest to its historical assets and current structure", () => {
     const plan = buildSaasApplicationTargetPlan();
+    const releaseRoot = join(
+      repoRoot,
+      "releases/v0.2.0-alpha.1/blueprints/saas-application",
+    );
     const manifest = JSON.parse(
       readFileSync(
         join(
@@ -150,7 +155,21 @@ describe("saas application blueprint", () => {
       readonly id: string;
       readonly provenance: string;
       readonly registrations: readonly string[];
-      readonly entries: readonly unknown[];
+      readonly projectionSource: {
+        readonly sourceCommit: string;
+        readonly assets: readonly {
+          readonly path: string;
+          readonly sha256: string;
+        }[];
+      };
+      readonly entries: readonly {
+        readonly path: string;
+        readonly ownership: "generated" | "customer-extension";
+        readonly action: "generate" | "copy";
+        readonly upgrade: "regenerate" | "preserve";
+        readonly sha256: string;
+        readonly replaces?: "copy" | "generate";
+      }[];
     };
 
     expect({
@@ -159,12 +178,11 @@ describe("saas application blueprint", () => {
       provenance: plan.provenance,
       registrations: plan.registrations,
       entries: plan.entries.map(
-        ({ path, ownership, action, upgrade, sha256, replaces }) => ({
+        ({ path, ownership, action, upgrade, replaces }) => ({
           path,
           ownership,
           action,
           upgrade,
-          sha256,
           ...(replaces === undefined ? {} : { replaces }),
         }),
       ),
@@ -173,8 +191,84 @@ describe("saas application blueprint", () => {
       id: manifest.id,
       provenance: manifest.provenance,
       registrations: manifest.registrations,
-      entries: manifest.entries,
+      entries: manifest.entries.map(
+        ({ path, ownership, action, upgrade, replaces }) => ({
+          path,
+          ownership,
+          action,
+          upgrade,
+          ...(replaces === undefined ? {} : { replaces }),
+        }),
+      ),
     });
+
+    const assets = new Map(
+      manifest.projectionSource.assets.map((asset) => [asset.path, asset]),
+    );
+    for (const asset of assets.values()) {
+      const bytes = readFileSync(join(releaseRoot, asset.path));
+      expect(`sha256:${createHash("sha256").update(bytes).digest("hex")}`).toBe(
+        asset.sha256,
+      );
+    }
+    const currentEntries = new Map(
+      plan.entries.map((entry) => [entry.path, entry]),
+    );
+    const sourceCommit = manifest.projectionSource.sourceCommit;
+    expect(sourceCommit).toMatch(/^[0-9a-f]{40}$/u);
+    const sourceAvailable = spawnSync(
+      "git",
+      ["-C", repoRoot, "cat-file", "-e", `${sourceCommit}^{commit}`],
+      { encoding: "utf8" },
+    );
+    for (const entry of manifest.entries) {
+      const asset = assets.get(`base/${entry.path}.txt`);
+      const currentEntry = currentEntries.get(entry.path);
+      expect(
+        currentEntry,
+        `missing current projection for ${entry.path}`,
+      ).toBeDefined();
+      const source =
+        sourceAvailable.status === 0
+          ? spawnSync(
+              "git",
+              ["-C", repoRoot, "show", `${sourceCommit}:${entry.path}`],
+              { encoding: null },
+            )
+          : undefined;
+      const sourceSha256 =
+        source?.status === 0 && Buffer.isBuffer(source.stdout)
+          ? `sha256:${createHash("sha256").update(source.stdout).digest("hex")}`
+          : undefined;
+      expect(
+        [asset?.sha256, sourceSha256, currentEntry?.sha256].filter(Boolean),
+      ).toContain(entry.sha256);
+    }
+
+    if (sourceAvailable.status === 0) {
+      expect(
+        spawnSync(
+          "git",
+          ["-C", repoRoot, "merge-base", "--is-ancestor", sourceCommit, "HEAD"],
+          { encoding: "utf8" },
+        ).status,
+      ).toBe(0);
+      const tag = "maestro-template-v0.2.0-alpha.1^{}";
+      const tagAvailable = spawnSync(
+        "git",
+        ["-C", repoRoot, "cat-file", "-e", tag],
+        { encoding: "utf8" },
+      );
+      if (tagAvailable.status === 0) {
+        expect(
+          spawnSync(
+            "git",
+            ["-C", repoRoot, "merge-base", "--is-ancestor", sourceCommit, tag],
+            { encoding: "utf8" },
+          ).status,
+        ).toBe(0);
+      }
+    }
   });
 
   it("materializes the current disclosure and customer support surface", () => {
