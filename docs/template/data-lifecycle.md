@@ -129,9 +129,12 @@ their census derives from Workflow Runtime evidence.
 
 - `deployAuthorityIssuers`: append-only global trust transitions. Authenticated
   operators activate, rotate, or retire issuers by adding a provenance-bound
-  transition; prior keys remain available to explain authority history.
+  transition; prior keys remain available to explain authority history. A new
+  transition is refused before the bounded history ceiling would be crossed.
 - `deployAuthorityAuditEvents`: append-only hashed operator provisioning and
-  issuer lifecycle evidence. It contains no raw operator token or signing key.
+  issuer lifecycle evidence. A total-order timestamp-and-event cursor preserves
+  equal-timestamp rows across export pages. It contains no raw operator token or
+  signing key.
 - `deployApprovals`: append-only signed approval evidence. `expiresAt` ends its
   authorization eligibility; it does not imply immediate physical deletion.
 - `deployCensusSnapshots`: append-only complete workflow-binding evidence.

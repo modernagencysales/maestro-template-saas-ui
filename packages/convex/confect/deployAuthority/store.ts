@@ -29,7 +29,15 @@ export type AuthorityContext = GenericMutationCtx<
 type StoreDependencies = {
   readonly nowMs: () => number;
   readonly authorityMode: "authority" | undefined;
+  readonly expectedIssuerPublicKeyHash: string;
+  readonly runtimeSigningKeyProofSignature: string;
 };
+
+export const runtimeSigningKeyProofPayload = {
+  schemaVersion: 1,
+  kind: "deploy-authority-runtime-signing-key-proof",
+  issuerId: DEPLOY_AUTHORITY_ISSUER_ID,
+} as const;
 
 export const consumeDeployAuthority = async (
   context: AuthorityContext,
@@ -126,7 +134,13 @@ export const consumeDeployAuthority = async (
     issuer.authorityOrigin === undefined ||
     issuer.authorityOrigin !== approval.authorityOrigin ||
     issuer.publicKeyHash !== approval.issuerPublicKeyHash ||
-    issuer.publicKeyHash !== (await sha256(issuer.publicKeySpki))
+    issuer.publicKeyHash !== dependencies.expectedIssuerPublicKeyHash ||
+    issuer.publicKeyHash !== (await sha256(issuer.publicKeySpki)) ||
+    !(await verifyIssuerSignature(
+      issuer.publicKeySpki,
+      canonical(runtimeSigningKeyProofPayload),
+      dependencies.runtimeSigningKeyProofSignature,
+    ))
   )
     return { kind: "denied" };
 

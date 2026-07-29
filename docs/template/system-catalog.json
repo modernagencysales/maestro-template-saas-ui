@@ -367,7 +367,7 @@
       "kind": "shared-primitive",
       "lifecycle": "active",
       "implementationStatus": "real",
-      "summary": "Owns authenticated environment-scoped release provisioning, signed deployment verdicts, workflow census, trusted issuer lifecycle, append-only audit, and approval-bound deployment-action consumption state.",
+      "summary": "Owns authenticated environment-scoped release provisioning, runtime-key-bound signed deployment verdicts, workflow census, bounded trusted issuer lifecycle, lossless append-only audit, and approval-bound deployment-action consumption state.",
       "responsibilities": [
         "verify trusted deployment issuer configuration",
         "verify release approvals against exact environment targets and commits",

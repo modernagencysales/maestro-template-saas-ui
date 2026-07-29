@@ -1,4 +1,5 @@
 import {
+  internalQueryGeneric,
   internalMutationGeneric,
   mutationGeneric,
   queryGeneric,
@@ -17,10 +18,17 @@ import {
   provisionVerdict as provisionVerdictRecord,
   readAuthorityReadiness,
   readAuthorityStatus,
+  readRuntimeSigningIssuer,
   retireIssuer as retireIssuerRecord,
   rotateIssuer as rotateIssuerRecord,
 } from "../deployAuthority/admin";
-import { consumeDeployAuthority } from "../deployAuthority/store";
+import { createRuntimeSigningKeyProofSignature } from "../deployAuthority/http";
+import {
+  canonical,
+  consumeDeployAuthority,
+  runtimeSigningKeyProofPayload,
+  verifyIssuerSignature,
+} from "../deployAuthority/store";
 
 const environment = v.union(v.literal("staging"), v.literal("production"));
 const adminCode = v.union(
@@ -234,22 +242,34 @@ export const readiness = queryGeneric({
   ),
   handler: async (context) => {
     const authenticated = await authenticate(context);
-    return authenticated.kind === "blocked"
-      ? authenticated
-      : {
-          kind: "ok" as const,
-          readiness: await readAuthorityReadiness(
-            context,
-            authenticated.operator,
-            Date.now(),
-            {
-              authorityMode: readPromotionAuthorityMode(),
-              signingKeyConfigured: Boolean(
-                readPromotionAuthorityPrivateKeyPkcs8Base64Url(),
-              ),
-            },
-          ),
-        };
+    if (authenticated.kind === "blocked") return authenticated;
+    const now = Date.now();
+    const issuer = await readRuntimeSigningIssuer(context, now);
+    const proofSignature = await createRuntimeSigningKeyProofSignature(
+      readPromotionAuthorityPrivateKeyPkcs8Base64Url(),
+    );
+    const signingKeyValid = Boolean(
+      issuer &&
+      proofSignature &&
+      issuer.authorityOrigin === authenticated.operator.authorityOrigin &&
+      (await verifyIssuerSignature(
+        issuer.publicKeySpki,
+        canonical(runtimeSigningKeyProofPayload),
+        proofSignature,
+      )),
+    );
+    return {
+      kind: "ok" as const,
+      readiness: await readAuthorityReadiness(
+        context,
+        authenticated.operator,
+        now,
+        {
+          authorityMode: readPromotionAuthorityMode(),
+          signingKeyValid,
+        },
+      ),
+    };
   },
 });
 
@@ -280,14 +300,20 @@ const auditEvent = v.object({
 export const auditExport = queryGeneric({
   args: {
     limit: v.number(),
-    beforeOccurredAt: v.union(v.number(), v.null()),
+    cursor: v.union(
+      v.object({ occurredAt: v.number(), eventId: v.string() }),
+      v.null(),
+    ),
   },
   returns: v.union(
     v.object({
       kind: v.literal("ok"),
       audit: v.object({
         events: v.array(auditEvent),
-        nextBeforeOccurredAt: v.union(v.number(), v.null()),
+        nextCursor: v.union(
+          v.object({ occurredAt: v.number(), eventId: v.string() }),
+          v.null(),
+        ),
         requestedByActorHash: v.string(),
       }),
     }),
@@ -308,6 +334,21 @@ export const auditExport = queryGeneric({
   },
 });
 
+const runtimeSigningIssuerValue = v.object({
+  publicKeyHash: v.string(),
+  publicKeySpki: v.string(),
+  authorityOrigin: v.string(),
+});
+
+export const runtimeSigningIssuer = internalQueryGeneric({
+  args: {},
+  returns: v.union(runtimeSigningIssuerValue, v.null()),
+  handler: (context) =>
+    readPromotionAuthorityMode() === "authority"
+      ? readRuntimeSigningIssuer(context, Date.now())
+      : null,
+});
+
 export const consume = internalMutationGeneric({
   args: {
     environment: v.union(v.literal("staging"), v.literal("production")),
@@ -318,11 +359,24 @@ export const consume = internalMutationGeneric({
       v.literal("convex"),
       v.literal("cloudflare"),
     ),
+    expectedIssuerPublicKeyHash: v.string(),
+    runtimeSigningKeyProofSignature: v.string(),
   },
   returns: v.any(),
   handler: async (context, scope) =>
-    consumeDeployAuthority(context, scope, {
-      nowMs: Date.now,
-      authorityMode: readPromotionAuthorityMode(),
-    }),
+    consumeDeployAuthority(
+      context,
+      {
+        environment: scope.environment,
+        targetId: scope.targetId,
+        commitSha: scope.commitSha,
+        action: scope.action,
+      },
+      {
+        nowMs: Date.now,
+        authorityMode: readPromotionAuthorityMode(),
+        expectedIssuerPublicKeyHash: scope.expectedIssuerPublicKeyHash,
+        runtimeSigningKeyProofSignature: scope.runtimeSigningKeyProofSignature,
+      },
+    ),
 });

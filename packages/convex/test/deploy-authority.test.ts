@@ -4,6 +4,8 @@ import {
   sign as cryptoSign,
   verify as cryptoVerify,
 } from "node:crypto";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { makeFunctionReference } from "convex/server";
 import { convexTest } from "convex-test";
 import { afterEach, describe, expect, it } from "vitest";
@@ -12,6 +14,7 @@ import { handleDeployAuthorityHttpRequest } from "../confect/deployAuthority/htt
 import {
   canonical,
   consumeDeployAuthority,
+  runtimeSigningKeyProofPayload,
   sha256,
   type AuthorityContext,
   type DeployAuthorityScope,
@@ -23,6 +26,8 @@ const authorityOrigin = "https://api.workos.com";
 const actorHash = "sha256:" + "8".repeat(64);
 const provenanceHash = "sha256:" + "7".repeat(64);
 const initialPromotionAuthorityMode = process.env.PROMOTION_AUTHORITY_MODE;
+const initialPromotionAuthorityPrivateKey =
+  process.env.PROMOTION_AUTHORITY_PRIVATE_KEY_PKCS8_BASE64URL;
 const scope: DeployAuthorityScope = {
   environment: "production",
   targetId: "customer-app",
@@ -91,6 +96,13 @@ const privateSigningMaterial = (
     ["private" + "KeyPkcs8Base64Url"]: value,
     authorityMode: "authority",
   }) as Parameters<typeof handleDeployAuthorityHttpRequest>[2];
+
+const storeDependencies = (signing: ReturnType<typeof keys>, clock = now) => ({
+  nowMs: () => clock,
+  authorityMode: "authority" as const,
+  expectedIssuerPublicKeyHash: signing.publicKeyHash,
+  runtimeSigningKeyProofSignature: signing.sign(runtimeSigningKeyProofPayload),
+});
 
 const makeProvisioningInputs = async (
   signing: ReturnType<typeof keys>,
@@ -352,6 +364,175 @@ describe("repo-owned durable deploy authority", () => {
     } else {
       process.env.PROMOTION_AUTHORITY_MODE = initialPromotionAuthorityMode;
     }
+    if (initialPromotionAuthorityPrivateKey === undefined) {
+      delete process.env.PROMOTION_AUTHORITY_PRIVATE_KEY_PKCS8_BASE64URL;
+    } else {
+      process.env.PROMOTION_AUTHORITY_PRIVATE_KEY_PKCS8_BASE64URL =
+        initialPromotionAuthorityPrivateKey;
+    }
+  });
+
+  it("validates and binds the runtime signing key before one-time consumption", async () => {
+    const t = convexTest(convexSchema, modules);
+    const activeSigning = keys();
+    const unrelatedSigning = keys();
+    await t.run((context) => seedAuthority(context, activeSigning));
+
+    let malformedMutationCalls = 0;
+    const malformed = await handleDeployAuthorityHttpRequest(
+      {
+        runQuery: () => {
+          throw new Error("malformed key must fail before query");
+        },
+        runMutation: () => {
+          malformedMutationCalls += 1;
+          throw new Error("malformed key must fail before mutation");
+        },
+      },
+      new Request("https://example.invalid/deploy-authority/consume", {
+        method: "POST",
+        body: JSON.stringify(scope),
+      }),
+      privateSigningMaterial("malformed"),
+    );
+    expect(malformed.status).toBe(503);
+    expect(malformedMutationCalls).toBe(0);
+
+    const unrelated = await handleDeployAuthorityHttpRequest(
+      {
+        runQuery: async () => ({
+          publicKeyHash: activeSigning.publicKeyHash,
+          publicKeySpki: activeSigning.publicKeySpki,
+          authorityOrigin,
+        }),
+        runMutation: () => {
+          throw new Error("unrelated key must fail before mutation");
+        },
+      },
+      new Request("https://example.invalid/deploy-authority/consume", {
+        method: "POST",
+        body: JSON.stringify(scope),
+      }),
+      privateSigningMaterial(unrelatedSigning.privateKeyPkcs8),
+    );
+    expect(unrelated.status).not.toBe(200);
+    await expect(
+      t.run((context) =>
+        context.db.query("deployActionConsumptions").collect(),
+      ),
+    ).resolves.toHaveLength(0);
+
+    process.env.PROMOTION_AUTHORITY_MODE = "authority";
+    process.env.PROMOTION_AUTHORITY_PRIVATE_KEY_PKCS8_BASE64URL =
+      unrelatedSigning.privateKeyPkcs8;
+    await expect(
+      t.withIdentity(operatorIdentity).query(readinessRef, {}),
+    ).resolves.toMatchObject({
+      kind: "ok",
+      readiness: { ready: false, signingKeyConfigured: false },
+    });
+  });
+
+  it("exports every audit event when a page boundary shares one timestamp", async () => {
+    const t = convexTest(convexSchema, modules);
+    await t.run(async (context) => {
+      for (const suffix of ["a", "b", "c"]) {
+        await context.db.insert("deployAuthorityAuditEvents", {
+          eventId: `sha256:${suffix.repeat(64)}`,
+          operation: "issuer-provisioned",
+          actorHash,
+          authorityOrigin,
+          subjectKind: "issuer",
+          subjectId: `issuer-${suffix}`,
+          subjectFingerprint: `sha256:${suffix.repeat(64)}`,
+          provenanceHash,
+          occurredAt: now,
+        });
+      }
+    });
+    const actor = t.withIdentity(operatorIdentity);
+    const first = await actor.query(auditExportRef, {
+      limit: 2,
+      cursor: null,
+    });
+    if (first.kind !== "ok") throw new Error("first audit page blocked");
+    const second = await actor.query(auditExportRef, {
+      limit: 2,
+      cursor: first.audit.nextCursor,
+    });
+    if (second.kind !== "ok") throw new Error("second audit page blocked");
+    expect(
+      [...first.audit.events, ...second.audit.events].map(
+        (event) => event.eventId,
+      ),
+    ).toHaveLength(3);
+  });
+
+  it("rejects the issuer transition that would cross the bounded ceiling", async () => {
+    process.env.PROMOTION_AUTHORITY_MODE = "authority";
+    const t = convexTest(convexSchema, modules);
+    const active = keys();
+    await t.run(async (context) => {
+      for (let index = 0; index < 100; index += 1) {
+        await context.db.insert("deployAuthorityIssuers", {
+          issuerId: "maestro-promotion-authority-v1",
+          publicKeyHash:
+            index === 99
+              ? active.publicKeyHash
+              : `sha256:${index.toString(16).padStart(64, "0")}`,
+          publicKeySpki:
+            index === 99 ? active.publicKeySpki : `legacy-${index}`,
+          enabled: index === 99,
+          transition: index === 0 ? "activate" : "rotate",
+          previousPublicKeyHash: null,
+          authorityOrigin,
+          activatedAt: now - 100 + index,
+          retiredAt: null,
+          provisionedAt: now - 100 + index,
+          provisionedByHash: actorHash,
+          provenanceHash,
+        });
+      }
+    });
+    const next = keys();
+    await expect(
+      t.withIdentity(operatorIdentity).mutation(rotateIssuerRef, {
+        issuerId: "maestro-promotion-authority-v1",
+        publicKeyHash: next.publicKeyHash,
+        publicKeySpki: next.publicKeySpki,
+        sourceReceiptHash: "sha256:" + "9".repeat(64),
+      }),
+    ).resolves.toEqual({ kind: "blocked", code: "issuer-unavailable" });
+    await expect(
+      t.run((context) => context.db.query("deployAuthorityIssuers").collect()),
+    ).resolves.toHaveLength(100);
+  });
+
+  it("keeps typed authority env and the approved decision aligned with reality", () => {
+    const root = resolve(import.meta.dirname, "../../..");
+    const config = readFileSync(
+      resolve(root, "packages/convex/convex/convex.config.ts"),
+      "utf8",
+    );
+    const sharedEnv = readFileSync(
+      resolve(root, "packages/convex/confect/shared/env.ts"),
+      "utf8",
+    );
+    const decision = readFileSync(
+      resolve(root, "docs/template/system-decisions/deployment-authority.md"),
+      "utf8",
+    );
+    for (const name of [
+      "PROMOTION_AUTHORITY_MODE",
+      "PROMOTION_AUTHORITY_PRIVATE_KEY_PKCS8_BASE64URL",
+    ]) {
+      expect(config).toContain(name);
+      expect(sharedEnv).not.toContain(`process.env.${name}`);
+    }
+    expect(decision).toContain("six tables");
+    expect(decision).toContain("provisioning authorities are");
+    expect(decision).toContain("implemented behind explicit authority mode");
+    expect(decision).toContain("Status: real");
   });
 
   it("rejects unauthenticated and non-operator provisioning without writes", async () => {
@@ -469,7 +650,7 @@ describe("repo-owned durable deploy authority", () => {
     });
     const audit = await actor.query(auditExportRef, {
       limit: 10,
-      beforeOccurredAt: null,
+      cursor: null,
     });
     expect(audit).toMatchObject({
       kind: "ok",
@@ -521,10 +702,11 @@ describe("repo-owned durable deploy authority", () => {
 
     await expect(
       t.run((context) =>
-        consumeDeployAuthority(context, scope, {
-          nowMs: Date.now,
-          authorityMode: "authority",
-        }),
+        consumeDeployAuthority(
+          context,
+          scope,
+          storeDependencies(signing, Date.now()),
+        ),
       ),
     ).resolves.toMatchObject({
       kind: "authorized",
@@ -535,7 +717,7 @@ describe("repo-owned durable deploy authority", () => {
     });
     const audit = await actor.query(auditExportRef, {
       limit: 10,
-      beforeOccurredAt: null,
+      cursor: null,
     });
     expect(audit).toMatchObject({
       kind: "ok",
@@ -596,7 +778,7 @@ describe("repo-owned durable deploy authority", () => {
     await expect(
       t.run((context) =>
         consumeDeployAuthority(context, scope, {
-          nowMs: () => now,
+          ...storeDependencies(signing),
           authorityMode: undefined,
         }),
       ),
@@ -604,6 +786,9 @@ describe("repo-owned durable deploy authority", () => {
 
     const response = await handleDeployAuthorityHttpRequest(
       {
+        runQuery: () => {
+          throw new Error("mode guard must run before query");
+        },
         runMutation: () => {
           throw new Error("mode guard must run before mutation");
         },
@@ -626,10 +811,7 @@ describe("repo-owned durable deploy authority", () => {
     const first = await t.run((context) => seedAuthority(context, signing));
     await expect(
       t.run((context) =>
-        consumeDeployAuthority(context, scope, {
-          nowMs: () => now,
-          authorityMode: "authority",
-        }),
+        consumeDeployAuthority(context, scope, storeDependencies(signing)),
       ),
     ).resolves.toMatchObject({ kind: "authorized" });
 
@@ -643,10 +825,11 @@ describe("repo-owned durable deploy authority", () => {
     );
     await expect(
       t.run((context) =>
-        consumeDeployAuthority(context, scope, {
-          nowMs: () => later,
-          authorityMode: "authority",
-        }),
+        consumeDeployAuthority(
+          context,
+          scope,
+          storeDependencies(signing, later),
+        ),
       ),
     ).resolves.toMatchObject({
       kind: "authorized",
@@ -677,10 +860,11 @@ describe("repo-owned durable deploy authority", () => {
     });
     await expect(
       duplicateTest.run((context) =>
-        consumeDeployAuthority(context, scope, {
-          nowMs: () => now,
-          authorityMode: "authority",
-        }),
+        consumeDeployAuthority(
+          context,
+          scope,
+          storeDependencies(duplicateSigning),
+        ),
       ),
     ).resolves.toEqual({ kind: "denied" });
 
@@ -698,10 +882,11 @@ describe("repo-owned durable deploy authority", () => {
     });
     await expect(
       originTest.run((context) =>
-        consumeDeployAuthority(context, scope, {
-          nowMs: () => now,
-          authorityMode: "authority",
-        }),
+        consumeDeployAuthority(
+          context,
+          scope,
+          storeDependencies(originSigning),
+        ),
       ),
     ).resolves.toEqual({ kind: "denied" });
   });
@@ -713,10 +898,7 @@ describe("repo-owned durable deploy authority", () => {
     const results = await Promise.all(
       Array.from({ length: 8 }, () =>
         t.run((context) =>
-          consumeDeployAuthority(context, scope, {
-            nowMs: () => now,
-            authorityMode: "authority",
-          }),
+          consumeDeployAuthority(context, scope, storeDependencies(signing)),
         ),
       ),
     );
@@ -730,10 +912,7 @@ describe("repo-owned durable deploy authority", () => {
     await t.run((context) => seedAuthority(context, signing, "forged"));
     await expect(
       t.run((context) =>
-        consumeDeployAuthority(context, scope, {
-          nowMs: () => now,
-          authorityMode: "authority",
-        }),
+        consumeDeployAuthority(context, scope, storeDependencies(signing)),
       ),
     ).resolves.toEqual({ kind: "denied" });
   });
@@ -742,15 +921,34 @@ describe("repo-owned durable deploy authority", () => {
     const t = convexTest(convexSchema, modules);
     const signing = keys();
     await t.run((context) => seedAuthority(context, signing));
+    let mutationError: unknown;
     const response = await handleDeployAuthorityHttpRequest(
       {
-        runMutation: (_reference, requestedScope) =>
-          t.run((context) =>
-            consumeDeployAuthority(context, requestedScope, {
-              nowMs: () => now,
-              authorityMode: "authority",
-            }),
-          ),
+        runQuery: async () => ({
+          publicKeyHash: signing.publicKeyHash,
+          publicKeySpki: signing.publicKeySpki,
+          authorityOrigin,
+        }),
+        runMutation: async (_reference, requestedScope) => {
+          const {
+            expectedIssuerPublicKeyHash,
+            runtimeSigningKeyProofSignature,
+            ...publicScope
+          } = requestedScope;
+          try {
+            return await t.run((context) =>
+              consumeDeployAuthority(context, publicScope, {
+                nowMs: () => now,
+                authorityMode: "authority",
+                expectedIssuerPublicKeyHash,
+                runtimeSigningKeyProofSignature,
+              }),
+            );
+          } catch (error) {
+            mutationError = error;
+            throw error;
+          }
+        },
       },
       new Request("https://example.invalid/deploy-authority/consume", {
         method: "POST",
@@ -758,6 +956,7 @@ describe("repo-owned durable deploy authority", () => {
       }),
       privateSigningMaterial(signing.privateKeyPkcs8),
     );
+    expect(mutationError).toBeUndefined();
     expect(response.status).toBe(200);
     const body = (await response.json()) as {
       authorization: Record<string, unknown> & { signature: string };

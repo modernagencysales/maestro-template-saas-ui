@@ -10,6 +10,7 @@ import {
   provisionVerdict,
   readiness,
   revokeIssuer,
+  runtimeSigningIssuer,
   rotateIssuer,
   status,
 } from "./authority";
@@ -69,6 +70,12 @@ const auditExportImpl = FunctionImpl.make(
   "auditExport",
   auditExport,
 );
+const runtimeSigningIssuerImpl = FunctionImpl.make(
+  databaseSchema,
+  authority,
+  "runtimeSigningIssuer",
+  runtimeSigningIssuer,
+);
 const consumeImpl = FunctionImpl.make(
   databaseSchema,
   authority,
@@ -86,6 +93,7 @@ export default GroupImpl.make(databaseSchema, authority).pipe(
   Layer.provide(statusImpl),
   Layer.provide(readinessImpl),
   Layer.provide(auditExportImpl),
+  Layer.provide(runtimeSigningIssuerImpl),
   Layer.provide(consumeImpl),
   GroupImpl.finalize,
 );

@@ -9,4 +9,5 @@ export const provisionVerdict = registeredFunctions.provisionVerdict;
 export const readiness = registeredFunctions.readiness;
 export const revokeIssuer = registeredFunctions.revokeIssuer;
 export const rotateIssuer = registeredFunctions.rotateIssuer;
+export const runtimeSigningIssuer = registeredFunctions.runtimeSigningIssuer;
 export const status = registeredFunctions.status;

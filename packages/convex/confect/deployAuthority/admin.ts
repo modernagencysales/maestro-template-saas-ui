@@ -195,7 +195,7 @@ export const rotateIssuer = async (
   }
   const rows = await issuerRows(context, input.issuerId);
   const active = activeIssuerRows(rows, now);
-  if (rows.length > MAX_ISSUER_ROWS || active.length !== 1) {
+  if (rows.length >= MAX_ISSUER_ROWS || active.length !== 1) {
     return blocked("issuer-unavailable");
   }
   const previous = active[0];
@@ -258,7 +258,7 @@ export const retireIssuer = async (
   }
   const rows = await issuerRows(context, input.issuerId);
   const active = activeIssuerRows(rows, now);
-  if (rows.length > MAX_ISSUER_ROWS || active.length !== 1) {
+  if (rows.length >= MAX_ISSUER_ROWS || active.length !== 1) {
     return blocked("issuer-unavailable");
   }
   const issuer = active[0];
@@ -598,13 +598,13 @@ export const readAuthorityReadiness = async (
   now: number,
   runtime: {
     readonly authorityMode: "authority" | undefined;
-    readonly signingKeyConfigured: boolean;
+    readonly signingKeyValid: boolean;
   },
 ) => {
   const status = await readAuthorityStatus(context, operator, now);
   const ready =
     runtime.authorityMode === "authority" &&
-    runtime.signingKeyConfigured &&
+    runtime.signingKeyValid &&
     status.bounded &&
     status.activeIssuerCount === 1 &&
     status.malformedIssuerCount === 0 &&
@@ -612,7 +612,7 @@ export const readAuthorityReadiness = async (
   return {
     ready,
     authorityModeConfigured: runtime.authorityMode === "authority",
-    signingKeyConfigured: runtime.signingKeyConfigured,
+    signingKeyConfigured: runtime.signingKeyValid,
     activeIssuerCount: status.activeIssuerCount,
     issuerSetValid:
       status.bounded &&
@@ -625,22 +625,33 @@ export const readAuthorityReadiness = async (
 export const exportAuthorityAudit = async (
   context: AuthorityReadContext,
   operator: DeployAuthorityOperator,
-  input: { readonly limit: number; readonly beforeOccurredAt: number | null },
+  input: {
+    readonly limit: number;
+    readonly cursor: {
+      readonly occurredAt: number;
+      readonly eventId: string;
+    } | null;
+  },
 ) => {
   const limit =
     Number.isSafeInteger(input.limit) && input.limit >= 1 && input.limit <= 100
       ? input.limit
       : 50;
-  const query = context.db
-    .query("deployAuthorityAuditEvents")
-    .withIndex("by_occurred_at", (range) =>
-      input.beforeOccurredAt === null
-        ? range
-        : range.lt("occurredAt", input.beforeOccurredAt),
-    )
-    .order("desc");
-  const rows = await query.take(limit + 1);
+  const cursor =
+    input.cursor !== null &&
+    validTime(input.cursor.occurredAt) &&
+    shaPattern.test(input.cursor.eventId)
+      ? input.cursor
+      : null;
+  const rows = cursor
+    ? await readAuditRowsAfterCursor(context, cursor, limit + 1)
+    : await context.db
+        .query("deployAuthorityAuditEvents")
+        .withIndex("by_occurred_at_and_event_id")
+        .order("desc")
+        .take(limit + 1);
   const page = rows.slice(0, limit);
+  const last = page.at(-1);
   return {
     events: page.map((row) => ({
       eventId: row.eventId,
@@ -653,10 +664,62 @@ export const exportAuthorityAudit = async (
       provenanceHash: row.provenanceHash,
       occurredAt: row.occurredAt,
     })),
-    nextBeforeOccurredAt:
-      rows.length > limit ? (page.at(-1)?.occurredAt ?? null) : null,
+    nextCursor:
+      rows.length > limit && last
+        ? { occurredAt: last.occurredAt, eventId: last.eventId }
+        : null,
     requestedByActorHash: operator.actorHash,
   } as const;
+};
+
+export const readRuntimeSigningIssuer = async (
+  context: AuthorityReadContext,
+  now: number,
+) => {
+  const rows = await context.db
+    .query("deployAuthorityIssuers")
+    .withIndex("by_issuer", (query) =>
+      query.eq("issuerId", DEPLOY_AUTHORITY_ISSUER_ID),
+    )
+    .take(MAX_ISSUER_ROWS + 1);
+  if (rows.length > MAX_ISSUER_ROWS) return null;
+  const active = activeIssuerRows(rows, now);
+  if (active.length !== 1) return null;
+  const issuer = active[0];
+  if (
+    issuer === undefined ||
+    typeof issuer.authorityOrigin !== "string" ||
+    issuer.publicKeyHash !== (await sha256(issuer.publicKeySpki))
+  )
+    return null;
+  return {
+    publicKeyHash: issuer.publicKeyHash,
+    publicKeySpki: issuer.publicKeySpki,
+    authorityOrigin: issuer.authorityOrigin,
+  } as const;
+};
+
+const readAuditRowsAfterCursor = async (
+  context: AuthorityReadContext,
+  cursor: { readonly occurredAt: number; readonly eventId: string },
+  count: number,
+) => {
+  const sameTimestamp = await context.db
+    .query("deployAuthorityAuditEvents")
+    .withIndex("by_occurred_at_and_event_id", (range) =>
+      range.eq("occurredAt", cursor.occurredAt).lt("eventId", cursor.eventId),
+    )
+    .order("desc")
+    .take(count);
+  if (sameTimestamp.length >= count) return sameTimestamp;
+  const older = await context.db
+    .query("deployAuthorityAuditEvents")
+    .withIndex("by_occurred_at_and_event_id", (range) =>
+      range.lt("occurredAt", cursor.occurredAt),
+    )
+    .order("desc")
+    .take(count - sameTimestamp.length);
+  return [...sameTimestamp, ...older];
 };
 
 export const approvalPayload = (

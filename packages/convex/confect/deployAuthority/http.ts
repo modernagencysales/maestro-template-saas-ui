@@ -7,17 +7,29 @@ import {
   canonical,
   type DeployAuthorityPayload,
   type DeployAuthorityScope,
+  runtimeSigningKeyProofPayload,
+  verifyIssuerSignature,
 } from "./store";
 
 const consumeRef = makeFunctionReference<"mutation">(
   "deploy/authority:consume",
 );
+const runtimeSigningIssuerRef = makeFunctionReference<"query">(
+  "deploy/authority:runtimeSigningIssuer",
+);
 
 export const handleDeployAuthorityHttpRequest = async (
   context: {
+    readonly runQuery: (
+      reference: unknown,
+      input: Record<string, never>,
+    ) => Promise<unknown>;
     readonly runMutation: (
       reference: unknown,
-      scope: DeployAuthorityScope,
+      input: DeployAuthorityScope & {
+        readonly expectedIssuerPublicKeyHash: string;
+        readonly runtimeSigningKeyProofSignature: string;
+      },
     ) => Promise<unknown>;
   },
   request: Request,
@@ -36,18 +48,36 @@ export const handleDeployAuthorityHttpRequest = async (
     !dependencies.privateKeyPkcs8Base64Url
   )
     return json({ kind: "blocked" }, 503);
+  let prepared: Awaited<ReturnType<typeof prepareSigningKey>>;
+  let issuer: unknown;
+  try {
+    prepared = await prepareSigningKey(dependencies.privateKeyPkcs8Base64Url);
+    issuer = await context.runQuery(runtimeSigningIssuerRef, {});
+  } catch {
+    return json({ kind: "blocked" }, 503);
+  }
+  if (
+    !isRuntimeSigningIssuer(issuer) ||
+    !(await verifyIssuerSignature(
+      issuer.publicKeySpki,
+      canonical(runtimeSigningKeyProofPayload),
+      prepared.proofSignature,
+    ))
+  )
+    return json({ kind: "blocked" }, 503);
   let result: unknown;
   try {
-    result = await context.runMutation(consumeRef, scope);
+    result = await context.runMutation(consumeRef, {
+      ...scope,
+      expectedIssuerPublicKeyHash: issuer.publicKeyHash,
+      runtimeSigningKeyProofSignature: prepared.proofSignature,
+    });
   } catch {
     return json({ kind: "blocked" }, 503);
   }
   if (!isAuthorized(result)) return json({ kind: "blocked" }, 403);
   try {
-    const signature = await signPayload(
-      result.payload,
-      dependencies.privateKeyPkcs8Base64Url,
-    );
+    const signature = await signPayload(result.payload, prepared.key);
     return json({
       kind: "ok",
       authorization: { ...result.payload, signature },
@@ -88,10 +118,9 @@ const parseScope = async (
   };
 };
 
-const signPayload = async (
-  payload: DeployAuthorityPayload,
+const prepareSigningKey = async (
   privateKeyPkcs8Base64Url: string,
-): Promise<string> => {
+): Promise<{ readonly key: CryptoKey; readonly proofSignature: string }> => {
   const key = await crypto.subtle.importKey(
     "pkcs8",
     decodeBase64Url(privateKeyPkcs8Base64Url),
@@ -99,6 +128,25 @@ const signPayload = async (
     false,
     ["sign"],
   );
+  const proofSignature = await signPayload(runtimeSigningKeyProofPayload, key);
+  return { key, proofSignature };
+};
+
+export const createRuntimeSigningKeyProofSignature = async (
+  privateKeyPkcs8Base64Url: string | undefined,
+): Promise<string | undefined> => {
+  if (!privateKeyPkcs8Base64Url) return undefined;
+  try {
+    return (await prepareSigningKey(privateKeyPkcs8Base64Url)).proofSignature;
+  } catch {
+    return undefined;
+  }
+};
+
+const signPayload = async (
+  payload: DeployAuthorityPayload | typeof runtimeSigningKeyProofPayload,
+  key: CryptoKey,
+): Promise<string> => {
   const signature = await crypto.subtle.sign(
     "Ed25519",
     key,
@@ -113,6 +161,15 @@ const isAuthorized = (
   readonly kind: "authorized";
   readonly payload: DeployAuthorityPayload;
 } => isRecord(value) && value.kind === "authorized" && isRecord(value.payload);
+const isRuntimeSigningIssuer = (
+  value: unknown,
+): value is {
+  readonly publicKeyHash: string;
+  readonly publicKeySpki: string;
+} =>
+  isRecord(value) &&
+  typeof value.publicKeyHash === "string" &&
+  typeof value.publicKeySpki === "string";
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 const decodeBase64Url = (value: string): ArrayBuffer => {

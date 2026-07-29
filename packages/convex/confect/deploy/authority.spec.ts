@@ -8,6 +8,7 @@ import type {
   provisionVerdict,
   readiness,
   revokeIssuer,
+  runtimeSigningIssuer,
   rotateIssuer,
   status,
 } from "./authority";
@@ -43,6 +44,11 @@ export default GroupSpec.make()
   .addFunction(FunctionSpec.convexPublicQuery<typeof readiness>()("readiness"))
   .addFunction(
     FunctionSpec.convexPublicQuery<typeof auditExport>()("auditExport"),
+  )
+  .addFunction(
+    FunctionSpec.convexInternalQuery<typeof runtimeSigningIssuer>()(
+      "runtimeSigningIssuer",
+    ),
   )
   .addFunction(
     FunctionSpec.convexInternalMutation<typeof consume>()("consume"),
