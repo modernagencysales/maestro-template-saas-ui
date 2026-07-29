@@ -20,6 +20,7 @@ import {
   type GeneratedFile,
   type SystemGeneratorDisposition,
 } from "./customer-runtime";
+import { executePrivatePackagePlan } from "./private-package";
 import { bumpRelease, publishRelease } from "./workflow-release-commands";
 
 export type CustomerCommandResult = {
@@ -79,6 +80,8 @@ const customerCommands = [
   "bump-workflow",
   "publish-capability",
   "publish-workflow",
+  "private-package:dry-run",
+  "private-package:import",
   "doctor",
   "systems",
   "smoke",
@@ -110,6 +113,10 @@ const customerCommandHelp = {
   "publish-capability":
     "template:publish-capability --name <name> --version <N>",
   "publish-workflow": "template:publish-workflow --name <name> --version <N>",
+  "private-package:dry-run":
+    "template:private-package:dry-run --fixture <path> --system <canonical-id> --disposition reuse|extend",
+  "private-package:import":
+    "template:private-package:import --fixture <path> --system <canonical-id> --disposition reuse|extend --write --preflight-fingerprint <private_package_sha256:...>",
   doctor:
     "template:doctor [--mode fake|test|live] [--path <template-instance.json>]",
   systems:
@@ -186,6 +193,31 @@ export const runCustomerGeneratorCli = (
         dataResources: readDataResourceCatalog(cwd).resources.length,
         topology: readProductTopology(cwd).resources.length,
       });
+    }
+    if (
+      command === "private-package:dry-run" ||
+      command === "private-package:import"
+    ) {
+      const fixture = valueAfter(cliArgv, "--fixture");
+      if (!fixture)
+        throw new Error(`Missing required --fixture for ${command}`);
+      const preflightFingerprint = valueAfter(
+        cliArgv,
+        "--preflight-fingerprint",
+      );
+      return json(
+        executePrivatePackagePlan({
+          fixturePath: resolve(cwd, fixture),
+          fixtureArgument: fixture,
+          targetRoot: cwd,
+          ...ownership(cliArgv),
+          mode: command === "private-package:import" ? "import" : "dry-run",
+          write,
+          ...(preflightFingerprint === undefined
+            ? {}
+            : { preflightFingerprint }),
+        }),
+      );
     }
     if (!name) throw new Error(`Missing required --name for ${command}`);
     if (command.startsWith("bump-")) {

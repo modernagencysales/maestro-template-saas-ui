@@ -54,8 +54,6 @@ export const REMOVED_CUSTOMER_TEMPLATE_SCRIPTS = [
   "template:workflow-output-smoke",
   "template:regenerate-workflow-publications",
   "template:upgrade",
-  "template:private-package:dry-run",
-  "template:private-package:import",
 ] as const;
 export const CURRENT_GENERATOR_GATE_SCRIPTS = [
   "template:quickstart",
@@ -112,6 +110,8 @@ export const CUSTOMER_ROOT_SCRIPTS = [
   "template:add-agent-seat",
   "template:promote-capability",
   "template:promote-workflow",
+  "template:private-package:dry-run",
+  "template:private-package:import",
   "pattern-fit",
   "check:convex",
   "check:confect-compat",
@@ -651,6 +651,14 @@ export const buildSaasRegistrationProjections = (
       path: "tooling/generators/package.json",
       content: customerGeneratorPackage(),
     },
+    ...(current
+      ? [
+          {
+            path: "examples/generic-ai-ops/template-package.json",
+            content: source("examples/generic-ai-ops/template-package.json"),
+          },
+        ]
+      : []),
     {
       path: "tooling/quality/install-lefthook-if-git.mjs",
       content: source("tooling/quality/install-lefthook-if-git.mjs"),
@@ -660,6 +668,9 @@ export const buildSaasRegistrationProjections = (
         ["customer.ts", "customer.ts"],
         ["customer-runtime.ts", "customer-runtime.ts"],
         ["customer-dispatcher.ts", "customer-dispatcher.ts"],
+        ...(current
+          ? ([["private-package.ts", "private-package.ts"]] as const)
+          : []),
         ["customer-cli.ts", "customer-cli.ts"],
         ["crud-proof.ts", "crud-proof.ts"],
         ["direct-run.ts", "direct-run.ts"],

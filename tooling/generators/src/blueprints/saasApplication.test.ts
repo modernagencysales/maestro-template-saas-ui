@@ -69,6 +69,8 @@ describe("saas application blueprint", () => {
       "template:systems",
       "template:prototype",
       "template:add-feature",
+      "template:private-package:dry-run",
+      "template:private-package:import",
       "check:system-catalog",
     ]) {
       expect(scripts).toHaveProperty(required);
@@ -78,8 +80,6 @@ describe("saas application blueprint", () => {
       "template:intake",
       "template:workflow-output-smoke",
       "template:upgrade",
-      "template:private-package:dry-run",
-      "template:private-package:import",
     ]) {
       expect(scripts).not.toHaveProperty(name);
     }
@@ -209,7 +209,9 @@ describe("saas application blueprint", () => {
       "apps/cli/src/factory/mcp.ts",
       "docs/template/data-resources.json",
       "docs/template/system-catalog.json",
+      "examples/generic-ai-ops/template-package.json",
       "pnpm-lock.yaml",
+      "tooling/generators/src/private-package.ts",
     ]);
     const releaseRoot = join(
       repoRoot,
@@ -596,10 +598,12 @@ describe("saas application blueprint", () => {
       "docs/template/data-resources.json",
       "packages/convex/confect/ops/dataResources.generated.ts",
       "tooling/generators/package.json",
+      "examples/generic-ai-ops/template-package.json",
       "tooling/quality/install-lefthook-if-git.mjs",
       "tooling/generators/src/customer.ts",
       "tooling/generators/src/customer-runtime.ts",
       "tooling/generators/src/customer-dispatcher.ts",
+      "tooling/generators/src/private-package.ts",
       "tooling/generators/src/customer-cli.ts",
       "tooling/generators/src/crud-proof.ts",
       "tooling/generators/src/direct-run.ts",
@@ -682,6 +686,11 @@ describe("saas application blueprint", () => {
       "apps/web/src/routeTree.gen.ts",
       "apps/web/src/routeRegistry.generated.ts",
     ]);
+    expect(
+      first.some(({ path }) =>
+        path.startsWith("examples/generic-ai-ops/seed/"),
+      ),
+    ).toBe(false);
     for (const file of first.slice(0, 4)) {
       expect(readFileSync(join(repoRoot, file.path), "utf8")).toBe(
         file.content,

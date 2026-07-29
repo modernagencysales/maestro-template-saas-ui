@@ -315,6 +315,7 @@ function buildTargetPlan(
     ["tooling/generators/src/crud-proof.ts", "copy"],
     ["tooling/generators/src/customer-cli.ts", "copy"],
     ["tooling/generators/src/customer-dispatcher.ts", "copy"],
+    ["tooling/generators/src/private-package.ts", "copy"],
     ["tooling/generators/src/customer-runtime.ts", "copy"],
     ["tooling/generators/src/customer.ts", "copy"],
     ["tooling/generators/src/workflow-files.ts", "copy"],
@@ -324,6 +325,7 @@ function buildTargetPlan(
     ["tooling/quality/check-workflow-principal-propagation.mts", "copy"],
     ["tooling/quality/fixtures/workflow-policy-snapshots.json", "copy"],
     ["tooling/generators/package.json", "copy"],
+    ["examples/generic-ai-ops/template-package.json", "copy"],
     ["tooling/generators/src/direct-run.ts", "copy"],
     ["tooling/generators/src/blueprints/gtmImplementation.ts", "copy"],
     ["packages/convex/confect/_generated/schema.ts", "copy"],
@@ -428,6 +430,12 @@ function buildTargetPlan(
     "package.json",
     ...(current ? ["pnpm-lock.yaml"] : []),
     "tooling/generators/src/crud-proof.ts",
+    ...(current
+      ? [
+          "tooling/generators/src/private-package.ts",
+          "examples/generic-ai-ops/template-package.json",
+        ]
+      : []),
     "tooling/quality/install-lefthook-if-git.mjs",
     "tooling/generators/src/workflow-files.ts",
     "tooling/generators/src/workflow-predeploy.ts",
