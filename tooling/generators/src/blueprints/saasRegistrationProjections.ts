@@ -547,10 +547,14 @@ export const buildSaasRegistrationProjections = (
       path: "apps/cli/src/index.ts",
       content: customerCliEntry(),
     },
-    {
-      path: "apps/cli/package.json",
-      content: customerCliPackage(),
-    },
+    ...(current
+      ? [
+          {
+            path: "apps/cli/package.json",
+            content: customerCliPackage(),
+          },
+        ]
+      : []),
     {
       path: "apps/cli/src/factory/start.ts",
       content: source("apps/cli/src/factory/start.ts"),
@@ -564,7 +568,9 @@ export const buildSaasRegistrationProjections = (
         ]
       : []),
     { path: "package.json", content: customerPackage(current) },
-    { path: "pnpm-lock.yaml", content: customerLockfile() },
+    ...(current
+      ? [{ path: "pnpm-lock.yaml", content: customerLockfile() }]
+      : []),
     {
       path: "tooling/generators/package.json",
       content: customerGeneratorPackage(),

@@ -172,9 +172,11 @@ describe("saas application blueprint", () => {
 
   it("matches the sealed alpha.1 manifest to its historical assets and current structure", () => {
     const plan = buildSaasApplicationTargetPlan();
-    const postAlphaCurrentPaths = new Set<string>(
-      CURRENT_SAAS_DEPLOY_AUTHORITY_TABLE_CLOSURE,
-    );
+    const postAlphaCurrentPaths = new Set<string>([
+      ...CURRENT_SAAS_DEPLOY_AUTHORITY_TABLE_CLOSURE,
+      "apps/cli/package.json",
+      "pnpm-lock.yaml",
+    ]);
     const releaseRoot = join(
       repoRoot,
       "releases/v0.2.0-alpha.1/blueprints/saas-application",
@@ -549,9 +551,11 @@ describe("saas application blueprint", () => {
       "docs/template/agent-pack-privacy.md",
       "apps/cli/src/factory/customerComposition.ts",
       "apps/cli/src/index.ts",
+      "apps/cli/package.json",
       "apps/cli/src/factory/start.ts",
       "apps/cli/src/factory/supportBundle.ts",
       "package.json",
+      "pnpm-lock.yaml",
       "tooling/generators/package.json",
       "tooling/quality/install-lefthook-if-git.mjs",
       "tooling/generators/src/customer.ts",

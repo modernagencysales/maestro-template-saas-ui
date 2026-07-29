@@ -268,6 +268,12 @@ function buildTargetPlan(
   options: BlueprintTargetPlanOptions,
 ): BlueprintTargetPlan {
   const replacements = new Map<string, "copy" | "generate">([
+    ...(current
+      ? ([
+          ["apps/cli/package.json", "copy"],
+          ["pnpm-lock.yaml", "copy"],
+        ] as const)
+      : []),
     ["apps/cli/src/index.ts", "copy"],
     ["apps/cli/src/factory/customerComposition.ts", "copy"],
     ["apps/cli/src/factory/start.ts", "copy"],
@@ -397,11 +403,13 @@ function buildTargetPlan(
     .sort((left, right) => left.path.localeCompare(right.path));
   const registrationsWithPrivacy = [
     "docs/template/agent-pack-privacy.md",
+    ...(current ? ["apps/cli/package.json"] : []),
     "apps/cli/src/factory/customerComposition.ts",
     "apps/cli/src/index.ts",
     "apps/cli/src/factory/start.ts",
     "apps/cli/src/factory/supportBundle.ts",
     "package.json",
+    ...(current ? ["pnpm-lock.yaml"] : []),
     "tooling/generators/src/crud-proof.ts",
     "tooling/quality/install-lefthook-if-git.mjs",
     "tooling/generators/src/workflow-files.ts",
