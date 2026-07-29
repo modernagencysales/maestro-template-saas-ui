@@ -388,7 +388,7 @@ export const validateDeployAuthoritySources = (input: {
     "ci-self-protection",
   );
   const selfProtectionCommand =
-    /(?:^|\n)    command: \|\n(?<body>[\s\S]*?)\n    agents:/u.exec(
+    /(?:^|\n) {4}command: \|\n(?<body>[\s\S]*?)\n {4}agents:/u.exec(
       selfProtectionStep ?? "",
     )?.groups?.body ?? "";
   const trustedSelfProtectionMarkers = [
