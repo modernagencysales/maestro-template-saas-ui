@@ -83,10 +83,9 @@ export const requestDurableDeployAuthorization = async (
     readonly fetch: typeof fetch;
   },
 ): Promise<DurableDeployAuthorization> => {
-  if (!dependencies.endpoint)
-    throw new Error("Durable promotion authority is unavailable.");
+  const endpoint = validatePromotionAuthorityEndpoint(dependencies.endpoint);
   const response = await dependencies.fetch(
-    `${dependencies.endpoint.replace(/\/$/, "")}/deploy-authority/consume`,
+    `${endpoint}/deploy-authority/consume`,
     {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -126,6 +125,67 @@ export const requestDurableDeployAuthorization = async (
   if (!valid)
     throw new Error("Durable promotion authority signature is invalid.");
   return Object.freeze({ ...authorization });
+};
+
+export const validatePromotionAuthorityEndpoint = (
+  endpoint: string | undefined,
+  targetConvexUrl?: string,
+): string => {
+  if (!endpoint) throw new Error("Durable promotion authority is unavailable.");
+  let authority: URL;
+  try {
+    authority = new URL(endpoint);
+  } catch {
+    throw new Error(
+      "Durable promotion authority must use an independent HTTPS base URL.",
+    );
+  }
+  if (
+    authority.protocol !== "https:" ||
+    authority.username !== "" ||
+    authority.password !== "" ||
+    authority.pathname !== "/" ||
+    authority.search !== "" ||
+    authority.hash !== ""
+  ) {
+    throw new Error(
+      "Durable promotion authority must use an independent HTTPS base URL.",
+    );
+  }
+  if (targetConvexUrl) {
+    let target: URL;
+    try {
+      target = new URL(targetConvexUrl);
+    } catch {
+      throw new Error("Target Convex URL is invalid.");
+    }
+    if (
+      authority.origin === target.origin ||
+      sharesConvexDeployment(authority, target)
+    ) {
+      throw new Error(
+        "Durable promotion authority must use an independent HTTPS base URL.",
+      );
+    }
+  }
+  return authority.origin;
+};
+
+const sharesConvexDeployment = (left: URL, right: URL): boolean => {
+  const leftDeployment = convexDeploymentIdentity(left);
+  return (
+    leftDeployment !== undefined &&
+    leftDeployment === convexDeploymentIdentity(right)
+  );
+};
+
+const convexDeploymentIdentity = (url: URL): string | undefined => {
+  for (const suffix of [".convex.cloud", ".convex.site"] as const) {
+    if (!url.hostname.endsWith(suffix)) continue;
+    const deployment = url.hostname.slice(0, -suffix.length);
+    return /^[a-z0-9-]+$/u.test(deployment) ? deployment : undefined;
+  }
+  return undefined;
 };
 
 const parseScope = (input: unknown): DurableDeployScope | undefined => {

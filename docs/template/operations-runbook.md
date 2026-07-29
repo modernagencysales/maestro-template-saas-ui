@@ -5,11 +5,23 @@
 1. Run deterministic verification.
 2. Review [env-manifest.md](./env-manifest.md) for required provider names,
    fake-mode behavior, and rotation posture.
-3. Run provider fake smokes.
-4. Run `pnpm build` and `pnpm smoke:web-static`.
-5. Deploy staging from the exact commit.
-6. Run `pnpm smoke:hosted` or the provider-specific deploy smoke.
-7. Promote production through the human approval block.
+3. Confirm the independent deployment-authority control plane is already live.
+   Set its HTTPS base origin as `PROMOTION_AUTHORITY_ENDPOINT` and supply the
+   externally reviewed `TRUSTED_DEPLOY_ROOT_SHA256`. The endpoint must not be
+   the target Convex origin and neither value may be bootstrapped by this run.
+4. Run provider fake smokes.
+5. Run `pnpm build` and `pnpm smoke:web-static`.
+6. Deploy staging from the exact commit. The pipeline consumes one secretless
+   preflight, then the guarded Convex and Cloudflare routes independently
+   authorize their provider action.
+7. Run `pnpm smoke:hosted` or the provider-specific deploy smoke.
+8. Promote production through the human approval block with the same
+   independent-control-plane requirements.
+
+If the authority endpoint or trusted root is unavailable, mismatched, unsafe, or
+points at the target Convex origin, stop. Do not inject the authority signing
+key into Buildkite, compute a replacement trust root inside CI, self-deploy the
+authority from the application pipeline, or invoke raw provider deploy commands.
 
 ## CI And AI Gate Verdicts
 

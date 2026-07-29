@@ -677,6 +677,28 @@
       "notes": "Commit SHA for deploy and promotion scripts."
     },
     {
+      "name": "PROMOTION_AUTHORITY_ENDPOINT",
+      "group": "buildkite",
+      "services": ["ci", "deploy"],
+      "visibility": "server-config",
+      "requiredFor": ["deploy"],
+      "fakeExampleAllowed": false,
+      "owner": "Deployment authority owner",
+      "rotation": "Review only when the independent authority control plane moves.",
+      "notes": "Already-live independent deployment-authority HTTPS origin. It must be a base URL without credentials, path, query, or fragment and must not be the target Convex origin."
+    },
+    {
+      "name": "TRUSTED_DEPLOY_ROOT_SHA256",
+      "group": "buildkite",
+      "services": ["ci", "deploy"],
+      "visibility": "server-config",
+      "requiredFor": ["deploy"],
+      "fakeExampleAllowed": false,
+      "owner": "Deployment authority owner",
+      "rotation": "Update through an external reviewed trust-root ceremony only.",
+      "notes": "Externally pinned sha256 root over the deploy verifier, policy, and public verification key. The authority signing key never enters this repository or Buildkite."
+    },
+    {
       "name": "BUILDKITE_PULL_REQUEST",
       "group": "buildkite",
       "services": ["ci"],

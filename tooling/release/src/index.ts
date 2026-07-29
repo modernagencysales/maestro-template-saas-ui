@@ -1,6 +1,7 @@
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { join, resolve } from "node:path";
+import { validatePromotionAuthorityEndpoint } from "./deploy/durableAuthority.js";
 export * from "./deploy/audit.js";
 export * from "./deploy/authority.js";
 export * from "./deploy/census.js";
@@ -98,6 +99,7 @@ export type DeployEnvironmentConfig = {
   readonly cloudflarePagesProject: string;
   readonly cloudflareBranch: string;
   readonly convexDeployName: string;
+  readonly convexUrl: string;
   readonly requiredEnvGroups: readonly string[];
   readonly requiredSecrets: readonly string[];
 };
@@ -121,6 +123,7 @@ export type DeployDoctorReport = {
   readonly requiredSecretNames: readonly string[];
   readonly missingEnvNames: readonly string[];
   readonly missingSecretNames: readonly string[];
+  readonly invalidEnvNames: readonly string[];
   readonly alert?: ReleaseAlertPlan;
 };
 
@@ -249,13 +252,17 @@ const deployDoctorAlert = (
   }
 
   const missingNames = [
-    ...new Set([...report.missingEnvNames, ...report.missingSecretNames]),
+    ...new Set([
+      ...report.missingEnvNames,
+      ...report.missingSecretNames,
+      ...report.invalidEnvNames,
+    ]),
   ].sort();
 
   return {
     severity: report.environment === "production" ? "critical" : "warning",
     title: `Deploy doctor failed: ${report.environment}`,
-    body: `Missing ${report.missingEnvNames.length} manifest env names and ${report.missingSecretNames.length} required deploy secrets.`,
+    body: `Missing ${report.missingEnvNames.length} manifest env names and ${report.missingSecretNames.length} required deploy secrets; ${report.invalidEnvNames.length} env names are invalid.`,
     dedupeKey: `deploy-doctor:${report.environment}:${missingNames.join("|") || "unknown"}`,
     metadata: {
       environment: report.environment,
@@ -265,6 +272,7 @@ const deployDoctorAlert = (
       requiredEnvGroups: report.requiredEnvGroups,
       missingEnvNames: report.missingEnvNames,
       missingSecretNames: report.missingSecretNames,
+      invalidEnvNames: report.invalidEnvNames,
     },
   };
 };
@@ -325,9 +333,23 @@ export const buildDeployDoctorReport = (options: {
   const missingSecretNames = selected.requiredSecrets.filter(
     (name) => !env[name]?.trim(),
   );
+  const invalidEnvNames: string[] = [];
+  if (env.PROMOTION_AUTHORITY_ENDPOINT?.trim()) {
+    try {
+      validatePromotionAuthorityEndpoint(
+        env.PROMOTION_AUTHORITY_ENDPOINT,
+        selected.convexUrl,
+      );
+    } catch {
+      invalidEnvNames.push("PROMOTION_AUTHORITY_ENDPOINT");
+    }
+  }
 
   const report: Omit<DeployDoctorReport, "alert"> = {
-    ok: missingSecretNames.length === 0 && missingEnvNames.length === 0,
+    ok:
+      missingSecretNames.length === 0 &&
+      missingEnvNames.length === 0 &&
+      invalidEnvNames.length === 0,
     environment: selected.name,
     domain: selected.domain,
     cloudflarePagesProject: selected.cloudflarePagesProject,
@@ -338,6 +360,7 @@ export const buildDeployDoctorReport = (options: {
     requiredSecretNames: selected.requiredSecrets,
     missingEnvNames,
     missingSecretNames,
+    invalidEnvNames,
   };
 
   const alert = deployDoctorAlert(report);

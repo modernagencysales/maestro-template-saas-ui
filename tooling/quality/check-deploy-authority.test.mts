@@ -74,7 +74,7 @@ describe("deploy authority self-protection", () => {
     }
   });
 
-  it("rejects removed or reordered preflights and credential dependency bypass", () => {
+  it("requires exactly one pipeline preflight per environment in the guarded order", () => {
     const base = fixture();
     for (const pipeline of [
       base.pipeline.replace(
@@ -89,6 +89,12 @@ describe("deploy authority self-protection", () => {
         'depends_on: "production-authority-preflight"',
         'depends_on: "production-approval"',
       ),
+      base.pipeline.replace(
+        "pnpm exec tsx tooling/release/src/deploy/authorityCli.ts staging",
+        "pnpm exec tsx tooling/release/src/deploy/authorityCli.ts removed",
+      ),
+      base.pipeline.replace("staging convexUrl", "production convexUrl"),
+      `${base.pipeline}\npnpm exec tsx tooling/release/src/deploy/authorityCli.ts production deadbeef template-production\n`,
     ]) {
       expect(validateDeployAuthoritySources({ ...base, pipeline })).not.toEqual(
         [],
@@ -96,7 +102,7 @@ describe("deploy authority self-protection", () => {
     }
   });
 
-  it("rejects credential broadening and missing guarded reauthorization", () => {
+  it("rejects credential broadening, script preflights, and missing guarded provider routes", () => {
     const base = fixture();
     expect(
       validateDeployAuthoritySources({
@@ -109,9 +115,47 @@ describe("deploy authority self-protection", () => {
         ...base,
         sources: {
           ...base.sources,
-          ".buildkite/scripts/staging-deploy.sh": base.sources[
-            ".buildkite/scripts/staging-deploy.sh"
-          ].replace(/^.*authorityCli\.ts staging.*\n/m, ""),
+          ".buildkite/scripts/staging-deploy.sh": `${
+            base.sources[".buildkite/scripts/staging-deploy.sh"]
+          }\npnpm exec tsx tooling/release/src/deploy/authorityCli.ts staging deadbeef template-staging\n`,
+        },
+      }),
+    ).not.toEqual([]);
+    for (const route of [
+      "guardedDeploy.ts convex",
+      "guardedDeploy.ts cloudflare",
+    ]) {
+      expect(
+        validateDeployAuthoritySources({
+          ...base,
+          sources: {
+            ...base.sources,
+            ".buildkite/scripts/production-promote.sh": base.sources[
+              ".buildkite/scripts/production-promote.sh"
+            ].replace(route, "removed-route"),
+          },
+        }),
+      ).not.toEqual([]);
+    }
+  });
+
+  it("forbids the authority signing key from every Buildkite surface", () => {
+    const base = fixture();
+    const privateKeyName = "PROMOTION_AUTHORITY_PRIVATE_KEY_PKCS8_BASE64URL";
+    expect(
+      validateDeployAuthoritySources({
+        ...base,
+        pipeline: `${base.pipeline}\nenv:\n  ${privateKeyName}: forbidden\n`,
+      }),
+    ).not.toEqual([]);
+    expect(
+      validateDeployAuthoritySources({
+        ...base,
+        sources: {
+          ...base.sources,
+          ".buildkite/scripts/staging-deploy.sh": `${
+            base.sources[".buildkite/scripts/staging-deploy.sh"]
+          }\nexport ${privateKeyName}=forbidden\n`,
         },
       }),
     ).not.toEqual([]);

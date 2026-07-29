@@ -16,7 +16,6 @@ CLOUDFLARE_API_TOKEN="${CLOUDFLARE_API_TOKEN:-${TEMPLATE_CLOUDFLARE_API_TOKEN:-}
 CLOUDFLARE_ACCOUNT_ID="${CLOUDFLARE_ACCOUNT_ID:-${TEMPLATE_CLOUDFLARE_ACCOUNT_ID:-}}"
 export CONVEX_DEPLOY_KEY CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID
 
-pnpm exec tsx tooling/release/src/deploy/authorityCli.ts staging "${BUILDKITE_COMMIT}" "${PROMOTION_TARGET_ID}"
 pnpm exec tsx tooling/release/src/index.ts deploy-doctor staging
 
 # Backend first: CONVEX_DEPLOY_KEY (validated by deploy-doctor) targets the

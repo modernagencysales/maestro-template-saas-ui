@@ -5,6 +5,12 @@
     "convex:deploy": "tsx tooling/release/src/deploy/guardedDeploy.ts convex",
     "deploy:cloudflare": "VITE_CONVEX_URL=${VITE_CONVEX_URL:-$(node scripts/_project-config.mjs get production convexUrl)} pnpm build && pnpm smoke:web-static && tsx tooling/release/src/deploy/guardedDeploy.ts cloudflare"
   },
+  "authority": {
+    "pipelinePreflightOwner": "tooling/release/src/deploy/authorityCli.ts",
+    "guardedDeployOwner": "tooling/release/src/deploy/guardedDeploy.ts",
+    "requiredActions": ["convex", "cloudflare"],
+    "forbiddenBuildkiteEnv": ["PROMOTION_AUTHORITY_PRIVATE_KEY_PKCS8_BASE64URL"]
+  },
   "jobs": {
     "staging": {
       "preflight": "staging-authority-preflight",
