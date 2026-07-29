@@ -173,6 +173,29 @@ describe("durable deploy authority", () => {
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
+  it("accepts only an HTTPS base endpoint without credentials or URL suffixes", async () => {
+    const signing = keys();
+    const fetchSpy = vi.fn() as unknown as typeof fetch;
+    for (const endpoint of [
+      "http://authority.invalid",
+      "https://user:pass@authority.invalid",
+      "https://authority.invalid/control-plane",
+      "https://authority.invalid?tenant=template",
+      "https://authority.invalid#fragment",
+      "not-a-url",
+    ]) {
+      await expect(
+        requestDurableDeployAuthorization(scope(), {
+          endpoint,
+          publicKeyPem: signing.publicKeyPem,
+          nowMs: () => now,
+          fetch: fetchSpy,
+        }),
+      ).rejects.toThrow(/HTTPS base URL/);
+    }
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
   it("rejects every exact-scope field mismatch", async () => {
     const signing = keys();
     const requested = scope("convex");

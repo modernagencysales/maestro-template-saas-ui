@@ -38,6 +38,15 @@ workspace feature or a workspace data-subject lifecycle.
   `deployVerdicts`, and `deployActionConsumptions`.
 - The HTTP endpoint and release CLI are projections of this authority. Workflow
   Runtime is a read-only evidence dependency, not a second authority.
+- The authority control plane must already be live before either deployment
+  pipeline runs. `PROMOTION_AUTHORITY_ENDPOINT` names only its independent HTTPS
+  origin and must not resolve to the target environment's Convex origin.
+- Preflight is consumed exactly once by the secretless pipeline step. The
+  credentialed deploy scripts do not consume a second preflight; each guarded
+  Convex and Cloudflare action still consumes its own exact-scope authorization.
+- The Ed25519 signing key is authority-side only. Buildkite and this repository
+  receive the public verification key and externally pinned trust-root hash,
+  never `PROMOTION_AUTHORITY_PRIVATE_KEY_PKCS8_BASE64URL`.
 
 ## Migration And Preservation
 
@@ -49,6 +58,10 @@ implemented table write is append-only deployment-action consumption. Preserve
 exact scope binding, signature/hash verification, fail-closed census validation,
 expiry checks, append-only signed evidence, and one-time action consumption.
 Existing records remain global and excluded from workspace export/delete plans.
+The application deployment may not self-bootstrap its own authority, compute or
+replace the external trusted root, fall back to the target Convex deployment, or
+bypass an unavailable authority. Missing independent control-plane readiness is
+a deployment refusal, not a recoverable setup path inside the deploy job.
 
 ## Terminal Condition
 

@@ -528,6 +528,88 @@ describe("release tooling", () => {
     }
   });
 
+  it("fails deploy doctor closed for unsafe or target-coupled authority endpoints", () => {
+    const repoRoot = makeReviewerRepo();
+    writeEnvManifest(repoRoot, [
+      {
+        name: "PROMOTION_AUTHORITY_ENDPOINT",
+        group: "buildkite",
+        requiredFor: ["deploy"],
+      },
+      {
+        name: "TRUSTED_DEPLOY_ROOT_SHA256",
+        group: "buildkite",
+        requiredFor: ["deploy"],
+      },
+    ]);
+    writeFileSync(
+      join(repoRoot, "project.config.json"),
+      JSON.stringify({
+        project: { name: "maestro-template" },
+        environments: {
+          staging: {
+            name: "staging",
+            domain: "staging.example.test",
+            cloudflarePagesProject: "maestro-template-staging",
+            cloudflareBranch: "staging",
+            convexDeployName: "maestro-template-staging",
+            convexUrl: "https://target-staging.convex.cloud",
+            requiredEnvGroups: ["buildkite"],
+            requiredSecrets: [],
+          },
+          production: {
+            name: "production",
+            domain: "app.example.test",
+            cloudflarePagesProject: "maestro-template",
+            cloudflareBranch: "main",
+            convexDeployName: "maestro-template-production",
+            convexUrl: "https://target-production.convex.cloud",
+            requiredEnvGroups: ["buildkite"],
+            requiredSecrets: [],
+          },
+        },
+      }),
+    );
+
+    try {
+      const trustedRoot = `sha256:${"a".repeat(64)}`;
+      expect(
+        buildDeployDoctorReport({
+          repoRoot,
+          environment: "staging",
+          env: {
+            PROMOTION_AUTHORITY_ENDPOINT: "https://authority.example.test/",
+            TRUSTED_DEPLOY_ROOT_SHA256: trustedRoot,
+          },
+        }),
+      ).toMatchObject({ ok: true, invalidEnvNames: [] });
+      for (const endpoint of [
+        "http://authority.example.test",
+        "https://user:pass@authority.example.test",
+        "https://authority.example.test/control-plane",
+        "https://authority.example.test?target=staging",
+        "https://authority.example.test#fragment",
+        "https://target-staging.convex.cloud",
+      ]) {
+        const report = buildDeployDoctorReport({
+          repoRoot,
+          environment: "staging",
+          env: {
+            PROMOTION_AUTHORITY_ENDPOINT: endpoint,
+            TRUSTED_DEPLOY_ROOT_SHA256: trustedRoot,
+          },
+        });
+        expect(report).toMatchObject({
+          ok: false,
+          invalidEnvNames: ["PROMOTION_AUTHORITY_ENDPOINT"],
+        });
+        expect(JSON.stringify(report)).not.toContain(endpoint);
+      }
+    } finally {
+      rmSync(repoRoot, { recursive: true, force: true });
+    }
+  });
+
   it("builds staging and production promotion plans from project config", () => {
     const repoRoot = makeReviewerRepo();
     writeFileSync(

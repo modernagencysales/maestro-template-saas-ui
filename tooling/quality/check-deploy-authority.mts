@@ -8,6 +8,12 @@ type DeployPolicy = {
   readonly schemaVersion: 1;
   readonly primitiveOwner: string;
   readonly packageRoutes: Readonly<Record<string, string>>;
+  readonly authority: {
+    readonly pipelinePreflightOwner: string;
+    readonly guardedDeployOwner: string;
+    readonly requiredActions: readonly ["convex", "cloudflare"];
+    readonly forbiddenBuildkiteEnv: readonly string[];
+  };
   readonly jobs: Readonly<
     Record<
       "staging" | "production",
@@ -68,6 +74,13 @@ export const validateDeployAuthoritySources = (input: {
     policy.schemaVersion !== 1 ||
     typeof policy.primitiveOwner !== "string" ||
     !policy.packageRoutes ||
+    !policy.authority ||
+    policy.authority.pipelinePreflightOwner !==
+      "tooling/release/src/deploy/authorityCli.ts" ||
+    policy.authority.guardedDeployOwner !== policy.primitiveOwner ||
+    JSON.stringify(policy.authority.requiredActions) !==
+      JSON.stringify(["convex", "cloudflare"]) ||
+    !Array.isArray(policy.authority.forbiddenBuildkiteEnv) ||
     !policy.jobs?.staging ||
     !policy.jobs.production ||
     !Array.isArray(policy.credentialSecrets)
@@ -111,6 +124,20 @@ export const validateDeployAuthoritySources = (input: {
     );
   }
 
+  const buildkiteSources = Object.entries(input.sources)
+    .filter(([name]) => name.startsWith(".buildkite/"))
+    .map(([, source]) => source);
+  for (const forbidden of policy.authority.forbiddenBuildkiteEnv) {
+    if (
+      input.pipeline.includes(forbidden) ||
+      buildkiteSources.some((source) => source.includes(forbidden))
+    ) {
+      failures.push(
+        `${forbidden} must remain authority-side and absent from Buildkite`,
+      );
+    }
+  }
+
   for (const [alias, route] of Object.entries(policy.packageRoutes)) {
     if (input.packageScripts[alias] !== route) {
       failures.push(
@@ -128,6 +155,12 @@ export const validateDeployAuthoritySources = (input: {
     "staging" | "production",
     DeployPolicy["jobs"]["staging"],
   ][]) {
+    const preflightCall = `${policy.authority.pipelinePreflightOwner} ${environment}`;
+    if (countOccurrences(input.pipeline, preflightCall) !== 1) {
+      failures.push(
+        `pipeline must call the ${environment} authority preflight exactly once`,
+      );
+    }
     const preflight = pipelineBlock(input.pipeline, job.preflight);
     const deploy = pipelineBlock(input.pipeline, job.deploy);
     if (!preflight) {
@@ -135,7 +168,7 @@ export const validateDeployAuthoritySources = (input: {
     } else {
       if (!preflight.includes(`depends_on: "${job.approval}"`))
         failures.push(`${job.preflight} must depend on ${job.approval}`);
-      if (!preflight.includes(`authorityCli.ts ${environment}`))
+      if (!preflight.includes(preflightCall))
         failures.push(
           `${job.preflight} must call the durable authority preflight`,
         );
@@ -155,13 +188,20 @@ export const validateDeployAuthoritySources = (input: {
       }
     }
     const script = input.sources[job.script] ?? "";
+    if (script.includes("authorityCli.ts")) {
+      failures.push(`${job.script} must not consume another preflight`);
+    }
     if (
-      !script.includes(`authorityCli.ts ${environment}`) ||
-      !script.includes("guardedDeploy.ts convex") ||
-      !script.includes("guardedDeploy.ts cloudflare")
+      policy.authority.requiredActions.some(
+        (action) =>
+          countOccurrences(
+            script,
+            `${policy.authority.guardedDeployOwner} ${action}`,
+          ) !== 1,
+      )
     ) {
       failures.push(
-        `${job.script} must reauthorize and route both deploy actions`,
+        `${job.script} must route both provider actions through the guarded owner exactly once`,
       );
     }
   }
@@ -206,6 +246,9 @@ const pipelineBlock = (pipeline: string, key: string): string | undefined => {
 
 const escapeRegex = (value: string): string =>
   value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+const countOccurrences = (source: string, value: string): number =>
+  source.split(value).length - 1;
 
 if (
   process.argv[1] !== undefined &&

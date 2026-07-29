@@ -214,4 +214,30 @@ describe("environment manifest", () => {
     expect(docs).toContain("env-manifest.json");
     expect(docs).toContain("machine-readable");
   });
+
+  it("keeps deploy authority trust public and signing authority external", () => {
+    const endpoint = entries.find(
+      (entry) => entry.name === "PROMOTION_AUTHORITY_ENDPOINT",
+    );
+    const trustedRoot = entries.find(
+      (entry) => entry.name === "TRUSTED_DEPLOY_ROOT_SHA256",
+    );
+    expect(endpoint).toMatchObject({
+      group: "buildkite",
+      services: expect.arrayContaining(["ci", "deploy"]),
+      visibility: "server-config",
+      requiredFor: expect.arrayContaining(["deploy"]),
+      fakeExampleAllowed: false,
+    });
+    expect(trustedRoot).toMatchObject({
+      group: "buildkite",
+      services: expect.arrayContaining(["ci", "deploy"]),
+      visibility: "server-config",
+      requiredFor: expect.arrayContaining(["deploy"]),
+      fakeExampleAllowed: false,
+    });
+    expect(manifestNames).not.toContain(
+      "PROMOTION_AUTHORITY_PRIVATE_KEY_PKCS8_BASE64URL",
+    );
+  });
 });
