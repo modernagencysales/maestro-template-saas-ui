@@ -394,6 +394,15 @@ describe("saas application blueprint", () => {
           "utf8",
         ),
       ).toContain("createSupportBundleCliHandler");
+      const mcpEntry = plan.entries.find(
+        ({ path }) => path === "apps/cli/src/factory/mcp.ts",
+      );
+      expect(mcpEntry).toMatchObject({
+        ownership: "generated",
+        action: "generate",
+        upgrade: "regenerate",
+      });
+      expect(mcpEntry).not.toHaveProperty("replaces");
     } finally {
       rmSync(targetRoot, { recursive: true, force: true });
     }

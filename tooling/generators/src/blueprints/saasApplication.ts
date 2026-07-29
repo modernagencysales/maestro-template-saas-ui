@@ -281,7 +281,6 @@ function buildTargetPlan(
       ? ([
           ["docs/template/data-resources.json", "copy"],
           ["docs/template/system-catalog.json", "copy"],
-          ["apps/cli/src/factory/mcp.ts", "copy"],
         ] as const)
       : []),
     ["apps/cli/src/index.ts", "copy"],
