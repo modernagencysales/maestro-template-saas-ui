@@ -183,6 +183,18 @@ describe("check:headless-surface-contract", () => {
     expect(missingHttpExecutorDispatch(source)).toBe(false);
   });
 
+  it("accepts API operation IDs mapped to a differently named generated ref", () => {
+    const source = `
+      const operationRefs = {
+        "changesignal.overview.get": api.capabilities.changeFeed.getOverview,
+      };
+    `;
+
+    expect(
+      missingHttpGeneratedRefMapping(["changesignal.overview.get"], source),
+    ).toEqual([]);
+  });
+
   it("requires CLI and MCP projections to use a runtime adapter seam", () => {
     expect(
       missingRuntimeAdapterDispatch(
@@ -245,6 +257,21 @@ describe("check:headless-surface-contract", () => {
     ).toEqual([]);
   });
 
+  it("accepts a shared CLI ref helper with different operation and ref names", () => {
+    const source = `
+      export const staticCliOperationRefs = {
+        "changesignal.overview.get": "capabilities.changeFeed.getOverview",
+      };
+
+      const operationRef = refFor(staticCliOperationRefs, maybeId);
+      return runTemplateApiOperation(operationRef, {});
+    `;
+
+    expect(
+      missingCliGeneratedRefUsage(["changesignal.overview.get"], source),
+    ).toEqual([]);
+  });
+
   it("rejects CLI mappings with regex-compatible but wrong operation IDs", () => {
     const source = `
       export const staticCliOperationRefs = {
@@ -298,6 +325,30 @@ describe("check:headless-surface-contract", () => {
 
     expect(
       missingMcpGeneratedRefUsage(["brain.pages.createMarkdown"], source),
+    ).toEqual([]);
+  });
+
+  it("accepts one shared MCP naming helper for explicit and fallback refs", () => {
+    const source = `
+      export const generatedMcpOperationRefs = {
+        "brain.pages.createMarkdown": "template.brain.pages.createMarkdown",
+      };
+      const mcpToolNameFor = (operationId) =>
+        generatedMcpOperationRefs[operationId] ?? \`template.\${operationId}\`;
+
+      const tools = entries.map((entry) => ({
+        name: mcpToolNameFor(entry.operationId),
+      }));
+      const operation = entries.find(
+        (candidate) => mcpToolNameFor(candidate.operationId) === toolName,
+      );
+    `;
+
+    expect(
+      missingMcpGeneratedRefUsage(
+        ["brain.pages.createMarkdown", "changesignal.overview.get"],
+        source,
+      ),
     ).toEqual([]);
   });
 

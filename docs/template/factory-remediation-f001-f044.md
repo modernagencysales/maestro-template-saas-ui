@@ -250,6 +250,34 @@ prove:
 - Clean-customer evidence: pending the canonical customer MCP stdio repair and
   isolated public acceptance run.
 - Status: upstream implementation fixed; final fixed status waits for untouched
+  fresh-customer proof. Implementation commit: `0f454318`.
+
+### Semantic headless-ref validation cluster
+
+- ID/title: F-019 (The generated-ref gate rejects the canonical multi-surface
+  mapping).
+- Original posture: open/critical.
+- Confirmed reproduction: the quality gate encoded operation-ID-shaped Convex
+  refs and exact local variable spellings with regular expressions. A valid
+  mapping such as `changesignal.overview.get` to
+  `api.capabilities.changeFeed.getOverview`, or a shared CLI/MCP resolver,
+  failed despite routing through the canonical generated projection. The first
+  shared MCP-name repair also reproduced the false failure on the template's own
+  `check:headless-surface-contract` gate.
+- Regression: `check-headless-surface-contract.test.mts` covers differently
+  named HTTP refs, CLI ref helpers, and one MCP helper serving both explicit and
+  fallback names, while retaining wrong-key and inert-mapping failures.
+- Canonical fix: `check-headless-surface-contract.mts` now parses TypeScript
+  source and validates generated mapping keys, `api`-rooted refs, ref derivation
+  into runtime dispatch, and shared MCP list/call naming semantics. The manifest
+  remains the operation inventory authority; no naming regex or exact local
+  variable spelling defines correctness.
+- Focused result: the quality test passes 21/21, quality typecheck exits zero,
+  and `npx --yes pnpm@10.12.1 check:headless-surface-contract` reports
+  `headless-surface-contract: ok`.
+- Clean-customer evidence: pending the canonical customer headless projection
+  and isolated public acceptance run.
+- Status: upstream implementation fixed; final fixed status waits for untouched
   fresh-customer proof and the coherent commit coordinate.
 
 ### Generator leaf-help cluster
