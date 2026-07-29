@@ -79,11 +79,12 @@ origin: no credentials, path, query, or fragment are allowed, and its origin
 must differ from the selected environment's target `convexUrl`.
 `TRUSTED_DEPLOY_ROOT_SHA256` pins the repository verifier, deploy policy, and
 public verification key. The promotion-authority signing key remains solely in
-the already-live authority control plane; it is never an environment-manifest
-entry, Buildkite secret, repository value, or deploy-script bootstrap input. The
-typed declaration in `packages/convex/convex/convex.config.ts`, this manifest,
-and the operations runbook must agree that `PROMOTION_AUTHORITY_MODE` accepts
-exactly `authority` and `PROMOTION_AUTHORITY_PRIVATE_KEY_PKCS8_BASE64URL` is an
+the already-live authority control plane. Its environment-manifest entry
+documents the authority-runtime-only typed server secret; it is never a
+Buildkite secret, repository value, or deploy-script bootstrap input. The typed
+declaration in `packages/convex/convex/convex.config.ts`, this manifest, and the
+operations runbook must agree that `PROMOTION_AUTHORITY_MODE` accepts exactly
+`authority` and `PROMOTION_AUTHORITY_PRIVATE_KEY_PKCS8_BASE64URL` is an
 authority-runtime-only server secret. Neither name authorizes the application
 pipeline to provision, query, log, or receive the private key; the deploy
 authority gate forbids it on every Buildkite surface.

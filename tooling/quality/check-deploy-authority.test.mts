@@ -42,7 +42,7 @@ const fixture = () => {
     packageScripts: {
       "convex:deploy": "tsx tooling/release/src/deploy/guardedDeploy.ts convex",
       "deploy:cloudflare":
-        "VITE_CONVEX_URL=${VITE_CONVEX_URL:-$(node scripts/_project-config.mjs get production convexUrl)} pnpm build && pnpm smoke:web-static && tsx tooling/release/src/deploy/guardedDeploy.ts cloudflare",
+        'VITE_CONVEX_URL="$(node scripts/_project-config.mjs get production convexUrl)" pnpm build && pnpm smoke:web-static && tsx tooling/release/src/deploy/guardedDeploy.ts cloudflare',
     },
     pipeline: source(".buildkite/pipeline.yml"),
     selfProtection: source(".buildkite/scripts/ci-self-protection.sh"),
@@ -210,6 +210,20 @@ describe("deploy authority self-protection", () => {
 
   it("forbids inherited generic VITE_CONVEX_URL deploy overrides", () => {
     const base = fixture();
+    expect(base.packageScripts["deploy:cloudflare"]).not.toContain(
+      "${VITE_CONVEX_URL:-",
+    );
+    expect(base.policySource).not.toContain("${VITE_CONVEX_URL:-");
+    expect(
+      validateDeployAuthoritySources({
+        ...base,
+        packageScripts: {
+          ...base.packageScripts,
+          "deploy:cloudflare":
+            "VITE_CONVEX_URL=${VITE_CONVEX_URL:-canonical} pnpm build",
+        },
+      }),
+    ).not.toEqual([]);
     for (const scriptName of [
       ".buildkite/scripts/staging-deploy.sh",
       ".buildkite/scripts/production-promote.sh",
@@ -326,12 +340,16 @@ describe("deploy authority self-protection", () => {
       'git show "${TRUSTED_CI_SELF_PROTECTION_COMMIT}:.buildkite/scripts/ci-self-protection.sh"',
     );
     expect(base.pipeline).toContain('pnpm exec tsx "${TRUSTED_VERIFIER_PATH}"');
+    expect(base.pipeline).toContain("export npm_config_ignore_scripts=true");
+    expect(base.pipeline).toContain("unset npm_config_ignore_scripts");
     for (const pipeline of [
       base.pipeline.replace(
         'git show "${TRUSTED_CI_SELF_PROTECTION_COMMIT}:tooling/quality/check-deploy-authority.mts"',
         "cp tooling/quality/check-deploy-authority.mts",
       ),
       base.pipeline.replace('pnpm exec tsx "${TRUSTED_VERIFIER_PATH}"', "true"),
+      base.pipeline.replace("export npm_config_ignore_scripts=true", "true"),
+      base.pipeline.replace("unset npm_config_ignore_scripts", "true"),
       base.pipeline.replace(
         'TEMPLATE_CI_SETUP=skip bash "${TRUSTED_SELF_PROTECTION_PATH}"',
         ".buildkite/scripts/ci-self-protection.sh",

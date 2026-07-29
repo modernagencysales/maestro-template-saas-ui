@@ -221,6 +221,16 @@ export const validateDeployAuthoritySources = (input: {
       );
     }
   }
+  const cloudflarePackageRoute = policy.packageRoutes["deploy:cloudflare"];
+  if (
+    !cloudflarePackageRoute?.includes(
+      'VITE_CONVEX_URL="$(node scripts/_project-config.mjs get production convexUrl)"',
+    ) ||
+    cloudflarePackageRoute.includes("${VITE_CONVEX_URL:-")
+  )
+    failures.push(
+      "deploy:cloudflare must replace inherited VITE_CONVEX_URL with the canonical production binding",
+    );
   for (const [alias, source] of Object.entries(input.packageScripts)) {
     if (containsDeployPrimitive(source)) {
       failures.push(`${alias}: package script contains a raw deploy primitive`);
@@ -384,8 +394,11 @@ export const validateDeployAuthoritySources = (input: {
     'git show "${TRUSTED_CI_SELF_PROTECTION_COMMIT}:.buildkite/scripts/setup.sh"',
     'git show "${TRUSTED_CI_SELF_PROTECTION_COMMIT}:tooling/quality/check-deploy-authority.mts"',
     'git show "${TRUSTED_CI_SELF_PROTECTION_COMMIT}:.buildkite/scripts/ci-self-protection.sh"',
+    "export npm_config_ignore_scripts=true",
+    'source "${TRUSTED_SETUP_PATH}"',
     'pnpm exec tsx "${TRUSTED_VERIFIER_PATH}"',
     'TEMPLATE_CI_SETUP=skip bash "${TRUSTED_SELF_PROTECTION_PATH}"',
+    "unset npm_config_ignore_scripts",
   ];
   if (
     !selfProtectionStep ||

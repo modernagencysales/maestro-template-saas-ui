@@ -79,9 +79,11 @@ steps:
       git show "${TRUSTED_CI_SELF_PROTECTION_COMMIT}:.buildkite/scripts/setup.sh" > "${TRUSTED_SETUP_PATH}"
       git show "${TRUSTED_CI_SELF_PROTECTION_COMMIT}:tooling/quality/check-deploy-authority.mts" > "${TRUSTED_VERIFIER_PATH}"
       git show "${TRUSTED_CI_SELF_PROTECTION_COMMIT}:.buildkite/scripts/ci-self-protection.sh" > "${TRUSTED_SELF_PROTECTION_PATH}"
+      export npm_config_ignore_scripts=true
       source "${TRUSTED_SETUP_PATH}"
       pnpm exec tsx "${TRUSTED_VERIFIER_PATH}"
       TEMPLATE_CI_SETUP=skip bash "${TRUSTED_SELF_PROTECTION_PATH}"
+      unset npm_config_ignore_scripts
     agents:
       queue: "linux-small"
 
