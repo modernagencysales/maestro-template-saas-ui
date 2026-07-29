@@ -121,8 +121,14 @@ describe("customer create command", () => {
       },
       nextCommand: 'pnpm --dir "../my-app" maestro -- start',
       followUpActions: [
-        { id: "install", requiresApproval: true, executed: false },
         { id: "git-init", requiresApproval: true, executed: false },
+        {
+          id: "install",
+          command:
+            'npx --yes pnpm@10.12.1 --dir "../my-app" install --frozen-lockfile',
+          requiresApproval: true,
+          executed: false,
+        },
       ],
     });
     expect(JSON.parse(test.instance())).toMatchObject({

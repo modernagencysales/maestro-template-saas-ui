@@ -318,14 +318,14 @@ function createData(
     preview,
     followUpActions: [
       {
-        id: "install",
-        command: `pnpm --dir ${quotedTarget} install`,
+        id: "git-init",
+        command: `git -C ${quotedTarget} init`,
         requiresApproval: true,
         executed: false,
       },
       {
-        id: "git-init",
-        command: `git -C ${quotedTarget} init`,
+        id: "install",
+        command: `npx --yes pnpm@10.12.1 --dir ${quotedTarget} install --frozen-lockfile`,
         requiresApproval: true,
         executed: false,
       },
