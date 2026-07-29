@@ -12,7 +12,8 @@ implementation work and technical diligence.
 ## Quickstart
 
 ```bash
-pnpm install
+node scripts/bootstrap-preflight.mjs
+npx --yes pnpm@10.12.1 install --frozen-lockfile
 pnpm review:readiness
 pnpm review:completion
 pnpm check:format
@@ -21,6 +22,12 @@ pnpm typecheck
 pnpm test
 pnpm build
 ```
+
+The first command uses only Node's standard library, so it works before
+workspace packages are installed. It rejects an ambient pnpm mismatch and prints
+the exact pinned install command. If Corepack cannot activate the pinned version
+because its signing keys are stale, use the displayed `npx` fallback and keep
+the same `npx --yes pnpm@10.12.1` prefix on later pnpm commands.
 
 `review:readiness` and `review:completion` are presence/evidence audits. They
 check required files and listed evidence paths; run `pnpm verify` for behavioral

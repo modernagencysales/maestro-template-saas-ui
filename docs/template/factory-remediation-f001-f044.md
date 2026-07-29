@@ -134,6 +134,9 @@ prove:
 - 2026-07-29: restored every root `template:*` package script to the executable
   generator boundary, then added exact leaf help for all 15 retained customer
   commands. Both direct argv and pnpm-forwarded `--` argv shapes now pass.
+- 2026-07-29: added a Node-standard-library bootstrap preflight for fresh
+  checkouts and removed pnpm 9.15.4 from the customer preflight allowlist so the
+  repository's `packageManager` field is the single version authority.
 
 ## Verification evidence
 
@@ -161,6 +164,42 @@ prove:
 - Remaining: F-001 still needs dependency-free preinstall diagnosis and F-008
   still needs full fresh-customer script/handler closure proof.
 - Status: partial fix; no primary ID is closed by this commit alone.
+
+### Package-manager bootstrap cluster
+
+- IDs/titles: F-001 (Fresh checkout cannot run generators before install), F-002
+  (Ambient pnpm is not pinned and frozen install gives a false failure), ES-F-01
+  (Frozen install failed with the globally installed pnpm), and ES-F-02
+  (Corepack could not install the pinned pnpm).
+- Original posture: F-001 and F-002 worked around/high; ES-F-01 and ES-F-02
+  worked around in the immutable external-user release.
+- Confirmed reproduction: ambient `pnpm --version` is 9.15.4 while
+  `package.json#packageManager` declares pnpm 10.12.1. Before dependencies are
+  linked, generator entrypoints necessarily import unavailable workspace
+  packages. The retained customer preflight also explicitly accepted 9.15.4,
+  contradicting the manifest authority and the frozen-install contract.
+- Regression: `scripts/bootstrap-preflight.test.mjs` runs the dependency-free
+  script against synthetic pnpm 10.12.1 and 9.15.4 executables, requiring exact
+  acceptance and a copy-paste-safe recovery. `composition.test.ts` pins the
+  customer policy to no alternate supported pnpm versions.
+- Canonical fix: `scripts/bootstrap-preflight.mjs` uses only Node built-ins,
+  reads the exact version from `packageManager`, performs no network mutation,
+  and reports the pinned frozen-install command plus Corepack signing-key
+  fallback. `customerComposition.ts` now accepts only the manifest version.
+  `README.md`, `quickstart.md`, and `preflight.md` put this check before install
+  or generator use and require the pinned `npx` prefix while ambient pnpm
+  remains mismatched.
+- Focused result:
+  `npx --yes pnpm@10.12.1 exec vitest run scripts/bootstrap-preflight.test.mjs --maxWorkers=1 --no-file-parallelism`
+  passes 2/2; the focused customer-policy test passes 1/1. The real pinned
+  invocation `npx --yes pnpm@10.12.1 exec node scripts/bootstrap-preflight.mjs`
+  exits zero and prints `pnpm 10.12.1 is ready`; direct ambient invocation exits
+  one and prints the exact `npx --yes pnpm@10.12.1 install --frozen-lockfile`
+  recovery without changing the worktree.
+- Clean-customer evidence: pending the post-commit materialization tests and
+  isolated public acceptance run.
+- Status: upstream implementation fixed; final fixed status waits for untouched
+  fresh-customer proof and the coherent commit coordinate.
 
 ### Generator leaf-help cluster
 
@@ -192,7 +231,7 @@ prove:
   `template:add-workflow -- -h` both exit zero and print their exact usage.
 - Clean-customer evidence: pending the isolated public materialization run.
 - Status: upstream implementation fixed; final fixed status waits for untouched
-  fresh-customer proof and the coherent commit coordinate.
+  fresh-customer proof. Implementation commit: `d17946a2`.
 
 No full acceptance command is yet claimed passing. Exact command outputs and
 commit coordinates will be added only after observation.

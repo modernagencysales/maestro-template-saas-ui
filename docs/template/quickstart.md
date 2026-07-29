@@ -10,6 +10,20 @@ Trust Receipt without live provider setup.
 
 ## 10-Minute Local Fake Mode
 
+From a fresh template or generated-customer checkout, validate the package
+manager before invoking any workspace command:
+
+```bash
+node scripts/bootstrap-preflight.mjs
+npx --yes pnpm@10.12.1 install --frozen-lockfile
+```
+
+This dependency-free preflight reads the exact version from `packageManager`,
+rejects an ambient mismatch, and prints the same pinned `npx` recovery command.
+Use that recovery when Corepack reports a signing-key error. Run generators only
+after the frozen install succeeds. If the ambient pnpm remains mismatched, keep
+the `npx --yes pnpm@10.12.1` prefix on every later pnpm command.
+
 For a customer app, preview a reviewed release first:
 
 ```bash
@@ -27,7 +41,8 @@ their separate approval items. See the
 From the completed customer target, the shortest visible-app path is:
 
 ```bash
-pnpm install
+node scripts/bootstrap-preflight.mjs
+npx --yes pnpm@10.12.1 install --frozen-lockfile
 pnpm maestro -- start
 ```
 
@@ -40,7 +55,8 @@ personal dev deployment. See [local start modes](./start-modes.md).
 Copy-paste path:
 
 ```bash
-pnpm install
+node scripts/bootstrap-preflight.mjs
+npx --yes pnpm@10.12.1 install --frozen-lockfile
 pnpm template:quickstart -- --blueprint source-grounded-gtm-brain --name "Client Brain" --write
 pnpm template:intake -- --name "Client Brain" --write
 pnpm template:doctor -- --mode fake
@@ -64,7 +80,8 @@ Before the first write, run `pnpm maestro -- preflight` and follow the
 [preflight readiness guide](./preflight.md) if it reports a blocked target or
 unsupported host posture.
 
-1. Install dependencies with `pnpm install`.
+1. Run `node scripts/bootstrap-preflight.mjs`, then install dependencies with
+   the exact pinned command it prints.
 2. Review `.env.example` and [env-manifest.md](./env-manifest.md). Keep the fake
    defaults unless this is a test/live provider setup. Leave `VITE_CONVEX_URL`
    blank for fake-safe local web mode.

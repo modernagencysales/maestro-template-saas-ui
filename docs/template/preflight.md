@@ -3,6 +3,20 @@
 Status: implemented. The typed read-only command, bounded Node host reader, CLI
 registration, and MCP projection share one fact model.
 
+Before dependencies exist, use the dependency-free bootstrap check:
+
+```bash
+node scripts/bootstrap-preflight.mjs
+```
+
+It reads `packageManager` from the root manifest, compares the ambient pnpm
+without contacting a registry, and prints the exact pinned frozen-install
+command. It also documents the `npx` recovery path for hosts where Corepack has
+stale signing keys. The typed Maestro preflight below runs after installation
+and accepts only the repository-declared pnpm version. When Corepack remains
+unavailable, keep the displayed `npx --yes pnpm@10.12.1` prefix on subsequent
+pnpm commands as well.
+
 Run preflight from the resolved repository root:
 
 ```bash
