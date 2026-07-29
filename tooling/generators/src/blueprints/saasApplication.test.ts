@@ -454,6 +454,24 @@ describe("saas application blueprint", () => {
     expect(entries[0]).toMatchObject({ path: runnerPath, replaces: "copy" });
   });
 
+  it("replaces release copies for the current deployment-authority closure", () => {
+    const entries = new Map(
+      buildSaasApplicationTargetPlan().entries.map((entry) => [
+        entry.path,
+        entry,
+      ]),
+    );
+
+    for (const path of CURRENT_SAAS_DEPLOY_AUTHORITY_TABLE_CLOSURE) {
+      expect(entries.get(path), path).toMatchObject({
+        ownership: "generated",
+        action: "generate",
+        upgrade: "regenerate",
+        replaces: "copy",
+      });
+    }
+  });
+
   it("emits deterministic workspace-safe CRUD and readiness contracts", async () => {
     const first = buildFactorySaasApplicationFiles({ name: "My App" });
     const second = buildFactorySaasApplicationFiles({ name: "My App" });
