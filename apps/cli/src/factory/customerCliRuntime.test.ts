@@ -229,10 +229,6 @@ describe("materialized customer CLI runtime closure", () => {
       cwd: target,
     });
     execFileSync("git", ["config", "user.name", "Fixture"], { cwd: target });
-    execFileSync("git", ["add", "."], { cwd: target });
-    execFileSync("git", ["commit", "--quiet", "--no-verify", "-m", "fixture"], {
-      cwd: target,
-    });
     for (const path of [
       "AGENTS.md",
       "CLAUDE.md",
@@ -328,6 +324,10 @@ describe("materialized customer CLI runtime closure", () => {
     expect(settingsHash()).toBe(
       "7825364f57b5c5f07c64d5c5bbbaa8046a6c1c21d3216112cc86f99d2e5b6ccc",
     );
+    execFileSync("git", ["add", "."], { cwd: target });
+    execFileSync("git", ["commit", "--quiet", "--no-verify", "-m", "fixture"], {
+      cwd: target,
+    });
     const hostBin = join(parent, "supported-host-bin");
     mkdirSync(hostBin);
     const corepack = join(hostBin, "corepack");
