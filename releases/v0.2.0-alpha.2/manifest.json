@@ -9,8 +9,8 @@
   "release": {
     "version": "0.2.0-alpha.2",
     "tag": "maestro-template-v0.2.0-alpha.2",
-    "sourceCommit": "29bbb888bf86df485783dba3c8cf021c423b8617",
-    "sourceChecksum": "sha256:f6b4bc86750c728908fe4c395afa19d0225b70db34797531f185a2f71b0fd9e3"
+    "sourceCommit": "63ca3f69b7c14d2edd434dfb597f6b44672f5e71",
+    "sourceChecksum": "sha256:ea944724da11a0450f9e6b7f333f076b1d4b56257c53867168c8bf284ceefc73"
   },
   "upgrade": {
     "schemaVersion": 1,
@@ -251,6 +251,13 @@
         "ownership": "template-owned",
         "beforeHash": "sha256:8750e861695a7a17685a1d0695c1f7cad583c2ce2812d1be849e3a7a19118836",
         "afterHash": "sha256:ba50a51a6f06b109f286e55e0bfbed0887465aa6e792763c6317c3ff17e31c37"
+      },
+      {
+        "id": "upgrade-add-tooling-release-fixtures-upgrade-provider-posture-v1-to-v2-contract-json",
+        "kind": "add",
+        "path": "tooling/release/__fixtures__/upgrade/provider-posture-v1-to-v2.contract.json",
+        "ownership": "template-owned",
+        "afterHash": "sha256:ac117e67d524834def10d892663b6a23cf59f4697e1232c8b2e133361de90af2"
       }
     ],
     "requirements": []
@@ -316,7 +323,7 @@
   ],
   "blueprintManifest": {
     "path": "blueprints/saas-application.json",
-    "sha256": "sha256:918b07526655ea3a14658cc23344dc1f8dbf81764332aade5f91c2f91849117d"
+    "sha256": "sha256:a331c2383d1fd9553fcca7e46f91cafd3bfef5a5e2fca813266de443d6191c55"
   },
   "migrationHandoff": {
     "required": false,
@@ -328,10 +335,10 @@
   },
   "upgradeImpact": {
     "path": "releases/v0.2.0-alpha.2/upgrade/app-map-input.json",
-    "sha256": "sha256:41a065a2d3fdd3ea42d84e331443e14d83c9c78cdf79b0a337f96b38ddaed425",
+    "sha256": "sha256:90a1a6cbb4990bdb23ce286d7b3df004483f127838100d317df0c044e4577214",
     "projection": {
       "path": "releases/v0.2.0-alpha.2/upgrade/app-map-impact.json",
-      "sha256": "sha256:426ad33856bde79166699f046068ca4c6ccf5fd6887dedac6085f172053644da"
+      "sha256": "sha256:e0aae6fd548ddeb5ed4fbae4c1f22e0578e207638cfc03ea0eb25acdcf08759c"
     }
   }
 }
