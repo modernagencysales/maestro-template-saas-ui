@@ -679,10 +679,10 @@ export default GroupSpec.make()
       path: `packages/convex/confect/workflowContracts/${name}.impl.ts`,
       content: `import type { GenericId } from "convex/values";
 import {
-  getStatus,
-  type WorkflowComponent,
-  type WorkflowId,
-} from "@convex-dev/workflow";
+  getMaestroWorkflowStatus as getStatus,
+  type MaestroWorkflowComponent as WorkflowComponent,
+  type MaestroWorkflowId as WorkflowId,
+} from "../workflows/_kit/defineMaestroWorkflow";
 import { FunctionImpl, GroupImpl } from "@confect/server";
 import * as Clock from "effect/Clock";
 import * as Effect from "effect/Effect";
@@ -715,10 +715,7 @@ import {
   createWorkflowUserPrincipal,
   type DurableWorkflowPrincipal,
 } from "../workflows/_kit/principal";
-import {
-  resolveWorkflowPolicySnapshotForRun,
-  type WorkflowPolicySnapshot,
-} from "../workflows/_kit/policySnapshot";
+import type { WorkflowPolicySnapshot } from "../workflows/_kit/policySnapshot";
 import type {
   WorkflowCompletionResult,
   WorkflowOnCompleteContext,
@@ -811,8 +808,8 @@ const toWorkflowValidationFailed = (): ValidationFailed =>
   });
 const toWorkflowError = (error: unknown): WorkflowError =>
   isWorkflowError(error) ? error : toWorkflowValidationFailed();
-const preserveWorkflowStartErrors = <A, R>(
-  effect: Effect.Effect<A, unknown, R>,
+const preserveWorkflowStartErrors = <A, E, R>(
+  effect: Effect.Effect<A, E, R>,
 ): Effect.Effect<A, WorkflowStartError, R> =>
   effect.pipe(
     Effect.catchAll((error) =>
@@ -870,10 +867,14 @@ const startWithProfile = (
         authEpoch: access.authEpoch,
         kickoffAt: startedAt,
       });
-      const policySnapshot = yield* resolveWorkflowPolicySnapshotForRun(
-        ${name}Graph.policyPosture,
-        { workspaceId, resolvedAt: startedAt },
-      ).pipe(Effect.mapError(toWorkflowPolicyValidationFailed));
+      if (${name}Graph.policyPosture.kind !== "none") {
+        return yield* toWorkflowPolicyValidationFailed();
+      }
+      const policySnapshot: WorkflowPolicySnapshot = {
+        version: 1,
+        kind: "none",
+        reason: ${name}Graph.policyPosture.reason,
+      };
       const componentWorkflowId = yield* startWorkflowAndRecordOwnership({
         workflowRef: ${name}RunRef,
         onCompleteRef: ${name}OnCompleteRef,
