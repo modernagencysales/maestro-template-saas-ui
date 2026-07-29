@@ -394,5 +394,37 @@ prove:
 - Status: upstream implementation fixed; final fixed status waits for untouched
   fresh-customer proof. Implementation commit: `d17946a2`.
 
+### Generated feature fixture lint cluster
+
+- ID/title: F-030 (Generated frontend feature fixtures violate the customer lint
+  policy).
+- Original posture: open in the template, corrected only in ChangeSignal;
+  severity medium.
+- Confirmed reproduction: both canonical `add-feature` emitters generated
+  `fake<Feature>Items[0]!` for the edit and success states while the retained
+  customer ESLint policy rejects non-null assertions. Focused root and customer
+  runtime regressions failed on the emitted fixture bytes before the repair.
+- Root cause: the fixture states recovered a known singleton through an
+  unchecked array lookup instead of giving that canonical item its own typed
+  binding. The duplicated root and materialized-customer emitters shared the
+  same defect.
+- Regression: `tooling/generators/src/index.test.ts` and
+  `tooling/generators/src/customer-runtime.test.ts` require the typed singleton,
+  require edit/success states to reuse it, and reject `[0]!` in emitted fixture
+  source.
+- Canonical fix: `tooling/generators/src/index.ts` and
+  `tooling/generators/src/customer-runtime.ts` now emit one typed
+  `fake<Feature>Item`, derive the fixture array from it, and reuse the binding
+  in every state. No lint rule, compiler option, or generated customer file was
+  weakened or hand-edited.
+- Focused result: the two red-to-green regressions pass 2/2; the complete root
+  and customer generator files pass 82/82; generator typecheck, scoped ESLint,
+  formatting, and `check:generators` all exit zero.
+- Clean-customer evidence: canonical source and public customer-runtime output
+  are covered; final untouched fresh-customer lint and full acceptance remain
+  pending.
+- Status: upstream implementation fixed; final fixed status waits for the
+  isolated clean-customer acceptance run.
+
 No full acceptance command is yet claimed passing. Exact command outputs and
 commit coordinates will be added only after observation.

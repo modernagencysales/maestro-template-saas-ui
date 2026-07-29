@@ -123,6 +123,35 @@ describe("customer generator runtime", () => {
     }
   });
 
+  it("emits feature fixtures that satisfy the customer lint policy", () => {
+    const preview = runCustomerGeneratorCli(
+      [
+        "add-feature",
+        "--name",
+        "customerReview",
+        "--system",
+        "knowledge-brain",
+        "--disposition",
+        "extend",
+      ],
+      repoRoot,
+    );
+
+    expect(preview.exitCode).toBe(0);
+    const result = JSON.parse(preview.stdout) as {
+      files: readonly { path: string; content: string }[];
+    };
+    const fixture = result.files.find(({ path }) =>
+      path.endsWith("/fixtures.ts"),
+    )?.content;
+    expect(fixture).toContain(
+      "export const fakeCustomerReviewItem: CustomerReviewItem",
+    );
+    expect(fixture).toContain("draft: fakeCustomerReviewItem");
+    expect(fixture).toContain("item: fakeCustomerReviewItem");
+    expect(fixture).not.toContain("[0]!");
+  });
+
   it("previews and writes an add-table lifecycle slice", () => {
     const cwd = mkdtempSync(join(tmpdir(), "maestro-customer-table-"));
     try {

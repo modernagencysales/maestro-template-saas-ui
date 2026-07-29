@@ -2417,6 +2417,9 @@ describe("template app factory generators", () => {
     const model = result.files.find(({ path }) =>
       path.endsWith("/accountSignals/model.ts"),
     )?.content;
+    const fixture = result.files.find(({ path }) =>
+      path.endsWith("/accountSignals/fixtures.ts"),
+    )?.content;
     const route = result.files.find(({ path }) =>
       path.endsWith("/_workspace.account-signals.tsx"),
     )?.content;
@@ -2456,6 +2459,12 @@ describe("template app factory generators", () => {
     expect(model).toContain('status: "typed-error"');
     expect(model).toContain('status: "transport-error"');
     expect(model).toContain('status: "success"');
+    expect(fixture).toContain(
+      "export const fakeAccountSignalsItem: AccountSignalsItem",
+    );
+    expect(fixture).toContain("draft: fakeAccountSignalsItem");
+    expect(fixture).toContain("item: fakeAccountSignalsItem");
+    expect(fixture).not.toContain("[0]!");
     expect(route).toContain("AccountSignalsScreen");
     expect(route).not.toContain("Feature");
     expect(JSON.parse(provenance?.content ?? "{}")).toMatchObject({
