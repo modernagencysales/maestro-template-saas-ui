@@ -98,7 +98,8 @@ steps:
     depends_on: "phase-1"
     command:
       "pnpm exec tsx tooling/release/src/deploy/authorityCli.ts staging
-      ${BUILDKITE_COMMIT} template-staging"
+      ${BUILDKITE_COMMIT} template-staging $(node scripts/_project-config.mjs
+      get staging convexUrl)"
     agents:
       queue: "linux-small"
 
@@ -127,7 +128,8 @@ steps:
     depends_on: "production-approval"
     command:
       "pnpm exec tsx tooling/release/src/deploy/authorityCli.ts production
-      ${BUILDKITE_COMMIT} template-production"
+      ${BUILDKITE_COMMIT} template-production $(node scripts/_project-config.mjs
+      get production convexUrl)"
     agents:
       queue: "linux-small"
 

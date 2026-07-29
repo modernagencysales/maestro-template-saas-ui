@@ -166,11 +166,20 @@ export const validateDeployAuthoritySources = (input: {
     if (!preflight) {
       failures.push(`pipeline is missing ${job.preflight}`);
     } else {
+      const normalizedPreflight = preflight.replace(/\s+/g, " ");
       if (!preflight.includes(`depends_on: "${job.approval}"`))
         failures.push(`${job.preflight} must depend on ${job.approval}`);
       if (!preflight.includes(preflightCall))
         failures.push(
           `${job.preflight} must call the durable authority preflight`,
+        );
+      if (
+        !normalizedPreflight.includes(
+          `${preflightCall} \${BUILDKITE_COMMIT} template-${environment} $(node scripts/_project-config.mjs get ${environment} convexUrl)`,
+        )
+      )
+        failures.push(
+          `${job.preflight} must pass the canonical ${environment} Convex URL to the durable authority preflight`,
         );
       if (preflight.includes("secrets:"))
         failures.push(`${job.preflight} must remain secretless`);

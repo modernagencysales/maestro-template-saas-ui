@@ -1,6 +1,7 @@
 import { generateKeyPairSync, sign as cryptoSign } from "node:crypto";
 import { describe, expect, it, vi } from "vitest";
 
+import { runDurableDeployAuthorityPreflight } from "./authorityCli.js";
 import {
   handleDurableDeployAuthority,
   PINNED_DEPLOY_AUTHORITY_ISSUER_ID,
@@ -193,6 +194,28 @@ describe("durable deploy authority", () => {
         }),
       ).rejects.toThrow(/HTTPS base URL/);
     }
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("blocks a target-coupled preflight before any network request", async () => {
+    const signing = keys();
+    const fetchSpy = vi.fn() as unknown as typeof fetch;
+    await expect(
+      runDurableDeployAuthorityPreflight(
+        [
+          "staging",
+          "a".repeat(40),
+          "template-staging",
+          "https://target-deployment.convex.cloud",
+        ],
+        {
+          endpoint: "https://target-deployment.convex.cloud",
+          publicKeyPem: signing.publicKeyPem,
+          nowMs: () => now,
+          fetch: fetchSpy,
+        },
+      ),
+    ).rejects.toThrow(/independent HTTPS base URL/);
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 

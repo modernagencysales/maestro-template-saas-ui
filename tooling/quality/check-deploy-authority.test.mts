@@ -93,6 +93,7 @@ describe("deploy authority self-protection", () => {
         "pnpm exec tsx tooling/release/src/deploy/authorityCli.ts staging",
         "pnpm exec tsx tooling/release/src/deploy/authorityCli.ts removed",
       ),
+      base.pipeline.replace("staging convexUrl", "production convexUrl"),
       `${base.pipeline}\npnpm exec tsx tooling/release/src/deploy/authorityCli.ts production deadbeef template-production\n`,
     ]) {
       expect(validateDeployAuthoritySources({ ...base, pipeline })).not.toEqual(
