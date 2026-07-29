@@ -37,6 +37,7 @@ export {
 import { buildWorkflowFiles } from "./workflow-files";
 export { buildWorkflowFiles } from "./workflow-files";
 import { bumpRelease, publishRelease } from "./workflow-release-commands";
+export { parseCustomerTemplateInstance } from "./customer-runtime";
 
 export type ProviderMode = "fake" | "test" | "live";
 export type SystemGeneratorDisposition = "reuse" | "extend";

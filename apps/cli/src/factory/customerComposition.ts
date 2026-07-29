@@ -17,7 +17,7 @@ import {
   buildBlueprintCatalog,
   buildTemplateInstance,
   doctorTemplateInstance,
-  parseTemplateInstance,
+  parseCustomerTemplateInstance,
   readDataResourceCatalog,
   readProductTopology,
   readSystemCatalog,
@@ -36,7 +36,6 @@ import {
   createComposedStartCommand,
   createStartCliHandler,
   createStartOutputBoundary,
-  parseStartTargetInstance,
 } from "./start";
 import { createSupportBundleCliHandler } from "./supportBundle";
 import { createVerifyCliHandler } from "./verify";
@@ -90,20 +89,7 @@ const descriptors = defineQualityDiagnosticRegistryProjection(
   defineDiagnosticRegistryProjection,
 );
 
-const parseCustomerInstance = (raw: string) =>
-  parseStartTargetInstance(raw, parseTemplateInstance, (identity) => {
-    const blueprint = buildBlueprintCatalog().find(
-      ({ id }) => id === identity.blueprint,
-    )?.id;
-    if (blueprint === undefined)
-      throw new Error("Customer blueprint is not reviewed.");
-    return buildTemplateInstance({
-      name: identity.name,
-      blueprint,
-      providerMode: "fake",
-      generatedAt: "1970-01-01T00:00:00.000Z",
-    });
-  });
+const parseCustomerInstance = parseCustomerTemplateInstance;
 
 export function createCustomerCliComposition(
   readEnvironment: CompositionEnvironmentReader,

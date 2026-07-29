@@ -19,6 +19,10 @@ import {
   parseSystemCatalog,
   type SystemCatalog,
 } from "@maestro-template/template-core/systemCatalog";
+import {
+  resolveTemplateInstanceCompatibility,
+  templateInstanceSchemaProvider,
+} from "@maestro-template/template-core/templateInstance";
 import { gtmImplementationBlueprint } from "./blueprints/gtmImplementation";
 
 export { buildWorkflowFiles } from "./workflow-files";
@@ -572,6 +576,60 @@ export const parseTemplateInstance = (raw: string): TemplateInstance => {
     },
     ...(parsed.intake ? { intake: parsed.intake } : {}),
   } as TemplateInstance;
+};
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
+export const parseCustomerTemplateInstance = (
+  raw: string,
+): TemplateInstance => {
+  try {
+    return parseTemplateInstance(raw);
+  } catch (legacyError) {
+    let input: unknown;
+    try {
+      input = JSON.parse(raw) as unknown;
+    } catch {
+      throw legacyError;
+    }
+    const resolution = resolveTemplateInstanceCompatibility(input);
+    if (!resolution.safeToContinueReadOnly) {
+      throw new Error(
+        `[${resolution.code}] template-instance.json is not readable by this customer runtime: ${resolution.recovery.action}`,
+      );
+    }
+    const canonical =
+      resolution.status === "compatible"
+        ? templateInstanceSchemaProvider.parse(input)
+        : input;
+    const personalization = isRecord(canonical)
+      ? canonical.personalization
+      : undefined;
+    const blueprint = isRecord(canonical) ? canonical.blueprint : undefined;
+    const name = isRecord(personalization) ? personalization.name : undefined;
+    const blueprintId = isRecord(blueprint) ? blueprint.id : undefined;
+    if (
+      typeof name !== "string" ||
+      name.trim() === "" ||
+      typeof blueprintId !== "string" ||
+      ![
+        "source-grounded-gtm-brain",
+        "gtm-implementation",
+        "saas-application",
+      ].includes(blueprintId)
+    ) {
+      throw new Error(
+        "template-instance.json is missing canonical personalization.name or blueprint.id",
+      );
+    }
+    return buildTemplateInstance({
+      name,
+      blueprint: blueprintId as BlueprintId,
+      providerMode: "fake",
+      generatedAt: "1970-01-01T00:00:00.000Z",
+    });
+  }
 };
 
 const providerChecks = (

@@ -197,6 +197,35 @@ prove:
   one and prints the exact `npx --yes pnpm@10.12.1 install --frozen-lockfile`
   recovery without changing the worktree.
 - Clean-customer evidence: pending the post-commit materialization tests and
+  isolated public acceptance run. The post-commit release-shaped
+  `test:customer-cli-runtime` projection passes 2/2 after cloning committed
+  `HEAD`, frozen-installing the customer, and importing its retained runtime.
+- Status: upstream implementation fixed; final fixed status waits for untouched
+  fresh-customer proof. Implementation commit: `2f90cde9`.
+
+### Canonical customer instance cluster
+
+- ID/title: F-009 (Generated doctor rejects generated template instance).
+- Original posture: open/critical.
+- Confirmed reproduction: a customer materialized by public create receives the
+  versioned release-authority schema (`schemaVersion`, `release`, `blueprint`,
+  and `personalization`), while `template:doctor` called the unrelated legacy
+  parser requiring top-level `name`, `slug`, and `providerMode`; it exited one
+  with `template-instance.json is missing name, slug, or providerMode`.
+- Regression: `customer-runtime.test.ts` supplies the exact version-one shape
+  emitted by public create, including release authority, and requires fake
+  doctor success without changing a byte of the instance file.
+- Canonical fix: `customer-runtime.ts` now owns one read-only version-aware
+  adapter. Legacy manifests remain supported; versioned manifests must receive a
+  safe canonical compatibility resolution from
+  `@maestro-template/template-core/templateInstance` before their customer
+  identity is projected into the existing doctor model. Customer doctor,
+  preflight, start, and provider-posture inspection all consume this shared
+  reader through `customer-dispatcher.ts` and `customerComposition.ts`.
+- Focused result:
+  `npx --yes pnpm@10.12.1 exec vitest run tooling/generators/src/customer-runtime.test.ts tooling/generators/src/customer-closure.test.ts --maxWorkers=1 --no-file-parallelism`
+  passes 21/21; generator and CLI typechecks both exit zero.
+- Clean-customer evidence: pending the post-commit release-shaped test and
   isolated public acceptance run.
 - Status: upstream implementation fixed; final fixed status waits for untouched
   fresh-customer proof and the coherent commit coordinate.

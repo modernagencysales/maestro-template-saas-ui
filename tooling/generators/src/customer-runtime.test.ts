@@ -31,6 +31,52 @@ const seedCatalogs = (cwd: string): void => {
 };
 
 describe("customer generator runtime", () => {
+  it("doctors the canonical versioned instance emitted by public create", () => {
+    const cwd = mkdtempSync(join(tmpdir(), "maestro-customer-doctor-"));
+    const instancePath = join(cwd, "template-instance.json");
+    const source = `${JSON.stringify(
+      {
+        schemaVersion: 1,
+        release: {
+          version: "0.2.0-alpha.1",
+          tag: "maestro-template-v0.2.0-alpha.1",
+          sourceCommit: "0123456789abcdef0123456789abcdef01234567",
+          sourceChecksum: `sha256:${"a".repeat(64)}`,
+        },
+        compatibility: {
+          cli: ">=0.1.0-alpha.1 <0.2.0",
+          agentPack: ">=0.1.0-alpha.1 <0.2.0",
+        },
+        ownership: { manifest: "tagged-current-composition" },
+        blueprint: { id: "saas-application" },
+        personalization: {
+          name: "Customer Doctor",
+          firstOutcome: "Verify the generated instance",
+          demoOnly: true,
+        },
+      },
+      null,
+      2,
+    )}\n`;
+    try {
+      writeFileSync(instancePath, source);
+      const result = runCustomerGeneratorCli(
+        ["doctor", "--", "--mode", "fake"],
+        cwd,
+      );
+
+      expect(result.exitCode).toBe(0);
+      expect(JSON.parse(result.stdout)).toMatchObject({
+        ok: true,
+        mode: "fake",
+        instancePath,
+      });
+      expect(readFileSync(instancePath, "utf8")).toBe(source);
+    } finally {
+      rmSync(cwd, { recursive: true, force: true });
+    }
+  });
+
   it.each(CUSTOMER_COMMANDS)("publishes exact help for %s", (command) => {
     for (const flag of ["--help", "-h"]) {
       for (const argv of [

@@ -13,7 +13,7 @@ import {
   buildWorkflowFiles,
   buildWorkflowPromotionFiles,
   doctorTemplateInstance,
-  parseTemplateInstance,
+  parseCustomerTemplateInstance,
   readDataResourceCatalog,
   readProductTopology,
   readSystemCatalog,
@@ -110,7 +110,8 @@ const customerCommandHelp = {
   "publish-capability":
     "template:publish-capability --name <name> --version <N>",
   "publish-workflow": "template:publish-workflow --name <name> --version <N>",
-  doctor: "template:doctor [--path <template-instance.json>]",
+  doctor:
+    "template:doctor [--mode fake|test|live] [--path <template-instance.json>]",
   systems:
     "template:systems [--query <exact-id-alias-responsibility-or-table>]",
   smoke: "template:smoke",
@@ -159,12 +160,21 @@ export const runCustomerGeneratorCli = (
         cwd,
         valueAfter(cliArgv, "--path") ?? "template-instance.json",
       );
+      const requestedMode = valueAfter(cliArgv, "--mode");
+      if (
+        requestedMode !== undefined &&
+        !["fake", "test", "live"].includes(requestedMode)
+      )
+        throw new Error(`Unknown provider mode: ${requestedMode}`);
       return json(
         doctorTemplateInstance(
-          parseTemplateInstance(readFileSync(path, "utf8")),
+          parseCustomerTemplateInstance(readFileSync(path, "utf8")),
           {
             repoRoot: cwd,
             instancePath: path,
+            ...(requestedMode === undefined
+              ? {}
+              : { mode: requestedMode as "fake" | "test" | "live" }),
           },
         ),
       );
