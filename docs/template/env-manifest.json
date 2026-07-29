@@ -166,6 +166,138 @@
       "notes": "Namespaced CI secret fallback used by template Buildkite scripts."
     },
     {
+      "name": "TEMPLATE_STAGING_CONVEX_DEPLOYMENT",
+      "group": "convex",
+      "services": ["deploy", "ci"],
+      "visibility": "server-config",
+      "requiredFor": ["deploy"],
+      "fakeExampleAllowed": false,
+      "owner": "Backend owner",
+      "rotation": "Update only when the isolated staging deployment changes.",
+      "notes": "Externally bound staging Convex deployment coordinate."
+    },
+    {
+      "name": "TEMPLATE_STAGING_CONVEX_URL",
+      "group": "convex",
+      "services": ["deploy", "ci", "web"],
+      "visibility": "public-config",
+      "requiredFor": ["deploy"],
+      "fakeExampleAllowed": false,
+      "owner": "Backend owner",
+      "rotation": "Update only when the isolated staging deployment changes.",
+      "notes": "Externally bound staging Convex origin; must differ from production."
+    },
+    {
+      "name": "TEMPLATE_STAGING_HOSTED_URL",
+      "group": "cloudflare",
+      "services": ["deploy", "ci", "web"],
+      "visibility": "public-config",
+      "requiredFor": ["deploy"],
+      "fakeExampleAllowed": false,
+      "owner": "Deploy owner",
+      "rotation": "Update when the staging hosted origin changes.",
+      "notes": "Exact staging URL used by post-deploy hosted canaries."
+    },
+    {
+      "name": "TEMPLATE_PRODUCTION_CONVEX_DEPLOYMENT",
+      "group": "convex",
+      "services": ["deploy", "ci"],
+      "visibility": "server-config",
+      "requiredFor": ["deploy"],
+      "fakeExampleAllowed": false,
+      "owner": "Backend owner",
+      "rotation": "Update only when the isolated production deployment changes.",
+      "notes": "Externally bound production Convex deployment coordinate."
+    },
+    {
+      "name": "TEMPLATE_PRODUCTION_CONVEX_URL",
+      "group": "convex",
+      "services": ["deploy", "ci", "web"],
+      "visibility": "public-config",
+      "requiredFor": ["deploy"],
+      "fakeExampleAllowed": false,
+      "owner": "Backend owner",
+      "rotation": "Update only when the isolated production deployment changes.",
+      "notes": "Externally bound production Convex origin; must differ from staging."
+    },
+    {
+      "name": "TEMPLATE_PRODUCTION_HOSTED_URL",
+      "group": "cloudflare",
+      "services": ["deploy", "ci", "web"],
+      "visibility": "public-config",
+      "requiredFor": ["deploy"],
+      "fakeExampleAllowed": false,
+      "owner": "Deploy owner",
+      "rotation": "Update when the production hosted origin changes.",
+      "notes": "Exact production URL used by post-deploy hosted canaries."
+    },
+    {
+      "name": "TEMPLATE_STAGING_CONVEX_DEPLOY_KEY",
+      "group": "convex",
+      "services": ["deploy", "ci"],
+      "visibility": "ci-secret",
+      "requiredFor": ["ci"],
+      "fakeExampleAllowed": false,
+      "owner": "Deploy owner",
+      "rotation": "Rotate after staging deploy-admin changes.",
+      "notes": "Staging-only Convex deploy credential."
+    },
+    {
+      "name": "TEMPLATE_PRODUCTION_CONVEX_DEPLOY_KEY",
+      "group": "convex",
+      "services": ["deploy", "ci"],
+      "visibility": "ci-secret",
+      "requiredFor": ["ci"],
+      "fakeExampleAllowed": false,
+      "owner": "Deploy owner",
+      "rotation": "Rotate after production deploy-admin changes.",
+      "notes": "Production-only Convex deploy credential."
+    },
+    {
+      "name": "TEMPLATE_STAGING_CLOUDFLARE_API_TOKEN",
+      "group": "cloudflare",
+      "services": ["deploy", "ci"],
+      "visibility": "ci-secret",
+      "requiredFor": ["ci"],
+      "fakeExampleAllowed": false,
+      "owner": "Deploy owner",
+      "rotation": "Rotate after staging deploy-admin changes.",
+      "notes": "Staging Pages-project-scoped Cloudflare token."
+    },
+    {
+      "name": "TEMPLATE_STAGING_CLOUDFLARE_ACCOUNT_ID",
+      "group": "cloudflare",
+      "services": ["deploy", "ci"],
+      "visibility": "server-config",
+      "requiredFor": ["ci"],
+      "fakeExampleAllowed": false,
+      "owner": "Deploy owner",
+      "rotation": "Review when staging Cloudflare account ownership changes.",
+      "notes": "Staging Cloudflare account binding."
+    },
+    {
+      "name": "TEMPLATE_PRODUCTION_CLOUDFLARE_API_TOKEN",
+      "group": "cloudflare",
+      "services": ["deploy", "ci"],
+      "visibility": "ci-secret",
+      "requiredFor": ["ci"],
+      "fakeExampleAllowed": false,
+      "owner": "Deploy owner",
+      "rotation": "Rotate after production deploy-admin changes.",
+      "notes": "Production Pages-project-scoped Cloudflare token."
+    },
+    {
+      "name": "TEMPLATE_PRODUCTION_CLOUDFLARE_ACCOUNT_ID",
+      "group": "cloudflare",
+      "services": ["deploy", "ci"],
+      "visibility": "server-config",
+      "requiredFor": ["ci"],
+      "fakeExampleAllowed": false,
+      "owner": "Deploy owner",
+      "rotation": "Review when production Cloudflare account ownership changes.",
+      "notes": "Production Cloudflare account binding."
+    },
+    {
       "name": "WORKOS_CLIENT_ID",
       "group": "workos",
       "services": ["web", "convex"],
@@ -688,6 +820,28 @@
       "notes": "Already-live independent deployment-authority HTTPS origin. It must be a base URL without credentials, path, query, or fragment and must not be the target Convex origin."
     },
     {
+      "name": "PROMOTION_AUTHORITY_MODE",
+      "group": "deployment-authority",
+      "services": ["convex", "authority-runtime"],
+      "visibility": "server-config",
+      "requiredFor": ["authority"],
+      "fakeExampleAllowed": false,
+      "owner": "Deployment authority owner",
+      "rotation": "Immutable for the independent authority deployment; review any mode change as a control-plane migration.",
+      "notes": "Authority-runtime discriminator. The only accepted value is exactly authority; application staging and production deployments must not set it."
+    },
+    {
+      "name": "PROMOTION_AUTHORITY_PRIVATE_KEY_PKCS8_BASE64URL",
+      "group": "deployment-authority",
+      "services": ["convex", "authority-runtime"],
+      "visibility": "server-secret",
+      "requiredFor": ["authority"],
+      "fakeExampleAllowed": false,
+      "owner": "Deployment authority owner",
+      "rotation": "Rotate through the independent authority key ceremony and republish the reviewed public trust material.",
+      "notes": "Ed25519 PKCS#8 signing key for the authority runtime only. Never provision, expose, query, or serialize this value in Buildkite or application deploy receipts."
+    },
+    {
       "name": "TRUSTED_DEPLOY_ROOT_SHA256",
       "group": "buildkite",
       "services": ["ci", "deploy"],
@@ -697,6 +851,138 @@
       "owner": "Deployment authority owner",
       "rotation": "Update through an external reviewed trust-root ceremony only.",
       "notes": "Externally pinned sha256 root over the deploy verifier, policy, and public verification key. The authority signing key never enters this repository or Buildkite."
+    },
+    {
+      "name": "TRUSTED_CI_SELF_PROTECTION_COMMIT",
+      "group": "buildkite",
+      "services": ["ci", "deploy"],
+      "visibility": "server-config",
+      "requiredFor": ["deploy"],
+      "fakeExampleAllowed": false,
+      "owner": "CI owner",
+      "rotation": "Advance only after the reviewed self-protection successor commit is immutable.",
+      "notes": "Exact externally pinned commit whose setup, deploy-authority verifier, and secretless self-protection script run instead of PR-head bootstrap scripts."
+    },
+    {
+      "name": "TRUSTED_ROLLBACK_SEED_COMMIT",
+      "group": "buildkite",
+      "services": ["ci", "deploy"],
+      "visibility": "server-config",
+      "requiredFor": ["deploy"],
+      "fakeExampleAllowed": false,
+      "owner": "Deploy owner",
+      "rotation": "Set once to the first reviewed guarded successor; advance only through a separately reviewed freeze ceremony.",
+      "notes": "Exact immutable rollback ancestry floor. Pre-seed targets are never eligible for automated rollback."
+    },
+    {
+      "name": "STAGING_PREVIOUS_CONVEX_COMMIT_SHA",
+      "group": "buildkite",
+      "services": ["ci", "deploy"],
+      "visibility": "server-config",
+      "requiredFor": ["ci"],
+      "fakeExampleAllowed": false,
+      "owner": "Deploy owner",
+      "rotation": "Advance after each accepted staging deployment.",
+      "notes": "Reviewed prior staging commit recorded in the next rollback receipt."
+    },
+    {
+      "name": "STAGING_PREVIOUS_CONVEX_DEPLOYMENT",
+      "group": "buildkite",
+      "services": ["ci", "deploy"],
+      "visibility": "server-config",
+      "requiredFor": ["ci"],
+      "fakeExampleAllowed": false,
+      "owner": "Backend owner",
+      "rotation": "Advance when the staging Convex deployment coordinate changes.",
+      "notes": "Reviewed prior staging Convex deployment coordinate."
+    },
+    {
+      "name": "STAGING_PREVIOUS_CLOUDFLARE_DEPLOYMENT_VERSION",
+      "group": "buildkite",
+      "services": ["ci", "deploy"],
+      "visibility": "server-config",
+      "requiredFor": ["ci"],
+      "fakeExampleAllowed": false,
+      "owner": "Deploy owner",
+      "rotation": "Advance after each accepted staging Pages deployment.",
+      "notes": "Reviewed prior staging Cloudflare deployment version."
+    },
+    {
+      "name": "PRODUCTION_PREVIOUS_CONVEX_COMMIT_SHA",
+      "group": "buildkite",
+      "services": ["ci", "deploy"],
+      "visibility": "server-config",
+      "requiredFor": ["ci"],
+      "fakeExampleAllowed": false,
+      "owner": "Deploy owner",
+      "rotation": "Advance after each accepted production deployment.",
+      "notes": "Reviewed prior production commit recorded in the next rollback receipt."
+    },
+    {
+      "name": "PRODUCTION_PREVIOUS_CONVEX_DEPLOYMENT",
+      "group": "buildkite",
+      "services": ["ci", "deploy"],
+      "visibility": "server-config",
+      "requiredFor": ["ci"],
+      "fakeExampleAllowed": false,
+      "owner": "Backend owner",
+      "rotation": "Advance when the production Convex deployment coordinate changes.",
+      "notes": "Reviewed prior production Convex deployment coordinate."
+    },
+    {
+      "name": "PRODUCTION_PREVIOUS_CLOUDFLARE_DEPLOYMENT_VERSION",
+      "group": "buildkite",
+      "services": ["ci", "deploy"],
+      "visibility": "server-config",
+      "requiredFor": ["ci"],
+      "fakeExampleAllowed": false,
+      "owner": "Deploy owner",
+      "rotation": "Advance after each accepted production Pages deployment.",
+      "notes": "Reviewed prior production Cloudflare deployment version."
+    },
+    {
+      "name": "RUN_ROLLBACK",
+      "group": "buildkite",
+      "services": ["ci", "deploy"],
+      "visibility": "server-config",
+      "requiredFor": ["ci"],
+      "fakeExampleAllowed": false,
+      "owner": "Deploy owner",
+      "rotation": "Set only for a reviewed rollback build and clear afterward.",
+      "notes": "Selects the guarded production rollback path."
+    },
+    {
+      "name": "ROLLBACK_RECEIPT_PATH",
+      "group": "buildkite",
+      "services": ["ci", "deploy"],
+      "visibility": "server-config",
+      "requiredFor": ["ci"],
+      "fakeExampleAllowed": false,
+      "owner": "Deploy owner",
+      "rotation": "Bind to the reviewed receipt artifact for each rollback.",
+      "notes": "Local path of the downloaded guarded deployment receipt."
+    },
+    {
+      "name": "ROLLBACK_RECEIPT_BUILD_ID",
+      "group": "buildkite",
+      "services": ["ci", "deploy"],
+      "visibility": "public-config",
+      "requiredFor": ["deploy"],
+      "fakeExampleAllowed": false,
+      "owner": "Deploy owner",
+      "rotation": "Bind to the immutable source build recorded by each reviewed rollback receipt.",
+      "notes": "Public Buildkite build coordinate used to reject a receipt from any other deployment build."
+    },
+    {
+      "name": "ROLLBACK_CLOUDFLARE_DEPLOYMENT_VERSION",
+      "group": "buildkite",
+      "services": ["ci", "deploy"],
+      "visibility": "server-config",
+      "requiredFor": ["ci"],
+      "fakeExampleAllowed": false,
+      "owner": "Deploy owner",
+      "rotation": "Bind to the exact reviewed prior version for each rollback.",
+      "notes": "Must match the prior Cloudflare version and checked-out rollback commit."
     },
     {
       "name": "BUILDKITE_PULL_REQUEST",

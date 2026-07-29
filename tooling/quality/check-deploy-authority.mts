@@ -13,6 +13,7 @@ type DeployPolicy = {
     readonly guardedDeployOwner: string;
     readonly requiredActions: readonly ["convex", "cloudflare"];
     readonly forbiddenBuildkiteEnv: readonly string[];
+    readonly requiredBindings: readonly string[];
   };
   readonly jobs: Readonly<
     Record<
@@ -22,10 +23,14 @@ type DeployPolicy = {
         readonly approval: string;
         readonly deploy: string;
         readonly script: string;
+        readonly credentialSecrets: readonly string[];
       }
     >
   >;
-  readonly credentialSecrets: readonly string[];
+  readonly rollbackScript: string;
+  readonly rollbackSeedCommitBinding: string;
+  readonly trustedSelfProtectionCommitBinding: string;
+  readonly legacyCredentialSecretsForbidden: readonly string[];
 };
 
 export const deployPolicySha256 = (source: string): string =>
@@ -44,6 +49,7 @@ export const validateDeployAuthoritySources = (input: {
   readonly packageScripts: Readonly<Record<string, string>>;
   readonly pipeline: string;
   readonly selfProtection: string;
+  readonly projectConfigSource: string;
   readonly policySource: string;
   readonly trustMembers: Readonly<Record<string, string>>;
   readonly trustedDeployRootSha256?: string;
@@ -83,7 +89,14 @@ export const validateDeployAuthoritySources = (input: {
     !Array.isArray(policy.authority.forbiddenBuildkiteEnv) ||
     !policy.jobs?.staging ||
     !policy.jobs.production ||
-    !Array.isArray(policy.credentialSecrets)
+    !Array.isArray(policy.authority.requiredBindings) ||
+    typeof policy.rollbackScript !== "string" ||
+    policy.rollbackSeedCommitBinding !== "TRUSTED_ROLLBACK_SEED_COMMIT" ||
+    policy.trustedSelfProtectionCommitBinding !==
+      "TRUSTED_CI_SELF_PROTECTION_COMMIT" ||
+    !Array.isArray(policy.legacyCredentialSecretsForbidden) ||
+    !Array.isArray(policy.jobs.staging.credentialSecrets) ||
+    !Array.isArray(policy.jobs.production.credentialSecrets)
   ) {
     return ["deploy policy manifest has an invalid shape"];
   }
@@ -138,6 +151,69 @@ export const validateDeployAuthoritySources = (input: {
     }
   }
 
+  for (const binding of policy.authority.requiredBindings) {
+    if (!input.pipeline.includes(`${binding}: "\${${binding}}"`))
+      failures.push(`pipeline must bind externally supplied ${binding}`);
+  }
+  for (const binding of [
+    policy.rollbackSeedCommitBinding,
+    policy.trustedSelfProtectionCommitBinding,
+  ]) {
+    if (!policy.authority.requiredBindings.includes(binding))
+      failures.push(`${binding} must be a required external trust binding`);
+  }
+  for (const legacy of policy.legacyCredentialSecretsForbidden) {
+    if (input.pipeline.includes(`- ${legacy}`))
+      failures.push(
+        `${legacy} must not replace environment-scoped credentials`,
+      );
+  }
+
+  let projectConfig: {
+    readonly requireDistinctConvexDeployments?: boolean;
+    readonly environments?: Readonly<
+      Record<
+        "staging" | "production",
+        {
+          readonly convexDeployNameEnv?: string;
+          readonly convexUrlEnv?: string;
+          readonly hostedUrlEnv?: string;
+          readonly requiredSecrets?: readonly string[];
+        }
+      >
+    >;
+  };
+  try {
+    projectConfig = JSON.parse(
+      input.projectConfigSource,
+    ) as typeof projectConfig;
+  } catch {
+    return ["project config must be valid JSON"];
+  }
+  const stagingConfig = projectConfig.environments?.staging;
+  const productionConfig = projectConfig.environments?.production;
+  if (
+    projectConfig.requireDistinctConvexDeployments !== true ||
+    !stagingConfig ||
+    !productionConfig ||
+    !["convexDeployNameEnv", "convexUrlEnv", "hostedUrlEnv"].every(
+      (field) =>
+        typeof stagingConfig[field as keyof typeof stagingConfig] ===
+          "string" &&
+        typeof productionConfig[field as keyof typeof productionConfig] ===
+          "string" &&
+        stagingConfig[field as keyof typeof stagingConfig] !==
+          productionConfig[field as keyof typeof productionConfig],
+    ) ||
+    !input.sources["scripts/_project-config.mjs"]?.includes(
+      'command === "assert-isolated-convex"',
+    )
+  ) {
+    failures.push(
+      "project config must require external, distinct staging and production Convex bindings",
+    );
+  }
+
   for (const [alias, route] of Object.entries(policy.packageRoutes)) {
     if (input.packageScripts[alias] !== route) {
       failures.push(
@@ -145,6 +221,16 @@ export const validateDeployAuthoritySources = (input: {
       );
     }
   }
+  const cloudflarePackageRoute = policy.packageRoutes["deploy:cloudflare"];
+  if (
+    !cloudflarePackageRoute?.includes(
+      'VITE_CONVEX_URL="$(node scripts/_project-config.mjs get production convexUrl)"',
+    ) ||
+    cloudflarePackageRoute.includes("${VITE_CONVEX_URL:-")
+  )
+    failures.push(
+      "deploy:cloudflare must replace inherited VITE_CONVEX_URL with the canonical production binding",
+    );
   for (const [alias, source] of Object.entries(input.packageScripts)) {
     if (containsDeployPrimitive(source)) {
       failures.push(`${alias}: package script contains a raw deploy primitive`);
@@ -191,7 +277,7 @@ export const validateDeployAuthoritySources = (input: {
         failures.push(`${job.deploy} must depend on ${job.preflight}`);
       if (!deploy.includes(`command: "${job.script}"`))
         failures.push(`${job.deploy} must route through ${job.script}`);
-      for (const secret of policy.credentialSecrets) {
+      for (const secret of job.credentialSecrets) {
         if (!deploy.includes(`- ${secret}`))
           failures.push(`${job.deploy} must retain scoped ${secret}`);
       }
@@ -213,15 +299,165 @@ export const validateDeployAuthoritySources = (input: {
         `${job.script} must route both provider actions through the guarded owner exactly once`,
       );
     }
+    const convexDeploy = script.indexOf(
+      `${policy.authority.guardedDeployOwner} convex`,
+    );
+    const coordinateValidation = script.indexOf(
+      "check-deploy-authority-receipt.mts validate-inputs",
+    );
+    const deployKeyValidation = script.indexOf(
+      `scripts/_project-config.mjs assert-convex-deploy-key ${environment}`,
+    );
+    const backendCanary = script.indexOf("deploy-canary.sh backend");
+    const cloudflareDeploy = script.indexOf(
+      `${policy.authority.guardedDeployOwner} cloudflare`,
+    );
+    const hostedCanary = script.indexOf("deploy-canary.sh hosted");
+    const receipt = script.indexOf("check-deploy-authority-receipt.mts record");
+    if (
+      deployKeyValidation < 0 ||
+      coordinateValidation <= deployKeyValidation ||
+      convexDeploy <= coordinateValidation ||
+      backendCanary <= convexDeploy ||
+      cloudflareDeploy <= backendCanary ||
+      hostedCanary <= cloudflareDeploy ||
+      receipt <= hostedCanary
+    )
+      failures.push(
+        `${job.script} must canary backend and hosted deploys before recording the receipt`,
+      );
+    const canonicalViteBinding = `VITE_CONVEX_URL="$(node scripts/_project-config.mjs get ${environment} convexUrl)"`;
+    if (
+      !script.includes(canonicalViteBinding) ||
+      script.includes("${VITE_CONVEX_URL:-")
+    )
+      failures.push(
+        `${job.script} must override VITE_CONVEX_URL with the selected environment binding`,
+      );
+    if (
+      environment === "staging" &&
+      script.indexOf("buildkite-agent meta-data set staged-sha") <= receipt
+    )
+      failures.push(
+        "staging must record its guarded receipt before staged-sha",
+      );
   }
 
-  for (const secret of policy.credentialSecrets) {
+  for (const secret of [
+    ...policy.jobs.staging.credentialSecrets,
+    ...policy.jobs.production.credentialSecrets,
+  ]) {
     const declarations = input.pipeline.match(
       new RegExp(`^\\s+- ${escapeRegex(secret)}$`, "gm"),
     );
-    if ((declarations ?? []).length !== 2)
-      failures.push(`${secret} must be scoped only to the two deploy jobs`);
+    if ((declarations ?? []).length !== 1)
+      failures.push(
+        `${secret} must be scoped only to its environment deploy job`,
+      );
   }
+  const rollback = input.sources[policy.rollbackScript] ?? "";
+  const rollbackMarkers = [
+    ': "${TRUSTED_ROLLBACK_SEED_COMMIT:',
+    'git cat-file -e "${TRUSTED_ROLLBACK_SEED_COMMIT}^{commit}"',
+    'git rev-parse "${TRUSTED_ROLLBACK_SEED_COMMIT}^{commit}"',
+    'git merge-base --is-ancestor "${TRUSTED_ROLLBACK_SEED_COMMIT}" "${BUILDKITE_COMMIT}"',
+    "git rev-parse HEAD",
+    "scripts/_project-config.mjs assert-convex-deploy-key production",
+    "check-deploy-authority-receipt.mts validate-inputs",
+    "check-deploy-authority-receipt.mts verify-rollback",
+    `${policy.authority.guardedDeployOwner} convex`,
+    "deploy-canary.sh backend",
+    `${policy.authority.guardedDeployOwner} cloudflare`,
+    "deploy-canary.sh hosted",
+    "check-deploy-authority-receipt.mts record",
+  ];
+  if (
+    rollbackMarkers.some((marker) => !rollback.includes(marker)) ||
+    rollbackMarkers.some(
+      (marker, index) =>
+        index > 0 &&
+        rollback.indexOf(marker) <=
+          rollback.indexOf(rollbackMarkers[index - 1] ?? ""),
+    )
+  )
+    failures.push(
+      "rollback must verify exact prior coordinates, use guarded providers, canary, and record a new receipt",
+    );
+  const selfProtectionStep = pipelineBlock(
+    input.pipeline,
+    "ci-self-protection",
+  );
+  const trustedSelfProtectionMarkers = [
+    '${TRUSTED_CI_SELF_PROTECTION_COMMIT}" =~ ^[0-9a-f]{40}',
+    'git cat-file -e "${TRUSTED_CI_SELF_PROTECTION_COMMIT}^{commit}"',
+    'git rev-parse "${TRUSTED_CI_SELF_PROTECTION_COMMIT}^{commit}"',
+    'git show "${TRUSTED_CI_SELF_PROTECTION_COMMIT}:.buildkite/scripts/setup.sh"',
+    'git show "${TRUSTED_CI_SELF_PROTECTION_COMMIT}:tooling/quality/check-deploy-authority.mts"',
+    'git show "${TRUSTED_CI_SELF_PROTECTION_COMMIT}:.buildkite/scripts/ci-self-protection.sh"',
+    "export npm_config_ignore_scripts=true",
+    'source "${TRUSTED_SETUP_PATH}"',
+    '[[ "$(node --version)" != "v22.12.0" ]]',
+    'node --experimental-strip-types "${TRUSTED_VERIFIER_PATH}"',
+    'TEMPLATE_CI_SETUP=skip bash "${TRUSTED_SELF_PROTECTION_PATH}"',
+    "unset npm_config_ignore_scripts",
+  ];
+  if (
+    !selfProtectionStep ||
+    selfProtectionStep.includes("secrets:") ||
+    selfProtectionStep.includes('pnpm exec tsx "${TRUSTED_VERIFIER_PATH}"') ||
+    trustedSelfProtectionMarkers.some(
+      (marker, index) =>
+        !selfProtectionStep.includes(marker) ||
+        (index > 0 &&
+          selfProtectionStep.indexOf(marker) <=
+            selfProtectionStep.indexOf(
+              trustedSelfProtectionMarkers[index - 1] ?? "",
+            )),
+    )
+  )
+    failures.push(
+      "secretless self-protection must run externally pinned bootstrap and verifier bytes",
+    );
+  const keyedPipelineBlocks = Object.fromEntries(
+    pipelineBlocks(input.pipeline)
+      .map((block) => {
+        const key = /^\s*key:\s*"([^"]+)"$/mu.exec(block)?.[1];
+        return key ? [[key, block] as const] : [];
+      })
+      .flat(),
+  );
+  const reachesSelfProtection = (
+    key: string,
+    seen = new Set<string>(),
+  ): boolean => {
+    if (key === "ci-self-protection") return true;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    const block = keyedPipelineBlocks[key];
+    const dependency = block
+      ? /^\s*depends_on:\s*"([^"]+)"$/mu.exec(block)?.[1]
+      : undefined;
+    return dependency ? reachesSelfProtection(dependency, seen) : false;
+  };
+  for (const [key, block] of Object.entries(keyedPipelineBlocks)) {
+    if (block.includes("secrets:") && !reachesSelfProtection(key))
+      failures.push(
+        `${key} must transitively depend on trusted secretless self-protection`,
+      );
+  }
+  const canary = input.sources[".buildkite/scripts/deploy-canary.sh"] ?? "";
+  if (
+    !canary.includes("convex run ops/health:liveness") ||
+    ![
+      "pnpm smoke:hosted",
+      "pnpm smoke:hosted:browser",
+      "pnpm smoke:hosted:a11y",
+      "pnpm smoke:hosted:visual",
+    ].every((marker) => canary.includes(marker))
+  )
+    failures.push(
+      "deploy canary must check Convex health plus hosted HTTP, browser, accessibility, and visual proof",
+    );
   if (!input.selfProtection.includes("check:deploy-authority")) {
     failures.push(
       "secretless CI self-protection must run check:deploy-authority",
@@ -243,14 +479,22 @@ const containsDeployPrimitive = (source: string): boolean => {
 };
 
 const pipelineBlock = (pipeline: string, key: string): string | undefined => {
+  return pipelineBlocks(pipeline).find((block) =>
+    block.split("\n").some((line) => line.trim() === `key: "${key}"`),
+  );
+};
+
+const pipelineBlocks = (pipeline: string): readonly string[] => {
   const lines = pipeline.split("\n");
-  const keyIndex = lines.findIndex((line) => line.trim() === `key: "${key}"`);
-  if (keyIndex < 0) return undefined;
-  let start = keyIndex;
-  while (start > 0 && !lines[start]?.startsWith("  - ")) start -= 1;
-  let end = keyIndex + 1;
-  while (end < lines.length && !lines[end]?.startsWith("  - ")) end += 1;
-  return lines.slice(start, end).join("\n");
+  const blocks: string[] = [];
+  let start = lines.findIndex((line) => line.startsWith("  - "));
+  while (start >= 0) {
+    let end = start + 1;
+    while (end < lines.length && !lines[end]?.startsWith("  - ")) end += 1;
+    blocks.push(lines.slice(start, end).join("\n"));
+    start = end < lines.length ? end : -1;
+  }
+  return blocks;
 };
 
 const escapeRegex = (value: string): string =>
@@ -318,6 +562,10 @@ if (
     pipeline: readFileSync(resolve(root, ".buildkite/pipeline.yml"), "utf8"),
     selfProtection: readFileSync(
       resolve(root, ".buildkite/scripts/ci-self-protection.sh"),
+      "utf8",
+    ),
+    projectConfigSource: readFileSync(
+      resolve(root, "project.config.json"),
       "utf8",
     ),
     policySource,
