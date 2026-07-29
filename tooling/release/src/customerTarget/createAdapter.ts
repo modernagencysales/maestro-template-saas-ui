@@ -160,6 +160,7 @@ function createCustomerAdapter(
             state.request.blueprintTargetPlan(),
           );
           authority.assertBlueprint(blueprint);
+          void authority.facts(blueprint, resolved);
           if (blueprint.digest !== state.blueprintDigest) {
             throw new CustomerReleaseAdapterError(
               "stale-preflight",
@@ -201,10 +202,13 @@ function currentFacts(
   resolved: ResolvedRelease,
 ): CustomerReleaseAdapterFacts {
   const candidateCommit = resolveCleanCandidateCommit(options.repositoryRoot);
-  const isExactTaggedComposition = candidateCommit === resolved.tagCommit;
-  const compositionKind = isExactTaggedComposition
-    ? "tagged-current-composition"
-    : "unreleased-current-composition";
+  if (candidateCommit !== resolved.tagCommit) {
+    throw new CustomerReleaseAdapterError(
+      "release-unavailable",
+      "Current candidate HEAD must exactly match the reviewed immutable release tag.",
+    );
+  }
+  const compositionKind = "tagged-current-composition";
   const authorityChecksum = sha256(
     JSON.stringify({
       kind: compositionKind,
@@ -229,18 +233,12 @@ function currentFacts(
     .filter((path, index, paths) => paths.indexOf(path) === index)
     .sort();
   return {
-    version: isExactTaggedComposition
-      ? resolved.facts.version
-      : "unreleased-current",
-    tag: isExactTaggedComposition ? resolved.facts.tag : "unreleased-current",
+    version: resolved.facts.version,
+    tag: resolved.facts.tag,
     sourceCommit: candidateCommit,
     sourceChecksum: authorityChecksum,
-    cliCompatibility: isExactTaggedComposition
-      ? resolved.facts.cliCompatibility
-      : "unreleased-current",
-    agentPackCompatibility: isExactTaggedComposition
-      ? resolved.facts.agentPackCompatibility
-      : "unreleased-current",
+    cliCompatibility: resolved.facts.cliCompatibility,
+    agentPackCompatibility: resolved.facts.agentPackCompatibility,
     ownershipManifest: compositionKind,
     ownershipManifestChecksum: authorityChecksum,
     extensionSeams,

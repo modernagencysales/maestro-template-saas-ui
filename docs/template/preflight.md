@@ -61,10 +61,11 @@ disclosing that value.
 
 Mutation remains blocked for ambiguous repository roles, incompatible versions,
 dirty overlapping targets, unknown dirty/collision/root state, unsupported
-prerequisites, or collisions. When required by the selected mode, offline
-network posture, unknown/cancelled optional authentication, missing providers,
-and stale host integration produce explicit diagnostics with one recovery action
-and exact rerun.
+prerequisites, or collisions. Public customer creation also remains blocked
+unless HEAD exactly equals the reviewed immutable release tag. When required by
+the selected mode, offline network posture, unknown/cancelled optional
+authentication, missing providers, and stale host integration produce explicit
+diagnostics with one recovery action and exact rerun.
 
 Fake mode does not require network access. An offline or indeterminate registry
 probe remains visible in `data.facts.network`, but it is not a diagnostic and

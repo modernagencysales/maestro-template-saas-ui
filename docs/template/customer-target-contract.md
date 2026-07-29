@@ -25,11 +25,11 @@ writes `template-instance.json` with:
 - ownership authority identifier, checksum, and extension seams;
 - visible app name, first-outcome seed, and demo-only posture.
 
-The public create composition binds generated output to the current clean
-checkout. When that checkout is exactly the reviewed immutable release tag,
-`template-instance.json` records the release version, tag, tagged commit, and a
-composition checksum. A commit beyond the tag stays explicitly labeled
-`unreleased-current`; it must not present itself as a published release.
+The public create composition binds generated output to a clean checkout whose
+HEAD exactly equals the reviewed immutable release tag. `template-instance.json`
+records the release version, tag, tagged commit, and a composition checksum. An
+untagged commit, including a clean commit beyond the tag, fails closed before
+preview or materialization and is never projected as a customer release.
 
 The output contains exactly one next command: start the new target. Dependency
 installation and Git initialization are listed separately with
