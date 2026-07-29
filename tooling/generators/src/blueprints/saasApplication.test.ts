@@ -206,6 +206,7 @@ describe("saas application blueprint", () => {
       ...CURRENT_SAAS_DEPLOY_AUTHORITY_TABLE_CLOSURE,
       ...CURRENT_SAAS_DEPLOY_AUTHORITY_SOURCE_CLOSURE,
       "apps/cli/package.json",
+      "apps/cli/src/factory/mcp.ts",
       "docs/template/data-resources.json",
       "docs/template/system-catalog.json",
       "pnpm-lock.yaml",
@@ -376,6 +377,7 @@ describe("saas application blueprint", () => {
           ),
       ).toEqual([]);
       for (const path of [
+        "apps/cli/src/factory/mcp.ts",
         "apps/cli/src/factory/supportBundle.ts",
         "tooling/agent-pack/src/privacy/supportBundle.ts",
         "tooling/agent-pack/src/privacy/supportBundleCommand.ts",
@@ -583,6 +585,7 @@ describe("saas application blueprint", () => {
       "generated/blueprints/saas-application/readiness.json",
       "docs/template/agent-pack-privacy.md",
       "apps/cli/src/factory/customerComposition.ts",
+      "apps/cli/src/factory/mcp.ts",
       "apps/cli/src/index.ts",
       "apps/cli/package.json",
       "apps/cli/src/factory/start.ts",

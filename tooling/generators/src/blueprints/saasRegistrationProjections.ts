@@ -595,6 +595,14 @@ export const buildSaasRegistrationProjections = (
         ? currentSource("apps/cli/src/factory/customerComposition.ts")
         : source("apps/cli/src/factory/customerComposition.ts"),
     },
+    ...(current
+      ? [
+          {
+            path: "apps/cli/src/factory/mcp.ts",
+            content: currentSource("apps/cli/src/factory/mcp.ts"),
+          },
+        ]
+      : []),
     {
       path: "apps/cli/src/index.ts",
       content: customerCliEntry(),

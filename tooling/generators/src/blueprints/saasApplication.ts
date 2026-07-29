@@ -281,6 +281,7 @@ function buildTargetPlan(
       ? ([
           ["docs/template/data-resources.json", "copy"],
           ["docs/template/system-catalog.json", "copy"],
+          ["apps/cli/src/factory/mcp.ts", "copy"],
         ] as const)
       : []),
     ["apps/cli/src/index.ts", "copy"],
@@ -420,6 +421,7 @@ function buildTargetPlan(
       : []),
     ...(current ? ["apps/cli/package.json"] : []),
     "apps/cli/src/factory/customerComposition.ts",
+    ...(current ? ["apps/cli/src/factory/mcp.ts"] : []),
     "apps/cli/src/index.ts",
     "apps/cli/src/factory/start.ts",
     "apps/cli/src/factory/supportBundle.ts",
