@@ -323,6 +323,7 @@ function buildTargetPlan(
     ["tooling/quality/check-workflow-principal-propagation.mts", "copy"],
     ["tooling/quality/fixtures/workflow-policy-snapshots.json", "copy"],
     ["tooling/generators/package.json", "copy"],
+    ["examples/generic-ai-ops/template-package.json", "copy"],
     ["tooling/generators/src/direct-run.ts", "copy"],
     ["tooling/generators/src/blueprints/gtmImplementation.ts", "copy"],
     ["packages/convex/confect/_generated/schema.ts", "copy"],

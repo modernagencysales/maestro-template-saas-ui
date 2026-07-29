@@ -542,17 +542,24 @@ describe("saas application blueprint", () => {
         entry,
       ]),
     );
-    for (const path of [
-      "tooling/generators/src/private-package.ts",
-      "examples/generic-ai-ops/template-package.json",
-    ]) {
-      expect(entries.get(path), path).toMatchObject({
-        ownership: "generated",
-        action: "generate",
-        upgrade: "regenerate",
-      });
-      expect(entries.get(path), path).not.toHaveProperty("replaces");
-    }
+    expect(
+      entries.get("tooling/generators/src/private-package.ts"),
+    ).toMatchObject({
+      ownership: "generated",
+      action: "generate",
+      upgrade: "regenerate",
+    });
+    expect(
+      entries.get("tooling/generators/src/private-package.ts"),
+    ).not.toHaveProperty("replaces");
+    expect(
+      entries.get("examples/generic-ai-ops/template-package.json"),
+    ).toMatchObject({
+      ownership: "generated",
+      action: "generate",
+      upgrade: "regenerate",
+      replaces: "copy",
+    });
   });
 
   it("replaces only deployment-authority files present in the base release", () => {
