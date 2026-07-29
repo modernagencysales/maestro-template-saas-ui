@@ -223,6 +223,61 @@ describe("materialized customer CLI runtime closure", () => {
     });
   }, 180_000);
 
+  it("materializes complete SaaS ownership and lifecycle catalogs", async () => {
+    const parent = mkdtempSync(join(tmpdir(), "maestro-customer-catalogs-"));
+    temporaryRoots.push(parent);
+    const target = join(parent, "customer");
+    const created = runTaggedCli([
+      "create",
+      target,
+      "--name",
+      "Catalog Closure",
+      "--outcome",
+      "Track one governed record",
+      "--demo-only",
+      "--write",
+      "--privacy-reviewed",
+      "--json",
+    ]);
+    expect(created.exitCode, `${created.stdout}\n${created.stderr}`).toBe(0);
+
+    await execFileAsync(
+      "pnpm",
+      ["install", "--offline", "--frozen-lockfile", "--ignore-scripts"],
+      { cwd: target, timeout: 120_000 },
+    );
+    const systemGate = await execFileAsync(
+      "pnpm",
+      ["run", "check:system-catalog"],
+      { cwd: target, timeout: 30_000 },
+    );
+    const lifecycleGate = await execFileAsync(
+      "pnpm",
+      ["run", "check:data-resources"],
+      { cwd: target, timeout: 30_000 },
+    );
+    expect(systemGate.stdout).toContain("ok system catalog");
+    expect(lifecycleGate.stdout).toContain("ok data resources");
+
+    const systems = JSON.parse(
+      readFileSync(join(target, "docs/template/system-catalog.json"), "utf8"),
+    ) as {
+      readonly systems: readonly {
+        readonly id: string;
+        readonly tables: readonly string[];
+      }[];
+    };
+    const resources = JSON.parse(
+      readFileSync(join(target, "docs/template/data-resources.json"), "utf8"),
+    ) as { readonly resources: readonly { readonly id: string }[] };
+    for (const table of ["records", "deployAuthorityAuditEvents"]) {
+      expect(systems.systems.some(({ tables }) => tables.includes(table))).toBe(
+        true,
+      );
+      expect(resources.resources.some(({ id }) => id === table)).toBe(true);
+    }
+  }, 180_000);
+
   it("installs and imports while immutable-tag preflight fails closed", async () => {
     const parent = mkdtempSync(join(tmpdir(), "maestro-customer-cli-"));
     temporaryRoots.push(parent);
@@ -258,18 +313,83 @@ describe("materialized customer CLI runtime closure", () => {
       cwd: target,
       timeout: 120_000,
     });
+    const mcpInput = [
+      {
+        jsonrpc: "2.0",
+        id: 1,
+        method: "initialize",
+        params: {
+          protocolVersion: "2025-06-18",
+          clientInfo: { name: "customer-runtime", version: "1" },
+          capabilities: {},
+        },
+      },
+      { jsonrpc: "2.0", id: 2, method: "tools/list", params: {} },
+      {
+        jsonrpc: "2.0",
+        id: 3,
+        method: "tools/call",
+        params: { name: "maestro_support_bundle_preview", arguments: {} },
+      },
+      {
+        jsonrpc: "2.0",
+        id: 4,
+        method: "tools/call",
+        params: { name: "missing_customer_tool", arguments: {} },
+      },
+      {
+        jsonrpc: "2.0",
+        id: 5,
+        method: "tools/call",
+        params: { name: 42 },
+      },
+    ]
+      .map((request) => JSON.stringify(request))
+      .join("\n");
+    const mcp = spawnSync("pnpm", ["--silent", "maestro", "--", "mcp"], {
+      cwd: target,
+      encoding: "utf8",
+      input: `${mcpInput}\n`,
+      timeout: 30_000,
+    });
+    expect(mcp.status, mcp.stderr).toBe(0);
+    const mcpResponses = mcp.stdout
+      .trim()
+      .split("\n")
+      .map((line) => JSON.parse(line) as Record<string, unknown>);
+    expect(mcpResponses).toHaveLength(5);
+    expect(mcpResponses[0]).toMatchObject({
+      id: 1,
+      result: { serverInfo: { name: "maestro-agent-pack" } },
+    });
+    expect(mcpResponses[1]).toMatchObject({
+      id: 2,
+      result: {
+        tools: [
+          { name: "maestro_preflight" },
+          { name: "maestro_support_bundle_preview" },
+          { name: "maestro_verify" },
+        ],
+      },
+    });
+    expect(mcpResponses[2]).toMatchObject({
+      id: 3,
+      result: { isError: false },
+    });
+    expect(mcpResponses[3]).toMatchObject({
+      id: 4,
+      result: { isError: true, code: "MCP_UNKNOWN_TOOL" },
+    });
+    expect(mcpResponses[4]).toMatchObject({
+      id: 5,
+      error: { code: -32602 },
+    });
     expect(unresolvedWorkspaceDependencies(target)).toEqual([]);
     await execFileAsync(
       "pnpm",
       ["install", "--offline", "--lockfile-only", "--ignore-scripts"],
       { cwd: target, timeout: 120_000 },
     );
-    for (const gate of ["check:system-catalog", "check:data-resources"]) {
-      await execFileAsync("pnpm", ["run", gate], {
-        cwd: target,
-        timeout: 30_000,
-      });
-    }
     expect(existsSync(join(target, ".git"))).toBe(false);
     execFileSync("git", ["init", "--quiet"], { cwd: target });
     execFileSync("pnpm", ["run", "prepare"], {
