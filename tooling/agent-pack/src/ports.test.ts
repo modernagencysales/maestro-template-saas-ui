@@ -1,5 +1,10 @@
+import { createServer } from "node:net";
 import { describe, expect, it } from "vitest";
-import { inspectStartPorts, startPortPlan } from "./ports.js";
+import {
+  inspectStartPorts,
+  nodeStartPortProbe,
+  startPortPlan,
+} from "./ports.js";
 
 describe("start ports", () => {
   it("selects deterministic mode-specific ports and the real readiness URL", () => {
@@ -39,5 +44,27 @@ describe("start ports", () => {
         { id: "readiness-presenter", port: 4174 },
       ],
     });
+  });
+
+  it("treats a wildcard listener as a collision for loopback start", async () => {
+    const listener = createServer();
+    await new Promise<void>((resolve, reject) => {
+      listener.once("error", reject);
+      listener.listen({ port: 0, host: "0.0.0.0" }, resolve);
+    });
+
+    try {
+      const address = listener.address();
+      if (address === null || typeof address === "string") {
+        throw new Error("Expected a TCP listener address.");
+      }
+      await expect(
+        nodeStartPortProbe.available(address.port, "127.0.0.1"),
+      ).resolves.toBe(false);
+    } finally {
+      await new Promise<void>((resolve, reject) =>
+        listener.close((error) => (error ? reject(error) : resolve())),
+      );
+    }
   });
 });

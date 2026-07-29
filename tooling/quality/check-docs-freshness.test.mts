@@ -29,11 +29,12 @@ describe("check:docs-freshness", () => {
     );
 
     expect(quickstart).toContain(
-      "`template:quickstart -- --write` creates `template-instance.json`",
+      'pnpm maestro -- create ../launch-tracker \\ --name "Launch Tracker"',
     );
     expect(quickstart).toContain(
-      "`template:doctor -- --mode fake` expects `template-instance.json`",
+      "pnpm --dir ../launch-tracker maestro -- preflight --mode fake",
     );
+    expect(quickstart).toContain('git commit -m "feat: add Milestone slice"');
     expect(maturity).toContain(
       "Current baseline: this repo can prove L0 through L4",
     );

@@ -64,13 +64,25 @@ the first real product outcome.
 
 \`\`\`text
 preflight -> recipes/system lookup -> preview -> reviewed write
-          -> focused verification -> start --mode fake
+          -> focused verification -> commit reviewed change
+          -> start --mode fake
 \`\`\`
 
 Preview is the default. Before adding a subsystem or table, query the canonical
 owner. A recipe write must use the exact confirmation command returned by the
 preview; it rechecks the plan and clean-preflight fingerprints and retains a
 receipt under \`.maestro/recipe-transactions/\`.
+
+After the focused gates pass, review and commit the recipe transaction before
+starting. Preflight intentionally requires a clean target so generated drift
+cannot be mistaken for the app you reviewed.
+
+\`\`\`bash
+git status --short
+git add .
+git commit -m "feat: add reviewed Maestro change"
+pnpm maestro -- start --mode fake
+\`\`\`
 
 For the copy/paste CRUD walkthrough, use
 [Template Quickstart](./docs/template/quickstart.md). The broader method is in

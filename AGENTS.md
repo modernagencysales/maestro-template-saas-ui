@@ -26,8 +26,13 @@ The supported customer loop is:
 
 ```text
 preflight -> recipes/system lookup -> preview -> reviewed write
-          -> focused verification -> start --mode fake
+          -> focused verification -> commit reviewed change
+          -> start --mode fake
 ```
+
+After the focused gates pass, review `git status --short` and commit the recipe
+transaction, including its receipt and generated provenance. Start reruns
+preflight and intentionally requires a clean target.
 
 Do not bypass this loop by copying factory files, hand-editing generated files,
 inventing a parallel system, or weakening a red gate. Read

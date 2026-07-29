@@ -240,8 +240,8 @@ function processPlan(
     args: [
       "--dir",
       "apps/web",
-      "dev",
-      "--",
+      "exec",
+      "vite",
       "--host",
       "127.0.0.1",
       "--port",

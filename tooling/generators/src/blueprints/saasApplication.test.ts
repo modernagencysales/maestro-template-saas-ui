@@ -122,6 +122,12 @@ describe("saas application blueprint", () => {
     ).toContain(
       "API/CLI/MCP -> headless registry -> same capabilities/workflows as web",
     );
+    expect(
+      plan.entries.find(({ path }) => path === "README.md")?.content,
+    ).toContain("focused verification -> commit reviewed change");
+    expect(
+      plan.entries.find(({ path }) => path === "README.md")?.content,
+    ).toContain('git commit -m "feat: add reviewed Maestro change"');
     for (const path of [
       ".prettierignore",
       "tooling/confect-manifest/tsconfig.json",

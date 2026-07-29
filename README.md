@@ -65,7 +65,7 @@ The detailed walkthrough is in
 Maestro uses one repeatable loop:
 
 ```text
-orient -> preview -> review -> write -> verify -> run
+orient -> preview -> review -> write -> verify -> commit -> run
 ```
 
 1. `maestro preflight` checks the host, repository, release authority, and
@@ -76,6 +76,7 @@ orient -> preview -> review -> write -> verify -> run
 4. Writes require explicit approval and unchanged fingerprints. Multi-file
    recipes use a recoverable transaction and retain a receipt.
 5. Focused gates prove the affected contract before the app is started.
+6. Review and commit the verified change; start requires a clean target.
 
 For example, preview a second workspace-owned entity:
 

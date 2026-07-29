@@ -18,6 +18,7 @@ export type StartPortProbe = {
 };
 
 const host = "127.0.0.1";
+const collisionProbeHost = "0.0.0.0";
 
 export function startPortPlan(mode: StartMode): StartPortPlan {
   const web = 5173;
@@ -67,12 +68,14 @@ export async function inspectStartPorts(
 }
 
 export const nodeStartPortProbe: StartPortProbe = {
-  available: (port, address) =>
+  available: (port, _address) =>
     new Promise((resolve) => {
       const server = createServer();
       server.unref();
       server.once("error", () => resolve(false));
-      server.listen({ port, host: address, exclusive: true }, () => {
+      // Probe the wildcard address so an existing server bound to any local
+      // interface cannot satisfy this launcher's later readiness request.
+      server.listen({ port, host: collisionProbeHost, exclusive: true }, () => {
         server.close(() => resolve(true));
       });
     }),

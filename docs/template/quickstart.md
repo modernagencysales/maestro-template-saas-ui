@@ -134,6 +134,16 @@ regenerates TanStack's route tree before TypeScript checks the new file route.
 Generated route, Confect, and Convex files are outputs, not hand-editing
 surfaces.
 
+Review and commit the verified recipe transaction before starting. Start runs
+preflight again and intentionally requires a clean target so it cannot confuse
+unreviewed generated drift with the app you approved:
+
+```bash
+git status --short
+git add .
+git commit -m "feat: add Milestone slice"
+```
+
 ## 6. Start in fake mode
 
 ```bash
