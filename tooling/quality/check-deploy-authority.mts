@@ -388,23 +388,27 @@ export const validateDeployAuthoritySources = (input: {
     "ci-self-protection",
   );
   const trustedSelfProtectionMarkers = [
-    '${TRUSTED_CI_SELF_PROTECTION_COMMIT}" =~ ^[0-9a-f]{40}',
-    'git cat-file -e "${TRUSTED_CI_SELF_PROTECTION_COMMIT}^{commit}"',
-    'git rev-parse "${TRUSTED_CI_SELF_PROTECTION_COMMIT}^{commit}"',
-    'git show "${TRUSTED_CI_SELF_PROTECTION_COMMIT}:.buildkite/scripts/setup.sh"',
-    'git show "${TRUSTED_CI_SELF_PROTECTION_COMMIT}:tooling/quality/check-deploy-authority.mts"',
-    'git show "${TRUSTED_CI_SELF_PROTECTION_COMMIT}:.buildkite/scripts/ci-self-protection.sh"',
+    '$${TRUSTED_CI_SELF_PROTECTION_COMMIT}" =~ ^[0-9a-f]{40}',
+    'git cat-file -e "$${TRUSTED_CI_SELF_PROTECTION_COMMIT}^{commit}"',
+    'git rev-parse "$${TRUSTED_CI_SELF_PROTECTION_COMMIT}^{commit}"',
+    'TRUSTED_SELF_PROTECTION_DIR="$$(mktemp -d)"',
+    'TRUSTED_SETUP_PATH="$${TRUSTED_SELF_PROTECTION_DIR}/setup.sh"',
+    'TRUSTED_VERIFIER_PATH="$${TRUSTED_SELF_PROTECTION_DIR}/check-deploy-authority.mts"',
+    'TRUSTED_SELF_PROTECTION_PATH="$${TRUSTED_SELF_PROTECTION_DIR}/ci-self-protection.sh"',
+    'git show "$${TRUSTED_CI_SELF_PROTECTION_COMMIT}:.buildkite/scripts/setup.sh"',
+    'git show "$${TRUSTED_CI_SELF_PROTECTION_COMMIT}:tooling/quality/check-deploy-authority.mts"',
+    'git show "$${TRUSTED_CI_SELF_PROTECTION_COMMIT}:.buildkite/scripts/ci-self-protection.sh"',
     "export npm_config_ignore_scripts=true",
-    'source "${TRUSTED_SETUP_PATH}"',
-    '[[ "$(node --version)" != "v22.12.0" ]]',
-    'node --experimental-strip-types "${TRUSTED_VERIFIER_PATH}"',
-    'TEMPLATE_CI_SETUP=skip bash "${TRUSTED_SELF_PROTECTION_PATH}"',
+    'source "$${TRUSTED_SETUP_PATH}"',
+    '[[ "$$(node --version)" != "v22.12.0" ]]',
+    'node --experimental-strip-types "$${TRUSTED_VERIFIER_PATH}"',
+    'TEMPLATE_CI_SETUP=skip bash "$${TRUSTED_SELF_PROTECTION_PATH}"',
     "unset npm_config_ignore_scripts",
   ];
   if (
     !selfProtectionStep ||
     selfProtectionStep.includes("secrets:") ||
-    selfProtectionStep.includes('pnpm exec tsx "${TRUSTED_VERIFIER_PATH}"') ||
+    selfProtectionStep.includes('pnpm exec tsx "$${TRUSTED_VERIFIER_PATH}"') ||
     trustedSelfProtectionMarkers.some(
       (marker, index) =>
         !selfProtectionStep.includes(marker) ||

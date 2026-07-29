@@ -330,38 +330,51 @@ describe("deploy authority self-protection", () => {
 
   it("pins the secretless self-protection verifier outside PR-head scripts", () => {
     const base = fixture();
+    const selfProtectionCommand =
+      /key: "ci-self-protection"[\s\S]*?command: \|\n(?<body>[\s\S]*?)\n    agents:/u.exec(
+        base.pipeline,
+      )?.groups?.body ?? "";
     expect(base.pipeline).toContain(
       'TRUSTED_CI_SELF_PROTECTION_COMMIT: "${TRUSTED_CI_SELF_PROTECTION_COMMIT}"',
     );
+    expect(selfProtectionCommand).not.toBe("");
+    expect(selfProtectionCommand).not.toMatch(/(?<!\$)\$(?=[({A-Za-z_])/u);
     expect(base.pipeline).toContain(
-      'git show "${TRUSTED_CI_SELF_PROTECTION_COMMIT}:tooling/quality/check-deploy-authority.mts"',
+      'git show "$${TRUSTED_CI_SELF_PROTECTION_COMMIT}:tooling/quality/check-deploy-authority.mts"',
     );
     expect(base.pipeline).toContain(
-      'git show "${TRUSTED_CI_SELF_PROTECTION_COMMIT}:.buildkite/scripts/ci-self-protection.sh"',
+      'git show "$${TRUSTED_CI_SELF_PROTECTION_COMMIT}:.buildkite/scripts/ci-self-protection.sh"',
     );
     expect(base.pipeline).toContain(
-      'node --experimental-strip-types "${TRUSTED_VERIFIER_PATH}"',
+      'TRUSTED_SELF_PROTECTION_DIR="$$(mktemp -d)"',
+    );
+    expect(base.pipeline).toContain(
+      'node --experimental-strip-types "$${TRUSTED_VERIFIER_PATH}"',
     );
     expect(base.pipeline).not.toContain(
-      'pnpm exec tsx "${TRUSTED_VERIFIER_PATH}"',
+      'pnpm exec tsx "$${TRUSTED_VERIFIER_PATH}"',
     );
-    expect(base.pipeline).toContain('[[ "$(node --version)" != "v22.12.0" ]]');
+    expect(base.pipeline).toContain('[[ "$$(node --version)" != "v22.12.0" ]]');
     expect(base.pipeline).toContain("export npm_config_ignore_scripts=true");
     expect(base.pipeline).toContain("unset npm_config_ignore_scripts");
     for (const pipeline of [
       base.pipeline.replace(
-        'git show "${TRUSTED_CI_SELF_PROTECTION_COMMIT}:tooling/quality/check-deploy-authority.mts"',
+        'git show "$${TRUSTED_CI_SELF_PROTECTION_COMMIT}:tooling/quality/check-deploy-authority.mts"',
         "cp tooling/quality/check-deploy-authority.mts",
       ),
       base.pipeline.replace(
-        'node --experimental-strip-types "${TRUSTED_VERIFIER_PATH}"',
-        'pnpm exec tsx "${TRUSTED_VERIFIER_PATH}"',
+        'TRUSTED_SELF_PROTECTION_DIR="$$(mktemp -d)"',
+        'TRUSTED_SELF_PROTECTION_DIR="$(mktemp -d)"',
+      ),
+      base.pipeline.replace(
+        'node --experimental-strip-types "$${TRUSTED_VERIFIER_PATH}"',
+        'pnpm exec tsx "$${TRUSTED_VERIFIER_PATH}"',
       ),
       base.pipeline.replace("v22.12.0", "v22.11.0"),
       base.pipeline.replace("export npm_config_ignore_scripts=true", "true"),
       base.pipeline.replace("unset npm_config_ignore_scripts", "true"),
       base.pipeline.replace(
-        'TEMPLATE_CI_SETUP=skip bash "${TRUSTED_SELF_PROTECTION_PATH}"',
+        'TEMPLATE_CI_SETUP=skip bash "$${TRUSTED_SELF_PROTECTION_PATH}"',
         ".buildkite/scripts/ci-self-protection.sh",
       ),
       base.pipeline.replace(
