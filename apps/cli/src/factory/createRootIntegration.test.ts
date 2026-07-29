@@ -1,4 +1,4 @@
-import { execFileSync, spawnSync } from "node:child_process";
+import { execFile, execFileSync, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import {
   existsSync,
@@ -13,6 +13,7 @@ import { rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { promisify } from "node:util";
 import { afterAll, afterEach, describe, expect, it } from "vitest";
 import { runCliAsync } from "../index";
 import { CREATE_HELP } from "./create";
@@ -20,6 +21,7 @@ import { createFactoryCliComposition } from "./composition";
 
 const repoRoot = fileURLToPath(new URL("../../../../", import.meta.url));
 const temporaryRoots: string[] = [];
+const execFileAsync = promisify(execFile);
 let taggedReleaseParent: string | undefined;
 let taggedReleaseRoot: string | undefined;
 const taggedRepository = (): string => {
@@ -52,17 +54,30 @@ const taggedRepository = (): string => {
   );
   return taggedReleaseRoot;
 };
-const runTaggedCli = (argv: readonly string[]) => {
-  const result = spawnSync("pnpm", ["--silent", "maestro", "--", ...argv], {
-    cwd: taggedRepository(),
-    encoding: "utf8",
-    maxBuffer: 10 * 1024 * 1024,
-  });
-  return {
-    exitCode: result.status ?? 70,
-    stdout: result.stdout,
-    stderr: result.stderr,
-  };
+const runTaggedCli = async (argv: readonly string[]) => {
+  try {
+    const result = await execFileAsync(
+      "pnpm",
+      ["--silent", "maestro", "--", ...argv],
+      {
+        cwd: taggedRepository(),
+        encoding: "utf8",
+        maxBuffer: 10 * 1024 * 1024,
+      },
+    );
+    return { exitCode: 0, stdout: result.stdout, stderr: result.stderr };
+  } catch (error) {
+    const failure = error as Error & {
+      readonly code?: number;
+      readonly stdout?: string;
+      readonly stderr?: string;
+    };
+    return {
+      exitCode: typeof failure.code === "number" ? failure.code : 70,
+      stdout: failure.stdout ?? "",
+      stderr: failure.stderr ?? failure.message,
+    };
+  }
 };
 afterAll(async () => {
   if (taggedReleaseParent)
@@ -149,7 +164,7 @@ describe("create root integration", () => {
     const parent = mkdtempSync(join(tmpdir(), "maestro-create-root-"));
     temporaryRoots.push(parent);
     const target = join(parent, "customer-app");
-    const result = runTaggedCli([
+    const result = await runTaggedCli([
       "create",
       target,
       "--name",
@@ -208,7 +223,7 @@ describe("create root integration", () => {
     ] as const;
 
     const create = async (request: (typeof requests)[number]) => {
-      const result = runTaggedCli([
+      const result = await runTaggedCli([
         "create",
         request.target,
         "--name",
@@ -312,7 +327,7 @@ describe("create root integration", () => {
     const parent = mkdtempSync(join(tmpdir(), "maestro-create-workspace-"));
     temporaryRoots.push(parent);
     const targetRoot = join(parent, "app");
-    const result = runTaggedCli([
+    const result = await runTaggedCli([
       "create",
       targetRoot,
       "--name",
