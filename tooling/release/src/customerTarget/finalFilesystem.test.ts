@@ -33,6 +33,7 @@ describe("final materialized customer filesystem", () => {
         "clone",
         "--quiet",
         "--shared",
+        "--no-tags",
         repositoryRoot,
         releaseRoot,
       ]);
@@ -40,7 +41,7 @@ describe("final materialized customer filesystem", () => {
         "-C",
         releaseRoot,
         "tag",
-        "maestro-template-v0.2.0-alpha.1",
+        "maestro-template-v0.2.0-alpha.2",
         "HEAD",
       ]);
       await execFileAsync(
