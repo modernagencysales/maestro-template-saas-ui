@@ -134,5 +134,30 @@ prove:
 
 ## Verification evidence
 
-No remediation or acceptance command is yet claimed passing. Exact command
-outputs and commit coordinates will be added only after observation.
+### Executable generator entrypoint cluster
+
+- IDs/titles: F-001 (fresh checkout generator bootstrap), F-008 (advertised
+  customer generator commands), F-010 (systems no-match guidance), F-015
+  (command-level help), plus ES-F-05, ES-F-06, ES-F-10, ES-F-11, and ES-F-18.
+- Original posture: critical/high/medium, open or worked around.
+- Confirmed current-main reproduction: every root `template:*` package script
+  targeting `tooling/generators/src/index.ts` exited zero without output because
+  the target is a library module with no direct-run boundary. The new regression
+  failed with 23 inert scripts. After routing those scripts through the existing
+  `cli.ts` boundary, `template:systems -- --query workflow-runtime` returns the
+  canonical owner and a multi-word no-match returns structured guidance.
+- Regression: `tooling/generators/src/direct-run.test.ts` asserts no declared
+  root generator script points at the inert library entry.
+- Canonical fix: root `package.json` only; the customer package projection
+  already rewrites executable generator targets to its narrower
+  `customer-cli.ts` boundary.
+- Focused result:
+  `npx --yes pnpm@10.12.1 --dir tooling/generators exec vitest run src/direct-run.test.ts --maxWorkers=1 --no-file-parallelism`
+  passes 2/2.
+- Remaining: F-001 still needs dependency-free preinstall diagnosis; F-008 still
+  needs customer script/handler closure proof; F-015 and ES-F-05 remain
+  reproduced because `template:add-table -- --help` exits 1 with missing name.
+- Status: partial fix; no primary ID is closed by this commit alone.
+
+No full acceptance command is yet claimed passing. Exact command outputs and
+commit coordinates will be added only after observation.
