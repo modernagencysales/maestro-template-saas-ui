@@ -9,8 +9,8 @@
   "release": {
     "version": "0.2.0-alpha.2",
     "tag": "maestro-template-v0.2.0-alpha.2",
-    "sourceCommit": "bdaf0135e6df893c37bc09e7993e345ac68b67bd",
-    "sourceChecksum": "sha256:af183ebccdbd8f776965a598d4cc460055ac86e26bfdff5c3d08a72ec13f12f6"
+    "sourceCommit": "535e5707d952f8420a88b0ccee1e396adbf433d4",
+    "sourceChecksum": "sha256:e8b19728f14deb4874f239e116579765b9efaff386e2066a554cf60316b8a624"
   },
   "upgrade": {
     "schemaVersion": 1,
@@ -117,6 +117,14 @@
         "afterHash": "sha256:b17d343dd7e0101d5eadaea784d22518cde4aaecf90658a6a7bb66a150dee5cd"
       },
       {
+        "id": "upgrade-modify-tooling-agent-pack-evals-forward-forward-runner-test-ts",
+        "kind": "modify",
+        "path": "tooling/agent-pack/evals/forward/forward-runner.test.ts",
+        "ownership": "template-owned",
+        "beforeHash": "sha256:5bd8bfda060330113b5fd3df117add340ce2aced023936700c885d65d2a1eae7",
+        "afterHash": "sha256:d13bd9ea0547784d75de5bb7741744e7dad9dfcf3ebde5b4c506061ac80f11d7"
+      },
+      {
         "id": "upgrade-modify-tooling-agent-pack-src-contracts-test-ts",
         "kind": "modify",
         "path": "tooling/agent-pack/src/contracts.test.ts",
@@ -163,6 +171,14 @@
         "ownership": "template-owned",
         "beforeHash": "sha256:bc5053cfac552ee8e6f3ff468f06c35ec836eea23dd2928a382d659a52e31fff",
         "afterHash": "sha256:d58fb3646aa6587ea00a1d22ce732670c26481882dae5f2fb484829fe7cd3e8e"
+      },
+      {
+        "id": "upgrade-modify-tooling-agent-pack-src-hostProjectionLifecycle-test-ts",
+        "kind": "modify",
+        "path": "tooling/agent-pack/src/hostProjectionLifecycle.test.ts",
+        "ownership": "template-owned",
+        "beforeHash": "sha256:0382d9400456579572f579cf27038843450085a85f6b61921b0d360280a911f2",
+        "afterHash": "sha256:f85b4cb287742c4d8e16dc0ae2faf262421e0989aba7972949ff028ba8b22b34"
       },
       {
         "id": "upgrade-modify-tooling-agent-pack-src-hostProjectionLifecycle-ts",
@@ -424,7 +440,7 @@
   ],
   "blueprintManifest": {
     "path": "blueprints/saas-application.json",
-    "sha256": "sha256:f2df631df12300a2080cf6482537f711347089df046e01a86d5acbbeb52ea6c7"
+    "sha256": "sha256:72e7d1c2b4581b92f23a98495d16a96b7991f6cc51fe54f8586d44ffdd152c5c"
   },
   "migrationHandoff": {
     "required": false,
@@ -436,10 +452,10 @@
   },
   "upgradeImpact": {
     "path": "releases/v0.2.0-alpha.2/upgrade/app-map-input.json",
-    "sha256": "sha256:7d6e1ee5b6f284fcb9a02ac69eb4ed316de786f82e180ba773b61ed6bcb6da49",
+    "sha256": "sha256:7129202bf843a098a64effb23fc7e927afa4bce4af6e4366bf86884dbe87ec70",
     "projection": {
       "path": "releases/v0.2.0-alpha.2/upgrade/app-map-impact.json",
-      "sha256": "sha256:4e54d2414f318c2ffd60171c5a626119fb9750d1ffb13d0d0613c3b0d1c615ef"
+      "sha256": "sha256:fcfaa1e7b6e739988ccb4afdf463eb81867713b58511c2855ec2b0a261f51261"
     }
   }
 }
