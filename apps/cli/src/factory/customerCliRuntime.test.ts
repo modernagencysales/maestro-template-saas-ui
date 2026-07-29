@@ -278,6 +278,185 @@ describe("materialized customer CLI runtime closure", () => {
     }
   }, 180_000);
 
+  it("imports a reviewed private package from a committed customer", async () => {
+    const parent = mkdtempSync(join(tmpdir(), "maestro-customer-private-"));
+    temporaryRoots.push(parent);
+    const target = join(parent, "customer");
+    const created = runTaggedCli([
+      "create",
+      target,
+      "--name",
+      "Private Package Closure",
+      "--outcome",
+      "Review a generic private package",
+      "--demo-only",
+      "--write",
+      "--privacy-reviewed",
+      "--json",
+    ]);
+    expect(created.exitCode, `${created.stdout}\n${created.stderr}`).toBe(0);
+
+    await execFileAsync(
+      "pnpm",
+      ["install", "--offline", "--frozen-lockfile", "--ignore-scripts"],
+      { cwd: target, timeout: 120_000 },
+    );
+    expect(
+      existsSync(join(target, "examples/generic-ai-ops/template-package.json")),
+    ).toBe(true);
+    expect(existsSync(join(target, "examples/generic-ai-ops/seed"))).toBe(
+      false,
+    );
+    expect(
+      existsSync(join(target, "tooling/generators/src/private-package.ts")),
+    ).toBe(true);
+
+    execFileSync("git", ["init", "--quiet"], { cwd: target });
+    execFileSync("git", ["config", "user.email", "fixture@localhost"], {
+      cwd: target,
+    });
+    execFileSync("git", ["config", "user.name", "Fixture"], { cwd: target });
+    execFileSync("git", ["add", "."], { cwd: target });
+    execFileSync(
+      "git",
+      ["commit", "--quiet", "--no-verify", "-m", "baseline"],
+      { cwd: target },
+    );
+
+    const command = (name: string, rest: readonly string[]) =>
+      spawnSync("pnpm", ["--silent", "run", name, "--", ...rest], {
+        cwd: target,
+        encoding: "utf8",
+        timeout: 60_000,
+      });
+    const args = [
+      "--fixture",
+      "examples/generic-ai-ops",
+      "--system",
+      "knowledge-brain",
+      "--disposition",
+      "extend",
+    ] as const;
+    for (const script of [
+      "template:private-package:dry-run",
+      "template:private-package:import",
+    ]) {
+      const result = command(script, ["--help"]);
+      expect(result.status, result.stderr).toBe(0);
+      expect(result.stdout).toContain(
+        `template:${script.slice("template:".length)}`,
+      );
+    }
+
+    const dryRun = command("template:private-package:dry-run", args);
+    expect(dryRun.status, dryRun.stderr).toBe(0);
+    const preview = JSON.parse(dryRun.stdout) as {
+      readonly files: readonly {
+        readonly path: string;
+        readonly content: string;
+      }[];
+      readonly collisions: readonly string[];
+      readonly privacy: {
+        readonly reads: readonly string[];
+        readonly readsSeedData: boolean;
+        readonly readsSecrets: boolean;
+        readonly productionRegistrations: boolean;
+      };
+      readonly previewFingerprint: string;
+      readonly confirmationCommand: string;
+    };
+    expect(preview).toMatchObject({
+      collisions: [],
+      privacy: {
+        reads: ["template-package.json"],
+        readsSeedData: false,
+        readsSecrets: false,
+        productionRegistrations: false,
+      },
+      previewFingerprint: expect.stringMatching(
+        /^private_package_sha256:[0-9a-f]{64}$/,
+      ),
+    });
+    expect(preview.confirmationCommand).toContain(preview.previewFingerprint);
+    for (const file of preview.files)
+      expect(existsSync(join(target, file.path))).toBe(false);
+    expect(
+      execFileSync("git", ["status", "--porcelain"], {
+        cwd: target,
+        encoding: "utf8",
+      }),
+    ).toBe("");
+
+    const unconfirmed = command("template:private-package:import", [
+      ...args,
+      "--write",
+    ]);
+    expect(unconfirmed.status).not.toBe(0);
+    expect(unconfirmed.stderr).toContain("fingerprint mismatch");
+    for (const file of preview.files)
+      expect(existsSync(join(target, file.path))).toBe(false);
+
+    const imported = command("template:private-package:import", [
+      ...args,
+      "--write",
+      "--preflight-fingerprint",
+      preview.previewFingerprint,
+    ]);
+    expect(imported.status, imported.stderr).toBe(0);
+    for (const file of preview.files)
+      expect(readFileSync(join(target, file.path), "utf8")).toBe(file.content);
+    execFileSync("git", ["add", "."], { cwd: target });
+    execFileSync(
+      "git",
+      ["commit", "--quiet", "--no-verify", "-m", "import private package"],
+      { cwd: target },
+    );
+
+    const collisionPreview = command("template:private-package:dry-run", args);
+    expect(collisionPreview.status, collisionPreview.stderr).toBe(0);
+    const collisionPlan = JSON.parse(collisionPreview.stdout) as {
+      readonly collisions: readonly string[];
+      readonly previewFingerprint: string;
+    };
+    expect(collisionPlan.collisions).toEqual(
+      preview.files.map(({ path }) => path),
+    );
+    const firstFile = preview.files[0];
+    if (!firstFile) throw new Error("private-package preview emitted no files");
+    const preservedPath = join(target, firstFile.path);
+    const preservedBytes = readFileSync(preservedPath, "utf8");
+    const collisionImport = command("template:private-package:import", [
+      ...args,
+      "--write",
+      "--preflight-fingerprint",
+      collisionPlan.previewFingerprint,
+    ]);
+    expect(collisionImport.status).not.toBe(0);
+    expect(collisionImport.stderr).toContain("Refusing to overwrite");
+    expect(readFileSync(preservedPath, "utf8")).toBe(preservedBytes);
+
+    for (const gate of [
+      "check:generators",
+      "check:promotion-boundary",
+      "check:secret-canaries",
+    ]) {
+      const result = spawnSync("pnpm", ["run", gate], {
+        cwd: target,
+        encoding: "utf8",
+        timeout: 120_000,
+      });
+      expect(result.status, `${gate}\n${result.stdout}\n${result.stderr}`).toBe(
+        0,
+      );
+    }
+    expect(
+      execFileSync("git", ["status", "--porcelain"], {
+        cwd: target,
+        encoding: "utf8",
+      }),
+    ).toBe("");
+  }, 240_000);
+
   it("installs and imports while immutable-tag preflight fails closed", async () => {
     const parent = mkdtempSync(join(tmpdir(), "maestro-customer-cli-"));
     temporaryRoots.push(parent);
