@@ -28,6 +28,8 @@ type DeployPolicy = {
     >
   >;
   readonly rollbackScript: string;
+  readonly rollbackSeedCommitBinding: string;
+  readonly trustedSelfProtectionCommitBinding: string;
   readonly legacyCredentialSecretsForbidden: readonly string[];
 };
 
@@ -89,6 +91,9 @@ export const validateDeployAuthoritySources = (input: {
     !policy.jobs.production ||
     !Array.isArray(policy.authority.requiredBindings) ||
     typeof policy.rollbackScript !== "string" ||
+    policy.rollbackSeedCommitBinding !== "TRUSTED_ROLLBACK_SEED_COMMIT" ||
+    policy.trustedSelfProtectionCommitBinding !==
+      "TRUSTED_CI_SELF_PROTECTION_COMMIT" ||
     !Array.isArray(policy.legacyCredentialSecretsForbidden) ||
     !Array.isArray(policy.jobs.staging.credentialSecrets) ||
     !Array.isArray(policy.jobs.production.credentialSecrets)
@@ -149,6 +154,13 @@ export const validateDeployAuthoritySources = (input: {
   for (const binding of policy.authority.requiredBindings) {
     if (!input.pipeline.includes(`${binding}: "\${${binding}}"`))
       failures.push(`pipeline must bind externally supplied ${binding}`);
+  }
+  for (const binding of [
+    policy.rollbackSeedCommitBinding,
+    policy.trustedSelfProtectionCommitBinding,
+  ]) {
+    if (!policy.authority.requiredBindings.includes(binding))
+      failures.push(`${binding} must be a required external trust binding`);
   }
   for (const legacy of policy.legacyCredentialSecretsForbidden) {
     if (input.pipeline.includes(`- ${legacy}`))
@@ -283,6 +295,9 @@ export const validateDeployAuthoritySources = (input: {
     const coordinateValidation = script.indexOf(
       "check-deploy-authority-receipt.mts validate-inputs",
     );
+    const deployKeyValidation = script.indexOf(
+      `scripts/_project-config.mjs assert-convex-deploy-key ${environment}`,
+    );
     const backendCanary = script.indexOf("deploy-canary.sh backend");
     const cloudflareDeploy = script.indexOf(
       `${policy.authority.guardedDeployOwner} cloudflare`,
@@ -290,7 +305,8 @@ export const validateDeployAuthoritySources = (input: {
     const hostedCanary = script.indexOf("deploy-canary.sh hosted");
     const receipt = script.indexOf("check-deploy-authority-receipt.mts record");
     if (
-      coordinateValidation < 0 ||
+      deployKeyValidation < 0 ||
+      coordinateValidation <= deployKeyValidation ||
       convexDeploy <= coordinateValidation ||
       backendCanary <= convexDeploy ||
       cloudflareDeploy <= backendCanary ||
@@ -299,6 +315,14 @@ export const validateDeployAuthoritySources = (input: {
     )
       failures.push(
         `${job.script} must canary backend and hosted deploys before recording the receipt`,
+      );
+    const canonicalViteBinding = `VITE_CONVEX_URL="$(node scripts/_project-config.mjs get ${environment} convexUrl)"`;
+    if (
+      !script.includes(canonicalViteBinding) ||
+      script.includes("${VITE_CONVEX_URL:-")
+    )
+      failures.push(
+        `${job.script} must override VITE_CONVEX_URL with the selected environment binding`,
       );
     if (
       environment === "staging" &&
@@ -323,8 +347,12 @@ export const validateDeployAuthoritySources = (input: {
   }
   const rollback = input.sources[policy.rollbackScript] ?? "";
   const rollbackMarkers = [
+    ': "${TRUSTED_ROLLBACK_SEED_COMMIT:',
+    'git cat-file -e "${TRUSTED_ROLLBACK_SEED_COMMIT}^{commit}"',
+    'git rev-parse "${TRUSTED_ROLLBACK_SEED_COMMIT}^{commit}"',
+    'git merge-base --is-ancestor "${TRUSTED_ROLLBACK_SEED_COMMIT}" "${BUILDKITE_COMMIT}"',
     "git rev-parse HEAD",
-    'git cat-file -e "${BUILDKITE_COMMIT}:.buildkite/scripts/rollback-promote.sh"',
+    "scripts/_project-config.mjs assert-convex-deploy-key production",
     "check-deploy-authority-receipt.mts validate-inputs",
     "check-deploy-authority-receipt.mts verify-rollback",
     `${policy.authority.guardedDeployOwner} convex`,
@@ -345,6 +373,63 @@ export const validateDeployAuthoritySources = (input: {
     failures.push(
       "rollback must verify exact prior coordinates, use guarded providers, canary, and record a new receipt",
     );
+  const selfProtectionStep = pipelineBlock(
+    input.pipeline,
+    "ci-self-protection",
+  );
+  const trustedSelfProtectionMarkers = [
+    '${TRUSTED_CI_SELF_PROTECTION_COMMIT}" =~ ^[0-9a-f]{40}',
+    'git cat-file -e "${TRUSTED_CI_SELF_PROTECTION_COMMIT}^{commit}"',
+    'git rev-parse "${TRUSTED_CI_SELF_PROTECTION_COMMIT}^{commit}"',
+    'git show "${TRUSTED_CI_SELF_PROTECTION_COMMIT}:.buildkite/scripts/setup.sh"',
+    'git show "${TRUSTED_CI_SELF_PROTECTION_COMMIT}:tooling/quality/check-deploy-authority.mts"',
+    'git show "${TRUSTED_CI_SELF_PROTECTION_COMMIT}:.buildkite/scripts/ci-self-protection.sh"',
+    'pnpm exec tsx "${TRUSTED_VERIFIER_PATH}"',
+    'TEMPLATE_CI_SETUP=skip bash "${TRUSTED_SELF_PROTECTION_PATH}"',
+  ];
+  if (
+    !selfProtectionStep ||
+    selfProtectionStep.includes("secrets:") ||
+    trustedSelfProtectionMarkers.some(
+      (marker, index) =>
+        !selfProtectionStep.includes(marker) ||
+        (index > 0 &&
+          selfProtectionStep.indexOf(marker) <=
+            selfProtectionStep.indexOf(
+              trustedSelfProtectionMarkers[index - 1] ?? "",
+            )),
+    )
+  )
+    failures.push(
+      "secretless self-protection must run externally pinned bootstrap and verifier bytes",
+    );
+  const keyedPipelineBlocks = Object.fromEntries(
+    pipelineBlocks(input.pipeline)
+      .map((block) => {
+        const key = /^\s*key:\s*"([^"]+)"$/mu.exec(block)?.[1];
+        return key ? [[key, block] as const] : [];
+      })
+      .flat(),
+  );
+  const reachesSelfProtection = (
+    key: string,
+    seen = new Set<string>(),
+  ): boolean => {
+    if (key === "ci-self-protection") return true;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    const block = keyedPipelineBlocks[key];
+    const dependency = block
+      ? /^\s*depends_on:\s*"([^"]+)"$/mu.exec(block)?.[1]
+      : undefined;
+    return dependency ? reachesSelfProtection(dependency, seen) : false;
+  };
+  for (const [key, block] of Object.entries(keyedPipelineBlocks)) {
+    if (block.includes("secrets:") && !reachesSelfProtection(key))
+      failures.push(
+        `${key} must transitively depend on trusted secretless self-protection`,
+      );
+  }
   const canary = input.sources[".buildkite/scripts/deploy-canary.sh"] ?? "";
   if (
     !canary.includes("convex run ops/health:liveness") ||
@@ -379,14 +464,22 @@ const containsDeployPrimitive = (source: string): boolean => {
 };
 
 const pipelineBlock = (pipeline: string, key: string): string | undefined => {
+  return pipelineBlocks(pipeline).find((block) =>
+    block.split("\n").some((line) => line.trim() === `key: "${key}"`),
+  );
+};
+
+const pipelineBlocks = (pipeline: string): readonly string[] => {
   const lines = pipeline.split("\n");
-  const keyIndex = lines.findIndex((line) => line.trim() === `key: "${key}"`);
-  if (keyIndex < 0) return undefined;
-  let start = keyIndex;
-  while (start > 0 && !lines[start]?.startsWith("  - ")) start -= 1;
-  let end = keyIndex + 1;
-  while (end < lines.length && !lines[end]?.startsWith("  - ")) end += 1;
-  return lines.slice(start, end).join("\n");
+  const blocks: string[] = [];
+  let start = lines.findIndex((line) => line.startsWith("  - "));
+  while (start >= 0) {
+    let end = start + 1;
+    while (end < lines.length && !lines[end]?.startsWith("  - ")) end += 1;
+    blocks.push(lines.slice(start, end).join("\n"));
+    start = end < lines.length ? end : -1;
+  }
+  return blocks;
 };
 
 const escapeRegex = (value: string): string =>

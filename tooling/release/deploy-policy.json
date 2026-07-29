@@ -15,6 +15,9 @@
     "requiredBindings": [
       "PROMOTION_AUTHORITY_ENDPOINT",
       "TRUSTED_DEPLOY_ROOT_SHA256",
+      "TRUSTED_CI_SELF_PROTECTION_COMMIT",
+      "TRUSTED_ROLLBACK_SEED_COMMIT",
+      "ROLLBACK_RECEIPT_BUILD_ID",
       "TEMPLATE_STAGING_CONVEX_DEPLOYMENT",
       "TEMPLATE_STAGING_CONVEX_URL",
       "TEMPLATE_STAGING_HOSTED_URL",
@@ -48,5 +51,7 @@
     }
   },
   "legacyCredentialSecretsForbidden": ["TEMPLATE_CONVEX_DEPLOY_KEY"],
-  "rollbackScript": ".buildkite/scripts/rollback-promote.sh"
+  "rollbackScript": ".buildkite/scripts/rollback-promote.sh",
+  "rollbackSeedCommitBinding": "TRUSTED_ROLLBACK_SEED_COMMIT",
+  "trustedSelfProtectionCommitBinding": "TRUSTED_CI_SELF_PROTECTION_COMMIT"
 }

@@ -18,6 +18,20 @@ const baseEnv = {
   TEMPLATE_HOSTED_URL: "https://app.example.test",
 } as const;
 
+const rollbackEnv = {
+  DEPLOY_ENVIRONMENT: "production",
+  BUILDKITE_COMMIT: "b".repeat(40),
+  CONVEX_DEPLOYMENT: "prod:maestro-template-production",
+  ROLLBACK_CLOUDFLARE_DEPLOYMENT_VERSION: "b".repeat(40),
+  PREVIOUS_CONVEX_COMMIT_SHA: "a".repeat(40),
+  PREVIOUS_CONVEX_DEPLOYMENT: "prod:maestro-template-production",
+  PREVIOUS_CLOUDFLARE_DEPLOYMENT_VERSION: "a".repeat(40),
+  ROLLBACK_RECEIPT_BUILD_ID: "build-123",
+  CLOUDFLARE_PAGES_PROJECT: "maestro-template",
+  CLOUDFLARE_PAGES_BRANCH: "main",
+  TEMPLATE_HOSTED_URL: "https://app.example.test",
+} as const;
+
 describe("deployment rollback receipt", () => {
   it("records exact current and prior provider coordinates without secrets", () => {
     expect(deploymentReceiptFromEnv(baseEnv)).toEqual({
@@ -56,34 +70,19 @@ describe("deployment rollback receipt", () => {
 
   it("binds rollback to the prior receipt coordinates and checked-out commit", () => {
     const receipt = deploymentReceiptFromEnv(baseEnv);
-    expect(() =>
-      verifyRollbackReceipt(receipt, {
-        DEPLOY_ENVIRONMENT: "production",
-        BUILDKITE_COMMIT: "b".repeat(40),
-        CONVEX_DEPLOYMENT: "prod:maestro-template-production",
-        ROLLBACK_CLOUDFLARE_DEPLOYMENT_VERSION: "b".repeat(40),
-        PREVIOUS_CONVEX_COMMIT_SHA: "a".repeat(40),
-        PREVIOUS_CONVEX_DEPLOYMENT: "prod:maestro-template-production",
-        PREVIOUS_CLOUDFLARE_DEPLOYMENT_VERSION: "a".repeat(40),
-      }),
-    ).not.toThrow();
+    expect(() => verifyRollbackReceipt(receipt, rollbackEnv)).not.toThrow();
     for (const env of [
       { BUILDKITE_COMMIT: "c".repeat(40) },
       { CONVEX_DEPLOYMENT: "prod:other" },
       { ROLLBACK_CLOUDFLARE_DEPLOYMENT_VERSION: "c".repeat(40) },
       { DEPLOY_ENVIRONMENT: "staging" },
+      { ROLLBACK_RECEIPT_BUILD_ID: "build-456" },
+      { CLOUDFLARE_PAGES_PROJECT: "other-project" },
+      { CLOUDFLARE_PAGES_BRANCH: "other-branch" },
+      { TEMPLATE_HOSTED_URL: "https://other.example.test" },
     ]) {
       expect(() =>
-        verifyRollbackReceipt(receipt, {
-          DEPLOY_ENVIRONMENT: "production",
-          BUILDKITE_COMMIT: "b".repeat(40),
-          CONVEX_DEPLOYMENT: "prod:maestro-template-production",
-          ROLLBACK_CLOUDFLARE_DEPLOYMENT_VERSION: "b".repeat(40),
-          PREVIOUS_CONVEX_COMMIT_SHA: "a".repeat(40),
-          PREVIOUS_CONVEX_DEPLOYMENT: "prod:maestro-template-production",
-          PREVIOUS_CLOUDFLARE_DEPLOYMENT_VERSION: "a".repeat(40),
-          ...env,
-        }),
+        verifyRollbackReceipt(receipt, { ...rollbackEnv, ...env }),
       ).toThrow();
     }
     for (const env of [
@@ -92,17 +91,50 @@ describe("deployment rollback receipt", () => {
       { PREVIOUS_CLOUDFLARE_DEPLOYMENT_VERSION: "c".repeat(40) },
     ]) {
       expect(() =>
-        verifyRollbackReceipt(receipt, {
-          DEPLOY_ENVIRONMENT: "production",
-          BUILDKITE_COMMIT: "b".repeat(40),
-          CONVEX_DEPLOYMENT: "prod:maestro-template-production",
-          ROLLBACK_CLOUDFLARE_DEPLOYMENT_VERSION: "b".repeat(40),
-          PREVIOUS_CONVEX_COMMIT_SHA: "a".repeat(40),
-          PREVIOUS_CONVEX_DEPLOYMENT: "prod:maestro-template-production",
-          PREVIOUS_CLOUDFLARE_DEPLOYMENT_VERSION: "a".repeat(40),
-          ...env,
-        }),
+        verifyRollbackReceipt(receipt, { ...rollbackEnv, ...env }),
       ).toThrow();
     }
+  });
+
+  it("rejects alteration of every public rollback receipt coordinate", () => {
+    const receipt = deploymentReceiptFromEnv(baseEnv);
+    const alterations = {
+      environment: "staging",
+      buildId: "build-456",
+      commitSha: "c".repeat(40),
+      convexDeployment: "prod:other-production",
+      previousConvexCommitSha: "c".repeat(40),
+      previousConvexDeployment: "prod:other-production",
+      cloudflareProject: "other-project",
+      cloudflareBranch: "other-branch",
+      cloudflareDeploymentVersion: "c".repeat(40),
+      previousCloudflareDeploymentVersion: "c".repeat(40),
+      hostedUrl: "https://other.example.test/",
+    } as const;
+    for (const [key, value] of Object.entries(alterations)) {
+      expect(
+        () => verifyRollbackReceipt({ ...receipt, [key]: value }, rollbackEnv),
+        key,
+      ).toThrow();
+    }
+  });
+
+  it("rejects secret and deploy-key-shaped public coordinates", () => {
+    for (const [key, value] of [
+      ["BUILDKITE_BUILD_ID", "api_token=not-public"],
+      ["CONVEX_DEPLOYMENT", "prod:maestro-template-production|secret"],
+      ["PREVIOUS_CONVEX_DEPLOYMENT", "CONVEX_DEPLOY_KEY"],
+      ["CLOUDFLARE_PAGES_PROJECT", "private-key"],
+      ["CLOUDFLARE_PAGES_BRANCH", "Bearer_not-public"],
+      ["TEMPLATE_HOSTED_URL", "https://token.example.test"],
+    ] as const) {
+      expect(
+        () => deploymentReceiptFromEnv({ ...baseEnv, [key]: value }),
+        key,
+      ).toThrow();
+    }
+    expect(JSON.stringify(deploymentReceiptFromEnv(baseEnv))).not.toMatch(
+      /deploy[_-]?key|secret|token|password|bearer/iu,
+    );
   });
 });

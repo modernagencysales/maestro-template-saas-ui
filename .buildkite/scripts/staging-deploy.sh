@@ -27,18 +27,20 @@ DEPLOY_ENVIRONMENT=staging
 export CONVEX_DEPLOYMENT TEMPLATE_HOSTED_URL DEPLOY_ENVIRONMENT
 export CLOUDFLARE_PAGES_PROJECT CLOUDFLARE_PAGES_BRANCH CLOUDFLARE_DEPLOYMENT_VERSION
 
+node scripts/_project-config.mjs assert-convex-deploy-key staging
 pnpm exec tsx tooling/quality/check-deploy-authority-receipt.mts validate-inputs pending
 
 pnpm exec tsx tooling/release/src/index.ts deploy-doctor staging
 
-# Backend first: CONVEX_DEPLOY_KEY (validated by deploy-doctor) targets the
+# Backend first: CONVEX_DEPLOY_KEY (validated against its non-secret public
+# prefix before deploy-doctor) targets the
 # environment's deployment; the seed is idempotent and only creates the fixed
 # demo workspace. The frontend below is built against the same deployment.
 DEPLOY_ENVIRONMENT=staging pnpm exec tsx tooling/release/src/deploy/guardedDeploy.ts convex
 (cd packages/convex && pnpm exec convex run demo/showcase:seed)
 .buildkite/scripts/deploy-canary.sh backend
 
-VITE_CONVEX_URL="${VITE_CONVEX_URL:-$(node scripts/_project-config.mjs get staging convexUrl)}"
+VITE_CONVEX_URL="$(node scripts/_project-config.mjs get staging convexUrl)"
 export VITE_CONVEX_URL
 
 pnpm build

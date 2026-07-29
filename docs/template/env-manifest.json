@@ -820,6 +820,28 @@
       "notes": "Already-live independent deployment-authority HTTPS origin. It must be a base URL without credentials, path, query, or fragment and must not be the target Convex origin."
     },
     {
+      "name": "PROMOTION_AUTHORITY_MODE",
+      "group": "deployment-authority",
+      "services": ["convex", "authority-runtime"],
+      "visibility": "server-config",
+      "requiredFor": ["authority"],
+      "fakeExampleAllowed": false,
+      "owner": "Deployment authority owner",
+      "rotation": "Immutable for the independent authority deployment; review any mode change as a control-plane migration.",
+      "notes": "Authority-runtime discriminator. The only accepted value is exactly authority; application staging and production deployments must not set it."
+    },
+    {
+      "name": "PROMOTION_AUTHORITY_PRIVATE_KEY_PKCS8_BASE64URL",
+      "group": "deployment-authority",
+      "services": ["convex", "authority-runtime"],
+      "visibility": "server-secret",
+      "requiredFor": ["authority"],
+      "fakeExampleAllowed": false,
+      "owner": "Deployment authority owner",
+      "rotation": "Rotate through the independent authority key ceremony and republish the reviewed public trust material.",
+      "notes": "Ed25519 PKCS#8 signing key for the authority runtime only. Never provision, expose, query, or serialize this value in Buildkite or application deploy receipts."
+    },
+    {
       "name": "TRUSTED_DEPLOY_ROOT_SHA256",
       "group": "buildkite",
       "services": ["ci", "deploy"],
@@ -829,6 +851,28 @@
       "owner": "Deployment authority owner",
       "rotation": "Update through an external reviewed trust-root ceremony only.",
       "notes": "Externally pinned sha256 root over the deploy verifier, policy, and public verification key. The authority signing key never enters this repository or Buildkite."
+    },
+    {
+      "name": "TRUSTED_CI_SELF_PROTECTION_COMMIT",
+      "group": "buildkite",
+      "services": ["ci", "deploy"],
+      "visibility": "server-config",
+      "requiredFor": ["deploy"],
+      "fakeExampleAllowed": false,
+      "owner": "CI owner",
+      "rotation": "Advance only after the reviewed self-protection successor commit is immutable.",
+      "notes": "Exact externally pinned commit whose setup, deploy-authority verifier, and secretless self-protection script run instead of PR-head bootstrap scripts."
+    },
+    {
+      "name": "TRUSTED_ROLLBACK_SEED_COMMIT",
+      "group": "buildkite",
+      "services": ["ci", "deploy"],
+      "visibility": "server-config",
+      "requiredFor": ["deploy"],
+      "fakeExampleAllowed": false,
+      "owner": "Deploy owner",
+      "rotation": "Set once to the first reviewed guarded successor; advance only through a separately reviewed freeze ceremony.",
+      "notes": "Exact immutable rollback ancestry floor. Pre-seed targets are never eligible for automated rollback."
     },
     {
       "name": "STAGING_PREVIOUS_CONVEX_COMMIT_SHA",
@@ -917,6 +961,17 @@
       "owner": "Deploy owner",
       "rotation": "Bind to the reviewed receipt artifact for each rollback.",
       "notes": "Local path of the downloaded guarded deployment receipt."
+    },
+    {
+      "name": "ROLLBACK_RECEIPT_BUILD_ID",
+      "group": "buildkite",
+      "services": ["ci", "deploy"],
+      "visibility": "public-config",
+      "requiredFor": ["deploy"],
+      "fakeExampleAllowed": false,
+      "owner": "Deploy owner",
+      "rotation": "Bind to the immutable source build recorded by each reviewed rollback receipt.",
+      "notes": "Public Buildkite build coordinate used to reject a receipt from any other deployment build."
     },
     {
       "name": "ROLLBACK_CLOUDFLARE_DEPLOYMENT_VERSION",

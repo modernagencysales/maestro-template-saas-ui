@@ -57,20 +57,62 @@ const convexIdentity = (rawUrl) => {
   throw new Error("Convex URL binding does not identify a Convex deployment");
 };
 
+const convexDeployIdentity = (rawName) => {
+  const match = /^(?:dev|prod):([a-z0-9-]+)$/u.exec(rawName);
+  if (!match?.[1]) {
+    throw new Error(
+      "Convex deployment bindings must be dev:<name> or prod:<name>",
+    );
+  }
+  return match[1];
+};
+
+const assertConvexBinding = (name) => {
+  const selected = environment(name);
+  const expectedIdentity = selected.convexDeployName;
+  const deployment = value(name, "convexDeployName");
+  const deployIdentity = convexDeployIdentity(deployment);
+  const urlIdentity = convexIdentity(value(name, "convexUrl"));
+  if (
+    typeof expectedIdentity !== "string" ||
+    deployIdentity !== expectedIdentity ||
+    urlIdentity !== expectedIdentity
+  ) {
+    throw new Error(
+      `${name} Convex deployment and URL bindings must match ${expectedIdentity}`,
+    );
+  }
+  return deployment;
+};
+
 const assertIsolatedConvex = () => {
   if (config.requireDistinctConvexDeployments !== true) {
     throw new Error("Project config must require distinct Convex deployments");
   }
-  const stagingUrl = value("staging", "convexUrl");
-  const productionUrl = value("production", "convexUrl");
-  const stagingName = value("staging", "convexDeployName");
-  const productionName = value("production", "convexDeployName");
+  const stagingName = assertConvexBinding("staging");
+  const productionName = assertConvexBinding("production");
   if (
     stagingName === productionName ||
-    convexIdentity(stagingUrl) === convexIdentity(productionUrl)
+    convexDeployIdentity(stagingName) === convexDeployIdentity(productionName)
   ) {
     throw new Error(
       "Staging and production Convex deployments must be distinct",
+    );
+  }
+};
+
+const assertConvexDeployKey = (name) => {
+  assertIsolatedConvex();
+  const deployment = assertConvexBinding(name);
+  const deployKey = requiredEnv("CONVEX_DEPLOY_KEY");
+  const publicPrefix = `${deployment}|`;
+  if (
+    !deployKey.startsWith(publicPrefix) ||
+    deployKey.length === publicPrefix.length ||
+    /\s/u.test(deployKey)
+  ) {
+    throw new Error(
+      `CONVEX_DEPLOY_KEY does not target the selected ${name} deployment`,
     );
   }
 };
@@ -82,6 +124,13 @@ if (command === "get") {
   process.stdout.write(`${value(environmentName, field)}\n`);
 } else if (command === "assert-isolated-convex") {
   assertIsolatedConvex();
+} else if (command === "assert-convex-deploy-key") {
+  if (!environmentName) {
+    throw new Error(
+      "Usage: _project-config.mjs assert-convex-deploy-key <environment>",
+    );
+  }
+  assertConvexDeployKey(environmentName);
 } else if (command === "required-secrets") {
   if (!environmentName) {
     throw new Error(
@@ -93,6 +142,6 @@ if (command === "get") {
   );
 } else {
   throw new Error(
-    "Usage: _project-config.mjs get <environment> <field> | required-secrets <environment> | assert-isolated-convex",
+    "Usage: _project-config.mjs get <environment> <field> | required-secrets <environment> | assert-isolated-convex | assert-convex-deploy-key <environment>",
   );
 }

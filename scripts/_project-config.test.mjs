@@ -5,11 +5,12 @@ import { describe, expect, it } from "vitest";
 const root = resolve(import.meta.dirname, "..");
 const script = resolve(root, "scripts/_project-config.mjs");
 const bindings = {
-  TEMPLATE_STAGING_CONVEX_DEPLOYMENT: "dev:template-staging",
-  TEMPLATE_STAGING_CONVEX_URL: "https://template-staging.convex.cloud",
+  TEMPLATE_STAGING_CONVEX_DEPLOYMENT: "dev:maestro-template-staging",
+  TEMPLATE_STAGING_CONVEX_URL: "https://maestro-template-staging.convex.cloud",
   TEMPLATE_STAGING_HOSTED_URL: "https://staging.example.test",
-  TEMPLATE_PRODUCTION_CONVEX_DEPLOYMENT: "prod:template-production",
-  TEMPLATE_PRODUCTION_CONVEX_URL: "https://template-production.convex.cloud",
+  TEMPLATE_PRODUCTION_CONVEX_DEPLOYMENT: "prod:maestro-template-production",
+  TEMPLATE_PRODUCTION_CONVEX_URL:
+    "https://maestro-template-production.convex.cloud",
   TEMPLATE_PRODUCTION_HOSTED_URL: "https://app.example.test",
 };
 
@@ -41,7 +42,48 @@ describe("project deploy bindings", () => {
     expect(
       run(["assert-isolated-convex"], {
         ...bindings,
-        TEMPLATE_PRODUCTION_CONVEX_URL: "https://template-staging.convex.site",
+        TEMPLATE_PRODUCTION_CONVEX_URL:
+          "https://maestro-template-staging.convex.site",
+      }).status,
+    ).not.toBe(0);
+  });
+
+  it("rejects cross-swapped and internally mismatched environment bindings", () => {
+    for (const env of [
+      {
+        ...bindings,
+        TEMPLATE_STAGING_CONVEX_DEPLOYMENT:
+          bindings.TEMPLATE_PRODUCTION_CONVEX_DEPLOYMENT,
+        TEMPLATE_STAGING_CONVEX_URL: bindings.TEMPLATE_PRODUCTION_CONVEX_URL,
+        TEMPLATE_PRODUCTION_CONVEX_DEPLOYMENT:
+          bindings.TEMPLATE_STAGING_CONVEX_DEPLOYMENT,
+        TEMPLATE_PRODUCTION_CONVEX_URL: bindings.TEMPLATE_STAGING_CONVEX_URL,
+      },
+      {
+        ...bindings,
+        TEMPLATE_STAGING_CONVEX_DEPLOYMENT:
+          bindings.TEMPLATE_PRODUCTION_CONVEX_DEPLOYMENT,
+      },
+      {
+        ...bindings,
+        TEMPLATE_PRODUCTION_CONVEX_URL: bindings.TEMPLATE_STAGING_CONVEX_URL,
+      },
+    ]) {
+      expect(run(["assert-isolated-convex"], env).status).not.toBe(0);
+    }
+  });
+
+  it("rejects a Convex deploy key whose public prefix targets another deployment", () => {
+    expect(
+      run(["assert-convex-deploy-key", "staging"], {
+        ...bindings,
+        CONVEX_DEPLOY_KEY: `${bindings.TEMPLATE_STAGING_CONVEX_DEPLOYMENT}|opaque-test-key`,
+      }).status,
+    ).toBe(0);
+    expect(
+      run(["assert-convex-deploy-key", "staging"], {
+        ...bindings,
+        CONVEX_DEPLOY_KEY: `${bindings.TEMPLATE_PRODUCTION_CONVEX_DEPLOYMENT}|opaque-test-key`,
       }).status,
     ).not.toBe(0);
   });

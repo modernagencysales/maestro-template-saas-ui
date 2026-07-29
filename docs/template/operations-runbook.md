@@ -6,19 +6,36 @@
 2. Review [env-manifest.md](./env-manifest.md) for required provider names,
    fake-mode behavior, and rotation posture.
 3. Confirm the independent deployment-authority control plane is already live.
-   Set its HTTPS base origin as `PROMOTION_AUTHORITY_ENDPOINT` and supply the
-   externally reviewed `TRUSTED_DEPLOY_ROOT_SHA256`. The endpoint must not be
-   the target Convex origin and neither value may be bootstrapped by this run.
-   Confirm Buildkite also has distinct `TEMPLATE_STAGING_CONVEX_*` and
-   `TEMPLATE_PRODUCTION_CONVEX_*` bindings. Run
-   `node scripts/_project-config.mjs assert-isolated-convex`; missing bindings,
-   shared deployment identities, or a `.convex.cloud`/`.convex.site` alias are
-   terminal failures.
+   Its typed `packages/convex/convex/convex.config.ts` environment declaration
+   must require `PROMOTION_AUTHORITY_MODE=authority` exactly and declare
+   `PROMOTION_AUTHORITY_PRIVATE_KEY_PKCS8_BASE64URL` only for that independent
+   authority runtime. The environment manifest and this runbook are the other
+   two required copies of that contract. Never add the private key to Buildkite,
+   the application staging/production environments, receipts, logs, or provider
+   coordinates. Set its HTTPS base origin as `PROMOTION_AUTHORITY_ENDPOINT` and
+   supply the externally reviewed `TRUSTED_DEPLOY_ROOT_SHA256`. The endpoint
+   must not be the target Convex origin and neither value may be bootstrapped by
+   this run. Provision `TRUSTED_CI_SELF_PROTECTION_COMMIT` as an exact immutable
+   commit; Buildkite executes that commit's setup, deploy-authority verifier,
+   and secretless self-protection script instead of their mutable-checkout
+   copies. A missing, symbolic, unavailable, or mismatched trusted commit is a
+   terminal failure before credentialed jobs. Confirm Buildkite also has
+   distinct `TEMPLATE_STAGING_CONVEX_*` and `TEMPLATE_PRODUCTION_CONVEX_*`
+   bindings. Run `node scripts/_project-config.mjs assert-isolated-convex`;
+   missing bindings, shared deployment identities, cross-swapped environment
+   identities, an internally mismatched deployment/URL pair, or a
+   `.convex.cloud`/ `.convex.site` alias are terminal failures. After scoped
+   credentials arrive, `assert-convex-deploy-key <environment>` verifies only
+   the key's public deployment prefix without logging or serializing the key.
+   Deploy doctor is an additional presence/configuration check, not a substitute
+   for this identity check.
 4. Run provider fake smokes.
 5. Run `pnpm build` and `pnpm smoke:web-static`.
 6. Deploy staging from the exact commit. The pipeline consumes one secretless
    preflight, then the guarded Convex and Cloudflare routes independently
-   authorize their provider action.
+   authorize their provider action. The deploy scripts overwrite any inherited
+   `VITE_CONVEX_URL` with the exact selected environment binding before building
+   the hosted application.
 7. Require the backend liveness canary after Convex deployment. After Pages
    deployment, require `pnpm smoke:hosted`, `pnpm smoke:hosted:browser`,
    `pnpm smoke:hosted:a11y`, and `pnpm smoke:hosted:visual`. Upload the guarded
@@ -101,15 +118,17 @@ an unparseable model response.
 
 ## Rollback
 
-The commit introducing this guarded path is the rollback seed, not an automated
-rollback target for any earlier release. Before the first protected production
-deployment, record the live provider coordinates accurately, but mark automated
-rollback unavailable. After that deployment succeeds, a later receipt may name
-the seed (or a descendant that still contains the guarded entrypoint) as its
-prior release. Before scheduling rollback, run
-`git cat-file -e <rollback-sha>:.buildkite/scripts/rollback-promote.sh`. If it
-fails, freeze deployment and require a separately reviewed recovery plan; never
-copy the new entrypoint into or execute it against a pre-seed checkout.
+No blocked or pre-closure commit is a rollback seed. Freeze deployment, create
+the first immutable reviewed successor containing the complete guarded path,
+then provision that exact SHA externally as `TRUSTED_ROLLBACK_SEED_COMMIT`. Its
+first protected production deployment is seed-only: record accurate live
+provider coordinates and the guarded receipt, but keep automated rollback
+unavailable until a later receipt names the seed (or a descendant) as its prior
+release. The rollback entrypoint validates the seed and target as exact 40/64
+hex SHAs, confirms the seed commit exists, and requires
+`git merge-base --is-ancestor "$TRUSTED_ROLLBACK_SEED_COMMIT" "$BUILDKITE_COMMIT"`.
+If any check fails, freeze deployment and require a separately reviewed recovery
+plan; never copy or execute the new entrypoint against a pre-seed checkout.
 
 1. Download the immutable guarded deployment receipt for the release being
    rolled back. It must contain the current and prior Convex commit/deployment,
@@ -117,12 +136,15 @@ copy the new entrypoint into or execute it against a pre-seed checkout.
 2. Check out the receipt's `previousConvexCommitSha`; obtain fresh deployment
    authority for that exact commit and set `RUN_ROLLBACK=true` only after the
    production approval block.
-3. Bind `ROLLBACK_RECEIPT_PATH`, `ROLLBACK_CLOUDFLARE_DEPLOYMENT_VERSION`, and
-   the `PRODUCTION_PREVIOUS_*` coordinates to the reviewed release being
-   replaced. The rollback entrypoint refuses a receipt whose environment,
-   checked-out commit, target deployment, release-being-replaced coordinates, or
-   Cloudflare versions differ. It also refuses a checkout that does not contain
-   the guarded rollback entrypoint.
+3. Bind `ROLLBACK_RECEIPT_PATH`, `ROLLBACK_RECEIPT_BUILD_ID`,
+   `ROLLBACK_CLOUDFLARE_DEPLOYMENT_VERSION`, and the `PRODUCTION_PREVIOUS_*`
+   coordinates to the reviewed release being replaced. The rollback entrypoint
+   compares every public receipt coordinate: environment, source build ID,
+   checked-out target commit/deployment, release-being-replaced commit and
+   deployment, Cloudflare project/branch/current/prior versions, and hosted URL.
+   Any alteration fails before provider action. Public receipt fields reject
+   secret-, token-, credential-, authorization-, and deploy-key-shaped strings;
+   deploy keys and other credential values are never serialized.
 4. Run `.buildkite/scripts/rollback-promote.sh`. It verifies the receipt before
    provider commands, routes both providers through `guardedDeploy.ts`, runs the
    backend and hosted canaries, and emits a new append-only rollback receipt.

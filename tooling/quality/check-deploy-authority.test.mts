@@ -1,3 +1,4 @@
+import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -207,6 +208,18 @@ describe("deploy authority self-protection", () => {
     ).not.toEqual([]);
   });
 
+  it("forbids inherited generic VITE_CONVEX_URL deploy overrides", () => {
+    const base = fixture();
+    for (const scriptName of [
+      ".buildkite/scripts/staging-deploy.sh",
+      ".buildkite/scripts/production-promote.sh",
+    ] as const) {
+      expect(base.sources[scriptName], scriptName).not.toContain(
+        "${VITE_CONVEX_URL:-",
+      );
+    }
+  });
+
   it("requires post-deploy backend and hosted canaries before receipts", () => {
     const base = fixture();
     for (const scriptName of [
@@ -241,6 +254,7 @@ describe("deploy authority self-protection", () => {
       "check-deploy-authority-receipt.mts verify-rollback",
       "git rev-parse HEAD",
       "git cat-file -e",
+      "git merge-base --is-ancestor",
       "guardedDeploy.ts convex",
       "deploy-canary.sh backend",
       "guardedDeploy.ts cloudflare",
@@ -260,6 +274,76 @@ describe("deploy authority self-protection", () => {
         }),
         marker,
       ).not.toEqual([]);
+    }
+  });
+
+  it("requires an immutable rollback seed floor rather than script presence", () => {
+    const base = fixture();
+    expect(JSON.parse(base.policySource).rollbackSeedCommitBinding).toBe(
+      "TRUSTED_ROLLBACK_SEED_COMMIT",
+    );
+    expect(base.sources[".buildkite/scripts/rollback-promote.sh"]).toContain(
+      "git merge-base --is-ancestor",
+    );
+    const head = spawnSync("git", ["rev-parse", "HEAD"], {
+      cwd: root,
+      encoding: "utf8",
+    }).stdout.trim();
+    const parent = spawnSync("git", ["rev-parse", "HEAD^"], {
+      cwd: root,
+      encoding: "utf8",
+    }).stdout.trim();
+    const result = spawnSync(
+      "bash",
+      [resolve(root, ".buildkite/scripts/rollback-promote.sh")],
+      {
+        cwd: root,
+        encoding: "utf8",
+        env: {
+          ...process.env,
+          TEMPLATE_CI_SETUP: "skip",
+          ROLLBACK_RECEIPT_PATH: "unused-before-ancestry-check.json",
+          BUILDKITE_COMMIT: parent,
+          TRUSTED_ROLLBACK_SEED_COMMIT: head,
+        },
+      },
+    );
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain(
+      "Rollback target predates the trusted rollback seed",
+    );
+  });
+
+  it("pins the secretless self-protection verifier outside PR-head scripts", () => {
+    const base = fixture();
+    expect(base.pipeline).toContain(
+      'TRUSTED_CI_SELF_PROTECTION_COMMIT: "${TRUSTED_CI_SELF_PROTECTION_COMMIT}"',
+    );
+    expect(base.pipeline).toContain(
+      'git show "${TRUSTED_CI_SELF_PROTECTION_COMMIT}:tooling/quality/check-deploy-authority.mts"',
+    );
+    expect(base.pipeline).toContain(
+      'git show "${TRUSTED_CI_SELF_PROTECTION_COMMIT}:.buildkite/scripts/ci-self-protection.sh"',
+    );
+    expect(base.pipeline).toContain('pnpm exec tsx "${TRUSTED_VERIFIER_PATH}"');
+    for (const pipeline of [
+      base.pipeline.replace(
+        'git show "${TRUSTED_CI_SELF_PROTECTION_COMMIT}:tooling/quality/check-deploy-authority.mts"',
+        "cp tooling/quality/check-deploy-authority.mts",
+      ),
+      base.pipeline.replace('pnpm exec tsx "${TRUSTED_VERIFIER_PATH}"', "true"),
+      base.pipeline.replace(
+        'TEMPLATE_CI_SETUP=skip bash "${TRUSTED_SELF_PROTECTION_PATH}"',
+        ".buildkite/scripts/ci-self-protection.sh",
+      ),
+      base.pipeline.replace(
+        'depends_on: "ci-self-protection"',
+        'depends_on: "untrusted-pr-head"',
+      ),
+    ]) {
+      expect(validateDeployAuthoritySources({ ...base, pipeline })).not.toEqual(
+        [],
+      );
     }
   });
 

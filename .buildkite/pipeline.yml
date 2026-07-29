@@ -2,6 +2,9 @@ env:
   SECRET_SCANNER_VERSION: "8.30.1"
   PROMOTION_AUTHORITY_ENDPOINT: "${PROMOTION_AUTHORITY_ENDPOINT}"
   TRUSTED_DEPLOY_ROOT_SHA256: "${TRUSTED_DEPLOY_ROOT_SHA256}"
+  TRUSTED_CI_SELF_PROTECTION_COMMIT: "${TRUSTED_CI_SELF_PROTECTION_COMMIT}"
+  TRUSTED_ROLLBACK_SEED_COMMIT: "${TRUSTED_ROLLBACK_SEED_COMMIT}"
+  ROLLBACK_RECEIPT_BUILD_ID: "${ROLLBACK_RECEIPT_BUILD_ID}"
   TEMPLATE_STAGING_CONVEX_DEPLOYMENT: "${TEMPLATE_STAGING_CONVEX_DEPLOYMENT}"
   TEMPLATE_STAGING_CONVEX_URL: "${TEMPLATE_STAGING_CONVEX_URL}"
   TEMPLATE_STAGING_HOSTED_URL: "${TEMPLATE_STAGING_HOSTED_URL}"
@@ -57,7 +60,28 @@ steps:
   # PR weakens the CI gate structure. This step must never receive secrets.
   - label: ":shield: ci-self-protection"
     key: "ci-self-protection"
-    command: ".buildkite/scripts/ci-self-protection.sh"
+    command: |
+      set -euo pipefail
+      if [[ ! "${TRUSTED_CI_SELF_PROTECTION_COMMIT}" =~ ^[0-9a-f]{40}([0-9a-f]{24})?$ ]]; then
+        echo "TRUSTED_CI_SELF_PROTECTION_COMMIT must be an exact immutable commit SHA." >&2
+        exit 1
+      fi
+      git cat-file -e "${TRUSTED_CI_SELF_PROTECTION_COMMIT}^{commit}"
+      if [[ "$(git rev-parse "${TRUSTED_CI_SELF_PROTECTION_COMMIT}^{commit}")" != "${TRUSTED_CI_SELF_PROTECTION_COMMIT}" ]]; then
+        echo "Trusted self-protection commit did not resolve exactly." >&2
+        exit 1
+      fi
+      TRUSTED_SELF_PROTECTION_DIR="$(mktemp -d)"
+      trap 'rm -rf "${TRUSTED_SELF_PROTECTION_DIR}"' EXIT
+      TRUSTED_SETUP_PATH="${TRUSTED_SELF_PROTECTION_DIR}/setup.sh"
+      TRUSTED_VERIFIER_PATH="${TRUSTED_SELF_PROTECTION_DIR}/check-deploy-authority.mts"
+      TRUSTED_SELF_PROTECTION_PATH="${TRUSTED_SELF_PROTECTION_DIR}/ci-self-protection.sh"
+      git show "${TRUSTED_CI_SELF_PROTECTION_COMMIT}:.buildkite/scripts/setup.sh" > "${TRUSTED_SETUP_PATH}"
+      git show "${TRUSTED_CI_SELF_PROTECTION_COMMIT}:tooling/quality/check-deploy-authority.mts" > "${TRUSTED_VERIFIER_PATH}"
+      git show "${TRUSTED_CI_SELF_PROTECTION_COMMIT}:.buildkite/scripts/ci-self-protection.sh" > "${TRUSTED_SELF_PROTECTION_PATH}"
+      source "${TRUSTED_SETUP_PATH}"
+      pnpm exec tsx "${TRUSTED_VERIFIER_PATH}"
+      TEMPLATE_CI_SETUP=skip bash "${TRUSTED_SELF_PROTECTION_PATH}"
     agents:
       queue: "linux-small"
 

@@ -36,9 +36,14 @@ const commit = (env: Env, name: string): string => {
   return value;
 };
 
+const secretShaped = (value: string): boolean =>
+  /(?:api[_-]?key|deploy[_-]?key|private[_-]?key|token|secret|password|credential|authorization|bearer)/iu.test(
+    value,
+  ) || /[|=]/u.test(value);
+
 const coordinate = (env: Env, name: string): string => {
   const value = required(env, name);
-  if (value.length > 256 || /\s/u.test(value))
+  if (value.length > 256 || /\s/u.test(value) || secretShaped(value))
     throw new Error(`Invalid provider coordinate: ${name}`);
   return value;
 };
@@ -52,6 +57,8 @@ const environment = (env: Env): "staging" | "production" => {
 
 const hostedUrl = (env: Env): string => {
   const value = required(env, "TEMPLATE_HOSTED_URL");
+  if (secretShaped(value))
+    throw new Error("TEMPLATE_HOSTED_URL must not contain secret-shaped data");
   const parsed = new URL(value);
   if (
     parsed.protocol !== "https:" ||
@@ -146,6 +153,7 @@ const receipt = (input: unknown): GuardedDeploymentReceipt => {
 export const verifyRollbackReceipt = (input: unknown, env: Env): void => {
   const parsed = receipt(input);
   const expectedEnvironment = environment(env);
+  const expectedBuildId = coordinate(env, "ROLLBACK_RECEIPT_BUILD_ID");
   const checkedOutCommit = commit(env, "BUILDKITE_COMMIT");
   const targetDeployment = coordinate(env, "CONVEX_DEPLOYMENT");
   const targetCloudflareVersion = commit(
@@ -161,15 +169,22 @@ export const verifyRollbackReceipt = (input: unknown, env: Env): void => {
     env,
     "PREVIOUS_CLOUDFLARE_DEPLOYMENT_VERSION",
   );
+  const expectedCloudflareProject = coordinate(env, "CLOUDFLARE_PAGES_PROJECT");
+  const expectedCloudflareBranch = coordinate(env, "CLOUDFLARE_PAGES_BRANCH");
+  const expectedHostedUrl = hostedUrl(env);
   if (
     parsed.environment !== expectedEnvironment ||
+    parsed.buildId !== expectedBuildId ||
     parsed.previousConvexCommitSha !== checkedOutCommit ||
     parsed.previousConvexDeployment !== targetDeployment ||
     parsed.previousCloudflareDeploymentVersion !== targetCloudflareVersion ||
     checkedOutCommit !== targetCloudflareVersion ||
     parsed.commitSha !== releaseBeingReplaced ||
     parsed.convexDeployment !== releaseDeploymentBeingReplaced ||
-    parsed.cloudflareDeploymentVersion !== cloudflareVersionBeingReplaced
+    parsed.cloudflareProject !== expectedCloudflareProject ||
+    parsed.cloudflareBranch !== expectedCloudflareBranch ||
+    parsed.cloudflareDeploymentVersion !== cloudflareVersionBeingReplaced ||
+    parsed.hostedUrl !== expectedHostedUrl
   )
     throw new Error("Rollback coordinates do not match the reviewed receipt");
 };

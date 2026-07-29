@@ -5,17 +5,35 @@ source "$(dirname "$0")/setup.sh"
 
 : "${ROLLBACK_RECEIPT_PATH:?ROLLBACK_RECEIPT_PATH is required}"
 : "${BUILDKITE_COMMIT:?BUILDKITE_COMMIT is required}"
+: "${TRUSTED_ROLLBACK_SEED_COMMIT:?TRUSTED_ROLLBACK_SEED_COMMIT is required}"
+
+if [[ ! "${BUILDKITE_COMMIT}" =~ ^[0-9a-f]{40}([0-9a-f]{24})?$ ]]; then
+  echo "Rollback target must be an exact immutable commit SHA." >&2
+  exit 1
+fi
+if [[ ! "${TRUSTED_ROLLBACK_SEED_COMMIT}" =~ ^[0-9a-f]{40}([0-9a-f]{24})?$ ]]; then
+  echo "Trusted rollback seed must be an exact immutable commit SHA." >&2
+  exit 1
+fi
+if ! git cat-file -e "${TRUSTED_ROLLBACK_SEED_COMMIT}^{commit}"; then
+  echo "Trusted rollback seed commit is unavailable; freeze deployment." >&2
+  exit 1
+fi
+RESOLVED_SEED_SHA="$(git rev-parse "${TRUSTED_ROLLBACK_SEED_COMMIT}^{commit}")"
+if [[ "${RESOLVED_SEED_SHA}" != "${TRUSTED_ROLLBACK_SEED_COMMIT}" ]]; then
+  echo "Trusted rollback seed did not resolve exactly; freeze deployment." >&2
+  exit 1
+fi
+if ! git merge-base --is-ancestor "${TRUSTED_ROLLBACK_SEED_COMMIT}" "${BUILDKITE_COMMIT}"; then
+  echo "Rollback target predates the trusted rollback seed; freeze deployment." >&2
+  exit 1
+fi
 
 CHECKED_OUT_SHA="$(git rev-parse HEAD)"
 if [[ "${CHECKED_OUT_SHA}" != "${BUILDKITE_COMMIT}" ]]; then
   echo "Rollback checkout must match BUILDKITE_COMMIT exactly." >&2
   exit 1
 fi
-if ! git cat-file -e "${BUILDKITE_COMMIT}:.buildkite/scripts/rollback-promote.sh"; then
-  echo "Rollback target predates the guarded rollback seed; freeze deployment." >&2
-  exit 1
-fi
-
 node scripts/_project-config.mjs assert-isolated-convex
 
 CONVEX_DEPLOY_KEY="${TEMPLATE_PRODUCTION_CONVEX_DEPLOY_KEY:?TEMPLATE_PRODUCTION_CONVEX_DEPLOY_KEY is required}"
@@ -33,6 +51,7 @@ export CONVEX_DEPLOYMENT VITE_CONVEX_URL TEMPLATE_HOSTED_URL
 export CLOUDFLARE_PAGES_PROJECT CLOUDFLARE_PAGES_BRANCH DEPLOY_ENVIRONMENT
 export CLOUDFLARE_DEPLOYMENT_VERSION
 
+node scripts/_project-config.mjs assert-convex-deploy-key production
 pnpm exec tsx tooling/quality/check-deploy-authority-receipt.mts validate-inputs pending
 pnpm exec tsx tooling/quality/check-deploy-authority-receipt.mts verify-rollback "${ROLLBACK_RECEIPT_PATH}"
 pnpm exec tsx tooling/release/src/index.ts deploy-doctor production
