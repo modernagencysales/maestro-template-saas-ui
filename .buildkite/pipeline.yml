@@ -62,31 +62,31 @@ steps:
     key: "ci-self-protection"
     command: |
       set -euo pipefail
-      if [[ ! "${TRUSTED_CI_SELF_PROTECTION_COMMIT}" =~ ^[0-9a-f]{40}([0-9a-f]{24})?$ ]]; then
+      if [[ ! "$${TRUSTED_CI_SELF_PROTECTION_COMMIT}" =~ ^[0-9a-f]{40}([0-9a-f]{24})?$ ]]; then
         echo "TRUSTED_CI_SELF_PROTECTION_COMMIT must be an exact immutable commit SHA." >&2
         exit 1
       fi
-      git cat-file -e "${TRUSTED_CI_SELF_PROTECTION_COMMIT}^{commit}"
-      if [[ "$(git rev-parse "${TRUSTED_CI_SELF_PROTECTION_COMMIT}^{commit}")" != "${TRUSTED_CI_SELF_PROTECTION_COMMIT}" ]]; then
+      git cat-file -e "$${TRUSTED_CI_SELF_PROTECTION_COMMIT}^{commit}"
+      if [[ "$$(git rev-parse "$${TRUSTED_CI_SELF_PROTECTION_COMMIT}^{commit}")" != "$${TRUSTED_CI_SELF_PROTECTION_COMMIT}" ]]; then
         echo "Trusted self-protection commit did not resolve exactly." >&2
         exit 1
       fi
-      TRUSTED_SELF_PROTECTION_DIR="$(mktemp -d)"
-      trap 'rm -rf "${TRUSTED_SELF_PROTECTION_DIR}"' EXIT
-      TRUSTED_SETUP_PATH="${TRUSTED_SELF_PROTECTION_DIR}/setup.sh"
-      TRUSTED_VERIFIER_PATH="${TRUSTED_SELF_PROTECTION_DIR}/check-deploy-authority.mts"
-      TRUSTED_SELF_PROTECTION_PATH="${TRUSTED_SELF_PROTECTION_DIR}/ci-self-protection.sh"
-      git show "${TRUSTED_CI_SELF_PROTECTION_COMMIT}:.buildkite/scripts/setup.sh" > "${TRUSTED_SETUP_PATH}"
-      git show "${TRUSTED_CI_SELF_PROTECTION_COMMIT}:tooling/quality/check-deploy-authority.mts" > "${TRUSTED_VERIFIER_PATH}"
-      git show "${TRUSTED_CI_SELF_PROTECTION_COMMIT}:.buildkite/scripts/ci-self-protection.sh" > "${TRUSTED_SELF_PROTECTION_PATH}"
+      TRUSTED_SELF_PROTECTION_DIR="$$(mktemp -d)"
+      trap 'rm -rf "$${TRUSTED_SELF_PROTECTION_DIR}"' EXIT
+      TRUSTED_SETUP_PATH="$${TRUSTED_SELF_PROTECTION_DIR}/setup.sh"
+      TRUSTED_VERIFIER_PATH="$${TRUSTED_SELF_PROTECTION_DIR}/check-deploy-authority.mts"
+      TRUSTED_SELF_PROTECTION_PATH="$${TRUSTED_SELF_PROTECTION_DIR}/ci-self-protection.sh"
+      git show "$${TRUSTED_CI_SELF_PROTECTION_COMMIT}:.buildkite/scripts/setup.sh" > "$${TRUSTED_SETUP_PATH}"
+      git show "$${TRUSTED_CI_SELF_PROTECTION_COMMIT}:tooling/quality/check-deploy-authority.mts" > "$${TRUSTED_VERIFIER_PATH}"
+      git show "$${TRUSTED_CI_SELF_PROTECTION_COMMIT}:.buildkite/scripts/ci-self-protection.sh" > "$${TRUSTED_SELF_PROTECTION_PATH}"
       export npm_config_ignore_scripts=true
-      source "${TRUSTED_SETUP_PATH}"
-      if [[ "$(node --version)" != "v22.12.0" ]]; then
+      source "$${TRUSTED_SETUP_PATH}"
+      if [[ "$$(node --version)" != "v22.12.0" ]]; then
         echo "Trusted verifier requires pinned Node v22.12.0." >&2
         exit 1
       fi
-      node --experimental-strip-types "${TRUSTED_VERIFIER_PATH}"
-      TEMPLATE_CI_SETUP=skip bash "${TRUSTED_SELF_PROTECTION_PATH}"
+      node --experimental-strip-types "$${TRUSTED_VERIFIER_PATH}"
+      TEMPLATE_CI_SETUP=skip bash "$${TRUSTED_SELF_PROTECTION_PATH}"
       unset npm_config_ignore_scripts
     agents:
       queue: "linux-small"
