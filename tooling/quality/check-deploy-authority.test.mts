@@ -357,6 +357,26 @@ describe("deploy authority self-protection", () => {
     expect(base.pipeline).toContain('[[ "$$(node --version)" != "v22.12.0" ]]');
     expect(base.pipeline).toContain("export npm_config_ignore_scripts=true");
     expect(base.pipeline).toContain("unset npm_config_ignore_scripts");
+    const selfProtectionCommandOffset = base.pipeline.indexOf(
+      selfProtectionCommand,
+    );
+    const runtimeEscapes = [
+      ...selfProtectionCommand.matchAll(/\$\$(?=[({A-Za-z_])/gu),
+    ];
+    expect(selfProtectionCommandOffset).toBeGreaterThanOrEqual(0);
+    expect(runtimeEscapes).toHaveLength(20);
+    for (const [index, match] of runtimeEscapes.entries()) {
+      const escapeOffset =
+        selfProtectionCommandOffset + (match.index ?? Number.NaN);
+      const pipeline =
+        base.pipeline.slice(0, escapeOffset) +
+        "$" +
+        base.pipeline.slice(escapeOffset + 2);
+      expect(
+        validateDeployAuthoritySources({ ...base, pipeline }),
+        `runtime escape ${index + 1}`,
+      ).not.toEqual([]);
+    }
     for (const pipeline of [
       base.pipeline.replace(
         'git show "$${TRUSTED_CI_SELF_PROTECTION_COMMIT}:tooling/quality/check-deploy-authority.mts"',

@@ -387,6 +387,10 @@ export const validateDeployAuthoritySources = (input: {
     input.pipeline,
     "ci-self-protection",
   );
+  const selfProtectionCommand =
+    /(?:^|\n)    command: \|\n(?<body>[\s\S]*?)\n    agents:/u.exec(
+      selfProtectionStep ?? "",
+    )?.groups?.body ?? "";
   const trustedSelfProtectionMarkers = [
     '$${TRUSTED_CI_SELF_PROTECTION_COMMIT}" =~ ^[0-9a-f]{40}',
     'git cat-file -e "$${TRUSTED_CI_SELF_PROTECTION_COMMIT}^{commit}"',
@@ -407,6 +411,8 @@ export const validateDeployAuthoritySources = (input: {
   ];
   if (
     !selfProtectionStep ||
+    selfProtectionCommand === "" ||
+    /(?<!\$)\$(?=[({A-Za-z_])/u.test(selfProtectionCommand) ||
     selfProtectionStep.includes("secrets:") ||
     selfProtectionStep.includes('pnpm exec tsx "$${TRUSTED_VERIFIER_PATH}"') ||
     trustedSelfProtectionMarkers.some(
