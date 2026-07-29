@@ -14,6 +14,26 @@ const factoryRule = (path: string, match: "exact" | "subtree") => ({
 });
 
 describe("release seal factory-only exclusions", () => {
+  it("lets an exact reviewed customer path override an inherited factory subtree", () => {
+    const path =
+      "tooling/release/__fixtures__/upgrade/provider-posture-v1-to-v2.contract.json";
+    expect(
+      buildReviewedOwnershipInventory({
+        sourcePaths: [path],
+        exclusions: [factoryRule("tooling/release", "subtree")],
+        overrides: [
+          {
+            path,
+            match: "exact",
+            ownership: "template-owned",
+            action: "copy",
+            upgrade: "replace",
+          },
+        ],
+      }),
+    ).toEqual([expect.objectContaining({ path, ownership: "template-owned" })]);
+  });
+
   it("classifies reviewed customer additions and omits reviewed factory files", () => {
     const sourcePaths = [
       ".claude/settings.json",

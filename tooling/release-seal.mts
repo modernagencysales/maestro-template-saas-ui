@@ -353,10 +353,16 @@ export function parseReviewedFactoryOnlyExclusions(input: {
 export function buildReviewedOwnershipInventory(input: {
   readonly sourcePaths: readonly string[];
   readonly exclusions: readonly CustomerReleasePath[];
+  readonly overrides?: readonly CustomerReleasePath[];
 }): readonly CustomerReleasePath[] {
   const excluded: CustomerReleasePath[] = [];
   const remaining: string[] = [];
   for (const path of input.sourcePaths) {
+    const override = resolveCustomerReleasePath(input.overrides ?? [], path);
+    if (override?.action !== undefined && override.action !== "omit") {
+      remaining.push(path);
+      continue;
+    }
     const exclusion = resolveCustomerReleasePath(input.exclusions, path);
     if (exclusion) {
       excluded.push({ ...exclusion, path, match: "exact" });
@@ -492,6 +498,7 @@ async function build(args: Args): Promise<readonly Output[]> {
   const inventory = buildReviewedOwnershipInventory({
     sourcePaths: reviewedSourcePaths,
     exclusions,
+    overrides: additionalPaths,
   });
   const currentTemplate = new Map(
     inventory
