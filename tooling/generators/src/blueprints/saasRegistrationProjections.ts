@@ -1,4 +1,13 @@
 import { existsSync, readFileSync } from "node:fs";
+import {
+  parseDataResourceCatalog,
+  renderDataResourceRuntime,
+  type DataResourceCatalog,
+} from "@maestro-template/template-core/dataResourceCatalog";
+import {
+  parseSystemCatalog,
+  type SystemCatalog,
+} from "@maestro-template/template-core/systemCatalog";
 import type { GeneratedFile } from "../index";
 
 const asset = (path: string): string =>
@@ -313,6 +322,50 @@ const customerLockfile = (): string => {
   return value;
 };
 
+const customerSystemCatalog = (): SystemCatalog => {
+  const catalog = parseSystemCatalog(
+    JSON.parse(currentPublicDocument("system-catalog.json")) as unknown,
+  );
+  return parseSystemCatalog({
+    ...catalog,
+    systems: catalog.systems.map((system) =>
+      system.id === "knowledge-brain"
+        ? { ...system, tables: [...system.tables, "records"].sort() }
+        : system,
+    ),
+  });
+};
+
+const customerDataResourceCatalog = (): DataResourceCatalog => {
+  const catalog = parseDataResourceCatalog(
+    JSON.parse(currentPublicDocument("data-resources.json")) as unknown,
+  );
+  return parseDataResourceCatalog({
+    ...catalog,
+    resources: [
+      ...catalog.resources,
+      {
+        id: "records",
+        system: "knowledge-brain",
+        sourcePath: "packages/convex/confect/tables/records.ts",
+        tenantScope: "workspace",
+        sensitivity: "internal",
+        pii: [],
+        exportMode: "json",
+        deleteMode: "delete",
+        retention: "retain-until-workspace-delete",
+        appendOnly: false,
+        writePosture: "implemented",
+        workspaceLifecycle: "managed",
+        writeAuthority: "packages/convex/confect/records/records.impl.ts",
+        migrationRef: "docs/template/data-lifecycle.md#current-resources",
+        detail:
+          "Generic SaaS records are workspace-owned Knowledge Brain content exported as JSON and deleted with the workspace.",
+      },
+    ].sort((left, right) => left.id.localeCompare(right.id)),
+  });
+};
+
 const customerAgentPackCheck = (): string => {
   let value = currentSource("tooling/quality/check-agent-pack.mts");
   value = replace(
@@ -528,6 +581,7 @@ export const buildSaasRegistrationProjections = (
   options: { readonly current?: boolean } = {},
 ): readonly GeneratedFile[] => {
   const current = options.current ?? true;
+  const dataResources = customerDataResourceCatalog();
   return [
     ...(current
       ? [
@@ -570,6 +624,22 @@ export const buildSaasRegistrationProjections = (
     { path: "package.json", content: customerPackage(current) },
     ...(current
       ? [{ path: "pnpm-lock.yaml", content: customerLockfile() }]
+      : []),
+    ...(current
+      ? [
+          {
+            path: "docs/template/system-catalog.json",
+            content: `${JSON.stringify(customerSystemCatalog(), null, 2)}\n`,
+          },
+          {
+            path: "docs/template/data-resources.json",
+            content: `${JSON.stringify(dataResources, null, 2)}\n`,
+          },
+          {
+            path: "packages/convex/confect/ops/dataResources.generated.ts",
+            content: renderDataResourceRuntime(dataResources),
+          },
+        ]
       : []),
     {
       path: "tooling/generators/package.json",
@@ -623,8 +693,10 @@ export const buildSaasRegistrationProjections = (
       "packages/convex/confect/capabilities/_kit/workspaceAccess.ts",
       "packages/convex/confect/_generated/docs.ts",
       "packages/convex/confect/_generated/tables/workflowArtifacts.ts",
+      ...(!current
+        ? ["packages/convex/confect/ops/dataResources.generated.ts"]
+        : []),
       ...(current ? CURRENT_SAAS_DEPLOY_AUTHORITY_TABLE_CLOSURE : []),
-      "packages/convex/confect/ops/dataResources.generated.ts",
       "packages/convex/confect/tables/workflowArtifacts.ts",
       "packages/convex/confect/tables/workflowRuns.ts",
       "packages/convex/confect/tables/workflowStageRuns.ts",

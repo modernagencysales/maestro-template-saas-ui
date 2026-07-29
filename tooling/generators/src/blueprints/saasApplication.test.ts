@@ -11,6 +11,11 @@ import {
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import {
+  parseDataResourceCatalog,
+  renderDataResourceRuntime,
+} from "@maestro-template/template-core/dataResourceCatalog";
+import { parseSystemCatalog } from "@maestro-template/template-core/systemCatalog";
 import { JsxEmit, ModuleKind, ScriptTarget, transpileModule } from "typescript";
 import { describe, expect, expectTypeOf, it } from "vitest";
 import {
@@ -113,6 +118,30 @@ describe("saas application blueprint", () => {
     expect(generatorImporter).not.toContain(
       "@maestro-template/release-tooling",
     );
+    const systemCatalogEntry = plan.entries.find(
+      ({ path }) => path === "docs/template/system-catalog.json",
+    );
+    const dataResourcesEntry = plan.entries.find(
+      ({ path }) => path === "docs/template/data-resources.json",
+    );
+    const lifecycleEntry = plan.entries.find(
+      ({ path }) =>
+        path === "packages/convex/confect/ops/dataResources.generated.ts",
+    );
+    if (!systemCatalogEntry || !dataResourcesEntry || !lifecycleEntry)
+      throw new Error("missing SaaS ownership and lifecycle projections");
+    const systems = parseSystemCatalog(JSON.parse(systemCatalogEntry.content));
+    const resources = parseDataResourceCatalog(
+      JSON.parse(dataResourcesEntry.content),
+    );
+    for (const table of ["records", "deployAuthorityAuditEvents"]) {
+      expect(systems.systems.some(({ tables }) => tables.includes(table))).toBe(
+        true,
+      );
+      expect(resources.resources.some(({ id }) => id === table)).toBe(true);
+    }
+    expect(lifecycleEntry.content).toBe(renderDataResourceRuntime(resources));
+    expect(lifecycleEntry.content).toContain('id: "records"');
     expect(
       plan.entries.find(
         ({ path }) => path === "docs/template/agent-pack-privacy.md",
@@ -175,6 +204,8 @@ describe("saas application blueprint", () => {
     const postAlphaCurrentPaths = new Set<string>([
       ...CURRENT_SAAS_DEPLOY_AUTHORITY_TABLE_CLOSURE,
       "apps/cli/package.json",
+      "docs/template/data-resources.json",
+      "docs/template/system-catalog.json",
       "pnpm-lock.yaml",
     ]);
     const releaseRoot = join(
@@ -556,6 +587,9 @@ describe("saas application blueprint", () => {
       "apps/cli/src/factory/supportBundle.ts",
       "package.json",
       "pnpm-lock.yaml",
+      "docs/template/system-catalog.json",
+      "docs/template/data-resources.json",
+      "packages/convex/confect/ops/dataResources.generated.ts",
       "tooling/generators/package.json",
       "tooling/quality/install-lefthook-if-git.mjs",
       "tooling/generators/src/customer.ts",
@@ -584,7 +618,6 @@ describe("saas application blueprint", () => {
       "packages/convex/confect/_generated/docs.ts",
       "packages/convex/confect/_generated/tables/workflowArtifacts.ts",
       ...CURRENT_SAAS_DEPLOY_AUTHORITY_TABLE_CLOSURE,
-      "packages/convex/confect/ops/dataResources.generated.ts",
       "packages/convex/confect/tables/workflowArtifacts.ts",
       "packages/convex/confect/tables/workflowRuns.ts",
       "packages/convex/confect/tables/workflowStageRuns.ts",

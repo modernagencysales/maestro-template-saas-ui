@@ -264,6 +264,12 @@ describe("materialized customer CLI runtime closure", () => {
       ["install", "--offline", "--lockfile-only", "--ignore-scripts"],
       { cwd: target, timeout: 120_000 },
     );
+    for (const gate of ["check:system-catalog", "check:data-resources"]) {
+      await execFileAsync("pnpm", ["run", gate], {
+        cwd: target,
+        timeout: 30_000,
+      });
+    }
     expect(existsSync(join(target, ".git"))).toBe(false);
     execFileSync("git", ["init", "--quiet"], { cwd: target });
     execFileSync("pnpm", ["run", "prepare"], {

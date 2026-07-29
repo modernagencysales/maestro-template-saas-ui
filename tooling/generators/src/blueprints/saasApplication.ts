@@ -274,6 +274,12 @@ function buildTargetPlan(
           ["pnpm-lock.yaml", "copy"],
         ] as const)
       : []),
+    ...(current
+      ? ([
+          ["docs/template/data-resources.json", "copy"],
+          ["docs/template/system-catalog.json", "copy"],
+        ] as const)
+      : []),
     ["apps/cli/src/index.ts", "copy"],
     ["apps/cli/src/factory/customerComposition.ts", "copy"],
     ["apps/cli/src/factory/start.ts", "copy"],
@@ -403,6 +409,12 @@ function buildTargetPlan(
     .sort((left, right) => left.path.localeCompare(right.path));
   const registrationsWithPrivacy = [
     "docs/template/agent-pack-privacy.md",
+    ...(current
+      ? [
+          "docs/template/data-resources.json",
+          "docs/template/system-catalog.json",
+        ]
+      : []),
     ...(current ? ["apps/cli/package.json"] : []),
     "apps/cli/src/factory/customerComposition.ts",
     "apps/cli/src/index.ts",
