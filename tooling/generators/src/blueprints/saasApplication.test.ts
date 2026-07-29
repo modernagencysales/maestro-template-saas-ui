@@ -535,6 +535,26 @@ describe("saas application blueprint", () => {
     expect(entries[0]).toMatchObject({ path: runnerPath, replaces: "copy" });
   });
 
+  it("introduces private-package closure without false release replacements", () => {
+    const entries = new Map(
+      buildSaasApplicationTargetPlan().entries.map((entry) => [
+        entry.path,
+        entry,
+      ]),
+    );
+    for (const path of [
+      "tooling/generators/src/private-package.ts",
+      "examples/generic-ai-ops/template-package.json",
+    ]) {
+      expect(entries.get(path), path).toMatchObject({
+        ownership: "generated",
+        action: "generate",
+        upgrade: "regenerate",
+      });
+      expect(entries.get(path), path).not.toHaveProperty("replaces");
+    }
+  });
+
   it("replaces only deployment-authority files present in the base release", () => {
     const entries = new Map(
       buildSaasApplicationTargetPlan().entries.map((entry) => [
