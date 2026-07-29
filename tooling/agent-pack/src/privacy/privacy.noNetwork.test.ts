@@ -71,7 +71,7 @@ afterAll(() => {
   rmSync(fixtureRoot, { recursive: true, force: true });
   if (taggedReleaseParent)
     rmSync(taggedReleaseParent, { recursive: true, force: true });
-});
+}, 120_000);
 
 describe("privacy no-network conformance", () => {
   it("blocks a real outbound attempt in a spawned Node process", () => {
