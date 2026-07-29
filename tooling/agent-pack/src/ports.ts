@@ -68,7 +68,7 @@ export async function inspectStartPorts(
 }
 
 export const nodeStartPortProbe: StartPortProbe = {
-  available: (port, _address) =>
+  available: (port) =>
     new Promise((resolve) => {
       const server = createServer();
       server.unref();
