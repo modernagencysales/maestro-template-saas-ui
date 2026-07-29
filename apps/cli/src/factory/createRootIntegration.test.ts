@@ -175,7 +175,9 @@ describe("create root integration", () => {
     ]);
 
     expect(result.exitCode).toBe(0);
-    expect(JSON.parse(result.stdout)).toMatchObject({
+    const receipt = JSON.parse(result.stdout);
+    expect(result.stdout.length).toBeLessThan(20_000);
+    expect(receipt).toMatchObject({
       mutationPosture: "preview",
       exitClass: "success",
       diagnostics: [
@@ -201,8 +203,28 @@ describe("create root integration", () => {
         privacy: {
           privacyDocument: "docs/template/agent-pack-privacy.md",
         },
+        preview: {
+          preflightFingerprint: expect.stringMatching(/^sha256:[0-9a-f]{64}$/),
+          writeCount: expect.any(Number),
+          omissionCount: expect.any(Number),
+          collisionCount: 0,
+          collisions: [],
+          totalBytes: expect.any(Number),
+          fullInventory: {
+            manifest: expect.any(String),
+            manifestChecksum: expect.stringMatching(/^sha256:[0-9a-f]{64}$/),
+            renderWith: "--details",
+          },
+        },
       },
     });
+    expect(receipt.data.preview.writeCount).toBeGreaterThan(0);
+    expect(receipt.data.preview.fullInventory).toMatchObject({
+      manifest: receipt.data.release.ownershipManifest,
+      manifestChecksum: receipt.data.release.ownershipManifestChecksum,
+    });
+    expect(receipt.data.preview).not.toHaveProperty("writes");
+    expect(receipt.data.preview).not.toHaveProperty("omissions");
     expect(existsSync(target)).toBe(false);
   }, 30_000);
 
