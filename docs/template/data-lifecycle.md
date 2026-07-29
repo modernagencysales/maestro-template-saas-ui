@@ -122,14 +122,16 @@ The planner covers these workspace-owned resources:
 
 ## Deployment Authority Resources
 
-Deployment authority is global environment release-control state. The five
+Deployment authority is global environment release-control state. The six
 resources below are deliberately `workspaceLifecycle: excluded`; they must not
 be projected into a workspace export, deletion, or retention plan merely because
 their census derives from Workflow Runtime evidence.
 
-- `deployAuthorityIssuers`: mutable global trust configuration. Disable or
-  rotate issuers through an operator-reviewed migration; retain configuration
-  while it is needed to verify authority history.
+- `deployAuthorityIssuers`: append-only global trust transitions. Authenticated
+  operators activate, rotate, or retire issuers by adding a provenance-bound
+  transition; prior keys remain available to explain authority history.
+- `deployAuthorityAuditEvents`: append-only hashed operator provisioning and
+  issuer lifecycle evidence. It contains no raw operator token or signing key.
 - `deployApprovals`: append-only signed approval evidence. `expiresAt` ends its
   authorization eligibility; it does not imply immediate physical deletion.
 - `deployCensusSnapshots`: append-only complete workflow-binding evidence.
@@ -140,15 +142,17 @@ their census derives from Workflow Runtime evidence.
 - `deployActionConsumptions`: append-only one-time action receipts retained to
   prove replay prevention and deployment history.
 
-The signed evidence and consumption rows are retained indefinitely because the
-template ships no destructive cleanup authority. Expiry ends authorization
-eligibility but does not delete data. A client that enables cleanup must first
-define an explicit audit window, preserve issuer/signature verification over
-retained history, and promote the job through the normal migration and authority
-gates. The live authority route only verifies and consumes these records today;
-provisioning or rotation of issuers, approvals, census snapshots, and verdicts
-requires a separately reviewed operator path and must not be inferred from the
-presence of the tables.
+The signed evidence, operator audit, issuer transition, and consumption rows are
+retained indefinitely because the template ships no destructive cleanup
+authority. Expiry ends authorization eligibility but does not delete data. A
+client that enables cleanup must first define an explicit audit window, preserve
+issuer/signature verification over retained history, and promote the job through
+the normal migration and authority gates. The authenticated operator functions
+provision issuers, approvals, census snapshots, and verdicts; rotate or retire
+issuers; expose bounded status and hashed audit export; and fail closed on
+duplicate or mixed-origin records. Runtime readiness still requires explicit
+authority mode, an authority-runtime signing key, a trusted operator JWT claim,
+and exactly one current active issuer.
 
 ### Append-only mutation boundary
 

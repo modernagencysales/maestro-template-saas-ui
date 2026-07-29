@@ -14,5 +14,16 @@ export default Table.make(() =>
     nextCursor: Schema.NullOr(Schema.String),
     runsJson: Schema.String,
     immutableBindingsJson: Schema.String,
+    authorityOrigin: Schema.optional(Schema.String),
+    provisionedAt: Schema.optional(Schema.Number),
+    provisionedByHash: Schema.optional(Schema.String),
+    provenanceHash: Schema.optional(Schema.String),
   }),
-).index("by_snapshot", ["snapshotId"]);
+)
+  .index("by_snapshot", ["snapshotId"])
+  .index("by_scope_and_expires_at", [
+    "environment",
+    "targetId",
+    "commitSha",
+    "expiresAt",
+  ]);

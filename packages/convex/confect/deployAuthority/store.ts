@@ -3,6 +3,8 @@ import type { GenericMutationCtx } from "convex/server";
 import databaseSchema from "../_generated/schema";
 
 export type DeployAuthorityAction = "preflight" | "convex" | "cloudflare";
+export const DEPLOY_AUTHORITY_ISSUER_ID =
+  "maestro-promotion-authority-v1" as const;
 export type DeployAuthorityScope = {
   readonly environment: "staging" | "production";
   readonly targetId: string;
@@ -26,7 +28,7 @@ export type AuthorityContext = GenericMutationCtx<
 >;
 type StoreDependencies = {
   readonly nowMs: () => number;
-  readonly pinnedPublicKeyHash: string;
+  readonly authorityMode: "authority" | undefined;
 };
 
 export const consumeDeployAuthority = async (
@@ -37,56 +39,93 @@ export const consumeDeployAuthority = async (
   | { readonly kind: "authorized"; readonly payload: DeployAuthorityPayload }
   | { readonly kind: "denied" | "replayed" }
 > => {
+  if (dependencies.authorityMode !== "authority") return { kind: "denied" };
   const now = dependencies.nowMs();
-  const [approval, verdict, consumed] = await Promise.all([
-    context.db
-      .query("deployApprovals")
-      .withIndex("by_scope", (query) =>
-        query
-          .eq("environment", scope.environment)
-          .eq("targetId", scope.targetId)
-          .eq("commitSha", scope.commitSha),
-      )
-      .unique(),
+  const approvals = await context.db
+    .query("deployApprovals")
+    .withIndex("by_scope_and_expires_at", (query) =>
+      query
+        .eq("environment", scope.environment)
+        .eq("targetId", scope.targetId)
+        .eq("commitSha", scope.commitSha)
+        .gt("expiresAt", now),
+    )
+    .take(2);
+  if (approvals.length !== 1) return { kind: "denied" };
+  const approval = approvals[0];
+  if (approval === undefined) return { kind: "denied" };
+
+  const [verdicts, consumptions] = await Promise.all([
     context.db
       .query("deployVerdicts")
-      .withIndex("by_scope", (query) =>
-        query
-          .eq("environment", scope.environment)
-          .eq("targetId", scope.targetId)
-          .eq("commitSha", scope.commitSha),
-      )
-      .unique(),
-    context.db
-      .query("deployActionConsumptions")
-      .withIndex("by_scope_action", (query) =>
+      .withIndex("by_scope_approval_and_expires_at", (query) =>
         query
           .eq("environment", scope.environment)
           .eq("targetId", scope.targetId)
           .eq("commitSha", scope.commitSha)
-          .eq("action", scope.action),
+          .eq("approvalHash", approval.approvalHash)
+          .gt("expiresAt", now),
       )
-      .unique(),
+      .take(2),
+    context.db
+      .query("deployActionConsumptions")
+      .withIndex("by_scope_action_approval", (query) =>
+        query
+          .eq("environment", scope.environment)
+          .eq("targetId", scope.targetId)
+          .eq("commitSha", scope.commitSha)
+          .eq("action", scope.action)
+          .eq("approvalHash", approval.approvalHash),
+      )
+      .take(2),
   ]);
-  if (consumed !== null) return { kind: "replayed" };
+  if (consumptions.length > 0) return { kind: "replayed" };
+  if (verdicts.length !== 1) return { kind: "denied" };
+  const verdict = verdicts[0];
+  if (verdict === undefined) return { kind: "denied" };
   if (
-    approval === null ||
-    verdict === null ||
     approval.expiresAt <= now ||
     verdict.expiresAt <= now ||
+    approval.issuedAt === undefined ||
+    approval.issuedAt > now ||
+    verdict.issuedAt === undefined ||
+    verdict.issuedAt > now ||
     approval.issuerId !== verdict.issuerId ||
-    approval.approvalHash !== verdict.approvalHash
+    approval.issuerId !== DEPLOY_AUTHORITY_ISSUER_ID ||
+    approval.approvalHash !== verdict.approvalHash ||
+    approval.issuerPublicKeyHash === undefined ||
+    approval.issuerPublicKeyHash !== verdict.issuerPublicKeyHash ||
+    approval.authorityOrigin === undefined ||
+    approval.authorityOrigin !== verdict.authorityOrigin
   )
     return { kind: "denied" };
 
-  const issuer = await context.db
+  const issuerRows = await context.db
     .query("deployAuthorityIssuers")
     .withIndex("by_issuer", (query) => query.eq("issuerId", approval.issuerId))
-    .unique();
+    .take(101);
+  if (issuerRows.length > 100) return { kind: "denied" };
+  const latestProvisionedAt = Math.max(
+    -1,
+    ...issuerRows.map((row) => row.provisionedAt ?? -1),
+  );
+  const currentIssuers = issuerRows.filter(
+    (row) => row.provisionedAt === latestProvisionedAt,
+  );
+  const activeIssuers = currentIssuers.filter(
+    (row) =>
+      row.enabled &&
+      row.retiredAt === null &&
+      row.activatedAt !== undefined &&
+      row.activatedAt <= now,
+  );
+  if (activeIssuers.length !== 1) return { kind: "denied" };
+  const issuer = activeIssuers[0];
   if (
-    issuer === null ||
-    !issuer.enabled ||
-    issuer.publicKeyHash !== dependencies.pinnedPublicKeyHash ||
+    issuer === undefined ||
+    issuer.authorityOrigin === undefined ||
+    issuer.authorityOrigin !== approval.authorityOrigin ||
+    issuer.publicKeyHash !== approval.issuerPublicKeyHash ||
     issuer.publicKeyHash !== (await sha256(issuer.publicKeySpki))
   )
     return { kind: "denied" };
@@ -98,6 +137,9 @@ export const consumeDeployAuthority = async (
     targetId: scope.targetId,
     commitSha: scope.commitSha,
     issuerId: approval.issuerId,
+    issuerPublicKeyHash: approval.issuerPublicKeyHash,
+    authorityOrigin: approval.authorityOrigin,
+    issuedAt: approval.issuedAt,
     expiresAt: approval.expiresAt,
   } as const;
   if (
@@ -110,17 +152,21 @@ export const consumeDeployAuthority = async (
   )
     return { kind: "denied" };
 
-  const snapshot = await context.db
+  const snapshots = await context.db
     .query("deployCensusSnapshots")
     .withIndex("by_snapshot", (query) =>
       query.eq("snapshotId", verdict.censusSnapshotId),
     )
-    .unique();
+    .take(2);
+  if (snapshots.length !== 1) return { kind: "denied" };
+  const snapshot = snapshots[0];
   if (
-    snapshot === null ||
+    snapshot === undefined ||
     snapshot.environment !== scope.environment ||
     snapshot.targetId !== scope.targetId ||
     snapshot.commitSha !== scope.commitSha ||
+    snapshot.authorityOrigin === undefined ||
+    snapshot.authorityOrigin !== approval.authorityOrigin ||
     snapshot.expiresAt <= now ||
     snapshot.capturedAt > now
   )
@@ -139,8 +185,11 @@ export const consumeDeployAuthority = async (
     targetId: scope.targetId,
     commitSha: scope.commitSha,
     issuerId: verdict.issuerId,
+    issuerPublicKeyHash: verdict.issuerPublicKeyHash,
+    authorityOrigin: verdict.authorityOrigin,
     approvalHash: verdict.approvalHash,
     censusFingerprint,
+    issuedAt: verdict.issuedAt,
     expiresAt: verdict.expiresAt,
   } as const;
   if (
@@ -164,6 +213,9 @@ export const consumeDeployAuthority = async (
   ).slice("sha256:".length);
   await context.db.insert("deployActionConsumptions", {
     ...scope,
+    approvalHash: approval.approvalHash,
+    verdictHash: verdict.verdictHash,
+    authorityOrigin: approval.authorityOrigin,
     consumptionId,
     consumedAt: now,
   });
@@ -189,7 +241,7 @@ export const consumeDeployAuthority = async (
   };
 };
 
-const validateAndHashSnapshot = async (
+export const validateAndHashSnapshot = async (
   snapshot: Record<string, unknown>,
 ): Promise<string | undefined> => {
   let runs: unknown;
@@ -255,7 +307,7 @@ const validateAndHashSnapshot = async (
   );
 };
 
-const verifyIssuerSignature = async (
+export const verifyIssuerSignature = async (
   publicKeySpki: string,
   message: string,
   signature: string,

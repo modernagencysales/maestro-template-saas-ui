@@ -1,5 +1,8 @@
 import { makeFunctionReference } from "convex/server";
-import { readPromotionAuthorityPrivateKeyPkcs8Base64Url } from "../shared/env";
+import {
+  readPromotionAuthorityMode,
+  readPromotionAuthorityPrivateKeyPkcs8Base64Url,
+} from "../shared/env";
 import {
   canonical,
   type DeployAuthorityPayload,
@@ -20,12 +23,18 @@ export const handleDeployAuthorityHttpRequest = async (
   request: Request,
   dependencies: {
     readonly privateKeyPkcs8Base64Url: string | undefined;
+    readonly authorityMode: "authority" | undefined;
   } = {
     privateKeyPkcs8Base64Url: readPromotionAuthorityPrivateKeyPkcs8Base64Url(),
+    authorityMode: readPromotionAuthorityMode(),
   },
 ): Promise<Response> => {
   const scope = await parseScope(request);
-  if (scope === undefined || !dependencies.privateKeyPkcs8Base64Url)
+  if (
+    scope === undefined ||
+    dependencies.authorityMode !== "authority" ||
+    !dependencies.privateKeyPkcs8Base64Url
+  )
     return json({ kind: "blocked" }, 503);
   let result: unknown;
   try {
