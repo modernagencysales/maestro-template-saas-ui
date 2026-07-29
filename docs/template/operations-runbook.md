@@ -9,12 +9,21 @@
    Set its HTTPS base origin as `PROMOTION_AUTHORITY_ENDPOINT` and supply the
    externally reviewed `TRUSTED_DEPLOY_ROOT_SHA256`. The endpoint must not be
    the target Convex origin and neither value may be bootstrapped by this run.
+   Confirm Buildkite also has distinct `TEMPLATE_STAGING_CONVEX_*` and
+   `TEMPLATE_PRODUCTION_CONVEX_*` bindings. Run
+   `node scripts/_project-config.mjs assert-isolated-convex`; missing bindings,
+   shared deployment identities, or a `.convex.cloud`/`.convex.site` alias are
+   terminal failures.
 4. Run provider fake smokes.
 5. Run `pnpm build` and `pnpm smoke:web-static`.
 6. Deploy staging from the exact commit. The pipeline consumes one secretless
    preflight, then the guarded Convex and Cloudflare routes independently
    authorize their provider action.
-7. Run `pnpm smoke:hosted` or the provider-specific deploy smoke.
+7. Require the backend liveness canary after Convex deployment. After Pages
+   deployment, require `pnpm smoke:hosted`, `pnpm smoke:hosted:browser`,
+   `pnpm smoke:hosted:a11y`, and `pnpm smoke:hosted:visual`. Upload the guarded
+   deployment receipt only after all five canaries pass and before staging
+   records `staged-sha` or production completes.
 8. Promote production through the human approval block with the same
    independent-control-plane requirements.
 
@@ -92,11 +101,33 @@ an unparseable model response.
 
 ## Rollback
 
-1. Identify the last staged commit with passing deploy smoke.
-2. Validate schema compatibility and generated contract diffs.
-3. Run rollback validation.
-4. Promote the rollback commit.
-5. Record incident notes and follow-up tests.
+The commit introducing this guarded path is the rollback seed, not an automated
+rollback target for any earlier release. Before the first protected production
+deployment, record the live provider coordinates accurately, but mark automated
+rollback unavailable. After that deployment succeeds, a later receipt may name
+the seed (or a descendant that still contains the guarded entrypoint) as its
+prior release. Before scheduling rollback, run
+`git cat-file -e <rollback-sha>:.buildkite/scripts/rollback-promote.sh`. If it
+fails, freeze deployment and require a separately reviewed recovery plan; never
+copy the new entrypoint into or execute it against a pre-seed checkout.
+
+1. Download the immutable guarded deployment receipt for the release being
+   rolled back. It must contain the current and prior Convex commit/deployment,
+   Cloudflare project/branch/version, hosted URL, and Buildkite build ID.
+2. Check out the receipt's `previousConvexCommitSha`; obtain fresh deployment
+   authority for that exact commit and set `RUN_ROLLBACK=true` only after the
+   production approval block.
+3. Bind `ROLLBACK_RECEIPT_PATH`, `ROLLBACK_CLOUDFLARE_DEPLOYMENT_VERSION`, and
+   the `PRODUCTION_PREVIOUS_*` coordinates to the reviewed release being
+   replaced. The rollback entrypoint refuses a receipt whose environment,
+   checked-out commit, target deployment, release-being-replaced coordinates, or
+   Cloudflare versions differ. It also refuses a checkout that does not contain
+   the guarded rollback entrypoint.
+4. Run `.buildkite/scripts/rollback-promote.sh`. It verifies the receipt before
+   provider commands, routes both providers through `guardedDeploy.ts`, runs the
+   backend and hosted canaries, and emits a new append-only rollback receipt.
+5. If any coordinate, authority binding, canary, or receipt is unavailable,
+   freeze deployment. Do not invoke raw Convex or Cloudflare commands.
 
 ## Provider Outage
 

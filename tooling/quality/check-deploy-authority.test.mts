@@ -21,6 +21,7 @@ const fixture = () => {
   };
   return {
     sources: {
+      "scripts/_project-config.mjs": source("scripts/_project-config.mjs"),
       ".buildkite/scripts/staging-deploy.sh": source(
         ".buildkite/scripts/staging-deploy.sh",
       ),
@@ -30,6 +31,12 @@ const fixture = () => {
       "tooling/release/src/deploy/guardedDeploy.ts": source(
         "tooling/release/src/deploy/guardedDeploy.ts",
       ),
+      ".buildkite/scripts/deploy-canary.sh": source(
+        ".buildkite/scripts/deploy-canary.sh",
+      ),
+      ".buildkite/scripts/rollback-promote.sh": source(
+        ".buildkite/scripts/rollback-promote.sh",
+      ),
     },
     packageScripts: {
       "convex:deploy": "tsx tooling/release/src/deploy/guardedDeploy.ts convex",
@@ -38,6 +45,7 @@ const fixture = () => {
     },
     pipeline: source(".buildkite/pipeline.yml"),
     selfProtection: source(".buildkite/scripts/ci-self-protection.sh"),
+    projectConfigSource: source("project.config.json"),
     policySource: policySource(),
     trustMembers,
     trustedDeployRootSha256: deployTrustRootSha256(trustMembers),
@@ -59,6 +67,12 @@ describe("deploy authority self-protection", () => {
           ...base.packageScripts,
           "convex:deploy": "convex deploy -y",
         },
+      }),
+    ).not.toEqual([]);
+    expect(
+      validateDeployAuthoritySources({
+        ...base,
+        pipeline: `${base.pipeline}\n  - TEMPLATE_CONVEX_DEPLOY_KEY\n`,
       }),
     ).not.toEqual([]);
     for (const primitive of [
@@ -90,8 +104,8 @@ describe("deploy authority self-protection", () => {
         'depends_on: "production-approval"',
       ),
       base.pipeline.replace(
-        "pnpm exec tsx tooling/release/src/deploy/authorityCli.ts staging",
-        "pnpm exec tsx tooling/release/src/deploy/authorityCli.ts removed",
+        "authorityCli.ts staging",
+        "authorityCli.ts removed",
       ),
       base.pipeline.replace("staging convexUrl", "production convexUrl"),
       `${base.pipeline}\npnpm exec tsx tooling/release/src/deploy/authorityCli.ts production deadbeef template-production\n`,
@@ -107,7 +121,7 @@ describe("deploy authority self-protection", () => {
     expect(
       validateDeployAuthoritySources({
         ...base,
-        pipeline: `${base.pipeline}\n  - TEMPLATE_CONVEX_DEPLOY_KEY\n`,
+        pipeline: `${base.pipeline}\n  - TEMPLATE_STAGING_CONVEX_DEPLOY_KEY\n`,
       }),
     ).not.toEqual([]);
     expect(
@@ -159,6 +173,119 @@ describe("deploy authority self-protection", () => {
         },
       }),
     ).not.toEqual([]);
+  });
+
+  it("requires external environment-specific provider bindings and isolation", () => {
+    const base = fixture();
+    for (const projectConfigSource of [
+      base.projectConfigSource.replace(
+        '"TEMPLATE_STAGING_CONVEX_URL"',
+        '"TEMPLATE_PRODUCTION_CONVEX_URL"',
+      ),
+      base.projectConfigSource.replace(
+        '"requireDistinctConvexDeployments": true',
+        '"requireDistinctConvexDeployments": false',
+      ),
+    ]) {
+      expect(
+        validateDeployAuthoritySources({ ...base, projectConfigSource }),
+      ).not.toEqual([]);
+    }
+    expect(
+      validateDeployAuthoritySources({
+        ...base,
+        sources: {
+          ...base.sources,
+          "scripts/_project-config.mjs": base.sources[
+            "scripts/_project-config.mjs"
+          ].replace(
+            'command === "assert-isolated-convex"',
+            'command === "removed"',
+          ),
+        },
+      }),
+    ).not.toEqual([]);
+  });
+
+  it("requires post-deploy backend and hosted canaries before receipts", () => {
+    const base = fixture();
+    for (const scriptName of [
+      ".buildkite/scripts/staging-deploy.sh",
+      ".buildkite/scripts/production-promote.sh",
+    ] as const) {
+      const script = base.sources[scriptName];
+      for (const marker of [
+        "check-deploy-authority-receipt.mts validate-inputs",
+        "deploy-canary.sh backend",
+        "deploy-canary.sh hosted",
+        "check-deploy-authority-receipt.mts record",
+      ]) {
+        expect(
+          validateDeployAuthoritySources({
+            ...base,
+            sources: {
+              ...base.sources,
+              [scriptName]: script.split(marker).join("REMOVED_MARKER"),
+            },
+          }),
+          `${scriptName}:${marker}`,
+        ).not.toEqual([]);
+      }
+    }
+  });
+
+  it("requires a guarded rollback path with exact coordinate verification", () => {
+    const base = fixture();
+    for (const marker of [
+      "check-deploy-authority-receipt.mts validate-inputs",
+      "check-deploy-authority-receipt.mts verify-rollback",
+      "git rev-parse HEAD",
+      "git cat-file -e",
+      "guardedDeploy.ts convex",
+      "deploy-canary.sh backend",
+      "guardedDeploy.ts cloudflare",
+      "deploy-canary.sh hosted",
+    ]) {
+      expect(
+        validateDeployAuthoritySources({
+          ...base,
+          sources: {
+            ...base.sources,
+            ".buildkite/scripts/rollback-promote.sh": base.sources[
+              ".buildkite/scripts/rollback-promote.sh"
+            ]
+              .split(marker)
+              .join("REMOVED_MARKER"),
+          },
+        }),
+        marker,
+      ).not.toEqual([]);
+    }
+  });
+
+  it("requires complete hosted launch proof before a receipt", () => {
+    const base = fixture();
+    for (const marker of [
+      "pnpm smoke:hosted",
+      "pnpm smoke:hosted:browser",
+      "pnpm smoke:hosted:a11y",
+      "pnpm smoke:hosted:visual",
+    ]) {
+      expect(
+        validateDeployAuthoritySources({
+          ...base,
+          sources: {
+            ...base.sources,
+            ".buildkite/scripts/deploy-canary.sh": base.sources[
+              ".buildkite/scripts/deploy-canary.sh"
+            ]
+              .split(marker)
+              .join("REMOVED_MARKER"),
+          },
+        }),
+        marker,
+      ).not.toEqual([]);
+    }
   });
 
   it("fails closed without the external root or when verifier, policy, or key co-change", () => {

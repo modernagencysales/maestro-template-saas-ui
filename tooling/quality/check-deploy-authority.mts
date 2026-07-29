@@ -13,6 +13,7 @@ type DeployPolicy = {
     readonly guardedDeployOwner: string;
     readonly requiredActions: readonly ["convex", "cloudflare"];
     readonly forbiddenBuildkiteEnv: readonly string[];
+    readonly requiredBindings: readonly string[];
   };
   readonly jobs: Readonly<
     Record<
@@ -22,10 +23,12 @@ type DeployPolicy = {
         readonly approval: string;
         readonly deploy: string;
         readonly script: string;
+        readonly credentialSecrets: readonly string[];
       }
     >
   >;
-  readonly credentialSecrets: readonly string[];
+  readonly rollbackScript: string;
+  readonly legacyCredentialSecretsForbidden: readonly string[];
 };
 
 export const deployPolicySha256 = (source: string): string =>
@@ -44,6 +47,7 @@ export const validateDeployAuthoritySources = (input: {
   readonly packageScripts: Readonly<Record<string, string>>;
   readonly pipeline: string;
   readonly selfProtection: string;
+  readonly projectConfigSource: string;
   readonly policySource: string;
   readonly trustMembers: Readonly<Record<string, string>>;
   readonly trustedDeployRootSha256?: string;
@@ -83,7 +87,11 @@ export const validateDeployAuthoritySources = (input: {
     !Array.isArray(policy.authority.forbiddenBuildkiteEnv) ||
     !policy.jobs?.staging ||
     !policy.jobs.production ||
-    !Array.isArray(policy.credentialSecrets)
+    !Array.isArray(policy.authority.requiredBindings) ||
+    typeof policy.rollbackScript !== "string" ||
+    !Array.isArray(policy.legacyCredentialSecretsForbidden) ||
+    !Array.isArray(policy.jobs.staging.credentialSecrets) ||
+    !Array.isArray(policy.jobs.production.credentialSecrets)
   ) {
     return ["deploy policy manifest has an invalid shape"];
   }
@@ -136,6 +144,62 @@ export const validateDeployAuthoritySources = (input: {
         `${forbidden} must remain authority-side and absent from Buildkite`,
       );
     }
+  }
+
+  for (const binding of policy.authority.requiredBindings) {
+    if (!input.pipeline.includes(`${binding}: "\${${binding}}"`))
+      failures.push(`pipeline must bind externally supplied ${binding}`);
+  }
+  for (const legacy of policy.legacyCredentialSecretsForbidden) {
+    if (input.pipeline.includes(`- ${legacy}`))
+      failures.push(
+        `${legacy} must not replace environment-scoped credentials`,
+      );
+  }
+
+  let projectConfig: {
+    readonly requireDistinctConvexDeployments?: boolean;
+    readonly environments?: Readonly<
+      Record<
+        "staging" | "production",
+        {
+          readonly convexDeployNameEnv?: string;
+          readonly convexUrlEnv?: string;
+          readonly hostedUrlEnv?: string;
+          readonly requiredSecrets?: readonly string[];
+        }
+      >
+    >;
+  };
+  try {
+    projectConfig = JSON.parse(
+      input.projectConfigSource,
+    ) as typeof projectConfig;
+  } catch {
+    return ["project config must be valid JSON"];
+  }
+  const stagingConfig = projectConfig.environments?.staging;
+  const productionConfig = projectConfig.environments?.production;
+  if (
+    projectConfig.requireDistinctConvexDeployments !== true ||
+    !stagingConfig ||
+    !productionConfig ||
+    !["convexDeployNameEnv", "convexUrlEnv", "hostedUrlEnv"].every(
+      (field) =>
+        typeof stagingConfig[field as keyof typeof stagingConfig] ===
+          "string" &&
+        typeof productionConfig[field as keyof typeof productionConfig] ===
+          "string" &&
+        stagingConfig[field as keyof typeof stagingConfig] !==
+          productionConfig[field as keyof typeof productionConfig],
+    ) ||
+    !input.sources["scripts/_project-config.mjs"]?.includes(
+      'command === "assert-isolated-convex"',
+    )
+  ) {
+    failures.push(
+      "project config must require external, distinct staging and production Convex bindings",
+    );
   }
 
   for (const [alias, route] of Object.entries(policy.packageRoutes)) {
@@ -191,7 +255,7 @@ export const validateDeployAuthoritySources = (input: {
         failures.push(`${job.deploy} must depend on ${job.preflight}`);
       if (!deploy.includes(`command: "${job.script}"`))
         failures.push(`${job.deploy} must route through ${job.script}`);
-      for (const secret of policy.credentialSecrets) {
+      for (const secret of job.credentialSecrets) {
         if (!deploy.includes(`- ${secret}`))
           failures.push(`${job.deploy} must retain scoped ${secret}`);
       }
@@ -213,15 +277,87 @@ export const validateDeployAuthoritySources = (input: {
         `${job.script} must route both provider actions through the guarded owner exactly once`,
       );
     }
+    const convexDeploy = script.indexOf(
+      `${policy.authority.guardedDeployOwner} convex`,
+    );
+    const coordinateValidation = script.indexOf(
+      "check-deploy-authority-receipt.mts validate-inputs",
+    );
+    const backendCanary = script.indexOf("deploy-canary.sh backend");
+    const cloudflareDeploy = script.indexOf(
+      `${policy.authority.guardedDeployOwner} cloudflare`,
+    );
+    const hostedCanary = script.indexOf("deploy-canary.sh hosted");
+    const receipt = script.indexOf("check-deploy-authority-receipt.mts record");
+    if (
+      coordinateValidation < 0 ||
+      convexDeploy <= coordinateValidation ||
+      backendCanary <= convexDeploy ||
+      cloudflareDeploy <= backendCanary ||
+      hostedCanary <= cloudflareDeploy ||
+      receipt <= hostedCanary
+    )
+      failures.push(
+        `${job.script} must canary backend and hosted deploys before recording the receipt`,
+      );
+    if (
+      environment === "staging" &&
+      script.indexOf("buildkite-agent meta-data set staged-sha") <= receipt
+    )
+      failures.push(
+        "staging must record its guarded receipt before staged-sha",
+      );
   }
 
-  for (const secret of policy.credentialSecrets) {
+  for (const secret of [
+    ...policy.jobs.staging.credentialSecrets,
+    ...policy.jobs.production.credentialSecrets,
+  ]) {
     const declarations = input.pipeline.match(
       new RegExp(`^\\s+- ${escapeRegex(secret)}$`, "gm"),
     );
-    if ((declarations ?? []).length !== 2)
-      failures.push(`${secret} must be scoped only to the two deploy jobs`);
+    if ((declarations ?? []).length !== 1)
+      failures.push(
+        `${secret} must be scoped only to its environment deploy job`,
+      );
   }
+  const rollback = input.sources[policy.rollbackScript] ?? "";
+  const rollbackMarkers = [
+    "git rev-parse HEAD",
+    'git cat-file -e "${BUILDKITE_COMMIT}:.buildkite/scripts/rollback-promote.sh"',
+    "check-deploy-authority-receipt.mts validate-inputs",
+    "check-deploy-authority-receipt.mts verify-rollback",
+    `${policy.authority.guardedDeployOwner} convex`,
+    "deploy-canary.sh backend",
+    `${policy.authority.guardedDeployOwner} cloudflare`,
+    "deploy-canary.sh hosted",
+    "check-deploy-authority-receipt.mts record",
+  ];
+  if (
+    rollbackMarkers.some((marker) => !rollback.includes(marker)) ||
+    rollbackMarkers.some(
+      (marker, index) =>
+        index > 0 &&
+        rollback.indexOf(marker) <=
+          rollback.indexOf(rollbackMarkers[index - 1] ?? ""),
+    )
+  )
+    failures.push(
+      "rollback must verify exact prior coordinates, use guarded providers, canary, and record a new receipt",
+    );
+  const canary = input.sources[".buildkite/scripts/deploy-canary.sh"] ?? "";
+  if (
+    !canary.includes("convex run ops/health:liveness") ||
+    ![
+      "pnpm smoke:hosted",
+      "pnpm smoke:hosted:browser",
+      "pnpm smoke:hosted:a11y",
+      "pnpm smoke:hosted:visual",
+    ].every((marker) => canary.includes(marker))
+  )
+    failures.push(
+      "deploy canary must check Convex health plus hosted HTTP, browser, accessibility, and visual proof",
+    );
   if (!input.selfProtection.includes("check:deploy-authority")) {
     failures.push(
       "secretless CI self-protection must run check:deploy-authority",
@@ -318,6 +454,10 @@ if (
     pipeline: readFileSync(resolve(root, ".buildkite/pipeline.yml"), "utf8"),
     selfProtection: readFileSync(
       resolve(root, ".buildkite/scripts/ci-self-protection.sh"),
+      "utf8",
+    ),
+    projectConfigSource: readFileSync(
+      resolve(root, "project.config.json"),
       "utf8",
     ),
     policySource,
