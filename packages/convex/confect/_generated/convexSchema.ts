@@ -15,6 +15,7 @@ import contextPacks from "./tables/contextPacks";
 import creditLedger from "./tables/creditLedger";
 import deployActionConsumptions from "./tables/deployActionConsumptions";
 import deployApprovals from "./tables/deployApprovals";
+import deployAuthorityAuditEvents from "./tables/deployAuthorityAuditEvents";
 import deployAuthorityIssuers from "./tables/deployAuthorityIssuers";
 import deployCensusSnapshots from "./tables/deployCensusSnapshots";
 import deployVerdicts from "./tables/deployVerdicts";
@@ -67,6 +68,7 @@ export default $defineSchema({
   creditLedger: creditLedger.tableDefinition,
   deployActionConsumptions: deployActionConsumptions.tableDefinition,
   deployApprovals: deployApprovals.tableDefinition,
+  deployAuthorityAuditEvents: deployAuthorityAuditEvents.tableDefinition,
   deployAuthorityIssuers: deployAuthorityIssuers.tableDefinition,
   deployCensusSnapshots: deployCensusSnapshots.tableDefinition,
   deployVerdicts: deployVerdicts.tableDefinition,

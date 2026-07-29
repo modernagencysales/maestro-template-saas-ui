@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { spawnSync } from "node:child_process";
 import {
   existsSync,
   mkdirSync,
@@ -26,6 +27,7 @@ import {
 import { buildFactorySaasApplicationFiles } from "./saasApplicationFactory";
 import {
   CUSTOMER_ROOT_SCRIPTS,
+  CURRENT_SAAS_DEPLOY_AUTHORITY_TABLE_CLOSURE,
   CURRENT_GENERATOR_GATE_SCRIPTS,
   REMOVED_CUSTOMER_TEMPLATE_SCRIPTS,
 } from "./saasRegistrationProjections";
@@ -135,8 +137,15 @@ describe("saas application blueprint", () => {
     ).toHaveLength(1);
   });
 
-  it("matches the sealed alpha.1 manifest to the canonical current target plan", () => {
+  it("matches the sealed alpha.1 manifest to its historical assets and current structure", () => {
     const plan = buildSaasApplicationTargetPlan();
+    const postAlphaCurrentPaths = new Set<string>(
+      CURRENT_SAAS_DEPLOY_AUTHORITY_TABLE_CLOSURE,
+    );
+    const releaseRoot = join(
+      repoRoot,
+      "releases/v0.2.0-alpha.1/blueprints/saas-application",
+    );
     const manifest = JSON.parse(
       readFileSync(
         join(
@@ -150,31 +159,122 @@ describe("saas application blueprint", () => {
       readonly id: string;
       readonly provenance: string;
       readonly registrations: readonly string[];
-      readonly entries: readonly unknown[];
+      readonly projectionSource: {
+        readonly sourceCommit: string;
+        readonly assets: readonly {
+          readonly path: string;
+          readonly sha256: string;
+        }[];
+      };
+      readonly entries: readonly {
+        readonly path: string;
+        readonly ownership: "generated" | "customer-extension";
+        readonly action: "generate" | "copy";
+        readonly upgrade: "regenerate" | "preserve";
+        readonly sha256: string;
+        readonly replaces?: "copy" | "generate";
+      }[];
     };
 
     expect({
       schemaVersion: plan.schemaVersion,
       id: plan.id,
       provenance: plan.provenance,
-      registrations: plan.registrations,
-      entries: plan.entries.map(
-        ({ path, ownership, action, upgrade, sha256, replaces }) => ({
+      registrations: plan.registrations.filter(
+        (path) => !postAlphaCurrentPaths.has(path),
+      ),
+      entries: plan.entries
+        .filter(({ path }) => !postAlphaCurrentPaths.has(path))
+        .map(({ path, ownership, action, upgrade, replaces }) => ({
           path,
           ownership,
           action,
           upgrade,
-          sha256,
           ...(replaces === undefined ? {} : { replaces }),
-        }),
-      ),
+        })),
     }).toEqual({
       schemaVersion: manifest.schemaVersion,
       id: manifest.id,
       provenance: manifest.provenance,
       registrations: manifest.registrations,
-      entries: manifest.entries,
+      entries: manifest.entries.map(
+        ({ path, ownership, action, upgrade, replaces }) => ({
+          path,
+          ownership,
+          action,
+          upgrade,
+          ...(replaces === undefined ? {} : { replaces }),
+        }),
+      ),
     });
+
+    const assets = new Map(
+      manifest.projectionSource.assets.map((asset) => [asset.path, asset]),
+    );
+    for (const asset of assets.values()) {
+      const bytes = readFileSync(join(releaseRoot, asset.path));
+      expect(`sha256:${createHash("sha256").update(bytes).digest("hex")}`).toBe(
+        asset.sha256,
+      );
+    }
+    const currentEntries = new Map(
+      plan.entries.map((entry) => [entry.path, entry]),
+    );
+    const sourceCommit = manifest.projectionSource.sourceCommit;
+    expect(sourceCommit).toMatch(/^[0-9a-f]{40}$/u);
+    const sourceAvailable = spawnSync(
+      "git",
+      ["-C", repoRoot, "cat-file", "-e", `${sourceCommit}^{commit}`],
+      { encoding: "utf8" },
+    );
+    for (const entry of manifest.entries) {
+      const asset = assets.get(`base/${entry.path}.txt`);
+      const currentEntry = currentEntries.get(entry.path);
+      expect(
+        currentEntry,
+        `missing current projection for ${entry.path}`,
+      ).toBeDefined();
+      const source =
+        sourceAvailable.status === 0
+          ? spawnSync(
+              "git",
+              ["-C", repoRoot, "show", `${sourceCommit}:${entry.path}`],
+              { encoding: null },
+            )
+          : undefined;
+      const sourceSha256 =
+        source?.status === 0 && Buffer.isBuffer(source.stdout)
+          ? `sha256:${createHash("sha256").update(source.stdout).digest("hex")}`
+          : undefined;
+      expect(
+        [asset?.sha256, sourceSha256, currentEntry?.sha256].filter(Boolean),
+      ).toContain(entry.sha256);
+    }
+
+    if (sourceAvailable.status === 0) {
+      expect(
+        spawnSync(
+          "git",
+          ["-C", repoRoot, "merge-base", "--is-ancestor", sourceCommit, "HEAD"],
+          { encoding: "utf8" },
+        ).status,
+      ).toBe(0);
+      const tag = "maestro-template-v0.2.0-alpha.1^{}";
+      const tagAvailable = spawnSync(
+        "git",
+        ["-C", repoRoot, "cat-file", "-e", tag],
+        { encoding: "utf8" },
+      );
+      if (tagAvailable.status === 0) {
+        expect(
+          spawnSync(
+            "git",
+            ["-C", repoRoot, "merge-base", "--is-ancestor", sourceCommit, tag],
+            { encoding: "utf8" },
+          ).status,
+        ).toBe(0);
+      }
+    }
   });
 
   it("materializes the current disclosure and customer support surface", () => {
@@ -354,6 +454,33 @@ describe("saas application blueprint", () => {
     expect(entries[0]).toMatchObject({ path: runnerPath, replaces: "copy" });
   });
 
+  it("replaces only deployment-authority files present in the base release", () => {
+    const entries = new Map(
+      buildSaasApplicationTargetPlan().entries.map((entry) => [
+        entry.path,
+        entry,
+      ]),
+    );
+
+    for (const path of [
+      "packages/convex/confect/_generated/tables/deployAuthorityIssuers.ts",
+      "packages/convex/confect/tables/deployAuthorityIssuers.ts",
+    ]) {
+      expect(entries.get(path), path).toMatchObject({
+        ownership: "generated",
+        action: "generate",
+        upgrade: "regenerate",
+        replaces: "copy",
+      });
+    }
+    for (const path of [
+      "packages/convex/confect/_generated/tables/deployAuthorityAuditEvents.ts",
+      "packages/convex/confect/tables/deployAuthorityAuditEvents.ts",
+    ]) {
+      expect(entries.get(path), path).not.toHaveProperty("replaces");
+    }
+  });
+
   it("emits deterministic workspace-safe CRUD and readiness contracts", async () => {
     const first = buildFactorySaasApplicationFiles({ name: "My App" });
     const second = buildFactorySaasApplicationFiles({ name: "My App" });
@@ -419,6 +546,7 @@ describe("saas application blueprint", () => {
       "packages/convex/confect/capabilities/_kit/workspaceAccess.ts",
       "packages/convex/confect/_generated/docs.ts",
       "packages/convex/confect/_generated/tables/workflowArtifacts.ts",
+      ...CURRENT_SAAS_DEPLOY_AUTHORITY_TABLE_CLOSURE,
       "packages/convex/confect/ops/dataResources.generated.ts",
       "packages/convex/confect/tables/workflowArtifacts.ts",
       "packages/convex/confect/tables/workflowRuns.ts",

@@ -366,13 +366,14 @@
       "name": "Deployment Authority",
       "kind": "shared-primitive",
       "lifecycle": "active",
-      "implementationStatus": "mixed",
-      "summary": "Owns environment-scoped release approval, signed deployment verdict, workflow census, trusted issuer, and one-time deployment-action consumption state.",
+      "implementationStatus": "real",
+      "summary": "Owns authenticated environment-scoped release provisioning, runtime-key-bound signed deployment verdicts, workflow census, bounded trusted issuer lifecycle, lossless append-only audit, and approval-bound deployment-action consumption state.",
       "responsibilities": [
         "verify trusted deployment issuer configuration",
         "verify release approvals against exact environment targets and commits",
         "validate complete workflow census evidence",
         "verify signed deployment verdicts",
+        "authenticate and audit operator provisioning and issuer lifecycle",
         "consume deployment actions exactly once"
       ],
       "aliases": [
@@ -386,12 +387,14 @@
       "tables": [
         "deployActionConsumptions",
         "deployApprovals",
+        "deployAuthorityAuditEvents",
         "deployAuthorityIssuers",
         "deployCensusSnapshots",
         "deployVerdicts"
       ],
       "canonicalEntrypoints": [
         "packages/convex/confect/deploy/authority.spec.ts",
+        "packages/convex/confect/deployAuthority/admin.ts",
         "packages/convex/confect/deployAuthority/http.ts",
         "packages/convex/confect/deployAuthority/store.ts"
       ],

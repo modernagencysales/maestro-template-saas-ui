@@ -281,6 +281,8 @@ const buildTemplateHttpRouter = () => {
     handler: httpActionGeneric((ctx, request) =>
       handleDeployAuthorityHttpRequest(
         {
+          runQuery: (reference, input) =>
+            ctx.runQuery(reference as never, input as never),
           runMutation: (reference, scope) =>
             ctx.runMutation(reference as never, scope as never),
         },

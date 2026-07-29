@@ -1,7 +1,6 @@
 # deployment-authority
 
-Disposition: introduce Decision owner: Maestro template maintainers Status:
-approved
+Disposition: introduce Decision owner: Maestro template maintainers Status: real
 
 ## Distinct Lifecycle
 
@@ -28,14 +27,16 @@ workspace feature or a workspace data-subject lifecycle.
 
 - Canonical entrypoints:
   - `packages/convex/confect/deploy/authority.spec.ts`
+  - `packages/convex/confect/deployAuthority/admin.ts`
   - `packages/convex/confect/deployAuthority/http.ts`
   - `packages/convex/confect/deployAuthority/store.ts`
 - Implemented responsibilities: bind signed approvals, verdicts, and complete
   census evidence to an exact environment, target, and commit; verify configured
   trusted issuers; issue short-lived authorization; consume each action exactly
   once.
-- Tables: `deployAuthorityIssuers`, `deployApprovals`, `deployCensusSnapshots`,
-  `deployVerdicts`, and `deployActionConsumptions`.
+- Six tables: `deployAuthorityIssuers`, `deployAuthorityAuditEvents`,
+  `deployApprovals`, `deployCensusSnapshots`, `deployVerdicts`, and
+  `deployActionConsumptions`.
 - The HTTP endpoint and release CLI are projections of this authority. Workflow
   Runtime is a read-only evidence dependency, not a second authority.
 - The authority control plane must already be live before either deployment
@@ -44,31 +45,35 @@ workspace feature or a workspace data-subject lifecycle.
 - Preflight is consumed exactly once by the secretless pipeline step. The
   credentialed deploy scripts do not consume a second preflight; each guarded
   Convex and Cloudflare action still consumes its own exact-scope authorization.
-- The Ed25519 signing key is authority-side only. Buildkite and this repository
-  receive the public verification key and externally pinned trust-root hash,
-  never `PROMOTION_AUTHORITY_PRIVATE_KEY_PKCS8_BASE64URL`.
+- The Ed25519 signing key is authority-side only. The typed Convex environment
+  declares `PROMOTION_AUTHORITY_MODE` and
+  `PROMOTION_AUTHORITY_PRIVATE_KEY_PKCS8_BASE64URL`; readiness and consumption
+  prove that the private key matches the one active issuer before any one-time
+  action mutation. Buildkite receives only the public verification key and
+  externally pinned trust-root hash, never the private key.
 
 ## Migration And Preservation
 
-This introduces canonical ownership for the mixed implementation; it does not
-replace storage or rewrite records. Issuer, approval, census, and verdict
-provisioning are external and unavailable in the shipped template. Adding those
-writes requires a separately reviewed operator authority and migration. The only
-implemented table write is append-only deployment-action consumption. Preserve
-exact scope binding, signature/hash verification, fail-closed census validation,
-expiry checks, append-only signed evidence, and one-time action consumption.
-Existing records remain global and excluded from workspace export/delete plans.
-The application deployment may not self-bootstrap its own authority, compute or
-replace the external trusted root, fall back to the target Convex deployment, or
-bypass an unavailable authority. Missing independent control-plane readiness is
-a deployment refusal, not a recoverable setup path inside the deploy job.
+This introduces canonical ownership without rewriting existing records.
+Authenticated issuer, approval, census, and verdict provisioning authorities are
+implemented behind explicit authority mode and operator claims. Provisioning,
+rotation, retirement, and audit writes are append-only; a transition is refused
+before the issuer history would cross its permanent bound. Audit export uses a
+total-order timestamp-and-event cursor so equal-timestamp evidence is lossless.
+Preserve exact scope binding, runtime-key/active-issuer proof, signature/hash
+verification, fail-closed census validation, expiry checks, append-only
+evidence, and one-time action consumption. Existing records remain global and
+excluded from workspace export/delete plans. The application deployment may not
+self-bootstrap its own authority, compute or replace the external trusted root,
+fall back to the target Convex deployment, or bypass an unavailable authority.
+Missing independent control-plane readiness is a deployment refusal, not a
+recoverable setup path inside the deploy job.
 
 ## Terminal Condition
 
-The mixed system is correctly bounded when all five tables have one catalog
-owner and lifecycle contract, unavailable provisioning is explicit, the HTTP
-authority endpoint uses the canonical durable store for verification and
-consumption, the promotion boundary tests pass, and product topology records the
-headless authority as a Workflow Runtime evidence consumer. It becomes `real`
-only after reviewed issuer, approval, census, and verdict provisioning
-authorities ship with migration and lifecycle proof.
+The real system is correctly bounded when all six tables have one catalog owner
+and lifecycle contract, authenticated provisioning remains origin-bound, the
+HTTP authority validates its typed runtime key against the active issuer before
+consumption, audit pagination is lossless, the issuer ceiling cannot be crossed,
+and promotion-boundary tests pass. Product topology continues to treat Workflow
+Runtime as read-only evidence, never a second deployment authority.

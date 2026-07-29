@@ -27,6 +27,8 @@ import type { DataModel } from "./dataModel.js";
 type Env = {
   readonly POSTHOG_HOST: string | undefined;
   readonly POSTHOG_PROJECT_TOKEN: string;
+  readonly PROMOTION_AUTHORITY_MODE: "authority" | undefined;
+  readonly PROMOTION_AUTHORITY_PRIVATE_KEY_PKCS8_BASE64URL: string | undefined;
 };
 
 /**

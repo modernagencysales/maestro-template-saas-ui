@@ -85,6 +85,7 @@ match.file_patterns = [
   "apps/cli/src/factory/scaffold.ts",
   "apps/cli/src/factory/start.ts",
   "apps/cli/src/factory/upgrade.ts",
+  "packages/convex/confect/deployAuthority/admin.ts",
   "packages/convex/confect/deployAuthority/http.ts",
   "packages/convex/confect/deployAuthority/store.ts",
   "packages/convex/confect/workflowContracts/publicationFixture.impl.ts",
@@ -118,6 +119,7 @@ match.file_patterns = [
   "packages/convex/convex/components/workflowDeadline/deadlines.ts",
   "packages/template-core/src/index.ts",
   "packages/template-core/src/templateInstance/index.ts",
+  "scripts/_project-config.mjs",
 ]
 set.mode = "monitor"
 
@@ -131,6 +133,8 @@ match.file_patterns = [
   "apps/cli/src/factory/scaffold.ts",
   "apps/cli/src/factory/upgrade.ts",
   "apps/cli/src/factory/verify.ts",
+  "packages/convex/confect/deployAuthority/admin.ts",
+  "packages/convex/confect/deployAuthority/store.ts",
   "packages/convex/confect/workflows/_kit/effectReservations.ts",
   "packages/convex/confect/workflows/_kit/eventInstances.ts",
   "packages/convex/confect/workflows/_kit/graphRunnerExecution.ts",
@@ -172,6 +176,7 @@ match.file_patterns = [
   "apps/cli/src/factory/supportBundle.ts",
   "apps/cli/src/factory/upgrade.ts",
   "apps/cli/src/factory/verify.ts",
+  "packages/convex/confect/deployAuthority/admin.ts",
   "packages/convex/confect/deployAuthority/http.ts",
   "packages/convex/confect/deployAuthority/store.ts",
   "packages/convex/confect/workflows/_kit/boundedBatch.ts",
@@ -276,6 +281,7 @@ match.file_patterns = [
   "apps/cli/src/factory/composition.ts",
   "apps/cli/src/factory/environment.ts",
   "apps/cli/src/factory/upgrade.ts",
+  "packages/convex/confect/deployAuthority/admin.ts",
   "packages/convex/confect/deployAuthority/http.ts",
   "packages/convex/confect/deployAuthority/store.ts",
   "packages/convex/confect/workflows/_kit/boundedBatch.ts",
@@ -310,6 +316,7 @@ match.file_patterns = [
   "packages/convex/confect/workflows/graphSchema.ts",
   "packages/convex/confect/workflows/graphSchemaCurrent.ts",
   "packages/convex/confect/workflows/lifecycle.impl.ts",
+  "packages/convex/confect/deployAuthority/admin.ts",
 ]
 set.mode = "monitor"
 

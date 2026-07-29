@@ -343,6 +343,10 @@ describe("create root integration", () => {
     expect(JSON.parse(result.stdout)).toMatchObject({ exitClass: "success" });
     const required = [
       "packages/convex/confect/tables/records.ts",
+      "packages/convex/confect/_generated/tables/deployAuthorityAuditEvents.ts",
+      "packages/convex/confect/_generated/tables/deployAuthorityIssuers.ts",
+      "packages/convex/confect/tables/deployAuthorityAuditEvents.ts",
+      "packages/convex/confect/tables/deployAuthorityIssuers.ts",
       "packages/convex/confect/records/records.spec.ts",
       "packages/convex/confect/records/records.impl.ts",
       "apps/web/src/adapters/records/contract.ts",
@@ -352,7 +356,7 @@ describe("create root integration", () => {
       "apps/web/src/routes/_workspace.records.tsx",
     ] as const;
     for (const path of required) {
-      expect(existsSync(join(targetRoot, path))).toBe(true);
+      expect(existsSync(join(targetRoot, path)), path).toBe(true);
     }
     const instance = JSON.parse(
       readFileSync(join(targetRoot, "template-instance.json"), "utf8"),

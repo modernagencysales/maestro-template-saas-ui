@@ -1,119 +1,105 @@
 /* eslint-disable */
-/** Generated component API types. */
+/**
+ * Generated `ComponentApi` utility.
+ *
+ * THIS CODE IS AUTOMATICALLY GENERATED.
+ *
+ * To regenerate, run `npx convex dev`.
+ * @module
+ */
+
 import type { FunctionReference } from "convex/server";
 
-type ScheduleArgs = {
-  workspaceId: string;
-  workflowRunId: string;
-  workflowId: string;
-  workflowVersion: number;
-  generation: number;
-  scheduleKey: string;
-  requestedAt: number;
-  horizonMs: number;
-  deadlineAt: number;
-  runAt: number;
-};
-
-type ScheduleDocument = ScheduleArgs & {
-  _id: string;
-  _creationTime: number;
-  state:
-    | "preparing"
-    | "scheduled"
-    | "retryScheduled"
-    | "timedOut"
-    | "reconciled"
-    | "noOp"
-    | "failed";
-  workId?: string;
-  attemptCount?: number;
-  retryAt?: number;
-  lastFailureAt?: number;
-  actualStartedAt?: number;
-  latenessMs?: number;
-  expired?: boolean;
-  expiredByMs?: number;
-  noOpReason?:
-    | "terminal-run"
-    | "stale-generation"
-    | "stale-schedule"
-    | "deadline-not-reached";
-};
-
+/**
+ * A utility for referencing a Convex component's exposed API.
+ *
+ * Useful when expecting a parameter like `components.myComponent`.
+ * Usage:
+ * ```ts
+ * async function myFunction(ctx: QueryCtx, component: ComponentApi) {
+ *   return ctx.runQuery(component.someFile.someQuery, { ...args });
+ * }
+ * ```
+ */
 export type ComponentApi<Name extends string | undefined = string | undefined> =
   {
     deadlines: {
-      prepare: FunctionReference<
-        "mutation",
+      beginReconcile: FunctionReference<
+        "query",
         "internal",
-        ScheduleArgs,
-        {
-          kind: "create" | "replace" | "replay";
-          priorWorkId: string | null;
-        },
-        Name
-      >;
-      prepareRetry: FunctionReference<
-        "mutation",
-        "internal",
-        {
-          scheduleKey: string;
-          requestedAt: number;
-          completedWorkId: string;
-          failedAt: number;
-        },
-        | { kind: "stale" }
-        | { kind: "exhausted"; attemptCount: number }
-        | { kind: "retry"; attemptCount: number; retryAt: number },
+        { generation: number; workflowRunId: string },
+        any,
         Name
       >;
       bind: FunctionReference<
         "mutation",
         "internal",
-        { scheduleKey: string; requestedAt: number; workId: string },
-        null,
+        { requestedAt: number; scheduleKey: string; workId: string },
+        any,
+        Name
+      >;
+      completeReconcile: FunctionReference<
+        "mutation",
+        "internal",
+        { generation: number; workId: string; workflowRunId: string },
+        any,
         Name
       >;
       current: FunctionReference<
         "query",
         "internal",
-        { workflowRunId: string; generation: number },
-        ScheduleDocument | null,
+        { generation: number; workflowRunId: string },
+        any,
         Name
       >;
       observe: FunctionReference<
         "mutation",
         "internal",
         {
-          scheduleKey: string;
-          requestedAt: number;
-          state: "timedOut" | "noOp";
           actualStartedAt: number;
-          latenessMs: number;
           expired: boolean;
           expiredByMs: number;
+          latenessMs: number;
           noOpReason?:
             | "terminal-run"
             | "stale-generation"
             | "stale-schedule"
             | "deadline-not-reached";
+          requestedAt: number;
+          scheduleKey: string;
+          state: "timedOut" | "noOp";
         },
-        boolean,
+        any,
         Name
       >;
-      beginReconcile: FunctionReference<
-        "query",
-        "internal",
-        { workflowRunId: string; generation: number },
-        string | null,
-        Name
-      >;
-      completeReconcile: FunctionReference<
+      prepare: FunctionReference<
         "mutation",
         "internal",
-        { workflowRunId: string; generation: number; workId: string },
-        boolean,
+        {
+          deadlineAt: number;
+          generation: number;
+          horizonMs: number;
+          requestedAt: number;
+          runAt: number;
+          scheduleKey: string;
+          workflowId: string;
+          workflowRunId: string;
+          workflowVersion: number;
+          workspaceId: string;
+        },
+        any,
+        Name
+      >;
+      prepareRetry: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          completedWorkId: string;
+          failedAt: number;
+          requestedAt: number;
+          scheduleKey: string;
+        },
+        any,
         Name
       >;
     };

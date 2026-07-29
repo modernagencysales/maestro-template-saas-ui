@@ -1,40 +1,75 @@
 /* eslint-disable */
-/** Generated component API types. */
+/**
+ * Generated `ComponentApi` utility.
+ *
+ * THIS CODE IS AUTOMATICALLY GENERATED.
+ *
+ * To regenerate, run `npx convex dev`.
+ * @module
+ */
+
 import type { FunctionReference } from "convex/server";
 
-type Status =
-  "queued" | "running" | "completed" | "failed" | "canceled" | "timedOut";
-type Budget = { maxActive: number; maxQueued: number; retryAfterMs: number };
-
+/**
+ * A utility for referencing a Convex component's exposed API.
+ *
+ * Useful when expecting a parameter like `components.myComponent`.
+ * Usage:
+ * ```ts
+ * async function myFunction(ctx: QueryCtx, component: ComponentApi) {
+ *   return ctx.runQuery(component.someFile.someQuery, { ...args });
+ * }
+ * ```
+ */
 export type ComponentApi<Name extends string | undefined = string | undefined> =
   {
     admission: {
+      bind: FunctionReference<
+        "mutation",
+        "internal",
+        { reservationKey: string; workflowRunId: string; workspaceId: string },
+        any,
+        Name
+      >;
       reserve: FunctionReference<
         "mutation",
         "internal",
         {
-          workspaceId: string;
-          reservationKey: string;
           lane: "user" | "system";
-          policy: { user: Budget; system: Budget };
-          legacyRunningRunIds: string[];
-          legacyQueuedRunIds: string[];
+          legacyQueuedRunIds: Array<string>;
+          legacyRunningRunIds: Array<string>;
+          policy: {
+            system: {
+              maxActive: number;
+              maxQueued: number;
+              retryAfterMs: number;
+            };
+            user: {
+              maxActive: number;
+              maxQueued: number;
+              retryAfterMs: number;
+            };
+          };
+          reservationKey: string;
+          workspaceId: string;
         },
-        null,
-        Name
-      >;
-      bind: FunctionReference<
-        "mutation",
-        "internal",
-        { workspaceId: string; reservationKey: string; workflowRunId: string },
-        null,
+        any,
         Name
       >;
       transition: FunctionReference<
         "mutation",
         "internal",
-        { workflowRunId: string; status: Status },
-        null,
+        {
+          status:
+            | "queued"
+            | "running"
+            | "completed"
+            | "failed"
+            | "canceled"
+            | "timedOut";
+          workflowRunId: string;
+        },
+        any,
         Name
       >;
     };
