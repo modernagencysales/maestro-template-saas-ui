@@ -396,13 +396,15 @@ export const validateDeployAuthoritySources = (input: {
     'git show "${TRUSTED_CI_SELF_PROTECTION_COMMIT}:.buildkite/scripts/ci-self-protection.sh"',
     "export npm_config_ignore_scripts=true",
     'source "${TRUSTED_SETUP_PATH}"',
-    'pnpm exec tsx "${TRUSTED_VERIFIER_PATH}"',
+    '[[ "$(node --version)" != "v22.12.0" ]]',
+    'node --experimental-strip-types "${TRUSTED_VERIFIER_PATH}"',
     'TEMPLATE_CI_SETUP=skip bash "${TRUSTED_SELF_PROTECTION_PATH}"',
     "unset npm_config_ignore_scripts",
   ];
   if (
     !selfProtectionStep ||
     selfProtectionStep.includes("secrets:") ||
+    selfProtectionStep.includes('pnpm exec tsx "${TRUSTED_VERIFIER_PATH}"') ||
     trustedSelfProtectionMarkers.some(
       (marker, index) =>
         !selfProtectionStep.includes(marker) ||
