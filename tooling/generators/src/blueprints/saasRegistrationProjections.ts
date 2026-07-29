@@ -85,6 +85,16 @@ through blocks, tokens, feature adapters, generated routes, view models, and
 typed contracts. Do not hand-edit generated Confect, Convex, or route-tree
 files, invent parallel ownership, or weaken a failing gate.
 
+The browser and headless surfaces share one implementation path:
+
+\`\`\`text
+API/CLI/MCP -> headless registry -> same capabilities/workflows as web
+\`\`\`
+
+Add behavior to the typed capability or workflow once, then project it through
+the supported web, API, CLI, or MCP adapter. Do not create a second business
+implementation for a headless surface.
+
 ## Before sharing
 
 Run the focused commands printed by each successful write. At minimum:

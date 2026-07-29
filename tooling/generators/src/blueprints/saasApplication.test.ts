@@ -117,6 +117,11 @@ describe("saas application blueprint", () => {
     expect(
       plan.entries.find(({ path }) => path === "README.md")?.content,
     ).not.toContain("maestro -- create");
+    expect(
+      plan.entries.find(({ path }) => path === "README.md")?.content,
+    ).toContain(
+      "API/CLI/MCP -> headless registry -> same capabilities/workflows as web",
+    );
     for (const path of [
       ".prettierignore",
       "tooling/confect-manifest/tsconfig.json",
