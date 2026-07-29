@@ -514,8 +514,8 @@ describe("repo-owned durable deploy authority", () => {
       resolve(root, "packages/convex/convex/convex.config.ts"),
       "utf8",
     );
-    const sharedEnv = readFileSync(
-      resolve(root, "packages/convex/confect/shared/env.ts"),
+    const authorityEnv = readFileSync(
+      resolve(root, "packages/convex/confect/deployAuthority/env.ts"),
       "utf8",
     );
     const decision = readFileSync(
@@ -527,8 +527,12 @@ describe("repo-owned durable deploy authority", () => {
       "PROMOTION_AUTHORITY_PRIVATE_KEY_PKCS8_BASE64URL",
     ]) {
       expect(config).toContain(name);
-      expect(sharedEnv).not.toContain(`process.env.${name}`);
+      expect(authorityEnv).toContain(name);
+      expect(authorityEnv).not.toContain(`process.env.${name}`);
     }
+    expect(authorityEnv).toContain(
+      'import { env as convexEnv } from "../../convex/_generated/server";',
+    );
     expect(decision).toContain("six tables");
     expect(decision).toContain("provisioning authorities are");
     expect(decision).toContain("implemented behind explicit authority mode");
