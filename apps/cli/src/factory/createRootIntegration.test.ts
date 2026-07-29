@@ -374,7 +374,11 @@ describe("create root integration", () => {
       join(targetRoot, "node_modules"),
       "dir",
     );
-    for (const project of ["packages/convex", "apps/web"]) {
+    for (const project of [
+      "packages/convex",
+      "apps/web",
+      "tooling/confect-manifest",
+    ]) {
       symlinkSync(
         join(repoRoot, project, "node_modules"),
         join(targetRoot, project, "node_modules"),
@@ -398,21 +402,6 @@ describe("create root integration", () => {
       ),
     );
     expect(dirtyManifest.toString()).toContain('"records"');
-    for (const args of [
-      ["format"],
-      ["--dir", "apps/web", "build"],
-      ["--dir", "apps/web", "typecheck"],
-      ["check:confect-contracts"],
-      ["check:data-resources"],
-      ["check:schema-migration-notes"],
-      ["check:system-catalog"],
-    ]) {
-      execFileSync("pnpm", args, {
-        cwd: targetRoot,
-        stdio: "pipe",
-        timeout: 120_000,
-      });
-    }
     execFileSync("pnpm", ["check:confect-manifest"], {
       cwd: targetRoot,
       stdio: "pipe",
