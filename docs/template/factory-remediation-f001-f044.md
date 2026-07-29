@@ -228,6 +228,28 @@ prove:
 - Clean-customer evidence: pending the post-commit release-shaped test and
   isolated public acceptance run.
 - Status: upstream implementation fixed; final fixed status waits for untouched
+  fresh-customer proof. Implementation commit: `c40e6f33`.
+
+### MCP generated-name round-trip cluster
+
+- ID/title: F-018 (Advertised fallback MCP tool names cannot be called).
+- Original posture: open/critical.
+- Confirmed reproduction: generated MCP listing used `template.<operationId>`
+  whenever an operation lacked an explicit rename, but call dispatch compared
+  only the explicit rename map. A listed fallback name therefore returned a
+  structured `ToolNotFound` error.
+- Regression: `tooling/workflow/src/index.test.ts` removes an explicit mapping,
+  lists the generated fallback tool, and requires that exact listed name to
+  dispatch successfully before restoring the test fixture.
+- Canonical fix: `tooling/workflow/src/index.ts` now owns one
+  `mcpToolNameFor(operationId)` projection consumed by both `tools/list` and
+  `tools/call`; no generated manifest or generated ref file was hand-edited.
+- Focused result: `npx --yes pnpm@10.12.1 --dir tooling/workflow test` passes
+  13/13 and `npx --yes pnpm@10.12.1 --dir tooling/workflow typecheck` exits
+  zero.
+- Clean-customer evidence: pending the canonical customer MCP stdio repair and
+  isolated public acceptance run.
+- Status: upstream implementation fixed; final fixed status waits for untouched
   fresh-customer proof and the coherent commit coordinate.
 
 ### Generator leaf-help cluster
