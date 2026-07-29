@@ -200,6 +200,96 @@ a {
   color: var(--template-muted);
 }
 
+.template-visual {
+  min-width: 0;
+  display: grid;
+  gap: 14px;
+  border: 1px solid var(--template-border);
+  border-radius: 8px;
+  background: var(--template-page);
+  padding: 14px;
+}
+
+.template-visual-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.template-visual-header h2 {
+  margin: 0;
+  color: var(--template-text);
+  font-size: 16px;
+  line-height: 1.3;
+}
+
+.template-badge {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  border: 1px solid var(--template-border);
+  border-radius: 999px;
+  background: var(--template-subtle);
+  color: var(--template-muted);
+  padding: 2px 8px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-transform: capitalize;
+}
+
+.template-diff-view {
+  display: grid;
+  gap: 10px;
+}
+
+.template-diff-row {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr);
+  align-items: start;
+  gap: 10px;
+}
+
+.template-diff-row p {
+  min-width: 0;
+  margin: 0;
+  border: 1px solid var(--template-border);
+  border-radius: 6px;
+  padding: 10px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.template-diff-row p:first-of-type {
+  border-color: color-mix(
+    in srgb,
+    var(--template-danger) 28%,
+    var(--template-border)
+  );
+  background: color-mix(
+    in srgb,
+    var(--template-danger) 8%,
+    var(--template-page)
+  );
+}
+
+.template-diff-row p:last-of-type {
+  border-color: color-mix(
+    in srgb,
+    var(--template-success) 28%,
+    var(--template-border)
+  );
+  background: color-mix(
+    in srgb,
+    var(--template-success) 8%,
+    var(--template-page)
+  );
+}
+
 .template-form-panel {
   display: grid;
   gap: 16px;
@@ -942,6 +1032,10 @@ a {
 
   .template-cookie-banner-actions button {
     flex: 1 1 0;
+  }
+
+  .template-diff-row {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .sui-page__header {

@@ -120,4 +120,19 @@ describe("Saas UI shell style contract", () => {
     expect(css).toContain("@media (prefers-reduced-motion: reduce)");
     expect(css).toContain(".workflow-canvas .react-flow__edge.animated path");
   });
+
+  it("owns the exported diff visualization style contract", () => {
+    const css = read("src/index.css");
+
+    expect(css).toContain(".template-visual {");
+    expect(css).toContain(".template-visual-header {");
+    expect(css).toContain(".template-badge {");
+    expect(css).toContain(".template-diff-view {");
+    expect(css).toContain(".template-diff-row {");
+    expect(css).toContain(".template-diff-row p:first-of-type {");
+    expect(css).toContain(".template-diff-row p:last-of-type {");
+    expect(css).toMatch(
+      /@media \(max-width: 720px\) \{[\s\S]*?\.template-diff-row \{[\s\S]*?grid-template-columns: minmax\(0, 1fr\);/,
+    );
+  });
 });
