@@ -3,7 +3,7 @@
   "id": "saas-application",
   "provenance": "@maestro-template/generators/saas-application@1",
   "projectionSource": {
-    "sourceCommit": "ff3276468ec99f189bab478be258a53d72476902",
+    "sourceCommit": "1416a972a0fe892be7adcaa0f2576adbe966870a",
     "assets": [
       {
         "path": "base/apps/cli/src/factory/customerComposition.ts.txt",
@@ -31,7 +31,7 @@
       },
       {
         "path": "base/package.json.txt",
-        "sha256": "sha256:53f07e849c08523c1cbbf10732c1fad4f062324723f20039af341c73b28a1d7c"
+        "sha256": "sha256:e6d65f046be228bc8c25d480d3b831e01dd5d59bf279badbcc65be7c3c7c34f6"
       },
       {
         "path": "base/packages/convex/confect/_generated/spec.ts.txt",
@@ -878,7 +878,7 @@
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:53f07e849c08523c1cbbf10732c1fad4f062324723f20039af341c73b28a1d7c",
+      "sha256": "sha256:e6d65f046be228bc8c25d480d3b831e01dd5d59bf279badbcc65be7c3c7c34f6",
       "replaces": "generate"
     },
     {

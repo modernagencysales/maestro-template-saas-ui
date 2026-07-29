@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "kind": "reviewed-upgrade-impact-coverage",
   "baseRevision": "de1bac52bbd33745d2a0fecf8e1cb6ec5732310d",
-  "subjectRevision": "ff3276468ec99f189bab478be258a53d72476902",
+  "subjectRevision": "1416a972a0fe892be7adcaa0f2576adbe966870a",
   "structuralPaths": [],
   "ownershipCoveredPaths": [
     ".prettierignore",
@@ -29,6 +29,7 @@
     "tooling/agent-pack/src/recipeTransaction.test.ts",
     "tooling/agent-pack/src/recipes.test.ts",
     "tooling/agent-pack/src/recipes.ts",
+    "tooling/confect-manifest/src/check.ts",
     "tooling/confect-manifest/tsconfig.json",
     "tooling/generators/src/customer-dispatcher.ts",
     "tooling/generators/src/customer-runtime.test.ts",
@@ -39,7 +40,7 @@
   "impact": {
     "schemaVersion": 1,
     "baseRevision": "de1bac52bbd33745d2a0fecf8e1cb6ec5732310d",
-    "subjectRevision": "ff3276468ec99f189bab478be258a53d72476902",
+    "subjectRevision": "1416a972a0fe892be7adcaa0f2576adbe966870a",
     "complete": true,
     "risk": "low",
     "changedPaths": [],

@@ -9,8 +9,8 @@
   "release": {
     "version": "0.2.0-alpha.2",
     "tag": "maestro-template-v0.2.0-alpha.2",
-    "sourceCommit": "ff3276468ec99f189bab478be258a53d72476902",
-    "sourceChecksum": "sha256:788d0456f82ca70fd453ba75962f84e3a26be30b0382602971e4e0870820f402"
+    "sourceCommit": "1416a972a0fe892be7adcaa0f2576adbe966870a",
+    "sourceChecksum": "sha256:457aa9a6eff45aa55901dd83ccb1e78d5c698b7524db1e246c08c888223cfe29"
   },
   "upgrade": {
     "schemaVersion": 1,
@@ -213,6 +213,13 @@
         "afterHash": "sha256:3bec132dd0f78d0db36289c5a4402f8d370b8f6d2d10895b72948740f24ba35f"
       },
       {
+        "id": "upgrade-add-tooling-confect-manifest-src-check-ts",
+        "kind": "add",
+        "path": "tooling/confect-manifest/src/check.ts",
+        "ownership": "template-owned",
+        "afterHash": "sha256:382cadd123e791a6c44435d1495115c770c421557df6f333f78eb03fa443b9fd"
+      },
+      {
         "id": "upgrade-modify-tooling-confect-manifest-tsconfig-json",
         "kind": "modify",
         "path": "tooling/confect-manifest/tsconfig.json",
@@ -323,7 +330,7 @@
   ],
   "blueprintManifest": {
     "path": "blueprints/saas-application.json",
-    "sha256": "sha256:bb099bf13d19c4b73aaa267da84887fa4eee28e49d2c159a56015f2f2a61e7ff"
+    "sha256": "sha256:f7cc214ed23fc95842c5ca68755237b7db5b730736650db6fd7c0c47a931621d"
   },
   "migrationHandoff": {
     "required": false,
@@ -335,10 +342,10 @@
   },
   "upgradeImpact": {
     "path": "releases/v0.2.0-alpha.2/upgrade/app-map-input.json",
-    "sha256": "sha256:82ee2f6ec76173b74d8921649cd590e7c089819ef3dd17fef72b1b06d60fdb92",
+    "sha256": "sha256:707deb15950c581258d5b2a925ca130b8dbb9f09320489731cf63d47de4a405a",
     "projection": {
       "path": "releases/v0.2.0-alpha.2/upgrade/app-map-impact.json",
-      "sha256": "sha256:71013e8ca6bb915314c8f2d68d68fb3529497611d980da23c94771a5add94f81"
+      "sha256": "sha256:182ddbf37c141af5dcabdb6ec8d44179ac9aec4e364b59ca6507f61bfbb8956c"
     }
   }
 }

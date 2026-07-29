@@ -79,7 +79,7 @@
     "check:sbom-license": "tsx tooling/quality/check-sbom-license.mts",
     "check:headless-surface-contract": "tsx tooling/quality/check-headless-surface-contract.mts",
     "check:posthog-readiness": "tsx tooling/quality/check-posthog-readiness.mts",
-    "check:confect-manifest": "pnpm --dir tooling/confect-manifest test && pnpm --dir tooling/confect-manifest typecheck && pnpm confect:manifest && git diff --exit-code packages/template-core/src/generated/confectManifest.ts",
+    "check:confect-manifest": "pnpm --dir tooling/confect-manifest test && pnpm --dir tooling/confect-manifest typecheck && tsx tooling/confect-manifest/src/check.ts",
     "check:effectified-api-proof": "pnpm --dir tooling/effectified-api-proof typecheck",
     "check:auth-demo-bypass": "tsx tooling/quality/check-auth-demo-bypass.mts",
     "check:pr-health": "tsx tooling/quality/check-pr-health.mts",
