@@ -80,6 +80,39 @@ describe("saas application blueprint", () => {
     expect(plan.entries.map(({ path }) => path)).not.toContain(
       "tooling/generators/src/index.ts",
     );
+    for (const path of [
+      "apps/cli/package.json",
+      "tooling/generators/package.json",
+    ]) {
+      const manifest = plan.entries.find((entry) => entry.path === path);
+      if (!manifest) throw new Error(`missing projected ${path}`);
+      const dependencies = (
+        JSON.parse(manifest.content) as {
+          readonly dependencies?: Readonly<Record<string, string>>;
+        }
+      ).dependencies;
+      expect(dependencies).not.toHaveProperty(
+        "@maestro-template/release-tooling",
+      );
+      expect(dependencies).not.toHaveProperty(
+        "@maestro-template/stack-tooling",
+      );
+    }
+    const lockfile = plan.entries.find(({ path }) => path === "pnpm-lock.yaml");
+    if (!lockfile) throw new Error("missing projected pnpm-lock.yaml");
+    const cliImporter = lockfile.content.slice(
+      lockfile.content.indexOf("  apps/cli:"),
+      lockfile.content.indexOf("  apps/voice-relay:"),
+    );
+    const generatorImporter = lockfile.content.slice(
+      lockfile.content.indexOf("  tooling/generators:"),
+      lockfile.content.indexOf("  tooling/pr-backlog:"),
+    );
+    expect(cliImporter).not.toContain("@maestro-template/release-tooling");
+    expect(cliImporter).not.toContain("@maestro-template/stack-tooling");
+    expect(generatorImporter).not.toContain(
+      "@maestro-template/release-tooling",
+    );
     expect(
       plan.entries.find(
         ({ path }) => path === "docs/template/agent-pack-privacy.md",

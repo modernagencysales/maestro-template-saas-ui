@@ -282,12 +282,35 @@ const customerGeneratorPackage = (): string => {
     string,
     unknown
   >;
+  const dependencies = value.dependencies as Record<string, string>;
+  delete dependencies["@maestro-template/release-tooling"];
   value.main = "src/customer.ts";
   value.types = "src/customer.ts";
   value.exports = { ".": "./src/customer.ts" };
   const scripts = value.scripts as Record<string, string>;
   scripts.cli = "tsx src/customer-cli.ts";
   return `${JSON.stringify(value, null, 2)}\n`;
+};
+
+const customerCliPackage = (): string => {
+  const value = JSON.parse(source("apps/cli/package.json")) as {
+    dependencies: Record<string, string>;
+  };
+  delete value.dependencies["@maestro-template/release-tooling"];
+  delete value.dependencies["@maestro-template/stack-tooling"];
+  return `${JSON.stringify(value, null, 2)}\n`;
+};
+
+const customerLockfile = (): string => {
+  let value = source("pnpm-lock.yaml");
+  for (const dependency of [
+    '      "@maestro-template/release-tooling":\n        specifier: workspace:*\n        version: link:../../tooling/release\n',
+    '      "@maestro-template/stack-tooling":\n        specifier: workspace:*\n        version: link:../../tooling/stack\n',
+    '      "@maestro-template/release-tooling":\n        specifier: workspace:*\n        version: link:../release\n',
+  ]) {
+    value = replace(value, dependency, "");
+  }
+  return value;
 };
 
 const customerAgentPackCheck = (): string => {
@@ -525,6 +548,10 @@ export const buildSaasRegistrationProjections = (
       content: customerCliEntry(),
     },
     {
+      path: "apps/cli/package.json",
+      content: customerCliPackage(),
+    },
+    {
       path: "apps/cli/src/factory/start.ts",
       content: source("apps/cli/src/factory/start.ts"),
     },
@@ -537,6 +564,7 @@ export const buildSaasRegistrationProjections = (
         ]
       : []),
     { path: "package.json", content: customerPackage(current) },
+    { path: "pnpm-lock.yaml", content: customerLockfile() },
     {
       path: "tooling/generators/package.json",
       content: customerGeneratorPackage(),

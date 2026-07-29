@@ -4,6 +4,7 @@ import {
   existsSync,
   mkdirSync,
   mkdtempSync,
+  readdirSync,
   readFileSync,
   writeFileSync,
 } from "node:fs";
@@ -57,6 +58,40 @@ const runTaggedCli = (argv: readonly string[]) => {
     stdout: result.stdout,
     stderr: result.stderr,
   };
+};
+
+const unresolvedWorkspaceDependencies = (root: string): readonly string[] => {
+  const manifests = ["apps", "packages", "tooling"].flatMap((directory) =>
+    readdirSync(join(root, directory), { withFileTypes: true })
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => join(root, directory, entry.name, "package.json"))
+      .filter(existsSync),
+  );
+  const packages = manifests.map((path) => ({
+    path,
+    value: JSON.parse(readFileSync(path, "utf8")) as {
+      readonly name?: string;
+      readonly dependencies?: Readonly<Record<string, string>>;
+      readonly devDependencies?: Readonly<Record<string, string>>;
+      readonly optionalDependencies?: Readonly<Record<string, string>>;
+      readonly peerDependencies?: Readonly<Record<string, string>>;
+    },
+  }));
+  const workspaceNames = new Set(
+    packages.flatMap(({ value }) => (value.name ? [value.name] : [])),
+  );
+
+  return packages.flatMap(({ path, value }) =>
+    [
+      ...Object.entries(value.dependencies ?? {}),
+      ...Object.entries(value.devDependencies ?? {}),
+      ...Object.entries(value.optionalDependencies ?? {}),
+      ...Object.entries(value.peerDependencies ?? {}),
+    ]
+      .filter(([, version]) => version.startsWith("workspace:"))
+      .filter(([name]) => !workspaceNames.has(name))
+      .map(([name]) => `${path.slice(root.length + 1)} -> ${name}`),
+  );
 };
 afterEach(async () => {
   await Promise.all(
@@ -223,6 +258,12 @@ describe("materialized customer CLI runtime closure", () => {
       cwd: target,
       timeout: 120_000,
     });
+    expect(unresolvedWorkspaceDependencies(target)).toEqual([]);
+    await execFileAsync(
+      "pnpm",
+      ["install", "--offline", "--lockfile-only", "--ignore-scripts"],
+      { cwd: target, timeout: 120_000 },
+    );
     expect(existsSync(join(target, ".git"))).toBe(false);
     execFileSync("git", ["init", "--quiet"], { cwd: target });
     execFileSync("pnpm", ["run", "prepare"], {
