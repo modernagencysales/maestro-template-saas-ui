@@ -276,9 +276,11 @@ function buildTargetPlan(
     ["package.json", "generate"],
     ["packages/convex/confect/_generated/tables/workflowArtifacts.ts", "copy"],
     ["packages/convex/confect/tables/workflowArtifacts.ts", "copy"],
-    ...CURRENT_SAAS_DEPLOY_AUTHORITY_TABLE_CLOSURE.map(
-      (path) => [path, "copy"] as const,
-    ),
+    [
+      "packages/convex/confect/_generated/tables/deployAuthorityIssuers.ts",
+      "copy",
+    ],
+    ["packages/convex/confect/tables/deployAuthorityIssuers.ts", "copy"],
     ["packages/convex/confect/workflows/_kit/lifecycleSweep.ts", "copy"],
     ["packages/convex/confect/workflows/_kit/payloadBudget.ts", "copy"],
     ["packages/convex/confect/workflows/_kit/workflowArtifacts.ts", "copy"],

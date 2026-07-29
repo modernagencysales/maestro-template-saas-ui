@@ -454,7 +454,7 @@ describe("saas application blueprint", () => {
     expect(entries[0]).toMatchObject({ path: runnerPath, replaces: "copy" });
   });
 
-  it("replaces release copies for the current deployment-authority closure", () => {
+  it("replaces only deployment-authority files present in the base release", () => {
     const entries = new Map(
       buildSaasApplicationTargetPlan().entries.map((entry) => [
         entry.path,
@@ -462,13 +462,22 @@ describe("saas application blueprint", () => {
       ]),
     );
 
-    for (const path of CURRENT_SAAS_DEPLOY_AUTHORITY_TABLE_CLOSURE) {
+    for (const path of [
+      "packages/convex/confect/_generated/tables/deployAuthorityIssuers.ts",
+      "packages/convex/confect/tables/deployAuthorityIssuers.ts",
+    ]) {
       expect(entries.get(path), path).toMatchObject({
         ownership: "generated",
         action: "generate",
         upgrade: "regenerate",
         replaces: "copy",
       });
+    }
+    for (const path of [
+      "packages/convex/confect/_generated/tables/deployAuthorityAuditEvents.ts",
+      "packages/convex/confect/tables/deployAuthorityAuditEvents.ts",
+    ]) {
+      expect(entries.get(path), path).not.toHaveProperty("replaces");
     }
   });
 
