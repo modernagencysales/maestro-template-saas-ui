@@ -160,6 +160,7 @@ function createCustomerAdapter(
             state.request.blueprintTargetPlan(),
           );
           authority.assertBlueprint(blueprint);
+          void authority.facts(blueprint, resolved);
           if (blueprint.digest !== state.blueprintDigest) {
             throw new CustomerReleaseAdapterError(
               "stale-preflight",
@@ -201,9 +202,16 @@ function currentFacts(
   resolved: ResolvedRelease,
 ): CustomerReleaseAdapterFacts {
   const candidateCommit = resolveCleanCandidateCommit(options.repositoryRoot);
+  if (candidateCommit !== resolved.tagCommit) {
+    throw new CustomerReleaseAdapterError(
+      "release-unavailable",
+      "Current candidate HEAD must exactly match the reviewed immutable release tag.",
+    );
+  }
+  const compositionKind = "tagged-current-composition";
   const authorityChecksum = sha256(
     JSON.stringify({
-      kind: "unreleased-current-composition",
+      kind: compositionKind,
       candidate: { sourceCommit: candidateCommit },
       base: {
         manifestChecksum: options.ownershipManifestChecksum,
@@ -225,13 +233,13 @@ function currentFacts(
     .filter((path, index, paths) => paths.indexOf(path) === index)
     .sort();
   return {
-    version: "unreleased-current",
-    tag: "unreleased-current",
+    version: resolved.facts.version,
+    tag: resolved.facts.tag,
     sourceCommit: candidateCommit,
     sourceChecksum: authorityChecksum,
-    cliCompatibility: "unreleased-current",
-    agentPackCompatibility: "unreleased-current",
-    ownershipManifest: "unreleased-current-composition",
+    cliCompatibility: resolved.facts.cliCompatibility,
+    agentPackCompatibility: resolved.facts.agentPackCompatibility,
+    ownershipManifest: compositionKind,
     ownershipManifestChecksum: authorityChecksum,
     extensionSeams,
   };

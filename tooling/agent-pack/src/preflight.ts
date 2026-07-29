@@ -287,7 +287,7 @@ function preflightDiagnostics(
     "pnpm install --frozen-lockfile",
   );
   add(
-    facts.network === "offline",
+    facts.app.providerMode !== "fake" && facts.network === "offline",
     "AGENT_PACK_OFFLINE",
     "The host is offline; committed checks remain available.",
     true,
@@ -295,7 +295,7 @@ function preflightDiagnostics(
     "pnpm maestro -- preflight --mode fake",
   );
   add(
-    facts.network === "unknown",
+    facts.app.providerMode !== "fake" && facts.network === "unknown",
     "AGENT_PACK_NETWORK_UNKNOWN",
     observationMessage(
       facts,

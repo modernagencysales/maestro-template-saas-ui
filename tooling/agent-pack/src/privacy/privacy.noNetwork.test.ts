@@ -29,7 +29,14 @@ const taggedRepository = (): string => {
   );
   execFileSync(
     "git",
-    ["-C", taggedReleaseRoot, "tag", "maestro-template-v0.2.0-alpha.1", "HEAD"],
+    [
+      "-C",
+      taggedReleaseRoot,
+      "tag",
+      "--force",
+      "maestro-template-v0.2.0-alpha.1",
+      "HEAD",
+    ],
     { stdio: "pipe" },
   );
   execFileSync(
@@ -64,7 +71,7 @@ afterAll(() => {
   rmSync(fixtureRoot, { recursive: true, force: true });
   if (taggedReleaseParent)
     rmSync(taggedReleaseParent, { recursive: true, force: true });
-});
+}, 120_000);
 
 describe("privacy no-network conformance", () => {
   it("blocks a real outbound attempt in a spawned Node process", () => {

@@ -1,4 +1,4 @@
-import { execFileSync, spawnSync } from "node:child_process";
+import { execFile, execFileSync, spawnSync } from "node:child_process";
 import {
   chmodSync,
   existsSync,
@@ -10,9 +10,11 @@ import {
 import { rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import { promisify } from "node:util";
 import { afterAll, afterEach, describe, expect, it } from "vitest";
 
 const temporaryRoots: string[] = [];
+const execFileAsync = promisify(execFile);
 const repositoryRoot = resolve(import.meta.dirname, "../../../..");
 let taggedReleaseParent: string | undefined;
 let taggedReleaseRoot: string | undefined;
@@ -27,7 +29,14 @@ const taggedRepository = (): string => {
   );
   execFileSync(
     "git",
-    ["-C", taggedReleaseRoot, "tag", "maestro-template-v0.2.0-alpha.1", "HEAD"],
+    [
+      "-C",
+      taggedReleaseRoot,
+      "tag",
+      "--force",
+      "maestro-template-v0.2.0-alpha.1",
+      "HEAD",
+    ],
     { stdio: "pipe" },
   );
   execFileSync(
@@ -55,11 +64,11 @@ afterEach(async () => {
       .splice(0)
       .map((root) => rm(root, { recursive: true, force: true })),
   );
-});
+}, 120_000);
 afterAll(async () => {
   if (taggedReleaseParent)
     await rm(taggedReleaseParent, { recursive: true, force: true });
-});
+}, 120_000);
 
 describe("materialized customer CLI runtime closure", () => {
   it("runs privacy-aligned support preview and export from the current projection", async () => {
@@ -98,13 +107,13 @@ describe("materialized customer CLI runtime closure", () => {
     };
     expect(instance).toMatchObject({
       release: {
-        version: "unreleased-current",
-        tag: "unreleased-current",
+        version: "0.2.0-alpha.1",
+        tag: "maestro-template-v0.2.0-alpha.1",
         sourceCommit: expect.stringMatching(/^[0-9a-f]{40}$/),
         sourceChecksum: expect.stringMatching(/^sha256:[0-9a-f]{64}$/),
       },
       ownership: {
-        manifest: "unreleased-current-composition",
+        manifest: "tagged-current-composition",
         manifestChecksum: expect.stringMatching(/^sha256:[0-9a-f]{64}$/),
       },
       privacy: {
@@ -131,10 +140,10 @@ describe("materialized customer CLI runtime closure", () => {
     ])
       expect(existsSync(join(target, path))).toBe(false);
 
-    execFileSync(
+    await execFileAsync(
       "pnpm",
       ["install", "--offline", "--frozen-lockfile", "--ignore-scripts"],
-      { cwd: target, stdio: "pipe", timeout: 120_000 },
+      { cwd: target, timeout: 120_000 },
     );
     const preview = spawnSync(
       "pnpm",
@@ -179,7 +188,7 @@ describe("materialized customer CLI runtime closure", () => {
     });
   }, 180_000);
 
-  it("installs and imports while unreleased-current preflight fails closed", async () => {
+  it("installs and imports while immutable-tag preflight fails closed", async () => {
     const parent = mkdtempSync(join(tmpdir(), "maestro-customer-cli-"));
     temporaryRoots.push(parent);
     const target = join(parent, "customer");
@@ -210,9 +219,8 @@ describe("materialized customer CLI runtime closure", () => {
       /@maestro-template\/(stack-tooling|release-tooling)/,
     );
 
-    execFileSync("pnpm", ["install", "--offline", "--frozen-lockfile"], {
+    await execFileAsync("pnpm", ["install", "--offline", "--frozen-lockfile"], {
       cwd: target,
-      stdio: "pipe",
       timeout: 120_000,
     });
     expect(existsSync(join(target, ".git"))).toBe(false);
