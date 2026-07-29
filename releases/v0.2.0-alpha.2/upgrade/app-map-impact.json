@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "kind": "reviewed-upgrade-impact-coverage",
   "baseRevision": "de1bac52bbd33745d2a0fecf8e1cb6ec5732310d",
-  "subjectRevision": "63ca3f69b7c14d2edd434dfb597f6b44672f5e71",
+  "subjectRevision": "c7357c3897f965f8bd8e72c6039f6b8610618d37",
   "structuralPaths": [],
   "ownershipCoveredPaths": [
     ".prettierignore",
@@ -39,7 +39,7 @@
   "impact": {
     "schemaVersion": 1,
     "baseRevision": "de1bac52bbd33745d2a0fecf8e1cb6ec5732310d",
-    "subjectRevision": "63ca3f69b7c14d2edd434dfb597f6b44672f5e71",
+    "subjectRevision": "c7357c3897f965f8bd8e72c6039f6b8610618d37",
     "complete": true,
     "risk": "low",
     "changedPaths": [],
