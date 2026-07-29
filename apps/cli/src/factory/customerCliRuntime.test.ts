@@ -348,9 +348,7 @@ describe("materialized customer CLI runtime closure", () => {
     expect(
       existsSync(join(target, "examples/generic-ai-ops/template-package.json")),
     ).toBe(true);
-    expect(existsSync(join(target, "examples/generic-ai-ops/seed"))).toBe(
-      false,
-    );
+    expect(existsSync(join(target, "examples/generic-ai-ops/seed"))).toBe(true);
     expect(
       existsSync(join(target, "tooling/generators/src/private-package.ts")),
     ).toBe(true);
@@ -422,6 +420,7 @@ describe("materialized customer CLI runtime closure", () => {
       ),
     });
     expect(preview.confirmationCommand).toContain(preview.previewFingerprint);
+    expect(JSON.stringify(preview)).not.toContain("workspace_demo");
     for (const file of preview.files)
       expect(existsSync(join(target, file.path))).toBe(false);
     expect(
