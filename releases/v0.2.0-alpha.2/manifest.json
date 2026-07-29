@@ -9,8 +9,8 @@
   "release": {
     "version": "0.2.0-alpha.2",
     "tag": "maestro-template-v0.2.0-alpha.2",
-    "sourceCommit": "7708c01f1a4319632604270cb003fb01960683a9",
-    "sourceChecksum": "sha256:df13ef371a6ce219fe45a5e8b03e7499453620da42e4da35df3bde44ec6290e8"
+    "sourceCommit": "53c484d0a1b2db9f14fb0c01c237db2dd97d17c3",
+    "sourceChecksum": "sha256:2e27b01f53580e6ab15943540653fd7a2913dc0daca67695e14245a217ec4fe5"
   },
   "upgrade": {
     "schemaVersion": 1,
@@ -35,7 +35,7 @@
         "path": "AGENTS.md",
         "ownership": "template-owned",
         "beforeHash": "sha256:8f191b1ea45fdc13d56b8990eace9fa00978fe7a008d483b4933123b29b1485e",
-        "afterHash": "sha256:244d964bd78a948a20ee77e5e6c8e635649d23c6147d6b9912a3b77909adf034"
+        "afterHash": "sha256:4442207517b92f2c7ded7c38227bf1a98e874bb71754b56bcd4e0dcf60467374"
       },
       {
         "id": "upgrade-modify-apps-cli-src-commands-ts",
@@ -98,7 +98,7 @@
         "path": "docs/template/quickstart.md",
         "ownership": "template-owned",
         "beforeHash": "sha256:aa85dd42a4252296c150995f2de6205d78fb3dca6ee539fb04d597a5697ee56f",
-        "afterHash": "sha256:7747e5bce3fc09de43d4fadfe406ac86678f7026c207cc0c77607f63b4d98910"
+        "afterHash": "sha256:c1f7648f94ba90d09affc0a63572ce9602e37b34837b099947da9cb2f4d7d636"
       },
       {
         "id": "upgrade-modify-packages-convex-tsconfig-json",
@@ -173,6 +173,22 @@
         "afterHash": "sha256:7becd56970b92da9bf73e521e06cbd5ab4b774ed1fb0a30549ef5a8fc6c5c9e3"
       },
       {
+        "id": "upgrade-modify-tooling-agent-pack-src-ports-test-ts",
+        "kind": "modify",
+        "path": "tooling/agent-pack/src/ports.test.ts",
+        "ownership": "template-owned",
+        "beforeHash": "sha256:e341bb992df2a318c5edbd99aea4e8eff579f4195e219fbf069c190282c949bf",
+        "afterHash": "sha256:a8ed70b4677c1f7183eac1561d9006e20f5a8c5e8c081d22a72f1a6442cbe659"
+      },
+      {
+        "id": "upgrade-modify-tooling-agent-pack-src-ports-ts",
+        "kind": "modify",
+        "path": "tooling/agent-pack/src/ports.ts",
+        "ownership": "template-owned",
+        "beforeHash": "sha256:2e7249b1e6cdb037b7aea96380416d049f330346561ec1777f5d64c3a6aded1b",
+        "afterHash": "sha256:5e47e6f116969dbd8c1efa8b7560b57ce56347e01a52ed7b03bf03354f43dbc8"
+      },
+      {
         "id": "upgrade-modify-tooling-agent-pack-src-preflight-test-ts",
         "kind": "modify",
         "path": "tooling/agent-pack/src/preflight.test.ts",
@@ -211,6 +227,22 @@
         "ownership": "template-owned",
         "beforeHash": "sha256:33813098d2e9cc99da4d7e8d90198fb32d357dbe68871867fbd5f7470a6eb57e",
         "afterHash": "sha256:3bec132dd0f78d0db36289c5a4402f8d370b8f6d2d10895b72948740f24ba35f"
+      },
+      {
+        "id": "upgrade-modify-tooling-agent-pack-src-start-test-ts",
+        "kind": "modify",
+        "path": "tooling/agent-pack/src/start.test.ts",
+        "ownership": "template-owned",
+        "beforeHash": "sha256:e2f57b4495145a52ab9d2ada5880ab97918d9545936fd052a2f178be158509b5",
+        "afterHash": "sha256:9b96fa860d2230b59bef63dd25adc3a9381a096c4d131b85b53686eadfe20092"
+      },
+      {
+        "id": "upgrade-modify-tooling-agent-pack-src-start-ts",
+        "kind": "modify",
+        "path": "tooling/agent-pack/src/start.ts",
+        "ownership": "template-owned",
+        "beforeHash": "sha256:e89d8165a432bf74802173593d83f9a582e72d5f08e1d040ef049014a79ac0ec",
+        "afterHash": "sha256:adcfa0fac6a052b195bd1d7bc488d74a041c8e5c1a4cbe7e049ad7c110c51f0f"
       },
       {
         "id": "upgrade-add-tooling-confect-manifest-src-check-ts",
@@ -258,6 +290,14 @@
         "ownership": "template-owned",
         "beforeHash": "sha256:8750e861695a7a17685a1d0695c1f7cad583c2ce2812d1be849e3a7a19118836",
         "afterHash": "sha256:ba50a51a6f06b109f286e55e0bfbed0887465aa6e792763c6317c3ff17e31c37"
+      },
+      {
+        "id": "upgrade-modify-tooling-quality-check-docs-freshness-test-mts",
+        "kind": "modify",
+        "path": "tooling/quality/check-docs-freshness.test.mts",
+        "ownership": "template-owned",
+        "beforeHash": "sha256:8a79e745747c99750897b3094deac34da645e947a4b6ce2339451b80f1057f30",
+        "afterHash": "sha256:59736dfa4a30da1c1a0adaddcba380d4cd95853376796e246c12c862fd8e0126"
       },
       {
         "id": "upgrade-modify-tooling-quality-check-posthog-readiness-mts",
@@ -346,7 +386,7 @@
   ],
   "blueprintManifest": {
     "path": "blueprints/saas-application.json",
-    "sha256": "sha256:f5288c630bdf4a866d3e485cc3f4dca3584003baa3f62d919ede5b347c7a59b7"
+    "sha256": "sha256:6fd39ae9db5d8020aa5cdbbe1b6ffb803dc7c5356a9b9037c1193def16c74e19"
   },
   "migrationHandoff": {
     "required": false,
@@ -358,10 +398,10 @@
   },
   "upgradeImpact": {
     "path": "releases/v0.2.0-alpha.2/upgrade/app-map-input.json",
-    "sha256": "sha256:57abdf2d02707c8ae04496d9a6013d5baac9d5216edc2bd0648d67b03128f03d",
+    "sha256": "sha256:f9b7af56ca81d0721690f8e7401404f7319a1f044403d64903f7ca675d60d3c7",
     "projection": {
       "path": "releases/v0.2.0-alpha.2/upgrade/app-map-impact.json",
-      "sha256": "sha256:66445514dd81e96e436ff4bcc5797848d026a16ab7bec3494c44adcb73da0dcb"
+      "sha256": "sha256:52bca475a6ee60b19adced13555304e9dbada9b6f4a0e80a5df021d40b1ae65e"
     }
   }
 }
