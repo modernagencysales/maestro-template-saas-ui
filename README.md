@@ -116,7 +116,13 @@ a fork explicitly configures and verifies a live adapter.
 
 - [AGENTS.md](./AGENTS.md) is the operational contract for coding agents.
 - [Template Quickstart](./docs/template/quickstart.md) is the tester path.
+- [Repository Map](./docs/template/repo-map.md) shows where each kind of change
+  belongs.
 - [App Factory Guide](./docs/template/app-factory-guide.md) explains the method.
+- [Reviewer Guide](./docs/template/reviewer-guide.md) defines the human review
+  checkpoints.
+- [Delivery Receipts](./docs/template/delivery-receipts.md) explains the
+  evidence generated for applied changes.
 - [Customer Target Contract](./docs/template/customer-target-contract.md)
   explains release and write safety.
 - [System Catalog](./docs/template/system-catalog.md) and
