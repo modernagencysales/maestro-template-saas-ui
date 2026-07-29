@@ -381,6 +381,51 @@ describe("create root integration", () => {
         "dir",
       );
     }
+    execFileSync("pnpm", ["confect:codegen"], {
+      cwd: targetRoot,
+      stdio: "pipe",
+      timeout: 30_000,
+    });
+    execFileSync("pnpm", ["confect:manifest"], {
+      cwd: targetRoot,
+      stdio: "pipe",
+      timeout: 30_000,
+    });
+    const dirtyManifest = readFileSync(
+      join(
+        targetRoot,
+        "packages/template-core/src/generated/confectManifest.ts",
+      ),
+    );
+    expect(dirtyManifest.toString()).toContain('"records"');
+    for (const args of [
+      ["format"],
+      ["--dir", "apps/web", "build"],
+      ["--dir", "apps/web", "typecheck"],
+      ["check:confect-contracts"],
+      ["check:data-resources"],
+      ["check:schema-migration-notes"],
+      ["check:system-catalog"],
+    ]) {
+      execFileSync("pnpm", args, {
+        cwd: targetRoot,
+        stdio: "pipe",
+        timeout: 120_000,
+      });
+    }
+    execFileSync("pnpm", ["check:confect-manifest"], {
+      cwd: targetRoot,
+      stdio: "pipe",
+      timeout: 30_000,
+    });
+    expect(
+      readFileSync(
+        join(
+          targetRoot,
+          "packages/template-core/src/generated/confectManifest.ts",
+        ),
+      ),
+    ).toEqual(dirtyManifest);
     const convexCompile = spawnSync(
       "pnpm",
       [
