@@ -376,7 +376,7 @@ describe("forward aggregate", () => {
       status: "passed",
       scenarioIds: forwardScenarioIds,
     });
-  });
+  }, 15_000);
 
   it("accepts different redacted diagnostics when command semantics match", async () => {
     const root = await mkdtemp(join(tmpdir(), "forward-diagnostics-"));

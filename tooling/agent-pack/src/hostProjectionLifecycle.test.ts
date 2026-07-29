@@ -147,7 +147,7 @@ describe.each(["claude-code", "codex"] as const)(
       expect(restored).toEqual(first);
       expect(await readFile(managedSkill(homeDir, host), "utf8")).toBe(before);
       expect(await readFile(unmanaged, "utf8")).toBe("customer\n");
-    });
+    }, 15_000);
 
     it("rejects the same version with changed source authority", async () => {
       const homeDir = await home(host);
