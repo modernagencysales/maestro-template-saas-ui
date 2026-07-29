@@ -71,6 +71,9 @@ export const CURRENT_SAAS_DEPLOY_AUTHORITY_TABLE_CLOSURE = [
   "packages/convex/confect/tables/deployAuthorityAuditEvents.ts",
   "packages/convex/confect/tables/deployAuthorityIssuers.ts",
 ] as const;
+export const CURRENT_SAAS_DEPLOY_AUTHORITY_SOURCE_CLOSURE = [
+  "packages/convex/confect/deployAuthority/admin.ts",
+] as const;
 
 export const CUSTOMER_ROOT_SCRIPTS = [
   "maestro",
@@ -697,6 +700,7 @@ export const buildSaasRegistrationProjections = (
         ? ["packages/convex/confect/ops/dataResources.generated.ts"]
         : []),
       ...(current ? CURRENT_SAAS_DEPLOY_AUTHORITY_TABLE_CLOSURE : []),
+      ...(current ? CURRENT_SAAS_DEPLOY_AUTHORITY_SOURCE_CLOSURE : []),
       "packages/convex/confect/tables/workflowArtifacts.ts",
       "packages/convex/confect/tables/workflowRuns.ts",
       "packages/convex/confect/tables/workflowStageRuns.ts",
