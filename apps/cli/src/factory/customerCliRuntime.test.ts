@@ -281,24 +281,68 @@ describe("materialized customer CLI runtime closure", () => {
   it("imports a reviewed private package from a committed customer", async () => {
     const parent = mkdtempSync(join(tmpdir(), "maestro-customer-private-"));
     temporaryRoots.push(parent);
+    const releaseRoot = join(parent, "release");
+    execFileSync(
+      "git",
+      ["clone", "--quiet", "--shared", repositoryRoot, releaseRoot],
+      { stdio: "pipe" },
+    );
+    execFileSync(
+      "git",
+      [
+        "-C",
+        releaseRoot,
+        "tag",
+        "--force",
+        "maestro-template-v0.2.0-alpha.1",
+        "HEAD",
+      ],
+      { stdio: "pipe" },
+    );
+    const pnpm = ["--yes", "pnpm@10.12.1"] as const;
+    execFileSync(
+      "npx",
+      [
+        ...pnpm,
+        "install",
+        "--offline",
+        "--frozen-lockfile",
+        "--ignore-scripts",
+      ],
+      { cwd: releaseRoot, stdio: "pipe", timeout: 120_000 },
+    );
     const target = join(parent, "customer");
-    const created = runTaggedCli([
-      "create",
-      target,
-      "--name",
-      "Private Package Closure",
-      "--outcome",
-      "Review a generic private package",
-      "--demo-only",
-      "--write",
-      "--privacy-reviewed",
-      "--json",
-    ]);
-    expect(created.exitCode, `${created.stdout}\n${created.stderr}`).toBe(0);
+    const created = spawnSync(
+      "npx",
+      [
+        ...pnpm,
+        "--silent",
+        "maestro",
+        "--",
+        "create",
+        target,
+        "--name",
+        "Private Package Closure",
+        "--outcome",
+        "Review a generic private package",
+        "--demo-only",
+        "--write",
+        "--privacy-reviewed",
+        "--json",
+      ],
+      { cwd: releaseRoot, encoding: "utf8", timeout: 60_000 },
+    );
+    expect(created.status, `${created.stdout}\n${created.stderr}`).toBe(0);
 
     await execFileAsync(
-      "pnpm",
-      ["install", "--offline", "--frozen-lockfile", "--ignore-scripts"],
+      "npx",
+      [
+        ...pnpm,
+        "install",
+        "--offline",
+        "--frozen-lockfile",
+        "--ignore-scripts",
+      ],
       { cwd: target, timeout: 120_000 },
     );
     expect(
@@ -324,7 +368,7 @@ describe("materialized customer CLI runtime closure", () => {
     );
 
     const command = (name: string, rest: readonly string[]) =>
-      spawnSync("pnpm", ["--silent", "run", name, "--", ...rest], {
+      spawnSync("npx", [...pnpm, "--silent", "run", name, "--", ...rest], {
         cwd: target,
         encoding: "utf8",
         timeout: 60_000,
@@ -440,7 +484,7 @@ describe("materialized customer CLI runtime closure", () => {
       "check:promotion-boundary",
       "check:secret-canaries",
     ]) {
-      const result = spawnSync("pnpm", ["run", gate], {
+      const result = spawnSync("npx", [...pnpm, "run", gate], {
         cwd: target,
         encoding: "utf8",
         timeout: 120_000,
