@@ -1,6 +1,6 @@
 import { diagnosticRegistryDescriptors } from "@maestro-template/quality-tooling";
 import { WORKFLOW_SEMANTICS } from "@maestro-template/template-core/workflow-semantics";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, onTestFinished } from "vitest";
 import {
   createRepositoryContext,
   evaluateReceiptStaleness,
@@ -13,6 +13,8 @@ import {
   mkdtemp,
   readFile,
   readdir,
+  rm,
+  symlink,
   writeFile,
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -374,14 +376,17 @@ describe("factory CLI composition", () => {
     }
   }, 60_000);
 
-  it("keeps the canonical gate unavailable in real CLI and MCP processes when gitleaks is absent", () => {
+  it("keeps the canonical gate unavailable in real CLI and MCP processes when gitleaks is absent", async () => {
     const pnpmExecutable = execFileSync("which", ["pnpm"], {
       encoding: "utf8",
     }).trim();
+    const isolatedBin = await mkdtemp(join(tmpdir(), "maestro-no-gitleaks-"));
+    await symlink(pnpmExecutable, join(isolatedBin, "pnpm"));
+    onTestFinished(() => rm(isolatedBin, { recursive: true, force: true }));
     const environment = {
       ...process.env,
       PATH: [
-        dirname(pnpmExecutable),
+        isolatedBin,
         dirname(process.execPath),
         "/usr/local/bin",
         "/usr/bin",
