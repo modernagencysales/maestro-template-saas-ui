@@ -948,7 +948,7 @@
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:f96de57a9e35bc879f6ce468314c4a8e1b8b6eaeaa5b7050208bf72fa92d9ab3"
+      "sha256": "sha256:a740d81fe2e2d63f1fe20fc9e0acb6ca86e41bca33f6319c452142a3fd3d420c"
     },
     {
       "path": "package.json",
@@ -1405,14 +1405,14 @@
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:d44b8197bc745351a57c8810741f9f99a51f5d0f6d98ad0dc31066dd20ed04d4"
+      "sha256": "sha256:71a6f438004b68fd865111565d56c595512e93f51069afbdde209d63d70b1700"
     },
     {
       "path": "scripts/maestro-bootstrap.test.mjs",
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:ceb7999ea1d8ba616b13b9e497c36d8f730707ffe27ef9cb52f2ee391b36c81d"
+      "sha256": "sha256:438ebdec47475250fb012954f8db080ec871d5e3cd0bf78ef40969dfce101eb2"
     },
     {
       "path": "skills-lock.json",
