@@ -706,5 +706,44 @@ prove:
 - Status: upstream implementation fixed; final fixed status waits for untouched
   fresh-customer proof.
 
+### FR-F-001 — Retained template-core test reads an omitted factory fixture
+
+- ID/title: FR-F-001 (retained template-core test reads an omitted factory
+  fixture).
+- Original posture: newly reproduced/critical because the defect stops the
+  generated customer's canonical `just verify` gate.
+- Confirmed reproduction: untouched customer
+  `/private/tmp/maestro-fresh-customer-v4-5n9VDP/customer`, materialized from
+  exact template source `8bf61bd7d62e5fba05c895d9fc559b9e79aef2ba`, passed
+  frozen offline install, doctor, formatting, lint, all 21 executable package
+  typechecks, and strict Effect diagnostics. `pnpm test` then failed
+  `packages/template-core/src/templateInstance/templateInstance.test.ts` because
+  `tooling/release/__fixtures__/upgrade/provider-posture-v1-to-v2.contract.json`
+  was absent. The focused customer result was 1 failed and 112 passed tests in
+  that package.
+- Root cause: the retained `template-core` provider-posture test crossed into
+  the factory-only release-tooling fixture tree. Customer materialization
+  intentionally omits `tooling/release`, so the test's runtime dependency was
+  outside its package and outside the reviewed customer source closure.
+- Regression: the SaaS target-plan suite requires a package-owned posture
+  fixture plus the updated retained test, pins the test as an exact replacement
+  of the base release copy, rejects the factory-relative lookup, and keeps the
+  sealed alpha.1 integrity proof unchanged. The regression failed on the missing
+  current entries before implementation.
+- Canonical fix and files: the reviewed fixture now also lives at
+  `packages/template-core/src/templateInstance/__fixtures__/provider-posture-v1-to-v2.contract.json`;
+  `templateInstance.test.ts` resolves it within its owning package; and
+  `saasApplicationFactory.ts` plus `saasApplication.ts` project the current-main
+  test closure with exact copy-replacement authority only for the pre-existing
+  test. The frozen alpha.1 plan and release fixture remain byte-preserved.
+- Focused result: the red-to-green SaaS and provider-posture suites pass 58/58;
+  generator typecheck, scoped ESLint, formatting, and `git diff --check` exit
+  zero.
+- Clean-customer evidence: the v4 failure is direct untouched-customer
+  reproduction. A post-fix release-shaped integration and entirely new public
+  customer are required before final fixed status.
+- Status: upstream implementation fixed; final fixed status waits for untouched
+  fresh-customer proof and the coherent commit coordinate.
+
 No full acceptance command is yet claimed passing. Exact command outputs and
 commit coordinates will be added only after observation.

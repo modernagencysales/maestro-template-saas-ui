@@ -52,7 +52,7 @@ describe("templateInstance provider posture", () => {
     const fixture = JSON.parse(
       readFileSync(
         new URL(
-          "../../../../tooling/release/__fixtures__/upgrade/provider-posture-v1-to-v2.contract.json",
+          "./__fixtures__/provider-posture-v1-to-v2.contract.json",
           import.meta.url,
         ),
         "utf8",

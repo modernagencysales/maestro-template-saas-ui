@@ -46,6 +46,45 @@ const sourceModule = (path: string) =>
   ).href;
 
 describe("saas application blueprint", () => {
+  it("keeps retained template-core tests independent of factory release fixtures", () => {
+    const entries = new Map(
+      buildSaasApplicationTargetPlan().entries.map((entry) => [
+        entry.path,
+        entry,
+      ]),
+    );
+    const testPath =
+      "packages/template-core/src/templateInstance/templateInstance.test.ts";
+    const fixturePath =
+      "packages/template-core/src/templateInstance/__fixtures__/provider-posture-v1-to-v2.contract.json";
+    const testEntry = entries.get(testPath);
+    const fixtureEntry = entries.get(fixturePath);
+
+    expect(testEntry).toMatchObject({
+      ownership: "generated",
+      action: "generate",
+      upgrade: "regenerate",
+      replaces: "copy",
+    });
+    expect(fixtureEntry).toMatchObject({
+      ownership: "generated",
+      action: "generate",
+      upgrade: "regenerate",
+    });
+    if (!testEntry || !fixtureEntry)
+      throw new Error("missing package-owned provider posture test closure");
+    expect(testEntry.content).toContain(
+      '"./__fixtures__/provider-posture-v1-to-v2.contract.json"',
+    );
+    expect(testEntry.content).not.toContain(
+      "../../../../tooling/release/__fixtures__/upgrade",
+    );
+    expect(JSON.parse(fixtureEntry.content)).toMatchObject({
+      schemaVersion: 1,
+      before: { providerMode: "live", providerIds: ["email", "llm"] },
+    });
+  });
+
   it("projects only the supported customer generator scripts", () => {
     const plan = buildSaasApplicationTargetPlan();
     const packageEntry = plan.entries.find(
@@ -213,6 +252,8 @@ describe("saas application blueprint", () => {
       "examples/generic-ai-ops/template-package.json",
       "lefthook.yml",
       "pnpm-lock.yaml",
+      "packages/template-core/src/templateInstance/templateInstance.test.ts",
+      "packages/template-core/src/templateInstance/__fixtures__/provider-posture-v1-to-v2.contract.json",
       "scripts/pre-push-rubric.sh",
       "tooling/agent-pack/src/mcp/projection.ts",
       "tooling/agent-pack/src/mcp/protocol.ts",
@@ -904,6 +945,8 @@ describe("saas application blueprint", () => {
       "packages/convex/convex/records/records.ts",
       "apps/web/src/routeTree.gen.ts",
       "apps/web/src/routeRegistry.generated.ts",
+      "packages/template-core/src/templateInstance/templateInstance.test.ts",
+      "packages/template-core/src/templateInstance/__fixtures__/provider-posture-v1-to-v2.contract.json",
     ]);
     expect(
       first.some(({ path }) =>

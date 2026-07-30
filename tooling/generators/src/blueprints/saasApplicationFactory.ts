@@ -1,8 +1,22 @@
 import type { GeneratedFile } from "../index";
+import { readFileSync } from "node:fs";
 import { buildSaasApplicationFiles } from "./saasApplication";
 import { buildSaasRegistrationProjections } from "./saasRegistrationProjections";
 
 const RECORDS_SURFACE = "apps/web/src/features/records/records-surface.tsx";
+const CURRENT_TEMPLATE_CORE_TEST_CLOSURE = [
+  "packages/template-core/src/templateInstance/templateInstance.test.ts",
+  "packages/template-core/src/templateInstance/__fixtures__/provider-posture-v1-to-v2.contract.json",
+] as const;
+
+const currentTemplateCoreTestClosure = (): readonly GeneratedFile[] =>
+  CURRENT_TEMPLATE_CORE_TEST_CLOSURE.map((path) => ({
+    path,
+    content: readFileSync(
+      new URL(`../../../../${path}`, import.meta.url),
+      "utf8",
+    ),
+  }));
 
 const currentSaasApplicationFiles = (options: {
   readonly name: string;
@@ -29,6 +43,7 @@ export const buildFactorySaasApplicationFiles = (options: {
 }): readonly GeneratedFile[] => [
   ...currentSaasApplicationFiles(options),
   ...buildSaasRegistrationProjections(),
+  ...currentTemplateCoreTestClosure(),
 ];
 
 /** Historical projection used only to reproduce the immutable alpha.1 plan. */

@@ -277,6 +277,10 @@ function buildTargetPlan(
           ["apps/web/package.json", "copy"],
           ["lefthook.yml", "copy"],
           ["pnpm-lock.yaml", "copy"],
+          [
+            "packages/template-core/src/templateInstance/templateInstance.test.ts",
+            "copy",
+          ],
           ["scripts/pre-push-rubric.sh", "copy"],
           ["tooling/agent-pack/package.json", "copy"],
           ["tooling/agent-pack/src/nodeAdapters.test.ts", "copy"],
@@ -442,6 +446,12 @@ function buildTargetPlan(
       : []),
     ...(current ? ["apps/cli/package.json"] : []),
     ...(current ? ["apps/web/package.json"] : []),
+    ...(current
+      ? [
+          "packages/template-core/src/templateInstance/templateInstance.test.ts",
+          "packages/template-core/src/templateInstance/__fixtures__/provider-posture-v1-to-v2.contract.json",
+        ]
+      : []),
     ...(current ? ["tooling/agent-pack/package.json"] : []),
     "apps/cli/src/factory/customerComposition.ts",
     ...(current ? ["apps/cli/src/factory/mcp.ts"] : []),
