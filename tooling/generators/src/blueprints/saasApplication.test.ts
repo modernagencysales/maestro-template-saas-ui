@@ -229,10 +229,12 @@ describe("saas application blueprint", () => {
       "tooling/quality/taste-review.mts",
       "packages/convex/confect/_generated/registeredFunctions/records/records.ts",
       "packages/convex/convex/records/records.ts",
+      "apps/web/src/features/records/records-surface.tsx",
     ]);
     const postAlphaReplacedPaths = new Set([
       "packages/convex/confect/_generated/registeredFunctions/records.ts",
       "packages/convex/convex/records.ts",
+      "apps/web/src/features/records/records-surface.tsx",
     ]);
     const releaseRoot = join(
       repoRoot,
@@ -353,6 +355,7 @@ describe("saas application blueprint", () => {
           : undefined;
       expect(
         [asset?.sha256, sourceSha256, projectionEntry?.sha256].filter(Boolean),
+        `missing historical hash authority for ${entry.path}`,
       ).toContain(entry.sha256);
     }
 
@@ -1032,6 +1035,18 @@ describe("saas application blueprint", () => {
     const ids = files.get("packages/convex/confect/_generated/id.ts") ?? "";
     expect(ids.match(/\| "records"/g)).toHaveLength(1);
     expect(ids.match(/\| "workflowArtifacts"/g)).toHaveLength(1);
+
+    const recordsSurface =
+      files.get("apps/web/src/features/records/records-surface.tsx") ?? "";
+    expect(recordsSurface).toContain(
+      "templateConfectRefs.public.records.records.list",
+    );
+    expect(recordsSurface).toContain(
+      "templateConfectRefs.public.records.records.create",
+    );
+    expect(recordsSurface).not.toMatch(
+      /templateConfectRefs\.public\.records\.(?:list|create)/u,
+    );
   });
 
   it("projects a customer-only root script closure", () => {

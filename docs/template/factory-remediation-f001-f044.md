@@ -645,6 +645,26 @@ prove:
 - Status: fixed for F-016. ES-F-48 remains separately open pending its own
   reviewed-uncommitted-output semantics evidence.
 
+#### Nested ref consumer follow-up
+
+- Confirmed reproduction: after the codegen-stable projection repair and the
+  generator source-closure fix, fresh customer
+  `/private/tmp/maestro-fresh-customer-v3-p3domo/customer` advanced through 20
+  package typechecks before web failed on the generated Records surface. Its
+  three consumers still addressed `public.records.list/create`, while current
+  Confect generated `public.records.records.list/create`; four strict TypeScript
+  diagnostics stopped `just verify`.
+- Regression/root cause: the current projection test first failed on the flat
+  refs and now binds both nested consumers while rejecting the obsolete
+  spelling. The alpha.1 integrity test also proves its sealed flat source bytes
+  remain independently reproducible.
+- Canonical fix: `saasApplicationFactory.ts` adapts only the current SaaS
+  Records surface to the nested generated refs. The historical seed, generated
+  customer, Confect output, and route files remain untouched.
+- Focused result: the complete SaaS blueprint suite passes 22/22; generator
+  typecheck and scoped ESLint pass. Clean-customer web/full verification remains
+  pending a post-commit materialization.
+
 ### Customer generator source-closure cluster
 
 - ID/title: F-037 (generated customer tests and verification cannot run),
