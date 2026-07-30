@@ -4,6 +4,7 @@ import {
   existsSync,
   mkdirSync,
   mkdtempSync,
+  realpathSync,
   readFileSync,
   writeFileSync,
 } from "node:fs";
@@ -24,7 +25,17 @@ describe("customer Lefthook prepare boundary", () => {
     const result = runInstaller(fixture);
 
     expect(result.status).toBe(0);
-    expect(readFileSync(fixture.invocationLog, "utf8")).toBe(fixture.appRoot);
+    expect(readFileSync(fixture.invocationLog, "utf8")).toBe(
+      realpathSync(fixture.appRoot),
+    );
+    expect(
+      gitOutput(fixture.appRoot, [
+        "config",
+        "--local",
+        "--get",
+        "core.hooksPath",
+      ]),
+    ).toBe(".git/hooks");
   });
 
   it("does not mutate an ancestor Git worktree", () => {
@@ -60,6 +71,14 @@ function git(cwd: string, argv: readonly string[]): void {
   if (result.status !== 0) {
     throw new Error(result.stderr || "Git fixture setup failed.");
   }
+}
+
+function gitOutput(cwd: string, argv: readonly string[]): string {
+  const result = spawnSync("git", argv, { cwd, encoding: "utf8" });
+  if (result.status !== 0) {
+    throw new Error(result.stderr || "Git fixture inspection failed.");
+  }
+  return result.stdout.trim();
 }
 
 function runInstaller(fixture: ReturnType<typeof createFixture>) {

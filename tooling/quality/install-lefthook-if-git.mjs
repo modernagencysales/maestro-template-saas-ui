@@ -19,14 +19,28 @@ if (worktree.status === 0) {
   }
 
   if (gitRoot === cwd) {
-    const installed = spawnSync("lefthook", ["install"], {
-      cwd,
-      shell: false,
-      stdio: "inherit",
-    });
-    if (installed.error !== undefined || installed.status !== 0) {
-      process.stderr.write("Lefthook installation failed.\n");
-      process.exitCode = installed.status ?? 1;
+    const localHooks = spawnSync(
+      "git",
+      ["config", "--local", "core.hooksPath", ".git/hooks"],
+      {
+        cwd,
+        shell: false,
+        stdio: "inherit",
+      },
+    );
+    if (localHooks.error !== undefined || localHooks.status !== 0) {
+      process.stderr.write("Repository-local Git hook configuration failed.\n");
+      process.exitCode = localHooks.status ?? 1;
+    } else {
+      const installed = spawnSync("lefthook", ["install"], {
+        cwd,
+        shell: false,
+        stdio: "inherit",
+      });
+      if (installed.error !== undefined || installed.status !== 0) {
+        process.stderr.write("Lefthook installation failed.\n");
+        process.exitCode = installed.status ?? 1;
+      }
     }
   }
 }

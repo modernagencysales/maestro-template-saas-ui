@@ -253,10 +253,15 @@ prove:
   safe installer exited zero without installing hooks. The current customer plan
   now introduces the config plus its three read-only rubric support files as one
   regenerated closure, explicitly replacing their existing base-release copy
-  operations.
+  operations. A macOS release-shaped run then proved that ambient global
+  `core.hooksPath` redirected successful Lefthook installation outside the
+  customer. The installer now sets a repository-local `.git/hooks` override
+  before invoking Lefthook and fails closed if that local configuration cannot
+  be written.
 - Focused result: agent-pack create and hook tests pass 9/9; scoped ESLint,
   agent-pack/quality typechecks, formatting, and projection checks pass. The
-  complete SaaS target-plan suite passes 20/20 after the hook-closure repair.
+  complete SaaS target-plan suite passes 21/21 after the hook-closure repair;
+  the isolated installer boundary passes 2/2 including local-hook ownership.
 - Clean-customer evidence: pending final isolated public acceptance.
 - Status: source fixed; final fixed status waits for clean-customer proof.
 
