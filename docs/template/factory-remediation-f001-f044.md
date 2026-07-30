@@ -662,8 +662,10 @@ prove:
   Records surface to the nested generated refs. The historical seed, generated
   customer, Confect output, and route files remain untouched.
 - Focused result: the complete SaaS blueprint suite passes 22/22; generator
-  typecheck and scoped ESLint pass. Clean-customer web/full verification remains
-  pending a post-commit materialization.
+  typecheck and scoped ESLint pass. The post-commit disposable final-filesystem
+  integration passes 1/1 in 74 seconds and now includes customer web typecheck
+  before the production web build. Full `just verify` remains pending a new
+  persistent public customer.
 
 ### Customer generator source-closure cluster
 
@@ -697,8 +699,10 @@ prove:
   customer files, pipelines, secrets, and deployment state remain unchanged.
 - Focused result: the adapter suite passes 19/19; release-tooling and CLI
   typechecks exit zero; scoped ESLint, formatting, and `git diff --check` pass.
-- Clean-customer evidence: pending the post-commit final-filesystem integration
-  and a new public materialization followed by `just verify`.
+- Clean-customer evidence: the post-commit final-filesystem integration passes
+  1/1 with all six factory-only paths absent; retained generator, CLI, Convex,
+  workflow, and web compile/build gates pass. A new persistent public
+  materialization followed by `just verify` remains pending.
 - Status: upstream implementation fixed; final fixed status waits for untouched
   fresh-customer proof.
 

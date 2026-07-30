@@ -208,6 +208,7 @@ export async function runFinalCustomerCompileGates(
     ["pnpm", ["check:workflow-policy-snapshots"]],
     ["pnpm", ["check:workflow-principal-propagation"]],
     ["pnpm", ["--dir", "packages/convex", "typecheck"]],
+    ["pnpm", ["--dir", "apps/web", "typecheck"]],
     ["pnpm", ["--dir", "apps/web", "build"]],
   ] as const) {
     await execFileAsync(command, args, {
