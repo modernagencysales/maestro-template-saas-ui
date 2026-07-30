@@ -327,6 +327,37 @@ prove:
   pending.
 - Status: source fixed; final fixed status waits for clean-customer proof.
 
+### Deployment-authority customer closure cluster
+
+- ID/title: F-037 (Generated customer tests cannot run), acceptance subfinding
+  for the current SaaS registry compile.
+- Original posture: open/critical.
+- Confirmed reproduction: the public root-create integration materialized the
+  current `deployAuthority/admin.ts` beside the immutable release's older
+  `deployAuthority/store.ts` and deployment-authority table definitions. The
+  generated Convex package then failed typecheck on missing store exports,
+  missing table fields, and missing indexes.
+- Root cause: the current target plan introduced the new admin owner and two new
+  tables but did not project the complete pre-existing source/table dependency
+  closure that changed with that owner.
+- Regression: the SaaS target-plan test now requires the current store plus the
+  action-consumption, approval, census-snapshot, issuer, and verdict table
+  definitions to be reviewed `copy` replacements, while the newly introduced
+  admin and audit-event files remain replacement-free. The committed root-create
+  integration compiles the resulting materialized Convex registry.
+- Canonical fix: `saasRegistrationProjections.ts` owns the complete current
+  deployment-authority source/table closure, and `saasApplication.ts` binds only
+  paths actually written by the immutable release to `replaces: "copy"`. No
+  deployment command, pipeline, provider, secret, generated Confect file, or
+  generated Convex file was mutated.
+- Focused result: the target-plan regression failed on the absent store path and
+  then passed; the complete SaaS blueprint suite passes 21/21. Generator
+  typecheck, formatting, scoped lint, and `git diff --check` all exit zero.
+- Clean-customer evidence: pending the post-commit root-create compile and final
+  isolated public acceptance.
+- Status: source repair in progress; final fixed status waits for committed
+  materialization proof.
+
 ### MCP generated-name round-trip cluster
 
 - ID/title: F-018 (Advertised fallback MCP tool names cannot be called).

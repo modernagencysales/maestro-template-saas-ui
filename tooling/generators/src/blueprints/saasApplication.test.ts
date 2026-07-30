@@ -701,8 +701,13 @@ describe("saas application blueprint", () => {
     );
 
     for (const path of [
+      "packages/convex/confect/deployAuthority/store.ts",
       "packages/convex/confect/_generated/tables/deployAuthorityIssuers.ts",
+      "packages/convex/confect/tables/deployActionConsumptions.ts",
+      "packages/convex/confect/tables/deployApprovals.ts",
       "packages/convex/confect/tables/deployAuthorityIssuers.ts",
+      "packages/convex/confect/tables/deployCensusSnapshots.ts",
+      "packages/convex/confect/tables/deployVerdicts.ts",
     ]) {
       expect(entries.get(path), path).toMatchObject({
         ownership: "generated",

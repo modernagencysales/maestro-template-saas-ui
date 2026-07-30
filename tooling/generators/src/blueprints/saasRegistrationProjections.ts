@@ -66,11 +66,16 @@ export const CURRENT_GENERATOR_GATE_SCRIPTS = [
 export const CURRENT_SAAS_DEPLOY_AUTHORITY_TABLE_CLOSURE = [
   "packages/convex/confect/_generated/tables/deployAuthorityAuditEvents.ts",
   "packages/convex/confect/_generated/tables/deployAuthorityIssuers.ts",
+  "packages/convex/confect/tables/deployActionConsumptions.ts",
+  "packages/convex/confect/tables/deployApprovals.ts",
   "packages/convex/confect/tables/deployAuthorityAuditEvents.ts",
   "packages/convex/confect/tables/deployAuthorityIssuers.ts",
+  "packages/convex/confect/tables/deployCensusSnapshots.ts",
+  "packages/convex/confect/tables/deployVerdicts.ts",
 ] as const;
 export const CURRENT_SAAS_DEPLOY_AUTHORITY_SOURCE_CLOSURE = [
   "packages/convex/confect/deployAuthority/admin.ts",
+  "packages/convex/confect/deployAuthority/store.ts",
 ] as const;
 
 export const CUSTOMER_ROOT_SCRIPTS = [
