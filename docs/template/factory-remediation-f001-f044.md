@@ -738,12 +738,15 @@ prove:
   test. The frozen alpha.1 plan and release fixture remain byte-preserved.
 - Focused result: the red-to-green SaaS and provider-posture suites pass 58/58;
   generator typecheck, scoped ESLint, formatting, and `git diff --check` exit
-  zero.
+  zero. From committed source `0190353ca81f2481d807d847b8d62b4d2f597ec8`, the
+  release-shaped create-root integration passes 1/1 in 38.77 seconds after
+  cloning exact `HEAD`, performing its frozen offline install, materializing the
+  customer, and compiling the canonical Convex and web registries.
 - Clean-customer evidence: the v4 failure is direct untouched-customer
   reproduction. A post-fix release-shaped integration and entirely new public
   customer are required before final fixed status.
-- Status: upstream implementation fixed; final fixed status waits for untouched
-  fresh-customer proof and the coherent commit coordinate.
+- Status: upstream implementation fixed in `0190353c`; final fixed status waits
+  for untouched fresh-customer proof.
 
 No full acceptance command is yet claimed passing. Exact command outputs and
 commit coordinates will be added only after observation.
