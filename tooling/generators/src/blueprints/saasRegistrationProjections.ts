@@ -313,6 +313,17 @@ const customerCliPackage = (): string => {
   return `${JSON.stringify(value, null, 2)}\n`;
 };
 
+const customerAgentPackPackage = (): string => {
+  const value = JSON.parse(
+    currentSource("tooling/agent-pack/package.json"),
+  ) as { scripts: Record<string, string> };
+  const customerTest = value.scripts["test:customer"];
+  if (customerTest === undefined)
+    throw new Error("missing Agent Pack customer test closure");
+  value.scripts.test = customerTest;
+  return `${JSON.stringify(value, null, 2)}\n`;
+};
+
 const customerLockfile = (): string => {
   let value = source("pnpm-lock.yaml");
   for (const dependency of [
@@ -619,6 +630,14 @@ export const buildSaasRegistrationProjections = (
           },
         ]
       : []),
+    ...(current
+      ? [
+          {
+            path: "tooling/agent-pack/package.json",
+            content: customerAgentPackPackage(),
+          },
+        ]
+      : []),
     {
       path: "apps/cli/src/factory/start.ts",
       content: source("apps/cli/src/factory/start.ts"),
@@ -791,6 +810,19 @@ export const buildSaasRegistrationProjections = (
             content: currentSource(`tooling/agent-pack/src/${path}`),
           }),
         )
+      : []),
+    ...(current
+      ? [
+          "customerTestClosure.ts",
+          "customerTestClosure.test.ts",
+          "mcp/projection.test.ts",
+          "mcp/protocol.test.ts",
+          "mcp/server.test.ts",
+          "nodeAdapters.test.ts",
+        ].map((path) => ({
+          path: `tooling/agent-pack/src/${path}`,
+          content: currentSource(`tooling/agent-pack/src/${path}`),
+        }))
       : []),
     ...(current
       ? [

@@ -5,6 +5,7 @@ import {
   access as nodeAccess,
   readFile as nodeReadFile,
   readdir as nodeReadDirectory,
+  realpath as nodeRealpath,
   statfs as nodeStatfs,
 } from "node:fs/promises";
 import { createServer } from "node:net";
@@ -122,6 +123,7 @@ export type NodePreflightFileSystem = {
     }[]
   >;
   readonly access: (path: string) => Promise<void>;
+  readonly realpath?: (path: string) => Promise<string>;
   readonly statfs: (path: string) => Promise<{
     readonly bavail: number | bigint;
     readonly bsize: number | bigint;
@@ -140,6 +142,7 @@ export const nodePreflightFileSystem: NodePreflightFileSystem = {
           : ("other" as const),
     })),
   access: (path) => nodeAccess(path),
+  realpath: (path) => nodeRealpath(path),
   statfs: async (path) => {
     const result = await nodeStatfs(path);
     return { bavail: result.bavail, bsize: result.bsize };
@@ -324,10 +327,17 @@ export function createNodePreflightRuntimeReader(input: {
             ? "offline"
             : "unknown";
       const authPosture = request.mode === "fake" ? "not-required" : "unknown";
+      const [canonicalGitRoot, canonicalSourceRoot] =
+        observedGitRoot === undefined
+          ? [undefined, undefined]
+          : await Promise.all([
+              canonicalPath(input.fs, observedGitRoot),
+              canonicalPath(input.fs, repo.sourceRoot),
+            ]);
       const rootMatches =
         observedGitRoot === undefined
           ? "unknown"
-          : resolve(observedGitRoot) === resolve(repo.sourceRoot);
+          : canonicalGitRoot === canonicalSourceRoot;
       const generatedDriftPosture =
         generatedDrift.exitCode === 0
           ? generatedDrift.stdout.trim().length > 0
@@ -1014,6 +1024,18 @@ function successfulText(result: VerificationExecResult): string | undefined {
   if (result.exitCode !== 0) return undefined;
   const value = result.stdout.trim();
   return value.length > 0 ? value : undefined;
+}
+
+async function canonicalPath(
+  fs: NodePreflightFileSystem,
+  path: string,
+): Promise<string> {
+  if (fs.realpath === undefined) return resolve(path);
+  try {
+    return resolve(await fs.realpath(path));
+  } catch {
+    return resolve(path);
+  }
 }
 
 function numericPrefix(version: string): number | undefined {

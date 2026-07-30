@@ -276,6 +276,8 @@ function buildTargetPlan(
           ["apps/cli/package.json", "copy"],
           ["apps/web/package.json", "copy"],
           ["pnpm-lock.yaml", "copy"],
+          ["tooling/agent-pack/package.json", "copy"],
+          ["tooling/agent-pack/src/nodeAdapters.test.ts", "copy"],
         ] as const)
       : []),
     ...(current
@@ -422,6 +424,7 @@ function buildTargetPlan(
       : []),
     ...(current ? ["apps/cli/package.json"] : []),
     ...(current ? ["apps/web/package.json"] : []),
+    ...(current ? ["tooling/agent-pack/package.json"] : []),
     "apps/cli/src/factory/customerComposition.ts",
     ...(current ? ["apps/cli/src/factory/mcp.ts"] : []),
     "apps/cli/src/index.ts",
@@ -501,6 +504,12 @@ function buildTargetPlan(
     "tooling/agent-pack/src/index.ts",
     ...(current
       ? [
+          "tooling/agent-pack/src/customerTestClosure.ts",
+          "tooling/agent-pack/src/customerTestClosure.test.ts",
+          "tooling/agent-pack/src/mcp/projection.test.ts",
+          "tooling/agent-pack/src/mcp/protocol.test.ts",
+          "tooling/agent-pack/src/mcp/server.test.ts",
+          "tooling/agent-pack/src/nodeAdapters.test.ts",
           "tooling/agent-pack/src/mcp/protocol.ts",
           "tooling/agent-pack/src/mcp/projection.ts",
           "tooling/agent-pack/src/mcp/server.ts",
@@ -546,6 +555,13 @@ function buildTargetPlan(
     "tooling/agent-pack/src/mcp/protocol.ts",
     "tooling/agent-pack/src/mcp/projection.ts",
     "tooling/agent-pack/src/mcp/server.ts",
+    "tooling/agent-pack/package.json",
+    "tooling/agent-pack/src/customerTestClosure.ts",
+    "tooling/agent-pack/src/customerTestClosure.test.ts",
+    "tooling/agent-pack/src/mcp/projection.test.ts",
+    "tooling/agent-pack/src/mcp/protocol.test.ts",
+    "tooling/agent-pack/src/mcp/server.test.ts",
+    "tooling/agent-pack/src/nodeAdapters.test.ts",
     "tooling/agent-pack/src/privacy/supportBundle.ts",
     "tooling/agent-pack/src/privacy/supportBundleCommand.ts",
     "tooling/agent-pack/src/privacy/nodeSupportBundleExporter.ts",

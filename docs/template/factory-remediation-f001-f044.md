@@ -483,5 +483,43 @@ prove:
 - Status: upstream implementation fixed; final fixed status waits for the
   isolated clean-customer acceptance run.
 
+### Customer Agent Pack test-closure cluster
+
+- ID/title: F-037 (Generated customer tests cannot run).
+- Original posture: open/critical.
+- Confirmed reproduction: the generated Agent Pack package used its factory
+  discovery script, so customer `pnpm test` selected host installers, projection
+  synchronizers, native-host acceptance, and real-workspace version assertions
+  that require factory-only source and authority. On macOS, the retained runtime
+  test also exposed `/var` versus `/private/var` Git-root comparison drift.
+- Root cause: one package-level test command owned both customer runtime
+  behavior and factory distribution authority, while the target plan neither
+  projected a reviewed customer test inventory nor replaced the one mixed
+  real-workspace test. Repository-root comparison used lexical `resolve` instead
+  of filesystem identity.
+- Regression: `customerTestClosure.test.ts` binds every customer test path to
+  the `test:customer` script and rejects named factory-authority paths. The SaaS
+  target-plan test requires the projected Agent Pack manifest, customer closure,
+  three MCP tests, and customer-safe Node adapter test; new paths have no false
+  replacement claim. The Node adapter fixture deterministically maps a symlinked
+  Git root to the same real source root.
+- Canonical fix: Agent Pack retains its complete factory `test` command and adds
+  an explicit customer-safe command. The current customer plan projects that
+  manifest, the customer-owned tests, and the customer-safe Node adapter test;
+  the real-workspace version assertion moved to `nodeAdapters.factory.test.ts`.
+  Runtime preflight now compares available filesystem real paths and falls back
+  fail-closed to resolved lexical paths.
+- Focused result: customer Agent Pack tests pass 29/29 files and 249/249 tests
+  through `host-test-slot`; the complete SaaS target-plan suite passes 21/21;
+  Agent Pack and generator typechecks and formatting pass.
+- Factory-suite observation: the complete Agent Pack discovery run on the shared
+  macOS host passed 45 files but failed 12 factory/native-host files, primarily
+  from existing five-second timeouts under high load and direct-temp-path checks
+  that reject the host's `/var` symlink. No timeout or safety gate was changed.
+- Clean-customer evidence: pending the post-commit release-shaped customer test
+  and final isolated public acceptance.
+- Status: upstream implementation fixed; final fixed status waits for untouched
+  fresh-customer proof.
+
 No full acceptance command is yet claimed passing. Exact command outputs and
 commit coordinates will be added only after observation.

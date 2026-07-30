@@ -1,10 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, realpath, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { fileURLToPath } from "node:url";
 import { createRepositoryContext } from "./repoContext.js";
 import {
   createNodeExecFileAdapter,
@@ -13,8 +12,6 @@ import {
   type NodeExecFilePrimitive,
   type NodePreflightFileSystem,
 } from "./nodeAdapters.js";
-
-const repositoryRoot = fileURLToPath(new URL("../../../", import.meta.url));
 
 describe("Node Agent Pack adapters", () => {
   it("forces bounded shell-free execFile options and preserves ordinary exits", async () => {
@@ -154,6 +151,7 @@ describe("Node Agent Pack adapters", () => {
         if (!existing.has(path))
           throw Object.assign(new Error("missing"), { code: "ENOENT" });
       },
+      realpath: async (path) => (path === "/repo-link" ? "/repo" : path),
       statfs: async () => ({ bavail: 2_000, bsize: 1_000 }),
     };
     let registryExitCode: number | null = 0;
@@ -169,7 +167,7 @@ describe("Node Agent Pack adapters", () => {
         "git --version": gitVersion,
         "git worktree list --porcelain": "worktree /repo\n",
         "git rev-parse HEAD": `${"a".repeat(40)}\n`,
-        "git rev-parse --show-toplevel": "/repo\n",
+        "git rev-parse --show-toplevel": "/repo-link\n",
         "git symbolic-ref --short refs/remotes/origin/HEAD": "origin/main\n",
         "git describe --tags --abbrev=0": "v1.0.0\n",
         "git status --porcelain=v1 -z --untracked-files=all": " M local.ts\0",
@@ -249,7 +247,7 @@ describe("Node Agent Pack adapters", () => {
       repository: {
         role: "existing-app",
         commit: "a".repeat(40),
-        gitRoot: "/repo",
+        gitRoot: "/repo-link",
         rootMatches: true,
         canonicalBase: "main",
         canonicalTag: "v1.0.0",
@@ -391,61 +389,12 @@ describe("Node Agent Pack adapters", () => {
     );
 
     expect(snapshot.repository).toMatchObject({
-      gitRoot: root,
+      gitRoot: await realpath(root),
       rootMatches: true,
       commit: expect.stringMatching(/^[0-9a-f]{40}$/),
       dirty: true,
       collisions: ["dirty.ts"],
     });
-  });
-
-  it("resolves immutable pack, CLI, and template versions in the real workspace", async () => {
-    const root = repositoryRoot;
-    const realExec = createNodeExecFileAdapter();
-    const runtime = createNodePreflightRuntimeReader({
-      fs: nodePreflightFileSystem,
-      execFile: (file, args, options) =>
-        file === "git"
-          ? realExec(file, args, options)
-          : Promise.resolve({
-              exitCode: 0,
-              stdout:
-                file === "pnpm" && args[0] === "--version"
-                  ? "10.12.1\n"
-                  : "ready\n",
-              stderr: "",
-            }),
-      workflowRules: [],
-      publishedWorkflowRuleIds: [],
-      environment: () => ({}),
-      policy: {
-        supportedPlatforms: [process.platform],
-        supportedNodeMajors: [Number(process.versions.node.split(".")[0])],
-        minimumGitVersion: "2.31.0",
-        minimumDiskBytes: 0,
-        requiredPorts: [],
-        metadataTimeoutMs: 2_000,
-        maxBufferBytes: 256 * 1024,
-      },
-    });
-    const commit = execFileSync("git", ["rev-parse", "HEAD"], {
-      cwd: root,
-      encoding: "utf8",
-    }).trim();
-
-    const snapshot = await runtime.inspect(
-      { mode: "fake" },
-      createRepositoryContext({ cwd: root }),
-    );
-
-    expect(snapshot.versions).toMatchObject({
-      pack: `git:${commit}`,
-      cli: `git:${commit}`,
-      template: `git:${commit}`,
-    });
-    expect(JSON.stringify(snapshot.versions)).not.toMatch(
-      /workspace|unavailable/,
-    );
   });
 
   it("uses Git-committed release authority and rejects target self-certification", async () => {

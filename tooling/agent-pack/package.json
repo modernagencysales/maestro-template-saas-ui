@@ -12,6 +12,7 @@
   },
   "scripts": {
     "test": "vitest run --exclude src/privacy/privacy.noNetwork.test.ts",
+    "test:customer": "vitest run src/check.test.ts src/contracts.test.ts src/create.test.ts src/customerTestClosure.test.ts src/diagnostics.test.ts src/mcp/projection.test.ts src/mcp/protocol.test.ts src/mcp/server.test.ts src/nodeAdapters.test.ts src/planCheck.test.ts src/ports.test.ts src/preflight.test.ts src/preflightProbe.test.ts src/privacy/privacy.canaries.test.ts src/privacy/privacy.supportBundle.test.ts src/privacy/privacy.test.ts src/processSupervisor.test.ts src/providers/convex.test.ts src/readiness/artifacts.test.ts src/readiness/presenter.test.ts src/readiness/readiness-visual.test.ts src/receipt.test.ts src/receiptExport.test.ts src/receiptWriter.test.ts src/repoContext.test.ts src/scaffold.test.ts src/start.test.ts src/verificationRunner.test.ts src/verify.test.ts",
     "test:privacy-no-network": "vitest run src/privacy/privacy.noNetwork.test.ts --maxWorkers=1 --no-file-parallelism",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   }

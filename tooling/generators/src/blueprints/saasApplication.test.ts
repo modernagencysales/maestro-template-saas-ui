@@ -217,6 +217,13 @@ describe("saas application blueprint", () => {
       "tooling/agent-pack/src/mcp/projection.ts",
       "tooling/agent-pack/src/mcp/protocol.ts",
       "tooling/agent-pack/src/mcp/server.ts",
+      "tooling/agent-pack/package.json",
+      "tooling/agent-pack/src/customerTestClosure.test.ts",
+      "tooling/agent-pack/src/customerTestClosure.ts",
+      "tooling/agent-pack/src/mcp/projection.test.ts",
+      "tooling/agent-pack/src/mcp/protocol.test.ts",
+      "tooling/agent-pack/src/mcp/server.test.ts",
+      "tooling/agent-pack/src/nodeAdapters.test.ts",
       "tooling/generators/src/private-package.ts",
       "tooling/quality/contract-review-rubric.md",
       "tooling/quality/taste-review.mts",
@@ -623,6 +630,41 @@ describe("saas application blueprint", () => {
     }
   });
 
+  it("projects only the customer-safe Agent Pack test closure", () => {
+    const entries = new Map(
+      buildSaasApplicationTargetPlan().entries.map((entry) => [
+        entry.path,
+        entry,
+      ]),
+    );
+    const agentPackPackage = JSON.parse(
+      entries.get("tooling/agent-pack/package.json")?.content ?? "{}",
+    ) as { readonly scripts?: Readonly<Record<string, string>> };
+    expect(agentPackPackage.scripts?.test).toBe(
+      agentPackPackage.scripts?.["test:customer"],
+    );
+    expect(
+      entries.get("tooling/agent-pack/src/nodeAdapters.test.ts"),
+    ).toMatchObject({ replaces: "copy" });
+    for (const path of [
+      "tooling/agent-pack/src/customerTestClosure.ts",
+      "tooling/agent-pack/src/customerTestClosure.test.ts",
+      "tooling/agent-pack/src/mcp/projection.test.ts",
+      "tooling/agent-pack/src/mcp/protocol.test.ts",
+      "tooling/agent-pack/src/mcp/server.test.ts",
+    ]) {
+      expect(entries.get(path)).toMatchObject({
+        ownership: "generated",
+        action: "generate",
+        upgrade: "regenerate",
+      });
+      expect(entries.get(path)).not.toHaveProperty("replaces");
+    }
+    expect(
+      entries.has("tooling/agent-pack/src/nodeAdapters.factory.test.ts"),
+    ).toBe(false);
+  });
+
   it("introduces private-package closure without false release replacements", () => {
     const entries = new Map(
       buildSaasApplicationTargetPlan().entries.map((entry) => [
@@ -715,6 +757,7 @@ describe("saas application blueprint", () => {
       "apps/cli/src/index.ts",
       "apps/cli/package.json",
       "apps/web/package.json",
+      "tooling/agent-pack/package.json",
       "apps/cli/src/factory/start.ts",
       "apps/cli/src/factory/supportBundle.ts",
       "package.json",
@@ -800,6 +843,12 @@ describe("saas application blueprint", () => {
       "tooling/agent-pack/src/mcp/protocol.ts",
       "tooling/agent-pack/src/mcp/projection.ts",
       "tooling/agent-pack/src/mcp/server.ts",
+      "tooling/agent-pack/src/customerTestClosure.ts",
+      "tooling/agent-pack/src/customerTestClosure.test.ts",
+      "tooling/agent-pack/src/mcp/projection.test.ts",
+      "tooling/agent-pack/src/mcp/protocol.test.ts",
+      "tooling/agent-pack/src/mcp/server.test.ts",
+      "tooling/agent-pack/src/nodeAdapters.test.ts",
       "tooling/agent-pack/src/privacy/supportBundle.ts",
       "tooling/agent-pack/src/privacy/supportBundleCommand.ts",
       "tooling/agent-pack/src/privacy/nodeSupportBundleExporter.ts",
