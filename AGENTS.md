@@ -18,9 +18,12 @@ and leave the repository easier for the next person or agent to inspect.
 In either mode, begin with `pnpm maestro -- preflight --mode fake`. In a
 customer target, then run `pnpm maestro -- recipes list` and
 `pnpm template:systems -- --query <responsibility-or-table>` before choosing a
-generator. Preview is the default. A write must be explicit, use the exact
-confirmation command when one is returned, and be followed by the focused gates
-named in the preview.
+generator. Preview is the default. Consequential generation must use the
+reviewed scaffold route, inspect its `review-required`/secret-names-only privacy
+posture, and run the returned structured `confirmation.argv` unchanged. That
+argv binds the write to exact `preflight_sha256:` and `scaffold_sha256:`
+fingerprints. A write must be followed by the focused gates named in the
+preview.
 
 The supported customer loop is:
 
@@ -144,8 +147,10 @@ Rules when replacing a fixture body:
 - Use `docs/template/app-factory-guide.md` for the generator flow and
   `pnpm stack:check` for deterministic plan-shape validation.
 
-- Scaffold first: when a `pnpm template:*` generator covers the module kind, use
-  it instead of hand-writing registrations. Backend generators require the
+- Scaffold first: when a `pnpm template:*` generator covers the module kind,
+  preview its reviewed scaffold equivalent and use the exact confirmation argv
+  instead of hand-writing registrations or directly authorizing a consequential
+  write. Backend generators require the
   canonical `--system` ID plus `--disposition reuse|extend` and record both in
   provenance. Generated output compiles and passes gates; fill in the TODOs
   where judgment is required.

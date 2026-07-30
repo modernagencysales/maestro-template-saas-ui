@@ -98,6 +98,20 @@ targets.
 
 ## Minimum Review Commands
 
+Consequential generation uses the reviewed scaffold boundary. Run
+`node maestro-template.mjs scaffold --generator <id> --args '<json>'` first. The
+preview labels its privacy posture as `review-required` and exposes secret names
+only. It returns a structured `confirmation.argv` array containing both the
+current `preflight_sha256:` fingerprint and an exact `scaffold_sha256:`
+fingerprint over the generator ID, arguments, generated paths and bytes,
+provenance, collisions, semantic rules, follow-up work, codegen, and focused
+gates. Execute that argv unchanged. A missing or changed fingerprint blocks the
+write before the generator receives a write request.
+
+Direct `template:*` commands remain available for narrow interactive work, but
+their preview only points to the reviewed scaffold equivalent; it is not an
+exact write authorization.
+
 - `pnpm confect:codegen`
 - `pnpm confect:manifest`
 - `pnpm check:generators`

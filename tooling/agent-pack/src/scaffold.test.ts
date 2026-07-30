@@ -3,6 +3,7 @@ import { executeAgentPackCommand } from "./contracts.js";
 import { createRepositoryContext } from "./repoContext.js";
 import {
   createScaffoldCommand,
+  fingerprintScaffoldPreview,
   type ScaffoldDependencies,
   type ScaffoldGeneratorOutput,
 } from "./scaffold.js";
@@ -28,6 +29,10 @@ const output: ScaffoldGeneratorOutput = {
   codegen: ["pnpm confect:codegen", "pnpm confect:manifest"],
   focusedGates: ["pnpm check:confect-contracts"],
 };
+const previewFingerprint = fingerprintScaffoldPreview(
+  { generatorId: "add-capability", args },
+  output,
+);
 
 function dependencies(
   overrides: Partial<ScaffoldDependencies> = {},
@@ -50,6 +55,44 @@ function dependencies(
 }
 
 describe("scaffold command", () => {
+  it("fingerprints the exact canonical preview", () => {
+    const reorderedArgs = {
+      disposition: "extend",
+      system: "knowledge-brain",
+      name: "sourceBrief",
+    };
+
+    expect(
+      fingerprintScaffoldPreview(
+        { generatorId: "add-capability", args: reorderedArgs },
+        output,
+      ),
+    ).toBe(previewFingerprint);
+    expect(
+      fingerprintScaffoldPreview(
+        {
+          generatorId: "add-capability",
+          args: { ...args, name: "changedBrief" },
+        },
+        output,
+      ),
+    ).not.toBe(previewFingerprint);
+    expect(
+      fingerprintScaffoldPreview(
+        { generatorId: "add-capability", args },
+        {
+          ...output,
+          files: [
+            {
+              ...output.files[0]!,
+              content: "export const changed = true;\n",
+            },
+          ],
+        },
+      ),
+    ).not.toBe(previewFingerprint);
+  });
+
   it("previews by default and preserves generator bytes", async () => {
     const run = vi.fn(async () => ({ ok: true as const, output }));
     const result = await executeAgentPackCommand(
@@ -71,7 +114,22 @@ describe("scaffold command", () => {
     expect(result).toMatchObject({
       mutationPosture: "preview",
       exitClass: "success",
-      data: { mode: "preview", output },
+      data: {
+        mode: "preview",
+        output,
+        privacy: {
+          classification: "review-required",
+          secrets: "names-only",
+        },
+        previewFingerprint: expect.stringMatching(/^scaffold_sha256:/),
+        confirmation: {
+          argv: expect.arrayContaining([
+            "--preflight-fingerprint",
+            "preflight_sha256:current",
+            "--preview-fingerprint",
+          ]),
+        },
+      },
     });
     expect(result.data?.output?.files[0]?.content).toBe(
       output.files[0]?.content,
@@ -104,6 +162,7 @@ describe("scaffold command", () => {
         args,
         write: true,
         preflightFingerprint: "preflight_sha256:current",
+        previewFingerprint,
       },
       context,
     );
@@ -141,6 +200,7 @@ describe("scaffold command", () => {
           generatorId: "add-capability",
           args,
           write: true,
+          previewFingerprint,
           ...(fingerprint === undefined
             ? {}
             : { preflightFingerprint: fingerprint }),
@@ -155,6 +215,36 @@ describe("scaffold command", () => {
       });
     },
   );
+
+  it("blocks a missing exact preview fingerprint before writing", async () => {
+    const run = vi.fn(async () => ({ ok: true as const, output }));
+    const result = await executeAgentPackCommand(
+      createScaffoldCommand(
+        dependencies({
+          generators: { resolve: () => ({ supported: true }), run },
+        }),
+      ),
+      {
+        generatorId: "add-capability",
+        args,
+        write: true,
+        preflightFingerprint: "preflight_sha256:current",
+      },
+      context,
+    );
+
+    expect(run).toHaveBeenCalledOnce();
+    expect(run).toHaveBeenCalledWith({
+      generatorId: "add-capability",
+      args,
+      write: false,
+      repo: context.repo,
+    });
+    expect(result).toMatchObject({
+      exitClass: "blockedMutation",
+      diagnostics: [{ code: "AGENT_PACK_SCAFFOLD_PREVIEW_STALE" }],
+    });
+  });
 
   it("refuses a dirty worktree even when preview paths do not overlap", async () => {
     const run = vi.fn(async () => ({ ok: true as const, output }));
@@ -176,6 +266,7 @@ describe("scaffold command", () => {
         args,
         write: true,
         preflightFingerprint: "preflight_sha256:current",
+        previewFingerprint,
       },
       context,
     );
@@ -202,6 +293,10 @@ describe("scaffold command", () => {
         args,
         write: true,
         preflightFingerprint: "preflight_sha256:current",
+        previewFingerprint: fingerprintScaffoldPreview(
+          { generatorId: "add-capability", args },
+          collided,
+        ),
       },
       context,
     );

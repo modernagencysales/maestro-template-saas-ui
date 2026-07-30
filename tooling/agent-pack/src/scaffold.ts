@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import {
   AGENT_PACK_COMMAND_VERSION,
   defineAgentPackCommand,
@@ -94,6 +95,7 @@ export type ScaffoldInput = {
   readonly args: ScaffoldArguments;
   readonly write: boolean;
   readonly preflightFingerprint?: string;
+  readonly previewFingerprint?: `scaffold_sha256:${string}`;
   readonly workflowRuleIds: readonly string[];
   readonly workflowResolutions: readonly WorkflowResolution[];
 };
@@ -164,8 +166,19 @@ export function createScaffoldCommand(dependencies: ScaffoldDependencies) {
       if (!preview.ok)
         return generatorUnavailable(input, mutationPosture, preview.message);
 
+      const previewFingerprint = fingerprintScaffoldPreview(
+        input,
+        preview.output,
+      );
+
       if (!input.write) {
-        return scaffoldSuccess(input, mutationPosture, preview.output);
+        const preflight = await dependencies.preflight.inspect(context.repo);
+        return scaffoldSuccess(
+          input,
+          mutationPosture,
+          preview.output,
+          preflight.fingerprint,
+        );
       }
       if (preview.output.collisions.length > 0) {
         return scaffoldBlocked(
@@ -175,6 +188,17 @@ export function createScaffoldCommand(dependencies: ScaffoldDependencies) {
           "AGENT_PACK_SCAFFOLD_COLLISION",
           `Scaffold paths collide with existing files: ${preview.output.collisions.join(", ")}.`,
           "Choose a reviewed new name or extend the existing generated slice.",
+        );
+      }
+
+      if (input.previewFingerprint !== previewFingerprint) {
+        return scaffoldBlocked(
+          input,
+          mutationPosture,
+          preview.output,
+          "AGENT_PACK_SCAFFOLD_PREVIEW_STALE",
+          "The reviewed scaffold preview fingerprint is missing or changed.",
+          "Preview again and pass its unchanged fingerprint to --write.",
         );
       }
 
@@ -225,6 +249,7 @@ function decodeScaffoldInput(
     "args",
     "write",
     "preflightFingerprint",
+    "previewFingerprint",
     "workflowRuleIds",
     "workflowResolutions",
   ]);
@@ -245,6 +270,9 @@ function decodeScaffoldInput(
     (input.preflightFingerprint !== undefined &&
       (typeof input.preflightFingerprint !== "string" ||
         !input.preflightFingerprint.startsWith("preflight_sha256:"))) ||
+    (input.previewFingerprint !== undefined &&
+      (typeof input.previewFingerprint !== "string" ||
+        !/^scaffold_sha256:[a-f0-9]{64}$/.test(input.previewFingerprint))) ||
     !Array.isArray(workflowRuleIds) ||
     !workflowRuleIds.every(
       (ruleId) =>
@@ -263,6 +291,12 @@ function decodeScaffoldInput(
       write,
       ...(typeof input.preflightFingerprint === "string"
         ? { preflightFingerprint: input.preflightFingerprint }
+        : {}),
+      ...(typeof input.previewFingerprint === "string"
+        ? {
+            previewFingerprint:
+              input.previewFingerprint as `scaffold_sha256:${string}`,
+          }
         : {}),
       workflowRuleIds,
       workflowResolutions,
@@ -345,6 +379,7 @@ function scaffoldSuccess(
   input: ScaffoldInput,
   mutationPosture: "preview" | "write",
   output: ScaffoldGeneratorOutput,
+  observedPreflightFingerprint?: string,
 ) {
   return {
     mutationPosture,
@@ -354,12 +389,11 @@ function scaffoldSuccess(
         ? "Scaffold preview is ready for review."
         : "Scaffold files were generated.",
     diagnostics: [],
-    data: scaffoldData(input, {
-      output,
-      nearest: [],
-      templateGap: null,
-      restrictions: [],
-    }),
+    data: scaffoldData(
+      input,
+      { output, nearest: [], templateGap: null, restrictions: [] },
+      observedPreflightFingerprint,
+    ),
   };
 }
 
@@ -436,12 +470,71 @@ function scaffoldData(
     } | null;
     readonly restrictions: readonly WorkflowScaffoldRestriction[];
   },
+  observedPreflightFingerprint?: string,
 ) {
+  const previewFingerprint =
+    evidence.output === null
+      ? null
+      : fingerprintScaffoldPreview(input, evidence.output);
+  const preflightFingerprint =
+    observedPreflightFingerprint ?? input.preflightFingerprint;
   return {
     mode: input.write ? ("write" as const) : ("preview" as const),
     generatorId: input.generatorId,
+    privacy: {
+      classification: "review-required" as const,
+      secrets: "names-only" as const,
+    },
+    previewFingerprint,
+    confirmation:
+      previewFingerprint === null
+        ? null
+        : {
+            argv: [
+              "node",
+              "maestro-template.mjs",
+              "scaffold",
+              "--generator",
+              input.generatorId,
+              "--args",
+              stableJson(input.args),
+              "--write",
+              "--preflight-fingerprint",
+              preflightFingerprint ?? "<preflight_sha256:required>",
+              "--preview-fingerprint",
+              previewFingerprint,
+            ],
+          },
     ...evidence,
   };
+}
+
+export function fingerprintScaffoldPreview(
+  input: Pick<ScaffoldInput, "generatorId" | "args">,
+  output: ScaffoldGeneratorOutput,
+): `scaffold_sha256:${string}` {
+  const canonical = stableJson({
+    generatorId: input.generatorId,
+    args: input.args,
+    files: output.files,
+    provenancePaths: output.provenancePaths,
+    collisions: output.collisions,
+    semanticRuleIds: output.semanticRuleIds,
+    manualFollowUp: output.manualFollowUp,
+    codegen: output.codegen,
+    focusedGates: output.focusedGates,
+  });
+  return `scaffold_sha256:${createHash("sha256").update(canonical).digest("hex")}`;
+}
+
+function stableJson(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map(stableJson).join(",")}]`;
+  if (isRecord(value))
+    return `{${Object.entries(value)
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([key, entry]) => `${JSON.stringify(key)}:${stableJson(entry)}`)
+      .join(",")}}`;
+  return JSON.stringify(value);
 }
 
 function unsupportedDiagnostic(

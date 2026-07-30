@@ -10,7 +10,7 @@ import { runAgentPackCommandAsCli, type FactoryCliRenderMode } from "./router";
 
 export const SCAFFOLD_HELP =
   [
-    "maestro scaffold --generator <id> --args <json-object> [--write --preflight-fingerprint <preflight_sha256:...>]",
+    "maestro scaffold --generator <id> --args <json-object> [--write --preflight-fingerprint <preflight_sha256:...> --preview-fingerprint <scaffold_sha256:...>]",
     "  [--workflow-rule <id>] [--workflow-alternative <id>=<exact-ledger-repair>]",
     "  [--workflow-adr <id>=<docs/template/adr/NNNN-name.md>] [--human|--details|--json]",
   ].join("\n") + "\n";
@@ -54,6 +54,7 @@ function parseScaffoldCli(argv: readonly string[]): {
   let write = false;
   let writeSeen = false;
   let preflightFingerprint: string | undefined;
+  let previewFingerprint: string | undefined;
   const workflowRuleIds: string[] = [];
   const workflowResolutions: (
     | {
@@ -100,6 +101,11 @@ function parseScaffoldCli(argv: readonly string[]): {
       preflightFingerprint === undefined
     )
       preflightFingerprint = value;
+    else if (
+      token === "--preview-fingerprint" &&
+      previewFingerprint === undefined
+    )
+      previewFingerprint = value;
     else if (token === "--workflow-rule" && !workflowRuleIds.includes(value))
       workflowRuleIds.push(value);
     else if (token === "--workflow-alternative") {
@@ -132,6 +138,7 @@ function parseScaffoldCli(argv: readonly string[]): {
           ...(preflightFingerprint === undefined
             ? {}
             : { preflightFingerprint }),
+          ...(previewFingerprint === undefined ? {} : { previewFingerprint }),
           workflowRuleIds,
           workflowResolutions,
         }

@@ -2506,6 +2506,26 @@ describe("template app factory generators", () => {
       stdout: expect.stringContaining("template:add-workflow --name <name>"),
       stderr: "",
     });
+
+    const preview = runGeneratorCli([
+      "add-workflow",
+      "--name",
+      "directSafety",
+      "--system",
+      "knowledge-brain",
+      "--disposition",
+      "extend",
+    ]);
+    expect(JSON.parse(preview.stdout)).toMatchObject({
+      privacy: { classification: "review-required", secrets: "names-only" },
+      reviewedEquivalent: {
+        argv: expect.arrayContaining([
+          "node",
+          "maestro-template.mjs",
+          "scaffold",
+        ]),
+      },
+    });
   });
 
   it("rejects surplus words after a systems query", () => {

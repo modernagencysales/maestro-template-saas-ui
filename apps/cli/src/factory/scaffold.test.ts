@@ -1,5 +1,6 @@
 import {
   createScaffoldCommand,
+  fingerprintScaffoldPreview,
   type ScaffoldDependencies,
   type ScaffoldGeneratorRequest,
   type ScaffoldGeneratorOutput,
@@ -16,6 +17,10 @@ const output: ScaffoldGeneratorOutput = {
   codegen: [],
   focusedGates: [],
 };
+const previewFingerprint = fingerprintScaffoldPreview(
+  { generatorId: "add-capability", args: { name: "exact" } },
+  output,
+);
 
 function dependencies(
   preflight: {
@@ -44,6 +49,8 @@ const writeArgv = (fingerprint?: string) => [
   "--args",
   '{"name":"exact"}',
   "--write",
+  "--preview-fingerprint",
+  previewFingerprint,
   ...(fingerprint === undefined
     ? []
     : ["--preflight-fingerprint", fingerprint]),

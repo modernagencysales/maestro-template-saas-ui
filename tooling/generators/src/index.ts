@@ -3900,11 +3900,13 @@ export const runGeneratorCli = (
         };
       }
 
-      const result = buildWorkflowFiles({
+      const ownership = requireOwnership();
+      const generatorArgs = {
         name: args.name,
-        ...requireOwnership(),
+        ...ownership,
         ...(args.description ? { description: args.description } : {}),
-      });
+      };
+      const result = buildWorkflowFiles(generatorArgs);
 
       if (args.write) {
         writeGeneratedFiles(result.files, cwd);
@@ -3912,7 +3914,28 @@ export const runGeneratorCli = (
 
       return {
         exitCode: 0,
-        stdout: `${JSON.stringify(result, null, 2)}\n`,
+        stdout: `${JSON.stringify(
+          {
+            ...result,
+            privacy: {
+              classification: "review-required",
+              secrets: "names-only",
+            },
+            reviewedEquivalent: {
+              argv: [
+                "node",
+                "maestro-template.mjs",
+                "scaffold",
+                "--generator",
+                "add-workflow",
+                "--args",
+                JSON.stringify(generatorArgs),
+              ],
+            },
+          },
+          null,
+          2,
+        )}\n`,
         stderr: "",
       };
     }
