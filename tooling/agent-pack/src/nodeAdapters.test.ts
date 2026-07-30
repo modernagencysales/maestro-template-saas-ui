@@ -315,8 +315,18 @@ describe("Node Agent Pack adapters", () => {
       },
     });
 
-    pnpmVersion = "9.15.4\n";
     corepackAvailable = false;
+    await expect(
+      runtime.inspect({ mode: "fake" }, repo),
+    ).resolves.toMatchObject({
+      host: {
+        pnpm: { current: "10.12.1", required: "10.12.1", supported: true },
+        corepack: "missing",
+      },
+      versionsCompatible: true,
+    });
+
+    pnpmVersion = "9.15.4\n";
     gitVersion = "git version 2.20.0\n";
     await expect(
       runtime.inspect({ mode: "fake" }, repo),

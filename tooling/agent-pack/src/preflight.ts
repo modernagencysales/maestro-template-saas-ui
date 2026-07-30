@@ -264,11 +264,11 @@ function preflightDiagnostics(
     "pnpm maestro -- preflight --json",
   );
   add(
-    !facts.host.pnpm.supported || facts.host.corepack === "missing",
+    !facts.host.pnpm.supported,
     "AGENT_PACK_PNPM_UNSUPPORTED",
-    "The pinned pnpm/Corepack toolchain is unavailable.",
+    "The pinned pnpm toolchain is unavailable.",
     false,
-    "Enable Corepack and install the pinned pnpm version.",
+    "Run node scripts/maestro-bootstrap.mjs for the pinned Corepack or npx installation command.",
     "pnpm maestro -- preflight --json",
   );
   add(

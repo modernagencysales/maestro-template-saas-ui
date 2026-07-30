@@ -419,7 +419,6 @@ export function createNodePreflightRuntimeReader(input: {
           input.policy.supportedPlatforms.includes(os) &&
           nodeSupported &&
           pnpmSupported &&
-          corepack.exitCode === 0 &&
           gitVersion.exitCode === 0 &&
           gitVersionSupported &&
           worktreeSupported &&
