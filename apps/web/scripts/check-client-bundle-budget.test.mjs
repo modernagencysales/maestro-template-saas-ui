@@ -1,16 +1,15 @@
-import assert from "node:assert/strict";
 import { Buffer } from "node:buffer";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import test from "node:test";
+import { expect, it } from "vitest";
 
 import {
   CLIENT_CHUNK_BUDGET_BYTES,
   inspectClientBundleDirectory,
 } from "./check-client-bundle-budget.mjs";
 
-test("accepts JavaScript chunks at the client bundle budget", async () => {
+it("accepts JavaScript chunks at the client bundle budget", async () => {
   const root = await mkdtemp(join(tmpdir(), "maestro-client-bundle-"));
 
   try {
@@ -24,13 +23,13 @@ test("accepts JavaScript chunks at the client bundle budget", async () => {
       Buffer.alloc(CLIENT_CHUNK_BUDGET_BYTES + 1),
     );
 
-    assert.deepEqual(await inspectClientBundleDirectory(root), []);
+    expect(await inspectClientBundleDirectory(root)).toEqual([]);
   } finally {
     await rm(root, { recursive: true, force: true });
   }
 });
 
-test("reports every JavaScript chunk over the client bundle budget", async () => {
+it("reports every JavaScript chunk over the client bundle budget", async () => {
   const root = await mkdtemp(join(tmpdir(), "maestro-client-bundle-"));
 
   try {
@@ -40,7 +39,7 @@ test("reports every JavaScript chunk over the client bundle budget", async () =>
       Buffer.alloc(CLIENT_CHUNK_BUDGET_BYTES + 1),
     );
 
-    assert.deepEqual(await inspectClientBundleDirectory(root), [
+    expect(await inspectClientBundleDirectory(root)).toEqual([
       {
         bytes: CLIENT_CHUNK_BUDGET_BYTES + 1,
         path: "assets/nested/oversized.js",
