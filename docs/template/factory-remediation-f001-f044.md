@@ -645,5 +645,42 @@ prove:
 - Status: fixed for F-016. ES-F-48 remains separately open pending its own
   reviewed-uncommitted-output semantics evidence.
 
+### Customer generator source-closure cluster
+
+- ID/title: F-037 (generated customer tests and verification cannot run),
+  additional current-composition source-closure reproduction.
+- Original posture: open/critical.
+- Confirmed reproduction: `just verify` in untouched customer baseline
+  `c4730e137e362b43f1266ca808523db46d63c2fc` passed format and lint, then failed
+  `@maestro-template/generators#typecheck` with eight missing-module and
+  implicit-any diagnostics. The customer retained six factory-only generator
+  files whose factory dependencies were correctly omitted:
+  `saasApplicationFactory.ts`, `saasRegistrationProjections.ts`, `cli.ts`,
+  `customer-closure.test.ts`, `upgrade-wiring.test.ts`, and
+  `workflow-files.test.ts`.
+- Root cause: the immutable base release classifies its broad generator subtree
+  as copied and predates these six paths. Current-main correctly omits
+  `index.ts` and `saasApplication.ts`, but its tagged current composition had no
+  exact, reviewed omission overlay for later factory-only additions. Blueprint
+  target plans intentionally cannot claim `omit` replacement authority.
+- Regression: the final-customer filesystem audit first failed with the exact
+  six-file residue list. It now rejects every path explicitly and includes the
+  retained generator package typecheck in its compile gates. Adapter coverage
+  requires the exact omission set to appear in preview and change the immutable
+  current-composition checksum.
+- Canonical fix: `createAdapter.ts` adds a safe, unique, exact omission
+  authority only to tagged current compositions, incorporates its sorted paths
+  into the composition checksum, rejects overlap with reviewed exact base
+  authority, and applies the same manifest overlay at preview and
+  materialization. The CLI create composition owns the six generic factory-only
+  paths. The sealed release manifest, blueprint replacement validator, generated
+  customer files, pipelines, secrets, and deployment state remain unchanged.
+- Focused result: the adapter suite passes 19/19; release-tooling and CLI
+  typechecks exit zero; scoped ESLint, formatting, and `git diff --check` pass.
+- Clean-customer evidence: pending the post-commit final-filesystem integration
+  and a new public materialization followed by `just verify`.
+- Status: upstream implementation fixed; final fixed status waits for untouched
+  fresh-customer proof.
+
 No full acceptance command is yet claimed passing. Exact command outputs and
 commit coordinates will be added only after observation.

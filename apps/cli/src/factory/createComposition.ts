@@ -19,6 +19,14 @@ const BASE_COMMIT = "de1bac52bbd33745d2a0fecf8e1cb6ec5732310d";
 const REVIEWED_BLUEPRINT_ID = "saas-application";
 const REVIEWED_BLUEPRINT_PROVENANCE =
   "@maestro-template/generators/saas-application@1";
+const CURRENT_FACTORY_ONLY_OMISSIONS = [
+  "tooling/generators/src/blueprints/saasApplicationFactory.ts",
+  "tooling/generators/src/blueprints/saasRegistrationProjections.ts",
+  "tooling/generators/src/cli.ts",
+  "tooling/generators/src/customer-closure.test.ts",
+  "tooling/generators/src/upgrade-wiring.test.ts",
+  "tooling/generators/src/workflow-files.test.ts",
+] as const;
 
 export function createCustomerCreateComposition() {
   const current = createCustomerCurrentAdapter({
@@ -35,6 +43,7 @@ export function createCustomerCreateComposition() {
     homeRoot: homedir(),
     blueprintId: REVIEWED_BLUEPRINT_ID,
     blueprintProvenance: REVIEWED_BLUEPRINT_PROVENANCE,
+    currentOmissions: CURRENT_FACTORY_ONLY_OMISSIONS,
   });
   const command = createCustomerCreateCommand({
     blueprintTargetPlan: ({ name, outcome }) =>

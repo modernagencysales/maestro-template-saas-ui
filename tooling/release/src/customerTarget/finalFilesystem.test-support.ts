@@ -30,6 +30,12 @@ const forbiddenPaths = [
   /^tooling\/generators\/src\/index\.ts$/,
   /^tooling\/generators\/src\/(?:index|direct-run)\.test\.ts$/,
   /^tooling\/generators\/src\/blueprints\/saasApplication(?:\.test)?\.ts$/,
+  /^tooling\/generators\/src\/blueprints\/saasApplicationFactory\.ts$/,
+  /^tooling\/generators\/src\/blueprints\/saasRegistrationProjections\.ts$/,
+  /^tooling\/generators\/src\/cli\.ts$/,
+  /^tooling\/generators\/src\/customer-closure\.test\.ts$/,
+  /^tooling\/generators\/src\/upgrade-wiring\.test\.ts$/,
+  /^tooling\/generators\/src\/workflow-files\.test\.ts$/,
   /^tooling\/generators\/src\/workflow-(?:output-smoke|semantic-coverage)\.ts$/,
 ];
 
@@ -198,6 +204,7 @@ export async function runFinalCustomerCompileGates(
   );
   for (const [command, args] of [
     ["pnpm", ["--dir", "apps/cli", "typecheck"]],
+    ["pnpm", ["--dir", "tooling/generators", "typecheck"]],
     ["pnpm", ["check:workflow-policy-snapshots"]],
     ["pnpm", ["check:workflow-principal-propagation"]],
     ["pnpm", ["--dir", "packages/convex", "typecheck"]],

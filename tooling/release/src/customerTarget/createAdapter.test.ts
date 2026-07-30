@@ -18,6 +18,44 @@ import {
 } from "./createAdapter.testFixtures.js";
 
 describe("customer release create adapter", () => {
+  it("binds exact current omission authority into preview and provenance", async () => {
+    const fixture = taggedRelease();
+    const options = {
+      repositoryRoot: fixture.repositoryRoot,
+      manifestPath: fixture.manifestPath,
+      ownershipManifestChecksum: fixture.ownershipManifestChecksum,
+      tag: fixture.tag,
+      homeRoot: fixture.homeRoot,
+      temporaryRoot: fixture.temporaryRoot,
+      blueprintManifestPath: fixture.blueprintManifestPath,
+      blueprintManifestChecksum: fixture.blueprintManifestChecksum,
+      blueprintId: "fixture-blueprint",
+      blueprintProvenance: "fixture-generator@1",
+    } as const;
+    const baseline = await prepare(
+      fixture,
+      createCustomerCurrentAdapter(options),
+    );
+    const omissionPath = "factory-only/current-composition.ts";
+    const withOmission = await prepare(
+      fixture,
+      createCustomerCurrentAdapter({
+        ...options,
+        currentOmissions: [omissionPath],
+      }),
+    );
+    if (!baseline.ok || !withOmission.ok)
+      throw new Error("expected prepared current compositions");
+
+    expect(withOmission.preview.omissions).toContain(omissionPath);
+    expect(withOmission.facts.sourceChecksum).not.toBe(
+      baseline.facts.sourceChecksum,
+    );
+    expect(withOmission.facts.ownershipManifestChecksum).toBe(
+      withOmission.facts.sourceChecksum,
+    );
+  });
+
   it("projects immutable release identity when current HEAD is the exact tag", async () => {
     const fixture = taggedRelease();
     const current = createCustomerCurrentAdapter({

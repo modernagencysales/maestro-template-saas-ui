@@ -38,6 +38,7 @@ export type {
 export type CustomerCurrentAdapterOptions = CustomerReleaseAdapterOptions & {
   readonly blueprintId: string;
   readonly blueprintProvenance: string;
+  readonly currentOmissions?: readonly string[];
 };
 
 export function createCustomerReleaseAdapter(
@@ -50,6 +51,7 @@ export function createCustomerReleaseAdapter(
       assertBlueprint: (blueprint) =>
         assertReviewedBlueprintTargetPlan(options, blueprint),
       facts: (_blueprint, resolved) => resolved.facts,
+      manifest: (resolved) => resolved.manifest,
     },
     templateInstances,
   );
@@ -58,6 +60,9 @@ export function createCustomerReleaseAdapter(
 export function createCustomerCurrentAdapter(
   options: CustomerCurrentAdapterOptions,
 ) {
+  const currentOmissions = validateCurrentOmissions(
+    options.currentOmissions ?? [],
+  );
   return createCustomerAdapter(options, {
     assertBlueprint: (blueprint) => {
       if (
@@ -70,7 +75,10 @@ export function createCustomerCurrentAdapter(
         );
       }
     },
-    facts: (blueprint, resolved) => currentFacts(options, blueprint, resolved),
+    facts: (blueprint, resolved) =>
+      currentFacts(options, blueprint, resolved, currentOmissions),
+    manifest: (resolved) =>
+      currentCompositionManifest(resolved.manifest, currentOmissions),
   });
 }
 
@@ -80,6 +88,7 @@ type CustomerMaterializationAuthority = {
     blueprint: BlueprintTargetPlan,
     resolved: ResolvedRelease,
   ) => CustomerReleaseAdapterFacts;
+  readonly manifest: (resolved: ResolvedRelease) => CustomerReleaseManifest;
 };
 
 function createCustomerAdapter(
@@ -107,8 +116,9 @@ function createCustomerAdapter(
           const templateInstance = templateInstances
             ? templateInstances.prepare(rawTemplateInstance)
             : rawTemplateInstance;
+          const manifest = authority.manifest(resolved);
           const generatedFiles = generatedEntries(
-            resolved.manifest,
+            manifest,
             resolved.sourceRoot,
             templateInstance,
           );
@@ -116,6 +126,7 @@ function createCustomerAdapter(
             options,
             request,
             resolved,
+            manifest,
             generatedFiles,
             blueprint,
           );
@@ -167,8 +178,9 @@ function createCustomerAdapter(
               "Blueprint target plan changed after preview.",
             );
           }
+          const manifest = authority.manifest(resolved);
           const generatedFiles = generatedEntries(
-            resolved.manifest,
+            manifest,
             resolved.sourceRoot,
             state.templateInstance,
           );
@@ -176,6 +188,7 @@ function createCustomerAdapter(
             options,
             state.request,
             resolved,
+            manifest,
             generatedFiles,
             blueprint,
           );
@@ -197,9 +210,10 @@ function createCustomerAdapter(
 }
 
 function currentFacts(
-  options: CustomerReleaseAdapterOptions,
+  options: CustomerCurrentAdapterOptions,
   blueprint: BlueprintTargetPlan,
   resolved: ResolvedRelease,
+  currentOmissions: readonly string[],
 ): CustomerReleaseAdapterFacts {
   const candidateCommit = resolveCleanCandidateCommit(options.repositoryRoot);
   if (candidateCommit !== resolved.tagCommit) {
@@ -222,6 +236,7 @@ function currentFacts(
         provenance: blueprint.provenance,
         digest: blueprint.digest,
       },
+      currentOmissions,
     }),
   );
   const extensionSeams = [
@@ -242,6 +257,59 @@ function currentFacts(
     ownershipManifest: compositionKind,
     ownershipManifestChecksum: authorityChecksum,
     extensionSeams,
+  };
+}
+
+function validateCurrentOmissions(paths: readonly string[]): readonly string[] {
+  const normalized = [...paths].sort();
+  const invalid = normalized.find(
+    (path) =>
+      path.length === 0 ||
+      isAbsolute(path) ||
+      path.includes("\\") ||
+      path
+        .split("/")
+        .some(
+          (segment) => segment === "" || segment === "." || segment === "..",
+        ),
+  );
+  if (invalid !== undefined || new Set(normalized).size !== normalized.length) {
+    throw new CustomerReleaseAdapterError(
+      "release-unavailable",
+      "Current customer omission authority must contain unique safe relative paths.",
+    );
+  }
+  return normalized;
+}
+
+function currentCompositionManifest(
+  manifest: CustomerReleaseManifest,
+  currentOmissions: readonly string[],
+): CustomerReleaseManifest {
+  const exactPaths = new Set(
+    manifest.paths
+      .filter(({ match }) => match === "exact")
+      .map(({ path }) => path),
+  );
+  const conflict = currentOmissions.find((path) => exactPaths.has(path));
+  if (conflict !== undefined) {
+    throw new CustomerReleaseAdapterError(
+      "release-unavailable",
+      `Current customer omission overlaps reviewed exact authority: ${conflict}`,
+    );
+  }
+  return {
+    ...manifest,
+    paths: [
+      ...manifest.paths,
+      ...currentOmissions.map((path) => ({
+        path,
+        match: "exact" as const,
+        ownership: "factory-only" as const,
+        action: "omit" as const,
+        upgrade: "remove" as const,
+      })),
+    ],
   };
 }
 function resolveCleanCandidateCommit(repositoryRoot: string): string {
@@ -314,11 +382,12 @@ function materializationRequest(
   options: CustomerReleaseAdapterOptions,
   request: PrepareRequest,
   resolvedRelease: ResolvedRelease,
+  manifest: CustomerReleaseManifest,
   generatedFiles: Readonly<Record<string, Buffer>>,
   blueprint: ReturnType<typeof validateBlueprintTargetPlan>,
 ): CustomerMaterializationRequest {
   return {
-    manifest: resolvedRelease.manifest,
+    manifest,
     sourceRoot: resolvedRelease.sourceRoot,
     targetRoot: isAbsolute(request.target)
       ? resolve(request.target)
