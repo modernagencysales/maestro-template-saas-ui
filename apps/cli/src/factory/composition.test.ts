@@ -8,13 +8,13 @@ import {
 import { execFileSync, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import {
+  chmod,
   lstat,
   mkdir,
   mkdtemp,
   readFile,
   readdir,
   rm,
-  symlink,
   writeFile,
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -381,7 +381,12 @@ describe("factory CLI composition", () => {
       encoding: "utf8",
     }).trim();
     const isolatedBin = await mkdtemp(join(tmpdir(), "maestro-no-gitleaks-"));
-    await symlink(pnpmExecutable, join(isolatedBin, "pnpm"));
+    const isolatedPnpm = join(isolatedBin, "pnpm");
+    await writeFile(
+      isolatedPnpm,
+      `#!/bin/sh\nexec ${JSON.stringify(pnpmExecutable)} "$@"\n`,
+    );
+    await chmod(isolatedPnpm, 0o755);
     onTestFinished(() => rm(isolatedBin, { recursive: true, force: true }));
     const environment = {
       ...process.env,

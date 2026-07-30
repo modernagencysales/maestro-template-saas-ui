@@ -218,13 +218,29 @@ describe("materialized customer CLI runtime closure", () => {
     });
     expect(existsSync(join(target, ".git"))).toBe(false);
     execFileSync("git", ["init", "--quiet"], { cwd: target });
-    execFileSync("pnpm", ["run", "prepare"], {
+    const prepare = spawnSync("pnpm", ["run", "prepare"], {
       cwd: target,
-      stdio: "pipe",
+      encoding: "utf8",
       timeout: 30_000,
     });
-    expect(existsSync(join(target, ".git/hooks/pre-commit"))).toBe(true);
-    expect(existsSync(join(target, ".git/hooks/pre-push"))).toBe(true);
+    expect(prepare.status, `${prepare.stdout}\n${prepare.stderr}`).toBe(0);
+    const hooksPath = execFileSync(
+      "git",
+      ["rev-parse", "--git-path", "hooks"],
+      {
+        cwd: target,
+        encoding: "utf8",
+      },
+    ).trim();
+    const resolvedHooksPath = resolve(target, hooksPath);
+    const prepareOutput = `${prepare.stdout}\n${prepare.stderr}\nhooks=${resolvedHooksPath}`;
+    expect(
+      existsSync(join(resolvedHooksPath, "pre-commit")),
+      prepareOutput,
+    ).toBe(true);
+    expect(existsSync(join(resolvedHooksPath, "pre-push")), prepareOutput).toBe(
+      true,
+    );
     execFileSync("git", ["config", "user.email", "fixture@localhost"], {
       cwd: target,
     });
