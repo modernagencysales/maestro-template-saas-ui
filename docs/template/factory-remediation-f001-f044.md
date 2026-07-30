@@ -633,12 +633,17 @@ prove:
 - Focused result: the red regression passes; the complete SaaS blueprint suite
   passes 22/22, generator typecheck exits zero, scoped ESLint exits zero, and
   formatting plus `git diff --check` pass.
-- Clean-customer evidence: pending a post-commit public materialization from the
-  new exact source SHA followed by successful Confect codegen with an empty Git
-  diff.
-- Status: upstream implementation fixed; final fixed status waits for untouched
-  fresh-customer proof. ES-F-48 remains separately open pending its own
-  semantics evidence.
+- Clean-customer evidence: public preview from exact template source
+  `18be1945787a2429e6e6c8b51398f80f0e8ba6fc` reported 1,385 writes, 3,195
+  omissions, zero collisions, and the correct distinct target. Public
+  materialization created
+  `/private/tmp/maestro-fresh-customer-v2-mdTkr0/customer`; its pinned frozen
+  offline install passed without lock drift, doctor reported zero warnings and
+  failures, and baseline commit `c4730e137e362b43f1266ca808523db46d63c2fc`
+  remained clean after `pnpm confect:codegen` reported “Generated files are
+  up-to-date.”
+- Status: fixed for F-016. ES-F-48 remains separately open pending its own
+  reviewed-uncommitted-output semantics evidence.
 
 No full acceptance command is yet claimed passing. Exact command outputs and
 commit coordinates will be added only after observation.
