@@ -597,5 +597,48 @@ prove:
 - Status: upstream implementation fixed; final fixed status waits for untouched
   fresh-customer proof.
 
+### Generated Confect freshness cluster
+
+- ID/title: F-016 (generated Confect/Convex projections drift immediately after
+  materialization). ES-F-48 remains a distinct pre-commit freshness-semantics
+  finding because its reviewed-uncommitted-output root cause does not match this
+  stale factory projection.
+- Original posture: under evaluation/high for F-016; open external-user friction
+  for ES-F-48.
+- Confirmed reproduction: untouched customer
+  `/private/tmp/maestro-fresh-customer-ZbdsjziC/customer`, materialized from
+  template `8c80783ad1ba1ca92b16456a362a980172df92a4`, completed a frozen
+  install and doctor with zero warnings, then successful `pnpm confect:codegen`
+  changed `_generated/id.ts`, `_generated/spec.ts`, and `_generated/docs.ts`,
+  removed both flat `records.ts` wrappers, and created nested
+  `records/records.ts` wrappers.
+- Root cause: the SaaS registration projection manually encoded the historical
+  flat Confect group shape. Current Confect derives the source path
+  `records/records.spec.ts` as nested group `records.records`, emits nested
+  registered-function and Convex wrappers, includes the new table in generated
+  docs, and de-duplicates the existing `workflowArtifacts` table ID. The
+  reviewed alpha.1 plan still truthfully owns the historical flat layout and
+  must remain reproducible.
+- Regression: `saasApplication.test.ts` first failed on the absent nested
+  registered-function wrapper. It now pins nested wrapper imports, nested spec
+  ownership, Records document projection, single table-ID membership, absence of
+  the obsolete flat paths, and preservation of alpha.1's exact historical
+  projection authority.
+- Canonical fix: `saasRegistrationProjections.ts` emits current codegen-shaped
+  `spec`, `docs`, `id`, registered-function, and Convex wrapper projections only
+  for current-main. `saasApplication.ts` registers those current paths while
+  retaining the sealed historical paths for the alpha.1 plan. No generated
+  customer file, vendored Confect source, codegen gate, or deployment state was
+  edited.
+- Focused result: the red regression passes; the complete SaaS blueprint suite
+  passes 22/22, generator typecheck exits zero, scoped ESLint exits zero, and
+  formatting plus `git diff --check` pass.
+- Clean-customer evidence: pending a post-commit public materialization from the
+  new exact source SHA followed by successful Confect codegen with an empty Git
+  diff.
+- Status: upstream implementation fixed; final fixed status waits for untouched
+  fresh-customer proof. ES-F-48 remains separately open pending its own
+  semantics evidence.
+
 No full acceptance command is yet claimed passing. Exact command outputs and
 commit coordinates will be added only after observation.

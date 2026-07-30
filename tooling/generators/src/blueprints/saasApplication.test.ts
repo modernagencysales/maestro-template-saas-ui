@@ -227,6 +227,12 @@ describe("saas application blueprint", () => {
       "tooling/generators/src/private-package.ts",
       "tooling/quality/contract-review-rubric.md",
       "tooling/quality/taste-review.mts",
+      "packages/convex/confect/_generated/registeredFunctions/records/records.ts",
+      "packages/convex/convex/records/records.ts",
+    ]);
+    const postAlphaReplacedPaths = new Set([
+      "packages/convex/confect/_generated/registeredFunctions/records.ts",
+      "packages/convex/convex/records.ts",
     ]);
     const releaseRoot = join(
       repoRoot,
@@ -282,16 +288,18 @@ describe("saas application blueprint", () => {
       schemaVersion: manifest.schemaVersion,
       id: manifest.id,
       provenance: manifest.provenance,
-      registrations: manifest.registrations,
-      entries: manifest.entries.map(
-        ({ path, ownership, action, upgrade, replaces }) => ({
+      registrations: manifest.registrations.filter(
+        (path) => !postAlphaReplacedPaths.has(path),
+      ),
+      entries: manifest.entries
+        .filter(({ path }) => !postAlphaReplacedPaths.has(path))
+        .map(({ path, ownership, action, upgrade, replaces }) => ({
           path,
           ownership,
           action,
           upgrade,
           ...(replaces === undefined ? {} : { replaces }),
-        }),
-      ),
+        })),
     });
 
     const assets = new Map(
@@ -306,6 +314,12 @@ describe("saas application blueprint", () => {
     const currentEntries = new Map(
       plan.entries.map((entry) => [entry.path, entry]),
     );
+    const historicalEntries = new Map(
+      buildSaasApplicationAlpha1TargetPlan().entries.map((entry) => [
+        entry.path,
+        entry,
+      ]),
+    );
     const sourceCommit = manifest.projectionSource.sourceCommit;
     expect(sourceCommit).toMatch(/^[0-9a-f]{40}$/u);
     const sourceAvailable = spawnSync(
@@ -316,10 +330,15 @@ describe("saas application blueprint", () => {
     for (const entry of manifest.entries) {
       const asset = assets.get(`base/${entry.path}.txt`);
       const currentEntry = currentEntries.get(entry.path);
-      expect(
-        currentEntry,
-        `missing current projection for ${entry.path}`,
-      ).toBeDefined();
+      const projectionEntry = postAlphaReplacedPaths.has(entry.path)
+        ? historicalEntries.get(entry.path)
+        : currentEntry;
+      if (!postAlphaReplacedPaths.has(entry.path)) {
+        expect(
+          currentEntry,
+          `missing current projection for ${entry.path}`,
+        ).toBeDefined();
+      }
       const source =
         sourceAvailable.status === 0
           ? spawnSync(
@@ -333,7 +352,7 @@ describe("saas application blueprint", () => {
           ? `sha256:${createHash("sha256").update(source.stdout).digest("hex")}`
           : undefined;
       expect(
-        [asset?.sha256, sourceSha256, currentEntry?.sha256].filter(Boolean),
+        [asset?.sha256, sourceSha256, projectionEntry?.sha256].filter(Boolean),
       ).toContain(entry.sha256);
     }
 
@@ -513,7 +532,7 @@ describe("saas application blueprint", () => {
       'import ops_versioning from "../ops/versioning.spec";',
     );
     expect(projectedSpec?.content).toContain(
-      'import records from "../records/records.spec";',
+      'import records_records from "../records/records.spec";',
     );
     expect(projectedSpec?.content).toContain(
       "// unrelated integration registration",
@@ -878,8 +897,8 @@ describe("saas application blueprint", () => {
       "packages/convex/confect/_generated/convexSchema.ts",
       "packages/convex/confect/_generated/spec.ts",
       "packages/convex/confect/_generated/id.ts",
-      "packages/convex/confect/_generated/registeredFunctions/records.ts",
-      "packages/convex/convex/records.ts",
+      "packages/convex/confect/_generated/registeredFunctions/records/records.ts",
+      "packages/convex/convex/records/records.ts",
       "apps/web/src/routeTree.gen.ts",
       "apps/web/src/routeRegistry.generated.ts",
     ]);
@@ -973,6 +992,46 @@ describe("saas application blueprint", () => {
       status: "unavailable",
       reason: expect.stringContaining("semantic ledger"),
     });
+  });
+
+  it("projects the CRUD registration in Confect's codegen-stable layout", () => {
+    const files = new Map(
+      buildFactorySaasApplicationFiles({ name: "My App" }).map((file) => [
+        file.path,
+        file.content,
+      ]),
+    );
+
+    expect(
+      files.get(
+        "packages/convex/confect/_generated/registeredFunctions/records/records.ts",
+      ),
+    ).toContain('import databaseSchema from "../../schema";');
+    expect(files.get("packages/convex/convex/records/records.ts")).toContain(
+      'import registeredFunctions from "../../confect/_generated/registeredFunctions/records/records";',
+    );
+    expect(
+      files.has(
+        "packages/convex/confect/_generated/registeredFunctions/records.ts",
+      ),
+    ).toBe(false);
+    expect(files.has("packages/convex/convex/records.ts")).toBe(false);
+
+    const spec = files.get("packages/convex/confect/_generated/spec.ts") ?? "";
+    expect(spec).toContain(
+      'import records_records from "../records/records.spec";',
+    );
+    expect(spec).toContain(
+      'GroupSpec.makeAt("records").addGroupAt("records", records_records)',
+    );
+
+    const docs = files.get("packages/convex/confect/_generated/docs.ts") ?? "";
+    expect(docs).toContain("export type RecordsDoc =");
+    expect(docs).toContain("  records: RecordsDoc;");
+
+    const ids = files.get("packages/convex/confect/_generated/id.ts") ?? "";
+    expect(ids.match(/\| "records"/g)).toHaveLength(1);
+    expect(ids.match(/\| "workflowArtifacts"/g)).toHaveLength(1);
   });
 
   it("projects a customer-only root script closure", () => {

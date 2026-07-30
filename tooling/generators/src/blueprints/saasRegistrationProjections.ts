@@ -525,31 +525,64 @@ const convexSchema = (): string => {
   );
 };
 
-const confectSpec = (): string => {
+const confectSpec = (current: boolean): string => {
   let value = source("packages/convex/confect/_generated/spec.ts");
+  if (!current) {
+    value = replace(
+      value,
+      'import ops_versioning from "../ops/versioning.spec";',
+      'import ops_versioning from "../ops/versioning.spec";\nimport records from "../records/records.spec";',
+    );
+    value = replace(
+      value,
+      '  | GroupSpec.NamedAt<GroupSpec.GroupSpec<"Convex", "workflows"',
+      '  | GroupSpec.NamedAt<typeof records, "records">\n  | GroupSpec.NamedAt<GroupSpec.GroupSpec<"Convex", "workflows"',
+    );
+    return replace(
+      value,
+      ').addAt("workflows", GroupSpec.makeAt("workflows")',
+      ').addAt("records", records).addAt("workflows", GroupSpec.makeAt("workflows")',
+    );
+  }
   value = replace(
     value,
     'import ops_versioning from "../ops/versioning.spec";',
-    'import ops_versioning from "../ops/versioning.spec";\nimport records from "../records/records.spec";',
+    'import ops_versioning from "../ops/versioning.spec";\nimport records_records from "../records/records.spec";',
   );
   value = replace(
     value,
-    '  | GroupSpec.NamedAt<GroupSpec.GroupSpec<"Convex", "workflows"',
-    '  | GroupSpec.NamedAt<typeof records, "records">\n  | GroupSpec.NamedAt<GroupSpec.GroupSpec<"Convex", "workflows"',
+    '  | GroupSpec.NamedAt<GroupSpec.GroupSpec<"Convex", "workflowContracts"',
+    '  | GroupSpec.NamedAt<GroupSpec.GroupSpec<"Convex", "records", never, GroupSpec.NamedAt<typeof records_records, "records">>, "records">\n  | GroupSpec.NamedAt<GroupSpec.GroupSpec<"Convex", "workflowContracts"',
   );
   return replace(
     value,
-    ').addAt("workflows", GroupSpec.makeAt("workflows")',
-    ').addAt("records", records).addAt("workflows", GroupSpec.makeAt("workflows")',
+    ').addAt("workflowContracts", GroupSpec.makeAt("workflowContracts")',
+    ').addAt("records", GroupSpec.makeAt("records").addGroupAt("records", records_records)).addAt("workflowContracts", GroupSpec.makeAt("workflowContracts")',
   );
 };
 
-const confectIds = (): string =>
+const confectIds = (current: boolean): string =>
   replace(
     source("packages/convex/confect/_generated/id.ts"),
     ' | "promptRegistry" | "transformBlocks"',
-    ' | "promptRegistry" | "records" | "transformBlocks" | "workflowArtifacts"',
+    current
+      ? ' | "promptRegistry" | "records" | "transformBlocks"'
+      : ' | "promptRegistry" | "records" | "transformBlocks" | "workflowArtifacts"',
   );
+
+const confectDocs = (): string => {
+  let value = source("packages/convex/confect/_generated/docs.ts");
+  value = replace(
+    value,
+    'export type PromptRegistryDoc = Document.Document<typeof schemaDefinition, "promptRegistry">;',
+    'export type PromptRegistryDoc = Document.Document<typeof schemaDefinition, "promptRegistry">;\nexport type RecordsDoc = Document.Document<typeof schemaDefinition, "records">;',
+  );
+  return replace(
+    value,
+    "  promptRegistry: PromptRegistryDoc;",
+    "  promptRegistry: PromptRegistryDoc;\n  records: RecordsDoc;",
+  );
+};
 
 const routeTree = (): string => {
   let value = source("apps/web/src/routeTree.gen.ts");
@@ -794,11 +827,15 @@ export const buildSaasRegistrationProjections = (
     ].map((path) => ({
       path,
       content:
-        path.endsWith("Current.ts") ||
-        path.endsWith("workflowSchedule.ts") ||
-        path.endsWith("workflowScheduledCapability.ts")
-          ? currentSource(path)
-          : source(path),
+        path === "packages/convex/confect/_generated/docs.ts"
+          ? current
+            ? confectDocs()
+            : source(path)
+          : path.endsWith("Current.ts") ||
+              path.endsWith("workflowSchedule.ts") ||
+              path.endsWith("workflowScheduledCapability.ts")
+            ? currentSource(path)
+            : source(path),
     })),
     ...[
       "start.ts",
@@ -880,18 +917,27 @@ export const buildSaasRegistrationProjections = (
     },
     {
       path: "packages/convex/confect/_generated/spec.ts",
-      content: confectSpec(),
-    },
-    { path: "packages/convex/confect/_generated/id.ts", content: confectIds() },
-    {
-      path: "packages/convex/confect/_generated/registeredFunctions/records.ts",
-      content:
-        'import { RegisteredConvexFunction, RegisteredFunctions } from "@confect/server";\nimport databaseSchema from "../schema";\nimport records from "../../records/records.impl";\n\nexport default RegisteredFunctions.buildForGroup<typeof import("../../records/records.spec")["default"]>(databaseSchema, records, RegisteredConvexFunction.make);\n',
+      content: confectSpec(current),
     },
     {
-      path: "packages/convex/convex/records.ts",
-      content:
-        'import registeredFunctions from "../confect/_generated/registeredFunctions/records";\n\nexport const list = registeredFunctions.list;\nexport const read = registeredFunctions.read;\nexport const create = registeredFunctions.create;\n',
+      path: "packages/convex/confect/_generated/id.ts",
+      content: confectIds(current),
+    },
+    {
+      path: current
+        ? "packages/convex/confect/_generated/registeredFunctions/records/records.ts"
+        : "packages/convex/confect/_generated/registeredFunctions/records.ts",
+      content: current
+        ? 'import { RegisteredConvexFunction, RegisteredFunctions } from "@confect/server";\nimport databaseSchema from "../../schema";\nimport records from "../../../records/records.impl";\n\nexport default RegisteredFunctions.buildForGroup<typeof import("../../../records/records.spec")["default"]>(databaseSchema, records, RegisteredConvexFunction.make);\n'
+        : 'import { RegisteredConvexFunction, RegisteredFunctions } from "@confect/server";\nimport databaseSchema from "../schema";\nimport records from "../../records/records.impl";\n\nexport default RegisteredFunctions.buildForGroup<typeof import("../../records/records.spec")["default"]>(databaseSchema, records, RegisteredConvexFunction.make);\n',
+    },
+    {
+      path: current
+        ? "packages/convex/convex/records/records.ts"
+        : "packages/convex/convex/records.ts",
+      content: current
+        ? 'import registeredFunctions from "../../confect/_generated/registeredFunctions/records/records";\n\nexport const create = registeredFunctions.create;\nexport const list = registeredFunctions.list;\nexport const read = registeredFunctions.read;\n'
+        : 'import registeredFunctions from "../confect/_generated/registeredFunctions/records";\n\nexport const list = registeredFunctions.list;\nexport const read = registeredFunctions.read;\nexport const create = registeredFunctions.create;\n',
     },
     { path: "apps/web/src/routeTree.gen.ts", content: routeTree() },
     {

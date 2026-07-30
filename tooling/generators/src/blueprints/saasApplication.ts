@@ -557,8 +557,15 @@ function buildTargetPlan(
     "packages/convex/confect/_generated/convexSchema.ts",
     "packages/convex/confect/_generated/spec.ts",
     "packages/convex/confect/_generated/id.ts",
-    "packages/convex/confect/_generated/registeredFunctions/records.ts",
-    "packages/convex/convex/records.ts",
+    ...(current
+      ? [
+          "packages/convex/confect/_generated/registeredFunctions/records/records.ts",
+          "packages/convex/convex/records/records.ts",
+        ]
+      : [
+          "packages/convex/confect/_generated/registeredFunctions/records.ts",
+          "packages/convex/convex/records.ts",
+        ]),
     "apps/web/src/routes/_workspace.records.tsx",
     "apps/web/src/routeTree.gen.ts",
     "apps/web/src/routeRegistry.generated.ts",
