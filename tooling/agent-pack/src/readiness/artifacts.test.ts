@@ -196,28 +196,31 @@ describe("readiness canonical artifact adapter", () => {
         return value;
       },
     });
-    expect(result.receipt).toBeNull();
+    expect(result.receipt).toEqual({ malformed: true });
   });
 
   it.each([
-    ["malformed", "{not-json"],
-    ["missing", undefined],
-  ])("keeps a %s receipt secret-safe and unavailable", async (_name, raw) => {
-    const stored = files();
-    if (raw !== undefined)
-      stored.set("/customer/.maestro/verification-receipt.json", raw);
-    const result = await loadBuildReadinessInput({
-      repo,
-      preflight,
-      current,
-      readFile: async (path) => {
-        const value = stored.get(path);
-        if (value === undefined)
-          throw Object.assign(new Error("secret-value"), { code: "ENOENT" });
-        return value;
-      },
-    });
-    expect(result.receipt).toBeNull();
-    expect(JSON.stringify(result)).not.toContain("secret-value");
-  });
+    ["malformed", "{not-json", { malformed: true }],
+    ["missing", undefined, null],
+  ])(
+    "keeps a %s receipt secret-safe and unavailable",
+    async (_name, raw, expected) => {
+      const stored = files();
+      if (raw !== undefined)
+        stored.set("/customer/.maestro/verification-receipt.json", raw);
+      const result = await loadBuildReadinessInput({
+        repo,
+        preflight,
+        current,
+        readFile: async (path) => {
+          const value = stored.get(path);
+          if (value === undefined)
+            throw Object.assign(new Error("secret-value"), { code: "ENOENT" });
+          return value;
+        },
+      });
+      expect(result.receipt).toEqual(expected);
+      expect(JSON.stringify(result)).not.toContain("secret-value");
+    },
+  );
 });

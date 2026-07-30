@@ -49,12 +49,15 @@ export type BuildReadinessInput = {
     readonly kind: "screen" | "data" | "automation" | "connection" | "other";
     readonly status: ReadinessSurfaceStatus;
   }[];
-  readonly receipt: null | {
-    readonly subject: VerificationSubject;
-    readonly createdAt: string;
-    readonly status: VerificationReceiptSummary["status"];
-    readonly staleness: ReceiptStaleness;
-  };
+  readonly receipt:
+    | null
+    | { readonly malformed: true }
+    | {
+        readonly subject: VerificationSubject;
+        readonly createdAt: string;
+        readonly status: VerificationReceiptSummary["status"];
+        readonly staleness: ReceiptStaleness;
+      };
 };
 
 export type BuildReadinessView = {
@@ -166,7 +169,17 @@ function receiptSummary(
   receipt: BuildReadinessInput["receipt"],
 ): BuildReadinessView["receipt"] {
   if (receipt === null)
-    return { status: "Not verified", subject: "No receipt available" };
+    return {
+      status: "Not verified",
+      subject: "No Maestro verification receipt",
+      detail: "Run pnpm maestro -- verify --scope focused",
+    };
+  if ("malformed" in receipt)
+    return {
+      status: "Invalid",
+      subject: "Malformed Maestro verification receipt",
+      detail: "Run pnpm maestro -- verify --scope focused",
+    };
   return {
     status: receipt.staleness.stale
       ? "Stale"

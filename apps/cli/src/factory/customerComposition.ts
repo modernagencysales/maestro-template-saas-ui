@@ -5,6 +5,7 @@ import {
   createNodeBuildReadinessSurface,
   createNodeExecFileAdapter,
   createNodePreflightRuntimeReader,
+  createNodeVerificationReceiptWriter,
   createNodeSupportBundleExporter,
   createPreflightCommand,
   createSupportBundleCommand,
@@ -177,6 +178,9 @@ export function createCustomerCliComposition(
   const verify = createVerifyCommand({
     descriptors,
     runner,
+    writer: createNodeVerificationReceiptWriter({
+      maxBytes: policy.packageJsonMaxBytes,
+    }),
   });
   const check = createCheckCommand({ preflight, verify });
   const supportBundle = createSupportBundleCommand({

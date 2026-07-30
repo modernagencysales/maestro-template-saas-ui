@@ -19,6 +19,7 @@ import {
   type VerificationSubject,
 } from "./receipt.js";
 import type { RepositoryContext } from "./repoContext.js";
+import type { VerificationReceiptWriter } from "./receiptExport.js";
 
 export type VerifyInput = {
   readonly scope: "focused" | "full";
@@ -60,13 +61,14 @@ export type VerificationRunner = {
 export function createVerifyCommand(input: {
   readonly descriptors: readonly DiagnosticDescriptor[];
   readonly runner: VerificationRunner;
+  readonly writer?: VerificationReceiptWriter;
 }) {
   const registry = defineDiagnosticRegistryProjection(input.descriptors);
   return defineAgentPackCommand({
     id: "verify",
     schemaVersion: AGENT_PACK_COMMAND_VERSION,
     decode: decodeVerifyInput,
-    mutationPosture: () => "read-only",
+    mutationPosture: () => (input.writer === undefined ? "read-only" : "write"),
     execute: async (args, context) => {
       const descriptors = selectDescriptors(registry, args);
       const facts = await input.runner.inspect(context.repo);
@@ -123,10 +125,28 @@ export function createVerifyCommand(input: {
           semanticRuleIds: [...(observation.semanticRuleIds ?? [])],
         })),
       });
+      const persistenceDiagnostics: AgentPackDiagnostic[] = [];
+      if (input.writer !== undefined) {
+        try {
+          await input.writer.persist(context.repo, receipt);
+        } catch {
+          persistenceDiagnostics.push({
+            code: "AGENT_PACK_VERIFICATION_RECEIPT_PERSIST_FAILED",
+            severity: "error",
+            message:
+              "The complete verification receipt could not be persisted safely.",
+            safeToContinue: false,
+            nextAction:
+              "Restore the bounded .maestro receipt directory and rerun the owned verification command.",
+            rerun: `pnpm maestro -- verify --scope ${args.scope}`,
+          });
+        }
+      }
       const diagnostics = [
         ...selectionDiagnostics,
         ...metadataDiagnostics,
         ...runnerDiagnostics,
+        ...persistenceDiagnostics,
         ...observations.flatMap(({ descriptor, observation }) =>
           observation.status === "pass"
             ? []
@@ -155,21 +175,35 @@ export function createVerifyCommand(input: {
         selectionDiagnostics.length > 0 ||
         summary.requiredFailures.length > 0 ||
         metadataDiagnostics.length > 0 ||
+        persistenceDiagnostics.length > 0 ||
         runnerDiagnostics.some(({ severity }) => severity === "error");
       return {
-        mutationPosture: "read-only" as const,
+        mutationPosture:
+          input.writer === undefined
+            ? ("read-only" as const)
+            : ("write" as const),
         exitClass:
           diagnostics.length === 0
             ? ("success" as const)
             : ("findings" as const),
         summary:
-          diagnostics.length === 0
-            ? "Verification passed."
-            : requiredBlocking
-              ? "Verification found required failures."
-              : "Required verification passed with advisory findings.",
+          persistenceDiagnostics.length > 0
+            ? "Verification evidence could not be persisted."
+            : diagnostics.length === 0
+              ? "Verification passed."
+              : requiredBlocking
+                ? "Verification found required failures."
+                : "Required verification passed with advisory findings.",
         diagnostics,
-        data: { receipt, summary, requiredBlocking },
+        data: {
+          receipt,
+          summary,
+          requiredBlocking,
+          receiptPersisted:
+            input.writer === undefined
+              ? null
+              : persistenceDiagnostics.length === 0,
+        },
       };
     },
   });

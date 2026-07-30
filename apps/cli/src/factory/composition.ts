@@ -252,16 +252,22 @@ export function createFactoryCliComposition(
     }),
   });
 
-  const verify = createVerifyCommand({
+  const receiptWriter = createNodeVerificationReceiptWriter({
+    maxBytes: FACTORY_EXECUTION_POLICY.packageJsonMaxBytes,
+  });
+  const readOnlyVerify = createVerifyCommand({
     descriptors,
     runner: verificationRunner,
   });
+  const verify = createVerifyCommand({
+    descriptors,
+    runner: verificationRunner,
+    writer: receiptWriter,
+  });
   const verifyExport = createVerificationReceiptExportCommand({
     preflight,
-    verify,
-    receiptWriter: createNodeVerificationReceiptWriter({
-      maxBytes: FACTORY_EXECUTION_POLICY.packageJsonMaxBytes,
-    }),
+    verify: readOnlyVerify,
+    receiptWriter,
   });
   const check = createCheckCommand({ preflight, verify });
   const planCheck = createPlanCheckCommand({
@@ -524,7 +530,13 @@ export function createFactoryCliComposition(
   const mcp = createMcpCliAdapter(({ stdin, stdout, stderr, cwd }) => {
     const repo = createRepositoryContext({ cwd });
     const baseProjection = createMaestroMcpProjection(
-      { preflight, planCheck, scaffold, supportBundle, verify },
+      {
+        preflight,
+        planCheck,
+        scaffold,
+        supportBundle,
+        verify: readOnlyVerify,
+      },
       repo,
     );
     const appMapProjection = createAppMapMcpProjection(cwd);
