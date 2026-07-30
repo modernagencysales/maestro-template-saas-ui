@@ -60,14 +60,23 @@ All commands used Node `22.23.2`; the active package manager was pnpm `10.12.1`.
   passed and 1 skipped; CLI 130/130; Convex 577/577; workflow conformance
   130/130; create-root integration 8/8; privacy no-network 15/15; release unit
   295/295; and final customer filesystem 2/2.
-- The final host-semaphored `just verify` run exited 0. Formatting, lint,
-  typecheck (25/25 tasks), Effect diagnostics (0 errors and 0 warnings), build
-  (20/20 tasks), generator, release-closure, and policy gates passed. The
-  consolidated policy suite passed 276/276 files and 1940/1940 tests; the
-  coverage ratchet held at 78.03% lines, 85.49% functions, 80.90% branches, and
-  78.03% statements; type coverage was 99.80%.
+- The last permitted host-semaphored `just verify` run, at `de9e0be` before the
+  bundle-budget follow-up, exited 0. Formatting, lint, typecheck (25/25 tasks),
+  Effect diagnostics (0 errors and 0 warnings), build (20/20 tasks), generator,
+  release-closure, and policy gates passed. The consolidated policy suite passed
+  276/276 files and 1940/1940 tests; the coverage ratchet held at 78.03% lines,
+  85.49% functions, 80.90% branches, and 78.03% statements; type coverage was
+  99.80%.
 - The canonical `check:secret-canaries` repository scan completed with
   `no leaks found`.
 - The focused production web build exited 0 without an oversized-chunk warning;
   its post-build budget check passed at 512,000 bytes per client JavaScript
-  chunk. Bundle-policy tests passed 10/10 and budget-checker tests passed 2/2.
+  chunk. At `3cf8b01`, bundle-policy tests passed 10/10, budget-checker tests
+  passed 2/2, the web project typechecked, the blueprint suite passed 18/18,
+  focused ESLint and Prettier checks passed, the hardening manifest matched all
+  209 generated plan entries, and the canonical repository gitleaks scan found
+  no leaks.
+- The post-change immutable customer-runtime assertion completed successfully,
+  but the focused Vitest process exited 1 after 126 seconds because its worker
+  timed out reporting `onTaskUpdate` under shared-host load. Per
+  launch-controller priority, no replacement broad/full host gate was started.
