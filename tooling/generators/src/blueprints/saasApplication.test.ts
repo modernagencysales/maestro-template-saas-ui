@@ -206,6 +206,7 @@ describe("saas application blueprint", () => {
       ...CURRENT_SAAS_DEPLOY_AUTHORITY_TABLE_CLOSURE,
       ...CURRENT_SAAS_DEPLOY_AUTHORITY_SOURCE_CLOSURE,
       "apps/cli/package.json",
+      "apps/web/package.json",
       "apps/cli/src/factory/mcp.ts",
       "docs/template/data-resources.json",
       "docs/template/system-catalog.json",
@@ -548,6 +549,31 @@ describe("saas application blueprint", () => {
     expect(entries[0]).toMatchObject({ path: runnerPath, replaces: "copy" });
   });
 
+  it("projects the current web manifest with the current customer lockfile", () => {
+    const entries = new Map(
+      buildSaasApplicationTargetPlan().entries.map((entry) => [
+        entry.path,
+        entry,
+      ]),
+    );
+    const webManifest = entries.get("apps/web/package.json");
+    expect(webManifest).toMatchObject({
+      ownership: "generated",
+      action: "generate",
+      upgrade: "regenerate",
+      replaces: "copy",
+    });
+    expect(webManifest?.content).toBe(
+      readFileSync(join(repoRoot, "apps/web/package.json"), "utf8"),
+    );
+    expect(entries.get("pnpm-lock.yaml")).toMatchObject({
+      ownership: "generated",
+      action: "generate",
+      upgrade: "regenerate",
+      replaces: "copy",
+    });
+  });
+
   it("introduces private-package closure without false release replacements", () => {
     const entries = new Map(
       buildSaasApplicationTargetPlan().entries.map((entry) => [
@@ -639,6 +665,7 @@ describe("saas application blueprint", () => {
       "apps/cli/src/factory/mcp.ts",
       "apps/cli/src/index.ts",
       "apps/cli/package.json",
+      "apps/web/package.json",
       "apps/cli/src/factory/start.ts",
       "apps/cli/src/factory/supportBundle.ts",
       "package.json",

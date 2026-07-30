@@ -613,6 +613,10 @@ export const buildSaasRegistrationProjections = (
             path: "apps/cli/package.json",
             content: customerCliPackage(),
           },
+          {
+            path: "apps/web/package.json",
+            content: currentSource("apps/web/package.json"),
+          },
         ]
       : []),
     {

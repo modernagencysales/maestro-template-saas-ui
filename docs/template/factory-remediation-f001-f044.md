@@ -143,6 +143,9 @@ prove:
   Auth exploration and preserved the existing WorkOS/AuthKit identity and
   tenancy architecture. Reproduced the customer MCP package-root export gap and
   repaired the canonical customer Agent Pack projection.
+- 2026-07-29: release-shaped customer reproduction found that the React 19.1.1
+  lock projection was paired with the alpha.1 base web manifest at 19.1.0. The
+  current target plan now replaces both authorities together.
 
 ## Verification evidence
 
@@ -455,8 +458,10 @@ prove:
   ReactDOM pins, and proves each pin satisfies every declared React peer range.
 - Canonical fix: `apps/web/package.json` now pins React and ReactDOM together at
   `19.1.1`; `pnpm-lock.yaml` was regenerated with pnpm `10.12.1` and formatted
-  without refreshing unrelated dependency versions. No Confect, Effect, Saas UI,
-  or framework package was upgraded.
+  without refreshing unrelated dependency versions. The current customer target
+  plan also replaces the release base's `apps/web/package.json` with that
+  canonical manifest whenever it projects the current lockfile. No Confect,
+  Effect, Saas UI, or framework package was upgraded.
 - Focused result: the red-to-green compatibility test passes 1/1; a pinned
   frozen install succeeds with the resolution step skipped and no peer warning;
   web typecheck exits zero; all 27 web files and 102 tests pass; the production
@@ -464,8 +469,10 @@ prove:
   and formatting pass. The existing large client-chunk warning is preserved as
   separate F-027 evidence and was not suppressed or threshold-adjusted.
 - Clean-customer evidence: source compatibility and the template workspace are
-  green; final untouched fresh-customer frozen install and full acceptance
-  remain pending.
+  green. A release-shaped reproduction first failed frozen install with the
+  projected lock at 19.1.1 and retained manifest at 19.1.0; the target-plan
+  regression now pins both current authorities. Post-commit frozen-install and
+  final untouched fresh-customer acceptance remain pending.
 - Status: upstream implementation fixed; final fixed status waits for the
   isolated clean-customer acceptance run.
 

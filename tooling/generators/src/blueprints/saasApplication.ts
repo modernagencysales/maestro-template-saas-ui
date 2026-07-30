@@ -274,6 +274,7 @@ function buildTargetPlan(
     ...(current
       ? ([
           ["apps/cli/package.json", "copy"],
+          ["apps/web/package.json", "copy"],
           ["pnpm-lock.yaml", "copy"],
         ] as const)
       : []),
@@ -420,6 +421,7 @@ function buildTargetPlan(
         ]
       : []),
     ...(current ? ["apps/cli/package.json"] : []),
+    ...(current ? ["apps/web/package.json"] : []),
     "apps/cli/src/factory/customerComposition.ts",
     ...(current ? ["apps/cli/src/factory/mcp.ts"] : []),
     "apps/cli/src/index.ts",
