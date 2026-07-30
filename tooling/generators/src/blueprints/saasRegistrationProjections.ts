@@ -74,8 +74,18 @@ export const CURRENT_SAAS_DEPLOY_AUTHORITY_TABLE_CLOSURE = [
   "packages/convex/confect/tables/deployVerdicts.ts",
 ] as const;
 export const CURRENT_SAAS_DEPLOY_AUTHORITY_SOURCE_CLOSURE = [
+  "packages/convex/confect/deploy/authority.impl.ts",
+  "packages/convex/confect/deploy/authority.spec.ts",
+  "packages/convex/confect/deploy/authority.ts",
   "packages/convex/confect/deployAuthority/admin.ts",
+  "packages/convex/confect/deployAuthority/env.ts",
+  "packages/convex/confect/deployAuthority/http.ts",
   "packages/convex/confect/deployAuthority/store.ts",
+  "packages/convex/confect/http.ts",
+  "packages/convex/confect/shared/env.ts",
+  "packages/convex/convex/convex.config.ts",
+  "packages/convex/convex/deploy/authority.ts",
+  "packages/convex/test/deploy-authority.test.ts",
 ] as const;
 
 export const CUSTOMER_ROOT_SCRIPTS = [

@@ -339,17 +339,22 @@ prove:
   missing table fields, and missing indexes.
 - Root cause: the current target plan introduced the new admin owner and two new
   tables but did not project the complete pre-existing source/table dependency
-  closure that changed with that owner.
+  closure that changed with that owner. The first closure repair removed the
+  admin/schema failures and exposed the same drift one edge farther out: the
+  historical deploy caller and test still passed the superseded runtime-key
+  contract into the current store.
 - Regression: the SaaS target-plan test now requires the current store plus the
   action-consumption, approval, census-snapshot, issuer, and verdict table
   definitions to be reviewed `copy` replacements, while the newly introduced
   admin and audit-event files remain replacement-free. The committed root-create
   integration compiles the resulting materialized Convex registry.
 - Canonical fix: `saasRegistrationProjections.ts` owns the complete current
-  deployment-authority source/table closure, and `saasApplication.ts` binds only
-  paths actually written by the immutable release to `replaces: "copy"`. No
-  deployment command, pipeline, provider, secret, generated Confect file, or
-  generated Convex file was mutated.
+  deployment-authority source/table closure, including the Confect spec/impl,
+  plain Convex caller, environment and HTTP boundaries, generated wrapper,
+  component config, and behavioral test. `saasApplication.ts` binds only paths
+  actually written by the immutable release to `replaces: "copy"`. No deployment
+  command, pipeline, provider, secret, generated Confect file, or generated
+  Convex file was hand-edited or executed.
 - Focused result: the target-plan regression failed on the absent store path and
   then passed; the complete SaaS blueprint suite passes 21/21. Generator
   typecheck, formatting, scoped lint, and `git diff --check` all exit zero.
