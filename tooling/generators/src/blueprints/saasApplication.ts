@@ -434,6 +434,10 @@ function buildTargetPlan(
       ? [
           "tooling/generators/src/private-package.ts",
           "examples/generic-ai-ops/template-package.json",
+          "lefthook.yml",
+          "scripts/pre-push-rubric.sh",
+          "tooling/quality/contract-review-rubric.md",
+          "tooling/quality/taste-review.mts",
         ]
       : []),
     "tooling/quality/install-lefthook-if-git.mjs",
@@ -535,6 +539,10 @@ function buildTargetPlan(
   const currentOnlyRegistrations = new Set([
     "docs/template/agent-pack-privacy.md",
     "apps/cli/src/factory/supportBundle.ts",
+    "lefthook.yml",
+    "scripts/pre-push-rubric.sh",
+    "tooling/quality/contract-review-rubric.md",
+    "tooling/quality/taste-review.mts",
     "tooling/agent-pack/src/mcp/protocol.ts",
     "tooling/agent-pack/src/mcp/projection.ts",
     "tooling/agent-pack/src/mcp/server.ts",

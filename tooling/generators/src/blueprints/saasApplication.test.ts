@@ -211,11 +211,15 @@ describe("saas application blueprint", () => {
       "docs/template/data-resources.json",
       "docs/template/system-catalog.json",
       "examples/generic-ai-ops/template-package.json",
+      "lefthook.yml",
       "pnpm-lock.yaml",
+      "scripts/pre-push-rubric.sh",
       "tooling/agent-pack/src/mcp/projection.ts",
       "tooling/agent-pack/src/mcp/protocol.ts",
       "tooling/agent-pack/src/mcp/server.ts",
       "tooling/generators/src/private-package.ts",
+      "tooling/quality/contract-review-rubric.md",
+      "tooling/quality/taste-review.mts",
     ]);
     const releaseRoot = join(
       repoRoot,
@@ -596,6 +600,29 @@ describe("saas application blueprint", () => {
     });
   });
 
+  it("projects a complete customer Git hook closure", () => {
+    const entries = new Map(
+      buildSaasApplicationTargetPlan().entries.map((entry) => [
+        entry.path,
+        entry,
+      ]),
+    );
+    for (const path of [
+      "lefthook.yml",
+      "scripts/pre-push-rubric.sh",
+      "tooling/quality/contract-review-rubric.md",
+      "tooling/quality/taste-review.mts",
+    ]) {
+      expect(entries.get(path)).toMatchObject({
+        ownership: "generated",
+        action: "generate",
+        upgrade: "regenerate",
+        content: readFileSync(join(repoRoot, path), "utf8"),
+      });
+      expect(entries.get(path)).not.toHaveProperty("replaces");
+    }
+  });
+
   it("introduces private-package closure without false release replacements", () => {
     const entries = new Map(
       buildSaasApplicationTargetPlan().entries.map((entry) => [
@@ -697,6 +724,10 @@ describe("saas application blueprint", () => {
       "packages/convex/confect/ops/dataResources.generated.ts",
       "tooling/generators/package.json",
       "examples/generic-ai-ops/template-package.json",
+      "lefthook.yml",
+      "scripts/pre-push-rubric.sh",
+      "tooling/quality/contract-review-rubric.md",
+      "tooling/quality/taste-review.mts",
       "tooling/quality/install-lefthook-if-git.mjs",
       "tooling/generators/src/customer.ts",
       "tooling/generators/src/customer-runtime.ts",

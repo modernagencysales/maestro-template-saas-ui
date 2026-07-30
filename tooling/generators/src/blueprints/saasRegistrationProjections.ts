@@ -663,6 +663,14 @@ export const buildSaasRegistrationProjections = (
           },
         ]
       : []),
+    ...(current
+      ? [
+          "lefthook.yml",
+          "scripts/pre-push-rubric.sh",
+          "tooling/quality/contract-review-rubric.md",
+          "tooling/quality/taste-review.mts",
+        ].map((path) => ({ path, content: currentSource(path) }))
+      : []),
     {
       path: "tooling/quality/install-lefthook-if-git.mjs",
       content: source("tooling/quality/install-lefthook-if-git.mjs"),
