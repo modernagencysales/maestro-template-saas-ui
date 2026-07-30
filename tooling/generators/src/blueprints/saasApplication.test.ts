@@ -704,7 +704,6 @@ describe("saas application blueprint", () => {
       "packages/convex/confect/deploy/authority.impl.ts",
       "packages/convex/confect/deploy/authority.spec.ts",
       "packages/convex/confect/deploy/authority.ts",
-      "packages/convex/confect/deployAuthority/env.ts",
       "packages/convex/confect/deployAuthority/http.ts",
       "packages/convex/confect/deployAuthority/store.ts",
       "packages/convex/confect/http.ts",
@@ -728,6 +727,8 @@ describe("saas application blueprint", () => {
     }
     for (const path of [
       "packages/convex/confect/_generated/tables/deployAuthorityAuditEvents.ts",
+      "packages/convex/confect/deployAuthority/env.ts",
+      "packages/convex/confect/deployAuthority/admin.ts",
       "packages/convex/confect/tables/deployAuthorityAuditEvents.ts",
     ]) {
       expect(entries.get(path), path).not.toHaveProperty("replaces");

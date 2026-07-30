@@ -361,7 +361,7 @@ describe("create root integration", () => {
       "--privacy-reviewed",
       "--json",
     ]);
-    expect(result.exitCode, result.stderr).toBe(0);
+    expect(result.exitCode, `${result.stdout}\n${result.stderr}`).toBe(0);
     expect(JSON.parse(result.stdout)).toMatchObject({ exitClass: "success" });
     const required = [
       "packages/convex/confect/tables/records.ts",

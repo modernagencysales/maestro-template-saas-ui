@@ -352,12 +352,13 @@ prove:
   deployment-authority source/table closure, including the Confect spec/impl,
   plain Convex caller, environment and HTTP boundaries, generated wrapper,
   component config, and behavioral test. `saasApplication.ts` binds only paths
-  actually written by the immutable release to `replaces: "copy"`. No deployment
-  command, pipeline, provider, secret, generated Confect file, or generated
-  Convex file was hand-edited or executed.
+  actually written by reviewed source commit `de1bac52` to `replaces: "copy"`;
+  the later `deployAuthority/env.ts` introduction has no replacement claim. No
+  deployment command, pipeline, provider, secret, generated Confect file, or
+  generated Convex file was hand-edited or executed.
 - Focused result: the target-plan regression failed on the absent store path and
-  then passed; the complete SaaS blueprint suite passes 21/21. Generator
-  typecheck, formatting, scoped lint, and `git diff --check` all exit zero.
+  then passed; the complete SaaS blueprint suite passes 21/21. Generator and CLI
+  typechecks, formatting, scoped lint, and `git diff --check` all exit zero.
 - Clean-customer evidence: pending the post-commit root-create compile and final
   isolated public acceptance.
 - Status: source repair in progress; final fixed status waits for committed

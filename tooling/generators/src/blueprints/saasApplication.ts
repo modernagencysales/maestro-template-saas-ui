@@ -305,7 +305,6 @@ function buildTargetPlan(
     ["packages/convex/confect/deploy/authority.impl.ts", "copy"],
     ["packages/convex/confect/deploy/authority.spec.ts", "copy"],
     ["packages/convex/confect/deploy/authority.ts", "copy"],
-    ["packages/convex/confect/deployAuthority/env.ts", "copy"],
     ["packages/convex/confect/deployAuthority/http.ts", "copy"],
     ["packages/convex/confect/deployAuthority/store.ts", "copy"],
     ["packages/convex/confect/http.ts", "copy"],
