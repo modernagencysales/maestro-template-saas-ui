@@ -784,7 +784,7 @@ prove:
 - Clean-customer evidence: pending post-commit v6 materialization and untouched
   `just verify`.
 - Status: upstream source fixed; final fixed status waits for untouched
-  fresh-customer proof and commit coordinate.
+  fresh-customer proof. Source commit: `1f149645`.
 
 ### FR-F-003 — Customer tests reference omitted factory source trees
 
@@ -811,7 +811,7 @@ prove:
 - Clean-customer evidence: pending post-commit v6 materialization and untouched
   test/coverage gates.
 - Status: upstream source fixed; final fixed status waits for untouched
-  fresh-customer proof and commit coordinate.
+  fresh-customer proof. Source commit: `1f149645`.
 
 ### FR-F-004 — Generated Records route lacks canonical ownership provenance
 
@@ -836,7 +836,7 @@ prove:
 - Clean-customer evidence: pending post-commit v6 materialization and untouched
   topology/App Map gates.
 - Status: upstream source fixed; final fixed status waits for untouched
-  fresh-customer proof and commit coordinate.
+  fresh-customer proof. Source commit: `1f149645`.
 
 ### FR-F-005 — Current policy repair mutates an immutable publication closure
 
@@ -873,7 +873,38 @@ prove:
 - Clean-customer evidence: pending post-commit v6 materialization and untouched
   workflow-publication/`just verify` proof.
 - Status: upstream source fixed; final fixed status waits for untouched
-  fresh-customer proof and commit coordinate.
+  fresh-customer proof. Source commit: `1f149645`.
+
+### FR-F-006 — Current generated path is registered twice
+
+- ID/title: FR-F-006 (current generated path is registered twice).
+- Original posture: newly reproduced/critical because the public create preview
+  fails closed before any customer write.
+- Confirmed reproduction: exact-SHA release clone
+  `/private/tmp/maestro-fresh-customer-v6-3KM4em/release` at `1f149645` passed a
+  pinned frozen offline install, then `pnpm maestro -- create ... --details`
+  returned `AGENT_PACK_CREATE_RELEASE_UNAVAILABLE` with “Blueprint target plan
+  is incomplete or contains drift.” A read-only invariant probe found 224 unique
+  entries and valid hashes but duplicate registration of only
+  `packages/convex/confect/workflows/_kit/policySnapshotCurrent.ts`.
+- Root cause: the new current policy source was registered both with the generic
+  customer source projections and with the current workflow-kit closure. The
+  existing sealed-manifest comparison filtered post-alpha paths before comparing
+  registrations, so it did not assert current-plan uniqueness.
+- Regression: the SaaS blueprint suite now asserts registration uniqueness on
+  the complete current plan before any historical filtering. It failed with 140
+  registrations versus 139 unique paths before the repair.
+- Canonical fix and files: `saasApplication.ts` keeps the single semantically
+  correct workflow-kit registration and removes the duplicate source-projection
+  registration. The generated entry remains `generate`/`regenerate` with no
+  replacement claim.
+- Focused result: the red-to-green SaaS blueprint suite passes; generator
+  typecheck, scoped lint/format, and the public preview rerun are required
+  before final status.
+- Clean-customer evidence: pending a new exact-SHA release clone and untouched
+  v6 materialization; the failed preview wrote no customer files.
+- Status: upstream source fixed; final fixed status waits for focused gates,
+  commit, and untouched fresh-customer proof.
 
 No full acceptance command is yet claimed passing. Exact command outputs and
 commit coordinates will be added only after observation.

@@ -322,6 +322,7 @@ describe("saas application blueprint", () => {
 
   it("matches the sealed alpha.1 manifest to its historical assets and current structure", () => {
     const plan = buildSaasApplicationTargetPlan();
+    expect(new Set(plan.registrations).size).toBe(plan.registrations.length);
     const postAlphaCurrentPaths = new Set<string>([
       ...CURRENT_SAAS_DEPLOY_AUTHORITY_TABLE_CLOSURE,
       ...CURRENT_SAAS_DEPLOY_AUTHORITY_SOURCE_CLOSURE,
