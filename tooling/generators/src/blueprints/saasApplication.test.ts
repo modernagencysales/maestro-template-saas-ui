@@ -212,6 +212,9 @@ describe("saas application blueprint", () => {
       "docs/template/system-catalog.json",
       "examples/generic-ai-ops/template-package.json",
       "pnpm-lock.yaml",
+      "tooling/agent-pack/src/mcp/projection.ts",
+      "tooling/agent-pack/src/mcp/protocol.ts",
+      "tooling/agent-pack/src/mcp/server.ts",
       "tooling/generators/src/private-package.ts",
     ]);
     const releaseRoot = join(
@@ -382,6 +385,9 @@ describe("saas application blueprint", () => {
       for (const path of [
         "apps/cli/src/factory/mcp.ts",
         "apps/cli/src/factory/supportBundle.ts",
+        "tooling/agent-pack/src/mcp/protocol.ts",
+        "tooling/agent-pack/src/mcp/projection.ts",
+        "tooling/agent-pack/src/mcp/server.ts",
         "tooling/agent-pack/src/privacy/supportBundle.ts",
         "tooling/agent-pack/src/privacy/supportBundleCommand.ts",
         "tooling/agent-pack/src/privacy/nodeSupportBundleExporter.ts",
@@ -417,6 +423,22 @@ describe("saas application blueprint", () => {
         upgrade: "regenerate",
       });
       expect(mcpEntry).not.toHaveProperty("replaces");
+      for (const path of [
+        "tooling/agent-pack/src/mcp/protocol.ts",
+        "tooling/agent-pack/src/mcp/projection.ts",
+        "tooling/agent-pack/src/mcp/server.ts",
+      ]) {
+        expect(plan.entries.find((entry) => entry.path === path)).toMatchObject(
+          {
+            ownership: "generated",
+            action: "generate",
+            upgrade: "regenerate",
+          },
+        );
+        expect(
+          plan.entries.find((entry) => entry.path === path),
+        ).not.toHaveProperty("replaces");
+      }
     } finally {
       rmSync(targetRoot, { recursive: true, force: true });
     }
@@ -744,6 +766,9 @@ describe("saas application blueprint", () => {
       "tooling/agent-pack/src/readiness/nodeSurface.ts",
       "tooling/agent-pack/src/readiness/presenter.ts",
       "tooling/agent-pack/src/readiness/server.ts",
+      "tooling/agent-pack/src/mcp/protocol.ts",
+      "tooling/agent-pack/src/mcp/projection.ts",
+      "tooling/agent-pack/src/mcp/server.ts",
       "tooling/agent-pack/src/privacy/supportBundle.ts",
       "tooling/agent-pack/src/privacy/supportBundleCommand.ts",
       "tooling/agent-pack/src/privacy/nodeSupportBundleExporter.ts",

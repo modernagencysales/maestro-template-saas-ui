@@ -363,13 +363,15 @@ prove:
   configure authority. A later release-shaped import exposed that
   `tooling/agent-pack/src/customer.ts`, which becomes the generated package
   root, omitted the MCP protocol, projection, and server exports. The canonical
-  customer export now retains exactly those three runtime modules; the target
-  plan regression reads the materialized package root and pins all three.
+  customer export now retains exactly those three runtime modules. The immutable
+  release manifest omits their source paths, so the current plan also introduces
+  all three as generated/regenerated output with no false `replaces` authority;
+  the target-plan regression pins both the package-root exports and real files.
 - Focused result: Agent Pack MCP tests pass 21/21, customer stdio composition
   passes 1/1, SaaS blueprint tests pass 17/17, and Agent Pack, CLI, and
-  generator typechecks exit zero. After the export-closure repair, the complete
-  SaaS blueprint file passes 18/18 and both Agent Pack and generator typechecks
-  exit zero.
+  generator typechecks exit zero. After the export and source-closure repairs,
+  the complete SaaS blueprint file passes 19/19 and both Agent Pack and
+  generator typechecks exit zero.
 - Clean-customer evidence: pending the post-commit release-shaped MCP test and
   final isolated public acceptance.
 - Status: upstream implementation fixed; final fixed status waits for untouched

@@ -777,6 +777,14 @@ export const buildSaasRegistrationProjections = (
           : source(`tooling/agent-pack/src/${path}`),
     })),
     ...(current
+      ? ["mcp/protocol.ts", "mcp/projection.ts", "mcp/server.ts"].map(
+          (path) => ({
+            path: `tooling/agent-pack/src/${path}`,
+            content: currentSource(`tooling/agent-pack/src/${path}`),
+          }),
+        )
+      : []),
+    ...(current
       ? [
           "privacy/supportBundle.ts",
           "privacy/supportBundleCommand.ts",

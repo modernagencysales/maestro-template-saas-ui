@@ -495,6 +495,13 @@ function buildTargetPlan(
     "tooling/agent-pack/src/verify.ts",
     "tooling/agent-pack/src/receiptWriter.ts",
     "tooling/agent-pack/src/index.ts",
+    ...(current
+      ? [
+          "tooling/agent-pack/src/mcp/protocol.ts",
+          "tooling/agent-pack/src/mcp/projection.ts",
+          "tooling/agent-pack/src/mcp/server.ts",
+        ]
+      : []),
     "tooling/agent-pack/src/readiness/artifacts.ts",
     "tooling/agent-pack/src/readiness/index.ts",
     "tooling/agent-pack/src/readiness/nodeSurface.ts",
@@ -528,6 +535,9 @@ function buildTargetPlan(
   const currentOnlyRegistrations = new Set([
     "docs/template/agent-pack-privacy.md",
     "apps/cli/src/factory/supportBundle.ts",
+    "tooling/agent-pack/src/mcp/protocol.ts",
+    "tooling/agent-pack/src/mcp/projection.ts",
+    "tooling/agent-pack/src/mcp/server.ts",
     "tooling/agent-pack/src/privacy/supportBundle.ts",
     "tooling/agent-pack/src/privacy/supportBundleCommand.ts",
     "tooling/agent-pack/src/privacy/nodeSupportBundleExporter.ts",
