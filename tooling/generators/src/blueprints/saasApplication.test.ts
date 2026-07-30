@@ -394,6 +394,19 @@ describe("saas application blueprint", () => {
           "utf8",
         ),
       ).toContain("createSupportBundleCliHandler");
+      const customerAgentPackEntry = readFileSync(
+        join(targetRoot, "tooling/agent-pack/src/index.ts"),
+        "utf8",
+      );
+      for (const exportedMcpModule of [
+        "./mcp/protocol.js",
+        "./mcp/projection.js",
+        "./mcp/server.js",
+      ]) {
+        expect(customerAgentPackEntry).toContain(
+          `export * from "${exportedMcpModule}";`,
+        );
+      }
       const mcpEntry = plan.entries.find(
         ({ path }) => path === "apps/cli/src/factory/mcp.ts",
       );

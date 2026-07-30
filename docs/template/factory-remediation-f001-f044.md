@@ -139,6 +139,10 @@ prove:
 - 2026-07-29: added a Node-standard-library bootstrap preflight for fresh
   checkouts and removed pnpm 9.15.4 from the customer preflight allowlist so the
   repository's `packageManager` field is the single version authority.
+- 2026-07-29: resumed on the migrated worktree; explicitly canceled the Convex
+  Auth exploration and preserved the existing WorkOS/AuthKit identity and
+  tenancy architecture. Reproduced the customer MCP package-root export gap and
+  repaired the canonical customer Agent Pack projection.
 
 ## Verification evidence
 
@@ -353,10 +357,16 @@ prove:
   descriptor set by the supplied command composition. Customer composition
   exposes only preflight, support preview, and verify, and customer CLI
   projection retains the canonical stdio entry without restoring factory-only
-  configure authority.
+  configure authority. A later release-shaped import exposed that
+  `tooling/agent-pack/src/customer.ts`, which becomes the generated package
+  root, omitted the MCP protocol, projection, and server exports. The canonical
+  customer export now retains exactly those three runtime modules; the target
+  plan regression reads the materialized package root and pins all three.
 - Focused result: Agent Pack MCP tests pass 21/21, customer stdio composition
   passes 1/1, SaaS blueprint tests pass 17/17, and Agent Pack, CLI, and
-  generator typechecks exit zero.
+  generator typechecks exit zero. After the export-closure repair, the complete
+  SaaS blueprint file passes 18/18 and both Agent Pack and generator typechecks
+  exit zero.
 - Clean-customer evidence: pending the post-commit release-shaped MCP test and
   final isolated public acceptance.
 - Status: upstream implementation fixed; final fixed status waits for untouched
