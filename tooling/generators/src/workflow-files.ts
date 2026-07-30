@@ -715,7 +715,10 @@ import {
   createWorkflowUserPrincipal,
   type DurableWorkflowPrincipal,
 } from "../workflows/_kit/principal";
-import type { WorkflowPolicySnapshot } from "../workflows/_kit/policySnapshot";
+import {
+  resolveWorkflowPolicySnapshotForRun,
+  type WorkflowPolicySnapshot,
+} from "../workflows/_kit/policySnapshot";
 import type {
   WorkflowCompletionResult,
   WorkflowOnCompleteContext,
@@ -867,14 +870,10 @@ const startWithProfile = (
         authEpoch: access.authEpoch,
         kickoffAt: startedAt,
       });
-      if (${name}Graph.policyPosture.kind !== "none") {
-        return yield* toWorkflowPolicyValidationFailed();
-      }
-      const policySnapshot: WorkflowPolicySnapshot = {
-        version: 1,
-        kind: "none",
-        reason: ${name}Graph.policyPosture.reason,
-      };
+      const policySnapshot = yield* resolveWorkflowPolicySnapshotForRun(
+        ${name}Graph.policyPosture,
+        { workspaceId, resolvedAt: startedAt },
+      ).pipe(Effect.mapError(toWorkflowPolicyValidationFailed));
       const componentWorkflowId = yield* startWorkflowAndRecordOwnership({
         workflowRef: ${name}RunRef,
         onCompleteRef: ${name}OnCompleteRef,

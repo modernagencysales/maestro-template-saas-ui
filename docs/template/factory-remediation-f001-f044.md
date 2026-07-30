@@ -295,14 +295,28 @@ prove:
   product.
 - Confirmed reproduction: the customer workflow emitter imported raw Workflow
   component primitives and emitted policy/error/environment expressions that
-  failed its own ESLint and isolated Convex typecheck.
+  failed its own ESLint and isolated Convex typecheck. The first compile repair
+  then replaced canonical policy resolution with a manual `none`-only branch;
+  `check:workflow-policy-snapshots` rejected the generated kickoff, and pinned
+  policy declarations could never start.
 - Regression/fix: `55f6aae5` extends the generated-output smoke to lint the
-  contract and runner and compile the isolated generated Convex package, then
-  repairs the canonical emitter. No generated file was hand-edited.
-- Focused result: focused Vitest passes 2/2; scoped ESLint, generator typecheck,
-  formatting, and `template:workflow-output-smoke` exit zero. Deployment-bound
-  Convex ref generation is truthfully skipped because `CONVEX_DEPLOYMENT` is
-  unset.
+  contract and runner and compile the isolated generated Convex package. The
+  follow-up regression requires emitted kickoff to call
+  `resolveWorkflowPolicySnapshotForRun` and map its typed resolution failure.
+  `tooling/generators/src/workflow-files.ts` now emits that canonical call, and
+  `packages/convex/confect/workflows/_kit/policySnapshot.ts` returns one
+  normalized `Effect.gen` value instead of a conditional union of incompatible
+  Effect values. This retains exact pinned version/hash/workspace validation
+  while compiling for both `none` and `pinned` postures. No generated file was
+  hand-edited.
+- Focused result: the new regression failed on the missing resolver and then
+  passed; the complete generator package passes 12/12 files and 145/145 tests;
+  `check:workflow-policy-snapshots`, `template:workflow-output-smoke`,
+  `packages/convex` typecheck, `check:workflow:fast`, scoped ESLint, and scoped
+  formatting all exit zero. The smoke generated, linted, and typechecked an
+  isolated workflow output and reproduced/repaired generated Confect projection
+  drift. Deployment-bound Convex ref generation is truthfully skipped because
+  `CONVEX_DEPLOYMENT` is unset.
 - Clean-customer evidence: pending final isolated public acceptance.
 - Status: source fixed; final fixed status waits for clean-customer proof.
 

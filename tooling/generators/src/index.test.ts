@@ -1544,7 +1544,8 @@ describe("template app factory generators", () => {
 
     expect(impl).toContain("startWorkflowAndRecordOwnership");
     expect(impl).toContain("createWorkflowUserPrincipal");
-    expect(impl).not.toContain("resolveWorkflowPolicySnapshotForRun");
+    expect(impl).toContain("resolveWorkflowPolicySnapshotForRun");
+    expect(impl).toContain("Effect.mapError(toWorkflowPolicyValidationFailed)");
     expect(impl).toContain("readonly principal: DurableWorkflowPrincipal");
     expect(impl).toContain("readonly policySnapshot: WorkflowPolicySnapshot");
     expect(impl).not.toContain(
@@ -1750,9 +1751,8 @@ describe("template app factory generators", () => {
     expect(impl).toContain('from "../workflows/_kit/defineMaestroWorkflow"');
     expect(impl).not.toContain('from "@convex-dev/workflow"');
     expect(impl).toContain("preserveWorkflowStartErrors = <A, E, R>");
-    expect(impl).not.toContain("resolveWorkflowPolicySnapshotForRun");
-    expect(impl).toContain('policyPosture.kind !== "none"');
-    expect(impl).toContain("const policySnapshot: WorkflowPolicySnapshot");
+    expect(impl).toContain("resolveWorkflowPolicySnapshotForRun");
+    expect(impl).not.toContain('policyPosture.kind !== "none"');
     expect(impl).toContain("principal:");
     expect(impl).toContain("actorId: access.userId");
   });
