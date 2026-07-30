@@ -88,6 +88,25 @@ export const CURRENT_SAAS_DEPLOY_AUTHORITY_SOURCE_CLOSURE = [
   "packages/convex/test/deploy-authority.test.ts",
 ] as const;
 
+export const CURRENT_CUSTOMER_QUALITY_TEST_EXCLUSIONS = [
+  "tooling/quality/ai-gate-scripts.test.mts",
+  "tooling/quality/check-agent-pack.test.mts",
+  "tooling/quality/check-convex-ai-files.test.mts",
+  "tooling/quality/check-deploy-authority.test.mts",
+  "tooling/quality/check-docs-freshness.test.mts",
+  "tooling/quality/check-recipes.test.mts",
+  "tooling/quality/mutation-script.test.mts",
+] as const;
+
+const exclusionArguments = (
+  paths: readonly string[],
+  packagePrefix = "",
+): string =>
+  paths.map((path) => ` --exclude ${path.replace(packagePrefix, "")}`).join("");
+
+const currentCustomerRootTestExclusions = (): string =>
+  exclusionArguments(CURRENT_CUSTOMER_QUALITY_TEST_EXCLUSIONS);
+
 export const CUSTOMER_ROOT_SCRIPTS = [
   "maestro",
   "format",
@@ -207,9 +226,9 @@ const customerPackage = (current: boolean): string => {
   value.scripts["test:tooling"] =
     "pnpm --dir tooling/quality test && pnpm --dir tooling/workflow test && pnpm --dir tooling/generators test";
   value.scripts["check:coverage-ratchet"] =
-    "vitest run --coverage --maxWorkers=1 --no-file-parallelism packages/template-core packages/integrations packages/search packages/storage packages/notifications packages/observability packages/convex tooling/quality tooling/workflow tooling/generators apps/cli apps/web && tsx tooling/quality/check-coverage-ratchet.mts";
+    `vitest run --coverage --maxWorkers=1 --no-file-parallelism packages/template-core packages/integrations packages/search packages/storage packages/notifications packages/observability packages/convex tooling/quality tooling/workflow tooling/generators apps/cli apps/web${current ? currentCustomerRootTestExclusions() : ""} && tsx tooling/quality/check-coverage-ratchet.mts`;
   value.scripts["coverage:update-baseline"] =
-    "vitest run --coverage packages/template-core packages/integrations packages/search packages/storage packages/notifications packages/observability packages/convex tooling/quality tooling/workflow tooling/generators apps/cli apps/web && tsx tooling/quality/check-coverage-ratchet.mts --update";
+    `vitest run --coverage packages/template-core packages/integrations packages/search packages/storage packages/notifications packages/observability packages/convex tooling/quality tooling/workflow tooling/generators apps/cli apps/web${current ? currentCustomerRootTestExclusions() : ""} && tsx tooling/quality/check-coverage-ratchet.mts --update`;
   value.scripts["check:agent-pack"] =
     "tsx tooling/quality/check-agent-pack.mts";
   value.scripts["check:layer-boundaries"] =
@@ -316,6 +335,18 @@ const customerGeneratorPackage = (): string => {
   value.exports = { ".": "./src/customer.ts" };
   const scripts = value.scripts as Record<string, string>;
   scripts.cli = "tsx src/customer-cli.ts";
+  return `${JSON.stringify(value, null, 2)}\n`;
+};
+
+const customerQualityPackage = (): string => {
+  const value = JSON.parse(currentSource("tooling/quality/package.json")) as {
+    scripts: Record<string, string>;
+  };
+  value.scripts["test:customer"] = `${value.scripts.test}${exclusionArguments(
+    CURRENT_CUSTOMER_QUALITY_TEST_EXCLUSIONS,
+    "tooling/quality/",
+  )}`;
+  value.scripts.test = value.scripts["test:customer"];
   return `${JSON.stringify(value, null, 2)}\n`;
 };
 
@@ -722,6 +753,14 @@ export const buildSaasRegistrationProjections = (
       path: "tooling/generators/package.json",
       content: customerGeneratorPackage(),
     },
+    ...(current
+      ? [
+          {
+            path: "tooling/quality/package.json",
+            content: customerQualityPackage(),
+          },
+        ]
+      : []),
     ...(current
       ? [
           {

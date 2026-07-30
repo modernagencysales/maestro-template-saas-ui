@@ -31,6 +31,12 @@ fresh-customer proof, and final handoff.
   Scout already had unrelated edits to its failure ledger and remains untouched.
 - Historical search: CM returned no rules; CASS was unavailable because its
   lexical checkpoint is incomplete. Current source/tests remain authoritative.
+- Migrated-host continuation: Agent Mail was re-created under project key
+  `/Users/headless/migrated-worktrees/maestro-template-saas-ui-f037` with
+  identity `StormyPuma`; the pre-migration `SwiftBadger` record remains
+  historical authority rather than a live lease. Exact source and ledger paths
+  are reserved through the fresh mailbox. The user explicitly canceled the
+  proposed Convex Auth exploration; WorkOS/AuthKit remains unchanged.
 
 ## Work-package classification
 
@@ -747,6 +753,127 @@ prove:
   customer are required before final fixed status.
 - Status: upstream implementation fixed in `0190353c`; final fixed status waits
   for untouched fresh-customer proof.
+
+### FR-F-002 — Customer verification runs factory-authority-only tests
+
+- ID/title: FR-F-002 (customer verification runs factory-authority-only tests).
+- Original posture: newly reproduced/critical because the retained customer
+  `pnpm test` and coverage commands fail after all typechecks pass.
+- Confirmed reproduction: untouched customer
+  `/private/tmp/maestro-fresh-customer-v5-Mnmwbl/customer`, materialized from
+  exact template source `ff2f75feba7850404e3d8341277616c9170e7957`, ran the
+  quality package's complete root-only test catalog. Seven tests required
+  omitted factory authority: AI gate scripts, Agent Pack release validation,
+  Convex AI-file installation, deploy authority, docs freshness, recipes, and
+  mutation-script enforcement.
+- Root cause: `tooling/quality/package.json` was copied without a customer test
+  closure even though the target intentionally omits the release, recipe,
+  pipeline, and factory mutation owners those exact tests audit.
+- Regression: the SaaS blueprint suite requires the customer quality package to
+  exclude only the seven enumerated factory-authority tests and requires the
+  root coverage command to use the identical audited closure. It separately
+  proves that generator publication tests remain enabled; there is no broad
+  pattern ignore.
+- Canonical fix and files: `saasRegistrationProjections.ts` emits a
+  customer-specific quality `test`/`test:customer` script and the matching root
+  coverage arguments; `saasApplication.ts` registers the projected package as an
+  exact replacement of the base release copy.
+- Focused result: SaaS blueprint tests, the complete generator package,
+  generator typecheck, the root quality package, scoped ESLint, and formatting
+  pass.
+- Clean-customer evidence: pending post-commit v6 materialization and untouched
+  `just verify`.
+- Status: upstream source fixed; final fixed status waits for untouched
+  fresh-customer proof and commit coordinate.
+
+### FR-F-003 — Customer tests reference omitted factory source trees
+
+- ID/title: FR-F-003 (customer tests reference omitted factory source trees).
+- Original posture: newly reproduced/critical because retained generator and
+  quality tests fail in an otherwise valid generated workspace.
+- Confirmed reproduction: the same untouched v5 customer failed three CRUD proof
+  cases while reading
+  `examples/saas-application/seed/source/apps/web/src/adapters/records/fake.ts`;
+  `tooling/quality/src/env-manifest.test.mts` also read omitted
+  `tooling/generators/src/index.ts`.
+- Root cause: both tests asserted factory composition sources rather than the
+  equivalent retained customer-owned sources.
+- Regression: the SaaS target plan requires exact copy replacements whose
+  contents use `apps/web/src/adapters/records/fake.ts` and
+  `tooling/generators/src/customer-runtime.ts`, and rejects the two omitted
+  factory paths.
+- Canonical fix and files: `saasApplicationFactory.ts` projects the two tests
+  from canonical root source with narrow marker-checked substitutions;
+  `saasApplication.ts` grants exact copy-replacement authority. No generated
+  customer file is edited after materialization.
+- Focused result: the SaaS blueprint suite, full generator package, generator
+  typecheck, quality package, ESLint, and formatting pass.
+- Clean-customer evidence: pending post-commit v6 materialization and untouched
+  test/coverage gates.
+- Status: upstream source fixed; final fixed status waits for untouched
+  fresh-customer proof and commit coordinate.
+
+### FR-F-004 — Generated Records route lacks canonical ownership provenance
+
+- ID/title: FR-F-004 (generated Records route lacks canonical ownership
+  provenance).
+- Original posture: newly reproduced/high because the generated customer's
+  system-topology gate rejects an otherwise functional route as unowned.
+- Confirmed reproduction: the v5 customer topology audit reported
+  `apps/web/src/routes/_workspace.records.tsx` without a canonical owner or
+  generator provenance record.
+- Root cause: the current SaaS slice materializes the Records vertical but did
+  not retain the `template:add-feature` provenance artifact expected by the
+  topology owner.
+- Regression: the SaaS plan requires a generated/regenerated
+  `docs/template/generated/provenance/add-feature/records.json` binding the
+  complete vertical to `knowledge-brain` with disposition `extend`.
+- Canonical fix and files: `saasApplicationFactory.ts` emits the generic Records
+  feature provenance and `saasApplication.ts` registers it as a new generated
+  path with no false replacement claim.
+- Focused result: `pnpm check:system-topology` passes with 42 production
+  resources across seven kinds; SaaS blueprint, formatting, and lint gates pass.
+- Clean-customer evidence: pending post-commit v6 materialization and untouched
+  topology/App Map gates.
+- Status: upstream source fixed; final fixed status waits for untouched
+  fresh-customer proof and commit coordinate.
+
+### FR-F-005 — Current policy repair mutates an immutable publication closure
+
+- ID/title: FR-F-005 (current policy repair mutates an immutable publication
+  closure).
+- Original posture: newly reproduced/critical because both root and customer
+  generator suites reject published workflow source drift.
+- Confirmed reproduction: root and untouched v5 customer both failed two of four
+  workflow-publication tests with the sole drift path
+  `packages/convex/confect/workflows/_kit/policySnapshot.ts`. Its current hash
+  was `2ac7ac6e...`, while the published descriptor requires `cd360058e...`.
+- Root cause: the current-main F-031 policy typing repair edited a shared module
+  transitively sealed into the immutable `publicationFixture` source closure.
+  The repository already isolates evolving runtime primitives behind
+  `*Current.ts` files, but policy resolution lacked that boundary.
+- Regression: the publication suite still detects ordinary source/artifact
+  mutation and now deliberately mutates `policySnapshotCurrent.ts` while
+  requiring the two published releases to remain clean. Generator tests require
+  newly emitted workflow contracts to import the current resolver. The combined
+  regression first failed on the two original drift assertions, the missing
+  current source, and the old emitted import.
+- Canonical fix and files: the sealed `policySnapshot.ts` bytes are restored
+  exactly to SHA-256
+  `cd360058e27ae3ecf6de33178de7d23267bb45a3fc1dd442d963c042f66a7492`;
+  `policySnapshotCurrent.ts` owns the normalized `Effect.gen` resolver;
+  `workflow-files.ts` imports it; and the SaaS factory projects the new current
+  source as `generate`/`regenerate` with no `replaces` field. No published
+  descriptor, authority, manifest, checksum, or generated Confect/Convex file is
+  rewritten.
+- Focused result: workflow-publication, generator-index, and SaaS blueprint
+  suites pass together; the complete generator package and typecheck, Convex
+  typecheck, all 107 workflow semantic rules, system topology, scoped ESLint,
+  formatting, and `git diff --check` pass.
+- Clean-customer evidence: pending post-commit v6 materialization and untouched
+  workflow-publication/`just verify` proof.
+- Status: upstream source fixed; final fixed status waits for untouched
+  fresh-customer proof and commit coordinate.
 
 No full acceptance command is yet claimed passing. Exact command outputs and
 commit coordinates will be added only after observation.

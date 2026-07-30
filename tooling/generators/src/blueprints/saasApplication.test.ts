@@ -44,6 +44,15 @@ const sourceModule = (path: string) =>
     `../../../../examples/saas-application/seed/source/${path}`,
     import.meta.url,
   ).href;
+const CURRENT_CUSTOMER_QUALITY_TEST_EXCLUSIONS = [
+  "tooling/quality/ai-gate-scripts.test.mts",
+  "tooling/quality/check-agent-pack.test.mts",
+  "tooling/quality/check-convex-ai-files.test.mts",
+  "tooling/quality/check-deploy-authority.test.mts",
+  "tooling/quality/check-docs-freshness.test.mts",
+  "tooling/quality/check-recipes.test.mts",
+  "tooling/quality/mutation-script.test.mts",
+] as const;
 
 describe("saas application blueprint", () => {
   it("keeps retained template-core tests independent of factory release fixtures", () => {
@@ -82,6 +91,78 @@ describe("saas application blueprint", () => {
     expect(JSON.parse(fixtureEntry.content)).toMatchObject({
       schemaVersion: 1,
       before: { providerMode: "live", providerIds: ["email", "llm"] },
+    });
+  });
+
+  it("projects exact customer tooling test and coverage closures", () => {
+    const entries = new Map(
+      buildSaasApplicationTargetPlan().entries.map((entry) => [
+        entry.path,
+        entry,
+      ]),
+    );
+    const root = JSON.parse(entries.get("package.json")?.content ?? "{}") as {
+      readonly scripts?: Readonly<Record<string, string>>;
+    };
+    const generators = JSON.parse(
+      entries.get("tooling/generators/package.json")?.content ?? "{}",
+    ) as { readonly scripts?: Readonly<Record<string, string>> };
+    const quality = JSON.parse(
+      entries.get("tooling/quality/package.json")?.content ?? "{}",
+    ) as { readonly scripts?: Readonly<Record<string, string>> };
+
+    expect(generators.scripts?.test).toContain("vitest run");
+    expect(generators.scripts?.test).not.toContain("--exclude");
+    expect(quality.scripts?.test).toBe(quality.scripts?.["test:customer"]);
+    expect(root.scripts?.["check:coverage-ratchet"]).not.toContain(
+      "workflow-publication-generation.test.ts",
+    );
+    for (const path of CURRENT_CUSTOMER_QUALITY_TEST_EXCLUSIONS) {
+      expect(quality.scripts?.test, path).toContain(
+        `--exclude ${path.replace("tooling/quality/", "")}`,
+      );
+      expect(root.scripts?.["check:coverage-ratchet"], path).toContain(
+        `--exclude ${path}`,
+      );
+    }
+
+    const crudTest = entries.get("tooling/generators/src/crud-proof.test.ts");
+    const envTest = entries.get("tooling/quality/src/env-manifest.test.mts");
+    expect(crudTest).toMatchObject({ replaces: "copy" });
+    expect(crudTest?.content).toContain(
+      '"apps/web/src/adapters/records/fake.ts"',
+    );
+    expect(crudTest?.content).not.toContain(
+      "examples/saas-application/seed/source/apps/web",
+    );
+    expect(envTest).toMatchObject({ replaces: "copy" });
+    expect(envTest?.content).toContain(
+      'readText("tooling/generators/src/customer-runtime.ts")',
+    );
+    expect(envTest?.content).not.toContain(
+      'readText("tooling/generators/src/index.ts")',
+    );
+  });
+
+  it("projects canonical ownership provenance for the records vertical", () => {
+    const entry = buildSaasApplicationTargetPlan().entries.find(
+      ({ path }) =>
+        path === "docs/template/generated/provenance/add-feature/records.json",
+    );
+    expect(entry).toMatchObject({
+      ownership: "generated",
+      action: "generate",
+      upgrade: "regenerate",
+    });
+    if (!entry) throw new Error("missing records feature provenance");
+    expect(JSON.parse(entry.content)).toMatchObject({
+      generator: "add-feature",
+      commandFamily: "template:add-feature",
+      name: "records",
+      ownership: { system: "knowledge-brain", disposition: "extend" },
+      generatedPaths: expect.arrayContaining([
+        "apps/web/src/routes/_workspace.records.tsx",
+      ]),
     });
   });
 
@@ -254,6 +335,11 @@ describe("saas application blueprint", () => {
       "pnpm-lock.yaml",
       "packages/template-core/src/templateInstance/templateInstance.test.ts",
       "packages/template-core/src/templateInstance/__fixtures__/provider-posture-v1-to-v2.contract.json",
+      "packages/convex/confect/workflows/_kit/policySnapshotCurrent.ts",
+      "tooling/generators/src/crud-proof.test.ts",
+      "tooling/quality/package.json",
+      "tooling/quality/src/env-manifest.test.mts",
+      "docs/template/generated/provenance/add-feature/records.json",
       "scripts/pre-push-rubric.sh",
       "tooling/agent-pack/src/mcp/projection.ts",
       "tooling/agent-pack/src/mcp/protocol.ts",
@@ -596,6 +682,17 @@ describe("saas application blueprint", () => {
       action: "generate",
       upgrade: "regenerate",
     });
+    const currentPolicySnapshot = after.entries.find(
+      (entry) =>
+        entry.path ===
+        "packages/convex/confect/workflows/_kit/policySnapshotCurrent.ts",
+    );
+    expect(currentPolicySnapshot).toMatchObject({
+      ownership: "generated",
+      action: "generate",
+      upgrade: "regenerate",
+    });
+    expect(currentPolicySnapshot).not.toHaveProperty("replaces");
     for (const path of [
       "tooling/generators/src/workflow-predeploy.ts",
       "packages/convex/confect/workflows/_kit/graphRunnerCurrent.ts",
@@ -845,6 +942,7 @@ describe("saas application blueprint", () => {
       "docs/template/data-resources.json",
       "packages/convex/confect/ops/dataResources.generated.ts",
       "tooling/generators/package.json",
+      "tooling/quality/package.json",
       "examples/generic-ai-ops/template-package.json",
       "lefthook.yml",
       "scripts/pre-push-rubric.sh",
@@ -947,6 +1045,10 @@ describe("saas application blueprint", () => {
       "apps/web/src/routeRegistry.generated.ts",
       "packages/template-core/src/templateInstance/templateInstance.test.ts",
       "packages/template-core/src/templateInstance/__fixtures__/provider-posture-v1-to-v2.contract.json",
+      "packages/convex/confect/workflows/_kit/policySnapshotCurrent.ts",
+      "tooling/generators/src/crud-proof.test.ts",
+      "tooling/quality/src/env-manifest.test.mts",
+      "docs/template/generated/provenance/add-feature/records.json",
     ]);
     expect(
       first.some(({ path }) =>

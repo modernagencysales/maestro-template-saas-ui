@@ -74,34 +74,34 @@ export const resolveWorkflowPolicySnapshotForRun = (
   posture: WorkflowPolicyPosture,
   input: { readonly workspaceId: string; readonly resolvedAt: number },
 ) =>
-  Effect.gen(function* () {
-    if (posture.kind === "none") {
-      return {
+  posture.kind === "none"
+    ? Effect.succeed<WorkflowPolicySnapshot>({
         version: 1,
         kind: "none",
         reason: posture.reason,
-      } satisfies WorkflowPolicySnapshot;
-    }
-    const reader = yield* DatabaseReader;
-    const row = yield* reader
-      .table("policies")
-      .get(posture.policyVersionId as GenericId<"policies">)
-      .pipe(Effect.orDie);
-    if (
-      row === null ||
-      (row.scope === "workspace" && row.workspaceId !== input.workspaceId) ||
-      workflowPolicyRowHash(row) !== posture.policyHash
-    ) {
-      return yield* new WorkflowPolicyResolutionError({
-        reason: "unavailable",
+      })
+    : Effect.gen(function* () {
+        const reader = yield* DatabaseReader;
+        const row = yield* reader
+          .table("policies")
+          .get(posture.policyVersionId as GenericId<"policies">)
+          .pipe(Effect.orDie);
+        if (
+          row === null ||
+          (row.scope === "workspace" &&
+            row.workspaceId !== input.workspaceId) ||
+          workflowPolicyRowHash(row) !== posture.policyHash
+        ) {
+          return yield* new WorkflowPolicyResolutionError({
+            reason: "unavailable",
+          });
+        }
+        return {
+          version: 1 as const,
+          ...posture,
+          resolvedAt: input.resolvedAt,
+        };
       });
-    }
-    return {
-      version: 1,
-      ...posture,
-      resolvedAt: input.resolvedAt,
-    } satisfies WorkflowPolicySnapshot;
-  });
 
 export const workflowPolicyRowHash = (row: {
   readonly policyKey: string;

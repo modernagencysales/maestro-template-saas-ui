@@ -1545,6 +1545,7 @@ describe("template app factory generators", () => {
     expect(impl).toContain("startWorkflowAndRecordOwnership");
     expect(impl).toContain("createWorkflowUserPrincipal");
     expect(impl).toContain("resolveWorkflowPolicySnapshotForRun");
+    expect(impl).toContain('from "../workflows/_kit/policySnapshotCurrent"');
     expect(impl).toContain("Effect.mapError(toWorkflowPolicyValidationFailed)");
     expect(impl).toContain("readonly principal: DurableWorkflowPrincipal");
     expect(impl).toContain("readonly policySnapshot: WorkflowPolicySnapshot");

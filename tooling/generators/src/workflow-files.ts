@@ -718,7 +718,7 @@ import {
 import {
   resolveWorkflowPolicySnapshotForRun,
   type WorkflowPolicySnapshot,
-} from "../workflows/_kit/policySnapshot";
+} from "../workflows/_kit/policySnapshotCurrent";
 import type {
   WorkflowCompletionResult,
   WorkflowOnCompleteContext,
