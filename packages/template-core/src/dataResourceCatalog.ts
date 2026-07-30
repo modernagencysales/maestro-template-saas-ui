@@ -174,6 +174,21 @@ const parseResource = (value: unknown): DataResourceDefinition => {
   });
 };
 
+const assertUniqueResourceIds = (
+  resources: readonly DataResourceDefinition[],
+): void => {
+  const seen = new Set<string>();
+  const duplicates = new Set<string>();
+  for (const resource of resources) {
+    (seen.has(resource.id) ? duplicates : seen).add(resource.id);
+  }
+  if (duplicates.size > 0) {
+    throw new RangeError(
+      `duplicate data resource ids: ${[...duplicates].sort().join(", ")}`,
+    );
+  }
+};
+
 export const parseDataResourceCatalog = (
   value: unknown,
 ): DataResourceCatalog => {
@@ -186,16 +201,7 @@ export const parseDataResourceCatalog = (
   }
 
   const resources = Object.freeze(input.resources.map(parseResource));
-  const seen = new Set<string>();
-  const duplicates = new Set<string>();
-  for (const resource of resources) {
-    (seen.has(resource.id) ? duplicates : seen).add(resource.id);
-  }
-  if (duplicates.size > 0) {
-    throw new RangeError(
-      `duplicate data resource ids: ${[...duplicates].sort().join(", ")}`,
-    );
-  }
+  assertUniqueResourceIds(resources);
 
   return Object.freeze({
     schemaVersion: DATA_RESOURCE_CATALOG_SCHEMA_VERSION,

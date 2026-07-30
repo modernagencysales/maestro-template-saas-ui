@@ -160,32 +160,34 @@ export function parseStartTargetInstance<T>(
     return canonical(raw);
   } catch (canonicalError) {
     try {
-      const value: unknown = JSON.parse(raw);
-      const personalization = isRecord(value)
-        ? value.personalization
-        : undefined;
-      const blueprint = isRecord(value) ? value.blueprint : undefined;
-      if (
-        isRecord(personalization) &&
-        typeof personalization.name === "string" &&
-        personalization.name.trim() !== "" &&
-        typeof personalization.firstOutcome === "string" &&
-        personalization.firstOutcome.trim() !== "" &&
-        isRecord(blueprint) &&
-        typeof blueprint.id === "string" &&
-        blueprint.id.trim() !== ""
-      ) {
-        return customerDefault({
-          name: personalization.name,
-          blueprint: blueprint.id,
-        });
-      }
+      const identity = parseCustomerIdentity(JSON.parse(raw));
+      if (identity !== undefined) return customerDefault(identity);
     } catch {
       // Preserve the canonical parser diagnostic below.
     }
     throw canonicalError;
   }
 }
+
+function parseCustomerIdentity(
+  value: unknown,
+): { readonly name: string; readonly blueprint: string } | undefined {
+  if (!isRecord(value)) return undefined;
+  const personalization = value.personalization;
+  const blueprint = value.blueprint;
+  if (
+    !isRecord(personalization) ||
+    !isRecord(blueprint) ||
+    !nonemptyText(personalization.name) ||
+    !nonemptyText(personalization.firstOutcome) ||
+    !nonemptyText(blueprint.id)
+  )
+    return undefined;
+  return { name: personalization.name, blueprint: blueprint.id };
+}
+
+const nonemptyText = (value: unknown): value is string =>
+  typeof value === "string" && value.trim() !== "";
 
 function parseStartCli(argv: readonly string[]): {
   readonly input: unknown;
@@ -218,20 +220,10 @@ function parseStartCli(argv: readonly string[]): {
     }
     const portKey = token === undefined ? undefined : portFlags[token];
     if (portKey !== undefined) {
-      const value = argv[index + 1];
-      if (
-        value === undefined ||
-        !/^[1-9]\d*$/.test(value) ||
-        portKey in ports
-      ) {
-        valid = false;
-      } else {
-        const port = Number(value);
-        if (!Number.isInteger(port) || port < 1024 || port > 65_535)
-          valid = false;
-        else ports[portKey] = port;
-        index += 1;
-      }
+      const parsedPort = parsePort(argv[index + 1], portKey in ports);
+      if (parsedPort.port === undefined) valid = false;
+      else ports[portKey] = parsedPort.port;
+      if (parsedPort.consumeValue) index += 1;
       continue;
     }
     const selected = renderModeFor(token);
@@ -247,6 +239,19 @@ function parseStartCli(argv: readonly string[]): {
       : { mode: "__invalid__" },
     renderMode,
   };
+}
+
+function parsePort(
+  value: string | undefined,
+  duplicate: boolean,
+): { readonly consumeValue: boolean; readonly port?: number } {
+  if (value === undefined || !/^[1-9]\d*$/.test(value) || duplicate) {
+    return { consumeValue: false };
+  }
+  const port = Number(value);
+  return Number.isInteger(port) && port >= 1024 && port <= 65_535
+    ? { consumeValue: true, port }
+    : { consumeValue: true };
 }
 
 function renderModeFor(

@@ -192,57 +192,95 @@ const workflowResult = ({ argv }: CliCommandContext): CliResult => {
   }
 };
 
+const matchesHelp = ({ command }: CliCommandContext): boolean =>
+  !command || command === "help" || command === "--help";
+
+const matchesSharedHelp = ({
+  command,
+  subcommand,
+}: CliCommandContext): boolean =>
+  command !== undefined &&
+  (subcommand === "--help" || subcommand === "-h") &&
+  helpForSharedCommand(command) !== undefined;
+
+const matchesDescribe = ({ command }: CliCommandContext): boolean =>
+  command === "describe";
+
+const matchesOperations = ({
+  command,
+  subcommand,
+  target,
+}: CliCommandContext): boolean =>
+  command === "operations" &&
+  (subcommand === "list" || (subcommand === "get" && target !== undefined));
+
+const matchesWorkflowRun = ({
+  command,
+  subcommand,
+}: CliCommandContext): boolean =>
+  command === "workflow" && subcommand === "run";
+
+const matchesCapabilityRun = ({
+  command,
+  subcommand,
+  target,
+}: CliCommandContext): boolean =>
+  command === "capability" && subcommand === "run" && target !== undefined;
+
+const matchesApi = ({ command, subcommand }: CliCommandContext): boolean =>
+  command === "api" && (subcommand === "catalog" || subcommand === "openapi");
+
+const matchesMcp = ({
+  command,
+  subcommand,
+  target,
+}: CliCommandContext): boolean =>
+  command === "mcp" &&
+  (subcommand === "tools" || (subcommand === "call" && target !== undefined));
+
+const matchesIntegrationsReport = ({
+  command,
+  subcommand,
+}: CliCommandContext): boolean =>
+  command === "integrations" && subcommand === "report";
+
 export const createCliHandlers = ({
   capability,
 }: CliCommandDependencies): readonly CliCommandHandler[] => [
   {
-    matches: ({ command }) =>
-      !command || command === "help" || command === "--help",
+    matches: matchesHelp,
     run: () => helpResult(),
   },
   {
-    matches: ({ command, subcommand }) =>
-      command !== undefined &&
-      (subcommand === "--help" || subcommand === "-h") &&
-      helpForSharedCommand(command) !== undefined,
+    matches: matchesSharedHelp,
     run: ({ command }) => cliSuccess(helpForSharedCommand(command ?? "") ?? ""),
   },
   {
-    matches: ({ command }) => command === "describe",
+    matches: matchesDescribe,
     run: () => cliSuccess(formatJsonOutput(describeWorkflowTemplate())),
   },
   {
-    matches: ({ command, subcommand, target }) =>
-      command === "operations" &&
-      (subcommand === "list" || (subcommand === "get" && target !== undefined)),
+    matches: matchesOperations,
     run: (context) => operationsResult(context),
   },
   {
-    matches: ({ command, subcommand }) =>
-      command === "workflow" && subcommand === "run",
+    matches: matchesWorkflowRun,
     run: (context) => workflowResult(context),
   },
   {
-    matches: ({ command, subcommand, target }) =>
-      command === "capability" && subcommand === "run" && target !== undefined,
+    matches: matchesCapabilityRun,
     run: (context) => capabilityResult(context, capability),
   },
   {
-    matches: ({ command, subcommand }) =>
-      command === "api" &&
-      (subcommand === "catalog" || subcommand === "openapi"),
+    matches: matchesApi,
     run: (context) => apiResult(context),
   },
   {
-    matches: ({ command, subcommand, target }) =>
-      command === "mcp" &&
-      (subcommand === "tools" ||
-        (subcommand === "call" && target !== undefined)),
+    matches: matchesMcp,
     run: (context) => mcpResult(context),
   },
   {
-    matches: ({ command, subcommand }) =>
-      command === "integrations" && subcommand === "report",
+    matches: matchesIntegrationsReport,
     run: (context, config) => integrationsResult(context, config),
   },
 ];

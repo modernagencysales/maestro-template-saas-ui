@@ -17,27 +17,22 @@ const belongsTo = (packageName: string, owners: readonly string[]): boolean =>
     (owner) => packageName === owner || packageName.startsWith(`${owner}/`),
   );
 
-export const dependencyChunkName = (moduleId: string): string | null => {
-  const packageName = packageNameFromModuleId(moduleId);
-  if (packageName === null) return null;
-
-  if (belongsTo(packageName, ["react", "react-dom", "scheduler"])) {
-    return "vendor-react";
-  }
-  if (
-    belongsTo(packageName, [
+const dependencyChunks = [
+  ["vendor-react", ["react", "react-dom", "scheduler"]],
+  [
+    "vendor-ui",
+    [
       "@ark-ui",
       "@chakra-ui",
       "@emotion",
       "@saas-ui",
       "framer-motion",
       "lucide-react",
-    ])
-  ) {
-    return "vendor-ui";
-  }
-  if (
-    belongsTo(packageName, [
+    ],
+  ],
+  [
+    "vendor-editor",
+    [
       "@blocknote",
       "@tiptap",
       "lib0",
@@ -47,21 +42,20 @@ export const dependencyChunkName = (moduleId: string): string | null => {
       "prosemirror-view",
       "y-prosemirror",
       "yjs",
-    ])
-  ) {
-    return "vendor-editor";
-  }
-  if (belongsTo(packageName, ["@xyflow", "d3"])) {
-    return "vendor-graph";
-  }
-  if (belongsTo(packageName, ["@tanstack"])) {
-    return "vendor-router";
-  }
-  if (belongsTo(packageName, ["@confect", "effect"])) {
-    return "vendor-effect";
-  }
-  if (belongsTo(packageName, ["@convex-dev", "@workos", "convex"])) {
-    return "vendor-backend";
-  }
-  return "vendor";
+    ],
+  ],
+  ["vendor-graph", ["@xyflow", "d3"]],
+  ["vendor-router", ["@tanstack"]],
+  ["vendor-effect", ["@confect", "effect"]],
+  ["vendor-backend", ["@convex-dev", "@workos", "convex"]],
+] as const satisfies readonly (readonly [string, readonly string[]])[];
+
+export const dependencyChunkName = (moduleId: string): string | null => {
+  const packageName = packageNameFromModuleId(moduleId);
+  if (packageName === null) return null;
+  return (
+    dependencyChunks.find(([, owners]) =>
+      belongsTo(packageName, owners),
+    )?.[0] ?? "vendor"
+  );
 };
