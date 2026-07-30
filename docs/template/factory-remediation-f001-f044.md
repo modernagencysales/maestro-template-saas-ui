@@ -262,7 +262,9 @@ prove:
   agent-pack/quality typechecks, formatting, and projection checks pass. The
   complete SaaS target-plan suite passes 21/21 after the hook-closure repair;
   the isolated installer boundary passes 2/2 including local-hook ownership.
-- Clean-customer evidence: pending final isolated public acceptance.
+- Clean-customer evidence: the committed release-shaped customer runtime suite
+  passes 4/4 under the declared Node 22.23.2 host, including repository-local
+  hook installation. Final isolated public acceptance remains pending.
 - Status: source fixed; final fixed status waits for clean-customer proof.
 
 ### Customer workspace closure cluster
@@ -282,8 +284,10 @@ prove:
   customer passed pinned frozen install, explicit workspace-graph validation,
   offline lockfile-only refresh, and runtime import in the selected integration
   test.
-- Clean-customer evidence: the focused public customer is green; final full
-  acceptance remains pending.
+- Clean-customer evidence: the complete committed release-shaped customer
+  runtime suite passes 4/4 under Node 22.23.2, including pinned frozen install,
+  workspace-graph validation, offline lockfile-only refresh, and CLI import.
+  Final full acceptance remains pending.
 - Status: upstream implementation fixed; final fixed status waits for the full
   untouched-customer contract.
 
@@ -317,7 +321,10 @@ prove:
   isolated workflow output and reproduced/repaired generated Confect projection
   drift. Deployment-bound Convex ref generation is truthfully skipped because
   `CONVEX_DEPLOYMENT` is unset.
-- Clean-customer evidence: pending final isolated public acceptance.
+- Clean-customer evidence: the complete committed release-shaped customer
+  runtime suite passes 4/4 under Node 22.23.2; its generated workflow policy and
+  principal gates both exit zero. Final isolated public acceptance remains
+  pending.
 - Status: source fixed; final fixed status waits for clean-customer proof.
 
 ### MCP generated-name round-trip cluster
@@ -397,8 +404,10 @@ prove:
   generator typechecks exit zero. After the export and source-closure repairs,
   the complete SaaS blueprint file passes 19/19 and both Agent Pack and
   generator typechecks exit zero.
-- Clean-customer evidence: pending the post-commit release-shaped MCP test and
-  final isolated public acceptance.
+- Clean-customer evidence: the post-commit release-shaped runtime suite passes
+  4/4 under Node 22.23.2. Its customer MCP stdio sequence passes initialize,
+  tools/list, successful tools/call, unknown-tool, and malformed-input frames.
+  Final isolated public acceptance remains pending.
 - Status: upstream implementation fixed; final fixed status waits for untouched
   fresh-customer proof and the coherent commit coordinate.
 
@@ -498,8 +507,9 @@ prove:
 - Clean-customer evidence: source compatibility and the template workspace are
   green. A release-shaped reproduction first failed frozen install with the
   projected lock at 19.1.1 and retained manifest at 19.1.0; the target-plan
-  regression now pins both current authorities. Post-commit frozen-install and
-  final untouched fresh-customer acceptance remain pending.
+  regression now pins both current authorities. The post-commit release-shaped
+  suite passes 4/4 under Node 22.23.2 and its pinned frozen install exits zero.
+  Final untouched fresh-customer acceptance remains pending.
 - Status: upstream implementation fixed; final fixed status waits for the
   isolated clean-customer acceptance run.
 
@@ -536,8 +546,10 @@ prove:
   macOS host passed 45 files but failed 12 factory/native-host files, primarily
   from existing five-second timeouts under high load and direct-temp-path checks
   that reject the host's `/var` symlink. No timeout or safety gate was changed.
-- Clean-customer evidence: pending the post-commit release-shaped customer test
-  and final isolated public acceptance.
+- Clean-customer evidence: the post-commit release-shaped customer runtime suite
+  passes 4/4 under Node 22.23.2; the generated customer test closure, context
+  checks, MCP path, ownership/lifecycle catalogs, and private-package import all
+  execute successfully. Final isolated public acceptance remains pending.
 - Status: upstream implementation fixed; final fixed status waits for untouched
   fresh-customer proof.
 
