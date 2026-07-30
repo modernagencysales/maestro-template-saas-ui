@@ -3,8 +3,22 @@ import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "vite";
 
+import { dependencyChunkName } from "./src/bundle-policy";
+
 export default defineConfig({
   build: {
+    rolldownOptions: {
+      output: {
+        codeSplitting: {
+          includeDependenciesRecursively: false,
+          groups: [
+            {
+              name: dependencyChunkName,
+            },
+          ],
+        },
+      },
+    },
     sourcemap: false,
   },
   plugins: [

@@ -6,10 +6,11 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
-    "build": "vite build && cp dist/client/_shell.html dist/client/index.html",
+    "build": "vite build && node scripts/check-client-bundle-budget.mjs && cp dist/client/_shell.html dist/client/index.html",
     "preview": "vite preview --host 0.0.0.0",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest run --passWithNoTests"
+    "test": "pnpm test:bundle-budget && vitest run --passWithNoTests",
+    "test:bundle-budget": "node --test scripts/check-client-bundle-budget.test.mjs"
   },
   "dependencies": {
     "@blocknote/core": "0.51.4",

@@ -650,6 +650,34 @@ export const buildSaasRegistrationProjections = (
             content: currentSource("scripts/maestro-bootstrap.test.mjs"),
           },
           {
+            path: "apps/web/src/bundle-policy.ts",
+            content: currentSource("apps/web/src/bundle-policy.ts"),
+          },
+          {
+            path: "apps/web/package.json",
+            content: currentSource("apps/web/package.json"),
+          },
+          {
+            path: "apps/web/scripts/check-client-bundle-budget.mjs",
+            content: currentSource(
+              "apps/web/scripts/check-client-bundle-budget.mjs",
+            ),
+          },
+          {
+            path: "apps/web/scripts/check-client-bundle-budget.test.mjs",
+            content: currentSource(
+              "apps/web/scripts/check-client-bundle-budget.test.mjs",
+            ),
+          },
+          {
+            path: "apps/web/src/bundle-policy.test.ts",
+            content: currentSource("apps/web/src/bundle-policy.test.ts"),
+          },
+          {
+            path: "apps/web/vite.config.ts",
+            content: currentSource("apps/web/vite.config.ts"),
+          },
+          {
             path: "pnpm-workspace.yaml",
             content: currentSource("pnpm-workspace.yaml"),
           },
