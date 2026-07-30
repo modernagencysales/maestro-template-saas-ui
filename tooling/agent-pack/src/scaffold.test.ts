@@ -77,6 +77,8 @@ describe("scaffold command", () => {
         output,
       ),
     ).not.toBe(previewFingerprint);
+    const firstFile = output.files[0];
+    if (firstFile === undefined) throw new Error("fixture file is required");
     expect(
       fingerprintScaffoldPreview(
         { generatorId: "add-capability", args },
@@ -84,7 +86,7 @@ describe("scaffold command", () => {
           ...output,
           files: [
             {
-              ...output.files[0]!,
+              ...firstFile,
               content: "export const changed = true;\n",
             },
           ],

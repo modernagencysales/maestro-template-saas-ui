@@ -232,9 +232,10 @@ describe("customer release create adapter", () => {
       `${JSON.stringify(
         {
           ...baseAuthority,
-          entries: hardenedPlan.entries.map(
-            ({ content: _content, ...entry }) => entry,
-          ),
+          entries: hardenedPlan.entries.map(({ content, ...entry }) => {
+            void content;
+            return entry;
+          }),
         },
         null,
         2,
