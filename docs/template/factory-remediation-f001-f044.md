@@ -359,10 +359,12 @@ prove:
 - Focused result: the target-plan regression failed on the absent store path and
   then passed; the complete SaaS blueprint suite passes 21/21. Generator and CLI
   typechecks, formatting, scoped lint, and `git diff --check` all exit zero.
-- Clean-customer evidence: pending the post-commit root-create compile and final
-  isolated public acceptance.
-- Status: source repair in progress; final fixed status waits for committed
-  materialization proof.
+- Clean-customer evidence: after commits `add73a1`, `93f77cd`, and `b7e7940`,
+  the targeted committed root-create materialization/Convex compile passes 1/1,
+  and the complete root-create integration passes 7/7 under Node 22.23.2. Final
+  isolated public acceptance remains pending.
+- Status: upstream implementation fixed; final fixed status waits for untouched
+  fresh-customer proof.
 
 ### MCP generated-name round-trip cluster
 
