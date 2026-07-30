@@ -442,7 +442,12 @@ prove:
   passes 1/1, SaaS blueprint tests pass 17/17, and Agent Pack, CLI, and
   generator typechecks exit zero. After the export and source-closure repairs,
   the complete SaaS blueprint file passes 19/19 and both Agent Pack and
-  generator typechecks exit zero.
+  generator typechecks exit zero. The final-filesystem gate originally retained
+  a stale blanket ban on Agent Pack MCP sources; it now requires exactly the
+  protocol, projection, and server sources plus their three customer-safe tests,
+  while still rejecting factory/native-host MCP authority. That gate passes 2/2
+  and its disposable customer completes frozen install, CLI typecheck, workflow
+  policy/principal gates, Convex typecheck, and web build.
 - Clean-customer evidence: the post-commit release-shaped runtime suite passes
   4/4 under Node 22.23.2. Its customer MCP stdio sequence passes initialize,
   tools/list, successful tools/call, unknown-tool, and malformed-input frames.
