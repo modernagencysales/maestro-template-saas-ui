@@ -1,4 +1,4 @@
-import { execFileSync, spawnSync } from "node:child_process";
+import { execFile, execFileSync, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import {
   existsSync,
@@ -6,19 +6,21 @@ import {
   readFileSync,
   readdirSync,
   rmSync,
-  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { promisify } from "node:util";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { afterAll, afterEach, describe, expect, it } from "vitest";
 import { runCliAsync } from "../index";
 import { CREATE_HELP } from "./create";
 import { createFactoryCliComposition } from "./composition";
+import { validateCustomerTargetIntegrity } from "@maestro-template/release-tooling/customer-integrity";
 
 const repoRoot = fileURLToPath(new URL("../../../../", import.meta.url));
+const execFileAsync = promisify(execFile);
 const temporaryRoots: string[] = [];
 let taggedReleaseParent: string | undefined;
 let taggedReleaseRoot: string | undefined;
@@ -330,7 +332,10 @@ describe("create root integration", () => {
       "--privacy-reviewed",
       "--json",
     ]);
-    expect(result.exitCode, result.stderr).toBe(0);
+    expect(
+      result.exitCode,
+      [result.stderr, result.stdout].filter(Boolean).join("\n"),
+    ).toBe(0);
     expect(JSON.parse(result.stdout)).toMatchObject({ exitClass: "success" });
     const required = [
       "packages/convex/confect/tables/records.ts",
@@ -367,24 +372,23 @@ describe("create root integration", () => {
       existsSync(join(targetRoot, "docs/template/agent-pack-privacy.md")),
     ).toBe(true);
     expect(
+      validateCustomerTargetIntegrity(
+        Object.fromEntries(
+          Object.entries(snapshotTargetBytes(targetRoot)).map(
+            ([path, base64]) => [path, Buffer.from(base64, "base64")],
+          ),
+        ),
+      ),
+    ).toEqual([]);
+    expect(
       readFileSync(join(targetRoot, "packages/convex/tsconfig.json"), "utf8"),
     ).toContain('"confect/**/*.json"');
-    symlinkSync(
-      join(repoRoot, "node_modules"),
-      join(targetRoot, "node_modules"),
-      "dir",
+    const install = await execFileAsync(
+      "pnpm",
+      ["install", "--offline", "--frozen-lockfile", "--ignore-scripts"],
+      { cwd: targetRoot, encoding: "utf8", timeout: 120_000 },
     );
-    for (const project of [
-      "packages/convex",
-      "apps/web",
-      "tooling/confect-manifest",
-    ]) {
-      symlinkSync(
-        join(repoRoot, project, "node_modules"),
-        join(targetRoot, project, "node_modules"),
-        "dir",
-      );
-    }
+    expect(`${install.stdout}\n${install.stderr}`).not.toContain("ERR_PNPM");
     execFileSync("pnpm", ["confect:codegen"], {
       cwd: targetRoot,
       stdio: "pipe",

@@ -43,17 +43,21 @@ not copy files from a newer factory checkout.
 
 ## Start here
 
-Requirements: Git, Node 22, Corepack, and pnpm.
+Requirements: Git and Node 22. The bootstrap check chooses a pinned Corepack or
+npx pnpm command for the available host.
 
 \`\`\`bash
-corepack enable
-pnpm install --frozen-lockfile
-pnpm maestro -- preflight --mode fake
-pnpm maestro -- recipes list
-pnpm maestro -- recipes show crud-business-entity
+node scripts/maestro-bootstrap.mjs
+corepack pnpm@10.12.1 install --frozen-lockfile
+node maestro-template.mjs preflight --mode fake
+node maestro-template.mjs recipes list
+node maestro-template.mjs recipes show crud-business-entity
 pnpm template:systems -- --query records
-pnpm maestro -- start --mode fake
+node maestro-template.mjs start --mode fake
 \`\`\`
+
+If Corepack is unavailable, use the bootstrap report's exact
+\`npx --yes pnpm@10.12.1 install --frozen-lockfile\` fallback.
 
 The starter includes a neutral, workspace-owned \`record\` slice. Open the URL
 printed after \`/health\` becomes ready, then exercise \`/records\`: create a
@@ -156,6 +160,7 @@ export const CUSTOMER_ROOT_SCRIPTS = [
   "typecheck",
   "check:effect-diagnostics",
   "test",
+  "test:bootstrap",
   "test:tooling",
   "test:app-map",
   "test:workflow",
@@ -264,7 +269,7 @@ const customerPackage = (current: boolean): string => {
   value.scripts.test =
     "turbo run test --filter='./packages/*' --filter=@maestro-template/web";
   value.scripts["test:tooling"] =
-    "pnpm --dir tooling/workflow test && pnpm --dir tooling/generators exec vitest run src/customer-runtime.test.ts src/templateInstanceMigration.test.ts src/workflow-publication-generation.test.ts src/workflow-release-commands.test.ts --maxWorkers=1 --no-file-parallelism";
+    "pnpm test:bootstrap && pnpm --dir tooling/workflow test && pnpm --dir tooling/generators exec vitest run src/customer-runtime.test.ts src/templateInstanceMigration.test.ts src/workflow-publication-generation.test.ts src/workflow-release-commands.test.ts --maxWorkers=1 --no-file-parallelism";
   value.scripts["check:coverage-ratchet"] =
     "vitest run --coverage --maxWorkers=1 --no-file-parallelism packages/template-core packages/integrations packages/search packages/storage packages/notifications packages/observability packages/convex tooling/quality tooling/workflow tooling/generators apps/cli apps/web && tsx tooling/quality/check-coverage-ratchet.mts";
   value.scripts["coverage:update-baseline"] =
@@ -357,7 +362,30 @@ const customerGeneratorPackage = (): string => {
   value.exports = { ".": "./src/customer.ts" };
   const scripts = value.scripts as Record<string, string>;
   scripts.cli = "tsx src/customer-cli.ts";
+  const dependencies = value.dependencies as Record<string, string>;
+  delete dependencies["@maestro-template/release-tooling"];
   return `${JSON.stringify(value, null, 2)}\n`;
+};
+
+const customerCliPackage = (): string => {
+  const value = JSON.parse(source("apps/cli/package.json")) as {
+    dependencies: Record<string, string>;
+  };
+  delete value.dependencies["@maestro-template/release-tooling"];
+  delete value.dependencies["@maestro-template/stack-tooling"];
+  return `${JSON.stringify(value, null, 2)}\n`;
+};
+
+const customerLockfile = (): string => {
+  let value = source("pnpm-lock.yaml");
+  for (const block of [
+    '      "@maestro-template/release-tooling":\n        specifier: workspace:*\n        version: link:../../tooling/release\n',
+    '      "@maestro-template/stack-tooling":\n        specifier: workspace:*\n        version: link:../../tooling/stack\n',
+    '      "@maestro-template/release-tooling":\n        specifier: workspace:*\n        version: link:../release\n',
+  ]) {
+    value = replace(value, block, "");
+  }
+  return value;
 };
 
 const customerAgentPackCheck = (): string => {
@@ -585,6 +613,50 @@ export const buildSaasRegistrationProjections = (
             path: "docs/template/preflight.md",
             content: currentPublicDocument("preflight.md"),
           },
+          {
+            path: "AGENTS.md",
+            content: currentSource("AGENTS.md"),
+          },
+          {
+            path: "docs/template/agent-worker-playbook.md",
+            content: currentPublicDocument("agent-worker-playbook.md"),
+          },
+          {
+            path: "docs/template/how-this-relates-to-maestro.md",
+            content: currentPublicDocument("how-this-relates-to-maestro.md"),
+          },
+          {
+            path: "agent-patterns/effect-confect.md",
+            content: currentSource("agent-patterns/effect-confect.md"),
+          },
+          {
+            path: "docs/template/repo-map.md",
+            content: currentPublicDocument("repo-map.md"),
+          },
+          {
+            path: "docs/template/template-maturity-model.md",
+            content: currentPublicDocument("template-maturity-model.md"),
+          },
+          {
+            path: "maestro-template.mjs",
+            content: currentSource("maestro-template.mjs"),
+          },
+          {
+            path: "scripts/maestro-bootstrap.mjs",
+            content: currentSource("scripts/maestro-bootstrap.mjs"),
+          },
+          {
+            path: "scripts/maestro-bootstrap.test.mjs",
+            content: currentSource("scripts/maestro-bootstrap.test.mjs"),
+          },
+          {
+            path: "pnpm-workspace.yaml",
+            content: currentSource("pnpm-workspace.yaml"),
+          },
+          {
+            path: "pnpm-lock.yaml",
+            content: customerLockfile(),
+          },
         ]
       : []),
     {
@@ -596,6 +668,10 @@ export const buildSaasRegistrationProjections = (
     {
       path: "apps/cli/src/index.ts",
       content: customerCliEntry(),
+    },
+    {
+      path: "apps/cli/package.json",
+      content: customerCliPackage(),
     },
     {
       path: "apps/cli/src/factory/start.ts",

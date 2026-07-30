@@ -408,8 +408,14 @@ describe("saas application blueprint", () => {
       action: "generate",
       upgrade: "regenerate",
     });
-    expect(after.entries.some((entry) => entry.path === "AGENTS.md")).toBe(
-      false,
+    expect(after.entries).toContainEqual(
+      expect.objectContaining({
+        path: "AGENTS.md",
+        ownership: "generated",
+        action: "generate",
+        upgrade: "regenerate",
+        replaces: "copy",
+      }),
     );
   });
 
@@ -465,8 +471,20 @@ describe("saas application blueprint", () => {
       "README.md",
       "docs/template/agent-pack-privacy.md",
       "docs/template/preflight.md",
+      "AGENTS.md",
+      "docs/template/agent-worker-playbook.md",
+      "docs/template/how-this-relates-to-maestro.md",
+      "agent-patterns/effect-confect.md",
+      "docs/template/repo-map.md",
+      "docs/template/template-maturity-model.md",
+      "maestro-template.mjs",
+      "scripts/maestro-bootstrap.mjs",
+      "scripts/maestro-bootstrap.test.mjs",
+      "pnpm-workspace.yaml",
+      "pnpm-lock.yaml",
       "apps/cli/src/factory/customerComposition.ts",
       "apps/cli/src/index.ts",
+      "apps/cli/package.json",
       "apps/cli/src/factory/start.ts",
       "apps/cli/src/factory/customerRecipes.ts",
       "apps/cli/src/factory/recipeCatalog.ts",
@@ -737,6 +755,29 @@ describe("saas application blueprint", () => {
 
   it("projects a customer-only root script closure", () => {
     const files = buildFactorySaasApplicationFiles({ name: "My App" });
+    for (const path of [
+      "AGENTS.md",
+      "docs/template/agent-worker-playbook.md",
+      "docs/template/how-this-relates-to-maestro.md",
+      "docs/template/repo-map.md",
+      "docs/template/template-maturity-model.md",
+      "maestro-template.mjs",
+      "scripts/maestro-bootstrap.mjs",
+      "scripts/maestro-bootstrap.test.mjs",
+      "pnpm-workspace.yaml",
+      "pnpm-lock.yaml",
+    ]) {
+      expect(
+        files.some((file) => file.path === path),
+        path,
+      ).toBe(true);
+    }
+    expect(
+      files.find(({ path }) => path === "pnpm-workspace.yaml")?.content,
+    ).toContain("onlyBuiltDependencies:");
+    expect(
+      files.find(({ path }) => path === "pnpm-lock.yaml")?.content,
+    ).not.toContain('"@maestro-template/release-tooling":');
     const customerContext = JSON.parse(
       files.find(
         ({ path }) => path === "docs/template/customer-context.manifest.json",
@@ -749,6 +790,23 @@ describe("saas application blueprint", () => {
       readonly scripts: Readonly<Record<string, string>>;
       readonly devDependencies: Readonly<Record<string, string>>;
     };
+    const cliPackage = JSON.parse(
+      files.find(({ path }) => path === "apps/cli/package.json")?.content ??
+        "{}",
+    ) as { readonly dependencies: Readonly<Record<string, string>> };
+    const generatorPackage = JSON.parse(
+      files.find(({ path }) => path === "tooling/generators/package.json")
+        ?.content ?? "{}",
+    ) as { readonly dependencies: Readonly<Record<string, string>> };
+    expect(cliPackage.dependencies).not.toHaveProperty(
+      "@maestro-template/release-tooling",
+    );
+    expect(cliPackage.dependencies).not.toHaveProperty(
+      "@maestro-template/stack-tooling",
+    );
+    expect(generatorPackage.dependencies).not.toHaveProperty(
+      "@maestro-template/release-tooling",
+    );
     const omittedPaths = [
       "tooling/evals",
       "tooling/pr-backlog",
@@ -846,7 +904,7 @@ describe("saas application blueprint", () => {
       "turbo run test --filter='./packages/*' --filter=@maestro-template/web",
     );
     expect(root.scripts["test:tooling"]).toBe(
-      "pnpm --dir tooling/workflow test && pnpm --dir tooling/generators exec vitest run src/customer-runtime.test.ts src/templateInstanceMigration.test.ts src/workflow-publication-generation.test.ts src/workflow-release-commands.test.ts --maxWorkers=1 --no-file-parallelism",
+      "pnpm test:bootstrap && pnpm --dir tooling/workflow test && pnpm --dir tooling/generators exec vitest run src/customer-runtime.test.ts src/templateInstanceMigration.test.ts src/workflow-publication-generation.test.ts src/workflow-release-commands.test.ts --maxWorkers=1 --no-file-parallelism",
     );
     for (const name of CURRENT_GENERATOR_GATE_SCRIPTS) {
       expect(root.scripts[name]).toContain(

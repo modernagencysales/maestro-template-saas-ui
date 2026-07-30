@@ -14,6 +14,8 @@ const BASE_MANIFEST_CHECKSUM =
   "sha256:e0f4bc649b0aef4ffc6c59bd53e50204963e395116b7165dc4a1de3bf258be11";
 const BASE_BLUEPRINT_CHECKSUM =
   "sha256:5b5b40f73b7373907590090872beab7f2143c70f1654463982b0dfe8918324d3";
+const HARDENED_BLUEPRINT_CHECKSUM =
+  "sha256:e0e99307ea985824f41eb09ce37ef6cec78b95c2a7ba7a92295e9de522fc2a6c";
 const BASE_TAG = "maestro-template-v0.2.0-alpha.2";
 const BASE_COMMIT = "3aefd456354b344b9595bddc44fc0782240e2b7d";
 
@@ -29,6 +31,11 @@ export function createCustomerCreateComposition() {
       "releases/v0.2.0-alpha.2/blueprints/saas-application.json",
     ),
     blueprintManifestChecksum: BASE_BLUEPRINT_CHECKSUM,
+    blueprintAuthorityManifestPath: resolve(
+      TRUSTED_REPOSITORY_ROOT,
+      "releases/v0.2.0-alpha.2/hardening/saas-application.json",
+    ),
+    blueprintAuthorityManifestChecksum: HARDENED_BLUEPRINT_CHECKSUM,
     homeRoot: homedir(),
   });
   const command = createCustomerCreateCommand({

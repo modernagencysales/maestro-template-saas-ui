@@ -225,8 +225,9 @@ assuming success.
 - `tooling/quality`: gates and CI helpers.
 - `tooling/generators`: app-factory generators.
 - `docs/template`: operating docs and playbooks.
-- `repos/effect`: vendored Effect source, read-only reference material.
-- `repos/confect`: vendored Confect source, read-only reference material.
+- Factory-only upstream research trees are omitted from generated customer
+  targets. In a customer target, use `docs/template/confect-effect-guide.md` and
+  the shipped typed contracts instead.
 
 ## Vendored Repositories
 
@@ -234,17 +235,10 @@ This project vendors external repositories under `repos/`.
 
 - Use vendored repositories as read-only reference material when working with
   related libraries.
-- Prefer examples and patterns from vendored source and tests over generated
-  guesses or web snippets.
-- Do not edit files under `repos/` unless explicitly asked to update a vendored
-  subtree.
-- Do not import from `repos/`; application code imports from normal package
-  dependencies.
-- When writing Effect code, inspect `repos/effect/AGENTS.md` and relevant tests
-  under `repos/effect/packages/effect/test/`.
-- When writing Confect code, inspect `repos/confect/CLAUDE.md`,
-  `repos/confect/apps/example/confect/`, and relevant tests under
-  `repos/confect/packages/*/test/`.
+- Factory checkouts may include read-only upstream research trees; application
+  code never imports from them. Generated customer targets omit those trees.
+- In customer targets, use `docs/template/confect-effect-guide.md`, shipped
+  typed contracts, and local focused tests for Effect and Confect guidance.
 
 ## Playbook Index
 

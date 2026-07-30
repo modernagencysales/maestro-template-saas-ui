@@ -17,7 +17,9 @@ Use this when asking an AI worker to modify the template or a client fork.
 
 ## Effect And Confect
 
-- Treat `repos/effect` and `repos/confect` as read-only reference material.
+- In a factory checkout, vendored research trees are read-only. Generated
+  customer targets omit them; use `docs/template/confect-effect-guide.md` and
+  the shipped typed contracts as the canonical implementation guidance.
 - Do not import from `repos/*`.
 - Prefer local pattern files and vendored source examples over guesses.
 - Use Confect specs, Effect schemas, typed errors, generated refs, and focused

@@ -38,6 +38,8 @@ export type CustomerReleaseAdapterOptions = {
   readonly sourceCommit?: string;
   readonly blueprintManifestPath: string;
   readonly blueprintManifestChecksum: string;
+  readonly blueprintAuthorityManifestPath?: string;
+  readonly blueprintAuthorityManifestChecksum?: string;
 };
 
 export type PrepareRequest = {
@@ -152,11 +154,25 @@ export function assertReviewedBlueprintTargetPlan(
   options: CustomerReleaseAdapterOptions,
   plan: BlueprintTargetPlan,
 ): void {
-  const bytes = readFileSync(options.blueprintManifestPath);
-  if (sha256(bytes) !== options.blueprintManifestChecksum) {
+  const authorityPath =
+    options.blueprintAuthorityManifestPath ?? options.blueprintManifestPath;
+  const authorityChecksum =
+    options.blueprintAuthorityManifestChecksum ??
+    options.blueprintManifestChecksum;
+  if (
+    (options.blueprintAuthorityManifestPath === undefined) !==
+    (options.blueprintAuthorityManifestChecksum === undefined)
+  ) {
     throw new CustomerReleaseAdapterError(
       "release-unavailable",
-      "Blueprint ownership manifest checksum is not reviewed.",
+      "Blueprint hardening authority is incomplete.",
+    );
+  }
+  const bytes = readFileSync(authorityPath);
+  if (sha256(bytes) !== authorityChecksum) {
+    throw new CustomerReleaseAdapterError(
+      "release-unavailable",
+      "Blueprint authority manifest checksum is not reviewed.",
     );
   }
   const manifest = parseManifest(bytes);

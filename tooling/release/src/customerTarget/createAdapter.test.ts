@@ -220,6 +220,52 @@ describe("customer release create adapter", () => {
     });
   });
 
+  it("accepts a checksum-bound hardening authority without changing tagged ownership", async () => {
+    const fixture = taggedRelease();
+    const hardenedPlan = blueprintTargetPlan("hardened app\n");
+    const baseAuthority = JSON.parse(
+      readFileSync(fixture.blueprintManifestPath, "utf8"),
+    ) as Record<string, unknown>;
+    const hardeningPath = join(fixture.repositoryRoot, "hardening.json");
+    writeFileSync(
+      hardeningPath,
+      `${JSON.stringify(
+        {
+          ...baseAuthority,
+          entries: hardenedPlan.entries.map(
+            ({ content: _content, ...entry }) => entry,
+          ),
+        },
+        null,
+        2,
+      )}\n`,
+    );
+    const release = createCustomerReleaseAdapter({
+      repositoryRoot: fixture.repositoryRoot,
+      manifestPath: fixture.manifestPath,
+      ownershipManifestChecksum: fixture.ownershipManifestChecksum,
+      tag: fixture.tag,
+      homeRoot: fixture.homeRoot,
+      temporaryRoot: fixture.temporaryRoot,
+      blueprintManifestPath: fixture.blueprintManifestPath,
+      blueprintManifestChecksum: fixture.blueprintManifestChecksum,
+      blueprintAuthorityManifestPath: hardeningPath,
+      blueprintAuthorityManifestChecksum: hash(readFileSync(hardeningPath)),
+    });
+
+    await expect(
+      release.prepare({
+        repo: {
+          workingDirectory: fixture.repositoryRoot,
+          sourceRoot: fixture.repositoryRoot,
+        },
+        target: fixture.targetRoot,
+        blueprintTargetPlan: () => hardenedPlan,
+        templateInstance: (facts) => JSON.stringify({ release: facts }),
+      }),
+    ).resolves.toMatchObject({ ok: true });
+  });
+
   it.each([
     [
       "ownership manifest",

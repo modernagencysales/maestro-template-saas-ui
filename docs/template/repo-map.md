@@ -7,15 +7,14 @@
 - `tooling/`: gates, generators, release helpers, evals, and workflow tooling.
 - `examples/`: reviewer-safe synthetic example apps and seed data.
 - `docs/`: architecture, operations, and playbooks.
-- `docs/template/investor-reviewer-packet.md`: first-stop technical diligence
-  packet for investors and review agents.
+- `docs/template/reviewer-guide.md`: first-stop customer-target review guide.
 - `docs/template/frontend-architecture.md`: frontend layer law, TanStack Start
   direction, Saas UI shell rules, data-loading rules, and deploy acceptance
   criteria.
 - `docs/template/knowledge-model.md`: source-backed Brain concepts, claims,
   citations, context packs, markdown codecs, and OKF export.
-- `docs/design-intake/2026-07-01-template-frontend-stack-source.md`: source map
-  from Maestro frontend primitives into template destinations.
+- `docs/template/frontend-architecture.md`: shipped map from frontend primitives
+  into template destinations.
 - `docs/template/quickstart.md`: shortest path from private template to seeded
   B2B AI/GTM app fork.
 - `docs/template/preflight.md`: read-only host, repository, provider, and
