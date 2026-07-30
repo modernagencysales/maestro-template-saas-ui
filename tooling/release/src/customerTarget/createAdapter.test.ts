@@ -8,7 +8,10 @@ import {
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { createCustomerReleaseAdapter } from "./createAdapter.js";
+import {
+  createCustomerCurrentAdapter,
+  createCustomerReleaseAdapter,
+} from "./createAdapter.js";
 import { composedExpectedHashes } from "./createAdapter.archive.js";
 import {
   adapter,
@@ -46,6 +49,105 @@ describe("customer release create adapter", () => {
       ),
     ).toEqual({ [copied.path]: `sha256:${"b".repeat(64)}` });
   });
+
+  it("projects immutable release identity when current HEAD is the exact tag", async () => {
+    const fixture = taggedRelease();
+    const current = createCustomerCurrentAdapter({
+      repositoryRoot: fixture.repositoryRoot,
+      manifestPath: fixture.manifestPath,
+      ownershipManifestChecksum: fixture.ownershipManifestChecksum,
+      tag: fixture.tag,
+      homeRoot: fixture.homeRoot,
+      temporaryRoot: fixture.temporaryRoot,
+      blueprintManifestPath: fixture.blueprintManifestPath,
+      blueprintManifestChecksum: fixture.blueprintManifestChecksum,
+      blueprintId: "fixture-blueprint",
+      blueprintProvenance: "fixture-generator@1",
+    });
+
+    const prepared = await prepare(fixture, current);
+    expect(prepared).toMatchObject({
+      ok: true,
+      facts: {
+        version: "1.2.3",
+        tag: fixture.tag,
+        sourceCommit: git(fixture.repositoryRoot, ["rev-parse", "HEAD"])
+          .toString("utf8")
+          .trim(),
+        sourceChecksum: expect.stringMatching(/^sha256:[0-9a-f]{64}$/),
+        cliCompatibility: "1.2.x",
+        agentPackCompatibility: "1.2.x",
+        ownershipManifest: "tagged-current-composition",
+      },
+    });
+  });
+
+  it("fails closed when current HEAD is beyond the reviewed immutable tag", async () => {
+    const fixture = taggedRelease();
+    git(fixture.repositoryRoot, [
+      "commit",
+      "--quiet",
+      "--allow-empty",
+      "-m",
+      "unreleased work",
+    ]);
+    const current = createCustomerCurrentAdapter({
+      repositoryRoot: fixture.repositoryRoot,
+      manifestPath: fixture.manifestPath,
+      ownershipManifestChecksum: fixture.ownershipManifestChecksum,
+      tag: fixture.tag,
+      homeRoot: fixture.homeRoot,
+      temporaryRoot: fixture.temporaryRoot,
+      blueprintManifestPath: fixture.blueprintManifestPath,
+      blueprintManifestChecksum: fixture.blueprintManifestChecksum,
+      blueprintId: "fixture-blueprint",
+      blueprintProvenance: "fixture-generator@1",
+    });
+
+    await expect(prepare(fixture, current)).resolves.toMatchObject({
+      ok: false,
+      code: "release-unavailable",
+      message: expect.stringMatching(/HEAD.*reviewed immutable release tag/i),
+    });
+    expect(existsSync(fixture.targetRoot)).toBe(false);
+  });
+
+  it("rechecks exact tagged HEAD before materializing current composition", async () => {
+    const fixture = taggedRelease();
+    const current = createCustomerCurrentAdapter({
+      repositoryRoot: fixture.repositoryRoot,
+      manifestPath: fixture.manifestPath,
+      ownershipManifestChecksum: fixture.ownershipManifestChecksum,
+      tag: fixture.tag,
+      homeRoot: fixture.homeRoot,
+      temporaryRoot: fixture.temporaryRoot,
+      blueprintManifestPath: fixture.blueprintManifestPath,
+      blueprintManifestChecksum: fixture.blueprintManifestChecksum,
+      blueprintId: "fixture-blueprint",
+      blueprintProvenance: "fixture-generator@1",
+    });
+    const prepared = await prepare(fixture, current);
+    if (!prepared.ok) throw new Error("expected prepared release");
+    git(fixture.repositoryRoot, [
+      "commit",
+      "--quiet",
+      "--allow-empty",
+      "-m",
+      "unreleased work after preview",
+    ]);
+
+    const result = await current.materialize(
+      prepared.token,
+      prepared.preview.preflightFingerprint,
+    );
+    expect(result).toMatchObject({
+      ok: false,
+      code: "release-unavailable",
+      message: expect.stringMatching(/HEAD.*reviewed immutable release tag/i),
+    });
+    expect(existsSync(fixture.targetRoot)).toBe(false);
+  });
+
   it("requires the immutable tag to carry the exact compiled manifest bytes", async () => {
     const fixture = taggedRelease();
     git(fixture.repositoryRoot, [

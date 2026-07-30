@@ -152,6 +152,13 @@ export const CURRENT_GENERATOR_GATE_SCRIPTS = [
   "template:prototype",
 ] as const;
 
+export const CURRENT_SAAS_DEPLOY_AUTHORITY_TABLE_CLOSURE = [
+  "packages/convex/confect/_generated/tables/deployAuthorityAuditEvents.ts",
+  "packages/convex/confect/_generated/tables/deployAuthorityIssuers.ts",
+  "packages/convex/confect/tables/deployAuthorityAuditEvents.ts",
+  "packages/convex/confect/tables/deployAuthorityIssuers.ts",
+] as const;
+
 export const CUSTOMER_ROOT_SCRIPTS = [
   "maestro",
   "format",
@@ -793,6 +800,8 @@ export const buildSaasRegistrationProjections = (
       "packages/convex/confect/capabilities/_kit/workspaceAccess.ts",
       "packages/convex/confect/_generated/docs.ts",
       "packages/convex/confect/_generated/tables/workflowArtifacts.ts",
+      ...(current ? CURRENT_SAAS_DEPLOY_AUTHORITY_TABLE_CLOSURE : []),
+      "packages/convex/confect/ops/dataResources.generated.ts",
       "packages/convex/confect/tables/workflowArtifacts.ts",
       "packages/convex/confect/tables/workflowRuns.ts",
       "packages/convex/confect/tables/workflowStageRuns.ts",

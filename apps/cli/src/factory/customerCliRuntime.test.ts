@@ -1,4 +1,4 @@
-import { execFileSync, spawnSync } from "node:child_process";
+import { execFile, execFileSync, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import {
   chmodSync,
@@ -11,9 +11,11 @@ import {
 import { rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import { promisify } from "node:util";
 import { afterAll, afterEach, describe, expect, it } from "vitest";
 
 const temporaryRoots: string[] = [];
+const execFileAsync = promisify(execFile);
 const repositoryRoot = resolve(import.meta.dirname, "../../../..");
 let taggedReleaseParent: string | undefined;
 let taggedReleaseRoot: string | undefined;
@@ -51,7 +53,7 @@ afterEach(async () => {
       .splice(0)
       .map((root) => rm(root, { recursive: true, force: true })),
   );
-}, 60_000);
+}, 120_000);
 afterAll(async () => {
   if (taggedReleaseParent)
     await rm(taggedReleaseParent, { recursive: true, force: true });
@@ -132,10 +134,10 @@ describe("materialized customer CLI runtime closure", () => {
     ])
       expect(existsSync(join(target, path))).toBe(false);
 
-    execFileSync(
+    await execFileAsync(
       "pnpm",
       ["install", "--offline", "--frozen-lockfile", "--ignore-scripts"],
-      { cwd: target, stdio: "pipe", timeout: 120_000 },
+      { cwd: target, timeout: 120_000 },
     );
     const preview = spawnSync(
       "pnpm",
@@ -211,9 +213,8 @@ describe("materialized customer CLI runtime closure", () => {
       /@maestro-template\/(stack-tooling|release-tooling)/,
     );
 
-    execFileSync("pnpm", ["install", "--offline", "--frozen-lockfile"], {
+    await execFileAsync("pnpm", ["install", "--offline", "--frozen-lockfile"], {
       cwd: target,
-      stdio: "pipe",
       timeout: 120_000,
     });
     expect(existsSync(join(target, ".git"))).toBe(false);

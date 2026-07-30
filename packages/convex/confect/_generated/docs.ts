@@ -16,6 +16,7 @@ export type ContextPacksDoc = Document.Document<typeof schemaDefinition, "contex
 export type CreditLedgerDoc = Document.Document<typeof schemaDefinition, "creditLedger">;
 export type DeployActionConsumptionsDoc = Document.Document<typeof schemaDefinition, "deployActionConsumptions">;
 export type DeployApprovalsDoc = Document.Document<typeof schemaDefinition, "deployApprovals">;
+export type DeployAuthorityAuditEventsDoc = Document.Document<typeof schemaDefinition, "deployAuthorityAuditEvents">;
 export type DeployAuthorityIssuersDoc = Document.Document<typeof schemaDefinition, "deployAuthorityIssuers">;
 export type DeployCensusSnapshotsDoc = Document.Document<typeof schemaDefinition, "deployCensusSnapshots">;
 export type DeployVerdictsDoc = Document.Document<typeof schemaDefinition, "deployVerdicts">;
@@ -68,6 +69,7 @@ export interface Docs {
   creditLedger: CreditLedgerDoc;
   deployActionConsumptions: DeployActionConsumptionsDoc;
   deployApprovals: DeployApprovalsDoc;
+  deployAuthorityAuditEvents: DeployAuthorityAuditEventsDoc;
   deployAuthorityIssuers: DeployAuthorityIssuersDoc;
   deployCensusSnapshots: DeployCensusSnapshotsDoc;
   deployVerdicts: DeployVerdictsDoc;

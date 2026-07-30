@@ -10,6 +10,7 @@ import {
   descriptorWithAuthoritativeSource,
   type ReleaseDescriptor,
 } from "./workflow-release-commands";
+import { isMutableGeneratedProjection } from "./workflow-source-closure";
 
 type PublicationEntry = {
   readonly kind: "workflow" | "capability";
@@ -88,6 +89,9 @@ export const findPublishedClosureDrift = (
   }[],
 ): readonly string[] =>
   inputs
+    .filter(
+      ({ path }) => !isMutableGeneratedProjection(cwd, resolve(cwd, path)),
+    )
     .filter(({ path, checksum }) => {
       try {
         return sha256(readFileSync(resolve(cwd, path))) !== checksum;

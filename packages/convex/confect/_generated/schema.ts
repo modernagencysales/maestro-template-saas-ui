@@ -15,6 +15,7 @@ import contextPacks from "./tables/contextPacks";
 import creditLedger from "./tables/creditLedger";
 import deployActionConsumptions from "./tables/deployActionConsumptions";
 import deployApprovals from "./tables/deployApprovals";
+import deployAuthorityAuditEvents from "./tables/deployAuthorityAuditEvents";
 import deployAuthorityIssuers from "./tables/deployAuthorityIssuers";
 import deployCensusSnapshots from "./tables/deployCensusSnapshots";
 import deployVerdicts from "./tables/deployVerdicts";
@@ -67,6 +68,7 @@ const databaseSchema: $DatabaseSchema.DatabaseSchema<
   typeof creditLedger |
   typeof deployActionConsumptions |
   typeof deployApprovals |
+  typeof deployAuthorityAuditEvents |
   typeof deployAuthorityIssuers |
   typeof deployCensusSnapshots |
   typeof deployVerdicts |
@@ -118,6 +120,7 @@ const databaseSchema: $DatabaseSchema.DatabaseSchema<
   creditLedger,
   deployActionConsumptions,
   deployApprovals,
+  deployAuthorityAuditEvents,
   deployAuthorityIssuers,
   deployCensusSnapshots,
   deployVerdicts,

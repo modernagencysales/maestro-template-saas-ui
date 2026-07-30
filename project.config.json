@@ -2,7 +2,8 @@
   "project": {
     "name": "maestro-template"
   },
-  "sharedConvexBackendNote": "The template showcase intentionally points staging and production Pages deployments at the same read-only seeded Convex demo backend. Client forks with tenant data must replace this with separate staging and production Convex deployments before claiming backend promotion isolation.",
+  "sharedConvexBackendNote": "A shared Convex backend is not deployable. Environment-specific provider bindings are required and deployment fails closed unless their deployment identities differ.",
+  "requireDistinctConvexDeployments": true,
   "environments": {
     "staging": {
       "name": "staging",
@@ -10,7 +11,9 @@
       "cloudflarePagesProject": "maestro-template-staging",
       "cloudflareBranch": "staging",
       "convexDeployName": "maestro-template-staging",
-      "convexUrl": "https://exciting-cat-536.convex.cloud",
+      "convexDeployNameEnv": "TEMPLATE_STAGING_CONVEX_DEPLOYMENT",
+      "convexUrlEnv": "TEMPLATE_STAGING_CONVEX_URL",
+      "hostedUrlEnv": "TEMPLATE_STAGING_HOSTED_URL",
       "requiredEnvGroups": [
         "cloudflare",
         "convex",
@@ -18,9 +21,9 @@
         "fake-providers"
       ],
       "requiredSecrets": [
-        "CLOUDFLARE_API_TOKEN",
-        "CLOUDFLARE_ACCOUNT_ID",
-        "CONVEX_DEPLOY_KEY"
+        "TEMPLATE_STAGING_CLOUDFLARE_API_TOKEN",
+        "TEMPLATE_STAGING_CLOUDFLARE_ACCOUNT_ID",
+        "TEMPLATE_STAGING_CONVEX_DEPLOY_KEY"
       ]
     },
     "production": {
@@ -29,7 +32,9 @@
       "cloudflarePagesProject": "maestro-template",
       "cloudflareBranch": "main",
       "convexDeployName": "maestro-template-production",
-      "convexUrl": "https://exciting-cat-536.convex.cloud",
+      "convexDeployNameEnv": "TEMPLATE_PRODUCTION_CONVEX_DEPLOYMENT",
+      "convexUrlEnv": "TEMPLATE_PRODUCTION_CONVEX_URL",
+      "hostedUrlEnv": "TEMPLATE_PRODUCTION_HOSTED_URL",
       "requiredEnvGroups": [
         "cloudflare",
         "convex",
@@ -42,9 +47,9 @@
         "storage"
       ],
       "requiredSecrets": [
-        "CLOUDFLARE_API_TOKEN",
-        "CLOUDFLARE_ACCOUNT_ID",
-        "CONVEX_DEPLOY_KEY"
+        "TEMPLATE_PRODUCTION_CLOUDFLARE_API_TOKEN",
+        "TEMPLATE_PRODUCTION_CLOUDFLARE_ACCOUNT_ID",
+        "TEMPLATE_PRODUCTION_CONVEX_DEPLOY_KEY"
       ]
     }
   }

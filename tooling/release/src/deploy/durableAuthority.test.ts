@@ -1,6 +1,7 @@
 import { generateKeyPairSync, sign as cryptoSign } from "node:crypto";
 import { describe, expect, it, vi } from "vitest";
 
+import { runDurableDeployAuthorityPreflight } from "./authorityCli.js";
 import {
   handleDurableDeployAuthority,
   PINNED_DEPLOY_AUTHORITY_ISSUER_ID,
@@ -171,6 +172,110 @@ describe("durable deploy authority", () => {
       }),
     ).rejects.toThrow(/unavailable/);
     expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("accepts only an HTTPS base endpoint without credentials or URL suffixes", async () => {
+    const signing = keys();
+    const fetchSpy = vi.fn() as unknown as typeof fetch;
+    for (const endpoint of [
+      "http://authority.invalid",
+      "https://user:pass@authority.invalid",
+      "https://authority.invalid/control-plane",
+      "https://authority.invalid?tenant=template",
+      "https://authority.invalid#fragment",
+      "not-a-url",
+    ]) {
+      await expect(
+        requestDurableDeployAuthorization(scope(), {
+          endpoint,
+          publicKeyPem: signing.publicKeyPem,
+          nowMs: () => now,
+          fetch: fetchSpy,
+        }),
+      ).rejects.toThrow(/HTTPS base URL/);
+    }
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("blocks a target-coupled preflight before any network request", async () => {
+    const signing = keys();
+    const fetchSpy = vi.fn() as unknown as typeof fetch;
+    await expect(
+      runDurableDeployAuthorityPreflight(
+        [
+          "staging",
+          "a".repeat(40),
+          "template-staging",
+          "https://target-deployment.convex.cloud",
+        ],
+        {
+          endpoint: "https://target-deployment.convex.cloud",
+          publicKeyPem: signing.publicKeyPem,
+          nowMs: () => now,
+          fetch: fetchSpy,
+        },
+      ),
+    ).rejects.toThrow(/independent HTTPS base URL/);
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("blocks matching Convex cloud and site deployment identities without network", async () => {
+    const signing = keys();
+    const fetchSpy = vi.fn() as unknown as typeof fetch;
+    for (const [endpoint, targetConvexUrl] of [
+      [
+        "https://exciting-cat-536.convex.site",
+        "https://exciting-cat-536.convex.cloud",
+      ],
+      [
+        "https://exciting-cat-536.convex.cloud",
+        "https://exciting-cat-536.convex.site",
+      ],
+      [
+        "https://EXCITING-CAT-536.CONVEX.SITE",
+        "https://Exciting-Cat-536.Convex.Cloud",
+      ],
+    ] as const) {
+      await expect(
+        runDurableDeployAuthorityPreflight(
+          ["staging", "a".repeat(40), "template-staging", targetConvexUrl],
+          {
+            endpoint,
+            publicKeyPem: signing.publicKeyPem,
+            nowMs: () => now,
+            fetch: fetchSpy,
+          },
+        ),
+      ).rejects.toThrow(/independent HTTPS base URL/);
+    }
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("allows distinct Convex deployment identities", async () => {
+    const signing = keys();
+    const requested = scope("preflight");
+    const server = await handleDurableDeployAuthority(requested, {
+      store: transactionalStore(),
+      sign: signing.sign,
+    });
+    const fetchSpy = responseFetch(server);
+    await expect(
+      runDurableDeployAuthorityPreflight(
+        [
+          requested.environment,
+          requested.commitSha,
+          requested.targetId,
+          "https://target-deployment.convex.cloud",
+        ],
+        {
+          endpoint: "https://independent-authority.convex.site",
+          publicKeyPem: signing.publicKeyPem,
+          nowMs: () => now + 1,
+          fetch: fetchSpy,
+        },
+      ),
+    ).resolves.toBeUndefined();
+    expect(fetchSpy).toHaveBeenCalledOnce();
   });
 
   it("rejects every exact-scope field mismatch", async () => {

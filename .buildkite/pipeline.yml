@@ -1,5 +1,16 @@
 env:
   SECRET_SCANNER_VERSION: "8.30.1"
+  PROMOTION_AUTHORITY_ENDPOINT: "${PROMOTION_AUTHORITY_ENDPOINT}"
+  TRUSTED_DEPLOY_ROOT_SHA256: "${TRUSTED_DEPLOY_ROOT_SHA256}"
+  TRUSTED_CI_SELF_PROTECTION_COMMIT: "${TRUSTED_CI_SELF_PROTECTION_COMMIT}"
+  TRUSTED_ROLLBACK_SEED_COMMIT: "${TRUSTED_ROLLBACK_SEED_COMMIT}"
+  ROLLBACK_RECEIPT_BUILD_ID: "${ROLLBACK_RECEIPT_BUILD_ID}"
+  TEMPLATE_STAGING_CONVEX_DEPLOYMENT: "${TEMPLATE_STAGING_CONVEX_DEPLOYMENT}"
+  TEMPLATE_STAGING_CONVEX_URL: "${TEMPLATE_STAGING_CONVEX_URL}"
+  TEMPLATE_STAGING_HOSTED_URL: "${TEMPLATE_STAGING_HOSTED_URL}"
+  TEMPLATE_PRODUCTION_CONVEX_DEPLOYMENT: "${TEMPLATE_PRODUCTION_CONVEX_DEPLOYMENT}"
+  TEMPLATE_PRODUCTION_CONVEX_URL: "${TEMPLATE_PRODUCTION_CONVEX_URL}"
+  TEMPLATE_PRODUCTION_HOSTED_URL: "${TEMPLATE_PRODUCTION_HOSTED_URL}"
 
 # Phase-1 command inventory:
 # pnpm verify
@@ -41,14 +52,42 @@ env:
 
 # Steps route to Buildkite hosted queues by weight (linux-small/medium/large).
 # Secrets come from cluster secrets via the step-level `secrets:` attribute;
-# the template's Convex key is namespaced TEMPLATE_CONVEX_DEPLOY_KEY so this
-# pipeline can never pick up another pipeline's deploy key by accident.
+# each environment's provider credentials use distinct TEMPLATE_STAGING_* or
+# TEMPLATE_PRODUCTION_* names so neither deploy can inherit another target's
+# credentials by accident.
 steps:
   # Secretless self-protection: fail before any credentialed job runs if the
   # PR weakens the CI gate structure. This step must never receive secrets.
   - label: ":shield: ci-self-protection"
     key: "ci-self-protection"
-    command: ".buildkite/scripts/ci-self-protection.sh"
+    command: |
+      set -euo pipefail
+      if [[ ! "$${TRUSTED_CI_SELF_PROTECTION_COMMIT}" =~ ^[0-9a-f]{40}([0-9a-f]{24})?$ ]]; then
+        echo "TRUSTED_CI_SELF_PROTECTION_COMMIT must be an exact immutable commit SHA." >&2
+        exit 1
+      fi
+      git cat-file -e "$${TRUSTED_CI_SELF_PROTECTION_COMMIT}^{commit}"
+      if [[ "$$(git rev-parse "$${TRUSTED_CI_SELF_PROTECTION_COMMIT}^{commit}")" != "$${TRUSTED_CI_SELF_PROTECTION_COMMIT}" ]]; then
+        echo "Trusted self-protection commit did not resolve exactly." >&2
+        exit 1
+      fi
+      TRUSTED_SELF_PROTECTION_DIR="$$(mktemp -d)"
+      trap 'rm -rf "$${TRUSTED_SELF_PROTECTION_DIR}"' EXIT
+      TRUSTED_SETUP_PATH="$${TRUSTED_SELF_PROTECTION_DIR}/setup.sh"
+      TRUSTED_VERIFIER_PATH="$${TRUSTED_SELF_PROTECTION_DIR}/check-deploy-authority.mts"
+      TRUSTED_SELF_PROTECTION_PATH="$${TRUSTED_SELF_PROTECTION_DIR}/ci-self-protection.sh"
+      git show "$${TRUSTED_CI_SELF_PROTECTION_COMMIT}:.buildkite/scripts/setup.sh" > "$${TRUSTED_SETUP_PATH}"
+      git show "$${TRUSTED_CI_SELF_PROTECTION_COMMIT}:tooling/quality/check-deploy-authority.mts" > "$${TRUSTED_VERIFIER_PATH}"
+      git show "$${TRUSTED_CI_SELF_PROTECTION_COMMIT}:.buildkite/scripts/ci-self-protection.sh" > "$${TRUSTED_SELF_PROTECTION_PATH}"
+      export npm_config_ignore_scripts=true
+      source "$${TRUSTED_SETUP_PATH}"
+      if [[ "$$(node --version)" != "v22.12.0" ]]; then
+        echo "Trusted verifier requires pinned Node v22.12.0." >&2
+        exit 1
+      fi
+      node --experimental-strip-types "$${TRUSTED_VERIFIER_PATH}"
+      TEMPLATE_CI_SETUP=skip bash "$${TRUSTED_SELF_PROTECTION_PATH}"
+      unset npm_config_ignore_scripts
     agents:
       queue: "linux-small"
 
@@ -97,8 +136,9 @@ steps:
     if: build.branch == "main" && build.pull_request.id == null
     depends_on: "phase-1"
     command:
-      "pnpm exec tsx tooling/release/src/deploy/authorityCli.ts staging
-      ${BUILDKITE_COMMIT} template-staging"
+      "node scripts/_project-config.mjs assert-isolated-convex && pnpm exec tsx
+      tooling/release/src/deploy/authorityCli.ts staging ${BUILDKITE_COMMIT}
+      template-staging $(node scripts/_project-config.mjs get staging convexUrl)"
     agents:
       queue: "linux-small"
 
@@ -109,10 +149,13 @@ steps:
     command: ".buildkite/scripts/staging-deploy.sh"
     env:
       PROMOTION_TARGET_ID: "template-staging"
+      PREVIOUS_CONVEX_COMMIT_SHA: "${STAGING_PREVIOUS_CONVEX_COMMIT_SHA}"
+      PREVIOUS_CONVEX_DEPLOYMENT: "${STAGING_PREVIOUS_CONVEX_DEPLOYMENT}"
+      PREVIOUS_CLOUDFLARE_DEPLOYMENT_VERSION: "${STAGING_PREVIOUS_CLOUDFLARE_DEPLOYMENT_VERSION}"
     secrets:
-      - TEMPLATE_CLOUDFLARE_API_TOKEN
-      - TEMPLATE_CLOUDFLARE_ACCOUNT_ID
-      - TEMPLATE_CONVEX_DEPLOY_KEY
+      - TEMPLATE_STAGING_CLOUDFLARE_API_TOKEN
+      - TEMPLATE_STAGING_CLOUDFLARE_ACCOUNT_ID
+      - TEMPLATE_STAGING_CONVEX_DEPLOY_KEY
     agents:
       queue: "linux-medium"
 
@@ -126,8 +169,10 @@ steps:
     if: build.branch == "main" && build.pull_request.id == null
     depends_on: "production-approval"
     command:
-      "pnpm exec tsx tooling/release/src/deploy/authorityCli.ts production
-      ${BUILDKITE_COMMIT} template-production"
+      "node scripts/_project-config.mjs assert-isolated-convex && pnpm exec tsx
+      tooling/release/src/deploy/authorityCli.ts production ${BUILDKITE_COMMIT}
+      template-production $(node scripts/_project-config.mjs get production
+      convexUrl)"
     agents:
       queue: "linux-small"
 
@@ -138,10 +183,15 @@ steps:
     command: ".buildkite/scripts/production-promote.sh"
     env:
       PROMOTION_TARGET_ID: "template-production"
+      PREVIOUS_CONVEX_COMMIT_SHA: "${PRODUCTION_PREVIOUS_CONVEX_COMMIT_SHA}"
+      PREVIOUS_CONVEX_DEPLOYMENT: "${PRODUCTION_PREVIOUS_CONVEX_DEPLOYMENT}"
+      PREVIOUS_CLOUDFLARE_DEPLOYMENT_VERSION: "${PRODUCTION_PREVIOUS_CLOUDFLARE_DEPLOYMENT_VERSION}"
+      ROLLBACK_CLOUDFLARE_DEPLOYMENT_VERSION: "${ROLLBACK_CLOUDFLARE_DEPLOYMENT_VERSION}"
+      ROLLBACK_RECEIPT_PATH: "${ROLLBACK_RECEIPT_PATH}"
     secrets:
-      - TEMPLATE_CLOUDFLARE_API_TOKEN
-      - TEMPLATE_CLOUDFLARE_ACCOUNT_ID
-      - TEMPLATE_CONVEX_DEPLOY_KEY
+      - TEMPLATE_PRODUCTION_CLOUDFLARE_API_TOKEN
+      - TEMPLATE_PRODUCTION_CLOUDFLARE_ACCOUNT_ID
+      - TEMPLATE_PRODUCTION_CONVEX_DEPLOY_KEY
     agents:
       queue: "linux-medium"
 

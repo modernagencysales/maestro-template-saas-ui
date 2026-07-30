@@ -29,15 +29,23 @@ is valid only with `--privacy-reviewed`.
 
 A successful target contains `template-instance.json` with:
 
-- immutable release version, tag, source commit, and source-archive checksum;
+- immutable release version, tag, tagged source commit, and source/composition
+  checksum;
 - CLI and Agent Pack compatibility;
-- ownership manifest path, checksum, and extension seams;
+- ownership authority identifier, manifest path, checksum, and extension seams;
 - blueprint identity and exact plan digest;
 - visible app name, first-outcome seed, and demo-only posture.
 
-Create then prints the commands for Git initialization, frozen installation,
-baseline staging and commit, customer preflight, and fake-mode start. Each is
-reported as an unexecuted follow-up. Create does not run those actions.
+The public create composition binds generated output to a clean checkout whose
+HEAD exactly equals the reviewed immutable release tag. `template-instance.json`
+records the release version, tag, tagged commit, and a composition checksum. An
+untagged commit, including a clean commit beyond the tag, fails closed before
+preview or materialization and is never projected as a customer release.
+
+The output contains exactly one next command: start the new target. Git
+initialization, frozen dependency installation, baseline staging and commit, and
+customer preflight are listed separately as unexecuted follow-ups with explicit
+approval posture. Create does not run those actions.
 
 ## Immutable release authority
 

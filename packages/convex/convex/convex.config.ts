@@ -12,6 +12,8 @@ const app = defineApp({
   env: {
     POSTHOG_PROJECT_TOKEN: v.string(),
     POSTHOG_HOST: v.optional(v.string()),
+    PROMOTION_AUTHORITY_MODE: v.optional(v.literal("authority")),
+    PROMOTION_AUTHORITY_PRIVATE_KEY_PKCS8_BASE64URL: v.optional(v.string()),
   },
 });
 

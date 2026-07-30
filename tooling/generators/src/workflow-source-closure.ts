@@ -153,13 +153,14 @@ const resolveImports = (
   return resolvedPaths;
 };
 
-const isMutableGeneratedProjection = (
+export const isMutableGeneratedProjection = (
   repositoryRoot: string,
   absolutePath: string,
 ): boolean => {
   const path = normalizedSourcePath(repositoryRoot, absolutePath);
   return (
     path.includes("/confect/_generated/") ||
+    path === "packages/convex/convex/_generated/api.d.ts" ||
     path === "packages/convex/confect/http.ts"
   );
 };

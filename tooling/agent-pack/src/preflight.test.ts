@@ -338,8 +338,6 @@ describe("agent-pack preflight", () => {
       });
       expect(diagnostic?.nextAction).not.toBe(diagnostic?.message);
       if (
-        code !== "AGENT_PACK_OFFLINE" &&
-        code !== "AGENT_PACK_NETWORK_UNKNOWN" &&
         code !== "AGENT_PACK_HOST_STALE" &&
         code !== "AGENT_PACK_AUTH_CANCELLED" &&
         code !== "AGENT_PACK_AUTH_UNKNOWN"
@@ -350,11 +348,22 @@ describe("agent-pack preflight", () => {
   );
 
   it.each(["offline", "unknown"] as const)(
-    "keeps fake mode successful when network posture is %s",
+    "passes fake mode when optional network posture is %s",
     async (network) => {
+      const facts = readyFacts();
       const result = await executeAgentPackCommand(
         createPreflightCommand({
-          inspect: async () => ({ ...readyFacts(), network }),
+          inspect: async () => ({
+            ...facts,
+            network,
+            ...(network === "unknown"
+              ? {
+                  observationDiagnostics: {
+                    network: "Registry probe timed out.",
+                  },
+                }
+              : {}),
+          }),
         }),
         { mode: "fake" },
         context,
@@ -363,27 +372,37 @@ describe("agent-pack preflight", () => {
       expect(result).toMatchObject({
         exitClass: "success",
         diagnostics: [],
-        data: { safeToMutate: true },
+        data: { safeToMutate: true, facts: { network } },
       });
     },
   );
 
-  it("reports offline posture when the requested mode needs network access", async () => {
-    const result = await executeAgentPackCommand(
-      createPreflightCommand({
-        inspect: async () => ({ ...readyFacts(), network: "offline" }),
-      }),
-      { mode: "test" },
-      context,
-    );
+  it.each([
+    ["offline", "AGENT_PACK_OFFLINE"],
+    ["unknown", "AGENT_PACK_NETWORK_UNKNOWN"],
+  ] as const)(
+    "reports %s network posture outside fake mode",
+    async (network, code) => {
+      const facts = readyFacts();
+      const result = await executeAgentPackCommand(
+        createPreflightCommand({
+          inspect: async () => ({
+            ...facts,
+            network,
+            app: { ...facts.app, providerMode: "test" },
+          }),
+        }),
+        { mode: "test" },
+        context,
+      );
 
-    expect(result).toMatchObject({
-      exitClass: "findings",
-      diagnostics: [{ code: "AGENT_PACK_OFFLINE" }],
-      data: { safeToMutate: true },
-    });
-  });
-
+      expect(result).toMatchObject({
+        exitClass: "findings",
+        diagnostics: [{ code, safeToContinue: true }],
+        data: { safeToMutate: true },
+      });
+    },
+  );
   it("blocks when dirty state, collisions, or the Git root could not be observed", async () => {
     const facts = readyFacts();
     const result = await executeAgentPackCommand(

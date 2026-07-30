@@ -42,17 +42,30 @@ const taggedRepository = (): string => {
   );
   return taggedReleaseRoot;
 };
-const runTaggedCli = (argv: readonly string[]) => {
-  const result = spawnSync("pnpm", ["--silent", "maestro", "--", ...argv], {
-    cwd: taggedRepository(),
-    encoding: "utf8",
-    maxBuffer: 10 * 1024 * 1024,
-  });
-  return {
-    exitCode: result.status ?? 70,
-    stdout: result.stdout,
-    stderr: result.stderr,
-  };
+const runTaggedCli = async (argv: readonly string[]) => {
+  try {
+    const result = await execFileAsync(
+      "pnpm",
+      ["--silent", "maestro", "--", ...argv],
+      {
+        cwd: taggedRepository(),
+        encoding: "utf8",
+        maxBuffer: 10 * 1024 * 1024,
+      },
+    );
+    return { exitCode: 0, stdout: result.stdout, stderr: result.stderr };
+  } catch (error) {
+    const failure = error as Error & {
+      readonly code?: number;
+      readonly stdout?: string;
+      readonly stderr?: string;
+    };
+    return {
+      exitCode: typeof failure.code === "number" ? failure.code : 70,
+      stdout: failure.stdout ?? "",
+      stderr: failure.stderr ?? failure.message,
+    };
+  }
 };
 afterAll(async () => {
   if (taggedReleaseParent)
@@ -139,7 +152,7 @@ describe("create root integration", () => {
     const parent = mkdtempSync(join(tmpdir(), "maestro-create-root-"));
     temporaryRoots.push(parent);
     const target = join(parent, "customer-app");
-    const result = runTaggedCli([
+    const result = await runTaggedCli([
       "create",
       target,
       "--name",
@@ -175,11 +188,11 @@ describe("create root integration", () => {
     expect(existsSync(target)).toBe(false);
   }, 30_000);
 
-  it("prints the complete copy-paste onboarding sequence after create", () => {
+  it("prints the complete copy-paste onboarding sequence after create", async () => {
     const parent = mkdtempSync(join(tmpdir(), "maestro-create-human-"));
     temporaryRoots.push(parent);
     const target = join(parent, "customer-app");
-    const result = runTaggedCli([
+    const result = await runTaggedCli([
       "create",
       target,
       "--name",
@@ -216,7 +229,7 @@ describe("create root integration", () => {
     ] as const;
 
     const create = async (request: (typeof requests)[number]) => {
-      const result = runTaggedCli([
+      const result = await runTaggedCli([
         "create",
         request.target,
         "--name",
@@ -320,7 +333,7 @@ describe("create root integration", () => {
     const parent = mkdtempSync(join(tmpdir(), "maestro-create-workspace-"));
     temporaryRoots.push(parent);
     const targetRoot = join(parent, "app");
-    const result = runTaggedCli([
+    const result = await runTaggedCli([
       "create",
       targetRoot,
       "--name",
@@ -341,6 +354,10 @@ describe("create root integration", () => {
       "packages/convex/confect/tables/records.ts",
       "packages/convex/confect/records.spec.ts",
       "packages/convex/confect/records.impl.ts",
+      "packages/convex/confect/_generated/tables/deployAuthorityAuditEvents.ts",
+      "packages/convex/confect/_generated/tables/deployAuthorityIssuers.ts",
+      "packages/convex/confect/tables/deployAuthorityAuditEvents.ts",
+      "packages/convex/confect/tables/deployAuthorityIssuers.ts",
       "apps/web/src/adapters/records/contract.ts",
       "apps/web/src/adapters/records/fake.ts",
       "apps/web/src/features/records/records-surface.tsx",
@@ -348,7 +365,7 @@ describe("create root integration", () => {
       "apps/web/src/routes/_workspace.records.tsx",
     ] as const;
     for (const path of required) {
-      expect(existsSync(join(targetRoot, path))).toBe(true);
+      expect(existsSync(join(targetRoot, path)), path).toBe(true);
     }
     const instance = JSON.parse(
       readFileSync(join(targetRoot, "template-instance.json"), "utf8"),

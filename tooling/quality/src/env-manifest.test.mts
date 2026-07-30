@@ -214,4 +214,70 @@ describe("environment manifest", () => {
     expect(docs).toContain("env-manifest.json");
     expect(docs).toContain("machine-readable");
   });
+
+  it("keeps deploy authority trust public and signing authority runtime-only", () => {
+    const endpoint = entries.find(
+      (entry) => entry.name === "PROMOTION_AUTHORITY_ENDPOINT",
+    );
+    const trustedRoot = entries.find(
+      (entry) => entry.name === "TRUSTED_DEPLOY_ROOT_SHA256",
+    );
+    const authorityMode = entries.find(
+      (entry) => entry.name === "PROMOTION_AUTHORITY_MODE",
+    );
+    const authorityPrivateKey = entries.find(
+      (entry) =>
+        entry.name === "PROMOTION_AUTHORITY_PRIVATE_KEY_PKCS8_BASE64URL",
+    );
+    expect(endpoint).toMatchObject({
+      group: "buildkite",
+      services: expect.arrayContaining(["ci", "deploy"]),
+      visibility: "server-config",
+      requiredFor: expect.arrayContaining(["deploy"]),
+      fakeExampleAllowed: false,
+    });
+    expect(trustedRoot).toMatchObject({
+      group: "buildkite",
+      services: expect.arrayContaining(["ci", "deploy"]),
+      visibility: "server-config",
+      requiredFor: expect.arrayContaining(["deploy"]),
+      fakeExampleAllowed: false,
+    });
+    expect(authorityMode).toMatchObject({
+      group: "deployment-authority",
+      services: expect.arrayContaining(["convex", "authority-runtime"]),
+      visibility: "server-config",
+      requiredFor: ["authority"],
+      fakeExampleAllowed: false,
+    });
+    expect(authorityPrivateKey).toMatchObject({
+      group: "deployment-authority",
+      services: expect.arrayContaining(["convex", "authority-runtime"]),
+      visibility: "server-secret",
+      requiredFor: ["authority"],
+      fakeExampleAllowed: false,
+    });
+
+    const convexConfig = readText("packages/convex/convex/convex.config.ts");
+    expect(convexConfig).toContain(
+      'PROMOTION_AUTHORITY_MODE: v.optional(v.literal("authority"))',
+    );
+    expect(convexConfig).toContain(
+      "PROMOTION_AUTHORITY_PRIVATE_KEY_PKCS8_BASE64URL: v.optional(v.string())",
+    );
+
+    const runbook = readText("docs/template/operations-runbook.md");
+    const manifestDocs = readText("docs/template/env-manifest.md");
+    for (const docs of [runbook, manifestDocs]) {
+      expect(docs).toContain("PROMOTION_AUTHORITY_MODE");
+      expect(docs).toContain("PROMOTION_AUTHORITY_PRIVATE_KEY_PKCS8_BASE64URL");
+      expect(docs).toContain("authority");
+    }
+
+    const pipeline = readText(".buildkite/pipeline.yml");
+    expect(pipeline).not.toContain(
+      "PROMOTION_AUTHORITY_PRIVATE_KEY_PKCS8_BASE64URL",
+    );
+    expect(pipeline).not.toContain("PROMOTION_AUTHORITY_MODE");
+  });
 });

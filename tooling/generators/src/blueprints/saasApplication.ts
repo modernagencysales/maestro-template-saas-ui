@@ -11,6 +11,7 @@ import {
   buildAlpha1SaasApplicationFiles,
   buildFactorySaasApplicationFiles,
 } from "./saasApplicationFactory";
+import { CURRENT_SAAS_DEPLOY_AUTHORITY_TABLE_CLOSURE } from "./saasRegistrationProjections";
 
 export const saasApplicationBlueprint = {
   id: "saas-application",
@@ -440,6 +441,11 @@ function buildTargetPlan(
     ["tooling/confect-manifest/tsconfig.json", "copy"],
     ["packages/convex/confect/_generated/tables/workflowArtifacts.ts", "copy"],
     ["packages/convex/confect/tables/workflowArtifacts.ts", "copy"],
+    [
+      "packages/convex/confect/_generated/tables/deployAuthorityIssuers.ts",
+      "copy",
+    ],
+    ["packages/convex/confect/tables/deployAuthorityIssuers.ts", "copy"],
     ["packages/convex/confect/workflows/_kit/lifecycleSweep.ts", "copy"],
     ["packages/convex/confect/workflows/_kit/payloadBudget.ts", "copy"],
     ["packages/convex/confect/workflows/_kit/workflowArtifacts.ts", "copy"],
@@ -598,6 +604,7 @@ function buildTargetPlan(
     "packages/convex/confect/capabilities/_kit/workspaceAccess.ts",
     "packages/convex/confect/_generated/docs.ts",
     "packages/convex/confect/_generated/tables/workflowArtifacts.ts",
+    ...(current ? CURRENT_SAAS_DEPLOY_AUTHORITY_TABLE_CLOSURE : []),
     "packages/convex/confect/ops/dataResources.generated.ts",
     "docs/template/system-catalog.json",
     "docs/template/data-resources.json",
