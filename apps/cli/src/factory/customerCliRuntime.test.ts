@@ -284,7 +284,7 @@ describe("materialized customer CLI runtime closure", () => {
       "turbo run test --filter='./packages/*' --filter=@maestro-template/web",
     );
     expect(customerPackage.scripts["test:tooling"]).toBe(
-      "pnpm --dir tooling/workflow test && pnpm --dir tooling/generators exec vitest run src/customer-runtime.test.ts src/templateInstanceMigration.test.ts src/workflow-publication-generation.test.ts src/workflow-release-commands.test.ts --maxWorkers=1 --no-file-parallelism",
+      "pnpm test:bootstrap && pnpm --dir tooling/workflow test && pnpm --dir tooling/generators exec vitest run src/customer-runtime.test.ts src/templateInstanceMigration.test.ts src/workflow-publication-generation.test.ts src/workflow-release-commands.test.ts --maxWorkers=1 --no-file-parallelism",
     );
     expect(customerPackage.scripts.verify).toBe(
       [

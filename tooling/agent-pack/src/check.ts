@@ -53,14 +53,16 @@ export function createCheckCommand(input: {
         changed: args.changed,
       }),
     execute: async (args, context) => {
-      const [preflight, verification] = await Promise.all([
-        executeAgentPackCommand(input.preflight, { mode: args.mode }, context),
-        executeAgentPackCommand(
-          input.verify,
-          { scope: args.scope, changed: args.changed },
-          context,
-        ),
-      ]);
+      const preflight = await executeAgentPackCommand(
+        input.preflight,
+        { mode: args.mode },
+        context,
+      );
+      const verification = await executeAgentPackCommand(
+        input.verify,
+        { scope: args.scope, changed: args.changed },
+        context,
+      );
       const diagnostics = [
         ...preflight.diagnostics,
         ...verification.diagnostics,

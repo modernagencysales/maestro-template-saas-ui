@@ -28,6 +28,7 @@ import {
   projectCompositionEnvironment,
   projectCompositionProviderPosture,
 } from "./composition";
+import { START_HELP } from "./start";
 
 const factoryCliComposition = createFactoryCliComposition(() => ({}));
 const repositoryRoot = fileURLToPath(new URL("../../../../", import.meta.url));
@@ -74,6 +75,25 @@ async function targetFiles(root: string): Promise<readonly string[]> {
       return `${path}:file:${hash}`;
     }),
   );
+}
+
+async function expectOnlyVerificationReceiptAdded(
+  root: string,
+  before: readonly string[],
+): Promise<void> {
+  const after = await targetFiles(root);
+  expect(after.filter((entry) => !entry.startsWith(".maestro"))).toEqual(
+    before,
+  );
+  expect(after.filter((entry) => entry.startsWith(".maestro"))).toEqual([
+    ".maestro:directory",
+    expect.stringMatching(/^\.maestro\/verification-receipt\.json:file:/),
+  ]);
+  const receipt = await readFile(
+    join(root, ".maestro", "verification-receipt.json"),
+    "utf8",
+  );
+  expect(() => JSON.parse(receipt)).not.toThrow();
 }
 
 async function configuredGitTarget(): Promise<string> {
@@ -190,8 +210,7 @@ describe("factory CLI composition", () => {
       start?.run(["start", "--help"], "/tmp/customer-app"),
     ).resolves.toMatchObject({
       exitCode: 0,
-      stdout:
-        "maestro start [--mode fake|local|dev] [--human|--details|--json]\n",
+      stdout: START_HELP,
       stderr: "",
     });
   });
@@ -537,7 +556,7 @@ describe("factory CLI composition", () => {
     }
   }, 30_000);
 
-  it("changes no target file during default CLI verify", async () => {
+  it("persists only a verification receipt during default CLI verify", async () => {
     const root = await cleanGitTarget();
     const before = await targetFiles(root);
     const verify = factoryCliComposition.handlers.find(
@@ -546,11 +565,11 @@ describe("factory CLI composition", () => {
 
     const result = await verify?.run(["verify", "--json"], root);
 
-    expect(result?.stdout).toContain('"mutationPosture": "read-only"');
-    expect(await targetFiles(root)).toEqual(before);
+    expect(result?.stdout).toContain('"mutationPosture": "write"');
+    await expectOnlyVerificationReceiptAdded(root, before);
   }, 20_000);
 
-  it("changes no target file during default CLI check", async () => {
+  it("persists only a verification receipt during default CLI check", async () => {
     const root = await cleanGitTarget();
     const before = await targetFiles(root);
     const check = factoryCliComposition.handlers.find(
@@ -559,8 +578,8 @@ describe("factory CLI composition", () => {
 
     const result = await check?.run(["check", "--json"], root);
 
-    expect(result?.stdout).toContain('"mutationPosture": "read-only"');
-    expect(await targetFiles(root)).toEqual(before);
+    expect(result?.stdout).toContain('"mutationPosture": "write"');
+    await expectOnlyVerificationReceiptAdded(root, before);
   }, 20_000);
 
   it("changes no target file during MCP verify", async () => {
