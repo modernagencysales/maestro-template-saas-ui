@@ -15,16 +15,38 @@ you do not turn this repository into the product or copy files from `main`.
 
 ## Build a small app
 
-Requirements: Git, Node 22, Corepack, and pnpm.
+Requirements: Git and Node 22. The install-free bootstrap check selects the
+repository's pinned pnpm through Corepack or an npx fallback.
 
 ```bash
 git clone https://github.com/modernagencysales/maestro-template-saas-ui.git
 cd maestro-template-saas-ui
 git checkout maestro-template-v0.2.0-alpha.2
-corepack enable
-pnpm install --frozen-lockfile
+node scripts/maestro-bootstrap.mjs
+```
 
-# Preview: no target files are written.
+Run the install command printed by bootstrap. With current Corepack that is:
+
+```bash
+corepack enable
+corepack pnpm@10.12.1 install --frozen-lockfile
+```
+
+If Corepack is unavailable or rejects its signing metadata, use the pinned
+fallback printed by the same check:
+
+```bash
+npx --yes pnpm@10.12.1 install --frozen-lockfile
+```
+
+Bootstrap also rejects the wrong Node major and prints repository-local
+`git config user.name` and `git config user.email` repairs before the first
+required commit.
+
+Then preview the generated app. No target files are written:
+
+```bash
+
 pnpm maestro -- create ../launch-tracker \
   --name "Launch Tracker" \
   --outcome "Track launch tasks and blockers" \
@@ -56,6 +78,14 @@ pnpm maestro -- start --mode fake
 Open the URL printed after `/health` becomes ready. The generated starter has a
 workspace-owned record flow with loading, empty, error, list, detail, and create
 states. Rename `record` to the first useful noun in your product.
+
+For scripts and JSON consumers, use the repository-owned launcher so package
+manager banners never share stdout with the result:
+
+```bash
+node maestro-template.mjs describe
+node maestro-template.mjs preflight --mode fake --json
+```
 
 The detailed walkthrough is in
 [Template Quickstart](./docs/template/quickstart.md).

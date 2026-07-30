@@ -110,6 +110,7 @@ const TEMPLATE_ROOT_FILES = new Set([
   "eslint.config.mjs",
   "knip.json",
   "lefthook.yml",
+  "maestro-template.mjs",
   "playwright.config.ts",
   "pnpm-lock.yaml",
   "pnpm-workspace.yaml",

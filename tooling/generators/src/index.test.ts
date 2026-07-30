@@ -2497,4 +2497,23 @@ describe("template app factory generators", () => {
       rmSync(cwd, { recursive: true, force: true });
     }
   });
+
+  it("prints direct generator help before required argument parsing", () => {
+    const result = runGeneratorCli(["add-workflow", "--help"]);
+
+    expect(result).toMatchObject({
+      exitCode: 0,
+      stdout: expect.stringContaining("template:add-workflow --name <name>"),
+      stderr: "",
+    });
+  });
+
+  it("rejects surplus words after a systems query", () => {
+    const ambiguous = runGeneratorCli(["systems", "--query", "social", "sync"]);
+    const quoted = runGeneratorCli(["systems", "--query", "social sync"]);
+
+    expect(ambiguous.exitCode).toBe(1);
+    expect(ambiguous.stderr).toContain("Quote multi-word queries");
+    expect(quoted.exitCode).toBe(0);
+  });
 });

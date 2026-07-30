@@ -7,15 +7,33 @@ without live accounts or secrets.
 
 ## 1. Prepare the factory
 
-Requirements: Git, Node 22, Corepack, and pnpm.
+Requirements: Git and Node 22. The install-free bootstrap check selects the
+repository's pinned pnpm through Corepack or an npx fallback.
 
 ```bash
 git clone https://github.com/modernagencysales/maestro-template-saas-ui.git
 cd maestro-template-saas-ui
 git checkout maestro-template-v0.2.0-alpha.2
-corepack enable
-pnpm install --frozen-lockfile
+node scripts/maestro-bootstrap.mjs
 ```
+
+Run the install command printed by bootstrap. With current Corepack that is:
+
+```bash
+corepack enable
+corepack pnpm@10.12.1 install --frozen-lockfile
+```
+
+If Corepack is unavailable or rejects its signing metadata, use the pinned
+fallback printed by the same check:
+
+```bash
+npx --yes pnpm@10.12.1 install --frozen-lockfile
+```
+
+Bootstrap also rejects the wrong Node major and prints repository-local
+`git config user.name` and `git config user.email` repairs before the first
+required commit.
 
 The tag matters. Customer creation is bound to an immutable release manifest,
 source commit, source archive checksum, and blueprint checksum. A random copy of
@@ -112,6 +130,14 @@ journal and receipt under `.maestro/recipe-transactions/`.
 
 If you only want to understand the machine contract, add `--json`. If you want
 all diagnostics and context facts, add `--details`.
+
+For automation, invoke the repository-owned launcher directly. It preserves the
+CLI's stdout, stderr, signals, and exit code without package-manager banners:
+
+```bash
+node maestro-template.mjs describe
+node maestro-template.mjs preflight --mode fake --json
+```
 
 ## 5. Verify the affected contracts
 

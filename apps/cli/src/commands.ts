@@ -15,6 +15,7 @@ import {
 import { parseNamedArgs } from "./namedArgs";
 import { CREATE_HELP } from "./factory/create";
 import { START_HELP } from "./factory/start";
+import { helpForSharedCommand } from "./help";
 import { cliFailure, cliSuccess, formatJsonOutput } from "./result";
 import type {
   CliCapabilityRequest,
@@ -198,6 +199,13 @@ export const createCliHandlers = ({
     matches: ({ command }) =>
       !command || command === "help" || command === "--help",
     run: () => helpResult(),
+  },
+  {
+    matches: ({ command, subcommand }) =>
+      command !== undefined &&
+      (subcommand === "--help" || subcommand === "-h") &&
+      helpForSharedCommand(command) !== undefined,
+    run: ({ command }) => cliSuccess(helpForSharedCommand(command ?? "") ?? ""),
   },
   {
     matches: ({ command }) => command === "describe",

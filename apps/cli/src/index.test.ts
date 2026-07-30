@@ -35,6 +35,20 @@ describe("maestro-template CLI", () => {
     });
   });
 
+  it.each([
+    ["workflow", "maestro-template workflow run"],
+    ["operations", "maestro-template operations list"],
+    ["api", "maestro-template api catalog"],
+  ])("prints zero-exit help for %s", (command, usage) => {
+    for (const flag of ["--help", "-h"]) {
+      expect(runCli([command, flag])).toMatchObject({
+        exitCode: 0,
+        stdout: expect.stringContaining(usage),
+        stderr: "",
+      });
+    }
+  });
+
   it("keeps CLI scaffold preview bytes identical to the direct generator", async () => {
     const args = {
       name: "cliParity",

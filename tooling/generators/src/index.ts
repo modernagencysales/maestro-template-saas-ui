@@ -24,6 +24,7 @@ import {
 } from "@maestro-template/template-core/systemCatalog";
 import { planUpgrade } from "@maestro-template/release-tooling/upgrade";
 import { gtmImplementationBlueprint } from "./blueprints/gtmImplementation";
+import { helpForGenerator } from "./help";
 import {
   buildSaasApplicationFiles,
   buildSaasApplicationHandoff,
@@ -3250,6 +3251,51 @@ export const experiment = {
   };
 };
 
+const valueFlags = new Set([
+  "--name",
+  "--blueprint",
+  "--mode",
+  "--path",
+  "--exposure",
+  "--description",
+  "--hypothesis",
+  "--system",
+  "--disposition",
+  "--query",
+  "--tenant-scope",
+  "--sensitivity",
+  "--pii",
+  "--export-mode",
+  "--delete-mode",
+  "--retention",
+  "--from",
+  "--to",
+  "--version",
+  "--fixture",
+]);
+const booleanFlags = new Set(["--append-only", "--write"]);
+
+const validateGeneratorArgv = (argv: readonly string[]): void => {
+  const unconsumed: string[] = [];
+  for (let index = 1; index < argv.length; index += 1) {
+    const token = argv[index];
+    if (token === undefined || token === "--" || booleanFlags.has(token))
+      continue;
+    if (valueFlags.has(token)) {
+      index += 1;
+      continue;
+    }
+    unconsumed.push(token);
+  }
+  if (unconsumed.length === 0) return;
+  if (argv.includes("--query")) {
+    throw new Error(
+      `Ambiguous arguments after --query: ${unconsumed.join(" ")}. Quote multi-word queries, for example --query "social sync".`,
+    );
+  }
+  throw new Error(`Unexpected arguments: ${unconsumed.join(" ")}`);
+};
+
 const parseArgs = (
   argv: readonly string[],
 ): {
@@ -3277,6 +3323,7 @@ const parseArgs = (
   readonly write: boolean;
   readonly path: string;
 } => {
+  validateGeneratorArgv(argv);
   const [command] = argv;
   const nameIndex = argv.indexOf("--name");
   const blueprintIndex = argv.indexOf("--blueprint");
@@ -3423,6 +3470,13 @@ export const runGeneratorCli = (
   readonly stderr: string;
 } => {
   try {
+    const requestedHelp =
+      argv[0] !== undefined && (argv[1] === "--help" || argv[1] === "-h")
+        ? helpForGenerator(argv[0])
+        : undefined;
+    if (requestedHelp !== undefined) {
+      return { exitCode: 0, stdout: requestedHelp, stderr: "" };
+    }
     const args = parseArgs(argv);
     const outputPath = resolve(cwd, args.path);
     const catalogRoot = existsSync(systemCatalogPath(cwd))
