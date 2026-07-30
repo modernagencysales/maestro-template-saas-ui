@@ -47,12 +47,49 @@ describe("start CLI adapter", () => {
     );
   });
 
+  it("parses each explicit port override as an integer", async () => {
+    const start = command();
+    await runStartCli(
+      start,
+      [
+        "start",
+        "--mode",
+        "local",
+        "--web-port",
+        "6173",
+        "--convex-port",
+        "4210",
+        "--convex-site-port",
+        "4211",
+        "--readiness-port",
+        "6174",
+      ],
+      "/customer",
+    );
+
+    expect(start.execute).toHaveBeenCalledWith(
+      {
+        mode: "local",
+        ports: {
+          web: 6173,
+          convex: 4210,
+          convexSite: 4211,
+          readinessPresenter: 6174,
+        },
+      },
+      expect.anything(),
+    );
+  });
+
   it("passes invalid, duplicate, and promotion modes to closed decoding", async () => {
     const start = command();
     for (const argv of [
       ["start", "--mode", "production"],
       ["start", "--mode", "fake", "--mode", "dev"],
       ["start", "--unknown"],
+      ["start", "--web-port", "1023"],
+      ["start", "--web-port", "5173.5"],
+      ["start", "--web-port", "5173", "--web-port", "6173"],
     ]) {
       await runStartCli(start, argv, "/customer");
     }

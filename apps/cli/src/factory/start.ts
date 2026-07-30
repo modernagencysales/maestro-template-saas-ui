@@ -21,7 +21,7 @@ import { setTimeout as delay } from "node:timers/promises";
 import { runAgentPackCommandAsCli, type FactoryCliRenderMode } from "./router";
 
 export const START_HELP =
-  "maestro start [--mode fake|local|dev] [--human|--details|--json]\n";
+  "maestro start [--mode fake|local|dev] [--web-port PORT] [--convex-port PORT] [--convex-site-port PORT] [--readiness-port PORT] [--human|--details|--json]\n";
 
 export type StartOutputBoundary = {
   readonly write: (line: string) => void;
@@ -196,6 +196,13 @@ function parseStartCli(argv: readonly string[]): {
   let renderMode: FactoryCliRenderMode = "human";
   let renderSeen = false;
   let valid = true;
+  const ports: Record<string, number> = {};
+  const portFlags: Readonly<Record<string, string>> = {
+    "--web-port": "web",
+    "--convex-port": "convex",
+    "--convex-site-port": "convexSite",
+    "--readiness-port": "readinessPresenter",
+  };
   for (let index = 0; index < argv.length; index += 1) {
     const token = argv[index];
     if (token === "--mode") {
@@ -209,6 +216,24 @@ function parseStartCli(argv: readonly string[]): {
       }
       continue;
     }
+    const portKey = token === undefined ? undefined : portFlags[token];
+    if (portKey !== undefined) {
+      const value = argv[index + 1];
+      if (
+        value === undefined ||
+        !/^[1-9]\d*$/.test(value) ||
+        portKey in ports
+      ) {
+        valid = false;
+      } else {
+        const port = Number(value);
+        if (!Number.isInteger(port) || port < 1024 || port > 65_535)
+          valid = false;
+        else ports[portKey] = port;
+        index += 1;
+      }
+      continue;
+    }
     const selected = renderModeFor(token);
     if (selected === undefined || renderSeen) valid = false;
     else {
@@ -216,7 +241,12 @@ function parseStartCli(argv: readonly string[]): {
       renderSeen = true;
     }
   }
-  return { input: valid ? { mode } : { mode: "__invalid__" }, renderMode };
+  return {
+    input: valid
+      ? { mode, ...(Object.keys(ports).length === 0 ? {} : { ports }) }
+      : { mode: "__invalid__" },
+    renderMode,
+  };
 }
 
 function renderModeFor(

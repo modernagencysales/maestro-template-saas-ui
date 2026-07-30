@@ -21,6 +21,13 @@ refuses all collisions; it never silently replaces an existing path. Start runs
 from the materialized target so `template-instance.json` supplies the
 personalized name and first outcome.
 
+Start keeps deterministic strict ports. If a shared service owns a default,
+leave that owner alone and rerun with explicit `--web-port`, `--convex-port`,
+`--convex-site-port`, and `--readiness-port` values as applicable; Maestro
+validates the range and uniqueness before spawning anything. The current
+TanStack/Vite hosting artifact is `apps/web/dist/client`. A fork introducing
+Astro owns a separate declared and tested artifact path.
+
 ## Canonical Slice
 
 The contract reuses the existing layer order:

@@ -5,12 +5,16 @@ import {
   type AgentPackArgumentResult,
   type AgentPackDiagnostic,
   type AgentPackExecutionContext,
+  type AgentPackJsonValue,
 } from "./contracts.js";
 import type { AgentPackExitClass } from "./exitCodes.js";
 import {
   inspectStartPorts,
   startPortPlan,
   type StartMode,
+  type StartPort,
+  type StartPortOverrides,
+  type StartPortPlan,
   type StartPortProbe,
 } from "./ports.js";
 import type {
@@ -73,6 +77,17 @@ export type StartDependencies = {
 };
 
 const modes = new Set<StartMode>(["fake", "local", "dev"]);
+const portOverrideKeys = new Set<keyof StartPortOverrides>([
+  "web",
+  "convex",
+  "convexSite",
+  "readinessPresenter",
+]);
+
+export type StartInput = {
+  readonly mode: StartMode;
+  readonly ports?: StartPortOverrides;
+};
 
 export function createStartCommand(dependencies: StartDependencies) {
   return defineAgentPackCommand({
@@ -80,7 +95,7 @@ export function createStartCommand(dependencies: StartDependencies) {
     schemaVersion: AGENT_PACK_COMMAND_VERSION,
     decode: decodeStartInput,
     mutationPosture: () => "read-only",
-    execute: async ({ mode }, context) => {
+    execute: async ({ mode, ports: overrides }, context) => {
       const preflight = await dependencies.preflight(
         preflightMode(mode),
         context,
@@ -102,23 +117,25 @@ export function createStartCommand(dependencies: StartDependencies) {
           ),
         ]);
       }
-      const ports = startPortPlan(mode);
+      const ports = startPortPlan(mode, overrides);
       const portInspection = await inspectStartPorts(ports, dependencies.ports);
       if (!portInspection.ok) {
         const occupied = portInspection.collisions
           .map(({ id, port }) => `${id}:${port}`)
           .join(", ");
+        const rerun = collisionRerun(mode, ports, portInspection.collisions);
         return failure(
           "Start ports are already in use.",
           [
             diagnostic(
               "AGENT_PACK_START_PORT_COLLISION",
               `Required local ports are occupied: ${occupied}.`,
-              "Stop the occupying processes or choose the fallback commands manually.",
-              `pnpm maestro -- start --mode ${mode}`,
+              "Leave unknown port owners running and retry on the reviewed alternate ports.",
+              rerun,
             ),
           ],
           "blockedMutation",
+          { collisions: portInspection.collisions, rerun },
         );
       }
       const identity = await readIdentity(
@@ -146,7 +163,7 @@ export function createStartCommand(dependencies: StartDependencies) {
           ),
         ]);
       }
-      const specs = processPlan(mode, context.repo.targetRoot, ports.web);
+      const specs = processPlan(mode, context.repo.targetRoot, ports);
       let supervision: ProcessSupervisionResult;
       let closeFailed = false;
       try {
@@ -191,6 +208,7 @@ export function createStartCommand(dependencies: StartDependencies) {
           url: ports.url,
           readinessUrl: ports.readinessUrl,
           buildReadinessUrl: surface.url,
+          ports: ports.required,
           processes: specs.map(({ id }) => id),
           stoppedBy: supervision.signal,
         },
@@ -199,14 +217,28 @@ export function createStartCommand(dependencies: StartDependencies) {
   });
 }
 
-function decodeStartInput(
-  input: unknown,
-): AgentPackArgumentResult<{ readonly mode: StartMode }> {
+function decodeStartInput(input: unknown): AgentPackArgumentResult<StartInput> {
   if (record(input)) {
     const keys = Object.keys(input);
     const mode = input.mode ?? "fake";
-    if (keys.every((key) => key === "mode") && modes.has(mode as StartMode)) {
-      return { ok: true, args: { mode: mode as StartMode } };
+    if (
+      keys.every((key) => key === "mode" || key === "ports") &&
+      modes.has(mode as StartMode)
+    ) {
+      if (!validPortOverrides(input.ports)) return invalidStartPorts();
+      const ports = input.ports as StartPortOverrides | undefined;
+      try {
+        startPortPlan(mode as StartMode, ports);
+        return {
+          ok: true,
+          args: {
+            mode: mode as StartMode,
+            ...(ports === undefined ? {} : { ports }),
+          },
+        };
+      } catch {
+        return invalidStartPorts();
+      }
     }
   }
   return {
@@ -222,6 +254,37 @@ function decodeStartInput(
   };
 }
 
+function validPortOverrides(value: unknown): boolean {
+  if (value === undefined) return true;
+  return (
+    record(value) &&
+    Object.keys(value).every((key) =>
+      portOverrideKeys.has(key as keyof StartPortOverrides),
+    ) &&
+    Object.values(value).every(
+      (port) =>
+        typeof port === "number" &&
+        Number.isInteger(port) &&
+        port >= 1024 &&
+        port <= 65_535,
+    )
+  );
+}
+
+function invalidStartPorts(): AgentPackArgumentResult<StartInput> {
+  return {
+    ok: false,
+    diagnostics: [
+      diagnostic(
+        "AGENT_PACK_START_INVALID_PORTS",
+        "Start ports must be unique integers from 1024 through 65535.",
+        "Choose distinct unprivileged ports for the selected mode.",
+        "pnpm maestro -- start --mode fake --web-port 15173 --readiness-port 14174",
+      ),
+    ],
+  };
+}
+
 function preflightMode(mode: StartMode): PreflightMode {
   return mode === "fake" ? "fake" : mode === "local" ? "test" : "live";
 }
@@ -229,10 +292,12 @@ function preflightMode(mode: StartMode): PreflightMode {
 function processPlan(
   mode: StartMode,
   cwd: string,
-  webPort: number,
+  ports: StartPortPlan,
 ): readonly StartProcessSpec[] {
+  const convexPort = requiredPort(ports, "convex", 3210);
+  const convexSitePort = requiredPort(ports, "convex-site", 3211);
   const isolated = isolatedConvexEnvironment(
-    mode === "local" ? "http://127.0.0.1:3210" : "",
+    mode === "local" ? `http://127.0.0.1:${convexPort}` : "",
   );
   const web: StartProcessSpec = {
     id: "web",
@@ -245,7 +310,7 @@ function processPlan(
       "--host",
       "127.0.0.1",
       "--port",
-      String(webPort),
+      String(ports.web),
       "--strictPort",
     ],
     cwd,
@@ -257,7 +322,17 @@ function processPlan(
       {
         id: "convex",
         command: "pnpm",
-        args: ["--dir", "packages/convex", "convex:dev", "--", "--local"],
+        args: [
+          "--dir",
+          "packages/convex",
+          "convex:dev",
+          "--",
+          "--local",
+          "--local-cloud-port",
+          String(convexPort),
+          "--local-site-port",
+          String(convexSitePort),
+        ],
         cwd,
         environment: isolatedConvexEnvironment(""),
       },
@@ -272,6 +347,43 @@ function processPlan(
     ];
   }
   return [{ id: "backend", command: "pnpm", args: ["dev:backend"], cwd }, web];
+}
+
+function requiredPort(
+  plan: StartPortPlan,
+  id: StartPort["id"],
+  fallback: number,
+): number {
+  return (
+    plan.required.find((candidate) => candidate.id === id)?.port ?? fallback
+  );
+}
+
+function collisionRerun(
+  mode: StartMode,
+  plan: StartPortPlan,
+  collisions: readonly StartPort[],
+): string {
+  const occupied = new Set(collisions.map(({ id }) => id));
+  const alternates: Readonly<Record<StartPort["id"], number>> = {
+    web: 15_173,
+    convex: 13_210,
+    "convex-site": 13_211,
+    "readiness-presenter": 14_174,
+  };
+  const flags: Readonly<Record<StartPort["id"], string>> = {
+    web: "--web-port",
+    convex: "--convex-port",
+    "convex-site": "--convex-site-port",
+    "readiness-presenter": "--readiness-port",
+  };
+  const overrides = plan.required.flatMap(({ id, port }) => [
+    flags[id],
+    String(occupied.has(id) ? alternates[id] : port),
+  ]);
+  return ["pnpm", "maestro", "--", "start", "--mode", mode, ...overrides].join(
+    " ",
+  );
 }
 
 function isolatedConvexEnvironment(
@@ -349,13 +461,14 @@ function failure(
   summary: string,
   diagnostics: readonly AgentPackDiagnostic[],
   exitClass: AgentPackExitClass = "unavailableDependency",
+  data: AgentPackJsonValue = null,
 ) {
   return {
     mutationPosture: "read-only" as const,
     exitClass,
     summary,
     diagnostics,
-    data: null,
+    data,
   };
 }
 

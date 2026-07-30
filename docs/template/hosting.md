@@ -21,14 +21,14 @@ pnpm build
 pnpm smoke:web-static
 ```
 
-The smoke verifies `apps/web/dist/index.html`, the React root, linked built
-assets, and asset count. It is the minimum reviewer-safe proof before pointing a
-hosting provider at the repo.
+The smoke verifies `apps/web/dist/client/index.html`, the React root, linked
+built assets, and asset count. It is the minimum reviewer-safe proof before
+pointing a hosting provider at the repo.
 
 ## Recommended Hosting Defaults
 
 - Build command: `pnpm build`
-- Output directory: `apps/web/dist`
+- Output directory: `apps/web/dist/client`
 - Node package manager: `pnpm`
 - Environment: fake/local providers by default
 - Production promotion: only from a commit that passed `pnpm verify` and
@@ -37,6 +37,10 @@ hosting provider at the repo.
   and
   [../design-intake/2026-07-01-template-frontend-stack-source.md](../design-intake/2026-07-01-template-frontend-stack-source.md)
   before changing the deploy target.
+
+`apps/web/dist/client` is the canonical static artifact for the current
+TanStack/Vite build. A fork that adds Astro must declare and test its own output
+artifact; it must not reuse this Vite path by assumption.
 
 ## Cloudflare Pages
 
@@ -89,7 +93,7 @@ headless-bws-env exec -- pnpm deploy:cloudflare
 ## Provider Notes
 
 - Vercel: configure the project root as the repo root and output directory as
-  `apps/web/dist`.
+  `apps/web/dist/client`.
 - Cloudflare Pages: use the same build command and output directory.
 - Convex backend: provision separately before enabling live data routes.
 - API docs: the backend docs route is authored at
