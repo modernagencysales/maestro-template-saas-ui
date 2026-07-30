@@ -7,6 +7,7 @@ const RECORDS_SURFACE = "apps/web/src/features/records/records-surface.tsx";
 const CURRENT_CUSTOMER_SOURCE_PROJECTIONS = [
   "packages/template-core/src/templateInstance/templateInstance.test.ts",
   "packages/template-core/src/templateInstance/__fixtures__/provider-posture-v1-to-v2.contract.json",
+  "packages/template-core/src/generated/confectManifest.ts",
   "packages/convex/confect/workflows/_kit/policySnapshotCurrent.ts",
   "tooling/generators/src/crud-proof.test.ts",
   "tooling/quality/src/env-manifest.test.mts",
@@ -36,6 +37,16 @@ const currentCustomerSource = (
     content = content.replace(
       factoryGenerator,
       "tooling/generators/src/customer-runtime.ts",
+    );
+  }
+  if (path === "packages/template-core/src/generated/confectManifest.ts") {
+    const tableBoundary = /^(\s*)"transformBlocks",$/gmu;
+    const matches = [...content.matchAll(tableBoundary)];
+    if (matches.length !== 4)
+      throw new Error("customer Confect manifest table markers are missing");
+    content = content.replace(
+      tableBoundary,
+      '$1"records",\n$1"transformBlocks",',
     );
   }
   return content;

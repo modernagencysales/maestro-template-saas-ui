@@ -899,10 +899,44 @@ prove:
   registration. The generated entry remains `generate`/`regenerate` with no
   replacement claim.
 - Focused result: the red-to-green SaaS blueprint suite passes; generator
-  typecheck, scoped lint/format, and the public preview rerun are required
-  before final status.
-- Clean-customer evidence: pending a new exact-SHA release clone and untouched
-  v6 materialization; the failed preview wrote no customer files.
+  typecheck and scoped lint/format pass. Exact-SHA release clone
+  `/private/tmp/maestro-fresh-customer-v7-5KGIuj/release` at `7e16a24f` passed
+  frozen offline install and public preview with zero collisions, then public
+  materialization wrote 1,383 customer files.
+- Clean-customer evidence: v7 proves preview/materialization and was committed
+  locally as `ca4e20bb`; subsequent canonical manifest generation exposed
+  FR-F-007, so final acceptance moves to a wholly new customer after that fix.
+- Status: upstream source fixed in `7e16a24f`; final fixed status waits for
+  untouched fresh-customer proof.
+
+### FR-F-007 — Customer Confect manifest omits the Records table
+
+- ID/title: FR-F-007 (customer Confect manifest omits the Records table).
+- Original posture: newly reproduced/high because normal canonical generation
+  leaves tracked drift before verification.
+- Confirmed reproduction: untouched v7 customer at baseline commit `ca4e20bb`
+  passed frozen offline install, fake doctor with zero warnings/failures,
+  Confect codegen (“Generated files are up-to-date”), and the TanStack
+  route-tree pin check. `pnpm confect:manifest` then added `"records"` at four
+  schema-enum projections in
+  `packages/template-core/src/generated/confectManifest.ts`, leaving that sole
+  tracked diff.
+- Root cause: the current SaaS blueprint adds the Records table and Confect
+  group to its generated customer schema/spec, but retained the base template's
+  pre-Records shared manifest projection.
+- Regression: the SaaS blueprint suite requires an exact copy replacement for
+  the customer Confect manifest and exactly four Records table projections. The
+  assertion failed on the missing plan entry before implementation.
+- Canonical fix and files: `saasApplicationFactory.ts` now projects the
+  canonical root manifest through a marker-counted Records-table insertion;
+  `saasApplication.ts` registers the exact base-copy replacement. The projection
+  SHA-256 `ea30856e...` matches the bytes produced independently by
+  `pnpm confect:manifest` in v7. No generated customer file is hand-edited.
+- Focused result: the red-to-green SaaS suite passes. Full generator tests,
+  typecheck, scoped lint/format, and a new customer generation-drift proof
+  remain required before final status.
+- Clean-customer evidence: v7 is direct untouched reproduction; final proof will
+  use a new post-fix customer rather than repairing v7.
 - Status: upstream source fixed; final fixed status waits for focused gates,
   commit, and untouched fresh-customer proof.
 

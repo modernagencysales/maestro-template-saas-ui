@@ -128,6 +128,9 @@ describe("saas application blueprint", () => {
 
     const crudTest = entries.get("tooling/generators/src/crud-proof.test.ts");
     const envTest = entries.get("tooling/quality/src/env-manifest.test.mts");
+    const confectManifest = entries.get(
+      "packages/template-core/src/generated/confectManifest.ts",
+    );
     expect(crudTest).toMatchObject({ replaces: "copy" });
     expect(crudTest?.content).toContain(
       '"apps/web/src/adapters/records/fake.ts"',
@@ -142,6 +145,8 @@ describe("saas application blueprint", () => {
     expect(envTest?.content).not.toContain(
       'readText("tooling/generators/src/index.ts")',
     );
+    expect(confectManifest).toMatchObject({ replaces: "copy" });
+    expect(confectManifest?.content.match(/\n\s+"records",/gu)).toHaveLength(4);
   });
 
   it("projects canonical ownership provenance for the records vertical", () => {
@@ -336,6 +341,7 @@ describe("saas application blueprint", () => {
       "pnpm-lock.yaml",
       "packages/template-core/src/templateInstance/templateInstance.test.ts",
       "packages/template-core/src/templateInstance/__fixtures__/provider-posture-v1-to-v2.contract.json",
+      "packages/template-core/src/generated/confectManifest.ts",
       "packages/convex/confect/workflows/_kit/policySnapshotCurrent.ts",
       "tooling/generators/src/crud-proof.test.ts",
       "tooling/quality/package.json",
@@ -1046,6 +1052,7 @@ describe("saas application blueprint", () => {
       "apps/web/src/routeRegistry.generated.ts",
       "packages/template-core/src/templateInstance/templateInstance.test.ts",
       "packages/template-core/src/templateInstance/__fixtures__/provider-posture-v1-to-v2.contract.json",
+      "packages/template-core/src/generated/confectManifest.ts",
       "packages/convex/confect/workflows/_kit/policySnapshotCurrent.ts",
       "tooling/generators/src/crud-proof.test.ts",
       "tooling/quality/src/env-manifest.test.mts",

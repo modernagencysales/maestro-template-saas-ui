@@ -281,6 +281,7 @@ function buildTargetPlan(
             "packages/template-core/src/templateInstance/templateInstance.test.ts",
             "copy",
           ],
+          ["packages/template-core/src/generated/confectManifest.ts", "copy"],
           ["scripts/pre-push-rubric.sh", "copy"],
           ["tooling/agent-pack/package.json", "copy"],
           ["tooling/agent-pack/src/nodeAdapters.test.ts", "copy"],
@@ -453,6 +454,7 @@ function buildTargetPlan(
       ? [
           "packages/template-core/src/templateInstance/templateInstance.test.ts",
           "packages/template-core/src/templateInstance/__fixtures__/provider-posture-v1-to-v2.contract.json",
+          "packages/template-core/src/generated/confectManifest.ts",
           "tooling/generators/src/crud-proof.test.ts",
           "tooling/quality/src/env-manifest.test.mts",
           "docs/template/generated/provenance/add-feature/records.json",
