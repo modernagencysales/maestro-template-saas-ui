@@ -43,13 +43,15 @@ Regenerate contract artifacts after the files are written and before wiring
 generated public wrappers:
 
 ```bash
-pnpm confect:codegen
+pnpm check:convex
 pnpm confect:manifest
 ```
 
-Focused package tests should run after regeneration. If a local Convex codegen
-step requires a live deployment connection, record that environment failure and
-run the non-live generator tests and generated-file drift checks instead.
+`check:convex` fails only when offline Confect codegen introduces drift from the
+current reviewed working state. The committed-baseline release gate remains
+`pnpm check:generated-files`. Live Convex deployment generation is not part of
+fake mode; if it requires a deployment connection, record that environmental
+failure and continue with the non-live generator and drift checks.
 
 ## Files Created
 

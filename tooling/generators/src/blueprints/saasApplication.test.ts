@@ -482,6 +482,8 @@ describe("saas application blueprint", () => {
       "scripts/maestro-bootstrap.test.mjs",
       "pnpm-workspace.yaml",
       "pnpm-lock.yaml",
+      "packages/convex/package.json",
+      "tooling/quality/check-convex-generation.mts",
       "apps/cli/src/factory/customerComposition.ts",
       "apps/cli/src/index.ts",
       "apps/cli/package.json",
@@ -766,6 +768,8 @@ describe("saas application blueprint", () => {
       "scripts/maestro-bootstrap.test.mjs",
       "pnpm-workspace.yaml",
       "pnpm-lock.yaml",
+      "packages/convex/package.json",
+      "tooling/quality/check-convex-generation.mts",
     ]) {
       expect(
         files.some((file) => file.path === path),

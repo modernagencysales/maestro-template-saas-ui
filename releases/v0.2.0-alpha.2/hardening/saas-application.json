@@ -78,6 +78,8 @@
     "scripts/maestro-bootstrap.test.mjs",
     "pnpm-workspace.yaml",
     "pnpm-lock.yaml",
+    "packages/convex/package.json",
+    "tooling/quality/check-convex-generation.mts",
     "apps/cli/src/factory/customerComposition.ts",
     "apps/cli/src/index.ts",
     "apps/cli/package.json",
@@ -1351,6 +1353,14 @@
       "sha256": "sha256:3fddd6a9c3d7f50198f2b5feba77d707fe302e453349a55739e220d69996de5c"
     },
     {
+      "path": "packages/convex/package.json",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:d0e8b24821e8b3d0f14a6ae9fa2f6e324103af93569e40a437f9eda0ba5c34c6",
+      "replaces": "copy"
+    },
+    {
       "path": "packages/convex/test/workflow-lifecycle-controls.fixture.ts",
       "ownership": "generated",
       "action": "generate",
@@ -1658,6 +1668,13 @@
       "upgrade": "regenerate",
       "sha256": "sha256:f1607bb7021242a7b31c7c711a584f971d2b968ed3a7fda08c337c80e3ef4336",
       "replaces": "copy"
+    },
+    {
+      "path": "tooling/quality/check-convex-generation.mts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:37209a44d2b9502ea80a6a1c8cfbc12629321c4d95adc00226d14b5ab4525269"
     },
     {
       "path": "tooling/quality/check-customer-context.mts",

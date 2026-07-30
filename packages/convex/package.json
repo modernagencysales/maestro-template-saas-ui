@@ -24,7 +24,7 @@
     "confect:dev": "confect dev",
     "convex:dev": "pnpm --dir ../.. convex:dev",
     "dev:backend": "concurrently -n confect,convex \"pnpm confect:dev\" \"pnpm convex:dev\"",
-    "check:convex": "confect codegen && git diff --exit-code confect/_generated convex/_generated"
+    "check:convex": "tsx ../../tooling/quality/check-convex-generation.mts"
   },
   "dependencies": {
     "@blocknote/core": "0.51.4",

@@ -657,6 +657,16 @@ export const buildSaasRegistrationProjections = (
             path: "pnpm-lock.yaml",
             content: customerLockfile(),
           },
+          {
+            path: "packages/convex/package.json",
+            content: currentSource("packages/convex/package.json"),
+          },
+          {
+            path: "tooling/quality/check-convex-generation.mts",
+            content: currentSource(
+              "tooling/quality/check-convex-generation.mts",
+            ),
+          },
         ]
       : []),
     {
