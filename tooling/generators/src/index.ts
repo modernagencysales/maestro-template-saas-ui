@@ -38,6 +38,7 @@ export {
 import { buildWorkflowFiles } from "./workflow-files";
 export { buildWorkflowFiles } from "./workflow-files";
 import { bumpRelease, publishRelease } from "./workflow-release-commands";
+import { isGeneratorDirectRun } from "./direct-run";
 
 export type ProviderMode = "fake" | "test" | "live";
 export type SystemGeneratorDisposition = "reuse" | "extend";
@@ -4413,4 +4414,24 @@ function isGeneratedFile(value: unknown): value is GeneratedFile {
     "content" in value &&
     typeof value.content === "string"
   );
+}
+
+export const runGeneratorCliProcess = (
+  argv: readonly string[] = process.argv.slice(2),
+  output: {
+    readonly stdout: (value: string) => void;
+    readonly stderr: (value: string) => void;
+  } = {
+    stdout: (value) => process.stdout.write(value),
+    stderr: (value) => process.stderr.write(value),
+  },
+): 0 | 1 => {
+  const result = runGeneratorCli(argv);
+  output.stdout(result.stdout);
+  output.stderr(result.stderr);
+  return result.exitCode;
+};
+
+if (isGeneratorDirectRun(import.meta.url)) {
+  process.exitCode = runGeneratorCliProcess();
 }

@@ -36,6 +36,7 @@ import {
   REVIEWED_GENERATOR_DESCRIPTORS,
   runReviewedGenerator,
   runGeneratorCli,
+  runGeneratorCliProcess,
 } from "./index";
 import { gtmImplementationBlueprint } from "./blueprints/gtmImplementation";
 import {
@@ -2535,5 +2536,25 @@ describe("template app factory generators", () => {
     expect(ambiguous.exitCode).toBe(1);
     expect(ambiguous.stderr).toContain("Quote multi-word queries");
     expect(quoted.exitCode).toBe(0);
+  });
+
+  it("executes package-script argv and preserves an ambiguous-query failure", () => {
+    let stdout = "";
+    let stderr = "";
+    const exitCode = runGeneratorCliProcess(
+      ["systems", "--", "--query", "social", "sync"],
+      {
+        stdout: (value) => {
+          stdout += value;
+        },
+        stderr: (value) => {
+          stderr += value;
+        },
+      },
+    );
+
+    expect(exitCode).toBe(1);
+    expect(stdout).toBe("");
+    expect(stderr).toContain("Quote multi-word queries");
   });
 });
