@@ -275,9 +275,13 @@ function buildTargetPlan(
       ? ([
           ["apps/cli/package.json", "copy"],
           ["apps/web/package.json", "copy"],
+          ["lefthook.yml", "copy"],
           ["pnpm-lock.yaml", "copy"],
+          ["scripts/pre-push-rubric.sh", "copy"],
           ["tooling/agent-pack/package.json", "copy"],
           ["tooling/agent-pack/src/nodeAdapters.test.ts", "copy"],
+          ["tooling/quality/contract-review-rubric.md", "copy"],
+          ["tooling/quality/taste-review.mts", "copy"],
         ] as const)
       : []),
     ...(current

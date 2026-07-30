@@ -252,7 +252,8 @@ prove:
   Release-shaped proof later showed the customer omitted `lefthook.yml`, so the
   safe installer exited zero without installing hooks. The current customer plan
   now introduces the config plus its three read-only rubric support files as one
-  generated closure, with no false release replacement claim.
+  regenerated closure, explicitly replacing their existing base-release copy
+  operations.
 - Focused result: agent-pack create and hook tests pass 9/9; scoped ESLint,
   agent-pack/quality typechecks, formatting, and projection checks pass. The
   complete SaaS target-plan suite passes 20/20 after the hook-closure repair.

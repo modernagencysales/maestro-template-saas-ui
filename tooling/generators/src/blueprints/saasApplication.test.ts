@@ -625,8 +625,8 @@ describe("saas application blueprint", () => {
         action: "generate",
         upgrade: "regenerate",
         content: readFileSync(join(repoRoot, path), "utf8"),
+        replaces: "copy",
       });
-      expect(entries.get(path)).not.toHaveProperty("replaces");
     }
   });
 
