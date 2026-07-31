@@ -2,7 +2,7 @@ import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { isDirectRun } from "./src/direct-run.mts";
 
-export type V9Finding = {
+export type CompatibilityFinding = {
   readonly file: string;
   readonly message: string;
 };
@@ -13,14 +13,28 @@ type PackageJson = {
 };
 
 const packageFiles = [
+  "package.json",
   "packages/convex/package.json",
   "apps/web/package.json",
   "apps/cli/package.json",
+  "packages/editor-core/package.json",
+  "packages/integrations/package.json",
+  "packages/template-core/package.json",
+  "tooling/confect-manifest/package.json",
   "tooling/effectified-api-proof/package.json",
 ] as const;
 
 const readJson = (repoRoot: string, path: string): PackageJson =>
   JSON.parse(readFileSync(join(repoRoot, path), "utf8")) as PackageJson;
+
+const dependencyEntries = (
+  repoRoot: string,
+  file: string,
+): Readonly<Record<string, string>> => {
+  if (!existsSync(join(repoRoot, file))) return {};
+  const pkg = readJson(repoRoot, file);
+  return { ...pkg.dependencies, ...pkg.devDependencies };
+};
 
 const walk = (repoRoot: string, dir: string): readonly string[] => {
   const fullDir = join(repoRoot, dir);
@@ -28,6 +42,7 @@ const walk = (repoRoot: string, dir: string): readonly string[] => {
 
   const out: string[] = [];
   for (const entry of readdirSync(fullDir)) {
+    if (["node_modules", "dist", "_generated"].includes(entry)) continue;
     const path = join(dir, entry);
     const stat = statSync(join(repoRoot, path));
     if (stat.isDirectory()) out.push(...walk(repoRoot, path));
@@ -39,52 +54,147 @@ const walk = (repoRoot: string, dir: string): readonly string[] => {
 const readSource = (repoRoot: string, file: string): string =>
   readFileSync(join(repoRoot, file), "utf8");
 
-export const checkConfectPackagePins = (
+const CONFECT_VERSION = "10.0.0-next.9";
+const EFFECT_VERSION = "4.0.0-beta.102";
+
+export const checkDependencyCohort = (
   repoRoot = process.cwd(),
-): readonly V9Finding[] => {
-  const findings: V9Finding[] = [];
-  const observed = new Map<string, string>();
+): readonly CompatibilityFinding[] => {
+  const findings: CompatibilityFinding[] = [];
+  const observedConfect = new Set<string>();
 
   for (const file of packageFiles) {
-    const pkg = readJson(repoRoot, file);
-    const deps = { ...pkg.dependencies, ...pkg.devDependencies };
+    const deps = dependencyEntries(repoRoot, file);
     for (const [name, version] of Object.entries(deps)) {
-      if (!name.startsWith("@confect/")) continue;
-      if (!version.startsWith("9.")) {
+      if (name.startsWith("@confect/")) {
+        observedConfect.add(version);
+        if (version !== CONFECT_VERSION) {
+          findings.push({
+            file,
+            message: `${name} must be exactly ${CONFECT_VERSION}, found ${version}`,
+          });
+        }
+      }
+      if (name === "effect" && version !== EFFECT_VERSION) {
         findings.push({
           file,
-          message: `${name} must stay on Confect v9, found ${version}`,
+          message: `effect must be exactly ${EFFECT_VERSION}, found ${version}`,
         });
       }
-      observed.set(`${file}:${name}`, version);
+      if (
+        [
+          "@effect/platform-node",
+          "@effect/platform-node-shared",
+          "@effect/vitest",
+        ].includes(name) &&
+        version !== EFFECT_VERSION
+      ) {
+        findings.push({
+          file,
+          message: `${name} must be exactly ${EFFECT_VERSION}, found ${version}`,
+        });
+      }
+      if (name === "@effect/language-service" && version !== "0.87.1") {
+        findings.push({
+          file,
+          message: `${name} must be exactly 0.87.1, found ${version}`,
+        });
+      }
+      if (name === "@effect/platform" || name === "@effect/cluster") {
+        findings.push({
+          file,
+          message: `${name} must be removed for the Effect 4 cohort`,
+        });
+      }
     }
   }
 
-  const versions = new Set(observed.values());
-  if (versions.size > 1) {
+  if (
+    observedConfect.size > 1 ||
+    [...observedConfect].some((version) => version !== CONFECT_VERSION)
+  ) {
     findings.push({
       file: "package.json",
-      message: `All @confect/* packages must share one exact v9 patch, found ${[...versions].sort().join(", ")}`,
+      message: `All @confect/* packages must be exactly ${CONFECT_VERSION}, found ${[...observedConfect].sort().join(", ")}`,
+    });
+  }
+
+  const convexDeps = dependencyEntries(
+    repoRoot,
+    "packages/convex/package.json",
+  );
+  if (
+    ("@confect/cli" in convexDeps || "@effect/platform-node" in convexDeps) &&
+    convexDeps.ioredis !== "5.11.1"
+  ) {
+    findings.push({
+      file: "packages/convex/package.json",
+      message: `ioredis must be exactly 5.11.1 beside @confect/cli, found ${convexDeps.ioredis ?? "missing"}`,
+    });
+  }
+
+  const cliDeps = dependencyEntries(repoRoot, "apps/cli/package.json");
+  if ("@effect/platform-node" in cliDeps) {
+    findings.push({
+      file: "apps/cli/package.json",
+      message: "@effect/platform-node must be pinned only in packages/convex",
     });
   }
 
   return findings;
 };
 
+export const checkPatchMapping = (
+  repoRoot = process.cwd(),
+): readonly CompatibilityFinding[] => {
+  const file = "pnpm-workspace.yaml";
+  if (!existsSync(join(repoRoot, file))) return [];
+  return readSource(repoRoot, file).includes("@confect/cli@9.1.5")
+    ? [
+        {
+          file,
+          message: "The @confect/cli@9.1.5 patch mapping must be removed",
+        },
+      ]
+    : [];
+};
+
+const authoredRoots = ["apps", "packages", "tooling", "examples"] as const;
+
+export const checkNoVendoredSourceImports = (
+  repoRoot = process.cwd(),
+): readonly CompatibilityFinding[] =>
+  authoredRoots
+    .flatMap((root) => walk(repoRoot, root))
+    .filter((file) => /\.[cm]?[jt]sx?$/u.test(file))
+    .flatMap((file) => {
+      const hasVendoredImport = readSource(repoRoot, file)
+        .split("\n")
+        .some((line) =>
+          /^\s*import(?:\s+type)?(?:\s+[^"']+\s+from)?\s*["'][^"']*repos\//u.test(
+            line,
+          ),
+        );
+      return hasVendoredImport
+        ? [{ file, message: "Application source must not import from repos/*" }]
+        : [];
+    });
+
 export const checkNoAggregateConfectEntrypoints = (
   repoRoot = process.cwd(),
-): readonly V9Finding[] =>
+): readonly CompatibilityFinding[] =>
   ["spec.ts", "impl.ts", "nodeSpec.ts", "nodeImpl.ts"]
     .map((name) => `packages/convex/confect/${name}`)
     .filter((file) => existsSync(join(repoRoot, file)))
     .map((file) => ({
       file,
-      message: "Confect v9 removes root aggregate spec/impl entrypoints.",
+      message:
+        "The current Confect authoring model removes root aggregate spec/impl entrypoints.",
     }));
 
 export const checkNoEffectBarrelImports = (
   repoRoot = process.cwd(),
-): readonly V9Finding[] =>
+): readonly CompatibilityFinding[] =>
   walk(repoRoot, "packages/convex/confect")
     .filter((file) => file.endsWith(".ts"))
     .flatMap((file) => {
@@ -102,16 +212,17 @@ export const checkNoEffectBarrelImports = (
 
 export const checkLazySpecSchemas = (
   repoRoot = process.cwd(),
-): readonly V9Finding[] =>
+): readonly CompatibilityFinding[] =>
   walk(repoRoot, "packages/convex/confect")
     .filter((file) => file.endsWith(".spec.ts"))
     .flatMap((file) => {
       const source = readSource(repoRoot, file);
-      const findings: V9Finding[] = [];
+      const findings: CompatibilityFinding[] = [];
       if (/GroupSpec\.make(Node)?\(\s*["']/.test(source)) {
         findings.push({
           file,
-          message: "GroupSpec.make does not take a name in Confect v9.",
+          message:
+            "GroupSpec.make does not take a name in the current Confect authoring model.",
         });
       }
 
@@ -141,12 +252,12 @@ export const checkLazySpecSchemas = (
 
 export const checkImplsUseDatabaseSchema = (
   repoRoot = process.cwd(),
-): readonly V9Finding[] =>
+): readonly CompatibilityFinding[] =>
   walk(repoRoot, "packages/convex/confect")
     .filter((file) => file.endsWith(".impl.ts"))
     .flatMap((file) => {
       const source = readSource(repoRoot, file);
-      const findings: V9Finding[] = [];
+      const findings: CompatibilityFinding[] = [];
 
       if (
         source.includes("FunctionImpl.make(api") ||
@@ -195,12 +306,12 @@ export const checkImplsUseDatabaseSchema = (
 
 export const checkTableShape = (
   repoRoot = process.cwd(),
-): readonly V9Finding[] =>
+): readonly CompatibilityFinding[] =>
   walk(repoRoot, "packages/convex/confect/tables")
     .filter((file) => file.endsWith(".ts"))
     .flatMap((file) => {
       const source = readSource(repoRoot, file);
-      const findings: V9Finding[] = [];
+      const findings: CompatibilityFinding[] = [];
 
       if (!source.includes("export default Table.make(() =>")) {
         findings.push({
@@ -211,18 +322,19 @@ export const checkTableShape = (
       if (/Table\.make\(\s*["']/.test(source)) {
         findings.push({
           file,
-          message:
-            "Table.make no longer takes a table-name argument in Confect v9.",
+          message: "Table.make no longer takes a table-name argument.",
         });
       }
 
       return findings;
     });
 
-export const collectConfectV9Findings = (
+export const collectConfectEffectCompatibilityFindings = (
   repoRoot = process.cwd(),
-): readonly V9Finding[] => [
-  ...checkConfectPackagePins(repoRoot),
+): readonly CompatibilityFinding[] => [
+  ...checkDependencyCohort(repoRoot),
+  ...checkPatchMapping(repoRoot),
+  ...checkNoVendoredSourceImports(repoRoot),
   ...checkNoAggregateConfectEntrypoints(repoRoot),
   ...checkNoEffectBarrelImports(repoRoot),
   ...checkLazySpecSchemas(repoRoot),
@@ -230,10 +342,12 @@ export const collectConfectV9Findings = (
   ...checkTableShape(repoRoot),
 ];
 
-export const runConfectV9Check = (repoRoot = process.cwd()): void => {
-  const findings = collectConfectV9Findings(repoRoot);
+export const runConfectEffectCompatibilityCheck = (
+  repoRoot = process.cwd(),
+): void => {
+  const findings = collectConfectEffectCompatibilityFindings(repoRoot);
   if (findings.length === 0) {
-    console.log("check:confect-v9 ok");
+    console.log("check:confect-effect-compat ok");
     return;
   }
 
@@ -243,4 +357,4 @@ export const runConfectV9Check = (repoRoot = process.cwd()): void => {
   process.exitCode = 1;
 };
 
-if (isDirectRun(import.meta.url)) runConfectV9Check();
+if (isDirectRun(import.meta.url)) runConfectEffectCompatibilityCheck();

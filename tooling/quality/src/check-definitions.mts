@@ -271,7 +271,7 @@ const checkDescriptorDefinitions = {
           "check:config-drift",
           "check:convex-ai-files",
           "check:agent-pack",
-          "check:confect-v9",
+          "check:confect-effect-compat",
           "check:confect-contracts",
           "check:confect-compat",
           "check:env-boundary",
