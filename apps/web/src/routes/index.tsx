@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { BusinessDashboardRoute } from "../saas-ui/business-shell";
+import { AppIdeaLanding } from "../features/public-funnel/landing";
 
 export const Route = createFileRoute("/")({
-  component: BusinessDashboardRoute,
+  component: AppIdeaLanding,
 });
