@@ -1,6 +1,6 @@
 import { createCustomerCreateCommand } from "@maestro-template/agent-pack";
 import { buildSaasApplicationTargetPlan } from "@maestro-template/generators";
-import { createCustomerCurrentAdapter } from "@maestro-template/release-tooling/customer-create";
+import { createCustomerReleaseAdapter } from "@maestro-template/release-tooling/customer-create";
 import { homedir } from "node:os";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -9,19 +9,18 @@ import { createCreateCliHandler } from "./create";
 const TRUSTED_REPOSITORY_ROOT = fileURLToPath(
   new URL("../../../../", import.meta.url),
 );
-const BASE_MANIFEST_PATH = "releases/v0.2.0-alpha.1/manifest.json";
+const BASE_MANIFEST_PATH = "releases/v0.2.0-alpha.2/manifest.json";
 const BASE_MANIFEST_CHECKSUM =
-  "sha256:dc00f1dc686c766a472c92d4881cdde4b6b6f47bc6d489f3df2574a741954579";
+  "sha256:e0f4bc649b0aef4ffc6c59bd53e50204963e395116b7165dc4a1de3bf258be11";
 const BASE_BLUEPRINT_CHECKSUM =
-  "sha256:cab3a26837313a0e5d1fd0befbd70e35c0bf994576b961853bbf60d876a0553c";
-const BASE_TAG = "maestro-template-v0.2.0-alpha.1";
-const BASE_COMMIT = "de1bac52bbd33745d2a0fecf8e1cb6ec5732310d";
-const REVIEWED_BLUEPRINT_ID = "saas-application";
-const REVIEWED_BLUEPRINT_PROVENANCE =
-  "@maestro-template/generators/saas-application@1";
+  "sha256:5b5b40f73b7373907590090872beab7f2143c70f1654463982b0dfe8918324d3";
+const HARDENED_BLUEPRINT_CHECKSUM =
+  "sha256:008db27da829d85b6213dc4d8f9d85f4a16213afb0271e4e9d3045afebdee83d";
+const BASE_TAG = "maestro-template-v0.2.0-alpha.2";
+const BASE_COMMIT = "3aefd456354b344b9595bddc44fc0782240e2b7d";
 
 export function createCustomerCreateComposition() {
-  const current = createCustomerCurrentAdapter({
+  const release = createCustomerReleaseAdapter({
     repositoryRoot: TRUSTED_REPOSITORY_ROOT,
     manifestPath: resolve(TRUSTED_REPOSITORY_ROOT, BASE_MANIFEST_PATH),
     ownershipManifestChecksum: BASE_MANIFEST_CHECKSUM,
@@ -29,23 +28,26 @@ export function createCustomerCreateComposition() {
     sourceCommit: BASE_COMMIT,
     blueprintManifestPath: resolve(
       TRUSTED_REPOSITORY_ROOT,
-      "releases/v0.2.0-alpha.1/blueprints/saas-application.json",
+      "releases/v0.2.0-alpha.2/blueprints/saas-application.json",
     ),
     blueprintManifestChecksum: BASE_BLUEPRINT_CHECKSUM,
+    blueprintAuthorityManifestPath: resolve(
+      TRUSTED_REPOSITORY_ROOT,
+      "releases/v0.2.0-alpha.2/hardening/saas-application.json",
+    ),
+    blueprintAuthorityManifestChecksum: HARDENED_BLUEPRINT_CHECKSUM,
     homeRoot: homedir(),
-    blueprintId: REVIEWED_BLUEPRINT_ID,
-    blueprintProvenance: REVIEWED_BLUEPRINT_PROVENANCE,
   });
   const command = createCustomerCreateCommand({
     blueprintTargetPlan: ({ name, outcome }) =>
       buildSaasApplicationTargetPlan({ name, firstOutcome: outcome }),
     release: {
       prepare: (request) =>
-        current.prepare({
+        release.prepare({
           ...request,
           repo: { ...request.repo, sourceRoot: TRUSTED_REPOSITORY_ROOT },
         }),
-      materialize: current.materialize,
+      materialize: release.materialize,
     },
   });
   return createCreateCliHandler(command);

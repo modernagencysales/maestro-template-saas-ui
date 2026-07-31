@@ -161,10 +161,10 @@ async function optionalReceipt(
   try {
     parsed = JSON.parse(raw) as unknown;
   } catch {
-    return null;
+    return { malformed: true };
   }
   const receipt = parseReceipt(parsed);
-  if (receipt === null) return null;
+  if (receipt === null) return { malformed: true };
   return {
     subject: receipt.subject,
     createdAt: receipt.createdAt,

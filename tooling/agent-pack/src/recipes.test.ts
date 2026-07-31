@@ -119,7 +119,12 @@ const dependencies = {
         collisions: [],
         semanticRuleIds: [],
         manualFollowUp: [],
-        codegen: [],
+        codegen: [
+          "pnpm confect:codegen",
+          "pnpm confect:manifest",
+          "pnpm format",
+          "pnpm --dir apps/web build",
+        ],
         focusedGates: ["pnpm --dir apps/web typecheck"],
       },
     }),
@@ -160,6 +165,12 @@ describe("recipe commands", () => {
         generatorPreviews: [{ generatorId: "add-feature" }],
         plan: {
           fingerprint: expect.stringMatching(/^recipe_plan_sha256:/),
+          codegen: [
+            "pnpm confect:codegen",
+            "pnpm confect:manifest",
+            "pnpm format",
+            "pnpm --dir apps/web build",
+          ],
           operations: [
             expect.objectContaining({
               path: "apps/web/src/features/request.ts",
@@ -175,6 +186,47 @@ describe("recipe commands", () => {
     expect(JSON.stringify(result)).not.toMatch(
       /choose (a|an) (database|framework|architecture|provider)/i,
     );
+  });
+
+  it("blocks collision previews without emitting write authority", async () => {
+    const result = await executeAgentPackCommand(
+      createAddRecipeCommand({
+        ...dependencies,
+        generators: {
+          ...dependencies.generators,
+          preview: async () => ({
+            ok: true as const,
+            output: {
+              files: [
+                {
+                  path: "apps/web/src/features/request.ts",
+                  content: "export const request = true;\n",
+                  beforeSha256: "sha256:customer-owned",
+                },
+              ],
+              provenancePaths: [],
+              collisions: ["apps/web/src/features/request.ts"],
+              semanticRuleIds: [],
+              manualFollowUp: [],
+              codegen: [],
+              focusedGates: [],
+            },
+          }),
+        },
+      }),
+      { query: "crud-business-entity", answers: { name: "Request" } },
+      context,
+    );
+
+    expect(result).toMatchObject({
+      mutationPosture: "preview",
+      exitClass: "findings",
+      diagnostics: [{ code: "AGENT_PACK_RECIPE_COLLISION" }],
+      data: {
+        plan: { collisions: ["apps/web/src/features/request.ts"] },
+      },
+    });
+    expect(result.data).not.toHaveProperty("confirmationCommand");
   });
 
   it("returns adjacent reviewed recipes and a template-gap for unknown language", async () => {
@@ -339,8 +391,18 @@ describe("recipe commands", () => {
     expect(written).toMatchObject({
       mutationPosture: "write",
       exitClass: "success",
-      data: { receipt: { kind: "maestro-recipe-transaction" } },
+      data: {
+        receipt: { kind: "maestro-recipe-transaction" },
+        followUpActions: [
+          { command: "pnpm confect:codegen" },
+          { command: "pnpm confect:manifest" },
+          { command: "pnpm format" },
+          { command: "pnpm --dir apps/web build" },
+          { command: "pnpm --dir apps/web typecheck" },
+        ],
+      },
     });
+    expect(written.data).not.toHaveProperty("confirmationCommand");
     expect(applied).toBe(1);
   });
 });

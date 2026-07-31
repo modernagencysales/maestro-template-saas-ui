@@ -54,7 +54,11 @@ describe("build readiness presenter", () => {
         data: "Fake data works now; local persistence is a reviewed seam.",
         connections: "Convex: fake",
       },
-      receipt: { status: "Not verified", subject: "No receipt available" },
+      receipt: {
+        status: "Not verified",
+        subject: "No Maestro verification receipt",
+        detail: "Run pnpm maestro -- verify --scope focused",
+      },
     });
     expect(view.summary).not.toHaveProperty("automations");
     expect(view.nextActions).toEqual(["pnpm maestro -- check --mode fake"]);
@@ -150,6 +154,42 @@ describe("build readiness presenter", () => {
       verifiedAt: "2026-07-25T12:00:00.000Z",
       detail: "commit changed",
     });
+  });
+
+  it.each([
+    [
+      "current",
+      {
+        subject: { commit: "abc123", dirty: false },
+        createdAt: "2026-07-25T12:00:00.000Z",
+        status: "pass" as const,
+        staleness: { stale: false as const, reasons: [] },
+      },
+      { status: "Passed", subject: "abc123 (clean)" },
+    ],
+    [
+      "failed",
+      {
+        subject: { commit: "abc123", dirty: true },
+        createdAt: "2026-07-25T12:00:00.000Z",
+        status: "fail" as const,
+        staleness: { stale: false as const, reasons: [] },
+      },
+      { status: "Failed", subject: "abc123 (dirty)" },
+    ],
+    [
+      "malformed",
+      { malformed: true as const },
+      {
+        status: "Invalid",
+        subject: "Malformed Maestro verification receipt",
+        detail: "Run pnpm maestro -- verify --scope focused",
+      },
+    ],
+  ])("presents a distinct %s receipt state", (_name, receipt, expected) => {
+    expect(presentBuildReadiness(input({ receipt })).receipt).toMatchObject(
+      expected,
+    );
   });
 
   it("derives at most three deterministic safe actions", () => {

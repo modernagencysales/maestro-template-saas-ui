@@ -1,0 +1,461 @@
+{
+  "schemaVersion": 1,
+  "kind": "composed-customer-release",
+  "materializationStatus": "materializable",
+  "baseManifest": {
+    "path": "../v0.2.0-alpha.1/manifest.json",
+    "sha256": "sha256:dc00f1dc686c766a472c92d4881cdde4b6b6f47bc6d489f3df2574a741954579"
+  },
+  "release": {
+    "version": "0.2.0-alpha.2",
+    "tag": "maestro-template-v0.2.0-alpha.2",
+    "sourceCommit": "3aefd456354b344b9595bddc44fc0782240e2b7d",
+    "sourceChecksum": "sha256:e7aec21789cba03132c2ca4ea4e95777cf5c616e2755f1fb29f4de492133f31c"
+  },
+  "upgrade": {
+    "schemaVersion": 1,
+    "transition": {
+      "id": "template-0.2-alpha.1-to-alpha.2",
+      "fromVersion": "0.2.0-alpha.1",
+      "toVersion": "0.2.0-alpha.2",
+      "immediatePriorVersion": "0.2.0-alpha.1"
+    },
+    "operations": [
+      {
+        "id": "upgrade-modify-prettierignore",
+        "kind": "modify",
+        "path": ".prettierignore",
+        "ownership": "template-owned",
+        "beforeHash": "sha256:4f67327ecae20f0e281db9123e4a821e22551046a303fb15d1e70a37e86107c3",
+        "afterHash": "sha256:e90e598a4badb5157d2dbf8e6a73e424d5c9404ed129885e41f5053bb75a945d"
+      },
+      {
+        "id": "upgrade-modify-AGENTS-md",
+        "kind": "modify",
+        "path": "AGENTS.md",
+        "ownership": "template-owned",
+        "beforeHash": "sha256:8f191b1ea45fdc13d56b8990eace9fa00978fe7a008d483b4933123b29b1485e",
+        "afterHash": "sha256:4442207517b92f2c7ded7c38227bf1a98e874bb71754b56bcd4e0dcf60467374"
+      },
+      {
+        "id": "upgrade-modify-apps-cli-src-commands-ts",
+        "kind": "modify",
+        "path": "apps/cli/src/commands.ts",
+        "ownership": "template-owned",
+        "beforeHash": "sha256:81e6a7f7edd9be289804580a6f2eeea095fb12af807d1fc4a0a572c947137d30",
+        "afterHash": "sha256:b2bf45284ea7b05d1d9328676ad2a3f02cc2c33db17320dcbd3855cb9c4cdd63"
+      },
+      {
+        "id": "upgrade-modify-apps-cli-src-factory-customerCliRuntime-test-ts",
+        "kind": "modify",
+        "path": "apps/cli/src/factory/customerCliRuntime.test.ts",
+        "ownership": "template-owned",
+        "beforeHash": "sha256:3ec66ec88b03446f1a9ee684aa166e40dc6fc6fc813bb7a10cdbb9e397ed367c",
+        "afterHash": "sha256:c7145d57330cdbbd73aed209257564c8e5b106520c39e85fd8acfe22b62fdaa9"
+      },
+      {
+        "id": "upgrade-modify-apps-cli-src-factory-customerComposition-ts",
+        "kind": "modify",
+        "path": "apps/cli/src/factory/customerComposition.ts",
+        "ownership": "template-owned",
+        "beforeHash": "sha256:ce0531db74255aa235f54d0884e3c566246e7fc6a32a48f965915ed5d3f9febf",
+        "afterHash": "sha256:1f55ec5cef40baf8fedcf4535cbb666dbb640903b616bcc8611233683c5b4ea7"
+      },
+      {
+        "id": "upgrade-add-apps-cli-src-factory-customerRecipes-ts",
+        "kind": "add",
+        "path": "apps/cli/src/factory/customerRecipes.ts",
+        "ownership": "template-owned",
+        "afterHash": "sha256:52fa7d322e27ae824c5e503ea48975c9aab9c6f01eac7bae1aba0b47603ded1a"
+      },
+      {
+        "id": "upgrade-modify-docs-template-app-factory-guide-md",
+        "kind": "modify",
+        "path": "docs/template/app-factory-guide.md",
+        "ownership": "template-owned",
+        "beforeHash": "sha256:6dfdaee6ddec08f45c4af2989f6f8a87edc7782a78842fe355e10028760d1736",
+        "afterHash": "sha256:36e5e5bbfbc9fdd1f3d42ca126f348b75b058da132b368715c2d9613759cecc0"
+      },
+      {
+        "id": "upgrade-modify-docs-template-customer-target-contract-md",
+        "kind": "modify",
+        "path": "docs/template/customer-target-contract.md",
+        "ownership": "template-owned",
+        "beforeHash": "sha256:e61e35a674bfb12eaa45dbd121d0a356334fd303d89f708e2e4c2ef66393f20b",
+        "afterHash": "sha256:d93203794544e83cb68383fc99c121f8ec7999bfe3777c5cf046dc79bf19f1b4"
+      },
+      {
+        "id": "upgrade-modify-docs-template-executable-recipes-md",
+        "kind": "modify",
+        "path": "docs/template/executable-recipes.md",
+        "ownership": "template-owned",
+        "beforeHash": "sha256:643d71d44574ead6158ba21f4228e0129a9c6a67ce6c39393d50882000ac70e1",
+        "afterHash": "sha256:f020fe2fe418e1ca1932b8f4cdb7de2645b316aa85ae58db64bbb114fe4c85fa"
+      },
+      {
+        "id": "upgrade-modify-docs-template-quickstart-md",
+        "kind": "modify",
+        "path": "docs/template/quickstart.md",
+        "ownership": "template-owned",
+        "beforeHash": "sha256:aa85dd42a4252296c150995f2de6205d78fb3dca6ee539fb04d597a5697ee56f",
+        "afterHash": "sha256:c1f7648f94ba90d09affc0a63572ce9602e37b34837b099947da9cb2f4d7d636"
+      },
+      {
+        "id": "upgrade-modify-packages-convex-tsconfig-json",
+        "kind": "modify",
+        "path": "packages/convex/tsconfig.json",
+        "ownership": "template-owned",
+        "beforeHash": "sha256:cac978ff72b0ecfdac6158ec519ede32d21bbc28bbc5cbfba99c5077baf2e597",
+        "afterHash": "sha256:9aad6d1e5e60ac255ad1ea6aa23563dbf34f1e0658447ff4c42f30f3af3a3f25"
+      },
+      {
+        "id": "upgrade-modify-packages-template-core-src-dataResourceCatalog-ts",
+        "kind": "modify",
+        "path": "packages/template-core/src/dataResourceCatalog.ts",
+        "ownership": "template-owned",
+        "beforeHash": "sha256:f8f6346635f4e1bd6cfc13b04e40b02e6a0cf4b7ddd0ff96a1502f02eb118997",
+        "afterHash": "sha256:b17d343dd7e0101d5eadaea784d22518cde4aaecf90658a6a7bb66a150dee5cd"
+      },
+      {
+        "id": "upgrade-modify-tooling-agent-pack-evals-forward-forward-runner-test-ts",
+        "kind": "modify",
+        "path": "tooling/agent-pack/evals/forward/forward-runner.test.ts",
+        "ownership": "template-owned",
+        "beforeHash": "sha256:5bd8bfda060330113b5fd3df117add340ce2aced023936700c885d65d2a1eae7",
+        "afterHash": "sha256:d13bd9ea0547784d75de5bb7741744e7dad9dfcf3ebde5b4c506061ac80f11d7"
+      },
+      {
+        "id": "upgrade-modify-tooling-agent-pack-src-contracts-test-ts",
+        "kind": "modify",
+        "path": "tooling/agent-pack/src/contracts.test.ts",
+        "ownership": "template-owned",
+        "beforeHash": "sha256:f264004be7130f8d2f7efbfbf56b05d017fde7d50671d993836d069e8606fa0b",
+        "afterHash": "sha256:9c1c60b2ac1baefe2706a151669dffaf669aa60538f88484243718188c5df548"
+      },
+      {
+        "id": "upgrade-modify-tooling-agent-pack-src-contracts-ts",
+        "kind": "modify",
+        "path": "tooling/agent-pack/src/contracts.ts",
+        "ownership": "template-owned",
+        "beforeHash": "sha256:a014a92839f3ab2397e0b6f0499fc1d903d59a17477a7dc1e2a4c75e9181415e",
+        "afterHash": "sha256:30b0bbe6cee5e011b6972d38d58b4ca83fbe9fa5cbaaae82aacb70912dcc1488"
+      },
+      {
+        "id": "upgrade-modify-tooling-agent-pack-src-create-test-ts",
+        "kind": "modify",
+        "path": "tooling/agent-pack/src/create.test.ts",
+        "ownership": "template-owned",
+        "beforeHash": "sha256:9190c88171abcac3946b4edd40941a487ddeaed8902bb9a761cb3ba21c7744b3",
+        "afterHash": "sha256:01497c1e1afc33e9a6d1e8b4a116207e6cb09c1a9d7aa58daa02c98d85add741"
+      },
+      {
+        "id": "upgrade-modify-tooling-agent-pack-src-create-ts",
+        "kind": "modify",
+        "path": "tooling/agent-pack/src/create.ts",
+        "ownership": "template-owned",
+        "beforeHash": "sha256:b7e239b9f694d7c02d78133837432bcc8ecb4b63291ff87856be7e035ee20e87",
+        "afterHash": "sha256:3e799350a61b4260f7189ee62a941a83317288cf2717f3de3eba01be54f6d4fc"
+      },
+      {
+        "id": "upgrade-modify-tooling-agent-pack-src-customer-ts",
+        "kind": "modify",
+        "path": "tooling/agent-pack/src/customer.ts",
+        "ownership": "template-owned",
+        "beforeHash": "sha256:9c96727e5827ca6035048b3a2dafc27b422ed77e10a9bcfa896b067b6f059cd3",
+        "afterHash": "sha256:3fe14ee1c219624af13b32d5bdf506660bde486464476c0d386c4a050111c0b5"
+      },
+      {
+        "id": "upgrade-modify-tooling-agent-pack-src-hostInstall-ts",
+        "kind": "modify",
+        "path": "tooling/agent-pack/src/hostInstall.ts",
+        "ownership": "template-owned",
+        "beforeHash": "sha256:bc5053cfac552ee8e6f3ff468f06c35ec836eea23dd2928a382d659a52e31fff",
+        "afterHash": "sha256:d58fb3646aa6587ea00a1d22ce732670c26481882dae5f2fb484829fe7cd3e8e"
+      },
+      {
+        "id": "upgrade-modify-tooling-agent-pack-src-hostProjectionLifecycle-test-ts",
+        "kind": "modify",
+        "path": "tooling/agent-pack/src/hostProjectionLifecycle.test.ts",
+        "ownership": "template-owned",
+        "beforeHash": "sha256:0382d9400456579572f579cf27038843450085a85f6b61921b0d360280a911f2",
+        "afterHash": "sha256:f85b4cb287742c4d8e16dc0ae2faf262421e0989aba7972949ff028ba8b22b34"
+      },
+      {
+        "id": "upgrade-modify-tooling-agent-pack-src-hostProjectionLifecycle-ts",
+        "kind": "modify",
+        "path": "tooling/agent-pack/src/hostProjectionLifecycle.ts",
+        "ownership": "template-owned",
+        "beforeHash": "sha256:b9d6de711c6c05109f23dcadcf786896ad6009d95e829eb21623dc7eb31c58f5",
+        "afterHash": "sha256:fc63e31802af59a2c921bc469239e97f3a71d57e22759fc5e466d9e777b1f493"
+      },
+      {
+        "id": "upgrade-modify-tooling-agent-pack-src-nativeHostAcceptance-ts",
+        "kind": "modify",
+        "path": "tooling/agent-pack/src/nativeHostAcceptance.ts",
+        "ownership": "template-owned",
+        "beforeHash": "sha256:f121af79a2d00c8c51531ce7d0275725cc1520e1b4ddc9ed464341ae73da0c68",
+        "afterHash": "sha256:97d568cf1c5f17104e669a90fa44dfa24b8ac6428791d0a727a2210acbffedef"
+      },
+      {
+        "id": "upgrade-modify-tooling-agent-pack-src-nodeAdapters-test-ts",
+        "kind": "modify",
+        "path": "tooling/agent-pack/src/nodeAdapters.test.ts",
+        "ownership": "template-owned",
+        "beforeHash": "sha256:bca9b38d5ea851f31bece027a91037a60a9a930047504ef05b9e97784e10ac6c",
+        "afterHash": "sha256:cf4129682875c0c65739cccda2e6166174959abcfd5714df6d574d48a6dac7ce"
+      },
+      {
+        "id": "upgrade-modify-tooling-agent-pack-src-nodeAdapters-ts",
+        "kind": "modify",
+        "path": "tooling/agent-pack/src/nodeAdapters.ts",
+        "ownership": "template-owned",
+        "beforeHash": "sha256:641ac8384be8ed529dc161efb8f6ec26abdc4951cb34b77c92a465156900fe60",
+        "afterHash": "sha256:7becd56970b92da9bf73e521e06cbd5ab4b774ed1fb0a30549ef5a8fc6c5c9e3"
+      },
+      {
+        "id": "upgrade-modify-tooling-agent-pack-src-ports-test-ts",
+        "kind": "modify",
+        "path": "tooling/agent-pack/src/ports.test.ts",
+        "ownership": "template-owned",
+        "beforeHash": "sha256:e341bb992df2a318c5edbd99aea4e8eff579f4195e219fbf069c190282c949bf",
+        "afterHash": "sha256:a8ed70b4677c1f7183eac1561d9006e20f5a8c5e8c081d22a72f1a6442cbe659"
+      },
+      {
+        "id": "upgrade-modify-tooling-agent-pack-src-ports-ts",
+        "kind": "modify",
+        "path": "tooling/agent-pack/src/ports.ts",
+        "ownership": "template-owned",
+        "beforeHash": "sha256:2e7249b1e6cdb037b7aea96380416d049f330346561ec1777f5d64c3a6aded1b",
+        "afterHash": "sha256:3b769a3567ff15dab2bb8de6f735f1381132fc05c4796edf66a6100479132e6f"
+      },
+      {
+        "id": "upgrade-modify-tooling-agent-pack-src-preflight-test-ts",
+        "kind": "modify",
+        "path": "tooling/agent-pack/src/preflight.test.ts",
+        "ownership": "template-owned",
+        "beforeHash": "sha256:f668d2de0bf95176af708cd8aeeb34b4588642e6aa7d66c7f486522f22dbb6d0",
+        "afterHash": "sha256:ebbd706dc540cd6f5163982e786770750e3a26ad0efa2320abb49ed14165838a"
+      },
+      {
+        "id": "upgrade-modify-tooling-agent-pack-src-preflight-ts",
+        "kind": "modify",
+        "path": "tooling/agent-pack/src/preflight.ts",
+        "ownership": "template-owned",
+        "beforeHash": "sha256:b008f68c49f15b9d3edf2a709a4a796f0d44b43c6ca86bf596ae473156364072",
+        "afterHash": "sha256:c3156fa4b504835f7e767638281246ce6df06974e4a45ea80c121a56a39f9f18"
+      },
+      {
+        "id": "upgrade-modify-tooling-agent-pack-src-recipes-test-ts",
+        "kind": "modify",
+        "path": "tooling/agent-pack/src/recipes.test.ts",
+        "ownership": "template-owned",
+        "beforeHash": "sha256:dd602b17fd36194e39e19f3ee2a162099df58fba3cbf2f33229ac89cebbb6db1",
+        "afterHash": "sha256:48f7d8f7a4690c8faf9dcc4b97f9f565118903da2a8d9c864a001090291a7a5c"
+      },
+      {
+        "id": "upgrade-modify-tooling-agent-pack-src-recipes-ts",
+        "kind": "modify",
+        "path": "tooling/agent-pack/src/recipes.ts",
+        "ownership": "template-owned",
+        "beforeHash": "sha256:afb3b602bd01b8ef4affcc4544bfed72f686f945f2b77f0efb4cc4b3e27d628a",
+        "afterHash": "sha256:391d0dc2080a1828ca0192c4b4c0c84e1f1774ca681843a7588ac4e23c4a9fc5"
+      },
+      {
+        "id": "upgrade-modify-tooling-agent-pack-src-recipeTransaction-test-ts",
+        "kind": "modify",
+        "path": "tooling/agent-pack/src/recipeTransaction.test.ts",
+        "ownership": "template-owned",
+        "beforeHash": "sha256:33813098d2e9cc99da4d7e8d90198fb32d357dbe68871867fbd5f7470a6eb57e",
+        "afterHash": "sha256:3bec132dd0f78d0db36289c5a4402f8d370b8f6d2d10895b72948740f24ba35f"
+      },
+      {
+        "id": "upgrade-modify-tooling-agent-pack-src-start-test-ts",
+        "kind": "modify",
+        "path": "tooling/agent-pack/src/start.test.ts",
+        "ownership": "template-owned",
+        "beforeHash": "sha256:e2f57b4495145a52ab9d2ada5880ab97918d9545936fd052a2f178be158509b5",
+        "afterHash": "sha256:9b96fa860d2230b59bef63dd25adc3a9381a096c4d131b85b53686eadfe20092"
+      },
+      {
+        "id": "upgrade-modify-tooling-agent-pack-src-start-ts",
+        "kind": "modify",
+        "path": "tooling/agent-pack/src/start.ts",
+        "ownership": "template-owned",
+        "beforeHash": "sha256:e89d8165a432bf74802173593d83f9a582e72d5f08e1d040ef049014a79ac0ec",
+        "afterHash": "sha256:adcfa0fac6a052b195bd1d7bc488d74a041c8e5c1a4cbe7e049ad7c110c51f0f"
+      },
+      {
+        "id": "upgrade-add-tooling-agent-pack-src-temporaryPath-test-ts",
+        "kind": "add",
+        "path": "tooling/agent-pack/src/temporaryPath.test.ts",
+        "ownership": "template-owned",
+        "afterHash": "sha256:30d073fb3a4622bfb9e434f3b91cf62f6f906e335581a00382459e357b4bc277"
+      },
+      {
+        "id": "upgrade-add-tooling-agent-pack-src-temporaryPath-ts",
+        "kind": "add",
+        "path": "tooling/agent-pack/src/temporaryPath.ts",
+        "ownership": "template-owned",
+        "afterHash": "sha256:6ed13425dab2a2a520108991bb39ec1376d78ebd835dc03b13f193aaafd6d112"
+      },
+      {
+        "id": "upgrade-add-tooling-confect-manifest-src-check-ts",
+        "kind": "add",
+        "path": "tooling/confect-manifest/src/check.ts",
+        "ownership": "template-owned",
+        "afterHash": "sha256:382cadd123e791a6c44435d1495115c770c421557df6f333f78eb03fa443b9fd"
+      },
+      {
+        "id": "upgrade-modify-tooling-confect-manifest-tsconfig-json",
+        "kind": "modify",
+        "path": "tooling/confect-manifest/tsconfig.json",
+        "ownership": "template-owned",
+        "beforeHash": "sha256:768f04d1dd92c0598c63d2f99938de62fd42665b7cfd307c81e6f5f8e733eca1",
+        "afterHash": "sha256:f30f8906c7e1769ecde287df6d71214511195b8cd4a15ce8084b3e89068a73bc"
+      },
+      {
+        "id": "upgrade-modify-tooling-generators-src-customer-dispatcher-ts",
+        "kind": "modify",
+        "path": "tooling/generators/src/customer-dispatcher.ts",
+        "ownership": "template-owned",
+        "beforeHash": "sha256:349b52d4cb9676c9ae8be481496d6f14fcf4b02eb258edf7ea285b591d3a055e",
+        "afterHash": "sha256:6d72166e8aca72cae393393a70bfc0e26744cb87d67f29bf6e982c3c098f285e"
+      },
+      {
+        "id": "upgrade-modify-tooling-generators-src-customer-runtime-test-ts",
+        "kind": "modify",
+        "path": "tooling/generators/src/customer-runtime.test.ts",
+        "ownership": "template-owned",
+        "beforeHash": "sha256:3b910fc47bb1434b857d0787bf0b3ba85d0afdf1bf892ec0e07d62584c6f5466",
+        "afterHash": "sha256:b09c3d29375f164b7d4650ff0cb25d580894954f81feab155fb59c31e7b08aa5"
+      },
+      {
+        "id": "upgrade-modify-tooling-generators-src-customer-runtime-ts",
+        "kind": "modify",
+        "path": "tooling/generators/src/customer-runtime.ts",
+        "ownership": "template-owned",
+        "beforeHash": "sha256:856d69e6cce6cfe8386efffcedfd64fe5586177d6030bc95d7b9cc3330a98b46",
+        "afterHash": "sha256:dd3c504edd20dcaa4b726c7ac23c1fa6e75e07be47d412a8ce4342eae2c89ce4"
+      },
+      {
+        "id": "upgrade-modify-tooling-quality-check-data-resources-mts",
+        "kind": "modify",
+        "path": "tooling/quality/check-data-resources.mts",
+        "ownership": "template-owned",
+        "beforeHash": "sha256:8750e861695a7a17685a1d0695c1f7cad583c2ce2812d1be849e3a7a19118836",
+        "afterHash": "sha256:ba50a51a6f06b109f286e55e0bfbed0887465aa6e792763c6317c3ff17e31c37"
+      },
+      {
+        "id": "upgrade-modify-tooling-quality-check-docs-freshness-test-mts",
+        "kind": "modify",
+        "path": "tooling/quality/check-docs-freshness.test.mts",
+        "ownership": "template-owned",
+        "beforeHash": "sha256:8a79e745747c99750897b3094deac34da645e947a4b6ce2339451b80f1057f30",
+        "afterHash": "sha256:59736dfa4a30da1c1a0adaddcba380d4cd95853376796e246c12c862fd8e0126"
+      },
+      {
+        "id": "upgrade-modify-tooling-quality-check-posthog-readiness-mts",
+        "kind": "modify",
+        "path": "tooling/quality/check-posthog-readiness.mts",
+        "ownership": "template-owned",
+        "beforeHash": "sha256:4c8d5f290d0fac0d07b8b47dab11da6a59b81a8f265f9650291a31d92d0002b4",
+        "afterHash": "sha256:9e7d1df5afaf65aaaba8075427507c1378c7d7058deb241d7d5802d82ee852d0"
+      },
+      {
+        "id": "upgrade-modify-tooling-quality-check-posthog-readiness-test-mts",
+        "kind": "modify",
+        "path": "tooling/quality/check-posthog-readiness.test.mts",
+        "ownership": "template-owned",
+        "beforeHash": "sha256:96067085802d0e09a3bb4d9511d9d469a57b96d4dc9885844787dc7d0650428b",
+        "afterHash": "sha256:c4a1a96cc21e5e3c7e1d14cd6ed38f777bb1773ea14dbbf3ad5143939c2b825f"
+      },
+      {
+        "id": "upgrade-add-tooling-release-fixtures-upgrade-provider-posture-v1-to-v2-contract-json",
+        "kind": "add",
+        "path": "tooling/release/__fixtures__/upgrade/provider-posture-v1-to-v2.contract.json",
+        "ownership": "template-owned",
+        "afterHash": "sha256:ac117e67d524834def10d892663b6a23cf59f4697e1232c8b2e133361de90af2"
+      }
+    ],
+    "requirements": []
+  },
+  "deriveExpectedHashesFromArchive": true,
+  "additionalPaths": [
+    {
+      "path": ".claude/settings.json",
+      "match": "exact",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate"
+    },
+    {
+      "path": "tooling/generators/src/blueprints/saasApplicationFactory.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "tooling/generators/src/blueprints/saasRegistrationProjections.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "tooling/generators/src/cli.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "tooling/generators/src/customer-closure.test.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "tooling/generators/src/upgrade-wiring.test.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "tooling/generators/src/workflow-files.test.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "tooling/release/__fixtures__/upgrade/provider-posture-v1-to-v2.contract.json",
+      "match": "exact",
+      "ownership": "template-owned",
+      "action": "copy",
+      "upgrade": "replace"
+    }
+  ],
+  "blueprintManifest": {
+    "path": "blueprints/saas-application.json",
+    "sha256": "sha256:5b5b40f73b7373907590090872beab7f2143c70f1654463982b0dfe8918324d3"
+  },
+  "migrationHandoff": {
+    "required": false,
+    "executionAvailable": false,
+    "filePhase": "backward-compatible-code",
+    "requiredBefore": "migrate",
+    "path": "releases/v0.2.0-alpha.2/migrations/manifest.json",
+    "sha256": "sha256:2b89a73ebffc7c694839fc3c7e3d739a6378b3990f4094ffb9d3d621b9196ba3"
+  },
+  "upgradeImpact": {
+    "path": "releases/v0.2.0-alpha.2/upgrade/app-map-input.json",
+    "sha256": "sha256:4ad3f38e6cbcf2ecd3d2cf56da2a1d2658e6aa63df5e98b8181ae8ed6d44e30b",
+    "projection": {
+      "path": "releases/v0.2.0-alpha.2/upgrade/app-map-impact.json",
+      "sha256": "sha256:b1468ac762ea4913bfa9f63d400a2ab812a44b621e9a4295e78d19b99ae1d997"
+    }
+  }
+}

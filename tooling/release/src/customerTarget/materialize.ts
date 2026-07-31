@@ -19,6 +19,7 @@ import {
   type CustomerReleasePath,
   type ResolvedCustomerReleaseBinding,
 } from "./manifest";
+import { validateCustomerTargetIntegrity } from "./integrity.js";
 
 export class CustomerMaterializationError extends Error {
   constructor(message: string) {
@@ -323,6 +324,31 @@ export function previewCustomerTarget(
       };
     })
     .sort((left, right) => left.path.localeCompare(right.path));
+  const targetFiles = Object.fromEntries(
+    writes.map(({ path }) => {
+      const ownershipRule =
+        request.blueprintTargetPlan?.entries.find(
+          (entry) => entry.path === path,
+        ) ?? resolveCustomerReleasePath(request.manifest.paths, path);
+      if (!ownershipRule) {
+        throw new CustomerMaterializationError(
+          `Unknown integrity operation: ${path}`,
+        );
+      }
+      return [
+        path,
+        operationBytes(request, { ...ownershipRule, path, match: "exact" }),
+      ];
+    }),
+  );
+  const integrityFindings = validateCustomerTargetIntegrity(targetFiles);
+  if (integrityFindings.length > 0) {
+    throw new CustomerMaterializationError(
+      `Customer target integrity failed: ${integrityFindings
+        .map(({ code, path, reference }) => `${code}:${path}:${reference}`)
+        .join(", ")}`,
+    );
+  }
   const omissions = [
     ...sourceEntries
       .filter(({ action }) => action === "omit")

@@ -65,6 +65,7 @@ const CUSTOMER_EXTENSION_EXACT = new Set([
 ]);
 
 const GENERATED_EXACT = new Set([
+  ".claude/settings.json",
   "Justfile",
   "package.json",
   "tsconfig.json",
@@ -109,10 +110,12 @@ const TEMPLATE_ROOT_FILES = new Set([
   "eslint.config.mjs",
   "knip.json",
   "lefthook.yml",
+  "maestro-template.mjs",
   "playwright.config.ts",
   "pnpm-lock.yaml",
   "pnpm-workspace.yaml",
   "stryker.conf.mjs",
+  "tooling/release/__fixtures__/upgrade/provider-posture-v1-to-v2.contract.json",
   "tsconfig.base.json",
   "tsconfig.type-coverage.json",
   "turbo.json",

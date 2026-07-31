@@ -24,6 +24,7 @@ import {
 } from "@maestro-template/template-core/systemCatalog";
 import { planUpgrade } from "@maestro-template/release-tooling/upgrade";
 import { gtmImplementationBlueprint } from "./blueprints/gtmImplementation";
+import { helpForGenerator } from "./help";
 import {
   buildSaasApplicationFiles,
   buildSaasApplicationHandoff,
@@ -37,6 +38,7 @@ export {
 import { buildWorkflowFiles } from "./workflow-files";
 export { buildWorkflowFiles } from "./workflow-files";
 import { bumpRelease, publishRelease } from "./workflow-release-commands";
+import { isGeneratorDirectRun } from "./direct-run";
 
 export type ProviderMode = "fake" | "test" | "live";
 export type SystemGeneratorDisposition = "reuse" | "extend";
@@ -1791,23 +1793,23 @@ export const present${pascalName} = (
       path: `${featurePath}/fixtures.ts`,
       content: `import type { ${pascalName}FeatureState, ${pascalName}Item } from "./model";
 
-export const fake${pascalName}Items: readonly ${pascalName}Item[] = [
-  {
-    id: "${name}-demo-1",
-    label: "Example account",
-    detail: "Synthetic fixture for customer.example; never use customer data here.",
-  },
-];
+const fake${pascalName}Item: ${pascalName}Item = {
+  id: "${name}-demo-1",
+  label: "Example account",
+  detail: "Synthetic fixture for customer.example; never use customer data here.",
+};
+
+export const fake${pascalName}Items: readonly ${pascalName}Item[] = [fake${pascalName}Item];
 
 export const fake${pascalName}States = {
   loading: { status: "loading" },
   empty: { status: "empty" },
   ready: { status: "ready", items: fake${pascalName}Items },
-  edit: { status: "edit", draft: fake${pascalName}Items[0]! },
+  edit: { status: "edit", draft: fake${pascalName}Item },
   skipped: { status: "skipped", reason: "Feature flag is disabled." },
   typedError: { status: "typed-error", error: "Forbidden" },
   transportError: { status: "transport-error", message: "Demo transport unavailable." },
-  success: { status: "success", item: fake${pascalName}Items[0]! },
+  success: { status: "success", item: fake${pascalName}Item },
 } as const satisfies Record<string, ${pascalName}FeatureState>;
 `,
     },
@@ -3250,6 +3252,51 @@ export const experiment = {
   };
 };
 
+const valueFlags = new Set([
+  "--name",
+  "--blueprint",
+  "--mode",
+  "--path",
+  "--exposure",
+  "--description",
+  "--hypothesis",
+  "--system",
+  "--disposition",
+  "--query",
+  "--tenant-scope",
+  "--sensitivity",
+  "--pii",
+  "--export-mode",
+  "--delete-mode",
+  "--retention",
+  "--from",
+  "--to",
+  "--version",
+  "--fixture",
+]);
+const booleanFlags = new Set(["--append-only", "--write"]);
+
+const validateGeneratorArgv = (argv: readonly string[]): void => {
+  const unconsumed: string[] = [];
+  for (let index = 1; index < argv.length; index += 1) {
+    const token = argv[index];
+    if (token === undefined || token === "--" || booleanFlags.has(token))
+      continue;
+    if (valueFlags.has(token)) {
+      index += 1;
+      continue;
+    }
+    unconsumed.push(token);
+  }
+  if (unconsumed.length === 0) return;
+  if (argv.includes("--query")) {
+    throw new Error(
+      `Ambiguous arguments after --query: ${unconsumed.join(" ")}. Quote multi-word queries, for example --query "social sync".`,
+    );
+  }
+  throw new Error(`Unexpected arguments: ${unconsumed.join(" ")}`);
+};
+
 const parseArgs = (
   argv: readonly string[],
 ): {
@@ -3277,6 +3324,7 @@ const parseArgs = (
   readonly write: boolean;
   readonly path: string;
 } => {
+  validateGeneratorArgv(argv);
   const [command] = argv;
   const nameIndex = argv.indexOf("--name");
   const blueprintIndex = argv.indexOf("--blueprint");
@@ -3423,6 +3471,13 @@ export const runGeneratorCli = (
   readonly stderr: string;
 } => {
   try {
+    const requestedHelp =
+      argv[0] !== undefined && (argv[1] === "--help" || argv[1] === "-h")
+        ? helpForGenerator(argv[0])
+        : undefined;
+    if (requestedHelp !== undefined) {
+      return { exitCode: 0, stdout: requestedHelp, stderr: "" };
+    }
     const args = parseArgs(argv);
     const outputPath = resolve(cwd, args.path);
     const catalogRoot = existsSync(systemCatalogPath(cwd))
@@ -3846,11 +3901,13 @@ export const runGeneratorCli = (
         };
       }
 
-      const result = buildWorkflowFiles({
+      const ownership = requireOwnership();
+      const generatorArgs = {
         name: args.name,
-        ...requireOwnership(),
+        ...ownership,
         ...(args.description ? { description: args.description } : {}),
-      });
+      };
+      const result = buildWorkflowFiles(generatorArgs);
 
       if (args.write) {
         writeGeneratedFiles(result.files, cwd);
@@ -3858,7 +3915,28 @@ export const runGeneratorCli = (
 
       return {
         exitCode: 0,
-        stdout: `${JSON.stringify(result, null, 2)}\n`,
+        stdout: `${JSON.stringify(
+          {
+            ...result,
+            privacy: {
+              classification: "review-required",
+              secrets: "names-only",
+            },
+            reviewedEquivalent: {
+              argv: [
+                "node",
+                "maestro-template.mjs",
+                "scaffold",
+                "--generator",
+                "add-workflow",
+                "--args",
+                JSON.stringify(generatorArgs),
+              ],
+            },
+          },
+          null,
+          2,
+        )}\n`,
         stderr: "",
       };
     }
@@ -4068,7 +4146,12 @@ export type ReviewedGeneratorDescriptor = {
   readonly focusedGates: readonly string[];
 };
 
-const backendCodegen = ["pnpm confect:codegen", "pnpm confect:manifest"];
+const backendCodegen = [
+  "pnpm confect:codegen",
+  "pnpm confect:manifest",
+  "pnpm format",
+];
+const featureCodegen = [...backendCodegen, "pnpm --dir apps/web build"];
 const backendGates = ["pnpm check:confect-contracts"];
 
 export const REVIEWED_GENERATOR_DESCRIPTORS = [
@@ -4085,7 +4168,7 @@ export const REVIEWED_GENERATOR_DESCRIPTORS = [
     recipe: "docs/template/app-factory-guide.md",
     command: "pnpm template:add-feature",
     argumentNames: ["name", "system", "disposition", "description"],
-    codegen: backendCodegen,
+    codegen: featureCodegen,
     focusedGates: [...backendGates, "pnpm --dir apps/web typecheck"],
   },
   {
@@ -4116,6 +4199,7 @@ export const REVIEWED_GENERATOR_DESCRIPTORS = [
     codegen: backendCodegen,
     focusedGates: [
       ...backendGates,
+      "pnpm check:system-catalog",
       "pnpm check:data-resources",
       "pnpm check:schema-migration-notes",
     ],
@@ -4195,6 +4279,7 @@ export function runReviewedGenerator(
   const reviewedMutableCatalogs = new Set([
     "docs/template/system-catalog.json",
     "docs/template/data-resources.json",
+    "packages/convex/confect/ops/dataResources.generated.ts",
   ]);
   const collisions = parsed.files
     .map(({ path }) => path)
@@ -4329,4 +4414,24 @@ function isGeneratedFile(value: unknown): value is GeneratedFile {
     "content" in value &&
     typeof value.content === "string"
   );
+}
+
+export const runGeneratorCliProcess = (
+  argv: readonly string[] = process.argv.slice(2),
+  output: {
+    readonly stdout: (value: string) => void;
+    readonly stderr: (value: string) => void;
+  } = {
+    stdout: (value) => process.stdout.write(value),
+    stderr: (value) => process.stderr.write(value),
+  },
+): 0 | 1 => {
+  const result = runGeneratorCli(argv);
+  output.stdout(result.stdout);
+  output.stderr(result.stderr);
+  return result.exitCode;
+};
+
+if (isGeneratorDirectRun(import.meta.url)) {
+  process.exitCode = runGeneratorCliProcess();
 }

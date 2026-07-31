@@ -98,6 +98,7 @@ function assertAuthoringInventory(tree: FinalCustomerTree): void {
     "tooling/generators/src/blueprints/gtmImplementation.ts",
     "tooling/quality/check-workflow-policy-snapshots.mts",
     "tooling/quality/check-workflow-principal-propagation.mts",
+    "tooling/release/__fixtures__/upgrade/provider-posture-v1-to-v2.contract.json",
     "packages/convex/package.json",
     "apps/web/package.json",
   ];

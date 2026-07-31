@@ -1,19 +1,19 @@
 import { FunctionSpec, GroupSpec } from "@confect/core";
 import * as Schema from "effect/Schema";
-import records from "../_generated/tables/records";
-import { Id } from "../_generated/id";
+import records from "./_generated/tables/records";
+import { Id } from "./_generated/id";
 import {
   MemberNotInWorkspace,
   NotFound,
   Unauthorized,
   ValidationFailed,
   WorkspaceNotFound,
-} from "../errors";
+} from "./errors";
 import {
   collectContractManifest,
   collectContractSchemas,
   defineContractFunction,
-} from "../capabilities/_kit/capability";
+} from "./capabilities/_kit/capability";
 
 const ReadError = Schema.Union(
   Unauthorized,

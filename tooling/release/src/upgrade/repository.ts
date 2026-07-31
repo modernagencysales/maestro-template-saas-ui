@@ -15,7 +15,16 @@ import {
   writeFileSync,
   writeSync,
 } from "node:fs";
-import { basename, dirname, join, relative, resolve, sep } from "node:path";
+import { tmpdir } from "node:os";
+import {
+  basename,
+  dirname,
+  isAbsolute,
+  join,
+  relative,
+  resolve,
+  sep,
+} from "node:path";
 import { projectReviewedUpgradeImpact } from "@maestro-template/app-map-tooling/upgrade-impact";
 import { buildAppMapImpact } from "@maestro-template/app-map-tooling/impact";
 import type {
@@ -102,11 +111,19 @@ const readJson = (path: string): unknown =>
 const canonicalRoot = (requested: string, label: string): string => {
   const resolved = resolve(requested);
   const canonical = realpathSync(resolved);
-  if (canonical !== resolved)
+  const temporaryRoot = resolve(tmpdir());
+  const relativeTemporaryPath = relative(temporaryRoot, resolved);
+  const isDirectTemporaryPath =
+    relativeTemporaryPath !== "" &&
+    relativeTemporaryPath !== ".." &&
+    !relativeTemporaryPath.startsWith(`..${sep}`) &&
+    !isAbsolute(relativeTemporaryPath) &&
+    canonical === resolve(realpathSync(temporaryRoot), relativeTemporaryPath);
+  if (canonical !== resolved && !isDirectTemporaryPath)
     throw new Error(
       `${label} must be a canonical path with no symbolic-link root.`,
     );
-  return canonical;
+  return resolved;
 };
 
 const sealJournal = (journal: UpgradeJournalUnsigned): UpgradeJournal => ({

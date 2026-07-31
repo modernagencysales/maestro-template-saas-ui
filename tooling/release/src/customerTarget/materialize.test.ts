@@ -119,6 +119,42 @@ const fixture = () => {
 };
 
 describe("customer target preview and materialization", () => {
+  it("fails preview before writing an internally incomplete target", () => {
+    const { targetRoot, request } = fixture();
+    const broken = {
+      ...request,
+      blueprintTargetPlan: {
+        digest: "sha256:broken",
+        entries: [
+          {
+            path: "package.json",
+            bytes: Buffer.from(
+              JSON.stringify({
+                name: "@example/customer",
+                dependencies: { "@example/missing": "workspace:*" },
+              }),
+            ),
+            ownership: "generated" as const,
+            action: "generate" as const,
+            upgrade: "regenerate" as const,
+          },
+          {
+            path: "docs/template/worker.md",
+            bytes: Buffer.from("Read `repos/confect/CLAUDE.md`.\n"),
+            ownership: "generated" as const,
+            action: "generate" as const,
+            upgrade: "regenerate" as const,
+          },
+        ],
+      },
+    };
+
+    expect(() => previewCustomerTarget(broken)).toThrow(
+      "Customer target integrity failed",
+    );
+    expect(existsSync(targetRoot)).toBe(false);
+  });
+
   it("previews exact writes, omissions, collisions, and bytes without mutation", () => {
     const { targetRoot, request } = fixture();
     const preview = previewCustomerTarget(request);

@@ -83,6 +83,24 @@ const readyFacts = (): PreflightFacts => ({
 });
 
 describe("agent-pack preflight", () => {
+  it("accepts supported standalone pnpm when Corepack is unavailable", async () => {
+    const facts = readyFacts();
+    const result = await executeAgentPackCommand(
+      createPreflightCommand({
+        inspect: async () => ({
+          ...facts,
+          host: { ...facts.host, corepack: "missing" },
+        }),
+      }),
+      { mode: "fake" },
+      context,
+    );
+
+    expect(result.diagnostics.map(({ code }) => code)).not.toContain(
+      "AGENT_PACK_PNPM_UNSUPPORTED",
+    );
+  });
+
   it("returns a stable fingerprint and novice orientation", async () => {
     const facts = readyFacts();
     const result = await executeAgentPackCommand(
@@ -385,7 +403,6 @@ describe("agent-pack preflight", () => {
       });
     },
   );
-
   it("blocks when dirty state, collisions, or the Git root could not be observed", async () => {
     const facts = readyFacts();
     const result = await executeAgentPackCommand(

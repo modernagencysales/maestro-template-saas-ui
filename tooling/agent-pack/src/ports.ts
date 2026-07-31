@@ -1,6 +1,12 @@
 import { createServer } from "node:net";
 
 export type StartMode = "fake" | "local" | "dev";
+export type StartPortOverrides = {
+  readonly web?: number;
+  readonly convex?: number;
+  readonly convexSite?: number;
+  readonly readinessPresenter?: number;
+};
 export type StartPort = {
   readonly id: "web" | "convex" | "convex-site" | "readiness-presenter";
   readonly port: number;
@@ -18,22 +24,34 @@ export type StartPortProbe = {
 };
 
 const host = "127.0.0.1";
+const collisionProbeHost = "0.0.0.0";
 
-export function startPortPlan(mode: StartMode): StartPortPlan {
-  const web = 5173;
-  const readinessPresenter = 4174;
+export function startPortPlan(
+  mode: StartMode,
+  overrides: StartPortOverrides = {},
+): StartPortPlan {
+  for (const port of Object.values(overrides)) {
+    if (!Number.isInteger(port) || port < 1024 || port > 65_535)
+      throw new Error("Start ports must be integers from 1024 through 65535.");
+  }
+  const web = overrides.web ?? 5173;
+  const convex = overrides.convex ?? 3210;
+  const convexSite = overrides.convexSite ?? 3211;
+  const readinessPresenter = overrides.readinessPresenter ?? 4174;
   const required: readonly StartPort[] =
     mode === "local"
       ? [
           { id: "web", port: web },
-          { id: "convex", port: 3210 },
-          { id: "convex-site", port: 3211 },
+          { id: "convex", port: convex },
+          { id: "convex-site", port: convexSite },
           { id: "readiness-presenter", port: readinessPresenter },
         ]
       : [
           { id: "web", port: web },
           { id: "readiness-presenter", port: readinessPresenter },
         ];
+  if (new Set(required.map(({ port }) => port)).size !== required.length)
+    throw new Error("Start ports must be unique within the selected mode.");
   const url = `http://${host}:${web}`;
   return {
     web,
@@ -67,12 +85,14 @@ export async function inspectStartPorts(
 }
 
 export const nodeStartPortProbe: StartPortProbe = {
-  available: (port, address) =>
+  available: (port) =>
     new Promise((resolve) => {
       const server = createServer();
       server.unref();
       server.once("error", () => resolve(false));
-      server.listen({ port, host: address, exclusive: true }, () => {
+      // Probe the wildcard address so an existing server bound to any local
+      // interface cannot satisfy this launcher's later readiness request.
+      server.listen({ port, host: collisionProbeHost, exclusive: true }, () => {
         server.close(() => resolve(true));
       });
     }),

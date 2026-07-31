@@ -14,14 +14,36 @@ const factoryRule = (path: string, match: "exact" | "subtree") => ({
 });
 
 describe("release seal factory-only exclusions", () => {
+  it("lets an exact reviewed customer path override an inherited factory subtree", () => {
+    const path =
+      "tooling/release/__fixtures__/upgrade/provider-posture-v1-to-v2.contract.json";
+    expect(
+      buildReviewedOwnershipInventory({
+        sourcePaths: [path],
+        exclusions: [factoryRule("tooling/release", "subtree")],
+        overrides: [
+          {
+            path,
+            match: "exact",
+            ownership: "template-owned",
+            action: "copy",
+            upgrade: "replace",
+          },
+        ],
+      }),
+    ).toEqual([expect.objectContaining({ path, ownership: "template-owned" })]);
+  });
+
   it("classifies reviewed customer additions and omits reviewed factory files", () => {
     const sourcePaths = [
+      ".claude/settings.json",
       "README.md",
       "docs/agent/host-projection-lifecycle.md",
       "patches/@confect__cli@9.1.5.patch",
       "tooling/app-map/INTEGRATION_REQUEST.md",
       "tooling/app-map/src/mcp.test.ts",
       "tooling/app-map/src/build.ts",
+      "tooling/release/__fixtures__/upgrade/provider-posture-v1-to-v2.contract.json",
       "tooling/release-seal.mts",
       "tooling/release-seal.test.mts",
     ];
@@ -41,6 +63,11 @@ describe("release seal factory-only exclusions", () => {
     });
     expect(paths).toEqual(
       expect.arrayContaining([
+        expect.objectContaining({
+          path: ".claude/settings.json",
+          ownership: "generated",
+          action: "generate",
+        }),
         expect.objectContaining({
           path: "docs/agent",
           ownership: "template-owned",
@@ -62,6 +89,11 @@ describe("release seal factory-only exclusions", () => {
           action: "copy",
         }),
         expect.objectContaining({
+          path: "tooling/release/__fixtures__/upgrade/provider-posture-v1-to-v2.contract.json",
+          ownership: "template-owned",
+          action: "copy",
+        }),
+        expect.objectContaining({
           path: "tooling/release-seal.mts",
           ownership: "factory-only",
           action: "omit",
@@ -78,6 +110,20 @@ describe("release seal factory-only exclusions", () => {
         basePaths: [],
       }),
     ).toThrow(/Unclassified reviewed release source path/);
+  });
+  it("inherits an identical reviewed exclusion without duplicating authority", () => {
+    const inherited = factoryRule(
+      "apps/cli/src/factory/adopt.test.ts",
+      "exact",
+    );
+    const paths = buildReviewedAdditionalPaths({
+      value: [],
+      sourcePaths: ["apps/cli/src/factory/adopt.test.ts"],
+      protectedCustomerPaths: [],
+      basePaths: [inherited],
+    });
+
+    expect(paths).not.toContainEqual(inherited);
   });
   it("derives explicit reviewed exclusions before inventory classification", () => {
     const sourcePaths = [

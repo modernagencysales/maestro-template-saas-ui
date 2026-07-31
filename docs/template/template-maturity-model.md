@@ -17,7 +17,7 @@ typed architectural direction.
 
 **Required evidence:** hosted URL, `apps/web/src/routes/index.tsx`,
 `apps/web/src/saas-ui/business-shell.tsx`, visual smoke snapshots,
-`docs/template/investor-reviewer-packet.md`.
+`docs/template/reviewer-guide.md`.
 
 **Required commands:** `pnpm check:format`, `pnpm smoke:web-static`,
 `pnpm smoke:hosted:browser`, `pnpm smoke:hosted:a11y`,
@@ -31,9 +31,9 @@ client implementation platform.
 **Meaning:** docs clearly separate real code from fake, planned, and
 live-provider seams.
 
-**Required evidence:** `docs/template/porting-backlog.md`,
-`docs/template/porting-roadmap.md`, `docs/template/security.md`,
-`docs/template/reviewer-guide.md`, and this maturity model.
+**Required evidence:** `docs/template/customer-target-contract.md`,
+`docs/template/security.md`, `docs/template/reviewer-guide.md`, and this
+maturity model.
 
 **Required commands:** `pnpm check:format`, `pnpm check:docs-freshness`,
 `pnpm review:completion`.

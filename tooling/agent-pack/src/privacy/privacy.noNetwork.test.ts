@@ -24,19 +24,19 @@ const taggedRepository = (): string => {
   taggedReleaseRoot = join(taggedReleaseParent, "release");
   execFileSync(
     "git",
-    ["clone", "--quiet", "--shared", repositoryRoot, taggedReleaseRoot],
+    [
+      "clone",
+      "--quiet",
+      "--shared",
+      "--no-tags",
+      repositoryRoot,
+      taggedReleaseRoot,
+    ],
     { stdio: "pipe" },
   );
   execFileSync(
     "git",
-    [
-      "-C",
-      taggedReleaseRoot,
-      "tag",
-      "--force",
-      "maestro-template-v0.2.0-alpha.1",
-      "HEAD",
-    ],
+    ["-C", taggedReleaseRoot, "tag", "maestro-template-v0.2.0-alpha.2", "HEAD"],
     { stdio: "pipe" },
   );
   execFileSync(
@@ -96,24 +96,13 @@ describe("privacy no-network conformance", () => {
           .replace("<CUSTOMER_TARGET>", customerTarget)
           .replace("<PLAN_PATH>", planPath),
       );
-      const result = await runProcess(
-        "strace",
-        [
-          "-f",
-          "-e",
-          "trace=connect,sendto,sendmsg,sendmmsg",
-          "pnpm",
-          "maestro",
-          "--",
-          ...argv,
-        ],
-        {
-          cwd: repositoryRoot,
-          env: interceptedEnvironment(),
-          timeoutMs: 120_000,
-          maxBuffer: 10 * 1024 * 1024,
-        },
-      );
+      const launch = networkIsolatedCommand("pnpm", ["maestro", "--", ...argv]);
+      const result = await runProcess(launch.file, launch.args, {
+        cwd: repositoryRoot,
+        env: interceptedEnvironment(),
+        timeoutMs: 120_000,
+        maxBuffer: 10 * 1024 * 1024,
+      });
       expect(
         result.error,
         `${testCase.id}\n${result.stdout}\n${result.stderr}`,
@@ -142,25 +131,18 @@ describe("privacy no-network conformance", () => {
 
   it("previews the MCP support bundle with outbound networking denied and no write", async () => {
     const mcpTarget = join(fixtureRoot, "mcp-target");
-    const result = await runProcess(
-      "strace",
-      [
-        "-f",
-        "-e",
-        "trace=connect,sendto,sendmsg,sendmmsg",
-        "pnpm",
-        "exec",
-        "tsx",
-        "apps/cli/src/factory/supportBundleMcpNoNetwork.fixture.ts",
-        mcpTarget,
-      ],
-      {
-        cwd: repositoryRoot,
-        env: interceptedEnvironment(),
-        timeoutMs: 120_000,
-        maxBuffer: 10 * 1024 * 1024,
-      },
-    );
+    const launch = networkIsolatedCommand("pnpm", [
+      "exec",
+      "tsx",
+      "apps/cli/src/factory/supportBundleMcpNoNetwork.fixture.ts",
+      mcpTarget,
+    ]);
+    const result = await runProcess(launch.file, launch.args, {
+      cwd: repositoryRoot,
+      env: interceptedEnvironment(),
+      timeoutMs: 120_000,
+      maxBuffer: 10 * 1024 * 1024,
+    });
     expect(result.error, `${result.stdout}\n${result.stderr}`).toBeUndefined();
     expect(result.signal).toBeNull();
     expect(result.exitCode, `${result.stdout}\n${result.stderr}`).toBe(0);
@@ -362,31 +344,45 @@ async function traceGeneratedSupportBundle(
   target: string,
   argv: readonly string[],
 ): Promise<Awaited<ReturnType<typeof runProcess>>> {
-  const result = await runProcess(
-    "strace",
-    [
-      "-f",
-      "-e",
-      "trace=connect,sendto,sendmsg,sendmmsg",
-      "pnpm",
-      "--silent",
-      "maestro",
-      "--",
-      ...argv,
-    ],
-    {
-      cwd: target,
-      env: interceptedEnvironment(),
-      timeoutMs: 120_000,
-      maxBuffer: 10 * 1024 * 1024,
-    },
-  );
+  const launch = networkIsolatedCommand("pnpm", [
+    "--silent",
+    "maestro",
+    "--",
+    ...argv,
+  ]);
+  const result = await runProcess(launch.file, launch.args, {
+    cwd: target,
+    env: interceptedEnvironment(),
+    timeoutMs: 120_000,
+    maxBuffer: 10 * 1024 * 1024,
+  });
   expect(result.error, `${result.stdout}\n${result.stderr}`).toBeUndefined();
   expect(result.signal, result.stderr).toBeNull();
   expect(result.exitCode, `${result.stdout}\n${result.stderr}`).toBe(0);
   expect(externalSyscallLines(result.stderr), result.stderr).toEqual([]);
   expect(readAttempts()).toEqual([]);
   return result;
+}
+
+function networkIsolatedCommand(
+  file: string,
+  args: readonly string[],
+): { readonly file: string; readonly args: readonly string[] } {
+  if (process.platform === "darwin") {
+    return {
+      file: "/usr/bin/sandbox-exec",
+      args: [
+        "-p",
+        "(version 1) (allow default) (deny network-outbound (remote ip))",
+        file,
+        ...args,
+      ],
+    };
+  }
+  return {
+    file: "strace",
+    args: ["-f", "-e", "trace=connect,sendto,sendmsg,sendmmsg", file, ...args],
+  };
 }
 
 async function runProcess(

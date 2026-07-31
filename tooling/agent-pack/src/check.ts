@@ -47,16 +47,22 @@ export function createCheckCommand(input: {
     id: "check",
     schemaVersion: AGENT_PACK_COMMAND_VERSION,
     decode: decodeCheckInput,
-    mutationPosture: () => "read-only",
+    mutationPosture: (args) =>
+      input.verify.mutationPosture({
+        scope: args.scope,
+        changed: args.changed,
+      }),
     execute: async (args, context) => {
-      const [preflight, verification] = await Promise.all([
-        executeAgentPackCommand(input.preflight, { mode: args.mode }, context),
-        executeAgentPackCommand(
-          input.verify,
-          { scope: args.scope, changed: args.changed },
-          context,
-        ),
-      ]);
+      const preflight = await executeAgentPackCommand(
+        input.preflight,
+        { mode: args.mode },
+        context,
+      );
+      const verification = await executeAgentPackCommand(
+        input.verify,
+        { scope: args.scope, changed: args.changed },
+        context,
+      );
       const diagnostics = [
         ...preflight.diagnostics,
         ...verification.diagnostics,
@@ -74,7 +80,10 @@ export function createCheckCommand(input: {
         "pnpm maestro -- check";
 
       return {
-        mutationPosture: "read-only" as const,
+        mutationPosture: input.verify.mutationPosture({
+          scope: args.scope,
+          changed: args.changed,
+        }),
         exitClass,
         summary:
           exitClass === "success"

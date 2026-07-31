@@ -1,4 +1,10 @@
-import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  readdirSync,
+  writeFileSync,
+} from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
@@ -6,6 +12,7 @@ import {
   createCustomerCurrentAdapter,
   createCustomerReleaseAdapter,
 } from "./createAdapter.js";
+import { composedExpectedHashes } from "./createAdapter.archive.js";
 import {
   adapter,
   blueprintTargetPlan,
@@ -18,6 +25,31 @@ import {
 } from "./createAdapter.testFixtures.js";
 
 describe("customer release create adapter", () => {
+  it("composes expected hashes for copied upgrade additions and changes", () => {
+    const copied = {
+      path: "tooling/release/customer-fixture.json",
+      match: "exact" as const,
+      ownership: "template-owned" as const,
+      action: "copy" as const,
+      upgrade: "replace" as const,
+    };
+    const removed = { ...copied, path: "removed.json" };
+    expect(
+      composedExpectedHashes(
+        { "removed.json": `sha256:${"a".repeat(64)}` },
+        [copied, removed],
+        [
+          {
+            kind: "add",
+            path: copied.path,
+            afterHash: `sha256:${"b".repeat(64)}`,
+          },
+          { kind: "delete", path: removed.path },
+        ],
+      ),
+    ).toEqual({ [copied.path]: `sha256:${"b".repeat(64)}` });
+  });
+
   it("projects immutable release identity when current HEAD is the exact tag", async () => {
     const fixture = taggedRelease();
     const current = createCustomerCurrentAdapter({
@@ -186,6 +218,155 @@ describe("customer release create adapter", () => {
       ),
     ).toMatchObject({ name: "My App", release: { tag: fixture.tag } });
     expect(readdirSync(fixture.temporaryRoot)).toEqual([]);
+  });
+
+  it("resolves nested composed releases through the original ownership manifest", async () => {
+    const fixture = taggedRelease();
+    const releaseRoot = join(fixture.repositoryRoot, "releases");
+    mkdirSync(releaseRoot);
+    const basePath = join(releaseRoot, "base.json");
+    const middlePath = join(releaseRoot, "middle.json");
+    const currentPath = join(releaseRoot, "current.json");
+    const blueprintPath = join(releaseRoot, "blueprint.json");
+    writeFileSync(basePath, `${JSON.stringify(fixture.manifest, null, 2)}\n`);
+    const middle = {
+      kind: "composed-customer-release",
+      materializationStatus: "materializable",
+      baseManifest: {
+        path: "base.json",
+        sha256: hash(readFileSync(basePath)),
+      },
+      release: fixture.manifest.release,
+      additionalPaths: [],
+      deriveExpectedHashesFromArchive: true,
+    };
+    writeFileSync(middlePath, `${JSON.stringify(middle, null, 2)}\n`);
+    writeFileSync(blueprintPath, readFileSync(fixture.blueprintManifestPath));
+    const current = {
+      ...middle,
+      baseManifest: {
+        path: "middle.json",
+        sha256: hash(readFileSync(middlePath)),
+      },
+      blueprintManifest: {
+        path: "blueprint.json",
+        sha256: hash(readFileSync(blueprintPath)),
+      },
+    };
+    writeFileSync(currentPath, `${JSON.stringify(current, null, 2)}\n`);
+    git(fixture.repositoryRoot, ["add", "releases"]);
+    git(fixture.repositoryRoot, [
+      "commit",
+      "--quiet",
+      "-m",
+      "compose nested release",
+    ]);
+    git(fixture.repositoryRoot, ["tag", "-f", fixture.tag, "HEAD"]);
+    const release = createCustomerReleaseAdapter({
+      repositoryRoot: fixture.repositoryRoot,
+      manifestPath: currentPath,
+      ownershipManifestChecksum: hash(readFileSync(currentPath)),
+      tag: fixture.tag,
+      homeRoot: fixture.homeRoot,
+      temporaryRoot: fixture.temporaryRoot,
+      blueprintManifestPath: blueprintPath,
+      blueprintManifestChecksum: hash(readFileSync(blueprintPath)),
+    });
+
+    const result = await prepare(fixture, release);
+    expect(result, JSON.stringify(result)).toMatchObject({
+      ok: true,
+      facts: { tag: fixture.tag },
+      preview: {
+        writes: expect.arrayContaining([
+          expect.objectContaining({ path: "runtime.txt" }),
+        ]),
+      },
+    });
+  });
+
+  it("allows only release-reviewed blueprint entries to be personalized", async () => {
+    const fixture = taggedRelease();
+    const reviewed = JSON.parse(
+      readFileSync(fixture.blueprintManifestPath, "utf8"),
+    ) as Record<string, unknown>;
+    reviewed.parameterizedEntries = ["generated/fixture-blueprint.txt"];
+    writeFileSync(
+      fixture.blueprintManifestPath,
+      `${JSON.stringify(reviewed, null, 2)}\n`,
+    );
+    fixture.blueprintManifestChecksum = hash(
+      readFileSync(fixture.blueprintManifestPath),
+    );
+    const release = adapter(fixture);
+    const result = await release.prepare({
+      repo: {
+        workingDirectory: fixture.repositoryRoot,
+        sourceRoot: fixture.repositoryRoot,
+      },
+      target: fixture.targetRoot,
+      blueprintTargetPlan: () => blueprintTargetPlan("personalized app\n"),
+      templateInstance: (facts) =>
+        `${JSON.stringify({ name: "Personalized App", release: facts })}\n`,
+    });
+
+    expect(result).toMatchObject({
+      ok: true,
+      preview: {
+        writes: expect.arrayContaining([
+          expect.objectContaining({
+            path: "generated/fixture-blueprint.txt",
+          }),
+        ]),
+      },
+    });
+  });
+
+  it("accepts a checksum-bound hardening authority without changing tagged ownership", async () => {
+    const fixture = taggedRelease();
+    const hardenedPlan = blueprintTargetPlan("hardened app\n");
+    const baseAuthority = JSON.parse(
+      readFileSync(fixture.blueprintManifestPath, "utf8"),
+    ) as Record<string, unknown>;
+    const hardeningPath = join(fixture.repositoryRoot, "hardening.json");
+    writeFileSync(
+      hardeningPath,
+      `${JSON.stringify(
+        {
+          ...baseAuthority,
+          entries: hardenedPlan.entries.map(({ content, ...entry }) => {
+            void content;
+            return entry;
+          }),
+        },
+        null,
+        2,
+      )}\n`,
+    );
+    const release = createCustomerReleaseAdapter({
+      repositoryRoot: fixture.repositoryRoot,
+      manifestPath: fixture.manifestPath,
+      ownershipManifestChecksum: fixture.ownershipManifestChecksum,
+      tag: fixture.tag,
+      homeRoot: fixture.homeRoot,
+      temporaryRoot: fixture.temporaryRoot,
+      blueprintManifestPath: fixture.blueprintManifestPath,
+      blueprintManifestChecksum: fixture.blueprintManifestChecksum,
+      blueprintAuthorityManifestPath: hardeningPath,
+      blueprintAuthorityManifestChecksum: hash(readFileSync(hardeningPath)),
+    });
+
+    await expect(
+      release.prepare({
+        repo: {
+          workingDirectory: fixture.repositoryRoot,
+          sourceRoot: fixture.repositoryRoot,
+        },
+        target: fixture.targetRoot,
+        blueprintTargetPlan: () => hardenedPlan,
+        templateInstance: (facts) => JSON.stringify({ release: facts }),
+      }),
+    ).resolves.toMatchObject({ ok: true });
   });
 
   it.each([

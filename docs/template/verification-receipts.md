@@ -28,13 +28,18 @@ prerequisite is absent. The shared CLI/MCP runner reports that gate unavailable,
 fails required readiness, and points to the checksum-pinned installer; it never
 synthesizes a scan result or drops the gate.
 
-`verify`, `check`, and `maestro_verify` return the receipt projection without
-creating `.maestro` or changing any target file. Receipt persistence is a
-separate `verify-export` CLI command and is never exposed over MCP. Export is a
-preview by default; `--write` requires the exact preflight fingerprint returned
-by preview, rechecks that fingerprint after verification, and writes only the
-bounded target-local receipt. A stale or unavailable fingerprint fails before
-persistence.
+The repository-owned `pnpm maestro -- verify` and `pnpm maestro -- check`
+commands persist their complete receipt to `.maestro/verification-receipt.json`,
+including required failures and advisory findings. Persistence failure is
+blocking, so readiness never reports evidence as current when the bounded write
+did not succeed. `maestro_verify` over MCP returns the same receipt projection
+without writing a target file.
+
+`verify-export` remains available for an explicitly reviewed export workflow. It
+is a preview by default; `--write` requires the exact preflight fingerprint
+returned by preview, rechecks that fingerprint after verification, and writes
+only the bounded target-local receipt. A stale or unavailable fingerprint fails
+before persistence.
 
 Each observation preserves:
 
@@ -49,6 +54,11 @@ provider-posture fingerprints, selected scope, changed paths, partial evidence,
 and gate observations. They become stale after a later commit, dirty-state
 change, relevant environment or provider-posture change, or when only partial
 scope was recorded.
+
+Build readiness distinguishes a missing receipt, malformed receipt, current
+pass, current failure, and stale evidence. When evidence is absent or invalid,
+rerun `pnpm maestro -- verify --scope focused`; an unrelated `pnpm verify`
+invocation does not emit a Maestro receipt.
 
 Environment and provider fingerprints contain domain-separated aggregate
 bindings for configured values, including provider deployment/project/account

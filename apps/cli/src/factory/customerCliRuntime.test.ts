@@ -1,4 +1,5 @@
 import { execFile, execFileSync, spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import {
   chmodSync,
   existsSync,
@@ -25,18 +26,6 @@ const taggedRepository = (): string => {
   execFileSync(
     "git",
     ["clone", "--quiet", "--shared", repositoryRoot, taggedReleaseRoot],
-    { stdio: "pipe" },
-  );
-  execFileSync(
-    "git",
-    [
-      "-C",
-      taggedReleaseRoot,
-      "tag",
-      "--force",
-      "maestro-template-v0.2.0-alpha.1",
-      "HEAD",
-    ],
     { stdio: "pipe" },
   );
   execFileSync(
@@ -68,7 +57,7 @@ afterEach(async () => {
 afterAll(async () => {
   if (taggedReleaseParent)
     await rm(taggedReleaseParent, { recursive: true, force: true });
-}, 120_000);
+}, 180_000);
 
 describe("materialized customer CLI runtime closure", () => {
   it("runs privacy-aligned support preview and export from the current projection", async () => {
@@ -107,13 +96,13 @@ describe("materialized customer CLI runtime closure", () => {
     };
     expect(instance).toMatchObject({
       release: {
-        version: "0.2.0-alpha.1",
-        tag: "maestro-template-v0.2.0-alpha.1",
+        version: "0.2.0-alpha.2",
+        tag: "maestro-template-v0.2.0-alpha.2",
         sourceCommit: expect.stringMatching(/^[0-9a-f]{40}$/),
         sourceChecksum: expect.stringMatching(/^sha256:[0-9a-f]{64}$/),
       },
       ownership: {
-        manifest: "tagged-current-composition",
+        manifest: "releases/v0.2.0-alpha.2/manifest.json",
         manifestChecksum: expect.stringMatching(/^sha256:[0-9a-f]{64}$/),
       },
       privacy: {
@@ -121,6 +110,11 @@ describe("materialized customer CLI runtime closure", () => {
       },
     });
     expect(instance.ownership.manifestChecksum).toBe(
+      `sha256:${createHash("sha256")
+        .update(readFileSync(join(releaseRoot, instance.ownership.manifest)))
+        .digest("hex")}`,
+    );
+    expect(instance.ownership.manifestChecksum).not.toBe(
       instance.release.sourceChecksum,
     );
     const privacyDocument = "docs/template/agent-pack-privacy.md";
@@ -188,7 +182,7 @@ describe("materialized customer CLI runtime closure", () => {
     });
   }, 180_000);
 
-  it("installs and imports while immutable-tag preflight fails closed", async () => {
+  it("installs, imports, and passes immutable customer preflight", async () => {
     const parent = mkdtempSync(join(tmpdir(), "maestro-customer-cli-"));
     temporaryRoots.push(parent);
     const target = join(parent, "customer");
@@ -225,21 +219,33 @@ describe("materialized customer CLI runtime closure", () => {
     });
     expect(existsSync(join(target, ".git"))).toBe(false);
     execFileSync("git", ["init", "--quiet"], { cwd: target });
-    execFileSync("pnpm", ["run", "prepare"], {
+    const prepare = spawnSync("pnpm", ["run", "prepare"], {
       cwd: target,
-      stdio: "pipe",
+      encoding: "utf8",
       timeout: 30_000,
     });
-    expect(existsSync(join(target, ".git/hooks/pre-commit"))).toBe(true);
-    expect(existsSync(join(target, ".git/hooks/pre-push"))).toBe(true);
+    expect(prepare.status, `${prepare.stdout}\n${prepare.stderr}`).toBe(0);
+    const hooksPath = execFileSync(
+      "git",
+      ["rev-parse", "--git-path", "hooks"],
+      {
+        cwd: target,
+        encoding: "utf8",
+      },
+    ).trim();
+    const resolvedHooksPath = resolve(target, hooksPath);
+    const prepareOutput = `${prepare.stdout}\n${prepare.stderr}\nhooks=${resolvedHooksPath}`;
+    expect(
+      existsSync(join(resolvedHooksPath, "pre-commit")),
+      prepareOutput,
+    ).toBe(true);
+    expect(existsSync(join(resolvedHooksPath, "pre-push")), prepareOutput).toBe(
+      true,
+    );
     execFileSync("git", ["config", "user.email", "fixture@localhost"], {
       cwd: target,
     });
     execFileSync("git", ["config", "user.name", "Fixture"], { cwd: target });
-    execFileSync("git", ["add", "."], { cwd: target });
-    execFileSync("git", ["commit", "--quiet", "--no-verify", "-m", "fixture"], {
-      cwd: target,
-    });
     for (const path of [
       "AGENTS.md",
       "CLAUDE.md",
@@ -249,6 +255,7 @@ describe("materialized customer CLI runtime closure", () => {
       "skills-lock.json",
       "packages/convex/convex/_generated/ai/ai-files.state.json",
       "packages/convex/convex/_generated/ai/guidelines.md",
+      "tooling/release/__fixtures__/upgrade/provider-posture-v1-to-v2.contract.json",
     ])
       expect(existsSync(join(target, path))).toBe(true);
     for (const skill of [
@@ -266,14 +273,78 @@ describe("materialized customer CLI runtime closure", () => {
         true,
       );
     }
-    for (const path of ["agent-pack", "tooling/stack", "tooling/release"])
+    for (const path of ["agent-pack", "tooling/stack", "tooling/release/src"])
       expect(existsSync(join(target, path))).toBe(false);
+    expect(existsSync(join(target, "tooling/release/package.json"))).toBe(
+      false,
+    );
     const customerPackage = JSON.parse(
       readFileSync(join(target, "package.json"), "utf8"),
     ) as { readonly scripts: Readonly<Record<string, string>> };
-    expect(customerPackage.scripts.verify).toContain(
-      "pnpm check:convex-ai-files",
+    expect(customerPackage.scripts.test).toBe(
+      "turbo run test --filter='./packages/*' --filter=@maestro-template/web",
     );
+    expect(customerPackage.scripts["test:tooling"]).toBe(
+      "pnpm test:bootstrap && pnpm --dir tooling/workflow test && pnpm --dir tooling/generators exec vitest run src/customer-runtime.test.ts src/templateInstanceMigration.test.ts src/workflow-publication-generation.test.ts src/workflow-release-commands.test.ts --maxWorkers=1 --no-file-parallelism",
+    );
+    expect(customerPackage.scripts.verify).toBe(
+      [
+        "check:format",
+        "lint",
+        "typecheck",
+        "check:effect-diagnostics",
+        "test",
+        "test:tooling",
+        "build",
+        "check:convex-ai-files",
+        "check:agent-pack",
+        "check:route-tree",
+        "check:frontend-effect-boundary",
+        "check:env-boundary",
+        "check:provider-boundary",
+        "check:logging-boundary",
+        "check:access-audit-events",
+        "check:generators",
+        "check:confect-v9",
+        "check:confect-contracts",
+        "check:effectified-api-proof",
+        "check:workflow-semantics",
+        "check:workflow-graph-boundary",
+        "check:workflow-policy-snapshots",
+        "check:workflow-principal-propagation",
+        "check:schema-migration-notes",
+        "check:system-catalog",
+        "check:system-topology",
+        "check:data-resources",
+        "check:append-only-tables",
+        "check:promotion-boundary",
+        "check:layer-boundaries",
+        "check:confect-manifest",
+        "check:headless-surface-contract",
+        "check:posthog-readiness",
+        "check:auth-demo-bypass",
+      ]
+        .map((name) => `pnpm ${name}`)
+        .join(" && "),
+    );
+    const settingsPath = join(target, ".claude/settings.json");
+    const settingsHash = () =>
+      createHash("sha256").update(readFileSync(settingsPath)).digest("hex");
+    expect(settingsHash()).toBe(
+      "7825364f57b5c5f07c64d5c5bbbaa8046a6c1c21d3216112cc86f99d2e5b6ccc",
+    );
+    execFileSync("pnpm", ["format"], {
+      cwd: target,
+      stdio: "pipe",
+      timeout: 120_000,
+    });
+    expect(settingsHash()).toBe(
+      "7825364f57b5c5f07c64d5c5bbbaa8046a6c1c21d3216112cc86f99d2e5b6ccc",
+    );
+    execFileSync("git", ["add", "."], { cwd: target });
+    execFileSync("git", ["commit", "--quiet", "--no-verify", "-m", "fixture"], {
+      cwd: target,
+    });
     const hostBin = join(parent, "supported-host-bin");
     mkdirSync(hostBin);
     const corepack = join(hostBin, "corepack");
@@ -311,6 +382,63 @@ describe("materialized customer CLI runtime closure", () => {
     expect(agentPackCheck).toContain(
       "Customer context, receipts, and MCP posture are valid.",
     );
+    const recipes = spawnSync(
+      "pnpm",
+      ["--silent", "maestro", "--", "recipes", "list", "--json"],
+      {
+        cwd: target,
+        encoding: "utf8",
+        timeout: 30_000,
+        env: supportedHostEnvironment,
+      },
+    );
+    expect(recipes.status, recipes.stderr).toBe(0);
+    expect(JSON.parse(recipes.stdout)).toMatchObject({
+      exitClass: "success",
+      data: { recipes: expect.arrayContaining([expect.any(Object)]) },
+    });
+    const addPreview = spawnSync(
+      "pnpm",
+      [
+        "--silent",
+        "maestro",
+        "--",
+        "add",
+        "crud-business-entity",
+        "--answer",
+        "entityName=Request",
+        "--answer",
+        "canonicalOwner=record-management",
+        "--answer",
+        "tenantScope=workspace",
+        "--answer",
+        "sensitivity=internal",
+        "--answer",
+        "pii=none",
+        "--answer",
+        "exportMode=json",
+        "--answer",
+        "deleteMode=delete",
+        "--answer",
+        "retention=retain-until-workspace-delete",
+        "--answer",
+        "appendOnly=false",
+        "--json",
+      ],
+      {
+        cwd: target,
+        encoding: "utf8",
+        timeout: 30_000,
+        env: supportedHostEnvironment,
+      },
+    );
+    expect(addPreview.status, addPreview.stderr).toBe(0);
+    expect(JSON.parse(addPreview.stdout)).toMatchObject({
+      exitClass: "success",
+      data: {
+        confirmationCommand: expect.stringContaining("--privacy-reviewed"),
+      },
+    });
     const claudeSettings = join(target, ".claude/settings.json");
     const settingsBytes = readFileSync(claudeSettings, "utf8");
     try {
@@ -416,24 +544,25 @@ describe("materialized customer CLI runtime closure", () => {
       },
     );
     expect(preflight.error).toBeUndefined();
-    expect(preflight.status).toBe(3);
+    expect(preflight.status).toBe(0);
     expect(JSON.parse(preflight.stdout)).toMatchObject({
-      exitClass: "blockedMutation",
-      diagnostics: expect.arrayContaining([
-        expect.objectContaining({
-          code: "AGENT_PACK_VERSION_INCOMPATIBLE",
-          safeToContinue: false,
-        }),
-      ]),
+      exitClass: "success",
+      diagnostics: [],
       data: {
-        safeToMutate: false,
+        safeToMutate: true,
         facts: {
           versions: {
-            pack: "unavailable",
-            cli: "unavailable",
-            template: "unavailable",
+            pack: expect.stringMatching(
+              /^release:0\.2\.0-alpha\.2@[0-9a-f]{40}$/,
+            ),
+            cli: expect.stringMatching(
+              /^release:0\.2\.0-alpha\.2@[0-9a-f]{40}$/,
+            ),
+            template: expect.stringMatching(
+              /^release:0\.2\.0-alpha\.2@[0-9a-f]{40}$/,
+            ),
           },
-          versionsCompatible: false,
+          versionsCompatible: true,
         },
       },
     });

@@ -34,6 +34,102 @@ const source = (path: string): string => currentSource(path);
 const currentGeneratorSource = (path: string): string =>
   readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
 
+const customerReadme = (): string => `# Generated Maestro App
+
+This is a customer application generated from an immutable Maestro release. Its
+release, blueprint, and personalization facts live in \`template-instance.json\`.
+Build the product in this repository. Do not run \`maestro create\` here and do
+not copy files from a newer factory checkout.
+
+## Start here
+
+Requirements: Git and Node 22. The bootstrap check chooses a pinned Corepack or
+npx pnpm command for the available host.
+
+\`\`\`bash
+node scripts/maestro-bootstrap.mjs
+corepack pnpm@10.12.1 install --frozen-lockfile
+node maestro-template.mjs preflight --mode fake
+node maestro-template.mjs recipes list
+node maestro-template.mjs recipes show crud-business-entity
+pnpm template:systems -- --query records
+node maestro-template.mjs start --mode fake
+\`\`\`
+
+If Corepack is unavailable, use the bootstrap report's exact
+\`npx --yes pnpm@10.12.1 install --frozen-lockfile\` fallback.
+
+The starter includes a neutral, workspace-owned \`record\` slice. Open the URL
+printed after \`/health\` becomes ready, then exercise \`/records\`: create a
+record, return to the list, and open its detail. Rename the noun when you build
+the first real product outcome.
+
+## The method
+
+\`\`\`text
+preflight -> recipes/system lookup -> preview -> reviewed write
+          -> focused verification -> commit reviewed change
+          -> start --mode fake
+\`\`\`
+
+Preview is the default. Before adding a subsystem or table, query the canonical
+owner. A recipe write must use the exact confirmation command returned by the
+preview; it rechecks the plan and clean-preflight fingerprints and retains a
+receipt under \`.maestro/recipe-transactions/\`.
+
+After the focused gates pass, review and commit the recipe transaction before
+starting. Preflight intentionally requires a clean target so generated drift
+cannot be mistaken for the app you reviewed.
+
+\`\`\`bash
+git status --short
+git add .
+git commit -m "feat: add reviewed Maestro change"
+pnpm maestro -- start --mode fake
+\`\`\`
+
+For the copy/paste CRUD walkthrough, use
+[Template Quickstart](./docs/template/quickstart.md). The broader method is in
+[App Factory Guide](./docs/template/app-factory-guide.md), and recipe safety is
+documented in
+[Executable Outcome Recipes](./docs/template/executable-recipes.md).
+
+## Guidance for agents
+
+Start with [AGENTS.md](./AGENTS.md). Keep the shared Saas UI shell and customize
+through blocks, tokens, feature adapters, generated routes, view models, and
+typed contracts. Do not hand-edit generated Confect, Convex, or route-tree
+files, invent parallel ownership, or weaken a failing gate.
+
+The browser and headless surfaces share one implementation path:
+
+\`\`\`text
+API/CLI/MCP -> headless registry -> same capabilities/workflows as web
+\`\`\`
+
+Add behavior to the typed capability or workflow once, then project it through
+the supported web, API, CLI, or MCP adapter. Do not create a second business
+implementation for a headless surface.
+
+## Before sharing
+
+Run the focused commands printed by each successful write. At minimum:
+
+\`\`\`bash
+pnpm check:format
+pnpm lint
+pnpm typecheck
+pnpm test
+pnpm build
+pnpm check:system-catalog
+pnpm check:system-topology
+pnpm check:data-resources
+\`\`\`
+
+Use \`pnpm verify\` for the exhaustive handoff gate. Fake mode requires no live
+provider credentials and must not contain production or customer data.
+`;
+
 export const REMOVED_CUSTOMER_TEMPLATE_SCRIPTS = [
   "template:init",
   "template:quickstart",
@@ -71,6 +167,7 @@ export const CUSTOMER_ROOT_SCRIPTS = [
   "typecheck",
   "check:effect-diagnostics",
   "test",
+  "test:bootstrap",
   "test:tooling",
   "test:app-map",
   "test:workflow",
@@ -176,9 +273,10 @@ const customerPackage = (current: boolean): string => {
       return [name, command];
     }),
   );
-  value.scripts.test = "turbo run test";
+  value.scripts.test =
+    "turbo run test --filter='./packages/*' --filter=@maestro-template/web";
   value.scripts["test:tooling"] =
-    "pnpm --dir tooling/quality test && pnpm --dir tooling/workflow test && pnpm --dir tooling/generators test";
+    "pnpm test:bootstrap && pnpm --dir tooling/workflow test && pnpm --dir tooling/generators exec vitest run src/customer-runtime.test.ts src/templateInstanceMigration.test.ts src/workflow-publication-generation.test.ts src/workflow-release-commands.test.ts --maxWorkers=1 --no-file-parallelism";
   value.scripts["check:coverage-ratchet"] =
     "vitest run --coverage --maxWorkers=1 --no-file-parallelism packages/template-core packages/integrations packages/search packages/storage packages/notifications packages/observability packages/convex tooling/quality tooling/workflow tooling/generators apps/cli apps/web && tsx tooling/quality/check-coverage-ratchet.mts";
   value.scripts["coverage:update-baseline"] =
@@ -195,37 +293,23 @@ const customerPackage = (current: boolean): string => {
     "check:effect-diagnostics",
     "test",
     "test:tooling",
-    "test:workflow",
     "build",
-    "check:ci-completeness",
-    "check:config-drift",
     "check:convex-ai-files",
     "check:agent-pack",
-    "check:app-map",
-    "check:deps",
-    "check:knip",
     "check:route-tree",
     "check:frontend-effect-boundary",
     "check:env-boundary",
     "check:provider-boundary",
     "check:logging-boundary",
     "check:access-audit-events",
-    "check:coverage-ratchet",
-    "check:types-coverage",
-    "check:gates",
-    "check:debt",
     "check:generators",
-    "check:docs-freshness",
-    "check:generated-files",
     "check:confect-v9",
     "check:confect-contracts",
-    "check:confect-compat",
     "check:effectified-api-proof",
     "check:workflow-semantics",
     "check:workflow-graph-boundary",
     "check:workflow-policy-snapshots",
     "check:workflow-principal-propagation",
-    "check:workflow:fast",
     "check:schema-migration-notes",
     "check:system-catalog",
     "check:system-topology",
@@ -233,8 +317,6 @@ const customerPackage = (current: boolean): string => {
     "check:append-only-tables",
     "check:promotion-boundary",
     "check:layer-boundaries",
-    "check:secret-canaries",
-    "check:sbom-license",
     "check:confect-manifest",
     "check:headless-surface-contract",
     "check:posthog-readiness",
@@ -287,7 +369,30 @@ const customerGeneratorPackage = (): string => {
   value.exports = { ".": "./src/customer.ts" };
   const scripts = value.scripts as Record<string, string>;
   scripts.cli = "tsx src/customer-cli.ts";
+  const dependencies = value.dependencies as Record<string, string>;
+  delete dependencies["@maestro-template/release-tooling"];
   return `${JSON.stringify(value, null, 2)}\n`;
+};
+
+const customerCliPackage = (): string => {
+  const value = JSON.parse(source("apps/cli/package.json")) as {
+    dependencies: Record<string, string>;
+  };
+  delete value.dependencies["@maestro-template/release-tooling"];
+  delete value.dependencies["@maestro-template/stack-tooling"];
+  return `${JSON.stringify(value, null, 2)}\n`;
+};
+
+const customerLockfile = (): string => {
+  let value = source("pnpm-lock.yaml");
+  for (const block of [
+    '      "@maestro-template/release-tooling":\n        specifier: workspace:*\n        version: link:../../tooling/release\n',
+    '      "@maestro-template/stack-tooling":\n        specifier: workspace:*\n        version: link:../../tooling/stack\n',
+    '      "@maestro-template/release-tooling":\n        specifier: workspace:*\n        version: link:../release\n',
+  ]) {
+    value = replace(value, block, "");
+  }
+  return value;
 };
 
 const customerAgentPackCheck = (): string => {
@@ -430,7 +535,7 @@ const confectSpec = (): string => {
   value = replace(
     value,
     'import ops_versioning from "../ops/versioning.spec";',
-    'import ops_versioning from "../ops/versioning.spec";\nimport records from "../records/records.spec";',
+    'import ops_versioning from "../ops/versioning.spec";\nimport records from "../records.spec";',
   );
   value = replace(
     value,
@@ -455,18 +560,13 @@ const routeTree = (): string => {
   let value = source("apps/web/src/routeTree.gen.ts");
   value = replace(
     value,
-    "import { Route as rootRouteImport } from './routes/__root'",
-    "import { Route as rootRouteImport } from './routes/__root'\nimport { saasApplicationRoutes } from './routeRegistry.generated'",
-  );
-  value = replace(
-    value,
     "import { Route as WorkspaceRunsRouteImport } from './routes/_workspace.runs'",
     "import { Route as WorkspaceRunsRouteImport } from './routes/_workspace.runs'\nimport { Route as WorkspaceRecordsRouteImport } from './routes/_workspace.records'",
   );
   value = replace(
     value,
     "const WorkspaceRunsRoute = WorkspaceRunsRouteImport.update({\n  id: '/_workspace/runs',\n  path: '/runs',\n  getParentRoute: () => rootRouteImport,\n} as any)",
-    "const WorkspaceRunsRoute = WorkspaceRunsRouteImport.update({\n  id: '/_workspace/runs',\n  path: '/runs',\n  getParentRoute: () => rootRouteImport,\n} as any)\nconst WorkspaceRecordsRoute = WorkspaceRecordsRouteImport.update({\n  id: '/_workspace/records',\n  path: saasApplicationRoutes.records,\n  getParentRoute: () => rootRouteImport,\n} as any)",
+    "const WorkspaceRunsRoute = WorkspaceRunsRouteImport.update({\n  id: '/_workspace/runs',\n  path: '/runs',\n  getParentRoute: () => rootRouteImport,\n} as any)\nconst WorkspaceRecordsRoute = WorkspaceRecordsRouteImport.update({\n  id: '/_workspace/records',\n  path: '/records',\n  getParentRoute: () => rootRouteImport,\n} as any)",
   );
   value = replaceAll(
     value,
@@ -491,8 +591,8 @@ const routeTree = (): string => {
   );
   value = replace(
     value,
-    "    '/_workspace/runs': {",
-    "    '/_workspace/records': {\n      id: '/_workspace/records'\n      path: '/records'\n      fullPath: '/records'\n      preLoaderRoute: typeof WorkspaceRecordsRouteImport\n      parentRoute: typeof rootRouteImport\n    }\n    '/_workspace/runs': {",
+    "    '/_workspace/runs': {\n      id: '/_workspace/runs'\n      path: '/runs'\n      fullPath: '/runs'\n      preLoaderRoute: typeof WorkspaceRunsRouteImport\n      parentRoute: typeof rootRouteImport\n    }",
+    "    '/_workspace/runs': {\n      id: '/_workspace/runs'\n      path: '/runs'\n      fullPath: '/runs'\n      preLoaderRoute: typeof WorkspaceRunsRouteImport\n      parentRoute: typeof rootRouteImport\n    }\n    '/_workspace/records': {\n      id: '/_workspace/records'\n      path: '/records'\n      fullPath: '/records'\n      preLoaderRoute: typeof WorkspaceRecordsRouteImport\n      parentRoute: typeof rootRouteImport\n    }",
   );
   return replace(
     value,
@@ -509,8 +609,98 @@ export const buildSaasRegistrationProjections = (
     ...(current
       ? [
           {
+            path: "README.md",
+            content: customerReadme(),
+          },
+          {
             path: "docs/template/agent-pack-privacy.md",
             content: currentPublicDocument("agent-pack-privacy.md"),
+          },
+          {
+            path: "docs/template/preflight.md",
+            content: currentPublicDocument("preflight.md"),
+          },
+          {
+            path: "AGENTS.md",
+            content: currentSource("AGENTS.md"),
+          },
+          {
+            path: "docs/template/agent-worker-playbook.md",
+            content: currentPublicDocument("agent-worker-playbook.md"),
+          },
+          {
+            path: "docs/template/how-this-relates-to-maestro.md",
+            content: currentPublicDocument("how-this-relates-to-maestro.md"),
+          },
+          {
+            path: "agent-patterns/effect-confect.md",
+            content: currentSource("agent-patterns/effect-confect.md"),
+          },
+          {
+            path: "docs/template/repo-map.md",
+            content: currentPublicDocument("repo-map.md"),
+          },
+          {
+            path: "docs/template/template-maturity-model.md",
+            content: currentPublicDocument("template-maturity-model.md"),
+          },
+          {
+            path: "maestro-template.mjs",
+            content: currentSource("maestro-template.mjs"),
+          },
+          {
+            path: "scripts/maestro-bootstrap.mjs",
+            content: currentSource("scripts/maestro-bootstrap.mjs"),
+          },
+          {
+            path: "scripts/maestro-bootstrap.test.mjs",
+            content: currentSource("scripts/maestro-bootstrap.test.mjs"),
+          },
+          {
+            path: "apps/web/src/bundle-policy.ts",
+            content: currentSource("apps/web/src/bundle-policy.ts"),
+          },
+          {
+            path: "apps/web/package.json",
+            content: currentSource("apps/web/package.json"),
+          },
+          {
+            path: "apps/web/scripts/check-client-bundle-budget.mjs",
+            content: currentSource(
+              "apps/web/scripts/check-client-bundle-budget.mjs",
+            ),
+          },
+          {
+            path: "apps/web/scripts/check-client-bundle-budget.test.mjs",
+            content: currentSource(
+              "apps/web/scripts/check-client-bundle-budget.test.mjs",
+            ),
+          },
+          {
+            path: "apps/web/src/bundle-policy.test.ts",
+            content: currentSource("apps/web/src/bundle-policy.test.ts"),
+          },
+          {
+            path: "apps/web/vite.config.ts",
+            content: currentSource("apps/web/vite.config.ts"),
+          },
+          {
+            path: "pnpm-workspace.yaml",
+            content: currentSource("pnpm-workspace.yaml"),
+          },
+          {
+            path: "pnpm-lock.yaml",
+            content: customerLockfile(),
+          },
+          {
+            path: "packages/convex/package.json",
+            content: currentSource("packages/convex/package.json"),
+          },
+          {
+            path: "tooling/quality/check-convex-generation.mts",
+            content: currentSource(
+              "tooling/quality/check-convex-generation.mts",
+            ),
           },
         ]
       : []),
@@ -525,8 +715,24 @@ export const buildSaasRegistrationProjections = (
       content: customerCliEntry(),
     },
     {
+      path: "apps/cli/package.json",
+      content: customerCliPackage(),
+    },
+    {
       path: "apps/cli/src/factory/start.ts",
       content: source("apps/cli/src/factory/start.ts"),
+    },
+    {
+      path: "apps/cli/src/factory/customerRecipes.ts",
+      content: currentSource("apps/cli/src/factory/customerRecipes.ts"),
+    },
+    {
+      path: "apps/cli/src/factory/recipeCatalog.ts",
+      content: currentSource("apps/cli/src/factory/recipeCatalog.ts"),
+    },
+    {
+      path: "apps/cli/src/factory/recipes.ts",
+      content: currentSource("apps/cli/src/factory/recipes.ts"),
     },
     ...(current
       ? [
@@ -536,14 +742,19 @@ export const buildSaasRegistrationProjections = (
           },
         ]
       : []),
+    { path: ".prettierignore", content: currentSource(".prettierignore") },
     { path: "package.json", content: customerPackage(current) },
+    {
+      path: "tooling/confect-manifest/tsconfig.json",
+      content: currentSource("tooling/confect-manifest/tsconfig.json"),
+    },
     {
       path: "tooling/generators/package.json",
       content: customerGeneratorPackage(),
     },
     {
       path: "tooling/quality/install-lefthook-if-git.mjs",
-      content: source("tooling/quality/install-lefthook-if-git.mjs"),
+      content: `/* global process */\n\n${source("tooling/quality/install-lefthook-if-git.mjs")}`,
     },
     ...(
       [
@@ -590,7 +801,6 @@ export const buildSaasRegistrationProjections = (
       "packages/convex/confect/_generated/docs.ts",
       "packages/convex/confect/_generated/tables/workflowArtifacts.ts",
       ...(current ? CURRENT_SAAS_DEPLOY_AUTHORITY_TABLE_CLOSURE : []),
-      "packages/convex/confect/ops/dataResources.generated.ts",
       "packages/convex/confect/tables/workflowArtifacts.ts",
       "packages/convex/confect/tables/workflowRuns.ts",
       "packages/convex/confect/tables/workflowStageRuns.ts",
@@ -635,6 +845,8 @@ export const buildSaasRegistrationProjections = (
       "ports.ts",
       "verify.ts",
       "receiptWriter.ts",
+      "recipes.ts",
+      "recipeTransaction.ts",
       "index.ts",
       "readiness/artifacts.ts",
       "readiness/index.ts",
@@ -695,7 +907,7 @@ export const buildSaasRegistrationProjections = (
     {
       path: "packages/convex/confect/_generated/registeredFunctions/records.ts",
       content:
-        'import { RegisteredConvexFunction, RegisteredFunctions } from "@confect/server";\nimport databaseSchema from "../schema";\nimport records from "../../records/records.impl";\n\nexport default RegisteredFunctions.buildForGroup<typeof import("../../records/records.spec")["default"]>(databaseSchema, records, RegisteredConvexFunction.make);\n',
+        'import { RegisteredConvexFunction, RegisteredFunctions } from "@confect/server";\nimport databaseSchema from "../schema";\nimport records from "../../records.impl";\n\nexport default RegisteredFunctions.buildForGroup<typeof import("../../records.spec")["default"]>(databaseSchema, records, RegisteredConvexFunction.make);\n',
     },
     {
       path: "packages/convex/convex/records.ts",

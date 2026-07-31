@@ -1,16 +1,9 @@
 import { spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import {
-  lstat,
-  mkdir,
-  mkdtemp,
-  readFile,
-  readdir,
-  realpath,
-  rm,
-} from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { basename, join, relative, resolve } from "node:path";
+import { lstat, mkdir, mkdtemp, readFile, readdir, rm } from "node:fs/promises";
+import { homedir, tmpdir } from "node:os";
+import { basename, isAbsolute, join, relative, resolve } from "node:path";
+import { isDirectTemporaryPath } from "./temporaryPath.js";
 
 export type NativeHostName = "claude-code" | "codex";
 
@@ -189,25 +182,51 @@ async function runIsolatedCommand(
 ): Promise<NativeHostCommandResult> {
   const command = [executable, ...args].map(renderArgument).join(" ");
   const environment = isolatedEnvironment(fixture);
-  const tracePath =
+  const packageManagerEntrypoint =
+    executable === "pnpm" ? await localPnpmEntrypoint() : undefined;
+  const directExecutable =
+    packageManagerEntrypoint === undefined ? executable : process.execPath;
+  const directArgs =
+    packageManagerEntrypoint === undefined
+      ? [...args]
+      : [packageManagerEntrypoint, ...args];
+  const networkInterceptor =
     options.networkAccess === "forbid"
+      ? process.platform === "darwin"
+        ? "sandbox-exec"
+        : "strace"
+      : undefined;
+  const tracePath =
+    networkInterceptor === "strace"
       ? join(fixture.root, `.network-trace-${randomUUID()}`)
       : undefined;
-  const launchExecutable = tracePath === undefined ? executable : "strace";
-  const launchArgs =
-    tracePath === undefined
-      ? [...args]
-      : [
-          "-f",
-          "-qq",
-          "-e",
-          "trace=connect,sendto,sendmsg,sendmmsg",
-          "-o",
-          tracePath,
-          "--",
-          executable,
-          ...args,
-        ];
+  let launchExecutable = directExecutable;
+  let launchArgs = directArgs;
+  if (networkInterceptor === "sandbox-exec") {
+    launchExecutable = "/usr/bin/sandbox-exec";
+    launchArgs = [
+      "-p",
+      "(version 1) (allow default) (deny network-outbound (remote ip))",
+      directExecutable,
+      ...directArgs,
+    ];
+  } else if (networkInterceptor === "strace") {
+    if (tracePath === undefined) {
+      throw new Error("strace network isolation requires a trace path");
+    }
+    launchExecutable = "strace";
+    launchArgs = [
+      "-f",
+      "-qq",
+      "-e",
+      "trace=connect,sendto,sendmsg,sendmmsg",
+      "-o",
+      tracePath,
+      "--",
+      directExecutable,
+      ...directArgs,
+    ];
+  }
 
   return await new Promise((resolveResult, reject) => {
     const child = spawn(launchExecutable, launchArgs, {
@@ -252,8 +271,8 @@ async function runIsolatedCommand(
       settled = true;
       void cleanupTrace(tracePath).finally(() => {
         if (errorCode(error) !== "ENOENT") reject(error);
-        else if (tracePath !== undefined)
-          reject(new MissingNetworkInterceptorError());
+        else if (networkInterceptor !== undefined)
+          reject(new MissingNetworkInterceptorError(networkInterceptor));
         else reject(new MissingNativeHostBinaryError(executable));
       });
     });
@@ -276,7 +295,8 @@ async function runIsolatedCommand(
             stderr: timedOut
               ? `${stderr}\ncommand timed out after ${COMMAND_TIMEOUT_MS}ms\n`
               : stderr,
-            networkAccess: tracePath === undefined ? "unchecked" : "none",
+            networkAccess:
+              networkInterceptor === undefined ? "unchecked" : "none",
             environmentKeys: Object.keys(environment).sort(),
           });
         } catch (error) {
@@ -287,6 +307,27 @@ async function runIsolatedCommand(
       })();
     });
   });
+}
+
+async function localPnpmEntrypoint(): Promise<string | undefined> {
+  if (
+    process.env.npm_execpath !== undefined &&
+    isAbsolute(process.env.npm_execpath)
+  ) {
+    return process.env.npm_execpath;
+  }
+  const version = /^pnpm\/([^\s]+)/u.exec(
+    process.env.npm_config_user_agent ?? "",
+  )?.[1];
+  if (version === undefined) return undefined;
+  const cacheRoot =
+    process.env.COREPACK_HOME ??
+    join(
+      process.env.XDG_CACHE_HOME ?? join(homedir(), ".cache"),
+      "node/corepack",
+    );
+  const candidate = join(cacheRoot, "v1/pnpm", version, "bin/pnpm.cjs");
+  return (await exists(candidate)) ? candidate : undefined;
 }
 
 export async function listNativeHostFixtureFiles(
@@ -358,14 +399,12 @@ async function assertFixtureRoot(fixture: NativeHostFixture): Promise<void> {
       "native host fixture must use the validated temporary prefix",
     );
   }
-  const temporaryRoot = `${await realpath(tmpdir())}/`;
-  const actual = await realpath(resolved);
-  if (!`${actual}/`.startsWith(temporaryRoot) || actual !== resolved) {
+  if (!(await isDirectTemporaryPath(resolved))) {
     throw new Error(
       "native host fixture must be a direct, non-symlink temp path",
     );
   }
-  if ((await lstat(actual)).isSymbolicLink()) {
+  if ((await lstat(resolved)).isSymbolicLink()) {
     throw new Error("native host fixture root must not be a symlink");
   }
 }
@@ -537,8 +576,8 @@ class MissingNativeHostBinaryError extends Error {
 }
 
 class MissingNetworkInterceptorError extends Error {
-  constructor() {
-    super("missing required native network interceptor: strace");
+  constructor(interceptor: string) {
+    super(`missing required native network interceptor: ${interceptor}`);
     this.name = "MissingNetworkInterceptorError";
   }
 }

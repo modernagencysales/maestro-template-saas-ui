@@ -80,6 +80,53 @@ function commands(advisory = false) {
 }
 
 describe("novice check composition", () => {
+  it("finishes preflight before verification can persist evidence", async () => {
+    const base = commands();
+    const events: string[] = [];
+    let releasePreflight = () => {};
+    let markPreflightStarted = () => {};
+    const preflightStarted = new Promise<void>((resolve) => {
+      markPreflightStarted = resolve;
+    });
+    const preflightGate = new Promise<void>((resolve) => {
+      releasePreflight = resolve;
+    });
+    const preflight = {
+      ...base.preflight,
+      execute: async (...args: Parameters<typeof base.preflight.execute>) => {
+        events.push("preflight:start");
+        markPreflightStarted();
+        await preflightGate;
+        events.push("preflight:end");
+        return base.preflight.execute(...args);
+      },
+    };
+    const verify = {
+      ...base.verify,
+      execute: async (...args: Parameters<typeof base.verify.execute>) => {
+        events.push("verify:start");
+        return base.verify.execute(...args);
+      },
+    };
+
+    const execution = executeAgentPackCommand(
+      createCheckCommand({ preflight, verify }),
+      { mode: "fake", scope: "focused", changed: [] },
+      context,
+    );
+    await preflightStarted;
+
+    expect(events).toEqual(["preflight:start"]);
+
+    releasePreflight();
+    await execution;
+    expect(events).toEqual([
+      "preflight:start",
+      "preflight:end",
+      "verify:start",
+    ]);
+  });
+
   it("returns success with no diagnostics from the shared commands", async () => {
     const result = await executeAgentPackCommand(
       createCheckCommand(commands()),

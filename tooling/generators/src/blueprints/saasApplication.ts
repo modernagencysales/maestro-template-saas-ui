@@ -1,5 +1,11 @@
 import { readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
+import {
+  parseDataResourceCatalog,
+  renderDataResourceRuntime,
+} from "@maestro-template/template-core/dataResourceCatalog";
+import { parseProductTopology } from "@maestro-template/template-core/productTopology";
+import { parseSystemCatalog } from "@maestro-template/template-core/systemCatalog";
 import type { GeneratedFile, TemplateBlueprint } from "../index";
 import {
   buildAlpha1SaasApplicationFiles,
@@ -52,8 +58,8 @@ const jsonFile = (path: string, value: unknown): GeneratedFile => ({
 
 const executableSourcePaths = [
   "packages/convex/confect/tables/records.ts",
-  "packages/convex/confect/records/records.spec.ts",
-  "packages/convex/confect/records/records.impl.ts",
+  "packages/convex/confect/records.spec.ts",
+  "packages/convex/confect/records.impl.ts",
   "apps/web/src/adapters/records/contract.ts",
   "apps/web/src/adapters/records/fake.ts",
   "apps/web/src/features/records/model.ts",
@@ -73,6 +79,137 @@ const executableSourceFiles = (): readonly GeneratedFile[] =>
       "utf8",
     ),
   }));
+
+const repositoryJson = (path: string): unknown =>
+  JSON.parse(
+    readFileSync(new URL(`../../../../${path}`, import.meta.url), "utf8"),
+  ) as unknown;
+
+const recordGovernanceFiles = (): readonly GeneratedFile[] => {
+  const systems = parseSystemCatalog(
+    repositoryJson("docs/template/system-catalog.json"),
+  );
+  const dataResources = parseDataResourceCatalog(
+    repositoryJson("docs/template/data-resources.json"),
+  );
+  const topology = parseProductTopology(
+    repositoryJson("docs/template/product-topology.json"),
+  );
+  const governedSystems = parseSystemCatalog({
+    ...systems,
+    systems: [
+      ...systems.systems,
+      {
+        id: "record-management",
+        name: "Record Management",
+        kind: "product-system",
+        lifecycle: "active",
+        implementationStatus: "real",
+        summary:
+          "Owns the renameable workspace-scoped record CRUD slice shipped by the SaaS application blueprint.",
+        responsibilities: [
+          "create workspace records",
+          "list workspace records",
+          "read workspace record details",
+        ],
+        aliases: ["business records", "crud", "records"],
+        tables: ["records"],
+        canonicalEntrypoints: [
+          "packages/convex/confect/records.spec.ts",
+          "apps/web/src/routes/_workspace.records.tsx",
+        ],
+        decisionRef: "docs/template/system-decisions/record-management.md",
+      },
+    ],
+  });
+  const governedDataResources = parseDataResourceCatalog({
+    ...dataResources,
+    resources: [
+      ...dataResources.resources,
+      {
+        id: "records",
+        system: "record-management",
+        sourcePath: "packages/convex/confect/tables/records.ts",
+        tenantScope: "workspace",
+        sensitivity: "internal",
+        pii: [],
+        exportMode: "json",
+        deleteMode: "delete",
+        retention: "retain-until-workspace-delete",
+        appendOnly: false,
+        writePosture: "implemented",
+        workspaceLifecycle: "managed",
+        writeAuthority: "packages/convex/confect/records.spec.ts",
+        migrationRef: "docs/template/schema-decisions/records.md",
+        detail:
+          "Records are workspace-owned application data exported as JSON and removed with the owning workspace.",
+      },
+    ].sort((left, right) => left.id.localeCompare(right.id)),
+  });
+  const governedTopology = parseProductTopology({
+    ...topology,
+    resources: [
+      ...topology.resources,
+      {
+        id: "route:records",
+        kind: "route",
+        system: "record-management",
+        path: "apps/web/src/routes/_workspace.records.tsx",
+        responsibility:
+          "present workspace record create, list, and detail states",
+        surfaces: ["web"],
+        uses: ["access-and-tenancy"],
+        lifecycle: "active",
+      },
+    ],
+  });
+  return [
+    jsonFile("docs/template/system-catalog.json", governedSystems),
+    jsonFile("docs/template/data-resources.json", governedDataResources),
+    jsonFile("docs/template/product-topology.json", governedTopology),
+    {
+      path: "packages/convex/confect/ops/dataResources.generated.ts",
+      content: renderDataResourceRuntime(governedDataResources),
+    },
+    {
+      path: "docs/template/system-decisions/record-management.md",
+      content: `# Record Management System Decision
+
+The SaaS application blueprint introduces \`record-management\` because no base
+template system owns generic customer business records. The system owns one
+workspace-scoped \`records\` table, its Confect CRUD contract, and the records
+route. It reuses \`access-and-tenancy\` for workspace authorization.
+
+Keep this system when the starter noun is renamed. Extend it for adjacent CRUD
+behavior; introduce another system only when the new behavior has genuinely
+independent authority and lifecycle.
+`,
+    },
+    {
+      path: "docs/template/schema-decisions/records.md",
+      content: `# Records Schema Decision
+
+Canonical system: \`record-management\`  
+Disposition: \`introduce\`  
+Status: additive
+
+## Data Contract
+
+- Tenant scope: \`workspace\`
+- Sensitivity: \`internal\`
+- PII categories: none
+- Export: \`json\`
+- Delete/redaction: \`delete\`
+- Retention: \`retain-until-workspace-delete\`
+- Append-only: \`false\`
+- Write authority: \`packages/convex/confect/records.spec.ts\`
+
+The table is new and requires no backfill. Rollback removes callers before the
+table and preserves workspace isolation throughout the compatibility window.
+`,
+    },
+  ];
+};
 
 const slugify = (value: string): string =>
   value
@@ -130,6 +267,7 @@ export const buildSaasApplicationFiles = (options: {
       read: { by: "created-id", expectedTitle: "First record" },
     }),
     ...executableSourceFiles(),
+    ...recordGovernanceFiles(),
     jsonFile(
       "generated/blueprints/saas-application/application-contract.json",
       {
@@ -147,7 +285,7 @@ export const buildSaasApplicationFiles = (options: {
         uiStates: ["loading", "empty", "error", "list", "detail", "create"],
         layers: {
           table: "packages/convex/confect/tables/records.ts",
-          functions: "packages/convex/confect/records/*",
+          functions: "packages/convex/confect/records.{spec,impl}.ts",
           adapter: "apps/web/src/adapters/records.ts",
           feature: "apps/web/src/features/records/*",
           screen: "apps/web/src/screens/records-screen.tsx",
@@ -201,6 +339,7 @@ export type BlueprintTargetPlan = {
   readonly id: "saas-application";
   readonly provenance: "@maestro-template/generators/saas-application@1";
   readonly registrations: readonly string[];
+  readonly parameterizedEntries: readonly string[];
   readonly entries: readonly ({
     readonly path: string;
     readonly sha256: string;
@@ -230,6 +369,13 @@ const canonicalTargetPlanOptions = {
   name: "SaaS Application",
   firstOutcome: "Create and review records",
 } as const satisfies BlueprintTargetPlanOptions;
+
+export const SAAS_APPLICATION_PARAMETERIZED_ENTRIES = [
+  "examples/saas-application/seed/crud-scenario.json",
+  "examples/saas-application/seed/records.json",
+  "examples/saas-application/seed/workspace.json",
+  "generated/blueprints/saas-application/application-contract.json",
+] as const;
 
 const targetEntryIdentity = (
   entry: BlueprintTargetPlan["entries"][number],
@@ -268,12 +414,31 @@ function buildTargetPlan(
   options: BlueprintTargetPlanOptions,
 ): BlueprintTargetPlan {
   const replacements = new Map<string, "copy" | "generate">([
+    [".claude/settings.json", "generate"],
+    [".prettierignore", "copy"],
+    ["README.md", "copy"],
+    ["AGENTS.md", "copy"],
+    ["agent-patterns/effect-confect.md", "copy"],
     ["apps/cli/src/index.ts", "copy"],
+    ["apps/cli/package.json", "copy"],
     ["apps/cli/src/factory/customerComposition.ts", "copy"],
     ["apps/cli/src/factory/start.ts", "copy"],
+    ["apps/cli/src/factory/customerRecipes.ts", "copy"],
+    ["apps/cli/src/factory/recipes.ts", "copy"],
     ["apps/cli/src/factory/supportBundle.ts", "copy"],
+    ["apps/web/package.json", "copy"],
+    ["apps/web/vite.config.ts", "copy"],
     ["docs/template/agent-pack-privacy.md", "copy"],
+    ["docs/template/preflight.md", "copy"],
+    ["docs/template/agent-worker-playbook.md", "copy"],
+    ["docs/template/how-this-relates-to-maestro.md", "copy"],
+    ["docs/template/repo-map.md", "copy"],
+    ["docs/template/template-maturity-model.md", "copy"],
     ["package.json", "generate"],
+    ["pnpm-workspace.yaml", "copy"],
+    ["pnpm-lock.yaml", "copy"],
+    ["packages/convex/package.json", "copy"],
+    ["tooling/confect-manifest/tsconfig.json", "copy"],
     ["packages/convex/confect/_generated/tables/workflowArtifacts.ts", "copy"],
     ["packages/convex/confect/tables/workflowArtifacts.ts", "copy"],
     [
@@ -296,6 +461,8 @@ function buildTargetPlan(
     ["tooling/agent-pack/src/readiness/presenter.ts", "copy"],
     ["tooling/agent-pack/src/readiness/server.ts", "copy"],
     ["tooling/agent-pack/src/receiptWriter.ts", "copy"],
+    ["tooling/agent-pack/src/recipes.ts", "copy"],
+    ["tooling/agent-pack/src/recipeTransaction.ts", "copy"],
     ["tooling/generators/src/crud-proof.ts", "copy"],
     ["tooling/generators/src/customer-cli.ts", "copy"],
     ["tooling/generators/src/customer-dispatcher.ts", "copy"],
@@ -324,6 +491,9 @@ function buildTargetPlan(
     ["tooling/generators/src/workflow-predeploy.ts", "copy"],
     ["packages/convex/confect/_generated/docs.ts", "copy"],
     ["packages/convex/confect/ops/dataResources.generated.ts", "copy"],
+    ["docs/template/system-catalog.json", "copy"],
+    ["docs/template/data-resources.json", "copy"],
+    ["docs/template/product-topology.json", "copy"],
     ["packages/convex/confect/tables/workflowRuns.ts", "copy"],
     ["packages/convex/confect/tables/workflowStageRuns.ts", "copy"],
     ["packages/convex/confect/workflows/_kit/defineMaestroWorkflow.ts", "copy"],
@@ -367,7 +537,7 @@ function buildTargetPlan(
     ["packages/convex/test/workflow-lifecycle-controls.fixture.ts", "copy"],
     ["packages/convex/test/workflow-lifecycle-registration.test.ts", "copy"],
   ]);
-  const customerExtensions = new Set(["CLAUDE.md", ".claude/settings.json"]);
+  const customerExtensions = new Set(["CLAUDE.md"]);
   const files = current
     ? buildFactorySaasApplicationFiles(options)
     : buildAlpha1SaasApplicationFiles(options);
@@ -396,10 +566,35 @@ function buildTargetPlan(
     })
     .sort((left, right) => left.path.localeCompare(right.path));
   const registrationsWithPrivacy = [
+    "README.md",
+    "AGENTS.md",
+    "agent-patterns/effect-confect.md",
     "docs/template/agent-pack-privacy.md",
+    "docs/template/preflight.md",
+    "docs/template/agent-worker-playbook.md",
+    "docs/template/how-this-relates-to-maestro.md",
+    "docs/template/repo-map.md",
+    "docs/template/template-maturity-model.md",
+    "maestro-template.mjs",
+    "scripts/maestro-bootstrap.mjs",
+    "scripts/maestro-bootstrap.test.mjs",
+    "apps/web/src/bundle-policy.ts",
+    "apps/web/package.json",
+    "apps/web/scripts/check-client-bundle-budget.mjs",
+    "apps/web/scripts/check-client-bundle-budget.test.mjs",
+    "apps/web/src/bundle-policy.test.ts",
+    "apps/web/vite.config.ts",
+    "pnpm-workspace.yaml",
+    "pnpm-lock.yaml",
+    "packages/convex/package.json",
+    "tooling/quality/check-convex-generation.mts",
     "apps/cli/src/factory/customerComposition.ts",
     "apps/cli/src/index.ts",
+    "apps/cli/package.json",
     "apps/cli/src/factory/start.ts",
+    "apps/cli/src/factory/customerRecipes.ts",
+    "apps/cli/src/factory/recipeCatalog.ts",
+    "apps/cli/src/factory/recipes.ts",
     "apps/cli/src/factory/supportBundle.ts",
     "package.json",
     "tooling/generators/src/crud-proof.ts",
@@ -411,6 +606,11 @@ function buildTargetPlan(
     "packages/convex/confect/_generated/tables/workflowArtifacts.ts",
     ...(current ? CURRENT_SAAS_DEPLOY_AUTHORITY_TABLE_CLOSURE : []),
     "packages/convex/confect/ops/dataResources.generated.ts",
+    "docs/template/system-catalog.json",
+    "docs/template/data-resources.json",
+    "docs/template/product-topology.json",
+    "docs/template/system-decisions/record-management.md",
+    "docs/template/schema-decisions/records.md",
     "packages/convex/confect/tables/workflowArtifacts.ts",
     "packages/convex/confect/tables/workflowRuns.ts",
     "packages/convex/confect/tables/workflowStageRuns.ts",
@@ -460,6 +660,8 @@ function buildTargetPlan(
     "tooling/agent-pack/src/ports.ts",
     "tooling/agent-pack/src/verify.ts",
     "tooling/agent-pack/src/receiptWriter.ts",
+    "tooling/agent-pack/src/recipes.ts",
+    "tooling/agent-pack/src/recipeTransaction.ts",
     "tooling/agent-pack/src/index.ts",
     "tooling/agent-pack/src/readiness/artifacts.ts",
     "tooling/agent-pack/src/readiness/index.ts",
@@ -478,8 +680,8 @@ function buildTargetPlan(
     ".claude/settings.json",
     "skills-lock.json",
     "packages/convex/confect/tables/records.ts",
-    "packages/convex/confect/records/records.spec.ts",
-    "packages/convex/confect/records/records.impl.ts",
+    "packages/convex/confect/records.spec.ts",
+    "packages/convex/confect/records.impl.ts",
     "packages/convex/confect/_generated/tables/records.ts",
     "packages/convex/confect/_generated/schema.ts",
     "packages/convex/confect/_generated/convexSchema.ts",
@@ -511,7 +713,12 @@ function buildTargetPlan(
     registrations,
     entries: entries.map(targetEntryIdentity),
   };
-  return { ...identity, entries, digest: sha256(JSON.stringify(identity)) };
+  return {
+    ...identity,
+    parameterizedEntries: current ? SAAS_APPLICATION_PARAMETERIZED_ENTRIES : [],
+    entries,
+    digest: sha256(JSON.stringify(identity)),
+  };
 }
 
 export const buildSaasApplicationHandoff = (

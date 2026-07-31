@@ -4,11 +4,12 @@ import { execFileSync } from "node:child_process";
 import {
   existsSync,
   lstatSync,
+  mkdirSync,
   readFileSync,
   realpathSync,
   writeFileSync,
 } from "node:fs";
-import { join, relative, resolve, sep } from "node:path";
+import { dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { format as formatWithPrettier } from "prettier";
 import {
@@ -143,7 +144,66 @@ function slug(path: string): string {
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
+
+function resolvePriorManifest(
+  manifestPath: string,
+  visited = new Set<string>(),
+): PriorManifest {
+  const canonicalPath = realpathSync(manifestPath);
+  const relativePath = relative(root, canonicalPath).split(sep).join("/");
+  if (!safePath(relativePath))
+    throw new Error("Prior manifest escapes repository.");
+  if (visited.has(canonicalPath))
+    throw new Error("Prior release manifest composition contains a cycle.");
+  visited.add(canonicalPath);
+  const value: unknown = JSON.parse(readFileSync(canonicalPath, "utf8"));
+  if (!isRecord(value) || !isRecord(value.release))
+    throw new Error("Prior release manifest is invalid.");
+  if (value.kind !== "composed-customer-release") {
+    if (
+      typeof value.release.sourceCommit !== "string" ||
+      !Array.isArray(value.paths)
+    )
+      throw new Error("Prior ownership manifest is incomplete.");
+    return value as PriorManifest;
+  }
+  if (
+    !isRecord(value.baseManifest) ||
+    typeof value.baseManifest.path !== "string" ||
+    typeof value.baseManifest.sha256 !== "string" ||
+    typeof value.release.sourceCommit !== "string" ||
+    !Array.isArray(value.additionalPaths)
+  )
+    throw new Error("Prior composed release manifest is incomplete.");
+  const basePath = resolve(canonicalPath, "..", value.baseManifest.path);
+  const baseBytes = readFileSync(basePath);
+  if (hash(baseBytes) !== value.baseManifest.sha256)
+    throw new Error("Prior base manifest checksum does not match.");
+  const base = resolvePriorManifest(basePath, visited);
+  return {
+    release: { sourceCommit: value.release.sourceCommit },
+    paths: [
+      ...(base.paths ?? []),
+      ...(value.additionalPaths as readonly CustomerReleasePath[]),
+    ],
+    expectedHashes: base.expectedHashes,
+  };
+}
 const REVIEWED_ADDITIONAL_PATHS: readonly CustomerReleasePath[] = [
+  {
+    path: ".claude/settings.json",
+    match: "exact",
+    ownership: "generated",
+    action: "generate",
+    upgrade: "regenerate",
+  },
+  {
+    path: "tooling/release/__fixtures__/upgrade/provider-posture-v1-to-v2.contract.json",
+    match: "exact",
+    ownership: "template-owned",
+    action: "copy",
+    upgrade: "replace",
+  },
   ...[
     "apps/cli/src/factory/adopt.ts",
     "apps/cli/src/factory/adopt.test.ts",
@@ -293,10 +353,16 @@ export function parseReviewedFactoryOnlyExclusions(input: {
 export function buildReviewedOwnershipInventory(input: {
   readonly sourcePaths: readonly string[];
   readonly exclusions: readonly CustomerReleasePath[];
+  readonly overrides?: readonly CustomerReleasePath[];
 }): readonly CustomerReleasePath[] {
   const excluded: CustomerReleasePath[] = [];
   const remaining: string[] = [];
   for (const path of input.sourcePaths) {
+    const override = resolveCustomerReleasePath(input.overrides ?? [], path);
+    if (override?.action !== undefined && override.action !== "omit") {
+      remaining.push(path);
+      continue;
+    }
     const exclusion = resolveCustomerReleasePath(input.exclusions, path);
     if (exclusion) {
       excluded.push({ ...exclusion, path, match: "exact" });
@@ -335,12 +401,23 @@ export function buildReviewedAdditionalPaths(input: {
     sourcePaths: input.sourcePaths,
     protectedCustomerPaths: input.protectedCustomerPaths,
   });
-  const rules = [...configured, ...REVIEWED_ADDITIONAL_PATHS].sort(
-    (left, right) =>
+  const rules = [...configured, ...REVIEWED_ADDITIONAL_PATHS]
+    .filter((candidate) => {
+      const inherited = input.basePaths.find(
+        (entry) =>
+          entry.path === candidate.path && entry.match === candidate.match,
+      );
+      if (inherited === undefined) return true;
+      if (JSON.stringify(inherited) === JSON.stringify(candidate)) return false;
+      throw new Error(
+        `Release additional path conflicts with inherited authority: ${candidate.match}:${candidate.path}`,
+      );
+    })
+    .sort((left, right) =>
       `${left.path}:${left.match}`.localeCompare(
         `${right.path}:${right.match}`,
       ),
-  );
+    );
   for (const path of input.sourcePaths) {
     if (!resolveCustomerReleasePath([...input.basePaths, ...rules], path))
       throw new Error(`Unclassified reviewed release source path: ${path}`);
@@ -356,10 +433,7 @@ async function build(args: Args): Promise<readonly Output[]> {
     readFileSync(join(root, manifestPath), "utf8"),
   ) as SealManifest;
   const priorPath = resolve(join(root, releaseRoot), current.baseManifest.path);
-  const prior = JSON.parse(readFileSync(priorPath, "utf8")) as PriorManifest;
-  const priorRelative = relative(root, priorPath).split(sep).join("/");
-  if (!safePath(priorRelative))
-    throw new Error("Prior manifest escapes repository.");
+  const prior = resolvePriorManifest(priorPath);
 
   const blueprintPath = `${releaseRoot}/blueprints/saas-application.json`;
   const blueprint = JSON.parse(
@@ -401,6 +475,7 @@ async function build(args: Args): Promise<readonly Output[]> {
     provenance: plan.provenance,
     projectionSource: { sourceCommit: args.sourceCommit, assets },
     registrations: plan.registrations,
+    parameterizedEntries: plan.parameterizedEntries,
     entries: plan.entries.map((entry) =>
       Object.fromEntries(
         Object.entries(entry).filter(([key]) => key !== "content"),
@@ -417,21 +492,25 @@ async function build(args: Args): Promise<readonly Output[]> {
     protectedCustomerPaths: protectedCustomerSourcePaths,
     basePaths: prior.paths ?? [],
   });
-  const exclusions = additionalPaths.filter(
+  const exclusions = [...(prior.paths ?? []), ...additionalPaths].filter(
     (entry) => entry.ownership === "factory-only",
   );
   const inventory = buildReviewedOwnershipInventory({
     sourcePaths: reviewedSourcePaths,
     exclusions,
+    overrides: additionalPaths,
   });
   const currentTemplate = new Map(
     inventory
       .filter((entry) => entry.ownership === "template-owned")
       .map((entry) => [entry.path, hash(blob(args.sourceCommit, entry.path))]),
   );
-  const priorHashes = new Map(
-    Object.entries(prior.expectedHashes ?? {}) as [string, string][],
-  );
+  const priorHashes = new Map<string, string>();
+  for (const path of sourcePaths(prior.release.sourceCommit)) {
+    const ownership = resolveCustomerReleasePath(prior.paths ?? [], path);
+    if (ownership?.action === "copy")
+      priorHashes.set(path, hash(blob(prior.release.sourceCommit, path)));
+  }
   const oldKinds = new Map(
     current.upgrade.operations
       .filter((operation) => operation.ownership === "template-owned")
@@ -617,6 +696,7 @@ function apply(outputs: readonly Output[]): void {
       (!lstatSync(target).isFile() || lstatSync(target).isSymbolicLink())
     )
       throw new Error(`Release output is not a regular file: ${path}`);
+    mkdirSync(dirname(target), { recursive: true });
     writeFileSync(target, bytes);
   }
 }

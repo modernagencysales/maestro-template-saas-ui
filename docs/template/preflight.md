@@ -3,6 +3,21 @@
 Status: implemented. The typed read-only command, bounded Node host reader, CLI
 registration, and MCP projection share one fact model.
 
+Before dependencies exist, run the install-free bootstrap diagnostic:
+
+```bash
+node scripts/maestro-bootstrap.mjs
+node scripts/maestro-bootstrap.mjs --json
+```
+
+It validates Node 22 and repository-local Git identity, then prints the exact
+pinned install command. Supported standalone pnpm remains valid without
+Corepack. If Corepack is missing or unusable, bootstrap prints:
+
+```bash
+npx --yes pnpm@10.12.1 install --frozen-lockfile
+```
+
 Run preflight from the resolved repository root:
 
 ```bash

@@ -25,6 +25,7 @@ import {
   assertMaterializableCustomerReleaseManifest,
   resolveCustomerReleasePath,
   validateCustomerReleaseManifest,
+  type CustomerReleasePath,
   type CustomerReleaseManifest,
   type ResolvedCustomerReleaseBinding,
 } from "./manifest.js";
@@ -146,6 +147,27 @@ function resolveReleaseDefinition(
   readonly manifest: Record<string, unknown>;
   readonly deriveExpectedHashes: boolean;
 } {
+  return resolveReleaseDefinitionAt({
+    options,
+    manifestPath: options.manifestPath,
+    value,
+    requireBlueprintBinding: true,
+    visited: new Set<string>(),
+  });
+}
+
+function resolveReleaseDefinitionAt(input: {
+  readonly options: CustomerReleaseAdapterOptions;
+  readonly manifestPath: string;
+  readonly value: unknown;
+  readonly requireBlueprintBinding: boolean;
+  readonly visited: Set<string>;
+}): {
+  readonly manifest: Record<string, unknown>;
+  readonly deriveExpectedHashes: boolean;
+} {
+  const { options, manifestPath, value, requireBlueprintBinding, visited } =
+    input;
   if (!isRecord(value)) {
     throw new CustomerReleaseAdapterError(
       "release-unavailable",
@@ -155,24 +177,35 @@ function resolveReleaseDefinition(
   if (value.kind !== "composed-customer-release") {
     return { manifest: value, deriveExpectedHashes: false };
   }
+  const blueprintBindingInvalid =
+    requireBlueprintBinding &&
+    (!isRecord(value.blueprintManifest) ||
+      typeof value.blueprintManifest.path !== "string" ||
+      value.blueprintManifest.sha256 !== options.blueprintManifestChecksum ||
+      resolve(manifestPath, "..", value.blueprintManifest.path) !==
+        resolve(options.blueprintManifestPath));
   if (
     !isRecord(value.baseManifest) ||
     typeof value.baseManifest.path !== "string" ||
     typeof value.baseManifest.sha256 !== "string" ||
     !Array.isArray(value.additionalPaths) ||
     !isRecord(value.release) ||
-    !isRecord(value.blueprintManifest) ||
-    typeof value.blueprintManifest.path !== "string" ||
-    value.blueprintManifest.sha256 !== options.blueprintManifestChecksum ||
-    resolve(options.manifestPath, "..", value.blueprintManifest.path) !==
-      resolve(options.blueprintManifestPath)
+    blueprintBindingInvalid
   ) {
     throw new CustomerReleaseAdapterError(
       "release-unavailable",
       "Composed customer release descriptor is invalid.",
     );
   }
-  const basePath = resolve(options.manifestPath, "..", value.baseManifest.path);
+  const basePath = resolve(manifestPath, "..", value.baseManifest.path);
+  const canonicalBasePath = realpathSync(basePath);
+  if (visited.has(canonicalBasePath)) {
+    throw new CustomerReleaseAdapterError(
+      "release-unavailable",
+      "Composed customer release contains a manifest cycle.",
+    );
+  }
+  visited.add(canonicalBasePath);
   const baseBytes = readFileSync(basePath);
   if (sha256(baseBytes) !== value.baseManifest.sha256) {
     throw new CustomerReleaseAdapterError(
@@ -180,29 +213,30 @@ function resolveReleaseDefinition(
       "Base ownership manifest checksum is not reviewed.",
     );
   }
-  const base = parseManifest(baseBytes);
-  if (!isRecord(base)) {
-    throw new CustomerReleaseAdapterError(
-      "release-unavailable",
-      "Base ownership manifest is invalid.",
-    );
-  }
+  const base = resolveReleaseDefinitionAt({
+    options,
+    manifestPath: basePath,
+    value: parseManifest(baseBytes),
+    requireBlueprintBinding: false,
+    visited,
+  });
   const paths = [
-    ...(Array.isArray(base.paths) ? base.paths : []),
+    ...(Array.isArray(base.manifest.paths) ? base.manifest.paths : []),
     ...value.additionalPaths,
   ];
-  const expectedHashes = isRecord(base.expectedHashes)
-    ? Object.fromEntries(
-        Object.entries(base.expectedHashes).filter(
-          ([path]) =>
-            resolveCustomerReleasePath(paths, path)?.action === "copy",
-        ),
-      )
-    : base.expectedHashes;
+  const expectedHashes = composedExpectedHashes(
+    base.manifest.expectedHashes,
+    paths,
+    isRecord(value.upgrade) && Array.isArray(value.upgrade.operations)
+      ? value.upgrade.operations
+      : [],
+  );
   return {
-    deriveExpectedHashes: value.deriveExpectedHashesFromArchive === true,
+    deriveExpectedHashes:
+      value.deriveExpectedHashesFromArchive === true ||
+      base.deriveExpectedHashes,
     manifest: {
-      ...base,
+      ...base.manifest,
       materializationStatus: value.materializationStatus,
       fixtureReason: undefined,
       release: value.release,
@@ -210,6 +244,35 @@ function resolveReleaseDefinition(
       expectedHashes,
     },
   };
+}
+
+export function composedExpectedHashes(
+  baseExpectedHashes: unknown,
+  paths: readonly CustomerReleasePath[],
+  operations: readonly unknown[],
+): Readonly<Record<string, unknown>> {
+  const expected = isRecord(baseExpectedHashes)
+    ? Object.fromEntries(
+        Object.entries(baseExpectedHashes).filter(
+          ([path]) =>
+            resolveCustomerReleasePath(paths, path)?.action === "copy",
+        ),
+      )
+    : {};
+  for (const operation of operations) {
+    if (!isRecord(operation) || typeof operation.path !== "string") continue;
+    if (resolveCustomerReleasePath(paths, operation.path)?.action !== "copy")
+      continue;
+    if (operation.kind === "delete") {
+      delete expected[operation.path];
+    } else if (
+      (operation.kind === "add" || operation.kind === "modify") &&
+      typeof operation.afterHash === "string"
+    ) {
+      expected[operation.path] = operation.afterHash;
+    }
+  }
+  return expected;
 }
 
 function resolveReviewedCommit(repositoryRoot: string, commit: string): string {

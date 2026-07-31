@@ -6,22 +6,22 @@ import {
   readFileSync,
   readdirSync,
   rmSync,
-  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
 import { promisify } from "node:util";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { afterAll, afterEach, describe, expect, it } from "vitest";
 import { runCliAsync } from "../index";
 import { CREATE_HELP } from "./create";
 import { createFactoryCliComposition } from "./composition";
+import { validateCustomerTargetIntegrity } from "@maestro-template/release-tooling/customer-integrity";
 
 const repoRoot = fileURLToPath(new URL("../../../../", import.meta.url));
-const temporaryRoots: string[] = [];
 const execFileAsync = promisify(execFile);
+const temporaryRoots: string[] = [];
 let taggedReleaseParent: string | undefined;
 let taggedReleaseRoot: string | undefined;
 const taggedRepository = (): string => {
@@ -34,18 +34,6 @@ const taggedRepository = (): string => {
     {
       stdio: "pipe",
     },
-  );
-  execFileSync(
-    "git",
-    [
-      "-C",
-      taggedReleaseRoot,
-      "tag",
-      "--force",
-      "maestro-template-v0.2.0-alpha.1",
-      "HEAD",
-    ],
-    { stdio: "pipe" },
   );
   execFileSync(
     "pnpm",
@@ -187,15 +175,9 @@ describe("create root integration", () => {
       ],
       data: {
         release: {
-          version: "0.2.0-alpha.1",
-          tag: "maestro-template-v0.2.0-alpha.1",
-          sourceCommit: execFileSync(
-            "git",
-            ["-C", repoRoot, "rev-parse", "HEAD"],
-            {
-              encoding: "utf8",
-            },
-          ).trim(),
+          version: "0.2.0-alpha.2",
+          tag: "maestro-template-v0.2.0-alpha.2",
+          sourceCommit: expect.stringMatching(/^[0-9a-f]{40}$/),
           sourceChecksum: expect.stringMatching(/^sha256:[0-9a-f]{64}$/),
         },
         privacy: {
@@ -204,6 +186,30 @@ describe("create root integration", () => {
       },
     });
     expect(existsSync(target)).toBe(false);
+  }, 30_000);
+
+  it("prints the complete copy-paste onboarding sequence after create", async () => {
+    const parent = mkdtempSync(join(tmpdir(), "maestro-create-human-"));
+    temporaryRoots.push(parent);
+    const target = join(parent, "customer-app");
+    const result = await runTaggedCli([
+      "create",
+      target,
+      "--name",
+      "My App",
+      "--outcome",
+      "Track client requests",
+      "--write",
+      "--privacy-reviewed",
+    ]);
+
+    expect(result.exitCode, `${result.stdout}\n${result.stderr}`).toBe(0);
+    expect(result.stdout).toContain(`git -C ${JSON.stringify(target)} init`);
+    expect(result.stdout).toContain(
+      `pnpm --dir ${JSON.stringify(target)} install --frozen-lockfile`,
+    );
+    expect(result.stdout).toContain("maestro -- preflight --mode fake");
+    expect(result.stdout).toContain("maestro -- start --mode fake");
   }, 30_000);
 
   it("personalizes root create content and its deterministic digest", async () => {
@@ -339,16 +345,19 @@ describe("create root integration", () => {
       "--privacy-reviewed",
       "--json",
     ]);
-    expect(result.exitCode, result.stderr).toBe(0);
+    expect(
+      result.exitCode,
+      [result.stderr, result.stdout].filter(Boolean).join("\n"),
+    ).toBe(0);
     expect(JSON.parse(result.stdout)).toMatchObject({ exitClass: "success" });
     const required = [
       "packages/convex/confect/tables/records.ts",
+      "packages/convex/confect/records.spec.ts",
+      "packages/convex/confect/records.impl.ts",
       "packages/convex/confect/_generated/tables/deployAuthorityAuditEvents.ts",
       "packages/convex/confect/_generated/tables/deployAuthorityIssuers.ts",
       "packages/convex/confect/tables/deployAuthorityAuditEvents.ts",
       "packages/convex/confect/tables/deployAuthorityIssuers.ts",
-      "packages/convex/confect/records/records.spec.ts",
-      "packages/convex/confect/records/records.impl.ts",
       "apps/web/src/adapters/records/contract.ts",
       "apps/web/src/adapters/records/fake.ts",
       "apps/web/src/features/records/records-surface.tsx",
@@ -379,18 +388,54 @@ describe("create root integration", () => {
     expect(
       existsSync(join(targetRoot, "docs/template/agent-pack-privacy.md")),
     ).toBe(true);
-    symlinkSync(
-      join(repoRoot, "node_modules"),
-      join(targetRoot, "node_modules"),
-      "dir",
+    expect(
+      validateCustomerTargetIntegrity(
+        Object.fromEntries(
+          Object.entries(snapshotTargetBytes(targetRoot)).map(
+            ([path, base64]) => [path, Buffer.from(base64, "base64")],
+          ),
+        ),
+      ),
+    ).toEqual([]);
+    expect(
+      readFileSync(join(targetRoot, "packages/convex/tsconfig.json"), "utf8"),
+    ).toContain('"confect/**/*.json"');
+    const install = await execFileAsync(
+      "pnpm",
+      ["install", "--offline", "--frozen-lockfile", "--ignore-scripts"],
+      { cwd: targetRoot, encoding: "utf8", timeout: 120_000 },
     );
-    for (const project of ["packages/convex", "apps/web"]) {
-      symlinkSync(
-        join(repoRoot, project, "node_modules"),
-        join(targetRoot, project, "node_modules"),
-        "dir",
-      );
-    }
+    expect(`${install.stdout}\n${install.stderr}`).not.toContain("ERR_PNPM");
+    execFileSync("pnpm", ["confect:codegen"], {
+      cwd: targetRoot,
+      stdio: "pipe",
+      timeout: 30_000,
+    });
+    execFileSync("pnpm", ["confect:manifest"], {
+      cwd: targetRoot,
+      stdio: "pipe",
+      timeout: 30_000,
+    });
+    const dirtyManifest = readFileSync(
+      join(
+        targetRoot,
+        "packages/template-core/src/generated/confectManifest.ts",
+      ),
+    );
+    expect(dirtyManifest.toString()).toContain('"records"');
+    execFileSync("pnpm", ["check:confect-manifest"], {
+      cwd: targetRoot,
+      stdio: "pipe",
+      timeout: 30_000,
+    });
+    expect(
+      readFileSync(
+        join(
+          targetRoot,
+          "packages/template-core/src/generated/confectManifest.ts",
+        ),
+      ),
+    ).toEqual(dirtyManifest);
     const convexCompile = spawnSync(
       "pnpm",
       [

@@ -65,6 +65,69 @@ const runner = (
 });
 
 describe("agent-pack verification command", () => {
+  it.each([
+    [
+      "pass",
+      [
+        { gateId: "agent-pack", status: "pass", message: "Passed." },
+        { gateId: "taste", status: "pass", message: "Passed." },
+      ],
+    ],
+    [
+      "pass with advisories",
+      [
+        { gateId: "agent-pack", status: "pass", message: "Passed." },
+        { gateId: "taste", status: "fail", message: "Advisory failed." },
+      ],
+    ],
+    [
+      "required failure",
+      [
+        { gateId: "agent-pack", status: "fail", message: "Required failed." },
+        { gateId: "taste", status: "pass", message: "Passed." },
+      ],
+    ],
+  ] as const)("persists the exact %s receipt", async (_case, observations) => {
+    const persist = vi.fn(async () => undefined);
+    const result = await executeAgentPackCommand(
+      createVerifyCommand({
+        descriptors,
+        runner: runner(observations),
+        writer: { persist },
+      }),
+      { scope: "full", changed: [] },
+      context,
+    );
+
+    expect(persist).toHaveBeenCalledOnce();
+    expect(persist).toHaveBeenCalledWith(context.repo, result.data?.receipt);
+    expect(result.mutationPosture).toBe("write");
+  });
+
+  it("fails closed when the complete receipt cannot be persisted", async () => {
+    const persist = vi.fn(async () => {
+      throw new Error("disk unavailable");
+    });
+    const result = await executeAgentPackCommand(
+      createVerifyCommand({
+        descriptors: [requiredDescriptor],
+        runner: runner([
+          { gateId: "agent-pack", status: "pass", message: "Passed." },
+        ]),
+        writer: { persist },
+      }),
+      { scope: "full", changed: [] },
+      context,
+    );
+
+    expect(result).toMatchObject({
+      exitClass: "findings",
+      summary: "Verification evidence could not be persisted.",
+      diagnostics: [{ code: "AGENT_PACK_VERIFICATION_RECEIPT_PERSIST_FAILED" }],
+      data: { requiredBlocking: true, receiptPersisted: false },
+    });
+  });
+
   it("fails closed when a focused selection resolves to zero gates", async () => {
     const run = vi.fn(async () => []);
     const result = await executeAgentPackCommand(

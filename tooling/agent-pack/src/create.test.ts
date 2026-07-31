@@ -102,6 +102,8 @@ describe("customer create command", () => {
       expect.objectContaining({
         code: "AGENT_PACK_PRIVACY_FIRST_RUN",
         severity: "info",
+        rerun:
+          'pnpm maestro -- create "../my-app" --name "My App" --outcome "Track client requests" --demo-only --write --privacy-reviewed',
       }),
     ]);
     expect(test.materialize).not.toHaveBeenCalled();
@@ -119,10 +121,13 @@ describe("customer create command", () => {
         omissions: ["docs/superpowers"],
         collisions: [],
       },
-      nextCommand: 'pnpm --dir "../my-app" maestro -- start',
+      nextCommand: 'pnpm --dir "../my-app" maestro -- start --mode fake',
       followUpActions: [
-        { id: "install", requiresApproval: true, executed: false },
         { id: "git-init", requiresApproval: true, executed: false },
+        { id: "install", requiresApproval: true, executed: false },
+        { id: "git-add", requiresApproval: true, executed: false },
+        { id: "git-commit", requiresApproval: true, executed: false },
+        { id: "preflight", requiresApproval: true, executed: false },
       ],
     });
     expect(JSON.parse(test.instance())).toMatchObject({
@@ -270,6 +275,9 @@ describe("customer create command", () => {
     expect(result.mutationPosture).toBe("write");
     expect(test.materialize).toHaveBeenCalledOnce();
     expect(result.data).toMatchObject({ materializedFiles: 3 });
+    expect(result.diagnostics[0]?.rerun).toBe(
+      'pnpm --dir "../my-app" maestro -- preflight --mode fake',
+    );
   });
 
   it("refuses materialization until the privacy disclosure is reviewed", async () => {

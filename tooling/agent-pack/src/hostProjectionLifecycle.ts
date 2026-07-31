@@ -5,15 +5,14 @@ import {
   mkdir,
   readFile,
   readdir,
-  realpath,
   rename,
   rm,
   stat,
   writeFile,
 } from "node:fs/promises";
 import { basename, dirname, join, relative, resolve } from "node:path";
-import { tmpdir } from "node:os";
 import type { HostName } from "./hostInstall.js";
+import { isDirectTemporaryPath } from "./temporaryPath.js";
 
 const OFFICIAL_SKILLS = [
   "convex",
@@ -693,11 +692,9 @@ async function assertDisposableHome(
 ): Promise<void> {
   const resolved = resolve(homeDir);
   const token = host === "claude-code" ? "claude" : "codex";
-  const canonical = await realpath(resolved);
   if (
-    canonical !== resolved ||
-    !basename(canonical).startsWith(`maestro-${token}-`) ||
-    !`${canonical}/`.startsWith(`${await realpath(tmpdir())}/`)
+    !basename(resolved).startsWith(`maestro-${token}-`) ||
+    !(await isDirectTemporaryPath(resolved))
   )
     throw new Error(
       "host lifecycle requires a direct disposable temporary home",

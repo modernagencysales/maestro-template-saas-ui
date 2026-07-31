@@ -171,7 +171,7 @@ export function createCustomerCreateCommand(
           exitClass: "success" as const,
           summary:
             "Customer app and privacy preview are ready; no files were written.",
-          diagnostics: [privacyDiagnostic(disclosure)],
+          diagnostics: [privacyDiagnostic(disclosure, input, false)],
           data,
         };
       }
@@ -193,7 +193,7 @@ export function createCustomerCreateCommand(
         mutationPosture,
         exitClass: "success" as const,
         summary: "Customer app files were materialized from the release.",
-        diagnostics: [privacyDiagnostic(disclosure)],
+        diagnostics: [privacyDiagnostic(disclosure, input, true)],
         data: { ...data, materializedFiles: materialized.files },
       };
     },
@@ -318,19 +318,37 @@ function createData(
     preview,
     followUpActions: [
       {
-        id: "install",
-        command: `pnpm --dir ${quotedTarget} install`,
-        requiresApproval: true,
-        executed: false,
-      },
-      {
         id: "git-init",
         command: `git -C ${quotedTarget} init`,
         requiresApproval: true,
         executed: false,
       },
+      {
+        id: "install",
+        command: `pnpm --dir ${quotedTarget} install --frozen-lockfile`,
+        requiresApproval: true,
+        executed: false,
+      },
+      {
+        id: "git-add",
+        command: `git -C ${quotedTarget} add .`,
+        requiresApproval: true,
+        executed: false,
+      },
+      {
+        id: "git-commit",
+        command: `git -C ${quotedTarget} commit -m "chore: initialize app from Maestro"`,
+        requiresApproval: true,
+        executed: false,
+      },
+      {
+        id: "preflight",
+        command: `pnpm --dir ${quotedTarget} maestro -- preflight --mode fake`,
+        requiresApproval: true,
+        executed: false,
+      },
     ],
-    nextCommand: `pnpm --dir ${quotedTarget} maestro -- start`,
+    nextCommand: `pnpm --dir ${quotedTarget} maestro -- start --mode fake`,
   } as const;
 }
 
@@ -386,8 +404,14 @@ function createDisclosure(privacyDocumentAvailable = true) {
 
 function privacyDiagnostic(
   disclosure: FirstRunPrivacyDisclosure,
+  input: CustomerCreateInput,
+  materialized: boolean,
 ): AgentPackDiagnostic {
-  return createFirstRunPrivacyDiagnostic(disclosure);
+  return createFirstRunPrivacyDiagnostic(disclosure, {
+    rerun: materialized
+      ? `pnpm --dir ${JSON.stringify(input.target)} maestro -- preflight --mode fake`
+      : `${rerun(input)} --write --privacy-reviewed`,
+  });
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

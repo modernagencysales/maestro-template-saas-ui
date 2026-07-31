@@ -77,8 +77,8 @@ describe("start command", () => {
         args: [
           "--dir",
           "apps/web",
-          "dev",
-          "--",
+          "exec",
+          "vite",
           "--host",
           "127.0.0.1",
           "--port",
@@ -132,10 +132,89 @@ describe("start command", () => {
     expect(specs?.map(({ id }) => id)).toEqual(["convex", "confect", "web"]);
     expect(specs?.[0]).toMatchObject({
       command: "pnpm",
-      args: ["--dir", "packages/convex", "convex:dev", "--", "--local"],
+      args: [
+        "--dir",
+        "packages/convex",
+        "convex:dev",
+        "--",
+        "--local",
+        "--local-cloud-port",
+        "3210",
+        "--local-site-port",
+        "3211",
+      ],
       cwd: "/customer",
     });
     expect(JSON.stringify(specs)).not.toContain("production");
+  });
+
+  it("threads validated port overrides through probes, children, and URLs", async () => {
+    const dependencies = fixture();
+    vi.mocked(dependencies.readinessSurface.open).mockResolvedValue({
+      url: "http://127.0.0.1:6174/",
+      close: vi.fn(async () => undefined),
+    });
+    const result = await executeAgentPackCommand(
+      createStartCommand(dependencies),
+      {
+        mode: "local",
+        ports: {
+          web: 6173,
+          convex: 4210,
+          convexSite: 4211,
+          readinessPresenter: 6174,
+        },
+      },
+      context,
+    );
+
+    expect(dependencies.ports.available).toHaveBeenCalledTimes(4);
+    expect(dependencies.ports.available).toHaveBeenCalledWith(
+      6173,
+      "127.0.0.1",
+    );
+    expect(dependencies.ports.available).toHaveBeenCalledWith(
+      4210,
+      "127.0.0.1",
+    );
+    expect(dependencies.ports.available).toHaveBeenCalledWith(
+      4211,
+      "127.0.0.1",
+    );
+    expect(dependencies.ports.available).toHaveBeenCalledWith(
+      6174,
+      "127.0.0.1",
+    );
+    expect(dependencies.readinessSurface.open).toHaveBeenCalledWith(
+      expect.objectContaining({ port: 6174 }),
+    );
+    const specs = vi.mocked(dependencies.supervise).mock.calls[0]?.[0] ?? [];
+    expect(specs[0]?.args).toEqual([
+      "--dir",
+      "packages/convex",
+      "convex:dev",
+      "--",
+      "--local",
+      "--local-cloud-port",
+      "4210",
+      "--local-site-port",
+      "4211",
+    ]);
+    expect(specs[2]?.args).toContain("6173");
+    expect(specs[2]?.environment?.set.VITE_CONVEX_URL).toBe(
+      "http://127.0.0.1:4210",
+    );
+    expect(result.data).toMatchObject({
+      url: "http://127.0.0.1:6173",
+      readinessUrl: "http://127.0.0.1:6173/health",
+      buildReadinessUrl: "http://127.0.0.1:6174/",
+      ports: [
+        { id: "web", port: 6173 },
+        { id: "convex", port: 4210 },
+        { id: "convex-site", port: 4211 },
+        { id: "readiness-presenter", port: 6174 },
+      ],
+    });
   });
 
   it("removes poisoned live Convex targets from fake and local children", async () => {
@@ -268,6 +347,26 @@ describe("start command", () => {
     expect(dependencies.preflight).not.toHaveBeenCalled();
   });
 
+  it("rejects invalid and duplicate ports before preflight", async () => {
+    const dependencies = fixture();
+    for (const ports of [
+      { web: 1023 },
+      { web: 5173.5 },
+      { web: 6173, readinessPresenter: 6173 },
+    ]) {
+      const result = await executeAgentPackCommand(
+        createStartCommand(dependencies),
+        { mode: "fake", ports },
+        context,
+      );
+      expect(result.exitClass).toBe("invalidInvocation");
+      expect(result.diagnostics[0]?.code).toBe(
+        "AGENT_PACK_START_INVALID_PORTS",
+      );
+    }
+    expect(dependencies.preflight).not.toHaveBeenCalled();
+  });
+
   it("shows blocking preflight findings before probing or spawning", async () => {
     const dependencies = fixture({
       safeToStart: false,
@@ -309,6 +408,17 @@ describe("start command", () => {
     expect(collision.diagnostics[0]?.code).toBe(
       "AGENT_PACK_START_PORT_COLLISION",
     );
+    expect(collision.diagnostics[0]?.rerun).toBe(
+      "pnpm maestro -- start --mode fake --web-port 15173 --readiness-port 14174",
+    );
+    expect(collision.data).toEqual({
+      collisions: [
+        { id: "web", port: 5173 },
+        { id: "readiness-presenter", port: 4174 },
+      ],
+      rerun:
+        "pnpm maestro -- start --mode fake --web-port 15173 --readiness-port 14174",
+    });
     expect(occupied.supervise).not.toHaveBeenCalled();
 
     const malformed = fixture();

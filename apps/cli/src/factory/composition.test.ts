@@ -1,6 +1,6 @@
 import { diagnosticRegistryDescriptors } from "@maestro-template/quality-tooling";
 import { WORKFLOW_SEMANTICS } from "@maestro-template/template-core/workflow-semantics";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, onTestFinished } from "vitest";
 import {
   createRepositoryContext,
   evaluateReceiptStaleness,
@@ -8,11 +8,13 @@ import {
 import { execFileSync, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import {
+  chmod,
   lstat,
   mkdir,
   mkdtemp,
   readFile,
   readdir,
+  rm,
   writeFile,
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -26,6 +28,7 @@ import {
   projectCompositionEnvironment,
   projectCompositionProviderPosture,
 } from "./composition";
+import { START_HELP } from "./start";
 
 const factoryCliComposition = createFactoryCliComposition(() => ({}));
 const repositoryRoot = fileURLToPath(new URL("../../../../", import.meta.url));
@@ -72,6 +75,25 @@ async function targetFiles(root: string): Promise<readonly string[]> {
       return `${path}:file:${hash}`;
     }),
   );
+}
+
+async function expectOnlyVerificationReceiptAdded(
+  root: string,
+  before: readonly string[],
+): Promise<void> {
+  const after = await targetFiles(root);
+  expect(after.filter((entry) => !entry.startsWith(".maestro"))).toEqual(
+    before,
+  );
+  expect(after.filter((entry) => entry.startsWith(".maestro"))).toEqual([
+    ".maestro:directory",
+    expect.stringMatching(/^\.maestro\/verification-receipt\.json:file:/),
+  ]);
+  const receipt = await readFile(
+    join(root, ".maestro", "verification-receipt.json"),
+    "utf8",
+  );
+  expect(() => JSON.parse(receipt)).not.toThrow();
 }
 
 async function configuredGitTarget(): Promise<string> {
@@ -188,8 +210,7 @@ describe("factory CLI composition", () => {
       start?.run(["start", "--help"], "/tmp/customer-app"),
     ).resolves.toMatchObject({
       exitCode: 0,
-      stdout:
-        "maestro start [--mode fake|local|dev] [--human|--details|--json]\n",
+      stdout: START_HELP,
       stderr: "",
     });
   });
@@ -374,14 +395,22 @@ describe("factory CLI composition", () => {
     }
   }, 60_000);
 
-  it("keeps the canonical gate unavailable in real CLI and MCP processes when gitleaks is absent", () => {
+  it("keeps the canonical gate unavailable in real CLI and MCP processes when gitleaks is absent", async () => {
     const pnpmExecutable = execFileSync("which", ["pnpm"], {
       encoding: "utf8",
     }).trim();
+    const isolatedBin = await mkdtemp(join(tmpdir(), "maestro-no-gitleaks-"));
+    const isolatedPnpm = join(isolatedBin, "pnpm");
+    await writeFile(
+      isolatedPnpm,
+      `#!/bin/sh\nexec ${JSON.stringify(pnpmExecutable)} "$@"\n`,
+    );
+    await chmod(isolatedPnpm, 0o755);
+    onTestFinished(() => rm(isolatedBin, { recursive: true, force: true }));
     const environment = {
       ...process.env,
       PATH: [
-        dirname(pnpmExecutable),
+        isolatedBin,
         dirname(process.execPath),
         "/usr/local/bin",
         "/usr/bin",
@@ -527,7 +556,7 @@ describe("factory CLI composition", () => {
     }
   }, 30_000);
 
-  it("changes no target file during default CLI verify", async () => {
+  it("persists only a verification receipt during default CLI verify", async () => {
     const root = await cleanGitTarget();
     const before = await targetFiles(root);
     const verify = factoryCliComposition.handlers.find(
@@ -536,11 +565,11 @@ describe("factory CLI composition", () => {
 
     const result = await verify?.run(["verify", "--json"], root);
 
-    expect(result?.stdout).toContain('"mutationPosture": "read-only"');
-    expect(await targetFiles(root)).toEqual(before);
+    expect(result?.stdout).toContain('"mutationPosture": "write"');
+    await expectOnlyVerificationReceiptAdded(root, before);
   }, 20_000);
 
-  it("changes no target file during default CLI check", async () => {
+  it("persists only a verification receipt during default CLI check", async () => {
     const root = await cleanGitTarget();
     const before = await targetFiles(root);
     const check = factoryCliComposition.handlers.find(
@@ -549,8 +578,8 @@ describe("factory CLI composition", () => {
 
     const result = await check?.run(["check", "--json"], root);
 
-    expect(result?.stdout).toContain('"mutationPosture": "read-only"');
-    expect(await targetFiles(root)).toEqual(before);
+    expect(result?.stdout).toContain('"mutationPosture": "write"');
+    await expectOnlyVerificationReceiptAdded(root, before);
   }, 20_000);
 
   it("changes no target file during MCP verify", async () => {

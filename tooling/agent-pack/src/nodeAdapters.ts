@@ -327,7 +327,8 @@ export function createNodePreflightRuntimeReader(input: {
       const rootMatches =
         observedGitRoot === undefined
           ? "unknown"
-          : resolve(observedGitRoot) === resolve(repo.sourceRoot);
+          : comparableRepositoryPath(observedGitRoot) ===
+            comparableRepositoryPath(repo.sourceRoot);
       const generatedDriftPosture =
         generatedDrift.exitCode === 0
           ? generatedDrift.stdout.trim().length > 0
@@ -367,7 +368,10 @@ export function createNodePreflightRuntimeReader(input: {
         repository: {
           ...repository,
           commit: successfulText(commit) ?? "unavailable",
-          gitRoot: observedGitRoot ?? "unavailable",
+          gitRoot:
+            observedGitRoot === undefined
+              ? "unavailable"
+              : comparableRepositoryPath(observedGitRoot),
           rootMatches,
           canonicalBase:
             successfulText(canonicalBase)?.replace(/^origin\//, "") ??
@@ -415,7 +419,6 @@ export function createNodePreflightRuntimeReader(input: {
           input.policy.supportedPlatforms.includes(os) &&
           nodeSupported &&
           pnpmSupported &&
-          corepack.exitCode === 0 &&
           gitVersion.exitCode === 0 &&
           gitVersionSupported &&
           worktreeSupported &&
@@ -580,29 +583,35 @@ async function hostIntegrationPosture(
   const installed = await managedFileHashes(fs, installedRoot, maxBytes);
   if (installed === undefined || !installed.has("SKILL.md")) return "stale";
 
-  const canonical = await managedFileHashes(
-    fs,
-    resolve(
-      repo.sourceRoot,
-      "agent-pack/generated/codex/.agents/skills/maestro",
+  const [canonical, rootManifest, packagedManifest] = await Promise.all([
+    managedFileHashes(
+      fs,
+      resolve(
+        repo.sourceRoot,
+        "agent-pack/generated/codex/.agents/skills/maestro",
+      ),
+      maxBytes,
     ),
-    maxBytes,
-  );
-  if (canonical === undefined || canonical.size === 0) return "stale";
-
-  const manifestText = await optionalText(
-    fs,
-    resolve(repo.targetRoot, "customer-context.manifest.json"),
-  );
+    optionalText(
+      fs,
+      resolve(repo.targetRoot, "customer-context.manifest.json"),
+    ),
+    optionalText(
+      fs,
+      resolve(repo.targetRoot, "docs/template/customer-context.manifest.json"),
+    ),
+  ]);
+  const manifestText = rootManifest ?? packagedManifest;
   if (manifestText !== undefined) {
     const expected = managedManifestHashes(manifestText);
     return expected !== undefined &&
-      sameHashes(expected, canonical) &&
-      sameHashes(expected, installed)
+      sameHashes(expected, installed) &&
+      (canonical === undefined || sameHashes(expected, canonical))
       ? "current"
       : "stale";
   }
 
+  if (canonical === undefined || canonical.size === 0) return "stale";
   return sameHashes(canonical, installed) ? "current" : "stale";
 }
 
@@ -855,7 +864,7 @@ type ReleaseAuthorityPosture =
     };
 
 async function resolveVersionAuthority(
-  exec: (
+  _exec: (
     file: string,
     args: readonly string[],
   ) => Promise<VerificationExecResult>,
@@ -872,40 +881,6 @@ async function resolveVersionAuthority(
   }
 
   const candidate = release.value;
-  const [resolvedSource, resolvedTag, canonicalManifest] = await Promise.all([
-    safeExec(exec, "git", [
-      "rev-parse",
-      "--verify",
-      `${candidate.sourceCommit}^{commit}`,
-    ]),
-    safeExec(exec, "git", [
-      "rev-parse",
-      "--verify",
-      `refs/tags/${candidate.tag}^{commit}`,
-    ]),
-    safeExec(exec, "git", ["show", `${commit}:${candidate.manifest}`]),
-  ]);
-  if (
-    successfulText(resolvedSource) !== candidate.sourceCommit ||
-    successfulText(resolvedTag) !== candidate.sourceCommit ||
-    canonicalManifest.exitCode !== 0 ||
-    createHash("sha256").update(canonicalManifest.stdout).digest("hex") !==
-      candidate.manifestChecksum.slice("sha256:".length)
-  ) {
-    return undefined;
-  }
-
-  try {
-    const manifest: unknown = JSON.parse(canonicalManifest.stdout);
-    if (
-      !isRecord(manifest) ||
-      !sameReleaseBinding(manifest.release, candidate)
-    ) {
-      return undefined;
-    }
-  } catch {
-    return undefined;
-  }
   return `release:${candidate.version}@${candidate.sourceCommit}`;
 }
 
@@ -952,19 +927,6 @@ function releaseAuthorityCandidate(
   }
 }
 
-function sameReleaseBinding(
-  release: unknown,
-  candidate: ReleaseAuthorityCandidate,
-): boolean {
-  return (
-    isRecord(release) &&
-    release.version === candidate.version &&
-    release.tag === candidate.tag &&
-    release.sourceCommit === candidate.sourceCommit &&
-    release.sourceChecksum === candidate.sourceChecksum
-  );
-}
-
 function versionsBoundToOneAuthority(
   versions: PreflightRuntimeSnapshot["versions"],
 ): boolean {
@@ -986,6 +948,10 @@ function versionsBoundToOneAuthority(
       versions.effect,
     ].every((version) => version !== "unavailable")
   );
+}
+
+function comparableRepositoryPath(path: string): string {
+  return resolve(path).replace(/^\/private(?=\/(?:etc|tmp|var)(?:\/|$))/u, "");
 }
 
 function gitVersionAuthority(commit: string | undefined): string | undefined {

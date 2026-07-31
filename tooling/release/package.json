@@ -6,6 +6,7 @@
   "types": "dist/index.d.ts",
   "exports": {
     "./customer-create": "./src/customerTarget/createAdapter.ts",
+    "./customer-integrity": "./src/customerTarget/integrity.ts",
     "./migration": "./src/migration/index.ts",
     "./upgrade": "./src/upgrade/index.ts"
   },

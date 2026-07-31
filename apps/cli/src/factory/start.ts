@@ -21,7 +21,7 @@ import { setTimeout as delay } from "node:timers/promises";
 import { runAgentPackCommandAsCli, type FactoryCliRenderMode } from "./router";
 
 export const START_HELP =
-  "maestro start [--mode fake|local|dev] [--human|--details|--json]\n";
+  "maestro start [--mode fake|local|dev] [--web-port PORT] [--convex-port PORT] [--convex-site-port PORT] [--readiness-port PORT] [--human|--details|--json]\n";
 
 export type StartOutputBoundary = {
   readonly write: (line: string) => void;
@@ -160,32 +160,34 @@ export function parseStartTargetInstance<T>(
     return canonical(raw);
   } catch (canonicalError) {
     try {
-      const value: unknown = JSON.parse(raw);
-      const personalization = isRecord(value)
-        ? value.personalization
-        : undefined;
-      const blueprint = isRecord(value) ? value.blueprint : undefined;
-      if (
-        isRecord(personalization) &&
-        typeof personalization.name === "string" &&
-        personalization.name.trim() !== "" &&
-        typeof personalization.firstOutcome === "string" &&
-        personalization.firstOutcome.trim() !== "" &&
-        isRecord(blueprint) &&
-        typeof blueprint.id === "string" &&
-        blueprint.id.trim() !== ""
-      ) {
-        return customerDefault({
-          name: personalization.name,
-          blueprint: blueprint.id,
-        });
-      }
+      const identity = parseCustomerIdentity(JSON.parse(raw));
+      if (identity !== undefined) return customerDefault(identity);
     } catch {
       // Preserve the canonical parser diagnostic below.
     }
     throw canonicalError;
   }
 }
+
+function parseCustomerIdentity(
+  value: unknown,
+): { readonly name: string; readonly blueprint: string } | undefined {
+  if (!isRecord(value)) return undefined;
+  const personalization = value.personalization;
+  const blueprint = value.blueprint;
+  if (
+    !isRecord(personalization) ||
+    !isRecord(blueprint) ||
+    !nonemptyText(personalization.name) ||
+    !nonemptyText(personalization.firstOutcome) ||
+    !nonemptyText(blueprint.id)
+  )
+    return undefined;
+  return { name: personalization.name, blueprint: blueprint.id };
+}
+
+const nonemptyText = (value: unknown): value is string =>
+  typeof value === "string" && value.trim() !== "";
 
 function parseStartCli(argv: readonly string[]): {
   readonly input: unknown;
@@ -196,6 +198,13 @@ function parseStartCli(argv: readonly string[]): {
   let renderMode: FactoryCliRenderMode = "human";
   let renderSeen = false;
   let valid = true;
+  const ports: Record<string, number> = {};
+  const portFlags: Readonly<Record<string, string>> = {
+    "--web-port": "web",
+    "--convex-port": "convex",
+    "--convex-site-port": "convexSite",
+    "--readiness-port": "readinessPresenter",
+  };
   for (let index = 0; index < argv.length; index += 1) {
     const token = argv[index];
     if (token === "--mode") {
@@ -209,6 +218,14 @@ function parseStartCli(argv: readonly string[]): {
       }
       continue;
     }
+    const portKey = token === undefined ? undefined : portFlags[token];
+    if (portKey !== undefined) {
+      const parsedPort = parsePort(argv[index + 1], portKey in ports);
+      if (parsedPort.port === undefined) valid = false;
+      else ports[portKey] = parsedPort.port;
+      if (parsedPort.consumeValue) index += 1;
+      continue;
+    }
     const selected = renderModeFor(token);
     if (selected === undefined || renderSeen) valid = false;
     else {
@@ -216,7 +233,25 @@ function parseStartCli(argv: readonly string[]): {
       renderSeen = true;
     }
   }
-  return { input: valid ? { mode } : { mode: "__invalid__" }, renderMode };
+  return {
+    input: valid
+      ? { mode, ...(Object.keys(ports).length === 0 ? {} : { ports }) }
+      : { mode: "__invalid__" },
+    renderMode,
+  };
+}
+
+function parsePort(
+  value: string | undefined,
+  duplicate: boolean,
+): { readonly consumeValue: boolean; readonly port?: number } {
+  if (value === undefined || !/^[1-9]\d*$/.test(value) || duplicate) {
+    return { consumeValue: false };
+  }
+  const port = Number(value);
+  return Number.isInteger(port) && port >= 1024 && port <= 65_535
+    ? { consumeValue: true, port }
+    : { consumeValue: true };
 }
 
 function renderModeFor(

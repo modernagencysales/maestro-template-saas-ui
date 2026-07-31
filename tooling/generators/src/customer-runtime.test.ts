@@ -9,7 +9,10 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { runCustomerGeneratorCli } from "./customer-dispatcher";
+import {
+  runCustomerGeneratorCli,
+  runReviewedGenerator,
+} from "./customer-dispatcher";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../../..");
 
@@ -28,6 +31,19 @@ const seedCatalogs = (cwd: string): void => {
 };
 
 describe("customer generator runtime", () => {
+  it("normalizes the pnpm argument separator before dispatch", () => {
+    const result = runCustomerGeneratorCli(
+      ["--", "systems", "--query", "workflows"],
+      repoRoot,
+    );
+    expect(result.exitCode).toBe(0);
+    expect(JSON.parse(result.stdout)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: "workflow-runtime" }),
+      ]),
+    );
+  });
+
   it.each([
     ["add-capability", "customerReview"],
     ["add-workflow", "customerReviewFlow"],
@@ -95,6 +111,101 @@ describe("customer generator runtime", () => {
       );
       for (const file of result.files)
         expect(readFileSync(join(cwd, file.path), "utf8")).toBe(file.content);
+    } finally {
+      rmSync(cwd, { recursive: true, force: true });
+    }
+  });
+
+  it("updates reviewed table registries while preserving leaf collisions", () => {
+    const cwd = mkdtempSync(join(tmpdir(), "maestro-customer-table-review-"));
+    try {
+      seedCatalogs(cwd);
+      const generatedRegistry = join(
+        cwd,
+        "packages/convex/confect/ops/dataResources.generated.ts",
+      );
+      mkdirSync(dirname(generatedRegistry), { recursive: true });
+      writeFileSync(generatedRegistry, "export const existing = true;\n");
+      const request = {
+        generatorId: "add-table",
+        args: {
+          name: "customerNotes",
+          system: "knowledge-brain",
+          disposition: "extend",
+          tenantScope: "workspace",
+          sensitivity: "confidential",
+          pii: "none",
+          exportMode: "json",
+          deleteMode: "delete",
+          retention: "retain-until-workspace-delete",
+          appendOnly: false,
+        },
+        write: false,
+        cwd,
+      } as const;
+
+      const reviewed = runReviewedGenerator(request);
+      expect(reviewed).toMatchObject({ ok: true });
+      if (!reviewed.ok) throw new Error(reviewed.message);
+      expect(reviewed.output.files.map(({ path }) => path)).toContain(
+        "packages/convex/confect/ops/dataResources.generated.ts",
+      );
+      expect(reviewed.output.collisions).toEqual([]);
+      expect(reviewed.output.focusedGates).toContain(
+        "pnpm check:system-catalog",
+      );
+
+      const occupiedLeaf = join(
+        cwd,
+        "packages/convex/confect/tables/customerNotes.ts",
+      );
+      mkdirSync(dirname(occupiedLeaf), { recursive: true });
+      writeFileSync(occupiedLeaf, "// customer-owned\n");
+      const collided = runReviewedGenerator(request);
+      expect(collided).toMatchObject({ ok: true });
+      if (!collided.ok) throw new Error(collided.message);
+      expect(collided.output.collisions).toEqual([
+        "packages/convex/confect/tables/customerNotes.ts",
+      ]);
+    } finally {
+      rmSync(cwd, { recursive: true, force: true });
+    }
+  });
+
+  it("generates a feature route before running its typecheck gate", () => {
+    const cwd = mkdtempSync(join(tmpdir(), "maestro-customer-feature-review-"));
+    try {
+      seedCatalogs(cwd);
+      const reviewed = runReviewedGenerator({
+        generatorId: "add-feature",
+        args: {
+          name: "customerNotes",
+          system: "knowledge-brain",
+          disposition: "extend",
+        },
+        write: false,
+        cwd,
+      });
+
+      expect(reviewed).toMatchObject({
+        ok: true,
+        output: {
+          codegen: [
+            "pnpm confect:codegen",
+            "pnpm confect:manifest",
+            "pnpm format",
+            "pnpm --dir apps/web build",
+          ],
+          focusedGates: expect.arrayContaining([
+            "pnpm --dir apps/web typecheck",
+          ]),
+        },
+      });
+      if (!reviewed.ok) throw new Error(reviewed.message);
+      expect(
+        reviewed.output.files.find(({ path }) => path.endsWith("/fixtures.ts"))
+          ?.content,
+      ).not.toContain("[0]!");
     } finally {
       rmSync(cwd, { recursive: true, force: true });
     }

@@ -265,5 +265,33 @@ export function renderAgentPackResult(
     );
   }
 
+  if (!options.details) {
+    for (const command of nextCommands(result.data))
+      lines.push(`Run: ${command}`);
+  }
+
   return `${lines.join("\n")}\n`;
+}
+
+function nextCommands(data: AgentPackJsonValue): readonly string[] {
+  if (!isJsonRecord(data)) return [];
+  const actions = Array.isArray(data.followUpActions)
+    ? data.followUpActions.flatMap((action) =>
+        isJsonRecord(action) && typeof action.command === "string"
+          ? [action.command]
+          : [],
+      )
+    : [];
+  const confirmation =
+    typeof data.confirmationCommand === "string"
+      ? [data.confirmationCommand]
+      : [];
+  const next = typeof data.nextCommand === "string" ? [data.nextCommand] : [];
+  return [...actions, ...confirmation, ...next];
+}
+
+function isJsonRecord(
+  value: AgentPackJsonValue,
+): value is { readonly [key: string]: AgentPackJsonValue } {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
 }

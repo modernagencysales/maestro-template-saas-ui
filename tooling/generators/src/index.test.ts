@@ -36,6 +36,7 @@ import {
   REVIEWED_GENERATOR_DESCRIPTORS,
   runReviewedGenerator,
   runGeneratorCli,
+  runGeneratorCliProcess,
 } from "./index";
 import { gtmImplementationBlueprint } from "./blueprints/gtmImplementation";
 import {
@@ -2496,5 +2497,64 @@ describe("template app factory generators", () => {
     } finally {
       rmSync(cwd, { recursive: true, force: true });
     }
+  });
+
+  it("prints direct generator help before required argument parsing", () => {
+    const result = runGeneratorCli(["add-workflow", "--help"]);
+
+    expect(result).toMatchObject({
+      exitCode: 0,
+      stdout: expect.stringContaining("template:add-workflow --name <name>"),
+      stderr: "",
+    });
+
+    const preview = runGeneratorCli([
+      "add-workflow",
+      "--name",
+      "directSafety",
+      "--system",
+      "knowledge-brain",
+      "--disposition",
+      "extend",
+    ]);
+    expect(JSON.parse(preview.stdout)).toMatchObject({
+      privacy: { classification: "review-required", secrets: "names-only" },
+      reviewedEquivalent: {
+        argv: expect.arrayContaining([
+          "node",
+          "maestro-template.mjs",
+          "scaffold",
+        ]),
+      },
+    });
+  });
+
+  it("rejects surplus words after a systems query", () => {
+    const ambiguous = runGeneratorCli(["systems", "--query", "social", "sync"]);
+    const quoted = runGeneratorCli(["systems", "--query", "social sync"]);
+
+    expect(ambiguous.exitCode).toBe(1);
+    expect(ambiguous.stderr).toContain("Quote multi-word queries");
+    expect(quoted.exitCode).toBe(0);
+  });
+
+  it("executes package-script argv and preserves an ambiguous-query failure", () => {
+    let stdout = "";
+    let stderr = "";
+    const exitCode = runGeneratorCliProcess(
+      ["systems", "--", "--query", "social", "sync"],
+      {
+        stdout: (value) => {
+          stdout += value;
+        },
+        stderr: (value) => {
+          stderr += value;
+        },
+      },
+    );
+
+    expect(exitCode).toBe(1);
+    expect(stdout).toBe("");
+    expect(stderr).toContain("Quote multi-word queries");
   });
 });

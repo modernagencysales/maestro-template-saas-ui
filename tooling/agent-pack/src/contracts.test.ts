@@ -274,4 +274,36 @@ describe("agent-pack command contract", () => {
       renderAgentPackResult(result, { details: true }),
     );
   });
+
+  it("renders actionable commands carried by successful command data", async () => {
+    const command = defineAgentPackCommand({
+      ...exampleCommand,
+      execute: async () => ({
+        mutationPosture: "preview" as const,
+        exitClass: "success" as const,
+        summary: "Prepared the next safe step.",
+        diagnostics: [],
+        data: {
+          followUpActions: [{ command: "git init" }],
+          confirmationCommand: "pnpm maestro -- add example --write",
+          nextCommand: "pnpm maestro -- start --mode fake",
+        },
+      }),
+    });
+    const result = await executeAgentPackCommand(
+      command,
+      { name: "demo" },
+      context,
+    );
+
+    expect(renderAgentPackResult(result)).toBe(
+      [
+        "Prepared the next safe step.",
+        "Run: git init",
+        "Run: pnpm maestro -- add example --write",
+        "Run: pnpm maestro -- start --mode fake",
+        "",
+      ].join("\n"),
+    );
+  });
 });

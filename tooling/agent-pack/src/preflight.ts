@@ -157,7 +157,7 @@ export function createPreflightCommand(probe: PreflightProbe) {
       const fingerprintBinding = isPreflightObservation(inspected)
         ? inspected.fingerprintBinding
         : "environment_binding_sha256:unavailable";
-      const diagnostics = preflightDiagnostics(facts);
+      const diagnostics = preflightDiagnostics(facts, input.mode);
       const safeToMutate = !diagnostics.some(
         ({ code }) => unavailableCodes.has(code) || blockedCodes.has(code),
       );
@@ -233,6 +233,7 @@ function decodePreflightInput(
 
 function preflightDiagnostics(
   facts: PreflightFacts,
+  mode: PreflightMode,
 ): readonly AgentPackDiagnostic[] {
   const diagnostics: AgentPackDiagnostic[] = [];
   const add = (
@@ -263,11 +264,11 @@ function preflightDiagnostics(
     "pnpm maestro -- preflight --json",
   );
   add(
-    !facts.host.pnpm.supported || facts.host.corepack === "missing",
+    !facts.host.pnpm.supported,
     "AGENT_PACK_PNPM_UNSUPPORTED",
-    "The pinned pnpm/Corepack toolchain is unavailable.",
+    "The pinned pnpm toolchain is unavailable.",
     false,
-    "Enable Corepack and install the pinned pnpm version.",
+    "Run node scripts/maestro-bootstrap.mjs for the pinned Corepack or npx installation command.",
     "pnpm maestro -- preflight --json",
   );
   add(
@@ -287,7 +288,7 @@ function preflightDiagnostics(
     "pnpm install --frozen-lockfile",
   );
   add(
-    facts.app.providerMode !== "fake" && facts.network === "offline",
+    mode !== "fake" && facts.network === "offline",
     "AGENT_PACK_OFFLINE",
     "The host is offline; committed checks remain available.",
     true,
@@ -295,7 +296,7 @@ function preflightDiagnostics(
     "pnpm maestro -- preflight --mode fake",
   );
   add(
-    facts.app.providerMode !== "fake" && facts.network === "unknown",
+    mode !== "fake" && facts.network === "unknown",
     "AGENT_PACK_NETWORK_UNKNOWN",
     observationMessage(
       facts,

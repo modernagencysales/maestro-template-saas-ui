@@ -1,22 +1,19 @@
 # Effect And Confect Agent Patterns
 
-This repo vendors upstream source under `repos/` so agents can inspect real
-implementation and test patterns before writing Effect or Confect code.
+Factory checkouts may include read-only upstream research trees. Generated
+customer targets instead ship canonical local guidance and typed contracts.
 
 ## Read Order
 
 When writing Effect or Confect code:
 
 1. Read the local project rules in `AGENTS.md`.
-2. Read `repos/effect/AGENTS.md`.
-3. Read `repos/confect/CLAUDE.md`.
-4. Search `repos/confect/apps/example/confect/` for Confect file layout.
-5. Search `repos/effect/packages/effect/test/` for Effect, Schema, Layer, and
-   error-handling patterns.
+2. Read `docs/template/confect-effect-guide.md`.
+3. Inspect the shipped typed contracts and focused tests for the affected
+   package.
 
-Treat vendored repositories as read-only reference material. Do not edit files
-under `repos/` unless the task explicitly says to update the vendored subtree.
-Application code must import from package dependencies, never from `repos/`.
+Do not invent dependencies on factory-only research paths. Application code must
+import from package dependencies, never from `repos/`.
 
 ## Confect Patterns To Prefer
 

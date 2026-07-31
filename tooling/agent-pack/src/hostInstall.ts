@@ -4,13 +4,12 @@ import {
   lstat,
   readdir,
   readFile,
-  realpath,
   rm,
   stat,
   writeFile,
 } from "node:fs/promises";
 import { basename, dirname, join, relative, resolve } from "node:path";
-import { tmpdir } from "node:os";
+import { isDirectTemporaryPath } from "./temporaryPath.js";
 
 export type HostName = "claude-code" | "codex";
 export {
@@ -180,16 +179,12 @@ async function assertDisposableHome(
   if (!basename(resolved).startsWith(`maestro-${expectedToken}-`)) {
     throw new Error("host installation requires a disposable temporary home");
   }
-  const temporaryRoot = `${await realpath(tmpdir())}/`;
-  const existing = await realpath(resolved);
+  const existing = resolve(resolved);
   if (
-    !`${existing}/`.startsWith(temporaryRoot) ||
+    !(await isDirectTemporaryPath(existing)) ||
     !basename(existing).startsWith(`maestro-${expectedToken}-`)
   ) {
     throw new Error("host installation requires a disposable temporary home");
-  }
-  if (existing !== resolved) {
-    throw new Error("disposable temporary home must not traverse a symlink");
   }
 }
 
