@@ -48,7 +48,7 @@ export const calculateLlmSpend = (input: LlmSpendInput): LlmSpendEstimate => {
     (input.completionTokens / 1_000_000) * input.outputCentsPerMillionTokens;
   const estimatedCents = Math.max(
     input.minimumCents,
-    Math.ceil(inputCents + outputCents),
+    Math.round((inputCents + outputCents) * 1_000_000) / 1_000_000,
   );
 
   return {

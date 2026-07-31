@@ -561,6 +561,54 @@
       "notes": "Default model identifier."
     },
     {
+      "name": "LLM_FREE_MODEL",
+      "group": "openrouter",
+      "services": ["convex"],
+      "visibility": "server-config",
+      "requiredFor": ["fake", "test", "live"],
+      "fakeExampleAllowed": true,
+      "fakeExample": "fake/cheap-evaluator",
+      "owner": "AI platform owner",
+      "rotation": "Review cost and structured-output quality each release.",
+      "notes": "Low-cost model used only for bounded free evaluations."
+    },
+    {
+      "name": "LLM_PREMIUM_MODEL",
+      "group": "openrouter",
+      "services": ["convex"],
+      "visibility": "server-config",
+      "requiredFor": ["fake", "test", "live"],
+      "fakeExampleAllowed": true,
+      "fakeExample": "fake/quality-build-pack",
+      "owner": "AI platform owner",
+      "rotation": "Review output quality and model allowlist each release.",
+      "notes": "Higher-quality model used by paid checkpointed Build Pack stages."
+    },
+    {
+      "name": "LLM_FREE_DAILY_SPEND_LIMIT_CENTS",
+      "group": "openrouter",
+      "services": ["convex"],
+      "visibility": "server-config",
+      "requiredFor": ["fake", "test", "live"],
+      "fakeExampleAllowed": true,
+      "fakeExample": "500",
+      "owner": "AI platform owner",
+      "rotation": "Review daily while tuning acquisition traffic.",
+      "notes": "Independent daily ceiling for free-funnel model calls."
+    },
+    {
+      "name": "LLM_PREMIUM_DAILY_SPEND_LIMIT_CENTS",
+      "group": "openrouter",
+      "services": ["convex"],
+      "visibility": "server-config",
+      "requiredFor": ["fake", "test", "live"],
+      "fakeExampleAllowed": true,
+      "fakeExample": "2000",
+      "owner": "AI platform owner",
+      "rotation": "Review against paid pack revenue each release.",
+      "notes": "Independent daily ceiling for entitlement-gated premium generation."
+    },
+    {
       "name": "STORAGE_PROVIDER",
       "group": "storage",
       "services": ["convex", "web"],
