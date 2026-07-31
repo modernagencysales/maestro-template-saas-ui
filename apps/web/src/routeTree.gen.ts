@@ -12,7 +12,9 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as SupportRouteImport } from './routes/support'
 import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as EvaluateRouteImport } from './routes/evaluate'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ReportEvaluationIdRouteImport } from './routes/report.$evaluationId'
 import { Route as WorkspaceWorkflowsRouteImport } from './routes/_workspace.workflows'
 import { Route as WorkspaceSourcesRouteImport } from './routes/_workspace.sources'
 import { Route as WorkspaceSettingsRouteImport } from './routes/_workspace.settings'
@@ -48,9 +50,19 @@ const PrivacyRoute = PrivacyRouteImport.update({
   path: '/privacy',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EvaluateRoute = EvaluateRouteImport.update({
+  id: '/evaluate',
+  path: '/evaluate',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReportEvaluationIdRoute = ReportEvaluationIdRouteImport.update({
+  id: '/report/$evaluationId',
+  path: '/report/$evaluationId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const WorkspaceWorkflowsRoute = WorkspaceWorkflowsRouteImport.update({
@@ -151,6 +163,7 @@ const WorkspaceAdminRoute = WorkspaceAdminRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/evaluate': typeof EvaluateRoute
   '/privacy': typeof PrivacyRoute
   '/support': typeof SupportRoute
   '/terms': typeof TermsRoute
@@ -173,9 +186,11 @@ export interface FileRoutesByFullPath {
   '/settings': typeof WorkspaceSettingsRoute
   '/sources': typeof WorkspaceSourcesRoute
   '/workflows': typeof WorkspaceWorkflowsRoute
+  '/report/$evaluationId': typeof ReportEvaluationIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/evaluate': typeof EvaluateRoute
   '/privacy': typeof PrivacyRoute
   '/support': typeof SupportRoute
   '/terms': typeof TermsRoute
@@ -198,10 +213,12 @@ export interface FileRoutesByTo {
   '/settings': typeof WorkspaceSettingsRoute
   '/sources': typeof WorkspaceSourcesRoute
   '/workflows': typeof WorkspaceWorkflowsRoute
+  '/report/$evaluationId': typeof ReportEvaluationIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/evaluate': typeof EvaluateRoute
   '/privacy': typeof PrivacyRoute
   '/support': typeof SupportRoute
   '/terms': typeof TermsRoute
@@ -224,11 +241,13 @@ export interface FileRoutesById {
   '/_workspace/settings': typeof WorkspaceSettingsRoute
   '/_workspace/sources': typeof WorkspaceSourcesRoute
   '/_workspace/workflows': typeof WorkspaceWorkflowsRoute
+  '/report/$evaluationId': typeof ReportEvaluationIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/evaluate'
     | '/privacy'
     | '/support'
     | '/terms'
@@ -251,9 +270,11 @@ export interface FileRouteTypes {
     | '/settings'
     | '/sources'
     | '/workflows'
+    | '/report/$evaluationId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/evaluate'
     | '/privacy'
     | '/support'
     | '/terms'
@@ -276,9 +297,11 @@ export interface FileRouteTypes {
     | '/settings'
     | '/sources'
     | '/workflows'
+    | '/report/$evaluationId'
   id:
     | '__root__'
     | '/'
+    | '/evaluate'
     | '/privacy'
     | '/support'
     | '/terms'
@@ -301,10 +324,12 @@ export interface FileRouteTypes {
     | '/_workspace/settings'
     | '/_workspace/sources'
     | '/_workspace/workflows'
+    | '/report/$evaluationId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  EvaluateRoute: typeof EvaluateRoute
   PrivacyRoute: typeof PrivacyRoute
   SupportRoute: typeof SupportRoute
   TermsRoute: typeof TermsRoute
@@ -327,6 +352,7 @@ export interface RootRouteChildren {
   WorkspaceSettingsRoute: typeof WorkspaceSettingsRoute
   WorkspaceSourcesRoute: typeof WorkspaceSourcesRoute
   WorkspaceWorkflowsRoute: typeof WorkspaceWorkflowsRoute
+  ReportEvaluationIdRoute: typeof ReportEvaluationIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -352,11 +378,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PrivacyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/evaluate': {
+      id: '/evaluate'
+      path: '/evaluate'
+      fullPath: '/evaluate'
+      preLoaderRoute: typeof EvaluateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/report/$evaluationId': {
+      id: '/report/$evaluationId'
+      path: '/report/$evaluationId'
+      fullPath: '/report/$evaluationId'
+      preLoaderRoute: typeof ReportEvaluationIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_workspace/workflows': {
@@ -497,6 +537,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  EvaluateRoute: EvaluateRoute,
   PrivacyRoute: PrivacyRoute,
   SupportRoute: SupportRoute,
   TermsRoute: TermsRoute,
@@ -519,6 +560,7 @@ const rootRouteChildren: RootRouteChildren = {
   WorkspaceSettingsRoute: WorkspaceSettingsRoute,
   WorkspaceSourcesRoute: WorkspaceSourcesRoute,
   WorkspaceWorkflowsRoute: WorkspaceWorkflowsRoute,
+  ReportEvaluationIdRoute: ReportEvaluationIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

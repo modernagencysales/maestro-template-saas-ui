@@ -136,6 +136,9 @@ importers:
       "@emotion/react":
         specifier: ^11.14.0
         version: 11.14.0(@types/react@19.2.17)(react@19.1.0)
+      "@maestro-template/app-idea-evaluator":
+        specifier: workspace:*
+        version: link:../../packages/app-idea-evaluator
       "@maestro-template/convex":
         specifier: workspace:*
         version: link:../../packages/convex
