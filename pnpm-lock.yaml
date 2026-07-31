@@ -231,6 +231,12 @@ importers:
         specifier: ^8.1.2
         version: 8.1.2(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0)
 
+  packages/app-idea-evaluator:
+    dependencies:
+      effect:
+        specifier: 3.21.4
+        version: 3.21.4
+
   packages/convex:
     dependencies:
       "@blocknote/core":
