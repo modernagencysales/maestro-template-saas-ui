@@ -48,11 +48,35 @@ export type LlmGatewayError =
   | LlmProviderConfigError
   | LlmProviderCallError
   | LlmReceiptValidationError
-  | SpendCapExceededError;
+  | SpendCapExceededError
+  | LlmRequestLimitError;
+
+export class LlmRequestLimitError extends Schema.TaggedError<LlmRequestLimitError>()(
+  "LlmRequestLimitError",
+  {
+    limit: Schema.Literal("input-tokens", "output-tokens"),
+    actual: Schema.Number,
+    maximum: Schema.Number,
+  },
+) {}
+
+export type LlmPricing = {
+  readonly inputCentsPerMillionTokens: number;
+  readonly outputCentsPerMillionTokens: number;
+  readonly minimumCents: number;
+};
+
+export type LlmCallLimits = {
+  readonly maxInputTokens: number;
+  readonly maxOutputTokens: number;
+};
 
 export type LlmGatewayRequest = {
   readonly workspaceSlug: string;
   readonly prompt: string;
+  readonly model?: string;
+  readonly pricing?: LlmPricing;
+  readonly limits?: LlmCallLimits;
   readonly idempotencyKey?: string;
   readonly expectedCompletionTokens?: number;
   readonly currentDailySpendCents?: number;
@@ -132,9 +156,11 @@ const spendForRequest = (request: LlmGatewayRequest) => {
   return calculateLlmSpend({
     promptTokens,
     completionTokens,
-    inputCentsPerMillionTokens: 20,
-    outputCentsPerMillionTokens: 40,
-    minimumCents: 1,
+    inputCentsPerMillionTokens:
+      request.pricing?.inputCentsPerMillionTokens ?? 20,
+    outputCentsPerMillionTokens:
+      request.pricing?.outputCentsPerMillionTokens ?? 40,
+    minimumCents: request.pricing?.minimumCents ?? 1,
   });
 };
 
@@ -174,6 +200,30 @@ export const createLlmGateway = (config: LlmGatewayConfig): LlmGateway => ({
       }
 
       const usage = spendForRequest(request);
+      if (
+        request.limits &&
+        usage.promptTokens > request.limits.maxInputTokens
+      ) {
+        return yield* Effect.fail(
+          new LlmRequestLimitError({
+            limit: "input-tokens",
+            actual: usage.promptTokens,
+            maximum: request.limits.maxInputTokens,
+          }),
+        );
+      }
+      if (
+        request.limits &&
+        usage.completionTokens > request.limits.maxOutputTokens
+      ) {
+        return yield* Effect.fail(
+          new LlmRequestLimitError({
+            limit: "output-tokens",
+            actual: usage.completionTokens,
+            maximum: request.limits.maxOutputTokens,
+          }),
+        );
+      }
       const dailyLimit = Number(
         readEnv(config.env, "LLM_DAILY_SPEND_LIMIT_CENTS") ?? "2500",
       );
@@ -188,7 +238,10 @@ export const createLlmGateway = (config: LlmGatewayConfig): LlmGateway => ({
         return yield* Effect.fail(cap);
       }
 
-      const model = readEnv(config.env, "LLM_DEFAULT_MODEL") ?? defaultModel;
+      const model =
+        request.model ??
+        readEnv(config.env, "LLM_DEFAULT_MODEL") ??
+        defaultModel;
       const generatedAt = config.now?.() ?? new Date().toISOString();
 
       const text =

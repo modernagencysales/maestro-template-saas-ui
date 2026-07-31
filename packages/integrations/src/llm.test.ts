@@ -63,6 +63,50 @@ describe("kill-switch-aware LLM gateway", () => {
     });
   });
 
+  it("uses request-scoped model and pricing", async () => {
+    const gateway = createLlmGateway({ mode: "fake", env: {} });
+    const result = await Effect.runPromise(
+      gateway.complete({
+        workspaceSlug: "public-evaluation",
+        prompt: "Evaluate this idea.",
+        model: "cheap/free-model",
+        pricing: {
+          inputCentsPerMillionTokens: 10,
+          outputCentsPerMillionTokens: 40,
+          minimumCents: 0,
+        },
+      }),
+    );
+
+    expect(result.model).toBe("cheap/free-model");
+    expect(result.usage.estimatedCents).toBeLessThan(1);
+  });
+
+  it("rejects a request that exceeds its token ceiling before transport", async () => {
+    let transportCalled = false;
+    const gateway = createLlmGateway({
+      mode: "live",
+      env: { OPENROUTER_API_KEY: "test-key" },
+      transport: () => {
+        transportCalled = true;
+        return Effect.succeed({ text: "should not happen" });
+      },
+    });
+    const result = await Effect.runPromiseExit(
+      gateway.complete({
+        workspaceSlug: "public-evaluation",
+        prompt: "x".repeat(100),
+        limits: { maxInputTokens: 10, maxOutputTokens: 100 },
+      }),
+    );
+
+    expect(result).toMatchObject({
+      _tag: "Failure",
+      cause: { _tag: "Fail", error: { _tag: "LlmRequestLimitError" } },
+    });
+    expect(transportCalled).toBe(false);
+  });
+
   it("rejects malformed idempotency keys before building LLM receipts", async () => {
     const gateway = createLlmGateway({
       mode: "fake",

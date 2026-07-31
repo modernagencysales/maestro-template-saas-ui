@@ -31,6 +31,18 @@ describe("LLM spend estimator", () => {
     });
   });
 
+  it("prices a request from request-scoped rates without rounding away sub-cent costs", () => {
+    expect(
+      calculateLlmSpend({
+        promptTokens: 1_000,
+        completionTokens: 500,
+        inputCentsPerMillionTokens: 10,
+        outputCentsPerMillionTokens: 40,
+        minimumCents: 0,
+      }),
+    ).toMatchObject({ estimatedCents: 0.03 });
+  });
+
   it("denies calls that would exceed the daily cap", () => {
     const denial = verifyDailySpendCap({
       workspaceSlug: "acme-demo",
