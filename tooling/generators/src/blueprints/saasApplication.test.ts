@@ -128,6 +128,7 @@ describe("saas application blueprint", () => {
 
     const crudTest = entries.get("tooling/generators/src/crud-proof.test.ts");
     const envTest = entries.get("tooling/quality/src/env-manifest.test.mts");
+    const envManifest = entries.get("docs/template/env-manifest.json");
     const confectManifest = entries.get(
       "packages/template-core/src/generated/confectManifest.ts",
     );
@@ -144,6 +145,10 @@ describe("saas application blueprint", () => {
     );
     expect(envTest?.content).not.toContain(
       'readText("tooling/generators/src/index.ts")',
+    );
+    expect(envManifest).toMatchObject({ replaces: "copy" });
+    expect(envManifest?.content).toContain(
+      '"name": "PROMOTION_AUTHORITY_PRIVATE_KEY_PKCS8_BASE64URL"',
     );
     expect(confectManifest).toMatchObject({ replaces: "copy" });
     expect(confectManifest?.content.match(/\n\s+"records",/gu)).toHaveLength(4);
@@ -335,6 +340,7 @@ describe("saas application blueprint", () => {
       "apps/web/package.json",
       "apps/cli/src/factory/mcp.ts",
       "docs/template/data-resources.json",
+      "docs/template/env-manifest.json",
       "docs/template/system-catalog.json",
       "examples/generic-ai-ops/template-package.json",
       "lefthook.yml",
@@ -1050,6 +1056,7 @@ describe("saas application blueprint", () => {
       "packages/convex/convex/records/records.ts",
       "apps/web/src/routeTree.gen.ts",
       "apps/web/src/routeRegistry.generated.ts",
+      "docs/template/env-manifest.json",
       "packages/template-core/src/templateInstance/templateInstance.test.ts",
       "packages/template-core/src/templateInstance/__fixtures__/provider-posture-v1-to-v2.contract.json",
       "packages/template-core/src/generated/confectManifest.ts",

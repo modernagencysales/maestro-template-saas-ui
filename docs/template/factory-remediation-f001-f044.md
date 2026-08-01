@@ -942,3 +942,39 @@ prove:
 
 No full acceptance command is yet claimed passing. Exact command outputs and
 commit coordinates will be added only after observation.
+
+### FR-F-008 — Customer env manifest omits retained deploy authority
+
+- ID/title: FR-F-008 (customer env manifest omits retained deploy authority).
+- Original posture: newly reproduced/high because the generated customer's
+  retained quality suite rejects its machine-readable environment authority.
+- Confirmed reproduction: fresh customer
+  `/private/tmp/maestro-fresh-customer-recovery-v9-SbN9S7/customer` at baseline
+  commit `cc77fd3` passed pinned frozen install, fake doctor, Confect codegen,
+  Confect manifest generation, route-tree freshness, format, lint, and all 21
+  typecheck tasks. Its individual `just test-tooling` recipe then failed 1 of
+  268 assertions because `PROMOTION_AUTHORITY_PRIVATE_KEY_PKCS8_BASE64URL` was
+  absent from `docs/template/env-manifest.json`.
+- Root cause: current customer composition replaced the updated env-manifest
+  test and retained the deployment-authority runtime, Convex configuration, and
+  operations docs, but still copied the sealed base release's older env
+  manifest. The test and runtime therefore described a current authority
+  variable that the customer manifest did not register.
+- Regression: the SaaS target-plan suite now requires an exact reviewed copy
+  replacement for `docs/template/env-manifest.json` and requires that projection
+  to contain the runtime-only private-key descriptor. The regression first
+  failed because the plan entry was absent.
+- Canonical fix and files:
+  `tooling/generators/src/blueprints/saasApplicationFactory.ts` projects the
+  current canonical env manifest;
+  `tooling/generators/src/blueprints/saasApplication.ts` grants its exact base
+  copy-replacement authority and registers the path; and the SaaS blueprint test
+  pins both the replacement and current-plan inventory. No sealed release
+  manifest or generated customer file is edited.
+- Focused result: the red-to-green SaaS blueprint suite passes 25/25; generator
+  typecheck, scoped ESLint with zero warnings, and scoped Prettier all pass
+  through the focused host semaphore using pnpm `10.12.1`.
+- Clean-customer evidence: the v9 customer is the untouched reproduction. Final
+  proof moves to a wholly new post-fix customer rather than repairing v9.
+- Status: upstream source fixed; final fixed status waits for the coherent
+  commit and untouched post-fix customer acceptance.

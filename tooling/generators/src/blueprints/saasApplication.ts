@@ -275,6 +275,7 @@ function buildTargetPlan(
       ? ([
           ["apps/cli/package.json", "copy"],
           ["apps/web/package.json", "copy"],
+          ["docs/template/env-manifest.json", "copy"],
           ["lefthook.yml", "copy"],
           ["pnpm-lock.yaml", "copy"],
           [
@@ -452,6 +453,7 @@ function buildTargetPlan(
     ...(current ? ["apps/web/package.json"] : []),
     ...(current
       ? [
+          "docs/template/env-manifest.json",
           "packages/template-core/src/templateInstance/templateInstance.test.ts",
           "packages/template-core/src/templateInstance/__fixtures__/provider-posture-v1-to-v2.contract.json",
           "packages/template-core/src/generated/confectManifest.ts",

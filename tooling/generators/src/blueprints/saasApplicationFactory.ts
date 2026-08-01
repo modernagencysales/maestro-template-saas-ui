@@ -5,6 +5,7 @@ import { buildSaasRegistrationProjections } from "./saasRegistrationProjections"
 
 const RECORDS_SURFACE = "apps/web/src/features/records/records-surface.tsx";
 const CURRENT_CUSTOMER_SOURCE_PROJECTIONS = [
+  "docs/template/env-manifest.json",
   "packages/template-core/src/templateInstance/templateInstance.test.ts",
   "packages/template-core/src/templateInstance/__fixtures__/provider-posture-v1-to-v2.contract.json",
   "packages/template-core/src/generated/confectManifest.ts",
