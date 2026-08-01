@@ -159,6 +159,52 @@ export const checkPatchMapping = (
     : [];
 };
 
+export const checkLockfileCohort = (
+  repoRoot = process.cwd(),
+): readonly CompatibilityFinding[] => {
+  const file = "pnpm-lock.yaml";
+  if (!existsSync(join(repoRoot, file))) return [];
+  const lockfile = readSource(repoRoot, file);
+  const findings: CompatibilityFinding[] = [];
+
+  if (/^\s*['"]?effect@3\./mu.test(lockfile)) {
+    findings.push({
+      file,
+      message: "The lockfile must not resolve an Effect 3 runtime",
+    });
+  }
+  for (const removed of ["@effect/platform@", "@effect/cluster@"]) {
+    if (lockfile.includes(removed)) {
+      findings.push({
+        file,
+        message: `The lockfile must not resolve ${removed}`,
+      });
+    }
+  }
+  for (const companion of [
+    "@effect/platform-node",
+    "@effect/platform-node-shared",
+    "@effect/vitest",
+  ]) {
+    const versions = [
+      ...lockfile.matchAll(
+        new RegExp(
+          `(?:^|\\n)\\s*['\"]?${companion.replace("/", "\\/")}@([^:('\\s\"]+)`,
+          "gu",
+        ),
+      ),
+    ].map((match) => match[1]);
+    if (versions.some((version) => version !== EFFECT_VERSION)) {
+      findings.push({
+        file,
+        message: `${companion} must resolve to ${EFFECT_VERSION}, found ${[...new Set(versions)].sort().join(", ")}`,
+      });
+    }
+  }
+
+  return findings;
+};
+
 const authoredRoots = ["apps", "packages", "tooling", "examples"] as const;
 
 export const checkNoVendoredSourceImports = (
@@ -334,6 +380,7 @@ export const collectConfectEffectCompatibilityFindings = (
 ): readonly CompatibilityFinding[] => [
   ...checkDependencyCohort(repoRoot),
   ...checkPatchMapping(repoRoot),
+  ...checkLockfileCohort(repoRoot),
   ...checkNoVendoredSourceImports(repoRoot),
   ...checkNoAggregateConfectEntrypoints(repoRoot),
   ...checkNoEffectBarrelImports(repoRoot),

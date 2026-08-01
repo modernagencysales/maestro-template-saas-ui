@@ -298,4 +298,32 @@ export default Table.make("pages", () => ({}));
       ]),
     );
   });
+
+  it("rejects incompatible runtimes resolved only in the lockfile", async () => {
+    const repoRoot = await makeRepo();
+    await writeSource(
+      repoRoot,
+      "pnpm-lock.yaml",
+      `lockfileVersion: '9.0'\npackages:\n  effect@3.21.4: {}\n  '@effect/platform@0.96.2': {}\n  '@effect/platform-node-shared@4.0.0-beta.101': {}\n`,
+    );
+
+    expect(collectConfectEffectCompatibilityFindings(repoRoot)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          file: "pnpm-lock.yaml",
+          message: expect.stringContaining("Effect 3 runtime"),
+        }),
+        expect.objectContaining({
+          file: "pnpm-lock.yaml",
+          message: expect.stringContaining("@effect/platform@"),
+        }),
+        expect.objectContaining({
+          file: "pnpm-lock.yaml",
+          message: expect.stringContaining(
+            "@effect/platform-node-shared must resolve to 4.0.0-beta.102",
+          ),
+        }),
+      ]),
+    );
+  });
 });

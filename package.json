@@ -137,7 +137,7 @@
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.12.1",
-    "@effect/language-service": "^0.86.3",
+    "@effect/language-service": "0.87.1",
     "@eslint/js": "^9.0.0",
     "@playwright/test": "^1.45.0",
     "@stryker-mutator/core": "9.6.1",
