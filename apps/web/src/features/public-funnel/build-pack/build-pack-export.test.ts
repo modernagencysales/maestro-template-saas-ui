@@ -1,8 +1,9 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { compileFakeBuildPack } from "./build-pack-generator";
 import {
   buildPackSectionIds,
+  downloadBuildPack,
   exportBuildPackMarkdown,
 } from "./build-pack-export";
 import {
@@ -25,5 +26,27 @@ describe("Complete Build Pack exports", () => {
     expect(markdown).toContain("## Requirements");
     expect(markdown).toContain("ChairFill");
     expect(markdown).toContain("Pack ID: pack_1");
+  });
+
+  it("downloads the canonical Build Pack Markdown", () => {
+    const click = vi.fn();
+    const revokeObjectURL = vi.fn();
+    vi.stubGlobal("document", {
+      createElement: () => ({ href: "", download: "", click }),
+    });
+    vi.stubGlobal("URL", {
+      createObjectURL: () => "blob:pack",
+      revokeObjectURL,
+    });
+    try {
+      downloadBuildPack(
+        "pack_1",
+        compileFakeBuildPack(makeEvaluation(fixtureCompleteAnswers)),
+      );
+      expect(click).toHaveBeenCalledOnce();
+      expect(revokeObjectURL).toHaveBeenCalledWith("blob:pack");
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });

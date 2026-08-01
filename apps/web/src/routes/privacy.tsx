@@ -6,7 +6,7 @@ export const Route = createFileRoute("/privacy")({
   component: PrivacyRoute,
 });
 
-function PrivacyRoute() {
+export function PrivacyRoute() {
   return (
     <PublicInformationPage title="Privacy">
       <p>
