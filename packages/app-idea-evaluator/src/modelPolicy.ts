@@ -6,6 +6,9 @@ export type ModelPolicy = {
   readonly maxOutputTokens: number;
   readonly maxRepairAttempts: number;
   readonly maxSpendCents: number;
+  readonly dailySpendEnv: "LLM_DAILY_SPEND_LIMIT_CENTS";
+  readonly maxAnonymousEvaluationsPerSession: number;
+  readonly maxEvaluationsPerVerifiedEmail: number;
   readonly allowResearch: boolean;
 };
 
@@ -36,6 +39,9 @@ export const FREE_MODEL_POLICY: ModelPolicy = {
   maxOutputTokens: 3_000,
   maxRepairAttempts: 1,
   maxSpendCents: 15,
+  dailySpendEnv: "LLM_DAILY_SPEND_LIMIT_CENTS",
+  maxAnonymousEvaluationsPerSession: 1,
+  maxEvaluationsPerVerifiedEmail: 3,
   allowResearch: false,
 };
 
@@ -47,7 +53,37 @@ export const PREMIUM_MODEL_POLICY: ModelPolicy = {
   maxOutputTokens: 40_000,
   maxRepairAttempts: 8,
   maxSpendCents: 1_000,
+  dailySpendEnv: "LLM_DAILY_SPEND_LIMIT_CENTS",
+  maxAnonymousEvaluationsPerSession: 0,
+  maxEvaluationsPerVerifiedEmail: 24,
   allowResearch: true,
+};
+
+export type FreeEvaluationAllowance = {
+  readonly sessionEvaluations: number;
+  readonly verifiedEmailEvaluations?: number;
+};
+
+export const authorizeFreeEvaluationStart = (
+  allowance: FreeEvaluationAllowance,
+):
+  | { readonly allowed: true }
+  | {
+      readonly allowed: false;
+      readonly reason: "session-limit" | "email-limit";
+    } => {
+  if (
+    allowance.sessionEvaluations >=
+    FREE_MODEL_POLICY.maxAnonymousEvaluationsPerSession
+  )
+    return { allowed: false, reason: "session-limit" };
+  if (
+    allowance.verifiedEmailEvaluations !== undefined &&
+    allowance.verifiedEmailEvaluations >=
+      FREE_MODEL_POLICY.maxEvaluationsPerVerifiedEmail
+  )
+    return { allowed: false, reason: "email-limit" };
+  return { allowed: true };
 };
 
 export const authorizeModelCall = (

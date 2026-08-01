@@ -28,6 +28,8 @@ export const evaluationVerdicts = [
 
 export type EvaluationVerdict = (typeof evaluationVerdicts)[number];
 
+export const EvaluationVerdictSchema = Schema.Literal(...evaluationVerdicts);
+
 export type EvaluationEvidence = {
   readonly answerId: string;
   readonly dimension: DimensionKey;
@@ -77,13 +79,24 @@ export type EvaluationResult = {
   readonly verdict: EvaluationVerdict;
 };
 
-export type BuildabilityReport = {
-  readonly verdict: EvaluationVerdict;
-  readonly overallScore: number;
-  readonly roast: string;
-  readonly strongestElement: string;
-  readonly biggestWeakness: string;
-  readonly improvedIdea: string;
-  readonly whatItWillTake: readonly string[];
-  readonly exclusiveInCompleteBuildPack: readonly string[];
-};
+export const BuildabilityReportSchema = Schema.Struct({
+  verdict: EvaluationVerdictSchema,
+  overallScore: Schema.Number.pipe(Schema.between(0, 100)),
+  roast: Schema.NonEmptyString,
+  strongestElement: Schema.NonEmptyString,
+  biggestWeakness: Schema.NonEmptyString,
+  improvedIdea: Schema.NonEmptyString,
+  whatItWillTake: Schema.Array(Schema.NonEmptyString).pipe(Schema.minItems(1)),
+  exclusiveInCompleteBuildPack: Schema.Array(Schema.NonEmptyString).pipe(
+    Schema.minItems(1),
+  ),
+});
+
+export type BuildabilityReport = Schema.Schema.Type<
+  typeof BuildabilityReportSchema
+>;
+
+export const decodeBuildabilityReport = Schema.decodeUnknownSync(
+  BuildabilityReportSchema,
+  { onExcessProperty: "error" },
+);
