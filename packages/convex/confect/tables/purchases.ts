@@ -5,6 +5,7 @@ export default Table.make(() =>
   Schema.Struct({
     purchaseId: Schema.String,
     paymentId: Schema.String,
+    checkoutSessionId: Schema.optional(Schema.String),
     reportId: Schema.String,
     amountCents: Schema.Number,
     currency: Schema.String,
@@ -15,4 +16,5 @@ export default Table.make(() =>
 )
   .index("by_purchase", ["purchaseId"])
   .index("by_payment", ["paymentId"])
+  .index("by_checkout", ["checkoutSessionId"])
   .index("by_report", ["reportId"]);
