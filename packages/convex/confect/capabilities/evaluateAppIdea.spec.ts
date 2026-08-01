@@ -26,6 +26,25 @@ export const evaluateAppIdeaReturns = Schema.Struct({
   version: Schema.Number,
 });
 
+const nonNegativeNumber = Schema.Number.pipe(Schema.greaterThanOrEqualTo(0));
+
+export const evaluateAppIdeaWithModelReturns = Schema.Union(
+  Schema.Struct({
+    ...evaluateAppIdeaReturns.fields,
+    freshCompletion: Schema.Literal(false),
+  }),
+  Schema.Struct({
+    ...evaluateAppIdeaReturns.fields,
+    freshCompletion: Schema.Literal(true),
+    durationMs: nonNegativeNumber,
+    modelCalls: Schema.Number.pipe(
+      Schema.int(),
+      Schema.greaterThanOrEqualTo(0),
+    ),
+    estimatedCostCents: nonNegativeNumber,
+  }),
+);
+
 export const evaluateAppIdea = FunctionSpec.publicMutation({
   name: "evaluateAppIdea",
   args: () => evaluateAppIdeaArgs,
@@ -36,7 +55,7 @@ export const evaluateAppIdea = FunctionSpec.publicMutation({
 export const evaluateAppIdeaWithModel = FunctionSpec.publicAction({
   name: "evaluateAppIdeaWithModel",
   args: () => evaluateAppIdeaArgs,
-  returns: () => evaluateAppIdeaReturns,
+  returns: () => evaluateAppIdeaWithModelReturns,
   error: () => Schema.Union(Unauthorized, ValidationFailed, Forbidden),
 });
 

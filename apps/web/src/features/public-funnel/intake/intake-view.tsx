@@ -1,10 +1,15 @@
 import { ArrowLeft, ArrowRight, ShieldCheck } from "lucide-react";
 import { useMemo, useState, type FormEvent } from "react";
 import { templateConfectRefs } from "@maestro-template/convex/refs";
+import type {
+  EvaluationVerdict,
+  FunnelEvent,
+} from "@maestro-template/app-idea-evaluator";
 import * as Either from "effect/Either";
 
 import { useTemplateAction } from "../../../adapters/confect-state";
 import { isConvexConfigured } from "../../../env";
+import { useFunnelAnalytics } from "../../../providers/posthog";
 import { PublicFunnelShell } from "../public-shell";
 import { saveEvaluation } from "../evaluation-storage";
 import {
@@ -36,11 +41,42 @@ export function AppIdeaIntake({
   );
 }
 
+type RemoteEvaluationCompletionBase = {
+  readonly evaluationId: string;
+  readonly reportId: string;
+};
+
+type RemoteEvaluationCompletion =
+  | (RemoteEvaluationCompletionBase & {
+      readonly freshCompletion: false;
+    })
+  | (RemoteEvaluationCompletionBase & {
+      readonly freshCompletion: true;
+      readonly durationMs: number;
+      readonly modelCalls: number;
+      readonly estimatedCostCents: number;
+    });
+
+export const evaluationCompletedEventForRemote = (
+  completed: RemoteEvaluationCompletion,
+  verdict: EvaluationVerdict,
+): FunnelEvent | null =>
+  completed.freshCompletion
+    ? {
+        name: "evaluation_completed",
+        evaluationId: completed.evaluationId,
+        verdict,
+        durationMs: completed.durationMs,
+        modelCalls: completed.modelCalls,
+        estimatedCostCents: completed.estimatedCostCents,
+      }
+    : null;
+
 type EvaluateRemotely = (input: {
   readonly sessionId: string;
   readonly accessToken: string;
   readonly answers: StoredEvaluation["answers"];
-}) => Promise<string>;
+}) => Promise<RemoteEvaluationCompletion>;
 
 function ConfiguredAppIdeaIntake({
   onReportReady,
@@ -57,7 +93,7 @@ function ConfiguredAppIdeaIntake({
       throw new Error("The evaluator rejected this request.");
     }
     const completed = Either.isEither(result) ? result.right : result;
-    return completed.reportId;
+    return completed;
   };
 
   return (
@@ -80,6 +116,7 @@ function AppIdeaIntakeSurface({
   const [isEvaluating, setIsEvaluating] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [credentials] = useState(createAnonymousReportCredentials);
+  const capture = useFunnelAnalytics();
   const view = useMemo(() => presentIntake(state), [state]);
   const openReport = (reportId: string) => {
     if (onReportReady) {
@@ -96,21 +133,35 @@ function AppIdeaIntakeSurface({
       setIsEvaluating(true);
       setSubmitError(null);
       try {
+        const startedAt = performance.now();
         const localEvaluation = makeEvaluation(next.answers);
         if (!evaluateRemotely) {
           saveAnonymousReportAccess(localEvaluation.id, credentials);
           saveEvaluation(localEvaluation);
+          capture({
+            name: "evaluation_completed",
+            evaluationId: localEvaluation.id,
+            verdict: localEvaluation.result.verdict,
+            durationMs: performance.now() - startedAt,
+            modelCalls: 0,
+            estimatedCostCents: 0,
+          });
           openReport(localEvaluation.id);
           return;
         }
-        const reportId = await evaluateRemotely({
+        const completed = await evaluateRemotely({
           sessionId: credentials.sessionId,
           accessToken: credentials.accessToken,
           answers: localEvaluation.answers,
         });
-        saveAnonymousReportAccess(reportId, credentials);
-        saveEvaluation({ ...localEvaluation, id: reportId });
-        openReport(reportId);
+        saveAnonymousReportAccess(completed.reportId, credentials);
+        saveEvaluation({ ...localEvaluation, id: completed.reportId });
+        const analyticsEvent = evaluationCompletedEventForRemote(
+          completed,
+          localEvaluation.result.verdict,
+        );
+        if (analyticsEvent) capture(analyticsEvent);
+        openReport(completed.reportId);
       } catch {
         setIsEvaluating(false);
         setSubmitError(
