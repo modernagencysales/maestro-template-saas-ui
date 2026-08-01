@@ -1,6 +1,7 @@
 export * from "./buildPack";
 export * from "./commerce";
 export * from "./funnelEvents";
+export * from "./freeAgent";
 export * from "./maestroMapping";
 export * from "./modelPolicy";
 export * from "./report";

@@ -8,6 +8,11 @@ import actionTriggers from "./tables/actionTriggers";
 import apiKeys from "./tables/apiKeys";
 import billingPlans from "./tables/billingPlans";
 import brainPages from "./tables/brainPages";
+import buildPackEntitlements from "./tables/buildPackEntitlements";
+import buildPackExports from "./tables/buildPackExports";
+import buildPackStages from "./tables/buildPackStages";
+import buildPacks from "./tables/buildPacks";
+import checkoutSessions from "./tables/checkoutSessions";
 import citations from "./tables/citations";
 import claims from "./tables/claims";
 import concepts from "./tables/concepts";
@@ -18,14 +23,22 @@ import documentVersions from "./tables/documentVersions";
 import documents from "./tables/documents";
 import dsarRequests from "./tables/dsarRequests";
 import entitlements from "./tables/entitlements";
+import evaluationAnswers from "./tables/evaluationAnswers";
+import evaluationReportVersions from "./tables/evaluationReportVersions";
+import evaluationReports from "./tables/evaluationReports";
+import evaluationSessions from "./tables/evaluationSessions";
+import evaluationShares from "./tables/evaluationShares";
 import featureFlagPolicies from "./tables/featureFlagPolicies";
 import invitations from "./tables/invitations";
+import maestroCredits from "./tables/maestroCredits";
 import notificationPreferences from "./tables/notificationPreferences";
 import notificationRecords from "./tables/notificationRecords";
 import organizationMembers from "./tables/organizationMembers";
 import organizations from "./tables/organizations";
 import policies from "./tables/policies";
 import promptRegistry from "./tables/promptRegistry";
+import purchases from "./tables/purchases";
+import supportIncidents from "./tables/supportIncidents";
 import transformBlocks from "./tables/transformBlocks";
 import transformDefinitions from "./tables/transformDefinitions";
 import transformRuns from "./tables/transformRuns";
@@ -52,6 +65,11 @@ export default $defineSchema({
   apiKeys: apiKeys.tableDefinition,
   billingPlans: billingPlans.tableDefinition,
   brainPages: brainPages.tableDefinition,
+  buildPackEntitlements: buildPackEntitlements.tableDefinition,
+  buildPackExports: buildPackExports.tableDefinition,
+  buildPackStages: buildPackStages.tableDefinition,
+  buildPacks: buildPacks.tableDefinition,
+  checkoutSessions: checkoutSessions.tableDefinition,
   citations: citations.tableDefinition,
   claims: claims.tableDefinition,
   concepts: concepts.tableDefinition,
@@ -62,14 +80,22 @@ export default $defineSchema({
   documents: documents.tableDefinition,
   dsarRequests: dsarRequests.tableDefinition,
   entitlements: entitlements.tableDefinition,
+  evaluationAnswers: evaluationAnswers.tableDefinition,
+  evaluationReportVersions: evaluationReportVersions.tableDefinition,
+  evaluationReports: evaluationReports.tableDefinition,
+  evaluationSessions: evaluationSessions.tableDefinition,
+  evaluationShares: evaluationShares.tableDefinition,
   featureFlagPolicies: featureFlagPolicies.tableDefinition,
   invitations: invitations.tableDefinition,
+  maestroCredits: maestroCredits.tableDefinition,
   notificationPreferences: notificationPreferences.tableDefinition,
   notificationRecords: notificationRecords.tableDefinition,
   organizationMembers: organizationMembers.tableDefinition,
   organizations: organizations.tableDefinition,
   policies: policies.tableDefinition,
   promptRegistry: promptRegistry.tableDefinition,
+  purchases: purchases.tableDefinition,
+  supportIncidents: supportIncidents.tableDefinition,
   transformBlocks: transformBlocks.tableDefinition,
   transformDefinitions: transformDefinitions.tableDefinition,
   transformRuns: transformRuns.tableDefinition,

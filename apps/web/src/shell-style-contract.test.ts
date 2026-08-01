@@ -27,9 +27,11 @@ describe("Saas UI shell style contract", () => {
 
   it("uses the Saas UI business shell instead of the old reference app route", () => {
     const index = read("src/routes/index.tsx");
+    const dashboard = read("src/routes/dashboard.tsx");
     const shell = read("src/saas-ui/business-shell.tsx");
 
-    expect(index).toContain("BusinessDashboardRoute");
+    expect(index).toContain("AppIdeaLanding");
+    expect(dashboard).toContain("BusinessDashboardRoute");
     expect(index).not.toContain("TemplateReferenceApp");
     expect(shell).toContain("@saas-ui/react");
     expect(shell).toContain("BusinessAppShell");

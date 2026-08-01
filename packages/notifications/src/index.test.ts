@@ -5,6 +5,7 @@ import {
   createActionDigestService,
   createAlertService,
   createEmailService,
+  createFunnelLifecycleEmailService,
   defaultNotificationPreferences,
   markNotificationRead,
   preferenceAllowsChannel,
@@ -13,6 +14,29 @@ import {
 } from "./index";
 
 describe("notification provider seams", () => {
+  it("sends idempotent app-idea lifecycle messages through the redacted email seam", async () => {
+    const deliveries: unknown[] = [];
+    const service = createFunnelLifecycleEmailService({
+      mode: "fake",
+      from: "reports@example.test",
+      sink: (message) => {
+        deliveries.push(message);
+      },
+    });
+    await expect(
+      service.send({
+        kind: "build-pack-ready",
+        to: "founder@example.test",
+        reportId: "idea_1",
+        destinationUrl: "https://example.test/build-pack/pack_1",
+      }),
+    ).resolves.toMatchObject({
+      ok: true,
+      idempotencyKey: "idea-funnel.build-pack-ready.idea_1",
+    });
+    expect(JSON.stringify(deliveries)).not.toContain("founder@example.test");
+  });
+
   it("sends MailerSend-style email in fake mode with idempotency key", async () => {
     const deliveries: unknown[] = [];
     const service = createEmailService({

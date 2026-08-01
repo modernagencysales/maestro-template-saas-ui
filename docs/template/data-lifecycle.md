@@ -184,3 +184,30 @@ The implemented retention hooks are:
 
 Future client forks may add resources, but they must update this planner, DSAR
 plans, retention job expectations, and tests in the same change.
+
+## Anonymous App-Idea Funnel Resources
+
+The public funnel is not workspace-owned, so it uses its opaque session token as
+the ownership boundary. The following resources are additive to the workspace
+DSAR planner and have their own report-owner lifecycle operations:
+
+| Resource                   | Owner module                | Export posture                                    | Delete posture                                       | Retention rule                                               |
+| -------------------------- | --------------------------- | ------------------------------------------------- | ---------------------------------------------------- | ------------------------------------------------------------ |
+| `evaluationSessions`       | evaluator capability        | redacted JSON; never export the access-token hash | delete after its reports and answers                 | retain while an anonymous report remains accessible          |
+| `evaluationAnswers`        | evaluator capability        | private JSON to the verified report owner only    | delete with the session                              | retain while the source report can be revised or regenerated |
+| `evaluationReports`        | evaluator capability        | JSON and Markdown                                 | owner-token delete                                   | retain until owner deletion or configured inactivity expiry  |
+| `evaluationReportVersions` | evaluator capability        | JSON and Markdown                                 | delete with the report                               | append-only while the report exists                          |
+| `evaluationShares`         | report lifecycle capability | public snapshot JSON only                         | revoke immediately; delete with report               | active until revoked or report deletion                      |
+| `checkoutSessions`         | commerce capability         | redacted JSON                                     | retain for reconciliation                            | configured billing audit window                              |
+| `purchases`                | commerce capability         | redacted JSON                                     | never hard-delete financial history                  | statutory billing and reconciliation window                  |
+| `buildPackEntitlements`    | commerce capability         | JSON                                              | revoke on refund/dispute; retain record              | billing audit window                                         |
+| `maestroCredits`           | commerce capability         | JSON ledger entry                                 | append-only; reverse rather than delete              | billing audit window                                         |
+| `buildPacks`               | Build Pack workflow         | Markdown, print HTML, and JSON                    | owner-token delete when financial retention permits  | while entitlement or support recovery remains active         |
+| `buildPackStages`          | Build Pack workflow         | redacted JSON with citations and receipts         | retain completed provenance with the pack            | workflow audit window                                        |
+| `buildPackExports`         | Build Pack workflow         | JSON metadata                                     | delete with the pack                                 | while the canonical pack exists                              |
+| `supportIncidents`         | funnel operations           | redacted JSON                                     | redact founder contact data, retain resolution audit | support audit window                                         |
+
+Public share reads hash the presented token and return only the immutable
+`publicSnapshotJson`. They never join to `evaluationAnswers`, session identity,
+access-token hashes, checkout data, or paid artifacts. Checkout return URLs are
+display-only state and do not create purchases or entitlements.

@@ -41,12 +41,17 @@ export function ReportLibraryView({
                   <p>{evaluation.answers.ideaSummary}</p>
                   <a href={`/report/${evaluation.id}`}>Open report</a>
                   {activeShareReportIds.includes(evaluation.id) ? (
-                    <button
-                      onClick={() => onRevokeShare?.(evaluation.id)}
-                      type="button"
-                    >
-                      Revoke share link
-                    </button>
+                    <div className="idea-share-actions">
+                      <a href={`/share/share_${evaluation.id}`}>
+                        Open share link
+                      </a>
+                      <button
+                        onClick={() => onRevokeShare?.(evaluation.id)}
+                        type="button"
+                      >
+                        Revoke share link
+                      </button>
+                    </div>
                   ) : (
                     <button
                       onClick={() => onCreateShare?.(evaluation.id)}

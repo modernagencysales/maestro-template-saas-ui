@@ -1,0 +1,9 @@
+{
+  "generator": "add-client-domain",
+  "commandFamily": "template:add-client-domain",
+  "name": "evaluator",
+  "generatedPaths": [
+    "generated/domains/evaluator/evaluator.domain.json",
+    "generated/domains/evaluator/README.md"
+  ]
+}

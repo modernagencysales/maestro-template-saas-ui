@@ -308,6 +308,38 @@ export const createEmailService = (options: {
   },
 });
 
+export type FunnelLifecycleEmailIntent = {
+  readonly kind: "build-pack-ready";
+  readonly to: string;
+  readonly reportId: string;
+  readonly destinationUrl: string;
+};
+
+export const createFunnelLifecycleEmailService = (options: {
+  readonly mode: EmailMode;
+  readonly from: string;
+  readonly sink?: (
+    payload: Readonly<Record<string, unknown>>,
+  ) => void | Promise<void>;
+}) => {
+  const email = createEmailService(options);
+
+  return {
+    send: async (intent: FunnelLifecycleEmailIntent): Promise<EmailResult> =>
+      await email.send({
+        to: intent.to,
+        from: options.from,
+        subject: "Your Complete Build Pack is ready",
+        html: `<p>Your Complete Build Pack is ready. <a href="${intent.destinationUrl}">Open your Build Pack</a>.</p>`,
+        idempotencyKey: `idea-funnel.${intent.kind}.${actionDigestKeyPart(intent.reportId)}`,
+        templateData: {
+          reportId: intent.reportId,
+          destinationUrl: intent.destinationUrl,
+        },
+      }),
+  };
+};
+
 const actionDigestKeyPart = (value: string): string =>
   value.replaceAll(/[^A-Za-z0-9._~-]/g, "-");
 

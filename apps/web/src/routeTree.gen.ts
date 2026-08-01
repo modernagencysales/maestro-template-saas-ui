@@ -14,7 +14,9 @@ import { Route as SupportRouteImport } from './routes/support'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as LibraryRouteImport } from './routes/library'
 import { Route as EvaluateRouteImport } from './routes/evaluate'
+import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ShareTokenRouteImport } from './routes/share.$token'
 import { Route as ReportEvaluationIdRouteImport } from './routes/report.$evaluationId'
 import { Route as MaestroPackIdRouteImport } from './routes/maestro.$packId'
 import { Route as CheckoutReturnRouteImport } from './routes/checkout.return'
@@ -39,6 +41,7 @@ import { Route as WorkspaceApiRouteImport } from './routes/_workspace.api'
 import { Route as WorkspaceAnalyticsRouteImport } from './routes/_workspace.analytics'
 import { Route as WorkspaceAgentsRouteImport } from './routes/_workspace.agents'
 import { Route as WorkspaceAdminRouteImport } from './routes/_workspace.admin'
+import { Route as BuildPackPackIdIndexRouteImport } from './routes/build-pack.$packId.index'
 import { Route as CheckoutFakeHostedSessionIdRouteImport } from './routes/checkout.fake-hosted.$sessionId'
 import { Route as BuildPackPackIdGeneratingRouteImport } from './routes/build-pack.$packId.generating'
 
@@ -67,9 +70,19 @@ const EvaluateRoute = EvaluateRouteImport.update({
   path: '/evaluate',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DashboardRoute = DashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ShareTokenRoute = ShareTokenRouteImport.update({
+  id: '/share/$token',
+  path: '/share/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ReportEvaluationIdRoute = ReportEvaluationIdRouteImport.update({
@@ -192,6 +205,11 @@ const WorkspaceAdminRoute = WorkspaceAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BuildPackPackIdIndexRoute = BuildPackPackIdIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => BuildPackPackIdRoute,
+} as any)
 const CheckoutFakeHostedSessionIdRoute =
   CheckoutFakeHostedSessionIdRouteImport.update({
     id: '/checkout/fake-hosted/$sessionId',
@@ -207,6 +225,7 @@ const BuildPackPackIdGeneratingRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/dashboard': typeof DashboardRoute
   '/evaluate': typeof EvaluateRoute
   '/library': typeof LibraryRoute
   '/privacy': typeof PrivacyRoute
@@ -236,11 +255,14 @@ export interface FileRoutesByFullPath {
   '/checkout/return': typeof CheckoutReturnRoute
   '/maestro/$packId': typeof MaestroPackIdRoute
   '/report/$evaluationId': typeof ReportEvaluationIdRoute
+  '/share/$token': typeof ShareTokenRoute
   '/build-pack/$packId/generating': typeof BuildPackPackIdGeneratingRoute
   '/checkout/fake-hosted/$sessionId': typeof CheckoutFakeHostedSessionIdRoute
+  '/build-pack/$packId/': typeof BuildPackPackIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/dashboard': typeof DashboardRoute
   '/evaluate': typeof EvaluateRoute
   '/library': typeof LibraryRoute
   '/privacy': typeof PrivacyRoute
@@ -265,17 +287,19 @@ export interface FileRoutesByTo {
   '/settings': typeof WorkspaceSettingsRoute
   '/sources': typeof WorkspaceSourcesRoute
   '/workflows': typeof WorkspaceWorkflowsRoute
-  '/build-pack/$packId': typeof BuildPackPackIdRouteWithChildren
   '/checkout/$reportId': typeof CheckoutReportIdRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/maestro/$packId': typeof MaestroPackIdRoute
   '/report/$evaluationId': typeof ReportEvaluationIdRoute
+  '/share/$token': typeof ShareTokenRoute
   '/build-pack/$packId/generating': typeof BuildPackPackIdGeneratingRoute
   '/checkout/fake-hosted/$sessionId': typeof CheckoutFakeHostedSessionIdRoute
+  '/build-pack/$packId': typeof BuildPackPackIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/dashboard': typeof DashboardRoute
   '/evaluate': typeof EvaluateRoute
   '/library': typeof LibraryRoute
   '/privacy': typeof PrivacyRoute
@@ -305,13 +329,16 @@ export interface FileRoutesById {
   '/checkout/return': typeof CheckoutReturnRoute
   '/maestro/$packId': typeof MaestroPackIdRoute
   '/report/$evaluationId': typeof ReportEvaluationIdRoute
+  '/share/$token': typeof ShareTokenRoute
   '/build-pack/$packId/generating': typeof BuildPackPackIdGeneratingRoute
   '/checkout/fake-hosted/$sessionId': typeof CheckoutFakeHostedSessionIdRoute
+  '/build-pack/$packId/': typeof BuildPackPackIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/dashboard'
     | '/evaluate'
     | '/library'
     | '/privacy'
@@ -341,11 +368,14 @@ export interface FileRouteTypes {
     | '/checkout/return'
     | '/maestro/$packId'
     | '/report/$evaluationId'
+    | '/share/$token'
     | '/build-pack/$packId/generating'
     | '/checkout/fake-hosted/$sessionId'
+    | '/build-pack/$packId/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/dashboard'
     | '/evaluate'
     | '/library'
     | '/privacy'
@@ -370,16 +400,18 @@ export interface FileRouteTypes {
     | '/settings'
     | '/sources'
     | '/workflows'
-    | '/build-pack/$packId'
     | '/checkout/$reportId'
     | '/checkout/return'
     | '/maestro/$packId'
     | '/report/$evaluationId'
+    | '/share/$token'
     | '/build-pack/$packId/generating'
     | '/checkout/fake-hosted/$sessionId'
+    | '/build-pack/$packId'
   id:
     | '__root__'
     | '/'
+    | '/dashboard'
     | '/evaluate'
     | '/library'
     | '/privacy'
@@ -409,12 +441,15 @@ export interface FileRouteTypes {
     | '/checkout/return'
     | '/maestro/$packId'
     | '/report/$evaluationId'
+    | '/share/$token'
     | '/build-pack/$packId/generating'
     | '/checkout/fake-hosted/$sessionId'
+    | '/build-pack/$packId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  DashboardRoute: typeof DashboardRoute
   EvaluateRoute: typeof EvaluateRoute
   LibraryRoute: typeof LibraryRoute
   PrivacyRoute: typeof PrivacyRoute
@@ -444,6 +479,7 @@ export interface RootRouteChildren {
   CheckoutReturnRoute: typeof CheckoutReturnRoute
   MaestroPackIdRoute: typeof MaestroPackIdRoute
   ReportEvaluationIdRoute: typeof ReportEvaluationIdRoute
+  ShareTokenRoute: typeof ShareTokenRoute
   CheckoutFakeHostedSessionIdRoute: typeof CheckoutFakeHostedSessionIdRoute
 }
 
@@ -484,11 +520,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EvaluateRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/share/$token': {
+      id: '/share/$token'
+      path: '/share/$token'
+      fullPath: '/share/$token'
+      preLoaderRoute: typeof ShareTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/report/$evaluationId': {
@@ -659,6 +709,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WorkspaceAdminRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/build-pack/$packId/': {
+      id: '/build-pack/$packId/'
+      path: '/'
+      fullPath: '/build-pack/$packId/'
+      preLoaderRoute: typeof BuildPackPackIdIndexRouteImport
+      parentRoute: typeof BuildPackPackIdRoute
+    }
     '/checkout/fake-hosted/$sessionId': {
       id: '/checkout/fake-hosted/$sessionId'
       path: '/checkout/fake-hosted/$sessionId'
@@ -678,10 +735,12 @@ declare module '@tanstack/react-router' {
 
 interface BuildPackPackIdRouteChildren {
   BuildPackPackIdGeneratingRoute: typeof BuildPackPackIdGeneratingRoute
+  BuildPackPackIdIndexRoute: typeof BuildPackPackIdIndexRoute
 }
 
 const BuildPackPackIdRouteChildren: BuildPackPackIdRouteChildren = {
   BuildPackPackIdGeneratingRoute: BuildPackPackIdGeneratingRoute,
+  BuildPackPackIdIndexRoute: BuildPackPackIdIndexRoute,
 }
 
 const BuildPackPackIdRouteWithChildren = BuildPackPackIdRoute._addFileChildren(
@@ -690,6 +749,7 @@ const BuildPackPackIdRouteWithChildren = BuildPackPackIdRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  DashboardRoute: DashboardRoute,
   EvaluateRoute: EvaluateRoute,
   LibraryRoute: LibraryRoute,
   PrivacyRoute: PrivacyRoute,
@@ -719,6 +779,7 @@ const rootRouteChildren: RootRouteChildren = {
   CheckoutReturnRoute: CheckoutReturnRoute,
   MaestroPackIdRoute: MaestroPackIdRoute,
   ReportEvaluationIdRoute: ReportEvaluationIdRoute,
+  ShareTokenRoute: ShareTokenRoute,
   CheckoutFakeHostedSessionIdRoute: CheckoutFakeHostedSessionIdRoute,
 }
 export const routeTree = rootRouteImport

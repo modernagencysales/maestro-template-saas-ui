@@ -111,10 +111,9 @@ export const answerCurrentQuestion = (
 };
 
 export const goBack = (state: IntakeState): IntakeState => {
-  const { error: _error, ...rest } = state;
   return {
-    ...rest,
     step: Math.max(0, state.step - 1),
+    answers: state.answers,
     status: "answering",
     announcement: "",
   };
