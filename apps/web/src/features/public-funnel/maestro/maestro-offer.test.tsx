@@ -16,6 +16,9 @@ describe("Maestro template handoff", () => {
     expect(html).toContain("$29.00 Maestro credit");
     expect(html).toContain("Start building with Maestro");
     expect(html).toContain("agency or coding agent");
+    expect(html).toContain('class="idea-maestro-summary"');
+    expect(html).toContain('class="idea-maestro-actions"');
+    expect(html).toContain('class="idea-secondary-action"');
   });
 
   it("does not push the template when the fit is low", () => {
