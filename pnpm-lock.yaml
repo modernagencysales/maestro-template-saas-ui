@@ -341,6 +341,9 @@ importers:
       convex-test:
         specifier: 0.0.54
         version: 0.0.54(convex@1.42.1(react@19.1.0))
+      dodopayments:
+        specifier: ^2.44.0
+        version: 2.44.0
       effect:
         specifier: 3.21.4
         version: 3.21.4
