@@ -519,7 +519,10 @@ const evaluateAppIdeaWithModelImpl = FunctionImpl.make(
             deterministicReport: artifacts.report,
             currentDailySpendCents: context.currentDailySpendCents,
           }),
-        catch: (error) => error,
+        catch: (error) =>
+          error instanceof FreeEvaluationRuntimeError
+            ? error
+            : new FreeEvaluationRuntimeError(error, []),
       }).pipe(Effect.either);
       if (Either.isLeft(generated)) {
         if (

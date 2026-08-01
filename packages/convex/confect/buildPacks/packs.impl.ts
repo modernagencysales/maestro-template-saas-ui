@@ -12,6 +12,7 @@ import {
 } from "@maestro-template/app-idea-evaluator";
 import { createLlmGateway } from "@maestro-template/integrations";
 import * as Clock from "effect/Clock";
+import * as Data from "effect/Data";
 import * as Either from "effect/Either";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
@@ -50,7 +51,12 @@ const premiumStageOutputTokens: Readonly<Record<BuildPackStageName, number>> = {
   "map-to-maestro": 2_000,
 };
 
-class StageLeaseUnavailable extends Error {}
+class StageLeaseUnavailable extends Data.TaggedError("StageLeaseUnavailable")<{
+  readonly message: string;
+}> {}
+class PremiumBuildPackRuntimeError extends Data.TaggedError(
+  "PremiumBuildPackRuntimeError",
+)<{ readonly message: string; readonly cause?: unknown }> {}
 
 type PackSummary = {
   readonly packId: string;
@@ -848,9 +854,9 @@ const runPackImpl = FunctionImpl.make(
                 ) {
                   leaseContended = true;
                   return Promise.reject(
-                    new StageLeaseUnavailable(
-                      "Build Pack stage is already leased.",
-                    ),
+                    new StageLeaseUnavailable({
+                      message: "Build Pack stage is already leased.",
+                    }),
                   );
                 }
                 const attempt = claim.attempt;
@@ -861,7 +867,10 @@ const runPackImpl = FunctionImpl.make(
                 );
                 if (!authorization.allowed) {
                   return Promise.reject(
-                    new Error(`Premium model policy: ${authorization.reason}`),
+                    new PremiumBuildPackRuntimeError({
+                      message: `Premium model policy: ${authorization.reason}`,
+                      cause: authorization,
+                    }),
                   );
                 }
                 const receiptId = `${packId}.${stage}.${String(attempt)}`;
@@ -911,14 +920,16 @@ const runPackImpl = FunctionImpl.make(
               checkpoint: async (run) => {
                 if (leaseContended) {
                   return Promise.reject(
-                    new StageLeaseUnavailable(
-                      "Build Pack stage is already leased.",
-                    ),
+                    new StageLeaseUnavailable({
+                      message: "Build Pack stage is already leased.",
+                    }),
                   );
                 }
                 if (!activeLease) {
                   return Promise.reject(
-                    new Error("Build Pack checkpoint has no active lease."),
+                    new PremiumBuildPackRuntimeError({
+                      message: "Build Pack checkpoint has no active lease.",
+                    }),
                   );
                 }
                 await Effect.runPromise(
@@ -936,7 +947,15 @@ const runPackImpl = FunctionImpl.make(
                 activeLease = undefined;
               },
             }),
-          catch: (cause) => cause,
+          catch: (cause) =>
+            cause instanceof StageLeaseUnavailable
+              ? cause
+              : cause instanceof PremiumBuildPackRuntimeError
+                ? cause
+                : new PremiumBuildPackRuntimeError({
+                    message: "The premium Build Pack runtime did not complete.",
+                    cause,
+                  }),
         }),
       );
       if (Either.isLeft(execution)) {
