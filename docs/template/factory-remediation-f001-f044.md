@@ -978,3 +978,37 @@ commit coordinates will be added only after observation.
   proof moves to a wholly new post-fix customer rather than repairing v9.
 - Status: upstream source fixed; final fixed status waits for the coherent
   commit and untouched post-fix customer acceptance.
+
+### FR-F-009 — Customer authority runbook and env docs are stale
+
+- ID/title: FR-F-009 (customer authority runbook and env docs are stale).
+- Original posture: newly reproduced/high because the generated customer's
+  retained quality suite rejects its deploy-authority documentation contract.
+- Confirmed reproduction: untouched v10 customer
+  `/private/tmp/maestro-fresh-customer-recovery-v10-rtRAf6/customer` at baseline
+  commit `04cbcf4` passed frozen install, doctor, Confect generation, Confect
+  manifest generation, and route-tree freshness. Its focused env-manifest test
+  then passed the FR-F-008 machine-readable descriptor assertion but failed
+  because `docs/template/operations-runbook.md` did not mention
+  `PROMOTION_AUTHORITY_MODE`; direct comparison also proved that both the
+  customer runbook and `docs/template/env-manifest.md` lacked the current
+  authority-mode and runtime-only private-key contract.
+- Root cause: the current factory retained the deploy-authority runtime,
+  configuration, test, and machine-readable manifest while still copying both
+  prose authority documents from the sealed base release.
+- Regression: the SaaS target-plan suite requires exact reviewed copy
+  replacements for both prose documents and requires each projection to name
+  `PROMOTION_AUTHORITY_PRIVATE_KEY_PKCS8_BASE64URL`. The regression first failed
+  because both plan entries were absent.
+- Canonical fix and files: the current customer source projection now includes
+  `docs/template/env-manifest.md` and `docs/template/operations-runbook.md`;
+  `saasApplication.ts` grants exact base copy-replacement authority and
+  registers both paths; and the exact current-plan inventory remains pinned. No
+  sealed release bytes or generated customer files are changed.
+- Focused result: the red-to-green SaaS blueprint suite passes 25/25; generator
+  typecheck, scoped ESLint with zero warnings, and scoped Prettier all pass
+  through the focused host semaphore using pnpm `10.12.1`.
+- Clean-customer evidence: v10 is the untouched reproduction. Final proof moves
+  to a wholly new post-fix customer rather than repairing v10.
+- Status: upstream source fixed; final fixed status waits for the coherent
+  commit and untouched post-fix customer acceptance.

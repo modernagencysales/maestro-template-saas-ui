@@ -129,6 +129,10 @@ describe("saas application blueprint", () => {
     const crudTest = entries.get("tooling/generators/src/crud-proof.test.ts");
     const envTest = entries.get("tooling/quality/src/env-manifest.test.mts");
     const envManifest = entries.get("docs/template/env-manifest.json");
+    const envManifestDocs = entries.get("docs/template/env-manifest.md");
+    const operationsRunbook = entries.get(
+      "docs/template/operations-runbook.md",
+    );
     const confectManifest = entries.get(
       "packages/template-core/src/generated/confectManifest.ts",
     );
@@ -150,6 +154,12 @@ describe("saas application blueprint", () => {
     expect(envManifest?.content).toContain(
       '"name": "PROMOTION_AUTHORITY_PRIVATE_KEY_PKCS8_BASE64URL"',
     );
+    for (const projection of [envManifestDocs, operationsRunbook]) {
+      expect(projection).toMatchObject({ replaces: "copy" });
+      expect(projection?.content).toContain(
+        "PROMOTION_AUTHORITY_PRIVATE_KEY_PKCS8_BASE64URL",
+      );
+    }
     expect(confectManifest).toMatchObject({ replaces: "copy" });
     expect(confectManifest?.content.match(/\n\s+"records",/gu)).toHaveLength(4);
   });
@@ -341,6 +351,8 @@ describe("saas application blueprint", () => {
       "apps/cli/src/factory/mcp.ts",
       "docs/template/data-resources.json",
       "docs/template/env-manifest.json",
+      "docs/template/env-manifest.md",
+      "docs/template/operations-runbook.md",
       "docs/template/system-catalog.json",
       "examples/generic-ai-ops/template-package.json",
       "lefthook.yml",
@@ -1057,6 +1069,8 @@ describe("saas application blueprint", () => {
       "apps/web/src/routeTree.gen.ts",
       "apps/web/src/routeRegistry.generated.ts",
       "docs/template/env-manifest.json",
+      "docs/template/env-manifest.md",
+      "docs/template/operations-runbook.md",
       "packages/template-core/src/templateInstance/templateInstance.test.ts",
       "packages/template-core/src/templateInstance/__fixtures__/provider-posture-v1-to-v2.contract.json",
       "packages/template-core/src/generated/confectManifest.ts",
