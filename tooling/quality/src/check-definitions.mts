@@ -269,6 +269,7 @@ const checkDescriptorDefinitions = {
         includes: [
           "check:ci-completeness",
           "check:config-drift",
+          "check:product-journeys",
           "check:convex-ai-files",
           "check:agent-pack",
           "check:confect-v9",
@@ -345,6 +346,22 @@ const checkDescriptorDefinitions = {
         ],
         message:
           "production promote must deploy the Convex backend, bake the Convex URL, deploy the client build, and verify the staged SHA",
+      },
+    ],
+  },
+  "product-journeys": {
+    name: "check:product-journeys",
+    requirements: [
+      {
+        file: "package.json",
+        includes: ["check:product-journeys", "pnpm check:product-journeys"],
+        message:
+          "product journey gate must be registered in the canonical package scripts and verify chain",
+      },
+      {
+        file: "Justfile",
+        includes: ["check-product-journeys:", "pnpm check:product-journeys"],
+        message: "product journey gate must have a canonical Just recipe",
       },
     ],
   },
@@ -1156,6 +1173,7 @@ type RegisteredCheckDescriptors<
 const canonicalScriptBodies = {
   "check:ci-completeness": "tsx tooling/quality/check-ci-completeness.mts",
   "check:config-drift": "tsx tooling/quality/check-config-drift.mts",
+  "check:product-journeys": "tsx tooling/quality/check-product-journeys.mts",
   "check:app-map": "pnpm --dir tooling/app-map check",
   "check:append-only-tables":
     "tsx tooling/quality/check-append-only-tables.mts",
@@ -1239,6 +1257,7 @@ export const checkDescriptors = defineRegisteredStaticCheckDescriptors(
   {
     "ci-completeness": { evidenceClass: "static" },
     "config-drift": { evidenceClass: "static" },
+    "product-journeys": { evidenceClass: "static" },
     "app-map": { evidenceClass: "static" },
     "append-only-tables": {
       evidenceClass: "static",

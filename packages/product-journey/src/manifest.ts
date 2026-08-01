@@ -441,40 +441,4 @@ export const parseProductJourneyManifest = (
   };
 };
 
-export const validateJourneyCatalog = (
-  manifests: readonly ProductJourneyManifest[],
-): void => {
-  const manifestsById = new Map<string, ProductJourneyManifest>();
-  for (const manifest of manifests) {
-    if (manifestsById.has(manifest.id)) {
-      throw new Error(`duplicate journey id: ${manifest.id}`);
-    }
-    manifestsById.set(manifest.id, manifest);
-  }
-
-  const visited = new Set<string>();
-  const visiting: string[] = [];
-  const visit = (journeyId: string): void => {
-    const cycleStart = visiting.indexOf(journeyId);
-    if (cycleStart !== -1) {
-      throw new Error(
-        `dependency cycle: ${[...visiting.slice(cycleStart), journeyId].join(" -> ")}`,
-      );
-    }
-    if (visited.has(journeyId)) return;
-
-    const manifest = manifestsById.get(journeyId);
-    if (manifest === undefined) return;
-
-    visiting.push(journeyId);
-    for (const dependency of manifest.dependsOnJourneys) {
-      visit(dependency.id);
-    }
-    visiting.pop();
-    visited.add(journeyId);
-  };
-
-  for (const manifest of manifests) {
-    visit(manifest.id);
-  }
-};
+export { validateJourneyCatalog } from "./graph";
