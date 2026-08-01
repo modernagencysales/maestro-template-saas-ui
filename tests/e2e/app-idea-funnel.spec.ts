@@ -123,6 +123,38 @@ test("saved reports remain available in the library", async ({ page }) => {
   ).toBeVisible();
 });
 
+test("report deletion removes private data and invalidates the direct route", async ({
+  page,
+}) => {
+  await page.goto("/evaluate");
+  await completeEvaluation(page);
+  const reportId = page.url().split("/report/")[1]?.split(/[?#]/)[0] ?? "";
+  expect(reportId).toMatch(/^idea_/);
+
+  await page.goto("/library");
+  await page.getByRole("button", { name: "Delete report" }).click();
+  await expect(
+    page.getByText("Delete this report and its private answers permanently?"),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Yes, delete report" }).click();
+
+  await expect(
+    page.getByRole("heading", { name: "No app ideas yet" }),
+  ).toBeVisible();
+  await expect
+    .poll(() =>
+      page.evaluate(
+        (id) => window.localStorage.getItem(`maestro.idea-evaluation.${id}`),
+        reportId,
+      ),
+    )
+    .toBeNull();
+  await page.goto(`/report/${reportId}`);
+  await expect(
+    page.getByRole("heading", { name: "Report not found" }),
+  ).toBeVisible();
+});
+
 test("email save verification claims a local report and opens its library", async ({
   page,
 }) => {
