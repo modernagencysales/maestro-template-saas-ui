@@ -216,6 +216,79 @@ const getSharedEvaluationReportImpl = FunctionImpl.make(
     }),
 );
 
+const getEvaluationReportImpl = FunctionImpl.make(
+  databaseSchema,
+  manageEvaluationReportGroup,
+  "getEvaluationReport",
+  ({ reportId, accessToken, ownerAccessToken }) =>
+    Effect.gen(function* () {
+      const normalizedReportId = reportId.trim();
+      if (
+        !normalizedReportId ||
+        (!accessToken?.trim() && !ownerAccessToken?.trim())
+      )
+        return yield* new ValidationFailed({
+          field: "credentials",
+          message: "A report id and access credential are required.",
+        });
+      const reader = yield* DatabaseReader;
+      const report = yield* reader
+        .table("evaluationReports")
+        .index("by_report", (q) => q.eq("reportId", normalizedReportId))
+        .first()
+        .pipe(Effect.map(Option.getOrNull), Effect.orDie);
+      if (report === null)
+        return yield* new NotFound({
+          resource: "evaluationReports",
+          id: normalizedReportId,
+        });
+      let authorized = false;
+      if (accessToken?.trim()) {
+        const session = yield* reader
+          .table("evaluationSessions")
+          .index("by_session", (q) => q.eq("sessionId", report.sessionId))
+          .first()
+          .pipe(Effect.map(Option.getOrNull), Effect.orDie);
+        authorized =
+          session !== null &&
+          session.accessTokenHash === sha256Hex(accessToken.trim());
+      }
+      if (!authorized && ownerAccessToken?.trim()) {
+        const ownership = yield* reader
+          .table("reportOwnerships")
+          .index("by_report", (q) => q.eq("reportId", report.reportId))
+          .first()
+          .pipe(Effect.map(Option.getOrNull), Effect.orDie);
+        authorized =
+          ownership !== null &&
+          ownership.ownerAccessTokenHash === sha256Hex(ownerAccessToken.trim());
+      }
+      if (!authorized) return yield* new Unauthorized();
+      const version = yield* reader
+        .table("evaluationReportVersions")
+        .index("by_report_version", (q) =>
+          q
+            .eq("reportId", report.reportId)
+            .eq("version", report.currentVersion),
+        )
+        .first()
+        .pipe(Effect.map(Option.getOrNull), Effect.orDie);
+      if (version === null)
+        return yield* new NotFound({
+          resource: "evaluationReportVersions",
+          id: `${report.reportId}:${String(report.currentVersion)}`,
+        });
+      return {
+        reportId: report.reportId,
+        currentVersion: report.currentVersion,
+        reportJson: version.reportJson,
+        verdict: report.verdict,
+        overallScore: report.overallScore,
+        updatedAt: report.updatedAt,
+      };
+    }),
+);
+
 const requestReportEmailVerificationImpl = FunctionImpl.make(
   databaseSchema,
   manageEvaluationReportGroup,
@@ -410,6 +483,7 @@ const listOwnedEvaluationReportsImpl = FunctionImpl.make(
 export default GroupImpl.make(databaseSchema, manageEvaluationReportGroup).pipe(
   Layer.provide(manageEvaluationReportImpl),
   Layer.provide(getSharedEvaluationReportImpl),
+  Layer.provide(getEvaluationReportImpl),
   Layer.provide(requestReportEmailVerificationImpl),
   Layer.provide(consumeReportEmailVerificationImpl),
   Layer.provide(listOwnedEvaluationReportsImpl),

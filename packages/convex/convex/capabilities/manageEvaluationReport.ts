@@ -2,6 +2,7 @@ import registeredFunctions from "../../confect/_generated/registeredFunctions/ca
 
 export const consumeReportEmailVerification =
   registeredFunctions.consumeReportEmailVerification;
+export const getEvaluationReport = registeredFunctions.getEvaluationReport;
 export const getSharedEvaluationReport =
   registeredFunctions.getSharedEvaluationReport;
 export const listOwnedEvaluationReports =

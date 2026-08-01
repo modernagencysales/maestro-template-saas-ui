@@ -7,6 +7,7 @@ import {
 } from "./manageEvaluationReport.domain";
 import {
   consumeReportEmailVerificationArgs,
+  getEvaluationReportArgs,
   listOwnedEvaluationReportsArgs,
   manageEvaluationReportArgs,
   requestReportEmailVerificationArgs,
@@ -69,6 +70,21 @@ describe("manageEvaluationReport capability domain", () => {
     ).not.toThrow();
     expect(() =>
       Schema.decodeUnknownSync(listOwnedEvaluationReportsArgs)({
+        ownerAccessToken: "owner_secret",
+      }),
+    ).not.toThrow();
+  });
+
+  it("requires an opaque anonymous or verified-owner credential to read a report", () => {
+    expect(() =>
+      Schema.decodeUnknownSync(getEvaluationReportArgs)({
+        reportId: "report_1",
+        accessToken: "anonymous_secret",
+      }),
+    ).not.toThrow();
+    expect(() =>
+      Schema.decodeUnknownSync(getEvaluationReportArgs)({
+        reportId: "report_1",
         ownerAccessToken: "owner_secret",
       }),
     ).not.toThrow();
