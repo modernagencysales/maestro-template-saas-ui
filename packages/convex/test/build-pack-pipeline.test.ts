@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 
 import refs from "../confect/_generated/refs";
 import databaseSchema from "../confect/_generated/schema";
+import { DatabaseWriter } from "../confect/_generated/services";
 import { testConfectLayer } from "./support/confect";
 
 const answers = {
@@ -67,6 +68,63 @@ const createOwnedPaidReport = Effect.gen(function* () {
 });
 
 describe("durable Complete Build Pack capability", () => {
+  it("counts only the current UTC day's spend across every report", async () => {
+    const program = Effect.gen(function* () {
+      const { confect, reportId, ownerAccessToken } =
+        yield* createOwnedPaidReport;
+      const started = yield* confect.mutation(
+        refs.public.buildPacks.packs.startPack,
+        { reportId, ownerAccessToken },
+      );
+      const before = yield* confect.query(
+        refs.internal.buildPacks.packs.loadPackRun,
+        { packId: started.packId },
+      );
+      const now = Date.now();
+      yield* confect.run(
+        Effect.gen(function* () {
+          const writer = yield* DatabaseWriter;
+          for (const receipt of [
+            { receiptId: "other-report-today", generatedAt: now, cents: 17 },
+            {
+              receiptId: "other-report-yesterday",
+              generatedAt: now - 86_400_000,
+              cents: 29,
+            },
+          ]) {
+            yield* writer
+              .table("modelReceipts")
+              .insert({
+                receiptId: receipt.receiptId,
+                sessionId: "other-session",
+                reportId: "other-report",
+                tier: "premium",
+                stage: "test",
+                provider: "test",
+                mode: "fake",
+                model: "test",
+                repair: false,
+                inputTokens: 1,
+                outputTokens: 1,
+                estimatedCents: receipt.cents,
+                generatedAt: receipt.generatedAt,
+              })
+              .pipe(Effect.orDie);
+          }
+        }),
+      );
+      const after = yield* confect.query(
+        refs.internal.buildPacks.packs.loadPackRun,
+        { packId: started.packId },
+      );
+      return after.currentDailySpendCents - before.currentDailySpendCents;
+    });
+
+    await expect(
+      Effect.runPromise(program.pipe(Effect.provide(testConfectLayer()))),
+    ).resolves.toBe(17);
+  });
+
   it("runs all eight entitled checkpoints and stores the canonical pack", async () => {
     const program = Effect.gen(function* () {
       const { confect, reportId, ownerAccessToken } =
