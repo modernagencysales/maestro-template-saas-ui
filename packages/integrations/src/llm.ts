@@ -93,6 +93,43 @@ export type LlmProviderTransportResult = {
   readonly text: string;
 };
 
+type Fetcher = (url: string, init?: RequestInit) => Promise<Response>;
+
+export const createOpenRouterTransport =
+  (fetcher: Fetcher = fetch): NonNullable<LlmGatewayConfig["transport"]> =>
+  (input) =>
+    Effect.tryPromise({
+      try: async () => {
+        const response = await fetcher(`${input.baseUrl}/chat/completions`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${input.apiKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: input.model,
+            messages: [{ role: "user", content: input.prompt }],
+          }),
+        });
+        if (!response.ok) {
+          throw new Error(
+            `OpenRouter returned HTTP ${String(response.status)}.`,
+          );
+        }
+        const body = (await response.json()) as {
+          readonly choices?: readonly {
+            readonly message?: { readonly content?: unknown };
+          }[];
+        };
+        const text = body.choices?.[0]?.message?.content;
+        if (typeof text !== "string" || !text.trim()) {
+          throw new Error("OpenRouter returned an empty completion.");
+        }
+        return { text };
+      },
+      catch: (error) => error,
+    });
+
 export type LlmTelemetryEvent = {
   readonly provider: "openrouter";
   readonly mode: ProviderMode;
@@ -261,12 +298,7 @@ export const createLlmGateway = (config: LlmGatewayConfig): LlmGateway => ({
                 model,
                 prompt: request.prompt,
               };
-              const transport =
-                config.transport ??
-                (() =>
-                  Effect.succeed({
-                    text: "Live-ready LLM transport placeholder.",
-                  }));
+              const transport = config.transport ?? createOpenRouterTransport();
               const result = yield* transport(transportInput).pipe(
                 Effect.mapError(() => createProviderCallError(transportInput)),
               );

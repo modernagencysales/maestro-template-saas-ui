@@ -1,12 +1,82 @@
+import { createHmac } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import {
+  createDodoCheckout,
   DodoWebhookConfigError,
   DodoWebhookReplayError,
+  DodoWebhookSignatureError,
   normalizeDodoWebhook,
   verifyDodoWebhook,
 } from "./dodo";
 
 describe("Dodo payment seam", () => {
+  it("creates a fake hosted checkout without exposing customer details", async () => {
+    const result = await createDodoCheckout({
+      mode: "fake",
+      apiKey: undefined,
+      productId: "prod_build_pack",
+      reportId: "idea_1",
+      customerEmail: "buyer@example.com",
+      returnUrl: "https://example.test/checkout/return",
+      idempotencyKey: "checkout-idea-1",
+    });
+
+    expect(result).toMatchObject({
+      provider: "dodo",
+      mode: "fake",
+      checkoutSessionId: expect.stringContaining("checkout_"),
+      checkoutUrl: expect.stringContaining("/checkout/return"),
+      reportId: "idea_1",
+    });
+    expect(JSON.stringify(result)).not.toContain("buyer@example.com");
+  });
+
+  it("requires server credentials before creating a live checkout", async () => {
+    await expect(
+      createDodoCheckout({
+        mode: "live",
+        apiKey: undefined,
+        productId: "prod_build_pack",
+        reportId: "idea_1",
+        customerEmail: "buyer@example.com",
+        returnUrl: "https://example.test/checkout/return",
+        idempotencyKey: "checkout-idea-1",
+      }),
+    ).resolves.toBeInstanceOf(DodoWebhookConfigError);
+  });
+
+  it("creates a live hosted session through the server transport", async () => {
+    const result = await createDodoCheckout({
+      mode: "live",
+      apiKey: "server-key",
+      productId: "prod_build_pack",
+      reportId: "idea_1",
+      customerEmail: "buyer@example.com",
+      returnUrl: "https://example.test/checkout/return",
+      idempotencyKey: "checkout-idea-1",
+      transport: async (request) => {
+        expect(request).toMatchObject({
+          apiKey: "server-key",
+          productCart: [{ productId: "prod_build_pack", quantity: 1 }],
+          customer: { email: "buyer@example.com" },
+          metadata: { reportId: "idea_1" },
+        });
+        return {
+          checkoutSessionId: "checkout_live_1",
+          checkoutUrl: "https://checkout.dodopayments.com/session/live_1",
+        };
+      },
+    });
+    expect(result).toMatchObject({
+      mode: "live",
+      checkoutSessionId: "checkout_live_1",
+      checkoutUrl: "https://checkout.dodopayments.com/session/live_1",
+      reportId: "idea_1",
+    });
+    expect(JSON.stringify(result)).not.toContain("buyer@example.com");
+    expect(JSON.stringify(result)).not.toContain("server-key");
+  });
+
   it("accepts fake-mode webhooks without live secrets", async () => {
     await expect(
       verifyDodoWebhook({
@@ -35,6 +105,58 @@ describe("Dodo payment seam", () => {
         seenEventIds: [],
       }),
     ).resolves.toBeInstanceOf(DodoWebhookConfigError);
+  });
+
+  it("rejects an invalid live webhook signature", async () => {
+    await expect(
+      verifyDodoWebhook({
+        mode: "live",
+        payload: '{"id":"evt_123","type":"payment.succeeded"}',
+        signature: "v1,invalid",
+        signatureTimestamp: "1700000000",
+        webhookSecret: "server-secret",
+        nowMs: 1_700_000_000_000,
+        seenEventIds: [],
+      }),
+    ).resolves.toBeInstanceOf(DodoWebhookSignatureError);
+  });
+
+  it("accepts a fresh cryptographically verified webhook", async () => {
+    const payload = '{"id":"evt_123","type":"payment.succeeded"}';
+    const timestamp = "1700000000";
+    const signature = createHmac("sha256", "server-secret")
+      .update(`${timestamp}.${payload}`)
+      .digest("base64");
+    await expect(
+      verifyDodoWebhook({
+        mode: "live",
+        payload,
+        signature: `v1,${signature}`,
+        signatureTimestamp: timestamp,
+        webhookSecret: "server-secret",
+        nowMs: 1_700_000_100_000,
+        seenEventIds: [],
+      }),
+    ).resolves.toEqual({ ok: true, mode: "live", eventId: "evt_123" });
+  });
+
+  it("rejects a correctly signed webhook outside the freshness window", async () => {
+    const payload = '{"id":"evt_123","type":"payment.succeeded"}';
+    const timestamp = "1700000000";
+    const signature = createHmac("sha256", "server-secret")
+      .update(`${timestamp}.${payload}`)
+      .digest("base64");
+    await expect(
+      verifyDodoWebhook({
+        mode: "live",
+        payload,
+        signature: `v1,${signature}`,
+        signatureTimestamp: timestamp,
+        webhookSecret: "server-secret",
+        nowMs: 1_700_000_301_000,
+        seenEventIds: [],
+      }),
+    ).resolves.toBeInstanceOf(DodoWebhookSignatureError);
   });
 
   it("denies duplicate webhook event ids", async () => {
