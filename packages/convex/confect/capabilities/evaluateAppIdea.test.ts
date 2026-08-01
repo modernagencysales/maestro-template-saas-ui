@@ -8,6 +8,7 @@ import {
 import {
   evaluateAppIdeaArgs,
   evaluateAppIdeaWithModel,
+  evaluateAppIdeaWithModelReturns,
 } from "./evaluateAppIdea.spec";
 
 const answers = {
@@ -67,5 +68,63 @@ describe("evaluateAppIdea capability domain", () => {
       functionType: "action",
     });
     expect(evaluateAppIdeaWithModel.functionVisibility).toBe("public");
+  });
+
+  it("returns receipt-derived operational metrics without report content", () => {
+    expect(
+      Schema.decodeUnknownSync(evaluateAppIdeaWithModelReturns, {
+        onExcessProperty: "error",
+      })({
+        status: "completed",
+        evaluationId: "evaluation_1",
+        reportId: "report_1",
+        version: 1,
+        freshCompletion: true,
+        durationMs: 1200,
+        modelCalls: 2,
+        estimatedCostCents: 0.04,
+      }),
+    ).toMatchObject({ modelCalls: 2, estimatedCostCents: 0.04 });
+    expect(() =>
+      Schema.decodeUnknownSync(evaluateAppIdeaWithModelReturns, {
+        onExcessProperty: "error",
+      })({
+        status: "completed",
+        evaluationId: "evaluation_1",
+        reportId: "report_1",
+        version: 1,
+        freshCompletion: true,
+        durationMs: 1200,
+        modelCalls: 2,
+        estimatedCostCents: 0.04,
+        report: "private content",
+      }),
+    ).toThrow();
+
+    expect(
+      Schema.decodeUnknownSync(evaluateAppIdeaWithModelReturns, {
+        onExcessProperty: "error",
+      })({
+        status: "completed",
+        evaluationId: "evaluation_1",
+        reportId: "report_1",
+        version: 1,
+        freshCompletion: false,
+      }),
+    ).toMatchObject({ freshCompletion: false });
+    expect(() =>
+      Schema.decodeUnknownSync(evaluateAppIdeaWithModelReturns, {
+        onExcessProperty: "error",
+      })({
+        status: "completed",
+        evaluationId: "evaluation_1",
+        reportId: "report_1",
+        version: 1,
+        freshCompletion: false,
+        modelCalls: 0,
+        estimatedCostCents: 0,
+        durationMs: 0,
+      }),
+    ).toThrow();
   });
 });

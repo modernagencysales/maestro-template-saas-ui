@@ -459,6 +459,7 @@ const evaluateAppIdeaWithModelImpl = FunctionImpl.make(
   "evaluateAppIdeaWithModel",
   (rawInput) =>
     Effect.gen(function* () {
+      const startedAt = Date.now();
       const mutation = yield* MutationRunner;
       const query = yield* QueryRunner;
       const persisted = yield* mutation(
@@ -482,7 +483,12 @@ const evaluateAppIdeaWithModelImpl = FunctionImpl.make(
           () => new Forbidden({ reason: "Evaluation context was invalid." }),
         ),
       );
-      if (context.alreadyCompleted) return persisted;
+      if (context.alreadyCompleted) {
+        return {
+          ...persisted,
+          freshCompletion: false as const,
+        };
+      }
 
       const input = normalizeEvaluateAppIdeaInput(rawInput);
       const artifacts = buildEvaluationArtifacts(input.answers);
@@ -537,7 +543,7 @@ const evaluateAppIdeaWithModelImpl = FunctionImpl.make(
             "The evaluator could not finish. Your answers are safe, so you can try again.",
         });
       }
-      return yield* mutation(
+      const completed = yield* mutation(
         refs.internal.capabilities.evaluateAppIdea.persistModelEvaluation,
         {
           sessionId: input.sessionId,
@@ -552,6 +558,16 @@ const evaluateAppIdeaWithModelImpl = FunctionImpl.make(
           () => new Forbidden({ reason: "Evaluation result was invalid." }),
         ),
       );
+      return {
+        ...completed,
+        freshCompletion: true as const,
+        durationMs: Date.now() - startedAt,
+        modelCalls: generated.right.receipts.length,
+        estimatedCostCents: generated.right.receipts.reduce(
+          (total, receipt) => total + receipt.estimatedCents,
+          0,
+        ),
+      };
     }),
 );
 
