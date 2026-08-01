@@ -358,6 +358,86 @@ environment flag, browser client, or implementation agent cannot manufacture
 admission. Local development may use an explicit local-only issuer that is
 cryptographically and configurationally invalid outside local environments.
 
+### Admission control-plane closure
+
+The admission mechanism is itself a high-risk product surface. A repository
+adapter is conformant only when it proves all of the following fail-closed
+invariants:
+
+- **Exhaustive surface witness:** every supported registration mechanism is
+  enumerated, including HTTP/API functions, generated functions, browser routes,
+  CLI/MCP operations, webhooks, cron/scheduled jobs, queue consumers, retries,
+  dead-letter handlers, plugins, and feature-activated routes. An unknown
+  registration mechanism is an error, not an ignored surface.
+- **Guard domination:** each release surface is owned by exactly one journey and
+  every path to its first mutation or external dispatch is dominated by a
+  verified admission guard, or the surface has an independently reviewed
+  `not_releaseable` classification. Negative tests for every surface kind prove
+  that assembling, suspended, stale, and failing journeys make zero durable
+  writes and dispatch no external work.
+- **Hashed adapter descriptor:** generated applications retain a content-hashed
+  descriptor naming the catalog loader, surface-witness generator, merge-base
+  provider, scan mechanisms, and required gate command. Missing, empty,
+  narrowed, unreadable, or unknown adapter output fails CI. A freshly generated
+  application must pass the adapter conformance suite and both reference
+  journeys; proving only the template checkout is insufficient.
+- **Runtime configuration identity:** attestations bind a canonical digest of
+  all behaviorally relevant non-secret configuration: feature and rollout flags,
+  operation/route registry, authorization and policy versions, provider adapter
+  identity, schema/migration state, and guard configuration. Secret inputs
+  contribute only stable secret-reference/version identities. The guard,
+  deployed proof, and canary verify the same digest; drift stales the lease.
+- **Immutable legacy baseline:** legacy exposure is measured from a repository-
+  and release-bound baseline containing the discovered surfaces, reachable
+  operations, and authority/write-set classification. Ordinary changes may only
+  shrink it. Rebaselining is a separately protected migration requiring product
+  and security approval.
+- **Out-of-band protection audit:** the release/admission workflow queries the
+  source-control and CI provider to verify required checks, distinct
+  contract-owner approval, protected control-plane paths, trusted issuer
+  context, and audited break-glass policy. Repository-owned files cannot attest
+  to their own protection.
+
+Receipt edges carry versioned payload schemas and mandatory journey, actor,
+workspace/persona, input/version, policy, idempotency, and terminal-state
+correlation. A consumer assertion must prove that the exact producer receipt
+caused the next transition and must reject altered, stale, foreign, or replayed
+authority; checking only that a receipt label exists is not sufficient.
+
+Journey identities are immutable. Rename, split, merge, replacement, and
+retirement use a protected migration ledger that preserves predecessor
+contracts, entrypoint ownership, dependencies, and lease continuity. A reachable
+journey cannot become an unrelated new assembling manifest merely by changing
+its id.
+
+Proof class is derived from the surface witness and authority metadata. Durable
+writes, external dispatch, asynchronous execution, or non-local transport make
+deployed proof mandatory. A downgrade is a governed coverage reduction.
+
+The portable adapter interface covers catalog loading, surface witnessing,
+guard-placement verification, merge-base diffing, journey execution, artifact
+storage, issuer/verifier integration, runtime configuration identity, protection
+audit, deployment identity, and canary identity. Backend and CI implementations
+live outside the neutral core and must pass the shared adapter conformance
+suite.
+
+### First deployed-proof bootstrap
+
+Deployed-proof-required admission uses two distinct attestations to avoid a
+circular dependency:
+
+1. Required deterministic CI may issue a short-lived `canary_bootstrap`
+   attestation for one exact artifact and runtime-configuration digest. It is
+   accepted only by the staging canary entrypoint, only for the registered
+   synthetic tenant and canary actor, and cannot enable general user traffic.
+2. The successful exact-SHA canary receipt is returned to the trusted issuer,
+   which issues the normal admission attestation. Only that attestation enables
+   the declared release entrypoints for their intended audience.
+
+The bootstrap path is part of the surface witness, protection audit, negative
+authorization tests, and expiry rules. It is never a generic staging bypass or
+an environment flag.
+
 ## Test Tiers
 
 ### Tier 1: focused boundary tests

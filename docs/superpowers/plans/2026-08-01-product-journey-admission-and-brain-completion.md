@@ -43,7 +43,26 @@ pnpm, Woodpecker for Maestro, Buildkite for the template, GitHub pull requests.
   and trusted-issuer configuration are protected contract-risk surfaces.
 - Runtime admission requires a trusted attestation matching the running
   artifact, contract, test apparatus, generated interfaces, dependencies, and
-  deployment identity.
+  deployment and canonical runtime-configuration identities.
+- Repository adapters must prove exhaustive release-surface discovery, guard
+  domination before side effects, and fail-closed adapter conformance; an
+  unknown registration mechanism or unreadable merge base is a gate failure.
+- Legacy exposure is compared with an immutable release-bound surface and
+  authority baseline; ordinary pull requests may only shrink it.
+- Required-check, contract-owner, protected-path, and issuer-context enforcement
+  is verified against the live source-control/CI control plane before admission.
+- Deployed-proof bootstrap uses a short-lived exact-identity attestation limited
+  to the registered staging canary actor and synthetic tenant; it never enables
+  general traffic.
+- Receipt consumers verify versioned payload and exact journey, actor,
+  workspace/persona, input/version, policy, idempotency, and terminal-state
+  correlation; receipt-label existence alone never proves an edge.
+- Journey ids are immutable. Rename, split, merge, replacement, and retirement
+  require a protected migration ledger preserving old ownership, dependencies,
+  contracts, and lease continuity.
+- Minimum proof class is derived from surface authority: durable writes,
+  external dispatch, asynchronous work, and non-local transport require deployed
+  proof, and downgrades are governed coverage reductions.
 - Every work package uses a dedicated worktree and ordinary GitHub branch/PR; no
   active checkout or tmux session is repurposed.
 - No Brain v2, generic learning table, parallel retrieval store, or adjacent
@@ -238,6 +257,13 @@ export type JourneyDiagnostic = {
 };
 ```
 
+Compare the merge-base catalog as well as individual manifests. Deleting or
+renaming an admitted/legacy journey, transferring reachable entrypoints without
+a protected migration record, or reducing the proof class below discovered
+surface authority is a coverage reduction. Journey replacement/split/merge and
+retirement preserve predecessor hashes, dependencies, attestations, and lease
+continuity.
+
 - [ ] **Step 4: Register the fail-closed static command**
 
 Add `check:product-journeys` to `package.json`, `Justfile`, gate definitions,
@@ -324,6 +350,11 @@ export type JourneyDriver = {
 };
 ```
 
+Validate versioned receipt payloads and mandatory correlation fields at every
+consumer boundary. An altered, stale, foreign-workspace/persona, unrelated
+input/version, policy-mismatched, or invalid replay receipt fails the boundary
+even when its kind string is correct.
+
 - [ ] **Step 4: Implement attestation verification and lease projection**
 
 Bind repository SHA, journey/contract/test hashes, generated identity,
@@ -385,7 +416,9 @@ Run:
 - Produces:
   `pnpm template:journey --name client-onboarding --profile high-risk`,
   deterministic package export, a Confect runtime guard, one admitted miniature
-  read journey, and one assembling dark write journey.
+  read journey, one assembling dark write journey, a hashed repository-adapter
+  descriptor, a complete surface-coverage witness, and adapter conformance tests
+  runnable in a freshly generated target.
 
 - [ ] **Step 1: Write generator and guard failures first**
 
@@ -444,6 +477,14 @@ projection are injected services; no ambient local/test bypass is allowed.
 Generate Confect refs and test the registered public entrypoint through
 `TestConfect`, including a durable-write count of zero on denial.
 
+Generate a closed surface-kind/registration-mechanism witness. Prove that every
+registered public or autonomous surface is journey-owned and that the verified
+guard dominates its first durable write or external dispatch. Include HTTP/API,
+generated functions, routes, CLI/MCP operations, webhooks, cron/scheduled work,
+queues/retries/dead letters, plugins, and feature-activated registrations; an
+unknown mechanism fails. Deferred workers propagate and reverify journey and
+attestation identity before side effects.
+
 - [ ] **Step 5: Add reference positive and dark journeys**
 
 The read journey proves terminal success and denial. The assembling write
@@ -458,6 +499,13 @@ for coverage reductions. Keep Buildkite as this repository's adapter. This task
 also installs the real reference catalog and generated release-surface
 inventory, then adds the now-executable command to root `verify`, config drift,
 CI completeness, `phase1.sh`, and secretless CI self-protection.
+
+Check in a content-hashed adapter descriptor naming the catalog, witness,
+merge-base provider, supported registration mechanisms, and required command.
+Add a backend/CI-neutral adapter conformance suite and execute it against both
+the template checkout and a freshly generated application. Add provider-adapter
+tests for the out-of-band protection audit; missing provider capability fails
+admission rather than silently skipping it.
 
 - [ ] **Step 7: Run focused and broad template verification**
 
@@ -509,8 +557,9 @@ checks, and merge without bypassing protection.
 
 - Consumes: merged Task 4 framework.
 - Produces: `brain.hydration.v1`, shared edge receipt types for M2–M6, protected
-  Woodpecker gates, and deterministic evidence whose expected frontier is the
-  first genuinely missing boundary.
+  Woodpecker gates, a Maestro surface-coverage witness and immutable legacy
+  baseline, and deterministic evidence whose expected frontier is the first
+  genuinely missing boundary.
 
 - [ ] **Step 1: Import the framework with provenance**
 
@@ -564,7 +613,10 @@ parity requirements.
 
 Generate a Maestro release-surface inventory from the registered Convex function
 surface, headless registry/schema, web route tree, workflow manifests, and
-schema imports. Add product-owner acceptance for actor, goal, terminal and
+schema imports. Inventory asynchronous and dynamic registrations as first-class
+surfaces, record reachable operation/write authority, and fail on an unknown
+registration mechanism. Create a release-bound legacy baseline that normal PRs
+may only shrink. Add product-owner acceptance for actor, goal, terminal and
 forbidden outcomes, and coverage profile; protect that acceptance, the manifest,
 fixture, runner, and gate paths through `CODEOWNERS`.
 
@@ -1125,7 +1177,15 @@ foreign receipts, and no scenario is skipped or `not_reached`.
 
 Woodpecker binds exact SHA, journey contract/test/fixture/runner hashes,
 generated Convex/headless schema identity, dependency attestations, and expiry.
-The runtime guard rejects a source-only `admitted` state without this receipt.
+It also binds the authoritative evidence digest, the complete required-scenario
+result set (no skipped or `not_reached` scenario), and a canonical digest of
+feature/route/operation/auth/policy/provider/schema/migration/guard
+configuration identities. The runtime guard rejects a source-only `admitted`
+state, unavailable configuration digest, or digest mismatch.
+
+Before issuance, a Woodpecker/GitHub control-plane adapter verifies the live
+required-check rule, distinct contract-owner approval, protected control-plane
+paths, trusted non-PR issuer context, and audited break-glass posture.
 
 - [ ] **Step 5: Transition Brain to admitted intent and merge**
 
@@ -1163,8 +1223,9 @@ Run focused:
 - [ ] **Step 1: Verify deployment identity before mutation**
 
 Read the staging deployment's reported SHA and generated-contract hash. Abort
-with `DEPLOYMENT_IDENTITY_MISMATCH` if either differs from the admission
-attestation. Never fall back to production.
+with `DEPLOYMENT_IDENTITY_MISMATCH` if either differs from the deterministic
+bootstrap attestation. Also compare the canonical runtime-configuration digest.
+Never fall back to production.
 
 ```ts
 if (
@@ -1174,6 +1235,13 @@ if (
   throw new Error("DEPLOYMENT_IDENTITY_MISMATCH");
 }
 ```
+
+Use a short-lived `canary_bootstrap` attestation accepted only by the registered
+staging canary actor in the dedicated synthetic tenant. It cannot enable general
+user traffic. After the exact-SHA canary passes, the trusted issuer incorporates
+that deployed receipt into the normal admission attestation; rerun denial tests
+showing the bootstrap identity cannot reach any other workspace, persona,
+entrypoint, mutation, or external dispatch.
 
 - [ ] **Step 2: Run the synthetic deployed Brain journey**
 
