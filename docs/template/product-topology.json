@@ -302,7 +302,7 @@
       "lifecycle": "active"
     },
     {
-      "id": "route:build-pack/$packId/generating",
+      "id": "route:generating",
       "kind": "route",
       "system": "workflow-runtime",
       "path": "apps/web/src/routes/build-pack.$packId.generating.tsx",
