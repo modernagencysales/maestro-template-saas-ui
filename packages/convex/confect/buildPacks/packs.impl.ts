@@ -58,6 +58,7 @@ type PackSummary = {
   readonly reportId: string;
   readonly reportVersion: number;
   readonly status: BuildPackRun["status"] | "revoked";
+  readonly supportId?: string | undefined;
   readonly stages: BuildPackRun["stages"];
 };
 
@@ -289,13 +290,28 @@ const statusImpl = FunctionImpl.make(
   packsGroup,
   "status",
   ({ packId, ownerAccessToken }) =>
-    requirePackOwner(packId, ownerAccessToken).pipe(
-      Effect.map(({ pack, stages, active }) =>
-        active
-          ? summaryFrom(pack, stages)
-          : { ...summaryFrom(pack, stages), status: "revoked" as const },
-      ),
-    ),
+    Effect.gen(function* () {
+      const { pack, stages, active } = yield* requirePackOwner(
+        packId,
+        ownerAccessToken,
+      );
+      const summary = active
+        ? summaryFrom(pack, stages)
+        : { ...summaryFrom(pack, stages), status: "revoked" as const };
+      if (pack.status !== "needs-support") return summary;
+      const reader = yield* DatabaseReader;
+      const incidents = yield* reader
+        .table("supportIncidents")
+        .index("by_pack", (q) => q.eq("packId", pack.packId))
+        .collect()
+        .pipe(Effect.orDie);
+      const incident = incidents
+        .filter(({ status }) => status === "needs-support")
+        .sort((left, right) => right.updatedAt - left.updatedAt)[0];
+      return incident
+        ? { ...summary, supportId: incident.incidentId }
+        : summary;
+    }),
 );
 
 const getPackImpl = FunctionImpl.make(
@@ -594,6 +610,42 @@ const persistCheckpointImpl = FunctionImpl.make(
         .table("buildPacks")
         .patch(pack._id, { status: run.status, updatedAt: now })
         .pipe(Effect.orDie);
+      const supportStage = run.stages.find(
+        ({ status }) => status === "needs-support",
+      );
+      if (run.status === "needs-support" && supportStage) {
+        const entitlement = yield* reader
+          .table("buildPackEntitlements")
+          .index("by_report", (q) => q.eq("reportId", pack.reportId))
+          .first()
+          .pipe(Effect.map(Option.getOrNull), Effect.orDie);
+        if (!entitlement)
+          return yield* new NotFound({
+            resource: "buildPackEntitlements",
+            id: pack.reportId,
+          });
+        const incidentId = `support_${sha256Hex(
+          `${packId}:${supportStage.name}:${String(supportStage.attempts)}`,
+        ).slice(0, 24)}`;
+        const existingIncident = yield* reader
+          .table("supportIncidents")
+          .index("by_incident", (q) => q.eq("incidentId", incidentId))
+          .first()
+          .pipe(Effect.map(Option.getOrNull), Effect.orDie);
+        if (!existingIncident)
+          yield* writer
+            .table("supportIncidents")
+            .insert({
+              incidentId,
+              packId,
+              purchaseId: entitlement.purchaseId,
+              failedStage: supportStage.name,
+              status: "needs-support",
+              createdAt: now,
+              updatedAt: now,
+            })
+            .pipe(Effect.orDie);
+      }
       if (receipt) {
         const existingReceipt = yield* reader
           .table("modelReceipts")

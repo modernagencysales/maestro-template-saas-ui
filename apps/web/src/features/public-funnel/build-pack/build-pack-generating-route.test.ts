@@ -34,12 +34,13 @@ describe("configured Build Pack generation presentation", () => {
       presentServerPackStatus({
         packId: "pack_1",
         status: "needs-support",
+        supportId: "support_durable_1",
         stages,
       }),
     ).toEqual({
       _tag: "failed",
       canRetry: false,
-      supportId: "support_pack_1",
+      supportId: "support_durable_1",
     });
   });
 
