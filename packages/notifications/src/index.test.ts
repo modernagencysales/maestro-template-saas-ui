@@ -14,6 +14,30 @@ import {
 } from "./index";
 
 describe("notification provider seams", () => {
+  it("delivers report verification links through the redacted email seam", async () => {
+    const deliveries: unknown[] = [];
+    const service = createFunnelLifecycleEmailService({
+      mode: "fake",
+      from: "reports@example.test",
+      sink: (message) => {
+        deliveries.push(message);
+      },
+    });
+    await expect(
+      service.send({
+        kind: "verify-report-email",
+        to: "founder@example.test",
+        reportId: "report_1",
+        destinationUrl: "https://example.test/verify/token-secret",
+      }),
+    ).resolves.toMatchObject({
+      ok: true,
+      idempotencyKey: "idea-funnel.verify-report-email.report_1",
+    });
+    expect(JSON.stringify(deliveries)).not.toContain("token-secret");
+    expect(JSON.stringify(deliveries)).not.toContain("founder@example.test");
+  });
+
   it("sends idempotent app-idea lifecycle messages through the redacted email seam", async () => {
     const deliveries: unknown[] = [];
     const service = createFunnelLifecycleEmailService({

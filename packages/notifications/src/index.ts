@@ -264,7 +264,8 @@ export const redactEmailPayload = (
       key === "to" ||
       key === "recipient" ||
       key === "apiKey" ||
-      key === "templateData"
+      key === "templateData" ||
+      key === "html"
         ? "[redacted]"
         : value;
   }
@@ -309,7 +310,7 @@ export const createEmailService = (options: {
 });
 
 export type FunnelLifecycleEmailIntent = {
-  readonly kind: "build-pack-ready";
+  readonly kind: "build-pack-ready" | "verify-report-email";
   readonly to: string;
   readonly reportId: string;
   readonly destinationUrl: string;
@@ -325,18 +326,24 @@ export const createFunnelLifecycleEmailService = (options: {
   const email = createEmailService(options);
 
   return {
-    send: async (intent: FunnelLifecycleEmailIntent): Promise<EmailResult> =>
-      await email.send({
+    send: async (intent: FunnelLifecycleEmailIntent): Promise<EmailResult> => {
+      const verification = intent.kind === "verify-report-email";
+      return await email.send({
         to: intent.to,
         from: options.from,
-        subject: "Your Complete Build Pack is ready",
-        html: `<p>Your Complete Build Pack is ready. <a href="${intent.destinationUrl}">Open your Build Pack</a>.</p>`,
+        subject: verification
+          ? "Verify your email to save your app idea"
+          : "Your Complete Build Pack is ready",
+        html: verification
+          ? `<p>Verify your email to save your report. <a href="${intent.destinationUrl}">Verify email</a>.</p>`
+          : `<p>Your Complete Build Pack is ready. <a href="${intent.destinationUrl}">Open your Build Pack</a>.</p>`,
         idempotencyKey: `idea-funnel.${intent.kind}.${actionDigestKeyPart(intent.reportId)}`,
         templateData: {
           reportId: intent.reportId,
           destinationUrl: intent.destinationUrl,
         },
-      }),
+      });
+    },
   };
 };
 
