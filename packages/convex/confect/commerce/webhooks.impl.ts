@@ -12,7 +12,8 @@ import {
   MutationRunner,
 } from "../_generated/services";
 import { ConfigInvalid, ValidationFailed } from "../errors";
-import { loadDodoCommerceEnvConfig, RuntimeModeConfig } from "../shared/config";
+import { loadDodoCommerceEnvConfig } from "../evaluator/providerConfig";
+import { RuntimeModeConfig } from "../shared/config";
 import { sha256Hex } from "../shared/sha256";
 import webhooksGroup, { WebhookRejected } from "./webhooks.spec";
 

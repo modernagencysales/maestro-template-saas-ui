@@ -128,7 +128,7 @@ const processReadyWave = async (
   );
   for (const [index, node] of wave.entries()) {
     const outcome = outcomes[index];
-    if (outcome?.status === "fulfilled" && node.kind !== "output")
+    if (outcome?.status === "fulfilled")
       recordNodeResult(state, node, outcome.value);
   }
   const failedIndex = outcomes.findIndex(

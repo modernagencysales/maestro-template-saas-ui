@@ -72,25 +72,25 @@ describe("generateCompleteBuildPack durable workflow scaffold", () => {
       inputs,
       policySnapshot,
       capabilityRegistry,
+      projectOutput: ({ context }) => ({
+        status: "completed",
+        completedStages: Object.keys(context),
+      }),
     });
 
     expect(result).toEqual({
-      inputs,
-      context: {
-        start: inputs,
-        normalize: { stage: "normalize", status: "completed" },
-        challenge: { stage: "challenge", status: "completed" },
-        research: { stage: "research", status: "completed" },
-        design: { stage: "design", status: "completed" },
-        specify: { stage: "specify", status: "completed" },
-        review: { stage: "review", status: "completed" },
-        compile: { stage: "compile", status: "completed" },
-        "map-to-maestro": {
-          stage: "map-to-maestro",
-          status: "completed",
-        },
-      },
-      policySnapshot,
+      status: "completed",
+      completedStages: [
+        "start",
+        "normalize",
+        "challenge",
+        "research",
+        "design",
+        "specify",
+        "review",
+        "compile",
+        "map-to-maestro",
+      ],
     });
   });
 });

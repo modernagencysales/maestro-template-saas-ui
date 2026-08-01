@@ -32,7 +32,8 @@ import {
   Unauthorized,
   ValidationFailed,
 } from "../errors";
-import { loadLlmGatewayEnvConfig, RuntimeModeConfig } from "../shared/config";
+import { loadLlmGatewayEnvConfig } from "../evaluator/providerConfig";
+import { RuntimeModeConfig } from "../shared/config";
 import { sha256Hex } from "../shared/sha256";
 import packsGroup from "./packs.spec";
 import { enqueueBuildPackRun } from "./workpool";

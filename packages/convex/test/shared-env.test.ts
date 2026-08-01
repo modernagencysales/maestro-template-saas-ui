@@ -7,13 +7,13 @@ import { describe, expect, it } from "vitest";
 import {
   EnvConfigError,
   killSwitchOn,
-  loadLlmGatewayEnvConfig,
   loadTemplateRuntimeConfig,
   readOptionalEnv,
   readRequiredEnv,
   requireLiveEnv,
   runWithTemplateRuntimeConfig,
 } from "../confect/shared/env";
+import { loadLlmGatewayEnvConfig } from "../confect/evaluator/providerConfig";
 
 describe("shared typed env access", () => {
   it("fails missing live secrets with a typed config error", () => {

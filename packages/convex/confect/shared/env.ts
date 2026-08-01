@@ -2,9 +2,6 @@ import * as Schema from "effect/Schema";
 
 export {
   loadTemplateRuntimeConfig,
-  loadLlmGatewayEnvConfig,
-  loadDodoCommerceEnvConfig,
-  loadMailerSendEnvConfig,
   runWithTemplateRuntimeConfig,
   TemplateRuntimeConfigLive,
 } from "./config";

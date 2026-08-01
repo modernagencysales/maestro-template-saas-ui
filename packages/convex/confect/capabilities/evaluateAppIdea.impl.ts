@@ -31,7 +31,8 @@ import {
   type EvaluationAnswers,
 } from "./evaluateAppIdea.domain";
 import evaluateAppIdeaGroup from "./evaluateAppIdea.spec";
-import { loadLlmGatewayEnvConfig, RuntimeModeConfig } from "../shared/config";
+import { loadLlmGatewayEnvConfig } from "../evaluator/providerConfig";
+import { RuntimeModeConfig } from "../shared/config";
 import {
   FreeEvaluationRuntimeError,
   runFreeEvaluationWithGateway,

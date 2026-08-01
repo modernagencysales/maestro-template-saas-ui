@@ -21,11 +21,8 @@ import {
   Unauthorized,
   ValidationFailed,
 } from "../errors";
-import {
-  loadDodoCommerceEnvConfig,
-  PublicBaseUrlConfig,
-  RuntimeModeConfig,
-} from "../shared/config";
+import { PublicBaseUrlConfig, RuntimeModeConfig } from "../shared/config";
+import { loadDodoCommerceEnvConfig } from "../evaluator/providerConfig";
 import { sha256Hex } from "../shared/sha256";
 import checkoutGroup, { CheckoutUnavailable } from "./checkout.spec";
 
