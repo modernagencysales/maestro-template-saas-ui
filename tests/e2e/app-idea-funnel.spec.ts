@@ -304,3 +304,137 @@ test("an owner can revise a local report without losing version one", async ({
   await page.reload();
   await expect(page.getByText("2 versions are saved.")).toBeVisible();
 });
+
+test("a recoverable premium checkpoint retries without another purchase", async ({
+  page,
+}) => {
+  await page.goto("/evaluate");
+  await completeEvaluation(page);
+  const reportId = page.url().split("/report/")[1]?.split(/[?#]/)[0] ?? "";
+  const packId = `pack_${reportId}`;
+  await page.evaluate(
+    ({ id, idPack }) => {
+      window.localStorage.setItem(
+        "maestro.idea-funnel.commerce",
+        JSON.stringify({
+          checkoutReturns: [],
+          entitlements: [
+            { reportId: id, paymentId: "payment_retry", status: "active" },
+          ],
+          maestroCredits: [],
+          processedEventIds: ["payment_retry"],
+          revokedPaymentIds: [],
+        }),
+      );
+      window.localStorage.setItem(
+        `maestro.idea-funnel.build-pack.${idPack}`,
+        JSON.stringify({
+          run: {
+            packId: idPack,
+            reportId: id,
+            reportVersion: 1,
+            status: "failed-recoverable",
+            stages: [
+              {
+                name: "normalize",
+                status: "completed",
+                attempts: 1,
+                output: "Completed normalize",
+              },
+              {
+                name: "challenge",
+                status: "failed-recoverable",
+                attempts: 1,
+                error: "Fake provider capacity interruption",
+              },
+              ...[
+                "research",
+                "design",
+                "specify",
+                "review",
+                "compile",
+                "map-to-maestro",
+              ].map((name) => ({ name, status: "queued", attempts: 0 })),
+            ],
+          },
+        }),
+      );
+    },
+    { id: reportId, idPack: packId },
+  );
+
+  await page.goto(`/build-pack/${reportId}/generating`);
+  await expect(
+    page.getByRole("heading", { name: "Generation paused safely" }),
+  ).toBeVisible();
+  await expect(page.getByText(`Support ID: support_${packId}`)).toBeVisible();
+  await page.getByRole("button", { name: "Retry generation" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Your idea is ready to hand off." }),
+  ).toBeVisible();
+  expect(
+    await page.evaluate((idPack) => {
+      const stored = JSON.parse(
+        window.localStorage.getItem(
+          `maestro.idea-funnel.build-pack.${idPack}`,
+        ) ?? "{}",
+      ) as { run?: { stages?: { attempts: number; output?: string }[] } };
+      return {
+        completedOutput: stored.run?.stages?.[0]?.output,
+        retriedAttempts: stored.run?.stages?.[1]?.attempts,
+      };
+    }, packId),
+  ).toEqual({ completedOutput: "Completed normalize", retriedAttempts: 2 });
+});
+
+test("a low-fit idea keeps its portable handoff without a Maestro pitch", async ({
+  page,
+}) => {
+  await page.goto("/evaluate");
+  await completeEvaluation(page);
+  const reportId = page.url().split("/report/")[1]?.split(/[?#]/)[0] ?? "";
+  const packId = `pack_${reportId}`;
+  await page.evaluate(
+    ({ id, idPack }) => {
+      const evaluationKey = `maestro.idea-evaluation.${id}`;
+      const evaluation = JSON.parse(
+        window.localStorage.getItem(evaluationKey) ?? "{}",
+      ) as {
+        result?: { dimensions?: { maestroFit?: { score?: number } } };
+      };
+      if (evaluation.result?.dimensions?.maestroFit) {
+        evaluation.result.dimensions.maestroFit.score = 20;
+      }
+      window.localStorage.setItem(evaluationKey, JSON.stringify(evaluation));
+      window.localStorage.setItem(
+        `maestro.idea-funnel.build-pack.${idPack}`,
+        JSON.stringify({
+          run: {
+            packId: idPack,
+            reportId: id,
+            reportVersion: 1,
+            status: "completed",
+            stages: [],
+          },
+        }),
+      );
+    },
+    { id: reportId, idPack: packId },
+  );
+
+  await page.goto(`/maestro/${packId}`);
+  await expect(
+    page.getByRole("heading", { name: "Use your Build Pack anywhere." }),
+  ).toBeVisible();
+  await expect(
+    page.getByText(
+      "Give it to a developer, agency or coding agent and they will know what to build.",
+    ),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "Start building with Maestro" }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("link", { name: "Return to your Build Pack" }),
+  ).toBeVisible();
+});

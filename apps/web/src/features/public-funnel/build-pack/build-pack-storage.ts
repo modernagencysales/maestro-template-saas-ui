@@ -1,6 +1,8 @@
 import {
   advanceBuildPack,
   createBuildPackRun,
+  failBuildPackStage,
+  retryBuildPackStage,
   type BuildPackRun,
   type CompleteBuildPack,
 } from "@maestro-template/app-idea-evaluator";
@@ -38,6 +40,21 @@ export const completeFakeBuildPack = (
   }
   return { run, pack: compileFakeBuildPack(evaluation) };
 };
+
+export const failFakeBuildPackAtCheckpoint = (
+  stored: StoredBuildPack,
+): StoredBuildPack => ({
+  run: failBuildPackStage(
+    advanceBuildPack(stored.run, "Completed normalize"),
+    "Fake provider capacity interruption",
+  ),
+});
+
+export const retryFakeBuildPack = (
+  stored: StoredBuildPack,
+  evaluation: StoredEvaluation,
+): StoredBuildPack =>
+  completeFakeBuildPack({ run: retryBuildPackStage(stored.run) }, evaluation);
 
 const key = (packId: string): string =>
   `maestro.idea-funnel.build-pack.${packId}`;

@@ -17,6 +17,8 @@ import { loadEvaluation } from "../evaluation-storage";
 import { entitlementStatusFor } from "../checkout/commerce-storage";
 import {
   completeFakeBuildPack,
+  loadBuildPack,
+  retryFakeBuildPack,
   saveBuildPack,
   startBuildPackGeneration,
   type StoredBuildPack,
@@ -216,6 +218,14 @@ function LocalBuildPackGeneratingRoute({
       setRevoked(true);
       return;
     }
+    const existing = loadBuildPack(`pack_${reportId}`);
+    if (
+      existing?.run.status === "failed-recoverable" ||
+      existing?.run.status === "needs-support"
+    ) {
+      setStored(existing);
+      return;
+    }
     const started = startBuildPackGeneration({
       evaluation,
       entitlementStatus,
@@ -230,8 +240,33 @@ function LocalBuildPackGeneratingRoute({
     return () => window.clearTimeout(timer);
   }, [reportId]);
 
+  const retry = () => {
+    const evaluation = loadEvaluation(reportId);
+    if (!stored || !evaluation || stored.run.status !== "failed-recoverable")
+      return;
+    const completed = retryFakeBuildPack(stored, evaluation);
+    saveBuildPack(completed);
+    window.location.assign(`/build-pack/${completed.run.packId}`);
+  };
+
   if (revoked) {
     return <BuildPackRouteView packId={reportId} state={{ _tag: "revoked" }} />;
+  }
+  if (
+    stored?.run.status === "failed-recoverable" ||
+    stored?.run.status === "needs-support"
+  ) {
+    return (
+      <BuildPackRouteView
+        onRetry={retry}
+        packId={stored.run.packId}
+        state={{
+          _tag: "failed",
+          canRetry: stored.run.status === "failed-recoverable",
+          supportId: `support_${stored.run.packId}`,
+        }}
+      />
+    );
   }
   return stored ? (
     <BuildPackRouteView
