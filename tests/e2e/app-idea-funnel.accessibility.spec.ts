@@ -141,3 +141,34 @@ test("every stable funnel surface is accessible and responsive", async ({
     .click();
   await expectResponsiveAt(page, "Maestro offer");
 });
+
+test("auxiliary public routes keep accessible recovery states", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    window.localStorage.setItem("maestro-template.cookie-consent", "declined");
+  });
+  const routes = [
+    ["/support", "support"],
+    ["/privacy", "privacy"],
+    ["/terms", "terms"],
+    ["/report/missing", "missing report"],
+    ["/share/missing", "missing share"],
+    ["/verify-report", "missing verification"],
+    ["/checkout/missing", "checkout"],
+    ["/checkout/return", "missing checkout return"],
+    ["/checkout/fake-hosted/missing", "missing hosted checkout"],
+    ["/build-pack/missing/generating", "revoked Build Pack progress"],
+    ["/build-pack/missing", "missing Build Pack"],
+    ["/maestro/missing", "unavailable Maestro offer"],
+  ] as const;
+
+  for (const [path, label] of routes) {
+    await page.goto(path);
+    await expect(
+      page.getByRole("heading", { name: "Loading page" }),
+    ).toBeHidden();
+    await expect(page.getByRole("main")).toBeVisible();
+    await expectResponsiveAt(page, label);
+  }
+});
