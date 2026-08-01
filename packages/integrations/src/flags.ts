@@ -32,7 +32,7 @@ export type FeatureFlagDecision = {
   readonly rolloutBucket: number;
 };
 
-export class FeatureFlagConfigError extends Schema.TaggedError<FeatureFlagConfigError>()(
+export class FeatureFlagConfigError extends Schema.TaggedErrorClass<FeatureFlagConfigError>()(
   "FeatureFlagConfigError",
   {
     key: Schema.String,

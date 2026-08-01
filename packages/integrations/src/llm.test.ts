@@ -1,10 +1,28 @@
+import * as Cause from "effect/Cause";
 import * as Effect from "effect/Effect";
+import * as Exit from "effect/Exit";
+import * as Result from "effect/Result";
 import { describe, expect, it } from "vitest";
 import {
   createLlmGateway,
   LlmDisabledError,
   LlmProviderConfigError,
 } from "./llm";
+
+const expectFailure = <E>(exit: Exit.Exit<unknown, E>): E => {
+  expect(Exit.isFailure(exit)).toBe(true);
+  if (Exit.isSuccess(exit)) {
+    throw new Error("Expected Effect failure");
+  }
+
+  const error = Cause.findError(exit.cause);
+  expect(Result.isSuccess(error)).toBe(true);
+  if (Result.isFailure(error)) {
+    throw new Error("Expected typed failure in Effect cause");
+  }
+
+  return error.success;
+};
 
 describe("kill-switch-aware LLM gateway", () => {
   it("denies calls when LLM_DISABLED is true", async () => {
@@ -20,14 +38,8 @@ describe("kill-switch-aware LLM gateway", () => {
       }),
     );
 
-    expect(result).toMatchObject({
-      _tag: "Failure",
-      cause: {
-        _tag: "Fail",
-        error: { _tag: "LlmDisabledError" },
-      },
-    });
-    const causeText = result._tag === "Failure" ? result.cause.toString() : "";
+    expect(expectFailure(result)).toMatchObject({ _tag: "LlmDisabledError" });
+    const causeText = Exit.isFailure(result) ? Cause.pretty(result.cause) : "";
 
     expect(causeText).not.toContain("Summarize");
   });
@@ -78,17 +90,10 @@ describe("kill-switch-aware LLM gateway", () => {
       }),
     );
 
-    expect(result).toMatchObject({
-      _tag: "Failure",
-      cause: {
-        _tag: "Fail",
-        error: {
-          _tag: "LlmReceiptValidationError",
-          field: "idempotencyKey",
-          message:
-            "idempotencyKey must not have leading or trailing whitespace.",
-        },
-      },
+    expect(expectFailure(result)).toMatchObject({
+      _tag: "LlmReceiptValidationError",
+      field: "idempotencyKey",
+      message: "idempotencyKey must not have leading or trailing whitespace.",
     });
   });
 
@@ -105,15 +110,9 @@ describe("kill-switch-aware LLM gateway", () => {
       }),
     );
 
-    expect(result).toMatchObject({
-      _tag: "Failure",
-      cause: {
-        _tag: "Fail",
-        error: {
-          _tag: "LlmProviderConfigError",
-          missingEnv: ["OPENROUTER_API_KEY"],
-        },
-      },
+    expect(expectFailure(result)).toMatchObject({
+      _tag: "LlmProviderConfigError",
+      missingEnv: ["OPENROUTER_API_KEY"],
     });
     expect(JSON.stringify(result)).not.toContain("Private client source text");
   });
@@ -140,17 +139,11 @@ describe("kill-switch-aware LLM gateway", () => {
 
     expect(JSON.stringify(result)).not.toContain("secret-openrouter-key");
     expect(JSON.stringify(result)).not.toContain("private prompt");
-    expect(result).toMatchObject({
-      _tag: "Failure",
-      cause: {
-        _tag: "Fail",
-        error: {
-          _tag: "LlmProviderCallError",
-          redactedPayload: {
-            apiKey: "[redacted]",
-            prompt: "[redacted]",
-          },
-        },
+    expect(expectFailure(result)).toMatchObject({
+      _tag: "LlmProviderCallError",
+      redactedPayload: {
+        apiKey: "[redacted]",
+        prompt: "[redacted]",
       },
     });
   });

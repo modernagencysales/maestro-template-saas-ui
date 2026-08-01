@@ -1,6 +1,6 @@
 import * as Schema from "effect/Schema";
 
-export class SpendCapExceededError extends Schema.TaggedError<SpendCapExceededError>()(
+export class SpendCapExceededError extends Schema.TaggedErrorClass<SpendCapExceededError>()(
   "SpendCapExceededError",
   {
     workspaceSlug: Schema.String,

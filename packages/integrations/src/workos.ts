@@ -1,7 +1,7 @@
 import * as Schema from "effect/Schema";
 import type { ProviderMode } from "./index";
 
-export class WorkosConfigError extends Schema.TaggedError<WorkosConfigError>()(
+export class WorkosConfigError extends Schema.TaggedErrorClass<WorkosConfigError>()(
   "WorkosConfigError",
   {
     missingEnv: Schema.Array(Schema.String),

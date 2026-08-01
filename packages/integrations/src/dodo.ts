@@ -1,21 +1,21 @@
 import * as Schema from "effect/Schema";
 import type { ProviderMode } from "./index";
 
-export class DodoWebhookConfigError extends Schema.TaggedError<DodoWebhookConfigError>()(
+export class DodoWebhookConfigError extends Schema.TaggedErrorClass<DodoWebhookConfigError>()(
   "DodoWebhookConfigError",
   {
     missing: Schema.Array(Schema.String),
   },
 ) {}
 
-export class DodoWebhookReplayError extends Schema.TaggedError<DodoWebhookReplayError>()(
+export class DodoWebhookReplayError extends Schema.TaggedErrorClass<DodoWebhookReplayError>()(
   "DodoWebhookReplayError",
   {
     eventId: Schema.String,
   },
 ) {}
 
-export class DodoWebhookSignatureError extends Schema.TaggedError<DodoWebhookSignatureError>()(
+export class DodoWebhookSignatureError extends Schema.TaggedErrorClass<DodoWebhookSignatureError>()(
   "DodoWebhookSignatureError",
   {
     reason: Schema.String,

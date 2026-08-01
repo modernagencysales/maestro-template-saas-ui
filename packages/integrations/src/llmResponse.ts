@@ -2,12 +2,12 @@ import * as Schema from "effect/Schema";
 import type { ProviderMode } from "./index";
 import type { LlmSpendEstimate } from "./spend";
 
-export const LlmFinishReason = Schema.Literal(
+export const LlmFinishReason = Schema.Literals([
   "stop",
   "length",
   "tool_call",
   "content_filter",
-);
+]);
 
 export type LlmFinishReason = Schema.Schema.Type<typeof LlmFinishReason>;
 
@@ -37,7 +37,7 @@ export type LlmCompletionInput = {
   readonly idempotencyKey?: string;
 };
 
-export class LlmReceiptValidationError extends Schema.TaggedError<LlmReceiptValidationError>()(
+export class LlmReceiptValidationError extends Schema.TaggedErrorClass<LlmReceiptValidationError>()(
   "LlmReceiptValidationError",
   {
     field: Schema.String,

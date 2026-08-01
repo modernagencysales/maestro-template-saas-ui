@@ -15,14 +15,14 @@ import {
   verifyDailySpendCap,
 } from "./spend";
 
-export class LlmDisabledError extends Schema.TaggedError<LlmDisabledError>()(
+export class LlmDisabledError extends Schema.TaggedErrorClass<LlmDisabledError>()(
   "LlmDisabledError",
   {
     provider: Schema.Literal("openrouter"),
   },
 ) {}
 
-export class LlmProviderConfigError extends Schema.TaggedError<LlmProviderConfigError>()(
+export class LlmProviderConfigError extends Schema.TaggedErrorClass<LlmProviderConfigError>()(
   "LlmProviderConfigError",
   {
     provider: Schema.Literal("openrouter"),
@@ -30,16 +30,13 @@ export class LlmProviderConfigError extends Schema.TaggedError<LlmProviderConfig
   },
 ) {}
 
-export class LlmProviderCallError extends Schema.TaggedError<LlmProviderCallError>()(
+export class LlmProviderCallError extends Schema.TaggedErrorClass<LlmProviderCallError>()(
   "LlmProviderCallError",
   {
     provider: Schema.Literal("openrouter"),
     publicMessage: Schema.String,
     retryable: Schema.Boolean,
-    redactedPayload: Schema.Record({
-      key: Schema.String,
-      value: Schema.Unknown,
-    }),
+    redactedPayload: Schema.Record(Schema.String, Schema.Unknown),
   },
 ) {}
 
@@ -147,7 +144,7 @@ const captureTelemetrySafely = (
       await capture?.(event);
     },
     catch: () => undefined,
-  }).pipe(Effect.catchAll(() => Effect.succeed(undefined)));
+  }).pipe(Effect.catch(() => Effect.succeed(undefined)));
 
 const createProviderCallError = (
   input: LlmProviderTransportInput,

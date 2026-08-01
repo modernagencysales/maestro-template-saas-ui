@@ -46,7 +46,7 @@ export type ProviderDescriptor = {
   readonly notes: string;
 };
 
-export class ProviderConfigError extends Schema.TaggedError<ProviderConfigError>()(
+export class ProviderConfigError extends Schema.TaggedErrorClass<ProviderConfigError>()(
   "ProviderConfigError",
   {
     provider: Schema.String,
@@ -55,7 +55,7 @@ export class ProviderConfigError extends Schema.TaggedError<ProviderConfigError>
   },
 ) {}
 
-export class ProviderCallError extends Schema.TaggedError<ProviderCallError>()(
+export class ProviderCallError extends Schema.TaggedErrorClass<ProviderCallError>()(
   "ProviderCallError",
   {
     provider: Schema.String,

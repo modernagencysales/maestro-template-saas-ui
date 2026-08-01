@@ -1,4 +1,6 @@
 import * as Effect from "effect/Effect";
+import * as Exit from "effect/Exit";
+import * as Schema from "effect/Schema";
 import { describe, expect, it } from "vitest";
 import {
   buildProviderAdapters,
@@ -14,6 +16,32 @@ import {
 } from "./index";
 
 describe("provider adapter descriptors", () => {
+  it("decodes persisted provider errors with Effect 4 schema exits", () => {
+    const decode = Schema.decodeUnknownExit(ProviderConfigError);
+    const valid = decode({
+      _tag: "ProviderConfigError",
+      provider: "dodo",
+      missingEnv: ["DODO_WEBHOOK_SECRET"],
+      invalidEnv: [],
+    });
+    const invalid = decode({
+      _tag: "ProviderConfigError",
+      provider: "dodo",
+      missingEnv: "DODO_WEBHOOK_SECRET",
+      invalidEnv: [],
+    });
+
+    expect(Exit.isSuccess(valid)).toBe(true);
+    if (Exit.isSuccess(valid)) {
+      expect(valid.value).toMatchObject({
+        _tag: "ProviderConfigError",
+        provider: "dodo",
+        missingEnv: ["DODO_WEBHOOK_SECRET"],
+      });
+    }
+    expect(Exit.isFailure(invalid)).toBe(true);
+  });
+
   it("declares every required default provider family", () => {
     expect(providerDescriptors.map((provider) => provider.id)).toEqual([
       "workos",
@@ -176,7 +204,7 @@ describe("provider adapter descriptors", () => {
     }
 
     const result = await Effect.runPromise(
-      Effect.either(
+      Effect.result(
         adapter.call({
           operation: "billing.createCheckout",
           workspaceSlug: "acme-demo",
@@ -186,8 +214,8 @@ describe("provider adapter descriptors", () => {
     );
 
     expect(result).toMatchObject({
-      _tag: "Left",
-      left: {
+      _tag: "Failure",
+      failure: {
         _tag: "ProviderCallError",
         provider: "dodo",
         publicMessage:
@@ -205,7 +233,7 @@ describe("provider adapter descriptors", () => {
     }
 
     const result = await Effect.runPromise(
-      Effect.either(
+      Effect.result(
         adapter.call({
           operation: "billing.createCheckout",
           workspaceSlug: "acme-demo",
@@ -216,8 +244,8 @@ describe("provider adapter descriptors", () => {
     );
 
     expect(result).toMatchObject({
-      _tag: "Left",
-      left: {
+      _tag: "Failure",
+      failure: {
         _tag: "ProviderCallError",
         provider: "dodo",
         publicMessage:
