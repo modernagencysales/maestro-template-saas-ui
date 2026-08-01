@@ -6,9 +6,10 @@ into template core.
 
 Status note: `source-grounded-gtm-brain` is the default implemented generator
 blueprint. `gtm-implementation` is an optional implemented blueprint pack for
-more specific B2B GTM software. The other blueprints are strategic catalog
-targets until their generator support, seed data, tests, and handoff docs land.
-Do not present a planned blueprint as a working quickstart path.
+more specific B2B GTM software. `saas` is the implemented general-purpose path
+for tenant-aware subscription products. The other blueprints are strategic
+catalog targets until their generator support, seed data, tests, and handoff
+docs land. Do not present a planned blueprint as a working quickstart path.
 
 ## `source-grounded-gtm-brain`
 
@@ -90,6 +91,28 @@ without putting GTM business logic into template core.
 - Demo data: `.example` accounts, fake people, synthetic source notes.
 - Delete or rename for a fork: every synthetic account/person/source fixture and
   all generated reporting surface seams that do not match client language.
+
+## `saas`
+
+Status: implemented general-purpose blueprint.
+
+Use this for a conventional tenant-aware SaaS product that needs the template's
+authentication, billing, durable workflow, provider, and production-readiness
+patterns without GTM-specific nouns.
+
+- Domain nouns: organization, member, workflow, subscription, plus generated
+  product-specific nouns.
+- First capability: `coreWorkflow`.
+- First workflow: `productWorkflow`.
+- First agent grants: explicit access to the generated product capability and
+  workflow only.
+- Generator path: `template:add-client-domain` followed by
+  `template:add-capability` for the first useful customer outcome.
+- Required gates: Confect contracts and route-tree validation, followed by the
+  generated capability's behavior tests.
+- Headless surfaces: web, API, CLI, and MCP when intentionally exposed.
+- Do not claim native or offline application support; map those requirements to
+  an explicit template gap and portable handoff.
 
 ## `internal-ops-agent-workspace`
 

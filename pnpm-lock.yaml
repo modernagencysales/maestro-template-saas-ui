@@ -521,7 +521,11 @@ importers:
 
   tooling/evals: {}
 
-  tooling/generators: {}
+  tooling/generators:
+    dependencies:
+      "@maestro-template/app-idea-evaluator":
+        specifier: workspace:*
+        version: link:../../packages/app-idea-evaluator
 
   tooling/pr-backlog: {}
 

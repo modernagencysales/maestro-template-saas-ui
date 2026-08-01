@@ -2,11 +2,16 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { maestroBlueprintCatalog } from "@maestro-template/app-idea-evaluator";
 import { gtmImplementationBlueprint } from "./blueprints/gtmImplementation";
 
 export type ProviderMode = "fake" | "test" | "live";
 
-export type BlueprintId = "source-grounded-gtm-brain" | "gtm-implementation";
+type ImplementedBlueprintEntry = Extract<
+  (typeof maestroBlueprintCatalog)[number],
+  { readonly status: "implemented" }
+>;
+export type BlueprintId = ImplementedBlueprintEntry["id"];
 
 export type TemplateBlueprint = {
   readonly id: BlueprintId;
@@ -338,8 +343,8 @@ const supportedBlueprintIds = (): readonly BlueprintId[] =>
 
 const supportedBlueprintList = (): string => supportedBlueprintIds().join(", ");
 
-export const buildBlueprintCatalog = (): readonly TemplateBlueprint[] => [
-  {
+const templateBlueprints = {
+  "source-grounded-gtm-brain": {
     id: defaultBlueprintId,
     label: "Source-Grounded GTM Brain",
     summary:
@@ -360,8 +365,29 @@ export const buildBlueprintCatalog = (): readonly TemplateBlueprint[] => [
     providerPosture: "fake-first",
     surfaces: ["web", "api", "cli", "mcp"],
   },
-  gtmImplementationBlueprint,
-];
+  "gtm-implementation": gtmImplementationBlueprint,
+  saas: {
+    id: "saas",
+    label: "Opinionated SaaS baseline",
+    summary:
+      "A tenant-aware SaaS foundation with authentication, billing, durable workflows, provider seams, and production gates.",
+    domainNouns: ["organization", "member", "workflow", "subscription"],
+    sourceTypes: ["note"],
+    defaultCapability: "coreWorkflow",
+    defaultWorkflow: "productWorkflow",
+    defaultAgent: "productOperator",
+    providerPosture: "fake-first",
+    surfaces: ["web", "api", "cli", "mcp"],
+  },
+} as const satisfies Record<BlueprintId, TemplateBlueprint>;
+
+export const buildBlueprintCatalog = (): readonly TemplateBlueprint[] =>
+  maestroBlueprintCatalog
+    .filter(
+      (blueprint): blueprint is ImplementedBlueprintEntry =>
+        blueprint.status === "implemented",
+    )
+    .map(({ id }) => templateBlueprints[id]);
 
 const findBlueprint = (blueprint: BlueprintId): TemplateBlueprint => {
   const match = buildBlueprintCatalog().find((entry) => entry.id === blueprint);
