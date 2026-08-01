@@ -459,7 +459,9 @@ const evaluateAppIdeaWithModelImpl = FunctionImpl.make(
   "evaluateAppIdeaWithModel",
   (rawInput) =>
     Effect.gen(function* () {
-      const startedAt = Date.now();
+      const startedAt = yield* unsafeAssumeClockProvided(
+        Clock.currentTimeMillis,
+      );
       const mutation = yield* MutationRunner;
       const query = yield* QueryRunner;
       const persisted = yield* mutation(
@@ -558,10 +560,13 @@ const evaluateAppIdeaWithModelImpl = FunctionImpl.make(
           () => new Forbidden({ reason: "Evaluation result was invalid." }),
         ),
       );
+      const completedAt = yield* unsafeAssumeClockProvided(
+        Clock.currentTimeMillis,
+      );
       return {
         ...completed,
         freshCompletion: true as const,
-        durationMs: Date.now() - startedAt,
+        durationMs: Math.max(0, completedAt - startedAt),
         modelCalls: generated.right.receipts.length,
         estimatedCostCents: generated.right.receipts.reduce(
           (total, receipt) => total + receipt.estimatedCents,
