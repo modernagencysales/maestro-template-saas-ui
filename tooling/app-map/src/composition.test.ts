@@ -1,6 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -34,44 +34,6 @@ const fixtureRepository = (options?: {
   }).trim();
   execFileSync("git", ["clone", "--shared", "--no-checkout", sourceRoot, root]);
   execFileSync("git", ["read-tree", "HEAD"], { cwd: root });
-  execFileSync(
-    "git",
-    ["checkout", "HEAD", "--", "docs/template/generated/provenance"],
-    { cwd: root },
-  );
-  for (const [path, system] of [
-    [
-      "docs/template/generated/provenance/add-capability/evaluateAppIdea.json",
-      "policy-and-prompts",
-    ],
-    [
-      "docs/template/generated/provenance/add-capability/manageEvaluationReport.json",
-      "policy-and-prompts",
-    ],
-    [
-      "docs/template/generated/provenance/add-client-domain/evaluator.json",
-      "knowledge-brain",
-    ],
-    [
-      "docs/template/generated/provenance/add-workflow/generateCompleteBuildPack.json",
-      "workflow-runtime",
-    ],
-  ] as const) {
-    const absolute = join(root, path);
-    const receipt = JSON.parse(readFileSync(absolute, "utf8")) as Record<
-      string,
-      unknown
-    >;
-    receipt.ownership = { system, disposition: "extend" };
-    writeFileSync(absolute, `${JSON.stringify(receipt, null, 2)}\n`);
-    execFileSync("git", ["add", path], { cwd: root });
-  }
-  const topologyPath = "docs/template/product-topology.json";
-  writeFileSync(
-    join(root, topologyPath),
-    readFileSync(join(sourceRoot, topologyPath), "utf8"),
-  );
-  execFileSync("git", ["add", topologyPath], { cwd: root });
   if (options?.templateInstance !== false) {
     writeFileSync(
       join(root, "template-instance.json"),
@@ -94,19 +56,20 @@ const fixtureRepository = (options?: {
     );
     execFileSync("git", ["add", "template-instance.json"], { cwd: root });
   }
-  execFileSync(
-    "git",
-    [
-      "-c",
-      "user.name=App Map Test",
-      "-c",
-      "user.email=app-map@example.invalid",
-      "commit",
-      "-m",
-      "fixture",
-    ],
-    { cwd: root },
-  );
+  if (options?.templateInstance !== false)
+    execFileSync(
+      "git",
+      [
+        "-c",
+        "user.name=App Map Test",
+        "-c",
+        "user.email=app-map@example.invalid",
+        "commit",
+        "-m",
+        "fixture",
+      ],
+      { cwd: root },
+    );
   return {
     root,
     revision: execFileSync("git", ["rev-parse", "HEAD"], {
