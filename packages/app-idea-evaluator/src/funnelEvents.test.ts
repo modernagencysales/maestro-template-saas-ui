@@ -50,4 +50,40 @@ describe("privacy-safe funnel analytics", () => {
       }),
     ).toThrow();
   });
+
+  it.each([
+    { name: "checkout_started", reportId: "report_1" },
+    {
+      name: "entitlement_granted",
+      reportId: "report_1",
+      purchaseStatus: "paid",
+    },
+    { name: "build_pack_started", packId: "pack_1" },
+    {
+      name: "build_pack_stage_changed",
+      packId: "pack_1",
+      stage: "research",
+      status: "completed",
+      attempts: 1,
+    },
+    { name: "build_pack_exported", packId: "pack_1", format: "markdown" },
+    {
+      name: "maestro_offer_selected",
+      packId: "pack_1",
+      blueprintId: "saas",
+      fit: "strong",
+    },
+  ])("accepts the $name operational boundary", (event) => {
+    expect(validateFunnelEvent(event)).toEqual(event);
+  });
+
+  it("rejects private content on every event type", () => {
+    expect(() =>
+      validateFunnelEvent({
+        name: "checkout_started",
+        reportId: "report_1",
+        email: "private@example.test",
+      }),
+    ).toThrow("analytics property");
+  });
 });
