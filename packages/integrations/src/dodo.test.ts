@@ -190,15 +190,11 @@ describe("Dodo payment seam", () => {
   it("requires the provider webhook id instead of trusting an event id in the body", async () => {
     const payload = '{"id":"body-controlled-event","type":"payment.succeeded"}';
     const timestamp = "1700000000";
-    const signature = createHmac("sha256", "server-secret")
-      .update(`${timestamp}.${payload}`)
-      .digest("base64");
-
     await expect(
       verifyDodoWebhook({
         mode: "live",
         payload,
-        signature: `v1,${signature}`,
+        signature: "v1,irrelevant-without-webhook-id",
         signatureTimestamp: timestamp,
         webhookSecret: "server-secret",
         nowMs: 1_700_000_100_000,
@@ -210,8 +206,9 @@ describe("Dodo payment seam", () => {
   it("uses the signed-request webhook id as the replay identity", async () => {
     const payload = '{"id":"body-controlled-event","type":"payment.succeeded"}';
     const timestamp = "1700000000";
+    const webhookId = "evt_header_123";
     const signature = createHmac("sha256", "server-secret")
-      .update(`${timestamp}.${payload}`)
+      .update(`${webhookId}.${timestamp}.${payload}`)
       .digest("base64");
 
     await expect(
@@ -221,7 +218,7 @@ describe("Dodo payment seam", () => {
         signature: `v1,${signature}`,
         signatureTimestamp: timestamp,
         webhookSecret: "server-secret",
-        webhookId: "evt_header_123",
+        webhookId,
         nowMs: 1_700_000_100_000,
         seenEventIds: [],
       }),
@@ -232,6 +229,27 @@ describe("Dodo payment seam", () => {
     });
   });
 
+  it("rejects the legacy two-part signature even when the webhook id is present", async () => {
+    const payload = '{"id":"evt_123","type":"payment.succeeded"}';
+    const timestamp = "1700000000";
+    const signature = createHmac("sha256", "server-secret")
+      .update(`${timestamp}.${payload}`)
+      .digest("base64");
+
+    await expect(
+      verifyDodoWebhook({
+        mode: "live",
+        payload,
+        signature: `v1,${signature}`,
+        signatureTimestamp: timestamp,
+        webhookId: "evt_123",
+        webhookSecret: "server-secret",
+        nowMs: 1_700_000_100_000,
+        seenEventIds: [],
+      }),
+    ).resolves.toBeInstanceOf(DodoWebhookSignatureError);
+  });
+
   it("rejects an invalid live webhook signature", async () => {
     await expect(
       verifyDodoWebhook({
@@ -239,6 +257,7 @@ describe("Dodo payment seam", () => {
         payload: '{"id":"evt_123","type":"payment.succeeded"}',
         signature: "v1,invalid",
         signatureTimestamp: "1700000000",
+        webhookId: "evt_123",
         webhookSecret: "server-secret",
         nowMs: 1_700_000_000_000,
         seenEventIds: [],
@@ -249,8 +268,9 @@ describe("Dodo payment seam", () => {
   it("authenticates a raw body before reporting a typed malformed-payload failure", async () => {
     const payload = "not json";
     const timestamp = "1700000000";
+    const webhookId = "evt_malformed_1";
     const signature = createHmac("sha256", "server-secret")
-      .update(`${timestamp}.${payload}`)
+      .update(`${webhookId}.${timestamp}.${payload}`)
       .digest("base64");
 
     await expect(
@@ -259,7 +279,7 @@ describe("Dodo payment seam", () => {
         payload,
         signature: `v1,${signature}`,
         signatureTimestamp: timestamp,
-        webhookId: "evt_malformed_1",
+        webhookId,
         webhookSecret: "server-secret",
         nowMs: 1_700_000_100_000,
         seenEventIds: [],
@@ -270,8 +290,9 @@ describe("Dodo payment seam", () => {
   it("accepts a fresh cryptographically verified webhook", async () => {
     const payload = '{"id":"evt_123","type":"payment.succeeded"}';
     const timestamp = "1700000000";
+    const webhookId = "evt_123";
     const signature = createHmac("sha256", "server-secret")
-      .update(`${timestamp}.${payload}`)
+      .update(`${webhookId}.${timestamp}.${payload}`)
       .digest("base64");
     await expect(
       verifyDodoWebhook({
@@ -279,8 +300,8 @@ describe("Dodo payment seam", () => {
         payload,
         signature: `v1,${signature}`,
         signatureTimestamp: timestamp,
+        webhookId,
         webhookSecret: "server-secret",
-        webhookId: "evt_123",
         nowMs: 1_700_000_100_000,
         seenEventIds: [],
       }),
@@ -290,8 +311,9 @@ describe("Dodo payment seam", () => {
   it("rejects a correctly signed webhook outside the freshness window", async () => {
     const payload = '{"id":"evt_123","type":"payment.succeeded"}';
     const timestamp = "1700000000";
+    const webhookId = "evt_123";
     const signature = createHmac("sha256", "server-secret")
-      .update(`${timestamp}.${payload}`)
+      .update(`${webhookId}.${timestamp}.${payload}`)
       .digest("base64");
     await expect(
       verifyDodoWebhook({
@@ -299,6 +321,7 @@ describe("Dodo payment seam", () => {
         payload,
         signature: `v1,${signature}`,
         signatureTimestamp: timestamp,
+        webhookId,
         webhookSecret: "server-secret",
         nowMs: 1_700_000_301_000,
         seenEventIds: [],
@@ -309,8 +332,9 @@ describe("Dodo payment seam", () => {
   it("denies duplicate webhook event ids", async () => {
     const payload = '{"id":"evt_123"}';
     const timestamp = "1700000000";
+    const webhookId = "evt_123";
     const signature = createHmac("sha256", "secret")
-      .update(`${timestamp}.${payload}`)
+      .update(`${webhookId}.${timestamp}.${payload}`)
       .digest("base64");
 
     await expect(
@@ -319,7 +343,7 @@ describe("Dodo payment seam", () => {
         payload,
         signature: `v1,${signature}`,
         signatureTimestamp: timestamp,
-        webhookId: "evt_123",
+        webhookId,
         webhookSecret: "secret",
         nowMs: 1_700_000_100_000,
         seenEventIds: ["evt_123"],
