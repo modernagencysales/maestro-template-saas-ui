@@ -3,7 +3,11 @@ import { describe, expect, it, vi } from "vitest";
 import {
   consumeFakeReportVerification,
   createAnonymousReportCredentials,
+  loadAnonymousReportAccess,
+  loadOwnerAccessToken,
   requestFakeReportVerification,
+  saveAnonymousReportAccess,
+  saveOwnerAccessToken,
 } from "./report-credentials";
 
 describe("public report credentials", () => {
@@ -43,6 +47,78 @@ describe("public report credentials", () => {
         ownerAccessToken: "owner_owner",
       });
       expect(consumeFakeReportVerification("verify_token")).toBeNull();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("round-trips anonymous and owner access through browser storage", () => {
+    const values = new Map<string, string>();
+    vi.stubGlobal("window", {
+      localStorage: {
+        getItem: (key: string) => values.get(key) ?? null,
+        setItem: (key: string, value: string) => values.set(key, value),
+      },
+    });
+    try {
+      const credentials = {
+        sessionId: "session_1",
+        accessToken: "access_1",
+      };
+      saveAnonymousReportAccess("report_1", credentials);
+      saveOwnerAccessToken("owner_1");
+
+      expect(loadAnonymousReportAccess("report_1")).toEqual(credentials);
+      expect(loadOwnerAccessToken()).toBe("owner_1");
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("rejects malformed stored access and invalid verification email", () => {
+    vi.stubGlobal("window", {
+      localStorage: {
+        getItem: () => "not-json",
+        setItem: () => undefined,
+      },
+    });
+    try {
+      expect(loadAnonymousReportAccess("report_1")).toBeNull();
+      expect(() =>
+        requestFakeReportVerification("report_1", "not-an-email"),
+      ).toThrow("A valid email is required.");
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("uses opaque browser nonces when callers do not supply a test nonce", () => {
+    const values = new Map<string, string>();
+    let nonce = 0;
+    vi.stubGlobal("crypto", {
+      randomUUID: () => `uuid-${String(++nonce)}`,
+    });
+    vi.stubGlobal("window", {
+      localStorage: {
+        getItem: (key: string) => values.get(key) ?? null,
+        setItem: (key: string, value: string) => values.set(key, value),
+        removeItem: (key: string) => values.delete(key),
+      },
+    });
+    try {
+      expect(createAnonymousReportCredentials()).toEqual({
+        sessionId: "session_uuid-1",
+        accessToken: "access_uuid-2",
+      });
+      const url = requestFakeReportVerification(
+        "report_1",
+        "founder@example.test",
+      );
+      expect(url).toContain("verify_uuid-3");
+      expect(consumeFakeReportVerification("verify_uuid-3")).toEqual({
+        reportId: "report_1",
+        ownerAccessToken: "owner_uuid-4",
+      });
     } finally {
       vi.unstubAllGlobals();
     }

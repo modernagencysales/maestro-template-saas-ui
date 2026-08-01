@@ -4,6 +4,7 @@ import { compileFakeBuildPack } from "./build-pack-generator";
 import {
   buildPackSectionIds,
   downloadBuildPack,
+  downloadBuildPackPrintHtml,
   exportBuildPackMarkdown,
   exportBuildPackPrintHtml,
 } from "./build-pack-export";
@@ -73,5 +74,27 @@ describe("Complete Build Pack exports", () => {
     expect(html).toContain("pack_&lt;unsafe&gt;");
     expect(html).not.toContain("<script>");
     expect(html).toContain("@media print");
+  });
+
+  it("downloads the portable print handoff", () => {
+    const click = vi.fn();
+    const revokeObjectURL = vi.fn();
+    vi.stubGlobal("document", {
+      createElement: () => ({ href: "", download: "", click }),
+    });
+    vi.stubGlobal("URL", {
+      createObjectURL: () => "blob:print-pack",
+      revokeObjectURL,
+    });
+    try {
+      downloadBuildPackPrintHtml(
+        "pack_1",
+        compileFakeBuildPack(makeEvaluation(fixtureCompleteAnswers)),
+      );
+      expect(click).toHaveBeenCalledOnce();
+      expect(revokeObjectURL).toHaveBeenCalledWith("blob:print-pack");
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });
