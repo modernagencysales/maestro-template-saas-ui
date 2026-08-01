@@ -302,13 +302,13 @@
       "lifecycle": "active"
     },
     {
-      "id": "route:generating",
+      "id": "route:build-pack/$packId/generating",
       "kind": "route",
-      "system": "knowledge-brain",
-      "path": "apps/web/src/routes/generating.tsx",
-      "responsibility": "present evaluation generation progress",
+      "system": "workflow-runtime",
+      "path": "apps/web/src/routes/build-pack.$packId.generating.tsx",
+      "responsibility": "present build pack generation progress",
       "surfaces": ["web"],
-      "uses": ["policy-and-prompts"],
+      "uses": ["knowledge-brain"],
       "lifecycle": "active"
     },
     {

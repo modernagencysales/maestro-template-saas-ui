@@ -32,6 +32,23 @@ export const currentLifecycleResourceIds = [
   "versionedEntries",
   "versionFreshness",
   "webhookEvents",
+  "buildPackEntitlements",
+  "buildPackExports",
+  "buildPackStages",
+  "buildPacks",
+  "checkoutSessions",
+  "commerceRevocations",
+  "emailVerificationChallenges",
+  "evaluationAnswers",
+  "evaluationReportVersions",
+  "evaluationReports",
+  "evaluationSessions",
+  "evaluationShares",
+  "maestroCredits",
+  "modelReceipts",
+  "purchases",
+  "reportOwnerships",
+  "supportIncidents",
   "workflowArtifacts",
   "workflowEffectReservations",
   "workflowEventInstances",
@@ -256,6 +273,125 @@ export const workspaceLifecycleResourcePlans = [
     exportMode: "redacted-json",
     deleteMode: "retain-audit",
     detail: "webhookEvents is durable Billing And Entitlements state governed by the canonical billing-and-entitlements lifecycle."
+  },
+  {
+    id: "buildPackEntitlements",
+    owner: "workspace",
+    exportMode: "json",
+    deleteMode: "retain-audit",
+    detail: "Paid Build Pack access and revocation state retained for the billing audit window."
+  },
+  {
+    id: "buildPackExports",
+    owner: "workspace",
+    exportMode: "json",
+    deleteMode: "delete",
+    detail: "Deterministic Build Pack export metadata retained with its canonical pack."
+  },
+  {
+    id: "buildPackStages",
+    owner: "workspace",
+    exportMode: "redacted-json",
+    deleteMode: "retain-audit",
+    detail: "Immutable completed Build Pack stage outputs and recoverable workflow attempts."
+  },
+  {
+    id: "buildPacks",
+    owner: "workspace",
+    exportMode: "markdown",
+    deleteMode: "delete",
+    detail: "Canonical paid Build Pack artifact and pinned source report version."
+  },
+  {
+    id: "checkoutSessions",
+    owner: "workspace",
+    exportMode: "redacted-json",
+    deleteMode: "retain-audit",
+    detail: "Provider checkout identity and payment-pending state retained for reconciliation."
+  },
+  {
+    id: "commerceRevocations",
+    owner: "workspace",
+    exportMode: "redacted-json",
+    deleteMode: "retain-audit",
+    detail: "Append-only refund and dispute revocation evidence for paid funnel access."
+  },
+  {
+    id: "emailVerificationChallenges",
+    owner: "workspace",
+    exportMode: "redacted-json",
+    deleteMode: "redact",
+    detail: "Expiring single-use hashed report ownership verification challenges."
+  },
+  {
+    id: "evaluationAnswers",
+    owner: "workspace",
+    exportMode: "json",
+    deleteMode: "delete",
+    detail: "Private evaluation answers available only to the verified report owner."
+  },
+  {
+    id: "evaluationReportVersions",
+    owner: "workspace",
+    exportMode: "markdown",
+    deleteMode: "delete",
+    detail: "Append-only evaluator report snapshots and rubric versions retained with the report."
+  },
+  {
+    id: "evaluationReports",
+    owner: "workspace",
+    exportMode: "markdown",
+    deleteMode: "delete",
+    detail: "Current evaluator report pointer and privacy-safe ownership state."
+  },
+  {
+    id: "evaluationSessions",
+    owner: "workspace",
+    exportMode: "redacted-json",
+    deleteMode: "delete",
+    detail: "Opaque evaluator session ownership, progress, and bounded cost counters."
+  },
+  {
+    id: "evaluationShares",
+    owner: "workspace",
+    exportMode: "redacted-json",
+    deleteMode: "delete",
+    detail: "Revocable privacy-safe public report snapshots without private answers."
+  },
+  {
+    id: "maestroCredits",
+    owner: "workspace",
+    exportMode: "json",
+    deleteMode: "retain-audit",
+    detail: "Append-only Maestro credit ledger entries reversed rather than deleted."
+  },
+  {
+    id: "modelReceipts",
+    owner: "workspace",
+    exportMode: "redacted-json",
+    deleteMode: "retain-audit",
+    detail: "Privacy-safe model execution metrics and replay receipts without report content."
+  },
+  {
+    id: "purchases",
+    owner: "workspace",
+    exportMode: "redacted-json",
+    deleteMode: "retain-audit",
+    detail: "Webhook-confirmed purchase lifecycle retained for billing reconciliation."
+  },
+  {
+    id: "reportOwnerships",
+    owner: "workspace",
+    exportMode: "redacted-json",
+    deleteMode: "redact",
+    detail: "Verified report claims keyed by hashed opaque owner tokens and email identity."
+  },
+  {
+    id: "supportIncidents",
+    owner: "workspace",
+    exportMode: "redacted-json",
+    deleteMode: "redact",
+    detail: "Resumable paid-generation support escalation with redacted resolution evidence."
   },
   {
     id: "workflowArtifacts",
@@ -487,6 +623,91 @@ export const workspaceRetentionRules = [
     resourceId: "webhookEvents",
     action: "hash-or-redact-on-export",
     detail: "webhookEvents is durable Billing And Entitlements state governed by the canonical billing-and-entitlements lifecycle."
+  },
+  {
+    resourceId: "buildPackEntitlements",
+    action: "retain-audit-window",
+    detail: "Paid Build Pack access and revocation state retained for the billing audit window."
+  },
+  {
+    resourceId: "buildPackExports",
+    action: "retain-until-workspace-delete",
+    detail: "Deterministic Build Pack export metadata retained with its canonical pack."
+  },
+  {
+    resourceId: "buildPackStages",
+    action: "retain-audit-window",
+    detail: "Immutable completed Build Pack stage outputs and recoverable workflow attempts."
+  },
+  {
+    resourceId: "buildPacks",
+    action: "retain-until-workspace-delete",
+    detail: "Canonical paid Build Pack artifact and pinned source report version."
+  },
+  {
+    resourceId: "checkoutSessions",
+    action: "retain-audit-window",
+    detail: "Provider checkout identity and payment-pending state retained for reconciliation."
+  },
+  {
+    resourceId: "commerceRevocations",
+    action: "retain-audit-window",
+    detail: "Append-only refund and dispute revocation evidence for paid funnel access."
+  },
+  {
+    resourceId: "emailVerificationChallenges",
+    action: "hash-or-redact-on-export",
+    detail: "Expiring single-use hashed report ownership verification challenges."
+  },
+  {
+    resourceId: "evaluationAnswers",
+    action: "retain-until-workspace-delete",
+    detail: "Private evaluation answers available only to the verified report owner."
+  },
+  {
+    resourceId: "evaluationReportVersions",
+    action: "retain-until-workspace-delete",
+    detail: "Append-only evaluator report snapshots and rubric versions retained with the report."
+  },
+  {
+    resourceId: "evaluationReports",
+    action: "retain-until-workspace-delete",
+    detail: "Current evaluator report pointer and privacy-safe ownership state."
+  },
+  {
+    resourceId: "evaluationSessions",
+    action: "retain-until-workspace-delete",
+    detail: "Opaque evaluator session ownership, progress, and bounded cost counters."
+  },
+  {
+    resourceId: "evaluationShares",
+    action: "retain-until-workspace-delete",
+    detail: "Revocable privacy-safe public report snapshots without private answers."
+  },
+  {
+    resourceId: "maestroCredits",
+    action: "retain-audit-window",
+    detail: "Append-only Maestro credit ledger entries reversed rather than deleted."
+  },
+  {
+    resourceId: "modelReceipts",
+    action: "retain-audit-window",
+    detail: "Privacy-safe model execution metrics and replay receipts without report content."
+  },
+  {
+    resourceId: "purchases",
+    action: "retain-audit-window",
+    detail: "Webhook-confirmed purchase lifecycle retained for billing reconciliation."
+  },
+  {
+    resourceId: "reportOwnerships",
+    action: "hash-or-redact-on-export",
+    detail: "Verified report claims keyed by hashed opaque owner tokens and email identity."
+  },
+  {
+    resourceId: "supportIncidents",
+    action: "retain-audit-window",
+    detail: "Resumable paid-generation support escalation with redacted resolution evidence."
   },
   {
     resourceId: "workflowArtifacts",

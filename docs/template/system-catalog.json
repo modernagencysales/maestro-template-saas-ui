@@ -31,9 +31,11 @@
       "tables": [
         "accessAuditEvents",
         "apiKeys",
+        "emailVerificationChallenges",
         "invitations",
         "organizationMembers",
         "organizations",
+        "reportOwnerships",
         "users",
         "workspaceMembers",
         "workspaces"
@@ -73,7 +75,12 @@
         "citations",
         "claims",
         "concepts",
-        "contextPacks"
+        "contextPacks",
+        "evaluationAnswers",
+        "evaluationReportVersions",
+        "evaluationReports",
+        "evaluationSessions",
+        "evaluationShares"
       ],
       "canonicalEntrypoints": [
         "packages/convex/confect/brain",
@@ -137,6 +144,9 @@
         "workflows"
       ],
       "tables": [
+        "buildPackExports",
+        "buildPackStages",
+        "buildPacks",
         "workflowArtifacts",
         "workflowEffectReservations",
         "workflowEventInstances",
@@ -212,8 +222,13 @@
       ],
       "tables": [
         "billingPlans",
+        "buildPackEntitlements",
+        "checkoutSessions",
+        "commerceRevocations",
         "creditLedger",
         "entitlements",
+        "maestroCredits",
+        "purchases",
         "usageEvents",
         "webhookEvents"
       ],
@@ -244,7 +259,12 @@
         "prompts",
         "rollouts"
       ],
-      "tables": ["featureFlagPolicies", "policies", "promptRegistry"],
+      "tables": [
+        "featureFlagPolicies",
+        "modelReceipts",
+        "policies",
+        "promptRegistry"
+      ],
       "canonicalEntrypoints": [
         "packages/convex/confect/policy",
         "packages/convex/confect/ops/flags.spec.ts"
@@ -271,7 +291,11 @@
         "notification center",
         "notification preferences"
       ],
-      "tables": ["notificationPreferences", "notificationRecords"],
+      "tables": [
+        "notificationPreferences",
+        "notificationRecords",
+        "supportIncidents"
+      ],
       "canonicalEntrypoints": [
         "packages/convex/confect/ops/notifications.spec.ts",
         "packages/notifications"
