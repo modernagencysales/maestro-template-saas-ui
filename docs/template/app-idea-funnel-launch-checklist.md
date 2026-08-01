@@ -1,78 +1,81 @@
 # App idea funnel launch checklist
 
+Audited against current source and focused evidence on 2026-08-01. See
+`app-idea-funnel-launch-audit.md` for the evidence map and unresolved gates.
+
 ## Product and language
 
-- [ ] Landing promise reads “Tell me if your app idea is good.” and “Know what
+- [x] Landing promise reads “Tell me if your app idea is good.” and “Know what
       it will take to build it.”
-- [ ] Primary acquisition action reads “Roast my app idea”.
-- [ ] Free report reveals the verdict, evidence, constructive roast, improved
+- [x] Primary acquisition action reads “Roast my app idea”.
+- [x] Free report reveals the verdict, evidence, constructive roast, improved
       concept, and next steps without blur or payment.
-- [ ] Paid copy explains the exact Complete Build Pack contents and
+- [x] Paid copy explains the exact Complete Build Pack contents and
       first-purchase Maestro credit without implying guaranteed commercial
       success.
-- [ ] Low Maestro fit recommends taking the spec elsewhere.
+- [x] Low Maestro fit recommends taking the spec elsewhere.
 
 ## Free evaluation economics
 
-- [ ] Free and premium models are separately configured and server-only.
-- [ ] Free call, input/output token, repair, per-evaluation spend, and daily
+- [x] Free and premium models are separately configured and server-only.
+- [x] Free call, input/output token, repair, per-evaluation spend, and daily
       spend limits fail closed before provider transport.
-- [ ] Free evaluation has no research, browsing, tools, or multi-agent loop.
-- [ ] Structured model output decodes before persistence; malformed output uses
+- [x] Free evaluation has no research, browsing, tools, or multi-agent loop.
+- [x] Structured model output decodes before persistence; malformed output uses
       at most the configured repair allowance.
 
 ## Persistence and ownership
 
-- [ ] Anonymous access tokens are opaque and stored only as hashes.
-- [ ] Answers survive transport/model failure and can be edited.
-- [ ] Report revision appends a version.
-- [ ] Email verification safely claims an anonymous report.
-- [ ] Share snapshots exclude private answers and can be revoked.
-- [ ] Library loading, empty, ready, and failure states are tested.
+- [x] Anonymous access tokens are opaque and stored only as hashes.
+- [x] Answers survive transport/model failure and can be edited.
+- [x] Report revision appends a version.
+- [x] Email verification safely claims an anonymous report.
+- [x] Share snapshots exclude private answers and can be revoked.
+- [x] Library loading, empty, ready, and failure states are tested.
 
 ## Commerce
 
-- [ ] Checkout is created server-side with report and product metadata.
-- [ ] Return URL shows payment pending and cannot grant entitlement.
-- [ ] Raw-body signature, timestamp freshness, and provider event ID are
+- [x] Checkout is created server-side with report and product metadata.
+- [x] Return URL shows payment pending and cannot grant entitlement.
+- [x] Raw-body signature, timestamp freshness, and provider event ID are
       checked.
-- [ ] Duplicate webhooks create one purchase, entitlement, and Maestro credit.
-- [ ] Refund and dispute fixtures revoke access correctly.
-- [ ] Provider failure and delayed webhook journeys recover without repurchase.
+- [x] Duplicate webhooks create one purchase, entitlement, and Maestro credit.
+- [x] Refund and dispute fixtures revoke access correctly.
+- [x] Provider failure and delayed webhook journeys recover without repurchase.
 
 ## Complete Build Pack
 
-- [ ] Active entitlement is required before generation.
-- [ ] All eight stages checkpoint decoded output and record cost receipts.
-- [ ] Retry resumes the failed stage without rerunning completed stages.
-- [ ] Research claims require citations and sources are displayed.
-- [ ] Viewer and Markdown/print exports use the same canonical section IDs.
-- [ ] Paid failures expose a support ID and resumable operator action.
+- [x] Active entitlement is required before generation.
+- [x] All eight stages checkpoint decoded output and record cost receipts.
+- [x] Retry resumes the failed stage without rerunning completed stages.
+- [x] Research claims require citations and sources are displayed.
+- [x] Viewer and Markdown/print exports use the same canonical section IDs.
+- [x] Paid failures expose a support ID and resumable operator action.
 
 ## Maestro handoff
 
-- [ ] Mapping uses the existing generator/blueprint catalog.
-- [ ] Planned blueprints are never presented as executable.
-- [ ] Template gaps include backlog references and resolution paths.
-- [ ] Handoff contains nouns, capabilities, workflows, providers, work packages,
+- [x] Mapping uses the existing generator/blueprint catalog.
+- [x] Planned blueprints are never presented as executable.
+- [x] Template gaps include backlog references and resolution paths.
+- [x] Handoff contains nouns, capabilities, workflows, providers, work packages,
       gates, and a coding-agent prompt.
-- [ ] Equal purchase credit is visible and applied once.
+- [x] Equal purchase credit is visible and applied once.
 
 ## Privacy, accessibility, and operations
 
-- [ ] Analytics schemas reject idea, answer, report, prompt, output, email, and
+- [x] Analytics schemas reject idea, answer, report, prompt, output, email, and
       payment content.
-- [ ] Data deletion, share revocation, refund, and support-resume journeys pass.
-- [ ] Every public route works with keyboard navigation, visible focus, useful
+- [x] Data deletion, share revocation, refund, and support-resume journeys pass.
+- [x] Every public route works with keyboard navigation, visible focus, useful
       landmarks, labels, error announcements, 200% zoom, and 320px reflow.
-- [ ] Desktop and narrow visual evidence covers landing, intake, report,
+- [x] Desktop and narrow visual evidence covers landing, intake, report,
       checkout, progress, Build Pack, library, and Maestro offer.
-- [ ] Operations runbook and support escalation paths are reviewed.
+- [x] Operations runbook and support escalation paths are reviewed.
 
 ## Gates
 
 - [ ] Focused package, web, Convex, workflow, and Playwright suites pass through
-      `host-test-slot`.
+      `host-test-slot` (workflow output smoke still requires configured Convex).
 - [ ] Format, lint, typecheck, build, route, frontend, environment, provider,
       logging, Confect, workflow, migration, secret, and PostHog checks pass.
 - [ ] Generator-connected Convex checks pass in their configured environment.
