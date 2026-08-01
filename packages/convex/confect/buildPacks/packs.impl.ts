@@ -412,18 +412,23 @@ const loadPackRunImpl = FunctionImpl.make(
           resource: "evaluationReportVersions",
           id: `${pack.reportId}:${String(pack.reportVersion)}`,
         });
+      const now = yield* unsafeAssumeClockProvided(Clock.currentTimeMillis);
+      const utcDayStart = now - (now % 86_400_000);
+      const utcDayEnd = utcDayStart + 86_400_000;
       const receipts = yield* reader
         .table("modelReceipts")
-        .index("by_report", (q) => q.eq("reportId", pack.reportId))
+        .index("by_generated_at")
         .collect()
         .pipe(Effect.orDie);
       return {
         runJson: JSON.stringify(rowsToRun(pack, stages)),
         reportJson: reportVersion.reportJson,
-        currentDailySpendCents: receipts.reduce(
-          (sum, receipt) => sum + receipt.estimatedCents,
-          0,
-        ),
+        currentDailySpendCents: receipts
+          .filter(
+            ({ generatedAt }) =>
+              generatedAt >= utcDayStart && generatedAt < utcDayEnd,
+          )
+          .reduce((sum, receipt) => sum + receipt.estimatedCents, 0),
       };
     }),
 );
