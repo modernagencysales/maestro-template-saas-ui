@@ -8,6 +8,10 @@ import {
   useTemplateQuery,
 } from "../../../adapters/confect-state";
 import { isConvexConfigured } from "../../../env";
+import {
+  useFunnelEventsOnce,
+  type FunnelEventTransition,
+} from "../../../providers/posthog";
 import { loadOwnerAccessToken } from "../report/report-credentials";
 import { loadEvaluation } from "../evaluation-storage";
 import { entitlementStatusFor } from "../checkout/commerce-storage";
@@ -92,6 +96,31 @@ function ConfiguredBuildPackGeneratingRoute({
     templateConfectRefs.public.buildPacks.packs.status,
     packId && ownerAccessToken ? { packId, ownerAccessToken } : "skip",
   );
+  const analyticsTransitions: FunnelEventTransition[] = packId
+    ? [[`pack:${packId}:started`, { name: "build_pack_started", packId }]]
+    : [];
+  if (status.status === "ready") {
+    for (const stage of status.data.stages) {
+      if (
+        stage.status !== "completed" &&
+        stage.status !== "failed-recoverable" &&
+        stage.status !== "needs-support"
+      ) {
+        continue;
+      }
+      analyticsTransitions.push([
+        `pack:${status.data.packId}:${stage.name}:${stage.status}:${String(stage.attempts)}`,
+        {
+          name: "build_pack_stage_changed",
+          packId: status.data.packId,
+          stage: stage.name,
+          status: stage.status,
+          attempts: stage.attempts,
+        },
+      ]);
+    }
+  }
+  useFunnelEventsOnce(analyticsTransitions);
 
   useEffect(() => {
     if (started.current) return;
@@ -169,6 +198,16 @@ function LocalBuildPackGeneratingRoute({
 }) {
   const [stored, setStored] = useState<StoredBuildPack | null>(null);
   const [revoked, setRevoked] = useState(false);
+  useFunnelEventsOnce(
+    stored
+      ? [
+          [
+            `pack:${stored.run.packId}:started`,
+            { name: "build_pack_started", packId: stored.run.packId },
+          ],
+        ]
+      : [],
+  );
 
   useEffect(() => {
     const evaluation = loadEvaluation(reportId);

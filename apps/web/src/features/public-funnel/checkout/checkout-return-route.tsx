@@ -6,6 +6,7 @@ import {
   useTemplateQuery,
 } from "../../../adapters/confect-state";
 import { isConvexConfigured } from "../../../env";
+import { useFunnelEventsOnce } from "../../../providers/posthog";
 import { PublicFunnelShell } from "../public-shell";
 import { loadOwnerAccessToken } from "../report/report-credentials";
 import { entitlementStatusFor } from "./commerce-storage";
@@ -148,6 +149,20 @@ function CheckoutReturnStatusView({
 }: {
   readonly state: CheckoutReturnPresentation;
 }) {
+  useFunnelEventsOnce(
+    state._tag === "entitled"
+      ? [
+          [
+            `entitlement:${state.reportId}`,
+            {
+              name: "entitlement_granted",
+              reportId: state.reportId,
+              purchaseStatus: "paid",
+            },
+          ],
+        ]
+      : [],
+  );
   if (state._tag === "entitled") {
     return (
       <PublicFunnelShell>
@@ -240,24 +255,7 @@ function LocalCheckoutReturnRoute() {
   }, []);
 
   if (entitled) {
-    return (
-      <PublicFunnelShell>
-        <main className="idea-checkout-status" id="main-content">
-          <p className="idea-section-label">Payment confirmed</p>
-          <h1>Your Complete Build Pack is ready to start.</h1>
-          <p>
-            Your purchase also created an equal Maestro credit. Generation can
-            resume without another payment if a provider stage needs retrying.
-          </p>
-          <a
-            className="idea-primary-action"
-            href={`/build-pack/${reportId}/generating`}
-          >
-            Generate my Build Pack
-          </a>
-        </main>
-      </PublicFunnelShell>
-    );
+    return <CheckoutReturnStatusView state={{ _tag: "entitled", reportId }} />;
   }
 
   return (

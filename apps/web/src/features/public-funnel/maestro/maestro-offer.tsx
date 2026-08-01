@@ -1,4 +1,5 @@
 import { PublicFunnelShell } from "../public-shell";
+import { useFunnelAnalytics } from "../../../providers/posthog";
 
 const formatUsd = (cents: number): string => `$${(cents / 100).toFixed(2)}`;
 
@@ -13,6 +14,7 @@ export function MaestroOffer({
   readonly fit: "strong" | "partial" | "low";
   readonly blueprintStatus: "implemented" | "planned";
 }) {
+  const capture = useFunnelAnalytics();
   const recommendMaestro = fit !== "low" && blueprintStatus === "implemented";
   return (
     <PublicFunnelShell>
@@ -48,6 +50,14 @@ export function MaestroOffer({
               <a
                 className="idea-primary-action"
                 href={`/maestro/start/${packId}`}
+                onClick={() =>
+                  capture({
+                    name: "maestro_offer_selected",
+                    packId,
+                    blueprintId: "saas",
+                    fit,
+                  })
+                }
               >
                 Start building with Maestro
               </a>
