@@ -55,6 +55,12 @@ the declared scenarios omit. Production telemetry, support findings, and new
 incidents must therefore be able to add regression scenarios to the same journey
 contract.
 
+The framework cannot validate its own product oracle. Before first admission,
+the journey contract therefore requires named product-owner acceptance of the
+actor, goal, terminal outcome, forbidden outcomes, and coverage profile. That
+acceptance is version-bound: a material contract reduction invalidates it and
+requires renewed product approval in addition to contract review.
+
 ## Scope
 
 ### In scope
@@ -124,6 +130,7 @@ type ProductJourneyManifest = {
   readonly releaseEntrypoints: readonly string[];
   readonly scenarios: readonly JourneyScenarioRequirement[];
   readonly requiredReceiptKinds: readonly string[];
+  readonly dependsOnJourneys: readonly JourneyDependency[];
   readonly affectedPaths: readonly string[];
   readonly workPackageRefs: readonly string[];
   readonly owner: string;
@@ -153,6 +160,12 @@ edge, but it may not invent an incompatible private handoff.
 The manifest records a `journeyProtocolVersion`. Template upgrades provide
 deterministic compatibility checks and migrations for supported protocol
 versions. A fork cannot silently consume a newer manifest or evidence format.
+
+`dependsOnJourneys` names the minimum admitted contract version and required
+terminal receipt of another journey. Dependency cycles are rejected. Admission,
+affected-change selection, lease staleness, suspension, and deployed proof
+propagate transitively, so a healthy downstream journey cannot conceal a stale
+shared prerequisite.
 
 The manifest contains no credentials, deployment secrets, or customer data.
 
@@ -210,6 +223,8 @@ The deterministic gate verifies:
 - assembling and suspended entrypoints are server-side disabled;
 - `legacy_exposed` is used only for enumerated pre-framework entrypoints and
   includes an owner and removal milestone;
+- `legacy_exposed` reachability and data-writing authority never increase, its
+  removal milestone has not expired, and its inventory monotonically shrinks;
 - admitted journeys have complete deterministic scenario coverage;
 - path-to-journey ownership is not ambiguous;
 - manifest affected paths agree with generated capability, workflow, route,
@@ -217,6 +232,8 @@ The deterministic gate verifies:
 - registered workflow and capability references resolve to real modules;
 - every journey-graph edge has exactly one producer contract and at least one
   consumer assertion;
+- every inter-journey dependency resolves to an admitted compatible contract and
+  terminal receipt;
 - work-package references exist in the checked stack plan;
 - evidence artifacts contain no secret values.
 
@@ -315,6 +332,32 @@ Those changes require:
 - CI comparison against the merge base to report reduced scenario, receipt,
   role, transport, or isolation coverage.
 
+The required CI workflow, branch protection, contract-owner rules, and runtime
+admission verifier are part of the protected admission control plane. The same
+pull request may change implementation and propose a contract change, but it
+cannot self-approve a coverage reduction or mint its own admission evidence.
+
+### Admission attestation and trust chain
+
+Checked-in `status: admitted` expresses intent; it does not by itself enable a
+release entrypoint. Required CI issues a machine-verifiable admission
+attestation only after the protected gate passes. The attestation binds:
+
+- repository and commit SHA;
+- journey id, manifest version, protocol version, and full contract hash;
+- scenario, fixture, runner, and evidence-validator hashes;
+- generated capability/workflow/schema identity;
+- dependency-journey attestation identities;
+- required-CI workflow identity and result;
+- deployment identity and deployed-proof receipt when required;
+- issuance and expiry times.
+
+The runtime guard accepts only an attestation issued by the configured trusted
+CI identity and matching the running artifact. A repository file, test fixture,
+environment flag, browser client, or implementation agent cannot manufacture
+admission. Local development may use an explicit local-only issuer that is
+cryptographically and configurationally invalid outside local environments.
+
 ## Test Tiers
 
 ### Tier 1: focused boundary tests
@@ -374,6 +417,11 @@ manifest with a stale or failing required lease is not treated as fully admitted
 by the release guard. Each journey declares whether that condition fails closed
 or preserves a narrowly defined degraded read-only behavior.
 
+A journey lease is also stale when any transitive dependency attestation is
+stale, failing, suspended, or incompatible. Renewal reuses unchanged evidence
+only when its hashes and dependency attestations still match; it never treats a
+previous green run against different code or contracts as current proof.
+
 ## Parallel Development Model
 
 The journey plan is written before fan-out. Each parallel work package declares:
@@ -410,6 +458,10 @@ The reusable core remains product- and backend-neutral:
 - affected-journey selection interfaces;
 - report rendering;
 - contract-diff and protocol compatibility checks.
+
+The core defines an issuer/verifier interface rather than assuming one CI
+vendor. Template examples may use Buildkite; Maestro uses Woodpecker. Each fork
+must configure its trusted issuer and required-check identity explicitly.
 
 Template adapters provide Confect/Convex release guards, generated surface
 inventory, Vitest execution, Playwright transport proof, and Buildkite examples.
@@ -603,7 +655,9 @@ contracts permit. Brain remains assembling until package 10 passes.
 2. Promote the framework into Maestro without changing Brain's current data.
 3. Register current Brain behavior as `legacy_exposed`, enumerate its existing
    entrypoints, prohibit reachability expansion, and install the server-side
-   guard for the new canonical hydration entrypoint.
+   guard for the new canonical hydration entrypoint. CI records the initial
+   legacy inventory as a ratchet baseline and fails any later increase or
+   expired removal milestone.
 4. Add the Brain deterministic fixture and full journey test; confirm it fails
    at the first real broken boundary.
 5. Complete the Brain work packages, rerunning the same test after each repair.
@@ -632,3 +686,7 @@ The design is successful when:
 - admitted journey leases become stale or failing when code, contracts,
   deployment, or canary evidence drifts;
 - changing tests or manifests cannot silently reduce required journey coverage.
+- runtime admission requires a trusted attestation matching the exact artifact,
+  contract, test apparatus, and transitive journey dependencies;
+- legacy exposure can only shrink, and an expired migration milestone fails the
+  required gate rather than becoming permanent debt.
