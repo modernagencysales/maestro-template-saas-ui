@@ -424,6 +424,10 @@
   text-underline-offset: 3px;
 }
 
+.idea-information a.idea-primary-action {
+  color: #fff;
+}
+
 @media (max-width: 860px) {
   .idea-hero {
     margin-top: 40px;
