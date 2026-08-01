@@ -37,7 +37,12 @@ describe("Complete Build Pack experience", () => {
           acceptanceCriteria: ["The journey passes"],
           risks: ["Distribution"],
           openQuestions: [],
-          competitorClaims: [],
+          competitorClaims: [
+            {
+              text: "Competitor pricing starts at $49.",
+              citations: ["https://example.test/pricing"],
+            },
+          ],
         }}
         packId="pack_1"
       />,
@@ -50,5 +55,8 @@ describe("Complete Build Pack experience", () => {
     expect(html).toContain("Download print-ready HTML");
     expect(html).toContain("See how Maestro could build this");
     expect(html).toContain("/maestro/pack_1");
+    expect(html).toContain("Market research");
+    expect(html).toContain("Competitor pricing starts at $49.");
+    expect(html).toContain("https://example.test/pricing");
   });
 });
