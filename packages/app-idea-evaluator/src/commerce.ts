@@ -8,7 +8,7 @@ export type CommerceState = {
 export type CheckoutReturn = {
   readonly checkoutSessionId: string;
   readonly reportId: string;
-  readonly status: "payment-pending";
+  readonly status: "payment-pending" | "paid";
 };
 
 export type BuildPackEntitlement = {
@@ -22,6 +22,7 @@ export type MaestroCredit = {
   readonly paymentId: string;
   readonly amountCents: number;
   readonly currency: string;
+  readonly status: "available" | "applied" | "revoked";
 };
 
 export type PaymentEvent = {
@@ -32,6 +33,7 @@ export type PaymentEvent = {
     | "refund.succeeded"
     | "dispute.opened";
   readonly paymentId: string;
+  readonly checkoutSessionId?: string;
   readonly reportId: string;
   readonly amountCents: number;
   readonly currency: string;
@@ -81,6 +83,11 @@ export const applyPaymentEvent = (
           ? { ...entitlement, status: "revoked" as const }
           : entitlement,
       ),
+      maestroCredits: state.maestroCredits.map((credit) =>
+        credit.paymentId === event.paymentId
+          ? { ...credit, status: "revoked" as const }
+          : credit,
+      ),
     };
   }
 
@@ -93,6 +100,11 @@ export const applyPaymentEvent = (
   return {
     ...state,
     processedEventIds,
+    checkoutReturns: state.checkoutReturns.map((returned) =>
+      returned.checkoutSessionId === event.checkoutSessionId
+        ? { ...returned, status: "paid" as const }
+        : returned,
+    ),
     entitlements: entitlementExists
       ? state.entitlements
       : [
@@ -112,6 +124,7 @@ export const applyPaymentEvent = (
             paymentId: event.paymentId,
             amountCents: event.amountCents,
             currency: event.currency,
+            status: "available",
           },
         ],
   };
