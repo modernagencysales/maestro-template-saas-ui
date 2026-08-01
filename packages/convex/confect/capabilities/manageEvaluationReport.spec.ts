@@ -10,7 +10,8 @@ import {
 
 export const manageEvaluationReportArgs = Schema.Struct({
   reportId: Schema.String,
-  accessToken: Schema.String,
+  accessToken: Schema.optional(Schema.String),
+  ownerAccessToken: Schema.optional(Schema.String),
   action: Schema.Literal("revise", "share", "revoke-share", "claim", "delete"),
   revisionJson: Schema.optional(Schema.String),
 });

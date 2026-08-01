@@ -38,3 +38,12 @@ export const listEvaluationIds = (): readonly string[] => {
     return [];
   }
 };
+
+export const deleteEvaluation = (id: string): void => {
+  if (typeof window === "undefined") return;
+  window.localStorage.removeItem(`${prefix}${id}`);
+  window.localStorage.setItem(
+    libraryKey,
+    JSON.stringify(listEvaluationIds().filter((item) => item !== id)),
+  );
+};

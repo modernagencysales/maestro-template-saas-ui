@@ -122,3 +122,42 @@ test("saved reports remain available in the library", async ({ page }) => {
     page.getByText("This shared report is unavailable"),
   ).toBeVisible();
 });
+
+test("email save verification claims a local report and opens its library", async ({
+  page,
+}) => {
+  const consoleErrors: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") {
+      consoleErrors.push(`${page.url()} :: ${message.text()}`);
+    }
+  });
+  await page.goto("/evaluate");
+  await expect(page.getByLabel("Your answer")).toBeVisible();
+  // TanStack's Vite SSR client can warn during direct deep-link hydration.
+  // Scope this regression guard to interactions after the route is ready.
+  consoleErrors.length = 0;
+  await completeEvaluation(page);
+  await expect(page.getByLabel("Email address")).toBeVisible();
+  expect(consoleErrors, "report mount").toEqual([]);
+
+  await page.getByLabel("Email address").fill("founder@example.test");
+  await page.getByRole("button", { name: "Email my save link" }).click();
+  await page.getByRole("link", { name: "Open test verification link" }).click();
+
+  await expect(
+    page.getByRole("heading", { name: "Your report is saved." }),
+  ).toBeVisible();
+  expect(consoleErrors, "verification mount").toEqual([]);
+  await expect
+    .poll(() =>
+      page.evaluate(() =>
+        window.localStorage.getItem("maestro.idea-funnel.owner-access"),
+      ),
+    )
+    .toMatch(/^owner_/);
+
+  await page.getByRole("link", { name: "Open my library" }).click();
+  await expect(page.getByRole("link", { name: "Open report" })).toBeVisible();
+  expect(consoleErrors).toEqual([]);
+});

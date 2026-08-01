@@ -1,4 +1,5 @@
 import { FunctionImpl, GroupImpl } from "@confect/server";
+import { decodeBuildabilityReport } from "@maestro-template/app-idea-evaluator";
 import * as Clock from "effect/Clock";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
@@ -7,6 +8,7 @@ import databaseSchema from "../_generated/schema";
 import { DatabaseReader, DatabaseWriter } from "../_generated/services";
 import {
   ConfigInvalid,
+  Forbidden,
   NotFound,
   Unauthorized,
   ValidationFailed,
@@ -15,6 +17,7 @@ import {
   consumeEmailVerificationChallenge,
   issueEmailVerificationChallenge,
 } from "../evaluator/ownership";
+import { createPublicEvaluationReportSnapshot } from "../evaluator/sharing";
 import { sha256Hex } from "../shared/sha256";
 import { RuntimeModeConfig } from "../shared/config";
 import {
@@ -34,8 +37,13 @@ const manageEvaluationReportImpl = FunctionImpl.make(
     Effect.gen(function* () {
       const input = normalizeManageEvaluationReportInput({
         reportId: rawInput.reportId,
-        accessToken: rawInput.accessToken,
         action: rawInput.action,
+        ...(rawInput.accessToken === undefined
+          ? {}
+          : { accessToken: rawInput.accessToken }),
+        ...(rawInput.ownerAccessToken === undefined
+          ? {}
+          : { ownerAccessToken: rawInput.ownerAccessToken }),
         ...(rawInput.revisionJson === undefined
           ? {}
           : { revisionJson: rawInput.revisionJson }),
@@ -68,18 +76,43 @@ const manageEvaluationReportImpl = FunctionImpl.make(
           resource: "evaluationSessions",
           id: report.sessionId,
         });
-      if (session.accessTokenHash !== sha256Hex(input.accessToken))
-        return yield* new Unauthorized();
+      let authorized =
+        input.accessToken !== undefined &&
+        session.accessTokenHash === sha256Hex(input.accessToken);
+      if (!authorized && input.ownerAccessToken !== undefined) {
+        const ownership = yield* reader
+          .table("reportOwnerships")
+          .index("by_report", (q) => q.eq("reportId", report.reportId))
+          .first()
+          .pipe(Effect.map(Option.getOrNull), Effect.orDie);
+        authorized =
+          ownership !== null &&
+          ownership.ownerAccessTokenHash === sha256Hex(input.ownerAccessToken);
+      }
+      if (!authorized) return yield* new Unauthorized();
+      const credentialSeed = input.accessToken ?? input.ownerAccessToken;
+      if (credentialSeed === undefined) return yield* new Unauthorized();
       const now = yield* unsafeAssumeClockProvided(Clock.currentTimeMillis);
 
       if (input.action === "revise") {
+        let revisionJson: string;
+        try {
+          revisionJson = JSON.stringify(
+            decodeBuildabilityReport(JSON.parse(input.revisionJson ?? "")),
+          );
+        } catch {
+          return yield* new ValidationFailed({
+            field: "revisionJson",
+            message: "Revision must be a complete, valid Buildability Report.",
+          });
+        }
         const version = report.currentVersion + 1;
         yield* writer
           .table("evaluationReportVersions")
           .insert({
             reportId: report.reportId,
             version,
-            reportJson: input.revisionJson ?? "",
+            reportJson: revisionJson,
             createdAt: now,
           })
           .pipe(Effect.orDie);
@@ -122,7 +155,21 @@ const manageEvaluationReportImpl = FunctionImpl.make(
             resource: "evaluationReportVersions",
             id: `${report.reportId}:${report.currentVersion}`,
           });
-        const shareToken = `share_${sha256Hex(`${input.accessToken}:${report.reportId}:${report.currentVersion}:${now}`).slice(0, 40)}`;
+        let publicSnapshotJson: string;
+        try {
+          publicSnapshotJson = JSON.stringify(
+            createPublicEvaluationReportSnapshot(
+              report.reportId,
+              currentVersion.reportJson,
+            ),
+          );
+        } catch {
+          return yield* new ValidationFailed({
+            field: "report",
+            message: "This report cannot be safely shared.",
+          });
+        }
+        const shareToken = `share_${sha256Hex(`${credentialSeed}:${report.reportId}:${report.currentVersion}:${now}`).slice(0, 40)}`;
         yield* writer
           .table("evaluationShares")
           .insert({
@@ -130,7 +177,7 @@ const manageEvaluationReportImpl = FunctionImpl.make(
             reportId: report.reportId,
             reportVersion: report.currentVersion,
             status: "active",
-            publicSnapshotJson: currentVersion.reportJson,
+            publicSnapshotJson,
             createdAt: now,
           })
           .pipe(Effect.orDie);
@@ -160,6 +207,17 @@ const manageEvaluationReportImpl = FunctionImpl.make(
         });
       }
 
+      const purchase = yield* reader
+        .table("purchases")
+        .index("by_report", (q) => q.eq("reportId", report.reportId))
+        .first()
+        .pipe(Effect.map(Option.getOrNull), Effect.orDie);
+      if (purchase !== null)
+        return yield* new Forbidden({
+          reason:
+            "Purchased reports require support-assisted deletion so financial audit records remain intact.",
+        });
+
       for (const share of shares)
         yield* writer
           .table("evaluationShares")
@@ -175,9 +233,53 @@ const manageEvaluationReportImpl = FunctionImpl.make(
           .table("evaluationReportVersions")
           .delete(version._id)
           .pipe(Effect.orDie);
+      const challenges = yield* reader
+        .table("emailVerificationChallenges")
+        .index("by_report", (q) => q.eq("reportId", report.reportId))
+        .collect()
+        .pipe(Effect.orDie);
+      for (const challenge of challenges)
+        yield* writer
+          .table("emailVerificationChallenges")
+          .delete(challenge._id)
+          .pipe(Effect.orDie);
+      const ownership = yield* reader
+        .table("reportOwnerships")
+        .index("by_report", (q) => q.eq("reportId", report.reportId))
+        .first()
+        .pipe(Effect.map(Option.getOrNull), Effect.orDie);
+      if (ownership !== null)
+        yield* writer
+          .table("reportOwnerships")
+          .delete(ownership._id)
+          .pipe(Effect.orDie);
+      const checkoutSessions = yield* reader
+        .table("checkoutSessions")
+        .index("by_report", (q) => q.eq("reportId", report.reportId))
+        .collect()
+        .pipe(Effect.orDie);
+      for (const checkout of checkoutSessions)
+        yield* writer
+          .table("checkoutSessions")
+          .delete(checkout._id)
+          .pipe(Effect.orDie);
+      const answers = yield* reader
+        .table("evaluationAnswers")
+        .index("by_session", (q) => q.eq("sessionId", report.sessionId))
+        .collect()
+        .pipe(Effect.orDie);
+      for (const answer of answers)
+        yield* writer
+          .table("evaluationAnswers")
+          .delete(answer._id)
+          .pipe(Effect.orDie);
       yield* writer
         .table("evaluationReports")
         .delete(report._id)
+        .pipe(Effect.orDie);
+      yield* writer
+        .table("evaluationSessions")
+        .delete(session._id)
         .pipe(Effect.orDie);
       return {
         status: "deleted" as const,
