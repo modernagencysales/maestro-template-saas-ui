@@ -7,12 +7,55 @@ import {
   useTemplateAction,
   useTemplateQuery,
 } from "../../../adapters/confect-state";
+import {
+  appendEvaluationRevision,
+  loadEvaluationVersions,
+} from "../evaluation-storage";
+import type { StoredEvaluation } from "../intake/evaluation-adapter";
 
 export type ReportRevisionState =
   | { readonly _tag: "idle" }
   | { readonly _tag: "revising" }
   | { readonly _tag: "revised"; readonly version: number }
   | { readonly _tag: "error" };
+
+export function BrowserReportRevisionCard({
+  reportId,
+  onRevision,
+}: {
+  readonly reportId: string;
+  readonly onRevision: (evaluation: StoredEvaluation) => void;
+}) {
+  const [feedback, setFeedback] = useState("");
+  const [state, setState] = useState<ReportRevisionState>({ _tag: "idle" });
+  const [versionCount, setVersionCount] = useState(
+    () => loadEvaluationVersions(reportId).length || 1,
+  );
+
+  const submit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setState({ _tag: "revising" });
+    const revision = appendEvaluationRevision(reportId, feedback);
+    if (!revision) {
+      setState({ _tag: "error" });
+      return;
+    }
+    setVersionCount(revision.version);
+    setFeedback("");
+    onRevision(revision.evaluation);
+    setState({ _tag: "revised", version: revision.version });
+  };
+
+  return (
+    <ReportRevisionSurface
+      feedback={feedback}
+      onFeedbackChange={setFeedback}
+      onSubmit={submit}
+      state={state}
+      versionCount={versionCount}
+    />
+  );
+}
 
 export function ReportRevisionCard({
   reportId,
