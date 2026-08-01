@@ -69,6 +69,89 @@ const createOwnedPaidReport = Effect.gen(function* () {
 });
 
 describe("durable Complete Build Pack capability", () => {
+  it("returns a server-owned Maestro offer backed by the active purchase credit", async () => {
+    const program = Effect.gen(function* () {
+      const { confect, reportId, ownerAccessToken } =
+        yield* createOwnedPaidReport;
+      const started = yield* confect.mutation(
+        refs.public.buildPacks.packs.startPack,
+        { reportId, ownerAccessToken },
+      );
+      yield* confect.action(refs.internal.buildPacks.packs.runPack, {
+        packId: started.packId,
+      });
+      return yield* confect.query(refs.public.buildPacks.maestro.getOffer, {
+        packId: started.packId,
+        ownerAccessToken,
+      });
+    });
+
+    const offer = await Effect.runPromise(
+      program.pipe(Effect.provide(testConfectLayer())),
+    );
+    expect(offer).toMatchObject({
+      creditCents: 2_900,
+      creditStatus: "available",
+      blueprintStatus: "implemented",
+    });
+    expect(JSON.parse(offer.mappingJson)).toMatchObject({
+      purchaseCreditCents: 2_900,
+      primaryAction: "start-building",
+      handoffPrompt: expect.stringContaining("Build the product described"),
+    });
+  });
+
+  it("denies the Maestro offer to the wrong owner", async () => {
+    const program = Effect.gen(function* () {
+      const { confect, reportId, ownerAccessToken } =
+        yield* createOwnedPaidReport;
+      const started = yield* confect.mutation(
+        refs.public.buildPacks.packs.startPack,
+        { reportId, ownerAccessToken },
+      );
+      yield* confect.action(refs.internal.buildPacks.packs.runPack, {
+        packId: started.packId,
+      });
+      return yield* confect.query(refs.public.buildPacks.maestro.getOffer, {
+        packId: started.packId,
+        ownerAccessToken: "wrong-owner",
+      });
+    });
+
+    await expect(
+      Effect.runPromise(program.pipe(Effect.provide(testConfectLayer()))),
+    ).rejects.toBeDefined();
+  });
+
+  it("denies the Maestro offer after its persisted credit is revoked", async () => {
+    const program = Effect.gen(function* () {
+      const { confect, reportId, ownerAccessToken } =
+        yield* createOwnedPaidReport;
+      const started = yield* confect.mutation(
+        refs.public.buildPacks.packs.startPack,
+        { reportId, ownerAccessToken },
+      );
+      yield* confect.action(refs.internal.buildPacks.packs.runPack, {
+        packId: started.packId,
+      });
+      yield* confect.action(refs.public.commerce.webhooks.applyDodo, {
+        rawBody: JSON.stringify({
+          type: "refund.succeeded",
+          data: { payment_id: "payment_pack_1" },
+        }),
+        webhookId: "event_pack_refunded_before_maestro",
+      });
+      return yield* confect.query(refs.public.buildPacks.maestro.getOffer, {
+        packId: started.packId,
+        ownerAccessToken,
+      });
+    });
+
+    await expect(
+      Effect.runPromise(program.pipe(Effect.provide(testConfectLayer()))),
+    ).rejects.toBeDefined();
+  });
+
   it("atomically lets only one runner lease a stage attempt", async () => {
     const program = Effect.gen(function* () {
       const { confect, reportId, ownerAccessToken } =

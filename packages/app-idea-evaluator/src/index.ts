@@ -3,6 +3,7 @@ export * from "./commerce";
 export * from "./funnelEvents";
 export * from "./freeAgent";
 export * from "./maestroMapping";
+export * from "./maestroCatalog";
 export * from "./modelPolicy";
 export * from "./premiumPipeline";
 export * from "./report";

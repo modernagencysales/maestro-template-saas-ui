@@ -13,6 +13,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { JsxEmit, ModuleKind, ScriptTarget, transpileModule } from "typescript";
 import { describe, expect, it } from "vitest";
+import { maestroBlueprintCatalog } from "@maestro-template/app-idea-evaluator";
 import {
   buildAgentFiles,
   buildBlueprintCatalog,
@@ -427,6 +428,17 @@ describe("template app factory generators", () => {
       providerPosture: "fake-first",
     });
     expect(catalog[0]?.surfaces).toEqual(["web", "api", "cli", "mcp"]);
+  });
+
+  it("uses the shared Maestro catalog as the complete implemented registry", () => {
+    const sharedImplementedIds = maestroBlueprintCatalog
+      .filter(({ status }) => status === "implemented")
+      .map(({ id }) => id);
+
+    expect(buildBlueprintCatalog().map(({ id }) => id)).toEqual(
+      sharedImplementedIds,
+    );
+    expect(sharedImplementedIds).toContain("saas");
   });
 
   it("registers the optional GTM implementation blueprint without making it default", () => {
