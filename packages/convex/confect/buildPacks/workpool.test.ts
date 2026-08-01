@@ -15,4 +15,17 @@ describe("Build Pack workpool adapter", () => {
 
     expect(enqueued).toEqual(["pack_123"]);
   });
+
+  it("maps component enqueue failures to the public validation error", async () => {
+    const failure = await Effect.runPromiseExit(
+      enqueueBuildPackRunWith(
+        async () => Promise.reject(new Error("private component failure")),
+        "pack_123",
+      ),
+    );
+
+    expect(failure._tag).toBe("Failure");
+    expect(String(failure)).toContain("The Build Pack could not be queued.");
+    expect(String(failure)).not.toContain("private component failure");
+  });
 });
