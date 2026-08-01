@@ -1,5 +1,146 @@
 # @confect/server
 
+## 10.0.0-next.9
+
+### Patch Changes
+
+- 0dcc0fb: Raise the required `effect` peer version to `^4.0.0-beta.102` (from `^4.0.0-beta.101`), and `@confect/server`'s optional `@effect/platform-node` peer version likewise.
+- 25e8d19: Sync with `main`: this prerelease line now includes all changes released in `@confect/*` 9.2.5 — see that version's changelog entries.
+
+## 10.0.0-next.8
+
+### Patch Changes
+
+- 913d0e5: Raise the required `effect` peer version to `^4.0.0-beta.101` (from `^4.0.0-beta.100`).
+
+  This is a peer-range-only change with no consumer-visible API consequences. The `beta.101` release only touches fiber/concurrency internals (interrupt handling in concurrent traversal, stack frame annotations, `awaitAllChildren` linearization, `interruptibleMask` interrupt delivery), a `MutableList.filter` fix for empty buckets, a `Schema.Struct` required-readonly-field type display simplification, and an `HttpRouter.toWebHandler` middleware type-inference tightening that Confect doesn't need to accommodate.
+
+## 10.0.0-next.7
+
+### Patch Changes
+
+- 41c1175: Fix `StorageWriter.generateUploadUrl` and `StorageReader.getUrl` dying with `SchemaError: Expected URL, got "https://…"` on the URL strings Convex returns. Effect 4's `Schema.URL` is an `instanceof URL` check (in Effect 3 it was a string→URL transform), so the storage services now decode with `Schema.URLFromString` instead.
+
+  `Schema.URLFromString` relies on `URL.canParse`, which the Convex UDF isolate's `URL` polyfill doesn't implement — so `@confect/server` now installs a spec-compliant `URL.canParse` polyfill when it's missing. The polyfill loads with the package's entry modules, so it also covers user schemas that use `Schema.URLFromString` (or `URL.canParse` directly) inside Convex queries and mutations.
+
+## 10.0.0-next.6
+
+### Patch Changes
+
+- 360e99f: Support Convex 1.41+, whose `runQuery`/`runMutation` on `GenericQueryCtx`/`GenericMutationCtx` gained a nested-transaction `transactionLimits` option that `GenericActionCtx`'s versions don't have. `QueryRunner.layer`/`MutationRunner.layer` were typed against the wider `GenericQueryCtx`/`GenericMutationCtx` signatures, so passing an action's `runQuery`/`runMutation` (the only way they're actually used to build an action's services) stopped typechecking against Convex 1.41+. They're now typed against `GenericActionCtx`, matching how they're actually called; no public API or behavior change.
+
+## 10.0.0-next.5
+
+### Patch Changes
+
+- 26c3b15: Fix the remaining "Can't use setTimeout in queries and mutations" crash for apps whose function registration or schema compilation performs enough Effect operations to trigger a cooperative fiber yield. Convex evaluates a function's modules inside the same timer-restricted isolate as the handler, and Confect's module-scope Effect runs (registration layer builds and schema-to-validator compilation) could still dispatch a yield through timer APIs there. These now run with cooperative yielding disabled.
+
+## 10.0.0-next.4
+
+### Patch Changes
+
+- b27f12d: Fix query and mutation handlers crashing with Convex's "Can't use setTimeout in queries and mutations" error once they performed enough Effect operations to trigger a cooperative fiber yield. Effect execution in queries and mutations now yields via the microtask queue instead of timer APIs, which Convex's isolate forbids. Actions are unchanged.
+
+## 10.0.0-next.3
+
+### Patch Changes
+
+- 5b63546: Raise the required `effect` peer version to `^4.0.0-beta.100` (from `^4.0.0-beta.99`).
+
+  This is a peer-range-only change with no consumer-visible API consequences. The `beta.100` release only touches `Cron` internals (month/weekday alias normalization, day/weekday rollover, and equality/hashing), CLI error message formatting (`InvalidValue` prefixes), and `Schema.toTaggedUnion` discriminants that Confect doesn't use.
+
+## 10.0.0-next.2
+
+### Patch Changes
+
+- 35f7515: Raise the required `effect` peer version to `^4.0.0-beta.99` (from `^4.0.0-beta.98`).
+
+  This is a peer-range-only change with no consumer-visible API consequences. The `beta.99` release only touches `Graph`, CLI (`Command`/`CliConfig`/wizard mode), `Tool` cloning, Redis script eval, and multipart parser internals that Confect doesn't use.
+
+- 2aa7541: Sync with `main`: this prerelease line now includes all changes released in `@confect/*` 9.2.2–9.2.4 — see those versions' changelog entries.
+
+## 10.0.0-next.1
+
+### Patch Changes
+
+- 4d98ea8: Raise the required `effect` peer version to `^4.0.0-beta.98` (from `^4.0.0-beta.97`).
+
+  `effect`'s `SchemaError` is now exposed as its own public module (`effect/SchemaError`), which changes the import path TypeScript picks when Confect emits `.d.ts` declarations that reference `Schema.SchemaError` (for example in generated `services.d.ts`). Existing `Schema.SchemaError` / `Schema.isSchemaError` usage is unaffected — this is purely a declaration-emit detail that consumers relying on generated types may notice.
+
+- Updated dependencies [4d98ea8]
+  - @confect/core@10.0.0-next.1
+
+## 10.0.0-next.0
+
+### Major Changes
+
+- 70e313e: Migrate to Effect v4. All `@confect/*` packages now require `effect@^4.0.0-beta.97`; `@effect/platform` and `@effect/cli` are no longer dependencies (their functionality moved into `effect` core and `effect/unstable/*`).
+
+  Breaking changes for users:
+  - **Schemas** follow Effect v4's Schema API: `Schema.Union([a, b])` (array form), `Schema.Literals([...])` for literal unions, `Schema.optionalKey` in place of `optionalWith({ exact: true })`, `Schema.TaggedErrorClass` in place of `Schema.TaggedError`, and checks like `Schema.String.check(Schema.isMaxLength(...))` in place of piped filters.
+  - **Option-returning functions** must use a codec with a serializable encoded form, such as `Schema.OptionFromNullOr(...)` — v4's `Schema.Option` encodes to an `Option` instance, which is not a Convex value.
+  - **Table schemas** may now be transformations (`Schema.decodeTo` chains, `Schema.encodeKeys`), branded structs, suspended schemas, or unions of these — Convex's system fields are carried through the whole encoding chain. Schemas that do not resolve to an object shape at every step (such as `Schema.Class`) are rejected with a descriptive error when the table is defined.
+  - **Clients**: decode failures surface as `SchemaError` rather than `ParseError` in `@confect/js` and `@confect/react`, and `@confect/react`'s `useMutation`/`useAction` handles with an `error` schema now resolve to `Result` (v4's replacement for `Either`).
+  - **HTTP** is now mounted through the renamed `HttpRouter` module (formerly `HttpApi`). `HttpRouter.make(routes)` takes a single route-registering `Layer` composed from Effect's own `effect/unstable/http` and `effect/unstable/httpapi` modules — `HttpApiBuilder.layer(api)` (with group handler layers supplied via `Layer.provide`; a missing group is a compile-time error), `HttpApiScalar.layer` for docs, `HttpRouter.add` for plain routes, and `HttpRouter.middleware(fn, { global: true })` for middleware, merged with `Layer.mergeAll`. The per-path-prefix record and its `api`/`apiLive`/`middleware`/`scalar` options are gone; Confect registers one catch-all Convex HTTP action at `/`, and plain Convex routes added to the returned router still take precedence. Handlers, middleware, and route-layer construction all run with Confect's Convex-aware `ConfigProvider` in context.
+  - **Node actions** use `effect/unstable/process` (`ChildProcessSpawner`) and `@effect/platform-node`'s `NodeServices` in place of `@effect/platform` `Command`/`NodeContext`.
+  - **Configuration**: Confect's Convex-aware `ConfigProvider` treats empty-string environment variables as missing values (matching Effect v4's built-in providers), so `Config.withDefault` and `Config.option` recover from them.
+  - **CLI**: a malformed `convex.json` now fails codegen with a descriptive error instead of being silently ignored.
+  - Confect queries no longer stub the global `Date.now`. Queries run with a `Clock` whose unsafe accessors return constants, so Effect-internal reads (log timestamps, spans) never evict a query from Convex's cache; explicit time reads — `Clock.currentTimeMillis`/`currentTimeNanos` or a raw `Date.now()` call — opt the query out and evict as they honestly should.
+
+### Patch Changes
+
+- Updated dependencies [70e313e]
+  - @confect/core@10.0.0-next.0
+
+## 9.2.5
+
+### Patch Changes
+
+- de717af: Support Convex 1.41+, whose `runQuery`/`runMutation` on `GenericQueryCtx`/`GenericMutationCtx` gained a nested-transaction `transactionLimits` option that `GenericActionCtx`'s versions don't have. `QueryRunner.layer`/`MutationRunner.layer` were typed against the wider `GenericQueryCtx`/`GenericMutationCtx` signatures, so passing an action's `runQuery`/`runMutation` (the only way they're actually used to build an action's services) stopped typechecking against Convex 1.41+. They're now typed against `GenericActionCtx`, matching how they're actually called; no public API or behavior change.
+
+## 9.2.4
+
+### Patch Changes
+
+- 5107fa1: Fix a TypeScript 6 type mismatch for schemas with nested optional fields.
+
+  When compiled with TypeScript 6, the document types Confect derives for schemas containing nested optional fields (e.g. `{ foo: { bar?: number | undefined } }`) picked up a stray `| undefined` on those fields, so they no longer lined up with the types Convex infers for the equivalent validators. This could surface as type errors wherever a Confect-derived validator or document type meets a Convex one. The derived types are now identical under TypeScript 5.x and 6.x.
+
+## 9.2.3
+
+### Patch Changes
+
+- @confect/core@9.2.3
+
+## 9.2.2
+
+### Patch Changes
+
+- 7e7b2a4: Throw an error when a cron schedule specifies a non-UTC timezone
+
+  Convex evaluates all cron expressions in UTC, so specifying a timezone has no effect. Previously, a non-UTC timezone was silently ignored, which could produce a job that ran at the wrong time.
+
+  To prevent this silent misbehavior, a cron that specifies a non-UTC timezone now throws an error.
+  - @confect/core@9.2.2
+
+## 9.2.1
+
+### Patch Changes
+
+- @confect/core@9.2.1
+
+## 9.2.0
+
+### Patch Changes
+
+- @confect/core@9.2.0
+
+## 9.1.5
+
+### Patch Changes
+
+- @confect/core@9.1.5
+
 ## 9.1.4
 
 ### Patch Changes
