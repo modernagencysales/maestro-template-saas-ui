@@ -1,5 +1,6 @@
 import type { ProductJourneyManifest } from "./manifest";
 import type { ReleaseSurfaceInventory } from "./graph";
+import { compareCodePoints } from "./ordering";
 
 const matches = (path: string, pattern: string): boolean =>
   new RegExp(
@@ -46,5 +47,5 @@ export const selectAffectedJourneys = (
         changed = true;
       }
   }
-  return [...affected].sort();
+  return [...affected].sort(compareCodePoints);
 };

@@ -73,4 +73,16 @@ describe("check:ci-completeness", () => {
       "package.json scripts.verify must contain exactly one pnpm check:config-drift term",
     );
   });
+
+  it("keeps product journeys out of root verify until repository adoption", () => {
+    const verify = [
+      "pnpm check:product-journeys",
+      "pnpm check:config-drift",
+      "pnpm check:convex-ai-files",
+      "pnpm check:agent-pack",
+    ].join(" && ");
+    expect(validateRootVerifyHostTerms({ scripts: { verify } })).toContain(
+      "package.json scripts.verify must not run pnpm check:product-journeys before repository adoption",
+    );
+  });
 });

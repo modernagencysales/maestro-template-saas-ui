@@ -1,4 +1,5 @@
 import type { ProductJourneyManifest } from "./manifest";
+import { compareCodePoints } from "./ordering";
 
 export type JourneyDiagnostic = {
   readonly code:
@@ -34,16 +35,24 @@ export type ReleaseSurfaceInventory = {
   readonly legacyEntrypoints: readonly string[];
   readonly today: string;
   readonly classifiedPaths?: readonly string[];
+  readonly surfaceAuthorities?: readonly ReleaseSurfaceAuthority[];
+};
+
+export type ReleaseSurfaceAuthority = {
+  readonly path: string;
+  readonly journeyId: string;
+  readonly authority: "read" | "write" | "external_dispatch" | "async";
+  readonly transport: "local" | "non_local";
 };
 
 const compareDiagnostics = (
   left: JourneyDiagnostic,
   right: JourneyDiagnostic,
 ): number =>
-  left.code.localeCompare(right.code) ||
-  left.journeyId.localeCompare(right.journeyId) ||
-  (left.path ?? "").localeCompare(right.path ?? "") ||
-  left.message.localeCompare(right.message);
+  compareCodePoints(left.code, right.code) ||
+  compareCodePoints(left.journeyId, right.journeyId) ||
+  compareCodePoints(left.path ?? "", right.path ?? "") ||
+  compareCodePoints(left.message, right.message);
 
 const matchesPath = (path: string, pattern: string): boolean =>
   new RegExp(
@@ -132,6 +141,7 @@ export const validateJourneyCatalog = (
   const mappedEntrypoints = new Set(
     manifests.flatMap((manifest) => manifest.releaseEntrypoints),
   );
+  const inventoryEntrypoints = new Set(inventory.releaseEntrypoints);
   for (const path of inventory.releaseEntrypoints)
     if (!mappedEntrypoints.has(path))
       diagnostics.push({
@@ -150,6 +160,15 @@ export const validateJourneyCatalog = (
         path,
         message: `release surface is not classified: ${path}`,
       });
+  for (const manifest of manifests)
+    for (const path of manifest.releaseEntrypoints)
+      if (!inventoryEntrypoints.has(path))
+        diagnostics.push({
+          code: "ENTRYPOINT_UNMAPPED",
+          journeyId: manifest.id,
+          path,
+          message: `manifest release entrypoint is absent from generated inventory: ${path}`,
+        });
   for (const manifest of manifests) {
     for (const edge of manifest.graph.edges) {
       const producers = inventory.receiptProducers.filter(
@@ -178,13 +197,16 @@ export const validateJourneyCatalog = (
       manifest.status === "legacy_exposed" &&
       manifest.legacyExposure !== undefined
     ) {
-      for (const path of manifest.legacyExposure.existingEntrypoints)
-        if (!inventory.legacyEntrypoints.includes(path))
+      const allowedEntrypoints = new Set(
+        manifest.legacyExposure.existingEntrypoints,
+      );
+      for (const path of manifest.releaseEntrypoints)
+        if (!allowedEntrypoints.has(path))
           diagnostics.push({
             code: "LEGACY_EXPANSION",
             journeyId: manifest.id,
             path,
-            message: `legacy entrypoint was not present in the baseline: ${path}`,
+            message: `manifest release entrypoint exceeds legacy exposure: ${path}`,
           });
       if (manifest.legacyExposure.removalMilestone < inventory.today)
         diagnostics.push({
@@ -192,6 +214,74 @@ export const validateJourneyCatalog = (
           journeyId: manifest.id,
           message: `legacy removal milestone expired: ${manifest.legacyExposure.removalMilestone}`,
         });
+    }
+  }
+  const legacyManifests = manifests.filter(
+    (manifest) =>
+      manifest.status === "legacy_exposed" &&
+      manifest.legacyExposure !== undefined,
+  );
+  for (const path of inventory.legacyEntrypoints) {
+    const owner = legacyManifests.find((manifest) =>
+      manifest.releaseEntrypoints.includes(path),
+    );
+    const permitted = legacyManifests.some((manifest) =>
+      manifest.legacyExposure!.existingEntrypoints.includes(path),
+    );
+    if (!permitted)
+      diagnostics.push({
+        code: "LEGACY_EXPANSION",
+        journeyId: owner?.id ?? "catalog",
+        path,
+        message: `generated reachability exceeds the legacy baseline: ${path}`,
+      });
+  }
+  const coverageRank = {
+    "read-only": 0,
+    stateful: 1,
+    "high-risk": 2,
+  } as const;
+  for (const authority of inventory.surfaceAuthorities ?? []) {
+    const manifest = byId.get(authority.journeyId);
+    if (manifest === undefined) {
+      diagnostics.push({
+        code: "SURFACE_UNCLASSIFIED",
+        journeyId: authority.journeyId,
+        path: authority.path,
+        message: `surface authority names an unknown journey: ${authority.journeyId}`,
+      });
+      continue;
+    }
+    const minimumCoverage =
+      authority.authority === "external_dispatch" ||
+      authority.transport === "non_local"
+        ? "high-risk"
+        : authority.authority === "write" || authority.authority === "async"
+          ? "stateful"
+          : "read-only";
+    if (
+      coverageRank[manifest.coverageProfile] < coverageRank[minimumCoverage]
+    ) {
+      diagnostics.push({
+        code: "COVERAGE_REDUCED",
+        journeyId: manifest.id,
+        path: authority.path,
+        message: `surface authority requires coverageProfile ${minimumCoverage}`,
+      });
+    }
+    if (
+      (authority.authority === "external_dispatch" ||
+        authority.authority === "async" ||
+        authority.transport === "non_local") &&
+      manifest.releaseProof !== "deployed-proof-required"
+    ) {
+      diagnostics.push({
+        code: "COVERAGE_REDUCED",
+        journeyId: manifest.id,
+        path: authority.path,
+        message:
+          "surface authority requires releaseProof deployed-proof-required",
+      });
     }
   }
   for (const frontier of inventory.frontiers) {

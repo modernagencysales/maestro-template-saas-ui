@@ -37,4 +37,20 @@ describe("selectAffectedJourneys", () => {
       ]),
     ).toEqual(["consumer", "source"]);
   });
+
+  it("returns selected journeys in code-point order", () => {
+    const inventory = {
+      releaseEntrypoints: [],
+      receiptProducers: [],
+      receiptConsumers: [],
+      frontiers: [],
+      legacyEntrypoints: [],
+      today: "2026-08-01",
+      classifiedPaths: ["**"],
+    };
+    const reversed = [...catalog].reverse();
+    expect(
+      selectAffectedJourneys(reversed, inventory, ["packages/source/file.ts"]),
+    ).toEqual(["consumer", "source"]);
+  });
 });

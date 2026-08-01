@@ -93,6 +93,109 @@ const journey = (
 });
 
 describe("validateJourneyCatalog", () => {
+  it("validates release entrypoints in both directions", () => {
+    const diagnostics = validateJourneyCatalog(
+      [
+        journey({
+          releaseEntrypoints: ["manifest-only.ts"],
+          graph: { ...journey().graph, edges: [] },
+        }),
+      ],
+      {
+        releaseEntrypoints: ["inventory-only.ts"],
+        receiptProducers: [],
+        receiptConsumers: [],
+        frontiers: [],
+        legacyEntrypoints: [],
+        today: "2026-08-01",
+      },
+    );
+
+    expect(diagnostics.map(({ code, path }) => [code, path])).toEqual([
+      ["ENTRYPOINT_UNMAPPED", "manifest-only.ts"],
+      ["ENTRYPOINT_UNMAPPED", "inventory-only.ts"],
+    ]);
+  });
+
+  it("rejects manifest and generated reachability beyond a legacy baseline", () => {
+    const diagnostics = validateJourneyCatalog(
+      [
+        journey({
+          status: "legacy_exposed",
+          releaseEntrypoints: ["legacy.ts", "new.ts"],
+          legacyExposure: {
+            existingEntrypoints: ["legacy.ts"],
+            removalMilestone: "2027-01-01",
+          },
+          graph: { ...journey().graph, edges: [] },
+        }),
+      ],
+      {
+        releaseEntrypoints: ["legacy.ts", "new.ts"],
+        receiptProducers: [],
+        receiptConsumers: [],
+        frontiers: [],
+        legacyEntrypoints: ["legacy.ts", "new.ts"],
+        today: "2026-08-01",
+      },
+    );
+
+    expect(diagnostics.map(({ code, path }) => [code, path])).toEqual([
+      ["LEGACY_EXPANSION", "new.ts"],
+      ["LEGACY_EXPANSION", "new.ts"],
+    ]);
+  });
+
+  it("does not use locale-sensitive diagnostic ordering", () => {
+    const original = String.prototype.localeCompare;
+    String.prototype.localeCompare = () => {
+      throw new Error("localeCompare must not be used");
+    };
+    try {
+      expect(
+        validateJourneyCatalog([], {
+          releaseEntrypoints: ["z.ts", "a.ts"],
+          receiptProducers: [],
+          receiptConsumers: [],
+          frontiers: [],
+          legacyEntrypoints: [],
+          today: "2026-08-01",
+        }).map(({ path }) => path),
+      ).toEqual(["a.ts", "z.ts"]);
+    } finally {
+      String.prototype.localeCompare = original;
+    }
+  });
+
+  it("derives minimum coverage and release proof from surface authority", () => {
+    const diagnostics = validateJourneyCatalog([journey()], {
+      releaseEntrypoints: ["apps/web/src/routes/activate.tsx"],
+      receiptProducers: [
+        { receiptKind: "activation.v1", path: "producer.ts" },
+        { receiptKind: "completed.v1", path: "producer.ts" },
+      ],
+      receiptConsumers: [
+        { receiptKind: "activation.v1", path: "consumer.ts" },
+        { receiptKind: "completed.v1", path: "consumer.ts" },
+      ],
+      frontiers: [],
+      legacyEntrypoints: [],
+      today: "2026-08-01",
+      surfaceAuthorities: [
+        {
+          path: "apps/web/src/routes/activate.tsx",
+          journeyId: "activation",
+          authority: "async",
+          transport: "non_local",
+        },
+      ],
+    });
+    expect(diagnostics.map(({ code, message }) => [code, message])).toEqual([
+      ["COVERAGE_REDUCED", expect.stringContaining("high-risk")],
+      ["COVERAGE_REDUCED", expect.stringContaining("deployed-proof-required")],
+    ]);
+  });
+
   it("reports graph and dependency violations with stable diagnostic codes", () => {
     const dependent = journey({
       id: "dependent",

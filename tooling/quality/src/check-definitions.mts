@@ -354,9 +354,9 @@ const checkDescriptorDefinitions = {
     requirements: [
       {
         file: "package.json",
-        includes: ["check:product-journeys", "pnpm check:product-journeys"],
+        includes: ["check:product-journeys"],
         message:
-          "product journey gate must be registered in the canonical package scripts and verify chain",
+          "product journey gate must be registered in the canonical package scripts",
       },
       {
         file: "Justfile",
