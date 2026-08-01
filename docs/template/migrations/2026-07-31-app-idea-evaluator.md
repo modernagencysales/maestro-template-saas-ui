@@ -13,6 +13,10 @@ stages, exports, Maestro credits, and support incidents.
 - `evaluationAnswers`: one answer per session/question with revision timestamps.
 - `evaluationReports`: current report pointer and ownership state.
 - `evaluationReportVersions`: append-only report snapshots and rubric version.
+- `emailVerificationChallenges`: expiring, single-use hashed tokens bound to a
+  report and hashed email identity.
+- `reportOwnerships`: verified report claims keyed by hashed opaque owner token
+  for cross-device library access.
 - `evaluationShares`: revocable public snapshot tokens. Private answers are
   never copied into a share snapshot.
 - `checkoutSessions`: provider checkout identity and payment-pending state.
@@ -31,6 +35,8 @@ stages, exports, Maestro credits, and support incidents.
 - Session access tokens are stored as SHA-256 hashes and compared after hashing.
 - `evaluationAnswers` is unique by session and question.
 - Report versions are append-only and indexed by report/version.
+- Verification tokens and owner-access tokens are never stored in plaintext;
+  consuming a verification challenge is an idempotent, single-use transition.
 - Provider webhook IDs and purchase IDs are unique idempotency boundaries.
 - Checkout return URLs never create a purchase or entitlement.
 - One first-purchase Maestro credit exists per report; duplicate webhook

@@ -22,6 +22,7 @@ import documentAnnotations from "./tables/documentAnnotations";
 import documentVersions from "./tables/documentVersions";
 import documents from "./tables/documents";
 import dsarRequests from "./tables/dsarRequests";
+import emailVerificationChallenges from "./tables/emailVerificationChallenges";
 import entitlements from "./tables/entitlements";
 import evaluationAnswers from "./tables/evaluationAnswers";
 import evaluationReportVersions from "./tables/evaluationReportVersions";
@@ -38,6 +39,7 @@ import organizations from "./tables/organizations";
 import policies from "./tables/policies";
 import promptRegistry from "./tables/promptRegistry";
 import purchases from "./tables/purchases";
+import reportOwnerships from "./tables/reportOwnerships";
 import supportIncidents from "./tables/supportIncidents";
 import transformBlocks from "./tables/transformBlocks";
 import transformDefinitions from "./tables/transformDefinitions";
@@ -79,6 +81,7 @@ const databaseSchema: $DatabaseSchema.DatabaseSchema<
   typeof documentVersions |
   typeof documents |
   typeof dsarRequests |
+  typeof emailVerificationChallenges |
   typeof entitlements |
   typeof evaluationAnswers |
   typeof evaluationReportVersions |
@@ -95,6 +98,7 @@ const databaseSchema: $DatabaseSchema.DatabaseSchema<
   typeof policies |
   typeof promptRegistry |
   typeof purchases |
+  typeof reportOwnerships |
   typeof supportIncidents |
   typeof transformBlocks |
   typeof transformDefinitions |
@@ -135,6 +139,7 @@ const databaseSchema: $DatabaseSchema.DatabaseSchema<
   documentVersions,
   documents,
   dsarRequests,
+  emailVerificationChallenges,
   entitlements,
   evaluationAnswers,
   evaluationReportVersions,
@@ -151,6 +156,7 @@ const databaseSchema: $DatabaseSchema.DatabaseSchema<
   policies,
   promptRegistry,
   purchases,
+  reportOwnerships,
   supportIncidents,
   transformBlocks,
   transformDefinitions,
