@@ -34,6 +34,7 @@
     "@confect/test": "9.1.5",
     "@convex-dev/prosemirror-sync": "0.2.5",
     "@maestro-template/observability": "workspace:*",
+    "@maestro-template/app-idea-evaluator": "workspace:*",
     "@maestro-template/template-core": "workspace:*",
     "@maestro-template/workflow-tooling": "workspace:*",
     "@tiptap/core": "3.27.1",

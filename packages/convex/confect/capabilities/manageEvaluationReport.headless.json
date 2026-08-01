@@ -1,0 +1,24 @@
+{
+  "capability": "manageEvaluationReport",
+  "description": "Revises, shares, revokes, claims, or deletes an anonymous report and exposes a privacy-limited public snapshot query.",
+  "exposure": "web-and-headless",
+  "authScope": "opaque anonymous report-owner token; public share reads use an opaque share token",
+  "typedErrors": ["Unauthorized", "ValidationFailed", "Forbidden", "NotFound"],
+  "schemas": {
+    "args": "manageEvaluationReportArgs",
+    "returns": "manageEvaluationReportReturns"
+  },
+  "surfaces": ["web", "api", "cli", "mcp"],
+  "requiredFiles": [
+    "Confect spec/impl",
+    "tests",
+    "headless registry entry",
+    "docs"
+  ],
+  "migrationNotes": [
+    "Run Confect codegen before wiring generated refs.",
+    "Persists append-only evaluationReportVersions and hashed-token evaluationShares.",
+    "Public queries return only publicSnapshotJson and never answers, owner tokens, session identifiers, or private report internals."
+  ],
+  "frontendAdapter": "apps/web/src/features/public-funnel/report"
+}

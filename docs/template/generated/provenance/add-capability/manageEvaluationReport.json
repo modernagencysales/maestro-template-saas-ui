@@ -1,0 +1,13 @@
+{
+  "generator": "add-capability",
+  "commandFamily": "template:add-capability",
+  "name": "manageEvaluationReport",
+  "generatedPaths": [
+    "packages/convex/confect/capabilities/manageEvaluationReport.spec.ts",
+    "packages/convex/confect/capabilities/manageEvaluationReport.impl.ts",
+    "packages/convex/confect/capabilities/manageEvaluationReport.domain.ts",
+    "packages/convex/confect/capabilities/manageEvaluationReport.test.ts",
+    "packages/convex/confect/capabilities/manageEvaluationReport.headless.json",
+    "docs/template/generated/capabilities/manageEvaluationReport.md"
+  ]
+}

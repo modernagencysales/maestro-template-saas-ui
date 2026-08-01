@@ -1,12 +1,9 @@
-import { createFileRoute } from "@tanstack/react-router";
-
-import { BuildPackReadyRoute } from "../features/public-funnel/build-pack/build-pack-ready-route";
+import { createFileRoute, Outlet } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/build-pack/$packId")({
-  component: ReadyRoute,
+  component: BuildPackLayoutRoute,
 });
 
-function ReadyRoute() {
-  const { packId } = Route.useParams();
-  return <BuildPackReadyRoute packId={packId} />;
+function BuildPackLayoutRoute() {
+  return <Outlet />;
 }

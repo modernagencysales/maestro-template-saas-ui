@@ -3,6 +3,10 @@ import { useEffect, useState } from "react";
 import { listEvaluationIds, loadEvaluation } from "../evaluation-storage";
 import type { StoredEvaluation } from "../intake/evaluation-adapter";
 import { ReportLibraryView } from "./report-library-view";
+import {
+  createStoredReportShare,
+  revokeStoredReportShare,
+} from "./report-share-storage";
 
 const shareKey = "maestro.idea-evaluation.active-shares";
 
@@ -36,13 +40,23 @@ export function ReportLibraryRoute() {
     window.localStorage.setItem(shareKey, JSON.stringify(ids));
   };
 
+  const createShare = (id: string) => {
+    const evaluation = reports.find(({ id: reportId }) => reportId === id);
+    if (!evaluation) return;
+    createStoredReportShare(window.localStorage, evaluation, `share_${id}`);
+    saveShares([...activeShares.filter((reportId) => reportId !== id), id]);
+  };
+
+  const revokeShare = (id: string) => {
+    revokeStoredReportShare(window.localStorage, `share_${id}`);
+    saveShares(activeShares.filter((reportId) => reportId !== id));
+  };
+
   return (
     <ReportLibraryView
       activeShareReportIds={activeShares}
-      onCreateShare={(id) => saveShares([...activeShares, id])}
-      onRevokeShare={(id) =>
-        saveShares(activeShares.filter((reportId) => reportId !== id))
-      }
+      onCreateShare={createShare}
+      onRevokeShare={revokeShare}
       reports={reports}
     />
   );
