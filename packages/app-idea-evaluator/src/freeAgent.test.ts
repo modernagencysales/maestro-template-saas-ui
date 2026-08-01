@@ -76,7 +76,9 @@ describe("cheap free evaluation agent", () => {
     ];
     const result = await runBoundedFreeAgent({
       input: fixtureInput(),
-      complete: async () => completions.shift()!,
+      complete: async () =>
+        completions.shift() ??
+        Promise.reject(new Error("The completion fixture was exhausted.")),
     });
     expect(result.output.biggestRisk).toBe("Distribution.");
     expect(result.usage).toMatchObject({

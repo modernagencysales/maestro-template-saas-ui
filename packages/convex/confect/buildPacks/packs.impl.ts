@@ -16,14 +16,12 @@ import * as Either from "effect/Either";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
-import { makeFunctionReference, type FunctionReference } from "convex/server";
 
 import databaseSchema from "../_generated/schema";
 import refs from "../_generated/refs";
 import {
   DatabaseReader,
   DatabaseWriter,
-  MutationCtx,
   MutationRunner,
   QueryRunner,
 } from "../_generated/services";
@@ -36,6 +34,7 @@ import {
 import { loadLlmGatewayEnvConfig, RuntimeModeConfig } from "../shared/config";
 import { sha256Hex } from "../shared/sha256";
 import packsGroup from "./packs.spec";
+import { enqueueBuildPackRun } from "./workpool";
 
 const unsafeAssumeClockProvided = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
   effect as Effect.Effect<A, E, Exclude<R, Clock.Clock>>;
@@ -62,17 +61,6 @@ type PackSummary = {
   readonly stages: BuildPackRun["stages"];
 };
 
-const runPackRef = makeFunctionReference<
-  "action",
-  { readonly packId: string },
-  PackSummary
->("buildPacks/packs:runPack") as unknown as FunctionReference<
-  "action",
-  "internal",
-  { readonly packId: string },
-  PackSummary
->;
-
 const rowsToRun = (
   pack: {
     readonly packId: string;
@@ -94,7 +82,10 @@ const rowsToRun = (
   status: pack.status === "revoked" ? "needs-support" : pack.status,
   stages: buildPackStageNames.map((name) => {
     const row = stages.find(({ stageName }) => stageName === name);
-    if (!row) throw new Error(`Missing Build Pack stage: ${name}`);
+    if (!row)
+      return Effect.runSync(
+        Effect.dieMessage(`Missing Build Pack stage: ${name}`),
+      );
     return {
       name,
       status: row.status,
@@ -267,10 +258,7 @@ const startPackImpl = FunctionImpl.make(
           updatedAt: now,
         })
         .pipe(Effect.orDie);
-      const ctx = yield* MutationCtx;
-      yield* Effect.promise(() =>
-        ctx.scheduler.runAfter(0, runPackRef, { packId }),
-      ).pipe(Effect.orDie);
+      yield* enqueueBuildPackRun(packId);
       return {
         packId,
         reportId: normalizedReportId,
@@ -391,10 +379,7 @@ const retryFailedStageImpl = FunctionImpl.make(
           updatedAt: now,
         })
         .pipe(Effect.orDie);
-      const ctx = yield* MutationCtx;
-      yield* Effect.promise(() =>
-        ctx.scheduler.runAfter(0, runPackRef, { packId }),
-      ).pipe(Effect.orDie);
+      yield* enqueueBuildPackRun(packId);
       return summaryFrom(
         { ...pack, status: "running" },
         stages.map((stage) =>
@@ -862,8 +847,10 @@ const runPackImpl = FunctionImpl.make(
                   claim.attempt === undefined
                 ) {
                   leaseContended = true;
-                  throw new StageLeaseUnavailable(
-                    "Build Pack stage is already leased.",
+                  return Promise.reject(
+                    new StageLeaseUnavailable(
+                      "Build Pack stage is already leased.",
+                    ),
                   );
                 }
                 const attempt = claim.attempt;
@@ -872,10 +859,11 @@ const runPackImpl = FunctionImpl.make(
                   PREMIUM_MODEL_POLICY,
                   usage,
                 );
-                if (!authorization.allowed)
-                  throw new Error(
-                    `Premium model policy: ${authorization.reason}`,
+                if (!authorization.allowed) {
+                  return Promise.reject(
+                    new Error(`Premium model policy: ${authorization.reason}`),
                   );
+                }
                 const receiptId = `${packId}.${stage}.${String(attempt)}`;
                 const completion = await Effect.runPromise(
                   gateway.complete({
@@ -921,12 +909,18 @@ const runPackImpl = FunctionImpl.make(
                 return completion.text;
               },
               checkpoint: async (run) => {
-                if (leaseContended)
-                  throw new StageLeaseUnavailable(
-                    "Build Pack stage is already leased.",
+                if (leaseContended) {
+                  return Promise.reject(
+                    new StageLeaseUnavailable(
+                      "Build Pack stage is already leased.",
+                    ),
                   );
-                if (!activeLease)
-                  throw new Error("Build Pack checkpoint has no active lease.");
+                }
+                if (!activeLease) {
+                  return Promise.reject(
+                    new Error("Build Pack checkpoint has no active lease."),
+                  );
+                }
                 await Effect.runPromise(
                   mutation(refs.internal.buildPacks.packs.persistCheckpoint, {
                     packId,

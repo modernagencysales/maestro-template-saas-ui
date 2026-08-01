@@ -1,7 +1,6 @@
 import { FunctionImpl, GroupImpl } from "@confect/server";
 import {
   decodeCompleteBuildPack,
-  maestroBlueprintCatalog,
   mapCompleteBuildPackToMaestro,
   selectMaestroBlueprint,
 } from "@maestro-template/app-idea-evaluator";

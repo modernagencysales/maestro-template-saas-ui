@@ -2,7 +2,18 @@ import { TestConfect } from "@confect/test";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+vi.mock("@convex-dev/workpool", async (importOriginal) => {
+  const original =
+    await importOriginal<typeof import("@convex-dev/workpool")>();
+  return {
+    ...original,
+    Workpool: class {
+      enqueueAction = async () => "work_test_build_pack";
+    },
+  };
+});
 
 import refs from "../confect/_generated/refs";
 import databaseSchema from "../confect/_generated/schema";
