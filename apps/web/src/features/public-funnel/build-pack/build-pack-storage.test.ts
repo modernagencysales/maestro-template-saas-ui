@@ -6,7 +6,9 @@ import {
 } from "../intake/evaluation-adapter";
 import {
   completeFakeBuildPack,
+  failFakeBuildPackAtCheckpoint,
   loadBuildPack,
+  retryFakeBuildPack,
   saveBuildPack,
   startBuildPackGeneration,
 } from "./build-pack-storage";
@@ -50,5 +52,23 @@ describe("paid Build Pack generation coordinator", () => {
     } finally {
       vi.unstubAllGlobals();
     }
+  });
+
+  it("retries only the failed checkpoint and retains completed output", () => {
+    const evaluation = makeEvaluation(fixtureCompleteAnswers);
+    const started = startBuildPackGeneration({
+      evaluation,
+      entitlementStatus: "active",
+    });
+    const failed = failFakeBuildPackAtCheckpoint(started);
+    const completedCheckpoint = failed.run.stages[0];
+
+    const retried = retryFakeBuildPack(failed, evaluation);
+
+    expect(failed.run.status).toBe("failed-recoverable");
+    expect(retried.run.status).toBe("completed");
+    expect(retried.run.stages[0]).toEqual(completedCheckpoint);
+    expect(retried.run.stages[1]?.attempts).toBe(2);
+    expect(retried.pack).toBeDefined();
   });
 });
