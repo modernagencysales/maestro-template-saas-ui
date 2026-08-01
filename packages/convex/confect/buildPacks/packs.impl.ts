@@ -12,6 +12,7 @@ import {
 } from "@maestro-template/app-idea-evaluator";
 import { createLlmGateway } from "@maestro-template/integrations";
 import * as Clock from "effect/Clock";
+import * as Either from "effect/Either";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
@@ -49,6 +50,8 @@ const premiumStageOutputTokens: Readonly<Record<BuildPackStageName, number>> = {
   compile: 8_000,
   "map-to-maestro": 2_000,
 };
+
+class StageLeaseUnavailable extends Error {}
 
 type PackSummary = {
   readonly packId: string;
@@ -433,11 +436,51 @@ const loadPackRunImpl = FunctionImpl.make(
     }),
 );
 
+const claimStageImpl = FunctionImpl.make(
+  databaseSchema,
+  packsGroup,
+  "claimStage",
+  ({ packId, leaseId }) =>
+    Effect.gen(function* () {
+      if (!leaseId.trim())
+        return yield* new ValidationFailed({
+          field: "leaseId",
+          message: "A runner lease identifier is required.",
+        });
+      const { pack, stages } = yield* loadPackRows(packId.trim());
+      if (pack.status === "completed" || pack.status === "revoked")
+        return { claimed: false };
+      const stage = stages.find(({ status }) => status === "running");
+      if (!stage) return { claimed: false };
+      const now = yield* unsafeAssumeClockProvided(Clock.currentTimeMillis);
+      if (
+        stage.leaseId !== undefined &&
+        stage.leaseExpiresAt !== undefined &&
+        stage.leaseExpiresAt > now
+      )
+        return { claimed: false };
+      const writer = yield* DatabaseWriter;
+      yield* writer
+        .table("buildPackStages")
+        .patch(stage._id, {
+          leaseId: leaseId.trim(),
+          leaseExpiresAt: now + 10 * 60_000,
+          updatedAt: now,
+        })
+        .pipe(Effect.orDie);
+      return {
+        claimed: true,
+        stage: stage.stageName as BuildPackStageName,
+        attempt: stage.attempts,
+      };
+    }),
+);
+
 const persistCheckpointImpl = FunctionImpl.make(
   databaseSchema,
   packsGroup,
   "persistCheckpoint",
-  ({ packId, runJson, receipt }) =>
+  ({ packId, runJson, stage: leasedStage, leaseId, receipt }) =>
     Effect.gen(function* () {
       let run: BuildPackRun;
       try {
@@ -454,6 +497,48 @@ const persistCheckpointImpl = FunctionImpl.make(
           field: "packId",
           message: "The checkpoint belongs to a different Build Pack.",
         });
+      if ((leasedStage === undefined) !== (leaseId === undefined))
+        return yield* new ValidationFailed({
+          field: "lease",
+          message: "A checkpoint stage and lease must be supplied together.",
+        });
+      if (leasedStage === undefined) {
+        const runningChanged = stages.some((stored) => {
+          if (stored.status !== "running") return false;
+          const checkpoint = run.stages.find(
+            ({ name }) => name === stored.stageName,
+          );
+          return (
+            checkpoint !== undefined &&
+            (checkpoint.status !== stored.status ||
+              checkpoint.attempts !== stored.attempts ||
+              checkpoint.output !== stored.outputJson ||
+              checkpoint.error !== stored.errorCode)
+          );
+        });
+        if (runningChanged)
+          return yield* new ValidationFailed({
+            field: "lease",
+            message: "A matching stage lease is required for this checkpoint.",
+          });
+      }
+      if (leasedStage !== undefined && leaseId !== undefined) {
+        const leased = stages.find(
+          ({ stageName }) => stageName === leasedStage,
+        );
+        const checkpoint = run.stages.find(({ name }) => name === leasedStage);
+        if (
+          !leased ||
+          !checkpoint ||
+          leased.status !== "running" ||
+          leased.leaseId !== leaseId ||
+          leased.attempts !== checkpoint.attempts
+        )
+          return yield* new ValidationFailed({
+            field: "lease",
+            message: "The Build Pack stage lease is stale or does not match.",
+          });
+      }
       const writer = yield* DatabaseWriter;
       const reader = yield* DatabaseReader;
       const now = yield* unsafeAssumeClockProvided(Clock.currentTimeMillis);
@@ -483,6 +568,9 @@ const persistCheckpointImpl = FunctionImpl.make(
               stage.name === receipt?.stage
                 ? receipt.estimatedCents
                 : stored.estimatedCostCents,
+            ...(stage.name === leasedStage
+              ? { leaseId: undefined, leaseExpiresAt: undefined }
+              : {}),
             updatedAt: now,
           })
           .pipe(Effect.orDie);
@@ -668,88 +756,134 @@ const runPackImpl = FunctionImpl.make(
             readonly generatedAt: number;
           }
         | undefined;
-      const executed = yield* Effect.tryPromise({
-        try: () =>
-          executePremiumBuildPack({
-            run: initialRun,
-            runStage: async ({ stage, completedOutputs }) => {
-              const authorization = authorizeModelCall(
-                PREMIUM_MODEL_POLICY,
-                usage,
-              );
-              if (!authorization.allowed)
-                throw new Error(
-                  `Premium model policy: ${authorization.reason}`,
+      const runnerId = `${packId}.${crypto.randomUUID()}`;
+      let activeLease:
+        | { readonly stage: BuildPackStageName; readonly leaseId: string }
+        | undefined;
+      let leaseContended = false;
+      const execution = yield* Effect.either(
+        Effect.tryPromise({
+          try: () =>
+            executePremiumBuildPack({
+              run: initialRun,
+              runStage: async ({ stage, completedOutputs }) => {
+                const leaseId = `${runnerId}.${stage}`;
+                const claim = await Effect.runPromise(
+                  mutation(refs.internal.buildPacks.packs.claimStage, {
+                    packId,
+                    leaseId,
+                  }).pipe(Effect.orDie),
                 );
-              const receiptId = `${packId}.${stage}.${String(
-                initialRun.stages.find(({ name }) => name === stage)
-                  ?.attempts ?? 1,
-              )}`;
-              const completion = await Effect.runPromise(
-                gateway.complete({
-                  workspaceSlug: "public-idea-funnel",
-                  prompt: stagePrompt({
-                    stage,
-                    reportJson: loaded.reportJson,
-                    completedOutputs,
+                if (
+                  !claim.claimed ||
+                  claim.stage !== stage ||
+                  claim.attempt === undefined
+                ) {
+                  leaseContended = true;
+                  throw new StageLeaseUnavailable(
+                    "Build Pack stage is already leased.",
+                  );
+                }
+                const attempt = claim.attempt;
+                activeLease = { stage, leaseId };
+                const authorization = authorizeModelCall(
+                  PREMIUM_MODEL_POLICY,
+                  usage,
+                );
+                if (!authorization.allowed)
+                  throw new Error(
+                    `Premium model policy: ${authorization.reason}`,
+                  );
+                const receiptId = `${packId}.${stage}.${String(attempt)}`;
+                const completion = await Effect.runPromise(
+                  gateway.complete({
+                    workspaceSlug: "public-idea-funnel",
+                    prompt: stagePrompt({
+                      stage,
+                      reportJson: loaded.reportJson,
+                      completedOutputs,
+                    }),
+                    modelEnv: PREMIUM_MODEL_POLICY.modelEnv,
+                    limits: {
+                      maxInputTokens:
+                        PREMIUM_MODEL_POLICY.maxInputTokens -
+                        usage.inputTokensUsed,
+                      maxOutputTokens: premiumStageOutputTokens[stage],
+                    },
+                    idempotencyKey: receiptId,
+                    currentDailySpendCents:
+                      loaded.currentDailySpendCents + usage.spentCents,
                   }),
-                  modelEnv: PREMIUM_MODEL_POLICY.modelEnv,
-                  limits: {
-                    maxInputTokens:
-                      PREMIUM_MODEL_POLICY.maxInputTokens -
-                      usage.inputTokensUsed,
-                    maxOutputTokens: premiumStageOutputTokens[stage],
-                  },
-                  idempotencyKey: receiptId,
-                  currentDailySpendCents:
-                    loaded.currentDailySpendCents + usage.spentCents,
-                }),
-              );
-              usage = {
-                ...usage,
-                callsUsed: usage.callsUsed + 1,
-                inputTokensUsed:
-                  usage.inputTokensUsed + completion.usage.promptTokens,
-                outputTokensUsed:
-                  usage.outputTokensUsed + completion.usage.completionTokens,
-                spentCents: usage.spentCents + completion.usage.estimatedCents,
-              };
-              latestReceipt = {
-                receiptId,
-                stage,
-                provider: completion.provider,
-                mode: completion.mode,
-                model: completion.model,
-                inputTokens: completion.usage.promptTokens,
-                outputTokens: completion.usage.completionTokens,
-                estimatedCents: completion.usage.estimatedCents,
-                generatedAt: Date.parse(completion.receipt.generatedAt),
-              };
-              return completion.text;
-            },
-            checkpoint: async (run) => {
-              await Effect.runPromise(
-                mutation(refs.internal.buildPacks.packs.persistCheckpoint, {
-                  packId,
-                  runJson: JSON.stringify(run),
-                  ...(latestReceipt === undefined
-                    ? {}
-                    : { receipt: latestReceipt }),
-                }).pipe(Effect.orDie),
-              );
-              latestReceipt = undefined;
-            },
-          }),
-        catch: (cause) => cause,
-      }).pipe(
-        Effect.mapError(
-          () =>
-            new ConfigInvalid({
-              provider: "openrouter",
-              message: "Premium Build Pack generation could not run.",
+                );
+                usage = {
+                  ...usage,
+                  callsUsed: usage.callsUsed + 1,
+                  inputTokensUsed:
+                    usage.inputTokensUsed + completion.usage.promptTokens,
+                  outputTokensUsed:
+                    usage.outputTokensUsed + completion.usage.completionTokens,
+                  spentCents:
+                    usage.spentCents + completion.usage.estimatedCents,
+                };
+                latestReceipt = {
+                  receiptId,
+                  stage,
+                  provider: completion.provider,
+                  mode: completion.mode,
+                  model: completion.model,
+                  inputTokens: completion.usage.promptTokens,
+                  outputTokens: completion.usage.completionTokens,
+                  estimatedCents: completion.usage.estimatedCents,
+                  generatedAt: Date.parse(completion.receipt.generatedAt),
+                };
+                return completion.text;
+              },
+              checkpoint: async (run) => {
+                if (leaseContended)
+                  throw new StageLeaseUnavailable(
+                    "Build Pack stage is already leased.",
+                  );
+                if (!activeLease)
+                  throw new Error("Build Pack checkpoint has no active lease.");
+                await Effect.runPromise(
+                  mutation(refs.internal.buildPacks.packs.persistCheckpoint, {
+                    packId,
+                    runJson: JSON.stringify(run),
+                    stage: activeLease.stage,
+                    leaseId: activeLease.leaseId,
+                    ...(latestReceipt === undefined
+                      ? {}
+                      : { receipt: latestReceipt }),
+                  }).pipe(Effect.orDie),
+                );
+                latestReceipt = undefined;
+                activeLease = undefined;
+              },
             }),
-        ),
+          catch: (cause) => cause,
+        }),
       );
+      if (Either.isLeft(execution)) {
+        if (execution.left instanceof StageLeaseUnavailable) {
+          const refreshed = yield* query(
+            refs.internal.buildPacks.packs.loadPackRun,
+            { packId },
+          ).pipe(Effect.orDie);
+          const run = JSON.parse(refreshed.runJson) as BuildPackRun;
+          return {
+            packId: run.packId,
+            reportId: run.reportId,
+            reportVersion: run.reportVersion,
+            status: run.status,
+            stages: run.stages,
+          };
+        }
+        return yield* new ConfigInvalid({
+          provider: "openrouter",
+          message: "Premium Build Pack generation could not run.",
+        });
+      }
+      const executed = execution.right;
       if (executed.run.status !== "completed") {
         return {
           packId: executed.run.packId,
@@ -781,6 +915,7 @@ export default GroupImpl.make(databaseSchema, packsGroup).pipe(
   Layer.provide(getPackImpl),
   Layer.provide(runPackImpl),
   Layer.provide(loadPackRunImpl),
+  Layer.provide(claimStageImpl),
   Layer.provide(persistCheckpointImpl),
   Layer.provide(finishPackImpl),
   GroupImpl.finalize,

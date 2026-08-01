@@ -105,6 +105,18 @@ export const loadPackRun = FunctionSpec.internalQuery({
   error: () => Schema.Union(ValidationFailed, NotFound),
 });
 
+export const claimStage = FunctionSpec.internalMutation({
+  name: "claimStage",
+  args: () => Schema.Struct({ packId: Schema.String, leaseId: Schema.String }),
+  returns: () =>
+    Schema.Struct({
+      claimed: Schema.Boolean,
+      stage: Schema.optional(Schema.Literal(...buildPackStageNames)),
+      attempt: Schema.optional(Schema.Number),
+    }),
+  error: () => Schema.Union(ValidationFailed, NotFound),
+});
+
 const Receipt = Schema.Struct({
   receiptId: Schema.String,
   stage: Schema.String,
@@ -123,6 +135,8 @@ export const persistCheckpoint = FunctionSpec.internalMutation({
     Schema.Struct({
       packId: Schema.String,
       runJson: Schema.String,
+      stage: Schema.optional(Schema.Literal(...buildPackStageNames)),
+      leaseId: Schema.optional(Schema.String),
       receipt: Schema.optional(Receipt),
     }),
   returns: () => PackSummary,
@@ -147,5 +161,6 @@ export default GroupSpec.make()
   .addFunction(getPack)
   .addFunction(runPack)
   .addFunction(loadPackRun)
+  .addFunction(claimStage)
   .addFunction(persistCheckpoint)
   .addFunction(finishPack);
