@@ -19,7 +19,8 @@ Audit date: 2026-08-01
 
 ## Fresh focused verification
 
-- Functional Playwright: 8/8 passed across desktop and mobile Chromium.
+- Functional Playwright: 12/12 passed across desktop and mobile Chromium,
+  including delayed-webhook recovery and post-refund generation denial.
 - Accessibility Playwright: 8/8 passed across desktop and mobile Chromium.
 - Visual Playwright: 2/2 eight-surface journeys passed at the existing
   tolerance.
