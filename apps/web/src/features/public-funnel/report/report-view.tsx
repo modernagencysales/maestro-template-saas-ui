@@ -4,7 +4,7 @@ import type { StoredEvaluation } from "../intake/evaluation-adapter";
 import { PublicFunnelShell } from "../public-shell";
 import { downloadReport } from "./report-export";
 
-const verdictLabels = {
+export const verdictLabels = {
   "too-expensive-for-version-one": "Too expensive for version one",
   "strong-problem-weak-solution": "Strong problem. Weak solution.",
   "good-product-unclear-distribution": "Good product. Unclear distribution.",

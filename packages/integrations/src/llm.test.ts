@@ -2,11 +2,42 @@ import * as Effect from "effect/Effect";
 import { describe, expect, it } from "vitest";
 import {
   createLlmGateway,
+  createOpenRouterTransport,
   LlmDisabledError,
   LlmProviderConfigError,
 } from "./llm";
 
 describe("kill-switch-aware LLM gateway", () => {
+  it("uses the OpenRouter chat-completions transport in live mode", async () => {
+    const fetcher = async (_url: string, init?: RequestInit) => {
+      expect(init?.headers).toMatchObject({
+        Authorization: "Bearer server-key",
+        "Content-Type": "application/json",
+      });
+      expect(JSON.parse(String(init?.body))).toMatchObject({
+        model: "google/gemini-2.0-flash-lite-001",
+        messages: [{ role: "user", content: "Evaluate the idea" }],
+      });
+      return new Response(
+        JSON.stringify({
+          choices: [{ message: { content: "Structured result" } }],
+        }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      );
+    };
+    const transport = createOpenRouterTransport(fetcher);
+    await expect(
+      Effect.runPromise(
+        transport({
+          apiKey: "server-key",
+          baseUrl: "https://openrouter.ai/api/v1",
+          model: "google/gemini-2.0-flash-lite-001",
+          prompt: "Evaluate the idea",
+        }),
+      ),
+    ).resolves.toEqual({ text: "Structured result" });
+  });
+
   it("denies calls when LLM_DISABLED is true", async () => {
     const gateway = createLlmGateway({
       mode: "fake",

@@ -113,10 +113,11 @@ const processNextQueuedNode = async (
   }
 
   const result = await runGraphNode(step, state, node);
+  if (node.kind === "output") {
+    return outputNodeResult(result);
+  }
   recordNodeResult(state, node, result);
-  return node.kind === "output"
-    ? outputNodeResult(result)
-    : continueAfterEnqueue(state, node);
+  return continueAfterEnqueue(state, node);
 };
 
 const dequeueNode = (state: GraphExecutionState): WorkflowNode | undefined => {

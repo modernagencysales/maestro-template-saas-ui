@@ -1,3 +1,4 @@
+import { createHmac, timingSafeEqual } from "node:crypto";
 import * as Schema from "effect/Schema";
 import type { ProviderMode } from "./index";
 
@@ -31,6 +32,85 @@ export type DodoWebhookVerification =
   | DodoWebhookConfigError
   | DodoWebhookReplayError
   | DodoWebhookSignatureError;
+
+export type DodoCheckoutResult = {
+  readonly provider: "dodo";
+  readonly mode: ProviderMode;
+  readonly checkoutSessionId: string;
+  readonly checkoutUrl: string;
+  readonly reportId: string;
+};
+
+export type DodoCheckoutTransportRequest = {
+  readonly apiKey: string;
+  readonly productCart: readonly {
+    readonly productId: string;
+    readonly quantity: number;
+  }[];
+  readonly customer: { readonly email: string };
+  readonly metadata: { readonly reportId: string };
+  readonly returnUrl: string;
+  readonly idempotencyKey: string;
+};
+
+export type DodoCheckoutTransport = (
+  request: DodoCheckoutTransportRequest,
+) => Promise<{
+  readonly checkoutSessionId: string;
+  readonly checkoutUrl: string;
+}>;
+
+const checkoutPart = (value: string): string =>
+  value.replaceAll(/[^A-Za-z0-9_-]/g, "-").slice(0, 80);
+
+export const createDodoCheckout = async (input: {
+  readonly mode: ProviderMode;
+  readonly apiKey: string | undefined;
+  readonly productId: string;
+  readonly reportId: string;
+  readonly customerEmail: string;
+  readonly returnUrl: string;
+  readonly idempotencyKey: string;
+  readonly transport?: DodoCheckoutTransport;
+}): Promise<DodoCheckoutResult | DodoWebhookConfigError> => {
+  if (input.mode === "live" && !input.apiKey?.trim()) {
+    return new DodoWebhookConfigError({ missing: ["DODO_API_KEY"] });
+  }
+
+  if (input.mode !== "fake") {
+    if (!input.transport) {
+      return new DodoWebhookConfigError({
+        missing: ["DODO_CHECKOUT_TRANSPORT"],
+      });
+    }
+    const hosted = await input.transport({
+      apiKey: input.apiKey ?? "",
+      productCart: [{ productId: input.productId, quantity: 1 }],
+      customer: { email: input.customerEmail },
+      metadata: { reportId: input.reportId },
+      returnUrl: input.returnUrl,
+      idempotencyKey: input.idempotencyKey,
+    });
+    return {
+      provider: "dodo",
+      mode: input.mode,
+      ...hosted,
+      reportId: input.reportId,
+    };
+  }
+
+  const checkoutSessionId = `checkout_${checkoutPart(input.idempotencyKey)}`;
+  const checkoutUrl = new URL(input.returnUrl);
+  checkoutUrl.searchParams.set("session_id", checkoutSessionId);
+
+  return {
+    provider: "dodo",
+    mode: input.mode,
+    checkoutSessionId,
+    checkoutUrl: checkoutUrl.toString(),
+    reportId: input.reportId,
+  };
+};
 
 export type NormalizedDodoWebhook = {
   readonly provider: "dodo";
@@ -122,6 +202,30 @@ export const verifyDodoWebhook = async (input: {
 
   if (missing.length > 0) {
     return new DodoWebhookConfigError({ missing });
+  }
+
+  const timestamp = input.signatureTimestamp ?? "";
+  const timestampMs = Number(timestamp) * 1_000;
+  if (
+    !Number.isFinite(timestampMs) ||
+    Math.abs(input.nowMs - timestampMs) > 300_000
+  ) {
+    return new DodoWebhookSignatureError({
+      reason: "timestamp-outside-window",
+    });
+  }
+
+  const provided = input.signature?.split(",")[1] ?? "";
+  const expected = createHmac("sha256", input.webhookSecret ?? "")
+    .update(`${timestamp}.${input.payload}`)
+    .digest("base64");
+  const providedBytes = Buffer.from(provided);
+  const expectedBytes = Buffer.from(expected);
+  if (
+    providedBytes.length !== expectedBytes.length ||
+    !timingSafeEqual(providedBytes, expectedBytes)
+  ) {
+    return new DodoWebhookSignatureError({ reason: "invalid-signature" });
   }
 
   return {
