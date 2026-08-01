@@ -238,18 +238,24 @@ export type JourneyDiagnostic = {
 };
 ```
 
-- [ ] **Step 4: Register the static command in canonical gates**
+- [ ] **Step 4: Register the fail-closed static command**
 
 Add `check:product-journeys` to `package.json`, `Justfile`, gate definitions,
 config-drift expectations, and CI completeness so deletion or downgrading fails.
+The command loads an explicit repository catalog/inventory adapter and optional
+merge-base contract input. It exits nonzero when the adapter is missing or
+invalid. Do not add it to root `verify` until Task 4 supplies the real reference
+catalog and generated inventory; a passing empty no-op gate is forbidden.
 
 - [ ] **Step 5: Run focused gate tests**
 
 Run:
-`rtk pnpm exec vitest run packages/product-journey/src tooling/quality/check-product-journeys.test.mts && rtk pnpm check:product-journeys`
+`rtk pnpm exec vitest run packages/product-journey/src tooling/quality/check-product-journeys.test.mts`
 
-Expected: all tests pass and the empty initial catalog is valid only when the
-inventory contains no unowned release surface.
+Expected: all tests pass; a fixture-backed valid catalog returns success;
+malformed, unowned, weakened, or missing adapter inputs return stable nonzero
+verdicts. Direct default `pnpm check:product-journeys` remains fail-closed until
+Task 4 installs the repository adapter.
 
 - [ ] **Step 6: Commit**
 
@@ -351,17 +357,25 @@ Run:
 - Create: `tooling/generators/src/journey-package-export.test.ts`
 - Create: `packages/convex/confect/journeys/admission.spec.ts`
 - Create: `packages/convex/confect/journeys/admission.impl.ts`
-- Create: `packages/convex/confect/journeys/admission.impl.test.ts`
+- Create: `packages/convex/test/journey-admission.test.ts`
+- Modify (generated): `packages/convex/confect/_generated/spec.ts`
+- Create (generated):
+  `packages/convex/confect/_generated/registeredFunctions/journeys/admission.ts`
 - Create: `journeys/reference-read/manifest.ts`
 - Create: `journeys/reference-read/driver.ts`
 - Create: `journeys/reference-read/journey.test.ts`
 - Create: `journeys/reference-write/manifest.ts`
 - Create: `journeys/reference-write/frontier.test.ts`
 - Modify: `tooling/generators/src/index.ts`
-- Modify: `tooling/generators/src/cli.ts`
 - Modify: `tooling/generators/src/blueprints/saasApplication.ts`
+- Modify: `tooling/quality/src/check-definitions.mts`
+- Modify: `tooling/quality/check-ci-completeness.mts`
+- Modify: `tooling/quality/check-config-drift.mts`
 - Modify: `package.json`
 - Modify: `.buildkite/pipeline.yml`
+- Modify: `.buildkite/scripts/phase1.sh`
+- Modify: `.buildkite/scripts/ci-self-protection.sh`
+- Modify: `.github/CODEOWNERS`
 - Modify: `docs/template/generator-output-contract.md`
 - Create: `docs/template/product-journey-admission.md`
 
@@ -404,7 +418,11 @@ Add `template:journey` to root scripts.
 Add `template:export-product-journey`, which copies only the package's tracked
 files, writes `journey-package.provenance.json` containing the exact template
 commit and content hash, and refuses a dirty source package or a destination
-containing uncommitted changes.
+containing uncommitted changes. Its canonical export manifest contains sorted
+relative paths, per-file SHA-256, aggregate canonical-JSON SHA-256, package
+version, journey protocol version, and exact source commit. It rejects symlinks,
+untracked source bytes, source/destination overlap, existing target paths, or a
+dirty destination before its first write.
 
 - [ ] **Step 4: Add the real Confect guard adapter**
 
@@ -420,6 +438,12 @@ export type RequireJourneyAdmission = (input: {
 }) => Effect.Effect<VerifiedAdmission, JourneyNotAdmitted>;
 ```
 
+Represent `JourneyNotAdmitted` as a Confect `Schema.TaggedError` containing only
+journey id, entrypoint, and a closed public reason. Runtime identity and lease
+projection are injected services; no ambient local/test bypass is allowed.
+Generate Confect refs and test the registered public entrypoint through
+`TestConfect`, including a durable-write count of zero on denial.
+
 - [ ] **Step 5: Add reference positive and dark journeys**
 
 The read journey proves terminal success and denial. The assembling write
@@ -430,7 +454,10 @@ guard as its explicit frontier.
 
 Run `pnpm check:product-journeys` in deterministic phase one. Add contract-risk
 path detection and require the configured independent contract-owner approval
-for coverage reductions. Keep Buildkite as this repository's adapter.
+for coverage reductions. Keep Buildkite as this repository's adapter. This task
+also installs the real reference catalog and generated release-surface
+inventory, then adds the now-executable command to root `verify`, config drift,
+CI completeness, `phase1.sh`, and secretless CI self-protection.
 
 - [ ] **Step 7: Run focused and broad template verification**
 
