@@ -9,7 +9,10 @@ import type { StoredEvaluation } from "../intake/evaluation-adapter";
 import { PublicFunnelShell } from "../public-shell";
 import { EvaluationReportView } from "./report-view";
 import { ReportOwnershipCard } from "./report-ownership-card";
-import { ReportRevisionCard } from "./report-revision-card";
+import {
+  BrowserReportRevisionCard,
+  ReportRevisionCard,
+} from "./report-revision-card";
 import {
   loadAnonymousReportAccess,
   loadOwnerAccessToken,
@@ -27,6 +30,7 @@ function BrowserEvaluationReportRoute({ id }: { readonly id: string }) {
   const [evaluation, setEvaluation] = useState<StoredEvaluation | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [access] = useState(() => loadAnonymousReportAccess(id));
+  const [ownerAccessToken] = useState(loadOwnerAccessToken);
 
   useEffect(() => {
     setEvaluation(loadEvaluation(id));
@@ -59,8 +63,21 @@ function BrowserEvaluationReportRoute({ id }: { readonly id: string }) {
     <EvaluationReportView
       evaluation={evaluation}
       ownership={
-        access !== null ? (
-          <ReportOwnershipCard accessToken={access.accessToken} reportId={id} />
+        access !== null || ownerAccessToken !== null ? (
+          <>
+            {access === null ? null : (
+              <ReportOwnershipCard
+                accessToken={access.accessToken}
+                reportId={id}
+              />
+            )}
+            {ownerAccessToken === null ? null : (
+              <BrowserReportRevisionCard
+                onRevision={setEvaluation}
+                reportId={id}
+              />
+            )}
+          </>
         ) : undefined
       }
     />

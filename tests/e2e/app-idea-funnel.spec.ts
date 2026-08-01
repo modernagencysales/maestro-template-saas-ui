@@ -267,3 +267,40 @@ test("email save verification claims a local report and opens its library", asyn
   await expect(page.getByRole("link", { name: "Open report" })).toBeVisible();
   expect(consoleErrors).toEqual([]);
 });
+
+test("an owner can revise a local report without losing version one", async ({
+  page,
+}) => {
+  await page.goto("/evaluate");
+  await completeEvaluation(page);
+  await page.getByLabel("Email address").fill("founder@example.test");
+  await page.getByRole("button", { name: "Email my save link" }).click();
+  await page.getByRole("link", { name: "Open test verification link" }).click();
+  await page.getByRole("link", { name: "Open my library" }).click();
+  await page.getByRole("link", { name: "Open report" }).click();
+
+  await page
+    .getByLabel("What should the report reconsider?")
+    .fill(
+      "We interviewed three practice owners who need specialist cancellation matching.",
+    );
+  await page.getByRole("button", { name: "Generate revised report" }).click();
+
+  await expect(page.getByText("Version 2 is ready.")).toBeVisible();
+  await expect(page.getByText("2 versions are saved.")).toBeVisible();
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const id = window.location.pathname.split("/").at(-1) ?? "";
+        return JSON.parse(
+          window.localStorage.getItem(
+            `maestro.idea-evaluation.versions.${id}`,
+          ) ?? "[]",
+        ).length as number;
+      }),
+    )
+    .toBe(2);
+
+  await page.reload();
+  await expect(page.getByText("2 versions are saved.")).toBeVisible();
+});
