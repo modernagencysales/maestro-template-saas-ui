@@ -101,7 +101,19 @@ describe("app-idea funnel durable capabilities", () => {
     const result = await Effect.runPromise(
       program.pipe(Effect.provide(testConfectLayer())),
     );
-    expect(result.replay).toEqual(result.first);
+    expect(result.first).toMatchObject({
+      freshCompletion: true,
+      modelCalls: 1,
+      estimatedCostCents: expect.any(Number),
+      durationMs: expect.any(Number),
+    });
+    expect(result.replay).toEqual({
+      status: result.first.status,
+      evaluationId: result.first.evaluationId,
+      reportId: result.first.reportId,
+      version: result.first.version,
+      freshCompletion: false,
+    });
     expect(result.context.alreadyCompleted).toBe(true);
     expect(result.context.currentDailySpendCents).toBeGreaterThan(0);
     expect(result.stored?.reportJson).toContain(
