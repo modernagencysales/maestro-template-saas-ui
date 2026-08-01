@@ -34,6 +34,20 @@ export const getSharedEvaluationReportReturns = Schema.NullOr(
   }),
 );
 
+export const getEvaluationReportArgs = Schema.Struct({
+  reportId: Schema.String,
+  accessToken: Schema.optional(Schema.String),
+  ownerAccessToken: Schema.optional(Schema.String),
+});
+export const getEvaluationReportReturns = Schema.Struct({
+  reportId: Schema.String,
+  currentVersion: Schema.Number,
+  reportJson: Schema.String,
+  verdict: Schema.String,
+  overallScore: Schema.Number,
+  updatedAt: Schema.Number,
+});
+
 export const requestReportEmailVerificationArgs = Schema.Struct({
   reportId: Schema.String,
   accessToken: Schema.String,
@@ -89,6 +103,13 @@ export const getSharedEvaluationReport = FunctionSpec.publicQuery({
   error: () => Schema.Union(ValidationFailed, NotFound),
 });
 
+export const getEvaluationReport = FunctionSpec.publicQuery({
+  name: "getEvaluationReport",
+  args: () => getEvaluationReportArgs,
+  returns: () => getEvaluationReportReturns,
+  error: () => errors,
+});
+
 export const requestReportEmailVerification = FunctionSpec.publicMutation({
   name: "requestReportEmailVerification",
   args: () => requestReportEmailVerificationArgs,
@@ -113,6 +134,7 @@ export const listOwnedEvaluationReports = FunctionSpec.publicQuery({
 export default GroupSpec.make()
   .addFunction(manageEvaluationReport)
   .addFunction(getSharedEvaluationReport)
+  .addFunction(getEvaluationReport)
   .addFunction(requestReportEmailVerification)
   .addFunction(consumeReportEmailVerification)
   .addFunction(listOwnedEvaluationReports);
