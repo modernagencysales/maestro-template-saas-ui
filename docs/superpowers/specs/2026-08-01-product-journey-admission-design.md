@@ -32,6 +32,28 @@ them as one product.
 8. Deployed proof complements deterministic CI; it does not replace it.
 9. The template supplies reusable mechanics. Product repositories supply
    journey-specific fixtures, drivers, and assertions.
+10. Admission is continuously revalidated, not awarded permanently.
+11. Test and manifest weakening is itself a governed contract change.
+
+## What This Can And Cannot Guarantee
+
+No test framework can guarantee that a product remains correct forever. This
+framework is intended to make the recurring failure expensive to hide and cheap
+to discover by enforcing four properties:
+
+1. **No false completion:** component completion cannot admit a journey.
+2. **No dark seam:** every required producer-to-consumer boundary has a typed
+   receipt contract and executable consumer assertion.
+3. **No permanent green badge:** admission becomes stale when relevant code,
+   contracts, configuration, or deployment identity changes.
+4. **No silent test weakening:** changes to journey contracts, scenarios, gates,
+   fixtures, or expected evidence receive independent contract review.
+
+The remaining unavoidable risks are incomplete product requirements, provider
+behavior that synthetic tests do not represent, and real-world data shapes that
+the declared scenarios omit. Production telemetry, support findings, and new
+incidents must therefore be able to add regression scenarios to the same journey
+contract.
 
 ## Scope
 
@@ -98,6 +120,7 @@ type ProductJourneyManifest = {
   readonly releaseProof: "deterministic-only" | "deployed-proof-required";
   readonly actor: string;
   readonly goal: string;
+  readonly coverageProfile: "read-only" | "stateful" | "high-risk";
   readonly releaseEntrypoints: readonly string[];
   readonly scenarios: readonly JourneyScenarioRequirement[];
   readonly requiredReceiptKinds: readonly string[];
@@ -122,7 +145,29 @@ Each scenario requirement declares:
 - replay and retry expectations;
 - whether deployed proof is required.
 
+Every manifest also declares a versioned journey graph. Graph nodes are user
+interactions or product-owned boundaries; graph edges name the typed receipt
+that transfers authority between them. A work package may implement a node or
+edge, but it may not invent an incompatible private handoff.
+
+The manifest records a `journeyProtocolVersion`. Template upgrades provide
+deterministic compatibility checks and migrations for supported protocol
+versions. A fork cannot silently consume a newer manifest or evidence format.
+
 The manifest contains no credentials, deployment secrets, or customer data.
+
+Coverage profiles impose minimum scenario classes so a manifest cannot declare
+one happy path and call itself complete:
+
+- all journeys: success, empty/not-applicable, authorization denial, and
+  user-visible failure;
+- stateful journeys: mutation failure, retry, exact replay, partial progress,
+  and recovery;
+- high-risk journeys: tenant isolation, unsafe-input refusal, revocation or
+  deletion, historical-version behavior, migration/backfill, and deployed proof.
+
+Applications may add scenario classes but may not remove profile requirements
+without changing the shared protocol through contract review.
 
 ## Template Components
 
@@ -167,12 +212,21 @@ The deterministic gate verifies:
   includes an owner and removal milestone;
 - admitted journeys have complete deterministic scenario coverage;
 - path-to-journey ownership is not ambiguous;
+- manifest affected paths agree with generated capability, workflow, route,
+  schema, and caller/callee inventories;
 - registered workflow and capability references resolve to real modules;
+- every journey-graph edge has exactly one producer contract and at least one
+  consumer assertion;
 - work-package references exist in the checked stack plan;
 - evidence artifacts contain no secret values.
 
 The gate must reject a missing workflow such as a string reference to a module
 that is absent from the generated function surface.
+
+Hand-maintained `affectedPaths` are a readable declaration, not the sole source
+of truth. CI expands them through generated dependency and surface inventories.
+If the generator cannot classify a changed releaseable surface, the change is
+treated as affecting all admitted journeys until ownership is declared.
 
 ### Affected-journey selection
 
@@ -182,13 +236,33 @@ CI maps changed files to manifest `affectedPaths`. Ordinary pull requests run:
 - focused boundary tests declared by their work packages;
 - deterministic suites for affected admitted journeys.
 
-An assembling journey's full suite may remain red or incomplete while its
-release entrypoint is disabled. A legacy-exposed journey may remain reachable
-only through its enumerated existing entrypoints; CI rejects new entrypoints or
-expanded reachability while it is unadmitted. Individual work packages must
-still pass their declared focused gates. The admission pull request runs the
-complete suite and cannot change the manifest to `admitted` while any scenario
-fails.
+An assembling journey does not check in ignored or permanently red required
+tests. Its deterministic skeleton passes by proving the declared frontier and
+the typed not-yet-implemented boundary while its release entrypoint is disabled.
+A legacy-exposed journey may remain reachable only through its enumerated
+existing entrypoints; CI rejects new entrypoints or expanded reachability while
+it is unadmitted. Individual work packages must still pass their declared
+focused gates. The admission pull request runs the complete suite and cannot
+change the manifest to `admitted` while any scenario fails.
+
+### Assembling frontier
+
+An assembling journey has an explicit tested frontier: the last graph boundary
+that the deterministic skeleton can reach from the real public start without
+seeding downstream state. The frontier may initially be the admission guard.
+Each work package that claims to connect another boundary must advance or
+preserve it.
+
+CI records the reached node, expected next node, and typed reason for stopping.
+The frontier may not move backward. This provides integration feedback during
+parallel development instead of deferring all wiring discovery to the final
+admission pull request. An unimplemented boundary is explicit evidence, not a
+passing journey.
+
+Scenario requirements beyond the frontier remain structurally declared in the
+manifest and are reported as `not_reached`, not represented by skipped test
+files. The admission transition changes the expected frontier to the terminal
+node, making every required scenario executable and passing.
 
 ### Journey runner
 
@@ -198,6 +272,12 @@ artifact serialization. The application supplies a typed journey driver.
 The runner must not reach into product repositories or database adapters to
 manufacture downstream success. Journey drivers invoke public application
 entrypoints and inspect read-only receipts or support projections.
+
+The primary deterministic journey runs at the fastest public service boundary,
+normally authenticated capability or API entrypoints. Thin transport-parity
+tests prove that browser, CLI, and MCP invoke those same entrypoints and expose
+the same terminal receipt. The framework does not duplicate the complete state
+machine in every transport or force the core journey into a large browser test.
 
 ### Evidence report
 
@@ -216,6 +296,24 @@ Each run emits a machine-readable and human-readable report containing:
 
 The CI artifact is authoritative for that run. Reports are not hand-edited into
 a passing state.
+
+### Gate integrity
+
+An agent could otherwise make a red journey green by weakening its scenario,
+fixture, manifest, assertion, or gate. The framework therefore treats changes
+under journey contracts, runner code, evidence validators, and required scenario
+fixtures as contract-risk changes.
+
+Those changes require:
+
+- an explicit rationale describing whether behavior or only the test changed;
+- adversarial gate tests that demonstrate the previous and proposed verdicts;
+- independent contract-review approval rather than approval solely from the
+  implementation agent;
+- a prohibition on deleting a required receipt or negative scenario without a
+  versioned journey-contract change;
+- CI comparison against the merge base to report reduced scenario, receipt,
+  role, transport, or isolation coverage.
 
 ## Test Tiers
 
@@ -252,6 +350,30 @@ template permits `deterministic-only` only as an explicit reviewed risk
 classification for journeys whose production behavior has no meaningful
 deployment-specific boundary.
 
+### Tier 4: continuous admitted canary
+
+Admission is a renewable lease over a particular journey-contract hash,
+application commit, generated-contract identity, and deployment identity. It is
+not a timeless label.
+
+For deployed-proof-required journeys, a scheduled synthetic canary runs in a
+dedicated non-production or isolated synthetic tenant and rechecks the critical
+terminal outcome without using customer data. Runtime telemetry also records
+journey boundary transitions and stuck-state age without logging source content.
+
+Lease health is reported separately from the source state as `current`, `stale`,
+or `failing`. The journey becomes `stale` operationally when its admitted
+contract hash no longer matches the deployed artifact, an affected admitted test
+is skipped, or the required canary exceeds its freshness window. Repeated canary
+failure pages the journey owner and triggers the configured suspension or
+fail-closed policy; it does not silently preserve a green launch label.
+
+Runtime reachability uses the effective admission state: checked-in source state
+plus lease health plus any audited operator suspension. An admitted source
+manifest with a stale or failing required lease is not treated as fully admitted
+by the release guard. Each journey declares whether that condition fails closed
+or preserves a narrowly defined degraded read-only behavior.
+
 ## Parallel Development Model
 
 The journey plan is written before fan-out. Each parallel work package declares:
@@ -273,6 +395,53 @@ final admission evidence.
 The integration owner does not replace boundary owners and does not seed around
 missing work. A failing transition is implementation work, not a test-fixture
 problem.
+
+Before fan-out, producer and consumer agents share the generated edge contract
+and focused contract fixture. Parallelism begins after those contracts compile,
+not after each agent has independently guessed its handoff shape.
+
+## Portability And Template Lifecycle
+
+The reusable core remains product- and backend-neutral:
+
+- manifest and evidence schemas;
+- journey graph and state-transition validation;
+- runner lifecycle and redaction;
+- affected-journey selection interfaces;
+- report rendering;
+- contract-diff and protocol compatibility checks.
+
+Template adapters provide Confect/Convex release guards, generated surface
+inventory, Vitest execution, Playwright transport proof, and Buildkite examples.
+Maestro supplies its own Convex/Woodpecker adapter without putting Maestro
+business concepts into the template core.
+
+`pnpm template:journey` emits a version-pinned protocol declaration. Template
+release notes and a migration command describe incompatible protocol changes.
+The reference application contains one admitted miniature journey and one
+assembling journey so a new fork proves both positive admission and dark
+partial-infrastructure behavior on day zero.
+
+The framework must be independently extractable as a workspace package. It may
+live in the template monorepo initially, but application adoption must not
+depend on copying undocumented scripts or absolute repository paths.
+
+## Performance Budget
+
+Journey admission must preserve development throughput:
+
+- static manifest, graph, reference, and affected-journey checks target seconds;
+- ordinary partial PRs run focused seam tests and only affected admitted
+  journeys;
+- deterministic full journeys are sharded by scenario and cache immutable
+  fixture setup where isolation remains valid;
+- core state-machine proof runs below the browser layer, while browser, CLI,
+  API, and MCP tests remain thin parity checks;
+- deployed proof runs on admission, release, and scheduled canary cadence, not
+  every partial PR;
+- CI reports selection reasons so an unexpectedly broad run is diagnosable;
+- unclassifiable release-surface changes fail safe but generate a concrete
+  ownership action rather than a generic full-suite mystery.
 
 ## Brain Pilot
 
@@ -439,8 +608,11 @@ contracts permit. Brain remains assembling until package 10 passes.
    at the first real broken boundary.
 5. Complete the Brain work packages, rerunning the same test after each repair.
 6. Admit Brain only when every deterministic scenario passes.
-7. Deploy the admitted commit to staging and run the exact-SHA synthetic proof.
-8. Preserve the report as release evidence and use the same framework for the
+7. Deploy the admitted commit to staging, verify the deployed artifact and
+   generated-contract hashes match the CI admission receipt, and run the
+   exact-SHA synthetic proof.
+8. Start the continuous admitted canary and freshness reporting.
+9. Preserve the report as release evidence and use the same framework for the
    next Maestro and template-derived journeys.
 
 ## Success Criteria
@@ -456,4 +628,7 @@ The design is successful when:
 - the same framework can be generated and adopted by future template-derived
   applications;
 - exact-SHA staging proof remains a release gate without becoming a per-PR
-  bottleneck.
+  bottleneck;
+- admitted journey leases become stale or failing when code, contracts,
+  deployment, or canary evidence drifts;
+- changing tests or manifests cannot silently reduce required journey coverage.
