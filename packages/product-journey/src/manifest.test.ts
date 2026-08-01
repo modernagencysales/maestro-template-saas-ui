@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { parseProductJourneyManifest } from "./manifest";
+import {
+  parseProductJourneyManifest,
+  validateJourneyCatalog,
+} from "./manifest";
 
 const requiredScenarioClasses = [
   "success",
@@ -150,6 +153,35 @@ describe("parseProductJourneyManifest", () => {
     ).toThrowError(/dependency cycle/);
   });
 
+  it("rejects dependency cycles spanning multiple manifests", () => {
+    const alpha = parseProductJourneyManifest({
+      ...highRiskManifest(),
+      id: "alpha",
+      dependsOnJourneys: [
+        {
+          id: "beta",
+          minimumVersion: 1,
+          terminalReceiptKind: "export.requested.v1",
+        },
+      ],
+    });
+    const beta = parseProductJourneyManifest({
+      ...highRiskManifest(),
+      id: "beta",
+      dependsOnJourneys: [
+        {
+          id: "alpha",
+          minimumVersion: 1,
+          terminalReceiptKind: "export.requested.v1",
+        },
+      ],
+    });
+
+    expect(() => validateJourneyCatalog([alpha, beta])).toThrowError(
+      /dependency cycle: alpha -> beta -> alpha/,
+    );
+  });
+
   it("rejects credentials in fixture metadata", () => {
     const manifest = highRiskManifest();
     manifest.scenarios[0]!.fixtureMetadata = { apiKey: "not-a-secret" };
@@ -157,5 +189,44 @@ describe("parseProductJourneyManifest", () => {
     expect(() => parseProductJourneyManifest(manifest)).toThrowError(
       /credentials/i,
     );
+  });
+
+  it("rejects credentials in unknown manifest fields", () => {
+    expect(() =>
+      parseProductJourneyManifest({
+        ...highRiskManifest(),
+        integration: { apiKey: "not-a-secret" },
+      }),
+    ).toThrowError(/credentials/i);
+  });
+
+  it("rejects credentials nested under the graph", () => {
+    expect(() =>
+      parseProductJourneyManifest({
+        ...highRiskManifest(),
+        graph: {
+          ...highRiskManifest().graph,
+          instrumentation: { accessToken: "not-a-secret" },
+        },
+      }),
+    ).toThrowError(/credentials/i);
+  });
+
+  it("requires graph.start to name an interaction node", () => {
+    expect(() =>
+      parseProductJourneyManifest({
+        ...highRiskManifest(),
+        graph: { ...highRiskManifest().graph, start: "complete" },
+      }),
+    ).toThrowError(/graph start must name an interaction node/);
+  });
+
+  it("requires graph.terminal to name a terminal node", () => {
+    expect(() =>
+      parseProductJourneyManifest({
+        ...highRiskManifest(),
+        graph: { ...highRiskManifest().graph, terminal: "request" },
+      }),
+    ).toThrowError(/graph terminal must name a terminal node/);
   });
 });

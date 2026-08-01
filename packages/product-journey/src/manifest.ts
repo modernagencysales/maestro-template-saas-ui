@@ -312,6 +312,12 @@ const parseGraph = (value: unknown): JourneyGraph => {
   if (!nodeIds.has(start) || !nodeIds.has(terminal)) {
     throw new Error("graph start and terminal must name graph nodes");
   }
+  if (nodes.find((node) => node.id === start)?.kind !== "interaction") {
+    throw new Error("graph start must name an interaction node");
+  }
+  if (nodes.find((node) => node.id === terminal)?.kind !== "terminal") {
+    throw new Error("graph terminal must name a terminal node");
+  }
 
   return { start, terminal, nodes, edges };
 };
@@ -319,6 +325,9 @@ const parseGraph = (value: unknown): JourneyGraph => {
 export const parseProductJourneyManifest = (
   value: unknown,
 ): ProductJourneyManifest => {
+  if (hasCredentialKey(value)) {
+    throw new Error("manifest must not contain credentials");
+  }
   const manifest = asRecord(value, "manifest");
   if (manifest.journeyProtocolVersion !== 1) {
     throw new Error("journeyProtocolVersion must be 1");
@@ -430,4 +439,42 @@ export const parseProductJourneyManifest = (
     owner: asString(manifest.owner, "owner"),
     ...(legacyExposure === undefined ? {} : { legacyExposure }),
   };
+};
+
+export const validateJourneyCatalog = (
+  manifests: readonly ProductJourneyManifest[],
+): void => {
+  const manifestsById = new Map<string, ProductJourneyManifest>();
+  for (const manifest of manifests) {
+    if (manifestsById.has(manifest.id)) {
+      throw new Error(`duplicate journey id: ${manifest.id}`);
+    }
+    manifestsById.set(manifest.id, manifest);
+  }
+
+  const visited = new Set<string>();
+  const visiting: string[] = [];
+  const visit = (journeyId: string): void => {
+    const cycleStart = visiting.indexOf(journeyId);
+    if (cycleStart !== -1) {
+      throw new Error(
+        `dependency cycle: ${[...visiting.slice(cycleStart), journeyId].join(" -> ")}`,
+      );
+    }
+    if (visited.has(journeyId)) return;
+
+    const manifest = manifestsById.get(journeyId);
+    if (manifest === undefined) return;
+
+    visiting.push(journeyId);
+    for (const dependency of manifest.dependsOnJourneys) {
+      visit(dependency.id);
+    }
+    visiting.pop();
+    visited.add(journeyId);
+  };
+
+  for (const manifest of manifests) {
+    visit(manifest.id);
+  }
 };
