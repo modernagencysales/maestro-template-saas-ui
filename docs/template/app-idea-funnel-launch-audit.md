@@ -29,22 +29,26 @@ Audit date: 2026-08-01
   passed.
 - Analytics: evaluator, provider, consent, transition dedupe, and replay
   suppression suites passed; evaluator, Convex, and web typechecks passed.
+- Repository coverage ratchet passed with 1,004 tests: 78.03% lines, 84.50%
+  functions, 80.24% branches, and 78.03% statements.
 - Static/contract gates passed: route tree, frontend Effect boundary,
   environment boundary, provider boundary, logging boundary, Confect contracts,
   workflow graph boundary, schema migration notes, PostHog readiness, web static
   smoke, and secret canaries.
+- `host-test-slot --class full pnpm verify` passed on 2026-08-01, including
+  format, lint, repository typecheck, strict Effect diagnostics, package/tooling
+  tests, production build, coverage/type-coverage ratchets, generated-file
+  drift, generator shape checks, Confect contracts/manifest, dependency
+  boundaries, secret scanning, PostHog readiness, auth bypass, and Qlty.
 
 ## Unresolved launch gates
 
 1. `template:workflow-output-smoke` reached Convex ref generation and stopped
    because `CONVEX_DEPLOYMENT` is not configured in this worktree. Run it in the
    configured Convex environment; do not weaken or fake the connection.
-2. Generator-connected Convex checks remain configured-environment evidence.
-3. Repository-wide format, lint, typecheck, build, and the full
-   `host-test-slot --class full pnpm verify` gate remain intentionally paused
-   pending Brain/#3638 clearance.
-4. Manual Woodpecker proof remains intentionally paused pending the same
-   clearance.
+2. Manual Woodpecker proof has not been run from this worktree. It is remote CI
+   evidence, not a substitute for the configured Convex workflow smoke.
 
-The funnel is not launch-verified until all four gate entries in the checklist
-are checked with current authoritative output.
+The implementation and local repository gates are verified. Production launch
+verification still requires the configured Convex workflow output smoke and the
+normal remote CI proof for the eventual PR.

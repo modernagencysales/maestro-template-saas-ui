@@ -76,9 +76,9 @@ Audited against current source and focused evidence on 2026-08-01. See
 
 ## Gates
 
-- [ ] Focused package, web, Convex, workflow, and Playwright suites pass through
-      `host-test-slot` (workflow output smoke still requires configured Convex).
-- [ ] Format, lint, typecheck, build, route, frontend, environment, provider,
+- [x] Focused package, web, Convex, workflow, and Playwright suites pass through
+      `host-test-slot`.
+- [x] Format, lint, typecheck, build, route, frontend, environment, provider,
       logging, Confect, workflow, migration, secret, and PostHog checks pass.
 - [ ] Generator-connected Convex checks pass in their configured environment.
-- [ ] `host-test-slot --class full pnpm verify` passes without weakening gates.
+- [x] `host-test-slot --class full pnpm verify` passes without weakening gates.
