@@ -33,6 +33,7 @@ export type EvaluationSharesDoc = Document.Document<typeof schemaDefinition, "ev
 export type FeatureFlagPoliciesDoc = Document.Document<typeof schemaDefinition, "featureFlagPolicies">;
 export type InvitationsDoc = Document.Document<typeof schemaDefinition, "invitations">;
 export type MaestroCreditsDoc = Document.Document<typeof schemaDefinition, "maestroCredits">;
+export type ModelReceiptsDoc = Document.Document<typeof schemaDefinition, "modelReceipts">;
 export type NotificationPreferencesDoc = Document.Document<typeof schemaDefinition, "notificationPreferences">;
 export type NotificationRecordsDoc = Document.Document<typeof schemaDefinition, "notificationRecords">;
 export type OrganizationMembersDoc = Document.Document<typeof schemaDefinition, "organizationMembers">;
@@ -92,6 +93,7 @@ export interface Docs {
   featureFlagPolicies: FeatureFlagPoliciesDoc;
   invitations: InvitationsDoc;
   maestroCredits: MaestroCreditsDoc;
+  modelReceipts: ModelReceiptsDoc;
   notificationPreferences: NotificationPreferencesDoc;
   notificationRecords: NotificationRecordsDoc;
   organizationMembers: OrganizationMembersDoc;

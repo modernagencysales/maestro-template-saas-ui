@@ -32,6 +32,7 @@ import evaluationShares from "./tables/evaluationShares";
 import featureFlagPolicies from "./tables/featureFlagPolicies";
 import invitations from "./tables/invitations";
 import maestroCredits from "./tables/maestroCredits";
+import modelReceipts from "./tables/modelReceipts";
 import notificationPreferences from "./tables/notificationPreferences";
 import notificationRecords from "./tables/notificationRecords";
 import organizationMembers from "./tables/organizationMembers";
@@ -91,6 +92,7 @@ const databaseSchema: $DatabaseSchema.DatabaseSchema<
   typeof featureFlagPolicies |
   typeof invitations |
   typeof maestroCredits |
+  typeof modelReceipts |
   typeof notificationPreferences |
   typeof notificationRecords |
   typeof organizationMembers |
@@ -149,6 +151,7 @@ const databaseSchema: $DatabaseSchema.DatabaseSchema<
   featureFlagPolicies,
   invitations,
   maestroCredits,
+  modelReceipts,
   notificationPreferences,
   notificationRecords,
   organizationMembers,

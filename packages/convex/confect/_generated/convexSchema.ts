@@ -32,6 +32,7 @@ import evaluationShares from "./tables/evaluationShares";
 import featureFlagPolicies from "./tables/featureFlagPolicies";
 import invitations from "./tables/invitations";
 import maestroCredits from "./tables/maestroCredits";
+import modelReceipts from "./tables/modelReceipts";
 import notificationPreferences from "./tables/notificationPreferences";
 import notificationRecords from "./tables/notificationRecords";
 import organizationMembers from "./tables/organizationMembers";
@@ -91,6 +92,7 @@ export default $defineSchema({
   featureFlagPolicies: featureFlagPolicies.tableDefinition,
   invitations: invitations.tableDefinition,
   maestroCredits: maestroCredits.tableDefinition,
+  modelReceipts: modelReceipts.tableDefinition,
   notificationPreferences: notificationPreferences.tableDefinition,
   notificationRecords: notificationRecords.tableDefinition,
   organizationMembers: organizationMembers.tableDefinition,

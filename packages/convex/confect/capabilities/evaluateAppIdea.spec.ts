@@ -33,4 +33,83 @@ export const evaluateAppIdea = FunctionSpec.publicMutation({
   error: () => Schema.Union(Unauthorized, ValidationFailed, Forbidden),
 });
 
-export default GroupSpec.make().addFunction(evaluateAppIdea);
+export const evaluateAppIdeaWithModel = FunctionSpec.publicAction({
+  name: "evaluateAppIdeaWithModel",
+  args: () => evaluateAppIdeaArgs,
+  returns: () => evaluateAppIdeaReturns,
+  error: () => Schema.Union(Unauthorized, ValidationFailed, Forbidden),
+});
+
+export const getEvaluationModelContextArgs = Schema.Struct({
+  sessionId: Schema.String,
+  accessToken: Schema.String,
+});
+
+export const getEvaluationModelContextReturns = Schema.Struct({
+  alreadyCompleted: Schema.Boolean,
+  currentDailySpendCents: Schema.Number,
+});
+
+export const getEvaluationModelContext = FunctionSpec.internalQuery({
+  name: "getEvaluationModelContext",
+  args: () => getEvaluationModelContextArgs,
+  returns: () => getEvaluationModelContextReturns,
+  error: () => Schema.Union(Unauthorized, Forbidden),
+});
+
+export const modelReceiptProjectionSchema = Schema.Struct({
+  receiptId: Schema.String,
+  provider: Schema.Literal("openrouter"),
+  mode: Schema.Literal("fake", "test", "live"),
+  model: Schema.String,
+  generatedAt: Schema.String,
+  repair: Schema.Boolean,
+  inputTokens: Schema.Number,
+  outputTokens: Schema.Number,
+  estimatedCents: Schema.Number,
+});
+
+export const persistModelEvaluationArgs = Schema.Struct({
+  sessionId: Schema.String,
+  accessToken: Schema.String,
+  reportId: Schema.String,
+  reportJson: Schema.String,
+  receipts: Schema.Array(modelReceiptProjectionSchema),
+});
+
+export const persistModelEvaluation = FunctionSpec.internalMutation({
+  name: "persistModelEvaluation",
+  args: () => persistModelEvaluationArgs,
+  returns: () => evaluateAppIdeaReturns,
+  error: () => Schema.Union(Unauthorized, ValidationFailed, Forbidden),
+});
+
+export const recordModelReceiptsArgs = Schema.Struct({
+  sessionId: Schema.String,
+  accessToken: Schema.String,
+  reportId: Schema.String,
+  receipts: Schema.Array(modelReceiptProjectionSchema),
+});
+
+export const recordModelReceipts = FunctionSpec.internalMutation({
+  name: "recordModelReceipts",
+  args: () => recordModelReceiptsArgs,
+  returns: () => Schema.Struct({ status: Schema.Literal("recorded") }),
+  error: () => Schema.Union(Unauthorized, ValidationFailed, Forbidden),
+});
+
+export const failModelEvaluation = FunctionSpec.internalMutation({
+  name: "failModelEvaluation",
+  args: () => getEvaluationModelContextArgs,
+  returns: () =>
+    Schema.Struct({ status: Schema.Literal("failed-recoverable") }),
+  error: () => Schema.Union(Unauthorized, Forbidden),
+});
+
+export default GroupSpec.make()
+  .addFunction(evaluateAppIdea)
+  .addFunction(evaluateAppIdeaWithModel)
+  .addFunction(getEvaluationModelContext)
+  .addFunction(persistModelEvaluation)
+  .addFunction(recordModelReceipts)
+  .addFunction(failModelEvaluation);

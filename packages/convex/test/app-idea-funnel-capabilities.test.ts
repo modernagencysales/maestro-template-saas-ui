@@ -19,6 +19,52 @@ const answers = {
 };
 
 describe("app-idea funnel durable capabilities", () => {
+  it("runs the bounded model action once and persists its receipt", async () => {
+    const program = Effect.gen(function* () {
+      const confect = yield* Effect.serviceOptional(
+        TestConfect.TestConfect<typeof databaseSchema>(),
+      );
+      const first = yield* confect.action(
+        refs.public.capabilities.evaluateAppIdea.evaluateAppIdeaWithModel,
+        {
+          sessionId: "model_session",
+          accessToken: "model_token",
+          answers,
+        },
+      );
+      const replay = yield* confect.action(
+        refs.public.capabilities.evaluateAppIdea.evaluateAppIdeaWithModel,
+        {
+          sessionId: "model_session",
+          accessToken: "model_token",
+          answers,
+        },
+      );
+      const context = yield* confect.query(
+        refs.internal.capabilities.evaluateAppIdea.getEvaluationModelContext,
+        { sessionId: "model_session", accessToken: "model_token" },
+      );
+      const stored = yield* confect.query(
+        refs.public.capabilities.manageEvaluationReport.getEvaluationReport,
+        {
+          reportId: first.reportId,
+          accessToken: "model_token",
+        },
+      );
+      return { first, replay, context, stored };
+    });
+    const result = await Effect.runPromise(
+      program.pipe(Effect.provide(testConfectLayer())),
+    );
+    expect(result.replay).toEqual(result.first);
+    expect(result.context.alreadyCompleted).toBe(true);
+    expect(result.context.currentDailySpendCents).toBeGreaterThan(0);
+    expect(result.stored?.reportJson).toContain(
+      "the riskiest assumption still needs customer evidence",
+    );
+    expect(result.stored?.reportJson).not.toContain("OPENROUTER_API_KEY");
+  });
+
   it("persists one report idempotently and rejects a different access token", async () => {
     const program = Effect.gen(function* () {
       const confect = yield* Effect.serviceOptional(

@@ -3,7 +3,7 @@ import { useMemo, useState, type FormEvent } from "react";
 import { templateConfectRefs } from "@maestro-template/convex/refs";
 import * as Either from "effect/Either";
 
-import { useTemplateMutation } from "../../../adapters/confect-state";
+import { useTemplateAction } from "../../../adapters/confect-state";
 import { isConvexConfigured } from "../../../env";
 import { PublicFunnelShell } from "../public-shell";
 import { saveEvaluation } from "../evaluation-storage";
@@ -47,8 +47,9 @@ function ConfiguredAppIdeaIntake({
 }: {
   readonly onReportReady?: (reportId: string) => void;
 }) {
-  const evaluateAppIdea = useTemplateMutation(
-    templateConfectRefs.public.capabilities.evaluateAppIdea.evaluateAppIdea,
+  const evaluateAppIdea = useTemplateAction(
+    templateConfectRefs.public.capabilities.evaluateAppIdea
+      .evaluateAppIdeaWithModel,
   );
   const evaluateRemotely: EvaluateRemotely = async (input) => {
     const result = await evaluateAppIdea(input);

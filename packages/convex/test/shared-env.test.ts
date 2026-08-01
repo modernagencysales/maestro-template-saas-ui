@@ -7,6 +7,7 @@ import { describe, expect, it } from "vitest";
 import {
   EnvConfigError,
   killSwitchOn,
+  loadLlmGatewayEnvConfig,
   loadTemplateRuntimeConfig,
   readOptionalEnv,
   readRequiredEnv,
@@ -86,6 +87,30 @@ describe("shared typed env access", () => {
 });
 
 describe("TemplateRuntimeConfig", () => {
+  it("loads the allowlisted LLM gateway environment through Effect config", async () => {
+    const provider = ConfigProvider.fromMap(
+      new Map([
+        ["OPENROUTER_API_KEY", "test-key"],
+        ["OPENROUTER_BASE_URL", "https://openrouter.example"],
+        ["LLM_FREE_MODEL", "cheap-model"],
+        ["LLM_DAILY_SPEND_LIMIT_CENTS", "25"],
+        ["LLM_DISABLED", "true"],
+      ]),
+    );
+
+    await expect(
+      Effect.runPromise(
+        loadLlmGatewayEnvConfig.pipe(Effect.withConfigProvider(provider)),
+      ),
+    ).resolves.toEqual({
+      OPENROUTER_API_KEY: "test-key",
+      OPENROUTER_BASE_URL: "https://openrouter.example",
+      LLM_FREE_MODEL: "cheap-model",
+      LLM_DAILY_SPEND_LIMIT_CENTS: "25",
+      LLM_DISABLED: "true",
+    });
+  });
+
   it("loads fake localhost defaults when no provider values are set", async () => {
     const previousRuntimeMode = process.env.TEMPLATE_RUNTIME_MODE;
     const previousPublicBaseUrl = process.env.TEMPLATE_PUBLIC_BASE_URL;
