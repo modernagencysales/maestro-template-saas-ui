@@ -23,6 +23,15 @@ const completeEvaluation = async (page: Page) => {
 test("anonymous idea through paid Build Pack and Maestro handoff", async ({
   page,
 }) => {
+  const consoleErrors: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") {
+      const location = message.location();
+      consoleErrors.push(
+        `${page.url()} :: ${message.text()} :: ${location.url}:${String(location.lineNumber ?? 0)}`,
+      );
+    }
+  });
   await page.goto("/");
   await page.getByRole("link", { name: "Roast my app idea" }).first().click();
   await completeEvaluation(page);
@@ -82,6 +91,7 @@ test("anonymous idea through paid Build Pack and Maestro handoff", async ({
     .getByRole("link", { name: "See how Maestro could build this" })
     .click();
   await expect(page.getByText("$29.00 Maestro credit")).toBeVisible();
+  expect(consoleErrors).toEqual([]);
 });
 
 test("saved reports remain available in the library", async ({ page }) => {

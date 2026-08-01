@@ -17,37 +17,55 @@ export function MaestroOffer({
   return (
     <PublicFunnelShell>
       <main className="idea-maestro-offer" id="main-content">
-        <p className="idea-section-label">Your next step</p>
-        <h1>
-          {recommendMaestro
-            ? "Build from a proven SaaS foundation."
-            : "Use your Build Pack anywhere."}
-        </h1>
-        <p>
-          Your Complete Build Pack is portable. Give it to a developer, agency
-          or coding agent and they will know what to build.
-        </p>
-        {blueprintStatus === "planned" ? (
-          <p role="status">
-            The closest Maestro blueprint is planned, not executable today.
+        <section className="idea-maestro-summary">
+          <p className="idea-section-label">Your next step</p>
+          <h1>
+            {recommendMaestro
+              ? "Build from a proven SaaS foundation."
+              : "Use your Build Pack anywhere."}
+          </h1>
+          <p>
+            Your Complete Build Pack is portable. Give it to a developer, agency
+            or coding agent and they will know what to build.
           </p>
-        ) : null}
+          {blueprintStatus === "planned" ? (
+            <p className="idea-maestro-notice" role="status">
+              The closest Maestro blueprint is planned, not executable today.
+            </p>
+          ) : null}
+        </section>
         {recommendMaestro ? (
           <section className="idea-maestro-credit">
-            <h2>Your purchase carries forward</h2>
-            <p>
-              You have {formatUsd(creditCents)} Maestro credit from this Build
-              Pack purchase.
-            </p>
-            <a
-              className="idea-primary-action"
-              href={`/maestro/start/${packId}`}
-            >
-              Start building with Maestro
-            </a>
+            <div>
+              <p className="idea-section-label">Included credit</p>
+              <h2>Your purchase carries forward.</h2>
+              <p>
+                You have {formatUsd(creditCents)} Maestro credit from this Build
+                Pack purchase.
+              </p>
+            </div>
+            <div className="idea-maestro-actions">
+              <a
+                className="idea-primary-action"
+                href={`/maestro/start/${packId}`}
+              >
+                Start building with Maestro
+              </a>
+              <a
+                className="idea-secondary-action"
+                href={`/build-pack/${packId}`}
+              >
+                Return to your Build Pack
+              </a>
+            </div>
           </section>
-        ) : null}
-        <a href={`/build-pack/${packId}`}>Return to your Build Pack</a>
+        ) : (
+          <div className="idea-maestro-actions">
+            <a className="idea-secondary-action" href={`/build-pack/${packId}`}>
+              Return to your Build Pack
+            </a>
+          </div>
+        )}
       </main>
     </PublicFunnelShell>
   );
