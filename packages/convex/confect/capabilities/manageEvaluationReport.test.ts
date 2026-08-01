@@ -10,6 +10,7 @@ import {
   getEvaluationReportArgs,
   listOwnedEvaluationReportsArgs,
   manageEvaluationReportArgs,
+  requestReportEmailVerification,
   requestReportEmailVerificationArgs,
 } from "./manageEvaluationReport.spec";
 
@@ -72,6 +73,10 @@ describe("manageEvaluationReport capability domain", () => {
   });
 
   it("exposes verification and opaque-owner library contracts", () => {
+    expect(requestReportEmailVerification.runtimeAndFunctionType).toEqual({
+      runtime: "Convex",
+      functionType: "action",
+    });
     expect(() =>
       Schema.decodeUnknownSync(requestReportEmailVerificationArgs)({
         reportId: "report_1",

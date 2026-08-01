@@ -1,11 +1,26 @@
 import { FunctionImpl, GroupImpl } from "@confect/server";
-import { decodeBuildabilityReport } from "@maestro-template/app-idea-evaluator";
+import {
+  FREE_MODEL_POLICY,
+  decodeBuildabilityReport,
+  type BuildabilityReport,
+} from "@maestro-template/app-idea-evaluator";
+import { createLlmGateway } from "@maestro-template/integrations";
+import {
+  createFunnelLifecycleEmailService,
+  createMailerSendTransport,
+} from "@maestro-template/notifications";
 import * as Clock from "effect/Clock";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
 import databaseSchema from "../_generated/schema";
-import { DatabaseReader, DatabaseWriter } from "../_generated/services";
+import refs from "../_generated/refs";
+import {
+  DatabaseReader,
+  DatabaseWriter,
+  MutationRunner,
+  QueryRunner,
+} from "../_generated/services";
 import {
   ConfigInvalid,
   Forbidden,
@@ -19,7 +34,12 @@ import {
 } from "../evaluator/ownership";
 import { createPublicEvaluationReportSnapshot } from "../evaluator/sharing";
 import { sha256Hex } from "../shared/sha256";
-import { RuntimeModeConfig } from "../shared/config";
+import {
+  loadMailerSendEnvConfig,
+  loadLlmGatewayEnvConfig,
+  PublicBaseUrlConfig,
+  RuntimeModeConfig,
+} from "../shared/config";
 import {
   normalizeManageEvaluationReportInput,
   validateManageEvaluationReportInput,
@@ -28,6 +48,39 @@ import manageEvaluationReportGroup from "./manageEvaluationReport.spec";
 
 const unsafeAssumeClockProvided = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
   effect as Effect.Effect<A, E, Exclude<R, Clock.Clock>>;
+
+const requireReportOwner = (reportId: string, ownerAccessToken: string) =>
+  Effect.gen(function* () {
+    const normalizedReportId = reportId.trim();
+    const normalizedToken = ownerAccessToken.trim();
+    if (!normalizedReportId || !normalizedToken)
+      return yield* new ValidationFailed({
+        field: "credentials",
+        message: "A report and verified owner token are required.",
+      });
+    const reader = yield* DatabaseReader;
+    const report = yield* reader
+      .table("evaluationReports")
+      .index("by_report", (q) => q.eq("reportId", normalizedReportId))
+      .first()
+      .pipe(Effect.map(Option.getOrNull), Effect.orDie);
+    if (!report)
+      return yield* new NotFound({
+        resource: "evaluationReports",
+        id: normalizedReportId,
+      });
+    const ownership = yield* reader
+      .table("reportOwnerships")
+      .index("by_report", (q) => q.eq("reportId", normalizedReportId))
+      .first()
+      .pipe(Effect.map(Option.getOrNull), Effect.orDie);
+    if (
+      !ownership ||
+      ownership.ownerAccessTokenHash !== sha256Hex(normalizedToken)
+    )
+      return yield* new Unauthorized();
+    return { report, ownership, ownerAccessToken: normalizedToken };
+  });
 
 const manageEvaluationReportImpl = FunctionImpl.make(
   databaseSchema,
@@ -391,10 +444,258 @@ const getEvaluationReportImpl = FunctionImpl.make(
     }),
 );
 
-const requestReportEmailVerificationImpl = FunctionImpl.make(
+const getReportRevisionContextImpl = FunctionImpl.make(
   databaseSchema,
   manageEvaluationReportGroup,
-  "requestReportEmailVerification",
+  "getReportRevisionContext",
+  ({ reportId, ownerAccessToken }) =>
+    Effect.gen(function* () {
+      const { report } = yield* requireReportOwner(reportId, ownerAccessToken);
+      const reader = yield* DatabaseReader;
+      const version = yield* reader
+        .table("evaluationReportVersions")
+        .index("by_report_version", (q) =>
+          q
+            .eq("reportId", report.reportId)
+            .eq("version", report.currentVersion),
+        )
+        .first()
+        .pipe(Effect.map(Option.getOrNull), Effect.orDie);
+      if (!version)
+        return yield* new NotFound({
+          resource: "evaluationReportVersions",
+          id: `${report.reportId}:${String(report.currentVersion)}`,
+        });
+      const receipts = yield* reader
+        .table("modelReceipts")
+        .index("by_report", (q) => q.eq("reportId", report.reportId))
+        .collect()
+        .pipe(Effect.orDie);
+      return {
+        reportId: report.reportId,
+        sessionId: report.sessionId,
+        currentVersion: report.currentVersion,
+        currentReportJson: version.reportJson,
+        currentDailySpendCents: receipts.reduce(
+          (sum, receipt) => sum + receipt.estimatedCents,
+          0,
+        ),
+      };
+    }),
+);
+
+const persistGeneratedReportRevisionImpl = FunctionImpl.make(
+  databaseSchema,
+  manageEvaluationReportGroup,
+  "persistGeneratedReportRevision",
+  ({
+    reportId,
+    ownerAccessToken,
+    expectedCurrentVersion,
+    reportJson,
+    receipt,
+  }) =>
+    Effect.gen(function* () {
+      const { report } = yield* requireReportOwner(reportId, ownerAccessToken);
+      if (report.currentVersion !== expectedCurrentVersion)
+        return yield* new ValidationFailed({
+          field: "expectedCurrentVersion",
+          message:
+            "This report changed while the revision was running. Review the latest version and try again.",
+        });
+      let canonicalReport: BuildabilityReport;
+      try {
+        canonicalReport = decodeBuildabilityReport(JSON.parse(reportJson));
+      } catch {
+        return yield* new ValidationFailed({
+          field: "reportJson",
+          message: "The generated revision is not a valid report.",
+        });
+      }
+      const reader = yield* DatabaseReader;
+      const writer = yield* DatabaseWriter;
+      const now = yield* unsafeAssumeClockProvided(Clock.currentTimeMillis);
+      const nextVersion = expectedCurrentVersion + 1;
+      const canonicalReportJson = JSON.stringify(canonicalReport);
+      yield* writer
+        .table("evaluationReportVersions")
+        .insert({
+          reportId: report.reportId,
+          version: nextVersion,
+          reportJson: canonicalReportJson,
+          createdAt: now,
+        })
+        .pipe(Effect.orDie);
+      yield* writer
+        .table("evaluationReports")
+        .patch(report._id, {
+          currentVersion: nextVersion,
+          verdict: canonicalReport.verdict,
+          overallScore: canonicalReport.overallScore,
+          updatedAt: now,
+        })
+        .pipe(Effect.orDie);
+      const existingReceipt = yield* reader
+        .table("modelReceipts")
+        .index("by_receipt", (q) => q.eq("receiptId", receipt.receiptId))
+        .first()
+        .pipe(Effect.map(Option.getOrNull), Effect.orDie);
+      if (!existingReceipt)
+        yield* writer
+          .table("modelReceipts")
+          .insert({
+            receiptId: receipt.receiptId,
+            sessionId: report.sessionId,
+            reportId: report.reportId,
+            tier: "free",
+            stage: "revision",
+            provider: receipt.provider,
+            mode: receipt.mode,
+            model: receipt.model,
+            repair: false,
+            inputTokens: receipt.inputTokens,
+            outputTokens: receipt.outputTokens,
+            estimatedCents: receipt.estimatedCents,
+            generatedAt: receipt.generatedAt,
+          })
+          .pipe(Effect.orDie);
+      return {
+        status: "revised" as const,
+        reportId: report.reportId,
+        version: nextVersion,
+      };
+    }),
+);
+
+const stripJsonFence = (value: string): string =>
+  value
+    .trim()
+    .replace(/^```(?:json)?\s*/u, "")
+    .replace(/\s*```$/u, "")
+    .trim();
+
+const reviseEvaluationReportWithModelImpl = FunctionImpl.make(
+  databaseSchema,
+  manageEvaluationReportGroup,
+  "reviseEvaluationReportWithModel",
+  ({ reportId, ownerAccessToken, feedback }) =>
+    Effect.gen(function* () {
+      const normalizedFeedback = feedback.trim();
+      if (normalizedFeedback.length < 10 || normalizedFeedback.length > 2_000)
+        return yield* new ValidationFailed({
+          field: "feedback",
+          message:
+            "Describe the change in at least 10 characters and no more than 2,000.",
+        });
+      const query = yield* QueryRunner;
+      const mutation = yield* MutationRunner;
+      const context = yield* query(
+        refs.internal.capabilities.manageEvaluationReport
+          .getReportRevisionContext,
+        { reportId, ownerAccessToken },
+      ).pipe(Effect.orDie);
+      const currentReport = decodeBuildabilityReport(
+        JSON.parse(context.currentReportJson),
+      );
+      const runtimeMode = yield* RuntimeModeConfig.pipe(Effect.orDie);
+      const gatewayEnv = yield* loadLlmGatewayEnvConfig.pipe(Effect.orDie);
+      const gateway = createLlmGateway({
+        mode: runtimeMode,
+        env: gatewayEnv,
+        fakeCompletionText: () =>
+          JSON.stringify({
+            ...currentReport,
+            improvedIdea: `${currentReport.improvedIdea} Revision focus: ${normalizedFeedback}`,
+          }),
+      });
+      const receiptId = `revision.${reportId}.${String(context.currentVersion + 1)}`;
+      const generated = yield* gateway
+        .complete({
+          workspaceSlug: "public-idea-funnel",
+          prompt: [
+            "Revise this app-idea evaluation using the verified owner's feedback.",
+            "Return only a complete JSON BuildabilityReport with exactly the same fields. Do not include Markdown or hidden analysis.",
+            `Current report: ${context.currentReportJson}`,
+            `Owner feedback: ${normalizedFeedback}`,
+          ].join("\n\n"),
+          modelEnv: FREE_MODEL_POLICY.modelEnv,
+          limits: {
+            maxInputTokens: FREE_MODEL_POLICY.maxInputTokens,
+            maxOutputTokens: FREE_MODEL_POLICY.maxOutputTokens,
+          },
+          idempotencyKey: receiptId,
+          currentDailySpendCents: context.currentDailySpendCents,
+        })
+        .pipe(
+          Effect.mapError(
+            () =>
+              new Forbidden({
+                reason:
+                  "The revision could not finish. Your current report is unchanged, so try again.",
+              }),
+          ),
+        );
+      let canonicalReportJson: string;
+      try {
+        canonicalReportJson = JSON.stringify(
+          decodeBuildabilityReport(JSON.parse(stripJsonFence(generated.text))),
+        );
+      } catch {
+        return yield* new Forbidden({
+          reason:
+            "The revision could not be validated. Your current report is unchanged, so try again.",
+        });
+      }
+      return yield* mutation(
+        refs.internal.capabilities.manageEvaluationReport
+          .persistGeneratedReportRevision,
+        {
+          reportId,
+          ownerAccessToken,
+          expectedCurrentVersion: context.currentVersion,
+          reportJson: canonicalReportJson,
+          receipt: {
+            receiptId,
+            provider: generated.provider,
+            mode: generated.mode,
+            model: generated.model,
+            inputTokens: generated.usage.promptTokens,
+            outputTokens: generated.usage.completionTokens,
+            estimatedCents: generated.usage.estimatedCents,
+            generatedAt: Date.parse(generated.receipt.generatedAt),
+          },
+        },
+      ).pipe(Effect.orDie);
+    }),
+);
+
+const listEvaluationReportVersionsImpl = FunctionImpl.make(
+  databaseSchema,
+  manageEvaluationReportGroup,
+  "listEvaluationReportVersions",
+  ({ reportId, ownerAccessToken }) =>
+    Effect.gen(function* () {
+      const { report } = yield* requireReportOwner(reportId, ownerAccessToken);
+      const reader = yield* DatabaseReader;
+      const versions = yield* reader
+        .table("evaluationReportVersions")
+        .index("by_report", (q) => q.eq("reportId", report.reportId))
+        .collect()
+        .pipe(Effect.orDie);
+      return [...versions]
+        .sort((left, right) => left.version - right.version)
+        .map(({ version, reportJson, createdAt }) => ({
+          version,
+          reportJson,
+          createdAt,
+        }));
+    }),
+);
+
+const issueReportEmailVerificationImpl = FunctionImpl.make(
+  databaseSchema,
+  manageEvaluationReportGroup,
+  "issueReportEmailVerification",
   ({ reportId, accessToken, email }) =>
     Effect.gen(function* () {
       const reader = yield* DatabaseReader;
@@ -420,14 +721,6 @@ const requestReportEmailVerificationImpl = FunctionImpl.make(
       )
         return yield* new Unauthorized();
       const now = yield* unsafeAssumeClockProvided(Clock.currentTimeMillis);
-      const runtimeMode = yield* RuntimeModeConfig.pipe(
-        Effect.orElseSucceed(() => "fake" as const),
-      );
-      if (runtimeMode === "live")
-        return yield* new ConfigInvalid({
-          provider: "mailersend",
-          message: "Live report verification email delivery is not configured.",
-        });
       const verificationToken = `verify_${crypto.randomUUID()}`;
       const challengeId = `challenge_${crypto.randomUUID()}`;
       let issued;
@@ -453,9 +746,86 @@ const requestReportEmailVerificationImpl = FunctionImpl.make(
         })
         .pipe(Effect.orDie);
       return {
-        status: "verification-sent" as const,
+        status: "verification-issued" as const,
         challengeId,
-        fakeVerificationUrl: `/verify-report?token=${encodeURIComponent(verificationToken)}`,
+        reportId: report.reportId,
+        email,
+        verificationUrlPath: `/verify-report?token=${encodeURIComponent(verificationToken)}`,
+      };
+    }),
+);
+
+const requestReportEmailVerificationImpl = FunctionImpl.make(
+  databaseSchema,
+  manageEvaluationReportGroup,
+  "requestReportEmailVerification",
+  (input) =>
+    Effect.gen(function* () {
+      const mutation = yield* MutationRunner;
+      const issued = yield* mutation(
+        refs.internal.capabilities.manageEvaluationReport
+          .issueReportEmailVerification,
+        input,
+      ).pipe(
+        Effect.catchTag(
+          "ParseError",
+          () =>
+            new ValidationFailed({
+              field: "email",
+              message: "The verification request was invalid.",
+            }),
+        ),
+      );
+      const runtimeMode = yield* RuntimeModeConfig.pipe(
+        Effect.orElseSucceed(() => "fake" as const),
+      );
+      const publicBaseUrl = yield* PublicBaseUrlConfig.pipe(Effect.orDie);
+      const mailerEnv = yield* loadMailerSendEnvConfig.pipe(Effect.orDie);
+      if (
+        runtimeMode === "live" &&
+        (!mailerEnv.MAILERSEND_API_KEY || !mailerEnv.MAILERSEND_FROM_EMAIL)
+      )
+        return yield* new ConfigInvalid({
+          provider: "mailersend",
+          message:
+            "MailerSend requires MAILERSEND_API_KEY and MAILERSEND_FROM_EMAIL.",
+        });
+
+      const destinationUrl = new URL(
+        issued.verificationUrlPath,
+        publicBaseUrl,
+      ).toString();
+      const service = createFunnelLifecycleEmailService({
+        mode: runtimeMode,
+        from: mailerEnv.MAILERSEND_FROM_EMAIL ?? "reports@example.test",
+        ...(runtimeMode === "live"
+          ? {
+              transport: createMailerSendTransport({
+                apiKey: mailerEnv.MAILERSEND_API_KEY ?? "",
+              }),
+            }
+          : {}),
+      });
+      const delivery = yield* Effect.promise(() =>
+        service.send({
+          kind: "verify-report-email",
+          to: issued.email,
+          reportId: issued.reportId,
+          destinationUrl,
+        }),
+      );
+      if (!delivery.ok)
+        return yield* new ConfigInvalid({
+          provider: "mailersend",
+          message: "The verification email could not be delivered.",
+        });
+
+      return {
+        status: "verification-sent" as const,
+        challengeId: issued.challengeId,
+        ...(runtimeMode === "live"
+          ? {}
+          : { fakeVerificationUrl: issued.verificationUrlPath }),
       };
     }),
 );
@@ -587,7 +957,12 @@ export default GroupImpl.make(databaseSchema, manageEvaluationReportGroup).pipe(
   Layer.provide(getSharedEvaluationReportImpl),
   Layer.provide(getEvaluationReportImpl),
   Layer.provide(requestReportEmailVerificationImpl),
+  Layer.provide(issueReportEmailVerificationImpl),
   Layer.provide(consumeReportEmailVerificationImpl),
   Layer.provide(listOwnedEvaluationReportsImpl),
+  Layer.provide(reviseEvaluationReportWithModelImpl),
+  Layer.provide(getReportRevisionContextImpl),
+  Layer.provide(persistGeneratedReportRevisionImpl),
+  Layer.provide(listEvaluationReportVersionsImpl),
   GroupImpl.finalize,
 );

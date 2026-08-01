@@ -57,6 +57,54 @@ export const exportBuildPackMarkdown = (
     ]),
   ].join("\n\n");
 
+const escapeHtml = (value: unknown): string =>
+  String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+
+const renderHtmlContent = (content: string | readonly unknown[]): string => {
+  if (!Array.isArray(content)) return `<p>${escapeHtml(content)}</p>`;
+  if (content.length === 0)
+    return "<p>None required for the first version.</p>";
+  return `<ul>${content
+    .map(
+      (item) =>
+        `<li>${escapeHtml(typeof item === "string" ? item : JSON.stringify(item))}</li>`,
+    )
+    .join("")}</ul>`;
+};
+
+export const exportBuildPackPrintHtml = (
+  packId: string,
+  pack: CompleteBuildPack,
+): string => `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Complete Build Pack · ${escapeHtml(packId)}</title>
+  <style>
+    :root { color-scheme: light; font-family: ui-sans-serif, system-ui, sans-serif; }
+    body { color: #171717; margin: 0 auto; max-width: 52rem; padding: 3rem 1.5rem; }
+    h1 { font-size: 2rem; } h2 { break-after: avoid; margin-top: 2rem; }
+    li, p { line-height: 1.55; } .pack-id { color: #525252; }
+    @media print { body { max-width: none; padding: 0; } section { break-inside: avoid; } }
+  </style>
+</head>
+<body>
+  <header><h1>Complete Build Pack</h1><p class="pack-id">Pack ID: ${escapeHtml(packId)}</p></header>
+  ${buildPackSectionIds
+    .map(
+      (id) =>
+        `<section id="pack-${id}"><h2>${labels[id]}</h2>${renderHtmlContent(pack[id])}</section>`,
+    )
+    .join("\n  ")}
+</body>
+</html>`;
+
 export const downloadBuildPack = (
   packId: string,
   pack: CompleteBuildPack,
@@ -69,6 +117,22 @@ export const downloadBuildPack = (
   const link = document.createElement("a");
   link.href = url;
   link.download = `${packId}-complete-build-pack.md`;
+  link.click();
+  URL.revokeObjectURL(url);
+};
+
+export const downloadBuildPackPrintHtml = (
+  packId: string,
+  pack: CompleteBuildPack,
+): void => {
+  const url = URL.createObjectURL(
+    new Blob([exportBuildPackPrintHtml(packId, pack)], {
+      type: "text/html;charset=utf-8",
+    }),
+  );
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `${packId}-complete-build-pack.html`;
   link.click();
   URL.revokeObjectURL(url);
 };

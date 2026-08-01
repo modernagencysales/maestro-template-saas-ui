@@ -34,6 +34,17 @@ export const loadLlmGatewayEnvConfig = Config.all({
   LLM_DISABLED: optionalEnvConfig("LLM_DISABLED"),
 });
 
+export const loadMailerSendEnvConfig = Config.all({
+  MAILERSEND_API_KEY: optionalEnvConfig("MAILERSEND_API_KEY"),
+  MAILERSEND_FROM_EMAIL: optionalEnvConfig("MAILERSEND_FROM_EMAIL"),
+});
+
+export const loadDodoCommerceEnvConfig = Config.all({
+  DODO_API_KEY: optionalEnvConfig("DODO_API_KEY"),
+  DODO_WEBHOOK_SECRET: optionalEnvConfig("DODO_WEBHOOK_SECRET"),
+  DODO_BUILD_PACK_PRODUCT_ID: optionalEnvConfig("DODO_BUILD_PACK_PRODUCT_ID"),
+});
+
 export class TemplateRuntimeConfig extends Context.Tag("TemplateRuntimeConfig")<
   TemplateRuntimeConfig,
   TemplateRuntimeConfigShape

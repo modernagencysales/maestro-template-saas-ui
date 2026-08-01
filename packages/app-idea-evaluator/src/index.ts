@@ -4,6 +4,7 @@ export * from "./funnelEvents";
 export * from "./freeAgent";
 export * from "./maestroMapping";
 export * from "./modelPolicy";
+export * from "./premiumPipeline";
 export * from "./report";
 export * from "./rubric";
 export * from "./schemas";

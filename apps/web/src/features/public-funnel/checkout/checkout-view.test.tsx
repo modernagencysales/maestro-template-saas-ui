@@ -30,4 +30,21 @@ describe("Complete Build Pack checkout", () => {
     expect(html).toContain("Confirming your payment");
     expect(html).not.toContain("Build Pack unlocked");
   });
+
+  it("labels the verified checkout email and explains why it is needed", () => {
+    const html = renderToStaticMarkup(
+      <CheckoutView
+        email="founder@example.test"
+        onEmailChange={() => undefined}
+        priceCents={2900}
+        reportId="idea_1"
+        state={{ _tag: "ready" }}
+      />,
+    );
+
+    expect(html).toContain('type="email"');
+    expect(html).toContain('autoComplete="email"');
+    expect(html).toContain("Email used to save this report");
+    expect(html).toContain("This must match the email you verified");
+  });
 });

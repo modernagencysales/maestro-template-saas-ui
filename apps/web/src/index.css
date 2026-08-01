@@ -884,6 +884,60 @@
   color: #446338;
 }
 
+.idea-report-revision {
+  display: grid;
+  margin-top: 24px;
+  padding: clamp(24px, 4vw, 38px);
+  border: 1px solid #dcd4c9;
+  border-radius: 20px;
+  background: #f8f5ef;
+  grid-template-columns: minmax(0, 0.8fr) minmax(320px, 1fr);
+  gap: 36px;
+}
+
+.idea-report-revision h2 {
+  margin: 8px 0 12px;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(28px, 4vw, 40px);
+  font-weight: 500;
+  letter-spacing: -0.035em;
+}
+
+.idea-report-revision form {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+}
+
+.idea-report-revision textarea {
+  width: 100%;
+  min-height: 132px;
+  resize: vertical;
+  padding: 14px;
+  border: 1px solid #cfc7bc;
+  border-radius: 10px;
+  background: #fff;
+  font: inherit;
+  line-height: 1.5;
+}
+
+.idea-report-revision textarea:focus-visible {
+  outline: 3px solid #c8863a;
+  outline-offset: 2px;
+}
+
+.idea-revision-success {
+  align-self: start;
+  padding: 18px;
+  border-radius: 14px;
+  background: #f1f6ee;
+  color: #31482a;
+}
+
+.idea-revision-success p {
+  margin-bottom: 0;
+}
+
 .idea-ownership-success a {
   display: inline-block;
   margin-top: 8px;
@@ -935,7 +989,8 @@
   .idea-intake-layout,
   .idea-report-header,
   .idea-build-pack-offer,
-  .idea-report-ownership {
+  .idea-report-ownership,
+  .idea-report-revision {
     grid-template-columns: 1fr;
   }
 
@@ -1043,7 +1098,7 @@
   color: #8a551e;
 }
 
-.idea-checkout aside {
+.idea-checkout-card {
   padding: 30px;
   border: 1px solid #d9d2c7;
   border-radius: 20px;
@@ -1051,7 +1106,7 @@
   box-shadow: 0 22px 60px rgb(50 39 22 / 9%);
 }
 
-.idea-checkout aside > p:first-child {
+.idea-checkout-card > p:first-child {
   margin: 0;
   color: #716b62;
   font-size: 13px;
@@ -1059,7 +1114,7 @@
   text-transform: uppercase;
 }
 
-.idea-checkout aside > strong {
+.idea-checkout-card > strong {
   display: block;
   margin-top: 12px;
   font-family: Georgia, "Times New Roman", serif;
@@ -1068,20 +1123,20 @@
   letter-spacing: -0.05em;
 }
 
-.idea-checkout aside > p:not(:first-child) {
+.idea-checkout-card > p:not(:first-child) {
   color: #625d55;
   font-size: 14px;
   line-height: 1.6;
 }
 
-.idea-checkout aside .idea-primary-action {
+.idea-checkout-card .idea-primary-action {
   width: 100%;
   margin-top: 18px;
   border: 0;
   cursor: pointer;
 }
 
-.idea-checkout aside > span {
+.idea-checkout-card > span {
   display: flex;
   margin-top: 14px;
   align-items: center;
@@ -1089,6 +1144,41 @@
   gap: 7px;
   color: #7b756c;
   font-size: 12px;
+}
+
+.idea-checkout-email {
+  display: grid;
+  margin-top: 20px;
+  gap: 8px;
+}
+
+.idea-checkout-email label {
+  color: #37332e;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.idea-checkout-email input {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid #cfc6b9;
+  border-radius: 10px;
+  background: #fff;
+  color: #2f2b26;
+  font: inherit;
+}
+
+.idea-checkout-email input:focus-visible {
+  outline: 2px solid #8a551e;
+  outline-offset: 2px;
+}
+
+.idea-checkout-email > p {
+  margin: 0;
+  color: #716b62;
+  font-size: 12px;
+  line-height: 1.45;
 }
 
 .idea-checkout-status,
@@ -1202,6 +1292,13 @@
   padding: 10px 15px;
   cursor: pointer;
   font-weight: 680;
+}
+
+.idea-pack-downloads {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: stretch;
+  gap: 10px;
 }
 
 .idea-complete-pack > section {
@@ -1350,7 +1447,7 @@
     grid-template-columns: 1fr;
   }
 
-  .idea-checkout aside {
+  .idea-checkout-card {
     grid-row: 1;
   }
 
@@ -1389,6 +1486,11 @@
   .idea-complete-pack header button {
     width: 100%;
     justify-content: center;
+  }
+
+  .idea-pack-downloads {
+    width: 100%;
+    flex-direction: column;
   }
 }
 

@@ -15,6 +15,7 @@ import buildPacks from "./tables/buildPacks";
 import checkoutSessions from "./tables/checkoutSessions";
 import citations from "./tables/citations";
 import claims from "./tables/claims";
+import commerceRevocations from "./tables/commerceRevocations";
 import concepts from "./tables/concepts";
 import contextPacks from "./tables/contextPacks";
 import creditLedger from "./tables/creditLedger";
@@ -84,6 +85,7 @@ export default $defineSchema({
   checkoutSessions: checkoutSessions.tableDefinition,
   citations: citations.tableDefinition,
   claims: claims.tableDefinition,
+  commerceRevocations: commerceRevocations.tableDefinition,
   concepts: concepts.tableDefinition,
   contextPacks: contextPacks.tableDefinition,
   creditLedger: creditLedger.tableDefinition,

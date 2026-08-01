@@ -16,6 +16,7 @@ export type BuildPacksDoc = Document.Document<typeof schemaDefinition, "buildPac
 export type CheckoutSessionsDoc = Document.Document<typeof schemaDefinition, "checkoutSessions">;
 export type CitationsDoc = Document.Document<typeof schemaDefinition, "citations">;
 export type ClaimsDoc = Document.Document<typeof schemaDefinition, "claims">;
+export type CommerceRevocationsDoc = Document.Document<typeof schemaDefinition, "commerceRevocations">;
 export type ConceptsDoc = Document.Document<typeof schemaDefinition, "concepts">;
 export type ContextPacksDoc = Document.Document<typeof schemaDefinition, "contextPacks">;
 export type CreditLedgerDoc = Document.Document<typeof schemaDefinition, "creditLedger">;
@@ -85,6 +86,7 @@ export interface Docs {
   checkoutSessions: CheckoutSessionsDoc;
   citations: CitationsDoc;
   claims: ClaimsDoc;
+  commerceRevocations: CommerceRevocationsDoc;
   concepts: ConceptsDoc;
   contextPacks: ContextPacksDoc;
   creditLedger: CreditLedgerDoc;

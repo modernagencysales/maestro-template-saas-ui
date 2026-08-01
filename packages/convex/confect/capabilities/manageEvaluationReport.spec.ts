@@ -60,6 +60,14 @@ export const requestReportEmailVerificationReturns = Schema.Struct({
   fakeVerificationUrl: Schema.optional(Schema.String),
 });
 
+export const issueReportEmailVerificationReturns = Schema.Struct({
+  status: Schema.Literal("verification-issued"),
+  challengeId: Schema.String,
+  reportId: Schema.String,
+  email: Schema.String,
+  verificationUrlPath: Schema.String,
+});
+
 export const consumeReportEmailVerificationArgs = Schema.Struct({
   verificationToken: Schema.String,
 });
@@ -81,6 +89,17 @@ export const listOwnedEvaluationReportsReturns = Schema.Array(
     updatedAt: Schema.Number,
   }),
 );
+
+const revisionReceipt = Schema.Struct({
+  receiptId: Schema.String,
+  provider: Schema.String,
+  mode: Schema.Literal("fake", "test", "live"),
+  model: Schema.String,
+  inputTokens: Schema.Number,
+  outputTokens: Schema.Number,
+  estimatedCents: Schema.Number,
+  generatedAt: Schema.Number,
+});
 
 const errors = Schema.Union(
   Unauthorized,
@@ -111,10 +130,17 @@ export const getEvaluationReport = FunctionSpec.publicQuery({
   error: () => errors,
 });
 
-export const requestReportEmailVerification = FunctionSpec.publicMutation({
+export const requestReportEmailVerification = FunctionSpec.publicAction({
   name: "requestReportEmailVerification",
   args: () => requestReportEmailVerificationArgs,
   returns: () => requestReportEmailVerificationReturns,
+  error: () => errors,
+});
+
+export const issueReportEmailVerification = FunctionSpec.internalMutation({
+  name: "issueReportEmailVerification",
+  args: () => requestReportEmailVerificationArgs,
+  returns: () => issueReportEmailVerificationReturns,
   error: () => errors,
 });
 
@@ -132,10 +158,77 @@ export const listOwnedEvaluationReports = FunctionSpec.publicQuery({
   error: () => Schema.Union(Unauthorized, ValidationFailed),
 });
 
+export const reviseEvaluationReportWithModel = FunctionSpec.publicAction({
+  name: "reviseEvaluationReportWithModel",
+  args: () =>
+    Schema.Struct({
+      reportId: Schema.String,
+      ownerAccessToken: Schema.String,
+      feedback: Schema.String,
+    }),
+  returns: () => manageEvaluationReportReturns,
+  error: () => errors,
+});
+
+export const getReportRevisionContext = FunctionSpec.internalQuery({
+  name: "getReportRevisionContext",
+  args: () =>
+    Schema.Struct({
+      reportId: Schema.String,
+      ownerAccessToken: Schema.String,
+    }),
+  returns: () =>
+    Schema.Struct({
+      reportId: Schema.String,
+      sessionId: Schema.String,
+      currentVersion: Schema.Number,
+      currentReportJson: Schema.String,
+      currentDailySpendCents: Schema.Number,
+    }),
+  error: () => errors,
+});
+
+export const persistGeneratedReportRevision = FunctionSpec.internalMutation({
+  name: "persistGeneratedReportRevision",
+  args: () =>
+    Schema.Struct({
+      reportId: Schema.String,
+      ownerAccessToken: Schema.String,
+      expectedCurrentVersion: Schema.Number,
+      reportJson: Schema.String,
+      receipt: revisionReceipt,
+    }),
+  returns: () => manageEvaluationReportReturns,
+  error: () => errors,
+});
+
+export const listEvaluationReportVersions = FunctionSpec.publicQuery({
+  name: "listEvaluationReportVersions",
+  args: () =>
+    Schema.Struct({
+      reportId: Schema.String,
+      ownerAccessToken: Schema.String,
+    }),
+  returns: () =>
+    Schema.Array(
+      Schema.Struct({
+        version: Schema.Number,
+        reportJson: Schema.String,
+        createdAt: Schema.Number,
+      }),
+    ),
+  error: () => errors,
+});
+
 export default GroupSpec.make()
   .addFunction(manageEvaluationReport)
   .addFunction(getSharedEvaluationReport)
   .addFunction(getEvaluationReport)
   .addFunction(requestReportEmailVerification)
+  .addFunction(issueReportEmailVerification)
   .addFunction(consumeReportEmailVerification)
-  .addFunction(listOwnedEvaluationReports);
+  .addFunction(listOwnedEvaluationReports)
+  .addFunction(reviseEvaluationReportWithModel)
+  .addFunction(getReportRevisionContext)
+  .addFunction(persistGeneratedReportRevision)
+  .addFunction(listEvaluationReportVersions);

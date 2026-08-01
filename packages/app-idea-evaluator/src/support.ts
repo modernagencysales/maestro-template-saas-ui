@@ -28,10 +28,14 @@ export const resumeGenerationIncident = (
   if (incident.status !== "recoverable") {
     throw new Error("This generation incident is not recoverable.");
   }
+  const operatorReason = input.operatorReason.trim();
+  if (!operatorReason) {
+    throw new Error("An operator reason is required to resume generation.");
+  }
   return {
     ...incident,
     status: "resumed",
     requiresRepurchase: false,
-    operatorReason: input.operatorReason.trim(),
+    operatorReason,
   };
 };
