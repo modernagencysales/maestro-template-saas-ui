@@ -378,6 +378,11 @@ export const verifyDodoWebhook = async (input: {
     return new DodoWebhookConfigError({ missing });
   }
 
+  const webhookId = input.webhookId?.trim();
+  if (!webhookId) {
+    return new DodoWebhookEventIdError({ field: "webhook-id" });
+  }
+
   const timestamp = input.signatureTimestamp ?? "";
   const timestampMs = Number(timestamp) * 1_000;
   if (
@@ -392,14 +397,10 @@ export const verifyDodoWebhook = async (input: {
   const provided = input.signature?.split(",")[1] ?? "";
   const expected = await hmacSha256Base64(
     input.webhookSecret ?? "",
-    `${timestamp}.${input.payload}`,
+    `${webhookId}.${timestamp}.${input.payload}`,
   );
   if (!constantTimeStringEqual(provided, expected)) {
     return new DodoWebhookSignatureError({ reason: "invalid-signature" });
-  }
-
-  if (!input.webhookId?.trim()) {
-    return new DodoWebhookEventIdError({ field: "webhook-id" });
   }
 
   let normalized: NormalizedDodoWebhook;
