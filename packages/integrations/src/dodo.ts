@@ -9,6 +9,15 @@ export class DodoWebhookConfigError extends Schema.TaggedError<DodoWebhookConfig
   },
 ) {}
 
+export class DodoCheckoutProviderError extends Schema.TaggedError<DodoCheckoutProviderError>()(
+  "DodoCheckoutProviderError",
+  {
+    operation: Schema.String,
+    status: Schema.optional(Schema.Number),
+    retryable: Schema.Boolean,
+  },
+) {}
+
 export class DodoWebhookReplayError extends Schema.TaggedError<DodoWebhookReplayError>()(
   "DodoWebhookReplayError",
   {
@@ -23,6 +32,16 @@ export class DodoWebhookSignatureError extends Schema.TaggedError<DodoWebhookSig
   },
 ) {}
 
+export class DodoWebhookEventIdError extends Schema.TaggedError<DodoWebhookEventIdError>()(
+  "DodoWebhookEventIdError",
+  { field: Schema.String },
+) {}
+
+export class DodoWebhookPayloadError extends Schema.TaggedError<DodoWebhookPayloadError>()(
+  "DodoWebhookPayloadError",
+  { reason: Schema.String },
+) {}
+
 export type DodoWebhookVerification =
   | {
       readonly ok: true;
@@ -30,6 +49,8 @@ export type DodoWebhookVerification =
       readonly eventId: string;
     }
   | DodoWebhookConfigError
+  | DodoWebhookEventIdError
+  | DodoWebhookPayloadError
   | DodoWebhookReplayError
   | DodoWebhookSignatureError;
 
@@ -60,6 +81,13 @@ export type DodoCheckoutTransport = (
   readonly checkoutUrl: string;
 }>;
 
+const providerStatus = (error: unknown): number | undefined =>
+  typeof error === "object" && error !== null && "status" in error
+    ? typeof error.status === "number"
+      ? error.status
+      : undefined
+    : undefined;
+
 const checkoutPart = (value: string): string =>
   value.replaceAll(/[^A-Za-z0-9_-]/g, "-").slice(0, 80);
 
@@ -72,7 +100,9 @@ export const createDodoCheckout = async (input: {
   readonly returnUrl: string;
   readonly idempotencyKey: string;
   readonly transport?: DodoCheckoutTransport;
-}): Promise<DodoCheckoutResult | DodoWebhookConfigError> => {
+}): Promise<
+  DodoCheckoutResult | DodoWebhookConfigError | DodoCheckoutProviderError
+> => {
   if (input.mode === "live" && !input.apiKey?.trim()) {
     return new DodoWebhookConfigError({ missing: ["DODO_API_KEY"] });
   }
@@ -83,14 +113,24 @@ export const createDodoCheckout = async (input: {
         missing: ["DODO_CHECKOUT_TRANSPORT"],
       });
     }
-    const hosted = await input.transport({
-      apiKey: input.apiKey ?? "",
-      productCart: [{ productId: input.productId, quantity: 1 }],
-      customer: { email: input.customerEmail },
-      metadata: { reportId: input.reportId },
-      returnUrl: input.returnUrl,
-      idempotencyKey: input.idempotencyKey,
-    });
+    let hosted: Awaited<ReturnType<DodoCheckoutTransport>>;
+    try {
+      hosted = await input.transport({
+        apiKey: input.apiKey ?? "",
+        productCart: [{ productId: input.productId, quantity: 1 }],
+        customer: { email: input.customerEmail },
+        metadata: { reportId: input.reportId },
+        returnUrl: input.returnUrl,
+        idempotencyKey: input.idempotencyKey,
+      });
+    } catch (error) {
+      const status = providerStatus(error);
+      return new DodoCheckoutProviderError({
+        operation: "checkout.create",
+        ...(status === undefined ? {} : { status }),
+        retryable: status === undefined || status === 429 || status >= 500,
+      });
+    }
     return {
       provider: "dodo",
       mode: input.mode,
@@ -124,21 +164,18 @@ export type NormalizedDodoWebhook = {
 const parsePayload = (payload: string): Record<string, unknown> =>
   JSON.parse(payload) as Record<string, unknown>;
 
-const eventIdFromPayload = (payload: string): string => {
-  const parsed = parsePayload(payload);
-
-  return typeof parsed.id === "string" ? parsed.id : "fake-dodo-event";
-};
-
 const webhookDedupePart = (value: string): string =>
   value.replaceAll(/[^A-Za-z0-9._~-]/g, "-");
 
 export const normalizeDodoWebhook = (input: {
   readonly payload: string;
   readonly signatureTimestamp: string | undefined;
+  readonly webhookId?: string | undefined;
 }): NormalizedDodoWebhook => {
   const parsed = parsePayload(input.payload);
-  const eventId = typeof parsed.id === "string" ? parsed.id : "fake-dodo-event";
+  const eventId =
+    input.webhookId?.trim() ||
+    (typeof parsed.id === "string" ? parsed.id : "fake-dodo-event");
   const eventType =
     typeof parsed.type === "string"
       ? parsed.type
@@ -169,29 +206,35 @@ export const verifyDodoWebhook = async (input: {
   readonly payload: string;
   readonly signature: string | undefined;
   readonly signatureTimestamp?: string | undefined;
+  readonly webhookId?: string | undefined;
   readonly webhookSecret: string | undefined;
   readonly nowMs: number;
   readonly seenEventIds: readonly string[];
   readonly seenWebhookKeys?: readonly string[];
 }): Promise<DodoWebhookVerification> => {
-  const normalized = normalizeDodoWebhook({
-    payload: input.payload,
-    signatureTimestamp: input.signatureTimestamp,
-  });
-  const eventId = normalized.eventId || eventIdFromPayload(input.payload);
-
-  if (
-    input.seenEventIds.includes(eventId) ||
-    input.seenWebhookKeys?.includes(normalized.dedupeKey)
-  ) {
-    return new DodoWebhookReplayError({ eventId });
-  }
-
   if (input.mode === "fake") {
+    let normalized: NormalizedDodoWebhook;
+    try {
+      normalized = normalizeDodoWebhook({
+        payload: input.payload,
+        signatureTimestamp: input.signatureTimestamp,
+        webhookId: input.webhookId,
+      });
+    } catch {
+      return new DodoWebhookPayloadError({ reason: "invalid-json" });
+    }
+
+    if (
+      input.seenEventIds.includes(normalized.eventId) ||
+      input.seenWebhookKeys?.includes(normalized.dedupeKey)
+    ) {
+      return new DodoWebhookReplayError({ eventId: normalized.eventId });
+    }
+
     return {
       ok: true,
       mode: "fake",
-      eventId,
+      eventId: normalized.eventId,
     };
   }
 
@@ -228,9 +271,31 @@ export const verifyDodoWebhook = async (input: {
     return new DodoWebhookSignatureError({ reason: "invalid-signature" });
   }
 
+  if (!input.webhookId?.trim()) {
+    return new DodoWebhookEventIdError({ field: "webhook-id" });
+  }
+
+  let normalized: NormalizedDodoWebhook;
+  try {
+    normalized = normalizeDodoWebhook({
+      payload: input.payload,
+      signatureTimestamp: input.signatureTimestamp,
+      webhookId: input.webhookId,
+    });
+  } catch {
+    return new DodoWebhookPayloadError({ reason: "invalid-json" });
+  }
+
+  if (
+    input.seenEventIds.includes(normalized.eventId) ||
+    input.seenWebhookKeys?.includes(normalized.dedupeKey)
+  ) {
+    return new DodoWebhookReplayError({ eventId: normalized.eventId });
+  }
+
   return {
     ok: true,
     mode: input.mode,
-    eventId,
+    eventId: normalized.eventId,
   };
 };

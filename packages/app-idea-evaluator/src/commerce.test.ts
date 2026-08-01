@@ -39,7 +39,22 @@ describe("Build Pack commerce", () => {
     expect(second.processedEventIds).toEqual(["evt_paid_1"]);
   });
 
-  it("rejects unverified events and revokes on refunds", () => {
+  it("resolves the matching returned checkout only after its verified payment webhook", () => {
+    const pending = checkoutReturn(createCommerceState(), {
+      checkoutSessionId: "checkout_1",
+      reportId: "idea_1",
+    });
+
+    const paid = applyPaymentEvent(pending, {
+      ...paidEvent,
+      checkoutSessionId: "checkout_1",
+    });
+
+    expect(paid.checkoutReturns[0]?.status).toBe("paid");
+    expect(paid.entitlements[0]?.status).toBe("active");
+  });
+
+  it("rejects unverified events and revokes both access and credit on refunds", () => {
     expect(() =>
       applyPaymentEvent(createCommerceState(), {
         ...paidEvent,
@@ -54,5 +69,6 @@ describe("Build Pack commerce", () => {
       type: "refund.succeeded",
     });
     expect(refunded.entitlements[0]?.status).toBe("revoked");
+    expect(refunded.maestroCredits[0]).toMatchObject({ status: "revoked" });
   });
 });

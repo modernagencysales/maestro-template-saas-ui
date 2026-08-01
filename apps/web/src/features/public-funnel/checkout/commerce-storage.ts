@@ -69,6 +69,7 @@ export const deliverFakeVerifiedPaymentWebhook = (
       eventId: `evt_${session.checkoutSessionId}`,
       type: "payment.succeeded",
       paymentId: `pay_${session.checkoutSessionId}`,
+      checkoutSessionId: session.checkoutSessionId,
       reportId: session.reportId,
       amountCents: session.amountCents,
       currency: "USD",
