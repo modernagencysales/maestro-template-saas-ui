@@ -50,7 +50,6 @@
     "@tiptap/pm": "3.27.1",
     "convex": "1.42.1",
     "convex-test": "0.0.54",
-    "dodopayments": "^2.44.0",
     "effect": "3.21.4"
   },
   "devDependencies": {
