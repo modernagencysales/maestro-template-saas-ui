@@ -5,8 +5,18 @@ import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
 import databaseSchema from "../_generated/schema";
 import { DatabaseReader, DatabaseWriter } from "../_generated/services";
-import { NotFound, Unauthorized, ValidationFailed } from "../errors";
+import {
+  ConfigInvalid,
+  NotFound,
+  Unauthorized,
+  ValidationFailed,
+} from "../errors";
+import {
+  consumeEmailVerificationChallenge,
+  issueEmailVerificationChallenge,
+} from "../evaluator/ownership";
 import { sha256Hex } from "../shared/sha256";
+import { RuntimeModeConfig } from "../shared/config";
 import {
   normalizeManageEvaluationReportInput,
   validateManageEvaluationReportInput,
@@ -206,8 +216,202 @@ const getSharedEvaluationReportImpl = FunctionImpl.make(
     }),
 );
 
+const requestReportEmailVerificationImpl = FunctionImpl.make(
+  databaseSchema,
+  manageEvaluationReportGroup,
+  "requestReportEmailVerification",
+  ({ reportId, accessToken, email }) =>
+    Effect.gen(function* () {
+      const reader = yield* DatabaseReader;
+      const writer = yield* DatabaseWriter;
+      const report = yield* reader
+        .table("evaluationReports")
+        .index("by_report", (q) => q.eq("reportId", reportId.trim()))
+        .first()
+        .pipe(Effect.map(Option.getOrNull), Effect.orDie);
+      if (report === null)
+        return yield* new NotFound({
+          resource: "evaluationReports",
+          id: reportId,
+        });
+      const session = yield* reader
+        .table("evaluationSessions")
+        .index("by_session", (q) => q.eq("sessionId", report.sessionId))
+        .first()
+        .pipe(Effect.map(Option.getOrNull), Effect.orDie);
+      if (
+        session === null ||
+        session.accessTokenHash !== sha256Hex(accessToken.trim())
+      )
+        return yield* new Unauthorized();
+      const now = yield* unsafeAssumeClockProvided(Clock.currentTimeMillis);
+      const runtimeMode = yield* RuntimeModeConfig.pipe(
+        Effect.orElseSucceed(() => "fake" as const),
+      );
+      if (runtimeMode === "live")
+        return yield* new ConfigInvalid({
+          provider: "mailersend",
+          message: "Live report verification email delivery is not configured.",
+        });
+      const verificationToken = `verify_${crypto.randomUUID()}`;
+      const challengeId = `challenge_${crypto.randomUUID()}`;
+      let issued;
+      try {
+        issued = issueEmailVerificationChallenge({
+          reportId: report.reportId,
+          email,
+          verificationToken,
+          now,
+          ttlMs: 30 * 60 * 1_000,
+        });
+      } catch {
+        return yield* new ValidationFailed({
+          field: "email",
+          message: "Enter a valid email address.",
+        });
+      }
+      yield* writer
+        .table("emailVerificationChallenges")
+        .insert({
+          challengeId,
+          ...issued.challenge,
+        })
+        .pipe(Effect.orDie);
+      return {
+        status: "verification-sent" as const,
+        challengeId,
+        fakeVerificationUrl: `/verify-report?token=${encodeURIComponent(verificationToken)}`,
+      };
+    }),
+);
+
+const consumeReportEmailVerificationImpl = FunctionImpl.make(
+  databaseSchema,
+  manageEvaluationReportGroup,
+  "consumeReportEmailVerification",
+  ({ verificationToken }) =>
+    Effect.gen(function* () {
+      const reader = yield* DatabaseReader;
+      const writer = yield* DatabaseWriter;
+      const challenge = yield* reader
+        .table("emailVerificationChallenges")
+        .index("by_token_hash", (q) =>
+          q.eq("verificationTokenHash", sha256Hex(verificationToken.trim())),
+        )
+        .first()
+        .pipe(Effect.map(Option.getOrNull), Effect.orDie);
+      if (challenge === null)
+        return yield* new NotFound({
+          resource: "emailVerificationChallenges",
+          id: "verification-token",
+        });
+      const now = yield* unsafeAssumeClockProvided(Clock.currentTimeMillis);
+      const ownerAccessToken = `owner_${crypto.randomUUID()}`;
+      let consumed;
+      try {
+        consumed = consumeEmailVerificationChallenge({
+          challenge: {
+            reportId: challenge.reportId,
+            emailHash: challenge.emailHash,
+            verificationTokenHash: challenge.verificationTokenHash,
+            status: challenge.status,
+            createdAt: challenge.createdAt,
+            expiresAt: challenge.expiresAt,
+            ...(challenge.consumedAt === undefined
+              ? {}
+              : { consumedAt: challenge.consumedAt }),
+          },
+          verificationToken: verificationToken.trim(),
+          ownerAccessToken,
+          now,
+        });
+      } catch {
+        return yield* new ValidationFailed({
+          field: "verificationToken",
+          message:
+            "This verification link is invalid, expired, or already used.",
+        });
+      }
+      yield* writer
+        .table("emailVerificationChallenges")
+        .patch(challenge._id, {
+          status: "consumed",
+          consumedAt: now,
+        })
+        .pipe(Effect.orDie);
+      const existing = yield* reader
+        .table("reportOwnerships")
+        .index("by_report", (q) => q.eq("reportId", challenge.reportId))
+        .first()
+        .pipe(Effect.map(Option.getOrNull), Effect.orDie);
+      if (existing !== null && existing.emailHash !== consumed.claim.emailHash)
+        return yield* new Unauthorized();
+      if (existing === null)
+        yield* writer
+          .table("reportOwnerships")
+          .insert(consumed.claim)
+          .pipe(Effect.orDie);
+      else
+        yield* writer
+          .table("reportOwnerships")
+          .patch(existing._id, {
+            ownerAccessTokenHash: consumed.claim.ownerAccessTokenHash,
+            claimedAt: now,
+          })
+          .pipe(Effect.orDie);
+      return {
+        status: "claimed" as const,
+        reportId: challenge.reportId,
+        ownerAccessToken,
+      };
+    }),
+);
+
+const listOwnedEvaluationReportsImpl = FunctionImpl.make(
+  databaseSchema,
+  manageEvaluationReportGroup,
+  "listOwnedEvaluationReports",
+  ({ ownerAccessToken }) =>
+    Effect.gen(function* () {
+      const token = ownerAccessToken.trim();
+      if (!token)
+        return yield* new ValidationFailed({
+          field: "ownerAccessToken",
+          message: "ownerAccessToken must not be blank.",
+        });
+      const reader = yield* DatabaseReader;
+      const ownerships = yield* reader
+        .table("reportOwnerships")
+        .index("by_owner_token", (q) =>
+          q.eq("ownerAccessTokenHash", sha256Hex(token)),
+        )
+        .collect()
+        .pipe(Effect.orDie);
+      const reports = [];
+      for (const ownership of ownerships) {
+        const report = yield* reader
+          .table("evaluationReports")
+          .index("by_report", (q) => q.eq("reportId", ownership.reportId))
+          .first()
+          .pipe(Effect.map(Option.getOrNull), Effect.orDie);
+        if (report !== null)
+          reports.push({
+            reportId: report.reportId,
+            currentVersion: report.currentVersion,
+            verdict: report.verdict,
+            overallScore: report.overallScore,
+            updatedAt: report.updatedAt,
+          });
+      }
+      return reports.sort((left, right) => right.updatedAt - left.updatedAt);
+    }),
+);
+
 export default GroupImpl.make(databaseSchema, manageEvaluationReportGroup).pipe(
   Layer.provide(manageEvaluationReportImpl),
   Layer.provide(getSharedEvaluationReportImpl),
+  Layer.provide(requestReportEmailVerificationImpl),
+  Layer.provide(consumeReportEmailVerificationImpl),
+  Layer.provide(listOwnedEvaluationReportsImpl),
   GroupImpl.finalize,
 );

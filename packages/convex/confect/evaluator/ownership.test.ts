@@ -13,7 +13,6 @@ describe("evaluation report ownership", () => {
       reportId: "report_1",
       email: " Founder@Example.test ",
       verificationToken: "verify_secret",
-      ownerAccessToken: "owner_secret",
       now: 1_000,
       ttlMs: 60_000,
     });
@@ -31,7 +30,6 @@ describe("evaluation report ownership", () => {
       reportId: "report_1",
       email: "founder@example.test",
       verificationToken: "verify_secret",
-      ownerAccessToken: "owner_secret",
       now: 1_000,
       ttlMs: 60_000,
     });
@@ -39,13 +37,16 @@ describe("evaluation report ownership", () => {
     const consumed = consumeEmailVerificationChallenge({
       challenge: issued.challenge,
       verificationToken: "verify_secret",
+      ownerAccessToken: "owner_secret",
       now: 2_000,
     });
     expect(consumed.claim.reportId).toBe("report_1");
+    expect(JSON.stringify(consumed.claim)).not.toContain("owner_secret");
     expect(() =>
       consumeEmailVerificationChallenge({
         challenge: consumed.challenge,
         verificationToken: "verify_secret",
+        ownerAccessToken: "unused_owner_secret",
         now: 3_000,
       }),
     ).toThrow(ChallengeConsumed);
@@ -56,7 +57,6 @@ describe("evaluation report ownership", () => {
       reportId: "report_1",
       email: "founder@example.test",
       verificationToken: "verify_secret",
-      ownerAccessToken: "owner_secret",
       now: 1_000,
       ttlMs: 100,
     });
@@ -65,6 +65,7 @@ describe("evaluation report ownership", () => {
       consumeEmailVerificationChallenge({
         challenge: issued.challenge,
         verificationToken: "verify_secret",
+        ownerAccessToken: "owner_secret",
         now: 1_101,
       }),
     ).toThrow(ChallengeExpired);

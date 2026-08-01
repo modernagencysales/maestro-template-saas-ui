@@ -16,7 +16,6 @@ export type EmailVerificationChallenge = {
   readonly reportId: string;
   readonly emailHash: string;
   readonly verificationTokenHash: string;
-  readonly ownerAccessTokenHash: string;
   readonly status: "pending" | "consumed";
   readonly createdAt: number;
   readonly expiresAt: number;
@@ -36,7 +35,6 @@ export const issueEmailVerificationChallenge = (input: {
   readonly reportId: string;
   readonly email: string;
   readonly verificationToken: string;
-  readonly ownerAccessToken: string;
   readonly now: number;
   readonly ttlMs: number;
 }): {
@@ -55,7 +53,6 @@ export const issueEmailVerificationChallenge = (input: {
       reportId: input.reportId,
       emailHash: sha256Hex(email),
       verificationTokenHash: sha256Hex(input.verificationToken),
-      ownerAccessTokenHash: sha256Hex(input.ownerAccessToken),
       status: "pending",
       createdAt: input.now,
       expiresAt: input.now + input.ttlMs,
@@ -67,6 +64,7 @@ export const issueEmailVerificationChallenge = (input: {
 export const consumeEmailVerificationChallenge = (input: {
   readonly challenge: EmailVerificationChallenge;
   readonly verificationToken: string;
+  readonly ownerAccessToken: string;
   readonly now: number;
 }): {
   readonly challenge: EmailVerificationChallenge;
@@ -86,7 +84,7 @@ export const consumeEmailVerificationChallenge = (input: {
     },
     claim: {
       reportId: input.challenge.reportId,
-      ownerAccessTokenHash: input.challenge.ownerAccessTokenHash,
+      ownerAccessTokenHash: sha256Hex(input.ownerAccessToken),
       emailHash: input.challenge.emailHash,
       claimedAt: input.now,
     },

@@ -5,7 +5,12 @@ import {
   normalizeManageEvaluationReportInput,
   validateManageEvaluationReportInput,
 } from "./manageEvaluationReport.domain";
-import { manageEvaluationReportArgs } from "./manageEvaluationReport.spec";
+import {
+  consumeReportEmailVerificationArgs,
+  listOwnedEvaluationReportsArgs,
+  manageEvaluationReportArgs,
+  requestReportEmailVerificationArgs,
+} from "./manageEvaluationReport.spec";
 
 describe("manageEvaluationReport capability domain", () => {
   it("exposes explicit report lifecycle actions", () => {
@@ -47,5 +52,25 @@ describe("manageEvaluationReport capability domain", () => {
         action: "revoke-share",
       }),
     ).toEqual([]);
+  });
+
+  it("exposes verification and opaque-owner library contracts", () => {
+    expect(() =>
+      Schema.decodeUnknownSync(requestReportEmailVerificationArgs)({
+        reportId: "report_1",
+        accessToken: "anonymous_secret",
+        email: "founder@example.test",
+      }),
+    ).not.toThrow();
+    expect(() =>
+      Schema.decodeUnknownSync(consumeReportEmailVerificationArgs)({
+        verificationToken: "verification_secret",
+      }),
+    ).not.toThrow();
+    expect(() =>
+      Schema.decodeUnknownSync(listOwnedEvaluationReportsArgs)({
+        ownerAccessToken: "owner_secret",
+      }),
+    ).not.toThrow();
   });
 });
