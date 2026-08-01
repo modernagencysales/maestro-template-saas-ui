@@ -1,3 +1,4 @@
+import { type FormEvent } from "react";
 import { ArrowRight, Check, Clock3, LockKeyhole } from "lucide-react";
 
 import { PublicFunnelShell } from "../public-shell";
@@ -12,14 +13,22 @@ export function CheckoutView({
   reportId,
   priceCents,
   state,
+  email,
+  onEmailChange,
   onCheckout,
 }: {
   readonly reportId: string;
   readonly priceCents: number;
   readonly state: CheckoutViewState;
+  readonly email?: string;
+  readonly onEmailChange?: (email: string) => void;
   readonly onCheckout?: () => void;
 }) {
   const price = `$${(priceCents / 100).toFixed(2)}`;
+  const submitCheckout = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    onCheckout?.();
+  };
   if (state._tag === "payment-pending") {
     return (
       <PublicFunnelShell>
@@ -64,13 +73,34 @@ export function CheckoutView({
             ))}
           </ul>
         </section>
-        <aside>
+        <form className="idea-checkout-card" onSubmit={submitCheckout}>
           <p>One-time purchase</p>
           <strong>{price}</strong>
           <p>
             Includes a <b>{price} Maestro credit</b> if you choose to build with
             the template later.
           </p>
+          {onEmailChange ? (
+            <div className="idea-checkout-email">
+              <label htmlFor="checkout-email">
+                Email used to save this report
+              </label>
+              <input
+                aria-describedby="checkout-email-hint"
+                autoComplete="email"
+                id="checkout-email"
+                name="email"
+                onChange={(event) => onEmailChange(event.currentTarget.value)}
+                placeholder="you@example.com"
+                required
+                type="email"
+                value={email ?? ""}
+              />
+              <p id="checkout-email-hint">
+                This must match the email you verified.
+              </p>
+            </div>
+          ) : null}
           {state._tag === "error" ? (
             <p className="idea-field-error" role="alert">
               {state.message}
@@ -79,8 +109,7 @@ export function CheckoutView({
           <button
             className="idea-primary-action"
             disabled={state._tag === "redirecting"}
-            onClick={onCheckout}
-            type="button"
+            type="submit"
           >
             {state._tag === "redirecting"
               ? "Opening secure checkout…"
@@ -91,7 +120,7 @@ export function CheckoutView({
             <LockKeyhole aria-hidden="true" size={14} />
             Secure payment by Dodo Payments
           </span>
-        </aside>
+        </form>
       </main>
     </PublicFunnelShell>
   );

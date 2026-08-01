@@ -32,4 +32,16 @@ describe("paid generation support", () => {
       resumeGenerationIncident(incident, { operatorReason: "retry" }),
     ).toThrow(/not recoverable/i);
   });
+
+  it("requires an operator reason before resuming paid work", () => {
+    const incident = createGenerationIncident({
+      incidentId: "support_2",
+      packId: "pack_2",
+      purchaseId: "purchase_2",
+      failedStage: "specify",
+    });
+    expect(() =>
+      resumeGenerationIncident(incident, { operatorReason: "   " }),
+    ).toThrow(/operator reason/i);
+  });
 });

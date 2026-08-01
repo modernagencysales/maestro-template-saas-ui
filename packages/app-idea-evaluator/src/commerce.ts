@@ -3,6 +3,7 @@ export type CommerceState = {
   readonly entitlements: readonly BuildPackEntitlement[];
   readonly maestroCredits: readonly MaestroCredit[];
   readonly processedEventIds: readonly string[];
+  readonly revokedPaymentIds: readonly string[];
 };
 
 export type CheckoutReturn = {
@@ -45,21 +46,30 @@ export const createCommerceState = (): CommerceState => ({
   entitlements: [],
   maestroCredits: [],
   processedEventIds: [],
+  revokedPaymentIds: [],
 });
 
 export const checkoutReturn = (
   state: CommerceState,
   returned: Omit<CheckoutReturn, "status">,
-): CommerceState => ({
-  ...state,
-  checkoutReturns: [
-    ...state.checkoutReturns.filter(
-      ({ checkoutSessionId }) =>
-        checkoutSessionId !== returned.checkoutSessionId,
-    ),
-    { ...returned, status: "payment-pending" },
-  ],
-});
+): CommerceState => {
+  const alreadyPaid = state.entitlements.some(
+    ({ reportId }) => reportId === returned.reportId,
+  );
+  return {
+    ...state,
+    checkoutReturns: [
+      ...state.checkoutReturns.filter(
+        ({ checkoutSessionId }) =>
+          checkoutSessionId !== returned.checkoutSessionId,
+      ),
+      {
+        ...returned,
+        status: alreadyPaid ? "paid" : "payment-pending",
+      },
+    ],
+  };
+};
 
 export const applyPaymentEvent = (
   state: CommerceState,
@@ -75,9 +85,14 @@ export const applyPaymentEvent = (
     return { ...state, processedEventIds };
   }
   if (event.type === "refund.succeeded" || event.type === "dispute.opened") {
+    const priorRevocations = state.revokedPaymentIds ?? [];
+    const revokedPaymentIds = priorRevocations.includes(event.paymentId)
+      ? priorRevocations
+      : [...priorRevocations, event.paymentId];
     return {
       ...state,
       processedEventIds,
+      revokedPaymentIds,
       entitlements: state.entitlements.map((entitlement) =>
         entitlement.paymentId === event.paymentId
           ? { ...entitlement, status: "revoked" as const }
@@ -97,6 +112,7 @@ export const applyPaymentEvent = (
   const creditExists = state.maestroCredits.some(
     ({ reportId }) => reportId === event.reportId,
   );
+  const revoked = (state.revokedPaymentIds ?? []).includes(event.paymentId);
   return {
     ...state,
     processedEventIds,
@@ -112,7 +128,7 @@ export const applyPaymentEvent = (
           {
             reportId: event.reportId,
             paymentId: event.paymentId,
-            status: "active",
+            status: revoked ? "revoked" : "active",
           },
         ],
     maestroCredits: creditExists
@@ -124,7 +140,7 @@ export const applyPaymentEvent = (
             paymentId: event.paymentId,
             amountCents: event.amountCents,
             currency: event.currency,
-            status: "available",
+            status: revoked ? "revoked" : "available",
           },
         ],
   };

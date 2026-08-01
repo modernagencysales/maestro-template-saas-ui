@@ -1,4 +1,4 @@
-import { createHmac, timingSafeEqual } from "node:crypto";
+import DodoPayments from "dodopayments";
 import * as Schema from "effect/Schema";
 import type { ProviderMode } from "./index";
 
@@ -80,6 +80,88 @@ export type DodoCheckoutTransport = (
   readonly checkoutSessionId: string;
   readonly checkoutUrl: string;
 }>;
+
+export type DodoSdkEnvironment = "live_mode" | "test_mode";
+
+type DodoSdkCheckoutInput = {
+  readonly product_cart: readonly {
+    readonly product_id: string;
+    readonly quantity: number;
+  }[];
+  readonly customer: { readonly email: string };
+  readonly metadata: Readonly<Record<string, string>>;
+  readonly return_url: string;
+};
+
+type DodoSdkCheckoutClient = {
+  readonly checkoutSessions: {
+    readonly create: (
+      input: DodoSdkCheckoutInput,
+      options?: { readonly idempotencyKey?: string },
+    ) => Promise<{
+      readonly session_id: string;
+      readonly checkout_url?: string | null;
+    }>;
+  };
+};
+
+type DodoSdkClientFactory = (options: {
+  readonly bearerToken: string;
+  readonly environment: DodoSdkEnvironment;
+}) => DodoSdkCheckoutClient;
+
+const defaultDodoSdkClientFactory: DodoSdkClientFactory = (options) => {
+  const client = new DodoPayments(options);
+  return {
+    checkoutSessions: {
+      create: async (input, requestOptions) =>
+        await client.checkoutSessions.create(
+          {
+            product_cart: input.product_cart.map((item) => ({ ...item })),
+            customer: input.customer,
+            metadata: { ...input.metadata },
+            return_url: input.return_url,
+          },
+          requestOptions,
+        ),
+    },
+  };
+};
+
+export const createDodoSdkCheckoutTransport = (options: {
+  readonly environment: DodoSdkEnvironment;
+  readonly clientFactory?: DodoSdkClientFactory;
+}): DodoCheckoutTransport => {
+  const clientFactory = options.clientFactory ?? defaultDodoSdkClientFactory;
+
+  return async (request) => {
+    const client = clientFactory({
+      bearerToken: request.apiKey,
+      environment: options.environment,
+    });
+    const session = await client.checkoutSessions.create(
+      {
+        product_cart: request.productCart.map((item) => ({
+          product_id: item.productId,
+          quantity: item.quantity,
+        })),
+        customer: request.customer,
+        metadata: request.metadata,
+        return_url: request.returnUrl,
+      },
+      { idempotencyKey: request.idempotencyKey },
+    );
+    if (!session.checkout_url) {
+      throw Object.assign(new Error("Dodo did not return a checkout URL."), {
+        status: 502,
+      });
+    }
+    return {
+      checkoutSessionId: session.session_id,
+      checkoutUrl: session.checkout_url,
+    };
+  };
+};
 
 const providerStatus = (error: unknown): number | undefined =>
   typeof error === "object" && error !== null && "status" in error
@@ -166,6 +248,55 @@ const parsePayload = (payload: string): Record<string, unknown> =>
 
 const webhookDedupePart = (value: string): string =>
   value.replaceAll(/[^A-Za-z0-9._~-]/g, "-");
+
+const base64Alphabet =
+  "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+const bytesToBase64 = (bytes: Uint8Array): string => {
+  let encoded = "";
+  for (let index = 0; index < bytes.length; index += 3) {
+    const first = bytes[index] ?? 0;
+    const second = bytes[index + 1];
+    const third = bytes[index + 2];
+    const combined = (first << 16) | ((second ?? 0) << 8) | (third ?? 0);
+    encoded += base64Alphabet[(combined >> 18) & 63] ?? "";
+    encoded += base64Alphabet[(combined >> 12) & 63] ?? "";
+    encoded +=
+      second === undefined ? "=" : (base64Alphabet[(combined >> 6) & 63] ?? "");
+    encoded +=
+      third === undefined ? "=" : (base64Alphabet[combined & 63] ?? "");
+  }
+  return encoded;
+};
+
+const hmacSha256Base64 = async (
+  secret: string,
+  value: string,
+): Promise<string> => {
+  const encoder = new TextEncoder();
+  const key = await globalThis.crypto.subtle.importKey(
+    "raw",
+    encoder.encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const signature = await globalThis.crypto.subtle.sign(
+    "HMAC",
+    key,
+    encoder.encode(value),
+  );
+  return bytesToBase64(new Uint8Array(signature));
+};
+
+const constantTimeStringEqual = (left: string, right: string): boolean => {
+  if (left.length !== right.length) return false;
+  let difference = 0;
+  for (let index = 0; index < left.length; index += 1) {
+    difference |= left.charCodeAt(index) ^ right.charCodeAt(index);
+  }
+  return difference === 0;
+};
 
 export const normalizeDodoWebhook = (input: {
   readonly payload: string;
@@ -259,15 +390,11 @@ export const verifyDodoWebhook = async (input: {
   }
 
   const provided = input.signature?.split(",")[1] ?? "";
-  const expected = createHmac("sha256", input.webhookSecret ?? "")
-    .update(`${timestamp}.${input.payload}`)
-    .digest("base64");
-  const providedBytes = Buffer.from(provided);
-  const expectedBytes = Buffer.from(expected);
-  if (
-    providedBytes.length !== expectedBytes.length ||
-    !timingSafeEqual(providedBytes, expectedBytes)
-  ) {
+  const expected = await hmacSha256Base64(
+    input.webhookSecret ?? "",
+    `${timestamp}.${input.payload}`,
+  );
+  if (!constantTimeStringEqual(provided, expected)) {
     return new DodoWebhookSignatureError({ reason: "invalid-signature" });
   }
 

@@ -1,5 +1,14 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { templateConfectRefs } from "@maestro-template/convex/refs";
+import type { BuildPackStage } from "@maestro-template/app-idea-evaluator";
+import * as Either from "effect/Either";
 
+import {
+  useTemplateMutation,
+  useTemplateQuery,
+} from "../../../adapters/confect-state";
+import { isConvexConfigured } from "../../../env";
+import { loadOwnerAccessToken } from "../report/report-credentials";
 import { loadEvaluation } from "../evaluation-storage";
 import { entitlementStatusFor } from "../checkout/commerce-storage";
 import {
@@ -11,6 +20,148 @@ import {
 import { BuildPackRouteView } from "./build-pack-route";
 
 export function BuildPackGeneratingRoute({
+  reportId,
+}: {
+  readonly reportId: string;
+}) {
+  return isConvexConfigured() ? (
+    <ConfiguredBuildPackGeneratingRoute reportId={reportId} />
+  ) : (
+    <LocalBuildPackGeneratingRoute reportId={reportId} />
+  );
+}
+
+export function presentServerPackStatus(input: {
+  readonly packId: string;
+  readonly status:
+    | "running"
+    | "failed-recoverable"
+    | "needs-support"
+    | "completed"
+    | "revoked";
+  readonly stages: readonly {
+    readonly name: BuildPackStage["name"];
+    readonly status: BuildPackStage["status"];
+    readonly attempts: number;
+    readonly output?: string | undefined;
+    readonly error?: string | undefined;
+  }[];
+}): import("./build-pack-route").BuildPackRouteState {
+  if (input.status === "revoked") return { _tag: "revoked" };
+  if (
+    input.status === "failed-recoverable" ||
+    input.status === "needs-support"
+  ) {
+    return {
+      _tag: "failed",
+      canRetry: input.status === "failed-recoverable",
+      supportId: `support_${input.packId}`,
+    };
+  }
+  return {
+    _tag: "generating",
+    stages: input.stages.map((stage) => ({
+      name: stage.name,
+      status: stage.status,
+      attempts: stage.attempts,
+      ...(stage.output === undefined ? {} : { output: stage.output }),
+      ...(stage.error === undefined ? {} : { error: stage.error }),
+    })),
+  };
+}
+
+function ConfiguredBuildPackGeneratingRoute({
+  reportId,
+}: {
+  readonly reportId: string;
+}) {
+  const startPack = useTemplateMutation(
+    templateConfectRefs.public.buildPacks.packs.startPack,
+  );
+  const retryPack = useTemplateMutation(
+    templateConfectRefs.public.buildPacks.packs.retryFailedStage,
+  );
+  const [ownerAccessToken] = useState(loadOwnerAccessToken);
+  const [packId, setPackId] = useState<string | null>(null);
+  const [fallbackState, setFallbackState] = useState<
+    import("./build-pack-route").BuildPackRouteState
+  >({ _tag: "generating", stages: [] });
+  const started = useRef(false);
+  const status = useTemplateQuery(
+    templateConfectRefs.public.buildPacks.packs.status,
+    packId && ownerAccessToken ? { packId, ownerAccessToken } : "skip",
+  );
+
+  useEffect(() => {
+    if (started.current) return;
+    started.current = true;
+    if (!ownerAccessToken) {
+      setFallbackState({ _tag: "revoked" });
+      return;
+    }
+    void startPack({ reportId, ownerAccessToken })
+      .then((result) => {
+        if (Either.isEither(result) && Either.isLeft(result)) {
+          throw result.left;
+        }
+        const startedPack = Either.isEither(result) ? result.right : result;
+        setPackId(startedPack.packId);
+      })
+      .catch(() =>
+        setFallbackState({
+          _tag: "failed",
+          canRetry: false,
+          supportId: `support_${reportId}`,
+        }),
+      );
+  }, [ownerAccessToken, reportId, startPack]);
+
+  useEffect(() => {
+    if (status.status !== "ready") return;
+    if (status.data.status === "completed") {
+      window.location.assign(`/build-pack/${status.data.packId}`);
+    }
+  }, [status]);
+
+  const retry = async () => {
+    if (!packId || !ownerAccessToken) return;
+    setFallbackState({ _tag: "generating", stages: [] });
+    try {
+      const result = await retryPack({ packId, ownerAccessToken });
+      if (Either.isEither(result) && Either.isLeft(result)) throw result.left;
+    } catch {
+      setFallbackState({
+        _tag: "failed",
+        canRetry: false,
+        supportId: `support_${packId}`,
+      });
+    }
+  };
+
+  const state =
+    status.status === "ready"
+      ? presentServerPackStatus(status.data)
+      : status.status === "typed_failure" ||
+          status.status === "parse_failure" ||
+          status.status === "transport_failure" ||
+          status.status === "defect"
+        ? ({
+            _tag: "failed",
+            canRetry: false,
+            supportId: `support_${packId ?? reportId}`,
+          } as const)
+        : fallbackState;
+
+  return (
+    <BuildPackRouteView
+      onRetry={() => void retry()}
+      packId={packId ?? reportId}
+      state={state}
+    />
+  );
+}
+
+function LocalBuildPackGeneratingRoute({
   reportId,
 }: {
   readonly reportId: string;

@@ -54,6 +54,31 @@ describe("Build Pack commerce", () => {
     expect(paid.entitlements[0]?.status).toBe("active");
   });
 
+  it("does not regress to pending when the webhook arrives before the return", () => {
+    const paid = applyPaymentEvent(createCommerceState(), {
+      ...paidEvent,
+      checkoutSessionId: "checkout_1",
+    });
+    const returned = checkoutReturn(paid, {
+      checkoutSessionId: "checkout_1",
+      reportId: "idea_1",
+    });
+
+    expect(returned.checkoutReturns[0]?.status).toBe("paid");
+  });
+
+  it("remembers an out-of-order refund and never grants active access later", () => {
+    const revokedFirst = applyPaymentEvent(createCommerceState(), {
+      ...paidEvent,
+      eventId: "evt_refund_first",
+      type: "refund.succeeded",
+    });
+    const paidLater = applyPaymentEvent(revokedFirst, paidEvent);
+
+    expect(paidLater.entitlements[0]).toMatchObject({ status: "revoked" });
+    expect(paidLater.maestroCredits[0]).toMatchObject({ status: "revoked" });
+  });
+
   it("rejects unverified events and revokes both access and credit on refunds", () => {
     expect(() =>
       applyPaymentEvent(createCommerceState(), {

@@ -1,3 +1,5 @@
+import { Schema } from "effect";
+
 export const buildPackStageNames = [
   "normalize",
   "challenge",
@@ -8,6 +10,15 @@ export const buildPackStageNames = [
   "compile",
   "map-to-maestro",
 ] as const;
+
+export const BuildPackStageNameSchema = Schema.Literal(...buildPackStageNames);
+export const BuildPackStageStatusSchema = Schema.Literal(
+  "queued",
+  "running",
+  "completed",
+  "failed-recoverable",
+  "needs-support",
+);
 
 export type BuildPackStageName = (typeof buildPackStageNames)[number];
 export type BuildPackStageStatus =
@@ -51,6 +62,34 @@ export type CompleteBuildPack = {
   readonly openQuestions: readonly string[];
   readonly competitorClaims: readonly CompetitorClaim[];
 };
+
+const nonBlankText = Schema.Trim.pipe(Schema.nonEmptyString());
+const CompetitorClaimSchema = Schema.Struct({
+  text: nonBlankText,
+  citations: Schema.NonEmptyArray(nonBlankText),
+});
+
+export const CompleteBuildPackSchema = Schema.Struct({
+  productBrief: nonBlankText,
+  customerAndProblem: nonBlankText,
+  scope: Schema.Array(nonBlankText),
+  requirements: Schema.Array(nonBlankText),
+  userJourneys: Schema.Array(nonBlankText),
+  dataModel: Schema.Array(nonBlankText),
+  architecture: nonBlankText,
+  integrations: Schema.Array(nonBlankText),
+  securityAndPrivacy: Schema.Array(nonBlankText),
+  deliveryPlan: Schema.Array(nonBlankText),
+  acceptanceCriteria: Schema.Array(nonBlankText),
+  risks: Schema.Array(nonBlankText),
+  openQuestions: Schema.Array(nonBlankText),
+  competitorClaims: Schema.Array(CompetitorClaimSchema),
+});
+
+export const decodeCompleteBuildPack = (input: unknown): CompleteBuildPack =>
+  Schema.decodeUnknownSync(CompleteBuildPackSchema, {
+    onExcessProperty: "error",
+  })(input);
 
 export const createBuildPackRun = (input: {
   readonly packId: string;
@@ -101,17 +140,29 @@ export const advanceBuildPack = (
 export const failBuildPackStage = (
   run: BuildPackRun,
   error: string,
-): BuildPackRun => ({
-  ...run,
-  status: "failed-recoverable",
-  stages: run.stages.map((stage) =>
-    stage.status === "running"
-      ? { ...stage, status: "failed-recoverable", error }
-      : stage,
-  ),
-});
+): BuildPackRun => {
+  const current = run.stages.find(({ status }) => status === "running");
+  if (!current) throw new Error("No Build Pack stage is running.");
+  const needsSupport = current.attempts >= 3;
+  return {
+    ...run,
+    status: needsSupport ? "needs-support" : "failed-recoverable",
+    stages: run.stages.map((stage) =>
+      stage.name === current.name
+        ? {
+            ...stage,
+            status: needsSupport ? "needs-support" : "failed-recoverable",
+            error,
+          }
+        : stage,
+    ),
+  };
+};
 
 export const retryBuildPackStage = (run: BuildPackRun): BuildPackRun => {
+  if (run.status === "needs-support") {
+    throw new Error("This Build Pack stage needs support before it can retry.");
+  }
   const failed = run.stages.find(
     ({ status }) => status === "failed-recoverable",
   );

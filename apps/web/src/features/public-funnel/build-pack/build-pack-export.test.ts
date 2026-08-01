@@ -5,6 +5,7 @@ import {
   buildPackSectionIds,
   downloadBuildPack,
   exportBuildPackMarkdown,
+  exportBuildPackPrintHtml,
 } from "./build-pack-export";
 import {
   fixtureCompleteAnswers,
@@ -48,5 +49,20 @@ describe("Complete Build Pack exports", () => {
     } finally {
       vi.unstubAllGlobals();
     }
+  });
+
+  it("exports print HTML with the same canonical sections and escaped content", () => {
+    const pack = compileFakeBuildPack(makeEvaluation(fixtureCompleteAnswers));
+    const html = exportBuildPackPrintHtml("pack_<unsafe>", {
+      ...pack,
+      productBrief: "Build <script>alert('no')</script> safely",
+    });
+
+    for (const sectionId of buildPackSectionIds) {
+      expect(html).toContain(`id="pack-${sectionId}"`);
+    }
+    expect(html).toContain("pack_&lt;unsafe&gt;");
+    expect(html).not.toContain("<script>");
+    expect(html).toContain("@media print");
   });
 });

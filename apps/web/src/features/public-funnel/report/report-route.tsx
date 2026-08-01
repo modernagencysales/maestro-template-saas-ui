@@ -9,6 +9,7 @@ import type { StoredEvaluation } from "../intake/evaluation-adapter";
 import { PublicFunnelShell } from "../public-shell";
 import { EvaluationReportView } from "./report-view";
 import { ReportOwnershipCard } from "./report-ownership-card";
+import { ReportRevisionCard } from "./report-revision-card";
 import {
   loadAnonymousReportAccess,
   loadOwnerAccessToken,
@@ -107,12 +108,22 @@ function ConfiguredEvaluationReportRoute({ id }: { readonly id: string }) {
         <EvaluationReportView
           evaluation={{ id, report }}
           ownership={
-            access === null ? undefined : (
-              <ReportOwnershipCard
-                accessToken={access.accessToken}
-                reportId={id}
-              />
-            )
+            access !== null || ownerAccessToken !== null ? (
+              <>
+                {access === null ? null : (
+                  <ReportOwnershipCard
+                    accessToken={access.accessToken}
+                    reportId={id}
+                  />
+                )}
+                {ownerAccessToken === null ? null : (
+                  <ReportRevisionCard
+                    ownerAccessToken={ownerAccessToken}
+                    reportId={id}
+                  />
+                )}
+              </>
+            ) : undefined
           }
         />
       );

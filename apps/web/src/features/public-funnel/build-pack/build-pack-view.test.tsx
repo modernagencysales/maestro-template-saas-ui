@@ -47,6 +47,7 @@ describe("Complete Build Pack experience", () => {
     expect(html).toContain("Requirements");
     expect(html).toContain("Delivery plan");
     expect(html).toContain("Download Build Pack");
+    expect(html).toContain("Download print-ready HTML");
     expect(html).toContain("See how Maestro could build this");
     expect(html).toContain("/maestro/pack_1");
   });

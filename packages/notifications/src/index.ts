@@ -27,15 +27,68 @@ export class EmailValidationError extends Error {
   }
 }
 
+export class EmailProviderError extends Error {
+  readonly _tag = "EmailProviderError";
+  readonly provider = "mailersend";
+
+  constructor(
+    message: string,
+    readonly status?: number,
+  ) {
+    super(message);
+    this.name = "EmailProviderError";
+  }
+}
+
 export type EmailFailure = {
   readonly ok: false;
-  readonly error: EmailValidationError;
+  readonly error: EmailValidationError | EmailProviderError;
 };
 
 export type EmailResult = EmailDelivery | EmailFailure;
 
 const idempotencyKeyPattern = /^[A-Za-z0-9._~-]+$/;
 const maxIdempotencyKeyLength = 128;
+
+export type EmailTransport = (payload: EmailPayload) => Promise<void>;
+
+export const createMailerSendTransport = (options: {
+  readonly apiKey: string;
+  readonly endpoint?: string;
+  readonly fetch?: typeof globalThis.fetch;
+}): EmailTransport => {
+  const request = options.fetch ?? globalThis.fetch;
+  const endpoint = options.endpoint ?? "https://api.mailersend.com/v1/email";
+
+  return async (payload) => {
+    let response: Response;
+    try {
+      response = await request(endpoint, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${options.apiKey}`,
+          "Content-Type": "application/json",
+          "X-Request-Id": payload.idempotencyKey,
+        },
+        body: JSON.stringify({
+          from: { email: payload.from },
+          to: [{ email: payload.to }],
+          subject: payload.subject,
+          html: payload.html,
+        }),
+      });
+    } catch {
+      throw new EmailProviderError("MailerSend could not be reached.");
+    }
+
+    if (!response.ok) {
+      throw new EmailProviderError(
+        "MailerSend rejected the email request.",
+        response.status,
+      );
+    }
+  };
+};
 
 const validateEmailIdempotencyKey = (
   idempotencyKey: string,
@@ -278,6 +331,7 @@ const deliveryForMode = (mode: EmailMode): EmailDelivery["delivery"] =>
 
 export const createEmailService = (options: {
   readonly mode: EmailMode;
+  readonly transport?: EmailTransport;
   readonly sink?: (
     payload: Readonly<Record<string, unknown>>,
   ) => void | Promise<void>;
@@ -294,12 +348,23 @@ export const createEmailService = (options: {
       };
     }
 
-    await options.sink?.(
-      redactEmailPayload({
-        ...payload,
-        apiKey: "provider-owned",
-      }),
-    );
+    try {
+      await options.transport?.(payload);
+      await options.sink?.(
+        redactEmailPayload({
+          ...payload,
+          apiKey: "provider-owned",
+        }),
+      );
+    } catch (error) {
+      return {
+        ok: false,
+        error:
+          error instanceof EmailProviderError
+            ? error
+            : new EmailProviderError("Email delivery failed."),
+      };
+    }
 
     return {
       ok: true,
@@ -319,6 +384,7 @@ export type FunnelLifecycleEmailIntent = {
 export const createFunnelLifecycleEmailService = (options: {
   readonly mode: EmailMode;
   readonly from: string;
+  readonly transport?: EmailTransport;
   readonly sink?: (
     payload: Readonly<Record<string, unknown>>,
   ) => void | Promise<void>;

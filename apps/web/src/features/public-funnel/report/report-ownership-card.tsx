@@ -3,7 +3,7 @@ import { templateConfectRefs } from "@maestro-template/convex/refs";
 import * as Either from "effect/Either";
 import { Mail, ShieldCheck } from "lucide-react";
 
-import { useTemplateMutation } from "../../../adapters/confect-state";
+import { useTemplateAction } from "../../../adapters/confect-state";
 import { isConvexConfigured } from "../../../env";
 import { requestFakeReportVerification } from "./report-credentials";
 
@@ -28,7 +28,7 @@ function LiveReportOwnershipCard({
   readonly accessToken: string;
   readonly reportId: string;
 }) {
-  const requestVerification = useTemplateMutation(
+  const requestVerification = useTemplateAction(
     templateConfectRefs.public.capabilities.manageEvaluationReport
       .requestReportEmailVerification,
   );

@@ -63,6 +63,43 @@ describe("template HTTP docs routes", () => {
     );
   });
 
+  it("forwards the untouched Dodo body and signature headers to the webhook action", async () => {
+    const calls: unknown[] = [];
+    const rawBody =
+      '{"type":"payment.succeeded","data":{"payment_id":"pay_1"}}';
+    const response = await handleTemplateHttpRequest(
+      {
+        ...noopCtx,
+        runAction: async (ref, input) => {
+          calls.push({ ref, input });
+          return { eventId: "evt_1", status: "processed" };
+        },
+      },
+      new Request("https://template.local/webhooks/dodo", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "webhook-id": "evt_1",
+          "webhook-signature": "v1,signature",
+          "webhook-timestamp": "1700000000",
+        },
+        body: rawBody,
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(calls).toEqual([
+      expect.objectContaining({
+        input: {
+          rawBody,
+          webhookId: "evt_1",
+          signature: "v1,signature",
+          signatureTimestamp: "1700000000",
+        },
+      }),
+    ]);
+  });
+
   it("serves generated OpenAPI JSON", async () => {
     const response = await handleTemplateHttpRequest(
       noopCtx,

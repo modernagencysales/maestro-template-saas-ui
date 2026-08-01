@@ -37,4 +37,17 @@ describe("privacy-safe funnel analytics", () => {
       }),
     ).toMatchObject({ name: "evaluation_completed" });
   });
+
+  it("rejects unknown verdicts and negative operational metrics", () => {
+    expect(() =>
+      validateFunnelEvent({
+        name: "evaluation_completed",
+        evaluationId: "idea_1",
+        verdict: "definitely-a-unicorn",
+        durationMs: -1,
+        modelCalls: -1,
+        estimatedCostCents: -1,
+      }),
+    ).toThrow();
+  });
 });

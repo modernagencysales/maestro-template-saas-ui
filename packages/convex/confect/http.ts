@@ -1,5 +1,9 @@
 import { confectManifest } from "@maestro-template/template-core/generated/confectManifest";
-import { httpActionGeneric, httpRouter } from "convex/server";
+import {
+  httpActionGeneric,
+  httpRouter,
+  makeFunctionReference,
+} from "convex/server";
 import { api } from "../convex/_generated/api";
 import {
   executeHeadlessOperation,
@@ -54,6 +58,17 @@ const staticTemplateRoutes: Record<string, TemplateRouteMatch | undefined> = {
 const operationRefs = {
   "brain.pages.createMarkdown": api.brain.pages.createMarkdown,
 } satisfies Record<string, unknown>;
+
+const dodoWebhookActionRef = makeFunctionReference<
+  "action",
+  {
+    readonly rawBody: string;
+    readonly webhookId: string;
+    readonly signature?: string;
+    readonly signatureTimestamp?: string;
+  },
+  { readonly eventId: string; readonly status: "processed" | "duplicate" }
+>("commerce/webhooks:applyDodo");
 
 export const securityHeaders = {
   "content-security-policy":
@@ -201,7 +216,7 @@ const dodoWebhookRouteResponse = async (
     });
 
   const rawBody = await request.text();
-  const result = await ctx.runAction(api.commerce.webhooks.applyDodo, {
+  const result = await ctx.runAction(dodoWebhookActionRef, {
     rawBody,
     webhookId: request.headers.get("webhook-id") ?? "",
     signature: request.headers.get("webhook-signature") ?? "",

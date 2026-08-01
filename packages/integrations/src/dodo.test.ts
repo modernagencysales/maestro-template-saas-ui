@@ -2,6 +2,7 @@ import { createHmac } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import {
   createDodoCheckout,
+  createDodoSdkCheckoutTransport,
   DodoWebhookConfigError,
   DodoWebhookReplayError,
   DodoWebhookSignatureError,
@@ -75,6 +76,58 @@ describe("Dodo payment seam", () => {
     });
     expect(JSON.stringify(result)).not.toContain("buyer@example.com");
     expect(JSON.stringify(result)).not.toContain("server-key");
+  });
+
+  it("maps checkout creation through the official Dodo SDK client", async () => {
+    const calls: unknown[] = [];
+    const transport = createDodoSdkCheckoutTransport({
+      environment: "test_mode",
+      clientFactory: (options) => {
+        calls.push({ options });
+        return {
+          checkoutSessions: {
+            create: async (input, requestOptions) => {
+              calls.push({ input, requestOptions });
+              return {
+                session_id: "checkout_sdk_1",
+                checkout_url: "https://checkout.dodopayments.com/session/sdk_1",
+              };
+            },
+          },
+        };
+      },
+    });
+
+    await expect(
+      transport({
+        apiKey: "server-key",
+        productCart: [{ productId: "prod_build_pack", quantity: 1 }],
+        customer: { email: "founder@example.test" },
+        metadata: { reportId: "report_1" },
+        returnUrl: "https://example.test/checkout/return",
+        idempotencyKey: "checkout.report_1",
+      }),
+    ).resolves.toEqual({
+      checkoutSessionId: "checkout_sdk_1",
+      checkoutUrl: "https://checkout.dodopayments.com/session/sdk_1",
+    });
+    expect(calls).toEqual([
+      {
+        options: {
+          bearerToken: "server-key",
+          environment: "test_mode",
+        },
+      },
+      {
+        input: {
+          product_cart: [{ product_id: "prod_build_pack", quantity: 1 }],
+          customer: { email: "founder@example.test" },
+          metadata: { reportId: "report_1" },
+          return_url: "https://example.test/checkout/return",
+        },
+        requestOptions: { idempotencyKey: "checkout.report_1" },
+      },
+    ]);
   });
 
   it("returns a typed retryable provider failure without exposing the transport error", async () => {

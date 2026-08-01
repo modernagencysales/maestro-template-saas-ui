@@ -1,11 +1,15 @@
-import { Check, Download, RefreshCw } from "lucide-react";
+import { Check, Download, FileText, RefreshCw } from "lucide-react";
 
 import type {
   BuildPackStage,
   CompleteBuildPack,
 } from "@maestro-template/app-idea-evaluator";
 import { PublicFunnelShell } from "../public-shell";
-import { buildPackSectionIds, downloadBuildPack } from "./build-pack-export";
+import {
+  buildPackSectionIds,
+  downloadBuildPack,
+  downloadBuildPackPrintHtml,
+} from "./build-pack-export";
 
 const stageLabels = {
   normalize: "Product brief",
@@ -99,10 +103,22 @@ export function CompleteBuildPackView({
             <p className="idea-section-label">Complete Build Pack</p>
             <h1>Your idea is ready to hand off.</h1>
           </div>
-          <button onClick={() => downloadBuildPack(packId, pack)} type="button">
-            <Download aria-hidden="true" size={17} />
-            Download Build Pack
-          </button>
+          <div className="idea-pack-downloads">
+            <button
+              onClick={() => downloadBuildPack(packId, pack)}
+              type="button"
+            >
+              <Download aria-hidden="true" size={17} />
+              Download Build Pack
+            </button>
+            <button
+              onClick={() => downloadBuildPackPrintHtml(packId, pack)}
+              type="button"
+            >
+              <FileText aria-hidden="true" size={17} />
+              Download print-ready HTML
+            </button>
+          </div>
         </header>
         {packSections.map(([label, key]) => {
           const content = pack[key];

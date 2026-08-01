@@ -265,6 +265,18 @@
       "notes": "Billing environment selector."
     },
     {
+      "name": "DODO_BUILD_PACK_PRODUCT_ID",
+      "group": "dodo",
+      "services": ["convex"],
+      "visibility": "server-config",
+      "requiredFor": ["fake", "test", "live"],
+      "fakeExampleAllowed": true,
+      "fakeExample": "prod_fake_build_pack",
+      "owner": "Billing owner",
+      "rotation": "Review whenever the one-time Build Pack product changes.",
+      "notes": "Server-owned Dodo product id for the Complete Build Pack checkout."
+    },
+    {
       "name": "MAILERSEND_API_KEY",
       "group": "mailersend",
       "services": ["convex", "web"],

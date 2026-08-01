@@ -19,6 +19,51 @@ const answers = {
 };
 
 describe("app-idea funnel durable capabilities", () => {
+  it("delivers a fake verification link through the action and claims the report", async () => {
+    const program = Effect.gen(function* () {
+      const confect = yield* Effect.serviceOptional(
+        TestConfect.TestConfect<typeof databaseSchema>(),
+      );
+      const evaluated = yield* confect.mutation(
+        refs.public.capabilities.evaluateAppIdea.evaluateAppIdea,
+        {
+          sessionId: "email_session",
+          accessToken: "email_access_token",
+          answers,
+        },
+      );
+      const sent = yield* confect.action(
+        refs.public.capabilities.manageEvaluationReport
+          .requestReportEmailVerification,
+        {
+          reportId: evaluated.reportId,
+          accessToken: "email_access_token",
+          email: "founder@example.test",
+        },
+      );
+      const verificationUrl = new URL(
+        sent.fakeVerificationUrl ?? "",
+        "https://example.test",
+      );
+      const verificationToken = verificationUrl.searchParams.get("token") ?? "";
+      const claimed = yield* confect.mutation(
+        refs.public.capabilities.manageEvaluationReport
+          .consumeReportEmailVerification,
+        { verificationToken },
+      );
+      return { sent, claimed };
+    });
+
+    const result = await Effect.runPromise(
+      program.pipe(Effect.provide(testConfectLayer())),
+    );
+    expect(result.sent).toMatchObject({ status: "verification-sent" });
+    expect(result.claimed).toMatchObject({
+      status: "claimed",
+      ownerAccessToken: expect.stringMatching(/^owner_/),
+    });
+  });
+
   it("runs the bounded model action once and persists its receipt", async () => {
     const program = Effect.gen(function* () {
       const confect = yield* Effect.serviceOptional(
