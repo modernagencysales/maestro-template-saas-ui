@@ -450,6 +450,21 @@ const claimStageImpl = FunctionImpl.make(
       const { pack, stages } = yield* loadPackRows(packId.trim());
       if (pack.status === "completed" || pack.status === "revoked")
         return { claimed: false };
+      const reader = yield* DatabaseReader;
+      const entitlement = yield* reader
+        .table("buildPackEntitlements")
+        .index("by_report", (q) => q.eq("reportId", pack.reportId))
+        .first()
+        .pipe(Effect.map(Option.getOrNull), Effect.orDie);
+      if (entitlement?.status !== "active") {
+        const writer = yield* DatabaseWriter;
+        const now = yield* unsafeAssumeClockProvided(Clock.currentTimeMillis);
+        yield* writer
+          .table("buildPacks")
+          .patch(pack._id, { status: "revoked", updatedAt: now })
+          .pipe(Effect.orDie);
+        return { claimed: false };
+      }
       const stage = stages.find(({ status }) => status === "running");
       if (!stage) return { claimed: false };
       const now = yield* unsafeAssumeClockProvided(Clock.currentTimeMillis);
@@ -631,6 +646,21 @@ const finishPackImpl = FunctionImpl.make(
         });
       }
       const { pack, stages } = yield* loadPackRows(packId);
+      const reader = yield* DatabaseReader;
+      const entitlement = yield* reader
+        .table("buildPackEntitlements")
+        .index("by_report", (q) => q.eq("reportId", pack.reportId))
+        .first()
+        .pipe(Effect.map(Option.getOrNull), Effect.orDie);
+      if (entitlement?.status !== "active") {
+        const writer = yield* DatabaseWriter;
+        const now = yield* unsafeAssumeClockProvided(Clock.currentTimeMillis);
+        yield* writer
+          .table("buildPacks")
+          .patch(pack._id, { status: "revoked", updatedAt: now })
+          .pipe(Effect.orDie);
+        return summaryFrom({ ...pack, status: "revoked" }, stages);
+      }
       if (!stages.every(({ status }) => status === "completed"))
         return yield* new ValidationFailed({
           field: "packId",

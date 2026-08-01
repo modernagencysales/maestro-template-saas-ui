@@ -142,6 +142,60 @@ describe("durable Complete Build Pack capability", () => {
     ).resolves.toEqual({ status: "completed", premiumReceipts: 8 });
   });
 
+  it("revokes the pack before another model stage after a refund", async () => {
+    const program = Effect.gen(function* () {
+      const { confect, reportId, ownerAccessToken } =
+        yield* createOwnedPaidReport;
+      const started = yield* confect.mutation(
+        refs.public.buildPacks.packs.startPack,
+        { reportId, ownerAccessToken },
+      );
+      yield* confect.mutation(refs.internal.buildPacks.packs.claimStage, {
+        packId: started.packId,
+        leaseId: "first-stage-runner",
+      });
+      const afterFirstStage = {
+        ...started,
+        stages: started.stages.map((stage, index) =>
+          index === 0
+            ? { ...stage, status: "completed" as const, output: "normalized" }
+            : index === 1
+              ? { ...stage, status: "running" as const, attempts: 1 }
+              : stage,
+        ),
+      };
+      yield* confect.mutation(
+        refs.internal.buildPacks.packs.persistCheckpoint,
+        {
+          packId: started.packId,
+          runJson: JSON.stringify(afterFirstStage),
+          stage: "normalize",
+          leaseId: "first-stage-runner",
+        },
+      );
+      yield* confect.action(refs.public.commerce.webhooks.applyDodo, {
+        rawBody: JSON.stringify({
+          type: "refund.succeeded",
+          data: { payment_id: "payment_pack_1" },
+        }),
+        webhookId: "event_pack_refunded_between_stages",
+      });
+      const claim = yield* confect.mutation(
+        refs.internal.buildPacks.packs.claimStage,
+        { packId: started.packId, leaseId: "second-stage-runner" },
+      );
+      const status = yield* confect.query(refs.public.buildPacks.packs.status, {
+        packId: started.packId,
+        ownerAccessToken,
+      });
+      return { claim, status: status.status };
+    });
+
+    await expect(
+      Effect.runPromise(program.pipe(Effect.provide(testConfectLayer()))),
+    ).resolves.toEqual({ claim: { claimed: false }, status: "revoked" });
+  });
+
   it("counts only the current UTC day's spend across every report", async () => {
     const program = Effect.gen(function* () {
       const { confect, reportId, ownerAccessToken } =
