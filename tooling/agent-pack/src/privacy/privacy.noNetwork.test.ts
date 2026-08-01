@@ -24,20 +24,13 @@ const taggedRepository = (): string => {
   taggedReleaseRoot = join(taggedReleaseParent, "release");
   execFileSync(
     "git",
-    [
-      "clone",
-      "--quiet",
-      "--shared",
-      "--no-tags",
-      repositoryRoot,
-      taggedReleaseRoot,
-    ],
+    ["clone", "--quiet", "--shared", repositoryRoot, taggedReleaseRoot],
     { stdio: "pipe" },
   );
   execFileSync(
     "git",
-    ["-C", taggedReleaseRoot, "tag", "maestro-template-v0.2.0-alpha.2", "HEAD"],
-    { stdio: "pipe" },
+    ["checkout", "--quiet", "--detach", "maestro-template-v0.2.0-alpha.2"],
+    { cwd: taggedReleaseRoot, stdio: "pipe" },
   );
   execFileSync(
     "pnpm",
