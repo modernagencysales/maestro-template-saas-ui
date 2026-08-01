@@ -155,6 +155,80 @@ test("report deletion removes private data and invalidates the direct route", as
   ).toBeVisible();
 });
 
+test("delayed payment confirmation recovers without granting entitlement", async ({
+  page,
+}) => {
+  await page.clock.install();
+  await page.goto(
+    "/checkout/return?report_id=idea_delayed&session_id=checkout_delayed",
+  );
+  await expect(
+    page.getByRole("heading", { name: "Confirming your payment" }),
+  ).toBeVisible();
+
+  await page.clock.fastForward(60_000);
+  await expect(
+    page.getByRole("heading", {
+      name: "Payment confirmation is taking longer than usual",
+    }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Check payment status again" }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("You will not be charged again by checking."),
+  ).toBeVisible();
+  expect(
+    await page.evaluate(() => {
+      const commerce = JSON.parse(
+        window.localStorage.getItem("maestro.idea-funnel.commerce") ?? "{}",
+      ) as { entitlements?: unknown[] };
+      return commerce.entitlements?.length ?? 0;
+    }),
+  ).toBe(0);
+});
+
+test("a refunded purchase cannot start Build Pack generation", async ({
+  page,
+}) => {
+  await page.goto("/evaluate");
+  await completeEvaluation(page);
+  const reportId = page.url().split("/report/")[1]?.split(/[?#]/)[0] ?? "";
+  expect(reportId).toMatch(/^idea_/);
+  await page.evaluate((id) => {
+    window.localStorage.setItem(
+      "maestro.idea-funnel.commerce",
+      JSON.stringify({
+        checkoutReturns: [],
+        entitlements: [
+          { reportId: id, paymentId: "payment_refunded", status: "revoked" },
+        ],
+        maestroCredits: [
+          {
+            reportId: id,
+            paymentId: "payment_refunded",
+            amountCents: 2900,
+            currency: "USD",
+            status: "revoked",
+          },
+        ],
+        processedEventIds: ["refund_1"],
+        revokedPaymentIds: ["payment_refunded"],
+      }),
+    );
+  }, reportId);
+
+  await page.goto(`/build-pack/${reportId}/generating`);
+  await expect(
+    page.getByRole("heading", { name: "Build Pack access is not active" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", {
+      name: "Turning your idea into a build-ready plan.",
+    }),
+  ).toHaveCount(0);
+});
+
 test("email save verification claims a local report and opens its library", async ({
   page,
 }) => {
