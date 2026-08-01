@@ -3,30 +3,15 @@ import * as Clock from "effect/Clock";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
-import { makeFunctionReference, type FunctionReference } from "convex/server";
 
 import databaseSchema from "../_generated/schema";
-import {
-  DatabaseReader,
-  DatabaseWriter,
-  MutationCtx,
-} from "../_generated/services";
+import { DatabaseReader, DatabaseWriter } from "../_generated/services";
 import { NotFound, Unauthorized, ValidationFailed } from "../errors";
 import supportGroup from "./support.spec";
+import { enqueueBuildPackRun } from "./workpool";
 
 const unsafeAssumeClockProvided = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
   effect as Effect.Effect<A, E, Exclude<R, Clock.Clock>>;
-
-const runPackRef = makeFunctionReference<
-  "action",
-  { readonly packId: string },
-  unknown
->("buildPacks/packs:runPack") as unknown as FunctionReference<
-  "action",
-  "internal",
-  { readonly packId: string },
-  unknown
->;
 
 const resumeImpl = FunctionImpl.make(
   databaseSchema,
@@ -121,10 +106,7 @@ const resumeImpl = FunctionImpl.make(
           updatedAt: now,
         })
         .pipe(Effect.orDie);
-      const ctx = yield* MutationCtx;
-      yield* Effect.promise(() =>
-        ctx.scheduler.runAfter(0, runPackRef, { packId: pack.packId }),
-      ).pipe(Effect.orDie);
+      yield* enqueueBuildPackRun(pack.packId);
       return {
         incidentId: incident.incidentId,
         packId: pack.packId,
