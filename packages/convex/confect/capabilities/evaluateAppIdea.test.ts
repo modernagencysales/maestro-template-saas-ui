@@ -5,7 +5,10 @@ import {
   normalizeEvaluateAppIdeaInput,
   validateEvaluateAppIdeaInput,
 } from "./evaluateAppIdea.domain";
-import { evaluateAppIdeaArgs } from "./evaluateAppIdea.spec";
+import {
+  evaluateAppIdeaArgs,
+  evaluateAppIdeaWithModel,
+} from "./evaluateAppIdea.spec";
 
 const answers = {
   ideaSummary: "A useful app",
@@ -56,5 +59,13 @@ describe("evaluateAppIdea capability domain", () => {
         answers: { ...answers, distributionEvidence: "" },
       }),
     ).toContain("distributionEvidence must not be blank.");
+  });
+
+  it("runs provider-backed evaluation as an action", () => {
+    expect(evaluateAppIdeaWithModel.runtimeAndFunctionType).toEqual({
+      runtime: "Convex",
+      functionType: "action",
+    });
+    expect(evaluateAppIdeaWithModel.functionVisibility).toBe("public");
   });
 });

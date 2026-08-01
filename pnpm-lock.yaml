@@ -311,6 +311,9 @@ importers:
       "@maestro-template/app-idea-evaluator":
         specifier: workspace:*
         version: link:../app-idea-evaluator
+      "@maestro-template/integrations":
+        specifier: workspace:*
+        version: link:../integrations
       "@maestro-template/observability":
         specifier: workspace:*
         version: link:../observability

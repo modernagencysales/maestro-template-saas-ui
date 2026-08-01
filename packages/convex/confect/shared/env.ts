@@ -2,6 +2,7 @@ import * as Schema from "effect/Schema";
 
 export {
   loadTemplateRuntimeConfig,
+  loadLlmGatewayEnvConfig,
   runWithTemplateRuntimeConfig,
   TemplateRuntimeConfigLive,
 } from "./config";
