@@ -22,6 +22,9 @@ const completeEvaluation = async (page: Page) => {
 
 const capture = async (page: Page, name: string) => {
   await expect(
+    page.getByRole("heading", { name: "Loading page" }),
+  ).toBeHidden();
+  await expect(
     page.getByRole("region", { name: "Cookie consent" }),
   ).toBeHidden();
   await expect(page).toHaveScreenshot(name, {
@@ -35,13 +38,18 @@ const capture = async (page: Page, name: string) => {
 
 const captureTransient = async (page: Page, name: string) => {
   await expect(
+    page.getByRole("heading", { name: "Loading page" }),
+  ).toBeHidden();
+  await expect(
     page.getByRole("region", { name: "Cookie consent" }),
   ).toBeHidden();
   await page.evaluate(async () => document.fonts.ready);
   const screenshot = await page.screenshot({
     fullPage: true,
     animations: "disabled",
-    mask: [page.locator(".idea-pack-progress .idea-section-label")],
+    mask: [
+      page.locator(".idea-pack-progress .idea-section-label, .idea-pack-id"),
+    ],
   });
   expect(screenshot).toMatchSnapshot(name, { maxDiffPixels: 1_000 });
 };
@@ -78,6 +86,7 @@ test("public funnel visual surfaces", async ({ page }, testInfo) => {
   await expect(
     page.getByRole("link", { name: "Generate my Build Pack" }),
   ).toBeVisible();
+  await page.clock.install();
   await page.getByRole("link", { name: "Generate my Build Pack" }).click();
   await expect(
     page.getByRole("heading", {
@@ -88,6 +97,7 @@ test("public funnel visual surfaces", async ({ page }, testInfo) => {
     page,
     `app-idea-progress-${testInfo.project.name}.png`,
   );
+  await page.clock.fastForward(700);
 
   await expect(
     page.getByRole("heading", { name: "Your idea is ready to hand off." }),

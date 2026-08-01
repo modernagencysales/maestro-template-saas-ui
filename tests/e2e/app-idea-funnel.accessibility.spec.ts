@@ -15,6 +15,54 @@ const expectAccessible = async (page: Page, label: string) => {
   ).toEqual([]);
 };
 
+const answers = [
+  "ChairFill helps dental practices fill cancelled appointments.",
+  "Independent dental practices with two to ten locations.",
+  "Last-minute cancellations leave expensive chair time unused.",
+  "Receptionists call waitlisted patients one by one.",
+  "Rank and message suitable waitlist patients automatically.",
+  "Matches treatment type, travel time, and patient preferences.",
+  "I know three practice owners willing to pilot it.",
+  "I managed operations for a five-location dental group.",
+] as const;
+
+const completeEvaluation = async (page: Page) => {
+  for (const answer of answers) {
+    await page.getByLabel("Your answer").fill(answer);
+    await page
+      .getByRole("button", { name: /Save and continue|Evaluating idea/ })
+      .click();
+  }
+};
+
+const expectResponsiveAt = async (page: Page, label: string) => {
+  await page.setViewportSize({ width: 320, height: 800 });
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    )
+    .toBe(true);
+
+  await page.setViewportSize({ width: 640, height: 900 });
+  await page.evaluate(() => {
+    document.documentElement.style.fontSize = "200%";
+  });
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    )
+    .toBe(true);
+  await expectAccessible(page, `${label} at 200% text size`);
+  await page.evaluate(() => {
+    document.documentElement.style.fontSize = "";
+  });
+  await page.setViewportSize({ width: 1440, height: 1100 });
+};
+
 test("landing and intake have usable structure and focus", async ({ page }) => {
   await page.goto("/");
   const skip = page.getByRole("link", { name: "Skip to content" });
@@ -48,4 +96,48 @@ test("checkout and payment-pending states do not claim entitlement", async ({
   ).toBeVisible();
   await expect(page.getByText("Build Pack unlocked")).toHaveCount(0);
   await expectAccessible(page, "payment pending");
+});
+
+test("every stable funnel surface is accessible and responsive", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    window.localStorage.setItem("maestro-template.cookie-consent", "declined");
+  });
+
+  await page.goto("/");
+  await expectResponsiveAt(page, "landing");
+  await page.goto("/evaluate");
+  await expectResponsiveAt(page, "intake");
+  await completeEvaluation(page);
+  await expect(page.getByText("Your app idea verdict")).toBeVisible();
+  await expectResponsiveAt(page, "report");
+
+  await page.goto("/library");
+  await expect(page.getByRole("link", { name: "Open report" })).toBeVisible();
+  await expectResponsiveAt(page, "library");
+  await page.getByRole("link", { name: "Open report" }).click();
+  await page.getByRole("link", { name: "Get the Complete Build Pack" }).click();
+  await expectResponsiveAt(page, "checkout");
+
+  await page
+    .getByRole("button", { name: "Continue to secure checkout" })
+    .click();
+  await page.getByRole("button", { name: "Pay $29.00" }).click();
+  await page.getByRole("link", { name: "Generate my Build Pack" }).click();
+  await expect(
+    page.getByRole("heading", {
+      name: "Turning your idea into a build-ready plan.",
+    }),
+  ).toBeVisible();
+  await expectResponsiveAt(page, "Build Pack progress");
+
+  await expect(
+    page.getByRole("heading", { name: "Your idea is ready to hand off." }),
+  ).toBeVisible();
+  await expectResponsiveAt(page, "Build Pack");
+  await page
+    .getByRole("link", { name: "See how Maestro could build this" })
+    .click();
+  await expectResponsiveAt(page, "Maestro offer");
 });
