@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as VerifyReportRouteImport } from './routes/verify-report'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as SupportRouteImport } from './routes/support'
 import { Route as PrivacyRouteImport } from './routes/privacy'
@@ -45,6 +46,11 @@ import { Route as BuildPackPackIdIndexRouteImport } from './routes/build-pack.$p
 import { Route as CheckoutFakeHostedSessionIdRouteImport } from './routes/checkout.fake-hosted.$sessionId'
 import { Route as BuildPackPackIdGeneratingRouteImport } from './routes/build-pack.$packId.generating'
 
+const VerifyReportRoute = VerifyReportRouteImport.update({
+  id: '/verify-report',
+  path: '/verify-report',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TermsRoute = TermsRouteImport.update({
   id: '/terms',
   path: '/terms',
@@ -231,6 +237,7 @@ export interface FileRoutesByFullPath {
   '/privacy': typeof PrivacyRoute
   '/support': typeof SupportRoute
   '/terms': typeof TermsRoute
+  '/verify-report': typeof VerifyReportRoute
   '/admin': typeof WorkspaceAdminRoute
   '/agents': typeof WorkspaceAgentsRoute
   '/analytics': typeof WorkspaceAnalyticsRoute
@@ -268,6 +275,7 @@ export interface FileRoutesByTo {
   '/privacy': typeof PrivacyRoute
   '/support': typeof SupportRoute
   '/terms': typeof TermsRoute
+  '/verify-report': typeof VerifyReportRoute
   '/admin': typeof WorkspaceAdminRoute
   '/agents': typeof WorkspaceAgentsRoute
   '/analytics': typeof WorkspaceAnalyticsRoute
@@ -305,6 +313,7 @@ export interface FileRoutesById {
   '/privacy': typeof PrivacyRoute
   '/support': typeof SupportRoute
   '/terms': typeof TermsRoute
+  '/verify-report': typeof VerifyReportRoute
   '/_workspace/admin': typeof WorkspaceAdminRoute
   '/_workspace/agents': typeof WorkspaceAgentsRoute
   '/_workspace/analytics': typeof WorkspaceAnalyticsRoute
@@ -344,6 +353,7 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/support'
     | '/terms'
+    | '/verify-report'
     | '/admin'
     | '/agents'
     | '/analytics'
@@ -381,6 +391,7 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/support'
     | '/terms'
+    | '/verify-report'
     | '/admin'
     | '/agents'
     | '/analytics'
@@ -417,6 +428,7 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/support'
     | '/terms'
+    | '/verify-report'
     | '/_workspace/admin'
     | '/_workspace/agents'
     | '/_workspace/analytics'
@@ -455,6 +467,7 @@ export interface RootRouteChildren {
   PrivacyRoute: typeof PrivacyRoute
   SupportRoute: typeof SupportRoute
   TermsRoute: typeof TermsRoute
+  VerifyReportRoute: typeof VerifyReportRoute
   WorkspaceAdminRoute: typeof WorkspaceAdminRoute
   WorkspaceAgentsRoute: typeof WorkspaceAgentsRoute
   WorkspaceAnalyticsRoute: typeof WorkspaceAnalyticsRoute
@@ -485,6 +498,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/verify-report': {
+      id: '/verify-report'
+      path: '/verify-report'
+      fullPath: '/verify-report'
+      preLoaderRoute: typeof VerifyReportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/terms': {
       id: '/terms'
       path: '/terms'
@@ -755,6 +775,7 @@ const rootRouteChildren: RootRouteChildren = {
   PrivacyRoute: PrivacyRoute,
   SupportRoute: SupportRoute,
   TermsRoute: TermsRoute,
+  VerifyReportRoute: VerifyReportRoute,
   WorkspaceAdminRoute: WorkspaceAdminRoute,
   WorkspaceAgentsRoute: WorkspaceAgentsRoute,
   WorkspaceAnalyticsRoute: WorkspaceAnalyticsRoute,

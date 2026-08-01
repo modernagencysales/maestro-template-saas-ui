@@ -1,6 +1,12 @@
 import type { StoredEvaluation } from "../intake/evaluation-adapter";
 
-export const reportAsMarkdown = (evaluation: StoredEvaluation): string => {
+export type ReportExportEvaluation = Pick<StoredEvaluation, "id" | "report"> & {
+  readonly result?: StoredEvaluation["result"];
+};
+
+export const reportAsMarkdown = (
+  evaluation: ReportExportEvaluation,
+): string => {
   const { report, result } = evaluation;
   return `# App idea Buildability Report
 
@@ -26,15 +32,19 @@ ${report.improvedIdea}
 
 ${report.whatItWillTake.map((item) => `- ${item}`).join("\n")}
 
-## Evidence scores
+${
+  result
+    ? `## Evidence scores
 
 ${Object.entries(result.dimensions)
   .map(([key, value]) => `- ${key}: ${String(value.score)}/100`)
-  .join("\n")}
+  .join("\n")}`
+    : ""
+}
 `;
 };
 
-export const downloadReport = (evaluation: StoredEvaluation): void => {
+export const downloadReport = (evaluation: ReportExportEvaluation): void => {
   const blob = new Blob([reportAsMarkdown(evaluation)], {
     type: "text/markdown;charset=utf-8",
   });

@@ -36,4 +36,15 @@ describe("saved report library", () => {
     );
     expect(html).toContain("Revoke share link");
   });
+
+  it("renders explicit loading and unavailable library states", () => {
+    expect(
+      renderToStaticMarkup(<ReportLibraryView reports={[]} status="loading" />),
+    ).toContain("Loading your app ideas");
+    expect(
+      renderToStaticMarkup(
+        <ReportLibraryView reports={[]} status="unavailable" />,
+      ),
+    ).toContain("temporarily unavailable");
+  });
 });

@@ -1,9 +1,17 @@
 import { ArrowLeft, ArrowRight, ShieldCheck } from "lucide-react";
 import { useMemo, useState, type FormEvent } from "react";
+import { templateConfectRefs } from "@maestro-template/convex/refs";
+import * as Either from "effect/Either";
 
+import { useTemplateMutation } from "../../../adapters/confect-state";
+import { isConvexConfigured } from "../../../env";
 import { PublicFunnelShell } from "../public-shell";
 import { saveEvaluation } from "../evaluation-storage";
-import { makeEvaluation } from "./evaluation-adapter";
+import {
+  createAnonymousReportCredentials,
+  saveAnonymousReportAccess,
+} from "../report/report-credentials";
+import { makeEvaluation, type StoredEvaluation } from "./evaluation-adapter";
 import {
   answerCurrentQuestion,
   createIntakeState,
@@ -12,20 +20,102 @@ import {
   type IntakeState,
 } from "./intake-state";
 
-export function AppIdeaIntake() {
+export function AppIdeaIntake({
+  onReportReady,
+}: {
+  readonly onReportReady?: (reportId: string) => void;
+}) {
+  return isConvexConfigured() ? (
+    <ConfiguredAppIdeaIntake
+      {...(onReportReady === undefined ? {} : { onReportReady })}
+    />
+  ) : (
+    <AppIdeaIntakeSurface
+      {...(onReportReady === undefined ? {} : { onReportReady })}
+    />
+  );
+}
+
+type EvaluateRemotely = (input: {
+  readonly sessionId: string;
+  readonly accessToken: string;
+  readonly answers: StoredEvaluation["answers"];
+}) => Promise<string>;
+
+function ConfiguredAppIdeaIntake({
+  onReportReady,
+}: {
+  readonly onReportReady?: (reportId: string) => void;
+}) {
+  const evaluateAppIdea = useTemplateMutation(
+    templateConfectRefs.public.capabilities.evaluateAppIdea.evaluateAppIdea,
+  );
+  const evaluateRemotely: EvaluateRemotely = async (input) => {
+    const result = await evaluateAppIdea(input);
+    if (Either.isEither(result) && Either.isLeft(result)) {
+      throw new Error("The evaluator rejected this request.");
+    }
+    const completed = Either.isEither(result) ? result.right : result;
+    return completed.reportId;
+  };
+
+  return (
+    <AppIdeaIntakeSurface
+      evaluateRemotely={evaluateRemotely}
+      {...(onReportReady === undefined ? {} : { onReportReady })}
+    />
+  );
+}
+
+function AppIdeaIntakeSurface({
+  evaluateRemotely,
+  onReportReady,
+}: {
+  readonly evaluateRemotely?: EvaluateRemotely;
+  readonly onReportReady?: (reportId: string) => void;
+}) {
   const [state, setState] = useState<IntakeState>(createIntakeState);
   const [value, setValue] = useState("");
   const [isEvaluating, setIsEvaluating] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [credentials] = useState(createAnonymousReportCredentials);
   const view = useMemo(() => presentIntake(state), [state]);
+  const openReport = (reportId: string) => {
+    if (onReportReady) {
+      onReportReady(reportId);
+      return;
+    }
+    window.location.assign(`/report/${reportId}`);
+  };
 
-  const submit = (event: FormEvent<HTMLFormElement>) => {
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const next = answerCurrentQuestion(state, value);
     if (next.status === "complete") {
       setIsEvaluating(true);
-      const evaluation = makeEvaluation(next.answers);
-      saveEvaluation(evaluation);
-      window.location.assign(`/report/${evaluation.id}`);
+      setSubmitError(null);
+      try {
+        const localEvaluation = makeEvaluation(next.answers);
+        if (!evaluateRemotely) {
+          saveAnonymousReportAccess(localEvaluation.id, credentials);
+          saveEvaluation(localEvaluation);
+          openReport(localEvaluation.id);
+          return;
+        }
+        const reportId = await evaluateRemotely({
+          sessionId: credentials.sessionId,
+          accessToken: credentials.accessToken,
+          answers: localEvaluation.answers,
+        });
+        saveAnonymousReportAccess(reportId, credentials);
+        saveEvaluation({ ...localEvaluation, id: reportId });
+        openReport(reportId);
+      } catch {
+        setIsEvaluating(false);
+        setSubmitError(
+          "Your answers are safe. The evaluator could not finish, so try again.",
+        );
+      }
       return;
     }
     setState(next);
@@ -95,6 +185,11 @@ export function AppIdeaIntake() {
               {view.error ? (
                 <p className="idea-field-error" id="answer-error">
                   {view.error}
+                </p>
+              ) : null}
+              {submitError ? (
+                <p className="idea-field-error" role="alert">
+                  {submitError}
                 </p>
               ) : null}
               <div

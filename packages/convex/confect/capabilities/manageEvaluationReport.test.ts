@@ -55,6 +55,22 @@ describe("manageEvaluationReport capability domain", () => {
     ).toEqual([]);
   });
 
+  it("allows a verified owner credential for report lifecycle actions", () => {
+    expect(
+      validateManageEvaluationReportInput({
+        reportId: "report_1",
+        ownerAccessToken: "owner_secret",
+        action: "share",
+      }),
+    ).toEqual([]);
+    expect(
+      validateManageEvaluationReportInput({
+        reportId: "report_1",
+        action: "share",
+      }),
+    ).toContain("An anonymous or verified-owner access token is required.");
+  });
+
   it("exposes verification and opaque-owner library contracts", () => {
     expect(() =>
       Schema.decodeUnknownSync(requestReportEmailVerificationArgs)({

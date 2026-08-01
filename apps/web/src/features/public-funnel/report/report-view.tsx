@@ -1,4 +1,5 @@
 import { ArrowRight, Check, Download, RotateCcw } from "lucide-react";
+import type { ReactNode } from "react";
 
 import type { StoredEvaluation } from "../intake/evaluation-adapter";
 import { PublicFunnelShell } from "../public-shell";
@@ -15,8 +16,10 @@ export const verdictLabels = {
 
 export function EvaluationReportView({
   evaluation,
+  ownership,
 }: {
-  readonly evaluation: StoredEvaluation;
+  readonly evaluation: Pick<StoredEvaluation, "id" | "report">;
+  readonly ownership?: ReactNode;
 }) {
   const { report } = evaluation;
   return (
@@ -92,6 +95,8 @@ export function EvaluationReportView({
             <ArrowRight aria-hidden="true" size={18} />
           </a>
         </section>
+
+        {ownership}
 
         <div className="idea-report-actions">
           <button onClick={() => downloadReport(evaluation)} type="button">

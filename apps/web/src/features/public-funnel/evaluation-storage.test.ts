@@ -8,6 +8,7 @@ import {
   listEvaluationIds,
   loadEvaluation,
   saveEvaluation,
+  deleteEvaluation,
 } from "./evaluation-storage";
 
 describe("evaluation browser storage", () => {
@@ -17,6 +18,7 @@ describe("evaluation browser storage", () => {
       localStorage: {
         getItem: (key: string) => values.get(key) ?? null,
         setItem: (key: string, value: string) => values.set(key, value),
+        removeItem: (key: string) => values.delete(key),
       },
     });
     try {
@@ -27,6 +29,9 @@ describe("evaluation browser storage", () => {
       saveEvaluation(evaluation);
       expect(loadEvaluation(evaluation.id)).toEqual(evaluation);
       expect(listEvaluationIds()).toEqual([evaluation.id]);
+      deleteEvaluation(evaluation.id);
+      expect(loadEvaluation(evaluation.id)).toBeNull();
+      expect(listEvaluationIds()).toEqual([]);
     } finally {
       vi.unstubAllGlobals();
     }

@@ -818,6 +818,102 @@
   color: #ddb887;
 }
 
+.idea-report-ownership {
+  display: grid;
+  margin-top: 24px;
+  padding: clamp(24px, 4vw, 38px);
+  align-items: end;
+  border: 1px solid #dcd4c9;
+  border-radius: 20px;
+  background: #fff;
+  grid-template-columns: minmax(0, 0.8fr) minmax(320px, 1fr);
+  gap: 36px;
+}
+
+.idea-report-ownership h2 {
+  margin: 8px 0 12px;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(28px, 4vw, 42px);
+  font-weight: 500;
+  letter-spacing: -0.035em;
+}
+
+.idea-report-ownership p {
+  margin: 0;
+  color: #625d55;
+  line-height: 1.6;
+}
+
+.idea-ownership-form-row {
+  display: grid;
+  margin-top: 8px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+}
+
+.idea-ownership-form-row input {
+  min-width: 0;
+  padding: 12px 14px;
+  border: 1px solid #cfc7bc;
+  border-radius: 10px;
+  background: #fff;
+  font: inherit;
+}
+
+.idea-ownership-form-row input:focus-visible {
+  outline: 3px solid #c8863a;
+  outline-offset: 2px;
+}
+
+.idea-report-ownership .idea-form-note {
+  margin-top: 10px;
+  font-size: 13px;
+}
+
+.idea-ownership-success {
+  display: flex;
+  padding: 18px;
+  align-items: flex-start;
+  border-radius: 14px;
+  background: #f1f6ee;
+  gap: 12px;
+}
+
+.idea-ownership-success svg {
+  flex: 0 0 auto;
+  color: #446338;
+}
+
+.idea-ownership-success a {
+  display: inline-block;
+  margin-top: 8px;
+  font-weight: 700;
+}
+
+.idea-delete-confirmation {
+  display: flex;
+  margin-top: 14px;
+  padding: 14px;
+  align-items: center;
+  border: 1px solid #d9b7ae;
+  border-radius: 12px;
+  background: #fff5f2;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.idea-delete-confirmation p {
+  width: 100%;
+  margin: 0;
+  color: #6f3026;
+}
+
+.idea-delete-confirmation button:last-child {
+  border-color: #8e3528;
+  background: #8e3528;
+  color: #fff;
+}
+
 .idea-report-actions {
   justify-content: flex-end;
 }
@@ -838,7 +934,8 @@
 @media (max-width: 760px) {
   .idea-intake-layout,
   .idea-report-header,
-  .idea-build-pack-offer {
+  .idea-build-pack-offer,
+  .idea-report-ownership {
     grid-template-columns: 1fr;
   }
 
@@ -877,6 +974,10 @@
   .idea-report-actions {
     align-items: stretch;
     flex-direction: column-reverse;
+  }
+
+  .idea-ownership-form-row {
+    grid-template-columns: 1fr;
   }
 
   .idea-intake-actions > *,
