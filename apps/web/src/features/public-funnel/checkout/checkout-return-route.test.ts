@@ -36,4 +36,15 @@ describe("presentCheckoutReturn", () => {
       }),
     ).toEqual({ _tag: "pending", reportId: "report_1" });
   });
+
+  it("offers recovery after a bounded wait without granting access", () => {
+    expect(
+      presentCheckoutReturn({
+        reportId: "report_1",
+        purchaseStatus: "payment-pending",
+        entitlementStatus: "missing",
+        waitedMs: 60_000,
+      }),
+    ).toEqual({ _tag: "recovery", reportId: "report_1" });
+  });
 });

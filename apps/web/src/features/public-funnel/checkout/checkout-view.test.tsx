@@ -31,6 +31,21 @@ describe("Complete Build Pack checkout", () => {
     expect(html).not.toContain("Build Pack unlocked");
   });
 
+  it("offers calm delayed-webhook recovery without implying payment access", () => {
+    const html = renderToStaticMarkup(
+      <CheckoutView
+        priceCents={2900}
+        reportId="idea_1"
+        state={{ _tag: "payment-delayed" }}
+      />,
+    );
+
+    expect(html).toContain("Payment confirmation is taking longer");
+    expect(html).toContain("Check payment status again");
+    expect(html).toContain("Contact support");
+    expect(html).not.toContain("Generate my Build Pack");
+  });
+
   it("labels the verified checkout email and explains why it is needed", () => {
     const html = renderToStaticMarkup(
       <CheckoutView
