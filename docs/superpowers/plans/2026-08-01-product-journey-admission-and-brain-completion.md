@@ -70,13 +70,13 @@ M7 reconciliation + full deterministic admission
 M8 merge + exact-SHA staging proof + release QA
 ```
 
-Tasks T1–T4 belong to `maestro-template-saas-ui`. Tasks M1–M8 belong to
-`maestro`. Each task is a reviewable work package; M2–M6 may execute in parallel
-after M1 publishes the typed edge contracts.
+Tasks 1–4 (T1–T4) belong to `maestro-template-saas-ui`. Tasks 5–12 (M1–M8)
+belong to `maestro`. Each task is a reviewable work package; Tasks 6–10 may
+execute in parallel after Task 5 publishes the typed edge contracts.
 
 ---
 
-### Task T1: Backend-Neutral Journey Contracts
+### Task 1: Backend-Neutral Journey Contracts
 
 **Repository:** `maestro-template-saas-ui`
 
@@ -165,7 +165,7 @@ Run:
 
 ---
 
-### Task T2: Graph Validation, Contract Diff, And Affected Selection
+### Task 2: Graph Validation, Contract Diff, And Affected Selection
 
 **Repository:** `maestro-template-saas-ui`
 
@@ -185,7 +185,7 @@ Run:
 
 **Interfaces:**
 
-- Consumes: Task T1 contracts plus a repository-supplied
+- Consumes: Task 1 contracts plus a repository-supplied
   `ReleaseSurfaceInventory`.
 - Produces: `validateJourneyCatalog`, `diffJourneyContract`,
   `selectAffectedJourneys`, and `pnpm check:product-journeys`.
@@ -258,7 +258,7 @@ Run:
 
 ---
 
-### Task T3: Deterministic Runner, Evidence, Leases, And Attestations
+### Task 3: Deterministic Runner, Evidence, Leases, And Attestations
 
 **Repository:** `maestro-template-saas-ui`
 
@@ -339,7 +339,7 @@ Run:
 
 ---
 
-### Task T4: Generator, Runtime Guard Adapter, And Reference Journeys
+### Task 4: Generator, Runtime Guard Adapter, And Reference Journeys
 
 **Repository:** `maestro-template-saas-ui`
 
@@ -367,7 +367,7 @@ Run:
 
 **Interfaces:**
 
-- Consumes: Tasks T1–T3.
+- Consumes: Tasks 1–3.
 - Produces:
   `pnpm template:journey --name client-onboarding --profile high-risk`,
   deterministic package export, a Confect runtime guard, one admitted miniature
@@ -451,7 +451,7 @@ checks, and merge without bypassing protection.
 
 ---
 
-### Task M1: Maestro Adoption And The First Failing Brain Journey
+### Task 5: Maestro Adoption And The First Failing Brain Journey
 
 **Repository:** `maestro`
 
@@ -480,7 +480,7 @@ checks, and merge without bypassing protection.
 
 **Interfaces:**
 
-- Consumes: merged Task T4 framework.
+- Consumes: merged Task 4 framework.
 - Produces: `brain.hydration.v1`, shared edge receipt types for M2–M6, protected
   Woodpecker gates, and deterministic evidence whose expected frontier is the
   first genuinely missing boundary.
@@ -559,7 +559,7 @@ hydration entrypoint remains dark.
 
 ---
 
-### Task M2: Activation, Discovery, Capture, And Immediate Admission Start
+### Task 6: Activation, Discovery, Capture, And Immediate Admission Start
 
 **Repository:** `maestro`
 
@@ -657,7 +657,7 @@ Run committed frontier proof:
 
 ---
 
-### Task M3: Classification, Deduplication, Contradiction, Risk, And Review Settlement
+### Task 7: Classification, Deduplication, Contradiction, Risk, And Review Settlement
 
 **Repository:** `maestro`
 
@@ -772,7 +772,7 @@ Run focused:
 
 ---
 
-### Task M4: Evidence-Backed Brain Placement And Versioned Voice Authority
+### Task 8: Evidence-Backed Brain Placement And Versioned Voice Authority
 
 **Repository:** `maestro`
 
@@ -852,7 +852,7 @@ Run focused:
 
 ---
 
-### Task M5: Accepted Retrieval, Revocation, Isolation, And Scale
+### Task 9: Accepted Retrieval, Revocation, Isolation, And Scale
 
 **Repository:** `maestro`
 
@@ -934,7 +934,7 @@ Run focused:
 
 ---
 
-### Task M6: Normal Generation, Exact Citations, Historical Resolution, And Transport Parity
+### Task 10: Normal Generation, Exact Citations, Historical Resolution, And Transport Parity
 
 **Repository:** `maestro`
 
@@ -1025,7 +1025,7 @@ Run transport proof:
 
 ---
 
-### Task M7: Reconciliation, Runtime Admission, And Deterministic Brain Admission
+### Task 11: Reconciliation, Runtime Admission, And Deterministic Brain Admission
 
 **Repository:** `maestro`
 
@@ -1111,7 +1111,7 @@ Run focused:
 
 ---
 
-### Task M8: Exact-SHA Staging Proof, Full Release QA, Issues, And Launch Verdict
+### Task 12: Exact-SHA Staging Proof, Full Release QA, Issues, And Launch Verdict
 
 **Repository:** `maestro`
 
