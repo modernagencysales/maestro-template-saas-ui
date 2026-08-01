@@ -9,6 +9,7 @@ export const buildPackSectionIds = [
   "dataModel",
   "architecture",
   "integrations",
+  "competitorClaims",
   "securityAndPrivacy",
   "deliveryPlan",
   "acceptanceCriteria",
@@ -25,6 +26,7 @@ const labels: Readonly<Record<(typeof buildPackSectionIds)[number], string>> = {
   dataModel: "Data model",
   architecture: "Architecture",
   integrations: "Integrations",
+  competitorClaims: "Market research",
   securityAndPrivacy: "Security and privacy",
   deliveryPlan: "Delivery plan",
   acceptanceCriteria: "Acceptance criteria",
@@ -32,8 +34,22 @@ const labels: Readonly<Record<(typeof buildPackSectionIds)[number], string>> = {
   openQuestions: "Open questions",
 };
 
-const renderContent = (content: string | readonly unknown[]): string =>
-  Array.isArray(content)
+const renderContent = (
+  id: (typeof buildPackSectionIds)[number],
+  content: string | readonly unknown[],
+): string => {
+  if (id === "competitorClaims") {
+    const claims = content as CompleteBuildPack["competitorClaims"];
+    return (
+      claims
+        .map(
+          (claim) =>
+            `- ${claim.text}\n  Sources:\n${claim.citations.map((citation) => `  - ${citation}`).join("\n")}`,
+        )
+        .join("\n") || "No researched competitor claims."
+    );
+  }
+  return Array.isArray(content)
     ? content.length === 0
       ? "None required for the first version."
       : content
@@ -43,6 +59,7 @@ const renderContent = (content: string | readonly unknown[]): string =>
           )
           .join("\n")
     : String(content);
+};
 
 export const exportBuildPackMarkdown = (
   packId: string,
@@ -53,7 +70,7 @@ export const exportBuildPackMarkdown = (
     `Pack ID: ${packId}`,
     ...buildPackSectionIds.flatMap((id) => [
       `## ${labels[id]}`,
-      renderContent(pack[id]),
+      renderContent(id, pack[id]),
     ]),
   ].join("\n\n");
 
@@ -65,7 +82,22 @@ const escapeHtml = (value: unknown): string =>
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#39;");
 
-const renderHtmlContent = (content: string | readonly unknown[]): string => {
+const renderHtmlContent = (
+  id: (typeof buildPackSectionIds)[number],
+  content: string | readonly unknown[],
+): string => {
+  if (id === "competitorClaims") {
+    const claims = content as CompleteBuildPack["competitorClaims"];
+    if (claims.length === 0) return "<p>No researched competitor claims.</p>";
+    return `<ul>${claims
+      .map(
+        (claim) =>
+          `<li><p>${escapeHtml(claim.text)}</p><p>Sources:</p><ul>${claim.citations
+            .map((citation) => `<li>${escapeHtml(citation)}</li>`)
+            .join("")}</ul></li>`,
+      )
+      .join("")}</ul>`;
+  }
   if (!Array.isArray(content)) return `<p>${escapeHtml(content)}</p>`;
   if (content.length === 0)
     return "<p>None required for the first version.</p>";
@@ -99,7 +131,7 @@ export const exportBuildPackPrintHtml = (
   ${buildPackSectionIds
     .map(
       (id) =>
-        `<section id="pack-${id}"><h2>${labels[id]}</h2>${renderHtmlContent(pack[id])}</section>`,
+        `<section id="pack-${id}"><h2>${labels[id]}</h2>${renderHtmlContent(id, pack[id])}</section>`,
     )
     .join("\n  ")}
 </body>

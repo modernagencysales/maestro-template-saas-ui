@@ -19,14 +19,23 @@ describe("Complete Build Pack exports", () => {
   });
 
   it("creates a portable handoff without making another model call", () => {
-    const markdown = exportBuildPackMarkdown(
-      "pack_1",
-      compileFakeBuildPack(makeEvaluation(fixtureCompleteAnswers)),
-    );
+    const pack = compileFakeBuildPack(makeEvaluation(fixtureCompleteAnswers));
+    const markdown = exportBuildPackMarkdown("pack_1", {
+      ...pack,
+      competitorClaims: [
+        {
+          text: "Competitor pricing starts at $49.",
+          citations: ["https://example.test/pricing"],
+        },
+      ],
+    });
     expect(markdown).toContain("# Complete Build Pack");
     expect(markdown).toContain("## Requirements");
     expect(markdown).toContain("ChairFill");
     expect(markdown).toContain("Pack ID: pack_1");
+    expect(markdown).toContain("## Market research");
+    expect(markdown).toContain("Competitor pricing starts at $49.");
+    expect(markdown).toContain("https://example.test/pricing");
   });
 
   it("downloads the canonical Build Pack Markdown", () => {

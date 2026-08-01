@@ -80,6 +80,7 @@ const packSections = [
   ["Data model", "dataModel"],
   ["Architecture", "architecture"],
   ["Integrations", "integrations"],
+  ["Market research", "competitorClaims"],
   ["Security and privacy", "securityAndPrivacy"],
   ["Delivery plan", "deliveryPlan"],
   ["Acceptance criteria", "acceptanceCriteria"],
@@ -137,7 +138,37 @@ export function CompleteBuildPackView({
           </div>
         </header>
         {packSections.map(([label, key]) => {
-          const content = pack[key];
+          if (key === "competitorClaims") {
+            return (
+              <section id="pack-competitorClaims" key={key}>
+                <h2>{label}</h2>
+                {pack.competitorClaims.length > 0 ? (
+                  <ul>
+                    {pack.competitorClaims.map((claim) => (
+                      <li key={claim.text}>
+                        <p>{claim.text}</p>
+                        <p>Sources</p>
+                        <ul>
+                          {claim.citations.map((citation) => (
+                            <li key={citation}>
+                              {/^https?:\/\//u.test(citation) ? (
+                                <a href={citation}>{citation}</a>
+                              ) : (
+                                citation
+                              )}
+                            </li>
+                          ))}
+                        </ul>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p>No researched competitor claims.</p>
+                )}
+              </section>
+            );
+          }
+          const content = pack[key] as string | readonly string[];
           return (
             <section id={`pack-${key}`} key={key}>
               <h2>{label}</h2>
