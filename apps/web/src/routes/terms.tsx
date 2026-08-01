@@ -4,7 +4,7 @@ import { PublicInformationPage } from "../features/public-funnel/legal-page";
 
 export const Route = createFileRoute("/terms")({ component: TermsRoute });
 
-function TermsRoute() {
+export function TermsRoute() {
   return (
     <PublicInformationPage title="Terms">
       <p>

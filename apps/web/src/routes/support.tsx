@@ -4,7 +4,7 @@ import { PublicInformationPage } from "../features/public-funnel/legal-page";
 
 export const Route = createFileRoute("/support")({ component: SupportRoute });
 
-function SupportRoute() {
+export function SupportRoute() {
   return (
     <PublicInformationPage title="Support">
       <p>

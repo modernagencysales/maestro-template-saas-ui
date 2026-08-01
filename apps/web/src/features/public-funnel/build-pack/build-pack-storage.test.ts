@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import {
   fixtureCompleteAnswers,
@@ -6,6 +6,8 @@ import {
 } from "../intake/evaluation-adapter";
 import {
   completeFakeBuildPack,
+  loadBuildPack,
+  saveBuildPack,
   startBuildPackGeneration,
 } from "./build-pack-storage";
 
@@ -35,5 +37,18 @@ describe("paid Build Pack generation coordinator", () => {
       completed.run.stages.every(({ status }) => status === "completed"),
     ).toBe(true);
     expect(completed.pack?.requirements.length).toBeGreaterThanOrEqual(5);
+    const values = new Map<string, string>();
+    vi.stubGlobal("window", {
+      localStorage: {
+        getItem: (key: string) => values.get(key) ?? null,
+        setItem: (key: string, value: string) => values.set(key, value),
+      },
+    });
+    try {
+      saveBuildPack(completed);
+      expect(loadBuildPack(completed.run.packId)).toEqual(completed);
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });
