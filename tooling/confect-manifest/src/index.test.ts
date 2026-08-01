@@ -150,6 +150,7 @@ describe("confect manifest tooling", () => {
     ).toMatchObject({
       openApi31: {
         "a.run.args": {
+          $schema: "https://json-schema.org/draft/2020-12/schema",
           type: "object",
           required: ["workspaceId", "title"],
           properties: {
@@ -160,11 +161,68 @@ describe("confect manifest tooling", () => {
       },
       mcp: {
         "a.run.returns": {
+          $schema: "https://json-schema.org/draft/2020-12/schema",
           type: "object",
           required: ["ok"],
           properties: {
             ok: { type: "boolean", enum: [true] },
           },
+        },
+      },
+    });
+  });
+
+  it("preserves named definitions in both public schema targets", () => {
+    const RunArgs = Schema.Struct({
+      workspaceId: Schema.String,
+    }).annotate({ identifier: "RunArgs" });
+
+    const schemas = buildContractJsonSchemas({ RunArgs });
+    const expected = {
+      $schema: "https://json-schema.org/draft/2020-12/schema",
+      $ref: "#/$defs/RunArgs",
+      $defs: {
+        RunArgs: {
+          type: "object",
+          required: ["workspaceId"],
+          properties: { workspaceId: { type: "string" } },
+          additionalProperties: false,
+        },
+      },
+    };
+
+    expect(schemas.openApi31.RunArgs).toEqual(expected);
+    expect(schemas.mcp.RunArgs).toEqual(expected);
+  });
+
+  it("normalizes OpenAPI component names without changing MCP definitions", () => {
+    const RunArgs = Schema.Struct({
+      workspaceId: Schema.String,
+    }).annotate({ identifier: "Run Args" });
+
+    const schemas = buildContractJsonSchemas({ RunArgs });
+
+    expect(schemas.openApi31.RunArgs).toEqual({
+      $schema: "https://json-schema.org/draft/2020-12/schema",
+      $ref: "#/$defs/Run_Args",
+      $defs: {
+        Run_Args: {
+          type: "object",
+          required: ["workspaceId"],
+          properties: { workspaceId: { type: "string" } },
+          additionalProperties: false,
+        },
+      },
+    });
+    expect(schemas.mcp.RunArgs).toEqual({
+      $schema: "https://json-schema.org/draft/2020-12/schema",
+      $ref: "#/$defs/Run Args",
+      $defs: {
+        "Run Args": {
+          type: "object",
+          required: ["workspaceId"],
+          properties: { workspaceId: { type: "string" } },
+          additionalProperties: false,
         },
       },
     });
