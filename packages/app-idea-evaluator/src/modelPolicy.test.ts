@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   FREE_MODEL_POLICY,
   PREMIUM_MODEL_POLICY,
+  authorizeFreeEvaluationStart,
   authorizeModelCall,
 } from "./modelPolicy";
 
@@ -25,6 +26,19 @@ describe("tiered model policy", () => {
     expect(PREMIUM_MODEL_POLICY.maxOutputTokens).toBeGreaterThan(
       FREE_MODEL_POLICY.maxOutputTokens,
     );
+  });
+
+  it("limits anonymous and verified-email free evaluation allowances", () => {
+    expect(authorizeFreeEvaluationStart({ sessionEvaluations: 1 })).toEqual({
+      allowed: false,
+      reason: "session-limit",
+    });
+    expect(
+      authorizeFreeEvaluationStart({
+        sessionEvaluations: 0,
+        verifiedEmailEvaluations: 3,
+      }),
+    ).toEqual({ allowed: false, reason: "email-limit" });
   });
 
   it.each([

@@ -17,6 +17,7 @@ describe("kill-switch-aware LLM gateway", () => {
       expect(JSON.parse(String(init?.body))).toMatchObject({
         model: "google/gemini-2.0-flash-lite-001",
         messages: [{ role: "user", content: "Evaluate the idea" }],
+        max_tokens: 300,
       });
       return new Response(
         JSON.stringify({
@@ -33,6 +34,7 @@ describe("kill-switch-aware LLM gateway", () => {
           baseUrl: "https://openrouter.ai/api/v1",
           model: "google/gemini-2.0-flash-lite-001",
           prompt: "Evaluate the idea",
+          maxOutputTokens: 300,
         }),
       ),
     ).resolves.toEqual({ text: "Structured result" });
@@ -111,6 +113,36 @@ describe("kill-switch-aware LLM gateway", () => {
 
     expect(result.model).toBe("cheap/free-model");
     expect(result.usage.estimatedCents).toBeLessThan(1);
+  });
+
+  it("selects the separately configured free model without exposing it to the browser", async () => {
+    const gateway = createLlmGateway({
+      mode: "fake",
+      env: { LLM_FREE_MODEL: "cheap/free-model" },
+    });
+    const result = await Effect.runPromise(
+      gateway.complete({
+        workspaceSlug: "public-evaluation",
+        prompt: "Evaluate this idea.",
+        modelEnv: "LLM_FREE_MODEL",
+      }),
+    );
+    expect(result.model).toBe("cheap/free-model");
+  });
+
+  it("supports schema-valid deterministic fake completion text", async () => {
+    const gateway = createLlmGateway({
+      mode: "fake",
+      env: {},
+      fakeCompletionText: () => JSON.stringify({ roast: "Bounded fake roast" }),
+    });
+    const result = await Effect.runPromise(
+      gateway.complete({
+        workspaceSlug: "public-evaluation",
+        prompt: "Evaluate this idea.",
+      }),
+    );
+    expect(JSON.parse(result.text)).toEqual({ roast: "Bounded fake roast" });
   });
 
   it("rejects a request that exceeds its token ceiling before transport", async () => {

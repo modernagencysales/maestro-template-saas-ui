@@ -75,6 +75,7 @@ export type LlmGatewayRequest = {
   readonly workspaceSlug: string;
   readonly prompt: string;
   readonly model?: string;
+  readonly modelEnv?: "LLM_FREE_MODEL" | "LLM_PREMIUM_MODEL";
   readonly pricing?: LlmPricing;
   readonly limits?: LlmCallLimits;
   readonly idempotencyKey?: string;
@@ -87,6 +88,7 @@ export type LlmProviderTransportInput = {
   readonly baseUrl: string;
   readonly model: string;
   readonly prompt: string;
+  readonly maxOutputTokens?: number;
 };
 
 export type LlmProviderTransportResult = {
@@ -109,6 +111,9 @@ export const createOpenRouterTransport =
           body: JSON.stringify({
             model: input.model,
             messages: [{ role: "user", content: input.prompt }],
+            ...(input.maxOutputTokens === undefined
+              ? {}
+              : { max_tokens: input.maxOutputTokens }),
           }),
         });
         if (!response.ok) {
@@ -147,6 +152,7 @@ export type LlmGatewayConfig = {
   readonly captureTelemetry?: (
     event: LlmTelemetryEvent,
   ) => void | Promise<void>;
+  readonly fakeCompletionText?: (request: LlmGatewayRequest) => string;
 };
 
 export type LlmGateway = {
@@ -188,7 +194,8 @@ const requireOpenRouterApiKey = (
 
 const spendForRequest = (request: LlmGatewayRequest) => {
   const promptTokens = estimateConservativeTokenCount(request.prompt);
-  const completionTokens = request.expectedCompletionTokens ?? 256;
+  const completionTokens =
+    request.expectedCompletionTokens ?? request.limits?.maxOutputTokens ?? 256;
 
   return calculateLlmSpend({
     promptTokens,
@@ -277,13 +284,17 @@ export const createLlmGateway = (config: LlmGatewayConfig): LlmGateway => ({
 
       const model =
         request.model ??
+        (request.modelEnv === undefined
+          ? undefined
+          : readEnv(config.env, request.modelEnv)) ??
         readEnv(config.env, "LLM_DEFAULT_MODEL") ??
         defaultModel;
       const generatedAt = config.now?.() ?? new Date().toISOString();
 
       const text =
         config.mode === "fake"
-          ? makeFakeLlmCompletionText(request.workspaceSlug)
+          ? (config.fakeCompletionText?.(request) ??
+            makeFakeLlmCompletionText(request.workspaceSlug))
           : yield* Effect.gen(function* () {
               const apiKey = requireOpenRouterApiKey(config.env);
 
@@ -297,6 +308,9 @@ export const createLlmGateway = (config: LlmGatewayConfig): LlmGateway => ({
                   readEnv(config.env, "OPENROUTER_BASE_URL") ?? defaultBaseUrl,
                 model,
                 prompt: request.prompt,
+                ...(request.limits === undefined
+                  ? {}
+                  : { maxOutputTokens: request.limits.maxOutputTokens }),
               };
               const transport = config.transport ?? createOpenRouterTransport();
               const result = yield* transport(transportInput).pipe(

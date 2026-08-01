@@ -2,9 +2,18 @@ import { describe, expect, it } from "vitest";
 
 import { fixtureInput } from "./fixtures";
 import { buildFreeReport } from "./report";
+import { decodeBuildabilityReport } from "./schemas";
 import { scoreEvaluation } from "./rubric";
 
 describe("buildFreeReport", () => {
+  it("rejects malformed or privately extended report documents", () => {
+    expect(() =>
+      decodeBuildabilityReport({
+        ...buildFreeReport(scoreEvaluation(fixtureInput())),
+        privateAnswers: ["secret"],
+      }),
+    ).toThrow();
+  });
   it("gives the verdict away and explains what it will take", () => {
     const report = buildFreeReport(scoreEvaluation(fixtureInput()));
 
