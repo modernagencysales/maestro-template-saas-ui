@@ -29,6 +29,7 @@ export type DocumentAnnotationsDoc = Document.Document<typeof schemaDefinition, 
 export type DocumentVersionsDoc = Document.Document<typeof schemaDefinition, "documentVersions">;
 export type DocumentsDoc = Document.Document<typeof schemaDefinition, "documents">;
 export type DsarRequestsDoc = Document.Document<typeof schemaDefinition, "dsarRequests">;
+export type EmailVerificationChallengesDoc = Document.Document<typeof schemaDefinition, "emailVerificationChallenges">;
 export type EntitlementsDoc = Document.Document<typeof schemaDefinition, "entitlements">;
 export type EvaluationAnswersDoc = Document.Document<typeof schemaDefinition, "evaluationAnswers">;
 export type EvaluationReportVersionsDoc = Document.Document<typeof schemaDefinition, "evaluationReportVersions">;
@@ -45,6 +46,7 @@ export type OrganizationsDoc = Document.Document<typeof schemaDefinition, "organ
 export type PoliciesDoc = Document.Document<typeof schemaDefinition, "policies">;
 export type PromptRegistryDoc = Document.Document<typeof schemaDefinition, "promptRegistry">;
 export type PurchasesDoc = Document.Document<typeof schemaDefinition, "purchases">;
+export type ReportOwnershipsDoc = Document.Document<typeof schemaDefinition, "reportOwnerships">;
 export type SupportIncidentsDoc = Document.Document<typeof schemaDefinition, "supportIncidents">;
 export type TransformBlocksDoc = Document.Document<typeof schemaDefinition, "transformBlocks">;
 export type TransformDefinitionsDoc = Document.Document<typeof schemaDefinition, "transformDefinitions">;
@@ -95,6 +97,7 @@ export interface Docs {
   documentVersions: DocumentVersionsDoc;
   documents: DocumentsDoc;
   dsarRequests: DsarRequestsDoc;
+  emailVerificationChallenges: EmailVerificationChallengesDoc;
   entitlements: EntitlementsDoc;
   evaluationAnswers: EvaluationAnswersDoc;
   evaluationReportVersions: EvaluationReportVersionsDoc;
@@ -111,6 +114,7 @@ export interface Docs {
   policies: PoliciesDoc;
   promptRegistry: PromptRegistryDoc;
   purchases: PurchasesDoc;
+  reportOwnerships: ReportOwnershipsDoc;
   supportIncidents: SupportIncidentsDoc;
   transformBlocks: TransformBlocksDoc;
   transformDefinitions: TransformDefinitionsDoc;
