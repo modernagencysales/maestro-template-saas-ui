@@ -1,10 +1,11 @@
 import { TestConfect } from "@confect/test";
 import * as Effect from "effect/Effect";
+import * as Schema from "effect/Schema";
 import { describe, expect, it } from "vitest";
 
 import refs from "../confect/_generated/refs";
 import databaseSchema from "../confect/_generated/schema";
-import { DatabaseWriter } from "../confect/_generated/services";
+import { DatabaseReader, DatabaseWriter } from "../confect/_generated/services";
 import { testConfectLayer } from "./support/confect";
 
 const answers = {
@@ -68,6 +69,79 @@ const createOwnedPaidReport = Effect.gen(function* () {
 });
 
 describe("durable Complete Build Pack capability", () => {
+  it("atomically lets only one runner lease a stage attempt", async () => {
+    const program = Effect.gen(function* () {
+      const { confect, reportId, ownerAccessToken } =
+        yield* createOwnedPaidReport;
+      const started = yield* confect.mutation(
+        refs.public.buildPacks.packs.startPack,
+        { reportId, ownerAccessToken },
+      );
+      const first = yield* confect.mutation(
+        refs.internal.buildPacks.packs.claimStage,
+        { packId: started.packId, leaseId: "runner-one" },
+      );
+      const duplicate = yield* confect.mutation(
+        refs.internal.buildPacks.packs.claimStage,
+        { packId: started.packId, leaseId: "runner-two" },
+      );
+      return { first, duplicate };
+    });
+
+    await expect(
+      Effect.runPromise(program.pipe(Effect.provide(testConfectLayer()))),
+    ).resolves.toMatchObject({
+      first: { claimed: true, stage: "normalize", attempt: 1 },
+      duplicate: { claimed: false },
+    });
+  });
+
+  it("lets duplicate actions exit without duplicate stage spend", async () => {
+    const program = Effect.gen(function* () {
+      const { confect, reportId, ownerAccessToken } =
+        yield* createOwnedPaidReport;
+      const started = yield* confect.mutation(
+        refs.public.buildPacks.packs.startPack,
+        { reportId, ownerAccessToken },
+      );
+      yield* Effect.promise(() =>
+        Promise.all([
+          Effect.runPromise(
+            confect.action(refs.internal.buildPacks.packs.runPack, {
+              packId: started.packId,
+            }),
+          ),
+          Effect.runPromise(
+            confect.action(refs.internal.buildPacks.packs.runPack, {
+              packId: started.packId,
+            }),
+          ),
+        ]),
+      );
+      const status = yield* confect.query(refs.public.buildPacks.packs.status, {
+        packId: started.packId,
+        ownerAccessToken,
+      });
+      const premiumReceipts = yield* confect.run(
+        Effect.gen(function* () {
+          const reader = yield* DatabaseReader;
+          const receipts = yield* reader
+            .table("modelReceipts")
+            .index("by_report", (q) => q.eq("reportId", reportId))
+            .collect()
+            .pipe(Effect.orDie);
+          return receipts.filter(({ tier }) => tier === "premium").length;
+        }),
+        Schema.Number,
+      );
+      return { status: status.status, premiumReceipts };
+    });
+
+    await expect(
+      Effect.runPromise(program.pipe(Effect.provide(testConfectLayer()))),
+    ).resolves.toEqual({ status: "completed", premiumReceipts: 8 });
+  });
+
   it("counts only the current UTC day's spend across every report", async () => {
     const program = Effect.gen(function* () {
       const { confect, reportId, ownerAccessToken } =
@@ -210,9 +284,18 @@ describe("durable Complete Build Pack capability", () => {
             : stage,
         ),
       };
+      yield* confect.mutation(refs.internal.buildPacks.packs.claimStage, {
+        packId: started.packId,
+        leaseId: "failed-runner",
+      });
       yield* confect.mutation(
         refs.internal.buildPacks.packs.persistCheckpoint,
-        { packId: started.packId, runJson: JSON.stringify(failedRun) },
+        {
+          packId: started.packId,
+          runJson: JSON.stringify(failedRun),
+          stage: "normalize",
+          leaseId: "failed-runner",
+        },
       );
       const retried = yield* confect.mutation(
         refs.public.buildPacks.packs.retryFailedStage,

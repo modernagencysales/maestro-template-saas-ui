@@ -16,6 +16,8 @@ export default Table.make(() =>
     outputJson: Schema.optional(Schema.String),
     errorCode: Schema.optional(Schema.String),
     estimatedCostCents: Schema.Number,
+    leaseId: Schema.optional(Schema.String),
+    leaseExpiresAt: Schema.optional(Schema.Number),
     updatedAt: Schema.Number,
   }),
 )
