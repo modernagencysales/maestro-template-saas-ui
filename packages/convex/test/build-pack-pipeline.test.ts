@@ -1,5 +1,6 @@
 import { TestConfect } from "@confect/test";
 import * as Effect from "effect/Effect";
+import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
 import { describe, expect, it } from "vitest";
 
@@ -69,6 +70,103 @@ const createOwnedPaidReport = Effect.gen(function* () {
 });
 
 describe("durable Complete Build Pack capability", () => {
+  it("requires a specific operator reason before support resume", async () => {
+    const program = Effect.gen(function* () {
+      const confect = yield* Effect.serviceOptional(
+        TestConfect.TestConfect<typeof databaseSchema>(),
+      );
+      return yield* confect.mutation(refs.internal.buildPacks.support.resume, {
+        incidentId: "support_missing",
+        operatorReason: " ",
+      });
+    });
+
+    await expect(
+      Effect.runPromise(program.pipe(Effect.provide(testConfectLayer()))),
+    ).rejects.toThrow("specific operator reason");
+  });
+
+  it("creates a durable support id and resumes with an operator reason", async () => {
+    const program = Effect.gen(function* () {
+      const { confect, reportId, ownerAccessToken } =
+        yield* createOwnedPaidReport;
+      const started = yield* confect.mutation(
+        refs.public.buildPacks.packs.startPack,
+        { reportId, ownerAccessToken },
+      );
+      yield* confect.run(
+        Effect.gen(function* () {
+          const reader = yield* DatabaseReader;
+          const writer = yield* DatabaseWriter;
+          const stage = yield* reader
+            .table("buildPackStages")
+            .index("by_pack_stage", (q) =>
+              q.eq("packId", started.packId).eq("stageName", "normalize"),
+            )
+            .first()
+            .pipe(Effect.map(Option.getOrThrow), Effect.orDie);
+          yield* writer
+            .table("buildPackStages")
+            .patch(stage._id, { attempts: 3 })
+            .pipe(Effect.orDie);
+        }),
+      );
+      yield* confect.mutation(refs.internal.buildPacks.packs.claimStage, {
+        packId: started.packId,
+        leaseId: "exhausted-runner",
+      });
+      const exhausted = {
+        ...started,
+        status: "needs-support" as const,
+        stages: started.stages.map((stage, index) =>
+          index === 0
+            ? {
+                ...stage,
+                status: "needs-support" as const,
+                attempts: 3,
+                error: "provider capacity",
+              }
+            : stage,
+        ),
+      };
+      yield* confect.mutation(
+        refs.internal.buildPacks.packs.persistCheckpoint,
+        {
+          packId: started.packId,
+          runJson: JSON.stringify(exhausted),
+          stage: "normalize",
+          leaseId: "exhausted-runner",
+        },
+      );
+      const paused = yield* confect.query(refs.public.buildPacks.packs.status, {
+        packId: started.packId,
+        ownerAccessToken,
+      });
+      const resumed = yield* confect.mutation(
+        refs.internal.buildPacks.support.resume,
+        {
+          incidentId: paused.supportId ?? "",
+          operatorReason: "Provider capacity restored.",
+        },
+      );
+      return { paused, resumed };
+    });
+
+    const result = await Effect.runPromise(
+      program.pipe(Effect.provide(testConfectLayer())),
+    );
+    expect(result.paused).toMatchObject({
+      status: "needs-support",
+      supportId: expect.stringMatching(/^support_/),
+    });
+    expect(result.resumed).toMatchObject({
+      status: "running",
+      operatorReason: "Provider capacity restored.",
+      failedStage: "normalize",
+    });
+    expect(result.resumed.attempt).toBe(4);
+  });
+
   it("returns a server-owned Maestro offer backed by the active purchase credit", async () => {
     const program = Effect.gen(function* () {
       const { confect, reportId, ownerAccessToken } =

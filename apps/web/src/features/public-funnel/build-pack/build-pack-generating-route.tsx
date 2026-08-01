@@ -39,6 +39,7 @@ export function presentServerPackStatus(input: {
     | "needs-support"
     | "completed"
     | "revoked";
+  readonly supportId?: string | undefined;
   readonly stages: readonly {
     readonly name: BuildPackStage["name"];
     readonly status: BuildPackStage["status"];
@@ -55,7 +56,7 @@ export function presentServerPackStatus(input: {
     return {
       _tag: "failed",
       canRetry: input.status === "failed-recoverable",
-      supportId: `support_${input.packId}`,
+      supportId: input.supportId ?? `support_${input.packId}`,
     };
   }
   return {

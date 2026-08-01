@@ -35,6 +35,7 @@ const PackSummary = Schema.Struct({
   reportId: Schema.String,
   reportVersion: Schema.Number,
   status: PackStatus,
+  supportId: Schema.optional(Schema.String),
   stages: Schema.Array(Stage),
 });
 const OwnerArgs = Schema.Struct({
