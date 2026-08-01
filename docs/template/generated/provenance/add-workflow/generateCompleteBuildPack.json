@@ -2,6 +2,10 @@
   "generator": "add-workflow",
   "commandFamily": "template:add-workflow",
   "name": "generateCompleteBuildPack",
+  "ownership": {
+    "system": "workflow-runtime",
+    "disposition": "extend"
+  },
   "generatedPaths": [
     "packages/convex/confect/workflowContracts/generateCompleteBuildPack.spec.ts",
     "packages/convex/confect/workflowContracts/generateCompleteBuildPack.impl.ts",

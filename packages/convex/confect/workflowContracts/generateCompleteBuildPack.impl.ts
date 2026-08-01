@@ -1,9 +1,9 @@
 import {
-  getStatus,
-  sendEvent,
-  type WorkflowComponent,
-  type WorkflowId,
-} from "@convex-dev/workflow";
+  getMaestroWorkflowStatus as getStatus,
+  sendMaestroWorkflowEvent as sendEvent,
+  type MaestroWorkflowComponent as WorkflowComponent,
+  type MaestroWorkflowId as WorkflowId,
+} from "../workflows/_kit/defineMaestroWorkflow";
 import { FunctionImpl, GroupImpl } from "@confect/server";
 import * as Clock from "effect/Clock";
 import * as Effect from "effect/Effect";
@@ -148,6 +148,7 @@ const startImpl = FunctionImpl.make(
         startedByUserId: access.userId,
         startedAt: startedAt,
         workflowKind: "workflow.generateCompleteBuildPack",
+        kickoffProfile: "eager-first-poll",
       }).pipe(Effect.mapError(toWorkflowValidationFailed));
 
       return {

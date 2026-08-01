@@ -70,7 +70,7 @@ describe("privacy-safe funnel analytics", () => {
     {
       name: "maestro_offer_selected",
       packId: "pack_1",
-      blueprintId: "saas",
+      blueprintId: "saas-application",
       fit: "strong",
     },
   ])("accepts the $name operational boundary", (event) => {

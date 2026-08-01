@@ -2,5 +2,4 @@ import registeredFunctions from "../../confect/_generated/registeredFunctions/br
 
 export const createMarkdown = registeredFunctions.createMarkdown;
 export const list = registeredFunctions.list;
-export const recordSnapshotInternal =
-  registeredFunctions.recordSnapshotInternal;
+export const recordSnapshotInternal = registeredFunctions.recordSnapshotInternal;

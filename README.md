@@ -24,8 +24,8 @@ The public reference surface starts with a nontechnical founder workflow:
 5. Take the portable specification to a developer, agency, coding agent, or—
    when the fit is honest—apply the purchase as equal Maestro credit.
 
-Free evaluation and paid generation are intentionally separate systems. The
-free agent uses a bounded low-cost model without browsing or research. The paid
+Free evaluation and paid generation are intentionally separate systems. The free
+agent uses a bounded low-cost model without browsing or research. The paid
 pipeline uses stronger, checkpointed stages and can resume a failed stage
 without another purchase. A checkout return never unlocks paid work; only a
 verified, idempotent Dodo webhook creates an entitlement.

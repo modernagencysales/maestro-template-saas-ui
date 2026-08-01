@@ -2,7 +2,7 @@ import type { CompleteBuildPack } from "./buildPack";
 
 export type MaestroBlueprintCatalogEntry = {
   readonly id:
-    | "saas"
+    | "saas-application"
     | "source-grounded-gtm-brain"
     | "gtm-implementation"
     | "implementation-consulting-brain"
@@ -44,7 +44,7 @@ export const maestroBlueprintCatalog = [
     ],
   },
   {
-    id: "saas",
+    id: "saas-application",
     status: "implemented",
     label: "Opinionated SaaS baseline",
     domainNouns: ["organization", "member", "workflow", "subscription"],
@@ -142,7 +142,7 @@ export const selectMaestroBlueprint = (
     };
   }
   return {
-    blueprint: blueprint("saas"),
+    blueprint: blueprint("saas-application"),
     fit: "strong",
     fitScore: 76,
     gaps: [],

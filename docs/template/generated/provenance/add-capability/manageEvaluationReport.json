@@ -2,6 +2,10 @@
   "generator": "add-capability",
   "commandFamily": "template:add-capability",
   "name": "manageEvaluationReport",
+  "ownership": {
+    "system": "policy-and-prompts",
+    "disposition": "extend"
+  },
   "generatedPaths": [
     "packages/convex/confect/capabilities/manageEvaluationReport.spec.ts",
     "packages/convex/confect/capabilities/manageEvaluationReport.impl.ts",

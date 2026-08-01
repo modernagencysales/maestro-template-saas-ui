@@ -591,6 +591,9 @@ importers:
 
   tooling/generators:
     dependencies:
+      "@maestro-template/app-idea-evaluator":
+        specifier: workspace:*
+        version: link:../../packages/app-idea-evaluator
       "@maestro-template/release-tooling":
         specifier: workspace:*
         version: link:../release

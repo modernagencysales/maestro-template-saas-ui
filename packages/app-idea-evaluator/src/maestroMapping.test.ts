@@ -25,7 +25,7 @@ describe("honest Maestro mapping", () => {
   it("suppresses the template offer when fit is low", () => {
     expect(
       mapBuildPackToMaestro({
-        blueprint: { id: "saas", status: "implemented" },
+        blueprint: { id: "saas-application", status: "implemented" },
         fitScore: 35,
         purchaseCreditCents: 2_900,
         gaps: ["native mobile"],
@@ -79,7 +79,7 @@ describe("honest Maestro mapping", () => {
       },
       fitScore: 81,
       purchaseCreditCents: 2_900,
-      blueprint: { id: "saas", status: "implemented" },
+      blueprint: { id: "saas-application", status: "implemented" },
       catalog: [
         {
           target: "notifications",

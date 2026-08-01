@@ -36,6 +36,7 @@
     "@maestro-template/observability": "workspace:*",
     "@maestro-template/app-idea-evaluator": "workspace:*",
     "@maestro-template/integrations": "workspace:*",
+    "@maestro-template/notifications": "workspace:*",
     "@maestro-template/template-core": "workspace:*",
     "@maestro-template/workflow-tooling": "workspace:*",
     "@tiptap/core": "3.27.1",

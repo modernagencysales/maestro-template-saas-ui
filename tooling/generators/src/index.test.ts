@@ -438,7 +438,7 @@ describe("template app factory generators", () => {
     expect(buildBlueprintCatalog().map(({ id }) => id)).toEqual(
       sharedImplementedIds,
     );
-    expect(sharedImplementedIds).toContain("saas");
+    expect(sharedImplementedIds).toContain("saas-application");
   });
 
   it("registers the optional GTM implementation blueprint without making it default", () => {

@@ -39,7 +39,7 @@ describe("Maestro evaluator blueprint catalog", () => {
 
   it("selects the implemented SaaS baseline for a conventional web product", () => {
     expect(selectMaestroBlueprint(pack)).toMatchObject({
-      blueprint: { id: "saas", status: "implemented" },
+      blueprint: { id: "saas-application", status: "implemented" },
       fit: "strong",
     });
   });
