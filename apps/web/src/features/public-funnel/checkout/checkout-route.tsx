@@ -4,6 +4,7 @@ import * as Either from "effect/Either";
 
 import { useTemplateAction } from "../../../adapters/confect-state";
 import { isConvexConfigured } from "../../../env";
+import { useFunnelAnalytics } from "../../../providers/posthog";
 import { loadOwnerAccessToken } from "../report/report-credentials";
 import { beginFakeCheckout } from "./commerce-storage";
 import { CheckoutView, type CheckoutViewState } from "./checkout-view";
@@ -34,12 +35,14 @@ export async function openConfiguredCheckout({
   ownerAccessToken,
   createCheckout,
   redirect,
+  onStarted,
 }: {
   readonly reportId: string;
   readonly email: string;
   readonly ownerAccessToken: string | null;
   readonly createCheckout: CreateCheckout;
   readonly redirect: (url: string) => void;
+  readonly onStarted?: () => void;
 }): Promise<void> {
   if (!ownerAccessToken) {
     throw new Error("Verified report ownership is required");
@@ -49,6 +52,7 @@ export async function openConfiguredCheckout({
     ownerAccessToken,
     email: email.trim(),
   });
+  onStarted?.();
   redirect(checkout.checkoutUrl);
 }
 
@@ -63,6 +67,7 @@ function ConfiguredBuildPackCheckoutRoute({
   const [ownerAccessToken] = useState(loadOwnerAccessToken);
   const [email, setEmail] = useState("");
   const [state, setState] = useState<CheckoutViewState>({ _tag: "ready" });
+  const capture = useFunnelAnalytics();
 
   const startCheckout = async () => {
     setState({ _tag: "redirecting" });
@@ -79,6 +84,7 @@ function ConfiguredBuildPackCheckoutRoute({
           }
           return result;
         },
+        onStarted: () => capture({ name: "checkout_started", reportId }),
         redirect: (url) => window.location.assign(url),
       });
     } catch {
@@ -108,11 +114,13 @@ function LocalBuildPackCheckoutRoute({
   readonly reportId: string;
 }) {
   const [state, setState] = useState<CheckoutViewState>({ _tag: "ready" });
+  const capture = useFunnelAnalytics();
 
   const startCheckout = () => {
     setState({ _tag: "redirecting" });
     try {
       const session = beginFakeCheckout(reportId, buildPackPriceCents);
+      capture({ name: "checkout_started", reportId });
       // Fake-provider delivery is deliberately separate from the return route.
       window.location.assign(session.hostedCheckoutUrl);
     } catch {

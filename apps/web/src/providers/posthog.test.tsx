@@ -1,7 +1,11 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
-import { PostHogWebProvider, useFunnelAnalytics } from "./posthog";
+import {
+  captureUnseenFunnelEvents,
+  PostHogWebProvider,
+  useFunnelAnalytics,
+} from "./posthog";
 
 const checkoutStarted = {
   name: "checkout_started" as const,
@@ -49,5 +53,28 @@ describe("consent-aware funnel analytics provider", () => {
     expect(sink).toHaveBeenCalledWith("checkout_started", {
       reportId: "report_1",
     });
+  });
+
+  it("captures each transition key once across polling rerenders", () => {
+    const capture = vi.fn();
+    const seen = new Set<string>();
+    const transitions = [
+      [
+        "pack_1:research:completed:1",
+        {
+          name: "build_pack_stage_changed",
+          packId: "pack_1",
+          stage: "research",
+          status: "completed",
+          attempts: 1,
+        },
+      ],
+    ] as const;
+
+    captureUnseenFunnelEvents(seen, transitions, capture);
+    captureUnseenFunnelEvents(seen, transitions, capture);
+
+    expect(capture).toHaveBeenCalledOnce();
+    expect(capture).toHaveBeenCalledWith(transitions[0][1]);
   });
 });

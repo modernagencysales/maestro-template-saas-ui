@@ -4,6 +4,7 @@ import type {
   BuildPackStage,
   CompleteBuildPack,
 } from "@maestro-template/app-idea-evaluator";
+import { useFunnelAnalytics } from "../../../providers/posthog";
 import { PublicFunnelShell } from "../public-shell";
 import {
   buildPackSectionIds,
@@ -95,6 +96,7 @@ export function CompleteBuildPackView({
   readonly packId: string;
   readonly pack: CompleteBuildPack;
 }) {
+  const capture = useFunnelAnalytics();
   return (
     <PublicFunnelShell>
       <main className="idea-complete-pack" id="main-content">
@@ -105,14 +107,28 @@ export function CompleteBuildPackView({
           </div>
           <div className="idea-pack-downloads">
             <button
-              onClick={() => downloadBuildPack(packId, pack)}
+              onClick={() => {
+                capture({
+                  name: "build_pack_exported",
+                  packId,
+                  format: "markdown",
+                });
+                downloadBuildPack(packId, pack);
+              }}
               type="button"
             >
               <Download aria-hidden="true" size={17} />
               Download Build Pack
             </button>
             <button
-              onClick={() => downloadBuildPackPrintHtml(packId, pack)}
+              onClick={() => {
+                capture({
+                  name: "build_pack_exported",
+                  packId,
+                  format: "print-html",
+                });
+                downloadBuildPackPrintHtml(packId, pack);
+              }}
               type="button"
             >
               <FileText aria-hidden="true" size={17} />
