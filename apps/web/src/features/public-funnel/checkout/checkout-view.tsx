@@ -7,6 +7,7 @@ export type CheckoutViewState =
   | { readonly _tag: "ready" }
   | { readonly _tag: "redirecting" }
   | { readonly _tag: "payment-pending" }
+  | { readonly _tag: "payment-delayed" }
   | { readonly _tag: "error"; readonly message: string };
 
 export function CheckoutView({
@@ -16,6 +17,7 @@ export function CheckoutView({
   email,
   onEmailChange,
   onCheckout,
+  onRefresh,
 }: {
   readonly reportId: string;
   readonly priceCents: number;
@@ -23,6 +25,7 @@ export function CheckoutView({
   readonly email?: string;
   readonly onEmailChange?: (email: string) => void;
   readonly onCheckout?: () => void;
+  readonly onRefresh?: () => void;
 }) {
   const price = `$${(priceCents / 100).toFixed(2)}`;
   const submitCheckout = (event: FormEvent<HTMLFormElement>) => {
@@ -44,6 +47,30 @@ export function CheckoutView({
             verified payment confirmation arrives.
           </p>
           <a href={`/checkout/${reportId}`}>Check payment status</a>
+        </main>
+      </PublicFunnelShell>
+    );
+  }
+  if (state._tag === "payment-delayed") {
+    return (
+      <PublicFunnelShell>
+        <main className="idea-checkout-status" id="main-content" role="status">
+          <Clock3 aria-hidden="true" size={30} />
+          <h1>Payment confirmation is taking longer than usual</h1>
+          <p>
+            Your Build Pack remains locked until the verified payment notice
+            arrives. You will not be charged again by checking.
+          </p>
+          <div className="idea-inline-actions">
+            <button
+              className="idea-primary-action"
+              onClick={onRefresh}
+              type="button"
+            >
+              Check payment status again
+            </button>
+            <a href="/support">Contact support</a>
+          </div>
         </main>
       </PublicFunnelShell>
     );

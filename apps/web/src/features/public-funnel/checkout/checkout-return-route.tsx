@@ -32,6 +32,7 @@ type PurchaseStatus =
 export type CheckoutReturnPresentation =
   | { readonly _tag: "entitled"; readonly reportId: string }
   | { readonly _tag: "pending"; readonly reportId: string }
+  | { readonly _tag: "recovery"; readonly reportId: string }
   | {
       readonly _tag: "unavailable";
       readonly reportId: string;
@@ -42,10 +43,12 @@ export function presentCheckoutReturn({
   reportId,
   purchaseStatus,
   entitlementStatus,
+  waitedMs = 0,
 }: {
   readonly reportId: string;
   readonly purchaseStatus: PurchaseStatus;
   readonly entitlementStatus: "missing" | "active" | "revoked";
+  readonly waitedMs?: number;
 }): CheckoutReturnPresentation {
   if (entitlementStatus === "active") {
     return { _tag: "entitled", reportId };
@@ -59,6 +62,9 @@ export function presentCheckoutReturn({
   }
   if (purchaseStatus === "failed") {
     return { _tag: "unavailable", reportId, reason: "failed" };
+  }
+  if (waitedMs >= PAYMENT_CONFIRMATION_WAIT_MS) {
+    return { _tag: "recovery", reportId };
   }
   return { _tag: "pending", reportId };
 }
@@ -78,6 +84,7 @@ function ConfiguredCheckoutReturnRoute() {
     templateConfectRefs.public.commerce.checkout.markReturned,
   );
   const marked = useRef(false);
+  const [waitedMs, setWaitedMs] = useState(0);
   const status = useTemplateQuery(
     templateConfectRefs.public.commerce.checkout.status,
     parameters.reportId && ownerAccessToken
@@ -91,6 +98,14 @@ function ConfiguredCheckoutReturnRoute() {
     void markReturned({ checkoutSessionId: parameters.checkoutSessionId });
   }, [markReturned, parameters.checkoutSessionId]);
 
+  useEffect(() => {
+    const timeout = window.setTimeout(
+      () => setWaitedMs(PAYMENT_CONFIRMATION_WAIT_MS),
+      PAYMENT_CONFIRMATION_WAIT_MS,
+    );
+    return () => window.clearTimeout(timeout);
+  }, []);
+
   if (
     !parameters.reportId ||
     !parameters.checkoutSessionId ||
@@ -100,7 +115,9 @@ function ConfiguredCheckoutReturnRoute() {
   }
   if (status.status === "ready") {
     return (
-      <CheckoutReturnStatusView state={presentCheckoutReturn(status.data)} />
+      <CheckoutReturnStatusView
+        state={presentCheckoutReturn({ ...status.data, waitedMs })}
+      />
     );
   }
   if (
@@ -115,7 +132,13 @@ function ConfiguredCheckoutReturnRoute() {
     <CheckoutView
       priceCents={buildPackPriceCents}
       reportId={parameters.reportId}
-      state={{ _tag: "payment-pending" }}
+      state={{
+        _tag:
+          waitedMs >= PAYMENT_CONFIRMATION_WAIT_MS
+            ? "payment-delayed"
+            : "payment-pending",
+      }}
+      onRefresh={() => window.location.reload()}
     />
   );
 }
@@ -147,6 +170,16 @@ function CheckoutReturnStatusView({
   }
   if (state._tag === "unavailable") {
     return <CheckoutReturnUnavailable reason={state.reason} />;
+  }
+  if (state._tag === "recovery") {
+    return (
+      <CheckoutView
+        priceCents={buildPackPriceCents}
+        reportId={state.reportId}
+        state={{ _tag: "payment-delayed" }}
+        onRefresh={() => window.location.reload()}
+      />
+    );
   }
   return (
     <CheckoutView
@@ -186,6 +219,7 @@ function CheckoutReturnUnavailable({
 function LocalCheckoutReturnRoute() {
   const [reportId, setReportId] = useState("");
   const [entitled, setEntitled] = useState(false);
+  const [delayed, setDelayed] = useState(false);
 
   useEffect(() => {
     const search = new URLSearchParams(window.location.search);
@@ -195,7 +229,14 @@ function LocalCheckoutReturnRoute() {
       setEntitled(entitlementStatusFor(returnedReportId) === "active");
     refresh();
     const interval = window.setInterval(refresh, 1_500);
-    return () => window.clearInterval(interval);
+    const timeout = window.setTimeout(
+      () => setDelayed(true),
+      PAYMENT_CONFIRMATION_WAIT_MS,
+    );
+    return () => {
+      window.clearInterval(interval);
+      window.clearTimeout(timeout);
+    };
   }, []);
 
   if (entitled) {
@@ -223,9 +264,11 @@ function LocalCheckoutReturnRoute() {
     <CheckoutView
       priceCents={buildPackPriceCents}
       reportId={reportId}
-      state={{ _tag: "payment-pending" }}
+      state={{ _tag: delayed ? "payment-delayed" : "payment-pending" }}
+      onRefresh={() => window.location.reload()}
     />
   );
 }
 
 const buildPackPriceCents = 2_900;
+export const PAYMENT_CONFIRMATION_WAIT_MS = 60_000;
