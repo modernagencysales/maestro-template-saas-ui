@@ -13,7 +13,8 @@ Audited against current source and focused evidence on 2026-08-01. See
 - [x] Paid copy explains the exact Complete Build Pack contents and
       first-purchase Maestro credit without implying guaranteed commercial
       success.
-- [x] Low Maestro fit recommends taking the spec elsewhere.
+- [x] Low Maestro fit recommends taking the spec elsewhere and suppresses the
+      Maestro build CTA.
 
 ## Free evaluation economics
 
@@ -28,7 +29,7 @@ Audited against current source and focused evidence on 2026-08-01. See
 
 - [x] Anonymous access tokens are opaque and stored only as hashes.
 - [x] Answers survive transport/model failure and can be edited.
-- [x] Report revision appends a version.
+- [x] Report revision appends and persists a version while retaining version 1.
 - [x] Email verification safely claims an anonymous report.
 - [x] Share snapshots exclude private answers and can be revoked.
 - [x] Library loading, empty, ready, and failure states are tested.
@@ -47,7 +48,8 @@ Audited against current source and focused evidence on 2026-08-01. See
 
 - [x] Active entitlement is required before generation.
 - [x] All eight stages checkpoint decoded output and record cost receipts.
-- [x] Retry resumes the failed stage without rerunning completed stages.
+- [x] Desktop/mobile retry resumes the failed stage without rerunning completed
+      stages or requiring another purchase.
 - [x] Research claims require citations and sources are displayed.
 - [x] Viewer and Markdown/print exports use the same canonical section IDs.
 - [x] Paid failures expose a support ID and resumable operator action.
