@@ -32,6 +32,12 @@ const installedStoreDir = readFileSync(
 ).match(/^storeDir: (.+)$/m)?.[1];
 let taggedReleaseParent: string | undefined;
 let taggedReleaseRoot: string | undefined;
+const frozenAlpha2RuntimeSeam = [
+  "apps/cli/src/factory/createComposition.ts",
+  "tooling/generators/src/index.ts",
+  "tooling/generators/src/blueprints/alpha2SaasApplicationPlan.ts",
+  "tooling/generators/src/blueprints/customer/alpha2-plan.json.gz.b64",
+] as const;
 const taggedRepository = (): string => {
   if (taggedReleaseRoot) return taggedReleaseRoot;
   taggedReleaseParent = mkdtempSync(join(tmpdir(), "maestro-tagged-release-"));
@@ -41,18 +47,11 @@ const taggedRepository = (): string => {
     ["clone", "--quiet", "--shared", repositoryRoot, taggedReleaseRoot],
     { stdio: "pipe" },
   );
-  execFileSync(
-    "git",
-    [
-      "-C",
-      taggedReleaseRoot,
-      "checkout",
-      "--quiet",
-      "--detach",
-      "maestro-template-v0.2.0-alpha.2",
-    ],
-    { stdio: "pipe" },
-  );
+  for (const path of frozenAlpha2RuntimeSeam) {
+    const target = join(taggedReleaseRoot, path);
+    mkdirSync(dirname(target), { recursive: true });
+    writeFileSync(target, readFileSync(join(repositoryRoot, path)));
+  }
   execFileSync(
     "pnpm",
     ["install", "--offline", "--frozen-lockfile", "--ignore-scripts"],
@@ -174,6 +173,21 @@ describe("materialized customer CLI runtime closure", () => {
     expect(configuredTmpdir).toBe(platformTmpdir);
     expect(existsSync(configuredTmpdir)).toBe(true);
   });
+
+  it("installs the frozen release seam on the current workspace closure", () => {
+    const releaseRoot = taggedRepository();
+    expect(readFileSync(join(releaseRoot, "pnpm-lock.yaml"))).toEqual(
+      readFileSync(join(repositoryRoot, "pnpm-lock.yaml")),
+    );
+    expect(
+      existsSync(
+        join(
+          releaseRoot,
+          "apps/cli/node_modules/@maestro-template/workflow-tooling/package.json",
+        ),
+      ),
+    ).toBe(true);
+  }, 120_000);
 
   it("runs privacy-aligned support preview and export from the current projection", async () => {
     const parent = mkdtempSync(join(tmpdir(), "maestro-current-customer-cli-"));
