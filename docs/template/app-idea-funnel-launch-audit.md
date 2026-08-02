@@ -89,6 +89,9 @@ Current-main reproof on 2026-08-02:
    pending until the authorized release bindings are provisioned.
 4. Live Dodo `$1` Build Pack canary, refund/revocation, Admaxxer Purchase, and
    Meta CAPI evidence require owner-approved card entry and provider access.
+5. Read-only Pages secret listing for `maestro-template-saas-ui` production
+   returned no configured secrets; the isolated `TEMPLATE_PRODUCTION_*` bindings
+   must be provisioned through the authorized Woodpecker path.
 
 The implementation, focused journeys, and required GitHub quality gate are
 verified. Production launch verification still requires the configured Convex
