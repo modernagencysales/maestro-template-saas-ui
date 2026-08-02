@@ -125,6 +125,11 @@ const recordGovernanceFiles = (): readonly GeneratedFile[] => {
   const retainedTableIds = new Set([
     ...releasedSystems.systems.flatMap(({ tables }) => tables),
     "deployAuthorityAuditEvents",
+    "emailCampaigns",
+    "emailDeliveries",
+    "emailEvents",
+    "emailSubscribers",
+    "emailSuppressions",
   ]);
   const retainedDataResourceIds = new Set([
     ...releasedDataResources.resources.map(({ id }) => id),

@@ -450,6 +450,17 @@ describe("saas application blueprint", () => {
       expect(resources.resources.some(({ id }) => id === table)).toBe(true);
     }
     for (const table of [
+      "emailCampaigns",
+      "emailDeliveries",
+      "emailEvents",
+      "emailSubscribers",
+      "emailSuppressions",
+    ]) {
+      expect(systems.systems.some(({ tables }) => tables.includes(table))).toBe(
+        true,
+      );
+    }
+    for (const table of [
       "emailVerificationChallenges",
       "reportOwnerships",
       "evaluationAnswers",
