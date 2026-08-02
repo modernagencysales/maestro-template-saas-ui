@@ -1035,6 +1035,13 @@ export const buildSaasRegistrationProjections = (
       ...(!current
         ? ["packages/convex/confect/ops/dataResources.generated.ts"]
         : []),
+      ...(current
+        ? [
+            "packages/convex/confect/ops/email.spec.ts",
+            "packages/integrations/src/email.ts",
+            "packages/integrations/src/emailSetup.ts",
+          ]
+        : []),
       ...(current ? CURRENT_SAAS_DEPLOY_AUTHORITY_TABLE_CLOSURE : []),
       ...(current ? CURRENT_SAAS_DEPLOY_AUTHORITY_SOURCE_CLOSURE : []),
       ...(current ? CURRENT_PRODUCT_JOURNEY_CLOSURE : []),

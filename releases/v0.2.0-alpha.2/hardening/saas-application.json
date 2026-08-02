@@ -1262,6 +1262,13 @@
       "replaces": "copy"
     },
     {
+      "path": "packages/convex/confect/ops/email.spec.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:705d5739081cc8a7f378f85f5e09cbe6a347083864a3531e56288b259f64dd89"
+    },
+    {
       "path": "packages/convex/confect/records.impl.ts",
       "ownership": "generated",
       "action": "generate",
@@ -1686,6 +1693,20 @@
       "upgrade": "regenerate",
       "sha256": "sha256:04151cdfd93e958a3cea484b972b141372326d8e5fcd3efe9f70041d85fb3ae6",
       "replaces": "copy"
+    },
+    {
+      "path": "packages/integrations/src/email.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:c6fee84f190138fa8476e43b9e3ca624650bc27b11cd70c90d4a76ec0081a0bf"
+    },
+    {
+      "path": "packages/integrations/src/emailSetup.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:1752c79cb3ede1397c6ba854d9d40059f779825175f82b9c680b44ce47f8848c"
     },
     {
       "path": "packages/product-journey/package.json",
