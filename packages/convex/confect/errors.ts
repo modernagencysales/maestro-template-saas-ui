@@ -3,8 +3,8 @@ import * as Schema from "effect/Schema";
 // Schema.Never is the runtime "no recoverable errors" schema; Confect accepts
 // codec thunks, so keep the variance bridge in one named place.
 export const NoRecoverableError = Schema.Never as unknown as Schema.Codec<
-  any,
-  any
+  never,
+  never
 >;
 
 export class Unauthorized extends Schema.TaggedErrorClass<Unauthorized>()(

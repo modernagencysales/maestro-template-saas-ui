@@ -156,7 +156,7 @@ export type AnyWorkflowV2SubworkflowRegistryEntry = {
   readonly mapArgs: (
     envelope: WorkflowV2SubworkflowEnvelope,
   ) => MappedChildArgs;
-  readonly resultSchema: Schema.Codec<any, any>;
+  readonly resultSchema: Schema.Codec<unknown, unknown>;
   readonly principal: WorkflowV2SubworkflowRegistryEntry<
     ChildWorkflowArgs,
     unknown
@@ -196,7 +196,7 @@ type AnyWorkflowV2SubworkflowDefinition = Omit<
   WorkflowV2SubworkflowDefinition<ChildWorkflowArgs, unknown>,
   "resultSchema"
 > & {
-  readonly resultSchema: Schema.Codec<any, any>;
+  readonly resultSchema: Schema.Codec<unknown, unknown>;
 };
 
 type PublishedRegistry<

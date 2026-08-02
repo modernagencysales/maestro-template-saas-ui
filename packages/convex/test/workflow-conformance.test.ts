@@ -3389,7 +3389,7 @@ const publishedSubworkflowFixture = (
   mapArgs: (envelope: { readonly inputs: unknown }) => {
     readonly requestId: string;
   } = childArgumentMapper,
-  resultSchema: Schema.Codec<any, any> = childResultSchema,
+  resultSchema: Schema.Codec<unknown, unknown> = childResultSchema,
   boundedBatch?: WorkflowV2BoundedBatchBinding,
 ) => {
   const graphJson = JSON.stringify({
