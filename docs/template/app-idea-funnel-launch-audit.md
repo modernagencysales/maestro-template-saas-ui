@@ -1,6 +1,6 @@
 # App idea funnel launch audit
 
-Audit date: 2026-08-01
+Audit date: 2026-08-02
 
 ## Proven product requirements
 
@@ -18,6 +18,23 @@ Audit date: 2026-08-01
 | Operations                            | `app-idea-funnel-operations.md`, durable support incidents, specific operator-reason validation, entitlement recheck, checkpoint-preserving resume, and public support IDs.                                               |
 
 ## Fresh focused verification
+
+Current-main reproof on 2026-08-02:
+
+- Functional and accessibility Playwright: 26/26 passed across desktop and
+  mobile Chromium on the long-lived reviewed server at `127.0.0.1:4177`.
+- Visual Playwright: 2/2 passed across desktop and mobile Chromium with the
+  progress snapshot using the same dynamic masks as the stable capture path.
+- Web funnel, lifecycle, consent, analytics, support, and recovery tests:
+  201/201 passed.
+- Evaluator commerce, support, event-schema, cost-policy, report, Build Pack,
+  and mapping tests: 66/66 passed.
+- Convex focused capability evidence includes 13/13 Build Pack pipeline tests,
+  10/10 data-lifecycle tests, 4/4 app-idea funnel capability tests, and 2/2
+  commerce capability tests.
+- PR #16 is merged at `4aa0b268a96a2c748018f39fb4e19679923b7c43`; the required
+  GitHub quality check passed. Qlty Cloud remained optional and was not
+  branch-required.
 
 - Functional Playwright: 18/18 passed across desktop and mobile Chromium,
   including append-only revision, delayed-webhook recovery, post-refund
@@ -46,9 +63,15 @@ Audit date: 2026-08-01
 1. `template:workflow-output-smoke` reached Convex ref generation and stopped
    because `CONVEX_DEPLOYMENT` is not configured in this worktree. Run it in the
    configured Convex environment; do not weaken or fake the connection.
-2. Manual Woodpecker proof has not been run from this worktree. It is remote CI
-   evidence, not a substitute for the configured Convex workflow smoke.
+2. The authorized Buildkite release path cannot currently be invoked: the shared
+   token exposes no organization, and Bitwarden does not contain the required
+   `TEMPLATE_STAGING_*` and `TEMPLATE_PRODUCTION_*` Cloudflare, Convex, and
+   hosted-URL bindings. Generic credentials are intentionally not substituted
+   for environment-isolated release authority.
+3. Cloudflare Pages still serves its 2026-07-02 deployment, which predates the
+   funnel merge. Production and staging live-page verification therefore remain
+   pending until the authorized release bindings are provisioned.
 
-The implementation and local repository gates are verified. Production launch
-verification still requires the configured Convex workflow output smoke and the
-normal remote CI proof for the eventual PR.
+The implementation, focused journeys, and required GitHub quality gate are
+verified. Production launch verification still requires the configured Convex
+workflow output smoke and an authorized staging-to-production deployment.
