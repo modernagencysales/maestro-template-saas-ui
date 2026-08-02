@@ -232,6 +232,7 @@ export const CUSTOMER_ROOT_SCRIPTS = [
   "confect:dev",
   "convex:dev",
   "dev:backend",
+  "email:setup",
   "template:doctor",
   "template:quickstart",
   "template:seed-demo",
@@ -832,6 +833,10 @@ export const buildSaasRegistrationProjections = (
           {
             path: "scripts/maestro-bootstrap.test.mjs",
             content: currentSource("scripts/maestro-bootstrap.test.mjs"),
+          },
+          {
+            path: "scripts/configure-postmark.mts",
+            content: currentSource("scripts/configure-postmark.mts"),
           },
           {
             path: "apps/web/src/bundle-policy.ts",

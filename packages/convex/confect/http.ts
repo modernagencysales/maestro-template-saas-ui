@@ -6,6 +6,7 @@ import {
 } from "convex/server";
 import { api } from "../convex/_generated/api";
 import { verifyEmailUnsubscribeToken } from "./email/unsubscribeToken";
+import { readEmailHttpEnv } from "./email/env";
 import {
   normalizePostmarkEvent,
   verifyPostmarkBasicAuth,
@@ -21,7 +22,6 @@ import {
   readJsonBody,
   type TemplateApiRequestBody,
 } from "./httpRequest";
-import { readEmailHttpEnv } from "./shared/env";
 
 type ManifestFunction = (typeof confectManifest.functions)[number];
 

@@ -57,12 +57,6 @@ export const readNodeEnvironment = (): "production" | "test" | undefined => {
 export const readPromotionAuthorityPrivateKeyPkcs8Base64Url = () =>
   process.env.PROMOTION_AUTHORITY_PRIVATE_KEY_PKCS8_BASE64URL;
 
-export const readEmailHttpEnv = () => ({
-  POSTMARK_WEBHOOK_USERNAME: process.env.POSTMARK_WEBHOOK_USERNAME,
-  POSTMARK_WEBHOOK_PASSWORD: process.env.POSTMARK_WEBHOOK_PASSWORD,
-  EMAIL_UNSUBSCRIBE_SECRET: process.env.EMAIL_UNSUBSCRIBE_SECRET,
-});
-
 export const readRequiredEnv = (name: string, env: EnvSource): string => {
   if (!(name in env)) {
     throw makeEnvConfigError(name, "missing");
