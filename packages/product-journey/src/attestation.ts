@@ -37,6 +37,17 @@ export type AttestationIssuer = {
   readonly issue: (claims: Uint8Array) => Uint8Array;
 };
 
+const verifiedAdmissionBrand: unique symbol = Symbol("verifiedAdmission");
+
+export type VerifiedAdmissionProjection = {
+  readonly [verifiedAdmissionBrand]: true;
+  readonly attestationId: string;
+  readonly runtimeIdentityHash: string;
+  readonly evidenceHash: string;
+  readonly expiresAt: string;
+  readonly dependencyAttestationIds: readonly string[];
+};
+
 export type AdmissionVerificationReason =
   | "UNTRUSTED_ISSUER"
   | "LOCAL_ISSUER_FORBIDDEN"
@@ -58,10 +69,11 @@ export type AdmissionVerificationReason =
   | "EVIDENCE_REPORT_DIGEST_INVALID"
   | "EVIDENCE_REPORT_MISMATCH"
   | "REQUIRED_SCENARIOS_MISMATCH"
-  | "SCENARIO_CLOSURE_INCOMPLETE";
+  | "SCENARIO_CLOSURE_INCOMPLETE"
+  | "INVALID_ATTESTATION";
 
 export type AdmissionVerification =
-  | { readonly ok: true }
+  | { readonly ok: true; readonly verified: VerifiedAdmissionProjection }
   | { readonly ok: false; readonly reason: AdmissionVerificationReason };
 
 const claimsOf = (value: AdmissionClaims): AdmissionClaims => ({
@@ -160,72 +172,198 @@ const mismatch = (
 const MAX_FUTURE_SKEW_MS = 5 * 60 * 1000;
 const digestPattern = /^sha256:[0-9a-f]{64}$/;
 const isStringArray = (value: unknown): value is readonly string[] =>
-  Array.isArray(value) && value.every((entry) => typeof entry === "string");
+  Array.isArray(value) &&
+  value.every((entry) => typeof entry === "string" && entry.length > 0);
+const isUniqueStringArray = (value: unknown): value is readonly string[] =>
+  isStringArray(value) && new Set(value).size === value.length;
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+const hasOwn = (value: object, key: PropertyKey): boolean =>
+  Object.prototype.hasOwnProperty.call(value, key);
+
+const scalarClaimKeys = [
+  "repository",
+  "commitSha",
+  "journeyId",
+  "journeyHash",
+  "contractHash",
+  "testHash",
+  "generatedIdentity",
+  "deploymentIdentity",
+  "environment",
+  "issuer",
+  "issuedAt",
+  "expiresAt",
+] as const;
+
+const hasValidBaseShape = (value: unknown): value is AdmissionAttestation => {
+  if (!isRecord(value)) return false;
+  if (
+    !hasOwn(value, "protocolVersion") ||
+    !hasOwn(value, "journeyVersion") ||
+    !hasOwn(value, "signature") ||
+    value.protocolVersion !== 1 ||
+    !Number.isSafeInteger(value.journeyVersion) ||
+    (value.journeyVersion as number) < 1 ||
+    !(value.signature instanceof Uint8Array)
+  )
+    return false;
+  return scalarClaimKeys.every(
+    (key) =>
+      hasOwn(value, key) &&
+      typeof value[key] === "string" &&
+      value[key].length > 0,
+  );
+};
+
+const identityOf = (
+  value: JourneyRunningIdentity,
+): Readonly<Record<string, unknown>> => ({
+  repository: value.repository,
+  commitSha: value.commitSha,
+  journeyId: value.journeyId,
+  journeyVersion: value.journeyVersion,
+  journeyHash: value.journeyHash,
+  contractHash: value.contractHash,
+  testHash: value.testHash,
+  generatedIdentity: value.generatedIdentity,
+  deploymentIdentity: value.deploymentIdentity,
+  environment: value.environment,
+  runtimeConfigDigest: value.runtimeConfigDigest,
+  evidenceReportDigest: value.evidenceReportDigest,
+  requiredScenarioIds: value.requiredScenarioIds,
+  dependencyAttestationIds: value.dependencyAttestationIds,
+});
+
+const canonicalRecord = (
+  value: Readonly<Record<string, unknown>>,
+): Uint8Array =>
+  new TextEncoder().encode(
+    JSON.stringify(
+      Object.fromEntries(
+        Object.entries(value).sort(([left], [right]) =>
+          left < right ? -1 : left > right ? 1 : 0,
+        ),
+      ),
+    ),
+  );
+
+const toHex = (bytes: Uint8Array): string =>
+  Array.from(bytes, (value) => value.toString(16).padStart(2, "0")).join("");
+
+const createVerifiedProjection = (
+  attestation: AdmissionAttestation,
+  identity: JourneyRunningIdentity,
+): VerifiedAdmissionProjection => {
+  const projection = {
+    attestationId: `claims:${toHex(canonicalAdmissionClaims(attestation))}`,
+    runtimeIdentityHash: `identity:${toHex(canonicalRecord(identityOf(identity)))}`,
+    evidenceHash: attestation.evidenceReportDigest,
+    expiresAt: attestation.expiresAt,
+    dependencyAttestationIds: Object.freeze([
+      ...attestation.dependencyAttestationIds,
+    ]),
+  } as Omit<VerifiedAdmissionProjection, typeof verifiedAdmissionBrand> &
+    Partial<Pick<VerifiedAdmissionProjection, typeof verifiedAdmissionBrand>>;
+  Object.defineProperty(projection, verifiedAdmissionBrand, {
+    value: true,
+    enumerable: false,
+  });
+  return Object.freeze(projection) as VerifiedAdmissionProjection;
+};
+
+export const isVerifiedAdmissionProjection = (
+  value: unknown,
+): value is VerifiedAdmissionProjection =>
+  isRecord(value) &&
+  (value as Record<PropertyKey, unknown>)[verifiedAdmissionBrand] === true;
 
 export const verifyAdmissionAttestation = (
-  attestation: AdmissionAttestation,
+  attestation: unknown,
   identity: JourneyRunningIdentity,
   trustedIssuers: Readonly<Record<string, AttestationVerifier>>,
   now: Date = new Date(),
 ): AdmissionVerification => {
-  if (attestation.issuer === "local" && identity.environment !== "local")
-    return { ok: false, reason: "LOCAL_ISSUER_FORBIDDEN" };
-  const verifier = trustedIssuers[attestation.issuer];
-  if (verifier === undefined) return { ok: false, reason: "UNTRUSTED_ISSUER" };
-  if (
-    !verifier.verify(
-      canonicalAdmissionClaims(attestation),
-      attestation.signature,
+  try {
+    if (!hasValidBaseShape(attestation))
+      return { ok: false, reason: "INVALID_ATTESTATION" };
+    if (
+      !hasOwn(attestation, "runtimeConfigDigest") ||
+      !digestPattern.test(attestation.runtimeConfigDigest) ||
+      !digestPattern.test(identity.runtimeConfigDigest)
     )
-  )
-    return { ok: false, reason: "INVALID_SIGNATURE" };
-
-  const issuedAt = Date.parse(attestation.issuedAt);
-  const expiresAt = Date.parse(attestation.expiresAt);
-  const nowMs = now.getTime();
-  if (
-    ![issuedAt, expiresAt, nowMs].every(Number.isFinite) ||
-    issuedAt > expiresAt
-  )
-    return { ok: false, reason: "INVALID_TIME" };
-  if (issuedAt > nowMs + MAX_FUTURE_SKEW_MS)
-    return { ok: false, reason: "NOT_YET_VALID" };
-  if (expiresAt <= nowMs) return { ok: false, reason: "EXPIRED" };
-
-  if (
-    !digestPattern.test(attestation.runtimeConfigDigest) ||
-    !digestPattern.test(identity.runtimeConfigDigest)
-  )
-    return { ok: false, reason: "RUNTIME_CONFIG_DIGEST_INVALID" };
-  if (
-    !digestPattern.test(attestation.evidenceReportDigest) ||
-    !digestPattern.test(identity.evidenceReportDigest)
-  )
-    return { ok: false, reason: "EVIDENCE_REPORT_DIGEST_INVALID" };
-  if (
-    !isStringArray(attestation.requiredScenarioIds) ||
-    !isStringArray(attestation.passedScenarioIds) ||
-    !isStringArray(attestation.skippedScenarioIds) ||
-    !isStringArray(attestation.notReachedScenarioIds)
-  )
-    return { ok: false, reason: "SCENARIO_CLOSURE_INCOMPLETE" };
-  if (!isStringArray(identity.requiredScenarioIds))
-    return { ok: false, reason: "REQUIRED_SCENARIOS_MISMATCH" };
-  if (
-    !isStringArray(attestation.dependencyAttestationIds) ||
-    !isStringArray(identity.dependencyAttestationIds)
-  )
-    return { ok: false, reason: "DEPENDENCY_MISMATCH" };
-  if (
-    attestation.skippedScenarioIds.length !== 0 ||
-    attestation.notReachedScenarioIds.length !== 0 ||
-    !sameStringSet(
-      attestation.requiredScenarioIds,
-      attestation.passedScenarioIds,
+      return { ok: false, reason: "RUNTIME_CONFIG_DIGEST_INVALID" };
+    if (
+      !hasOwn(attestation, "evidenceReportDigest") ||
+      !digestPattern.test(attestation.evidenceReportDigest) ||
+      !digestPattern.test(identity.evidenceReportDigest)
     )
-  )
-    return { ok: false, reason: "SCENARIO_CLOSURE_INCOMPLETE" };
+      return { ok: false, reason: "EVIDENCE_REPORT_DIGEST_INVALID" };
+    if (
+      !hasOwn(attestation, "requiredScenarioIds") ||
+      !hasOwn(attestation, "passedScenarioIds") ||
+      !hasOwn(attestation, "skippedScenarioIds") ||
+      !hasOwn(attestation, "notReachedScenarioIds") ||
+      !isUniqueStringArray(attestation.requiredScenarioIds) ||
+      !isUniqueStringArray(attestation.passedScenarioIds) ||
+      !isUniqueStringArray(attestation.skippedScenarioIds) ||
+      !isUniqueStringArray(attestation.notReachedScenarioIds)
+    )
+      return { ok: false, reason: "SCENARIO_CLOSURE_INCOMPLETE" };
+    if (!isUniqueStringArray(identity.requiredScenarioIds))
+      return { ok: false, reason: "REQUIRED_SCENARIOS_MISMATCH" };
+    if (
+      !hasOwn(attestation, "dependencyAttestationIds") ||
+      !isUniqueStringArray(attestation.dependencyAttestationIds) ||
+      !isUniqueStringArray(identity.dependencyAttestationIds)
+    )
+      return { ok: false, reason: "DEPENDENCY_MISMATCH" };
+    if (attestation.issuer === "local" && identity.environment !== "local")
+      return { ok: false, reason: "LOCAL_ISSUER_FORBIDDEN" };
+    if (!hasOwn(trustedIssuers, attestation.issuer))
+      return { ok: false, reason: "UNTRUSTED_ISSUER" };
+    const verifier = trustedIssuers[attestation.issuer];
+    if (verifier === undefined || typeof verifier.verify !== "function")
+      return { ok: false, reason: "UNTRUSTED_ISSUER" };
+    let signatureValid = false;
+    try {
+      signatureValid =
+        verifier.verify(
+          canonicalAdmissionClaims(attestation),
+          attestation.signature,
+        ) === true;
+    } catch {
+      return { ok: false, reason: "INVALID_SIGNATURE" };
+    }
+    if (!signatureValid) return { ok: false, reason: "INVALID_SIGNATURE" };
 
-  const reason = mismatch(attestation, identity);
-  return reason === undefined ? { ok: true } : { ok: false, reason };
+    const issuedAt = Date.parse(attestation.issuedAt);
+    const expiresAt = Date.parse(attestation.expiresAt);
+    const nowMs = now.getTime();
+    if (
+      ![issuedAt, expiresAt, nowMs].every(Number.isFinite) ||
+      issuedAt > expiresAt
+    )
+      return { ok: false, reason: "INVALID_TIME" };
+    if (issuedAt > nowMs + MAX_FUTURE_SKEW_MS)
+      return { ok: false, reason: "NOT_YET_VALID" };
+    if (expiresAt <= nowMs) return { ok: false, reason: "EXPIRED" };
+    if (
+      attestation.skippedScenarioIds.length !== 0 ||
+      attestation.notReachedScenarioIds.length !== 0 ||
+      !sameStringSet(
+        attestation.requiredScenarioIds,
+        attestation.passedScenarioIds,
+      )
+    )
+      return { ok: false, reason: "SCENARIO_CLOSURE_INCOMPLETE" };
+
+    const reason = mismatch(attestation, identity);
+    return reason === undefined
+      ? { ok: true, verified: createVerifiedProjection(attestation, identity) }
+      : { ok: false, reason };
+  } catch {
+    return { ok: false, reason: "INVALID_ATTESTATION" };
+  }
 };

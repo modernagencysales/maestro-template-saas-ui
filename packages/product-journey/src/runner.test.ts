@@ -98,6 +98,41 @@ describe("runJourney", () => {
     expect(report.scenarios[0]?.earliestFailedBoundary).toBe("download");
   });
 
+  it("requires the final declared interaction itself to produce the terminal outcome", async () => {
+    const testedDriver: JourneyDriver = {
+      ...driver(),
+      invoke: async ({ id }) =>
+        id === "start" ? { outcome: "export-visible" } : {},
+    };
+    const report = await runJourney(plan, testedDriver);
+    expect(report.scenarios[0]?.boundaries.at(-1)?.status).toBe("failed");
+    expect(report.scenarios[0]?.actualTerminalOutcome).toBeUndefined();
+  });
+
+  it("fails closed for a zero-interaction scenario", async () => {
+    const report = await runJourney(
+      {
+        ...plan,
+        scenarios: [
+          {
+            id: "empty-interactions",
+            expectedTerminalOutcome: "export-visible",
+            interactions: [],
+          },
+        ],
+      },
+      driver(),
+    );
+    expect(report.scenarios[0]?.boundaries).toEqual([
+      {
+        id: "$terminal",
+        status: "failed",
+        error: "NO_DECLARED_INTERACTION",
+      },
+    ]);
+    expect(report.scenarios[0]?.earliestFailedBoundary).toBe("$terminal");
+  });
+
   it.each([
     [
       "environment",
@@ -123,6 +158,37 @@ describe("runJourney", () => {
     },
   );
 
+  it("requires plan, expected, and actual environments to agree", async () => {
+    let invoked = false;
+    const testedDriver: JourneyDriver = {
+      ...driver(),
+      invoke: async () => {
+        invoked = true;
+      },
+    };
+    const report = await runJourney(
+      { ...plan, environment: "production" },
+      testedDriver,
+    );
+    expect(invoked).toBe(false);
+    expect(report.scenarios[0]?.boundaries[0]?.status).toBe("failed");
+  });
+
+  it("binds an inspected receipt to both requested handle and kind", async () => {
+    const testedDriver: JourneyDriver = {
+      ...driver(),
+      inspectReceipt: async ({ kind }) => ({
+        kind,
+        handle: "different-handle",
+        state: "started",
+      }),
+    };
+    const report = await runJourney(plan, testedDriver);
+    expect(report.scenarios[0]?.boundaries.map(({ status }) => status)).toEqual(
+      ["failed", "not_reached", "not_reached"],
+    );
+  });
+
   it("creates stable JSON and renders redacted receipts in Markdown", async () => {
     const report = await runJourney(plan, driver());
     const json = toJourneyEvidenceJson(report);
@@ -132,6 +198,46 @@ describe("runJourney", () => {
     expect(markdown).toContain("[REDACTED]");
     expect(markdown).not.toContain("auth-secret");
     expect(markdown).not.toContain("string-secret");
+  });
+
+  it("redacts and Markdown-escapes every rendered report field", async () => {
+    const unsafePlan: JourneyPlan = {
+      ...plan,
+      journeyId: "token=journey-secret",
+      commitSha: "password=commit-secret",
+      environment: "cookie=environment-secret",
+      syntheticPersona: "authorization=persona-secret",
+      expectedRuntimeIdentity: {
+        environment: "cookie=environment-secret",
+        deploymentIdentity: "session=deployment-secret",
+      },
+      scenarios: [
+        {
+          id: "# injected heading",
+          expectedTerminalOutcome: "*terminal*",
+          interactions: [
+            {
+              id: "[injected](https://example.test)",
+              receipt: { handle: "unsafe", kind: "unsafe.kind" },
+            },
+          ],
+        },
+      ],
+    };
+    const unsafeDriver: JourneyDriver = {
+      identity: async () => unsafePlan.expectedRuntimeIdentity,
+      invoke: async () => ({ outcome: "*terminal*" }),
+      inspectReceipt: async ({ handle, kind }) => ({ handle, kind }),
+    };
+    const markdown = toJourneyEvidenceMarkdown(
+      await runJourney(unsafePlan, unsafeDriver),
+    );
+    expect(markdown).not.toMatch(
+      /journey-secret|commit-secret|environment-secret|persona-secret|deployment-secret/,
+    );
+    expect(markdown).toContain("\\# injected heading");
+    expect(markdown).toContain("\\[injected\\]\\(https://example\\.test\\)");
+    expect(markdown).toContain("\\*terminal\\*");
   });
 });
 

@@ -60,7 +60,81 @@ const verify = (attestation: AdmissionAttestation) =>
 
 describe("verifyAdmissionAttestation", () => {
   it("accepts an exact, current, trusted attestation", () => {
-    expect(verify(sign(unsigned()))).toEqual({ ok: true });
+    const first = verify(sign(unsigned()));
+    const second = verify(sign(unsigned()));
+    expect(first).toMatchObject({ ok: true });
+    expect(second).toMatchObject({ ok: true });
+    if (!first.ok || !second.ok)
+      throw new Error("expected verified projection");
+    expect(first.verified).toEqual(second.verified);
+    expect(first.verified).toMatchObject({
+      evidenceHash: digest("b"),
+      dependencyAttestationIds: ["dependency-1"],
+    });
+  });
+
+  it.each([
+    ["null attestation", null],
+    ["wrong protocol", { ...sign(unsigned()), protocolVersion: 2 }],
+    ["wrong scalar type", { ...sign(unsigned()), commitSha: 7 }],
+    ["wrong signature type", { ...sign(unsigned()), signature: [1, 2, 3] }],
+    ["missing scalar", { ...sign(unsigned()), repository: undefined }],
+  ])("fails closed for %s", (_name, malformed) => {
+    expect(
+      verifyAdmissionAttestation(
+        malformed as AdmissionAttestation,
+        identity,
+        trusted,
+        new Date("2026-08-01T12:00:00.000Z"),
+      ),
+    ).toEqual({ ok: false, reason: "INVALID_ATTESTATION" });
+  });
+
+  it("requires issuer to be an own attestation property", () => {
+    const { issuer, ...signedWithoutIssuer } = sign(unsigned());
+    const inheritedIssuer = Object.assign(
+      Object.create({ issuer }),
+      signedWithoutIssuer,
+    );
+    expect(
+      verifyAdmissionAttestation(
+        inheritedIssuer,
+        identity,
+        trusted,
+        new Date("2026-08-01T12:00:00.000Z"),
+      ),
+    ).toEqual({ ok: false, reason: "INVALID_ATTESTATION" });
+  });
+
+  it("does not resolve a trusted issuer through the record prototype", () => {
+    const inheritedTrusted = Object.create({
+      "ci.example": trusted["ci.example"],
+    });
+    expect(
+      verifyAdmissionAttestation(
+        sign(unsigned()),
+        identity,
+        inheritedTrusted,
+        new Date("2026-08-01T12:00:00.000Z"),
+      ),
+    ).toEqual({ ok: false, reason: "UNTRUSTED_ISSUER" });
+  });
+
+  it("converts verifier exceptions to a closed denial", () => {
+    expect(
+      verifyAdmissionAttestation(
+        sign(unsigned()),
+        identity,
+        {
+          "ci.example": {
+            verify: () => {
+              throw new Error("adapter failed");
+            },
+          },
+        },
+        new Date("2026-08-01T12:00:00.000Z"),
+      ),
+    ).toEqual({ ok: false, reason: "INVALID_SIGNATURE" });
   });
 
   it.each([

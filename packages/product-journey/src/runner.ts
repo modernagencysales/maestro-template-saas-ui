@@ -96,6 +96,9 @@ const containsExpected = (actual: unknown, expected: unknown): boolean => {
 
 const receiptMatches = (boundary: JourneyBoundary, receipt: unknown): boolean =>
   isRecord(receipt) &&
+  Object.prototype.hasOwnProperty.call(receipt, "handle") &&
+  Object.prototype.hasOwnProperty.call(receipt, "kind") &&
+  receipt.handle === boundary.receipt.handle &&
   receipt.kind === boundary.receipt.kind &&
   (boundary.expectedReceipt === undefined ||
     containsExpected(receipt, boundary.expectedReceipt));
@@ -103,7 +106,9 @@ const receiptMatches = (boundary: JourneyBoundary, receipt: unknown): boolean =>
 const identityMatches = (
   actual: JourneyRuntimeIdentity,
   expected: JourneyRuntimeIdentity,
+  planEnvironment: string,
 ): boolean =>
+  planEnvironment === expected.environment &&
   actual.environment === expected.environment &&
   actual.deploymentIdentity === expected.deploymentIdentity;
 
@@ -111,7 +116,16 @@ const identityFailure = (scenario: JourneyScenario): JourneyScenarioReport => ({
   id: scenario.id,
   expectedTerminalOutcome: scenario.expectedTerminalOutcome,
   ...(scenario.interactions[0] === undefined
-    ? { boundaries: [] }
+    ? {
+        earliestFailedBoundary: "$terminal",
+        boundaries: [
+          {
+            id: "$terminal",
+            status: "failed" as const,
+            error: "RUNTIME_IDENTITY_MISMATCH",
+          },
+        ],
+      }
     : {
         earliestFailedBoundary: scenario.interactions[0].id,
         boundaries: scenario.interactions.map((boundary, index) => ({
@@ -122,35 +136,71 @@ const identityFailure = (scenario: JourneyScenario): JourneyScenarioReport => ({
       }),
 });
 
+const createReport = (
+  plan: JourneyPlan,
+  runtimeIdentity: JourneyRuntimeIdentity,
+  scenarios: readonly JourneyScenarioReport[],
+): JourneyRunReport => ({
+  protocolVersion: 1,
+  journeyId: plan.journeyId,
+  journeyVersion: plan.journeyVersion,
+  commitSha: plan.commitSha,
+  environment: plan.environment,
+  providerPosture: plan.providerPosture,
+  syntheticPersona: plan.syntheticPersona,
+  runtimeIdentity,
+  scenarios,
+});
+
 export const runJourney = async (
   plan: JourneyPlan,
   driver: JourneyDriver,
 ): Promise<JourneyRunReport> => {
   const runtimeIdentity = await driver.identity();
-  if (!identityMatches(runtimeIdentity, plan.expectedRuntimeIdentity))
-    return {
-      ...plan,
-      protocolVersion: 1,
+  if (
+    !identityMatches(
       runtimeIdentity,
-      scenarios: plan.scenarios.map(identityFailure),
-    };
+      plan.expectedRuntimeIdentity,
+      plan.environment,
+    )
+  )
+    return createReport(
+      plan,
+      runtimeIdentity,
+      plan.scenarios.map(identityFailure),
+    );
 
   const scenarios: JourneyScenarioReport[] = [];
   for (const scenario of plan.scenarios) {
+    if (scenario.interactions.length === 0) {
+      scenarios.push({
+        id: scenario.id,
+        expectedTerminalOutcome: scenario.expectedTerminalOutcome,
+        earliestFailedBoundary: "$terminal",
+        boundaries: [
+          {
+            id: "$terminal",
+            status: "failed",
+            error: "NO_DECLARED_INTERACTION",
+          },
+        ],
+      });
+      continue;
+    }
     const boundaries: JourneyBoundaryResult[] = [];
     let failed = false;
     let actualTerminalOutcome: string | undefined;
     let earliestFailedBoundary: string | undefined;
 
-    for (const boundary of scenario.interactions) {
+    for (const [index, boundary] of scenario.interactions.entries()) {
       if (failed) {
         boundaries.push({ id: boundary.id, status: "not_reached" });
         continue;
       }
       try {
-        actualTerminalOutcome =
-          outcomeOf(await driver.invoke({ id: boundary.id })) ??
-          actualTerminalOutcome;
+        const invocation = await driver.invoke({ id: boundary.id });
+        if (index === scenario.interactions.length - 1)
+          actualTerminalOutcome = outcomeOf(invocation);
         const rawReceipt = await driver.inspectReceipt(boundary.receipt);
         if (!receiptMatches(boundary, rawReceipt))
           throw new Error("RECEIPT_ASSERTION_FAILED");
@@ -191,25 +241,56 @@ export const runJourney = async (
       boundaries,
     });
   }
-  return { ...plan, protocolVersion: 1, runtimeIdentity, scenarios };
+  return createReport(plan, runtimeIdentity, scenarios);
 };
 
 export const toJourneyEvidenceJson = (report: JourneyRunReport): string =>
   stableJourneyJson(report);
 
+const markdownField = (value: unknown): string => {
+  const redacted = redactJourneyEvidence(String(value));
+  const text = typeof redacted === "string" ? redacted : String(redacted);
+  return text
+    .replace(/\\/g, "\\\\")
+    .replace(/([`*_[\]{}()#+\-.!|>])/g, "\\$1")
+    .replace(/\r?\n/g, "\\n");
+};
+
+const markdownCode = (value: unknown): string =>
+  `\`${stableJourneyJson(value)
+    .replace(/`/g, "&#96;")
+    .replace(/\r?\n/g, "\\n")}\``;
+
 export const toJourneyEvidenceMarkdown = (report: JourneyRunReport): string => {
   const lines = [
     `# Journey evidence: ${report.journeyId}`,
     "",
-    `Commit: ${report.commitSha}`,
-    `Environment: ${report.environment}`,
+    `Protocol version: ${markdownField(report.protocolVersion)}`,
+    `Journey version: ${markdownField(report.journeyVersion)}`,
+    `Commit: ${markdownField(report.commitSha)}`,
+    `Environment: ${markdownField(report.environment)}`,
+    `Provider posture: ${markdownField(report.providerPosture)}`,
+    `Synthetic persona: ${markdownField(report.syntheticPersona)}`,
+    `Runtime environment: ${markdownField(report.runtimeIdentity.environment)}`,
+    `Deployment identity: ${markdownField(report.runtimeIdentity.deploymentIdentity ?? "none")}`,
   ];
+  lines[0] = `# Journey evidence: ${markdownField(report.journeyId)}`;
   for (const scenario of report.scenarios) {
-    lines.push("", `## ${scenario.id}`);
+    lines.push(
+      "",
+      `## ${markdownField(scenario.id)}`,
+      `Expected terminal outcome: ${markdownField(scenario.expectedTerminalOutcome)}`,
+      `Actual terminal outcome: ${markdownField(scenario.actualTerminalOutcome ?? "none")}`,
+      `Earliest failed boundary: ${markdownField(scenario.earliestFailedBoundary ?? "none")}`,
+    );
     for (const boundary of scenario.boundaries) {
-      lines.push(`- ${boundary.id}: ${boundary.status}`);
+      lines.push(
+        `- ${markdownField(boundary.id)}: ${markdownField(boundary.status)}`,
+      );
+      if (boundary.error !== undefined)
+        lines.push(`  Error: ${markdownField(boundary.error)}`);
       if (boundary.receipt !== undefined)
-        lines.push(`  Receipt: ${stableJourneyJson(boundary.receipt)}`);
+        lines.push(`  Receipt: ${markdownCode(boundary.receipt)}`);
     }
   }
   return lines.join("\n");
