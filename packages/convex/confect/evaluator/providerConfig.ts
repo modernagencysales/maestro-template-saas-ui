@@ -24,6 +24,9 @@ export const loadDodoCommerceEnvConfig = Config.all({
   DODO_BUILD_PACK_EXPECTED_AMOUNT_CENTS: optionalEnvConfig(
     "DODO_BUILD_PACK_EXPECTED_AMOUNT_CENTS",
   ),
+  DODO_BUILD_PACK_EXPECTED_CURRENCY: optionalEnvConfig(
+    "DODO_BUILD_PACK_EXPECTED_CURRENCY",
+  ),
   DODO_BUILD_PACK_LAUNCH_CANARY: optionalEnvConfig(
     "DODO_BUILD_PACK_LAUNCH_CANARY",
   ),

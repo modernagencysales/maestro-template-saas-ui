@@ -27,6 +27,22 @@ const BUILD_PACK_AMOUNT_CENTS = 2_900;
 const BUILD_PACK_CURRENCY = "USD" as const;
 const PUBLIC_FUNNEL_WORKSPACE = "public-funnel";
 
+export const validateLiveDodoBindings = (input: {
+  readonly productId?: string;
+  readonly amountCents?: string;
+  readonly currency?: string;
+}): boolean => {
+  const amount = Number(input.amountCents);
+  const currency = input.currency?.trim().toUpperCase();
+  return Boolean(
+    input.productId?.trim() &&
+    Number.isSafeInteger(amount) &&
+    amount >= 0 &&
+    currency &&
+    /^[A-Z]{3}$/.test(currency),
+  );
+};
+
 const unsafeAssumeClockProvided = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
   effect as Effect.Effect<A, E, Exclude<R, Clock.Clock>>;
 
@@ -372,6 +388,26 @@ const applyVerifiedDodoImpl = FunctionImpl.make(
         return yield* new WebhookRejected({
           reason: "unsupported or malformed Dodo event",
         });
+      const dodoEnv = yield* loadDodoCommerceEnvConfig.pipe(Effect.orDie);
+      if (runtimeMode === "live") {
+        if (
+          !validateLiveDodoBindings({
+            ...(dodoEnv.DODO_BUILD_PACK_PRODUCT_ID
+              ? { productId: dodoEnv.DODO_BUILD_PACK_PRODUCT_ID }
+              : {}),
+            ...(dodoEnv.DODO_BUILD_PACK_EXPECTED_AMOUNT_CENTS
+              ? { amountCents: dodoEnv.DODO_BUILD_PACK_EXPECTED_AMOUNT_CENTS }
+              : {}),
+            ...(dodoEnv.DODO_BUILD_PACK_EXPECTED_CURRENCY
+              ? { currency: dodoEnv.DODO_BUILD_PACK_EXPECTED_CURRENCY }
+              : {}),
+          })
+        )
+          return yield* new WebhookRejected({
+            reason:
+              "live Dodo product, amount, and currency bindings are incomplete",
+          });
+      }
       const reader = yield* DatabaseReader;
       const writer = yield* DatabaseWriter;
       const dedupeKey = `dodo.${normalizedEventId}`;
@@ -380,23 +416,29 @@ const applyVerifiedDodoImpl = FunctionImpl.make(
         .index("by_dedupe_key", (q) => q.eq("dedupeKey", dedupeKey))
         .first()
         .pipe(Effect.map(Option.getOrNull), Effect.orDie);
-      if (duplicate !== null)
+      if (
+        duplicate !== null &&
+        duplicate.status === "processed" &&
+        duplicate.attributionPending !== true
+      )
         return { eventId: normalizedEventId, status: "duplicate" as const };
 
       const now = yield* unsafeAssumeClockProvided(Clock.currentTimeMillis);
-      yield* writer
-        .table("webhookEvents")
-        .insert({
-          workspaceId: PUBLIC_FUNNEL_WORKSPACE,
-          provider: "dodo",
-          eventId: normalizedEventId,
-          eventType: event.eventType,
-          signatureTimestamp,
-          dedupeKey,
-          status: "processed",
-          createdAt: now,
-        })
-        .pipe(Effect.orDie);
+      if (duplicate === null)
+        yield* writer
+          .table("webhookEvents")
+          .insert({
+            workspaceId: PUBLIC_FUNNEL_WORKSPACE,
+            provider: "dodo",
+            eventId: normalizedEventId,
+            eventType: event.eventType,
+            signatureTimestamp,
+            dedupeKey,
+            status: "processed",
+            attributionPending: event.eventType === "payment.succeeded",
+            createdAt: now,
+          })
+          .pipe(Effect.orDie);
 
       if (
         event.eventType === "refund.succeeded" ||
@@ -404,25 +446,17 @@ const applyVerifiedDodoImpl = FunctionImpl.make(
       )
         yield* applyRevocation(event, normalizedEventId, now);
       else {
-        const dodoEnv = yield* loadDodoCommerceEnvConfig.pipe(Effect.orDie);
         yield* applyPayment(
           event,
           now,
           runtimeMode === "live"
             ? {
-                ...(dodoEnv.DODO_BUILD_PACK_PRODUCT_ID
-                  ? {
-                      productId: dodoEnv.DODO_BUILD_PACK_PRODUCT_ID,
-                      currency: "USD",
-                    }
-                  : {}),
-                ...(dodoEnv.DODO_BUILD_PACK_EXPECTED_AMOUNT_CENTS
-                  ? {
-                      amountCents: Number(
-                        dodoEnv.DODO_BUILD_PACK_EXPECTED_AMOUNT_CENTS,
-                      ),
-                    }
-                  : {}),
+                productId: dodoEnv.DODO_BUILD_PACK_PRODUCT_ID as string,
+                amountCents: Number(
+                  dodoEnv.DODO_BUILD_PACK_EXPECTED_AMOUNT_CENTS,
+                ),
+                currency:
+                  dodoEnv.DODO_BUILD_PACK_EXPECTED_CURRENCY?.trim().toUpperCase() as string,
               }
             : {},
         );
@@ -462,6 +496,41 @@ const markAdmaxxerReportedImpl = FunctionImpl.make(
           admaxxerReportedAt: reportedAt,
           updatedAt: reportedAt,
         })
+        .pipe(Effect.orDie);
+      return true;
+    }),
+);
+
+const markProcessedImpl = FunctionImpl.make(
+  databaseSchema,
+  webhooksGroup,
+  "markProcessed",
+  ({ eventId }) =>
+    Effect.gen(function* () {
+      const normalized = eventId.trim();
+      if (!normalized)
+        return yield* new ValidationFailed({
+          field: "eventId",
+          message: "eventId must not be blank.",
+        });
+      const reader = yield* DatabaseReader;
+      const writer = yield* DatabaseWriter;
+      const event = yield* reader
+        .table("webhookEvents")
+        .index("by_provider_event", (q) =>
+          q.eq("provider", "dodo").eq("eventId", normalized),
+        )
+        .first()
+        .pipe(Effect.map(Option.getOrNull), Effect.orDie);
+      if (event === null)
+        return yield* new WebhookRejected({
+          reason: "webhook event is not persisted",
+        });
+      if (event.status === "processed" && event.attributionPending !== true)
+        return true;
+      yield* writer
+        .table("webhookEvents")
+        .patch(event._id, { status: "processed", attributionPending: false })
         .pipe(Effect.orDie);
       return true;
     }),
@@ -573,6 +642,14 @@ const applyDodoImpl = FunctionImpl.make(
           );
         }
       }
+      yield* mutation(refs.internal.commerce.webhooks.markProcessed, {
+        eventId: verification.eventId,
+      }).pipe(
+        Effect.catchTag(
+          "ParseError",
+          () => new WebhookRejected({ reason: "invalid webhook receipt" }),
+        ),
+      );
       return result;
     }),
 );
@@ -581,5 +658,6 @@ export default GroupImpl.make(databaseSchema, webhooksGroup).pipe(
   Layer.provide(applyDodoImpl),
   Layer.provide(applyVerifiedDodoImpl),
   Layer.provide(markAdmaxxerReportedImpl),
+  Layer.provide(markProcessedImpl),
   GroupImpl.finalize,
 );

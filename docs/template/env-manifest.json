@@ -454,6 +454,18 @@
       "notes": "Fail-closed expected minor-unit amount for verified Build Pack webhooks; set to 100 only for the approved live canary."
     },
     {
+      "name": "DODO_BUILD_PACK_EXPECTED_CURRENCY",
+      "group": "dodo",
+      "services": ["convex"],
+      "visibility": "server-config",
+      "requiredFor": ["fake", "test", "live"],
+      "fakeExampleAllowed": true,
+      "fakeExample": "USD",
+      "owner": "Billing owner",
+      "rotation": "Change only with a matching Dodo product and canary record.",
+      "notes": "Fail-closed ISO currency binding for verified Build Pack webhooks."
+    },
+    {
       "name": "DODO_BUILD_PACK_LAUNCH_CANARY",
       "group": "dodo",
       "services": ["convex"],
