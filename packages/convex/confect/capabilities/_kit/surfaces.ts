@@ -33,11 +33,11 @@ export const isSurfaceAllowed = (
   surface: SurfaceType,
 ): boolean => policy[surface] === true;
 
-export const HeadlessSurface = Schema.Union(
+export const HeadlessSurface = Schema.Union([
   Schema.Literal("api"),
   Schema.Literal("cli"),
   Schema.Literal("mcp"),
-);
+]);
 
 export type HeadlessSurface = Schema.Schema.Type<typeof HeadlessSurface>;
 

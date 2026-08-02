@@ -18,11 +18,13 @@ describe("workflow headless registry", () => {
     const operations = buildHeadlessOperations();
     const ids = operations.map((operation) => operation.id);
 
-    expect(operations).toHaveLength(12);
+    expect(operations).toHaveLength(20);
     expect(ids).toContain("api:brain.pages.createMarkdown");
     expect(ids).toContain("cli:brain.pages.createMarkdown");
     expect(ids).toContain("web:ops.dataLifecycle.createDsarRequest");
     expect(ids).toContain("web:ops.dataLifecycle.listDsarRequests");
+    expect(ids).toContain("api:ops.email.previewBroadcast");
+    expect(ids).toContain("mcp:ops.email.dispatchBroadcast");
     expect(ids).not.toContain("api:ops.dataLifecycle.createDsarRequest");
     expect(ids).not.toContain("mcp:ops.dataLifecycle.listDsarRequests");
     expect(ids).not.toContain(
@@ -41,9 +43,9 @@ describe("workflow headless registry", () => {
       validationErrors: [],
       nodeCount: 5,
       edgeCount: 4,
-      capabilityCount: 6,
+      capabilityCount: 8,
       agentCount: 3,
-      headlessOperationCount: 12,
+      headlessOperationCount: 20,
     });
   });
 
@@ -67,6 +69,32 @@ describe("workflow headless registry", () => {
         authScope: "workspace member",
         typedErrors: [
           "Unauthorized",
+          "MemberNotInWorkspace",
+          "WorkspaceNotFound",
+          "ValidationFailed",
+        ],
+      },
+      {
+        operationId: "ops.email.dispatchBroadcast",
+        method: "POST",
+        path: "/api/ops.email.dispatchBroadcast",
+        authScope: "workspace member",
+        typedErrors: [
+          "Unauthorized",
+          "Forbidden",
+          "MemberNotInWorkspace",
+          "WorkspaceNotFound",
+          "ValidationFailed",
+        ],
+      },
+      {
+        operationId: "ops.email.previewBroadcast",
+        method: "POST",
+        path: "/api/ops.email.previewBroadcast",
+        authScope: "workspace member",
+        typedErrors: [
+          "Unauthorized",
+          "Forbidden",
           "MemberNotInWorkspace",
           "WorkspaceNotFound",
           "ValidationFailed",
@@ -128,6 +156,8 @@ describe("workflow headless registry", () => {
     expect(document.openapi).toBe("3.1.0");
     expect(Object.keys(document.paths)).toEqual([
       "/api/brain.pages.createMarkdown",
+      "/api/ops.email.dispatchBroadcast",
+      "/api/ops.email.previewBroadcast",
     ]);
     expect(
       document.paths["/api/brain.pages.createMarkdown"]?.post,

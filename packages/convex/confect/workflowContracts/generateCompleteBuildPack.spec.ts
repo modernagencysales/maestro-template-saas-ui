@@ -15,13 +15,13 @@ import {
 import { Id } from "../_generated/id";
 import { WorkflowStatusResult } from "../workflows/_kit/status";
 
-const WorkflowErrors = Schema.Union(
+const WorkflowErrors = Schema.Union([
   Unauthorized,
   MemberNotInWorkspace,
   WorkspaceNotFound,
   NotFound,
   ValidationFailed,
-);
+]);
 
 const StartArgs = Schema.Struct({
   workspaceId: Id("workspaces"),

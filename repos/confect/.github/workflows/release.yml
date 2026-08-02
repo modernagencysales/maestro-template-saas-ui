@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - v10
 
 concurrency: ${{ github.workflow }}-${{ github.ref }}
 
@@ -24,7 +25,7 @@ jobs:
         uses: pnpm/action-setup@v6
 
       - name: Set up Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version-file: ".node-version"
           cache: "pnpm"

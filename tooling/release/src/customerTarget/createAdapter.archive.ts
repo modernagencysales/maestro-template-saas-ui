@@ -357,7 +357,10 @@ function assertTaggedManifest(
         "show",
         `${tagCommit}:${manifestPath}`,
       ],
-      { stdio: ["ignore", "pipe", "ignore"] },
+      {
+        maxBuffer: expected.length + 1024,
+        stdio: ["ignore", "pipe", "ignore"],
+      },
     );
   } catch {
     throw new CustomerReleaseAdapterError(

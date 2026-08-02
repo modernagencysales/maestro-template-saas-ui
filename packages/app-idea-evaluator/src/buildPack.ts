@@ -1,4 +1,4 @@
-import { Schema } from "effect";
+import * as Schema from "effect/Schema";
 
 export const buildPackStageNames = [
   "normalize",
@@ -11,14 +11,14 @@ export const buildPackStageNames = [
   "map-to-maestro",
 ] as const;
 
-export const BuildPackStageNameSchema = Schema.Literal(...buildPackStageNames);
-export const BuildPackStageStatusSchema = Schema.Literal(
+export const BuildPackStageNameSchema = Schema.Literals(buildPackStageNames);
+export const BuildPackStageStatusSchema = Schema.Literals([
   "queued",
   "running",
   "completed",
   "failed-recoverable",
   "needs-support",
-);
+]);
 
 export type BuildPackStageName = (typeof buildPackStageNames)[number];
 export type BuildPackStageStatus =
@@ -63,7 +63,7 @@ export type CompleteBuildPack = {
   readonly competitorClaims: readonly CompetitorClaim[];
 };
 
-const nonBlankText = Schema.Trim.pipe(Schema.nonEmptyString());
+const nonBlankText = Schema.Trim.pipe(Schema.check(Schema.isNonEmpty()));
 const CompetitorClaimSchema = Schema.Struct({
   text: nonBlankText,
   citations: Schema.NonEmptyArray(nonBlankText),

@@ -7,7 +7,7 @@ import {
   ValidationFailed,
 } from "../errors";
 
-const CheckoutStatus = Schema.Literal(
+const CheckoutStatus = Schema.Literals([
   "created",
   "checkout-open",
   "payment-pending",
@@ -15,7 +15,7 @@ const CheckoutStatus = Schema.Literal(
   "failed",
   "refunded",
   "disputed",
-);
+]);
 
 const CheckoutResult = Schema.Struct({
   checkoutSessionId: Schema.String,
@@ -26,14 +26,14 @@ const CheckoutResult = Schema.Struct({
   status: CheckoutStatus,
 });
 
-const CheckoutErrors = Schema.Union(
+const CheckoutErrors = Schema.Union([
   Unauthorized,
   ValidationFailed,
   NotFound,
   ConfigInvalid,
-);
+]);
 
-export class CheckoutUnavailable extends Schema.TaggedError<CheckoutUnavailable>()(
+export class CheckoutUnavailable extends Schema.TaggedErrorClass<CheckoutUnavailable>()(
   "CheckoutUnavailable",
   {
     operation: Schema.String,
@@ -51,7 +51,7 @@ export const create = FunctionSpec.publicAction({
       admaxxerVisitorId: Schema.optional(Schema.String),
     }),
   returns: () => CheckoutResult,
-  error: () => Schema.Union(CheckoutErrors, CheckoutUnavailable),
+  error: () => Schema.Union([CheckoutErrors, CheckoutUnavailable]),
 });
 
 export const prepareCheckout = FunctionSpec.internalMutation({
@@ -71,7 +71,7 @@ export const prepareCheckout = FunctionSpec.internalMutation({
       idempotencyKey: Schema.String,
       existing: Schema.NullOr(CheckoutResult),
     }),
-  error: () => Schema.Union(Unauthorized, ValidationFailed, NotFound),
+  error: () => Schema.Union([Unauthorized, ValidationFailed, NotFound]),
 });
 
 export const persistCheckout = FunctionSpec.internalMutation({
@@ -83,14 +83,14 @@ export const persistCheckout = FunctionSpec.internalMutation({
       checkoutUrl: Schema.String,
     }),
   returns: () => CheckoutResult,
-  error: () => Schema.Union(ValidationFailed, NotFound),
+  error: () => Schema.Union([ValidationFailed, NotFound]),
 });
 
 export const markReturned = FunctionSpec.publicMutation({
   name: "markReturned",
   args: () => Schema.Struct({ checkoutSessionId: Schema.String }),
   returns: () => CheckoutResult,
-  error: () => Schema.Union(ValidationFailed, NotFound),
+  error: () => Schema.Union([ValidationFailed, NotFound]),
 });
 
 export const status = FunctionSpec.publicQuery({
@@ -103,7 +103,7 @@ export const status = FunctionSpec.publicQuery({
   returns: () =>
     Schema.Struct({
       reportId: Schema.String,
-      purchaseStatus: Schema.Literal(
+      purchaseStatus: Schema.Literals([
         "missing",
         "created",
         "checkout-open",
@@ -112,17 +112,17 @@ export const status = FunctionSpec.publicQuery({
         "failed",
         "refunded",
         "disputed",
-      ),
-      entitlementStatus: Schema.Literal("missing", "active", "revoked"),
-      maestroCreditStatus: Schema.Literal(
+      ]),
+      entitlementStatus: Schema.Literals(["missing", "active", "revoked"]),
+      maestroCreditStatus: Schema.Literals([
         "missing",
         "available",
         "applied",
         "revoked",
-      ),
+      ]),
       maestroCreditAmountCents: Schema.optional(Schema.Number),
     }),
-  error: () => Schema.Union(Unauthorized, ValidationFailed, NotFound),
+  error: () => Schema.Union([Unauthorized, ValidationFailed, NotFound]),
 });
 
 export default GroupSpec.make()

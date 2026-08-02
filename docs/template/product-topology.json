@@ -432,6 +432,26 @@
       "lifecycle": "active"
     },
     {
+      "id": "integration:email",
+      "kind": "provider",
+      "system": "notifications",
+      "path": "packages/integrations/src/email.ts",
+      "responsibility": "adapt email delivery behind the canonical provider-neutral service",
+      "surfaces": ["internal", "worker"],
+      "uses": [],
+      "lifecycle": "active"
+    },
+    {
+      "id": "integration:email-setup",
+      "kind": "provider",
+      "system": "notifications",
+      "path": "packages/integrations/src/emailSetup.ts",
+      "responsibility": "define repeatable Postmark templates and authenticated webhook setup",
+      "surfaces": ["internal", "worker"],
+      "uses": [],
+      "lifecycle": "active"
+    },
+    {
       "id": "integration:flags",
       "kind": "provider",
       "system": "policy-and-prompts",

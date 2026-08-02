@@ -11,7 +11,7 @@ export default Table.make(() =>
     admaxxerReportedAt: Schema.optional(Schema.Number),
     amountCents: Schema.Number,
     currency: Schema.String,
-    status: Schema.Literal("paid", "refunded", "disputed"),
+    status: Schema.Literals(["paid", "refunded", "disputed"]),
     createdAt: Schema.Number,
     updatedAt: Schema.Number,
   }),

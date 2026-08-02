@@ -58,7 +58,7 @@ describe("customer-safe workflow generator leaf", () => {
     );
     expect(spec).toContain("const WorkflowStartErrors = Schema.Union(");
     expect(spec).toContain('"WorkflowAdmissionDenied"');
-    expect(impl).toContain("Effect.catchAll((error) =>");
+    expect(impl).toContain("Effect.catch((error) =>");
     expect(impl).toContain("error instanceof WorkflowAdmissionDenied");
     expect(impl).toContain("? Effect.fail(error)");
     expect(impl).toContain(": Effect.die(error)");

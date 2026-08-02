@@ -6,17 +6,17 @@ import {
   sha256Base64Url,
 } from "../shared/tokenCrypto";
 
-export const ApiKeyScope = Schema.Literal(
+export const ApiKeyScope = Schema.Literals([
   "workspace:read",
   "workspace:write",
   "capability:run",
   "workflow:run",
   "admin",
-);
+]);
 
 export type ApiKeyScope = Schema.Schema.Type<typeof ApiKeyScope>;
 
-export const ApiKeyStatus = Schema.Literal("active", "revoked");
+export const ApiKeyStatus = Schema.Literals(["active", "revoked"]);
 
 export type ApiKeyStatus = Schema.Schema.Type<typeof ApiKeyStatus>;
 
@@ -68,16 +68,16 @@ export type HeadlessAuthErrorCode =
   | "API_KEY_EXPIRED"
   | "API_KEY_FORBIDDEN";
 
-export class HeadlessAuthError extends Schema.TaggedError<HeadlessAuthError>()(
+export class HeadlessAuthError extends Schema.TaggedErrorClass<HeadlessAuthError>()(
   "HeadlessAuthError",
   {
-    code: Schema.Literal(
+    code: Schema.Literals([
       "API_KEY_MISSING",
       "API_KEY_NOT_FOUND",
       "API_KEY_REVOKED",
       "API_KEY_EXPIRED",
       "API_KEY_FORBIDDEN",
-    ),
+    ]),
     message: Schema.String,
   },
 ) {}

@@ -1,5 +1,5 @@
 import * as Data from "effect/Data";
-import * as Either from "effect/Either";
+import * as Result from "effect/Result";
 
 const DAY_MS = 24 * 60 * 60 * 1_000;
 
@@ -32,7 +32,7 @@ export class WorkflowScheduleError extends Data.TaggedError(
 export const compileWorkflowSchedule = (
   schedule: WorkflowScheduleInput,
   nowMs: number,
-): Either.Either<WorkflowScheduleOptions, WorkflowScheduleError> => {
+): Result.Result<WorkflowScheduleOptions, WorkflowScheduleError> => {
   if (!isNonNegativeSafeInteger(nowMs)) {
     return fail(
       "INVALID_SCHEDULE_CLOCK",
@@ -55,7 +55,7 @@ export const compileWorkflowSchedule = (
         "Workflow schedule timestamp exceeds the supported numeric range.",
       );
     }
-    return Either.right({ runAfter: schedule.delayMs });
+    return Result.succeed({ runAfter: schedule.delayMs });
   }
   if (!isNonNegativeSafeInteger(schedule.timestamp)) {
     return fail(
@@ -72,7 +72,7 @@ export const compileWorkflowSchedule = (
   if (schedule.timestamp - nowMs > MAX_WORKFLOW_SCHEDULE_HORIZON_MS) {
     return unsupportedHorizon();
   }
-  return Either.right({ runAt: schedule.timestamp });
+  return Result.succeed({ runAt: schedule.timestamp });
 };
 
 export const assertWorkflowSchedule = (
@@ -80,8 +80,8 @@ export const assertWorkflowSchedule = (
   nowMs: number,
 ): WorkflowScheduleOptions => {
   const result = compileWorkflowSchedule(schedule, nowMs);
-  if (Either.isLeft(result)) throw result.left;
-  return result.right;
+  if (Result.isFailure(result)) throw result.failure;
+  return result.success;
 };
 
 export const unsupportedScheduledNodeFinding = (node: {
@@ -117,4 +117,4 @@ const unsupportedHorizon = () =>
   );
 
 const fail = (code: WorkflowScheduleErrorCode, message: string) =>
-  Either.left(new WorkflowScheduleError({ code, message }));
+  Result.fail(new WorkflowScheduleError({ code, message }));

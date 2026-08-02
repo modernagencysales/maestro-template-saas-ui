@@ -16,7 +16,7 @@ const ensureProvisioned = FunctionSpec.publicMutation({
       workspaceId: Id("workspaces"),
     }),
   error: () =>
-    Schema.Union(Unauthorized, ValidationFailed, ProvisioningConflict),
+    Schema.Union([Unauthorized, ValidationFailed, ProvisioningConflict]),
 });
 
 export default GroupSpec.make().addFunction(ensureProvisioned);

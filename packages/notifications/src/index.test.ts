@@ -6,7 +6,6 @@ import {
   createAlertService,
   createEmailService,
   createFunnelLifecycleEmailService,
-  createMailerSendTransport,
   defaultNotificationPreferences,
   markNotificationRead,
   preferenceAllowsChannel,
@@ -15,25 +14,11 @@ import {
 } from "./index";
 
 describe("notification provider seams", () => {
-  it("delivers lifecycle email through MailerSend without logging private content", async () => {
-    const requests: Array<{
-      readonly url: string;
-      readonly init?: RequestInit;
-    }> = [];
-    const transport = createMailerSendTransport({
-      apiKey: "mailer-secret",
-      fetch: async (input, init) => {
-        requests.push(
-          init === undefined
-            ? { url: String(input) }
-            : { url: String(input), init },
-        );
-        return new Response(null, {
-          status: 202,
-          headers: { "x-message-id": "message_123" },
-        });
-      },
-    });
+  it("delivers lifecycle email through a neutral transport without logging private content", async () => {
+    const requests: unknown[] = [];
+    const transport = async (payload: unknown) => {
+      requests.push(payload);
+    };
     const logs: unknown[] = [];
     const service = createFunnelLifecycleEmailService({
       mode: "live",
@@ -57,26 +42,22 @@ describe("notification provider seams", () => {
       idempotencyKey: "idea-funnel.verify-report-email.report_1",
     });
     expect(requests).toHaveLength(1);
-    expect(requests[0]?.url).toBe("https://api.mailersend.com/v1/email");
-    expect(requests[0]?.init?.headers).toMatchObject({
-      Authorization: "Bearer mailer-secret",
-      "Content-Type": "application/json",
-      "X-Request-Id": "idea-funnel.verify-report-email.report_1",
+    expect(requests[0]).toMatchObject({
+      templateAlias: "verify-report-email",
+      idempotencyKey: "idea-funnel.verify-report-email.report_1",
     });
-    expect(String(requests[0]?.init?.body)).toContain("founder@example.test");
-    expect(String(requests[0]?.init?.body)).toContain("secret-token");
+    expect(JSON.stringify(requests)).toContain("founder@example.test");
+    expect(JSON.stringify(requests)).toContain("secret-token");
     expect(JSON.stringify(logs)).not.toContain("founder@example.test");
     expect(JSON.stringify(logs)).not.toContain("secret-token");
-    expect(JSON.stringify(logs)).not.toContain("mailer-secret");
   });
 
-  it("returns a typed failure when MailerSend rejects a message", async () => {
+  it("returns a typed failure when the neutral provider rejects a message", async () => {
     const service = createEmailService({
       mode: "live",
-      transport: createMailerSendTransport({
-        apiKey: "mailer-secret",
-        fetch: async () => new Response("bad request", { status: 422 }),
-      }),
+      transport: async () => {
+        throw new Error("rejected");
+      },
     });
 
     await expect(
@@ -92,8 +73,7 @@ describe("notification provider seams", () => {
       ok: false,
       error: {
         _tag: "EmailProviderError",
-        provider: "mailersend",
-        status: 422,
+        provider: "email",
       },
     });
   });
@@ -145,7 +125,7 @@ describe("notification provider seams", () => {
     expect(JSON.stringify(deliveries)).not.toContain("founder@example.test");
   });
 
-  it("sends MailerSend-style email in fake mode with idempotency key", async () => {
+  it("sends provider-neutral email in fake mode with idempotency key", async () => {
     const deliveries: unknown[] = [];
     const service = createEmailService({
       mode: "fake",

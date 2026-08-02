@@ -12,12 +12,24 @@ export const manageEvaluationReportArgs = Schema.Struct({
   reportId: Schema.String,
   accessToken: Schema.optional(Schema.String),
   ownerAccessToken: Schema.optional(Schema.String),
-  action: Schema.Literal("revise", "share", "revoke-share", "claim", "delete"),
+  action: Schema.Literals([
+    "revise",
+    "share",
+    "revoke-share",
+    "claim",
+    "delete",
+  ]),
   revisionJson: Schema.optional(Schema.String),
 });
 
 export const manageEvaluationReportReturns = Schema.Struct({
-  status: Schema.Literal("revised", "shared", "revoked", "claimed", "deleted"),
+  status: Schema.Literals([
+    "revised",
+    "shared",
+    "revoked",
+    "claimed",
+    "deleted",
+  ]),
   reportId: Schema.String,
   version: Schema.Number,
   shareToken: Schema.optional(Schema.String),
@@ -93,7 +105,7 @@ export const listOwnedEvaluationReportsReturns = Schema.Array(
 const revisionReceipt = Schema.Struct({
   receiptId: Schema.String,
   provider: Schema.String,
-  mode: Schema.Literal("fake", "test", "live"),
+  mode: Schema.Literals(["fake", "test", "live"]),
   model: Schema.String,
   inputTokens: Schema.Number,
   outputTokens: Schema.Number,
@@ -101,13 +113,13 @@ const revisionReceipt = Schema.Struct({
   generatedAt: Schema.Number,
 });
 
-const errors = Schema.Union(
+const errors = Schema.Union([
   Unauthorized,
   ValidationFailed,
   Forbidden,
   NotFound,
   ConfigInvalid,
-);
+]);
 
 export const manageEvaluationReport = FunctionSpec.publicMutation({
   name: "manageEvaluationReport",
@@ -120,7 +132,7 @@ export const getSharedEvaluationReport = FunctionSpec.publicQuery({
   name: "getSharedEvaluationReport",
   args: () => getSharedEvaluationReportArgs,
   returns: () => getSharedEvaluationReportReturns,
-  error: () => Schema.Union(ValidationFailed, NotFound),
+  error: () => Schema.Union([ValidationFailed, NotFound]),
 });
 
 export const getEvaluationReport = FunctionSpec.publicQuery({
@@ -155,7 +167,7 @@ export const listOwnedEvaluationReports = FunctionSpec.publicQuery({
   name: "listOwnedEvaluationReports",
   args: () => listOwnedEvaluationReportsArgs,
   returns: () => listOwnedEvaluationReportsReturns,
-  error: () => Schema.Union(Unauthorized, ValidationFailed),
+  error: () => Schema.Union([Unauthorized, ValidationFailed]),
 });
 
 export const reviseEvaluationReportWithModel = FunctionSpec.publicAction({

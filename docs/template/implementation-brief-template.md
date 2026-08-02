@@ -47,9 +47,10 @@ Convex functions directly.
 
 ## Provider Posture
 
-Choose fake, test, or live-ready for WorkOS, PostHog, Dodo, MailerSend,
-OpenRouter-compatible LLMs, storage, search, notifications, and observability.
-Live setup requires typed config and adapter-specific verification.
+Choose fake, test, or live-ready for WorkOS, PostHog, Dodo, provider-neutral
+email, OpenRouter-compatible LLMs, storage, search, notifications, and
+observability. Live setup requires typed config and adapter-specific
+verification.
 
 ## Route Map
 

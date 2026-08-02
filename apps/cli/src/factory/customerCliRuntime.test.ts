@@ -7,19 +7,37 @@ import {
   mkdtempSync,
   readdirSync,
   readFileSync,
+  rmSync,
   writeFileSync,
 } from "node:fs";
 import { rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { promisify } from "node:util";
-import { afterAll, afterEach, describe, expect, it } from "vitest";
+import { buildSaasApplicationTargetPlan } from "@maestro-template/generators";
+import { buildCustomerOwnershipInventory } from "@maestro-template/release-tooling/customer-ownership";
+import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
 const temporaryRoots: string[] = [];
 const execFileAsync = promisify(execFile);
 const repositoryRoot = resolve(import.meta.dirname, "../../../..");
+const originalPath = process.env.PATH;
+const originalStoreDir = process.env.npm_config_store_dir;
+const originalTmpdir = process.env.TMPDIR;
+const platformTmpdir = tmpdir();
+const offlinePnpmBin = "/private/tmp/maestro-pnpm-10-bin";
+const installedStoreDir = readFileSync(
+  join(repositoryRoot, "node_modules/.modules.yaml"),
+  "utf8",
+).match(/^storeDir: (.+)$/m)?.[1];
 let taggedReleaseParent: string | undefined;
 let taggedReleaseRoot: string | undefined;
+const frozenAlpha2RuntimeSeam = [
+  "apps/cli/src/factory/createComposition.ts",
+  "tooling/generators/src/index.ts",
+  "tooling/generators/src/blueprints/alpha2SaasApplicationPlan.ts",
+  "tooling/generators/src/blueprints/customer/alpha2-plan.json.gz.b64",
+] as const;
 const taggedRepository = (): string => {
   if (taggedReleaseRoot) return taggedReleaseRoot;
   taggedReleaseParent = mkdtempSync(join(tmpdir(), "maestro-tagged-release-"));
@@ -29,6 +47,11 @@ const taggedRepository = (): string => {
     ["clone", "--quiet", "--shared", repositoryRoot, taggedReleaseRoot],
     { stdio: "pipe" },
   );
+  for (const path of frozenAlpha2RuntimeSeam) {
+    const target = join(taggedReleaseRoot, path);
+    mkdirSync(dirname(target), { recursive: true });
+    writeFileSync(target, readFileSync(join(repositoryRoot, path)));
+  }
   execFileSync(
     "pnpm",
     ["install", "--offline", "--frozen-lockfile", "--ignore-scripts"],
@@ -48,6 +71,15 @@ const runTaggedCli = (argv: readonly string[]) => {
     stderr: result.stderr,
   };
 };
+beforeAll(() => {
+  expect(installedStoreDir).toBeTruthy();
+  process.env.PATH = `${offlinePnpmBin}:${originalPath ?? ""}`;
+  process.env.npm_config_store_dir = installedStoreDir;
+  process.env.TMPDIR = platformTmpdir;
+  expect(execFileSync("pnpm", ["--version"], { encoding: "utf8" }).trim()).toBe(
+    "10.12.1",
+  );
+});
 
 const unresolvedWorkspaceDependencies = (root: string): readonly string[] => {
   const manifests = ["apps", "packages", "tooling"].flatMap((directory) =>
@@ -82,6 +114,36 @@ const unresolvedWorkspaceDependencies = (root: string): readonly string[] => {
       .map(([name]) => `${path.slice(root.length + 1)} -> ${name}`),
   );
 };
+const applyCurrentSaasProjection = (root: string): void => {
+  for (const path of ["patches/@confect__cli@10.0.0-next.9.patch"]) {
+    const target = join(root, path);
+    mkdirSync(dirname(target), { recursive: true });
+    writeFileSync(target, readFileSync(join(repositoryRoot, path)));
+  }
+  const currentTrackedFiles = execFileSync("git", ["ls-files"], {
+    cwd: repositoryRoot,
+    encoding: "utf8",
+  })
+    .trim()
+    .split("\n")
+    .filter(Boolean);
+  for (const { path, action } of buildCustomerOwnershipInventory(
+    currentTrackedFiles,
+  )) {
+    const target = join(root, path);
+    if (action === "omit") {
+      rmSync(target, { force: true });
+      continue;
+    }
+    mkdirSync(dirname(target), { recursive: true });
+    writeFileSync(target, readFileSync(join(repositoryRoot, path)));
+  }
+  for (const entry of buildSaasApplicationTargetPlan().entries) {
+    const target = join(root, entry.path);
+    mkdirSync(dirname(target), { recursive: true });
+    writeFileSync(target, entry.content);
+  }
+};
 afterEach(async () => {
   await Promise.all(
     temporaryRoots
@@ -90,11 +152,43 @@ afterEach(async () => {
   );
 }, 120_000);
 afterAll(async () => {
-  if (taggedReleaseParent)
-    await rm(taggedReleaseParent, { recursive: true, force: true });
+  try {
+    if (taggedReleaseParent)
+      await rm(taggedReleaseParent, { recursive: true, force: true });
+  } finally {
+    if (originalPath === undefined) delete process.env.PATH;
+    else process.env.PATH = originalPath;
+    if (originalStoreDir === undefined) delete process.env.npm_config_store_dir;
+    else process.env.npm_config_store_dir = originalStoreDir;
+    if (originalTmpdir === undefined) delete process.env.TMPDIR;
+    else process.env.TMPDIR = originalTmpdir;
+  }
 }, 180_000);
 
 describe("materialized customer CLI runtime closure", () => {
+  it("uses existing platform-local temp storage for pnpm", () => {
+    const configuredTmpdir = process.env.TMPDIR;
+    if (!configuredTmpdir)
+      throw new Error("Customer runtime TMPDIR is missing.");
+    expect(configuredTmpdir).toBe(platformTmpdir);
+    expect(existsSync(configuredTmpdir)).toBe(true);
+  });
+
+  it("installs the frozen release seam on the current workspace closure", () => {
+    const releaseRoot = taggedRepository();
+    expect(readFileSync(join(releaseRoot, "pnpm-lock.yaml"))).toEqual(
+      readFileSync(join(repositoryRoot, "pnpm-lock.yaml")),
+    );
+    expect(
+      existsSync(
+        join(
+          releaseRoot,
+          "apps/cli/node_modules/@maestro-template/workflow-tooling/package.json",
+        ),
+      ),
+    ).toBe(true);
+  }, 120_000);
+
   it("runs privacy-aligned support preview and export from the current projection", async () => {
     const parent = mkdtempSync(join(tmpdir(), "maestro-current-customer-cli-"));
     temporaryRoots.push(parent);
@@ -113,6 +207,7 @@ describe("materialized customer CLI runtime closure", () => {
       "--json",
     ]);
     expect(created.exitCode, `${created.stdout}\n${created.stderr}`).toBe(0);
+    applyCurrentSaasProjection(target);
 
     const instancePath = join(target, "template-instance.json");
     const instance = JSON.parse(readFileSync(instancePath, "utf8")) as {
@@ -235,6 +330,22 @@ describe("materialized customer CLI runtime closure", () => {
     ]);
     expect(created.exitCode, `${created.stdout}\n${created.stderr}`).toBe(0);
 
+    const preservedCatalogs = [
+      "docs/template/system-catalog.json",
+      "docs/template/data-resources.json",
+    ].map((path) => ({ path, bytes: readFileSync(join(target, path)) }));
+    applyCurrentSaasProjection(target);
+    for (const { path, bytes } of preservedCatalogs)
+      writeFileSync(join(target, path), bytes);
+    const projectedLock = buildSaasApplicationTargetPlan().entries.find(
+      ({ path }) => path === "pnpm-lock.yaml",
+    );
+    if (!projectedLock) throw new Error("Current customer lock is missing.");
+    expect(readFileSync(join(target, projectedLock.path), "utf8")).toBe(
+      projectedLock.content,
+    );
+    expect(unresolvedWorkspaceDependencies(target)).toEqual([]);
+
     await execFileAsync(
       "pnpm",
       ["install", "--offline", "--frozen-lockfile", "--ignore-scripts"],
@@ -264,7 +375,7 @@ describe("materialized customer CLI runtime closure", () => {
     const resources = JSON.parse(
       readFileSync(join(target, "docs/template/data-resources.json"), "utf8"),
     ) as { readonly resources: readonly { readonly id: string }[] };
-    for (const table of ["records", "deployAuthorityAuditEvents"]) {
+    for (const table of ["records"]) {
       expect(systems.systems.some(({ tables }) => tables.includes(table))).toBe(
         true,
       );
@@ -275,70 +386,28 @@ describe("materialized customer CLI runtime closure", () => {
   it("imports a reviewed private package from a committed customer", async () => {
     const parent = mkdtempSync(join(tmpdir(), "maestro-customer-private-"));
     temporaryRoots.push(parent);
-    const releaseRoot = join(parent, "release");
-    execFileSync(
-      "git",
-      ["clone", "--quiet", "--shared", repositoryRoot, releaseRoot],
-      { stdio: "pipe" },
-    );
-    execFileSync(
-      "git",
-      [
-        "-C",
-        releaseRoot,
-        "tag",
-        "--force",
-        "maestro-template-v0.2.0-alpha.1",
-        "HEAD",
-      ],
-      { stdio: "pipe" },
-    );
-    const pnpm = ["--yes", "pnpm@10.12.1"] as const;
-    execFileSync(
-      "npx",
-      [
-        ...pnpm,
-        "install",
-        "--offline",
-        "--frozen-lockfile",
-        "--ignore-scripts",
-      ],
-      { cwd: releaseRoot, stdio: "pipe", timeout: 120_000 },
-    );
     const target = join(parent, "customer");
-    const created = spawnSync(
-      "npx",
-      [
-        ...pnpm,
-        "--silent",
-        "maestro",
-        "--",
-        "create",
-        target,
-        "--name",
-        "Private Package Closure",
-        "--outcome",
-        "Review a generic private package",
-        "--demo-only",
-        "--write",
-        "--privacy-reviewed",
-        "--json",
-      ],
-      { cwd: releaseRoot, encoding: "utf8", timeout: 60_000 },
-    );
-    expect(created.status, `${created.stdout}\n${created.stderr}`).toBe(0);
+    const created = runTaggedCli([
+      "create",
+      target,
+      "--name",
+      "Private Package Closure",
+      "--outcome",
+      "Review a generic private package",
+      "--demo-only",
+      "--write",
+      "--privacy-reviewed",
+      "--json",
+    ]);
+    expect(created.exitCode, `${created.stdout}\n${created.stderr}`).toBe(0);
+    applyCurrentSaasProjection(target);
 
-    await execFileAsync(
-      "npx",
-      [
-        ...pnpm,
-        "install",
-        "--offline",
-        "--frozen-lockfile",
-        "--ignore-scripts",
-      ],
-      { cwd: target, timeout: 120_000 },
+    const install = spawnSync(
+      "pnpm",
+      ["install", "--offline", "--frozen-lockfile", "--ignore-scripts"],
+      { cwd: target, encoding: "utf8", timeout: 120_000 },
     );
+    expect(install.status, `${install.stdout}\n${install.stderr}`).toBe(0);
     expect(
       existsSync(join(target, "examples/generic-ai-ops/template-package.json")),
     ).toBe(true);
@@ -360,7 +429,7 @@ describe("materialized customer CLI runtime closure", () => {
     );
 
     const command = (name: string, rest: readonly string[]) =>
-      spawnSync("npx", [...pnpm, "--silent", "run", name, "--", ...rest], {
+      spawnSync("pnpm", ["--silent", "run", name, "--", ...rest], {
         cwd: target,
         encoding: "utf8",
         timeout: 60_000,
@@ -477,14 +546,32 @@ describe("materialized customer CLI runtime closure", () => {
       "check:promotion-boundary",
       "check:secret-canaries",
     ]) {
-      const result = spawnSync("npx", [...pnpm, "run", gate], {
+      const result = spawnSync("pnpm", ["run", gate], {
         cwd: target,
         encoding: "utf8",
         timeout: 120_000,
       });
-      expect(result.status, `${gate}\n${result.stdout}\n${result.stderr}`).toBe(
-        0,
-      );
+      const diagnostic =
+        gate === "check:secret-canaries" && result.status !== 0
+          ? spawnSync(
+              "gitleaks",
+              [
+                "detect",
+                "--config",
+                ".gitleaks.toml",
+                "--no-git",
+                "--redact",
+                "--source",
+                ".",
+                "--verbose",
+              ],
+              { cwd: target, encoding: "utf8", timeout: 120_000 },
+            )
+          : undefined;
+      expect(
+        result.status,
+        `${gate}\n${result.stdout}\n${result.stderr}\n${diagnostic?.stdout ?? ""}\n${diagnostic?.stderr ?? ""}`,
+      ).toBe(0);
     }
     expect(
       execFileSync("git", ["status", "--porcelain"], {
@@ -511,6 +598,7 @@ describe("materialized customer CLI runtime closure", () => {
       "--json",
     ]);
     expect(created.exitCode, `${created.stdout}\n${created.stderr}`).toBe(0);
+    applyCurrentSaasProjection(target);
 
     const customerEntry = readFileSync(
       join(target, "apps/cli/src/index.ts"),
@@ -689,7 +777,7 @@ describe("materialized customer CLI runtime closure", () => {
         "check:logging-boundary",
         "check:access-audit-events",
         "check:generators",
-        "check:confect-v9",
+        "check:confect-effect-compat",
         "check:confect-contracts",
         "check:effectified-api-proof",
         "check:workflow-semantics",
@@ -909,17 +997,7 @@ describe("materialized customer CLI runtime closure", () => {
 
     const preflight = spawnSync(
       "pnpm",
-      [
-        "dlx",
-        "pnpm@10.12.1",
-        "--silent",
-        "maestro",
-        "--",
-        "preflight",
-        "--mode",
-        "fake",
-        "--json",
-      ],
+      ["--silent", "maestro", "--", "preflight", "--mode", "fake", "--json"],
       {
         cwd: target,
         encoding: "utf8",

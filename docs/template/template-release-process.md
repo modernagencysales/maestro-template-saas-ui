@@ -23,6 +23,30 @@ contract tests but must never materialize a target. See the
 7. Publish the immutable tag and archive, then record and verify their exact
    commit and checksum before marking its customer manifest materializable.
 
+## Alpha.3 Candidate Stop Boundary
+
+The Confect 10 / Effect 4 candidate prepares `v0.2.0-alpha.3` /
+`maestro-template-v0.2.0-alpha.3` as a new immutable release. It must never
+rewrite `v0.2.0-alpha.2`, and preparation does not authorize publication or a
+public-default change.
+
+The controlled release sequence is:
+
+1. Merge the exact candidate head.
+2. Run connected Convex generation and the broad exact-head gates in the
+   controlled lane.
+3. Seal a new alpha.3 directory from that exact clean commit.
+4. Publish the immutable tag and archive.
+5. Verify tag resolution, archive checksum, manifest checksum, and untouched
+   customer materialization from the published tag.
+6. Review and merge a separate change to the production composition and
+   quickstart default.
+7. Repeat the untouched-create acceptance against the published tag.
+
+Stop before step 3 without explicit release authority. Stop before step 6 unless
+published-tag materialization is verified and the default switch has separate
+review.
+
 ## Deploy Alert Plans
 
 Release tooling does not send Slack or webhook messages directly. Instead,

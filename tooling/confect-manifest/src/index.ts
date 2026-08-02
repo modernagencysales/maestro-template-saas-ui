@@ -1,5 +1,5 @@
-import * as JSONSchema from "effect/JSONSchema";
-import type * as Schema from "effect/Schema";
+import * as JsonSchema from "effect/JsonSchema";
+import * as Schema from "effect/Schema";
 
 export type ContractFunctionKind = "query" | "mutation" | "action";
 export type ContractSurface =
@@ -24,12 +24,42 @@ export type ContractManifest = {
 };
 
 export type ContractSchemaRegistry = Readonly<
-  Record<string, Schema.Schema.Any>
+  Record<string, Schema.Constraint>
 >;
 
 export type ContractJsonSchemas = {
   readonly openApi31: Readonly<Record<string, unknown>>;
   readonly mcp: Readonly<Record<string, unknown>>;
+};
+
+const flattenJsonSchemaDocument = (
+  document: JsonSchema.Document<"draft-2020-12">,
+): Readonly<Record<string, unknown>> => ({
+  $schema: JsonSchema.META_SCHEMA_URI_DRAFT_2020_12,
+  ...document.schema,
+  ...(Object.keys(document.definitions).length === 0
+    ? {}
+    : { $defs: document.definitions }),
+});
+
+const toOpenApi31CompatibleDocument = (
+  document: JsonSchema.Document<"draft-2020-12">,
+): JsonSchema.Document<"draft-2020-12"> => {
+  const converted = JsonSchema.toMultiDocumentOpenApi3_1({
+    dialect: "draft-2020-12",
+    schemas: [document.schema],
+    definitions: document.definitions,
+  });
+  return {
+    dialect: "draft-2020-12",
+    schema: JsonSchema.fromSchemaOpenApi3_1(converted.schemas[0]).schema,
+    definitions: Object.fromEntries(
+      Object.entries(converted.definitions).map(([name, schema]) => [
+        name,
+        JsonSchema.fromSchemaOpenApi3_1(schema).schema,
+      ]),
+    ),
+  };
 };
 
 export const buildContractManifest = (
@@ -80,13 +110,15 @@ export const buildContractJsonSchemas = (
     openApi31: Object.fromEntries(
       registryEntries.map(([name, schema]) => [
         name,
-        JSONSchema.make(schema, { target: "openApi3.1" }),
+        flattenJsonSchemaDocument(
+          toOpenApi31CompatibleDocument(Schema.toJsonSchemaDocument(schema)),
+        ),
       ]),
     ),
     mcp: Object.fromEntries(
       registryEntries.map(([name, schema]) => [
         name,
-        JSONSchema.make(schema, { target: "jsonSchema2020-12" }),
+        flattenJsonSchemaDocument(Schema.toJsonSchemaDocument(schema)),
       ]),
     ),
   };

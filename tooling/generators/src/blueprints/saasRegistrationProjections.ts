@@ -34,6 +34,26 @@ const source = (path: string): string => currentSource(path);
 const currentGeneratorSource = (path: string): string =>
   readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
 
+export const CURRENT_FACTORY_PRODUCT_TABLES = [
+  "buildPackEntitlements",
+  "buildPackExports",
+  "buildPackStages",
+  "buildPacks",
+  "checkoutSessions",
+  "commerceRevocations",
+  "emailVerificationChallenges",
+  "evaluationAnswers",
+  "evaluationReportVersions",
+  "evaluationReports",
+  "evaluationSessions",
+  "evaluationShares",
+  "maestroCredits",
+  "modelReceipts",
+  "purchases",
+  "reportOwnerships",
+  "supportIncidents",
+] as const;
+
 const customerReadme = (): string => `# Generated Maestro App
 
 This is a customer application generated from an immutable Maestro release. Its
@@ -175,6 +195,96 @@ export const CURRENT_SAAS_DEPLOY_AUTHORITY_SOURCE_CLOSURE = [
   "packages/convex/test/deploy-authority.test.ts",
 ] as const;
 
+export const CURRENT_EMAIL_CLOSURE = [
+  ".env.example",
+  "apps/web/src/features/setup/setup-surface.ts",
+  "apps/web/src/sample/templateData.test.ts",
+  "docs/template/client-handoff-packet.md",
+  "docs/template/client-intake-wizard.md",
+  "docs/template/how-to-add-notification.md",
+  "docs/template/implementation-brief-template.md",
+  "docs/template/integrations.md",
+  "docs/template/template-defaults.md",
+  "packages/convex/confect/_generated/registeredFunctions/ops/email.ts",
+  "packages/convex/confect/_generated/tables/emailCampaigns.ts",
+  "packages/convex/confect/_generated/tables/emailDeliveries.ts",
+  "packages/convex/confect/_generated/tables/emailEvents.ts",
+  "packages/convex/confect/_generated/tables/emailSubscribers.ts",
+  "packages/convex/confect/_generated/tables/emailSuppressions.ts",
+  "packages/convex/confect/email/env.ts",
+  "packages/convex/confect/email/postmarkWebhook.ts",
+  "packages/convex/confect/email/unsubscribeToken.ts",
+  "packages/convex/confect/access/invitations.impl.ts",
+  "packages/convex/confect/ops/actions.impl.ts",
+  "packages/convex/confect/ops/billing.impl.ts",
+  "packages/convex/confect/ops/billing.spec.ts",
+  "packages/convex/confect/ops/email.impl.ts",
+  "packages/convex/confect/ops/email.spec.ts",
+  "packages/convex/confect/tables/emailCampaigns.ts",
+  "packages/convex/confect/tables/emailDeliveries.ts",
+  "packages/convex/confect/tables/emailEvents.ts",
+  "packages/convex/confect/tables/emailSubscribers.ts",
+  "packages/convex/confect/tables/emailSuppressions.ts",
+  "packages/convex/confect/tables/usageEvents.ts",
+  "packages/convex/convex/ops/email.ts",
+  "packages/convex/test/billing.test.ts",
+  "packages/convex/test/email.test.ts",
+  "packages/convex/test/headless-executor.test.ts",
+  "packages/convex/test/http-docs.test.ts",
+  "packages/integrations/src/billing.ts",
+  "packages/integrations/src/email.test.ts",
+  "packages/integrations/src/email.ts",
+  "packages/integrations/src/emailSetup.test.ts",
+  "packages/integrations/src/emailSetup.ts",
+  "packages/integrations/src/index.test.ts",
+  "packages/integrations/src/index.ts",
+  "packages/notifications/src/index.test.ts",
+  "packages/notifications/src/index.ts",
+  "packages/template-core/src/actions.test.ts",
+  "packages/template-core/src/index.ts",
+  "packages/ui/src/visualize/visualize.test.tsx",
+  "project.config.json",
+  "tooling/confect-manifest/src/generate.ts",
+  "tooling/quality/check-env-boundary.mts",
+  "tooling/quality/check-env-boundary.test.mts",
+  "tooling/workflow/src/index.test.ts",
+  "tooling/workflow/src/index.ts",
+] as const;
+
+export const CURRENT_EMAIL_BASE_COPY_REPLACEMENTS = [
+  ".env.example",
+  "apps/web/src/features/setup/setup-surface.ts",
+  "apps/web/src/sample/templateData.test.ts",
+  "docs/template/client-handoff-packet.md",
+  "docs/template/client-intake-wizard.md",
+  "docs/template/how-to-add-notification.md",
+  "docs/template/implementation-brief-template.md",
+  "docs/template/integrations.md",
+  "docs/template/template-defaults.md",
+  "packages/convex/confect/access/invitations.impl.ts",
+  "packages/convex/confect/ops/actions.impl.ts",
+  "packages/convex/confect/ops/billing.impl.ts",
+  "packages/convex/confect/ops/billing.spec.ts",
+  "packages/convex/confect/tables/usageEvents.ts",
+  "packages/convex/test/billing.test.ts",
+  "packages/convex/test/headless-executor.test.ts",
+  "packages/convex/test/http-docs.test.ts",
+  "packages/integrations/src/billing.ts",
+  "packages/integrations/src/index.test.ts",
+  "packages/integrations/src/index.ts",
+  "packages/notifications/src/index.test.ts",
+  "packages/notifications/src/index.ts",
+  "packages/template-core/src/actions.test.ts",
+  "packages/template-core/src/index.ts",
+  "packages/ui/src/visualize/visualize.test.tsx",
+  "project.config.json",
+  "tooling/confect-manifest/src/generate.ts",
+  "tooling/quality/check-env-boundary.mts",
+  "tooling/quality/check-env-boundary.test.mts",
+  "tooling/workflow/src/index.test.ts",
+  "tooling/workflow/src/index.ts",
+] as const;
+
 export const CURRENT_CUSTOMER_QUALITY_TEST_EXCLUSIONS = [
   "tooling/quality/ai-gate-scripts.test.mts",
   "tooling/quality/check-agent-pack.test.mts",
@@ -232,6 +342,7 @@ export const CUSTOMER_ROOT_SCRIPTS = [
   "confect:dev",
   "convex:dev",
   "dev:backend",
+  "email:setup",
   "template:doctor",
   "template:quickstart",
   "template:seed-demo",
@@ -275,7 +386,7 @@ export const CUSTOMER_ROOT_SCRIPTS = [
   "check:generators",
   "check:docs-freshness",
   "check:generated-files",
-  "check:confect-v9",
+  "check:confect-effect-compat",
   "check:confect-contracts",
   "check:workflow-graph-boundary",
   "check:workflow-policy-snapshots",
@@ -360,7 +471,7 @@ const customerPackage = (current: boolean): string => {
     "check:logging-boundary",
     "check:access-audit-events",
     "check:generators",
-    "check:confect-v9",
+    "check:confect-effect-compat",
     "check:confect-contracts",
     "check:effectified-api-proof",
     "check:workflow-semantics",
@@ -511,12 +622,6 @@ const customerLockfile = (): string => {
   );
   value = removeLockfileImporterDependency(
     value,
-    "packages/integrations",
-    "packages/notifications",
-    "      dodopayments:\n        specifier: ^2.44.0\n        version: 2.44.0\n",
-  );
-  value = removeLockfileImporterDependency(
-    value,
     "tooling/generators",
     "tooling/pr-backlog",
     appIdeaEvaluatorFromRoot,
@@ -539,7 +644,10 @@ const customerLockfile = (): string => {
     "tooling/pr-backlog",
     '      "@maestro-template/release-tooling":\n        specifier: workspace:*\n        version: link:../release\n',
   );
-  if (value.includes('"@maestro-template/app-idea-evaluator":'))
+  if (
+    value.includes("'@maestro-template/app-idea-evaluator':") ||
+    value.includes('"@maestro-template/app-idea-evaluator":')
+  )
     throw new Error(
       "Customer lockfile still references omitted @maestro-template/app-idea-evaluator workspace package.",
     );
@@ -647,8 +755,94 @@ const replaceAll = (
   return value.replaceAll(search, replacement);
 };
 
+const factoryProductTablePattern = new RegExp(
+  `\\b(?:${CURRENT_FACTORY_PRODUCT_TABLES.join("|")})\\b`,
+  "u",
+);
+
+const withoutFactoryProductTableLines = (value: string): string =>
+  value
+    .split("\n")
+    .filter((line) => !factoryProductTablePattern.test(line))
+    .join("\n");
+
+const withoutFactoryProductTableNames = (value: string): string => {
+  let projected = value;
+  for (const table of CURRENT_FACTORY_PRODUCT_TABLES)
+    projected = projected.replace(` | "${table}"`, "");
+  return projected;
+};
+
+const removeChainedCall = (value: string, marker: string): string => {
+  const start = value.indexOf(marker);
+  if (start < 0)
+    throw new Error(
+      `SaaS registration projection marker is missing: ${marker}`,
+    );
+  const open = value.indexOf("(", start);
+  let depth = 0;
+  for (let index = open; index < value.length; index += 1) {
+    const character = value[index];
+    if (character === "(") depth += 1;
+    if (character !== ")") continue;
+    depth -= 1;
+    if (depth === 0) return `${value.slice(0, start)}${value.slice(index + 1)}`;
+  }
+  throw new Error(`Unbalanced SaaS registration projection marker: ${marker}`);
+};
+
+const withoutFactoryProductConfectGroups = (value: string): string => {
+  const forbiddenImports = [
+    "buildPacks_",
+    "capabilities_evaluateAppIdea",
+    "capabilities_manageEvaluationReport",
+    "commerce_",
+    "workflowContracts_generateCompleteBuildPack",
+  ] as const;
+  let projected = value
+    .split("\n")
+    .filter(
+      (line) =>
+        !(
+          line.startsWith("import ") &&
+          forbiddenImports.some((name) => line.includes(name))
+        ) &&
+        !(
+          line.startsWith("  | GroupSpec.NamedAt<GroupSpec.GroupSpec") &&
+          (line.includes('"buildPacks"') || line.includes('"commerce"'))
+        ),
+    )
+    .map((line) =>
+      line
+        .replace(
+          ' | GroupSpec.NamedAt<typeof capabilities_evaluateAppIdea, "evaluateAppIdea">',
+          "",
+        )
+        .replace(
+          ' | GroupSpec.NamedAt<typeof capabilities_manageEvaluationReport, "manageEvaluationReport">',
+          "",
+        )
+        .replace(
+          'GroupSpec.NamedAt<typeof workflowContracts_generateCompleteBuildPack, "generateCompleteBuildPack"> | ',
+          "",
+        ),
+    )
+    .join("\n");
+  projected = removeChainedCall(projected, '.addAt("buildPacks",');
+  projected = removeChainedCall(projected, '.addAt("commerce",');
+  for (const call of [
+    '.addGroupAt("evaluateAppIdea", capabilities_evaluateAppIdea)',
+    '.addGroupAt("manageEvaluationReport", capabilities_manageEvaluationReport)',
+    '.addGroupAt("generateCompleteBuildPack", workflowContracts_generateCompleteBuildPack)',
+  ])
+    projected = replace(projected, call, "");
+  return projected;
+};
+
 const databaseSchema = (): string => {
-  let value = source("packages/convex/confect/_generated/schema.ts");
+  let value = withoutFactoryProductTableLines(
+    source("packages/convex/confect/_generated/schema.ts"),
+  );
   value = replace(
     value,
     'import promptRegistry from "./tables/promptRegistry";',
@@ -663,7 +857,9 @@ const databaseSchema = (): string => {
 };
 
 const convexSchema = (): string => {
-  let value = source("packages/convex/confect/_generated/convexSchema.ts");
+  let value = withoutFactoryProductTableLines(
+    source("packages/convex/confect/_generated/convexSchema.ts"),
+  );
   value = replace(
     value,
     'import promptRegistry from "./tables/promptRegistry";',
@@ -677,7 +873,11 @@ const convexSchema = (): string => {
 };
 
 const confectSpec = (current: boolean): string => {
-  let value = source("packages/convex/confect/_generated/spec.ts");
+  let value = current
+    ? withoutFactoryProductConfectGroups(
+        source("packages/convex/confect/_generated/spec.ts"),
+      )
+    : source("packages/convex/confect/_generated/spec.ts");
   if (!current) {
     value = replace(
       value,
@@ -714,13 +914,17 @@ const confectSpec = (current: boolean): string => {
 
 const confectIds = (): string =>
   replace(
-    source("packages/convex/confect/_generated/id.ts"),
-    ' | "promptRegistry" | "purchases"',
-    ' | "promptRegistry" | "records" | "purchases"',
+    withoutFactoryProductTableNames(
+      source("packages/convex/confect/_generated/id.ts"),
+    ),
+    ' | "promptRegistry" | "transformBlocks"',
+    ' | "promptRegistry" | "records" | "transformBlocks"',
   );
 
 const confectDocs = (): string => {
-  let value = source("packages/convex/confect/_generated/docs.ts");
+  let value = withoutFactoryProductTableLines(
+    source("packages/convex/confect/_generated/docs.ts"),
+  );
   value = replace(
     value,
     'export type PromptRegistryDoc = Document.Document<typeof schemaDefinition, "promptRegistry">;',
@@ -733,8 +937,43 @@ const confectDocs = (): string => {
   );
 };
 
-const routeTree = (): string => {
-  let value = source("apps/web/src/routeTree.gen.ts");
+const routeTree = (current: boolean): string => {
+  let value = current
+    ? currentGeneratorSource("blueprints/customer/routeTree.gen.ts.txt")
+    : source("apps/web/src/routeTree.gen.ts");
+  if (current) {
+    value = replace(
+      value,
+      "import { Route as IndexRouteImport } from './routes/index'",
+      "import { Route as IndexRouteImport } from './routes/index'\nimport { Route as DashboardRouteImport } from './routes/dashboard'",
+    );
+    value = replace(
+      value,
+      "const IndexRoute = IndexRouteImport.update({\n  id: '/',\n  path: '/',\n  getParentRoute: () => rootRouteImport,\n} as any)",
+      "const IndexRoute = IndexRouteImport.update({\n  id: '/',\n  path: '/',\n  getParentRoute: () => rootRouteImport,\n} as any)\nconst DashboardRoute = DashboardRouteImport.update({\n  id: '/dashboard',\n  path: '/dashboard',\n  getParentRoute: () => rootRouteImport,\n} as any)",
+    );
+    value = replaceAll(
+      value,
+      "  '/': typeof IndexRoute",
+      "  '/': typeof IndexRoute\n  '/dashboard': typeof DashboardRoute",
+    );
+    value = replaceAll(value, "    | '/'", "    | '/'\n    | '/dashboard'");
+    value = replace(
+      value,
+      "  IndexRoute: typeof IndexRoute",
+      "  IndexRoute: typeof IndexRoute\n  DashboardRoute: typeof DashboardRoute",
+    );
+    value = replace(
+      value,
+      "  interface FileRoutesByPath {\n    '/': {",
+      "  interface FileRoutesByPath {\n    '/dashboard': {\n      id: '/dashboard'\n      path: '/dashboard'\n      fullPath: '/dashboard'\n      preLoaderRoute: typeof DashboardRouteImport\n      parentRoute: typeof rootRouteImport\n    }\n    '/': {",
+    );
+    value = replace(
+      value,
+      "  IndexRoute: IndexRoute,",
+      "  IndexRoute: IndexRoute,\n  DashboardRoute: DashboardRoute,",
+    );
+  }
   value = replace(
     value,
     "import { Route as WorkspaceRunsRouteImport } from './routes/_workspace.runs'",
@@ -832,6 +1071,10 @@ export const buildSaasRegistrationProjections = (
           {
             path: "scripts/maestro-bootstrap.test.mjs",
             content: currentSource("scripts/maestro-bootstrap.test.mjs"),
+          },
+          {
+            path: "scripts/configure-postmark.mts",
+            content: currentSource("scripts/configure-postmark.mts"),
           },
           {
             path: "apps/web/src/bundle-policy.ts",
@@ -1030,6 +1273,7 @@ export const buildSaasRegistrationProjections = (
       ...(!current
         ? ["packages/convex/confect/ops/dataResources.generated.ts"]
         : []),
+      ...(current ? CURRENT_EMAIL_CLOSURE : []),
       ...(current ? CURRENT_SAAS_DEPLOY_AUTHORITY_TABLE_CLOSURE : []),
       ...(current ? CURRENT_SAAS_DEPLOY_AUTHORITY_SOURCE_CLOSURE : []),
       ...(current ? CURRENT_PRODUCT_JOURNEY_CLOSURE : []),
@@ -1119,6 +1363,22 @@ export const buildSaasRegistrationProjections = (
       : []),
     ...(current
       ? [
+          {
+            path: "apps/web/src/routes/index.tsx",
+            content: currentGeneratorSource(
+              "blueprints/customer/index-route.tsx.txt",
+            ),
+          },
+          {
+            path: "apps/web/src/providers/posthog.tsx",
+            content: currentGeneratorSource(
+              "blueprints/customer/posthog.tsx.txt",
+            ),
+          },
+        ]
+      : []),
+    ...(current
+      ? [
           "privacy/supportBundle.ts",
           "privacy/supportBundleCommand.ts",
           "privacy/nodeSupportBundleExporter.ts",
@@ -1180,7 +1440,7 @@ export const buildSaasRegistrationProjections = (
         ? 'import registeredFunctions from "../../confect/_generated/registeredFunctions/records/records";\n\nexport const create = registeredFunctions.create;\nexport const list = registeredFunctions.list;\nexport const read = registeredFunctions.read;\n'
         : 'import registeredFunctions from "../confect/_generated/registeredFunctions/records";\n\nexport const list = registeredFunctions.list;\nexport const read = registeredFunctions.read;\nexport const create = registeredFunctions.create;\n',
     },
-    { path: "apps/web/src/routeTree.gen.ts", content: routeTree() },
+    { path: "apps/web/src/routeTree.gen.ts", content: routeTree(current) },
     {
       path: "apps/web/src/routeRegistry.generated.ts",
       content:

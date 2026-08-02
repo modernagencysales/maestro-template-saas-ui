@@ -12,20 +12,20 @@ import { sha256Hex } from "../../shared/sha256";
 export const MAX_WORKFLOW_ARTIFACT_BYTES = 880_000;
 export const MAX_STORED_WORKFLOW_ARTIFACT_BYTES = 880_000;
 
-export const WorkflowArtifactSensitivity = Schema.Literal(
+export const WorkflowArtifactSensitivity = Schema.Literals([
   "internal",
   "confidential",
   "restricted",
-);
+]);
 export type WorkflowArtifactSensitivity = Schema.Schema.Type<
   typeof WorkflowArtifactSensitivity
 >;
-export const WorkflowArtifactKind = Schema.Literal(
+export const WorkflowArtifactKind = Schema.Literals([
   "workflow-input",
   "capability-result",
   "event-value",
   "workflow-result",
-);
+]);
 export type WorkflowArtifactKind = Schema.Schema.Type<
   typeof WorkflowArtifactKind
 >;

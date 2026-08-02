@@ -590,7 +590,7 @@ const applyDodoImpl = FunctionImpl.make(
         },
       ).pipe(
         Effect.catchTag(
-          "ParseError",
+          "SchemaError",
           () => new WebhookRejected({ reason: "invalid verified event" }),
         ),
       );
@@ -608,34 +608,31 @@ const applyDodoImpl = FunctionImpl.make(
           });
         const admaxxerApiKey = admaxxer.ADMAXXER_API_KEY;
         if (admaxxerApiKey && event.amountCents !== undefined) {
-          yield* Effect.tryPromise(() =>
-            recordAdmaxxerPayment(
-              {
-                paymentId: event.paymentId,
-                amountMinor: event.amountCents as number,
-                currency: event.currency ?? "USD",
-                ...(event.admaxxerVisitorId
-                  ? { visitorId: event.admaxxerVisitorId }
-                  : {}),
-                ...(event.email ? { email: event.email } : {}),
-              },
-              { apiKey: admaxxerApiKey },
-            ),
-          ).pipe(
-            Effect.catchAll(() =>
-              Effect.fail(
-                new WebhookRejected({
-                  reason: "Admaxxer attribution failed; retry the webhook",
-                }),
+          yield* Effect.tryPromise({
+            try: () =>
+              recordAdmaxxerPayment(
+                {
+                  paymentId: event.paymentId,
+                  amountMinor: event.amountCents as number,
+                  currency: event.currency ?? "USD",
+                  ...(event.admaxxerVisitorId
+                    ? { visitorId: event.admaxxerVisitorId }
+                    : {}),
+                  ...(event.email ? { email: event.email } : {}),
+                },
+                { apiKey: admaxxerApiKey },
               ),
-            ),
-          );
+            catch: () =>
+              new WebhookRejected({
+                reason: "Admaxxer attribution failed; retry the webhook",
+              }),
+          });
           yield* mutation(
             refs.internal.commerce.webhooks.markAdmaxxerReported,
             { paymentId: event.paymentId, reportedAt: now },
           ).pipe(
             Effect.catchTag(
-              "ParseError",
+              "SchemaError",
               () =>
                 new WebhookRejected({ reason: "invalid attribution receipt" }),
             ),
@@ -646,7 +643,7 @@ const applyDodoImpl = FunctionImpl.make(
         eventId: verification.eventId,
       }).pipe(
         Effect.catchTag(
-          "ParseError",
+          "SchemaError",
           () => new WebhookRejected({ reason: "invalid webhook receipt" }),
         ),
       );

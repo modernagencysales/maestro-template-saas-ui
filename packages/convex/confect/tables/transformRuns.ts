@@ -6,7 +6,7 @@ export default Table.make(() =>
     workspaceId: Schema.String,
     runId: Schema.String,
     transformId: Schema.String,
-    status: Schema.Literal("queued", "running", "completed", "failed"),
+    status: Schema.Literals(["queued", "running", "completed", "failed"]),
     inputHash: Schema.String,
     outputHash: Schema.String,
     sourceIds: Schema.Array(Schema.String),

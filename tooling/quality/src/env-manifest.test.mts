@@ -172,7 +172,7 @@ describe("environment manifest", () => {
 
     expect(source).toContain("docs/template/env-manifest.json");
     expect(source).toContain("requiredEnvNamesForProvider");
-    expect(source).toContain('email: "mailersend"');
+    expect(source).toContain('email: "email"');
     expect(source).toContain('llm: "openrouter"');
     expect(source).not.toContain("requiredSecretNamesByProvider");
   });

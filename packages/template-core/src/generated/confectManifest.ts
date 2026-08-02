@@ -101,25 +101,58 @@ export const confectManifest = {
       argsSchemaName: "ops.dataLifecycle.listDsarRequests.args",
       returnsSchemaName: "ops.dataLifecycle.listDsarRequests.returns",
     },
+    {
+      namespace: "ops.email",
+      name: "dispatchBroadcast",
+      operationId: "ops.email.dispatchBroadcast",
+      kind: "action",
+      surfaces: ["api", "cli", "mcp", "web"],
+      typedErrors: [
+        "Unauthorized",
+        "Forbidden",
+        "MemberNotInWorkspace",
+        "WorkspaceNotFound",
+        "ValidationFailed",
+      ],
+      idempotent: false,
+      argsSchemaName: "ops.email.dispatchBroadcast.args",
+      returnsSchemaName: "ops.email.dispatchBroadcast.returns",
+    },
+    {
+      namespace: "ops.email",
+      name: "previewBroadcast",
+      operationId: "ops.email.previewBroadcast",
+      kind: "query",
+      surfaces: ["api", "cli", "mcp", "web"],
+      typedErrors: [
+        "Unauthorized",
+        "Forbidden",
+        "MemberNotInWorkspace",
+        "WorkspaceNotFound",
+        "ValidationFailed",
+      ],
+      idempotent: true,
+      argsSchemaName: "ops.email.previewBroadcast.args",
+      returnsSchemaName: "ops.email.previewBroadcast.returns",
+    },
   ],
 } as const;
 
 const sharedConfectJsonSchemasValue1 = {
   $schema: "https://json-schema.org/draft/2020-12/schema",
   type: "object",
-  required: ["workspaceId"],
   properties: {
     workspaceId: {
       type: "string",
     },
   },
+  required: ["workspaceId"],
   additionalProperties: false,
 } as const;
 
 const sharedConfectJsonSchemasValue2 = {
   $schema: "https://json-schema.org/draft/2020-12/schema",
   type: "object",
-  required: ["workspaceId", "sourceIds", "briefGoal", "idempotencyKey"],
   properties: {
     workspaceId: {
       type: "string",
@@ -129,36 +162,36 @@ const sharedConfectJsonSchemasValue2 = {
       items: {
         type: "string",
       },
-      description: "an array of at least 1 item(s)",
-      title: "minItems(1)",
-      minItems: 1,
+      allOf: [
+        {
+          minItems: 1,
+        },
+      ],
     },
     briefGoal: {
       type: "string",
-      description: "a string at least 1 character(s) long",
-      title: "minLength(1)",
-      minLength: 1,
+      allOf: [
+        {
+          minLength: 1,
+        },
+      ],
     },
     idempotencyKey: {
       type: "string",
-      description: "a string at least 1 character(s) long",
-      title: "minLength(1)",
-      minLength: 1,
+      allOf: [
+        {
+          minLength: 1,
+        },
+      ],
     },
   },
+  required: ["workspaceId", "sourceIds", "briefGoal", "idempotencyKey"],
   additionalProperties: false,
 } as const;
 
 const sharedConfectJsonSchemasValue3 = {
   $schema: "https://json-schema.org/draft/2020-12/schema",
   type: "object",
-  required: [
-    "briefMarkdown",
-    "sourceTitles",
-    "policySnapshotId",
-    "modelReceiptId",
-    "trustClaim",
-  ],
   properties: {
     briefMarkdown: {
       type: "string",
@@ -179,6 +212,13 @@ const sharedConfectJsonSchemasValue3 = {
       type: "string",
     },
   },
+  required: [
+    "briefMarkdown",
+    "sourceTitles",
+    "policySnapshotId",
+    "modelReceiptId",
+    "trustClaim",
+  ],
   additionalProperties: false,
 } as const;
 
@@ -186,7 +226,6 @@ const sharedConfectJsonSchemas = {
   "brain.pages.createMarkdown.args": {
     $schema: "https://json-schema.org/draft/2020-12/schema",
     type: "object",
-    required: ["workspaceId", "slug", "title", "markdown"],
     properties: {
       workspaceId: {
         type: "string",
@@ -201,6 +240,7 @@ const sharedConfectJsonSchemas = {
         type: "string",
       },
     },
+    required: ["workspaceId", "slug", "title", "markdown"],
     additionalProperties: false,
   },
   "brain.pages.createMarkdown.returns": {
@@ -213,23 +253,7 @@ const sharedConfectJsonSchemas = {
     type: "array",
     items: {
       type: "object",
-      required: [
-        "_id",
-        "_creationTime",
-        "workspaceId",
-        "slug",
-        "title",
-        "markdown",
-        "sourceKind",
-        "updatedAt",
-      ],
       properties: {
-        _id: {
-          type: "string",
-        },
-        _creationTime: {
-          type: "number",
-        },
         workspaceId: {
           type: "string",
         },
@@ -243,19 +267,73 @@ const sharedConfectJsonSchemas = {
           type: "string",
         },
         editorSnapshotJson: {
-          type: "string",
+          anyOf: [
+            {
+              type: "string",
+            },
+            {
+              type: "null",
+            },
+          ],
         },
         editorSnapshotVersion: {
-          type: "number",
+          anyOf: [
+            {
+              anyOf: [
+                {
+                  type: "number",
+                },
+                {
+                  type: "string",
+                  enum: ["Infinity", "-Infinity", "NaN"],
+                },
+              ],
+            },
+            {
+              type: "null",
+            },
+          ],
         },
         sourceKind: {
           type: "string",
           enum: ["markdown", "link", "note"],
         },
         updatedAt: {
-          type: "number",
+          anyOf: [
+            {
+              type: "number",
+            },
+            {
+              type: "string",
+              enum: ["Infinity", "-Infinity", "NaN"],
+            },
+          ],
+        },
+        _id: {
+          type: "string",
+        },
+        _creationTime: {
+          anyOf: [
+            {
+              type: "number",
+            },
+            {
+              type: "string",
+              enum: ["Infinity", "-Infinity", "NaN"],
+            },
+          ],
         },
       },
+      required: [
+        "workspaceId",
+        "slug",
+        "title",
+        "markdown",
+        "sourceKind",
+        "updatedAt",
+        "_id",
+        "_creationTime",
+      ],
       additionalProperties: false,
     },
   },
@@ -269,82 +347,121 @@ const sharedConfectJsonSchemas = {
   "ops.dataLifecycle.createDsarRequest.args": {
     $schema: "https://json-schema.org/draft/2020-12/schema",
     type: "object",
-    required: ["workspaceId", "requestId", "kind"],
     properties: {
       workspaceId: {
         type: "string",
       },
       requestId: {
         type: "string",
-        description: "a string at least 1 character(s) long",
-        title: "minLength(1)",
-        minLength: 1,
+        allOf: [
+          {
+            minLength: 1,
+          },
+        ],
       },
       kind: {
         type: "string",
         enum: ["export", "delete"],
       },
       subjectId: {
-        type: "string",
-        description: "a string at least 1 character(s) long",
-        title: "minLength(1)",
-        minLength: 1,
+        anyOf: [
+          {
+            type: "string",
+            allOf: [
+              {
+                minLength: 1,
+              },
+            ],
+          },
+          {
+            type: "null",
+          },
+        ],
       },
       confirmationPhrase: {
-        type: "string",
-      },
-      legalHold: {
-        type: "object",
-        required: ["enabled", "reason"],
-        properties: {
-          enabled: {
-            type: "boolean",
-          },
-          reason: {
+        anyOf: [
+          {
             type: "string",
           },
-          expiresAt: {
-            type: "number",
+          {
+            type: "null",
           },
-        },
-        additionalProperties: false,
+        ],
+      },
+      legalHold: {
+        anyOf: [
+          {
+            type: "object",
+            properties: {
+              enabled: {
+                type: "boolean",
+              },
+              reason: {
+                type: "string",
+              },
+              expiresAt: {
+                anyOf: [
+                  {
+                    anyOf: [
+                      {
+                        type: "number",
+                      },
+                      {
+                        type: "string",
+                        enum: ["Infinity", "-Infinity", "NaN"],
+                      },
+                    ],
+                  },
+                  {
+                    type: "null",
+                  },
+                ],
+              },
+            },
+            required: ["enabled", "reason"],
+            additionalProperties: false,
+          },
+          {
+            type: "null",
+          },
+        ],
       },
     },
+    required: ["workspaceId", "requestId", "kind"],
     additionalProperties: false,
   },
   "ops.dataLifecycle.createDsarRequest.returns": {
     $schema: "https://json-schema.org/draft/2020-12/schema",
     type: "object",
-    required: [
-      "workspaceId",
-      "requestId",
-      "requestedByUserId",
-      "kind",
-      "status",
-      "dryRunOnly",
-      "plannedAt",
-      "confirmation",
-      "exportManifest",
-      "deletePlan",
-    ],
     properties: {
       workspaceId: {
         type: "string",
       },
       requestId: {
         type: "string",
-        description: "a string at least 1 character(s) long",
-        title: "minLength(1)",
-        minLength: 1,
+        allOf: [
+          {
+            minLength: 1,
+          },
+        ],
       },
       requestedByUserId: {
         type: "string",
       },
       subjectId: {
-        type: "string",
-        description: "a string at least 1 character(s) long",
-        title: "minLength(1)",
-        minLength: 1,
+        anyOf: [
+          {
+            type: "string",
+            allOf: [
+              {
+                minLength: 1,
+              },
+            ],
+          },
+          {
+            type: "null",
+          },
+        ],
       },
       kind: {
         type: "string",
@@ -363,30 +480,66 @@ const sharedConfectJsonSchemas = {
         enum: [true],
       },
       plannedAt: {
-        type: "number",
-      },
-      confirmationPhrase: {
-        type: "string",
-      },
-      legalHold: {
-        type: "object",
-        required: ["enabled", "reason"],
-        properties: {
-          enabled: {
-            type: "boolean",
-          },
-          reason: {
-            type: "string",
-          },
-          expiresAt: {
+        anyOf: [
+          {
             type: "number",
           },
-        },
-        additionalProperties: false,
+          {
+            type: "string",
+            enum: ["Infinity", "-Infinity", "NaN"],
+          },
+        ],
+      },
+      confirmationPhrase: {
+        anyOf: [
+          {
+            type: "string",
+          },
+          {
+            type: "null",
+          },
+        ],
+      },
+      legalHold: {
+        anyOf: [
+          {
+            type: "object",
+            properties: {
+              enabled: {
+                type: "boolean",
+              },
+              reason: {
+                type: "string",
+              },
+              expiresAt: {
+                anyOf: [
+                  {
+                    anyOf: [
+                      {
+                        type: "number",
+                      },
+                      {
+                        type: "string",
+                        enum: ["Infinity", "-Infinity", "NaN"],
+                      },
+                    ],
+                  },
+                  {
+                    type: "null",
+                  },
+                ],
+              },
+            },
+            required: ["enabled", "reason"],
+            additionalProperties: false,
+          },
+          {
+            type: "null",
+          },
+        ],
       },
       confirmation: {
         type: "object",
-        required: ["required", "phrase", "reason"],
         properties: {
           required: {
             type: "boolean",
@@ -399,13 +552,13 @@ const sharedConfectJsonSchemas = {
             type: "string",
           },
         },
+        required: ["required", "phrase", "reason"],
         additionalProperties: false,
       },
       exportManifest: {
         type: "array",
         items: {
           type: "object",
-          required: ["resourceId", "exportMode", "detail"],
           properties: {
             resourceId: {
               type: "string",
@@ -446,6 +599,9 @@ const sharedConfectJsonSchemas = {
                 "buildPacks",
                 "checkoutSessions",
                 "commerceRevocations",
+                "emailCampaigns",
+                "emailDeliveries",
+                "emailSubscribers",
                 "emailVerificationChallenges",
                 "evaluationAnswers",
                 "evaluationReportVersions",
@@ -478,6 +634,7 @@ const sharedConfectJsonSchemas = {
               type: "string",
             },
           },
+          required: ["resourceId", "exportMode", "detail"],
           additionalProperties: false,
         },
       },
@@ -485,7 +642,6 @@ const sharedConfectJsonSchemas = {
         type: "array",
         items: {
           type: "object",
-          required: ["resourceId", "deleteMode", "executable", "reason"],
           properties: {
             resourceId: {
               type: "string",
@@ -526,6 +682,9 @@ const sharedConfectJsonSchemas = {
                 "buildPacks",
                 "checkoutSessions",
                 "commerceRevocations",
+                "emailCampaigns",
+                "emailDeliveries",
+                "emailSubscribers",
                 "emailVerificationChallenges",
                 "evaluationAnswers",
                 "evaluationReportVersions",
@@ -562,52 +721,63 @@ const sharedConfectJsonSchemas = {
               type: "string",
             },
           },
+          required: ["resourceId", "deleteMode", "executable", "reason"],
           additionalProperties: false,
         },
       },
     },
+    required: [
+      "workspaceId",
+      "requestId",
+      "requestedByUserId",
+      "kind",
+      "status",
+      "dryRunOnly",
+      "plannedAt",
+      "confirmation",
+      "exportManifest",
+      "deletePlan",
+    ],
     additionalProperties: false,
   },
   "ops.dataLifecycle.listDsarRequests.args": sharedConfectJsonSchemasValue1,
   "ops.dataLifecycle.listDsarRequests.returns": {
     $schema: "https://json-schema.org/draft/2020-12/schema",
     type: "object",
-    required: ["requests"],
     properties: {
       requests: {
         type: "array",
         items: {
           type: "object",
-          required: [
-            "workspaceId",
-            "requestId",
-            "requestedByUserId",
-            "kind",
-            "status",
-            "dryRunOnly",
-            "plannedAt",
-            "confirmation",
-            "exportManifest",
-            "deletePlan",
-          ],
           properties: {
             workspaceId: {
               type: "string",
             },
             requestId: {
               type: "string",
-              description: "a string at least 1 character(s) long",
-              title: "minLength(1)",
-              minLength: 1,
+              allOf: [
+                {
+                  minLength: 1,
+                },
+              ],
             },
             requestedByUserId: {
               type: "string",
             },
             subjectId: {
-              type: "string",
-              description: "a string at least 1 character(s) long",
-              title: "minLength(1)",
-              minLength: 1,
+              anyOf: [
+                {
+                  type: "string",
+                  allOf: [
+                    {
+                      minLength: 1,
+                    },
+                  ],
+                },
+                {
+                  type: "null",
+                },
+              ],
             },
             kind: {
               type: "string",
@@ -626,30 +796,66 @@ const sharedConfectJsonSchemas = {
               enum: [true],
             },
             plannedAt: {
-              type: "number",
-            },
-            confirmationPhrase: {
-              type: "string",
-            },
-            legalHold: {
-              type: "object",
-              required: ["enabled", "reason"],
-              properties: {
-                enabled: {
-                  type: "boolean",
-                },
-                reason: {
-                  type: "string",
-                },
-                expiresAt: {
+              anyOf: [
+                {
                   type: "number",
                 },
-              },
-              additionalProperties: false,
+                {
+                  type: "string",
+                  enum: ["Infinity", "-Infinity", "NaN"],
+                },
+              ],
+            },
+            confirmationPhrase: {
+              anyOf: [
+                {
+                  type: "string",
+                },
+                {
+                  type: "null",
+                },
+              ],
+            },
+            legalHold: {
+              anyOf: [
+                {
+                  type: "object",
+                  properties: {
+                    enabled: {
+                      type: "boolean",
+                    },
+                    reason: {
+                      type: "string",
+                    },
+                    expiresAt: {
+                      anyOf: [
+                        {
+                          anyOf: [
+                            {
+                              type: "number",
+                            },
+                            {
+                              type: "string",
+                              enum: ["Infinity", "-Infinity", "NaN"],
+                            },
+                          ],
+                        },
+                        {
+                          type: "null",
+                        },
+                      ],
+                    },
+                  },
+                  required: ["enabled", "reason"],
+                  additionalProperties: false,
+                },
+                {
+                  type: "null",
+                },
+              ],
             },
             confirmation: {
               type: "object",
-              required: ["required", "phrase", "reason"],
               properties: {
                 required: {
                   type: "boolean",
@@ -662,13 +868,13 @@ const sharedConfectJsonSchemas = {
                   type: "string",
                 },
               },
+              required: ["required", "phrase", "reason"],
               additionalProperties: false,
             },
             exportManifest: {
               type: "array",
               items: {
                 type: "object",
-                required: ["resourceId", "exportMode", "detail"],
                 properties: {
                   resourceId: {
                     type: "string",
@@ -709,6 +915,9 @@ const sharedConfectJsonSchemas = {
                       "buildPacks",
                       "checkoutSessions",
                       "commerceRevocations",
+                      "emailCampaigns",
+                      "emailDeliveries",
+                      "emailSubscribers",
                       "emailVerificationChallenges",
                       "evaluationAnswers",
                       "evaluationReportVersions",
@@ -741,6 +950,7 @@ const sharedConfectJsonSchemas = {
                     type: "string",
                   },
                 },
+                required: ["resourceId", "exportMode", "detail"],
                 additionalProperties: false,
               },
             },
@@ -748,7 +958,6 @@ const sharedConfectJsonSchemas = {
               type: "array",
               items: {
                 type: "object",
-                required: ["resourceId", "deleteMode", "executable", "reason"],
                 properties: {
                   resourceId: {
                     type: "string",
@@ -789,6 +998,9 @@ const sharedConfectJsonSchemas = {
                       "buildPacks",
                       "checkoutSessions",
                       "commerceRevocations",
+                      "emailCampaigns",
+                      "emailDeliveries",
+                      "emailSubscribers",
                       "emailVerificationChallenges",
                       "evaluationAnswers",
                       "evaluationReportVersions",
@@ -825,12 +1037,122 @@ const sharedConfectJsonSchemas = {
                     type: "string",
                   },
                 },
+                required: ["resourceId", "deleteMode", "executable", "reason"],
                 additionalProperties: false,
               },
             },
           },
+          required: [
+            "workspaceId",
+            "requestId",
+            "requestedByUserId",
+            "kind",
+            "status",
+            "dryRunOnly",
+            "plannedAt",
+            "confirmation",
+            "exportManifest",
+            "deletePlan",
+          ],
           additionalProperties: false,
         },
+      },
+    },
+    required: ["requests"],
+    additionalProperties: false,
+  },
+  "ops.email.dispatchBroadcast.args": {
+    $schema: "https://json-schema.org/draft/2020-12/schema",
+    type: "object",
+    required: [
+      "workspaceId",
+      "idempotencyKey",
+      "subject",
+      "preheader",
+      "textBody",
+      "htmlBody",
+      "confirmation",
+    ],
+    properties: {
+      workspaceId: {
+        type: "string",
+      },
+      idempotencyKey: {
+        type: "string",
+        description: "a string at least 1 character(s) long",
+        title: "minLength(1)",
+        minLength: 1,
+      },
+      subject: {
+        type: "string",
+        description: "a string at least 1 character(s) long",
+        title: "minLength(1)",
+        minLength: 1,
+      },
+      preheader: {
+        type: "string",
+      },
+      textBody: {
+        type: "string",
+        description: "a string at least 1 character(s) long",
+        title: "minLength(1)",
+        minLength: 1,
+      },
+      htmlBody: {
+        type: "string",
+        description: "a string at least 1 character(s) long",
+        title: "minLength(1)",
+        minLength: 1,
+      },
+      confirmation: {
+        type: "string",
+        enum: ["SEND"],
+      },
+    },
+    additionalProperties: false,
+  },
+  "ops.email.dispatchBroadcast.returns": {
+    $schema: "https://json-schema.org/draft/2020-12/schema",
+    type: "object",
+    required: [
+      "campaignId",
+      "eligibleRecipients",
+      "accepted",
+      "failed",
+      "capped",
+    ],
+    properties: {
+      campaignId: {
+        type: "string",
+      },
+      eligibleRecipients: {
+        type: "number",
+      },
+      accepted: {
+        type: "number",
+      },
+      failed: {
+        type: "number",
+      },
+      capped: {
+        type: "boolean",
+      },
+    },
+    additionalProperties: false,
+  },
+  "ops.email.previewBroadcast.args": sharedConfectJsonSchemasValue1,
+  "ops.email.previewBroadcast.returns": {
+    $schema: "https://json-schema.org/draft/2020-12/schema",
+    type: "object",
+    required: ["eligibleRecipients", "capped"],
+    properties: {
+      eligibleRecipients: {
+        type: "integer",
+        description: "an integer",
+        title: "int",
+      },
+      capped: {
+        type: "boolean",
       },
     },
     additionalProperties: false,

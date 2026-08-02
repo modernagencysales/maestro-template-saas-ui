@@ -4,11 +4,11 @@ import {
   decodeBuildabilityReport,
   type BuildabilityReport,
 } from "@maestro-template/app-idea-evaluator";
-import { createLlmGateway } from "@maestro-template/integrations";
 import {
-  createFunnelLifecycleEmailService,
-  createMailerSendTransport,
-} from "@maestro-template/notifications";
+  createLlmGateway,
+  createPostmarkEmailProvider,
+} from "@maestro-template/integrations";
+import { createFunnelLifecycleEmailService } from "@maestro-template/notifications";
 import * as Clock from "effect/Clock";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
@@ -33,10 +33,8 @@ import {
   issueEmailVerificationChallenge,
 } from "../evaluator/ownership";
 import { createPublicEvaluationReportSnapshot } from "../evaluator/sharing";
-import {
-  loadLlmGatewayEnvConfig,
-  loadMailerSendEnvConfig,
-} from "../evaluator/providerConfig";
+import { loadEmailEnvConfig } from "../email/env";
+import { loadLlmGatewayEnvConfig } from "../evaluator/providerConfig";
 import { sha256Hex } from "../shared/sha256";
 import { PublicBaseUrlConfig, RuntimeModeConfig } from "../shared/config";
 import {
@@ -767,7 +765,7 @@ const requestReportEmailVerificationImpl = FunctionImpl.make(
         input,
       ).pipe(
         Effect.catchTag(
-          "ParseError",
+          "SchemaError",
           () =>
             new ValidationFailed({
               field: "email",
@@ -779,15 +777,15 @@ const requestReportEmailVerificationImpl = FunctionImpl.make(
         Effect.orElseSucceed(() => "fake" as const),
       );
       const publicBaseUrl = yield* PublicBaseUrlConfig.pipe(Effect.orDie);
-      const mailerEnv = yield* loadMailerSendEnvConfig.pipe(Effect.orDie);
+      const emailEnv = yield* loadEmailEnvConfig.pipe(Effect.orDie);
       if (
         runtimeMode === "live" &&
-        (!mailerEnv.MAILERSEND_API_KEY || !mailerEnv.MAILERSEND_FROM_EMAIL)
+        (!emailEnv.POSTMARK_SERVER_TOKEN || !emailEnv.EMAIL_TRANSACTIONAL_FROM)
       )
         return yield* new ConfigInvalid({
-          provider: "mailersend",
+          provider: "email",
           message:
-            "MailerSend requires MAILERSEND_API_KEY and MAILERSEND_FROM_EMAIL.",
+            "Email requires POSTMARK_SERVER_TOKEN and EMAIL_TRANSACTIONAL_FROM.",
         });
 
       const destinationUrl = new URL(
@@ -796,12 +794,25 @@ const requestReportEmailVerificationImpl = FunctionImpl.make(
       ).toString();
       const service = createFunnelLifecycleEmailService({
         mode: runtimeMode,
-        from: mailerEnv.MAILERSEND_FROM_EMAIL ?? "reports@example.test",
+        from: emailEnv.EMAIL_TRANSACTIONAL_FROM ?? "reports@example.test",
         ...(runtimeMode === "live"
           ? {
-              transport: createMailerSendTransport({
-                apiKey: mailerEnv.MAILERSEND_API_KEY ?? "",
-              }),
+              transport: async (payload) => {
+                const provider = createPostmarkEmailProvider({
+                  token: emailEnv.POSTMARK_SERVER_TOKEN ?? "",
+                  transactionalFrom:
+                    emailEnv.EMAIL_TRANSACTIONAL_FROM ?? "reports@example.test",
+                  marketingFrom:
+                    emailEnv.EMAIL_TRANSACTIONAL_FROM ?? "reports@example.test",
+                });
+                await provider.sendTransactional({
+                  to: payload.to,
+                  templateAlias:
+                    payload.templateAlias ?? "transactional-message",
+                  templateModel: payload.templateData,
+                  idempotencyKey: payload.idempotencyKey,
+                });
+              },
             }
           : {}),
       });
@@ -815,7 +826,7 @@ const requestReportEmailVerificationImpl = FunctionImpl.make(
       );
       if (!delivery.ok)
         return yield* new ConfigInvalid({
-          provider: "mailersend",
+          provider: "email",
           message: "The verification email could not be delivered.",
         });
 

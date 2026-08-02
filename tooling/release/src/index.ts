@@ -191,13 +191,13 @@ const readEnvManifest = (repoRoot: string): EnvManifest | undefined => {
 
 const deployEnvGroupAliases = {
   llm: ["openrouter"],
-  email: ["mailersend"],
+  email: ["email"],
   "fake-providers": [
     "app",
     "workos",
     "posthog",
     "dodo",
-    "mailersend",
+    "email",
     "openrouter",
     "storage",
     "search",

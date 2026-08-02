@@ -1,3 +1,4 @@
+import * as Layer from "effect/Layer";
 import * as Schema from "effect/Schema";
 import { describe, expect, it } from "vitest";
 import assistant, {
@@ -112,8 +113,6 @@ describe("assistant agent Confect entrypoints", () => {
   });
 
   it("exports a finalized Confect implementation", () => {
-    expect(assistantImpl).toMatchObject({
-      _op_layer: "Fold",
-    });
+    expect(Layer.isLayer(assistantImpl)).toBe(true);
   });
 });

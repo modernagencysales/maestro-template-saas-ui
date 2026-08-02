@@ -5,7 +5,7 @@ export default Table.make(() =>
   Schema.Struct({
     packId: Schema.String,
     version: Schema.Number,
-    format: Schema.Literal("markdown", "print-html"),
+    format: Schema.Literals(["markdown", "print-html"]),
     objectKey: Schema.String,
     contentHash: Schema.String,
     createdAt: Schema.Number,

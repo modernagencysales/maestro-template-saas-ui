@@ -1,4 +1,4 @@
-import * as Either from "effect/Either";
+import * as Result from "effect/Result";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -26,7 +26,7 @@ const scheduleFor = (
   requestedAt = 1_000,
   horizonMs = 500,
 ): WorkflowDeadlineSchedule => {
-  const decision = Either.getOrThrow(
+  const decision = Result.getOrThrow(
     planWorkflowDeadlineSchedule({
       generation: currentGeneration,
       execution: "active",
@@ -67,7 +67,7 @@ describe("generation-safe workflow deadlines", () => {
 
   it("accepts the exact finite horizon boundary without clamping", () => {
     const requestedAt = 1_000;
-    const decision = Either.getOrThrow(
+    const decision = Result.getOrThrow(
       planWorkflowDeadlineSchedule({
         generation: generation(),
         execution: "active",
@@ -101,11 +101,11 @@ describe("generation-safe workflow deadlines", () => {
       horizonMs,
     });
 
-    expect(Either.isLeft(result)).toBe(true);
+    expect(Result.isFailure(result)).toBe(true);
   });
 
   it("returns a typed no-op instead of scheduling a terminal run", () => {
-    const decision = Either.getOrThrow(
+    const decision = Result.getOrThrow(
       planWorkflowDeadlineSchedule({
         generation: generation(),
         execution: "terminal",
@@ -124,7 +124,7 @@ describe("generation-safe workflow deadlines", () => {
 
   it("cancels only the exact active generation schedule after expiry", () => {
     const schedule = scheduleFor();
-    const decision = Either.getOrThrow(
+    const decision = Result.getOrThrow(
       planWorkflowDeadlineCallback({
         callbackSchedule: schedule,
         currentRun: runSnapshot(schedule),
@@ -149,7 +149,7 @@ describe("generation-safe workflow deadlines", () => {
   it("makes a prior-generation callback a no-op after restart", () => {
     const priorSchedule = scheduleFor(generation(0));
     const restartedSchedule = scheduleFor(generation(1));
-    const decision = Either.getOrThrow(
+    const decision = Result.getOrThrow(
       planWorkflowDeadlineCallback({
         callbackSchedule: priorSchedule,
         currentRun: runSnapshot(restartedSchedule),
@@ -167,7 +167,7 @@ describe("generation-safe workflow deadlines", () => {
 
   it("makes callbacks for terminal runs and replaced schedules no-ops", () => {
     const schedule = scheduleFor();
-    const terminal = Either.getOrThrow(
+    const terminal = Result.getOrThrow(
       planWorkflowDeadlineCallback({
         callbackSchedule: schedule,
         currentRun: runSnapshot(schedule, { execution: "terminal" }),
@@ -175,7 +175,7 @@ describe("generation-safe workflow deadlines", () => {
       }),
     );
     const replacement = scheduleFor(generation(), 1_100, 500);
-    const staleSchedule = Either.getOrThrow(
+    const staleSchedule = Result.getOrThrow(
       planWorkflowDeadlineCallback({
         callbackSchedule: schedule,
         currentRun: runSnapshot(replacement),
@@ -195,7 +195,7 @@ describe("generation-safe workflow deadlines", () => {
 
   it("does not cancel when a callback starts before the deadline", () => {
     const schedule = scheduleFor();
-    const decision = Either.getOrThrow(
+    const decision = Result.getOrThrow(
       planWorkflowDeadlineCallback({
         callbackSchedule: schedule,
         currentRun: runSnapshot(schedule),
@@ -211,7 +211,7 @@ describe("generation-safe workflow deadlines", () => {
   });
 
   it("records explicit serializable actual-start, lateness, and expiry facts", () => {
-    const facts = Either.getOrThrow(
+    const facts = Result.getOrThrow(
       observeWorkflowDeadlineStart({
         requestedStartAt: 100,
         actualStartedAt: 175,
@@ -232,7 +232,7 @@ describe("generation-safe workflow deadlines", () => {
 
   it("preserves the original absolute deadline across restart generations", () => {
     expect(
-      Either.getOrThrow(
+      Result.getOrThrow(
         planWorkflowDeadlineRestart({
           deadlineAt: 1_500,
           timeoutMs: 500,
@@ -255,9 +255,9 @@ describe("generation-safe workflow deadlines", () => {
       occurredAt: 1_500,
     });
 
-    expect(Either.isLeft(decision)).toBe(true);
-    if (Either.isLeft(decision)) {
-      expect(decision.left).toMatchObject({ code: "DEADLINE_EXPIRED" });
+    expect(Result.isFailure(decision)).toBe(true);
+    if (Result.isFailure(decision)) {
+      expect(decision.failure).toMatchObject({ code: "DEADLINE_EXPIRED" });
     }
   });
 
@@ -274,14 +274,16 @@ describe("generation-safe workflow deadlines", () => {
       horizonMs: 500,
     });
 
-    expect(Either.isLeft(result)).toBe(true);
-    if (Either.isLeft(result)) {
-      expect(result.left).toMatchObject({
+    expect(Result.isFailure(result)).toBe(true);
+    if (Result.isFailure(result)) {
+      expect(result.failure).toMatchObject({
         _tag: "WorkflowDeadlineContractError",
         code: "INVALID_GENERATION_IDENTITY",
       });
-      expect(JSON.stringify(result.left)).not.toContain(sensitiveRunReference);
-      expect(result.left.message).not.toContain(sensitiveRunReference);
+      expect(JSON.stringify(result.failure)).not.toContain(
+        sensitiveRunReference,
+      );
+      expect(result.failure.message).not.toContain(sensitiveRunReference);
     }
   });
 });

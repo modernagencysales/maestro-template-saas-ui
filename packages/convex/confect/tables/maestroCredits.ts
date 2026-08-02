@@ -7,7 +7,7 @@ export default Table.make(() =>
     purchaseId: Schema.String,
     amountCents: Schema.Number,
     currency: Schema.String,
-    status: Schema.Literal("available", "applied", "revoked"),
+    status: Schema.Literals(["available", "applied", "revoked"]),
     createdAt: Schema.Number,
     updatedAt: Schema.Number,
   }),

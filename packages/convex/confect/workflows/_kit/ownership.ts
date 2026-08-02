@@ -38,10 +38,13 @@ import {
   type WorkflowAdmissionPolicy,
 } from "./workflowAdmission";
 import { generatedWorkflowReadyWaveLimit } from "./workpoolConfig";
+import { kickoffProfileStartOptions } from "./kickoffProfiles";
 
-type Reader = Context.Tag.Service<typeof DatabaseReader>;
-type Writer = Context.Tag.Service<typeof DatabaseWriter>;
-type Mutation = Context.Tag.Service<typeof MutationCtx>;
+export { kickoffProfileStartOptions } from "./kickoffProfiles";
+
+type Reader = Context.Service.Shape<typeof DatabaseReader>;
+type Writer = Context.Service.Shape<typeof DatabaseWriter>;
+type Mutation = Context.Service.Shape<typeof MutationCtx>;
 type ExistingWorkflowRun = {
   readonly componentWorkflowId?: string | null | undefined;
   readonly workflowId: string;
@@ -622,7 +625,7 @@ export const reserveWorkflowAdmission = (
       legacyQueuedRunIds,
     });
   }).pipe(
-    Effect.catchAll((error) => {
+    Effect.catch((error) => {
       const decoded = decodeAdmissionError(error);
       return decoded instanceof WorkflowAdmissionDenied
         ? Effect.fail(decoded)
@@ -788,12 +791,6 @@ const workflowOnCompleteContext = <
   workflowVersion: input.workflowVersion,
   generation: 0,
   generationAnchor: `${input.workflowId}@v${input.workflowVersion}:g0`,
-});
-
-export const kickoffProfileStartOptions = (
-  profile: "eager-first-poll" | "queued",
-): { readonly startAsync: boolean } => ({
-  startAsync: profile === "queued",
 });
 
 export const recordStartedWorkflow = (

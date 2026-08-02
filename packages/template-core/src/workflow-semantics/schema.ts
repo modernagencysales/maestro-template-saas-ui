@@ -1,10 +1,10 @@
 import * as Schema from "effect/Schema";
 
-export const WorkflowSemanticStatus = Schema.Literal(
+export const WorkflowSemanticStatus = Schema.Literals([
   "supported",
   "intentionally-restricted",
   "unsupported",
-);
+]);
 
 export const WorkflowSemanticRule = Schema.Struct({
   id: Schema.String,

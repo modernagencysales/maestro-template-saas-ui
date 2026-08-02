@@ -7,7 +7,9 @@ export default Table.make(() =>
     publicKeyHash: Schema.String,
     publicKeySpki: Schema.String,
     enabled: Schema.Boolean,
-    transition: Schema.optional(Schema.Literal("activate", "rotate", "retire")),
+    transition: Schema.optional(
+      Schema.Literals(["activate", "rotate", "retire"]),
+    ),
     previousPublicKeyHash: Schema.optional(Schema.NullOr(Schema.String)),
     authorityOrigin: Schema.optional(Schema.String),
     activatedAt: Schema.optional(Schema.Number),

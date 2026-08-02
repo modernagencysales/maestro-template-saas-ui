@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { templateConfectRefs } from "@maestro-template/convex/refs";
-import * as Either from "effect/Either";
+import * as Result from "effect/Result";
 
 import {
   useTemplateMutation,
@@ -137,8 +137,8 @@ function LiveReportLibraryRoute() {
         ownerAccessToken,
         action: "share",
       });
-      if (Either.isEither(result) && Either.isLeft(result)) return;
-      const shared = Either.isEither(result) ? result.right : result;
+      if (Result.isResult(result) && Result.isFailure(result)) return;
+      const shared = Result.isResult(result) ? result.success : result;
       if (shared.shareToken) {
         setLiveShareTokens((current) => ({
           ...current,
@@ -164,7 +164,7 @@ function LiveReportLibraryRoute() {
         ownerAccessToken,
         action: "revoke-share",
       });
-      if (Either.isEither(result) && Either.isLeft(result)) return;
+      if (Result.isResult(result) && Result.isFailure(result)) return;
       setActiveShares((current) => current.filter((item) => item !== id));
       setLiveShareTokens((current) =>
         Object.fromEntries(
@@ -209,7 +209,7 @@ function LiveReportLibraryRoute() {
         ownerAccessToken,
         action: "delete",
       });
-      if (Either.isEither(result) && Either.isLeft(result)) return;
+      if (Result.isResult(result) && Result.isFailure(result)) return;
     } else {
       deleteEvaluation(id);
     }

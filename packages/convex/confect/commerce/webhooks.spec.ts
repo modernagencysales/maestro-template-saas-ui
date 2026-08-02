@@ -2,7 +2,7 @@ import { FunctionSpec, GroupSpec } from "@confect/core";
 import * as Schema from "effect/Schema";
 import { ConfigInvalid, ValidationFailed } from "../errors";
 
-export class WebhookRejected extends Schema.TaggedError<WebhookRejected>()(
+export class WebhookRejected extends Schema.TaggedErrorClass<WebhookRejected>()(
   "WebhookRejected",
   {
     reason: Schema.String,
@@ -11,7 +11,7 @@ export class WebhookRejected extends Schema.TaggedError<WebhookRejected>()(
 
 const WebhookResult = Schema.Struct({
   eventId: Schema.String,
-  status: Schema.Literal("processed", "duplicate"),
+  status: Schema.Literals(["processed", "duplicate"]),
 });
 
 const ApplyDodoArgs = Schema.Struct({
@@ -25,7 +25,7 @@ export const applyDodo = FunctionSpec.publicAction({
   name: "applyDodo",
   args: () => ApplyDodoArgs,
   returns: () => WebhookResult,
-  error: () => Schema.Union(ConfigInvalid, ValidationFailed, WebhookRejected),
+  error: () => Schema.Union([ConfigInvalid, ValidationFailed, WebhookRejected]),
 });
 
 export const applyVerifiedDodo = FunctionSpec.internalMutation({
@@ -37,7 +37,7 @@ export const applyVerifiedDodo = FunctionSpec.internalMutation({
       signatureTimestamp: Schema.String,
     }),
   returns: () => WebhookResult,
-  error: () => Schema.Union(ValidationFailed, WebhookRejected),
+  error: () => Schema.Union([ValidationFailed, WebhookRejected]),
 });
 
 export const markAdmaxxerReported = FunctionSpec.internalMutation({
@@ -48,14 +48,14 @@ export const markAdmaxxerReported = FunctionSpec.internalMutation({
       reportedAt: Schema.Number,
     }),
   returns: () => Schema.Boolean,
-  error: () => Schema.Union(ValidationFailed, WebhookRejected),
+  error: () => Schema.Union([ValidationFailed, WebhookRejected]),
 });
 
 export const markProcessed = FunctionSpec.internalMutation({
   name: "markProcessed",
   args: () => Schema.Struct({ eventId: Schema.String }),
   returns: () => Schema.Boolean,
-  error: () => Schema.Union(ValidationFailed, WebhookRejected),
+  error: () => Schema.Union([ValidationFailed, WebhookRejected]),
 });
 
 export default GroupSpec.make()

@@ -1,4 +1,4 @@
-import { Schema } from "effect";
+import * as Schema from "effect/Schema";
 
 import type { CompleteBuildPack } from "./buildPack";
 
@@ -38,10 +38,10 @@ export type WorkPackage =
       readonly followUpGates: readonly string[];
     };
 
-const nonBlankText = Schema.Trim.pipe(Schema.nonEmptyString());
+const nonBlankText = Schema.Trim.pipe(Schema.check(Schema.isNonEmpty()));
 const followUpGates = Schema.NonEmptyArray(nonBlankText);
 
-export const WorkPackageSchema = Schema.Union(
+export const WorkPackageSchema = Schema.Union([
   Schema.Struct({
     kind: Schema.Literal("pattern-instance"),
     target: nonBlankText,
@@ -61,7 +61,7 @@ export const WorkPackageSchema = Schema.Union(
     templateResolutionPath: nonBlankText,
     followUpGates,
   }),
-);
+]);
 
 export const validateWorkPackage = (value: unknown): WorkPackage => {
   if (typeof value !== "object" || value === null || !("kind" in value)) {

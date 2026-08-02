@@ -21,12 +21,15 @@ export const WorkflowCurrentAuthorityReceipt = Schema.Struct({
   version: Schema.Literal(1),
   workspaceId: Schema.NonEmptyString,
   actorId: Schema.NonEmptyString,
-  authEpoch: Schema.Number.pipe(Schema.int(), Schema.greaterThanOrEqualTo(0)),
+  authEpoch: Schema.Number.pipe(
+    Schema.check(Schema.isInt()),
+    Schema.check(Schema.isGreaterThanOrEqualTo(0)),
+  ),
   capability: Schema.NonEmptyString,
   workflowId: Schema.NonEmptyString,
   workflowVersion: Schema.Number.pipe(
-    Schema.int(),
-    Schema.greaterThanOrEqualTo(1),
+    Schema.check(Schema.isInt()),
+    Schema.check(Schema.isGreaterThanOrEqualTo(1)),
   ),
   requiredGrants: Schema.Array(Schema.NonEmptyString),
 });

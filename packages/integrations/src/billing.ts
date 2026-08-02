@@ -19,7 +19,7 @@ export type UsageEvent = {
   readonly id: string;
   readonly workspaceSlug: string;
   readonly idempotencyKey: string;
-  readonly provider: "openrouter" | "dodo" | "mailersend" | "storage";
+  readonly provider: "openrouter" | "dodo" | "email" | "storage";
   readonly units: number;
   readonly costCredits: number;
   readonly createdAt: number;
@@ -43,7 +43,7 @@ export type FakeBillingReceipt = {
   readonly createdAt: number;
 };
 
-export class LowBalanceError extends Schema.TaggedError<LowBalanceError>()(
+export class LowBalanceError extends Schema.TaggedErrorClass<LowBalanceError>()(
   "LowBalanceError",
   {
     workspaceSlug: Schema.String,
@@ -52,7 +52,7 @@ export class LowBalanceError extends Schema.TaggedError<LowBalanceError>()(
   },
 ) {}
 
-export class SeatLimitExceededError extends Schema.TaggedError<SeatLimitExceededError>()(
+export class SeatLimitExceededError extends Schema.TaggedErrorClass<SeatLimitExceededError>()(
   "SeatLimitExceededError",
   {
     currentSeats: Schema.Number,
@@ -61,7 +61,7 @@ export class SeatLimitExceededError extends Schema.TaggedError<SeatLimitExceeded
   },
 ) {}
 
-export class BillingIdempotencyKeyError extends Schema.TaggedError<BillingIdempotencyKeyError>()(
+export class BillingIdempotencyKeyError extends Schema.TaggedErrorClass<BillingIdempotencyKeyError>()(
   "BillingIdempotencyKeyError",
   {
     field: Schema.String,

@@ -2,14 +2,14 @@ import DodoPayments from "dodopayments";
 import * as Schema from "effect/Schema";
 import type { ProviderMode } from "./index";
 
-export class DodoWebhookConfigError extends Schema.TaggedError<DodoWebhookConfigError>()(
+export class DodoWebhookConfigError extends Schema.TaggedErrorClass<DodoWebhookConfigError>()(
   "DodoWebhookConfigError",
   {
     missing: Schema.Array(Schema.String),
   },
 ) {}
 
-export class DodoCheckoutProviderError extends Schema.TaggedError<DodoCheckoutProviderError>()(
+export class DodoCheckoutProviderError extends Schema.TaggedErrorClass<DodoCheckoutProviderError>()(
   "DodoCheckoutProviderError",
   {
     operation: Schema.String,
@@ -18,26 +18,26 @@ export class DodoCheckoutProviderError extends Schema.TaggedError<DodoCheckoutPr
   },
 ) {}
 
-export class DodoWebhookReplayError extends Schema.TaggedError<DodoWebhookReplayError>()(
+export class DodoWebhookReplayError extends Schema.TaggedErrorClass<DodoWebhookReplayError>()(
   "DodoWebhookReplayError",
   {
     eventId: Schema.String,
   },
 ) {}
 
-export class DodoWebhookSignatureError extends Schema.TaggedError<DodoWebhookSignatureError>()(
+export class DodoWebhookSignatureError extends Schema.TaggedErrorClass<DodoWebhookSignatureError>()(
   "DodoWebhookSignatureError",
   {
     reason: Schema.String,
   },
 ) {}
 
-export class DodoWebhookEventIdError extends Schema.TaggedError<DodoWebhookEventIdError>()(
+export class DodoWebhookEventIdError extends Schema.TaggedErrorClass<DodoWebhookEventIdError>()(
   "DodoWebhookEventIdError",
   { field: Schema.String },
 ) {}
 
-export class DodoWebhookPayloadError extends Schema.TaggedError<DodoWebhookPayloadError>()(
+export class DodoWebhookPayloadError extends Schema.TaggedErrorClass<DodoWebhookPayloadError>()(
   "DodoWebhookPayloadError",
   { reason: Schema.String },
 ) {}

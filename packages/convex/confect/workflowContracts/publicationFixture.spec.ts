@@ -20,13 +20,13 @@ import {
   WorkflowLifecycleStepProjection,
 } from "../workflows/lifecycle.spec";
 
-const WorkflowErrors = Schema.Union(
+const WorkflowErrors = Schema.Union([
   Unauthorized,
   MemberNotInWorkspace,
   WorkspaceNotFound,
   NotFound,
   ValidationFailed,
-);
+]);
 
 const StartArgs = Schema.Struct({
   workspaceId: Id("workspaces"),
@@ -48,20 +48,22 @@ const StatusArgs = Schema.Struct({
 const LifecycleControlArgs = Schema.Struct({
   workspaceId: Id("workspaces"),
   workflowRunId: Id("workflowRuns"),
-  reasonCode: Schema.Literal(
+  reasonCode: Schema.Literals([
     "operator-request",
     "recovery",
     "policy-change",
     "retention-sweep",
+  ]),
+  occurredAt: Schema.Number.pipe(
+    Schema.check(Schema.isGreaterThanOrEqualTo(0)),
   ),
-  occurredAt: Schema.Number.pipe(Schema.greaterThanOrEqualTo(0)),
 });
 const Pagination = {
   cursor: Schema.NullOr(Schema.String),
   limit: Schema.Number.pipe(
-    Schema.int(),
-    Schema.greaterThan(0),
-    Schema.lessThanOrEqualTo(100),
+    Schema.check(Schema.isInt()),
+    Schema.check(Schema.isGreaterThan(0)),
+    Schema.check(Schema.isLessThanOrEqualTo(100)),
   ),
 } as const;
 const LifecycleRunPage = Schema.Struct({
@@ -76,7 +78,7 @@ const LifecycleStepPage = Schema.Struct({
 });
 
 const SendEventArgs = Schema.Struct({
-  selector: Schema.Union(
+  selector: Schema.Union([
     Schema.Struct({
       kind: Schema.Literal("id"),
       eventId: ProductWorkflowEventId,
@@ -87,8 +89,8 @@ const SendEventArgs = Schema.Struct({
       event: Schema.Literal("approvalDecision"),
       eventInstanceKey: Schema.NonEmptyString,
     }),
-  ),
-  delivery: Schema.Union(
+  ]),
+  delivery: Schema.Union([
     Schema.Struct({
       kind: Schema.Literal("value"),
       value: Schema.Struct({ approved: Schema.Boolean }),
@@ -97,7 +99,7 @@ const SendEventArgs = Schema.Struct({
       kind: Schema.Literal("error"),
       error: Schema.NonEmptyString,
     }),
-  ),
+  ]),
 });
 
 const SendEventReturns = Schema.Struct({
@@ -193,8 +195,8 @@ const lifecycleContract = <Spec>(
   spec: Spec,
   name: string,
   kind: "query" | "mutation",
-  argsSchema: Schema.Schema.Any,
-  returnsSchema: Schema.Schema.Any,
+  argsSchema: Schema.Top,
+  returnsSchema: Schema.Top,
   idempotent: boolean,
 ) =>
   defineContractFunction(spec, {
@@ -240,7 +242,10 @@ const RestartArgs = Schema.Struct({
   restartAnchor: Schema.NonEmptyString,
 });
 const RestartReturns = Schema.Struct({
-  generation: Schema.Number.pipe(Schema.int(), Schema.greaterThanOrEqualTo(0)),
+  generation: Schema.Number.pipe(
+    Schema.check(Schema.isInt()),
+    Schema.check(Schema.isGreaterThanOrEqualTo(0)),
+  ),
   discardedSteps: Schema.Array(Schema.NonEmptyString),
 });
 export const restart = lifecycleContract(

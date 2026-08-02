@@ -29,6 +29,11 @@ import documentAnnotations from "./tables/documentAnnotations";
 import documentVersions from "./tables/documentVersions";
 import documents from "./tables/documents";
 import dsarRequests from "./tables/dsarRequests";
+import emailCampaigns from "./tables/emailCampaigns";
+import emailDeliveries from "./tables/emailDeliveries";
+import emailEvents from "./tables/emailEvents";
+import emailSubscribers from "./tables/emailSubscribers";
+import emailSuppressions from "./tables/emailSuppressions";
 import emailVerificationChallenges from "./tables/emailVerificationChallenges";
 import entitlements from "./tables/entitlements";
 import evaluationAnswers from "./tables/evaluationAnswers";
@@ -99,6 +104,11 @@ const databaseSchema: $DatabaseSchema.DatabaseSchema<
   typeof documentVersions |
   typeof documents |
   typeof dsarRequests |
+  typeof emailCampaigns |
+  typeof emailDeliveries |
+  typeof emailEvents |
+  typeof emailSubscribers |
+  typeof emailSuppressions |
   typeof emailVerificationChallenges |
   typeof entitlements |
   typeof evaluationAnswers |
@@ -168,6 +178,11 @@ const databaseSchema: $DatabaseSchema.DatabaseSchema<
   documentVersions,
   documents,
   dsarRequests,
+  emailCampaigns,
+  emailDeliveries,
+  emailEvents,
+  emailSubscribers,
+  emailSuppressions,
   emailVerificationChallenges,
   entitlements,
   evaluationAnswers,

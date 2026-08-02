@@ -1,5 +1,4 @@
 import * as Config from "effect/Config";
-import * as ConfigError from "effect/ConfigError";
 import * as ConfigProvider from "effect/ConfigProvider";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
@@ -12,20 +11,19 @@ export type TemplateRuntimeConfigShape = {
   readonly publicBaseUrl: string;
 };
 
-export const RuntimeModeConfig = Config.literal(
-  "fake",
-  "test",
-  "live",
-)("TEMPLATE_RUNTIME_MODE").pipe(Config.withDefault("fake" as const));
+export const RuntimeModeConfig = Config.literals(
+  ["fake", "test", "live"],
+  "TEMPLATE_RUNTIME_MODE",
+).pipe(Config.withDefault("fake" as const));
 
 export const PublicBaseUrlConfig = Config.string(
   "TEMPLATE_PUBLIC_BASE_URL",
 ).pipe(Config.withDefault("http://localhost:5173"));
 
-export class TemplateRuntimeConfig extends Context.Tag("TemplateRuntimeConfig")<
+export class TemplateRuntimeConfig extends Context.Service<
   TemplateRuntimeConfig,
   TemplateRuntimeConfigShape
->() {}
+>()("TemplateRuntimeConfig") {}
 
 export const TemplateRuntimeConfigLive = Layer.effect(
   TemplateRuntimeConfig,
@@ -44,14 +42,11 @@ export const runWithTemplateRuntimeConfig = <A, E, R>(
   provider?: ConfigProvider.ConfigProvider,
 ): Effect.Effect<
   A,
-  E | ConfigError.ConfigError,
+  E | Config.ConfigError,
   Exclude<R, TemplateRuntimeConfig>
 > => {
   const providedEffect = effect.pipe(Effect.provide(TemplateRuntimeConfigLive));
-
-  if (provider === undefined) {
-    return providedEffect;
-  }
-
-  return providedEffect.pipe(Effect.withConfigProvider(provider));
+  return providedEffect.pipe(
+    Effect.provide(ConfigProvider.layer(provider ?? ConfigProvider.fromEnv())),
+  );
 };

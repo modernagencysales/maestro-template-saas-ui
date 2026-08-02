@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import * as Either from "effect/Either";
+import * as Result from "effect/Result";
 
 import { accessAuditEventInsert } from "../confect/access/audit";
 import {
@@ -118,8 +118,8 @@ describe("workspace member lifecycle policy", () => {
       now,
     });
 
-    expect(Either.isRight(either)).toBe(true);
-    const result = Either.getOrThrow(either);
+    expect(Result.isSuccess(either)).toBe(true);
+    const result = Result.getOrThrow(either);
     expect(result.patch).toEqual({
       id: "workspaceMembers_2",
       value: { role: "admin", updatedAt: now },
@@ -146,9 +146,9 @@ describe("workspace member lifecycle policy", () => {
       newRole: "owner",
       now,
     });
-    expect(Either.isLeft(changeResult)).toBe(true);
-    if (Either.isLeft(changeResult)) {
-      expect(changeResult.left).toBeInstanceOf(Forbidden);
+    expect(Result.isFailure(changeResult)).toBe(true);
+    if (Result.isFailure(changeResult)) {
+      expect(changeResult.failure).toBeInstanceOf(Forbidden);
     }
 
     const removeResult = removeMember({
@@ -162,9 +162,9 @@ describe("workspace member lifecycle policy", () => {
       ],
       now,
     });
-    expect(Either.isLeft(removeResult)).toBe(true);
-    if (Either.isLeft(removeResult)) {
-      expect(removeResult.left).toBeInstanceOf(Forbidden);
+    expect(Result.isFailure(removeResult)).toBe(true);
+    if (Result.isFailure(removeResult)) {
+      expect(removeResult.failure).toBeInstanceOf(Forbidden);
     }
   });
 
@@ -180,9 +180,9 @@ describe("workspace member lifecycle policy", () => {
       newRole: "admin",
       now,
     });
-    expect(Either.isLeft(changeResult)).toBe(true);
-    if (Either.isLeft(changeResult)) {
-      expect(changeResult.left).toBeInstanceOf(LastOwnerProtected);
+    expect(Result.isFailure(changeResult)).toBe(true);
+    if (Result.isFailure(changeResult)) {
+      expect(changeResult.failure).toBeInstanceOf(LastOwnerProtected);
     }
 
     const removeResult = removeMember({
@@ -193,9 +193,9 @@ describe("workspace member lifecycle policy", () => {
       liveWorkspaceMembers: [owner],
       now,
     });
-    expect(Either.isLeft(removeResult)).toBe(true);
-    if (Either.isLeft(removeResult)) {
-      expect(removeResult.left).toBeInstanceOf(LastOwnerProtected);
+    expect(Result.isFailure(removeResult)).toBe(true);
+    if (Result.isFailure(removeResult)) {
+      expect(removeResult.failure).toBeInstanceOf(LastOwnerProtected);
     }
   });
 
@@ -209,9 +209,9 @@ describe("workspace member lifecycle policy", () => {
       newRole: "admin",
       now,
     });
-    expect(Either.isLeft(changeResult)).toBe(true);
-    if (Either.isLeft(changeResult)) {
-      expect(changeResult.left).toBeInstanceOf(MemberNotInWorkspace);
+    expect(Result.isFailure(changeResult)).toBe(true);
+    if (Result.isFailure(changeResult)) {
+      expect(changeResult.failure).toBeInstanceOf(MemberNotInWorkspace);
     }
   });
 
@@ -231,9 +231,9 @@ describe("workspace member lifecycle policy", () => {
         newRole: "admin",
         now,
       });
-      expect(Either.isLeft(changeResult)).toBe(true);
-      if (Either.isLeft(changeResult)) {
-        expect(changeResult.left).toBeInstanceOf(MembershipNotLive);
+      expect(Result.isFailure(changeResult)).toBe(true);
+      if (Result.isFailure(changeResult)) {
+        expect(changeResult.failure).toBeInstanceOf(MembershipNotLive);
       }
     },
   );
@@ -255,8 +255,8 @@ describe("workspace member lifecycle policy", () => {
       now,
     });
 
-    expect(Either.isRight(either)).toBe(true);
-    const result = Either.getOrThrow(either);
+    expect(Result.isSuccess(either)).toBe(true);
+    const result = Result.getOrThrow(either);
     expect(result.patches).toEqual([
       {
         id: "workspaceMembers_target",
@@ -285,8 +285,8 @@ describe("workspace invitation lifecycle policy", () => {
       now,
     });
 
-    expect(Either.isRight(either)).toBe(true);
-    const result = Either.getOrThrow(either);
+    expect(Result.isSuccess(either)).toBe(true);
+    const result = Result.getOrThrow(either);
     expect(result.invitation).toMatchObject({
       workspaceId: "workspaces_1",
       organizationId: "organizations_1",
@@ -333,9 +333,9 @@ describe("workspace invitation lifecycle policy", () => {
       existingLiveMembership: null,
       now,
     });
-    expect(Either.isLeft(missingResult)).toBe(true);
-    if (Either.isLeft(missingResult)) {
-      expect(missingResult.left).toBeInstanceOf(InvitationNotAccessible);
+    expect(Result.isFailure(missingResult)).toBe(true);
+    if (Result.isFailure(missingResult)) {
+      expect(missingResult.failure).toBeInstanceOf(InvitationNotAccessible);
     }
 
     const wrongEmailResult = acceptInvitation({
@@ -345,9 +345,9 @@ describe("workspace invitation lifecycle policy", () => {
       existingLiveMembership: null,
       now,
     });
-    expect(Either.isLeft(wrongEmailResult)).toBe(true);
-    if (Either.isLeft(wrongEmailResult)) {
-      expect(wrongEmailResult.left).toBeInstanceOf(InvitationNotAccessible);
+    expect(Result.isFailure(wrongEmailResult)).toBe(true);
+    if (Result.isFailure(wrongEmailResult)) {
+      expect(wrongEmailResult.failure).toBeInstanceOf(InvitationNotAccessible);
     }
 
     const blankEmailResult = declineInvitation({
@@ -355,9 +355,9 @@ describe("workspace invitation lifecycle policy", () => {
       verifiedEmail: " ",
       now,
     });
-    expect(Either.isLeft(blankEmailResult)).toBe(true);
-    if (Either.isLeft(blankEmailResult)) {
-      expect(blankEmailResult.left).toBeInstanceOf(InvitationNotAccessible);
+    expect(Result.isFailure(blankEmailResult)).toBe(true);
+    if (Result.isFailure(blankEmailResult)) {
+      expect(blankEmailResult.failure).toBeInstanceOf(InvitationNotAccessible);
     }
   });
 
@@ -369,9 +369,9 @@ describe("workspace invitation lifecycle policy", () => {
       existingLiveMembership: null,
       now,
     });
-    expect(Either.isLeft(notPendingResult)).toBe(true);
-    if (Either.isLeft(notPendingResult)) {
-      expect(notPendingResult.left).toBeInstanceOf(InvitationNotPending);
+    expect(Result.isFailure(notPendingResult)).toBe(true);
+    if (Result.isFailure(notPendingResult)) {
+      expect(notPendingResult.failure).toBeInstanceOf(InvitationNotPending);
     }
 
     const expiredResult = acceptInvitation({
@@ -381,9 +381,9 @@ describe("workspace invitation lifecycle policy", () => {
       existingLiveMembership: null,
       now,
     });
-    expect(Either.isLeft(expiredResult)).toBe(true);
-    if (Either.isLeft(expiredResult)) {
-      expect(expiredResult.left).toBeInstanceOf(InvitationExpired);
+    expect(Result.isFailure(expiredResult)).toBe(true);
+    if (Result.isFailure(expiredResult)) {
+      expect(expiredResult.failure).toBeInstanceOf(InvitationExpired);
     }
   });
 
@@ -396,8 +396,8 @@ describe("workspace invitation lifecycle policy", () => {
       now,
     });
 
-    expect(Either.isRight(acceptedEither)).toBe(true);
-    const accepted = Either.getOrThrow(acceptedEither);
+    expect(Result.isSuccess(acceptedEither)).toBe(true);
+    const accepted = Result.getOrThrow(acceptedEither);
     expect(accepted.membershipInsert).toMatchObject({
       workspaceId: "workspaces_1",
       userId: "users_ada",
@@ -420,8 +420,8 @@ describe("workspace invitation lifecycle policy", () => {
       now,
     });
 
-    expect(Either.isRight(alreadyMemberEither)).toBe(true);
-    const alreadyMember = Either.getOrThrow(alreadyMemberEither);
+    expect(Result.isSuccess(alreadyMemberEither)).toBe(true);
+    const alreadyMember = Result.getOrThrow(alreadyMemberEither);
     expect(alreadyMember.membershipInsert).toBeNull();
   });
 
@@ -431,14 +431,14 @@ describe("workspace invitation lifecycle policy", () => {
       verifiedEmail: "ada@example.com",
       now,
     });
-    expect(Either.isRight(declineEither)).toBe(true);
-    expect(Either.getOrThrow(declineEither).invitationPatch).toEqual({
+    expect(Result.isSuccess(declineEither)).toBe(true);
+    expect(Result.getOrThrow(declineEither).invitationPatch).toEqual({
       id: "invitations_1",
       value: { status: "declined", declinedAt: now, updatedAt: now },
     });
 
     expect(
-      Either.getOrThrow(
+      Result.getOrThrow(
         cancelInvitation({
           invitation: invitation({ workspaceId: "workspaces_1" }),
           workspaceId: "workspaces_1",
@@ -452,7 +452,7 @@ describe("workspace invitation lifecycle policy", () => {
     });
 
     expect(
-      Either.getOrThrow(
+      Result.getOrThrow(
         cancelInvitation({
           invitation: invitation({ status: "accepted" }),
           workspaceId: "workspaces_1",
@@ -463,7 +463,7 @@ describe("workspace invitation lifecycle policy", () => {
     ).toBeNull();
 
     expect(
-      Either.getOrThrow(
+      Result.getOrThrow(
         cancelInvitation({
           invitation: invitation({ workspaceId: "workspaces_other" }),
           workspaceId: "workspaces_1",

@@ -7,7 +7,7 @@ const stepNamePattern =
   /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*\.v[1-9]\d*(?:\.i-(?:n\d{6,}|k\d+-[a-z0-9]+(?:-[a-z0-9]+)*))?$/;
 
 export const WorkflowCapabilityReference = Schema.NonEmptyString.pipe(
-  Schema.pattern(capabilityRefPattern),
+  Schema.check(Schema.isPattern(capabilityRefPattern)),
   Schema.brand("WorkflowCapabilityReference"),
 );
 export type WorkflowCapabilityReference = Schema.Schema.Type<
@@ -15,13 +15,13 @@ export type WorkflowCapabilityReference = Schema.Schema.Type<
 >;
 
 export const WorkflowReference = Schema.NonEmptyString.pipe(
-  Schema.pattern(workflowRefPattern),
+  Schema.check(Schema.isPattern(workflowRefPattern)),
   Schema.brand("WorkflowReference"),
 );
 export type WorkflowReference = Schema.Schema.Type<typeof WorkflowReference>;
 
 export const WorkflowEventReference = Schema.NonEmptyString.pipe(
-  Schema.pattern(eventRefPattern),
+  Schema.check(Schema.isPattern(eventRefPattern)),
   Schema.brand("WorkflowEventReference"),
 );
 export type WorkflowEventReference = Schema.Schema.Type<
@@ -29,7 +29,7 @@ export type WorkflowEventReference = Schema.Schema.Type<
 >;
 
 export const WorkflowStepName = Schema.NonEmptyString.pipe(
-  Schema.pattern(stepNamePattern),
+  Schema.check(Schema.isPattern(stepNamePattern)),
 );
 export type WorkflowStepName = Schema.Schema.Type<typeof WorkflowStepName>;
 
@@ -75,7 +75,7 @@ export const defineWorkflowReferenceRegistry = <
 });
 
 const decodeEntries = <Ref>(
-  schema: Schema.Schema<Ref, string>,
+  schema: Schema.Codec<Ref, string>,
   entries: Readonly<Record<string, string>>,
 ): Readonly<Record<string, Ref>> =>
   Object.fromEntries(

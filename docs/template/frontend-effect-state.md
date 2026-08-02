@@ -60,7 +60,7 @@ internal cancellation semantics are not an Effect API.
 ## Bundle Rules
 
 - Client code imports Effect submodules such as `effect/Effect`,
-  `effect/Schema`, and `effect/Either`.
+  `effect/Schema`, `effect/Result`, and `effect/Exit`.
 - Client code does not import from the `effect` barrel.
 - Client code does not call `Effect.runPromise`, `Effect.runSync`,
   `Effect.runFork`, or related runtime execution APIs outside the approved

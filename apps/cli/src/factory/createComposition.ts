@@ -1,5 +1,8 @@
 import { createCustomerCreateCommand } from "@maestro-template/agent-pack";
-import { buildSaasApplicationTargetPlan } from "@maestro-template/generators";
+import {
+  buildSaasApplicationAlpha2TargetPlan,
+  buildSaasApplicationTargetPlan,
+} from "@maestro-template/generators";
 import { createCustomerReleaseAdapter } from "@maestro-template/release-tooling/customer-create";
 import { homedir } from "node:os";
 import { resolve } from "node:path";
@@ -15,37 +18,61 @@ const BASE_MANIFEST_CHECKSUM =
 const BASE_BLUEPRINT_CHECKSUM =
   "sha256:5b5b40f73b7373907590090872beab7f2143c70f1654463982b0dfe8918324d3";
 const HARDENED_BLUEPRINT_CHECKSUM =
-  "sha256:bebcf99ffecef3ad5d2a2e6569d24781ded72c7b7eeefd1ff853757e1bc350d2";
+  "sha256:0b3a88b89a47cbded4d8e510fdfccc35197f22af0cee1190018884f009141790";
 const BASE_TAG = "maestro-template-v0.2.0-alpha.2";
 const BASE_COMMIT = "3aefd456354b344b9595bddc44fc0782240e2b7d";
 
-export function createCustomerCreateComposition() {
+export type CustomerCompositionSource = Readonly<{
+  repositoryRoot: string;
+  manifestPath: string;
+  ownershipManifestChecksum: `sha256:${string}`;
+  tag: string;
+  sourceCommit: string;
+  blueprintManifestPath: string;
+  blueprintManifestChecksum: `sha256:${string}`;
+  blueprintAuthorityManifestPath: string;
+  blueprintAuthorityManifestChecksum: `sha256:${string}`;
+}>;
+
+export const ALPHA_2_SOURCE = Object.freeze({
+  repositoryRoot: TRUSTED_REPOSITORY_ROOT,
+  manifestPath: resolve(TRUSTED_REPOSITORY_ROOT, BASE_MANIFEST_PATH),
+  ownershipManifestChecksum: BASE_MANIFEST_CHECKSUM,
+  tag: BASE_TAG,
+  sourceCommit: BASE_COMMIT,
+  blueprintManifestPath: resolve(
+    TRUSTED_REPOSITORY_ROOT,
+    "releases/v0.2.0-alpha.2/blueprints/saas-application.json",
+  ),
+  blueprintManifestChecksum: BASE_BLUEPRINT_CHECKSUM,
+  blueprintAuthorityManifestPath: resolve(
+    TRUSTED_REPOSITORY_ROOT,
+    "releases/v0.2.0-alpha.2/hardening/saas-application.json",
+  ),
+  blueprintAuthorityManifestChecksum: HARDENED_BLUEPRINT_CHECKSUM,
+}) satisfies CustomerCompositionSource;
+
+export function createCustomerCreateComposition(
+  source: CustomerCompositionSource = ALPHA_2_SOURCE,
+  buildBlueprintTargetPlan: (options: {
+    readonly name: string;
+    readonly firstOutcome?: string;
+  }) => ReturnType<
+    typeof buildSaasApplicationTargetPlan
+  > = buildSaasApplicationAlpha2TargetPlan,
+) {
   const release = createCustomerReleaseAdapter({
-    repositoryRoot: TRUSTED_REPOSITORY_ROOT,
-    manifestPath: resolve(TRUSTED_REPOSITORY_ROOT, BASE_MANIFEST_PATH),
-    ownershipManifestChecksum: BASE_MANIFEST_CHECKSUM,
-    tag: BASE_TAG,
-    sourceCommit: BASE_COMMIT,
-    blueprintManifestPath: resolve(
-      TRUSTED_REPOSITORY_ROOT,
-      "releases/v0.2.0-alpha.2/blueprints/saas-application.json",
-    ),
-    blueprintManifestChecksum: BASE_BLUEPRINT_CHECKSUM,
-    blueprintAuthorityManifestPath: resolve(
-      TRUSTED_REPOSITORY_ROOT,
-      "releases/v0.2.0-alpha.2/hardening/saas-application.json",
-    ),
-    blueprintAuthorityManifestChecksum: HARDENED_BLUEPRINT_CHECKSUM,
+    ...source,
     homeRoot: homedir(),
   });
   const command = createCustomerCreateCommand({
     blueprintTargetPlan: ({ name, outcome }) =>
-      buildSaasApplicationTargetPlan({ name, firstOutcome: outcome }),
+      buildBlueprintTargetPlan({ name, firstOutcome: outcome }),
     release: {
       prepare: (request) =>
         release.prepare({
           ...request,
-          repo: { ...request.repo, sourceRoot: TRUSTED_REPOSITORY_ROOT },
+          repo: { ...request.repo, sourceRoot: source.repositoryRoot },
         }),
       materialize: release.materialize,
     },

@@ -28,7 +28,11 @@
       "workos": ["WORKOS_CLIENT_ID", "WORKOS_ORGANIZATION_ID"],
       "posthog": ["POSTHOG_PROJECT_TOKEN", "POSTHOG_HOST"],
       "dodo": ["DODO_ENVIRONMENT"],
-      "email": ["MAILERSEND_FROM_EMAIL", "EMAIL_DISABLED"],
+      "email": [
+        "EMAIL_TRANSACTIONAL_FROM",
+        "EMAIL_MARKETING_FROM",
+        "EMAIL_DISABLED"
+      ],
       "llm": ["LLM_PROVIDER_MODE", "LLM_DISABLED"],
       "search": ["SEARCH_PROVIDER"],
       "storage": ["STORAGE_PROVIDER"]
@@ -163,7 +167,7 @@
       "fakeExampleAllowed": false,
       "owner": "Deploy owner",
       "rotation": "Rotate with CONVEX_DEPLOY_KEY or when cluster secret ownership changes.",
-      "notes": "Namespaced CI secret used by template Woodpecker deployment scripts."
+      "notes": "Namespaced CI secret fallback used by template Buildkite scripts."
     },
     {
       "name": "TEMPLATE_STAGING_CONVEX_DEPLOYMENT",
@@ -490,8 +494,8 @@
       "notes": "Server-only Admaxxer Payments API key; never sent to browser or logs."
     },
     {
-      "name": "MAILERSEND_API_KEY",
-      "group": "mailersend",
+      "name": "POSTMARK_SERVER_TOKEN",
+      "group": "email",
       "services": ["convex", "web"],
       "visibility": "server-secret",
       "requiredFor": ["fake", "test", "live"],
@@ -499,11 +503,11 @@
       "fakeExample": "fake_local_key",
       "owner": "Notifications owner",
       "rotation": "Rotate on team turnover and after deliverability incidents.",
-      "notes": "Email provider API key."
+      "notes": "Postmark server token used only by the live email adapter."
     },
     {
-      "name": "MAILERSEND_FROM_EMAIL",
-      "group": "mailersend",
+      "name": "EMAIL_TRANSACTIONAL_FROM",
+      "group": "email",
       "services": ["convex", "web"],
       "visibility": "public-config",
       "requiredFor": ["fake", "test", "live"],
@@ -511,23 +515,71 @@
       "fakeExample": "no-reply@acme-demo.example.test",
       "owner": "Notifications owner",
       "rotation": "Review when sender domain changes.",
-      "notes": "Approved sender email."
+      "notes": "Verified sender used for transactional outbound messages."
     },
     {
-      "name": "MAILERSEND_FROM_NAME",
-      "group": "mailersend",
+      "name": "EMAIL_MARKETING_FROM",
+      "group": "email",
       "services": ["convex", "web"],
       "visibility": "public-config",
       "requiredFor": ["fake", "test", "live"],
       "fakeExampleAllowed": true,
-      "fakeExample": "Acme Demo",
+      "fakeExample": "Acme Demo <updates@acme-demo.example.test>",
       "owner": "Notifications owner",
       "rotation": "Review with brand copy.",
-      "notes": "Approved sender display name."
+      "notes": "Verified sender used for consented broadcast messages."
+    },
+    {
+      "name": "EMAIL_REPLY_TO",
+      "group": "email",
+      "services": ["convex"],
+      "visibility": "public-config",
+      "requiredFor": ["test", "live"],
+      "fakeExampleAllowed": true,
+      "fakeExample": "help@acme-demo.example.test",
+      "owner": "Notifications owner",
+      "rotation": "Review with support routing.",
+      "notes": "Reply address for marketing broadcasts."
+    },
+    {
+      "name": "EMAIL_UNSUBSCRIBE_SECRET",
+      "group": "email",
+      "services": ["convex"],
+      "visibility": "server-secret",
+      "requiredFor": ["test", "live"],
+      "fakeExampleAllowed": true,
+      "fakeExample": "fake_local_unsubscribe_secret_at_least_32_chars",
+      "owner": "Notifications owner",
+      "rotation": "Rotate only with an unsubscribe-token migration plan.",
+      "notes": "Signs opaque expiring unsubscribe tokens."
+    },
+    {
+      "name": "POSTMARK_WEBHOOK_USERNAME",
+      "group": "email",
+      "services": ["convex"],
+      "visibility": "server-config",
+      "requiredFor": ["test", "live"],
+      "fakeExampleAllowed": true,
+      "fakeExample": "postmark",
+      "owner": "Notifications owner",
+      "rotation": "Review when webhook endpoints change.",
+      "notes": "HTTP Basic Auth username for Postmark webhooks."
+    },
+    {
+      "name": "POSTMARK_WEBHOOK_PASSWORD",
+      "group": "email",
+      "services": ["convex"],
+      "visibility": "server-secret",
+      "requiredFor": ["test", "live"],
+      "fakeExampleAllowed": true,
+      "fakeExample": "fake_local_webhook_password_at_least_32_chars",
+      "owner": "Notifications owner",
+      "rotation": "Rotate on team turnover or webhook authentication incidents.",
+      "notes": "HTTP Basic Auth password for Postmark webhooks."
     },
     {
       "name": "EMAIL_DISABLED",
-      "group": "mailersend",
+      "group": "email",
       "services": ["convex", "web"],
       "visibility": "server-config",
       "requiredFor": ["fake", "test", "live"],
@@ -797,7 +849,7 @@
       "fakeExampleAllowed": false,
       "owner": "Deploy owner",
       "rotation": "Rotate with CLOUDFLARE_API_TOKEN or when cluster secret ownership changes.",
-      "notes": "Namespaced CI secret used by template Woodpecker deployment scripts."
+      "notes": "Namespaced CI secret fallback used by template Buildkite scripts."
     },
     {
       "name": "TEMPLATE_CLOUDFLARE_ACCOUNT_ID",
@@ -808,7 +860,7 @@
       "fakeExampleAllowed": false,
       "owner": "Deploy owner",
       "rotation": "Rotate with Cloudflare deploy credentials.",
-      "notes": "Namespaced CI account ID used by template Woodpecker deployment scripts."
+      "notes": "Namespaced CI account-id fallback used by template Buildkite scripts."
     },
     {
       "name": "CLOUDFLARE_PAGES_PROJECT",
@@ -847,32 +899,32 @@
       "notes": "Hosted URL used by smoke and readiness checks."
     },
     {
-      "name": "WOODPECKER_SERVER",
-      "group": "woodpecker",
+      "name": "BUILDKITE_ORGANIZATION_SLUG",
+      "group": "buildkite",
       "services": ["ci"],
       "visibility": "server-config",
       "requiredFor": ["fake", "ci", "live"],
       "fakeExampleAllowed": true,
-      "fakeExample": "https://ci.example.com",
+      "fakeExample": "modernagencysales",
       "owner": "CI owner",
       "rotation": "Review when CI organization changes.",
-      "notes": "Woodpecker server URL."
+      "notes": "Buildkite organization slug."
     },
     {
-      "name": "WOODPECKER_REPOSITORY",
-      "group": "woodpecker",
+      "name": "BUILDKITE_PIPELINE_SLUG",
+      "group": "buildkite",
       "services": ["ci"],
       "visibility": "server-config",
       "requiredFor": ["fake", "ci", "live"],
       "fakeExampleAllowed": true,
-      "fakeExample": "modernagencysales/maestro-template-saas-ui",
+      "fakeExample": "maestro-template",
       "owner": "CI owner",
       "rotation": "Review when CI pipeline changes.",
-      "notes": "Woodpecker repository slug."
+      "notes": "Buildkite pipeline slug."
     },
     {
-      "name": "WOODPECKER_API_TOKEN",
-      "group": "woodpecker",
+      "name": "BUILDKITE_API_TOKEN",
+      "group": "buildkite",
       "services": ["ci"],
       "visibility": "ci-secret",
       "requiredFor": ["fake", "ci", "live"],
@@ -880,45 +932,45 @@
       "fakeExample": "fake_local_key",
       "owner": "CI owner",
       "rotation": "Rotate after CI admin changes and log exposure.",
-      "notes": "Woodpecker API token for repository and deployment management."
+      "notes": "Buildkite API token for CI status and release promotion checks."
     },
     {
-      "name": "WOODPECKER_TOKEN",
-      "group": "woodpecker",
+      "name": "BUILDKITE_AGENT_TOKEN",
+      "group": "buildkite",
       "services": ["ci"],
       "visibility": "ci-secret",
       "requiredFor": ["fake", "ci", "live"],
       "fakeExampleAllowed": true,
       "fakeExample": "fake_local_key",
       "owner": "CI owner",
-      "rotation": "Rotate after CI admin changes and log exposure.",
-      "notes": "Woodpecker CLI token, sourced from WOODPECKER_API_TOKEN for operator commands."
+      "rotation": "Rotate after agent image changes, CI admin changes, and log exposure.",
+      "notes": "Buildkite agent token."
     },
     {
-      "name": "CI",
-      "group": "woodpecker",
+      "name": "BUILDKITE",
+      "group": "buildkite",
       "services": ["ci"],
       "visibility": "server-config",
       "requiredFor": ["ci"],
       "fakeExampleAllowed": false,
       "owner": "CI owner",
-      "rotation": "Managed by Woodpecker.",
-      "notes": "Standard CI runtime marker used by CI scripts."
+      "rotation": "Managed by Buildkite.",
+      "notes": "Buildkite runtime marker used by CI scripts."
     },
     {
-      "name": "CI_COMMIT_SHA",
-      "group": "woodpecker",
+      "name": "BUILDKITE_COMMIT",
+      "group": "buildkite",
       "services": ["ci", "deploy"],
       "visibility": "server-config",
       "requiredFor": ["ci"],
       "fakeExampleAllowed": false,
       "owner": "CI owner",
-      "rotation": "Managed by Woodpecker.",
+      "rotation": "Managed by Buildkite.",
       "notes": "Commit SHA for deploy and promotion scripts."
     },
     {
       "name": "PROMOTION_AUTHORITY_ENDPOINT",
-      "group": "woodpecker",
+      "group": "buildkite",
       "services": ["ci", "deploy"],
       "visibility": "server-config",
       "requiredFor": ["deploy"],
@@ -947,22 +999,22 @@
       "fakeExampleAllowed": false,
       "owner": "Deployment authority owner",
       "rotation": "Rotate through the independent authority key ceremony and republish the reviewed public trust material.",
-      "notes": "Ed25519 PKCS#8 signing key for the authority runtime only. Never provision, expose, query, or serialize this value in Woodpecker or application deploy receipts."
+      "notes": "Ed25519 PKCS#8 signing key for the authority runtime only. Never provision, expose, query, or serialize this value in Buildkite or application deploy receipts."
     },
     {
       "name": "TRUSTED_DEPLOY_ROOT_SHA256",
-      "group": "woodpecker",
+      "group": "buildkite",
       "services": ["ci", "deploy"],
       "visibility": "server-config",
       "requiredFor": ["deploy"],
       "fakeExampleAllowed": false,
       "owner": "Deployment authority owner",
       "rotation": "Update through an external reviewed trust-root ceremony only.",
-      "notes": "Externally pinned sha256 root over the deploy verifier, policy, and public verification key. The authority signing key never enters this repository or Woodpecker."
+      "notes": "Externally pinned sha256 root over the deploy verifier, policy, and public verification key. The authority signing key never enters this repository or Buildkite."
     },
     {
       "name": "TRUSTED_CI_SELF_PROTECTION_COMMIT",
-      "group": "woodpecker",
+      "group": "buildkite",
       "services": ["ci", "deploy"],
       "visibility": "server-config",
       "requiredFor": ["deploy"],
@@ -973,7 +1025,7 @@
     },
     {
       "name": "TRUSTED_ROLLBACK_SEED_COMMIT",
-      "group": "woodpecker",
+      "group": "buildkite",
       "services": ["ci", "deploy"],
       "visibility": "server-config",
       "requiredFor": ["deploy"],
@@ -984,7 +1036,7 @@
     },
     {
       "name": "STAGING_PREVIOUS_CONVEX_COMMIT_SHA",
-      "group": "woodpecker",
+      "group": "buildkite",
       "services": ["ci", "deploy"],
       "visibility": "server-config",
       "requiredFor": ["ci"],
@@ -995,7 +1047,7 @@
     },
     {
       "name": "STAGING_PREVIOUS_CONVEX_DEPLOYMENT",
-      "group": "woodpecker",
+      "group": "buildkite",
       "services": ["ci", "deploy"],
       "visibility": "server-config",
       "requiredFor": ["ci"],
@@ -1006,7 +1058,7 @@
     },
     {
       "name": "STAGING_PREVIOUS_CLOUDFLARE_DEPLOYMENT_VERSION",
-      "group": "woodpecker",
+      "group": "buildkite",
       "services": ["ci", "deploy"],
       "visibility": "server-config",
       "requiredFor": ["ci"],
@@ -1017,7 +1069,7 @@
     },
     {
       "name": "PRODUCTION_PREVIOUS_CONVEX_COMMIT_SHA",
-      "group": "woodpecker",
+      "group": "buildkite",
       "services": ["ci", "deploy"],
       "visibility": "server-config",
       "requiredFor": ["ci"],
@@ -1028,7 +1080,7 @@
     },
     {
       "name": "PRODUCTION_PREVIOUS_CONVEX_DEPLOYMENT",
-      "group": "woodpecker",
+      "group": "buildkite",
       "services": ["ci", "deploy"],
       "visibility": "server-config",
       "requiredFor": ["ci"],
@@ -1039,7 +1091,7 @@
     },
     {
       "name": "PRODUCTION_PREVIOUS_CLOUDFLARE_DEPLOYMENT_VERSION",
-      "group": "woodpecker",
+      "group": "buildkite",
       "services": ["ci", "deploy"],
       "visibility": "server-config",
       "requiredFor": ["ci"],
@@ -1050,7 +1102,7 @@
     },
     {
       "name": "RUN_ROLLBACK",
-      "group": "woodpecker",
+      "group": "buildkite",
       "services": ["ci", "deploy"],
       "visibility": "server-config",
       "requiredFor": ["ci"],
@@ -1061,7 +1113,7 @@
     },
     {
       "name": "ROLLBACK_RECEIPT_PATH",
-      "group": "woodpecker",
+      "group": "buildkite",
       "services": ["ci", "deploy"],
       "visibility": "server-config",
       "requiredFor": ["ci"],
@@ -1072,18 +1124,18 @@
     },
     {
       "name": "ROLLBACK_RECEIPT_BUILD_ID",
-      "group": "woodpecker",
+      "group": "buildkite",
       "services": ["ci", "deploy"],
       "visibility": "public-config",
       "requiredFor": ["deploy"],
       "fakeExampleAllowed": false,
       "owner": "Deploy owner",
       "rotation": "Bind to the immutable source build recorded by each reviewed rollback receipt.",
-      "notes": "Public Woodpecker pipeline coordinate used to reject a receipt from any other deployment build."
+      "notes": "Public Buildkite build coordinate used to reject a receipt from any other deployment build."
     },
     {
       "name": "ROLLBACK_CLOUDFLARE_DEPLOYMENT_VERSION",
-      "group": "woodpecker",
+      "group": "buildkite",
       "services": ["ci", "deploy"],
       "visibility": "server-config",
       "requiredFor": ["ci"],
@@ -1093,37 +1145,37 @@
       "notes": "Must match the prior Cloudflare version and checked-out rollback commit."
     },
     {
-      "name": "CI_COMMIT_PULL_REQUEST",
-      "group": "woodpecker",
+      "name": "BUILDKITE_PULL_REQUEST",
+      "group": "buildkite",
       "services": ["ci"],
       "visibility": "server-config",
       "requiredFor": ["ci"],
       "fakeExampleAllowed": false,
       "owner": "CI owner",
-      "rotation": "Managed by Woodpecker.",
-      "notes": "Pull request number exposed by Woodpecker."
+      "rotation": "Managed by Buildkite.",
+      "notes": "Pull request marker used by trusted pipeline upload scripts."
     },
     {
-      "name": "CI_COMMIT_TARGET_BRANCH",
-      "group": "woodpecker",
+      "name": "BUILDKITE_PULL_REQUEST_BASE_BRANCH",
+      "group": "buildkite",
       "services": ["ci"],
       "visibility": "server-config",
       "requiredFor": ["ci"],
       "fakeExampleAllowed": false,
       "owner": "CI owner",
-      "rotation": "Managed by Woodpecker.",
+      "rotation": "Managed by Buildkite.",
       "notes": "Base branch for trusted AI gate worktree setup."
     },
     {
-      "name": "CI_PIPELINE_DEPLOY_TARGET",
-      "group": "woodpecker",
+      "name": "BUILDKITE_PIPELINE_DEFAULT_BRANCH",
+      "group": "buildkite",
       "services": ["ci"],
       "visibility": "server-config",
       "requiredFor": ["ci"],
       "fakeExampleAllowed": false,
       "owner": "CI owner",
-      "rotation": "Managed by Woodpecker.",
-      "notes": "Deployment target selector; must be staging or production."
+      "rotation": "Managed by Buildkite.",
+      "notes": "Default branch for trusted pipeline upload scripts."
     },
     {
       "name": "GITHUB_TOKEN",

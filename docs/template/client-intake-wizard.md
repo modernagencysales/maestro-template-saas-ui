@@ -47,9 +47,9 @@ and the operations that require approval before publish, send, spend, or delete.
 
 ### Provider Posture
 
-Keep WorkOS, PostHog, Dodo, MailerSend, LLM, storage, search, notifications, and
-payments in fake/test mode until ownership, data handling, and secret names are
-approved.
+Keep WorkOS, PostHog, Dodo, provider-neutral email, LLM, storage, search,
+notifications, and payments in fake/test mode until ownership, data handling,
+and secret names are approved.
 
 ### Handoff Risks
 

@@ -214,7 +214,7 @@ const createImpl = FunctionImpl.make(
         input,
       ).pipe(
         Effect.catchTag(
-          "ParseError",
+          "SchemaError",
           () =>
             new ValidationFailed({
               field: "checkout",
@@ -291,7 +291,7 @@ const createImpl = FunctionImpl.make(
         checkoutUrl: providerCheckout.checkoutUrl,
       }).pipe(
         Effect.catchTag(
-          "ParseError",
+          "SchemaError",
           () =>
             new CheckoutUnavailable({
               operation: "checkout.persist",

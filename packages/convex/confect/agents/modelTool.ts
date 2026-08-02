@@ -8,7 +8,7 @@ export type ToolCandidate = {
   readonly visibility: ToolVisibility;
   readonly operationType: ToolOperationType;
   readonly grantId: string;
-  readonly schema: Schema.Schema.Any;
+  readonly schema: Schema.Top;
   readonly description: string;
 };
 
@@ -45,7 +45,7 @@ export type ModelTool<Result = never> = {
   readonly grantId: string;
   readonly operationType: ToolOperationType;
   readonly description: string;
-  readonly inputSchema: Schema.Schema.Any;
+  readonly inputSchema: Schema.Top;
   readonly prepare: (value: unknown) => PrepareModelToolResult;
   readonly present: (result: Result) => ToolPresentation;
 };

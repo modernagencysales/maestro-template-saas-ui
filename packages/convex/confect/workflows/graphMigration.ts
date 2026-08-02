@@ -1,4 +1,5 @@
-import * as Either from "effect/Either";
+import * as Exit from "effect/Exit";
+import * as Result from "effect/Result";
 import * as Schema from "effect/Schema";
 
 import {
@@ -19,7 +20,7 @@ export const LegacyDurableWorkflowGraph = DurableWorkflowGraph;
 
 export type LegacyDurableWorkflowGraph = LegacyWorkflowGraph;
 
-export class WorkflowGraphMigrationError extends Schema.TaggedError<WorkflowGraphMigrationError>()(
+export class WorkflowGraphMigrationError extends Schema.TaggedErrorClass<WorkflowGraphMigrationError>()(
   "WorkflowGraphMigrationError",
   {
     sourceVersion: Schema.Literal(1),
@@ -65,9 +66,9 @@ export type MigratedLegacyWorkflowGraph = DurableWorkflowGraphV2;
 
 export const decodeLegacyWorkflowGraph = (
   input: unknown,
-): Either.Either<LegacyDurableWorkflowGraph, WorkflowGraphMigrationError> => {
+): Result.Result<LegacyDurableWorkflowGraph, WorkflowGraphMigrationError> => {
   if (hasSchemaVersion(input)) {
-    return Either.left(
+    return Result.fail(
       new WorkflowGraphMigrationError({
         sourceVersion: 1,
         issue: "Versioned graph input cannot be decoded as legacy V1.",
@@ -75,39 +76,37 @@ export const decodeLegacyWorkflowGraph = (
     );
   }
 
-  try {
-    return Either.right(
-      Schema.decodeUnknownSync(LegacyDurableWorkflowGraph)(input),
-    );
-  } catch {
-    return Either.left(
+  const decoded = Schema.decodeUnknownExit(LegacyDurableWorkflowGraph)(input);
+  if (Exit.isFailure(decoded)) {
+    return Result.fail(
       new WorkflowGraphMigrationError({
         sourceVersion: 1,
         issue: "Input does not match the durable workflow graph V1 schema.",
       }),
     );
   }
+  return Result.succeed(decoded.value);
 };
 
 export const migrateLegacyWorkflowGraph = (
   input: unknown,
   options: LegacyWorkflowMigrationOptions,
-): Either.Either<MigratedLegacyWorkflowGraph, WorkflowGraphMigrationError> => {
+): Result.Result<MigratedLegacyWorkflowGraph, WorkflowGraphMigrationError> => {
   const decoded = decodeLegacyWorkflowGraph(input);
-  return Either.isLeft(decoded)
-    ? Either.left(decoded.left)
-    : migrateDecodedGraph(decoded.right, options);
+  return Result.isFailure(decoded)
+    ? Result.fail(decoded.failure)
+    : migrateDecodedGraph(decoded.success, options);
 };
 
 const migrateDecodedGraph = (
   graph: LegacyWorkflowGraph,
   options: LegacyWorkflowMigrationOptions,
-): Either.Either<MigratedLegacyWorkflowGraph, WorkflowGraphMigrationError> => {
+): Result.Result<MigratedLegacyWorkflowGraph, WorkflowGraphMigrationError> => {
   const nodes: WorkflowNodeV2[] = [];
   for (const node of graph.nodes) {
     const migrated = migrateLegacyNode(node, graph.version, options);
-    if (Either.isLeft(migrated)) return Either.left(migrated.left);
-    nodes.push(migrated.right);
+    if (Result.isFailure(migrated)) return Result.fail(migrated.failure);
+    nodes.push(migrated.success);
   }
   const built = defineWorkflowGraphV2({
     id: graph.id,
@@ -127,7 +126,7 @@ const migrateDecodedGraph = (
     edges: graph.edges,
     joins: graph.joins,
   });
-  return Either.mapLeft(
+  return Result.mapError(
     built,
     (error) =>
       new WorkflowGraphMigrationError({
@@ -141,7 +140,7 @@ const migrateLegacyNode = (
   node: WorkflowNode,
   workflowVersion: number,
   options: LegacyWorkflowMigrationOptions,
-): Either.Either<WorkflowNodeV2, WorkflowGraphMigrationError> => {
+): Result.Result<WorkflowNodeV2, WorkflowGraphMigrationError> => {
   const common = {
     id: node.id,
     label: node.label,
@@ -152,14 +151,14 @@ const migrateLegacyNode = (
     payloadPolicy: options.payloadPolicy,
   } as const;
   if (node.kind === "source" || node.kind === "output") {
-    return Either.right({
+    return Result.succeed({
       ...common,
       kind: node.kind,
       semanticRuleIds: ["WF-NODE-KIND"],
     });
   }
   if (node.kind === "delay") {
-    return Either.right({
+    return Result.succeed({
       ...common,
       kind: "delay",
       delayMs: node.delayMs ?? 0,
@@ -171,7 +170,7 @@ const migrateLegacyNode = (
     const event = options.eventContracts?.[node.id];
     return event === undefined
       ? migrationFailure(`missing event contract for ${node.id}`)
-      : Either.right({
+      : Result.succeed({
           ...common,
           kind: "event",
           ...event,
@@ -187,7 +186,7 @@ const migrateLegacyNode = (
         : options.agentBindings?.[legacyAgent];
     return agent === undefined
       ? migrationFailure(`missing generated agent binding for ${node.id}`)
-      : Either.right({
+      : Result.succeed({
           ...common,
           kind: "agent",
           agent,
@@ -205,7 +204,7 @@ const migrateLegacyNode = (
   }
   const { kind: functionKind, reference } = binding;
   if (functionKind === "action") {
-    return Either.right({
+    return Result.succeed({
       ...common,
       kind: "capability",
       functionKind,
@@ -214,7 +213,7 @@ const migrateLegacyNode = (
       semanticRuleIds: ["WF-STEP-ACTION"],
     });
   }
-  return Either.right({
+  return Result.succeed({
     ...common,
     kind: "capability",
     functionKind,
@@ -229,8 +228,8 @@ const migrateLegacyNode = (
 
 const migrationFailure = (
   issue: string,
-): Either.Either<never, WorkflowGraphMigrationError> =>
-  Either.left(new WorkflowGraphMigrationError({ sourceVersion: 1, issue }));
+): Result.Result<never, WorkflowGraphMigrationError> =>
+  Result.fail(new WorkflowGraphMigrationError({ sourceVersion: 1, issue }));
 
 const hasSchemaVersion = (
   input: unknown,

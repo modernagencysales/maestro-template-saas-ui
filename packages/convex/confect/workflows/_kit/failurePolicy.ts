@@ -4,7 +4,7 @@ import {
   type WorkflowFailurePolicy as WorkflowFailurePolicyContract,
   type WorkflowSettledFailure,
 } from "@maestro-template/template-core/workflow-semantics";
-import * as Either from "effect/Either";
+import * as Exit from "effect/Exit";
 import * as Schema from "effect/Schema";
 
 import {
@@ -44,10 +44,8 @@ export const declaredWorkflowFailureRoute = (
 export const decodeWorkflowSettledFailure = (
   value: unknown,
 ): WorkflowSettledFailure | undefined => {
-  const decoded = Schema.decodeUnknownEither(WorkflowSettledFailureSchema)(
-    value,
-  );
-  return Either.isRight(decoded) ? decoded.right : undefined;
+  const decoded = Schema.decodeUnknownExit(WorkflowSettledFailureSchema)(value);
+  return Exit.isSuccess(decoded) ? decoded.value : undefined;
 };
 
 export const sameWorkflowSettledFailure = (

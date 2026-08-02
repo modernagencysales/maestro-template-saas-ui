@@ -1,5 +1,5 @@
 import * as Data from "effect/Data";
-import * as Either from "effect/Either";
+import * as Result from "effect/Result";
 
 /** Convex values permit at most 8,192 entries in an array. */
 const MAX_CONVEX_ARRAY_ENTRIES = 8_192;
@@ -82,7 +82,7 @@ const SAFE_ERROR_MESSAGE = "Bounded batch plan rejected." as const;
 
 export const planBoundedBatch = (
   input: BoundedBatchPlanInput,
-): Either.Either<BoundedBatchPlan, BoundedBatchPlanError> => {
+): Result.Result<BoundedBatchPlan, BoundedBatchPlanError> => {
   const bounds = [
     ["maxItems", input.maxItems],
     ["batchSize", input.batchSize],
@@ -90,11 +90,11 @@ export const planBoundedBatch = (
   ] as const;
   for (const [field, value] of bounds) {
     const error = validateBound(field, value);
-    if (error !== undefined) return Either.left(error);
+    if (error !== undefined) return Result.fail(error);
   }
 
   if (input.batchSize > input.maxItems) {
-    return Either.left(
+    return Result.fail(
       failure({
         code: "BATCH_SIZE_EXCEEDS_MAX_ITEMS",
         field: "batchSize",
@@ -104,20 +104,23 @@ export const planBoundedBatch = (
   }
 
   const itemCountError = validateItemCount(input.items, input.maxItems);
-  if (itemCountError !== undefined) return Either.left(itemCountError);
+  if (itemCountError !== undefined) return Result.fail(itemCountError);
 
   const plannedItems = planItems(input.items);
-  if (Either.isLeft(plannedItems)) return Either.left(plannedItems.left);
+  if (Result.isFailure(plannedItems)) return Result.fail(plannedItems.failure);
 
   const batches: BoundedBatchPlanBatch[] = [];
   for (
     let itemOffset = 0;
-    itemOffset < plannedItems.right.length;
+    itemOffset < plannedItems.success.length;
     itemOffset += input.batchSize
   ) {
     batches.push({
       ordinal: batches.length,
-      items: plannedItems.right.slice(itemOffset, itemOffset + input.batchSize),
+      items: plannedItems.success.slice(
+        itemOffset,
+        itemOffset + input.batchSize,
+      ),
     });
   }
 
@@ -133,14 +136,14 @@ export const planBoundedBatch = (
     });
   }
 
-  return Either.right({
+  return Result.succeed({
     kind: "bounded-batch-plan",
     maxItems: input.maxItems,
     batchSize: input.batchSize,
     fanOut: input.fanOut,
     identityMode: input.items.kind,
-    empty: plannedItems.right.length === 0,
-    itemCount: plannedItems.right.length,
+    empty: plannedItems.success.length === 0,
+    itemCount: plannedItems.success.length,
     batchCount: batches.length,
     waveCount: waves.length,
     waves,
@@ -183,9 +186,9 @@ const validateItemCount = (
 
 const planItems = (
   items: BoundedBatchItemSource,
-): Either.Either<readonly BoundedBatchPlanItem[], BoundedBatchPlanError> => {
+): Result.Result<readonly BoundedBatchPlanItem[], BoundedBatchPlanError> => {
   if (items.kind === "ordinals") {
-    return Either.right(
+    return Result.succeed(
       Array.from({ length: items.count }, (_, ordinal) => ({
         ordinal,
         instanceSuffix: ordinalInstanceSuffix(ordinal),
@@ -201,7 +204,7 @@ const planItems = (
       identity.length > BOUNDED_BATCH_LIMITS.stableIdentityLength ||
       !STABLE_ITEM_IDENTITY.test(identity)
     ) {
-      return Either.left(
+      return Result.fail(
         failure({
           code: "INVALID_ITEM_IDENTITY",
           field: "identity",
@@ -212,7 +215,7 @@ const planItems = (
     }
     const firstOrdinal = firstOrdinalByIdentity.get(identity);
     if (firstOrdinal !== undefined) {
-      return Either.left(
+      return Result.fail(
         failure({
           code: "DUPLICATE_ITEM_IDENTITY",
           field: "identity",
@@ -227,7 +230,7 @@ const planItems = (
       instanceSuffix: stableIdentityInstanceSuffix(identity),
     });
   }
-  return Either.right(planned);
+  return Result.succeed(planned);
 };
 
 const ordinalInstanceSuffix = (ordinal: number): string =>

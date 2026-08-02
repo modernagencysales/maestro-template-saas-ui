@@ -13,8 +13,8 @@
 ## Provider posture
 
 Local and test environments use deterministic fake providers. Live operation
-requires Dodo, OpenRouter-compatible models, MailerSend, and PostHog to pass the
-environment and provider-boundary checks before traffic is enabled.
+requires Dodo, OpenRouter-compatible models, Postmark email, and PostHog to pass
+the environment and provider-boundary checks before traffic is enabled.
 
 Free and premium model calls use different environment-selected models and
 independent daily ceilings. Free calls have no tools or research and enforce
