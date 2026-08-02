@@ -49,8 +49,8 @@ const COMMAND_TIMEOUT_MS = 30_000;
 export async function createNativeHostFixture(
   host: NativeHostName,
 ): Promise<NativeHostFixture> {
-  const token = host === "claude-code" ? "claude" : "codex";
-  const root = await mkdtemp(join(tmpdir(), `maestro-native-${token}-`));
+  const token = host === "claude-code" ? "nc" : "nx";
+  const root = await mkdtemp(join(tmpdir(), `maestro-${token}-`));
   const fixture: NativeHostFixture = {
     host,
     root,
@@ -391,9 +391,9 @@ function isolatedEnvironment(fixture: NativeHostFixture): NodeJS.ProcessEnv {
 }
 
 async function assertFixtureRoot(fixture: NativeHostFixture): Promise<void> {
-  const token = fixture.host === "claude-code" ? "claude" : "codex";
+  const token = fixture.host === "claude-code" ? "nc" : "nx";
   const resolved = resolve(fixture.root);
-  const expectedPrefix = `maestro-native-${token}-`;
+  const expectedPrefix = `maestro-${token}-`;
   if (!basename(resolved).startsWith(expectedPrefix)) {
     throw new Error(
       "native host fixture must use the validated temporary prefix",
