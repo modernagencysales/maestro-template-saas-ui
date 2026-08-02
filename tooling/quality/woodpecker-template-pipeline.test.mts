@@ -16,8 +16,8 @@ describe("Woodpecker template pipeline", () => {
     expect(read(".woodpecker/deploy.yml")).toContain(
       'CI_PIPELINE_DEPLOY_TARGET == "production"',
     );
-    expect(read(".woodpecker/verify.yml")).toContain("depth: 0");
-    expect(read(".woodpecker/deploy.yml")).toContain("depth: 0");
+    expect(read(".woodpecker/verify.yml")).toContain("tags: true");
+    expect(read(".woodpecker/deploy.yml")).toContain("tags: true");
   });
 
   it("keeps neutral CI scripts free of Buildkite runtime coordinates", () => {
