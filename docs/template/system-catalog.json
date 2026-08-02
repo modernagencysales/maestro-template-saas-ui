@@ -307,6 +307,8 @@
       "canonicalEntrypoints": [
         "packages/convex/confect/ops/email.spec.ts",
         "packages/convex/confect/ops/notifications.spec.ts",
+        "packages/integrations/src/email.ts",
+        "packages/integrations/src/emailSetup.ts",
         "packages/notifications"
       ],
       "decisionRef": "docs/template/system-catalog.md#notifications"
