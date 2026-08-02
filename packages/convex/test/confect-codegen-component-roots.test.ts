@@ -44,6 +44,34 @@ const digest = (root: string, path: string): string =>
 const digests = (root: string, paths: readonly string[]) =>
   Object.fromEntries(paths.map((path) => [path, digest(root, path)]));
 
+const canApplyPatch = (cliRoot: string, reverse = false): boolean => {
+  try {
+    execFileSync(
+      "git",
+      ["apply", ...(reverse ? ["--reverse"] : []), "--check", patchPath],
+      { cwd: cliRoot, stdio: "pipe" },
+    );
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+const normalizeCliPatch = (cliRoot: string, patched: boolean): void => {
+  const pristine = canApplyPatch(cliRoot);
+  const alreadyPatched = canApplyPatch(cliRoot, true);
+  if (pristine === alreadyPatched) {
+    throw new Error(
+      "Confect CLI fixture is neither pristine nor exactly patched.",
+    );
+  }
+  if (patched === alreadyPatched) return;
+  execFileSync("git", ["apply", ...(patched ? [] : ["--reverse"]), patchPath], {
+    cwd: cliRoot,
+    stdio: "pipe",
+  });
+};
+
 const createFixture = (applyPatch: boolean) => {
   const root = mkdtempSync(join(tmpdir(), "maestro-confect-codegen-"));
   const fixturePackageRoot = resolve(root, "packages/convex");
@@ -94,12 +122,7 @@ const createFixture = (applyPatch: boolean) => {
     resolve(fixturePackageRoot, "convex/extinctOwned.ts"),
     "export const extinctOwned = true;\n",
   );
-  if (applyPatch) {
-    execFileSync("git", ["apply", patchPath], {
-      cwd: fixtureCliRoot,
-      stdio: "pipe",
-    });
-  }
+  normalizeCliPatch(fixtureCliRoot, applyPatch);
   return {
     root,
     packageRoot: fixturePackageRoot,
