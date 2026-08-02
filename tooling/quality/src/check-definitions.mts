@@ -303,8 +303,8 @@ const checkDescriptorDefinitions = {
       {
         file: "project.config.json",
         includes: [
-          "maestro-template-staging",
-          "maestro-template-production",
+          "perfect-sparrow-808",
+          "hearty-peccary-962",
           "CLOUDFLARE_API_TOKEN",
           "CONVEX_DEPLOY_KEY",
           "convexUrl",

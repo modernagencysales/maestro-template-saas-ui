@@ -10,14 +10,14 @@
       "domain": "maestro-template-staging.pages.dev",
       "cloudflarePagesProject": "maestro-template-staging",
       "cloudflareBranch": "staging",
-      "convexDeployName": "maestro-template-staging",
+      "convexDeployName": "perfect-sparrow-808",
       "convexDeployNameEnv": "TEMPLATE_STAGING_CONVEX_DEPLOYMENT",
       "convexUrlEnv": "TEMPLATE_STAGING_CONVEX_URL",
       "hostedUrlEnv": "TEMPLATE_STAGING_HOSTED_URL",
       "requiredEnvGroups": [
         "cloudflare",
         "convex",
-        "buildkite",
+        "woodpecker",
         "fake-providers"
       ],
       "requiredSecrets": [
@@ -31,14 +31,14 @@
       "domain": "maestro-template.pages.dev",
       "cloudflarePagesProject": "maestro-template",
       "cloudflareBranch": "main",
-      "convexDeployName": "maestro-template-production",
+      "convexDeployName": "hearty-peccary-962",
       "convexDeployNameEnv": "TEMPLATE_PRODUCTION_CONVEX_DEPLOYMENT",
       "convexUrlEnv": "TEMPLATE_PRODUCTION_CONVEX_URL",
       "hostedUrlEnv": "TEMPLATE_PRODUCTION_HOSTED_URL",
       "requiredEnvGroups": [
         "cloudflare",
         "convex",
-        "buildkite",
+        "woodpecker",
         "workos",
         "posthog",
         "dodo",
