@@ -33,10 +33,8 @@ import {
   issueEmailVerificationChallenge,
 } from "../evaluator/ownership";
 import { createPublicEvaluationReportSnapshot } from "../evaluator/sharing";
-import {
-  loadLlmGatewayEnvConfig,
-  loadEmailEnvConfig,
-} from "../evaluator/providerConfig";
+import { loadEmailEnvConfig } from "../email/env";
+import { loadLlmGatewayEnvConfig } from "../evaluator/providerConfig";
 import { sha256Hex } from "../shared/sha256";
 import { PublicBaseUrlConfig, RuntimeModeConfig } from "../shared/config";
 import {

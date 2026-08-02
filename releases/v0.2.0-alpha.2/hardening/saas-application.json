@@ -1292,7 +1292,7 @@
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:841d107f96bc71e89f59030ca207d1e5ef6a57cc209c888759611cbd8b13f6f1"
+      "sha256": "sha256:434fef78068d4cf59fd0193f064ce38e2b81253f884c1a732c68b7cd9efc9b73"
     },
     {
       "path": "packages/convex/confect/email/postmarkWebhook.ts",
@@ -1329,7 +1329,7 @@
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:76226507cccbcaf5c06ef592d7454fcec6634661234a98005002ff78f38b5223"
+      "sha256": "sha256:d9a5ed934c2f8d816c75e3cb07f21439982d1014ec6ffaab1238198e5209925c"
     },
     {
       "path": "packages/convex/confect/ops/email.spec.ts",

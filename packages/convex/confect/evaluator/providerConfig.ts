@@ -12,14 +12,6 @@ export const loadLlmGatewayEnvConfig = Config.all({
   LLM_DISABLED: optionalEnvConfig("LLM_DISABLED"),
 });
 
-export const loadEmailEnvConfig = Config.all({
-  POSTMARK_SERVER_TOKEN: optionalEnvConfig("POSTMARK_SERVER_TOKEN"),
-  EMAIL_TRANSACTIONAL_FROM: optionalEnvConfig("EMAIL_TRANSACTIONAL_FROM"),
-  EMAIL_MARKETING_FROM: optionalEnvConfig("EMAIL_MARKETING_FROM"),
-  EMAIL_REPLY_TO: optionalEnvConfig("EMAIL_REPLY_TO"),
-  EMAIL_UNSUBSCRIBE_SECRET: optionalEnvConfig("EMAIL_UNSUBSCRIBE_SECRET"),
-});
-
 export const loadDodoCommerceEnvConfig = Config.all({
   DODO_API_KEY: optionalEnvConfig("DODO_API_KEY"),
   DODO_WEBHOOK_SECRET: optionalEnvConfig("DODO_WEBHOOK_SECRET"),

@@ -15,9 +15,9 @@ import {
   QueryRunner,
 } from "../_generated/services";
 import { requireWorkspaceAccess } from "../capabilities/_kit/workspaceAccess";
+import { loadEmailEnvConfig } from "../email/env";
 import { createEmailUnsubscribeToken } from "../email/unsubscribeToken";
 import { ValidationFailed, NotFound } from "../errors";
-import { loadEmailEnvConfig } from "../evaluator/providerConfig";
 import { PublicBaseUrlConfig, RuntimeModeConfig } from "../shared/config";
 import { validateCallerIdempotencyKey } from "../shared/idempotencyKey";
 import { stableFingerprint } from "../shared/tokenCrypto";
