@@ -2,6 +2,7 @@ import { expect } from "vitest";
 import * as Cause from "effect/Cause";
 import * as Effect from "effect/Effect";
 import * as Exit from "effect/Exit";
+import * as Result from "effect/Result";
 
 export const expectEffectSuccess = async <A, E, R>(
   effect: Effect.Effect<A, E, R>,
@@ -29,13 +30,13 @@ export const expectTaggedFailure = async <
   if (Exit.isSuccess(exit)) {
     throw new Error(`Expected Effect failure ${expectedTag}, received success`);
   }
-  const failure = Cause.failureOption(exit.cause);
-  if (failure._tag === "None") {
+  const failure = Cause.findError(exit.cause);
+  if (Result.isFailure(failure)) {
     throw new Error(
       `Expected typed Effect failure ${expectedTag}, received defect or interruption`,
     );
   }
-  const captured = failure.value;
+  const captured = failure.success;
   expect(captured._tag).toBe(expectedTag);
   return captured;
 };

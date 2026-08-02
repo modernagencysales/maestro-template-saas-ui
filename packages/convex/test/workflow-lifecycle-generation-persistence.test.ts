@@ -35,9 +35,7 @@ describe("workflow lifecycle generation persistence", () => {
     admissionSpies.transition.mockClear();
     const status = await Effect.runPromise(
       Effect.gen(function* () {
-        const confect = yield* Effect.serviceOptional(
-          TestConfect.TestConfect<typeof databaseSchema>(),
-        );
+        const confect = yield* TestConfect.TestConfect<typeof databaseSchema>();
         return yield* confect.run(
           Effect.gen(function* () {
             const reader = yield* DatabaseReader;
@@ -74,9 +72,7 @@ describe("workflow lifecycle generation persistence", () => {
   it("permits only the unbound eager generation zero reservation", async () => {
     const result = await Effect.runPromise(
       Effect.gen(function* () {
-        const confect = yield* Effect.serviceOptional(
-          TestConfect.TestConfect<typeof databaseSchema>(),
-        );
+        const confect = yield* TestConfect.TestConfect<typeof databaseSchema>();
         const seeded = yield* seedLifecyclePersistence(confect);
         return yield* confect.run(
           Effect.gen(function* () {
@@ -145,9 +141,7 @@ describe("workflow lifecycle generation persistence", () => {
   it("retains the same stable stage independently across generations", async () => {
     const result = await Effect.runPromise(
       Effect.gen(function* () {
-        const confect = yield* Effect.serviceOptional(
-          TestConfect.TestConfect<typeof databaseSchema>(),
-        );
+        const confect = yield* TestConfect.TestConfect<typeof databaseSchema>();
         const seeded = yield* seedLifecyclePersistence(confect);
         return yield* confect.run(
           Effect.gen(function* () {

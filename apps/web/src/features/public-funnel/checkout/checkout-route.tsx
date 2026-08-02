@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { templateConfectRefs } from "@maestro-template/convex/refs";
-import * as Either from "effect/Either";
+import * as Result from "effect/Result";
 
 import { useTemplateAction } from "../../../adapters/confect-state";
 import { isConvexConfigured } from "../../../env";
@@ -78,9 +78,9 @@ function ConfiguredBuildPackCheckoutRoute({
         ownerAccessToken,
         createCheckout: async (input) => {
           const result = await createCheckout(input);
-          if (Either.isEither(result)) {
-            if (Either.isLeft(result)) throw result.left;
-            return result.right;
+          if (Result.isResult(result)) {
+            if (Result.isFailure(result)) throw result.failure;
+            return result.success;
           }
           return result;
         },

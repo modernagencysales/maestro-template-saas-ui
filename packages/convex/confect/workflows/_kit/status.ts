@@ -12,7 +12,10 @@ import {
 
 export const WorkflowLifecycleStatus = S.Struct({
   execution: WorkflowLifecycleExecution,
-  generation: S.Number.pipe(S.int(), S.greaterThanOrEqualTo(0)),
+  generation: S.Number.pipe(
+    S.check(S.isInt()),
+    S.check(S.isGreaterThanOrEqualTo(0)),
+  ),
   priorGenerationQuiescence: WorkflowGenerationQuiescence,
   cleanup: WorkflowProductCleanupState,
   componentCleanup: WorkflowComponentCleanupState,
@@ -22,7 +25,7 @@ export const WorkflowLifecycleStatus = S.Struct({
 export const WorkflowStatusResult = S.Struct({
   status: WorkflowRunStatus,
   componentStatus: S.optional(
-    S.Literal("inProgress", "completed", "failed", "canceled"),
+    S.Literals(["inProgress", "completed", "failed", "canceled"]),
   ),
   result: S.optional(S.Unknown),
   error: S.optional(S.String),

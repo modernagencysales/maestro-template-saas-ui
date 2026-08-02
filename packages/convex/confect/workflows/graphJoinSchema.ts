@@ -3,7 +3,7 @@ import { defineWorkflowSchemaFields } from "@maestro-template/template-core/work
 
 export const WorkflowJoinSchemaFields = defineWorkflowSchemaFields("join", {
   nodeId: S.String,
-  strategy: S.Literal("all-successful", "any-successful"),
+  strategy: S.Literals(["all-successful", "any-successful"]),
   sourceNodeIds: S.Array(S.String),
 });
 

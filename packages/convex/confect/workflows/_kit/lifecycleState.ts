@@ -1,59 +1,60 @@
 import { getConvexSize, v } from "convex/values";
 import * as Data from "effect/Data";
-import * as Either from "effect/Either";
+import * as Exit from "effect/Exit";
+import * as Result from "effect/Result";
 import * as Schema from "effect/Schema";
 
 import { WorkflowStepName } from "./workflowReferences";
 
-export const WorkflowLifecycleExecution = Schema.Literal(
+export const WorkflowLifecycleExecution = Schema.Literals([
   "active",
   "terminal",
   "canceled",
-);
+]);
 export type WorkflowLifecycleExecution = Schema.Schema.Type<
   typeof WorkflowLifecycleExecution
 >;
 
-export const WorkflowGenerationQuiescence = Schema.Literal(
+export const WorkflowGenerationQuiescence = Schema.Literals([
   "not-applicable",
   "pending",
   "quiescent",
-);
+]);
 export type WorkflowGenerationQuiescence = Schema.Schema.Type<
   typeof WorkflowGenerationQuiescence
 >;
 
-export const WorkflowProductCleanupState = Schema.Literal(
+export const WorkflowProductCleanupState = Schema.Literals([
   "not-requested",
   "requested",
   "in-progress",
   "product-cleaned",
-);
+]);
 export type WorkflowProductCleanupState = Schema.Schema.Type<
   typeof WorkflowProductCleanupState
 >;
 
-export const WorkflowComponentCleanupState = Schema.Literal(
+export const WorkflowComponentCleanupState = Schema.Literals([
   "not-requested",
   "component-cleanup-requested",
   "component-known-work-complete",
   "component-residuals-unverifiable",
-);
+]);
 export type WorkflowComponentCleanupState = Schema.Schema.Type<
   typeof WorkflowComponentCleanupState
 >;
 
-export const WorkflowComponentResidualState = Schema.Literal(
+export const WorkflowComponentResidualState = Schema.Literals([
   "not-assessed",
   "component-residuals-unverifiable",
-);
+]);
 export type WorkflowComponentResidualState = Schema.Schema.Type<
   typeof WorkflowComponentResidualState
 >;
 
 const NonNegativeInteger = Schema.Number.pipe(
-  Schema.int(),
-  Schema.greaterThanOrEqualTo(0),
+  Schema.check(Schema.isInt()),
+  Schema.check(Schema.isGreaterThanOrEqualTo(0)),
 );
 export const WorkflowRetentionTime = Schema.NullOr(NonNegativeInteger);
 
@@ -185,28 +186,27 @@ export const createWorkflowLifecycleState = (
 
 export const decodeWorkflowOnCompleteContext = (
   input: unknown,
-): Either.Either<
+): Exit.Exit<
   WorkflowOnCompleteContext,
-  WorkflowLifecycleTransitionError
+  Schema.SchemaError | WorkflowLifecycleTransitionError
 > => {
-  const decoded = Schema.decodeUnknownEither(WorkflowOnCompleteContext)(input);
-  if (Either.isLeft(decoded)) {
-    return fail(
-      "onComplete context does not match the ownership/run/version schema",
+  const decoded = Schema.decodeUnknownExit(WorkflowOnCompleteContext)(input);
+  if (Exit.isFailure(decoded)) return decoded;
+  if (getConvexSize(decoded.value) > MAX_ON_COMPLETE_CONTEXT_BYTES) {
+    return Exit.fail(
+      new WorkflowLifecycleTransitionError({
+        reason:
+          "onComplete context exceeds the bounded completion-context size",
+      }),
     );
   }
-  if (getConvexSize(decoded.right) > MAX_ON_COMPLETE_CONTEXT_BYTES) {
-    return fail(
-      "onComplete context exceeds the bounded completion-context size",
-    );
-  }
-  return Either.right(decoded.right);
+  return decoded;
 };
 
 export const transitionWorkflowLifecycle = (
   state: WorkflowLifecycleState,
   command: WorkflowLifecycleCommand,
-): Either.Either<WorkflowLifecycleState, WorkflowLifecycleTransitionError> => {
+): Result.Result<WorkflowLifecycleState, WorkflowLifecycleTransitionError> => {
   const guardFinding = guardLifecycleTransition(state, command);
   if (guardFinding) return fail(guardFinding);
   switch (command.kind) {
@@ -217,7 +217,7 @@ export const transitionWorkflowLifecycle = (
     case "mark-generation-quiescent":
       return state.execution !== "active" &&
         state.priorGenerationQuiescence === "pending"
-        ? Either.right({ ...state, priorGenerationQuiescence: "quiescent" })
+        ? Result.succeed({ ...state, priorGenerationQuiescence: "quiescent" })
         : fail(
             "generation can become quiescent only after terminal or canceled execution",
           );
@@ -225,12 +225,12 @@ export const transitionWorkflowLifecycle = (
       return requestCleanup(state, command.now);
     case "begin-product-cleanup":
       return state.cleanup === "requested"
-        ? Either.right({ ...state, cleanup: "in-progress" })
+        ? Result.succeed({ ...state, cleanup: "in-progress" })
         : fail("product cleanup can begin only after cleanup is requested");
     case "request-component-cleanup":
       return state.cleanup === "in-progress" &&
         state.componentCleanup === "not-requested"
-        ? Either.right({
+        ? Result.succeed({
             ...state,
             componentCleanup: "component-cleanup-requested",
           })
@@ -238,7 +238,7 @@ export const transitionWorkflowLifecycle = (
     case "mark-component-known-work-complete":
       return state.componentCleanup === "component-cleanup-requested" ||
         state.componentCleanup === "component-residuals-unverifiable"
-        ? Either.right({
+        ? Result.succeed({
             ...state,
             componentCleanup: "component-known-work-complete",
           })
@@ -248,7 +248,7 @@ export const transitionWorkflowLifecycle = (
     case "mark-component-residuals-unverifiable":
       return state.componentCleanup === "component-cleanup-requested" ||
         state.componentCleanup === "component-known-work-complete"
-        ? Either.right({
+        ? Result.succeed({
             ...state,
             componentResiduals: "component-residuals-unverifiable",
           })
@@ -258,7 +258,7 @@ export const transitionWorkflowLifecycle = (
     case "mark-product-cleaned":
       return state.cleanup === "in-progress" &&
         state.componentCleanup === "component-known-work-complete"
-        ? Either.right({ ...state, cleanup: "product-cleaned" })
+        ? Result.succeed({ ...state, cleanup: "product-cleaned" })
         : fail(
             "product-cleaned requires known component work completion without residuals",
           );
@@ -298,7 +298,7 @@ const finishExecution = (
   execution: "terminal" | "canceled",
 ) =>
   state.execution === "active" && state.cleanup === "not-requested"
-    ? Either.right({
+    ? Result.succeed({
         ...state,
         execution,
         priorGenerationQuiescence: "pending" as const,
@@ -321,7 +321,7 @@ const requestCleanup = (state: WorkflowLifecycleState, now: number) => {
       return fail(`${retentionName(name)} retention remains active`);
     }
   }
-  return Either.right({ ...state, cleanup: "requested" as const });
+  return Result.succeed({ ...state, cleanup: "requested" as const });
 };
 
 const retentionName = (name: string): string =>
@@ -356,7 +356,7 @@ const advanceGeneration = (
       "restart anchor must be beginning or a stable versioned step name",
     );
   }
-  return Either.right({
+  return Result.succeed({
     ...state,
     execution: "active" as const,
     generation: command.nextGeneration,
@@ -370,4 +370,4 @@ const advanceGeneration = (
 };
 
 const fail = (reason: string) =>
-  Either.left(new WorkflowLifecycleTransitionError({ reason }));
+  Result.fail(new WorkflowLifecycleTransitionError({ reason }));

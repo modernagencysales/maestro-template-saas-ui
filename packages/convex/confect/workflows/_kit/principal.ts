@@ -33,19 +33,21 @@ export type WorkflowSystemPrincipal = Schema.Schema.Type<
   typeof WorkflowSystemPrincipal
 >;
 
-export const LegacyWorkflowPrincipal = Schema.Union(
+export const LegacyWorkflowPrincipal = Schema.Union([
   WorkflowUserPrincipal,
   WorkflowSystemPrincipal,
-);
+]);
 
-const PrincipalGrant = Schema.NonEmptyString.pipe(Schema.maxLength(128));
+const PrincipalGrant = Schema.NonEmptyString.pipe(
+  Schema.check(Schema.isMaxLength(128)),
+);
 const WorkflowPrincipalV2Base = {
   version: Schema.Literal(2),
   workspaceId: Schema.NonEmptyString,
   grants: Schema.Array(PrincipalGrant),
   kickoffAt: Schema.Number.pipe(
-    Schema.finite(),
-    Schema.greaterThanOrEqualTo(0),
+    Schema.check(Schema.isFinite()),
+    Schema.check(Schema.isGreaterThanOrEqualTo(0)),
   ),
 } as const;
 
@@ -54,7 +56,10 @@ export const WorkflowUserPrincipalV2 = Schema.Struct({
   kind: Schema.Literal("user"),
   actorId: Schema.NonEmptyString,
   role: Role,
-  authEpoch: Schema.Number.pipe(Schema.int(), Schema.greaterThanOrEqualTo(0)),
+  authEpoch: Schema.Number.pipe(
+    Schema.check(Schema.isInt()),
+    Schema.check(Schema.isGreaterThanOrEqualTo(0)),
+  ),
   provenance: Schema.Literal("authenticated-workflow-start"),
 });
 
@@ -66,10 +71,10 @@ export const WorkflowSystemPrincipalV2 = Schema.Struct({
   provenance: Schema.Literal("scheduled-system-workflow"),
 });
 
-export const DurableWorkflowPrincipal = Schema.Union(
+export const DurableWorkflowPrincipal = Schema.Union([
   WorkflowUserPrincipalV2,
   WorkflowSystemPrincipalV2,
-);
+]);
 export type DurableWorkflowPrincipal = Schema.Schema.Type<
   typeof DurableWorkflowPrincipal
 >;
@@ -103,10 +108,10 @@ export const DurableWorkflowPrincipalValidator = v.union(
   }),
 );
 
-export const WorkflowPrincipal = Schema.Union(
+export const WorkflowPrincipal = Schema.Union([
   LegacyWorkflowPrincipal,
   DurableWorkflowPrincipal,
-);
+]);
 export type WorkflowPrincipal = Schema.Schema.Type<typeof WorkflowPrincipal>;
 
 export const createWorkflowUserPrincipal = (input: {

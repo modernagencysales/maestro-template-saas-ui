@@ -19,7 +19,7 @@ export const resume = FunctionSpec.internalMutation({
       status: Schema.Literal("running"),
       operatorReason: Schema.String,
     }),
-  error: () => Schema.Union(Unauthorized, NotFound, ValidationFailed),
+  error: () => Schema.Union([Unauthorized, NotFound, ValidationFailed]),
 });
 
 export default GroupSpec.make().addFunction(resume);

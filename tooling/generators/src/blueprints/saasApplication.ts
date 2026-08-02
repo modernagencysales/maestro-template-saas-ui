@@ -484,6 +484,9 @@ function buildTargetPlan(
             (path) => [path, "copy"] as const,
           ),
           ["Justfile", "generate"],
+          ["apps/web/src/adapters/confect-generated-refs.test.ts", "copy"],
+          ["apps/web/src/providers/posthog.tsx", "copy"],
+          ["apps/web/src/routes/index.tsx", "copy"],
           ["docs/template/env-manifest.json", "copy"],
           ["docs/template/env-manifest.md", "copy"],
           ["docs/template/operations-runbook.md", "copy"],
@@ -493,6 +496,7 @@ function buildTargetPlan(
             "copy",
           ],
           ["packages/template-core/src/generated/confectManifest.ts", "copy"],
+          ["packages/convex/test/shared-env.test.ts", "copy"],
           ["scripts/pre-push-rubric.sh", "copy"],
           ["tooling/agent-pack/package.json", "copy"],
           ["tooling/agent-pack/src/nodeAdapters.test.ts", "copy"],
@@ -680,14 +684,19 @@ function buildTargetPlan(
     "docs/template/agent-pack-privacy.md",
     ...(current ? ["apps/web/package.json"] : []),
     ...(current
+      ? ["apps/web/src/providers/posthog.tsx", "apps/web/src/routes/index.tsx"]
+      : []),
+    ...(current
       ? [
           "Justfile",
+          "apps/web/src/adapters/confect-generated-refs.test.ts",
           "docs/template/env-manifest.json",
           "docs/template/env-manifest.md",
           "docs/template/operations-runbook.md",
           "packages/template-core/src/templateInstance/templateInstance.test.ts",
           "packages/template-core/src/templateInstance/__fixtures__/provider-posture-v1-to-v2.contract.json",
           "packages/template-core/src/generated/confectManifest.ts",
+          "packages/convex/test/shared-env.test.ts",
           "tooling/app-map/src/composition.test.ts",
           "tooling/app-map/src/composition.ts",
           "tooling/app-map/src/schema.ts",
@@ -817,8 +826,15 @@ function buildTargetPlan(
     ".claude/settings.json",
     "skills-lock.json",
     "packages/convex/confect/tables/records.ts",
-    "packages/convex/confect/records.spec.ts",
-    "packages/convex/confect/records.impl.ts",
+    ...(current
+      ? [
+          "packages/convex/confect/records/records.spec.ts",
+          "packages/convex/confect/records/records.impl.ts",
+        ]
+      : [
+          "packages/convex/confect/records.spec.ts",
+          "packages/convex/confect/records.impl.ts",
+        ]),
     "packages/convex/confect/_generated/tables/records.ts",
     "packages/convex/confect/_generated/schema.ts",
     "packages/convex/confect/_generated/convexSchema.ts",

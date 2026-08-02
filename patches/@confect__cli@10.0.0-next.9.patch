@@ -1,0 +1,71 @@
+diff --git a/dist/confect/codegen.mjs b/dist/confect/codegen.mjs
+index 9bc25a4..e8d8b6c 100644
+--- a/dist/confect/codegen.mjs
++++ b/dist/confect/codegen.mjs
+@@ -108,7 +108,10 @@ const loadAndValidateLeafModules = Effect.gen(function* () {
+ 	const fs = yield* FileSystem.FileSystem;
+ 	const path = yield* Path.Path;
+ 	const confectDirectory = yield* ConfectDirectory.get;
+-	const specFiles = yield* discoverLeafSpecFiles;
++	const specFiles = Array.filter(
++		yield* discoverLeafSpecFiles,
++		(specFile) => specFile !== "workflows/subworkflowLinksCurrent.spec.ts"
++	);
+ 	const results = yield* Effect.forEach(specFiles, (specRelativePath) => Effect.gen(function* () {
+ 		const discovered = yield* toLeafModule(specRelativePath);
+ 		const groupSpec = yield* validateSpec(discovered);
+@@ -263,11 +266,12 @@ const removeObsoleteRegisteredFunctions = (leaves) => Effect.gen(function* () {
+ 	const registryRoot = path.join(confectDirectory, "_generated", "registeredFunctions");
+ 	if (!(yield* fs.exists(registryRoot))) return;
+ 	const expected = new Set(yield* Effect.forEach(leaves, (leaf) => registeredFunctionsRelativePath(leaf)));
++	const preservedLegacyRegisteredFunctions = new Set(["workflows/subworkflowLinksCurrent.ts"]);
+ 	const existing = yield* fs.readDirectory(registryRoot, { recursive: true });
+ 	yield* Effect.forEach(existing, (relativePath) => {
+ 		if (path.extname(relativePath) !== ".ts") return Effect.void;
+ 		const normalized = path.join("registeredFunctions", relativePath);
+-		if (!expected.has(normalized)) return Effect.gen(function* () {
++		if (!expected.has(normalized) && !preservedLegacyRegisteredFunctions.has(relativePath)) return Effect.gen(function* () {
+ 			const absolutePath = path.join(registryRoot, relativePath);
+ 			if (yield* fs.exists(absolutePath)) {
+ 				yield* removePathIfExists(absolutePath);
+diff --git a/dist/templates.mjs b/dist/templates.mjs
+index beccad7..e53d68d 100644
+--- a/dist/templates.mjs
++++ b/dist/templates.mjs
+@@ -13,7 +13,14 @@ const functions = ({ functionNames, registeredFunctionsImportPath, useNode = fa
+ 	}
+ 	yield* cbw.writeLine(`import registeredFunctions from "${registeredFunctionsImportPath}";`);
+ 	yield* cbw.newLine();
+-	yield* Effect.forEach(functionNames, (functionName) => cbw.writeLine(`export const ${functionName} = registeredFunctions.${functionName};`));
++	yield* Effect.forEach(functionNames, (functionName) => {
++		const declaration = `export const ${functionName} = registeredFunctions.${functionName};`;
++		if (declaration.length <= 80) return cbw.writeLine(declaration);
++		return Effect.gen(function* () {
++			yield* cbw.writeLine(`export const ${functionName} =`);
++			yield* cbw.writeLine(`  registeredFunctions.${functionName};`);
++		});
++	});
+ 	return yield* cbw.toString();
+ });
+ /**
+diff --git a/dist/utils.mjs b/dist/utils.mjs
+index 464f23c..50f6a34 100644
+--- a/dist/utils.mjs
++++ b/dist/utils.mjs
+@@ -184,7 +184,15 @@ const getGroupPathsFromFs = Effect.gen(function* () {
+ 		"auth.config.ts",
+ 		"convex.config.ts"
+ 	]);
+-	return pipe(yield* pipe(yield* fs.readDirectory(convexDirectory, { recursive: true }), Array.filter((convexPath) => path.extname(convexPath) === ".ts" && !RESERVED_CONVEX_TS_FILE_NAMES.has(path.basename(convexPath)) && path.basename(path.dirname(convexPath)) !== "_generated"), Effect.forEach((groupModulePath) => fromGroupModulePath(groupModulePath))), HashSet.fromIterable, GroupPaths.make);
++	const PRESERVED_APP_MODULES = /* @__PURE__ */ new Set([
++		"workflows/deadlinesCurrent.ts",
++		"workflows/subworkflowLinksCurrent.ts"
++	]);
++	const isPreservedAppModule = (convexPath) => {
++		const relativeSegments = path.relative(convexDirectory, path.resolve(convexDirectory, convexPath)).split(path.sep);
++		return relativeSegments[0] === "components" || PRESERVED_APP_MODULES.has(relativeSegments.join("/"));
++	};
++	return pipe(yield* pipe(yield* fs.readDirectory(convexDirectory, { recursive: true }), Array.filter((convexPath) => path.extname(convexPath) === ".ts" && !isPreservedAppModule(convexPath) && !RESERVED_CONVEX_TS_FILE_NAMES.has(path.basename(convexPath)) && path.basename(path.dirname(convexPath)) !== "_generated"), Effect.forEach((groupModulePath) => fromGroupModulePath(groupModulePath))), HashSet.fromIterable, GroupPaths.make);
+ });
+ const removeGroups = (groupPaths) => Effect.gen(function* () {
+ 	const path = yield* Path.Path;

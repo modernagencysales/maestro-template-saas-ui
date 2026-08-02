@@ -16,7 +16,7 @@ import {
 } from "@convex-dev/workflow";
 import type { PropertyValidators, Validator } from "convex/values";
 import * as Data from "effect/Data";
-import * as Either from "effect/Either";
+import * as Result from "effect/Result";
 
 import type { WorkflowPolicyPosture } from "./policySnapshot";
 import { generatedWorkflowWorkpoolOptions } from "./workpoolConfig";
@@ -139,14 +139,14 @@ export const planMaestroWorkflowDefinition = <
 >(
   definition: MaestroWorkflowDefinition<Args, Returns>,
   metadata: MaestroWorkflowMetadata,
-): Either.Either<
+): Result.Result<
   PlannedMaestroWorkflowDefinition<Args, Returns>,
   MaestroWorkflowDefinitionError
 > => {
   const findings = validateDefinition(definition, metadata);
   return findings.length > 0
-    ? Either.left(new MaestroWorkflowDefinitionError({ findings }))
-    : Either.right({
+    ? Result.fail(new MaestroWorkflowDefinitionError({ findings }))
+    : Result.succeed({
         definition: {
           ...definition,
           workpoolOptions: generatedWorkflowWorkpoolOptions,
@@ -164,7 +164,7 @@ export const defineMaestroWorkflow = <
   definition: MaestroWorkflowDefinition<Args, Returns>,
   metadata: MaestroWorkflowMetadata,
 ) => {
-  const planned = Either.getOrThrow(
+  const planned = Result.getOrThrow(
     planMaestroWorkflowDefinition(definition, metadata),
   );
   const manager = createMaestroWorkflowManager(

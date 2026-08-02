@@ -1,6 +1,8 @@
-import { Schema } from "effect";
+import * as Schema from "effect/Schema";
 
-const boundedText = Schema.NonEmptyString.pipe(Schema.maxLength(1_500));
+const boundedText = Schema.NonEmptyString.pipe(
+  Schema.check(Schema.isMaxLength(1_500)),
+);
 
 const FreeAgentOutputSchema = Schema.Struct({
   roast: boundedText,

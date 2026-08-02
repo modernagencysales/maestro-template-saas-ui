@@ -15,8 +15,8 @@ import {
 } from "./_kit/workflowArtifacts";
 
 const NonNegativeInteger = Schema.Number.pipe(
-  Schema.int(),
-  Schema.greaterThanOrEqualTo(0),
+  Schema.check(Schema.isInt()),
+  Schema.check(Schema.isGreaterThanOrEqualTo(0)),
 );
 
 export const WorkflowArtifactReference = Schema.Struct({
@@ -31,8 +31,8 @@ export const WorkflowArtifactValue = Schema.Struct({
   workflowRunId: Id("workflowRuns"),
   workflowId: Schema.NonEmptyString,
   workflowVersion: Schema.Number.pipe(
-    Schema.int(),
-    Schema.greaterThanOrEqualTo(1),
+    Schema.check(Schema.isInt()),
+    Schema.check(Schema.isGreaterThanOrEqualTo(1)),
   ),
   lifecycleGeneration: NonNegativeInteger,
   referenceKey: Schema.NonEmptyString,
@@ -46,8 +46,8 @@ const PutArgs = Schema.Struct({
   workflowRunId: Id("workflowRuns"),
   workflowId: Schema.NonEmptyString,
   workflowVersion: Schema.Number.pipe(
-    Schema.int(),
-    Schema.greaterThanOrEqualTo(1),
+    Schema.check(Schema.isInt()),
+    Schema.check(Schema.isGreaterThanOrEqualTo(1)),
   ),
   lifecycleGeneration: NonNegativeInteger,
   referenceKey: Schema.NonEmptyString,
@@ -70,13 +70,13 @@ const DeleteArgs = Schema.Struct({
   now: NonNegativeInteger,
 });
 
-const errors = Schema.Union(NotFound, ValidationFailed);
-const publicErrors = Schema.Union(
+const errors = Schema.Union([NotFound, ValidationFailed]);
+const publicErrors = Schema.Union([
   Unauthorized,
   MemberNotInWorkspace,
   WorkspaceNotFound,
   NotFound,
-);
+]);
 
 const put = FunctionSpec.internalMutation({
   name: "put",

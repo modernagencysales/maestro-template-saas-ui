@@ -1,5 +1,5 @@
 import type { Infer, Validator } from "convex/values";
-import * as Either from "effect/Either";
+import * as Exit from "effect/Exit";
 import * as Schema from "effect/Schema";
 
 import { makePublicError } from "../../shared/errors";
@@ -42,7 +42,7 @@ export type WorkflowEventDefinition<
   readonly reference: WorkflowEventReferenceType;
   readonly name: Name;
   readonly schemaName: string;
-  readonly schema: Schema.Schema<Value>;
+  readonly schema: Schema.Codec<Value, unknown>;
   readonly validator: V;
 };
 
@@ -54,7 +54,7 @@ export const defineWorkflowEvent = <
   readonly reference: WorkflowEventReferenceType;
   readonly name: Name;
   readonly schemaName: string;
-  readonly schema: Schema.Schema<Infer<V>>;
+  readonly schema: Schema.Codec<Infer<V>, unknown>;
   readonly validator: V;
 }): WorkflowEventDefinition<Infer<V>, Name, V> => {
   if (
@@ -81,7 +81,7 @@ export type WorkflowEventDelivery<Value> =
   | { readonly kind: "error"; readonly error: string };
 
 export const validateWorkflowEventDelivery = <Value>(
-  definition: { readonly schema: Schema.Schema<Value> },
+  definition: { readonly schema: Schema.Codec<Value, unknown> },
   delivery:
     | { readonly kind: "value"; readonly value: unknown }
     | { readonly kind: "error"; readonly error: string },
@@ -98,13 +98,17 @@ export const validateWorkflowEventDelivery = <Value>(
     return delivery;
   }
   try {
-    const decoded = Schema.decodeUnknownEither(definition.schema)(
+    const decoded = Schema.decodeUnknownExit(definition.schema)(
       delivery.value,
+      {
+        errors: "all",
+        onExcessProperty: "error",
+      },
     );
-    if (Either.isLeft(decoded)) throw unavailableEvent();
+    if (Exit.isFailure(decoded)) throw unavailableEvent();
     return {
       kind: "value",
-      value: decoded.right,
+      value: decoded.value,
     };
   } catch {
     throw unavailableEvent();
@@ -167,8 +171,8 @@ export const defineWorkflowV2EventRegistry = <
   registry: Registry,
 ): Registry => {
   for (const [key, entry] of Object.entries(registry)) {
-    const decoded = Schema.decodeUnknownEither(WorkflowEventReference)(key);
-    if (Either.isLeft(decoded) || entry.definition.reference !== key) {
+    const decoded = Schema.decodeUnknownExit(WorkflowEventReference)(key);
+    if (Exit.isFailure(decoded) || entry.definition.reference !== key) {
       throw makePublicError(
         "VALIDATION_FAILED",
         "Event registry key must match its generated typed definition.",
@@ -212,16 +216,16 @@ export async function runRegisteredWorkflowEvent({
   }
   const instanceKey = validateEventInstanceKey(node.eventInstanceKey);
   if (!step.workflowId) throw unavailableEvent();
-  const principal = Schema.decodeUnknownEither(WorkflowPrincipal)(
+  const principal = Schema.decodeUnknownExit(WorkflowPrincipal)(
     ownership.principal,
   );
-  const creatorCapability = Schema.decodeUnknownEither(
+  const creatorCapability = Schema.decodeUnknownExit(
     WorkflowCapabilityReference,
   )(entry.creatorCapability);
   if (
-    principal._tag === "Left" ||
-    principal.right.workspaceId !== ownership.workspaceId ||
-    creatorCapability._tag === "Left" ||
+    Exit.isFailure(principal) ||
+    principal.value.workspaceId !== ownership.workspaceId ||
+    Exit.isFailure(creatorCapability) ||
     !Number.isFinite(ownership.occurredAt) ||
     ownership.occurredAt < 0
   ) {
@@ -239,8 +243,8 @@ export async function runRegisteredWorkflowEvent({
     generation,
     eventDefinition: node.eventDefinition,
     eventInstanceKey: instanceKey,
-    principal: principal.right,
-    creatorCapability: creatorCapability.right,
+    principal: principal.value,
+    creatorCapability: creatorCapability.value,
   };
   const runtimeName = `${entry.definition.name}.${instanceKey}`;
   const componentEventId = await step.runMutation(
@@ -361,12 +365,12 @@ const samePrincipal = (
   left: unknown,
   right: WorkflowPrincipalType,
 ): boolean => {
-  const decodedLeft = Schema.decodeUnknownEither(WorkflowPrincipal)(left);
-  const decodedRight = Schema.decodeUnknownEither(WorkflowPrincipal)(right);
+  const decodedLeft = Schema.decodeUnknownExit(WorkflowPrincipal)(left);
+  const decodedRight = Schema.decodeUnknownExit(WorkflowPrincipal)(right);
   return (
-    decodedLeft._tag === "Right" &&
-    decodedRight._tag === "Right" &&
-    JSON.stringify(decodedLeft.right) === JSON.stringify(decodedRight.right)
+    Exit.isSuccess(decodedLeft) &&
+    Exit.isSuccess(decodedRight) &&
+    JSON.stringify(decodedLeft.value) === JSON.stringify(decodedRight.value)
   );
 };
 

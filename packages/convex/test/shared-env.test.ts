@@ -1,7 +1,7 @@
-import * as ConfigError from "effect/ConfigError";
+import * as Config from "effect/Config";
 import * as ConfigProvider from "effect/ConfigProvider";
-import * as Either from "effect/Either";
 import * as Effect from "effect/Effect";
+import * as Result from "effect/Result";
 import * as Schema from "effect/Schema";
 import { describe, expect, it } from "vitest";
 import {
@@ -88,19 +88,19 @@ describe("shared typed env access", () => {
 
 describe("TemplateRuntimeConfig", () => {
   it("loads the allowlisted LLM gateway environment through Effect config", async () => {
-    const provider = ConfigProvider.fromMap(
-      new Map([
-        ["OPENROUTER_API_KEY", "test-key"],
-        ["OPENROUTER_BASE_URL", "https://openrouter.example"],
-        ["LLM_FREE_MODEL", "cheap-model"],
-        ["LLM_DAILY_SPEND_LIMIT_CENTS", "25"],
-        ["LLM_DISABLED", "true"],
-      ]),
-    );
+    const provider = ConfigProvider.fromUnknown({
+      OPENROUTER_API_KEY: "test-key",
+      OPENROUTER_BASE_URL: "https://openrouter.example",
+      LLM_FREE_MODEL: "cheap-model",
+      LLM_DAILY_SPEND_LIMIT_CENTS: "25",
+      LLM_DISABLED: "true",
+    });
 
     await expect(
       Effect.runPromise(
-        loadLlmGatewayEnvConfig.pipe(Effect.withConfigProvider(provider)),
+        loadLlmGatewayEnvConfig.pipe(
+          Effect.provide(ConfigProvider.layer(provider)),
+        ),
       ),
     ).resolves.toEqual({
       OPENROUTER_API_KEY: "test-key",
@@ -174,12 +174,10 @@ describe("TemplateRuntimeConfig", () => {
   });
 
   it("loads provider overrides from the Effect config provider", async () => {
-    const provider = ConfigProvider.fromMap(
-      new Map([
-        ["TEMPLATE_RUNTIME_MODE", "test"],
-        ["TEMPLATE_PUBLIC_BASE_URL", "https://client.example"],
-      ]),
-    );
+    const provider = ConfigProvider.fromUnknown({
+      TEMPLATE_RUNTIME_MODE: "test",
+      TEMPLATE_PUBLIC_BASE_URL: "https://client.example",
+    });
 
     await expect(
       Effect.runPromise(
@@ -192,20 +190,20 @@ describe("TemplateRuntimeConfig", () => {
   });
 
   it("fails invalid runtime mode values as Effect config failures", async () => {
-    const provider = ConfigProvider.fromMap(
-      new Map([["TEMPLATE_RUNTIME_MODE", "bad"]]),
-    );
+    const provider = ConfigProvider.fromUnknown({
+      TEMPLATE_RUNTIME_MODE: "bad",
+    });
 
     const result = await Effect.runPromise(
-      Effect.either(
+      Effect.result(
         runWithTemplateRuntimeConfig(loadTemplateRuntimeConfig, provider),
       ),
     );
 
-    expect(Either.isLeft(result)).toBe(true);
-    if (Either.isLeft(result)) {
-      expect(ConfigError.isConfigError(result.left)).toBe(true);
-      expect(String(result.left)).toContain("TEMPLATE_RUNTIME_MODE");
+    expect(Result.isFailure(result)).toBe(true);
+    if (Result.isFailure(result)) {
+      expect(result.failure).toBeInstanceOf(Config.ConfigError);
+      expect(String(result.failure)).toContain("TEMPLATE_RUNTIME_MODE");
     }
   });
 });

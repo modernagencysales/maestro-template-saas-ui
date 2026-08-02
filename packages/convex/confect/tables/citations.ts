@@ -7,7 +7,7 @@ export default Table.make(() =>
     citationId: Schema.String,
     claimId: Schema.String,
     sourceId: Schema.String,
-    sourceKind: Schema.Literal("markdown", "link", "note", "document"),
+    sourceKind: Schema.Literals(["markdown", "link", "note", "document"]),
     sourceTitle: Schema.String,
     quotedText: Schema.String,
     startOffset: Schema.Number,

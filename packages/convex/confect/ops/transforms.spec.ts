@@ -1,16 +1,16 @@
 import { FunctionSpec, GroupSpec } from "@confect/core";
 import * as S from "effect/Schema";
 
-const NonEmptyString = S.String.pipe(S.minLength(1));
-const PolicyKind = S.Literal("none", "approval-required", "review-required");
-const BlockKind = S.Literal(
+const NonEmptyString = S.String.pipe(S.check(S.isMinLength(1)));
+const PolicyKind = S.Literals(["none", "approval-required", "review-required"]);
+const BlockKind = S.Literals([
   "input",
   "retrieval",
   "model-output",
   "postprocess",
   "external-write",
-);
-const RunStatus = S.Literal("queued", "running", "completed", "failed");
+]);
+const RunStatus = S.Literals(["queued", "running", "completed", "failed"]);
 
 export const RegisterTransformDefinitionArgs = S.Struct({
   workspaceId: NonEmptyString,
@@ -19,7 +19,7 @@ export const RegisterTransformDefinitionArgs = S.Struct({
   inputSchemaRef: NonEmptyString,
   outputSchemaRef: NonEmptyString,
   policyKind: PolicyKind,
-  requiredEvidence: S.Array(NonEmptyString).pipe(S.minItems(1)),
+  requiredEvidence: S.Array(NonEmptyString).pipe(S.check(S.isMinLength(1))),
 });
 
 export const RunTransformArgs = S.Struct({
@@ -28,8 +28,8 @@ export const RunTransformArgs = S.Struct({
   transformId: NonEmptyString,
   inputHash: NonEmptyString,
   outputHash: NonEmptyString,
-  sourceIds: S.Array(NonEmptyString).pipe(S.minItems(1)),
-  citationIds: S.Array(NonEmptyString).pipe(S.minItems(1)),
+  sourceIds: S.Array(NonEmptyString).pipe(S.check(S.isMinLength(1))),
+  citationIds: S.Array(NonEmptyString).pipe(S.check(S.isMinLength(1))),
   policySnapshotId: NonEmptyString,
   modelReceiptId: NonEmptyString,
   idempotencyKey: NonEmptyString,
@@ -103,18 +103,21 @@ export const TransformTrustReceiptReturn = S.Struct({
 });
 
 export namespace TransformError {
-  export class DefinitionNotFound extends S.TaggedError<DefinitionNotFound>()(
+  export class DefinitionNotFound extends S.TaggedErrorClass<DefinitionNotFound>()(
     "DefinitionNotFound",
     {
       transformId: S.String,
     },
   ) {}
 
-  export class RunNotFound extends S.TaggedError<RunNotFound>()("RunNotFound", {
-    runId: S.String,
-  }) {}
+  export class RunNotFound extends S.TaggedErrorClass<RunNotFound>()(
+    "RunNotFound",
+    {
+      runId: S.String,
+    },
+  ) {}
 
-  export class ValidationFailed extends S.TaggedError<ValidationFailed>()(
+  export class ValidationFailed extends S.TaggedErrorClass<ValidationFailed>()(
     "ValidationFailed",
     {
       field: S.String,
@@ -122,11 +125,11 @@ export namespace TransformError {
     },
   ) {}
 
-  export const Schema = S.Union(
+  export const Schema = S.Union([
     DefinitionNotFound,
     RunNotFound,
     ValidationFailed,
-  );
+  ]);
 }
 
 const registerDefinition = FunctionSpec.publicMutation({

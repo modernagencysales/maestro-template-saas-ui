@@ -4,14 +4,14 @@ import * as Schema from "effect/Schema";
 export default Table.make(() =>
   Schema.Struct({
     workspaceId: Schema.String,
-    type: Schema.Literal("credit", "debit"),
+    type: Schema.Literals(["credit", "debit"]),
     credits: Schema.Number,
-    reason: Schema.Literal(
+    reason: Schema.Literals([
       "manual_adjustment",
       "llm_usage",
       "seat_charge",
       "refund",
-    ),
+    ]),
     idempotencyKey: Schema.String,
     appendOnly: Schema.Literal(true),
     createdAt: Schema.Number,

@@ -2,11 +2,11 @@ import { FunctionSpec, GroupSpec } from "@confect/core";
 import * as S from "effect/Schema";
 import { NoRecoverableError } from "../errors";
 
-export const TemplateHealthEnvironment = S.Literal("fake", "test", "live");
+export const TemplateHealthEnvironment = S.Literals(["fake", "test", "live"]);
 
 export const TemplateHealthCheck = S.Struct({
   id: S.String,
-  status: S.Literal("pass", "warn", "fail"),
+  status: S.Literals(["pass", "warn", "fail"]),
   detail: S.String,
 });
 

@@ -1,4 +1,4 @@
-import * as Either from "effect/Either";
+import * as Result from "effect/Result";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -17,11 +17,11 @@ const baseInput: BoundedBatchPlanInput = {
 
 const leftError = (input: BoundedBatchPlanInput): BoundedBatchPlanError => {
   const result = planBoundedBatch(input);
-  expect(Either.isLeft(result)).toBe(true);
-  if (Either.isRight(result)) {
+  expect(Result.isFailure(result)).toBe(true);
+  if (Result.isSuccess(result)) {
     throw new Error("expected bounded batch planning to fail");
   }
-  return result.left;
+  return result.failure;
 };
 
 describe("bounded workflow batch planning", () => {
@@ -98,7 +98,7 @@ describe("bounded workflow batch planning", () => {
     });
 
     expect(result).toEqual(
-      Either.right({
+      Result.succeed({
         kind: "bounded-batch-plan",
         maxItems: 6,
         batchSize: 2,
@@ -150,10 +150,10 @@ describe("bounded workflow batch planning", () => {
       items: { kind: "ordinals", count: 3 },
     });
 
-    expect(Either.isRight(result)).toBe(true);
-    if (Either.isLeft(result)) return;
+    expect(Result.isSuccess(result)).toBe(true);
+    if (Result.isFailure(result)) return;
     expect(
-      result.right.waves.flatMap((wave) =>
+      result.success.waves.flatMap((wave) =>
         wave.batches.flatMap((batch) => batch.items),
       ),
     ).toEqual([
@@ -202,19 +202,19 @@ describe("bounded workflow batch planning", () => {
       items: { kind: "ordinals", count: 17 },
     });
 
-    expect(Either.isRight(result)).toBe(true);
-    if (Either.isLeft(result)) return;
-    const batches = result.right.waves.flatMap((wave) => wave.batches);
+    expect(Result.isSuccess(result)).toBe(true);
+    if (Result.isFailure(result)) return;
+    const batches = result.success.waves.flatMap((wave) => wave.batches);
     const items = batches.flatMap((batch) => batch.items);
     expect(items).toHaveLength(17);
-    expect(items.length).toBeLessThanOrEqual(result.right.maxItems);
+    expect(items.length).toBeLessThanOrEqual(result.success.maxItems);
     expect(
-      result.right.waves.every(
-        (wave) => wave.batches.length <= result.right.fanOut,
+      result.success.waves.every(
+        (wave) => wave.batches.length <= result.success.fanOut,
       ),
     ).toBe(true);
     expect(
-      batches.every((batch) => batch.items.length <= result.right.batchSize),
+      batches.every((batch) => batch.items.length <= result.success.batchSize),
     ).toBe(true);
     expect(
       new Set(items.map(({ instanceSuffix }) => instanceSuffix)).size,
@@ -274,7 +274,7 @@ describe("bounded workflow batch planning", () => {
     { kind: "stable-identities", identities: [] } as const,
   ])("returns an explicit empty plan for $kind input", (items) => {
     expect(planBoundedBatch({ ...baseInput, items })).toEqual(
-      Either.right({
+      Result.succeed({
         kind: "bounded-batch-plan",
         maxItems: 8,
         batchSize: 2,
@@ -302,8 +302,8 @@ describe("bounded workflow batch planning", () => {
 
     expect(first).toEqual(second);
     expect(identities).toEqual(["alpha", "beta", "gamma"]);
-    expect(Either.isRight(first)).toBe(true);
-    if (Either.isLeft(first)) return;
-    expect(JSON.parse(JSON.stringify(first.right))).toEqual(first.right);
+    expect(Result.isSuccess(first)).toBe(true);
+    if (Result.isFailure(first)) return;
+    expect(JSON.parse(JSON.stringify(first.success))).toEqual(first.success);
   });
 });

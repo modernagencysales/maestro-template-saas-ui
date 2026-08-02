@@ -1,0 +1,30 @@
+{
+  "mode": "pre",
+  "tag": "next",
+  "initialVersions": {
+    "docs": "0.0.1",
+    "example": "0.0.0",
+    "@confect/cli": "9.2.1",
+    "@confect/core": "9.2.1",
+    "@confect/js": "9.2.1",
+    "@confect/react": "9.2.1",
+    "@confect/server": "9.2.1",
+    "@confect/server-local-backend-fixtures": "0.0.0",
+    "@confect/server-mock-backend-fixtures": "0.0.0",
+    "@confect/test": "9.2.1"
+  },
+  "changesets": [
+    "bump-effect-beta-100",
+    "bump-effect-beta-101",
+    "bump-effect-beta-102",
+    "bump-effect-beta-98",
+    "bump-effect-beta-99",
+    "effect-v4",
+    "microtask-scheduler-in-queries-and-mutations",
+    "prevent-scheduler-yield-in-module-scope-runs",
+    "spotty-carrots-brake",
+    "sync-main-into-v10-9-2-2-9-2-4",
+    "sync-main-into-v10-9-2-5",
+    "upgrade-effect-convex-react"
+  ]
+}

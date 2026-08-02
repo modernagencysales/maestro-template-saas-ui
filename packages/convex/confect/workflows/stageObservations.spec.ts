@@ -2,7 +2,7 @@ import { FunctionSpec, GroupSpec } from "@confect/core";
 import * as Schema from "effect/Schema";
 import { Id } from "../_generated/id";
 
-const StageKind = Schema.Literal(
+const StageKind = Schema.Literals([
   "source",
   "capability",
   "agent",
@@ -11,7 +11,7 @@ const StageKind = Schema.Literal(
   "output",
   "subworkflow",
   "event",
-);
+]);
 
 const Common = {
   workflowRunId: Schema.NonEmptyString,
@@ -21,16 +21,24 @@ const Common = {
   kind: StageKind,
   stageKey: Schema.NonEmptyString,
   lifecycleGeneration: Schema.Number.pipe(
-    Schema.int(),
-    Schema.greaterThanOrEqualTo(0),
+    Schema.check(Schema.isInt()),
+    Schema.check(Schema.isGreaterThanOrEqualTo(0)),
   ),
   externalEffect: Schema.Boolean,
-  observedAt: Schema.Number.pipe(Schema.greaterThanOrEqualTo(0)),
+  observedAt: Schema.Number.pipe(
+    Schema.check(Schema.isGreaterThanOrEqualTo(0)),
+  ),
   attemptNumber: Schema.optional(
-    Schema.Number.pipe(Schema.int(), Schema.greaterThan(0)),
+    Schema.Number.pipe(
+      Schema.check(Schema.isInt()),
+      Schema.check(Schema.isGreaterThan(0)),
+    ),
   ),
   order: Schema.optional(
-    Schema.Number.pipe(Schema.int(), Schema.greaterThanOrEqualTo(0)),
+    Schema.Number.pipe(
+      Schema.check(Schema.isInt()),
+      Schema.check(Schema.isGreaterThanOrEqualTo(0)),
+    ),
   ),
 };
 
@@ -45,7 +53,7 @@ const recordFinished = FunctionSpec.internalMutation({
   args: () =>
     Schema.Struct({
       ...Common,
-      status: Schema.Literal("succeeded", "failed"),
+      status: Schema.Literals(["succeeded", "failed"]),
       outputJson: Schema.optional(Schema.String),
       errorJson: Schema.optional(Schema.String),
     }),
@@ -63,10 +71,12 @@ const executionIdentity = FunctionSpec.internalQuery({
   returns: () =>
     Schema.Struct({
       generation: Schema.Number.pipe(
-        Schema.int(),
-        Schema.greaterThanOrEqualTo(0),
+        Schema.check(Schema.isInt()),
+        Schema.check(Schema.isGreaterThanOrEqualTo(0)),
       ),
-      observedAt: Schema.Number.pipe(Schema.greaterThanOrEqualTo(0)),
+      observedAt: Schema.Number.pipe(
+        Schema.check(Schema.isGreaterThanOrEqualTo(0)),
+      ),
     }),
 });
 

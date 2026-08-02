@@ -56,7 +56,7 @@ const create = FunctionImpl.make(
         .table("workspaces")
         .get(workspaceId)
         .pipe(
-          Effect.catchAll((error) =>
+          Effect.catch((error) =>
             error._tag === "GetByIdFailure"
               ? Effect.fail(new WorkspaceNotFound({ workspaceId }))
               : Effect.die(error),
@@ -70,15 +70,17 @@ const create = FunctionImpl.make(
           now,
         }),
       );
-      const plan = yield* buildWorkspaceInvitation({
-        workspaceId,
-        organizationId: workspace.organizationId,
-        inviteeEmail: email,
-        role,
-        invitedByUserId: actor.userId,
-        tokenHash,
-        now,
-      });
+      const plan = yield* Effect.fromResult(
+        buildWorkspaceInvitation({
+          workspaceId,
+          organizationId: workspace.organizationId,
+          inviteeEmail: email,
+          role,
+          invitedByUserId: actor.userId,
+          tokenHash,
+          now,
+        }),
+      );
 
       const invitationId = yield* writer
         .table("invitations")
@@ -135,13 +137,15 @@ const accept = FunctionImpl.make(
               invitation.workspaceId,
               user._id,
             );
-      const plan = yield* acceptInvitation({
-        invitation,
-        verifiedEmail: user.email,
-        userId: user._id,
-        existingLiveMembership,
-        now,
-      });
+      const plan = yield* Effect.fromResult(
+        acceptInvitation({
+          invitation,
+          verifiedEmail: user.email,
+          userId: user._id,
+          existingLiveMembership,
+          now,
+        }),
+      );
       const acceptedInvitation = yield* requireLoadedInvitation(invitation);
 
       yield* writer
@@ -178,11 +182,13 @@ const decline = FunctionImpl.make(
       const writer = yield* DatabaseWriter;
       const user = yield* loadCurrentUser(reader);
       const invitation = yield* loadInvitationForResponse(reader, invitationId);
-      const plan = yield* declineInvitation({
-        invitation,
-        verifiedEmail: user.email,
-        now,
-      });
+      const plan = yield* Effect.fromResult(
+        declineInvitation({
+          invitation,
+          verifiedEmail: user.email,
+          now,
+        }),
+      );
 
       if (plan.invitationPatch !== null) {
         yield* writer
@@ -208,12 +214,14 @@ const cancel = FunctionImpl.make(
       const actor = yield* loadActorForWorkspace(reader, workspaceId);
       yield* requireActorRole(actor, "admin");
       const invitation = yield* loadInvitationForResponse(reader, invitationId);
-      const plan = yield* cancelInvitation({
-        invitation,
-        workspaceId,
-        actorUserId: actor.userId,
-        now,
-      });
+      const plan = yield* Effect.fromResult(
+        cancelInvitation({
+          invitation,
+          workspaceId,
+          actorUserId: actor.userId,
+          now,
+        }),
+      );
 
       if (plan.invitationPatch !== null) {
         yield* writer
@@ -258,7 +266,7 @@ const loadInvitationForResponse = (
       Effect.map((invitation) => toInvitationRef(invitation)),
       // Missing invitation -> null; a decode/system failure is a real defect,
       // not a silent null (same discrimination as members.impl loadMember).
-      Effect.catchAll((error) =>
+      Effect.catch((error) =>
         error._tag === "GetByIdFailure"
           ? Effect.succeed(null)
           : Effect.die(error),

@@ -2,6 +2,7 @@ import { FunctionImpl, GroupImpl } from "@confect/server";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
+import * as Result from "effect/Result";
 
 import databaseSchema from "../_generated/schema";
 import { DatabaseReader, DatabaseWriter } from "../_generated/services";
@@ -103,13 +104,13 @@ const transition = FunctionImpl.make(
         event as WorkflowEffectTransition,
         existing.strategy,
       );
-      if (transitioned._tag === "Left") {
+      if (Result.isFailure(transitioned)) {
         return yield* new ValidationFailed({
           field: "event",
-          message: `Invalid workflow effect transition: ${transitioned.left.state} -> ${transitioned.left.event}`,
+          message: `Invalid workflow effect transition: ${transitioned.failure.state} -> ${transitioned.failure.event}`,
         });
       }
-      const next = transitioned.right;
+      const next = transitioned.success;
       const writer = yield* DatabaseWriter;
       yield* writer
         .table("workflowEffectReservations")
@@ -147,8 +148,10 @@ const history = FunctionImpl.make(
             .eq("logicalEffectKey", logicalEffectKey),
         )
         .take(limit)
-        .pipe(Effect.map((rows) => [...rows].reverse()))
-        .pipe(Effect.orDie);
+        .pipe(
+          Effect.map((rows) => [...rows].reverse()),
+          Effect.orDie,
+        );
     }),
 );
 

@@ -5,13 +5,13 @@ export default Table.make(() =>
   Schema.Struct({
     packId: Schema.String,
     stageName: Schema.String,
-    status: Schema.Literal(
+    status: Schema.Literals([
       "queued",
       "running",
       "completed",
       "failed-recoverable",
       "needs-support",
-    ),
+    ]),
     attempts: Schema.Number,
     outputJson: Schema.optional(Schema.String),
     errorCode: Schema.optional(Schema.String),

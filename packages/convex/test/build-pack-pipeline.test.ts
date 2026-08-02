@@ -32,9 +32,7 @@ const answers = {
 };
 
 const createOwnedPaidReport = Effect.gen(function* () {
-  const confect = yield* Effect.serviceOptional(
-    TestConfect.TestConfect<typeof databaseSchema>(),
-  );
+  const confect = yield* TestConfect.TestConfect<typeof databaseSchema>();
   const evaluated = yield* confect.mutation(
     refs.public.capabilities.evaluateAppIdea.evaluateAppIdea,
     { sessionId: "pack_session", accessToken: "pack_access", answers },
@@ -83,9 +81,7 @@ const createOwnedPaidReport = Effect.gen(function* () {
 describe("durable Complete Build Pack capability", () => {
   it("requires a specific operator reason before support resume", async () => {
     const program = Effect.gen(function* () {
-      const confect = yield* Effect.serviceOptional(
-        TestConfect.TestConfect<typeof databaseSchema>(),
-      );
+      const confect = yield* TestConfect.TestConfect<typeof databaseSchema>();
       return yield* confect.mutation(refs.internal.buildPacks.support.resume, {
         incidentId: "support_missing",
         operatorReason: " ",
@@ -487,9 +483,7 @@ describe("durable Complete Build Pack capability", () => {
 
   it("rejects generation before a purchase activates entitlement", async () => {
     const program = Effect.gen(function* () {
-      const confect = yield* Effect.serviceOptional(
-        TestConfect.TestConfect<typeof databaseSchema>(),
-      );
+      const confect = yield* TestConfect.TestConfect<typeof databaseSchema>();
       const evaluated = yield* confect.mutation(
         refs.public.capabilities.evaluateAppIdea.evaluateAppIdea,
         {

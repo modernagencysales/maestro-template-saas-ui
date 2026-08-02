@@ -7,10 +7,11 @@ contract family.
 
 ## Current Verified Baseline
 
-- Confect packages are pinned to `9.1.5`; Effect is pinned to `3.21.4`.
-- Confect v9 is the required baseline because its per-group generated registries
-  keep Convex cold-start module evaluation proportional to the invoked group,
-  not to the whole project.
+- Confect packages are pinned to `10.0.0-next.9`; Effect and active companions
+  are pinned to `4.0.0-beta.102`.
+- The Confect 10 candidate preserves per-group generated registries that keep
+  Convex cold-start module evaluation proportional to the invoked group, not to
+  the whole project.
 - Durable tables live under `packages/convex/confect/tables/*`.
 - Confect specs and impls exist for access, Brain pages, capabilities, jobs,
   ops, agents, auth, demo, editor sync, workflow contracts, and manifest

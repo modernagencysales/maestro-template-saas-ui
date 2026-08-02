@@ -12,8 +12,8 @@ and Phase 1 runtime fixtures pass.
 | `@convex-dev/workflow` | `0.4.4`                | pinned with restrictions below                                                                          |
 | `@convex-dev/workpool` | `0.4.7`                | compatibility-only and not production-supported; the 0.4.8 candidate reproduces both safety regressions |
 | `convex-test`          | `0.0.54`               | component fixture harness                                                                               |
-| `@confect/*`           | `9.1.5`                | pinned contract/codegen set                                                                             |
-| `effect`               | `3.21.4`               | pinned contract/runtime set                                                                             |
+| `@confect/*`           | `10.0.0-next.9`        | exact candidate contract/codegen set                                                                    |
+| `effect`               | `4.0.0-beta.102`       | exact candidate contract/runtime set                                                                    |
 
 The machine-readable authority is
 [`convex-compatibility.json`](./convex-compatibility.json). Package source under

@@ -7,24 +7,27 @@ import {
   WorkflowEventReference,
 } from "../workflows/_kit/workflowReferences";
 
-export const WorkflowEventInstanceStatus = Schema.Literal(
+export const WorkflowEventInstanceStatus = Schema.Literals([
   "allocated",
   "sent",
   "consumed",
   "invalidated",
   "canceled",
-);
+]);
 
-export const WorkflowEventInstanceCleanup = Schema.Literal(
+export const WorkflowEventInstanceCleanup = Schema.Literals([
   "active",
   "residual-inaccessible",
-);
+]);
 
 export const WorkflowEventInstanceRow = Schema.Struct({
   workspaceId: Schema.NonEmptyString,
   workflowRunId: Schema.NonEmptyString,
   componentWorkflowId: Schema.NonEmptyString,
-  generation: Schema.Number.pipe(Schema.int(), Schema.greaterThanOrEqualTo(0)),
+  generation: Schema.Number.pipe(
+    Schema.check(Schema.isInt()),
+    Schema.check(Schema.isGreaterThanOrEqualTo(0)),
+  ),
   eventDefinition: WorkflowEventReference,
   eventInstanceKey: Schema.NonEmptyString,
   eventId: Schema.NonEmptyString,
@@ -32,7 +35,7 @@ export const WorkflowEventInstanceRow = Schema.Struct({
   principal: WorkflowPrincipal,
   creatorCapability: WorkflowCapabilityReference,
   status: WorkflowEventInstanceStatus,
-  deliveryKind: Schema.Literal("none", "value", "error"),
+  deliveryKind: Schema.Literals(["none", "value", "error"]),
   cleanup: WorkflowEventInstanceCleanup,
   createdAt: Schema.Number,
   updatedAt: Schema.Number,

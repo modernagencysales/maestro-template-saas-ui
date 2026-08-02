@@ -6,7 +6,7 @@ export default Table.make(() =>
     shareTokenHash: Schema.String,
     reportId: Schema.String,
     reportVersion: Schema.Number,
-    status: Schema.Literal("active", "revoked"),
+    status: Schema.Literals(["active", "revoked"]),
     publicSnapshotJson: Schema.String,
     createdAt: Schema.Number,
     revokedAt: Schema.optional(Schema.Number),

@@ -104,12 +104,10 @@ const findWorkflowRun = (
       .pipe(Effect.map(Option.getOrNull), Effect.orDie);
 
     if (!run) {
-      return yield* Effect.fail(
-        new NotFound({
-          resource: "workflowRuns",
-          id: componentWorkflowId,
-        }),
-      );
+      return yield* new NotFound({
+        resource: "workflowRuns",
+        id: componentWorkflowId,
+      });
     }
 
     return run;

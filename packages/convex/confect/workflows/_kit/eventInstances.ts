@@ -1,3 +1,4 @@
+import * as Exit from "effect/Exit";
 import * as Schema from "effect/Schema";
 
 import { makePublicError } from "../../shared/errors";
@@ -223,7 +224,7 @@ const samePrincipal = (
 ): boolean => JSON.stringify(left) === JSON.stringify(right);
 
 const assertAllocation = (input: AllocateWorkflowEventInstanceInput): void => {
-  const principal = Schema.decodeUnknownEither(WorkflowPrincipal)(
+  const principal = Schema.decodeUnknownExit(WorkflowPrincipal)(
     input.principal,
   );
   if (
@@ -238,8 +239,8 @@ const assertAllocation = (input: AllocateWorkflowEventInstanceInput): void => {
     input.creatorCapability.length === 0 ||
     !Number.isFinite(input.occurredAt) ||
     input.occurredAt < 0 ||
-    principal._tag === "Left" ||
-    principal.right.workspaceId !== input.workspaceId
+    Exit.isFailure(principal) ||
+    principal.value.workspaceId !== input.workspaceId
   ) {
     throw unavailableEvent();
   }

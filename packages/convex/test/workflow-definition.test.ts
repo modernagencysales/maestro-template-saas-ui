@@ -1,12 +1,12 @@
 import { v } from "convex/values";
-import * as Either from "effect/Either";
+import * as Result from "effect/Result";
 import { describe, expect, it } from "vitest";
 
 import {
   planMaestroWorkflowDefinition,
   type MaestroWorkflowMetadata,
 } from "../confect/workflows/_kit/defineMaestroWorkflow";
-import { kickoffProfileStartOptions } from "../confect/workflows/_kit/ownership";
+import { kickoffProfileStartOptions } from "../confect/workflows/_kit/kickoffProfiles";
 import {
   workflowWorkpoolConfigurationFindings,
   workflowWorkpoolOptions,
@@ -66,7 +66,7 @@ describe("defineMaestroWorkflow planning boundary", () => {
       metadata,
     );
 
-    expect(Either.getOrThrow(result).definition.workpoolOptions).toEqual(
+    expect(Result.getOrThrow(result).definition.workpoolOptions).toEqual(
       expect.objectContaining({
         retryActionsByDefault: false,
         maxParallelism: expect.any(Number),
@@ -110,9 +110,9 @@ describe("defineMaestroWorkflow planning boundary", () => {
       { args: { request: v.string() }, returns: v.any() },
       metadata,
     );
-    expect(Either.isLeft(result)).toBe(true);
-    if (Either.isLeft(result)) {
-      expect(result.left.findings).toContain(
+    expect(Result.isFailure(result)).toBe(true);
+    if (Result.isFailure(result)) {
+      expect(result.failure.findings).toContain(
         "return validator cannot be v.any",
       );
     }
@@ -130,9 +130,9 @@ describe("defineMaestroWorkflow planning boundary", () => {
         kickoffProfiles: [{ name: "bulk", mode: "queued", default: true }],
       },
     );
-    expect(Either.isLeft(result)).toBe(true);
-    if (Either.isLeft(result)) {
-      expect(result.left.findings).toEqual(
+    expect(Result.isFailure(result)).toBe(true);
+    if (Result.isFailure(result)) {
+      expect(result.failure.findings).toEqual(
         expect.arrayContaining([
           "default kickoff profile must use eager-first-poll",
           "WF-DEFINE: missing semantic evidence",

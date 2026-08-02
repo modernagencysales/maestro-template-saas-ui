@@ -8,7 +8,7 @@ export type PolicyKindDefinition<
   TData extends Readonly<Record<string, unknown>>,
 > = {
   readonly kind: PolicyKind;
-  readonly schema: Schema.Schema<TData>;
+  readonly schema: Schema.Codec<TData, unknown>;
   readonly evalRequired: boolean;
   readonly merge: (base: TData, override: Partial<TData>) => TData;
 };

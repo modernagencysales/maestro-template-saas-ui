@@ -1,5 +1,5 @@
 import { getConvexSize, type Value } from "convex/values";
-import * as Either from "effect/Either";
+import * as Exit from "effect/Exit";
 import { describe, expect, it } from "vitest";
 
 import { decodeWorkflowArtifactRow } from "../confect/tables/workflowArtifacts";
@@ -48,7 +48,7 @@ describe("workflow artifact contract", () => {
     expect(first.measuredBytes).toBe(getConvexSize({ b: 2, a: 1 }));
     expect(first.appendOnly).toBe(true);
     expect(
-      Either.isRight(
+      Exit.isSuccess(
         decodeWorkflowArtifactRow(toStoredWorkflowArtifact(first)),
       ),
     ).toBe(true);

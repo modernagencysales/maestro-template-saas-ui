@@ -1,18 +1,23 @@
 import { FunctionSpec, GroupSpec } from "@confect/core";
 import * as S from "effect/Schema";
 
-const NonEmptyString = S.String.pipe(S.minLength(1));
-const NonNegativeNumber = S.Number.pipe(S.greaterThanOrEqualTo(0));
-const TargetKind = S.Literal("email", "crm", "webhook", "notion", "api");
-const JobStatus = S.Literal(
+const NonEmptyString = S.String.pipe(S.check(S.isMinLength(1)));
+const NonNegativeNumber = S.Number.pipe(S.check(S.isGreaterThanOrEqualTo(0)));
+const TargetKind = S.Literals(["email", "crm", "webhook", "notion", "api"]);
+const JobStatus = S.Literals([
   "queued",
   "waiting_for_approval",
   "published",
   "failed",
-);
-const ApprovalStatus = S.Literal("pending", "approved", "rejected", "expired");
-const ReviewScope = S.Literal("action:approve", "action:review");
-const TriggerKind = S.Literal("refresh", "publish", "sync");
+]);
+const ApprovalStatus = S.Literals([
+  "pending",
+  "approved",
+  "rejected",
+  "expired",
+]);
+const ReviewScope = S.Literals(["action:approve", "action:review"]);
+const TriggerKind = S.Literals(["refresh", "publish", "sync"]);
 
 export const EnqueueActionArgs = S.Struct({
   workspaceId: NonEmptyString,
@@ -110,28 +115,28 @@ export const ActionDigestReturn = S.Struct({
 });
 
 export namespace ActionError {
-  export class ApprovalRequired extends S.TaggedError<ApprovalRequired>()(
+  export class ApprovalRequired extends S.TaggedErrorClass<ApprovalRequired>()(
     "ApprovalRequired",
     {
       jobId: S.String,
     },
   ) {}
 
-  export class TokenExpired extends S.TaggedError<TokenExpired>()(
+  export class TokenExpired extends S.TaggedErrorClass<TokenExpired>()(
     "TokenExpired",
     {
       approvalId: S.String,
     },
   ) {}
 
-  export class Unauthorized extends S.TaggedError<Unauthorized>()(
+  export class Unauthorized extends S.TaggedErrorClass<Unauthorized>()(
     "Unauthorized",
     {
       reason: S.String,
     },
   ) {}
 
-  export class ValidationFailed extends S.TaggedError<ValidationFailed>()(
+  export class ValidationFailed extends S.TaggedErrorClass<ValidationFailed>()(
     "ValidationFailed",
     {
       field: S.String,
@@ -139,12 +144,12 @@ export namespace ActionError {
     },
   ) {}
 
-  export const Schema = S.Union(
+  export const Schema = S.Union([
     ApprovalRequired,
     TokenExpired,
     Unauthorized,
     ValidationFailed,
-  );
+  ]);
 }
 
 const enqueueAction = FunctionSpec.publicMutation({

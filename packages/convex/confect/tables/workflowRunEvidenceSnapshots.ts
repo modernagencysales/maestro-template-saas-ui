@@ -7,7 +7,7 @@ export default Table.make(() =>
     sourceIds: Schema.Array(Schema.String),
     sourceTitles: Schema.Array(Schema.String),
     evidenceHash: Schema.String,
-    materiality: Schema.Literal("required", "supporting", "excluded"),
+    materiality: Schema.Literals(["required", "supporting", "excluded"]),
     snapshotJson: Schema.String,
     createdAt: Schema.Number,
   }),

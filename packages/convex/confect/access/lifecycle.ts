@@ -1,4 +1,4 @@
-import * as Either from "effect/Either";
+import * as Result from "effect/Result";
 
 import {
   Forbidden,
@@ -78,7 +78,7 @@ export type AccessLifecycleError =
 export type PlannerResult<
   A,
   E extends AccessLifecycleError = AccessLifecycleError,
-> = Either.Either<A, E>;
+> = Result.Result<A, E>;
 
 export const changeMemberRole = (input: {
   readonly actorUserId: string;
@@ -88,14 +88,14 @@ export const changeMemberRole = (input: {
   readonly liveWorkspaceMembers: readonly WorkspaceMemberLifecycleRef[];
   readonly newRole: Role;
   readonly now: number;
-}): Either.Either<
+}): Result.Result<
   {
     readonly patch: Patch<{ readonly role: Role; readonly updatedAt: number }>;
     readonly events: readonly AccessLifecycleEvent[];
   },
   MemberNotInWorkspace | MembershipNotLive | Forbidden | LastOwnerProtected
 > =>
-  Either.gen(function* () {
+  Result.gen(function* () {
     yield* assertLiveWorkspaceMember(input.target, input.workspaceId);
     yield* assertActorCanManage(input.actorRole, input.target.role);
     yield* assertActorCanGrant(input.actorRole, input.newRole);
@@ -131,7 +131,7 @@ export const removeMember = (input: {
   readonly target: WorkspaceMemberLifecycleRef;
   readonly liveWorkspaceMembers: readonly WorkspaceMemberLifecycleRef[];
   readonly now: number;
-}): Either.Either<
+}): Result.Result<
   {
     readonly patch: Patch<{
       readonly status: "revoked";
@@ -143,7 +143,7 @@ export const removeMember = (input: {
   },
   MemberNotInWorkspace | MembershipNotLive | Forbidden | LastOwnerProtected
 > =>
-  Either.gen(function* () {
+  Result.gen(function* () {
     yield* assertLiveWorkspaceMember(input.target, input.workspaceId);
     yield* assertActorCanManage(input.actorRole, input.target.role);
     if (input.target.role === "owner") {
@@ -179,7 +179,7 @@ export const transferOwnership = (input: {
   readonly target: WorkspaceMemberLifecycleRef;
   readonly actorMembership: WorkspaceMemberLifecycleRef;
   readonly now: number;
-}): Either.Either<
+}): Result.Result<
   {
     readonly patches: readonly Patch<{
       readonly role: Role;
@@ -189,7 +189,7 @@ export const transferOwnership = (input: {
   },
   MemberNotInWorkspace | MembershipNotLive | Forbidden
 > =>
-  Either.gen(function* () {
+  Result.gen(function* () {
     yield* assertLiveWorkspaceMember(input.target, input.workspaceId);
     yield* assertLiveWorkspaceMember(input.actorMembership, input.workspaceId);
     if (
@@ -197,7 +197,7 @@ export const transferOwnership = (input: {
       input.actorMembership.userId !== input.actorUserId ||
       input.actorMembership.role !== "owner"
     ) {
-      yield* Either.left(
+      yield* Result.fail(
         new Forbidden({ reason: "Cannot transfer workspace ownership." }),
       );
     }
@@ -245,23 +245,23 @@ export const isLiveWorkspaceMembership = (
 const assertLiveWorkspaceMember = (
   member: WorkspaceMemberLifecycleRef,
   workspaceId: string,
-): Either.Either<void, MemberNotInWorkspace | MembershipNotLive> => {
+): Result.Result<void, MemberNotInWorkspace | MembershipNotLive> => {
   if (member.workspaceId !== workspaceId) {
-    return Either.left(new MemberNotInWorkspace({ membershipId: member.id }));
+    return Result.fail(new MemberNotInWorkspace({ membershipId: member.id }));
   }
   if (!isLiveWorkspaceMembership(member)) {
-    return Either.left(new MembershipNotLive({ membershipId: member.id }));
+    return Result.fail(new MembershipNotLive({ membershipId: member.id }));
   }
-  return Either.void;
+  return Result.void;
 };
 
 const assertActorCanManage = (
   actorRole: Role,
   targetRole: Role,
-): Either.Either<void, Forbidden> =>
+): Result.Result<void, Forbidden> =>
   roleAtLeast(actorRole, targetRole)
-    ? Either.void
-    : Either.left(
+    ? Result.void
+    : Result.fail(
         new Forbidden({
           reason: "Cannot manage a member with a higher role.",
         }),
@@ -270,10 +270,10 @@ const assertActorCanManage = (
 const assertActorCanGrant = (
   actorRole: Role,
   newRole: Role,
-): Either.Either<void, Forbidden> =>
+): Result.Result<void, Forbidden> =>
   roleAtLeast(actorRole, newRole)
-    ? Either.void
-    : Either.left(
+    ? Result.void
+    : Result.fail(
         new Forbidden({
           reason: "Cannot grant a role higher than your own.",
         }),
@@ -282,7 +282,7 @@ const assertActorCanGrant = (
 const assertNotLastOwner = (
   workspaceId: string,
   members: readonly WorkspaceMemberLifecycleRef[],
-): Either.Either<void, LastOwnerProtected> => {
+): Result.Result<void, LastOwnerProtected> => {
   const liveOwners = members.filter(
     (member) =>
       member.workspaceId === workspaceId &&
@@ -290,6 +290,6 @@ const assertNotLastOwner = (
       isLiveWorkspaceMembership(member),
   );
   return liveOwners.length <= 1
-    ? Either.left(new LastOwnerProtected({ workspaceId }))
-    : Either.void;
+    ? Result.fail(new LastOwnerProtected({ workspaceId }))
+    : Result.void;
 };

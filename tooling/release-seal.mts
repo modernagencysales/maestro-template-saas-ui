@@ -45,6 +45,16 @@ type BlueprintManifest = {
     readonly assets: readonly { readonly path: string }[];
   };
 };
+export type ReleaseReadinessPlan = Readonly<{
+  version: string;
+  sourceCommit: string;
+  tag: string;
+  releaseRoot: string;
+  manifestPath: string;
+  blueprintPath: string;
+  publicDefaultAdvanceAllowed: boolean;
+}>;
+const CURRENT_PUBLIC_DEFAULT_VERSION = "0.2.0-alpha.2";
 const root = realpathSync(fileURLToPath(new URL("../", import.meta.url)));
 const hash = (bytes: string | Buffer): string =>
   `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
@@ -59,6 +69,44 @@ const git = (args: readonly string[]): Buffer =>
   });
 const text = (args: readonly string[]): string =>
   git(args).toString("utf8").trim();
+
+export function buildReleaseReadinessPlan(input: {
+  readonly version: string;
+  readonly sourceCommit: string;
+  readonly check: boolean;
+  readonly currentPublicDefaultVersion: string;
+  readonly publishedTagMaterializationVerified: boolean;
+}): ReleaseReadinessPlan {
+  if (!input.check && input.version === input.currentPublicDefaultVersion)
+    throw new Error(`Refusing to overwrite immutable release ${input.version}`);
+  const releaseRoot = `releases/v${input.version}`;
+  return {
+    version: input.version,
+    sourceCommit: input.sourceCommit,
+    tag: `maestro-template-v${input.version}`,
+    releaseRoot,
+    manifestPath: `${releaseRoot}/manifest.json`,
+    blueprintPath: `${releaseRoot}/blueprints/saas-application.json`,
+    publicDefaultAdvanceAllowed: input.publishedTagMaterializationVerified,
+  };
+}
+
+export function validateReleaseSourceState(input: {
+  readonly check: boolean;
+  readonly sourceCommit: string;
+  readonly headCommit: string;
+  readonly sourceIsAncestor: boolean;
+  readonly worktreeStatus: string;
+}): void {
+  if (!input.check && input.headCommit !== input.sourceCommit)
+    throw new Error(
+      "Write sealing requires HEAD to equal the frozen source commit.",
+    );
+  if (input.check && !input.sourceIsAncestor)
+    throw new Error("Checked release source is not an ancestor of HEAD.");
+  if (input.worktreeStatus !== "")
+    throw new Error("Release sealing requires a clean source checkout.");
+}
 
 function parseArgs(argv: readonly string[]): Args {
   let version: string | undefined;
@@ -82,19 +130,22 @@ function assertSource(args: Args): void {
   if (text(["cat-file", "-t", args.sourceCommit]) !== "commit")
     throw new Error("Release source is not a commit.");
   const head = text(["rev-parse", "HEAD"]);
-  if (!args.check && head !== args.sourceCommit)
-    throw new Error(
-      "Write sealing requires HEAD to equal the frozen source commit.",
-    );
+  let sourceIsAncestor = head === args.sourceCommit;
   if (args.check) {
     try {
       git(["merge-base", "--is-ancestor", args.sourceCommit, head]);
+      sourceIsAncestor = true;
     } catch {
-      throw new Error("Checked release source is not an ancestor of HEAD.");
+      sourceIsAncestor = false;
     }
   }
-  if (text(["status", "--porcelain", "--untracked-files=all"]) !== "")
-    throw new Error("Release sealing requires a clean source checkout.");
+  validateReleaseSourceState({
+    check: args.check,
+    sourceCommit: args.sourceCommit,
+    headCommit: head,
+    sourceIsAncestor,
+    worktreeStatus: text(["status", "--porcelain", "--untracked-files=all"]),
+  });
   const tree = git(["ls-tree", "-rz", "--full-tree", "-r", args.sourceCommit]);
   for (const record of tree.toString("utf8").split("\0").filter(Boolean)) {
     const mode = record.slice(0, record.indexOf(" "));
@@ -427,15 +478,21 @@ export function buildReviewedAdditionalPaths(input: {
 
 async function build(args: Args): Promise<readonly Output[]> {
   assertSource(args);
-  const releaseRoot = `releases/v${args.version}`;
-  const manifestPath = `${releaseRoot}/manifest.json`;
+  const readiness = buildReleaseReadinessPlan({
+    version: args.version,
+    sourceCommit: args.sourceCommit,
+    check: args.check,
+    currentPublicDefaultVersion: CURRENT_PUBLIC_DEFAULT_VERSION,
+    publishedTagMaterializationVerified: false,
+  });
+  const { releaseRoot, manifestPath } = readiness;
   const current = JSON.parse(
     readFileSync(join(root, manifestPath), "utf8"),
   ) as SealManifest;
   const priorPath = resolve(join(root, releaseRoot), current.baseManifest.path);
   const prior = resolvePriorManifest(priorPath);
 
-  const blueprintPath = `${releaseRoot}/blueprints/saas-application.json`;
+  const { blueprintPath } = readiness;
   const blueprint = JSON.parse(
     readFileSync(join(root, blueprintPath), "utf8"),
   ) as BlueprintManifest;

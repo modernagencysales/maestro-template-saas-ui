@@ -3,6 +3,16 @@
 Factory checkouts may include read-only upstream research trees. Generated
 customer targets instead ship canonical local guidance and typed contracts.
 
+The current exact factory references are:
+
+- Effect `effect@4.0.0-beta.102` at `de2a9a69099993087e57c64df58537c765ac0224`;
+- Confect `@confect/core@10.0.0-next.9` at
+  `ba0fb82222d487bdf62fde2c429e92628f8a0585`.
+
+Factory maintainers keep the upstream provenance and refresh rules in the
+factory-only vendored-source inventory. Generated customer targets rely on the
+exact versions and commits recorded above without shipping those research trees.
+
 ## Read Order
 
 When writing Effect or Confect code:
@@ -42,7 +52,7 @@ Useful references:
 ## Effect Patterns To Prefer
 
 - Use `Effect.gen` for multi-step effectful control flow.
-- Use `Schema.TaggedError` for public typed errors that cross Confect
+- Use `Schema.TaggedErrorClass` for public typed errors that cross Confect
   boundaries.
 - Use `Data.TaggedError` for internal domain errors when schema encoding is not
   required.

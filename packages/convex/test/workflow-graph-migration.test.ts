@@ -1,4 +1,5 @@
-import * as Either from "effect/Either";
+import * as Exit from "effect/Exit";
+import * as Result from "effect/Result";
 import * as Schema from "effect/Schema";
 import { describe, expect, it } from "vitest";
 
@@ -64,16 +65,19 @@ describe("legacy durable workflow graph migration", () => {
     expect(
       Schema.decodeUnknownSync(LegacyDurableWorkflowGraph)(legacyGraph),
     ).toEqual(legacyGraph);
-    expect(Either.getOrThrow(decodeLegacyWorkflowGraph(legacyGraph))).toEqual(
+    expect(Result.getOrThrow(decodeLegacyWorkflowGraph(legacyGraph))).toEqual(
       legacyGraph,
     );
   });
 
   it("adds stable V2 step addresses without enabling discarded V1 retry metadata", () => {
-    const migrated = Either.getOrThrow(
+    const migrated = Result.getOrThrow(
       migrateLegacyWorkflowGraph(legacyGraph, migrationOptions),
     );
-    expect(Either.getOrThrow(decodeDurableWorkflowGraphV2(migrated))).toEqual({
+    const decoded = decodeDurableWorkflowGraphV2(migrated);
+    expect(Exit.isSuccess(decoded)).toBe(true);
+    if (Exit.isFailure(decoded)) throw new Error("expected migrated V2 graph");
+    expect(decoded.value).toEqual({
       schemaVersion: 2,
       id: legacyGraph.id,
       version: legacyGraph.version,
@@ -137,9 +141,9 @@ describe("legacy durable workflow graph migration", () => {
       ],
     };
     const unresolved = migrateLegacyWorkflowGraph(graph, migrationOptions);
-    expect(Either.isLeft(unresolved)).toBe(true);
-    if (Either.isLeft(unresolved)) {
-      expect(unresolved.left.issue).toContain(
+    expect(Result.isFailure(unresolved)).toBe(true);
+    if (Result.isFailure(unresolved)) {
+      expect(unresolved.failure.issue).toContain(
         "missing capability binding for sourceGroundedBrief",
       );
     }
@@ -153,12 +157,12 @@ describe("legacy durable workflow graph migration", () => {
         },
       },
     });
-    expect(Either.getOrThrow(migrated).nodes[1]).toMatchObject({
+    expect(Result.getOrThrow(migrated).nodes[1]).toMatchObject({
       kind: "capability",
       functionKind: "action",
       capability: refs.capabilities.sourceGroundedBrief,
     });
-    expect(Either.getOrThrow(migrated).nodes[1]).not.toHaveProperty("retry");
+    expect(Result.getOrThrow(migrated).nodes[1]).not.toHaveProperty("retry");
   });
 
   it("rejects inputs that claim V2 instead of silently downgrading them", () => {
@@ -166,9 +170,9 @@ describe("legacy durable workflow graph migration", () => {
       ...legacyGraph,
       schemaVersion: 2,
     });
-    expect(Either.isLeft(result)).toBe(true);
-    if (Either.isLeft(result)) {
-      expect(result.left.issue).toContain("cannot be decoded as legacy V1");
+    expect(Result.isFailure(result)).toBe(true);
+    if (Result.isFailure(result)) {
+      expect(result.failure.issue).toContain("cannot be decoded as legacy V1");
     }
   });
 });

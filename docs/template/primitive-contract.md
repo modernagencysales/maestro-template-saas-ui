@@ -13,7 +13,7 @@ Each primitive includes these pieces:
   SDKs, ambient time, random, or process env.
 - Effect Schema arg, return, persisted-row, and public error schemas using
   Confect-compatible schema constructs.
-- Confect v9 `*.spec.ts`/`*.impl.ts` pair with lazy schema thunks, generated
+- Confect 10 `*.spec.ts`/`*.impl.ts` pair with lazy schema thunks, generated
   table wrappers, generated `databaseSchema`, typed public errors, and
   `GroupImpl.finalize`.
 - Internal workflow-step ref when the primitive can be called from

@@ -6,13 +6,13 @@ export default Table.make(() =>
     packId: Schema.String,
     reportId: Schema.String,
     reportVersion: Schema.Number,
-    status: Schema.Literal(
+    status: Schema.Literals([
       "running",
       "failed-recoverable",
       "needs-support",
       "completed",
       "revoked",
-    ),
+    ]),
     canonicalPackJson: Schema.optional(Schema.String),
     createdAt: Schema.Number,
     updatedAt: Schema.Number,

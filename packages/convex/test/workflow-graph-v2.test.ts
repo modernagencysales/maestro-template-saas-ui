@@ -1,4 +1,4 @@
-import * as Either from "effect/Either";
+import * as Exit from "effect/Exit";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -9,6 +9,11 @@ import {
 import { defineWorkflowReferenceRegistry } from "../confect/workflows/_kit/workflowReferences";
 import { workflowNode } from "../confect/workflows/_kit/workflowBuilderCurrent";
 import { MAX_WORKFLOW_SCHEDULE_HORIZON_MS } from "../confect/workflows/_kit/workflowSchedule";
+
+const getOrThrow = <A, E>(result: Exit.Exit<A, E>): A => {
+  if (Exit.isFailure(result)) throw new Error("expected parser success");
+  return result.value;
+};
 
 const refs = defineWorkflowReferenceRegistry({
   capabilities: {
@@ -71,7 +76,7 @@ const validGraph = {
 
 describe("durable workflow graph V2 schema", () => {
   it("decodes the versioned discriminated graph contract", () => {
-    expect(Either.getOrThrow(decodeDurableWorkflowGraphV2(validGraph))).toEqual(
+    expect(getOrThrow(decodeDurableWorkflowGraphV2(validGraph))).toEqual(
       validGraph,
     );
   });
@@ -104,7 +109,7 @@ describe("durable workflow graph V2 schema", () => {
       ...validGraph,
       nodes: [node, validGraph.nodes[1]],
     });
-    expect(Either.isLeft(result)).toBe(true);
+    expect(Exit.isFailure(result)).toBe(true);
   });
 
   it("accepts action retry but rejects it on query capability nodes", () => {
@@ -121,7 +126,7 @@ describe("durable workflow graph V2 schema", () => {
       retry: { maxAttempts: 3, initialBackoffMs: 250, base: 2 },
     } as const;
     expect(
-      Either.isRight(
+      Exit.isSuccess(
         decodeDurableWorkflowGraphV2({
           ...validGraph,
           nodes: [validGraph.nodes[0], action, validGraph.nodes[1]],
@@ -129,7 +134,7 @@ describe("durable workflow graph V2 schema", () => {
       ),
     ).toBe(true);
     expect(
-      Either.isLeft(
+      Exit.isFailure(
         decodeDurableWorkflowGraphV2({
           ...validGraph,
           nodes: [
@@ -223,7 +228,7 @@ describe("durable workflow graph V2 schema", () => {
         validGraph.nodes[1],
       ],
     });
-    expect(Either.isLeft(result)).toBe(true);
+    expect(Exit.isFailure(result)).toBe(true);
   });
 
   it("rejects scheduled agents before compiler dispatch", () => {
@@ -238,7 +243,7 @@ describe("durable workflow graph V2 schema", () => {
       failurePolicy: { kind: "fail" },
       schedule: { kind: "runAfter", delayMs: 100 },
     } as const;
-    const decoded = Either.getOrThrow(
+    const decoded = getOrThrow(
       decodeDurableWorkflowGraphV2({
         ...validGraph,
         nodes: [validGraph.nodes[0], agent, validGraph.nodes[1]],
@@ -256,7 +261,7 @@ describe("durable workflow graph V2 schema", () => {
     ["subunit base", { maxAttempts: 2, initialBackoffMs: 1, base: 0.5 }],
   ])("rejects action retry with %s", (_name, retry) => {
     expect(
-      Either.isLeft(
+      Exit.isFailure(
         decodeDurableWorkflowGraphV2({
           ...validGraph,
           nodes: [
@@ -305,7 +310,7 @@ describe("durable workflow graph V2 schema", () => {
       ...(Object.hasOwn(override, "childVersion") ? override : {}),
     };
     expect(
-      Either.isLeft(
+      Exit.isFailure(
         decodeDurableWorkflowGraphV2({
           ...validGraph,
           nodes: [validGraph.nodes[0], child, validGraph.nodes[1]],
@@ -337,7 +342,7 @@ describe("durable workflow graph V2 schema", () => {
         { id: "act_receipt", sourceNodeId: "act", targetNodeId: "receipt" },
       ],
     };
-    expect(Either.isLeft(decodeDurableWorkflowGraphV2(graph))).toBe(true);
+    expect(Exit.isFailure(decodeDurableWorkflowGraphV2(graph))).toBe(true);
   });
 
   it("rejects scheduled subworkflows on the pinned component contract", () => {
@@ -353,7 +358,7 @@ describe("durable workflow graph V2 schema", () => {
       failurePolicy: { kind: "fail" },
       schedule: { kind: "runAfter", delayMs: 100 },
     } as const;
-    const decoded = Either.getOrThrow(
+    const decoded = getOrThrow(
       decodeDurableWorkflowGraphV2({
         ...validGraph,
         nodes: [validGraph.nodes[0], child, validGraph.nodes[1]],
@@ -370,7 +375,7 @@ describe("durable workflow graph V2 schema", () => {
 
   it("rejects retry on agent nodes", () => {
     expect(
-      Either.isLeft(
+      Exit.isFailure(
         decodeDurableWorkflowGraphV2({
           ...validGraph,
           nodes: [
@@ -405,7 +410,7 @@ describe("durable workflow graph V2 schema", () => {
       semanticRuleIds: ["WF-NOT-A-RULE"],
     } as const;
     expect(
-      Either.isLeft(
+      Exit.isFailure(
         decodeDurableWorkflowGraphV2({
           ...validGraph,
           nodes: [validGraph.nodes[0], action, validGraph.nodes[1]],
@@ -444,7 +449,7 @@ describe("bounded subworkflow batch graph V2", () => {
   });
 
   it("decodes the explicit current-only bounded batch node", () => {
-    expect(Either.isRight(decodeDurableWorkflowGraphV2(graph()))).toBe(true);
+    expect(Exit.isSuccess(decodeDurableWorkflowGraphV2(graph()))).toBe(true);
   });
 
   it.each([
@@ -454,7 +459,7 @@ describe("bounded subworkflow batch graph V2", () => {
   ] as const)(
     "rejects invalid %s before dispatch with redacted repair guidance",
     (field, value, code) => {
-      const decoded = Either.getOrThrow(
+      const decoded = getOrThrow(
         decodeDurableWorkflowGraphV2(graph({ [field]: value })),
       );
       expect(validateWorkflowGraphV2(decoded)).toContainEqual({
@@ -470,7 +475,7 @@ describe("bounded subworkflow batch graph V2", () => {
 
   it("rejects raw zero bounds during strict decode", () => {
     expect(
-      Either.isLeft(decodeDurableWorkflowGraphV2(graph({ maxItems: 0 }))),
+      Exit.isFailure(decodeDurableWorkflowGraphV2(graph({ maxItems: 0 }))),
     ).toBe(true);
   });
 });

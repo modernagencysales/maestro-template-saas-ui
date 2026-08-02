@@ -1,6 +1,6 @@
 import * as Schema from "effect/Schema";
 
-export const WorkflowAdmissionLane = Schema.Literal("user", "system");
+export const WorkflowAdmissionLane = Schema.Literals(["user", "system"]);
 export type WorkflowAdmissionLane = Schema.Schema.Type<
   typeof WorkflowAdmissionLane
 >;
@@ -29,15 +29,27 @@ export type WorkflowAdmissionDecision =
       readonly retryAfterMs: number;
     };
 
-export class WorkflowAdmissionDenied extends Schema.TaggedError<WorkflowAdmissionDenied>()(
+export class WorkflowAdmissionDenied extends Schema.TaggedErrorClass<WorkflowAdmissionDenied>()(
   "WorkflowAdmissionDenied",
   {
     lane: WorkflowAdmissionLane,
-    saturated: Schema.Literal("active", "queued"),
-    active: Schema.Number.pipe(Schema.int(), Schema.greaterThanOrEqualTo(0)),
-    queued: Schema.Number.pipe(Schema.int(), Schema.greaterThanOrEqualTo(0)),
-    limit: Schema.Number.pipe(Schema.int(), Schema.greaterThanOrEqualTo(0)),
-    retryAfterMs: Schema.Number.pipe(Schema.int(), Schema.greaterThan(0)),
+    saturated: Schema.Literals(["active", "queued"]),
+    active: Schema.Number.pipe(
+      Schema.check(Schema.isInt()),
+      Schema.check(Schema.isGreaterThanOrEqualTo(0)),
+    ),
+    queued: Schema.Number.pipe(
+      Schema.check(Schema.isInt()),
+      Schema.check(Schema.isGreaterThanOrEqualTo(0)),
+    ),
+    limit: Schema.Number.pipe(
+      Schema.check(Schema.isInt()),
+      Schema.check(Schema.isGreaterThanOrEqualTo(0)),
+    ),
+    retryAfterMs: Schema.Number.pipe(
+      Schema.check(Schema.isInt()),
+      Schema.check(Schema.isGreaterThan(0)),
+    ),
   },
 ) {}
 

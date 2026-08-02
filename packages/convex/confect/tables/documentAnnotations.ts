@@ -10,10 +10,10 @@ export default Table.make(() =>
     startOffset: Schema.Number,
     endOffset: Schema.Number,
     quotedText: Schema.String,
-    authorType: Schema.Literal("human", "agent"),
+    authorType: Schema.Literals(["human", "agent"]),
     authorId: Schema.String,
     body: Schema.String,
-    status: Schema.Literal("open", "resolved"),
+    status: Schema.Literals(["open", "resolved"]),
     createdAt: Schema.Number,
   }),
 )

@@ -13,10 +13,10 @@ import {
 import { createLlmGateway } from "@maestro-template/integrations";
 import * as Clock from "effect/Clock";
 import * as Data from "effect/Data";
-import * as Either from "effect/Either";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
+import * as Result from "effect/Result";
 
 import databaseSchema from "../_generated/schema";
 import refs from "../_generated/refs";
@@ -91,7 +91,7 @@ const rowsToRun = (
     const row = stages.find(({ stageName }) => stageName === name);
     if (!row)
       return Effect.runSync(
-        Effect.dieMessage(`Missing Build Pack stage: ${name}`),
+        Effect.die(new Error(`Missing Build Pack stage: ${name}`)),
       );
     return {
       name,
@@ -835,7 +835,7 @@ const runPackImpl = FunctionImpl.make(
         | { readonly stage: BuildPackStageName; readonly leaseId: string }
         | undefined;
       let leaseContended = false;
-      const execution = yield* Effect.either(
+      const execution = yield* Effect.result(
         Effect.tryPromise({
           try: () =>
             executePremiumBuildPack({
@@ -959,8 +959,8 @@ const runPackImpl = FunctionImpl.make(
                   }),
         }),
       );
-      if (Either.isLeft(execution)) {
-        if (execution.left instanceof StageLeaseUnavailable) {
+      if (Result.isFailure(execution)) {
+        if (execution.failure instanceof StageLeaseUnavailable) {
           const refreshed = yield* query(
             refs.internal.buildPacks.packs.loadPackRun,
             { packId },
@@ -979,7 +979,7 @@ const runPackImpl = FunctionImpl.make(
           message: "Premium Build Pack generation could not run.",
         });
       }
-      const executed = execution.right;
+      const executed = execution.success;
       if (executed.run.status !== "completed") {
         return {
           packId: executed.run.packId,

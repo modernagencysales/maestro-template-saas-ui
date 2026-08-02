@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { templateConfectRefs } from "@maestro-template/convex/refs";
 import type { BuildPackStage } from "@maestro-template/app-idea-evaluator";
-import * as Either from "effect/Either";
+import * as Result from "effect/Result";
 
 import {
   useTemplateMutation,
@@ -133,10 +133,10 @@ function ConfiguredBuildPackGeneratingRoute({
     }
     void startPack({ reportId, ownerAccessToken })
       .then((result) => {
-        if (Either.isEither(result) && Either.isLeft(result)) {
-          throw result.left;
+        if (Result.isResult(result) && Result.isFailure(result)) {
+          throw result.failure;
         }
-        const startedPack = Either.isEither(result) ? result.right : result;
+        const startedPack = Result.isResult(result) ? result.success : result;
         setPackId(startedPack.packId);
       })
       .catch(() =>
@@ -160,7 +160,8 @@ function ConfiguredBuildPackGeneratingRoute({
     setFallbackState({ _tag: "generating", stages: [] });
     try {
       const result = await retryPack({ packId, ownerAccessToken });
-      if (Either.isEither(result) && Either.isLeft(result)) throw result.left;
+      if (Result.isResult(result) && Result.isFailure(result))
+        throw result.failure;
     } catch {
       setFallbackState({
         _tag: "failed",

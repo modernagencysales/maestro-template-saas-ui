@@ -15,7 +15,7 @@ import { roleAtLeast, type Role } from "./roles";
  * same way; keeping one copy here is both the DRY win and the single place the
  * identity/authorization derivation is defined.
  */
-export type Reader = Context.Tag.Service<typeof DatabaseReader>;
+export type Reader = Context.Service.Shape<typeof DatabaseReader>;
 
 /**
  * Resolve the authenticated caller to their `users` row. Fails `Unauthorized`
@@ -40,7 +40,7 @@ export const loadCurrentUser = (reader: Reader) =>
         ),
         // Keep the typed Unauthorized; a decode/system failure is a real defect,
         // not a spurious authorization error.
-        Effect.catchAll((error) =>
+        Effect.catch((error) =>
           error instanceof Unauthorized
             ? Effect.fail(error)
             : Effect.die(error),

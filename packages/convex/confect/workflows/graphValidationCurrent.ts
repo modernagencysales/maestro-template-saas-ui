@@ -7,9 +7,9 @@ import {
 import { isSafeConditionExpression } from "./conditionExpression";
 import type { DurableWorkflowGraphV2 } from "./graphSchemaCurrent";
 import { generatedWorkflowReadyWaveLimit } from "./_kit/workpoolConfig";
-import * as Either from "effect/Either";
+import * as Result from "effect/Result";
 import { planBoundedBatch } from "./_kit/boundedBatch";
-import { scheduledSubworkflowFinding } from "./_kit/subworkflows";
+import { scheduledSubworkflowFinding } from "./_kit/workflowValidationFindings";
 import { inlineTransactionFinding } from "./_kit/inlineTransactions";
 import { unsupportedScheduledNodeFinding } from "./_kit/workflowSchedule";
 
@@ -355,13 +355,13 @@ export const validateWorkflowGraphV2 = (
         fanOut: node.fanOut,
         items: { kind: "ordinals", count: node.maxItems },
       });
-      return Either.isLeft(planned)
+      return Result.isFailure(planned)
         ? [
             {
               _tag: "BoundedBatchV2" as const,
               nodeId: node.id,
-              code: planned.left.code,
-              reason: planned.left.safeMessage,
+              code: planned.failure.code,
+              reason: planned.failure.safeMessage,
               repair:
                 "Declare positive maxItems, batchSize, and fanOut within the documented limits; use a versioned bounded subworkflow instead of a raw loop.",
               rerun: "pnpm check:workflow:fast" as const,

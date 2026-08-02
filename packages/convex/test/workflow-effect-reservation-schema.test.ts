@@ -1,4 +1,4 @@
-import * as Either from "effect/Either";
+import * as Exit from "effect/Exit";
 import { describe, expect, it } from "vitest";
 
 import { decodeWorkflowEffectReservationRow } from "../confect/tables/workflowEffectReservations";
@@ -29,9 +29,9 @@ const row = {
 
 describe("workflow effect reservation schema", () => {
   it("decodes the append-only workspace-owned retry record", () => {
-    expect(Either.getOrThrow(decodeWorkflowEffectReservationRow(row))).toEqual(
-      row,
-    );
+    const decoded = decodeWorkflowEffectReservationRow(row);
+    expect(Exit.isSuccess(decoded)).toBe(true);
+    if (Exit.isSuccess(decoded)) expect(decoded.value).toEqual(row);
   });
 
   it.each([
@@ -41,7 +41,7 @@ describe("workflow effect reservation schema", () => {
     { field: "appendOnly", value: false },
   ])("rejects invalid $field", ({ field, value }) => {
     expect(
-      Either.isLeft(
+      Exit.isFailure(
         decodeWorkflowEffectReservationRow({ ...row, [field]: value }),
       ),
     ).toBe(true);
@@ -49,7 +49,7 @@ describe("workflow effect reservation schema", () => {
 
   it("rejects raw provider payload storage", () => {
     expect(
-      Either.isLeft(
+      Exit.isFailure(
         decodeWorkflowEffectReservationRow({
           ...row,
           providerPayload: { secret: "must-not-persist" },
