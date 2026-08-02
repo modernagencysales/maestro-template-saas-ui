@@ -12,11 +12,19 @@ import { rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { promisify } from "node:util";
-import { afterAll, afterEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
 const temporaryRoots: string[] = [];
 const execFileAsync = promisify(execFile);
 const repositoryRoot = resolve(import.meta.dirname, "../../../..");
+const originalPath = process.env.PATH;
+const originalStoreDir = process.env.npm_config_store_dir;
+const originalTmpdir = process.env.TMPDIR;
+const offlinePnpmBin = "/private/tmp/maestro-pnpm-10-bin";
+const installedStoreDir = readFileSync(
+  join(repositoryRoot, "node_modules/.modules.yaml"),
+  "utf8",
+).match(/^storeDir: (.+)$/m)?.[1];
 let taggedReleaseParent: string | undefined;
 let taggedReleaseRoot: string | undefined;
 const taggedRepository = (): string => {
@@ -26,6 +34,18 @@ const taggedRepository = (): string => {
   execFileSync(
     "git",
     ["clone", "--quiet", "--shared", repositoryRoot, taggedReleaseRoot],
+    { stdio: "pipe" },
+  );
+  execFileSync(
+    "git",
+    [
+      "-C",
+      taggedReleaseRoot,
+      "checkout",
+      "--quiet",
+      "--detach",
+      "maestro-template-v0.2.0-alpha.2",
+    ],
     { stdio: "pipe" },
   );
   execFileSync(
@@ -47,6 +67,15 @@ const runTaggedCli = (argv: readonly string[]) => {
     stderr: result.stderr,
   };
 };
+beforeAll(() => {
+  expect(installedStoreDir).toBeTruthy();
+  process.env.PATH = `${offlinePnpmBin}:${originalPath ?? ""}`;
+  process.env.npm_config_store_dir = installedStoreDir;
+  process.env.TMPDIR = "/private/tmp";
+  expect(execFileSync("pnpm", ["--version"], { encoding: "utf8" }).trim()).toBe(
+    "10.12.1",
+  );
+});
 afterEach(async () => {
   await Promise.all(
     temporaryRoots
@@ -55,8 +84,17 @@ afterEach(async () => {
   );
 }, 120_000);
 afterAll(async () => {
-  if (taggedReleaseParent)
-    await rm(taggedReleaseParent, { recursive: true, force: true });
+  try {
+    if (taggedReleaseParent)
+      await rm(taggedReleaseParent, { recursive: true, force: true });
+  } finally {
+    if (originalPath === undefined) delete process.env.PATH;
+    else process.env.PATH = originalPath;
+    if (originalStoreDir === undefined) delete process.env.npm_config_store_dir;
+    else process.env.npm_config_store_dir = originalStoreDir;
+    if (originalTmpdir === undefined) delete process.env.TMPDIR;
+    else process.env.TMPDIR = originalTmpdir;
+  }
 }, 180_000);
 
 describe("materialized customer CLI runtime closure", () => {
@@ -285,7 +323,7 @@ describe("materialized customer CLI runtime closure", () => {
       "turbo run test --filter='./packages/*' --filter=@maestro-template/web",
     );
     expect(customerPackage.scripts["test:tooling"]).toBe(
-      "pnpm test:bootstrap && pnpm --dir tooling/workflow test && pnpm --dir tooling/generators exec vitest run src/customer-runtime.test.ts src/templateInstanceMigration.test.ts src/workflow-publication-generation.test.ts src/workflow-release-commands.test.ts --maxWorkers=1 --no-file-parallelism",
+      "pnpm --dir tooling/workflow test && pnpm --dir tooling/generators exec vitest run src/customer-runtime.test.ts src/templateInstanceMigration.test.ts src/workflow-publication-generation.test.ts src/workflow-release-commands.test.ts --maxWorkers=1 --no-file-parallelism",
     );
     expect(customerPackage.scripts.verify).toBe(
       [
