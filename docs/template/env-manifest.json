@@ -899,6 +899,54 @@
       "notes": "Hosted URL used by smoke and readiness checks."
     },
     {
+      "name": "WOODPECKER_SERVER",
+      "group": "woodpecker",
+      "services": ["ci"],
+      "visibility": "server-config",
+      "requiredFor": ["ci"],
+      "fakeExampleAllowed": true,
+      "fakeExample": "https://ci.example.com",
+      "owner": "CI owner",
+      "rotation": "Review when the Woodpecker server changes.",
+      "notes": "Woodpecker CI server origin used for status and release automation; never include credentials in the URL."
+    },
+    {
+      "name": "WOODPECKER_REPOSITORY",
+      "group": "woodpecker",
+      "services": ["ci"],
+      "visibility": "server-config",
+      "requiredFor": ["ci"],
+      "fakeExampleAllowed": true,
+      "fakeExample": "modernagencysales/maestro-template-saas-ui",
+      "owner": "CI owner",
+      "rotation": "Review when the Woodpecker repository changes.",
+      "notes": "Woodpecker repository slug used for status and release automation."
+    },
+    {
+      "name": "WOODPECKER_API_TOKEN",
+      "group": "woodpecker",
+      "services": ["ci"],
+      "visibility": "ci-secret",
+      "requiredFor": ["ci"],
+      "fakeExampleAllowed": true,
+      "fakeExample": "fake_local_key",
+      "owner": "CI owner",
+      "rotation": "Rotate after CI administrator changes or token exposure.",
+      "notes": "Woodpecker API token for repository status and release automation; never log or expose it to application runtimes."
+    },
+    {
+      "name": "WOODPECKER_TOKEN",
+      "group": "woodpecker",
+      "services": ["ci"],
+      "visibility": "ci-secret",
+      "requiredFor": ["ci"],
+      "fakeExampleAllowed": true,
+      "fakeExample": "fake_local_key",
+      "owner": "CI owner",
+      "rotation": "Rotate with the canonical Woodpecker API token.",
+      "notes": "CLI-compatible alias for the Woodpecker API token; never log or expose it to application runtimes."
+    },
+    {
       "name": "BUILDKITE_ORGANIZATION_SLUG",
       "group": "buildkite",
       "services": ["ci"],
@@ -970,7 +1018,7 @@
     },
     {
       "name": "PROMOTION_AUTHORITY_ENDPOINT",
-      "group": "buildkite",
+      "group": "woodpecker",
       "services": ["ci", "deploy"],
       "visibility": "server-config",
       "requiredFor": ["deploy"],
@@ -1003,7 +1051,7 @@
     },
     {
       "name": "TRUSTED_DEPLOY_ROOT_SHA256",
-      "group": "buildkite",
+      "group": "woodpecker",
       "services": ["ci", "deploy"],
       "visibility": "server-config",
       "requiredFor": ["deploy"],
