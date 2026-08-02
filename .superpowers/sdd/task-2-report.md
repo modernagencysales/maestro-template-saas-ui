@@ -136,3 +136,21 @@ protect the complete catalog/surface-authority inventory and merge-base source,
 maintain the reviewed journey-ID migration ledger, then add the adapter-backed
 command to protected CI/root `verify`. Task 2 deliberately fails closed until
 those artifacts exist; it does not infer or ship placeholder repository data.
+
+## Second re-review closure
+
+Commit `a473d5d2` closes the four remaining technical blockers: source and
+merge-base digest binding, one-to-one authority ownership, protected migration
+approval plus continuity, and exact edge-specific producer/consumer witnesses.
+
+Fresh verification:
+
+```text
+rtk pnpm --dir packages/product-journey typecheck
+TypeScript: no errors.
+
+rtk host-test-slot --class focused pnpm exec vitest run packages/product-journey/src tooling/quality/check-product-journeys.test.mts tooling/quality/check-config-drift.test.mts tooling/quality/check-ci-completeness.test.mts tooling/quality/src/diagnosticRegistry.test.mts
+8 files passed, 71 tests passed.
+
+Targeted ESLint, Prettier, and git diff checks also passed.
+```

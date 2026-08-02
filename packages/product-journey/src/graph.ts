@@ -19,14 +19,8 @@ export type JourneyDiagnostic = {
 
 export type ReleaseSurfaceInventory = {
   readonly releaseEntrypoints: readonly string[];
-  readonly receiptProducers: readonly {
-    readonly receiptKind: string;
-    readonly path: string;
-  }[];
-  readonly receiptConsumers: readonly {
-    readonly receiptKind: string;
-    readonly path: string;
-  }[];
+  readonly receiptProducers: readonly JourneyEdgeWitness[];
+  readonly receiptConsumers: readonly JourneyEdgeWitness[];
   readonly frontiers: readonly {
     readonly journeyId: string;
     readonly reachedNode: string;
@@ -36,6 +30,15 @@ export type ReleaseSurfaceInventory = {
   readonly today: string;
   readonly classifiedPaths?: readonly string[];
   readonly surfaceAuthorities?: readonly ReleaseSurfaceAuthority[];
+};
+
+export type JourneyEdgeWitness = {
+  readonly journeyId: string;
+  readonly from: string;
+  readonly to: string;
+  readonly receiptKind: string;
+  readonly contractIdentity: string;
+  readonly path: string;
 };
 
 export type ReleaseSurfaceAuthority = {
@@ -69,7 +72,8 @@ const reachable = (
   const seen = new Set<string>([manifest.graph.start]);
   const queue = [manifest.graph.start];
   while (queue.length > 0) {
-    const node = queue.shift()!;
+    const node = queue.shift();
+    if (node === undefined) break;
     if (node === target) return true;
     for (const edge of manifest.graph.edges)
       if (edge.from === node && !seen.has(edge.to)) {
@@ -172,7 +176,12 @@ export const validateJourneyCatalog = (
   for (const manifest of manifests) {
     for (const edge of manifest.graph.edges) {
       const producers = inventory.receiptProducers.filter(
-        (entry) => entry.receiptKind === edge.receiptKind,
+        (entry) =>
+          entry.journeyId === manifest.id &&
+          entry.from === edge.from &&
+          entry.to === edge.to &&
+          entry.receiptKind === edge.receiptKind &&
+          entry.contractIdentity === edge.id,
       );
       if (producers.length !== 1)
         diagnostics.push({
@@ -183,7 +192,12 @@ export const validateJourneyCatalog = (
         });
       if (
         !inventory.receiptConsumers.some(
-          (entry) => entry.receiptKind === edge.receiptKind,
+          (entry) =>
+            entry.journeyId === manifest.id &&
+            entry.from === edge.from &&
+            entry.to === edge.to &&
+            entry.receiptKind === edge.receiptKind &&
+            entry.contractIdentity === edge.id,
         )
       )
         diagnostics.push({
@@ -225,8 +239,9 @@ export const validateJourneyCatalog = (
     const owner = legacyManifests.find((manifest) =>
       manifest.releaseEntrypoints.includes(path),
     );
-    const permitted = legacyManifests.some((manifest) =>
-      manifest.legacyExposure!.existingEntrypoints.includes(path),
+    const permitted = legacyManifests.some(
+      (manifest) =>
+        manifest.legacyExposure?.existingEntrypoints.includes(path) === true,
     );
     if (!permitted)
       diagnostics.push({
@@ -241,7 +256,47 @@ export const validateJourneyCatalog = (
     stateful: 1,
     "high-risk": 2,
   } as const;
-  for (const authority of inventory.surfaceAuthorities ?? []) {
+  const authorityWitnesses = inventory.surfaceAuthorities;
+  const validAuthorities = new Set<ReleaseSurfaceAuthority>();
+  if (authorityWitnesses !== undefined) {
+    for (const path of inventory.releaseEntrypoints) {
+      const witnesses = authorityWitnesses.filter(
+        (authority) => authority.path === path,
+      );
+      const witness = witnesses[0];
+      const owners = manifests.filter((manifest) =>
+        manifest.releaseEntrypoints.includes(path),
+      );
+      if (
+        witness === undefined ||
+        witnesses.length !== 1 ||
+        owners.length !== 1 ||
+        witness.journeyId !== owners[0]?.id
+      ) {
+        diagnostics.push({
+          code: "SURFACE_UNCLASSIFIED",
+          journeyId: owners[0]?.id ?? witness?.journeyId ?? "catalog",
+          path,
+          message:
+            "generated release entrypoint must join to exactly one matching owner authority witness",
+        });
+      } else {
+        validAuthorities.add(witness);
+      }
+    }
+  }
+  for (const authority of authorityWitnesses ?? []) {
+    if (!inventory.releaseEntrypoints.includes(authority.path)) {
+      diagnostics.push({
+        code: "SURFACE_UNCLASSIFIED",
+        journeyId: authority.journeyId,
+        path: authority.path,
+        message:
+          "surface authority witness does not name a generated entrypoint",
+      });
+      continue;
+    }
+    if (!validAuthorities.has(authority)) continue;
     const manifest = byId.get(authority.journeyId);
     if (manifest === undefined) {
       diagnostics.push({
@@ -315,7 +370,8 @@ const reachableFrom = (
   const seen = new Set<string>([from]);
   const queue = [from];
   while (queue.length > 0) {
-    const node = queue.shift()!;
+    const node = queue.shift();
+    if (node === undefined) break;
     if (node === target) return true;
     for (const edge of manifest.graph.edges)
       if (edge.from === node && !seen.has(edge.to)) {

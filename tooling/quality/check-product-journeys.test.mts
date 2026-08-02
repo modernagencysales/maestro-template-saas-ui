@@ -1,7 +1,10 @@
 import { spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
+import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { withTempRepo } from "./src/check-test-helpers.mts";
+import { canonicalStringify } from "../../packages/product-journey/src/ordering";
 import {
   descriptor,
   evaluateProductJourneyGate,
@@ -59,9 +62,25 @@ const manifest = () => ({
 
 const inventory = () => ({
   releaseEntrypoints: ["entry.ts"],
-  receiptProducers: [{ receiptKind: "activation.v1", path: "producer.ts" }],
+  receiptProducers: [
+    {
+      journeyId: "activation",
+      from: "start",
+      to: "done",
+      receiptKind: "activation.v1",
+      contractIdentity: "activate",
+      path: "producer.ts",
+    },
+  ],
   receiptConsumers: [
-    { receiptKind: "activation.v1", path: "assertion.test.ts" },
+    {
+      journeyId: "activation",
+      from: "start",
+      to: "done",
+      receiptKind: "activation.v1",
+      contractIdentity: "activate",
+      path: "assertion.test.ts",
+    },
   ],
   frontiers: [],
   legacyEntrypoints: [],
@@ -83,11 +102,13 @@ const input = () => ({
     inventorySource: "inventory.json",
     mergeBaseContractSource: "baseline.json",
     migrationLedgerSource: "journey-id-migrations.json",
+    approvalIdentitySource: "approval-identities.json",
     scanMechanisms: [
       "catalog-module",
       "generated-inventory",
       "journey-id-migrations",
       "merge-base-contracts",
+      "protected-approval-identities",
     ],
   },
   catalog: [manifest()],
@@ -97,13 +118,63 @@ const input = () => ({
 });
 const adapterSource = (value: unknown): string =>
   `export async function loadProductJourneyInputs() { return ${JSON.stringify(value)}; }`;
-const adapterFiles = (value: unknown): Record<string, string> => ({
-  "adapter.mjs": adapterSource(value),
-  "catalog.json": "{}",
-  "inventory.json": "{}",
-  "baseline.json": "{}",
-  "journey-id-migrations.json": "[]",
-});
+const digest = (value: unknown): string =>
+  createHash("sha256").update(canonicalStringify(value)).digest("hex");
+const approvalArtifact = { approved: true, scope: "journey-id-migration" };
+const approvalIdentities = { reviewerIdentities: ["contract-owner"] };
+const first = <T,>(values: readonly T[]): T => {
+  const value = values[0];
+  if (value === undefined) throw new Error("test fixture is missing an item");
+  return value;
+};
+const adapterFiles = (value: unknown): Record<string, string> => {
+  const bound = JSON.parse(JSON.stringify(value)) as Record<string, unknown>;
+  const descriptorValue = bound.descriptor;
+  if (
+    typeof descriptorValue === "object" &&
+    descriptorValue !== null &&
+    !Array.isArray(descriptorValue)
+  ) {
+    Object.assign(descriptorValue, {
+      catalogDigest: digest(bound.catalog),
+      inventoryDigest: digest(bound.inventory),
+      mergeBaseContractDigest: digest(bound.baselineCatalog),
+      migrationLedgerDigest: digest(bound.migrationLedger),
+      approvalIdentityDigest: digest(approvalIdentities),
+    });
+  }
+  return {
+    "adapter.mjs": adapterSource(bound),
+    "catalog.json": JSON.stringify(bound.catalog ?? {}),
+    "inventory.json": JSON.stringify(bound.inventory ?? {}),
+    "baseline.json": JSON.stringify(bound.baselineCatalog ?? {}),
+    "journey-id-migrations.json": JSON.stringify(bound.migrationLedger ?? []),
+    "approval-identities.json": JSON.stringify(approvalIdentities),
+    "migration-approval.json": JSON.stringify(approvalArtifact),
+  };
+};
+
+const withGateRepo = async <T,>(
+  files: Record<string, string>,
+  run: (repoRoot: string) => Promise<T>,
+): Promise<T> =>
+  withTempRepo(files, async (repoRoot) => {
+    for (const args of [
+      ["init", "-q"],
+      ["config", "user.email", "gate@example.test"],
+      ["config", "user.name", "Gate Test"],
+      ["add", "."],
+      ["commit", "-qm", "fixture baseline"],
+      ["update-ref", "refs/remotes/origin/main", "HEAD"],
+    ]) {
+      const result = spawnSync("git", args, {
+        cwd: repoRoot,
+        encoding: "utf8",
+      });
+      if (result.status !== 0) throw new Error(result.stderr);
+    }
+    return run(repoRoot);
+  });
 
 describe("check:product-journeys", () => {
   it("pins the canonical command without placing it in root verify", () => {
@@ -129,7 +200,7 @@ describe("check:product-journeys", () => {
   });
 
   it("fails closed for missing catalog or inventory", async () => {
-    await withTempRepo(adapterFiles({ catalog: [] }), async (repoRoot) => {
+    await withGateRepo(adapterFiles({ catalog: [] }), async (repoRoot) => {
       const result = await evaluateProductJourneyGate({
         repoRoot,
         adapterPath: "adapter.mjs",
@@ -173,7 +244,7 @@ describe("check:product-journeys", () => {
       },
     ],
   ])("rejects an %s", async (_label, gateInput) => {
-    await withTempRepo(adapterFiles(gateInput), async (repoRoot) => {
+    await withGateRepo(adapterFiles(gateInput), async (repoRoot) => {
       const result = await evaluateProductJourneyGate({
         repoRoot,
         adapterPath: "adapter.mjs",
@@ -188,7 +259,7 @@ describe("check:product-journeys", () => {
   it("rejects an unreadable descriptor source", async () => {
     const files = adapterFiles(input());
     delete files["inventory.json"];
-    await withTempRepo(files, async (repoRoot) => {
+    await withGateRepo(files, async (repoRoot) => {
       const result = await evaluateProductJourneyGate({
         repoRoot,
         adapterPath: "adapter.mjs",
@@ -206,7 +277,7 @@ describe("check:product-journeys", () => {
     gateInput.baselineCatalog = [];
     gateInput.inventory.releaseEntrypoints = [];
     gateInput.inventory.classifiedPaths = [];
-    await withTempRepo(adapterFiles(gateInput), async (repoRoot) => {
+    await withGateRepo(adapterFiles(gateInput), async (repoRoot) => {
       const result = await evaluateProductJourneyGate({
         repoRoot,
         adapterPath: "adapter.mjs",
@@ -220,8 +291,8 @@ describe("check:product-journeys", () => {
 
   it("rejects journey deletion or rename without a protected migration ledger entry", async () => {
     const gateInput = input();
-    gateInput.catalog[0]!.id = "activation-v2";
-    await withTempRepo(adapterFiles(gateInput), async (repoRoot) => {
+    first(gateInput.catalog).id = "activation-v2";
+    await withGateRepo(adapterFiles(gateInput), async (repoRoot) => {
       const result = await evaluateProductJourneyGate({
         repoRoot,
         adapterPath: "adapter.mjs",
@@ -240,18 +311,24 @@ describe("check:product-journeys", () => {
 
   it("accepts an approved immutable-id migration without resetting contract state", async () => {
     const gateInput = input();
-    gateInput.catalog[0]!.id = "activation-v2";
-    gateInput.inventory.surfaceAuthorities[0]!.journeyId = "activation-v2";
+    first(gateInput.catalog).id = "activation-v2";
+    first(gateInput.inventory.surfaceAuthorities).journeyId = "activation-v2";
+    first(gateInput.inventory.receiptProducers).journeyId = "activation-v2";
+    first(gateInput.inventory.receiptConsumers).journeyId = "activation-v2";
     gateInput.migrationLedger = [
       {
         fromJourneyId: "activation",
         toJourneyIds: ["activation-v2"],
         baselineVersion: 1,
-        approval: "contract-review-123",
+        approval: {
+          artifactSource: "migration-approval.json",
+          artifactDigest: digest(approvalArtifact),
+          reviewerIdentity: "contract-owner",
+        },
         reason: "canonical rename",
       },
     ];
-    await withTempRepo(adapterFiles(gateInput), async (repoRoot) => {
+    await withGateRepo(adapterFiles(gateInput), async (repoRoot) => {
       const result = await evaluateProductJourneyGate({
         repoRoot,
         adapterPath: "adapter.mjs",
@@ -265,26 +342,127 @@ describe("check:product-journeys", () => {
     gateInput.migrationLedger = [
       {
         fromJourneyId: "activation",
-        toJourneyIds: ["activation-v2"],
+        toJourneyIds: ["activation"],
         baselineVersion: 1,
-        approval: "",
+        approval: {
+          artifactSource: "migration-approval.json",
+          artifactDigest: digest(approvalArtifact),
+          reviewerIdentity: "unprotected-reviewer",
+        },
         reason: "rename",
       },
     ];
-    await withTempRepo(adapterFiles(gateInput), async (repoRoot) => {
+    await withGateRepo(adapterFiles(gateInput), async (repoRoot) => {
       const result = await evaluateProductJourneyGate({
         repoRoot,
         adapterPath: "adapter.mjs",
       });
       expect(result).toMatchObject({
         ok: false,
-        diagnostics: [{ code: "ADAPTER_INVALID" }],
+        diagnostics: [
+          {
+            code: "ADAPTER_INVALID",
+            message: expect.stringContaining("approval identity contract"),
+          },
+        ],
       });
     });
   });
 
+  it("rejects payloads that do not match their canonical named source digest", async () => {
+    await withGateRepo(adapterFiles(input()), async (repoRoot) => {
+      await writeFile(join(repoRoot, "catalog.json"), "[]");
+      const result = await evaluateProductJourneyGate({
+        repoRoot,
+        adapterPath: "adapter.mjs",
+      });
+      expect(result).toMatchObject({
+        ok: false,
+        diagnostics: [
+          {
+            code: "ADAPTER_INVALID",
+            message: expect.stringContaining("digest"),
+          },
+        ],
+      });
+    });
+  });
+
+  it("resolves merge-base identity independently of the adapter payload", async () => {
+    await withGateRepo(adapterFiles(input()), async (repoRoot) => {
+      const forged = input();
+      first(forged.baselineCatalog).goal = "forged baseline";
+      const forgedFiles = adapterFiles(forged);
+      for (const [path, content] of Object.entries(forgedFiles)) {
+        await writeFile(join(repoRoot, path), content);
+      }
+      const result = await evaluateProductJourneyGate({
+        repoRoot,
+        adapterPath: "adapter.mjs",
+      });
+      expect(result).toMatchObject({
+        ok: false,
+        diagnostics: [
+          {
+            code: "ADAPTER_INVALID",
+            message: expect.stringContaining("merge-base identity"),
+          },
+        ],
+      });
+    });
+  });
+
+  it("preserves migration lifecycle, version, owner, and work-package continuity", async () => {
+    const gateInput = input();
+    Object.assign(first(gateInput.baselineCatalog), {
+      id: "activation",
+      version: 4,
+      status: "admitted",
+      owner: "original-owner@example.test",
+      workPackageRefs: ["WP-1", "WP-2"],
+    });
+    Object.assign(first(gateInput.catalog), {
+      id: "activation-v2",
+      version: 1,
+      status: "assembling",
+      owner: "replacement@example.test",
+      workPackageRefs: ["WP-1"],
+    });
+    first(gateInput.inventory.surfaceAuthorities).journeyId = "activation-v2";
+    first(gateInput.inventory.receiptProducers).journeyId = "activation-v2";
+    first(gateInput.inventory.receiptConsumers).journeyId = "activation-v2";
+    gateInput.migrationLedger = [
+      {
+        fromJourneyId: "activation",
+        toJourneyIds: ["activation-v2"],
+        baselineVersion: 4,
+        approval: {
+          artifactSource: "migration-approval.json",
+          artifactDigest: digest(approvalArtifact),
+          reviewerIdentity: "contract-owner",
+        },
+        reason: "canonical rename",
+      },
+    ];
+    await withGateRepo(adapterFiles(gateInput), async (repoRoot) => {
+      const result = await evaluateProductJourneyGate({
+        repoRoot,
+        adapterPath: "adapter.mjs",
+      });
+      expect(result.diagnostics).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            code: "COVERAGE_REDUCED",
+            journeyId: "activation",
+            message: expect.stringContaining("continuity"),
+          }),
+        ]),
+      );
+    });
+  });
+
   it("reports a malformed manifest from the repository adapter", async () => {
-    await withTempRepo(
+    await withGateRepo(
       adapterFiles({ ...input(), catalog: [{}] }),
       async (repoRoot) => {
         const result = await evaluateProductJourneyGate({
@@ -303,27 +481,27 @@ describe("check:product-journeys", () => {
     const gateInput = input();
     gateInput.inventory.releaseEntrypoints.push("unowned.ts");
     gateInput.inventory.classifiedPaths.push("unowned.ts");
-    await withTempRepo(adapterFiles(gateInput), async (repoRoot) => {
+    await withGateRepo(adapterFiles(gateInput), async (repoRoot) => {
       const result = await evaluateProductJourneyGate({
         repoRoot,
         adapterPath: "adapter.mjs",
       });
       expect(result).toMatchObject({
         ok: false,
-        diagnostics: [
+        diagnostics: expect.arrayContaining([
           expect.objectContaining({
             code: "ENTRYPOINT_UNMAPPED",
             path: "unowned.ts",
           }),
-        ],
+        ]),
       });
     });
   });
 
   it("compares current contracts with the baseline", async () => {
     const gateInput = input();
-    gateInput.catalog[0]!.scenarios[0]!.terminalOutcome = "weakened";
-    await withTempRepo(adapterFiles(gateInput), async (repoRoot) => {
+    first(first(gateInput.catalog).scenarios).terminalOutcome = "weakened";
+    await withGateRepo(adapterFiles(gateInput), async (repoRoot) => {
       const result = await evaluateProductJourneyGate({
         repoRoot,
         adapterPath: "adapter.mjs",
@@ -340,7 +518,7 @@ describe("check:product-journeys", () => {
   });
 
   it("accepts a valid fixture-backed adapter through the command", async () => {
-    await withTempRepo(adapterFiles(input()), async (repoRoot) => {
+    await withGateRepo(adapterFiles(input()), async (repoRoot) => {
       const command = spawnSync(
         "pnpm",
         [

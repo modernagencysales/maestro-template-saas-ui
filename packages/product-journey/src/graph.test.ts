@@ -92,6 +92,18 @@ const journey = (
   ...overrides,
 });
 
+const edgeWitness = (
+  receiptKind: "activation.v1" | "completed.v1",
+  path: string,
+) => ({
+  journeyId: "activation",
+  from: receiptKind === "activation.v1" ? "start" : "boundary",
+  to: receiptKind === "activation.v1" ? "boundary" : "done",
+  receiptKind,
+  contractIdentity: receiptKind === "activation.v1" ? "to-boundary" : "to-done",
+  path,
+});
+
 describe("validateJourneyCatalog", () => {
   it("validates release entrypoints in both directions", () => {
     const diagnostics = validateJourneyCatalog(
@@ -171,12 +183,12 @@ describe("validateJourneyCatalog", () => {
     const diagnostics = validateJourneyCatalog([journey()], {
       releaseEntrypoints: ["apps/web/src/routes/activate.tsx"],
       receiptProducers: [
-        { receiptKind: "activation.v1", path: "producer.ts" },
-        { receiptKind: "completed.v1", path: "producer.ts" },
+        edgeWitness("activation.v1", "producer.ts"),
+        edgeWitness("completed.v1", "producer.ts"),
       ],
       receiptConsumers: [
-        { receiptKind: "activation.v1", path: "consumer.ts" },
-        { receiptKind: "completed.v1", path: "consumer.ts" },
+        edgeWitness("activation.v1", "consumer.ts"),
+        edgeWitness("completed.v1", "consumer.ts"),
       ],
       frontiers: [],
       legacyEntrypoints: [],
@@ -193,6 +205,90 @@ describe("validateJourneyCatalog", () => {
     expect(diagnostics.map(({ code, message }) => [code, message])).toEqual([
       ["COVERAGE_REDUCED", expect.stringContaining("high-risk")],
       ["COVERAGE_REDUCED", expect.stringContaining("deployed-proof-required")],
+    ]);
+  });
+
+  it("requires exactly one owned authority witness per generated entrypoint", () => {
+    const diagnostics = validateJourneyCatalog(
+      [journey({ graph: { ...journey().graph, edges: [] } })],
+      {
+        releaseEntrypoints: [
+          "apps/web/src/routes/activate.tsx",
+          "apps/web/src/routes/other.tsx",
+        ],
+        receiptProducers: [],
+        receiptConsumers: [],
+        frontiers: [],
+        legacyEntrypoints: [],
+        today: "2026-08-01",
+        surfaceAuthorities: [
+          {
+            path: "apps/web/src/routes/activate.tsx",
+            journeyId: "activation",
+            authority: "read",
+            transport: "local",
+          },
+          {
+            path: "apps/web/src/routes/activate.tsx",
+            journeyId: "other",
+            authority: "write",
+            transport: "local",
+          },
+          {
+            path: "unknown.ts",
+            journeyId: "activation",
+            authority: "read",
+            transport: "local",
+          },
+        ],
+      },
+    );
+    expect(diagnostics.map(({ code, path }) => [code, path])).toEqual(
+      expect.arrayContaining([
+        ["SURFACE_UNCLASSIFIED", "apps/web/src/routes/activate.tsx"],
+        ["SURFACE_UNCLASSIFIED", "apps/web/src/routes/other.tsx"],
+        ["SURFACE_UNCLASSIFIED", "unknown.ts"],
+      ]),
+    );
+  });
+
+  it("requires producer and consumer witnesses for the exact journey edge", () => {
+    const shared = journey({ id: "shared", releaseEntrypoints: ["shared.ts"] });
+    const diagnostics = validateJourneyCatalog([journey(), shared], {
+      releaseEntrypoints: ["apps/web/src/routes/activate.tsx", "shared.ts"],
+      receiptProducers: [
+        {
+          journeyId: "activation",
+          from: "start",
+          to: "boundary",
+          receiptKind: "activation.v1",
+          contractIdentity: "to-boundary",
+          path: "producer.ts",
+        },
+      ],
+      receiptConsumers: [
+        {
+          journeyId: "activation",
+          from: "start",
+          to: "boundary",
+          receiptKind: "activation.v1",
+          contractIdentity: "to-boundary",
+          path: "assertion.test.ts",
+        },
+      ],
+      frontiers: [],
+      legacyEntrypoints: [],
+      today: "2026-08-01",
+    });
+    expect(
+      diagnostics
+        .filter(({ journeyId }) => journeyId === "shared")
+        .map(({ code }) => code),
+    ).toEqual([
+      "EDGE_CONSUMER_MISSING",
+      "EDGE_CONSUMER_MISSING",
+      "EDGE_PRODUCER_INVALID",
+      "EDGE_PRODUCER_INVALID",
     ]);
   });
 
@@ -213,8 +309,8 @@ describe("validateJourneyCatalog", () => {
         "apps/web/src/routes/unmapped.tsx",
       ],
       receiptProducers: [
-        { receiptKind: "activation.v1", path: "producer.ts" },
-        { receiptKind: "activation.v1", path: "other-producer.ts" },
+        edgeWitness("activation.v1", "producer.ts"),
+        edgeWitness("activation.v1", "other-producer.ts"),
       ],
       receiptConsumers: [],
       frontiers: [
@@ -257,12 +353,12 @@ describe("validateJourneyCatalog", () => {
       {
         releaseEntrypoints: ["apps/web/src/routes/activate.tsx"],
         receiptProducers: [
-          { receiptKind: "activation.v1", path: "producer.ts" },
-          { receiptKind: "completed.v1", path: "producer.ts" },
+          edgeWitness("activation.v1", "producer.ts"),
+          edgeWitness("completed.v1", "producer.ts"),
         ],
         receiptConsumers: [
-          { receiptKind: "activation.v1", path: "consumer.ts" },
-          { receiptKind: "completed.v1", path: "consumer.ts" },
+          edgeWitness("activation.v1", "consumer.ts"),
+          edgeWitness("completed.v1", "consumer.ts"),
         ],
         frontiers: [],
         legacyEntrypoints: ["legacy.ts"],
@@ -279,12 +375,12 @@ describe("validateJourneyCatalog", () => {
     const diagnostics = validateJourneyCatalog([journey()], {
       releaseEntrypoints: ["apps/web/src/routes/activate.tsx"],
       receiptProducers: [
-        { receiptKind: "activation.v1", path: "producer.ts" },
-        { receiptKind: "completed.v1", path: "producer.ts" },
+        edgeWitness("activation.v1", "producer.ts"),
+        edgeWitness("completed.v1", "producer.ts"),
       ],
       receiptConsumers: [
-        { receiptKind: "activation.v1", path: "consumer.ts" },
-        { receiptKind: "completed.v1", path: "consumer.ts" },
+        edgeWitness("activation.v1", "consumer.ts"),
+        edgeWitness("completed.v1", "consumer.ts"),
       ],
       frontiers: [],
       legacyEntrypoints: [],

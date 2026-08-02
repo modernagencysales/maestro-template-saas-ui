@@ -44,6 +44,13 @@ const base: ProductJourneyManifest = {
   owner: "owner@example.test",
 };
 
+const firstScenario = (): ProductJourneyManifest["scenarios"][number] => {
+  const scenario = base.scenarios[0];
+  if (scenario === undefined)
+    throw new Error("base scenario fixture is missing");
+  return scenario;
+};
+
 describe("diffJourneyContract", () => {
   it("requires approval when roles, transports, negative scenarios, or isolation coverage is reduced", () => {
     const proposed = {
@@ -63,7 +70,7 @@ describe("diffJourneyContract", () => {
 
   it("detects deletion of one duplicate-class scenario", () => {
     const retry = {
-      ...base.scenarios[0]!,
+      ...firstScenario(),
       id: "retry-two",
       scenarioClass: "retry" as const,
     };
@@ -95,7 +102,7 @@ describe("diffJourneyContract", () => {
   ])("governs a semantic change to %s", (_label, scenarioChange) => {
     const proposed = {
       ...base,
-      scenarios: [{ ...base.scenarios[0]!, ...scenarioChange }],
+      scenarios: [{ ...firstScenario(), ...scenarioChange }],
     } as ProductJourneyManifest;
     expect(diffJourneyContract(base, proposed).requiresApproval).toBe(true);
   });
@@ -103,7 +110,7 @@ describe("diffJourneyContract", () => {
   it("governs replay, retry, isolation, role, transport, and release-proof changes", () => {
     const scenarios = ["tenant_isolation", "retry", "exact_replay"].map(
       (scenarioClass, index) => ({
-        ...base.scenarios[0]!,
+        ...firstScenario(),
         id: `${scenarioClass}-${index}`,
         scenarioClass,
       }),

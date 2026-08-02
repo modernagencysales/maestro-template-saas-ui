@@ -67,6 +67,12 @@ const highRiskManifest = () => ({
   owner: "platform@example.test",
 });
 
+const firstScenario = <T>(scenarios: T[]): T => {
+  const scenario = scenarios[0];
+  if (scenario === undefined) throw new Error("scenario fixture is missing");
+  return scenario;
+};
+
 const highRiskWithout = (scenarioClass: string) => ({
   ...highRiskManifest(),
   scenarios: highRiskManifest().scenarios.filter(
@@ -184,7 +190,9 @@ describe("parseProductJourneyManifest", () => {
 
   it("rejects credentials in fixture metadata", () => {
     const manifest = highRiskManifest();
-    manifest.scenarios[0]!.fixtureMetadata = { apiKey: "not-a-secret" };
+    firstScenario(manifest.scenarios).fixtureMetadata = {
+      apiKey: "not-a-secret",
+    };
 
     expect(() => parseProductJourneyManifest(manifest)).toThrowError(
       /credentials/i,

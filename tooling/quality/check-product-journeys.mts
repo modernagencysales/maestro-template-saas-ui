@@ -1,6 +1,9 @@
+import { execFile } from "node:child_process";
+import { createHash } from "node:crypto";
 import { access, readFile } from "node:fs/promises";
 import { isAbsolute, relative, resolve, sep } from "node:path";
 import { pathToFileURL } from "node:url";
+import { promisify } from "node:util";
 import { diffJourneyContract } from "../../packages/product-journey/src/contract-diff.ts";
 import {
   validateJourneyCatalog,
@@ -12,11 +15,15 @@ import {
   parseProductJourneyManifest,
   type ProductJourneyManifest,
 } from "../../packages/product-journey/src/manifest.ts";
-import { compareCodePoints } from "../../packages/product-journey/src/ordering.ts";
+import {
+  canonicalStringify,
+  compareCodePoints,
+} from "../../packages/product-journey/src/ordering.ts";
 import { descriptorFor } from "./src/check-definitions.mts";
 import { isDirectRun } from "./src/direct-run.mts";
 
 export const descriptor = descriptorFor("product-journeys");
+const execFileAsync = promisify(execFile);
 
 export type ProductJourneyGateDiagnostic = Omit<JourneyDiagnostic, "code"> & {
   readonly code:
@@ -44,21 +51,34 @@ export type ProductJourneyScanMechanism =
   | "catalog-module"
   | "generated-inventory"
   | "journey-id-migrations"
-  | "merge-base-contracts";
+  | "merge-base-contracts"
+  | "protected-approval-identities";
 
 export type ProductJourneyInputDescriptor = {
   readonly catalogSource: string;
   readonly inventorySource: string;
   readonly mergeBaseContractSource: string;
   readonly migrationLedgerSource: string;
+  readonly approvalIdentitySource: string;
+  readonly catalogDigest: string;
+  readonly inventoryDigest: string;
+  readonly mergeBaseContractDigest: string;
+  readonly migrationLedgerDigest: string;
+  readonly approvalIdentityDigest: string;
   readonly scanMechanisms: readonly ProductJourneyScanMechanism[];
+};
+
+export type ProductJourneyApprovalBinding = {
+  readonly artifactSource: string;
+  readonly artifactDigest: string;
+  readonly reviewerIdentity: string;
 };
 
 export type ProductJourneyIdMigration = {
   readonly fromJourneyId: string;
   readonly toJourneyIds: readonly string[];
   readonly baselineVersion: number;
-  readonly approval: string;
+  readonly approval: ProductJourneyApprovalBinding;
   readonly reason: string;
 };
 
@@ -136,6 +156,7 @@ const requiredScanMechanisms = [
   "generated-inventory",
   "journey-id-migrations",
   "merge-base-contracts",
+  "protected-approval-identities",
 ] as const satisfies readonly ProductJourneyScanMechanism[];
 
 const parseInputDescriptor = (
@@ -149,6 +170,12 @@ const parseInputDescriptor = (
       "inventorySource",
       "mergeBaseContractSource",
       "migrationLedgerSource",
+      "approvalIdentitySource",
+      "catalogDigest",
+      "inventoryDigest",
+      "mergeBaseContractDigest",
+      "migrationLedgerDigest",
+      "approvalIdentityDigest",
       "scanMechanisms",
     ],
     "adapter input.descriptor",
@@ -189,45 +216,200 @@ const parseInputDescriptor = (
       descriptor.migrationLedgerSource,
       "adapter input.descriptor.migrationLedgerSource",
     ),
+    approvalIdentitySource: asString(
+      descriptor.approvalIdentitySource,
+      "adapter input.descriptor.approvalIdentitySource",
+    ),
+    catalogDigest: asString(
+      descriptor.catalogDigest,
+      "adapter input.descriptor.catalogDigest",
+    ),
+    inventoryDigest: asString(
+      descriptor.inventoryDigest,
+      "adapter input.descriptor.inventoryDigest",
+    ),
+    mergeBaseContractDigest: asString(
+      descriptor.mergeBaseContractDigest,
+      "adapter input.descriptor.mergeBaseContractDigest",
+    ),
+    migrationLedgerDigest: asString(
+      descriptor.migrationLedgerDigest,
+      "adapter input.descriptor.migrationLedgerDigest",
+    ),
+    approvalIdentityDigest: asString(
+      descriptor.approvalIdentityDigest,
+      "adapter input.descriptor.approvalIdentityDigest",
+    ),
     scanMechanisms: scanMechanisms as readonly ProductJourneyScanMechanism[],
   };
 };
 
-const validateDescriptorSources = async (
+const canonicalDigest = (value: unknown): string =>
+  createHash("sha256").update(canonicalStringify(value)).digest("hex");
+
+const resolveRepositoryPath = (repoRoot: string, source: string): string => {
+  if (isAbsolute(source)) {
+    throw new Error("descriptor sources must be repository-relative");
+  }
+  const fullPath = resolve(repoRoot, source);
+  const pathFromRoot = relative(repoRoot, fullPath);
+  if (pathFromRoot === ".." || pathFromRoot.startsWith(`..${sep}`)) {
+    throw new Error("descriptor sources must stay inside the repository");
+  }
+  return fullPath;
+};
+
+const readJsonSource = async (
+  repoRoot: string,
+  source: string,
+): Promise<unknown> => {
+  const content = await readFile(
+    resolveRepositoryPath(repoRoot, source),
+    "utf8",
+  );
+  if (content.trim().length === 0) {
+    throw new Error(`descriptor source is empty: ${source}`);
+  }
+  return JSON.parse(content) as unknown;
+};
+
+const assertPayloadBinding = (
+  label: string,
+  sourceValue: unknown,
+  payload: unknown,
+  expectedDigest: string,
+): void => {
+  const sourceDigest = canonicalDigest(sourceValue);
+  const payloadDigest = canonicalDigest(payload);
+  if (sourceDigest !== expectedDigest || payloadDigest !== expectedDigest) {
+    throw new Error(`${label} payload/source digest binding failed`);
+  }
+};
+
+const resolveMergeBaseCatalog = async (
+  repoRoot: string,
+  source: string,
+): Promise<unknown> => {
+  try {
+    const { stdout: identityOutput } = await execFileAsync(
+      "git",
+      ["merge-base", "HEAD", "origin/main"],
+      { cwd: repoRoot },
+    );
+    const identity = identityOutput.trim();
+    if (identity.length === 0) throw new Error("empty merge base");
+    const { stdout } = await execFileAsync(
+      "git",
+      ["show", `${identity}:${source}`],
+      { cwd: repoRoot },
+    );
+    return JSON.parse(stdout) as unknown;
+  } catch {
+    throw new Error(
+      "merge-base identity could not be independently resolved and bound",
+    );
+  }
+};
+
+const validateDescriptorBindings = async (
   repoRoot: string,
   descriptor: ProductJourneyInputDescriptor,
-): Promise<void> => {
-  for (const source of [
+  payloads: {
+    readonly catalog: unknown;
+    readonly baselineCatalog: unknown;
+    readonly inventory: unknown;
+    readonly migrationLedger: unknown;
+  },
+): Promise<ReadonlySet<string>> => {
+  const catalogSource = await readJsonSource(
+    repoRoot,
     descriptor.catalogSource,
+  );
+  const inventorySource = await readJsonSource(
+    repoRoot,
     descriptor.inventorySource,
-    descriptor.mergeBaseContractSource,
+  );
+  const migrationSource = await readJsonSource(
+    repoRoot,
     descriptor.migrationLedgerSource,
-  ]) {
-    if (isAbsolute(source)) {
-      throw new Error("descriptor sources must be repository-relative");
-    }
-    const fullPath = resolve(repoRoot, source);
-    const pathFromRoot = relative(repoRoot, fullPath);
-    if (pathFromRoot === ".." || pathFromRoot.startsWith(`..${sep}`)) {
-      throw new Error("descriptor sources must stay inside the repository");
-    }
-    const content = await readFile(fullPath, "utf8");
-    if (content.trim().length === 0) {
-      throw new Error(`descriptor source is empty: ${source}`);
-    }
+  );
+  const approvalIdentitySource = await readJsonSource(
+    repoRoot,
+    descriptor.approvalIdentitySource,
+  );
+  assertPayloadBinding(
+    "catalog",
+    catalogSource,
+    payloads.catalog,
+    descriptor.catalogDigest,
+  );
+  assertPayloadBinding(
+    "inventory",
+    inventorySource,
+    payloads.inventory,
+    descriptor.inventoryDigest,
+  );
+  assertPayloadBinding(
+    "migration ledger",
+    migrationSource,
+    payloads.migrationLedger,
+    descriptor.migrationLedgerDigest,
+  );
+  if (
+    canonicalDigest(approvalIdentitySource) !==
+    descriptor.approvalIdentityDigest
+  ) {
+    throw new Error("approval identity source digest binding failed");
   }
+  const mergeBaseCatalog = await resolveMergeBaseCatalog(
+    repoRoot,
+    descriptor.mergeBaseContractSource,
+  );
+  assertPayloadBinding(
+    "merge-base identity",
+    mergeBaseCatalog,
+    payloads.baselineCatalog,
+    descriptor.mergeBaseContractDigest,
+  );
+  const identityRecord = asRecord(
+    approvalIdentitySource,
+    "approval identity contract",
+  );
+  assertExactKeys(
+    identityRecord,
+    ["reviewerIdentities"],
+    "approval identity contract",
+  );
+  return new Set(
+    asStringArray(
+      identityRecord.reviewerIdentities,
+      "approval identity contract.reviewerIdentities",
+    ),
+  );
 };
 
 const parseReceiptEntries = (
   value: unknown,
   label: string,
-): readonly { readonly receiptKind: string; readonly path: string }[] =>
+): ReleaseSurfaceInventory["receiptProducers"] =>
   asArray(value, label).map((entry, index) => {
     const record = asRecord(entry, `${label}[${index}]`);
+    assertExactKeys(
+      record,
+      ["journeyId", "from", "to", "receiptKind", "contractIdentity", "path"],
+      `${label}[${index}]`,
+    );
     return {
+      journeyId: asString(record.journeyId, `${label}[${index}].journeyId`),
+      from: asString(record.from, `${label}[${index}].from`),
+      to: asString(record.to, `${label}[${index}].to`),
       receiptKind: asString(
         record.receiptKind,
         `${label}[${index}].receiptKind`,
+      ),
+      contractIdentity: asString(
+        record.contractIdentity,
+        `${label}[${index}].contractIdentity`,
       ),
       path: asString(record.path, `${label}[${index}].path`),
     };
@@ -307,11 +489,30 @@ const parseMigrationLedger = (
     ) {
       throw new Error(`${label}.baselineVersion is invalid`);
     }
+    const approval = asRecord(record.approval, `${label}.approval`);
+    assertExactKeys(
+      approval,
+      ["artifactSource", "artifactDigest", "reviewerIdentity"],
+      `${label}.approval`,
+    );
     return {
       fromJourneyId,
       toJourneyIds,
       baselineVersion: record.baselineVersion,
-      approval: asString(record.approval, `${label}.approval`),
+      approval: {
+        artifactSource: asString(
+          approval.artifactSource,
+          `${label}.approval.artifactSource`,
+        ),
+        artifactDigest: asString(
+          approval.artifactDigest,
+          `${label}.approval.artifactDigest`,
+        ),
+        reviewerIdentity: asString(
+          approval.reviewerIdentity,
+          `${label}.approval.reviewerIdentity`,
+        ),
+      },
       reason: asString(record.reason, `${label}.reason`),
     };
   });
@@ -394,6 +595,28 @@ const parseCatalog = (
   return { manifests };
 };
 
+const continuityReductions = (
+  prior: ProductJourneyManifest,
+  proposed: ProductJourneyManifest,
+): readonly string[] => {
+  const reductions: string[] = [];
+  if (proposed.version < prior.version) reductions.push("version regressed");
+  if (proposed.status !== prior.status)
+    reductions.push("lifecycle status changed");
+  if (proposed.owner !== prior.owner) reductions.push("owner changed");
+  for (const workPackage of prior.workPackageRefs) {
+    if (!proposed.workPackageRefs.includes(workPackage)) {
+      reductions.push(`work-package removed:${workPackage}`);
+    }
+  }
+  for (const path of prior.affectedPaths) {
+    if (!proposed.affectedPaths.includes(path)) {
+      reductions.push(`affected-path removed:${path}`);
+    }
+  }
+  return reductions.sort(compareCodePoints);
+};
+
 const loadAdapterInput = async (
   repoRoot: string,
   adapterPath: string,
@@ -441,6 +664,7 @@ export const evaluateProductJourneyGate = async ({
   let baselineValues: readonly unknown[];
   let inventory: ReleaseSurfaceInventory;
   let migrationLedger: readonly ProductJourneyIdMigration[];
+  let approvalIdentities: ReadonlySet<string>;
   try {
     inputRecord = asRecord(input, "adapter input");
     assertExactKeys(
@@ -455,7 +679,6 @@ export const evaluateProductJourneyGate = async ({
       "adapter input",
     );
     const inputDescriptor = parseInputDescriptor(inputRecord.descriptor);
-    await validateDescriptorSources(repoRoot, inputDescriptor);
     catalogValues = asArray(inputRecord.catalog, "adapter input.catalog");
     baselineValues = asArray(
       inputRecord.baselineCatalog,
@@ -463,6 +686,32 @@ export const evaluateProductJourneyGate = async ({
     );
     inventory = parseInventory(inputRecord.inventory);
     migrationLedger = parseMigrationLedger(inputRecord.migrationLedger);
+    approvalIdentities = await validateDescriptorBindings(
+      repoRoot,
+      inputDescriptor,
+      {
+        catalog: catalogValues,
+        baselineCatalog: baselineValues,
+        inventory: inputRecord.inventory,
+        migrationLedger: inputRecord.migrationLedger,
+      },
+    );
+    for (const migration of migrationLedger) {
+      if (!approvalIdentities.has(migration.approval.reviewerIdentity)) {
+        throw new Error(
+          `approval identity contract does not authorize ${migration.approval.reviewerIdentity}`,
+        );
+      }
+      const artifact = await readJsonSource(
+        repoRoot,
+        migration.approval.artifactSource,
+      );
+      if (canonicalDigest(artifact) !== migration.approval.artifactDigest) {
+        throw new Error(
+          `approval artifact digest binding failed for ${migration.fromJourneyId}`,
+        );
+      }
+    }
     if (catalogValues.length === 0 || baselineValues.length === 0) {
       throw new Error("catalog and baselineCatalog must not be empty");
     }
@@ -530,7 +779,23 @@ export const evaluateProductJourneyGate = async ({
         });
       } else {
         for (const targetId of migration.toJourneyIds) {
-          const target = currentById.get(targetId)!;
+          const target = currentById.get(targetId);
+          if (target === undefined) {
+            return failure(
+              "ADAPTER_INVALID",
+              `journey-id migration target is missing from catalog: ${targetId}`,
+              adapterPath,
+            );
+          }
+          const continuity = continuityReductions(prior, target);
+          if (continuity.length > 0) {
+            diagnostics.push({
+              code: "COVERAGE_REDUCED",
+              journeyId: prior.id,
+              path: targetId,
+              message: `journey migration continuity reduced: ${continuity.join(", ")}`,
+            });
+          }
           const migratedDiff = diffJourneyContract(prior, target);
           if (migratedDiff.requiresApproval) {
             diagnostics.push({
@@ -543,6 +808,14 @@ export const evaluateProductJourneyGate = async ({
         }
       }
       continue;
+    }
+    const continuity = continuityReductions(prior, proposed);
+    if (continuity.length > 0) {
+      diagnostics.push({
+        code: "COVERAGE_REDUCED",
+        journeyId: prior.id,
+        message: `journey contract continuity reduced: ${continuity.join(", ")}`,
+      });
     }
     const contractDiff = diffJourneyContract(prior, proposed);
     if (contractDiff.requiresApproval) {
