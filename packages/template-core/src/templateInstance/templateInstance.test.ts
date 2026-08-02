@@ -134,16 +134,14 @@ describe("templateInstance provider posture", () => {
         posthog: postureProvider({
           preview: verifiedPosture("receipt:posthog-preview", postureFuture),
         }),
-        mailersend: postureProvider({ preview: postureState("fake") }),
+        email: postureProvider({ preview: postureState("fake") }),
       },
     });
 
     expect(posture.providers.posthog?.environments.preview.state).toBe(
       "verified",
     );
-    expect(posture.providers.mailersend?.environments.preview.state).toBe(
-      "fake",
-    );
+    expect(posture.providers.email?.environments.preview.state).toBe("fake");
   });
 
   it("requires fresh verification evidence and secret names only", () => {

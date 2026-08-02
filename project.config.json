@@ -42,7 +42,7 @@
         "workos",
         "posthog",
         "dodo",
-        "mailersend",
+        "email",
         "llm",
         "storage"
       ],

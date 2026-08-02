@@ -69,7 +69,7 @@ describe("honest Maestro mapping", () => {
         userJourneys: ["Operator fills a cancellation"],
         dataModel: ["Practice — tenant account", "Appointment — open chair"],
         architecture: "Tenant-aware web application",
-        integrations: ["MailerSend"],
+        integrations: ["Postmark"],
         securityAndPrivacy: ["Tenant isolation"],
         deliveryPlan: ["Pilot"],
         acceptanceCriteria: ["Fill one cancellation"],

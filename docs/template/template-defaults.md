@@ -30,7 +30,7 @@ revocable public snapshot, lifecycle email intent, and conditional Maestro
 handoff. The original Saas UI business dashboard remains available at
 `/dashboard`.
 
-Live OpenRouter, Dodo, MailerSend, durable Confect wiring, pricing, tax, and
+Live OpenRouter, Dodo, Postmark email, durable Confect wiring, pricing, tax, and
 traffic promotion are extension steps. A fork promotes them only after provider
 credentials, spend ceilings, webhook replay/signature tests, privacy copy,
 retention policy, support ownership, and hosted browser smoke are approved.

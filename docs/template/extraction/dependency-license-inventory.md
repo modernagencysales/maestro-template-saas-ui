@@ -16,7 +16,7 @@ artifacts are added.
 | WorkOS/AuthKit               | Auth and workspace membership                 | Required review            | SDK imports stay behind adapter boundaries.                     |
 | PostHog                      | Analytics and product telemetry               | Required review            | Client keys only in browser; no server secret leakage.          |
 | Dodo                         | Billing and payments                          | Required review            | Use fake/local billing by default.                              |
-| MailerSend                   | Email adapter                                 | Required review            | Concrete default email adapter.                                 |
+| Postmark REST API            | Live provider-neutral email adapter           | Required review            | No SDK dependency; server-only HTTP adapter.                    |
 | Resend                       | Optional email candidate                      | Required review            | Documented optional adapter.                                    |
 | OpenRouter-compatible SDKs   | LLM gateway                                   | Required review            | Use OpenAI-compatible client surface where possible.            |
 | Scalar                       | Interactive API documentation                 | Required review            | Mounted through Confect HTTP API.                               |

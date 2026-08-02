@@ -10,7 +10,7 @@ import {
 
 const NonEmptyString = S.String.pipe(S.minLength(1));
 const NonNegativeNumber = S.Number.pipe(S.greaterThanOrEqualTo(0));
-const Provider = S.Literal("openrouter", "dodo", "mailersend", "storage");
+const Provider = S.Literal("openrouter", "dodo", "email", "storage");
 const EntitlementSource = S.Literal("fake", "dodo", "manual");
 const EntitlementStatus = S.Literal("active", "paused", "revoked");
 const WebhookStatus = S.Literal("processed", "duplicate", "failed");

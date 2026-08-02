@@ -17,8 +17,8 @@ and update it before any client or investor review.
 - Current template release or upgrade target.
 - Selected blueprint.
 - Intake status and link to `docs/template/generated/client-intake.md`.
-- Provider posture for WorkOS, PostHog, Dodo, MailerSend, LLM, storage, search,
-  notifications, observability, and payments.
+- Provider posture for WorkOS, PostHog, Dodo, email/Postmark, LLM, storage,
+  search, notifications, observability, and payments.
 - Required secret names, without values.
 - Migrations and generated-code steps.
 - Live-provider swaps still required.
