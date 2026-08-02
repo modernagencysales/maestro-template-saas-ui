@@ -58,7 +58,7 @@ const fixtureRepository = (options?: {
       `${execFileSync("git", ["show", `HEAD:${routeTreePath}`], {
         cwd: root,
         encoding: "utf8",
-      })}\nconst recordsRoute = route.update({ path: "/records" });\n`,
+      })}\nconst recordsRoute = route.update({ path: routes.records });\ninterface FeatureRoutes { records: { fullPath: "/records" } }\n`,
     );
     execFileSync("git", ["add", provenancePath, routeTreePath], { cwd: root });
   }

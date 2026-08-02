@@ -1093,3 +1093,49 @@ commit coordinates will be added only after observation.
   moves to a wholly new post-fix v13 customer rather than repairing v12.
 - Status: upstream source fix is focused-green; final fixed status waits for the
   coherent commit and untouched v13 customer acceptance.
+
+### FR-F-012 — App Map misses registry-backed TanStack routes
+
+- ID/title: FR-F-012 (App Map misses registry-backed TanStack routes).
+- Original posture: newly reproduced/high because the repaired provenance
+  adapter exposes a second customer-only App Map closure failure and blocks the
+  remaining acceptance recipes.
+- Confirmed reproduction: untouched v13 customer
+  `/private/tmp/maestro-fresh-customer-recovery-v13-iTwq2C/customer-clean` at
+  baseline commit `113de7e82f43b526e58bd0365387c2e295f58a2e`, materialized from
+  exact template source `0d9a13b100a26a8a26a31699895356acbff7e87e` with preview
+  fingerprint
+  `sha256:451e841631ce070b9e8d7c47d499ce9cce637a982ea1c235609020c3ca19fa63`,
+  passed pinned frozen install without lock drift, doctor, Confect codegen and
+  manifest, route-tree freshness, the 8/8 env-manifest suite, and all three
+  `test-tooling` packages (268/268 quality, 12/12 workflow, 34/34 generators).
+  `just test-app-map` then failed two ordinary composition cases because both
+  new `route:records` provenance edges were dangling; later recovered recipes
+  did not run.
+- Root cause: the generated TanStack route is present and correctly uses the
+  canonical registry expression `path: saasApplicationRoutes.records`. Its
+  generated type metadata resolves that expression as `fullPath: "/records"`,
+  but the App Map route adapter reads only string literals directly inside
+  `.update({ path: ... })`. The route therefore exists in generated truth while
+  remaining invisible to App Map composition.
+- Regression: the feature-provenance fixture now mirrors the generated form: a
+  registry-backed nonliteral `path` plus literal generated `fullPath` metadata.
+  The existing ownership/generation assertions first failed with the exact
+  dangling `route:records` diagnostics instead of passing through a synthetic
+  literal update path.
+- Canonical fix and files: `tooling/app-map/src/composition.ts` now reads
+  non-root literal `fullPath` property signatures from TanStack's generated
+  route metadata in addition to direct literal update paths;
+  `tooling/app-map/src/composition.test.ts` pins the generated form; and the
+  existing exact customer projection regression in
+  `tooling/generators/src/blueprints/saasApplication.test.ts` requires that
+  parser support. Neither generated TanStack output nor the customer is edited.
+- Focused result: the strengthened red-to-green composition suite passes 8/8,
+  the SaaS blueprint suite passes 25/25, both App Map and generator package
+  typechecks exit zero, scoped ESLint reports zero warnings, scoped Prettier is
+  clean, and `git diff --check` passes, all through focused `host-test-slot`
+  runs with pnpm `10.12.1` where applicable.
+- Clean-customer evidence: v13 remains the untouched reproduction. Final proof
+  moves to a wholly new post-fix customer rather than repairing v13.
+- Status: upstream source fix is focused-green; final fixed status waits for the
+  coherent commit and untouched post-fix customer acceptance.

@@ -450,6 +450,16 @@ const routePaths = (bytes: string): readonly string[] => {
   const paths = new Set<string>();
   const visit = (value: ts.Node): void => {
     if (
+      ts.isPropertySignature(value) &&
+      ts.isIdentifier(value.name) &&
+      value.name.text === "fullPath" &&
+      value.type &&
+      ts.isLiteralTypeNode(value.type) &&
+      ts.isStringLiteral(value.type.literal) &&
+      value.type.literal.text !== "/"
+    )
+      paths.add(value.type.literal.text);
+    if (
       ts.isCallExpression(value) &&
       ts.isPropertyAccessExpression(value.expression) &&
       value.expression.name.text === "update"

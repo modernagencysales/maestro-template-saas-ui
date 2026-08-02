@@ -183,6 +183,9 @@ describe("saas application blueprint", () => {
     ])
       expect(projection).toMatchObject({ replaces: "copy" });
     expect(appMapComposition?.content).toContain('generator === "add-feature"');
+    expect(appMapComposition?.content).toContain(
+      'value.name.text === "fullPath"',
+    );
     expect(appMapCompositionTest?.content).toContain(
       "projects reviewed add-feature provenance to its generated route",
     );
