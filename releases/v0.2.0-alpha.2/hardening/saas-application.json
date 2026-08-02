@@ -783,7 +783,7 @@
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:86e6c87f1a14c547291b295f20385ff48e26cc879cb7a4cb3294b01497474263",
+      "sha256": "sha256:e8723f3eb59623f50b836cdc901d6a7650ca88ef1cc732c3e6bc348fc9a0ef59",
       "replaces": "copy"
     },
     {
@@ -930,7 +930,7 @@
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:961dfd0091c8fb837ffbe0464da987b3838410bc8d54f4cfe90139d28341fe04",
+      "sha256": "sha256:096aeaa1b170689b5efb192bcb1a10d39fb50df2a04114e89778241e7e6966fa",
       "replaces": "copy"
     },
     {
@@ -938,7 +938,7 @@
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:01928205a22174885930fa707ebebc733822c2404159cc8463e3f1c34c79b4c7",
+      "sha256": "sha256:d8a0593ff88f23523cfcbb54c2cc9d1642474841df6b4c7ea9f8af247fa5b46f",
       "replaces": "copy"
     },
     {
@@ -1000,7 +1000,7 @@
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:6cc20ec7fee1241abb664241fe4edf44dbf4e871f126d1d87846fa8faf06d613",
+      "sha256": "sha256:74bbccb421fb215bb3de414ae294e05a198d374ce82925b77e227ed824911e25",
       "replaces": "copy"
     },
     {
@@ -1103,7 +1103,7 @@
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:ab23ed210a0dea2932c52b8281a872f9314d005afc79869c4c57f00583cee5b3",
+      "sha256": "sha256:af9361ebef6cad3bc18e7e731a4fe16da06447c507b018caa0d043f07d396283",
       "replaces": "generate"
     },
     {
@@ -1111,7 +1111,7 @@
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:f570d6903cc7ff15667ba521546e64db7e40f4ac85e001c41422b368db92bfee",
+      "sha256": "sha256:298334d2d7609155e6e5c1374f5caf1ec34d5109443b0ba10b058a52672a9d80",
       "replaces": "copy"
     },
     {
@@ -1119,7 +1119,7 @@
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:6974bf4e474421800c41258ff11b4d5f4ef80c2a228ae7baa5222d33295eabc6",
+      "sha256": "sha256:1cc532611a5680d3d18001c2e5dca39993968aff833dd24add767361e6c21194",
       "replaces": "copy"
     },
     {
@@ -1127,7 +1127,7 @@
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:5a323dceb615649d47406f3cf2b5bcecd6f9da2bdbcfbab1c5f8abac0d6041d9",
+      "sha256": "sha256:5fdf07351722487b45fc33ae9ab8e4900e71186713847791bf1cae4a62ad3b01",
       "replaces": "copy"
     },
     {
@@ -1142,7 +1142,7 @@
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:46699c7e12563eefaa0fe52f0e5343fbc1df39f8cc4dda7f12a4d41ba0b71bf1",
+      "sha256": "sha256:b5514cc8cdaaa94094a7c21a0a2486dc03f23c3ddf3de5abffc87d587da438b5",
       "replaces": "copy"
     },
     {
@@ -1150,7 +1150,7 @@
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:b5ffc652a2fc00392d2689bfc5eb1fe87d88d9fd3fb33ac558287753e3212b03",
+      "sha256": "sha256:ac70afd75a6d938bb593256bdc50a2283c02faeb10b436a55668816a246348ff",
       "replaces": "copy"
     },
     {
@@ -1250,7 +1250,7 @@
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:2ff8e4aded6797ec905cb05bc199e727d4c2359f949e5e45e0345784689f16f3",
+      "sha256": "sha256:6f1456a78f5572c76329c8f917a9c5773803c583950befc032255d881c9ded21",
       "replaces": "copy"
     },
     {
@@ -1790,7 +1790,7 @@
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:f21e85fc4e229951a72b8aef1d38eabec2fadcd38b1009b068f9540c6857f464",
+      "sha256": "sha256:acc7276e518643858b43024e0ad8897623e806202c5da4286f8b22021d3f89e0",
       "replaces": "copy"
     },
     {
@@ -1805,7 +1805,7 @@
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:680505cb6c42468635126e567f375c5c2ee25688fd3d0eafbebca36c5b8b8c4b",
+      "sha256": "sha256:9a2352568b2209186ed3c0520831af8394911e5ed8865cb4b6ac1ed4d92671dd",
       "replaces": "copy"
     },
     {
@@ -1831,6 +1831,13 @@
       "upgrade": "regenerate",
       "sha256": "sha256:f215fd88c589a73216cf745b244802ccd2265b8fb438ae7279eafedeb994bc10",
       "replaces": "copy"
+    },
+    {
+      "path": "scripts/configure-postmark.mts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:a1a50091d807567925976ecda89bc554fc107fc6f8b748e5d6349daa18c705f5"
     },
     {
       "path": "scripts/maestro-bootstrap.mjs",
@@ -2146,7 +2153,7 @@
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:eb5ab2a76de742b56c9c0d46db47d78078d4d4e00f4cb754f2f3ff5e3d374bb0",
+      "sha256": "sha256:a9d2efb839c745fc50a2c8ab6151f6ce20537603e9c9189a0124b2cb1ac7ea00",
       "replaces": "copy"
     },
     {
@@ -2293,7 +2300,7 @@
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:30a53738b629d698fb82b1149aa0849ec6ebf107d7919e03d7acc564810e0698",
+      "sha256": "sha256:3ebce8040865a5e1e9a667e013fcba3f51666513a46cf25699c4eef37f3c2d35",
       "replaces": "copy"
     },
     {
@@ -2301,7 +2308,7 @@
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:ea684477b5c93b578e7237e409bbdb6789702e267302d90b41321d0621602926",
+      "sha256": "sha256:2bfc576b2e6f83213d77aee66956251e57c7c63de5124a7fb9ae580c032685f9",
       "replaces": "copy"
     },
     {
