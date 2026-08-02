@@ -9,7 +9,7 @@ const checkDescriptorDefinitions = {
     name: "check:ci-completeness",
     requirements: [
       {
-        file: ".buildkite/pipeline.yml",
+        file: ".woodpecker/verify.yml",
         includes: [
           "ci-self-protection",
           "pnpm verify",
@@ -29,14 +29,22 @@ const checkDescriptorDefinitions = {
           "pnpm check:promotion-boundary",
           "taste",
           "contract-review",
-          "staging-deploy",
-          "staging-authority-preflight",
-          "production-authority-preflight",
-          "production-promote.sh",
-          'depends_on: "staging-authority-preflight"',
-          'depends_on: "production-authority-preflight"',
         ],
-        message: "Buildkite pipeline must include deterministic and AI gates",
+        message:
+          "Woodpecker verification must include deterministic and AI gates",
+      },
+      {
+        file: ".woodpecker/deploy.yml",
+        includes: [
+          "deploy-staging",
+          "deploy-production",
+          'CI_PIPELINE_DEPLOY_TARGET == "staging"',
+          'CI_PIPELINE_DEPLOY_TARGET == "production"',
+          "tooling/ci/staging-deploy.sh",
+          "tooling/ci/production-promote.sh",
+        ],
+        message:
+          "Woodpecker deployment pipeline must isolate staging and production",
       },
       {
         file: ".github/workflows/quality.yml",
@@ -66,7 +74,7 @@ const checkDescriptorDefinitions = {
           "code-owner review must protect sensitive contracts without gating ordinary product files",
       },
       {
-        file: ".buildkite/scripts/ci-self-protection.sh",
+        file: "tooling/ci/ci-self-protection.sh",
         includes: [
           "check:ci-completeness",
           "check:deploy-authority",
@@ -100,7 +108,7 @@ const checkDescriptorDefinitions = {
           "deploy policy must pin the guarded primitive owner, preflights, and credential scope",
       },
       {
-        file: ".buildkite/scripts/phase1.sh",
+        file: "tooling/ci/phase1.sh",
         includes: [
           "pnpm check:system-catalog",
           "pnpm check:system-topology",
