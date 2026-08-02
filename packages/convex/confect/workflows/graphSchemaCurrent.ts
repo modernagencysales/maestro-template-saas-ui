@@ -30,7 +30,7 @@ export const DurableWorkflowGraphSchemaFields = defineWorkflowSchemaFields(
     id: S.String,
     version: S.Number,
     startNodeId: S.String,
-    nodes: S.Array(WorkflowNode).pipe(S.minItems(1)),
+    nodes: S.Array(WorkflowNode).pipe(S.check(S.isMinLength(1))),
     edges: S.Array(WorkflowEdge),
     joins: S.Array(WorkflowJoin),
   },
@@ -42,19 +42,23 @@ export type DurableWorkflowGraph = S.Schema.Type<typeof DurableWorkflowGraph>;
 
 export const WorkflowKickoffProfile = S.Struct({
   name: S.NonEmptyString,
-  mode: S.Literal("eager-first-poll", "queued"),
+  mode: S.Literals(["eager-first-poll", "queued"]),
   default: S.Boolean,
 });
 
-export const WorkflowUnstableArgsPosture = S.Union(
+export const WorkflowUnstableArgsPosture = S.Union([
   S.Struct({ enabled: S.Literal(false) }),
   S.Struct({ enabled: S.Literal(true), adrRef: S.NonEmptyString }),
-);
+]);
 
 export const DurableWorkflowGraphV2 = S.Struct({
   schemaVersion: S.Literal(2),
   id: S.NonEmptyString,
-  version: S.Number.pipe(S.finite(), S.int(), S.greaterThan(0)),
+  version: S.Number.pipe(
+    S.check(S.isFinite()),
+    S.check(S.isInt()),
+    S.check(S.isGreaterThan(0)),
+  ),
   startNodeId: S.NonEmptyString,
   argsSchemaName: S.NonEmptyString,
   returnSchemaName: S.NonEmptyString,
@@ -62,7 +66,7 @@ export const DurableWorkflowGraphV2 = S.Struct({
   policyPosture: WorkflowPolicyPosture,
   kickoffProfiles: S.Array(WorkflowKickoffProfile),
   unstableArgs: WorkflowUnstableArgsPosture,
-  nodes: S.Array(WorkflowNodeV2).pipe(S.minItems(1)),
+  nodes: S.Array(WorkflowNodeV2).pipe(S.check(S.isMinLength(1))),
   edges: S.Array(WorkflowEdge),
   joins: S.Array(WorkflowJoin),
 });
@@ -71,7 +75,7 @@ export type DurableWorkflowGraphV2 = S.Schema.Type<
   typeof DurableWorkflowGraphV2
 >;
 
-export const decodeDurableWorkflowGraphV2 = S.decodeUnknownEither(
+export const decodeDurableWorkflowGraphV2 = S.decodeUnknownExit(
   DurableWorkflowGraphV2,
   { errors: "all", onExcessProperty: "error" },
 );
