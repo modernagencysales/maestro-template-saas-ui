@@ -273,7 +273,7 @@ function buildTargetPlan(
   const replacements = new Map<string, "copy" | "generate">([
     ...(current
       ? ([
-          ["Justfile", "copy"],
+          ["Justfile", "generate"],
           ["apps/cli/package.json", "copy"],
           ["apps/web/package.json", "copy"],
           ["docs/template/env-manifest.json", "copy"],

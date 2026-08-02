@@ -1164,7 +1164,7 @@ commit coordinates will be added only after observation.
   `Justfile` unchanged while correctly narrowing the customer root-script and
   filesystem closures. Four factory-only recipes consequently advertised
   commands with no customer owner.
-- Regression: the SaaS blueprint suite requires an exact reviewed copy
+- Regression: the SaaS blueprint suite requires the exact reviewed base-generate
   replacement for `Justfile`, rejects all four factory-only recipe names, and
   checks every retained direct `pnpm <script>` delegation against the projected
   customer root scripts. The regression first failed on the retained
@@ -1174,8 +1174,8 @@ commit coordinates will be added only after observation.
   `tooling/generators/src/blueprints/saasApplicationFactory.ts` performs
   fail-closed, marker-checked removal of only the four factory-only recipe
   blocks; `tooling/generators/src/blueprints/saasApplication.ts` grants the
-  current projection exact copy-replacement authority and registers it; and
-  `tooling/generators/src/blueprints/saasApplication.test.ts` pins both the
+  current projection exact base-generate replacement authority and registers it;
+  and `tooling/generators/src/blueprints/saasApplication.test.ts` pins both the
   closure and current-plan inventories. The canonical template `Justfile`, its
   factory gates, and the sealed release remain unchanged.
 - Focused result: the red-to-green SaaS blueprint suite passes 25/25, generator
@@ -1184,5 +1184,41 @@ commit coordinates will be added only after observation.
   pnpm `10.12.1` where applicable.
 - Clean-customer evidence: v14 remains the untouched reproduction. Final proof
   moves to a wholly new post-fix customer rather than repairing v14.
+- Status: upstream source fix is focused-green; final fixed status waits for the
+  coherent commit and untouched post-fix customer acceptance.
+
+### FR-F-014 — Customer Justfile replacement names the wrong base action
+
+- ID/title: FR-F-014 (customer Justfile replacement names the wrong base
+  action).
+- Original posture: newly reproduced/critical because reviewed public create
+  rejects the post-FR-F-013 candidate before preview or materialization.
+- Confirmed reproduction: disposable v15 release checkout
+  `/private/tmp/maestro-fresh-customer-recovery-v15-xb0vCK/release` at exact
+  template source `4043cc9142889934f992113d6426239fc86e1819`, with the reviewed
+  `maestro-template-v0.2.0-alpha.1` tag bound to the same SHA and a clean pinned
+  frozen install, failed the public create preview with
+  `AGENT_PACK_CREATE_UNSAFE_TARGET: Blueprint target plan overlaps release operation: Justfile`.
+  No customer target was written.
+- Root cause: the sealed base manifest owns `Justfile` as `action: "generate"`,
+  but the new current blueprint projection declared `replaces: "copy"`. The
+  materializer correctly requires exact agreement with the base write authority
+  and rejected the mismatch.
+- Regression: the SaaS blueprint suite now requires `Justfile` to declare exact
+  `replaces: "generate"` authority. It first failed with the projected `copy`
+  value.
+- Canonical fix and files:
+  `tooling/generators/src/blueprints/saasApplication.ts` changes only the
+  `Justfile` replacement action from `copy` to `generate`, and
+  `tooling/generators/src/blueprints/saasApplication.test.ts` pins the sealed
+  manifest contract. No validator, materializer, sealed manifest, or generated
+  customer file is changed.
+- Focused result: the red-to-green SaaS blueprint suite passes 25/25, generator
+  typecheck exits zero, scoped ESLint reports zero warnings, and
+  `git diff --check` passes through the focused host semaphore using pnpm
+  `10.12.1` where applicable.
+- Clean-customer evidence: v15 is an untouched fail-closed preview reproduction.
+  Final proof moves to a wholly new post-fix customer rather than reusing its
+  release checkout or target path.
 - Status: upstream source fix is focused-green; final fixed status waits for the
   coherent commit and untouched post-fix customer acceptance.

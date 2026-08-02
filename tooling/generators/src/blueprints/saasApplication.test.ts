@@ -191,7 +191,7 @@ describe("saas application blueprint", () => {
       "projects reviewed add-feature provenance to its generated route",
     );
     expect(appMapSchema?.content).toContain('ownershipTargets: ["route"]');
-    expect(justfile).toMatchObject({ replaces: "copy" });
+    expect(justfile).toMatchObject({ replaces: "generate" });
     expect(justfile?.content).not.toContain("test-pr-backlog:");
     expect(justfile?.content).not.toContain("evals:");
     expect(justfile?.content).not.toContain("check-workflow-output-smoke:");
