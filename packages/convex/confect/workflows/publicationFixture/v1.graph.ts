@@ -1,4 +1,4 @@
-import * as Either from "effect/Either";
+import * as Result from "effect/Result";
 import { defineWorkflowGraphV2 } from "../_kit/workflowBuilder";
 import { defineWorkflowReferenceRegistry } from "../_kit/workflowReferences";
 
@@ -8,7 +8,7 @@ export const publicationFixtureReferences = defineWorkflowReferenceRegistry({
   events: { approvalDecision: "event.approvalDecision.v1" },
 });
 
-export const publicationFixtureGraph = Either.getOrThrow(
+export const publicationFixtureGraph = Result.getOrThrow(
   defineWorkflowGraphV2({
     id: "workflow_publicationFixture",
     version: 2,

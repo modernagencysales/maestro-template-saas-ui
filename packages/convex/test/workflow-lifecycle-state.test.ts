@@ -1,7 +1,8 @@
 import { TestConfect } from "@confect/test";
-import * as Either from "effect/Either";
 import * as Effect from "effect/Effect";
+import * as Exit from "effect/Exit";
 import * as Option from "effect/Option";
+import * as Result from "effect/Result";
 import * as Schema from "effect/Schema";
 import { describe, expect, it } from "vitest";
 
@@ -57,7 +58,7 @@ const apply = (
   state: WorkflowLifecycleState,
   next: WorkflowLifecycleCommand,
 ): WorkflowLifecycleState =>
-  Either.getOrThrow(transitionWorkflowLifecycle(state, next));
+  Result.getOrThrow(transitionWorkflowLifecycle(state, next));
 
 describe("pure workflow lifecycle state", () => {
   it.each(["terminal", "canceled"] as const)(
@@ -157,8 +158,9 @@ describe("pure workflow lifecycle state", () => {
     ],
   ])("fails closed on %s", (_name, state, next, reason) => {
     const result = transitionWorkflowLifecycle(state, next);
-    expect(Either.isLeft(result)).toBe(true);
-    if (Either.isLeft(result)) expect(result.left.reason).toContain(reason);
+    expect(Result.isFailure(result)).toBe(true);
+    if (Result.isFailure(result))
+      expect(result.failure.reason).toContain(reason);
   });
 
   it("property-checks every command guard before transition logic", () => {
@@ -179,7 +181,7 @@ describe("pure workflow lifecycle state", () => {
     ];
     for (const next of commands) {
       expect(
-        Either.isLeft(
+        Result.isFailure(
           transitionWorkflowLifecycle(baseState(), {
             ...next,
             workspaceId: "other-workspace",
@@ -187,7 +189,7 @@ describe("pure workflow lifecycle state", () => {
         ),
       ).toBe(true);
       expect(
-        Either.isLeft(
+        Result.isFailure(
           transitionWorkflowLifecycle(baseState(), {
             ...next,
             generation: 99,
@@ -346,11 +348,11 @@ describe("workflow lifecycle persistence leaves", () => {
       generation: 0,
       generationAnchor: deriveGenerationAnchor("workflow.invoice", 3, 0),
     };
-    expect(Either.getOrThrow(decodeWorkflowOnCompleteContext(valid))).toEqual(
-      valid,
-    );
+    const decoded = decodeWorkflowOnCompleteContext(valid);
+    expect(Exit.isSuccess(decoded)).toBe(true);
+    if (Exit.isSuccess(decoded)) expect(decoded.value).toEqual(valid);
     expect(
-      Either.isLeft(
+      Exit.isFailure(
         decodeWorkflowOnCompleteContext({
           ...valid,
           workspaceId: "x".repeat(MAX_ON_COMPLETE_CONTEXT_BYTES),
@@ -358,7 +360,7 @@ describe("workflow lifecycle persistence leaves", () => {
       ),
     ).toBe(true);
     expect(
-      Either.isLeft(
+      Exit.isFailure(
         decodeWorkflowOnCompleteContext({ ...valid, workflowVersion: -1 }),
       ),
     ).toBe(true);
