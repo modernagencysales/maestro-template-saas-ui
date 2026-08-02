@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildReleaseReadinessPlan,
   buildReviewedAdditionalPaths,
   buildReviewedOwnershipInventory,
   parseReviewedFactoryOnlyExclusions,
+  validateReleaseSourceState,
 } from "./release-seal.mjs";
 
 const factoryRule = (path: string, match: "exact" | "subtree") => ({
@@ -11,6 +13,104 @@ const factoryRule = (path: string, match: "exact" | "subtree") => ({
   ownership: "factory-only",
   action: "omit",
   upgrade: "remove",
+});
+
+describe("release candidate readiness", () => {
+  const sourceCommit = "a".repeat(40);
+
+  it("derives a distinct alpha.3 release identity without authorizing a default switch", () => {
+    expect(
+      buildReleaseReadinessPlan({
+        version: "0.2.0-alpha.3",
+        sourceCommit,
+        check: false,
+        currentPublicDefaultVersion: "0.2.0-alpha.2",
+        publishedTagMaterializationVerified: false,
+      }),
+    ).toEqual({
+      version: "0.2.0-alpha.3",
+      sourceCommit,
+      tag: "maestro-template-v0.2.0-alpha.3",
+      releaseRoot: "releases/v0.2.0-alpha.3",
+      manifestPath: "releases/v0.2.0-alpha.3/manifest.json",
+      blueprintPath: "releases/v0.2.0-alpha.3/blueprints/saas-application.json",
+      publicDefaultAdvanceAllowed: false,
+    });
+  });
+
+  it("refuses to reseal the immutable public default", () => {
+    expect(() =>
+      buildReleaseReadinessPlan({
+        version: "0.2.0-alpha.2",
+        sourceCommit,
+        check: false,
+        currentPublicDefaultVersion: "0.2.0-alpha.2",
+        publishedTagMaterializationVerified: true,
+      }),
+    ).toThrow("Refusing to overwrite immutable release 0.2.0-alpha.2");
+  });
+
+  it("allows checking the immutable public default without resealing it", () => {
+    expect(
+      buildReleaseReadinessPlan({
+        version: "0.2.0-alpha.2",
+        sourceCommit,
+        check: true,
+        currentPublicDefaultVersion: "0.2.0-alpha.2",
+        publishedTagMaterializationVerified: true,
+      }).releaseRoot,
+    ).toBe("releases/v0.2.0-alpha.2");
+  });
+
+  it("requires write sealing to use the exact source head", () => {
+    expect(() =>
+      validateReleaseSourceState({
+        check: false,
+        sourceCommit,
+        headCommit: "b".repeat(40),
+        sourceIsAncestor: true,
+        worktreeStatus: "",
+      }),
+    ).toThrow("Write sealing requires HEAD to equal the frozen source commit.");
+  });
+
+  it("allows check mode from a clean descendant of the source", () => {
+    expect(() =>
+      validateReleaseSourceState({
+        check: true,
+        sourceCommit,
+        headCommit: "b".repeat(40),
+        sourceIsAncestor: true,
+        worktreeStatus: "",
+      }),
+    ).not.toThrow();
+  });
+
+  it("rejects check mode when the source is not an ancestor", () => {
+    expect(() =>
+      validateReleaseSourceState({
+        check: true,
+        sourceCommit,
+        headCommit: "b".repeat(40),
+        sourceIsAncestor: false,
+        worktreeStatus: "",
+      }),
+    ).toThrow("Checked release source is not an ancestor of HEAD.");
+  });
+
+  it("rejects a dirty worktree in both check and write modes", () => {
+    for (const check of [false, true]) {
+      expect(() =>
+        validateReleaseSourceState({
+          check,
+          sourceCommit,
+          headCommit: sourceCommit,
+          sourceIsAncestor: true,
+          worktreeStatus: " M package.json",
+        }),
+      ).toThrow("Release sealing requires a clean source checkout.");
+    }
+  });
 });
 
 describe("release seal factory-only exclusions", () => {
