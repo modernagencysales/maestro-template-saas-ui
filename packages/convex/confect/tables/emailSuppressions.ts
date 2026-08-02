@@ -1,14 +1,14 @@
 import { Table } from "@confect/server";
 import * as Schema from "effect/Schema";
 
-export const EmailSuppressionReason = Schema.Literal(
+export const EmailSuppressionReason = Schema.Literals([
   "unsubscribe",
   "hard_bounce",
   "soft_bounce_limit",
   "spam_complaint",
   "subscription_change",
   "operator",
-);
+]);
 
 export const EmailSuppressionRow = Schema.Struct({
   email: Schema.String,

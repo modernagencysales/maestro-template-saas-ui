@@ -1,13 +1,13 @@
 import { Table } from "@confect/server";
 import * as Schema from "effect/Schema";
 
-export const EmailCampaignStatus = Schema.Literal(
+export const EmailCampaignStatus = Schema.Literals([
   "preparing",
   "sending",
   "sent",
   "partial",
   "failed",
-);
+]);
 
 export const EmailCampaignRow = Schema.Struct({
   workspaceId: Schema.String,

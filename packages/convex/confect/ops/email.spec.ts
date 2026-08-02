@@ -20,15 +20,15 @@ import {
   defineContractFunction,
 } from "../capabilities/_kit/capability";
 
-const NonEmptyString = Schema.String.pipe(Schema.minLength(1));
-const EmailError = Schema.Union(
+const NonEmptyString = Schema.String.pipe(Schema.check(Schema.isMinLength(1)));
+const EmailError = Schema.Union([
   Unauthorized,
   Forbidden,
   MemberNotInWorkspace,
   WorkspaceNotFound,
   NotFound,
   ValidationFailed,
-);
+]);
 
 export const SubscribeEmailArgs = Schema.Struct({
   workspaceId: Id("workspaces"),
@@ -47,7 +47,7 @@ export const BroadcastPreviewArgs = Schema.Struct({
 });
 
 export const BroadcastPreviewReturn = Schema.Struct({
-  eligibleRecipients: Schema.Number.pipe(Schema.int()),
+  eligibleRecipients: Schema.Number.pipe(Schema.check(Schema.isInt())),
   capped: Schema.Boolean,
 });
 
@@ -142,7 +142,7 @@ export const BroadcastDispatchReturn = Schema.Struct({
 });
 
 export const ProviderEventReturn = Schema.Struct({
-  status: Schema.Literal("processed", "duplicate"),
+  status: Schema.Literals(["processed", "duplicate"]),
   suppressed: Schema.Boolean,
 });
 
@@ -157,7 +157,7 @@ const unsubscribe = FunctionSpec.internalMutation({
   name: "unsubscribe",
   args: () => UnsubscribeEmailArgs,
   returns: () => SubscriberReturn,
-  error: () => Schema.Union(NotFound),
+  error: () => Schema.Union([NotFound]),
 });
 
 const previewBroadcastContract = defineContractFunction(
@@ -193,14 +193,14 @@ const sendTransactional = FunctionSpec.internalAction({
   name: "sendTransactional",
   args: () => SendTransactionalArgs,
   returns: () => DeliveryReturn,
-  error: () => Schema.Union(ValidationFailed),
+  error: () => Schema.Union([ValidationFailed]),
 });
 
 const claimTransactional = FunctionSpec.internalMutation({
   name: "claimTransactional",
   args: () => SendTransactionalArgs,
   returns: () => ClaimTransactionalReturn,
-  error: () => Schema.Union(ValidationFailed),
+  error: () => Schema.Union([ValidationFailed]),
 });
 
 const recordTransactionalResult = FunctionSpec.internalMutation({

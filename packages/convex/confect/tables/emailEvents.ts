@@ -1,7 +1,7 @@
 import { Table } from "@confect/server";
 import * as Schema from "effect/Schema";
 
-export const EmailEventKind = Schema.Literal(
+export const EmailEventKind = Schema.Literals([
   "delivery",
   "hard_bounce",
   "soft_bounce",
@@ -9,7 +9,7 @@ export const EmailEventKind = Schema.Literal(
   "subscription_change",
   "open",
   "click",
-);
+]);
 
 export const EmailEventRow = Schema.Struct({
   fingerprint: Schema.String,

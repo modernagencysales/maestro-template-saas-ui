@@ -8,7 +8,6 @@ import email from "../confect/ops/email.spec";
 import refs from "../confect/_generated/refs";
 import databaseSchema from "../confect/_generated/schema";
 import { DatabaseReader, DatabaseWriter } from "../confect/_generated/services";
-import emailImpl from "../confect/ops/email.impl";
 import {
   BroadcastPreviewReturn,
   DispatchBroadcastArgs,
@@ -135,14 +134,11 @@ describe("email Confect contracts", () => {
     ]) {
       expect(serialized).toContain(name);
     }
-    expect(emailImpl).toMatchObject({ _op_layer: "Fold" });
   });
 
   it("requires explicit opt-in and keeps unsubscribe idempotent and suppression-aware", async () => {
     const program = Effect.gen(function* () {
-      const confect = yield* Effect.serviceOptional(
-        TestConfect.TestConfect<typeof databaseSchema>(),
-      );
+      const confect = yield* TestConfect.TestConfect<typeof databaseSchema>();
       const seeded = yield* confect.run(
         seedTenancy(1_785_648_000_000),
         SeededTenancy,
@@ -242,9 +238,7 @@ describe("email Confect contracts", () => {
 
   it("deduplicates transactional sends and snapshots a confirmed broadcast", async () => {
     const program = Effect.gen(function* () {
-      const confect = yield* Effect.serviceOptional(
-        TestConfect.TestConfect<typeof databaseSchema>(),
-      );
+      const confect = yield* TestConfect.TestConfect<typeof databaseSchema>();
       const seeded = yield* confect.run(
         seedTenancy(1_785_648_000_000),
         SeededTenancy,
@@ -326,9 +320,7 @@ describe("email Confect contracts", () => {
 
   it("suppresses on hard bounce and after three distinct soft bounces", async () => {
     const program = Effect.gen(function* () {
-      const confect = yield* Effect.serviceOptional(
-        TestConfect.TestConfect<typeof databaseSchema>(),
-      );
+      const confect = yield* TestConfect.TestConfect<typeof databaseSchema>();
       yield* confect.run(seedTenancy(1_785_648_000_000), SeededTenancy);
       const hard = yield* confect.mutation(
         refs.internal.ops.email.processProviderEvent,

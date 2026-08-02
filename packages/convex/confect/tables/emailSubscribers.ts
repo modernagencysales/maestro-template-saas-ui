@@ -1,10 +1,10 @@
 import { Table } from "@confect/server";
 import * as Schema from "effect/Schema";
 
-export const EmailSubscriberStatus = Schema.Literal(
+export const EmailSubscriberStatus = Schema.Literals([
   "subscribed",
   "unsubscribed",
-);
+]);
 
 export const EmailSubscriberRow = Schema.Struct({
   workspaceId: Schema.String,
