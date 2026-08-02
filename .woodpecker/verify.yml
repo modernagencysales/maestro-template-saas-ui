@@ -35,6 +35,8 @@ steps:
       CI: "true"
       NODE_OPTIONS: "--max-old-space-size=6144"
     commands:
+      - apt-get update
+      - apt-get install -y --no-install-recommends strace
       - tooling/ci/phase1.sh
     depends_on:
       - trusted-ci-policy

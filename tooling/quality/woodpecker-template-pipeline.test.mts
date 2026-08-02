@@ -35,6 +35,12 @@ describe("Woodpecker template pipeline", () => {
     );
   });
 
+  it("provisions the Linux syscall tracer required by privacy gates", () => {
+    expect(read(".woodpecker/verify.yml")).toContain(
+      "apt-get install -y --no-install-recommends strace",
+    );
+  });
+
   it("checks in pipeline entrypoints as executable files", () => {
     for (const name of readdirSync(resolve(root, "tooling/ci")).filter((name) =>
       name.endsWith(".sh"),
