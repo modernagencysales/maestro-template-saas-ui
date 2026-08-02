@@ -464,7 +464,7 @@ const providerManifestGroup = {
   workos: "workos",
   posthog: "posthog",
   dodo: "dodo",
-  email: "mailersend",
+  email: "email",
   llm: "openrouter",
   storage: "storage",
 } as const satisfies Record<TemplateProvider, string>;
@@ -951,7 +951,7 @@ owner.
 - WorkOS: use fake AuthKit IDs until production auth is approved.
 - PostHog: keep analytics disabled or test-only until event capture is approved.
 - Dodo: keep billing in test/fake mode until pricing, webhooks, and ledger reconciliation are reviewed.
-- MailerSend: keep email disabled or console-only until the sender domain is verified.
+- Email: keep delivery disabled or fake-only until Postmark sender signatures and webhooks are verified.
 - OpenRouter-compatible LLM: use deterministic fake completions until spend caps, model allowlist, and redaction posture are approved.
 - Storage and search: use local/fake providers until source ownership, retention, export, and delete posture are documented.
 - Cloudflare and Buildkite: use local commands first, then configure hosted smoke and CI promotion after the fork is stable.
@@ -1344,7 +1344,7 @@ for a source-backed B2B AI/GTM app. No live secrets required in fake mode.
 - WorkOS: fake until auth ownership and domains are approved.
 - PostHog: fake/test until event capture is approved.
 - Dodo: fake/test until pricing and reconciliation are approved.
-- MailerSend: console/fake until sender domain and templates are approved.
+- Email: fake until Postmark sender signatures, streams, templates, and webhooks are approved.
 - LLM: deterministic fake until spend caps, model allowlist, and redaction are
   approved.
 
@@ -2875,7 +2875,7 @@ export const buildTemplateUpgradeReport = (options: {
     "tooling/generators",
   ];
   const envChanges = [
-    "Review WorkOS, PostHog, Dodo, MailerSend, LLM, storage, and search env names.",
+    "Review WorkOS, PostHog, Dodo, email, LLM, storage, and search env names.",
     "Confirm fake/test/live provider mode still matches template-instance.json.",
   ];
   const migrations = [

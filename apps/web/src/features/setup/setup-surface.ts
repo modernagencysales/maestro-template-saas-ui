@@ -22,7 +22,7 @@ export const requiredLiveProviderEnv = [
   "WORKOS_API_KEY",
   "POSTHOG_PROJECT_TOKEN",
   "DODO_API_KEY",
-  "MAILERSEND_API_KEY",
+  "POSTMARK_SERVER_TOKEN",
   "OPENROUTER_API_KEY",
 ] as const;
 
@@ -71,8 +71,8 @@ export const buildProviderSetupDocumentSections = (
     {
       heading: "Email and notifications",
       body: [
-        "**MailerSend** starts in console + live mode so notification flows can be reviewed before deliverability is enabled.",
-        "Notifications should use typed templates, explicit recipients, and redacted provider errors.",
+        "**Email** starts in fake mode and uses Postmark in live mode after sender and webhook verification.",
+        "Transactional templates use the outbound stream; opted-in marketing uses broadcast with one-click unsubscribe.",
       ],
     },
     {
@@ -115,7 +115,7 @@ export const buildOnboardingDocumentSections =
       heading: "Launch checks",
       body: [
         "- Run browser smoke, app tests, Confect contract checks, and deploy readiness checks before handoff.",
-        "- Confirm WorkOS, PostHog, Dodo, MailerSend, storage, and model provider posture.",
+        "- Confirm WorkOS, PostHog, Dodo, email, storage, and model provider posture.",
         "- Confirm feature flags and kill switches before enabling live billing, notifications, or model calls.",
         "- Save a Trust Receipt for the first meaningful workflow run.",
       ],

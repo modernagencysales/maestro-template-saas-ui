@@ -10,6 +10,7 @@ const createAdapter = (
 ): HeadlessExecutionAdapter => ({
   refs: {
     "brain.pages.createMarkdown": "brain.pages.createMarkdown.ref",
+    "ops.email.dispatchBroadcast": "ops.email.dispatchBroadcast.ref",
   },
   runQuery: async () => {
     throw new Error("runQuery should not be called");
@@ -39,6 +40,23 @@ describe("headless executor", () => {
         _tag: "ValidationFailed",
         message:
           "Operation brain.pages.createMarkdown requires a nonblank idempotencyKey.",
+      },
+    });
+  });
+
+  it("requires an idempotency key before dispatching a broadcast", async () => {
+    const result = await executeHeadlessOperation(createAdapter(), {
+      operationId: "ops.email.dispatchBroadcast",
+      surface: "api",
+      input: { confirmation: "SEND" },
+    });
+
+    expect(result).toEqual({
+      ok: false,
+      error: {
+        _tag: "ValidationFailed",
+        message:
+          "Operation ops.email.dispatchBroadcast requires a nonblank idempotencyKey.",
       },
     });
   });

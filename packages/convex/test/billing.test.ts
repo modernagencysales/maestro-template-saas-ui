@@ -603,7 +603,7 @@ describe("billing Confect contracts", () => {
         .mutation(refs.public.ops.billing.recordUsage, {
           workspaceId: seeded.workspaceId,
           idempotencyKey: "usage-mismatch",
-          provider: "mailersend",
+          provider: "email",
           units: 12,
           costCredits: 4,
           entitlementKey: "llm_credits",

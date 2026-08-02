@@ -12,6 +12,8 @@ export * from "./dodo";
 export * from "./workos";
 export * from "./rateLimit";
 export * from "./flags";
+export * from "./email";
+export * from "./emailSetup";
 
 export type ProviderMode = "fake" | "test" | "live";
 
@@ -19,7 +21,7 @@ export type ProviderId =
   | "workos"
   | "posthog"
   | "dodo"
-  | "mailersend"
+  | "email"
   | "openrouter"
   | "storage"
   | "search"
@@ -132,14 +134,19 @@ export const providerDescriptors = [
       "Billing defaults to fake packages, entitlements, and credit ledger state.",
   },
   {
-    id: "mailersend",
+    id: "email",
     family: "email",
-    displayName: "MailerSend",
+    displayName: "Email (Postmark)",
     fakeMode: true,
     liveMode: true,
-    requiredEnv: ["MAILERSEND_API_KEY", "MAILERSEND_FROM_EMAIL"],
-    redactedFields: ["apiKey", "recipient", "templateData"],
-    notes: "Console/fake delivery is the default local path.",
+    requiredEnv: [
+      "POSTMARK_SERVER_TOKEN",
+      "EMAIL_TRANSACTIONAL_FROM",
+      "EMAIL_MARKETING_FROM",
+    ],
+    redactedFields: ["recipient", "templateData", "templateModel"],
+    notes:
+      "Provider-neutral email uses Postmark outbound and broadcast streams in live mode.",
   },
   {
     id: "openrouter",

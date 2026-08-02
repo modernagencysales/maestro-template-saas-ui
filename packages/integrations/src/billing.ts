@@ -19,7 +19,7 @@ export type UsageEvent = {
   readonly id: string;
   readonly workspaceSlug: string;
   readonly idempotencyKey: string;
-  readonly provider: "openrouter" | "dodo" | "mailersend" | "storage";
+  readonly provider: "openrouter" | "dodo" | "email" | "storage";
   readonly units: number;
   readonly costCredits: number;
   readonly createdAt: number;

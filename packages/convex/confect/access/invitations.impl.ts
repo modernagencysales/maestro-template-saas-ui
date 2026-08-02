@@ -1,14 +1,21 @@
 import { FunctionImpl, GroupImpl } from "@confect/server";
 import type { GenericId } from "convex/values";
 import * as Clock from "effect/Clock";
+import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
 
 import type { InvitationsDoc } from "../_generated/docs";
 import databaseSchema from "../_generated/schema";
-import { DatabaseReader, DatabaseWriter } from "../_generated/services";
+import refs from "../_generated/refs";
+import {
+  DatabaseReader,
+  DatabaseWriter,
+  Scheduler,
+} from "../_generated/services";
 import { stableFingerprint } from "../shared/tokenCrypto";
+import { PublicBaseUrlConfig } from "../shared/config";
 import { recordAccessLifecycleEvents } from "./audit";
 import {
   Forbidden,
@@ -89,6 +96,23 @@ const create = FunctionImpl.make(
         ],
         now,
       );
+      const scheduler = yield* Scheduler;
+      const publicBaseUrl = yield* PublicBaseUrlConfig.pipe(
+        Effect.orElseSucceed(() => "http://localhost:5173"),
+      );
+      yield* scheduler
+        .runAfter(Duration.zero, refs.internal.ops.email.sendTransactional, {
+          workspaceId,
+          to: plan.invitation.email,
+          templateAlias: "workspace-invitation",
+          templateModelJson: JSON.stringify({
+            workspace_name: workspace.name,
+            invitation_id: invitationId,
+            invitation_url: `${new URL(publicBaseUrl).origin}/invitations/${invitationId}`,
+          }),
+          idempotencyKey: `invitation.${invitationId}`,
+        })
+        .pipe(Effect.orDie);
 
       return invitationId;
     }),

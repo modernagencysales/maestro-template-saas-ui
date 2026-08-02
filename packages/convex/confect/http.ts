@@ -5,6 +5,12 @@ import {
   makeFunctionReference,
 } from "convex/server";
 import { api } from "../convex/_generated/api";
+import { verifyEmailUnsubscribeToken } from "./email/unsubscribeToken";
+import { readEmailHttpEnv } from "./email/env";
+import {
+  normalizePostmarkEvent,
+  verifyPostmarkBasicAuth,
+} from "./email/postmarkWebhook";
 import { handleDeployAuthorityHttpRequest } from "./deployAuthority/http";
 import {
   executeHeadlessOperation,
@@ -47,6 +53,8 @@ type TemplateRouteMatch =
   | { readonly kind: "openapi" }
   | { readonly kind: "docs" }
   | { readonly kind: "dodoWebhook" }
+  | { readonly kind: "postmarkWebhook" }
+  | { readonly kind: "emailUnsubscribe" }
   | { readonly kind: "operation"; readonly operationId: string }
   | { readonly kind: "notFound"; readonly pathname: string };
 
@@ -54,10 +62,26 @@ const staticTemplateRoutes: Record<string, TemplateRouteMatch | undefined> = {
   "/api/openapi.json": { kind: "openapi" },
   "/api/docs": { kind: "docs" },
   "/webhooks/dodo": { kind: "dodoWebhook" },
+  "/webhooks/email/postmark": { kind: "postmarkWebhook" },
+  "/email/unsubscribe": { kind: "emailUnsubscribe" },
 };
 
 const operationRefs = {
   "brain.pages.createMarkdown": api.brain.pages.createMarkdown,
+  "ops.email.previewBroadcast": (
+    api as unknown as {
+      readonly ops: {
+        readonly email: { readonly previewBroadcast: unknown };
+      };
+    }
+  ).ops.email.previewBroadcast,
+  "ops.email.dispatchBroadcast": (
+    api as unknown as {
+      readonly ops: {
+        readonly email: { readonly dispatchBroadcast: unknown };
+      };
+    }
+  ).ops.email.dispatchBroadcast,
 } satisfies Record<string, unknown>;
 
 const dodoWebhookActionRef = makeFunctionReference<
@@ -70,6 +94,30 @@ const dodoWebhookActionRef = makeFunctionReference<
   },
   { readonly eventId: string; readonly status: "processed" | "duplicate" }
 >("commerce/webhooks:applyDodo");
+
+const postmarkEventMutationRef = makeFunctionReference<
+  "mutation",
+  {
+    readonly fingerprint: string;
+    readonly kind:
+      | "delivery"
+      | "hard_bounce"
+      | "soft_bounce"
+      | "spam_complaint"
+      | "subscription_change"
+      | "open"
+      | "click";
+    readonly recipient: string;
+    readonly providerMessageId?: string;
+  },
+  { readonly status: "processed" | "duplicate"; readonly suppressed: boolean }
+>("ops/email:processProviderEvent");
+
+const unsubscribeMutationRef = makeFunctionReference<
+  "mutation",
+  { readonly subscriberId: string },
+  unknown
+>("ops/email:unsubscribe");
 
 export const securityHeaders = {
   "content-security-policy":
@@ -85,6 +133,21 @@ export const templateHttpRoutes = [
     path: "/webhooks/dodo",
     method: "POST",
     description: "Verifies and applies a Dodo payment webhook.",
+  },
+  {
+    path: "/webhooks/email/postmark",
+    method: "POST",
+    description: "Authenticates and normalizes a Postmark delivery event.",
+  },
+  {
+    path: "/email/unsubscribe",
+    method: "GET",
+    description: "Shows the email unsubscribe confirmation page.",
+  },
+  {
+    path: "/email/unsubscribe",
+    method: "POST",
+    description: "Applies a signed one-click marketing unsubscribe.",
   },
   {
     path: "/api/openapi.json",
@@ -115,8 +178,9 @@ const withSecurityHeaders = (
   return merged;
 };
 
-const jsonResponse = (value: unknown): Response =>
+const jsonResponse = (value: unknown, status = 200): Response =>
   new Response(JSON.stringify(value, null, 2), {
+    status,
     headers: {
       ...securityHeaders,
       "content-type": "application/json; charset=utf-8",
@@ -144,6 +208,16 @@ const htmlResponse = (html: string): Response =>
     headers: withSecurityHeaders({
       "content-type": "text/html; charset=utf-8",
       "cache-control": "no-store",
+    }),
+  });
+
+const unsubscribeHtmlResponse = (html: string): Response =>
+  new Response(html, {
+    headers: withSecurityHeaders({
+      "content-type": "text/html; charset=utf-8",
+      "cache-control": "no-store",
+      "content-security-policy":
+        "default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'",
     }),
   });
 
@@ -192,6 +266,12 @@ const templateRouteResponse = async (
     case "dodoWebhook":
       response = await dodoWebhookRouteResponse(ctx, request);
       break;
+    case "postmarkWebhook":
+      response = await postmarkWebhookRouteResponse(ctx, request);
+      break;
+    case "emailUnsubscribe":
+      response = await emailUnsubscribeRouteResponse(ctx, request);
+      break;
     case "operation":
       response = await operationRouteResponse(ctx, request, route.operationId);
       break;
@@ -201,6 +281,125 @@ const templateRouteResponse = async (
   }
 
   return response;
+};
+
+const postmarkWebhookRouteResponse = async (
+  ctx: HeadlessHttpCtx,
+  request: Request,
+): Promise<Response> => {
+  const emailEnv = readEmailHttpEnv();
+
+  if (request.method !== "POST") {
+    return jsonResponse(
+      {
+        ok: false,
+        error: {
+          _tag: "MethodNotAllowed",
+          message: "Only POST is supported for /webhooks/email/postmark.",
+        },
+      },
+      405,
+    );
+  }
+  if (
+    !verifyPostmarkBasicAuth({
+      authorization: request.headers.get("authorization"),
+      username: emailEnv.POSTMARK_WEBHOOK_USERNAME,
+      password: emailEnv.POSTMARK_WEBHOOK_PASSWORD,
+    })
+  ) {
+    return jsonResponse(
+      {
+        ok: false,
+        error: {
+          _tag: "Unauthorized",
+          message: "Webhook authentication failed.",
+        },
+      },
+      401,
+    );
+  }
+  let payload: unknown;
+  try {
+    payload = await request.json();
+  } catch {
+    return jsonResponse(
+      {
+        ok: false,
+        error: {
+          _tag: "ValidationFailed",
+          message: "Webhook JSON is invalid.",
+        },
+      },
+      400,
+    );
+  }
+  const event = await normalizePostmarkEvent(payload);
+  if (event === null) {
+    return jsonResponse(
+      {
+        ok: false,
+        error: {
+          _tag: "ValidationFailed",
+          message: "Webhook event is unsupported.",
+        },
+      },
+      400,
+    );
+  }
+  return jsonResponse(await ctx.runMutation(postmarkEventMutationRef, event));
+};
+
+const unsubscribePage = (token: string): string => `<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Unsubscribe</title></head>
+<body><main><h1>Stop marketing emails?</h1><p>Transactional account and purchase emails will continue.</p><form method="post"><input type="hidden" name="token" value="${token.replaceAll("&", "&amp;").replaceAll('"', "&quot;")}"><button type="submit">Unsubscribe</button></form></main></body></html>`;
+
+const emailUnsubscribeRouteResponse = async (
+  ctx: HeadlessHttpCtx,
+  request: Request,
+): Promise<Response> => {
+  if (request.method !== "GET" && request.method !== "POST") {
+    return jsonResponse(
+      {
+        ok: false,
+        error: {
+          _tag: "MethodNotAllowed",
+          message: "Only GET and POST are supported for /email/unsubscribe.",
+        },
+      },
+      405,
+    );
+  }
+  const url = new URL(request.url);
+  const formToken =
+    request.method === "POST"
+      ? new URLSearchParams(await request.text()).get("token")
+      : null;
+  const token = formToken ?? url.searchParams.get("token") ?? "";
+  const secret = readEmailHttpEnv().EMAIL_UNSUBSCRIBE_SECRET;
+  const verified = secret
+    ? await verifyEmailUnsubscribeToken({ token, secret })
+    : null;
+  if (verified === null) {
+    return jsonResponse(
+      {
+        ok: false,
+        error: {
+          _tag: "ValidationFailed",
+          message: "Unsubscribe link is invalid or expired.",
+        },
+      },
+      400,
+    );
+  }
+  if (request.method === "GET")
+    return unsubscribeHtmlResponse(unsubscribePage(token));
+  await ctx.runMutation(unsubscribeMutationRef, {
+    subscriberId: verified.subscriberId,
+  });
+  return unsubscribeHtmlResponse(
+    '<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Unsubscribed</title></head><body><main><h1>You are unsubscribed.</h1><p>You will no longer receive marketing emails.</p></main></body></html>',
+  );
 };
 
 const dodoWebhookRouteResponse = async (

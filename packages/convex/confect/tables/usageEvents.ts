@@ -5,7 +5,7 @@ export default Table.make(() =>
   Schema.Struct({
     workspaceId: Schema.String,
     idempotencyKey: Schema.String,
-    provider: Schema.Literals(["openrouter", "dodo", "mailersend", "storage"]),
+    provider: Schema.Literals(["openrouter", "dodo", "email", "storage"]),
     units: Schema.Number,
     costCredits: Schema.Number,
     entitlementKey: Schema.String,

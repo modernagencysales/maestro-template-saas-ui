@@ -89,6 +89,9 @@ describe("check:env-boundary", () => {
       "packages/convex/confect/shared/env.ts": `
         export const runtimeMode = process.env.TEMPLATE_RUNTIME_MODE;
       `,
+      "packages/convex/confect/email/env.ts": `
+        export const webhookUsername = process.env.POSTMARK_WEBHOOK_USERNAME;
+      `,
     });
 
     expect(result).toEqual({ ok: true, findings: [] });

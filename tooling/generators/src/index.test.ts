@@ -485,7 +485,7 @@ describe("template app factory generators", () => {
         "WORKOS_API_KEY",
         "POSTHOG_PROJECT_TOKEN",
         "DODO_API_KEY",
-        "MAILERSEND_API_KEY",
+        "POSTMARK_SERVER_TOKEN",
         "OPENROUTER_API_KEY",
       ]),
     );

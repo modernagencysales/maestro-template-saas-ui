@@ -38,6 +38,9 @@ export const currentLifecycleResourceIds = [
   "buildPacks",
   "checkoutSessions",
   "commerceRevocations",
+  "emailCampaigns",
+  "emailDeliveries",
+  "emailSubscribers",
   "emailVerificationChallenges",
   "evaluationAnswers",
   "evaluationReportVersions",
@@ -315,6 +318,27 @@ export const workspaceLifecycleResourcePlans = [
     exportMode: "redacted-json",
     deleteMode: "retain-audit",
     detail: "Append-only refund and dispute revocation evidence for paid funnel access."
+  },
+  {
+    id: "emailCampaigns",
+    owner: "workspace",
+    exportMode: "redacted-json",
+    deleteMode: "delete",
+    detail: "Consent-based broadcast campaign content and aggregate delivery state."
+  },
+  {
+    id: "emailDeliveries",
+    owner: "workspace",
+    exportMode: "redacted-json",
+    deleteMode: "retain-audit",
+    detail: "Idempotent transactional and broadcast recipient delivery state."
+  },
+  {
+    id: "emailSubscribers",
+    owner: "workspace",
+    exportMode: "redacted-json",
+    deleteMode: "redact",
+    detail: "Workspace-scoped explicit marketing consent and unsubscribe state."
   },
   {
     id: "emailVerificationChallenges",
@@ -653,6 +677,21 @@ export const workspaceRetentionRules = [
     resourceId: "commerceRevocations",
     action: "retain-audit-window",
     detail: "Append-only refund and dispute revocation evidence for paid funnel access."
+  },
+  {
+    resourceId: "emailCampaigns",
+    action: "retain-until-workspace-delete",
+    detail: "Consent-based broadcast campaign content and aggregate delivery state."
+  },
+  {
+    resourceId: "emailDeliveries",
+    action: "hash-or-redact-on-export",
+    detail: "Idempotent transactional and broadcast recipient delivery state."
+  },
+  {
+    resourceId: "emailSubscribers",
+    action: "hash-or-redact-on-export",
+    detail: "Workspace-scoped explicit marketing consent and unsubscribe state."
   },
   {
     resourceId: "emailVerificationChallenges",
