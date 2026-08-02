@@ -152,6 +152,10 @@ prove:
 - 2026-07-29: release-shaped customer reproduction found that the React 19.1.1
   lock projection was paired with the alpha.1 base web manifest at 19.1.0. The
   current target plan now replaces both authorities together.
+- 2026-07-31: resumed the focused acceptance lane, removed four customer-stale
+  factory recipes, corrected the Justfile base replacement authority, and
+  completed a clean v16 customer acceptance checkpoint without aggregate
+  verification, Fabro, publish, deploy, provider, or secret actions.
 
 ## Verification evidence
 
@@ -1182,10 +1186,13 @@ commit coordinates will be added only after observation.
   typecheck exits zero, scoped ESLint reports zero warnings, scoped Prettier is
   clean, and `git diff --check` passes through the focused host semaphore using
   pnpm `10.12.1` where applicable.
-- Clean-customer evidence: v14 remains the untouched reproduction. Final proof
-  moves to a wholly new post-fix customer rather than repairing v14.
-- Status: upstream source fix is focused-green; final fixed status waits for the
-  coherent commit and untouched post-fix customer acceptance.
+- Clean-customer evidence: untouched v16 customer
+  `/private/tmp/maestro-fresh-customer-recovery-v16-0xxMcj/customer` proves the
+  narrowed recipe closure and remains clean at baseline commit
+  `4fed48852dea90eb3b881181c56b2a0e359f2dff` after all authorized focused
+  acceptance commands.
+- Status: fixed upstream and confirmed in untouched v16; commit
+  `4043cc9142889934f992113d6426239fc86e1819`.
 
 ### FR-F-014 — Customer Justfile replacement names the wrong base action
 
@@ -1217,8 +1224,40 @@ commit coordinates will be added only after observation.
   typecheck exits zero, scoped ESLint reports zero warnings, and
   `git diff --check` passes through the focused host semaphore using pnpm
   `10.12.1` where applicable.
-- Clean-customer evidence: v15 is an untouched fail-closed preview reproduction.
-  Final proof moves to a wholly new post-fix customer rather than reusing its
-  release checkout or target path.
-- Status: upstream source fix is focused-green; final fixed status waits for the
-  coherent commit and untouched post-fix customer acceptance.
+- Clean-customer evidence: public preview and write both succeed for untouched
+  v16 from exact post-fix source, with the same reviewed fingerprint and zero
+  collisions; its generated customer remains clean after the authorized focused
+  acceptance sequence.
+- Status: fixed upstream and confirmed in untouched v16; commit
+  `e629cd2357a886aead3b936546cb13386a554ba7`.
+
+### v16 focused fresh-customer acceptance checkpoint
+
+- Release checkout:
+  `/private/tmp/maestro-fresh-customer-recovery-v16-0xxMcj/release`.
+- Customer checkout:
+  `/private/tmp/maestro-fresh-customer-recovery-v16-0xxMcj/customer`.
+- Exact template source and reviewed tag:
+  `e629cd2357a886aead3b936546cb13386a554ba7`.
+- Release/ownership checksum:
+  `sha256:fb8aabc5d6309cb15b040a7c383924b2538cda70962ee59f25693fdc29e2f2ab`.
+- Public preview/write fingerprint:
+  `sha256:7311d989c401a55bd1a8039d8d6dd0954e8ae01166c0d91da2bed0ab048b8890`;
+  1,382 writes, 3,201 omissions, zero collisions, and 1,382 materialized files.
+- Pinned frozen customer install: pnpm `10.12.1`, lock hash unchanged before and
+  after install at
+  `70a691b32fef0999b3df1dc837f2d971417571f6f76ccbaeb8612aeb13bf64ea`.
+- Customer baseline commit: `4fed48852dea90eb3b881181c56b2a0e359f2dff`.
+- Focused freshness: fake doctor reports zero warnings and zero failures;
+  Confect codegen reports generated files up to date; Confect manifest exits
+  zero; route-tree reports `ok (pin-only)`; env-manifest passes 8/8.
+- Retained individual recipes through `host-test-slot --class focused`: tooling
+  quality 268/268, workflow tooling 12/12, generator tooling 34/34, App Map
+  90/90, workflow 12/12, and Convex compatibility 22/22.
+- Recipe closure: `test-pr-backlog`, `evals`, `check-workflow-output-smoke`, and
+  `mutation` are absent; every retained direct `pnpm <script>` recipe is backed
+  by the projected customer root script closure.
+- Final observed customer state: empty Git status and unchanged lock hash.
+- Explicitly not claimed by this checkpoint: aggregate/full verification, Fabro,
+  manual proof, publish, deploy, provider, or secret actions, all forbidden by
+  the current host/user lane constraints.
