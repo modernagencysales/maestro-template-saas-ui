@@ -1012,3 +1012,39 @@ commit coordinates will be added only after observation.
   to a wholly new post-fix customer rather than repairing v10.
 - Status: upstream source fixed; final fixed status waits for the coherent
   commit and untouched post-fix customer acceptance.
+
+### FR-F-010 — Customer env test reads an omitted factory pipeline
+
+- ID/title: FR-F-010 (customer env test reads an omitted factory pipeline).
+- Original posture: newly reproduced/critical because a retained focused test
+  fails in an otherwise valid freshly materialized customer.
+- Confirmed reproduction: untouched v11 customer
+  `/private/tmp/maestro-fresh-customer-recovery-v11-c1jtcG/customer`,
+  materialized from exact template source
+  `dc03cb27cd004cb824f00c93c3ec712a7d3ec0a4` with preview fingerprint
+  `sha256:41451305b27abcf9e2050894e3c8f2eeb9ab232b788c41f1096b5403e3c8d3f9`,
+  passed its pinned frozen install and baseline commit, then failed the focused
+  env-manifest test with `ENOENT` while opening `.buildkite/pipeline.yml`.
+- Root cause: customer materialization intentionally omits the factory-owned
+  Buildkite pipeline, but the retained env-manifest test still executed the
+  template-root assertion that inspects that pipeline's private-authority
+  environment boundary.
+- Regression: the SaaS blueprint suite requires the projected customer test to
+  import `existsSync`, assert that `.buildkite/pipeline.yml` is absent, and omit
+  the factory-only pipeline-content read. The regression first failed because
+  the projected test retained the factory assertion.
+- Canonical fix and files:
+  `tooling/generators/src/blueprints/saasApplicationFactory.ts` performs a
+  marker-checked customer-only substitution, while
+  `tooling/generators/src/blueprints/saasApplication.test.ts` pins the projected
+  behavior. The canonical root env-manifest test continues inspecting the real
+  Buildkite pipeline; no pipeline, secret, deployment authority, or gate is
+  weakened or shipped to the customer.
+- Focused result: the red-to-green SaaS blueprint suite passes 25/25 through
+  `host-test-slot` with pnpm `10.12.1`; generator typecheck exits zero; scoped
+  ESLint reports zero warnings; and scoped Prettier reports all matched files
+  use the repository style.
+- Clean-customer evidence: v11 is the untouched reproduction. Final proof moves
+  to a wholly new post-fix v12 customer rather than repairing v11.
+- Status: upstream source fix is focused-green; final fixed status waits for
+  untouched v12 customer acceptance and the final evidence update.

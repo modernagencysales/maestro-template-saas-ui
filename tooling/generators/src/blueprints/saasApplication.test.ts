@@ -150,6 +150,15 @@ describe("saas application blueprint", () => {
     expect(envTest?.content).not.toContain(
       'readText("tooling/generators/src/index.ts")',
     );
+    expect(envTest?.content).toContain(
+      'import { existsSync, readFileSync } from "node:fs";',
+    );
+    expect(envTest?.content).toContain(
+      'existsSync(resolve(repoRoot, ".buildkite/pipeline.yml"))',
+    );
+    expect(envTest?.content).not.toContain(
+      'const pipeline = readText(".buildkite/pipeline.yml")',
+    );
     expect(envManifest).toMatchObject({ replaces: "copy" });
     expect(envManifest?.content).toContain(
       '"name": "PROMOTION_AUTHORITY_PRIVATE_KEY_PKCS8_BASE64URL"',

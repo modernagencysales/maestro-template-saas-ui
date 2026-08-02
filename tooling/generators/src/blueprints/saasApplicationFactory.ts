@@ -41,6 +41,28 @@ const currentCustomerSource = (
       factoryGenerator,
       "tooling/generators/src/customer-runtime.ts",
     );
+    const fsImport = 'import { readFileSync } from "node:fs";';
+    if (!content.includes(fsImport))
+      throw new Error("customer env-manifest fs import marker is missing");
+    content = content.replace(
+      fsImport,
+      'import { existsSync, readFileSync } from "node:fs";',
+    );
+    const factoryPipelineAssertion = `    const pipeline = readText(".buildkite/pipeline.yml");
+    expect(pipeline).not.toContain(
+      "PROMOTION_AUTHORITY_PRIVATE_KEY_PKCS8_BASE64URL",
+    );
+    expect(pipeline).not.toContain("PROMOTION_AUTHORITY_MODE");`;
+    if (!content.includes(factoryPipelineAssertion))
+      throw new Error(
+        "customer env-manifest pipeline assertion marker is missing",
+      );
+    content = content.replace(
+      factoryPipelineAssertion,
+      `    expect(
+      existsSync(resolve(repoRoot, ".buildkite/pipeline.yml")),
+    ).toBe(false);`,
+    );
   }
   if (path === "packages/template-core/src/generated/confectManifest.ts") {
     const tableBoundary = /^(\s*)"transformBlocks",$/gmu;
