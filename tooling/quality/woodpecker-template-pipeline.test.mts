@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, statSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { resolve } from "node:path";
 
 import { describe, expect, it } from "vitest";
@@ -27,16 +27,17 @@ describe("Woodpecker template pipeline", () => {
     ]) {
       expect(read(path), path).not.toContain("BUILDKITE");
     }
+
+    expect(read(".github/workflows/quality.yml")).not.toContain(
+      ".buildkite/scripts/",
+    );
   });
 
   it("checks in pipeline entrypoints as executable files", () => {
-    for (const path of [
-      "tooling/ci/ci-self-protection.sh",
-      "tooling/ci/phase1.sh",
-      "tooling/ci/setup.sh",
-      "tooling/ci/staging-deploy.sh",
-      "tooling/ci/production-promote.sh",
-    ]) {
+    for (const name of readdirSync(resolve(root, "tooling/ci")).filter((name) =>
+      name.endsWith(".sh"),
+    )) {
+      const path = `tooling/ci/${name}`;
       expect(statSync(resolve(root, path)).mode & 0o111, path).not.toBe(0);
     }
   });

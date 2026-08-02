@@ -32,8 +32,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Install pinned scanners
         run: |
-          bash .buildkite/scripts/install-gitleaks.sh
-          bash .buildkite/scripts/install-qlty.sh
+          bash tooling/ci/install-gitleaks.sh
+          bash tooling/ci/install-qlty.sh
           echo "${HOME}/.local/bin" >> "${GITHUB_PATH}"
       - name: Verify production promotion contract
         run: pnpm verify
