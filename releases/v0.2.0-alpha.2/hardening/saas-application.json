@@ -787,13 +787,6 @@
       "replaces": "copy"
     },
     {
-      "path": "apps/cli/src/index.test.ts",
-      "ownership": "generated",
-      "action": "generate",
-      "upgrade": "regenerate",
-      "sha256": "sha256:9bf5259b3aee3174d2cf71c3eead2f2682c6541fb6afe833673a0998a959840a"
-    },
-    {
       "path": "apps/cli/src/index.ts",
       "ownership": "generated",
       "action": "generate",
@@ -942,13 +935,6 @@
       "replaces": "copy"
     },
     {
-      "path": "docs/template/app-idea-funnel-operations.md",
-      "ownership": "generated",
-      "action": "generate",
-      "upgrade": "regenerate",
-      "sha256": "sha256:e164f17748a77f3be1b3bf5ecd5b49dd5f36c2cdb4d3ad921b42f0671ef70d10"
-    },
-    {
       "path": "docs/template/client-handoff-packet.md",
       "ownership": "generated",
       "action": "generate",
@@ -994,20 +980,6 @@
       "upgrade": "regenerate",
       "sha256": "sha256:d8a0593ff88f23523cfcbb54c2cc9d1642474841df6b4c7ea9f8af247fa5b46f",
       "replaces": "copy"
-    },
-    {
-      "path": "docs/template/extraction/dependency-license-inventory.md",
-      "ownership": "generated",
-      "action": "generate",
-      "upgrade": "regenerate",
-      "sha256": "sha256:f06828c97f424482bc6f5e540ae12928c4dc271cb7180c7cdde8f76754212dfb"
-    },
-    {
-      "path": "docs/template/extraction/provider-provisioning-inventory.md",
-      "ownership": "generated",
-      "action": "generate",
-      "upgrade": "regenerate",
-      "sha256": "sha256:c94028dba38030dba7ee93fe0df937d64f36cc9cfba842570442b82f68e3e294"
     },
     {
       "path": "docs/template/generated/provenance/add-feature/records.json",
@@ -1207,13 +1179,6 @@
       "replaces": "generate"
     },
     {
-      "path": "packages/app-idea-evaluator/src/maestroMapping.test.ts",
-      "ownership": "generated",
-      "action": "generate",
-      "upgrade": "regenerate",
-      "sha256": "sha256:c276e5b688548a3a5fa56d40a2b3ee47fc6dfea2232e6e40bfd38d6adbede69b"
-    },
-    {
       "path": "packages/convex/confect/_generated/convexSchema.ts",
       "ownership": "generated",
       "action": "generate",
@@ -1347,13 +1312,6 @@
       "upgrade": "regenerate",
       "sha256": "sha256:c247d328e93308e7d2ad435642542d57c419aa2ab191709ab4e82ce71c93c5ea",
       "replaces": "copy"
-    },
-    {
-      "path": "packages/convex/confect/capabilities/manageEvaluationReport.impl.ts",
-      "ownership": "generated",
-      "action": "generate",
-      "upgrade": "regenerate",
-      "sha256": "sha256:eeaf295acd62c71646c1c6f9072d2c0efd8034c5fa7981b21b7a2563de5b17f9"
     },
     {
       "path": "packages/convex/confect/deploy/authority.impl.ts",
