@@ -330,6 +330,22 @@ describe("materialized customer CLI runtime closure", () => {
     ]);
     expect(created.exitCode, `${created.stdout}\n${created.stderr}`).toBe(0);
 
+    const preservedCatalogs = [
+      "docs/template/system-catalog.json",
+      "docs/template/data-resources.json",
+    ].map((path) => ({ path, bytes: readFileSync(join(target, path)) }));
+    applyCurrentSaasProjection(target);
+    for (const { path, bytes } of preservedCatalogs)
+      writeFileSync(join(target, path), bytes);
+    const projectedLock = buildSaasApplicationTargetPlan().entries.find(
+      ({ path }) => path === "pnpm-lock.yaml",
+    );
+    if (!projectedLock) throw new Error("Current customer lock is missing.");
+    expect(readFileSync(join(target, projectedLock.path), "utf8")).toBe(
+      projectedLock.content,
+    );
+    expect(unresolvedWorkspaceDependencies(target)).toEqual([]);
+
     await execFileAsync(
       "pnpm",
       ["install", "--offline", "--frozen-lockfile", "--ignore-scripts"],
