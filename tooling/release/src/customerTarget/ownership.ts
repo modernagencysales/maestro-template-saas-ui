@@ -19,6 +19,7 @@ const FACTORY_ONLY_PREFIXES = [
   ".codex/",
   ".github/",
   ".qlty/",
+  ".superpowers/",
   ".vscode/",
   "agent-pack/",
   "apps/voice-relay/",

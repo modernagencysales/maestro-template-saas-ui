@@ -85,6 +85,9 @@ check-convex-ai-files:
 check-agent-pack:
     pnpm check:agent-pack
 
+check-product-journeys:
+    pnpm check:product-journeys
+
 check-app-map:
     pnpm check:app-map
 

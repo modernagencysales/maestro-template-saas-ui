@@ -68,6 +68,7 @@ describe("customer ownership inventory", () => {
     ["examples/gtm-implementation/README.md", "factory-only", "omit"],
     ["examples/saas-application/seed/workspace.json", "factory-only", "omit"],
     [".codex/config.toml", "factory-only", "omit"],
+    [".superpowers/sdd/task-2-report.md", "factory-only", "omit"],
   ])("pins %s ownership", (path, ownership, action) => {
     expect(classifyCustomerSourcePath(path)).toMatchObject({
       path,

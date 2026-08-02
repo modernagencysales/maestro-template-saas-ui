@@ -26,6 +26,7 @@ import {
 import { buildFactorySaasApplicationFiles } from "./saasApplicationFactory";
 import {
   CUSTOMER_ROOT_SCRIPTS,
+  CURRENT_PRODUCT_JOURNEY_CLOSURE,
   CURRENT_SAAS_DEPLOY_AUTHORITY_TABLE_CLOSURE,
   CURRENT_GENERATOR_GATE_SCRIPTS,
   REMOVED_CUSTOMER_TEMPLATE_SCRIPTS,
@@ -557,6 +558,7 @@ describe("saas application blueprint", () => {
       "packages/convex/confect/_generated/docs.ts",
       "packages/convex/confect/_generated/tables/workflowArtifacts.ts",
       ...CURRENT_SAAS_DEPLOY_AUTHORITY_TABLE_CLOSURE,
+      ...CURRENT_PRODUCT_JOURNEY_CLOSURE,
       "packages/convex/confect/tables/workflowArtifacts.ts",
       "packages/convex/confect/tables/workflowRuns.ts",
       "packages/convex/confect/tables/workflowStageRuns.ts",

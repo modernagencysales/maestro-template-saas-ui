@@ -11,7 +11,10 @@ import {
   buildAlpha1SaasApplicationFiles,
   buildFactorySaasApplicationFiles,
 } from "./saasApplicationFactory";
-import { CURRENT_SAAS_DEPLOY_AUTHORITY_TABLE_CLOSURE } from "./saasRegistrationProjections";
+import {
+  CURRENT_PRODUCT_JOURNEY_CLOSURE,
+  CURRENT_SAAS_DEPLOY_AUTHORITY_TABLE_CLOSURE,
+} from "./saasRegistrationProjections";
 
 export const saasApplicationBlueprint = {
   id: "saas-application",
@@ -414,6 +417,7 @@ function buildTargetPlan(
   options: BlueprintTargetPlanOptions,
 ): BlueprintTargetPlan {
   const replacements = new Map<string, "copy" | "generate">([
+    ...CURRENT_PRODUCT_JOURNEY_CLOSURE.map((path) => [path, "copy"] as const),
     [".claude/settings.json", "generate"],
     [".prettierignore", "copy"],
     ["README.md", "copy"],
@@ -605,6 +609,7 @@ function buildTargetPlan(
     "packages/convex/confect/_generated/docs.ts",
     "packages/convex/confect/_generated/tables/workflowArtifacts.ts",
     ...(current ? CURRENT_SAAS_DEPLOY_AUTHORITY_TABLE_CLOSURE : []),
+    ...(current ? CURRENT_PRODUCT_JOURNEY_CLOSURE : []),
     "packages/convex/confect/ops/dataResources.generated.ts",
     "docs/template/system-catalog.json",
     "docs/template/data-resources.json",
