@@ -1,7 +1,7 @@
 import { FunctionImpl, GroupImpl } from "@confect/server";
 import * as Effect from "effect/Effect";
-import * as Either from "effect/Either";
 import * as Layer from "effect/Layer";
+import * as Result from "effect/Result";
 import type * as Context from "effect/Context";
 import type { GenericId } from "convex/values";
 import { makeFunctionReference } from "convex/server";
@@ -157,11 +157,11 @@ const restart = FunctionImpl.make(
         timeoutMs: run?.timeoutMs,
         occurredAt: args.occurredAt,
       });
-      if (Either.isLeft(restartDeadline)) {
+      if (Result.isFailure(restartDeadline)) {
         return yield* Effect.fail(
           new ValidationFailed({
             field: "deadline",
-            message: restartDeadline.left.message,
+            message: restartDeadline.failure.message,
           }),
         );
       }
@@ -174,13 +174,13 @@ const restart = FunctionImpl.make(
         args.workflowRunId,
         result.generation - 1,
       );
-      if (restartDeadline.right.kind === "schedule") {
+      if (restartDeadline.success.kind === "schedule") {
         yield* scheduleDeadline(
           mutation,
           args.workspaceId,
           args.workflowRunId,
-          restartDeadline.right.requestedAt,
-          restartDeadline.right.horizonMs,
+          restartDeadline.success.requestedAt,
+          restartDeadline.success.horizonMs,
         );
       }
       return result;
