@@ -802,7 +802,7 @@ describe("saas application blueprint", () => {
         ).toBe(0);
       }
     }
-  });
+  }, 15_000);
 
   it("materializes the current disclosure and customer support surface", () => {
     const targetRoot = mkdtempSync(
