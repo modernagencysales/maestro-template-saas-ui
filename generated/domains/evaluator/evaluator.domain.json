@@ -1,0 +1,13 @@
+{
+  "domain": "evaluator",
+  "description": "Client-specific evaluator domain scaffold. Keep business logic outside template core until reviewed.",
+  "extensionBoundary": "generated-or-private-package",
+  "sourceTypes": ["markdown", "link", "note"],
+  "surfaces": ["web", "api", "cli", "mcp"],
+  "requiredFollowUp": [
+    "Map client nouns to source ownership and retention.",
+    "Identify first capability, workflow, and agent grants.",
+    "Decide fake, test, or live-ready provider posture.",
+    "Promote reviewed contracts through Confect/Effect generators."
+  ]
+}

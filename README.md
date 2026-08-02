@@ -13,6 +13,31 @@ you do not turn this repository into the product or copy files from `main`.
 > the command you ran, the concise CLI output, and the generated receipt when a
 > step fails.
 
+## App idea funnel
+
+The public reference surface starts with a nontechnical founder workflow:
+
+1. “Tell me if your app idea is good.”
+2. Answer eight plain-language questions.
+3. Receive a useful, unblurred Buildability Report and constructive roast.
+4. Optionally buy the Complete Build Pack to know exactly how to build it.
+5. Take the portable specification to a developer, agency, coding agent, or—
+   when the fit is honest—apply the purchase as equal Maestro credit.
+
+Free evaluation and paid generation are intentionally separate systems. The free
+agent uses a bounded low-cost model without browsing or research. The paid
+pipeline uses stronger, checkpointed stages and can resume a failed stage
+without another purchase. A checkout return never unlocks paid work; only a
+verified, idempotent Dodo webhook creates an entitlement.
+
+Product language, implementation contract, operating procedures, and launch
+evidence live in:
+
+- [Funnel design](./docs/superpowers/specs/2026-07-31-app-idea-evaluator-funnel-design.md)
+- [Approved language bank](./docs/design-intake/2026-07-31-app-idea-evaluator-language-bank.md)
+- [Operations runbook](./docs/template/app-idea-funnel-operations.md)
+- [Launch checklist](./docs/template/app-idea-funnel-launch-checklist.md)
+
 ## Build a small app
 
 Requirements: Git and Node 22. The install-free bootstrap check selects the

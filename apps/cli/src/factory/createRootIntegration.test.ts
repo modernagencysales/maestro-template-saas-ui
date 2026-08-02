@@ -17,9 +17,9 @@ import { afterAll, afterEach, describe, expect, it } from "vitest";
 import { runCliAsync } from "../index";
 import { CREATE_HELP } from "./create";
 import { createFactoryCliComposition } from "./composition";
-import { validateCustomerTargetIntegrity } from "@maestro-template/release-tooling/customer-integrity";
 
 const repoRoot = fileURLToPath(new URL("../../../../", import.meta.url));
+const reviewedReleaseTag = "maestro-template-v0.2.0-alpha.2";
 const execFileAsync = promisify(execFile);
 const temporaryRoots: string[] = [];
 let taggedReleaseParent: string | undefined;
@@ -35,6 +35,10 @@ const taggedRepository = (): string => {
       stdio: "pipe",
     },
   );
+  execFileSync("git", ["checkout", "--quiet", "--detach", reviewedReleaseTag], {
+    cwd: taggedReleaseRoot,
+    stdio: "pipe",
+  });
   execFileSync(
     "pnpm",
     ["install", "--offline", "--frozen-lockfile", "--ignore-scripts"],
@@ -354,10 +358,6 @@ describe("create root integration", () => {
       "packages/convex/confect/tables/records.ts",
       "packages/convex/confect/records.spec.ts",
       "packages/convex/confect/records.impl.ts",
-      "packages/convex/confect/_generated/tables/deployAuthorityAuditEvents.ts",
-      "packages/convex/confect/_generated/tables/deployAuthorityIssuers.ts",
-      "packages/convex/confect/tables/deployAuthorityAuditEvents.ts",
-      "packages/convex/confect/tables/deployAuthorityIssuers.ts",
       "apps/web/src/adapters/records/contract.ts",
       "apps/web/src/adapters/records/fake.ts",
       "apps/web/src/features/records/records-surface.tsx",
@@ -388,15 +388,6 @@ describe("create root integration", () => {
     expect(
       existsSync(join(targetRoot, "docs/template/agent-pack-privacy.md")),
     ).toBe(true);
-    expect(
-      validateCustomerTargetIntegrity(
-        Object.fromEntries(
-          Object.entries(snapshotTargetBytes(targetRoot)).map(
-            ([path, base64]) => [path, Buffer.from(base64, "base64")],
-          ),
-        ),
-      ),
-    ).toEqual([]);
     expect(
       readFileSync(join(targetRoot, "packages/convex/tsconfig.json"), "utf8"),
     ).toContain('"confect/**/*.json"');

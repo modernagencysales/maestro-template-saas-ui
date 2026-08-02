@@ -22,6 +22,7 @@
     "@convex-dev/react-query": "0.1.0",
     "@emotion/react": "^11.14.0",
     "@maestro-template/convex": "workspace:*",
+    "@maestro-template/app-idea-evaluator": "workspace:*",
     "@maestro-template/editor-core": "workspace:*",
     "@maestro-template/editor-react": "workspace:*",
     "@maestro-template/integrations": "workspace:*",

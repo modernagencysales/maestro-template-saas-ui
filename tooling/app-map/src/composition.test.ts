@@ -157,6 +157,42 @@ describe("closed App Map composition", () => {
         ({ source }) => source.id === "template-instance",
       ),
     ).toMatchObject({ nodes: [], edges: [] });
+    const generated = first.input.batches.find(
+      ({ source }) => source.id === "generator-provenance",
+    );
+    expect(generated?.nodes).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: "capability:evaluate-app-idea",
+          kind: "capability",
+        }),
+        expect.objectContaining({
+          id: "capability:manage-evaluation-report",
+          kind: "capability",
+        }),
+        expect.objectContaining({
+          id: "resource:client-domain:evaluator",
+          kind: "resource",
+        }),
+        expect.objectContaining({
+          id: "workflow:generate-complete-build-pack",
+          kind: "workflow",
+        }),
+      ]),
+    );
+    expect(generated?.edges).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: "owns:system:policy-and-prompts->capability:evaluate-app-idea",
+        }),
+        expect.objectContaining({
+          id: "owns:system:knowledge-brain->resource:client-domain:evaluator",
+        }),
+        expect.objectContaining({
+          id: "owns:system:workflow-runtime->workflow:generate-complete-build-pack",
+        }),
+      ]),
+    );
     expect(serializeAppMap(first.build.map)).toBe(
       serializeAppMap(second.build.map),
     );

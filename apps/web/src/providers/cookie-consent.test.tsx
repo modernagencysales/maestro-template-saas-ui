@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   COOKIE_CONSENT_STORAGE_KEY,
   CookieConsentBoundary,
+  reconcileStoredCookieConsent,
   readCookieConsentDecision,
   shouldEnableAnalyticsCapture,
   writeCookieConsentDecision,
@@ -45,6 +46,15 @@ describe("cookie consent", () => {
     expect(shouldEnableAnalyticsCapture("pending")).toBe(false);
     expect(shouldEnableAnalyticsCapture("declined")).toBe(false);
     expect(shouldEnableAnalyticsCapture("accepted")).toBe(true);
+  });
+
+  it("does not overwrite a fast explicit choice during storage hydration", () => {
+    expect(reconcileStoredCookieConsent("declined", "pending")).toBe(
+      "declined",
+    );
+    expect(reconcileStoredCookieConsent("pending", "accepted")).toBe(
+      "accepted",
+    );
   });
 
   it("renders a fake-safe consent banner while pending", () => {

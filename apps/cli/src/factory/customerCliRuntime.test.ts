@@ -17,6 +17,7 @@ import { afterAll, afterEach, describe, expect, it } from "vitest";
 const temporaryRoots: string[] = [];
 const execFileAsync = promisify(execFile);
 const repositoryRoot = resolve(import.meta.dirname, "../../../..");
+const reviewedReleaseTag = "maestro-template-v0.2.0-alpha.2";
 let taggedReleaseParent: string | undefined;
 let taggedReleaseRoot: string | undefined;
 const taggedRepository = (): string => {
@@ -28,6 +29,10 @@ const taggedRepository = (): string => {
     ["clone", "--quiet", "--shared", repositoryRoot, taggedReleaseRoot],
     { stdio: "pipe" },
   );
+  execFileSync("git", ["checkout", "--quiet", "--detach", reviewedReleaseTag], {
+    cwd: taggedReleaseRoot,
+    stdio: "pipe",
+  });
   execFileSync(
     "pnpm",
     ["install", "--offline", "--frozen-lockfile", "--ignore-scripts"],
@@ -285,7 +290,7 @@ describe("materialized customer CLI runtime closure", () => {
       "turbo run test --filter='./packages/*' --filter=@maestro-template/web",
     );
     expect(customerPackage.scripts["test:tooling"]).toBe(
-      "pnpm test:bootstrap && pnpm --dir tooling/workflow test && pnpm --dir tooling/generators exec vitest run src/customer-runtime.test.ts src/templateInstanceMigration.test.ts src/workflow-publication-generation.test.ts src/workflow-release-commands.test.ts --maxWorkers=1 --no-file-parallelism",
+      "pnpm --dir tooling/workflow test && pnpm --dir tooling/generators exec vitest run src/customer-runtime.test.ts src/templateInstanceMigration.test.ts src/workflow-publication-generation.test.ts src/workflow-release-commands.test.ts --maxWorkers=1 --no-file-parallelism",
     );
     expect(customerPackage.scripts.verify).toBe(
       [
@@ -544,7 +549,9 @@ describe("materialized customer CLI runtime closure", () => {
       },
     );
     expect(preflight.error).toBeUndefined();
-    expect(preflight.status).toBe(0);
+    expect(preflight.status, `${preflight.stdout}\n${preflight.stderr}`).toBe(
+      0,
+    );
     expect(JSON.parse(preflight.stdout)).toMatchObject({
       exitClass: "success",
       diagnostics: [],

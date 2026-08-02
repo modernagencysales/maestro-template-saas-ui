@@ -21,6 +21,20 @@ path with an explicit promotion gate.
 
 ## Default Bar
 
+### Public app-idea funnel
+
+The template includes the complete funnel in deterministic fake mode: public
+landing and intake, a useful free report, browser-local test checkout, verified
+fake webhook transition, resumable eight-stage Build Pack, report library,
+revocable public snapshot, lifecycle email intent, and conditional Maestro
+handoff. The original Saas UI business dashboard remains available at
+`/dashboard`.
+
+Live OpenRouter, Dodo, MailerSend, durable Confect wiring, pricing, tax, and
+traffic promotion are extension steps. A fork promotes them only after provider
+credentials, spend ceilings, webhook replay/signature tests, privacy copy,
+retention policy, support ownership, and hosted browser smoke are approved.
+
 A surface belongs in the template default when all of these are true:
 
 - It runs without live secrets.

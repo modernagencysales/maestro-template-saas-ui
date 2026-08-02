@@ -27,15 +27,68 @@ export class EmailValidationError extends Error {
   }
 }
 
+export class EmailProviderError extends Error {
+  readonly _tag = "EmailProviderError";
+  readonly provider = "mailersend";
+
+  constructor(
+    message: string,
+    readonly status?: number,
+  ) {
+    super(message);
+    this.name = "EmailProviderError";
+  }
+}
+
 export type EmailFailure = {
   readonly ok: false;
-  readonly error: EmailValidationError;
+  readonly error: EmailValidationError | EmailProviderError;
 };
 
 export type EmailResult = EmailDelivery | EmailFailure;
 
 const idempotencyKeyPattern = /^[A-Za-z0-9._~-]+$/;
 const maxIdempotencyKeyLength = 128;
+
+export type EmailTransport = (payload: EmailPayload) => Promise<void>;
+
+export const createMailerSendTransport = (options: {
+  readonly apiKey: string;
+  readonly endpoint?: string;
+  readonly fetch?: typeof globalThis.fetch;
+}): EmailTransport => {
+  const request = options.fetch ?? globalThis.fetch;
+  const endpoint = options.endpoint ?? "https://api.mailersend.com/v1/email";
+
+  return async (payload) => {
+    let response: Response;
+    try {
+      response = await request(endpoint, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${options.apiKey}`,
+          "Content-Type": "application/json",
+          "X-Request-Id": payload.idempotencyKey,
+        },
+        body: JSON.stringify({
+          from: { email: payload.from },
+          to: [{ email: payload.to }],
+          subject: payload.subject,
+          html: payload.html,
+        }),
+      });
+    } catch {
+      throw new EmailProviderError("MailerSend could not be reached.");
+    }
+
+    if (!response.ok) {
+      throw new EmailProviderError(
+        "MailerSend rejected the email request.",
+        response.status,
+      );
+    }
+  };
+};
 
 const validateEmailIdempotencyKey = (
   idempotencyKey: string,
@@ -264,7 +317,8 @@ export const redactEmailPayload = (
       key === "to" ||
       key === "recipient" ||
       key === "apiKey" ||
-      key === "templateData"
+      key === "templateData" ||
+      key === "html"
         ? "[redacted]"
         : value;
   }
@@ -277,6 +331,7 @@ const deliveryForMode = (mode: EmailMode): EmailDelivery["delivery"] =>
 
 export const createEmailService = (options: {
   readonly mode: EmailMode;
+  readonly transport?: EmailTransport;
   readonly sink?: (
     payload: Readonly<Record<string, unknown>>,
   ) => void | Promise<void>;
@@ -293,12 +348,23 @@ export const createEmailService = (options: {
       };
     }
 
-    await options.sink?.(
-      redactEmailPayload({
-        ...payload,
-        apiKey: "provider-owned",
-      }),
-    );
+    try {
+      await options.transport?.(payload);
+      await options.sink?.(
+        redactEmailPayload({
+          ...payload,
+          apiKey: "provider-owned",
+        }),
+      );
+    } catch (error) {
+      return {
+        ok: false,
+        error:
+          error instanceof EmailProviderError
+            ? error
+            : new EmailProviderError("Email delivery failed."),
+      };
+    }
 
     return {
       ok: true,
@@ -307,6 +373,45 @@ export const createEmailService = (options: {
     };
   },
 });
+
+export type FunnelLifecycleEmailIntent = {
+  readonly kind: "build-pack-ready" | "verify-report-email";
+  readonly to: string;
+  readonly reportId: string;
+  readonly destinationUrl: string;
+};
+
+export const createFunnelLifecycleEmailService = (options: {
+  readonly mode: EmailMode;
+  readonly from: string;
+  readonly transport?: EmailTransport;
+  readonly sink?: (
+    payload: Readonly<Record<string, unknown>>,
+  ) => void | Promise<void>;
+}) => {
+  const email = createEmailService(options);
+
+  return {
+    send: async (intent: FunnelLifecycleEmailIntent): Promise<EmailResult> => {
+      const verification = intent.kind === "verify-report-email";
+      return await email.send({
+        to: intent.to,
+        from: options.from,
+        subject: verification
+          ? "Verify your email to save your app idea"
+          : "Your Complete Build Pack is ready",
+        html: verification
+          ? `<p>Verify your email to save your report. <a href="${intent.destinationUrl}">Verify email</a>.</p>`
+          : `<p>Your Complete Build Pack is ready. <a href="${intent.destinationUrl}">Open your Build Pack</a>.</p>`,
+        idempotencyKey: `idea-funnel.${intent.kind}.${actionDigestKeyPart(intent.reportId)}`,
+        templateData: {
+          reportId: intent.reportId,
+          destinationUrl: intent.destinationUrl,
+        },
+      });
+    },
+  };
+};
 
 const actionDigestKeyPart = (value: string): string =>
   value.replaceAll(/[^A-Za-z0-9._~-]/g, "-");

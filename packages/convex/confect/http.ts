@@ -1,5 +1,9 @@
 import { confectManifest } from "@maestro-template/template-core/generated/confectManifest";
-import { httpActionGeneric, httpRouter } from "convex/server";
+import {
+  httpActionGeneric,
+  httpRouter,
+  makeFunctionReference,
+} from "convex/server";
 import { api } from "../convex/_generated/api";
 import { handleDeployAuthorityHttpRequest } from "./deployAuthority/http";
 import {
@@ -42,17 +46,30 @@ export type HeadlessHttpCtx = {
 type TemplateRouteMatch =
   | { readonly kind: "openapi" }
   | { readonly kind: "docs" }
+  | { readonly kind: "dodoWebhook" }
   | { readonly kind: "operation"; readonly operationId: string }
   | { readonly kind: "notFound"; readonly pathname: string };
 
 const staticTemplateRoutes: Record<string, TemplateRouteMatch | undefined> = {
   "/api/openapi.json": { kind: "openapi" },
   "/api/docs": { kind: "docs" },
+  "/webhooks/dodo": { kind: "dodoWebhook" },
 };
 
 const operationRefs = {
   "brain.pages.createMarkdown": api.brain.pages.createMarkdown,
 } satisfies Record<string, unknown>;
+
+const dodoWebhookActionRef = makeFunctionReference<
+  "action",
+  {
+    readonly rawBody: string;
+    readonly webhookId: string;
+    readonly signature?: string;
+    readonly signatureTimestamp?: string;
+  },
+  { readonly eventId: string; readonly status: "processed" | "duplicate" }
+>("commerce/webhooks:applyDodo");
 
 export const securityHeaders = {
   "content-security-policy":
@@ -64,6 +81,11 @@ export const securityHeaders = {
 } as const;
 
 export const templateHttpRoutes = [
+  {
+    path: "/webhooks/dodo",
+    method: "POST",
+    description: "Verifies and applies a Dodo payment webhook.",
+  },
   {
     path: "/api/openapi.json",
     method: "GET",
@@ -167,6 +189,9 @@ const templateRouteResponse = async (
     case "docs":
       response = docsRouteResponse(request);
       break;
+    case "dodoWebhook":
+      response = await dodoWebhookRouteResponse(ctx, request);
+      break;
     case "operation":
       response = await operationRouteResponse(ctx, request, route.operationId);
       break;
@@ -176,6 +201,29 @@ const templateRouteResponse = async (
   }
 
   return response;
+};
+
+const dodoWebhookRouteResponse = async (
+  ctx: HeadlessHttpCtx,
+  request: Request,
+): Promise<Response> => {
+  if (request.method !== "POST")
+    return jsonResponse({
+      ok: false,
+      error: {
+        _tag: "MethodNotAllowed",
+        message: "Only POST is supported for /webhooks/dodo.",
+      },
+    });
+
+  const rawBody = await request.text();
+  const result = await ctx.runAction(dodoWebhookActionRef, {
+    rawBody,
+    webhookId: request.headers.get("webhook-id") ?? "",
+    signature: request.headers.get("webhook-signature") ?? "",
+    signatureTimestamp: request.headers.get("webhook-timestamp") ?? "",
+  });
+  return jsonResponse(result);
 };
 
 const openApiRouteResponse = (request: Request): Response =>

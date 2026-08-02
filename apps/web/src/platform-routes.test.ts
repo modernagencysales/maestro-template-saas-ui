@@ -76,7 +76,10 @@ describe("frontend platform routes", () => {
         `${item.path} should be backed by ${routeFileForPath(item.path)}`,
       ).toBe(true);
     }
-    expect(read("src/routes/index.tsx")).toContain("BusinessDashboardRoute");
+    expect(read("src/routes/index.tsx")).toContain("AppIdeaLanding");
+    expect(read("src/routes/dashboard.tsx")).toContain(
+      "BusinessDashboardRoute",
+    );
     expect(read("src/routes/_workspace.health.tsx")).toContain(
       'section="health"',
     );

@@ -1,0 +1,17 @@
+{
+  "generator": "add-capability",
+  "commandFamily": "template:add-capability",
+  "name": "evaluateAppIdea",
+  "ownership": {
+    "system": "policy-and-prompts",
+    "disposition": "extend"
+  },
+  "generatedPaths": [
+    "packages/convex/confect/capabilities/evaluateAppIdea.spec.ts",
+    "packages/convex/confect/capabilities/evaluateAppIdea.impl.ts",
+    "packages/convex/confect/capabilities/evaluateAppIdea.domain.ts",
+    "packages/convex/confect/capabilities/evaluateAppIdea.test.ts",
+    "packages/convex/confect/capabilities/evaluateAppIdea.headless.json",
+    "docs/template/generated/capabilities/evaluateAppIdea.md"
+  ]
+}

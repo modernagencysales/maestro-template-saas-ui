@@ -33,17 +33,14 @@ describe("final materialized customer filesystem", () => {
         "clone",
         "--quiet",
         "--shared",
-        "--no-tags",
         repositoryRoot,
         releaseRoot,
       ]);
-      await execFileAsync("git", [
-        "-C",
-        releaseRoot,
-        "tag",
-        "maestro-template-v0.2.0-alpha.2",
-        "HEAD",
-      ]);
+      await execFileAsync(
+        "git",
+        ["checkout", "--quiet", "--detach", "maestro-template-v0.2.0-alpha.2"],
+        { cwd: releaseRoot },
+      );
       await execFileAsync(
         "pnpm",
         ["install", "--offline", "--frozen-lockfile", "--ignore-scripts"],

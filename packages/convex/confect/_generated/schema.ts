@@ -8,8 +8,14 @@ import actionTriggers from "./tables/actionTriggers";
 import apiKeys from "./tables/apiKeys";
 import billingPlans from "./tables/billingPlans";
 import brainPages from "./tables/brainPages";
+import buildPackEntitlements from "./tables/buildPackEntitlements";
+import buildPackExports from "./tables/buildPackExports";
+import buildPackStages from "./tables/buildPackStages";
+import buildPacks from "./tables/buildPacks";
+import checkoutSessions from "./tables/checkoutSessions";
 import citations from "./tables/citations";
 import claims from "./tables/claims";
+import commerceRevocations from "./tables/commerceRevocations";
 import concepts from "./tables/concepts";
 import contextPacks from "./tables/contextPacks";
 import creditLedger from "./tables/creditLedger";
@@ -23,15 +29,26 @@ import documentAnnotations from "./tables/documentAnnotations";
 import documentVersions from "./tables/documentVersions";
 import documents from "./tables/documents";
 import dsarRequests from "./tables/dsarRequests";
+import emailVerificationChallenges from "./tables/emailVerificationChallenges";
 import entitlements from "./tables/entitlements";
+import evaluationAnswers from "./tables/evaluationAnswers";
+import evaluationReportVersions from "./tables/evaluationReportVersions";
+import evaluationReports from "./tables/evaluationReports";
+import evaluationSessions from "./tables/evaluationSessions";
+import evaluationShares from "./tables/evaluationShares";
 import featureFlagPolicies from "./tables/featureFlagPolicies";
 import invitations from "./tables/invitations";
+import maestroCredits from "./tables/maestroCredits";
+import modelReceipts from "./tables/modelReceipts";
 import notificationPreferences from "./tables/notificationPreferences";
 import notificationRecords from "./tables/notificationRecords";
 import organizationMembers from "./tables/organizationMembers";
 import organizations from "./tables/organizations";
 import policies from "./tables/policies";
 import promptRegistry from "./tables/promptRegistry";
+import purchases from "./tables/purchases";
+import reportOwnerships from "./tables/reportOwnerships";
+import supportIncidents from "./tables/supportIncidents";
 import transformBlocks from "./tables/transformBlocks";
 import transformDefinitions from "./tables/transformDefinitions";
 import transformRuns from "./tables/transformRuns";
@@ -61,8 +78,14 @@ const databaseSchema: $DatabaseSchema.DatabaseSchema<
   typeof apiKeys |
   typeof billingPlans |
   typeof brainPages |
+  typeof buildPackEntitlements |
+  typeof buildPackExports |
+  typeof buildPackStages |
+  typeof buildPacks |
+  typeof checkoutSessions |
   typeof citations |
   typeof claims |
+  typeof commerceRevocations |
   typeof concepts |
   typeof contextPacks |
   typeof creditLedger |
@@ -76,15 +99,26 @@ const databaseSchema: $DatabaseSchema.DatabaseSchema<
   typeof documentVersions |
   typeof documents |
   typeof dsarRequests |
+  typeof emailVerificationChallenges |
   typeof entitlements |
+  typeof evaluationAnswers |
+  typeof evaluationReportVersions |
+  typeof evaluationReports |
+  typeof evaluationSessions |
+  typeof evaluationShares |
   typeof featureFlagPolicies |
   typeof invitations |
+  typeof maestroCredits |
+  typeof modelReceipts |
   typeof notificationPreferences |
   typeof notificationRecords |
   typeof organizationMembers |
   typeof organizations |
   typeof policies |
   typeof promptRegistry |
+  typeof purchases |
+  typeof reportOwnerships |
+  typeof supportIncidents |
   typeof transformBlocks |
   typeof transformDefinitions |
   typeof transformRuns |
@@ -113,8 +147,14 @@ const databaseSchema: $DatabaseSchema.DatabaseSchema<
   apiKeys,
   billingPlans,
   brainPages,
+  buildPackEntitlements,
+  buildPackExports,
+  buildPackStages,
+  buildPacks,
+  checkoutSessions,
   citations,
   claims,
+  commerceRevocations,
   concepts,
   contextPacks,
   creditLedger,
@@ -128,15 +168,26 @@ const databaseSchema: $DatabaseSchema.DatabaseSchema<
   documentVersions,
   documents,
   dsarRequests,
+  emailVerificationChallenges,
   entitlements,
+  evaluationAnswers,
+  evaluationReportVersions,
+  evaluationReports,
+  evaluationSessions,
+  evaluationShares,
   featureFlagPolicies,
   invitations,
+  maestroCredits,
+  modelReceipts,
   notificationPreferences,
   notificationRecords,
   organizationMembers,
   organizations,
   policies,
   promptRegistry,
+  purchases,
+  reportOwnerships,
+  supportIncidents,
   transformBlocks,
   transformDefinitions,
   transformRuns,

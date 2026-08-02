@@ -552,8 +552,8 @@ const confectSpec = (): string => {
 const confectIds = (): string =>
   replace(
     source("packages/convex/confect/_generated/id.ts"),
-    ' | "promptRegistry" | "transformBlocks"',
-    ' | "promptRegistry" | "records" | "transformBlocks" | "workflowArtifacts"',
+    ' | "promptRegistry"',
+    ' | "promptRegistry" | "records"',
   );
 
 const routeTree = (): string => {
