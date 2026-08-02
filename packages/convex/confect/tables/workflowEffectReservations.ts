@@ -2,41 +2,41 @@ import { Table } from "@confect/server";
 import * as Schema from "effect/Schema";
 import { Id } from "../_generated/id";
 
-export const WorkflowEffectStrategy = Schema.Literal(
+export const WorkflowEffectStrategy = Schema.Literals([
   "provider-native",
   "durable-ledger-and-reconcile",
   "non-retriable",
-);
+]);
 
 export type WorkflowEffectStrategy = Schema.Schema.Type<
   typeof WorkflowEffectStrategy
 >;
 
-export const WorkflowEffectReservationState = Schema.Literal(
+export const WorkflowEffectReservationState = Schema.Literals([
   "reserved",
   "submitted",
   "confirmed",
   "ambiguous",
   "terminal",
-);
+]);
 
 export type WorkflowEffectReservationState = Schema.Schema.Type<
   typeof WorkflowEffectReservationState
 >;
 
-export const WorkflowEffectReconciliationState = Schema.Literal(
+export const WorkflowEffectReconciliationState = Schema.Literals([
   "not-required",
   "pending",
   "confirmed",
   "manual-review",
   "terminal",
-);
+]);
 
-export const WorkflowEffectGuardResult = Schema.Literal(
+export const WorkflowEffectGuardResult = Schema.Literals([
   "passed",
   "denied",
   "not-applicable",
-);
+]);
 
 /**
  * Append-only evidence for a logical external effect. Provider correlation is
@@ -71,7 +71,7 @@ export type WorkflowEffectReservationRow = Schema.Schema.Type<
   typeof WorkflowEffectReservationRow
 >;
 
-export const decodeWorkflowEffectReservationRow = Schema.decodeUnknownEither(
+export const decodeWorkflowEffectReservationRow = Schema.decodeUnknownExit(
   WorkflowEffectReservationRow,
   { errors: "all", onExcessProperty: "error" },
 );
