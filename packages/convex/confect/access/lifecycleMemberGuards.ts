@@ -1,4 +1,4 @@
-import * as Either from "effect/Either";
+import * as Result from "effect/Result";
 
 import { Forbidden, LastOwnerProtected, MemberNotInWorkspace } from "../errors";
 import {
@@ -14,8 +14,8 @@ import { roleAtLeast, type Role } from "./roles";
 
 const fail = <E extends AccessLifecycleError>(
   error: E,
-): PlannerResult<never, E> => Either.left(error);
-const succeed = <A>(value: A): PlannerResult<A, never> => Either.right(value);
+): PlannerResult<never, E> => Result.fail(error);
+const succeed = <A>(value: A): PlannerResult<A, never> => Result.succeed(value);
 
 export const requireLiveWorkspaceMember = (
   member: WorkspaceMemberLifecycleRef,

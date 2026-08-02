@@ -5,7 +5,7 @@ export default Table.make(() =>
   Schema.Struct({
     reportId: Schema.String,
     purchaseId: Schema.String,
-    status: Schema.Literal("active", "revoked"),
+    status: Schema.Literals(["active", "revoked"]),
     generationAttempts: Schema.Number,
     createdAt: Schema.Number,
     updatedAt: Schema.Number,

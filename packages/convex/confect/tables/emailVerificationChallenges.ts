@@ -7,7 +7,7 @@ export default Table.make(() =>
     reportId: Schema.String,
     emailHash: Schema.String,
     verificationTokenHash: Schema.String,
-    status: Schema.Literal("pending", "consumed"),
+    status: Schema.Literals(["pending", "consumed"]),
     createdAt: Schema.Number,
     expiresAt: Schema.Number,
     consumedAt: Schema.optional(Schema.Number),

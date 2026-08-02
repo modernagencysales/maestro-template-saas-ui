@@ -16,20 +16,23 @@ import {
   NotificationPriority,
 } from "../tables/notificationRecords";
 
-const NonEmptyString = Schema.String.pipe(Schema.minLength(1));
-const NotificationError = Schema.Union(
+const NonEmptyString = Schema.String.pipe(Schema.check(Schema.isMinLength(1)));
+const NotificationError = Schema.Union([
   Unauthorized,
   Forbidden,
   MemberNotInWorkspace,
   WorkspaceNotFound,
   NotFound,
   ValidationFailed,
-);
+]);
 
 export const ListNotificationsArgs = Schema.Struct({
   workspaceId: Id("workspaces"),
   limit: Schema.optional(
-    Schema.Number.pipe(Schema.int(), Schema.greaterThan(0)),
+    Schema.Number.pipe(
+      Schema.check(Schema.isInt()),
+      Schema.check(Schema.isGreaterThan(0)),
+    ),
   ),
 });
 
@@ -119,7 +122,7 @@ const recordInternal = FunctionSpec.internalMutation({
   name: "recordInternal",
   args: () => RecordNotificationArgs,
   returns: () => NotificationRecordReturn,
-  error: () => Schema.Union(ValidationFailed),
+  error: () => Schema.Union([ValidationFailed]),
 });
 
 const markRead = FunctionSpec.publicMutation({

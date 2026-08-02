@@ -21,7 +21,7 @@ export type RateLimitAllowed = {
   readonly usage: RateLimitUsageAttribution;
 };
 
-export class RateLimitDeniedError extends Schema.TaggedError<RateLimitDeniedError>()(
+export class RateLimitDeniedError extends Schema.TaggedErrorClass<RateLimitDeniedError>()(
   "RateLimitDeniedError",
   {
     key: Schema.String,

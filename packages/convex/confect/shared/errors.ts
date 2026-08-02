@@ -1,6 +1,6 @@
 import * as Schema from "effect/Schema";
 
-export const ErrorCode = Schema.Literal(
+export const ErrorCode = Schema.Literals([
   "UNAUTHENTICATED",
   "NO_WORKSPACE_ACCESS",
   "VALIDATION_FAILED",
@@ -11,16 +11,16 @@ export const ErrorCode = Schema.Literal(
   "POLICY_NOT_FOUND",
   "PROMPT_NOT_FOUND",
   "INTERNAL",
-);
+]);
 
 export type ErrorCode = Schema.Schema.Type<typeof ErrorCode>;
 
-export const PublicErrorDetails = Schema.Record({
-  key: Schema.String,
-  value: Schema.Union(Schema.String, Schema.Number, Schema.Boolean),
-});
+export const PublicErrorDetails = Schema.Record(
+  Schema.String,
+  Schema.Union([Schema.String, Schema.Number, Schema.Boolean]),
+);
 
-export class TemplatePublicError extends Schema.TaggedError<TemplatePublicError>()(
+export class TemplatePublicError extends Schema.TaggedErrorClass<TemplatePublicError>()(
   "TemplatePublicError",
   {
     code: ErrorCode,

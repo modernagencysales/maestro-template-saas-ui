@@ -1,5 +1,5 @@
 import * as Effect from "effect/Effect";
-import * as Either from "effect/Either";
+import * as Result from "effect/Result";
 import {
   normalizeMutationSuccess,
   type TemplateMutationState,
@@ -21,13 +21,13 @@ const abortStateFor = (
   signal?.aborted === true ? abortedState() : undefined;
 
 const normalizeEffectResult = <Value, TypedError>(
-  result: Either.Either<Value, TypedError>,
+  result: Result.Result<Value, TypedError>,
   mode: TemplateReadyMode | undefined,
 ): FrontendEffectBoundaryResult<Value, TypedError> =>
-  Either.isLeft(result)
-    ? { status: "typed_failure", error: result.left }
+  Result.isFailure(result)
+    ? { status: "typed_failure", error: result.failure }
     : normalizeMutationSuccess(
-        result.right,
+        result.success,
         mode === undefined ? {} : { mode },
       );
 
@@ -42,7 +42,7 @@ const defectState = <TypedError>(
 type EffectCompletion<Value, TypedError> =
   | {
       readonly status: "completed";
-      readonly result: Either.Either<Value, TypedError>;
+      readonly result: Result.Result<Value, TypedError>;
     }
   | {
       readonly status: "defected";
@@ -54,7 +54,7 @@ const captureEffectCompletion = async <Value, TypedError>(
   signal: AbortSignal | undefined,
 ): Promise<EffectCompletion<Value, TypedError>> => {
   try {
-    const result = await Effect.runPromise(Effect.either(effect), { signal });
+    const result = await Effect.runPromise(Effect.result(effect), { signal });
 
     return { status: "completed", result };
   } catch (error) {

@@ -76,8 +76,8 @@ export const recordObservedStageStarted = (args: StageStartedArgs) =>
     return null;
   });
 export const markWorkflowRunDispatched = (
-  reader: Context.Tag.Service<typeof DatabaseReader>,
-  writer: Context.Tag.Service<typeof DatabaseWriter>,
+  reader: Context.Service.Shape<typeof DatabaseReader>,
+  writer: Context.Service.Shape<typeof DatabaseWriter>,
   workflowRunId: string,
 ) =>
   Effect.gen(function* () {
@@ -170,7 +170,7 @@ const projection = (args: StageProjectionArgs) => ({
 });
 
 const requireOwnedGeneration = (
-  reader: Context.Tag.Service<typeof DatabaseReader>,
+  reader: Context.Service.Shape<typeof DatabaseReader>,
   args: {
     readonly workflowRunId: string;
     readonly componentWorkflowId: string;
@@ -186,12 +186,14 @@ const requireOwnedGeneration = (
         run?.lifecycleGeneration === args.lifecycleGeneration &&
         componentIdentityMatches(run, args.componentWorkflowId)
           ? Effect.void
-          : Effect.dieMessage("Observed workflow stage ownership mismatch."),
+          : Effect.die(
+              new Error("Observed workflow stage ownership mismatch."),
+            ),
       ),
     );
 
 export const readWorkflowExecutionIdentity = (
-  reader: Context.Tag.Service<typeof DatabaseReader>,
+  reader: Context.Service.Shape<typeof DatabaseReader>,
   args: {
     readonly workspaceId: string;
     readonly workflowRunId: string;
@@ -212,7 +214,9 @@ export const readWorkflowExecutionIdentity = (
               generation: run.lifecycleGeneration,
               observedAt: run.startedAt,
             })
-          : Effect.dieMessage("Workflow execution identity is unavailable."),
+          : Effect.die(
+              new Error("Workflow execution identity is unavailable."),
+            ),
       ),
     );
 

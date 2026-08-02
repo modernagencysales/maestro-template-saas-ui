@@ -1,6 +1,6 @@
 import * as Schema from "effect/Schema";
 
-export const Role = Schema.Literal("viewer", "editor", "admin", "owner");
+export const Role = Schema.Literals(["viewer", "editor", "admin", "owner"]);
 
 export type Role = Schema.Schema.Type<typeof Role>;
 

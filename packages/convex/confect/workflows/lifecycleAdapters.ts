@@ -30,9 +30,9 @@ import {
   inspectWorkflowRetention,
 } from "./lifecycleInspection";
 
-type Reader = Context.Tag.Service<typeof DatabaseReader>;
-type Writer = Context.Tag.Service<typeof DatabaseWriter>;
-type Mutation = Context.Tag.Service<typeof MutationCtx>;
+type Reader = Context.Service.Shape<typeof DatabaseReader>;
+type Writer = Context.Service.Shape<typeof DatabaseWriter>;
+type Mutation = Context.Service.Shape<typeof MutationCtx>;
 
 export const authorizeWorkflowLifecycle = (workspaceId: string) =>
   withConfectClock(

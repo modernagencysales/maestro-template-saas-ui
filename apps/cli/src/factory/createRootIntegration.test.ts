@@ -2,6 +2,7 @@ import { execFile, execFileSync, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import {
   existsSync,
+  mkdirSync,
   mkdtempSync,
   readFileSync,
   readdirSync,
@@ -10,10 +11,10 @@ import {
 } from "node:fs";
 import { rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { promisify } from "node:util";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { afterAll, afterEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { runCliAsync } from "../index";
 import { CREATE_HELP } from "./create";
 import { createFactoryCliComposition } from "./composition";
@@ -21,8 +22,16 @@ import { createFactoryCliComposition } from "./composition";
 const repoRoot = fileURLToPath(new URL("../../../../", import.meta.url));
 const execFileAsync = promisify(execFile);
 const temporaryRoots: string[] = [];
+const originalPath = process.env.PATH;
+const offlinePnpmBin = "/private/tmp/maestro-pnpm-10-bin";
 let taggedReleaseParent: string | undefined;
 let taggedReleaseRoot: string | undefined;
+const frozenAlpha2RuntimeSeam = [
+  "apps/cli/src/factory/createComposition.ts",
+  "tooling/generators/src/index.ts",
+  "tooling/generators/src/blueprints/alpha2SaasApplicationPlan.ts",
+  "tooling/generators/src/blueprints/customer/alpha2-plan.json.gz.b64",
+] as const;
 const taggedRepository = (): string => {
   if (taggedReleaseRoot) return taggedReleaseRoot;
   taggedReleaseParent = mkdtempSync(join(tmpdir(), "maestro-tagged-release-"));
@@ -34,6 +43,11 @@ const taggedRepository = (): string => {
       stdio: "pipe",
     },
   );
+  for (const path of frozenAlpha2RuntimeSeam) {
+    const target = join(taggedReleaseRoot, path);
+    mkdirSync(dirname(target), { recursive: true });
+    writeFileSync(target, readFileSync(join(repoRoot, path)));
+  }
   execFileSync(
     "pnpm",
     ["install", "--offline", "--frozen-lockfile", "--ignore-scripts"],
@@ -66,9 +80,21 @@ const runTaggedCli = async (argv: readonly string[]) => {
     };
   }
 };
+beforeAll(() => {
+  process.env.PATH = `${offlinePnpmBin}:${originalPath ?? ""}`;
+  expect(execFileSync("pnpm", ["--version"], { encoding: "utf8" }).trim()).toBe(
+    "10.12.1",
+  );
+  taggedRepository();
+}, 120_000);
 afterAll(async () => {
-  if (taggedReleaseParent)
-    await rm(taggedReleaseParent, { recursive: true, force: true });
+  try {
+    if (taggedReleaseParent)
+      await rm(taggedReleaseParent, { recursive: true, force: true });
+  } finally {
+    if (originalPath === undefined) delete process.env.PATH;
+    else process.env.PATH = originalPath;
+  }
 });
 afterEach(async () => {
   await Promise.all(
@@ -76,7 +102,7 @@ afterEach(async () => {
       .splice(0)
       .map((root) => rm(root, { recursive: true, force: true })),
   );
-});
+}, 120_000);
 
 describe("create root integration", () => {
   it("preserves immutable alpha.1 and binds the current blueprint manifest", () => {

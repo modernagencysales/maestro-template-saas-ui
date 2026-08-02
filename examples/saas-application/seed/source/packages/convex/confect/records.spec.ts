@@ -15,13 +15,13 @@ import {
   defineContractFunction,
 } from "./capabilities/_kit/capability";
 
-const ReadError = Schema.Union(
+const ReadError = Schema.Union([
   Unauthorized,
   MemberNotInWorkspace,
   WorkspaceNotFound,
   NotFound,
-);
-const WriteError = Schema.Union(ReadError, ValidationFailed);
+]);
+const WriteError = Schema.Union([ReadError, ValidationFailed]);
 const WorkspaceArgs = Schema.Struct({ workspaceId: Id("workspaces") });
 const ReadArgs = Schema.Struct({
   workspaceId: Id("workspaces"),
@@ -39,7 +39,7 @@ const list = defineContractFunction(
     args: () => WorkspaceArgs,
     returns: () => Schema.Array(records.Doc),
     error: () =>
-      Schema.Union(Unauthorized, MemberNotInWorkspace, WorkspaceNotFound),
+      Schema.Union([Unauthorized, MemberNotInWorkspace, WorkspaceNotFound]),
   }),
   {
     namespace: "records",

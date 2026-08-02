@@ -9,6 +9,19 @@ import {
 } from "node:fs";
 import { dirname, relative, resolve, sep } from "node:path";
 const execFileAsync = promisify(execFile);
+const offlinePnpmBin = "/private/tmp/maestro-pnpm-10-bin";
+
+const commandFailure = (error: unknown): Error => {
+  const failure = error as Error & {
+    readonly stdout?: string;
+    readonly stderr?: string;
+  };
+  return new Error(
+    [failure.message, failure.stdout, failure.stderr]
+      .filter((value): value is string => Boolean(value))
+      .join("\n"),
+  );
+};
 
 export type FinalCustomerTree = {
   readonly root: string;
@@ -174,18 +187,25 @@ function packageScripts(path: string): Readonly<Record<string, string>> {
 
 export async function runFinalCustomerCompileGates(
   root: string,
+  installedStoreDir: string,
 ): Promise<void> {
   const env = {
     ...process.env,
+    PATH: `${offlinePnpmBin}:${process.env.PATH ?? ""}`,
+    npm_config_store_dir: installedStoreDir,
     CI: "1",
     CONVEX_DEPLOYMENT: "",
     CONVEX_URL: "",
   };
-  await execFileAsync(
-    "pnpm",
-    ["install", "--frozen-lockfile", "--ignore-scripts"],
-    { cwd: root, env, maxBuffer: 10 * 1024 * 1024 },
-  );
+  try {
+    await execFileAsync(
+      "pnpm",
+      ["install", "--offline", "--frozen-lockfile", "--ignore-scripts"],
+      { cwd: root, env, maxBuffer: 10 * 1024 * 1024 },
+    );
+  } catch (error) {
+    throw commandFailure(error);
+  }
   for (const [command, args] of [
     ["pnpm", ["--dir", "apps/cli", "typecheck"]],
     ["pnpm", ["--dir", "tooling/generators", "typecheck"]],

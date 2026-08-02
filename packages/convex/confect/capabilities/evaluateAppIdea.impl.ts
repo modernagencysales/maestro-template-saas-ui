@@ -10,10 +10,10 @@ import {
 } from "@maestro-template/app-idea-evaluator";
 import { createLlmGateway } from "@maestro-template/integrations";
 import * as Clock from "effect/Clock";
-import * as Either from "effect/Either";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
+import * as Result from "effect/Result";
 import databaseSchema from "../_generated/schema";
 import refs from "../_generated/refs";
 import {
@@ -470,7 +470,7 @@ const evaluateAppIdeaWithModelImpl = FunctionImpl.make(
         rawInput,
       ).pipe(
         Effect.catchTag(
-          "ParseError",
+          "SchemaError",
           () => new Forbidden({ reason: "Evaluation request was invalid." }),
         ),
       );
@@ -482,7 +482,7 @@ const evaluateAppIdeaWithModelImpl = FunctionImpl.make(
         },
       ).pipe(
         Effect.catchTag(
-          "ParseError",
+          "SchemaError",
           () => new Forbidden({ reason: "Evaluation context was invalid." }),
         ),
       );
@@ -524,11 +524,11 @@ const evaluateAppIdeaWithModelImpl = FunctionImpl.make(
           error instanceof FreeEvaluationRuntimeError
             ? error
             : new FreeEvaluationRuntimeError(error, []),
-      }).pipe(Effect.either);
-      if (Either.isLeft(generated)) {
+      }).pipe(Effect.result);
+      if (Result.isFailure(generated)) {
         if (
-          generated.left instanceof FreeEvaluationRuntimeError &&
-          generated.left.receipts.length > 0
+          generated.failure instanceof FreeEvaluationRuntimeError &&
+          generated.failure.receipts.length > 0
         ) {
           yield* mutation(
             refs.internal.capabilities.evaluateAppIdea.recordModelReceipts,
@@ -536,7 +536,7 @@ const evaluateAppIdeaWithModelImpl = FunctionImpl.make(
               sessionId: input.sessionId,
               accessToken: input.accessToken,
               reportId: persisted.reportId,
-              receipts: generated.left.receipts,
+              receipts: generated.failure.receipts,
             },
           ).pipe(Effect.orDie);
         }
@@ -555,12 +555,12 @@ const evaluateAppIdeaWithModelImpl = FunctionImpl.make(
           sessionId: input.sessionId,
           accessToken: input.accessToken,
           reportId: persisted.reportId,
-          reportJson: JSON.stringify(generated.right.report),
-          receipts: generated.right.receipts,
+          reportJson: JSON.stringify(generated.success.report),
+          receipts: generated.success.receipts,
         },
       ).pipe(
         Effect.catchTag(
-          "ParseError",
+          "SchemaError",
           () => new Forbidden({ reason: "Evaluation result was invalid." }),
         ),
       );
@@ -571,8 +571,8 @@ const evaluateAppIdeaWithModelImpl = FunctionImpl.make(
         ...completed,
         freshCompletion: true as const,
         durationMs: Math.max(0, completedAt - startedAt),
-        modelCalls: generated.right.receipts.length,
-        estimatedCostCents: generated.right.receipts.reduce(
+        modelCalls: generated.success.receipts.length,
+        estimatedCostCents: generated.success.receipts.reduce(
           (total, receipt) => total + receipt.estimatedCents,
           0,
         ),

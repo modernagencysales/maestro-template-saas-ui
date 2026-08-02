@@ -43,15 +43,17 @@ const changeRole = FunctionImpl.make(
         reader,
         target.workspaceId,
       );
-      const plan = yield* changeMemberRole({
-        actorUserId: actor.userId,
-        actorRole: actor.role,
-        workspaceId: target.workspaceId,
-        target,
-        liveWorkspaceMembers: liveMembers,
-        newRole,
-        now,
-      });
+      const plan = yield* Effect.fromResult(
+        changeMemberRole({
+          actorUserId: actor.userId,
+          actorRole: actor.role,
+          workspaceId: target.workspaceId,
+          target,
+          liveWorkspaceMembers: liveMembers,
+          newRole,
+          now,
+        }),
+      );
 
       yield* writer
         .table("workspaceMembers")
@@ -79,14 +81,16 @@ const remove = FunctionImpl.make(
         reader,
         target.workspaceId,
       );
-      const plan = yield* removeMember({
-        actorUserId: actor.userId,
-        actorRole: actor.role,
-        workspaceId: target.workspaceId,
-        target,
-        liveWorkspaceMembers: liveMembers,
-        now,
-      });
+      const plan = yield* Effect.fromResult(
+        removeMember({
+          actorUserId: actor.userId,
+          actorRole: actor.role,
+          workspaceId: target.workspaceId,
+          target,
+          liveWorkspaceMembers: liveMembers,
+          now,
+        }),
+      );
 
       yield* writer
         .table("workspaceMembers")
@@ -115,13 +119,15 @@ const transferOwnershipImpl = FunctionImpl.make(
         target.workspaceId,
         actor.userId,
       );
-      const plan = yield* transferOwnership({
-        actorUserId: actor.userId,
-        workspaceId: target.workspaceId,
-        target,
-        actorMembership,
-        now,
-      });
+      const plan = yield* Effect.fromResult(
+        transferOwnership({
+          actorUserId: actor.userId,
+          workspaceId: target.workspaceId,
+          target,
+          actorMembership,
+          now,
+        }),
+      );
 
       yield* Effect.forEach(plan.patches, (patch) =>
         writer
@@ -161,7 +167,7 @@ const loadMember = (
     .get(membershipId)
     .pipe(
       Effect.map(toLifecycleMember),
-      Effect.catchAll((error) =>
+      Effect.catch((error) =>
         error._tag === "GetByIdFailure"
           ? Effect.fail(new MemberNotInWorkspace({ membershipId }))
           : Effect.die(error),
@@ -195,7 +201,7 @@ const loadLiveWorkspaceMemberForUser = (
       ),
       // Keep the typed MemberNotInWorkspace; a decode/system failure is a real
       // defect, not a spurious "member not found".
-      Effect.catchAll((error) =>
+      Effect.catch((error) =>
         error instanceof MemberNotInWorkspace
           ? Effect.fail(error)
           : Effect.die(error),

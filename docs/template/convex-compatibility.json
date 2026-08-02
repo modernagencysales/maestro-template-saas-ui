@@ -1,20 +1,21 @@
 {
   "schemaVersion": 1,
-  "auditedAt": "2026-07-24",
+  "auditedAt": "2026-07-31",
   "current": {
     "convex": "1.42.1",
     "@convex-dev/workflow": "0.4.4",
     "@convex-dev/workpool": "0.4.7",
     "convex-test": "0.0.54",
     "@convex-dev/migrations": "0.3.5",
-    "@confect/cli": "9.1.5",
-    "@confect/core": "9.1.5",
-    "@confect/server": "9.1.5",
-    "@confect/test": "9.1.5",
-    "effect": "3.21.4",
-    "@effect/cluster": "0.58.0",
-    "@effect/platform": "0.96.2",
-    "@effect/platform-node": "0.106.0"
+    "@confect/cli": "10.0.0-next.9",
+    "@confect/core": "10.0.0-next.9",
+    "@confect/server": "10.0.0-next.9",
+    "@confect/test": "10.0.0-next.9",
+    "effect": "4.0.0-beta.102",
+    "@effect/platform-node": "4.0.0-beta.102",
+    "@effect/vitest": "4.0.0-beta.102",
+    "@effect/language-service": "0.87.1",
+    "ioredis": "5.11.1"
   },
   "officialAgentContext": {
     "repository": "get-convex/agent-skills",

@@ -14,7 +14,10 @@ import { describe, expect, it } from "vitest";
 
 import {
   buildWorkflowPublicationStack,
+  findCurrentPublicationMetadataDrift,
   findPublishedClosureDrift,
+  PINNED_ISOLATED_PUBLICATION_AUTHORITY,
+  pinnedPublicationAuthorityTestSeams,
   synchronizeReleaseAuthorityChecksums,
 } from "./workflow-publication-generation";
 
@@ -33,6 +36,30 @@ const generatedPaths = [
   "packages/convex/confect/workflows/publicationFixture/v1.release.ts",
 ] as const;
 
+const pinnedRolesPath = "packages/convex/confect/access/roles.ts";
+const pinnedRolesChecksum =
+  "65b0f8bd279df7cb9157bc3249b7b17b9cbaa056797a0d0a2ef1c78778ed28a6";
+const pinnedCapabilityDescriptorPath =
+  "packages/convex/confect/capabilities/_versions/publicationEcho/v1.publication.json";
+
+const metadataFixtureDrift = (
+  path: string,
+  current: string,
+  tagged: string,
+): readonly string[] => {
+  const fixtureRoot = mkdtempSync(resolve(tmpdir(), "publication-metadata-"));
+  try {
+    const target = resolve(fixtureRoot, path);
+    mkdirSync(dirname(target), { recursive: true });
+    writeFileSync(target, current);
+    return findCurrentPublicationMetadataDrift(fixtureRoot, [
+      { path, content: Buffer.from(tagged) },
+    ]);
+  } finally {
+    rmSync(fixtureRoot, { recursive: true, force: true });
+  }
+};
+
 describe("bounded workflow publication regeneration", () => {
   it("is deterministic and keeps the canonical two-release stack clean", async () => {
     const first = await buildWorkflowPublicationStack(repoRoot);
@@ -45,7 +72,7 @@ describe("bounded workflow publication regeneration", () => {
     expect(second.drift).toEqual([]);
   });
 
-  it("reports published source and artifact drift instead of masking it", () => {
+  it("preserves ordinary worktree drift instead of masking it", () => {
     const fixtureRoot = mkdtempSync(resolve(tmpdir(), "workflow-published-"));
     try {
       const fixtures = [
@@ -81,6 +108,110 @@ describe("bounded workflow publication regeneration", () => {
     } finally {
       rmSync(fixtureRoot, { recursive: true, force: true });
     }
+  });
+
+  it("validates isolated published source from the pinned tag while current source evolves", async () => {
+    const target = resolve(repoRoot, pinnedRolesPath);
+    const currentChecksum = createHash("sha256")
+      .update(readFileSync(target))
+      .digest("hex");
+    expect(currentChecksum).not.toBe(pinnedRolesChecksum);
+    const result = await buildWorkflowPublicationStack(repoRoot);
+    expect(result.drift).toEqual([]);
+  });
+
+  it("keeps immutable publication metadata byte-bound to the pinned tag", () => {
+    const path = pinnedCapabilityDescriptorPath;
+    const tagged = readFileSync(resolve(repoRoot, path), "utf8");
+    expect(metadataFixtureDrift(path, `${tagged}\n`, tagged)).toEqual([path]);
+  });
+
+  it("compares current isolation metadata as bytes instead of authority", () => {
+    const path = pinnedCapabilityDescriptorPath;
+    const tagged = readFileSync(resolve(repoRoot, path), "utf8");
+    const descriptor = JSON.parse(tagged) as { isolatedFixture: boolean };
+    const current = `${JSON.stringify(
+      { ...descriptor, isolatedFixture: false },
+      null,
+      2,
+    )}\n`;
+    expect(metadataFixtureDrift(path, current, tagged)).toEqual([path]);
+  });
+
+  it("reports malformed current metadata as byte drift", () => {
+    const path = pinnedCapabilityDescriptorPath;
+    const tagged = readFileSync(resolve(repoRoot, path), "utf8");
+    expect(metadataFixtureDrift(path, "{", tagged)).toEqual([path]);
+  });
+
+  it("fails closed when the pinned isolated publication tag is unavailable", () => {
+    expect(() =>
+      pinnedPublicationAuthorityTestSeams.validateInputs(
+        repoRoot,
+        [{ path: pinnedRolesPath, checksum: pinnedRolesChecksum }],
+        {
+          ...PINNED_ISOLATED_PUBLICATION_AUTHORITY,
+          tag: "maestro-template-missing-isolated-authority",
+        },
+      ),
+    ).toThrow(/pinned isolated publication tag is unavailable/i);
+  });
+
+  it("fails closed when the pinned isolated publication tag moves", () => {
+    expect(() =>
+      pinnedPublicationAuthorityTestSeams.validateInputs(
+        repoRoot,
+        [{ path: pinnedRolesPath, checksum: pinnedRolesChecksum }],
+        {
+          ...PINNED_ISOLATED_PUBLICATION_AUTHORITY,
+          tagObject: "0".repeat(40),
+        },
+      ),
+    ).toThrow(/pinned isolated publication tag object mismatch/i);
+  });
+
+  it("fails closed when tagged isolated publication bytes do not match authority", () => {
+    expect(() =>
+      pinnedPublicationAuthorityTestSeams.validateInputs(repoRoot, [
+        { path: pinnedRolesPath, checksum: "0".repeat(64) },
+      ]),
+    ).toThrow(
+      /tagged isolated publication checksum mismatch.*confect\/access\/roles\.ts/i,
+    );
+  });
+
+  it("fails closed when a tagged isolated publication blob is missing", () => {
+    expect(() =>
+      pinnedPublicationAuthorityTestSeams.validateInputs(repoRoot, [
+        {
+          path: "packages/convex/confect/missing-isolated-authority.ts",
+          checksum: "0".repeat(64),
+        },
+      ]),
+    ).toThrow(/pinned isolated publication blob is unavailable/i);
+  });
+
+  it("fails closed when a tagged publication descriptor is malformed", () => {
+    expect(() =>
+      pinnedPublicationAuthorityTestSeams.assertDescriptor(
+        repoRoot,
+        null,
+        pinnedCapabilityDescriptorPath,
+      ),
+    ).toThrow(/pinned publication descriptor is malformed/i);
+  });
+
+  it("fails closed when tagged publication authority is not isolated", () => {
+    const descriptor = JSON.parse(
+      readFileSync(resolve(repoRoot, pinnedCapabilityDescriptorPath), "utf8"),
+    ) as Record<string, unknown>;
+    expect(() =>
+      pinnedPublicationAuthorityTestSeams.assertDescriptor(
+        repoRoot,
+        { ...descriptor, isolatedFixture: false },
+        pinnedCapabilityDescriptorPath,
+      ),
+    ).toThrow(/not a complete published isolated fixture/i);
   });
 
   it("repairs release checksums from authority after an interrupted regeneration", () => {

@@ -5,16 +5,18 @@ import { Id } from "../_generated/id";
 import { NotFound, ValidationFailed } from "../errors";
 
 const Receipt = Schema.Struct({
-  kind: Schema.Literal("bounded-inline", "artifact-reference"),
+  kind: Schema.Literals(["bounded-inline", "artifact-reference"]),
   measuredBytes: Schema.Number.pipe(
-    Schema.int(),
-    Schema.greaterThanOrEqualTo(0),
+    Schema.check(Schema.isInt()),
+    Schema.check(Schema.isGreaterThanOrEqualTo(0)),
   ),
-  contentHash: Schema.String.pipe(Schema.pattern(/^[a-f0-9]{64}$/)),
+  contentHash: Schema.String.pipe(
+    Schema.check(Schema.isPattern(/^[a-f0-9]{64}$/)),
+  ),
   artifactId: Schema.optional(Schema.NonEmptyString),
 });
 
-const errors = Schema.Union(NotFound, ValidationFailed);
+const errors = Schema.Union([NotFound, ValidationFailed]);
 
 const recoverReservation = FunctionSpec.internalQuery({
   name: "recoverReservation",
@@ -39,7 +41,9 @@ const persistUnresolvedSuccess = FunctionSpec.internalMutation({
       linkId: Id("workflowRunLinks"),
       receipt: Receipt,
       childResult: Schema.Unknown,
-      occurredAt: Schema.Number.pipe(Schema.greaterThanOrEqualTo(0)),
+      occurredAt: Schema.Number.pipe(
+        Schema.check(Schema.isGreaterThanOrEqualTo(0)),
+      ),
     }),
   returns: () => Schema.Null,
   error: () => errors,
@@ -52,7 +56,9 @@ const persistUnresolvedReservation = FunctionSpec.internalMutation({
       workspaceId: Schema.NonEmptyString,
       linkId: Id("workflowRunLinks"),
       idempotencyKey: Schema.NonEmptyString,
-      occurredAt: Schema.Number.pipe(Schema.greaterThanOrEqualTo(0)),
+      occurredAt: Schema.Number.pipe(
+        Schema.check(Schema.isGreaterThanOrEqualTo(0)),
+      ),
     }),
   returns: () => Schema.Null,
   error: () => errors,
@@ -78,7 +84,9 @@ const resolveUnresolvedSuccess = FunctionSpec.internalMutation({
     Schema.Struct({
       workspaceId: Schema.NonEmptyString,
       linkId: Id("workflowRunLinks"),
-      occurredAt: Schema.Number.pipe(Schema.greaterThanOrEqualTo(0)),
+      occurredAt: Schema.Number.pipe(
+        Schema.check(Schema.isGreaterThanOrEqualTo(0)),
+      ),
     }),
   returns: () => Schema.Null,
   error: () => errors,
@@ -90,13 +98,15 @@ const reportReconciliationFailure = FunctionSpec.internalMutation({
     Schema.Struct({
       workspaceId: Schema.NonEmptyString,
       linkId: Id("workflowRunLinks"),
-      primaryOutcome: Schema.Literal("succeeded", "failed", "canceled"),
-      issue: Schema.Literal(
+      primaryOutcome: Schema.Literals(["succeeded", "failed", "canceled"]),
+      issue: Schema.Literals([
         "SUBWORKFLOW_LINK_RECONCILIATION_FAILED",
         "SUBWORKFLOW_SUCCESS_RECONCILIATION_FAILED",
         "SUBWORKFLOW_RESERVATION_RESPONSE_INVALID",
+      ]),
+      occurredAt: Schema.Number.pipe(
+        Schema.check(Schema.isGreaterThanOrEqualTo(0)),
       ),
-      occurredAt: Schema.Number.pipe(Schema.greaterThanOrEqualTo(0)),
     }),
   returns: () => Schema.Null,
   error: () => errors,

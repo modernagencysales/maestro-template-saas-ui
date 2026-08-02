@@ -20,9 +20,7 @@ const answers = {
 describe("app-idea commerce capabilities", () => {
   it("stays pending after return and grants exactly once from the webhook", async () => {
     const program = Effect.gen(function* () {
-      const confect = yield* Effect.serviceOptional(
-        TestConfect.TestConfect<typeof databaseSchema>(),
-      );
+      const confect = yield* TestConfect.TestConfect<typeof databaseSchema>();
       const evaluated = yield* confect.mutation(
         refs.public.capabilities.evaluateAppIdea.evaluateAppIdea,
         {
@@ -122,9 +120,7 @@ describe("app-idea commerce capabilities", () => {
 
   it("revokes the entitlement and equal credit after a refund", async () => {
     const program = Effect.gen(function* () {
-      const confect = yield* Effect.serviceOptional(
-        TestConfect.TestConfect<typeof databaseSchema>(),
-      );
+      const confect = yield* TestConfect.TestConfect<typeof databaseSchema>();
       const evaluated = yield* confect.mutation(
         refs.public.capabilities.evaluateAppIdea.evaluateAppIdea,
         {

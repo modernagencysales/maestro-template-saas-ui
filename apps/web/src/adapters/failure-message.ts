@@ -1,4 +1,4 @@
-import * as Either from "effect/Either";
+import * as Result from "effect/Result";
 
 export function describeTypedFailure(error: unknown, fallback: string): string {
   const extracted = unwrapTypedFailure(error);
@@ -8,11 +8,11 @@ export function describeTypedFailure(error: unknown, fallback: string): string {
 function unwrapTypedFailure(error: unknown): string | null {
   let current = error;
 
-  while (Either.isEither(current)) {
-    if (Either.isRight(current)) {
+  while (Result.isResult(current)) {
+    if (Result.isSuccess(current)) {
       return null;
     }
-    current = current.left;
+    current = current.failure;
   }
 
   if (typeof current !== "object" || current === null) {

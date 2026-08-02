@@ -8,7 +8,7 @@ import {
   type MaestroWorkflowLifecycleManager,
 } from "./_kit/defineMaestroWorkflow";
 
-type Mutation = Context.Tag.Service<typeof MutationCtx>;
+type Mutation = Context.Service.Shape<typeof MutationCtx>;
 type WorkflowComponent = Parameters<
   typeof createMaestroWorkflowLifecycleAdapter
 >[0];

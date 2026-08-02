@@ -13,7 +13,7 @@ import {
 } from "./_kit/subworkflowLinks";
 import subworkflowLinksCurrent from "./subworkflowLinksCurrent.spec";
 
-type Reader = Context.Tag.Service<typeof DatabaseReader>;
+type Reader = Context.Service.Shape<typeof DatabaseReader>;
 
 const loadLink = (
   reader: Reader,

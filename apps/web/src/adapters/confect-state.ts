@@ -10,7 +10,7 @@ import type {
   TemplateToastApi,
   TemplateToastInput,
 } from "@maestro-template/ui";
-import * as Either from "effect/Either";
+import * as Result from "effect/Result";
 
 export type TemplateReadyMode = "read" | "edit";
 
@@ -168,13 +168,13 @@ export function normalizeMutationSuccess<T>(
 }
 
 export function classifyConfectMutationResult<T, E>(
-  result: Either.Either<T, E> | T,
+  result: Result.Result<T, E> | T,
   options: Pick<NormalizeOptions<T>, "mode"> = {},
 ): TemplateMutationState<T, E> {
-  if (Either.isEither(result)) {
-    return Either.isLeft(result)
-      ? { status: "typed_failure", error: result.left }
-      : normalizeMutationSuccess(result.right, options);
+  if (Result.isResult(result)) {
+    return Result.isFailure(result)
+      ? { status: "typed_failure", error: result.failure }
+      : normalizeMutationSuccess(result.success, options);
   }
 
   return normalizeMutationSuccess(result, options);

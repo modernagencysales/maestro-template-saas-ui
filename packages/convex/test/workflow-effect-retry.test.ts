@@ -1,4 +1,5 @@
-import * as Either from "effect/Either";
+import * as Exit from "effect/Exit";
+import * as Result from "effect/Result";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -53,12 +54,12 @@ describe("workflow effect retry contract", () => {
       guards,
     },
   ])("decodes strategy $strategy", (contract) => {
-    expect(Either.isRight(decodeWorkflowEffectContract(contract))).toBe(true);
+    expect(Exit.isSuccess(decodeWorkflowEffectContract(contract))).toBe(true);
   });
 
   it("rejects boolean idempotency claims", () => {
     expect(
-      Either.isLeft(
+      Exit.isFailure(
         decodeWorkflowEffectContract({
           ...providerNative,
           strategy: undefined,
@@ -73,9 +74,9 @@ describe("workflow effect retry contract", () => {
       { ...providerNative, dedupeRetentionMs: 14_999 },
       { maxAttempts: 3, initialBackoffMs: 250, base: 2 },
     );
-    expect(Either.isLeft(result)).toBe(true);
-    if (Either.isLeft(result)) {
-      expect(result.left.issue).toContain("dedupeRetentionMs");
+    expect(Result.isFailure(result)).toBe(true);
+    if (Result.isFailure(result)) {
+      expect(result.failure.issue).toContain("dedupeRetentionMs");
     }
   });
 
@@ -83,7 +84,7 @@ describe("workflow effect retry contract", () => {
     "rejects unsafe numeric retry or horizon value %s",
     (value) => {
       expect(
-        Either.isLeft(
+        Result.isFailure(
           validateWorkflowEffectContract(
             { ...providerNative, maxRestartWindowMs: value },
             { maxAttempts: 2, initialBackoffMs: 1, base: 2 },
@@ -91,7 +92,7 @@ describe("workflow effect retry contract", () => {
         ),
       ).toBe(true);
       expect(
-        Either.isLeft(
+        Result.isFailure(
           validateWorkflowEffectContract(
             {
               strategy: "non-retriable",
@@ -109,18 +110,19 @@ describe("workflow effect retry contract", () => {
   );
 
   it("forbids automatic retry for non-retriable effects", () => {
-    const contract = Either.getOrThrow(
-      decodeWorkflowEffectContract({
-        strategy: "non-retriable",
-        effectClass: "external",
-        reason: "No safe retry.",
-        ambiguousOutcome: "manual-review",
-        redactionPolicyRef: "redaction.v1",
-        guards,
-      }),
-    );
+    const decoded = decodeWorkflowEffectContract({
+      strategy: "non-retriable",
+      effectClass: "external",
+      reason: "No safe retry.",
+      ambiguousOutcome: "manual-review",
+      redactionPolicyRef: "redaction.v1",
+      guards,
+    });
+    expect(Exit.isSuccess(decoded)).toBe(true);
+    if (Exit.isFailure(decoded)) throw new Error("expected valid contract");
+    const contract = decoded.value;
     expect(
-      Either.isLeft(
+      Result.isFailure(
         validateWorkflowEffectContract(contract, {
           maxAttempts: 2,
           initialBackoffMs: 1,
@@ -147,12 +149,12 @@ describe("workflow effect retry contract", () => {
   });
 
   it("makes ambiguous outcomes explicit and refuses invalid transitions", () => {
-    const submitted = Either.getOrThrow(
+    const submitted = Result.getOrThrow(
       transitionWorkflowEffectState(initialWorkflowEffectState, {
         kind: "submitted",
       }),
     );
-    const ambiguous = Either.getOrThrow(
+    const ambiguous = Result.getOrThrow(
       transitionWorkflowEffectState(
         submitted,
         {
@@ -167,14 +169,14 @@ describe("workflow effect retry contract", () => {
       reconciliationState: "pending",
     });
     expect(
-      Either.getOrThrow(
+      Result.getOrThrow(
         transitionWorkflowEffectState(ambiguous, {
           kind: "manual-review",
         }),
       ),
     ).toEqual({ state: "terminal", reconciliationState: "manual-review" });
     expect(
-      Either.isLeft(
+      Result.isFailure(
         transitionWorkflowEffectState(initialWorkflowEffectState, {
           kind: "confirmed",
         }),
@@ -183,7 +185,7 @@ describe("workflow effect retry contract", () => {
   });
 
   it("distinguishes a pre-dispatch ambiguity without permitting redispatch", () => {
-    const ambiguous = Either.getOrThrow(
+    const ambiguous = Result.getOrThrow(
       transitionWorkflowEffectState(
         initialWorkflowEffectState,
         { kind: "ambiguous", phase: "before-dispatch" },

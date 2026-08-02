@@ -18,9 +18,7 @@ const answers = {
 };
 
 const createOwnedReport = Effect.gen(function* () {
-  const confect = yield* Effect.serviceOptional(
-    TestConfect.TestConfect<typeof databaseSchema>(),
-  );
+  const confect = yield* TestConfect.TestConfect<typeof databaseSchema>();
   const evaluated = yield* confect.mutation(
     refs.public.capabilities.evaluateAppIdea.evaluateAppIdea,
     {

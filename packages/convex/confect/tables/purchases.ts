@@ -9,7 +9,7 @@ export default Table.make(() =>
     reportId: Schema.String,
     amountCents: Schema.Number,
     currency: Schema.String,
-    status: Schema.Literal("paid", "refunded", "disputed"),
+    status: Schema.Literals(["paid", "refunded", "disputed"]),
     createdAt: Schema.Number,
     updatedAt: Schema.Number,
   }),

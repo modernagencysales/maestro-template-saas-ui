@@ -15,13 +15,13 @@ import {
   defineContractFunction,
 } from "../capabilities/_kit/capability";
 
-const BrainPageError = Schema.Union(
+const BrainPageError = Schema.Union([
   Unauthorized,
   MemberNotInWorkspace,
   WorkspaceNotFound,
-);
+]);
 
-const BrainPageWriteError = Schema.Union(BrainPageError, ValidationFailed);
+const BrainPageWriteError = Schema.Union([BrainPageError, ValidationFailed]);
 
 const ListArgs = Schema.Struct({
   workspaceId: Id("workspaces"),
@@ -102,7 +102,7 @@ const recordSnapshotInternal = FunctionSpec.internalMutation({
   name: "recordSnapshotInternal",
   args: () => RecordSnapshotArgs,
   returns: () => RecordSnapshotReturns,
-  error: () => Schema.Union(NotFound, ValidationFailed),
+  error: () => Schema.Union([NotFound, ValidationFailed]),
 });
 
 const contractFunctions = [list, createMarkdown] as const;

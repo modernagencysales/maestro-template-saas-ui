@@ -14,14 +14,14 @@ import {
   FeatureFlagKey,
 } from "../tables/featureFlagPolicies";
 
-const NonEmptyString = Schema.String.pipe(Schema.minLength(1));
-const FlagError = Schema.Union(
+const NonEmptyString = Schema.String.pipe(Schema.check(Schema.isMinLength(1)));
+const FlagError = Schema.Union([
   Unauthorized,
   Forbidden,
   MemberNotInWorkspace,
   WorkspaceNotFound,
   ValidationFailed,
-);
+]);
 
 export const ListFeatureFlagsArgs = Schema.Struct({
   workspaceId: Id("workspaces"),
@@ -37,9 +37,9 @@ export const UpsertFeatureFlagPolicyArgs = Schema.Struct({
   description: NonEmptyString,
   enabled: Schema.Boolean,
   rolloutPercent: Schema.Number.pipe(
-    Schema.int(),
-    Schema.greaterThanOrEqualTo(0),
-    Schema.lessThanOrEqualTo(100),
+    Schema.check(Schema.isInt()),
+    Schema.check(Schema.isGreaterThanOrEqualTo(0)),
+    Schema.check(Schema.isLessThanOrEqualTo(100)),
   ),
   audience: FeatureFlagAudience,
   killSwitchEnv: Schema.optional(NonEmptyString),
@@ -53,7 +53,7 @@ export const FeatureFlagPolicyReturn = Schema.Struct({
   rolloutPercent: Schema.Number,
   audience: FeatureFlagAudience,
   killSwitchEnv: Schema.optional(Schema.String),
-  source: Schema.Literal("default", "workspace"),
+  source: Schema.Literals(["default", "workspace"]),
   updatedAt: Schema.Number,
 });
 
@@ -61,14 +61,14 @@ export const FeatureFlagDecisionReturn = Schema.Struct({
   workspaceId: Id("workspaces"),
   key: FeatureFlagKey,
   enabled: Schema.Boolean,
-  reason: Schema.Literal(
+  reason: Schema.Literals([
     "enabled",
     "definition-disabled",
     "audience",
     "rollout",
-  ),
+  ]),
   rolloutBucket: Schema.Number,
-  source: Schema.Literal("default", "workspace"),
+  source: Schema.Literals(["default", "workspace"]),
 });
 
 export const FeatureFlagListReturn = Schema.Struct({
@@ -102,7 +102,7 @@ const upsertPolicyInternal = FunctionSpec.internalMutation({
   name: "upsertPolicyInternal",
   args: () => UpsertFeatureFlagPolicyArgs,
   returns: () => FeatureFlagPolicyReturn,
-  error: () => Schema.Union(ValidationFailed),
+  error: () => Schema.Union([ValidationFailed]),
 });
 
 export default GroupSpec.make()

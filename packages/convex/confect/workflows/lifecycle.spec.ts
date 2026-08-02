@@ -12,37 +12,39 @@ import {
 } from "../errors";
 
 const NonNegativeInteger = Schema.Number.pipe(
-  Schema.int(),
-  Schema.greaterThanOrEqualTo(0),
+  Schema.check(Schema.isInt()),
+  Schema.check(Schema.isGreaterThanOrEqualTo(0)),
 );
 
 const Pagination = Schema.Struct({
   cursor: Schema.NullOr(Schema.String),
   limit: Schema.Number.pipe(
-    Schema.int(),
-    Schema.greaterThan(0),
-    Schema.lessThanOrEqualTo(100),
+    Schema.check(Schema.isInt()),
+    Schema.check(Schema.isGreaterThan(0)),
+    Schema.check(Schema.isLessThanOrEqualTo(100)),
   ),
 });
 
-const WorkflowLifecycleErrors = Schema.Union(
+const WorkflowLifecycleErrors = Schema.Union([
   Unauthorized,
   MemberNotInWorkspace,
   WorkspaceNotFound,
   NotFound,
   ValidationFailed,
-);
+]);
 
 const ControlArgs = Schema.Struct({
   workspaceId: Id("workspaces"),
   workflowRunId: Id("workflowRuns"),
-  reasonCode: Schema.Literal(
+  reasonCode: Schema.Literals([
     "operator-request",
     "recovery",
     "policy-change",
     "retention-sweep",
+  ]),
+  occurredAt: Schema.Number.pipe(
+    Schema.check(Schema.isGreaterThanOrEqualTo(0)),
   ),
-  occurredAt: Schema.Number.pipe(Schema.greaterThanOrEqualTo(0)),
 });
 
 export const WorkflowLifecycleRunProjection = Schema.Struct({
@@ -152,18 +154,18 @@ const reconcileCompletion = FunctionSpec.internalMutation({
     Schema.Struct({
       componentWorkflowId: Schema.NonEmptyString,
       context: WorkflowOnCompleteContext,
-      result: Schema.Union(
+      result: Schema.Union([
         Schema.Struct({
           kind: Schema.Literal("success"),
           returnValue: Schema.Unknown,
         }),
         Schema.Struct({ kind: Schema.Literal("failed"), error: Schema.String }),
         Schema.Struct({ kind: Schema.Literal("canceled") }),
-      ),
+      ]),
     }),
   returns: () =>
     Schema.Struct({
-      status: Schema.Literal("success", "failed", "canceled"),
+      status: Schema.Literals(["success", "failed", "canceled"]),
     }),
   error: () => WorkflowLifecycleErrors,
 });
@@ -173,15 +175,18 @@ const reconcileCleanup = FunctionSpec.internalMutation({
   args: () => ControlArgs,
   returns: () =>
     Schema.Struct({
-      status: Schema.Literal("component-cleanup-requested", "product-cleaned"),
-      componentCleanup: Schema.Literal(
+      status: Schema.Literals([
+        "component-cleanup-requested",
+        "product-cleaned",
+      ]),
+      componentCleanup: Schema.Literals([
         "component-cleanup-requested",
         "component-known-work-complete",
-      ),
-      componentResiduals: Schema.Literal(
+      ]),
+      componentResiduals: Schema.Literals([
         "not-assessed",
         "component-residuals-unverifiable",
-      ),
+      ]),
       fullDeletionProven: Schema.Literal(false),
     }),
   error: () => WorkflowLifecycleErrors,
@@ -193,7 +198,9 @@ const sweepRetention = FunctionSpec.internalMutation({
     Schema.Struct({
       workspaceId: Id("workspaces"),
       ...Pagination.fields,
-      occurredAt: Schema.Number.pipe(Schema.greaterThanOrEqualTo(0)),
+      occurredAt: Schema.Number.pipe(
+        Schema.check(Schema.isGreaterThanOrEqualTo(0)),
+      ),
     }),
   returns: () =>
     Schema.Struct({

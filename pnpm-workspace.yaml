@@ -14,7 +14,7 @@ overrides:
   "@saas-ui-pro/react": "1.0.0-next.4"
 
 patchedDependencies:
-  "@confect/cli@9.1.5": "patches/@confect__cli@9.1.5.patch"
+  "@confect/cli@10.0.0-next.9": "patches/@confect__cli@10.0.0-next.9.patch"
 
 onlyBuiltDependencies:
   - "@parcel/watcher"

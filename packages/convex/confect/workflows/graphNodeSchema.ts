@@ -16,14 +16,14 @@ import {
   WorkflowFailurePolicy,
 } from "./_kit/failurePolicy";
 
-export const WorkflowNodeKind = S.Literal(
+export const WorkflowNodeKind = S.Literals([
   "source",
   "capability",
   "agent",
   "delay",
   "approval",
   "output",
-);
+]);
 
 export type WorkflowNodeKind = S.Schema.Type<typeof WorkflowNodeKind>;
 
@@ -48,36 +48,61 @@ export const WorkflowNode = S.Struct(WorkflowNodeSchemaFields);
 
 export type WorkflowNode = S.Schema.Type<typeof WorkflowNode>;
 
-const PositiveInteger = S.Number.pipe(S.finite(), S.int(), S.greaterThan(0));
-const NonNegativeFinite = S.Number.pipe(S.finite(), S.greaterThanOrEqualTo(0));
-const PositiveFinite = S.Number.pipe(S.finite(), S.greaterThan(0));
+const PositiveInteger = S.Number.pipe(
+  S.check(S.isFinite()),
+  S.check(S.isInt()),
+  S.check(S.isGreaterThan(0)),
+);
+const NonNegativeFinite = S.Number.pipe(
+  S.check(S.isFinite()),
+  S.check(S.isGreaterThanOrEqualTo(0)),
+);
+const PositiveFinite = S.Number.pipe(
+  S.check(S.isFinite()),
+  S.check(S.isGreaterThan(0)),
+);
 
 export const WorkflowRetryConfigV2 = S.Struct({
   maxAttempts: PositiveInteger,
   initialBackoffMs: NonNegativeFinite,
-  base: S.Number.pipe(S.finite(), S.greaterThanOrEqualTo(1)),
+  base: S.Number.pipe(
+    S.check(S.isFinite()),
+    S.check(S.isGreaterThanOrEqualTo(1)),
+  ),
 });
 
-export const WorkflowSchedule = S.Union(
+export const WorkflowSchedule = S.Union([
   S.Struct({ kind: S.Literal("runAfter"), delayMs: PositiveFinite }),
   S.Struct({ kind: S.Literal("runAt"), timestamp: NonNegativeFinite }),
-);
+]);
 
 export const WorkflowPayloadPolicy = S.Struct({
   maxInputBytes: PositiveInteger,
   maxResultBytes: PositiveInteger,
-  resultMode: S.Literal("inline", "artifact-reference"),
+  resultMode: S.Literals(["inline", "artifact-reference"]),
 });
 
 export const WorkflowTransactionLimits = S.Struct({
-  bytesRead: S.optional(S.Number.pipe(S.int(), S.greaterThan(0))),
-  bytesWritten: S.optional(S.Number.pipe(S.int(), S.greaterThan(0))),
-  databaseQueries: S.optional(S.Number.pipe(S.int(), S.greaterThan(0))),
-  documentsRead: S.optional(S.Number.pipe(S.int(), S.greaterThan(0))),
-  documentsWritten: S.optional(S.Number.pipe(S.int(), S.greaterThan(0))),
-  functionsScheduled: S.optional(S.Number.pipe(S.int(), S.greaterThan(0))),
+  bytesRead: S.optional(
+    S.Number.pipe(S.check(S.isInt()), S.check(S.isGreaterThan(0))),
+  ),
+  bytesWritten: S.optional(
+    S.Number.pipe(S.check(S.isInt()), S.check(S.isGreaterThan(0))),
+  ),
+  databaseQueries: S.optional(
+    S.Number.pipe(S.check(S.isInt()), S.check(S.isGreaterThan(0))),
+  ),
+  documentsRead: S.optional(
+    S.Number.pipe(S.check(S.isInt()), S.check(S.isGreaterThan(0))),
+  ),
+  documentsWritten: S.optional(
+    S.Number.pipe(S.check(S.isInt()), S.check(S.isGreaterThan(0))),
+  ),
+  functionsScheduled: S.optional(
+    S.Number.pipe(S.check(S.isInt()), S.check(S.isGreaterThan(0))),
+  ),
   scheduledFunctionArgsBytes: S.optional(
-    S.Number.pipe(S.int(), S.greaterThan(0)),
+    S.Number.pipe(S.check(S.isInt()), S.check(S.isGreaterThan(0))),
   ),
 });
 
@@ -87,11 +112,10 @@ const WorkflowNodeV2BaseFields = {
   stepName: WorkflowStepName,
   payloadPolicy: WorkflowPayloadPolicy,
   semanticRuleIds: S.Array(
-    S.Literal(
-      ...(WORKFLOW_SEMANTICS.map(({ id }) => id) as [
-        WorkflowSemanticRuleId,
-        ...WorkflowSemanticRuleId[],
-      ]),
+    S.Literals(
+      WORKFLOW_SEMANTICS.map(
+        ({ id }) => id,
+      ) as readonly WorkflowSemanticRuleId[],
     ),
   ),
 } as const;
@@ -127,7 +151,7 @@ const WorkflowIndependentTransaction = S.Struct({
 const WorkflowInlineTransaction = S.Struct({
   kind: S.Literal("inline"),
   posture: S.Literal("small-atomic"),
-  limitsProfile: S.Literal("tiny", "small-atomic", "reviewed-explicit"),
+  limitsProfile: S.Literals(["tiny", "small-atomic", "reviewed-explicit"]),
   limits: WorkflowTransactionLimits,
 });
 
@@ -146,15 +170,15 @@ const inlineCapabilityNode = (functionKind: "query" | "mutation") =>
     transaction: WorkflowInlineTransaction,
   });
 
-export const WorkflowQueryNodeV2 = S.Union(
+export const WorkflowQueryNodeV2 = S.Union([
   independentCapabilityNode("query"),
   inlineCapabilityNode("query"),
-);
+]);
 
-export const WorkflowMutationNodeV2 = S.Union(
+export const WorkflowMutationNodeV2 = S.Union([
   independentCapabilityNode("mutation"),
   inlineCapabilityNode("mutation"),
-);
+]);
 
 export const WorkflowAgentNodeV2 = S.Struct({
   ...WorkflowExecutableV2BaseFields,
@@ -190,7 +214,7 @@ export const WorkflowOutputNodeV2 = S.Struct({
   kind: S.Literal("output"),
 });
 
-export const WorkflowNodeV2 = S.Union(
+export const WorkflowNodeV2 = S.Union([
   WorkflowSourceNodeV2,
   WorkflowActionNodeV2,
   WorkflowQueryNodeV2,
@@ -200,6 +224,6 @@ export const WorkflowNodeV2 = S.Union(
   WorkflowEventNodeV2,
   WorkflowSubworkflowNodeV2,
   WorkflowOutputNodeV2,
-);
+]);
 
 export type WorkflowNodeV2 = S.Schema.Type<typeof WorkflowNodeV2>;

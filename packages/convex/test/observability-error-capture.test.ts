@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import * as Cause from "effect/Cause";
 import * as Effect from "effect/Effect";
+import * as Result from "effect/Result";
 
 import { MutationCtx } from "../confect/_generated/services";
 import { Forbidden } from "../confect/errors";
@@ -52,10 +53,12 @@ describe("Confect observability error capture", () => {
       return;
     }
 
-    const capturedFailure = Cause.failureOption(exit.cause);
-    expect(capturedFailure._tag).toBe("Some");
-    if (capturedFailure._tag === "Some") {
-      expect(capturedFailure.value).toBe(failure);
+    const capturedFailure = Cause.findError(exit.cause);
+    expect(Result.isSuccess(capturedFailure), Cause.pretty(exit.cause)).toBe(
+      true,
+    );
+    if (Result.isSuccess(capturedFailure)) {
+      expect(capturedFailure.success).toBe(failure);
     }
   });
 });

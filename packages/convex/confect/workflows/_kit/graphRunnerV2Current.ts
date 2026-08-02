@@ -1,6 +1,7 @@
 import { NonRetryableError } from "@convex-dev/workpool";
 import * as ConfectRef from "@confect/core/Ref";
-import * as Either from "effect/Either";
+import * as Exit from "effect/Exit";
+import * as Result from "effect/Result";
 import * as Schema from "effect/Schema";
 
 import { makePublicError } from "../../shared/errors";
@@ -756,14 +757,14 @@ const assertCapabilityPrincipal = <Result extends Record<string, unknown>>(
 ): void => {
   const candidate = input.principal as { readonly version?: unknown };
   if (candidate.version !== 2) return;
-  const decoded = Schema.decodeUnknownEither(DurableWorkflowPrincipal)(
+  const decoded = Schema.decodeUnknownExit(DurableWorkflowPrincipal)(
     input.principal,
   );
-  if (Either.isLeft(decoded)) {
+  if (Exit.isFailure(decoded)) {
     throw validationFailure(node, "durable workflow principal is invalid");
   }
   try {
-    assertWorkflowPrincipalAuthority(decoded.right, {
+    assertWorkflowPrincipalAuthority(decoded.value, {
       workspaceId: input.effectIdentity.workspaceId,
       requiredGrants: [],
     });
@@ -808,10 +809,10 @@ const runActionNode = async <Result extends Record<string, unknown>>(
     entry.effectContract,
     node.retry,
   );
-  if (Either.isLeft(validated)) {
+  if (Result.isFailure(validated)) {
     throw validationFailure(
       node,
-      `capability ${node.capability} requires a repair to its retry/idempotency declaration: ${validated.left.issue}`,
+      `capability ${node.capability} requires a repair to its retry/idempotency declaration: ${validated.failure.issue}`,
     );
   }
   const instanceKey = entry.instanceKey(envelope);
@@ -831,12 +832,13 @@ const runActionNode = async <Result extends Record<string, unknown>>(
   const args = entry.buildArgs(capabilityEnvelope);
   assertCapabilityArgs(node, args);
   if (
-    validated.right.strategy === "provider-native" &&
-    readArgumentPath(args, validated.right.keyArgumentPath) !== logicalEffectKey
+    validated.success.strategy === "provider-native" &&
+    readArgumentPath(args, validated.success.keyArgumentPath) !==
+      logicalEffectKey
   ) {
     throw validationFailure(
       node,
-      `capability ${node.capability} must map the derived logical effect key at ${validated.right.keyArgumentPath}`,
+      `capability ${node.capability} must map the derived logical effect key at ${validated.success.keyArgumentPath}`,
     );
   }
   let dispatchRef = entry.ref;
@@ -878,7 +880,7 @@ const runActionNode = async <Result extends Record<string, unknown>>(
   const admission = await input.admitEffect({
     node,
     capability: node.capability,
-    contract: validated.right,
+    contract: validated.success,
     logicalEffectKey,
   });
   if (
@@ -893,8 +895,8 @@ const runActionNode = async <Result extends Record<string, unknown>>(
     }
     if (admission.kind === "reconcile-provider-status") {
       if (
-        validated.right.strategy !== "provider-native" ||
-        validated.right.ambiguityResolution.kind !==
+        validated.success.strategy !== "provider-native" ||
+        validated.success.ambiguityResolution.kind !==
           "provider-status-reconciliation"
       ) {
         throw validationFailure(
@@ -908,11 +910,11 @@ const runActionNode = async <Result extends Record<string, unknown>>(
         node,
         envelope,
         logicalEffectKey,
-        validated.right.ambiguityResolution.capabilityRef,
+        validated.success.ambiguityResolution.capabilityRef,
       );
     }
     if (admission.kind === "reconcile-ledger") {
-      if (validated.right.strategy !== "durable-ledger-and-reconcile") {
+      if (validated.success.strategy !== "durable-ledger-and-reconcile") {
         throw validationFailure(
           node,
           `capability ${node.capability} has no declared durable-ledger reconciliation mechanism`,
@@ -924,15 +926,16 @@ const runActionNode = async <Result extends Record<string, unknown>>(
         node,
         envelope,
         logicalEffectKey,
-        validated.right.reconciliationCapabilityRef,
+        validated.success.reconciliationCapabilityRef,
       );
     }
     return admission.result;
   }
   if (
     admission.kind === "replay-provider-key" &&
-    (validated.right.strategy !== "provider-native" ||
-      validated.right.ambiguityResolution.kind !== "exact-provider-key-replay")
+    (validated.success.strategy !== "provider-native" ||
+      validated.success.ambiguityResolution.kind !==
+        "exact-provider-key-replay")
   ) {
     throw validationFailure(
       node,
@@ -942,7 +945,7 @@ const runActionNode = async <Result extends Record<string, unknown>>(
   const options = {
     name: node.stepName,
     retry:
-      validated.right.strategy === "non-retriable" || node.retry === undefined
+      validated.success.strategy === "non-retriable" || node.retry === undefined
         ? false
         : node.retry,
     ...compiledSchedule.options,
@@ -976,10 +979,10 @@ const compileScheduledStep = <Result extends Record<string, unknown>>(
   }
   const requestedAt = input.scheduleNowMs?.() ?? Date.now();
   const result = compileWorkflowSchedule(node.schedule, requestedAt);
-  if (Either.isLeft(result)) {
+  if (Result.isFailure(result)) {
     throw validationFailure(
       node,
-      `${result.left.code}: ${result.left.message}`,
+      `${result.failure.code}: ${result.failure.message}`,
     );
   }
   const requestedStartAt =
@@ -987,7 +990,7 @@ const compileScheduledStep = <Result extends Record<string, unknown>>(
       ? node.schedule.timestamp
       : requestedAt + node.schedule.delayMs;
   return {
-    options: result.right,
+    options: result.success,
     request: {
       requestedAt,
       requestedSchedule: node.schedule,

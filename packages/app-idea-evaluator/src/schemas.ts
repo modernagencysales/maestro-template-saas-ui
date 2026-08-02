@@ -1,4 +1,4 @@
-import { Schema } from "effect";
+import * as Schema from "effect/Schema";
 
 export const dimensionKeys = [
   "customerSpecificity",
@@ -28,7 +28,7 @@ export const evaluationVerdicts = [
 
 export type EvaluationVerdict = (typeof evaluationVerdicts)[number];
 
-export const EvaluationVerdictSchema = Schema.Literal(...evaluationVerdicts);
+export const EvaluationVerdictSchema = Schema.Literals(evaluationVerdicts);
 
 export type EvaluationEvidence = {
   readonly answerId: string;
@@ -58,10 +58,14 @@ export type DimensionScoreValue = {
 };
 
 const DimensionScoreSchema = Schema.Struct({
-  score: Schema.Number.pipe(Schema.between(0, 100)),
-  confidence: Schema.Number.pipe(Schema.between(0, 1)),
+  score: Schema.Number.pipe(
+    Schema.check(Schema.isBetween({ minimum: 0, maximum: 100 })),
+  ),
+  confidence: Schema.Number.pipe(
+    Schema.check(Schema.isBetween({ minimum: 0, maximum: 1 })),
+  ),
   evidenceAnswerIds: Schema.Array(Schema.NonEmptyString).pipe(
-    Schema.minItems(1),
+    Schema.check(Schema.isMinLength(1)),
   ),
 });
 
@@ -81,14 +85,18 @@ export type EvaluationResult = {
 
 export const BuildabilityReportSchema = Schema.Struct({
   verdict: EvaluationVerdictSchema,
-  overallScore: Schema.Number.pipe(Schema.between(0, 100)),
+  overallScore: Schema.Number.pipe(
+    Schema.check(Schema.isBetween({ minimum: 0, maximum: 100 })),
+  ),
   roast: Schema.NonEmptyString,
   strongestElement: Schema.NonEmptyString,
   biggestWeakness: Schema.NonEmptyString,
   improvedIdea: Schema.NonEmptyString,
-  whatItWillTake: Schema.Array(Schema.NonEmptyString).pipe(Schema.minItems(1)),
+  whatItWillTake: Schema.Array(Schema.NonEmptyString).pipe(
+    Schema.check(Schema.isMinLength(1)),
+  ),
   exclusiveInCompleteBuildPack: Schema.Array(Schema.NonEmptyString).pipe(
-    Schema.minItems(1),
+    Schema.check(Schema.isMinLength(1)),
   ),
 });
 

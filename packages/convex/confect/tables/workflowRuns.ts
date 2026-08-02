@@ -12,14 +12,14 @@ import {
 import { DurableWorkflowPrincipal } from "../workflows/_kit/principal";
 import { WorkflowPolicySnapshot } from "../workflows/_kit/policySnapshot";
 
-export const WorkflowRunStatus = Schema.Literal(
+export const WorkflowRunStatus = Schema.Literals([
   "queued",
   "running",
   "completed",
   "failed",
   "canceled",
   "timedOut",
-);
+]);
 
 export type WorkflowRunStatus = Schema.Schema.Type<typeof WorkflowRunStatus>;
 
@@ -49,7 +49,10 @@ export const WorkflowRunRow = Schema.Struct({
   ),
   lifecycleGeneration: Schema.optional(
     Schema.NullOr(
-      Schema.Number.pipe(Schema.int(), Schema.greaterThanOrEqualTo(0)),
+      Schema.Number.pipe(
+        Schema.check(Schema.isInt()),
+        Schema.check(Schema.isGreaterThanOrEqualTo(0)),
+      ),
     ),
   ),
   lifecycleGenerationAnchor: Schema.optional(Schema.NullOr(Schema.String)),

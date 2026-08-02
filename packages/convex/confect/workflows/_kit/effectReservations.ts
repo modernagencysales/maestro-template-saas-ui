@@ -1,5 +1,6 @@
 import * as Data from "effect/Data";
-import * as Either from "effect/Either";
+import * as Exit from "effect/Exit";
+import * as Result from "effect/Result";
 import * as Schema from "effect/Schema";
 
 import {
@@ -11,7 +12,7 @@ import {
 } from "../../tables/workflowEffectReservations";
 import { WorkflowCapabilityReference } from "./workflowReferences";
 
-const WorkflowEffectGuardPosture = Schema.Union(
+const WorkflowEffectGuardPosture = Schema.Union([
   Schema.Struct({
     kind: Schema.Literal("required"),
     evidenceRef: Schema.NonEmptyString,
@@ -20,7 +21,7 @@ const WorkflowEffectGuardPosture = Schema.Union(
     kind: Schema.Literal("not-applicable"),
     reason: Schema.NonEmptyString,
   }),
-);
+]);
 
 const WorkflowEffectGuards = Schema.Struct({
   approval: WorkflowEffectGuardPosture,
@@ -47,14 +48,14 @@ export const ProviderNativeEffectContract = Schema.Struct({
   keyArgumentPath: Schema.NonEmptyString,
   providerEvidenceRef: Schema.NonEmptyString,
   duplicateDeliveryFixtureRef: Schema.NonEmptyString,
-  ambiguityResolution: Schema.Union(
+  ambiguityResolution: Schema.Union([
     Schema.Struct({ kind: Schema.Literal("exact-provider-key-replay") }),
     Schema.Struct({
       kind: Schema.Literal("provider-status-reconciliation"),
       capabilityRef: WorkflowCapabilityReference,
       fixtureRef: Schema.NonEmptyString,
     }),
-  ),
+  ]),
 });
 
 export const DurableLedgerEffectContract = Schema.Struct({
@@ -72,17 +73,17 @@ export const NonRetriableEffectContract = Schema.Struct({
   ambiguousOutcome: Schema.Literal("manual-review"),
 });
 
-export const WorkflowEffectContract = Schema.Union(
+export const WorkflowEffectContract = Schema.Union([
   ProviderNativeEffectContract,
   DurableLedgerEffectContract,
   NonRetriableEffectContract,
-);
+]);
 
 export type WorkflowEffectContract = Schema.Schema.Type<
   typeof WorkflowEffectContract
 >;
 
-export const decodeWorkflowEffectContract = Schema.decodeUnknownEither(
+export const decodeWorkflowEffectContract = Schema.decodeUnknownExit(
   WorkflowEffectContract,
   { errors: "all", onExcessProperty: "error" },
 );
@@ -100,29 +101,29 @@ export class WorkflowEffectContractError extends Data.TaggedError(
 export const validateWorkflowEffectContract = (
   input: unknown,
   retry?: WorkflowActionRetry,
-): Either.Either<WorkflowEffectContract, WorkflowEffectContractError> => {
+): Result.Result<WorkflowEffectContract, WorkflowEffectContractError> => {
   const decoded = decodeWorkflowEffectContract(input);
-  if (Either.isLeft(decoded)) {
-    return Either.left(
+  if (Exit.isFailure(decoded)) {
+    return Result.fail(
       new WorkflowEffectContractError({
-        issue: `effect contract schema mismatch: ${String(decoded.left)}`,
+        issue: "effect contract schema mismatch",
       }),
     );
   }
-  const contract = decoded.right;
+  const contract = decoded.value;
   if (retry !== undefined && !validRetry(retry)) {
-    return Either.left(
+    return Result.fail(
       new WorkflowEffectContractError({ issue: "invalid action retry policy" }),
     );
   }
   if (contract.strategy === "non-retriable") {
     return retry !== undefined && retry.maxAttempts > 1
-      ? Either.left(
+      ? Result.fail(
           new WorkflowEffectContractError({
             issue: "non-retriable effects permit exactly one attempt",
           }),
         )
-      : Either.right(contract);
+      : Result.succeed(contract);
   }
   const requiredRetention =
     contract.maxRetryWindowMs + contract.maxRestartWindowMs;
@@ -133,20 +134,20 @@ export const validateWorkflowEffectContract = (
       contract.maxRestartWindowMs,
     ].every((value) => Number.isFinite(value) && value >= 0)
   ) {
-    return Either.left(
+    return Result.fail(
       new WorkflowEffectContractError({
         issue: "retry and dedupe horizons must be finite and nonnegative",
       }),
     );
   }
   if (contract.dedupeRetentionMs < requiredRetention) {
-    return Either.left(
+    return Result.fail(
       new WorkflowEffectContractError({
         issue: `dedupeRetentionMs must cover maxRetryWindowMs plus maxRestartWindowMs (${requiredRetention})`,
       }),
     );
   }
-  return Either.right(contract);
+  return Result.succeed(contract);
 };
 
 const validRetry = (retry: WorkflowActionRetry): boolean =>
@@ -225,9 +226,9 @@ export const transitionWorkflowEffectState = (
   current: WorkflowEffectState,
   event: WorkflowEffectTransition,
   ambiguityStrategy?: WorkflowEffectStrategyType,
-): Either.Either<WorkflowEffectState, WorkflowEffectTransitionError> => {
+): Result.Result<WorkflowEffectState, WorkflowEffectTransitionError> => {
   if (event.kind === "ambiguous" && ambiguityStrategy === undefined) {
-    return Either.left(
+    return Result.fail(
       new WorkflowEffectTransitionError({
         state: current.state,
         event: event.kind,
@@ -239,7 +240,7 @@ export const transitionWorkflowEffectState = (
     ((event.phase === "before-dispatch" && current.state !== "reserved") ||
       (event.phase === "after-dispatch" && current.state !== "submitted"))
   ) {
-    return Either.left(
+    return Result.fail(
       new WorkflowEffectTransitionError({
         state: current.state,
         event: event.kind,
@@ -257,13 +258,13 @@ export const transitionWorkflowEffectState = (
       : event,
   );
   return next === undefined
-    ? Either.left(
+    ? Result.fail(
         new WorkflowEffectTransitionError({
           state: current.state,
           event: event.kind,
         }),
       )
-    : Either.right(next);
+    : Result.succeed(next);
 };
 
 type TransitionResolver = (

@@ -1,13 +1,13 @@
 import * as Schema from "effect/Schema";
 
 export const WorkflowSafeFailureCode = Schema.NonEmptyString.pipe(
-  Schema.pattern(/^[A-Z][A-Z0-9_]*$/),
+  Schema.check(Schema.isPattern(/^[A-Z][A-Z0-9_]*$/)),
   Schema.brand("WorkflowSafeFailureCode"),
 );
 
 export const WorkflowSafeFailureMessage = Schema.NonEmptyString.pipe(
-  Schema.maxLength(256),
-  Schema.pattern(/^[^\r\n]+$/),
+  Schema.check(Schema.isMaxLength(256)),
+  Schema.check(Schema.isPattern(/^[^\r\n]+$/)),
   Schema.brand("WorkflowSafeFailureMessage"),
 );
 
@@ -59,14 +59,20 @@ export const makeWorkflowFailurePolicySchema = <
   WorkflowCapabilityReference,
   WorkflowStepName,
 }: {
-  readonly WorkflowCapabilityReference: Schema.Schema<
+  readonly WorkflowCapabilityReference: Schema.Codec<
     CapabilityReference,
     CapabilityEncoded,
-    CapabilityContext
+    CapabilityContext,
+    never
   >;
-  readonly WorkflowStepName: Schema.Schema<StepName, StepEncoded, StepContext>;
+  readonly WorkflowStepName: Schema.Codec<
+    StepName,
+    StepEncoded,
+    StepContext,
+    never
+  >;
 }) =>
-  Schema.Union(
+  Schema.Union([
     Schema.Struct({ kind: Schema.Literal("fail") }),
     Schema.Struct({
       kind: Schema.Literal("error-edge"),
@@ -82,10 +88,10 @@ export const makeWorkflowFailurePolicySchema = <
           capability: WorkflowCapabilityReference,
           stepName: WorkflowStepName,
         }),
-      ).pipe(Schema.minItems(1)),
+      ).pipe(Schema.check(Schema.isMinLength(1))),
       failure: WorkflowSettledFailure,
     }),
-  );
+  ]);
 
 export const validateDeclaredWorkflowFailureRouting = (
   policy: { readonly kind: "fail" | "error-edge" | "compensation" } | undefined,

@@ -3,7 +3,7 @@ import * as Schema from "effect/Schema";
 
 export default Table.make(() =>
   Schema.Struct({
-    environment: Schema.Literal("staging", "production"),
+    environment: Schema.Literals(["staging", "production"]),
     targetId: Schema.String,
     commitSha: Schema.String,
     issuerId: Schema.String,

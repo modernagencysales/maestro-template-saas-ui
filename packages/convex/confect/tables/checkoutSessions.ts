@@ -9,7 +9,7 @@ export default Table.make(() =>
     idempotencyKey: Schema.String,
     amountCents: Schema.Number,
     currency: Schema.String,
-    status: Schema.Literal(
+    status: Schema.Literals([
       "created",
       "checkout-open",
       "payment-pending",
@@ -17,7 +17,7 @@ export default Table.make(() =>
       "failed",
       "refunded",
       "disputed",
-    ),
+    ]),
     createdAt: Schema.Number,
     updatedAt: Schema.Number,
   }),

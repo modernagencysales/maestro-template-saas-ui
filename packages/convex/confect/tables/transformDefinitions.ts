@@ -8,7 +8,11 @@ export default Table.make(() =>
     name: Schema.String,
     inputSchemaRef: Schema.String,
     outputSchemaRef: Schema.String,
-    policyKind: Schema.Literal("none", "approval-required", "review-required"),
+    policyKind: Schema.Literals([
+      "none",
+      "approval-required",
+      "review-required",
+    ]),
     requiredEvidence: Schema.Array(Schema.String),
     createdAt: Schema.Number,
     updatedAt: Schema.Number,

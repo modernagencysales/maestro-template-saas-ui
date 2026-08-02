@@ -7,7 +7,12 @@ export default Table.make(() =>
     packId: Schema.String,
     purchaseId: Schema.String,
     failedStage: Schema.String,
-    status: Schema.Literal("recoverable", "needs-support", "resumed", "closed"),
+    status: Schema.Literals([
+      "recoverable",
+      "needs-support",
+      "resumed",
+      "closed",
+    ]),
     operatorReason: Schema.optional(Schema.String),
     createdAt: Schema.Number,
     updatedAt: Schema.Number,

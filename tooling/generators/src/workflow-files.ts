@@ -815,7 +815,7 @@ const preserveWorkflowStartErrors = <A, E, R>(
   effect: Effect.Effect<A, E, R>,
 ): Effect.Effect<A, WorkflowStartError, R> =>
   effect.pipe(
-    Effect.catchAll((error) =>
+    Effect.catch((error) =>
       isWorkflowError(error) || error instanceof WorkflowAdmissionDenied
         ? Effect.fail(error)
         : Effect.die(error),
@@ -1103,7 +1103,7 @@ export default GroupImpl.make(databaseSchema, ${name}).pipe(
     },
     {
       path: `packages/convex/confect/workflows/${name}/v1.graph.ts`,
-      content: `import * as Either from "effect/Either";
+      content: `import * as Result from "effect/Result";
 import { defineWorkflowGraphV2 } from "../_kit/workflowBuilderCurrent";
 import { defineWorkflowReferenceRegistry } from "../_kit/workflowReferences";
 
@@ -1113,7 +1113,7 @@ export const ${name}References = defineWorkflowReferenceRegistry({
   events: { approvalDecision: "event.approvalDecision.v1" },
 });
 
-export const ${name}Graph = Either.getOrThrow(defineWorkflowGraphV2({
+export const ${name}Graph = Result.getOrThrow(defineWorkflowGraphV2({
   id: "workflow_${name}",
   version: 2,
   startNodeId: "start",

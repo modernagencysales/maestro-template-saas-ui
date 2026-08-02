@@ -13,9 +13,7 @@ const now = 1_782_924_800_000;
 describe("workspace access resolver through brain pages", () => {
   it("allows an active editor to create a page and rejects an outsider", async () => {
     const program = Effect.gen(function* () {
-      const confect = yield* Effect.serviceOptional(
-        TestConfect.TestConfect<typeof databaseSchema>(),
-      );
+      const confect = yield* TestConfect.TestConfect<typeof databaseSchema>();
       const seeded = yield* confect.run(seedTenancy(now), SeededTenancy);
       const pageId = yield* confect
         .withIdentity({

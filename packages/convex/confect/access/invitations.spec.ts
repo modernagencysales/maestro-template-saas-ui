@@ -23,7 +23,12 @@ const create = FunctionSpec.publicMutation({
     }),
   returns: () => Id("invitations"),
   error: () =>
-    Schema.Union(Unauthorized, Forbidden, ValidationFailed, WorkspaceNotFound),
+    Schema.Union([
+      Unauthorized,
+      Forbidden,
+      ValidationFailed,
+      WorkspaceNotFound,
+    ]),
 });
 
 const accept = FunctionSpec.publicMutation({
@@ -37,12 +42,12 @@ const accept = FunctionSpec.publicMutation({
       workspaceId: Id("workspaces"),
     }),
   error: () =>
-    Schema.Union(
+    Schema.Union([
       Unauthorized,
       InvitationNotAccessible,
       InvitationNotPending,
       InvitationExpired,
-    ),
+    ]),
 });
 
 const decline = FunctionSpec.publicMutation({
@@ -52,7 +57,7 @@ const decline = FunctionSpec.publicMutation({
       invitationId: Id("invitations"),
     }),
   returns: () => Schema.Null,
-  error: () => Schema.Union(Unauthorized, InvitationNotAccessible),
+  error: () => Schema.Union([Unauthorized, InvitationNotAccessible]),
 });
 
 const cancel = FunctionSpec.publicMutation({
@@ -63,7 +68,7 @@ const cancel = FunctionSpec.publicMutation({
       workspaceId: Id("workspaces"),
     }),
   returns: () => Schema.Null,
-  error: () => Schema.Union(Unauthorized, Forbidden),
+  error: () => Schema.Union([Unauthorized, Forbidden]),
 });
 
 export default GroupSpec.make()

@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { templateConfectRefs } from "@maestro-template/convex/refs";
-import * as Either from "effect/Either";
+import * as Result from "effect/Result";
 import { Mail, ShieldCheck } from "lucide-react";
 
 import { useTemplateAction } from "../../../adapters/confect-state";
@@ -34,10 +34,10 @@ function LiveReportOwnershipCard({
   );
   const requestLiveVerification = async (email: string) => {
     const result = await requestVerification({ reportId, accessToken, email });
-    if (Either.isEither(result) && Either.isLeft(result)) {
+    if (Result.isResult(result) && Result.isFailure(result)) {
       throw new Error("The verification request was rejected.");
     }
-    const sent = Either.isEither(result) ? result.right : result;
+    const sent = Result.isResult(result) ? result.success : result;
     return sent.fakeVerificationUrl;
   };
 

@@ -1,3 +1,4 @@
+import * as Layer from "effect/Layer";
 import * as Schema from "effect/Schema";
 import { describe, expect, it } from "vitest";
 import knowledge, {
@@ -144,8 +145,6 @@ describe("knowledge Confect contracts", () => {
   });
 
   it("exports a finalized fake/local Confect implementation", () => {
-    expect(knowledgeImpl).toMatchObject({
-      _op_layer: "Fold",
-    });
+    expect(Layer.isLayer(knowledgeImpl)).toBe(true);
   });
 });
