@@ -540,13 +540,13 @@ The reusable core remains product- and backend-neutral:
 - contract-diff and protocol compatibility checks.
 
 The core defines an issuer/verifier interface rather than assuming one CI
-vendor. Template examples may use Buildkite; Maestro uses Woodpecker. Each fork
-must configure its trusted issuer and required-check identity explicitly.
+vendor. The template and Maestro use Woodpecker. Each fork must configure its
+trusted issuer and required-check identity explicitly.
 
 Template adapters provide Confect/Convex release guards, generated surface
-inventory, Vitest execution, Playwright transport proof, and Buildkite examples.
-Maestro supplies its own Convex/Woodpecker adapter without putting Maestro
-business concepts into the template core.
+inventory, Vitest execution, Playwright transport proof, and Woodpecker
+examples. Maestro supplies its own Convex/Woodpecker adapter without putting
+Maestro business concepts into the template core.
 
 `pnpm template:journey` emits a version-pinned protocol declaration. Template
 release notes and a migration command describe incompatible protocol changes.

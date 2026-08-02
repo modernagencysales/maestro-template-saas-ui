@@ -208,7 +208,7 @@ pnpm verify
 
 ## CI Verdict Retrieval
 
-Use Buildkite, GitHub, and local scripts as the source of truth. If an AI gate
+Use Woodpecker, GitHub, and local scripts as the source of truth. If an AI gate
 or CI context is unavailable, report the missing context explicitly instead of
 assuming success.
 

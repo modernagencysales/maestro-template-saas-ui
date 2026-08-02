@@ -10,6 +10,12 @@
 existing synthetic client hydrates into accepted context and produces
 historically resolvable cited content through real product boundaries.
 
+**2026-08-02 execution correction:** Only template Tasks 1–4 remain active.
+Maestro/Brain Tasks 5–12 are closed and must not be revived. The template CI
+adapter is Woodpecker; `.buildkite/scripts` may remain only as explicitly
+labeled compatibility implementations while active pipeline configuration,
+operator language, and required-check identity use Woodpecker.
+
 **Architecture:** A backend-neutral package owns journey manifests, graphs,
 evidence, contract diffs, leases, and attestation verification. Repository
 adapters own surface discovery, CI identity, persistence, release guards, and
@@ -19,7 +25,7 @@ authorities, and admits the journey only after deterministic and exact-SHA
 deployed proofs pass.
 
 **Tech Stack:** TypeScript, Effect Schema, Convex, Confect, Vitest, Playwright,
-pnpm, Woodpecker for Maestro, Buildkite for the template, GitHub pull requests.
+pnpm, Woodpecker, GitHub pull requests.
 
 ## Global Constraints
 
@@ -403,9 +409,12 @@ Run:
 - Modify: `tooling/quality/check-ci-completeness.mts`
 - Modify: `tooling/quality/check-config-drift.mts`
 - Modify: `package.json`
-- Modify: `.buildkite/pipeline.yml`
-- Modify: `.buildkite/scripts/phase1.sh`
-- Modify: `.buildkite/scripts/ci-self-protection.sh`
+- Create: `.woodpecker/verify.yml`
+- Create: `tooling/ci/woodpecker-env.sh`
+- Create: `tooling/ci/woodpecker-verify.sh`
+- Modify compatibility implementation: `.buildkite/scripts/phase1.sh`
+- Modify compatibility implementation:
+  `.buildkite/scripts/ci-self-protection.sh`
 - Modify: `.github/CODEOWNERS`
 - Modify: `docs/template/generator-output-contract.md`
 - Create: `docs/template/product-journey-admission.md`
@@ -495,8 +504,8 @@ guard as its explicit frontier.
 
 Run `pnpm check:product-journeys` in deterministic phase one. Add contract-risk
 path detection and require the configured independent contract-owner approval
-for coverage reductions. Keep Buildkite as this repository's adapter. This task
-also installs the real reference catalog and generated release-surface
+for coverage reductions. Woodpecker is this repository's active adapter. This
+task also installs the real reference catalog and generated release-surface
 inventory, then adds the now-executable command to root `verify`, config drift,
 CI completeness, `phase1.sh`, and secretless CI self-protection.
 
@@ -519,7 +528,7 @@ Expected: focused suites and full template verification pass.
 - [ ] **Step 8: Commit and merge through GitHub**
 
 Run:
-`rtk git add packages/product-journey packages/convex/confect/journeys tooling/generators journeys package.json .buildkite/pipeline.yml docs/template && rtk git commit -m "feat: ship journey admission template"`
+`rtk git add packages/product-journey packages/convex/confect/journeys tooling/generators tooling/ci journeys package.json .woodpecker docs/template && rtk git commit -m "feat: ship journey admission template"`
 
 Create a normal GitHub PR, obtain independent contract review, wait for required
 checks, and merge without bypassing protection.
