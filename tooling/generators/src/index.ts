@@ -34,6 +34,7 @@ export {
   buildSaasApplicationFiles,
   buildSaasApplicationTargetPlan,
 } from "./blueprints/saasApplication";
+export { buildSaasApplicationAlpha2TargetPlan } from "./blueprints/alpha2SaasApplicationPlan";
 import { buildWorkflowFiles } from "./workflow-files";
 export { buildWorkflowFiles } from "./workflow-files";
 import { bumpRelease, publishRelease } from "./workflow-release-commands";

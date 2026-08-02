@@ -31,6 +31,7 @@ import {
   buildSaasApplicationTargetPlan,
   saasApplicationBlueprint,
 } from "./saasApplication";
+import { buildSaasApplicationAlpha2TargetPlan } from "./alpha2SaasApplicationPlan";
 import { buildFactorySaasApplicationFiles } from "./saasApplicationFactory";
 import {
   CUSTOMER_ROOT_SCRIPTS,
@@ -110,6 +111,44 @@ const reviewedBaseWrite = (
 };
 
 describe("saas application blueprint", () => {
+  it("reproduces immutable alpha.2 independently from the current candidate", () => {
+    const authority = JSON.parse(
+      readFileSync(
+        join(
+          repoRoot,
+          "releases/v0.2.0-alpha.2/hardening/saas-application.json",
+        ),
+        "utf8",
+      ),
+    ) as {
+      readonly schemaVersion: number;
+      readonly id: string;
+      readonly provenance: string;
+      readonly registrations: readonly string[];
+      readonly entries: readonly unknown[];
+    };
+    const alpha2 = buildSaasApplicationAlpha2TargetPlan();
+    const entryIdentity = ({
+      content: _content,
+      ...entry
+    }: (typeof alpha2.entries)[number]) => entry;
+
+    expect({
+      schemaVersion: alpha2.schemaVersion,
+      id: alpha2.id,
+      provenance: alpha2.provenance,
+      registrations: alpha2.registrations,
+      entries: alpha2.entries.map(entryIdentity),
+    }).toEqual({
+      schemaVersion: authority.schemaVersion,
+      id: authority.id,
+      provenance: authority.provenance,
+      registrations: authority.registrations,
+      entries: authority.entries,
+    });
+    expect(buildSaasApplicationTargetPlan().digest).not.toBe(alpha2.digest);
+  });
+
   it("binds every alpha.2 base write overlap to reviewed replacement metadata", () => {
     const manifestPath = join(
       repoRoot,
@@ -267,6 +306,15 @@ describe("saas application blueprint", () => {
     }
     expect(confectManifest).toMatchObject({ replaces: "copy" });
     expect(confectManifest?.content.match(/\n\s+"records",/gu)).toHaveLength(4);
+    for (const factoryProductTable of [
+      "buildPacks",
+      "evaluationSessions",
+      "maestroCredits",
+      "supportIncidents",
+    ])
+      expect(confectManifest?.content).not.toContain(
+        `"${factoryProductTable}",`,
+      );
     for (const projection of [
       appMapComposition,
       appMapCompositionTest,
@@ -410,13 +458,14 @@ describe("saas application blueprint", () => {
     expect(generatorImporter).not.toContain(
       "@maestro-template/release-tooling",
     );
-    for (const importer of [webImporter, convexImporter, generatorImporter]) {
+    for (const importer of [webImporter, convexImporter, generatorImporter])
       expect(importer).not.toContain("@maestro-template/app-idea-evaluator");
-    }
     expect(lockfile.content).not.toContain(
       '"@maestro-template/app-idea-evaluator":',
     );
-    expect(integrationsImporter).not.toContain("dodopayments");
+    expect(integrationsImporter).toContain(
+      "dodopayments:\n        specifier: ^2.44.0\n        version: 2.44.0",
+    );
     const systemCatalogEntry = plan.entries.find(
       ({ path }) => path === "docs/template/system-catalog.json",
     );
@@ -1232,8 +1281,8 @@ describe("saas application blueprint", () => {
       "examples/saas-application/seed/source.json",
       "examples/saas-application/seed/crud-scenario.json",
       "packages/convex/confect/tables/records.ts",
-      "packages/convex/confect/records.spec.ts",
-      "packages/convex/confect/records.impl.ts",
+      "packages/convex/confect/records/records.spec.ts",
+      "packages/convex/confect/records/records.impl.ts",
       "apps/web/src/adapters/records/contract.ts",
       "apps/web/src/adapters/records/fake.ts",
       "apps/web/src/features/records/model.ts",
@@ -1372,6 +1421,8 @@ describe("saas application blueprint", () => {
       "tooling/agent-pack/src/mcp/protocol.test.ts",
       "tooling/agent-pack/src/mcp/server.test.ts",
       "tooling/agent-pack/src/nodeAdapters.test.ts",
+      "apps/web/src/routes/index.tsx",
+      "apps/web/src/providers/posthog.tsx",
       "tooling/agent-pack/src/privacy/supportBundle.ts",
       "tooling/agent-pack/src/privacy/supportBundleCommand.ts",
       "tooling/agent-pack/src/privacy/nodeSupportBundleExporter.ts",
@@ -1390,6 +1441,7 @@ describe("saas application blueprint", () => {
       "apps/web/src/routeTree.gen.ts",
       "apps/web/src/routeRegistry.generated.ts",
       "Justfile",
+      "apps/web/src/adapters/confect-generated-refs.test.ts",
       "docs/template/env-manifest.json",
       "docs/template/env-manifest.md",
       "docs/template/operations-runbook.md",
@@ -1397,6 +1449,7 @@ describe("saas application blueprint", () => {
       "packages/template-core/src/templateInstance/__fixtures__/provider-posture-v1-to-v2.contract.json",
       "packages/template-core/src/generated/confectManifest.ts",
       "packages/convex/confect/workflows/_kit/policySnapshotCurrent.ts",
+      "packages/convex/test/shared-env.test.ts",
       "tooling/generators/src/crud-proof.test.ts",
       "tooling/app-map/src/composition.test.ts",
       "tooling/app-map/src/composition.ts",
@@ -1542,6 +1595,26 @@ describe("saas application blueprint", () => {
       ),
     ).toBe(false);
     expect(files.has("packages/convex/convex/records.ts")).toBe(false);
+    expect(files.has("packages/convex/confect/records/records.spec.ts")).toBe(
+      true,
+    );
+    expect(files.has("packages/convex/confect/records/records.impl.ts")).toBe(
+      true,
+    );
+    expect(files.has("packages/convex/confect/records.spec.ts")).toBe(false);
+    expect(files.has("packages/convex/confect/records.impl.ts")).toBe(false);
+    const recordsSpec =
+      files.get("packages/convex/confect/records/records.spec.ts") ?? "";
+    expect(recordsSpec).toContain('from "../_generated/tables/records"');
+    expect(recordsSpec).toContain('from "../capabilities/_kit/capability"');
+    expect(recordsSpec).not.toContain('from "./_generated/');
+    const recordsImpl =
+      files.get("packages/convex/confect/records/records.impl.ts") ?? "";
+    expect(recordsImpl).toContain('from "../_generated/schema"');
+    expect(recordsImpl).toContain(
+      'from "../capabilities/_kit/workspaceAccess"',
+    );
+    expect(recordsImpl).not.toContain('from "./_generated/');
 
     const spec = files.get("packages/convex/confect/_generated/spec.ts") ?? "";
     expect(spec).toContain(
@@ -1550,24 +1623,86 @@ describe("saas application blueprint", () => {
     expect(spec).toContain(
       'GroupSpec.makeAt("records").addGroupAt("records", records_records)',
     );
+    for (const factoryProductGroup of [
+      "buildPacks",
+      "evaluateAppIdea",
+      "manageEvaluationReport",
+      "commerce",
+      "generateCompleteBuildPack",
+    ])
+      expect(spec).not.toContain(factoryProductGroup);
+
+    const databaseSchema =
+      files.get("packages/convex/confect/_generated/schema.ts") ?? "";
+    const convexSchema =
+      files.get("packages/convex/confect/_generated/convexSchema.ts") ?? "";
+    for (const factoryProductTable of [
+      "buildPacks",
+      "evaluationSessions",
+      "maestroCredits",
+      "supportIncidents",
+    ]) {
+      expect(databaseSchema).not.toContain(factoryProductTable);
+      expect(convexSchema).not.toContain(factoryProductTable);
+    }
 
     const docs = files.get("packages/convex/confect/_generated/docs.ts") ?? "";
     expect(docs).toContain("export type RecordsDoc =");
     expect(docs).toContain("  records: RecordsDoc;");
+    expect(docs).not.toContain("BuildPacksDoc");
+    expect(docs).not.toContain("EvaluationSessionsDoc");
 
     const ids = files.get("packages/convex/confect/_generated/id.ts") ?? "";
     expect(ids.match(/\| "records"/g)).toHaveLength(1);
     expect(ids.match(/\| "workflowArtifacts"/g)).toHaveLength(1);
+    expect(ids).not.toContain('"buildPacks"');
+    expect(ids).not.toContain('"evaluationSessions"');
+
+    const sharedEnvTest =
+      files.get("packages/convex/test/shared-env.test.ts") ?? "";
+    expect(sharedEnvTest).toContain('describe("TemplateRuntimeConfig"');
+    expect(sharedEnvTest).not.toContain("loadLlmGatewayEnvConfig");
+    expect(sharedEnvTest).not.toContain("confect/evaluator/providerConfig");
+
+    const generatedRefsTest =
+      files.get("apps/web/src/adapters/confect-generated-refs.test.ts") ?? "";
+    expect(generatedRefsTest).toContain("BrainPageListRef");
+    expect(generatedRefsTest).toContain("BrainPageCreateRef");
+    expect(generatedRefsTest).not.toContain("evaluateAppIdea");
+    expect(generatedRefsTest).not.toContain("useTemplateAction");
+
+    for (const evaluatorSourcePath of [
+      "apps/web/src/providers/posthog.test.tsx",
+      "apps/web/src/public-routes.test.tsx",
+      "apps/web/src/routes/build-pack.$packId.tsx",
+    ])
+      expect(files.has(evaluatorSourcePath), evaluatorSourcePath).toBe(false);
 
     const recordsSurface =
       files.get("apps/web/src/features/records/records-surface.tsx") ?? "";
-    expect(recordsSurface).toContain("templateConfectRefs.public.records.list");
     expect(recordsSurface).toContain(
-      "templateConfectRefs.public.records.create",
+      "templateConfectRefs.public.records.records.list",
+    );
+    expect(recordsSurface).toContain(
+      "templateConfectRefs.public.records.records.create",
     );
     expect(recordsSurface).not.toMatch(
-      /templateConfectRefs\.public\.records\.records\.(?:list|create)/u,
+      /templateConfectRefs\.public\.records\.(?:list|create)/u,
     );
+
+    const indexRoute = files.get("apps/web/src/routes/index.tsx") ?? "";
+    expect(indexRoute).toContain("BusinessDashboardRoute");
+    expect(indexRoute).not.toContain("public-funnel");
+    const posthog = files.get("apps/web/src/providers/posthog.tsx") ?? "";
+    expect(posthog).toContain("shouldEnableAnalyticsCapture");
+    expect(posthog).not.toContain("app-idea-evaluator");
+    expect(posthog).not.toContain("public-funnel");
+    const routeTree = files.get("apps/web/src/routeTree.gen.ts") ?? "";
+    expect(routeTree).toContain("DashboardRouteImport");
+    expect(routeTree).toContain("WorkspaceRecordsRouteImport");
+    expect(routeTree).not.toContain("EvaluateRouteImport");
+    expect(routeTree).not.toContain("CheckoutReturnRouteImport");
+    expect(routeTree).not.toContain("BuildPackPackIdRouteImport");
   });
 
   it("projects a customer-only root script closure", () => {

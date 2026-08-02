@@ -1,5 +1,8 @@
 import { createCustomerCreateCommand } from "@maestro-template/agent-pack";
-import { buildSaasApplicationTargetPlan } from "@maestro-template/generators";
+import {
+  buildSaasApplicationAlpha2TargetPlan,
+  buildSaasApplicationTargetPlan,
+} from "@maestro-template/generators";
 import { createCustomerReleaseAdapter } from "@maestro-template/release-tooling/customer-create";
 import { homedir } from "node:os";
 import { resolve } from "node:path";
@@ -51,6 +54,12 @@ export const ALPHA_2_SOURCE = Object.freeze({
 
 export function createCustomerCreateComposition(
   source: CustomerCompositionSource = ALPHA_2_SOURCE,
+  buildBlueprintTargetPlan: (options: {
+    readonly name: string;
+    readonly firstOutcome?: string;
+  }) => ReturnType<
+    typeof buildSaasApplicationTargetPlan
+  > = buildSaasApplicationAlpha2TargetPlan,
 ) {
   const release = createCustomerReleaseAdapter({
     ...source,
@@ -58,7 +67,7 @@ export function createCustomerCreateComposition(
   });
   const command = createCustomerCreateCommand({
     blueprintTargetPlan: ({ name, outcome }) =>
-      buildSaasApplicationTargetPlan({ name, firstOutcome: outcome }),
+      buildBlueprintTargetPlan({ name, firstOutcome: outcome }),
     release: {
       prepare: (request) =>
         release.prepare({

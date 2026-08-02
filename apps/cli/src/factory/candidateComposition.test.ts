@@ -1,4 +1,4 @@
-import { execFile, execFileSync } from "node:child_process";
+import { execFile, execFileSync, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import {
   existsSync,
@@ -16,8 +16,8 @@ import { join, relative, sep } from "node:path";
 import { promisify } from "node:util";
 import { fileURLToPath } from "node:url";
 import { buildSaasApplicationTargetPlan } from "@maestro-template/generators";
+import { buildCustomerOwnershipInventory } from "@maestro-template/release-tooling/customer-ownership";
 import { afterEach, describe, expect, it } from "vitest";
-import { buildCustomerOwnershipInventory } from "../../../../tooling/release/src/customerTarget/ownership";
 import {
   ALPHA_2_SOURCE,
   createCustomerCreateComposition,
@@ -290,7 +290,10 @@ describe("candidate customer composition", () => {
     const name = "Candidate Validation";
     const outcome = "Validate the exact candidate customer artifact";
     const fixture = buildCandidateReleaseFixture({ name, outcome });
-    const create = createCustomerCreateComposition(fixture.source);
+    const create = createCustomerCreateComposition(
+      fixture.source,
+      buildSaasApplicationTargetPlan,
+    );
     const result = await create.run(
       [
         "create",
@@ -325,6 +328,70 @@ describe("candidate customer composition", () => {
     });
     expect(fixture.source.sourceCommit).toBe(fixture.reviewedSourceCommit);
     expect(fixture.taggedCommit).not.toBe(fixture.reviewedSourceCommit);
+    const customerFiles = listFiles(fixture.targetRoot);
+    for (const factoryProductPrefix of [
+      "packages/app-idea-evaluator/",
+      "packages/convex/confect/buildPacks/",
+      "packages/convex/confect/commerce/",
+      "packages/convex/confect/evaluator/",
+      "packages/convex/convex/buildPacks/",
+      "packages/convex/convex/commerce/",
+      "apps/web/src/features/public-funnel/",
+    ])
+      expect(
+        customerFiles.some((path) => path.startsWith(factoryProductPrefix)),
+        factoryProductPrefix,
+      ).toBe(false);
+    for (const factoryProductPath of [
+      "packages/convex/confect/capabilities/evaluateAppIdea.impl.ts",
+      "packages/convex/confect/capabilities/manageEvaluationReport.impl.ts",
+      "packages/convex/confect/workflowContracts/generateCompleteBuildPack.spec.ts",
+      "packages/convex/confect/_generated/registeredFunctions/capabilities/evaluateAppIdea.ts",
+      "packages/convex/confect/_generated/tables/buildPacks.ts",
+      "packages/convex/confect/tables/buildPacks.ts",
+      "packages/convex/convex/workflowRunners/generateCompleteBuildPack.ts",
+      "packages/convex/test/evaluator-state.test.ts",
+      "apps/web/src/providers/posthog.test.tsx",
+      "apps/web/src/public-routes.test.tsx",
+      "apps/web/src/routes/build-pack.$packId.tsx",
+      "apps/web/src/routes/evaluate.tsx",
+      "apps/web/src/routes/privacy.tsx",
+      "apps/web/src/routes/support.tsx",
+      "apps/web/src/routes/terms.tsx",
+    ])
+      expect(customerFiles, factoryProductPath).not.toContain(
+        factoryProductPath,
+      );
+    expect(customerFiles).toContain("packages/integrations/src/dodo.ts");
+    expect(
+      readFileSync(
+        join(fixture.targetRoot, "apps/web/src/routes/index.tsx"),
+        "utf8",
+      ),
+    ).not.toContain("public-funnel");
+    expect(
+      readFileSync(
+        join(fixture.targetRoot, "apps/web/src/providers/posthog.tsx"),
+        "utf8",
+      ),
+    ).not.toMatch(/app-idea-evaluator|public-funnel/u);
+    expect(
+      readFileSync(
+        join(fixture.targetRoot, "apps/web/src/routeTree.gen.ts"),
+        "utf8",
+      ),
+    ).not.toMatch(
+      /EvaluateRouteImport|CheckoutReturnRouteImport|BuildPackPackIdRouteImport/u,
+    );
+    const generatedRefsTest = readFileSync(
+      join(
+        fixture.targetRoot,
+        "apps/web/src/adapters/confect-generated-refs.test.ts",
+      ),
+      "utf8",
+    );
+    expect(generatedRefsTest).toContain("BrainPageListRef");
+    expect(generatedRefsTest).not.toContain("evaluateAppIdea");
     const customerPackage = JSON.parse(
       readFileSync(join(fixture.targetRoot, "package.json"), "utf8"),
     ) as {
@@ -338,6 +405,35 @@ describe("candidate customer composition", () => {
       ),
     ) as { readonly dependencies: Readonly<Record<string, string>> };
     expect(customerPackage.packageManager).toBe("pnpm@10.12.1");
+    for (const manifestPath of [
+      "apps/web/package.json",
+      "packages/convex/package.json",
+      "tooling/generators/package.json",
+    ]) {
+      const manifest = JSON.parse(
+        readFileSync(join(fixture.targetRoot, manifestPath), "utf8"),
+      ) as { readonly dependencies?: Readonly<Record<string, string>> };
+      expect(manifest.dependencies).not.toHaveProperty(
+        "@maestro-template/app-idea-evaluator",
+      );
+    }
+    const integrationsManifest = JSON.parse(
+      readFileSync(
+        join(fixture.targetRoot, "packages/integrations/package.json"),
+        "utf8",
+      ),
+    ) as { readonly dependencies: Readonly<Record<string, string>> };
+    expect(integrationsManifest.dependencies.dodopayments).toBe("^2.44.0");
+    const customerLockfile = readFileSync(
+      join(fixture.targetRoot, "pnpm-lock.yaml"),
+      "utf8",
+    );
+    expect(customerLockfile).not.toContain(
+      '"@maestro-template/app-idea-evaluator":',
+    );
+    expect(customerLockfile).toContain(
+      "dodopayments:\n        specifier: ^2.44.0\n        version: 2.44.0",
+    );
     expect(customerPackage.scripts).toHaveProperty(
       "check:confect-effect-compat",
     );
@@ -357,6 +453,26 @@ describe("candidate customer composition", () => {
     expect(files).not.toContain(
       "tooling/effectified-api-proof/confect-v9-proof.ts",
     );
+    const systems = JSON.parse(
+      readFileSync(
+        join(fixture.targetRoot, "docs/template/system-catalog.json"),
+        "utf8",
+      ),
+    ) as {
+      readonly systems: readonly { readonly tables: readonly string[] }[];
+    };
+    const resources = JSON.parse(
+      readFileSync(
+        join(fixture.targetRoot, "docs/template/data-resources.json"),
+        "utf8",
+      ),
+    ) as { readonly resources: readonly { readonly id: string }[] };
+    for (const table of ["records", "deployAuthorityAuditEvents"]) {
+      expect(systems.systems.some(({ tables }) => tables.includes(table))).toBe(
+        true,
+      );
+      expect(resources.resources.some(({ id }) => id === table)).toBe(true);
+    }
 
     await runCandidatePnpm(fixture.targetRoot, [
       "install",
@@ -364,12 +480,78 @@ describe("candidate customer composition", () => {
       "--frozen-lockfile",
       "--ignore-scripts",
     ]);
+    const mcpInput = [
+      {
+        jsonrpc: "2.0",
+        id: 1,
+        method: "initialize",
+        params: {
+          protocolVersion: "2025-06-18",
+          clientInfo: { name: "candidate-runtime", version: "1" },
+          capabilities: {},
+        },
+      },
+      { jsonrpc: "2.0", id: 2, method: "tools/list", params: {} },
+    ]
+      .map((request) => JSON.stringify(request))
+      .join("\n");
+    const mcp = spawnSync("pnpm", ["--silent", "maestro", "--", "mcp"], {
+      cwd: fixture.targetRoot,
+      encoding: "utf8",
+      env: candidateEnvironment(),
+      input: `${mcpInput}\n`,
+      timeout: 30_000,
+    });
+    expect(mcp.status, mcp.stderr).toBe(0);
+    expect(
+      mcp.stdout
+        .trim()
+        .split("\n")
+        .map((line) => JSON.parse(line) as Record<string, unknown>),
+    ).toEqual([
+      expect.objectContaining({
+        id: 1,
+        result: expect.objectContaining({
+          serverInfo: expect.objectContaining({ name: "maestro-agent-pack" }),
+        }),
+      }),
+      expect.objectContaining({
+        id: 2,
+        result: expect.objectContaining({ tools: expect.any(Array) }),
+      }),
+    ]);
     await runCandidatePnpm(fixture.targetRoot, ["check:confect-effect-compat"]);
     await runCandidatePnpm(fixture.targetRoot, ["check:confect-contracts"]);
-    await runCandidatePnpm(fixture.targetRoot, ["check:confect-manifest"]);
+    const generatedManifestPath = join(
+      fixture.targetRoot,
+      "packages/template-core/src/generated/confectManifest.ts",
+    );
+    const generatedManifestBefore = readFileSync(generatedManifestPath, "utf8");
+    try {
+      await runCandidatePnpm(fixture.targetRoot, ["check:confect-manifest"]);
+    } catch (error) {
+      const before = generatedManifestBefore.split("\n");
+      const generatedManifestAfter = readFileSync(
+        generatedManifestPath,
+        "utf8",
+      );
+      const after = generatedManifestAfter.split("\n");
+      const difference = Math.max(
+        0,
+        before.findIndex((line, index) => line !== after[index]),
+      );
+      throw new Error(
+        `${String(error)}\nGenerated manifest first differs at line ${difference + 1}:\nBEFORE ${before.slice(difference, difference + 8).join("\nBEFORE ")}\nAFTER ${after.slice(difference, difference + 8).join("\nAFTER ")}`,
+      );
+    }
     await runCandidatePnpm(fixture.targetRoot, [
       "--dir",
       "packages/convex",
+      "typecheck",
+    ]);
+    await runCandidatePnpm(fixture.targetRoot, [
+      "--dir",
+      "apps/web",
       "typecheck",
     ]);
     await runCandidatePnpm(fixture.targetRoot, [
