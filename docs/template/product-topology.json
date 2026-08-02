@@ -422,6 +422,16 @@
       "lifecycle": "active"
     },
     {
+      "id": "integration:admaxxer",
+      "kind": "provider",
+      "system": "billing-and-entitlements",
+      "path": "packages/integrations/src/admaxxer.ts",
+      "responsibility": "adapt verified payment revenue attribution behind the billing boundary",
+      "surfaces": ["internal", "worker"],
+      "uses": [],
+      "lifecycle": "active"
+    },
+    {
       "id": "integration:flags",
       "kind": "provider",
       "system": "policy-and-prompts",
