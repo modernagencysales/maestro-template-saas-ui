@@ -15,6 +15,11 @@ overrides:
   "@saas-ui/hooks": 3.0.0-next.3
   "@saas-ui-pro/react": 1.0.0-next.4
 
+patchedDependencies:
+  "@confect/cli@10.0.0-next.9":
+    hash: 1a1e00f1d9117b5d866ad1f0ca6eda3e769a036461541c3593fd2c4fa9b13a08
+    path: patches/@confect__cli@10.0.0-next.9.patch
+
 importers:
   .:
     devDependencies:
@@ -251,7 +256,7 @@ importers:
         version: 0.51.4(@types/hast@3.0.4)
       "@confect/cli":
         specifier: 10.0.0-next.9
-        version: 10.0.0-next.9(@confect/core@10.0.0-next.9(convex@1.42.1(react@19.1.0))(effect@4.0.0-beta.102))(@confect/server@10.0.0-next.9(@confect/core@10.0.0-next.9(convex@1.42.1(react@19.1.0))(effect@4.0.0-beta.102))(@effect/platform-node@4.0.0-beta.102(effect@4.0.0-beta.102)(ioredis@5.11.1))(convex@1.42.1(react@19.1.0))(effect@4.0.0-beta.102))(effect@4.0.0-beta.102)(ioredis@5.11.1)
+        version: 10.0.0-next.9(patch_hash=1a1e00f1d9117b5d866ad1f0ca6eda3e769a036461541c3593fd2c4fa9b13a08)(@confect/core@10.0.0-next.9(convex@1.42.1(react@19.1.0))(effect@4.0.0-beta.102))(@confect/server@10.0.0-next.9(@confect/core@10.0.0-next.9(convex@1.42.1(react@19.1.0))(effect@4.0.0-beta.102))(@effect/platform-node@4.0.0-beta.102(effect@4.0.0-beta.102)(ioredis@5.11.1))(convex@1.42.1(react@19.1.0))(effect@4.0.0-beta.102))(effect@4.0.0-beta.102)(ioredis@5.11.1)
       "@confect/core":
         specifier: 10.0.0-next.9
         version: 10.0.0-next.9(convex@1.42.1(react@19.1.0))(effect@4.0.0-beta.102)
@@ -9444,7 +9449,7 @@ snapshots:
       react: 19.1.0
       react-dom: 19.1.0(react@19.1.0)
 
-  "@confect/cli@10.0.0-next.9(@confect/core@10.0.0-next.9(convex@1.42.1(react@19.1.0))(effect@4.0.0-beta.102))(@confect/server@10.0.0-next.9(@confect/core@10.0.0-next.9(convex@1.42.1(react@19.1.0))(effect@4.0.0-beta.102))(@effect/platform-node@4.0.0-beta.102(effect@4.0.0-beta.102)(ioredis@5.11.1))(convex@1.42.1(react@19.1.0))(effect@4.0.0-beta.102))(effect@4.0.0-beta.102)(ioredis@5.11.1)":
+  "@confect/cli@10.0.0-next.9(patch_hash=1a1e00f1d9117b5d866ad1f0ca6eda3e769a036461541c3593fd2c4fa9b13a08)(@confect/core@10.0.0-next.9(convex@1.42.1(react@19.1.0))(effect@4.0.0-beta.102))(@confect/server@10.0.0-next.9(@confect/core@10.0.0-next.9(convex@1.42.1(react@19.1.0))(effect@4.0.0-beta.102))(@effect/platform-node@4.0.0-beta.102(effect@4.0.0-beta.102)(ioredis@5.11.1))(convex@1.42.1(react@19.1.0))(effect@4.0.0-beta.102))(effect@4.0.0-beta.102)(ioredis@5.11.1)":
     dependencies:
       "@confect/core": 10.0.0-next.9(convex@1.42.1(react@19.1.0))(effect@4.0.0-beta.102)
       "@confect/server": 10.0.0-next.9(@confect/core@10.0.0-next.9(convex@1.42.1(react@19.1.0))(effect@4.0.0-beta.102))(@effect/platform-node@4.0.0-beta.102(effect@4.0.0-beta.102)(ioredis@5.11.1))(convex@1.42.1(react@19.1.0))(effect@4.0.0-beta.102)
