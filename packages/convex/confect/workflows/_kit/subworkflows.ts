@@ -1,6 +1,6 @@
 import type { FunctionReference } from "convex/server";
 import { getConvexSize, v } from "convex/values";
-import * as Either from "effect/Either";
+import * as Exit from "effect/Exit";
 import * as Schema from "effect/Schema";
 
 import { makePublicError } from "../../shared/errors";
@@ -222,8 +222,8 @@ export const defineWorkflowV2SubworkflowRegistry = <
 ): PublishedRegistry<Registry> => {
   const published: Record<string, AnyWorkflowV2SubworkflowRegistryEntry> = {};
   for (const [key, definition] of Object.entries(registry)) {
-    const decoded = Schema.decodeUnknownEither(WorkflowReference)(key);
-    if (Either.isLeft(decoded)) {
+    const decoded = Schema.decodeUnknownExit(WorkflowReference)(key);
+    if (Exit.isFailure(decoded)) {
       throw makePublicError(
         "VALIDATION_FAILED",
         "Subworkflow registry key must be a generated reference matching its immutable version.",
@@ -372,15 +372,15 @@ const publishedChildReference = (
     );
   }
   const reference = `${binding.workflowId}.v${binding.version}`;
-  const decoded = Schema.decodeUnknownEither(WorkflowReference)(reference);
-  if (Either.isLeft(decoded)) {
+  const decoded = Schema.decodeUnknownExit(WorkflowReference)(reference);
+  if (Exit.isFailure(decoded)) {
     throw makePublicError(
       "VALIDATION_FAILED",
       "Published subworkflow dependency has no canonical workflow reference.",
       { workflowId: binding.workflowId, version: binding.version },
     );
   }
-  return decoded.right;
+  return decoded.value;
 };
 
 type RunSubworkflowInput<Entry> = {
@@ -503,14 +503,14 @@ export async function runRegisteredSubworkflow({
     const rawResult = await step.runWorkflow(entry.ref, childArgs, {
       name: node.stepName,
     });
-    const decoded = Schema.decodeUnknownEither(entry.resultSchema)(rawResult);
-    if (Either.isLeft(decoded)) {
+    const decoded = Schema.decodeUnknownExit(entry.resultSchema)(rawResult);
+    if (Exit.isFailure(decoded)) {
       throw subworkflowFailure(
         node,
         "child returned an invalid declared result",
       );
     }
-    childResult = decoded.right;
+    childResult = decoded.value;
     assertJsonSafe(
       childResult,
       `Subworkflow ${node.id} returned invalid data.`,
@@ -628,13 +628,11 @@ const decodePrincipal = (
   node: SubworkflowNodeV2,
   principal: unknown,
 ): WorkflowPrincipalType => {
-  const decoded = Schema.decodeUnknownEither(DurableWorkflowPrincipal)(
-    principal,
-  );
-  if (Either.isLeft(decoded)) {
+  const decoded = Schema.decodeUnknownExit(DurableWorkflowPrincipal)(principal);
+  if (Exit.isFailure(decoded)) {
     throw subworkflowFailure(node, "parent principal is invalid");
   }
-  return decoded.right;
+  return decoded.value;
 };
 
 const resolveChildPrincipal = (
@@ -697,11 +695,11 @@ const decodePolicySnapshot = (
   node: SubworkflowNodeV2,
   snapshot: unknown,
 ): WorkflowPolicySnapshotType => {
-  const decoded = Schema.decodeUnknownEither(WorkflowPolicySnapshot)(snapshot);
-  if (Either.isLeft(decoded)) {
+  const decoded = Schema.decodeUnknownExit(WorkflowPolicySnapshot)(snapshot);
+  if (Exit.isFailure(decoded)) {
     throw subworkflowFailure(node, "parent policy snapshot is invalid");
   }
-  return decoded.right;
+  return decoded.value;
 };
 
 type ChildArtifactReference = {

@@ -114,7 +114,11 @@ const readObservedWorkflowAuthority = (
   if (typeof value !== "object" || value === null) {
     throw new Error("Subworkflow reserved authority is unavailable.");
   }
-  const decoded = decodeObservedWorkflowAuthority(value);
+  const decoded = decodeObservedWorkflowAuthority({
+    principal: "principal" in value ? value.principal : undefined,
+    policySnapshot:
+      "policySnapshot" in value ? value.policySnapshot : undefined,
+  });
   if (Exit.isFailure(decoded)) {
     throw new Error("Subworkflow reserved authority is unavailable.");
   }
