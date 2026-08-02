@@ -104,7 +104,7 @@ coverage:
     pnpm check:coverage-ratchet
 
 mutation:
-    bash .buildkite/scripts/mutation.sh
+    bash tooling/ci/mutation.sh
 
 verify-full:
     just verify

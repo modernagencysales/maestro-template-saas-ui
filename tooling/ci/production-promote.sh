@@ -5,17 +5,13 @@ set -euo pipefail
 source "$(dirname "$0")/setup.sh"
 
 if [[ "${RUN_ROLLBACK:-false}" == "true" ]]; then
-  exec .buildkite/scripts/rollback-promote.sh
+  exec tooling/ci/rollback-promote.sh
 fi
 
-CURRENT_SHA="${BUILDKITE_COMMIT:-$(git rev-parse HEAD)}"
-export BUILDKITE_COMMIT="${CURRENT_SHA}"
+CURRENT_SHA="${CI_COMMIT_SHA:-$(git rev-parse HEAD)}"
+export CI_COMMIT_SHA="${CURRENT_SHA}"
 node scripts/_project-config.mjs assert-isolated-convex
-if command -v buildkite-agent >/dev/null 2>&1; then
-  STAGED_SHA="${STAGED_SHA:-$(buildkite-agent meta-data get staged-sha)}"
-else
-  STAGED_SHA="${STAGED_SHA:-${CURRENT_SHA}}"
-fi
+STAGED_SHA="${STAGED_SHA:?STAGED_SHA is required}"
 PROJECT_NAME="$(node scripts/_project-config.mjs get production cloudflarePagesProject)"
 PRODUCTION_BRANCH="$(node scripts/_project-config.mjs get production cloudflareBranch)"
 
@@ -48,7 +44,7 @@ pnpm exec tsx tooling/release/src/index.ts promote-plan "${STAGED_SHA}" "${CURRE
 # demo workspace. The frontend below is built against the same deployment.
 DEPLOY_ENVIRONMENT=production pnpm exec tsx tooling/release/src/deploy/guardedDeploy.ts convex
 (cd packages/convex && pnpm exec convex run demo/showcase:seed)
-.buildkite/scripts/deploy-canary.sh backend
+tooling/ci/deploy-canary.sh backend
 
 VITE_CONVEX_URL="$(node scripts/_project-config.mjs get production convexUrl)"
 export VITE_CONVEX_URL
@@ -57,8 +53,8 @@ pnpm build
 pnpm smoke:web-static
 CLOUDFLARE_PAGES_PROJECT="${PROJECT_NAME}" CLOUDFLARE_PAGES_BRANCH="${PRODUCTION_BRANCH}" DEPLOY_ENVIRONMENT=production \
   pnpm exec tsx tooling/release/src/deploy/guardedDeploy.ts cloudflare
-.buildkite/scripts/deploy-canary.sh hosted
+tooling/ci/deploy-canary.sh hosted
 
 RECEIPT_PATH="guarded-production-deployment-receipt.json"
 pnpm exec tsx tooling/quality/check-deploy-authority-receipt.mts record "${RECEIPT_PATH}"
-buildkite-agent artifact upload "${RECEIPT_PATH}"
+node -e 'const receipt=require("./guarded-production-deployment-receipt.json"); console.log("production deployment receipt", JSON.stringify(receipt))'

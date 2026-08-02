@@ -258,7 +258,7 @@ describe("contract review lanes", () => {
         "packages/convex/domain/score.ts",
         "packages/convex/domain/score.test.ts",
         "tooling/quality/contract-review.mts",
-        ".buildkite/scripts/taste.sh",
+        "tooling/ci/taste.sh",
         "AGENTS.md",
         "docs/template/coding-standards.md",
         "README.txt",
@@ -267,7 +267,7 @@ describe("contract review lanes", () => {
       "product: packages/convex/domain/score.ts",
       "test: packages/convex/domain/score.test.ts",
       "meta-gate: tooling/quality/contract-review.mts",
-      "meta-gate: .buildkite/scripts/taste.sh",
+      "meta-gate: tooling/ci/taste.sh",
       "contract-doc: AGENTS.md",
       "contract-doc: docs/template/coding-standards.md",
     ]);
@@ -279,12 +279,12 @@ describe("contract review lanes", () => {
         "contract-doc: AGENTS.md",
         "test: apps/web/app/page.test.tsx",
         "product: apps/web/app/page.tsx",
-        "meta-gate: .buildkite/scripts/taste.sh",
+        "meta-gate: tooling/ci/taste.sh",
         "meta-gate: tooling/quality/contract-review.mts",
       ]),
     ).toEqual([
       "meta-gate: tooling/quality/contract-review.mts",
-      "meta-gate: .buildkite/scripts/taste.sh",
+      "meta-gate: tooling/ci/taste.sh",
       "product: apps/web/app/page.tsx",
       "test: apps/web/app/page.test.tsx",
       "contract-doc: AGENTS.md",
@@ -379,7 +379,6 @@ describe("contract-review CLI fail-closed behavior", () => {
     { timeout: 120_000 },
     () => {
       const result = runContractScript([], {
-        BUILDKITE: "true",
         CI: "true",
         OPENROUTER_API_KEY: "",
         OPENAI_API_KEY: "",

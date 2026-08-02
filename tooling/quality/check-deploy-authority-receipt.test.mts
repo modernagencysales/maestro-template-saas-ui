@@ -6,8 +6,8 @@ import {
 
 const baseEnv = {
   DEPLOY_ENVIRONMENT: "production",
-  BUILDKITE_BUILD_ID: "build-123",
-  BUILDKITE_COMMIT: "a".repeat(40),
+  CI_PIPELINE_NUMBER: "build-123",
+  CI_COMMIT_SHA: "a".repeat(40),
   CONVEX_DEPLOYMENT: "prod:maestro-template-production",
   PREVIOUS_CONVEX_COMMIT_SHA: "b".repeat(40),
   PREVIOUS_CONVEX_DEPLOYMENT: "prod:maestro-template-production",
@@ -20,7 +20,7 @@ const baseEnv = {
 
 const rollbackEnv = {
   DEPLOY_ENVIRONMENT: "production",
-  BUILDKITE_COMMIT: "b".repeat(40),
+  CI_COMMIT_SHA: "b".repeat(40),
   CONVEX_DEPLOYMENT: "prod:maestro-template-production",
   ROLLBACK_CLOUDFLARE_DEPLOYMENT_VERSION: "b".repeat(40),
   PREVIOUS_CONVEX_COMMIT_SHA: "a".repeat(40),
@@ -72,7 +72,7 @@ describe("deployment rollback receipt", () => {
     const receipt = deploymentReceiptFromEnv(baseEnv);
     expect(() => verifyRollbackReceipt(receipt, rollbackEnv)).not.toThrow();
     for (const env of [
-      { BUILDKITE_COMMIT: "c".repeat(40) },
+      { CI_COMMIT_SHA: "c".repeat(40) },
       { CONVEX_DEPLOYMENT: "prod:other" },
       { ROLLBACK_CLOUDFLARE_DEPLOYMENT_VERSION: "c".repeat(40) },
       { DEPLOY_ENVIRONMENT: "staging" },
@@ -121,7 +121,7 @@ describe("deployment rollback receipt", () => {
 
   it("rejects secret and deploy-key-shaped public coordinates", () => {
     for (const [key, value] of [
-      ["BUILDKITE_BUILD_ID", "api_token=not-public"],
+      ["CI_PIPELINE_NUMBER", "api_token=not-public"],
       ["CONVEX_DEPLOYMENT", "prod:maestro-template-production|secret"],
       ["PREVIOUS_CONVEX_DEPLOYMENT", "CONVEX_DEPLOY_KEY"],
       ["CLOUDFLARE_PAGES_PROJECT", "private-key"],

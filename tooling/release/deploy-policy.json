@@ -9,9 +9,7 @@
     "pipelinePreflightOwner": "tooling/release/src/deploy/authorityCli.ts",
     "guardedDeployOwner": "tooling/release/src/deploy/guardedDeploy.ts",
     "requiredActions": ["convex", "cloudflare"],
-    "forbiddenBuildkiteEnv": [
-      "PROMOTION_AUTHORITY_PRIVATE_KEY_PKCS8_BASE64URL"
-    ],
+    "forbiddenCiEnv": ["PROMOTION_AUTHORITY_PRIVATE_KEY_PKCS8_BASE64URL"],
     "requiredBindings": [
       "PROMOTION_AUTHORITY_ENDPOINT",
       "TRUSTED_DEPLOY_ROOT_SHA256",
@@ -29,9 +27,9 @@
   "jobs": {
     "staging": {
       "preflight": "staging-authority-preflight",
-      "approval": "phase-1",
+      "approval": "trusted-ci-policy",
       "deploy": "staging-deploy",
-      "script": ".buildkite/scripts/staging-deploy.sh",
+      "script": "tooling/ci/staging-deploy.sh",
       "credentialSecrets": [
         "TEMPLATE_STAGING_CLOUDFLARE_API_TOKEN",
         "TEMPLATE_STAGING_CLOUDFLARE_ACCOUNT_ID",
@@ -40,9 +38,9 @@
     },
     "production": {
       "preflight": "production-authority-preflight",
-      "approval": "production-approval",
+      "approval": "trusted-ci-policy",
       "deploy": "production-promote",
-      "script": ".buildkite/scripts/production-promote.sh",
+      "script": "tooling/ci/production-promote.sh",
       "credentialSecrets": [
         "TEMPLATE_PRODUCTION_CLOUDFLARE_API_TOKEN",
         "TEMPLATE_PRODUCTION_CLOUDFLARE_ACCOUNT_ID",
@@ -51,7 +49,7 @@
     }
   },
   "legacyCredentialSecretsForbidden": ["TEMPLATE_CONVEX_DEPLOY_KEY"],
-  "rollbackScript": ".buildkite/scripts/rollback-promote.sh",
+  "rollbackScript": "tooling/ci/rollback-promote.sh",
   "rollbackSeedCommitBinding": "TRUSTED_ROLLBACK_SEED_COMMIT",
   "trustedSelfProtectionCommitBinding": "TRUSTED_CI_SELF_PROTECTION_COMMIT"
 }

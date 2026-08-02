@@ -225,7 +225,7 @@ describe("factory CLI composition", () => {
     const first = projectCompositionEnvironment(
       createRepositoryContext({ cwd: "/tmp/customer-app" }),
       () => ({
-        BUILDKITE: "true",
+        CI: "true",
         OPENROUTER_API_KEY: "fake",
         CONVEX_DEPLOYMENT: deployment,
         EMPTY: "",
@@ -236,7 +236,7 @@ describe("factory CLI composition", () => {
     const second = projectCompositionEnvironment(
       createRepositoryContext({ cwd: "/tmp/customer-app" }),
       () => ({
-        BUILDKITE: "true",
+        CI: "true",
         OPENROUTER_API_KEY: "fake",
         CONVEX_DEPLOYMENT: deployment,
         EMPTY: "",
@@ -247,8 +247,7 @@ describe("factory CLI composition", () => {
       sourceRoot: "/tmp/customer-app",
       targetRoot: "/tmp/customer-app",
       ci: true,
-      availableEnvironmentNames:
-        "BUILDKITE,CONVEX_DEPLOYMENT,OPENROUTER_API_KEY",
+      availableEnvironmentNames: "CI,CONVEX_DEPLOYMENT,OPENROUTER_API_KEY",
     });
     expect(second).toEqual(first);
     expect(JSON.stringify([first, second])).not.toMatch(

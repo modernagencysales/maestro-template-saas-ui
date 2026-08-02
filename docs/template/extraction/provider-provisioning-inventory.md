@@ -4,19 +4,19 @@ The template must run with fake/local providers by default. Real providers are
 typed optional adapters with documented environment variables, smoke tests, and
 redaction rules.
 
-| Provider              | Template Role                            | Default Mode                        | Required Setup Evidence                                          |
-| --------------------- | ---------------------------------------- | ----------------------------------- | ---------------------------------------------------------------- |
-| Convex                | Database, functions, actions, components | Local/dev deployment                | Project/deployment mapping and generated files current.          |
-| WorkOS/AuthKit        | Auth, organizations, memberships         | Fake provider until configured      | Client ids, redirect URLs, webhook secret name, role mapping.    |
-| PostHog               | Analytics and feature telemetry          | Fake/test capture until configured  | Project token, host, event contract, privacy settings.           |
-| Dodo                  | Billing, checkout, portal, webhooks      | Fake billing until configured       | Product ids, webhook secret name, sandbox smoke, ledger mapping. |
-| MailerSend            | Lifecycle email                          | Console/fake email until configured | Sender domain, templates, webhook secret name, sandbox smoke.    |
-| Resend                | Optional email adapter                   | Not enabled by default              | Sender domain and API key name if selected.                      |
-| OpenRouter/BYOK       | LLM gateway                              | Fake LLM until configured           | Base URL, model refs, key names, BYOK posture, spend controls.   |
-| Storage               | Upload/download asset boundary           | Fake storage until configured       | Bucket names, URL expiry, scanner posture, deletion behavior.    |
-| Cloudflare/Vercel     | Hosting targets                          | Not enabled by default              | App domains, environment mapping, deploy smoke.                  |
-| Buildkite             | CI/CD                                    | Local scripts until configured      | Pipeline slug, env groups, required checks, deploy permissions.  |
-| Capture/STT providers | Optional voice/capture module            | Disabled by default                 | Consent docs, provider key names, retention policy, smoke tests. |
+| Provider              | Template Role                            | Default Mode                        | Required Setup Evidence                                               |
+| --------------------- | ---------------------------------------- | ----------------------------------- | --------------------------------------------------------------------- |
+| Convex                | Database, functions, actions, components | Local/dev deployment                | Project/deployment mapping and generated files current.               |
+| WorkOS/AuthKit        | Auth, organizations, memberships         | Fake provider until configured      | Client ids, redirect URLs, webhook secret name, role mapping.         |
+| PostHog               | Analytics and feature telemetry          | Fake/test capture until configured  | Project token, host, event contract, privacy settings.                |
+| Dodo                  | Billing, checkout, portal, webhooks      | Fake billing until configured       | Product ids, webhook secret name, sandbox smoke, ledger mapping.      |
+| MailerSend            | Lifecycle email                          | Console/fake email until configured | Sender domain, templates, webhook secret name, sandbox smoke.         |
+| Resend                | Optional email adapter                   | Not enabled by default              | Sender domain and API key name if selected.                           |
+| OpenRouter/BYOK       | LLM gateway                              | Fake LLM until configured           | Base URL, model refs, key names, BYOK posture, spend controls.        |
+| Storage               | Upload/download asset boundary           | Fake storage until configured       | Bucket names, URL expiry, scanner posture, deletion behavior.         |
+| Cloudflare/Vercel     | Hosting targets                          | Not enabled by default              | App domains, environment mapping, deploy smoke.                       |
+| Woodpecker            | CI/CD                                    | Local scripts until configured      | Repository slug, scoped secrets, required checks, deploy permissions. |
+| Capture/STT providers | Optional voice/capture module            | Disabled by default                 | Consent docs, provider key names, retention policy, smoke tests.      |
 
 ## Provisioning Rules
 

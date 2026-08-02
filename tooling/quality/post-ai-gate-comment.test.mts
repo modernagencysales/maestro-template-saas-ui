@@ -17,7 +17,7 @@ describe("post-ai-gate-comment formatting", () => {
       repo: "example-org/example-repo",
       prNumber: 278,
       sha: "bb90bdc3a82ce8b8fa05814a815ca4840702ae6c",
-      buildUrl: "https://buildkite.example/builds/541",
+      buildUrl: "https://ci.example.test/repos/1/pipeline/541",
       verdict: {
         verdict: "block",
         findings: [
@@ -67,7 +67,7 @@ describe("post-ai-gate-comment formatting", () => {
       repo: "example-org/example-repo",
       prNumber: 260,
       sha: "5da30e06c6f906fdef833da140cf46bea12f42ef",
-      buildUrl: "https://buildkite.example/builds/1011",
+      buildUrl: "https://ci.example.test/repos/1/pipeline/1011",
       verdict: {
         verdict: "pass",
         files: [
@@ -227,7 +227,7 @@ describe("post-ai-gate-comment upserts", () => {
         repo: "example-org/example-repo",
         prNumber: 344,
         sha: "2ca35dc7f41e7bafb71e569d3160df8cd757afb7",
-        buildUrl: "https://buildkite.example/builds/1236",
+        buildUrl: "https://ci.example.test/repos/1/pipeline/1236",
         verdict: { verdict: "pass", findings: [] },
       },
     });

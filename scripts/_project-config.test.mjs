@@ -5,12 +5,11 @@ import { describe, expect, it } from "vitest";
 const root = resolve(import.meta.dirname, "..");
 const script = resolve(root, "scripts/_project-config.mjs");
 const bindings = {
-  TEMPLATE_STAGING_CONVEX_DEPLOYMENT: "dev:maestro-template-staging",
-  TEMPLATE_STAGING_CONVEX_URL: "https://maestro-template-staging.convex.cloud",
+  TEMPLATE_STAGING_CONVEX_DEPLOYMENT: "prod:perfect-sparrow-808",
+  TEMPLATE_STAGING_CONVEX_URL: "https://perfect-sparrow-808.convex.cloud",
   TEMPLATE_STAGING_HOSTED_URL: "https://staging.example.test",
-  TEMPLATE_PRODUCTION_CONVEX_DEPLOYMENT: "prod:maestro-template-production",
-  TEMPLATE_PRODUCTION_CONVEX_URL:
-    "https://maestro-template-production.convex.cloud",
+  TEMPLATE_PRODUCTION_CONVEX_DEPLOYMENT: "prod:hearty-peccary-962",
+  TEMPLATE_PRODUCTION_CONVEX_URL: "https://hearty-peccary-962.convex.cloud",
   TEMPLATE_PRODUCTION_HOSTED_URL: "https://app.example.test",
 };
 
@@ -43,7 +42,7 @@ describe("project deploy bindings", () => {
       run(["assert-isolated-convex"], {
         ...bindings,
         TEMPLATE_PRODUCTION_CONVEX_URL:
-          "https://maestro-template-staging.convex.site",
+          "https://perfect-sparrow-808.convex.site",
       }).status,
     ).not.toBe(0);
   });

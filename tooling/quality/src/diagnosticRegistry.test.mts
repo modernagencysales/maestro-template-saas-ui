@@ -106,7 +106,7 @@ describe("quality diagnostic registry", () => {
     ).toMatchObject({
       prerequisiteCheck: ["gitleaks", "version"],
       repairHint: expect.stringContaining(
-        "bash .buildkite/scripts/install-gitleaks.sh",
+        "bash tooling/ci/install-gitleaks.sh",
       ),
     });
   });

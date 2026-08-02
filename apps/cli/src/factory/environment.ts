@@ -51,7 +51,7 @@ function environmentProjection(
     platform: platform(),
     architecture: arch(),
     node: process.version,
-    ci: environment.CI === "true" || environment.BUILDKITE === "true",
+    ci: environment.CI === "true",
     availableEnvironmentNames: availableEnvironmentNames.join(","),
   };
 }

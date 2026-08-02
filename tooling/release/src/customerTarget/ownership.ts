@@ -13,7 +13,8 @@ export class CustomerOwnershipError extends Error {
 
 const FACTORY_ONLY_PREFIXES = [
   ".agents/",
-  ".buildkite/",
+  ".woodpecker/",
+  "tooling/ci/",
   ".claude-plugin/",
   ".claude/",
   ".codex/",
