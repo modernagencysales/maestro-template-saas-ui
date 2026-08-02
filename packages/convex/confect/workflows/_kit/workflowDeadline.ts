@@ -1,5 +1,5 @@
 import * as Data from "effect/Data";
-import * as Either from "effect/Either";
+import * as Result from "effect/Result";
 import { MAX_WORKFLOW_SCHEDULE_HORIZON_MS } from "./workflowSchedule";
 
 /** Pinned Workpool 0.4.7 silently clamps schedules beyond four years. */
@@ -118,7 +118,7 @@ export const planWorkflowDeadlineSchedule = (input: {
   readonly execution: WorkflowDeadlineExecution;
   readonly requestedAt: number;
   readonly horizonMs: number;
-}): Either.Either<
+}): Result.Result<
   WorkflowDeadlineSchedulePlan,
   WorkflowDeadlineContractError
 > => {
@@ -128,7 +128,7 @@ export const planWorkflowDeadlineSchedule = (input: {
   if (executionFinding) return executionFinding;
   const identity = deriveWorkflowDeadlineScheduleIdentity(input.generation);
   if (input.execution !== "active") {
-    return Either.right({
+    return Result.succeed({
       kind: "no-op",
       reason: "terminal-run",
       schedule: identity,
@@ -147,7 +147,7 @@ export const planWorkflowDeadlineSchedule = (input: {
       "Workflow deadline timestamp exceeds the supported numeric range.",
     );
   }
-  return Either.right({
+  return Result.succeed({
     kind: "schedule",
     schedule: {
       identity,
@@ -163,7 +163,7 @@ export const planWorkflowDeadlineRestart = (input: {
   readonly deadlineAt: number | undefined;
   readonly timeoutMs: number | undefined;
   readonly occurredAt: number;
-}): Either.Either<
+}): Result.Result<
   | { readonly kind: "none" }
   | {
       readonly kind: "schedule";
@@ -175,7 +175,7 @@ export const planWorkflowDeadlineRestart = (input: {
   WorkflowDeadlineContractError
 > => {
   if (input.deadlineAt === undefined && input.timeoutMs === undefined) {
-    return Either.right({ kind: "none" });
+    return Result.succeed({ kind: "none" });
   }
   if (input.deadlineAt === undefined || input.timeoutMs === undefined) {
     return fail(
@@ -197,7 +197,7 @@ export const planWorkflowDeadlineRestart = (input: {
       "Workflow restart cannot extend an expired absolute deadline.",
     );
   }
-  return Either.right({
+  return Result.succeed({
     kind: "schedule",
     policy: WORKFLOW_RESTART_DEADLINE_POLICY,
     requestedAt,
@@ -210,7 +210,7 @@ export const planWorkflowDeadlineCallback = (input: {
   readonly callbackSchedule: WorkflowDeadlineSchedule;
   readonly currentRun: WorkflowDeadlineRunSnapshot;
   readonly actualStartedAt: number;
-}): Either.Either<
+}): Result.Result<
   WorkflowDeadlineCallbackPlan,
   WorkflowDeadlineContractError
 > => {
@@ -226,8 +226,8 @@ export const planWorkflowDeadlineCallback = (input: {
     actualStartedAt: input.actualStartedAt,
     deadlineAt: input.callbackSchedule.deadlineAt,
   });
-  if (Either.isLeft(factsResult)) return Either.left(factsResult.left);
-  const facts = factsResult.right;
+  if (Result.isFailure(factsResult)) return Result.fail(factsResult.failure);
+  const facts = factsResult.success;
   const callbackIdentity = input.callbackSchedule.identity;
 
   if (!sameGeneration(callbackIdentity, input.currentRun)) {
@@ -252,7 +252,7 @@ export const planWorkflowDeadlineCallback = (input: {
     return noOp("deadline-not-reached", callbackIdentity, facts);
   }
 
-  return Either.right({
+  return Result.succeed({
     kind: "cancel",
     schedule: input.callbackSchedule,
     facts,
@@ -263,7 +263,7 @@ export const observeWorkflowDeadlineStart = (input: {
   readonly requestedStartAt: number;
   readonly actualStartedAt: number;
   readonly deadlineAt: number;
-}): Either.Either<
+}): Result.Result<
   WorkflowDeadlineStartFacts,
   WorkflowDeadlineContractError
 > => {
@@ -276,7 +276,7 @@ export const observeWorkflowDeadlineStart = (input: {
     if (finding) return finding;
   }
 
-  return Either.right({
+  return Result.succeed({
     requestedStartAt: input.requestedStartAt,
     actualStartedAt: input.actualStartedAt,
     deadlineAt: input.deadlineAt,
@@ -288,7 +288,7 @@ export const observeWorkflowDeadlineStart = (input: {
 
 const validateGeneration = (
   generation: WorkflowDeadlineGeneration,
-): Either.Either<never, WorkflowDeadlineContractError> | undefined =>
+): Result.Result<never, WorkflowDeadlineContractError> | undefined =>
   [
     generation.workspaceId,
     generation.workflowRunId,
@@ -304,7 +304,7 @@ const validateGeneration = (
 
 const validateExecution = (
   execution: WorkflowDeadlineExecution,
-): Either.Either<never, WorkflowDeadlineContractError> | undefined =>
+): Result.Result<never, WorkflowDeadlineContractError> | undefined =>
   execution === "active" || execution === "terminal" || execution === "canceled"
     ? undefined
     : fail(
@@ -314,7 +314,7 @@ const validateExecution = (
 
 const validateHorizon = (
   horizonMs: number,
-): Either.Either<never, WorkflowDeadlineContractError> | undefined => {
+): Result.Result<never, WorkflowDeadlineContractError> | undefined => {
   if (!isNonNegativeSafeInteger(horizonMs)) {
     return fail(
       "INVALID_DEADLINE_HORIZON",
@@ -331,7 +331,7 @@ const validateHorizon = (
 
 const validateTime = (
   time: number,
-): Either.Either<never, WorkflowDeadlineContractError> | undefined =>
+): Result.Result<never, WorkflowDeadlineContractError> | undefined =>
   isNonNegativeSafeInteger(time)
     ? undefined
     : fail(
@@ -341,7 +341,7 @@ const validateTime = (
 
 const validateSchedule = (
   schedule: WorkflowDeadlineSchedule,
-): Either.Either<never, WorkflowDeadlineContractError> | undefined => {
+): Result.Result<never, WorkflowDeadlineContractError> | undefined => {
   const identityFinding = validateGeneration(schedule.identity);
   if (identityFinding) return identityFinding;
   const expectedIdentity = deriveWorkflowDeadlineScheduleIdentity(
@@ -393,8 +393,8 @@ const noOp = (
   reason: WorkflowDeadlineNoOpReason,
   schedule: WorkflowDeadlineScheduleIdentity,
   facts: WorkflowDeadlineStartFacts,
-): Either.Either<WorkflowDeadlineCallbackPlan, WorkflowDeadlineContractError> =>
-  Either.right({ kind: "no-op", reason, schedule, facts });
+): Result.Result<WorkflowDeadlineCallbackPlan, WorkflowDeadlineContractError> =>
+  Result.succeed({ kind: "no-op", reason, schedule, facts });
 
 const invalidSchedule = () =>
   fail(
@@ -410,5 +410,5 @@ const lengthPrefixed = (value: string): string => `${value.length}:${value}`;
 const fail = (
   code: WorkflowDeadlineContractErrorCode,
   message: string,
-): Either.Either<never, WorkflowDeadlineContractError> =>
-  Either.left(new WorkflowDeadlineContractError({ code, message }));
+): Result.Result<never, WorkflowDeadlineContractError> =>
+  Result.fail(new WorkflowDeadlineContractError({ code, message }));
