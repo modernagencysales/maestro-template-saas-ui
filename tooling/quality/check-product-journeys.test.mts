@@ -122,6 +122,7 @@ const digest = (value: unknown): string =>
   createHash("sha256").update(canonicalStringify(value)).digest("hex");
 const approvalArtifact = { approved: true, scope: "journey-id-migration" };
 const approvalIdentities = { reviewerIdentities: ["contract-owner"] };
+const workspaceRoot = join(import.meta.dirname, "../..");
 const first = <T,>(values: readonly T[]): T => {
   const value = values[0];
   if (value === undefined) throw new Error("test fixture is missing an item");
@@ -685,27 +686,28 @@ describe("check:product-journeys", () => {
   });
 
   it("accepts a valid fixture-backed adapter through the command", async () => {
-    await withGateRepo(adapterFiles(input()), async (repoRoot) => {
+    await withGateRepo(adapterFiles(input()), async (fixtureRoot) => {
       const command = spawnSync(
         "pnpm",
         [
+          "run",
           "check:product-journeys",
           "--",
           "--repo-root",
-          repoRoot,
+          fixtureRoot,
           "--adapter",
-          join(repoRoot, "adapter.mjs"),
+          join(fixtureRoot, "adapter.mjs"),
         ],
-        { cwd: process.cwd(), encoding: "utf8" },
+        { cwd: workspaceRoot, encoding: "utf8" },
       );
-      expect(command.status, command.stderr).toBe(0);
+      expect(command.status, `${command.stdout}${command.stderr}`).toBe(0);
       expect(command.stdout).toContain("check:product-journeys: ok");
     });
   });
 
   it("makes the default command fail with a typed missing-adapter diagnostic", () => {
-    const command = spawnSync("pnpm", ["check:product-journeys"], {
-      cwd: process.cwd(),
+    const command = spawnSync("pnpm", ["run", "check:product-journeys"], {
+      cwd: workspaceRoot,
       encoding: "utf8",
     });
     expect(command.status).toBe(1);

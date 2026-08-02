@@ -159,6 +159,25 @@ export const CURRENT_SAAS_DEPLOY_AUTHORITY_TABLE_CLOSURE = [
   "packages/convex/confect/tables/deployAuthorityIssuers.ts",
 ] as const;
 
+export const CURRENT_PRODUCT_JOURNEY_CLOSURE = [
+  "packages/product-journey/package.json",
+  "packages/product-journey/tsconfig.json",
+  "packages/product-journey/src/attestation.ts",
+  "packages/product-journey/src/contract-diff.ts",
+  "packages/product-journey/src/evidence.ts",
+  "packages/product-journey/src/graph.ts",
+  "packages/product-journey/src/index.ts",
+  "packages/product-journey/src/lease.ts",
+  "packages/product-journey/src/manifest.ts",
+  "packages/product-journey/src/ordering.ts",
+  "packages/product-journey/src/receipts.ts",
+  "packages/product-journey/src/redaction.ts",
+  "packages/product-journey/src/runner.ts",
+  "packages/product-journey/src/selection.ts",
+  "tooling/quality/check-product-journeys.mts",
+  "tooling/quality/src/check-definitions.mts",
+] as const;
+
 export const CUSTOMER_ROOT_SCRIPTS = [
   "maestro",
   "format",
@@ -203,6 +222,7 @@ export const CUSTOMER_ROOT_SCRIPTS = [
   "check:convex-compat",
   "check:ci-completeness",
   "check:config-drift",
+  "check:product-journeys",
   "check:deps",
   "check:knip",
   "check:route-tree",
@@ -801,6 +821,7 @@ export const buildSaasRegistrationProjections = (
       "packages/convex/confect/_generated/docs.ts",
       "packages/convex/confect/_generated/tables/workflowArtifacts.ts",
       ...(current ? CURRENT_SAAS_DEPLOY_AUTHORITY_TABLE_CLOSURE : []),
+      ...(current ? CURRENT_PRODUCT_JOURNEY_CLOSURE : []),
       "packages/convex/confect/tables/workflowArtifacts.ts",
       "packages/convex/confect/tables/workflowRuns.ts",
       "packages/convex/confect/tables/workflowStageRuns.ts",
