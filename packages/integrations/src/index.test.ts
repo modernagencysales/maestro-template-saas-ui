@@ -47,7 +47,7 @@ describe("provider adapter descriptors", () => {
       "workos",
       "posthog",
       "dodo",
-      "mailersend",
+      "email",
       "openrouter",
       "storage",
       "search",
@@ -130,19 +130,24 @@ describe("provider adapter descriptors", () => {
   });
 
   it("constructs live adapters only after required env names are present", () => {
-    expect(createProviderAdapter("mailersend", "live", {})).toMatchObject({
+    expect(createProviderAdapter("email", "live", {})).toMatchObject({
       _tag: "ProviderConfigError",
-      provider: "mailersend",
-      missingEnv: ["MAILERSEND_API_KEY", "MAILERSEND_FROM_EMAIL"],
+      provider: "email",
+      missingEnv: [
+        "POSTMARK_SERVER_TOKEN",
+        "EMAIL_TRANSACTIONAL_FROM",
+        "EMAIL_MARKETING_FROM",
+      ],
     });
 
-    const adapter = createProviderAdapter("mailersend", "live", {
-      MAILERSEND_API_KEY: "secret",
-      MAILERSEND_FROM_EMAIL: "hello@example.test",
+    const adapter = createProviderAdapter("email", "live", {
+      POSTMARK_SERVER_TOKEN: "secret",
+      EMAIL_TRANSACTIONAL_FROM: "hello@example.test",
+      EMAIL_MARKETING_FROM: "updates@example.test",
     });
 
     expect(adapter).toMatchObject({
-      provider: "mailersend",
+      provider: "email",
       mode: "live",
     });
     expect(JSON.stringify(adapter)).not.toContain("secret");
@@ -150,15 +155,16 @@ describe("provider adapter descriptors", () => {
 
   it("refuses live adapters with whitespace-contaminated env values", () => {
     expect(
-      createProviderAdapter("mailersend", "live", {
-        MAILERSEND_API_KEY: " mailer-secret ",
-        MAILERSEND_FROM_EMAIL: "hello@example.test",
+      createProviderAdapter("email", "live", {
+        POSTMARK_SERVER_TOKEN: " postmark-secret ",
+        EMAIL_TRANSACTIONAL_FROM: "hello@example.test",
+        EMAIL_MARKETING_FROM: "updates@example.test",
       }),
     ).toMatchObject({
       _tag: "ProviderConfigError",
-      provider: "mailersend",
+      provider: "email",
       missingEnv: [],
-      invalidEnv: ["MAILERSEND_API_KEY"],
+      invalidEnv: ["POSTMARK_SERVER_TOKEN"],
     });
   });
 

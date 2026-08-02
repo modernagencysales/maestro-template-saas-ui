@@ -12,6 +12,7 @@ import {
   buildFactorySaasApplicationFiles,
 } from "./saasApplicationFactory";
 import {
+  CURRENT_EMAIL_BASE_COPY_REPLACEMENTS,
   CURRENT_SAAS_DEPLOY_AUTHORITY_SOURCE_CLOSURE,
   CURRENT_SAAS_DEPLOY_AUTHORITY_TABLE_CLOSURE,
 } from "./saasRegistrationProjections";
@@ -121,13 +122,22 @@ const recordGovernanceFiles = (): readonly GeneratedFile[] => {
   const retainedSystemIds = new Set(
     releasedSystems.systems.map(({ id }) => id),
   );
+  const retainedEmailTableIds = [
+    "emailCampaigns",
+    "emailDeliveries",
+    "emailEvents",
+    "emailSubscribers",
+    "emailSuppressions",
+  ] as const;
   const retainedTableIds = new Set([
     ...releasedSystems.systems.flatMap(({ tables }) => tables),
     "deployAuthorityAuditEvents",
+    ...retainedEmailTableIds,
   ]);
   const retainedDataResourceIds = new Set([
     ...releasedDataResources.resources.map(({ id }) => id),
     "deployAuthorityAuditEvents",
+    ...retainedEmailTableIds,
   ]);
   const retainedTopologyIds = new Set(
     releasedTopology.resources.map(({ id }) => id),
@@ -470,6 +480,9 @@ function buildTargetPlan(
     ...(current
       ? ([
           ...SAAS_APPLICATION_ALPHA2_BASE_WRITE_REPLACEMENTS,
+          ...CURRENT_EMAIL_BASE_COPY_REPLACEMENTS.map(
+            (path) => [path, "copy"] as const,
+          ),
           ["Justfile", "generate"],
           ["apps/web/src/adapters/confect-generated-refs.test.ts", "copy"],
           ["apps/web/src/providers/posthog.tsx", "copy"],

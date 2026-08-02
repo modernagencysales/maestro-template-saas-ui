@@ -1,7 +1,16 @@
 import { FunctionImpl, GroupImpl } from "@confect/server";
+import type { GenericId } from "convex/values";
+import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
+import * as Option from "effect/Option";
 import databaseSchema from "../_generated/schema";
+import refs from "../_generated/refs";
+import {
+  DatabaseReader,
+  DatabaseWriter,
+  Scheduler,
+} from "../_generated/services";
 import { sha256Hex } from "../shared/sha256";
 import actions from "./actions.spec";
 
@@ -94,24 +103,112 @@ const sendDigest = FunctionImpl.make(
   actions,
   "sendDigest",
   (input) =>
-    Effect.succeed({
-      digestId: `digest_${input.workspaceId}_${input.recipientId}`,
-      workspaceId: input.workspaceId,
-      recipientId: input.recipientId,
-      subject: `Action digest: ${input.jobsQueued} queued, ${input.approvalsWaiting} waiting, ${input.actionsPublished} published`,
-      body: `Your audited action queue has ${input.jobsQueued} queued jobs, ${input.approvalsWaiting} approvals waiting, and ${input.actionsPublished} published action.`,
-      dedupeKey: actionKey("action-digest", [
+    Effect.gen(function* () {
+      const reader = yield* DatabaseReader;
+      const writer = yield* DatabaseWriter;
+      const scheduler = yield* Scheduler;
+      const workspaceId = input.workspaceId as GenericId<"workspaces">;
+      const recipientId = input.recipientId as GenericId<"users">;
+      const dedupeKey = actionKey("action-digest", [
         input.workspaceId,
         input.recipientId,
         String(input.periodStart),
         String(input.periodEnd),
-      ]),
-      metadata: {
-        providerMetadata: "[redacted]" as const,
-        customerMetadata: "[redacted]" as const,
-      },
-      createdAt: now,
-      sentAt: now,
+      ]);
+      const existing = yield* reader
+        .table("actionDigests")
+        .index("by_dedupe_key", (q) =>
+          q.eq("workspaceId", input.workspaceId).eq("dedupeKey", dedupeKey),
+        )
+        .first()
+        .pipe(Effect.map(Option.getOrNull), Effect.orDie);
+      const subject = `Action digest: ${input.jobsQueued} queued, ${input.approvalsWaiting} waiting, ${input.actionsPublished} published`;
+      const body = `Your audited action queue has ${input.jobsQueued} queued jobs, ${input.approvalsWaiting} approvals waiting, and ${input.actionsPublished} published action.`;
+      if (existing !== null) {
+        return {
+          digestId: existing.digestId,
+          workspaceId: existing.workspaceId,
+          recipientId: existing.recipientId,
+          subject,
+          body,
+          dedupeKey: existing.dedupeKey,
+          metadata: {
+            providerMetadata: "[redacted]" as const,
+            customerMetadata: "[redacted]" as const,
+          },
+          createdAt: existing.createdAt,
+          ...(existing.sentAt === undefined ? {} : { sentAt: existing.sentAt }),
+        };
+      }
+      const user = yield* reader
+        .table("users")
+        .get(recipientId)
+        .pipe(
+          Effect.catchTag("GetByIdFailure", () => Effect.succeed(null)),
+          Effect.orDie,
+        );
+      const preference = yield* reader
+        .table("notificationPreferences")
+        .index("by_recipient_category", (q) =>
+          q
+            .eq("workspaceId", workspaceId)
+            .eq("recipientId", recipientId)
+            .eq("category", "system"),
+        )
+        .first()
+        .pipe(Effect.map(Option.getOrNull), Effect.orDie);
+      const shouldSend = user !== null && (preference?.digest ?? true);
+      const digestId = `digest_${input.workspaceId}_${input.recipientId}`;
+      yield* writer
+        .table("actionDigests")
+        .insert({
+          workspaceId: input.workspaceId,
+          digestId,
+          recipientId: input.recipientId,
+          periodStart: input.periodStart,
+          periodEnd: input.periodEnd,
+          jobsQueued: input.jobsQueued,
+          approvalsWaiting: input.approvalsWaiting,
+          actionsPublished: input.actionsPublished,
+          dedupeKey,
+          providerMetadataRedacted: "[redacted]",
+          customerMetadataRedacted: "[redacted]",
+          createdAt: now,
+          ...(shouldSend ? { sentAt: now } : {}),
+        })
+        .pipe(Effect.orDie);
+      if (shouldSend && user !== null) {
+        yield* scheduler
+          .runAfter(Duration.zero, refs.internal.ops.email.sendTransactional, {
+            workspaceId,
+            recipientId,
+            to: user.email,
+            templateAlias: "notification-digest",
+            templateModelJson: JSON.stringify({
+              subject,
+              body,
+              jobs_queued: input.jobsQueued,
+              approvals_waiting: input.approvalsWaiting,
+              actions_published: input.actionsPublished,
+            }),
+            idempotencyKey: dedupeKey,
+          })
+          .pipe(Effect.orDie);
+      }
+      return {
+        digestId,
+        workspaceId: input.workspaceId,
+        recipientId: input.recipientId,
+        subject,
+        body,
+        dedupeKey,
+        metadata: {
+          providerMetadata: "[redacted]" as const,
+          customerMetadata: "[redacted]" as const,
+        },
+        createdAt: now,
+        ...(shouldSend ? { sentAt: now } : {}),
+      };
     }),
 );
 

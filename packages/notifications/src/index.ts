@@ -7,6 +7,7 @@ export type EmailPayload = {
   readonly html: string;
   readonly idempotencyKey: string;
   readonly templateData: Readonly<Record<string, unknown>>;
+  readonly templateAlias?: string;
 };
 
 export type EmailDelivery = {
@@ -29,7 +30,7 @@ export class EmailValidationError extends Error {
 
 export class EmailProviderError extends Error {
   readonly _tag = "EmailProviderError";
-  readonly provider = "mailersend";
+  readonly provider = "email";
 
   constructor(
     message: string,
@@ -51,44 +52,6 @@ const idempotencyKeyPattern = /^[A-Za-z0-9._~-]+$/;
 const maxIdempotencyKeyLength = 128;
 
 export type EmailTransport = (payload: EmailPayload) => Promise<void>;
-
-export const createMailerSendTransport = (options: {
-  readonly apiKey: string;
-  readonly endpoint?: string;
-  readonly fetch?: typeof globalThis.fetch;
-}): EmailTransport => {
-  const request = options.fetch ?? globalThis.fetch;
-  const endpoint = options.endpoint ?? "https://api.mailersend.com/v1/email";
-
-  return async (payload) => {
-    let response: Response;
-    try {
-      response = await request(endpoint, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${options.apiKey}`,
-          "Content-Type": "application/json",
-          "X-Request-Id": payload.idempotencyKey,
-        },
-        body: JSON.stringify({
-          from: { email: payload.from },
-          to: [{ email: payload.to }],
-          subject: payload.subject,
-          html: payload.html,
-        }),
-      });
-    } catch {
-      throw new EmailProviderError("MailerSend could not be reached.");
-    }
-
-    if (!response.ok) {
-      throw new EmailProviderError(
-        "MailerSend rejected the email request.",
-        response.status,
-      );
-    }
-  };
-};
 
 const validateEmailIdempotencyKey = (
   idempotencyKey: string,
@@ -404,6 +367,7 @@ export const createFunnelLifecycleEmailService = (options: {
           ? `<p>Verify your email to save your report. <a href="${intent.destinationUrl}">Verify email</a>.</p>`
           : `<p>Your Complete Build Pack is ready. <a href="${intent.destinationUrl}">Open your Build Pack</a>.</p>`,
         idempotencyKey: `idea-funnel.${intent.kind}.${actionDigestKeyPart(intent.reportId)}`,
+        templateAlias: intent.kind,
         templateData: {
           reportId: intent.reportId,
           destinationUrl: intent.destinationUrl,
@@ -476,6 +440,7 @@ export const createActionDigestService = (options: {
         subject: `Action digest: ${payload.jobsQueued} queued, ${payload.approvalsWaiting} waiting, ${payload.actionsPublished} published`,
         html: `<p>Your audited action queue has ${payload.jobsQueued} queued jobs, ${payload.approvalsWaiting} approvals waiting, and ${payload.actionsPublished} published action.</p>`,
         idempotencyKey,
+        templateAlias: "notification-digest",
         templateData: {
           workspaceId: payload.workspaceId,
           recipientId: payload.recipientId,

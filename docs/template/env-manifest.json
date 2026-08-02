@@ -28,7 +28,11 @@
       "workos": ["WORKOS_CLIENT_ID", "WORKOS_ORGANIZATION_ID"],
       "posthog": ["POSTHOG_PROJECT_TOKEN", "POSTHOG_HOST"],
       "dodo": ["DODO_ENVIRONMENT"],
-      "email": ["MAILERSEND_FROM_EMAIL", "EMAIL_DISABLED"],
+      "email": [
+        "EMAIL_TRANSACTIONAL_FROM",
+        "EMAIL_MARKETING_FROM",
+        "EMAIL_DISABLED"
+      ],
       "llm": ["LLM_PROVIDER_MODE", "LLM_DISABLED"],
       "search": ["SEARCH_PROVIDER"],
       "storage": ["STORAGE_PROVIDER"]
@@ -442,8 +446,8 @@
       "notes": "Server-owned Dodo product id for the Complete Build Pack checkout."
     },
     {
-      "name": "MAILERSEND_API_KEY",
-      "group": "mailersend",
+      "name": "POSTMARK_SERVER_TOKEN",
+      "group": "email",
       "services": ["convex", "web"],
       "visibility": "server-secret",
       "requiredFor": ["fake", "test", "live"],
@@ -451,11 +455,11 @@
       "fakeExample": "fake_local_key",
       "owner": "Notifications owner",
       "rotation": "Rotate on team turnover and after deliverability incidents.",
-      "notes": "Email provider API key."
+      "notes": "Postmark server token used only by the live email adapter."
     },
     {
-      "name": "MAILERSEND_FROM_EMAIL",
-      "group": "mailersend",
+      "name": "EMAIL_TRANSACTIONAL_FROM",
+      "group": "email",
       "services": ["convex", "web"],
       "visibility": "public-config",
       "requiredFor": ["fake", "test", "live"],
@@ -463,23 +467,71 @@
       "fakeExample": "no-reply@acme-demo.example.test",
       "owner": "Notifications owner",
       "rotation": "Review when sender domain changes.",
-      "notes": "Approved sender email."
+      "notes": "Verified sender used for transactional outbound messages."
     },
     {
-      "name": "MAILERSEND_FROM_NAME",
-      "group": "mailersend",
+      "name": "EMAIL_MARKETING_FROM",
+      "group": "email",
       "services": ["convex", "web"],
       "visibility": "public-config",
       "requiredFor": ["fake", "test", "live"],
       "fakeExampleAllowed": true,
-      "fakeExample": "Acme Demo",
+      "fakeExample": "Acme Demo <updates@acme-demo.example.test>",
       "owner": "Notifications owner",
       "rotation": "Review with brand copy.",
-      "notes": "Approved sender display name."
+      "notes": "Verified sender used for consented broadcast messages."
+    },
+    {
+      "name": "EMAIL_REPLY_TO",
+      "group": "email",
+      "services": ["convex"],
+      "visibility": "public-config",
+      "requiredFor": ["test", "live"],
+      "fakeExampleAllowed": true,
+      "fakeExample": "help@acme-demo.example.test",
+      "owner": "Notifications owner",
+      "rotation": "Review with support routing.",
+      "notes": "Reply address for marketing broadcasts."
+    },
+    {
+      "name": "EMAIL_UNSUBSCRIBE_SECRET",
+      "group": "email",
+      "services": ["convex"],
+      "visibility": "server-secret",
+      "requiredFor": ["test", "live"],
+      "fakeExampleAllowed": true,
+      "fakeExample": "fake_local_unsubscribe_secret_at_least_32_chars",
+      "owner": "Notifications owner",
+      "rotation": "Rotate only with an unsubscribe-token migration plan.",
+      "notes": "Signs opaque expiring unsubscribe tokens."
+    },
+    {
+      "name": "POSTMARK_WEBHOOK_USERNAME",
+      "group": "email",
+      "services": ["convex"],
+      "visibility": "server-config",
+      "requiredFor": ["test", "live"],
+      "fakeExampleAllowed": true,
+      "fakeExample": "postmark",
+      "owner": "Notifications owner",
+      "rotation": "Review when webhook endpoints change.",
+      "notes": "HTTP Basic Auth username for Postmark webhooks."
+    },
+    {
+      "name": "POSTMARK_WEBHOOK_PASSWORD",
+      "group": "email",
+      "services": ["convex"],
+      "visibility": "server-secret",
+      "requiredFor": ["test", "live"],
+      "fakeExampleAllowed": true,
+      "fakeExample": "fake_local_webhook_password_at_least_32_chars",
+      "owner": "Notifications owner",
+      "rotation": "Rotate on team turnover or webhook authentication incidents.",
+      "notes": "HTTP Basic Auth password for Postmark webhooks."
     },
     {
       "name": "EMAIL_DISABLED",
-      "group": "mailersend",
+      "group": "email",
       "services": ["convex", "web"],
       "visibility": "server-config",
       "requiredFor": ["fake", "test", "live"],

@@ -27,7 +27,8 @@ public-safe provider errors.
 - WorkOS/AuthKit for auth and organizations.
 - PostHog for analytics.
 - Dodo for billing.
-- MailerSend for email.
+- Provider-neutral email with Postmark as the live adapter: `outbound` for
+  transactional templates and `broadcast` for explicitly opted-in marketing.
 - OpenRouter-compatible LLM provider through an OpenAI-compatible client
   surface.
 - Local feature flag definitions plus durable `ops.flags` workspace policy
@@ -35,6 +36,26 @@ public-safe provider errors.
 
 Resend, Sentry, Slack/webhooks, CRM, drive, and Notion connectors are optional
 adapters.
+
+## Email And Postmark
+
+Application code depends on the neutral `EmailProvider` contract in
+`packages/integrations/src/email.ts`. Live Postmark calls use the `outbound`
+stream for transactional templates and the `broadcast` stream for marketing.
+Transactional messages disable open and link tracking; broadcasts include
+per-recipient results and RFC 8058 one-click unsubscribe headers.
+
+Configure the server-only token and separate verified senders from
+`.env.example`. Create the `verify-report-email`, `build-pack-ready`,
+`workspace-invitation`, `notification-digest`, and `simple-broadcast` template
+aliases before enabling live delivery. Marketing callers must persist explicit
+opt-in, recheck suppression immediately before dispatch, and retry only
+transient failures. Authenticate Postmark webhooks with the documented Basic
+Auth variables and normalize bounce, complaint, and subscription-change events
+without storing raw payloads.
+
+Before production, verify DKIM and return-path DNS, send to Postmark's sandbox
+or black-hole addresses, test hard and soft bounces, and warm traffic gradually.
 
 ## PostHog Backend Event Capture
 

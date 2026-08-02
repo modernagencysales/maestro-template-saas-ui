@@ -77,15 +77,15 @@ describe("visualization primitives", () => {
         <TemplateHealthBoard
           checks={[
             {
-              label: "MailerSend",
+              label: "Email (Postmark)",
               status: "ready",
-              detail: "Missing MAILERSEND_API_KEY.",
+              detail: "Missing POSTMARK_SERVER_TOKEN.",
             },
           ]}
           state="ready"
         />,
       ),
-    ).toContain("Missing MAILERSEND_API_KEY.");
+    ).toContain("Missing POSTMARK_SERVER_TOKEN.");
     expect(
       renderToStaticMarkup(
         <TemplateLineagePanel

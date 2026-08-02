@@ -30,6 +30,11 @@ export type DocumentAnnotationsDoc = Document.Document<typeof schemaDefinition, 
 export type DocumentVersionsDoc = Document.Document<typeof schemaDefinition, "documentVersions">;
 export type DocumentsDoc = Document.Document<typeof schemaDefinition, "documents">;
 export type DsarRequestsDoc = Document.Document<typeof schemaDefinition, "dsarRequests">;
+export type EmailCampaignsDoc = Document.Document<typeof schemaDefinition, "emailCampaigns">;
+export type EmailDeliveriesDoc = Document.Document<typeof schemaDefinition, "emailDeliveries">;
+export type EmailEventsDoc = Document.Document<typeof schemaDefinition, "emailEvents">;
+export type EmailSubscribersDoc = Document.Document<typeof schemaDefinition, "emailSubscribers">;
+export type EmailSuppressionsDoc = Document.Document<typeof schemaDefinition, "emailSuppressions">;
 export type EmailVerificationChallengesDoc = Document.Document<typeof schemaDefinition, "emailVerificationChallenges">;
 export type EntitlementsDoc = Document.Document<typeof schemaDefinition, "entitlements">;
 export type EvaluationAnswersDoc = Document.Document<typeof schemaDefinition, "evaluationAnswers">;
@@ -100,6 +105,11 @@ export interface Docs {
   documentVersions: DocumentVersionsDoc;
   documents: DocumentsDoc;
   dsarRequests: DsarRequestsDoc;
+  emailCampaigns: EmailCampaignsDoc;
+  emailDeliveries: EmailDeliveriesDoc;
+  emailEvents: EmailEventsDoc;
+  emailSubscribers: EmailSubscribersDoc;
+  emailSuppressions: EmailSuppressionsDoc;
   emailVerificationChallenges: EmailVerificationChallengesDoc;
   entitlements: EntitlementsDoc;
   evaluationAnswers: EvaluationAnswersDoc;

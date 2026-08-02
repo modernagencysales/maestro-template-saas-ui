@@ -29,6 +29,11 @@ import documentAnnotations from "./tables/documentAnnotations";
 import documentVersions from "./tables/documentVersions";
 import documents from "./tables/documents";
 import dsarRequests from "./tables/dsarRequests";
+import emailCampaigns from "./tables/emailCampaigns";
+import emailDeliveries from "./tables/emailDeliveries";
+import emailEvents from "./tables/emailEvents";
+import emailSubscribers from "./tables/emailSubscribers";
+import emailSuppressions from "./tables/emailSuppressions";
 import emailVerificationChallenges from "./tables/emailVerificationChallenges";
 import entitlements from "./tables/entitlements";
 import evaluationAnswers from "./tables/evaluationAnswers";
@@ -99,6 +104,11 @@ export default $defineSchema({
   documentVersions: documentVersions.tableDefinition,
   documents: documents.tableDefinition,
   dsarRequests: dsarRequests.tableDefinition,
+  emailCampaigns: emailCampaigns.tableDefinition,
+  emailDeliveries: emailDeliveries.tableDefinition,
+  emailEvents: emailEvents.tableDefinition,
+  emailSubscribers: emailSubscribers.tableDefinition,
+  emailSuppressions: emailSuppressions.tableDefinition,
   emailVerificationChallenges: emailVerificationChallenges.tableDefinition,
   entitlements: entitlements.tableDefinition,
   evaluationAnswers: evaluationAnswers.tableDefinition,

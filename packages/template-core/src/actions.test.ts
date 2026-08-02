@@ -127,7 +127,7 @@ describe("action domain", () => {
       approvalsWaiting: 2,
       actionsPublished: 1,
       providerMetadata: {
-        provider: "mailersend",
+        provider: "email",
         messageId: "provider-secret-message-id",
       },
       customerMetadata: {

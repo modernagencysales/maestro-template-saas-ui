@@ -130,6 +130,26 @@ node maestro-template.mjs preflight --mode fake --json
 The detailed walkthrough is in
 [Template Quickstart](./docs/template/quickstart.md).
 
+## Email with Postmark
+
+Email stays provider-neutral in application code and uses Postmark as the live
+adapter. Transactional templates use the `outbound` stream. Marketing uses the
+separate `broadcast` stream and only includes explicitly opted-in,
+non-suppressed subscribers.
+
+After adding the server-only variables from `.env.example`, configure the five
+template aliases and authenticated webhooks:
+
+```bash
+pnpm email:setup
+```
+
+The generated headless catalog exposes `ops.email.previewBroadcast` and
+`ops.email.dispatchBroadcast`. Dispatch requires both a stable idempotency key
+and the exact `confirmation: "SEND"` input. Signed unsubscribe links and
+Postmark events are handled at `/email/unsubscribe` and
+`/webhooks/email/postmark`.
+
 ## How Maestro works
 
 Maestro uses one repeatable loop:

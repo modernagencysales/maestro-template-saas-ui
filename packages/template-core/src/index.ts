@@ -292,7 +292,7 @@ export const templateRegistry = {
     { name: "WorkOS/AuthKit", mode: "fake + live", status: "planned" },
     { name: "PostHog", mode: "event contract", status: "guarded" },
     { name: "Dodo", mode: "billing fake first", status: "planned" },
-    { name: "MailerSend", mode: "console + live", status: "planned" },
+    { name: "Email (Postmark)", mode: "fake + live", status: "planned" },
     { name: "OpenRouter", mode: "BYOK gateway", status: "planned" },
     { name: "Storage", mode: "signed URL policy", status: "guarded" },
   ],

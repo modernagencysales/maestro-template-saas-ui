@@ -332,7 +332,7 @@ const providerManifestGroup = {
   workos: "workos",
   posthog: "posthog",
   dodo: "dodo",
-  email: "mailersend",
+  email: "email",
   llm: "openrouter",
   storage: "storage",
 } as const satisfies Record<TemplateProvider, string>;

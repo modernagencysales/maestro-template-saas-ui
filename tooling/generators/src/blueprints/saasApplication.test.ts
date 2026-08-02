@@ -35,6 +35,7 @@ import { buildSaasApplicationAlpha2TargetPlan } from "./alpha2SaasApplicationPla
 import { buildFactorySaasApplicationFiles } from "./saasApplicationFactory";
 import {
   CUSTOMER_ROOT_SCRIPTS,
+  CURRENT_EMAIL_CLOSURE,
   CURRENT_PRODUCT_JOURNEY_CLOSURE,
   CURRENT_SAAS_DEPLOY_AUTHORITY_SOURCE_CLOSURE,
   CURRENT_SAAS_DEPLOY_AUTHORITY_TABLE_CLOSURE,
@@ -496,6 +497,18 @@ describe("saas application blueprint", () => {
     );
     const topology = parseProductTopology(JSON.parse(topologyEntry.content));
     for (const table of ["records", "deployAuthorityAuditEvents"]) {
+      expect(systems.systems.some(({ tables }) => tables.includes(table))).toBe(
+        true,
+      );
+      expect(resources.resources.some(({ id }) => id === table)).toBe(true);
+    }
+    for (const table of [
+      "emailCampaigns",
+      "emailDeliveries",
+      "emailEvents",
+      "emailSubscribers",
+      "emailSuppressions",
+    ]) {
       expect(systems.systems.some(({ tables }) => tables.includes(table))).toBe(
         true,
       );
@@ -1314,6 +1327,7 @@ describe("saas application blueprint", () => {
       "maestro-template.mjs",
       "scripts/maestro-bootstrap.mjs",
       "scripts/maestro-bootstrap.test.mjs",
+      "scripts/configure-postmark.mts",
       "apps/web/src/bundle-policy.ts",
       "apps/web/scripts/check-client-bundle-budget.mjs",
       "apps/web/scripts/check-client-bundle-budget.test.mjs",
@@ -1371,6 +1385,7 @@ describe("saas application blueprint", () => {
       "packages/convex/confect/capabilities/_kit/workspaceAccess.ts",
       "packages/convex/confect/_generated/docs.ts",
       "packages/convex/confect/_generated/tables/workflowArtifacts.ts",
+      ...CURRENT_EMAIL_CLOSURE,
       ...CURRENT_SAAS_DEPLOY_AUTHORITY_TABLE_CLOSURE,
       ...CURRENT_SAAS_DEPLOY_AUTHORITY_SOURCE_CLOSURE,
       ...CURRENT_PRODUCT_JOURNEY_CLOSURE,
@@ -1720,6 +1735,7 @@ describe("saas application blueprint", () => {
       "maestro-template.mjs",
       "scripts/maestro-bootstrap.mjs",
       "scripts/maestro-bootstrap.test.mjs",
+      "scripts/configure-postmark.mts",
       "apps/web/src/bundle-policy.ts",
       "apps/web/package.json",
       "apps/web/scripts/check-client-bundle-budget.mjs",

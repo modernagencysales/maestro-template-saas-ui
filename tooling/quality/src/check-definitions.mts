@@ -583,7 +583,7 @@ const checkDescriptorDefinitions = {
           "WorkOS",
           "PostHog",
           "Dodo",
-          "MailerSend",
+          "Postmark",
           "OpenRouter",
           "Cloudflare",
           "Woodpecker",
