@@ -261,7 +261,7 @@ export const validateDeployAuthoritySources = (input: {
         );
       if (
         !normalizedPreflight.includes(
-          `${preflightCall} "\$CI_COMMIT_SHA" template-${environment} "$(node scripts/_project-config.mjs get ${environment} convexUrl)"`,
+          `${preflightCall} "$CI_COMMIT_SHA" template-${environment} "$(node scripts/_project-config.mjs get ${environment} convexUrl)"`,
         )
       )
         failures.push(
@@ -385,7 +385,7 @@ export const validateDeployAuthoritySources = (input: {
     );
   const selfProtectionStep = pipelineBlock(input.pipeline, "trusted-ci-policy");
   const selfProtectionCommand =
-    /(?:^|\n) {4}commands:\n      - \|\n(?<body>[\s\S]*?)\n {4}failure:/u.exec(
+    /(?:^|\n) {4}commands:\n {6}- \|\n(?<body>[\s\S]*?)\n {4}failure:/u.exec(
       selfProtectionStep ?? "",
     )?.groups?.body ?? "";
   const trustedSelfProtectionMarkers = [

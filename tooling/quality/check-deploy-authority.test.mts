@@ -323,7 +323,7 @@ describe("deploy authority self-protection", () => {
   it("pins the secretless self-protection verifier outside PR-head scripts", () => {
     const base = fixture();
     const selfProtectionCommand =
-      /- name: trusted-ci-policy[\s\S]*?commands:\n      - \|\n(?<body>[\s\S]*?)\n {4}failure:/u.exec(
+      /- name: trusted-ci-policy[\s\S]*?commands:\n {6}- \|\n(?<body>[\s\S]*?)\n {4}failure:/u.exec(
         base.pipeline,
       )?.groups?.body ?? "";
     expect(base.pipeline).toContain(
