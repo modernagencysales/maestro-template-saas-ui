@@ -42,9 +42,9 @@ import { kickoffProfileStartOptions } from "./kickoffProfiles";
 
 export { kickoffProfileStartOptions } from "./kickoffProfiles";
 
-type Reader = Context.Tag.Service<typeof DatabaseReader>;
-type Writer = Context.Tag.Service<typeof DatabaseWriter>;
-type Mutation = Context.Tag.Service<typeof MutationCtx>;
+type Reader = Context.Service.Shape<typeof DatabaseReader>;
+type Writer = Context.Service.Shape<typeof DatabaseWriter>;
+type Mutation = Context.Service.Shape<typeof MutationCtx>;
 type ExistingWorkflowRun = {
   readonly componentWorkflowId?: string | null | undefined;
   readonly workflowId: string;

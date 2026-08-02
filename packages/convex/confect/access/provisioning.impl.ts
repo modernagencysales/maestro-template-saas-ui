@@ -48,17 +48,19 @@ const ensureProvisioned = FunctionImpl.make(
           Effect.orDie,
         );
 
-      const userPlan = (yield* buildProvisioningPlan({
-        identity,
-        state: {
-          user: existingUser,
-          liveOrganization: null,
-          liveWorkspace: null,
-          organizationMembership: null,
-          workspaceMembership: null,
-        },
-        now,
-      })).user;
+      const userPlan = (yield* Effect.fromResult(
+        buildProvisioningPlan({
+          identity,
+          state: {
+            user: existingUser,
+            liveOrganization: null,
+            liveWorkspace: null,
+            organizationMembership: null,
+            workspaceMembership: null,
+          },
+          now,
+        }),
+      )).user;
 
       const userId: GenericId<"users"> =
         existingUser === null
@@ -80,9 +82,8 @@ const ensureProvisioned = FunctionImpl.make(
         .index("by_owner", (q) => q.eq("ownerUserId", userId))
         .take(100)
         .pipe(Effect.orDie);
-      const existingOrganization = yield* selectLiveOwnedOrganization(
-        organizations,
-        userId,
+      const existingOrganization = yield* Effect.fromResult(
+        selectLiveOwnedOrganization(organizations, userId),
       );
 
       const workspaces =
@@ -95,9 +96,8 @@ const ensureProvisioned = FunctionImpl.make(
               )
               .take(100)
               .pipe(Effect.orDie);
-      const existingWorkspace = yield* selectLiveOwnedWorkspace(
-        workspaces,
-        userId,
+      const existingWorkspace = yield* Effect.fromResult(
+        selectLiveOwnedWorkspace(workspaces, userId),
       );
 
       const organizationMembership =
@@ -124,17 +124,19 @@ const ensureProvisioned = FunctionImpl.make(
               .first()
               .pipe(Effect.map(Option.getOrNull), Effect.orDie);
 
-      const plan = yield* buildProvisioningPlan({
-        identity,
-        state: {
-          user: existingUser,
-          liveOrganization: existingOrganization,
-          liveWorkspace: existingWorkspace,
-          organizationMembership,
-          workspaceMembership,
-        },
-        now,
-      });
+      const plan = yield* Effect.fromResult(
+        buildProvisioningPlan({
+          identity,
+          state: {
+            user: existingUser,
+            liveOrganization: existingOrganization,
+            liveWorkspace: existingWorkspace,
+            organizationMembership,
+            workspaceMembership,
+          },
+          now,
+        }),
+      );
 
       const organizationId: GenericId<"organizations"> =
         existingOrganization === null

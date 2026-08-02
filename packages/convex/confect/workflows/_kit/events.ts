@@ -42,7 +42,7 @@ export type WorkflowEventDefinition<
   readonly reference: WorkflowEventReferenceType;
   readonly name: Name;
   readonly schemaName: string;
-  readonly schema: Schema.Schema<Value>;
+  readonly schema: Schema.Codec<Value, unknown>;
   readonly validator: V;
 };
 
@@ -54,7 +54,7 @@ export const defineWorkflowEvent = <
   readonly reference: WorkflowEventReferenceType;
   readonly name: Name;
   readonly schemaName: string;
-  readonly schema: Schema.Schema<Infer<V>>;
+  readonly schema: Schema.Codec<Infer<V>, unknown>;
   readonly validator: V;
 }): WorkflowEventDefinition<Infer<V>, Name, V> => {
   if (
@@ -81,7 +81,7 @@ export type WorkflowEventDelivery<Value> =
   | { readonly kind: "error"; readonly error: string };
 
 export const validateWorkflowEventDelivery = <Value>(
-  definition: { readonly schema: Schema.Schema<Value> },
+  definition: { readonly schema: Schema.Codec<Value, unknown> },
   delivery:
     | { readonly kind: "value"; readonly value: unknown }
     | { readonly kind: "error"; readonly error: string },

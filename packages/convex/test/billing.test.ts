@@ -1,5 +1,6 @@
 import { TestConfect } from "@confect/test";
 import * as Effect from "effect/Effect";
+import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
 import { describe, expect, it } from "vitest";
@@ -194,9 +195,7 @@ describe("billing Confect contracts", () => {
   });
 
   it("exports a finalized fake/local Confect implementation", () => {
-    expect(billingImpl).toMatchObject({
-      _op_layer: "Fold",
-    });
+    expect(Layer.isLayer(billingImpl)).toBe(true);
   });
 
   it("rejects padded usage idempotency keys before writing ledger-shaped IDs", async () => {
@@ -804,16 +803,23 @@ const BillingUsageSnapshot = Schema.Struct({
   usageCount: Schema.Number,
   ledgerCount: Schema.Number,
   entitlementUsed: Schema.optional(Schema.Number),
-  ledgerType: Schema.optional(Schema.Literal("credit", "debit")),
+  ledgerType: Schema.optional(Schema.Literals(["credit", "debit"])),
   ledgerReason: Schema.optional(
-    Schema.Literal("manual_adjustment", "llm_usage", "seat_charge", "refund"),
+    Schema.Literals([
+      "manual_adjustment",
+      "llm_usage",
+      "seat_charge",
+      "refund",
+    ]),
   ),
   ledgerCreatedBy: Schema.optional(Schema.String),
 });
 
 const WebhookSnapshot = Schema.Struct({
   count: Schema.Number,
-  status: Schema.optional(Schema.Literal("processed", "duplicate", "failed")),
+  status: Schema.optional(
+    Schema.Literals(["processed", "duplicate", "failed"]),
+  ),
   eventType: Schema.optional(Schema.String),
 });
 

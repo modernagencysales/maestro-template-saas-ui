@@ -184,7 +184,12 @@ export const createWorkflowLifecycleState = (
   };
 };
 
-export const decodeWorkflowOnCompleteContext = (input: unknown) => {
+export const decodeWorkflowOnCompleteContext = (
+  input: unknown,
+): Exit.Exit<
+  WorkflowOnCompleteContext,
+  Schema.SchemaError | WorkflowLifecycleTransitionError
+> => {
   const decoded = Schema.decodeUnknownExit(WorkflowOnCompleteContext)(input);
   if (Exit.isFailure(decoded)) return decoded;
   if (getConvexSize(decoded.value) > MAX_ON_COMPLETE_CONTEXT_BYTES) {

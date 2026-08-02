@@ -1,5 +1,6 @@
 import { TestConfect } from "@confect/test";
 import * as Effect from "effect/Effect";
+import * as Layer from "effect/Layer";
 import * as Schema from "effect/Schema";
 import { describe, expect, it } from "vitest";
 
@@ -103,9 +104,7 @@ describe("data lifecycle Confect contracts", () => {
   it("registers data lifecycle functions and exports a finalized implementation", () => {
     expect(JSON.stringify(dataLifecycle)).toContain("createDsarRequest");
     expect(JSON.stringify(dataLifecycle)).toContain("listDsarRequests");
-    expect(dataLifecycleImpl).toMatchObject({
-      _op_layer: "Fold",
-    });
+    expect(Layer.isLayer(dataLifecycleImpl)).toBe(true);
   });
 
   it("exports web-only manifest metadata for DSAR operations", () => {
@@ -188,11 +187,11 @@ describe("data lifecycle Confect contracts", () => {
           count: Schema.Number,
           firstRequestId: Schema.String,
           firstRequestedByUserId: Schema.String,
-          firstStatus: Schema.Literal(
+          firstStatus: Schema.Literals([
             "ready-for-review",
             "needs-confirmation",
             "blocked-by-legal-hold",
-          ),
+          ]),
           firstDryRunOnly: Schema.Boolean,
         }),
       );

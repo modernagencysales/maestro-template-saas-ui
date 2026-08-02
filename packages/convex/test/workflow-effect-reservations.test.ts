@@ -1,5 +1,6 @@
 import { TestConfect } from "@confect/test";
 import * as Effect from "effect/Effect";
+import * as Layer from "effect/Layer";
 import { describe, expect, it } from "vitest";
 
 import refs from "../confect/_generated/refs";
@@ -16,7 +17,7 @@ describe("workflow effect reservation capabilities", () => {
     expect(JSON.stringify(effectReservations)).toContain("reserve");
     expect(JSON.stringify(effectReservations)).toContain("transition");
     expect(JSON.stringify(effectReservations)).toContain("history");
-    expect(effectReservationsImpl).toMatchObject({ _op_layer: "Fold" });
+    expect(Layer.isLayer(effectReservationsImpl)).toBe(true);
   });
 
   it("atomically returns one dispatch decision for duplicate reservations", async () => {

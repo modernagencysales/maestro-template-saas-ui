@@ -15,7 +15,7 @@ import { roleAtLeast, type Role } from "./roles";
  * same way; keeping one copy here is both the DRY win and the single place the
  * identity/authorization derivation is defined.
  */
-export type Reader = Context.Tag.Service<typeof DatabaseReader>;
+export type Reader = Context.Service.Shape<typeof DatabaseReader>;
 
 /**
  * Resolve the authenticated caller to their `users` row. Fails `Unauthorized`

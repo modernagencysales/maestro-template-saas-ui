@@ -195,8 +195,8 @@ const lifecycleContract = <Spec>(
   spec: Spec,
   name: string,
   kind: "query" | "mutation",
-  argsSchema: Schema.Schema.Any,
-  returnsSchema: Schema.Schema.Any,
+  argsSchema: Schema.Top,
+  returnsSchema: Schema.Top,
   idempotent: boolean,
 ) =>
   defineContractFunction(spec, {

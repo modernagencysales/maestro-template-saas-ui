@@ -91,7 +91,7 @@ export type WorkflowV2SubworkflowDefinition<
     | "policySnapshot"
     | "subworkflow"
   >;
-  readonly resultSchema: Schema.Schema<Result>;
+  readonly resultSchema: Schema.Codec<Result, unknown>;
   readonly principal:
     | { readonly kind: "inherit" }
     | { readonly kind: "narrow"; readonly grants: readonly string[] };
@@ -156,7 +156,7 @@ export type AnyWorkflowV2SubworkflowRegistryEntry = {
   readonly mapArgs: (
     envelope: WorkflowV2SubworkflowEnvelope,
   ) => MappedChildArgs;
-  readonly resultSchema: Schema.Schema.AnyNoContext;
+  readonly resultSchema: Schema.Codec<any, any>;
   readonly principal: WorkflowV2SubworkflowRegistryEntry<
     ChildWorkflowArgs,
     unknown
@@ -196,7 +196,7 @@ type AnyWorkflowV2SubworkflowDefinition = Omit<
   WorkflowV2SubworkflowDefinition<ChildWorkflowArgs, unknown>,
   "resultSchema"
 > & {
-  readonly resultSchema: Schema.Schema.AnyNoContext;
+  readonly resultSchema: Schema.Codec<any, any>;
 };
 
 type PublishedRegistry<

@@ -34,7 +34,7 @@ const reconcileDeadlineRef = makeFunctionReference<"mutation">(
 const scheduleDeadlineRef = makeFunctionReference<"mutation">(
   "workflows/deadlinesCurrent:schedule",
 );
-type Mutation = Context.Tag.Service<typeof MutationCtx>;
+type Mutation = Context.Service.Shape<typeof MutationCtx>;
 
 const cancel = FunctionImpl.make(databaseSchema, lifecycle, "cancel", (args) =>
   Effect.gen(function* () {
@@ -158,12 +158,10 @@ const restart = FunctionImpl.make(
         occurredAt: args.occurredAt,
       });
       if (Result.isFailure(restartDeadline)) {
-        return yield* Effect.fail(
-          new ValidationFailed({
-            field: "deadline",
-            message: restartDeadline.failure.message,
-          }),
-        );
+        return yield* new ValidationFailed({
+          field: "deadline",
+          message: restartDeadline.failure.message,
+        });
       }
       const result = yield* runWorkflowLifecycleControl(
         args.workflowRunId,

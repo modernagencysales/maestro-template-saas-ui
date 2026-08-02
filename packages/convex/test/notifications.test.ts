@@ -1,5 +1,6 @@
 import { TestConfect } from "@confect/test";
 import * as Effect from "effect/Effect";
+import * as Layer from "effect/Layer";
 import * as Schema from "effect/Schema";
 import { describe, expect, it } from "vitest";
 
@@ -160,9 +161,7 @@ describe("notification Confect contracts", () => {
     expect(JSON.stringify(notifications)).toContain("recordInternal");
     expect(JSON.stringify(notifications)).toContain("markRead");
     expect(JSON.stringify(notifications)).toContain("updatePreference");
-    expect(notificationsImpl).toMatchObject({
-      _op_layer: "Fold",
-    });
+    expect(Layer.isLayer(notificationsImpl)).toBe(true);
   });
 
   it("rejects padded notification idempotency keys before insert", async () => {

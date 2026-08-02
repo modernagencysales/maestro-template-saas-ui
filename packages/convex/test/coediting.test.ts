@@ -1,5 +1,6 @@
 import { TestConfect } from "@confect/test";
 import * as Effect from "effect/Effect";
+import * as Layer from "effect/Layer";
 import * as Schema from "effect/Schema";
 import { describe, expect, it } from "vitest";
 import refs from "../confect/_generated/refs";
@@ -188,9 +189,7 @@ describe("coediting Confect contracts", () => {
   });
 
   it("exports a finalized fake/local Confect implementation", () => {
-    expect(coeditingImpl).toMatchObject({
-      _op_layer: "Fold",
-    });
+    expect(Layer.isLayer(coeditingImpl)).toBe(true);
   });
 
   it("rejects padded create-document idempotency keys before deriving document ids", async () => {

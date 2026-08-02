@@ -1,5 +1,6 @@
 import { TestConfect } from "@confect/test";
 import * as Effect from "effect/Effect";
+import * as Layer from "effect/Layer";
 import * as Schema from "effect/Schema";
 import { describe, expect, it } from "vitest";
 import sourceGroundedBrief, {
@@ -203,9 +204,7 @@ describe("sourceGroundedBrief capability contract", () => {
   });
 
   it("exports a finalized Confect implementation", () => {
-    expect(sourceGroundedBriefImpl).toMatchObject({
-      _op_layer: "Fold",
-    });
+    expect(Layer.isLayer(sourceGroundedBriefImpl)).toBe(true);
   });
 
   it("rejects a workspace outsider before generating the public brief", async () => {

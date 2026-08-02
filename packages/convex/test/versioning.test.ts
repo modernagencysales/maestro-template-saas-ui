@@ -1,5 +1,6 @@
 import { TestConfect } from "@confect/test";
 import * as Effect from "effect/Effect";
+import * as Layer from "effect/Layer";
 import * as Schema from "effect/Schema";
 import { describe, expect, it } from "vitest";
 import refs from "../confect/_generated/refs";
@@ -163,9 +164,7 @@ describe("versioning Confect contracts", () => {
   });
 
   it("exports a finalized fake/local Confect implementation", () => {
-    expect(versioningImpl).toMatchObject({
-      _op_layer: "Fold",
-    });
+    expect(Layer.isLayer(versioningImpl)).toBe(true);
   });
 
   it("rejects padded append idempotency keys before creating append-only history", async () => {

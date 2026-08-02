@@ -259,7 +259,7 @@ describe("workflow lifecycle persistent tenant adapters", () => {
           eventPayload: Schema.String,
           eventType: Schema.String,
           execution: Schema.NullOr(
-            Schema.Literal("active", "terminal", "canceled"),
+            Schema.Literals(["active", "terminal", "canceled"]),
           ),
           missing: Schema.NullOr(Schema.String),
         }),

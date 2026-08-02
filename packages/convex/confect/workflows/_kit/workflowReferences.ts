@@ -75,7 +75,7 @@ export const defineWorkflowReferenceRegistry = <
 });
 
 const decodeEntries = <Ref>(
-  schema: Schema.Schema<Ref, string>,
+  schema: Schema.Codec<Ref, string>,
   entries: Readonly<Record<string, string>>,
 ): Readonly<Record<string, Ref>> =>
   Object.fromEntries(

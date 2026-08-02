@@ -9,8 +9,8 @@ export { currentLifecycleResourceIds } from "./dataResources.generated";
 
 export type LifecycleResourceId = (typeof currentLifecycleResourceIds)[number];
 
-export const LifecycleResourceIdSchema = Schema.Literal(
-  ...currentLifecycleResourceIds,
+export const LifecycleResourceIdSchema = Schema.Literals(
+  currentLifecycleResourceIds,
 );
 
 export type LifecycleResourcePlan = {

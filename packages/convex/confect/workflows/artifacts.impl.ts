@@ -129,7 +129,7 @@ const remove = FunctionImpl.make(databaseSchema, artifacts, "remove", (args) =>
   }),
 );
 
-type Reader = Context.Tag.Service<typeof DatabaseReader>;
+type Reader = Context.Service.Shape<typeof DatabaseReader>;
 
 const loadOwnedRun = (
   reader: Reader,

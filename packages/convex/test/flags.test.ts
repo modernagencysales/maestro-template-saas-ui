@@ -1,5 +1,6 @@
 import { TestConfect } from "@confect/test";
 import * as Effect from "effect/Effect";
+import * as Layer from "effect/Layer";
 import * as Schema from "effect/Schema";
 import { describe, expect, it } from "vitest";
 
@@ -102,9 +103,7 @@ describe("feature flag Confect contracts", () => {
     expect(JSON.stringify(flags)).toContain("list");
     expect(JSON.stringify(flags)).toContain("evaluate");
     expect(JSON.stringify(flags)).toContain("upsertPolicyInternal");
-    expect(flagsImpl).toMatchObject({
-      _op_layer: "Fold",
-    });
+    expect(Layer.isLayer(flagsImpl)).toBe(true);
   });
 
   it("lists starter-safe defaults and evaluates live side effects disabled", async () => {

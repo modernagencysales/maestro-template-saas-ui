@@ -18,8 +18,8 @@ import {
   WorkflowLifecyclePersistenceError,
 } from "./lifecyclePersistence";
 
-type Reader = Context.Tag.Service<typeof DatabaseReader>;
-type Writer = Context.Tag.Service<typeof DatabaseWriter>;
+type Reader = Context.Service.Shape<typeof DatabaseReader>;
+type Writer = Context.Service.Shape<typeof DatabaseWriter>;
 
 export type WorkflowCompletionResult =
   | { readonly kind: "success"; readonly returnValue: unknown }
