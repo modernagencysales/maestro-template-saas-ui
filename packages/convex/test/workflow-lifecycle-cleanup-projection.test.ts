@@ -1,4 +1,4 @@
-import * as Either from "effect/Either";
+import * as Result from "effect/Result";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -49,4 +49,4 @@ const command = (
 const apply = (
   state: WorkflowLifecycleState,
   lifecycleCommand: WorkflowLifecycleCommand,
-) => Either.getOrThrow(transitionWorkflowLifecycle(state, lifecycleCommand));
+) => Result.getOrThrow(transitionWorkflowLifecycle(state, lifecycleCommand));
