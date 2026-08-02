@@ -95,7 +95,7 @@ describe("email Confect contracts", () => {
     expect(
       Schema.decodeUnknownSync(DispatchBroadcastArgs)({
         workspaceId: "workspaces_123",
-        idempotencyKey: "campaign.2026-08-02",
+        idempotencyKey: "id-1",
         subject: "A useful update",
         preheader: "One short note.",
         textBody: "Hello.",
@@ -293,7 +293,7 @@ describe("email Confect contracts", () => {
         refs.public.ops.email.dispatchBroadcast,
         {
           workspaceId: seeded.workspaceId,
-          idempotencyKey: "campaign.2026-08-02",
+          idempotencyKey: "id-1",
           subject: "A useful update",
           preheader: "One short note.",
           textBody: "Hello.",
