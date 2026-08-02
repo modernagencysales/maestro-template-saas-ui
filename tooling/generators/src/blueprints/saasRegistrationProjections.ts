@@ -175,6 +175,31 @@ export const CURRENT_SAAS_DEPLOY_AUTHORITY_SOURCE_CLOSURE = [
   "packages/convex/test/deploy-authority.test.ts",
 ] as const;
 
+export const CURRENT_EMAIL_CLOSURE = [
+  "packages/convex/confect/_generated/registeredFunctions/ops/email.ts",
+  "packages/convex/confect/_generated/tables/emailCampaigns.ts",
+  "packages/convex/confect/_generated/tables/emailDeliveries.ts",
+  "packages/convex/confect/_generated/tables/emailEvents.ts",
+  "packages/convex/confect/_generated/tables/emailSubscribers.ts",
+  "packages/convex/confect/_generated/tables/emailSuppressions.ts",
+  "packages/convex/confect/email/env.ts",
+  "packages/convex/confect/email/postmarkWebhook.ts",
+  "packages/convex/confect/email/unsubscribeToken.ts",
+  "packages/convex/confect/ops/email.impl.ts",
+  "packages/convex/confect/ops/email.spec.ts",
+  "packages/convex/confect/tables/emailCampaigns.ts",
+  "packages/convex/confect/tables/emailDeliveries.ts",
+  "packages/convex/confect/tables/emailEvents.ts",
+  "packages/convex/confect/tables/emailSubscribers.ts",
+  "packages/convex/confect/tables/emailSuppressions.ts",
+  "packages/convex/convex/ops/email.ts",
+  "packages/convex/test/email.test.ts",
+  "packages/integrations/src/email.test.ts",
+  "packages/integrations/src/email.ts",
+  "packages/integrations/src/emailSetup.test.ts",
+  "packages/integrations/src/emailSetup.ts",
+] as const;
+
 export const CURRENT_CUSTOMER_QUALITY_TEST_EXCLUSIONS = [
   "tooling/quality/ai-gate-scripts.test.mts",
   "tooling/quality/check-agent-pack.test.mts",
@@ -1035,13 +1060,7 @@ export const buildSaasRegistrationProjections = (
       ...(!current
         ? ["packages/convex/confect/ops/dataResources.generated.ts"]
         : []),
-      ...(current
-        ? [
-            "packages/convex/confect/ops/email.spec.ts",
-            "packages/integrations/src/email.ts",
-            "packages/integrations/src/emailSetup.ts",
-          ]
-        : []),
+      ...(current ? CURRENT_EMAIL_CLOSURE : []),
       ...(current ? CURRENT_SAAS_DEPLOY_AUTHORITY_TABLE_CLOSURE : []),
       ...(current ? CURRENT_SAAS_DEPLOY_AUTHORITY_SOURCE_CLOSURE : []),
       ...(current ? CURRENT_PRODUCT_JOURNEY_CLOSURE : []),

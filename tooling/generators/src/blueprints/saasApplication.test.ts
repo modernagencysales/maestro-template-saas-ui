@@ -34,6 +34,7 @@ import {
 import { buildFactorySaasApplicationFiles } from "./saasApplicationFactory";
 import {
   CUSTOMER_ROOT_SCRIPTS,
+  CURRENT_EMAIL_CLOSURE,
   CURRENT_PRODUCT_JOURNEY_CLOSURE,
   CURRENT_SAAS_DEPLOY_AUTHORITY_SOURCE_CLOSURE,
   CURRENT_SAAS_DEPLOY_AUTHORITY_TABLE_CLOSURE,
@@ -1319,9 +1320,7 @@ describe("saas application blueprint", () => {
       "packages/convex/confect/capabilities/_kit/workspaceAccess.ts",
       "packages/convex/confect/_generated/docs.ts",
       "packages/convex/confect/_generated/tables/workflowArtifacts.ts",
-      "packages/convex/confect/ops/email.spec.ts",
-      "packages/integrations/src/email.ts",
-      "packages/integrations/src/emailSetup.ts",
+      ...CURRENT_EMAIL_CLOSURE,
       ...CURRENT_SAAS_DEPLOY_AUTHORITY_TABLE_CLOSURE,
       ...CURRENT_SAAS_DEPLOY_AUTHORITY_SOURCE_CLOSURE,
       ...CURRENT_PRODUCT_JOURNEY_CLOSURE,

@@ -1131,6 +1131,13 @@
       "replaces": "copy"
     },
     {
+      "path": "packages/convex/confect/_generated/registeredFunctions/ops/email.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:ac847951860116834c504270c2b9c98e87ab1e3232f4c69c69848ae01a3bc671"
+    },
+    {
       "path": "packages/convex/confect/_generated/registeredFunctions/records/records.ts",
       "ownership": "generated",
       "action": "generate",
@@ -1167,6 +1174,41 @@
       "upgrade": "regenerate",
       "sha256": "sha256:816a17253fe68a1c32dddb276cfff1fd0a8dae490f25a3d354edaa8b04d6ebeb",
       "replaces": "copy"
+    },
+    {
+      "path": "packages/convex/confect/_generated/tables/emailCampaigns.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:01db6821ae8faa4a70ac10c659a75b5c5b2616a5e6a8792cdd8da6d9b413a248"
+    },
+    {
+      "path": "packages/convex/confect/_generated/tables/emailDeliveries.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:ba47ca71bb41be911e516205b164fe58ae57293b72679653acf1a6e67324f92b"
+    },
+    {
+      "path": "packages/convex/confect/_generated/tables/emailEvents.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:b63bb1c1576fc30d0aa2abcc4c4f0c886602358107aa0372c7ac02426f51cb9a"
+    },
+    {
+      "path": "packages/convex/confect/_generated/tables/emailSubscribers.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:1a8cf999b2facc9b53fd07373d4c0be8ab9a5c767afdf4c2d0697ef3c7c07385"
+    },
+    {
+      "path": "packages/convex/confect/_generated/tables/emailSuppressions.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:e780563a5d6ea48161304cfe26dedf9c7525e5783f3d850b43e515dad4048b36"
     },
     {
       "path": "packages/convex/confect/_generated/tables/records.ts",
@@ -1246,6 +1288,27 @@
       "replaces": "copy"
     },
     {
+      "path": "packages/convex/confect/email/env.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:841d107f96bc71e89f59030ca207d1e5ef6a57cc209c888759611cbd8b13f6f1"
+    },
+    {
+      "path": "packages/convex/confect/email/postmarkWebhook.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:9ff7a7125723e3ad3f8663a590f3bf9863a8de49bc5857104c1da33dbe3877b2"
+    },
+    {
+      "path": "packages/convex/confect/email/unsubscribeToken.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:d49837d0b4b40760556438a21f642b1b9e9c3c02c3823e56cb0cb71c58528344"
+    },
+    {
       "path": "packages/convex/confect/http.ts",
       "ownership": "generated",
       "action": "generate",
@@ -1260,6 +1323,13 @@
       "upgrade": "regenerate",
       "sha256": "sha256:1f051aa5cd4191a560e3ed71b1da01253e429f071ca42de204bf6d66434d00c9",
       "replaces": "copy"
+    },
+    {
+      "path": "packages/convex/confect/ops/email.impl.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:76226507cccbcaf5c06ef592d7454fcec6634661234a98005002ff78f38b5223"
     },
     {
       "path": "packages/convex/confect/ops/email.spec.ts",
@@ -1336,6 +1406,41 @@
       "upgrade": "regenerate",
       "sha256": "sha256:7c93c37213c00386829831b697e0499e1305b352fb8fdacfa9f6c74bea70e857",
       "replaces": "copy"
+    },
+    {
+      "path": "packages/convex/confect/tables/emailCampaigns.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:249cf1b5b3b65d94985cb5d7271101a3ffd51e3ca9f9faf060de6909782fa255"
+    },
+    {
+      "path": "packages/convex/confect/tables/emailDeliveries.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:d28cecb8ebaa1b6b86cec4d13a4dbbc20282ef7dc6d41f5dc9f5b4cb835fb043"
+    },
+    {
+      "path": "packages/convex/confect/tables/emailEvents.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:cbf5bd9992e8cda13a04807c844c2bd6518136c7dc6d82f768ad2126e844a150"
+    },
+    {
+      "path": "packages/convex/confect/tables/emailSubscribers.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:139b18a837fce091ad8643f85766f24dfc9c898fae1691852f4d96fcb6e4f281"
+    },
+    {
+      "path": "packages/convex/confect/tables/emailSuppressions.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:0bd4824aea27967407f08c5bd3266d8079bdd6ded2faa5bbe03c04790f12b7ff"
     },
     {
       "path": "packages/convex/confect/tables/records.ts",
@@ -1656,6 +1761,13 @@
       "replaces": "copy"
     },
     {
+      "path": "packages/convex/convex/ops/email.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:99a64e95abe4c0868a23ad2e2f76b9ce3b4617a3eb541f874bc927951eea3bbe"
+    },
+    {
       "path": "packages/convex/convex/records/records.ts",
       "ownership": "generated",
       "action": "generate",
@@ -1679,6 +1791,13 @@
       "replaces": "copy"
     },
     {
+      "path": "packages/convex/test/email.test.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:cfefcf9911f9d43924a5dd7617c7f69f0dc29c449764860aa9be850310665240"
+    },
+    {
       "path": "packages/convex/test/workflow-lifecycle-controls.fixture.ts",
       "ownership": "generated",
       "action": "generate",
@@ -1695,11 +1814,25 @@
       "replaces": "copy"
     },
     {
+      "path": "packages/integrations/src/email.test.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:ed1d38fd1a2f9297327b4bc960b6f8e118b1be5bf9ef895e3ae1487ff9b4fa96"
+    },
+    {
       "path": "packages/integrations/src/email.ts",
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
       "sha256": "sha256:c6fee84f190138fa8476e43b9e3ca624650bc27b11cd70c90d4a76ec0081a0bf"
+    },
+    {
+      "path": "packages/integrations/src/emailSetup.test.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:1e76cedffcf851de206da702118bfe3b5725eaf5107f907be7e34e4289df9838"
     },
     {
       "path": "packages/integrations/src/emailSetup.ts",
