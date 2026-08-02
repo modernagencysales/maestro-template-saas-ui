@@ -74,6 +74,20 @@ Audited against current source and focused evidence on 2026-08-01. See
       checkout, progress, Build Pack, library, and Maestro offer.
 - [x] Operations runbook and support escalation paths are reviewed.
 
+## Paid traffic attribution
+
+- [x] PageView remains browser-side and consent-aware.
+- [x] Lead fires once after a durable Buildability Report, not on typing or
+      provider failure.
+- [x] The sanitized Admaxxer visitor ID crosses into Dodo metadata without
+      entering URLs or authorization state.
+- [x] Verified payment binds product, actual amount, currency, checkout, and
+      report before entitlement or equal Maestro credit.
+- [x] Admaxxer Purchase retries by Dodo payment ID until `admaxxerReportedAt` is
+      durable; missing live configuration fails closed.
+- [ ] Live `$1` Build Pack canary, refund/revocation, and Meta CAPI trace remain
+      owner/provider-gated.
+
 ## Gates
 
 - [x] Focused package, web, Convex, workflow, and Playwright suites pass through
