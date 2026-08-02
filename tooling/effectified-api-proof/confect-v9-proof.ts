@@ -5,7 +5,7 @@ import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as Schema from "effect/Schema";
 
-class ProofError extends Schema.TaggedError<ProofError>()("ProofError", {
+class ProofError extends Schema.TaggedErrorClass<ProofError>()("ProofError", {
   message: Schema.String,
 }) {}
 
