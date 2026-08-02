@@ -49,7 +49,7 @@ workspace feature or a workspace data-subject lifecycle.
   declares `PROMOTION_AUTHORITY_MODE` and
   `PROMOTION_AUTHORITY_PRIVATE_KEY_PKCS8_BASE64URL`; readiness and consumption
   prove that the private key matches the one active issuer before any one-time
-  action mutation. Buildkite receives only the public verification key and
+  action mutation. Woodpecker receives only the public verification key and
   externally pinned trust-root hash, never the private key.
 
 ## Migration And Preservation

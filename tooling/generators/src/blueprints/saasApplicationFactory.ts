@@ -40,7 +40,7 @@ evals:
 
 `,
       `mutation:
-    bash .buildkite/scripts/mutation.sh
+    bash tooling/ci/mutation.sh
 
 `,
     ] as const;
@@ -77,7 +77,7 @@ evals:
       fsImport,
       'import { existsSync, readFileSync } from "node:fs";',
     );
-    const factoryPipelineAssertion = `    const pipeline = readText(".buildkite/pipeline.yml");
+    const factoryPipelineAssertion = `    const pipeline = readText(".woodpecker/deploy.yml");
     expect(pipeline).not.toContain(
       "PROMOTION_AUTHORITY_PRIVATE_KEY_PKCS8_BASE64URL",
     );
@@ -89,7 +89,7 @@ evals:
     content = content.replace(
       factoryPipelineAssertion,
       `    expect(
-      existsSync(resolve(repoRoot, ".buildkite/pipeline.yml")),
+      existsSync(resolve(repoRoot, ".woodpecker/deploy.yml")),
     ).toBe(false);`,
     );
   }

@@ -2,7 +2,7 @@ import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { REQUIRED_CHECKS, type Runner } from "./exec.mts";
 import { mergeStack } from "./merge.mts";
 
-const BUILDKITE_AGGREGATE_CHECK = "buildkite/maestro-template-ci";
+const WOODPECKER_AGGREGATE_CHECK = "ci/woodpecker/pr/verify";
 
 beforeEach(() => {
   vi.stubEnv("GH_REPO", "");
@@ -90,11 +90,11 @@ test("mergeStack mirrors statuses and merges after required checks are green", a
   expect(mergeIndex).toBeGreaterThan(statusIndex);
 });
 
-test("mergeStack stabilizes churned required statuses after Buildkite aggregate success", async () => {
+test("mergeStack stabilizes churned required statuses after Woodpecker aggregate success", async () => {
   const run = makeRunner({
     statuses: () => ({
       statuses: [
-        { context: BUILDKITE_AGGREGATE_CHECK, state: "success" },
+        { context: WOODPECKER_AGGREGATE_CHECK, state: "success" },
         ...REQUIRED_CHECKS.map((context) => ({
           context,
           state: context === "verify" ? "success" : "pending",
@@ -161,11 +161,11 @@ test("mergeStack does not wait for advisory plan-required", async () => {
   expect(result).toEqual({ ok: true, merged: [64] });
 });
 
-test("mergeStack does not stabilize churned statuses without Buildkite aggregate success", async () => {
+test("mergeStack does not stabilize churned statuses without Woodpecker aggregate success", async () => {
   const run = makeRunner({
     statuses: () => ({
       statuses: [
-        { context: BUILDKITE_AGGREGATE_CHECK, state: "pending" },
+        { context: WOODPECKER_AGGREGATE_CHECK, state: "pending" },
         ...REQUIRED_CHECKS.map((context) => ({
           context,
           state: "pending",
@@ -198,7 +198,7 @@ test("mergeStack does not stabilize missing required statuses", async () => {
   const run = makeRunner({
     statuses: () => ({
       statuses: [
-        { context: BUILDKITE_AGGREGATE_CHECK, state: "success" },
+        { context: WOODPECKER_AGGREGATE_CHECK, state: "success" },
         { context: "plan-required", state: "success" },
         { context: "verify", state: "success" },
       ],

@@ -9,7 +9,7 @@ if [[ "$*" == *"--mode fake"* ]]; then
   exit 0
 fi
 
-if [[ "${BUILDKITE:-}" != "true" && "${RUN_MUTATION:-}" != "true" ]]; then
+if [[ "${CI:-}" != "true" && "${RUN_MUTATION:-}" != "true" ]]; then
   echo "mutation: skipped outside scheduled/manual mutation runs"
   exit 0
 fi

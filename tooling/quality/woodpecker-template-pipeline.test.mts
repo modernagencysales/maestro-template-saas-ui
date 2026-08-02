@@ -17,4 +17,15 @@ describe("Woodpecker template pipeline", () => {
       'CI_PIPELINE_DEPLOY_TARGET == "production"',
     );
   });
+
+  it("keeps neutral CI scripts free of Buildkite runtime coordinates", () => {
+    for (const path of [
+      "tooling/ci/setup.sh",
+      "tooling/ci/contract-review.sh",
+      "tooling/ci/mutation.sh",
+      "tooling/ci/taste.sh",
+    ]) {
+      expect(read(path), path).not.toContain("BUILDKITE");
+    }
+  });
 });

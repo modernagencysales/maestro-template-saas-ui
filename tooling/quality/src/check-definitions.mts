@@ -11,33 +11,19 @@ const checkDescriptorDefinitions = {
       {
         file: ".woodpecker/verify.yml",
         includes: [
-          "ci-self-protection",
-          "pnpm verify",
-          "pnpm check:ci-completeness",
-          "pnpm check:config-drift",
-          "pnpm check:convex-ai-files",
-          "pnpm check:agent-pack",
-          "pnpm check:confect-contracts",
-          "pnpm check:confect-compat",
-          "pnpm check:workflow-graph-boundary",
-          "pnpm check:workflow-semantics",
-          "pnpm template:workflow-output-smoke",
-          "pnpm check:system-catalog",
-          "pnpm check:system-topology",
-          "pnpm check:data-resources",
-          "pnpm check:append-only-tables",
-          "pnpm check:promotion-boundary",
-          "taste",
-          "contract-review",
+          "trusted-ci-policy",
+          "tooling/ci/ci-self-protection.sh",
+          "tooling/ci/phase1.sh",
+          "depends_on:",
         ],
         message:
-          "Woodpecker verification must include deterministic and AI gates",
+          "Woodpecker verification must route through trusted deterministic CI scripts",
       },
       {
         file: ".woodpecker/deploy.yml",
         includes: [
-          "deploy-staging",
-          "deploy-production",
+          "staging-deploy",
+          "production-promote",
           'CI_PIPELINE_DEPLOY_TARGET == "staging"',
           'CI_PIPELINE_DEPLOY_TARGET == "production"',
           "tooling/ci/staging-deploy.sh",
@@ -229,7 +215,7 @@ const checkDescriptorDefinitions = {
           "the heavyweight customer filesystem proof must run exactly once in a dedicated serial release gate",
       },
       {
-        file: ".buildkite/scripts/taste.sh",
+        file: "tooling/ci/taste.sh",
         includes: [
           "OPENAI_API_KEY",
           "TASTE_PROVIDER",
@@ -244,7 +230,7 @@ const checkDescriptorDefinitions = {
           "taste AI gate must require provider auth, run trusted reviewer code, and parse verdicts",
       },
       {
-        file: ".buildkite/scripts/contract-review.sh",
+        file: "tooling/ci/contract-review.sh",
         includes: [
           "OPENAI_API_KEY",
           "extract-ai-verdict.mts",
@@ -260,7 +246,7 @@ const checkDescriptorDefinitions = {
         file: "docs/template/operations-runbook.md",
         includes: [
           "CI And AI Gate Verdicts",
-          "buildkite-agent meta-data get staged-sha",
+          "woodpecker-cli pipeline log show",
           "tooling/quality/extract-ai-verdict.mts",
           "gh pr checks --watch",
         ],
@@ -300,7 +286,7 @@ const checkDescriptorDefinitions = {
         message: "package scripts must expose required quality gates",
       },
       {
-        file: ".buildkite/scripts/mutation.sh",
+        file: "tooling/ci/mutation.sh",
         includes: ["pnpm exec stryker run stryker.conf.mjs"],
         message: "mutation gate must run Stryker in scheduled/manual mode",
       },
@@ -328,7 +314,7 @@ const checkDescriptorDefinitions = {
           "project config must declare deploy environments, Convex URLs, required secret names, and any shared-backend exception note",
       },
       {
-        file: ".buildkite/scripts/staging-deploy.sh",
+        file: "tooling/ci/staging-deploy.sh",
         includes: [
           "deploy-doctor staging",
           "scripts/_project-config.mjs get staging cloudflarePagesProject",
@@ -336,13 +322,13 @@ const checkDescriptorDefinitions = {
           "guardedDeploy.ts convex",
           "convex run demo/showcase:seed",
           "guardedDeploy.ts cloudflare",
-          "buildkite-agent meta-data set staged-sha",
+          "check-deploy-authority-receipt.mts record",
         ],
         message:
           "staging deploy must deploy the Convex backend, bake the Convex URL, deploy the client build, and record the staged SHA",
       },
       {
-        file: ".buildkite/scripts/production-promote.sh",
+        file: "tooling/ci/production-promote.sh",
         includes: [
           "deploy-doctor production",
           "promote-plan",
@@ -350,7 +336,7 @@ const checkDescriptorDefinitions = {
           "guardedDeploy.ts convex",
           "convex run demo/showcase:seed",
           "guardedDeploy.ts cloudflare",
-          "buildkite-agent meta-data get staged-sha",
+          'STAGED_SHA="${STAGED_SHA:?STAGED_SHA is required}"',
         ],
         message:
           "production promote must deploy the Convex backend, bake the Convex URL, deploy the client build, and verify the staged SHA",
@@ -600,7 +586,7 @@ const checkDescriptorDefinitions = {
           "MailerSend",
           "OpenRouter",
           "Cloudflare",
-          "Buildkite",
+          "Woodpecker",
           "fake mode",
           "rotation",
         ],
@@ -1057,7 +1043,7 @@ const checkDescriptorDefinitions = {
           "raw database boundary must prove direct, alias, helper, optional, wrapper, and escape behavior",
       },
       {
-        file: ".buildkite/scripts/phase1.sh",
+        file: "tooling/ci/phase1.sh",
         includes: ["pnpm check:append-only-tables"],
         message: "hosted deterministic CI must enforce append-only tables",
       },
@@ -1097,7 +1083,7 @@ const checkDescriptorDefinitions = {
           "App Map composition must prove complete sources and byte-stable double builds",
       },
       {
-        file: ".buildkite/scripts/phase1.sh",
+        file: "tooling/ci/phase1.sh",
         includes: ["pnpm check:app-map"],
         message: "Hosted deterministic CI must run the App Map gate",
       },
@@ -1276,7 +1262,7 @@ export const checkDescriptors = defineRegisteredStaticCheckDescriptors(
         "packages/convex/confect",
         "tooling/quality/check-append-only-tables.mts",
         "tooling/quality/check-append-only-tables.test.mts",
-        ".buildkite/scripts/phase1.sh",
+        "tooling/ci/phase1.sh",
       ],
     },
     deps: { evidenceClass: "static" },
@@ -1297,7 +1283,7 @@ export const checkDescriptors = defineRegisteredStaticCheckDescriptors(
       defaultFocused: true,
       prerequisiteCheck: ["gitleaks", "version"],
       repairHint:
-        "Install the checksum-pinned scanner with bash .buildkite/scripts/install-gitleaks.sh, then rerun this check.",
+        "Install the checksum-pinned scanner with bash tooling/ci/install-gitleaks.sh, then rerun this check.",
     },
     "sbom-license": { evidenceClass: "static" },
     "headless-surface-contract": {

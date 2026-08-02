@@ -1,0 +1,40 @@
+labels:
+  platform: linux/amd64
+  role: maestro-ci
+
+clone:
+  git:
+    image: woodpeckerci/plugin-git:2.9.2@sha256:ebde4a4d07e0e24b630082484d192890dd4f6d442d90bf5466f0763860f83652
+    settings:
+      depth: 500
+      partial: false
+      fetch-target-branch: true
+      target-branch: main
+
+when:
+  - event: pull_request
+    evaluate: 'CI_COMMIT_PULL_REQUEST_DRAFT == "false"'
+  - event: pull_request_metadata
+    evaluate:
+      'CI_PIPELINE_EVENT_REASON == "ready_for_review" &&
+      CI_COMMIT_PULL_REQUEST_DRAFT == "false"'
+  - event: manual
+
+steps:
+  - name: trusted-ci-policy
+    image: node:22.12.0-bookworm@sha256:0e910f435308c36ea60b4cfd7b80208044d77a074d16b768a81901ce938a62dc
+    commands:
+      - git config --global --add safe.directory "$CI_WORKSPACE"
+      - tooling/ci/ci-self-protection.sh
+    failure: cancel
+
+  - name: verify
+    image: node:22.12.0-bookworm@sha256:0e910f435308c36ea60b4cfd7b80208044d77a074d16b768a81901ce938a62dc
+    environment:
+      CI: "true"
+      NODE_OPTIONS: "--max-old-space-size=6144"
+    commands:
+      - tooling/ci/phase1.sh
+    depends_on:
+      - trusted-ci-policy
+    failure: cancel

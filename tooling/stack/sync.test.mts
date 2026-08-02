@@ -35,10 +35,9 @@ test("sliceGreen requires SUCCESS on all required checks", () => {
     sliceGreen({
       verify: "SUCCESS",
       qlty: "SUCCESS",
-      "buildkite/taste": "SUCCESS",
+      "ci/woodpecker/pr/verify": "SUCCESS",
       "unresolved-review-threads": "SUCCESS",
       "merge-conflict": "SUCCESS",
-      "buildkite/contract-review": "SUCCESS",
     }),
   ).toBe(true);
   expect(

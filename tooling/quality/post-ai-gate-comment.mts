@@ -333,7 +333,7 @@ async function main(): Promise<void> {
   }
 
   const prNumber = parsePositiveInteger(
-    option("--pr") ?? process.env.BUILDKITE_PULL_REQUEST ?? null,
+    option("--pr") ?? process.env.CI_COMMIT_PULL_REQUEST ?? null,
     "PR number",
   );
   if (prNumber === null) {
@@ -357,11 +357,10 @@ async function main(): Promise<void> {
 
   const sha =
     option("--sha") ??
-    process.env.BUILDKITE_COMMIT ??
+    process.env.CI_COMMIT_SHA ??
     process.env.GITHUB_SHA ??
     "";
-  const buildUrl =
-    option("--build-url") ?? process.env.BUILDKITE_BUILD_URL ?? null;
+  const buildUrl = option("--build-url") ?? process.env.CI_PIPELINE_URL ?? null;
   const verdict: unknown = JSON.parse(readFileSync(verdictFile, "utf8"));
 
   const result = await upsertGateComment({
