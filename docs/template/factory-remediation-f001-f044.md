@@ -1048,3 +1048,48 @@ commit coordinates will be added only after observation.
   to a wholly new post-fix v12 customer rather than repairing v11.
 - Status: upstream source fix is focused-green; final fixed status waits for
   untouched v12 customer acceptance and the final evidence update.
+
+### FR-F-011 — Generated feature provenance is unsupported by App Map
+
+- ID/title: FR-F-011 (generated feature provenance is unsupported by App Map).
+- Original posture: newly reproduced/high because a retained customer App Map
+  gate rejects the SaaS blueprint's canonical `add-feature` provenance.
+- Confirmed reproduction: untouched v12 customer
+  `/private/tmp/maestro-fresh-customer-recovery-v12-k3uJJM/customer`,
+  materialized from exact template source
+  `b20d10c04d8a1bef0f8cd93b86f94f3c9e2ddb32` with preview fingerprint
+  `sha256:ea3a4b99613ab53cf2f2c1c72e279a8a0c72b665c87809feb7447b900c2ba086`,
+  passed its pinned frozen install, doctor, Confect codegen and manifest,
+  route-tree check, focused env-manifest suite, and `just test-tooling`, then
+  failed `just test-app-map` in two composition tests with
+  `Unsupported generator provenance: docs/template/generated/provenance/add-feature/records.json`.
+- Root cause: the App Map generator-provenance adapter supported only
+  `add-table` and `add-workflow`. The SaaS blueprint truthfully retains reviewed
+  `add-feature` provenance and a generated `/records` route, but the adapter
+  neither projected that route's generator edge nor consumed the provenance's
+  canonical `ownership.system`, leaving the generated route unowned. The
+  customer also did not explicitly project the current App Map source closure.
+- Regression: the composition fixture preserves the complete canonical route
+  tree, adds reviewed `add-feature` provenance and `/records`, and requires both
+  `generated-by:route:records->package:tooling/generators` and
+  `owns:system:knowledge-brain->route:records`. It first failed with the exact
+  unowned-route diagnostic. The SaaS blueprint regression requires exact copy
+  replacements for the App Map composition source, its regression, and the
+  closed source-authority schema while keeping the sealed alpha.1 plan
+  unchanged.
+- Canonical fix and files: `tooling/app-map/src/composition.ts` now recognizes
+  `add-feature`, validates its ownership record, and projects generation plus
+  system ownership for the generated route; `tooling/app-map/src/schema.ts`
+  grants the generator-provenance adapter only the new `owns`/`route` authority;
+  and the SaaS blueprint projects that exact three-file closure through
+  `tooling/generators/src/blueprints/saasApplicationFactory.ts` and
+  `tooling/generators/src/blueprints/saasApplication.ts`. No generated customer
+  file or immutable release artifact is hand-edited.
+- Focused result: the red-to-green composition suite passes 8/8, the complete
+  App Map package suite passed 93/93 during the fix, the SaaS blueprint suite
+  passes 25/25, and both App Map and generator package typechecks exit zero, all
+  through focused `host-test-slot` runs with pnpm `10.12.1`.
+- Clean-customer evidence: v12 remains the untouched reproduction. Final proof
+  moves to a wholly new post-fix v13 customer rather than repairing v12.
+- Status: upstream source fix is focused-green; final fixed status waits for the
+  coherent commit and untouched v13 customer acceptance.

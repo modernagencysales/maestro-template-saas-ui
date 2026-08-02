@@ -13,6 +13,9 @@ const CURRENT_CUSTOMER_SOURCE_PROJECTIONS = [
   "packages/template-core/src/generated/confectManifest.ts",
   "packages/convex/confect/workflows/_kit/policySnapshotCurrent.ts",
   "tooling/generators/src/crud-proof.test.ts",
+  "tooling/app-map/src/composition.test.ts",
+  "tooling/app-map/src/composition.ts",
+  "tooling/app-map/src/schema.ts",
   "tooling/quality/src/env-manifest.test.mts",
 ] as const;
 

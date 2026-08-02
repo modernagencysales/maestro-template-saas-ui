@@ -239,8 +239,8 @@ export const APP_MAP_INPUT_MANIFEST_V1 = {
       "template-generators",
       {
         nodeKinds: [],
-        edgeKinds: ["generated-by", "verified-by"],
-        ownershipTargets: [],
+        edgeKinds: ["owns", "generated-by", "verified-by"],
+        ownershipTargets: ["route"],
       },
       "sha256-canonical-tree-v1",
     ),

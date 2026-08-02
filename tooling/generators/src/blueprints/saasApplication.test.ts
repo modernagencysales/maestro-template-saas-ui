@@ -133,6 +133,11 @@ describe("saas application blueprint", () => {
     const operationsRunbook = entries.get(
       "docs/template/operations-runbook.md",
     );
+    const appMapComposition = entries.get("tooling/app-map/src/composition.ts");
+    const appMapCompositionTest = entries.get(
+      "tooling/app-map/src/composition.test.ts",
+    );
+    const appMapSchema = entries.get("tooling/app-map/src/schema.ts");
     const confectManifest = entries.get(
       "packages/template-core/src/generated/confectManifest.ts",
     );
@@ -171,6 +176,17 @@ describe("saas application blueprint", () => {
     }
     expect(confectManifest).toMatchObject({ replaces: "copy" });
     expect(confectManifest?.content.match(/\n\s+"records",/gu)).toHaveLength(4);
+    for (const projection of [
+      appMapComposition,
+      appMapCompositionTest,
+      appMapSchema,
+    ])
+      expect(projection).toMatchObject({ replaces: "copy" });
+    expect(appMapComposition?.content).toContain('generator === "add-feature"');
+    expect(appMapCompositionTest?.content).toContain(
+      "projects reviewed add-feature provenance to its generated route",
+    );
+    expect(appMapSchema?.content).toContain('ownershipTargets: ["route"]');
   });
 
   it("projects canonical ownership provenance for the records vertical", () => {
@@ -370,6 +386,9 @@ describe("saas application blueprint", () => {
       "packages/template-core/src/templateInstance/__fixtures__/provider-posture-v1-to-v2.contract.json",
       "packages/template-core/src/generated/confectManifest.ts",
       "packages/convex/confect/workflows/_kit/policySnapshotCurrent.ts",
+      "tooling/app-map/src/composition.test.ts",
+      "tooling/app-map/src/composition.ts",
+      "tooling/app-map/src/schema.ts",
       "tooling/generators/src/crud-proof.test.ts",
       "tooling/quality/package.json",
       "tooling/quality/src/env-manifest.test.mts",
@@ -1085,6 +1104,9 @@ describe("saas application blueprint", () => {
       "packages/template-core/src/generated/confectManifest.ts",
       "packages/convex/confect/workflows/_kit/policySnapshotCurrent.ts",
       "tooling/generators/src/crud-proof.test.ts",
+      "tooling/app-map/src/composition.test.ts",
+      "tooling/app-map/src/composition.ts",
+      "tooling/app-map/src/schema.ts",
       "tooling/quality/src/env-manifest.test.mts",
       "docs/template/generated/provenance/add-feature/records.json",
     ]);

@@ -771,24 +771,42 @@ const factsFor = (
       throw new Error("Generator provenance tree is empty.");
     const generatedEdges = Object.entries(files)
       .sort(([left], [right]) => compare(left, right))
-      .map(([path, bytes]) => {
+      .flatMap(([path, bytes]) => {
         const value = record(JSON.parse(bytes));
         const generator = text(value.generator);
         const name = text(value.name);
+        const owner =
+          generator === "add-feature"
+            ? text(record(value.ownership).system)
+            : undefined;
         const target =
           generator === "add-table"
             ? `table:${name}`
             : generator === "add-workflow"
               ? `workflow-publication:${name}:v${record(value.publication).workflowVersion as number}`
-              : undefined;
+              : generator === "add-feature"
+                ? `route:${name}`
+                : undefined;
         if (!target)
           throw new Error(`Unsupported generator provenance: ${path}.`);
-        return edge(entry, revision, source.digest, {
-          id: `generated-by:${target}->package:tooling/generators`,
-          kind: "generated-by",
-          from: target,
-          to: "package:tooling/generators",
-        });
+        return [
+          edge(entry, revision, source.digest, {
+            id: `generated-by:${target}->package:tooling/generators`,
+            kind: "generated-by",
+            from: target,
+            to: "package:tooling/generators",
+          }),
+          ...(owner
+            ? [
+                edge(entry, revision, source.digest, {
+                  id: `owns:system:${owner}->${target}`,
+                  kind: "owns",
+                  from: `system:${owner}`,
+                  to: target,
+                }),
+              ]
+            : []),
+        ];
       });
     return { nodes: [], edges: generatedEdges };
   }
