@@ -5,6 +5,7 @@ import { buildSaasRegistrationProjections } from "./saasRegistrationProjections"
 
 const RECORDS_SURFACE = "apps/web/src/features/records/records-surface.tsx";
 const CURRENT_CUSTOMER_SOURCE_PROJECTIONS = [
+  "Justfile",
   "docs/template/env-manifest.json",
   "docs/template/env-manifest.md",
   "docs/template/operations-runbook.md",
@@ -26,6 +27,32 @@ const currentCustomerSource = (
     new URL(`../../../../${path}`, import.meta.url),
     "utf8",
   );
+  if (path === "Justfile") {
+    const factoryOnlyRecipes = [
+      `test-pr-backlog:
+    pnpm test:pr-backlog
+
+evals:
+    pnpm evals
+
+`,
+      `check-workflow-output-smoke:
+    pnpm template:workflow-output-smoke
+
+`,
+      `mutation:
+    bash .buildkite/scripts/mutation.sh
+
+`,
+    ] as const;
+    for (const recipe of factoryOnlyRecipes) {
+      if (!content.includes(recipe))
+        throw new Error(
+          "customer Justfile factory-only recipe marker is missing",
+        );
+      content = content.replace(recipe, "");
+    }
+  }
   if (path === "tooling/generators/src/crud-proof.test.ts") {
     const factoryFixture =
       "examples/saas-application/seed/source/apps/web/src/adapters/records/fake.ts";

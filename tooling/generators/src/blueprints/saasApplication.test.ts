@@ -133,6 +133,7 @@ describe("saas application blueprint", () => {
     const operationsRunbook = entries.get(
       "docs/template/operations-runbook.md",
     );
+    const justfile = entries.get("Justfile");
     const appMapComposition = entries.get("tooling/app-map/src/composition.ts");
     const appMapCompositionTest = entries.get(
       "tooling/app-map/src/composition.test.ts",
@@ -190,6 +191,15 @@ describe("saas application blueprint", () => {
       "projects reviewed add-feature provenance to its generated route",
     );
     expect(appMapSchema?.content).toContain('ownershipTargets: ["route"]');
+    expect(justfile).toMatchObject({ replaces: "copy" });
+    expect(justfile?.content).not.toContain("test-pr-backlog:");
+    expect(justfile?.content).not.toContain("evals:");
+    expect(justfile?.content).not.toContain("check-workflow-output-smoke:");
+    expect(justfile?.content).not.toContain("mutation:");
+    const customerScripts = root.scripts ?? {};
+    for (const match of justfile?.content.matchAll(/^\s+pnpm ([^\s;&]+)/gmu) ??
+      [])
+      expect(customerScripts, match[1]).toHaveProperty(match[1] as string);
   });
 
   it("projects canonical ownership provenance for the records vertical", () => {
@@ -374,6 +384,7 @@ describe("saas application blueprint", () => {
     const postAlphaCurrentPaths = new Set<string>([
       ...CURRENT_SAAS_DEPLOY_AUTHORITY_TABLE_CLOSURE,
       ...CURRENT_SAAS_DEPLOY_AUTHORITY_SOURCE_CLOSURE,
+      "Justfile",
       "apps/cli/package.json",
       "apps/web/package.json",
       "apps/cli/src/factory/mcp.ts",
@@ -1099,6 +1110,7 @@ describe("saas application blueprint", () => {
       "packages/convex/convex/records/records.ts",
       "apps/web/src/routeTree.gen.ts",
       "apps/web/src/routeRegistry.generated.ts",
+      "Justfile",
       "docs/template/env-manifest.json",
       "docs/template/env-manifest.md",
       "docs/template/operations-runbook.md",

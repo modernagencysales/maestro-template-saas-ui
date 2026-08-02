@@ -1139,3 +1139,50 @@ commit coordinates will be added only after observation.
   moves to a wholly new post-fix customer rather than repairing v13.
 - Status: upstream source fix is focused-green; final fixed status waits for the
   coherent commit and untouched post-fix customer acceptance.
+
+### FR-F-013 — Customer Justfile advertises omitted factory gates
+
+- ID/title: FR-F-013 (customer Justfile advertises omitted factory gates).
+- Original posture: newly reproduced/high because retained canonical recipes
+  fail in a freshly materialized customer before its remaining acceptance can
+  run.
+- Confirmed reproduction: untouched v14 customer
+  `/private/tmp/maestro-fresh-customer-recovery-v14-O5m7TW/customer` at baseline
+  commit `ae347e907c622c013fd4f658e23f6ea886cfc59b`, materialized from exact
+  template source `8b4eb2e6a4f5f8f957eb09c86516031336831588` with preview
+  fingerprint
+  `sha256:7c65a1a469be7cd32da1003bf2169e2f4d2cc1f1c6914a10a05f784622b72d25`. It
+  passed the pinned frozen install without lock drift, doctor, Confect codegen
+  and manifest, route-tree freshness, env-manifest 8/8, tooling quality 268/268,
+  workflow tooling 12/12, generator tooling 34/34, App Map 90/90, workflow
+  12/12, and Convex compatibility 22/22. The next retained recipe,
+  `just test-pr-backlog`, then failed because root script `test:pr-backlog` is
+  absent. Direct closure inspection also found retained `evals`,
+  `check-workflow-output-smoke`, and `mutation` recipes whose root scripts or
+  `.buildkite/scripts/mutation.sh` owner are intentionally omitted.
+- Root cause: current customer composition projected the template-root
+  `Justfile` unchanged while correctly narrowing the customer root-script and
+  filesystem closures. Four factory-only recipes consequently advertised
+  commands with no customer owner.
+- Regression: the SaaS blueprint suite requires an exact reviewed copy
+  replacement for `Justfile`, rejects all four factory-only recipe names, and
+  checks every retained direct `pnpm <script>` delegation against the projected
+  customer root scripts. The regression first failed on the retained
+  `template:workflow-output-smoke` delegation after the original v14
+  `test:pr-backlog` reproduction.
+- Canonical fix and files:
+  `tooling/generators/src/blueprints/saasApplicationFactory.ts` performs
+  fail-closed, marker-checked removal of only the four factory-only recipe
+  blocks; `tooling/generators/src/blueprints/saasApplication.ts` grants the
+  current projection exact copy-replacement authority and registers it; and
+  `tooling/generators/src/blueprints/saasApplication.test.ts` pins both the
+  closure and current-plan inventories. The canonical template `Justfile`, its
+  factory gates, and the sealed release remain unchanged.
+- Focused result: the red-to-green SaaS blueprint suite passes 25/25, generator
+  typecheck exits zero, scoped ESLint reports zero warnings, scoped Prettier is
+  clean, and `git diff --check` passes through the focused host semaphore using
+  pnpm `10.12.1` where applicable.
+- Clean-customer evidence: v14 remains the untouched reproduction. Final proof
+  moves to a wholly new post-fix customer rather than repairing v14.
+- Status: upstream source fix is focused-green; final fixed status waits for the
+  coherent commit and untouched post-fix customer acceptance.
