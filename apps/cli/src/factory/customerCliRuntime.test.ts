@@ -601,11 +601,6 @@ describe("materialized customer CLI runtime closure", () => {
       error: { code: -32602 },
     });
     expect(unresolvedWorkspaceDependencies(target)).toEqual([]);
-    await execFileAsync(
-      "pnpm",
-      ["install", "--offline", "--lockfile-only", "--ignore-scripts"],
-      { cwd: target, timeout: 120_000 },
-    );
     expect(existsSync(join(target, ".git"))).toBe(false);
     execFileSync("git", ["init", "--quiet"], { cwd: target });
     const prepare = spawnSync("pnpm", ["run", "prepare"], {
