@@ -7,7 +7,7 @@ import {
 import { isSafeConditionExpression } from "./conditionExpression";
 import type { DurableWorkflowGraphV2 } from "./graphSchema";
 import { generatedWorkflowReadyWaveLimit } from "./_kit/workpoolConfig";
-import { scheduledSubworkflowFinding } from "./_kit/subworkflows";
+import { scheduledSubworkflowFinding } from "./_kit/workflowValidationFindings";
 import { inlineTransactionFinding } from "./_kit/inlineTransactions";
 
 type ValidationState = {

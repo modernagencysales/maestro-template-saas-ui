@@ -1,5 +1,6 @@
 import * as Data from "effect/Data";
-import * as Either from "effect/Either";
+import * as Exit from "effect/Exit";
+import * as Result from "effect/Result";
 import * as Schema from "effect/Schema";
 
 import {
@@ -120,7 +121,7 @@ export class WorkflowGraphBuilderError extends Data.TaggedError(
 
 export const defineWorkflowGraphV2 = (
   input: DefineWorkflowGraphV2Input,
-): Either.Either<DurableWorkflowGraphV2, WorkflowGraphBuilderError> => {
+): Result.Result<DurableWorkflowGraphV2, WorkflowGraphBuilderError> => {
   const unsupportedFailurePolicies = (
     input.nodes as readonly Readonly<Record<string, unknown>>[]
   ).flatMap((node) => {
@@ -128,7 +129,7 @@ export const defineWorkflowGraphV2 = (
     return finding === undefined ? [] : [finding];
   });
   if (unsupportedFailurePolicies.length > 0) {
-    return Either.left(
+    return Result.fail(
       new WorkflowGraphBuilderError({
         findings: unsupportedFailurePolicies,
       }),
@@ -140,18 +141,18 @@ export const defineWorkflowGraphV2 = (
     kickoffProfiles: input.kickoffProfiles ?? [DEFAULT_INTERACTIVE_PROFILE],
     unstableArgs: input.unstableArgs ?? { enabled: false },
   });
-  if (Either.isLeft(decoded)) {
-    return Either.left(
+  if (Exit.isFailure(decoded)) {
+    return Result.fail(
       new WorkflowGraphBuilderError({
-        findings: [`V2 graph schema mismatch: ${String(decoded.left)}`],
+        findings: ["V2 graph schema mismatch"],
       }),
     );
   }
 
-  const findings = validateWorkflowGraphV2(decoded.right);
+  const findings = validateWorkflowGraphV2(decoded.value);
   return findings.length === 0
-    ? Either.right(decoded.right)
-    : Either.left(new WorkflowGraphBuilderError({ findings }));
+    ? Result.succeed(decoded.value)
+    : Result.fail(new WorkflowGraphBuilderError({ findings }));
 };
 
 const DEFAULT_INTERACTIVE_PROFILE = {
@@ -165,7 +166,7 @@ export type WorkflowStepInstance =
   | { readonly kind: "ordinal"; readonly value: number };
 
 const WorkflowStepInstanceSuffix = Schema.String.pipe(
-  Schema.pattern(/^(?:n\d{6,}|k\d+-[a-z0-9]+(?:-[a-z0-9]+)*)$/),
+  Schema.check(Schema.isPattern(/^(?:n\d{6,}|k\d+-[a-z0-9]+(?:-[a-z0-9]+)*)$/)),
 );
 
 export const deriveWorkflowStepInstanceSuffix = (

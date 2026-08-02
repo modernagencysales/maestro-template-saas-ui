@@ -38,6 +38,9 @@ import {
   type WorkflowAdmissionPolicy,
 } from "./workflowAdmission";
 import { generatedWorkflowReadyWaveLimit } from "./workpoolConfig";
+import { kickoffProfileStartOptions } from "./kickoffProfiles";
+
+export { kickoffProfileStartOptions } from "./kickoffProfiles";
 
 type Reader = Context.Tag.Service<typeof DatabaseReader>;
 type Writer = Context.Tag.Service<typeof DatabaseWriter>;
@@ -788,12 +791,6 @@ const workflowOnCompleteContext = <
   workflowVersion: input.workflowVersion,
   generation: 0,
   generationAnchor: `${input.workflowId}@v${input.workflowVersion}:g0`,
-});
-
-export const kickoffProfileStartOptions = (
-  profile: "eager-first-poll" | "queued",
-): { readonly startAsync: boolean } => ({
-  startAsync: profile === "queued",
 });
 
 export const recordStartedWorkflow = (

@@ -12,20 +12,19 @@ export type TemplateRuntimeConfigShape = {
   readonly publicBaseUrl: string;
 };
 
-export const RuntimeModeConfig = Config.literal(
-  "fake",
-  "test",
-  "live",
-)("TEMPLATE_RUNTIME_MODE").pipe(Config.withDefault("fake" as const));
+export const RuntimeModeConfig = Config.literals(
+  ["fake", "test", "live"],
+  "TEMPLATE_RUNTIME_MODE",
+).pipe(Config.withDefault("fake" as const));
 
 export const PublicBaseUrlConfig = Config.string(
   "TEMPLATE_PUBLIC_BASE_URL",
 ).pipe(Config.withDefault("http://localhost:5173"));
 
-export class TemplateRuntimeConfig extends Context.Tag("TemplateRuntimeConfig")<
+export class TemplateRuntimeConfig extends Context.Service<
   TemplateRuntimeConfig,
   TemplateRuntimeConfigShape
->() {}
+>()("TemplateRuntimeConfig") {}
 
 export const TemplateRuntimeConfigLive = Layer.effect(
   TemplateRuntimeConfig,

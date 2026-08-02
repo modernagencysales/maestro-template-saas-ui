@@ -1,4 +1,4 @@
-import * as Either from "effect/Either";
+import * as Result from "effect/Result";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -158,7 +158,7 @@ describe("typed workflow V2 constructors", () => {
       ],
       joins: [],
     });
-    expect(Either.getOrThrow(result)).toMatchObject({
+    expect(Result.getOrThrow(result)).toMatchObject({
       schemaVersion: 2,
       unstableArgs: { enabled: false },
       kickoffProfiles: [
@@ -195,9 +195,9 @@ describe("typed workflow V2 constructors", () => {
       ],
       joins: [],
     });
-    expect(Either.isLeft(result)).toBe(true);
-    if (Either.isLeft(result)) {
-      expect(result.left.findings).toContain("duplicate stepName: same.v2");
+    expect(Result.isFailure(result)).toBe(true);
+    if (Result.isFailure(result)) {
+      expect(result.failure.findings).toContain("duplicate stepName: same.v2");
     }
   });
 
@@ -244,9 +244,9 @@ describe("typed workflow V2 constructors", () => {
           ],
         ),
       } as unknown as DefineWorkflowGraphV2Input);
-      expect(Either.isLeft(result)).toBe(true);
-      if (Either.isLeft(result)) {
-        expect(result.left.findings).toContain(
+      expect(Result.isFailure(result)).toBe(true);
+      if (Result.isFailure(result)) {
+        expect(result.failure.findings).toContain(
           `WF-NODE-FAILURE-POLICY: node ${kind} supports fail only; repair: move typed failure routing to a capability node`,
         );
       }
@@ -296,7 +296,7 @@ describe("typed workflow V2 constructors", () => {
       ),
       kickoffProfiles,
     });
-    expect(Either.isLeft(result)).toBe(true);
+    expect(Result.isFailure(result)).toBe(true);
   });
 
   it("derives stable versioned addresses and deterministic repeated-instance suffixes", () => {
@@ -334,9 +334,9 @@ describe("typed workflow V2 constructors", () => {
     const dangling = defineWorkflowGraphV2(
       graphInput([source, output], [edge("lost", "source", "missing")]),
     );
-    expect(Either.isLeft(dangling)).toBe(true);
-    if (Either.isLeft(dangling)) {
-      expect(dangling.left.findings).toContainEqual({
+    expect(Result.isFailure(dangling)).toBe(true);
+    if (Result.isFailure(dangling)) {
+      expect(dangling.failure.findings).toContainEqual({
         _tag: "DanglingEdgeV2",
         edgeId: "lost",
         endpoint: "target",
@@ -348,7 +348,7 @@ describe("typed workflow V2 constructors", () => {
       ...graphInput([source, output], [edge("ok", "source", "output")]),
       nodes: [{ ...source, stepName: "source" }, output],
     });
-    expect(Either.isLeft(unstable)).toBe(true);
+    expect(Result.isFailure(unstable)).toBe(true);
   });
 
   it("rejects invalid source, terminal, reachability, cycle, and any-join topology", () => {
@@ -422,9 +422,23 @@ describe("typed workflow V2 constructors", () => {
 
     for (const [input, finding] of cases) {
       const result = defineWorkflowGraphV2(input);
-      expect(Either.isLeft(result)).toBe(true);
-      if (Either.isLeft(result))
-        expect(result.left.findings).toContain(finding);
+      expect(Result.isFailure(result)).toBe(true);
+      if (Result.isFailure(result))
+        expect(result.failure.findings).toContain(finding);
+    }
+  });
+
+  it("redacts rejected graph input from schema mismatch findings", () => {
+    const secret = "must-not-appear-in-parser-output";
+    const result = defineWorkflowGraphV2({
+      ...graphInput([], []),
+      nodes: [{ unexpected: secret }],
+    } as unknown as DefineWorkflowGraphV2Input);
+
+    expect(Result.isFailure(result)).toBe(true);
+    if (Result.isFailure(result)) {
+      expect(result.failure.findings).toEqual(["V2 graph schema mismatch"]);
+      expect(JSON.stringify(result.failure.findings)).not.toContain(secret);
     }
   });
 });
