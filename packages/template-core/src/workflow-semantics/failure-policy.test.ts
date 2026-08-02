@@ -1,5 +1,8 @@
-import * as Either from "effect/Either";
+import * as Cause from "effect/Cause";
+import * as Exit from "effect/Exit";
+import * as Result from "effect/Result";
 import * as Schema from "effect/Schema";
+import * as SchemaIssue from "effect/SchemaIssue";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -8,17 +11,17 @@ import {
 } from "./failure-policy";
 
 const WorkflowCapabilityReference = Schema.NonEmptyString.pipe(
-  Schema.pattern(/^capability\.[a-z][A-Za-z0-9]*\.v[1-9]\d*$/),
+  Schema.check(Schema.isPattern(/^capability\.[a-z][A-Za-z0-9]*\.v[1-9]\d*$/)),
   Schema.brand("WorkflowCapabilityReference"),
 );
 const WorkflowStepName = Schema.NonEmptyString.pipe(
-  Schema.pattern(/^[a-z][a-z0-9-]*\.v[1-9]\d*$/),
+  Schema.check(Schema.isPattern(/^[a-z][a-z0-9-]*\.v[1-9]\d*$/)),
 );
 const FailurePolicy = makeWorkflowFailurePolicySchema({
   WorkflowCapabilityReference,
   WorkflowStepName,
 });
-const decode = Schema.decodeUnknownEither(FailurePolicy, {
+const decode = Schema.decodeUnknownExit(FailurePolicy, {
   errors: "all",
   onExcessProperty: "error",
 });
@@ -45,7 +48,11 @@ describe("workflow failure policy semantic authority", () => {
       failure,
     },
   ])("accepts declared $kind policy", (policy) => {
-    expect(Either.isRight(decode(policy))).toBe(true);
+    const decoded = decode(policy);
+    expect(Exit.isSuccess(decoded)).toBe(true);
+    if (Exit.isSuccess(decoded)) {
+      expect(decoded.value).toEqual(policy);
+    }
   });
 
   it.each([
@@ -80,7 +87,18 @@ describe("workflow failure policy semantic authority", () => {
       failure,
     },
   ])("rejects incomplete or unsafe policy %#", (policy) => {
-    expect(Either.isLeft(decode(policy))).toBe(true);
+    const decoded = decode(policy);
+    expect(Exit.isFailure(decoded)).toBe(true);
+    if (Exit.isFailure(decoded)) {
+      const error = Cause.findError(decoded.cause);
+      expect(Result.isSuccess(error)).toBe(true);
+      if (Result.isSuccess(error)) {
+        expect(Schema.isSchemaError(error.success)).toBe(true);
+        if (Schema.isSchemaError(error.success)) {
+          expect(SchemaIssue.isIssue(error.success.issue)).toBe(true);
+        }
+      }
+    }
   });
 
   it("rejects routing that the node did not declare", () => {

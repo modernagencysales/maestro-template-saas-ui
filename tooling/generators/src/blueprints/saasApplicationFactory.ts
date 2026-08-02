@@ -1,10 +1,14 @@
 import type { GeneratedFile } from "../index";
 import { readFileSync } from "node:fs";
 import { buildSaasApplicationFiles } from "./saasApplication";
-import { buildSaasRegistrationProjections } from "./saasRegistrationProjections";
+import {
+  buildSaasRegistrationProjections,
+  CURRENT_FACTORY_PRODUCT_TABLES,
+} from "./saasRegistrationProjections";
 
 const CURRENT_CUSTOMER_SOURCE_PROJECTIONS = [
   "Justfile",
+  "apps/web/src/adapters/confect-generated-refs.test.ts",
   "docs/template/env-manifest.json",
   "docs/template/env-manifest.md",
   "docs/template/operations-runbook.md",
@@ -12,12 +16,15 @@ const CURRENT_CUSTOMER_SOURCE_PROJECTIONS = [
   "packages/template-core/src/templateInstance/__fixtures__/provider-posture-v1-to-v2.contract.json",
   "packages/template-core/src/generated/confectManifest.ts",
   "packages/convex/confect/workflows/_kit/policySnapshotCurrent.ts",
+  "packages/convex/test/shared-env.test.ts",
   "tooling/generators/src/crud-proof.test.ts",
   "tooling/app-map/src/composition.test.ts",
   "tooling/app-map/src/composition.ts",
   "tooling/app-map/src/schema.ts",
   "tooling/quality/src/env-manifest.test.mts",
 ] as const;
+
+const FACTORY_PRODUCT_TABLES = new Set<string>(CURRENT_FACTORY_PRODUCT_TABLES);
 
 const currentCustomerSource = (
   path: (typeof CURRENT_CUSTOMER_SOURCE_PROJECTIONS)[number],
@@ -93,7 +100,64 @@ evals:
     ).toBe(false);`,
     );
   }
+  if (path === "packages/convex/test/shared-env.test.ts") {
+    const evaluatorImport =
+      'import { loadLlmGatewayEnvConfig } from "../confect/evaluator/providerConfig";\n';
+    if (!content.includes(evaluatorImport))
+      throw new Error("customer shared env evaluator import marker is missing");
+    content = content.replace(evaluatorImport, "");
+    const evaluatorTestStart = content.indexOf(
+      '  it("loads the allowlisted LLM gateway environment through Effect config"',
+    );
+    const retainedTestStart = content.indexOf(
+      '  it("loads fake localhost defaults when no provider values are set"',
+      evaluatorTestStart,
+    );
+    if (evaluatorTestStart < 0 || retainedTestStart <= evaluatorTestStart)
+      throw new Error("customer shared env evaluator test markers are missing");
+    content = `${content.slice(0, evaluatorTestStart)}${content.slice(retainedTestStart)}`;
+  }
+  if (path === "apps/web/src/adapters/confect-generated-refs.test.ts") {
+    const replacements = [
+      [
+        'import type { InvokeReturn, ReactMutation } from "@confect/react";',
+        'import type { ReactMutation } from "@confect/react";',
+      ],
+      [
+        "  useTemplateAction,\n  useTemplateMutation,",
+        "  useTemplateMutation,",
+      ],
+      [
+        'type EvaluateAppIdeaWithModelRef =\n  TemplateConfectRefs["public"]["capabilities"]["evaluateAppIdea"]["evaluateAppIdeaWithModel"];\n',
+        "",
+      ],
+      [
+        "type TemplateActionResult<Action extends Ref.AnyPublicAction> = ReturnType<\n  typeof useTemplateAction<Action>\n>;\n",
+        "",
+      ],
+    ] as const;
+    for (const [search, replacement] of replacements) {
+      if (!content.includes(search))
+        throw new Error("customer generated refs evaluator marker is missing");
+      content = content.replace(search, replacement);
+    }
+    const evaluatorTestStart = content.indexOf(
+      '  it("infers generated action args, results, and typed failures"',
+    );
+    if (evaluatorTestStart < 0 || !content.endsWith("});\n"))
+      throw new Error(
+        "customer generated refs evaluator test marker is missing",
+      );
+    content = `${content.slice(0, evaluatorTestStart)}});\n`;
+  }
   if (path === "packages/template-core/src/generated/confectManifest.ts") {
+    content = content
+      .split("\n")
+      .filter((line) => {
+        const table = /^"([^"]+)",$/.exec(line.trim())?.[1];
+        return table === undefined || !FACTORY_PRODUCT_TABLES.has(table);
+      })
+      .join("\n");
     const tableBoundary = /^(\s*)"transformBlocks",$/gmu;
     const matches = [...content.matchAll(tableBoundary)];
     if (matches.length !== 4)
@@ -140,7 +204,48 @@ const recordsFeatureProvenance = (): GeneratedFile => ({
 const currentSaasApplicationFiles = (options: {
   readonly name: string;
   readonly firstOutcome?: string;
-}): readonly GeneratedFile[] => buildSaasApplicationFiles(options);
+}): readonly GeneratedFile[] =>
+  buildSaasApplicationFiles(options).map((file) => {
+    let content = file.content
+      .replaceAll(
+        "packages/convex/confect/records.spec.ts",
+        "packages/convex/confect/records/records.spec.ts",
+      )
+      .replaceAll(
+        "packages/convex/confect/records.impl.ts",
+        "packages/convex/confect/records/records.impl.ts",
+      );
+    if (
+      file.path === "packages/convex/confect/records.spec.ts" ||
+      file.path === "packages/convex/confect/records.impl.ts"
+    ) {
+      content = content
+        .replaceAll('from "./_generated/', 'from "../_generated/')
+        .replaceAll('from "./errors"', 'from "../errors"')
+        .replaceAll('from "./capabilities/', 'from "../capabilities/');
+    }
+    const path =
+      file.path === "packages/convex/confect/records.spec.ts"
+        ? "packages/convex/confect/records/records.spec.ts"
+        : file.path === "packages/convex/confect/records.impl.ts"
+          ? "packages/convex/confect/records/records.impl.ts"
+          : file.path;
+    if (file.path !== "apps/web/src/features/records/records-surface.tsx")
+      return path === file.path && content === file.content
+        ? file
+        : { ...file, path, content };
+    const search = "templateConfectRefs.public.records.";
+    if (!content.includes(search))
+      throw new Error("SaaS records surface ref projection marker is missing");
+    return {
+      ...file,
+      path,
+      content: content.replaceAll(
+        search,
+        "templateConfectRefs.public.records.records.",
+      ),
+    };
+  });
 
 /** Current/unreleased customer composition awaiting the next release candidate. */
 export const buildFactorySaasApplicationFiles = (options: {

@@ -1,5 +1,5 @@
 import * as Data from "effect/Data";
-import * as Either from "effect/Either";
+import * as Result from "effect/Result";
 
 import {
   transitionWorkflowLifecycle,
@@ -226,10 +226,10 @@ export const transition = (
   command: Parameters<typeof transitionWorkflowLifecycle>[1],
 ) => {
   const result = transitionWorkflowLifecycle(state, command);
-  if (Either.isLeft(result)) {
-    throw controlError("INVALID_STATE", result.left.reason);
+  if (Result.isFailure(result)) {
+    throw controlError("INVALID_STATE", result.failure.reason);
   }
-  return result.right;
+  return result.success;
 };
 
 export const validControlInput = (input: ControlInput): void => {

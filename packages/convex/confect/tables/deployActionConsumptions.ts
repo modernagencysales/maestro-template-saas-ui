@@ -3,10 +3,10 @@ import * as Schema from "effect/Schema";
 
 export default Table.make(() =>
   Schema.Struct({
-    environment: Schema.Literal("staging", "production"),
+    environment: Schema.Literals(["staging", "production"]),
     targetId: Schema.String,
     commitSha: Schema.String,
-    action: Schema.Literal("preflight", "convex", "cloudflare"),
+    action: Schema.Literals(["preflight", "convex", "cloudflare"]),
     approvalHash: Schema.optional(Schema.String),
     verdictHash: Schema.optional(Schema.String),
     authorityOrigin: Schema.optional(Schema.String),

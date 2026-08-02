@@ -266,7 +266,7 @@ const checkDescriptorDefinitions = {
           "check:product-journeys",
           "check:convex-ai-files",
           "check:agent-pack",
-          "check:confect-v9",
+          "check:confect-effect-compat",
           "check:confect-contracts",
           "check:confect-compat",
           "check:env-boundary",
@@ -694,8 +694,8 @@ const checkDescriptorDefinitions = {
         file: "docs/template/convex-compatibility.json",
         includes: [
           '"schemaVersion": 1',
-          '"@confect/server": "9.1.5"',
-          '"effect": "3.21.4"',
+          '"@confect/server": "10.0.0-next.9"',
+          '"effect": "4.0.0-beta.102"',
           '"convex-test": "0.0.54"',
         ],
         message: "machine compatibility authority must pin the tested set",
@@ -721,8 +721,8 @@ const checkDescriptorDefinitions = {
       {
         file: "apps/web/package.json",
         includes: [
-          '"@confect/react": "9.1.5"',
-          '"effect": "3.21.4"',
+          '"@confect/react": "10.0.0-next.9"',
+          '"effect": "4.0.0-beta.102"',
           '"convex": "1.42.1"',
         ],
         message: "web package must pin the Confect React client set",
@@ -730,9 +730,8 @@ const checkDescriptorDefinitions = {
       {
         file: "apps/cli/package.json",
         includes: [
-          '"@confect/js": "9.1.5"',
-          '"@effect/platform-node": "0.106.0"',
-          '"effect": "3.21.4"',
+          '"@confect/js": "10.0.0-next.9"',
+          '"effect": "4.0.0-beta.102"',
         ],
         message: "CLI package must pin the Confect JavaScript client set",
       },

@@ -5,7 +5,7 @@ export default Table.make(() =>
   Schema.Struct({
     workflowRunId: Schema.String,
     nodeId: Schema.String,
-    kind: Schema.Literal(
+    kind: Schema.Literals([
       "source",
       "capability",
       "agent",
@@ -14,9 +14,9 @@ export default Table.make(() =>
       "output",
       "subworkflow",
       "event",
-    ),
+    ]),
     label: Schema.String,
-    status: Schema.Literal(
+    status: Schema.Literals([
       "queued",
       "running",
       "completed",
@@ -24,7 +24,7 @@ export default Table.make(() =>
       "failed",
       "canceled",
       "skipped",
-    ),
+    ]),
     attempt: Schema.Number,
     startedAt: Schema.Number,
     completedAt: Schema.NullOr(Schema.Number),
@@ -32,7 +32,10 @@ export default Table.make(() =>
     outputJson: Schema.NullOr(Schema.String),
     componentWorkflowId: Schema.optional(Schema.String),
     lifecycleGeneration: Schema.optional(
-      Schema.Number.pipe(Schema.int(), Schema.greaterThanOrEqualTo(0)),
+      Schema.Number.pipe(
+        Schema.check(Schema.isInt()),
+        Schema.check(Schema.isGreaterThanOrEqualTo(0)),
+      ),
     ),
     externalEffect: Schema.optional(Schema.Boolean),
     stageKey: Schema.optional(Schema.String),

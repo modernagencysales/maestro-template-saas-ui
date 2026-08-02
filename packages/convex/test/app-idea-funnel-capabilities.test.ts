@@ -21,9 +21,7 @@ const answers = {
 describe("app-idea funnel durable capabilities", () => {
   it("delivers a fake verification link through the action and claims the report", async () => {
     const program = Effect.gen(function* () {
-      const confect = yield* Effect.serviceOptional(
-        TestConfect.TestConfect<typeof databaseSchema>(),
-      );
+      const confect = yield* TestConfect.TestConfect<typeof databaseSchema>();
       const evaluated = yield* confect.mutation(
         refs.public.capabilities.evaluateAppIdea.evaluateAppIdea,
         {
@@ -66,9 +64,7 @@ describe("app-idea funnel durable capabilities", () => {
 
   it("runs the bounded model action once and persists its receipt", async () => {
     const program = Effect.gen(function* () {
-      const confect = yield* Effect.serviceOptional(
-        TestConfect.TestConfect<typeof databaseSchema>(),
-      );
+      const confect = yield* TestConfect.TestConfect<typeof databaseSchema>();
       const first = yield* confect.action(
         refs.public.capabilities.evaluateAppIdea.evaluateAppIdeaWithModel,
         {
@@ -124,9 +120,7 @@ describe("app-idea funnel durable capabilities", () => {
 
   it("persists one report idempotently and rejects a different access token", async () => {
     const program = Effect.gen(function* () {
-      const confect = yield* Effect.serviceOptional(
-        TestConfect.TestConfect<typeof databaseSchema>(),
-      );
+      const confect = yield* TestConfect.TestConfect<typeof databaseSchema>();
       const first = yield* confect.mutation(
         refs.public.capabilities.evaluateAppIdea.evaluateAppIdea,
         { sessionId: "session_1", accessToken: "token_1", answers },
@@ -154,9 +148,7 @@ describe("app-idea funnel durable capabilities", () => {
 
   it("publishes only a stored snapshot and makes it unavailable after revocation", async () => {
     const program = Effect.gen(function* () {
-      const confect = yield* Effect.serviceOptional(
-        TestConfect.TestConfect<typeof databaseSchema>(),
-      );
+      const confect = yield* TestConfect.TestConfect<typeof databaseSchema>();
       const evaluated = yield* confect.mutation(
         refs.public.capabilities.evaluateAppIdea.evaluateAppIdea,
         { sessionId: "share_session", accessToken: "share_owner", answers },

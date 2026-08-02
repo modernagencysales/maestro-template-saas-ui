@@ -6,7 +6,7 @@ export const Capability = Schema.Struct({
   key: Schema.String,
   name: Schema.String,
   description: Schema.String,
-  headlessExposure: Schema.Literal("web", "api", "cli", "mcp"),
+  headlessExposure: Schema.Literals(["web", "api", "cli", "mcp"]),
   requiresApproval: Schema.Boolean,
 });
 

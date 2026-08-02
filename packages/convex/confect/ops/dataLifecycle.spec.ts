@@ -21,13 +21,13 @@ import {
   LegalHoldSchema,
 } from "./dataLifecycle";
 
-const NonEmptyString = Schema.String.pipe(Schema.minLength(1));
-const DataLifecycleError = Schema.Union(
+const NonEmptyString = Schema.String.pipe(Schema.check(Schema.isMinLength(1)));
+const DataLifecycleError = Schema.Union([
   Unauthorized,
   MemberNotInWorkspace,
   WorkspaceNotFound,
   ValidationFailed,
-);
+]);
 
 export const CreateDsarRequestArgs = Schema.Struct({
   workspaceId: Id("workspaces"),

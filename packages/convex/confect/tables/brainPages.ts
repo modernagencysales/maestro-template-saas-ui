@@ -10,7 +10,7 @@ export default Table.make(() =>
     markdown: Schema.String,
     editorSnapshotJson: Schema.optional(Schema.String),
     editorSnapshotVersion: Schema.optional(Schema.Number),
-    sourceKind: Schema.Literal("markdown", "link", "note"),
+    sourceKind: Schema.Literals(["markdown", "link", "note"]),
     updatedAt: Schema.Number,
   }),
 )

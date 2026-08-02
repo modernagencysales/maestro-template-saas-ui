@@ -2,7 +2,9 @@ import * as Schema from "effect/Schema";
 import type { PolicyKindDefinition } from "./types";
 
 export const AgentPolicy = Schema.Struct({
-  maxToolCalls: Schema.Number.pipe(Schema.greaterThanOrEqualTo(0)),
+  maxToolCalls: Schema.Number.pipe(
+    Schema.check(Schema.isGreaterThanOrEqualTo(0)),
+  ),
   allowedToolGrantIds: Schema.Array(Schema.String),
   modelRef: Schema.String,
 });

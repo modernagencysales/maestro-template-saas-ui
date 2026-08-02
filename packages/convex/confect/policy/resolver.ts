@@ -2,10 +2,10 @@ import * as Schema from "effect/Schema";
 
 import type { PolicyCandidate, PolicyKind, PolicyScope } from "./kinds";
 
-export class MissingPolicyError extends Schema.TaggedError<MissingPolicyError>()(
+export class MissingPolicyError extends Schema.TaggedErrorClass<MissingPolicyError>()(
   "MissingPolicyError",
   {
-    kind: Schema.Literal("spend.limits", "agent.config", "prompt.override"),
+    kind: Schema.Literals(["spend.limits", "agent.config", "prompt.override"]),
     workspaceId: Schema.String,
   },
 ) {}

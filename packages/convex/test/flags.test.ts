@@ -1,5 +1,6 @@
 import { TestConfect } from "@confect/test";
 import * as Effect from "effect/Effect";
+import * as Layer from "effect/Layer";
 import * as Schema from "effect/Schema";
 import { describe, expect, it } from "vitest";
 
@@ -102,16 +103,12 @@ describe("feature flag Confect contracts", () => {
     expect(JSON.stringify(flags)).toContain("list");
     expect(JSON.stringify(flags)).toContain("evaluate");
     expect(JSON.stringify(flags)).toContain("upsertPolicyInternal");
-    expect(flagsImpl).toMatchObject({
-      _op_layer: "Fold",
-    });
+    expect(Layer.isLayer(flagsImpl)).toBe(true);
   });
 
   it("lists starter-safe defaults and evaluates live side effects disabled", async () => {
     const program = Effect.gen(function* () {
-      const confect = yield* Effect.serviceOptional(
-        TestConfect.TestConfect<typeof databaseSchema>(),
-      );
+      const confect = yield* TestConfect.TestConfect<typeof databaseSchema>();
       const seeded = yield* confect.run(
         seedTenancy(1_782_924_800_000),
         SeededTenancy,
@@ -165,9 +162,7 @@ describe("feature flag Confect contracts", () => {
 
   it("persists workspace overrides and applies audience gates", async () => {
     const program = Effect.gen(function* () {
-      const confect = yield* Effect.serviceOptional(
-        TestConfect.TestConfect<typeof databaseSchema>(),
-      );
+      const confect = yield* TestConfect.TestConfect<typeof databaseSchema>();
       const seeded = yield* confect.run(
         seedTenancy(1_782_924_800_000),
         SeededTenancy,

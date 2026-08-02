@@ -11,11 +11,11 @@ export type ProviderMode = "fake" | "test" | "live";
 
 export type EnvSource = Readonly<Record<string, string | undefined>>;
 
-export class EnvConfigError extends Schema.TaggedError<EnvConfigError>()(
+export class EnvConfigError extends Schema.TaggedErrorClass<EnvConfigError>()(
   "EnvConfigError",
   {
     name: Schema.String,
-    reason: Schema.Literal("missing", "blank", "whitespace"),
+    reason: Schema.Literals(["missing", "blank", "whitespace"]),
   },
 ) {}
 

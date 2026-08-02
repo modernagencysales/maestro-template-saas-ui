@@ -2,28 +2,28 @@ import { FunctionSpec, GroupSpec } from "@confect/core";
 import * as S from "effect/Schema";
 
 export const StartThreadArgs = S.Struct({
-  workspaceId: S.String.pipe(S.minLength(1)),
-  userId: S.String.pipe(S.minLength(1)),
-  firstMessage: S.String.pipe(S.minLength(1)),
+  workspaceId: S.String.pipe(S.check(S.isMinLength(1))),
+  userId: S.String.pipe(S.check(S.isMinLength(1))),
+  firstMessage: S.String.pipe(S.check(S.isMinLength(1))),
 });
 
 export const ContinueThreadArgs = S.Struct({
-  workspaceId: S.String.pipe(S.minLength(1)),
-  userId: S.String.pipe(S.minLength(1)),
-  threadId: S.String.pipe(S.minLength(1)),
-  message: S.String.pipe(S.minLength(1)),
-  idempotencyKey: S.String.pipe(S.minLength(1)),
+  workspaceId: S.String.pipe(S.check(S.isMinLength(1))),
+  userId: S.String.pipe(S.check(S.isMinLength(1))),
+  threadId: S.String.pipe(S.check(S.isMinLength(1))),
+  message: S.String.pipe(S.check(S.isMinLength(1))),
+  idempotencyKey: S.String.pipe(S.check(S.isMinLength(1))),
 });
 
 export const ListThreadMessagesArgs = S.Struct({
-  workspaceId: S.String.pipe(S.minLength(1)),
-  userId: S.String.pipe(S.minLength(1)),
-  threadId: S.String.pipe(S.minLength(1)),
+  workspaceId: S.String.pipe(S.check(S.isMinLength(1))),
+  userId: S.String.pipe(S.check(S.isMinLength(1))),
+  threadId: S.String.pipe(S.check(S.isMinLength(1))),
 });
 
 export const AssistantMessage = S.Struct({
   id: S.String,
-  role: S.Literal("user", "assistant", "tool"),
+  role: S.Literals(["user", "assistant", "tool"]),
   content: S.String,
   createdAt: S.Number,
 });
@@ -40,12 +40,12 @@ export const ContinueThreadReturn = S.Struct({
 });
 
 export namespace AssistantError {
-  export class Unauthenticated extends S.TaggedError<Unauthenticated>()(
+  export class Unauthenticated extends S.TaggedErrorClass<Unauthenticated>()(
     "Unauthenticated",
     {},
   ) {}
 
-  export class NoWorkspaceAccess extends S.TaggedError<NoWorkspaceAccess>()(
+  export class NoWorkspaceAccess extends S.TaggedErrorClass<NoWorkspaceAccess>()(
     "NoWorkspaceAccess",
     {
       workspaceId: S.String,
@@ -53,14 +53,14 @@ export namespace AssistantError {
     },
   ) {}
 
-  export class ThreadNotFound extends S.TaggedError<ThreadNotFound>()(
+  export class ThreadNotFound extends S.TaggedErrorClass<ThreadNotFound>()(
     "ThreadNotFound",
     {
       threadId: S.String,
     },
   ) {}
 
-  export class ToolGrantDenied extends S.TaggedError<ToolGrantDenied>()(
+  export class ToolGrantDenied extends S.TaggedErrorClass<ToolGrantDenied>()(
     "ToolGrantDenied",
     {
       toolName: S.String,
@@ -68,7 +68,7 @@ export namespace AssistantError {
     },
   ) {}
 
-  export class ValidationFailed extends S.TaggedError<ValidationFailed>()(
+  export class ValidationFailed extends S.TaggedErrorClass<ValidationFailed>()(
     "ValidationFailed",
     {
       field: S.String,
@@ -76,13 +76,13 @@ export namespace AssistantError {
     },
   ) {}
 
-  export const Schema = S.Union(
+  export const Schema = S.Union([
     Unauthenticated,
     NoWorkspaceAccess,
     ThreadNotFound,
     ToolGrantDenied,
     ValidationFailed,
-  );
+  ]);
 }
 
 export type WorkspaceMembership = {

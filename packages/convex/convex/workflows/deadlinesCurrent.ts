@@ -2,8 +2,8 @@ import { type WorkId, Workpool } from "@convex-dev/workpool";
 import { DatabaseWriter } from "@confect/server";
 import { internalMutationGeneric, makeFunctionReference } from "convex/server";
 import { type GenericId, v } from "convex/values";
-import * as Either from "effect/Either";
 import * as Effect from "effect/Effect";
+import * as Result from "effect/Result";
 import type { MutationCtx as AppMutationCtx } from "../_generated/server";
 import databaseSchema from "../../confect/_generated/schema";
 import { createMaestroWorkflowLifecycleAdapter } from "../../confect/workflows/_kit/defineMaestroWorkflow";
@@ -69,7 +69,7 @@ export const schedule = internalMutationGeneric({
     if (!run || run.workspaceId !== args.workspaceId)
       return { kind: "no-op" as const };
     assertRunAuthority(run, String(args.workspaceId));
-    const planned = Either.getOrThrow(
+    const planned = Result.getOrThrow(
       planWorkflowDeadlineSchedule({
         generation: {
           workspaceId: String(args.workspaceId),
@@ -133,7 +133,7 @@ export const fire = internalMutationGeneric({
             execution: "terminal" as const,
             deadlineSchedule: null,
           };
-    const decision = Either.getOrThrow(
+    const decision = Result.getOrThrow(
       planWorkflowDeadlineCallback({
         callbackSchedule,
         currentRun,

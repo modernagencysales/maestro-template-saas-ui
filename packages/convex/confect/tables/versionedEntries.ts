@@ -10,14 +10,14 @@ export default Table.make(() =>
     restoredFromVersionKey: Schema.optional(Schema.String),
     externalVersion: Schema.optional(Schema.String),
     reconciliationKey: Schema.optional(Schema.String),
-    causation: Schema.Literal(
+    causation: Schema.Literals([
       "human-edit",
       "agent-edit",
       "import",
       "migration",
       "reconcile",
       "restore",
-    ),
+    ]),
     actorId: Schema.String,
     payloadHash: Schema.String,
     payloadJson: Schema.String,

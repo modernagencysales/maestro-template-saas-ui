@@ -767,7 +767,7 @@ const requestReportEmailVerificationImpl = FunctionImpl.make(
         input,
       ).pipe(
         Effect.catchTag(
-          "ParseError",
+          "SchemaError",
           () =>
             new ValidationFailed({
               field: "email",

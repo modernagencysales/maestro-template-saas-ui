@@ -411,7 +411,7 @@ const normalizeOutcome = (outcome: {
   }
   if (outcome.kind === "canceled") return { kind: "canceled" };
   const receipt = Option.getOrThrowWith(
-    Option.fromNullable(outcome.receipt),
+    Option.fromNullishOr(outcome.receipt),
     () => new Error("Subworkflow receipt is unavailable."),
   );
   return {
@@ -426,7 +426,7 @@ const normalizeOutcome = (outcome: {
 };
 
 const resolveChildWorkflowRunId = (
-  reader: Context.Tag.Service<typeof DatabaseReader>,
+  reader: Context.Service.Shape<typeof DatabaseReader>,
   link: SubworkflowRunLinkRow,
 ) => {
   const childWorkflowRunId = childWorkflowRunIdFromLink(link);

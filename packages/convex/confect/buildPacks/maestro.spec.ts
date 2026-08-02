@@ -15,13 +15,13 @@ export const getOffer = FunctionSpec.publicQuery({
       packId: Schema.String,
       reportId: Schema.String,
       creditCents: Schema.Number,
-      creditStatus: Schema.Literal("available", "applied"),
-      fit: Schema.Literal("strong", "partial", "low"),
+      creditStatus: Schema.Literals(["available", "applied"]),
+      fit: Schema.Literals(["strong", "partial", "low"]),
       blueprintId: Schema.String,
-      blueprintStatus: Schema.Literal("implemented", "planned"),
+      blueprintStatus: Schema.Literals(["implemented", "planned"]),
       mappingJson: Schema.String,
     }),
-  error: () => Schema.Union(Unauthorized, NotFound, ValidationFailed),
+  error: () => Schema.Union([Unauthorized, NotFound, ValidationFailed]),
 });
 
 export default GroupSpec.make().addFunction(getOffer);

@@ -13,9 +13,7 @@ const now = 1_782_924_800_000;
 describe("brain pages Confect contract", () => {
   it("rejects a workspace outsider before creating a markdown page", async () => {
     const program = Effect.gen(function* () {
-      const confect = yield* Effect.serviceOptional(
-        TestConfect.TestConfect<typeof databaseSchema>(),
-      );
+      const confect = yield* TestConfect.TestConfect<typeof databaseSchema>();
       const seeded = yield* confect.run(seedTenancy(now), SeededTenancy);
       return yield* confect
         .withIdentity({

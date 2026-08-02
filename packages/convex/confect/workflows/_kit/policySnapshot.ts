@@ -19,16 +19,16 @@ export const PinnedWorkflowPolicyPosture = Schema.Struct({
   policyHash: Schema.NonEmptyString,
 });
 
-export const WorkflowPolicyPosture = Schema.Union(
+export const WorkflowPolicyPosture = Schema.Union([
   NoWorkflowPolicyPosture,
   PinnedWorkflowPolicyPosture,
-);
+]);
 
 export type WorkflowPolicyPosture = Schema.Schema.Type<
   typeof WorkflowPolicyPosture
 >;
 
-export const WorkflowPolicySnapshot = Schema.Union(
+export const WorkflowPolicySnapshot = Schema.Union([
   Schema.Struct({
     version: Schema.Literal(1),
     kind: Schema.Literal("none"),
@@ -41,11 +41,11 @@ export const WorkflowPolicySnapshot = Schema.Union(
     policyVersionId: Schema.NonEmptyString,
     policyHash: Schema.NonEmptyString,
     resolvedAt: Schema.Number.pipe(
-      Schema.finite(),
-      Schema.greaterThanOrEqualTo(0),
+      Schema.check(Schema.isFinite()),
+      Schema.check(Schema.isGreaterThanOrEqualTo(0)),
     ),
   }),
-);
+]);
 export type WorkflowPolicySnapshot = Schema.Schema.Type<
   typeof WorkflowPolicySnapshot
 >;

@@ -5,13 +5,13 @@ export default Table.make(() =>
   Schema.Struct({
     sessionId: Schema.String,
     accessTokenHash: Schema.String,
-    status: Schema.Literal(
+    status: Schema.Literals([
       "collecting",
       "ready-to-evaluate",
       "evaluating",
       "completed",
       "failed-recoverable",
-    ),
+    ]),
     createdAt: Schema.Number,
     updatedAt: Schema.Number,
   }),

@@ -5,7 +5,7 @@ export default Table.make(() =>
   Schema.Struct({
     paymentId: Schema.String,
     eventId: Schema.String,
-    status: Schema.Literal("refunded", "disputed"),
+    status: Schema.Literals(["refunded", "disputed"]),
     createdAt: Schema.Number,
   }),
 )

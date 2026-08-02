@@ -7,6 +7,7 @@ import * as Effect from "effect/Effect";
 import * as Ref from "effect/Ref";
 import type * as DatabaseSchema from "./DatabaseSchema";
 import type * as GroupImpl from "./GroupImpl";
+import { runSyncInIsolate } from "./internal/runSyncInIsolate";
 import { mapLeaves } from "./internal/utils";
 import type * as RegisteredFunction from "./RegisteredFunction";
 import * as RegistryItem from "./RegistryItem";
@@ -95,9 +96,9 @@ export const buildForGroup = <Group extends GroupSpec.AnyWithProps>(
     Effect.provide(groupLayer),
     Effect.provideService(
       Registry.Registry,
-      Ref.unsafeMake<Registry.RegistryItems>({}),
+      Ref.makeUnsafe<Registry.RegistryItems>({}),
     ),
-    Effect.runSync,
+    runSyncInIsolate,
   );
 
   return mapLeaves<RegistryItem.AnyWithProps, RegisteredFunction.Any>(

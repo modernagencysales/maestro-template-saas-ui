@@ -1,5 +1,5 @@
 import * as Effect from "effect/Effect";
-import * as Either from "effect/Either";
+import * as Result from "effect/Result";
 
 import {
   ProvisioningConflict,
@@ -155,10 +155,10 @@ export const buildProvisioningPlan = (input: {
   readonly identity: IdentityProfile;
   readonly state: ProvisioningState;
   readonly now: number;
-}): Either.Either<ProvisioningPlan, Unauthorized> => {
+}): Result.Result<ProvisioningPlan, Unauthorized> => {
   const user = input.state.user;
   if (user?.status === "suspended" || user?.status === "deleted") {
-    return Either.left(new Unauthorized());
+    return Result.fail(new Unauthorized());
   }
 
   const seed = provisioningSeed(input.identity);
@@ -167,7 +167,7 @@ export const buildProvisioningPlan = (input: {
     input.state.liveOrganization?._id ?? "{organizationId}";
   const workspaceId = input.state.liveWorkspace?._id ?? "{workspaceId}";
 
-  return Either.right({
+  return Result.succeed({
     user: planUser(input.identity, user, input.now),
     organization: planOrganization(
       input.state.liveOrganization,
@@ -230,31 +230,31 @@ const selectSingleLiveOwned = <
   rows: ReadonlyArray<Row>,
   userId: string,
   resource: string,
-): Either.Either<Row | null, ProvisioningConflict> => {
+): Result.Result<Row | null, ProvisioningConflict> => {
   const live = rows.filter(
     (row) => row.ownerUserId === userId && row.status === "active",
   );
   if (live.length > 1) {
-    return Either.left(
+    return Result.fail(
       new ProvisioningConflict({
         resource,
         message: `Multiple live owned ${resource} found for identity.`,
       }),
     );
   }
-  return Either.right(live.at(0) ?? null);
+  return Result.succeed(live.at(0) ?? null);
 };
 
 export const selectLiveOwnedOrganization = (
   organizations: ReadonlyArray<OrganizationProvisioningRow>,
   userId: string,
-): Either.Either<OrganizationProvisioningRow | null, ProvisioningConflict> =>
+): Result.Result<OrganizationProvisioningRow | null, ProvisioningConflict> =>
   selectSingleLiveOwned(organizations, userId, "organizations");
 
 export const selectLiveOwnedWorkspace = (
   workspaces: ReadonlyArray<WorkspaceProvisioningRow>,
   userId: string,
-): Either.Either<WorkspaceProvisioningRow | null, ProvisioningConflict> =>
+): Result.Result<WorkspaceProvisioningRow | null, ProvisioningConflict> =>
   selectSingleLiveOwned(workspaces, userId, "workspaces");
 
 const planUser = (

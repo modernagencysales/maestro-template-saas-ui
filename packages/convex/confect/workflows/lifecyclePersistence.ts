@@ -20,8 +20,8 @@ import {
 } from "./_kit/lifecycleState";
 import { WorkflowStepName } from "./_kit/workflowReferences";
 
-type Reader = Context.Tag.Service<typeof DatabaseReader>;
-type Writer = Context.Tag.Service<typeof DatabaseWriter>;
+type Reader = Context.Service.Shape<typeof DatabaseReader>;
+type Writer = Context.Service.Shape<typeof DatabaseWriter>;
 type WorkflowRunId = GenericId<"workflowRuns">;
 
 export class WorkflowLifecyclePersistenceError extends Data.TaggedError(

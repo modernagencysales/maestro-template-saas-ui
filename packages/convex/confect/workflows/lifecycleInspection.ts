@@ -7,7 +7,7 @@ import type { WorkflowRestartInspection } from "./_kit/lifecycleControls";
 import { decodeSubworkflowRunLinkIdentity } from "./_kit/subworkflowLinks";
 import { WorkflowLifecyclePersistenceError } from "./lifecyclePersistence";
 
-type Reader = Context.Tag.Service<typeof DatabaseReader>;
+type Reader = Context.Service.Shape<typeof DatabaseReader>;
 
 export const inspectWorkflowRetention = (
   reader: Reader,

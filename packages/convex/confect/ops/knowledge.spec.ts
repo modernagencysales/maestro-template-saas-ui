@@ -1,10 +1,10 @@
 import { FunctionSpec, GroupSpec } from "@confect/core";
 import * as S from "effect/Schema";
 
-const NonEmptyString = S.String.pipe(S.minLength(1));
-const SourceKind = S.Literal("markdown", "link", "note", "document");
-const ClaimStatus = S.Literal("supported", "disputed", "unsupported-draft");
-const Freshness = S.Literal("fresh", "review-due", "stale");
+const NonEmptyString = S.String.pipe(S.check(S.isMinLength(1)));
+const SourceKind = S.Literals(["markdown", "link", "note", "document"]);
+const ClaimStatus = S.Literals(["supported", "disputed", "unsupported-draft"]);
+const Freshness = S.Literals(["fresh", "review-due", "stale"]);
 
 export const UpsertConceptArgs = S.Struct({
   workspaceId: NonEmptyString,
@@ -16,7 +16,7 @@ export const UpsertConceptArgs = S.Struct({
 export const UpsertClaimArgs = S.Struct({
   workspaceId: NonEmptyString,
   claimId: NonEmptyString,
-  conceptIds: S.Array(NonEmptyString).pipe(S.minItems(1)),
+  conceptIds: S.Array(NonEmptyString).pipe(S.check(S.isMinLength(1))),
   body: NonEmptyString,
   status: ClaimStatus,
   citationIds: S.Array(NonEmptyString),
@@ -38,9 +38,9 @@ export const BuildContextPackArgs = S.Struct({
   workspaceId: NonEmptyString,
   contextPackId: NonEmptyString,
   title: NonEmptyString,
-  sourceIds: S.Array(NonEmptyString).pipe(S.minItems(1)),
-  citationIds: S.Array(NonEmptyString).pipe(S.minItems(1)),
-  claimIds: S.Array(NonEmptyString).pipe(S.minItems(1)),
+  sourceIds: S.Array(NonEmptyString).pipe(S.check(S.isMinLength(1))),
+  citationIds: S.Array(NonEmptyString).pipe(S.check(S.isMinLength(1))),
+  claimIds: S.Array(NonEmptyString).pipe(S.check(S.isMinLength(1))),
   freshness: Freshness,
   trustReceiptId: NonEmptyString,
 });
@@ -96,21 +96,21 @@ export const ContextPackReturn = S.Struct({
 });
 
 export namespace KnowledgeError {
-  export class CitationRequired extends S.TaggedError<CitationRequired>()(
+  export class CitationRequired extends S.TaggedErrorClass<CitationRequired>()(
     "CitationRequired",
     {
       claimId: S.String,
     },
   ) {}
 
-  export class WorkspaceNotFound extends S.TaggedError<WorkspaceNotFound>()(
+  export class WorkspaceNotFound extends S.TaggedErrorClass<WorkspaceNotFound>()(
     "WorkspaceNotFound",
     {
       workspaceId: S.String,
     },
   ) {}
 
-  export class ValidationFailed extends S.TaggedError<ValidationFailed>()(
+  export class ValidationFailed extends S.TaggedErrorClass<ValidationFailed>()(
     "ValidationFailed",
     {
       field: S.String,
@@ -118,11 +118,11 @@ export namespace KnowledgeError {
     },
   ) {}
 
-  export const Schema = S.Union(
+  export const Schema = S.Union([
     CitationRequired,
     WorkspaceNotFound,
     ValidationFailed,
-  );
+  ]);
 }
 
 const upsertConcept = FunctionSpec.publicMutation({

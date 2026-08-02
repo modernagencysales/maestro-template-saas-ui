@@ -405,7 +405,7 @@ const applyDodoImpl = FunctionImpl.make(
         },
       ).pipe(
         Effect.catchTag(
-          "ParseError",
+          "SchemaError",
           () => new WebhookRejected({ reason: "invalid verified event" }),
         ),
       );

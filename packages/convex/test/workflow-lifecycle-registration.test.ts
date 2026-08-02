@@ -1,3 +1,4 @@
+import * as Layer from "effect/Layer";
 import { describe, expect, it, vi } from "vitest";
 
 import lifecycleImpl from "../confect/workflows/lifecycle.impl";
@@ -13,7 +14,7 @@ describe("workflow lifecycle Confect and component registration", () => {
     expect(encoded).toContain("listSteps");
     expect(encoded).toContain("cleanup");
     expect(encoded).toContain('"restart"');
-    expect(lifecycleImpl).toMatchObject({ _op_layer: "Fold" });
+    expect(Layer.isLayer(lifecycleImpl)).toBe(true);
   });
 
   it("maps exact component IDs and pinned restart options", async () => {

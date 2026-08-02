@@ -9,22 +9,22 @@ import {
   ValidationFailed,
 } from "../errors";
 
-const PackStatus = Schema.Literal(
+const PackStatus = Schema.Literals([
   "running",
   "failed-recoverable",
   "needs-support",
   "completed",
   "revoked",
-);
-const StageStatus = Schema.Literal(
+]);
+const StageStatus = Schema.Literals([
   "queued",
   "running",
   "completed",
   "failed-recoverable",
   "needs-support",
-);
+]);
 const Stage = Schema.Struct({
-  name: Schema.Literal(...buildPackStageNames),
+  name: Schema.Literals(buildPackStageNames),
   status: StageStatus,
   attempts: Schema.Number,
   output: Schema.optional(Schema.String),
@@ -42,12 +42,12 @@ const OwnerArgs = Schema.Struct({
   packId: Schema.String,
   ownerAccessToken: Schema.String,
 });
-const PackErrors = Schema.Union(
+const PackErrors = Schema.Union([
   Unauthorized,
   ValidationFailed,
   NotFound,
   ConfigInvalid,
-);
+]);
 
 export const startPack = FunctionSpec.publicMutation({
   name: "startPack",
@@ -91,7 +91,7 @@ export const runPack = FunctionSpec.internalAction({
   name: "runPack",
   args: () => Schema.Struct({ packId: Schema.String }),
   returns: () => PackSummary,
-  error: () => Schema.Union(ValidationFailed, NotFound, ConfigInvalid),
+  error: () => Schema.Union([ValidationFailed, NotFound, ConfigInvalid]),
 });
 
 export const loadPackRun = FunctionSpec.internalQuery({
@@ -103,7 +103,7 @@ export const loadPackRun = FunctionSpec.internalQuery({
       reportJson: Schema.String,
       currentDailySpendCents: Schema.Number,
     }),
-  error: () => Schema.Union(ValidationFailed, NotFound),
+  error: () => Schema.Union([ValidationFailed, NotFound]),
 });
 
 export const claimStage = FunctionSpec.internalMutation({
@@ -112,17 +112,17 @@ export const claimStage = FunctionSpec.internalMutation({
   returns: () =>
     Schema.Struct({
       claimed: Schema.Boolean,
-      stage: Schema.optional(Schema.Literal(...buildPackStageNames)),
+      stage: Schema.optional(Schema.Literals(buildPackStageNames)),
       attempt: Schema.optional(Schema.Number),
     }),
-  error: () => Schema.Union(ValidationFailed, NotFound),
+  error: () => Schema.Union([ValidationFailed, NotFound]),
 });
 
 const Receipt = Schema.Struct({
   receiptId: Schema.String,
   stage: Schema.String,
   provider: Schema.String,
-  mode: Schema.Literal("fake", "test", "live"),
+  mode: Schema.Literals(["fake", "test", "live"]),
   model: Schema.String,
   inputTokens: Schema.Number,
   outputTokens: Schema.Number,
@@ -136,12 +136,12 @@ export const persistCheckpoint = FunctionSpec.internalMutation({
     Schema.Struct({
       packId: Schema.String,
       runJson: Schema.String,
-      stage: Schema.optional(Schema.Literal(...buildPackStageNames)),
+      stage: Schema.optional(Schema.Literals(buildPackStageNames)),
       leaseId: Schema.optional(Schema.String),
       receipt: Schema.optional(Receipt),
     }),
   returns: () => PackSummary,
-  error: () => Schema.Union(ValidationFailed, NotFound),
+  error: () => Schema.Union([ValidationFailed, NotFound]),
 });
 
 export const finishPack = FunctionSpec.internalMutation({
@@ -152,7 +152,7 @@ export const finishPack = FunctionSpec.internalMutation({
       canonicalPackJson: Schema.String,
     }),
   returns: () => PackSummary,
-  error: () => Schema.Union(ValidationFailed, NotFound),
+  error: () => Schema.Union([ValidationFailed, NotFound]),
 });
 
 export default GroupSpec.make()

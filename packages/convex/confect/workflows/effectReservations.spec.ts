@@ -9,19 +9,19 @@ import {
   WorkflowEffectStrategy,
 } from "../tables/workflowEffectReservations";
 
-const WorkflowEffectError = Schema.Union(NotFound, ValidationFailed);
+const WorkflowEffectError = Schema.Union([NotFound, ValidationFailed]);
 
-export const WorkflowEffectTransitionEvent = Schema.Union(
+export const WorkflowEffectTransitionEvent = Schema.Union([
   Schema.Struct({ kind: Schema.Literal("submitted") }),
   Schema.Struct({ kind: Schema.Literal("confirmed") }),
   Schema.Struct({
     kind: Schema.Literal("ambiguous"),
-    phase: Schema.Literal("before-dispatch", "after-dispatch"),
+    phase: Schema.Literals(["before-dispatch", "after-dispatch"]),
   }),
   Schema.Struct({ kind: Schema.Literal("reconciled-confirmed") }),
   Schema.Struct({ kind: Schema.Literal("manual-review") }),
   Schema.Struct({ kind: Schema.Literal("terminal") }),
-);
+]);
 
 export const ReserveWorkflowEffectArgs = Schema.Struct({
   workspaceId: Id("workspaces"),
@@ -42,34 +42,34 @@ export const ReserveWorkflowEffectArgs = Schema.Struct({
   occurredAt: Schema.Number,
 });
 
-const WorkflowEffectDispatchDecision = Schema.Union(
+const WorkflowEffectDispatchDecision = Schema.Union([
   Schema.Struct({ kind: Schema.Literal("dispatch") }),
   Schema.Struct({
     kind: Schema.Literal("deny"),
-    guard: Schema.Literal("approval", "quotaRate", "spendKillSwitch"),
+    guard: Schema.Literals(["approval", "quotaRate", "spendKillSwitch"]),
   }),
   Schema.Struct({ kind: Schema.Literal("reconcile") }),
   Schema.Struct({ kind: Schema.Literal("manual-review") }),
   Schema.Struct({ kind: Schema.Literal("reuse-confirmed") }),
   Schema.Struct({ kind: Schema.Literal("terminal") }),
   Schema.Struct({ kind: Schema.Literal("in-flight") }),
-);
+]);
 
 const WorkflowEffectStateResult = Schema.Struct({
-  state: Schema.Literal(
+  state: Schema.Literals([
     "reserved",
     "submitted",
     "confirmed",
     "ambiguous",
     "terminal",
-  ),
-  reconciliationState: Schema.Literal(
+  ]),
+  reconciliationState: Schema.Literals([
     "not-required",
     "pending",
     "confirmed",
     "manual-review",
     "terminal",
-  ),
+  ]),
 });
 
 const ReserveWorkflowEffectReturns = Schema.Struct({
@@ -89,9 +89,9 @@ const WorkflowEffectHistoryArgs = Schema.Struct({
   workspaceId: Id("workspaces"),
   logicalEffectKey: Schema.NonEmptyString,
   limit: Schema.Number.pipe(
-    Schema.int(),
-    Schema.greaterThan(0),
-    Schema.lessThanOrEqualTo(100),
+    Schema.check(Schema.isInt()),
+    Schema.check(Schema.isGreaterThan(0)),
+    Schema.check(Schema.isLessThanOrEqualTo(100)),
   ),
 });
 

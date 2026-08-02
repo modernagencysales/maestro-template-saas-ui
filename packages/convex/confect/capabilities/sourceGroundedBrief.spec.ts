@@ -10,9 +10,9 @@ import {
 
 export const SourceGroundedBriefArgs = S.Struct({
   workspaceId: S.String,
-  sourceIds: S.Array(S.String).pipe(S.minItems(1)),
-  briefGoal: S.String.pipe(S.minLength(1)),
-  idempotencyKey: S.String.pipe(S.minLength(1)),
+  sourceIds: S.Array(S.String).pipe(S.check(S.isMinLength(1))),
+  briefGoal: S.String.pipe(S.check(S.isMinLength(1))),
+  idempotencyKey: S.String.pipe(S.check(S.isMinLength(1))),
 });
 
 export const SourceGroundedBriefReturn = S.Struct({

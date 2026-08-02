@@ -26,9 +26,11 @@ export const evaluateAppIdeaReturns = Schema.Struct({
   version: Schema.Number,
 });
 
-const nonNegativeNumber = Schema.Number.pipe(Schema.greaterThanOrEqualTo(0));
+const nonNegativeNumber = Schema.Number.pipe(
+  Schema.check(Schema.isGreaterThanOrEqualTo(0)),
+);
 
-export const evaluateAppIdeaWithModelReturns = Schema.Union(
+export const evaluateAppIdeaWithModelReturns = Schema.Union([
   Schema.Struct({
     ...evaluateAppIdeaReturns.fields,
     freshCompletion: Schema.Literal(false),
@@ -38,25 +40,25 @@ export const evaluateAppIdeaWithModelReturns = Schema.Union(
     freshCompletion: Schema.Literal(true),
     durationMs: nonNegativeNumber,
     modelCalls: Schema.Number.pipe(
-      Schema.int(),
-      Schema.greaterThanOrEqualTo(0),
+      Schema.check(Schema.isInt()),
+      Schema.check(Schema.isGreaterThanOrEqualTo(0)),
     ),
     estimatedCostCents: nonNegativeNumber,
   }),
-);
+]);
 
 export const evaluateAppIdea = FunctionSpec.publicMutation({
   name: "evaluateAppIdea",
   args: () => evaluateAppIdeaArgs,
   returns: () => evaluateAppIdeaReturns,
-  error: () => Schema.Union(Unauthorized, ValidationFailed, Forbidden),
+  error: () => Schema.Union([Unauthorized, ValidationFailed, Forbidden]),
 });
 
 export const evaluateAppIdeaWithModel = FunctionSpec.publicAction({
   name: "evaluateAppIdeaWithModel",
   args: () => evaluateAppIdeaArgs,
   returns: () => evaluateAppIdeaWithModelReturns,
-  error: () => Schema.Union(Unauthorized, ValidationFailed, Forbidden),
+  error: () => Schema.Union([Unauthorized, ValidationFailed, Forbidden]),
 });
 
 export const getEvaluationModelContextArgs = Schema.Struct({
@@ -73,13 +75,13 @@ export const getEvaluationModelContext = FunctionSpec.internalQuery({
   name: "getEvaluationModelContext",
   args: () => getEvaluationModelContextArgs,
   returns: () => getEvaluationModelContextReturns,
-  error: () => Schema.Union(Unauthorized, Forbidden),
+  error: () => Schema.Union([Unauthorized, Forbidden]),
 });
 
 export const modelReceiptProjectionSchema = Schema.Struct({
   receiptId: Schema.String,
   provider: Schema.Literal("openrouter"),
-  mode: Schema.Literal("fake", "test", "live"),
+  mode: Schema.Literals(["fake", "test", "live"]),
   model: Schema.String,
   generatedAt: Schema.String,
   repair: Schema.Boolean,
@@ -100,7 +102,7 @@ export const persistModelEvaluation = FunctionSpec.internalMutation({
   name: "persistModelEvaluation",
   args: () => persistModelEvaluationArgs,
   returns: () => evaluateAppIdeaReturns,
-  error: () => Schema.Union(Unauthorized, ValidationFailed, Forbidden),
+  error: () => Schema.Union([Unauthorized, ValidationFailed, Forbidden]),
 });
 
 export const recordModelReceiptsArgs = Schema.Struct({
@@ -114,7 +116,7 @@ export const recordModelReceipts = FunctionSpec.internalMutation({
   name: "recordModelReceipts",
   args: () => recordModelReceiptsArgs,
   returns: () => Schema.Struct({ status: Schema.Literal("recorded") }),
-  error: () => Schema.Union(Unauthorized, ValidationFailed, Forbidden),
+  error: () => Schema.Union([Unauthorized, ValidationFailed, Forbidden]),
 });
 
 export const failModelEvaluation = FunctionSpec.internalMutation({
@@ -122,7 +124,7 @@ export const failModelEvaluation = FunctionSpec.internalMutation({
   args: () => getEvaluationModelContextArgs,
   returns: () =>
     Schema.Struct({ status: Schema.Literal("failed-recoverable") }),
-  error: () => Schema.Union(Unauthorized, Forbidden),
+  error: () => Schema.Union([Unauthorized, Forbidden]),
 });
 
 export default GroupSpec.make()

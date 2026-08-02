@@ -1,4 +1,4 @@
-import * as Either from "effect/Either";
+import * as Result from "effect/Result";
 
 import type { WorkflowScheduleInput } from "./workflowSchedule";
 import {
@@ -120,8 +120,8 @@ export const runScheduledWorkflowCapability = async <Result>(
     actualStartedAt: input.actualStartNowMs(),
     deadlineAt: input.invocation.request.deadlineAt,
   });
-  if (Either.isLeft(observed)) throw observed.left;
-  const facts = Object.freeze(observed.right);
+  if (Result.isFailure(observed)) throw observed.failure;
+  const facts = Object.freeze(observed.success);
   await input.recordActualStart(facts);
   if (facts.expired) {
     return blocked(

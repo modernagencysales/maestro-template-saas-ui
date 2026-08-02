@@ -15,7 +15,7 @@ export type AccessAuditEventInsert = {
   readonly createdAt: number;
 };
 
-type Writer = Context.Tag.Service<typeof DatabaseWriter>;
+type Writer = Context.Service.Shape<typeof DatabaseWriter>;
 
 export const accessAuditEventInsert = (
   event: AccessLifecycleEvent,

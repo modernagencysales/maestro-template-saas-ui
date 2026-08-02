@@ -1,3 +1,5 @@
+import * as Exit from "effect/Exit";
+import * as Schema from "effect/Schema";
 import { describe, expect, it } from "vitest";
 import {
   OFFICIAL_WORKFLOW_PRIMITIVES,
@@ -9,8 +11,27 @@ import {
   validateWorkflowSemanticCoverage,
   validateWorkflowSemantics,
 } from "./contract";
+import { WorkflowSemanticStatus } from "./schema";
 
 describe("workflow semantics contract", () => {
+  it("decodes every persisted semantic status and rejects unknown values", () => {
+    const decode = Schema.decodeUnknownExit(WorkflowSemanticStatus);
+
+    for (const status of [
+      "supported",
+      "intentionally-restricted",
+      "unsupported",
+    ]) {
+      const decoded = decode(status);
+      expect(Exit.isSuccess(decoded)).toBe(true);
+      if (Exit.isSuccess(decoded)) {
+        expect(decoded.value).toBe(status);
+      }
+    }
+
+    expect(Exit.isFailure(decode("unknown"))).toBe(true);
+  });
+
   it("keeps schema constructors on the exact exported field registry", () => {
     expect(
       defineWorkflowSchemaFields("retry", {

@@ -19,13 +19,18 @@ export const AllocateWorkflowEventInstanceArgs = Schema.Struct({
   workspaceId: Schema.NonEmptyString,
   workflowRunId: Schema.NonEmptyString,
   componentWorkflowId: Schema.NonEmptyString,
-  generation: Schema.Number.pipe(Schema.int(), Schema.greaterThanOrEqualTo(0)),
+  generation: Schema.Number.pipe(
+    Schema.check(Schema.isInt()),
+    Schema.check(Schema.isGreaterThanOrEqualTo(0)),
+  ),
   eventDefinition: WorkflowEventReference,
   eventInstanceKey: Schema.NonEmptyString,
   componentEventId: Schema.NonEmptyString,
   principal: WorkflowPrincipal,
   creatorCapability: WorkflowCapabilityReference,
-  occurredAt: Schema.Number.pipe(Schema.greaterThanOrEqualTo(0)),
+  occurredAt: Schema.Number.pipe(
+    Schema.check(Schema.isGreaterThanOrEqualTo(0)),
+  ),
 });
 
 export const OwnedWorkflowEventResult = Schema.Struct({
@@ -33,7 +38,10 @@ export const OwnedWorkflowEventResult = Schema.Struct({
   componentEventId: Schema.NonEmptyString,
   workspaceId: Schema.NonEmptyString,
   workflowRunId: Schema.NonEmptyString,
-  generation: Schema.Number.pipe(Schema.int(), Schema.greaterThanOrEqualTo(0)),
+  generation: Schema.Number.pipe(
+    Schema.check(Schema.isInt()),
+    Schema.check(Schema.isGreaterThanOrEqualTo(0)),
+  ),
   eventDefinition: WorkflowEventReference,
   eventInstanceKey: Schema.NonEmptyString,
   principal: WorkflowPrincipal,
@@ -43,22 +51,24 @@ export const OwnedWorkflowEventResult = Schema.Struct({
 export const ReconcileWorkflowEventInstanceArgs = Schema.Struct({
   workspaceId: Schema.NonEmptyString,
   eventId: ProductWorkflowEventId,
-  outcome: Schema.Literal("consumed", "canceled", "cleanup"),
-  occurredAt: Schema.Number.pipe(Schema.greaterThanOrEqualTo(0)),
+  outcome: Schema.Literals(["consumed", "canceled", "cleanup"]),
+  occurredAt: Schema.Number.pipe(
+    Schema.check(Schema.isGreaterThanOrEqualTo(0)),
+  ),
 });
 
 export const ReconcileWorkflowEventInstanceResult = Schema.Struct({
-  status: Schema.Literal(
+  status: Schema.Literals([
     "allocated",
     "sent",
     "consumed",
     "invalidated",
     "canceled",
-  ),
-  cleanup: Schema.Literal("active", "residual-inaccessible"),
+  ]),
+  cleanup: Schema.Literals(["active", "residual-inaccessible"]),
 });
 
-export const WorkflowEventInstanceSelector = Schema.Union(
+export const WorkflowEventInstanceSelector = Schema.Union([
   Schema.Struct({
     kind: Schema.Literal("id"),
     eventId: ProductWorkflowEventId,
@@ -69,18 +79,20 @@ export const WorkflowEventInstanceSelector = Schema.Union(
     eventDefinition: WorkflowEventReference,
     eventInstanceKey: Schema.NonEmptyString,
   }),
-);
+]);
 
 export const SendWorkflowEventInstanceArgs = Schema.Struct({
   selector: WorkflowEventInstanceSelector,
-  delivery: Schema.Union(
+  delivery: Schema.Union([
     Schema.Struct({ kind: Schema.Literal("value"), value: Schema.Unknown }),
     Schema.Struct({
       kind: Schema.Literal("error"),
       error: Schema.NonEmptyString,
     }),
+  ]),
+  occurredAt: Schema.Number.pipe(
+    Schema.check(Schema.isGreaterThanOrEqualTo(0)),
   ),
-  occurredAt: Schema.Number.pipe(Schema.greaterThanOrEqualTo(0)),
 });
 
 export const SendWorkflowEventInstanceResult = Schema.Struct({
@@ -88,13 +100,13 @@ export const SendWorkflowEventInstanceResult = Schema.Struct({
   status: Schema.Literal("sent"),
 });
 
-const errors = Schema.Union(
+const errors = Schema.Union([
   Unauthorized,
   MemberNotInWorkspace,
   WorkspaceNotFound,
   NotFound,
   ValidationFailed,
-);
+]);
 
 const allocate = FunctionSpec.internalMutation({
   name: "allocate",

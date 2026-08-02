@@ -1,3 +1,4 @@
+import * as Exit from "effect/Exit";
 import * as Schema from "effect/Schema";
 
 import { makePublicError } from "../../shared/errors";
@@ -311,26 +312,24 @@ export const subworkflowRunLinkReservationFromLink = (
     const childWorkflowRunId = childWorkflowRunIdFromLink(row);
     const workflow =
       "workflow" in value
-        ? Schema.decodeUnknownEither(WorkflowReference)(value.workflow)
+        ? Schema.decodeUnknownExit(WorkflowReference)(value.workflow)
         : null;
     const principal =
       "principal" in value
-        ? Schema.decodeUnknownEither(DurableWorkflowPrincipal)(value.principal)
+        ? Schema.decodeUnknownExit(DurableWorkflowPrincipal)(value.principal)
         : null;
     const policySnapshot =
       "policySnapshot" in value
-        ? Schema.decodeUnknownEither(WorkflowPolicySnapshot)(
-            value.policySnapshot,
-          )
+        ? Schema.decodeUnknownExit(WorkflowPolicySnapshot)(value.policySnapshot)
         : null;
     if (
       childWorkflowRunId === null ||
       workflow === null ||
-      workflow._tag === "Left" ||
+      Exit.isFailure(workflow) ||
       principal === null ||
-      principal._tag === "Left" ||
+      Exit.isFailure(principal) ||
       policySnapshot === null ||
-      policySnapshot._tag === "Left" ||
+      Exit.isFailure(policySnapshot) ||
       !("workflowVersion" in value) ||
       typeof value.workflowVersion !== "number" ||
       !Number.isInteger(value.workflowVersion) ||
@@ -346,12 +345,12 @@ export const subworkflowRunLinkReservationFromLink = (
     }
     return {
       childWorkflowRunId,
-      workflow: workflow.right,
+      workflow: workflow.value,
       workflowVersion: value.workflowVersion,
       graphJson: value.graphJson,
       releaseChecksum: value.releaseChecksum,
-      principal: principal.right,
-      policySnapshot: policySnapshot.right,
+      principal: principal.value,
+      policySnapshot: policySnapshot.value,
     };
   } catch {
     return null;
@@ -362,10 +361,10 @@ const assertProjection = (
   projection: SubworkflowRunLinkProjection,
   occurredAt: number,
 ): void => {
-  const decodedPrincipal = Schema.decodeUnknownEither(DurableWorkflowPrincipal)(
+  const decodedPrincipal = Schema.decodeUnknownExit(DurableWorkflowPrincipal)(
     projection.principal,
   );
-  const decodedPolicy = Schema.decodeUnknownEither(WorkflowPolicySnapshot)(
+  const decodedPolicy = Schema.decodeUnknownExit(WorkflowPolicySnapshot)(
     projection.policySnapshot,
   );
   if (
@@ -381,9 +380,9 @@ const assertProjection = (
     projection.childGraphJson.length === 0 ||
     projection.childGraphJson.length > 256 << 10 ||
     !/^[a-f0-9]{64}$/.test(projection.childReleaseChecksum) ||
-    decodedPrincipal._tag === "Left" ||
-    decodedPolicy._tag === "Left" ||
-    decodedPrincipal.right.workspaceId !== projection.workspaceId ||
+    Exit.isFailure(decodedPrincipal) ||
+    Exit.isFailure(decodedPolicy) ||
+    decodedPrincipal.value.workspaceId !== projection.workspaceId ||
     !Number.isFinite(occurredAt) ||
     occurredAt < 0
   ) {
