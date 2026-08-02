@@ -13,7 +13,7 @@ afterEach(() => {
 });
 
 test("refuses to restack while a required check is in progress", () => {
-  expect(mayRestack({ verify: null })).toBe(false); // null = in-flight/none yet
+  expect(mayRestack({ "ci/woodpecker/pr/verify": null })).toBe(false); // null = in-flight/none yet
 });
 
 test("refuses to restack while a required status context is pending", () => {
@@ -109,7 +109,7 @@ test("syncStack refuses before Graphite commands when an affected PR is in fligh
       args[1] ===
         "repos/modernagencysales/maestro-template/commits/abc123/status"
     ) {
-      return '{"statuses":[{"context":"verify","state":"pending"}]}';
+      return '{"statuses":[{"context":"ci/woodpecker/pr/verify","state":"pending"}]}';
     }
     if (
       cmd === "gh" &&
