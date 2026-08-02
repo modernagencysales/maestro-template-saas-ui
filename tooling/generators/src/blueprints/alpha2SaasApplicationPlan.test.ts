@@ -58,6 +58,28 @@ const canonicalPlan = (): BlueprintTargetPlan =>
     gunzipSync(Buffer.from(encodedArtifact, "base64")).toString(),
   ) as BlueprintTargetPlan;
 
+const targetEntryIdentity = (
+  candidate: BlueprintTargetPlan["entries"][number],
+) => ({
+  path: candidate.path,
+  ownership: candidate.ownership,
+  action: candidate.action,
+  upgrade: candidate.upgrade,
+  sha256: candidate.sha256,
+  ...(candidate.replaces === undefined ? {} : { replaces: candidate.replaces }),
+});
+
+const requireAt = <T>(
+  values: readonly T[],
+  index: number,
+  label: string,
+): T => {
+  const value = values[index];
+  if (value === undefined)
+    throw new Error(`Missing ${label} at index ${index}`);
+  return value;
+};
+
 const withRecomputedDigest = (
   plan: BlueprintTargetPlan,
 ): BlueprintTargetPlan => {
@@ -66,9 +88,7 @@ const withRecomputedDigest = (
     id: plan.id,
     provenance: plan.provenance,
     registrations: plan.registrations,
-    entries: plan.entries.map(
-      ({ content: _content, ...entryIdentity }) => entryIdentity,
-    ),
+    entries: plan.entries.map(targetEntryIdentity),
   };
   return { ...plan, digest: hash(JSON.stringify(identity)) };
 };
@@ -85,8 +105,8 @@ const validate = (plan: unknown, reviewedAuthority: unknown = authority) =>
 
 const entry = (plan: BlueprintTargetPlan, path: string) => {
   const found = plan.entries.find((candidate) => candidate.path === path);
-  expect(found, path).toBeDefined();
-  return found!;
+  if (found === undefined) throw new Error(`Missing plan entry ${path}`);
+  return found;
 };
 
 describe("frozen alpha.2 SaaS application plan", () => {
@@ -142,7 +162,10 @@ describe("frozen alpha.2 SaaS application plan", () => {
     ).toThrow(/base64/i);
 
     const compressed = Buffer.from(encodedArtifact, "base64");
-    compressed[100] = compressed[100]! ^ 1;
+    const compressedByte = compressed.at(100);
+    if (compressedByte === undefined)
+      throw new Error("Missing compressed artifact byte at index 100");
+    compressed[100] = compressedByte ^ 1;
     const corruptGzip = compressed.toString("base64");
     expect(() =>
       decodeAlpha2SaasApplicationArtifact({
@@ -281,7 +304,10 @@ describe("frozen alpha.2 SaaS application plan", () => {
         ...plan,
         entries: plan.entries.map((candidate, index) =>
           index === 1
-            ? { ...candidate, path: plan.entries[0]!.path }
+            ? {
+                ...candidate,
+                path: requireAt(plan.entries, 0, "duplicate source").path,
+              }
             : candidate,
         ),
       }),
@@ -293,8 +319,8 @@ describe("frozen alpha.2 SaaS application plan", () => {
         withRecomputedDigest({
           ...plan,
           entries: [
-            plan.entries[1]!,
-            plan.entries[0]!,
+            requireAt(plan.entries, 1, "reordered entry"),
+            requireAt(plan.entries, 0, "reordered entry"),
             ...plan.entries.slice(2),
           ],
         }),
@@ -329,10 +355,11 @@ describe("frozen alpha.2 SaaS application plan", () => {
       (plan: BlueprintTargetPlan) => {
         const registered = new Set(plan.registrations);
         const extra = plan.entries.find(({ path }) => !registered.has(path));
-        expect(extra).toBeDefined();
+        if (extra === undefined)
+          throw new Error("Missing unregistered entry for drift fixture");
         return withRecomputedDigest({
           ...plan,
-          registrations: [...plan.registrations, extra!.path],
+          registrations: [...plan.registrations, extra.path],
         });
       },
     ],
@@ -343,8 +370,8 @@ describe("frozen alpha.2 SaaS application plan", () => {
         withRecomputedDigest({
           ...plan,
           registrations: [
-            plan.registrations[1]!,
-            plan.registrations[0]!,
+            requireAt(plan.registrations, 1, "reordered registration"),
+            requireAt(plan.registrations, 0, "reordered registration"),
             ...plan.registrations.slice(2),
           ],
         }),
@@ -354,7 +381,10 @@ describe("frozen alpha.2 SaaS application plan", () => {
       /registrations contains duplicate path/i,
       (plan: BlueprintTargetPlan) => ({
         ...plan,
-        registrations: [plan.registrations[0]!, ...plan.registrations],
+        registrations: [
+          requireAt(plan.registrations, 0, "duplicate registration"),
+          ...plan.registrations,
+        ],
       }),
     ],
     [
@@ -379,8 +409,16 @@ describe("frozen alpha.2 SaaS application plan", () => {
       (plan: BlueprintTargetPlan) => ({
         ...plan,
         parameterizedEntries: [
-          plan.parameterizedEntries[0]!,
-          plan.parameterizedEntries[0]!,
+          requireAt(
+            plan.parameterizedEntries,
+            0,
+            "duplicate parameterized entry",
+          ),
+          requireAt(
+            plan.parameterizedEntries,
+            0,
+            "duplicate parameterized entry",
+          ),
           ...plan.parameterizedEntries.slice(2),
         ],
       }),
@@ -437,9 +475,7 @@ describe("frozen alpha.2 SaaS application plan", () => {
       },
       registrations: current.registrations,
       parameterizedEntries: current.parameterizedEntries,
-      entries: current.entries.map(
-        ({ content: _content, ...identity }) => identity,
-      ),
+      entries: current.entries.map(targetEntryIdentity),
     };
 
     expect(() => validate(canonicalPlan(), currentBuilderAuthority)).toThrow(
@@ -456,14 +492,22 @@ describe("frozen alpha.2 SaaS application plan", () => {
     const changed = personalized.entries
       .filter(
         (candidate, index) =>
-          candidate.content !== canonical.entries[index]!.content,
+          candidate.content !==
+          requireAt(canonical.entries, index, "canonical entry").content,
       )
       .map(({ path }) => path);
 
     expect(changed).toEqual(canonical.parameterizedEntries);
     expect(
       JSON.parse(
-        entry(personalized, canonical.parameterizedEntries[2]!).content,
+        entry(
+          personalized,
+          requireAt(
+            canonical.parameterizedEntries,
+            2,
+            "workspace parameterized entry",
+          ),
+        ).content,
       ),
     ).toEqual({
       id: "workspace_cr_me",

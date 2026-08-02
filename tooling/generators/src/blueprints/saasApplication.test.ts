@@ -128,10 +128,14 @@ describe("saas application blueprint", () => {
       readonly entries: readonly unknown[];
     };
     const alpha2 = buildSaasApplicationAlpha2TargetPlan();
-    const entryIdentity = ({
-      content: _content,
-      ...entry
-    }: (typeof alpha2.entries)[number]) => entry;
+    const entryIdentity = (entry: (typeof alpha2.entries)[number]) => ({
+      path: entry.path,
+      ownership: entry.ownership,
+      action: entry.action,
+      upgrade: entry.upgrade,
+      sha256: entry.sha256,
+      ...(entry.replaces === undefined ? {} : { replaces: entry.replaces }),
+    });
 
     expect({
       schemaVersion: alpha2.schemaVersion,

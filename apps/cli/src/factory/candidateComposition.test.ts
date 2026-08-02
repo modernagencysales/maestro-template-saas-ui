@@ -1,7 +1,6 @@
 import { execFile, execFileSync, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import {
-  existsSync,
   appendFileSync,
   mkdirSync,
   mkdtempSync,
@@ -35,6 +34,17 @@ const installedStoreDir = readFileSync(
 
 const hash = (bytes: string | Buffer): `sha256:${string}` =>
   `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
+
+const targetEntryIdentity = (
+  entry: ReturnType<typeof buildSaasApplicationTargetPlan>["entries"][number],
+) => ({
+  path: entry.path,
+  ownership: entry.ownership,
+  action: entry.action,
+  upgrade: entry.upgrade,
+  sha256: entry.sha256,
+  ...(entry.replaces === undefined ? {} : { replaces: entry.replaces }),
+});
 
 const candidateEnvironment = (): NodeJS.ProcessEnv => ({
   ...process.env,
@@ -163,7 +173,7 @@ const buildCandidateReleaseFixture = (input: {
     provenance: plan.provenance,
     registrations: plan.registrations,
     parameterizedEntries: plan.parameterizedEntries,
-    entries: plan.entries.map(({ content: _content, ...entry }) => entry),
+    entries: plan.entries.map(targetEntryIdentity),
   };
   const blueprintManifestPath = join(authorityRoot, "blueprint.json");
   const blueprintManifestBytes = writeJson(blueprintManifestPath, blueprint);

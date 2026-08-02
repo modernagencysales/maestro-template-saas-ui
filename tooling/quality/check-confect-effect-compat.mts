@@ -189,7 +189,7 @@ export const checkLockfileCohort = (
     const versions = [
       ...lockfile.matchAll(
         new RegExp(
-          `(?:^|\\n)\\s*['\"]?${companion.replace("/", "\\/")}@([^:('\\s\"]+)`,
+          `(?:^|\\n)\\s*['"]?${companion.replace("/", "\\/")}@([^:('\\s"]+)`,
           "gu",
         ),
       ),

@@ -117,7 +117,9 @@ describe("final materialized customer filesystem", () => {
         ),
       ).toEqual([]);
       assertFinalCustomerFilesystem(tree);
-      await runFinalCustomerCompileGates(tree.root, installedStoreDir!);
+      if (installedStoreDir === undefined)
+        throw new Error("The installed pnpm store is unavailable");
+      await runFinalCustomerCompileGates(tree.root, installedStoreDir);
     } finally {
       rmSync(parent, { recursive: true, force: true });
     }

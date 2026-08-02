@@ -342,9 +342,9 @@ const validateAuthority = (
   if (!same(parameterizedEntries, plan.parameterizedEntries))
     fail("parameterized entries differ from F037 authority");
   for (let index = 0; index < reviewedEntries.length; index += 1) {
-    if (
-      !same(reviewedEntries[index], targetEntryIdentity(plan.entries[index]!))
-    )
+    const entry =
+      plan.entries[index] ?? fail(`entry is missing at index ${index}`);
+    if (!same(reviewedEntries[index], targetEntryIdentity(entry)))
       fail(
         `entry identity or order differs from F037 authority at index ${index}`,
       );
@@ -465,7 +465,8 @@ const requireCanonicalTemplate = (
   const matches = plan.entries.filter((entry) => entry.path === path);
   if (matches.length !== 1)
     fail(`expected one canonical alpha.2 template at ${path}`);
-  const found = matches[0]!;
+  const found =
+    matches[0] ?? fail(`expected one canonical alpha.2 template at ${path}`);
   if (
     found.content !== json(expected) ||
     found.sha256 !== sha256(found.content)
