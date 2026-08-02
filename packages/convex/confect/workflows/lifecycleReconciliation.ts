@@ -1,15 +1,17 @@
 import type { GenericId } from "convex/values";
 import type * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
-import * as Either from "effect/Either";
+import * as Result from "effect/Result";
 
 import { DatabaseReader, DatabaseWriter } from "../_generated/services";
 import {
-  decodeWorkflowOnCompleteContext,
-  transitionWorkflowLifecycle,
-  type WorkflowLifecycleState,
   type WorkflowOnCompleteContext,
+  type WorkflowLifecycleState,
 } from "./_kit/lifecycleState";
+import {
+  decodeCompletionContext,
+  planCompletionTransition,
+} from "./_kit/completionReconciliation";
 import {
   loadOwnedWorkflowRun,
   persistWorkflowLifecycleState,
@@ -105,29 +107,20 @@ const acceptedCompletionKind = (reader: Reader, workflowRunId: string) =>
     );
 
 const decodeContext = (input: unknown) => {
-  const decoded = decodeWorkflowOnCompleteContext(input);
-  return Either.isLeft(decoded)
-    ? unavailable(decoded.left.reason)
-    : Effect.succeed(decoded.right);
+  const decoded = decodeCompletionContext(input);
+  return Result.isFailure(decoded)
+    ? unavailable(decoded.failure)
+    : Effect.succeed(decoded.success);
 };
 
 const transitionCompletion = (
   state: WorkflowLifecycleState,
   execution: "terminal" | "canceled",
 ) => {
-  const command = {
-    kind:
-      execution === "terminal"
-        ? ("mark-terminal" as const)
-        : ("mark-canceled" as const),
-    workspaceId: state.workspaceId,
-    workflowRunId: state.workflowRunId,
-    generation: state.generation,
-  };
-  const result = transitionWorkflowLifecycle(state, command);
-  return Either.isLeft(result)
-    ? unavailable(result.left.reason)
-    : Effect.succeed(result.right);
+  const result = planCompletionTransition(state, execution);
+  return Result.isFailure(result)
+    ? unavailable(result.failure)
+    : Effect.succeed(result.success);
 };
 
 const unavailable = (message: string) =>
