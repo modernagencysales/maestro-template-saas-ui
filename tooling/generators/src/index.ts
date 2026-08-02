@@ -3009,8 +3009,9 @@ const valueFlags = new Set([
   "--to",
   "--version",
   "--fixture",
+  "--preflight-fingerprint",
 ]);
-const booleanFlags = new Set(["--append-only", "--write"]);
+const booleanFlags = new Set(["--append-only", "--help", "--write", "-h"]);
 
 const validateGeneratorArgv = (argv: readonly string[]): void => {
   const unconsumed: string[] = [];
