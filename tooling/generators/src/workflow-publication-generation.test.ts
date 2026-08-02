@@ -133,4 +133,18 @@ describe("bounded workflow publication regeneration", () => {
       }
     }
   });
+
+  it("keeps current policy resolution outside the immutable published closure", async () => {
+    const path =
+      "packages/convex/confect/workflows/_kit/policySnapshotCurrent.ts";
+    const target = resolve(repoRoot, path);
+    const original = readFileSync(target, "utf8");
+    try {
+      writeFileSync(target, `${original}\n// current policy evolution\n`);
+      const result = await buildWorkflowPublicationStack(repoRoot);
+      expect(result.drift).toEqual([]);
+    } finally {
+      writeFileSync(target, original);
+    }
+  });
 });

@@ -44,13 +44,28 @@ Requirements: Git and Node 22. The install-free bootstrap check selects the
 repository's pinned pnpm through Corepack or an npx fallback.
 
 ```bash
-git clone https://github.com/modernagencysales/maestro-template-saas-ui.git
-cd maestro-template-saas-ui
-git checkout maestro-template-v0.2.0-alpha.2
-node scripts/maestro-bootstrap.mjs
+node scripts/bootstrap-preflight.mjs
+npx --yes pnpm@10.12.1 install --frozen-lockfile
+pnpm review:readiness
+pnpm review:completion
+pnpm check:format
+pnpm lint
+pnpm typecheck
+pnpm test
+pnpm build
 ```
 
-Run the install command printed by bootstrap. With current Corepack that is:
+The first command uses only Node's standard library, so it works before
+workspace packages are installed. It rejects an ambient pnpm mismatch and prints
+the exact pinned install command. If Corepack cannot activate the pinned version
+because its signing keys are stale, use the displayed `npx` fallback and keep
+the same `npx --yes pnpm@10.12.1` prefix on later pnpm commands.
+
+`review:readiness` and `review:completion` are presence/evidence audits. They
+check required files and listed evidence paths; run `pnpm verify` for behavioral
+proof.
+
+Run the hostable reference app:
 
 ```bash
 corepack enable

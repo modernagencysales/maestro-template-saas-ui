@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { spawnSync } from "node:child_process";
 import {
   existsSync,
   mkdirSync,
@@ -8,8 +9,14 @@ import {
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import {
+  parseDataResourceCatalog,
+  renderDataResourceRuntime,
+} from "@maestro-template/template-core/dataResourceCatalog";
+import { parseSystemCatalog } from "@maestro-template/template-core/systemCatalog";
+import { parseProductTopology } from "@maestro-template/template-core/productTopology";
 import { JsxEmit, ModuleKind, ScriptTarget, transpileModule } from "typescript";
 import { describe, expect, expectTypeOf, it } from "vitest";
 import {
@@ -19,6 +26,7 @@ import {
   type WorkflowOptionalTemplateQuickstart,
 } from "../index";
 import {
+  SAAS_APPLICATION_PARAMETERIZED_ENTRIES,
   buildSaasApplicationAlpha1TargetPlan,
   buildSaasApplicationTargetPlan,
   saasApplicationBlueprint,
@@ -27,6 +35,7 @@ import { buildFactorySaasApplicationFiles } from "./saasApplicationFactory";
 import {
   CUSTOMER_ROOT_SCRIPTS,
   CURRENT_PRODUCT_JOURNEY_CLOSURE,
+  CURRENT_SAAS_DEPLOY_AUTHORITY_SOURCE_CLOSURE,
   CURRENT_SAAS_DEPLOY_AUTHORITY_TABLE_CLOSURE,
   CURRENT_GENERATOR_GATE_SCRIPTS,
   REMOVED_CUSTOMER_TEMPLATE_SCRIPTS,
@@ -38,8 +47,275 @@ const sourceModule = (path: string) =>
     `../../../../examples/saas-application/seed/source/${path}`,
     import.meta.url,
   ).href;
+const CURRENT_CUSTOMER_QUALITY_TEST_EXCLUSIONS = [
+  "tooling/quality/ai-gate-scripts.test.mts",
+  "tooling/quality/check-agent-pack.test.mts",
+  "tooling/quality/check-convex-ai-files.test.mts",
+  "tooling/quality/check-deploy-authority.test.mts",
+  "tooling/quality/check-docs-freshness.test.mts",
+  "tooling/quality/check-recipes.test.mts",
+  "tooling/quality/mutation-script.test.mts",
+] as const;
+
+type ReviewedReleasePath = {
+  readonly path: string;
+  readonly match: "exact" | "subtree";
+  readonly action: "copy" | "generate" | "omit";
+};
+
+const reviewedReleasePaths = (
+  manifestPath: string,
+  visited = new Set<string>(),
+): readonly ReviewedReleasePath[] => {
+  if (visited.has(manifestPath)) throw new Error("release manifest cycle");
+  visited.add(manifestPath);
+  const manifest = JSON.parse(readFileSync(manifestPath, "utf8")) as {
+    readonly kind?: string;
+    readonly paths?: readonly ReviewedReleasePath[];
+    readonly baseManifest?: { readonly path: string };
+    readonly additionalPaths?: readonly ReviewedReleasePath[];
+  };
+  if (manifest.kind !== "composed-customer-release")
+    return manifest.paths ?? [];
+  if (!manifest.baseManifest || !manifest.additionalPaths)
+    throw new Error("incomplete composed release manifest");
+  return [
+    ...reviewedReleasePaths(
+      resolve(dirname(manifestPath), manifest.baseManifest.path),
+      visited,
+    ),
+    ...manifest.additionalPaths,
+  ];
+};
+
+const reviewedBaseWrite = (
+  paths: readonly ReviewedReleasePath[],
+  path: string,
+  sourcePaths: ReadonlySet<string>,
+): "copy" | "generate" | undefined => {
+  const exact = paths.find(
+    (entry) => entry.match === "exact" && entry.path === path,
+  );
+  const rule =
+    exact ??
+    paths
+      .filter(
+        (entry) =>
+          entry.match === "subtree" &&
+          (path === entry.path || path.startsWith(`${entry.path}/`)),
+      )
+      .sort((left, right) => right.path.length - left.path.length)[0];
+  if (rule?.action === "generate" && rule.match === "exact") return "generate";
+  return rule?.action === "copy" && sourcePaths.has(path) ? "copy" : undefined;
+};
 
 describe("saas application blueprint", () => {
+  it("binds every alpha.2 base write overlap to reviewed replacement metadata", () => {
+    const manifestPath = join(
+      repoRoot,
+      "releases/v0.2.0-alpha.2/manifest.json",
+    );
+    const manifest = JSON.parse(readFileSync(manifestPath, "utf8")) as {
+      readonly release: { readonly sourceCommit: string };
+    };
+    const paths = reviewedReleasePaths(manifestPath);
+    const sourceTree = spawnSync(
+      "git",
+      [
+        "-C",
+        repoRoot,
+        "ls-tree",
+        "-r",
+        "--name-only",
+        manifest.release.sourceCommit,
+      ],
+      { encoding: "utf8" },
+    );
+    expect(sourceTree.status, sourceTree.stderr).toBe(0);
+    const sourcePaths = new Set(sourceTree.stdout.trim().split("\n"));
+    const mismatches = buildSaasApplicationTargetPlan().entries.flatMap(
+      (entry) => {
+        const baseWrite = reviewedBaseWrite(paths, entry.path, sourcePaths);
+        return baseWrite === entry.replaces
+          ? []
+          : [{ path: entry.path, baseWrite, replaces: entry.replaces }];
+      },
+    );
+
+    expect(mismatches).toEqual([]);
+  });
+
+  it("keeps retained template-core tests independent of factory release fixtures", () => {
+    const entries = new Map(
+      buildSaasApplicationTargetPlan().entries.map((entry) => [
+        entry.path,
+        entry,
+      ]),
+    );
+    const testPath =
+      "packages/template-core/src/templateInstance/templateInstance.test.ts";
+    const fixturePath =
+      "packages/template-core/src/templateInstance/__fixtures__/provider-posture-v1-to-v2.contract.json";
+    const testEntry = entries.get(testPath);
+    const fixtureEntry = entries.get(fixturePath);
+
+    expect(testEntry).toMatchObject({
+      ownership: "generated",
+      action: "generate",
+      upgrade: "regenerate",
+      replaces: "copy",
+    });
+    expect(fixtureEntry).toMatchObject({
+      ownership: "generated",
+      action: "generate",
+      upgrade: "regenerate",
+    });
+    if (!testEntry || !fixtureEntry)
+      throw new Error("missing package-owned provider posture test closure");
+    expect(testEntry.content).toContain(
+      '"./__fixtures__/provider-posture-v1-to-v2.contract.json"',
+    );
+    expect(testEntry.content).not.toContain(
+      "../../../../tooling/release/__fixtures__/upgrade",
+    );
+    expect(JSON.parse(fixtureEntry.content)).toMatchObject({
+      schemaVersion: 1,
+      before: { providerMode: "live", providerIds: ["email", "llm"] },
+    });
+  });
+
+  it("projects exact customer tooling test and coverage closures", () => {
+    const entries = new Map(
+      buildSaasApplicationTargetPlan().entries.map((entry) => [
+        entry.path,
+        entry,
+      ]),
+    );
+    const root = JSON.parse(entries.get("package.json")?.content ?? "{}") as {
+      readonly scripts?: Readonly<Record<string, string>>;
+    };
+    const generators = JSON.parse(
+      entries.get("tooling/generators/package.json")?.content ?? "{}",
+    ) as { readonly scripts?: Readonly<Record<string, string>> };
+    const quality = JSON.parse(
+      entries.get("tooling/quality/package.json")?.content ?? "{}",
+    ) as { readonly scripts?: Readonly<Record<string, string>> };
+
+    expect(generators.scripts?.test).toContain("vitest run");
+    expect(generators.scripts?.test).not.toContain("--exclude");
+    expect(quality.scripts?.test).toBe(quality.scripts?.["test:customer"]);
+    expect(root.scripts?.["check:coverage-ratchet"]).not.toContain(
+      "workflow-publication-generation.test.ts",
+    );
+    for (const path of CURRENT_CUSTOMER_QUALITY_TEST_EXCLUSIONS) {
+      expect(quality.scripts?.test, path).toContain(
+        `--exclude ${path.replace("tooling/quality/", "")}`,
+      );
+      expect(root.scripts?.["check:coverage-ratchet"], path).toContain(
+        `--exclude ${path}`,
+      );
+    }
+
+    const crudTest = entries.get("tooling/generators/src/crud-proof.test.ts");
+    const envTest = entries.get("tooling/quality/src/env-manifest.test.mts");
+    const envManifest = entries.get("docs/template/env-manifest.json");
+    const envManifestDocs = entries.get("docs/template/env-manifest.md");
+    const operationsRunbook = entries.get(
+      "docs/template/operations-runbook.md",
+    );
+    const justfile = entries.get("Justfile");
+    const appMapComposition = entries.get("tooling/app-map/src/composition.ts");
+    const appMapCompositionTest = entries.get(
+      "tooling/app-map/src/composition.test.ts",
+    );
+    const appMapSchema = entries.get("tooling/app-map/src/schema.ts");
+    const confectManifest = entries.get(
+      "packages/template-core/src/generated/confectManifest.ts",
+    );
+    expect(crudTest).toMatchObject({ replaces: "copy" });
+    expect(crudTest?.content).toContain(
+      '"apps/web/src/adapters/records/fake.ts"',
+    );
+    expect(crudTest?.content).not.toContain(
+      "examples/saas-application/seed/source/apps/web",
+    );
+    expect(envTest).toMatchObject({ replaces: "copy" });
+    expect(envTest?.content).toContain(
+      'readText("tooling/generators/src/customer-runtime.ts")',
+    );
+    expect(envTest?.content).not.toContain(
+      'readText("tooling/generators/src/index.ts")',
+    );
+    expect(envTest?.content).toContain(
+      'import { existsSync, readFileSync } from "node:fs";',
+    );
+    expect(envTest?.content).toContain(
+      'existsSync(resolve(repoRoot, ".buildkite/pipeline.yml"))',
+    );
+    expect(envTest?.content).not.toContain(
+      'const pipeline = readText(".buildkite/pipeline.yml")',
+    );
+    expect(envManifest).toMatchObject({ replaces: "copy" });
+    expect(envManifest?.content).toContain(
+      '"name": "PROMOTION_AUTHORITY_PRIVATE_KEY_PKCS8_BASE64URL"',
+    );
+    for (const projection of [envManifestDocs, operationsRunbook]) {
+      expect(projection).toMatchObject({ replaces: "copy" });
+      expect(projection?.content).toContain(
+        "PROMOTION_AUTHORITY_PRIVATE_KEY_PKCS8_BASE64URL",
+      );
+    }
+    expect(confectManifest).toMatchObject({ replaces: "copy" });
+    expect(confectManifest?.content.match(/\n\s+"records",/gu)).toHaveLength(4);
+    for (const projection of [
+      appMapComposition,
+      appMapCompositionTest,
+      appMapSchema,
+    ])
+      expect(projection).toMatchObject({ replaces: "copy" });
+    expect(appMapComposition?.content).toContain('generator === "add-feature"');
+    expect(appMapComposition?.content).toContain(
+      'value.name.text === "fullPath"',
+    );
+    expect(appMapCompositionTest?.content).toContain(
+      "projects reviewed add-feature provenance to its generated route",
+    );
+    expect(appMapSchema?.content).toMatch(
+      /"generator-provenance-facts"[\s\S]*?ownershipTargets:\s*\[[^\]]*"route"[^\]]*\]/u,
+    );
+    expect(justfile).toMatchObject({ replaces: "generate" });
+    expect(justfile?.content).not.toContain("test-pr-backlog:");
+    expect(justfile?.content).not.toContain("evals:");
+    expect(justfile?.content).not.toContain("check-workflow-output-smoke:");
+    expect(justfile?.content).not.toContain("mutation:");
+    const customerScripts = root.scripts ?? {};
+    for (const match of justfile?.content.matchAll(/^\s+pnpm ([^\s;&]+)/gmu) ??
+      [])
+      expect(customerScripts, match[1]).toHaveProperty(match[1] as string);
+  });
+
+  it("projects canonical ownership provenance for the records vertical", () => {
+    const entry = buildSaasApplicationTargetPlan().entries.find(
+      ({ path }) =>
+        path === "docs/template/generated/provenance/add-feature/records.json",
+    );
+    expect(entry).toMatchObject({
+      ownership: "generated",
+      action: "generate",
+      upgrade: "regenerate",
+    });
+    if (!entry) throw new Error("missing records feature provenance");
+    expect(JSON.parse(entry.content)).toMatchObject({
+      generator: "add-feature",
+      commandFamily: "template:add-feature",
+      name: "records",
+      ownership: { system: "knowledge-brain", disposition: "extend" },
+      generatedPaths: expect.arrayContaining([
+        "apps/web/src/routes/_workspace.records.tsx",
+      ]),
+    });
+  });
+
   it("projects only the supported customer generator scripts", () => {
     const plan = buildSaasApplicationTargetPlan();
     const packageEntry = plan.entries.find(
@@ -63,6 +339,8 @@ describe("saas application blueprint", () => {
       "template:systems",
       "template:prototype",
       "template:add-feature",
+      "template:private-package:dry-run",
+      "template:private-package:import",
       "check:system-catalog",
     ]) {
       expect(scripts).toHaveProperty(required);
@@ -72,14 +350,151 @@ describe("saas application blueprint", () => {
       "template:intake",
       "template:workflow-output-smoke",
       "template:upgrade",
-      "template:private-package:dry-run",
-      "template:private-package:import",
     ]) {
       expect(scripts).not.toHaveProperty(name);
     }
     expect(plan.entries.map(({ path }) => path)).not.toContain(
       "tooling/generators/src/index.ts",
     );
+    for (const path of [
+      "apps/cli/package.json",
+      "apps/web/package.json",
+      "packages/convex/package.json",
+      "tooling/generators/package.json",
+    ]) {
+      const manifest = plan.entries.find((entry) => entry.path === path);
+      if (!manifest) throw new Error(`missing projected ${path}`);
+      const dependencies = (
+        JSON.parse(manifest.content) as {
+          readonly dependencies?: Readonly<Record<string, string>>;
+        }
+      ).dependencies;
+      expect(dependencies).not.toHaveProperty(
+        "@maestro-template/release-tooling",
+      );
+      expect(dependencies).not.toHaveProperty(
+        "@maestro-template/stack-tooling",
+      );
+      expect(dependencies).not.toHaveProperty(
+        "@maestro-template/app-idea-evaluator",
+      );
+    }
+    const lockfile = plan.entries.find(({ path }) => path === "pnpm-lock.yaml");
+    if (!lockfile) throw new Error("missing projected pnpm-lock.yaml");
+    const importer = (start: string, end: string): string => {
+      const startIndex = lockfile.content.indexOf(start);
+      const endIndex = lockfile.content.indexOf(end);
+      expect(startIndex).toBeGreaterThanOrEqual(0);
+      expect(endIndex).toBeGreaterThan(startIndex);
+      return lockfile.content.slice(startIndex, endIndex);
+    };
+    const cliImporter = importer("  apps/cli:", "  apps/voice-relay:");
+    const webImporter = importer(
+      "  apps/web:",
+      "  packages/app-idea-evaluator:",
+    );
+    const convexImporter = importer(
+      "  packages/convex:",
+      "  packages/editor-core:",
+    );
+    const generatorImporter = importer(
+      "  tooling/generators:",
+      "  tooling/pr-backlog:",
+    );
+    const integrationsImporter = importer(
+      "  packages/integrations:",
+      "  packages/notifications:",
+    );
+    expect(cliImporter).not.toContain("@maestro-template/release-tooling");
+    expect(cliImporter).not.toContain("@maestro-template/stack-tooling");
+    expect(generatorImporter).not.toContain(
+      "@maestro-template/release-tooling",
+    );
+    for (const importer of [webImporter, convexImporter, generatorImporter]) {
+      expect(importer).not.toContain("@maestro-template/app-idea-evaluator");
+    }
+    expect(lockfile.content).not.toContain(
+      '"@maestro-template/app-idea-evaluator":',
+    );
+    expect(integrationsImporter).not.toContain("dodopayments");
+    const systemCatalogEntry = plan.entries.find(
+      ({ path }) => path === "docs/template/system-catalog.json",
+    );
+    const dataResourcesEntry = plan.entries.find(
+      ({ path }) => path === "docs/template/data-resources.json",
+    );
+    const lifecycleEntry = plan.entries.find(
+      ({ path }) =>
+        path === "packages/convex/confect/ops/dataResources.generated.ts",
+    );
+    const topologyEntry = plan.entries.find(
+      ({ path }) => path === "docs/template/product-topology.json",
+    );
+    if (
+      !systemCatalogEntry ||
+      !dataResourcesEntry ||
+      !lifecycleEntry ||
+      !topologyEntry
+    )
+      throw new Error("missing SaaS ownership and lifecycle projections");
+    const systems = parseSystemCatalog(JSON.parse(systemCatalogEntry.content));
+    const resources = parseDataResourceCatalog(
+      JSON.parse(dataResourcesEntry.content),
+    );
+    const topology = parseProductTopology(JSON.parse(topologyEntry.content));
+    for (const table of ["records", "deployAuthorityAuditEvents"]) {
+      expect(systems.systems.some(({ tables }) => tables.includes(table))).toBe(
+        true,
+      );
+      expect(resources.resources.some(({ id }) => id === table)).toBe(true);
+    }
+    for (const table of [
+      "emailVerificationChallenges",
+      "reportOwnerships",
+      "evaluationAnswers",
+      "evaluationReportVersions",
+      "evaluationReports",
+      "evaluationSessions",
+      "evaluationShares",
+      "buildPackExports",
+      "buildPackStages",
+      "buildPacks",
+      "buildPackEntitlements",
+      "checkoutSessions",
+      "commerceRevocations",
+      "maestroCredits",
+      "purchases",
+      "modelReceipts",
+      "supportIncidents",
+    ]) {
+      expect(systems.systems.some(({ tables }) => tables.includes(table))).toBe(
+        false,
+      );
+      expect(resources.resources.some(({ id }) => id === table)).toBe(false);
+    }
+    for (const id of [
+      "route:build-pack/$packId",
+      "route:build-pack/$packId/",
+      "route:checkout/$reportId",
+      "route:checkout/fake-hosted/$sessionId",
+      "route:checkout/return",
+      "route:dashboard",
+      "route:evaluate",
+      "route:build-pack/$packId/generating",
+      "route:library",
+      "route:maestro/$packId",
+      "route:privacy",
+      "route:report/$evaluationId",
+      "route:share/$token",
+      "route:support",
+      "route:terms",
+      "route:verify-report",
+    ])
+      expect(topology.resources.some((resource) => resource.id === id)).toBe(
+        false,
+      );
+    expect(lifecycleEntry.content).toBe(renderDataResourceRuntime(resources));
+    expect(lifecycleEntry.content).toContain('id: "records"');
     expect(
       plan.entries.find(
         ({ path }) => path === "docs/template/agent-pack-privacy.md",
@@ -110,7 +525,6 @@ describe("saas application blueprint", () => {
         ownership: "generated",
         action: "generate",
         upgrade: "regenerate",
-        replaces: "copy",
         content: expect.stringContaining(
           "This is a customer application generated from an immutable Maestro release.",
         ),
@@ -119,6 +533,9 @@ describe("saas application blueprint", () => {
     expect(
       plan.entries.find(({ path }) => path === "README.md")?.content,
     ).not.toContain("maestro -- create");
+    expect(plan.entries.find(({ path }) => path === "README.md")).toMatchObject(
+      { replaces: "copy" },
+    );
     expect(
       plan.entries.find(({ path }) => path === "README.md")?.content,
     ).toContain(
@@ -130,17 +547,25 @@ describe("saas application blueprint", () => {
     expect(
       plan.entries.find(({ path }) => path === "README.md")?.content,
     ).toContain('git commit -m "feat: add reviewed Maestro change"');
-    for (const path of [
-      ".prettierignore",
-      "tooling/confect-manifest/tsconfig.json",
-    ]) {
-      expect(plan.entries.find((entry) => entry.path === path)).toMatchObject({
-        ownership: "generated",
-        action: "generate",
-        upgrade: "regenerate",
-        replaces: "copy",
-      });
-    }
+    const prettierIgnore = plan.entries.find(
+      (entry) => entry.path === ".prettierignore",
+    );
+    expect(prettierIgnore).toMatchObject({
+      ownership: "generated",
+      action: "generate",
+      upgrade: "regenerate",
+    });
+    expect(prettierIgnore).toMatchObject({ replaces: "copy" });
+    expect(
+      plan.entries.find(
+        (entry) => entry.path === "tooling/confect-manifest/tsconfig.json",
+      ),
+    ).toMatchObject({
+      ownership: "generated",
+      action: "generate",
+      upgrade: "regenerate",
+      replaces: "copy",
+    });
   });
 
   it("keeps historical alpha.1 personalization inert", () => {
@@ -197,47 +622,185 @@ describe("saas application blueprint", () => {
     ).toHaveLength(1);
   });
 
-  it("keeps the sealed alpha.1 manifest and assets immutable", () => {
-    const releaseRoot = join(repoRoot, "releases/v0.2.0-alpha.1");
-    const blueprintPath = join(releaseRoot, "blueprints/saas-application.json");
-    const release = JSON.parse(
-      readFileSync(join(releaseRoot, "manifest.json"), "utf8"),
+  it("matches the sealed alpha.1 manifest to its historical assets and current structure", () => {
+    const plan = buildSaasApplicationTargetPlan();
+    expect(new Set(plan.registrations).size).toBe(plan.registrations.length);
+    const postAlphaCurrentPaths = new Set<string>([
+      ...CURRENT_SAAS_DEPLOY_AUTHORITY_TABLE_CLOSURE,
+      ...CURRENT_SAAS_DEPLOY_AUTHORITY_SOURCE_CLOSURE,
+      ...CURRENT_PRODUCT_JOURNEY_CLOSURE,
+      "Justfile",
+      "apps/cli/package.json",
+      "apps/web/package.json",
+      "apps/cli/src/factory/mcp.ts",
+      "docs/template/data-resources.json",
+      "docs/template/env-manifest.json",
+      "docs/template/env-manifest.md",
+      "docs/template/operations-runbook.md",
+      "docs/template/system-catalog.json",
+      "examples/generic-ai-ops/template-package.json",
+      "lefthook.yml",
+      "pnpm-lock.yaml",
+      "packages/template-core/src/templateInstance/templateInstance.test.ts",
+      "packages/template-core/src/templateInstance/__fixtures__/provider-posture-v1-to-v2.contract.json",
+      "packages/template-core/src/generated/confectManifest.ts",
+      "packages/convex/confect/workflows/_kit/policySnapshotCurrent.ts",
+      "tooling/app-map/src/composition.test.ts",
+      "tooling/app-map/src/composition.ts",
+      "tooling/app-map/src/schema.ts",
+      "tooling/generators/src/crud-proof.test.ts",
+      "tooling/quality/package.json",
+      "tooling/quality/src/env-manifest.test.mts",
+      "docs/template/generated/provenance/add-feature/records.json",
+      "scripts/pre-push-rubric.sh",
+      "tooling/agent-pack/src/mcp/projection.ts",
+      "tooling/agent-pack/src/mcp/protocol.ts",
+      "tooling/agent-pack/src/mcp/server.ts",
+      "tooling/agent-pack/package.json",
+      "tooling/agent-pack/src/customerTestClosure.test.ts",
+      "tooling/agent-pack/src/customerTestClosure.ts",
+      "tooling/agent-pack/src/mcp/projection.test.ts",
+      "tooling/agent-pack/src/mcp/protocol.test.ts",
+      "tooling/agent-pack/src/mcp/server.test.ts",
+      "tooling/agent-pack/src/nodeAdapters.test.ts",
+      "tooling/generators/src/private-package.ts",
+      "tooling/quality/contract-review-rubric.md",
+      "tooling/quality/taste-review.mts",
+      "packages/convex/confect/_generated/registeredFunctions/records/records.ts",
+      "packages/convex/convex/records/records.ts",
+      "apps/web/src/features/records/records-surface.tsx",
+    ]);
+    const postAlphaReplacedPaths = new Set([
+      "packages/convex/confect/_generated/registeredFunctions/records.ts",
+      "packages/convex/convex/records.ts",
+      "apps/web/src/features/records/records-surface.tsx",
+    ]);
+    const releaseRoot = join(
+      repoRoot,
+      "releases/v0.2.0-alpha.1/blueprints/saas-application",
+    );
+    const manifest = JSON.parse(
+      readFileSync(
+        join(
+          repoRoot,
+          "releases/v0.2.0-alpha.1/blueprints/saas-application.json",
+        ),
+        "utf8",
+      ),
     ) as {
-      readonly release: { readonly version: string; readonly tag: string };
-      readonly blueprintManifest: {
-        readonly path: string;
-        readonly sha256: string;
-      };
-    };
-    const blueprintBytes = readFileSync(blueprintPath);
-    const blueprint = JSON.parse(blueprintBytes.toString("utf8")) as {
+      readonly schemaVersion: number;
+      readonly id: string;
+      readonly provenance: string;
+      readonly registrations: readonly string[];
       readonly projectionSource: {
+        readonly sourceCommit: string;
         readonly assets: readonly {
           readonly path: string;
           readonly sha256: string;
         }[];
       };
+      readonly entries: readonly {
+        readonly path: string;
+        readonly ownership: "generated" | "customer-extension";
+        readonly action: "generate" | "copy";
+        readonly upgrade: "regenerate" | "preserve";
+        readonly sha256: string;
+        readonly replaces?: "copy" | "generate";
+      }[];
     };
-    const digest = (bytes: Buffer): string =>
-      `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
 
-    expect(release.release).toMatchObject({
-      version: "0.2.0-alpha.1",
-      tag: "maestro-template-v0.2.0-alpha.1",
+    expect(plan).toMatchObject({
+      schemaVersion: manifest.schemaVersion,
+      id: manifest.id,
+      provenance: manifest.provenance,
     });
-    expect(release.blueprintManifest).toMatchObject({
-      path: "blueprints/saas-application.json",
-      sha256: digest(blueprintBytes),
-    });
-    for (const asset of blueprint.projectionSource.assets) {
+
+    const assets = new Map(
+      manifest.projectionSource.assets.map((asset) => [asset.path, asset]),
+    );
+    for (const asset of assets.values()) {
+      const bytes = readFileSync(join(releaseRoot, asset.path));
+      expect(`sha256:${createHash("sha256").update(bytes).digest("hex")}`).toBe(
+        asset.sha256,
+      );
+    }
+    const currentEntries = new Map(
+      plan.entries.map((entry) => [entry.path, entry]),
+    );
+    for (const path of postAlphaCurrentPaths) {
       expect(
-        digest(
-          readFileSync(
-            join(releaseRoot, "blueprints/saas-application", asset.path),
-          ),
-        ),
-        asset.path,
-      ).toBe(asset.sha256);
+        currentEntries.has(path),
+        `missing current projection for ${path}`,
+      ).toBe(true);
+    }
+    const historicalEntries = new Map(
+      buildSaasApplicationAlpha1TargetPlan().entries.map((entry) => [
+        entry.path,
+        entry,
+      ]),
+    );
+    const sourceCommit = manifest.projectionSource.sourceCommit;
+    expect(sourceCommit).toMatch(/^[0-9a-f]{40}$/u);
+    const sourceAvailable = spawnSync(
+      "git",
+      ["-C", repoRoot, "cat-file", "-e", `${sourceCommit}^{commit}`],
+      { encoding: "utf8" },
+    );
+    for (const entry of manifest.entries) {
+      const asset = assets.get(`base/${entry.path}.txt`);
+      const currentEntry = currentEntries.get(entry.path);
+      const projectionEntry =
+        postAlphaReplacedPaths.has(entry.path) ||
+        SAAS_APPLICATION_PARAMETERIZED_ENTRIES.some(
+          (path) => path === entry.path,
+        )
+          ? historicalEntries.get(entry.path)
+          : currentEntry;
+      const source =
+        sourceAvailable.status === 0
+          ? [entry.path, `examples/saas-application/seed/source/${entry.path}`]
+              .map((path) =>
+                spawnSync(
+                  "git",
+                  ["-C", repoRoot, "show", `${sourceCommit}:${path}`],
+                  { encoding: null },
+                ),
+              )
+              .find(({ status }) => status === 0)
+          : undefined;
+      const sourceSha256 =
+        source?.status === 0 && Buffer.isBuffer(source.stdout)
+          ? `sha256:${createHash("sha256").update(source.stdout).digest("hex")}`
+          : undefined;
+      expect(
+        [asset?.sha256, sourceSha256, projectionEntry?.sha256].filter(Boolean),
+        `missing historical hash authority for ${entry.path}`,
+      ).toContain(entry.sha256);
+    }
+
+    if (sourceAvailable.status === 0) {
+      expect(
+        spawnSync(
+          "git",
+          ["-C", repoRoot, "merge-base", "--is-ancestor", sourceCommit, "HEAD"],
+          { encoding: "utf8" },
+        ).status,
+      ).toBe(0);
+      const tag = "maestro-template-v0.2.0-alpha.1^{}";
+      const tagAvailable = spawnSync(
+        "git",
+        ["-C", repoRoot, "cat-file", "-e", tag],
+        { encoding: "utf8" },
+      );
+      if (tagAvailable.status === 0) {
+        expect(
+          spawnSync(
+            "git",
+            ["-C", repoRoot, "merge-base", "--is-ancestor", sourceCommit, tag],
+            { encoding: "utf8" },
+          ).status,
+        ).toBe(0);
+      }
     }
   });
 
@@ -272,7 +835,11 @@ describe("saas application blueprint", () => {
           ),
       ).toEqual([]);
       for (const path of [
+        "apps/cli/src/factory/mcp.ts",
         "apps/cli/src/factory/supportBundle.ts",
+        "tooling/agent-pack/src/mcp/protocol.ts",
+        "tooling/agent-pack/src/mcp/projection.ts",
+        "tooling/agent-pack/src/mcp/server.ts",
         "tooling/agent-pack/src/privacy/supportBundle.ts",
         "tooling/agent-pack/src/privacy/supportBundleCommand.ts",
         "tooling/agent-pack/src/privacy/nodeSupportBundleExporter.ts",
@@ -286,6 +853,44 @@ describe("saas application blueprint", () => {
           "utf8",
         ),
       ).toContain("createSupportBundleCliHandler");
+      const customerAgentPackEntry = readFileSync(
+        join(targetRoot, "tooling/agent-pack/src/index.ts"),
+        "utf8",
+      );
+      for (const exportedMcpModule of [
+        "./mcp/protocol.js",
+        "./mcp/projection.js",
+        "./mcp/server.js",
+      ]) {
+        expect(customerAgentPackEntry).toContain(
+          `export * from "${exportedMcpModule}";`,
+        );
+      }
+      const mcpEntry = plan.entries.find(
+        ({ path }) => path === "apps/cli/src/factory/mcp.ts",
+      );
+      expect(mcpEntry).toMatchObject({
+        ownership: "generated",
+        action: "generate",
+        upgrade: "regenerate",
+      });
+      expect(mcpEntry).not.toHaveProperty("replaces");
+      for (const path of [
+        "tooling/agent-pack/src/mcp/protocol.ts",
+        "tooling/agent-pack/src/mcp/projection.ts",
+        "tooling/agent-pack/src/mcp/server.ts",
+      ]) {
+        expect(plan.entries.find((entry) => entry.path === path)).toMatchObject(
+          {
+            ownership: "generated",
+            action: "generate",
+            upgrade: "regenerate",
+          },
+        );
+        expect(
+          plan.entries.find((entry) => entry.path === path),
+        ).not.toHaveProperty("replaces");
+      }
     } finally {
       rmSync(targetRoot, { recursive: true, force: true });
     }
@@ -349,7 +954,7 @@ describe("saas application blueprint", () => {
       'import ops_versioning from "../ops/versioning.spec";',
     );
     expect(projectedSpec?.content).toContain(
-      'import records from "../records.spec";',
+      'import records_records from "../records/records.spec";',
     );
     expect(projectedSpec?.content).toContain(
       "// unrelated integration registration",
@@ -368,8 +973,10 @@ describe("saas application blueprint", () => {
       ownership: "generated",
       action: "generate",
       upgrade: "regenerate",
-      replaces: "generate",
     });
+    expect(
+      after.entries.find((entry) => entry.path === ".claude/settings.json"),
+    ).toMatchObject({ replaces: "generate" });
     expect(
       after.entries.find((entry) => entry.path === "skills-lock.json"),
     ).toMatchObject({
@@ -377,6 +984,17 @@ describe("saas application blueprint", () => {
       action: "generate",
       upgrade: "regenerate",
     });
+    const currentPolicySnapshot = after.entries.find(
+      (entry) =>
+        entry.path ===
+        "packages/convex/confect/workflows/_kit/policySnapshotCurrent.ts",
+    );
+    expect(currentPolicySnapshot).toMatchObject({
+      ownership: "generated",
+      action: "generate",
+      upgrade: "regenerate",
+    });
+    expect(currentPolicySnapshot).not.toHaveProperty("replaces");
     for (const path of [
       "tooling/generators/src/workflow-predeploy.ts",
       "packages/convex/confect/workflows/_kit/graphRunnerCurrent.ts",
@@ -416,9 +1034,11 @@ describe("saas application blueprint", () => {
         ownership: "generated",
         action: "generate",
         upgrade: "regenerate",
-        replaces: "copy",
       }),
     );
+    expect(
+      after.entries.find((entry) => entry.path === "AGENTS.md"),
+    ).toMatchObject({ replaces: "copy" });
   });
 
   it("projects the current graph runner copy target exactly once", () => {
@@ -432,6 +1052,122 @@ describe("saas application blueprint", () => {
     expect(entries[0]).toMatchObject({ path: runnerPath, replaces: "copy" });
   });
 
+  it("projects the current web manifest with the current customer lockfile", () => {
+    const entries = new Map(
+      buildSaasApplicationTargetPlan().entries.map((entry) => [
+        entry.path,
+        entry,
+      ]),
+    );
+    const webManifest = entries.get("apps/web/package.json");
+    expect(webManifest).toMatchObject({
+      ownership: "generated",
+      action: "generate",
+      upgrade: "regenerate",
+      replaces: "copy",
+    });
+    const expectedWebManifest = JSON.parse(
+      readFileSync(join(repoRoot, "apps/web/package.json"), "utf8"),
+    ) as { dependencies: Record<string, string> };
+    delete expectedWebManifest.dependencies[
+      "@maestro-template/app-idea-evaluator"
+    ];
+    expect(webManifest?.content).toBe(
+      `${JSON.stringify(expectedWebManifest, null, 2)}\n`,
+    );
+    expect(entries.get("pnpm-lock.yaml")).toMatchObject({
+      ownership: "generated",
+      action: "generate",
+      upgrade: "regenerate",
+      replaces: "copy",
+    });
+  });
+
+  it("projects a complete customer Git hook closure", () => {
+    const entries = new Map(
+      buildSaasApplicationTargetPlan().entries.map((entry) => [
+        entry.path,
+        entry,
+      ]),
+    );
+    for (const path of [
+      "lefthook.yml",
+      "scripts/pre-push-rubric.sh",
+      "tooling/quality/contract-review-rubric.md",
+      "tooling/quality/taste-review.mts",
+    ]) {
+      expect(entries.get(path)).toMatchObject({
+        ownership: "generated",
+        action: "generate",
+        upgrade: "regenerate",
+        content: readFileSync(join(repoRoot, path), "utf8"),
+        replaces: "copy",
+      });
+    }
+  });
+
+  it("projects only the customer-safe Agent Pack test closure", () => {
+    const entries = new Map(
+      buildSaasApplicationTargetPlan().entries.map((entry) => [
+        entry.path,
+        entry,
+      ]),
+    );
+    const agentPackPackage = JSON.parse(
+      entries.get("tooling/agent-pack/package.json")?.content ?? "{}",
+    ) as { readonly scripts?: Readonly<Record<string, string>> };
+    expect(agentPackPackage.scripts?.test).toBe(
+      agentPackPackage.scripts?.["test:customer"],
+    );
+    expect(
+      entries.get("tooling/agent-pack/src/nodeAdapters.test.ts"),
+    ).toMatchObject({ replaces: "copy" });
+    for (const path of [
+      "tooling/agent-pack/src/customerTestClosure.ts",
+      "tooling/agent-pack/src/customerTestClosure.test.ts",
+      "tooling/agent-pack/src/mcp/projection.test.ts",
+      "tooling/agent-pack/src/mcp/protocol.test.ts",
+      "tooling/agent-pack/src/mcp/server.test.ts",
+    ]) {
+      expect(entries.get(path)).toMatchObject({
+        ownership: "generated",
+        action: "generate",
+        upgrade: "regenerate",
+      });
+      expect(entries.get(path)).not.toHaveProperty("replaces");
+    }
+    expect(
+      entries.has("tooling/agent-pack/src/nodeAdapters.factory.test.ts"),
+    ).toBe(false);
+  });
+
+  it("introduces private-package closure without false release replacements", () => {
+    const entries = new Map(
+      buildSaasApplicationTargetPlan().entries.map((entry) => [
+        entry.path,
+        entry,
+      ]),
+    );
+    expect(
+      entries.get("tooling/generators/src/private-package.ts"),
+    ).toMatchObject({
+      ownership: "generated",
+      action: "generate",
+      upgrade: "regenerate",
+    });
+    expect(
+      entries.get("tooling/generators/src/private-package.ts"),
+    ).not.toHaveProperty("replaces");
+    expect(
+      entries.get("examples/generic-ai-ops/template-package.json"),
+    ).toMatchObject({
+      ownership: "generated",
+      action: "generate",
+      upgrade: "regenerate",
+      replaces: "copy",
+    });
+  });
+
   it("replaces only deployment-authority files present in the base release", () => {
     const entries = new Map(
       buildSaasApplicationTargetPlan().entries.map((entry) => [
@@ -441,8 +1177,22 @@ describe("saas application blueprint", () => {
     );
 
     for (const path of [
+      "packages/convex/confect/deploy/authority.impl.ts",
+      "packages/convex/confect/deploy/authority.spec.ts",
+      "packages/convex/confect/deploy/authority.ts",
+      "packages/convex/confect/deployAuthority/http.ts",
+      "packages/convex/confect/deployAuthority/store.ts",
+      "packages/convex/confect/http.ts",
+      "packages/convex/confect/shared/env.ts",
       "packages/convex/confect/_generated/tables/deployAuthorityIssuers.ts",
+      "packages/convex/confect/tables/deployActionConsumptions.ts",
+      "packages/convex/confect/tables/deployApprovals.ts",
       "packages/convex/confect/tables/deployAuthorityIssuers.ts",
+      "packages/convex/confect/tables/deployCensusSnapshots.ts",
+      "packages/convex/confect/tables/deployVerdicts.ts",
+      "packages/convex/convex/convex.config.ts",
+      "packages/convex/convex/deploy/authority.ts",
+      "packages/convex/test/deploy-authority.test.ts",
     ]) {
       expect(entries.get(path), path).toMatchObject({
         ownership: "generated",
@@ -453,6 +1203,8 @@ describe("saas application blueprint", () => {
     }
     for (const path of [
       "packages/convex/confect/_generated/tables/deployAuthorityAuditEvents.ts",
+      "packages/convex/confect/deployAuthority/env.ts",
+      "packages/convex/confect/deployAuthority/admin.ts",
       "packages/convex/confect/tables/deployAuthorityAuditEvents.ts",
     ]) {
       expect(entries.get(path), path).not.toHaveProperty("replaces");
@@ -510,18 +1262,19 @@ describe("saas application blueprint", () => {
       "scripts/maestro-bootstrap.mjs",
       "scripts/maestro-bootstrap.test.mjs",
       "apps/web/src/bundle-policy.ts",
-      "apps/web/package.json",
       "apps/web/scripts/check-client-bundle-budget.mjs",
       "apps/web/scripts/check-client-bundle-budget.test.mjs",
       "apps/web/src/bundle-policy.test.ts",
       "apps/web/vite.config.ts",
       "pnpm-workspace.yaml",
-      "pnpm-lock.yaml",
       "packages/convex/package.json",
       "tooling/quality/check-convex-generation.mts",
       "apps/cli/src/factory/customerComposition.ts",
+      "apps/cli/src/factory/mcp.ts",
       "apps/cli/src/index.ts",
+      "tooling/agent-pack/package.json",
       "apps/cli/package.json",
+      "apps/web/package.json",
       "apps/cli/src/factory/start.ts",
       "apps/cli/src/factory/customerRecipes.ts",
       "apps/cli/src/factory/recipeCatalog.ts",
@@ -529,12 +1282,20 @@ describe("saas application blueprint", () => {
       "apps/cli/src/factory/supportBundle.ts",
       ".prettierignore",
       "package.json",
+      "pnpm-lock.yaml",
       "tooling/confect-manifest/tsconfig.json",
       "tooling/generators/package.json",
+      "tooling/quality/package.json",
+      "examples/generic-ai-ops/template-package.json",
+      "lefthook.yml",
+      "scripts/pre-push-rubric.sh",
+      "tooling/quality/contract-review-rubric.md",
+      "tooling/quality/taste-review.mts",
       "tooling/quality/install-lefthook-if-git.mjs",
       "tooling/generators/src/customer.ts",
       "tooling/generators/src/customer-runtime.ts",
       "tooling/generators/src/customer-dispatcher.ts",
+      "tooling/generators/src/private-package.ts",
       "tooling/generators/src/customer-cli.ts",
       "tooling/generators/src/crud-proof.ts",
       "tooling/generators/src/direct-run.ts",
@@ -558,6 +1319,7 @@ describe("saas application blueprint", () => {
       "packages/convex/confect/_generated/docs.ts",
       "packages/convex/confect/_generated/tables/workflowArtifacts.ts",
       ...CURRENT_SAAS_DEPLOY_AUTHORITY_TABLE_CLOSURE,
+      ...CURRENT_SAAS_DEPLOY_AUTHORITY_SOURCE_CLOSURE,
       ...CURRENT_PRODUCT_JOURNEY_CLOSURE,
       "packages/convex/confect/tables/workflowArtifacts.ts",
       "packages/convex/confect/tables/workflowRuns.ts",
@@ -601,6 +1363,15 @@ describe("saas application blueprint", () => {
       "tooling/agent-pack/src/readiness/nodeSurface.ts",
       "tooling/agent-pack/src/readiness/presenter.ts",
       "tooling/agent-pack/src/readiness/server.ts",
+      "tooling/agent-pack/src/mcp/protocol.ts",
+      "tooling/agent-pack/src/mcp/projection.ts",
+      "tooling/agent-pack/src/mcp/server.ts",
+      "tooling/agent-pack/src/customerTestClosure.ts",
+      "tooling/agent-pack/src/customerTestClosure.test.ts",
+      "tooling/agent-pack/src/mcp/projection.test.ts",
+      "tooling/agent-pack/src/mcp/protocol.test.ts",
+      "tooling/agent-pack/src/mcp/server.test.ts",
+      "tooling/agent-pack/src/nodeAdapters.test.ts",
       "tooling/agent-pack/src/privacy/supportBundle.ts",
       "tooling/agent-pack/src/privacy/supportBundleCommand.ts",
       "tooling/agent-pack/src/privacy/nodeSupportBundleExporter.ts",
@@ -614,11 +1385,30 @@ describe("saas application blueprint", () => {
       "packages/convex/confect/_generated/convexSchema.ts",
       "packages/convex/confect/_generated/spec.ts",
       "packages/convex/confect/_generated/id.ts",
-      "packages/convex/confect/_generated/registeredFunctions/records.ts",
-      "packages/convex/convex/records.ts",
+      "packages/convex/confect/_generated/registeredFunctions/records/records.ts",
+      "packages/convex/convex/records/records.ts",
       "apps/web/src/routeTree.gen.ts",
       "apps/web/src/routeRegistry.generated.ts",
+      "Justfile",
+      "docs/template/env-manifest.json",
+      "docs/template/env-manifest.md",
+      "docs/template/operations-runbook.md",
+      "packages/template-core/src/templateInstance/templateInstance.test.ts",
+      "packages/template-core/src/templateInstance/__fixtures__/provider-posture-v1-to-v2.contract.json",
+      "packages/template-core/src/generated/confectManifest.ts",
+      "packages/convex/confect/workflows/_kit/policySnapshotCurrent.ts",
+      "tooling/generators/src/crud-proof.test.ts",
+      "tooling/app-map/src/composition.test.ts",
+      "tooling/app-map/src/composition.ts",
+      "tooling/app-map/src/schema.ts",
+      "tooling/quality/src/env-manifest.test.mts",
+      "docs/template/generated/provenance/add-feature/records.json",
     ]);
+    expect(
+      first.some(({ path }) =>
+        path.startsWith("examples/generic-ai-ops/seed/"),
+      ),
+    ).toBe(false);
     for (const file of first.slice(0, 4)) {
       expect(readFileSync(join(repoRoot, file.path), "utf8")).toBe(
         file.content,
@@ -730,65 +1520,53 @@ describe("saas application blueprint", () => {
     });
   });
 
-  it("ships canonical ownership, lifecycle, and topology for the record slice", () => {
-    const entries = new Map(
-      buildSaasApplicationTargetPlan().entries.map((entry) => [
-        entry.path,
-        entry.content,
+  it("projects the CRUD registration in Confect's codegen-stable layout", () => {
+    const files = new Map(
+      buildFactorySaasApplicationFiles({ name: "My App" }).map((file) => [
+        file.path,
+        file.content,
       ]),
     );
-    const systems = JSON.parse(
-      entries.get("docs/template/system-catalog.json") ?? "{}",
-    ) as {
-      readonly systems?: readonly {
-        readonly id: string;
-        readonly tables: readonly string[];
-      }[];
-    };
-    const resources = JSON.parse(
-      entries.get("docs/template/data-resources.json") ?? "{}",
-    ) as {
-      readonly resources?: readonly {
-        readonly id: string;
-        readonly system: string;
-        readonly workspaceLifecycle: string;
-      }[];
-    };
-    const topology = JSON.parse(
-      entries.get("docs/template/product-topology.json") ?? "{}",
-    ) as {
-      readonly resources?: readonly {
-        readonly path: string;
-        readonly system: string;
-      }[];
-    };
 
-    expect(systems.systems).toContainEqual(
-      expect.objectContaining({
-        id: "record-management",
-        tables: ["records"],
-      }),
-    );
-    expect(resources.resources).toContainEqual(
-      expect.objectContaining({
-        id: "records",
-        system: "record-management",
-        workspaceLifecycle: "managed",
-      }),
-    );
-    expect(topology.resources).toContainEqual(
-      expect.objectContaining({
-        path: "apps/web/src/routes/_workspace.records.tsx",
-        system: "record-management",
-      }),
+    expect(
+      files.get(
+        "packages/convex/confect/_generated/registeredFunctions/records/records.ts",
+      ),
+    ).toContain('import databaseSchema from "../../schema";');
+    expect(files.get("packages/convex/convex/records/records.ts")).toContain(
+      'import registeredFunctions from "../../confect/_generated/registeredFunctions/records/records";',
     );
     expect(
-      entries.has("docs/template/system-decisions/record-management.md"),
-    ).toBe(true);
-    expect(entries.has("docs/template/schema-decisions/records.md")).toBe(true);
-    expect(entries.has("packages/convex/confect/records.spec.ts")).toBe(true);
-    expect(entries.has("packages/convex/confect/records/records.spec.ts")).toBe(
-      false,
+      files.has(
+        "packages/convex/confect/_generated/registeredFunctions/records.ts",
+      ),
+    ).toBe(false);
+    expect(files.has("packages/convex/convex/records.ts")).toBe(false);
+
+    const spec = files.get("packages/convex/confect/_generated/spec.ts") ?? "";
+    expect(spec).toContain(
+      'import records_records from "../records/records.spec";',
+    );
+    expect(spec).toContain(
+      'GroupSpec.makeAt("records").addGroupAt("records", records_records)',
+    );
+
+    const docs = files.get("packages/convex/confect/_generated/docs.ts") ?? "";
+    expect(docs).toContain("export type RecordsDoc =");
+    expect(docs).toContain("  records: RecordsDoc;");
+
+    const ids = files.get("packages/convex/confect/_generated/id.ts") ?? "";
+    expect(ids.match(/\| "records"/g)).toHaveLength(1);
+    expect(ids.match(/\| "workflowArtifacts"/g)).toHaveLength(1);
+
+    const recordsSurface =
+      files.get("apps/web/src/features/records/records-surface.tsx") ?? "";
+    expect(recordsSurface).toContain("templateConfectRefs.public.records.list");
+    expect(recordsSurface).toContain(
+      "templateConfectRefs.public.records.create",
+    );
+    expect(recordsSurface).not.toMatch(
+      /templateConfectRefs\.public\.records\.records\.(?:list|create)/u,
     );
   });
 

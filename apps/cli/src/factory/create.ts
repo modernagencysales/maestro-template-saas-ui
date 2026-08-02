@@ -3,6 +3,7 @@ import {
   createRepositoryContext,
   type AgentPackCommand,
   type AgentPackJsonValue,
+  type AgentPackResult,
 } from "@maestro-template/agent-pack";
 import type { CliResult } from "../types";
 import { cliSuccess } from "../result";
@@ -38,7 +39,52 @@ export function runCreateCli<Args, Data extends AgentPackJsonValue>(
       repo: createRepositoryContext({ cwd }),
     },
     parsed.renderMode,
+    {
+      projectJson: projectCreateResultForJson,
+      includeDataInDetails: true,
+    },
   );
+}
+
+function projectCreateResultForJson<Data extends AgentPackJsonValue>(
+  result: AgentPackResult<"create", Data | null>,
+): unknown {
+  const data = asJsonRecord(result.data);
+  if (data === undefined) return result;
+  const preview = data.preview;
+  const release = data.release;
+  if (
+    !isJsonRecord(preview) ||
+    !isJsonRecord(release) ||
+    !Array.isArray(preview.writes) ||
+    !Array.isArray(preview.omissions) ||
+    !Array.isArray(preview.collisions) ||
+    typeof preview.preflightFingerprint !== "string" ||
+    typeof preview.totalBytes !== "number" ||
+    typeof release.ownershipManifest !== "string" ||
+    typeof release.ownershipManifestChecksum !== "string"
+  )
+    return result;
+
+  return {
+    ...result,
+    data: {
+      ...data,
+      preview: {
+        preflightFingerprint: preview.preflightFingerprint,
+        writeCount: preview.writes.length,
+        omissionCount: preview.omissions.length,
+        collisionCount: preview.collisions.length,
+        collisions: preview.collisions,
+        totalBytes: preview.totalBytes,
+        fullInventory: {
+          manifest: release.ownershipManifest,
+          manifestChecksum: release.ownershipManifestChecksum,
+          renderWith: "--details",
+        },
+      },
+    },
+  };
 }
 
 function parseCreateCli(argv: readonly string[]): {
@@ -109,4 +155,16 @@ function renderModeFor(
   if (token === "--details") return "details";
   if (token === "--human") return "human";
   return undefined;
+}
+
+function isJsonRecord(
+  value: unknown,
+): value is { readonly [key: string]: AgentPackJsonValue } {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function asJsonRecord(
+  value: unknown,
+): { readonly [key: string]: AgentPackJsonValue } | undefined {
+  return isJsonRecord(value) ? value : undefined;
 }

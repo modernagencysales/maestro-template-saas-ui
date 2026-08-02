@@ -7,6 +7,7 @@ import {
   buildOpenApiDocument,
   callMcpTool,
   describeWorkflowTemplate,
+  generatedMcpOperationRefs,
   getHeadlessOperation,
   runTemplateApiOperation,
   runTemplateWorkflow,
@@ -311,6 +312,22 @@ describe("workflow headless registry", () => {
         receiptId: "trust_run_template_001",
       },
     });
+  });
+
+  it("round-trips the fallback name of every listed generated MCP tool", () => {
+    const refs = generatedMcpOperationRefs as Record<string, string>;
+    const operationId = "brain.pages.createMarkdown";
+    const configured = refs[operationId];
+    delete refs[operationId];
+    try {
+      const listed = buildGeneratedMcpTools().find((tool) =>
+        tool.description.includes(operationId),
+      );
+      expect(listed?.name).toBe(`template.${operationId}`);
+      expect(callMcpTool(listed?.name ?? "").isError).toBe(false);
+    } finally {
+      if (configured !== undefined) refs[operationId] = configured;
+    }
   });
 
   it("executes MCP manifest operations through an explicit runtime adapter", () => {

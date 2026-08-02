@@ -325,6 +325,12 @@ function createData(
       },
       {
         id: "install",
+        command: `npx --yes pnpm@10.12.1 --dir ${quotedTarget} install --frozen-lockfile`,
+        requiresApproval: true,
+        executed: false,
+      },
+      {
+        id: "install",
         command: `pnpm --dir ${quotedTarget} install --frozen-lockfile`,
         requiresApproval: true,
         executed: false,

@@ -84,12 +84,20 @@ type Commands<
   VArgs,
   VData extends AgentPackJsonValue,
 > = {
-  readonly preflight: AgentPackCommand<"preflight", PArgs, PData>;
-  readonly planCheck: AgentPackCommand<"plan-check", LArgs, LData>;
-  readonly scaffold: AgentPackCommand<"scaffold", SArgs, SData>;
-  readonly supportBundle: AgentPackCommand<"support-bundle", BArgs, BData>;
-  readonly verify: AgentPackCommand<"verify", VArgs, VData>;
+  readonly preflight?: AgentPackCommand<"preflight", PArgs, PData>;
+  readonly planCheck?: AgentPackCommand<"plan-check", LArgs, LData>;
+  readonly scaffold?: AgentPackCommand<"scaffold", SArgs, SData>;
+  readonly supportBundle?: AgentPackCommand<"support-bundle", BArgs, BData>;
+  readonly verify?: AgentPackCommand<"verify", VArgs, VData>;
 };
+
+const toolCommandKeys = {
+  maestro_preflight: "preflight",
+  maestro_plan_check: "planCheck",
+  maestro_scaffold_preview: "scaffold",
+  maestro_support_bundle_preview: "supportBundle",
+  maestro_verify: "verify",
+} as const;
 
 export function createMaestroMcpProjection<
   PArgs,
@@ -122,10 +130,13 @@ export function createMaestroMcpProjection<
     invocation: "mcp" as const,
     repo,
   };
+  const tools = TOOLS.filter(
+    ({ name }) => commands[toolCommandKeys[name]] !== undefined,
+  );
   return {
-    tools: () => TOOLS,
+    tools: () => tools,
     call: async (name, args) => {
-      if (!TOOLS.some((tool) => tool.name === name)) {
+      if (!tools.some((tool) => tool.name === name)) {
         return toolError("MCP_UNKNOWN_TOOL", "Unknown Maestro MCP tool.");
       }
       if (containsForbiddenAuthority(args)) {
@@ -137,7 +148,7 @@ export function createMaestroMcpProjection<
       const decoded = decodeToolInput(name, args);
       if (!decoded.ok)
         return toolError("MCP_INVALID_ARGUMENT", decoded.message);
-      if (name === "maestro_preflight") {
+      if (name === "maestro_preflight" && commands.preflight !== undefined) {
         return projectResult(
           await executeAgentPackCommand(
             commands.preflight,
@@ -146,7 +157,7 @@ export function createMaestroMcpProjection<
           ),
         );
       }
-      if (name === "maestro_plan_check") {
+      if (name === "maestro_plan_check" && commands.planCheck !== undefined) {
         return projectResult(
           await executeAgentPackCommand(
             commands.planCheck,
@@ -155,7 +166,10 @@ export function createMaestroMcpProjection<
           ),
         );
       }
-      if (name === "maestro_scaffold_preview") {
+      if (
+        name === "maestro_scaffold_preview" &&
+        commands.scaffold !== undefined
+      ) {
         return projectResult(
           await executeAgentPackCommand(
             commands.scaffold,
@@ -164,7 +178,10 @@ export function createMaestroMcpProjection<
           ),
         );
       }
-      if (name === "maestro_support_bundle_preview") {
+      if (
+        name === "maestro_support_bundle_preview" &&
+        commands.supportBundle !== undefined
+      ) {
         return projectResult(
           await executeAgentPackCommand(
             commands.supportBundle,
@@ -173,9 +190,15 @@ export function createMaestroMcpProjection<
           ),
         );
       }
-      return projectResult(
-        await executeAgentPackCommand(commands.verify, decoded.input, context),
-      );
+      if (name === "maestro_verify" && commands.verify !== undefined)
+        return projectResult(
+          await executeAgentPackCommand(
+            commands.verify,
+            decoded.input,
+            context,
+          ),
+        );
+      return toolError("MCP_UNKNOWN_TOOL", "Unknown Maestro MCP tool.");
     },
   };
 }

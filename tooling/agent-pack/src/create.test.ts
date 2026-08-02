@@ -123,11 +123,44 @@ describe("customer create command", () => {
       },
       nextCommand: 'pnpm --dir "../my-app" maestro -- start --mode fake',
       followUpActions: [
-        { id: "git-init", requiresApproval: true, executed: false },
-        { id: "install", requiresApproval: true, executed: false },
-        { id: "git-add", requiresApproval: true, executed: false },
-        { id: "git-commit", requiresApproval: true, executed: false },
-        { id: "preflight", requiresApproval: true, executed: false },
+        {
+          id: "git-init",
+          command: 'git -C "../my-app" init',
+          requiresApproval: true,
+          executed: false,
+        },
+        {
+          id: "install",
+          command:
+            'npx --yes pnpm@10.12.1 --dir "../my-app" install --frozen-lockfile',
+          requiresApproval: true,
+          executed: false,
+        },
+        {
+          id: "install",
+          command: 'pnpm --dir "../my-app" install --frozen-lockfile',
+          requiresApproval: true,
+          executed: false,
+        },
+        {
+          id: "git-add",
+          command: 'git -C "../my-app" add .',
+          requiresApproval: true,
+          executed: false,
+        },
+        {
+          id: "git-commit",
+          command:
+            'git -C "../my-app" commit -m "chore: initialize app from Maestro"',
+          requiresApproval: true,
+          executed: false,
+        },
+        {
+          id: "preflight",
+          command: 'pnpm --dir "../my-app" maestro -- preflight --mode fake',
+          requiresApproval: true,
+          executed: false,
+        },
       ],
     });
     expect(JSON.parse(test.instance())).toMatchObject({

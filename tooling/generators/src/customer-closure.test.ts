@@ -33,7 +33,7 @@ const customerClosure = (): readonly string[] => {
     const source = readFileSync(path, "utf8");
     expect(path).not.toMatch(/\/src\/index\.ts$/);
     expect(source).not.toMatch(
-      /saasApplicationFactory|saasRegistrationProjections|tooling\/release|(?:^|\/)releases\/|private-package/,
+      /saasApplicationFactory|saasRegistrationProjections|tooling\/release|(?:^|\/)releases\//,
     );
     for (const imported of preProcessFile(source, true, true).importedFiles) {
       if (imported.fileName.startsWith("."))
@@ -49,6 +49,7 @@ describe("customer generator closure", () => {
     for (const name of [
       "customer-runtime.ts",
       "customer-dispatcher.ts",
+      "private-package.ts",
       "workflow-files.ts",
       "workflow-predeploy.ts",
       "workflow-release-commands.ts",

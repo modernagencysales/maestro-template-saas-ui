@@ -924,6 +924,25 @@ describe("template app factory generators", () => {
     expect(result.stdout).toContain("template:add-agent-seat");
   });
 
+  it.each(["add-table", "add-workflow", "systems", "doctor"])(
+    "prints exact leaf help for %s",
+    (command) => {
+      for (const flag of ["--help", "-h"]) {
+        for (const argv of [
+          [command, flag],
+          [command, "--", flag],
+        ]) {
+          const result = runGeneratorCli(argv);
+          expect(result.exitCode).toBe(0);
+          expect(result.stderr).toBe("");
+          expect(result.stdout).toMatch(
+            new RegExp(`^template:${command}(?: |\\n)`),
+          );
+        }
+      }
+    },
+  );
+
   it("rejects planned blueprints with a useful error", () => {
     const result = runGeneratorCli([
       "quickstart",
@@ -1539,6 +1558,8 @@ describe("template app factory generators", () => {
     expect(impl).toContain("startWorkflowAndRecordOwnership");
     expect(impl).toContain("createWorkflowUserPrincipal");
     expect(impl).toContain("resolveWorkflowPolicySnapshotForRun");
+    expect(impl).toContain('from "../workflows/_kit/policySnapshotCurrent"');
+    expect(impl).toContain("Effect.mapError(toWorkflowPolicyValidationFailed)");
     expect(impl).toContain("readonly principal: DurableWorkflowPrincipal");
     expect(impl).toContain("readonly policySnapshot: WorkflowPolicySnapshot");
     expect(impl).not.toContain(
@@ -1741,6 +1762,11 @@ describe("template app factory generators", () => {
     expect(impl).toContain('startWithProfile("interactive"');
     expect(impl).toContain('startWithProfile("queued"');
     expect(impl).toContain('kickoffProfile === "interactive"');
+    expect(impl).toContain('from "../workflows/_kit/defineMaestroWorkflow"');
+    expect(impl).not.toContain('from "@convex-dev/workflow"');
+    expect(impl).toContain("preserveWorkflowStartErrors = <A, E, R>");
+    expect(impl).toContain("resolveWorkflowPolicySnapshotForRun");
+    expect(impl).not.toContain('policyPosture.kind !== "none"');
     expect(impl).toContain("principal:");
     expect(impl).toContain("actorId: access.userId");
   });
@@ -1933,10 +1959,10 @@ describe("template app factory generators", () => {
       "tsx tooling/generators/src/workflow-output-smoke.ts",
     );
     expect(rootPackage.scripts?.["template:add-agent"]).toBe(
-      "tsx tooling/generators/src/index.ts add-agent",
+      "tsx tooling/generators/src/cli.ts add-agent",
     );
     expect(rootPackage.scripts?.["template:add-agent-seat"]).toBe(
-      "tsx tooling/generators/src/index.ts add-agent-seat",
+      "tsx tooling/generators/src/cli.ts add-agent-seat",
     );
     expect(existsSync(smokeScriptPath)).toBe(true);
     expect(smokeWorkflowName).toBe("generatedWorkflowSmoke");
@@ -2197,7 +2223,7 @@ describe("template app factory generators", () => {
     }
   });
 
-  it("imports a private package plan through the CLI when write is explicit", () => {
+  it("imports the exact reviewed private package plan through the root CLI", () => {
     const cwd = mkdtempSync(join(tmpdir(), "maestro-template-private-import-"));
     const fixture = join(cwd, "fixtures/generic-ai-ops");
 
@@ -2225,7 +2251,10 @@ describe("template app factory generators", () => {
         ],
         cwd,
       );
-      const imported = runGeneratorCli(
+      const preview = JSON.parse(dryRun.stdout) as {
+        readonly previewFingerprint: string;
+      };
+      const unconfirmed = runGeneratorCli(
         [
           "private-package:import",
           "--fixture",
@@ -2259,7 +2288,35 @@ describe("template app factory generators", () => {
       expect(JSON.parse(dryRun.stdout)).toMatchObject({
         mode: "dry-run",
         packageName: "generic-ai-ops",
+        collisions: [],
+        privacy: {
+          reads: ["template-package.json"],
+          readsSeedData: false,
+          readsSecrets: false,
+          productionRegistrations: false,
+        },
+        previewFingerprint: expect.stringMatching(
+          /^private_package_sha256:[0-9a-f]{64}$/,
+        ),
       });
+      expect(unconfirmed.exitCode).toBe(1);
+      expect(unconfirmed.stderr).toContain("fingerprint mismatch");
+      expect(existsSync(planPath)).toBe(false);
+      const imported = runGeneratorCli(
+        [
+          "private-package:import",
+          "--fixture",
+          "fixtures/generic-ai-ops",
+          "--system",
+          "knowledge-brain",
+          "--disposition",
+          "extend",
+          "--write",
+          "--preflight-fingerprint",
+          preview.previewFingerprint,
+        ],
+        cwd,
+      );
       expect(imported.exitCode).toBe(0);
       expect(existsSync(planPath)).toBe(true);
       expect(existsSync(indexPath)).toBe(true);
@@ -2374,6 +2431,9 @@ describe("template app factory generators", () => {
     const model = result.files.find(({ path }) =>
       path.endsWith("/accountSignals/model.ts"),
     )?.content;
+    const fixture = result.files.find(({ path }) =>
+      path.endsWith("/accountSignals/fixtures.ts"),
+    )?.content;
     const route = result.files.find(({ path }) =>
       path.endsWith("/_workspace.account-signals.tsx"),
     )?.content;
@@ -2413,6 +2473,12 @@ describe("template app factory generators", () => {
     expect(model).toContain('status: "typed-error"');
     expect(model).toContain('status: "transport-error"');
     expect(model).toContain('status: "success"');
+    expect(fixture).toContain(
+      "export const fakeAccountSignalsItem: AccountSignalsItem",
+    );
+    expect(fixture).toContain("draft: fakeAccountSignalsItem");
+    expect(fixture).toContain("item: fakeAccountSignalsItem");
+    expect(fixture).not.toContain("[0]!");
     expect(route).toContain("AccountSignalsScreen");
     expect(route).not.toContain("Feature");
     expect(JSON.parse(provenance?.content ?? "{}")).toMatchObject({

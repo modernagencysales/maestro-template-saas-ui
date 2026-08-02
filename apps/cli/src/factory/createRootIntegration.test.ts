@@ -19,7 +19,6 @@ import { CREATE_HELP } from "./create";
 import { createFactoryCliComposition } from "./composition";
 
 const repoRoot = fileURLToPath(new URL("../../../../", import.meta.url));
-const reviewedReleaseTag = "maestro-template-v0.2.0-alpha.2";
 const execFileAsync = promisify(execFile);
 const temporaryRoots: string[] = [];
 let taggedReleaseParent: string | undefined;
@@ -35,10 +34,6 @@ const taggedRepository = (): string => {
       stdio: "pipe",
     },
   );
-  execFileSync("git", ["checkout", "--quiet", "--detach", reviewedReleaseTag], {
-    cwd: taggedReleaseRoot,
-    stdio: "pipe",
-  });
   execFileSync(
     "pnpm",
     ["install", "--offline", "--frozen-lockfile", "--ignore-scripts"],
@@ -167,7 +162,9 @@ describe("create root integration", () => {
     ]);
 
     expect(result.exitCode).toBe(0);
-    expect(JSON.parse(result.stdout)).toMatchObject({
+    const receipt = JSON.parse(result.stdout);
+    expect(result.stdout.length).toBeLessThan(20_000);
+    expect(receipt).toMatchObject({
       mutationPosture: "preview",
       exitClass: "success",
       diagnostics: [
@@ -187,8 +184,28 @@ describe("create root integration", () => {
         privacy: {
           privacyDocument: "docs/template/agent-pack-privacy.md",
         },
+        preview: {
+          preflightFingerprint: expect.stringMatching(/^sha256:[0-9a-f]{64}$/),
+          writeCount: expect.any(Number),
+          omissionCount: expect.any(Number),
+          collisionCount: 0,
+          collisions: [],
+          totalBytes: expect.any(Number),
+          fullInventory: {
+            manifest: expect.any(String),
+            manifestChecksum: expect.stringMatching(/^sha256:[0-9a-f]{64}$/),
+            renderWith: "--details",
+          },
+        },
       },
     });
+    expect(receipt.data.preview.writeCount).toBeGreaterThan(0);
+    expect(receipt.data.preview.fullInventory).toMatchObject({
+      manifest: receipt.data.release.ownershipManifest,
+      manifestChecksum: receipt.data.release.ownershipManifestChecksum,
+    });
+    expect(receipt.data.preview).not.toHaveProperty("writes");
+    expect(receipt.data.preview).not.toHaveProperty("omissions");
     expect(existsSync(target)).toBe(false);
   }, 30_000);
 
@@ -349,10 +366,7 @@ describe("create root integration", () => {
       "--privacy-reviewed",
       "--json",
     ]);
-    expect(
-      result.exitCode,
-      [result.stderr, result.stdout].filter(Boolean).join("\n"),
-    ).toBe(0);
+    expect(result.exitCode, `${result.stdout}\n${result.stderr}`).toBe(0);
     expect(JSON.parse(result.stdout)).toMatchObject({ exitClass: "success" });
     const required = [
       "packages/convex/confect/tables/records.ts",
@@ -468,10 +482,15 @@ describe("create root integration", () => {
         },
       }),
     );
-    execFileSync("pnpm", ["exec", "tsc", "-p", webTargetConfig, "--noEmit"], {
-      cwd: targetRoot,
-      stdio: "pipe",
-    });
+    const webCompile = spawnSync(
+      "pnpm",
+      ["exec", "tsc", "-p", webTargetConfig, "--noEmit"],
+      { cwd: targetRoot, encoding: "utf8" },
+    );
+    expect(
+      webCompile.status,
+      `${webCompile.stdout}\n${webCompile.stderr}`,
+    ).toBe(0);
 
     const databaseSchema = (await import(
       `${pathToFileURL(join(targetRoot, "packages/convex/confect/_generated/schema.ts")).href}?target=${Date.now()}`

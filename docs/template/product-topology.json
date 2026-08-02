@@ -252,6 +252,16 @@
       "lifecycle": "active"
     },
     {
+      "id": "route:build-pack/$packId/",
+      "kind": "route",
+      "system": "workflow-runtime",
+      "path": "apps/web/src/routes/build-pack.$packId.index.tsx",
+      "responsibility": "present completed build pack delivery",
+      "surfaces": ["web"],
+      "uses": ["knowledge-brain"],
+      "lifecycle": "active"
+    },
+    {
       "id": "route:checkout/$reportId",
       "kind": "route",
       "system": "billing-and-entitlements",
@@ -302,7 +312,7 @@
       "lifecycle": "active"
     },
     {
-      "id": "route:generating",
+      "id": "route:build-pack/$packId/generating",
       "kind": "route",
       "system": "workflow-runtime",
       "path": "apps/web/src/routes/build-pack.$packId.generating.tsx",

@@ -240,7 +240,7 @@ export const APP_MAP_INPUT_MANIFEST_V1 = {
       {
         nodeKinds: ["resource", "capability", "workflow"],
         edgeKinds: ["owns", "generated-by", "verified-by"],
-        ownershipTargets: ["resource", "capability", "workflow"],
+        ownershipTargets: ["resource", "route", "capability", "workflow"],
       },
       "sha256-canonical-tree-v1",
     ),

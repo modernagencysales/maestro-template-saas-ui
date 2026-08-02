@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { basename, dirname, resolve } from "node:path";
+import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   parseDataResourceCatalog,
@@ -24,7 +24,6 @@ import {
 } from "@maestro-template/template-core/systemCatalog";
 import { planUpgrade } from "@maestro-template/release-tooling/upgrade";
 import { gtmImplementationBlueprint } from "./blueprints/gtmImplementation";
-import { helpForGenerator } from "./help";
 import {
   buildSaasApplicationFiles,
   buildSaasApplicationHandoff,
@@ -39,6 +38,13 @@ import { buildWorkflowFiles } from "./workflow-files";
 export { buildWorkflowFiles } from "./workflow-files";
 import { bumpRelease, publishRelease } from "./workflow-release-commands";
 import { isGeneratorDirectRun } from "./direct-run";
+import { executePrivatePackagePlan } from "./private-package";
+export {
+  buildPrivatePackagePlan,
+  executePrivatePackagePlan,
+  type PrivatePackagePlan,
+} from "./private-package";
+export { parseCustomerTemplateInstance } from "./customer-runtime";
 
 export type ProviderMode = "fake" | "test" | "live";
 export type SystemGeneratorDisposition = "reuse" | "extend";
@@ -373,15 +379,6 @@ export type TemplateUpgradeReport = {
   readonly commands: readonly string[];
 };
 
-export type PrivatePackagePlan = {
-  readonly fixturePath: string;
-  readonly mode: "dry-run" | "import";
-  readonly ok: boolean;
-  readonly packageName: string;
-  readonly files: readonly GeneratedFile[];
-  readonly checks: readonly DoctorCheck[];
-};
-
 const defaultModules = [
   "brain",
   "workflows",
@@ -639,14 +636,6 @@ const withGeneratorProvenance = (
       )}\n`,
     },
   ];
-};
-
-const readOptionalJson = <T>(path: string): T | undefined => {
-  if (!existsSync(path)) {
-    return undefined;
-  }
-
-  return JSON.parse(readFileSync(path, "utf8")) as T;
 };
 
 const reviewedTransitionMatches = (
@@ -1793,13 +1782,15 @@ export const present${pascalName} = (
       path: `${featurePath}/fixtures.ts`,
       content: `import type { ${pascalName}FeatureState, ${pascalName}Item } from "./model";
 
-const fake${pascalName}Item: ${pascalName}Item = {
+export const fake${pascalName}Item: ${pascalName}Item = {
   id: "${name}-demo-1",
   label: "Example account",
   detail: "Synthetic fixture for customer.example; never use customer data here.",
 };
 
-export const fake${pascalName}Items: readonly ${pascalName}Item[] = [fake${pascalName}Item];
+export const fake${pascalName}Items: readonly ${pascalName}Item[] = [
+  fake${pascalName}Item,
+];
 
 export const fake${pascalName}States = {
   loading: { status: "loading" },
@@ -2928,261 +2919,6 @@ export const buildTemplateUpgradeReport = (options: {
   };
 };
 
-type PrivatePackageManifest = {
-  readonly name?: string;
-  readonly capabilities?: readonly string[];
-  readonly workflows?: readonly string[];
-  readonly agents?: readonly string[];
-  readonly docs?: readonly string[];
-};
-
-const privatePackageName = (
-  fixturePath: string,
-  manifest?: PrivatePackageManifest,
-): string =>
-  manifest?.name?.trim() || slugify(basename(fixturePath)) || "client-package";
-
-const privatePackageCapabilityFiles = (
-  packageName: string,
-  capabilityName: string,
-  ownership: {
-    readonly system: string;
-    readonly disposition: SystemGeneratorDisposition;
-  },
-): readonly GeneratedFile[] => {
-  const name = camelCase(capabilityName);
-  const pascalName = pascalCase(capabilityName);
-  const basePath = `private-packages/${packageName}/src/capabilities/${name}`;
-
-  return [
-    {
-      path: `${basePath}/${name}.contract.json`,
-      content: `${JSON.stringify(
-        {
-          capability: name,
-          packageName,
-          authScope: "workspace member",
-          typedErrors: ["Unauthorized", "ValidationFailed", "Forbidden"],
-          surfaces: ["api", "cli", "mcp"],
-          promotionCommand: `pnpm template:promote-capability -- --name ${name} --system ${ownership.system} --disposition ${ownership.disposition} --write`,
-        },
-        null,
-        2,
-      )}\n`,
-    },
-    {
-      path: `${basePath}/README.md`,
-      content: `# ${pascalName} Capability Module
-
-Private package capability module for \`${packageName}\`.
-
-## Import Checklist
-
-1. Review fixture redaction and source ownership.
-2. Promote with \`pnpm template:promote-capability -- --name ${name} --system ${ownership.system} --disposition ${ownership.disposition} --write\`.
-3. Replace deterministic implementation with client-specific domain logic.
-4. Run \`pnpm check:confect-contracts\` and focused capability tests.
-`,
-    },
-  ];
-};
-
-const privatePackageWorkflowFiles = (
-  packageName: string,
-  workflowName: string,
-  ownership: {
-    readonly system: string;
-    readonly disposition: SystemGeneratorDisposition;
-  },
-): readonly GeneratedFile[] => {
-  const name = camelCase(workflowName);
-  const pascalName = pascalCase(workflowName);
-  const basePath = `private-packages/${packageName}/src/workflows/${name}`;
-
-  return [
-    {
-      path: `${basePath}/${name}.workflow.json`,
-      content: `${JSON.stringify(
-        {
-          workflow: name,
-          packageName,
-          promoted: false,
-          nodes: [
-            { id: "source", kind: "source", label: "Source Set" },
-            {
-              id: "capability",
-              kind: "capability",
-              label: "Private Capability",
-            },
-            { id: "approval", kind: "approval", label: "Policy Approval" },
-            { id: "receipt", kind: "output", label: "Trust Receipt" },
-          ],
-          edges: [
-            { id: "e1", source: "source", target: "capability" },
-            { id: "e2", source: "capability", target: "approval" },
-            { id: "e3", source: "approval", target: "receipt" },
-          ],
-        },
-        null,
-        2,
-      )}\n`,
-    },
-    {
-      path: `${basePath}/README.md`,
-      content: `# ${pascalName} Workflow Module
-
-Private package workflow module for \`${packageName}\`.
-
-## Import Checklist
-
-1. Review graph nodes, approvals, idempotency, and Trust Receipt policy.
-2. Promote with \`pnpm template:promote-workflow -- --name ${name} --system ${ownership.system} --disposition ${ownership.disposition} --write\`.
-3. Connect reviewed capability refs to reviewed capability modules.
-4. Run \`pnpm check:workflow-graph-boundary\` and focused workflow tests.
-`,
-    },
-  ];
-};
-
-const privatePackageIndexFile = (
-  packageName: string,
-  capabilities: readonly string[],
-  workflows: readonly string[],
-  docs: readonly string[],
-): GeneratedFile => ({
-  path: `private-packages/${packageName}/src/index.ts`,
-  content: `export const privatePackage = ${JSON.stringify(
-    {
-      packageName,
-      capabilities: capabilities.map(camelCase),
-      workflows: workflows.map(camelCase),
-      docs,
-      requiredChecks: [
-        "pnpm check:confect-contracts",
-        "pnpm check:workflow-graph-boundary",
-        "pnpm check:schema-migration-notes",
-        "pnpm check:secret-canaries",
-      ],
-    },
-    null,
-    2,
-  )} as const;
-`,
-});
-
-export const buildPrivatePackagePlan = (options: {
-  readonly fixturePath: string;
-  readonly system: string;
-  readonly disposition: SystemGeneratorDisposition;
-  readonly mode?: "dry-run" | "import";
-}): PrivatePackagePlan => {
-  const mode = options.mode ?? "dry-run";
-  const manifestPath = resolve(options.fixturePath, "template-package.json");
-  const manifest = readOptionalJson<PrivatePackageManifest>(manifestPath);
-  const packageName = privatePackageName(options.fixturePath, manifest);
-  const capabilities = manifest?.capabilities?.length
-    ? manifest.capabilities
-    : ["summarizeSource"];
-  const workflows = manifest?.workflows?.length
-    ? manifest.workflows
-    : ["sourceGroundedPlan"];
-  const docs = manifest?.docs?.length ? manifest.docs : ["README.md"];
-  const checks: DoctorCheck[] = [
-    {
-      id: "fixture:manifest",
-      label: "Package manifest",
-      status: manifest ? "pass" : "warn",
-      detail: manifest
-        ? `Found ${manifestPath}`
-        : "No template-package.json found; using safe default package plan",
-    },
-    {
-      id: "fixture:redaction",
-      label: "Fixture redaction",
-      status: "pass",
-      detail: "Generated plan contains no raw customer data or secret values.",
-    },
-    {
-      id: "fixture:contracts",
-      label: "Generated contracts",
-      status: "pass",
-      detail: "Capabilities and workflows require Confect contract checks.",
-    },
-  ];
-  const files: GeneratedFile[] = [
-    {
-      path: `private-packages/${packageName}/package-plan.json`,
-      content: `${JSON.stringify(
-        {
-          packageName,
-          reviewBoundary: "private-packages-first",
-          contractReview: "required-before-promotion",
-          system: options.system,
-          disposition: options.disposition,
-          productionRegistrations: false,
-          capabilities,
-          workflows,
-          agents: manifest?.agents ?? [],
-          docs,
-          ownershipNotes: [
-            "Assign a client/package owner before promotion.",
-            "Confirm source ownership, retention, and redaction posture.",
-          ],
-          migrationNotes: [
-            "Do not promote directly into template core.",
-            "Promote reviewed contracts through template:promote-* commands.",
-          ],
-          requiredChecks: [
-            "pnpm check:confect-contracts",
-            "pnpm check:schema-migration-notes",
-            "pnpm check:secret-canaries",
-          ],
-        },
-        null,
-        2,
-      )}\n`,
-    },
-    {
-      path: `private-packages/${packageName}/README.md`,
-      content: `# ${packageName} Private Package
-
-This package plan is generated from \`${options.fixturePath}\`.
-
-## Contents
-
-- Capabilities: ${capabilities.join(", ")}
-- Workflows: ${workflows.join(", ")}
-- Docs: ${docs.join(", ")}
-
-## Required Checks
-
-- \`pnpm check:confect-contracts\`
-- \`pnpm check:schema-migration-notes\`
-- \`pnpm check:secret-canaries\`
-`,
-    },
-    privatePackageIndexFile(packageName, capabilities, workflows, docs),
-    ...capabilities.flatMap((capability) =>
-      privatePackageCapabilityFiles(packageName, capability, options),
-    ),
-    ...workflows.flatMap((workflow) =>
-      privatePackageWorkflowFiles(packageName, workflow, options),
-    ),
-  ];
-
-  return {
-    fixturePath: options.fixturePath,
-    mode,
-    ok: checks.every((check) => check.status !== "fail"),
-    packageName,
-    files: withGeneratorProvenance("private-package", packageName, files, {
-      system: options.system,
-      disposition: options.disposition,
-    }),
-    checks,
-  };
-};
-
 export const buildPrototypeFiles = (
   options: PrototypeGeneratorOptions,
 ): PrototypeGeneratorResult => {
@@ -3307,6 +3043,7 @@ const parseArgs = (
   readonly to: string | undefined;
   readonly version: string | undefined;
   readonly fixture: string | undefined;
+  readonly preflightFingerprint: string | undefined;
   readonly mode: ProviderMode;
   readonly exposure: "web" | "workflow" | "headless";
   readonly description: string | undefined;
@@ -3346,6 +3083,7 @@ const parseArgs = (
   const toIndex = argv.indexOf("--to");
   const versionIndex = argv.indexOf("--version");
   const fixtureIndex = argv.indexOf("--fixture");
+  const preflightFingerprintIndex = argv.indexOf("--preflight-fingerprint");
   const mode = modeIndex >= 0 ? argv[modeIndex + 1] : undefined;
   const blueprint =
     blueprintIndex >= 0 ? argv[blueprintIndex + 1] : defaultBlueprintId;
@@ -3437,6 +3175,10 @@ const parseArgs = (
     to: toIndex >= 0 ? argv[toIndex + 1] : undefined,
     version: versionIndex >= 0 ? argv[versionIndex + 1] : undefined,
     fixture: fixtureIndex >= 0 ? argv[fixtureIndex + 1] : undefined,
+    preflightFingerprint:
+      preflightFingerprintIndex >= 0
+        ? argv[preflightFingerprintIndex + 1]
+        : undefined,
     mode: (mode ?? "fake") as ProviderMode,
     exposure: exposure as "web" | "workflow" | "headless",
     description: descriptionIndex >= 0 ? argv[descriptionIndex + 1] : undefined,
@@ -3471,14 +3213,19 @@ export const runGeneratorCli = (
   readonly stderr: string;
 } => {
   try {
-    const requestedHelp =
-      argv[0] !== undefined && (argv[1] === "--help" || argv[1] === "-h")
-        ? helpForGenerator(argv[0])
-        : undefined;
-    if (requestedHelp !== undefined) {
-      return { exitCode: 0, stdout: requestedHelp, stderr: "" };
+    const cliArgv = argv.filter((argument) => argument !== "--");
+    const args = parseArgs(cliArgv);
+    if (
+      args.command !== undefined &&
+      (cliArgv[1] === "--help" || cliArgv[1] === "-h")
+    ) {
+      const prefix = `template:${args.command}`;
+      const usage = runGeneratorCli(["help"], cwd)
+        .stdout.split("\n")
+        .find((line) => line === prefix || line.startsWith(`${prefix} `));
+      if (usage !== undefined)
+        return { exitCode: 0, stdout: `${usage}\n`, stderr: "" };
     }
-    const args = parseArgs(argv);
     const outputPath = resolve(cwd, args.path);
     const catalogRoot = existsSync(systemCatalogPath(cwd))
       ? cwd
@@ -3539,7 +3286,7 @@ export const runGeneratorCli = (
             "template:promote-workflow --name <name> --system <canonical-id> --disposition reuse|extend [--description <text>] [--write]",
             "template:upgrade --from <client-version> --to <template-version> --path <reviewed-input.json>",
             "template:private-package:dry-run --fixture <path> --system <canonical-id> --disposition reuse|extend",
-            "template:private-package:import --fixture <path> --system <canonical-id> --disposition reuse|extend [--write]",
+            "template:private-package:import --fixture <path> --system <canonical-id> --disposition reuse|extend --write --preflight-fingerprint <private_package_sha256:...>",
           ].join("\n") + "\n",
         stderr: "",
       };
@@ -4100,15 +3847,17 @@ export const runGeneratorCli = (
         };
       }
 
-      const plan = buildPrivatePackagePlan({
+      const plan = executePrivatePackagePlan({
         fixturePath: resolve(cwd, args.fixture),
+        fixtureArgument: args.fixture,
+        targetRoot: cwd,
         ...requireOwnership(),
         mode: args.command === "private-package:import" ? "import" : "dry-run",
+        write: args.write,
+        ...(args.preflightFingerprint === undefined
+          ? {}
+          : { preflightFingerprint: args.preflightFingerprint }),
       });
-
-      if (args.command === "private-package:import" && args.write) {
-        writeGeneratedFiles(plan.files, cwd);
-      }
 
       return {
         exitCode: plan.ok ? 0 : 1,
