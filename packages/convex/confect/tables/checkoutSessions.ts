@@ -6,6 +6,7 @@ export default Table.make(() =>
     checkoutSessionId: Schema.String,
     checkoutUrl: Schema.optional(Schema.String),
     reportId: Schema.String,
+    admaxxerVisitorId: Schema.optional(Schema.String),
     idempotencyKey: Schema.String,
     amountCents: Schema.Number,
     currency: Schema.String,

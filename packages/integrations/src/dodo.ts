@@ -69,7 +69,7 @@ export type DodoCheckoutTransportRequest = {
     readonly quantity: number;
   }[];
   readonly customer: { readonly email: string };
-  readonly metadata: { readonly reportId: string };
+  readonly metadata: Readonly<Record<string, string>>;
   readonly returnUrl: string;
   readonly idempotencyKey: string;
 };
@@ -80,6 +80,15 @@ export type DodoCheckoutTransport = (
   readonly checkoutSessionId: string;
   readonly checkoutUrl: string;
 }>;
+
+export const normalizeAdmaxxerVisitorId = (
+  value: string | undefined,
+): string | undefined => {
+  const normalized = value?.trim();
+  return normalized && /^[A-Za-z0-9._~-]{1,180}$/.test(normalized)
+    ? normalized
+    : undefined;
+};
 
 export type DodoSdkEnvironment = "live_mode" | "test_mode";
 
@@ -179,6 +188,7 @@ export const createDodoCheckout = async (input: {
   readonly productId: string;
   readonly reportId: string;
   readonly customerEmail: string;
+  readonly admaxxerVisitorId?: string | undefined;
   readonly returnUrl: string;
   readonly idempotencyKey: string;
   readonly transport?: DodoCheckoutTransport;
@@ -201,7 +211,16 @@ export const createDodoCheckout = async (input: {
         apiKey: input.apiKey ?? "",
         productCart: [{ productId: input.productId, quantity: 1 }],
         customer: { email: input.customerEmail },
-        metadata: { reportId: input.reportId },
+        metadata: {
+          reportId: input.reportId,
+          ...(normalizeAdmaxxerVisitorId(input.admaxxerVisitorId)
+            ? {
+                admx_visitor_id: normalizeAdmaxxerVisitorId(
+                  input.admaxxerVisitorId,
+                ) as string,
+              }
+            : {}),
+        },
         returnUrl: input.returnUrl,
         idempotencyKey: input.idempotencyKey,
       });

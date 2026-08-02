@@ -21,4 +21,14 @@ export const loadDodoCommerceEnvConfig = Config.all({
   DODO_API_KEY: optionalEnvConfig("DODO_API_KEY"),
   DODO_WEBHOOK_SECRET: optionalEnvConfig("DODO_WEBHOOK_SECRET"),
   DODO_BUILD_PACK_PRODUCT_ID: optionalEnvConfig("DODO_BUILD_PACK_PRODUCT_ID"),
+  DODO_BUILD_PACK_EXPECTED_AMOUNT_CENTS: optionalEnvConfig(
+    "DODO_BUILD_PACK_EXPECTED_AMOUNT_CENTS",
+  ),
+  DODO_BUILD_PACK_LAUNCH_CANARY: optionalEnvConfig(
+    "DODO_BUILD_PACK_LAUNCH_CANARY",
+  ),
+});
+
+export const loadAdmaxxerEnvConfig = Config.all({
+  ADMAXXER_API_KEY: optionalEnvConfig("ADMAXXER_API_KEY"),
 });

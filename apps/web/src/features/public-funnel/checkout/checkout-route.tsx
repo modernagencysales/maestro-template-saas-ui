@@ -27,7 +27,19 @@ type CreateCheckout = (input: {
   readonly reportId: string;
   readonly ownerAccessToken: string;
   readonly email: string;
+  readonly admaxxerVisitorId?: string;
 }) => Promise<{ readonly checkoutUrl: string }>;
+
+export const readAdmaxxerVisitorId = (): string | undefined => {
+  if (typeof window === "undefined") return undefined;
+  const value = (
+    window as Window & {
+      readonly admaxxer?: { readonly getVisitorId?: () => unknown };
+    }
+  ).admaxxer?.getVisitorId?.();
+  const normalized = typeof value === "string" ? value.trim() : "";
+  return /^[A-Za-z0-9._~-]{1,180}$/.test(normalized) ? normalized : undefined;
+};
 
 export async function openConfiguredCheckout({
   reportId,
@@ -47,10 +59,12 @@ export async function openConfiguredCheckout({
   if (!ownerAccessToken) {
     throw new Error("Verified report ownership is required");
   }
+  const visitorId = readAdmaxxerVisitorId();
   const checkout = await createCheckout({
     reportId,
     ownerAccessToken,
     email: email.trim(),
+    ...(visitorId ? { admaxxerVisitorId: visitorId } : {}),
   });
   onStarted?.();
   redirect(checkout.checkoutUrl);

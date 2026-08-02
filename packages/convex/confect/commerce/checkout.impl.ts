@@ -2,6 +2,7 @@ import { FunctionImpl, GroupImpl } from "@confect/server";
 import {
   createDodoCheckout,
   createDodoSdkCheckoutTransport,
+  normalizeAdmaxxerVisitorId,
   type DodoCheckoutResult,
 } from "@maestro-template/integrations";
 import * as Clock from "effect/Clock";
@@ -62,11 +63,12 @@ const prepareCheckoutImpl = FunctionImpl.make(
   databaseSchema,
   checkoutGroup,
   "prepareCheckout",
-  ({ reportId, ownerAccessToken, email }) =>
+  ({ reportId, ownerAccessToken, email, admaxxerVisitorId }) =>
     Effect.gen(function* () {
       const normalizedReportId = reportId.trim();
       const normalizedToken = ownerAccessToken.trim();
       const customerEmail = normalizeEmail(email);
+      const visitorId = normalizeAdmaxxerVisitorId(admaxxerVisitorId);
       if (
         !normalizedReportId ||
         !normalizedToken ||
@@ -118,6 +120,7 @@ const prepareCheckoutImpl = FunctionImpl.make(
         return {
           reportId: normalizedReportId,
           customerEmail,
+          ...(visitorId ? { admaxxerVisitorId: visitorId } : {}),
           idempotencyKey,
           existing: checkoutResult(existing),
         };
@@ -129,6 +132,7 @@ const prepareCheckoutImpl = FunctionImpl.make(
           .insert({
             checkoutSessionId: `pending_${sha256Hex(idempotencyKey).slice(0, 24)}`,
             reportId: normalizedReportId,
+            ...(visitorId ? { admaxxerVisitorId: visitorId } : {}),
             idempotencyKey,
             amountCents: BUILD_PACK_AMOUNT_CENTS,
             currency: BUILD_PACK_CURRENCY,
@@ -142,6 +146,7 @@ const prepareCheckoutImpl = FunctionImpl.make(
       return {
         reportId: normalizedReportId,
         customerEmail,
+        ...(visitorId ? { admaxxerVisitorId: visitorId } : {}),
         idempotencyKey,
         existing: null,
       };
@@ -232,7 +237,10 @@ const createImpl = FunctionImpl.make(
       const dodoEnv = yield* loadDodoCommerceEnvConfig.pipe(Effect.orDie);
       if (
         runtimeMode !== "fake" &&
-        (!dodoEnv.DODO_API_KEY || !dodoEnv.DODO_BUILD_PACK_PRODUCT_ID)
+        (!dodoEnv.DODO_API_KEY ||
+          !dodoEnv.DODO_BUILD_PACK_PRODUCT_ID ||
+          (runtimeMode === "live" &&
+            !dodoEnv.DODO_BUILD_PACK_EXPECTED_AMOUNT_CENTS))
       )
         return yield* new ConfigInvalid({
           provider: "dodo",
@@ -248,6 +256,9 @@ const createImpl = FunctionImpl.make(
           apiKey: dodoEnv.DODO_API_KEY,
           productId: dodoEnv.DODO_BUILD_PACK_PRODUCT_ID ?? FAKE_PRODUCT_ID,
           reportId: prepared.reportId,
+          ...(prepared.admaxxerVisitorId
+            ? { admaxxerVisitorId: prepared.admaxxerVisitorId }
+            : {}),
           customerEmail: prepared.customerEmail,
           returnUrl: returnUrl.toString(),
           idempotencyKey: prepared.idempotencyKey,

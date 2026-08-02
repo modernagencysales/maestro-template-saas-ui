@@ -40,6 +40,18 @@ export const applyVerifiedDodo = FunctionSpec.internalMutation({
   error: () => Schema.Union(ValidationFailed, WebhookRejected),
 });
 
+export const markAdmaxxerReported = FunctionSpec.internalMutation({
+  name: "markAdmaxxerReported",
+  args: () =>
+    Schema.Struct({
+      paymentId: Schema.String,
+      reportedAt: Schema.Number,
+    }),
+  returns: () => Schema.Boolean,
+  error: () => Schema.Union(ValidationFailed, WebhookRejected),
+});
+
 export default GroupSpec.make()
   .addFunction(applyDodo)
-  .addFunction(applyVerifiedDodo);
+  .addFunction(applyVerifiedDodo)
+  .addFunction(markAdmaxxerReported);

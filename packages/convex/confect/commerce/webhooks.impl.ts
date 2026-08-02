@@ -1,5 +1,8 @@
 import { FunctionImpl, GroupImpl } from "@confect/server";
-import { verifyDodoWebhook } from "@maestro-template/integrations";
+import {
+  recordAdmaxxerPayment,
+  verifyDodoWebhook,
+} from "@maestro-template/integrations";
 import * as Clock from "effect/Clock";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
@@ -12,7 +15,10 @@ import {
   MutationRunner,
 } from "../_generated/services";
 import { ConfigInvalid, ValidationFailed } from "../errors";
-import { loadDodoCommerceEnvConfig } from "../evaluator/providerConfig";
+import {
+  loadAdmaxxerEnvConfig,
+  loadDodoCommerceEnvConfig,
+} from "../evaluator/providerConfig";
 import { RuntimeModeConfig } from "../shared/config";
 import { sha256Hex } from "../shared/sha256";
 import webhooksGroup, { WebhookRejected } from "./webhooks.spec";
@@ -32,6 +38,11 @@ type SupportedEvent = {
     | "dispute.opened";
   readonly paymentId: string;
   readonly checkoutSessionId?: string;
+  readonly productId?: string;
+  readonly amountCents?: number;
+  readonly currency?: string;
+  readonly admaxxerVisitorId?: string;
+  readonly email?: string;
 };
 
 const objectRecord = (value: unknown): Record<string, unknown> | null =>
@@ -60,11 +71,33 @@ const parseSupportedEvent = (rawBody: string): SupportedEvent | null => {
   )
     return null;
   const checkoutSessionId = data?.checkout_session_id;
+  const productCart = Array.isArray(data?.product_cart)
+    ? objectRecord(data?.product_cart[0])
+    : null;
+  const metadata = objectRecord(data?.metadata);
+  const customer = objectRecord(data?.customer);
   return {
     eventType,
     paymentId: paymentId.trim(),
     ...(typeof checkoutSessionId === "string" && checkoutSessionId.trim()
       ? { checkoutSessionId: checkoutSessionId.trim() }
+      : {}),
+    ...(typeof data?.product_id === "string"
+      ? { productId: data.product_id.trim() }
+      : typeof productCart?.product_id === "string"
+        ? { productId: productCart.product_id.trim() }
+        : {}),
+    ...(typeof data?.total_amount === "number"
+      ? { amountCents: data.total_amount }
+      : {}),
+    ...(typeof data?.currency === "string"
+      ? { currency: data.currency.trim().toUpperCase() }
+      : {}),
+    ...(typeof metadata?.admx_visitor_id === "string"
+      ? { admaxxerVisitorId: metadata.admx_visitor_id.trim() }
+      : {}),
+    ...(typeof customer?.email === "string"
+      ? { email: customer.email.trim() }
       : {}),
   };
 };
@@ -161,11 +194,30 @@ const applyRevocation = (
         .pipe(Effect.orDie);
   });
 
-const applyPayment = (event: SupportedEvent, now: number) =>
+const applyPayment = (
+  event: SupportedEvent,
+  now: number,
+  expected: {
+    readonly productId?: string;
+    readonly amountCents?: number;
+    readonly currency?: string;
+  },
+) =>
   Effect.gen(function* () {
     if (!event.checkoutSessionId)
       return yield* new WebhookRejected({
         reason: "payment event is missing checkout_session_id",
+      });
+    if (expected.productId && event.productId !== expected.productId)
+      return yield* new WebhookRejected({ reason: "payment product mismatch" });
+    if (
+      expected.amountCents !== undefined &&
+      event.amountCents !== expected.amountCents
+    )
+      return yield* new WebhookRejected({ reason: "payment amount mismatch" });
+    if (expected.currency && event.currency !== expected.currency)
+      return yield* new WebhookRejected({
+        reason: "payment currency mismatch",
       });
     const reader = yield* DatabaseReader;
     const writer = yield* DatabaseWriter;
@@ -231,6 +283,9 @@ const applyPayment = (event: SupportedEvent, now: number) =>
           paymentId: event.paymentId,
           checkoutSessionId: checkout.checkoutSessionId,
           reportId: checkout.reportId,
+          ...(event.admaxxerVisitorId
+            ? { admaxxerVisitorId: event.admaxxerVisitorId }
+            : {}),
           amountCents: checkout.amountCents,
           currency: checkout.currency,
           status: purchaseStatus,
@@ -303,6 +358,9 @@ const applyVerifiedDodoImpl = FunctionImpl.make(
   "applyVerifiedDodo",
   ({ rawBody, eventId, signatureTimestamp }) =>
     Effect.gen(function* () {
+      const runtimeMode = yield* RuntimeModeConfig.pipe(
+        Effect.orElseSucceed(() => "fake" as const),
+      );
       const normalizedEventId = eventId.trim();
       if (!normalizedEventId)
         return yield* new ValidationFailed({
@@ -345,9 +403,67 @@ const applyVerifiedDodoImpl = FunctionImpl.make(
         event.eventType === "dispute.opened"
       )
         yield* applyRevocation(event, normalizedEventId, now);
-      else yield* applyPayment(event, now);
+      else {
+        const dodoEnv = yield* loadDodoCommerceEnvConfig.pipe(Effect.orDie);
+        yield* applyPayment(
+          event,
+          now,
+          runtimeMode === "live"
+            ? {
+                ...(dodoEnv.DODO_BUILD_PACK_PRODUCT_ID
+                  ? {
+                      productId: dodoEnv.DODO_BUILD_PACK_PRODUCT_ID,
+                      currency: "USD",
+                    }
+                  : {}),
+                ...(dodoEnv.DODO_BUILD_PACK_EXPECTED_AMOUNT_CENTS
+                  ? {
+                      amountCents: Number(
+                        dodoEnv.DODO_BUILD_PACK_EXPECTED_AMOUNT_CENTS,
+                      ),
+                    }
+                  : {}),
+              }
+            : {},
+        );
+      }
 
       return { eventId: normalizedEventId, status: "processed" as const };
+    }),
+);
+
+const markAdmaxxerReportedImpl = FunctionImpl.make(
+  databaseSchema,
+  webhooksGroup,
+  "markAdmaxxerReported",
+  ({ paymentId, reportedAt }) =>
+    Effect.gen(function* () {
+      const normalized = paymentId.trim();
+      if (!normalized || !Number.isFinite(reportedAt))
+        return yield* new ValidationFailed({
+          field: "paymentId",
+          message: "A payment ID and timestamp are required.",
+        });
+      const reader = yield* DatabaseReader;
+      const writer = yield* DatabaseWriter;
+      const purchase = yield* reader
+        .table("purchases")
+        .index("by_payment", (q) => q.eq("paymentId", normalized))
+        .first()
+        .pipe(Effect.map(Option.getOrNull), Effect.orDie);
+      if (purchase === null)
+        return yield* new WebhookRejected({
+          reason: "payment is not persisted",
+        });
+      if (purchase.admaxxerReportedAt !== undefined) return false;
+      yield* writer
+        .table("purchases")
+        .patch(purchase._id, {
+          admaxxerReportedAt: reportedAt,
+          updatedAt: reportedAt,
+        })
+        .pipe(Effect.orDie);
+      return true;
     }),
 );
 
@@ -396,7 +512,7 @@ const applyDodoImpl = FunctionImpl.make(
       }
 
       const mutation = yield* MutationRunner;
-      return yield* mutation(
+      const result = yield* mutation(
         refs.internal.commerce.webhooks.applyVerifiedDodo,
         {
           rawBody,
@@ -409,11 +525,61 @@ const applyDodoImpl = FunctionImpl.make(
           () => new WebhookRejected({ reason: "invalid verified event" }),
         ),
       );
+      const event = parseSupportedEvent(rawBody);
+      if (event?.eventType === "payment.succeeded") {
+        const admaxxer = yield* loadAdmaxxerEnvConfig.pipe(Effect.orDie);
+        if (runtimeMode === "live" && !admaxxer.ADMAXXER_API_KEY)
+          return yield* new ConfigInvalid({
+            provider: "admaxxer",
+            message: "Admaxxer attribution is not configured.",
+          });
+        if (runtimeMode === "live" && event.amountCents === undefined)
+          return yield* new WebhookRejected({
+            reason: "payment event is missing total_amount",
+          });
+        const admaxxerApiKey = admaxxer.ADMAXXER_API_KEY;
+        if (admaxxerApiKey && event.amountCents !== undefined) {
+          yield* Effect.tryPromise(() =>
+            recordAdmaxxerPayment(
+              {
+                paymentId: event.paymentId,
+                amountMinor: event.amountCents as number,
+                currency: event.currency ?? "USD",
+                ...(event.admaxxerVisitorId
+                  ? { visitorId: event.admaxxerVisitorId }
+                  : {}),
+                ...(event.email ? { email: event.email } : {}),
+              },
+              { apiKey: admaxxerApiKey },
+            ),
+          ).pipe(
+            Effect.catchAll(() =>
+              Effect.fail(
+                new WebhookRejected({
+                  reason: "Admaxxer attribution failed; retry the webhook",
+                }),
+              ),
+            ),
+          );
+          yield* mutation(
+            refs.internal.commerce.webhooks.markAdmaxxerReported,
+            { paymentId: event.paymentId, reportedAt: now },
+          ).pipe(
+            Effect.catchTag(
+              "ParseError",
+              () =>
+                new WebhookRejected({ reason: "invalid attribution receipt" }),
+            ),
+          );
+        }
+      }
+      return result;
     }),
 );
 
 export default GroupImpl.make(databaseSchema, webhooksGroup).pipe(
   Layer.provide(applyDodoImpl),
   Layer.provide(applyVerifiedDodoImpl),
+  Layer.provide(markAdmaxxerReportedImpl),
   GroupImpl.finalize,
 );

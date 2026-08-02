@@ -48,6 +48,7 @@ export const create = FunctionSpec.publicAction({
       reportId: Schema.String,
       ownerAccessToken: Schema.String,
       email: Schema.String,
+      admaxxerVisitorId: Schema.optional(Schema.String),
     }),
   returns: () => CheckoutResult,
   error: () => Schema.Union(CheckoutErrors, CheckoutUnavailable),
@@ -60,11 +61,13 @@ export const prepareCheckout = FunctionSpec.internalMutation({
       reportId: Schema.String,
       ownerAccessToken: Schema.String,
       email: Schema.String,
+      admaxxerVisitorId: Schema.optional(Schema.String),
     }),
   returns: () =>
     Schema.Struct({
       reportId: Schema.String,
       customerEmail: Schema.String,
+      admaxxerVisitorId: Schema.optional(Schema.String),
       idempotencyKey: Schema.String,
       existing: Schema.NullOr(CheckoutResult),
     }),
