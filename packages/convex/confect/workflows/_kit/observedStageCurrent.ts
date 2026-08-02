@@ -1,6 +1,5 @@
 import type { FunctionReference } from "convex/server";
-import * as Either from "effect/Either";
-import * as Schema from "effect/Schema";
+import * as Exit from "effect/Exit";
 
 import type { WorkflowNodeKind } from "../graph";
 import {
@@ -10,22 +9,15 @@ import {
 } from "./observedStagePayloadCurrent";
 import type { SubworkflowExecutionContext } from "./subworkflowsCurrent";
 import {
-  DurableWorkflowPrincipal,
-  type DurableWorkflowPrincipal as DurableWorkflowPrincipalType,
-} from "./principal";
-import {
-  WorkflowPolicySnapshot,
-  type WorkflowPolicySnapshot as WorkflowPolicySnapshotType,
-} from "./policySnapshot";
+  decodeObservedWorkflowAuthority,
+  type ObservedWorkflowAuthority,
+} from "./observedAuthority";
+
+export type { ObservedWorkflowAuthority } from "./observedAuthority";
 
 type StageMutationRef = FunctionReference<"mutation", "internal">;
 type ExecutionIdentityRef = FunctionReference<"query", "internal">;
 type SubworkflowActivationRef = FunctionReference<"mutation", "internal">;
-
-export type ObservedWorkflowAuthority = {
-  readonly principal: DurableWorkflowPrincipalType;
-  readonly policySnapshot: WorkflowPolicySnapshotType;
-};
 
 export type ObservedWorkflowExecutionIdentity = {
   readonly generation: number;
@@ -122,26 +114,11 @@ const readObservedWorkflowAuthority = (
   if (typeof value !== "object" || value === null) {
     throw new Error("Subworkflow reserved authority is unavailable.");
   }
-  const principal =
-    "principal" in value
-      ? Schema.decodeUnknownEither(DurableWorkflowPrincipal)(value.principal)
-      : null;
-  const policySnapshot =
-    "policySnapshot" in value
-      ? Schema.decodeUnknownEither(WorkflowPolicySnapshot)(value.policySnapshot)
-      : null;
-  if (
-    principal === null ||
-    Either.isLeft(principal) ||
-    policySnapshot === null ||
-    Either.isLeft(policySnapshot)
-  ) {
+  const decoded = decodeObservedWorkflowAuthority(value);
+  if (Exit.isFailure(decoded)) {
     throw new Error("Subworkflow reserved authority is unavailable.");
   }
-  return {
-    principal: principal.right,
-    policySnapshot: policySnapshot.right,
-  };
+  return decoded.value;
 };
 
 const isExecutionIdentity = (
