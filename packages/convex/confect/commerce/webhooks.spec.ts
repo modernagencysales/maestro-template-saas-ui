@@ -21,6 +21,8 @@ const ApplyDodoArgs = Schema.Struct({
   signatureTimestamp: Schema.optional(Schema.String),
 });
 
+const WebhookErrors = Schema.Union([ValidationFailed, WebhookRejected]);
+
 export const applyDodo = FunctionSpec.publicAction({
   name: "applyDodo",
   args: () => ApplyDodoArgs,
@@ -37,7 +39,7 @@ export const applyVerifiedDodo = FunctionSpec.internalMutation({
       signatureTimestamp: Schema.String,
     }),
   returns: () => WebhookResult,
-  error: () => Schema.Union([ValidationFailed, WebhookRejected]),
+  error: () => WebhookErrors,
 });
 
 export const markAdmaxxerReported = FunctionSpec.internalMutation({
@@ -48,14 +50,14 @@ export const markAdmaxxerReported = FunctionSpec.internalMutation({
       reportedAt: Schema.Number,
     }),
   returns: () => Schema.Boolean,
-  error: () => Schema.Union([ValidationFailed, WebhookRejected]),
+  error: () => WebhookErrors,
 });
 
 export const markProcessed = FunctionSpec.internalMutation({
   name: "markProcessed",
   args: () => Schema.Struct({ eventId: Schema.String }),
   returns: () => Schema.Boolean,
-  error: () => Schema.Union([ValidationFailed, WebhookRejected]),
+  error: () => WebhookErrors,
 });
 
 export default GroupSpec.make()
