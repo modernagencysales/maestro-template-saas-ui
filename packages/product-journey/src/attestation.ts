@@ -37,16 +37,15 @@ export type AttestationIssuer = {
   readonly issue: (claims: Uint8Array) => Uint8Array;
 };
 
-const verifiedAdmissionBrand: unique symbol = Symbol("verifiedAdmission");
-
 export type VerifiedAdmissionProjection = {
-  readonly [verifiedAdmissionBrand]: true;
   readonly attestationId: string;
   readonly runtimeIdentityHash: string;
   readonly evidenceHash: string;
   readonly expiresAt: string;
   readonly dependencyAttestationIds: readonly string[];
 };
+
+const verifiedAdmissionProjections = new WeakSet<object>();
 
 export type AdmissionVerificationReason =
   | "UNTRUSTED_ISSUER"
@@ -128,7 +127,7 @@ const sameStringSet = (
   left.every((value) => right.includes(value));
 
 const mismatch = (
-  attestation: AdmissionAttestation,
+  attestation: AdmissionClaims,
   identity: JourneyRunningIdentity,
 ): AdmissionVerificationReason | undefined => {
   const fields: readonly [
@@ -197,44 +196,95 @@ const scalarClaimKeys = [
   "expiresAt",
 ] as const;
 
-const hasValidBaseShape = (value: unknown): value is AdmissionAttestation => {
-  if (!isRecord(value)) return false;
-  if (
-    !hasOwn(value, "protocolVersion") ||
-    !hasOwn(value, "journeyVersion") ||
-    !hasOwn(value, "signature") ||
-    value.protocolVersion !== 1 ||
-    !Number.isSafeInteger(value.journeyVersion) ||
-    (value.journeyVersion as number) < 1 ||
-    !(value.signature instanceof Uint8Array)
-  )
-    return false;
-  return scalarClaimKeys.every(
-    (key) =>
-      hasOwn(value, key) &&
-      typeof value[key] === "string" &&
-      value[key].length > 0,
+const arrayClaimKeys = [
+  "requiredScenarioIds",
+  "dependencyAttestationIds",
+  "passedScenarioIds",
+  "skippedScenarioIds",
+  "notReachedScenarioIds",
+] as const;
+const attestationKeys = [
+  "protocolVersion",
+  "journeyVersion",
+  ...scalarClaimKeys,
+  "runtimeConfigDigest",
+  "evidenceReportDigest",
+  ...arrayClaimKeys,
+  "signature",
+] as const;
+
+type AttestationSnapshot = AdmissionClaims & {
+  readonly signature: readonly number[];
+};
+
+const cloneStringArray = (value: unknown): unknown =>
+  Array.isArray(value) ? Object.freeze(Array.from(value)) : value;
+
+const snapshotAttestation = (
+  value: unknown,
+): AttestationSnapshot | undefined => {
+  if (!isRecord(value)) return undefined;
+  const read = Object.create(null) as Record<string, unknown>;
+  for (const key of attestationKeys) {
+    if (!hasOwn(value, key)) return undefined;
+    read[key] = value[key];
+  }
+  const signature = read.signature;
+  if (!(signature instanceof Uint8Array)) return undefined;
+  for (const key of arrayClaimKeys) read[key] = cloneStringArray(read[key]);
+  read.signature = Object.freeze(Array.from(signature));
+  return Object.freeze(read) as AttestationSnapshot;
+};
+
+const hasValidSnapshotBase = (
+  value: AttestationSnapshot,
+): value is AttestationSnapshot =>
+  value.protocolVersion === 1 &&
+  Number.isSafeInteger(value.journeyVersion) &&
+  value.journeyVersion > 0 &&
+  value.signature.every(
+    (entry) => Number.isInteger(entry) && entry >= 0 && entry <= 255,
+  ) &&
+  scalarClaimKeys.every(
+    (key) => typeof value[key] === "string" && value[key].length > 0,
   );
+
+const identityKeys = [
+  "repository",
+  "commitSha",
+  "journeyId",
+  "journeyVersion",
+  "journeyHash",
+  "contractHash",
+  "testHash",
+  "generatedIdentity",
+  "deploymentIdentity",
+  "environment",
+  "runtimeConfigDigest",
+  "evidenceReportDigest",
+  "requiredScenarioIds",
+  "dependencyAttestationIds",
+] as const;
+
+const snapshotIdentity = (
+  value: unknown,
+): JourneyRunningIdentity | undefined => {
+  if (!isRecord(value)) return undefined;
+  const read = Object.create(null) as Record<string, unknown>;
+  for (const key of identityKeys) {
+    if (!hasOwn(value, key)) return undefined;
+    read[key] = value[key];
+  }
+  read.requiredScenarioIds = cloneStringArray(read.requiredScenarioIds);
+  read.dependencyAttestationIds = cloneStringArray(
+    read.dependencyAttestationIds,
+  );
+  return Object.freeze(read) as JourneyRunningIdentity;
 };
 
 const identityOf = (
   value: JourneyRunningIdentity,
-): Readonly<Record<string, unknown>> => ({
-  repository: value.repository,
-  commitSha: value.commitSha,
-  journeyId: value.journeyId,
-  journeyVersion: value.journeyVersion,
-  journeyHash: value.journeyHash,
-  contractHash: value.contractHash,
-  testHash: value.testHash,
-  generatedIdentity: value.generatedIdentity,
-  deploymentIdentity: value.deploymentIdentity,
-  environment: value.environment,
-  runtimeConfigDigest: value.runtimeConfigDigest,
-  evidenceReportDigest: value.evidenceReportDigest,
-  requiredScenarioIds: value.requiredScenarioIds,
-  dependencyAttestationIds: value.dependencyAttestationIds,
-});
+): Readonly<Record<string, unknown>> => ({ ...value });
 
 const canonicalRecord = (
   value: Readonly<Record<string, unknown>>,
@@ -253,31 +303,35 @@ const toHex = (bytes: Uint8Array): string =>
   Array.from(bytes, (value) => value.toString(16).padStart(2, "0")).join("");
 
 const createVerifiedProjection = (
-  attestation: AdmissionAttestation,
+  attestation: AttestationSnapshot,
   identity: JourneyRunningIdentity,
+  canonicalClaims: Uint8Array,
 ): VerifiedAdmissionProjection => {
-  const projection = {
-    attestationId: `claims:${toHex(canonicalAdmissionClaims(attestation))}`,
+  const projection: VerifiedAdmissionProjection = Object.freeze({
+    attestationId: `claims:${toHex(canonicalClaims)}`,
     runtimeIdentityHash: `identity:${toHex(canonicalRecord(identityOf(identity)))}`,
     evidenceHash: attestation.evidenceReportDigest,
     expiresAt: attestation.expiresAt,
     dependencyAttestationIds: Object.freeze([
       ...attestation.dependencyAttestationIds,
     ]),
-  } as Omit<VerifiedAdmissionProjection, typeof verifiedAdmissionBrand> &
-    Partial<Pick<VerifiedAdmissionProjection, typeof verifiedAdmissionBrand>>;
-  Object.defineProperty(projection, verifiedAdmissionBrand, {
-    value: true,
-    enumerable: false,
   });
-  return Object.freeze(projection) as VerifiedAdmissionProjection;
+  verifiedAdmissionProjections.add(projection);
+  return projection;
 };
 
 export const isVerifiedAdmissionProjection = (
   value: unknown,
 ): value is VerifiedAdmissionProjection =>
   isRecord(value) &&
-  (value as Record<PropertyKey, unknown>)[verifiedAdmissionBrand] === true;
+  verifiedAdmissionProjections.has(value) &&
+  Object.isFrozen(value) &&
+  typeof value.attestationId === "string" &&
+  typeof value.runtimeIdentityHash === "string" &&
+  digestPattern.test(value.evidenceHash as string) &&
+  typeof value.expiresAt === "string" &&
+  Object.isFrozen(value.dependencyAttestationIds) &&
+  isUniqueStringArray(value.dependencyAttestationIds);
 
 export const verifyAdmissionAttestation = (
   attestation: unknown,
@@ -286,60 +340,59 @@ export const verifyAdmissionAttestation = (
   now: Date = new Date(),
 ): AdmissionVerification => {
   try {
-    if (!hasValidBaseShape(attestation))
+    const snapshot = snapshotAttestation(attestation);
+    const runningIdentity = snapshotIdentity(identity);
+    if (
+      snapshot === undefined ||
+      runningIdentity === undefined ||
+      !hasValidSnapshotBase(snapshot)
+    )
       return { ok: false, reason: "INVALID_ATTESTATION" };
     if (
-      !hasOwn(attestation, "runtimeConfigDigest") ||
-      !digestPattern.test(attestation.runtimeConfigDigest) ||
-      !digestPattern.test(identity.runtimeConfigDigest)
+      !digestPattern.test(snapshot.runtimeConfigDigest) ||
+      !digestPattern.test(runningIdentity.runtimeConfigDigest)
     )
       return { ok: false, reason: "RUNTIME_CONFIG_DIGEST_INVALID" };
     if (
-      !hasOwn(attestation, "evidenceReportDigest") ||
-      !digestPattern.test(attestation.evidenceReportDigest) ||
-      !digestPattern.test(identity.evidenceReportDigest)
+      !digestPattern.test(snapshot.evidenceReportDigest) ||
+      !digestPattern.test(runningIdentity.evidenceReportDigest)
     )
       return { ok: false, reason: "EVIDENCE_REPORT_DIGEST_INVALID" };
     if (
-      !hasOwn(attestation, "requiredScenarioIds") ||
-      !hasOwn(attestation, "passedScenarioIds") ||
-      !hasOwn(attestation, "skippedScenarioIds") ||
-      !hasOwn(attestation, "notReachedScenarioIds") ||
-      !isUniqueStringArray(attestation.requiredScenarioIds) ||
-      !isUniqueStringArray(attestation.passedScenarioIds) ||
-      !isUniqueStringArray(attestation.skippedScenarioIds) ||
-      !isUniqueStringArray(attestation.notReachedScenarioIds)
+      !isUniqueStringArray(snapshot.requiredScenarioIds) ||
+      !isUniqueStringArray(snapshot.passedScenarioIds) ||
+      !isUniqueStringArray(snapshot.skippedScenarioIds) ||
+      !isUniqueStringArray(snapshot.notReachedScenarioIds)
     )
       return { ok: false, reason: "SCENARIO_CLOSURE_INCOMPLETE" };
-    if (!isUniqueStringArray(identity.requiredScenarioIds))
+    if (!isUniqueStringArray(runningIdentity.requiredScenarioIds))
       return { ok: false, reason: "REQUIRED_SCENARIOS_MISMATCH" };
     if (
-      !hasOwn(attestation, "dependencyAttestationIds") ||
-      !isUniqueStringArray(attestation.dependencyAttestationIds) ||
-      !isUniqueStringArray(identity.dependencyAttestationIds)
+      !isUniqueStringArray(snapshot.dependencyAttestationIds) ||
+      !isUniqueStringArray(runningIdentity.dependencyAttestationIds)
     )
       return { ok: false, reason: "DEPENDENCY_MISMATCH" };
-    if (attestation.issuer === "local" && identity.environment !== "local")
+    if (snapshot.issuer === "local" && runningIdentity.environment !== "local")
       return { ok: false, reason: "LOCAL_ISSUER_FORBIDDEN" };
-    if (!hasOwn(trustedIssuers, attestation.issuer))
+    if (!hasOwn(trustedIssuers, snapshot.issuer))
       return { ok: false, reason: "UNTRUSTED_ISSUER" };
-    const verifier = trustedIssuers[attestation.issuer];
+    const verifier = trustedIssuers[snapshot.issuer];
     if (verifier === undefined || typeof verifier.verify !== "function")
       return { ok: false, reason: "UNTRUSTED_ISSUER" };
+    const canonicalClaims = canonicalAdmissionClaims(snapshot);
+    const projectionClaims = canonicalClaims.slice();
     let signatureValid = false;
     try {
       signatureValid =
-        verifier.verify(
-          canonicalAdmissionClaims(attestation),
-          attestation.signature,
-        ) === true;
+        verifier.verify(canonicalClaims, new Uint8Array(snapshot.signature)) ===
+        true;
     } catch {
       return { ok: false, reason: "INVALID_SIGNATURE" };
     }
     if (!signatureValid) return { ok: false, reason: "INVALID_SIGNATURE" };
 
-    const issuedAt = Date.parse(attestation.issuedAt);
-    const expiresAt = Date.parse(attestation.expiresAt);
+    const issuedAt = Date.parse(snapshot.issuedAt);
+    const expiresAt = Date.parse(snapshot.expiresAt);
     const nowMs = now.getTime();
     if (
       ![issuedAt, expiresAt, nowMs].every(Number.isFinite) ||
@@ -350,18 +403,22 @@ export const verifyAdmissionAttestation = (
       return { ok: false, reason: "NOT_YET_VALID" };
     if (expiresAt <= nowMs) return { ok: false, reason: "EXPIRED" };
     if (
-      attestation.skippedScenarioIds.length !== 0 ||
-      attestation.notReachedScenarioIds.length !== 0 ||
-      !sameStringSet(
-        attestation.requiredScenarioIds,
-        attestation.passedScenarioIds,
-      )
+      snapshot.skippedScenarioIds.length !== 0 ||
+      snapshot.notReachedScenarioIds.length !== 0 ||
+      !sameStringSet(snapshot.requiredScenarioIds, snapshot.passedScenarioIds)
     )
       return { ok: false, reason: "SCENARIO_CLOSURE_INCOMPLETE" };
 
-    const reason = mismatch(attestation, identity);
+    const reason = mismatch(snapshot, runningIdentity);
     return reason === undefined
-      ? { ok: true, verified: createVerifiedProjection(attestation, identity) }
+      ? {
+          ok: true,
+          verified: createVerifiedProjection(
+            snapshot,
+            runningIdentity,
+            projectionClaims,
+          ),
+        }
       : { ok: false, reason };
   } catch {
     return { ok: false, reason: "INVALID_ATTESTATION" };

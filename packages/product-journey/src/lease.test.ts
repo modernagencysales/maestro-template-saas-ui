@@ -3,6 +3,7 @@ import {
   type AdmissionClaims,
   type VerifiedAdmissionProjection,
   canonicalAdmissionClaims,
+  isVerifiedAdmissionProjection,
   verifyAdmissionAttestation,
 } from "./attestation";
 import type { AdmissionDependency, EffectiveAdmissionInput } from "./lease";
@@ -91,6 +92,36 @@ describe("effectiveAdmissionState", () => {
       effectiveAdmissionState({
         ...currentInput(projection),
         verifiedAdmission: copied,
+      }),
+    ).toMatchObject({ leaseHealth: "failing", effectiveState: "stale" });
+  });
+
+  it("rejects a projection forged with reflected properties from a genuine one", () => {
+    const projection = verified();
+    const forged = {
+      ...projection,
+      attestationId: "forged-attestation",
+      runtimeIdentityHash: "forged-runtime",
+      evidenceHash: digest("f"),
+    } as VerifiedAdmissionProjection;
+    for (const symbol of Object.getOwnPropertySymbols(projection)) {
+      Object.defineProperty(forged, symbol, {
+        value: (projection as unknown as Record<PropertyKey, unknown>)[symbol],
+      });
+    }
+    Object.freeze(forged);
+    expect(isVerifiedAdmissionProjection(forged)).toBe(false);
+    expect(
+      effectiveAdmissionState({
+        ...currentInput(projection),
+        verifiedAdmission: forged,
+        lease: {
+          health: "current",
+          expiresAt: projection.expiresAt,
+          attestationId: forged.attestationId,
+          runtimeIdentityHash: forged.runtimeIdentityHash,
+          evidenceHash: forged.evidenceHash,
+        },
       }),
     ).toMatchObject({ leaseHealth: "failing", effectiveState: "stale" });
   });
@@ -210,5 +241,40 @@ describe("effectiveAdmissionState", () => {
         lease: null as unknown as EffectiveAdmissionInput["lease"],
       }),
     ).toMatchObject({ leaseHealth: "failing", effectiveState: "stale" });
+  });
+
+  it.each([
+    ["null input", null],
+    ["invalid source state", { ...currentInput(), sourceState: "green" }],
+  ])("returns a closed non-admitted result for %s", (_name, value) => {
+    expect(effectiveAdmissionState(value as unknown)).toEqual({
+      sourceState: "suspended",
+      leaseHealth: "failing",
+      effectiveState: "suspended",
+    });
+  });
+
+  it("fails a valid admitted source closed for a non-Date clock", () => {
+    expect(
+      effectiveAdmissionState({ ...currentInput(), now: "today" } as unknown),
+    ).toEqual({
+      sourceState: "admitted",
+      leaseHealth: "failing",
+      effectiveState: "stale",
+    });
+  });
+
+  it("returns a closed result when an input getter throws", () => {
+    const hostile = new Proxy(currentInput(), {
+      get: (_target, property, receiver) => {
+        if (property === "lease") throw new Error("hostile getter");
+        return Reflect.get(_target, property, receiver);
+      },
+    });
+    expect(effectiveAdmissionState(hostile as unknown)).toEqual({
+      sourceState: "suspended",
+      leaseHealth: "failing",
+      effectiveState: "suspended",
+    });
   });
 });

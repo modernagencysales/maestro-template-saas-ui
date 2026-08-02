@@ -71,6 +71,52 @@ describe("verifyAdmissionAttestation", () => {
       evidenceHash: digest("b"),
       dependencyAttestationIds: ["dependency-1"],
     });
+    expect(Object.isFrozen(first.verified)).toBe(true);
+    expect(Object.isFrozen(first.verified.dependencyAttestationIds)).toBe(true);
+  });
+
+  it("snapshots every own claim and signature exactly once", () => {
+    const signed = sign(unsigned());
+    const reads = new Map<string, number>();
+    const accessors = Object.create(null) as Record<string, unknown>;
+    for (const [key, value] of Object.entries(signed)) {
+      Object.defineProperty(accessors, key, {
+        enumerable: true,
+        get: () => {
+          reads.set(key, (reads.get(key) ?? 0) + 1);
+          return value;
+        },
+      });
+    }
+
+    expect(verify(accessors as AdmissionAttestation)).toMatchObject({
+      ok: true,
+    });
+    expect(Object.keys(signed).map((key) => [key, reads.get(key)])).toEqual(
+      Object.keys(signed).map((key) => [key, 1]),
+    );
+  });
+
+  it("builds projection only from the immutable bytes verified by the adapter", () => {
+    const signed = sign(unsigned());
+    const dependencies = signed.dependencyAttestationIds as string[];
+    const result = verifyAdmissionAttestation(
+      signed,
+      identity,
+      {
+        "ci.example": {
+          verify: (claims, signature) => {
+            const valid = bytesEqual(claims, signature);
+            dependencies.push("unsigned-dependency");
+            return valid;
+          },
+        },
+      },
+      new Date("2026-08-01T12:00:00.000Z"),
+    );
+    expect(result).toMatchObject({ ok: true });
+    if (!result.ok) throw new Error("expected verified projection");
+    expect(result.verified.dependencyAttestationIds).toEqual(["dependency-1"]);
   });
 
   it.each([

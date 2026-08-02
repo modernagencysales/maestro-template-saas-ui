@@ -158,6 +158,43 @@ describe("runJourney", () => {
     },
   );
 
+  it.each([
+    [
+      "throwing identity",
+      async () => {
+        throw new Error("identity unavailable");
+      },
+    ],
+    ["null identity", async () => null],
+    [
+      "hostile identity getter",
+      async () =>
+        Object.defineProperty({}, "environment", {
+          get: () => {
+            throw new Error("hostile identity");
+          },
+        }),
+    ],
+  ])("emits deterministic failed evidence for %s", async (_name, identity) => {
+    let invoked = false;
+    const testedDriver: JourneyDriver = {
+      ...driver(),
+      identity: identity as JourneyDriver["identity"],
+      invoke: async () => {
+        invoked = true;
+      },
+    };
+    const report = await runJourney(plan, testedDriver);
+    expect(invoked).toBe(false);
+    expect(report.runtimeIdentity).toEqual({ environment: "unknown" });
+    expect(report.scenarios[0]?.boundaries.map(({ status }) => status)).toEqual(
+      ["failed", "not_reached", "not_reached"],
+    );
+    expect(report.scenarios[0]?.boundaries[0]?.error).toBe(
+      "RUNTIME_IDENTITY_UNAVAILABLE",
+    );
+  });
+
   it("requires plan, expected, and actual environments to agree", async () => {
     let invoked = false;
     const testedDriver: JourneyDriver = {

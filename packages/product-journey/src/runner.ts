@@ -112,7 +112,10 @@ const identityMatches = (
   actual.environment === expected.environment &&
   actual.deploymentIdentity === expected.deploymentIdentity;
 
-const identityFailure = (scenario: JourneyScenario): JourneyScenarioReport => ({
+const identityFailure = (
+  scenario: JourneyScenario,
+  error = "RUNTIME_IDENTITY_MISMATCH",
+): JourneyScenarioReport => ({
   id: scenario.id,
   expectedTerminalOutcome: scenario.expectedTerminalOutcome,
   ...(scenario.interactions[0] === undefined
@@ -122,7 +125,7 @@ const identityFailure = (scenario: JourneyScenario): JourneyScenarioReport => ({
           {
             id: "$terminal",
             status: "failed" as const,
-            error: "RUNTIME_IDENTITY_MISMATCH",
+            error,
           },
         ],
       }
@@ -131,10 +134,35 @@ const identityFailure = (scenario: JourneyScenario): JourneyScenarioReport => ({
         boundaries: scenario.interactions.map((boundary, index) => ({
           id: boundary.id,
           status: index === 0 ? ("failed" as const) : ("not_reached" as const),
-          ...(index === 0 ? { error: "RUNTIME_IDENTITY_MISMATCH" } : {}),
+          ...(index === 0 ? { error } : {}),
         })),
       }),
 });
+
+const snapshotRuntimeIdentity = (
+  value: unknown,
+): JourneyRuntimeIdentity | undefined => {
+  if (!isRecord(value)) return undefined;
+  const environment = Object.prototype.hasOwnProperty.call(value, "environment")
+    ? value.environment
+    : undefined;
+  const deploymentIdentity = Object.prototype.hasOwnProperty.call(
+    value,
+    "deploymentIdentity",
+  )
+    ? value.deploymentIdentity
+    : undefined;
+  if (
+    typeof environment !== "string" ||
+    environment.length === 0 ||
+    (deploymentIdentity !== undefined && typeof deploymentIdentity !== "string")
+  )
+    return undefined;
+  return Object.freeze({
+    environment,
+    ...(deploymentIdentity === undefined ? {} : { deploymentIdentity }),
+  });
+};
 
 const createReport = (
   plan: JourneyPlan,
@@ -156,7 +184,20 @@ export const runJourney = async (
   plan: JourneyPlan,
   driver: JourneyDriver,
 ): Promise<JourneyRunReport> => {
-  const runtimeIdentity = await driver.identity();
+  let runtimeIdentity: JourneyRuntimeIdentity | undefined;
+  try {
+    runtimeIdentity = snapshotRuntimeIdentity(await driver.identity());
+  } catch {
+    runtimeIdentity = undefined;
+  }
+  if (runtimeIdentity === undefined)
+    return createReport(
+      plan,
+      { environment: "unknown" },
+      plan.scenarios.map((scenario) =>
+        identityFailure(scenario, "RUNTIME_IDENTITY_UNAVAILABLE"),
+      ),
+    );
   if (
     !identityMatches(
       runtimeIdentity,
@@ -167,7 +208,7 @@ export const runJourney = async (
     return createReport(
       plan,
       runtimeIdentity,
-      plan.scenarios.map(identityFailure),
+      plan.scenarios.map((scenario) => identityFailure(scenario)),
     );
 
   const scenarios: JourneyScenarioReport[] = [];

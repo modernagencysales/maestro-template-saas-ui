@@ -121,25 +121,157 @@ const bindingIsCurrent = (
   lease.runtimeIdentityHash === verified.runtimeIdentityHash &&
   lease.evidenceHash === verified.evidenceHash;
 
-export const effectiveAdmissionState = (
-  input: EffectiveAdmissionInput,
-): EffectiveAdmissionState => {
-  const failClosed = (): EffectiveAdmissionState => ({
-    sourceState: input.sourceState,
-    leaseHealth: "failing",
-    effectiveState:
-      input.sourceState === "admitted" ? "stale" : input.sourceState,
-  });
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+const hasOwn = (value: object, key: PropertyKey): boolean =>
+  Object.prototype.hasOwnProperty.call(value, key);
+
+const snapshotLease = (value: unknown): AdmissionLease | undefined => {
+  if (!isRecord(value)) return undefined;
+  const health = hasOwn(value, "health") ? value.health : undefined;
+  const expiresAt = hasOwn(value, "expiresAt") ? value.expiresAt : undefined;
+  const attestationId = hasOwn(value, "attestationId")
+    ? value.attestationId
+    : undefined;
+  const runtimeIdentityHash = hasOwn(value, "runtimeIdentityHash")
+    ? value.runtimeIdentityHash
+    : undefined;
+  const evidenceHash = hasOwn(value, "evidenceHash")
+    ? value.evidenceHash
+    : undefined;
   if (
-    typeof input.lease !== "object" ||
-    input.lease === null ||
-    typeof input.lease.expiresAt !== "string" ||
-    typeof input.lease.attestationId !== "string" ||
-    typeof input.lease.runtimeIdentityHash !== "string" ||
-    typeof input.lease.evidenceHash !== "string"
+    !validLeaseHealth(health) ||
+    typeof expiresAt !== "string" ||
+    typeof attestationId !== "string" ||
+    typeof runtimeIdentityHash !== "string" ||
+    typeof evidenceHash !== "string"
   )
-    return failClosed();
-  const nowMs = (input.now ?? new Date()).getTime();
+    return undefined;
+  return Object.freeze({
+    health,
+    expiresAt,
+    attestationId,
+    runtimeIdentityHash,
+    evidenceHash,
+  });
+};
+
+const snapshotDependency = (
+  value: unknown,
+  visiting: WeakSet<object>,
+): AdmissionDependency | undefined => {
+  if (!isRecord(value) || visiting.has(value)) return undefined;
+  visiting.add(value);
+  const id = hasOwn(value, "id") ? value.id : undefined;
+  const health = hasOwn(value, "health") ? value.health : undefined;
+  const verifiedAdmission = hasOwn(value, "verifiedAdmission")
+    ? value.verifiedAdmission
+    : undefined;
+  const dependencies = hasOwn(value, "dependencies")
+    ? value.dependencies
+    : undefined;
+  if (
+    typeof id !== "string" ||
+    id.length === 0 ||
+    !validDependencyHealth(health) ||
+    !isVerifiedAdmissionProjection(verifiedAdmission) ||
+    !Array.isArray(dependencies)
+  )
+    return undefined;
+  const children: AdmissionDependency[] = [];
+  for (const dependency of dependencies) {
+    const child = snapshotDependency(dependency, visiting);
+    if (child === undefined) return undefined;
+    children.push(child);
+  }
+  visiting.delete(value);
+  return Object.freeze({
+    id,
+    health,
+    verifiedAdmission,
+    dependencies: Object.freeze(children),
+  });
+};
+
+type AdmissionInputSnapshot = Omit<EffectiveAdmissionInput, "now"> & {
+  readonly nowMs: number;
+};
+
+type SnapshotAttempt = {
+  readonly sourceState?: EffectiveAdmissionInput["sourceState"];
+  readonly snapshot?: AdmissionInputSnapshot;
+};
+
+const snapshotInput = (value: unknown): SnapshotAttempt => {
+  if (!isRecord(value)) return {};
+  const sourceState = hasOwn(value, "sourceState")
+    ? value.sourceState
+    : undefined;
+  const leaseValue = hasOwn(value, "lease") ? value.lease : undefined;
+  const verifiedAdmission = hasOwn(value, "verifiedAdmission")
+    ? value.verifiedAdmission
+    : undefined;
+  const dependenciesValue = hasOwn(value, "dependencies")
+    ? value.dependencies
+    : undefined;
+  const nowValue = hasOwn(value, "now") ? value.now : undefined;
+  if (
+    sourceState !== "assembling" &&
+    sourceState !== "legacy_exposed" &&
+    sourceState !== "admitted" &&
+    sourceState !== "suspended"
+  )
+    return {};
+  if (
+    !isVerifiedAdmissionProjection(verifiedAdmission) ||
+    !Array.isArray(dependenciesValue) ||
+    (nowValue !== undefined && !(nowValue instanceof Date))
+  )
+    return { sourceState };
+  const lease = snapshotLease(leaseValue);
+  if (lease === undefined) return { sourceState };
+  const dependencies: AdmissionDependency[] = [];
+  for (const dependency of dependenciesValue) {
+    const snapshot = snapshotDependency(dependency, new WeakSet());
+    if (snapshot === undefined) return { sourceState };
+    dependencies.push(snapshot);
+  }
+  const nowMs =
+    nowValue === undefined ? Date.now() : Date.prototype.getTime.call(nowValue);
+  if (!Number.isFinite(nowMs)) return { sourceState };
+  return {
+    sourceState,
+    snapshot: Object.freeze({
+      sourceState,
+      lease,
+      verifiedAdmission,
+      dependencies: Object.freeze(dependencies),
+      nowMs,
+    }),
+  };
+};
+
+const closedAdmissionState = (
+  sourceState: EffectiveAdmissionInput["sourceState"] = "suspended",
+): EffectiveAdmissionState => ({
+  sourceState,
+  leaseHealth: "failing",
+  effectiveState: sourceState === "admitted" ? "stale" : sourceState,
+});
+
+export const effectiveAdmissionState = (
+  value: unknown,
+): EffectiveAdmissionState => {
+  let input: AdmissionInputSnapshot;
+  try {
+    const attempt = snapshotInput(value);
+    if (attempt.snapshot === undefined)
+      return closedAdmissionState(attempt.sourceState);
+    input = attempt.snapshot;
+  } catch {
+    return closedAdmissionState();
+  }
+  const nowMs = input.nowMs;
   const expiresAt = Date.parse(input.lease.expiresAt);
   const validTime = Number.isFinite(nowMs) && Number.isFinite(expiresAt);
   let dependencyProjection: DependencyProjection = {
