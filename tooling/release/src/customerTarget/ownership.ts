@@ -19,6 +19,7 @@ const FACTORY_ONLY_PREFIXES = [
   ".codex/",
   ".github/",
   ".qlty/",
+  ".superpowers/",
   ".vscode/",
   "agent-pack/",
   "apps/voice-relay/",
@@ -72,6 +73,8 @@ const GENERATED_EXACT = new Set([
   "apps/web/src/routeTree.gen.ts",
 ]);
 
+const GENERATED_PREFIXES = ["generated/"] as const;
+
 const TEMPLATE_PREFIXES = [
   "agent-patterns/",
   "apps/cli/",
@@ -112,6 +115,7 @@ const TEMPLATE_ROOT_FILES = new Set([
   "lefthook.yml",
   "maestro-template.mjs",
   "playwright.config.ts",
+  "playwright.funnel.config.ts",
   "pnpm-lock.yaml",
   "pnpm-workspace.yaml",
   "stryker.conf.mjs",
@@ -170,6 +174,9 @@ export const CUSTOMER_OWNERSHIP_RULES: readonly CustomerReleasePath[] = [
     rule(path, "exact", "customer-extension"),
   ),
   ...[...GENERATED_EXACT].map((path) => rule(path, "exact", "generated")),
+  ...GENERATED_PREFIXES.map((path) =>
+    rule(subtree(path), "subtree", "generated"),
+  ),
   rule(".env.local", "exact", "local-only"),
   ...TEMPLATE_PREFIXES.map((path) =>
     rule(subtree(path), "subtree", "template-owned"),

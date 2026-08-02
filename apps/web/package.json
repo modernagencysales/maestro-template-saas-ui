@@ -22,6 +22,7 @@
     "@convex-dev/react-query": "0.1.0",
     "@emotion/react": "^11.14.0",
     "@maestro-template/convex": "workspace:*",
+    "@maestro-template/app-idea-evaluator": "workspace:*",
     "@maestro-template/editor-core": "workspace:*",
     "@maestro-template/editor-react": "workspace:*",
     "@maestro-template/integrations": "workspace:*",
@@ -44,8 +45,8 @@
     "decode-named-character-reference": "1.3.0",
     "effect": "4.0.0-beta.102",
     "lucide-react": "^1.22.0",
-    "react": "19.1.0",
-    "react-dom": "19.1.0"
+    "react": "19.1.1",
+    "react-dom": "19.1.1"
   },
   "devDependencies": {
     "@tailwindcss/vite": "4.3.1",

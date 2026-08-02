@@ -10,6 +10,7 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
+    "dodopayments": "^2.44.0",
     "effect": "4.0.0-beta.102"
   },
   "devDependencies": {

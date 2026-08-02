@@ -1,6 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -23,6 +23,7 @@ afterEach(() => {
 
 const fixtureRepository = (options?: {
   readonly templateInstance?: boolean;
+  readonly featureProvenance?: boolean;
 }): {
   readonly root: string;
   readonly revision: string;
@@ -34,6 +35,33 @@ const fixtureRepository = (options?: {
   }).trim();
   execFileSync("git", ["clone", "--shared", "--no-checkout", sourceRoot, root]);
   execFileSync("git", ["read-tree", "HEAD"], { cwd: root });
+  if (options?.featureProvenance) {
+    const provenancePath =
+      "docs/template/generated/provenance/add-feature/records.json";
+    const routeTreePath = "apps/web/src/routeTree.gen.ts";
+    mkdirSync(join(root, "docs/template/generated/provenance/add-feature"), {
+      recursive: true,
+    });
+    mkdirSync(join(root, "apps/web/src"), { recursive: true });
+    writeFileSync(
+      join(root, provenancePath),
+      `${JSON.stringify({
+        generator: "add-feature",
+        commandFamily: "template:add-feature",
+        name: "records",
+        ownership: { system: "knowledge-brain", disposition: "extend" },
+        generatedPaths: ["apps/web/src/routes/_workspace.records.tsx"],
+      })}\n`,
+    );
+    writeFileSync(
+      join(root, routeTreePath),
+      `${execFileSync("git", ["show", `HEAD:${routeTreePath}`], {
+        cwd: root,
+        encoding: "utf8",
+      })}\nconst recordsRoute = route.update({ path: routes.records });\ninterface FeatureRoutes { records: { fullPath: "/records" } }\n`,
+    );
+    execFileSync("git", ["add", provenancePath, routeTreePath], { cwd: root });
+  }
   if (options?.templateInstance !== false) {
     writeFileSync(
       join(root, "template-instance.json"),
@@ -157,6 +185,42 @@ describe("closed App Map composition", () => {
         ({ source }) => source.id === "template-instance",
       ),
     ).toMatchObject({ nodes: [], edges: [] });
+    const generated = first.input.batches.find(
+      ({ source }) => source.id === "generator-provenance",
+    );
+    expect(generated?.nodes).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: "capability:evaluate-app-idea",
+          kind: "capability",
+        }),
+        expect.objectContaining({
+          id: "capability:manage-evaluation-report",
+          kind: "capability",
+        }),
+        expect.objectContaining({
+          id: "resource:client-domain:evaluator",
+          kind: "resource",
+        }),
+        expect.objectContaining({
+          id: "workflow:generate-complete-build-pack",
+          kind: "workflow",
+        }),
+      ]),
+    );
+    expect(generated?.edges).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: "owns:system:policy-and-prompts->capability:evaluate-app-idea",
+        }),
+        expect.objectContaining({
+          id: "owns:system:knowledge-brain->resource:client-domain:evaluator",
+        }),
+        expect.objectContaining({
+          id: "owns:system:workflow-runtime->workflow:generate-complete-build-pack",
+        }),
+      ]),
+    );
     expect(serializeAppMap(first.build.map)).toBe(
       serializeAppMap(second.build.map),
     );
@@ -170,6 +234,35 @@ describe("closed App Map composition", () => {
       code: "APP_MAP_COMPOSITION_INVALID",
     });
   });
+
+  it("projects reviewed add-feature provenance to its generated route", async () => {
+    const fixture = fixtureRepository({ featureProvenance: true });
+    const result = await composeAppMap({
+      repoRoot: fixture.root,
+      revision: fixture.revision,
+    });
+    expect(result.ok, result.ok ? undefined : result.message).toBe(true);
+    if (!result.ok) return;
+    const edges = result.input.batches.find(
+      ({ source }) => source.id === "generator-provenance",
+    )?.edges;
+    expect(edges).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: "generated-by:route:records->package:tooling/generators",
+          kind: "generated-by",
+          from: "route:records",
+          to: "package:tooling/generators",
+        }),
+        expect.objectContaining({
+          id: "owns:system:knowledge-brain->route:records",
+          kind: "owns",
+          from: "system:knowledge-brain",
+          to: "route:records",
+        }),
+      ]),
+    );
+  }, 20_000);
 
   it("composes a factory revision only from exact reviewed generated facts", async () => {
     const fixture = fixtureRepository({ templateInstance: false });

@@ -27,9 +27,11 @@ describe("Saas UI shell style contract", () => {
 
   it("uses the Saas UI business shell instead of the old reference app route", () => {
     const index = read("src/routes/index.tsx");
+    const dashboard = read("src/routes/dashboard.tsx");
     const shell = read("src/saas-ui/business-shell.tsx");
 
-    expect(index).toContain("BusinessDashboardRoute");
+    expect(index).toContain("AppIdeaLanding");
+    expect(dashboard).toContain("BusinessDashboardRoute");
     expect(index).not.toContain("TemplateReferenceApp");
     expect(shell).toContain("@saas-ui/react");
     expect(shell).toContain("BusinessAppShell");
@@ -119,5 +121,20 @@ describe("Saas UI shell style contract", () => {
     expect(css).toContain(".template-route-state-actions");
     expect(css).toContain("@media (prefers-reduced-motion: reduce)");
     expect(css).toContain(".workflow-canvas .react-flow__edge.animated path");
+  });
+
+  it("owns the exported diff visualization style contract", () => {
+    const css = read("src/index.css");
+
+    expect(css).toContain(".template-visual {");
+    expect(css).toContain(".template-visual-header {");
+    expect(css).toContain(".template-badge {");
+    expect(css).toContain(".template-diff-view {");
+    expect(css).toContain(".template-diff-row {");
+    expect(css).toContain(".template-diff-row p:first-of-type {");
+    expect(css).toContain(".template-diff-row p:last-of-type {");
+    expect(css).toMatch(
+      /@media \(max-width: 720px\) \{[\s\S]*?\.template-diff-row \{[\s\S]*?grid-template-columns: minmax\(0, 1fr\);/,
+    );
   });
 });

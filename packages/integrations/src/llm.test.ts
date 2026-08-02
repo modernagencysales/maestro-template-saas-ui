@@ -5,6 +5,7 @@ import * as Result from "effect/Result";
 import { describe, expect, it } from "vitest";
 import {
   createLlmGateway,
+  createOpenRouterTransport,
   LlmDisabledError,
   LlmProviderConfigError,
 } from "./llm";
@@ -25,6 +26,38 @@ const expectFailure = <E>(exit: Exit.Exit<unknown, E>): E => {
 };
 
 describe("kill-switch-aware LLM gateway", () => {
+  it("uses the OpenRouter chat-completions transport in live mode", async () => {
+    const fetcher = async (_url: string, init?: RequestInit) => {
+      expect(init?.headers).toMatchObject({
+        Authorization: "Bearer server-key",
+        "Content-Type": "application/json",
+      });
+      expect(JSON.parse(String(init?.body))).toMatchObject({
+        model: "google/gemini-2.0-flash-lite-001",
+        messages: [{ role: "user", content: "Evaluate the idea" }],
+        max_tokens: 300,
+      });
+      return new Response(
+        JSON.stringify({
+          choices: [{ message: { content: "Structured result" } }],
+        }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      );
+    };
+    const transport = createOpenRouterTransport(fetcher);
+    await expect(
+      Effect.runPromise(
+        transport({
+          apiKey: "server-key",
+          baseUrl: "https://openrouter.ai/api/v1",
+          model: "google/gemini-2.0-flash-lite-001",
+          prompt: "Evaluate the idea",
+          maxOutputTokens: 300,
+        }),
+      ),
+    ).resolves.toEqual({ text: "Structured result" });
+  });
+
   it("denies calls when LLM_DISABLED is true", async () => {
     const gateway = createLlmGateway({
       mode: "fake",
@@ -73,6 +106,79 @@ describe("kill-switch-aware LLM gateway", () => {
         generatedAt: "2026-07-01T00:00:00.000Z",
       },
     });
+  });
+
+  it("uses request-scoped model and pricing", async () => {
+    const gateway = createLlmGateway({ mode: "fake", env: {} });
+    const result = await Effect.runPromise(
+      gateway.complete({
+        workspaceSlug: "public-evaluation",
+        prompt: "Evaluate this idea.",
+        model: "cheap/free-model",
+        pricing: {
+          inputCentsPerMillionTokens: 10,
+          outputCentsPerMillionTokens: 40,
+          minimumCents: 0,
+        },
+      }),
+    );
+
+    expect(result.model).toBe("cheap/free-model");
+    expect(result.usage.estimatedCents).toBeLessThan(1);
+  });
+
+  it("selects the separately configured free model without exposing it to the browser", async () => {
+    const gateway = createLlmGateway({
+      mode: "fake",
+      env: { LLM_FREE_MODEL: "cheap/free-model" },
+    });
+    const result = await Effect.runPromise(
+      gateway.complete({
+        workspaceSlug: "public-evaluation",
+        prompt: "Evaluate this idea.",
+        modelEnv: "LLM_FREE_MODEL",
+      }),
+    );
+    expect(result.model).toBe("cheap/free-model");
+  });
+
+  it("supports schema-valid deterministic fake completion text", async () => {
+    const gateway = createLlmGateway({
+      mode: "fake",
+      env: {},
+      fakeCompletionText: () => JSON.stringify({ roast: "Bounded fake roast" }),
+    });
+    const result = await Effect.runPromise(
+      gateway.complete({
+        workspaceSlug: "public-evaluation",
+        prompt: "Evaluate this idea.",
+      }),
+    );
+    expect(JSON.parse(result.text)).toEqual({ roast: "Bounded fake roast" });
+  });
+
+  it("rejects a request that exceeds its token ceiling before transport", async () => {
+    let transportCalled = false;
+    const gateway = createLlmGateway({
+      mode: "live",
+      env: { OPENROUTER_API_KEY: "test-key" },
+      transport: () => {
+        transportCalled = true;
+        return Effect.succeed({ text: "should not happen" });
+      },
+    });
+    const result = await Effect.runPromiseExit(
+      gateway.complete({
+        workspaceSlug: "public-evaluation",
+        prompt: "x".repeat(100),
+        limits: { maxInputTokens: 10, maxOutputTokens: 100 },
+      }),
+    );
+
+    expect(expectFailure(result)).toMatchObject({
+      _tag: "LlmRequestLimitError",
+    });
+    expect(transportCalled).toBe(false);
   });
 
   it("rejects malformed idempotency keys before building LLM receipts", async () => {

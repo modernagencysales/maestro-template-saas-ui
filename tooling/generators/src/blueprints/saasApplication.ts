@@ -11,7 +11,10 @@ import {
   buildAlpha1SaasApplicationFiles,
   buildFactorySaasApplicationFiles,
 } from "./saasApplicationFactory";
-import { CURRENT_SAAS_DEPLOY_AUTHORITY_TABLE_CLOSURE } from "./saasRegistrationProjections";
+import {
+  CURRENT_SAAS_DEPLOY_AUTHORITY_SOURCE_CLOSURE,
+  CURRENT_SAAS_DEPLOY_AUTHORITY_TABLE_CLOSURE,
+} from "./saasRegistrationProjections";
 
 export const saasApplicationBlueprint = {
   id: "saas-application",
@@ -85,6 +88,17 @@ const repositoryJson = (path: string): unknown =>
     readFileSync(new URL(`../../../../${path}`, import.meta.url), "utf8"),
   ) as unknown;
 
+const releasedBlueprintJson = (path: string): unknown =>
+  JSON.parse(
+    readFileSync(
+      new URL(
+        `../../../../releases/v0.2.0-alpha.2/blueprints/saas-application/base/${path}.txt`,
+        import.meta.url,
+      ),
+      "utf8",
+    ),
+  ) as unknown;
+
 const recordGovernanceFiles = (): readonly GeneratedFile[] => {
   const systems = parseSystemCatalog(
     repositoryJson("docs/template/system-catalog.json"),
@@ -95,10 +109,38 @@ const recordGovernanceFiles = (): readonly GeneratedFile[] => {
   const topology = parseProductTopology(
     repositoryJson("docs/template/product-topology.json"),
   );
+  const releasedSystems = parseSystemCatalog(
+    releasedBlueprintJson("docs/template/system-catalog.json"),
+  );
+  const releasedDataResources = parseDataResourceCatalog(
+    releasedBlueprintJson("docs/template/data-resources.json"),
+  );
+  const releasedTopology = parseProductTopology(
+    releasedBlueprintJson("docs/template/product-topology.json"),
+  );
+  const retainedSystemIds = new Set(
+    releasedSystems.systems.map(({ id }) => id),
+  );
+  const retainedTableIds = new Set([
+    ...releasedSystems.systems.flatMap(({ tables }) => tables),
+    "deployAuthorityAuditEvents",
+  ]);
+  const retainedDataResourceIds = new Set([
+    ...releasedDataResources.resources.map(({ id }) => id),
+    "deployAuthorityAuditEvents",
+  ]);
+  const retainedTopologyIds = new Set(
+    releasedTopology.resources.map(({ id }) => id),
+  );
   const governedSystems = parseSystemCatalog({
     ...systems,
     systems: [
-      ...systems.systems,
+      ...systems.systems
+        .filter(({ id }) => retainedSystemIds.has(id))
+        .map((system) => ({
+          ...system,
+          tables: system.tables.filter((table) => retainedTableIds.has(table)),
+        })),
       {
         id: "record-management",
         name: "Record Management",
@@ -125,7 +167,9 @@ const recordGovernanceFiles = (): readonly GeneratedFile[] => {
   const governedDataResources = parseDataResourceCatalog({
     ...dataResources,
     resources: [
-      ...dataResources.resources,
+      ...dataResources.resources.filter(({ id }) =>
+        retainedDataResourceIds.has(id),
+      ),
       {
         id: "records",
         system: "record-management",
@@ -149,7 +193,7 @@ const recordGovernanceFiles = (): readonly GeneratedFile[] => {
   const governedTopology = parseProductTopology({
     ...topology,
     resources: [
-      ...topology.resources,
+      ...topology.resources.filter(({ id }) => retainedTopologyIds.has(id)),
       {
         id: "route:records",
         kind: "route",
@@ -377,6 +421,15 @@ export const SAAS_APPLICATION_PARAMETERIZED_ENTRIES = [
   "generated/blueprints/saas-application/application-contract.json",
 ] as const;
 
+const SAAS_APPLICATION_ALPHA2_BASE_WRITE_REPLACEMENTS = [
+  [".claude/settings.json", "generate"],
+  [".prettierignore", "copy"],
+  ["agent-patterns/effect-confect.md", "copy"],
+  ["AGENTS.md", "copy"],
+  ["README.md", "copy"],
+  ["tooling/quality/src/check-definitions.mts", "copy"],
+] as const;
+
 const targetEntryIdentity = (
   entry: BlueprintTargetPlan["entries"][number],
 ) => ({
@@ -414,11 +467,38 @@ function buildTargetPlan(
   options: BlueprintTargetPlanOptions,
 ): BlueprintTargetPlan {
   const replacements = new Map<string, "copy" | "generate">([
-    [".claude/settings.json", "generate"],
-    [".prettierignore", "copy"],
-    ["README.md", "copy"],
-    ["AGENTS.md", "copy"],
-    ["agent-patterns/effect-confect.md", "copy"],
+    ...(current
+      ? ([
+          ...SAAS_APPLICATION_ALPHA2_BASE_WRITE_REPLACEMENTS,
+          ["Justfile", "generate"],
+          ["docs/template/env-manifest.json", "copy"],
+          ["docs/template/env-manifest.md", "copy"],
+          ["docs/template/operations-runbook.md", "copy"],
+          ["lefthook.yml", "copy"],
+          [
+            "packages/template-core/src/templateInstance/templateInstance.test.ts",
+            "copy",
+          ],
+          ["packages/template-core/src/generated/confectManifest.ts", "copy"],
+          ["scripts/pre-push-rubric.sh", "copy"],
+          ["tooling/agent-pack/package.json", "copy"],
+          ["tooling/agent-pack/src/nodeAdapters.test.ts", "copy"],
+          ["tooling/app-map/src/composition.test.ts", "copy"],
+          ["tooling/app-map/src/composition.ts", "copy"],
+          ["tooling/app-map/src/schema.ts", "copy"],
+          ["tooling/generators/src/crud-proof.test.ts", "copy"],
+          ["tooling/quality/package.json", "copy"],
+          ["tooling/quality/src/env-manifest.test.mts", "copy"],
+          ["tooling/quality/contract-review-rubric.md", "copy"],
+          ["tooling/quality/taste-review.mts", "copy"],
+        ] as const)
+      : []),
+    ...(current
+      ? ([
+          ["docs/template/data-resources.json", "copy"],
+          ["docs/template/system-catalog.json", "copy"],
+        ] as const)
+      : []),
     ["apps/cli/src/index.ts", "copy"],
     ["apps/cli/package.json", "copy"],
     ["apps/cli/src/factory/customerComposition.ts", "copy"],
@@ -445,7 +525,21 @@ function buildTargetPlan(
       "packages/convex/confect/_generated/tables/deployAuthorityIssuers.ts",
       "copy",
     ],
+    ["packages/convex/confect/deploy/authority.impl.ts", "copy"],
+    ["packages/convex/confect/deploy/authority.spec.ts", "copy"],
+    ["packages/convex/confect/deploy/authority.ts", "copy"],
+    ["packages/convex/confect/deployAuthority/http.ts", "copy"],
+    ["packages/convex/confect/deployAuthority/store.ts", "copy"],
+    ["packages/convex/confect/http.ts", "copy"],
+    ["packages/convex/confect/shared/env.ts", "copy"],
+    ["packages/convex/confect/tables/deployActionConsumptions.ts", "copy"],
+    ["packages/convex/confect/tables/deployApprovals.ts", "copy"],
     ["packages/convex/confect/tables/deployAuthorityIssuers.ts", "copy"],
+    ["packages/convex/confect/tables/deployCensusSnapshots.ts", "copy"],
+    ["packages/convex/confect/tables/deployVerdicts.ts", "copy"],
+    ["packages/convex/convex/convex.config.ts", "copy"],
+    ["packages/convex/convex/deploy/authority.ts", "copy"],
+    ["packages/convex/test/deploy-authority.test.ts", "copy"],
     ["packages/convex/confect/workflows/_kit/lifecycleSweep.ts", "copy"],
     ["packages/convex/confect/workflows/_kit/payloadBudget.ts", "copy"],
     ["packages/convex/confect/workflows/_kit/workflowArtifacts.ts", "copy"],
@@ -475,6 +569,7 @@ function buildTargetPlan(
     ["tooling/quality/check-workflow-principal-propagation.mts", "copy"],
     ["tooling/quality/fixtures/workflow-policy-snapshots.json", "copy"],
     ["tooling/generators/package.json", "copy"],
+    ["examples/generic-ai-ops/template-package.json", "copy"],
     ["tooling/generators/src/direct-run.ts", "copy"],
     ["tooling/generators/src/blueprints/gtmImplementation.ts", "copy"],
     ["packages/convex/confect/_generated/schema.ts", "copy"],
@@ -570,25 +665,27 @@ function buildTargetPlan(
     "AGENTS.md",
     "agent-patterns/effect-confect.md",
     "docs/template/agent-pack-privacy.md",
-    "docs/template/preflight.md",
-    "docs/template/agent-worker-playbook.md",
-    "docs/template/how-this-relates-to-maestro.md",
-    "docs/template/repo-map.md",
-    "docs/template/template-maturity-model.md",
-    "maestro-template.mjs",
-    "scripts/maestro-bootstrap.mjs",
-    "scripts/maestro-bootstrap.test.mjs",
-    "apps/web/src/bundle-policy.ts",
-    "apps/web/package.json",
-    "apps/web/scripts/check-client-bundle-budget.mjs",
-    "apps/web/scripts/check-client-bundle-budget.test.mjs",
-    "apps/web/src/bundle-policy.test.ts",
-    "apps/web/vite.config.ts",
-    "pnpm-workspace.yaml",
-    "pnpm-lock.yaml",
-    "packages/convex/package.json",
-    "tooling/quality/check-convex-generation.mts",
+    ...(current ? ["apps/web/package.json"] : []),
+    ...(current
+      ? [
+          "Justfile",
+          "docs/template/env-manifest.json",
+          "docs/template/env-manifest.md",
+          "docs/template/operations-runbook.md",
+          "packages/template-core/src/templateInstance/templateInstance.test.ts",
+          "packages/template-core/src/templateInstance/__fixtures__/provider-posture-v1-to-v2.contract.json",
+          "packages/template-core/src/generated/confectManifest.ts",
+          "tooling/app-map/src/composition.test.ts",
+          "tooling/app-map/src/composition.ts",
+          "tooling/app-map/src/schema.ts",
+          "tooling/generators/src/crud-proof.test.ts",
+          "tooling/quality/src/env-manifest.test.mts",
+          "docs/template/generated/provenance/add-feature/records.json",
+        ]
+      : []),
+    ...(current ? ["tooling/agent-pack/package.json"] : []),
     "apps/cli/src/factory/customerComposition.ts",
+    ...(current ? ["apps/cli/src/factory/mcp.ts"] : []),
     "apps/cli/src/index.ts",
     "apps/cli/package.json",
     "apps/cli/src/factory/start.ts",
@@ -597,7 +694,19 @@ function buildTargetPlan(
     "apps/cli/src/factory/recipes.ts",
     "apps/cli/src/factory/supportBundle.ts",
     "package.json",
+    ...(current ? ["pnpm-lock.yaml"] : []),
     "tooling/generators/src/crud-proof.ts",
+    ...(current ? ["tooling/quality/package.json"] : []),
+    ...(current
+      ? [
+          "tooling/generators/src/private-package.ts",
+          "examples/generic-ai-ops/template-package.json",
+          "lefthook.yml",
+          "scripts/pre-push-rubric.sh",
+          "tooling/quality/contract-review-rubric.md",
+          "tooling/quality/taste-review.mts",
+        ]
+      : []),
     "tooling/quality/install-lefthook-if-git.mjs",
     "tooling/generators/src/workflow-files.ts",
     "tooling/generators/src/workflow-predeploy.ts",
@@ -605,6 +714,7 @@ function buildTargetPlan(
     "packages/convex/confect/_generated/docs.ts",
     "packages/convex/confect/_generated/tables/workflowArtifacts.ts",
     ...(current ? CURRENT_SAAS_DEPLOY_AUTHORITY_TABLE_CLOSURE : []),
+    ...(current ? CURRENT_SAAS_DEPLOY_AUTHORITY_SOURCE_CLOSURE : []),
     "packages/convex/confect/ops/dataResources.generated.ts",
     "docs/template/system-catalog.json",
     "docs/template/data-resources.json",
@@ -619,6 +729,7 @@ function buildTargetPlan(
       ? [
           "packages/convex/confect/workflows/_kit/graphRunnerCurrent.ts",
           "packages/convex/confect/workflows/_kit/graphRunnerV2Current.ts",
+          "packages/convex/confect/workflows/_kit/policySnapshotCurrent.ts",
           "packages/convex/confect/workflows/_kit/observedStageCurrent.ts",
           "packages/convex/confect/workflows/_kit/observedStagePayloadCurrent.ts",
           "packages/convex/confect/workflows/_kit/workflowBuilderCurrent.ts",
@@ -663,6 +774,19 @@ function buildTargetPlan(
     "tooling/agent-pack/src/recipes.ts",
     "tooling/agent-pack/src/recipeTransaction.ts",
     "tooling/agent-pack/src/index.ts",
+    ...(current
+      ? [
+          "tooling/agent-pack/src/customerTestClosure.ts",
+          "tooling/agent-pack/src/customerTestClosure.test.ts",
+          "tooling/agent-pack/src/mcp/projection.test.ts",
+          "tooling/agent-pack/src/mcp/protocol.test.ts",
+          "tooling/agent-pack/src/mcp/server.test.ts",
+          "tooling/agent-pack/src/nodeAdapters.test.ts",
+          "tooling/agent-pack/src/mcp/protocol.ts",
+          "tooling/agent-pack/src/mcp/projection.ts",
+          "tooling/agent-pack/src/mcp/server.ts",
+        ]
+      : []),
     "tooling/agent-pack/src/readiness/artifacts.ts",
     "tooling/agent-pack/src/readiness/index.ts",
     "tooling/agent-pack/src/readiness/nodeSurface.ts",
@@ -687,8 +811,15 @@ function buildTargetPlan(
     "packages/convex/confect/_generated/convexSchema.ts",
     "packages/convex/confect/_generated/spec.ts",
     "packages/convex/confect/_generated/id.ts",
-    "packages/convex/confect/_generated/registeredFunctions/records.ts",
-    "packages/convex/convex/records.ts",
+    ...(current
+      ? [
+          "packages/convex/confect/_generated/registeredFunctions/records/records.ts",
+          "packages/convex/convex/records/records.ts",
+        ]
+      : [
+          "packages/convex/confect/_generated/registeredFunctions/records.ts",
+          "packages/convex/convex/records.ts",
+        ]),
     "apps/web/src/routes/_workspace.records.tsx",
     "apps/web/src/routeTree.gen.ts",
     "apps/web/src/routeRegistry.generated.ts",
@@ -696,6 +827,20 @@ function buildTargetPlan(
   const currentOnlyRegistrations = new Set([
     "docs/template/agent-pack-privacy.md",
     "apps/cli/src/factory/supportBundle.ts",
+    "lefthook.yml",
+    "scripts/pre-push-rubric.sh",
+    "tooling/quality/contract-review-rubric.md",
+    "tooling/quality/taste-review.mts",
+    "tooling/agent-pack/src/mcp/protocol.ts",
+    "tooling/agent-pack/src/mcp/projection.ts",
+    "tooling/agent-pack/src/mcp/server.ts",
+    "tooling/agent-pack/package.json",
+    "tooling/agent-pack/src/customerTestClosure.ts",
+    "tooling/agent-pack/src/customerTestClosure.test.ts",
+    "tooling/agent-pack/src/mcp/projection.test.ts",
+    "tooling/agent-pack/src/mcp/protocol.test.ts",
+    "tooling/agent-pack/src/mcp/server.test.ts",
+    "tooling/agent-pack/src/nodeAdapters.test.ts",
     "tooling/agent-pack/src/privacy/supportBundle.ts",
     "tooling/agent-pack/src/privacy/supportBundleCommand.ts",
     "tooling/agent-pack/src/privacy/nodeSupportBundleExporter.ts",

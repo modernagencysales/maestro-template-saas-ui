@@ -13,19 +13,59 @@ you do not turn this repository into the product or copy files from `main`.
 > the command you ran, the concise CLI output, and the generated receipt when a
 > step fails.
 
+## App idea funnel
+
+The public reference surface starts with a nontechnical founder workflow:
+
+1. “Tell me if your app idea is good.”
+2. Answer eight plain-language questions.
+3. Receive a useful, unblurred Buildability Report and constructive roast.
+4. Optionally buy the Complete Build Pack to know exactly how to build it.
+5. Take the portable specification to a developer, agency, coding agent, or—
+   when the fit is honest—apply the purchase as equal Maestro credit.
+
+Free evaluation and paid generation are intentionally separate systems. The free
+agent uses a bounded low-cost model without browsing or research. The paid
+pipeline uses stronger, checkpointed stages and can resume a failed stage
+without another purchase. A checkout return never unlocks paid work; only a
+verified, idempotent Dodo webhook creates an entitlement.
+
+Product language, implementation contract, operating procedures, and launch
+evidence live in:
+
+- [Funnel design](./docs/superpowers/specs/2026-07-31-app-idea-evaluator-funnel-design.md)
+- [Approved language bank](./docs/design-intake/2026-07-31-app-idea-evaluator-language-bank.md)
+- [Operations runbook](./docs/template/app-idea-funnel-operations.md)
+- [Launch checklist](./docs/template/app-idea-funnel-launch-checklist.md)
+
 ## Build a small app
 
 Requirements: Git and Node 22. The install-free bootstrap check selects the
 repository's pinned pnpm through Corepack or an npx fallback.
 
 ```bash
-git clone https://github.com/modernagencysales/maestro-template-saas-ui.git
-cd maestro-template-saas-ui
-git checkout maestro-template-v0.2.0-alpha.2
-node scripts/maestro-bootstrap.mjs
+node scripts/bootstrap-preflight.mjs
+npx --yes pnpm@10.12.1 install --frozen-lockfile
+pnpm review:readiness
+pnpm review:completion
+pnpm check:format
+pnpm lint
+pnpm typecheck
+pnpm test
+pnpm build
 ```
 
-Run the install command printed by bootstrap. With current Corepack that is:
+The first command uses only Node's standard library, so it works before
+workspace packages are installed. It rejects an ambient pnpm mismatch and prints
+the exact pinned install command. If Corepack cannot activate the pinned version
+because its signing keys are stale, use the displayed `npx` fallback and keep
+the same `npx --yes pnpm@10.12.1` prefix on later pnpm commands.
+
+`review:readiness` and `review:completion` are presence/evidence audits. They
+check required files and listed evidence paths; run `pnpm verify` for behavioral
+proof.
+
+Run the hostable reference app:
 
 ```bash
 corepack enable

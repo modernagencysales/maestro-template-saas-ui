@@ -13,6 +13,7 @@ import {
 import {
   assertFinalCustomerFilesystem,
   assertNoPathEscape,
+  CUSTOMER_MCP_FILES,
   enumerateFinalCustomerTree,
   runFinalCustomerCompileGates,
 } from "./finalFilesystem.test-support.js";
@@ -33,17 +34,14 @@ describe("final materialized customer filesystem", () => {
         "clone",
         "--quiet",
         "--shared",
-        "--no-tags",
         repositoryRoot,
         releaseRoot,
       ]);
-      await execFileAsync("git", [
-        "-C",
-        releaseRoot,
-        "tag",
-        "maestro-template-v0.2.0-alpha.2",
-        "HEAD",
-      ]);
+      await execFileAsync(
+        "git",
+        ["checkout", "--quiet", "--detach", "maestro-template-v0.2.0-alpha.2"],
+        { cwd: releaseRoot },
+      );
       await execFileAsync(
         "pnpm",
         ["install", "--offline", "--frozen-lockfile", "--ignore-scripts"],
@@ -76,12 +74,10 @@ describe("final materialized customer filesystem", () => {
         "tooling/agent-pack/src/pluginContract.ts",
       );
       expect(
-        tree.files.filter(
-          (path) =>
-            path === "tooling/agent-pack/src/mcp" ||
-            path.startsWith("tooling/agent-pack/src/mcp/"),
+        tree.files.filter((path) =>
+          path.startsWith("tooling/agent-pack/src/mcp/"),
         ),
-      ).toEqual([]);
+      ).toEqual(CUSTOMER_MCP_FILES);
       assertFinalCustomerFilesystem(tree);
       await runFinalCustomerCompileGates(tree.root);
     } finally {

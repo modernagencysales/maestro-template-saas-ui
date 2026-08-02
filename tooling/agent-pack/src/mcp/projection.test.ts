@@ -82,6 +82,27 @@ function fixture() {
 }
 
 describe("Maestro MCP projection", () => {
+  it("publishes only commands retained by a customer composition", async () => {
+    const commands = fixture().commands;
+    const projection = createMaestroMcpProjection(
+      {
+        preflight: commands.preflight,
+        supportBundle: commands.supportBundle,
+        verify: commands.verify,
+      },
+      repo,
+    );
+
+    expect(projection.tools().map(({ name }) => name)).toEqual([
+      "maestro_preflight",
+      "maestro_support_bundle_preview",
+      "maestro_verify",
+    ]);
+    await expect(
+      projection.call("maestro_plan_check", {}),
+    ).resolves.toMatchObject({ isError: true, code: "MCP_UNKNOWN_TOOL" });
+  });
+
   it("publishes exactly the reviewed read and preview tools", () => {
     expect(
       fixture()

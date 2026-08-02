@@ -8,6 +8,7 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
+    "@maestro-template/app-idea-evaluator": "workspace:*",
     "@maestro-template/release-tooling": "workspace:*",
     "@maestro-template/template-core": "workspace:*"
   },

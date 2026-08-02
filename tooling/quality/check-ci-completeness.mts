@@ -20,6 +20,11 @@ export function validateRootVerifyHostTerms(input: unknown): readonly string[] {
   }
   const terms = scripts.verify.split("&&").map((term) => term.trim());
   const findings: string[] = [];
+  if (terms.includes("pnpm check:product-journeys")) {
+    findings.push(
+      "package.json scripts.verify must not run pnpm check:product-journeys before repository adoption",
+    );
+  }
   const indices = REQUIRED_HOST_VERIFY_TERMS.map((required) => {
     const matches = terms.flatMap((term, index) =>
       term === required ? [index] : [],

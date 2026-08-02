@@ -238,9 +238,9 @@ export const APP_MAP_INPUT_MANIFEST_V1 = {
       "docs/template/generated/provenance",
       "template-generators",
       {
-        nodeKinds: [],
-        edgeKinds: ["generated-by", "verified-by"],
-        ownershipTargets: [],
+        nodeKinds: ["resource", "capability", "workflow"],
+        edgeKinds: ["owns", "generated-by", "verified-by"],
+        ownershipTargets: ["resource", "route", "capability", "workflow"],
       },
       "sha256-canonical-tree-v1",
     ),

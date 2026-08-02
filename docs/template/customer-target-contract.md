@@ -43,9 +43,13 @@ untagged commit, including a clean commit beyond the tag, fails closed before
 preview or materialization and is never projected as a customer release.
 
 The output contains exactly one next command: start the new target. Git
-initialization, frozen dependency installation, baseline staging and commit, and
-customer preflight are listed separately as unexecuted follow-ups with explicit
-approval posture. Create does not run those actions.
+initialization and the pinned frozen dependency install are listed separately,
+in that order, with `requiresApproval: true` and `executed: false`; create never
+runs them. Initializing the generated target as its own Git repository before
+installation prevents package prepare hooks from discovering or changing an
+unrelated parent worktree. The generated Lefthook installer independently
+requires the resolved Git top-level to equal the generated app root and skips
+installation when only an ancestor worktree exists.
 
 ## Immutable release authority
 

@@ -11,6 +11,7 @@
     { "path": "./packages/ui" },
     { "path": "./packages/workflow-ui" },
     { "path": "./packages/template-core" },
+    { "path": "./packages/product-journey" },
     { "path": "./packages/integrations" },
     { "path": "./packages/notifications" },
     { "path": "./packages/storage" },

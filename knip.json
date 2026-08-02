@@ -5,6 +5,9 @@
     ".": {
       "entry": ["package.json"],
       "project": []
+    },
+    "packages/convex": {
+      "ignoreDependencies": ["dodopayments"]
     }
   },
   "ignoreDependencies": [

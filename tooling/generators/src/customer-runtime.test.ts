@@ -10,6 +10,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
+  CUSTOMER_COMMANDS,
   runCustomerGeneratorCli,
   runReviewedGenerator,
 } from "./customer-dispatcher";
@@ -31,17 +32,64 @@ const seedCatalogs = (cwd: string): void => {
 };
 
 describe("customer generator runtime", () => {
-  it("normalizes the pnpm argument separator before dispatch", () => {
-    const result = runCustomerGeneratorCli(
-      ["--", "systems", "--query", "workflows"],
-      repoRoot,
-    );
-    expect(result.exitCode).toBe(0);
-    expect(JSON.parse(result.stdout)).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ id: "workflow-runtime" }),
-      ]),
-    );
+  it("doctors the canonical versioned instance emitted by public create", () => {
+    const cwd = mkdtempSync(join(tmpdir(), "maestro-customer-doctor-"));
+    const instancePath = join(cwd, "template-instance.json");
+    const source = `${JSON.stringify(
+      {
+        schemaVersion: 1,
+        release: {
+          version: "0.2.0-alpha.1",
+          tag: "maestro-template-v0.2.0-alpha.1",
+          sourceCommit: "0123456789abcdef0123456789abcdef01234567",
+          sourceChecksum: `sha256:${"a".repeat(64)}`,
+        },
+        compatibility: {
+          cli: ">=0.1.0-alpha.1 <0.2.0",
+          agentPack: ">=0.1.0-alpha.1 <0.2.0",
+        },
+        ownership: { manifest: "tagged-current-composition" },
+        blueprint: { id: "saas-application" },
+        personalization: {
+          name: "Customer Doctor",
+          firstOutcome: "Verify the generated instance",
+          demoOnly: true,
+        },
+      },
+      null,
+      2,
+    )}\n`;
+    try {
+      writeFileSync(instancePath, source);
+      const result = runCustomerGeneratorCli(
+        ["doctor", "--", "--mode", "fake"],
+        cwd,
+      );
+
+      expect(result.exitCode).toBe(0);
+      expect(JSON.parse(result.stdout)).toMatchObject({
+        ok: true,
+        mode: "fake",
+        instancePath,
+      });
+      expect(readFileSync(instancePath, "utf8")).toBe(source);
+    } finally {
+      rmSync(cwd, { recursive: true, force: true });
+    }
+  });
+
+  it.each(CUSTOMER_COMMANDS)("publishes exact help for %s", (command) => {
+    for (const flag of ["--help", "-h"]) {
+      for (const argv of [
+        [command, flag],
+        [command, "--", flag],
+      ]) {
+        const result = runCustomerGeneratorCli(argv, repoRoot);
+        expect(result.exitCode).toBe(0);
+        expect(result.stderr).toBe("");
+        expect(result.stdout).toContain(`template:${command}`);
+      }
+    }
   });
 
   it.each([
@@ -74,6 +122,35 @@ describe("customer generator runtime", () => {
     } finally {
       rmSync(cwd, { recursive: true, force: true });
     }
+  });
+
+  it("emits feature fixtures that satisfy the customer lint policy", () => {
+    const preview = runCustomerGeneratorCli(
+      [
+        "add-feature",
+        "--name",
+        "customerReview",
+        "--system",
+        "knowledge-brain",
+        "--disposition",
+        "extend",
+      ],
+      repoRoot,
+    );
+
+    expect(preview.exitCode).toBe(0);
+    const result = JSON.parse(preview.stdout) as {
+      files: readonly { path: string; content: string }[];
+    };
+    const fixture = result.files.find(({ path }) =>
+      path.endsWith("/fixtures.ts"),
+    )?.content;
+    expect(fixture).toContain(
+      "export const fakeCustomerReviewItem: CustomerReviewItem",
+    );
+    expect(fixture).toContain("draft: fakeCustomerReviewItem");
+    expect(fixture).toContain("item: fakeCustomerReviewItem");
+    expect(fixture).not.toContain("[0]!");
   });
 
   it("previews and writes an add-table lifecycle slice", () => {

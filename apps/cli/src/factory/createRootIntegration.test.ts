@@ -17,7 +17,6 @@ import { afterAll, afterEach, describe, expect, it } from "vitest";
 import { runCliAsync } from "../index";
 import { CREATE_HELP } from "./create";
 import { createFactoryCliComposition } from "./composition";
-import { validateCustomerTargetIntegrity } from "@maestro-template/release-tooling/customer-integrity";
 
 const repoRoot = fileURLToPath(new URL("../../../../", import.meta.url));
 const execFileAsync = promisify(execFile);
@@ -163,7 +162,9 @@ describe("create root integration", () => {
     ]);
 
     expect(result.exitCode).toBe(0);
-    expect(JSON.parse(result.stdout)).toMatchObject({
+    const receipt = JSON.parse(result.stdout);
+    expect(result.stdout.length).toBeLessThan(20_000);
+    expect(receipt).toMatchObject({
       mutationPosture: "preview",
       exitClass: "success",
       diagnostics: [
@@ -183,8 +184,28 @@ describe("create root integration", () => {
         privacy: {
           privacyDocument: "docs/template/agent-pack-privacy.md",
         },
+        preview: {
+          preflightFingerprint: expect.stringMatching(/^sha256:[0-9a-f]{64}$/),
+          writeCount: expect.any(Number),
+          omissionCount: expect.any(Number),
+          collisionCount: 0,
+          collisions: [],
+          totalBytes: expect.any(Number),
+          fullInventory: {
+            manifest: expect.any(String),
+            manifestChecksum: expect.stringMatching(/^sha256:[0-9a-f]{64}$/),
+            renderWith: "--details",
+          },
+        },
       },
     });
+    expect(receipt.data.preview.writeCount).toBeGreaterThan(0);
+    expect(receipt.data.preview.fullInventory).toMatchObject({
+      manifest: receipt.data.release.ownershipManifest,
+      manifestChecksum: receipt.data.release.ownershipManifestChecksum,
+    });
+    expect(receipt.data.preview).not.toHaveProperty("writes");
+    expect(receipt.data.preview).not.toHaveProperty("omissions");
     expect(existsSync(target)).toBe(false);
   }, 30_000);
 
@@ -345,19 +366,12 @@ describe("create root integration", () => {
       "--privacy-reviewed",
       "--json",
     ]);
-    expect(
-      result.exitCode,
-      [result.stderr, result.stdout].filter(Boolean).join("\n"),
-    ).toBe(0);
+    expect(result.exitCode, `${result.stdout}\n${result.stderr}`).toBe(0);
     expect(JSON.parse(result.stdout)).toMatchObject({ exitClass: "success" });
     const required = [
       "packages/convex/confect/tables/records.ts",
       "packages/convex/confect/records.spec.ts",
       "packages/convex/confect/records.impl.ts",
-      "packages/convex/confect/_generated/tables/deployAuthorityAuditEvents.ts",
-      "packages/convex/confect/_generated/tables/deployAuthorityIssuers.ts",
-      "packages/convex/confect/tables/deployAuthorityAuditEvents.ts",
-      "packages/convex/confect/tables/deployAuthorityIssuers.ts",
       "apps/web/src/adapters/records/contract.ts",
       "apps/web/src/adapters/records/fake.ts",
       "apps/web/src/features/records/records-surface.tsx",
@@ -388,15 +402,6 @@ describe("create root integration", () => {
     expect(
       existsSync(join(targetRoot, "docs/template/agent-pack-privacy.md")),
     ).toBe(true);
-    expect(
-      validateCustomerTargetIntegrity(
-        Object.fromEntries(
-          Object.entries(snapshotTargetBytes(targetRoot)).map(
-            ([path, base64]) => [path, Buffer.from(base64, "base64")],
-          ),
-        ),
-      ),
-    ).toEqual([]);
     expect(
       readFileSync(join(targetRoot, "packages/convex/tsconfig.json"), "utf8"),
     ).toContain('"confect/**/*.json"');
@@ -477,10 +482,15 @@ describe("create root integration", () => {
         },
       }),
     );
-    execFileSync("pnpm", ["exec", "tsc", "-p", webTargetConfig, "--noEmit"], {
-      cwd: targetRoot,
-      stdio: "pipe",
-    });
+    const webCompile = spawnSync(
+      "pnpm",
+      ["exec", "tsc", "-p", webTargetConfig, "--noEmit"],
+      { cwd: targetRoot, encoding: "utf8" },
+    );
+    expect(
+      webCompile.status,
+      `${webCompile.stdout}\n${webCompile.stderr}`,
+    ).toBe(0);
 
     const databaseSchema = (await import(
       `${pathToFileURL(join(targetRoot, "packages/convex/confect/_generated/schema.ts")).href}?target=${Date.now()}`

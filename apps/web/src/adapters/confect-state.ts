@@ -1,5 +1,6 @@
 import {
   QueryResult,
+  useAction as useConfectAction,
   useMutation as useConfectMutation,
   useQuery as useConfectQuery,
   type ReactMutation,
@@ -201,6 +202,10 @@ export function useTemplateMutation<Mutation extends Ref.AnyPublicMutation>(
 ): ReactMutation<Mutation> {
   return useConfectMutation(ref);
 }
+
+export const useTemplateAction = <Action extends Ref.AnyPublicAction>(
+  ref: Action,
+) => useConfectAction(ref);
 
 export function readyOrEmpty<T>(
   data: T,

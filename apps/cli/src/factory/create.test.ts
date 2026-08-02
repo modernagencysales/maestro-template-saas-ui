@@ -6,6 +6,14 @@ import { describe, expect, it, vi } from "vitest";
 import { CREATE_HELP, createCreateCliHandler, runCreateCli } from "./create";
 
 function fixture() {
+  const writes = Array.from({ length: 2_000 }, (_, index) => ({
+    path: `generated/path-${index}.ts`,
+    bytes: index + 1,
+  }));
+  const omissions = Array.from(
+    { length: 1_000 },
+    (_, index) => `omitted/path-${index}.md`,
+  );
   const execute = vi.fn(async (input: Record<string, unknown>) => ({
     mutationPosture: input.write ? ("write" as const) : ("preview" as const),
     exitClass: "success" as const,
@@ -17,6 +25,17 @@ function fixture() {
       outcome: String(input.outcome),
       demoOnly: input.demoOnly === true,
       write: input.write === true,
+      release: {
+        ownershipManifest: "releases/v0.2.0-alpha.1/manifest.json",
+        ownershipManifestChecksum: `sha256:${"c".repeat(64)}`,
+      },
+      preview: {
+        preflightFingerprint: `preflight_sha256:${"d".repeat(64)}`,
+        writes,
+        omissions,
+        collisions: ["occupied/package.json"],
+        totalBytes: writes.reduce((total, write) => total + write.bytes, 0),
+      },
     },
   }));
   const command = defineAgentPackCommand({
@@ -63,7 +82,9 @@ describe("create CLI adapter", () => {
     );
 
     expect(result.exitCode).toBe(0);
-    expect(JSON.parse(result.stdout)).toMatchObject({
+    const receipt = JSON.parse(result.stdout);
+    expect(result.stdout.length).toBeLessThan(5_000);
+    expect(receipt).toMatchObject({
       mutationPosture: "preview",
       data: {
         target: "../my-app",
@@ -71,8 +92,36 @@ describe("create CLI adapter", () => {
         outcome: "Track client requests",
         demoOnly: true,
         write: false,
+        preview: {
+          preflightFingerprint: `preflight_sha256:${"d".repeat(64)}`,
+          writeCount: 2_000,
+          omissionCount: 1_000,
+          collisionCount: 1,
+          collisions: ["occupied/package.json"],
+          totalBytes: 2_001_000,
+          fullInventory: {
+            manifest: "releases/v0.2.0-alpha.1/manifest.json",
+            manifestChecksum: `sha256:${"c".repeat(64)}`,
+            renderWith: "--details",
+          },
+        },
       },
     });
+    expect(receipt.data.preview).not.toHaveProperty("writes");
+    expect(receipt.data.preview).not.toHaveProperty("omissions");
+  });
+
+  it("keeps the complete create inventory behind explicit details", async () => {
+    const test = fixture();
+    const result = await runCreateCli(
+      test.command,
+      [...argv, "--demo-only", "--details"],
+      "/factory",
+    );
+
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain('"path": "generated/path-1999.ts"');
+    expect(result.stdout).toContain('"omitted/path-999.md"');
   });
 
   it("passes write intent only with explicit privacy review", async () => {

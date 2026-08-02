@@ -9,7 +9,20 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as VerifyReportRouteImport } from './routes/verify-report'
+import { Route as TermsRouteImport } from './routes/terms'
+import { Route as SupportRouteImport } from './routes/support'
+import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as LibraryRouteImport } from './routes/library'
+import { Route as EvaluateRouteImport } from './routes/evaluate'
+import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ShareTokenRouteImport } from './routes/share.$token'
+import { Route as ReportEvaluationIdRouteImport } from './routes/report.$evaluationId'
+import { Route as MaestroPackIdRouteImport } from './routes/maestro.$packId'
+import { Route as CheckoutReturnRouteImport } from './routes/checkout.return'
+import { Route as CheckoutReportIdRouteImport } from './routes/checkout.$reportId'
+import { Route as BuildPackPackIdRouteImport } from './routes/build-pack.$packId'
 import { Route as WorkspaceWorkflowsRouteImport } from './routes/_workspace.workflows'
 import { Route as WorkspaceSourcesRouteImport } from './routes/_workspace.sources'
 import { Route as WorkspaceSettingsRouteImport } from './routes/_workspace.settings'
@@ -29,10 +42,78 @@ import { Route as WorkspaceApiRouteImport } from './routes/_workspace.api'
 import { Route as WorkspaceAnalyticsRouteImport } from './routes/_workspace.analytics'
 import { Route as WorkspaceAgentsRouteImport } from './routes/_workspace.agents'
 import { Route as WorkspaceAdminRouteImport } from './routes/_workspace.admin'
+import { Route as BuildPackPackIdIndexRouteImport } from './routes/build-pack.$packId.index'
+import { Route as CheckoutFakeHostedSessionIdRouteImport } from './routes/checkout.fake-hosted.$sessionId'
+import { Route as BuildPackPackIdGeneratingRouteImport } from './routes/build-pack.$packId.generating'
 
+const VerifyReportRoute = VerifyReportRouteImport.update({
+  id: '/verify-report',
+  path: '/verify-report',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SupportRoute = SupportRouteImport.update({
+  id: '/support',
+  path: '/support',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LibraryRoute = LibraryRouteImport.update({
+  id: '/library',
+  path: '/library',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EvaluateRoute = EvaluateRouteImport.update({
+  id: '/evaluate',
+  path: '/evaluate',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardRoute = DashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ShareTokenRoute = ShareTokenRouteImport.update({
+  id: '/share/$token',
+  path: '/share/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReportEvaluationIdRoute = ReportEvaluationIdRouteImport.update({
+  id: '/report/$evaluationId',
+  path: '/report/$evaluationId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MaestroPackIdRoute = MaestroPackIdRouteImport.update({
+  id: '/maestro/$packId',
+  path: '/maestro/$packId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CheckoutReturnRoute = CheckoutReturnRouteImport.update({
+  id: '/checkout/return',
+  path: '/checkout/return',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CheckoutReportIdRoute = CheckoutReportIdRouteImport.update({
+  id: '/checkout/$reportId',
+  path: '/checkout/$reportId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BuildPackPackIdRoute = BuildPackPackIdRouteImport.update({
+  id: '/build-pack/$packId',
+  path: '/build-pack/$packId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const WorkspaceWorkflowsRoute = WorkspaceWorkflowsRouteImport.update({
@@ -130,9 +211,33 @@ const WorkspaceAdminRoute = WorkspaceAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BuildPackPackIdIndexRoute = BuildPackPackIdIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => BuildPackPackIdRoute,
+} as any)
+const CheckoutFakeHostedSessionIdRoute =
+  CheckoutFakeHostedSessionIdRouteImport.update({
+    id: '/checkout/fake-hosted/$sessionId',
+    path: '/checkout/fake-hosted/$sessionId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const BuildPackPackIdGeneratingRoute =
+  BuildPackPackIdGeneratingRouteImport.update({
+    id: '/generating',
+    path: '/generating',
+    getParentRoute: () => BuildPackPackIdRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/dashboard': typeof DashboardRoute
+  '/evaluate': typeof EvaluateRoute
+  '/library': typeof LibraryRoute
+  '/privacy': typeof PrivacyRoute
+  '/support': typeof SupportRoute
+  '/terms': typeof TermsRoute
+  '/verify-report': typeof VerifyReportRoute
   '/admin': typeof WorkspaceAdminRoute
   '/agents': typeof WorkspaceAgentsRoute
   '/analytics': typeof WorkspaceAnalyticsRoute
@@ -152,9 +257,25 @@ export interface FileRoutesByFullPath {
   '/settings': typeof WorkspaceSettingsRoute
   '/sources': typeof WorkspaceSourcesRoute
   '/workflows': typeof WorkspaceWorkflowsRoute
+  '/build-pack/$packId': typeof BuildPackPackIdRouteWithChildren
+  '/checkout/$reportId': typeof CheckoutReportIdRoute
+  '/checkout/return': typeof CheckoutReturnRoute
+  '/maestro/$packId': typeof MaestroPackIdRoute
+  '/report/$evaluationId': typeof ReportEvaluationIdRoute
+  '/share/$token': typeof ShareTokenRoute
+  '/build-pack/$packId/generating': typeof BuildPackPackIdGeneratingRoute
+  '/checkout/fake-hosted/$sessionId': typeof CheckoutFakeHostedSessionIdRoute
+  '/build-pack/$packId/': typeof BuildPackPackIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/dashboard': typeof DashboardRoute
+  '/evaluate': typeof EvaluateRoute
+  '/library': typeof LibraryRoute
+  '/privacy': typeof PrivacyRoute
+  '/support': typeof SupportRoute
+  '/terms': typeof TermsRoute
+  '/verify-report': typeof VerifyReportRoute
   '/admin': typeof WorkspaceAdminRoute
   '/agents': typeof WorkspaceAgentsRoute
   '/analytics': typeof WorkspaceAnalyticsRoute
@@ -174,10 +295,25 @@ export interface FileRoutesByTo {
   '/settings': typeof WorkspaceSettingsRoute
   '/sources': typeof WorkspaceSourcesRoute
   '/workflows': typeof WorkspaceWorkflowsRoute
+  '/checkout/$reportId': typeof CheckoutReportIdRoute
+  '/checkout/return': typeof CheckoutReturnRoute
+  '/maestro/$packId': typeof MaestroPackIdRoute
+  '/report/$evaluationId': typeof ReportEvaluationIdRoute
+  '/share/$token': typeof ShareTokenRoute
+  '/build-pack/$packId/generating': typeof BuildPackPackIdGeneratingRoute
+  '/checkout/fake-hosted/$sessionId': typeof CheckoutFakeHostedSessionIdRoute
+  '/build-pack/$packId': typeof BuildPackPackIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/dashboard': typeof DashboardRoute
+  '/evaluate': typeof EvaluateRoute
+  '/library': typeof LibraryRoute
+  '/privacy': typeof PrivacyRoute
+  '/support': typeof SupportRoute
+  '/terms': typeof TermsRoute
+  '/verify-report': typeof VerifyReportRoute
   '/_workspace/admin': typeof WorkspaceAdminRoute
   '/_workspace/agents': typeof WorkspaceAgentsRoute
   '/_workspace/analytics': typeof WorkspaceAnalyticsRoute
@@ -197,11 +333,27 @@ export interface FileRoutesById {
   '/_workspace/settings': typeof WorkspaceSettingsRoute
   '/_workspace/sources': typeof WorkspaceSourcesRoute
   '/_workspace/workflows': typeof WorkspaceWorkflowsRoute
+  '/build-pack/$packId': typeof BuildPackPackIdRouteWithChildren
+  '/checkout/$reportId': typeof CheckoutReportIdRoute
+  '/checkout/return': typeof CheckoutReturnRoute
+  '/maestro/$packId': typeof MaestroPackIdRoute
+  '/report/$evaluationId': typeof ReportEvaluationIdRoute
+  '/share/$token': typeof ShareTokenRoute
+  '/build-pack/$packId/generating': typeof BuildPackPackIdGeneratingRoute
+  '/checkout/fake-hosted/$sessionId': typeof CheckoutFakeHostedSessionIdRoute
+  '/build-pack/$packId/': typeof BuildPackPackIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/dashboard'
+    | '/evaluate'
+    | '/library'
+    | '/privacy'
+    | '/support'
+    | '/terms'
+    | '/verify-report'
     | '/admin'
     | '/agents'
     | '/analytics'
@@ -221,9 +373,25 @@ export interface FileRouteTypes {
     | '/settings'
     | '/sources'
     | '/workflows'
+    | '/build-pack/$packId'
+    | '/checkout/$reportId'
+    | '/checkout/return'
+    | '/maestro/$packId'
+    | '/report/$evaluationId'
+    | '/share/$token'
+    | '/build-pack/$packId/generating'
+    | '/checkout/fake-hosted/$sessionId'
+    | '/build-pack/$packId/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/dashboard'
+    | '/evaluate'
+    | '/library'
+    | '/privacy'
+    | '/support'
+    | '/terms'
+    | '/verify-report'
     | '/admin'
     | '/agents'
     | '/analytics'
@@ -243,9 +411,24 @@ export interface FileRouteTypes {
     | '/settings'
     | '/sources'
     | '/workflows'
+    | '/checkout/$reportId'
+    | '/checkout/return'
+    | '/maestro/$packId'
+    | '/report/$evaluationId'
+    | '/share/$token'
+    | '/build-pack/$packId/generating'
+    | '/checkout/fake-hosted/$sessionId'
+    | '/build-pack/$packId'
   id:
     | '__root__'
     | '/'
+    | '/dashboard'
+    | '/evaluate'
+    | '/library'
+    | '/privacy'
+    | '/support'
+    | '/terms'
+    | '/verify-report'
     | '/_workspace/admin'
     | '/_workspace/agents'
     | '/_workspace/analytics'
@@ -265,10 +448,26 @@ export interface FileRouteTypes {
     | '/_workspace/settings'
     | '/_workspace/sources'
     | '/_workspace/workflows'
+    | '/build-pack/$packId'
+    | '/checkout/$reportId'
+    | '/checkout/return'
+    | '/maestro/$packId'
+    | '/report/$evaluationId'
+    | '/share/$token'
+    | '/build-pack/$packId/generating'
+    | '/checkout/fake-hosted/$sessionId'
+    | '/build-pack/$packId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  DashboardRoute: typeof DashboardRoute
+  EvaluateRoute: typeof EvaluateRoute
+  LibraryRoute: typeof LibraryRoute
+  PrivacyRoute: typeof PrivacyRoute
+  SupportRoute: typeof SupportRoute
+  TermsRoute: typeof TermsRoute
+  VerifyReportRoute: typeof VerifyReportRoute
   WorkspaceAdminRoute: typeof WorkspaceAdminRoute
   WorkspaceAgentsRoute: typeof WorkspaceAgentsRoute
   WorkspaceAnalyticsRoute: typeof WorkspaceAnalyticsRoute
@@ -288,15 +487,113 @@ export interface RootRouteChildren {
   WorkspaceSettingsRoute: typeof WorkspaceSettingsRoute
   WorkspaceSourcesRoute: typeof WorkspaceSourcesRoute
   WorkspaceWorkflowsRoute: typeof WorkspaceWorkflowsRoute
+  BuildPackPackIdRoute: typeof BuildPackPackIdRouteWithChildren
+  CheckoutReportIdRoute: typeof CheckoutReportIdRoute
+  CheckoutReturnRoute: typeof CheckoutReturnRoute
+  MaestroPackIdRoute: typeof MaestroPackIdRoute
+  ReportEvaluationIdRoute: typeof ReportEvaluationIdRoute
+  ShareTokenRoute: typeof ShareTokenRoute
+  CheckoutFakeHostedSessionIdRoute: typeof CheckoutFakeHostedSessionIdRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/verify-report': {
+      id: '/verify-report'
+      path: '/verify-report'
+      fullPath: '/verify-report'
+      preLoaderRoute: typeof VerifyReportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/support': {
+      id: '/support'
+      path: '/support'
+      fullPath: '/support'
+      preLoaderRoute: typeof SupportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/library': {
+      id: '/library'
+      path: '/library'
+      fullPath: '/library'
+      preLoaderRoute: typeof LibraryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/evaluate': {
+      id: '/evaluate'
+      path: '/evaluate'
+      fullPath: '/evaluate'
+      preLoaderRoute: typeof EvaluateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/share/$token': {
+      id: '/share/$token'
+      path: '/share/$token'
+      fullPath: '/share/$token'
+      preLoaderRoute: typeof ShareTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/report/$evaluationId': {
+      id: '/report/$evaluationId'
+      path: '/report/$evaluationId'
+      fullPath: '/report/$evaluationId'
+      preLoaderRoute: typeof ReportEvaluationIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/maestro/$packId': {
+      id: '/maestro/$packId'
+      path: '/maestro/$packId'
+      fullPath: '/maestro/$packId'
+      preLoaderRoute: typeof MaestroPackIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/checkout/return': {
+      id: '/checkout/return'
+      path: '/checkout/return'
+      fullPath: '/checkout/return'
+      preLoaderRoute: typeof CheckoutReturnRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/checkout/$reportId': {
+      id: '/checkout/$reportId'
+      path: '/checkout/$reportId'
+      fullPath: '/checkout/$reportId'
+      preLoaderRoute: typeof CheckoutReportIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/build-pack/$packId': {
+      id: '/build-pack/$packId'
+      path: '/build-pack/$packId'
+      fullPath: '/build-pack/$packId'
+      preLoaderRoute: typeof BuildPackPackIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_workspace/workflows': {
@@ -432,11 +729,53 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WorkspaceAdminRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/build-pack/$packId/': {
+      id: '/build-pack/$packId/'
+      path: '/'
+      fullPath: '/build-pack/$packId/'
+      preLoaderRoute: typeof BuildPackPackIdIndexRouteImport
+      parentRoute: typeof BuildPackPackIdRoute
+    }
+    '/checkout/fake-hosted/$sessionId': {
+      id: '/checkout/fake-hosted/$sessionId'
+      path: '/checkout/fake-hosted/$sessionId'
+      fullPath: '/checkout/fake-hosted/$sessionId'
+      preLoaderRoute: typeof CheckoutFakeHostedSessionIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/build-pack/$packId/generating': {
+      id: '/build-pack/$packId/generating'
+      path: '/generating'
+      fullPath: '/build-pack/$packId/generating'
+      preLoaderRoute: typeof BuildPackPackIdGeneratingRouteImport
+      parentRoute: typeof BuildPackPackIdRoute
+    }
   }
 }
 
+interface BuildPackPackIdRouteChildren {
+  BuildPackPackIdGeneratingRoute: typeof BuildPackPackIdGeneratingRoute
+  BuildPackPackIdIndexRoute: typeof BuildPackPackIdIndexRoute
+}
+
+const BuildPackPackIdRouteChildren: BuildPackPackIdRouteChildren = {
+  BuildPackPackIdGeneratingRoute: BuildPackPackIdGeneratingRoute,
+  BuildPackPackIdIndexRoute: BuildPackPackIdIndexRoute,
+}
+
+const BuildPackPackIdRouteWithChildren = BuildPackPackIdRoute._addFileChildren(
+  BuildPackPackIdRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  DashboardRoute: DashboardRoute,
+  EvaluateRoute: EvaluateRoute,
+  LibraryRoute: LibraryRoute,
+  PrivacyRoute: PrivacyRoute,
+  SupportRoute: SupportRoute,
+  TermsRoute: TermsRoute,
+  VerifyReportRoute: VerifyReportRoute,
   WorkspaceAdminRoute: WorkspaceAdminRoute,
   WorkspaceAgentsRoute: WorkspaceAgentsRoute,
   WorkspaceAnalyticsRoute: WorkspaceAnalyticsRoute,
@@ -456,6 +795,13 @@ const rootRouteChildren: RootRouteChildren = {
   WorkspaceSettingsRoute: WorkspaceSettingsRoute,
   WorkspaceSourcesRoute: WorkspaceSourcesRoute,
   WorkspaceWorkflowsRoute: WorkspaceWorkflowsRoute,
+  BuildPackPackIdRoute: BuildPackPackIdRouteWithChildren,
+  CheckoutReportIdRoute: CheckoutReportIdRoute,
+  CheckoutReturnRoute: CheckoutReturnRoute,
+  MaestroPackIdRoute: MaestroPackIdRoute,
+  ReportEvaluationIdRoute: ReportEvaluationIdRoute,
+  ShareTokenRoute: ShareTokenRoute,
+  CheckoutFakeHostedSessionIdRoute: CheckoutFakeHostedSessionIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

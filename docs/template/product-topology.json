@@ -242,6 +242,166 @@
       "lifecycle": "active"
     },
     {
+      "id": "route:build-pack/$packId",
+      "kind": "route",
+      "system": "workflow-runtime",
+      "path": "apps/web/src/routes/build-pack.$packId.tsx",
+      "responsibility": "present build pack generation and delivery",
+      "surfaces": ["web"],
+      "uses": ["knowledge-brain"],
+      "lifecycle": "active"
+    },
+    {
+      "id": "route:build-pack/$packId/",
+      "kind": "route",
+      "system": "workflow-runtime",
+      "path": "apps/web/src/routes/build-pack.$packId.index.tsx",
+      "responsibility": "present completed build pack delivery",
+      "surfaces": ["web"],
+      "uses": ["knowledge-brain"],
+      "lifecycle": "active"
+    },
+    {
+      "id": "route:checkout/$reportId",
+      "kind": "route",
+      "system": "billing-and-entitlements",
+      "path": "apps/web/src/routes/checkout.$reportId.tsx",
+      "responsibility": "present premium report checkout",
+      "surfaces": ["web"],
+      "uses": ["knowledge-brain"],
+      "lifecycle": "active"
+    },
+    {
+      "id": "route:checkout/fake-hosted/$sessionId",
+      "kind": "route",
+      "system": "billing-and-entitlements",
+      "path": "apps/web/src/routes/checkout.fake-hosted.$sessionId.tsx",
+      "responsibility": "present fake-provider hosted checkout",
+      "surfaces": ["web"],
+      "uses": [],
+      "lifecycle": "active"
+    },
+    {
+      "id": "route:checkout/return",
+      "kind": "route",
+      "system": "billing-and-entitlements",
+      "path": "apps/web/src/routes/checkout.return.tsx",
+      "responsibility": "resolve checkout completion and recovery",
+      "surfaces": ["web"],
+      "uses": ["knowledge-brain"],
+      "lifecycle": "active"
+    },
+    {
+      "id": "route:dashboard",
+      "kind": "route",
+      "system": "knowledge-brain",
+      "path": "apps/web/src/routes/dashboard.tsx",
+      "responsibility": "present the evaluator report library dashboard",
+      "surfaces": ["web"],
+      "uses": ["access-and-tenancy"],
+      "lifecycle": "active"
+    },
+    {
+      "id": "route:evaluate",
+      "kind": "route",
+      "system": "knowledge-brain",
+      "path": "apps/web/src/routes/evaluate.tsx",
+      "responsibility": "guide public app idea evaluation",
+      "surfaces": ["web"],
+      "uses": ["policy-and-prompts"],
+      "lifecycle": "active"
+    },
+    {
+      "id": "route:build-pack/$packId/generating",
+      "kind": "route",
+      "system": "workflow-runtime",
+      "path": "apps/web/src/routes/build-pack.$packId.generating.tsx",
+      "responsibility": "present build pack generation progress",
+      "surfaces": ["web"],
+      "uses": ["knowledge-brain"],
+      "lifecycle": "active"
+    },
+    {
+      "id": "route:library",
+      "kind": "route",
+      "system": "knowledge-brain",
+      "path": "apps/web/src/routes/library.tsx",
+      "responsibility": "present owned evaluation reports",
+      "surfaces": ["web"],
+      "uses": ["access-and-tenancy"],
+      "lifecycle": "active"
+    },
+    {
+      "id": "route:maestro/$packId",
+      "kind": "route",
+      "system": "workflow-runtime",
+      "path": "apps/web/src/routes/maestro.$packId.tsx",
+      "responsibility": "present the Maestro build handoff",
+      "surfaces": ["web"],
+      "uses": ["knowledge-brain"],
+      "lifecycle": "active"
+    },
+    {
+      "id": "route:privacy",
+      "kind": "route",
+      "system": "data-lifecycle",
+      "path": "apps/web/src/routes/privacy.tsx",
+      "responsibility": "present public evaluator privacy terms",
+      "surfaces": ["web"],
+      "uses": [],
+      "lifecycle": "active"
+    },
+    {
+      "id": "route:report/$evaluationId",
+      "kind": "route",
+      "system": "knowledge-brain",
+      "path": "apps/web/src/routes/report.$evaluationId.tsx",
+      "responsibility": "present an evaluation report and premium path",
+      "surfaces": ["web"],
+      "uses": ["billing-and-entitlements"],
+      "lifecycle": "active"
+    },
+    {
+      "id": "route:share/$token",
+      "kind": "route",
+      "system": "knowledge-brain",
+      "path": "apps/web/src/routes/share.$token.tsx",
+      "responsibility": "present a privacy-safe shared report snapshot",
+      "surfaces": ["web"],
+      "uses": ["data-lifecycle"],
+      "lifecycle": "active"
+    },
+    {
+      "id": "route:support",
+      "kind": "route",
+      "system": "notifications",
+      "path": "apps/web/src/routes/support.tsx",
+      "responsibility": "present evaluator purchase and lifecycle support",
+      "surfaces": ["web"],
+      "uses": ["billing-and-entitlements"],
+      "lifecycle": "active"
+    },
+    {
+      "id": "route:terms",
+      "kind": "route",
+      "system": "data-lifecycle",
+      "path": "apps/web/src/routes/terms.tsx",
+      "responsibility": "present public evaluator terms of use",
+      "surfaces": ["web"],
+      "uses": [],
+      "lifecycle": "active"
+    },
+    {
+      "id": "route:verify-report",
+      "kind": "route",
+      "system": "access-and-tenancy",
+      "path": "apps/web/src/routes/verify-report.tsx",
+      "responsibility": "verify report ownership challenges",
+      "surfaces": ["web"],
+      "uses": ["knowledge-brain"],
+      "lifecycle": "active"
+    },
+    {
       "id": "integration:billing-policy",
       "kind": "provider",
       "system": "billing-and-entitlements",

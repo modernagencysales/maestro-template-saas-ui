@@ -796,13 +796,21 @@ const activeIssuerRows = <
     readonly activatedAt?: number;
     readonly retiredAt?: number | null;
     readonly provisionedAt?: number;
+    readonly _creationTime?: number;
   },
 >(
   rows: readonly Row[],
   now: number,
 ): readonly Row[] => {
   const timestamp = Math.max(-1, ...rows.map((row) => row.provisionedAt ?? -1));
-  const current = rows.filter((row) => row.provisionedAt === timestamp);
+  const candidates = rows.filter((row) => row.provisionedAt === timestamp);
+  const creationTime = Math.max(
+    -1,
+    ...candidates.map((row) => row._creationTime ?? -1),
+  );
+  const current = candidates.filter(
+    (row) => (row._creationTime ?? -1) === creationTime,
+  );
   return current.length === 1 &&
     current[0]?.enabled &&
     current[0].activatedAt !== undefined &&

@@ -52,6 +52,7 @@ describe("quality diagnostic registry", () => {
     ).toEqual([
       "ci-completeness",
       "config-drift",
+      "product-journeys",
       "deps",
       "knip",
       "route-tree",

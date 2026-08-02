@@ -447,8 +447,19 @@ const workflowRegistryEntries = (
   return output.sort((left, right) => compare(left.local, right.local));
 };
 const routePaths = (bytes: string): readonly string[] => {
-  const paths = new Set<string>();
+  const fullPaths = new Set<string>();
+  const updatePaths = new Set<string>();
   const visit = (value: ts.Node): void => {
+    if (
+      ts.isPropertySignature(value) &&
+      ts.isIdentifier(value.name) &&
+      value.name.text === "fullPath" &&
+      value.type &&
+      ts.isLiteralTypeNode(value.type) &&
+      ts.isStringLiteral(value.type.literal) &&
+      value.type.literal.text !== "/"
+    )
+      fullPaths.add(value.type.literal.text);
     if (
       ts.isCallExpression(value) &&
       ts.isPropertyAccessExpression(value.expression) &&
@@ -468,12 +479,13 @@ const routePaths = (bytes: string): readonly string[] => {
           ts.isStringLiteral(pathProperty.initializer) &&
           pathProperty.initializer.text !== "/"
         )
-          paths.add(pathProperty.initializer.text);
+          updatePaths.add(pathProperty.initializer.text);
       }
     }
     ts.forEachChild(value, visit);
   };
   visit(sourceFile(bytes));
+  const paths = fullPaths.size > 0 ? fullPaths : updatePaths;
   if (paths.size === 0)
     throw new Error("Canonical route tree has no application routes.");
   return [...paths].sort(compare);
@@ -769,28 +781,77 @@ const factsFor = (
     const files = source.treeFiles;
     if (!files || Object.keys(files).length === 0)
       throw new Error("Generator provenance tree is empty.");
-    const generatedEdges = Object.entries(files)
-      .sort(([left], [right]) => compare(left, right))
-      .map(([path, bytes]) => {
-        const value = record(JSON.parse(bytes));
-        const generator = text(value.generator);
-        const name = text(value.name);
-        const target =
-          generator === "add-table"
-            ? `table:${name}`
-            : generator === "add-workflow"
-              ? `workflow-publication:${name}:v${record(value.publication).workflowVersion as number}`
+    const generatedNodes: AppMapNodeV1[] = [];
+    const generatedEdges: AppMapEdgeV1[] = [];
+    const generatedName = (value: string): string =>
+      value
+        .replace(/([a-z0-9])([A-Z])/g, "$1-$2")
+        .replace(/[^A-Za-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "")
+        .toLowerCase();
+    for (const [path, bytes] of Object.entries(files).sort(([left], [right]) =>
+      compare(left, right),
+    )) {
+      const value = record(JSON.parse(bytes));
+      const generator = text(value.generator);
+      const name = text(value.name);
+      const canonicalName = generatedName(name);
+      const publication =
+        value.publication === undefined ? undefined : record(value.publication);
+      const generatedKind =
+        generator === "add-capability"
+          ? ("capability" as const)
+          : generator === "add-client-domain"
+            ? ("resource" as const)
+            : generator === "add-workflow" && publication === undefined
+              ? ("workflow" as const)
               : undefined;
-        if (!target)
-          throw new Error(`Unsupported generator provenance: ${path}.`);
-        return edge(entry, revision, source.digest, {
+      const target =
+        generator === "add-table"
+          ? `table:${name}`
+          : generator === "add-workflow" && publication !== undefined
+            ? `workflow-publication:${name}:v${publication.workflowVersion as number}`
+            : generator === "add-capability"
+              ? `capability:${canonicalName}`
+              : generator === "add-client-domain"
+                ? `resource:client-domain:${canonicalName}`
+                : generator === "add-workflow"
+                  ? `workflow:${canonicalName}`
+                  : generator === "add-feature"
+                    ? `route:${name}`
+                    : undefined;
+      if (!target)
+        throw new Error(`Unsupported generator provenance: ${path}.`);
+      if (generatedKind) {
+        generatedNodes.push(
+          node(entry, revision, source.digest, {
+            id: target,
+            kind: generatedKind,
+            label: name,
+          }),
+        );
+      }
+      if (generatedKind || generator === "add-feature") {
+        const system = text(record(value.ownership).system);
+        generatedEdges.push(
+          edge(entry, revision, source.digest, {
+            id: `owns:system:${system}->${target}`,
+            kind: "owns",
+            from: `system:${system}`,
+            to: target,
+          }),
+        );
+      }
+      generatedEdges.push(
+        edge(entry, revision, source.digest, {
           id: `generated-by:${target}->package:tooling/generators`,
           kind: "generated-by",
           from: target,
           to: "package:tooling/generators",
-        });
-      });
-    return { nodes: [], edges: generatedEdges };
+        }),
+      );
+    }
+    return { nodes: generatedNodes, edges: generatedEdges };
   }
   if (entry.source.id === "template-instance") {
     if (source.generation) return { nodes: [], edges: [] };

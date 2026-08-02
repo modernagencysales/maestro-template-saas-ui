@@ -52,7 +52,7 @@ importers:
         version: 3.2.6(vitest@3.2.6(@types/node@22.20.0)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.4)(yaml@2.9.0))
       convex:
         specifier: 1.42.1
-        version: 1.42.1(react@19.1.0)
+        version: 1.42.1(react@19.1.1)
       dependency-cruiser:
         specifier: ^18.0.0
         version: 18.0.0
@@ -94,7 +94,7 @@ importers:
     dependencies:
       "@confect/js":
         specifier: 10.0.0-next.9
-        version: 10.0.0-next.9(@confect/core@10.0.0-next.9(convex@1.42.1(react@19.1.0))(effect@4.0.0-beta.102))(convex@1.42.1(react@19.1.0))(effect@4.0.0-beta.102)
+        version: 10.0.0-next.9(@confect/core@10.0.0-next.9(convex@1.42.1(react@19.1.1))(effect@4.0.0-beta.102))(convex@1.42.1(react@19.1.1))(effect@4.0.0-beta.102)
       "@maestro-template/agent-pack":
         specifier: workspace:*
         version: link:../../tooling/agent-pack
@@ -135,25 +135,28 @@ importers:
         version: 0.51.4(@types/hast@3.0.4)
       "@blocknote/react":
         specifier: 0.51.4
-        version: 0.51.4(@floating-ui/dom@1.7.6)(@types/hast@3.0.4)(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+        version: 0.51.4(@floating-ui/dom@1.7.6)(@types/hast@3.0.4)(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       "@chakra-ui/react":
         specifier: 3.33.0
-        version: 3.33.0(@emotion/react@11.14.0(@types/react@19.2.17)(react@19.1.0))(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+        version: 3.33.0(@emotion/react@11.14.0(@types/react@19.2.17)(react@19.1.1))(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       "@confect/core":
         specifier: 10.0.0-next.9
-        version: 10.0.0-next.9(convex@1.42.1(react@19.1.0))(effect@4.0.0-beta.102)
+        version: 10.0.0-next.9(convex@1.42.1(react@19.1.1))(effect@4.0.0-beta.102)
       "@confect/react":
         specifier: 10.0.0-next.9
-        version: 10.0.0-next.9(@confect/core@10.0.0-next.9(convex@1.42.1(react@19.1.0))(effect@4.0.0-beta.102))(convex@1.42.1(react@19.1.0))(effect@4.0.0-beta.102)(react@19.1.0)
+        version: 10.0.0-next.9(@confect/core@10.0.0-next.9(convex@1.42.1(react@19.1.1))(effect@4.0.0-beta.102))(convex@1.42.1(react@19.1.1))(effect@4.0.0-beta.102)(react@19.1.1)
       "@convex-dev/prosemirror-sync":
         specifier: 0.2.5
-        version: 0.2.5(@blocknote/core@0.51.4(@types/hast@3.0.4))(@blocknote/react@0.51.4(@floating-ui/dom@1.7.6)(@types/hast@3.0.4)(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(@tiptap/core@3.27.1(@tiptap/pm@3.27.1))(convex@1.42.1(react@19.1.0))(decode-named-character-reference@1.3.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+        version: 0.2.5(@blocknote/core@0.51.4(@types/hast@3.0.4))(@blocknote/react@0.51.4(@floating-ui/dom@1.7.6)(@types/hast@3.0.4)(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(@tiptap/core@3.27.1(@tiptap/pm@3.27.1))(convex@1.42.1(react@19.1.1))(decode-named-character-reference@1.3.0)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       "@convex-dev/react-query":
         specifier: 0.1.0
-        version: 0.1.0(@tanstack/react-query@5.101.0(react@19.1.0))(convex@1.42.1(react@19.1.0))
+        version: 0.1.0(@tanstack/react-query@5.101.0(react@19.1.1))(convex@1.42.1(react@19.1.1))
       "@emotion/react":
         specifier: ^11.14.0
-        version: 11.14.0(@types/react@19.2.17)(react@19.1.0)
+        version: 11.14.0(@types/react@19.2.17)(react@19.1.1)
+      "@maestro-template/app-idea-evaluator":
+        specifier: workspace:*
+        version: link:../../packages/app-idea-evaluator
       "@maestro-template/convex":
         specifier: workspace:*
         version: link:../../packages/convex
@@ -183,22 +186,22 @@ importers:
         version: link:../../packages/workflow-ui
       "@saas-ui-pro/react":
         specifier: 1.0.0-next.4
-        version: 1.0.0-next.4(@chakra-ui/react@3.33.0(@emotion/react@11.14.0(@types/react@19.2.17)(react@19.1.0))(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(@emotion/react@11.14.0(@types/react@19.2.17)(react@19.1.0))(@saas-ui/react@3.0.0-next.51(@chakra-ui/react@3.33.0(@emotion/react@11.14.0(@types/react@19.2.17)(react@19.1.0))(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(@emotion/react@11.14.0(@types/react@19.2.17)(react@19.1.0))(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+        version: 1.0.0-next.4(@chakra-ui/react@3.33.0(@emotion/react@11.14.0(@types/react@19.2.17)(react@19.1.1))(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(@emotion/react@11.14.0(@types/react@19.2.17)(react@19.1.1))(@saas-ui/react@3.0.0-next.51(@chakra-ui/react@3.33.0(@emotion/react@11.14.0(@types/react@19.2.17)(react@19.1.1))(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(@emotion/react@11.14.0(@types/react@19.2.17)(react@19.1.1))(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       "@saas-ui/react":
         specifier: 3.0.0-next.51
-        version: 3.0.0-next.51(@chakra-ui/react@3.33.0(@emotion/react@11.14.0(@types/react@19.2.17)(react@19.1.0))(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(@emotion/react@11.14.0(@types/react@19.2.17)(react@19.1.0))(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+        version: 3.0.0-next.51(@chakra-ui/react@3.33.0(@emotion/react@11.14.0(@types/react@19.2.17)(react@19.1.1))(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(@emotion/react@11.14.0(@types/react@19.2.17)(react@19.1.1))(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       "@tanstack/react-query":
         specifier: 5.101.0
-        version: 5.101.0(react@19.1.0)
+        version: 5.101.0(react@19.1.1)
       "@tanstack/react-router":
         specifier: 1.170.16
-        version: 1.170.16(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+        version: 1.170.16(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       "@tanstack/react-router-ssr-query":
         specifier: 1.167.1
-        version: 1.167.1(@tanstack/query-core@5.101.0)(@tanstack/react-query@5.101.0(react@19.1.0))(@tanstack/react-router@1.170.16(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(@tanstack/router-core@1.171.13)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+        version: 1.167.1(@tanstack/query-core@5.101.0)(@tanstack/react-query@5.101.0(react@19.1.1))(@tanstack/react-router@1.170.16(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(@tanstack/router-core@1.171.13)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       "@tanstack/react-start":
         specifier: 1.168.26
-        version: 1.168.26(esbuild@0.28.1)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)(rolldown@1.1.3)(rollup@4.62.2)(vite@8.1.2(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
+        version: 1.168.26(esbuild@0.28.1)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(rolldown@1.1.3)(rollup@4.62.2)(vite@8.1.2(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
       "@tiptap/core":
         specifier: 3.27.1
         version: 3.27.1(@tiptap/pm@3.27.1)
@@ -207,13 +210,13 @@ importers:
         version: 3.27.1
       "@workos/authkit-tanstack-react-start":
         specifier: 0.9.1
-        version: 0.9.1(@tanstack/react-router@1.170.16(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(@tanstack/react-start@1.168.26(esbuild@0.28.1)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)(rolldown@1.1.3)(rollup@4.62.2)(vite@8.1.2(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0)))(@workos-inc/node@10.7.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)(typescript@5.9.3)
+        version: 0.9.1(@tanstack/react-router@1.170.16(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(@tanstack/react-start@1.168.26(esbuild@0.28.1)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(rolldown@1.1.3)(rollup@4.62.2)(vite@8.1.2(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0)))(@workos-inc/node@10.7.0)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(typescript@5.9.3)
       "@xyflow/react":
         specifier: ^12.11.1
-        version: 12.11.1(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(immer@11.1.11)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+        version: 12.11.1(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(immer@11.1.11)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       convex:
         specifier: 1.42.1
-        version: 1.42.1(react@19.1.0)
+        version: 1.42.1(react@19.1.1)
       decode-named-character-reference:
         specifier: 1.3.0
         version: 1.3.0
@@ -222,13 +225,13 @@ importers:
         version: 4.0.0-beta.102
       lucide-react:
         specifier: ^1.22.0
-        version: 1.22.0(react@19.1.0)
+        version: 1.22.0(react@19.1.1)
       react:
-        specifier: 19.1.0
-        version: 19.1.0
+        specifier: 19.1.1
+        version: 19.1.1
       react-dom:
-        specifier: 19.1.0
-        version: 19.1.0(react@19.1.0)
+        specifier: 19.1.1
+        version: 19.1.1(react@19.1.1)
     devDependencies:
       "@tailwindcss/vite":
         specifier: 4.3.1
@@ -249,6 +252,12 @@ importers:
         specifier: ^8.1.2
         version: 8.1.2(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0)
 
+  packages/app-idea-evaluator:
+    dependencies:
+      effect:
+        specifier: 3.21.4
+        version: 3.21.4
+
   packages/convex:
     dependencies:
       "@blocknote/core":
@@ -256,34 +265,43 @@ importers:
         version: 0.51.4(@types/hast@3.0.4)
       "@confect/cli":
         specifier: 10.0.0-next.9
-        version: 10.0.0-next.9(patch_hash=1a1e00f1d9117b5d866ad1f0ca6eda3e769a036461541c3593fd2c4fa9b13a08)(@confect/core@10.0.0-next.9(convex@1.42.1(react@19.1.0))(effect@4.0.0-beta.102))(@confect/server@10.0.0-next.9(@confect/core@10.0.0-next.9(convex@1.42.1(react@19.1.0))(effect@4.0.0-beta.102))(@effect/platform-node@4.0.0-beta.102(effect@4.0.0-beta.102)(ioredis@5.11.1))(convex@1.42.1(react@19.1.0))(effect@4.0.0-beta.102))(effect@4.0.0-beta.102)(ioredis@5.11.1)
+        version: 10.0.0-next.9(patch_hash=1a1e00f1d9117b5d866ad1f0ca6eda3e769a036461541c3593fd2c4fa9b13a08)(@confect/core@10.0.0-next.9(convex@1.42.1(react@19.1.1))(effect@4.0.0-beta.102))(@confect/server@10.0.0-next.9(@confect/core@10.0.0-next.9(convex@1.42.1(react@19.1.1))(effect@4.0.0-beta.102))(@effect/platform-node@4.0.0-beta.102(effect@4.0.0-beta.102)(ioredis@5.11.1))(convex@1.42.1(react@19.1.1))(effect@4.0.0-beta.102))(effect@4.0.0-beta.102)(ioredis@5.11.1)
       "@confect/core":
         specifier: 10.0.0-next.9
-        version: 10.0.0-next.9(convex@1.42.1(react@19.1.0))(effect@4.0.0-beta.102)
+        version: 10.0.0-next.9(convex@1.42.1(react@19.1.1))(effect@4.0.0-beta.102)
       "@confect/server":
         specifier: 10.0.0-next.9
-        version: 10.0.0-next.9(@confect/core@10.0.0-next.9(convex@1.42.1(react@19.1.0))(effect@4.0.0-beta.102))(@effect/platform-node@4.0.0-beta.102(effect@4.0.0-beta.102)(ioredis@5.11.1))(convex@1.42.1(react@19.1.0))(effect@4.0.0-beta.102)
+        version: 10.0.0-next.9(@confect/core@10.0.0-next.9(convex@1.42.1(react@19.1.1))(effect@4.0.0-beta.102))(@effect/platform-node@4.0.0-beta.102(effect@4.0.0-beta.102)(ioredis@5.11.1))(convex@1.42.1(react@19.1.1))(effect@4.0.0-beta.102)
       "@confect/test":
         specifier: 10.0.0-next.9
-        version: 10.0.0-next.9(@confect/core@10.0.0-next.9(convex@1.42.1(react@19.1.0))(effect@4.0.0-beta.102))(@confect/server@10.0.0-next.9(@confect/core@10.0.0-next.9(convex@1.42.1(react@19.1.0))(effect@4.0.0-beta.102))(@effect/platform-node@4.0.0-beta.102(effect@4.0.0-beta.102)(ioredis@5.11.1))(convex@1.42.1(react@19.1.0))(effect@4.0.0-beta.102))(convex-test@0.0.54(convex@1.42.1(react@19.1.0)))(convex@1.42.1(react@19.1.0))(effect@4.0.0-beta.102)
+        version: 10.0.0-next.9(@confect/core@10.0.0-next.9(convex@1.42.1(react@19.1.1))(effect@4.0.0-beta.102))(@confect/server@10.0.0-next.9(@confect/core@10.0.0-next.9(convex@1.42.1(react@19.1.1))(effect@4.0.0-beta.102))(@effect/platform-node@4.0.0-beta.102(effect@4.0.0-beta.102)(ioredis@5.11.1))(convex@1.42.1(react@19.1.1))(effect@4.0.0-beta.102))(convex-test@0.0.54(convex@1.42.1(react@19.1.1)))(convex@1.42.1(react@19.1.1))(effect@4.0.0-beta.102)
       "@convex-dev/migrations":
         specifier: 0.3.5
-        version: 0.3.5(convex-helpers@0.1.120(@standard-schema/spec@1.1.0)(convex@1.42.1(react@19.1.0))(react@19.1.0)(typescript@5.9.3)(zod@4.4.3))(convex@1.42.1(react@19.1.0))
+        version: 0.3.5(convex-helpers@0.1.120(@standard-schema/spec@1.1.0)(convex@1.42.1(react@19.1.1))(react@19.1.1)(typescript@5.9.3)(zod@4.4.3))(convex@1.42.1(react@19.1.1))
       "@convex-dev/prosemirror-sync":
         specifier: 0.2.5
-        version: 0.2.5(@blocknote/core@0.51.4(@types/hast@3.0.4))(@blocknote/react@0.51.4(@floating-ui/dom@1.7.6)(@types/hast@3.0.4)(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(@tiptap/core@3.27.1(@tiptap/pm@3.27.1))(convex@1.42.1(react@19.1.0))(decode-named-character-reference@1.3.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+        version: 0.2.5(@blocknote/core@0.51.4(@types/hast@3.0.4))(@blocknote/react@0.51.4(@floating-ui/dom@1.7.6)(@types/hast@3.0.4)(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(@tiptap/core@3.27.1(@tiptap/pm@3.27.1))(convex@1.42.1(react@19.1.1))(decode-named-character-reference@1.3.0)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       "@convex-dev/workflow":
         specifier: 0.4.4
-        version: 0.4.4(@convex-dev/workpool@0.4.7(convex-helpers@0.1.120(@standard-schema/spec@1.1.0)(convex@1.42.1(react@19.1.0))(react@19.1.0)(typescript@5.9.3)(zod@4.4.3))(convex@1.42.1(react@19.1.0)))(convex-helpers@0.1.120(@standard-schema/spec@1.1.0)(convex@1.42.1(react@19.1.0))(react@19.1.0)(typescript@5.9.3)(zod@4.4.3))(convex@1.42.1(react@19.1.0))
+        version: 0.4.4(@convex-dev/workpool@0.4.7(convex-helpers@0.1.120(@standard-schema/spec@1.1.0)(convex@1.42.1(react@19.1.1))(react@19.1.1)(typescript@5.9.3)(zod@4.4.3))(convex@1.42.1(react@19.1.1)))(convex-helpers@0.1.120(@standard-schema/spec@1.1.0)(convex@1.42.1(react@19.1.1))(react@19.1.1)(typescript@5.9.3)(zod@4.4.3))(convex@1.42.1(react@19.1.1))
       "@convex-dev/workpool":
         specifier: 0.4.7
-        version: 0.4.7(convex-helpers@0.1.120(@standard-schema/spec@1.1.0)(convex@1.42.1(react@19.1.0))(react@19.1.0)(typescript@5.9.3)(zod@4.4.3))(convex@1.42.1(react@19.1.0))
+        version: 0.4.7(convex-helpers@0.1.120(@standard-schema/spec@1.1.0)(convex@1.42.1(react@19.1.1))(react@19.1.1)(typescript@5.9.3)(zod@4.4.3))(convex@1.42.1(react@19.1.1))
       "@effect/platform-node":
         specifier: 4.0.0-beta.102
         version: 4.0.0-beta.102(effect@4.0.0-beta.102)(ioredis@5.11.1)
       "@effect/vitest":
         specifier: 4.0.0-beta.102
         version: 4.0.0-beta.102(effect@4.0.0-beta.102)(vitest@3.2.6(@types/node@22.20.0)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.4)(yaml@2.9.0))
+      "@maestro-template/app-idea-evaluator":
+        specifier: workspace:*
+        version: link:../app-idea-evaluator
+      "@maestro-template/integrations":
+        specifier: workspace:*
+        version: link:../integrations
+      "@maestro-template/notifications":
+        specifier: workspace:*
+        version: link:../notifications
       "@maestro-template/observability":
         specifier: workspace:*
         version: link:../observability
@@ -295,7 +313,7 @@ importers:
         version: link:../../tooling/workflow
       "@posthog/convex":
         specifier: 2.0.32
-        version: 2.0.32(convex@1.42.1(react@19.1.0))(rxjs@7.8.2)
+        version: 2.0.32(convex@1.42.1(react@19.1.1))(rxjs@7.8.2)
       "@tiptap/core":
         specifier: 3.27.1
         version: 3.27.1(@tiptap/pm@3.27.1)
@@ -304,10 +322,13 @@ importers:
         version: 3.27.1
       convex:
         specifier: 1.42.1
-        version: 1.42.1(react@19.1.0)
+        version: 1.42.1(react@19.1.1)
       convex-test:
         specifier: 0.0.54
-        version: 0.0.54(convex@1.42.1(react@19.1.0))
+        version: 0.0.54(convex@1.42.1(react@19.1.1))
+      dodopayments:
+        specifier: ^2.44.0
+        version: 2.44.0
       effect:
         specifier: 4.0.0-beta.102
         version: 4.0.0-beta.102
@@ -377,6 +398,9 @@ importers:
 
   packages/integrations:
     dependencies:
+      dodopayments:
+        specifier: ^2.44.0
+        version: 2.44.0
       effect:
         specifier: 4.0.0-beta.102
         version: 4.0.0-beta.102
@@ -388,6 +412,12 @@ importers:
   packages/notifications: {}
 
   packages/observability: {}
+
+  packages/product-journey:
+    dependencies:
+      effect:
+        specifier: 3.21.4
+        version: 3.21.4
 
   packages/search: {}
 
@@ -558,6 +588,9 @@ importers:
 
   tooling/generators:
     dependencies:
+      "@maestro-template/app-idea-evaluator":
+        specifier: workspace:*
+        version: link:../../packages/app-idea-evaluator
       "@maestro-template/release-tooling":
         specifier: workspace:*
         version: link:../release
@@ -3060,6 +3093,12 @@ packages:
         integrity: sha512-tlqY9xq5ukxTUZBmoOp+m61cqwQD5pHJtFY3Mn8CA8ps6yghLH/Hw8UPdqg4OLmFW3IFlcXnQNmo/dh8HzXYIQ==,
       }
     engines: { node: ">=18" }
+
+  "@stablelib/base64@1.0.1":
+    resolution:
+      {
+        integrity: sha512-1bnPQqSxSuc3Ii6MhBysoWCg58j97aUjuCSZrGSmDxNqtytIi0k8utUenAwTZN4V5mXXYGsVUI9zeBqy+jBOSQ==,
+      }
 
   "@standard-schema/spec@1.1.0":
     resolution:
@@ -6030,6 +6069,13 @@ packages:
       }
     engines: { node: ">=0.3.1" }
 
+  dodopayments@2.44.0:
+    resolution:
+      {
+        integrity: sha512-IysdcP2H8q+50IPWwbY2g79lpiL6mg14EBAtzSVIbuyn4H8op1xdFOTlb8nMBNlbJzSab2SejYrG5pokXHkH/w==,
+      }
+    hasBin: true
+
   dunder-proto@1.0.1:
     resolution:
       {
@@ -6041,6 +6087,12 @@ packages:
     resolution:
       {
         integrity: sha512-I88TYZWc9XiYHRQ4/3c5rjjfgkjhLyW2luGIheGERbNQ6OY7yTybanSpDXZa8y7VUP9YmDcYa+eyq4ca7iLqWA==,
+      }
+
+  effect@3.21.4:
+    resolution:
+      {
+        integrity: sha512-B89v/xSgPbl1J2Ai2u18jxq3odpFauU1rC6/eSs4FeNHi72kwKdJp12VGigvRV2lK+kRnx+OOz41XV8guZd4gQ==,
       }
 
   effect@4.0.0-beta.102:
@@ -6258,6 +6310,13 @@ packages:
         integrity: sha512-D+42+T12DdIlJM3uepa55qGiL3sYdLBOxIl2ifQCzCHz4c7eiolaHsi3BIqEr7JxBzxv2pYZQX9kw16ziMcEmw==,
       }
 
+  fast-check@3.23.2:
+    resolution:
+      {
+        integrity: sha512-h5+1OzzfCC3Ef7VbtKdcv7zsstUQwUDlYpUTvjeUsJAssPgLn7QzbboPtL5ro04Mq0rPOsMzl7q5hIbRs2wD1A==,
+      }
+    engines: { node: ">=8.0.0" }
+
   fast-check@4.8.0:
     resolution:
       {
@@ -6302,6 +6361,12 @@ packages:
     resolution:
       {
         integrity: sha512-DCXu6Ifhqcks7TZKY3Hxp3y6qphY5SJZmrWMDrKcERSOXWQdMhU9Ig/PYrzyw/ul9jOIyh0N4M0tbC5hodg8dw==,
+      }
+
+  fast-sha256@1.3.0:
+    resolution:
+      {
+        integrity: sha512-n11RGP/lrWEFI/bWdygLxhI+pVeo1ZYIVwvvPkW7azl/rOy+F3HYRZ2K5zeE9mmkhQppyv9sQFx0JM9UabnpPQ==,
       }
 
   fast-string-truncated-width@3.0.3:
@@ -7768,6 +7833,12 @@ packages:
       }
     engines: { node: ">=6" }
 
+  pure-rand@6.1.0:
+    resolution:
+      {
+        integrity: sha512-bVWawvoZoBYpp6yIoQtQXHZjmz35RSVHnUOTefl8Vcjr8snTPY1wnpSPMWekcFwbxI6gtmT7rSYPFvz71ldiOA==,
+      }
+
   pure-rand@8.4.1:
     resolution:
       {
@@ -7804,6 +7875,14 @@ packages:
     peerDependencies:
       react: ^19.1.0
 
+  react-dom@19.1.1:
+    resolution:
+      {
+        integrity: sha512-Dlq/5LAZgF0Gaz6yiqZCf6VCcZs1ghAJyrsu84Q/GT0gV+mCxbfmKNoGRKBYMJ8IEdGPqu49YWXD02GCknEDkw==,
+      }
+    peerDependencies:
+      react: ^19.1.1
+
   react-hook-form@7.80.0:
     resolution:
       {
@@ -7839,6 +7918,13 @@ packages:
     resolution:
       {
         integrity: sha512-FS+XFBNvn3GTAWq26joslQgWNoFu08F4kl0J4CgdNKADkdSGXQyTCnKteIAJy96Br6YbpEU1LSzV5dYtjMkMDg==,
+      }
+    engines: { node: ">=0.10.0" }
+
+  react@19.1.1:
+    resolution:
+      {
+        integrity: sha512-w8nqGImo45dmMIfljjMwOGtbmC/mk4CMYhWIicdSflH91J9TyCyczcPFXJzrZ/ZXcgGRFeP6BU0BEJTw6tZdfQ==,
       }
     engines: { node: ">=0.10.0" }
 
@@ -8123,6 +8209,12 @@ packages:
     resolution:
       {
         integrity: sha512-qoRRSyROncaz1z0mvYqIE4lCd9p2R90i6GxW3uZv5ucSu8tU7B5HXUP1gG8pVZsYNVaXjk8ClXHPttLyxAL48A==,
+      }
+
+  standardwebhooks@1.0.0:
+    resolution:
+      {
+        integrity: sha512-BbHGOQK9olHPMvQNHWul6MYlrRTAOKn03rOe4A8O3CLWhNf4YHBqq2HJKKC+sfqpxiBY52pNeesD6jIiLDz8jg==,
       }
 
   std-env@3.10.0:
@@ -8930,7 +9022,7 @@ snapshots:
       "@jridgewell/gen-mapping": 0.3.13
       "@jridgewell/trace-mapping": 0.3.31
 
-  "@ark-ui/react@5.25.1(react-dom@19.1.0(react@19.1.0))(react@19.1.0)":
+  "@ark-ui/react@5.25.1(react-dom@19.1.1(react@19.1.1))(react@19.1.1)":
     dependencies:
       "@internationalized/date": 3.7.0
       "@zag-js/accordion": 1.24.2
@@ -8974,7 +9066,7 @@ snapshots:
       "@zag-js/qr-code": 1.24.2
       "@zag-js/radio-group": 1.24.2
       "@zag-js/rating-group": 1.24.2
-      "@zag-js/react": 1.24.2(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      "@zag-js/react": 1.24.2(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       "@zag-js/scroll-area": 1.24.2
       "@zag-js/select": 1.24.2
       "@zag-js/signature-pad": 1.24.2
@@ -8993,10 +9085,10 @@ snapshots:
       "@zag-js/tree-view": 1.24.2
       "@zag-js/types": 1.24.2
       "@zag-js/utils": 1.24.2
-      react: 19.1.0
-      react-dom: 19.1.0(react@19.1.0)
+      react: 19.1.1
+      react-dom: 19.1.1(react@19.1.1)
 
-  "@ark-ui/react@5.30.0(react-dom@19.1.0(react@19.1.0))(react@19.1.0)":
+  "@ark-ui/react@5.30.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1)":
     dependencies:
       "@internationalized/date": 3.7.0
       "@zag-js/accordion": 1.31.1
@@ -9043,7 +9135,7 @@ snapshots:
       "@zag-js/qr-code": 1.31.1
       "@zag-js/radio-group": 1.31.1
       "@zag-js/rating-group": 1.31.1
-      "@zag-js/react": 1.31.1(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      "@zag-js/react": 1.31.1(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       "@zag-js/scroll-area": 1.31.1
       "@zag-js/select": 1.31.1
       "@zag-js/signature-pad": 1.31.1
@@ -9062,10 +9154,10 @@ snapshots:
       "@zag-js/tree-view": 1.31.1
       "@zag-js/types": 1.31.1
       "@zag-js/utils": 1.31.1
-      react: 19.1.0
-      react-dom: 19.1.0(react@19.1.0)
+      react: 19.1.1
+      react-dom: 19.1.1(react@19.1.1)
 
-  "@ark-ui/react@5.37.2(react-dom@19.1.0(react@19.1.0))(react@19.1.0)":
+  "@ark-ui/react@5.37.2(react-dom@19.1.1(react@19.1.1))(react@19.1.1)":
     dependencies:
       "@internationalized/date": 3.7.0
       "@zag-js/accordion": 1.41.2
@@ -9115,7 +9207,7 @@ snapshots:
       "@zag-js/qr-code": 1.41.2
       "@zag-js/radio-group": 1.41.2
       "@zag-js/rating-group": 1.41.2
-      "@zag-js/react": 1.41.2(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      "@zag-js/react": 1.41.2(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       "@zag-js/scroll-area": 1.41.2
       "@zag-js/select": 1.41.2
       "@zag-js/signature-pad": 1.41.2
@@ -9134,8 +9226,8 @@ snapshots:
       "@zag-js/tree-view": 1.41.2
       "@zag-js/types": 1.41.2
       "@zag-js/utils": 1.41.2
-      react: 19.1.0
-      react-dom: 19.1.0(react@19.1.0)
+      react: 19.1.1
+      react-dom: 19.1.1(react@19.1.1)
 
   "@axe-core/playwright@4.12.1(playwright-core@1.61.1)":
     dependencies:
@@ -9436,23 +9528,53 @@ snapshots:
       - refractor
       - sugar-high
 
-  "@chakra-ui/react@3.33.0(@emotion/react@11.14.0(@types/react@19.2.17)(react@19.1.0))(react-dom@19.1.0(react@19.1.0))(react@19.1.0)":
+  "@blocknote/react@0.51.4(@floating-ui/dom@1.7.6)(@types/hast@3.0.4)(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)":
     dependencies:
-      "@ark-ui/react": 5.37.2(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      "@blocknote/core": 0.51.4(@types/hast@3.0.4)
+      "@emoji-mart/data": 1.2.1
+      "@floating-ui/react": 0.27.19(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      "@floating-ui/utils": 0.2.11
+      "@tanstack/react-store": 0.7.7(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      "@tiptap/core": 3.27.1(@tiptap/pm@3.27.1)
+      "@tiptap/pm": 3.27.1
+      "@tiptap/react": 3.27.1(@floating-ui/dom@1.7.6)(@tiptap/core@3.27.1(@tiptap/pm@3.27.1))(@tiptap/pm@3.27.1)(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      "@types/use-sync-external-store": 1.5.0
+      emoji-mart: 5.6.0
+      fast-deep-equal: 3.1.3
+      lodash.merge: 4.6.2
+      react: 19.1.1
+      react-dom: 19.1.1(react@19.1.1)
+      react-icons: 5.7.0(react@19.1.1)
+      use-sync-external-store: 1.6.0(react@19.1.1)
+    transitivePeerDependencies:
+      - "@floating-ui/dom"
+      - "@lezer/common"
+      - "@lezer/highlight"
+      - "@types/hast"
+      - "@types/react"
+      - "@types/react-dom"
+      - highlight.js
+      - lowlight
+      - refractor
+      - sugar-high
+
+  "@chakra-ui/react@3.33.0(@emotion/react@11.14.0(@types/react@19.2.17)(react@19.1.1))(react-dom@19.1.1(react@19.1.1))(react@19.1.1)":
+    dependencies:
+      "@ark-ui/react": 5.37.2(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       "@emotion/is-prop-valid": 1.4.0
-      "@emotion/react": 11.14.0(@types/react@19.2.17)(react@19.1.0)
+      "@emotion/react": 11.14.0(@types/react@19.2.17)(react@19.1.1)
       "@emotion/serialize": 1.3.3
-      "@emotion/use-insertion-effect-with-fallbacks": 1.2.0(react@19.1.0)
+      "@emotion/use-insertion-effect-with-fallbacks": 1.2.0(react@19.1.1)
       "@emotion/utils": 1.4.2
       "@pandacss/is-valid-prop": 1.11.4
       csstype: 3.2.3
-      react: 19.1.0
-      react-dom: 19.1.0(react@19.1.0)
+      react: 19.1.1
+      react-dom: 19.1.1(react@19.1.1)
 
-  "@confect/cli@10.0.0-next.9(patch_hash=1a1e00f1d9117b5d866ad1f0ca6eda3e769a036461541c3593fd2c4fa9b13a08)(@confect/core@10.0.0-next.9(convex@1.42.1(react@19.1.0))(effect@4.0.0-beta.102))(@confect/server@10.0.0-next.9(@confect/core@10.0.0-next.9(convex@1.42.1(react@19.1.0))(effect@4.0.0-beta.102))(@effect/platform-node@4.0.0-beta.102(effect@4.0.0-beta.102)(ioredis@5.11.1))(convex@1.42.1(react@19.1.0))(effect@4.0.0-beta.102))(effect@4.0.0-beta.102)(ioredis@5.11.1)":
+  "@confect/cli@10.0.0-next.9(patch_hash=1a1e00f1d9117b5d866ad1f0ca6eda3e769a036461541c3593fd2c4fa9b13a08)(@confect/core@10.0.0-next.9(convex@1.42.1(react@19.1.1))(effect@4.0.0-beta.102))(@confect/server@10.0.0-next.9(@confect/core@10.0.0-next.9(convex@1.42.1(react@19.1.1))(effect@4.0.0-beta.102))(@effect/platform-node@4.0.0-beta.102(effect@4.0.0-beta.102)(ioredis@5.11.1))(convex@1.42.1(react@19.1.1))(effect@4.0.0-beta.102))(effect@4.0.0-beta.102)(ioredis@5.11.1)":
     dependencies:
-      "@confect/core": 10.0.0-next.9(convex@1.42.1(react@19.1.0))(effect@4.0.0-beta.102)
-      "@confect/server": 10.0.0-next.9(@confect/core@10.0.0-next.9(convex@1.42.1(react@19.1.0))(effect@4.0.0-beta.102))(@effect/platform-node@4.0.0-beta.102(effect@4.0.0-beta.102)(ioredis@5.11.1))(convex@1.42.1(react@19.1.0))(effect@4.0.0-beta.102)
+      "@confect/core": 10.0.0-next.9(convex@1.42.1(react@19.1.1))(effect@4.0.0-beta.102)
+      "@confect/server": 10.0.0-next.9(@confect/core@10.0.0-next.9(convex@1.42.1(react@19.1.1))(effect@4.0.0-beta.102))(@effect/platform-node@4.0.0-beta.102(effect@4.0.0-beta.102)(ioredis@5.11.1))(convex@1.42.1(react@19.1.1))(effect@4.0.0-beta.102)
       "@effect/platform-node": 4.0.0-beta.102(effect@4.0.0-beta.102)(ioredis@5.11.1)
       bundle-require: 5.1.0(esbuild@0.28.1)
       code-block-writer: 13.0.3
@@ -9469,23 +9591,36 @@ snapshots:
       convex: 1.42.1(react@19.1.0)
       effect: 4.0.0-beta.102
 
-  "@confect/js@10.0.0-next.9(@confect/core@10.0.0-next.9(convex@1.42.1(react@19.1.0))(effect@4.0.0-beta.102))(convex@1.42.1(react@19.1.0))(effect@4.0.0-beta.102)":
+  "@confect/core@10.0.0-next.9(convex@1.42.1(react@19.1.1))(effect@4.0.0-beta.102)":
     dependencies:
-      "@confect/core": 10.0.0-next.9(convex@1.42.1(react@19.1.0))(effect@4.0.0-beta.102)
-      convex: 1.42.1(react@19.1.0)
+      convex: 1.42.1(react@19.1.1)
       effect: 4.0.0-beta.102
 
-  "@confect/react@10.0.0-next.9(@confect/core@10.0.0-next.9(convex@1.42.1(react@19.1.0))(effect@4.0.0-beta.102))(convex@1.42.1(react@19.1.0))(effect@4.0.0-beta.102)(react@19.1.0)":
+  "@confect/js@10.0.0-next.9(@confect/core@10.0.0-next.9(convex@1.42.1(react@19.1.1))(effect@4.0.0-beta.102))(convex@1.42.1(react@19.1.1))(effect@4.0.0-beta.102)":
     dependencies:
-      "@confect/core": 10.0.0-next.9(convex@1.42.1(react@19.1.0))(effect@4.0.0-beta.102)
-      convex: 1.42.1(react@19.1.0)
+      "@confect/core": 10.0.0-next.9(convex@1.42.1(react@19.1.1))(effect@4.0.0-beta.102)
+      convex: 1.42.1(react@19.1.1)
       effect: 4.0.0-beta.102
-      react: 19.1.0
+
+  "@confect/react@10.0.0-next.9(@confect/core@10.0.0-next.9(convex@1.42.1(react@19.1.1))(effect@4.0.0-beta.102))(convex@1.42.1(react@19.1.1))(effect@4.0.0-beta.102)(react@19.1.1)":
+    dependencies:
+      "@confect/core": 10.0.0-next.9(convex@1.42.1(react@19.1.1))(effect@4.0.0-beta.102)
+      convex: 1.42.1(react@19.1.1)
+      effect: 4.0.0-beta.102
+      react: 19.1.1
 
   "@confect/server@10.0.0-next.9(@confect/core@10.0.0-next.9(convex@1.42.1(react@19.1.0))(effect@4.0.0-beta.102))(@effect/platform-node@4.0.0-beta.102(effect@4.0.0-beta.102)(ioredis@5.11.1))(convex@1.42.1(react@19.1.0))(effect@4.0.0-beta.102)":
     dependencies:
       "@confect/core": 10.0.0-next.9(convex@1.42.1(react@19.1.0))(effect@4.0.0-beta.102)
       convex: 1.42.1(react@19.1.0)
+      effect: 4.0.0-beta.102
+    optionalDependencies:
+      "@effect/platform-node": 4.0.0-beta.102(effect@4.0.0-beta.102)(ioredis@5.11.1)
+
+  "@confect/server@10.0.0-next.9(@confect/core@10.0.0-next.9(convex@1.42.1(react@19.1.1))(effect@4.0.0-beta.102))(@effect/platform-node@4.0.0-beta.102(effect@4.0.0-beta.102)(ioredis@5.11.1))(convex@1.42.1(react@19.1.1))(effect@4.0.0-beta.102)":
+    dependencies:
+      "@confect/core": 10.0.0-next.9(convex@1.42.1(react@19.1.1))(effect@4.0.0-beta.102)
+      convex: 1.42.1(react@19.1.1)
       effect: 4.0.0-beta.102
     optionalDependencies:
       "@effect/platform-node": 4.0.0-beta.102(effect@4.0.0-beta.102)(ioredis@5.11.1)
@@ -9498,10 +9633,18 @@ snapshots:
       convex-test: 0.0.54(convex@1.42.1(react@19.1.0))
       effect: 4.0.0-beta.102
 
-  "@convex-dev/migrations@0.3.5(convex-helpers@0.1.120(@standard-schema/spec@1.1.0)(convex@1.42.1(react@19.1.0))(react@19.1.0)(typescript@5.9.3)(zod@4.4.3))(convex@1.42.1(react@19.1.0))":
+  "@confect/test@10.0.0-next.9(@confect/core@10.0.0-next.9(convex@1.42.1(react@19.1.1))(effect@4.0.0-beta.102))(@confect/server@10.0.0-next.9(@confect/core@10.0.0-next.9(convex@1.42.1(react@19.1.1))(effect@4.0.0-beta.102))(@effect/platform-node@4.0.0-beta.102(effect@4.0.0-beta.102)(ioredis@5.11.1))(convex@1.42.1(react@19.1.1))(effect@4.0.0-beta.102))(convex-test@0.0.54(convex@1.42.1(react@19.1.1)))(convex@1.42.1(react@19.1.1))(effect@4.0.0-beta.102)":
     dependencies:
-      convex: 1.42.1(react@19.1.0)
-      convex-helpers: 0.1.120(@standard-schema/spec@1.1.0)(convex@1.42.1(react@19.1.0))(react@19.1.0)(typescript@5.9.3)(zod@4.4.3)
+      "@confect/core": 10.0.0-next.9(convex@1.42.1(react@19.1.1))(effect@4.0.0-beta.102)
+      "@confect/server": 10.0.0-next.9(@confect/core@10.0.0-next.9(convex@1.42.1(react@19.1.1))(effect@4.0.0-beta.102))(@effect/platform-node@4.0.0-beta.102(effect@4.0.0-beta.102)(ioredis@5.11.1))(convex@1.42.1(react@19.1.1))(effect@4.0.0-beta.102)
+      convex: 1.42.1(react@19.1.1)
+      convex-test: 0.0.54(convex@1.42.1(react@19.1.1))
+      effect: 4.0.0-beta.102
+
+  "@convex-dev/migrations@0.3.5(convex-helpers@0.1.120(@standard-schema/spec@1.1.0)(convex@1.42.1(react@19.1.1))(react@19.1.1)(typescript@5.9.3)(zod@4.4.3))(convex@1.42.1(react@19.1.1))":
+    dependencies:
+      convex: 1.42.1(react@19.1.1)
+      convex-helpers: 0.1.120(@standard-schema/spec@1.1.0)(convex@1.42.1(react@19.1.1))(react@19.1.1)(typescript@5.9.3)(zod@4.4.3)
 
   "@convex-dev/prosemirror-sync@0.2.5(@blocknote/core@0.51.4(@types/hast@3.0.4))(@blocknote/react@0.51.4(@floating-ui/dom@1.7.6)(@types/hast@3.0.4)(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(@tiptap/core@3.27.1(@tiptap/pm@3.27.1))(convex@1.42.1(react@19.1.0))(decode-named-character-reference@1.3.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)":
     dependencies:
@@ -9515,10 +9658,22 @@ snapshots:
       "@blocknote/core": 0.51.4(@types/hast@3.0.4)
       "@blocknote/react": 0.51.4(@floating-ui/dom@1.7.6)(@types/hast@3.0.4)(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
 
-  "@convex-dev/react-query@0.1.0(@tanstack/react-query@5.101.0(react@19.1.0))(convex@1.42.1(react@19.1.0))":
+  "@convex-dev/prosemirror-sync@0.2.5(@blocknote/core@0.51.4(@types/hast@3.0.4))(@blocknote/react@0.51.4(@floating-ui/dom@1.7.6)(@types/hast@3.0.4)(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(@tiptap/core@3.27.1(@tiptap/pm@3.27.1))(convex@1.42.1(react@19.1.1))(decode-named-character-reference@1.3.0)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)":
     dependencies:
-      "@tanstack/react-query": 5.101.0(react@19.1.0)
-      convex: 1.42.1(react@19.1.0)
+      "@tiptap/core": 3.27.1(@tiptap/pm@3.27.1)
+      convex: 1.42.1(react@19.1.1)
+      decode-named-character-reference: 1.3.0
+      prosemirror-collab: 1.3.1
+      react: 19.1.1
+      react-dom: 19.1.1(react@19.1.1)
+    optionalDependencies:
+      "@blocknote/core": 0.51.4(@types/hast@3.0.4)
+      "@blocknote/react": 0.51.4(@floating-ui/dom@1.7.6)(@types/hast@3.0.4)(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+
+  "@convex-dev/react-query@0.1.0(@tanstack/react-query@5.101.0(react@19.1.1))(convex@1.42.1(react@19.1.1))":
+    dependencies:
+      "@tanstack/react-query": 5.101.0(react@19.1.1)
+      convex: 1.42.1(react@19.1.1)
 
   "@convex-dev/workflow@0.4.4(@convex-dev/workpool@0.4.7(convex-helpers@0.1.120(@standard-schema/spec@1.1.0)(convex@1.42.1(react@19.1.0))(react@19.1.0)(typescript@5.9.3)(zod@4.4.3))(convex@1.42.1(react@19.1.0)))(convex-helpers@0.1.120(@standard-schema/spec@1.1.0)(convex@1.42.1(react@19.1.0))(react@19.1.0)(typescript@5.9.3)(zod@4.4.3))(convex@1.42.1(react@19.1.0))":
     dependencies:
@@ -9527,10 +9682,22 @@ snapshots:
       convex: 1.42.1(react@19.1.0)
       convex-helpers: 0.1.120(@standard-schema/spec@1.1.0)(convex@1.42.1(react@19.1.0))(react@19.1.0)(typescript@5.9.3)(zod@4.4.3)
 
+  "@convex-dev/workflow@0.4.4(@convex-dev/workpool@0.4.7(convex-helpers@0.1.120(@standard-schema/spec@1.1.0)(convex@1.42.1(react@19.1.1))(react@19.1.1)(typescript@5.9.3)(zod@4.4.3))(convex@1.42.1(react@19.1.1)))(convex-helpers@0.1.120(@standard-schema/spec@1.1.0)(convex@1.42.1(react@19.1.1))(react@19.1.1)(typescript@5.9.3)(zod@4.4.3))(convex@1.42.1(react@19.1.1))":
+    dependencies:
+      "@convex-dev/workpool": 0.4.7(convex-helpers@0.1.120(@standard-schema/spec@1.1.0)(convex@1.42.1(react@19.1.1))(react@19.1.1)(typescript@5.9.3)(zod@4.4.3))(convex@1.42.1(react@19.1.1))
+      async-channel: 0.2.0
+      convex: 1.42.1(react@19.1.1)
+      convex-helpers: 0.1.120(@standard-schema/spec@1.1.0)(convex@1.42.1(react@19.1.1))(react@19.1.1)(typescript@5.9.3)(zod@4.4.3)
+
   "@convex-dev/workpool@0.4.7(convex-helpers@0.1.120(@standard-schema/spec@1.1.0)(convex@1.42.1(react@19.1.0))(react@19.1.0)(typescript@5.9.3)(zod@4.4.3))(convex@1.42.1(react@19.1.0))":
     dependencies:
       convex: 1.42.1(react@19.1.0)
       convex-helpers: 0.1.120(@standard-schema/spec@1.1.0)(convex@1.42.1(react@19.1.0))(react@19.1.0)(typescript@5.9.3)(zod@4.4.3)
+
+  "@convex-dev/workpool@0.4.7(convex-helpers@0.1.120(@standard-schema/spec@1.1.0)(convex@1.42.1(react@19.1.1))(react@19.1.1)(typescript@5.9.3)(zod@4.4.3))(convex@1.42.1(react@19.1.1))":
+    dependencies:
+      convex: 1.42.1(react@19.1.1)
+      convex-helpers: 0.1.120(@standard-schema/spec@1.1.0)(convex@1.42.1(react@19.1.1))(react@19.1.1)(typescript@5.9.3)(zod@4.4.3)
 
   "@effect/language-service@0.87.1": {}
 
@@ -9620,17 +9787,17 @@ snapshots:
 
   "@emotion/memoize@0.9.0": {}
 
-  "@emotion/react@11.14.0(@types/react@19.2.17)(react@19.1.0)":
+  "@emotion/react@11.14.0(@types/react@19.2.17)(react@19.1.1)":
     dependencies:
       "@babel/runtime": 7.29.7
       "@emotion/babel-plugin": 11.13.5
       "@emotion/cache": 11.14.0
       "@emotion/serialize": 1.3.3
-      "@emotion/use-insertion-effect-with-fallbacks": 1.2.0(react@19.1.0)
+      "@emotion/use-insertion-effect-with-fallbacks": 1.2.0(react@19.1.1)
       "@emotion/utils": 1.4.2
       "@emotion/weak-memoize": 0.4.0
       hoist-non-react-statics: 3.3.2
-      react: 19.1.0
+      react: 19.1.1
     optionalDependencies:
       "@types/react": 19.2.17
     transitivePeerDependencies:
@@ -9648,9 +9815,9 @@ snapshots:
 
   "@emotion/unitless@0.10.0": {}
 
-  "@emotion/use-insertion-effect-with-fallbacks@1.2.0(react@19.1.0)":
+  "@emotion/use-insertion-effect-with-fallbacks@1.2.0(react@19.1.1)":
     dependencies:
-      react: 19.1.0
+      react: 19.1.1
 
   "@emotion/utils@1.4.2": {}
 
@@ -9878,12 +10045,26 @@ snapshots:
       react: 19.1.0
       react-dom: 19.1.0(react@19.1.0)
 
+  "@floating-ui/react-dom@2.1.8(react-dom@19.1.1(react@19.1.1))(react@19.1.1)":
+    dependencies:
+      "@floating-ui/dom": 1.7.6
+      react: 19.1.1
+      react-dom: 19.1.1(react@19.1.1)
+
   "@floating-ui/react@0.27.19(react-dom@19.1.0(react@19.1.0))(react@19.1.0)":
     dependencies:
       "@floating-ui/react-dom": 2.1.8(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       "@floating-ui/utils": 0.2.11
       react: 19.1.0
       react-dom: 19.1.0(react@19.1.0)
+      tabbable: 6.5.0
+
+  "@floating-ui/react@0.27.19(react-dom@19.1.1(react@19.1.1))(react@19.1.1)":
+    dependencies:
+      "@floating-ui/react-dom": 2.1.8(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      "@floating-ui/utils": 0.2.11
+      react: 19.1.1
+      react-dom: 19.1.1(react@19.1.1)
       tabbable: 6.5.0
 
   "@floating-ui/utils@0.2.11": {}
@@ -9896,10 +10077,10 @@ snapshots:
       prosemirror-transform: 1.12.0
       prosemirror-view: 1.42.0
 
-  "@hookform/resolvers@5.4.0(react-hook-form@7.80.0(react@19.1.0))":
+  "@hookform/resolvers@5.4.0(react-hook-form@7.80.0(react@19.1.1))":
     dependencies:
       "@standard-schema/utils": 0.3.0
-      react-hook-form: 7.80.0(react@19.1.0)
+      react-hook-form: 7.80.0(react@19.1.1)
 
   "@humanfs/core@0.19.2":
     dependencies:
@@ -10285,29 +10466,37 @@ snapshots:
     transitivePeerDependencies:
       - rxjs
 
+  "@posthog/convex@2.0.32(convex@1.42.1(react@19.1.1))(rxjs@7.8.2)":
+    dependencies:
+      "@posthog/core": 1.39.6
+      convex: 1.42.1(react@19.1.1)
+      posthog-node: 5.39.4(rxjs@7.8.2)
+    transitivePeerDependencies:
+      - rxjs
+
   "@posthog/core@1.39.6":
     dependencies:
       "@posthog/types": 1.392.1
 
   "@posthog/types@1.392.1": {}
 
-  "@react-aria/utils@3.34.1(react-dom@19.1.0(react@19.1.0))(react@19.1.0)":
+  "@react-aria/utils@3.34.1(react-dom@19.1.1(react@19.1.1))(react@19.1.1)":
     dependencies:
       "@swc/helpers": 0.5.23
-      react: 19.1.0
-      react-aria: 3.50.0(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
-      react-dom: 19.1.0(react@19.1.0)
-      react-stately: 3.48.0(react@19.1.0)
+      react: 19.1.1
+      react-aria: 3.50.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      react-dom: 19.1.1(react@19.1.1)
+      react-stately: 3.48.0(react@19.1.1)
 
-  "@react-hookz/web@25.2.0(react-dom@19.1.0(react@19.1.0))(react@19.1.0)":
+  "@react-hookz/web@25.2.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1)":
     dependencies:
       "@ver0/deep-equal": 1.0.1
-      react: 19.1.0
-      react-dom: 19.1.0(react@19.1.0)
+      react: 19.1.1
+      react-dom: 19.1.1(react@19.1.1)
 
-  "@react-types/shared@3.36.0(react@19.1.0)":
+  "@react-types/shared@3.36.0(react@19.1.1)":
     dependencies:
-      react: 19.1.0
+      react: 19.1.1
 
   "@rolldown/binding-android-arm64@1.1.3":
     optional: true
@@ -10435,93 +10624,93 @@ snapshots:
   "@rollup/rollup-win32-x64-msvc@4.62.2":
     optional: true
 
-  "@saas-ui-pro/onboarding@1.0.0-next.0(@chakra-ui/react@3.33.0(@emotion/react@11.14.0(@types/react@19.2.17)(react@19.1.0))(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(@emotion/react@11.14.0(@types/react@19.2.17)(react@19.1.0))(@saas-ui/react@3.0.0-next.51(@chakra-ui/react@3.33.0(@emotion/react@11.14.0(@types/react@19.2.17)(react@19.1.0))(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(@emotion/react@11.14.0(@types/react@19.2.17)(react@19.1.0))(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(react-dom@19.1.0(react@19.1.0))(react@19.1.0)":
+  "@saas-ui-pro/onboarding@1.0.0-next.0(@chakra-ui/react@3.33.0(@emotion/react@11.14.0(@types/react@19.2.17)(react@19.1.1))(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(@emotion/react@11.14.0(@types/react@19.2.17)(react@19.1.1))(@saas-ui/react@3.0.0-next.51(@chakra-ui/react@3.33.0(@emotion/react@11.14.0(@types/react@19.2.17)(react@19.1.1))(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(@emotion/react@11.14.0(@types/react@19.2.17)(react@19.1.1))(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(react-dom@19.1.1(react@19.1.1))(react@19.1.1)":
     dependencies:
-      "@chakra-ui/react": 3.33.0(@emotion/react@11.14.0(@types/react@19.2.17)(react@19.1.0))(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
-      "@emotion/react": 11.14.0(@types/react@19.2.17)(react@19.1.0)
-      "@floating-ui/react": 0.27.19(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
-      "@saas-ui/core": 3.0.0-next.14(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
-      "@saas-ui/react": 3.0.0-next.51(@chakra-ui/react@3.33.0(@emotion/react@11.14.0(@types/react@19.2.17)(react@19.1.0))(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(@emotion/react@11.14.0(@types/react@19.2.17)(react@19.1.0))(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
-      react: 19.1.0
-      react-dom: 19.1.0(react@19.1.0)
+      "@chakra-ui/react": 3.33.0(@emotion/react@11.14.0(@types/react@19.2.17)(react@19.1.1))(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      "@emotion/react": 11.14.0(@types/react@19.2.17)(react@19.1.1)
+      "@floating-ui/react": 0.27.19(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      "@saas-ui/core": 3.0.0-next.14(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      "@saas-ui/react": 3.0.0-next.51(@chakra-ui/react@3.33.0(@emotion/react@11.14.0(@types/react@19.2.17)(react@19.1.1))(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(@emotion/react@11.14.0(@types/react@19.2.17)(react@19.1.1))(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      react: 19.1.1
+      react-dom: 19.1.1(react@19.1.1)
 
-  "@saas-ui-pro/react@1.0.0-next.4(@chakra-ui/react@3.33.0(@emotion/react@11.14.0(@types/react@19.2.17)(react@19.1.0))(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(@emotion/react@11.14.0(@types/react@19.2.17)(react@19.1.0))(@saas-ui/react@3.0.0-next.51(@chakra-ui/react@3.33.0(@emotion/react@11.14.0(@types/react@19.2.17)(react@19.1.0))(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(@emotion/react@11.14.0(@types/react@19.2.17)(react@19.1.0))(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(react-dom@19.1.0(react@19.1.0))(react@19.1.0)":
+  "@saas-ui-pro/react@1.0.0-next.4(@chakra-ui/react@3.33.0(@emotion/react@11.14.0(@types/react@19.2.17)(react@19.1.1))(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(@emotion/react@11.14.0(@types/react@19.2.17)(react@19.1.1))(@saas-ui/react@3.0.0-next.51(@chakra-ui/react@3.33.0(@emotion/react@11.14.0(@types/react@19.2.17)(react@19.1.1))(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(@emotion/react@11.14.0(@types/react@19.2.17)(react@19.1.1))(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(react-dom@19.1.1(react@19.1.1))(react@19.1.1)":
     dependencies:
-      "@ark-ui/react": 5.37.2(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
-      "@chakra-ui/react": 3.33.0(@emotion/react@11.14.0(@types/react@19.2.17)(react@19.1.0))(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
-      "@emotion/react": 11.14.0(@types/react@19.2.17)(react@19.1.0)
-      "@react-hookz/web": 25.2.0(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
-      "@saas-ui-pro/onboarding": 1.0.0-next.0(@chakra-ui/react@3.33.0(@emotion/react@11.14.0(@types/react@19.2.17)(react@19.1.0))(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(@emotion/react@11.14.0(@types/react@19.2.17)(react@19.1.0))(@saas-ui/react@3.0.0-next.51(@chakra-ui/react@3.33.0(@emotion/react@11.14.0(@types/react@19.2.17)(react@19.1.0))(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(@emotion/react@11.14.0(@types/react@19.2.17)(react@19.1.0))(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
-      "@saas-ui/chakra-preset": 3.0.0-next.2(@chakra-ui/react@3.33.0(@emotion/react@11.14.0(@types/react@19.2.17)(react@19.1.0))(react-dom@19.1.0(react@19.1.0))(react@19.1.0))
-      "@saas-ui/core": 3.0.0-next.14(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
-      "@saas-ui/forms": 3.0.0-next.52(@chakra-ui/react@3.33.0(@emotion/react@11.14.0(@types/react@19.2.17)(react@19.1.0))(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(@emotion/react@11.14.0(@types/react@19.2.17)(react@19.1.0))(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
-      "@saas-ui/hooks": 3.0.0-next.3(react@19.1.0)
-      "@saas-ui/react": 3.0.0-next.51(@chakra-ui/react@3.33.0(@emotion/react@11.14.0(@types/react@19.2.17)(react@19.1.0))(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(@emotion/react@11.14.0(@types/react@19.2.17)(react@19.1.0))(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
-      "@tanstack/react-table": 8.21.3(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
-      "@tanstack/react-virtual": 3.14.5(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      "@ark-ui/react": 5.37.2(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      "@chakra-ui/react": 3.33.0(@emotion/react@11.14.0(@types/react@19.2.17)(react@19.1.1))(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      "@emotion/react": 11.14.0(@types/react@19.2.17)(react@19.1.1)
+      "@react-hookz/web": 25.2.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      "@saas-ui-pro/onboarding": 1.0.0-next.0(@chakra-ui/react@3.33.0(@emotion/react@11.14.0(@types/react@19.2.17)(react@19.1.1))(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(@emotion/react@11.14.0(@types/react@19.2.17)(react@19.1.1))(@saas-ui/react@3.0.0-next.51(@chakra-ui/react@3.33.0(@emotion/react@11.14.0(@types/react@19.2.17)(react@19.1.1))(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(@emotion/react@11.14.0(@types/react@19.2.17)(react@19.1.1))(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      "@saas-ui/chakra-preset": 3.0.0-next.2(@chakra-ui/react@3.33.0(@emotion/react@11.14.0(@types/react@19.2.17)(react@19.1.1))(react-dom@19.1.1(react@19.1.1))(react@19.1.1))
+      "@saas-ui/core": 3.0.0-next.14(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      "@saas-ui/forms": 3.0.0-next.52(@chakra-ui/react@3.33.0(@emotion/react@11.14.0(@types/react@19.2.17)(react@19.1.1))(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(@emotion/react@11.14.0(@types/react@19.2.17)(react@19.1.1))(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      "@saas-ui/hooks": 3.0.0-next.3(react@19.1.1)
+      "@saas-ui/react": 3.0.0-next.51(@chakra-ui/react@3.33.0(@emotion/react@11.14.0(@types/react@19.2.17)(react@19.1.1))(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(@emotion/react@11.14.0(@types/react@19.2.17)(react@19.1.1))(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      "@tanstack/react-table": 8.21.3(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      "@tanstack/react-virtual": 3.14.5(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       "@zag-js/dom-utils": 0.2.4
       date-fns: 4.4.0
-      react: 19.1.0
-      react-dom: 19.1.0(react@19.1.0)
+      react: 19.1.1
+      react-dom: 19.1.1(react@19.1.1)
     transitivePeerDependencies:
       - js-cookie
 
-  "@saas-ui/chakra-preset@3.0.0-next.2(@chakra-ui/react@3.33.0(@emotion/react@11.14.0(@types/react@19.2.17)(react@19.1.0))(react-dom@19.1.0(react@19.1.0))(react@19.1.0))":
+  "@saas-ui/chakra-preset@3.0.0-next.2(@chakra-ui/react@3.33.0(@emotion/react@11.14.0(@types/react@19.2.17)(react@19.1.1))(react-dom@19.1.1(react@19.1.1))(react@19.1.1))":
     dependencies:
-      "@chakra-ui/react": 3.33.0(@emotion/react@11.14.0(@types/react@19.2.17)(react@19.1.0))(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      "@chakra-ui/react": 3.33.0(@emotion/react@11.14.0(@types/react@19.2.17)(react@19.1.1))(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
 
-  "@saas-ui/chakra-preset@3.0.0-next.6(@chakra-ui/react@3.33.0(@emotion/react@11.14.0(@types/react@19.2.17)(react@19.1.0))(react-dom@19.1.0(react@19.1.0))(react@19.1.0))":
+  "@saas-ui/chakra-preset@3.0.0-next.6(@chakra-ui/react@3.33.0(@emotion/react@11.14.0(@types/react@19.2.17)(react@19.1.1))(react-dom@19.1.1(react@19.1.1))(react@19.1.1))":
     dependencies:
-      "@chakra-ui/react": 3.33.0(@emotion/react@11.14.0(@types/react@19.2.17)(react@19.1.0))(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      "@chakra-ui/react": 3.33.0(@emotion/react@11.14.0(@types/react@19.2.17)(react@19.1.1))(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
 
-  "@saas-ui/core@3.0.0-next.12(react-dom@19.1.0(react@19.1.0))(react@19.1.0)":
+  "@saas-ui/core@3.0.0-next.12(react-dom@19.1.1(react@19.1.1))(react@19.1.1)":
     dependencies:
-      "@ark-ui/react": 5.25.1(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
-      "@react-aria/utils": 3.34.1(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
-      "@saas-ui/hooks": 3.0.0-next.3(react@19.1.0)
+      "@ark-ui/react": 5.25.1(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      "@react-aria/utils": 3.34.1(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      "@saas-ui/hooks": 3.0.0-next.3(react@19.1.1)
       "@zag-js/dom-event": 0.80.0
       "@zag-js/dom-utils": 0.2.4
-      react: 19.1.0
-      react-dom: 19.1.0(react@19.1.0)
+      react: 19.1.1
+      react-dom: 19.1.1(react@19.1.1)
 
-  "@saas-ui/core@3.0.0-next.14(react-dom@19.1.0(react@19.1.0))(react@19.1.0)":
+  "@saas-ui/core@3.0.0-next.14(react-dom@19.1.1(react@19.1.1))(react@19.1.1)":
     dependencies:
-      "@ark-ui/react": 5.30.0(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
-      "@react-aria/utils": 3.34.1(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
-      "@saas-ui/hooks": 3.0.0-next.3(react@19.1.0)
+      "@ark-ui/react": 5.30.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      "@react-aria/utils": 3.34.1(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      "@saas-ui/hooks": 3.0.0-next.3(react@19.1.1)
       "@zag-js/dom-event": 0.80.0
       "@zag-js/dom-utils": 0.2.4
-      react: 19.1.0
-      react-dom: 19.1.0(react@19.1.0)
+      react: 19.1.1
+      react-dom: 19.1.1(react@19.1.1)
 
-  "@saas-ui/forms@3.0.0-next.52(@chakra-ui/react@3.33.0(@emotion/react@11.14.0(@types/react@19.2.17)(react@19.1.0))(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(@emotion/react@11.14.0(@types/react@19.2.17)(react@19.1.0))(react-dom@19.1.0(react@19.1.0))(react@19.1.0)":
+  "@saas-ui/forms@3.0.0-next.52(@chakra-ui/react@3.33.0(@emotion/react@11.14.0(@types/react@19.2.17)(react@19.1.1))(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(@emotion/react@11.14.0(@types/react@19.2.17)(react@19.1.1))(react-dom@19.1.1(react@19.1.1))(react@19.1.1)":
     dependencies:
-      "@chakra-ui/react": 3.33.0(@emotion/react@11.14.0(@types/react@19.2.17)(react@19.1.0))(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
-      "@emotion/react": 11.14.0(@types/react@19.2.17)(react@19.1.0)
-      "@hookform/resolvers": 5.4.0(react-hook-form@7.80.0(react@19.1.0))
-      "@saas-ui/core": 3.0.0-next.12(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
-      "@saas-ui/react": 3.0.0-next.51(@chakra-ui/react@3.33.0(@emotion/react@11.14.0(@types/react@19.2.17)(react@19.1.0))(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(@emotion/react@11.14.0(@types/react@19.2.17)(react@19.1.0))(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      "@chakra-ui/react": 3.33.0(@emotion/react@11.14.0(@types/react@19.2.17)(react@19.1.1))(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      "@emotion/react": 11.14.0(@types/react@19.2.17)(react@19.1.1)
+      "@hookform/resolvers": 5.4.0(react-hook-form@7.80.0(react@19.1.1))
+      "@saas-ui/core": 3.0.0-next.12(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      "@saas-ui/react": 3.0.0-next.51(@chakra-ui/react@3.33.0(@emotion/react@11.14.0(@types/react@19.2.17)(react@19.1.1))(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(@emotion/react@11.14.0(@types/react@19.2.17)(react@19.1.1))(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       "@standard-schema/spec": 1.1.0
-      react: 19.1.0
-      react-dom: 19.1.0(react@19.1.0)
-      react-hook-form: 7.80.0(react@19.1.0)
+      react: 19.1.1
+      react-dom: 19.1.1(react@19.1.1)
+      react-hook-form: 7.80.0(react@19.1.1)
       zod: 4.4.3
 
-  "@saas-ui/hooks@3.0.0-next.3(react@19.1.0)":
+  "@saas-ui/hooks@3.0.0-next.3(react@19.1.1)":
     dependencies:
-      react: 19.1.0
+      react: 19.1.1
 
-  "@saas-ui/react@3.0.0-next.51(@chakra-ui/react@3.33.0(@emotion/react@11.14.0(@types/react@19.2.17)(react@19.1.0))(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(@emotion/react@11.14.0(@types/react@19.2.17)(react@19.1.0))(react-dom@19.1.0(react@19.1.0))(react@19.1.0)":
+  "@saas-ui/react@3.0.0-next.51(@chakra-ui/react@3.33.0(@emotion/react@11.14.0(@types/react@19.2.17)(react@19.1.1))(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(@emotion/react@11.14.0(@types/react@19.2.17)(react@19.1.1))(react-dom@19.1.1(react@19.1.1))(react@19.1.1)":
     dependencies:
-      "@ark-ui/react": 5.37.2(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
-      "@chakra-ui/react": 3.33.0(@emotion/react@11.14.0(@types/react@19.2.17)(react@19.1.0))(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
-      "@emotion/react": 11.14.0(@types/react@19.2.17)(react@19.1.0)
-      "@saas-ui/chakra-preset": 3.0.0-next.6(@chakra-ui/react@3.33.0(@emotion/react@11.14.0(@types/react@19.2.17)(react@19.1.0))(react-dom@19.1.0(react@19.1.0))(react@19.1.0))
-      "@saas-ui/core": 3.0.0-next.12(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
-      "@saas-ui/hooks": 3.0.0-next.3(react@19.1.0)
-      next-themes: 0.4.6(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
-      react: 19.1.0
-      react-dom: 19.1.0(react@19.1.0)
+      "@ark-ui/react": 5.37.2(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      "@chakra-ui/react": 3.33.0(@emotion/react@11.14.0(@types/react@19.2.17)(react@19.1.1))(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      "@emotion/react": 11.14.0(@types/react@19.2.17)(react@19.1.1)
+      "@saas-ui/chakra-preset": 3.0.0-next.6(@chakra-ui/react@3.33.0(@emotion/react@11.14.0(@types/react@19.2.17)(react@19.1.1))(react-dom@19.1.1(react@19.1.1))(react@19.1.1))
+      "@saas-ui/core": 3.0.0-next.12(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      "@saas-ui/hooks": 3.0.0-next.3(react@19.1.1)
+      next-themes: 0.4.6(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      react: 19.1.1
+      react-dom: 19.1.1(react@19.1.1)
 
   "@sec-ant/readable-stream@0.4.1": {}
 
@@ -10533,6 +10722,8 @@ snapshots:
   "@shikijs/vscode-textmate@10.0.2": {}
 
   "@sindresorhus/merge-streams@4.0.0": {}
+
+  "@stablelib/base64@1.0.1": {}
 
   "@standard-schema/spec@1.1.0": {}
 
@@ -10689,52 +10880,52 @@ snapshots:
 
   "@tanstack/query-core@5.101.0": {}
 
-  "@tanstack/react-query@5.101.0(react@19.1.0)":
+  "@tanstack/react-query@5.101.0(react@19.1.1)":
     dependencies:
       "@tanstack/query-core": 5.101.0
-      react: 19.1.0
+      react: 19.1.1
 
-  "@tanstack/react-router-ssr-query@1.167.1(@tanstack/query-core@5.101.0)(@tanstack/react-query@5.101.0(react@19.1.0))(@tanstack/react-router@1.170.16(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(@tanstack/router-core@1.171.13)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)":
+  "@tanstack/react-router-ssr-query@1.167.1(@tanstack/query-core@5.101.0)(@tanstack/react-query@5.101.0(react@19.1.1))(@tanstack/react-router@1.170.16(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(@tanstack/router-core@1.171.13)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)":
     dependencies:
       "@tanstack/query-core": 5.101.0
-      "@tanstack/react-query": 5.101.0(react@19.1.0)
-      "@tanstack/react-router": 1.170.16(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      "@tanstack/react-query": 5.101.0(react@19.1.1)
+      "@tanstack/react-router": 1.170.16(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       "@tanstack/router-ssr-query-core": 1.169.1(@tanstack/query-core@5.101.0)(@tanstack/router-core@1.171.13)
-      react: 19.1.0
-      react-dom: 19.1.0(react@19.1.0)
+      react: 19.1.1
+      react-dom: 19.1.1(react@19.1.1)
     transitivePeerDependencies:
       - "@tanstack/router-core"
 
-  "@tanstack/react-router@1.170.16(react-dom@19.1.0(react@19.1.0))(react@19.1.0)":
+  "@tanstack/react-router@1.170.16(react-dom@19.1.1(react@19.1.1))(react@19.1.1)":
     dependencies:
       "@tanstack/history": 1.162.0
-      "@tanstack/react-store": 0.9.3(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      "@tanstack/react-store": 0.9.3(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       "@tanstack/router-core": 1.171.13
       isbot: 5.1.44
-      react: 19.1.0
-      react-dom: 19.1.0(react@19.1.0)
+      react: 19.1.1
+      react-dom: 19.1.1(react@19.1.1)
 
-  "@tanstack/react-start-client@1.168.14(react-dom@19.1.0(react@19.1.0))(react@19.1.0)":
+  "@tanstack/react-start-client@1.168.14(react-dom@19.1.1(react@19.1.1))(react@19.1.1)":
     dependencies:
-      "@tanstack/react-router": 1.170.16(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      "@tanstack/react-router": 1.170.16(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       "@tanstack/router-core": 1.171.13
       "@tanstack/start-client-core": 1.170.12
-      react: 19.1.0
-      react-dom: 19.1.0(react@19.1.0)
+      react: 19.1.1
+      react-dom: 19.1.1(react@19.1.1)
 
-  "@tanstack/react-start-rsc@0.1.25(esbuild@0.28.1)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)(rolldown@1.1.3)(rollup@4.62.2)(vite@8.1.2(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))":
+  "@tanstack/react-start-rsc@0.1.25(esbuild@0.28.1)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(rolldown@1.1.3)(rollup@4.62.2)(vite@8.1.2(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))":
     dependencies:
-      "@tanstack/react-router": 1.170.16(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      "@tanstack/react-router": 1.170.16(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       "@tanstack/router-core": 1.171.13
       "@tanstack/router-utils": 1.162.2
       "@tanstack/start-client-core": 1.170.12
       "@tanstack/start-fn-stubs": 1.162.0
-      "@tanstack/start-plugin-core": 1.171.18(@tanstack/react-router@1.170.16(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(esbuild@0.28.1)(rolldown@1.1.3)(rollup@4.62.2)(vite@8.1.2(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
+      "@tanstack/start-plugin-core": 1.171.18(@tanstack/react-router@1.170.16(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(esbuild@0.28.1)(rolldown@1.1.3)(rollup@4.62.2)(vite@8.1.2(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
       "@tanstack/start-server-core": 1.169.15
       "@tanstack/start-storage-context": 1.167.15
       pathe: 2.0.3
-      react: 19.1.0
-      react-dom: 19.1.0(react@19.1.0)
+      react: 19.1.1
+      react-dom: 19.1.1(react@19.1.1)
     transitivePeerDependencies:
       - "@farmfe/core"
       - "@rsbuild/core"
@@ -10749,29 +10940,29 @@ snapshots:
       - vite-plugin-solid
       - webpack
 
-  "@tanstack/react-start-server@1.167.20(react-dom@19.1.0(react@19.1.0))(react@19.1.0)":
+  "@tanstack/react-start-server@1.167.20(react-dom@19.1.1(react@19.1.1))(react@19.1.1)":
     dependencies:
-      "@tanstack/react-router": 1.170.16(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      "@tanstack/react-router": 1.170.16(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       "@tanstack/router-core": 1.171.13
       "@tanstack/start-server-core": 1.169.15
-      react: 19.1.0
-      react-dom: 19.1.0(react@19.1.0)
+      react: 19.1.1
+      react-dom: 19.1.1(react@19.1.1)
     transitivePeerDependencies:
       - crossws
 
-  "@tanstack/react-start@1.168.26(esbuild@0.28.1)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)(rolldown@1.1.3)(rollup@4.62.2)(vite@8.1.2(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))":
+  "@tanstack/react-start@1.168.26(esbuild@0.28.1)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(rolldown@1.1.3)(rollup@4.62.2)(vite@8.1.2(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))":
     dependencies:
-      "@tanstack/react-router": 1.170.16(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
-      "@tanstack/react-start-client": 1.168.14(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
-      "@tanstack/react-start-rsc": 0.1.25(esbuild@0.28.1)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)(rolldown@1.1.3)(rollup@4.62.2)(vite@8.1.2(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
-      "@tanstack/react-start-server": 1.167.20(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      "@tanstack/react-router": 1.170.16(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      "@tanstack/react-start-client": 1.168.14(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      "@tanstack/react-start-rsc": 0.1.25(esbuild@0.28.1)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(rolldown@1.1.3)(rollup@4.62.2)(vite@8.1.2(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
+      "@tanstack/react-start-server": 1.167.20(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       "@tanstack/router-utils": 1.162.2
       "@tanstack/start-client-core": 1.170.12
-      "@tanstack/start-plugin-core": 1.171.18(@tanstack/react-router@1.170.16(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(esbuild@0.28.1)(rolldown@1.1.3)(rollup@4.62.2)(vite@8.1.2(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
+      "@tanstack/start-plugin-core": 1.171.18(@tanstack/react-router@1.170.16(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(esbuild@0.28.1)(rolldown@1.1.3)(rollup@4.62.2)(vite@8.1.2(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
       "@tanstack/start-server-core": 1.169.15
       pathe: 2.0.3
-      react: 19.1.0
-      react-dom: 19.1.0(react@19.1.0)
+      react: 19.1.1
+      react-dom: 19.1.1(react@19.1.1)
     optionalDependencies:
       vite: 8.1.2(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0)
     transitivePeerDependencies:
@@ -10795,24 +10986,31 @@ snapshots:
       react-dom: 19.1.0(react@19.1.0)
       use-sync-external-store: 1.6.0(react@19.1.0)
 
-  "@tanstack/react-store@0.9.3(react-dom@19.1.0(react@19.1.0))(react@19.1.0)":
+  "@tanstack/react-store@0.7.7(react-dom@19.1.1(react@19.1.1))(react@19.1.1)":
+    dependencies:
+      "@tanstack/store": 0.7.7
+      react: 19.1.1
+      react-dom: 19.1.1(react@19.1.1)
+      use-sync-external-store: 1.6.0(react@19.1.1)
+
+  "@tanstack/react-store@0.9.3(react-dom@19.1.1(react@19.1.1))(react@19.1.1)":
     dependencies:
       "@tanstack/store": 0.9.3
-      react: 19.1.0
-      react-dom: 19.1.0(react@19.1.0)
-      use-sync-external-store: 1.6.0(react@19.1.0)
+      react: 19.1.1
+      react-dom: 19.1.1(react@19.1.1)
+      use-sync-external-store: 1.6.0(react@19.1.1)
 
-  "@tanstack/react-table@8.21.3(react-dom@19.1.0(react@19.1.0))(react@19.1.0)":
+  "@tanstack/react-table@8.21.3(react-dom@19.1.1(react@19.1.1))(react@19.1.1)":
     dependencies:
       "@tanstack/table-core": 8.21.3
-      react: 19.1.0
-      react-dom: 19.1.0(react@19.1.0)
+      react: 19.1.1
+      react-dom: 19.1.1(react@19.1.1)
 
-  "@tanstack/react-virtual@3.14.5(react-dom@19.1.0(react@19.1.0))(react@19.1.0)":
+  "@tanstack/react-virtual@3.14.5(react-dom@19.1.1(react@19.1.1))(react@19.1.1)":
     dependencies:
       "@tanstack/virtual-core": 3.17.3
-      react: 19.1.0
-      react-dom: 19.1.0(react@19.1.0)
+      react: 19.1.1
+      react-dom: 19.1.1(react@19.1.1)
 
   "@tanstack/router-core@1.171.13":
     dependencies:
@@ -10834,7 +11032,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  "@tanstack/router-plugin@1.168.18(@tanstack/react-router@1.170.16(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(esbuild@0.28.1)(rolldown@1.1.3)(rollup@4.62.2)(vite@8.1.2(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))":
+  "@tanstack/router-plugin@1.168.18(@tanstack/react-router@1.170.16(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(esbuild@0.28.1)(rolldown@1.1.3)(rollup@4.62.2)(vite@8.1.2(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))":
     dependencies:
       "@babel/core": 7.29.7
       "@babel/template": 7.29.7
@@ -10846,7 +11044,7 @@ snapshots:
       unplugin: 3.3.0(esbuild@0.28.1)(rolldown@1.1.3)(rollup@4.62.2)(vite@8.1.2(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
       zod: 4.4.3
     optionalDependencies:
-      "@tanstack/react-router": 1.170.16(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      "@tanstack/react-router": 1.170.16(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       vite: 8.1.2(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0)
     transitivePeerDependencies:
       - "@farmfe/core"
@@ -10885,14 +11083,14 @@ snapshots:
 
   "@tanstack/start-fn-stubs@1.162.0": {}
 
-  "@tanstack/start-plugin-core@1.171.18(@tanstack/react-router@1.170.16(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(esbuild@0.28.1)(rolldown@1.1.3)(rollup@4.62.2)(vite@8.1.2(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))":
+  "@tanstack/start-plugin-core@1.171.18(@tanstack/react-router@1.170.16(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(esbuild@0.28.1)(rolldown@1.1.3)(rollup@4.62.2)(vite@8.1.2(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))":
     dependencies:
       "@babel/code-frame": 7.27.1
       "@babel/core": 7.29.7
       "@babel/types": 7.29.7
       "@tanstack/router-core": 1.171.13
       "@tanstack/router-generator": 1.167.17
-      "@tanstack/router-plugin": 1.168.18(@tanstack/react-router@1.170.16(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(esbuild@0.28.1)(rolldown@1.1.3)(rollup@4.62.2)(vite@8.1.2(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
+      "@tanstack/router-plugin": 1.168.18(@tanstack/react-router@1.170.16(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(esbuild@0.28.1)(rolldown@1.1.3)(rollup@4.62.2)(vite@8.1.2(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
       "@tanstack/router-utils": 1.162.2
       "@tanstack/start-server-core": 1.169.15
       exsolve: 1.1.0
@@ -11032,6 +11230,23 @@ snapshots:
       react: 19.1.0
       react-dom: 19.1.0(react@19.1.0)
       use-sync-external-store: 1.6.0(react@19.1.0)
+    optionalDependencies:
+      "@tiptap/extension-bubble-menu": 3.27.1(@tiptap/core@3.27.1(@tiptap/pm@3.27.1))(@tiptap/pm@3.27.1)
+      "@tiptap/extension-floating-menu": 3.27.1(@floating-ui/dom@1.7.6)(@tiptap/core@3.27.1(@tiptap/pm@3.27.1))(@tiptap/pm@3.27.1)
+    transitivePeerDependencies:
+      - "@floating-ui/dom"
+
+  "@tiptap/react@3.27.1(@floating-ui/dom@1.7.6)(@tiptap/core@3.27.1(@tiptap/pm@3.27.1))(@tiptap/pm@3.27.1)(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)":
+    dependencies:
+      "@tiptap/core": 3.27.1(@tiptap/pm@3.27.1)
+      "@tiptap/pm": 3.27.1
+      "@types/react": 19.2.17
+      "@types/react-dom": 19.2.3(@types/react@19.2.17)
+      "@types/use-sync-external-store": 0.0.6
+      fast-equals: 5.4.0
+      react: 19.1.1
+      react-dom: 19.1.1(react@19.1.1)
+      use-sync-external-store: 1.6.0(react@19.1.1)
     optionalDependencies:
       "@tiptap/extension-bubble-menu": 3.27.1(@tiptap/core@3.27.1(@tiptap/pm@3.27.1))(@tiptap/pm@3.27.1)
       "@tiptap/extension-floating-menu": 3.27.1(@floating-ui/dom@1.7.6)(@tiptap/core@3.27.1(@tiptap/pm@3.27.1))(@tiptap/pm@3.27.1)
@@ -11291,13 +11506,13 @@ snapshots:
     transitivePeerDependencies:
       - typescript
 
-  "@workos/authkit-tanstack-react-start@0.9.1(@tanstack/react-router@1.170.16(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(@tanstack/react-start@1.168.26(esbuild@0.28.1)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)(rolldown@1.1.3)(rollup@4.62.2)(vite@8.1.2(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0)))(@workos-inc/node@10.7.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)(typescript@5.9.3)":
+  "@workos/authkit-tanstack-react-start@0.9.1(@tanstack/react-router@1.170.16(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(@tanstack/react-start@1.168.26(esbuild@0.28.1)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(rolldown@1.1.3)(rollup@4.62.2)(vite@8.1.2(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0)))(@workos-inc/node@10.7.0)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(typescript@5.9.3)":
     dependencies:
-      "@tanstack/react-router": 1.170.16(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
-      "@tanstack/react-start": 1.168.26(esbuild@0.28.1)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)(rolldown@1.1.3)(rollup@4.62.2)(vite@8.1.2(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
+      "@tanstack/react-router": 1.170.16(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      "@tanstack/react-start": 1.168.26(esbuild@0.28.1)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(rolldown@1.1.3)(rollup@4.62.2)(vite@8.1.2(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
       "@workos/authkit-session": 0.6.0(@workos-inc/node@10.7.0)(typescript@5.9.3)
-      react: 19.1.0
-      react-dom: 19.1.0(react@19.1.0)
+      react: 19.1.1
+      react-dom: 19.1.1(react@19.1.1)
     transitivePeerDependencies:
       - "@workos-inc/node"
       - typescript
@@ -11309,6 +11524,19 @@ snapshots:
       react: 19.1.0
       react-dom: 19.1.0(react@19.1.0)
       zustand: 4.5.7(@types/react@19.2.17)(immer@11.1.11)(react@19.1.0)
+    optionalDependencies:
+      "@types/react": 19.2.17
+      "@types/react-dom": 19.2.3(@types/react@19.2.17)
+    transitivePeerDependencies:
+      - immer
+
+  "@xyflow/react@12.11.1(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(immer@11.1.11)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)":
+    dependencies:
+      "@xyflow/system": 0.0.78
+      classcat: 5.0.5
+      react: 19.1.1
+      react-dom: 19.1.1(react@19.1.1)
+      zustand: 4.5.7(@types/react@19.2.17)(immer@11.1.11)(react@19.1.1)
     optionalDependencies:
       "@types/react": 19.2.17
       "@types/react-dom": 19.2.3(@types/react@19.2.17)
@@ -12439,32 +12667,32 @@ snapshots:
       "@zag-js/types": 1.41.2
       "@zag-js/utils": 1.41.2
 
-  "@zag-js/react@1.24.2(react-dom@19.1.0(react@19.1.0))(react@19.1.0)":
+  "@zag-js/react@1.24.2(react-dom@19.1.1(react@19.1.1))(react@19.1.1)":
     dependencies:
       "@zag-js/core": 1.24.2
       "@zag-js/store": 1.24.2
       "@zag-js/types": 1.24.2
       "@zag-js/utils": 1.24.2
-      react: 19.1.0
-      react-dom: 19.1.0(react@19.1.0)
+      react: 19.1.1
+      react-dom: 19.1.1(react@19.1.1)
 
-  "@zag-js/react@1.31.1(react-dom@19.1.0(react@19.1.0))(react@19.1.0)":
+  "@zag-js/react@1.31.1(react-dom@19.1.1(react@19.1.1))(react@19.1.1)":
     dependencies:
       "@zag-js/core": 1.31.1
       "@zag-js/store": 1.31.1
       "@zag-js/types": 1.31.1
       "@zag-js/utils": 1.31.1
-      react: 19.1.0
-      react-dom: 19.1.0(react@19.1.0)
+      react: 19.1.1
+      react-dom: 19.1.1(react@19.1.1)
 
-  "@zag-js/react@1.41.2(react-dom@19.1.0(react@19.1.0))(react@19.1.0)":
+  "@zag-js/react@1.41.2(react-dom@19.1.1(react@19.1.1))(react@19.1.1)":
     dependencies:
       "@zag-js/core": 1.41.2
       "@zag-js/store": 1.41.2
       "@zag-js/types": 1.41.2
       "@zag-js/utils": 1.41.2
-      react: 19.1.0
-      react-dom: 19.1.0(react@19.1.0)
+      react: 19.1.1
+      react-dom: 19.1.1(react@19.1.1)
 
   "@zag-js/rect-utils@1.24.2": {}
 
@@ -13175,9 +13403,22 @@ snapshots:
       typescript: 5.9.3
       zod: 4.4.3
 
+  convex-helpers@0.1.120(@standard-schema/spec@1.1.0)(convex@1.42.1(react@19.1.1))(react@19.1.1)(typescript@5.9.3)(zod@4.4.3):
+    dependencies:
+      convex: 1.42.1(react@19.1.1)
+    optionalDependencies:
+      "@standard-schema/spec": 1.1.0
+      react: 19.1.1
+      typescript: 5.9.3
+      zod: 4.4.3
+
   convex-test@0.0.54(convex@1.42.1(react@19.1.0)):
     dependencies:
       convex: 1.42.1(react@19.1.0)
+
+  convex-test@0.0.54(convex@1.42.1(react@19.1.1)):
+    dependencies:
+      convex: 1.42.1(react@19.1.1)
 
   convex@1.42.1(react@19.1.0):
     dependencies:
@@ -13186,6 +13427,17 @@ snapshots:
       ws: 8.21.0
     optionalDependencies:
       react: 19.1.0
+    transitivePeerDependencies:
+      - bufferutil
+      - utf-8-validate
+
+  convex@1.42.1(react@19.1.1):
+    dependencies:
+      esbuild: 0.27.0
+      prettier: 3.9.4
+      ws: 8.21.0
+    optionalDependencies:
+      react: 19.1.1
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
@@ -13296,6 +13548,10 @@ snapshots:
 
   diff@8.0.4: {}
 
+  dodopayments@2.44.0:
+    dependencies:
+      standardwebhooks: 1.0.0
+
   dunder-proto@1.0.1:
     dependencies:
       call-bind-apply-helpers: 1.0.2
@@ -13303,6 +13559,11 @@ snapshots:
       gopd: 1.2.0
 
   eastasianwidth@0.2.0: {}
+
+  effect@3.21.4:
+    dependencies:
+      "@standard-schema/spec": 1.1.0
+      fast-check: 3.23.2
 
   effect@4.0.0-beta.102:
     dependencies:
@@ -13506,6 +13767,10 @@ snapshots:
 
   exsolve@1.1.0: {}
 
+  fast-check@3.23.2:
+    dependencies:
+      pure-rand: 6.1.0
+
   fast-check@4.8.0:
     dependencies:
       pure-rand: 8.4.1
@@ -13529,6 +13794,8 @@ snapshots:
   fast-json-stable-stringify@2.1.0: {}
 
   fast-levenshtein@2.0.6: {}
+
+  fast-sha256@1.3.0: {}
 
   fast-string-truncated-width@3.0.3: {}
 
@@ -13963,9 +14230,9 @@ snapshots:
     dependencies:
       yallist: 3.1.1
 
-  lucide-react@1.22.0(react@19.1.0):
+  lucide-react@1.22.0(react@19.1.1):
     dependencies:
-      react: 19.1.0
+      react: 19.1.1
 
   magic-string@0.30.21:
     dependencies:
@@ -14048,10 +14315,10 @@ snapshots:
 
   natural-compare@1.4.0: {}
 
-  next-themes@0.4.6(react-dom@19.1.0(react@19.1.0))(react@19.1.0):
+  next-themes@0.4.6(react-dom@19.1.1(react@19.1.1))(react@19.1.1):
     dependencies:
-      react: 19.1.0
-      react-dom: 19.1.0(react@19.1.0)
+      react: 19.1.1
+      react-dom: 19.1.1(react@19.1.1)
 
   node-gyp-build-optional-packages@5.2.2:
     dependencies:
@@ -14307,6 +14574,8 @@ snapshots:
 
   punycode@2.3.1: {}
 
+  pure-rand@6.1.0: {}
+
   pure-rand@8.4.1: {}
 
   qs@6.15.1:
@@ -14315,46 +14584,57 @@ snapshots:
 
   queue-microtask@1.2.3: {}
 
-  react-aria@3.50.0(react-dom@19.1.0(react@19.1.0))(react@19.1.0):
+  react-aria@3.50.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1):
     dependencies:
       "@internationalized/date": 3.7.0
       "@internationalized/number": 3.5.0
       "@internationalized/string": 3.2.9
-      "@react-types/shared": 3.36.0(react@19.1.0)
+      "@react-types/shared": 3.36.0(react@19.1.1)
       "@swc/helpers": 0.5.23
       aria-hidden: 1.2.6
       clsx: 2.1.1
-      react: 19.1.0
-      react-dom: 19.1.0(react@19.1.0)
-      react-stately: 3.48.0(react@19.1.0)
-      use-sync-external-store: 1.6.0(react@19.1.0)
+      react: 19.1.1
+      react-dom: 19.1.1(react@19.1.1)
+      react-stately: 3.48.0(react@19.1.1)
+      use-sync-external-store: 1.6.0(react@19.1.1)
 
   react-dom@19.1.0(react@19.1.0):
     dependencies:
       react: 19.1.0
       scheduler: 0.26.0
 
-  react-hook-form@7.80.0(react@19.1.0):
+  react-dom@19.1.1(react@19.1.1):
     dependencies:
-      react: 19.1.0
+      react: 19.1.1
+      scheduler: 0.26.0
+
+  react-hook-form@7.80.0(react@19.1.1):
+    dependencies:
+      react: 19.1.1
 
   react-icons@5.7.0(react@19.1.0):
     dependencies:
       react: 19.1.0
 
+  react-icons@5.7.0(react@19.1.1):
+    dependencies:
+      react: 19.1.1
+
   react-is@16.13.1: {}
 
-  react-stately@3.48.0(react@19.1.0):
+  react-stately@3.48.0(react@19.1.1):
     dependencies:
       "@internationalized/date": 3.7.0
       "@internationalized/number": 3.5.0
       "@internationalized/string": 3.2.9
-      "@react-types/shared": 3.36.0(react@19.1.0)
+      "@react-types/shared": 3.36.0(react@19.1.1)
       "@swc/helpers": 0.5.23
-      react: 19.1.0
-      use-sync-external-store: 1.6.0(react@19.1.0)
+      react: 19.1.1
+      use-sync-external-store: 1.6.0(react@19.1.1)
 
   react@19.1.0: {}
+
+  react@19.1.1: {}
 
   readdirp@5.0.0: {}
 
@@ -14524,6 +14804,11 @@ snapshots:
   stackback@0.0.2: {}
 
   standard-as-callback@2.1.0: {}
+
+  standardwebhooks@1.0.0:
+    dependencies:
+      "@stablelib/base64": 1.0.1
+      fast-sha256: 1.3.0
 
   std-env@3.10.0: {}
 
@@ -14742,6 +15027,10 @@ snapshots:
     dependencies:
       react: 19.1.0
 
+  use-sync-external-store@1.6.0(react@19.1.1):
+    dependencies:
+      react: 19.1.1
+
   uuid@14.0.1: {}
 
   valibot@1.4.2(typescript@5.9.3):
@@ -14943,3 +15232,11 @@ snapshots:
       "@types/react": 19.2.17
       immer: 11.1.11
       react: 19.1.0
+
+  zustand@4.5.7(@types/react@19.2.17)(immer@11.1.11)(react@19.1.1):
+    dependencies:
+      use-sync-external-store: 1.6.0(react@19.1.1)
+    optionalDependencies:
+      "@types/react": 19.2.17
+      immer: 11.1.11
+      react: 19.1.1

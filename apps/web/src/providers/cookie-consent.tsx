@@ -51,6 +51,11 @@ export const shouldEnableAnalyticsCapture = (
   consent: CookieConsentState,
 ): boolean => consent === "accepted";
 
+export const reconcileStoredCookieConsent = (
+  current: CookieConsentState,
+  stored: CookieConsentState,
+): CookieConsentState => (current === "pending" ? stored : current);
+
 export function CookieConsentBoundary({
   children,
 }: {
@@ -59,7 +64,9 @@ export function CookieConsentBoundary({
   const [consent, setConsent] = useState<CookieConsentState>("pending");
 
   useEffect(() => {
-    setConsent(readCookieConsentDecision());
+    setConsent((current) =>
+      reconcileStoredCookieConsent(current, readCookieConsentDecision()),
+    );
   }, []);
 
   const chooseConsent = useCallback((decision: CookieConsentDecision) => {

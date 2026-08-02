@@ -12,7 +12,6 @@ import {
   createCustomerCurrentAdapter,
   createCustomerReleaseAdapter,
 } from "./createAdapter.js";
-import { composedExpectedHashes } from "./createAdapter.archive.js";
 import {
   adapter,
   blueprintTargetPlan,
@@ -25,29 +24,42 @@ import {
 } from "./createAdapter.testFixtures.js";
 
 describe("customer release create adapter", () => {
-  it("composes expected hashes for copied upgrade additions and changes", () => {
-    const copied = {
-      path: "tooling/release/customer-fixture.json",
-      match: "exact" as const,
-      ownership: "template-owned" as const,
-      action: "copy" as const,
-      upgrade: "replace" as const,
-    };
-    const removed = { ...copied, path: "removed.json" };
-    expect(
-      composedExpectedHashes(
-        { "removed.json": `sha256:${"a".repeat(64)}` },
-        [copied, removed],
-        [
-          {
-            kind: "add",
-            path: copied.path,
-            afterHash: `sha256:${"b".repeat(64)}`,
-          },
-          { kind: "delete", path: removed.path },
-        ],
-      ),
-    ).toEqual({ [copied.path]: `sha256:${"b".repeat(64)}` });
+  it("binds exact current omission authority into preview and provenance", async () => {
+    const fixture = taggedRelease();
+    const options = {
+      repositoryRoot: fixture.repositoryRoot,
+      manifestPath: fixture.manifestPath,
+      ownershipManifestChecksum: fixture.ownershipManifestChecksum,
+      tag: fixture.tag,
+      homeRoot: fixture.homeRoot,
+      temporaryRoot: fixture.temporaryRoot,
+      blueprintManifestPath: fixture.blueprintManifestPath,
+      blueprintManifestChecksum: fixture.blueprintManifestChecksum,
+      blueprintId: "fixture-blueprint",
+      blueprintProvenance: "fixture-generator@1",
+    } as const;
+    const baseline = await prepare(
+      fixture,
+      createCustomerCurrentAdapter(options),
+    );
+    const omissionPath = "factory-only/current-composition.ts";
+    const withOmission = await prepare(
+      fixture,
+      createCustomerCurrentAdapter({
+        ...options,
+        currentOmissions: [omissionPath],
+      }),
+    );
+    if (!baseline.ok || !withOmission.ok)
+      throw new Error("expected prepared current compositions");
+
+    expect(withOmission.preview.omissions).toContain(omissionPath);
+    expect(withOmission.facts.sourceChecksum).not.toBe(
+      baseline.facts.sourceChecksum,
+    );
+    expect(withOmission.facts.ownershipManifestChecksum).toBe(
+      withOmission.facts.sourceChecksum,
+    );
   });
 
   it("projects immutable release identity when current HEAD is the exact tag", async () => {

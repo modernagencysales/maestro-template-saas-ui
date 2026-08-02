@@ -45,11 +45,39 @@ export type LlmGatewayError =
   | LlmProviderConfigError
   | LlmProviderCallError
   | LlmReceiptValidationError
-  | SpendCapExceededError;
+  | SpendCapExceededError
+  | LlmRequestLimitError;
+
+export class LlmRequestLimitError extends Schema.TaggedErrorClass<LlmRequestLimitError>()(
+  "LlmRequestLimitError",
+  {
+    limit: Schema.Union([
+      Schema.Literal("input-tokens"),
+      Schema.Literal("output-tokens"),
+    ]),
+    actual: Schema.Number,
+    maximum: Schema.Number,
+  },
+) {}
+
+export type LlmPricing = {
+  readonly inputCentsPerMillionTokens: number;
+  readonly outputCentsPerMillionTokens: number;
+  readonly minimumCents: number;
+};
+
+export type LlmCallLimits = {
+  readonly maxInputTokens: number;
+  readonly maxOutputTokens: number;
+};
 
 export type LlmGatewayRequest = {
   readonly workspaceSlug: string;
   readonly prompt: string;
+  readonly model?: string;
+  readonly modelEnv?: "LLM_FREE_MODEL" | "LLM_PREMIUM_MODEL";
+  readonly pricing?: LlmPricing;
+  readonly limits?: LlmCallLimits;
   readonly idempotencyKey?: string;
   readonly expectedCompletionTokens?: number;
   readonly currentDailySpendCents?: number;
@@ -60,11 +88,52 @@ export type LlmProviderTransportInput = {
   readonly baseUrl: string;
   readonly model: string;
   readonly prompt: string;
+  readonly maxOutputTokens?: number;
 };
 
 export type LlmProviderTransportResult = {
   readonly text: string;
 };
+
+type Fetcher = (url: string, init?: RequestInit) => Promise<Response>;
+
+export const createOpenRouterTransport =
+  (fetcher: Fetcher = fetch): NonNullable<LlmGatewayConfig["transport"]> =>
+  (input) =>
+    Effect.tryPromise({
+      try: async () => {
+        const response = await fetcher(`${input.baseUrl}/chat/completions`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${input.apiKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: input.model,
+            messages: [{ role: "user", content: input.prompt }],
+            ...(input.maxOutputTokens === undefined
+              ? {}
+              : { max_tokens: input.maxOutputTokens }),
+          }),
+        });
+        if (!response.ok) {
+          throw new Error(
+            `OpenRouter returned HTTP ${String(response.status)}.`,
+          );
+        }
+        const body = (await response.json()) as {
+          readonly choices?: readonly {
+            readonly message?: { readonly content?: unknown };
+          }[];
+        };
+        const text = body.choices?.[0]?.message?.content;
+        if (typeof text !== "string" || !text.trim()) {
+          throw new Error("OpenRouter returned an empty completion.");
+        }
+        return { text };
+      },
+      catch: (error) => error,
+    });
 
 export type LlmTelemetryEvent = {
   readonly provider: "openrouter";
@@ -83,6 +152,7 @@ export type LlmGatewayConfig = {
   readonly captureTelemetry?: (
     event: LlmTelemetryEvent,
   ) => void | Promise<void>;
+  readonly fakeCompletionText?: (request: LlmGatewayRequest) => string;
 };
 
 export type LlmGateway = {
@@ -124,14 +194,17 @@ const requireOpenRouterApiKey = (
 
 const spendForRequest = (request: LlmGatewayRequest) => {
   const promptTokens = estimateConservativeTokenCount(request.prompt);
-  const completionTokens = request.expectedCompletionTokens ?? 256;
+  const completionTokens =
+    request.expectedCompletionTokens ?? request.limits?.maxOutputTokens ?? 256;
 
   return calculateLlmSpend({
     promptTokens,
     completionTokens,
-    inputCentsPerMillionTokens: 20,
-    outputCentsPerMillionTokens: 40,
-    minimumCents: 1,
+    inputCentsPerMillionTokens:
+      request.pricing?.inputCentsPerMillionTokens ?? 20,
+    outputCentsPerMillionTokens:
+      request.pricing?.outputCentsPerMillionTokens ?? 40,
+    minimumCents: request.pricing?.minimumCents ?? 1,
   });
 };
 
@@ -171,6 +244,30 @@ export const createLlmGateway = (config: LlmGatewayConfig): LlmGateway => ({
       }
 
       const usage = spendForRequest(request);
+      if (
+        request.limits &&
+        usage.promptTokens > request.limits.maxInputTokens
+      ) {
+        return yield* Effect.fail(
+          new LlmRequestLimitError({
+            limit: "input-tokens",
+            actual: usage.promptTokens,
+            maximum: request.limits.maxInputTokens,
+          }),
+        );
+      }
+      if (
+        request.limits &&
+        usage.completionTokens > request.limits.maxOutputTokens
+      ) {
+        return yield* Effect.fail(
+          new LlmRequestLimitError({
+            limit: "output-tokens",
+            actual: usage.completionTokens,
+            maximum: request.limits.maxOutputTokens,
+          }),
+        );
+      }
       const dailyLimit = Number(
         readEnv(config.env, "LLM_DAILY_SPEND_LIMIT_CENTS") ?? "2500",
       );
@@ -185,12 +282,19 @@ export const createLlmGateway = (config: LlmGatewayConfig): LlmGateway => ({
         return yield* Effect.fail(cap);
       }
 
-      const model = readEnv(config.env, "LLM_DEFAULT_MODEL") ?? defaultModel;
+      const model =
+        request.model ??
+        (request.modelEnv === undefined
+          ? undefined
+          : readEnv(config.env, request.modelEnv)) ??
+        readEnv(config.env, "LLM_DEFAULT_MODEL") ??
+        defaultModel;
       const generatedAt = config.now?.() ?? new Date().toISOString();
 
       const text =
         config.mode === "fake"
-          ? makeFakeLlmCompletionText(request.workspaceSlug)
+          ? (config.fakeCompletionText?.(request) ??
+            makeFakeLlmCompletionText(request.workspaceSlug))
           : yield* Effect.gen(function* () {
               const apiKey = requireOpenRouterApiKey(config.env);
 
@@ -204,13 +308,11 @@ export const createLlmGateway = (config: LlmGatewayConfig): LlmGateway => ({
                   readEnv(config.env, "OPENROUTER_BASE_URL") ?? defaultBaseUrl,
                 model,
                 prompt: request.prompt,
+                ...(request.limits === undefined
+                  ? {}
+                  : { maxOutputTokens: request.limits.maxOutputTokens }),
               };
-              const transport =
-                config.transport ??
-                (() =>
-                  Effect.succeed({
-                    text: "Live-ready LLM transport placeholder.",
-                  }));
+              const transport = config.transport ?? createOpenRouterTransport();
               const result = yield* transport(transportInput).pipe(
                 Effect.mapError(() => createProviderCallError(transportInput)),
               );
