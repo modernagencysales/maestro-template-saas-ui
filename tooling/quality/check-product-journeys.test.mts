@@ -127,7 +127,53 @@ const first = <T,>(values: readonly T[]): T => {
   if (value === undefined) throw new Error("test fixture is missing an item");
   return value;
 };
-const adapterFiles = (value: unknown): Record<string, string> => {
+const installClosedMigration = (
+  gateInput: ReturnType<typeof input>,
+  {
+    reviewerIdentity = "contract-owner",
+    reason = "canonical rename",
+  }: { reviewerIdentity?: string; reason?: string } = {},
+) => {
+  const predecessor = first(gateInput.baselineCatalog);
+  const successors = gateInput.catalog;
+  const continuity = {
+    fromJourneyId: predecessor.id,
+    toJourneyIds: successors.map(({ id }) => id),
+    baselineVersion: predecessor.version,
+    predecessorContractHash: digest(predecessor),
+    successorContractHashes: successors.map(digest),
+    predecessorAttestationIdentity: `attestation:${predecessor.id}:${predecessor.version}`,
+    successorAttestationIdentities: successors.map(
+      ({ id, version }) => `attestation:${id}:${version}`,
+    ),
+    predecessorLeaseContinuityIdentity: `lease:${predecessor.id}:${predecessor.version}`,
+    successorLeaseContinuityIdentities: successors.map(
+      ({ id, version }) => `lease:${id}:${version}`,
+    ),
+    reason,
+  };
+  const artifact = {
+    approvalScope: "product-journey-id-migration" as const,
+    decision: "approved" as const,
+    reviewerIdentity,
+    ...continuity,
+  };
+  gateInput.migrationLedger = [
+    {
+      ...continuity,
+      approval: {
+        artifactSource: "migration-approval.json",
+        artifactDigest: digest(artifact),
+        reviewerIdentity,
+      },
+    },
+  ];
+  return artifact;
+};
+const adapterFiles = (
+  value: unknown,
+  migrationApprovalArtifact: unknown = approvalArtifact,
+): Record<string, string> => {
   const bound = JSON.parse(JSON.stringify(value)) as Record<string, unknown>;
   const descriptorValue = bound.descriptor;
   if (
@@ -150,7 +196,7 @@ const adapterFiles = (value: unknown): Record<string, string> => {
     "baseline.json": JSON.stringify(bound.baselineCatalog ?? {}),
     "journey-id-migrations.json": JSON.stringify(bound.migrationLedger ?? []),
     "approval-identities.json": JSON.stringify(approvalIdentities),
-    "migration-approval.json": JSON.stringify(approvalArtifact),
+    "migration-approval.json": JSON.stringify(migrationApprovalArtifact),
   };
 };
 
@@ -315,20 +361,8 @@ describe("check:product-journeys", () => {
     first(gateInput.inventory.surfaceAuthorities).journeyId = "activation-v2";
     first(gateInput.inventory.receiptProducers).journeyId = "activation-v2";
     first(gateInput.inventory.receiptConsumers).journeyId = "activation-v2";
-    gateInput.migrationLedger = [
-      {
-        fromJourneyId: "activation",
-        toJourneyIds: ["activation-v2"],
-        baselineVersion: 1,
-        approval: {
-          artifactSource: "migration-approval.json",
-          artifactDigest: digest(approvalArtifact),
-          reviewerIdentity: "contract-owner",
-        },
-        reason: "canonical rename",
-      },
-    ];
-    await withGateRepo(adapterFiles(gateInput), async (repoRoot) => {
+    const artifact = installClosedMigration(gateInput);
+    await withGateRepo(adapterFiles(gateInput, artifact), async (repoRoot) => {
       const result = await evaluateProductJourneyGate({
         repoRoot,
         adapterPath: "adapter.mjs",
@@ -337,22 +371,167 @@ describe("check:product-journeys", () => {
     });
   });
 
-  it("rejects an unapproved journey-id migration ledger entry", async () => {
+  it("rejects a generic reusable migration approval artifact", async () => {
     const gateInput = input();
+    first(gateInput.catalog).id = "activation-v2";
+    first(gateInput.inventory.surfaceAuthorities).journeyId = "activation-v2";
+    first(gateInput.inventory.receiptProducers).journeyId = "activation-v2";
+    first(gateInput.inventory.receiptConsumers).journeyId = "activation-v2";
+    installClosedMigration(gateInput);
+    first(gateInput.migrationLedger).approval.artifactDigest =
+      digest(approvalArtifact);
+    await withGateRepo(adapterFiles(gateInput), async (repoRoot) => {
+      const result = await evaluateProductJourneyGate({
+        repoRoot,
+        adapterPath: "adapter.mjs",
+      });
+      expect(result).toMatchObject({
+        ok: false,
+        diagnostics: [
+          {
+            code: "ADAPTER_INVALID",
+            message: expect.stringContaining("closed migration approval"),
+          },
+        ],
+      });
+    });
+  });
+
+  it("rejects an approval artifact that does not exactly match its ledger migration", async () => {
+    const gateInput = input();
+    const artifact = installClosedMigration(gateInput);
+    const mismatchedArtifact = {
+      ...artifact,
+      reason: "approve another migration",
+    };
+    first(gateInput.migrationLedger).approval.artifactDigest =
+      digest(mismatchedArtifact);
+    await withGateRepo(
+      adapterFiles(gateInput, mismatchedArtifact),
+      async (repoRoot) => {
+        const result = await evaluateProductJourneyGate({
+          repoRoot,
+          adapterPath: "adapter.mjs",
+        });
+        expect(result).toMatchObject({
+          ok: false,
+          diagnostics: [
+            {
+              code: "ADAPTER_INVALID",
+              message: expect.stringContaining("exactly bind migration"),
+            },
+          ],
+        });
+      },
+    );
+  });
+
+  it("binds approved predecessor and successor hashes to the actual contracts", async () => {
+    const gateInput = input();
+    const artifact = installClosedMigration(gateInput);
+    const migration = first(gateInput.migrationLedger);
+    migration.predecessorContractHash = "forged-predecessor-hash";
+    const forgedArtifact = {
+      ...artifact,
+      predecessorContractHash: migration.predecessorContractHash,
+    };
+    migration.approval.artifactDigest = digest(forgedArtifact);
+    await withGateRepo(
+      adapterFiles(gateInput, forgedArtifact),
+      async (repoRoot) => {
+        const result = await evaluateProductJourneyGate({
+          repoRoot,
+          adapterPath: "adapter.mjs",
+        });
+        expect(result).toMatchObject({
+          ok: false,
+          diagnostics: [
+            {
+              code: "ADAPTER_INVALID",
+              message: expect.stringContaining("predecessor contract hash"),
+            },
+          ],
+        });
+      },
+    );
+  });
+
+  it("rejects approved successor hashes that do not match the current contracts", async () => {
+    const gateInput = input();
+    const artifact = installClosedMigration(gateInput);
+    const migration = first(gateInput.migrationLedger);
+    migration.successorContractHashes = ["forged-successor-hash"];
+    const forgedArtifact = {
+      ...artifact,
+      successorContractHashes: migration.successorContractHashes,
+    };
+    migration.approval.artifactDigest = digest(forgedArtifact);
+    await withGateRepo(
+      adapterFiles(gateInput, forgedArtifact),
+      async (repoRoot) => {
+        const result = await evaluateProductJourneyGate({
+          repoRoot,
+          adapterPath: "adapter.mjs",
+        });
+        expect(result).toMatchObject({
+          ok: false,
+          diagnostics: [
+            {
+              code: "ADAPTER_INVALID",
+              message: expect.stringContaining("successor contract hashes"),
+            },
+          ],
+        });
+      },
+    );
+  });
+
+  it("rejects retirement until attestation and lease continuity can be represented", async () => {
+    const gateInput = input();
+    const predecessor = first(gateInput.baselineCatalog);
     gateInput.migrationLedger = [
       {
-        fromJourneyId: "activation",
-        toJourneyIds: ["activation"],
-        baselineVersion: 1,
+        fromJourneyId: predecessor.id,
+        toJourneyIds: [],
+        baselineVersion: predecessor.version,
+        predecessorContractHash: digest(predecessor),
+        successorContractHashes: [],
+        predecessorAttestationIdentity: "attestation:activation:1",
+        successorAttestationIdentities: [],
+        predecessorLeaseContinuityIdentity: "lease:activation:1",
+        successorLeaseContinuityIdentities: [],
         approval: {
           artifactSource: "migration-approval.json",
           artifactDigest: digest(approvalArtifact),
-          reviewerIdentity: "unprotected-reviewer",
+          reviewerIdentity: "contract-owner",
         },
-        reason: "rename",
+        reason: "retire journey",
       },
     ];
     await withGateRepo(adapterFiles(gateInput), async (repoRoot) => {
+      const result = await evaluateProductJourneyGate({
+        repoRoot,
+        adapterPath: "adapter.mjs",
+      });
+      expect(result).toMatchObject({
+        ok: false,
+        diagnostics: [
+          {
+            code: "ADAPTER_INVALID",
+            message: expect.stringContaining("retirement is unsupported"),
+          },
+        ],
+      });
+    });
+  });
+
+  it("rejects an unapproved journey-id migration ledger entry", async () => {
+    const gateInput = input();
+    const artifact = installClosedMigration(gateInput, {
+      reviewerIdentity: "unprotected-reviewer",
+      reason: "rename",
+    });
+    await withGateRepo(adapterFiles(gateInput, artifact), async (repoRoot) => {
       const result = await evaluateProductJourneyGate({
         repoRoot,
         adapterPath: "adapter.mjs",
@@ -431,20 +610,8 @@ describe("check:product-journeys", () => {
     first(gateInput.inventory.surfaceAuthorities).journeyId = "activation-v2";
     first(gateInput.inventory.receiptProducers).journeyId = "activation-v2";
     first(gateInput.inventory.receiptConsumers).journeyId = "activation-v2";
-    gateInput.migrationLedger = [
-      {
-        fromJourneyId: "activation",
-        toJourneyIds: ["activation-v2"],
-        baselineVersion: 4,
-        approval: {
-          artifactSource: "migration-approval.json",
-          artifactDigest: digest(approvalArtifact),
-          reviewerIdentity: "contract-owner",
-        },
-        reason: "canonical rename",
-      },
-    ];
-    await withGateRepo(adapterFiles(gateInput), async (repoRoot) => {
+    const artifact = installClosedMigration(gateInput);
+    await withGateRepo(adapterFiles(gateInput, artifact), async (repoRoot) => {
       const result = await evaluateProductJourneyGate({
         repoRoot,
         adapterPath: "adapter.mjs",

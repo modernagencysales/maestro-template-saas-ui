@@ -154,3 +154,30 @@ rtk host-test-slot --class focused pnpm exec vitest run packages/product-journey
 
 Targeted ESLint, Prettier, and git diff checks also passed.
 ```
+
+## Final migration-approval closure
+
+The migration ledger and its approval artifact now form a closed, exact
+contract. Both bind the protected reviewer, approval scope and decision, reason,
+predecessor ID/version/full contract hash, exact successor IDs/full contract
+hashes, and opaque predecessor/successor attestation and lease continuity
+identities. The gate independently compares the declared hashes to the parsed
+baseline and current contracts. Generic, reusable, mismatched, or forged
+approvals fail with `ADAPTER_INVALID`; retirement fails closed until its
+continuity can be represented safely.
+
+TDD RED evidence covered generic artifact reuse, artifact/ledger mismatch,
+forged predecessor and successor hashes, and unsupported retirement. Each test
+failed with the expected missing-control result before implementation.
+
+Fresh GREEN evidence:
+
+```text
+rtk host-test-slot --class focused pnpm exec vitest run packages/product-journey/src tooling/quality/check-product-journeys.test.mts tooling/quality/check-config-drift.test.mts tooling/quality/check-ci-completeness.test.mts tooling/quality/src/diagnosticRegistry.test.mts
+8 files passed, 76 tests passed.
+
+rtk pnpm --dir packages/product-journey typecheck
+TypeScript: no errors.
+
+Targeted ESLint, Prettier, and git diff checks passed.
+```

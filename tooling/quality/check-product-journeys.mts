@@ -78,7 +78,29 @@ export type ProductJourneyIdMigration = {
   readonly fromJourneyId: string;
   readonly toJourneyIds: readonly string[];
   readonly baselineVersion: number;
+  readonly predecessorContractHash: string;
+  readonly successorContractHashes: readonly string[];
+  readonly predecessorAttestationIdentity: string;
+  readonly successorAttestationIdentities: readonly string[];
+  readonly predecessorLeaseContinuityIdentity: string;
+  readonly successorLeaseContinuityIdentities: readonly string[];
   readonly approval: ProductJourneyApprovalBinding;
+  readonly reason: string;
+};
+
+type ProductJourneyMigrationApprovalArtifact = {
+  readonly approvalScope: "product-journey-id-migration";
+  readonly decision: "approved";
+  readonly reviewerIdentity: string;
+  readonly fromJourneyId: string;
+  readonly toJourneyIds: readonly string[];
+  readonly baselineVersion: number;
+  readonly predecessorContractHash: string;
+  readonly successorContractHashes: readonly string[];
+  readonly predecessorAttestationIdentity: string;
+  readonly successorAttestationIdentities: readonly string[];
+  readonly predecessorLeaseContinuityIdentity: string;
+  readonly successorLeaseContinuityIdentities: readonly string[];
   readonly reason: string;
 };
 
@@ -460,6 +482,12 @@ const parseMigrationLedger = (
         "fromJourneyId",
         "toJourneyIds",
         "baselineVersion",
+        "predecessorContractHash",
+        "successorContractHashes",
+        "predecessorAttestationIdentity",
+        "successorAttestationIdentities",
+        "predecessorLeaseContinuityIdentity",
+        "successorLeaseContinuityIdentities",
         "approval",
         "reason",
       ],
@@ -480,7 +508,9 @@ const parseMigrationLedger = (
       `${label}.toJourneyIds`,
     );
     if (toJourneyIds.length === 0) {
-      throw new Error(`${label}.toJourneyIds must not be empty`);
+      throw new Error(
+        `${label}: retirement is unsupported until continuity can be represented safely`,
+      );
     }
     if (
       typeof record.baselineVersion !== "number" ||
@@ -488,6 +518,27 @@ const parseMigrationLedger = (
       record.baselineVersion < 1
     ) {
       throw new Error(`${label}.baselineVersion is invalid`);
+    }
+    const successorContractHashes = asStringArray(
+      record.successorContractHashes,
+      `${label}.successorContractHashes`,
+    );
+    const successorAttestationIdentities = asStringArray(
+      record.successorAttestationIdentities,
+      `${label}.successorAttestationIdentities`,
+    );
+    const successorLeaseContinuityIdentities = asStringArray(
+      record.successorLeaseContinuityIdentities,
+      `${label}.successorLeaseContinuityIdentities`,
+    );
+    if (
+      successorContractHashes.length !== toJourneyIds.length ||
+      successorAttestationIdentities.length !== toJourneyIds.length ||
+      successorLeaseContinuityIdentities.length !== toJourneyIds.length
+    ) {
+      throw new Error(
+        `${label} successor hashes, attestations, and lease identities must align exactly with toJourneyIds`,
+      );
     }
     const approval = asRecord(record.approval, `${label}.approval`);
     assertExactKeys(
@@ -499,6 +550,21 @@ const parseMigrationLedger = (
       fromJourneyId,
       toJourneyIds,
       baselineVersion: record.baselineVersion,
+      predecessorContractHash: asString(
+        record.predecessorContractHash,
+        `${label}.predecessorContractHash`,
+      ),
+      successorContractHashes,
+      predecessorAttestationIdentity: asString(
+        record.predecessorAttestationIdentity,
+        `${label}.predecessorAttestationIdentity`,
+      ),
+      successorAttestationIdentities,
+      predecessorLeaseContinuityIdentity: asString(
+        record.predecessorLeaseContinuityIdentity,
+        `${label}.predecessorLeaseContinuityIdentity`,
+      ),
+      successorLeaseContinuityIdentities,
       approval: {
         artifactSource: asString(
           approval.artifactSource,
@@ -517,6 +583,101 @@ const parseMigrationLedger = (
     };
   });
 };
+
+const parseMigrationApprovalArtifact = (
+  value: unknown,
+  label: string,
+): ProductJourneyMigrationApprovalArtifact => {
+  const artifact = asRecord(value, label);
+  assertExactKeys(
+    artifact,
+    [
+      "approvalScope",
+      "decision",
+      "reviewerIdentity",
+      "fromJourneyId",
+      "toJourneyIds",
+      "baselineVersion",
+      "predecessorContractHash",
+      "successorContractHashes",
+      "predecessorAttestationIdentity",
+      "successorAttestationIdentities",
+      "predecessorLeaseContinuityIdentity",
+      "successorLeaseContinuityIdentities",
+      "reason",
+    ],
+    label,
+  );
+  if (artifact.approvalScope !== "product-journey-id-migration") {
+    throw new Error(`${label}.approvalScope is invalid`);
+  }
+  if (artifact.decision !== "approved") {
+    throw new Error(`${label}.decision is invalid`);
+  }
+  if (
+    typeof artifact.baselineVersion !== "number" ||
+    !Number.isSafeInteger(artifact.baselineVersion) ||
+    artifact.baselineVersion < 1
+  ) {
+    throw new Error(`${label}.baselineVersion is invalid`);
+  }
+  return {
+    approvalScope: artifact.approvalScope,
+    decision: artifact.decision,
+    reviewerIdentity: asString(
+      artifact.reviewerIdentity,
+      `${label}.reviewerIdentity`,
+    ),
+    fromJourneyId: asString(artifact.fromJourneyId, `${label}.fromJourneyId`),
+    toJourneyIds: asStringArray(artifact.toJourneyIds, `${label}.toJourneyIds`),
+    baselineVersion: artifact.baselineVersion,
+    predecessorContractHash: asString(
+      artifact.predecessorContractHash,
+      `${label}.predecessorContractHash`,
+    ),
+    successorContractHashes: asStringArray(
+      artifact.successorContractHashes,
+      `${label}.successorContractHashes`,
+    ),
+    predecessorAttestationIdentity: asString(
+      artifact.predecessorAttestationIdentity,
+      `${label}.predecessorAttestationIdentity`,
+    ),
+    successorAttestationIdentities: asStringArray(
+      artifact.successorAttestationIdentities,
+      `${label}.successorAttestationIdentities`,
+    ),
+    predecessorLeaseContinuityIdentity: asString(
+      artifact.predecessorLeaseContinuityIdentity,
+      `${label}.predecessorLeaseContinuityIdentity`,
+    ),
+    successorLeaseContinuityIdentities: asStringArray(
+      artifact.successorLeaseContinuityIdentities,
+      `${label}.successorLeaseContinuityIdentities`,
+    ),
+    reason: asString(artifact.reason, `${label}.reason`),
+  };
+};
+
+const expectedMigrationApprovalArtifact = (
+  migration: ProductJourneyIdMigration,
+): ProductJourneyMigrationApprovalArtifact => ({
+  approvalScope: "product-journey-id-migration",
+  decision: "approved",
+  reviewerIdentity: migration.approval.reviewerIdentity,
+  fromJourneyId: migration.fromJourneyId,
+  toJourneyIds: migration.toJourneyIds,
+  baselineVersion: migration.baselineVersion,
+  predecessorContractHash: migration.predecessorContractHash,
+  successorContractHashes: migration.successorContractHashes,
+  predecessorAttestationIdentity: migration.predecessorAttestationIdentity,
+  successorAttestationIdentities: migration.successorAttestationIdentities,
+  predecessorLeaseContinuityIdentity:
+    migration.predecessorLeaseContinuityIdentity,
+  successorLeaseContinuityIdentities:
+    migration.successorLeaseContinuityIdentities,
+  reason: migration.reason,
+});
 
 const parseInventory = (value: unknown): ReleaseSurfaceInventory => {
   const inventory = asRecord(value, "inventory");
@@ -711,6 +872,18 @@ export const evaluateProductJourneyGate = async ({
           `approval artifact digest binding failed for ${migration.fromJourneyId}`,
         );
       }
+      const parsedArtifact = parseMigrationApprovalArtifact(
+        artifact,
+        `closed migration approval artifact for ${migration.fromJourneyId}`,
+      );
+      if (
+        canonicalDigest(parsedArtifact) !==
+        canonicalDigest(expectedMigrationApprovalArtifact(migration))
+      ) {
+        throw new Error(
+          `closed migration approval artifact does not exactly bind migration ${migration.fromJourneyId}`,
+        );
+      }
     }
     if (catalogValues.length === 0 || baselineValues.length === 0) {
       throw new Error("catalog and baselineCatalog must not be empty");
@@ -752,14 +925,37 @@ export const evaluateProductJourneyGate = async ({
   );
   for (const migration of migrationLedger) {
     const prior = baselineById.get(migration.fromJourneyId);
+    const successors = migration.toJourneyIds.map((journeyId) =>
+      currentById.get(journeyId),
+    );
     if (
       prior === undefined ||
       prior.version !== migration.baselineVersion ||
-      migration.toJourneyIds.some((journeyId) => !currentById.has(journeyId))
+      successors.some((successor) => successor === undefined)
     ) {
       return failure(
         "ADAPTER_INVALID",
         `journey-id migration ledger entry is incompatible with catalog state: ${migration.fromJourneyId}`,
+        adapterPath,
+      );
+    }
+    if (canonicalDigest(prior) !== migration.predecessorContractHash) {
+      return failure(
+        "ADAPTER_INVALID",
+        `migration predecessor contract hash does not match baseline: ${migration.fromJourneyId}`,
+        adapterPath,
+      );
+    }
+    const actualSuccessorHashes = successors.map((successor) =>
+      canonicalDigest(successor),
+    );
+    if (
+      canonicalDigest(actualSuccessorHashes) !==
+      canonicalDigest(migration.successorContractHashes)
+    ) {
+      return failure(
+        "ADAPTER_INVALID",
+        `migration successor contract hashes do not match current catalog: ${migration.fromJourneyId}`,
         adapterPath,
       );
     }
