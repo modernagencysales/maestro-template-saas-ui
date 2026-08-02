@@ -5,7 +5,7 @@ export default Table.make(() =>
   Schema.Struct({
     workspaceId: Schema.String,
     triggerId: Schema.String,
-    actionKind: Schema.Literal("refresh", "publish", "sync"),
+    actionKind: Schema.Literals(["refresh", "publish", "sync"]),
     schedule: Schema.String,
     capabilityId: Schema.String,
     configHash: Schema.String,

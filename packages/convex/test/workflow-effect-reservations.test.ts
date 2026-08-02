@@ -21,9 +21,7 @@ describe("workflow effect reservation capabilities", () => {
 
   it("atomically returns one dispatch decision for duplicate reservations", async () => {
     const program = Effect.gen(function* () {
-      const confect = yield* Effect.serviceOptional(
-        TestConfect.TestConfect<typeof databaseSchema>(),
-      );
+      const confect = yield* TestConfect.TestConfect<typeof databaseSchema>();
       const seeded = yield* confect.run(seedTenancy(now), SeededTenancy);
       const input = reserveInput(seeded.workspaceId);
       const reservations = yield* Effect.all(
@@ -64,9 +62,7 @@ describe("workflow effect reservation capabilities", () => {
 
   it("appends ambiguity and reconciliation evidence without redispatch", async () => {
     const program = Effect.gen(function* () {
-      const confect = yield* Effect.serviceOptional(
-        TestConfect.TestConfect<typeof databaseSchema>(),
-      );
+      const confect = yield* TestConfect.TestConfect<typeof databaseSchema>();
       const seeded = yield* confect.run(seedTenancy(now), SeededTenancy);
       const input = reserveInput(seeded.workspaceId);
       yield* confect.mutation(
@@ -131,9 +127,7 @@ describe("workflow effect reservation capabilities", () => {
 
   it("routes a pre-dispatch ambiguity to reconciliation without provider dispatch", async () => {
     const program = Effect.gen(function* () {
-      const confect = yield* Effect.serviceOptional(
-        TestConfect.TestConfect<typeof databaseSchema>(),
-      );
+      const confect = yield* TestConfect.TestConfect<typeof databaseSchema>();
       const seeded = yield* confect.run(seedTenancy(now), SeededTenancy);
       const input = reserveInput(seeded.workspaceId);
       yield* confect.mutation(
@@ -165,9 +159,7 @@ describe("workflow effect reservation capabilities", () => {
 
   it("never reopens an unresolved effect after its dedupe horizon expires", async () => {
     const program = Effect.gen(function* () {
-      const confect = yield* Effect.serviceOptional(
-        TestConfect.TestConfect<typeof databaseSchema>(),
-      );
+      const confect = yield* TestConfect.TestConfect<typeof databaseSchema>();
       const seeded = yield* confect.run(seedTenancy(now), SeededTenancy);
       const input = reserveInput(seeded.workspaceId);
       yield* confect.mutation(
@@ -187,9 +179,7 @@ describe("workflow effect reservation capabilities", () => {
 
   it("deduplicates concurrent generations onto one logical effect", async () => {
     const program = Effect.gen(function* () {
-      const confect = yield* Effect.serviceOptional(
-        TestConfect.TestConfect<typeof databaseSchema>(),
-      );
+      const confect = yield* TestConfect.TestConfect<typeof databaseSchema>();
       const seeded = yield* confect.run(seedTenancy(now), SeededTenancy);
       const input = reserveInput(seeded.workspaceId);
       const first = yield* confect.mutation(
@@ -221,9 +211,7 @@ describe("workflow effect reservation capabilities", () => {
 
   it("rejects a reservation whose dedupe horizon does not cover restart safety", async () => {
     const program = Effect.gen(function* () {
-      const confect = yield* Effect.serviceOptional(
-        TestConfect.TestConfect<typeof databaseSchema>(),
-      );
+      const confect = yield* TestConfect.TestConfect<typeof databaseSchema>();
       const seeded = yield* confect.run(seedTenancy(now), SeededTenancy);
       return yield* confect.mutation(
         refs.internal.workflows.effectReservations.reserve,

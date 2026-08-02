@@ -24,9 +24,7 @@ import {
 describe("workflow lifecycle persistent tenant adapters", () => {
   it("rejects a downstream external step without generation-scoped evidence", async () => {
     const program = Effect.gen(function* () {
-      const confect = yield* Effect.serviceOptional(
-        TestConfect.TestConfect<typeof databaseSchema>(),
-      );
+      const confect = yield* TestConfect.TestConfect<typeof databaseSchema>();
       const seeded = yield* seedLifecyclePersistence(confect);
       return yield* confect.run(
         Effect.gen(function* () {
@@ -51,9 +49,7 @@ describe("workflow lifecycle persistent tenant adapters", () => {
 
   it("reconciles a bounded owned completion idempotently", async () => {
     const program = Effect.gen(function* () {
-      const confect = yield* Effect.serviceOptional(
-        TestConfect.TestConfect<typeof databaseSchema>(),
-      );
+      const confect = yield* TestConfect.TestConfect<typeof databaseSchema>();
       const seeded = yield* seedLifecyclePersistence(confect);
       return yield* confect.run(
         Effect.gen(function* () {
@@ -100,9 +96,7 @@ describe("workflow lifecycle persistent tenant adapters", () => {
 
   it("inspects downstream steps and generation-scoped effect horizons", async () => {
     const program = Effect.gen(function* () {
-      const confect = yield* Effect.serviceOptional(
-        TestConfect.TestConfect<typeof databaseSchema>(),
-      );
+      const confect = yield* TestConfect.TestConfect<typeof databaseSchema>();
       const seeded = yield* seedLifecyclePersistence(confect);
       return yield* confect.run(
         Effect.gen(function* () {
@@ -161,9 +155,7 @@ describe("workflow lifecycle persistent tenant adapters", () => {
 
   it("lists only tenant product projections without raw payloads", async () => {
     const program = Effect.gen(function* () {
-      const confect = yield* Effect.serviceOptional(
-        TestConfect.TestConfect<typeof databaseSchema>(),
-      );
+      const confect = yield* TestConfect.TestConfect<typeof databaseSchema>();
       const seeded = yield* seedLifecyclePersistence(confect);
       const actor = confect.withIdentity(memberIdentity);
       const runs = yield* actor.query(refs.internal.workflows.lifecycle.list, {
@@ -207,9 +199,7 @@ describe("workflow lifecycle persistent tenant adapters", () => {
 
   it("keeps ownership opaque and journals only redacted audit fields", async () => {
     const program = Effect.gen(function* () {
-      const confect = yield* Effect.serviceOptional(
-        TestConfect.TestConfect<typeof databaseSchema>(),
-      );
+      const confect = yield* TestConfect.TestConfect<typeof databaseSchema>();
       const seeded = yield* seedLifecyclePersistence(confect);
       return yield* confect.run(
         Effect.gen(function* () {

@@ -170,9 +170,7 @@ describe("versioning Confect contracts", () => {
 
   it("rejects padded append idempotency keys before creating append-only history", async () => {
     const program = Effect.gen(function* () {
-      const confect = yield* Effect.serviceOptional(
-        TestConfect.TestConfect<typeof databaseSchema>(),
-      );
+      const confect = yield* TestConfect.TestConfect<typeof databaseSchema>();
       return yield* confect
         .mutation(refs.public.ops.versioning.append, {
           workspaceId: "workspace_123",
@@ -200,9 +198,7 @@ describe("versioning Confect contracts", () => {
 
   it("rejects padded restore idempotency keys before creating append-only history", async () => {
     const program = Effect.gen(function* () {
-      const confect = yield* Effect.serviceOptional(
-        TestConfect.TestConfect<typeof databaseSchema>(),
-      );
+      const confect = yield* TestConfect.TestConfect<typeof databaseSchema>();
       return yield* confect
         .mutation(refs.public.ops.versioning.restore, {
           workspaceId: "workspace_123",
@@ -230,9 +226,7 @@ describe("versioning Confect contracts", () => {
 
   it("rejects padded reconcile idempotency keys before creating append-only history", async () => {
     const program = Effect.gen(function* () {
-      const confect = yield* Effect.serviceOptional(
-        TestConfect.TestConfect<typeof databaseSchema>(),
-      );
+      const confect = yield* TestConfect.TestConfect<typeof databaseSchema>();
       return yield* confect
         .mutation(refs.public.ops.versioning.reconcile, {
           workspaceId: "workspace_123",

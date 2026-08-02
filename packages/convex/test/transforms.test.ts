@@ -186,9 +186,7 @@ describe("transform Confect contracts", () => {
 
   it("rejects padded run idempotency keys before creating transform runs", async () => {
     const program = Effect.gen(function* () {
-      const confect = yield* Effect.serviceOptional(
-        TestConfect.TestConfect<typeof databaseSchema>(),
-      );
+      const confect = yield* TestConfect.TestConfect<typeof databaseSchema>();
       return yield* confect
         .mutation(refs.public.ops.transforms.runTransform, {
           workspaceId: "workspace_123",

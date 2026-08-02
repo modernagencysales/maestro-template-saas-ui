@@ -16,9 +16,7 @@ import {
 describe("workflow lifecycle retained descendants", () => {
   it("keeps historical component-id child links visible to retention and quiescence inspection", async () => {
     const program = Effect.gen(function* () {
-      const confect = yield* Effect.serviceOptional(
-        TestConfect.TestConfect<typeof databaseSchema>(),
-      );
+      const confect = yield* TestConfect.TestConfect<typeof databaseSchema>();
       const seeded = yield* seedLifecyclePersistence(confect);
       return yield* confect.run(
         Effect.gen(function* () {

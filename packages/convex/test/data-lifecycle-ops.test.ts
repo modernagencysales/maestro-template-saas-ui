@@ -146,9 +146,7 @@ describe("data lifecycle Confect contracts", () => {
 
   it("persists a tenant-guarded dry-run DSAR request plan", async () => {
     const program = Effect.gen(function* () {
-      const confect = yield* Effect.serviceOptional(
-        TestConfect.TestConfect<typeof databaseSchema>(),
-      );
+      const confect = yield* TestConfect.TestConfect<typeof databaseSchema>();
       const seeded = yield* confect.run(
         seedTenancy(1_782_924_800_000),
         SeededTenancy,
@@ -231,9 +229,7 @@ describe("data lifecycle Confect contracts", () => {
 
   it("treats repeated DSAR request ids as idempotent audit records", async () => {
     const program = Effect.gen(function* () {
-      const confect = yield* Effect.serviceOptional(
-        TestConfect.TestConfect<typeof databaseSchema>(),
-      );
+      const confect = yield* TestConfect.TestConfect<typeof databaseSchema>();
       const seeded = yield* confect.run(
         seedTenancy(1_782_924_800_000),
         SeededTenancy,
@@ -279,9 +275,7 @@ describe("data lifecycle Confect contracts", () => {
 
   it("rejects workspace outsiders with a typed error", async () => {
     const program = Effect.gen(function* () {
-      const confect = yield* Effect.serviceOptional(
-        TestConfect.TestConfect<typeof databaseSchema>(),
-      );
+      const confect = yield* TestConfect.TestConfect<typeof databaseSchema>();
       const seeded = yield* confect.run(
         seedTenancy(1_782_924_800_000),
         SeededTenancy,
@@ -310,9 +304,7 @@ describe("data lifecycle Confect contracts", () => {
 
   it("rejects unauthenticated DSAR requests with a typed error", async () => {
     const program = Effect.gen(function* () {
-      const confect = yield* Effect.serviceOptional(
-        TestConfect.TestConfect<typeof databaseSchema>(),
-      );
+      const confect = yield* TestConfect.TestConfect<typeof databaseSchema>();
       const seeded = yield* confect.run(
         seedTenancy(1_782_924_800_000),
         SeededTenancy,
@@ -337,9 +329,7 @@ describe("data lifecycle Confect contracts", () => {
 
   it("lists DSAR request audit rows for workspace viewers", async () => {
     const program = Effect.gen(function* () {
-      const confect = yield* Effect.serviceOptional(
-        TestConfect.TestConfect<typeof databaseSchema>(),
-      );
+      const confect = yield* TestConfect.TestConfect<typeof databaseSchema>();
       const seeded = yield* confect.run(
         seedTenancy(1_782_924_800_000),
         SeededTenancy,
@@ -386,9 +376,7 @@ describe("data lifecycle Confect contracts", () => {
 
   it("rejects outsider DSAR request listing with a typed error", async () => {
     const program = Effect.gen(function* () {
-      const confect = yield* Effect.serviceOptional(
-        TestConfect.TestConfect<typeof databaseSchema>(),
-      );
+      const confect = yield* TestConfect.TestConfect<typeof databaseSchema>();
       const seeded = yield* confect.run(
         seedTenancy(1_782_924_800_000),
         SeededTenancy,

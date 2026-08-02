@@ -52,16 +52,16 @@ export type WorkspaceDataLifecyclePlan = {
 
 export type DsarRequestKind = "export" | "delete";
 
-export const DsarRequestKindSchema = Schema.Literal("export", "delete");
+export const DsarRequestKindSchema = Schema.Literals(["export", "delete"]);
 
 export type DsarRequestStatus =
   "ready-for-review" | "needs-confirmation" | "blocked-by-legal-hold";
 
-export const DsarRequestStatusSchema = Schema.Literal(
+export const DsarRequestStatusSchema = Schema.Literals([
   "ready-for-review",
   "needs-confirmation",
   "blocked-by-legal-hold",
-);
+]);
 
 export type LegalHold = {
   readonly enabled: boolean;
@@ -83,7 +83,7 @@ export type DsarExportManifestEntry = {
 
 export const DsarExportManifestEntrySchema = Schema.Struct({
   resourceId: LifecycleResourceIdSchema,
-  exportMode: Schema.Literal("markdown", "json", "redacted-json"),
+  exportMode: Schema.Literals(["markdown", "json", "redacted-json"]),
   detail: Schema.String,
 });
 
@@ -96,7 +96,7 @@ export type DsarDeletePlanEntry = {
 
 export const DsarDeletePlanEntrySchema = Schema.Struct({
   resourceId: LifecycleResourceIdSchema,
-  deleteMode: Schema.Literal("delete", "redact", "retain-audit"),
+  deleteMode: Schema.Literals(["delete", "redact", "retain-audit"]),
   executable: Schema.Literal(false),
   reason: Schema.String,
 });

@@ -10,10 +10,10 @@ export type EditorSyncAccessDeniedReason =
   | "workspace-membership"
   | "editor-access";
 
-export class EditorSyncAccessDenied extends Schema.TaggedError<EditorSyncAccessDenied>()(
+export class EditorSyncAccessDenied extends Schema.TaggedErrorClass<EditorSyncAccessDenied>()(
   "EditorSyncAccessDenied",
   {
-    reason: Schema.Literal(
+    reason: Schema.Literals([
       "unsupported-target",
       "document-readable",
       "authentication",
@@ -21,7 +21,7 @@ export class EditorSyncAccessDenied extends Schema.TaggedError<EditorSyncAccessD
       "active-user",
       "workspace-membership",
       "editor-access",
-    ),
+    ]),
     message: Schema.String,
   },
 ) {}

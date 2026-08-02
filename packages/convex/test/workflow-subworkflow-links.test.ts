@@ -43,9 +43,7 @@ describe("subworkflow product run linkage", () => {
 
   it("reserves, activates, and reconciles one exact child idempotently", async () => {
     const program = Effect.gen(function* () {
-      const confect = yield* Effect.serviceOptional(
-        TestConfect.TestConfect<typeof databaseSchema>(),
-      );
+      const confect = yield* TestConfect.TestConfect<typeof databaseSchema>();
       const seeded = yield* confect.run(seedTenancy(now), SeededTenancy);
       const parentWorkflowRunId = yield* confect.run(
         Effect.gen(function* () {

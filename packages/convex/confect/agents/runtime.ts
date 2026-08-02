@@ -8,14 +8,14 @@ import type {
 } from "./defineTools";
 
 export namespace AgentRuntimeError {
-  export class ToolNotFound extends S.TaggedError<ToolNotFound>()(
+  export class ToolNotFound extends S.TaggedErrorClass<ToolNotFound>()(
     "ToolNotFound",
     {
       toolName: S.String,
     },
   ) {}
 
-  export class ToolGrantDenied extends S.TaggedError<ToolGrantDenied>()(
+  export class ToolGrantDenied extends S.TaggedErrorClass<ToolGrantDenied>()(
     "ToolGrantDenied",
     {
       toolName: S.String,
@@ -23,14 +23,14 @@ export namespace AgentRuntimeError {
     },
   ) {}
 
-  export class ToolCallLimitExceeded extends S.TaggedError<ToolCallLimitExceeded>()(
+  export class ToolCallLimitExceeded extends S.TaggedErrorClass<ToolCallLimitExceeded>()(
     "ToolCallLimitExceeded",
     {
       maxToolCalls: S.Number,
     },
   ) {}
 
-  export class ToolInputInvalid extends S.TaggedError<ToolInputInvalid>()(
+  export class ToolInputInvalid extends S.TaggedErrorClass<ToolInputInvalid>()(
     "ToolInputInvalid",
     {
       toolName: S.String,
@@ -38,12 +38,12 @@ export namespace AgentRuntimeError {
     },
   ) {}
 
-  export const Schema = S.Union(
+  export const Schema = S.Union([
     ToolNotFound,
     ToolGrantDenied,
     ToolCallLimitExceeded,
     ToolInputInvalid,
-  );
+  ]);
 }
 
 export type AgentRuntimeError = S.Schema.Type<typeof AgentRuntimeError.Schema>;

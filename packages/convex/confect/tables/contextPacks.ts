@@ -9,7 +9,7 @@ export default Table.make(() =>
     sourceIds: Schema.Array(Schema.String),
     citationIds: Schema.Array(Schema.String),
     claimIds: Schema.Array(Schema.String),
-    freshness: Schema.Literal("fresh", "review-due", "stale"),
+    freshness: Schema.Literals(["fresh", "review-due", "stale"]),
     trustReceiptId: Schema.String,
     sourceBacked: Schema.Boolean,
     createdAt: Schema.Number,

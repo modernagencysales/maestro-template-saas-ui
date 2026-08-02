@@ -7,13 +7,13 @@ export default Table.make(() =>
     runId: Schema.String,
     blockId: Schema.String,
     transformId: Schema.String,
-    kind: Schema.Literal(
+    kind: Schema.Literals([
       "input",
       "retrieval",
       "model-output",
       "postprocess",
       "external-write",
-    ),
+    ]),
     inputHash: Schema.String,
     outputHash: Schema.String,
     sourceIds: Schema.Array(Schema.String),

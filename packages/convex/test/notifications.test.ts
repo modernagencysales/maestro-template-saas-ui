@@ -167,9 +167,7 @@ describe("notification Confect contracts", () => {
 
   it("rejects padded notification idempotency keys before insert", async () => {
     const program = Effect.gen(function* () {
-      const confect = yield* Effect.serviceOptional(
-        TestConfect.TestConfect<typeof databaseSchema>(),
-      );
+      const confect = yield* TestConfect.TestConfect<typeof databaseSchema>();
       const seeded = yield* confect.run(
         seedTenancy(1_782_924_800_000),
         SeededTenancy,
@@ -203,9 +201,7 @@ describe("notification Confect contracts", () => {
   it("persists notification records, read receipts, and preferences by workspace recipient", async () => {
     const now = 1_782_924_800_000;
     const program = Effect.gen(function* () {
-      const confect = yield* Effect.serviceOptional(
-        TestConfect.TestConfect<typeof databaseSchema>(),
-      );
+      const confect = yield* TestConfect.TestConfect<typeof databaseSchema>();
       const seeded = yield* confect.run(seedTenancy(now), SeededTenancy);
       const notification = yield* confect.mutation(
         refs.internal.ops.notifications.recordInternal,

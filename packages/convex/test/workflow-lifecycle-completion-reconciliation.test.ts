@@ -21,9 +21,7 @@ import { seedLifecyclePersistence } from "./workflow-lifecycle-persistence.fixtu
 describe("workflow lifecycle completion exactly-once reconciliation", () => {
   it("accepts an identical replay and rejects a conflicting terminal retry", async () => {
     const program = Effect.gen(function* () {
-      const confect = yield* Effect.serviceOptional(
-        TestConfect.TestConfect<typeof databaseSchema>(),
-      );
+      const confect = yield* TestConfect.TestConfect<typeof databaseSchema>();
       const seeded = yield* seedLifecyclePersistence(confect);
       return yield* confect.run(
         Effect.gen(function* () {
@@ -85,9 +83,7 @@ describe("workflow lifecycle completion exactly-once reconciliation", () => {
   it("preserves timedOut when the canceled completion replays", async () => {
     const result = await Effect.runPromise(
       Effect.gen(function* () {
-        const confect = yield* Effect.serviceOptional(
-          TestConfect.TestConfect<typeof databaseSchema>(),
-        );
+        const confect = yield* TestConfect.TestConfect<typeof databaseSchema>();
         const seeded = yield* seedLifecyclePersistence(confect);
         return yield* confect.run(
           Effect.gen(function* () {

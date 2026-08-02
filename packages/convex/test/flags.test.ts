@@ -109,9 +109,7 @@ describe("feature flag Confect contracts", () => {
 
   it("lists starter-safe defaults and evaluates live side effects disabled", async () => {
     const program = Effect.gen(function* () {
-      const confect = yield* Effect.serviceOptional(
-        TestConfect.TestConfect<typeof databaseSchema>(),
-      );
+      const confect = yield* TestConfect.TestConfect<typeof databaseSchema>();
       const seeded = yield* confect.run(
         seedTenancy(1_782_924_800_000),
         SeededTenancy,
@@ -165,9 +163,7 @@ describe("feature flag Confect contracts", () => {
 
   it("persists workspace overrides and applies audience gates", async () => {
     const program = Effect.gen(function* () {
-      const confect = yield* Effect.serviceOptional(
-        TestConfect.TestConfect<typeof databaseSchema>(),
-      );
+      const confect = yield* TestConfect.TestConfect<typeof databaseSchema>();
       const seeded = yield* confect.run(
         seedTenancy(1_782_924_800_000),
         SeededTenancy,

@@ -195,9 +195,7 @@ describe("coediting Confect contracts", () => {
 
   it("rejects padded create-document idempotency keys before deriving document ids", async () => {
     const program = Effect.gen(function* () {
-      const confect = yield* Effect.serviceOptional(
-        TestConfect.TestConfect<typeof databaseSchema>(),
-      );
+      const confect = yield* TestConfect.TestConfect<typeof databaseSchema>();
       return yield* confect
         .mutation(refs.public.ops.coediting.createDocument, {
           workspaceId: "workspace_123",
@@ -225,9 +223,7 @@ describe("coediting Confect contracts", () => {
 
   it("rejects padded append-version idempotency keys before returning version receipts", async () => {
     const program = Effect.gen(function* () {
-      const confect = yield* Effect.serviceOptional(
-        TestConfect.TestConfect<typeof databaseSchema>(),
-      );
+      const confect = yield* TestConfect.TestConfect<typeof databaseSchema>();
       return yield* confect
         .mutation(refs.public.ops.coediting.appendVersion, {
           workspaceId: "workspace_123",
@@ -259,9 +255,7 @@ describe("coediting Confect contracts", () => {
 
   it("rejects padded annotation idempotency keys before deriving annotation ids", async () => {
     const program = Effect.gen(function* () {
-      const confect = yield* Effect.serviceOptional(
-        TestConfect.TestConfect<typeof databaseSchema>(),
-      );
+      const confect = yield* TestConfect.TestConfect<typeof databaseSchema>();
       return yield* confect
         .mutation(refs.public.ops.coediting.createAnnotation, {
           workspaceId: "workspace_123",

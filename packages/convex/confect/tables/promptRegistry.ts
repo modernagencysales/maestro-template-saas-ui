@@ -6,7 +6,7 @@ export default Table.make(() =>
     ref: Schema.String,
     family: Schema.String,
     version: Schema.Number,
-    status: Schema.Literal("draft", "active", "retired"),
+    status: Schema.Literals(["draft", "active", "retired"]),
     modelRef: Schema.String,
     body: Schema.String,
     bodyHash: Schema.String,

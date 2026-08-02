@@ -255,9 +255,7 @@ describe("workflow lifecycle persistence leaves", () => {
 
   it("persists initialized lifecycle fields after the canonical run ID exists", async () => {
     const program = Effect.gen(function* () {
-      const confect = yield* Effect.serviceOptional(
-        TestConfect.TestConfect<typeof databaseSchema>(),
-      );
+      const confect = yield* TestConfect.TestConfect<typeof databaseSchema>();
       return yield* confect.run(
         Effect.gen(function* () {
           const writer = yield* DatabaseWriter;

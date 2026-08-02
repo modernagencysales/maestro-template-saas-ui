@@ -2,8 +2,12 @@ import * as Schema from "effect/Schema";
 import type { PolicyKindDefinition } from "./types";
 
 export const SpendLimitsPolicy = Schema.Struct({
-  dailySpendLimitCents: Schema.Number.pipe(Schema.greaterThanOrEqualTo(0)),
-  perRunSpendLimitCents: Schema.Number.pipe(Schema.greaterThanOrEqualTo(0)),
+  dailySpendLimitCents: Schema.Number.pipe(
+    Schema.check(Schema.isGreaterThanOrEqualTo(0)),
+  ),
+  perRunSpendLimitCents: Schema.Number.pipe(
+    Schema.check(Schema.isGreaterThanOrEqualTo(0)),
+  ),
   currency: Schema.Literal("USD"),
 });
 

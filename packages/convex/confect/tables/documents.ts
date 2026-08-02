@@ -7,7 +7,7 @@ export default Table.make(() =>
     slug: Schema.String,
     title: Schema.String,
     latestVersionId: Schema.String,
-    sourceKind: Schema.Literal("markdown", "link", "note", "document"),
+    sourceKind: Schema.Literals(["markdown", "link", "note", "document"]),
     sourceIds: Schema.Array(Schema.String),
     createdAt: Schema.Number,
     updatedAt: Schema.Number,

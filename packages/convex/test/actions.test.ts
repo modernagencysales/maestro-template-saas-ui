@@ -196,9 +196,7 @@ describe("action Confect contracts", () => {
 
   it("generates URL-safe trigger idempotency keys and digest dedupe keys", async () => {
     const program = Effect.gen(function* () {
-      const confect = yield* Effect.serviceOptional(
-        TestConfect.TestConfect<typeof databaseSchema>(),
-      );
+      const confect = yield* TestConfect.TestConfect<typeof databaseSchema>();
       const trigger = yield* confect.mutation(
         refs.public.ops.actions.configureTrigger,
         {
