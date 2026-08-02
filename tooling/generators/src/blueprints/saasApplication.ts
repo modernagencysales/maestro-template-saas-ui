@@ -122,18 +122,22 @@ const recordGovernanceFiles = (): readonly GeneratedFile[] => {
   const retainedSystemIds = new Set(
     releasedSystems.systems.map(({ id }) => id),
   );
-  const retainedTableIds = new Set([
-    ...releasedSystems.systems.flatMap(({ tables }) => tables),
-    "deployAuthorityAuditEvents",
+  const retainedEmailTableIds = [
     "emailCampaigns",
     "emailDeliveries",
     "emailEvents",
     "emailSubscribers",
     "emailSuppressions",
+  ] as const;
+  const retainedTableIds = new Set([
+    ...releasedSystems.systems.flatMap(({ tables }) => tables),
+    "deployAuthorityAuditEvents",
+    ...retainedEmailTableIds,
   ]);
   const retainedDataResourceIds = new Set([
     ...releasedDataResources.resources.map(({ id }) => id),
     "deployAuthorityAuditEvents",
+    ...retainedEmailTableIds,
   ]);
   const retainedTopologyIds = new Set(
     releasedTopology.resources.map(({ id }) => id),

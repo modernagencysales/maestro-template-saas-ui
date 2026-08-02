@@ -459,6 +459,7 @@ describe("saas application blueprint", () => {
       expect(systems.systems.some(({ tables }) => tables.includes(table))).toBe(
         true,
       );
+      expect(resources.resources.some(({ id }) => id === table)).toBe(true);
     }
     for (const table of [
       "emailVerificationChallenges",
