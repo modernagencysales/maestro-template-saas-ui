@@ -1,5 +1,4 @@
 import * as Config from "effect/Config";
-import * as ConfigError from "effect/ConfigError";
 import * as ConfigProvider from "effect/ConfigProvider";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
@@ -43,14 +42,11 @@ export const runWithTemplateRuntimeConfig = <A, E, R>(
   provider?: ConfigProvider.ConfigProvider,
 ): Effect.Effect<
   A,
-  E | ConfigError.ConfigError,
+  E | Config.ConfigError,
   Exclude<R, TemplateRuntimeConfig>
 > => {
   const providedEffect = effect.pipe(Effect.provide(TemplateRuntimeConfigLive));
-
-  if (provider === undefined) {
-    return providedEffect;
-  }
-
-  return providedEffect.pipe(Effect.withConfigProvider(provider));
+  return providedEffect.pipe(
+    Effect.provide(ConfigProvider.layer(provider ?? ConfigProvider.fromEnv())),
+  );
 };

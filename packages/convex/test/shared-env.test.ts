@@ -1,7 +1,7 @@
-import * as ConfigError from "effect/ConfigError";
+import * as Config from "effect/Config";
 import * as ConfigProvider from "effect/ConfigProvider";
-import * as Either from "effect/Either";
 import * as Effect from "effect/Effect";
+import * as Result from "effect/Result";
 import * as Schema from "effect/Schema";
 import { describe, expect, it } from "vitest";
 import {
@@ -149,12 +149,10 @@ describe("TemplateRuntimeConfig", () => {
   });
 
   it("loads provider overrides from the Effect config provider", async () => {
-    const provider = ConfigProvider.fromMap(
-      new Map([
-        ["TEMPLATE_RUNTIME_MODE", "test"],
-        ["TEMPLATE_PUBLIC_BASE_URL", "https://client.example"],
-      ]),
-    );
+    const provider = ConfigProvider.fromUnknown({
+      TEMPLATE_RUNTIME_MODE: "test",
+      TEMPLATE_PUBLIC_BASE_URL: "https://client.example",
+    });
 
     await expect(
       Effect.runPromise(
@@ -167,20 +165,20 @@ describe("TemplateRuntimeConfig", () => {
   });
 
   it("fails invalid runtime mode values as Effect config failures", async () => {
-    const provider = ConfigProvider.fromMap(
-      new Map([["TEMPLATE_RUNTIME_MODE", "bad"]]),
-    );
+    const provider = ConfigProvider.fromUnknown({
+      TEMPLATE_RUNTIME_MODE: "bad",
+    });
 
     const result = await Effect.runPromise(
-      Effect.either(
+      Effect.result(
         runWithTemplateRuntimeConfig(loadTemplateRuntimeConfig, provider),
       ),
     );
 
-    expect(Either.isLeft(result)).toBe(true);
-    if (Either.isLeft(result)) {
-      expect(ConfigError.isConfigError(result.left)).toBe(true);
-      expect(String(result.left)).toContain("TEMPLATE_RUNTIME_MODE");
+    expect(Result.isFailure(result)).toBe(true);
+    if (Result.isFailure(result)) {
+      expect(result.failure).toBeInstanceOf(Config.ConfigError);
+      expect(String(result.failure)).toContain("TEMPLATE_RUNTIME_MODE");
     }
   });
 });
