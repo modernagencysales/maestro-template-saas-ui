@@ -326,4 +326,40 @@ export default Table.make("pages", () => ({}));
       ]),
     );
   });
+
+  it("rejects stale compatibility vocabulary in active source and docs", async () => {
+    const repoRoot = await makeRepo();
+    await writeSource(
+      repoRoot,
+      "apps/web/src/stale.ts",
+      'import * as Either from "effect/Either";\nexport { Either };\n',
+    );
+    await writeSource(
+      repoRoot,
+      "tooling/effectified-api-proof/confect-v9-proof.ts",
+      "export const stale = true;\n",
+    );
+    await writeSource(
+      repoRoot,
+      "docs/template/confect-effect-guide.md",
+      "Confect v9 uses 9.1.5 with Effect 3.21.4 and check:confect-v9.\n",
+    );
+
+    expect(collectConfectEffectCompatibilityFindings(repoRoot)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          file: "apps/web/src/stale.ts",
+          message: expect.stringContaining("removed Effect/Confect API"),
+        }),
+        expect.objectContaining({
+          file: "tooling/effectified-api-proof/confect-v9-proof.ts",
+          message: expect.stringContaining("version-neutral proof name"),
+        }),
+        expect.objectContaining({
+          file: "docs/template/confect-effect-guide.md",
+          message: expect.stringContaining("stale compatibility vocabulary"),
+        }),
+      ]),
+    );
+  });
 });

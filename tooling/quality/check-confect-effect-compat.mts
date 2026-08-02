@@ -207,6 +207,57 @@ export const checkLockfileCohort = (
 
 const authoredRoots = ["apps", "packages", "tooling", "examples"] as const;
 
+export const checkNoStaleCompatibilityVocabulary = (
+  repoRoot = process.cwd(),
+): readonly CompatibilityFinding[] => {
+  const findings: CompatibilityFinding[] = [];
+  const activeSourceFiles = authoredRoots
+    .flatMap((root) => walk(repoRoot, root))
+    .filter((file) => /\.[cm]?[jt]sx?$/u.test(file))
+    .filter((file) => !/\.test\.[cm]?[jt]sx?$/u.test(file))
+    .filter(
+      (file) => file !== "tooling/quality/check-confect-effect-compat.mts",
+    );
+
+  for (const file of activeSourceFiles) {
+    if (file.endsWith("confect-v9-proof.ts")) {
+      findings.push({
+        file,
+        message:
+          "Use the version-neutral proof name for Confect/Effect compatibility.",
+      });
+    }
+    if (
+      /effect\/Either|decodeUnknownEither/u.test(readSource(repoRoot, file))
+    ) {
+      findings.push({
+        file,
+        message: "Active source uses a removed Effect/Confect API.",
+      });
+    }
+  }
+
+  const activeDocs = [
+    ...walk(repoRoot, "docs/template"),
+    ...(existsSync(join(repoRoot, "docs/rule-coverage.md"))
+      ? ["docs/rule-coverage.md"]
+      : []),
+  ].filter((file) => /\.(?:md|json)$/u.test(file));
+  const staleDocsPattern =
+    /check:confect-v9|confect-v9-proof|Confect V9|Confect v9|\b9\.1\.5\b|\b3\.21\.4\b|effect\/Either|decodeUnknownEither/u;
+  for (const file of activeDocs) {
+    if (staleDocsPattern.test(readSource(repoRoot, file))) {
+      findings.push({
+        file,
+        message:
+          "Active documentation contains stale compatibility vocabulary.",
+      });
+    }
+  }
+
+  return findings;
+};
+
 export const checkNoVendoredSourceImports = (
   repoRoot = process.cwd(),
 ): readonly CompatibilityFinding[] =>
@@ -381,6 +432,7 @@ export const collectConfectEffectCompatibilityFindings = (
   ...checkDependencyCohort(repoRoot),
   ...checkPatchMapping(repoRoot),
   ...checkLockfileCohort(repoRoot),
+  ...checkNoStaleCompatibilityVocabulary(repoRoot),
   ...checkNoVendoredSourceImports(repoRoot),
   ...checkNoAggregateConfectEntrypoints(repoRoot),
   ...checkNoEffectBarrelImports(repoRoot),
