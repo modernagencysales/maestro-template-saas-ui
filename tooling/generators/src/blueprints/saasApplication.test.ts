@@ -839,6 +839,10 @@ describe("saas application blueprint", () => {
       files.find(({ path }) => path === "apps/cli/package.json")?.content ??
         "{}",
     ) as { readonly dependencies: Readonly<Record<string, string>> };
+    const convexPackage = JSON.parse(
+      files.find(({ path }) => path === "packages/convex/package.json")
+        ?.content ?? "{}",
+    ) as { readonly dependencies: Readonly<Record<string, string>> };
     const generatorPackage = JSON.parse(
       files.find(({ path }) => path === "tooling/generators/package.json")
         ?.content ?? "{}",
@@ -852,6 +856,29 @@ describe("saas application blueprint", () => {
     expect(generatorPackage.dependencies).not.toHaveProperty(
       "@maestro-template/release-tooling",
     );
+    for (const packageName of [
+      "@confect/cli",
+      "@confect/core",
+      "@confect/server",
+      "@confect/test",
+    ]) {
+      expect(convexPackage.dependencies[packageName]).toBe("10.0.0-next.9");
+    }
+    expect(convexPackage.dependencies.effect).toBe("4.0.0-beta.102");
+    expect(convexPackage.dependencies["@effect/platform-node"]).toBe(
+      "4.0.0-beta.102",
+    );
+    expect(convexPackage.dependencies.ioredis).toBe("5.11.1");
+    expect(convexPackage.dependencies).not.toHaveProperty("@effect/platform");
+    expect(convexPackage.dependencies).not.toHaveProperty("@effect/cluster");
+    const emittedSource = files
+      .filter(({ path }) => /\.(?:ts|tsx|mts|mjs)$/.test(path))
+      .map(({ content }) => content)
+      .join("\n");
+    expect(emittedSource).not.toContain('from "effect/Either"');
+    expect(emittedSource).not.toContain("decodeUnknownEither");
+    expect(emittedSource).not.toContain('from "repos/');
+    expect(emittedSource).not.toContain('from "../../repos/');
     const omittedPaths = [
       "tooling/evals",
       "tooling/pr-backlog",
@@ -981,7 +1008,7 @@ describe("saas application blueprint", () => {
         "check:logging-boundary",
         "check:access-audit-events",
         "check:generators",
-        "check:confect-v9",
+        "check:confect-effect-compat",
         "check:confect-contracts",
         "check:effectified-api-proof",
         "check:workflow-semantics",
