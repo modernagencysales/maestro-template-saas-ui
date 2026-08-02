@@ -2,6 +2,7 @@ import { execFile, execFileSync, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import {
   appendFileSync,
+  existsSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -11,7 +12,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, relative, sep } from "node:path";
+import { delimiter, isAbsolute, join, relative, sep } from "node:path";
 import { promisify } from "node:util";
 import { fileURLToPath } from "node:url";
 import { buildSaasApplicationTargetPlan } from "@maestro-template/generators";
@@ -26,7 +27,6 @@ import {
 const execFileAsync = promisify(execFile);
 const repositoryRoot = fileURLToPath(new URL("../../../../", import.meta.url));
 const temporaryRoots: string[] = [];
-const offlinePnpmBin = "/private/tmp/maestro-pnpm-10-bin";
 const installedStoreDir = readFileSync(
   join(repositoryRoot, "node_modules/.modules.yaml"),
   "utf8",
@@ -48,10 +48,18 @@ const targetEntryIdentity = (
 
 const candidateEnvironment = (): NodeJS.ProcessEnv => ({
   ...process.env,
-  PATH: `${offlinePnpmBin}:${process.env.PATH ?? ""}`,
-  TMPDIR: "/private/tmp",
+  TMPDIR: tmpdir(),
   npm_config_store_dir: installedStoreDir,
 });
+
+const executableOnPath = (
+  command: string,
+  environment: NodeJS.ProcessEnv,
+): string | undefined =>
+  (environment.PATH ?? "")
+    .split(delimiter)
+    .map((directory) => join(directory, command))
+    .find((candidate) => existsSync(candidate));
 
 const writeJson = (path: string, value: unknown): Buffer => {
   const bytes = Buffer.from(`${JSON.stringify(value, null, 2)}\n`);
@@ -289,6 +297,26 @@ afterEach(() => {
 });
 
 describe("candidate customer composition", () => {
+  it("uses existing platform-local paths for candidate subprocesses", () => {
+    const environment = candidateEnvironment();
+
+    expect(environment.PATH).toBe(process.env.PATH);
+    expect(environment.TMPDIR).toBe(tmpdir());
+    for (const path of [environment.TMPDIR, environment.npm_config_store_dir]) {
+      expect(path).toBeTruthy();
+      if (!path) throw new Error("Candidate environment path is missing.");
+      expect(isAbsolute(path)).toBe(true);
+      expect(existsSync(path)).toBe(true);
+    }
+
+    const pnpmExecutable = executableOnPath("pnpm", environment);
+    expect(pnpmExecutable).toBeTruthy();
+    if (!pnpmExecutable)
+      throw new Error("Candidate environment cannot resolve pnpm.");
+    expect(isAbsolute(pnpmExecutable)).toBe(true);
+    expect(existsSync(pnpmExecutable)).toBe(true);
+  });
+
   it("materializes and verifies an untouched Confect 10 and Effect 4 candidate", async () => {
     expect(installedStoreDir).toBeTruthy();
     expect(
