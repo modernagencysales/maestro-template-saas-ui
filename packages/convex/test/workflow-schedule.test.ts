@@ -1,4 +1,4 @@
-import * as Either from "effect/Either";
+import * as Result from "effect/Result";
 import { describe, expect, it } from "vitest";
 import {
   MAX_WORKFLOW_SCHEDULE_HORIZON_MS,
@@ -9,10 +9,10 @@ describe("workflow schedule compiler", () => {
   it("compiles exact runAfter and runAt options without ambient time", () => {
     expect(
       compileWorkflowSchedule({ kind: "runAfter", delayMs: 250 }, 1_000),
-    ).toEqual(Either.right({ runAfter: 250 }));
+    ).toEqual(Result.succeed({ runAfter: 250 }));
     expect(
       compileWorkflowSchedule({ kind: "runAt", timestamp: 1_250 }, 1_000),
-    ).toEqual(Either.right({ runAt: 1_250 }));
+    ).toEqual(Result.succeed({ runAt: 1_250 }));
   });
 
   it.each([
@@ -63,9 +63,10 @@ describe("workflow schedule compiler", () => {
     ],
   ] as const)("rejects %s without clamping", (_name, schedule, nowMs, code) => {
     const result = compileWorkflowSchedule(schedule, nowMs);
-    expect(Either.isLeft(result)).toBe(true);
-    if (Either.isRight(result)) throw new Error("expected schedule rejection");
-    expect(result.left.code).toBe(code);
+    expect(Result.isFailure(result)).toBe(true);
+    if (Result.isSuccess(result))
+      throw new Error("expected schedule rejection");
+    expect(result.failure.code).toBe(code);
   });
 
   it.each([Number.NaN, Number.POSITIVE_INFINITY, -1, 1.5])(
@@ -75,9 +76,9 @@ describe("workflow schedule compiler", () => {
         { kind: "runAfter", delayMs: 1 },
         nowMs,
       );
-      expect(Either.isLeft(result)).toBe(true);
-      if (Either.isLeft(result)) {
-        expect(result.left.code).toBe("INVALID_SCHEDULE_CLOCK");
+      expect(Result.isFailure(result)).toBe(true);
+      if (Result.isFailure(result)) {
+        expect(result.failure.code).toBe("INVALID_SCHEDULE_CLOCK");
       }
     },
   );
