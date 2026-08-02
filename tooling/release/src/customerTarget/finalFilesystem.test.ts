@@ -22,11 +22,51 @@ const repositoryRoot = resolve(
   dirname(fileURLToPath(import.meta.url)),
   "../../../..",
 );
+const offlinePnpmBin = "/private/tmp/maestro-pnpm-10-bin";
+const installedStoreDir = readFileSync(
+  join(repositoryRoot, "node_modules/.modules.yaml"),
+  "utf8",
+).match(/^storeDir: (.+)$/m)?.[1];
+const offlinePnpmEnvironment = {
+  ...process.env,
+  PATH: `${offlinePnpmBin}:${process.env.PATH ?? ""}`,
+  npm_config_store_dir: installedStoreDir,
+};
+
+const installOffline = async (root: string): Promise<void> => {
+  try {
+    await execFileAsync(
+      "pnpm",
+      ["install", "--offline", "--frozen-lockfile", "--ignore-scripts"],
+      {
+        cwd: root,
+        env: offlinePnpmEnvironment,
+        maxBuffer: 10 * 1024 * 1024,
+      },
+    );
+  } catch (error) {
+    const failure = error as Error & {
+      readonly stdout?: string;
+      readonly stderr?: string;
+    };
+    throw new Error(
+      [failure.message, failure.stdout, failure.stderr]
+        .filter((value): value is string => Boolean(value))
+        .join("\n"),
+    );
+  }
+};
 
 describe("final materialized customer filesystem", () => {
   it("audits the real disposable final target, not preview writes", async () => {
+    expect(installedStoreDir).toBeTruthy();
     const parent = mkdtempSync(join(tmpdir(), "maestro-final-filesystem-"));
     try {
+      const pnpmVersion = await execFileAsync("pnpm", ["--version"], {
+        encoding: "utf8",
+        env: offlinePnpmEnvironment,
+      });
+      expect(pnpmVersion.stdout.trim()).toBe("10.12.1");
       const releaseRoot = join(parent, "release");
       const targetRoot = join(parent, "customer-app");
       await execFileAsync("git", [
@@ -41,11 +81,7 @@ describe("final materialized customer filesystem", () => {
         ["checkout", "--quiet", "--detach", "maestro-template-v0.2.0-alpha.2"],
         { cwd: releaseRoot },
       );
-      await execFileAsync(
-        "pnpm",
-        ["install", "--offline", "--frozen-lockfile", "--ignore-scripts"],
-        { cwd: releaseRoot, maxBuffer: 10 * 1024 * 1024 },
-      );
+      await installOffline(releaseRoot);
       await execFileAsync(
         "pnpm",
         [
@@ -64,6 +100,7 @@ describe("final materialized customer filesystem", () => {
         {
           cwd: releaseRoot,
           encoding: "utf8",
+          env: offlinePnpmEnvironment,
           maxBuffer: 10 * 1024 * 1024,
         },
       );
@@ -80,7 +117,7 @@ describe("final materialized customer filesystem", () => {
         ),
       ).toEqual([]);
       assertFinalCustomerFilesystem(tree);
-      await runFinalCustomerCompileGates(tree.root);
+      await runFinalCustomerCompileGates(tree.root, installedStoreDir!);
     } finally {
       rmSync(parent, { recursive: true, force: true });
     }

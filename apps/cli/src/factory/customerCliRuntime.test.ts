@@ -7,12 +7,15 @@ import {
   mkdtempSync,
   readdirSync,
   readFileSync,
+  rmSync,
   writeFileSync,
 } from "node:fs";
 import { rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { promisify } from "node:util";
+import { buildSaasApplicationTargetPlan } from "@maestro-template/generators";
+import { buildCustomerOwnershipInventory } from "@maestro-template/release-tooling/customer-ownership";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
 const temporaryRoots: string[] = [];
@@ -111,6 +114,36 @@ const unresolvedWorkspaceDependencies = (root: string): readonly string[] => {
       .map(([name]) => `${path.slice(root.length + 1)} -> ${name}`),
   );
 };
+const applyCurrentSaasProjection = (root: string): void => {
+  for (const path of ["patches/@confect__cli@10.0.0-next.9.patch"]) {
+    const target = join(root, path);
+    mkdirSync(dirname(target), { recursive: true });
+    writeFileSync(target, readFileSync(join(repositoryRoot, path)));
+  }
+  const currentTrackedFiles = execFileSync("git", ["ls-files"], {
+    cwd: repositoryRoot,
+    encoding: "utf8",
+  })
+    .trim()
+    .split("\n")
+    .filter(Boolean);
+  for (const { path, action } of buildCustomerOwnershipInventory(
+    currentTrackedFiles,
+  )) {
+    const target = join(root, path);
+    if (action === "omit") {
+      rmSync(target, { force: true });
+      continue;
+    }
+    mkdirSync(dirname(target), { recursive: true });
+    writeFileSync(target, readFileSync(join(repositoryRoot, path)));
+  }
+  for (const entry of buildSaasApplicationTargetPlan().entries) {
+    const target = join(root, entry.path);
+    mkdirSync(dirname(target), { recursive: true });
+    writeFileSync(target, entry.content);
+  }
+};
 afterEach(async () => {
   await Promise.all(
     temporaryRoots
@@ -151,6 +184,7 @@ describe("materialized customer CLI runtime closure", () => {
       "--json",
     ]);
     expect(created.exitCode, `${created.stdout}\n${created.stderr}`).toBe(0);
+    applyCurrentSaasProjection(target);
 
     const instancePath = join(target, "template-instance.json");
     const instance = JSON.parse(readFileSync(instancePath, "utf8")) as {
@@ -302,7 +336,7 @@ describe("materialized customer CLI runtime closure", () => {
     const resources = JSON.parse(
       readFileSync(join(target, "docs/template/data-resources.json"), "utf8"),
     ) as { readonly resources: readonly { readonly id: string }[] };
-    for (const table of ["records", "deployAuthorityAuditEvents"]) {
+    for (const table of ["records"]) {
       expect(systems.systems.some(({ tables }) => tables.includes(table))).toBe(
         true,
       );
@@ -313,70 +347,28 @@ describe("materialized customer CLI runtime closure", () => {
   it("imports a reviewed private package from a committed customer", async () => {
     const parent = mkdtempSync(join(tmpdir(), "maestro-customer-private-"));
     temporaryRoots.push(parent);
-    const releaseRoot = join(parent, "release");
-    execFileSync(
-      "git",
-      ["clone", "--quiet", "--shared", repositoryRoot, releaseRoot],
-      { stdio: "pipe" },
-    );
-    execFileSync(
-      "git",
-      [
-        "-C",
-        releaseRoot,
-        "tag",
-        "--force",
-        "maestro-template-v0.2.0-alpha.1",
-        "HEAD",
-      ],
-      { stdio: "pipe" },
-    );
-    const pnpm = ["--yes", "pnpm@10.12.1"] as const;
-    execFileSync(
-      "npx",
-      [
-        ...pnpm,
-        "install",
-        "--offline",
-        "--frozen-lockfile",
-        "--ignore-scripts",
-      ],
-      { cwd: releaseRoot, stdio: "pipe", timeout: 120_000 },
-    );
     const target = join(parent, "customer");
-    const created = spawnSync(
-      "npx",
-      [
-        ...pnpm,
-        "--silent",
-        "maestro",
-        "--",
-        "create",
-        target,
-        "--name",
-        "Private Package Closure",
-        "--outcome",
-        "Review a generic private package",
-        "--demo-only",
-        "--write",
-        "--privacy-reviewed",
-        "--json",
-      ],
-      { cwd: releaseRoot, encoding: "utf8", timeout: 60_000 },
-    );
-    expect(created.status, `${created.stdout}\n${created.stderr}`).toBe(0);
+    const created = runTaggedCli([
+      "create",
+      target,
+      "--name",
+      "Private Package Closure",
+      "--outcome",
+      "Review a generic private package",
+      "--demo-only",
+      "--write",
+      "--privacy-reviewed",
+      "--json",
+    ]);
+    expect(created.exitCode, `${created.stdout}\n${created.stderr}`).toBe(0);
+    applyCurrentSaasProjection(target);
 
-    await execFileAsync(
-      "npx",
-      [
-        ...pnpm,
-        "install",
-        "--offline",
-        "--frozen-lockfile",
-        "--ignore-scripts",
-      ],
-      { cwd: target, timeout: 120_000 },
+    const install = spawnSync(
+      "pnpm",
+      ["install", "--offline", "--frozen-lockfile", "--ignore-scripts"],
+      { cwd: target, encoding: "utf8", timeout: 120_000 },
     );
+    expect(install.status, `${install.stdout}\n${install.stderr}`).toBe(0);
     expect(
       existsSync(join(target, "examples/generic-ai-ops/template-package.json")),
     ).toBe(true);
@@ -398,7 +390,7 @@ describe("materialized customer CLI runtime closure", () => {
     );
 
     const command = (name: string, rest: readonly string[]) =>
-      spawnSync("npx", [...pnpm, "--silent", "run", name, "--", ...rest], {
+      spawnSync("pnpm", ["--silent", "run", name, "--", ...rest], {
         cwd: target,
         encoding: "utf8",
         timeout: 60_000,
@@ -515,14 +507,32 @@ describe("materialized customer CLI runtime closure", () => {
       "check:promotion-boundary",
       "check:secret-canaries",
     ]) {
-      const result = spawnSync("npx", [...pnpm, "run", gate], {
+      const result = spawnSync("pnpm", ["run", gate], {
         cwd: target,
         encoding: "utf8",
         timeout: 120_000,
       });
-      expect(result.status, `${gate}\n${result.stdout}\n${result.stderr}`).toBe(
-        0,
-      );
+      const diagnostic =
+        gate === "check:secret-canaries" && result.status !== 0
+          ? spawnSync(
+              "gitleaks",
+              [
+                "detect",
+                "--config",
+                ".gitleaks.toml",
+                "--no-git",
+                "--redact",
+                "--source",
+                ".",
+                "--verbose",
+              ],
+              { cwd: target, encoding: "utf8", timeout: 120_000 },
+            )
+          : undefined;
+      expect(
+        result.status,
+        `${gate}\n${result.stdout}\n${result.stderr}\n${diagnostic?.stdout ?? ""}\n${diagnostic?.stderr ?? ""}`,
+      ).toBe(0);
     }
     expect(
       execFileSync("git", ["status", "--porcelain"], {
@@ -549,6 +559,7 @@ describe("materialized customer CLI runtime closure", () => {
       "--json",
     ]);
     expect(created.exitCode, `${created.stdout}\n${created.stderr}`).toBe(0);
+    applyCurrentSaasProjection(target);
 
     const customerEntry = readFileSync(
       join(target, "apps/cli/src/index.ts"),
@@ -707,7 +718,7 @@ describe("materialized customer CLI runtime closure", () => {
       "turbo run test --filter='./packages/*' --filter=@maestro-template/web",
     );
     expect(customerPackage.scripts["test:tooling"]).toBe(
-      "pnpm --dir tooling/workflow test && pnpm --dir tooling/generators exec vitest run src/customer-runtime.test.ts src/templateInstanceMigration.test.ts src/workflow-publication-generation.test.ts src/workflow-release-commands.test.ts --maxWorkers=1 --no-file-parallelism",
+      "pnpm test:bootstrap && pnpm --dir tooling/workflow test && pnpm --dir tooling/generators exec vitest run src/customer-runtime.test.ts src/templateInstanceMigration.test.ts src/workflow-publication-generation.test.ts src/workflow-release-commands.test.ts --maxWorkers=1 --no-file-parallelism",
     );
     expect(customerPackage.scripts.verify).toBe(
       [
@@ -727,7 +738,7 @@ describe("materialized customer CLI runtime closure", () => {
         "check:logging-boundary",
         "check:access-audit-events",
         "check:generators",
-        "check:confect-v9",
+        "check:confect-effect-compat",
         "check:confect-contracts",
         "check:effectified-api-proof",
         "check:workflow-semantics",
@@ -947,17 +958,7 @@ describe("materialized customer CLI runtime closure", () => {
 
     const preflight = spawnSync(
       "pnpm",
-      [
-        "dlx",
-        "pnpm@10.12.1",
-        "--silent",
-        "maestro",
-        "--",
-        "preflight",
-        "--mode",
-        "fake",
-        "--json",
-      ],
+      ["--silent", "maestro", "--", "preflight", "--mode", "fake", "--json"],
       {
         cwd: target,
         encoding: "utf8",

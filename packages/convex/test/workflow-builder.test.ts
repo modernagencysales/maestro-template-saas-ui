@@ -429,16 +429,18 @@ describe("typed workflow V2 constructors", () => {
   });
 
   it("redacts rejected graph input from schema mismatch findings", () => {
-    const secret = "must-not-appear-in-parser-output";
+    const rejectedValue = "must-not-appear-in-parser-output";
     const result = defineWorkflowGraphV2({
       ...graphInput([], []),
-      nodes: [{ unexpected: secret }],
+      nodes: [{ unexpected: rejectedValue }],
     } as unknown as DefineWorkflowGraphV2Input);
 
     expect(Result.isFailure(result)).toBe(true);
     if (Result.isFailure(result)) {
       expect(result.failure.findings).toEqual(["V2 graph schema mismatch"]);
-      expect(JSON.stringify(result.failure.findings)).not.toContain(secret);
+      expect(JSON.stringify(result.failure.findings)).not.toContain(
+        rejectedValue,
+      );
     }
   });
 });

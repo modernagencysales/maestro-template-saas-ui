@@ -88,6 +88,16 @@ describe("customer ownership inventory", () => {
     ["tooling/release-seal.mts", "factory-only", "omit"],
     ["tooling/release-seal.test.mts", "factory-only", "omit"],
     [
+      "tooling/agent-pack/src/privacy/privacy.noNetwork.test.ts",
+      "factory-only",
+      "omit",
+    ],
+    [
+      "tooling/agent-pack/src/privacy/runtimeNetworkInterceptor.mjs",
+      "factory-only",
+      "omit",
+    ],
+    [
       "tooling/release/__fixtures__/upgrade/provider-posture-v1-to-v2.contract.json",
       "template-owned",
       "copy",

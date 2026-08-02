@@ -83,6 +83,8 @@ const FACTORY_ONLY_EXACT = new Set([
   "tooling/app-map/INTEGRATION_REQUEST.md",
   "tooling/release-seal.mts",
   "tooling/release-seal.test.mts",
+  "tooling/agent-pack/src/privacy/privacy.noNetwork.test.ts",
+  "tooling/agent-pack/src/privacy/runtimeNetworkInterceptor.mjs",
   "tooling/generators/src/blueprints/customer/alpha2-plan.json.gz.b64",
   "packages/convex/confect/capabilities/evaluateAppIdea.domain.ts",
   "packages/convex/confect/capabilities/evaluateAppIdea.headless.json",
