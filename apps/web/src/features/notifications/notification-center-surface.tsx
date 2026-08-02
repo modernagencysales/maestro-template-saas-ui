@@ -16,7 +16,6 @@ import {
   type NotificationRecord,
 } from "@maestro-template/notifications";
 import type { Ref } from "@confect/core";
-import * as Either from "effect/Either";
 import {
   classifyConfectMutationResult,
   normalizeMutationError,
@@ -25,6 +24,7 @@ import {
   useTemplateMutation,
   useTemplateQuery,
 } from "../../adapters/confect-state";
+import { describeTypedFailure } from "../../adapters/failure-message";
 import { isConvexConfigured } from "../../env";
 import { useWorkspace } from "../../providers/workspace";
 
@@ -328,21 +328,5 @@ const notificationMarkReadToastCopy = {
 };
 
 function notificationFailureMessage(error: unknown): string {
-  if (Either.isEither(error)) {
-    return Either.isLeft(error)
-      ? notificationFailureMessage(error.left)
-      : "Notification update failed.";
-  }
-
-  if (typeof error === "object" && error !== null && "message" in error) {
-    const message = error.message;
-    if (typeof message === "string") return message;
-  }
-
-  if (typeof error === "object" && error !== null && "_tag" in error) {
-    const tag = error._tag;
-    if (typeof tag === "string") return tag;
-  }
-
-  return "Notification update failed.";
+  return describeTypedFailure(error, "Notification update failed.");
 }

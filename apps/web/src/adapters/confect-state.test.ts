@@ -1,6 +1,6 @@
 import { describe, expect, expectTypeOf, it } from "vitest";
 import { QueryResult } from "@confect/react";
-import * as Either from "effect/Either";
+import * as Result from "effect/Result";
 import {
   classifyConfectMutationResult,
   isTemplateFailureState,
@@ -125,13 +125,13 @@ describe("Confect React data-state adapter", () => {
       data: { id: "receipt_1" },
       mutation: "success",
     });
-    expect(classifyConfectMutationResult(Either.right("ok"))).toEqual({
+    expect(classifyConfectMutationResult(Result.succeed("ok"))).toEqual({
       status: "ready",
       mode: "read",
       data: "ok",
       mutation: "success",
     });
-    expect(classifyConfectMutationResult(Either.left(error))).toEqual({
+    expect(classifyConfectMutationResult(Result.fail(error))).toEqual({
       status: "typed_failure",
       error,
     });
