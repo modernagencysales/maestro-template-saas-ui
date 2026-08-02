@@ -12,6 +12,7 @@ import {
   buildFactorySaasApplicationFiles,
 } from "./saasApplicationFactory";
 import {
+  CURRENT_EMAIL_BASE_COPY_REPLACEMENTS,
   CURRENT_SAAS_DEPLOY_AUTHORITY_SOURCE_CLOSURE,
   CURRENT_SAAS_DEPLOY_AUTHORITY_TABLE_CLOSURE,
 } from "./saasRegistrationProjections";
@@ -470,6 +471,9 @@ function buildTargetPlan(
     ...(current
       ? ([
           ...SAAS_APPLICATION_ALPHA2_BASE_WRITE_REPLACEMENTS,
+          ...CURRENT_EMAIL_BASE_COPY_REPLACEMENTS.map(
+            (path) => [path, "copy"] as const,
+          ),
           ["Justfile", "generate"],
           ["docs/template/env-manifest.json", "copy"],
           ["docs/template/env-manifest.md", "copy"],
