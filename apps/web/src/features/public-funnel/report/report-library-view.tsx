@@ -1,3 +1,5 @@
+import { useState } from "react";
+
 import { PublicFunnelShell } from "../public-shell";
 import { verdictLabels } from "./report-view";
 
@@ -131,4 +133,3 @@ export function ReportLibraryView({
     </PublicFunnelShell>
   );
 }
-import { useState } from "react";

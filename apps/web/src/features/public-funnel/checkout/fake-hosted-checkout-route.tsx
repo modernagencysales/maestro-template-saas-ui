@@ -12,7 +12,10 @@ export function FakeHostedCheckoutRoute({
       : new URLSearchParams(window.location.search);
   const reportId = search.get("report_id") ?? "";
   const amountCents = Number(search.get("amount_cents") ?? "0");
-  const returnUrl = search.get("return_url") ?? "/checkout/return";
+  const requestedReturnUrl = search.get("return_url") ?? "/checkout/return";
+  const returnUrl = /^\/(?![\\/])/.test(requestedReturnUrl)
+    ? requestedReturnUrl
+    : "/checkout/return";
 
   const pay = () => {
     deliverFakeVerifiedPaymentWebhook({
