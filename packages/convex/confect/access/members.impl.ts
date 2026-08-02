@@ -161,7 +161,7 @@ const loadMember = (
     .get(membershipId)
     .pipe(
       Effect.map(toLifecycleMember),
-      Effect.catchAll((error) =>
+      Effect.catch((error) =>
         error._tag === "GetByIdFailure"
           ? Effect.fail(new MemberNotInWorkspace({ membershipId }))
           : Effect.die(error),
@@ -195,7 +195,7 @@ const loadLiveWorkspaceMemberForUser = (
       ),
       // Keep the typed MemberNotInWorkspace; a decode/system failure is a real
       // defect, not a spurious "member not found".
-      Effect.catchAll((error) =>
+      Effect.catch((error) =>
         error instanceof MemberNotInWorkspace
           ? Effect.fail(error)
           : Effect.die(error),

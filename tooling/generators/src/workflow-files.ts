@@ -815,7 +815,7 @@ const preserveWorkflowStartErrors = <A, R>(
   effect: Effect.Effect<A, unknown, R>,
 ): Effect.Effect<A, WorkflowStartError, R> =>
   effect.pipe(
-    Effect.catchAll((error) =>
+    Effect.catch((error) =>
       isWorkflowError(error) || error instanceof WorkflowAdmissionDenied
         ? Effect.fail(error)
         : Effect.die(error),

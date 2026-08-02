@@ -625,7 +625,7 @@ export const reserveWorkflowAdmission = (
       legacyQueuedRunIds,
     });
   }).pipe(
-    Effect.catchAll((error) => {
+    Effect.catch((error) => {
       const decoded = decodeAdmissionError(error);
       return decoded instanceof WorkflowAdmissionDenied
         ? Effect.fail(decoded)

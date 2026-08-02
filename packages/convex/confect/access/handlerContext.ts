@@ -40,7 +40,7 @@ export const loadCurrentUser = (reader: Reader) =>
         ),
         // Keep the typed Unauthorized; a decode/system failure is a real defect,
         // not a spurious authorization error.
-        Effect.catchAll((error) =>
+        Effect.catch((error) =>
           error instanceof Unauthorized
             ? Effect.fail(error)
             : Effect.die(error),

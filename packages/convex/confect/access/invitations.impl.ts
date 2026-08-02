@@ -49,7 +49,7 @@ const create = FunctionImpl.make(
         .table("workspaces")
         .get(workspaceId)
         .pipe(
-          Effect.catchAll((error) =>
+          Effect.catch((error) =>
             error._tag === "GetByIdFailure"
               ? Effect.fail(new WorkspaceNotFound({ workspaceId }))
               : Effect.die(error),
@@ -234,7 +234,7 @@ const loadInvitationForResponse = (
       Effect.map((invitation) => toInvitationRef(invitation)),
       // Missing invitation -> null; a decode/system failure is a real defect,
       // not a silent null (same discrimination as members.impl loadMember).
-      Effect.catchAll((error) =>
+      Effect.catch((error) =>
         error._tag === "GetByIdFailure"
           ? Effect.succeed(null)
           : Effect.die(error),
