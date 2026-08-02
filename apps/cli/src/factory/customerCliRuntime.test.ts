@@ -24,6 +24,7 @@ const repositoryRoot = resolve(import.meta.dirname, "../../../..");
 const originalPath = process.env.PATH;
 const originalStoreDir = process.env.npm_config_store_dir;
 const originalTmpdir = process.env.TMPDIR;
+const platformTmpdir = tmpdir();
 const offlinePnpmBin = "/private/tmp/maestro-pnpm-10-bin";
 const installedStoreDir = readFileSync(
   join(repositoryRoot, "node_modules/.modules.yaml"),
@@ -75,7 +76,7 @@ beforeAll(() => {
   expect(installedStoreDir).toBeTruthy();
   process.env.PATH = `${offlinePnpmBin}:${originalPath ?? ""}`;
   process.env.npm_config_store_dir = installedStoreDir;
-  process.env.TMPDIR = "/private/tmp";
+  process.env.TMPDIR = platformTmpdir;
   expect(execFileSync("pnpm", ["--version"], { encoding: "utf8" }).trim()).toBe(
     "10.12.1",
   );
@@ -166,6 +167,14 @@ afterAll(async () => {
 }, 180_000);
 
 describe("materialized customer CLI runtime closure", () => {
+  it("uses existing platform-local temp storage for pnpm", () => {
+    const configuredTmpdir = process.env.TMPDIR;
+    if (!configuredTmpdir)
+      throw new Error("Customer runtime TMPDIR is missing.");
+    expect(configuredTmpdir).toBe(platformTmpdir);
+    expect(existsSync(configuredTmpdir)).toBe(true);
+  });
+
   it("runs privacy-aligned support preview and export from the current projection", async () => {
     const parent = mkdtempSync(join(tmpdir(), "maestro-current-customer-cli-"));
     temporaryRoots.push(parent);
