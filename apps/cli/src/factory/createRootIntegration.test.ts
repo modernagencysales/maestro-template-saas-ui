@@ -442,7 +442,7 @@ describe("create root integration", () => {
     ).toContain('"confect/**/*.json"');
     const install = await execFileAsync(
       "pnpm",
-      ["install", "--offline", "--frozen-lockfile", "--ignore-scripts"],
+      ["install", "--prefer-offline", "--frozen-lockfile", "--ignore-scripts"],
       { cwd: targetRoot, encoding: "utf8", timeout: 120_000 },
     );
     expect(`${install.stdout}\n${install.stderr}`).not.toContain("ERR_PNPM");
