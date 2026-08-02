@@ -19,6 +19,8 @@ export type { CliResult, CliRuntimeConfig };
 
 export const staticCliOperationRefs: Readonly<Record<string, string>> = {
   "brain.pages.createMarkdown": "brain.pages.createMarkdown",
+  "ops.email.previewBroadcast": "ops.email.previewBroadcast",
+  "ops.email.dispatchBroadcast": "ops.email.dispatchBroadcast",
 };
 
 export const staticCliCapabilityIds: ReadonlySet<string> = new Set(

@@ -93,8 +93,8 @@ describe("maestro-template CLI", () => {
     expect(result.exitCode).toBe(0);
     expect(JSON.parse(result.stdout)).toMatchObject({
       valid: true,
-      capabilityCount: 6,
-      headlessOperationCount: 12,
+      capabilityCount: 8,
+      headlessOperationCount: 20,
     });
   });
 
@@ -103,13 +103,19 @@ describe("maestro-template CLI", () => {
     const operations = JSON.parse(list.stdout);
     const get = runCli(["operations", "get", "api:brain.pages.createMarkdown"]);
 
-    expect(operations).toHaveLength(12);
+    expect(operations).toHaveLength(20);
     expect(
       operations.map((operation: { id: string }) => operation.id),
     ).toContain("api:brain.pages.createMarkdown");
     expect(
       operations.map((operation: { id: string }) => operation.id),
     ).toContain("web:ops.dataLifecycle.createDsarRequest");
+    expect(
+      operations.map((operation: { id: string }) => operation.id),
+    ).toContain("cli:ops.email.previewBroadcast");
+    expect(
+      operations.map((operation: { id: string }) => operation.id),
+    ).toContain("mcp:ops.email.dispatchBroadcast");
     expect(
       operations.map((operation: { id: string }) => operation.id),
     ).not.toContain("api:ops.dataLifecycle.createDsarRequest");
@@ -179,6 +185,16 @@ describe("maestro-template CLI", () => {
       expect.objectContaining({
         name: "template.brain.pages.createMarkdown",
         inputSchema: expect.objectContaining({ type: "object" }),
+      }),
+    );
+    expect(JSON.parse(runCli(["mcp", "tools"]).stdout)).toContainEqual(
+      expect.objectContaining({
+        name: "template.ops.email.dispatchBroadcast",
+        inputSchema: expect.objectContaining({
+          properties: expect.objectContaining({
+            confirmation: { type: "string", enum: ["SEND"] },
+          }),
+        }),
       }),
     );
     expect(JSON.parse(runCli(["mcp", "tools"]).stdout)).toContainEqual(

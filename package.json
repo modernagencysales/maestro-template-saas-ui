@@ -29,6 +29,7 @@
     "build": "turbo run build",
     "confect:codegen": "pnpm --dir packages/convex confect:codegen",
     "confect:manifest": "tsx tooling/confect-manifest/src/generate.ts",
+    "email:setup": "tsx scripts/configure-postmark.mts",
     "confect:dev": "pnpm --dir packages/convex confect:dev",
     "convex:dev": "convex dev",
     "dev:backend": "pnpm --dir packages/convex dev:backend",

@@ -277,11 +277,14 @@
       "kind": "shared-primitive",
       "lifecycle": "active",
       "implementationStatus": "real",
-      "summary": "Owns notification records, read and delivery state, recipient channel preferences, categories, and delivery idempotency.",
+      "summary": "Owns notification records, explicit email consent, suppression, campaigns, provider events, recipient preferences, and delivery idempotency.",
       "responsibilities": [
         "record notifications",
         "deliver notifications idempotently",
-        "manage notification preferences"
+        "manage notification preferences",
+        "send transactional templates through provider-neutral email",
+        "send confirmed broadcasts only to opted-in non-suppressed recipients",
+        "process unsubscribe, bounce, and complaint suppression"
       ],
       "aliases": [
         "alerts",
@@ -292,11 +295,17 @@
         "notification preferences"
       ],
       "tables": [
+        "emailCampaigns",
+        "emailDeliveries",
+        "emailEvents",
+        "emailSubscribers",
+        "emailSuppressions",
         "notificationPreferences",
         "notificationRecords",
         "supportIncidents"
       ],
       "canonicalEntrypoints": [
+        "packages/convex/confect/ops/email.spec.ts",
         "packages/convex/confect/ops/notifications.spec.ts",
         "packages/notifications"
       ],

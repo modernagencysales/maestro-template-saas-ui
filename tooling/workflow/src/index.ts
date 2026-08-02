@@ -24,10 +24,14 @@ const hasSurface = (
 
 export const generatedCliOperationRefs: Readonly<Record<string, string>> = {
   "brain.pages.createMarkdown": "brain.pages.createMarkdown",
+  "ops.email.previewBroadcast": "ops.email.previewBroadcast",
+  "ops.email.dispatchBroadcast": "ops.email.dispatchBroadcast",
 };
 
 export const generatedMcpOperationRefs: Readonly<Record<string, string>> = {
   "brain.pages.createMarkdown": "template.brain.pages.createMarkdown",
+  "ops.email.previewBroadcast": "template.ops.email.previewBroadcast",
+  "ops.email.dispatchBroadcast": "template.ops.email.dispatchBroadcast",
 };
 
 export const mcpToolNameFor = (operationId: string): string =>

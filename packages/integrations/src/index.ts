@@ -13,6 +13,7 @@ export * from "./workos";
 export * from "./rateLimit";
 export * from "./flags";
 export * from "./email";
+export * from "./emailSetup";
 
 export type ProviderMode = "fake" | "test" | "live";
 

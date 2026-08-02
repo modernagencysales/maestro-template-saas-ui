@@ -26,6 +26,17 @@ falls back to a reference inbox without requiring live provider credentials.
 Generated notifications should extend those contracts rather than creating a
 second inbox model.
 
+Email delivery uses the neutral `EmailProvider` contract. Add transactional
+templates to `postmarkTemplates()` in `packages/integrations/src/emailSetup.ts`
+and schedule `ops.email.sendTransactional` with a stable business idempotency
+key after the owning mutation commits. Do not call Postmark from a mutation.
+
+Marketing is separate from notification preferences: `ops.email.subscribe`
+requires explicit opt-in evidence, `previewBroadcast` counts only current
+non-suppressed subscribers, and `dispatchBroadcast` requires the exact `SEND`
+confirmation. Never accept raw recipient lists for a broadcast. Run
+`pnpm email:setup` after adding or changing a Postmark template alias.
+
 ## Tests
 
 - workspace scope;
@@ -39,4 +50,5 @@ second inbox model.
 
 - `pnpm --dir packages/convex test notifications`
 - `pnpm --dir packages/notifications test`
+- `pnpm --dir packages/integrations test`
 - `pnpm check:confect-contracts`

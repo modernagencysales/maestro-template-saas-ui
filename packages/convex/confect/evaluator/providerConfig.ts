@@ -15,6 +15,9 @@ export const loadLlmGatewayEnvConfig = Config.all({
 export const loadEmailEnvConfig = Config.all({
   POSTMARK_SERVER_TOKEN: optionalEnvConfig("POSTMARK_SERVER_TOKEN"),
   EMAIL_TRANSACTIONAL_FROM: optionalEnvConfig("EMAIL_TRANSACTIONAL_FROM"),
+  EMAIL_MARKETING_FROM: optionalEnvConfig("EMAIL_MARKETING_FROM"),
+  EMAIL_REPLY_TO: optionalEnvConfig("EMAIL_REPLY_TO"),
+  EMAIL_UNSUBSCRIBE_SECRET: optionalEnvConfig("EMAIL_UNSUBSCRIBE_SECRET"),
 });
 
 export const loadDodoCommerceEnvConfig = Config.all({

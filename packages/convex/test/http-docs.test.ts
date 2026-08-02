@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import templateHttp from "../confect/http";
+import { createEmailUnsubscribeToken } from "../confect/email/unsubscribeToken";
 import { buildGeneratedMcpTools } from "../confect/manifest/mcp";
 import {
   type HeadlessHttpCtx,
@@ -99,6 +100,121 @@ describe("template HTTP docs routes", () => {
         },
       }),
     ]);
+  });
+
+  it("authenticates and normalizes Postmark webhooks before mutation", async () => {
+    const previousUsername = process.env.POSTMARK_WEBHOOK_USERNAME;
+    const previousPassword = process.env.POSTMARK_WEBHOOK_PASSWORD;
+    process.env.POSTMARK_WEBHOOK_USERNAME = "postmark";
+    process.env.POSTMARK_WEBHOOK_PASSWORD = "webhook-secret";
+    try {
+      const calls: unknown[] = [];
+      const ctx: HeadlessHttpCtx = {
+        ...noopCtx,
+        runMutation: async (ref, input) => {
+          calls.push({ ref, input });
+          return { status: "processed", suppressed: true };
+        },
+      };
+      const unauthorized = await handleTemplateHttpRequest(
+        ctx,
+        new Request("https://template.local/webhooks/email/postmark", {
+          method: "POST",
+          body: JSON.stringify({ RecordType: "Bounce" }),
+        }),
+      );
+      expect(unauthorized.status).toBe(401);
+      expect(calls).toHaveLength(0);
+
+      const response = await handleTemplateHttpRequest(
+        ctx,
+        new Request("https://template.local/webhooks/email/postmark", {
+          method: "POST",
+          headers: {
+            authorization: `Basic ${btoa("postmark:webhook-secret")}`,
+            "content-type": "application/json",
+          },
+          body: JSON.stringify({
+            RecordType: "Bounce",
+            Type: "HardBounce",
+            Email: "Person@Example.com",
+            MessageID: "message-1",
+            BouncedAt: "2026-08-02T12:00:00Z",
+            Description: "raw provider detail must not be forwarded",
+          }),
+        }),
+      );
+      expect(response.status).toBe(200);
+      expect(calls).toEqual([
+        expect.objectContaining({
+          input: {
+            fingerprint: expect.any(String),
+            kind: "hard_bounce",
+            recipient: "person@example.com",
+            providerMessageId: "message-1",
+          },
+        }),
+      ]);
+      expect(JSON.stringify(calls)).not.toContain("raw provider detail");
+    } finally {
+      if (previousUsername === undefined)
+        delete process.env.POSTMARK_WEBHOOK_USERNAME;
+      else process.env.POSTMARK_WEBHOOK_USERNAME = previousUsername;
+      if (previousPassword === undefined)
+        delete process.env.POSTMARK_WEBHOOK_PASSWORD;
+      else process.env.POSTMARK_WEBHOOK_PASSWORD = previousPassword;
+    }
+  });
+
+  it("shows a signed unsubscribe confirmation and mutates only on POST", async () => {
+    const previousSecret = process.env.EMAIL_UNSUBSCRIBE_SECRET;
+    process.env.EMAIL_UNSUBSCRIBE_SECRET = "test-fixture";
+    try {
+      const token = await createEmailUnsubscribeToken({
+        subscriberId: "emailSubscribers_123",
+        secret: process.env.EMAIL_UNSUBSCRIBE_SECRET,
+      });
+      const calls: unknown[] = [];
+      const ctx: HeadlessHttpCtx = {
+        ...noopCtx,
+        runMutation: async (ref, input) => {
+          calls.push({ ref, input });
+          return { status: "unsubscribed" };
+        },
+      };
+      const confirmation = await handleTemplateHttpRequest(
+        ctx,
+        new Request(
+          `https://template.local/email/unsubscribe?token=${encodeURIComponent(token)}`,
+        ),
+      );
+      expect(confirmation.status).toBe(200);
+      expect(await confirmation.text()).toContain("Stop marketing emails?");
+      expect(confirmation.headers.get("content-security-policy")).toContain(
+        "form-action 'self'",
+      );
+      expect(calls).toHaveLength(0);
+
+      const applied = await handleTemplateHttpRequest(
+        ctx,
+        new Request("https://template.local/email/unsubscribe", {
+          method: "POST",
+          headers: { "content-type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({ token }),
+        }),
+      );
+      expect(applied.status).toBe(200);
+      expect(await applied.text()).toContain("You are unsubscribed.");
+      expect(calls).toEqual([
+        expect.objectContaining({
+          input: { subscriberId: "emailSubscribers_123" },
+        }),
+      ]);
+    } finally {
+      if (previousSecret === undefined)
+        delete process.env.EMAIL_UNSUBSCRIBE_SECRET;
+      else process.env.EMAIL_UNSUBSCRIBE_SECRET = previousSecret;
+    }
   });
 
   it("serves generated OpenAPI JSON", async () => {
