@@ -540,7 +540,6 @@ describe("taste CLI fail-closed behavior", () => {
     () => {
       const result = runTasteScript([], {
         CI: "true",
-        CI: "true",
         OPENROUTER_API_KEY: "",
         OPENAI_API_KEY: "",
         TASTE_PROVIDER: "",

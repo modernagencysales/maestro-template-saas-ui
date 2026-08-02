@@ -762,7 +762,11 @@ export function prioritizeReviewFiles(
     ) {
       return 0;
     }
-    if (file.startsWith("meta-gate: .woodpecker/")) return 1;
+    if (
+      file.startsWith("meta-gate: .woodpecker/") ||
+      file.startsWith("meta-gate: tooling/ci/")
+    )
+      return 1;
     if (file.startsWith("product: ")) return 2;
     if (file.startsWith("test: ")) return 3;
     if (file.startsWith("meta-gate: ")) return 4;

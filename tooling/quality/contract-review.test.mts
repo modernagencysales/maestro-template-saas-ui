@@ -380,7 +380,6 @@ describe("contract-review CLI fail-closed behavior", () => {
     () => {
       const result = runContractScript([], {
         CI: "true",
-        CI: "true",
         OPENROUTER_API_KEY: "",
         OPENAI_API_KEY: "",
         CONTRACT_REVIEW_PROVIDER: "",
