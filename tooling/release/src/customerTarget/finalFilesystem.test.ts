@@ -13,6 +13,7 @@ import {
 import {
   assertFinalCustomerFilesystem,
   assertNoPathEscape,
+  CUSTOMER_MCP_FILES,
   enumerateFinalCustomerTree,
   runFinalCustomerCompileGates,
 } from "./finalFilesystem.test-support.js";
@@ -73,12 +74,10 @@ describe("final materialized customer filesystem", () => {
         "tooling/agent-pack/src/pluginContract.ts",
       );
       expect(
-        tree.files.filter(
-          (path) =>
-            path === "tooling/agent-pack/src/mcp" ||
-            path.startsWith("tooling/agent-pack/src/mcp/"),
+        tree.files.filter((path) =>
+          path.startsWith("tooling/agent-pack/src/mcp/"),
         ),
-      ).toEqual([]);
+      ).toEqual(CUSTOMER_MCP_FILES);
       assertFinalCustomerFilesystem(tree);
       await runFinalCustomerCompileGates(tree.root);
     } finally {

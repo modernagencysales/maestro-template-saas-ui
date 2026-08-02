@@ -7,6 +7,7 @@ import {
   type AgentPackCommand,
   type AgentPackExecutionContext,
   type AgentPackJsonValue,
+  type AgentPackResult,
 } from "@maestro-template/agent-pack";
 import type { CliResult } from "../types";
 
@@ -15,6 +16,16 @@ export type FactoryCliRenderMode = "human" | "details" | "json";
 export type FactoryCliHandler = {
   readonly command: string;
   readonly run: (argv: readonly string[], cwd: string) => Promise<CliResult>;
+};
+
+export type FactoryCliRenderOptions<
+  CommandId extends string,
+  Data extends AgentPackJsonValue,
+> = {
+  readonly projectJson?: (
+    result: AgentPackResult<CommandId, Data | null>,
+  ) => unknown;
+  readonly includeDataInDetails?: boolean;
 };
 
 export async function runAgentPackCommandAsCli<
@@ -26,14 +37,20 @@ export async function runAgentPackCommandAsCli<
   input: unknown,
   context: AgentPackExecutionContext,
   renderMode: FactoryCliRenderMode = "human",
+  renderOptions: FactoryCliRenderOptions<CommandId, Data> = {},
 ): Promise<CliResult> {
   const result = await executeAgentPackCommand(command, input, context);
+  const renderedDetails = renderAgentPackResult(result, { details: true });
   return {
     exitCode: exitCodeFor(result.exitClass),
     stdout:
       renderMode === "json"
-        ? `${JSON.stringify(result, null, 2)}\n`
-        : renderAgentPackResult(result, { details: renderMode === "details" }),
+        ? `${JSON.stringify(renderOptions.projectJson?.(result) ?? result, null, 2)}\n`
+        : renderMode === "details" && renderOptions.includeDataInDetails
+          ? `${renderedDetails.trimEnd()}\nData:\n${JSON.stringify(result.data, null, 2)}\n`
+          : renderAgentPackResult(result, {
+              details: renderMode === "details",
+            }),
     stderr: "",
   };
 }

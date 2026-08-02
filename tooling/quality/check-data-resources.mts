@@ -12,6 +12,7 @@ import {
   renderDataResourceRuntime,
   type DataResourceCatalog,
 } from "@maestro-template/template-core/dataResourceCatalog";
+export { renderDataResourceRuntime } from "@maestro-template/template-core/dataResourceCatalog";
 import {
   parseSystemCatalog,
   type SystemCatalog,
@@ -53,8 +54,6 @@ const repoFileSystem = (root: string): DataResourceFileSystem => ({
 
 const pathBeforeFragment = (value: string): string =>
   value.split("#", 1)[0] ?? value;
-
-export { renderDataResourceRuntime };
 
 export const validateDataResources = (
   systems: SystemCatalog,

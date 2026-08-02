@@ -199,13 +199,14 @@ export const runWorkflowOutputSmoke = (
         args: ["--dir", tempRepoRoot, "confect:codegen"],
       },
       {
-        label: "Lint generated runner source and projection",
+        label: "Lint generated contract, runner source, and projection",
         command: "pnpm",
         args: [
           "--dir",
           tempRepoRoot,
           "exec",
           "eslint",
+          `packages/convex/confect/workflowContracts/${smokeWorkflowName}.impl.ts`,
           `packages/convex/confect/workflowRunners/${smokeWorkflowName}/v1.ts`,
           `packages/convex/convex/workflowRunners/${smokeWorkflowName}/v1.ts`,
         ],

@@ -7,8 +7,23 @@ without live accounts or secrets.
 
 ## 1. Prepare the factory
 
-Requirements: Git and Node 22. The install-free bootstrap check selects the
-repository's pinned pnpm through Corepack or an npx fallback.
+## 10-Minute Local Fake Mode
+
+From a fresh template or generated-customer checkout, validate the package
+manager before invoking any workspace command:
+
+```bash
+node scripts/bootstrap-preflight.mjs
+npx --yes pnpm@10.12.1 install --frozen-lockfile
+```
+
+This dependency-free preflight reads the exact version from `packageManager`,
+rejects an ambient mismatch, and prints the same pinned `npx` recovery command.
+Use that recovery when Corepack reports a signing-key error. Run generators only
+after the frozen install succeeds. If the ambient pnpm remains mismatched, keep
+the `npx --yes pnpm@10.12.1` prefix on every later pnpm command.
+
+For a customer app, preview a reviewed release first:
 
 ```bash
 git clone https://github.com/modernagencysales/maestro-template-saas-ui.git
@@ -20,15 +35,25 @@ node scripts/maestro-bootstrap.mjs
 Run the install command printed by bootstrap. With current Corepack that is:
 
 ```bash
-corepack enable
-corepack pnpm@10.12.1 install --frozen-lockfile
+node scripts/bootstrap-preflight.mjs
+npx --yes pnpm@10.12.1 install --frozen-lockfile
+pnpm maestro -- start
 ```
 
 If Corepack is unavailable or rejects its signing metadata, use the pinned
 fallback printed by the same check:
 
 ```bash
+node scripts/bootstrap-preflight.mjs
 npx --yes pnpm@10.12.1 install --frozen-lockfile
+pnpm template:quickstart -- --blueprint source-grounded-gtm-brain --name "Client Brain" --write
+pnpm template:intake -- --name "Client Brain" --write
+pnpm template:doctor -- --mode fake
+pnpm template:seed-demo -- --blueprint source-grounded-gtm-brain --write
+pnpm template:systems -- --query knowledge
+pnpm template:add-client-domain -- --name customerContext --system knowledge-brain --disposition extend --write
+pnpm template:handoff -- --mode fake --write
+pnpm maestro -- start
 ```
 
 Bootstrap also rejects the wrong Node major and prints repository-local
@@ -41,7 +66,25 @@ the factory branch is not a release.
 
 ## 2. Preview and create Launch Tracker
 
-Preview first. This command does not create the target directory:
+1. Run `node scripts/bootstrap-preflight.mjs`, then install dependencies with
+   the exact pinned command it prints.
+2. Review `.env.example` and [env-manifest.md](./env-manifest.md). Keep the fake
+   defaults unless this is a test/live provider setup. Leave `VITE_CONVEX_URL`
+   blank for fake-safe local web mode.
+3. Generate the default client fork scaffold:
+   `pnpm template:quickstart -- --name "Client Brain" --write`.
+4. Generate the first discovery brief with
+   `pnpm template:intake -- --name "Client Brain" --write`.
+5. Check fake-mode readiness with `pnpm template:doctor -- --mode fake`.
+6. Seed deterministic demo context with
+   `pnpm template:seed-demo -- --blueprint source-grounded-gtm-brain --write`.
+7. Change the first client noun with
+   `pnpm template:add-client-domain -- --name customerContext --system knowledge-brain --disposition extend --write`.
+8. Start the app with `pnpm maestro -- start`.
+9. Review the generated implementation brief at
+   `docs/template/generated/implementation-brief.md`.
+10. Preview the handoff packet with
+    `pnpm template:handoff -- --mode fake --write`.
 
 ```bash
 pnpm maestro -- create ../launch-tracker \

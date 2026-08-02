@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { parseDataResourceCatalog } from "./dataResourceCatalog";
+import {
+  parseDataResourceCatalog,
+  renderDataResourceRuntime,
+} from "./dataResourceCatalog";
 
 const catalog = {
   schemaVersion: 1,
@@ -34,6 +37,16 @@ describe("data resource catalog", () => {
       tenantScope: "workspace",
       workspaceLifecycle: "managed",
     });
+  });
+
+  it("renders the canonical managed lifecycle projection", () => {
+    const source = renderDataResourceRuntime(parseDataResourceCatalog(catalog));
+
+    expect(source).toContain(
+      'export const currentLifecycleResourceIds = [\n  "brainPages"\n] as const;',
+    );
+    expect(source).toContain('exportMode: "markdown"');
+    expect(source).toContain('action: "retain-until-workspace-delete"');
   });
 
   it.each([

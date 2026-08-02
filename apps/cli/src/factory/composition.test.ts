@@ -28,10 +28,15 @@ import {
   projectCompositionEnvironment,
   projectCompositionProviderPosture,
 } from "./composition";
+import { CUSTOMER_PREFLIGHT_POLICY } from "./customerComposition";
 import { START_HELP } from "./start";
 
 const factoryCliComposition = createFactoryCliComposition(() => ({}));
 const repositoryRoot = fileURLToPath(new URL("../../../../", import.meta.url));
+
+it("accepts only the repository-declared pnpm in customer preflight", () => {
+  expect(CUSTOMER_PREFLIGHT_POLICY.supportedPnpmVersions).toEqual([]);
+});
 
 async function cleanGitTarget(): Promise<string> {
   const root = await mkdtemp(join(tmpdir(), "maestro-read-only-"));

@@ -679,10 +679,10 @@ export default GroupSpec.make()
       path: `packages/convex/confect/workflowContracts/${name}.impl.ts`,
       content: `import type { GenericId } from "convex/values";
 import {
-  getStatus,
-  type WorkflowComponent,
-  type WorkflowId,
-} from "@convex-dev/workflow";
+  getMaestroWorkflowStatus as getStatus,
+  type MaestroWorkflowComponent as WorkflowComponent,
+  type MaestroWorkflowId as WorkflowId,
+} from "../workflows/_kit/defineMaestroWorkflow";
 import { FunctionImpl, GroupImpl } from "@confect/server";
 import * as Clock from "effect/Clock";
 import * as Effect from "effect/Effect";
@@ -718,7 +718,7 @@ import {
 import {
   resolveWorkflowPolicySnapshotForRun,
   type WorkflowPolicySnapshot,
-} from "../workflows/_kit/policySnapshot";
+} from "../workflows/_kit/policySnapshotCurrent";
 import type {
   WorkflowCompletionResult,
   WorkflowOnCompleteContext,
@@ -811,8 +811,8 @@ const toWorkflowValidationFailed = (): ValidationFailed =>
   });
 const toWorkflowError = (error: unknown): WorkflowError =>
   isWorkflowError(error) ? error : toWorkflowValidationFailed();
-const preserveWorkflowStartErrors = <A, R>(
-  effect: Effect.Effect<A, unknown, R>,
+const preserveWorkflowStartErrors = <A, E, R>(
+  effect: Effect.Effect<A, E, R>,
 ): Effect.Effect<A, WorkflowStartError, R> =>
   effect.pipe(
     Effect.catchAll((error) =>

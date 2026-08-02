@@ -447,8 +447,19 @@ const workflowRegistryEntries = (
   return output.sort((left, right) => compare(left.local, right.local));
 };
 const routePaths = (bytes: string): readonly string[] => {
-  const paths = new Set<string>();
+  const fullPaths = new Set<string>();
+  const updatePaths = new Set<string>();
   const visit = (value: ts.Node): void => {
+    if (
+      ts.isPropertySignature(value) &&
+      ts.isIdentifier(value.name) &&
+      value.name.text === "fullPath" &&
+      value.type &&
+      ts.isLiteralTypeNode(value.type) &&
+      ts.isStringLiteral(value.type.literal) &&
+      value.type.literal.text !== "/"
+    )
+      fullPaths.add(value.type.literal.text);
     if (
       ts.isCallExpression(value) &&
       ts.isPropertyAccessExpression(value.expression) &&
@@ -468,12 +479,13 @@ const routePaths = (bytes: string): readonly string[] => {
           ts.isStringLiteral(pathProperty.initializer) &&
           pathProperty.initializer.text !== "/"
         )
-          paths.add(pathProperty.initializer.text);
+          updatePaths.add(pathProperty.initializer.text);
       }
     }
     ts.forEachChild(value, visit);
   };
   visit(sourceFile(bytes));
+  const paths = fullPaths.size > 0 ? fullPaths : updatePaths;
   if (paths.size === 0)
     throw new Error("Canonical route tree has no application routes.");
   return [...paths].sort(compare);
@@ -805,12 +817,12 @@ const factsFor = (
                 ? `resource:client-domain:${canonicalName}`
                 : generator === "add-workflow"
                   ? `workflow:${canonicalName}`
-                  : undefined;
+                  : generator === "add-feature"
+                    ? `route:${name}`
+                    : undefined;
       if (!target)
         throw new Error(`Unsupported generator provenance: ${path}.`);
       if (generatedKind) {
-        const ownership = record(value.ownership);
-        const system = text(ownership.system);
         generatedNodes.push(
           node(entry, revision, source.digest, {
             id: target,
@@ -818,6 +830,9 @@ const factsFor = (
             label: name,
           }),
         );
+      }
+      if (generatedKind || generator === "add-feature") {
+        const system = text(record(value.ownership).system);
         generatedEdges.push(
           edge(entry, revision, source.digest, {
             id: `owns:system:${system}->${target}`,
