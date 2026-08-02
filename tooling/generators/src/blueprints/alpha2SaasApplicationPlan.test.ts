@@ -313,32 +313,69 @@ describe("frozen alpha.2 SaaS application plan", () => {
     expect(() => validate(mutate(canonicalPlan()))).toThrow(expected);
   });
 
-  it("rejects registration and parameterized-set drift", () => {
-    for (const mutate of [
-      (plan: BlueprintTargetPlan) => ({
-        ...plan,
-        registrations: plan.registrations.slice(1),
-      }),
-      (plan: BlueprintTargetPlan) => ({
-        ...plan,
-        registrations: [
-          plan.registrations[1]!,
-          plan.registrations[0]!,
-          ...plan.registrations.slice(2),
-        ],
-      }),
+  it.each([
+    [
+      "missing registration",
+      /registrations differ from F037 authority/i,
+      (plan: BlueprintTargetPlan) =>
+        withRecomputedDigest({
+          ...plan,
+          registrations: plan.registrations.slice(1),
+        }),
+    ],
+    [
+      "extra registration",
+      /registrations differ from F037 authority/i,
+      (plan: BlueprintTargetPlan) => {
+        const registered = new Set(plan.registrations);
+        const extra = plan.entries.find(({ path }) => !registered.has(path));
+        expect(extra).toBeDefined();
+        return withRecomputedDigest({
+          ...plan,
+          registrations: [...plan.registrations, extra!.path],
+        });
+      },
+    ],
+    [
+      "reordered registrations",
+      /registrations differ from F037 authority/i,
+      (plan: BlueprintTargetPlan) =>
+        withRecomputedDigest({
+          ...plan,
+          registrations: [
+            plan.registrations[1]!,
+            plan.registrations[0]!,
+            ...plan.registrations.slice(2),
+          ],
+        }),
+    ],
+    [
+      "duplicate registration",
+      /registrations contains duplicate path/i,
       (plan: BlueprintTargetPlan) => ({
         ...plan,
         registrations: [plan.registrations[0]!, ...plan.registrations],
       }),
+    ],
+    [
+      "registration path escape",
+      /registrations contains unsafe path/i,
       (plan: BlueprintTargetPlan) => ({
         ...plan,
         registrations: ["../escape", ...plan.registrations.slice(1)],
       }),
+    ],
+    [
+      "missing parameterized entry",
+      /parameterized entry set or order differs from F037/i,
       (plan: BlueprintTargetPlan) => ({
         ...plan,
         parameterizedEntries: plan.parameterizedEntries.slice(1),
       }),
+    ],
+    [
+      "duplicate parameterized entry",
+      /parameterizedEntries contains duplicate path/i,
       (plan: BlueprintTargetPlan) => ({
         ...plan,
         parameterizedEntries: [
@@ -347,6 +384,10 @@ describe("frozen alpha.2 SaaS application plan", () => {
           ...plan.parameterizedEntries.slice(2),
         ],
       }),
+    ],
+    [
+      "parameterized path escape",
+      /parameterizedEntries contains unsafe path/i,
       (plan: BlueprintTargetPlan) => ({
         ...plan,
         parameterizedEntries: [
@@ -354,9 +395,9 @@ describe("frozen alpha.2 SaaS application plan", () => {
           ...plan.parameterizedEntries.slice(1),
         ],
       }),
-    ]) {
-      expect(() => validate(mutate(canonicalPlan()))).toThrow();
-    }
+    ],
+  ])("rejects %s", (_label, expected, mutate) => {
+    expect(() => validate(mutate(canonicalPlan()))).toThrow(expected);
   });
 
   it("recomputes every body hash and the plan digest", () => {
@@ -380,6 +421,29 @@ describe("frozen alpha.2 SaaS application plan", () => {
     const current = buildSaasApplicationTargetPlan();
     expect(() => validate(current, authority)).toThrow(
       /entry count must be exactly 277|F037 authority at index/i,
+    );
+  });
+
+  it("rejects an otherwise structured current-builder source authority", () => {
+    const current = buildSaasApplicationTargetPlan();
+    const currentBuilderAuthority = {
+      schemaVersion: current.schemaVersion,
+      id: current.id,
+      provenance: current.provenance,
+      projectionSource: {
+        ...(authority as { projectionSource: Record<string, unknown> })
+          .projectionSource,
+        sourceCommit: "0".repeat(40),
+      },
+      registrations: current.registrations,
+      parameterizedEntries: current.parameterizedEntries,
+      entries: current.entries.map(
+        ({ content: _content, ...identity }) => identity,
+      ),
+    };
+
+    expect(() => validate(canonicalPlan(), currentBuilderAuthority)).toThrow(
+      /F037 authority source commit does not match alpha\.2/i,
     );
   });
 
