@@ -5,7 +5,7 @@ import type {
   EvaluationVerdict,
   FunnelEvent,
 } from "@maestro-template/app-idea-evaluator";
-import * as Either from "effect/Either";
+import * as Result from "effect/Result";
 
 import { useTemplateAction } from "../../../adapters/confect-state";
 import { isConvexConfigured } from "../../../env";
@@ -89,10 +89,10 @@ function ConfiguredAppIdeaIntake({
   );
   const evaluateRemotely: EvaluateRemotely = async (input) => {
     const result = await evaluateAppIdea(input);
-    if (Either.isEither(result) && Either.isLeft(result)) {
+    if (Result.isResult(result) && Result.isFailure(result)) {
       throw new Error("The evaluator rejected this request.");
     }
-    const completed = Either.isEither(result) ? result.right : result;
+    const completed = Result.isResult(result) ? result.success : result;
     return completed;
   };
 

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { templateConfectRefs } from "@maestro-template/convex/refs";
-import * as Either from "effect/Either";
+import * as Result from "effect/Result";
 import { ShieldCheck } from "lucide-react";
 
 import { useTemplateMutation } from "../../../adapters/confect-state";
@@ -63,8 +63,8 @@ export function ReportVerificationRoute() {
       consumeFake: consumeFakeReportVerification,
       consumeLive: async (token) => {
         const result = await consumeVerification({ verificationToken: token });
-        if (Either.isEither(result) && Either.isLeft(result)) return null;
-        return Either.isEither(result) ? result.right : result;
+        if (Result.isResult(result) && Result.isFailure(result)) return null;
+        return Result.isResult(result) ? result.success : result;
       },
     })
       .then((verified) => {

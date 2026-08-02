@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { templateConfectRefs } from "@maestro-template/convex/refs";
-import * as Either from "effect/Either";
+import * as Result from "effect/Result";
 import { RefreshCw } from "lucide-react";
 
 import {
@@ -81,8 +81,9 @@ export function ReportRevisionCard({
     setState({ _tag: "revising" });
     try {
       const result = await revise({ reportId, ownerAccessToken, feedback });
-      if (Either.isEither(result) && Either.isLeft(result)) throw result.left;
-      const revised = Either.isEither(result) ? result.right : result;
+      if (Result.isResult(result) && Result.isFailure(result))
+        throw result.failure;
+      const revised = Result.isResult(result) ? result.success : result;
       setState({ _tag: "revised", version: revised.version });
       setFeedback("");
     } catch {

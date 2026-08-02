@@ -9,7 +9,9 @@ The current exact factory references are:
 - Confect `@confect/core@10.0.0-next.9` at
   `ba0fb82222d487bdf62fde2c429e92628f8a0585`.
 
-See `repos/README.md` for provenance and refresh rules.
+Factory maintainers keep the upstream provenance and refresh rules in the
+factory-only vendored-source inventory. Generated customer targets rely on the
+exact versions and commits recorded above without shipping those research trees.
 
 ## Read Order
 
