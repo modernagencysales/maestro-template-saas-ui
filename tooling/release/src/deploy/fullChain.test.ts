@@ -126,7 +126,7 @@ describe("full promotion authority chain", () => {
       schemaVersion: 1,
       kind: "deploy-credential-lease",
       jobClass: "gated-deploy",
-      jobId: "buildkite.deploy.production.101",
+      jobId: "woodpecker.deploy.production.101",
       leaseId: "lease-production-101",
       environment: "production",
       targetId: "customer-app",

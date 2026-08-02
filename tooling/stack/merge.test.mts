@@ -182,7 +182,7 @@ test("mergeStack does not stabilize churned statuses without Woodpecker aggregat
   expect(result).toEqual({
     ok: false,
     reason:
-      "PR #64 not green: verify, qlty, buildkite/taste, unresolved-review-threads, merge-conflict, buildkite/contract-review",
+      "PR #64 not green: ci/woodpecker/pr/verify, qlty, unresolved-review-threads, merge-conflict",
     merged: [],
   });
   expect(
@@ -212,8 +212,7 @@ test("mergeStack does not stabilize missing required statuses", async () => {
 
   expect(result).toEqual({
     ok: false,
-    reason:
-      "PR #64 not green: qlty, buildkite/taste, unresolved-review-threads, merge-conflict, buildkite/contract-review",
+    reason: "PR #64 not green: qlty, unresolved-review-threads, merge-conflict",
     merged: [],
   });
   expect(
@@ -230,7 +229,7 @@ test("mergeStack does not stamp success over a failing required check", async ()
     statuses: () => ({
       statuses: REQUIRED_CHECKS.map((context) => ({
         context,
-        state: context === "verify" ? "failure" : "success",
+        state: context === "ci/woodpecker/pr/verify" ? "failure" : "success",
       })),
     }),
   });
@@ -242,7 +241,7 @@ test("mergeStack does not stamp success over a failing required check", async ()
 
   expect(result).toEqual({
     ok: false,
-    reason: "PR #64 not green: verify",
+    reason: "PR #64 not green: ci/woodpecker/pr/verify",
     merged: [],
   });
   expect(
