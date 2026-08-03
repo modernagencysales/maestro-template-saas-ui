@@ -10,6 +10,7 @@ import {
 import { dirname, relative, resolve, sep } from "node:path";
 const execFileAsync = promisify(execFile);
 const offlinePnpmBin = "/private/tmp/maestro-pnpm-10-bin";
+const finalWebBuildAttempts = 4;
 
 const commandFailure = (error: unknown): Error => {
   const failure = error as Error & {
@@ -22,6 +23,26 @@ const commandFailure = (error: unknown): Error => {
       .join("\n"),
   );
 };
+
+export async function retryTransientPrerenderStartup<T>(
+  operation: () => Promise<T>,
+  maxAttempts = finalWebBuildAttempts,
+): Promise<T> {
+  if (!Number.isInteger(maxAttempts) || maxAttempts < 1)
+    throw new Error("Prerender startup attempts must be a positive integer");
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    try {
+      return await operation();
+    } catch (error) {
+      const failure = commandFailure(error);
+      const isTransientStartupFailure = /ECONNREFUSED 127\.0\.0\.1:\d+/.test(
+        failure.message,
+      );
+      if (!isTransientStartupFailure || attempt === maxAttempts) throw failure;
+    }
+  }
+  throw new Error("Prerender startup retry loop exhausted unexpectedly");
+}
 
 export type FinalCustomerTree = {
   readonly root: string;
@@ -213,7 +234,6 @@ export async function runFinalCustomerCompileGates(
     ["pnpm", ["check:workflow-principal-propagation"]],
     ["pnpm", ["--dir", "packages/convex", "typecheck"]],
     ["pnpm", ["--dir", "apps/web", "typecheck"]],
-    ["pnpm", ["--dir", "apps/web", "build"]],
   ] as const) {
     await execFileAsync(command, args, {
       cwd: root,
@@ -221,6 +241,13 @@ export async function runFinalCustomerCompileGates(
       maxBuffer: 10 * 1024 * 1024,
     });
   }
+  await retryTransientPrerenderStartup(() =>
+    execFileAsync("pnpm", ["--dir", "apps/web", "build"], {
+      cwd: root,
+      env,
+      maxBuffer: 10 * 1024 * 1024,
+    }),
+  );
 }
 
 export function assertNoPathEscape(
