@@ -19,30 +19,30 @@ type Alpha2TargetPlanOptions = Readonly<{
 
 type JsonRecord = Record<string, unknown>;
 
-const FROZEN_ENTRY_COUNT = 331;
+const FROZEN_ENTRY_COUNT = 277;
 const FROZEN_AUTHORITY_SHA256 =
-  "sha256:0b3a88b89a47cbded4d8e510fdfccc35197f22af0cee1190018884f009141790";
+  "sha256:52e8bb06ff821baf8980b67279e69089d028d19c55c365518d4410b5778849d9";
 const FROZEN_SOURCE_COMMIT = "3aefd456354b344b9595bddc44fc0782240e2b7d";
 const SHA256_PATTERN = /^sha256:[0-9a-f]{64}$/;
 const STRICT_BASE64_PATTERN =
   /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
 
 export const ALPHA2_ARTIFACT_INTEGRITY = Object.freeze({
-  encodedBytes: 822_941,
+  encodedBytes: 728_988,
   encodedSha256:
-    "sha256:3e7c08af8966a9907dcaeb0042afd69b191ba2ee12a41ccf119b4426fde6ba14",
-  compressedBytes: 612_105,
+    "sha256:bf002cfc239a3aaec9a88ef6d1bcf640346c618a009b4a170c7a4938041b3a14",
+  compressedBytes: 542_223,
   compressedSha256:
-    "sha256:5ee46b8a1f8f2592cd45939e2c9327797dc21d74dbeed500596ebbffcb24d10c",
-  canonicalBytes: 2_857_090,
+    "sha256:6d45ac2622e26f4200c52d5ad0d51d2e0c7b08e5a88ab69621a68c711825ee80",
+  canonicalBytes: 2_489_464,
   canonicalSha256:
-    "sha256:4db1f600ab108b3480c1965e427334f3a44611f179ada1272b09551cc6376e37",
+    "sha256:433f435c63385db02bdcc1b5e7e6b74cdfe49b45916eff4f64b168804dffeaf9",
 }) satisfies Alpha2ArtifactIntegrity;
 
 export const ALPHA2_ARTIFACT_FILE_INTEGRITY = Object.freeze({
-  bytes: 822_942,
+  bytes: 728_989,
   sha256:
-    "sha256:44748f9f9fea88222ba6736dbfd9d4b1bfea8684c36d65dde68802c5b8bfcec1",
+    "sha256:aba253540af7233c6b175a5a8b46b173273c335ddc742a8e920347057aa75377",
 } as const);
 
 const PARAMETERIZED_PATHS = Object.freeze([
