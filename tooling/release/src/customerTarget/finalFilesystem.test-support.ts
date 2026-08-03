@@ -59,11 +59,12 @@ export function applyPrerenderRetryCompatibility(root: string): void {
     "node_modules/.pnpm/@tanstack+start-plugin-core@1.171.18*/node_modules/@tanstack/start-plugin-core/dist/esm/prerender.js",
     { cwd: root },
   );
-  if (matches.length !== 1)
+  const [match] = matches;
+  if (matches.length !== 1 || !match)
     throw new Error(
       `Expected one TanStack prerender runtime, found ${matches.length}`,
     );
-  const path = resolve(root, matches[0]);
+  const path = resolve(root, match);
   const source = readFileSync(path, "utf8");
   if (!source.includes(prerenderRetryNeedle))
     throw new Error("TanStack prerender retry compatibility seam changed");
