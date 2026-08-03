@@ -25,11 +25,6 @@ const CURRENT_CUSTOMER_SOURCE_PROJECTIONS = [
 ] as const;
 
 const FACTORY_PRODUCT_TABLES = new Set<string>(CURRENT_FACTORY_PRODUCT_TABLES);
-const CURRENT_CUSTOMER_EMAIL_TABLES = [
-  "emailCampaigns",
-  "emailDeliveries",
-  "emailSubscribers",
-] as const;
 
 const currentCustomerSource = (
   path: (typeof CURRENT_CUSTOMER_SOURCE_PROJECTIONS)[number],
@@ -160,27 +155,9 @@ evals:
       .split("\n")
       .filter((line) => {
         const table = /^"([^"]+)",$/.exec(line.trim())?.[1];
-        return (
-          table === undefined ||
-          (!FACTORY_PRODUCT_TABLES.has(table) &&
-            !CURRENT_CUSTOMER_EMAIL_TABLES.includes(
-              table as (typeof CURRENT_CUSTOMER_EMAIL_TABLES)[number],
-            ))
-        );
+        return table === undefined || !FACTORY_PRODUCT_TABLES.has(table);
       })
       .join("\n");
-    const emailTableBoundary = /^(\s*)"entitlements",$/gmu;
-    const emailTableMatches = [...content.matchAll(emailTableBoundary)];
-    if (emailTableMatches.length !== 4)
-      throw new Error(
-        "customer Confect manifest email table markers are missing",
-      );
-    content = content.replace(
-      emailTableBoundary,
-      `$1${CURRENT_CUSTOMER_EMAIL_TABLES.map((table) => `"${table}",`).join(
-        "\n$1",
-      )}\n$1"entitlements",`,
-    );
     const tableBoundary = /^(\s*)"transformBlocks",$/gmu;
     const matches = [...content.matchAll(tableBoundary)];
     if (matches.length !== 4)

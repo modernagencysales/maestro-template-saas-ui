@@ -1064,50 +1064,6 @@ const sharedConfectJsonSchemas = {
   "ops.email.dispatchBroadcast.args": {
     $schema: "https://json-schema.org/draft/2020-12/schema",
     type: "object",
-    properties: {
-      workspaceId: {
-        type: "string",
-      },
-      idempotencyKey: {
-        type: "string",
-        allOf: [
-          {
-            minLength: 1,
-          },
-        ],
-      },
-      subject: {
-        type: "string",
-        allOf: [
-          {
-            minLength: 1,
-          },
-        ],
-      },
-      preheader: {
-        type: "string",
-      },
-      textBody: {
-        type: "string",
-        allOf: [
-          {
-            minLength: 1,
-          },
-        ],
-      },
-      htmlBody: {
-        type: "string",
-        allOf: [
-          {
-            minLength: 1,
-          },
-        ],
-      },
-      confirmation: {
-        type: "string",
-        enum: ["SEND"],
-      },
-    },
     required: [
       "workspaceId",
       "idempotencyKey",
@@ -1117,52 +1073,47 @@ const sharedConfectJsonSchemas = {
       "htmlBody",
       "confirmation",
     ],
+    properties: {
+      workspaceId: {
+        type: "string",
+      },
+      idempotencyKey: {
+        type: "string",
+        description: "a string at least 1 character(s) long",
+        title: "minLength(1)",
+        minLength: 1,
+      },
+      subject: {
+        type: "string",
+        description: "a string at least 1 character(s) long",
+        title: "minLength(1)",
+        minLength: 1,
+      },
+      preheader: {
+        type: "string",
+      },
+      textBody: {
+        type: "string",
+        description: "a string at least 1 character(s) long",
+        title: "minLength(1)",
+        minLength: 1,
+      },
+      htmlBody: {
+        type: "string",
+        description: "a string at least 1 character(s) long",
+        title: "minLength(1)",
+        minLength: 1,
+      },
+      confirmation: {
+        type: "string",
+        enum: ["SEND"],
+      },
+    },
     additionalProperties: false,
   },
   "ops.email.dispatchBroadcast.returns": {
     $schema: "https://json-schema.org/draft/2020-12/schema",
     type: "object",
-    properties: {
-      campaignId: {
-        type: "string",
-      },
-      eligibleRecipients: {
-        anyOf: [
-          {
-            type: "number",
-          },
-          {
-            type: "string",
-            enum: ["Infinity", "-Infinity", "NaN"],
-          },
-        ],
-      },
-      accepted: {
-        anyOf: [
-          {
-            type: "number",
-          },
-          {
-            type: "string",
-            enum: ["Infinity", "-Infinity", "NaN"],
-          },
-        ],
-      },
-      failed: {
-        anyOf: [
-          {
-            type: "number",
-          },
-          {
-            type: "string",
-            enum: ["Infinity", "-Infinity", "NaN"],
-          },
-        ],
-      },
-      capped: {
-        type: "boolean",
-      },
-    },
     required: [
       "campaignId",
       "eligibleRecipients",
@@ -1170,21 +1121,40 @@ const sharedConfectJsonSchemas = {
       "failed",
       "capped",
     ],
+    properties: {
+      campaignId: {
+        type: "string",
+      },
+      eligibleRecipients: {
+        type: "number",
+      },
+      accepted: {
+        type: "number",
+      },
+      failed: {
+        type: "number",
+      },
+      capped: {
+        type: "boolean",
+      },
+    },
     additionalProperties: false,
   },
   "ops.email.previewBroadcast.args": sharedConfectJsonSchemasValue1,
   "ops.email.previewBroadcast.returns": {
     $schema: "https://json-schema.org/draft/2020-12/schema",
     type: "object",
+    required: ["eligibleRecipients", "capped"],
     properties: {
       eligibleRecipients: {
         type: "integer",
+        description: "an integer",
+        title: "int",
       },
       capped: {
         type: "boolean",
       },
     },
-    required: ["eligibleRecipients", "capped"],
     additionalProperties: false,
   },
 } as const;
