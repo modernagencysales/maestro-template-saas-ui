@@ -33,6 +33,16 @@ const previewReadinessReplacement = `const previewServer = await vite.preview({
 \t\t\t}
 \t\t});
 \t\tif (!previewServer.httpServer.listening) await new Promise((resolve) => previewServer.httpServer.once("listening", resolve));
+\t\tfor (let attempt = 0; attempt < 50; attempt += 1) {
+\t\t\ttry {
+\t\t\t\tconst response = await fetch(previewServer.resolvedUrls.local[0], { method: "HEAD" });
+\t\t\t\tawait response.body?.cancel();
+\t\t\t\tbreak;
+\t\t\t} catch (error) {
+\t\t\t\tif (attempt === 49) throw error;
+\t\t\t\tawait new Promise((resolve) => setTimeout(resolve, 100));
+\t\t\t}
+\t\t}
 \t\treturn previewServer;`;
 
 const commandFailure = (error: unknown): Error => {
