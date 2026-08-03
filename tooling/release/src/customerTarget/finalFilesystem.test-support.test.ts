@@ -4,14 +4,23 @@ import { retryTransientPrerenderStartup } from "./finalFilesystem.test-support.j
 describe("final filesystem prerender startup retry", () => {
   it("retries bounded loopback startup refusals until the build succeeds", async () => {
     let attempts = 0;
-    const result = await retryTransientPrerenderStartup(async () => {
-      attempts += 1;
-      if (attempts < 3) throw new Error("connect ECONNREFUSED 127.0.0.1:41731");
-      return "built";
-    });
+    const waits: number[] = [];
+    const result = await retryTransientPrerenderStartup(
+      async () => {
+        attempts += 1;
+        if (attempts < 3)
+          throw new Error("connect ECONNREFUSED 127.0.0.1:41731");
+        return "built";
+      },
+      4,
+      async (delayMs) => {
+        waits.push(delayMs);
+      },
+    );
 
     expect(result).toBe("built");
     expect(attempts).toBe(3);
+    expect(waits).toEqual([1_000, 1_000]);
   });
 
   it("does not retry unrelated build failures", async () => {

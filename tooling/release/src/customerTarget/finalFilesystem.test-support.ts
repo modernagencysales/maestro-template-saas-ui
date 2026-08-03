@@ -11,6 +11,7 @@ import { dirname, relative, resolve, sep } from "node:path";
 const execFileAsync = promisify(execFile);
 const offlinePnpmBin = "/private/tmp/maestro-pnpm-10-bin";
 const finalWebBuildAttempts = 4;
+const finalWebBuildRetryDelayMs = 1_000;
 
 const commandFailure = (error: unknown): Error => {
   const failure = error as Error & {
@@ -27,6 +28,8 @@ const commandFailure = (error: unknown): Error => {
 export async function retryTransientPrerenderStartup<T>(
   operation: () => Promise<T>,
   maxAttempts = finalWebBuildAttempts,
+  waitBeforeRetry: (delayMs: number) => Promise<void> = (delayMs) =>
+    new Promise((resolveWait) => setTimeout(resolveWait, delayMs)),
 ): Promise<T> {
   if (!Number.isInteger(maxAttempts) || maxAttempts < 1)
     throw new Error("Prerender startup attempts must be a positive integer");
@@ -39,6 +42,7 @@ export async function retryTransientPrerenderStartup<T>(
         failure.message,
       );
       if (!isTransientStartupFailure || attempt === maxAttempts) throw failure;
+      await waitBeforeRetry(finalWebBuildRetryDelayMs);
     }
   }
   throw new Error("Prerender startup retry loop exhausted unexpectedly");
