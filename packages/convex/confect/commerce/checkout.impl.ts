@@ -26,7 +26,6 @@ import { loadDodoCommerceEnvConfig } from "../evaluator/providerConfig";
 import checkoutGroup, { CheckoutUnavailable } from "./checkout.spec";
 import prepareCheckoutImpl from "./checkoutPrepare.impl";
 
-const BUILD_PACK_AMOUNT_CENTS = 2_900;
 const BUILD_PACK_CURRENCY = "USD" as const;
 const FAKE_PRODUCT_ID = "complete-build-pack-2900-usd";
 

@@ -1,44 +1,17 @@
 import { FunctionImpl, GroupImpl } from "@confect/server";
-import {
-  recordAdmaxxerPayment,
-  verifyDodoWebhook,
-} from "@maestro-template/integrations";
-import * as Clock from "effect/Clock";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
 import databaseSchema from "../_generated/schema";
-import refs from "../_generated/refs";
-import {
-  DatabaseReader,
-  DatabaseWriter,
-  MutationRunner,
-} from "../_generated/services";
-import { ConfigInvalid, ValidationFailed } from "../errors";
-import {
-  loadAdmaxxerEnvConfig,
-  loadDodoCommerceEnvConfig,
-} from "../evaluator/providerConfig";
-import { RuntimeModeConfig } from "../shared/config";
+import { DatabaseReader, DatabaseWriter } from "../_generated/services";
+import { ValidationFailed } from "../errors";
 import { sha256Hex } from "../shared/sha256";
 import webhooksGroup, { WebhookRejected } from "./webhooks.spec";
 
 const BUILD_PACK_AMOUNT_CENTS = 2_900;
 const BUILD_PACK_CURRENCY = "USD" as const;
-const PUBLIC_FUNNEL_WORKSPACE = "public-funnel";
-
 export { validateLiveDodoBindings } from "./webhookEvent";
-
-const unsafeAssumeClockProvided = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
-  effect as Effect.Effect<A, E, Exclude<R, Clock.Clock>>;
-
-import {
-  parseSupportedEvent,
-  validateLiveDodoBindings,
-  type SupportedEvent,
-} from "./webhookEvent";
-
-import { applyRevocation } from "./webhookRevocation";
+import type { SupportedEvent } from "./webhookEvent";
 
 export const applyPayment = (
   event: SupportedEvent,
