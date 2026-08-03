@@ -77,6 +77,7 @@ export default FunctionImpl.make(
           () => new WebhookRejected({ reason: "invalid verified event" }),
         ),
       );
+      if (result.status === "duplicate") return result;
       const event = parseSupportedEvent(rawBody);
       if (event?.eventType === "payment.succeeded") {
         const admaxxer = yield* loadAdmaxxerEnvConfig.pipe(Effect.orDie);

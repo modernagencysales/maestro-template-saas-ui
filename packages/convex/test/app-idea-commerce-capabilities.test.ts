@@ -1,6 +1,6 @@
 import { TestConfect } from "@confect/test";
 import * as Effect from "effect/Effect";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import refs from "../confect/_generated/refs";
 import databaseSchema from "../confect/_generated/schema";
@@ -17,8 +17,16 @@ const answers = {
   founderContext: "Former operator",
 };
 
+afterEach(() => {
+  vi.unstubAllEnvs();
+  vi.unstubAllGlobals();
+});
+
 describe("app-idea commerce capabilities", () => {
   it("stays pending after return and grants exactly once from the webhook", async () => {
+    const fetcher = vi.fn(async () => new Response(null, { status: 200 }));
+    vi.stubEnv("ADMAXXER_API_KEY", "test-key");
+    vi.stubGlobal("fetch", fetcher);
     const program = Effect.gen(function* () {
       const confect = yield* TestConfect.TestConfect<typeof databaseSchema>();
       const evaluated = yield* confect.mutation(
@@ -110,6 +118,7 @@ describe("app-idea commerce capabilities", () => {
     });
     expect(result.paid.status).toBe("processed");
     expect(result.duplicate.status).toBe("duplicate");
+    expect(fetcher).toHaveBeenCalledTimes(1);
     expect(result.active).toMatchObject({
       purchaseStatus: "paid",
       entitlementStatus: "active",
