@@ -6,6 +6,7 @@ import { defineConfig } from "vite";
 import { dependencyChunkName } from "./src/bundle-policy";
 
 export default defineConfig({
+  preview: { host: "127.0.0.1" },
   build: {
     rolldownOptions: {
       output: {

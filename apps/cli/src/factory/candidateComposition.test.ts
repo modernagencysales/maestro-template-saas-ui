@@ -294,7 +294,7 @@ const listFiles = (root: string): readonly string[] =>
 afterEach(() => {
   for (const root of temporaryRoots.splice(0))
     rmSync(root, { recursive: true, force: true });
-});
+}, 30_000);
 
 describe("candidate customer composition", () => {
   it("uses existing platform-local paths for candidate subprocesses", () => {
@@ -569,6 +569,16 @@ describe("candidate customer composition", () => {
     // it against the materialized dependency/schema set before checking it.
     await runCandidatePnpm(fixture.targetRoot, ["confect:manifest"]);
     const generatedManifestBefore = readFileSync(generatedManifestPath, "utf8");
+    const plannedManifest = buildSaasApplicationTargetPlan({
+      name,
+      firstOutcome: outcome,
+    }).entries.find(
+      ({ path }) =>
+        path === "packages/template-core/src/generated/confectManifest.ts",
+    );
+    if (!plannedManifest)
+      throw new Error("Candidate manifest plan is missing.");
+    expect(generatedManifestBefore).toBe(plannedManifest.content);
     try {
       await runCandidatePnpm(fixture.targetRoot, ["check:confect-manifest"]);
     } catch (error) {

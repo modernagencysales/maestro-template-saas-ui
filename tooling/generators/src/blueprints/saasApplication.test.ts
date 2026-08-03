@@ -332,6 +332,11 @@ describe("saas application blueprint", () => {
     }
     expect(confectManifest).toMatchObject({ replaces: "copy" });
     expect(confectManifest?.content.match(/\n\s+"records",/gu)).toHaveLength(4);
+    expect(
+      confectManifest?.content.match(
+        /\n(\s*)"emailCampaigns",\n\1"emailDeliveries",\n\1"emailSubscribers",\n\1"entitlements",/gu,
+      ),
+    ).toHaveLength(4);
     for (const factoryProductTable of [
       "buildPacks",
       "evaluationSessions",

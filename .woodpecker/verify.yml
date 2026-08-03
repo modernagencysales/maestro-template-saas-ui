@@ -6,9 +6,9 @@ clone:
   git:
     image: woodpeckerci/plugin-git:2.9.2@sha256:ebde4a4d07e0e24b630082484d192890dd4f6d442d90bf5466f0763860f83652
     settings:
-      depth: 0
-      tags: true
+      depth: 500
       partial: false
+      tags: true
       fetch-target-branch: true
       target-branch: main
 
@@ -35,6 +35,8 @@ steps:
       CI: "true"
       NODE_OPTIONS: "--max-old-space-size=6144"
     commands:
+      - apt-get update
+      - apt-get install -y --no-install-recommends strace
       - tooling/ci/phase1.sh
     depends_on:
       - trusted-ci-policy

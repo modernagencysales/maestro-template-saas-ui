@@ -16,8 +16,8 @@ describe("Woodpecker template pipeline", () => {
     expect(read(".woodpecker/deploy.yml")).toContain(
       'CI_PIPELINE_DEPLOY_TARGET == "production"',
     );
-    expect(read(".woodpecker/verify.yml")).toContain("depth: 0");
-    expect(read(".woodpecker/deploy.yml")).toContain("depth: 0");
+    expect(read(".woodpecker/verify.yml")).toContain("tags: true");
+    expect(read(".woodpecker/deploy.yml")).toContain("tags: true");
   });
 
   it("keeps neutral CI scripts free of Buildkite runtime coordinates", () => {
@@ -32,6 +32,30 @@ describe("Woodpecker template pipeline", () => {
 
     expect(read(".github/workflows/quality.yml")).not.toContain(
       ".buildkite/scripts/",
+    );
+  });
+
+  it("provisions the Linux syscall tracer required by privacy gates", () => {
+    expect(read(".woodpecker/verify.yml")).toContain(
+      "apt-get install -y --no-install-recommends strace",
+    );
+  });
+
+  it("documents AI review gates as manual under the current topology", () => {
+    const verifyPipeline = read(".woodpecker/verify.yml");
+    const deliveryStory = read("docs/template/delivery-story.md");
+    const operationsRunbook = read("docs/template/operations-runbook.md");
+
+    expect(verifyPipeline).not.toMatch(/name: (?:taste|contract-review)/u);
+    expect(deliveryStory).toContain("run manually");
+    expect(deliveryStory).not.toContain(
+      "two fail-closed LLM review gates (taste and contract review)",
+    );
+    expect(operationsRunbook).toContain(
+      "AI review gates are manual under the current Woodpecker topology",
+    );
+    expect(operationsRunbook).not.toContain(
+      "read the step logs for `taste`,\n`contract-review`",
     );
   });
 

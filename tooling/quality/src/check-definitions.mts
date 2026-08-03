@@ -954,8 +954,8 @@ const checkDescriptorDefinitions = {
         includes: [
           "withMutationErrorCapture",
           "withActionErrorCapture",
-          "Effect.catchAllCause",
-          "Effect.catchAll(() => Effect.void)",
+          "Effect.catchCause",
+          "Effect.catch(() => Effect.void)",
           "Effect.failCause(cause)",
         ],
         message:

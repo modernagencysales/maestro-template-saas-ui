@@ -152,8 +152,21 @@ export const validateDeployAuthoritySources = (input: {
   }
 
   for (const binding of policy.authority.requiredBindings) {
-    if (!input.pipeline.includes(`${binding}:`))
-      failures.push(`pipeline must bind externally supplied ${binding}`);
+    const declarations = [
+      ...input.pipeline.matchAll(new RegExp(`^\\s+${binding}:\\s*$`, "gmu")),
+    ].length;
+    const secretMappings = [
+      ...input.pipeline.matchAll(
+        new RegExp(
+          `^\\s+${binding}:\\s*\\n\\s+from_secret:\\s*\\S+\\s*$`,
+          "gmu",
+        ),
+      ),
+    ].length;
+    if (declarations === 0 || secretMappings !== declarations)
+      failures.push(
+        `pipeline must bind externally supplied ${binding} from a Woodpecker secret`,
+      );
   }
   for (const binding of [
     policy.rollbackSeedCommitBinding,
