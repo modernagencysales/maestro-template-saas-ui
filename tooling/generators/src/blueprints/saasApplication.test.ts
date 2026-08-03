@@ -294,10 +294,10 @@ describe("saas application blueprint", () => {
       'import { existsSync, readFileSync } from "node:fs";',
     );
     expect(envTest?.content).toContain(
-      'existsSync(resolve(repoRoot, ".buildkite/pipeline.yml"))',
+      'existsSync(resolve(repoRoot, ".woodpecker/deploy.yml"))',
     );
     expect(envTest?.content).not.toContain(
-      'const pipeline = readText(".buildkite/pipeline.yml")',
+      'const pipeline = readText(".woodpecker/deploy.yml")',
     );
     expect(envManifest).toMatchObject({ replaces: "copy" });
     expect(envManifest?.content).toContain(
@@ -1825,7 +1825,7 @@ describe("saas application blueprint", () => {
       "tooling/release",
       "tooling/stack",
       "experiments",
-      ".buildkite",
+      ".woodpecker",
     ];
     const omittedScripts = new Set([
       "test:pr-backlog",

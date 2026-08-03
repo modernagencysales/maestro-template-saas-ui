@@ -230,14 +230,14 @@ describe("environment manifest", () => {
         entry.name === "PROMOTION_AUTHORITY_PRIVATE_KEY_PKCS8_BASE64URL",
     );
     expect(endpoint).toMatchObject({
-      group: "buildkite",
+      group: "woodpecker",
       services: expect.arrayContaining(["ci", "deploy"]),
       visibility: "server-config",
       requiredFor: expect.arrayContaining(["deploy"]),
       fakeExampleAllowed: false,
     });
     expect(trustedRoot).toMatchObject({
-      group: "buildkite",
+      group: "woodpecker",
       services: expect.arrayContaining(["ci", "deploy"]),
       visibility: "server-config",
       requiredFor: expect.arrayContaining(["deploy"]),
@@ -274,7 +274,7 @@ describe("environment manifest", () => {
       expect(docs).toContain("authority");
     }
 
-    const pipeline = readText(".buildkite/pipeline.yml");
+    const pipeline = readText(".woodpecker/deploy.yml");
     expect(pipeline).not.toContain(
       "PROMOTION_AUTHORITY_PRIVATE_KEY_PKCS8_BASE64URL",
     );

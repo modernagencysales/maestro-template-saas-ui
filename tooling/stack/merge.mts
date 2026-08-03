@@ -18,7 +18,7 @@ import {
 } from "./exec.mts";
 import { sliceGreen } from "./status.mts";
 
-const BUILDKITE_AGGREGATE_CHECK = "buildkite/maestro-template-ci";
+const WOODPECKER_AGGREGATE_CHECK = "ci/woodpecker/pr/verify";
 
 type MergeResult =
   | { ok: true; merged: readonly number[] }
@@ -40,11 +40,11 @@ function appPinnedGreen(
   return [...APP_PINNED_CHECKS].every((ctx) => statuses[ctx] === "SUCCESS");
 }
 
-function canTrustBuildkiteAggregate(
+function canTrustWoodpeckerAggregate(
   statuses: Record<string, string | null | undefined>,
 ): boolean {
   if (!appPinnedGreen(statuses)) return false;
-  if (statuses[BUILDKITE_AGGREGATE_CHECK] !== "SUCCESS") return false;
+  if (statuses[WOODPECKER_AGGREGATE_CHECK] !== "SUCCESS") return false;
   return REQUIRED_CHECKS.every((ctx) => {
     if (APP_PINNED_CHECKS.has(ctx)) return true;
     const status = statuses[ctx];
@@ -136,8 +136,8 @@ export async function mergeStack(
     // 5. Final gate: all required checks green
     const statuses = ghCheckStatuses(run, pr);
     const green = sliceGreen(statuses);
-    const buildkiteChurn = canTrustBuildkiteAggregate(statuses);
-    if (!green && !buildkiteChurn) {
+    const woodpeckerChurn = canTrustWoodpeckerAggregate(statuses);
+    if (!green && !woodpeckerChurn) {
       const failing = REQUIRED_CHECKS.filter((c) => statuses[c] !== "SUCCESS");
       return {
         ok: false,
@@ -145,16 +145,16 @@ export async function mergeStack(
         merged,
       };
     }
-    if (buildkiteChurn && !green) {
+    if (woodpeckerChurn && !green) {
       const stabilizing = REQUIRED_CHECKS.filter(
         (c) => !APP_PINNED_CHECKS.has(c) && statuses[c] !== "SUCCESS",
       );
       console.log(
-        `  Buildkite aggregate is green; stabilizing churned statuses: ${stabilizing.join(", ")}`,
+        `  Woodpecker aggregate is green; stabilizing churned statuses: ${stabilizing.join(", ")}`,
       );
     }
 
-    // 6. Mirror non-app-pinned statuses after authoritative Buildkite evidence.
+    // 6. Mirror non-app-pinned statuses after authoritative Woodpecker evidence.
     console.log("  setting statuses");
     ghSetStatuses(run, pr, "success", "All checks pass");
 

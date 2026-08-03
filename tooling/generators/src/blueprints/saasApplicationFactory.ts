@@ -25,11 +25,11 @@ const CURRENT_CUSTOMER_SOURCE_PROJECTIONS = [
 ] as const;
 
 const FACTORY_PRODUCT_TABLES = new Set<string>(CURRENT_FACTORY_PRODUCT_TABLES);
-const CUSTOMER_EMAIL_TABLES = new Set([
+const CURRENT_CUSTOMER_EMAIL_TABLES = [
   "emailCampaigns",
   "emailDeliveries",
   "emailSubscribers",
-]);
+] as const;
 
 const currentCustomerSource = (
   path: (typeof CURRENT_CUSTOMER_SOURCE_PROJECTIONS)[number],
@@ -52,7 +52,7 @@ evals:
 
 `,
       `mutation:
-    bash .buildkite/scripts/mutation.sh
+    bash tooling/ci/mutation.sh
 
 `,
     ] as const;
@@ -89,7 +89,7 @@ evals:
       fsImport,
       'import { existsSync, readFileSync } from "node:fs";',
     );
-    const factoryPipelineAssertion = `    const pipeline = readText(".buildkite/pipeline.yml");
+    const factoryPipelineAssertion = `    const pipeline = readText(".woodpecker/deploy.yml");
     expect(pipeline).not.toContain(
       "PROMOTION_AUTHORITY_PRIVATE_KEY_PKCS8_BASE64URL",
     );
@@ -101,7 +101,7 @@ evals:
     content = content.replace(
       factoryPipelineAssertion,
       `    expect(
-      existsSync(resolve(repoRoot, ".buildkite/pipeline.yml")),
+      existsSync(resolve(repoRoot, ".woodpecker/deploy.yml")),
     ).toBe(false);`,
     );
   }
@@ -163,7 +163,9 @@ evals:
         return (
           table === undefined ||
           (!FACTORY_PRODUCT_TABLES.has(table) &&
-            !CUSTOMER_EMAIL_TABLES.has(table))
+            !CURRENT_CUSTOMER_EMAIL_TABLES.includes(
+              table as (typeof CURRENT_CUSTOMER_EMAIL_TABLES)[number],
+            ))
         );
       })
       .join("\n");
@@ -175,7 +177,9 @@ evals:
       );
     content = content.replace(
       emailTableBoundary,
-      '$1"emailCampaigns",\n$1"emailDeliveries",\n$1"emailSubscribers",\n$1"entitlements",',
+      `$1${CURRENT_CUSTOMER_EMAIL_TABLES.map((table) => `"${table}",`).join(
+        "\n$1",
+      )}\n$1"entitlements",`,
     );
     const tableBoundary = /^(\s*)"transformBlocks",$/gmu;
     const matches = [...content.matchAll(tableBoundary)];

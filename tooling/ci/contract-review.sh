@@ -22,7 +22,7 @@ fi
 # The reviewer itself also fails closed when no provider is configured.
 export CONTRACT_REVIEW_REQUIRE_AUTH=1
 
-BASE_BRANCH="${BUILDKITE_PULL_REQUEST_BASE_BRANCH:-main}"
+BASE_BRANCH="${CI_COMMIT_TARGET_BRANCH:-main}"
 git fetch origin "${BASE_BRANCH}:refs/remotes/origin/${BASE_BRANCH}" --depth=50 2>/dev/null || true
 export CONTRACT_BASE="origin/${BASE_BRANCH}"
 CONTRACT_REVIEW_WORKTREE="$(pwd)"
@@ -30,7 +30,7 @@ export CONTRACT_REVIEW_WORKTREE
 
 TRUSTED_TREE="$(mktemp -d)"
 trap 'rm -rf "$TRUSTED_TREE"' EXIT
-git archive "origin/${BASE_BRANCH}" AGENTS.md .buildkite dependency-cruiser.config.cjs docs/template/coding-standards.md eslint.config.mjs tooling/quality package.json pnpm-lock.yaml pnpm-workspace.yaml |
+git archive "origin/${BASE_BRANCH}" AGENTS.md .woodpecker tooling/ci dependency-cruiser.config.cjs docs/template/coding-standards.md eslint.config.mjs tooling/quality package.json pnpm-lock.yaml pnpm-workspace.yaml |
   tar -x -C "$TRUSTED_TREE"
 
 LOG_FILE="$(mktemp)"

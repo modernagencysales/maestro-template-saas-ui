@@ -41,7 +41,7 @@ same task-sized commit boundaries.
    assuming the provider implementation is wrong.
 4. Check AI gate verdicts last. AI gates explain risks; deterministic failures
    are usually the first fix.
-5. For exact AI gate commands and Buildkite artifact retrieval, use
+5. For exact AI gate commands and Woodpecker log retrieval, use
    [operations-runbook.md](./operations-runbook.md#ci-and-ai-gate-verdicts).
 
 ## Rule Review

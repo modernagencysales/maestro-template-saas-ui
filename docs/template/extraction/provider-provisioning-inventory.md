@@ -15,7 +15,7 @@ redaction rules.
 | OpenRouter/BYOK       | LLM gateway                              | Fake LLM until configured          | Base URL, model refs, key names, BYOK posture, spend controls.                                   |
 | Storage               | Upload/download asset boundary           | Fake storage until configured      | Bucket names, URL expiry, scanner posture, deletion behavior.                                    |
 | Cloudflare/Vercel     | Hosting targets                          | Not enabled by default             | App domains, environment mapping, deploy smoke.                                                  |
-| Buildkite             | CI/CD                                    | Local scripts until configured     | Pipeline slug, env groups, required checks, deploy permissions.                                  |
+| Woodpecker            | CI/CD                                    | Local scripts until configured     | Repository slug, scoped secrets, required checks, deploy permissions.                            |
 | Capture/STT providers | Optional voice/capture module            | Disabled by default                | Consent docs, provider key names, retention policy, smoke tests.                                 |
 
 ## Provisioning Rules

@@ -394,8 +394,7 @@ export const deriveActualPublicationMergeBase = (
   readGit: GitReader,
   environment: Readonly<Record<string, string | undefined>>,
 ): string => {
-  const branch =
-    environment.BUILDKITE_PULL_REQUEST_BASE_BRANCH?.trim() || "main";
+  const branch = environment.CI_COMMIT_TARGET_BRANCH?.trim() || "main";
   if (!safeBranch(branch)) {
     throw new Error(`Invalid canonical CI comparison branch: ${branch}`);
   }

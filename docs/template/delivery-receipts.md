@@ -14,8 +14,9 @@ git fetch --deepen=250 origin main
 
 ## Local Git Receipts
 
-The CI hardening sequence that turned the hosted Buildkite pipeline from
-template shape into bare-agent reality is inspectable in this range:
+The historical CI hardening sequence that turned the former hosted Buildkite
+pipeline from template shape into bare-agent reality is inspectable in this
+range:
 
 ```bash
 git log --reverse --date=short --pretty=format:'%h %ad %s%n%b%n---' e454046d3^..2e15e7094
@@ -59,13 +60,13 @@ The current gate shape is local and credential-free:
 
 ```bash
 rg -n "ci-self-protection|phase-1|taste|contract-review|staging-deploy|production-promote" \
-  .buildkite/pipeline.yml .buildkite/scripts
+  .woodpecker tooling/ci
 ```
 
-## Buildkite Receipts
+## Historical Buildkite Receipts
 
-Buildkite logs and artifacts are not checked into the repo. Internal reviewers
-with Buildkite access can verify the same story against the hosted pipeline:
+These receipts predate the Woodpecker migration and are retained only as
+historical evidence; they are not an active release surface.
 
 ```bash
 bk build view -p mas/maestro-template 23 --no-pager --text
@@ -90,8 +91,8 @@ for n in 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 23 25; do
 done
 ```
 
-On this host, wrap Buildkite commands with the shared secret loader:
+For current evidence, use the Woodpecker pipeline and logs:
 
 ```bash
-headless-bws-env exec bk build view -p mas/maestro-template 88 --no-pager --text
+headless-bws-env exec sh -c 'WOODPECKER_TOKEN="$WOODPECKER_API_TOKEN" woodpecker-cli pipeline ps modernagencysales/maestro-template-saas-ui'
 ```

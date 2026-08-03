@@ -954,7 +954,7 @@ owner.
 - Email: keep delivery disabled or fake-only until Postmark sender signatures and webhooks are verified.
 - OpenRouter-compatible LLM: use deterministic fake completions until spend caps, model allowlist, and redaction posture are approved.
 - Storage and search: use local/fake providers until source ownership, retention, export, and delete posture are documented.
-- Cloudflare and Buildkite: use local commands first, then configure hosted smoke and CI promotion after the fork is stable.
+- Cloudflare and Woodpecker: use local commands first, then configure hosted smoke and CI promotion after the fork is stable.
 
 ## First Live-Ready Pass
 

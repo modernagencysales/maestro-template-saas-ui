@@ -105,7 +105,7 @@ const credentialLease = (
   schemaVersion: 1,
   kind: "deploy-credential-lease",
   jobClass: "gated-deploy",
-  jobId: "buildkite.deploy.production.55",
+  jobId: "woodpecker.deploy.production.55",
   leaseId: "lease-production-55",
   environment: "production",
   targetId: "customer-app",
@@ -209,7 +209,7 @@ describe("promotion decision composition", () => {
         verdictHash: value.verdict.canonicalHash,
         verdictNonce: value.verdict.nonce,
         authority: {
-          jobId: "buildkite.deploy.production.55",
+          jobId: "woodpecker.deploy.production.55",
           leaseId: "lease-production-55",
           leaseNonce: "credential_lease_0055",
           credentialScopes: [

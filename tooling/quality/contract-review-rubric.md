@@ -122,7 +122,7 @@ test. A follow-up is not enough for a known pattern fix.
 
 ## Meta-gate / CI security review
 
-If the PR touches `.github/`, `.buildkite/`, `tooling/quality/`,
+If the PR touches `.github/`, `.woodpecker/`, `tooling/ci/`, `tooling/quality/`,
 `tooling/generators/`, `dependency-cruiser.config.cjs`, `eslint.config.mjs`, or
 the contract reviewer itself, run the strict meta-gate review:
 
@@ -136,12 +136,12 @@ the contract reviewer itself, run the strict meta-gate review:
 - LLM judges stay pinned, tool-less, fail-closed when running in CI, and treat
   reviewed content as untrusted data.
 
-Sanctioned exception: files under `tooling/quality/` and `.buildkite/` are CI
-infrastructure, not product code. Product layer rules (adapter-only provider
-imports, dependency-cruiser edges, domain placement) do NOT apply to CI tooling.
-CI judges (taste-review.mts, contract-review.mts) calling model provider APIs
-directly is correct; they are not product capabilities. Do NOT flag CI tooling
-for violating product layer discipline.
+Sanctioned exception: files under `tooling/quality/`, `tooling/ci/`, and
+`.woodpecker/` are CI infrastructure, not product code. Product layer rules
+(adapter-only provider imports, dependency-cruiser edges, domain placement) do
+NOT apply to CI tooling. CI judges (taste-review.mts, contract-review.mts)
+calling model provider APIs directly is correct; they are not product
+capabilities. Do NOT flag CI tooling for violating product layer discipline.
 
 ## Tests
 

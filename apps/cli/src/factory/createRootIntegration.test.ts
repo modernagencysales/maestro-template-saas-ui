@@ -23,7 +23,12 @@ const repoRoot = fileURLToPath(new URL("../../../../", import.meta.url));
 const execFileAsync = promisify(execFile);
 const temporaryRoots: string[] = [];
 const originalPath = process.env.PATH;
+const originalStoreDir = process.env.npm_config_store_dir;
 const offlinePnpmBin = "/private/tmp/maestro-pnpm-10-bin";
+const installedStoreDir = readFileSync(
+  join(repoRoot, "node_modules/.modules.yaml"),
+  "utf8",
+).match(/^storeDir: (.+)$/m)?.[1];
 let taggedReleaseParent: string | undefined;
 let taggedReleaseRoot: string | undefined;
 const frozenAlpha2RuntimeSeam = [
@@ -81,7 +86,9 @@ const runTaggedCli = async (argv: readonly string[]) => {
   }
 };
 beforeAll(() => {
+  expect(installedStoreDir).toBeTruthy();
   process.env.PATH = `${offlinePnpmBin}:${originalPath ?? ""}`;
+  process.env.npm_config_store_dir = installedStoreDir;
   expect(execFileSync("pnpm", ["--version"], { encoding: "utf8" }).trim()).toBe(
     "10.12.1",
   );
@@ -94,6 +101,8 @@ afterAll(async () => {
   } finally {
     if (originalPath === undefined) delete process.env.PATH;
     else process.env.PATH = originalPath;
+    if (originalStoreDir === undefined) delete process.env.npm_config_store_dir;
+    else process.env.npm_config_store_dir = originalStoreDir;
   }
 });
 afterEach(async () => {
@@ -433,7 +442,7 @@ describe("create root integration", () => {
     ).toContain('"confect/**/*.json"');
     const install = await execFileAsync(
       "pnpm",
-      ["install", "--offline", "--frozen-lockfile", "--ignore-scripts"],
+      ["install", "--prefer-offline", "--frozen-lockfile", "--ignore-scripts"],
       { cwd: targetRoot, encoding: "utf8", timeout: 120_000 },
     );
     expect(`${install.stdout}\n${install.stderr}`).not.toContain("ERR_PNPM");

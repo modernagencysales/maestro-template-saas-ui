@@ -211,7 +211,7 @@ describe("workflow publication immutability gate", () => {
     ).toThrow(/comparison ref does not exist/i);
     expect(() =>
       deriveActualPublicationMergeBase(() => "unused", {
-        BUILDKITE_PULL_REQUEST_BASE_BRANCH: "main;git reset --hard",
+        CI_COMMIT_TARGET_BRANCH: "main;git reset --hard",
       }),
     ).toThrow(/invalid canonical CI comparison branch/i);
   });
