@@ -1,6 +1,7 @@
 import { execFile, execFileSync, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import {
+  cpSync,
   existsSync,
   mkdirSync,
   mkdtempSync,
@@ -14,6 +15,8 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { promisify } from "node:util";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { buildSaasApplicationTargetPlan } from "@maestro-template/generators";
+import { buildCustomerOwnershipInventory } from "@maestro-template/release-tooling/customer-ownership";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { runCliAsync } from "../index";
 import { CREATE_HELP } from "./create";
@@ -37,6 +40,50 @@ const frozenAlpha2RuntimeSeam = [
   "tooling/generators/src/blueprints/alpha2SaasApplicationPlan.ts",
   "tooling/generators/src/blueprints/customer/alpha2-plan.json.gz.b64",
 ] as const;
+const applyCurrentSaasProjection = (
+  root: string,
+  options: { readonly name: string; readonly firstOutcome: string },
+): void => {
+  const targetLocalPaths = new Set([
+    ".maestro-create-journal.json",
+    "template-instance.json",
+  ]);
+  const existingPaths = Object.keys(snapshotTargetBytes(root)).filter(
+    (path) => !targetLocalPaths.has(path),
+  );
+  for (const entry of buildCustomerOwnershipInventory(existingPaths)) {
+    if (entry.upgrade !== "preserve")
+      rmSync(join(root, entry.path), { force: true });
+  }
+  for (const path of ["patches/@confect__cli@10.0.0-next.9.patch"]) {
+    const target = join(root, path);
+    mkdirSync(dirname(target), { recursive: true });
+    writeFileSync(target, readFileSync(join(repoRoot, path)));
+  }
+  const currentTrackedFiles = execFileSync("git", ["ls-files"], {
+    cwd: repoRoot,
+    encoding: "utf8",
+  })
+    .trim()
+    .split("\n")
+    .filter(Boolean);
+  for (const { path, action } of buildCustomerOwnershipInventory(
+    currentTrackedFiles,
+  )) {
+    const target = join(root, path);
+    if (action === "omit") {
+      rmSync(target, { force: true });
+      continue;
+    }
+    mkdirSync(dirname(target), { recursive: true });
+    writeFileSync(target, readFileSync(join(repoRoot, path)));
+  }
+  for (const entry of buildSaasApplicationTargetPlan(options).entries) {
+    const target = join(root, entry.path);
+    mkdirSync(dirname(target), { recursive: true });
+    writeFileSync(target, entry.content);
+  }
+};
 const taggedRepository = (): string => {
   if (taggedReleaseRoot) return taggedReleaseRoot;
   taggedReleaseParent = mkdtempSync(join(tmpdir(), "maestro-tagged-release-"));
@@ -440,38 +487,66 @@ describe("create root integration", () => {
     expect(
       readFileSync(join(targetRoot, "packages/convex/tsconfig.json"), "utf8"),
     ).toContain('"confect/**/*.json"');
+    const preservedMaterialization = required.map((path) => ({
+      path,
+      bytes: readFileSync(join(targetRoot, path)),
+    }));
+    const compileRoot = join(parent, "compiled-app");
+    cpSync(targetRoot, compileRoot, { recursive: true });
+    for (const { path, bytes } of preservedMaterialization)
+      expect(readFileSync(join(targetRoot, path)), path).toEqual(bytes);
+    const projectionOptions = {
+      name: "My App",
+      firstOutcome: "Create and review records",
+    } as const;
+    applyCurrentSaasProjection(compileRoot, projectionOptions);
+    expect(
+      existsSync(join(compileRoot, "packages/convex/confect/records.spec.ts")),
+    ).toBe(false);
+    expect(
+      existsSync(
+        join(compileRoot, "packages/convex/confect/records/records.spec.ts"),
+      ),
+    ).toBe(true);
+    const projectedLock = buildSaasApplicationTargetPlan(
+      projectionOptions,
+    ).entries.find(({ path }) => path === "pnpm-lock.yaml");
+    if (!projectedLock) throw new Error("Current customer lock is missing.");
+    expect(readFileSync(join(compileRoot, projectedLock.path), "utf8")).toBe(
+      projectedLock.content,
+    );
     const install = await execFileAsync(
       "pnpm",
       ["install", "--prefer-offline", "--frozen-lockfile", "--ignore-scripts"],
-      { cwd: targetRoot, encoding: "utf8", timeout: 120_000 },
+      { cwd: compileRoot, encoding: "utf8", timeout: 120_000 },
     );
     expect(`${install.stdout}\n${install.stderr}`).not.toContain("ERR_PNPM");
     execFileSync("pnpm", ["confect:codegen"], {
-      cwd: targetRoot,
+      cwd: compileRoot,
       stdio: "pipe",
       timeout: 30_000,
     });
     execFileSync("pnpm", ["confect:manifest"], {
-      cwd: targetRoot,
+      cwd: compileRoot,
       stdio: "pipe",
       timeout: 30_000,
     });
     const dirtyManifest = readFileSync(
       join(
-        targetRoot,
+        compileRoot,
         "packages/template-core/src/generated/confectManifest.ts",
       ),
     );
     expect(dirtyManifest.toString()).toContain('"records"');
     execFileSync("pnpm", ["check:confect-manifest"], {
-      cwd: targetRoot,
+      cwd: compileRoot,
       stdio: "pipe",
       timeout: 30_000,
     });
     expect(
       readFileSync(
         join(
-          targetRoot,
+          compileRoot,
           "packages/template-core/src/generated/confectManifest.ts",
         ),
       ),
@@ -482,12 +557,12 @@ describe("create root integration", () => {
         "exec",
         "tsc",
         "-p",
-        join(targetRoot, "packages/convex/tsconfig.json"),
+        join(compileRoot, "packages/convex/tsconfig.json"),
         "--outDir",
-        join(targetRoot, "packages/convex/dist"),
+        join(compileRoot, "packages/convex/dist"),
         "--declaration",
       ],
-      { cwd: targetRoot, encoding: "utf8" },
+      { cwd: compileRoot, encoding: "utf8" },
     );
     expect(
       convexCompile.status,
@@ -498,7 +573,7 @@ describe("create root integration", () => {
       "check:workflow-principal-propagation",
     ]) {
       execFileSync("pnpm", ["run", gate], {
-        cwd: targetRoot,
+        cwd: compileRoot,
         stdio: "pipe",
       });
     }
@@ -506,9 +581,9 @@ describe("create root integration", () => {
     writeFileSync(
       webTargetConfig,
       JSON.stringify({
-        extends: join(targetRoot, "apps/web/tsconfig.json"),
+        extends: join(compileRoot, "apps/web/tsconfig.json"),
         compilerOptions: {
-          baseUrl: targetRoot,
+          baseUrl: compileRoot,
           paths: {
             "@maestro-template/convex/refs": [
               "packages/convex/dist/src/refs.d.ts",
@@ -520,7 +595,7 @@ describe("create root integration", () => {
     const webCompile = spawnSync(
       "pnpm",
       ["exec", "tsc", "-p", webTargetConfig, "--noEmit"],
-      { cwd: targetRoot, encoding: "utf8" },
+      { cwd: compileRoot, encoding: "utf8" },
     );
     expect(
       webCompile.status,
@@ -528,18 +603,18 @@ describe("create root integration", () => {
     ).toBe(0);
 
     const databaseSchema = (await import(
-      `${pathToFileURL(join(targetRoot, "packages/convex/confect/_generated/schema.ts")).href}?target=${Date.now()}`
+      `${pathToFileURL(join(compileRoot, "packages/convex/confect/_generated/schema.ts")).href}?target=${Date.now()}`
     )) as { readonly default: { readonly tables: Record<string, unknown> } };
     expect(databaseSchema.default.tables).toHaveProperty("records");
     const spec = (await import(
-      `${pathToFileURL(join(targetRoot, "packages/convex/confect/_generated/spec.ts")).href}?target=${Date.now()}`
+      `${pathToFileURL(join(compileRoot, "packages/convex/confect/_generated/spec.ts")).href}?target=${Date.now()}`
     )) as { readonly default: unknown };
     expect(JSON.stringify(spec.default)).toContain('"records"');
     for (const operation of ["list", "read", "create"]) {
       expect(JSON.stringify(spec.default)).toContain(`"${operation}"`);
     }
     const routes = (await import(
-      `${pathToFileURL(join(targetRoot, "apps/web/src/routeRegistry.generated.ts")).href}?target=${Date.now()}`
+      `${pathToFileURL(join(compileRoot, "apps/web/src/routeRegistry.generated.ts")).href}?target=${Date.now()}`
     )) as {
       readonly saasApplicationRoutes: { readonly records: string };
     };
@@ -547,8 +622,9 @@ describe("create root integration", () => {
 
     const targetAdapter = (await import(
       `${
-        pathToFileURL(join(targetRoot, "apps/web/src/adapters/records/fake.ts"))
-          .href
+        pathToFileURL(
+          join(compileRoot, "apps/web/src/adapters/records/fake.ts"),
+        ).href
       }?target=${Date.now()}`
     )) as {
       readonly createFakeRecordAdapter: () => {
@@ -574,7 +650,7 @@ describe("create root integration", () => {
     expect(await records.read("workspace_b", created.id)).toBeNull();
 
     const customerPackage = JSON.parse(
-      readFileSync(join(targetRoot, "package.json"), "utf8"),
+      readFileSync(join(compileRoot, "package.json"), "utf8"),
     ) as { readonly scripts: Readonly<Record<string, string>> };
     expect(customerPackage.scripts["maestro:crud-proof"]).toBe(
       "tsx tooling/generators/src/crud-proof.ts --mode fake",
@@ -584,7 +660,7 @@ describe("create root integration", () => {
         "pnpm",
         ["--silent", "run", "maestro:crud-proof", "--", "--json"],
         {
-          cwd: targetRoot,
+          cwd: compileRoot,
           encoding: "utf8",
           timeout: 30_000,
         },
@@ -621,7 +697,7 @@ describe("create root integration", () => {
       "pnpm",
       ["--silent", "run", "maestro:crud-proof"],
       {
-        cwd: targetRoot,
+        cwd: compileRoot,
         encoding: "utf8",
         timeout: 30_000,
         env: { ...process.env, NODE_ENV: "production" },
@@ -631,6 +707,8 @@ describe("create root integration", () => {
     expect(production.stderr).toContain(
       "CRUD proof is unavailable in a production environment.",
     );
+    for (const { path, bytes } of preservedMaterialization)
+      expect(readFileSync(join(targetRoot, path)), path).toEqual(bytes);
   }, 180_000);
 });
 
