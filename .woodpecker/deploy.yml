@@ -67,6 +67,7 @@ steps:
       TEMPLATE_PRODUCTION_CONVEX_URL:
         from_secret: template_production_convex_url
     commands:
+      - corepack enable
       - node scripts/_project-config.mjs assert-isolated-convex
       - pnpm exec tsx tooling/release/src/deploy/authorityCli.ts staging
         "$CI_COMMIT_SHA" template-staging "$(node scripts/_project-config.mjs
@@ -131,6 +132,7 @@ steps:
       TEMPLATE_STAGING_CONVEX_URL:
         from_secret: template_staging_convex_url
     commands:
+      - corepack enable
       - node scripts/_project-config.mjs assert-isolated-convex
       - pnpm exec tsx tooling/release/src/deploy/authorityCli.ts production
         "$CI_COMMIT_SHA" template-production "$(node scripts/_project-config.mjs
