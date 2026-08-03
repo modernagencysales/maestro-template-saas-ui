@@ -61,7 +61,7 @@ const lease = (value: PromotionVerdict): DeployCredentialLeaseAttestation => ({
   schemaVersion: 1,
   kind: "deploy-credential-lease",
   jobClass: "gated-deploy",
-  jobId: "buildkite.deploy.production.42",
+  jobId: "woodpecker.deploy.production.42",
   leaseId: "lease-production-42",
   environment: value.toEnvironment,
   targetId: value.targetId,
@@ -146,7 +146,7 @@ describe("deploy authority verification", () => {
           mode: "verification-only",
           environment,
           targetId: "customer-app",
-          jobId: "buildkite.deploy.production.42",
+          jobId: "woodpecker.deploy.production.42",
           leaseId: "lease-production-42",
           credentialScopes: [
             "artifact:read",

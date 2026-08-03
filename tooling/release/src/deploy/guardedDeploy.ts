@@ -8,7 +8,7 @@ import {
 
 const [action] = process.argv.slice(2) as [DeployAuthorityAction | undefined];
 const environment = process.env.DEPLOY_ENVIRONMENT;
-const commitSha = process.env.BUILDKITE_COMMIT;
+const commitSha = process.env.CI_COMMIT_SHA;
 const targetId = process.env.PROMOTION_TARGET_ID;
 if (
   (action !== "convex" && action !== "cloudflare") ||

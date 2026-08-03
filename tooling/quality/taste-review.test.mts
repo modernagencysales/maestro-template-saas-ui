@@ -539,7 +539,6 @@ describe("taste CLI fail-closed behavior", () => {
     { timeout: 120_000 },
     () => {
       const result = runTasteScript([], {
-        BUILDKITE: "true",
         CI: "true",
         OPENROUTER_API_KEY: "",
         OPENAI_API_KEY: "",

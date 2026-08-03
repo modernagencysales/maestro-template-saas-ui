@@ -42,7 +42,7 @@ const receipt = (): PromotionDecisionReceipt => {
     verdictHash: digest("1"),
     verdictNonce: "promotion_nonce_0077",
     authority: {
-      jobId: "buildkite.deploy.production.77",
+      jobId: "woodpecker.deploy.production.77",
       leaseId: "lease-production-77",
       leaseNonce: "credential_lease_0077",
       credentialScopes: ["artifact:read", "backend:deploy", "frontend:deploy"],

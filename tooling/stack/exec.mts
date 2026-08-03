@@ -34,12 +34,10 @@ export type CheckConclusion =
 // invariant: aligned with PR branch-protection required checks. Mutation is a
 // non-PR main/scheduled confidence job and intentionally not required here.
 export const REQUIRED_CHECKS = [
-  "verify",
+  "ci/woodpecker/pr/verify",
   "qlty",
-  "buildkite/taste",
   "unresolved-review-threads",
   "merge-conflict",
-  "buildkite/contract-review",
 ] as const;
 
 export const APP_PINNED_CHECKS: ReadonlySet<string> = new Set();

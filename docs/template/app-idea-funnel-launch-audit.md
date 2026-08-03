@@ -63,11 +63,11 @@ Current-main reproof on 2026-08-02:
 1. `template:workflow-output-smoke` reached Convex ref generation and stopped
    because `CONVEX_DEPLOYMENT` is not configured in this worktree. Run it in the
    configured Convex environment; do not weaken or fake the connection.
-2. The authorized Buildkite release path cannot currently be invoked: the shared
-   token exposes no organization, and Bitwarden does not contain the required
-   `TEMPLATE_STAGING_*` and `TEMPLATE_PRODUCTION_*` Cloudflare, Convex, and
-   hosted-URL bindings. Generic credentials are intentionally not substituted
-   for environment-isolated release authority.
+2. The authorized Woodpecker release path is pending repository activation.
+   Bitwarden does not yet contain all required `TEMPLATE_STAGING_*` and
+   `TEMPLATE_PRODUCTION_*` Cloudflare, Convex, and hosted-URL bindings. Generic
+   credentials are intentionally not substituted for environment-isolated
+   release authority.
 3. Cloudflare Pages still serves its 2026-07-02 deployment, which predates the
    funnel merge. Production and staging live-page verification therefore remain
    pending until the authorized release bindings are provisioned.

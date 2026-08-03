@@ -67,7 +67,7 @@ const fixture = () => {
     verdictHash: verdict.canonicalHash,
     verdictNonce: verdict.nonce,
     authority: {
-      jobId: "buildkite.deploy.production.88",
+      jobId: "woodpecker.deploy.production.88",
       leaseId: "lease-production-88",
       leaseNonce: "credential_lease_0088",
       credentialScopes: ["artifact:read", "backend:deploy", "frontend:deploy"],
@@ -138,7 +138,7 @@ describe("accepted promotion checkpoint compiler", () => {
         ],
         workflowCensus: { active: 5, restartable: 3 },
         authority: {
-          jobId: "buildkite.deploy.production.88",
+          jobId: "woodpecker.deploy.production.88",
           leaseId: "lease-production-88",
           credentialScopes: [
             "artifact:read",

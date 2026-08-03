@@ -23,20 +23,16 @@ const fixture = () => {
   return {
     sources: {
       "scripts/_project-config.mjs": source("scripts/_project-config.mjs"),
-      ".buildkite/scripts/staging-deploy.sh": source(
-        ".buildkite/scripts/staging-deploy.sh",
-      ),
-      ".buildkite/scripts/production-promote.sh": source(
-        ".buildkite/scripts/production-promote.sh",
+      "tooling/ci/staging-deploy.sh": source("tooling/ci/staging-deploy.sh"),
+      "tooling/ci/production-promote.sh": source(
+        "tooling/ci/production-promote.sh",
       ),
       "tooling/release/src/deploy/guardedDeploy.ts": source(
         "tooling/release/src/deploy/guardedDeploy.ts",
       ),
-      ".buildkite/scripts/deploy-canary.sh": source(
-        ".buildkite/scripts/deploy-canary.sh",
-      ),
-      ".buildkite/scripts/rollback-promote.sh": source(
-        ".buildkite/scripts/rollback-promote.sh",
+      "tooling/ci/deploy-canary.sh": source("tooling/ci/deploy-canary.sh"),
+      "tooling/ci/rollback-promote.sh": source(
+        "tooling/ci/rollback-promote.sh",
       ),
     },
     packageScripts: {
@@ -44,13 +40,13 @@ const fixture = () => {
       "deploy:cloudflare":
         'VITE_CONVEX_URL="$(node scripts/_project-config.mjs get production convexUrl)" pnpm build && pnpm smoke:web-static && tsx tooling/release/src/deploy/guardedDeploy.ts cloudflare',
     },
-    pipeline: source(".buildkite/pipeline.yml"),
-    selfProtection: source(".buildkite/scripts/ci-self-protection.sh"),
+    pipeline: source(".woodpecker/deploy.yml"),
+    selfProtection: source("tooling/ci/ci-self-protection.sh"),
     projectConfigSource: source("project.config.json"),
     policySource: policySource(),
     trustMembers,
     trustedDeployRootSha256: deployTrustRootSha256(trustMembers),
-    buildkite: true,
+    ci: true,
   };
 };
 
@@ -93,16 +89,12 @@ describe("deploy authority self-protection", () => {
     const base = fixture();
     for (const pipeline of [
       base.pipeline.replace(
-        'key: "staging-authority-preflight"',
-        'key: "removed"',
+        "- name: staging-authority-preflight",
+        "- name: removed",
       ),
       base.pipeline.replace(
-        'depends_on: "production-approval"',
-        'depends_on: "phase-1"',
-      ),
-      base.pipeline.replace(
-        'depends_on: "production-authority-preflight"',
-        'depends_on: "production-approval"',
+        "depends_on:\n      - production-authority-preflight",
+        "depends_on:\n      - trusted-ci-policy",
       ),
       base.pipeline.replace(
         "authorityCli.ts staging",
@@ -122,7 +114,7 @@ describe("deploy authority self-protection", () => {
     expect(
       validateDeployAuthoritySources({
         ...base,
-        pipeline: `${base.pipeline}\n  - TEMPLATE_STAGING_CONVEX_DEPLOY_KEY\n`,
+        pipeline: `${base.pipeline}\n  TEMPLATE_STAGING_CONVEX_DEPLOY_KEY:\n    from_secret: broadened\n`,
       }),
     ).not.toEqual([]);
     expect(
@@ -130,8 +122,8 @@ describe("deploy authority self-protection", () => {
         ...base,
         sources: {
           ...base.sources,
-          ".buildkite/scripts/staging-deploy.sh": `${
-            base.sources[".buildkite/scripts/staging-deploy.sh"]
+          "tooling/ci/staging-deploy.sh": `${
+            base.sources["tooling/ci/staging-deploy.sh"]
           }\npnpm exec tsx tooling/release/src/deploy/authorityCli.ts staging deadbeef template-staging\n`,
         },
       }),
@@ -145,8 +137,8 @@ describe("deploy authority self-protection", () => {
           ...base,
           sources: {
             ...base.sources,
-            ".buildkite/scripts/production-promote.sh": base.sources[
-              ".buildkite/scripts/production-promote.sh"
+            "tooling/ci/production-promote.sh": base.sources[
+              "tooling/ci/production-promote.sh"
             ].replace(route, "removed-route"),
           },
         }),
@@ -154,7 +146,7 @@ describe("deploy authority self-protection", () => {
     }
   });
 
-  it("forbids the authority signing key from every Buildkite surface", () => {
+  it("forbids the authority signing key from every Woodpecker surface", () => {
     const base = fixture();
     const privateKeyName = "PROMOTION_AUTHORITY_PRIVATE_KEY_PKCS8_BASE64URL";
     expect(
@@ -168,8 +160,8 @@ describe("deploy authority self-protection", () => {
         ...base,
         sources: {
           ...base.sources,
-          ".buildkite/scripts/staging-deploy.sh": `${
-            base.sources[".buildkite/scripts/staging-deploy.sh"]
+          "tooling/ci/staging-deploy.sh": `${
+            base.sources["tooling/ci/staging-deploy.sh"]
           }\nexport ${privateKeyName}=forbidden\n`,
         },
       }),
@@ -208,6 +200,24 @@ describe("deploy authority self-protection", () => {
     ).not.toEqual([]);
   });
 
+  it("requires external trust bindings to come from Woodpecker secrets", () => {
+    const base = fixture();
+    for (const [binding, secret] of [
+      ["TRUSTED_DEPLOY_ROOT_SHA256", "trusted_deploy_root_sha256"],
+      ["PROMOTION_AUTHORITY_ENDPOINT", "promotion_authority_endpoint"],
+    ] as const) {
+      const pipeline = base.pipeline.replace(
+        `${binding}:\n        from_secret: ${secret}`,
+        `${binding}:\n        value: untrusted`,
+      );
+      expect(pipeline).not.toBe(base.pipeline);
+      expect(
+        validateDeployAuthoritySources({ ...base, pipeline }),
+        binding,
+      ).not.toEqual([]);
+    }
+  });
+
   it("forbids inherited generic VITE_CONVEX_URL deploy overrides", () => {
     const base = fixture();
     expect(base.packageScripts["deploy:cloudflare"]).not.toContain(
@@ -225,8 +235,8 @@ describe("deploy authority self-protection", () => {
       }),
     ).not.toEqual([]);
     for (const scriptName of [
-      ".buildkite/scripts/staging-deploy.sh",
-      ".buildkite/scripts/production-promote.sh",
+      "tooling/ci/staging-deploy.sh",
+      "tooling/ci/production-promote.sh",
     ] as const) {
       expect(base.sources[scriptName], scriptName).not.toContain(
         "${VITE_CONVEX_URL:-",
@@ -237,8 +247,8 @@ describe("deploy authority self-protection", () => {
   it("requires post-deploy backend and hosted canaries before receipts", () => {
     const base = fixture();
     for (const scriptName of [
-      ".buildkite/scripts/staging-deploy.sh",
-      ".buildkite/scripts/production-promote.sh",
+      "tooling/ci/staging-deploy.sh",
+      "tooling/ci/production-promote.sh",
     ] as const) {
       const script = base.sources[scriptName];
       for (const marker of [
@@ -279,8 +289,8 @@ describe("deploy authority self-protection", () => {
           ...base,
           sources: {
             ...base.sources,
-            ".buildkite/scripts/rollback-promote.sh": base.sources[
-              ".buildkite/scripts/rollback-promote.sh"
+            "tooling/ci/rollback-promote.sh": base.sources[
+              "tooling/ci/rollback-promote.sh"
             ]
               .split(marker)
               .join("REMOVED_MARKER"),
@@ -296,7 +306,7 @@ describe("deploy authority self-protection", () => {
     expect(JSON.parse(base.policySource).rollbackSeedCommitBinding).toBe(
       "TRUSTED_ROLLBACK_SEED_COMMIT",
     );
-    expect(base.sources[".buildkite/scripts/rollback-promote.sh"]).toContain(
+    expect(base.sources["tooling/ci/rollback-promote.sh"]).toContain(
       "git merge-base --is-ancestor",
     );
     const head = spawnSync("git", ["rev-parse", "HEAD"], {
@@ -309,7 +319,7 @@ describe("deploy authority self-protection", () => {
     }).stdout.trim();
     const result = spawnSync(
       "bash",
-      [resolve(root, ".buildkite/scripts/rollback-promote.sh")],
+      [resolve(root, "tooling/ci/rollback-promote.sh")],
       {
         cwd: root,
         encoding: "utf8",
@@ -317,7 +327,7 @@ describe("deploy authority self-protection", () => {
           ...process.env,
           TEMPLATE_CI_SETUP: "skip",
           ROLLBACK_RECEIPT_PATH: "unused-before-ancestry-check.json",
-          BUILDKITE_COMMIT: parent,
+          CI_COMMIT_SHA: parent,
           TRUSTED_ROLLBACK_SEED_COMMIT: head,
         },
       },
@@ -331,75 +341,54 @@ describe("deploy authority self-protection", () => {
   it("pins the secretless self-protection verifier outside PR-head scripts", () => {
     const base = fixture();
     const selfProtectionCommand =
-      /key: "ci-self-protection"[\s\S]*?command: \|\n(?<body>[\s\S]*?)\n {4}agents:/u.exec(
+      /- name: trusted-ci-policy[\s\S]*?commands:\n {6}- \|\n(?<body>[\s\S]*?)\n {4}failure:/u.exec(
         base.pipeline,
       )?.groups?.body ?? "";
     expect(base.pipeline).toContain(
-      'TRUSTED_CI_SELF_PROTECTION_COMMIT: "${TRUSTED_CI_SELF_PROTECTION_COMMIT}"',
+      "TRUSTED_CI_SELF_PROTECTION_COMMIT:\n        from_secret: trusted_ci_self_protection_commit",
     );
     expect(selfProtectionCommand).not.toBe("");
-    expect(selfProtectionCommand).not.toMatch(/(?<!\$)\$(?=[({A-Za-z_])/u);
     expect(base.pipeline).toContain(
-      'git show "$${TRUSTED_CI_SELF_PROTECTION_COMMIT}:tooling/quality/check-deploy-authority.mts"',
+      'git show "$TRUSTED_CI_SELF_PROTECTION_COMMIT:tooling/quality/check-deploy-authority.mts"',
     );
     expect(base.pipeline).toContain(
-      'git show "$${TRUSTED_CI_SELF_PROTECTION_COMMIT}:.buildkite/scripts/ci-self-protection.sh"',
+      'git show "$TRUSTED_CI_SELF_PROTECTION_COMMIT:tooling/ci/ci-self-protection.sh"',
     );
     expect(base.pipeline).toContain(
-      'TRUSTED_SELF_PROTECTION_DIR="$$(mktemp -d)"',
+      'TRUSTED_SELF_PROTECTION_DIR="$(mktemp -d)"',
     );
     expect(base.pipeline).toContain(
-      'node --experimental-strip-types "$${TRUSTED_VERIFIER_PATH}"',
+      'node --experimental-strip-types "$TRUSTED_VERIFIER_PATH"',
     );
     expect(base.pipeline).not.toContain(
-      'pnpm exec tsx "$${TRUSTED_VERIFIER_PATH}"',
+      'pnpm exec tsx "$TRUSTED_VERIFIER_PATH"',
     );
-    expect(base.pipeline).toContain('[[ "$$(node --version)" != "v22.12.0" ]]');
+    expect(base.pipeline).toContain('[[ "$(node --version)" == "v22.12.0" ]]');
     expect(base.pipeline).toContain("export npm_config_ignore_scripts=true");
     expect(base.pipeline).toContain("unset npm_config_ignore_scripts");
-    const selfProtectionCommandOffset = base.pipeline.indexOf(
-      selfProtectionCommand,
-    );
-    const runtimeEscapes = [
-      ...selfProtectionCommand.matchAll(/\$\$(?=[({A-Za-z_])/gu),
-    ];
-    expect(selfProtectionCommandOffset).toBeGreaterThanOrEqual(0);
-    expect(runtimeEscapes).toHaveLength(20);
-    for (const [index, match] of runtimeEscapes.entries()) {
-      const escapeOffset =
-        selfProtectionCommandOffset + (match.index ?? Number.NaN);
-      const pipeline =
-        base.pipeline.slice(0, escapeOffset) +
-        "$" +
-        base.pipeline.slice(escapeOffset + 2);
-      expect(
-        validateDeployAuthoritySources({ ...base, pipeline }),
-        `runtime escape ${index + 1}`,
-      ).not.toEqual([]);
-    }
     for (const pipeline of [
       base.pipeline.replace(
-        'git show "$${TRUSTED_CI_SELF_PROTECTION_COMMIT}:tooling/quality/check-deploy-authority.mts"',
+        'git show "$TRUSTED_CI_SELF_PROTECTION_COMMIT:tooling/quality/check-deploy-authority.mts"',
         "cp tooling/quality/check-deploy-authority.mts",
       ),
       base.pipeline.replace(
-        'TRUSTED_SELF_PROTECTION_DIR="$$(mktemp -d)"',
         'TRUSTED_SELF_PROTECTION_DIR="$(mktemp -d)"',
+        'TRUSTED_SELF_PROTECTION_DIR="/tmp/untrusted"',
       ),
       base.pipeline.replace(
-        'node --experimental-strip-types "$${TRUSTED_VERIFIER_PATH}"',
-        'pnpm exec tsx "$${TRUSTED_VERIFIER_PATH}"',
+        'node --experimental-strip-types "$TRUSTED_VERIFIER_PATH"',
+        'pnpm exec tsx "$TRUSTED_VERIFIER_PATH"',
       ),
       base.pipeline.replace("v22.12.0", "v22.11.0"),
       base.pipeline.replace("export npm_config_ignore_scripts=true", "true"),
       base.pipeline.replace("unset npm_config_ignore_scripts", "true"),
       base.pipeline.replace(
-        'TEMPLATE_CI_SETUP=skip bash "$${TRUSTED_SELF_PROTECTION_PATH}"',
-        ".buildkite/scripts/ci-self-protection.sh",
+        'TEMPLATE_CI_SETUP=skip bash "$TRUSTED_SELF_PROTECTION_PATH"',
+        "tooling/ci/ci-self-protection.sh",
       ),
       base.pipeline.replace(
-        'depends_on: "ci-self-protection"',
-        'depends_on: "untrusted-pr-head"',
+        "depends_on:\n      - trusted-ci-policy",
+        "depends_on:\n      - untrusted-pr-head",
       ),
     ]) {
       expect(validateDeployAuthoritySources({ ...base, pipeline })).not.toEqual(
@@ -421,8 +410,8 @@ describe("deploy authority self-protection", () => {
           ...base,
           sources: {
             ...base.sources,
-            ".buildkite/scripts/deploy-canary.sh": base.sources[
-              ".buildkite/scripts/deploy-canary.sh"
+            "tooling/ci/deploy-canary.sh": base.sources[
+              "tooling/ci/deploy-canary.sh"
             ]
               .split(marker)
               .join("REMOVED_MARKER"),
