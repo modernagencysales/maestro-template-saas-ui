@@ -134,3 +134,20 @@ pnpm_install_without_ci_secrets() {
 }
 
 pnpm_install_without_ci_secrets
+
+seed_frozen_alpha2_store() {
+  local seed_parent seed_root
+  seed_parent="$(mktemp -d)"
+  seed_root="$seed_parent/release"
+  if ! git clone --quiet --shared "$PWD" "$seed_root" ||
+    ! git -C "$seed_root" checkout --quiet --detach maestro-template-v0.2.0-alpha.2 ||
+    ! run_without_ci_secrets \
+      CI=true \
+      pnpm --dir "$seed_root" fetch --frozen-lockfile; then
+    rm -rf "$seed_parent"
+    return 1
+  fi
+  rm -rf "$seed_parent"
+}
+
+seed_frozen_alpha2_store
