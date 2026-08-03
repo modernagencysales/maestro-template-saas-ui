@@ -182,7 +182,7 @@ const providerStatus = (error: unknown): number | undefined =>
 const checkoutPart = (value: string): string =>
   value.replaceAll(/[^A-Za-z0-9_-]/g, "-").slice(0, 80);
 
-export const createDodoCheckout = async (input: {
+type DodoCheckoutInput = {
   readonly mode: ProviderMode;
   readonly apiKey: string | undefined;
   readonly productId: string;
@@ -192,58 +192,15 @@ export const createDodoCheckout = async (input: {
   readonly returnUrl: string;
   readonly idempotencyKey: string;
   readonly transport?: DodoCheckoutTransport;
-}): Promise<
-  DodoCheckoutResult | DodoWebhookConfigError | DodoCheckoutProviderError
-> => {
-  if (input.mode === "live" && !input.apiKey?.trim()) {
-    return new DodoWebhookConfigError({ missing: ["DODO_API_KEY"] });
-  }
+};
 
-  if (input.mode !== "fake") {
-    if (!input.transport) {
-      return new DodoWebhookConfigError({
-        missing: ["DODO_CHECKOUT_TRANSPORT"],
-      });
-    }
-    let hosted: Awaited<ReturnType<DodoCheckoutTransport>>;
-    try {
-      hosted = await input.transport({
-        apiKey: input.apiKey ?? "",
-        productCart: [{ productId: input.productId, quantity: 1 }],
-        customer: { email: input.customerEmail },
-        metadata: {
-          reportId: input.reportId,
-          ...(normalizeAdmaxxerVisitorId(input.admaxxerVisitorId)
-            ? {
-                admx_visitor_id: normalizeAdmaxxerVisitorId(
-                  input.admaxxerVisitorId,
-                ) as string,
-              }
-            : {}),
-        },
-        returnUrl: input.returnUrl,
-        idempotencyKey: input.idempotencyKey,
-      });
-    } catch (error) {
-      const status = providerStatus(error);
-      return new DodoCheckoutProviderError({
-        operation: "checkout.create",
-        ...(status === undefined ? {} : { status }),
-        retryable: status === undefined || status === 429 || status >= 500,
-      });
-    }
-    return {
-      provider: "dodo",
-      mode: input.mode,
-      ...hosted,
-      reportId: input.reportId,
-    };
-  }
+type DodoCheckoutOutcome =
+  DodoCheckoutResult | DodoWebhookConfigError | DodoCheckoutProviderError;
 
+const createFakeCheckout = (input: DodoCheckoutInput): DodoCheckoutResult => {
   const checkoutSessionId = `checkout_${checkoutPart(input.idempotencyKey)}`;
   const checkoutUrl = new URL(input.returnUrl);
   checkoutUrl.searchParams.set("session_id", checkoutSessionId);
-
   return {
     provider: "dodo",
     mode: input.mode,
@@ -252,6 +209,64 @@ export const createDodoCheckout = async (input: {
     reportId: input.reportId,
   };
 };
+
+const apiKeyConfigError = (
+  input: DodoCheckoutInput,
+): DodoWebhookConfigError | undefined => {
+  if (input.mode === "live" && !input.apiKey?.trim())
+    return new DodoWebhookConfigError({ missing: ["DODO_API_KEY"] });
+  return undefined;
+};
+
+const checkoutProviderError = (error: unknown): DodoCheckoutProviderError => {
+  const status = providerStatus(error);
+  return new DodoCheckoutProviderError({
+    operation: "checkout.create",
+    ...(status === undefined ? {} : { status }),
+    retryable: status === undefined || status === 429 || status >= 500,
+  });
+};
+
+const createHostedCheckout = async (
+  input: DodoCheckoutInput,
+): Promise<
+  DodoCheckoutResult | DodoWebhookConfigError | DodoCheckoutProviderError
+> => {
+  const configError = apiKeyConfigError(input);
+  if (configError) return configError;
+  const transport = input.transport;
+  if (!transport)
+    return new DodoWebhookConfigError({ missing: ["DODO_CHECKOUT_TRANSPORT"] });
+  try {
+    const visitorId = normalizeAdmaxxerVisitorId(input.admaxxerVisitorId);
+    const hosted = await transport({
+      apiKey: input.apiKey ?? "",
+      productCart: [{ productId: input.productId, quantity: 1 }],
+      customer: { email: input.customerEmail },
+      metadata: {
+        reportId: input.reportId,
+        ...(visitorId ? { admx_visitor_id: visitorId } : {}),
+      },
+      returnUrl: input.returnUrl,
+      idempotencyKey: input.idempotencyKey,
+    });
+    return {
+      provider: "dodo",
+      mode: input.mode,
+      ...hosted,
+      reportId: input.reportId,
+    };
+  } catch (error) {
+    return checkoutProviderError(error);
+  }
+};
+
+export const createDodoCheckout = (
+  input: DodoCheckoutInput,
+): Promise<DodoCheckoutOutcome> =>
+  input.mode === "fake"
+    ? Promise.resolve(createFakeCheckout(input))
+    : createHostedCheckout(input);
 
 export {
   normalizeDodoWebhook,
