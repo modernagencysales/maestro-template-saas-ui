@@ -6,6 +6,27 @@ import { describe, expect, it } from "vitest";
 import { buildWorkflowFiles as buildWorkflowFilesFromIndex } from "./index";
 import { buildWorkflowFiles } from "./workflow-files";
 
+const collectCallExpressions = (
+  sourceFile: ts.SourceFile,
+): readonly ts.CallExpression[] => {
+  const calls: ts.CallExpression[] = [];
+  const visit = (node: ts.Node): void => {
+    if (ts.isCallExpression(node)) calls.push(node);
+    ts.forEachChild(node, visit);
+  };
+  visit(sourceFile);
+  return calls;
+};
+
+const schemaCallName = (
+  call: ts.CallExpression,
+  sourceFile: ts.SourceFile,
+): string | null =>
+  ts.isPropertyAccessExpression(call.expression) &&
+  call.expression.expression.getText(sourceFile) === "Schema"
+    ? call.expression.name.text
+    : null;
+
 describe("customer-safe workflow generator leaf", () => {
   it("preserves the public index output exactly", () => {
     const options = {
@@ -65,5 +86,56 @@ describe("customer-safe workflow generator leaf", () => {
     expect(startImpl).toContain("}).pipe(preserveWorkflowStartErrors)");
     expect(impl).not.toContain("error.message");
     expect(startImpl).not.toContain("toWorkflowValidationFailed");
+  });
+
+  it("emits Effect 4 schema APIs in generated contracts", () => {
+    const files = buildWorkflowFiles({
+      name: "effect four fixture",
+      system: "workflow-runtime",
+      disposition: "extend",
+    }).files;
+    const spec = files.find((file) => file.path.endsWith(".spec.ts"));
+
+    expect(spec).toBeDefined();
+    const sourceFile = ts.createSourceFile(
+      spec?.path ?? "generated.spec.ts",
+      spec?.content ?? "",
+      ts.ScriptTarget.Latest,
+      true,
+      ts.ScriptKind.TS,
+    );
+    const calls = collectCallExpressions(sourceFile);
+    const legacyCallNames = new Set([
+      "greaterThan",
+      "greaterThanOrEqualTo",
+      "int",
+      "lessThanOrEqualTo",
+    ]);
+    const unionCalls = calls.filter(
+      (call) => schemaCallName(call, sourceFile) === "Union",
+    );
+    const legacySchemaCalls = calls.filter((call) =>
+      legacyCallNames.has(schemaCallName(call, sourceFile) ?? ""),
+    );
+    const multiMemberLiteralCalls = calls.filter(
+      (call) =>
+        schemaCallName(call, sourceFile) === "Literal" &&
+        call.arguments.length > 1,
+    );
+
+    expect(unionCalls.length).toBeGreaterThan(0);
+    expect(
+      unionCalls.every((call) => {
+        const [members] = call.arguments;
+        return (
+          call.arguments.length === 1 &&
+          members !== undefined &&
+          ts.isArrayLiteralExpression(members)
+        );
+      }),
+    ).toBe(true);
+    expect(legacySchemaCalls).toHaveLength(0);
+    expect(multiMemberLiteralCalls).toHaveLength(0);
+    expect(spec?.content).not.toContain("Schema.Schema.Any");
   });
 });
