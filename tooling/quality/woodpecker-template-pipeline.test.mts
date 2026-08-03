@@ -41,6 +41,24 @@ describe("Woodpecker template pipeline", () => {
     );
   });
 
+  it("documents AI review gates as manual under the current topology", () => {
+    const verifyPipeline = read(".woodpecker/verify.yml");
+    const deliveryStory = read("docs/template/delivery-story.md");
+    const operationsRunbook = read("docs/template/operations-runbook.md");
+
+    expect(verifyPipeline).not.toMatch(/name: (?:taste|contract-review)/u);
+    expect(deliveryStory).toContain("run manually");
+    expect(deliveryStory).not.toContain(
+      "two fail-closed LLM review gates (taste and contract review)",
+    );
+    expect(operationsRunbook).toContain(
+      "AI review gates are manual under the current Woodpecker topology",
+    );
+    expect(operationsRunbook).not.toContain(
+      "read the step logs for `taste`,\n`contract-review`",
+    );
+  });
+
   it("checks in pipeline entrypoints as executable files", () => {
     for (const name of readdirSync(resolve(root, "tooling/ci")).filter((name) =>
       name.endsWith(".sh"),

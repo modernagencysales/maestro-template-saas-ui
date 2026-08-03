@@ -200,6 +200,24 @@ describe("deploy authority self-protection", () => {
     ).not.toEqual([]);
   });
 
+  it("requires external trust bindings to come from Woodpecker secrets", () => {
+    const base = fixture();
+    for (const [binding, secret] of [
+      ["TRUSTED_DEPLOY_ROOT_SHA256", "trusted_deploy_root_sha256"],
+      ["PROMOTION_AUTHORITY_ENDPOINT", "promotion_authority_endpoint"],
+    ] as const) {
+      const pipeline = base.pipeline.replace(
+        `${binding}:\n        from_secret: ${secret}`,
+        `${binding}:\n        value: untrusted`,
+      );
+      expect(pipeline).not.toBe(base.pipeline);
+      expect(
+        validateDeployAuthoritySources({ ...base, pipeline }),
+        binding,
+      ).not.toEqual([]);
+    }
+  });
+
   it("forbids inherited generic VITE_CONVEX_URL deploy overrides", () => {
     const base = fixture();
     expect(base.packageScripts["deploy:cloudflare"]).not.toContain(

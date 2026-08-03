@@ -8,6 +8,14 @@ const read = (path: string): string =>
   readFileSync(resolve(appRoot, path), "utf8");
 
 describe("TanStack Start runtime contract", () => {
+  it("retries transient local-server failures while prerendering the SPA shell", () => {
+    const source = read("vite.config.ts");
+
+    expect(source).toContain("prerender: {");
+    expect(source).toContain("retryCount: 2");
+    expect(source).toContain("retryDelay: 500");
+  });
+
   it("wires the router through Convex React Query and generated routeTree", () => {
     const source = read("src/router.tsx");
 
