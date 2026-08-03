@@ -26,6 +26,7 @@ steps:
         from_secret: trusted_deploy_root_sha256
     commands:
       - |
+        bash -euo pipefail <<'SCRIPT'
         set -euo pipefail
         if [[ ! "$TRUSTED_CI_SELF_PROTECTION_COMMIT" =~ ^[0-9a-f]{40}([0-9a-f]{24})?$ ]]; then
           echo "TRUSTED_CI_SELF_PROTECTION_COMMIT must be an exact immutable commit SHA." >&2
@@ -47,6 +48,7 @@ steps:
         node --experimental-strip-types "$TRUSTED_VERIFIER_PATH"
         TEMPLATE_CI_SETUP=skip bash "$TRUSTED_SELF_PROTECTION_PATH"
         unset npm_config_ignore_scripts
+        SCRIPT
     failure: cancel
 
   - name: staging-authority-preflight
