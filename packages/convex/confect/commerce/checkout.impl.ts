@@ -25,7 +25,7 @@ import { PublicBaseUrlConfig, RuntimeModeConfig } from "../shared/config";
 import { loadDodoCommerceEnvConfig } from "../evaluator/providerConfig";
 import { sha256Hex } from "../shared/sha256";
 import checkoutGroup, { CheckoutUnavailable } from "./checkout.spec";
-import prepareCheckoutImpl from "./checkoutPrepare.impl";
+import prepareCheckoutImpl from "./checkoutPrepare";
 
 const BUILD_PACK_CURRENCY = "USD" as const;
 const FAKE_PRODUCT_ID = "complete-build-pack-2900-usd";
