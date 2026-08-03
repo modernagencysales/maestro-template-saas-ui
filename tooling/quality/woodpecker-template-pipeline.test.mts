@@ -56,6 +56,9 @@ describe("Woodpecker template pipeline", () => {
     const deployPipeline = read(".woodpecker/deploy.yml");
     expect(deployPipeline).toContain("source tooling/ci/setup.sh");
     expect(deployPipeline).not.toContain("corepack enable");
+    expect(
+      deployPipeline.match(/bash -euo pipefail <<'SCRIPT'/gmu),
+    ).toHaveLength(3);
   });
 
   it("binds one GitHub credential after secretless CI self-protection", () => {
