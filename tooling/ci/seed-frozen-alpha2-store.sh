@@ -17,4 +17,5 @@ pnpm --dir "$seed_root" add --workspace-root \
   @tanstack/start-plugin-core@1.171.18 \
   --lockfile-only \
   --ignore-scripts
+rm -rf "$seed_root/node_modules"
 CI=true pnpm --dir "$seed_root" fetch --frozen-lockfile
