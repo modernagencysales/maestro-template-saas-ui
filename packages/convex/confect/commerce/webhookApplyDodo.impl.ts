@@ -90,6 +90,7 @@ export default FunctionImpl.make(
             reason: "payment event is missing total_amount",
           });
         if (admaxxer.ADMAXXER_API_KEY && event.amountCents !== undefined) {
+          const apiKey = admaxxer.ADMAXXER_API_KEY;
           yield* Effect.tryPromise({
             try: () =>
               recordAdmaxxerPayment(
@@ -102,7 +103,7 @@ export default FunctionImpl.make(
                     : {}),
                   ...(event.email ? { email: event.email } : {}),
                 },
-                { apiKey: admaxxer.ADMAXXER_API_KEY },
+                { apiKey },
               ),
             catch: () =>
               new WebhookRejected({

@@ -1,20 +1,29 @@
 const base64Alphabet =
   "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
+const alphabetAt = (index: number): string => base64Alphabet.at(index) ?? "";
+
+const encodeChunk = (
+  first: number,
+  second: number | undefined,
+  third: number | undefined,
+): string => {
+  const combined = (first << 16) | ((second ?? 0) << 8) | (third ?? 0);
+  return [
+    alphabetAt((combined >> 18) & 63),
+    alphabetAt((combined >> 12) & 63),
+    second === undefined ? "=" : alphabetAt((combined >> 6) & 63),
+    third === undefined ? "=" : alphabetAt(combined & 63),
+  ].join("");
+};
+
 const bytesToBase64 = (bytes: Uint8Array): string => {
-  let encoded = "";
-  for (let index = 0; index < bytes.length; index += 3) {
-    const first = bytes[index] ?? 0;
-    const second = bytes[index + 1];
-    const third = bytes[index + 2];
-    const combined = (first << 16) | ((second ?? 0) << 8) | (third ?? 0);
-    encoded += base64Alphabet[(combined >> 18) & 63] ?? "";
-    encoded += base64Alphabet[(combined >> 12) & 63] ?? "";
-    encoded +=
-      second === undefined ? "=" : base64Alphabet[(combined >> 6) & 63];
-    encoded += third === undefined ? "=" : base64Alphabet[combined & 63];
-  }
-  return encoded;
+  const chunks: string[] = [];
+  for (let index = 0; index < bytes.length; index += 3)
+    chunks.push(
+      encodeChunk(bytes[index] ?? 0, bytes[index + 1], bytes[index + 2]),
+    );
+  return chunks.join("");
 };
 
 export const hmacSha256Base64 = async (secret: string, value: string) => {

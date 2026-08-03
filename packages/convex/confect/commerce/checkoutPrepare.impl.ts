@@ -30,7 +30,7 @@ const checkoutResult = (checkout: {
   checkoutUrl: checkout.checkoutUrl ?? "",
   reportId: checkout.reportId,
   amountCents: checkout.amountCents,
-  currency: "USD",
+  currency: "USD" as const,
   status: checkout.status,
 });
 
