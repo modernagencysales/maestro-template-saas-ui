@@ -24,10 +24,12 @@ export default defineConfig({
   },
   plugins: [
     tanstackStart({
-      spa: { enabled: true },
-      prerender: {
-        retryCount: 2,
-        retryDelay: 500,
+      spa: {
+        enabled: true,
+        prerender: {
+          retryCount: 2,
+          retryDelay: 500,
+        },
       },
       router: {
         routesDirectory: "./routes",
