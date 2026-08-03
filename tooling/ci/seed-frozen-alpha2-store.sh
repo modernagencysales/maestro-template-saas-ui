@@ -18,6 +18,4 @@ pnpm --dir "$seed_root" add --workspace-root \
   --lockfile-only \
   --ignore-scripts
 rm -rf "$seed_root/node_modules"
-# invariant: the current workspace patches this package, while the customer lock
-# needs its registry tarball to apply that patch in a fresh offline tree.
-CI=true pnpm --dir "$seed_root" fetch --frozen-lockfile --force
+CI=true pnpm --dir "$seed_root" fetch --frozen-lockfile

@@ -513,6 +513,11 @@ describe("candidate customer composition", () => {
     }
 
     await runCandidatePnpm(fixture.targetRoot, [
+      "fetch",
+      "--frozen-lockfile",
+      "--force",
+    ]);
+    await runCandidatePnpm(fixture.targetRoot, [
       "install",
       "--offline",
       "--frozen-lockfile",
