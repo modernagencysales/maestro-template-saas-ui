@@ -57,9 +57,10 @@ archiving Maestro gate evidence. It defines required versus advisory posture,
 evidence strength, unavailable states, and receipt staleness; the underlying
 gate commands remain authoritative.
 
-Deterministic gates are authoritative and run before AI gates. AI gates are
-additional review signals and must fail closed when provider auth, parseable
-JSON/text verdicts, or Woodpecker logs are missing.
+Deterministic gates are authoritative in the required Woodpecker verification
+pipeline. AI review gates are manual under the current Woodpecker topology. When
+invoked, they are additional review signals and must fail closed when provider
+auth or a parseable JSON/text verdict is missing.
 
 Local fake-mode checks:
 
@@ -71,18 +72,10 @@ pnpm check:unresolved-review-threads -- --mode fake
 pnpm check:merge-conflicts -- --mode fake
 ```
 
-Woodpecker verdict retrieval:
-
-```bash
-woodpecker-cli pipeline ps modernagencysales/maestro-template-saas-ui
-woodpecker-cli pipeline log show modernagencysales/maestro-template-saas-ui <pipeline-number>
-```
-
-If Woodpecker artifacts are unavailable, read the step logs for `taste`,
-`contract-review`, `check:pr-health`, `check:unresolved-review-threads`, and
-`check:merge-conflicts`. The AI gates are valid only when their output contains
-a parseable pass verdict accepted by `tooling/quality/extract-ai-verdict.mts`;
-missing verdicts are failures.
+For a manual AI review, retain the command output with the review evidence. The
+AI gates are valid only when their output contains a parseable pass verdict
+accepted by `tooling/quality/extract-ai-verdict.mts`; missing verdicts are
+failures.
 
 ## Main Branch Promotion Policy
 

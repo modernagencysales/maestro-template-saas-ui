@@ -22,9 +22,9 @@ being demonstrated, not a shortcut around it:
   layer-law ESLint pack, typecheck, ~550 tests, coverage ratchet, dependency and
   secret scanning, docs pins) before it was pushed.
 - Every pull request runs the Woodpecker verification pipeline: a secretless
-  self-protection step that refuses PRs which weaken CI, the deterministic gate
-  suite, two fail-closed LLM review gates (taste and contract review), an
-  automatic staging deploy, and a human-approved production promote.
+  self-protection step that refuses PRs which weaken CI and the deterministic
+  gate suite. Taste and contract review run manually and fail closed when used;
+  guarded staging and production deployments use separate Woodpecker events.
 - The machinery itself was ported from maestro's production CI, then proven by
   iterating on live builds until the whole pipeline was green end to end —
   including failures that only a bare CI agent could surface.
