@@ -10,7 +10,7 @@ import webhooksGroup, { WebhookRejected } from "./webhooks.spec";
 export { validateLiveDodoBindings } from "./webhookEvent";
 export { applyPayment } from "./webhookPayment";
 
-import applyVerifiedDodoImpl from "./webhookApplyVerified.impl";
+import applyVerifiedDodoImpl from "./webhookApplyVerified";
 
 const markAdmaxxerReportedImpl = FunctionImpl.make(
   databaseSchema,
@@ -47,9 +47,9 @@ const markAdmaxxerReportedImpl = FunctionImpl.make(
     }),
 );
 
-import markProcessedImpl from "./webhookMarkProcessed.impl";
+import markProcessedImpl from "./webhookMarkProcessed";
 
-import applyDodoImpl from "./webhookApplyDodo.impl";
+import applyDodoImpl from "./webhookApplyDodo";
 
 export default GroupImpl.make(databaseSchema, webhooksGroup).pipe(
   Layer.provide(applyDodoImpl),
