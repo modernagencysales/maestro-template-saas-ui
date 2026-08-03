@@ -57,7 +57,7 @@ const quotedEnvNames = (source: string): readonly string[] =>
     .filter((name) => name.includes("_"));
 
 const providerRequiredEnvNames = (): readonly string[] => {
-  const source = readText("packages/integrations/src/index.ts");
+  const source = readText("packages/integrations/src/providerRegistry.ts");
   const names = new Set<string>();
 
   for (const match of source.matchAll(/requiredEnv:\s*\[([\s\S]*?)\]/g)) {

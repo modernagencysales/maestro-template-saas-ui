@@ -422,6 +422,56 @@
       "lifecycle": "active"
     },
     {
+      "id": "integration:dodo-crypto",
+      "kind": "provider",
+      "system": "billing-and-entitlements",
+      "path": "packages/integrations/src/dodoCrypto.ts",
+      "responsibility": "verify Dodo webhook signatures and freshness",
+      "surfaces": ["internal", "worker"],
+      "uses": [],
+      "lifecycle": "active"
+    },
+    {
+      "id": "integration:dodo-webhook",
+      "kind": "provider",
+      "system": "billing-and-entitlements",
+      "path": "packages/integrations/src/dodoWebhook.ts",
+      "responsibility": "normalize and verify Dodo webhook requests",
+      "surfaces": ["internal", "worker"],
+      "uses": [],
+      "lifecycle": "active"
+    },
+    {
+      "id": "integration:provider-adapter",
+      "kind": "provider",
+      "system": "policy-and-prompts",
+      "path": "packages/integrations/src/providerAdapter.ts",
+      "responsibility": "construct provider adapters behind the canonical registry",
+      "surfaces": ["internal", "worker"],
+      "uses": ["billing-and-entitlements", "notifications"],
+      "lifecycle": "active"
+    },
+    {
+      "id": "integration:provider-registry",
+      "kind": "provider",
+      "system": "policy-and-prompts",
+      "path": "packages/integrations/src/providerRegistry.ts",
+      "responsibility": "define canonical provider descriptors and configuration validation",
+      "surfaces": ["internal", "worker"],
+      "uses": ["billing-and-entitlements", "notifications"],
+      "lifecycle": "active"
+    },
+    {
+      "id": "integration:admaxxer",
+      "kind": "provider",
+      "system": "billing-and-entitlements",
+      "path": "packages/integrations/src/admaxxer.ts",
+      "responsibility": "adapt verified payment revenue attribution behind the billing boundary",
+      "surfaces": ["internal", "worker"],
+      "uses": [],
+      "lifecycle": "active"
+    },
+    {
       "id": "integration:email",
       "kind": "provider",
       "system": "notifications",

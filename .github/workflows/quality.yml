@@ -18,6 +18,8 @@ jobs:
     name: quality
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    env:
+      npm_config_store_dir: ${{ github.workspace }}/.pnpm-store
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
@@ -30,6 +32,8 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Seed immutable release dependencies
+        run: bash tooling/ci/seed-frozen-alpha2-store.sh
       - name: Install pinned scanners
         run: |
           bash tooling/ci/install-gitleaks.sh

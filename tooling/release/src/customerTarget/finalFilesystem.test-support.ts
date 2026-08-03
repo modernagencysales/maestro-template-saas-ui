@@ -2,16 +2,74 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import {
   existsSync,
+  globSync,
   lstatSync,
   readFileSync,
   readdirSync,
   realpathSync,
+  writeFileSync,
 } from "node:fs";
 import { dirname, relative, resolve, sep } from "node:path";
 const execFileAsync = promisify(execFile);
 const offlinePnpmBin = "/private/tmp/maestro-pnpm-10-bin";
 const finalWebBuildAttempts = 4;
 const finalWebBuildRetryDelayMs = 1_000;
+
+export function resolveBoundPreviewUrl(
+  reportedUrl: string,
+  address: { readonly address: string; readonly port: number },
+): string {
+  const resolvedUrl = new URL(reportedUrl);
+  const boundHost =
+    address.address === "0.0.0.0"
+      ? "127.0.0.1"
+      : address.address === "::"
+        ? "[::1]"
+        : address.address.includes(":")
+          ? `[${address.address}]`
+          : address.address;
+  resolvedUrl.hostname = boundHost;
+  resolvedUrl.port = String(address.port);
+  return resolvedUrl.href;
+}
+
+const prerenderRetryNeedle =
+  "logger.warn(`Encountered error, retrying: ${page.path} in ${retryDelay}ms`);\n\t\t\t\t\t\tawait new Promise";
+const prerenderRetryReplacement =
+  "logger.warn(`Encountered error, retrying: ${page.path} in ${retryDelay}ms`);\n\t\t\t\t\t\tseen.delete(page.path);\n\t\t\t\t\t\tawait new Promise";
+const previewReadinessNeedle = `return await vite.preview({
+\t\t\tconfigFile: viteConfig.configFile,
+\t\t\tpreview: {
+\t\t\t\tport: 0,
+\t\t\t\topen: false
+\t\t\t}
+\t\t});`;
+const previewReadinessReplacement = `const previewServer = await vite.preview({
+\t\t\tconfigFile: viteConfig.configFile,
+\t\t\tpreview: {
+\t\t\t\tport: 0,
+\t\t\t\topen: false
+\t\t\t}
+\t\t});
+\t\tif (!previewServer.httpServer.listening) await new Promise((resolve) => previewServer.httpServer.once("listening", resolve));
+\t\tconst address = previewServer.httpServer.address();
+\t\tif (!address || typeof address === "string") throw new Error("Vite preview server has no TCP address");
+\t\tconst resolvedUrl = new URL(previewServer.resolvedUrls.local[0]);
+\t\tconst boundHost = address.address === "0.0.0.0" ? "127.0.0.1" : address.address === "::" ? "[::1]" : address.address.includes(":") ? "[" + address.address + "]" : address.address;
+\t\tresolvedUrl.hostname = boundHost;
+\t\tresolvedUrl.port = String(address.port);
+\t\tpreviewServer.resolvedUrls.local[0] = resolvedUrl.href;
+\t\tfor (let attempt = 0; attempt < 50; attempt += 1) {
+\t\t\ttry {
+\t\t\t\tconst response = await fetch(previewServer.resolvedUrls.local[0], { method: "HEAD" });
+\t\t\t\tawait response.body?.cancel();
+\t\t\t\tbreak;
+\t\t\t} catch (error) {
+\t\t\t\tif (attempt === 49) throw error;
+\t\t\t\tawait new Promise((resolve) => setTimeout(resolve, 100));
+\t\t\t}
+\t\t}
+\t\treturn previewServer;`;
 
 const commandFailure = (error: unknown): Error => {
   const failure = error as Error & {
@@ -46,6 +104,34 @@ export async function retryTransientPrerenderStartup<T>(
     }
   }
   throw new Error("Prerender startup retry loop exhausted unexpectedly");
+}
+
+export function applyPrerenderRetryCompatibility(root: string): void {
+  const matches = globSync(
+    "node_modules/.pnpm/@tanstack+start-plugin-core@1.171.18*/node_modules/@tanstack/start-plugin-core/dist/esm/prerender.js",
+    { cwd: root },
+  );
+  const [match] = matches;
+  if (matches.length !== 1 || !match)
+    throw new Error(
+      `Expected one TanStack prerender runtime, found ${matches.length}`,
+    );
+  const path = resolve(root, match);
+  const vitePath = resolve(dirname(path), "vite/prerender.js");
+  const source = readFileSync(path, "utf8");
+  const viteSource = readFileSync(vitePath, "utf8");
+  if (!source.includes(prerenderRetryNeedle))
+    throw new Error("TanStack prerender retry compatibility seam changed");
+  if (!viteSource.includes(previewReadinessNeedle))
+    throw new Error("TanStack preview readiness compatibility seam changed");
+  writeFileSync(
+    path,
+    source.replace(prerenderRetryNeedle, prerenderRetryReplacement),
+  );
+  writeFileSync(
+    vitePath,
+    viteSource.replace(previewReadinessNeedle, previewReadinessReplacement),
+  );
 }
 
 export type FinalCustomerTree = {
@@ -231,6 +317,7 @@ export async function runFinalCustomerCompileGates(
   } catch (error) {
     throw commandFailure(error);
   }
+  applyPrerenderRetryCompatibility(root);
   for (const [command, args] of [
     ["pnpm", ["--dir", "apps/cli", "typecheck"]],
     ["pnpm", ["--dir", "tooling/generators", "typecheck"]],

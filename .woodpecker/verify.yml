@@ -2,6 +2,8 @@ labels:
   platform: linux/amd64
   role: maestro-ci
 
+timeout: 60
+
 clone:
   git:
     image: woodpeckerci/plugin-git:2.9.2@sha256:ebde4a4d07e0e24b630082484d192890dd4f6d442d90bf5466f0763860f83652
@@ -33,6 +35,8 @@ steps:
     image: node:22.12.0-bookworm@sha256:0e910f435308c36ea60b4cfd7b80208044d77a074d16b768a81901ce938a62dc
     environment:
       CI: "true"
+      GITHUB_TOKEN:
+        from_secret: github_token
       NODE_OPTIONS: "--max-old-space-size=6144"
     commands:
       - apt-get update

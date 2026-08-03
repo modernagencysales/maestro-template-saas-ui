@@ -17,6 +17,22 @@ Audit date: 2026-08-02
 | Visual evidence                       | `app-idea-funnel.visual.spec.ts`: canonical desktop/mobile snapshots for landing, intake, report, library, checkout, progress, Build Pack, and Maestro.                                                                   |
 | Operations                            | `app-idea-funnel-operations.md`, durable support incidents, specific operator-reason validation, entitlement recheck, checkpoint-preserving resume, and public support IDs.                                               |
 
+## Launch implementation reproof
+
+Final implementation branch: `codex/app-idea-launch` at `60307f669`.
+
+- Durable Buildability Report Lead fires only after the report is saved/claimed;
+  replay and provider-failure paths remain deduplicated.
+- The sanitized Admaxxer visitor ID is carried in checkout metadata, never in a
+  URL or authorization token.
+- Verified Dodo payments bind product, amount, currency, checkout, and report
+  metadata before entitlement or equal Maestro credit. Live mode fails closed
+  when the expected `$29` amount/product configuration is absent.
+- Admaxxer Purchase is retried by payment ID until `admaxxerReportedAt` is
+  durable; provider failure does not create a second purchase or credit.
+- A controlled live `$1 USD` Build Pack mapping is supported through the canary
+  environment bindings; it is not provisioned or charged yet.
+
 ## Fresh focused verification
 
 Current-main reproof on 2026-08-02:
@@ -71,6 +87,11 @@ Current-main reproof on 2026-08-02:
 3. Cloudflare Pages still serves its 2026-07-02 deployment, which predates the
    funnel merge. Production and staging live-page verification therefore remain
    pending until the authorized release bindings are provisioned.
+4. Live Dodo `$1` Build Pack canary, refund/revocation, Admaxxer Purchase, and
+   Meta CAPI evidence require owner-approved card entry and provider access.
+5. Read-only Pages secret listing for `maestro-template-saas-ui` production
+   returned no configured secrets; the isolated `TEMPLATE_PRODUCTION_*` bindings
+   must be provisioned through the authorized Woodpecker path.
 
 The implementation, focused journeys, and required GitHub quality gate are
 verified. Production launch verification still requires the configured Convex

@@ -10,6 +10,7 @@ export default Table.make(() =>
     signatureTimestamp: Schema.String,
     dedupeKey: Schema.String,
     status: Schema.Literals(["processed", "duplicate", "failed"]),
+    attributionPending: Schema.optional(Schema.Boolean),
     createdAt: Schema.Number,
   }),
 )

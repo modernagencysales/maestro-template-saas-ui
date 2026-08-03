@@ -1,0 +1,12 @@
+diff --git a/dist/esm/prerender.js b/dist/esm/prerender.js
+index b901a4e..ae6ebfd 100644
+--- a/dist/esm/prerender.js
++++ b/dist/esm/prerender.js
+@@ -111,6 +111,7 @@ async function prerender({ startConfig, handler }) {
+ 					if (retries < (prerenderOptions.retryCount ?? 0)) {
+ 						const retryDelay = normalizeRetryDelay(prerenderOptions.retryDelay);
+ 						logger.warn(`Encountered error, retrying: ${page.path} in ${retryDelay}ms`);
++						seen.delete(page.path);
+ 						await new Promise((resolve) => setTimeout(resolve, retryDelay));
+ 						retriesByPath.set(page.path, retries + 1);
+ 						addCrawlPageTask(page);

@@ -189,6 +189,27 @@ describe("saas application blueprint", () => {
     expect(mismatches).toEqual([]);
   });
 
+  it("keeps current notification email tables canonically owned", () => {
+    const entry = buildSaasApplicationTargetPlan().entries.find(
+      ({ path }) => path === "docs/template/system-catalog.json",
+    );
+    if (!entry) throw new Error("missing generated system catalog");
+
+    const catalog = parseSystemCatalog(JSON.parse(entry.content) as unknown);
+    const notifications = catalog.systems.find(
+      ({ id }) => id === "notifications",
+    );
+    expect(notifications?.tables).toEqual(
+      expect.arrayContaining([
+        "emailCampaigns",
+        "emailDeliveries",
+        "emailEvents",
+        "emailSubscribers",
+        "emailSuppressions",
+      ]),
+    );
+  });
+
   it("keeps retained template-core tests independent of factory release fixtures", () => {
     const entries = new Map(
       buildSaasApplicationTargetPlan().entries.map((entry) => [

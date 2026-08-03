@@ -1,7 +1,75 @@
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { retryTransientPrerenderStartup } from "./finalFilesystem.test-support.js";
+import {
+  applyPrerenderRetryCompatibility,
+  resolveBoundPreviewUrl,
+  retryTransientPrerenderStartup,
+} from "./finalFilesystem.test-support.js";
 
 describe("final filesystem prerender startup retry", () => {
+  it.each([
+    ["127.0.0.1", "http://127.0.0.1:4311/"],
+    ["::1", "http://[::1]:4311/"],
+    ["0.0.0.0", "http://127.0.0.1:4311/"],
+    ["::", "http://[::1]:4311/"],
+  ])("uses the bound %s preview address", (address, expected) => {
+    expect(
+      resolveBoundPreviewUrl("http://127.0.0.1:4173/", {
+        address,
+        port: 4311,
+      }),
+    ).toBe(expected);
+  });
+
+  it("enables the installed TanStack retry before customer compilation", () => {
+    const root = mkdtempSync(join(tmpdir(), "prerender-compat-"));
+    const path = join(
+      root,
+      "node_modules/.pnpm/@tanstack+start-plugin-core@1.171.18_fixture/node_modules/@tanstack/start-plugin-core/dist/esm/prerender.js",
+    );
+    const vitePath = join(path, "../vite/prerender.js");
+    mkdirSync(join(path, ".."), { recursive: true });
+    mkdirSync(join(vitePath, ".."), { recursive: true });
+    writeFileSync(
+      path,
+      [
+        "if (retries < (prerenderOptions.retryCount ?? 0)) {",
+        "const retryDelay = normalizeRetryDelay(prerenderOptions.retryDelay);",
+        "logger.warn(`Encountered error, retrying: ${page.path} in ${retryDelay}ms`);\n\t\t\t\t\t\tawait new Promise",
+      ].join("\n"),
+    );
+    writeFileSync(
+      vitePath,
+      [
+        "return await vite.preview({",
+        "\t\t\tconfigFile: viteConfig.configFile,",
+        "\t\t\tpreview: {",
+        "\t\t\t\tport: 0,",
+        "\t\t\t\topen: false",
+        "\t\t\t}",
+        "\t\t});",
+      ].join("\n"),
+    );
+
+    applyPrerenderRetryCompatibility(root);
+
+    const source = readFileSync(path, "utf8");
+    expect(source).toContain("seen.delete(page.path)");
+    expect(readFileSync(vitePath, "utf8")).toContain(
+      'previewServer.httpServer.once("listening", resolve)',
+    );
+    expect(readFileSync(vitePath, "utf8")).toContain(
+      "await fetch(previewServer.resolvedUrls.local[0]",
+    );
+    expect(readFileSync(vitePath, "utf8")).toContain(
+      "previewServer.httpServer.address()",
+    );
+    expect(readFileSync(vitePath, "utf8")).toContain(
+      "resolvedUrl.hostname = boundHost",
+    );
+  });
   it("retries bounded loopback startup refusals until the build succeeds", async () => {
     let attempts = 0;
     const waits: number[] = [];

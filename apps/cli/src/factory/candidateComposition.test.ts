@@ -514,6 +514,15 @@ describe("candidate customer composition", () => {
 
     await runCandidatePnpm(fixture.targetRoot, [
       "install",
+      "--frozen-lockfile",
+      "--ignore-scripts",
+    ]);
+    rmSync(join(fixture.targetRoot, "node_modules"), {
+      recursive: true,
+      force: true,
+    });
+    await runCandidatePnpm(fixture.targetRoot, [
+      "install",
       "--offline",
       "--frozen-lockfile",
       "--ignore-scripts",
@@ -564,6 +573,10 @@ describe("candidate customer composition", () => {
       fixture.targetRoot,
       "packages/template-core/src/generated/confectManifest.ts",
     );
+    // The immutable alpha.2 artifact carries its historical generated output,
+    // while customer materialization marks this file as regenerable. Refresh
+    // it against the materialized dependency/schema set before checking it.
+    await runCandidatePnpm(fixture.targetRoot, ["confect:manifest"]);
     const generatedManifestBefore = readFileSync(generatedManifestPath, "utf8");
     const plannedManifest = buildSaasApplicationTargetPlan({
       name,

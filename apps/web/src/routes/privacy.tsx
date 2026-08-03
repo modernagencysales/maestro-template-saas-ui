@@ -13,6 +13,16 @@ export function PrivacyRoute() {
         Your idea and answers are used to produce your evaluation. They are not
         sold and are never included in analytics event payloads.
       </p>
+      <p>
+        We use Admaxxer and our configured advertising destinations to measure
+        page views, campaign parameters such as UTMs and <code>fbclid</code>,
+        and conversion attribution. A sanitized visitor identifier may be
+        carried in checkout metadata. A Lead is sent only after a report is
+        durably saved or claimed; a Purchase is sent only after a verified Dodo
+        payment webhook. Idea, answer, report, prompt, and payment contents are
+        excluded from those events. Where required, non-essential tracking waits
+        for consent and available opt-out controls remain applicable.
+      </p>
       <h2>AI processing</h2>
       <p>
         Free evaluations use a bounded AI model. Paid Build Packs may use

@@ -25,15 +25,13 @@ import { PublicBaseUrlConfig, RuntimeModeConfig } from "../shared/config";
 import { loadDodoCommerceEnvConfig } from "../evaluator/providerConfig";
 import { sha256Hex } from "../shared/sha256";
 import checkoutGroup, { CheckoutUnavailable } from "./checkout.spec";
+import prepareCheckoutImpl from "./checkoutPrepare";
 
-const BUILD_PACK_AMOUNT_CENTS = 2_900;
 const BUILD_PACK_CURRENCY = "USD" as const;
 const FAKE_PRODUCT_ID = "complete-build-pack-2900-usd";
 
 const unsafeAssumeClockProvided = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
   effect as Effect.Effect<A, E, Exclude<R, Clock.Clock>>;
-
-const normalizeEmail = (email: string): string => email.trim().toLowerCase();
 
 const checkoutResult = (checkout: {
   readonly checkoutSessionId: string;
@@ -57,96 +55,6 @@ const checkoutResult = (checkout: {
   currency: BUILD_PACK_CURRENCY,
   status: checkout.status,
 });
-
-const prepareCheckoutImpl = FunctionImpl.make(
-  databaseSchema,
-  checkoutGroup,
-  "prepareCheckout",
-  ({ reportId, ownerAccessToken, email }) =>
-    Effect.gen(function* () {
-      const normalizedReportId = reportId.trim();
-      const normalizedToken = ownerAccessToken.trim();
-      const customerEmail = normalizeEmail(email);
-      if (
-        !normalizedReportId ||
-        !normalizedToken ||
-        !customerEmail.includes("@")
-      )
-        return yield* new ValidationFailed({
-          field: "checkout",
-          message: "A report, owner token, and valid email are required.",
-        });
-
-      const reader = yield* DatabaseReader;
-      const writer = yield* DatabaseWriter;
-      const report = yield* reader
-        .table("evaluationReports")
-        .index("by_report", (q) => q.eq("reportId", normalizedReportId))
-        .first()
-        .pipe(Effect.map(Option.getOrNull), Effect.orDie);
-      if (report === null)
-        return yield* new NotFound({
-          resource: "evaluationReports",
-          id: normalizedReportId,
-        });
-
-      const ownership = yield* reader
-        .table("reportOwnerships")
-        .index("by_report", (q) => q.eq("reportId", normalizedReportId))
-        .first()
-        .pipe(Effect.map(Option.getOrNull), Effect.orDie);
-      if (
-        ownership === null ||
-        ownership.ownerAccessTokenHash !== sha256Hex(normalizedToken) ||
-        ownership.emailHash !== sha256Hex(customerEmail)
-      )
-        return yield* new Unauthorized();
-
-      const idempotencyKey = `build-pack:${sha256Hex(
-        `${normalizedReportId}:${ownership.emailHash}`,
-      ).slice(0, 48)}`;
-      const existing = yield* reader
-        .table("checkoutSessions")
-        .index("by_idempotency", (q) => q.eq("idempotencyKey", idempotencyKey))
-        .first()
-        .pipe(Effect.map(Option.getOrNull), Effect.orDie);
-      if (
-        existing !== null &&
-        existing.status !== "created" &&
-        existing.checkoutUrl?.trim()
-      )
-        return {
-          reportId: normalizedReportId,
-          customerEmail,
-          idempotencyKey,
-          existing: checkoutResult(existing),
-        };
-
-      if (existing === null) {
-        const now = yield* unsafeAssumeClockProvided(Clock.currentTimeMillis);
-        yield* writer
-          .table("checkoutSessions")
-          .insert({
-            checkoutSessionId: `pending_${sha256Hex(idempotencyKey).slice(0, 24)}`,
-            reportId: normalizedReportId,
-            idempotencyKey,
-            amountCents: BUILD_PACK_AMOUNT_CENTS,
-            currency: BUILD_PACK_CURRENCY,
-            status: "created",
-            createdAt: now,
-            updatedAt: now,
-          })
-          .pipe(Effect.orDie);
-      }
-
-      return {
-        reportId: normalizedReportId,
-        customerEmail,
-        idempotencyKey,
-        existing: null,
-      };
-    }),
-);
 
 const persistCheckoutImpl = FunctionImpl.make(
   databaseSchema,
@@ -232,7 +140,10 @@ const createImpl = FunctionImpl.make(
       const dodoEnv = yield* loadDodoCommerceEnvConfig.pipe(Effect.orDie);
       if (
         runtimeMode !== "fake" &&
-        (!dodoEnv.DODO_API_KEY || !dodoEnv.DODO_BUILD_PACK_PRODUCT_ID)
+        (!dodoEnv.DODO_API_KEY ||
+          !dodoEnv.DODO_BUILD_PACK_PRODUCT_ID ||
+          (runtimeMode === "live" &&
+            !dodoEnv.DODO_BUILD_PACK_EXPECTED_AMOUNT_CENTS))
       )
         return yield* new ConfigInvalid({
           provider: "dodo",
@@ -248,6 +159,9 @@ const createImpl = FunctionImpl.make(
           apiKey: dodoEnv.DODO_API_KEY,
           productId: dodoEnv.DODO_BUILD_PACK_PRODUCT_ID ?? FAKE_PRODUCT_ID,
           reportId: prepared.reportId,
+          ...(prepared.admaxxerVisitorId
+            ? { admaxxerVisitorId: prepared.admaxxerVisitorId }
+            : {}),
           customerEmail: prepared.customerEmail,
           returnUrl: returnUrl.toString(),
           idempotencyKey: prepared.idempotencyKey,

@@ -7,6 +7,8 @@ export default Table.make(() =>
     paymentId: Schema.String,
     checkoutSessionId: Schema.optional(Schema.String),
     reportId: Schema.String,
+    admaxxerVisitorId: Schema.optional(Schema.String),
+    admaxxerReportedAt: Schema.optional(Schema.Number),
     amountCents: Schema.Number,
     currency: Schema.String,
     status: Schema.Literals(["paid", "refunded", "disputed"]),

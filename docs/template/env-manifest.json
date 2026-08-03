@@ -446,6 +446,54 @@
       "notes": "Server-owned Dodo product id for the Complete Build Pack checkout."
     },
     {
+      "name": "DODO_BUILD_PACK_EXPECTED_AMOUNT_CENTS",
+      "group": "dodo",
+      "services": ["convex"],
+      "visibility": "server-config",
+      "requiredFor": ["fake", "test", "live"],
+      "fakeExampleAllowed": true,
+      "fakeExample": "2900",
+      "owner": "Billing owner",
+      "rotation": "Change only with a matching Dodo product and canary record.",
+      "notes": "Fail-closed expected minor-unit amount for verified Build Pack webhooks; set to 100 only for the approved live canary."
+    },
+    {
+      "name": "DODO_BUILD_PACK_EXPECTED_CURRENCY",
+      "group": "dodo",
+      "services": ["convex"],
+      "visibility": "server-config",
+      "requiredFor": ["fake", "test", "live"],
+      "fakeExampleAllowed": true,
+      "fakeExample": "USD",
+      "owner": "Billing owner",
+      "rotation": "Change only with a matching Dodo product and canary record.",
+      "notes": "Fail-closed ISO currency binding for verified Build Pack webhooks."
+    },
+    {
+      "name": "DODO_BUILD_PACK_LAUNCH_CANARY",
+      "group": "dodo",
+      "services": ["convex"],
+      "visibility": "server-config",
+      "requiredFor": ["fake", "test", "live"],
+      "fakeExampleAllowed": true,
+      "fakeExample": "false",
+      "owner": "Billing owner",
+      "rotation": "Remove immediately after the approved $1 canary refund.",
+      "notes": "Explicit launch-canary marker; never enable for normal $29 production traffic."
+    },
+    {
+      "name": "ADMAXXER_API_KEY",
+      "group": "admaxxer",
+      "services": ["convex"],
+      "visibility": "server-secret",
+      "requiredFor": ["fake", "test", "live"],
+      "fakeExampleAllowed": true,
+      "fakeExample": "fake_local_key",
+      "owner": "Growth analytics owner",
+      "rotation": "Rotate after provider access changes or attribution incidents.",
+      "notes": "Server-only Admaxxer Payments API key; never sent to browser or logs."
+    },
+    {
       "name": "POSTMARK_SERVER_TOKEN",
       "group": "email",
       "services": ["convex", "web"],
