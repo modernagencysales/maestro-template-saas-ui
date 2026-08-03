@@ -41,6 +41,10 @@ describe("Woodpecker template pipeline", () => {
     );
   });
 
+  it("allows the measured full verification suite to finish", () => {
+    expect(read(".woodpecker/verify.yml")).toContain("timeout: 60");
+  });
+
   it("documents AI review gates as manual under the current topology", () => {
     const verifyPipeline = read(".woodpecker/verify.yml");
     const deliveryStory = read("docs/template/delivery-story.md");
