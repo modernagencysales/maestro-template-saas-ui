@@ -851,7 +851,7 @@ const checkDescriptorDefinitions = {
           ".env.example must use PostHog Convex component env names and fake/test placeholders",
       },
       {
-        file: "packages/integrations/src/index.ts",
+        file: "packages/integrations/src/providerRegistry.ts",
         includes: ['requiredEnv: ["POSTHOG_PROJECT_TOKEN", "POSTHOG_HOST"]'],
         absent: ['requiredEnv: ["POSTHOG_KEY", "POSTHOG_HOST"]'],
         message:
