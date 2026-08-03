@@ -1,8 +1,9 @@
 # Cucumber Product Contracts Design
 
-**Status:** Proposed for review  
-**Date:** 2026-08-02  
-**Supersedes:** [Product Journey Admission Design](./2026-08-01-product-journey-admission-design.md)
+- **Status:** Approved for implementation
+- **Date:** 2026-08-02
+- **Supersedes:**
+  [Product Journey Admission Design](./2026-08-01-product-journey-admission-design.md)
 
 ## Decision
 
@@ -41,7 +42,8 @@ The product-building loop becomes:
 
 ```mermaid
 flowchart LR
-  A[Example Mapping and product review] --> B[Reviewed assembling Feature]
+  Z[Protected tokenless CI bootstrap] --> A[Example Mapping and product review]
+  A --> B[Reviewed assembling Feature]
   B --> C[maestro create or contracts add]
   C --> D[Stacked slice PRs keep journey assembling]
   D --> E[Static ownership and darkness checks]
@@ -62,6 +64,12 @@ and the assembling Feature are present in protected main, changes the journey to
 Once a journey is admitted, its scenarios run on every later pull request. The
 first admission is verified at the end of the stack; regression protection is
 continuous afterward.
+
+The protected, tokenless CI root is a prerequisite, not a late rollout step. No
+candidate-supplied Cucumber dependency, support module, generator, or gate
+change becomes eligible to merge until a server-side controller can run the
+existing deterministic gates without candidate secrets and the future trust
+paths are CODEOWNED.
 
 ## What The Verdict Can And Cannot Prove
 
@@ -480,23 +488,26 @@ admission verdict. Each slice:
 - runs all journeys already admitted on protected main;
 - proves any new activation-owned entrypoint remains dark.
 
-Generated provenance maps each activation-owned surface to its implementation
-paths. Every slice touching those paths requires the journey's product/code
-owner approval; the final lifecycle flip does not retroactively bless unreviewed
-implementation already merged.
+Keep implementation review enforceable without a second path ledger. Product
+implementation roots are CODEOWNED, and every slice touching them requires a
+non-author product/code-owner approval for its current head. Repositories that
+cannot protect a broad product root must list the pilot's exact UI, CLI, and
+backend roots before its first slice. The final lifecycle flip does not
+retroactively bless unreviewed implementation already merged.
 
 Operationally, GitHub stacks organize review and merge bottom-up. After the last
 assembling slice reaches main, the admission branch is rebased onto current main
-and contains only the lifecycle flip plus any final integration fix. This makes
-the end-of-stack verification deterministic without requiring incomplete slice
-PRs to pass the new journey.
+and contains only the lifecycle flip plus byte-exact generated projections
+derived from that flip. Any integration repair lands as another assembling slice
+before a fresh admission branch. This makes the end-of-stack verification
+deterministic without requiring incomplete slice PRs to pass the new journey.
 
 Only a final integration PR targeting protected main and evaluated by its
 protected merge queue may introduce an `@admitted` lifecycle delta. Its Feature
 must already be `@assembling` on protected main, so the implementation slices
-merge first. The final merge candidate contains the lifecycle flip and any last
-integration change. The admission verifier executes all admitted Pickles,
-including the new journey.
+merge first. The final merge candidate contains the lifecycle flip and its exact
+generated projection changes, never product or control code. The admission
+verifier executes all admitted Pickles, including the new journey.
 
 ### Admitted
 
@@ -839,7 +850,7 @@ Source.uri/data
   -> Pickle.uri and Pickle.astNodeIds
   -> Pickle.steps[].id and astNodeIds
   -> TestCase.pickleId
-  -> TestCase.testSteps[].pickleStepId
+  -> TestCase.testSteps[].pickleStepId / stepDefinitionIds / hookId
   -> TestCaseStarted.testCaseId
   -> TestStepFinished / TestCaseFinished / Attachment
 ```
@@ -852,9 +863,14 @@ duplicate, cross-document, or wrong-kind references.
 
 Every runtime Pickle step likewise resolves its AST step in the same document
 and exactly equals the expected ordered step projection. Each PickleStep ID maps
-to exactly one TestCase test step through `pickleStepId`, and that test step has
-one started/finished result. Hook test steps have no `pickleStepId` and are
-validated separately. Omitted, substituted, duplicated, or orphaned steps fail.
+to exactly one TestCase test step through `pickleStepId`, resolves exactly one
+unique emitted StepDefinition with one aligned match-arguments list, and has one
+started/finished result. Hook test steps have no `pickleStepId`, resolve exactly
+one emitted Hook, and are checked against a protected expected-hook inventory.
+Cucumber 13 does not emit distinct BeforeStep/AfterStep test-step envelopes, so
+the trusted attachment records exact before/after marker lists for every stable
+step key. Omitted, substituted, duplicated, or orphaned definitions, hooks,
+steps, or markers fail.
 
 Each scenario has exactly one redacted runtime observation attachment, assembled
 from the trusted driver's in-process observation set and linked to its
@@ -866,7 +882,8 @@ from the trusted driver's in-process observation set and linked to its
 - values read from the web and CLI identity surfaces;
 - server-owned backend deployment ID, artifact digest, and per-start nonce;
 - scenario nonce, observed Action/Outcome step keys, and every observed
-  `(surfaceId, transport)` pair.
+  `(surfaceId, transport)` pair;
+- exact BeforeStep and AfterStep stable-key marker lists.
 
 Identity endpoints accept no expected SHA, runtime ID, nonce, or timestamp from
 the caller. The backend generates its runtime nonce at start. Web and CLI
@@ -890,15 +907,17 @@ response bodies before upload.
 4. the controller-produced build/runtime manifest, containing hashes of the
    actual launched web, CLI, and backend inputs plus the independently queried
    backend start identity;
-5. the Cucumber Messages NDJSON.
+5. Cucumber's normal zero process exit after formatter cleanup;
+6. the Cucumber Messages NDJSON.
 
 It fails unless:
 
 1. every nonblank line parses as JSON and contains exactly one known Envelope
    payload;
 2. exactly one compatible `meta.protocolVersion` exists;
-3. there is one closed `testRunStarted`/`testRunFinished` pair and
-   `testRunFinished.success` is true;
+3. Cucumber exited normally with code zero, there is one closed
+   `testRunStarted`/`testRunFinished` pair, and `testRunFinished.success` is
+   true;
 4. every `testRunHookFinished.result.status` is `PASSED`;
 5. every TestCaseStarted, TestStepStarted, run hook, and TestCase has one valid
    finish and no orphan or duplicated identity;
@@ -914,8 +933,12 @@ It fails unless:
    TestCaseStarted;
 10. every runtime PickleStep equals its expected ordered projection, resolves
     its AST step, and maps through exactly one `TestCase.testStep.pickleStepId`
-    to one started/finished result;
-11. every scenario step and scenario hook result is `PASSED`;
+    to one started/finished result, one unique StepDefinition, and one aligned
+    match-arguments list;
+11. every hook-backed test step resolves one Hook, every protected emitted hook
+    is present exactly once in its required scope, every BeforeStep/AfterStep
+    marker list exactly equals the expected stable steps, and every scenario
+    step and hook result is `PASSED`;
 12. every `willBeRetried` is false and no Pickle executes more than once;
 13. each execution has exactly one valid observation attachment;
 14. every expected Action and Outcome step key has its corresponding successful
@@ -1021,10 +1044,13 @@ stable journey IDs plus Scenario names, not names alone.
 
 ### Generated Feature Code
 
-Remove generic `template:add-feature` output that creates fake fixtures,
-presenter-only completion, and no-op controls. Agents use narrow generators for
-real domain pieces, then implement the thinnest UI and CLI surfaces required by
-the contract.
+Keep `template:add-feature` as the existing production golden path, but make it
+contract-bound. It requires an existing assembling journey, an unresolved
+scenario coverage tag, a stable surface ID, and an auth-policy ID. It may emit
+compile-valid dark scaffolding and provenance, but no fake-ready fixture,
+presenter-only completion test, authority-bearing no-op control, or admitted
+Feature. Agents then implement the thinnest UI and CLI surfaces required by the
+reviewed contract.
 
 Any focused generator that creates a public entrypoint must receive a stable
 surface ID, journey ID, and auth-policy ID, then persist them in generated
@@ -1044,13 +1070,20 @@ in explicit audit mode:
    by an assembling journey, remain dark;
 4. add reviewed contracts and exercise legacy journeys one at a time;
 5. remove each surface from the baseline when admitted coverage exists;
-6. atomically enable enforcement only when the baseline is empty.
+6. enable enforcement in the same reviewed transaction only when the baseline is
+   empty.
 
 `maestro upgrade --contracts-audit` performs the initial conversion as one
-reviewed transaction: capture the pre-guard baseline, stage generated guards and
-config in a temporary target, prove every legacy entrypoint remains available,
-and replace the target only after static verification passes. Failure leaves the
-original app unchanged. Later baseline reductions use the same staged apply.
+reviewed transaction. Its release payload is additive and namespace-isolated;
+root manifests, lockfiles, CI files, and other repository-owned integration
+points are changed only by target-aware structured patches bound to their exact
+preimages. Preview is the default and write requires the preview's exact
+fingerprint. The command stages generated guards and config in a temporary
+target, proves every legacy entrypoint remains available, then applies a durable
+journaled transaction. Failures before apply leave the original bytes unchanged.
+A hard interruption may leave only a recoverable journaled partial state; every
+later audit/status command completes rollback before doing new work. Later
+baseline reductions use the same staged apply.
 
 The baseline is generated migration state, not a second behavioral contract. It
 cannot grow after upgrade, expires when empty, and is then deleted. Upgrade
@@ -1129,30 +1162,43 @@ The sole required GitHub status remains:
 ci/woodpecker/pr/verify
 ```
 
-Cut over without an unprotected gap:
+Bootstrap trust before any Cucumber implementation PR:
 
-1. run the Woodpecker pipeline in observation mode on a test PR;
-2. confirm the exact context and GitHub App ID that posts it;
-3. configure the required-status pipeline root in Woodpecker/server-side state
-   or load it from the immutable protected target SHA before any candidate code;
-   a pipeline definition read from the PR head is advisory and cannot post the
-   required context;
-4. require the exact `{ context, app_id }` check on a verified
+1. configure a minimal deterministic pipeline root in Woodpecker/server-side
+   state or load it from the immutable protected target SHA; a pipeline
+   definition read from the PR head is advisory and cannot post a protected
+   context;
+2. run that root under a distinct temporary context on a test pull request and
+   confirm the exact GitHub App ID, controller-image digest, and tokenless child
+   environment;
+3. require the old and temporary contexts together, disable every
+   candidate-controlled producer, prove the protected producer on a real merge
+   candidate, then move the canonical context to that producer using an
+   expected-old-state compare-and-swap and post-read verification;
+4. keep an inverse rollback record until the canonical protected producer has
+   passed a second candidate; only then remove the temporary requirement;
+5. require the exact `{ context, app_id }` check on a verified
    `(repository, base_ref, base_oid, head_oid, merge_group_oid)` tuple;
-5. use merge-queue batch size one for admission and control-plane PRs, bind
+6. use merge-queue batch size one for admission and control-plane PRs, bind
    code-owner approval to the immutable latest PR `head_oid`, dismiss it when
    that head changes, and enforce rules for administrators/bypass actors;
-6. CODEOWN Feature files, step/support code, Cucumber config, acceptance tools,
+7. CODEOWN Feature files, step/support code, Cucumber config, acceptance tools,
    public registration/provenance and auth-policy sources, inventories,
    projection generation, `package.json`, lockfile, `Justfile`, Woodpecker
-   config, and CODEOWNERS itself;
-7. port the existing trusted-base self-protection comparison before deleting
+   config, CODEOWNERS itself, and the repository's product implementation roots;
+8. port the existing trusted-base self-protection comparison before deleting
    retired pipeline code;
-8. retire the current Graphite retarget/squash/status paths in
+9. retire the current Graphite retarget/squash/status paths in
    `tooling/stack/{submit,merge}.mts` and use plain GitHub PRs plus merge queue;
-9. remove GitHub Actions and retired Buildkite as admission authorities;
-10. remove Qlty from the blocking chain and retain it as advisory output under
+10. remove GitHub Actions and retired Buildkite as admission authorities;
+11. remove Qlty from the blocking chain and retain it as advisory output under
     the operator's 30-second cap.
+
+Adding Cucumber semantics later repeats the overlap: the already protected
+canonical gate and a distinct contracts-observation context are required
+together, the new protected-base controller is proven, and only then does an
+expected-state update make that controller the canonical producer. GitHub and
+Woodpecker are never described as one atomic transaction.
 
 The required check runs on the synthetic merge candidate, not an arbitrary
 branch head. If main advances, the candidate is rebuilt and reverified. This is
@@ -1267,6 +1313,14 @@ the current schema/migration state. It never clears or rolls back the external
 emergency deny, so restoring old bytes cannot silently re-enable a suspended
 journey.
 
+Template release tags use a protected namespace and annotated tag objects. Every
+consumer verifies the remote tag-object OID, its peeled commit OID, and the
+manifest digest before use. A non-default release is sealed without changing
+create composition. The public default moves only in a separate reviewed pull
+request after tag/archive materialization succeeds. These source/tag/manifest
+facts live in the existing upgrade source envelope, not in pull-request prose or
+a parallel release ledger.
+
 ## Mutation Gauntlet
 
 The template release is not credible until a freshly generated factory fixture
@@ -1330,54 +1384,74 @@ goal, not a reason to omit a trust boundary.
 
 ## Rollout Sequence
 
-### 1. Establish Exhaustive Public Boundaries
+### 1. Bootstrap Protected, Tokenless CI
+
+Install the server-side protected root, controller-owned GitHub queries/status,
+future trust-path and product-root CODEOWNERS, and the overlapping
+branch-protection transition. Candidate code has no secrets before the first
+Cucumber implementation pull request.
+
+### 2. Establish Exhaustive Public Boundaries
 
 Replace manual manifest imports with the exhaustive registration boundary,
 require generator journey/surface/auth-policy provenance, add the
 transport-neutral principal dispatcher, wrap public operations and action
 variants, reject raw bypasses, and repair identity endpoints.
 
-### 2. Build The Secretless Acceptance Runtime
+### 3. Build The Secretless Acceptance Runtime
 
 Add the explicit Cucumber configuration, protected controller and isolated
 candidate sandboxes, built web/CLI acceptance mode, real UI auth, external CLI
 HTTP transport, local internal bootstrap, strict environment projection, and the
 three small acceptance tools.
 
-### 3. Prove The Harness In A Factory Fixture
+### 4. Prove The Harness In A Factory Fixture
 
-Generate a fresh customer app containing the factory-only admitted reference
-journey. Prove UI create, CLI read/write, cross-surface state, per-transport
-auth, tenant isolation, runtime identity, and complete cleanup.
+Generate a fresh customer app containing a factory-only admitted reference
+journey and add the normal platform journey as assembling. Prove UI create, CLI
+read/write, cross-surface state, per-transport auth, tenant isolation, runtime
+identity, and complete cleanup in the non-authoritative disposable harness.
 
-### 4. Prove The Oracle
+### 5. Prove The Oracle
 
 Run every mutation in the gauntlet. Do not make admission required until each
 fault creates the expected red result.
 
-### 5. Make The Factory Contract-First
+### 6. Cut Over Protected Contract Semantics
+
+Observe the protected-base Cucumber controller under a distinct context, require
+old and new together, switch the canonical producer with expected-state and
+post-read checks, and only then admit the already-assembling platform reference
+in a lifecycle-plus-exact-generated-projection pull request.
+
+### 7. Make The Factory Contract-First
 
 Switch create and contracts-add to reviewed `--spec`, introduce explicit primary
 journey, remove `doneState` and fake-ready generation, and seal a new immutable
 release.
 
-### 6. Add Human Build Pack Approval
+### 8. Add Human Build Pack Approval
 
 Add versioned v2 contracts, a persisted human review boundary, exact-byte
 approval, and derived legacy display projections.
 
-### 7. Adopt Existing Apps Without An Outage
+Build Pack V2 is required before the public release, not before the core runtime
+pilot.
+
+### 9. Adopt Existing Apps Without An Outage
 
 Install in audit mode, freeze the generated legacy baseline, require contracts
 for new surfaces, reduce the baseline journey by journey, and enable enforcement
-atomically when empty. Brain hydration is the first product pilot.
+in the same reviewed transaction when empty. Brain hydration is the first
+product pilot. Each target repository performs its own protected-CI canary and
+overlapping cutover before its assembling product slices begin.
 
-### 8. Cut Over Protected CI And Delete Old Machinery
+### 10. Delete Old Machinery And Publish
 
-Observe Woodpecker, bind its App/context and merge-group tuple, enforce
-batch-one admission/control changes, verify the external trusted controller,
-retire the Graphite/Buildkite stack/status paths, then remove duplicate journey
-code.
+After the real pilot passes, retire the Graphite/Buildkite stack/status paths
+and duplicate journey code. Seal and publish an annotated immutable non-default
+release, verify untouched materialization from its remote tag, then move the
+factory default in a separate pull request.
 
 This is architectural ordering, not the file-by-file implementation plan. A
 test-first implementation plan follows only after this revised design is
