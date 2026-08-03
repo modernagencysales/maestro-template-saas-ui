@@ -78,8 +78,8 @@ export const deploymentReceiptFromEnv = (
     schemaVersion: 1,
     kind: "guarded-deployment-receipt",
     environment: environment(env),
-    buildId: coordinate(env, "BUILDKITE_BUILD_ID"),
-    commitSha: commit(env, "BUILDKITE_COMMIT"),
+    buildId: coordinate(env, "CI_PIPELINE_NUMBER"),
+    commitSha: commit(env, "CI_COMMIT_SHA"),
     convexDeployment: coordinate(env, "CONVEX_DEPLOYMENT"),
     previousConvexCommitSha: commit(env, "PREVIOUS_CONVEX_COMMIT_SHA"),
     previousConvexDeployment: coordinate(env, "PREVIOUS_CONVEX_DEPLOYMENT"),
@@ -134,8 +134,8 @@ const receipt = (input: unknown): GuardedDeploymentReceipt => {
     throw new Error("Rollback receipt has an invalid shape");
   const parsed = deploymentReceiptFromEnv({
     DEPLOY_ENVIRONMENT: String(value.environment),
-    BUILDKITE_BUILD_ID: String(value.buildId),
-    BUILDKITE_COMMIT: String(value.commitSha),
+    CI_PIPELINE_NUMBER: String(value.buildId),
+    CI_COMMIT_SHA: String(value.commitSha),
     CONVEX_DEPLOYMENT: String(value.convexDeployment),
     PREVIOUS_CONVEX_COMMIT_SHA: String(value.previousConvexCommitSha),
     PREVIOUS_CONVEX_DEPLOYMENT: String(value.previousConvexDeployment),
@@ -154,7 +154,7 @@ export const verifyRollbackReceipt = (input: unknown, env: Env): void => {
   const parsed = receipt(input);
   const expectedEnvironment = environment(env);
   const expectedBuildId = coordinate(env, "ROLLBACK_RECEIPT_BUILD_ID");
-  const checkedOutCommit = commit(env, "BUILDKITE_COMMIT");
+  const checkedOutCommit = commit(env, "CI_COMMIT_SHA");
   const targetDeployment = coordinate(env, "CONVEX_DEPLOYMENT");
   const targetCloudflareVersion = commit(
     env,

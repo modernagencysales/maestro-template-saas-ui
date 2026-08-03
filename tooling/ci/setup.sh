@@ -10,7 +10,7 @@ set -euo pipefail
 if [[ "${TEMPLATE_CI_SETUP:-}" == "skip" ]]; then
   return 0
 fi
-if [[ "${BUILDKITE:-}" != "true" ]] && command -v pnpm &>/dev/null; then
+if [[ "${CI:-}" != "true" ]] && command -v pnpm &>/dev/null; then
   return 0
 fi
 
@@ -72,7 +72,7 @@ if command -v fnm &>/dev/null; then
 elif command -v node &>/dev/null && command -v pnpm &>/dev/null; then
   echo "fnm $FNM_VERSION not present; using preinstalled node $(node --version) and pnpm $(pnpm --version)."
 else
-  echo "fnm $FNM_VERSION or preinstalled node+pnpm must be present on the Buildkite image; refusing unchecked remote installer." >&2
+  echo "fnm $FNM_VERSION or preinstalled node+pnpm must be present on the CI image; refusing unchecked remote installer." >&2
   exit 1
 fi
 
@@ -101,7 +101,7 @@ if ! command -v pnpm &>/dev/null || [[ "$(pnpm --version 2>/dev/null)" != "$PNPM
   export PATH="$pnpm_install_dir:$PATH"
 fi
 
-# Keep the pnpm store inside the workspace so Buildkite's hosted cache volume can
+# Keep the pnpm store inside the workspace so the hosted CI cache volume can
 # restore/save it across ephemeral hosted agents without writing repo config.
 export npm_config_store_dir="$PWD/.pnpm-store"
 

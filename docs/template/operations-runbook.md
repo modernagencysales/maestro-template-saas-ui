@@ -10,25 +10,26 @@
    must require `PROMOTION_AUTHORITY_MODE=authority` exactly and declare
    `PROMOTION_AUTHORITY_PRIVATE_KEY_PKCS8_BASE64URL` only for that independent
    authority runtime. The environment manifest and this runbook are the other
-   two required copies of that contract. Never add the private key to Buildkite,
-   the application staging/production environments, receipts, logs, or provider
-   coordinates. Set its HTTPS base origin as `PROMOTION_AUTHORITY_ENDPOINT` and
-   supply the externally reviewed `TRUSTED_DEPLOY_ROOT_SHA256`. The endpoint
-   must not be the target Convex origin and neither value may be bootstrapped by
-   this run. Provision `TRUSTED_CI_SELF_PROTECTION_COMMIT` as an exact immutable
-   commit; Buildkite executes that commit's setup, deploy-authority verifier,
-   and secretless self-protection script instead of their mutable-checkout
-   copies. A missing, symbolic, unavailable, or mismatched trusted commit is a
-   terminal failure before credentialed jobs. Confirm Buildkite also has
-   distinct `TEMPLATE_STAGING_CONVEX_*` and `TEMPLATE_PRODUCTION_CONVEX_*`
-   bindings. Run `node scripts/_project-config.mjs assert-isolated-convex`;
-   missing bindings, shared deployment identities, cross-swapped environment
-   identities, an internally mismatched deployment/URL pair, or a
-   `.convex.cloud`/ `.convex.site` alias are terminal failures. After scoped
-   credentials arrive, `assert-convex-deploy-key <environment>` verifies only
-   the key's public deployment prefix without logging or serializing the key.
-   Deploy doctor is an additional presence/configuration check, not a substitute
-   for this identity check.
+   two required copies of that contract. Never add the private key to
+   Woodpecker, the application staging/production environments, receipts, logs,
+   or provider coordinates. Set its HTTPS base origin as
+   `PROMOTION_AUTHORITY_ENDPOINT` and supply the externally reviewed
+   `TRUSTED_DEPLOY_ROOT_SHA256`. The endpoint must not be the target Convex
+   origin and neither value may be bootstrapped by this run. Provision
+   `TRUSTED_CI_SELF_PROTECTION_COMMIT` as an exact immutable commit; Woodpecker
+   executes that commit's setup, deploy-authority verifier, and secretless
+   self-protection script instead of their mutable-checkout copies. A missing,
+   symbolic, unavailable, or mismatched trusted commit is a terminal failure
+   before credentialed jobs. Confirm Woodpecker also has distinct
+   `TEMPLATE_STAGING_CONVEX_*` and `TEMPLATE_PRODUCTION_CONVEX_*` bindings. Run
+   `node scripts/_project-config.mjs assert-isolated-convex`; missing bindings,
+   shared deployment identities, cross-swapped environment identities, an
+   internally mismatched deployment/URL pair, or a `.convex.cloud`/
+   `.convex.site` alias are terminal failures. After scoped credentials arrive,
+   `assert-convex-deploy-key <environment>` verifies only the key's public
+   deployment prefix without logging or serializing the key. Deploy doctor is an
+   additional presence/configuration check, not a substitute for this identity
+   check.
 4. Run provider fake smokes.
 5. Run `pnpm build` and `pnpm smoke:web-static`.
 6. Deploy staging from the exact commit. The pipeline consumes one secretless
@@ -46,7 +47,7 @@
 
 If the authority endpoint or trusted root is unavailable, mismatched, unsafe, or
 points at the target Convex origin, stop. Do not inject the authority signing
-key into Buildkite, compute a replacement trust root inside CI, self-deploy the
+key into Woodpecker, compute a replacement trust root inside CI, self-deploy the
 authority from the application pipeline, or invoke raw provider deploy commands.
 
 ## CI And AI Gate Verdicts
@@ -56,39 +57,42 @@ archiving Maestro gate evidence. It defines required versus advisory posture,
 evidence strength, unavailable states, and receipt staleness; the underlying
 gate commands remain authoritative.
 
-Deterministic gates are authoritative and run before AI gates. AI gates are
-additional review signals and must fail closed when provider auth, parseable
-JSON/text verdicts, or Buildkite metadata are missing.
+Deterministic gates are authoritative in the required Woodpecker verification
+pipeline. AI review gates are manual under the current Woodpecker topology. When
+invoked, they are additional review signals and must fail closed when provider
+auth or a parseable JSON/text verdict is missing.
 
 Local fake-mode checks:
 
 ```bash
-.buildkite/scripts/taste.sh --mode fake
-.buildkite/scripts/contract-review.sh --mode fake
+tooling/ci/taste.sh --mode fake
+tooling/ci/contract-review.sh --mode fake
 pnpm check:pr-health -- --mode fake
 pnpm check:unresolved-review-threads -- --mode fake
 pnpm check:merge-conflicts -- --mode fake
 ```
 
-Buildkite verdict retrieval:
+For a manual AI review, retain the command output with the review evidence. The
+AI gates are valid only when their output contains a parseable pass verdict
+accepted by `tooling/quality/extract-ai-verdict.mts`; missing verdicts are
+failures.
+
+Woodpecker deterministic log retrieval:
 
 ```bash
-buildkite-agent meta-data get staged-sha
-buildkite-agent artifact download "*taste*" .
-buildkite-agent artifact download "*contract-review*" .
+woodpecker-cli pipeline ps modernagencysales/maestro-template-saas-ui <pipeline-number>
+woodpecker-cli pipeline log show modernagencysales/maestro-template-saas-ui <pipeline-number> <step-number>
 ```
 
-If Buildkite artifacts are unavailable, read the step logs for `taste`,
-`contract-review`, `check:pr-health`, `check:unresolved-review-threads`, and
-`check:merge-conflicts`. The AI gates are valid only when their output contains
-a parseable pass verdict accepted by `tooling/quality/extract-ai-verdict.mts`;
-missing verdicts are failures.
+The required pipeline exposes `trusted-ci-policy` and `verify` logs. It does not
+currently run `taste` or `contract-review`; retain those commands' direct output
+when they are invoked manually.
 
 ## Main Branch Promotion Policy
 
 `main` is PR-only: block deletion and force pushes, require resolved
 conversations, and require the GitHub `Required quality / quality` status. Add
-Buildkite contexts only after they are observed on a pull request; never invent
+Woodpecker contexts only after they are observed on a pull request; never invent
 a required context name, because that can deadlock the branch.
 
 Enable repository auto-merge. Ordinary product PRs may merge automatically when
@@ -126,13 +130,14 @@ provider coordinates and the guarded receipt, but keep automated rollback
 unavailable until a later receipt names the seed (or a descendant) as its prior
 release. The rollback entrypoint validates the seed and target as exact 40/64
 hex SHAs, confirms the seed commit exists, and requires
-`git merge-base --is-ancestor "$TRUSTED_ROLLBACK_SEED_COMMIT" "$BUILDKITE_COMMIT"`.
+`git merge-base --is-ancestor "$TRUSTED_ROLLBACK_SEED_COMMIT" "$CI_COMMIT_SHA"`.
 If any check fails, freeze deployment and require a separately reviewed recovery
 plan; never copy or execute the new entrypoint against a pre-seed checkout.
 
 1. Download the immutable guarded deployment receipt for the release being
    rolled back. It must contain the current and prior Convex commit/deployment,
-   Cloudflare project/branch/version, hosted URL, and Buildkite build ID.
+   Cloudflare project/branch/version, hosted URL, and Woodpecker pipeline
+   number.
 2. Check out the receipt's `previousConvexCommitSha`; obtain fresh deployment
    authority for that exact commit and set `RUN_ROLLBACK=true` only after the
    production approval block.
@@ -145,9 +150,9 @@ plan; never copy or execute the new entrypoint against a pre-seed checkout.
    Any alteration fails before provider action. Public receipt fields reject
    secret-, token-, credential-, authorization-, and deploy-key-shaped strings;
    deploy keys and other credential values are never serialized.
-4. Run `.buildkite/scripts/rollback-promote.sh`. It verifies the receipt before
-   provider commands, routes both providers through `guardedDeploy.ts`, runs the
-   backend and hosted canaries, and emits a new append-only rollback receipt.
+4. Run `tooling/ci/rollback-promote.sh`. It verifies the receipt before provider
+   commands, routes both providers through `guardedDeploy.ts`, runs the backend
+   and hosted canaries, and emits a new append-only rollback receipt.
 5. If any coordinate, authority binding, canary, or receipt is unavailable,
    freeze deployment. Do not invoke raw Convex or Cloudflare commands.
 

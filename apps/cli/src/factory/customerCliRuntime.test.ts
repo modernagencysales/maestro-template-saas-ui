@@ -330,13 +330,7 @@ describe("materialized customer CLI runtime closure", () => {
     ]);
     expect(created.exitCode, `${created.stdout}\n${created.stderr}`).toBe(0);
 
-    const preservedCatalogs = [
-      "docs/template/system-catalog.json",
-      "docs/template/data-resources.json",
-    ].map((path) => ({ path, bytes: readFileSync(join(target, path)) }));
     applyCurrentSaasProjection(target);
-    for (const { path, bytes } of preservedCatalogs)
-      writeFileSync(join(target, path), bytes);
     const projectedLock = buildSaasApplicationTargetPlan().entries.find(
       ({ path }) => path === "pnpm-lock.yaml",
     );

@@ -71,7 +71,8 @@ const makeReviewerRepo = (): string => {
     "docs/template/integrations.md",
     "docs/template/workflow-authoring-guide.md",
     "docs/rule-coverage.md",
-    ".buildkite/pipeline.yml",
+    ".woodpecker/verify.yml",
+    ".woodpecker/deploy.yml",
     "apps/cli/src/index.ts",
     "apps/web/src/routes/index.tsx",
     "apps/web/src/saas-ui/business-shell.tsx",
@@ -533,12 +534,12 @@ describe("release tooling", () => {
     writeEnvManifest(repoRoot, [
       {
         name: "PROMOTION_AUTHORITY_ENDPOINT",
-        group: "buildkite",
+        group: "woodpecker",
         requiredFor: ["deploy"],
       },
       {
         name: "TRUSTED_DEPLOY_ROOT_SHA256",
-        group: "buildkite",
+        group: "woodpecker",
         requiredFor: ["deploy"],
       },
     ]);
@@ -554,7 +555,7 @@ describe("release tooling", () => {
             cloudflareBranch: "staging",
             convexDeployName: "maestro-template-staging",
             convexUrl: "https://target-staging.convex.cloud",
-            requiredEnvGroups: ["buildkite"],
+            requiredEnvGroups: ["woodpecker"],
             requiredSecrets: [],
           },
           production: {
@@ -564,7 +565,7 @@ describe("release tooling", () => {
             cloudflareBranch: "main",
             convexDeployName: "maestro-template-production",
             convexUrl: "https://target-production.convex.cloud",
-            requiredEnvGroups: ["buildkite"],
+            requiredEnvGroups: ["woodpecker"],
             requiredSecrets: [],
           },
         },
