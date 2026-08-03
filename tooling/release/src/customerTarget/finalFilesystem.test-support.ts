@@ -2,16 +2,22 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import {
   existsSync,
+  globSync,
   lstatSync,
   readFileSync,
   readdirSync,
   realpathSync,
+  writeFileSync,
 } from "node:fs";
 import { dirname, relative, resolve, sep } from "node:path";
 const execFileAsync = promisify(execFile);
 const offlinePnpmBin = "/private/tmp/maestro-pnpm-10-bin";
 const finalWebBuildAttempts = 4;
 const finalWebBuildRetryDelayMs = 1_000;
+const prerenderRetryNeedle =
+  "logger.warn(`Encountered error, retrying: ${page.path} in ${retryDelay}ms`);\n\t\t\t\t\t\tawait new Promise";
+const prerenderRetryReplacement =
+  "logger.warn(`Encountered error, retrying: ${page.path} in ${retryDelay}ms`);\n\t\t\t\t\t\tseen.delete(page.path);\n\t\t\t\t\t\tawait new Promise";
 
 const commandFailure = (error: unknown): Error => {
   const failure = error as Error & {
@@ -46,6 +52,25 @@ export async function retryTransientPrerenderStartup<T>(
     }
   }
   throw new Error("Prerender startup retry loop exhausted unexpectedly");
+}
+
+export function applyPrerenderRetryCompatibility(root: string): void {
+  const matches = globSync(
+    "node_modules/.pnpm/@tanstack+start-plugin-core@1.171.18*/node_modules/@tanstack/start-plugin-core/dist/esm/prerender.js",
+    { cwd: root },
+  );
+  if (matches.length !== 1)
+    throw new Error(
+      `Expected one TanStack prerender runtime, found ${matches.length}`,
+    );
+  const path = resolve(root, matches[0]);
+  const source = readFileSync(path, "utf8");
+  if (!source.includes(prerenderRetryNeedle))
+    throw new Error("TanStack prerender retry compatibility seam changed");
+  writeFileSync(
+    path,
+    source.replace(prerenderRetryNeedle, prerenderRetryReplacement),
+  );
 }
 
 export type FinalCustomerTree = {
@@ -231,6 +256,7 @@ export async function runFinalCustomerCompileGates(
   } catch (error) {
     throw commandFailure(error);
   }
+  applyPrerenderRetryCompatibility(root);
   for (const [command, args] of [
     ["pnpm", ["--dir", "apps/cli", "typecheck"]],
     ["pnpm", ["--dir", "tooling/generators", "typecheck"]],
