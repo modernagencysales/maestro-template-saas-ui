@@ -513,10 +513,14 @@ describe("candidate customer composition", () => {
     }
 
     await runCandidatePnpm(fixture.targetRoot, [
-      "fetch",
+      "install",
       "--frozen-lockfile",
-      "--force",
+      "--ignore-scripts",
     ]);
+    rmSync(join(fixture.targetRoot, "node_modules"), {
+      recursive: true,
+      force: true,
+    });
     await runCandidatePnpm(fixture.targetRoot, [
       "install",
       "--offline",
