@@ -14,6 +14,25 @@ const execFileAsync = promisify(execFile);
 const offlinePnpmBin = "/private/tmp/maestro-pnpm-10-bin";
 const finalWebBuildAttempts = 4;
 const finalWebBuildRetryDelayMs = 1_000;
+
+export function resolveBoundPreviewUrl(
+  reportedUrl: string,
+  address: { readonly address: string; readonly port: number },
+): string {
+  const resolvedUrl = new URL(reportedUrl);
+  const boundHost =
+    address.address === "0.0.0.0"
+      ? "127.0.0.1"
+      : address.address === "::"
+        ? "[::1]"
+        : address.address.includes(":")
+          ? `[${address.address}]`
+          : address.address;
+  resolvedUrl.hostname = boundHost;
+  resolvedUrl.port = String(address.port);
+  return resolvedUrl.href;
+}
+
 const prerenderRetryNeedle =
   "logger.warn(`Encountered error, retrying: ${page.path} in ${retryDelay}ms`);\n\t\t\t\t\t\tawait new Promise";
 const prerenderRetryReplacement =
@@ -36,6 +55,8 @@ const previewReadinessReplacement = `const previewServer = await vite.preview({
 \t\tconst address = previewServer.httpServer.address();
 \t\tif (!address || typeof address === "string") throw new Error("Vite preview server has no TCP address");
 \t\tconst resolvedUrl = new URL(previewServer.resolvedUrls.local[0]);
+\t\tconst boundHost = address.address === "0.0.0.0" ? "127.0.0.1" : address.address === "::" ? "[::1]" : address.address.includes(":") ? "[" + address.address + "]" : address.address;
+\t\tresolvedUrl.hostname = boundHost;
 \t\tresolvedUrl.port = String(address.port);
 \t\tpreviewServer.resolvedUrls.local[0] = resolvedUrl.href;
 \t\tfor (let attempt = 0; attempt < 50; attempt += 1) {

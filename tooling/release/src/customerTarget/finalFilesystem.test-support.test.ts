@@ -4,10 +4,25 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   applyPrerenderRetryCompatibility,
+  resolveBoundPreviewUrl,
   retryTransientPrerenderStartup,
 } from "./finalFilesystem.test-support.js";
 
 describe("final filesystem prerender startup retry", () => {
+  it.each([
+    ["127.0.0.1", "http://127.0.0.1:4311/"],
+    ["::1", "http://[::1]:4311/"],
+    ["0.0.0.0", "http://127.0.0.1:4311/"],
+    ["::", "http://[::1]:4311/"],
+  ])("uses the bound %s preview address", (address, expected) => {
+    expect(
+      resolveBoundPreviewUrl("http://127.0.0.1:4173/", {
+        address,
+        port: 4311,
+      }),
+    ).toBe(expected);
+  });
+
   it("enables the installed TanStack retry before customer compilation", () => {
     const root = mkdtempSync(join(tmpdir(), "prerender-compat-"));
     const path = join(
@@ -50,6 +65,9 @@ describe("final filesystem prerender startup retry", () => {
     );
     expect(readFileSync(vitePath, "utf8")).toContain(
       "previewServer.httpServer.address()",
+    );
+    expect(readFileSync(vitePath, "utf8")).toContain(
+      "resolvedUrl.hostname = boundHost",
     );
   });
   it("retries bounded loopback startup refusals until the build succeeds", async () => {
