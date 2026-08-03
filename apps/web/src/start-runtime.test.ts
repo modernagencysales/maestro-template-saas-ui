@@ -8,6 +8,14 @@ const read = (path: string): string =>
   readFileSync(resolve(appRoot, path), "utf8");
 
 describe("TanStack Start runtime contract", () => {
+  it("retries transient preview-server failures while prerendering", () => {
+    const source = read("vite.config.ts");
+
+    expect(source).toContain("prerender: {");
+    expect(source).toContain("retryCount: 2");
+    expect(source).toContain("retryDelay: 500");
+  });
+
   it("pins the preview server to the loopback host used by SPA prerendering", () => {
     const source = read("vite.config.ts");
 
