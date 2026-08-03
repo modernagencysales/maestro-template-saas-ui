@@ -41,8 +41,11 @@ describe("Woodpecker template pipeline", () => {
     );
   });
 
-  it("allows the measured full verification suite to finish", () => {
-    expect(read(".woodpecker/verify.yml")).toContain("timeout: 60");
+  it("runs the comprehensive verification suite exactly once", () => {
+    const phase = read("tooling/ci/phase1.sh");
+    expect(phase.match(/^pnpm verify$/gmu)).toHaveLength(1);
+    expect(phase).not.toContain("pnpm check:coverage-ratchet");
+    expect(phase).not.toContain("pnpm check:types-coverage");
   });
 
   it("documents AI review gates as manual under the current topology", () => {
