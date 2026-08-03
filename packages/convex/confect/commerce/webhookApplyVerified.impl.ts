@@ -7,7 +7,7 @@ import { DatabaseReader, DatabaseWriter } from "../_generated/services";
 import { ValidationFailed } from "../errors";
 import { loadDodoCommerceEnvConfig } from "../evaluator/providerConfig";
 import { RuntimeModeConfig } from "../shared/config";
-import { applyPayment } from "./webhooks.impl";
+import { applyPayment } from "./webhookPayment";
 import { parseSupportedEvent, validateLiveDodoBindings } from "./webhookEvent";
 import { applyRevocation } from "./webhookRevocation";
 import webhooksGroup, { WebhookRejected } from "./webhooks.spec";

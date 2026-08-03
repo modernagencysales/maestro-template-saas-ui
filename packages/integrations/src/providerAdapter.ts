@@ -11,10 +11,18 @@ import {
   redactProviderPayload,
   validateProviderConfig,
   type ProviderAdapter,
+  type ProviderAdapterInput,
   type ProviderAdapterReceipt,
   type ProviderId,
   type ProviderMode,
 } from "./providerRegistry";
+
+const deliveryFor = (
+  mode: ProviderMode,
+): ProviderAdapterReceipt["delivery"] => {
+  if (mode === "fake") return "fake";
+  return mode === "test" ? "test" : "live-ready";
+};
 
 const validateWorkspaceSlug = (workspaceSlug: string) =>
   /^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$/.test(workspaceSlug)
@@ -44,6 +52,28 @@ const validateBillingCall = (
     : undefined;
 };
 
+const providerCall = (
+  id: ProviderId,
+  mode: ProviderMode,
+  input: ProviderAdapterInput,
+) =>
+  Effect.gen(function* () {
+    const workspace = validateWorkspaceSlug(input.workspaceSlug);
+    const failure =
+      workspace === true
+        ? validateBillingCall(id, input.operation, input.idempotencyKey)
+        : workspace;
+    if (failure) return yield* Effect.fail(failure);
+    return {
+      provider: id,
+      mode,
+      operation: input.operation,
+      delivery: deliveryFor(mode),
+      receiptId: `${id}_${mode}_${input.operation.replaceAll(".", "_")}_001`,
+      redactedPayload: redactProviderPayload(id, input.payload),
+    };
+  });
+
 export const createProviderAdapter = (
   id: ProviderId,
   mode: ProviderMode,
@@ -54,24 +84,7 @@ export const createProviderAdapter = (
   return {
     provider: id,
     mode,
-    call: (input) =>
-      Effect.gen(function* () {
-        const failure =
-          validateWorkspaceSlug(input.workspaceSlug) === true
-            ? validateBillingCall(id, input.operation, input.idempotencyKey)
-            : validateWorkspaceSlug(input.workspaceSlug);
-        if (failure !== undefined && failure !== true)
-          return yield* Effect.fail(failure);
-        return {
-          provider: id,
-          mode,
-          operation: input.operation,
-          delivery:
-            mode === "fake" ? "fake" : mode === "test" ? "test" : "live-ready",
-          receiptId: `${id}_${mode}_${input.operation.replaceAll(".", "_")}_001`,
-          redactedPayload: redactProviderPayload(id, input.payload),
-        };
-      }),
+    call: (input) => providerCall(id, mode, input),
   };
 };
 

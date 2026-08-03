@@ -67,7 +67,10 @@ const revokeGrants = (purchaseId: string, now: number) =>
   });
 
 const revokeCheckout = (
-  purchase: { readonly checkoutSessionId?: string; readonly reportId: string },
+  purchase: {
+    readonly checkoutSessionId?: string | undefined;
+    readonly reportId: string;
+  },
   status: "refunded" | "disputed",
   now: number,
 ) =>

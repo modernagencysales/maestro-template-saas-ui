@@ -47,28 +47,44 @@ const isSupportedEventType = (
 const optionalEventFields = (
   data: Record<string, unknown>,
 ): Omit<SupportedEvent, "eventType" | "paymentId"> => {
+  return {
+    ...checkoutFields(data),
+    ...amountFields(data),
+    ...attributionFields(data),
+  };
+};
+
+const checkoutFields = (data: Record<string, unknown>) => {
   const checkoutSessionId = data.checkout_session_id;
-  const productCart = Array.isArray(data.product_cart)
-    ? objectRecord(data.product_cart[0])
-    : null;
   return {
     ...(typeof checkoutSessionId === "string" && checkoutSessionId.trim()
       ? { checkoutSessionId: checkoutSessionId.trim() }
       : {}),
+    ...productFields(data),
+  };
+};
+
+const productFields = (data: Record<string, unknown>) => {
+  const productCart = Array.isArray(data.product_cart)
+    ? objectRecord(data.product_cart[0])
+    : null;
+  return {
     ...(typeof data.product_id === "string"
       ? { productId: data.product_id.trim() }
       : typeof productCart?.product_id === "string"
         ? { productId: productCart.product_id.trim() }
         : {}),
-    ...(typeof data.total_amount === "number"
-      ? { amountCents: data.total_amount }
-      : {}),
-    ...(typeof data.currency === "string"
-      ? { currency: data.currency.trim().toUpperCase() }
-      : {}),
-    ...attributionFields(data),
   };
 };
+
+const amountFields = (data: Record<string, unknown>) => ({
+  ...(typeof data.total_amount === "number"
+    ? { amountCents: data.total_amount }
+    : {}),
+  ...(typeof data.currency === "string"
+    ? { currency: data.currency.trim().toUpperCase() }
+    : {}),
+});
 
 const attributionFields = (
   data: Record<string, unknown>,
