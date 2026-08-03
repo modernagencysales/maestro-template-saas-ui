@@ -33,6 +33,11 @@ const previewReadinessReplacement = `const previewServer = await vite.preview({
 \t\t\t}
 \t\t});
 \t\tif (!previewServer.httpServer.listening) await new Promise((resolve) => previewServer.httpServer.once("listening", resolve));
+\t\tconst address = previewServer.httpServer.address();
+\t\tif (!address || typeof address === "string") throw new Error("Vite preview server has no TCP address");
+\t\tconst resolvedUrl = new URL(previewServer.resolvedUrls.local[0]);
+\t\tresolvedUrl.port = String(address.port);
+\t\tpreviewServer.resolvedUrls.local[0] = resolvedUrl.href;
 \t\tfor (let attempt = 0; attempt < 50; attempt += 1) {
 \t\t\ttry {
 \t\t\t\tconst response = await fetch(previewServer.resolvedUrls.local[0], { method: "HEAD" });

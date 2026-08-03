@@ -48,6 +48,9 @@ describe("final filesystem prerender startup retry", () => {
     expect(readFileSync(vitePath, "utf8")).toContain(
       "await fetch(previewServer.resolvedUrls.local[0]",
     );
+    expect(readFileSync(vitePath, "utf8")).toContain(
+      "previewServer.httpServer.address()",
+    );
   });
   it("retries bounded loopback startup refusals until the build succeeds", async () => {
     let attempts = 0;
