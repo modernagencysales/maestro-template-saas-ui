@@ -31,6 +31,35 @@ const fractionDigits = (currency: string): number => {
   }
 };
 
+const optionalPaymentFields = (
+  input: AdmaxxerPaymentInput,
+): Record<string, string> => {
+  const visitorId = clean(input.visitorId, 180);
+  const email = clean(input.email, 320)?.toLowerCase();
+  return {
+    ...(visitorId ? { admaxxer_visitor_id: visitorId } : {}),
+    ...(email ? { email } : {}),
+  };
+};
+
+const paymentBody = (
+  input: AdmaxxerPaymentInput,
+): Record<string, string | number> => {
+  const paymentId = clean(input.paymentId, 180);
+  const currency = clean(input.currency, 3)?.toUpperCase();
+  if (!paymentId) throw new Error("The payment ID is missing.");
+  if (!currency || currency.length !== 3)
+    throw new Error("The payment currency is missing.");
+  if (!Number.isSafeInteger(input.amountMinor) || input.amountMinor < 0)
+    throw new Error("The payment amount is invalid.");
+  return {
+    amount: input.amountMinor / 10 ** fractionDigits(currency),
+    currency,
+    transaction_id: paymentId,
+    ...optionalPaymentFields(input),
+  };
+};
+
 export const recordAdmaxxerPayment = async (
   input: AdmaxxerPaymentInput,
   options: {
@@ -41,24 +70,7 @@ export const recordAdmaxxerPayment = async (
 ): Promise<boolean> => {
   const apiKey = clean(options.apiKey, 512);
   if (!apiKey) return false;
-  const paymentId = clean(input.paymentId, 180);
-  const currency = clean(input.currency, 3)?.toUpperCase();
-  if (!paymentId) throw new Error("The payment ID is missing.");
-  if (!currency || currency.length !== 3)
-    throw new Error("The payment currency is missing.");
-  if (!Number.isSafeInteger(input.amountMinor) || input.amountMinor < 0)
-    throw new Error("The payment amount is invalid.");
-
-  const body: Record<string, string | number> = {
-    amount: input.amountMinor / 10 ** fractionDigits(currency),
-    currency,
-    transaction_id: paymentId,
-  };
-  const visitorId = clean(input.visitorId, 180);
-  const email = clean(input.email, 320)?.toLowerCase();
-  if (visitorId) body.admaxxer_visitor_id = visitorId;
-  if (email) body.email = email;
-
+  const body = paymentBody(input);
   if (options.transport) {
     await options.transport({ ...input, apiKey });
     return true;

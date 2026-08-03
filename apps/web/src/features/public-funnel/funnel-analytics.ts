@@ -7,6 +7,41 @@ import {
   type CookieConsentState,
 } from "../../providers/cookie-consent";
 
+type AdmaxxerClient = (
+  eventName: string,
+  eventProperties?: Record<string, unknown>,
+) => void;
+
+const wasLeadCaptured = (key: string): boolean => {
+  try {
+    return globalThis.sessionStorage?.getItem(key) === "1";
+  } catch {
+    return false;
+  }
+};
+
+const rememberLead = (key: string): void => {
+  try {
+    globalThis.sessionStorage?.setItem(key, "1");
+  } catch {
+    // Storage is optional; consent and provider validation still apply.
+  }
+};
+
+const captureAdmaxxerLead = (event: FunnelEvent): void => {
+  if (event.name !== "evaluation_completed") return;
+  const client = (
+    globalThis as typeof globalThis & { admaxxer?: AdmaxxerClient }
+  ).admaxxer;
+  const key = `app-idea:lead:${event.evaluationId}`;
+  if (!client || wasLeadCaptured(key)) return;
+  client("Lead", {
+    offer_slug: "app-idea-evaluator",
+    evaluation_id: event.evaluationId,
+  });
+  rememberLead(key);
+};
+
 export const captureFunnelEvent = (
   consent: CookieConsentState,
   eventInput: unknown,
@@ -16,32 +51,5 @@ export const captureFunnelEvent = (
   if (!shouldEnableAnalyticsCapture(consent)) return;
   const { name, ...properties } = event as FunnelEvent;
   capture(name, properties);
-  if (event.name === "evaluation_completed") {
-    const client = (
-      globalThis as typeof globalThis & {
-        admaxxer?: (
-          eventName: string,
-          eventProperties?: Record<string, unknown>,
-        ) => void;
-      }
-    ).admaxxer;
-    const key = `app-idea:lead:${event.evaluationId}`;
-    let seen = false;
-    try {
-      seen = globalThis.sessionStorage?.getItem(key) === "1";
-    } catch {
-      // Storage is optional; consent and provider validation still apply.
-    }
-    if (client && !seen) {
-      client("Lead", {
-        offer_slug: "app-idea-evaluator",
-        evaluation_id: event.evaluationId,
-      });
-      try {
-        globalThis.sessionStorage?.setItem(key, "1");
-      } catch {
-        // Ignore unavailable browser storage.
-      }
-    }
-  }
+  captureAdmaxxerLead(event);
 };
