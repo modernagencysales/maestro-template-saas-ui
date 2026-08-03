@@ -81,7 +81,7 @@ not prove that a step used Playwright or spawned a process; they prove that the
 registered step passed and record its attachments. Maestro therefore protects
 the adapters, runs the controller/evidence store outside candidate namespaces,
 makes runtime identity server-owned rather than caller-supplied, and runs
-mutation tests that replace real surface actions with no-ops.
+mutation tests that replace real Action/Outcome steps with no-ops.
 
 The verdict does not prove:
 
@@ -162,20 +162,22 @@ features/
 cucumber.cjs
 ```
 
-The repository root is CommonJS. `cucumber.cjs` therefore explicitly declares:
+The repository root is CommonJS. The selected profile in `cucumber.cjs` is an
+exact allowlist containing only:
 
 - `requireModule: ["tsx/cjs"]`;
-- the TypeScript support glob `features/**/*.ts`;
+- `require: ["features/**/*.ts"]`;
 - `retry: 0`;
 - `parallel: 0`.
 
-The shared configuration contains no Feature `paths`, lifecycle `tags`, or
-formatter output. Cucumber merges configured paths additively and tag
-expressions conjunctively, so defaults would contaminate exact selection and
-make assembling-focused runs empty. The protected runner supplies the complete
-authoritative path list, `@admitted` expression, `message` formatter, and output
-path. Dry-run and focused commands likewise supply their complete paths and tag
-expressions.
+No other profile or option is allowed. In particular, shared configuration
+contains no `paths`, `tags`, `name`, `shard`, order, formatter, or other
+selector/execution key; `retry` and `parallel` remain fixed at zero. Cucumber
+merges configured paths additively and tag expressions conjunctively, so
+defaults would contaminate exact selection and make assembling-focused runs
+empty. The protected runner supplies the complete authoritative path list,
+`@admitted` expression, `message` formatter, and output path. Dry-run and
+focused commands likewise supply their complete paths and tag expressions.
 
 Pin `@cucumber/cucumber@13.2.0`, `@cucumber/gherkin@41.0.0`, and
 `@cucumber/messages@34.0.1` in the lockfile, and run them on the repository's
@@ -183,12 +185,12 @@ Node 22 line. The static checker rejects an unreviewed version mismatch between
 the compiler used for expected Pickles and the Messages types used by the
 verifier.
 
-`check-contracts.mts` validates the required values and the absence of shared
-paths/tags/formatter settings; the protected launcher owns the exact invocation.
-Messages can prove that no retry occurred; the checked configuration proves
-retries were disabled. Parallel workers and sharding are outside this design.
-They require a separate design for coordinator hooks, runtime sharing, port
-allocation, and multi-stream coverage equality.
+`check-contracts.mts` rejects every configuration key outside the four-key
+allowlist; the protected launcher owns the exact invocation. Messages can prove
+that no retry occurred; the checked configuration proves retries were disabled.
+Parallel workers and sharding are outside this design. They require a separate
+design for coordinator hooks, runtime sharing, port allocation, and multi-stream
+coverage equality.
 
 Feature files are the behavioral authority. Step definitions and support files
 are executable adapters. The generated surface inventory and admission
@@ -376,8 +378,27 @@ type PublicSurface = {
   readonly coverageTag: `@covers_${string}`;
   readonly activationJourneyId?: `journey_${string}`;
   readonly authPolicyId: `auth_${string}`;
+  readonly authority: {
+    readonly kind:
+      | "route"
+      | "ui-action"
+      | "convex-function"
+      | "http-route"
+      | "command"
+      | "trigger"
+      | "webhook";
+    readonly registrationLocator: string;
+    readonly actionDiscriminant?: string;
+  };
 };
 ```
+
+The canonical authority key is
+`(kind, registrationLocator, actionDiscriminant, transport, authPolicyId)`.
+Every compiler/router-discovered public exposure maps to exactly one surface key
+and every surface maps back to one discovered exposure. The same technical
+endpoint may therefore have distinct UI and API-key CLI exposures without losing
+the bijection.
 
 `authPolicyId` resolves to the CODEOWNED policy registry built from the actual
 session, API-key, owner-token, webhook, and other repository auth validators.
@@ -390,6 +411,7 @@ policy is selected.
 The validator fails for:
 
 - a public entrypoint missing from the generated inventory;
+- a duplicate, missing, or unmatched canonical authority key;
 - an admitted coverage tag that does not resolve to one entrypoint;
 - an active entrypoint with no covering Scenario after enforcement cutover;
 - transport-incompatible coverage;
@@ -580,10 +602,11 @@ production entrypoints.
 
 Feature-specific step/support code is part of the stated trust root, not hostile
 product code. The controller loads it read-only only after the GitHub preflight
-confirms required CODEOWNER approval for the exact merge group. All application,
-dependency, build, web, CLI, and backend processes remain in candidate
-sandboxes. This preserves the honest limitation that approved test adapters can
-lie while preventing ordinary candidate code from forging their evidence.
+confirms required CODEOWNER approval for the exact PR `head_oid` included in the
+merge group. All application, dependency, build, web, CLI, and backend processes
+remain in candidate sandboxes. This preserves the honest limitation that
+approved test adapters can lie while preventing ordinary candidate code from
+forging their evidence.
 
 ## Runtime Topology
 
@@ -609,12 +632,15 @@ groups, startup, signal handling, and final cleanup. Cucumber `BeforeAll` and
 fixtures and browser contexts; controller cleanup is the fallback for hard
 termination.
 
-The trusted drivers keep only an in-process set of observed
-`(surfaceId, transport)` pairs. A driver records a pair after it performs the
-actual browser action, external CLI invocation, or API request and validates the
-correlated response. Step definitions cannot call a standalone “mark covered”
-API. A scenario hook attaches the redacted set to Messages. This catches empty
-steps without recreating a receipt service or general evidence framework.
+The trusted drivers keep only an in-process set of observed actions and
+assertions keyed to the expected Pickle step. A driver records an Action only
+after it performs the browser action, external CLI invocation, API request,
+clock/provider action, or other real product interaction. It records an Outcome
+only after its actor-visible assertion succeeds. Surface actions also record
+`(surfaceId, transport)`. Step definitions cannot call a standalone “mark
+action/assertion covered” API. A scenario hook attaches the redacted sets to
+Messages. This catches empty Action and Outcome steps without recreating a
+receipt service or general evidence framework.
 
 ### Browser Driver
 
@@ -746,6 +772,7 @@ The World owns only scenario-scoped adapters and observations:
 - browser context and page;
 - synthetic actor and tenant identities;
 - scenario nonce;
+- current stable Pickle-step key and its keyword type;
 - CLI process result;
 - expected source/artifact/runtime identities;
 - cleanup handles.
@@ -764,6 +791,9 @@ Hooks are limited to:
 
 - `Before`: allocate isolated actor, tenant, API key, browser context, and
   fixture namespace;
+- `BeforeStep`/`AfterStep`: bind the current stable Pickle-step key, require its
+  Action/Outcome driver observation after a passing step, then clear it so
+  evidence cannot be attributed to another step;
 - `After`: revoke the scenario key, remove scenario-local data, and close its
   browser context;
 - small `BeforeAll`/`AfterAll` checks that do not own processes.
@@ -788,9 +818,12 @@ Generated Cucumber AST, Pickle, TestCase, and TestCaseStarted IDs are never
 persisted or compared across parses. They are random execution identifiers.
 
 The inventory records effective tags, journey/lifecycle, expected transport and
-coverage classes, and the raw source digest. `.feature` files are UTF-8 without
-a byte-order mark and use LF line endings; normalized target paths reject
-traversal, collisions, duplicate journey IDs, and duplicate coverage aliases.
+coverage classes, the raw source digest, and the complete ordered Pickle-step
+projection: keyword type, interpolated text, data-table/doc-string digest, and
+resolved AST location. A stable step key combines its Pickle key, ordered index,
+and that projection. `.feature` files are UTF-8 without a byte-order mark and
+use LF line endings; normalized target paths reject traversal, collisions,
+duplicate journey IDs, and duplicate coverage aliases.
 
 ## Cucumber Messages And Runtime Evidence
 
@@ -804,16 +837,24 @@ Within a run, it follows the official relationship:
 Source.uri/data
   -> GherkinDocument.uri and AST node IDs
   -> Pickle.uri and Pickle.astNodeIds
+  -> Pickle.steps[].id and astNodeIds
   -> TestCase.pickleId
+  -> TestCase.testSteps[].pickleStepId
   -> TestCaseStarted.testCaseId
   -> TestStepFinished / TestCaseFinished / Attachment
 ```
 
-There is exactly one GherkinDocument for every admitted Source. Every Pickle AST
+There is exactly one GherkinDocument for every selected Source. Every Pickle AST
 ID resolves inside that document. A Scenario Pickle resolves its Scenario node;
 an Outline Pickle resolves both its Scenario Outline and Examples-row nodes. The
 verifier derives the stable key from those runtime nodes and rejects missing,
 duplicate, cross-document, or wrong-kind references.
+
+Every runtime Pickle step likewise resolves its AST step in the same document
+and exactly equals the expected ordered step projection. Each PickleStep ID maps
+to exactly one TestCase test step through `pickleStepId`, and that test step has
+one started/finished result. Hook test steps have no `pickleStepId` and are
+validated separately. Omitted, substituted, duplicated, or orphaned steps fail.
 
 Each scenario has exactly one redacted runtime observation attachment, assembled
 from the trusted driver's in-process observation set and linked to its
@@ -824,7 +865,8 @@ from the trusted driver's in-process observation set and linked to its
 - observed checkout SHA and built web/CLI artifact digests;
 - values read from the web and CLI identity surfaces;
 - server-owned backend deployment ID, artifact digest, and per-start nonce;
-- scenario nonce and every observed `(surfaceId, transport)` pair.
+- scenario nonce, observed Action/Outcome step keys, and every observed
+  `(surfaceId, transport)` pair.
 
 Identity endpoints accept no expected SHA, runtime ID, nonce, or timestamp from
 the caller. The backend generates its runtime nonce at start. Web and CLI
@@ -841,11 +883,14 @@ response bodies before upload.
 `verify-messages.mts` reads:
 
 1. the generated expected contract inventory;
-2. the trusted CI repository/base/head/merge-group tuple;
-3. the controller-produced build/runtime manifest, containing hashes of the
+2. a controller-produced selection manifest containing mode (`authoritative` or
+   `focused`), exact Feature paths, stable Pickle keys, and the focused journey
+   ID when applicable;
+3. the trusted CI repository/base/head/merge-group tuple in authoritative mode;
+4. the controller-produced build/runtime manifest, containing hashes of the
    actual launched web, CLI, and backend inputs plus the independently queried
    backend start identity;
-4. the Cucumber Messages NDJSON.
+5. the Cucumber Messages NDJSON.
 
 It fails unless:
 
@@ -857,24 +902,33 @@ It fails unless:
 4. every `testRunHookFinished.result.status` is `PASSED`;
 5. every TestCaseStarted, TestStepStarted, run hook, and TestCase has one valid
    finish and no orphan or duplicated identity;
-6. runtime `Source.data` bytes and normalized URIs exactly equal the admitted
+6. runtime `Source.data` bytes and normalized URIs exactly equal the selected
    expected sources, with one linked GherkinDocument per Source;
 7. every Pickle's URI and AST IDs resolve to the correct Scenario and optional
    Examples row in that document, and the resulting stable keys exactly equal
-   all expected admitted Pickles;
-8. every expected Pickle has exactly one TestCase and one attempt-zero
+   the selection manifest;
+8. authoritative mode selects the full admitted inventory; focused mode selects
+   exactly the named journey's nonempty Pickle subset and can never mint the
+   required status;
+9. every selected Pickle has exactly one TestCase and one attempt-zero
    TestCaseStarted;
-9. every scenario step and scenario hook result is `PASSED`;
-10. every `willBeRetried` is false and no Pickle executes more than once;
-11. each execution has exactly one valid observation attachment;
-12. every declared `(surfaceId, transport)` pair was observed, and every
+10. every runtime PickleStep equals its expected ordered projection, resolves
+    its AST step, and maps through exactly one `TestCase.testStep.pickleStepId`
+    to one started/finished result;
+11. every scenario step and scenario hook result is `PASSED`;
+12. every `willBeRetried` is false and no Pickle executes more than once;
+13. each execution has exactly one valid observation attachment;
+14. every expected Action and Outcome step key has its corresponding successful
+    driver observation;
+15. every declared `(surfaceId, transport)` pair was observed, and every
     incidental observation resolves to a known currently admitted entrypoint;
     unregistered, assembling, or suspended surfaces are always unexpected;
-13. web, CLI, and backend observations agree on source SHA and backend runtime
+16. web, CLI, and backend observations agree on source SHA and backend runtime
     while retaining their distinct artifact digests;
-14. observed artifact digests equal the controller's launched-artifact hashes,
-    and every source SHA equals the trusted merge-group OID;
-15. no parse error, unknown journey, unknown surface, malformed attachment,
+17. observed artifact digests equal the controller's launched-artifact hashes,
+    and every source SHA equals the trusted merge-group OID in authoritative
+    mode or the controller-recorded local checkout in focused mode;
+18. no parse error, unknown journey, unknown surface, malformed attachment,
     unexpected source, truncated run, or trailing partial envelope exists.
 
 Statuses `UNKNOWN`, `SKIPPED`, `PENDING`, `UNDEFINED`, `AMBIGUOUS`, and `FAILED`
@@ -974,8 +1028,9 @@ the contract.
 
 Any focused generator that creates a public entrypoint must receive a stable
 surface ID, journey ID, and auth-policy ID, then persist them in generated
-provenance and registration metadata. Reusing an existing entrypoint names that
-existing surface explicitly; it cannot silently create a new action variant.
+provenance and registration metadata alongside the generated canonical authority
+locator/discriminant. Reusing an existing entrypoint names that existing surface
+explicitly; it cannot silently create a new action variant.
 
 ### Existing-App Upgrade
 
@@ -1035,12 +1090,23 @@ creates a new digest that needs approval. Approval resumes `compile`
 idempotently; retries cannot approve different bytes, and factory
 create/contracts-add is never invoked from an intermediate state.
 
+The Build Pack is an upstream draft/approval envelope, not a second product
+contract store. It retains approved bytes only until successful export. Once the
+exact bytes are checked into the target repository, that Feature is canonical;
+the Build Pack replaces its byte copy with path, journey ID, primary flag,
+approved digest, target repository/commit, actor, and time. A failed export
+keeps the approved bytes for an idempotent retry.
+
 V1 packs remain readable through versioned decoding. Their `userJourneys` and
 `acceptanceCriteria` are display-only and cannot produce admission. In v2:
 
-- `{ path, gherkin, journeyId, primary }[]` is canonical;
-- `userJourneys` is derived from Feature, Rule, and Scenario names;
-- `acceptanceCriteria` is derived for display from observable Outcome steps;
+- `{ path, draftGherkin, journeyId, primary }[]` exists only before export;
+- `{ path, journeyId, primary, approvedDigest, repository, commitSha }[]`
+  remains as post-export provenance;
+- `userJourneys` is derived from draft bytes before export and from the
+  checked-in Feature afterward;
+- `acceptanceCriteria` is derived for display from the same source's observable
+  Outcome steps;
 - Maestro mapping consumes exact contract files and never concatenates prose
   into a list called `gates`;
 - handoff prompts tell agents to make stable journey/scenario references pass.
@@ -1073,10 +1139,9 @@ Cut over without an unprotected gap:
    required context;
 4. require the exact `{ context, app_id }` check on a verified
    `(repository, base_ref, base_oid, head_oid, merge_group_oid)` tuple;
-5. use merge-queue batch size one for admission and control-plane PRs, require a
-   code-owner approval after that merge group is created, renew it when the
-   group/base changes, dismiss stale approvals, and enforce rules for
-   administrators/bypass actors;
+5. use merge-queue batch size one for admission and control-plane PRs, bind
+   code-owner approval to the immutable latest PR `head_oid`, dismiss it when
+   that head changes, and enforce rules for administrators/bypass actors;
 6. CODEOWN Feature files, step/support code, Cucumber config, acceptance tools,
    public registration/provenance and auth-policy sources, inventories,
    projection generation, `package.json`, lockfile, `Justfile`, Woodpecker
@@ -1095,6 +1160,11 @@ what prevents individually green parallel PRs from invalidating one another. If
 two admission PRs are green against the same base, the second candidate must run
 again after the first merges and now includes the first journey as a required
 regression.
+
+GitHub reviews attach to a PR head, not a temporary merge-group ref. Base/group
+movement therefore reruns the app-bound verdict but does not demand a fictional
+merge-group review when `head_oid` is unchanged; any PR-head change requires a
+new approval.
 
 An admission PR may not also change the trusted launcher, verifier, Cucumber
 configuration, package scripts, lockfile, public-inventory generator, or
@@ -1205,7 +1275,7 @@ passes normally and the harness catches these faults one at a time:
 | Mutation                                                    | Required red evidence                                    |
 | ----------------------------------------------------------- | -------------------------------------------------------- |
 | Remove or disconnect the Save handler                       | The UI Pickle fails.                                     |
-| Replace a UI/CLI step with a no-op that returns normally    | Required surface observation is absent.                  |
+| Replace an Action/Outcome UI or CLI step with a no-op       | Required driver observation is absent.                   |
 | Add a new action variant inside a registered shared route   | Unregistered authority-bearing action gate fails.        |
 | Generate a public surface without journey/auth provenance   | Generator/provenance gate fails.                         |
 | Restore the in-process CLI `FeatureDisabled` path           | The CLI Pickle fails.                                    |
@@ -1216,10 +1286,11 @@ passes normally and the harness catches these faults one at a time:
 | Select a tag expression matching no expected Pickles        | Positive selection/exact coverage fails.                 |
 | Omit one Scenario Outline example row                       | Expected-versus-executed Pickle equality fails.          |
 | Link an Outline Pickle to the wrong row or document         | AST referential-integrity check fails.                   |
+| Omit/substitute a PickleStep or its TestCase mapping        | Exact step linkage/projection fails.                     |
 | Supply `{}`, a multi-payload Envelope, or truncated NDJSON  | Strict protocol validation fails.                        |
 | Fail `AfterAll` or set `testRunFinished.success` false      | Run-hook/run completion validation fails.                |
 | Echo caller-supplied expected SHA from the backend          | Server-owned identity mutation fails.                    |
-| Configure default Feature paths/tags, retries, or omit TS   | Protected Cucumber configuration check fails.            |
+| Add a config selector/key or alter TS/retry/parallel        | Four-key Cucumber configuration check fails.             |
 | Compare lifecycle against `HEAD^` instead of protected base | Historical downgrade mutation fails.                     |
 | Add an admitted Feature absent from protected base          | Closed lifecycle transition check fails.                 |
 | Weaken tenant/role/scope auth metadata in a product PR      | Protected auth-policy comparison fails.                  |
@@ -1331,7 +1402,7 @@ The system fails closed and reports the smallest repair:
 - CLI failure: exit code and redacted stdout/stderr;
 - auth failure: mechanism/scope class without credential value;
 - identity mismatch: expected and observed non-secret digests/nonces;
-- missing execution: stable expected Pickle key;
+- missing execution: stable expected Pickle or step key;
 - malformed Messages: line and violated Envelope/AST/execution invariant;
 - candidate evidence tamper: denied namespace operation and offending process;
 - run-hook or cleanup failure: failed hook/process and cleanup result;
@@ -1359,23 +1430,26 @@ The design is successful when all are demonstrably true:
    and server boundaries.
 6. Reviewed stacked slices merge while assembling; only a current-main final PR
    can admit a journey already assembling on protected main.
-7. Every admitted Pickle, including each Outline row, executes exactly once.
+7. Every admitted Pickle, Outline row, and compiled Pickle step maps to exactly
+   one passing execution.
 8. Exact checked-in Gherkin bytes equal the Messages Sources, and every runtime
    Pickle resolves through the correct Gherkin AST nodes.
 9. UI and built CLI use the same real backend and expected artifact identities.
 10. Negative behavior derived from each canonical auth policy passes per
     distinct transport.
 11. Caller-controlled tenant input cannot grant access.
-12. Zero selection, undefined/ambiguous/skipped steps, retries, failed run
-    hooks, malformed/truncated Messages, runtime drift, and backend drift fail.
+12. Zero/wrong selection, omitted/substituted/undefined/ambiguous/skipped steps,
+    retries, failed run hooks, malformed/truncated Messages, runtime drift, and
+    backend drift fail.
 13. Existing-app upgrade does not darken legacy behavior or falsely admit it.
 14. PR acceptance runs with no host/provider/deployment secrets, and candidate
     processes cannot modify controller evidence or status state.
-15. The required Woodpecker App verifies the exact merge-group tuple after
-    current-group code-owner approval.
+15. The required Woodpecker App verifies the exact merge-group tuple while
+    GitHub approval remains bound to its immutable PR head.
 16. Staging-proof contracts test and promote one multi-component release
     manifest, with production identity reverified.
-17. Build Packs persist human approval of exact Gherkin bytes.
+17. Build Packs persist human approval provenance/digest while the exported
+    Feature remains the sole canonical byte copy.
 18. The complete mutation gauntlet catches every listed fault.
 19. The custom journey framework and duplicate fake proof machinery are deleted
     only after replacement evidence is green.
