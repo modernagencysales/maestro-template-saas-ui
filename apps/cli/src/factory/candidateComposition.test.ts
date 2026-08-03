@@ -564,6 +564,10 @@ describe("candidate customer composition", () => {
       fixture.targetRoot,
       "packages/template-core/src/generated/confectManifest.ts",
     );
+    // The immutable alpha.2 artifact carries its historical generated output,
+    // while customer materialization marks this file as regenerable. Refresh
+    // it against the materialized dependency/schema set before checking it.
+    await runCandidatePnpm(fixture.targetRoot, ["confect:manifest"]);
     const generatedManifestBefore = readFileSync(generatedManifestPath, "utf8");
     try {
       await runCandidatePnpm(fixture.targetRoot, ["check:confect-manifest"]);
