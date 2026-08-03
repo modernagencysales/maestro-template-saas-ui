@@ -52,6 +52,12 @@ describe("Woodpecker template pipeline", () => {
     expect(read(".woodpecker/verify.yml")).toContain("timeout: 60");
   });
 
+  it("bootstraps deploy preflights with the checksum-pinned pnpm setup", () => {
+    const deployPipeline = read(".woodpecker/deploy.yml");
+    expect(deployPipeline).toContain("source tooling/ci/setup.sh");
+    expect(deployPipeline).not.toContain("corepack enable");
+  });
+
   it("binds one GitHub credential after secretless CI self-protection", () => {
     const verifyPipeline = read(".woodpecker/verify.yml");
     expect(
