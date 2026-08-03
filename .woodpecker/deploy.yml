@@ -62,6 +62,10 @@ steps:
         from_secret: template_staging_convex_url
       TEMPLATE_STAGING_HOSTED_URL:
         from_secret: template_staging_hosted_url
+      TEMPLATE_PRODUCTION_CONVEX_DEPLOYMENT:
+        from_secret: template_production_convex_deployment
+      TEMPLATE_PRODUCTION_CONVEX_URL:
+        from_secret: template_production_convex_url
     commands:
       - node scripts/_project-config.mjs assert-isolated-convex
       - pnpm exec tsx tooling/release/src/deploy/authorityCli.ts staging
@@ -122,6 +126,10 @@ steps:
         from_secret: template_production_convex_url
       TEMPLATE_PRODUCTION_HOSTED_URL:
         from_secret: template_production_hosted_url
+      TEMPLATE_STAGING_CONVEX_DEPLOYMENT:
+        from_secret: template_staging_convex_deployment
+      TEMPLATE_STAGING_CONVEX_URL:
+        from_secret: template_staging_convex_url
     commands:
       - node scripts/_project-config.mjs assert-isolated-convex
       - pnpm exec tsx tooling/release/src/deploy/authorityCli.ts production
