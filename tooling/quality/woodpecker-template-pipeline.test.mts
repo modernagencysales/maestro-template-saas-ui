@@ -52,6 +52,16 @@ describe("Woodpecker template pipeline", () => {
     expect(read(".woodpecker/verify.yml")).toContain("timeout: 60");
   });
 
+  it("binds one GitHub credential after secretless CI self-protection", () => {
+    const verifyPipeline = read(".woodpecker/verify.yml");
+    expect(
+      verifyPipeline.match(/GITHUB_TOKEN:\s*\n\s+from_secret: github_token/gmu),
+    ).toHaveLength(1);
+    expect(verifyPipeline.indexOf("trusted-ci-policy")).toBeLessThan(
+      verifyPipeline.indexOf("GITHUB_TOKEN:"),
+    );
+  });
+
   it("documents AI review gates as manual under the current topology", () => {
     const verifyPipeline = read(".woodpecker/verify.yml");
     const deliveryStory = read("docs/template/delivery-story.md");
