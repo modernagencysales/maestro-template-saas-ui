@@ -77,6 +77,17 @@ AI gates are valid only when their output contains a parseable pass verdict
 accepted by `tooling/quality/extract-ai-verdict.mts`; missing verdicts are
 failures.
 
+Woodpecker deterministic log retrieval:
+
+```bash
+woodpecker-cli pipeline ps modernagencysales/maestro-template-saas-ui <pipeline-number>
+woodpecker-cli pipeline log show modernagencysales/maestro-template-saas-ui <pipeline-number> <step-number>
+```
+
+The required pipeline exposes `trusted-ci-policy` and `verify` logs. It does not
+currently run `taste` or `contract-review`; retain those commands' direct output
+when they are invoked manually.
+
 ## Main Branch Promotion Policy
 
 `main` is PR-only: block deletion and force pushes, require resolved
