@@ -206,7 +206,7 @@ describe("deploy authority self-protection", () => {
       ["TRUSTED_DEPLOY_ROOT_SHA256", "trusted_deploy_root_sha256"],
       ["PROMOTION_AUTHORITY_ENDPOINT", "promotion_authority_endpoint"],
     ] as const) {
-      const pipeline = base.pipeline.replace(
+      const pipeline = base.pipeline.replaceAll(
         `${binding}:\n        from_secret: ${secret}`,
         `${binding}:\n        value: untrusted`,
       );
