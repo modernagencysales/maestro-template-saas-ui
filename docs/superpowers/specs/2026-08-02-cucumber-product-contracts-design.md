@@ -21,7 +21,7 @@ Maestro owns only policy and integration that Cucumber cannot know:
 4. whether Messages exactly cover the checked-in contract bytes;
 5. whether protected adapters observed the expected UI, CLI, and backend
    identities;
-6. whether the verdict was produced for the current protected merge candidate.
+6. whether the verdict was produced for the current protected merge-group tuple.
 
 Cucumber owns Gherkin parsing, scenario compilation, tag expressions, step
 matching, hooks, execution, status semantics, snippets, and the Messages
@@ -42,7 +42,7 @@ The product-building loop becomes:
 ```mermaid
 flowchart LR
   A[Example Mapping and product review] --> B[Reviewed assembling Feature]
-  B --> C[maestro create/add --spec]
+  B --> C[maestro create or contracts add]
   C --> D[Stacked slice PRs keep journey assembling]
   D --> E[Static ownership and darkness checks]
   E --> F[Final integration PR targets current protected main]
@@ -56,7 +56,7 @@ flowchart LR
 Stacked slice PRs are implementation units, not completion units. They may land
 while a journey is `@assembling`; newly introduced controls and operations for
 that journey remain dark. Only the final integration PR, after every dependency
-is present in protected main or its merge candidate, changes the journey to
+and the assembling Feature are present in protected main, changes the journey to
 `@admitted` and adds it to required execution.
 
 Once a journey is admitted, its scenarios run on every later pull request. The
@@ -69,18 +69,19 @@ When the trust chain is configured, an admitted journey proves:
 
 - the exact reviewed Gherkin source bytes were selected;
 - every compiled Pickle, including every Scenario Outline example row, ran
-  exactly once;
+  exactly once with valid Source/Gherkin AST linkage;
 - every scenario step, scenario hook, run hook, and run result passed;
 - protected UI and CLI adapters observed the expected built artifacts;
 - surface-owned identity endpoints reported one backend runtime;
 - required denial behavior passed for each distinct authentication transport;
-- the result belongs to the protected merge candidate being admitted.
+- the result belongs to the exact protected merge-group tuple being admitted.
 
 The verdict depends on protected test and CI code. Cucumber Messages alone do
 not prove that a step used Playwright or spawned a process; they prove that the
 registered step passed and record its attachments. Maestro therefore protects
-the adapters, makes runtime identity server-owned rather than caller-supplied,
-and runs mutation tests that replace real surface actions with no-ops.
+the adapters, runs the controller/evidence store outside candidate namespaces,
+makes runtime identity server-owned rather than caller-supplied, and runs
+mutation tests that replace real surface actions with no-ops.
 
 The verdict does not prove:
 
@@ -165,12 +166,16 @@ The repository root is CommonJS. `cucumber.cjs` therefore explicitly declares:
 
 - `requireModule: ["tsx/cjs"]`;
 - the TypeScript support glob `features/**/*.ts`;
-- the feature glob `features/**/*.feature`;
 - `retry: 0`;
-- `parallel: 0`;
-- the default admitted tag expression;
-- the official `message` formatter, with its output path supplied by the
-  acceptance runner.
+- `parallel: 0`.
+
+The shared configuration contains no Feature `paths`, lifecycle `tags`, or
+formatter output. Cucumber merges configured paths additively and tag
+expressions conjunctively, so defaults would contaminate exact selection and
+make assembling-focused runs empty. The protected runner supplies the complete
+authoritative path list, `@admitted` expression, `message` formatter, and output
+path. Dry-run and focused commands likewise supply their complete paths and tag
+expressions.
 
 Pin `@cucumber/cucumber@13.2.0`, `@cucumber/gherkin@41.0.0`, and
 `@cucumber/messages@34.0.1` in the lockfile, and run them on the repository's
@@ -178,11 +183,12 @@ Node 22 line. The static checker rejects an unreviewed version mismatch between
 the compiler used for expected Pickles and the Messages types used by the
 verifier.
 
-`check-contracts.mts` validates these safety-critical values. Messages can prove
-that no retry occurred; the checked configuration proves retries were disabled.
-Parallel workers and sharding are outside this design. They require a separate
-design for coordinator hooks, runtime sharing, port allocation, and multi-stream
-coverage equality.
+`check-contracts.mts` validates the required values and the absence of shared
+paths/tags/formatter settings; the protected launcher owns the exact invocation.
+Messages can prove that no retry occurred; the checked configuration proves
+retries were disabled. Parallel workers and sharding are outside this design.
+They require a separate design for coordinator hooks, runtime sharing, port
+allocation, and multi-stream coverage equality.
 
 Feature files are the behavioral authority. Step definitions and support files
 are executable adapters. The generated surface inventory and admission
@@ -323,10 +329,27 @@ existing route does not darken the route; the new control and its new backend
 operation are the activation-owned entrypoints. Existing shared operations do
 not become disabled merely because an assembling journey reuses them.
 
+“Entrypoint” includes an authority-bearing action or discriminated command
+inside a shared endpoint, not only its URL or exported function. A new action
+variant must receive its own surface ID and activation owner before the shared
+dispatcher branches on it. The gate rejects unregistered action discriminants;
+otherwise new behavior could hide inside an already-admitted operation and
+bypass both darkness and suspension.
+
+The inventory does not attempt to classify every DOM element. An
+authority-bearing UI action is any control that invokes a product operation;
+generated customer code must do that through the registered action adapter, and
+the dependency gate forbids direct mutation/reference imports outside it.
+Navigation remains represented by route registration. This makes UI discovery
+exhaustive at the authority boundary without inventing a DOM linter.
+
 ### Exhaustive Generated Authority
 
-Extend existing generators rather than create a new repository AST graph. They
-emit one deterministic `public-surfaces.generated.json` from:
+The current manually imported Confect manifest and shallow topology scan are not
+exhaustive authorities. Rollout first replaces those manual lists with one
+machine-readable registration boundary and a gate that forbids unregistered raw
+public exports. Existing generators then emit one deterministic
+`public-surfaces.generated.json` from:
 
 - the generated TanStack route tree plus UI route/action registration metadata;
 - the generated Confect operation manifest;
@@ -335,10 +358,11 @@ emit one deterministic `public-surfaces.generated.json` from:
 - externally exposed entries in workflow/job registries, classified by their
   real transport, plus webhook, CLI, API, and MCP registries.
 
-The existing system-topology gate compares its discovered production paths with
-that generated public inventory. Raw public Convex exports, HTTP routes, or
-registrations missing from the inventory fail. `check-contracts.mts` consumes
-the generated artifact; it does not rescan source code.
+The extended system-topology gate compares compiler/router-discovered production
+paths with that generated public inventory. Raw public Convex exports, HTTP
+routes, action variants, or registrations missing from the inventory fail.
+`check-contracts.mts` consumes the generated artifact; it does not rescan source
+code.
 
 Each public entrypoint is one transport/auth exposure. A technical route or
 operation reachable through multiple authority boundaries maps to multiple
@@ -351,14 +375,17 @@ type PublicSurface = {
   readonly transport: "ui" | "cli" | "api" | "mcp" | "webhook";
   readonly coverageTag: `@covers_${string}`;
   readonly activationJourneyId?: `journey_${string}`;
-  readonly auth: {
-    readonly mechanism: "public" | "session" | "api-key" | "webhook-signature";
-    readonly tenantScoped: boolean;
-    readonly minimumRole?: string;
-    readonly requiredScopes: readonly string[];
-  };
+  readonly authPolicyId: `auth_${string}`;
 };
 ```
+
+`authPolicyId` resolves to the CODEOWNED policy registry built from the actual
+session, API-key, owner-token, webhook, and other repository auth validators.
+The policy supplies credential class, principal kind, server-derived tenant
+authority, canonical role/scope types, and denial cases. This avoids a surface
+manifest inventing an incomplete auth taxonomy or weakening security with a
+misspelled string. New surfaces default to `auth_deny_all` until an explicit
+policy is selected.
 
 The validator fails for:
 
@@ -369,6 +396,10 @@ The validator fails for:
 - an unknown or duplicated activation owner;
 - an activation owner that does not resolve to a Feature;
 - an assembling or suspended activation owner enabled in the projection;
+- an unknown auth policy or invalid role/scope for that policy;
+- a change from protected base that makes an entrypoint public, removes
+  tenant-scoping, lowers a role, removes a scope, or otherwise weakens auth
+  without security CODEOWNER approval in a separate security-reviewed PR;
 - a direct public Convex/HTTP path that bypasses the server admission wrapper;
 - generated inventory or projection drift.
 
@@ -384,6 +415,21 @@ platform Feature. A generated customer app never receives an admitted fake
 domain journey merely to make coverage green.
 
 ## Lifecycle And Stacked Pull Requests
+
+Lifecycle comparison uses the immutable protected-main SHA, never `HEAD^` or a
+candidate-provided ref. The transition matrix is closed:
+
+| Protected-base state | Allowed next state                          |
+| -------------------- | ------------------------------------------- |
+| absent               | assembling                                  |
+| assembling           | assembling, admitted, suspended, or deleted |
+| admitted             | admitted or suspended                       |
+| suspended            | suspended or admitted after full execution  |
+
+`absent -> admitted`, `admitted -> assembling`, deletion after admission, and
+reuse of an admitted journey ID are invalid. A retired admitted journey remains
+as a suspended Feature tombstone even after its activation-owned code and
+surfaces are removed; no second lifecycle ledger is needed.
 
 ### Assembling
 
@@ -412,11 +458,23 @@ admission verdict. Each slice:
 - runs all journeys already admitted on protected main;
 - proves any new activation-owned entrypoint remains dark.
 
+Generated provenance maps each activation-owned surface to its implementation
+paths. Every slice touching those paths requires the journey's product/code
+owner approval; the final lifecycle flip does not retroactively bless unreviewed
+implementation already merged.
+
+Operationally, GitHub stacks organize review and merge bottom-up. After the last
+assembling slice reaches main, the admission branch is rebased onto current main
+and contains only the lifecycle flip plus any final integration fix. This makes
+the end-of-stack verification deterministic without requiring incomplete slice
+PRs to pass the new journey.
+
 Only a final integration PR targeting protected main and evaluated by its
-protected merge queue may introduce an `@admitted` lifecycle delta. Its
-dependency stack must already be in the merge candidate. The admission verifier
-compares against the immutable protected target SHA and executes all admitted
-Pickles, including the new journey.
+protected merge queue may introduce an `@admitted` lifecycle delta. Its Feature
+must already be `@assembling` on protected main, so the implementation slices
+merge first. The final merge candidate contains the lifecycle flip and any last
+integration change. The admission verifier executes all admitted Pickles,
+including the new journey.
 
 ### Admitted
 
@@ -453,9 +511,11 @@ and never enable a journey. They then land the suspended contract change and
 deploy the new artifact. Returning from suspended to admitted reruns the entire
 contract.
 
-An admitted journey cannot move directly to assembling. Retirement requires it
-to be suspended, have no remaining activation-owned public entrypoints, and pass
-an explicit protected-base lifecycle comparison.
+Retirement requires the journey to be suspended, have no remaining
+activation-owned public entrypoints, and pass the protected-base lifecycle
+comparison. The retirement PR removes obsolete coverage tags but retains the
+Feature's journey ID, suspended lifecycle, and behavioral prose as the permanent
+tombstone.
 
 ## Admission Projection And Guard Boundaries
 
@@ -496,49 +556,65 @@ the temporary local lifecycle flip described above.
 
 ### Authoritative PR Runtime
 
-`pnpm acceptance` runs only in a clean checkout. It:
+`pnpm acceptance` is the local alias. In CI, the protected-target launcher runs
+outside the candidate sandbox and:
 
-1. verifies the Git checkout SHA equals the Woodpecker merge-candidate SHA;
-2. generates Confect and the route/public-surface inventories;
-3. builds the web application and CLI once;
-4. launches the built web preview and local Convex, and exposes the canonical
-   built CLI path, through a new `maestro start --mode acceptance` composition
-   that reuses existing local process supervision;
+1. verifies the Git checkout SHA equals the trusted `merge_group_oid`;
+2. builds and generates inside an untrusted, resource-limited sandbox;
+3. after that sandbox exits, copies the web, CLI, and backend inputs into a
+   controller-owned read-only runtime mount and hashes them;
+4. launches the built web preview, local Convex, and canonical built CLI in a
+   separate untrusted runtime sandbox through the existing process supervisor;
 5. waits for independent web, CLI, Confect, backend, and identity probes;
-6. invokes Cucumber serially with the exact admitted Feature paths from the
-   generated inventory, rather than letting Cucumber discover assembling files;
-7. verifies Messages and runtime observations;
-8. tears down the complete process group even after signals or test failure.
+6. runs Cucumber, approved step/support adapters, and Playwright in the trusted
+   controller with the exact admitted Feature paths;
+7. writes Messages and the run manifest only to controller-owned storage, then
+   verifies them after candidate processes terminate;
+8. tears down the complete candidate process group even after signals or test
+   failure.
 
 `acceptance` mode is test-only composition, not a production runtime flag. The
-existing auth-demo-bypass and environment-boundary gates prove it cannot be
-selected or imported by production entrypoints.
+auth-demo-bypass and environment-boundary gates are extended from marker scans
+to dependency/build-graph checks proving it cannot be selected or imported by
+production entrypoints.
+
+Feature-specific step/support code is part of the stated trust root, not hostile
+product code. The controller loads it read-only only after the GitHub preflight
+confirms required CODEOWNER approval for the exact merge group. All application,
+dependency, build, web, CLI, and backend processes remain in candidate
+sandboxes. This preserves the honest limitation that approved test adapters can
+lie while preventing ordinary candidate code from forging their evidence.
 
 ## Runtime Topology
 
 ```text
-Trusted acceptance supervisor
-  ├── built web preview
-  │     └── Playwright browser ──> authenticated Convex client ───────────┐
-  ├── built canonical CLI child ──> Convex HTTP API ──> API-key auth ─────┤
-  ├── local issuer, scenario fixtures, and surface observations           │
-  └── Cucumber process ──> official Messages NDJSON                      │
-                                                                          v
-                                                        one local Convex runtime
+Protected-target controller namespace
+  ├── approved Cucumber steps/support ──> controller-owned Messages
+  ├── Playwright + trusted UI/CLI drivers ───────────────┐
+  ├── local issuer + fixture control                     │ constrained loopback
+  ├── launched-artifact hashes + run manifest            │
+  └── final verifier/status decision                     │
+                                                         v
+Candidate runtime namespace (different UID/PID/mount namespace)
+  ├── read-only built web preview ──> one local Convex runtime
+  └── read-only built CLI ──────────> authenticated HTTP API
 ```
 
-The outer supervisor owns ports, environment projection, process groups, runtime
-startup, signal handling, and final cleanup. Cucumber `BeforeAll` and `AfterAll`
-do not own long-lived processes. Scenario hooks own only scenario fixtures and
-browser contexts; supervisor cleanup is the fallback for hard termination.
+Candidate processes cannot read or write controller storage, signal or `ptrace`
+controller processes, impersonate controller IPC, mutate artifacts after
+hashing, or reach the status poster. Candidate source and launched artifacts are
+read-only at runtime. The controller owns ports, environment projection, process
+groups, startup, signal handling, and final cleanup. Cucumber `BeforeAll` and
+`AfterAll` do not own long-lived processes. Scenario hooks own only scenario
+fixtures and browser contexts; controller cleanup is the fallback for hard
+termination.
 
-The supervisor also owns a small in-memory observation collector. Protected UI
-and CLI adapters and the generated server wrapper append observations only when
-the corresponding action, external process, or authenticated backend request
-actually occurs. Step definitions cannot manufacture observation records. A
-scenario hook reads the collector for its nonce and attaches the resulting
-redacted record to Messages. This is trusted adapter evidence, not a separate
-receipt service or cryptographic claim.
+The trusted drivers keep only an in-process set of observed
+`(surfaceId, transport)` pairs. A driver records a pair after it performs the
+actual browser action, external CLI invocation, or API request and validates the
+correlated response. Step definitions cannot call a standalone “mark covered”
+API. A scenario hook attaches the redacted set to Messages. This catches empty
+steps without recreating a receipt service or general evidence framework.
 
 ### Browser Driver
 
@@ -559,7 +635,7 @@ Steps spawn the built repository CLI as an external process. They do not import
 `runCli`, `runTemplateApiOperation`, a handler, or a runtime adapter. The CLI
 receives only normal arguments, a base URL, a scoped credential through a
 sanitized environment or stdin, and a standard request-correlation nonce.
-Credentials never appear in argv. The supervisor records the executable digest,
+Credentials never appear in argv. The controller records the executable digest,
 process result, and correlation nonce; the server wrapper records the matching
 authenticated operation.
 
@@ -595,7 +671,7 @@ User lookup uses `identity.tokenIdentifier`, or an indexed `(issuer, subject)`
 tuple, never bare `subject`. Updating the current `by_subject` lookup and
 fixture provisioning is a prerequisite for enabling the local issuer.
 
-The acceptance private key remains only in the supervisor process. Production
+The acceptance private key remains only in the controller process. Production
 auth configuration cannot select the loopback issuer, and the production build
 contains no acceptance bootstrap route.
 
@@ -610,10 +686,18 @@ sends the opaque bearer key to the real HTTP endpoint. The backend:
 3. rechecks active organization, workspace, and agent state;
 4. derives the principal and authorized tenant from the key row;
 5. rejects any caller workspace target that differs from that authority;
-6. dispatches with the server-derived principal, never merged caller authority.
+6. invokes one transport-neutral internal operation boundary with that verified
+   principal.
 
-Operation-to-scope, minimum-role, auth mechanism, and tenant posture are fields
-in the generated public-surface manifest. The current hardcoded `acme-demo`
+API-key rows persist the principal kind and ID, authorized tenant, scopes,
+expiry, and creator-for-audit. HTTP handlers may not call public Confect refs
+whose authorization rereads only the Convex session identity. Session functions,
+HTTP, CLI, API, and MCP instead adapt their verified identity into the same
+internal principal union before authorization and business logic. Caller data is
+never merged into that principal.
+
+Operation-to-scope, minimum-role, credential mechanism, and tenant posture come
+from the surface's generated auth policy. The current hardcoded `acme-demo`
 mapping is not part of acceptance.
 
 ### Negative Coverage
@@ -684,7 +768,7 @@ Hooks are limited to:
   browser context;
 - small `BeforeAll`/`AfterAll` checks that do not own processes.
 
-The outer supervisor performs idempotent cleanup on normal completion, failure,
+The outer controller performs idempotent cleanup on normal completion, failure,
 SIGINT, and SIGTERM. CI/container cleanup covers SIGKILL and OOM. Diagnostics
 are uploaded only after fixture credentials are revoked.
 
@@ -696,17 +780,17 @@ deterministic expected inventory for the verifier. Each expected Pickle key is:
 ```text
 sha256(raw UTF-8 Feature bytes)
   + normalized repository-relative URI
-  + Scenario/Outline source location
-  + Examples-row source location when present
+  + Scenario/Outline source line and column
+  + Examples-row source line and column when present
 ```
 
 Generated Cucumber AST, Pickle, TestCase, and TestCaseStarted IDs are never
 persisted or compared across parses. They are random execution identifiers.
 
 The inventory records effective tags, journey/lifecycle, expected transport and
-coverage classes, and the raw source digest. `.feature` files are UTF-8 with LF
-line endings; normalized target paths reject traversal, collisions, duplicate
-journey IDs, and duplicate coverage aliases.
+coverage classes, and the raw source digest. `.feature` files are UTF-8 without
+a byte-order mark and use LF line endings; normalized target paths reject
+traversal, collisions, duplicate journey IDs, and duplicate coverage aliases.
 
 ## Cucumber Messages And Runtime Evidence
 
@@ -717,15 +801,23 @@ runtime validation.
 Within a run, it follows the official relationship:
 
 ```text
-Pickle.id
+Source.uri/data
+  -> GherkinDocument.uri and AST node IDs
+  -> Pickle.uri and Pickle.astNodeIds
   -> TestCase.pickleId
   -> TestCaseStarted.testCaseId
   -> TestStepFinished / TestCaseFinished / Attachment
 ```
 
+There is exactly one GherkinDocument for every admitted Source. Every Pickle AST
+ID resolves inside that document. A Scenario Pickle resolves its Scenario node;
+an Outline Pickle resolves both its Scenario Outline and Examples-row nodes. The
+verifier derives the stable key from those runtime nodes and rejects missing,
+duplicate, cross-document, or wrong-kind references.
+
 Each scenario has exactly one redacted runtime observation attachment, assembled
-from the supervisor-owned collector and linked to its `testCaseStartedId`. It
-includes:
+from the trusted driver's in-process observation set and linked to its
+`testCaseStartedId`. It includes:
 
 - evidence schema version;
 - stable expected Pickle key, not a generated Pickle ID;
@@ -737,8 +829,7 @@ includes:
 Identity endpoints accept no expected SHA, runtime ID, nonce, or timestamp from
 the caller. The backend generates its runtime nonce at start. Web and CLI
 identities are compiled into the artifacts. The expected SHA comes from
-`git rev-parse HEAD` and must equal the protected Woodpecker merge-candidate
-SHA.
+`git rev-parse HEAD` and must equal the trusted Woodpecker `merge_group_oid`.
 
 Attachments contain no cookies, JWTs, private keys, API keys, environment dumps,
 or raw customer content. Test data is synthetic. Playwright traces are access
@@ -750,10 +841,10 @@ response bodies before upload.
 `verify-messages.mts` reads:
 
 1. the generated expected contract inventory;
-2. the trusted CI merge-candidate and protected-base facts;
-3. the supervisor-produced build/runtime manifest, containing hashes of the
-   actual launched web and CLI artifacts plus the observed backend start
-   identity;
+2. the trusted CI repository/base/head/merge-group tuple;
+3. the controller-produced build/runtime manifest, containing hashes of the
+   actual launched web, CLI, and backend inputs plus the independently queried
+   backend start identity;
 4. the Cucumber Messages NDJSON.
 
 It fails unless:
@@ -767,20 +858,22 @@ It fails unless:
 5. every TestCaseStarted, TestStepStarted, run hook, and TestCase has one valid
    finish and no orphan or duplicated identity;
 6. runtime `Source.data` bytes and normalized URIs exactly equal the admitted
-   expected sources;
-7. executed Pickles exactly equal all expected admitted Pickles, including every
-   Scenario Outline example row;
+   expected sources, with one linked GherkinDocument per Source;
+7. every Pickle's URI and AST IDs resolve to the correct Scenario and optional
+   Examples row in that document, and the resulting stable keys exactly equal
+   all expected admitted Pickles;
 8. every expected Pickle has exactly one TestCase and one attempt-zero
    TestCaseStarted;
 9. every scenario step and scenario hook result is `PASSED`;
 10. every `willBeRetried` is false and no Pickle executes more than once;
 11. each execution has exactly one valid observation attachment;
-12. observed `(surfaceId, transport)` pairs exactly satisfy the Pickle's
-    declared coverage tags and effective transport tags;
+12. every declared `(surfaceId, transport)` pair was observed, and every
+    incidental observation resolves to a known currently admitted entrypoint;
+    unregistered, assembling, or suspended surfaces are always unexpected;
 13. web, CLI, and backend observations agree on source SHA and backend runtime
     while retaining their distinct artifact digests;
-14. observed artifact digests equal the supervisor's launched-artifact hashes,
-    and every source SHA equals the trusted merge candidate;
+14. observed artifact digests equal the controller's launched-artifact hashes,
+    and every source SHA equals the trusted merge-group OID;
 15. no parse error, unknown journey, unknown surface, malformed attachment,
     unexpected source, truncated run, or trailing partial envelope exists.
 
@@ -800,8 +893,8 @@ Keep the interface small:
 - `pnpm acceptance:focus --journey <id>` runs a non-authoritative focused loop;
 - `pnpm acceptance` builds and starts the authoritative runtime, runs every
   admitted Pickle, emits Messages, and verifies them;
-- `pnpm exec cucumber-js --dry-run --tags @journey_client_records` reports
-  undefined-step snippets without starting the runtime;
+- `pnpm exec cucumber-js "features/**/*.feature" --dry-run --tags @journey_client_records`
+  reports undefined-step snippets without starting the runtime;
 - `maestro verify --scope full` and root `pnpm verify` include required
   acceptance rather than minting a separate completion badge.
 
@@ -809,9 +902,9 @@ The implementation has three small acceptance tools:
 
 1. `check-contracts.mts` for static policy, protected-base comparison,
    inventory, config, and projection drift;
-2. `run-acceptance.mts` for secretless environment projection, build/runtime
-   supervision, launched-artifact hashing, runtime manifest, signal handling,
-   and Cucumber invocation;
+2. protected-target `run-acceptance.mts` for sandbox/environment projection,
+   build/runtime supervision, launched-artifact hashing, runtime manifest,
+   signal handling, and Cucumber invocation;
 3. `verify-messages.mts` for strict protocol linkage, exact coverage, statuses,
    and runtime identity.
 
@@ -858,14 +951,15 @@ sealed `v0.2.0-alpha.2`.
 ### Add
 
 ```text
-maestro add --spec features/approval_workflow.feature
+maestro contracts add --spec features/approval_workflow.feature
 ```
 
-Add installs a syntactically valid assembling contract and reports its journey
-ID, rules, scenarios, coverage tags, and undefined snippets from Cucumber
-dry-run. It distinguishes resolved surfaces from unresolved implementation
-intents and does not emit fake-ready UI. Existing focused generators remain
-implementation tools selected after behavior review.
+`contracts add` avoids colliding with the existing positional recipe form of
+`maestro add`. It installs a syntactically valid assembling contract and reports
+its journey ID, rules, scenarios, coverage tags, and undefined snippets from
+Cucumber dry-run. It distinguishes resolved surfaces from unresolved
+implementation intents and does not emit fake-ready UI. Existing focused
+generators remain implementation tools selected after behavior review.
 
 Delete recipe `doneState`. Recipes retain technical prerequisites and focused
 engineering gates, but cannot define product completion. Work packages reference
@@ -877,6 +971,11 @@ Remove generic `template:add-feature` output that creates fake fixtures,
 presenter-only completion, and no-op controls. Agents use narrow generators for
 real domain pieces, then implement the thinnest UI and CLI surfaces required by
 the contract.
+
+Any focused generator that creates a public entrypoint must receive a stable
+surface ID, journey ID, and auth-policy ID, then persist them in generated
+provenance and registration metadata. Reusing an existing entrypoint names that
+existing surface explicitly; it cannot silently create a new action variant.
 
 ### Existing-App Upgrade
 
@@ -891,6 +990,12 @@ in explicit audit mode:
 4. add reviewed contracts and exercise legacy journeys one at a time;
 5. remove each surface from the baseline when admitted coverage exists;
 6. atomically enable enforcement only when the baseline is empty.
+
+`maestro upgrade --contracts-audit` performs the initial conversion as one
+reviewed transaction: capture the pre-guard baseline, stage generated guards and
+config in a temporary target, prove every legacy entrypoint remains available,
+and replace the target only after static verification passes. Failure leaves the
+original app unchanged. Later baseline reductions use the same staged apply.
 
 The baseline is generated migration state, not a second behavioral contract. It
 cannot grow after upgrade, expires when empty, and is then deleted. Upgrade
@@ -920,7 +1025,15 @@ versioned v2 Build Pack schema and persisted `awaiting-review` state:
 4. approval records actor, time, and source digest;
 5. `compile` exports only the approved bytes;
 6. `map-to-maestro` passes their paths/content and primary journey to
-   `maestro create --spec` or `maestro add --spec`.
+   `maestro create --spec` or `maestro contracts add --spec`.
+
+The reviewer is an authenticated workspace product owner, or another principal
+with the canonical `build_pack:approve` policy. The review UI/API mutation takes
+the expected draft digest and uses compare-and-swap: it either stores the exact
+approved bytes, digest, actor, and time or rejects a stale draft. Editing
+creates a new digest that needs approval. Approval resumes `compile`
+idempotently; retries cannot approve different bytes, and factory
+create/contracts-add is never invoked from an intermediate state.
 
 V1 packs remain readable through versioned decoding. Their `userJourneys` and
 `acceptanceCriteria` are display-only and cannot produce admission. In v2:
@@ -958,18 +1071,23 @@ Cut over without an unprotected gap:
    or load it from the immutable protected target SHA before any candidate code;
    a pipeline definition read from the PR head is advisory and cannot post the
    required context;
-4. require the exact `{ context, app_id }` check with strict current-base
-   protection or a merge queue;
-5. require code-owner review, dismiss stale approvals, require approval after
-   the latest push, and enforce rules for administrators/bypass actors;
+4. require the exact `{ context, app_id }` check on a verified
+   `(repository, base_ref, base_oid, head_oid, merge_group_oid)` tuple;
+5. use merge-queue batch size one for admission and control-plane PRs, require a
+   code-owner approval after that merge group is created, renew it when the
+   group/base changes, dismiss stale approvals, and enforce rules for
+   administrators/bypass actors;
 6. CODEOWN Feature files, step/support code, Cucumber config, acceptance tools,
-   public inventories, projection generation, `package.json`, lockfile,
-   `Justfile`, Woodpecker config, and CODEOWNERS itself;
+   public registration/provenance and auth-policy sources, inventories,
+   projection generation, `package.json`, lockfile, `Justfile`, Woodpecker
+   config, and CODEOWNERS itself;
 7. port the existing trusted-base self-protection comparison before deleting
    retired pipeline code;
-8. remove GitHub Actions and retired Buildkite as admission authorities;
-9. remove Qlty from the blocking chain and retain it as advisory output under
-   the operator's 30-second cap.
+8. retire the current Graphite retarget/squash/status paths in
+   `tooling/stack/{submit,merge}.mts` and use plain GitHub PRs plus merge queue;
+9. remove GitHub Actions and retired Buildkite as admission authorities;
+10. remove Qlty from the blocking chain and retain it as advisory output under
+    the operator's 30-second cap.
 
 The required check runs on the synthetic merge candidate, not an arbitrary
 branch head. If main advances, the candidate is rebuilt and reverified. This is
@@ -985,6 +1103,11 @@ PR, are exercised in observation mode, and become authority only after they are
 present on protected main. The protected-base launcher—not a candidate-modified
 script string—starts admission verification.
 
+The trusted launcher compares the entire base-to-merge-group delta and rejects a
+candidate containing both an admission lifecycle change and any control-plane
+change, even if they arrived through separate PRs. Batch size one is the simple
+default for either class.
+
 If the installed Woodpecker deployment cannot guarantee that trusted pipeline
 root, cutover is blocked. CODEOWNERS and a self-check inside a candidate-owned
 pipeline do not solve the circular trust problem by themselves.
@@ -997,25 +1120,29 @@ missing.
 ## Secretless PR Execution
 
 Pull-request code is untrusted. The PR job runs in an unprivileged ephemeral
-worker/container with no GitHub token, BWS environment, Cloudflare key, provider
-key, staging credential, production credential, or inherited host environment.
-Woodpecker posts status and stores artifacts outside the candidate process. The
-container mounts no host home or credential directories, SSH agent, Docker
-socket, control-plane socket, or cloud metadata credential. Its writable
-filesystem contains only the checkout, installed dependencies, and disposable
-test directories.
+candidate sandbox with no GitHub token, BWS environment, Cloudflare key,
+provider key, staging credential, production credential, or inherited host
+environment. Woodpecker's protected controller posts status and stores evidence
+outside that sandbox. Candidate namespaces mount no host home or credential
+directories, SSH agent, Docker socket, control-plane socket, cloud metadata
+credential, controller storage, or writable trusted tool directory.
 
-`run-acceptance.mts` builds an explicit environment allowlist containing only:
+The controller projects an exact environment containing only:
 
-- PATH and deterministic tool/runtime variables;
+- an immutable PATH made only from fixed trusted tool directories and required
+  deterministic runtime variables;
 - loopback ports and temporary directories;
 - synthetic acceptance identity values;
-- the merge-candidate and protected-base SHA facts.
+- the public candidate source SHA needed by built identity endpoints.
 
-Dependency installation also runs without secrets. After dependencies are
-available, acceptance execution allows loopback network access only. External
-providers use deterministic local adapters. A canary test proves representative
-host/provider secret names are absent from every child environment.
+The controller first fetches lockfile-addressed dependencies without lifecycle
+scripts, then performs the candidate install/build offline in its sandbox.
+Candidate-independent network namespaces enforce loopback-only runtime access.
+PID, CPU, memory, storage, and wall-clock limits bound hostile workloads; source
+and artifacts are read-only after build. External providers use deterministic
+local adapters. A canary proves exact child environment-key equality and that
+representative host/provider secrets, writable tool shadows, and outbound
+network access are absent.
 
 Staging and production credentials exist only in trusted post-merge jobs and are
 restricted to their environment. They are never supplied to PR-controlled
@@ -1029,9 +1156,10 @@ the contract, step, config, verifier, or gate entrypoint. Controls are simple:
 - every behavioral/control-plane path listed above is CODEOWNED;
 - GitHub requires a code-owner approval after the latest push;
 - the author cannot satisfy their own required approval;
-- the required check is bound to the Woodpecker App and merge candidate;
+- the required check is bound to the Woodpecker App and exact merge-group tuple;
 - trusted-base control code verifies candidate changes to gate wiring;
 - generated inventory/projection files cannot be hand-edited;
+- protected-base comparison rejects lifecycle or auth-policy downgrades;
 - minimum per-transport auth and coverage rules prevent deleting an entire
   evidence class;
 - exact source equality prevents running rewritten temporary Gherkin;
@@ -1047,18 +1175,27 @@ missed requirements become new examples in the same contract.
 promotion. If any admitted Pickle has that tag, the trusted post-merge release
 job must:
 
-1. build the production release artifact once and record its digest;
-2. deploy that exact digest to isolated staging;
+1. build every deployable component once and create one immutable release
+   manifest naming the web, CLI, backend, generated schema/migration, runtime
+   config, and admission-policy digests;
+2. deploy that exact manifest digest to isolated staging;
 3. use a restricted staging-only test tenant and identity;
 4. run every admitted staging-proof Pickle;
-5. verify staging-reported artifact and backend digests;
+5. use trusted platform APIs—not application self-report alone—to verify each
+   deployed component and backend deployment ID against the manifest;
 6. retain the same strict Messages coverage rules;
-7. promote that exact tested artifact digest, not rebuild from the same SHA.
+7. promote that exact tested manifest, then independently re-query production
+   component/deployment IDs before marking the release complete.
 
 Local issuer and bootstrap code are never enabled in staging. Source SHA remains
 useful identity, but identical source does not imply identical artifact bytes.
 The PR acceptance build is test evidence and is never promoted; only this
-post-merge production artifact can become a release.
+post-merge production manifest can become a release.
+
+Rollback is promotion of a previously recorded manifest proven compatible with
+the current schema/migration state. It never clears or rolls back the external
+emergency deny, so restoring old bytes cannot silently re-enable a suspended
+journey.
 
 ## Mutation Gauntlet
 
@@ -1069,18 +1206,29 @@ passes normally and the harness catches these faults one at a time:
 | ----------------------------------------------------------- | -------------------------------------------------------- |
 | Remove or disconnect the Save handler                       | The UI Pickle fails.                                     |
 | Replace a UI/CLI step with a no-op that returns normally    | Required surface observation is absent.                  |
+| Add a new action variant inside a registered shared route   | Unregistered authority-bearing action gate fails.        |
+| Generate a public surface without journey/auth provenance   | Generator/provenance gate fails.                         |
 | Restore the in-process CLI `FeatureDisabled` path           | The CLI Pickle fails.                                    |
+| Dispatch an API key through a session-only public ref       | Positive CLI authentication Pickle fails.                |
 | Point the CLI at a second backend                           | Cross-surface or runtime identity fails.                 |
 | Trust caller-supplied workspace identity                    | Tenant-isolation Pickle fails.                           |
 | Call an assembling operation through raw Convex/HTTP        | Server admission guard rejects it before business logic. |
 | Select a tag expression matching no expected Pickles        | Positive selection/exact coverage fails.                 |
 | Omit one Scenario Outline example row                       | Expected-versus-executed Pickle equality fails.          |
+| Link an Outline Pickle to the wrong row or document         | AST referential-integrity check fails.                   |
 | Supply `{}`, a multi-payload Envelope, or truncated NDJSON  | Strict protocol validation fails.                        |
 | Fail `AfterAll` or set `testRunFinished.success` false      | Run-hook/run completion validation fails.                |
 | Echo caller-supplied expected SHA from the backend          | Server-owned identity mutation fails.                    |
-| Enable retries or omit the TypeScript support glob          | Protected Cucumber configuration check fails.            |
+| Configure default Feature paths/tags, retries, or omit TS   | Protected Cucumber configuration check fails.            |
 | Compare lifecycle against `HEAD^` instead of protected base | Historical downgrade mutation fails.                     |
+| Add an admitted Feature absent from protected base          | Closed lifecycle transition check fails.                 |
+| Weaken tenant/role/scope auth metadata in a product PR      | Protected auth-policy comparison fails.                  |
 | Inject representative provider-secret canaries              | Secretless child-environment test fails before Cucumber. |
+| Shadow a trusted tool or open an outbound runtime socket    | Sandbox boundary test fails.                             |
+| Candidate process overwrites Messages or the run manifest   | Namespace/read-only boundary prevents the write.         |
+| Replace the PR-head pipeline with a successful no-op        | It cannot post the app-bound required context.           |
+| Batch an admission delta with a control-plane delta         | Merge-group classifier rejects the candidate.            |
+| Change one staged component outside the release manifest    | Platform-observed digest verification fails.             |
 
 Run the complete gauntlet for changes to the factory acceptance harness and
 before sealing a template release. Ordinary customer PRs run real admitted
@@ -1113,15 +1261,17 @@ goal, not a reason to omit a trust boundary.
 
 ### 1. Establish Exhaustive Public Boundaries
 
-Generate the complete public-surface inventory, add auth/admission metadata,
-wrap public server operations, reject raw bypasses, and repair identity
-endpoints so values are server-owned.
+Replace manual manifest imports with the exhaustive registration boundary,
+require generator journey/surface/auth-policy provenance, add the
+transport-neutral principal dispatcher, wrap public operations and action
+variants, reject raw bypasses, and repair identity endpoints.
 
 ### 2. Build The Secretless Acceptance Runtime
 
-Add the explicit Cucumber configuration, built web/CLI acceptance mode, real UI
-auth, external CLI HTTP transport, local internal bootstrap, strict environment
-projection, and the three small acceptance tools.
+Add the explicit Cucumber configuration, protected controller and isolated
+candidate sandboxes, built web/CLI acceptance mode, real UI auth, external CLI
+HTTP transport, local internal bootstrap, strict environment projection, and the
+three small acceptance tools.
 
 ### 3. Prove The Harness In A Factory Fixture
 
@@ -1136,8 +1286,9 @@ fault creates the expected red result.
 
 ### 5. Make The Factory Contract-First
 
-Switch create/add to reviewed `--spec`, introduce explicit primary journey,
-remove `doneState` and fake-ready generation, and seal a new immutable release.
+Switch create and contracts-add to reviewed `--spec`, introduce explicit primary
+journey, remove `doneState` and fake-ready generation, and seal a new immutable
+release.
 
 ### 6. Add Human Build Pack Approval
 
@@ -1152,9 +1303,10 @@ atomically when empty. Brain hydration is the first product pilot.
 
 ### 8. Cut Over Protected CI And Delete Old Machinery
 
-Observe Woodpecker, bind its App/context, enable merge-candidate and code-owner
-protection, verify secretless execution and trusted-base self-protection, then
-remove retired authorities and duplicate journey code.
+Observe Woodpecker, bind its App/context and merge-group tuple, enforce
+batch-one admission/control changes, verify the external trusted controller,
+retire the Graphite/Buildkite stack/status paths, then remove duplicate journey
+code.
 
 This is architectural ordering, not the file-by-file implementation plan. A
 test-first implementation plan follows only after this revised design is
@@ -1168,7 +1320,10 @@ The system fails closed and reports the smallest repair:
 - invalid/reserved tags: exact node and tag-placement rule;
 - duplicate journey/path/coverage identity: both conflicting sources;
 - unknown or uncovered surface: generated authority and missing tag;
-- raw public bypass: public export/route and required wrapper;
+- raw public/action bypass: public export, action discriminant, and required
+  wrapper;
+- auth-policy weakening: protected-base policy delta and required security
+  review;
 - lifecycle regression: protected base SHA, prior state, current state;
 - invalid Cucumber config: field, required value, and rerun;
 - runtime startup: first failed supervised child and redacted logs;
@@ -1177,10 +1332,13 @@ The system fails closed and reports the smallest repair:
 - auth failure: mechanism/scope class without credential value;
 - identity mismatch: expected and observed non-secret digests/nonces;
 - missing execution: stable expected Pickle key;
-- malformed Messages: line and violated Envelope/linkage invariant;
+- malformed Messages: line and violated Envelope/AST/execution invariant;
+- candidate evidence tamper: denied namespace operation and offending process;
 - run-hook or cleanup failure: failed hook/process and cleanup result;
-- missing CI trust: exact branch-protection, app binding, base, or secretless
-  requirement.
+- missing CI trust: exact branch-protection, app binding, merge-group tuple,
+  approval, or sandbox requirement;
+- release mismatch: component, expected manifest digest, and platform-observed
+  deployment identity.
 
 The runner never inserts downstream product state to continue after a broken
 boundary.
@@ -1191,27 +1349,32 @@ The design is successful when all are demonstrably true:
 
 1. A reviewed Feature is the only manually maintained behavioral completion
    contract.
-2. Create/add install exact assembling contracts without claiming they work.
-3. Shared routes can support multiple journeys without being incorrectly
-   disabled.
+2. Create/contracts-add install exact assembling contracts without claiming they
+   work.
+3. Shared routes can support multiple journeys, while new authority-bearing
+   action variants cannot hide inside an admitted operation.
 4. Every public entrypoint is in one generated exhaustive inventory and every
    raw bypass fails.
 5. Every newly activation-owned assembling/suspended entrypoint is dark at UI
    and server boundaries.
-6. Stacked slice PRs can merge while assembling; only a current-main final PR
-   can admit the journey.
+6. Reviewed stacked slices merge while assembling; only a current-main final PR
+   can admit a journey already assembling on protected main.
 7. Every admitted Pickle, including each Outline row, executes exactly once.
-8. Exact checked-in Gherkin bytes equal the Messages sources.
+8. Exact checked-in Gherkin bytes equal the Messages Sources, and every runtime
+   Pickle resolves through the correct Gherkin AST nodes.
 9. UI and built CLI use the same real backend and expected artifact identities.
-10. Session and API-key negative behavior passes per distinct transport.
+10. Negative behavior derived from each canonical auth policy passes per
+    distinct transport.
 11. Caller-controlled tenant input cannot grant access.
 12. Zero selection, undefined/ambiguous/skipped steps, retries, failed run
     hooks, malformed/truncated Messages, runtime drift, and backend drift fail.
 13. Existing-app upgrade does not darken legacy behavior or falsely admit it.
-14. PR acceptance runs with no host/provider/deployment secrets.
-15. The required Woodpecker App verifies the current merge candidate and GitHub
-    requires current-base code-owner approval.
-16. Staging-proof contracts test and promote one artifact digest.
+14. PR acceptance runs with no host/provider/deployment secrets, and candidate
+    processes cannot modify controller evidence or status state.
+15. The required Woodpecker App verifies the exact merge-group tuple after
+    current-group code-owner approval.
+16. Staging-proof contracts test and promote one multi-component release
+    manifest, with production identity reverified.
 17. Build Packs persist human approval of exact Gherkin bytes.
 18. The complete mutation gauntlet catches every listed fault.
 19. The custom journey framework and duplicate fake proof machinery are deleted
@@ -1230,10 +1393,3 @@ The design is successful when all are demonstrably true:
 - [Cucumber reporting](https://cucumber.io/docs/cucumber/reporting/)
 - [Cucumber-JS TypeScript configuration](https://github.com/cucumber/cucumber-js/blob/v13.2.0/docs/transpiling.md)
 - [Cucumber Messages protocol](https://github.com/cucumber/messages)
-
-## Separate Security Follow-Up
-
-Repository hook inspection during the original design exposed an embedded
-webhook credential in command output. Its value is intentionally omitted here.
-Rotate that credential through the owning provider separately; this design did
-not authorize an external credential change.
