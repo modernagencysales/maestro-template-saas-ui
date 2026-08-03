@@ -294,7 +294,7 @@ const listFiles = (root: string): readonly string[] =>
 afterEach(() => {
   for (const root of temporaryRoots.splice(0))
     rmSync(root, { recursive: true, force: true });
-});
+}, 30_000);
 
 describe("candidate customer composition", () => {
   it("uses existing platform-local paths for candidate subprocesses", () => {

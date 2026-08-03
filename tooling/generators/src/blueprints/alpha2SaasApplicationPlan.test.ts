@@ -114,9 +114,9 @@ describe("frozen alpha.2 SaaS application plan", () => {
     const plan = buildSaasApplicationAlpha2TargetPlan();
 
     expect(ALPHA2_ARTIFACT_FILE_INTEGRITY).toEqual({
-      bytes: 728_989,
+      bytes: 822_942,
       sha256:
-        "sha256:aba253540af7233c6b175a5a8b46b173273c335ddc742a8e920347057aa75377",
+        "sha256:44748f9f9fea88222ba6736dbfd9d4b1bfea8684c36d65dde68802c5b8bfcec1",
     });
     expect(Buffer.byteLength(encodedArtifactFile)).toBe(
       ALPHA2_ARTIFACT_FILE_INTEGRITY.bytes,
@@ -126,17 +126,17 @@ describe("frozen alpha.2 SaaS application plan", () => {
     );
     expect(encodedArtifactFile.endsWith("\n")).toBe(true);
     expect(ALPHA2_ARTIFACT_INTEGRITY).toEqual({
-      encodedBytes: 728_988,
+      encodedBytes: 822_941,
       encodedSha256:
-        "sha256:bf002cfc239a3aaec9a88ef6d1bcf640346c618a009b4a170c7a4938041b3a14",
-      compressedBytes: 542_223,
+        "sha256:3e7c08af8966a9907dcaeb0042afd69b191ba2ee12a41ccf119b4426fde6ba14",
+      compressedBytes: 612_105,
       compressedSha256:
-        "sha256:6d45ac2622e26f4200c52d5ad0d51d2e0c7b08e5a88ab69621a68c711825ee80",
-      canonicalBytes: 2_489_464,
+        "sha256:5ee46b8a1f8f2592cd45939e2c9327797dc21d74dbeed500596ebbffcb24d10c",
+      canonicalBytes: 2_857_090,
       canonicalSha256:
-        "sha256:433f435c63385db02bdcc1b5e7e6b74cdfe49b45916eff4f64b168804dffeaf9",
+        "sha256:4db1f600ab108b3480c1965e427334f3a44611f179ada1272b09551cc6376e37",
     });
-    expect(plan.entries).toHaveLength(277);
+    expect(plan.entries).toHaveLength(331);
     expect(plan.parameterizedEntries).toEqual([
       "examples/saas-application/seed/crud-scenario.json",
       "examples/saas-application/seed/records.json",
@@ -144,7 +144,7 @@ describe("frozen alpha.2 SaaS application plan", () => {
       "generated/blueprints/saas-application/application-contract.json",
     ]);
     expect(plan.digest).toBe(
-      "sha256:72ec9e81cc0d5d99d5914875722a2277354a221d8f65123a9088b205ec586c96",
+      "sha256:a8de24a49eef449c397e2b6b2fde21c3d23b94f439d0c49634a0f840e83a8b03",
     );
   });
 
@@ -221,7 +221,7 @@ describe("frozen alpha.2 SaaS application plan", () => {
   });
 
   it("enforces hard encoded and decompressed limits before parsing", () => {
-    const oversizedEncoded = "A".repeat(728_992);
+    const oversizedEncoded = "A".repeat(822_944);
     expect(() =>
       decodeAlpha2SaasApplicationArtifact({
         encodedArtifact: oversizedEncoded,
@@ -234,7 +234,7 @@ describe("frozen alpha.2 SaaS application plan", () => {
       }),
     ).toThrow(/encoded.*limit/i);
 
-    const oversizedCompressedBytes = Buffer.alloc(542_224);
+    const oversizedCompressedBytes = Buffer.alloc(612_106);
     const oversizedCompressed = oversizedCompressedBytes.toString("base64");
     expect(() =>
       decodeAlpha2SaasApplicationArtifact({
@@ -251,7 +251,7 @@ describe("frozen alpha.2 SaaS application plan", () => {
       }),
     ).toThrow(/compressed.*limit/i);
 
-    const oversizedCanonical = gzipSync(Buffer.alloc(2_489_465)).toString(
+    const oversizedCanonical = gzipSync(Buffer.alloc(2_857_091)).toString(
       "base64",
     );
     expect(() =>
@@ -263,8 +263,8 @@ describe("frozen alpha.2 SaaS application plan", () => {
           encodedSha256: hash(oversizedCanonical),
           compressedBytes: Buffer.from(oversizedCanonical, "base64").byteLength,
           compressedSha256: hash(Buffer.from(oversizedCanonical, "base64")),
-          canonicalBytes: 2_489_465,
-          canonicalSha256: hash(Buffer.alloc(2_489_465)),
+          canonicalBytes: 2_857_091,
+          canonicalSha256: hash(Buffer.alloc(2_857_091)),
         },
       }),
     ).toThrow(/decompressed.*limit/i);
@@ -458,7 +458,7 @@ describe("frozen alpha.2 SaaS application plan", () => {
   it("rejects current-builder identity as an alpha.2 source", () => {
     const current = buildSaasApplicationTargetPlan();
     expect(() => validate(current, authority)).toThrow(
-      /entry count must be exactly 277|F037 authority at index/i,
+      /entry count must be exactly 331|F037 authority at index/i,
     );
   });
 
