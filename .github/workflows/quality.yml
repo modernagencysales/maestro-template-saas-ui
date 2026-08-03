@@ -30,6 +30,8 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Seed immutable release dependencies
+        run: bash tooling/ci/seed-frozen-alpha2-store.sh
       - name: Install pinned scanners
         run: |
           bash tooling/ci/install-gitleaks.sh
