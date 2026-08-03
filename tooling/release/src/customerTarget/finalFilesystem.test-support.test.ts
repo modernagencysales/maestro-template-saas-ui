@@ -14,7 +14,9 @@ describe("final filesystem prerender startup retry", () => {
       root,
       "node_modules/.pnpm/@tanstack+start-plugin-core@1.171.18_fixture/node_modules/@tanstack/start-plugin-core/dist/esm/prerender.js",
     );
+    const vitePath = join(path, "../vite/prerender.js");
     mkdirSync(join(path, ".."), { recursive: true });
+    mkdirSync(join(vitePath, ".."), { recursive: true });
     writeFileSync(
       path,
       [
@@ -23,16 +25,25 @@ describe("final filesystem prerender startup retry", () => {
         "logger.warn(`Encountered error, retrying: ${page.path} in ${retryDelay}ms`);\n\t\t\t\t\t\tawait new Promise",
       ].join("\n"),
     );
+    writeFileSync(
+      vitePath,
+      [
+        "return await vite.preview({",
+        "\t\t\tconfigFile: viteConfig.configFile,",
+        "\t\t\tpreview: {",
+        "\t\t\t\tport: 0,",
+        "\t\t\t\topen: false",
+        "\t\t\t}",
+        "\t\t});",
+      ].join("\n"),
+    );
 
     applyPrerenderRetryCompatibility(root);
 
     const source = readFileSync(path, "utf8");
     expect(source).toContain("seen.delete(page.path)");
-    expect(source).toContain(
-      "retries < Math.max(prerenderOptions.retryCount ?? 0, 10)",
-    );
-    expect(source).toContain(
-      "Math.max(normalizeRetryDelay(prerenderOptions.retryDelay), 1_000)",
+    expect(readFileSync(vitePath, "utf8")).toContain(
+      'previewServer.httpServer.once("listening", resolve)',
     );
   });
   it("retries bounded loopback startup refusals until the build succeeds", async () => {

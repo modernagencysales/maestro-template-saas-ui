@@ -18,14 +18,22 @@ const prerenderRetryNeedle =
   "logger.warn(`Encountered error, retrying: ${page.path} in ${retryDelay}ms`);\n\t\t\t\t\t\tawait new Promise";
 const prerenderRetryReplacement =
   "logger.warn(`Encountered error, retrying: ${page.path} in ${retryDelay}ms`);\n\t\t\t\t\t\tseen.delete(page.path);\n\t\t\t\t\t\tawait new Promise";
-const prerenderRetryCountNeedle =
-  "retries < (prerenderOptions.retryCount ?? 0)";
-const prerenderRetryCountReplacement =
-  "retries < Math.max(prerenderOptions.retryCount ?? 0, 10)";
-const prerenderRetryDelayNeedle =
-  "normalizeRetryDelay(prerenderOptions.retryDelay)";
-const prerenderRetryDelayReplacement =
-  "Math.max(normalizeRetryDelay(prerenderOptions.retryDelay), 1_000)";
+const previewReadinessNeedle = `return await vite.preview({
+\t\t\tconfigFile: viteConfig.configFile,
+\t\t\tpreview: {
+\t\t\t\tport: 0,
+\t\t\t\topen: false
+\t\t\t}
+\t\t});`;
+const previewReadinessReplacement = `const previewServer = await vite.preview({
+\t\t\tconfigFile: viteConfig.configFile,
+\t\t\tpreview: {
+\t\t\t\tport: 0,
+\t\t\t\topen: false
+\t\t\t}
+\t\t});
+\t\tif (!previewServer.httpServer.listening) await new Promise((resolve) => previewServer.httpServer.once("listening", resolve));
+\t\treturn previewServer;`;
 
 const commandFailure = (error: unknown): Error => {
   const failure = error as Error & {
@@ -73,19 +81,20 @@ export function applyPrerenderRetryCompatibility(root: string): void {
       `Expected one TanStack prerender runtime, found ${matches.length}`,
     );
   const path = resolve(root, match);
+  const vitePath = resolve(dirname(path), "vite/prerender.js");
   const source = readFileSync(path, "utf8");
-  if (
-    !source.includes(prerenderRetryNeedle) ||
-    !source.includes(prerenderRetryCountNeedle) ||
-    !source.includes(prerenderRetryDelayNeedle)
-  )
+  const viteSource = readFileSync(vitePath, "utf8");
+  if (!source.includes(prerenderRetryNeedle))
     throw new Error("TanStack prerender retry compatibility seam changed");
+  if (!viteSource.includes(previewReadinessNeedle))
+    throw new Error("TanStack preview readiness compatibility seam changed");
   writeFileSync(
     path,
-    source
-      .replace(prerenderRetryNeedle, prerenderRetryReplacement)
-      .replace(prerenderRetryCountNeedle, prerenderRetryCountReplacement)
-      .replace(prerenderRetryDelayNeedle, prerenderRetryDelayReplacement),
+    source.replace(prerenderRetryNeedle, prerenderRetryReplacement),
+  );
+  writeFileSync(
+    vitePath,
+    viteSource.replace(previewReadinessNeedle, previewReadinessReplacement),
   );
 }
 
