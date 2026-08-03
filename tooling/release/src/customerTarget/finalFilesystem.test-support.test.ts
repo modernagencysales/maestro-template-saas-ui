@@ -17,12 +17,23 @@ describe("final filesystem prerender startup retry", () => {
     mkdirSync(join(path, ".."), { recursive: true });
     writeFileSync(
       path,
-      "logger.warn(`Encountered error, retrying: ${page.path} in ${retryDelay}ms`);\n\t\t\t\t\t\tawait new Promise",
+      [
+        "if (retries < (prerenderOptions.retryCount ?? 0)) {",
+        "const retryDelay = normalizeRetryDelay(prerenderOptions.retryDelay);",
+        "logger.warn(`Encountered error, retrying: ${page.path} in ${retryDelay}ms`);\n\t\t\t\t\t\tawait new Promise",
+      ].join("\n"),
     );
 
     applyPrerenderRetryCompatibility(root);
 
-    expect(readFileSync(path, "utf8")).toContain("seen.delete(page.path)");
+    const source = readFileSync(path, "utf8");
+    expect(source).toContain("seen.delete(page.path)");
+    expect(source).toContain(
+      "retries < Math.max(prerenderOptions.retryCount ?? 0, 10)",
+    );
+    expect(source).toContain(
+      "Math.max(normalizeRetryDelay(prerenderOptions.retryDelay), 1_000)",
+    );
   });
   it("retries bounded loopback startup refusals until the build succeeds", async () => {
     let attempts = 0;

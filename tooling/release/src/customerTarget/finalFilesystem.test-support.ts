@@ -18,6 +18,14 @@ const prerenderRetryNeedle =
   "logger.warn(`Encountered error, retrying: ${page.path} in ${retryDelay}ms`);\n\t\t\t\t\t\tawait new Promise";
 const prerenderRetryReplacement =
   "logger.warn(`Encountered error, retrying: ${page.path} in ${retryDelay}ms`);\n\t\t\t\t\t\tseen.delete(page.path);\n\t\t\t\t\t\tawait new Promise";
+const prerenderRetryCountNeedle =
+  "retries < (prerenderOptions.retryCount ?? 0)";
+const prerenderRetryCountReplacement =
+  "retries < Math.max(prerenderOptions.retryCount ?? 0, 10)";
+const prerenderRetryDelayNeedle =
+  "normalizeRetryDelay(prerenderOptions.retryDelay)";
+const prerenderRetryDelayReplacement =
+  "Math.max(normalizeRetryDelay(prerenderOptions.retryDelay), 1_000)";
 
 const commandFailure = (error: unknown): Error => {
   const failure = error as Error & {
@@ -66,11 +74,18 @@ export function applyPrerenderRetryCompatibility(root: string): void {
     );
   const path = resolve(root, match);
   const source = readFileSync(path, "utf8");
-  if (!source.includes(prerenderRetryNeedle))
+  if (
+    !source.includes(prerenderRetryNeedle) ||
+    !source.includes(prerenderRetryCountNeedle) ||
+    !source.includes(prerenderRetryDelayNeedle)
+  )
     throw new Error("TanStack prerender retry compatibility seam changed");
   writeFileSync(
     path,
-    source.replace(prerenderRetryNeedle, prerenderRetryReplacement),
+    source
+      .replace(prerenderRetryNeedle, prerenderRetryReplacement)
+      .replace(prerenderRetryCountNeedle, prerenderRetryCountReplacement)
+      .replace(prerenderRetryDelayNeedle, prerenderRetryDelayReplacement),
   );
 }
 
