@@ -11,9 +11,9 @@ describe("TanStack Start runtime contract", () => {
   it("retries transient preview-server failures while prerendering", () => {
     const source = read("vite.config.ts");
 
-    expect(source).toContain("prerender: {");
-    expect(source).toContain("retryCount: 2");
-    expect(source).toContain("retryDelay: 500");
+    expect(source).toMatch(
+      /spa:\s*{\s*enabled:\s*true,\s*prerender:\s*{\s*retryCount:\s*2,\s*retryDelay:\s*500,/,
+    );
   });
 
   it("pins the preview server to the loopback host used by SPA prerendering", () => {
