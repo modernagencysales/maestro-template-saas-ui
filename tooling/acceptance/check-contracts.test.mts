@@ -115,6 +115,12 @@ describe("validateCucumberConfigurationSource", () => {
 });
 
 describe("validateCucumberPackageVersions", () => {
+  const dependencySections = [
+    "dependencies",
+    "devDependencies",
+    "optionalDependencies",
+    "peerDependencies",
+  ] as const;
   const root = {
     devDependencies: { "@cucumber/cucumber": "13.2.0" },
   };
@@ -135,6 +141,97 @@ describe("validateCucumberPackageVersions", () => {
       },
     });
   });
+
+  const owners = {
+    "@cucumber/cucumber": ["root", "devDependencies"],
+    "@cucumber/gherkin": ["template-core", "dependencies"],
+    "@cucumber/messages": ["template-core", "dependencies"],
+  } as const;
+  const versions = {
+    "@cucumber/cucumber": "13.2.0",
+    "@cucumber/gherkin": "41.0.0",
+    "@cucumber/messages": "34.0.1",
+  } as const;
+  const nonOwningDeclarations = Object.entries(owners).flatMap(
+    ([name, [owningManifest, owningSection]]) =>
+      (["root", "template-core"] as const).flatMap((manifest) =>
+        dependencySections
+          .filter(
+            (section) =>
+              manifest !== owningManifest || section !== owningSection,
+          )
+          .map((section) => ({
+            name: name as keyof typeof versions,
+            manifest,
+            section,
+          })),
+      ),
+  );
+  const addDeclaration = (
+    manifest: Record<string, unknown>,
+    section: (typeof dependencySections)[number],
+    name: keyof typeof versions,
+  ): Record<string, unknown> => ({
+    ...manifest,
+    [section]: {
+      ...((manifest[section] as Record<string, unknown> | undefined) ?? {}),
+      [name]: versions[name],
+    },
+  });
+
+  it.each(nonOwningDeclarations)(
+    "rejects duplicate $name at $manifest/$section",
+    ({ name, manifest, section }) => {
+      const rootManifest =
+        manifest === "root" ? addDeclaration(root, section, name) : root;
+      const coreManifest =
+        manifest === "template-core"
+          ? addDeclaration(templateCore, section, name)
+          : templateCore;
+      const result = validateCucumberPackageVersions(
+        rootManifest,
+        coreManifest,
+      );
+      expect(result).toMatchObject({ ok: false });
+      if (result.ok)
+        throw new Error("expected duplicate declaration rejection");
+      expect(result.findings.join("\n")).toContain(
+        `${manifest}.${section}.${name}`,
+      );
+    },
+  );
+
+  it.each([
+    [
+      "runner",
+      {},
+      { ...templateCore, devDependencies: { "@cucumber/cucumber": "13.2.0" } },
+      "template-core.devDependencies.@cucumber/cucumber",
+    ],
+    [
+      "gherkin",
+      { ...root, optionalDependencies: { "@cucumber/gherkin": "41.0.0" } },
+      { dependencies: { "@cucumber/messages": "34.0.1" } },
+      "root.optionalDependencies.@cucumber/gherkin",
+    ],
+    [
+      "messages",
+      { ...root, peerDependencies: { "@cucumber/messages": "34.0.1" } },
+      { dependencies: { "@cucumber/gherkin": "41.0.0" } },
+      "root.peerDependencies.@cucumber/messages",
+    ],
+  ])(
+    "rejects %s declared only by a non-owner",
+    (_name, rootManifest, coreManifest, finding) => {
+      const result = validateCucumberPackageVersions(
+        rootManifest,
+        coreManifest,
+      );
+      expect(result).toMatchObject({ ok: false });
+      if (result.ok) throw new Error("expected wrong owner rejection");
+      expect(result.findings.join("\n")).toContain(finding);
+    },
+  );
 
   it.each([
     [

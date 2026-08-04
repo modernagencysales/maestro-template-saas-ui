@@ -51,9 +51,17 @@ const expectedVersions = {
   "@cucumber/messages": "34.0.1",
 } as const;
 
+const dependencySections = [
+  "dependencies",
+  "devDependencies",
+  "optionalDependencies",
+  "peerDependencies",
+] as const;
+type DependencySection = (typeof dependencySections)[number];
+
 const dependencyVersion = (
   manifest: unknown,
-  section: "dependencies" | "devDependencies",
+  section: DependencySection,
   name: string,
 ): unknown => {
   if (typeof manifest !== "object" || manifest === null) return undefined;
@@ -69,31 +77,41 @@ export function validateCucumberPackageVersions(
 ):
   | { readonly ok: true; readonly versions: typeof expectedVersions }
   | { readonly ok: false; readonly findings: readonly string[] } {
-  const actual = {
-    "@cucumber/cucumber": dependencyVersion(
-      rootManifest,
-      "devDependencies",
-      "@cucumber/cucumber",
-    ),
-    "@cucumber/gherkin": dependencyVersion(
-      templateCoreManifest,
-      "dependencies",
-      "@cucumber/gherkin",
-    ),
-    "@cucumber/messages": dependencyVersion(
-      templateCoreManifest,
-      "dependencies",
-      "@cucumber/messages",
-    ),
+  const manifests = {
+    root: rootManifest,
+    "template-core": templateCoreManifest,
   };
-  const findings = Object.entries(expectedVersions).flatMap(
-    ([name, expected]) =>
-      actual[name as keyof typeof actual] === expected
-        ? []
-        : [
-            `${name} must be pinned as ${expected} in its owning manifest; received ${String(actual[name as keyof typeof actual])}`,
-          ],
-  );
+  const owners = [
+    ["@cucumber/cucumber", "root", "devDependencies"],
+    ["@cucumber/gherkin", "template-core", "dependencies"],
+    ["@cucumber/messages", "template-core", "dependencies"],
+  ] as const;
+  const findings: string[] = [];
+  for (const [name, owningManifest, owningSection] of owners) {
+    const expected = expectedVersions[name];
+    const actual = dependencyVersion(
+      manifests[owningManifest],
+      owningSection,
+      name,
+    );
+    if (actual !== expected) {
+      findings.push(
+        `${name} must be pinned as ${expected} in ${owningManifest}.${owningSection}; received ${String(actual)}`,
+      );
+    }
+    for (const [manifestName, manifest] of Object.entries(manifests)) {
+      for (const section of dependencySections) {
+        if (manifestName === owningManifest && section === owningSection)
+          continue;
+        const misplaced = dependencyVersion(manifest, section, name);
+        if (misplaced !== undefined) {
+          findings.push(
+            `${manifestName}.${section}.${name} must be absent; received ${String(misplaced)}`,
+          );
+        }
+      }
+    }
+  }
   return findings.length === 0
     ? { ok: true, versions: expectedVersions }
     : { ok: false, findings };
