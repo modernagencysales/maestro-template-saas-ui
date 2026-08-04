@@ -127,12 +127,6 @@ for cache_path in .pnpm-store node_modules .turbo packages/convex/reports; do
   fi
 done
 
-pnpm_install_without_ci_secrets() {
-  run_without_ci_secrets \
-    CI=true \
-    pnpm install --frozen-lockfile --prefer-offline
-}
-
-pnpm_install_without_ci_secrets
+run_without_ci_secrets node --experimental-strip-types tooling/ci/candidate-sandbox.mts install
 
 run_without_ci_secrets bash tooling/ci/seed-frozen-alpha2-store.sh

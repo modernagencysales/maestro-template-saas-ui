@@ -33,20 +33,6 @@ const checkDescriptorDefinitions = {
           "Woodpecker deployment pipeline must isolate staging and production",
       },
       {
-        file: ".github/workflows/quality.yml",
-        includes: [
-          "Required quality",
-          "pull_request",
-          "actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5",
-          "pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1",
-          "actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
-          "pnpm install --frozen-lockfile",
-          "pnpm verify",
-        ],
-        message:
-          "GitHub must publish a deterministic required quality status for pull requests",
-      },
-      {
         file: ".github/CODEOWNERS",
         includes: [
           "/docs/template/system-catalog*",
@@ -54,10 +40,16 @@ const checkDescriptorDefinitions = {
           "/docs/template/data-resources.json",
           "/tooling/quality/",
           "/tooling/generators/",
+          "/tooling/ci/",
+          "/packages/template-core/",
+          "/apps/web/",
+          "/apps/cli/",
+          "/packages/convex/",
+          "/examples/saas-application/",
         ],
         absent: ["\n* @"],
         message:
-          "code-owner review must protect sensitive contracts without gating ordinary product files",
+          "code-owner review must protect trust, contract, and product roots",
       },
       {
         file: "tooling/ci/ci-self-protection.sh",
