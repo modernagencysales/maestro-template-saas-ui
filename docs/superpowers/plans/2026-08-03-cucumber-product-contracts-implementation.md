@@ -30,8 +30,12 @@ approved-design commit cited above.
 **Implementation baseline:** Start every implementation branch from protected
 `origin/main`. The repository snapshot used to write this plan was
 `73fad4e42d471e1fe2d4c526bbc8b68d7b343c7f`; re-read protected main before each
-task and record its immutable base SHA in the pull request. Do not build from
-the older design branch.
+task and record its immutable base SHA in the pull request. The execution
+baseline for this run is the current protected `origin/main` at
+`15d2269f2b22e3a52e3a98c481b7d69cb7fef12f`; the older snapshot remains a
+historical planning reference only. If protected main advances again, restart
+the observation from the new exact commit instead of substituting it silently.
+Do not build from the older design branch.
 
 **Architecture:** A minimal protected/tokenless Woodpecker root is installed
 before any candidate Cucumber code. Official Cucumber owns parsing, compilation,
@@ -489,7 +493,7 @@ export function planProtectedTransition(input: {
 - [ ] **Step 0: Keep bootstrap development PR-free.** Freeze merges and develop
       Steps 1-6 in the isolated local worktree without opening a pull request or
       triggering any branch event. The immutable external base is
-      `73fad4e42d471e1fe2d4c526bbc8b68d7b343c7f`; if protected main advances,
+      `15d2269f2b22e3a52e3a98c481b7d69cb7fef12f`; if protected main advances,
       restart the observation from the new exact commit instead of silently
       substituting it. No candidate code receives credentials during local
       development or tests.
@@ -615,7 +619,7 @@ export function planProtectedTransition(input: {
       journal, and returns an exact confirmation argv. Run:
 
   ```bash
-  rtk headless-bws-env exec sh -c 'exec rtk env WOODPECKER_SERVER=https://ci.maestrogtm.com WOODPECKER_TOKEN="$WOODPECKER_API_TOKEN" pnpm exec tsx tooling/ci/protected-bootstrap.mts observe --repository modernagencysales/maestro-template-saas-ui --base-ref main --base-oid 73fad4e42d471e1fe2d4c526bbc8b68d7b343c7f --journal /Users/headless/.local/state/maestro-ci-transitions/maestro-template-W0.json'
+  rtk headless-bws-env exec sh -c 'exec rtk env WOODPECKER_SERVER=https://ci.maestrogtm.com WOODPECKER_TOKEN="$WOODPECKER_API_TOKEN" pnpm exec tsx tooling/ci/protected-bootstrap.mts observe --repository modernagencysales/maestro-template-saas-ui --base-ref main --base-oid 15d2269f2b22e3a52e3a98c481b7d69cb7fef12f --journal /Users/headless/.local/state/maestro-ci-transitions/maestro-template-W0.json'
   rtk headless-bws-env exec sh -c 'exec rtk env WOODPECKER_SERVER=https://ci.maestrogtm.com WOODPECKER_TOKEN="$WOODPECKER_API_TOKEN" pnpm exec tsx tooling/ci/protected-bootstrap.mts install-temporary --temporary-context ci/woodpecker/pr/protected-bootstrap --journal /Users/headless/.local/state/maestro-ci-transitions/maestro-template-W0.json'
   ```
 
