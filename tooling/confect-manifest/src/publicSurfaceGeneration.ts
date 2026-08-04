@@ -326,9 +326,7 @@ const uiActionAuthorities = (
         ts.isCallExpression(node.initializer) &&
         hookNames.has(callName(node.initializer.expression) ?? "")
       ) &&
-      [...hookNames].some((hook) =>
-        node.initializer!.getText(sourceFile).includes(hook),
-      )
+      expressionHasHook(node.initializer)
     )
       unresolvedHookAliases.add(node.name.text);
     if (
