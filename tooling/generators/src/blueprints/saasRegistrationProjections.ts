@@ -1240,6 +1240,7 @@ export const buildSaasRegistrationProjections = (
         ["customer-cli.ts", "customer-cli.ts"],
         ["crud-proof.ts", "crud-proof.ts"],
         ["direct-run.ts", "direct-run.ts"],
+        ["feature-crud.ts", "feature-crud.ts"],
         ["workflow-release-commands.ts", "workflow-release-commands.ts"],
         ...(current
           ? ([

@@ -298,6 +298,7 @@ export const runCustomerGeneratorCli = (
               | "retain-until-organization-delete"
               | "retain-configuration",
             appendOnly: cliArgv.includes("--append-only"),
+            businessEntity: cliArgv.includes("--business-entity"),
           },
           {
             systems: readSystemCatalog(cwd),
