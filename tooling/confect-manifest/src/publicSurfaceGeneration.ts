@@ -2,6 +2,7 @@ import { existsSync, lstatSync, readFileSync, readdirSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { join, relative, sep } from "node:path";
 import {
+  PUBLIC_SURFACE_LEGACY_BASELINE_DIGEST,
   publicSurfaceAuthorityKey,
   type ContractsLegacyBaseline,
   type PublicSurface,
@@ -175,7 +176,16 @@ const uiActionAuthorities = (
       const name = callName(node.expression);
       const argument = node.arguments[0];
       if (
-        (name === "useTemplateMutation" || name === "useTemplateAction") &&
+        name !== undefined &&
+        [
+          "useTemplateMutation",
+          "useTemplateAction",
+          "useMutation",
+          "useAction",
+          "useConfectMutation",
+          "useConfectAction",
+        ].includes(name) &&
+        !path.endsWith("apps/web/src/adapters/confect-state.ts") &&
         argument !== undefined
       ) {
         result.push({
@@ -310,44 +320,6 @@ const mcpAuthorities = (root: string): readonly DiscoveredPublicAuthority[] => {
   return result;
 };
 
-const workflowAuthorities = (
-  root: string,
-): readonly DiscoveredPublicAuthority[] => {
-  const path = join(
-    root,
-    "packages/convex/confect/workflows/_generated/workflowRegistry.ts",
-  );
-  if (!existsSync(path)) return [];
-  const sourceFile = parseTypeScript(path);
-  const publicationNames = new Set<string>();
-  const visit = (node: ts.Node): void => {
-    const registryArgument = ts.isCallExpression(node)
-      ? node.arguments[0]
-      : undefined;
-    if (
-      ts.isCallExpression(node) &&
-      callName(node.expression) === "definePublicationRegistry" &&
-      registryArgument !== undefined &&
-      ts.isObjectLiteralExpression(registryArgument)
-    ) {
-      const registry = registryArgument;
-      for (const field of ["capabilities", "workflows"]) {
-        const entries = property(registry, field);
-        if (!entries || !ts.isArrayLiteralExpression(entries)) continue;
-        for (const entry of entries.elements)
-          if (ts.isIdentifier(entry)) publicationNames.add(entry.text);
-      }
-    }
-    ts.forEachChild(node, visit);
-  };
-  visit(sourceFile);
-  return [...publicationNames].map((name) => ({
-    kind: "trigger",
-    registrationLocator: name,
-    transport: "api",
-  }));
-};
-
 const httpAuthorities = (
   root: string,
   path: string,
@@ -468,7 +440,7 @@ const specPublicAuthorities = (
       const name = callName(node.expression);
       if (
         name !== undefined &&
-        /^(?:convex)?public(?:Query|Mutation|Action)$/u.test(name)
+        /^(?:convex)?[Pp]ublic(?:Query|Mutation|Action)$/u.test(name)
       ) {
         const argument = node.arguments[0];
         const directName = stringValue(argument);
@@ -506,7 +478,6 @@ export const discoverPublicAuthorities = (
     ...routeAuthorities(root),
     ...cliAuthorities(root),
     ...mcpAuthorities(root),
-    ...workflowAuthorities(root),
   ];
   const sourceFiles = [
     ...filesBelow(root, "apps"),
@@ -524,7 +495,9 @@ export const discoverPublicAuthorities = (
     const source = readFileSync(path, "utf8");
     if (
       path.includes("/apps/web/") &&
-      /\buseTemplate(?:Mutation|Action)\b/u.test(source)
+      /\b(?:useTemplate(?:Mutation|Action)|use(?:Confect)?(?:Mutation|Action))\b/u.test(
+        source,
+      )
     )
       authorities.push(...uiActionAuthorities(root, path));
     if (/\.route\s*\(/u.test(source))
@@ -695,6 +668,16 @@ export const verifyContractsLegacyBaseline = (
   return findings.sort((left, right) => left.localeCompare(right));
 };
 
+export const verifyLegacyBaselineTrustAnchor = (
+  baseline: ContractsLegacyBaseline,
+  expectedDigest: `sha256:${string}` = PUBLIC_SURFACE_LEGACY_BASELINE_DIGEST,
+): readonly string[] =>
+  baseline.capturedFromInventoryDigest === expectedDigest
+    ? []
+    : [
+        `legacy baseline trust anchor mismatch: expected ${expectedDigest}, got ${baseline.capturedFromInventoryDigest}`,
+      ];
+
 export const checkGeneratedPublicSurfaceInventory = (
   root: string,
 ): readonly string[] => {
@@ -722,7 +705,10 @@ export const checkGeneratedPublicSurfaceInventory = (
       discovered: discoverPublicAuthorities(root),
       registered: inventory.surfaces,
     });
-    return verifyContractsLegacyBaseline(inventory.surfaces, baseline);
+    return [
+      ...verifyLegacyBaselineTrustAnchor(baseline),
+      ...verifyContractsLegacyBaseline(inventory.surfaces, baseline),
+    ];
   } catch (error: unknown) {
     return [error instanceof Error ? error.message : String(error)];
   }

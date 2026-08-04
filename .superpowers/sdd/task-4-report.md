@@ -18,13 +18,13 @@ generation.
 - System-topology and headless-surface gates now reject inventory bypasses with
   the missing registration locator.
 
-The current inventory contains 244 legacy authorities. The generated TanStack
+The current inventory contains 258 legacy authorities. The generated TanStack
 route tree is the route authority, so no duplicate manual route array was added
 to `reference-app-routes.ts`.
 
 ## Verification
 
-- `pnpm check:confect-manifest`: 4 files / 19 tests passed, typecheck passed,
+- `pnpm check:confect-manifest`: 4 files / 21 tests passed, typecheck passed,
   generated runtime and inventory outputs fresh.
 - `pnpm check:system-topology`: passed (65 resources / 7 kinds).
 - `pnpm check:headless-surface-contract`: passed.
@@ -34,3 +34,15 @@ to `reference-app-routes.ts`.
 
 The existing runtime `confectManifest.ts`, Confect inventory sidecar, and its
 digest did not change. No external services were used.
+
+## Review remediation
+
+- Added AST coverage for all `FunctionSpec.public*` and
+  `FunctionSpec.convexPublic*` registrations; the inventory now includes the 16
+  previously omitted Convex-public authorities.
+- Direct `useMutation`/`useAction` (and Confect aliases) in customer UI code are
+  discovered; only the registered adapter implementation is exempt.
+- Publication registry release identifiers are not public triggers without an
+  external trigger registration.
+- Added an independent baseline digest trust anchor and regression coverage so a
+  self-consistent candidate inventory/baseline pair is rejected.

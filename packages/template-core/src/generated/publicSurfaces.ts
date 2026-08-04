@@ -226,6 +226,16 @@ export const publicSurfaces = [
     },
   },
   {
+    id: "legacy_13eda5303b041778314ed02e",
+    transport: "api",
+    coverageTag: "@covers_legacy_13eda5303b041778314ed02e",
+    authPolicyId: "auth_deny_all",
+    authority: {
+      kind: "convex-function",
+      registrationLocator: "deploy/authority:status",
+    },
+  },
+  {
     id: "legacy_152cbe5bc07fa6ec56bf2c07",
     transport: "api",
     coverageTag: "@covers_legacy_152cbe5bc07fa6ec56bf2c07",
@@ -277,6 +287,26 @@ export const publicSurfaces = [
     },
   },
   {
+    id: "legacy_19c616bd2fbcbf0de7ddc082",
+    transport: "api",
+    coverageTag: "@covers_legacy_19c616bd2fbcbf0de7ddc082",
+    authPolicyId: "auth_deny_all",
+    authority: {
+      kind: "convex-function",
+      registrationLocator: "jobs/workpool:enqueue",
+    },
+  },
+  {
+    id: "legacy_19e5753893d1eb28f8460faf",
+    transport: "api",
+    coverageTag: "@covers_legacy_19e5753893d1eb28f8460faf",
+    authPolicyId: "auth_deny_all",
+    authority: {
+      kind: "convex-function",
+      registrationLocator: "deploy/authority:provisionIssuer",
+    },
+  },
+  {
     id: "legacy_1a4c5305a0b1a459eda75ed6",
     transport: "ui",
     coverageTag: "@covers_legacy_1a4c5305a0b1a459eda75ed6",
@@ -284,6 +314,16 @@ export const publicSurfaces = [
     authority: {
       kind: "route",
       registrationLocator: "apps/web/src/routeTree.gen.ts#/sources",
+    },
+  },
+  {
+    id: "legacy_1d43e767bb19acbe95741c68",
+    transport: "api",
+    coverageTag: "@covers_legacy_1d43e767bb19acbe95741c68",
+    authPolicyId: "auth_deny_all",
+    authority: {
+      kind: "convex-function",
+      registrationLocator: "editorSync:latestVersion",
     },
   },
   {
@@ -364,6 +404,16 @@ export const publicSurfaces = [
     authority: {
       kind: "route",
       registrationLocator: "apps/web/src/routeTree.gen.ts#/checkout/return",
+    },
+  },
+  {
+    id: "legacy_240aea61095831d3b9401220",
+    transport: "api",
+    coverageTag: "@covers_legacy_240aea61095831d3b9401220",
+    authPolicyId: "auth_deny_all",
+    authority: {
+      kind: "convex-function",
+      registrationLocator: "editorSync:submitSnapshot",
     },
   },
   {
@@ -520,16 +570,6 @@ export const publicSurfaces = [
     },
   },
   {
-    id: "legacy_2fe693c9a3728cfde2b204f7",
-    transport: "api",
-    coverageTag: "@covers_legacy_2fe693c9a3728cfde2b204f7",
-    authPolicyId: "auth_deny_all",
-    authority: {
-      kind: "trigger",
-      registrationLocator: "publicationEchoV1Release",
-    },
-  },
-  {
     id: "legacy_302b39bd42a0df78c1821d07",
     transport: "api",
     coverageTag: "@covers_legacy_302b39bd42a0df78c1821d07",
@@ -580,6 +620,16 @@ export const publicSurfaces = [
         "apps/web/src/features/public-funnel/build-pack/build-pack-generating-route.tsx",
       actionDiscriminant:
         "templateConfectRefs.public.buildPacks.packs.startPack",
+    },
+  },
+  {
+    id: "legacy_37a0f58a82c59e561ff6aeb3",
+    transport: "api",
+    coverageTag: "@covers_legacy_37a0f58a82c59e561ff6aeb3",
+    authPolicyId: "auth_deny_all",
+    authority: {
+      kind: "convex-function",
+      registrationLocator: "deploy/authority:readiness",
     },
   },
   {
@@ -807,6 +857,16 @@ export const publicSurfaces = [
     },
   },
   {
+    id: "legacy_4a215c0bef7e3d318acc880c",
+    transport: "api",
+    coverageTag: "@covers_legacy_4a215c0bef7e3d318acc880c",
+    authPolicyId: "auth_deny_all",
+    authority: {
+      kind: "convex-function",
+      registrationLocator: "deploy/authority:auditExport",
+    },
+  },
+  {
     id: "legacy_4a6797e10803a6a8da608137",
     transport: "api",
     coverageTag: "@covers_legacy_4a6797e10803a6a8da608137",
@@ -877,6 +937,16 @@ export const publicSurfaces = [
     authority: {
       kind: "convex-function",
       registrationLocator: "workflowContracts/publicationFixture:listSteps",
+    },
+  },
+  {
+    id: "legacy_5125681f9cda23f63cd086df",
+    transport: "api",
+    coverageTag: "@covers_legacy_5125681f9cda23f63cd086df",
+    authPolicyId: "auth_deny_all",
+    authority: {
+      kind: "convex-function",
+      registrationLocator: "jobs/workpool:status",
     },
   },
   {
@@ -1283,16 +1353,6 @@ export const publicSurfaces = [
     },
   },
   {
-    id: "legacy_7dc8955bc420a0dc5391d130",
-    transport: "api",
-    coverageTag: "@covers_legacy_7dc8955bc420a0dc5391d130",
-    authPolicyId: "auth_deny_all",
-    authority: {
-      kind: "trigger",
-      registrationLocator: "publicationFixtureV1Release",
-    },
-  },
-  {
     id: "legacy_7eea5ab8158943bce3f6e2ba",
     transport: "api",
     coverageTag: "@covers_legacy_7eea5ab8158943bce3f6e2ba",
@@ -1395,6 +1455,16 @@ export const publicSurfaces = [
       kind: "convex-function",
       registrationLocator:
         "capabilities/manageEvaluationReport:getEvaluationReport",
+    },
+  },
+  {
+    id: "legacy_857b00f45050c9dc12731805",
+    transport: "api",
+    coverageTag: "@covers_legacy_857b00f45050c9dc12731805",
+    authPolicyId: "auth_deny_all",
+    authority: {
+      kind: "convex-function",
+      registrationLocator: "deploy/authority:revokeIssuer",
     },
   },
   {
@@ -1670,6 +1740,16 @@ export const publicSurfaces = [
     authority: {
       kind: "route",
       registrationLocator: "apps/web/src/routeTree.gen.ts#/brain",
+    },
+  },
+  {
+    id: "legacy_a8945ff994464db707cdb39f",
+    transport: "api",
+    coverageTag: "@covers_legacy_a8945ff994464db707cdb39f",
+    authPolicyId: "auth_deny_all",
+    authority: {
+      kind: "convex-function",
+      registrationLocator: "editorSync:getSnapshot",
     },
   },
   {
@@ -1991,6 +2071,16 @@ export const publicSurfaces = [
     },
   },
   {
+    id: "legacy_c42943a2743cc2969a002151",
+    transport: "api",
+    coverageTag: "@covers_legacy_c42943a2743cc2969a002151",
+    authPolicyId: "auth_deny_all",
+    authority: {
+      kind: "convex-function",
+      registrationLocator: "editorSync:submitSteps",
+    },
+  },
+  {
     id: "legacy_c5a06b75947922e7fd73c4ae",
     transport: "api",
     coverageTag: "@covers_legacy_c5a06b75947922e7fd73c4ae",
@@ -2043,6 +2133,16 @@ export const publicSurfaces = [
     },
   },
   {
+    id: "legacy_c9668011622a3952edccb230",
+    transport: "api",
+    coverageTag: "@covers_legacy_c9668011622a3952edccb230",
+    authPolicyId: "auth_deny_all",
+    authority: {
+      kind: "convex-function",
+      registrationLocator: "deploy/authority:provisionApproval",
+    },
+  },
+  {
     id: "legacy_c99b561fd294de178c848f51",
     transport: "cli",
     coverageTag: "@covers_legacy_c99b561fd294de178c848f51",
@@ -2050,6 +2150,16 @@ export const publicSurfaces = [
     authority: {
       kind: "command",
       registrationLocator: "help",
+    },
+  },
+  {
+    id: "legacy_ca11d376afc1576a2e0ef2d8",
+    transport: "api",
+    coverageTag: "@covers_legacy_ca11d376afc1576a2e0ef2d8",
+    authPolicyId: "auth_deny_all",
+    authority: {
+      kind: "convex-function",
+      registrationLocator: "deploy/authority:provisionCensus",
     },
   },
   {
@@ -2091,6 +2201,16 @@ export const publicSurfaces = [
     authority: {
       kind: "convex-function",
       registrationLocator: "components/workflowAdmission/admission:bind",
+    },
+  },
+  {
+    id: "legacy_d0665a404f027b9177c6eac8",
+    transport: "api",
+    coverageTag: "@covers_legacy_d0665a404f027b9177c6eac8",
+    authPolicyId: "auth_deny_all",
+    authority: {
+      kind: "convex-function",
+      registrationLocator: "deploy/authority:provisionVerdict",
     },
   },
   {
@@ -2243,6 +2363,16 @@ export const publicSurfaces = [
     },
   },
   {
+    id: "legacy_df97fe1cf39cda22a0fcea4a",
+    transport: "api",
+    coverageTag: "@covers_legacy_df97fe1cf39cda22a0fcea4a",
+    authPolicyId: "auth_deny_all",
+    authority: {
+      kind: "convex-function",
+      registrationLocator: "editorSync:getSteps",
+    },
+  },
+  {
     id: "legacy_e035c162a0b2246af3887e4f",
     transport: "ui",
     coverageTag: "@covers_legacy_e035c162a0b2246af3887e4f",
@@ -2332,6 +2462,16 @@ export const publicSurfaces = [
     authority: {
       kind: "command",
       registrationLocator: "support-bundle",
+    },
+  },
+  {
+    id: "legacy_e7df4c44c8ffdb2e6416ed7e",
+    transport: "api",
+    coverageTag: "@covers_legacy_e7df4c44c8ffdb2e6416ed7e",
+    authPolicyId: "auth_deny_all",
+    authority: {
+      kind: "convex-function",
+      registrationLocator: "deploy/authority:rotateIssuer",
     },
   },
   {

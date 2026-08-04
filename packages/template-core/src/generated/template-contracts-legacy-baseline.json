@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "capturedFromInventoryDigest": "sha256:57b5bc518d32d945babec871a2a5db852886816e6aa55de6abb2b0a3ea5f49aa",
+  "capturedFromInventoryDigest": "sha256:a5651112558862189a0782c9bad64a52e1a71795e532a7e62a41ad41a8de5b4e",
   "surfaces": [
     {
       "id": "legacy_0139ce508fad3a8d57d2fb33",
@@ -91,6 +91,10 @@
       "authorityKey": "[\"convex-function\",\"workflows.publicationFixture.restart\",null,\"api\",\"auth_deny_all\"]"
     },
     {
+      "id": "legacy_13eda5303b041778314ed02e",
+      "authorityKey": "[\"convex-function\",\"deploy/authority:status\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
       "id": "legacy_152cbe5bc07fa6ec56bf2c07",
       "authorityKey": "[\"convex-function\",\"workflows.publicationFixture.sendEvent\",null,\"api\",\"auth_deny_all\"]"
     },
@@ -111,8 +115,20 @@
       "authorityKey": "[\"http-route\",\"POST /api/ops.email.dispatchBroadcast\",null,\"api\",\"auth_deny_all\"]"
     },
     {
+      "id": "legacy_19c616bd2fbcbf0de7ddc082",
+      "authorityKey": "[\"convex-function\",\"jobs/workpool:enqueue\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_19e5753893d1eb28f8460faf",
+      "authorityKey": "[\"convex-function\",\"deploy/authority:provisionIssuer\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
       "id": "legacy_1a4c5305a0b1a459eda75ed6",
       "authorityKey": "[\"route\",\"apps/web/src/routeTree.gen.ts#/sources\",null,\"ui\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_1d43e767bb19acbe95741c68",
+      "authorityKey": "[\"convex-function\",\"editorSync:latestVersion\",null,\"api\",\"auth_deny_all\"]"
     },
     {
       "id": "legacy_1e843e696be342ff65482d7c",
@@ -145,6 +161,10 @@
     {
       "id": "legacy_240acf99caeb9a7c103f0221",
       "authorityKey": "[\"route\",\"apps/web/src/routeTree.gen.ts#/checkout/return\",null,\"ui\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_240aea61095831d3b9401220",
+      "authorityKey": "[\"convex-function\",\"editorSync:submitSnapshot\",null,\"api\",\"auth_deny_all\"]"
     },
     {
       "id": "legacy_25cbcc77e4bbe5ec5b5bd1ce",
@@ -207,10 +227,6 @@
       "authorityKey": "[\"convex-function\",\"workflows.publicationFixture.listSteps\",null,\"mcp\",\"auth_deny_all\"]"
     },
     {
-      "id": "legacy_2fe693c9a3728cfde2b204f7",
-      "authorityKey": "[\"trigger\",\"publicationEchoV1Release\",null,\"api\",\"auth_deny_all\"]"
-    },
-    {
       "id": "legacy_302b39bd42a0df78c1821d07",
       "authorityKey": "[\"convex-function\",\"access/invitations:decline\",null,\"api\",\"auth_deny_all\"]"
     },
@@ -229,6 +245,10 @@
     {
       "id": "legacy_3692da98943935c0a28223fb",
       "authorityKey": "[\"ui-action\",\"apps/web/src/features/public-funnel/build-pack/build-pack-generating-route.tsx\",\"templateConfectRefs.public.buildPacks.packs.startPack\",\"ui\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_37a0f58a82c59e561ff6aeb3",
+      "authorityKey": "[\"convex-function\",\"deploy/authority:readiness\",null,\"api\",\"auth_deny_all\"]"
     },
     {
       "id": "legacy_3808c850bfc451d0ec396739",
@@ -319,6 +339,10 @@
       "authorityKey": "[\"command\",\"template.workflow.run\",null,\"mcp\",\"auth_deny_all\"]"
     },
     {
+      "id": "legacy_4a215c0bef7e3d318acc880c",
+      "authorityKey": "[\"convex-function\",\"deploy/authority:auditExport\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
       "id": "legacy_4a6797e10803a6a8da608137",
       "authorityKey": "[\"convex-function\",\"ops/actions:approveAction\",null,\"api\",\"auth_deny_all\"]"
     },
@@ -345,6 +369,10 @@
     {
       "id": "legacy_4ff91e3f8ecf7e44ce978218",
       "authorityKey": "[\"convex-function\",\"workflowContracts/publicationFixture:listSteps\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_5125681f9cda23f63cd086df",
+      "authorityKey": "[\"convex-function\",\"jobs/workpool:status\",null,\"api\",\"auth_deny_all\"]"
     },
     {
       "id": "legacy_51d298fd0765154f3aeca588",
@@ -507,10 +535,6 @@
       "authorityKey": "[\"convex-function\",\"workflows.publicationFixture.list\",null,\"api\",\"auth_deny_all\"]"
     },
     {
-      "id": "legacy_7dc8955bc420a0dc5391d130",
-      "authorityKey": "[\"trigger\",\"publicationFixtureV1Release\",null,\"api\",\"auth_deny_all\"]"
-    },
-    {
       "id": "legacy_7eea5ab8158943bce3f6e2ba",
       "authorityKey": "[\"convex-function\",\"buildPacks/maestro:getOffer\",null,\"api\",\"auth_deny_all\"]"
     },
@@ -549,6 +573,10 @@
     {
       "id": "legacy_84c0476aead9037abc407c26",
       "authorityKey": "[\"convex-function\",\"capabilities/manageEvaluationReport:getEvaluationReport\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_857b00f45050c9dc12731805",
+      "authorityKey": "[\"convex-function\",\"deploy/authority:revokeIssuer\",null,\"api\",\"auth_deny_all\"]"
     },
     {
       "id": "legacy_85e6c3cc3a1ba83f065f2214",
@@ -657,6 +685,10 @@
     {
       "id": "legacy_a6c6a11c03ac9b316b3f56cf",
       "authorityKey": "[\"route\",\"apps/web/src/routeTree.gen.ts#/brain\",null,\"ui\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_a8945ff994464db707cdb39f",
+      "authorityKey": "[\"convex-function\",\"editorSync:getSnapshot\",null,\"api\",\"auth_deny_all\"]"
     },
     {
       "id": "legacy_a8e7493519882a1ada83f47c",
@@ -783,6 +815,10 @@
       "authorityKey": "[\"route\",\"apps/web/src/routeTree.gen.ts#/admin\",null,\"ui\",\"auth_deny_all\"]"
     },
     {
+      "id": "legacy_c42943a2743cc2969a002151",
+      "authorityKey": "[\"convex-function\",\"editorSync:submitSteps\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
       "id": "legacy_c5a06b75947922e7fd73c4ae",
       "authorityKey": "[\"convex-function\",\"ops.email.previewBroadcast\",null,\"api\",\"auth_deny_all\"]"
     },
@@ -803,8 +839,16 @@
       "authorityKey": "[\"command\",\"workflow\",\"run\",\"cli\",\"auth_deny_all\"]"
     },
     {
+      "id": "legacy_c9668011622a3952edccb230",
+      "authorityKey": "[\"convex-function\",\"deploy/authority:provisionApproval\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
       "id": "legacy_c99b561fd294de178c848f51",
       "authorityKey": "[\"command\",\"help\",null,\"cli\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_ca11d376afc1576a2e0ef2d8",
+      "authorityKey": "[\"convex-function\",\"deploy/authority:provisionCensus\",null,\"api\",\"auth_deny_all\"]"
     },
     {
       "id": "legacy_cc53498972fb40aef0aed23d",
@@ -821,6 +865,10 @@
     {
       "id": "legacy_d050382fec880f8adc65d23f",
       "authorityKey": "[\"convex-function\",\"components/workflowAdmission/admission:bind\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_d0665a404f027b9177c6eac8",
+      "authorityKey": "[\"convex-function\",\"deploy/authority:provisionVerdict\",null,\"api\",\"auth_deny_all\"]"
     },
     {
       "id": "legacy_d31ca1882be796fec2fcb8a4",
@@ -879,6 +927,10 @@
       "authorityKey": "[\"convex-function\",\"workflows.generateCompleteBuildPack.status\",null,\"mcp\",\"auth_deny_all\"]"
     },
     {
+      "id": "legacy_df97fe1cf39cda22a0fcea4a",
+      "authorityKey": "[\"convex-function\",\"editorSync:getSteps\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
       "id": "legacy_e035c162a0b2246af3887e4f",
       "authorityKey": "[\"route\",\"apps/web/src/routeTree.gen.ts#/notifications\",null,\"ui\",\"auth_deny_all\"]"
     },
@@ -913,6 +965,10 @@
     {
       "id": "legacy_e7cd6294ae5ef66883249b55",
       "authorityKey": "[\"command\",\"support-bundle\",null,\"cli\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_e7df4c44c8ffdb2e6416ed7e",
+      "authorityKey": "[\"convex-function\",\"deploy/authority:rotateIssuer\",null,\"api\",\"auth_deny_all\"]"
     },
     {
       "id": "legacy_e9015d93b5bbacf92c62248b",

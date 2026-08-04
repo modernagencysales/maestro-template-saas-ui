@@ -10,6 +10,7 @@ import {
   discoverPublicAuthorities,
   generatePublicSurfaceInventory,
   verifyContractsLegacyBaseline,
+  verifyLegacyBaselineTrustAnchor,
 } from "./publicSurfaceGeneration";
 
 const fixture = (files: Readonly<Record<string, string>>): string => {
@@ -100,7 +101,7 @@ describe("public surface generation", () => {
     });
 
     const discovered = discoverPublicAuthorities(root);
-    expect(discovered).toHaveLength(19);
+    expect(discovered).toHaveLength(18);
     expect(discovered).toEqual(
       expect.arrayContaining([
         {
@@ -196,11 +197,6 @@ describe("public surface generation", () => {
           registrationLocator: "raw:lookup",
           transport: "api",
         },
-        {
-          kind: "trigger",
-          registrationLocator: "nightlySyncRelease",
-          transport: "api",
-        },
       ]),
     );
     expect(discovered).toEqual(
@@ -242,6 +238,54 @@ describe("public surface generation", () => {
         registered: registrations,
       }),
     ).toThrow("registered surface has no discovered authority");
+  });
+
+  it("discovers convexPublic specs and direct UI hooks without treating publication registries as triggers", () => {
+    const root = fixture({
+      "packages/convex/confect/deploy/authority.spec.ts": `
+        FunctionSpec.convexPublicMutation<typeof provision>()("provision");
+        FunctionSpec.convexPublicQuery<typeof readiness>()("readiness");
+      `,
+      "apps/web/src/features/direct.tsx": `
+        const mutate = useMutation(notes.create);
+        const act = useAction(notes.publish);
+      `,
+      "packages/convex/confect/workflows/_generated/workflowRegistry.ts": `
+        export const registry = definePublicationRegistry({
+          capabilities: [publicationRelease],
+          workflows: [workflowRelease],
+        });
+      `,
+    });
+
+    const discovered = discoverPublicAuthorities(root);
+    expect(discovered).toEqual(
+      expect.arrayContaining([
+        {
+          kind: "convex-function",
+          registrationLocator: "deploy/authority:provision",
+          transport: "api",
+        },
+        {
+          kind: "convex-function",
+          registrationLocator: "deploy/authority:readiness",
+          transport: "api",
+        },
+        {
+          kind: "ui-action",
+          registrationLocator: "apps/web/src/features/direct.tsx",
+          actionDiscriminant: "notes.create",
+          transport: "ui",
+        },
+        {
+          kind: "ui-action",
+          registrationLocator: "apps/web/src/features/direct.tsx",
+          actionDiscriminant: "notes.publish",
+          transport: "ui",
+        },
+      ]),
+    );
+    expect(discovered.some(({ kind }) => kind === "trigger")).toBe(false);
   });
 
   it("rejects duplicate discoveries, ids, and authority registrations", () => {
@@ -351,6 +395,17 @@ describe("public surface generation", () => {
         baseline,
       ),
     ).toContainEqual(expect.stringContaining("inventory digest changed"));
+  });
+
+  it("rejects a candidate baseline even when its inventory digest is self-consistent", () => {
+    const baseline = buildContractsLegacyBaseline([]);
+    expect(
+      verifyLegacyBaselineTrustAnchor({
+        ...baseline,
+        capturedFromInventoryDigest:
+          "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      }),
+    ).toContainEqual(expect.stringContaining("trust anchor mismatch"));
   });
 
   it("reports a discovered locator omitted from the checked-in inventory", () => {
