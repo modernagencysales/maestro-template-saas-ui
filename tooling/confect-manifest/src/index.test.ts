@@ -4,6 +4,7 @@ import {
   buildContractManifest,
   buildContractJsonSchemas,
   duplicateOperationIds,
+  manifestPublicSurfaces,
   manifestOperationIds,
   mergeContractSchemaRegistries,
   missingSchemasForManifest,
@@ -226,5 +227,106 @@ describe("confect manifest tooling", () => {
         },
       },
     });
+  });
+
+  it("emits one public surface per registered transport and defaults auth closed", () => {
+    const manifest = buildContractManifest([
+      {
+        namespace: "brain.pages",
+        name: "createMarkdown",
+        operationId: "brain.pages.createMarkdown",
+        kind: "mutation",
+        surfaces: ["web", "cli"],
+        surfaceRegistrations: [
+          {
+            id: "brain_pages_create_ui",
+            surface: "web",
+            coverageTag: "@covers_brain_pages_create_ui",
+            authPolicyId: "auth_session_membership_editor",
+          },
+          {
+            id: "brain_pages_create_cli",
+            surface: "cli",
+            coverageTag: "@covers_brain_pages_create_cli",
+            authPolicyId: "auth_api_key_workspace_write",
+          },
+        ],
+        typedErrors: [],
+        idempotent: false,
+        argsSchemaName: "brain.pages.createMarkdown.args",
+        returnsSchemaName: "brain.pages.createMarkdown.returns",
+      },
+    ]);
+
+    expect(manifestPublicSurfaces(manifest)).toEqual([
+      {
+        id: "brain_pages_create_cli",
+        transport: "cli",
+        coverageTag: "@covers_brain_pages_create_cli",
+        authPolicyId: "auth_api_key_workspace_write",
+        authority: {
+          kind: "convex-function",
+          registrationLocator: "brain.pages.createMarkdown",
+        },
+      },
+      {
+        id: "brain_pages_create_ui",
+        transport: "ui",
+        coverageTag: "@covers_brain_pages_create_ui",
+        authPolicyId: "auth_session_membership_editor",
+        authority: {
+          kind: "convex-function",
+          registrationLocator: "brain.pages.createMarkdown",
+        },
+      },
+    ]);
+
+    const entry = manifest.functions[0];
+    if (entry === undefined) throw new Error("fixture manifest is empty");
+
+    expect(
+      manifestPublicSurfaces({
+        ...manifest,
+        functions: [
+          {
+            ...entry,
+            surfaceRegistrations: [
+              {
+                id: "closed_by_default",
+                surface: "web",
+                coverageTag: "@covers_closed_by_default",
+              },
+            ],
+          },
+        ],
+      }),
+    ).toMatchObject([{ authPolicyId: "auth_deny_all" }]);
+  });
+
+  it("rejects registrations for undeclared operation surfaces", () => {
+    const manifest = buildContractManifest([
+      {
+        namespace: "brain.pages",
+        name: "list",
+        operationId: "brain.pages.list",
+        kind: "query",
+        surfaces: ["web"],
+        surfaceRegistrations: [
+          {
+            id: "brain_pages_list_cli",
+            surface: "cli",
+            coverageTag: "@covers_brain_pages_list_cli",
+          },
+        ],
+        typedErrors: [],
+        idempotent: true,
+        argsSchemaName: "brain.pages.list.args",
+        returnsSchemaName: "brain.pages.list.returns",
+      },
+    ]);
+
+    expect(() => manifestPublicSurfaces(manifest)).toThrow(
+      "brain.pages.list registers undeclared surface cli",
+    );
   });
 });

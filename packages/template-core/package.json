@@ -25,6 +25,10 @@
       "types": "./src/productTopology.ts",
       "default": "./src/productTopology.ts"
     },
+    "./publicSurface": {
+      "types": "./src/publicSurface.ts",
+      "default": "./src/publicSurface.ts"
+    },
     "./templateInstance": {
       "types": "./src/templateInstance/index.ts",
       "default": "./src/templateInstance/index.ts"

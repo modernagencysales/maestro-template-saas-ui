@@ -1,9 +1,23 @@
 import * as JsonSchema from "effect/JsonSchema";
 import * as Schema from "effect/Schema";
+import type { PublicSurface } from "@maestro-template/template-core/publicSurface";
 
 export type ContractFunctionKind = "query" | "mutation" | "action";
 export type ContractSurface =
   "api" | "cli" | "mcp" | "web" | "workflow" | "internal";
+
+export type ContractPublicSurface = Extract<
+  ContractSurface,
+  "api" | "cli" | "mcp" | "web"
+>;
+
+export type ContractSurfaceRegistration = {
+  readonly id: string;
+  readonly surface: ContractPublicSurface;
+  readonly coverageTag: `@covers_${string}`;
+  readonly activationJourneyId?: `journey_${string}`;
+  readonly authPolicyId?: `auth_${string}`;
+};
 
 export type ContractFunctionManifest = {
   readonly namespace: string;
@@ -11,6 +25,7 @@ export type ContractFunctionManifest = {
   readonly operationId: string;
   readonly kind: ContractFunctionKind;
   readonly surfaces: readonly ContractSurface[];
+  readonly surfaceRegistrations?: readonly ContractSurfaceRegistration[];
   readonly typedErrors: readonly string[];
   readonly idempotent: boolean;
   readonly argsSchemaName: string;
@@ -76,6 +91,36 @@ export const buildContractManifest = (
 export const manifestOperationIds = (
   manifest: ContractManifest,
 ): readonly string[] => manifest.functions.map((entry) => entry.operationId);
+
+export const manifestPublicSurfaces = (
+  manifest: ContractManifest,
+): readonly PublicSurface[] =>
+  manifest.functions
+    .flatMap((entry) =>
+      (entry.surfaceRegistrations ?? []).map((registration): PublicSurface => {
+        if (!entry.surfaces.includes(registration.surface)) {
+          throw new Error(
+            `${entry.operationId} registers undeclared surface ${registration.surface}`,
+          );
+        }
+
+        return {
+          id: registration.id,
+          transport:
+            registration.surface === "web" ? "ui" : registration.surface,
+          coverageTag: registration.coverageTag,
+          ...(registration.activationJourneyId === undefined
+            ? {}
+            : { activationJourneyId: registration.activationJourneyId }),
+          authPolicyId: registration.authPolicyId ?? "auth_deny_all",
+          authority: {
+            kind: "convex-function",
+            registrationLocator: entry.operationId,
+          },
+        };
+      }),
+    )
+    .sort((left, right) => left.id.localeCompare(right.id));
 
 export const duplicateOperationIds = (
   functions: readonly ContractFunctionManifest[],

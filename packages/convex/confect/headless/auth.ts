@@ -6,13 +6,15 @@ import {
   sha256Base64Url,
 } from "../shared/tokenCrypto";
 
-export const ApiKeyScope = Schema.Literals([
+export const apiKeyScopeValues = [
   "workspace:read",
   "workspace:write",
   "capability:run",
   "workflow:run",
   "admin",
-]);
+] as const;
+
+export const ApiKeyScope = Schema.Literals(apiKeyScopeValues);
 
 export type ApiKeyScope = Schema.Schema.Type<typeof ApiKeyScope>;
 
