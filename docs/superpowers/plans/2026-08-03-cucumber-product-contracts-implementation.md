@@ -387,6 +387,13 @@ For every task:
    dependency is not yet on main; merge bottom-up.
 7. After merge, rerun the next task from current `origin/main`.
 
+Tasks that explicitly declare multiple `PRs` are rollout containers, not one
+implementation batch. Their named execution packets inherit this protocol
+individually: one immutable input, one bounded file/transition set, one green
+gate, one commit or external journal checkpoint, and one unlock. Never hand the
+whole container to one implementation agent or combine its packets in one pull
+request.
+
 ---
 
 ### Task 1: Bootstrap Protected, Tokenless CI Before Cucumber
@@ -406,6 +413,7 @@ and complete Step 0's external temporary-root trust floor.
 - Create: `tooling/ci/candidate-sandbox.test.mts`
 - Create: `tooling/ci/dependency-proxy.mts`
 - Create: `tooling/ci/dependency-proxy.test.mts`
+- Create: `tooling/ci/dependency-allowlist.json`
 - Create: `tooling/ci/controller.Dockerfile`
 - Modify: `tooling/ci/ci-self-protection.sh`
 - Modify: `tooling/ci/phase1.sh`
@@ -497,7 +505,13 @@ export function planProtectedTransition(input: {
       DNS-rebinding, oversized-response, traversal, symlink, and device-entry
       canaries through the real dependency path. Require resolution/fetch
       failure or containment, no controller mount/socket/secret access, and no
-      build start on a failed fetch.
+      build start on a failed fetch. Require the protected allowlist to contain
+      the immutable baseline lock closure plus the complete recursively resolved
+      C1 bootstrap closure rooted at `@cucumber/cucumber@13.2.0`,
+      `@cucumber/gherkin@41.0.0`, and `@cucumber/messages@34.0.1`. Assert the
+      three direct registry URLs and SHA-512 integrities exactly, reject any
+      missing transitive entry, and prove that a candidate lockfile cannot widen
+      the allowlist.
 
 - [ ] **Step 2: Write red CODEOWNERS and transition tests.** Require future
       control paths (`features/**`, `cucumber.cjs`, `tooling/acceptance/**`,
@@ -552,8 +566,24 @@ export function planProtectedTransition(input: {
       it does not create another sandbox. Keep the launcher/operator entrypoint
       self-contained on Node 22 (`node --experimental-strip-types`) so a clean
       release can establish its sandbox before installing candidate packages.
-      Build `tooling/ci/controller.Dockerfile` without application dependencies
-      and pin its published digest in Woodpecker repository/server state.
+      Generate `dependency-allowlist.json` in a clean, secretless controller
+      resolution namespace from the immutable baseline lock plus the three
+      future C1 roots. Require these exact direct URL/integrity pairs:
+      `https://registry.npmjs.org/@cucumber/cucumber/-/cucumber-13.2.0.tgz` with
+      `sha512-QjhTG6FWVdG66qkj1BGONecAIqEIDx4g+ZnTdaQVmhECDfGPYyfEcBX3k71p/h1YKvWEUWmhol77Y7FZ36pARA==`;
+      `https://registry.npmjs.org/@cucumber/gherkin/-/gherkin-41.0.0.tgz` with
+      `sha512-pKGx1EzNjtWbpw74kEevKDMj71dF3ZSaFJpLYuWVvRZKe+Cwoq5iEkuMaELIg1jxIu8jH/A2HPMpMR8UBvdG0w==`;
+      and `https://registry.npmjs.org/@cucumber/messages/-/messages-34.0.1.tgz`
+      with
+      `sha512-Mvh8CkZD4TGykvXqM9qpnYVGy9cqMxYkImtghl2cF1hEuBtuDGU716zQk7KviLh0ssidM/phh9kdbJL/73dHpg==`.
+      Run
+      `rtk node --experimental-strip-types tooling/ci/dependency-proxy.mts freeze --base-lock pnpm-lock.yaml --package @cucumber/cucumber@13.2.0 --package @cucumber/gherkin@41.0.0 --package @cucumber/messages@34.0.1 --write tooling/ci/dependency-allowlist.json`,
+      review every added URL/integrity, and fail if a package resolves outside
+      `https://registry.npmjs.org/`. The protected controller image embeds the
+      reviewed file; later candidate package or lock changes can only select its
+      entries, never add them. Build `tooling/ci/controller.Dockerfile` without
+      application dependencies and pin its published digest in Woodpecker
+      repository/server state.
 
 - [ ] **Step 5: Add future-path and product-root ownership.** Extend the
       existing CODEOWNERS file with the exact roots from Step 2. Treat
@@ -573,7 +603,7 @@ export function planProtectedTransition(input: {
   `rtk host-test-slot --class focused pnpm exec vitest run tooling/ci/protected-bootstrap.test.mts tooling/ci/candidate-sandbox.test.mts tooling/ci/dependency-proxy.test.mts tooling/quality/woodpecker-template-pipeline.test.mts tooling/quality/check-ci-completeness.test.mts`
 
   ```bash
-  rtk git add tooling/ci/protected-bootstrap.mts tooling/ci/protected-bootstrap.test.mts tooling/ci/candidate-sandbox.mts tooling/ci/candidate-sandbox.test.mts tooling/ci/dependency-proxy.mts tooling/ci/dependency-proxy.test.mts tooling/ci/controller.Dockerfile tooling/ci/ci-self-protection.sh tooling/ci/phase1.sh tooling/ci/setup.sh .woodpecker/verify.yml .github/workflows/quality.yml .github/CODEOWNERS package.json tooling/quality/woodpecker-template-pipeline.test.mts tooling/quality/check-ci-completeness.mts tooling/quality/check-ci-completeness.test.mts docs/template/protected-ci-bootstrap.md
+  rtk git add tooling/ci/protected-bootstrap.mts tooling/ci/protected-bootstrap.test.mts tooling/ci/candidate-sandbox.mts tooling/ci/candidate-sandbox.test.mts tooling/ci/dependency-proxy.mts tooling/ci/dependency-proxy.test.mts tooling/ci/dependency-allowlist.json tooling/ci/controller.Dockerfile tooling/ci/ci-self-protection.sh tooling/ci/phase1.sh tooling/ci/setup.sh .woodpecker/verify.yml .github/workflows/quality.yml .github/CODEOWNERS package.json tooling/quality/woodpecker-template-pipeline.test.mts tooling/quality/check-ci-completeness.mts tooling/quality/check-ci-completeness.test.mts docs/template/protected-ci-bootstrap.md
   rtk git commit -m "ci: bootstrap protected tokenless verification"
   ```
 
@@ -594,12 +624,13 @@ export function planProtectedTransition(input: {
   server-side temporary root that ignores candidate `.woodpecker/**`,
   materializes the reviewed W0 controller image plus the immutable base's
   deterministic gate controls into read-only controller storage, resolves
-  candidate dependencies only through the protected sandbox/proxy, executes the
-  immutable base gate list with Qlty split into its advisory capped step, and
-  requires `ci/woodpecker/pr/protected-bootstrap`. Run
-  `verify --stage temporary` against the same journal and a canary PR; prove a
-  no-op candidate pipeline cannot select the root, see a secret, or post the
-  context. A pre-state mismatch makes no write.
+  candidate dependencies only through the protected sandbox/proxy and its
+  embedded baseline-plus-C1 allowlist, executes the immutable base gate list
+  with Qlty split into its advisory capped step, and requires
+  `ci/woodpecker/pr/protected-bootstrap`. Run `verify --stage temporary` against
+  the same journal and a canary PR; prove a no-op candidate pipeline cannot
+  select the root, see a secret, or post the context. A pre-state mismatch makes
+  no write.
 
 - [ ] **Step 8: Open and merge `W0` under the temporary trust floor.** Require
       current-head non-author owner approval and the server-side
@@ -805,7 +836,10 @@ export function compareAuthPolicyStrength(
       duplicate IDs, duplicate canonical authority keys, unknown policies,
       invalid role/scope literals, and auth changes that remove tenant
       authority, lower a role, remove a scope, or switch from a credential to
-      public access.
+      public access. Require an exact `auth_build_pack_approve` entry with
+      session credential, user principal, membership tenant authority, minimum
+      role `owner`, and no API-key scopes; editor/admin/API-key/owner-token
+      principals do not satisfy it.
 
 - [ ] **Step 2: Run red.**
 
@@ -818,9 +852,9 @@ export function compareAuthPolicyStrength(
       Re-export existing `Role` and `ApiKeyScope` types; do not introduce string
       copies. Define policy entries next to the validators they describe,
       including `auth_deny_all`, current WorkOS/session membership, API-key
-      scope, owner-token, Dodo/Postmark webhook, and signed unsubscribe
-      mechanisms. A surface with no explicit policy receives `auth_deny_all`
-      during generation.
+      scope, owner-token, Dodo/Postmark webhook, signed unsubscribe mechanisms,
+      and the session-only owner policy `auth_build_pack_approve`. A surface
+      with no explicit policy receives `auth_deny_all` during generation.
 
 - [ ] **Step 4: Extend Confect manifest entries without changing behavior.** Add
       stable surface registration metadata to `ContractFunctionManifest` while
@@ -1572,25 +1606,30 @@ export function verifyMessages(
       default draft-07 entry point; it cannot compile the bundled schema. For
       each nonblank line, parse raw JSON, require full schema validity plus an
       object with exactly one known Envelope payload key and no unknown own key,
-      then call official `parseEnvelope` (which is only JSON parsing). Index
-      Sources, GherkinDocuments, Pickles, PickleSteps, StepDefinitions, Hooks,
-      TestCases, TestCaseStarted, step events, run-hook events, attachments, and
-      run boundaries by runtime ID. Reject duplicates and unresolved links at
-      index time.
+      then call official `parseEnvelope` (which is only JSON parsing). Normalize
+      every selected URI once and require exactly one `Source` and exactly one
+      `GherkinDocument` for it, with equal normalized URIs and exact selected
+      source bytes; reject duplicate raw URIs, normalized-URI collisions, extra
+      documents, and missing pairs. Neither envelope has a runtime ID in
+      Messages v34. Index only ID-bearing Pickles, PickleSteps, StepDefinitions,
+      Hooks, TestCases, TestCaseStarted, step events, run-hook events,
+      attachments, and run boundaries by runtime ID. Reject duplicate IDs and
+      unresolved links at index time.
 
-- [ ] **Step 5: Re-derive stable identity from runtime AST.** Follow Source ->
-      GherkinDocument -> Pickle -> Scenario/Outline and Examples row, compare
-      exact source bytes and normalized URI, and re-create stable identities for
-      all emitted source Pickles. Derive the executed set only through
-      `TestCase.pickleId`; require exact equality with `SelectionManifest`, no
-      TestCase for an unselected Pickle, one TestCase and one attempt-zero
-      TestCaseStarted per selected Pickle, one test step per selected
-      PickleStep, exactly one unique StepDefinition plus aligned match arguments
-      for every Pickle-backed test step, and exactly one Hook for each hook-
-      backed test step. Use official Hook, TestCase, TestRunHook,
-      TestStepStarted/Finished, and TestRunStarted/Finished envelopes to require
-      ordinary Before/After and run hooks to start and finish once with PASSED
-      status; do not maintain a second lowercase hook inventory.
+- [ ] **Step 5: Re-derive stable identity from runtime AST.** Follow the unique
+      normalized-URI Source/GherkinDocument pair, then `Pickle.uri` and
+      `Pickle.astNodeIds` to Scenario/Outline and Examples row; compare exact
+      source bytes and re-create stable identities for all emitted source
+      Pickles. Derive the executed set only through `TestCase.pickleId`; require
+      exact equality with `SelectionManifest`, no TestCase for an unselected
+      Pickle, one TestCase and one attempt-zero TestCaseStarted per selected
+      Pickle, one test step per selected PickleStep, exactly one unique
+      StepDefinition plus aligned match arguments for every Pickle-backed test
+      step, and exactly one Hook for each hook-backed test step. Use official
+      Hook, TestCase, TestRunHook, TestStepStarted/Finished, and
+      TestRunStarted/Finished envelopes to require ordinary Before/After and run
+      hooks to start and finish once with PASSED status; do not maintain a
+      second lowercase hook inventory.
 
 - [ ] **Step 6: Validate the closed observation envelope.** Require exactly one
       attachment whose `testCaseStartedId` resolves to the selected
@@ -1680,6 +1719,11 @@ export class ContractWorld extends World<ContractWorldParameters> {
   currentStepKey: string | undefined;
 }
 ```
+
+**Atomicity:** Keep artifact identity, trusted driver observations, durable
+server correlation, and verifier consumption in one PR because none is an
+independently authoritative completion signal. Intermediate steps may be
+implemented/reviewed separately, but no partial producer merges or unlocks C10.
 
 - [ ] **Step 1: Write red observation tests.** Prove no public `markCovered`
       function exists; a driver cannot record before performing its injected
@@ -1884,6 +1928,11 @@ export async function runAcceptance(
 
 export function acceptanceExitCode(result: AcceptanceRunResult): 0 | 1;
 ```
+
+**Atomicity:** Keep sandbox/supervisor, acceptance-only auth adapters, and the
+orchestrator in one PR: exposing a runnable controller before every real child
+locus uses the sandbox would create an unsafe alternate path. Steps may be
+delegated internally, but only the complete green task is mergeable.
 
 - [ ] **Step 1: Write red supervisor/environment tests.** Add an empty-base
       projection test that asserts exact key equality, not a denylist. Prove
@@ -2647,8 +2696,9 @@ export type ApproveBuildPackContractInput = {
 - [ ] **Step 1: Write red state-machine tests.** V1 packs remain readable and
       display-only. V2 `specify` produces draft Gherkin, then the run pauses in
       `awaiting-review`; automatic model execution cannot advance it. Stale
-      digest, non-owner/non-`build_pack:approve`, edit-after-approval, duplicate
-      resume, and export of unapproved bytes fail.
+      digest, any principal rejected by `auth_build_pack_approve`,
+      edit-after-approval, duplicate resume, and export of unapproved bytes
+      fail.
 
 - [ ] **Step 2: Write red exact-export tests.** Successful CAS approval records
       server-derived actor/time and exact digest, compile exports exactly those
@@ -2675,10 +2725,11 @@ export type ApproveBuildPackContractInput = {
       readable but can never authorize admission.
 
 - [ ] **Step 5: Make review a human mutation.** Reuse workspace authorization
-      and the canonical `build_pack:approve` policy. Derive actor and timestamp
-      on the server, compare the expected digest atomically, revalidate the
-      approved Feature, and resume `compile` idempotently. An edit creates a new
-      digest and returns to awaiting review.
+      and C2's exact `auth_build_pack_approve` policy; do not add a Build Pack
+      role or scope. Derive actor and timestamp on the server, compare the
+      expected digest atomically, revalidate the approved Feature, and resume
+      `compile` idempotently. An edit creates a new digest and returns to
+      awaiting review.
 
 - [ ] **Step 6: Delete prose gates from mapping.** `maestroMapping.ts` emits
       exact contract file content/path/primary journey and work-package
@@ -2797,6 +2848,11 @@ export type ContractsAuditUpgrade = {
   readonly enforcement: false;
 };
 ```
+
+**Atomicity:** Keep sealed closure decoding, target-specific structured
+integrations, and journaled apply/recovery in one PR. A manifest without its
+recoverable applier—or an applier not bound to the manifest—would be an unsafe
+upgrade surface rather than an independently useful deliverable.
 
 - [ ] **Step 1: Write red audit-plan tests.** Capture all pre-guard public
       surfaces exactly once; keep them enabled and label them
@@ -3093,33 +3149,33 @@ Woodpecker agent; `W0` remains the active protected authority throughout
 
 **Files:**
 
-- Create: `tooling/ci/mergeCandidate.mts`
-- Create: `tooling/ci/mergeCandidate.test.mts`
-- Create: `tooling/acceptance/controller-image.lock.json`
-- Modify: `tooling/ci/ci-self-protection.sh`
-- Create: `tooling/ci/ci-self-protection.test.mts`
-- Modify: `tooling/ci/phase1.sh`
-- Modify: `.woodpecker/verify.yml`
-- Modify: `tooling/quality/woodpecker-template-pipeline.test.mts`
-- Modify: `tooling/quality/check-ci-completeness.mts`
-- Modify: `tooling/quality/check-ci-completeness.test.mts`
-- Modify: `tooling/quality/check-config-drift.mts`
-- Modify: `tooling/quality/check-config-drift.test.mts`
-- Modify: `.github/CODEOWNERS`
-- Modify: `package.json`
-- Delete: `tooling/stack/submit.mts`
-- Delete: `tooling/stack/submit.test.mts`
-- Delete: `tooling/stack/merge.mts`
-- Delete: `tooling/stack/merge.test.mts`
-- Delete: `tooling/stack/sync.mts`
-- Delete: `tooling/stack/sync.test.mts`
-- Delete: `tooling/stack/merge-preflight.mts`
-- Delete: `tooling/stack/merge-preflight.test.mts`
-- Modify: `tooling/stack/exec.mts`
-- Modify: `tooling/stack/exec.test.mts`
-- Modify: `tooling/acceptance/mutation-gauntlet.mts`
-- Modify: `tooling/acceptance/mutation-gauntlet.test.mts`
-- Create: `docs/template/product-contract-ci-operations.md`
+- Create in `W1a`: `tooling/ci/mergeCandidate.mts`
+- Create in `W1a`: `tooling/ci/mergeCandidate.test.mts`
+- Create in `W1b`: `tooling/acceptance/controller-image.lock.json`
+- Modify in `W1a`: `tooling/ci/ci-self-protection.sh`
+- Create in `W1a`: `tooling/ci/ci-self-protection.test.mts`
+- Modify in `W1b`: `tooling/ci/phase1.sh`
+- Modify in `W1b`: `.woodpecker/verify.yml`
+- Modify in `W1b`: `tooling/quality/woodpecker-template-pipeline.test.mts`
+- Modify in `W1b`: `tooling/quality/check-ci-completeness.mts`
+- Modify in `W1b`: `tooling/quality/check-ci-completeness.test.mts`
+- Modify in `W1a` and `W1b`: `tooling/quality/check-config-drift.mts`
+- Modify in `W1a` and `W1b`: `tooling/quality/check-config-drift.test.mts`
+- Modify in `W1a`: `.github/CODEOWNERS`
+- Modify in `W1a` and `W1b`: `package.json`
+- Delete in `W1a`: `tooling/stack/submit.mts`
+- Delete in `W1a`: `tooling/stack/submit.test.mts`
+- Delete in `W1a`: `tooling/stack/merge.mts`
+- Delete in `W1a`: `tooling/stack/merge.test.mts`
+- Delete in `W1a`: `tooling/stack/sync.mts`
+- Delete in `W1a`: `tooling/stack/sync.test.mts`
+- Delete in `W1a`: `tooling/stack/merge-preflight.mts`
+- Delete in `W1a`: `tooling/stack/merge-preflight.test.mts`
+- Modify in `W1a`: `tooling/stack/exec.mts`
+- Modify in `W1a`: `tooling/stack/exec.test.mts`
+- Modify in `W1a`: `tooling/acceptance/mutation-gauntlet.mts`
+- Modify in `W1a`: `tooling/acceptance/mutation-gauntlet.test.mts`
+- Create in `W1a`: `docs/template/product-contract-ci-operations.md`
 
 **Interfaces:**
 
@@ -3151,6 +3207,18 @@ export type ControllerImageLock = {
 };
 ```
 
+**Execution packets:**
+
+| Packet                            | Consumes                                      | Produces                                                                                                                             | Independent green gate                                                                             |
+| --------------------------------- | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------- |
+| `W1a` source/classifier           | merged `R1`, protected `W0`, C10 canary       | merge-candidate classifier, image-lock validator, protected self-protection source, ownership/stack cleanup, 36-case registry source | `mergeCandidate`, `ci-self-protection`, config-drift, and mutation tests                           |
+| `W1b` published-image lock/wiring | protected-main W1a SHA and registry post-read | CODEOWNED image lock plus blocking acceptance wiring and CI assertions                                                               | image-lock, Woodpecker-template, CI-completeness, and 36-case mutation tests                       |
+| external cutover                  | merged W1b SHA and its controller image lock  | journaled temporary observation, canonical overlap, final required context, and protected tag ruleset                                | three fresh merge candidates plus `verify --stage temporary`, `canonical-overlap`, and `canonical` |
+
+Each packet is a separate implementation handoff. Do not assign or merge W1b
+until W1a is protected main, and do not begin the external cutover until W1b is
+protected main.
+
 - [ ] **Step 1: Write red tuple/classifier tests.** Reject absent/wrong repo,
       base ref/OID, head OID, merge-group OID, checkout not equal to merge
       group, admitted lifecycle absent from protected base, admission plus any
@@ -3168,22 +3236,25 @@ export type ControllerImageLock = {
       for wrong source, Dockerfile, lockfile, build context, resolved package,
       registry, and image digest.
 
-- [ ] **Step 2: Write red protected-semantics tests.** Preserve every `W0`
-      tokenless/root/App assertion. Prove the active protected bootstrap root
-      cannot claim contract admission until its protected-base controller loads
-      the pinned Cucumber config, compiler, verifier, driver/hook inventory, and
-      support adapters; validates the exact merge tuple; and accepts the strict
-      result. A candidate-proposed adapter runs only under the distinct
-      observation context. Qlty failure/timeout cannot fail either protected
-      context.
+- [ ] **Step 2: Freeze the later W1b test contract without adding it to W1a.**
+      W1b will preserve every `W0` tokenless/root/App assertion and prove the
+      active protected bootstrap root cannot claim contract admission until its
+      protected-base controller loads the pinned Cucumber config, compiler,
+      verifier, driver/hook inventory, and support adapters; validates the exact
+      merge tuple; and accepts the strict result. A candidate-proposed adapter
+      runs only under the distinct observation context. Qlty failure/timeout
+      cannot fail either protected context. Write these tests red only at the
+      start of Step 10, from protected main after W1a merges; they never enter
+      the W1a commit.
 
-- [ ] **Step 3: Run red.**
+- [ ] **Step 3 (`W1a`): Run source/classifier tests red.**
 
   Run:
-  `rtk host-test-slot --class focused pnpm exec vitest run tooling/ci/mergeCandidate.test.mts tooling/quality/woodpecker-template-pipeline.test.mts tooling/quality/check-ci-completeness.test.mts tooling/quality/check-config-drift.test.mts tooling/acceptance/mutation-gauntlet.test.mts`
+  `rtk host-test-slot --class focused pnpm exec vitest run tooling/ci/mergeCandidate.test.mts tooling/ci/ci-self-protection.test.mts tooling/quality/check-config-drift.test.mts tooling/acceptance/mutation-gauntlet.test.mts`
 
-  Expected: FAIL because the `W0` protected root intentionally lacks Cucumber
-  admission semantics and the merge-candidate classifier.
+  Expected: FAIL because the merge-candidate classifier, protected Cucumber
+  self-protection source, image-lock validator, and two mutation cases do not
+  exist yet. W1b's wiring tests are not added to this branch.
 
 - [ ] **Step 4: Land contract control code before changing protected
       semantics.** `W1a` implements the image-lock schema/validator but does not
@@ -3201,15 +3272,15 @@ export type ControllerImageLock = {
       protected controller alone queries GitHub approvals, branch protection,
       merge queue, app/context binding, and posts status.
 
-- [ ] **Step 5: Extend the tokenless candidate run with acceptance.** Keep the
-      `W0` sandbox and external GitHub queries unchanged, run deterministic
+- [ ] **Step 5: Freeze the W1b wiring delta without staging it in W1a.** Keep
+      the `W0` sandbox and external GitHub queries unchanged, run deterministic
       gates plus candidate build/runtime inside it, and run protected-base
       Cucumber and verification in the controller. Return only bounded evidence
       to controller storage. In `W1b`, after the image lock is materialized and
       its observation canary is valid, add authoritative `pnpm acceptance` to
       root blocking `verify`. `W1a` leaves that wiring absent. Preserve W0's
       separate 30-second advisory Qlty step; no Qlty outcome joins blocking
-      `verify`.
+      `verify`. Implement and stage this delta only in Step 10.
 
 - [ ] **Step 6: Verify every contract authority remains protected.** Extend and
       test the `W0` CODEOWNER coverage for `features/**`, `cucumber.cjs`,
@@ -3233,29 +3304,34 @@ export type ControllerImageLock = {
       rejected by the protected classifier. The registry now contains all 36
       cases.
 
-- [ ] **Step 9: Run green and commit source before the external cutover.**
+- [ ] **Step 9 (`W1a`): Run green and commit source before publishing.**
 
   Run:
-  `rtk host-test-slot --class focused pnpm exec vitest run tooling/ci/mergeCandidate.test.mts tooling/quality/woodpecker-template-pipeline.test.mts tooling/quality/check-ci-completeness.test.mts tooling/quality/check-config-drift.test.mts tooling/acceptance/mutation-gauntlet.test.mts`
+  `rtk host-test-slot --class focused pnpm exec vitest run tooling/ci/mergeCandidate.test.mts tooling/ci/ci-self-protection.test.mts tooling/quality/check-config-drift.test.mts tooling/acceptance/mutation-gauntlet.test.mts`
 
   ```bash
-  rtk git add tooling/ci .woodpecker/verify.yml tooling/quality/woodpecker-template-pipeline.test.mts tooling/quality/check-ci-completeness.mts tooling/quality/check-ci-completeness.test.mts tooling/quality/check-config-drift.mts tooling/quality/check-config-drift.test.mts .github/CODEOWNERS package.json tooling/stack tooling/acceptance/mutation-gauntlet.mts tooling/acceptance/mutation-gauntlet.test.mts docs/template/product-contract-ci-operations.md
+  rtk git add tooling/ci/mergeCandidate.mts tooling/ci/mergeCandidate.test.mts tooling/ci/ci-self-protection.sh tooling/ci/ci-self-protection.test.mts tooling/quality/check-config-drift.mts tooling/quality/check-config-drift.test.mts .github/CODEOWNERS package.json tooling/stack tooling/acceptance/mutation-gauntlet.mts tooling/acceptance/mutation-gauntlet.test.mts docs/template/product-contract-ci-operations.md
   rtk git commit -m "ci: protect merge candidate contract verdict"
   ```
 
-- [ ] **Step 10: Merge source, publish and lock the image, then observe.** Merge
-      `W1a` while the `W0` protected canonical rule remains active.
+- [ ] **Step 10 (`W1b`): Merge source, publish, then lock and wire the image.**
+      Merge `W1a` while the `W0` protected canonical rule remains active.
       Build/publish the controller only from that protected-main commit and
       post-read its registry digest; run its full
       sandbox/package-resolution/runtime canary in non-required observation
       mode. In a fresh `W1b` branch, create the CODEOWNED
       `controller-image.lock.json` from that observation and change root
       `verify` to include `pnpm acceptance`; change no Cucumber/runtime
-      implementation. Run the image-lock/config tests, commit, and merge W1b
-      under the still-active W0 protected root.
+      implementation. First add the W1b wiring tests from Step 2 and run them
+      red against the still-unwired W1a base. Then implement only the lock and
+      wiring, run the exact green command below, commit, and merge W1b under the
+      still-active W0 protected root.
+
+  Run red, then green after wiring:
+  `rtk host-test-slot --class focused pnpm exec vitest run tooling/ci/mergeCandidate.test.mts tooling/quality/woodpecker-template-pipeline.test.mts tooling/quality/check-ci-completeness.test.mts tooling/quality/check-config-drift.test.mts tooling/acceptance/mutation-gauntlet.test.mts`
 
   ```bash
-  rtk git add tooling/acceptance/controller-image.lock.json package.json
+  rtk git add tooling/acceptance/controller-image.lock.json tooling/ci/phase1.sh .woodpecker/verify.yml tooling/quality/woodpecker-template-pipeline.test.mts tooling/quality/check-ci-completeness.mts tooling/quality/check-ci-completeness.test.mts tooling/quality/check-config-drift.mts tooling/quality/check-config-drift.test.mts package.json
   rtk git commit -m "ci: lock protected acceptance controller"
   ```
 
@@ -3277,8 +3353,8 @@ export type ControllerImageLock = {
   Expected: all 36 intended faults are caught; only the protected controller
   posts the temporary context; the candidate no-op cannot do so.
 
-- [ ] **Step 11: Perform the overlapping semantic cutover.** Record exact live
-      Woodpecker/server and GitHub-ruleset digests. Require
+- [ ] **Step 11 (external cutover): Perform the overlapping semantic cutover.**
+      Record exact live Woodpecker/server and GitHub-ruleset digests. Require
       `ci/woodpecker/pr/contracts-protected` alongside the still-working
       canonical `W0` context and prove both on a fresh merge candidate. With an
       expected-state compare-and-swap, preview `enable-canonical` against the W1
@@ -3472,9 +3548,13 @@ checkout.
 - Create through preimage-bound `M0` integration:
   `apps/web/src/adapters/product-contract-build-identity.ts`
 - Create through preimage-bound `M0` integration:
+  `apps/web/src/adapters/product-contract-build-identity.test.ts`
+- Create through preimage-bound `M0` integration:
   `apps/web/src/providers/product-contract-auth-runtime.tsx`
 - Create through preimage-bound `M0` integration:
   `apps/web/src/providers/product-contract-auth-runtime.acceptance.tsx`
+- Create through preimage-bound `M0` integration:
+  `apps/web/src/providers/product-contract-auth-runtime.test.tsx`
 - Create through preimage-bound `M0` integration:
   `packages/convex/convex/auth.acceptance.config.ts`
 - Modify through preimage-bound `M0` integration:
@@ -3482,14 +3562,22 @@ checkout.
 - Create through preimage-bound `M0` integration:
   `packages/convex/convex/productContracts/runtimeIdentity.ts`
 - Create through preimage-bound `M0` integration:
+  `packages/convex/convex/productContracts/runtimeIdentity.test.ts`
+- Create through preimage-bound `M0` integration:
   `packages/convex/convex/productContracts/contractEvidence.ts`
 - Create through preimage-bound `M0` integration:
+  `packages/convex/convex/productContracts/contractEvidence.test.ts`
+- Create through preimage-bound `M0` integration:
   `packages/convex/convex/productContracts/bootstrap.ts`
+- Create through preimage-bound `M0` integration:
+  `packages/convex/convex/productContracts/bootstrap.test.ts`
 - Modify through preimage-bound `M0` integration:
   `packages/convex/convex/adapters/headlessTransportExecution.ts`
 - Modify generated through `M0`: `packages/convex/convex/_generated/**`
 - Create through preimage-bound `M0` integration:
   `tooling/maestro-cli/src/product-contract-identity.ts`
+- Create through preimage-bound `M0` integration:
+  `tooling/maestro-cli/src/product-contract-identity.test.ts`
 - Modify through preimage-bound `M0` integration:
   `tooling/maestro-cli/src/maestro.ts`
 - Create in `M0`: `.maestro/contracts-legacy-baseline.json`
@@ -3521,7 +3609,8 @@ checkout.
 - Modify: `apps/web/src/features/brain/brain-accepted-sources.test.tsx`
 - Modify: `apps/web/src/features/posts/posts-generation-controls.commands.ts`
 - Modify: `apps/web/src/features/posts/posts-generation-start-request.test.ts`
-- Modify: `tooling/maestro-cli/src/maestro.ts`
+- Modify in `M1c`: `tooling/maestro-cli/src/maestro.ts`
+- Create in `M1c`: `tooling/maestro-cli/src/maestro.test.ts`
 - Modify generated: `tooling/maestro-cli/generated/headless-contract.json`
 - Modify generated in `M1b` and `M1c`:
   `.maestro/product-contracts/generated/public-surfaces.generated.json`
@@ -3540,6 +3629,24 @@ checkout.
   (`M1a`-`M1d`), the lifecycle/projection-only admission (`M2`), and protected
   annotated `maestro-product-contracts-brain-pilot-m2` evidence consumed by
   `D1`, `D2`, and `M3`.
+
+**Execution packets:**
+
+| Packet      | Produces                                                                    | Required green gate before handoff                                                          |
+| ----------- | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `M-pre`     | journaled tokenless temporary root for immutable Maestro main               | bootstrap canary plus `verify --stage temporary`                                            |
+| `M0`        | exact P1 audit payload, integrations, scripts, baseline, and runtime target | focused root-integration/identity tests plus `pnpm acceptance:check`                        |
+| `M0b`       | target-owned protected acceptance source and canonical Woodpecker cutover   | focused CI tests, acceptance canary, then temporary/overlap/canonical external verification |
+| `M1a`       | assembling Feature and false projection only                                | `pnpm acceptance:check`                                                                     |
+| `M1b`       | dark UI registrations/implementation and exact generated surfaces           | named Convex/UI tests, `acceptance:check`, and committed-head admitted regressions          |
+| `M1c`       | dark CLI registrations/implementation and exact generated contracts         | named registry/CLI tests, `acceptance:check`, and committed-head admitted regressions       |
+| `M1d`       | protected steps/fixtures while the committed Feature remains assembling     | temporary local lifecycle flip plus `acceptance:focus`, followed by byte-exact restoration  |
+| `M2`        | lifecycle/projection-only admitted Feature                                  | protected full acceptance for the exact batch-one merge candidate                           |
+| M2 evidence | protected annotated cross-repository evidence tag                           | independent tag-object/peeled-OID and App-bound check re-read                               |
+
+Each row is an independently assignable handoff. Never combine adjacent rows in
+one pull request; `M-pre` and M2 evidence are journaled external transitions,
+not source pull requests.
 
 **Feature outcome:** An authorized member reviews call-backed client context,
 resolves a real conflict, activates the supported context, and produces a
@@ -3624,12 +3731,22 @@ transports.
   envelope. Use the release controller's dependency-sandbox launcher to run
   target `pnpm install --frozen-lockfile --ignore-scripts` and
   `pnpm acceptance:check`; do not execute Maestro's candidate `.pnpmfile.cjs` in
-  the operator or status-controller namespace. Commit only the additive payload,
-  exact structured postimages, and baseline; merge `M0` under the
-  already-required `M-pre` context before `M0b`.
+  the operator or status-controller namespace. Run the installed focused tests:
 
   ```bash
-  rtk git add .maestro/product-contracts .maestro/contracts-legacy-baseline.json package.json pnpm-lock.yaml apps/web/vite.config.ts apps/web/src/routes/__root.tsx apps/web/src/adapters/product-contract-build-identity.ts apps/web/src/providers/product-contract-auth-runtime.tsx apps/web/src/providers/product-contract-auth-runtime.acceptance.tsx packages/convex/convex/auth.acceptance.config.ts packages/convex/convex/schema.ts packages/convex/convex/productContracts packages/convex/convex/adapters/headlessTransportExecution.ts packages/convex/convex/_generated tooling/maestro-cli/src/product-contract-identity.ts tooling/maestro-cli/src/maestro.ts
+  rtk host-test-slot --class focused pnpm --dir packages/convex exec vitest run convex/productContracts/runtimeIdentity.test.ts convex/productContracts/contractEvidence.test.ts convex/productContracts/bootstrap.test.ts
+  rtk host-test-slot --class focused pnpm --dir apps/web exec vitest run src/adapters/product-contract-build-identity.test.ts src/providers/product-contract-auth-runtime.test.tsx
+  rtk host-test-slot --class focused pnpm --dir tooling/maestro-cli exec vitest run src/product-contract-identity.test.ts
+  rtk pnpm acceptance:check
+  ```
+
+  Expected: PASS, including a forced Convex isolate reset between evidence write
+  and atomic drain. Commit only the additive payload, exact structured
+  postimages, and baseline; merge `M0` under the already-required `M-pre`
+  context before `M0b`.
+
+  ```bash
+  rtk git add .maestro/product-contracts .maestro/contracts-legacy-baseline.json package.json pnpm-lock.yaml apps/web/vite.config.ts apps/web/src/routes/__root.tsx apps/web/src/adapters/product-contract-build-identity.ts apps/web/src/adapters/product-contract-build-identity.test.ts apps/web/src/providers/product-contract-auth-runtime.tsx apps/web/src/providers/product-contract-auth-runtime.acceptance.tsx apps/web/src/providers/product-contract-auth-runtime.test.tsx packages/convex/convex/auth.acceptance.config.ts packages/convex/convex/schema.ts packages/convex/convex/productContracts packages/convex/convex/adapters/headlessTransportExecution.ts packages/convex/convex/_generated tooling/maestro-cli/src/product-contract-identity.ts tooling/maestro-cli/src/product-contract-identity.test.ts tooling/maestro-cli/src/maestro.ts
   rtk git commit -m "build: install cucumber contracts audit"
   ```
 
@@ -3729,14 +3846,24 @@ transports.
 
   Run `rtk pnpm contracts:surfaces:write`, then
   `rtk pnpm contracts:surfaces:check`; stage both exact generated public-surface
-  projections with the UI registrations. Run focused UI/capability tests,
-  `rtk pnpm acceptance:check`, and all previously admitted journeys. Expected:
-  PASS; direct raw invocation remains denied.
+  projections with the UI registrations. Run:
+
+  ```bash
+  rtk host-test-slot --class focused pnpm --dir packages/convex exec vitest run convex/capabilities/brain/claimCandidateReview.test.ts convex/capabilities/brain/contextPacks.test.ts convex/capabilities/content/postGenerations.test.ts
+  rtk host-test-slot --class focused pnpm --dir apps/web exec vitest run src/features/brain/brain-learning-review-adapter.test.ts src/features/brain/brain-accepted-sources.test.tsx src/features/posts/posts-generation-start-request.test.ts
+  rtk pnpm acceptance:check
+  ```
+
+  Expected: PASS; direct raw invocation remains denied.
 
   ```bash
   rtk git add packages/convex/convex/capabilities/brain/claimCandidateReview.ts packages/convex/convex/capabilities/brain/claimCandidateReview.test.ts packages/convex/convex/capabilities/brain/contextPacksPublic.ts packages/convex/convex/capabilities/brain/contextPacks.test.ts packages/convex/convex/capabilities/content/postGenerations.ts packages/convex/convex/capabilities/content/postGenerations.test.ts apps/web/src/features/brain/brain-learning-review-adapter.ts apps/web/src/features/brain/brain-learning-review-adapter.test.ts apps/web/src/features/brain/brain-accepted-sources.tsx apps/web/src/features/brain/brain-accepted-sources.test.tsx apps/web/src/features/posts/posts-generation-controls.commands.ts apps/web/src/features/posts/posts-generation-start-request.test.ts .maestro/product-contracts/generated/public-surfaces.generated.json .maestro/product-contracts/generated/publicSurfaces.ts
   rtk git commit -m "feat: wire assembling brain ui journey"
   ```
+
+  From the committed M1b head, run `rtk maestro-remote-test -- pnpm acceptance`.
+  Expected: every previously admitted journey passes; the assembling Brain
+  journey remains unselected.
 
 - [ ] **Step 6 (`M1c`): Register and implement CLI authority while dark.** Add
       generated headless surfaces for context inspection and generation
@@ -3751,13 +3878,25 @@ transports.
       and `tooling/maestro-cli/generated/headless-contract.json`; do not create
       a second Brain workflow.
 
-  Run focused registry/CLI/auth tests and `rtk pnpm acceptance:check`. Expected:
-  PASS; missing/read-only/foreign keys receive the declared denial classes.
+  Run:
 
   ```bash
-  rtk git add packages/convex/convex/registry/headlessSurfaces.ts packages/convex/convex/registry/headlessSurfaces.test.ts tooling/maestro-cli/src/maestro.ts tooling/maestro-cli/generated/headless-contract.json .maestro/product-contracts/generated/public-surfaces.generated.json .maestro/product-contracts/generated/publicSurfaces.ts
+  rtk host-test-slot --class focused pnpm --dir packages/convex exec vitest run convex/registry/headlessSurfaces.test.ts
+  rtk host-test-slot --class focused pnpm --dir tooling/maestro-cli exec vitest run src/maestro.test.ts src/product-contract-identity.test.ts
+  rtk pnpm acceptance:check
+  ```
+
+  Expected: PASS; missing/read-only/foreign keys receive the declared denial
+  classes.
+
+  ```bash
+  rtk git add packages/convex/convex/registry/headlessSurfaces.ts packages/convex/convex/registry/headlessSurfaces.test.ts tooling/maestro-cli/src/maestro.ts tooling/maestro-cli/src/maestro.test.ts tooling/maestro-cli/generated/headless-contract.json .maestro/product-contracts/generated/public-surfaces.generated.json .maestro/product-contracts/generated/publicSurfaces.ts
   rtk git commit -m "feat: wire assembling brain cli journey"
   ```
+
+  From the committed M1c head, run `rtk maestro-remote-test -- pnpm acceptance`.
+  Expected: every previously admitted journey passes; the assembling Brain
+  journey remains unselected.
 
 - [ ] **Step 7 (`M1d`): Implement trusted steps and make a local temporary flip
       green.** Steps use Playwright/external CLI only; deterministic fake model
@@ -4065,14 +4204,17 @@ materialization, and protected Maestro M2 evidence tag
 - Produces: the bounded `ContractsAuditUpgrade.source` migration from pilot to
   public alpha.3 and a protected green Maestro `M3` commit consumed by `D3`.
 
-- [ ] **Step 1: Write and run the upgrade preview red.** From a clean Maestro
+- [ ] **Step 1: Prove the upgrade rejection boundary.** From committed D2 in the
+      template repository, run on the remote worker:
+      `rtk maestro-remote-test -- pnpm exec vitest run tooling/release/src/upgrade/repository.test.ts apps/cli/src/index.test.ts`.
+      Expected: PASS, including rejection of a pilot tag, moved/lightweight
+      alpha.3 tag, stale target preimage, changed Brain product file, and a
+      release that omits or mismatches M2 evidence. Then create a clean Maestro
       worktree at the protected M2 commit, independently resolve the remote
       alpha.3 tag-object and peeled commit, release manifest, controller image
-      lock/registry object, and embedded M2 evidence. Require that evidence to
-      equal the current target's protected M2 tag, Feature/projection digests,
-      and app-bound check. A pilot tag, moved/lightweight alpha.3 tag, stale
-      target preimage, changed Brain product file, or release that omits the M2
-      evidence must fail before staging.
+      lock/registry object, and embedded M2 evidence, and require equality with
+      the current target's protected M2 tag, Feature/projection digests, and
+      app-bound check before staging.
 
 - [ ] **Step 2: Preview and apply only the sealed pilot-to-alpha.3 delta.** Use
       a clean detached alpha.3 worktree and its self-contained W0 sandbox to
@@ -4090,16 +4232,25 @@ materialization, and protected Maestro M2 evidence tag
   rtk pnpm --dir /Users/headless/.worktrees/maestro-template-alpha3 exec tsx apps/cli/src/index.ts upgrade --contracts-audit --release-root /Users/headless/.worktrees/maestro-template-alpha3 --to 0.2.0-alpha.3 --target-root /Users/headless/.worktrees/maestro-brain-alpha3
   ```
 
-- [ ] **Step 3: Verify and commit the bounded upgrade.** Run
-      `rtk pnpm acceptance:check`, `rtk pnpm acceptance`, and the Maestro full
-      verify on `maestro-worker`. Require the admitted Brain UI, built CLI,
-      cross-surface, auth/tenant, runtime identity, and all older admitted
-      journeys to pass with the alpha.3 controller lock and source facts.
+- [ ] **Step 3: Commit and verify the bounded upgrade.** Commit only the
+      preview-authorized postimages:
 
   ```bash
   rtk git add .maestro/product-contracts .maestro/contracts-legacy-baseline.json package.json pnpm-lock.yaml
   rtk git commit -m "build: adopt cucumber product contracts alpha.3"
   ```
+
+  From that committed Maestro M3 head, run separately:
+
+  ```bash
+  rtk maestro-remote-test -- pnpm acceptance:check
+  rtk maestro-remote-test -- pnpm acceptance
+  rtk maestro-remote-test -- pnpm verify
+  ```
+
+  Expected: PASS; the admitted Brain UI, built CLI, cross-surface, auth/tenant,
+  runtime identity, and every older admitted journey use the alpha.3 controller
+  lock and source facts.
 
 - [ ] **Step 4: Merge M3 through Maestro's protected batch-one queue.** The
       exact M3 merge candidate must receive `ci/woodpecker/pr/verify` from the
