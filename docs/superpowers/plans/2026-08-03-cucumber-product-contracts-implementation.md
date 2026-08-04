@@ -108,6 +108,102 @@ Every task is one of:
 - `fixture-to-real`: replace fake or structural evidence with a real product
   boundary.
 
+## Final Review Lock (2026-08-03)
+
+The final independent architecture, implementability, and BDD reviews are
+binding clarifications for every task below. They close ambiguity without
+creating a second authority.
+
+### Authoritative-run contract
+
+- `AcceptanceRunRequest` and `MessagesVerdict` are discriminated unions. A
+  `mode: "authoritative"` value must contain non-empty `protectedBaseSha`, a
+  complete `ciTuple` (`repository`, `mergeGroupOid`, `pullRequestNumber`,
+  `appId`, `context`, `candidateCommit`), and a controller-origin marker.
+  Focused/observation mode may omit the tuple. Missing or mismatched values fail
+  before candidate build or Cucumber execution.
+- `no-admitted-contracts` is a non-authoritative `static-no-admitted` result. It
+  is allowed only during W1's bootstrap overlap and is rejected by normal
+  `acceptance`, protected verify, release seal, and merge verdicts once C11b
+  admits the reference Feature. Focused checks for assembling journeys must fail
+  with an explicit diagnostic rather than silently selecting zero cases.
+- The authoritative runtime target is generated from the protected recipe and
+  `RuntimeTargetManifest` digest; candidate-supplied target paths/manifests are
+  rejected. Build commands are controller-owned adapters (a target may declare
+  no script); candidate package scripts never become launch authority.
+  `AcceptanceRuntimeEpoch` is controller-owned, persisted in the disposable
+  acceptance backend, included in `RuntimeManifest`, and created, observed,
+  drained, and cleaned up for every run. Missing or stale epochs fail.
+
+### Trusted fixture and selection boundary
+
+- C11a declares a controller-owned fixture overlay manifest containing source
+  path, destination path, byte digest, and protected step-definition roots. The
+  controller copies approved fixture steps into its support roots and copies
+  selected `.feature` bytes into the exact run-root path. Candidate
+  TypeScript/support files are never loaded; an unapproved candidate step must
+  fail resolution in a focused test. Local fixture execution may use local
+  fixture steps only in non-authoritative mode; C11b is the first protected run
+  after those steps are on the CODEOWNED base.
+- Authoritative selection is derived from protected `ContractInventory` and
+  candidate source digest. Candidate feature paths must equal the
+  inventory-derived set; extra files, path collisions, non-UTF-8/LF bytes,
+  symlinks, and paths outside `features/` are rejected before Cucumber.
+  `@admitted` is Feature-level: no Scenario/Rule tag may downgrade or omit a
+  Pickle, and every inventoried transport requires its own Pickle plus
+  cross-surface evidence.
+- Unit, integration, generator, and recipe tests may verify implementation but
+  never authorize lifecycle admission, release, or completion. D1 proves no
+  legacy journey/fake-proof/done-state gate remains; the immutable approved
+  design object is the only documented exception.
+
+### Task packets and external transitions
+
+- Rollout containers execute as separate packets: W1a source/classifier, W1b
+  image publish+lock+wiring, W1c external cutover; M-pre, M0, M0b, M1a, M1b,
+  M1c, M1d, and M2 likewise each have one immutable input, disjoint files or one
+  external transition, one green command, one output SHA/postimage, and one
+  unlock. No packet stages a directory glob; its staged diff equals its declared
+  manifest.
+- W1b uses protected-controller-only `tooling/ci/publish-controller-image.mts`.
+  Inputs are source SHA and registry ref; outputs are post-read image digest,
+  source-closure digest, and image lock. C10 uses a provisional manifest; W1b
+  seals the lock consumed by W1c.
+- External paths, current SHAs, tag OIDs, and journal locations are operator
+  inputs, never committed literals. Preflight fails on a stale baseline and
+  every inverse write is CAS-bound to its recorded postimage.
+
+### Scope and release sequencing
+
+- B1 Build Pack review and R1 promotion modernization are follow-on
+  integrations, not prerequisites for the contract runtime, W1, C11b, or the
+  pilot. Their tasks remain specification-ready but are removed from the
+  critical dependency chain; D2 uses the existing release authority plus the
+  sealed controller/runtime identities.
+- P1 is a non-default validation release; D1 runs after the protected Maestro
+  pilot and before D2 so public alpha.3 is the sole-Cucumber topology. D2/M3/D3
+  consume that clean post-D1 source.
+
+### Staged mutation and release schemas
+
+- C12 owns registry schema version `1` and exactly 33 uniquely numbered core
+  mutations (one ID per subcase). R1/W1 append IDs 34–36 in their own packets;
+  no pre-R1/W1 task asserts a final count of 36. Each packet records schema
+  version and expected count in its focused test.
+- U1 names its `RuntimeTargetManifest`, upgrade recipe, journal path, target
+  package-manager executable/version/digest, and every possible post-apply file.
+  Preview proves no target mutation before apply; apply is journaled and
+  recoverable.
+- M0 declares the installed audit payload path and generated files; M1d invokes
+  that installed root command. M2 evidence tags use a versioned annotation
+  schema with algorithm/length checks. P1/D2 bind gauntlet evidence to source
+  SHA, merge tuple, image lock, and manifest digest.
+- C3 discovery/generation runs only through the W0/C10 candidate sandbox; its
+  focused test proves candidate `*.spec.ts`, generators, and package hooks
+  cannot execute in the controller namespace. C8's checked-in NDJSON golden
+  records Cucumber/node/platform versions, generator command, and source digest;
+  regeneration must be byte-identical or the test fails.
+
 ## Program Invariants
 
 1. Checked-in UTF-8/LF `.feature` bytes are the only manually maintained
@@ -274,6 +370,15 @@ export type RuntimeManifest = {
   readonly webArtifactDigest: `sha256:${string}`;
   readonly cliArtifactDigest: `sha256:${string}`;
   readonly backend: BackendRuntimeIdentity;
+  readonly acceptanceRuntimeEpoch: AcceptanceRuntimeEpoch;
+};
+
+export type AcceptanceRuntimeEpoch = {
+  readonly schemaVersion: 1;
+  readonly epochId: string;
+  readonly inputDigest: `sha256:${string}`;
+  readonly createdAt: string;
+  readonly drainedAt?: string;
 };
 
 export type BackendRuntimeIdentity = {
@@ -345,7 +450,6 @@ W0 protected/tokenless CI bootstrap
        -> F1 create/contracts-add
        -> F2 generator cleanup/provenance
        -> U1 existing-app audit upgrade
-       -> R1 immutable release manifests
        -> W1 protected Woodpecker cutover
             -> C11b reference lifecycle/projection admission
                  -> P1 immutable Brain pilot release
@@ -354,29 +458,32 @@ W0 protected/tokenless CI bootstrap
                       -> M0b Maestro protected-CI source/canonical cutover
                       -> M1 Maestro Brain assembling slices
                       -> M2 Brain lifecycle/projection admission
-                      -> D1 old machinery deletion
-       -> B1 Build Pack human review -----------------------> D2 alpha.3 seal/tag
+                           -> D1 old machinery deletion
+       -> B1 Build Pack human review (follow-on)
+       -> R1 immutable release manifests (follow-on)
+       -> D2 alpha.3 seal/tag
                                                               -> M3 Maestro public-release upgrade
                                                                    -> D3 default switch
 ```
 
 `W0` first makes existing deterministic gates protected and candidate-tokenless.
-`C1` through `C12` then land one at a time. `F1`, `F2`, `B1`, `U1`, and `R1` may
-be prepared in parallel after `C12`, but each rebases on current main and reruns
-admitted contracts. `W1` changes only the already protected controller's
-semantics through an overlapping context transition. `C11b` then admits the
-reference Feature already assembling on protected main. `P1` seals a non-default
-immutable pilot without waiting for `B1`; `B1` is required only for the public
-`D2` release. Before `M0` receives a pull-request event, `M-pre` installs and
-requires a temporary protected root from immutable Maestro main and revokes PR
-secret injection. `M0` installs the manifest-declared additive audit payload and
-preimage-bound integrations under that root; `M0b` ports only the required
-target wrappers and performs the canonical cutover before `M1`. `M2` contains
-only the lifecycle line plus exact generated projections. Any repair is another
-assembling slice before a fresh `M2`. `D2` seals and tags without changing the
-public default; `M3` upgrades the admitted Maestro pilot to that exact public
-release; `D3` switches the default only after remote-tag materialization and M3
-acceptance.
+`C1` through `C12` then land one at a time. `F1`, `F2`, and `U1` may be prepared
+in parallel after `C12`, but each rebases on current main and reruns admitted
+contracts. `W1` changes only the already protected controller's semantics
+through an overlapping context transition. `C11b` then admits the reference
+Feature already assembling on protected main. `P1` is explicitly a non-default
+validation release; `D1` deletes the old authority after the real pilot passes
+and before `D2` seals public alpha.3. `B1` and `R1` are follow-on integrations
+and are not release prerequisites. Before `M0` receives a pull-request event,
+`M-pre` installs and requires a temporary protected root from immutable Maestro
+main and revokes PR secret injection. `M0` installs the manifest-declared
+additive audit payload and preimage-bound integrations under that root; `M0b`
+ports only the required target wrappers and performs the canonical cutover
+before `M1`. `M2` contains only the lifecycle line plus exact generated
+projections. Any repair is another assembling slice before a fresh `M2`. `D2`
+seals and tags without changing the public default; `M3` upgrades the admitted
+Maestro pilot to that exact public release; `D3` switches the default only after
+remote-tag materialization and M3 acceptance.
 
 ## Per-Task Completion Protocol
 
@@ -1554,6 +1661,13 @@ export type MessagesVerificationInput = {
 export type MessagesVerdict =
   | {
       readonly ok: true;
+      readonly mode: "authoritative";
+      readonly ciTuple: MessagesVerificationInput["ciTuple"];
+      readonly executedPickleKeys: readonly StablePickleKey[];
+    }
+  | {
+      readonly ok: true;
+      readonly mode: "focused" | "observation";
       readonly executedPickleKeys: readonly StablePickleKey[];
     }
   | { readonly ok: false; readonly findings: readonly string[] };
@@ -1892,17 +2006,33 @@ export type ProcessEnvironmentProjection = {
   readonly set: Readonly<Record<string, string>>;
 };
 
-export type AcceptanceRunRequest = {
-  readonly mode: "authoritative" | "focused";
-  readonly repositoryRoot: string;
-  readonly runtimeTarget: RuntimeTargetManifest;
-  readonly protectedBaseSha?: string;
-  readonly ciTuple?: MessagesVerificationInput["ciTuple"];
-  readonly focusedJourneyId?: `journey_${string}`;
-};
+export type AcceptanceRunRequest =
+  | {
+      readonly mode: "authoritative";
+      readonly repositoryRoot: string;
+      readonly runtimeTarget: RuntimeTargetManifest;
+      readonly protectedBaseSha: string;
+      readonly ciTuple: NonNullable<MessagesVerificationInput["ciTuple"]>;
+      readonly controllerOrigin: "protected-controller";
+    }
+  | {
+      readonly mode: "focused" | "observation";
+      readonly repositoryRoot: string;
+      readonly runtimeTarget: RuntimeTargetManifest;
+      readonly focusedJourneyId?: `journey_${string}`;
+    };
 
 export type AcceptanceRunResult =
-  | { readonly ok: true; readonly kind: "verified" | "no-admitted-contracts" }
+  | {
+      readonly ok: true;
+      readonly kind: "verified";
+      readonly mode: "authoritative" | "focused" | "observation";
+    }
+  | {
+      readonly ok: true;
+      readonly kind: "static-no-admitted";
+      readonly mode: "bootstrap-observation";
+    }
   | { readonly ok: false; readonly findings: readonly string[] };
 
 export type RuntimeTargetManifest = {
@@ -1910,12 +2040,12 @@ export type RuntimeTargetManifest = {
   readonly targetKind: "generated-template" | "unmanaged-existing-repository";
   readonly web: {
     readonly packageDir: string;
-    readonly buildScript: "build";
+    readonly buildAdapter: "template-web-v1" | "package-script-build";
     readonly artifactDir: string;
   };
   readonly cli: {
     readonly packageDir: string;
-    readonly buildScript: "build:executable" | "build";
+    readonly buildAdapter: "template-cli-v1" | "package-script-build";
     readonly executable: string;
   };
   readonly backend: {
@@ -2149,6 +2279,14 @@ fixture and mutations.
   fixture and the checked-in assembling `@journey_platform_access` Feature,
   steps, and generated-app test consumed by `C12` and `C11b`.
 
+**Fixture overlay contract:**
+`tooling/acceptance/fixtures/reference-app/overlay.json` is controller-owned and
+records each approved fixture source path, exact destination under the
+disposable run root, UTF-8/LF byte digest, and the protected
+support/step-definition root that receives it. Authoritative runs copy only this
+manifest; they never glob or import candidate support code. Focused local
+fixture runs may load these fixture steps only in observation mode.
+
 **Contract:** The disposable fixture Feature uses
 `@journey_template_records @admitted` only inside the explicitly
 non-authoritative factory target and contains these observable scenarios:
@@ -2173,11 +2311,13 @@ or customer-domain prose.
 - [ ] **Step 1: Write the fixture and assembling platform Feature first.** Keep
       prose actor/outcome-focused and use generated surface tags. Overlay the
       admitted records Feature and its steps only into a disposable
-      non-authoritative factory target; do not add that domain journey to normal
-      output. Check in the normal platform Feature as assembling with its real
-      steps. The first fixture step-definition file contains only `export {};`,
-      so every disposable Feature step is intentionally undefined for the red
-      run. No repository Feature transitions from absent to admitted.
+      non-authoritative factory target; write the overlay manifest and copy the
+      approved fixture steps into the controller-owned support root for focused
+      runs; do not add that domain journey to normal output. Check in the normal
+      platform Feature as assembling with its real steps. The first fixture
+      step-definition file contains only `export {};`, so every disposable
+      Feature step is intentionally undefined for the red run. No repository
+      Feature transitions from absent to admitted.
 
 - [ ] **Step 2: Add the failing generated-app integration test.** Generate a
       fresh app through the real release adapter, overlay the CODEOWNED fixture,
@@ -3147,15 +3287,18 @@ same immutable multi-component product.
 ### Task 19: Cut Over The Protected Woodpecker Merge-Candidate Authority
 
 **Class:** `pattern-instance`  
-**PRs:** control source `W1a`, then published-image lock/verify wiring `W1b`
-**Depends on:** `R1`, `C12`, and a green `C10` sandbox canary on the actual
-Woodpecker agent; `W0` remains the active protected authority throughout
+**PRs:** control source `W1a`, published-image lock/verify wiring `W1b`, then
+external protected cutover `W1c` **Depends on:** `C12`, and a green `C10`
+sandbox canary on the actual Woodpecker agent; `W0` remains the active protected
+authority throughout
 
 **Files:**
 
 - Create in `W1a`: `tooling/ci/mergeCandidate.mts`
 - Create in `W1a`: `tooling/ci/mergeCandidate.test.mts`
 - Create in `W1b`: `tooling/acceptance/controller-image.lock.json`
+- Create in `W1b`: `tooling/ci/publish-controller-image.mts`
+- Create in `W1b`: `tooling/ci/publish-controller-image.test.mts`
 - Modify in `W1a`: `tooling/ci/ci-self-protection.sh`
 - Create in `W1a`: `tooling/ci/ci-self-protection.test.mts`
 - Modify in `W1b`: `tooling/ci/phase1.sh`
@@ -3213,11 +3356,11 @@ export type ControllerImageLock = {
 
 **Execution packets:**
 
-| Packet                            | Consumes                                      | Produces                                                                                                                             | Independent green gate                                                                             |
-| --------------------------------- | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------- |
-| `W1a` source/classifier           | merged `R1`, protected `W0`, C10 canary       | merge-candidate classifier, image-lock validator, protected self-protection source, ownership/stack cleanup, 36-case registry source | `mergeCandidate`, `ci-self-protection`, config-drift, and mutation tests                           |
-| `W1b` published-image lock/wiring | protected-main W1a SHA and registry post-read | CODEOWNED image lock plus blocking acceptance wiring and CI assertions                                                               | image-lock, Woodpecker-template, CI-completeness, and 36-case mutation tests                       |
-| external cutover                  | merged W1b SHA and its controller image lock  | journaled temporary observation, canonical overlap, final required context, and protected tag ruleset                                | three fresh merge candidates plus `verify --stage temporary`, `canonical-overlap`, and `canonical` |
+| Packet                            | Consumes                                      | Produces                                                                                                                              | Independent green gate                                                                             |
+| --------------------------------- | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `W1a` source/classifier           | protected `W0`, C10 canary                    | merge-candidate classifier, image-lock validator, protected self-protection source, ownership/stack cleanup, mutation registry append | `mergeCandidate`, `ci-self-protection`, config-drift, and mutation tests                           |
+| `W1b` published-image lock/wiring | protected-main W1a SHA and registry post-read | CODEOWNED image lock plus blocking acceptance wiring and CI assertions                                                                | image-lock, Woodpecker-template, CI-completeness, and 36-case mutation tests                       |
+| external cutover                  | merged W1b SHA and its controller image lock  | journaled temporary observation, canonical overlap, final required context, and protected tag ruleset                                 | three fresh merge candidates plus `verify --stage temporary`, `canonical-overlap`, and `canonical` |
 
 Each packet is a separate implementation handoff. Do not assign or merge W1b
 until W1a is protected main, and do not begin the external cutover until W1b is
@@ -3449,9 +3592,9 @@ contract; the factory mutation fixture is no longer the only success path.
 
 **PR:** `P1`
 
-**Depends on:** `F1`, `F2`, `U1`, `R1`, `W1`, and `C11b` merged on protected
-main, plus the green 36-case gauntlet. `B1` is deliberately not on the pilot
-critical path.
+**Depends on:** `F1`, `F2`, `U1`, `W1`, and `C11b` merged on protected main,
+plus the green 33-case core gauntlet. `B1` and `R1` are follow-on integrations,
+not pilot prerequisites.
 
 **Repository:** `maestro-template-saas-ui`
 
@@ -3462,7 +3605,7 @@ critical path.
 **Interfaces:**
 
 - Consumes: the current release sealer, immutable alpha.2 base, U1
-  contracts-audit projection, W1 controller-image lock, and protected 36-case
+  contracts-audit projection, W1 controller-image lock, and protected 33-case
   acceptance evidence.
 - Produces: the non-default pilot release directory, protected annotated
   `maestro-template-v0.2.0-alpha.3-pilot.1` tag, and sealed
@@ -3473,9 +3616,9 @@ or store release authority in pull-request prose.
 
 - [ ] **Step 1: Freeze the source candidate.** Start from a clean protected-main
       worktree after every dependency has merged. Record its 40-character HEAD;
-      the release candidate may contain both new Cucumber authority and the old
-      journey machinery, because `D1` deletes the old machinery only after the
-      real pilot passes.
+      is a non-default validation release; legacy journey/fake-proof machinery
+      is explicitly non-authoritative and is deleted by D1 before the public
+      alpha.3 seal.
 
 - [ ] **Step 2: Seal the non-default pilot version.** Run
       `rtk pnpm release:seal -- --version 0.2.0-alpha.3-pilot.1 --source-commit <recorded-40-character-source-sha> --base-version 0.2.0-alpha.2 --non-default`.
@@ -4099,8 +4242,8 @@ ready to seal from a clean source commit.
 
 **PR:** `D2`
 
-**Depends on:** merged `D1`, merged `B1`, the protected annotated Maestro M2
-evidence tag, and the green 36-case gauntlet
+**Depends on:** merged `D1`, the protected annotated Maestro M2 evidence tag,
+and the green 36-case gauntlet. `B1` and `R1` are not release prerequisites.
 
 **Files:**
 
@@ -4319,6 +4462,9 @@ protected Maestro `M3` green on public alpha.3
   Run `D3` through the protected merge queue and repeat untouched create from
   the published tag. Expected: `ci/woodpecker/pr/verify` is the sole required
   context and no release byte changed.
+
+**Unlock:** New app creation now defaults to the immutable, protected alpha.3
+contract release; the switch cannot alter release bytes or accept a moved tag.
 
 **Final evidence:** Net duplicate journey/fake-proof code is deleted; one
 official Cucumber execution chain proves behavior; new factory contracts begin
