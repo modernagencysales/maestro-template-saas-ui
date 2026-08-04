@@ -14,10 +14,9 @@ if [[ -n "${SECRET_SCANNER_VERSION:-}" ]]; then
   echo "Secret scanner version target: ${SECRET_SCANNER_VERSION}"
 fi
 
-# check:secret-canaries shells out to gitleaks and check:qlty to qlty (both
-# fail closed on CI); hosted agents are bare, so install the pinned binaries.
+# check:secret-canaries shells out to gitleaks. Qlty is advisory in a separate
+# controller step and never affects the deterministic root verdict.
 "$(dirname "$0")/install-gitleaks.sh"
-"$(dirname "$0")/install-qlty.sh"
 export PATH="${HOME}/.local/bin:${PATH}"
 
 pnpm verify
@@ -31,6 +30,3 @@ pnpm check:convex-ai-files
 pnpm check:agent-pack
 pnpm check:app-map
 pnpm template:workflow-output-smoke
-pnpm check:pr-health
-pnpm check:unresolved-review-threads
-pnpm check:merge-conflicts

@@ -1,6 +1,21 @@
-# Ordinary product files intentionally have no mandatory owner so green,
-# low-risk PRs can auto-merge. Architecture, data, security, deploy, and gate
-# contracts require explicit owner review.
+# Protected CI requires a current-head approval from a write-enabled owner
+# other than the PR author for trust paths and ordinary product roots.
+/.github/CODEOWNERS          @kimprobably
+/.woodpecker/                @kimprobably
+/features/                   @kimprobably
+/cucumber.cjs                @kimprobably
+/tooling/acceptance/         @kimprobably
+/tooling/ci/                 @kimprobably
+/tooling/confect-manifest/   @kimprobably
+/tooling/agent-pack/         @kimprobably
+/packages/template-core/     @kimprobably
+/apps/web/                   @kimprobably
+/apps/cli/                   @kimprobably
+/packages/convex/            @kimprobably
+/examples/saas-application/  @kimprobably
+/package.json                @kimprobably
+/pnpm-lock.yaml              @kimprobably
+/template-instance.json      @kimprobably
 /.github/                     @kimprobably
 /eslint.config.mjs             @kimprobably
 /dependency-cruiser.config.cjs @kimprobably

@@ -154,8 +154,9 @@ Concrete files to inspect:
 - `tooling/generators/src/index.ts`: app factory commands.
 - `docs/rule-coverage.md`: rule-to-gate coverage map.
 - `pnpm review:completion`: objective-to-evidence completion audit.
-- `.woodpecker/verify.yml` and `.woodpecker/deploy.yml`: deterministic
-  verification and guarded promotion gates.
+- `.woodpecker/firewall.yml`, `.woodpecker/epoch.yml`, and
+  `.woodpecker/deploy.yml`: fast PR admission, exact-SHA full verification, and
+  guarded promotion gates.
 
 ## Confect/Effect Completion Boundary
 

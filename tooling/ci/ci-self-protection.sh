@@ -9,7 +9,6 @@ source "$(dirname "$0")/setup.sh"
 # check:ci-completeness pins the pipeline shape, gate scripts, justfile
 # recipes, and hook config; do not grant this step any secrets.
 
-pnpm install --frozen-lockfile
 pnpm check:ci-completeness
 pnpm check:deploy-authority
 pnpm check:config-drift

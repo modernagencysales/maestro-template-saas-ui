@@ -25,6 +25,11 @@ export function validateRootVerifyHostTerms(input: unknown): readonly string[] {
       "package.json scripts.verify must not run pnpm check:product-journeys before repository adoption",
     );
   }
+  if (terms.includes("pnpm check:qlty")) {
+    findings.push(
+      "package.json scripts.verify must keep pnpm check:qlty advisory outside the root verdict",
+    );
+  }
   const indices = REQUIRED_HOST_VERIFY_TERMS.map((required) => {
     const matches = terms.flatMap((term, index) =>
       term === required ? [index] : [],

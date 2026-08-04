@@ -6,12 +6,18 @@ import { createRepositoryContext } from "./repoContext.js";
 const context = {
   schemaVersion: 1 as const,
   invocation: "library" as const,
-  repo: createRepositoryContext({ cwd: "/repo" }),
+  repo: createRepositoryContext({ cwd: process.cwd() }),
 };
 const plan = {
   feature: "agent-pack scaffold",
   slices: [],
   allTaskRefs: [],
+  qualityTargets: ["lint"],
+  architectureRules: ["Preserve layer law (imports respect layers)"],
+  cucumberFeatures: ["features/scaffold.feature"],
+  denialCases: ["unauthorized access"],
+  focusedTests: ["tooling/agent-pack/src/planCheck.test.ts"],
+  conflictDomains: ["tooling/agent-pack"],
 };
 
 describe("plan-check command", () => {
@@ -54,6 +60,53 @@ describe("plan-check command", () => {
       })),
       data: { valid: false, findings },
     });
+  });
+
+  it.each([
+    "qualityTargets",
+    "architectureRules",
+    "cucumberFeatures",
+    "denialCases",
+    "focusedTests",
+    "conflictDomains",
+  ] as const)("rejects a plan without non-empty %s", async (field) => {
+    const result = await executeAgentPackCommand(
+      createPlanCheckCommand({ validate: () => [] }),
+      { plan: { ...plan, [field]: [] } },
+      context,
+    );
+
+    expect(result).toMatchObject({
+      exitClass: "findings",
+      diagnostics: [
+        expect.objectContaining({
+          code: `plan.${field.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`)}.required`,
+        }),
+      ],
+    });
+  });
+
+  it("rejects unknown commands, prose-only rules, and unsafe feature paths", async () => {
+    const result = await executeAgentPackCommand(
+      createPlanCheckCommand({ validate: () => [] }),
+      {
+        plan: {
+          ...plan,
+          qualityTargets: ["not-a-package-script"],
+          architectureRules: ["please write clean code"],
+          cucumberFeatures: ["../outside.feature"],
+        },
+      },
+      context,
+    );
+
+    expect(result.diagnostics.map(({ code }) => code)).toEqual(
+      expect.arrayContaining([
+        "plan.quality-targets.unknown",
+        "plan.architecture-rules.unknown",
+        "plan.cucumber-features.invalid",
+      ]),
+    );
   });
 
   it.each([

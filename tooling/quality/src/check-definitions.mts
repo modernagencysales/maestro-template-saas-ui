@@ -9,15 +9,48 @@ const checkDescriptorDefinitions = {
     name: "check:ci-completeness",
     requirements: [
       {
-        file: ".woodpecker/verify.yml",
+        file: ".woodpecker/firewall.yml",
         includes: [
           "trusted-ci-policy",
           "tooling/ci/ci-self-protection.sh",
-          "tooling/ci/phase1.sh",
+          "tooling/ci/firewall.sh",
+          "class: firewall",
           "depends_on:",
         ],
         message:
-          "Woodpecker verification must route through trusted deterministic CI scripts",
+          "Woodpecker PR firewall must route through trusted deterministic CI scripts",
+      },
+      {
+        file: ".woodpecker/epoch.yml",
+        includes: ["class: epoch", "event: manual", "tooling/ci/epoch.sh"],
+        message: "Woodpecker full verification must run only as a manual epoch",
+      },
+      {
+        file: "tooling/ci/firewall.sh",
+        includes: [
+          "pnpm check:format",
+          "pnpm lint",
+          "pnpm typecheck",
+          "pnpm check:deps",
+          "pnpm check:layer-boundaries",
+          "pnpm check:secret-canaries",
+          "pnpm acceptance:check",
+          "pnpm acceptance:features",
+          "pnpm check:qlty -- --diff",
+          "pnpm review:bounded",
+        ],
+        absent: ["pnpm verify"],
+        message:
+          "PR firewall must stay fast while enforcing every shift-left gate",
+      },
+      {
+        file: "tooling/ci/epoch.sh",
+        includes: [
+          "FACTORY_EPOCH_SHA",
+          "pnpm check:qlty -- --all",
+          "pnpm verify",
+        ],
+        message: "manual epochs must bind exact SHA and run full verification",
       },
       {
         file: ".woodpecker/deploy.yml",
@@ -33,20 +66,6 @@ const checkDescriptorDefinitions = {
           "Woodpecker deployment pipeline must isolate staging and production",
       },
       {
-        file: ".github/workflows/quality.yml",
-        includes: [
-          "Required quality",
-          "pull_request",
-          "actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5",
-          "pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1",
-          "actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
-          "pnpm install --frozen-lockfile",
-          "pnpm verify",
-        ],
-        message:
-          "GitHub must publish a deterministic required quality status for pull requests",
-      },
-      {
         file: ".github/CODEOWNERS",
         includes: [
           "/docs/template/system-catalog*",
@@ -54,10 +73,16 @@ const checkDescriptorDefinitions = {
           "/docs/template/data-resources.json",
           "/tooling/quality/",
           "/tooling/generators/",
+          "/tooling/ci/",
+          "/packages/template-core/",
+          "/apps/web/",
+          "/apps/cli/",
+          "/packages/convex/",
+          "/examples/saas-application/",
         ],
         absent: ["\n* @"],
         message:
-          "code-owner review must protect sensitive contracts without gating ordinary product files",
+          "code-owner review must protect trust, contract, and product roots",
       },
       {
         file: "tooling/ci/ci-self-protection.sh",
