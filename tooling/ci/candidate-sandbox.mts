@@ -1,13 +1,10 @@
 import { existsSync, readFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 
-export function candidateEnvironment(
-  proxy: string,
-): Readonly<Record<string, string>> {
+export function candidateEnvironment(): Readonly<Record<string, string>> {
   return {
     CI: "true",
     HOME: "/tmp/candidate-home",
-    npm_config_registry: proxy,
   };
 }
 
@@ -15,12 +12,9 @@ export function candidateSandboxArgv(input: {
   readonly workspace: string;
   readonly sourceWorkspace?: string;
   readonly runtime?: string;
-  readonly dependencyProxy?: string;
 }): readonly string[] {
   const sourceWorkspace = input.sourceWorkspace ?? input.workspace;
   const runtime = input.runtime ?? "/controller/runtime";
-  const dependencyProxy =
-    input.dependencyProxy ?? "/controller/dependency-proxy";
   return [
     "bwrap",
     "--die-with-parent",
@@ -40,9 +34,6 @@ export function candidateSandboxArgv(input: {
     "--ro-bind",
     runtime,
     "/runtime",
-    "--ro-bind",
-    dependencyProxy,
-    "/dependency-proxy",
     "--tmpfs",
     "/tmp",
     "--dir",
@@ -60,6 +51,12 @@ export function candidateSandboxArgv(input: {
     "--chdir",
     "/candidate",
   ];
+}
+
+export function assertCandidateDependencyProxyIsWired(): never {
+  throw new Error(
+    "candidate install requires a controller-local dependency proxy wired into its network namespace",
+  );
 }
 
 export function validateCandidateLockfile(input: {
@@ -97,15 +94,14 @@ function main(): void {
   });
   if (process.platform !== "linux")
     throw new Error("candidate sandbox requires Linux Bubblewrap");
+  assertCandidateDependencyProxyIsWired();
   const prefix = candidateSandboxArgv({ workspace });
   const [executable, ...sandboxArgs] = prefix;
   if (!executable) throw new Error("candidate sandbox command is empty");
-  const proxy =
-    process.env.DEPENDENCY_PROXY_URL ?? "http://dependency-proxy:4873";
   const command = [
     "env",
     "-i",
-    ...Object.entries(candidateEnvironment(proxy)).map(([k, v]) => `${k}=${v}`),
+    ...Object.entries(candidateEnvironment()).map(([k, v]) => `${k}=${v}`),
     "pnpm",
     "fetch",
     "--frozen-lockfile",
@@ -122,9 +118,7 @@ function main(): void {
       "--",
       "env",
       "-i",
-      ...Object.entries(candidateEnvironment(proxy)).map(
-        ([k, v]) => `${k}=${v}`,
-      ),
+      ...Object.entries(candidateEnvironment()).map(([k, v]) => `${k}=${v}`),
       "pnpm",
       "install",
       "--offline",

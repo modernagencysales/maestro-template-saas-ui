@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  assertCandidateDependencyProxyIsWired,
   candidateEnvironment,
   candidateSandboxArgv,
   validateCandidateLockfile,
@@ -7,16 +8,14 @@ import {
 
 describe("candidate sandbox", () => {
   it("starts empty and exposes no controller credential or host control path", () => {
-    expect(candidateEnvironment("http://dependency-proxy:4873")).toEqual({
+    expect(candidateEnvironment()).toEqual({
       CI: "true",
       HOME: "/tmp/candidate-home",
-      npm_config_registry: "http://dependency-proxy:4873",
     });
     const argv = candidateSandboxArgv({
       workspace: "/scratch/candidate",
       sourceWorkspace: "/read-only/source",
       runtime: "/controller/runtime",
-      dependencyProxy: "/controller/dependency-proxy",
     });
     expect(argv).toEqual(
       expect.arrayContaining([
@@ -41,9 +40,6 @@ describe("candidate sandbox", () => {
         "--ro-bind",
         "/controller/runtime",
         "/runtime",
-        "--ro-bind",
-        "/controller/dependency-proxy",
-        "/dependency-proxy",
         "--rlimit-as",
         "1073741824",
         "--rlimit-cpu",
@@ -52,6 +48,7 @@ describe("candidate sandbox", () => {
         "1024",
       ]),
     );
+    expect(argv).not.toContain("/dependency-proxy");
     expect(argv.join(" ")).not.toMatch(
       /GITHUB_TOKEN|BWS|CLOUDFLARE|SSH_AUTH_SOCK|docker\.sock/u,
     );
@@ -72,5 +69,11 @@ describe("candidate sandbox", () => {
         hasPnpmfile: false,
       }),
     ).toThrow(/evil@1\.0\.0/u);
+  });
+
+  it("refuses installs until a controller-local dependency proxy is wired into the network namespace", () => {
+    expect(() => assertCandidateDependencyProxyIsWired()).toThrow(
+      /controller-local dependency proxy/u,
+    );
   });
 });
