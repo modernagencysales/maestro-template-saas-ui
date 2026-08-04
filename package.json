@@ -113,6 +113,7 @@
     "check:qlty": "tsx tooling/quality/check-qlty.mts",
     "acceptance:check": "tsx tooling/acceptance/check-contracts.mts",
     "acceptance:features": "tsx tooling/acceptance/check-features.mts",
+    "acceptance:cucumber": "cucumber-js --config cucumber.cjs",
     "contract-review": "tsx tooling/quality/contract-review.mts",
     "review:contract": "pnpm contract-review",
     "review:bounded": "tsx tooling/quality/ai-review-cycle.mts",
