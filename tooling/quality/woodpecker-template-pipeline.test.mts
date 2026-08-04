@@ -46,6 +46,9 @@ describe("Woodpecker firewall and epoch pipelines", () => {
     const setup = read("tooling/ci/setup.sh");
     expect(setup).toContain("candidate-sandbox.mts validate");
     expect(setup).toContain("pnpm fetch --frozen-lockfile --ignore-scripts");
+    expect(setup).toContain(
+      "pnpm install --offline --frozen-lockfile --ignore-scripts",
+    );
     expect(setup).not.toContain("candidate-sandbox.mts install");
   });
 
