@@ -507,6 +507,16 @@ export const createProtectedControllerAdapter = () => ({ github: endpoint, woodp
           mutateAfterWrite: false,
         }),
       );
+      const driftedPreview = cli(
+        "install-temporary",
+        "--journal",
+        journalPath,
+        "--adapter-module",
+        adapterPath,
+        "--expected-live-digest",
+        expected,
+      );
+      expect(driftedPreview.status, driftedPreview.stderr).toBe(0);
       const drifted = cli(
         "install-temporary",
         "--journal",
@@ -516,7 +526,7 @@ export const createProtectedControllerAdapter = () => ({ github: endpoint, woodp
         "--expected-live-digest",
         expected,
         "--confirm",
-        confirmation,
+        JSON.parse(driftedPreview.stdout).previewFingerprint,
       );
       expect(drifted.status).toBe(1);
       expect(drifted.stderr).toMatch(/compare-and-swap drift/u);
@@ -544,5 +554,5 @@ export const createProtectedControllerAdapter = () => ({ github: endpoint, woodp
     } finally {
       rmSync(directory, { recursive: true, force: true });
     }
-  });
+  }, 30_000);
 });
