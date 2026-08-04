@@ -277,7 +277,16 @@ const uiActionAuthorities = (
   const expressionHasHook = (expression: ts.Node): boolean => {
     let found = false;
     const visitExpression = (node: ts.Node): void => {
-      if (ts.isIdentifier(node) && hookNames.has(node.text)) found = true;
+      if (ts.isIdentifier(node) && hookNames.has(node.text)) {
+        const parent = node.parent;
+        const isMemberName =
+          ts.isPropertyAccessExpression(parent) && parent.name === node;
+        const isObjectKey =
+          (ts.isPropertyAssignment(parent) || ts.isMethodDeclaration(parent)) &&
+          parent.name === node &&
+          !ts.isComputedPropertyName(parent.name);
+        if (!isMemberName && !isObjectKey) found = true;
+      }
       ts.forEachChild(node, visitExpression);
     };
     visitExpression(expression);
@@ -378,8 +387,15 @@ const uiActionAuthorities = (
       if (
         ts.isIdentifier(node) &&
         (hookNames.has(node.text) || hookObjectRoots.has(node.text))
-      )
-        found = true;
+      ) {
+        const parent = node.parent;
+        const isMemberName =
+          ts.isPropertyAccessExpression(parent) && parent.name === node;
+        const isObjectKey =
+          (ts.isPropertyAssignment(parent) || ts.isMethodDeclaration(parent)) &&
+          parent.name === node;
+        if (!isMemberName && !isObjectKey) found = true;
+      }
       ts.forEachChild(node, visitExpression);
     };
     visitExpression(expression);

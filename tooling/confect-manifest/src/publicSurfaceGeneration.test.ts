@@ -461,6 +461,8 @@ describe("public surface generation", () => {
         values[0].toString();
         const labels = ["useSave"];
         labels[0].toString();
+        const labelMap = { useSave: "Save" };
+        labelMap.useSave.toString();
       `,
     });
     expect(() => discoverPublicAuthorities(root)).not.toThrow();
