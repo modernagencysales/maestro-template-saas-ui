@@ -32,7 +32,10 @@ type ManifestFunction = (typeof confectManifest.functions)[number];
 const hasSurface = (entry: ManifestFunction, surface: string): boolean =>
   (entry.surfaces as readonly string[]).includes(surface);
 
-const authorizedSurfaceFor = (operationId: string, transport: "ui" | "api") => {
+const authorizedSurfaceFor = (
+  operationId: string,
+  transport: "ui" | "api" | "cli",
+) => {
   const operation = confectManifest.functions.find(
     (candidate) => candidate.operationId === operationId,
   );
@@ -61,7 +64,7 @@ export type HeadlessHttpCtx = {
   readonly authenticate?: (input: {
     readonly authorization: string | undefined;
     readonly policy: AuthPolicy;
-    readonly surface: "web" | "api";
+    readonly surface: "web" | "api" | "cli";
   }) => Promise<Principal>;
   readonly authorize?: (
     request: HeadlessExecutorRequest,
@@ -106,7 +109,11 @@ type TemplateRouteMatch =
   | { readonly kind: "dodoWebhook" }
   | { readonly kind: "postmarkWebhook" }
   | { readonly kind: "emailUnsubscribe" }
-  | { readonly kind: "operation"; readonly operationId: string }
+  | {
+      readonly kind: "operation";
+      readonly operationId: string;
+      readonly transport: "api" | "cli";
+    }
   | { readonly kind: "notFound"; readonly pathname: string };
 
 const staticTemplateRoutes: Record<string, TemplateRouteMatch | undefined> = {
@@ -248,6 +255,14 @@ export const templateHttpRoutes = [
       kind: "http-route" as const,
       description: `Executes ${entry.operationId}.`,
     })),
+  ...confectManifest.functions
+    .filter((entry) => hasSurface(entry, "cli"))
+    .map((entry) => ({
+      path: `/cli/${entry.operationId}`,
+      method: "POST" as const,
+      kind: "http-route" as const,
+      description: `Executes ${entry.operationId}.`,
+    })),
 ] as const satisfies readonly TemplateHttpRoute[];
 
 const withSecurityHeaders = (
@@ -307,11 +322,15 @@ const runTemplateApiOperation = async (
   ctx: HeadlessHttpCtx,
   request: HeadlessExecutorRequest,
   authorization: string | undefined,
+  transport: "api" | "cli",
 ): Promise<unknown> => {
-  const transport = authorization?.match(/^Bearer\s+mtk_live_/iu)
-    ? "api"
-    : "ui";
-  const surface = authorizedSurfaceFor(request.operationId, transport);
+  const authTransport =
+    transport === "cli"
+      ? "cli"
+      : authorization?.match(/^Bearer\s+mtk_live_/iu)
+        ? "api"
+        : "ui";
+  const surface = authorizedSurfaceFor(request.operationId, authTransport);
   const policy =
     surface === undefined
       ? undefined
@@ -321,7 +340,7 @@ const runTemplateApiOperation = async (
   const principal = await requireHttpAuthentication(ctx, {
     authorization,
     policy,
-    surface: transport === "ui" ? "web" : "api",
+    surface: authTransport === "ui" ? "web" : authTransport,
   });
 
   return await executeAuthorizedOperation(
@@ -349,15 +368,25 @@ const runTemplateApiOperation = async (
 };
 
 const templateRouteForPath = (pathname: string): TemplateRouteMatch => {
-  const apiEntry = confectManifest.functions.find(
-    (entry) =>
-      hasSurface(entry, "api") && `/api/${entry.operationId}` === pathname,
-  );
+  const operation = (["api", "cli"] as const)
+    .map((transport) => {
+      const entry = confectManifest.functions.find(
+        (candidate) =>
+          hasSurface(candidate, transport) &&
+          `/${transport}/${candidate.operationId}` === pathname,
+      );
+      return entry === undefined
+        ? undefined
+        : {
+            kind: "operation" as const,
+            operationId: entry.operationId,
+            transport,
+          };
+    })
+    .find((entry) => entry !== undefined);
   const route =
     staticTemplateRoutes[pathname] ??
-    (apiEntry
-      ? { kind: "operation", operationId: apiEntry.operationId }
-      : { kind: "notFound", pathname });
+    (operation ? operation : { kind: "notFound", pathname });
 
   return route;
 };
@@ -386,7 +415,12 @@ const templateRouteResponse = async (
       response = await emailUnsubscribeRouteResponse(ctx, request);
       break;
     case "operation":
-      response = await operationRouteResponse(ctx, request, route.operationId);
+      response = await operationRouteResponse(
+        ctx,
+        request,
+        route.operationId,
+        route.transport,
+      );
       break;
     case "notFound":
       response = notFoundRouteResponse(route.pathname);
@@ -564,10 +598,11 @@ const operationRouteResponse = async (
   ctx: HeadlessHttpCtx,
   request: Request,
   operationId: string,
+  transport: "api" | "cli",
 ): Promise<Response> => {
   const response =
     request.method === "POST"
-      ? await executeTemplateApiRoute(ctx, request, operationId)
+      ? await executeTemplateApiRoute(ctx, request, operationId, transport)
       : jsonResponse({
           ok: false,
           error: {
@@ -583,6 +618,7 @@ const executeTemplateApiRoute = async (
   ctx: HeadlessHttpCtx,
   request: Request,
   operationId: string,
+  transport: "api" | "cli",
 ): Promise<Response> => {
   const parsedBody = await readJsonBody(request);
   const response = parsedBody.ok
@@ -591,6 +627,7 @@ const executeTemplateApiRoute = async (
         operationId,
         parsedBody.body,
         request.headers.get("authorization") ?? undefined,
+        transport,
       )
     : jsonResponse(parsedBody);
 
@@ -602,6 +639,7 @@ const responseForParsedTemplateApiBody = async (
   operationId: string,
   body: TemplateApiRequestBody,
   authorization?: string,
+  transport: "api" | "cli" = "api",
 ): Promise<Response> => {
   const executorRequest = executorRequestFor(operationId, body);
   const response = executorRequest.ok
@@ -610,6 +648,7 @@ const responseForParsedTemplateApiBody = async (
           ctx,
           executorRequest.request,
           authorization,
+          transport,
         ),
       )
     : jsonResponse(executorRequest);
@@ -669,7 +708,7 @@ const buildTemplateHttpRouter = () => {
           return await authenticateApiKey({
             authorization,
             policy,
-            surface: "api",
+            surface,
             nowMs: Date.now(),
             loadByHash: (keyHash) =>
               ctx.runQuery(apiKeyByHashQueryRef, { keyHash }),

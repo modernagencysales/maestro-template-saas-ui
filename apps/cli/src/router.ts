@@ -28,8 +28,20 @@ export const dispatchCliCommand = (
   const context = parseCliCommandContext(argv);
   const handler = findCliHandler(handlers, context);
 
-  return (
-    handler?.run(context, config) ??
-    cliFailure(`Unknown command: ${argv.join(" ")}\n`)
-  );
+  const result = handler?.run(context, config);
+  return result instanceof Promise
+    ? cliFailure("This command requires asynchronous CLI execution.\n")
+    : (result ?? cliFailure(`Unknown command: ${argv.join(" ")}\n`));
+};
+
+export const dispatchCliCommandAsync = async (
+  handlers: readonly CliCommandHandler[],
+  argv: readonly string[],
+  config: CliRuntimeConfig,
+): Promise<CliResult> => {
+  const context = parseCliCommandContext(argv);
+  const handler = findCliHandler(handlers, context);
+  return handler === undefined
+    ? cliFailure(`Unknown command: ${argv.join(" ")}\n`)
+    : await handler.run(context, config);
 };

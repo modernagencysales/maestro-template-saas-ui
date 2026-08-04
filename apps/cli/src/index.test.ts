@@ -249,6 +249,8 @@ describe("maestro-template CLI", () => {
     const config = decodeCliRuntimeConfig({
       WORKOS_API_KEY: "workos_key",
       WORKOS_CLIENT_ID: "workos_client",
+      MAESTRO_API_BASE_URL: "https://api.example.test",
+      MAESTRO_API_KEY: "mtk_live_secret",
       IGNORED_SECRET: "do-not-forward",
     });
     const report = JSON.parse(
@@ -263,6 +265,10 @@ describe("maestro-template CLI", () => {
       }),
     );
     expect(config.providerEnv).not.toHaveProperty("IGNORED_SECRET");
+    expect(config).toMatchObject({
+      apiBaseUrl: "https://api.example.test",
+      apiKey: "mtk_live_secret",
+    });
   });
 
   it("reports whitespace-contaminated live provider env names without leaking values", () => {
@@ -402,77 +408,54 @@ describe("maestro-template CLI", () => {
     });
   });
 
-  it("runs the source-grounded brief capability from the CLI", () => {
-    const result = runCli([
-      "capability",
-      "run",
-      "brain.pages.createMarkdown",
-      "--workspace",
-      "acme-demo",
-      "--input",
-      '{"title":"CLI note","markdown":"# CLI note"}',
-      "--idempotency-key",
-      "brain.pages.createMarkdown-cli-001",
-    ]);
-    const payload = JSON.parse(result.stdout);
-
-    expect(result.exitCode).toBe(1);
-    expect(payload).toMatchObject({
-      ok: false,
-      error: {
-        _tag: "FeatureDisabled",
-        message:
-          "Operation brain.pages.createMarkdown requires a runtime execution adapter.",
+  it("executes CLI capabilities through the authenticated HTTP route", async () => {
+    const requests: Request[] = [];
+    const fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+      requests.push(new Request(input, init));
+      return new Response(
+        JSON.stringify({ ok: true, result: { id: "page_123" } }),
+        {
+          headers: { "content-type": "application/json" },
+        },
+      );
+    };
+    const result = await runCliAsync(
+      [
+        "capability",
+        "run",
+        "brain.pages.createMarkdown",
+        "--workspace",
+        "acme-demo",
+        "--input",
+        '{"slug":"cli-note","title":"CLI note","markdown":"# CLI note"}',
+        "--idempotency-key",
+        "cli-001",
+      ],
+      {
+        providerEnv: {},
+        apiBaseUrl: "https://api.example.test",
+        apiKey: "mtk_live_secret",
       },
-    });
-  });
+      undefined,
+      fetch,
+    );
 
-  it("uses capability request args when provided", () => {
-    const result = runCli([
-      "capability",
-      "run",
-      "brain.pages.createMarkdown",
-      "--workspace",
-      "bad slug",
-      "--input",
-      '{"title":"Custom note","markdown":"# Custom note"}',
-      "--idempotency-key",
-      "custom-note-001",
-    ]);
-    const payload = JSON.parse(result.stdout);
-
-    expect(result.exitCode).toBe(1);
-    expect(payload).toMatchObject({
-      ok: false,
-      error: {
-        _tag: "ValidationFailed",
-        message: "workspaceSlug must be a lowercase slug.",
+    expect(result.exitCode).toBe(0);
+    expect(requests).toHaveLength(1);
+    expect(requests[0]?.url).toBe(
+      "https://api.example.test/cli/brain.pages.createMarkdown",
+    );
+    expect(requests[0]?.headers.get("authorization")).toBe(
+      "Bearer mtk_live_secret",
+    );
+    await expect(requests[0]?.json()).resolves.toEqual({
+      workspaceSlug: "acme-demo",
+      input: {
+        slug: "cli-note",
+        title: "CLI note",
+        markdown: "# CLI note",
       },
-    });
-  });
-
-  it("parses capability args after the capability id", () => {
-    const result = runCli([
-      "capability",
-      "run",
-      "brain.pages.createMarkdown",
-      "--workspace",
-      "acme-demo",
-      "--input",
-      '{"title":"Slice check","markdown":"# Slice check"}',
-      "--idempotency-key",
-      "capability-slice-001",
-    ]);
-    const payload = JSON.parse(result.stdout);
-
-    expect(result.exitCode).toBe(1);
-    expect(payload).toMatchObject({
-      ok: false,
-      error: {
-        _tag: "FeatureDisabled",
-        message:
-          "Operation brain.pages.createMarkdown requires a runtime execution adapter.",
-      },
+      idempotencyKey: "cli-001",
     });
   });
 

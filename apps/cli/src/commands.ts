@@ -118,7 +118,7 @@ const isCliResult = (
 const capabilityResult = (
   { argv, target }: CliCommandContext,
   capability: CliCapabilityResolver,
-): CliResult => {
+): CliResult | Promise<CliResult> => {
   const capabilityId = target ?? "";
   if (!capability.hasCapability(capabilityId)) {
     return cliFailure(`Unknown CLI capability: ${target}\n`);

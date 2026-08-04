@@ -9,6 +9,8 @@ export type CliResult = {
 
 export type CliRuntimeConfig = {
   readonly providerEnv: Record<string, string | undefined>;
+  readonly apiBaseUrl?: string;
+  readonly apiKey?: string;
 };
 
 export type CliCommandContext = {
@@ -23,7 +25,7 @@ export type CliCommandHandler = {
   readonly run: (
     context: CliCommandContext,
     config: CliRuntimeConfig,
-  ) => CliResult;
+  ) => CliResult | Promise<CliResult>;
 };
 
 export type CliCapabilityRequest = Required<
@@ -33,7 +35,7 @@ export type CliCapabilityRequest = Required<
 export type CliCapabilityRunner = (
   capabilityId: string,
   request: CliCapabilityRequest,
-) => CliResult;
+) => Promise<CliResult>;
 
 export type CliCapabilityResolver = {
   readonly hasCapability: (capabilityId: string) => boolean;

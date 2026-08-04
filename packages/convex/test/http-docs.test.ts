@@ -71,6 +71,12 @@ describe("template HTTP docs routes", () => {
           kind: "http-route",
           description: "Executes brain.pages.createMarkdown.",
         },
+        {
+          path: "/cli/brain.pages.createMarkdown",
+          method: "POST",
+          kind: "http-route",
+          description: "Executes brain.pages.createMarkdown.",
+        },
       ]),
     );
   });

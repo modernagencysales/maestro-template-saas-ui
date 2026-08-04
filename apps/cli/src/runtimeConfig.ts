@@ -17,4 +17,6 @@ export const decodeCliRuntimeConfig = (
   providerEnv: Object.fromEntries(
     cliProviderEnvNames.map((name) => [name, env[name]]),
   ),
+  apiBaseUrl: env.MAESTRO_API_BASE_URL,
+  apiKey: env.MAESTRO_API_KEY,
 });

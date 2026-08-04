@@ -1,18 +1,13 @@
 #!/usr/bin/env node
-import { runTemplateApiOperation } from "@maestro-template/workflow-tooling";
 import type { Readable, Writable } from "node:stream";
 import { createCliHandlers } from "./commands";
 import { isCliDirectRun } from "./direct-run";
 import { createFactoryCliComposition } from "./factory/composition";
 import { dispatchFactoryCliCommand } from "./factory/router";
-import { cliFailure, formatJsonOutput } from "./result";
+import { createHttpCapabilityRunner } from "./httpCapabilityClient";
 import { decodeCliRuntimeConfig, emptyCliRuntimeConfig } from "./runtimeConfig";
-import { dispatchCliCommand } from "./router";
-import type {
-  CliCapabilityRequest,
-  CliResult,
-  CliRuntimeConfig,
-} from "./types";
+import { dispatchCliCommand, dispatchCliCommandAsync } from "./router";
+import type { CliResult, CliRuntimeConfig } from "./types";
 
 export { decodeCliRuntimeConfig };
 export type { CliResult, CliRuntimeConfig };
@@ -27,30 +22,21 @@ export const staticCliCapabilityIds: ReadonlySet<string> = new Set(
   Object.keys(staticCliOperationRefs),
 );
 
-const runStaticCliCapability = (
-  capabilityId: string,
-  request: CliCapabilityRequest,
-): CliResult => {
-  const operationId = staticCliOperationRefs[capabilityId];
-  if (!staticCliCapabilityIds.has(capabilityId) || operationId === undefined) {
-    return cliFailure(`Unknown CLI capability: ${capabilityId}\n`);
-  }
+const createRuntimeCliHandlers = (
+  config: CliRuntimeConfig,
+  fetch: typeof globalThis.fetch,
+) =>
+  createCliHandlers({
+    capability: {
+      hasCapability: (capabilityId) => staticCliCapabilityIds.has(capabilityId),
+      runCapability: createHttpCapabilityRunner({ config, fetch }),
+    },
+  });
 
-  const result = runTemplateApiOperation(operationId, request);
-
-  return {
-    exitCode: result.ok ? 0 : 1,
-    stdout: formatJsonOutput(result),
-    stderr: "",
-  };
-};
-
-const cliHandlers = createCliHandlers({
-  capability: {
-    hasCapability: (capabilityId) => staticCliCapabilityIds.has(capabilityId),
-    runCapability: runStaticCliCapability,
-  },
-});
+const cliHandlers = createRuntimeCliHandlers(
+  emptyCliRuntimeConfig,
+  globalThis.fetch,
+);
 
 const factoryCliComposition = createFactoryCliComposition(() => process.env);
 
@@ -66,6 +52,7 @@ export const runCliAsync = async (
   argv: readonly string[],
   config: CliRuntimeConfig = emptyCliRuntimeConfig,
   cwd: string = process.cwd(),
+  fetch: typeof globalThis.fetch = globalThis.fetch,
 ): Promise<CliResult> => {
   const normalized = normalizeCliArgv(argv);
   if (normalized[0] === "mcp" && normalized[1] === "configure") {
@@ -76,7 +63,12 @@ export const runCliAsync = async (
       factoryCliComposition.handlers,
       normalized,
       cwd,
-    )) ?? dispatchCliCommand(cliHandlers, normalized, config)
+    )) ??
+    (await dispatchCliCommandAsync(
+      createRuntimeCliHandlers(config, fetch),
+      normalized,
+      config,
+    ))
   );
 };
 
