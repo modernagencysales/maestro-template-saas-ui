@@ -15,8 +15,8 @@ identity are implemented together:
 - focused tests for those files
 
 The server producer, schema table, dispatcher integration, and focused tests are
-included in the commit under `packages/convex/confect/{runtime,tables}` and
-`packages/convex/test`.
+included in commits `7f6dac74d` and `8becf80d` under
+`packages/convex/confect/{runtime,tables}` and `packages/convex/test`.
 
 Committing the partial client producers would violate the brief's explicit
 atomicity condition: they are not independently authoritative completion
