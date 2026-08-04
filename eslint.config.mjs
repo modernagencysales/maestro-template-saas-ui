@@ -2,6 +2,9 @@ import js from "@eslint/js";
 import templatePlugin from "./tooling/eslint-plugin-template/index.mjs";
 import tseslint from "typescript-eslint";
 
+const shiftLeft =
+  globalThis.process.env.ESLINT_SHIFT_LEFT === "1" ? "error" : "off";
+
 export default [
   {
     ignores: [
@@ -26,6 +29,9 @@ export default [
       "@typescript-eslint/no-explicit-any": "error",
       "@typescript-eslint/ban-ts-comment": "error",
       "@typescript-eslint/no-non-null-assertion": "error",
+      complexity: [shiftLeft, 10],
+      "max-depth": [shiftLeft, 4],
+      "max-params": [shiftLeft, 5],
     },
   },
   {

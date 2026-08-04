@@ -5,6 +5,8 @@ import {
   type AgentPackJsonValue,
 } from "./contracts.js";
 import type { RepositoryContext } from "./repoContext.js";
+import { readFileSync } from "node:fs";
+import { isAbsolute, normalize } from "node:path";
 
 export type PlanCheckInput = {
   readonly plan: Readonly<Record<string, AgentPackJsonValue>>;
@@ -24,9 +26,20 @@ export function createPlanCheckCommand(input: {
     decode: decodePlanCheckInput,
     mutationPosture: () => "read-only",
     execute: async ({ plan }, context) => {
-      const findings = [...input.validate(plan, context.repo)];
-      const diagnostics = findings.map((message) => ({
-        code: "AGENT_PACK_PLAN_INVALID",
+      const contractFindings = requiredPlanFields(plan, context.repo);
+      const validatorFindings = [...input.validate(plan, context.repo)];
+      const findings = [
+        ...contractFindings.map(({ message }) => message),
+        ...validatorFindings,
+      ];
+      const diagnostics = [
+        ...contractFindings,
+        ...validatorFindings.map((message) => ({
+          code: "AGENT_PACK_PLAN_INVALID",
+          message,
+        })),
+      ].map(({ code, message }) => ({
+        code,
         severity: "error" as const,
         message,
         safeToContinue: false,
@@ -49,6 +62,75 @@ export function createPlanCheckCommand(input: {
       };
     },
   });
+}
+
+const REQUIRED_ARRAYS = [
+  "qualityTargets",
+  "architectureRules",
+  "cucumberFeatures",
+  "denialCases",
+  "focusedTests",
+  "conflictDomains",
+] as const;
+
+function requiredPlanFields(
+  plan: PlanCheckInput["plan"],
+  repo: RepositoryContext,
+): Array<{ code: string; message: string }> {
+  const findings = REQUIRED_ARRAYS.flatMap((field) => {
+    const value = plan[field];
+    const valid =
+      Array.isArray(value) &&
+      value.length > 0 &&
+      value.every((item) => typeof item === "string" && item.trim() !== "");
+    return valid
+      ? []
+      : [
+          {
+            code: `plan.${field.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`)}.required`,
+            message: `${field} must be a non-empty string array`,
+          },
+        ];
+  });
+  const manifest = JSON.parse(
+    readFileSync(`${repo.sourceRoot}/package.json`, "utf8"),
+  ) as { scripts?: Record<string, string> };
+  const rules = readFileSync(
+    `${repo.sourceRoot}/docs/rule-coverage.md`,
+    "utf8",
+  );
+  for (const target of strings(plan.qualityTargets)) {
+    if (manifest.scripts?.[target] === undefined)
+      findings.push({
+        code: "plan.quality-targets.unknown",
+        message: `quality target is not a package script: ${target}`,
+      });
+  }
+  for (const rule of strings(plan.architectureRules)) {
+    if (!rules.includes(rule))
+      findings.push({
+        code: "plan.architecture-rules.unknown",
+        message: `architecture rule is not mechanically documented: ${rule}`,
+      });
+  }
+  for (const path of strings(plan.cucumberFeatures)) {
+    if (
+      isAbsolute(path) ||
+      normalize(path).startsWith("..") ||
+      !path.endsWith(".feature")
+    )
+      findings.push({
+        code: "plan.cucumber-features.invalid",
+        message: `Cucumber path must be repository-relative and end in .feature: ${path}`,
+      });
+  }
+  return findings;
+}
+
+function strings(value: AgentPackJsonValue | undefined): readonly string[] {
+  return Array.isArray(value) && value.every((item) => typeof item === "string")
+    ? value
+    : [];
 }
 
 function decodePlanCheckInput(

@@ -111,6 +111,8 @@
     "check:unresolved-review-threads": "tsx tooling/quality/check-unresolved-review-threads.mts",
     "check:merge-conflicts": "tsx tooling/quality/check-merge-conflicts.mts",
     "check:qlty": "tsx tooling/quality/check-qlty.mts",
+    "acceptance:check": "tsx tooling/acceptance/check-contracts.mts",
+    "acceptance:features": "tsx tooling/acceptance/check-features.mts",
     "contract-review": "tsx tooling/quality/contract-review.mts",
     "review:contract": "pnpm contract-review",
     "taste": "tsx tooling/quality/taste.mts",
@@ -139,6 +141,9 @@
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.12.1",
+    "@cucumber/cucumber": "13.2.0",
+    "@cucumber/gherkin": "41.0.0",
+    "@cucumber/messages": "34.0.1",
     "@effect/language-service": "0.87.1",
     "@eslint/js": "^9.0.0",
     "@playwright/test": "^1.45.0",

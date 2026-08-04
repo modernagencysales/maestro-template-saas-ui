@@ -8,6 +8,21 @@
 - No `@ts-ignore`.
 - Prefer narrow interfaces and explicit return types at public boundaries.
 - Use Effect schemas for durable data, public args, returns, and typed errors.
+- Keep cyclomatic complexity at or below 10, nesting depth at or below 4, and
+  parameter count at or below 5. The staged-file ESLint ratchet enforces these
+  cheap checks without making untouched baseline debt block unrelated work; Qlty
+  owns broader diff smell detection.
+
+## Plans And Acceptance
+
+- Every plan names non-empty quality targets, mechanical architecture rules,
+  Cucumber features, denial cases, focused tests, and conflict domains.
+- Quality targets must be package scripts and architecture rules must name
+  mechanical entries in `docs/rule-coverage.md`; do not restate coding prose.
+- Each `.feature` has exactly one `@journey_<kebab-id>` and one lifecycle tag:
+  `@assembling`, `@admitted`, or `@suspended`.
+- Gherkin describes observable behavior and denial cases, never shell commands,
+  source paths, functions, or database tables.
 
 ### Multi-table Convex writes
 

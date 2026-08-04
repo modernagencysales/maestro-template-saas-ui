@@ -12,6 +12,12 @@ pre-commit:
       glob: "*.{ts,tsx,mts,mjs,cjs,json,md,css,yml,yaml}"
       run: pnpm prettier --write {staged_files}
       stage_fixed: true
+    lint-staged:
+      glob: "*.{ts,tsx,mts,mjs,cjs}"
+      run: ESLINT_SHIFT_LEFT=1 pnpm eslint {staged_files}
+    qlty-staged:
+      glob: "*.{ts,tsx,mts,mjs,cjs,py,rs,go}"
+      run: pnpm check:qlty -- --staged
 
 pre-push:
   commands:
@@ -50,5 +56,14 @@ pre-push:
     promotion-boundary:
       tags: deterministic
       run: pnpm check:promotion-boundary
+    qlty-diff:
+      tags: deterministic
+      run: pnpm check:qlty -- --diff
+    layer-boundaries:
+      tags: deterministic
+      run: pnpm check:layer-boundaries
+    cucumber-contracts:
+      tags: deterministic
+      run: pnpm acceptance:check && pnpm acceptance:features
     rubric:
       run: bash scripts/pre-push-rubric.sh
