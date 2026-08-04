@@ -24,7 +24,7 @@ to `reference-app-routes.ts`.
 
 ## Verification
 
-- `pnpm check:confect-manifest`: 4 files / 21 tests passed, typecheck passed,
+- `pnpm check:confect-manifest`: 4 files / 23 tests passed, typecheck passed,
   generated runtime and inventory outputs fresh.
 - `pnpm check:system-topology`: passed (65 resources / 7 kinds).
 - `pnpm check:headless-surface-contract`: passed.
@@ -44,5 +44,8 @@ digest did not change. No external services were used.
   discovered; only the registered adapter implementation is exempt.
 - Publication registry release identifiers are not public triggers without an
   external trigger registration.
-- Added an independent baseline digest trust anchor and regression coverage so a
-  self-consistent candidate inventory/baseline pair is rejected.
+- Added a protected Git-object baseline digest anchor and regression coverage so
+  a self-consistent candidate inventory/baseline pair is rejected.
+
+The follow-up also resolves aliased UI hooks and `FileRoutesByFullPath` type
+aliases, and fails closed on unresolved route members or hook aliases.

@@ -288,6 +288,57 @@ describe("public surface generation", () => {
     expect(discovered.some(({ kind }) => kind === "trigger")).toBe(false);
   });
 
+  it("resolves aliased UI hooks and route type aliases", () => {
+    const root = fixture({
+      "apps/web/src/routeTree.gen.ts": `
+        type FileRoutesByFullPath = {
+          '/aliased': unknown
+        };
+      `,
+      "apps/web/src/features/aliased.tsx": `
+        import { useTemplateMutation as useSave } from '../adapters/confect-state';
+        const run = useSave;
+        run(templateConfectRefs.notes.create);
+      `,
+    });
+
+    expect(discoverPublicAuthorities(root)).toEqual(
+      expect.arrayContaining([
+        {
+          kind: "route",
+          registrationLocator: "apps/web/src/routeTree.gen.ts#/aliased",
+          transport: "ui",
+        },
+        {
+          kind: "ui-action",
+          registrationLocator: "apps/web/src/features/aliased.tsx",
+          actionDiscriminant: "templateConfectRefs.notes.create",
+          transport: "ui",
+        },
+      ]),
+    );
+  });
+
+  it("fails closed when a generated route tree or UI hook alias cannot be resolved", () => {
+    const missingRouteDeclaration = fixture({
+      "apps/web/src/routeTree.gen.ts": "export const routes = unknown;",
+    });
+    expect(() => discoverPublicAuthorities(missingRouteDeclaration)).toThrow(
+      "FileRoutesByFullPath",
+    );
+
+    const unresolvedHookAlias = fixture({
+      "apps/web/src/features/aliased.tsx": `
+        import { useTemplateMutation as useSave } from '../adapters/confect-state';
+        const run = condition ? useSave : undefined;
+        run?.(templateConfectRefs.notes.create);
+      `,
+    });
+    expect(() => discoverPublicAuthorities(unresolvedHookAlias)).toThrow(
+      "could not be statically resolved",
+    );
+  });
+
   it("rejects duplicate discoveries, ids, and authority registrations", () => {
     const authority = {
       kind: "route" as const,
@@ -400,11 +451,14 @@ describe("public surface generation", () => {
   it("rejects a candidate baseline even when its inventory digest is self-consistent", () => {
     const baseline = buildContractsLegacyBaseline([]);
     expect(
-      verifyLegacyBaselineTrustAnchor({
-        ...baseline,
-        capturedFromInventoryDigest:
-          "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-      }),
+      verifyLegacyBaselineTrustAnchor(
+        {
+          ...baseline,
+          capturedFromInventoryDigest:
+            "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        },
+        "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      ),
     ).toContainEqual(expect.stringContaining("trust anchor mismatch"));
   });
 
@@ -421,8 +475,12 @@ describe("public surface generation", () => {
         JSON.stringify(buildContractsLegacyBaseline([])),
     });
 
-    expect(checkGeneratedPublicSurfaceInventory(root)).toContainEqual(
+    const findings = checkGeneratedPublicSurfaceInventory(root);
+    expect(findings).toContainEqual(
       expect.stringContaining("apps/web/src/routeTree.gen.ts#/missing"),
+    );
+    expect(findings).toContainEqual(
+      expect.stringContaining("trust anchor mismatch"),
     );
   });
 });

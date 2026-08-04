@@ -29,10 +29,6 @@ export type ContractsLegacyBaseline = {
   }[];
 };
 
-/** Immutable trust anchor for the template's one-time legacy inventory adoption. */
-export const PUBLIC_SURFACE_LEGACY_BASELINE_DIGEST =
-  "sha256:a5651112558862189a0782c9bad64a52e1a71795e532a7e62a41ad41a8de5b4e" as const;
-
 const nonEmptyString = Schema.String.pipe(Schema.check(Schema.isMinLength(1)));
 const coverageTag = Schema.String.pipe(
   Schema.check(Schema.isPattern(/^@covers_.+$/u)),

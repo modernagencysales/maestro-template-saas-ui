@@ -1,8 +1,8 @@
 import { existsSync, lstatSync, readFileSync, readdirSync } from "node:fs";
 import { createHash } from "node:crypto";
+import { execFileSync } from "node:child_process";
 import { join, relative, sep } from "node:path";
 import {
-  PUBLIC_SURFACE_LEGACY_BASELINE_DIGEST,
   publicSurfaceAuthorityKey,
   type ContractsLegacyBaseline,
   type PublicSurface,
@@ -12,6 +12,12 @@ import ts from "typescript";
 export type DiscoveredPublicAuthority = PublicSurface["authority"] & {
   readonly transport: PublicSurface["transport"];
 };
+
+// Protected C3 baseline Git object. Candidate inventory and baseline files are
+// checked against this immutable object; they cannot redefine their own trust root.
+const PROTECTED_BASELINE_COMMIT = "dd305838810a79583ce40c37ad2a86acf9238636";
+const PROTECTED_BASELINE_PATH =
+  "packages/template-core/src/generated/template-contracts-legacy-baseline.json";
 
 const relativePath = (root: string, path: string): string =>
   relative(root, path).split(sep).join("/");
@@ -143,19 +149,68 @@ const routeAuthorities = (
 ): readonly DiscoveredPublicAuthority[] => {
   const path = join(root, "apps/web/src/routeTree.gen.ts");
   if (!existsSync(path)) return [];
-  const source = readFileSync(path, "utf8");
-  const block =
-    /interface\s+FileRoutesByFullPath\s*\{(?<body>[\s\S]*?)\n\s*\}/u.exec(
-      source,
-    )?.groups?.body;
-  if (block === undefined) return [];
-  return [...block.matchAll(/^\s*['"](?<path>\/[^'"]*)['"]\s*:/gmu)].map(
-    (match) => ({
-      kind: "route",
-      registrationLocator: `apps/web/src/routeTree.gen.ts#${match.groups?.path ?? ""}`,
-      transport: "ui",
-    }),
-  );
+  const sourceFile = parseTypeScript(path);
+  const routeKeys: string[] = [];
+  let declarationFound = false;
+  const propertyName = (
+    name: ts.PropertyName | undefined,
+  ): string | undefined => {
+    if (name === undefined) return undefined;
+    if (ts.isStringLiteralLike(name)) return name.text;
+    if (
+      ts.isComputedPropertyName(name) &&
+      ts.isStringLiteralLike(name.expression)
+    )
+      return name.expression.text;
+    return undefined;
+  };
+  const readMembers = (members: ts.NodeArray<ts.TypeElement>): void => {
+    for (const member of members) {
+      if (!ts.isPropertySignature(member))
+        throw new Error(
+          `Generated route tree contains an unresolved route member in ${path}`,
+        );
+      const key = propertyName(member.name);
+      if (key === undefined || !key.startsWith("/"))
+        throw new Error(
+          `Generated route tree contains an unresolved route key in ${path}`,
+        );
+      routeKeys.push(key);
+    }
+  };
+  for (const statement of sourceFile.statements) {
+    if (
+      ts.isInterfaceDeclaration(statement) &&
+      statement.name.text === "FileRoutesByFullPath"
+    ) {
+      declarationFound = true;
+      readMembers(statement.members);
+    }
+    if (
+      ts.isTypeAliasDeclaration(statement) &&
+      statement.name.text === "FileRoutesByFullPath"
+    ) {
+      declarationFound = true;
+      if (!ts.isTypeLiteralNode(statement.type))
+        throw new Error(
+          `FileRoutesByFullPath is not a resolvable type literal in ${path}`,
+        );
+      readMembers(statement.type.members);
+    }
+  }
+  if (!declarationFound)
+    throw new Error(
+      `Generated route tree is missing FileRoutesByFullPath: ${path}`,
+    );
+  if (routeKeys.length === 0)
+    throw new Error(
+      `Generated route tree has no resolvable FileRoutesByFullPath entries: ${path}`,
+    );
+  return routeKeys.map((routePath) => ({
+    kind: "route",
+    registrationLocator: `apps/web/src/routeTree.gen.ts#${routePath}`,
+    transport: "ui",
+  }));
 };
 
 const callName = (expression: ts.Expression): string | undefined => {
@@ -171,20 +226,42 @@ const uiActionAuthorities = (
 ): readonly DiscoveredPublicAuthority[] => {
   const sourceFile = parseTypeScript(path);
   const result: DiscoveredPublicAuthority[] = [];
+  const hookNames = new Set([
+    "useTemplateMutation",
+    "useTemplateAction",
+    "useMutation",
+    "useAction",
+    "useConfectMutation",
+    "useConfectAction",
+  ]);
+  const collectAliases = (node: ts.Node): void => {
+    const bindings = ts.isImportDeclaration(node)
+      ? node.importClause?.namedBindings
+      : undefined;
+    if (bindings !== undefined && ts.isNamedImports(bindings)) {
+      for (const specifier of bindings.elements) {
+        const imported = specifier.propertyName?.text ?? specifier.name.text;
+        if (hookNames.has(imported)) hookNames.add(specifier.name.text);
+      }
+    }
+    if (
+      ts.isVariableDeclaration(node) &&
+      ts.isIdentifier(node.name) &&
+      node.initializer !== undefined &&
+      ts.isIdentifier(node.initializer) &&
+      hookNames.has(node.initializer.text)
+    )
+      hookNames.add(node.name.text);
+    ts.forEachChild(node, collectAliases);
+  };
+  for (let pass = 0; pass < 4; pass += 1) collectAliases(sourceFile);
   const visit = (node: ts.Node): void => {
     if (ts.isCallExpression(node)) {
       const name = callName(node.expression);
       const argument = node.arguments[0];
       if (
         name !== undefined &&
-        [
-          "useTemplateMutation",
-          "useTemplateAction",
-          "useMutation",
-          "useAction",
-          "useConfectMutation",
-          "useConfectAction",
-        ].includes(name) &&
+        hookNames.has(name) &&
         !path.endsWith("apps/web/src/adapters/confect-state.ts") &&
         argument !== undefined
       ) {
@@ -199,6 +276,15 @@ const uiActionAuthorities = (
     ts.forEachChild(node, visit);
   };
   visit(sourceFile);
+  if (
+    result.length === 0 &&
+    /\b(?:useTemplate(?:Mutation|Action)|use(?:Confect)?(?:Mutation|Action))\b/u.test(
+      sourceFile.getFullText(),
+    )
+  )
+    throw new Error(
+      `UI hook registration could not be statically resolved: ${relativePath(root, path)}`,
+    );
   return result;
 };
 
@@ -495,6 +581,7 @@ export const discoverPublicAuthorities = (
     const source = readFileSync(path, "utf8");
     if (
       path.includes("/apps/web/") &&
+      !path.endsWith("apps/web/src/adapters/confect-state.ts") &&
       /\b(?:useTemplate(?:Mutation|Action)|use(?:Confect)?(?:Mutation|Action))\b/u.test(
         source,
       )
@@ -670,13 +757,37 @@ export const verifyContractsLegacyBaseline = (
 
 export const verifyLegacyBaselineTrustAnchor = (
   baseline: ContractsLegacyBaseline,
-  expectedDigest: `sha256:${string}` = PUBLIC_SURFACE_LEGACY_BASELINE_DIGEST,
+  expectedDigest: `sha256:${string}`,
 ): readonly string[] =>
   baseline.capturedFromInventoryDigest === expectedDigest
     ? []
     : [
         `legacy baseline trust anchor mismatch: expected ${expectedDigest}, got ${baseline.capturedFromInventoryDigest}`,
       ];
+
+const protectedLegacyBaselineDigest = (
+  root: string,
+): `sha256:${string}` | undefined => {
+  for (const cwd of [root, process.cwd()]) {
+    try {
+      const source = execFileSync(
+        "git",
+        ["show", `${PROTECTED_BASELINE_COMMIT}:${PROTECTED_BASELINE_PATH}`],
+        { cwd, encoding: "buffer", stdio: ["ignore", "pipe", "ignore"] },
+      );
+      const parsed = JSON.parse(source.toString("utf8")) as {
+        readonly capturedFromInventoryDigest?: unknown;
+      };
+      return typeof parsed.capturedFromInventoryDigest === "string" &&
+        /^sha256:[a-f0-9]{64}$/u.test(parsed.capturedFromInventoryDigest)
+        ? (parsed.capturedFromInventoryDigest as `sha256:${string}`)
+        : undefined;
+    } catch {
+      continue;
+    }
+  }
+  return undefined;
+};
 
 export const checkGeneratedPublicSurfaceInventory = (
   root: string,
@@ -701,14 +812,25 @@ export const checkGeneratedPublicSurfaceInventory = (
     const baseline = JSON.parse(
       readFileSync(baselinePath, "utf8"),
     ) as ContractsLegacyBaseline;
-    generatePublicSurfaceInventory({
-      discovered: discoverPublicAuthorities(root),
-      registered: inventory.surfaces,
-    });
-    return [
-      ...verifyLegacyBaselineTrustAnchor(baseline),
+    const findings: string[] = [];
+    try {
+      generatePublicSurfaceInventory({
+        discovered: discoverPublicAuthorities(root),
+        registered: inventory.surfaces,
+      });
+    } catch (error: unknown) {
+      findings.push(error instanceof Error ? error.message : String(error));
+    }
+    const protectedDigest = protectedLegacyBaselineDigest(root);
+    findings.push(
+      ...(protectedDigest === undefined
+        ? ["protected legacy baseline Git object is unavailable"]
+        : verifyLegacyBaselineTrustAnchor(baseline, protectedDigest)),
+    );
+    findings.push(
       ...verifyContractsLegacyBaseline(inventory.surfaces, baseline),
-    ];
+    );
+    return findings;
   } catch (error: unknown) {
     return [error instanceof Error ? error.message : String(error)];
   }
