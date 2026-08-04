@@ -10,6 +10,7 @@
     "preview": "vite preview --host 0.0.0.0",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run --passWithNoTests",
+    "test:runtime-longevity": "vitest run scripts/check-dev-runtime-longevity.test.mjs --maxWorkers=1 --no-file-parallelism",
     "test:bundle-budget": "vitest run scripts/check-client-bundle-budget.test.mjs --passWithNoTests"
   },
   "dependencies": {

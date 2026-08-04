@@ -334,6 +334,7 @@ export const CUSTOMER_ROOT_SCRIPTS = [
   "typecheck",
   "check:effect-diagnostics",
   "test",
+  "test:runtime-longevity",
   "test:bootstrap",
   "test:tooling",
   "test:app-map",
