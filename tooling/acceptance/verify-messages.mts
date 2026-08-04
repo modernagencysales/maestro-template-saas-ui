@@ -8,10 +8,12 @@ import {
   TestStepResultStatus,
   type Envelope,
   type GherkinDocument,
+  type Group,
   type Pickle,
   type PickleStep,
   type Scenario,
   type Step,
+  type Tag,
   type TableRow,
 } from "@cucumber/messages";
 import Ajv2020 from "ajv/dist/2020.js";
@@ -238,6 +240,9 @@ type AstIndex = {
     { row: TableRow; scenarioId: string; uri: string }
   >;
   readonly steps: Map<string, { step: Step; uri: string }>;
+  readonly tags: Map<string, { tag: Tag; uri: string }>;
+  readonly scenarioTagIds: Map<string, readonly string[]>;
+  readonly rowTagIds: Map<string, readonly string[]>;
 };
 
 const astIndex = (documents: readonly GherkinDocument[]): AstIndex => {
@@ -247,6 +252,9 @@ const astIndex = (documents: readonly GherkinDocument[]): AstIndex => {
     { row: TableRow; scenarioId: string; uri: string }
   >();
   const steps = new Map<string, { step: Step; uri: string }>();
+  const tags = new Map<string, { tag: Tag; uri: string }>();
+  const scenarioTagIds = new Map<string, readonly string[]>();
+  const rowTagIds = new Map<string, readonly string[]>();
   const astIds = new Set<string>();
   const add = (id: string, context: string): void => {
     invariant(!astIds.has(id), `duplicate AST id ${id} (${context})`);
@@ -261,31 +269,72 @@ const astIndex = (documents: readonly GherkinDocument[]): AstIndex => {
         steps.set(step.id, { step, uri });
       }
     };
-    const addScenario = (scenario: Scenario): void => {
+    const addTags = (items: readonly Tag[]): readonly string[] =>
+      items.map((tag) => {
+        add(tag.id, "Tag");
+        tags.set(tag.id, { tag, uri });
+        return tag.id;
+      });
+    const featureTagIds = addTags(document.feature?.tags ?? []);
+    const addScenario = (
+      scenario: Scenario,
+      inheritedTagIds: readonly string[],
+    ): void => {
       add(scenario.id, "Scenario");
       scenarios.set(scenario.id, { scenario, uri });
+      const ownTagIds = addTags(scenario.tags);
+      scenarioTagIds.set(scenario.id, [...inheritedTagIds, ...ownTagIds]);
       addSteps(scenario.steps);
       for (const examples of scenario.examples) {
         add(examples.id, "Examples");
+        const examplesTagIds = addTags(examples.tags);
         if (examples.tableHeader !== undefined)
           add(examples.tableHeader.id, "Examples header");
         for (const row of examples.tableBody) {
           add(row.id, "Examples row");
           rows.set(row.id, { row, scenarioId: scenario.id, uri });
+          rowTagIds.set(row.id, examplesTagIds);
         }
       }
     };
     for (const child of document.feature?.children ?? []) {
       if (child.background !== undefined) addSteps(child.background.steps);
-      if (child.scenario !== undefined) addScenario(child.scenario);
+      if (child.scenario !== undefined)
+        addScenario(child.scenario, featureTagIds);
+      const ruleTagIds = addTags(child.rule?.tags ?? []);
       for (const ruleChild of child.rule?.children ?? []) {
         if (ruleChild.background !== undefined)
           addSteps(ruleChild.background.steps);
-        if (ruleChild.scenario !== undefined) addScenario(ruleChild.scenario);
+        if (ruleChild.scenario !== undefined)
+          addScenario(ruleChild.scenario, [...featureTagIds, ...ruleTagIds]);
       }
     }
   }
-  return { scenarios, rows, steps };
+  return { scenarios, rows, steps, tags, scenarioTagIds, rowTagIds };
+};
+
+const verifyMatchGroup = (
+  group: Group,
+  text: string,
+  context: string,
+  parent?: { readonly start: number; readonly end: number },
+): void => {
+  invariant(
+    Number.isSafeInteger(group.start) &&
+      (group.start as number) >= 0 &&
+      typeof group.value === "string",
+    `${context} match argument group requires a valid range and value`,
+  );
+  const start = group.start as number;
+  const end = start + (group.value as string).length;
+  invariant(
+    end <= text.length &&
+      text.slice(start, end) === group.value &&
+      (parent === undefined || (start >= parent.start && end <= parent.end)),
+    `${context} match argument group range/value differs from PickleStep text`,
+  );
+  for (const child of group.children ?? [])
+    verifyMatchGroup(child, text, context, { start, end });
 };
 
 const assertJsonEqual = (
@@ -491,6 +540,27 @@ const verify = (
       pickle.name === expectedPickle.name,
       `Pickle ${key} name differs`,
     );
+    const expectedTagIds = [
+      ...(ast.scenarioTagIds.get(scenarioId) ?? []),
+      ...(rowId === undefined ? [] : (ast.rowTagIds.get(rowId) ?? [])),
+    ];
+    invariant(
+      pickle.tags.length === expectedTagIds.length &&
+        pickle.tags.length === expectedPickle.tags.length &&
+        new Set(pickle.tags.map((tag) => tag.astNodeId)).size ===
+          pickle.tags.length,
+      `Pickle ${key} tag cardinality or AST linkage differs`,
+    );
+    for (const [index, tag] of pickle.tags.entries()) {
+      const astTag = ast.tags.get(tag.astNodeId);
+      invariant(
+        tag.astNodeId === expectedTagIds[index] &&
+          tag.name === expectedPickle.tags[index] &&
+          astTag?.uri === pickle.uri &&
+          astTag.tag.name === tag.name,
+        `Pickle ${key} tag ${tag.name} has wrong AST/source identity`,
+      );
+    }
     invariant(
       pickle.steps.length === expectedPickle.steps.length,
       `Pickle ${key} has missing or duplicate PickleStep`,
@@ -533,6 +603,11 @@ const verify = (
     }
     derivedByRuntimeId.set(pickle.id, expectedPickle);
   }
+  assertJsonEqual(
+    [...derivedKeys].sort(),
+    [...selectedKeys].sort(),
+    "emitted Pickle selection",
+  );
 
   const hooks = new Map(
     values(envelopes, "hook").map(
@@ -604,6 +679,18 @@ const verify = (
           testStep.stepDefinitionIds.length,
         `TestStep ${testStep.id} has unaligned match arguments`,
       );
+      for (const list of testStep.stepMatchArgumentsLists)
+        for (const argument of list.stepMatchArguments) {
+          nonempty(
+            argument.parameterTypeName,
+            `TestStep ${testStep.id} match argument parameter type`,
+          );
+          verifyMatchGroup(
+            argument.group,
+            pickleStep.text,
+            `TestStep ${testStep.id}`,
+          );
+        }
     }
     const hookSteps = testCase.testSteps.filter(
       (step) => step.hookId !== undefined,
@@ -626,6 +713,11 @@ const verify = (
           hooks.get(step.hookId ?? "")?.type === HookType.AFTER_TEST_CASE,
       ).length === 1,
       `TestCase ${testCase.id} requires one After hook`,
+    );
+    invariant(
+      testCase.testSteps.length === expectedPickle.steps.length + 2 &&
+        hookSteps.length === 2,
+      `TestCase ${testCase.id} has extra or missing TestSteps`,
     );
   }
   assertJsonEqual(
@@ -725,31 +817,63 @@ const verify = (
 
   const runHookStarts = values(envelopes, "testRunHookStarted");
   const runHookFinishes = values(envelopes, "testRunHookFinished");
+  const runHookStartById = new Map(
+    runHookStarts.map((start) => {
+      addId(start.id, "TestRunHookStarted");
+      const hook = hooks.get(start.hookId);
+      invariant(
+        hook !== undefined &&
+          (hook.type === HookType.BEFORE_TEST_RUN ||
+            hook.type === HookType.AFTER_TEST_RUN),
+        `TestRunHookStarted ${start.id} has unresolved or non-run Hook linkage`,
+      );
+      invariant(
+        start.testRunStartedId === runStart.id,
+        `TestRunHookStarted ${start.id} names another run`,
+      );
+      return [start.id, start] as const;
+    }),
+  );
+  for (const start of runHookStarts) {
+    const finish = one(
+      runHookFinishes.filter(
+        (value) => value.testRunHookStartedId === start.id,
+      ),
+      `TestRunHookStarted ${start.id} finished event`,
+    );
+    invariant(
+      finish.result.status === TestStepResultStatus.PASSED,
+      `TestRunHookStarted ${start.id} hook status must be PASSED`,
+    );
+  }
+  invariant(
+    runHookFinishes.every((finish) =>
+      runHookStartById.has(finish.testRunHookStartedId),
+    ),
+    "orphan TestRunHookFinished event",
+  );
   for (const type of [HookType.BEFORE_TEST_RUN, HookType.AFTER_TEST_RUN]) {
     const hook = one(
       [...hooks.values()].filter((value) => value.type === type),
       `${type} Hook`,
     );
-    const start = one(
+    one(
       runHookStarts.filter((value) => value.hookId === hook.id),
       `${type} started event`,
     );
-    addId(start.id, "TestRunHookStarted");
-    invariant(
-      start.testRunStartedId === runStart.id,
-      `${type} hook names another run`,
-    );
-    const finish = one(
-      runHookFinishes.filter(
-        (value) => value.testRunHookStartedId === start.id,
-      ),
-      `${type} finished event`,
-    );
-    invariant(
-      finish.result.status === TestStepResultStatus.PASSED,
-      `${type} hook status must be PASSED`,
-    );
   }
+  const referencedHookIds = new Set([
+    ...testCases.flatMap((testCase) =>
+      testCase.testSteps.flatMap((step) =>
+        step.hookId === undefined ? [] : [step.hookId],
+      ),
+    ),
+    ...runHookStarts.map((start) => start.hookId),
+  ]);
+  invariant(
+    [...hooks.keys()].every((id) => referencedHookIds.has(id)),
+    "messages contain an extra unreferenced Hook",
+  );
   const runFinish = one(
     values(envelopes, "testRunFinished"),
     "TestRunFinished",
@@ -760,10 +884,28 @@ const verify = (
   );
 
   const attachments = values(envelopes, "attachment");
-  invariant(
-    attachments.length === starts.length,
-    `each selected TestCase requires exactly one attachment`,
-  );
+  for (const start of starts) {
+    const testCase = testCaseById.get(start.testCaseId);
+    invariant(
+      testCase !== undefined,
+      `TestCaseStarted ${start.id} has unresolved TestCase linkage`,
+    );
+    const afterStep = one(
+      testCase.testSteps.filter(
+        (step) =>
+          hooks.get(step.hookId ?? "")?.type === HookType.AFTER_TEST_CASE,
+      ),
+      `TestCase ${testCase.id} protected After TestStep`,
+    );
+    one(
+      attachments.filter(
+        (attachment) =>
+          attachment.testCaseStartedId === start.id &&
+          attachment.testStepId === afterStep.id,
+      ),
+      `TestCaseStarted ${start.id} protected After attachment`,
+    );
+  }
   for (const attachment of attachments) {
     invariant(
       attachment.contentEncoding === "IDENTITY" &&
@@ -894,6 +1036,12 @@ const verify = (
       );
       nonempty(value.surfaceId, "observed surface");
       nonempty(value.transport, "observed transport");
+      invariant(
+        expectedPickle.transports.some(
+          (transport) => transport === value.transport,
+        ),
+        `observation transport ${value.transport} is not expected for ${expectedPickle.key}`,
+      );
       observedSteps.set(value.stepKey, value);
     }
     const observableSteps = expectedPickle.steps.filter(
@@ -909,6 +1057,11 @@ const verify = (
         observation?.kind === step.type.toLocaleLowerCase("en-US"),
         `observation kind differs for ${step.key}`,
       );
+      if (step.type === "Action")
+        nonempty(
+          observation?.correlationNonce,
+          `Action observation correlation nonce ${step.key}`,
+        );
     }
     exactKeys(
       body.hooks,
@@ -936,6 +1089,7 @@ const verify = (
       body.serverCorrelations.length === actionSteps.length,
       "server correlations do not cover exact Action steps",
     );
+    const correlatedStepKeys = new Set<string>();
     for (const correlation of body.serverCorrelations) {
       exactKeys(
         correlation,
@@ -950,6 +1104,12 @@ const verify = (
         ],
         "server correlation",
       );
+      nonempty(correlation.stepKey, "server correlation step key");
+      invariant(
+        !correlatedStepKeys.has(correlation.stepKey),
+        `duplicate server correlation ${correlation.stepKey}`,
+      );
+      correlatedStepKeys.add(correlation.stepKey);
       const observation = observedSteps.get(correlation.stepKey as string);
       invariant(
         actionSteps.some((step) => step.key === correlation.stepKey) &&
@@ -966,6 +1126,11 @@ const verify = (
         "server correlation backend",
       );
     }
+    assertJsonEqual(
+      [...correlatedStepKeys].sort(),
+      actionSteps.map((step) => step.key).sort(),
+      "server correlation step coverage",
+    );
   }
 
   return [...executed.keys()].sort() as StablePickleKey[];

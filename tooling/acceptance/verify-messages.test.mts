@@ -258,7 +258,7 @@ describe("verifyMessages", () => {
           ).testCaseStartedId = "other-test-case-started";
         }),
       ),
-      /Attachment.*TestCaseStarted/u,
+      /protected After attachment|Attachment.*TestCaseStarted/u,
     );
   });
 
@@ -402,6 +402,31 @@ describe("verifyMessages", () => {
         },
       ],
       [
+        /match argument parameter type/u,
+        (envelopes) => {
+          const testCase = payload<{
+            testSteps: Array<{
+              stepMatchArgumentsLists?: Array<{
+                stepMatchArguments: Array<{ parameterTypeName: string }>;
+              }>;
+            }>;
+          }>(envelopes, "testCase");
+          const step = required(
+            testCase.testSteps.find(
+              (value) => value.stepMatchArgumentsLists !== undefined,
+            ),
+            "matched TestStep",
+          );
+          required(
+            required(
+              required(step.stepMatchArgumentsLists, "match argument lists")[0],
+              "match argument list",
+            ).stepMatchArguments[0],
+            "match argument",
+          ).parameterTypeName = " ";
+        },
+      ],
+      [
         /unresolved Hook/u,
         (envelopes) => {
           const testCase = payload<{ testSteps: Array<{ hookId?: string }> }>(
@@ -542,7 +567,7 @@ describe("verifyMessages", () => {
           }),
       ],
       [
-        /not the protected After hook/u,
+        /protected After attachment|not the protected After hook/u,
         (envelopes) => {
           const testCase = payload<{
             testSteps: Array<{ id: string; hookId?: string }>;
@@ -551,6 +576,279 @@ describe("verifyMessages", () => {
             testCase.testSteps.find((step) => step.hookId !== undefined),
             "hook-backed TestStep",
           ).id;
+        },
+      ],
+      [
+        /protected After attachment/u,
+        (envelopes) => removePayload(envelopes, "attachment"),
+      ],
+      [
+        /protected After attachment/u,
+        (envelopes) => {
+          envelopes.push({
+            attachment: structuredClone(
+              payload<JsonObject>(envelopes, "attachment"),
+            ),
+          });
+        },
+      ],
+      [
+        /unresolved TestCaseStarted/u,
+        (envelopes) => {
+          const attachment = structuredClone(
+            payload<JsonObject>(envelopes, "attachment"),
+          );
+          attachment.testCaseStartedId = "orphan-test-case-started";
+          envelopes.push({ attachment });
+        },
+      ],
+    ];
+    for (const [finding, edit] of cases) reject(input(mutated(edit)), finding);
+  });
+
+  test("rejects emitted Pickles outside the exact selection", () => {
+    const candidate = input();
+    const selectedKey = expectedPickle.key.replace(
+      "pickle_sha256:",
+      "pickle_sha256:unselected-",
+    ) as typeof expectedPickle.key;
+    candidate.selection = {
+      ...candidate.selection,
+      pickles: [
+        {
+          ...required(candidate.selection.pickles[0], "selected Pickle"),
+          key: selectedKey,
+        },
+      ],
+      pickleKeys: [selectedKey],
+    };
+    candidate.expected = {
+      ...candidate.expected,
+      pickles: [
+        ...candidate.expected.pickles,
+        {
+          ...required(candidate.expected.pickles[0], "expected Pickle"),
+          key: selectedKey,
+        },
+      ],
+    };
+    reject(candidate, /emitted Pickle selection/u);
+  });
+
+  test("rejects Pickle tag AST, name, and source drift", () => {
+    const cases: Array<[RegExp, (envelopes: JsonObject[]) => void]> = [
+      [
+        /Pickle .* tag/u,
+        (envelopes) => {
+          const tags = payload<{ tags: Array<{ astNodeId: string }> }>(
+            envelopes,
+            "pickle",
+          ).tags;
+          required(tags[0], "first Pickle tag").astNodeId = "missing-tag";
+        },
+      ],
+      [
+        /Pickle .* tag/u,
+        (envelopes) => {
+          const tags = payload<{ tags: Array<{ name: string }> }>(
+            envelopes,
+            "pickle",
+          ).tags;
+          required(tags[0], "first Pickle tag").name = "@drift";
+        },
+      ],
+      [
+        /Pickle .* tag/u,
+        (envelopes) => {
+          const tags = payload<{
+            tags: Array<{ astNodeId: string }>;
+          }>(envelopes, "pickle").tags;
+          required(tags[0], "first Pickle tag").astNodeId = required(
+            tags[1],
+            "second Pickle tag",
+          ).astNodeId;
+        },
+      ],
+    ];
+    for (const [finding, edit] of cases) reject(input(mutated(edit)), finding);
+  });
+
+  test("rejects match argument group range and value drift", () => {
+    const cases: Array<[RegExp, (group: JsonObject) => void]> = [
+      [/match argument/u, (group) => (group.start = 99)],
+      [/match argument|schema-invalid/u, (group) => (group.start = -1)],
+      [/match argument/u, (group) => (group.value = "2")],
+      [/match argument|schema-invalid/u, (group) => delete group.value],
+      [
+        /match argument/u,
+        (group) => {
+          group.children = [{ start: 0, value: "I", children: [] }];
+        },
+      ],
+    ];
+    for (const [finding, edit] of cases)
+      reject(
+        input(
+          mutated((envelopes) => {
+            const testCase = payload<{
+              testSteps: Array<{
+                stepMatchArgumentsLists?: Array<{
+                  stepMatchArguments: Array<{ group: JsonObject }>;
+                }>;
+              }>;
+            }>(envelopes, "testCase");
+            const step = required(
+              testCase.testSteps.find(
+                (value) => value.stepMatchArgumentsLists !== undefined,
+              ),
+              "matched TestStep",
+            );
+            edit(
+              required(
+                required(
+                  required(
+                    step.stepMatchArgumentsLists,
+                    "match argument lists",
+                  )[0],
+                  "match argument list",
+                ).stepMatchArguments[0],
+                "match argument",
+              ).group,
+            );
+          }),
+        ),
+        finding,
+      );
+  });
+
+  test("rejects observation transports outside the Pickle contract", () => {
+    reject(
+      input(
+        mutated((envelopes) =>
+          editAttachment(envelopes, (body) => {
+            const observations = body.observations as JsonObject[];
+            const serverCorrelations = body.serverCorrelations as JsonObject[];
+            required(observations[0], "action observation").transport = "cli";
+            required(serverCorrelations[0], "server correlation").transport =
+              "cli";
+          }),
+        ),
+      ),
+      /transport/u,
+    );
+  });
+
+  test("rejects duplicate per-step server correlations", () => {
+    const candidate = input();
+    const secondStep = required(
+      required(candidate.expected.pickles[0], "expected Pickle").steps[1],
+      "second expected step",
+    );
+    const secondActionKey = `step_sha256:${sha256(
+      JSON.stringify({
+        pickleKey: expectedPickle.key,
+        index: 1,
+        type: "Action",
+        text: secondStep.text,
+        argument: null,
+      }),
+    ).slice("sha256:".length)}` as const;
+    candidate.expected = {
+      ...candidate.expected,
+      pickles: candidate.expected.pickles.map((pickle) => ({
+        ...pickle,
+        steps: pickle.steps.map((step, index) =>
+          index === 1
+            ? {
+                ...step,
+                key: secondActionKey,
+                type: "Action" as const,
+                pickleStepType: "Action" as const,
+              }
+            : step,
+        ),
+      })),
+    };
+    reject(
+      {
+        ...candidate,
+        ndjson: mutated((envelopes) => {
+          const pickle = payload<{
+            steps: Array<{ type: string }>;
+          }>(envelopes, "pickle");
+          required(pickle.steps[1], "second PickleStep").type = "Action";
+          editAttachment(envelopes, (body) => {
+            const observations = body.observations as JsonObject[];
+            const hooks = body.hooks as {
+              beforeStepKeys: string[];
+              afterStepKeys: string[];
+            };
+            required(observations[1], "second observation").stepKey =
+              secondActionKey;
+            required(observations[1], "second observation").kind = "action";
+            required(observations[1], "second observation").correlationNonce =
+              "second-action-correlation";
+            hooks.beforeStepKeys[1] = secondActionKey;
+            hooks.afterStepKeys[1] = secondActionKey;
+            const correlations = body.serverCorrelations as JsonObject[];
+            correlations.push(
+              structuredClone(required(correlations[0], "server correlation")),
+            );
+          });
+        }),
+      },
+      /server correlation/u,
+    );
+  });
+
+  test("rejects extra and orphan run-hook events", () => {
+    const cases: Array<[RegExp, (envelopes: JsonObject[]) => void]> = [
+      [
+        /RunHook|run hook|runtime id/u,
+        (envelopes) => {
+          const start = structuredClone(
+            payload<JsonObject>(envelopes, "testRunHookStarted"),
+          );
+          start.id = "extra-run-hook-start";
+          start.hookId = "missing-hook";
+          envelopes.push({ testRunHookStarted: start });
+        },
+      ],
+      [
+        /RunHook|run hook|runtime id/u,
+        (envelopes) => {
+          const finish = structuredClone(
+            payload<JsonObject>(envelopes, "testRunHookFinished"),
+          );
+          finish.testRunHookStartedId = "missing-run-hook-start";
+          envelopes.push({ testRunHookFinished: finish });
+        },
+      ],
+      [
+        /duplicate runtime id/u,
+        (envelopes) => {
+          envelopes.push({
+            testRunHookStarted: structuredClone(
+              payload<JsonObject>(envelopes, "testRunHookStarted"),
+            ),
+          });
+        },
+      ],
+      [
+        /started event requires exactly one/u,
+        (envelopes) => {
+          const start = structuredClone(
+            payload<JsonObject>(envelopes, "testRunHookStarted"),
+          );
+          const finish = structuredClone(
+            payload<JsonObject>(envelopes, "testRunHookFinished"),
+          );
+          start.id = "extra-valid-run-hook-start";
+          finish.testRunHookStartedId = start.id;
+          envelopes.push(
+            { testRunHookStarted: start },
+            { testRunHookFinished: finish },
+          );
         },
       ],
     ];
