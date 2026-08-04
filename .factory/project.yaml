@@ -12,7 +12,7 @@ commands:
       executor: maestro-worker
       affected: ["**"]
 ci:
-  required_contexts: [ci/woodpecker/pr/firewall]
+  required_contexts: [ci/woodpecker/pr/verify]
 contract_review:
   affected:
     [
