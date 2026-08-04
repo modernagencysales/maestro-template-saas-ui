@@ -3,8 +3,10 @@ import { resolve } from "node:path";
 import { isDirectRun } from "../quality/src/direct-run.mts";
 import {
   compileContractInventory,
+  assertNoAdmittedActivationOwnedSurfaces,
   renderAdmittedJourneys,
 } from "./contract-inventory";
+import type { PublicSurface } from "../../packages/template-core/src/publicSurface";
 import {
   createProtectedControllerHttpAdapter,
   observeSecurityCodeownerApproval,
@@ -203,6 +205,25 @@ export const synchronizeAdmittedJourneys = async (input: {
       mode: "static",
     });
   const expected = renderAdmittedJourneys(inventory);
+  if (inventory.admittedPickleKeys.length === 0) {
+    const surfaces = JSON.parse(
+      await readFile(
+        resolve(
+          input.root,
+          "packages/template-core/src/generated/public-surfaces.generated.json",
+        ),
+        "utf8",
+      ),
+    ) as { readonly surfaces?: unknown };
+    if (!Array.isArray(surfaces.surfaces))
+      throw new Error(
+        "no-admitted projection cannot verify registration inventory",
+      );
+    assertNoAdmittedActivationOwnedSurfaces(
+      inventory.journeys,
+      surfaces.surfaces as readonly PublicSurface[],
+    );
+  }
   const path = resolve(
     input.root,
     "packages/template-core/src/generated/admittedJourneys.ts",

@@ -4,7 +4,10 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
-import { compileContractInventory } from "./contract-inventory";
+import {
+  assertNoAdmittedActivationOwnedSurfaces,
+  compileContractInventory,
+} from "./contract-inventory";
 
 const roots: string[] = [];
 afterEach(() => {
@@ -474,5 +477,24 @@ describe("compileContractInventory", () => {
     expect(() => compileContractInventory({ ...repo, mode: "static" })).toThrow(
       /zero|without an activation-owned/u,
     );
+  });
+
+  it("proves no-admitted projections keep activation-owned registrations dark", () => {
+    const surfaces = [
+      surface({ id: "draft_ui", transport: "ui", journey: "journey_draft" }),
+      surface({ id: "shared_ui", transport: "ui" }),
+    ];
+    expect(() =>
+      assertNoAdmittedActivationOwnedSurfaces(
+        { journey_draft: "assembling" },
+        surfaces,
+      ),
+    ).not.toThrow();
+    expect(() =>
+      assertNoAdmittedActivationOwnedSurfaces(
+        { journey_draft: "admitted" },
+        surfaces,
+      ),
+    ).toThrow(/activation-owned surface/u);
   });
 });

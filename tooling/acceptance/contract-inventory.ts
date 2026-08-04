@@ -386,6 +386,21 @@ const assertCoverage = (
   }
 };
 
+/** Proves the zero-admission projection cannot leave an activation-owned
+ * registration live. Shared surfaces may remain available. */
+export const assertNoAdmittedActivationOwnedSurfaces = (
+  journeys: Readonly<Record<string, ContractLifecycle>>,
+  surfaces: readonly PublicSurface[],
+): void => {
+  for (const surface of surfaces) {
+    const owner = surface.activationJourneyId;
+    if (owner !== undefined && journeys[owner] === "admitted")
+      throw new Error(
+        `no-admitted projection contains activation-owned surface ${surface.id}`,
+      );
+  }
+};
+
 const authPolicyDeltas = (
   base: readonly PublicSurface[],
   candidate: readonly PublicSurface[],
