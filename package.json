@@ -67,6 +67,7 @@
     "check:ci-completeness": "tsx tooling/quality/check-ci-completeness.mts",
     "check:config-drift": "tsx tooling/quality/check-config-drift.mts",
     "check:product-journeys": "tsx tooling/quality/check-product-journeys.mts",
+    "acceptance:check": "tsx tooling/acceptance/check-contracts.mts",
     "check:deps": "tsx tooling/quality/check-deps.mts",
     "check:knip": "knip --config knip.json",
     "check:route-tree": "tsx tooling/quality/check-route-tree.mts",
@@ -139,6 +140,7 @@
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.12.1",
+    "@cucumber/cucumber": "13.2.0",
     "@effect/language-service": "0.87.1",
     "@eslint/js": "^9.0.0",
     "@playwright/test": "^1.45.0",

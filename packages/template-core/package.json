@@ -35,6 +35,8 @@
     }
   },
   "dependencies": {
+    "@cucumber/gherkin": "41.0.0",
+    "@cucumber/messages": "34.0.1",
     "effect": "4.0.0-beta.102"
   },
   "scripts": {

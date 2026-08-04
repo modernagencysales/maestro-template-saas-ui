@@ -88,6 +88,9 @@ check-agent-pack:
 check-product-journeys:
     pnpm check:product-journeys
 
+check-contracts:
+    pnpm acceptance:check
+
 check-app-map:
     pnpm check:app-map
 

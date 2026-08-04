@@ -351,6 +351,42 @@ const checkDescriptorDefinitions = {
       },
     ],
   },
+  contracts: {
+    name: "acceptance:check",
+    requirements: [
+      {
+        file: "cucumber.cjs",
+        includes: [
+          'requireModule: ["tsx/cjs"]',
+          'require: ["features/support/**/*.ts", "features/step_definitions/**/*.ts"]',
+          "retry: 0",
+          "parallel: 0",
+        ],
+        message: "Cucumber must use the protected four-key profile",
+      },
+      {
+        file: "package.json",
+        includes: [
+          '"acceptance:check": "tsx tooling/acceptance/check-contracts.mts"',
+          '"@cucumber/cucumber": "13.2.0"',
+        ],
+        message: "the repository root must own the pinned Cucumber runner",
+      },
+      {
+        file: "packages/template-core/package.json",
+        includes: [
+          '"@cucumber/gherkin": "41.0.0"',
+          '"@cucumber/messages": "34.0.1"',
+        ],
+        message: "template-core must own the pinned compiler packages",
+      },
+      {
+        file: "Justfile",
+        includes: ["check-contracts:", "pnpm acceptance:check"],
+        message: "the contract checker must have a canonical Just recipe",
+      },
+    ],
+  },
   deps: {
     name: "check:deps",
     requirements: [
@@ -1159,6 +1195,7 @@ const canonicalScriptBodies = {
   "check:ci-completeness": "tsx tooling/quality/check-ci-completeness.mts",
   "check:config-drift": "tsx tooling/quality/check-config-drift.mts",
   "check:product-journeys": "tsx tooling/quality/check-product-journeys.mts",
+  "acceptance:check": "tsx tooling/acceptance/check-contracts.mts",
   "check:app-map": "pnpm --dir tooling/app-map check",
   "check:append-only-tables":
     "tsx tooling/quality/check-append-only-tables.mts",
@@ -1243,6 +1280,7 @@ export const checkDescriptors = defineRegisteredStaticCheckDescriptors(
     "ci-completeness": { evidenceClass: "static" },
     "config-drift": { evidenceClass: "static" },
     "product-journeys": { evidenceClass: "static" },
+    contracts: { evidenceClass: "static", defaultFocused: true },
     "app-map": { evidenceClass: "static" },
     "append-only-tables": {
       evidenceClass: "static",
