@@ -18,6 +18,12 @@ import process from "node:process";
 
 import { isRateLimitStatus } from "./rate-limit.mts";
 import { hasMode, isCi } from "./src/script-mode.mts";
+import {
+  frozenVerificationPrompt,
+  parseFrozenJudgeOutput,
+  readFrozenFiles,
+  type FrozenFinding,
+} from "./ai-review-cycle.mts";
 
 const DEFAULT_OPENROUTER_MODEL = "deepseek/deepseek-v4-pro";
 const DEFAULT_OPENAI_MODEL = "gpt-5.5";
@@ -470,11 +476,14 @@ async function callOpenAI(
   }
 }
 
-async function callJudgeText(userMessage: string): Promise<string> {
+async function callJudgeText(
+  userMessage: string,
+  rubric = RUBRIC,
+): Promise<string> {
   const provider = requireProvider();
-  if (provider.kind === "openai") return callOpenAI(RUBRIC, userMessage);
+  if (provider.kind === "openai") return callOpenAI(rubric, userMessage);
   try {
-    return await callOpenRouter(RUBRIC, userMessage);
+    return await callOpenRouter(rubric, userMessage);
   } catch (error) {
     if (
       error instanceof TasteInfrastructureError &&
@@ -483,10 +492,22 @@ async function callJudgeText(userMessage: string): Promise<string> {
       console.warn(
         "taste-review: OpenRouter infrastructure-blocked; falling back to OpenAI.",
       );
-      return callOpenAI(RUBRIC, userMessage);
+      return callOpenAI(rubric, userMessage);
     }
     throw error;
   }
+}
+
+export async function verifyTasteFindingSet(
+  findings: readonly FrozenFinding[],
+) {
+  const currentFiles = readFrozenFiles(CANDIDATE_ROOT, findings);
+  return parseFrozenJudgeOutput(
+    await callJudgeText(
+      frozenVerificationPrompt(findings, currentFiles),
+      "You are a verification judge. Follow the user-supplied frozen-finding verification contract exactly and return only its JSON shape.",
+    ),
+  );
 }
 
 export function changedLinesBlock(
