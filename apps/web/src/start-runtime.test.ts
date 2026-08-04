@@ -29,11 +29,11 @@ describe("TanStack Start runtime contract", () => {
     expect(source).toContain('from "@convex-dev/react-query"');
     expect(source).toContain('from "@tanstack/react-query"');
     expect(source).toContain('from "@tanstack/react-router"');
-    expect(source).toContain('from "@tanstack/react-router-ssr-query"');
+    expect(source).not.toContain('from "@tanstack/react-router-ssr-query"');
     expect(source).toContain('from "./routeTree.gen"');
     expect(source).toContain("new ConvexQueryClient");
     expect(source).toContain("new QueryClient");
-    expect(source).toContain("setupRouterSsrQueryIntegration");
+    expect(source).not.toContain("setupRouterSsrQueryIntegration");
     expect(source).toContain('defaultPreload: "intent"');
     expect(source).toContain("scrollRestoration: true");
   });

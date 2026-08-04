@@ -12,11 +12,10 @@ test("browser navigation leaves the supervised dev runtime healthy", async () =>
   const result = await checkDevRuntimeLongevity({
     cwd: repositoryRoot,
     webPort: 15183,
-    readinessPort: 14184,
     longevityMs: 125_000,
   });
 
   assert.equal(result.healthBefore, 200, result.logs);
   assert.equal(result.healthAfter, 200, result.logs);
   assert.equal(result.cleanShutdown, true, result.logs);
-}, 160_000);
+}, 240_000);

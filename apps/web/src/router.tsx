@@ -1,7 +1,6 @@
 import { ConvexQueryClient } from "@convex-dev/react-query";
 import { QueryClient } from "@tanstack/react-query";
 import { createRouter } from "@tanstack/react-router";
-import { setupRouterSsrQueryIntegration } from "@tanstack/react-router-ssr-query";
 import { TemplateRouteError, TemplateRoutePending } from "@maestro-template/ui";
 
 import "./react-global";
@@ -42,8 +41,6 @@ export function getRouter() {
       convexQueryClient,
     },
   });
-
-  setupRouterSsrQueryIntegration({ router, queryClient });
 
   return router;
 }

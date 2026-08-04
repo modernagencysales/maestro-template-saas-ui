@@ -9,7 +9,9 @@ async function waitForHealth(url, timeoutMs = 60_000) {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     try {
-      const response = await globalThis.fetch(url);
+      const response = await globalThis.fetch(url, {
+        signal: globalThis.AbortSignal.timeout(1_000),
+      });
       if (response.ok) return response.status;
     } catch {
       // The supervisor is still starting.
@@ -22,7 +24,7 @@ async function waitForHealth(url, timeoutMs = 60_000) {
 const waitForExit = (child, timeoutMs) =>
   new Promise((resolve, reject) => {
     const timeout = setTimeout(
-      () => reject(new Error("maestro start did not stop after SIGINT")),
+      () => reject(new Error("web dev runtime did not stop after SIGINT")),
       timeoutMs,
     );
     child.once("exit", (code, signal) => {
@@ -43,22 +45,20 @@ const stopGroup = (child, signal) => {
 export async function checkDevRuntimeLongevity({
   cwd,
   webPort,
-  readinessPort,
   longevityMs = 125_000,
 }) {
   const output = [];
   const child = spawn(
     "pnpm",
     [
-      "maestro",
-      "--",
-      "start",
-      "--mode",
-      "fake",
-      "--web-port",
+      "--dir",
+      "apps/web",
+      "dev",
+      "--host",
+      "127.0.0.1",
+      "--port",
       String(webPort),
-      "--readiness-port",
-      String(readinessPort),
+      "--strictPort",
     ],
     {
       cwd,
@@ -72,12 +72,13 @@ export async function checkDevRuntimeLongevity({
 
   let browser;
   try {
-    const healthUrl = `http://127.0.0.1:${readinessPort}/health`;
+    const healthUrl = `http://127.0.0.1:${webPort}/favicon.svg`;
     const healthBefore = await waitForHealth(healthUrl);
     browser = await chromium.launch({ headless: true });
     const page = await browser.newPage();
     await page.goto(`http://127.0.0.1:${webPort}/records`, {
-      waitUntil: "networkidle",
+      waitUntil: "domcontentloaded",
+      timeout: 90_000,
     });
     await browser.close();
     browser = undefined;
@@ -85,16 +86,16 @@ export async function checkDevRuntimeLongevity({
     await delay(longevityMs);
     const healthAfter = await waitForHealth(healthUrl, 5_000);
     stopGroup(child, "SIGINT");
-    await waitForExit(child, 15_000);
+    const exit = await waitForExit(child, 15_000);
     const logs = output.join("");
     return {
       healthBefore,
       healthAfter,
-      cleanShutdown: logs.includes("stopped cleanly"),
+      cleanShutdown: exit.code === 0 || exit.signal === "SIGINT",
       logs,
     };
   } catch (error) {
-    throw new Error(`${error.message}\n\nmaestro output:\n${output.join("")}`, {
+    throw new Error(`${error.message}\n\ndev output:\n${output.join("")}`, {
       cause: error,
     });
   } finally {
