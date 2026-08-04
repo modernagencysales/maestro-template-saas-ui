@@ -140,6 +140,12 @@ const unsubscribeMutationRef = makeFunctionReference<
   unknown
 >("ops/email:unsubscribe");
 
+const httpAuthorizationQueryRef = makeFunctionReference<
+  "query",
+  { readonly operationId: string; readonly workspaceId: string },
+  null
+>("httpAuthorization:authorize");
+
 export const securityHeaders = {
   "content-security-policy":
     "default-src 'none'; script-src 'self' https://cdn.jsdelivr.net; connect-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
@@ -579,9 +585,14 @@ const buildTemplateHttpRouter = () => {
         if (identity === null) throw new Error("HTTP authentication failed");
         return identity;
       },
-      authorize: async () => {
-        const identity = await ctx.auth.getUserIdentity();
-        if (identity === null) throw new Error("HTTP authorization failed");
+      authorize: async (operationRequest) => {
+        const workspaceId = operationRequest.input.workspaceId;
+        if (typeof workspaceId !== "string" || workspaceId.trim() === "")
+          throw new Error("HTTP authorization requires a workspace target");
+        await ctx.runQuery(httpAuthorizationQueryRef, {
+          operationId: operationRequest.operationId,
+          workspaceId,
+        });
       },
       runQuery: (ref, input) => ctx.runQuery(ref as never, input as never),
       runMutation: (ref, input) =>

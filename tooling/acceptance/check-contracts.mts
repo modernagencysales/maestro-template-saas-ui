@@ -1,6 +1,7 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { readFileSync, realpathSync, statSync } from "node:fs";
 import { createHash, createHmac, timingSafeEqual } from "node:crypto";
+import { execFileSync } from "node:child_process";
 import { resolve, relative } from "node:path";
 import { isDirectRun } from "../quality/src/direct-run.mts";
 import {
@@ -309,15 +310,48 @@ export const verifyProtectedBaseFixture = async (
   const expected = digest.trim().split(/\s+/u)[0];
   if (expected !== createHash("sha256").update(fixture).digest("hex"))
     throw new Error("protected-base auth-policy fixture digest is invalid");
-  let parsed: { baseCommit?: unknown };
+  let parsed: {
+    schemaVersion?: unknown;
+    baseCommit?: unknown;
+    path?: unknown;
+    sha256?: unknown;
+  };
   try {
-    parsed = JSON.parse(fixture) as { baseCommit?: unknown };
+    parsed = JSON.parse(fixture) as typeof parsed;
   } catch {
     throw new Error("protected-base auth-policy fixture is unparseable");
   }
   if (parsed.baseCommit !== protectedBaseSha)
     throw new Error(
       "protected-base auth-policy fixture does not bind attested base",
+    );
+  const authPolicyPath =
+    "packages/convex/confect/capabilities/_kit/authPolicies.ts";
+  if (
+    parsed.schemaVersion !== 1 ||
+    parsed.path !== authPolicyPath ||
+    typeof parsed.sha256 !== "string" ||
+    !/^[a-f0-9]{64}$/u.test(parsed.sha256)
+  )
+    throw new Error(
+      "protected-base auth-policy fixture path or digest is invalid",
+    );
+  let protectedBytes: Buffer;
+  try {
+    protectedBytes = execFileSync("git", [
+      "-C",
+      root,
+      "show",
+      `${protectedBaseSha}:${parsed.path}`,
+    ]);
+  } catch {
+    throw new Error("protected-base auth-policy material is unavailable");
+  }
+  if (
+    createHash("sha256").update(protectedBytes).digest("hex") !== parsed.sha256
+  )
+    throw new Error(
+      "protected-base auth-policy material digest does not match",
     );
 };
 

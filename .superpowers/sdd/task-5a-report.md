@@ -50,3 +50,51 @@ acceptance unit suite above.
 C11a owns the first real activation-owned registration and must rerun this exact
 adapter/darkness suite after adding it. The pre-existing Task 2 report edit and
 nested fixture deletions were left unstaged.
+
+## Review remediation
+
+Reviewer findings were addressed in commit `cc67e67`:
+
+- controller attestation now requires a controller-trusted root, HMAC binding,
+  expiry, immutable base binding, and rejects candidate-path spoofing;
+- deployable HTTP routes fail closed without injected authentication/
+  authorization and use auth → admission → authorization → handler ordering;
+- `ops/flags:evaluate` authenticates before admission and then performs
+  workspace authorization;
+- protected-base fixture bytes and digest are verified against the attested
+  base; the unused duplicate registration guard was removed.
+
+Fresh verification: `check-contracts.test.mts` 52/52, lifecycle/admission/http/
+flags focused suites 30/31 (the sole failure is the pre-existing partial-route
+`arrayContaining` assertion), Convex typecheck, and `check:auth-demo-bypass` all
+passed.
+
+## Final review remediation
+
+The remaining C4b findings were closed with direct trust-boundary checks:
+
+- `verifyProtectedBaseFixture` now validates the declared schema, fixed auth
+  policy path, and SHA-256 against `git show <attested-base>:<path>`; changing
+  candidate fixture JSON and its sidecar digest together no longer supplies the
+  protected bytes.
+- The deployable HTTP adapter now authorizes the parsed operation/workspace via
+  `httpAuthorization:authorize`. That internal query derives the required role
+  from the operation and resolves the authenticated user's live workspace and
+  organization memberships before the operation runner executes.
+- Lifecycle tests invoke the actual exported Convex HTTP router. A mutated dark
+  registration stops after authentication, and a denied authorization query
+  proves neither the mutation nor action handler executes.
+
+Red evidence: the new focused run failed 3/60 exactly because the two mutated
+protected-base fixtures were accepted and the deployable route skipped its
+authorization query. Green evidence: the same two files then passed 60/60.
+
+Requested five-file verification completed with 84/87 passing. The three
+failures are outside this remediation diff: the previously documented
+`http-docs.test.ts` partial-object `arrayContaining` assertion, plus two
+`flags.test.ts` fixture decode failures
+(`Expected string, got undefined at ["id"]`) present alongside the shared
+worktree's unrelated Task 6 edits. Convex typecheck reports no diagnostics in
+the remediation files; it remains red on unrelated existing/shared-worktree
+diagnostics in provisioning, surface transport coverage, headless principal
+typing, and Task 6 tenancy test fixtures.

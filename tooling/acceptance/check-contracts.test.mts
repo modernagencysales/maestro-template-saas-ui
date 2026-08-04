@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { createHmac } from "node:crypto";
+import { createHash, createHmac } from "node:crypto";
 import { existsSync } from "node:fs";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
@@ -7,10 +7,31 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   CUCUMBER_CONFIGURATION_SOURCE,
   resolveAcceptanceRun,
+  verifyProtectedBaseFixture,
   validateCucumberConfigurationSource,
   validateCucumberPackageVersions,
   synchronizeAdmittedJourneys,
 } from "./check-contracts.mts";
+
+const protectedBaseSha = "a8405dd187645d6e2fa38f52a3ddc4aad15d72f3";
+const protectedPolicyPath =
+  "packages/convex/confect/capabilities/_kit/authPolicies.ts";
+
+const writeProtectedBaseFixture = async (
+  root: string,
+  fixture: Record<string, unknown>,
+): Promise<void> => {
+  const directory = join(root, "tooling/acceptance/fixtures/auth-policy");
+  await mkdir(directory, { recursive: true });
+  const bytes = `${JSON.stringify(fixture, null, 2)}\n`;
+  await Promise.all([
+    writeFile(join(directory, "protected-base.json"), bytes),
+    writeFile(
+      join(directory, "protected-base.digest"),
+      `${createHash("sha256").update(bytes).digest("hex")}  protected-base.json\n`,
+    ),
+  ]);
+};
 
 const validConfig = {
   requireModule: ["tsx/cjs"],
@@ -581,4 +602,38 @@ it("accepts an attested immutable base and rejects candidate environment bases",
       delete process.env.PROTECTED_CONTROLLER_ORIGIN;
     else process.env.PROTECTED_CONTROLLER_ORIGIN = original.origin;
   }
+});
+
+it("rejects a candidate-mutated protected-base fixture path", async () => {
+  const fixtureRoot = await mkdtemp(
+    join(workspaceRoot, ".protected-base-path-"),
+  );
+  temporaryRoots.push(fixtureRoot);
+  await writeProtectedBaseFixture(fixtureRoot, {
+    schemaVersion: 1,
+    baseCommit: protectedBaseSha,
+    path: "package.json",
+    sha256: "1351ac4a0787d0a814e23644a5c980e985b9f123d1719b7387a8219d3f8a0eb5",
+  });
+
+  await expect(
+    verifyProtectedBaseFixture(fixtureRoot, protectedBaseSha),
+  ).rejects.toThrow(/path|auth-policy material/u);
+});
+
+it("rejects a candidate-mutated protected-base fixture SHA", async () => {
+  const fixtureRoot = await mkdtemp(
+    join(workspaceRoot, ".protected-base-sha-"),
+  );
+  temporaryRoots.push(fixtureRoot);
+  await writeProtectedBaseFixture(fixtureRoot, {
+    schemaVersion: 1,
+    baseCommit: protectedBaseSha,
+    path: protectedPolicyPath,
+    sha256: "0".repeat(64),
+  });
+
+  await expect(
+    verifyProtectedBaseFixture(fixtureRoot, protectedBaseSha),
+  ).rejects.toThrow(/digest|auth-policy material/u);
 });
