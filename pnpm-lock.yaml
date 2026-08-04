@@ -32,6 +32,9 @@ importers:
       "@cucumber/cucumber":
         specifier: 13.2.0
         version: 13.2.0
+      "@cucumber/messages":
+        specifier: 34.0.1
+        version: 34.0.1
       "@effect/language-service":
         specifier: 0.87.1
         version: 0.87.1
@@ -56,6 +59,9 @@ importers:
       "@vitest/coverage-v8":
         specifier: 3.2.6
         version: 3.2.6(vitest@3.2.6(@types/node@22.20.0)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.4)(yaml@2.9.0))
+      ajv:
+        specifier: 8.18.0
+        version: 8.18.0
       convex:
         specifier: 1.42.1
         version: 1.42.1(react@19.1.1)

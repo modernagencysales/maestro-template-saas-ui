@@ -368,7 +368,10 @@ const checkDescriptorDefinitions = {
         file: "package.json",
         includes: [
           '"acceptance:check": "tsx tooling/acceptance/check-contracts.mts"',
+          '"acceptance:verify-messages": "tsx tooling/acceptance/verify-messages.mts"',
           '"@cucumber/cucumber": "13.2.0"',
+          '"@cucumber/messages": "34.0.1"',
+          '"ajv": "8.18.0"',
         ],
         message: "the repository root must own the pinned Cucumber runner",
       },
@@ -382,7 +385,12 @@ const checkDescriptorDefinitions = {
       },
       {
         file: "Justfile",
-        includes: ["check-contracts:", "pnpm acceptance:check"],
+        includes: [
+          "check-contracts:",
+          "pnpm acceptance:check",
+          "verify-messages:",
+          "pnpm acceptance:verify-messages",
+        ],
         message: "the contract checker must have a canonical Just recipe",
       },
     ],
@@ -1196,6 +1204,7 @@ const canonicalScriptBodies = {
   "check:config-drift": "tsx tooling/quality/check-config-drift.mts",
   "check:product-journeys": "tsx tooling/quality/check-product-journeys.mts",
   "acceptance:check": "tsx tooling/acceptance/check-contracts.mts",
+  "acceptance:verify-messages": "tsx tooling/acceptance/verify-messages.mts",
   "check:app-map": "pnpm --dir tooling/app-map check",
   "check:append-only-tables":
     "tsx tooling/quality/check-append-only-tables.mts",

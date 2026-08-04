@@ -91,6 +91,9 @@ check-product-journeys:
 check-contracts:
     pnpm acceptance:check
 
+verify-messages:
+    pnpm acceptance:verify-messages
+
 check-app-map:
     pnpm check:app-map
 
