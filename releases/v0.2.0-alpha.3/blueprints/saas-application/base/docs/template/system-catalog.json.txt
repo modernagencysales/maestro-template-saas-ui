@@ -269,11 +269,14 @@
       "kind": "shared-primitive",
       "lifecycle": "active",
       "implementationStatus": "real",
-      "summary": "Owns notification records, read and delivery state, recipient channel preferences, categories, and delivery idempotency.",
+      "summary": "Owns notification records, explicit email consent, suppression, campaigns, provider events, recipient preferences, and delivery idempotency.",
       "responsibilities": [
         "record notifications",
         "deliver notifications idempotently",
-        "manage notification preferences"
+        "manage notification preferences",
+        "send transactional templates through provider-neutral email",
+        "send confirmed broadcasts only to opted-in non-suppressed recipients",
+        "process unsubscribe, bounce, and complaint suppression"
       ],
       "aliases": [
         "alerts",
@@ -284,11 +287,19 @@
         "notification preferences"
       ],
       "tables": [
+        "emailCampaigns",
+        "emailDeliveries",
+        "emailEvents",
+        "emailSubscribers",
+        "emailSuppressions",
         "notificationPreferences",
         "notificationRecords"
       ],
       "canonicalEntrypoints": [
+        "packages/convex/confect/ops/email.spec.ts",
         "packages/convex/confect/ops/notifications.spec.ts",
+        "packages/integrations/src/email.ts",
+        "packages/integrations/src/emailSetup.ts",
         "packages/notifications"
       ],
       "decisionRef": "docs/template/system-catalog.md#notifications"
@@ -390,13 +401,14 @@
       "name": "Deployment Authority",
       "kind": "shared-primitive",
       "lifecycle": "active",
-      "implementationStatus": "mixed",
-      "summary": "Owns environment-scoped release approval, signed deployment verdict, workflow census, trusted issuer, and one-time deployment-action consumption state.",
+      "implementationStatus": "real",
+      "summary": "Owns authenticated environment-scoped release provisioning, runtime-key-bound signed deployment verdicts, workflow census, bounded trusted issuer lifecycle, lossless append-only audit, and approval-bound deployment-action consumption state.",
       "responsibilities": [
         "verify trusted deployment issuer configuration",
         "verify release approvals against exact environment targets and commits",
         "validate complete workflow census evidence",
         "verify signed deployment verdicts",
+        "authenticate and audit operator provisioning and issuer lifecycle",
         "consume deployment actions exactly once"
       ],
       "aliases": [
@@ -410,12 +422,14 @@
       "tables": [
         "deployActionConsumptions",
         "deployApprovals",
+        "deployAuthorityAuditEvents",
         "deployAuthorityIssuers",
         "deployCensusSnapshots",
         "deployVerdicts"
       ],
       "canonicalEntrypoints": [
         "packages/convex/confect/deploy/authority.spec.ts",
+        "packages/convex/confect/deployAuthority/admin.ts",
         "packages/convex/confect/deployAuthority/http.ts",
         "packages/convex/confect/deployAuthority/store.ts"
       ],
@@ -442,7 +456,7 @@
         "records"
       ],
       "canonicalEntrypoints": [
-        "packages/convex/confect/records.spec.ts",
+        "packages/convex/confect/records/records.spec.ts",
         "apps/web/src/routes/_workspace.records.tsx"
       ],
       "decisionRef": "docs/template/system-decisions/record-management.md"

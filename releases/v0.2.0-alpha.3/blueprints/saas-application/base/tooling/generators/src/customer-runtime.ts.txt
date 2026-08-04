@@ -20,7 +20,12 @@ import {
   parseSystemCatalog,
   type SystemCatalog,
 } from "@maestro-template/template-core/systemCatalog";
+import {
+  resolveTemplateInstanceCompatibility,
+  templateInstanceSchemaProvider,
+} from "@maestro-template/template-core/templateInstance";
 import { gtmImplementationBlueprint } from "./blueprints/gtmImplementation";
+import { buildCrudFeatureFiles } from "./feature-crud";
 
 export { buildWorkflowFiles } from "./workflow-files";
 
@@ -232,6 +237,7 @@ export type TableGeneratorOptions = {
   readonly deleteMode: DataDeleteMode;
   readonly retention: DataRetention;
   readonly appendOnly?: boolean;
+  readonly businessEntity?: boolean;
   readonly description?: string;
   readonly write?: boolean;
 };
@@ -328,7 +334,7 @@ const providerManifestGroup = {
   workos: "workos",
   posthog: "posthog",
   dodo: "dodo",
-  email: "mailersend",
+  email: "email",
   llm: "openrouter",
   storage: "storage",
 } as const satisfies Record<TemplateProvider, string>;
@@ -414,9 +420,6 @@ const slugify = (value: string): string =>
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
-
-const kebabCase = (value: string): string =>
-  slugify(value.replace(/([a-z0-9])([A-Z])/g, "$1-$2"));
 
 const pascalCase = (value: string): string => {
   const normalized = value
@@ -573,6 +576,60 @@ export const parseTemplateInstance = (raw: string): TemplateInstance => {
     },
     ...(parsed.intake ? { intake: parsed.intake } : {}),
   } as TemplateInstance;
+};
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
+export const parseCustomerTemplateInstance = (
+  raw: string,
+): TemplateInstance => {
+  try {
+    return parseTemplateInstance(raw);
+  } catch (legacyError) {
+    let input: unknown;
+    try {
+      input = JSON.parse(raw) as unknown;
+    } catch {
+      throw legacyError;
+    }
+    const resolution = resolveTemplateInstanceCompatibility(input);
+    if (!resolution.safeToContinueReadOnly) {
+      throw new Error(
+        `[${resolution.code}] template-instance.json is not readable by this customer runtime: ${resolution.recovery.action}`,
+      );
+    }
+    const canonical =
+      resolution.status === "compatible"
+        ? templateInstanceSchemaProvider.parse(input)
+        : input;
+    const personalization = isRecord(canonical)
+      ? canonical.personalization
+      : undefined;
+    const blueprint = isRecord(canonical) ? canonical.blueprint : undefined;
+    const name = isRecord(personalization) ? personalization.name : undefined;
+    const blueprintId = isRecord(blueprint) ? blueprint.id : undefined;
+    if (
+      typeof name !== "string" ||
+      name.trim() === "" ||
+      typeof blueprintId !== "string" ||
+      ![
+        "source-grounded-gtm-brain",
+        "gtm-implementation",
+        "saas-application",
+      ].includes(blueprintId)
+    ) {
+      throw new Error(
+        "template-instance.json is missing canonical personalization.name or blueprint.id",
+      );
+    }
+    return buildTemplateInstance({
+      name,
+      blueprint: blueprintId as BlueprintId,
+      providerMode: "fake",
+      generatedAt: "1970-01-01T00:00:00.000Z",
+    });
+  }
 };
 
 const providerChecks = (
@@ -872,273 +929,7 @@ ${description}
 
 export const buildFeatureFiles = (
   options: FeatureGeneratorOptions,
-): FeatureGeneratorResult => {
-  const name = camelCase(options.name);
-  const pascalName = pascalCase(options.name);
-  const route = kebabCase(options.name);
-  const description =
-    options.description ??
-    `Generated ${name} vertical slice. Replace fake fixtures through the typed Confect adapter.`;
-  const featurePath = `apps/web/src/features/${name}`;
-  const capability = buildCapabilityFiles({
-    name,
-    system: options.system,
-    disposition: options.disposition,
-    description,
-    exposure: "web",
-  });
-  const capabilityFiles = capability.files.filter(
-    ({ path }) =>
-      path !== `docs/template/generated/provenance/add-capability/${name}.json`,
-  );
-  const files: readonly GeneratedFile[] = [
-    ...capabilityFiles,
-    {
-      path: `${featurePath}/contract.ts`,
-      content: `export const ${name}FeatureContract = {
-  ownership: {
-    system: "${options.system}",
-    disposition: "${options.disposition}",
-  },
-  capability: "${name}",
-  tenantScope: "workspace",
-  auth: "workspace-member",
-  typedErrors: ["Unauthorized", "ValidationFailed", "Forbidden"],
-  audit: {
-    readEvent: "${name}.viewed",
-    writeEvent: "${name}.changed",
-    actorAndWorkspaceRequired: true,
-  },
-  observability: {
-    operation: "${options.system}.${name}",
-    redactInput: true,
-    captureLatency: true,
-  },
-  featureFlag: {
-    key: "${options.system}.${route}",
-    default: "off-until-reviewed",
-    killSwitch: true,
-  },
-  entitlement: {
-    posture: "explicit-plan-or-none",
-    default: "not-entitled",
-  },
-  dataLifecycle: {
-    durableResources: [] as const,
-    instruction: "Use template:add-table before adding durable state.",
-  },
-} as const;
-`,
-    },
-    {
-      path: `${featurePath}/model.ts`,
-      content: `export type ${pascalName}Item = {
-  readonly id: string;
-  readonly label: string;
-  readonly detail: string;
-};
-
-export type ${pascalName}FeatureState =
-  | { readonly status: "loading" }
-  | { readonly status: "empty" }
-  | { readonly status: "ready"; readonly items: readonly ${pascalName}Item[] }
-  | { readonly status: "edit"; readonly draft: ${pascalName}Item }
-  | { readonly status: "skipped"; readonly reason: string }
-  | {
-      readonly status: "typed-error";
-      readonly error: "Unauthorized" | "ValidationFailed" | "Forbidden";
-    }
-  | { readonly status: "transport-error"; readonly message: string }
-  | { readonly status: "success"; readonly item: ${pascalName}Item };
-
-export type ${pascalName}ViewModel = {
-  readonly title: string;
-  readonly status: ${pascalName}FeatureState["status"];
-  readonly notice: string;
-  readonly items: readonly ${pascalName}Item[];
-  readonly canEdit: boolean;
-};
-
-export const present${pascalName} = (
-  state: ${pascalName}FeatureState,
-): ${pascalName}ViewModel => {
-  const base = {
-    title: ${JSON.stringify(description)},
-    status: state.status,
-    items: [] as readonly ${pascalName}Item[],
-    canEdit: false,
-  };
-
-  switch (state.status) {
-    case "loading":
-      return { ...base, notice: "Loading…" };
-    case "empty":
-      return { ...base, notice: "Nothing here yet.", canEdit: true };
-    case "ready":
-      return { ...base, notice: "Ready", items: state.items, canEdit: true };
-    case "edit":
-      return { ...base, notice: "Editing", items: [state.draft], canEdit: true };
-    case "skipped":
-      return { ...base, notice: state.reason };
-    case "typed-error":
-      return { ...base, notice: \`Request failed: \${state.error}\` };
-    case "transport-error":
-      return { ...base, notice: \`Connection failed: \${state.message}\` };
-    case "success":
-      return { ...base, notice: "Saved", items: [state.item], canEdit: true };
-  }
-};
-`,
-    },
-    {
-      path: `${featurePath}/fixtures.ts`,
-      content: `import type { ${pascalName}FeatureState, ${pascalName}Item } from "./model";
-
-const fake${pascalName}Item: ${pascalName}Item = {
-  id: "${name}-demo-1",
-  label: "Example account",
-  detail: "Synthetic fixture for customer.example; never use customer data here.",
-};
-
-export const fake${pascalName}Items: readonly ${pascalName}Item[] = [fake${pascalName}Item];
-
-export const fake${pascalName}States = {
-  loading: { status: "loading" },
-  empty: { status: "empty" },
-  ready: { status: "ready", items: fake${pascalName}Items },
-  edit: { status: "edit", draft: fake${pascalName}Item },
-  skipped: { status: "skipped", reason: "Feature flag is disabled." },
-  typedError: { status: "typed-error", error: "Forbidden" },
-  transportError: { status: "transport-error", message: "Demo transport unavailable." },
-  success: { status: "success", item: fake${pascalName}Item },
-} as const satisfies Record<string, ${pascalName}FeatureState>;
-`,
-    },
-    {
-      path: `${featurePath}/${route}-feature.tsx`,
-      content: `import { Button, Card, Heading, Stack, Text } from "@saas-ui/react";
-import { fake${pascalName}States } from "./fixtures";
-import { present${pascalName}, type ${pascalName}FeatureState } from "./model";
-
-export function ${pascalName}Feature({
-  state = fake${pascalName}States.ready,
-}: {
-  readonly state?: ${pascalName}FeatureState;
-}) {
-  const view = present${pascalName}(state);
-
-  return (
-    <Card.Root aria-label="${description}">
-      <Card.Header>
-        <Heading size="md">{view.title}</Heading>
-        <Text>{view.notice}</Text>
-      </Card.Header>
-      <Card.Body>
-        <Stack gap="3">
-          {view.items.map((item) => (
-            <Card.Root key={item.id} variant="outline">
-              <Card.Body>
-                <Heading size="sm">{item.label}</Heading>
-                <Text>{item.detail}</Text>
-              </Card.Body>
-            </Card.Root>
-          ))}
-          {view.canEdit ? <Button alignSelf="start">Edit</Button> : null}
-        </Stack>
-      </Card.Body>
-    </Card.Root>
-  );
-}
-`,
-    },
-    {
-      path: `${featurePath}/model.test.ts`,
-      content: `import { describe, expect, it } from "vitest";
-import { fake${pascalName}States } from "./fixtures";
-import { present${pascalName} } from "./model";
-
-describe("${name} feature presenter", () => {
-  it.each(Object.entries(fake${pascalName}States))(
-    "presents the %s state without throwing",
-    (_name, state) => {
-      const view = present${pascalName}(state);
-      expect(view.status).toBe(state.status);
-      expect(view.notice.length).toBeGreaterThan(0);
-    },
-  );
-
-  it("keeps fixtures synthetic and fake-safe", () => {
-    expect(JSON.stringify(fake${pascalName}States)).toContain("customer.example");
-  });
-});
-`,
-    },
-    {
-      path: `apps/web/src/screens/${route}-screen.tsx`,
-      content: `import { Page } from "@saas-ui/react";
-import { ${pascalName}Feature } from "../features/${name}/${route}-feature";
-
-export function ${pascalName}Screen() {
-  return (
-    <Page.Root>
-      <Page.Header title="${pascalName}" description={${JSON.stringify(description)}} />
-      <Page.Body>
-        <${pascalName}Feature />
-      </Page.Body>
-    </Page.Root>
-  );
-}
-`,
-    },
-    {
-      path: `apps/web/src/routes/_workspace.${route}.tsx`,
-      content: `import { createFileRoute } from "@tanstack/react-router";
-import { ${pascalName}Screen } from "../screens/${route}-screen";
-
-export const Route = createFileRoute("/_workspace/${route}")({
-  component: ${pascalName}Screen,
-});
-`,
-    },
-    {
-      path: `docs/template/generated/features/${name}.md`,
-      content: `# ${pascalName} Feature
-
-${description}
-
-- Owner: \`${options.system}\` (\`${options.disposition}\`)
-- Capability: \`${name}\`
-- Route: \`/_workspace/${route}\`
-- Auth and tenancy: authenticated workspace member
-- Rollout: flag off and not entitled until reviewed
-- Data lifecycle: no durable data; use \`template:add-table\` before adding any
-- Audit: read/write event names are declared in the feature contract
-- Observability: operation name, redaction, and latency posture are declared
-
-Run the model and capability tests, Confect codegen, route generation, and the
-topology/promotion/data-resource gates before opening the production PR.
-`,
-    },
-  ];
-
-  return {
-    name,
-    pascalName,
-    route,
-    system: options.system,
-    disposition: options.disposition,
-    files: withGeneratorProvenance("add-feature", name, files, {
-      system: options.system,
-      disposition: options.disposition,
-    }),
-    followUp: [
-      "Specialize the generated capability contract and keep typed failures reachable.",
-      "Replace fake fixtures through a thin Confect React adapter.",
-      "Register navigation only after flag, entitlement, auth, and audit review.",
-      "Run pnpm confect:codegen, pnpm build, focused tests, and just verify.",
-    ],
-  };
-};
+): FeatureGeneratorResult => buildCrudFeatureFiles(options);
 
 const tenantOwnerField = (
   tenantScope: DataTenantScope,
@@ -1202,6 +993,12 @@ export const buildTableFiles = (
     options.tenantScope === "global"
       ? "    key: Schema.String,"
       : `    ${owner.field}: Id("${owner.table}"),`;
+  const businessFields = options.businessEntity
+    ? `
+    title: Schema.String,
+    detail: Schema.String,
+    status: Schema.Literal("planned", "active", "complete"),`
+    : "";
   const idImport =
     options.tenantScope === "global"
       ? ""
@@ -1256,6 +1053,7 @@ ${idImport}
 export default Table.make(() =>
   Schema.Struct({
 ${ownerField}
+${businessFields}
     createdAt: Schema.Number,
     updatedAt: Schema.Number,
   }),

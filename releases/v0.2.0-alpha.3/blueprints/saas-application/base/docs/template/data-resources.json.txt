@@ -283,11 +283,28 @@
       "deleteMode": "retain-audit",
       "retention": "retain-indefinitely-no-cleanup",
       "appendOnly": true,
-      "writePosture": "external-unavailable",
+      "writePosture": "implemented",
       "workspaceLifecycle": "excluded",
-      "writeAuthority": "docs/template/system-decisions/deployment-authority.md",
+      "writeAuthority": "packages/convex/confect/deployAuthority/admin.ts",
       "migrationRef": "docs/template/data-lifecycle.md#deployment-authority-resources",
       "detail": "Signed environment approval records become unusable at expiresAt but remain outside workspace DSARs as bounded release audit evidence; expiry is not physical deletion."
+    },
+    {
+      "id": "deployAuthorityAuditEvents",
+      "system": "deployment-authority",
+      "sourcePath": "packages/convex/confect/tables/deployAuthorityAuditEvents.ts",
+      "tenantScope": "global",
+      "sensitivity": "restricted",
+      "pii": [],
+      "exportMode": "not-applicable",
+      "deleteMode": "retain-audit",
+      "retention": "retain-indefinitely-no-cleanup",
+      "appendOnly": true,
+      "writePosture": "implemented",
+      "workspaceLifecycle": "excluded",
+      "writeAuthority": "packages/convex/confect/deployAuthority/admin.ts",
+      "migrationRef": "docs/template/data-lifecycle.md#deployment-authority-resources",
+      "detail": "Hashed operator provisioning and issuer lifecycle events are append-only global release-control evidence; raw identity and signing material are never stored."
     },
     {
       "id": "deployAuthorityIssuers",
@@ -299,10 +316,10 @@
       "exportMode": "not-applicable",
       "deleteMode": "not-applicable",
       "retention": "retain-configuration",
-      "appendOnly": false,
-      "writePosture": "external-unavailable",
+      "appendOnly": true,
+      "writePosture": "implemented",
       "workspaceLifecycle": "excluded",
-      "writeAuthority": "docs/template/system-decisions/deployment-authority.md",
+      "writeAuthority": "packages/convex/confect/deployAuthority/admin.ts",
       "migrationRef": "docs/template/data-lifecycle.md#deployment-authority-resources",
       "detail": "Global issuer trust configuration is retained while operationally required, disabled rather than workspace-deleted, and never projected into workspace DSAR plans."
     },
@@ -317,9 +334,9 @@
       "deleteMode": "retain-audit",
       "retention": "retain-indefinitely-no-cleanup",
       "appendOnly": true,
-      "writePosture": "external-unavailable",
+      "writePosture": "implemented",
       "workspaceLifecycle": "excluded",
-      "writeAuthority": "docs/template/system-decisions/deployment-authority.md",
+      "writeAuthority": "packages/convex/confect/deployAuthority/admin.ts",
       "migrationRef": "docs/template/data-lifecycle.md#deployment-authority-resources",
       "detail": "Environment-wide immutable workflow binding snapshots become unusable at expiresAt but remain outside workspace DSARs as bounded release audit evidence; expiry is not physical deletion."
     },
@@ -334,9 +351,9 @@
       "deleteMode": "retain-audit",
       "retention": "retain-indefinitely-no-cleanup",
       "appendOnly": true,
-      "writePosture": "external-unavailable",
+      "writePosture": "implemented",
       "workspaceLifecycle": "excluded",
-      "writeAuthority": "docs/template/system-decisions/deployment-authority.md",
+      "writeAuthority": "packages/convex/confect/deployAuthority/admin.ts",
       "migrationRef": "docs/template/data-lifecycle.md#deployment-authority-resources",
       "detail": "Signed environment verdicts become unusable at expiresAt but remain outside workspace DSARs as bounded release audit evidence; expiry is not physical deletion."
     },
@@ -419,6 +436,103 @@
       "writeAuthority": "packages/convex/confect/ops/dataLifecycle.ts",
       "migrationRef": "docs/template/data-lifecycle.md#current-resources",
       "detail": "dsarRequests is durable Data Lifecycle state governed by the canonical data-lifecycle lifecycle."
+    },
+    {
+      "id": "emailCampaigns",
+      "system": "notifications",
+      "sourcePath": "packages/convex/confect/tables/emailCampaigns.ts",
+      "tenantScope": "workspace",
+      "sensitivity": "confidential",
+      "pii": [
+        "customer-content"
+      ],
+      "exportMode": "redacted-json",
+      "deleteMode": "delete",
+      "retention": "retain-until-workspace-delete",
+      "appendOnly": false,
+      "writePosture": "implemented",
+      "workspaceLifecycle": "managed",
+      "writeAuthority": "packages/convex/confect/ops/email.spec.ts",
+      "migrationRef": "docs/template/data-lifecycle.md#current-resources",
+      "detail": "Consent-based broadcast campaign content and aggregate delivery state."
+    },
+    {
+      "id": "emailDeliveries",
+      "system": "notifications",
+      "sourcePath": "packages/convex/confect/tables/emailDeliveries.ts",
+      "tenantScope": "workspace",
+      "sensitivity": "restricted",
+      "pii": [
+        "identity",
+        "provider-metadata"
+      ],
+      "exportMode": "redacted-json",
+      "deleteMode": "retain-audit",
+      "retention": "hash-or-redact-on-export",
+      "appendOnly": false,
+      "writePosture": "implemented",
+      "workspaceLifecycle": "managed",
+      "writeAuthority": "packages/convex/confect/ops/email.spec.ts",
+      "migrationRef": "docs/template/data-lifecycle.md#current-resources",
+      "detail": "Idempotent transactional and broadcast recipient delivery state."
+    },
+    {
+      "id": "emailEvents",
+      "system": "notifications",
+      "sourcePath": "packages/convex/confect/tables/emailEvents.ts",
+      "tenantScope": "global",
+      "sensitivity": "restricted",
+      "pii": [
+        "provider-metadata"
+      ],
+      "exportMode": "not-applicable",
+      "deleteMode": "retain-audit",
+      "retention": "retain-indefinitely-no-cleanup",
+      "appendOnly": true,
+      "writePosture": "implemented",
+      "workspaceLifecycle": "excluded",
+      "writeAuthority": "packages/convex/confect/ops/email.spec.ts",
+      "migrationRef": "docs/template/data-lifecycle.md#current-resources",
+      "detail": "Deduplicated normalized provider events containing recipient hashes rather than raw payloads."
+    },
+    {
+      "id": "emailSubscribers",
+      "system": "notifications",
+      "sourcePath": "packages/convex/confect/tables/emailSubscribers.ts",
+      "tenantScope": "workspace",
+      "sensitivity": "restricted",
+      "pii": [
+        "email",
+        "identity"
+      ],
+      "exportMode": "redacted-json",
+      "deleteMode": "redact",
+      "retention": "hash-or-redact-on-export",
+      "appendOnly": false,
+      "writePosture": "implemented",
+      "workspaceLifecycle": "managed",
+      "writeAuthority": "packages/convex/confect/ops/email.spec.ts",
+      "migrationRef": "docs/template/data-lifecycle.md#current-resources",
+      "detail": "Workspace-scoped explicit marketing consent and unsubscribe state."
+    },
+    {
+      "id": "emailSuppressions",
+      "system": "notifications",
+      "sourcePath": "packages/convex/confect/tables/emailSuppressions.ts",
+      "tenantScope": "global",
+      "sensitivity": "restricted",
+      "pii": [
+        "email"
+      ],
+      "exportMode": "not-applicable",
+      "deleteMode": "retain-audit",
+      "retention": "retain-indefinitely-no-cleanup",
+      "appendOnly": false,
+      "writePosture": "implemented",
+      "workspaceLifecycle": "excluded",
+      "writeAuthority": "packages/convex/confect/ops/email.spec.ts",
+      "migrationRef": "docs/template/data-lifecycle.md#current-resources",
+      "detail": "Global marketing suppression state for unsubscribe, bounce, and complaint enforcement."
     },
     {
       "id": "entitlements",
@@ -605,7 +719,7 @@
       "appendOnly": false,
       "writePosture": "implemented",
       "workspaceLifecycle": "managed",
-      "writeAuthority": "packages/convex/confect/records.spec.ts",
+      "writeAuthority": "packages/convex/confect/records/records.spec.ts",
       "migrationRef": "docs/template/schema-decisions/records.md",
       "detail": "Records are workspace-owned application data exported as JSON and removed with the owning workspace."
     },

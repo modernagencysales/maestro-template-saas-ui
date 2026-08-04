@@ -2,22 +2,27 @@ import {
   createCheckCommand,
   createComposedPreflightProbe,
   createExecFileVerificationRunner,
+  createMaestroMcpProjection,
+  createMaestroMcpServer,
   createNodeBuildReadinessSurface,
   createNodeExecFileAdapter,
   createNodePreflightRuntimeReader,
+  createNodeVerificationReceiptWriter,
   createNodeSupportBundleExporter,
   createPreflightCommand,
+  createRepositoryContext,
   createSupportBundleCommand,
   createVerifyCommand,
   defineDiagnosticRegistryProjection,
   nodePreflightFileSystem,
+  serveMcpStdio,
   type NodePreflightPolicy,
 } from "@maestro-template/agent-pack";
 import {
   buildBlueprintCatalog,
   buildTemplateInstance,
   doctorTemplateInstance,
-  parseTemplateInstance,
+  parseCustomerTemplateInstance,
   readDataResourceCatalog,
   readProductTopology,
   readSystemCatalog,
@@ -33,23 +38,20 @@ import {
 } from "./environment";
 import { createPreflightCliHandler } from "./preflight";
 import { createCustomerRecipeCliHandlers } from "./customerRecipes";
+import { createMcpCliAdapter } from "./mcp";
 import {
   createComposedStartCommand,
   createStartCliHandler,
   createStartOutputBoundary,
-  parseStartTargetInstance,
 } from "./start";
 import { createSupportBundleCliHandler } from "./supportBundle";
 import { createVerifyCliHandler } from "./verify";
 import type { FactoryCliHandler } from "./router";
 
-const policy = Object.freeze({
+export const CUSTOMER_PREFLIGHT_POLICY = Object.freeze({
   supportedPlatforms: ["linux", "darwin", "win32"],
   supportedNodeMajors: [22],
-  // The customer lockfile is lockfileVersion 9 and is reproducibly installable
-  // by this supported offline-compatible standalone fallback. packageManager
-  // remains the canonical pnpm 10.12.1 authority.
-  supportedPnpmVersions: ["9.15.4"],
+  supportedPnpmVersions: [],
   minimumGitVersion: "2.31.0",
   minimumDiskBytes: 512 * 1024 * 1024,
   requiredPorts: [],
@@ -62,6 +64,8 @@ const policy = Object.freeze({
   readonly focusedTimeoutMs: number;
   readonly fullTimeoutMs: number;
 };
+
+const policy = CUSTOMER_PREFLIGHT_POLICY;
 
 const execFile = createNodeExecFileAdapter();
 const readBoundedFile = async (
@@ -92,20 +96,7 @@ const descriptors = defineQualityDiagnosticRegistryProjection(
   defineDiagnosticRegistryProjection,
 );
 
-const parseCustomerInstance = (raw: string) =>
-  parseStartTargetInstance(raw, parseTemplateInstance, (identity) => {
-    const blueprint = buildBlueprintCatalog().find(
-      ({ id }) => id === identity.blueprint,
-    )?.id;
-    if (blueprint === undefined)
-      throw new Error("Customer blueprint is not reviewed.");
-    return buildTemplateInstance({
-      name: identity.name,
-      blueprint,
-      providerMode: "fake",
-      generatedAt: "1970-01-01T00:00:00.000Z",
-    });
-  });
+const parseCustomerInstance = parseCustomerTemplateInstance;
 
 export function createCustomerCliComposition(
   readEnvironment: CompositionEnvironmentReader,
@@ -177,6 +168,9 @@ export function createCustomerCliComposition(
   const verify = createVerifyCommand({
     descriptors,
     runner,
+    writer: createNodeVerificationReceiptWriter({
+      maxBytes: policy.packageJsonMaxBytes,
+    }),
   });
   const check = createCheckCommand({ preflight, verify });
   const supportBundle = createSupportBundleCommand({
@@ -189,6 +183,18 @@ export function createCustomerCliComposition(
     }),
   });
   const recipeHandlers = createCustomerRecipeCliHandlers(preflight);
+  const mcp = createMcpCliAdapter(({ stdin, stdout, stderr, cwd }) => {
+    const projection = createMaestroMcpProjection(
+      { preflight, supportBundle, verify },
+      createRepositoryContext({ cwd }),
+    );
+    return serveMcpStdio({
+      stdin,
+      stdout,
+      stderr,
+      server: createMaestroMcpServer(projection),
+    });
+  });
   const handlers: readonly FactoryCliHandler[] = [
     createStartCliHandler(start, output),
     ...recipeHandlers,
@@ -199,6 +205,7 @@ export function createCustomerCliComposition(
   ];
   return Object.freeze({
     handlers,
+    mcp,
     diagnosticCount: descriptors.length,
     workflowRuleCount: workflowRules.length,
   });
