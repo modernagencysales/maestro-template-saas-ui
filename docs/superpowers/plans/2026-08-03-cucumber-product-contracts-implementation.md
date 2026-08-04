@@ -132,6 +132,13 @@ creating a second authority.
   `acceptance`, protected verify, release seal, and merge verdicts once C11b
   admits the reference Feature. Focused checks for assembling journeys must fail
   with an explicit diagnostic rather than silently selecting zero cases.
+- W1's exception is an attested `bootstrap-observation` mode bound to one
+  immutable protected-base SHA, one controller-issued epoch, and an expiry
+  recorded in the transition journal; it may run only while the base inventory
+  has zero admitted Pickles. The controller flips the mode off as soon as C11b
+  lands and tests reject the same mode on a later base. Maestro M-pre/M0b use a
+  separately attested `target-bootstrap-observation` window with the same
+  exact-base/expiry rules; neither window can authorize admission or release.
 - The authoritative runtime target is generated from the protected recipe and
   `RuntimeTargetManifest` digest; candidate-supplied target paths/manifests are
   rejected. Build commands are controller-owned adapters (a target may declare
@@ -192,9 +199,9 @@ creating a second authority.
 ### Staged mutation and release schemas
 
 - C12 owns registry schema version `1` and exactly 33 uniquely numbered core
-  mutations (one ID per subcase). R1/W1 append IDs 34–36 in their own packets;
-  no pre-R1/W1 task asserts a final count of 36. Each packet records schema
-  version and expected count in its focused test.
+  mutations (one ID per subcase). R1 appends ID 34; W1 appends IDs 35–36 in
+  their own packets; no pre-R1/W1 task asserts a final count of 36. Each packet
+  records schema version and expected count in its focused test.
 - U1 names its `RuntimeTargetManifest`, upgrade recipe, journal path, target
   package-manager executable/version/digest, and every possible post-apply file.
   Preview proves no target mutation before apply; apply is journaled and
@@ -246,7 +253,7 @@ The final implementation-readiness pass closes these remaining decisions:
   fixture RuntimeManifest and excludes live epochs/timestamps/backend IDs.
 - C12 mutations are discriminated by target (`fixture`, `acceptance-harness`,
   `ci`, `release`) and each declares pristine input, operation, expected
-  finding, and gate. Core IDs remain 1–33; R1/W1 append 34–36.
+  finding, and gate. Core IDs remain 1–33; R1 appends 34 and W1 appends 35–36.
 - Every packet stages an enumerated manifest. Generated directories in C9, B1,
   and M0 require exact generator-output path/digest manifests and single-owner
   packet assignments. M0's installed audit payload must include the exact
@@ -559,6 +566,11 @@ only after remote-tag materialization and M3 acceptance.
 
 ## Per-Task Completion Protocol
 
+Before implementation begins, validate the stack projection with:
+`rtk pnpm stack:check docs/superpowers/plans/cucumber-product-contracts.stack.json`.
+The projection is a planning guardrail only; task acceptance still requires the
+per-task tests and protected gates below.
+
 For every task:
 
 1. Add the named behavioral test and run it red for the stated reason.
@@ -672,6 +684,17 @@ export function planProtectedTransition(input: {
   readonly previewFingerprint: `protected_transition_sha256:${string}`;
   readonly confirmationArgv: readonly string[];
 };
+
+export type ManifestInspectionResult = {
+  readonly sourceDigest: `sha256:${string}`;
+  readonly registryDigest: `sha256:${string}`;
+  readonly operations: readonly Readonly<Record<string, unknown>>[];
+};
+
+export function inspectCandidateManifests(input: {
+  readonly candidateRoot: string;
+  readonly manifestPaths: readonly string[];
+}): ManifestInspectionResult;
 ```
 
 - [ ] **Step 0: Keep bootstrap development PR-free.** Freeze merges and develop
@@ -805,6 +828,7 @@ export function planProtectedTransition(input: {
   rtk docker build --file tooling/ci/controller.Dockerfile --tag maestro/protected-controller:<source-sha> .
   rtk docker inspect --format '{{index .RepoDigests 0}}' maestro/protected-controller:<source-sha>
   rtk node --experimental-strip-types tooling/ci/protected-bootstrap.mts install-operator --image-digest <recorded-image-digest> --prefix /usr/local/bin/maestro-protected-bootstrap
+  rtk node --experimental-strip-types tooling/ci/candidate-sandbox.mts inspect-manifests --candidate-root <candidate-root> --manifest-paths-file <sorted-path-list> --output <bounded-registry-output>
   ```
 
   Resolve the protected base immediately before observe and persist it in the
@@ -1160,6 +1184,8 @@ committed normalized inventory sidecar)
 
 - Create: `tooling/confect-manifest/src/publicSurfaceGeneration.ts`
 - Create: `tooling/confect-manifest/src/publicSurfaceGeneration.test.ts`
+- Create: `tooling/acceptance/generated-output-manifest.json`
+- Create: `tooling/acceptance/generated-output-manifest.test.ts`
 - Generate:
   `packages/template-core/src/generated/public-surfaces.generated.json`
 - Generate: `packages/template-core/src/generated/publicSurfaces.ts`
@@ -2324,6 +2350,7 @@ export type ControllerContext = {
     readonly candidateCommit: string;
   };
   readonly origin: "protected-controller";
+  readonly attestation: `cose:${string}`;
 };
 
 export async function runAcceptance(
@@ -2332,6 +2359,12 @@ export async function runAcceptance(
 
 export function acceptanceExitCode(result: AcceptanceRunResult): 0 | 1;
 ```
+
+`ControllerContext.attestation` is minted and verified by the protected
+controller over the complete context and run epoch; `origin` and handle strings
+are descriptive fields only. The sandbox never receives signing/MAC material,
+and replay, copy-to-another-run, field-tamper, and stale-epoch tests must fail
+before build or Cucumber execution.
 
 **Atomicity:** Keep sandbox/supervisor, acceptance-only auth adapters, and the
 orchestrator in one PR: exposing a runnable controller before every real child
@@ -3226,6 +3259,12 @@ export type ApproveBuildPackContractInput = {
 
 **Interfaces:**
 
+For `unmanaged-existing-repository`, W0's template allowlist is not reused. U1
+first produces a controller-reviewed, target-only dependency allowlist and
+CAS-bound digest from the target lockfile; preview rejects any package outside
+that allowlist, and apply/verify rechecks the digest. A focused fixture proves a
+valid target-only dependency is accepted while an unreviewed one is rejected.
+
 ```ts
 import type { ContractsLegacyBaseline } from "@maestro-template/template-core/publicSurface";
 
@@ -3237,6 +3276,7 @@ export type ContractsAuditReleaseClosure = {
   };
   readonly targetLockfileDigest: `sha256:${string}`;
   readonly targetDependencyClosureDigest: `sha256:${string}`;
+  readonly targetDependencyAllowlistDigest: `sha256:${string}`;
   readonly rootIntegrations: readonly {
     readonly path: string;
     readonly kind:
@@ -3576,8 +3616,9 @@ same immutable multi-component product.
 **PRs:** control source `W1a`, published-image lock/verify wiring `W1b`, then
 external protected cutover `W1c`
 
-**Depends on:** `C12`, and a green `C10` sandbox canary on the actual Woodpecker
-agent; `W0` remains the active protected authority throughout
+**Depends on:** `C12`, `R1` merged with its exact registry digest, and a green
+`C10` sandbox canary on the actual Woodpecker agent; `W0` remains the active
+protected authority throughout
 
 **Files:**
 
@@ -3711,10 +3752,13 @@ protected main.
       gates plus candidate build/runtime inside it, and run protected-base
       Cucumber and verification in the controller. Return only bounded evidence
       to controller storage. In `W1b`, after the image lock is materialized and
-      its observation canary is valid, add authoritative `pnpm acceptance` to
-      root blocking `verify`. `W1a` leaves that wiring absent. Preserve W0's
-      separate 30-second advisory Qlty step; no Qlty outcome joins blocking
-      `verify`. Implement and stage this delta only in Step 10.
+      its observation canary is valid, add the controller-attested
+      `bootstrap-observation` invocation to root `verify`, bound to the exact
+      base/epoch expiry window. `W1a` leaves that wiring absent. After C11b
+      lands, the controller switches the same root to authoritative
+      `pnpm     acceptance` and rejects bootstrap mode. Preserve W0's separate
+      30-second advisory Qlty step; no Qlty outcome joins blocking `verify`.
+      Implement and stage this delta only in Step 10.
 
 - [ ] **Step 6: Verify every contract authority remains protected.** Extend and
       test the `W0` CODEOWNER coverage for `features/**`, `cucumber.cjs`,
@@ -4238,7 +4282,10 @@ transports.
   use the P1 operator and Maestro M0 journal to preview/execute
   `enable-canonical`, run `verify --stage canonical-overlap`, and bind
   `ci/woodpecker/pr/verify` to the protected acceptance producer. Prove a third
-  candidate, then preview/execute `remove-temporary` and run
+  During M0b, the only permitted zero-selection result is the
+  controller-attested `target-bootstrap-observation` mode bound to the M-pre
+  base/epoch and expiry; it is rejected as soon as M2 admits the first journey.
+  Prove a third candidate, then preview/execute `remove-temporary` and run
   `verify --stage canonical`. A pre-state mismatch performs no write. On a
   failed post-read, restore the recorded bootstrap producer only when live state
   exactly equals that update's forward postimage; otherwise leave all temporary
@@ -4474,10 +4521,10 @@ any deletion on a weaker evidence set.
       insufficient.
 
       Before deletion, compare the retained baseline authority-key set with
-          C11b's admitted per-entrypoint coverage (UI, CLI, auth, authorization,
-          tenant, and cross-surface). Any baseline key without an admitted proof,
-          or any admitted key absent from the baseline closure, fails the guard and
-          keeps the legacy baseline machinery in place.
+              C11b's admitted per-entrypoint coverage (UI, CLI, auth, authorization,
+              tenant, and cross-surface). Any baseline key without an admitted proof,
+              or any admitted key absent from the baseline closure, fails the guard and
+              keeps the legacy baseline machinery in place.
 
 - [ ] **Step 2: Run red.**
 

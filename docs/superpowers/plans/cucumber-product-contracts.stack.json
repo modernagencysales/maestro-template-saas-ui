@@ -1,0 +1,163 @@
+{
+  "feature": "cucumber-product-contracts",
+  "slices": [
+    {
+      "id": 1,
+      "branch": "codex/cucumber-contracts-core",
+      "intention": "build the contract compiler and runtime authority",
+      "layers": ["checks"],
+      "contractRiskIds": [
+        "ambient-time-inline",
+        "schema-runtime-validator-export",
+        "policy-data-hardcoded",
+        "duplicated-closed-union",
+        "invalid-test-fixture-or-cast",
+        "branching-logic-needs-boundary-tests",
+        "unjustified-cap-or-threshold",
+        "type-escape-or-cast"
+      ],
+      "workPackages": [
+        {
+          "kind": "template-gap",
+          "target": "C1-C10 contract runtime",
+          "followUpGates": [
+            "pnpm acceptance:check",
+            "pnpm acceptance:verify-messages"
+          ],
+          "templateBacklogRef": "CUCUMBER-CONTRACTS",
+          "templateResolutionPath": "Replace bespoke lifecycle gates with the protected Cucumber contract chain."
+        }
+      ],
+      "taskRefs": [
+        "W0",
+        "C1",
+        "C2",
+        "C3-pre",
+        "C3",
+        "C4",
+        "C4b",
+        "C5",
+        "C6",
+        "C7",
+        "C8",
+        "C9",
+        "C10"
+      ],
+      "rationale": "The compiler, authority, and protected runner form the lower contract layer.",
+      "estLines": 300
+    },
+    {
+      "id": 2,
+      "branch": "codex/cucumber-contracts-fixture",
+      "intention": "assemble and mutation-test the reference product",
+      "layers": ["checks"],
+      "contractRiskIds": [
+        "ambient-time-inline",
+        "schema-runtime-validator-export",
+        "policy-data-hardcoded",
+        "duplicated-closed-union",
+        "invalid-test-fixture-or-cast",
+        "branching-logic-needs-boundary-tests",
+        "unjustified-cap-or-threshold",
+        "type-escape-or-cast"
+      ],
+      "workPackages": [
+        {
+          "kind": "fixture-to-real",
+          "target": "C11a-C12 reference product and mutation gauntlet",
+          "followUpGates": ["pnpm acceptance", "pnpm test:mutation"]
+        }
+      ],
+      "taskRefs": ["C11a", "C12", "F1", "F2", "U1"],
+      "rationale": "The fixture and false-green gauntlet prove the contract before release operations.",
+      "estLines": 300
+    },
+    {
+      "id": 3,
+      "branch": "codex/cucumber-contracts-release",
+      "intention": "bind protected promotion and release evidence",
+      "layers": ["checks"],
+      "contractRiskIds": [
+        "ambient-time-inline",
+        "schema-runtime-validator-export",
+        "policy-data-hardcoded",
+        "duplicated-closed-union",
+        "invalid-test-fixture-or-cast",
+        "branching-logic-needs-boundary-tests",
+        "unjustified-cap-or-threshold",
+        "type-escape-or-cast"
+      ],
+      "workPackages": [
+        {
+          "kind": "pattern-instance",
+          "target": "R1-W1 protected promotion",
+          "generatorCommand": "pnpm exec tsx tooling/ci/publish-controller-image.mts",
+          "followUpGates": ["pnpm test:mutation", "pnpm verify"]
+        }
+      ],
+      "taskRefs": ["B1", "R1", "W1", "C11b", "P1"],
+      "rationale": "Promotion and protected admission consume the already-tested fixture.",
+      "estLines": 300
+    },
+    {
+      "id": 4,
+      "branch": "codex/cucumber-contracts-pilot",
+      "intention": "prove the real Maestro pilot and switch the default",
+      "layers": ["checks"],
+      "contractRiskIds": [
+        "ambient-time-inline",
+        "schema-runtime-validator-export",
+        "policy-data-hardcoded",
+        "duplicated-closed-union",
+        "invalid-test-fixture-or-cast",
+        "branching-logic-needs-boundary-tests",
+        "unjustified-cap-or-threshold",
+        "type-escape-or-cast"
+      ],
+      "workPackages": [
+        {
+          "kind": "fixture-to-real",
+          "target": "M-pre-M3 Maestro pilot",
+          "followUpGates": ["pnpm acceptance", "pnpm verify"]
+        }
+      ],
+      "taskRefs": ["M-pre", "M0", "M0b", "M1", "M2", "D1", "D2", "M3", "D3"],
+      "rationale": "The real target adoption and immutable release switch are the final contract handoff.",
+      "estLines": 300
+    }
+  ],
+  "allTaskRefs": [
+    "W0",
+    "C1",
+    "C2",
+    "C3-pre",
+    "C3",
+    "C4",
+    "C4b",
+    "C5",
+    "C6",
+    "C7",
+    "C8",
+    "C9",
+    "C10",
+    "C11a",
+    "C12",
+    "F1",
+    "F2",
+    "U1",
+    "B1",
+    "R1",
+    "W1",
+    "C11b",
+    "P1",
+    "M-pre",
+    "M0",
+    "M0b",
+    "M1",
+    "M2",
+    "D1",
+    "D2",
+    "M3",
+    "D3"
+  ]
+}
