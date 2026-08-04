@@ -127,6 +127,7 @@ for cache_path in .pnpm-store node_modules .turbo packages/convex/reports; do
   fi
 done
 
-run_without_ci_secrets node --experimental-strip-types tooling/ci/candidate-sandbox.mts install
+run_without_ci_secrets node --experimental-strip-types tooling/ci/candidate-sandbox.mts validate
+run_without_ci_secrets pnpm fetch --frozen-lockfile --ignore-scripts
 
 run_without_ci_secrets bash tooling/ci/seed-frozen-alpha2-store.sh

@@ -42,11 +42,16 @@ describe("Woodpecker firewall and epoch pipelines", () => {
     expect(read(".woodpecker/epoch.yml")).toContain("role: factory-ci");
   });
 
+  it("bootstraps from the reviewed lockfile without an uninstalled proxy", () => {
+    const setup = read("tooling/ci/setup.sh");
+    expect(setup).toContain("candidate-sandbox.mts validate");
+    expect(setup).toContain("pnpm fetch --frozen-lockfile --ignore-scripts");
+    expect(setup).not.toContain("candidate-sandbox.mts install");
+  });
+
   it("keeps deploy guarded and all shell entrypoints executable", () => {
     const deployPipeline = read(".woodpecker/deploy.yml");
-    expect(deployPipeline).toContain(
-      'CI_PIPELINE_DEPLOY_TARGET == "staging"',
-    );
+    expect(deployPipeline).toContain('CI_PIPELINE_DEPLOY_TARGET == "staging"');
     expect(deployPipeline).toContain("source tooling/ci/setup.sh");
     expect(deployPipeline).not.toContain("corepack enable");
     for (const name of readdirSync(resolve(root, "tooling/ci")).filter((name) =>
