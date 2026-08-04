@@ -24,7 +24,7 @@ to `reference-app-routes.ts`.
 
 ## Verification
 
-- `pnpm check:confect-manifest`: 4 files / 26 tests passed, typecheck passed,
+- `pnpm check:confect-manifest`: 4 files / 27 tests passed, typecheck passed,
   generated runtime and inventory outputs fresh.
 - `pnpm check:system-topology`: passed (65 resources / 7 kinds).
 - `pnpm check:headless-surface-contract`: passed.
@@ -49,6 +49,6 @@ digest did not change. No external services were used.
 
 The follow-up also resolves aliased UI hooks and `FileRoutesByFullPath` type
 aliases, rejects mixed resolvable/unresolved hook calls including object and
-conditional callees, and fails closed on unresolved route members or hook
-aliases. A shallow checkout fetches and then verifies the exact protected
-baseline Git object before trusting its digest.
+conditional callees, nested/bracketed object aliases, and fails closed on
+unresolved route members or hook aliases. A shallow checkout fetches and then
+verifies the exact protected baseline Git object before trusting its digest.

@@ -235,6 +235,7 @@ const uiActionAuthorities = (
     "useConfectAction",
   ]);
   const unresolvedHookAliases = new Set<string>();
+  const hookObjectRoots = new Set<string>();
   const unresolvedObjectProperties = new Set<string>();
   const propertyPath = (expression: ts.Expression): string | undefined => {
     if (ts.isIdentifier(expression)) return expression.text;
@@ -244,6 +245,26 @@ const uiActionAuthorities = (
         ? undefined
         : `${parent}.${expression.name.text}`;
     }
+    if (ts.isElementAccessExpression(expression)) {
+      const parent = propertyPath(expression.expression);
+      const argument = expression.argumentExpression;
+      const key =
+        argument !== undefined && ts.isStringLiteralLike(argument)
+          ? argument.text
+          : undefined;
+      return parent === undefined || key === undefined
+        ? parent
+        : `${parent}.${key}`;
+    }
+    return undefined;
+  };
+  const expressionRoot = (expression: ts.Expression): string | undefined => {
+    if (ts.isIdentifier(expression)) return expression.text;
+    if (
+      ts.isPropertyAccessExpression(expression) ||
+      ts.isElementAccessExpression(expression)
+    )
+      return expressionRoot(expression.expression);
     return undefined;
   };
   const expressionHasHook = (expression: ts.Expression): boolean => {
@@ -293,6 +314,8 @@ const uiActionAuthorities = (
       node.initializer !== undefined &&
       ts.isObjectLiteralExpression(node.initializer)
     ) {
+      if (expressionHasHook(node.initializer))
+        hookObjectRoots.add(node.name.text);
       for (const property of node.initializer.properties) {
         if (!ts.isPropertyAssignment(property)) continue;
         const key =
@@ -304,6 +327,14 @@ const uiActionAuthorities = (
           unresolvedObjectProperties.add(`${node.name.text}.${key}`);
       }
     }
+    if (
+      ts.isVariableDeclaration(node) &&
+      ts.isIdentifier(node.name) &&
+      node.initializer !== undefined &&
+      ts.isIdentifier(node.initializer) &&
+      hookObjectRoots.has(node.initializer.text)
+    )
+      hookObjectRoots.add(node.name.text);
     ts.forEachChild(node, collectAliases);
   };
   for (let pass = 0; pass < 4; pass += 1) collectAliases(sourceFile);
@@ -316,6 +347,8 @@ const uiActionAuthorities = (
       if (
         (name !== undefined && unresolvedHookAliases.has(name)) ||
         (pathName !== undefined && unresolvedObjectProperties.has(pathName)) ||
+        (expressionRoot(node.expression) !== undefined &&
+          hookObjectRoots.has(expressionRoot(node.expression) ?? "")) ||
         (!staticHookCall && expressionHasHook(node.expression))
       )
         throw new Error(

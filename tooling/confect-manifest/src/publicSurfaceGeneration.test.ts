@@ -369,6 +369,21 @@ describe("public surface generation", () => {
     );
   });
 
+  it("rejects nested and bracketed hook-bearing object aliases", () => {
+    const root = fixture({
+      "apps/web/src/features/nested-object-alias.tsx": `
+        import { useTemplateMutation as useSave } from '../adapters/confect-state';
+        useSave(templateConfectRefs.notes.create);
+        const hooks = { nested: { run: useSave } };
+        hooks.nested.run(templateConfectRefs.notes.update);
+        hooks["nested"]["run"]?.(templateConfectRefs.notes.delete);
+      `,
+    });
+    expect(() => discoverPublicAuthorities(root)).toThrow(
+      "UI hook alias could not be statically resolved",
+    );
+  });
+
   it("fetches the protected baseline Git object when a shallow checkout lacks it", () => {
     const calls: (readonly string[])[] = [];
     let showAttempts = 0;
