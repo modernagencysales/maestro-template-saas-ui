@@ -283,6 +283,13 @@ const REVIEWED_ADDITIONAL_PATHS: readonly CustomerReleasePath[] = [
     upgrade: "remove",
   })),
   {
+    path: ".superpowers",
+    match: "subtree",
+    ownership: "factory-only",
+    action: "omit",
+    upgrade: "remove",
+  },
+  {
     path: "docs/agent",
     match: "subtree",
     ownership: "template-owned",
