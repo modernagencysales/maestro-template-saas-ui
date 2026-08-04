@@ -1,9 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { spawnSync } from "node:child_process";
+import { spawn } from "node:child_process";
+import { createServer } from "node:http";
 import {
+  buildProtectedWorkflowJournal,
   digestProtectedDocuments,
   createProtectedControllerHttpAdapter,
   executeProtectedTransition,
@@ -13,6 +15,8 @@ import {
   planProtectedTransition,
   runProtectedTransition,
   saveProtectedTransitionJournal,
+  verifyProtectedWorkflow,
+  withProtectedJournalLock,
   verifyProtectedBootstrap,
   type ProtectedControllerApi,
   type ProtectedExternalDocument,
@@ -84,6 +88,11 @@ function forwardPostimage(
 
 const journal: ProtectedTransitionJournal = {
   schemaVersion: 1,
+  operationNonce: "018f4c42-8b8e-7b11-9a6d-1f8d2183fabc",
+  operatorIdentity: "release-operator@example.test",
+  createdAt: "2026-08-03T20:00:00.000Z",
+  expiresAt: "2099-08-03T20:30:00.000Z",
+  consumedConfirmations: [],
   observation: {
     repository: "modernagencysales/maestro-template-saas-ui",
     baseRef: "main",
@@ -139,7 +148,184 @@ describe("protected CI bootstrap", () => {
       sha("4"),
       "--confirm",
       plan.previewFingerprint,
+      "--operation-nonce",
+      journal.operationNonce,
+      "--operator",
+      journal.operatorIdentity,
     ]);
+  });
+
+  it("rejects expired, wrong-operator, and replayed confirmations", async () => {
+    const before = document(
+      "github-ruleset",
+      "/repos/modernagencysales/maestro-template-saas-ui/rulesets/1",
+      { required: "old" },
+    );
+    const after = document("github-ruleset", before.resourceId, {
+      required: "new",
+    });
+    const transition: ProtectedTransitionJournal = {
+      ...journal,
+      steps: [
+        {
+          id: "install-temporary",
+          preimage: [before],
+          forwardPostimage: [after],
+        },
+      ],
+    };
+    const expectedLiveDigest = digestProtectedDocuments([before]);
+    const confirmation = planProtectedTransition({
+      action: "install-temporary",
+      journal: transition,
+      expectedLiveDigest,
+    }).previewFingerprint;
+    const controller = memoryController([before]);
+    await expect(
+      runProtectedTransition({
+        action: "install-temporary",
+        journal: transition,
+        expectedLiveDigest,
+        confirmation,
+        operatorIdentity: "wrong@example.test",
+        api: controller.api,
+      }),
+    ).rejects.toThrow(/operator identity/u);
+    await runProtectedTransition({
+      action: "install-temporary",
+      journal: transition,
+      expectedLiveDigest,
+      confirmation,
+      operatorIdentity: journal.operatorIdentity,
+      api: controller.api,
+    });
+    await expect(
+      runProtectedTransition({
+        action: "install-temporary",
+        journal: transition,
+        expectedLiveDigest,
+        confirmation,
+        operatorIdentity: journal.operatorIdentity,
+        api: controller.api,
+      }),
+    ).rejects.toThrow(/consumed|replay/u);
+    await expect(
+      runProtectedTransition({
+        action: "install-temporary",
+        journal: { ...transition, expiresAt: "2020-01-01T00:00:00.000Z" },
+        expectedLiveDigest,
+        confirmation,
+        operatorIdentity: journal.operatorIdentity,
+        api: memoryController([before]).api,
+      }),
+    ).rejects.toThrow(/expired/u);
+  });
+
+  it("takes an exclusive journal lock", async () => {
+    const directory = mkdtempSync(join(tmpdir(), "protected-lock-"));
+    const path = join(directory, "journal.json");
+    try {
+      await withProtectedJournalLock(path, async () => {
+        await expect(
+          withProtectedJournalLock(path, async () => undefined),
+        ).rejects.toThrow(/locked/u);
+      });
+    } finally {
+      rmSync(directory, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects journal resources rebound to another repository", () => {
+    const directory = mkdtempSync(join(tmpdir(), "protected-binding-"));
+    const path = join(directory, "journal.json");
+    try {
+      saveProtectedTransitionJournal(path, {
+        ...journal,
+        steps: [
+          {
+            id: "install-temporary",
+            preimage: [
+              document(
+                "github-ruleset",
+                "/repos/attacker/other/rulesets/1",
+                {},
+              ),
+            ],
+            forwardPostimage: [
+              document(
+                "github-ruleset",
+                "/repos/attacker/other/rulesets/1",
+                {},
+              ),
+            ],
+          },
+        ],
+      });
+      expect(() => loadProtectedTransitionJournal(path)).toThrow(
+        /operation binding/u,
+      );
+    } finally {
+      rmSync(directory, { recursive: true, force: true });
+    }
+  });
+
+  it("derives every transition document from typed repository inputs", async () => {
+    const repository = "modernagencysales/maestro-template-saas-ui";
+    const resources = [
+      document("github-ruleset", `/repos/${repository}/rulesets/1`, {
+        required_status_checks: ["legacy"],
+      }),
+      document("woodpecker-repository", `/api/repos/${repository}`, {
+        trusted: false,
+      }),
+      document("woodpecker-producer", `/api/repos/${repository}/producer`, {
+        context: "legacy",
+      }),
+      document(
+        "woodpecker-secret-reference",
+        `/api/repos/${repository}/secrets`,
+        { names: ["GITHUB_TOKEN"], pull_request_events: true },
+      ),
+    ];
+    const controller = memoryController(resources);
+    const built = await buildProtectedWorkflowJournal({
+      repository,
+      baseRef: "main",
+      protectedBaseOid: journal.observation.protectedBaseOid,
+      controllerImageDigest: journal.observation.controllerImageDigest,
+      appId: 123,
+      githubRulesetId: 1,
+      temporaryContext: journal.observation.temporaryContext,
+      operatorIdentity: journal.operatorIdentity,
+      expiresAt: journal.expiresAt,
+      operationNonce: journal.operationNonce,
+      api: controller.api,
+    });
+    expect(built.steps.map((step) => step.id)).toEqual([
+      "install-temporary",
+      "enable-canonical",
+      "remove-temporary",
+    ]);
+    expect(JSON.stringify(built)).not.toContain("never-journal-me");
+    for (const step of built.steps)
+      for (const resource of [
+        ...step.preimage,
+        ...(step.forwardPostimage ?? []),
+      ])
+        expect(resource.resourceId).toMatch(
+          /^\/(?:repos|api\/repos)\/modernagencysales\/maestro-template-saas-ui(?:\/|$)/u,
+        );
+
+    const temporary = built.steps[0]?.forwardPostimage ?? [];
+    for (const resource of temporary)
+      controller.documents.set(resource.resourceId, resource);
+    await expect(
+      verifyProtectedWorkflow({
+        journal: built,
+        stage: "temporary",
+        api: controller.api,
+      }),
+    ).resolves.toBeUndefined();
   });
 
   it("permits an uncredentialed candidate preview but refuses a confirmed external write without an injected controller", async () => {
@@ -149,10 +335,18 @@ describe("protected CI bootstrap", () => {
         {
           id: "install-temporary",
           preimage: [
-            document("github-ruleset", "rulesets/1", { required: "old" }),
+            document(
+              "github-ruleset",
+              "/repos/modernagencysales/maestro-template-saas-ui/rulesets/1",
+              { required: "old" },
+            ),
           ],
           forwardPostimage: [
-            document("github-ruleset", "rulesets/1", { required: "temporary" }),
+            document(
+              "github-ruleset",
+              "/repos/modernagencysales/maestro-template-saas-ui/rulesets/1",
+              { required: "temporary" },
+            ),
           ],
         },
       ],
@@ -180,7 +374,8 @@ describe("protected CI bootstrap", () => {
     const documents: ProtectedExternalDocument[] = [
       {
         kind: "github-ruleset",
-        resourceId: "rulesets/1",
+        resourceId:
+          "/repos/modernagencysales/maestro-template-saas-ui/rulesets/1",
         canonicalBody: {
           required: "ci/woodpecker/pr/verify",
           token: "never-journal-me",
@@ -199,9 +394,13 @@ describe("protected CI bootstrap", () => {
       required: "ci/woodpecker/pr/verify",
     });
     const observedStep = firstStep(observed);
-    const temporary = document("github-ruleset", "rulesets/1", {
-      required: "temporary",
-    });
+    const temporary = document(
+      "github-ruleset",
+      "/repos/modernagencysales/maestro-template-saas-ui/rulesets/1",
+      {
+        required: "temporary",
+      },
+    );
     const transition = {
       ...observed,
       steps: [
@@ -212,7 +411,8 @@ describe("protected CI bootstrap", () => {
           inverse: [
             {
               method: "PUT",
-              resourcePath: "rulesets/1",
+              resourcePath:
+                "/repos/modernagencysales/maestro-template-saas-ui/rulesets/1",
               canonicalBody: { required: "ci/woodpecker/pr/verify" },
             },
           ],
@@ -233,7 +433,9 @@ describe("protected CI bootstrap", () => {
         expectedLiveDigest: expectedPreimage,
       }).previewFingerprint,
     });
-    expect(controller.writes).toEqual(["PUT rulesets/1"]);
+    expect(controller.writes).toEqual([
+      "PUT /repos/modernagencysales/maestro-template-saas-ui/rulesets/1",
+    ]);
     const expectedForward = digestProtectedDocuments(
       forwardPostimage(transitionStep),
     );
@@ -254,7 +456,11 @@ describe("protected CI bootstrap", () => {
 
   it("refuses a forward or inverse write when its compare-and-swap preimage drifted", async () => {
     const controller = memoryController([
-      document("github-ruleset", "rulesets/1", { drifted: true }),
+      document(
+        "github-ruleset",
+        "/repos/modernagencysales/maestro-template-saas-ui/rulesets/1",
+        { drifted: true },
+      ),
     ]);
     await expect(
       executeProtectedTransition({
@@ -271,12 +477,20 @@ describe("protected CI bootstrap", () => {
   });
 
   it("refuses rollback unless the journal's inverse condition names the exact forward postimage", async () => {
-    const before = document("github-ruleset", "rulesets/1", {
-      required: "old",
-    });
-    const forward = document("github-ruleset", "rulesets/1", {
-      required: "new",
-    });
+    const before = document(
+      "github-ruleset",
+      "/repos/modernagencysales/maestro-template-saas-ui/rulesets/1",
+      {
+        required: "old",
+      },
+    );
+    const forward = document(
+      "github-ruleset",
+      "/repos/modernagencysales/maestro-template-saas-ui/rulesets/1",
+      {
+        required: "new",
+      },
+    );
     const transition: ProtectedTransitionJournal = {
       ...journal,
       steps: [
@@ -287,7 +501,8 @@ describe("protected CI bootstrap", () => {
           inverse: [
             {
               method: "PUT",
-              resourcePath: "rulesets/1",
+              resourcePath:
+                "/repos/modernagencysales/maestro-template-saas-ui/rulesets/1",
               canonicalBody: before.canonicalBody,
             },
           ],
@@ -314,13 +529,21 @@ describe("protected CI bootstrap", () => {
   });
 
   it("durably journals both protected control planes, reloads after restart, and refuses inverse after an intervening write", async () => {
-    const github = document("github-ruleset", "rulesets/1", {
-      required_contexts: ["ci/woodpecker/pr/protected-bootstrap"],
-      token: "never-journal-me",
-    });
-    const woodpecker = document("woodpecker-producer", "repos/123/pipeline", {
-      context: "ci/woodpecker/pr/protected-bootstrap",
-    });
+    const github = document(
+      "github-ruleset",
+      "/repos/modernagencysales/maestro-template-saas-ui/rulesets/1",
+      {
+        required_contexts: ["ci/woodpecker/pr/protected-bootstrap"],
+        token: "never-journal-me",
+      },
+    );
+    const woodpecker = document(
+      "woodpecker-producer",
+      "/api/repos/modernagencysales/maestro-template-saas-ui/producer",
+      {
+        context: "ci/woodpecker/pr/protected-bootstrap",
+      },
+    );
     const controller = memoryController([github, woodpecker]);
     const observed = await observeProtectedBootstrap({
       observation: journal.observation,
@@ -329,12 +552,20 @@ describe("protected CI bootstrap", () => {
     });
     const preimage = firstStep(observed).preimage;
     const forwardPostimage = [
-      document("github-ruleset", "rulesets/1", {
-        required_contexts: ["ci/woodpecker/pr/verify"],
-      }),
-      document("woodpecker-producer", "repos/123/pipeline", {
-        context: "ci/woodpecker/pr/verify",
-      }),
+      document(
+        "github-ruleset",
+        "/repos/modernagencysales/maestro-template-saas-ui/rulesets/1",
+        {
+          required_contexts: ["ci/woodpecker/pr/verify"],
+        },
+      ),
+      document(
+        "woodpecker-producer",
+        "/api/repos/modernagencysales/maestro-template-saas-ui/producer",
+        {
+          context: "ci/woodpecker/pr/verify",
+        },
+      ),
     ];
     const transition: ProtectedTransitionJournal = {
       ...observed,
@@ -379,15 +610,19 @@ describe("protected CI bootstrap", () => {
         }).previewFingerprint,
       });
       expect(controller.writes).toEqual([
-        "PUT rulesets/1",
-        "PUT repos/123/pipeline",
+        "PUT /repos/modernagencysales/maestro-template-saas-ui/rulesets/1",
+        "PUT /api/repos/modernagencysales/maestro-template-saas-ui/producer",
       ]);
 
       controller.documents.set(
-        "rulesets/1",
-        document("github-ruleset", "rulesets/1", {
-          required_contexts: ["intervening"],
-        }),
+        "/repos/modernagencysales/maestro-template-saas-ui/rulesets/1",
+        document(
+          "github-ruleset",
+          "/repos/modernagencysales/maestro-template-saas-ui/rulesets/1",
+          {
+            required_contexts: ["intervening"],
+          },
+        ),
       );
       const expectedForward = digestProtectedDocuments(forwardPostimage);
       await expect(
@@ -404,173 +639,172 @@ describe("protected CI bootstrap", () => {
         }),
       ).rejects.toThrow(/compare-and-swap drift/u);
       expect(controller.writes).toEqual([
-        "PUT rulesets/1",
-        "PUT repos/123/pipeline",
+        "PUT /repos/modernagencysales/maestro-template-saas-ui/rulesets/1",
+        "PUT /api/repos/modernagencysales/maestro-template-saas-ui/producer",
       ]);
     } finally {
       rmSync(journalDirectory, { recursive: true, force: true });
     }
   });
 
-  it("runs the protected CLI adapter path, reloads its journal, and rolls back a bad post-write read", () => {
+  it("runs typed observe/install/verify/rollback commands against fake GitHub and Woodpecker HTTP APIs", async () => {
     const directory = mkdtempSync(join(tmpdir(), "protected-bootstrap-cli-"));
-    const statePath = join(directory, "state.json");
     const journalPath = join(directory, "journal.json");
-    const adapterPath = join(directory, "adapter.mjs");
-    const before = document("github-ruleset", "rulesets/1", {
-      required: "old",
+    const repository = journal.observation.repository;
+    const state = new Map<string, Record<string, unknown>>([
+      [
+        `/repos/${repository}/rulesets/1`,
+        { required_status_checks: ["legacy"] },
+      ],
+      [`/api/repos/${repository}`, { trusted: false }],
+      [`/api/repos/${repository}/producer`, { context: "legacy" }],
+      [
+        `/api/repos/${repository}/secrets`,
+        { names: ["GITHUB_TOKEN"], pull_request_events: true },
+      ],
+    ]);
+    const api = createServer(async (request, response) => {
+      const path = request.url ?? "";
+      if (request.method === "GET") {
+        const body = state.get(path);
+        if (!body) {
+          response.writeHead(404).end();
+          return;
+        }
+        response.setHeader("content-type", "application/json");
+        response.end(JSON.stringify(body));
+        return;
+      }
+      const chunks: Buffer[] = [];
+      for await (const chunk of request) chunks.push(Buffer.from(chunk));
+      state.set(
+        path,
+        chunks.length ? JSON.parse(Buffer.concat(chunks).toString()) : {},
+      );
+      response.setHeader("content-type", "application/json");
+      response.end(JSON.stringify(state.get(path)));
     });
-    const forward = document("github-ruleset", "rulesets/1", {
-      required: "new",
-    });
+    await new Promise<void>((resolve) => api.listen(0, "127.0.0.1", resolve));
+    const address = api.address();
+    if (!address || typeof address === "string")
+      throw new Error("missing fake API port");
     const cli = (...args: string[]) =>
-      spawnSync(
-        process.execPath,
-        [
-          "--experimental-strip-types",
-          "tooling/ci/protected-bootstrap.mts",
-          ...args,
-        ],
-        {
-          cwd: process.cwd(),
-          encoding: "utf8",
-          env: { ...process.env, PROTECTED_BOOTSTRAP_TEST_STATE: statePath },
+      new Promise<{ status: number | null; stdout: string; stderr: string }>(
+        (resolve) => {
+          const child = spawn(
+            process.execPath,
+            [
+              "--experimental-strip-types",
+              "tooling/ci/protected-bootstrap.mts",
+              ...args,
+            ],
+            {
+              cwd: process.cwd(),
+              env: {
+                ...process.env,
+                NODE_ENV: "test",
+                PROTECTED_BOOTSTRAP_TEST_HTTP: "1",
+                GITHUB_TOKEN: "github-test-token",
+                WOODPECKER_TOKEN: "woodpecker-test-token",
+                GITHUB_API_URL: `http://127.0.0.1:${address.port}`,
+                WOODPECKER_SERVER: `http://127.0.0.1:${address.port}`,
+              },
+              stdio: ["ignore", "pipe", "pipe"],
+            },
+          );
+          let stdout = "";
+          let stderr = "";
+          child.stdout.on("data", (chunk) => (stdout += String(chunk)));
+          child.stderr.on("data", (chunk) => (stderr += String(chunk)));
+          child.on("close", (status) => resolve({ status, stdout, stderr }));
         },
       );
     try {
-      writeFileSync(
-        statePath,
-        JSON.stringify({ documents: [before], mutateAfterWrite: false }),
-      );
-      writeFileSync(
-        adapterPath,
-        `import { readFileSync, writeFileSync } from "node:fs";
-const statePath = process.env.PROTECTED_BOOTSTRAP_TEST_STATE;
-const read = () => JSON.parse(readFileSync(statePath, "utf8"));
-const save = (state) => writeFileSync(statePath, JSON.stringify(state));
-const endpoint = {
-  async observe(document) {
-    const live = read().documents.find((entry) => entry.resourceId === document.resourceId);
-    if (!live) throw new Error("missing " + document.resourceId);
-    return live;
-  },
-  async write({ document }) {
-    const state = read();
-    const written = state.mutateAfterWrite && document.canonicalBody.required === "new"
-      ? { ...document, canonicalBody: { required: "intervening" } }
-      : document;
-    state.documents = state.documents.map((entry) =>
-      entry.resourceId === document.resourceId ? written : entry,
-    );
-    save(state);
-  },
-};
-export const createProtectedControllerAdapter = () => ({ github: endpoint, woodpecker: endpoint });
-`,
-      );
-
-      const observed = cli(
+      const observed = await cli(
         "observe",
         "--journal",
         journalPath,
-        "--adapter-module",
-        adapterPath,
-        "--observation",
-        JSON.stringify(journal.observation),
-        "--documents",
-        JSON.stringify([before]),
+        "--repository",
+        repository,
+        "--base-ref",
+        "main",
+        "--base-oid",
+        journal.observation.protectedBaseOid,
+        "--controller-image-digest",
+        journal.observation.controllerImageDigest,
+        "--app-id",
+        "123",
+        "--github-ruleset-id",
+        "1",
+        "--temporary-context",
+        journal.observation.temporaryContext,
+        "--operator",
+        journal.operatorIdentity,
+        "--operation-nonce",
+        journal.operationNonce,
+        "--expires-at",
+        journal.expiresAt,
       );
       expect(observed.status, observed.stderr).toBe(0);
       const observedJournal = loadProtectedTransitionJournal(journalPath);
-      const observedPreimage = firstStep(observedJournal).preimage;
-      const transition: ProtectedTransitionJournal = {
-        ...observedJournal,
-        steps: [
-          {
-            id: "install-temporary",
-            preimage: observedPreimage,
-            forwardPostimage: [forward],
-            inverse: [
-              {
-                method: "PUT",
-                resourcePath: before.resourceId,
-                canonicalBody: before.canonicalBody,
-              },
-            ],
-            inverseAllowedOnlyFrom: digestProtectedDocuments([forward]),
-          },
-        ],
-      };
-      saveProtectedTransitionJournal(journalPath, transition);
-      const expected = digestProtectedDocuments(observedPreimage);
-      const preview = cli(
-        "install-temporary",
+      const expected = digestProtectedDocuments(
+        observedJournal.steps[0]?.preimage ?? [],
+      );
+      const common = [
         "--journal",
         journalPath,
-        "--adapter-module",
-        adapterPath,
         "--expected-live-digest",
         expected,
-      );
+        "--operation-nonce",
+        observedJournal.operationNonce,
+        "--operator",
+        observedJournal.operatorIdentity,
+      ];
+      const preview = await cli("install-temporary", ...common);
       expect(preview.status, preview.stderr).toBe(0);
       const confirmation = JSON.parse(preview.stdout).previewFingerprint;
-
-      writeFileSync(
-        statePath,
-        JSON.stringify({
-          documents: [
-            document("github-ruleset", before.resourceId, {
-              required: "drifted",
-            }),
-          ],
-          mutateAfterWrite: false,
-        }),
-      );
-      const driftedPreview = cli(
+      const applied = await cli(
         "install-temporary",
-        "--journal",
-        journalPath,
-        "--adapter-module",
-        adapterPath,
-        "--expected-live-digest",
-        expected,
-      );
-      expect(driftedPreview.status, driftedPreview.stderr).toBe(0);
-      const drifted = cli(
-        "install-temporary",
-        "--journal",
-        journalPath,
-        "--adapter-module",
-        adapterPath,
-        "--expected-live-digest",
-        expected,
-        "--confirm",
-        JSON.parse(driftedPreview.stdout).previewFingerprint,
-      );
-      expect(drifted.status).toBe(1);
-      expect(drifted.stderr).toMatch(/compare-and-swap drift/u);
-
-      writeFileSync(
-        statePath,
-        JSON.stringify({ documents: [before], mutateAfterWrite: true }),
-      );
-      const applied = cli(
-        "install-temporary",
-        "--journal",
-        journalPath,
-        "--adapter-module",
-        adapterPath,
-        "--expected-live-digest",
-        expected,
+        ...common,
         "--confirm",
         confirmation,
       );
-      expect(applied.status).toBe(1);
-      expect(applied.stderr).toMatch(/postimage mismatch/u);
-      expect(
-        JSON.parse(readFileSync(statePath, "utf8")).documents[0].canonicalBody,
-      ).toEqual({ required: "intervening" });
+      expect(applied.status, applied.stderr).toBe(0);
+      const verified = await cli(
+        "verify",
+        "--journal",
+        journalPath,
+        "--stage",
+        "temporary",
+      );
+      expect(verified.status, verified.stderr).toBe(0);
+      const appliedJournal = loadProtectedTransitionJournal(journalPath);
+      const forward = appliedJournal.steps[0]?.forwardPostimage ?? [];
+      const rollbackDigest = digestProtectedDocuments(forward);
+      const rollbackCommon = [
+        "--journal",
+        journalPath,
+        "--step",
+        "install-temporary",
+        "--expected-live-digest",
+        rollbackDigest,
+        "--operation-nonce",
+        appliedJournal.operationNonce,
+        "--operator",
+        appliedJournal.operatorIdentity,
+      ];
+      const rollbackPreview = await cli("rollback", ...rollbackCommon);
+      expect(rollbackPreview.status, rollbackPreview.stderr).toBe(0);
+      const rollback = await cli(
+        "rollback",
+        ...rollbackCommon,
+        "--confirm",
+        JSON.parse(rollbackPreview.stdout).previewFingerprint,
+      );
+      expect(rollback.status, rollback.stderr).toBe(0);
+      expect(state.get(`/api/repos/${repository}`)?.trusted).toBe(false);
     } finally {
+      await new Promise<void>((resolve) => api.close(() => resolve()));
       rmSync(directory, { recursive: true, force: true });
     }
   }, 30_000);

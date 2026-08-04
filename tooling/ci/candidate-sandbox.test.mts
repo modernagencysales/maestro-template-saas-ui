@@ -1,10 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
   assertCandidateDependencyProxyIsWired,
+  candidateInstallCommand,
+  candidateInstallSequence,
   candidateEnvironment,
   candidateSandboxArgv,
   validateCandidateLockfile,
 } from "./candidate-sandbox.mts";
+import { readFileSync } from "node:fs";
 
 describe("candidate sandbox", () => {
   it("starts empty and exposes no controller credential or host control path", () => {
@@ -30,6 +33,9 @@ describe("candidate sandbox", () => {
     );
     expect(argv).not.toContain("--unshare-all");
     expect(argv).not.toContain("--share-net");
+    expect(argv).toEqual(
+      expect.arrayContaining(["--ro-bind", "/controller/proxy", "/proxy"]),
+    );
     expect(argv).toEqual(
       expect.arrayContaining([
         "--ro-bind",
@@ -74,14 +80,47 @@ describe("candidate sandbox", () => {
 
   it("refuses installs until a controller-local dependency proxy is wired into the network namespace", () => {
     expect(() => assertCandidateDependencyProxyIsWired()).toThrow(
-      /controller-local dependency proxy/u,
+      /Unix socket/u,
     );
     expect(() =>
       assertCandidateDependencyProxyIsWired({
-        wired: true,
-        networkMode: "shared-proxy",
-        egressPolicyDigest: `sha256:${"a".repeat(64)}`,
+        socketExists: true,
+        socketIsSocket: true,
       }),
     ).not.toThrow();
+  });
+
+  it("runs package management only through immutable absolute runtime paths", () => {
+    expect(candidateInstallCommand("fetch")).toEqual([
+      "/runtime/bin/node",
+      "/runtime/sandbox-runner.mjs",
+      "fetch",
+    ]);
+    expect(candidateInstallCommand("install")).toEqual([
+      "/runtime/bin/node",
+      "/runtime/sandbox-runner.mjs",
+      "install",
+    ]);
+    expect(candidateInstallCommand("fetch").join(" ")).not.toMatch(
+      /(?:^|\s)(?:env|pnpm)(?:\s|$)/u,
+    );
+    expect(candidateInstallSequence()).toEqual([
+      candidateInstallCommand("install"),
+    ]);
+  });
+
+  it("builds a fixed protected operator image with an immutable candidate runtime", () => {
+    const dockerfile = readFileSync(
+      new URL("./controller.Dockerfile", import.meta.url),
+      "utf8",
+    );
+    expect(dockerfile).toContain("/controller/runtime/bin/node");
+    expect(dockerfile).toContain("/controller/runtime/bin/socat");
+    expect(dockerfile).toContain("/controller/runtime/pnpm");
+    expect(dockerfile).toContain(
+      'ENTRYPOINT ["/controller/bin/protected-bootstrap"]',
+    );
+    expect(dockerfile).not.toMatch(/ENTRYPOINT .*candidate-sandbox/u);
+    expect(dockerfile).not.toContain("--share-net");
   });
 });

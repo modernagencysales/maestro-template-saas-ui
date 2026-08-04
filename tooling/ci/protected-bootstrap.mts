@@ -1,7 +1,14 @@
-import { createHash } from "node:crypto";
-import { readFileSync, writeFileSync } from "node:fs";
-import { resolve } from "node:path";
-import { pathToFileURL } from "node:url";
+import { createHash, randomUUID } from "node:crypto";
+import {
+  closeSync,
+  mkdirSync,
+  openSync,
+  readFileSync,
+  renameSync,
+  unlinkSync,
+  writeFileSync,
+} from "node:fs";
+import { dirname } from "node:path";
 import { isDeepStrictEqual } from "node:util";
 
 type Sha256 = `sha256:${string}`;
@@ -33,6 +40,11 @@ export type ProtectedInverseOperation = {
 };
 export type ProtectedTransitionJournal = {
   readonly schemaVersion: 1;
+  readonly operationNonce: string;
+  readonly operatorIdentity: string;
+  readonly createdAt: string;
+  readonly expiresAt: string;
+  readonly consumedConfirmations: readonly string[];
   readonly observation: ProtectedBootstrapObservation;
   readonly steps: readonly {
     readonly id: string;
@@ -59,15 +71,17 @@ export type ProtectedControllerApi = {
   readonly woodpecker: ProtectedControllerEndpoint;
 };
 
-export type ProtectedControllerAdapterFactory = () =>
-  ProtectedControllerApi | Promise<ProtectedControllerApi>;
-
 function httpEndpoint(input: {
   readonly baseUrl: string;
   readonly token: string;
 }): ProtectedControllerEndpoint {
   const base = new URL(input.baseUrl);
-  if (base.protocol !== "https:")
+  const testHttp =
+    process.env.NODE_ENV === "test" &&
+    process.env.PROTECTED_BOOTSTRAP_TEST_HTTP === "1" &&
+    base.protocol === "http:" &&
+    ["127.0.0.1", "::1", "localhost"].includes(base.hostname);
+  if (base.protocol !== "https:" && !testHttp)
     throw new Error("protected controller endpoints require HTTPS");
   const request = async (
     method: ProtectedInverseOperation["method"] | "GET",
@@ -165,6 +179,7 @@ export function planProtectedTransition(input: {
     "install-temporary" | "enable-canonical" | "remove-temporary" | "rollback";
   readonly journal: ProtectedTransitionJournal;
   readonly expectedLiveDigest: Sha256;
+  readonly stepId?: string;
 }): {
   readonly previewFingerprint: `protected_transition_sha256:${string}`;
   readonly confirmationArgv: readonly string[];
@@ -177,6 +192,7 @@ export function planProtectedTransition(input: {
         action: input.action,
         journal: input.journal,
         expectedLiveDigest: input.expectedLiveDigest,
+        stepId: input.stepId,
       }),
     )
     .digest("hex")}` as const;
@@ -184,10 +200,15 @@ export function planProtectedTransition(input: {
     previewFingerprint: fingerprint,
     confirmationArgv: [
       input.action,
+      ...(input.stepId ? ["--step", input.stepId] : []),
       "--expected-live-digest",
       input.expectedLiveDigest,
       "--confirm",
       fingerprint,
+      "--operation-nonce",
+      input.journal.operationNonce,
+      "--operator",
+      input.journal.operatorIdentity,
     ],
   };
 }
@@ -265,15 +286,57 @@ function redactJournal(
   };
 }
 
+function assertDocumentOperationBinding(
+  observation: ProtectedBootstrapObservation,
+  document: Pick<ProtectedExternalDocument, "kind" | "resourceId">,
+): void {
+  const prefix =
+    document.kind === "github-ruleset"
+      ? `/repos/${observation.repository}/rulesets/`
+      : `/api/repos/${observation.repository}`;
+  if (
+    !document.resourceId.startsWith(prefix) ||
+    (document.kind !== "github-ruleset" &&
+      document.resourceId !== prefix &&
+      !document.resourceId.startsWith(`${prefix}/`))
+  )
+    throw new Error(
+      `protected transition operation binding rejected ${document.resourceId}`,
+    );
+}
+
+function assertJournalOperationBinding(
+  journal: ProtectedTransitionJournal,
+): void {
+  for (const step of journal.steps) {
+    for (const document of [...step.preimage, ...(step.forwardPostimage ?? [])])
+      assertDocumentOperationBinding(journal.observation, document);
+    for (const inverse of step.inverse ?? []) {
+      const matching = [
+        ...step.preimage,
+        ...(step.forwardPostimage ?? []),
+      ].find((entry) => entry.resourceId === inverse.resourcePath);
+      if (!matching)
+        throw new Error(
+          `protected transition operation binding rejected inverse ${inverse.resourcePath}`,
+        );
+      assertDocumentOperationBinding(journal.observation, matching);
+    }
+  }
+}
+
 export function saveProtectedTransitionJournal(
   path: string,
   journal: ProtectedTransitionJournal,
 ): void {
+  mkdirSync(dirname(path), { recursive: true });
+  const temporary = `${path}.${process.pid}.tmp`;
   writeFileSync(
-    path,
+    temporary,
     `${JSON.stringify(redactJournal(journal), null, 2)}\n`,
-    "utf8",
+    { encoding: "utf8", mode: 0o600 },
   );
+  renameSync(temporary, path);
 }
 
 export function loadProtectedTransitionJournal(
@@ -284,9 +347,38 @@ export function loadProtectedTransitionJournal(
   ) as ProtectedTransitionJournal;
   if (journal.schemaVersion !== 1 || !Array.isArray(journal.steps))
     throw new Error("invalid protected transition journal");
+  if (
+    !/^[0-9a-f]{8}-[0-9a-f-]{27}$/iu.test(journal.operationNonce) ||
+    !journal.operatorIdentity ||
+    !Array.isArray(journal.consumedConfirmations) ||
+    !Number.isFinite(Date.parse(journal.createdAt)) ||
+    !Number.isFinite(Date.parse(journal.expiresAt))
+  )
+    throw new Error("invalid protected transition operation binding");
   const errors = verifyProtectedBootstrap(journal.observation);
   if (errors.length) throw new Error(errors.join("; "));
+  assertJournalOperationBinding(journal);
   return redactJournal(journal);
+}
+
+export async function withProtectedJournalLock<Value>(
+  journalPath: string,
+  operation: () => Promise<Value>,
+): Promise<Value> {
+  const lockPath = `${journalPath}.lock`;
+  mkdirSync(dirname(lockPath), { recursive: true });
+  let descriptor: number;
+  try {
+    descriptor = openSync(lockPath, "wx", 0o600);
+  } catch {
+    throw new Error(`protected transition journal is locked: ${journalPath}`);
+  }
+  try {
+    return await operation();
+  } finally {
+    closeSync(descriptor);
+    unlinkSync(lockPath);
+  }
 }
 
 function endpointFor(
@@ -304,7 +396,17 @@ async function observeDocument(
   api: ProtectedControllerApi | undefined,
   document: ProtectedExternalDocument,
 ): Promise<ProtectedExternalDocument> {
-  return sanitizedDocument(await endpointFor(api, document).observe(document));
+  const observed = sanitizedDocument(
+    await endpointFor(api, document).observe(document),
+  );
+  if (
+    observed.kind !== document.kind ||
+    observed.resourceId !== document.resourceId
+  )
+    throw new Error(
+      "protected controller post-read operation binding mismatch",
+    );
+  return observed;
 }
 
 /**
@@ -315,6 +417,10 @@ export async function observeProtectedBootstrap(input: {
   readonly observation: ProtectedBootstrapObservation;
   readonly documents: readonly ProtectedExternalDocument[];
   readonly api?: ProtectedControllerApi;
+  readonly operationNonce?: string;
+  readonly operatorIdentity?: string;
+  readonly createdAt?: string;
+  readonly expiresAt?: string;
 }): Promise<ProtectedTransitionJournal> {
   const errors = verifyProtectedBootstrap(input.observation);
   if (errors.length) throw new Error(errors.join("; "));
@@ -325,6 +431,13 @@ export async function observeProtectedBootstrap(input: {
   );
   return {
     schemaVersion: 1,
+    operationNonce: input.operationNonce ?? randomUUID(),
+    operatorIdentity:
+      input.operatorIdentity ?? process.env.PROTECTED_OPERATOR_ID ?? "unknown",
+    createdAt: input.createdAt ?? new Date().toISOString(),
+    expiresAt:
+      input.expiresAt ?? new Date(Date.now() + 30 * 60_000).toISOString(),
+    consumedConfirmations: [],
     observation: input.observation,
     steps: [{ id: "observation", preimage }],
   };
@@ -338,12 +451,17 @@ export async function executeProtectedTransition(input: {
   readonly api?: ProtectedControllerApi;
   readonly expectedLiveDigest: Sha256;
   readonly confirmation: string;
+  readonly operatorIdentity?: string;
+  readonly stepId?: string;
 }): Promise<void> {
+  assertJournalOperationBinding(input.journal);
   const step =
     input.action === "rollback"
-      ? [...input.journal.steps]
-          .reverse()
-          .find((entry) => entry.forwardPostimage?.length)
+      ? input.stepId
+        ? input.journal.steps.find((entry) => entry.id === input.stepId)
+        : [...input.journal.steps]
+            .reverse()
+            .find((entry) => entry.forwardPostimage?.length)
       : input.journal.steps.find((entry) => entry.id === input.action);
   if (!step || !step.forwardPostimage?.length)
     throw new Error(`missing transition step for ${input.action}`);
@@ -351,6 +469,7 @@ export async function executeProtectedTransition(input: {
     action: input.action,
     journal: input.journal,
     expectedLiveDigest: input.expectedLiveDigest,
+    stepId: input.stepId,
   });
   if (!isDeepStrictEqual(input.confirmation, plan.previewFingerprint))
     throw new Error(
@@ -435,6 +554,8 @@ export async function runProtectedTransition(input: {
   readonly confirmation?: string;
   readonly api?: ProtectedControllerApi;
   readonly journalPath?: string;
+  readonly operatorIdentity?: string;
+  readonly stepId?: string;
 }): Promise<{
   readonly mode: "preview" | "applied";
   readonly previewFingerprint: `protected_transition_sha256:${string}`;
@@ -442,6 +563,17 @@ export async function runProtectedTransition(input: {
 }> {
   const plan = planProtectedTransition(input);
   if (!input.confirmation) return { mode: "preview", ...plan };
+  if (Date.now() >= Date.parse(input.journal.expiresAt))
+    throw new Error("protected transition operation expired");
+  if (
+    (input.operatorIdentity ?? input.journal.operatorIdentity) !==
+    input.journal.operatorIdentity
+  )
+    throw new Error("protected transition operator identity mismatch");
+  if (input.journal.consumedConfirmations.includes(input.confirmation))
+    throw new Error(
+      "protected transition confirmation was consumed; replay rejected",
+    );
   if (!input.api)
     throw new Error(
       "protected controller adapter is required; candidate mode cannot access external writes",
@@ -452,9 +584,174 @@ export async function runProtectedTransition(input: {
     ...input,
     confirmation: input.confirmation,
   });
+  (
+    input.journal as unknown as { consumedConfirmations: string[] }
+  ).consumedConfirmations = [
+    ...input.journal.consumedConfirmations,
+    input.confirmation,
+  ];
   if (input.journalPath)
     saveProtectedTransitionJournal(input.journalPath, input.journal);
   return { mode: "applied", ...plan };
+}
+
+function workflowDocuments(input: {
+  readonly repository: string;
+  readonly githubRulesetId: number;
+}): readonly ProtectedExternalDocument[] {
+  const resources: Array<readonly [ProtectedExternalDocument["kind"], string]> =
+    [
+      [
+        "github-ruleset",
+        `/repos/${input.repository}/rulesets/${input.githubRulesetId}`,
+      ],
+      ["woodpecker-repository", `/api/repos/${input.repository}`],
+      ["woodpecker-producer", `/api/repos/${input.repository}/producer`],
+      ["woodpecker-secret-reference", `/api/repos/${input.repository}/secrets`],
+    ];
+  return resources.map(([kind, resourceId]) =>
+    sanitizedDocument({
+      kind,
+      resourceId,
+      canonicalBody: {},
+      sha256: `sha256:${"0".repeat(64)}`,
+    }),
+  );
+}
+
+function workflowPostimage(
+  documents: readonly ProtectedExternalDocument[],
+  input: {
+    readonly observation: ProtectedBootstrapObservation;
+    readonly contexts: readonly string[];
+  },
+): readonly ProtectedExternalDocument[] {
+  return documents.map((document) => {
+    const body = { ...document.canonicalBody };
+    if (document.kind === "github-ruleset")
+      body.required_status_checks = input.contexts;
+    if (document.kind === "woodpecker-repository") {
+      body.trusted = true;
+      body.config_file = ".woodpecker/verify.yml";
+    }
+    if (document.kind === "woodpecker-producer") {
+      body.protected_contexts = input.contexts;
+      body.controller_image_digest = input.observation.controllerImageDigest;
+      body.protected_base_oid = input.observation.protectedBaseOid;
+      body.github_app_id = input.observation.appId;
+    }
+    if (document.kind === "woodpecker-secret-reference")
+      body.pull_request_events = false;
+    return sanitizedDocument({ ...document, canonicalBody: body });
+  });
+}
+
+function transitionStep(
+  id: string,
+  preimage: readonly ProtectedExternalDocument[],
+  forwardPostimage: readonly ProtectedExternalDocument[],
+): ProtectedTransitionJournal["steps"][number] {
+  return {
+    id,
+    preimage,
+    forwardPostimage,
+    inverse: preimage.map((entry) => ({
+      method: "PUT" as const,
+      resourcePath: entry.resourceId,
+      canonicalBody: entry.canonicalBody,
+    })),
+    inverseAllowedOnlyFrom: digestProtectedDocuments(forwardPostimage),
+  };
+}
+
+export async function buildProtectedWorkflowJournal(input: {
+  readonly repository: string;
+  readonly baseRef: "main";
+  readonly protectedBaseOid: string;
+  readonly controllerImageDigest: Sha256;
+  readonly appId: number;
+  readonly githubRulesetId: number;
+  readonly temporaryContext: `ci/woodpecker/pr/${string}`;
+  readonly operatorIdentity: string;
+  readonly expiresAt: string;
+  readonly operationNonce?: string;
+  readonly api: ProtectedControllerApi;
+}): Promise<ProtectedTransitionJournal> {
+  if (!/^[\w.-]+\/[\w.-]+$/u.test(input.repository))
+    throw new Error("repository must be owner/name");
+  if (
+    !Number.isSafeInteger(input.githubRulesetId) ||
+    input.githubRulesetId <= 0
+  )
+    throw new Error("githubRulesetId must be positive");
+  const preimage = await Promise.all(
+    workflowDocuments(input).map((entry) => observeDocument(input.api, entry)),
+  );
+  const github = preimage.find((entry) => entry.kind === "github-ruleset");
+  const woodpecker = preimage.filter(
+    (entry) => entry.kind !== "github-ruleset",
+  );
+  if (!github) throw new Error("GitHub ruleset observation is missing");
+  const observation: ProtectedBootstrapObservation = {
+    repository: input.repository,
+    baseRef: input.baseRef,
+    protectedBaseOid: input.protectedBaseOid,
+    controllerImageDigest: input.controllerImageDigest,
+    appId: input.appId,
+    canonicalContext: "ci/woodpecker/pr/verify",
+    temporaryContext: input.temporaryContext,
+    woodpeckerConfigDigest: digestProtectedDocuments(woodpecker),
+    githubRulesetDigest: github.sha256,
+  };
+  const temporary = workflowPostimage(preimage, {
+    observation,
+    contexts: [observation.temporaryContext],
+  });
+  const overlap = workflowPostimage(temporary, {
+    observation,
+    contexts: [observation.temporaryContext, observation.canonicalContext],
+  });
+  const canonical = workflowPostimage(overlap, {
+    observation,
+    contexts: [observation.canonicalContext],
+  });
+  return {
+    schemaVersion: 1,
+    operationNonce: input.operationNonce ?? randomUUID(),
+    operatorIdentity: input.operatorIdentity,
+    createdAt: new Date().toISOString(),
+    expiresAt: input.expiresAt,
+    consumedConfirmations: [],
+    observation,
+    steps: [
+      transitionStep("install-temporary", preimage, temporary),
+      transitionStep("enable-canonical", temporary, overlap),
+      transitionStep("remove-temporary", overlap, canonical),
+    ],
+  };
+}
+
+export async function verifyProtectedWorkflow(input: {
+  readonly journal: ProtectedTransitionJournal;
+  readonly stage: "temporary" | "canonical-overlap" | "canonical";
+  readonly api: ProtectedControllerApi;
+}): Promise<void> {
+  const id = {
+    temporary: "install-temporary",
+    "canonical-overlap": "enable-canonical",
+    canonical: "remove-temporary",
+  }[input.stage];
+  const expected = input.journal.steps.find(
+    (entry) => entry.id === id,
+  )?.forwardPostimage;
+  if (!expected) throw new Error(`missing workflow stage ${input.stage}`);
+  for (const document of expected) {
+    const live = await observeDocument(input.api, document);
+    if (live.sha256 !== document.sha256)
+      throw new Error(
+        `protected workflow verification drift for ${document.resourceId}`,
+      );
+  }
 }
 
 function redact(value: unknown): unknown {
@@ -466,32 +763,13 @@ function flag(flagName: string): string | undefined {
   return index === -1 ? undefined : process.argv[index + 1];
 }
 
-function jsonFlag<Value>(flagName: string): Value {
-  const value = flag(flagName);
-  if (!value) throw new Error(`${flagName} is required`);
-  return JSON.parse(value) as Value;
-}
-
 async function protectedControllerApi(): Promise<ProtectedControllerApi> {
-  const adapterModule =
-    flag("--adapter-module") ?? process.env.PROTECTED_BOOTSTRAP_ADAPTER_MODULE;
-  if (!adapterModule && process.env.PROTECTED_CONTROLLER_HTTP === "1")
-    return createProtectedControllerHttpAdapter();
-  if (!adapterModule)
-    throw new Error(
-      "protected controller adapter is required; candidate mode cannot access external writes",
-    );
-  const moduleUrl = adapterModule.startsWith("file:")
-    ? adapterModule
-    : pathToFileURL(resolve(adapterModule)).href;
-  const loaded = (await import(moduleUrl)) as {
-    readonly createProtectedControllerAdapter?: ProtectedControllerAdapterFactory;
-  };
-  if (typeof loaded.createProtectedControllerAdapter !== "function")
-    throw new Error(
-      "protected controller adapter must export createProtectedControllerAdapter",
-    );
-  return loaded.createProtectedControllerAdapter();
+  if (
+    flag("--adapter-module") ||
+    process.env.PROTECTED_BOOTSTRAP_ADAPTER_MODULE
+  )
+    throw new Error("protected operator does not load adapter modules");
+  return createProtectedControllerHttpAdapter();
 }
 
 async function main(): Promise<void> {
@@ -500,27 +778,89 @@ async function main(): Promise<void> {
   const journalPath = flag("--journal");
   if (!journalPath) throw new Error("--journal is required");
   if (action === "observe") {
-    const journal = await observeProtectedBootstrap({
-      observation: jsonFlag<ProtectedBootstrapObservation>("--observation"),
-      documents: jsonFlag<readonly ProtectedExternalDocument[]>("--documents"),
+    if (flag("--observation") || flag("--documents"))
+      throw new Error(
+        "observe accepts typed repository flags, not opaque documents",
+      );
+    const repository = flag("--repository");
+    const baseRef = flag("--base-ref");
+    const protectedBaseOid = flag("--base-oid");
+    const controllerImageDigest = flag("--controller-image-digest") as
+      Sha256 | undefined;
+    const appId = Number(flag("--app-id"));
+    const githubRulesetId = Number(flag("--github-ruleset-id"));
+    const temporaryContext = flag("--temporary-context") as
+      `ci/woodpecker/pr/${string}` | undefined;
+    const operatorIdentity = flag("--operator");
+    if (
+      !repository ||
+      baseRef !== "main" ||
+      !protectedBaseOid ||
+      !controllerImageDigest ||
+      !Number.isSafeInteger(appId) ||
+      !Number.isSafeInteger(githubRulesetId) ||
+      !temporaryContext ||
+      !operatorIdentity
+    )
+      throw new Error(
+        "observe requires repository, main base, base OID, controller digest, App ID, ruleset ID, temporary context, and operator",
+      );
+    const journal = await buildProtectedWorkflowJournal({
+      repository,
+      baseRef,
+      protectedBaseOid,
+      controllerImageDigest,
+      appId,
+      githubRulesetId,
+      temporaryContext,
+      operatorIdentity,
+      expiresAt:
+        flag("--expires-at") ??
+        new Date(Date.now() + 30 * 60_000).toISOString(),
+      operationNonce: flag("--operation-nonce"),
       api: await protectedControllerApi(),
     });
     saveProtectedTransitionJournal(journalPath, journal);
     console.log(JSON.stringify(redact(journal), null, 2));
     return;
   }
-  const journal = loadProtectedTransitionJournal(journalPath);
+  if (action === "verify") {
+    const stage = flag("--stage") as
+      "temporary" | "canonical-overlap" | "canonical" | undefined;
+    if (!stage) throw new Error("verify requires --stage");
+    await verifyProtectedWorkflow({
+      journal: loadProtectedTransitionJournal(journalPath),
+      stage,
+      api: await protectedControllerApi(),
+    });
+    console.log(JSON.stringify({ verified: stage }));
+    return;
+  }
   const expectedLiveDigest = flag("--expected-live-digest") as
     Sha256 | undefined;
   if (!expectedLiveDigest)
     throw new Error("--expected-live-digest is required (compare-and-swap)");
-  const result = await runProtectedTransition({
-    action: action as Parameters<typeof planProtectedTransition>[0]["action"],
-    journal,
-    expectedLiveDigest,
-    confirmation: flag("--confirm"),
-    api: flag("--confirm") ? await protectedControllerApi() : undefined,
-    journalPath,
+  const result = await withProtectedJournalLock(journalPath, async () => {
+    const journal = loadProtectedTransitionJournal(journalPath);
+    if (flag("--operation-nonce") !== journal.operationNonce)
+      throw new Error("operation nonce does not match journal");
+    const rollbackStep = flag("--step");
+    if (
+      action === "rollback" &&
+      (!rollbackStep ||
+        !journal.steps.some((entry) => entry.id === rollbackStep))
+    )
+      throw new Error("rollback requires a known --step");
+    return runProtectedTransition({
+      action: action as Parameters<typeof planProtectedTransition>[0]["action"],
+      journal,
+      expectedLiveDigest,
+      confirmation: flag("--confirm"),
+      operatorIdentity: flag("--operator"),
+      stepId: rollbackStep,
+      api: flag("--confirm") ? await protectedControllerApi() : undefined,
+      journalPath,
+    });
   });
   console.log(JSON.stringify(redact(result), null, 2));
 }

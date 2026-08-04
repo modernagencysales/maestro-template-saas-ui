@@ -8,6 +8,7 @@ import {
   fetchControllerArtifact,
   inspectArtifact,
   validateAllowlistedArtifact,
+  type DependencyAllowlist,
 } from "./dependency-proxy.mts";
 import { createServer } from "node:http";
 import { gzipSync } from "node:zlib";
@@ -18,7 +19,7 @@ const allowlist = JSON.parse(
     resolve(import.meta.dirname, "dependency-allowlist.json"),
     "utf8",
   ),
-) as { artifacts: Array<{ package: string; url: string; integrity: string }> };
+) as DependencyAllowlist;
 
 describe("protected dependency proxy", () => {
   it("pins the three C1 roots to exact registry artifacts", () => {

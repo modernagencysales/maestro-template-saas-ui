@@ -86,10 +86,13 @@ function isPublicRegistryAddress(address: string): boolean {
       (first === 169 && second === 254) ||
       (first === 172 && second >= 16 && second <= 31) ||
       (first === 192 && (second === 0 || second === 168)) ||
-      (first === 198 && (second === 18 || second === 19))
+      (first === 192 && second === 88) ||
+      (first === 198 && (second === 18 || second === 19 || second === 51)) ||
+      (first === 203 && second === 0 && octets[2] === 113)
     );
   }
-  const normalized = address.toLowerCase();
+  const normalized = address.toLowerCase().split("%")[0] ?? "";
+  const firstHextet = Number.parseInt(normalized.split(":")[0] ?? "0", 16);
   return (
     isIP(address) === 6 &&
     normalized !== "::" &&
@@ -97,7 +100,8 @@ function isPublicRegistryAddress(address: string): boolean {
     !normalized.startsWith("::ffff:") &&
     !normalized.startsWith("fc") &&
     !normalized.startsWith("fd") &&
-    !normalized.startsWith("fe80:") &&
+    !(firstHextet >= 0xfe80 && firstHextet <= 0xfebf) &&
+    !normalized.startsWith("2001:db8:") &&
     !normalized.startsWith("ff")
   );
 }
@@ -419,17 +423,29 @@ async function main(): Promise<void> {
     const value = (flag: string) =>
       process.argv[process.argv.indexOf(flag) + 1];
     const allowlistPath = value("--allowlist");
+    const socketPath = value("--socket");
     const port = Number(value("--port") ?? "4873");
-    if (!allowlistPath || !Number.isInteger(port) || port < 1 || port > 65535)
-      throw new Error("serve requires --allowlist and a valid --port");
+    if (
+      !allowlistPath ||
+      (!socketPath && (!Number.isInteger(port) || port < 1 || port > 65535))
+    )
+      throw new Error(
+        "serve requires --allowlist and --socket or a valid --port",
+      );
     const allowlist = JSON.parse(
       readFileSync(allowlistPath, "utf8"),
     ) as DependencyAllowlist;
     const server = createDependencyProxy({ allowlist });
     await new Promise<void>((resolve) =>
-      server.listen(port, "127.0.0.1", resolve),
+      socketPath
+        ? server.listen(socketPath, resolve)
+        : server.listen(port, "127.0.0.1", resolve),
     );
-    console.log(`dependency proxy listening on 127.0.0.1:${port}`);
+    console.log(
+      socketPath
+        ? `dependency proxy listening on ${socketPath}`
+        : `dependency proxy listening on 127.0.0.1:${port}`,
+    );
     return;
   }
   if (process.argv[2] !== "freeze") return;
