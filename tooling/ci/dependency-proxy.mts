@@ -257,6 +257,11 @@ export function createDependencyProxy(input: {
   const fetchArtifact = input.fetchArtifact ?? fetchControllerArtifact;
   return createServer(async (request, response) => {
     try {
+      if (request.method === "GET" && request.url === "/health") {
+        response.writeHead(200, { "content-type": "text/plain" });
+        response.end("ok");
+        return;
+      }
       if (request.method !== "GET" || !request.url)
         throw new Error("only GET artifact requests are allowed");
       const url = `https://registry.npmjs.org${request.url}`;
@@ -410,6 +415,23 @@ function selectVersion(
 }
 
 async function main(): Promise<void> {
+  if (process.argv[2] === "serve") {
+    const value = (flag: string) =>
+      process.argv[process.argv.indexOf(flag) + 1];
+    const allowlistPath = value("--allowlist");
+    const port = Number(value("--port") ?? "4873");
+    if (!allowlistPath || !Number.isInteger(port) || port < 1 || port > 65535)
+      throw new Error("serve requires --allowlist and a valid --port");
+    const allowlist = JSON.parse(
+      readFileSync(allowlistPath, "utf8"),
+    ) as DependencyAllowlist;
+    const server = createDependencyProxy({ allowlist });
+    await new Promise<void>((resolve) =>
+      server.listen(port, "127.0.0.1", resolve),
+    );
+    console.log(`dependency proxy listening on 127.0.0.1:${port}`);
+    return;
+  }
   if (process.argv[2] !== "freeze") return;
   const value = (flag: string) => process.argv[process.argv.indexOf(flag) + 1];
   const baseLock = value("--base-lock");
