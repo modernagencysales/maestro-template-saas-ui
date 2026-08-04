@@ -94,6 +94,7 @@ function isPublicRegistryAddress(address: string): boolean {
     isIP(address) === 6 &&
     normalized !== "::" &&
     normalized !== "::1" &&
+    !normalized.startsWith("::ffff:") &&
     !normalized.startsWith("fc") &&
     !normalized.startsWith("fd") &&
     !normalized.startsWith("fe80:") &&
@@ -202,8 +203,10 @@ export function inspectArtifact(
     throw new Error("artifact content integrity mismatch");
   let tar: Buffer;
   try {
-    tar = gunzipSync(bytes);
-  } catch {
+    tar = gunzipSync(bytes, { maxOutputLength: maxBytes });
+  } catch (error) {
+    if (error instanceof RangeError)
+      throw new Error("artifact exceeds controller decompressed byte limit");
     throw new Error("artifact is not a gzip tarball");
   }
   for (let offset = 0; offset + 512 <= tar.length;) {

@@ -83,6 +83,12 @@ describe("protected dependency proxy", () => {
     ).rejects.toThrow(/private or non-public/u);
     await expect(
       fetchControllerArtifact(artifact, {
+        resolve: async () => ["::ffff:127.0.0.1"],
+        request: async () => reply(200, bytes),
+      }),
+    ).rejects.toThrow(/private or non-public/u);
+    await expect(
+      fetchControllerArtifact(artifact, {
         resolve: async () => ["93.184.216.34"],
         request: async () =>
           reply(302, bytes, { location: "https://evil.test" }),
@@ -137,6 +143,13 @@ describe("protected dependency proxy", () => {
       new Promise<void>((resolve) => proxy.close(() => resolve())),
       new Promise<void>((resolve) => upstream.close(() => resolve())),
     ]);
+  });
+
+  it("caps decompressed archive bytes before parsing entries", () => {
+    const bytes = gzipSync(Buffer.alloc(2_048));
+    expect(() => inspectArtifact(bytes, integrity(bytes), 1_024)).toThrow(
+      /decompressed byte limit/u,
+    );
   });
 });
 
