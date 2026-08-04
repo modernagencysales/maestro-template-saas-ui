@@ -1,9 +1,5 @@
 import { cliFailure, formatJsonOutput } from "./result";
-import type {
-  CliCapabilityRequest,
-  CliCapabilityRunner,
-  CliRuntimeConfig,
-} from "./types";
+import type { CliCapabilityRunner, CliRuntimeConfig } from "./types";
 
 const failureForStatus: Readonly<Record<number, string>> = {
   401: "Capability request unauthorized.\n",

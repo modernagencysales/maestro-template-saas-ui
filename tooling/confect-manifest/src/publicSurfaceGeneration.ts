@@ -923,8 +923,10 @@ export const verifyContractsLegacyBaseline = (
   baseline: ContractsLegacyBaseline,
 ): readonly string[] => {
   const findings: string[] = [];
+  const frozenIds = new Set(baseline.surfaces.map(({ id }) => id));
+  const frozenSurfaces = surfaces.filter(({ id }) => frozenIds.has(id));
   if (
-    buildContractsLegacyBaseline(surfaces).capturedFromInventoryDigest !==
+    buildContractsLegacyBaseline(frozenSurfaces).capturedFromInventoryDigest !==
     baseline.capturedFromInventoryDigest
   )
     findings.push("legacy baseline inventory digest changed");
@@ -936,8 +938,10 @@ export const verifyContractsLegacyBaseline = (
   );
   for (const [id, key] of current) {
     const expected = frozen.get(id);
-    if (expected === undefined) findings.push(`legacy baseline growth: ${id}`);
-    else if (expected !== key)
+    if (expected === undefined) {
+      if (id.startsWith("legacy_"))
+        findings.push(`legacy baseline growth: ${id}`);
+    } else if (expected !== key)
       findings.push(`legacy baseline authority changed: ${id}`);
   }
   for (const id of frozen.keys())

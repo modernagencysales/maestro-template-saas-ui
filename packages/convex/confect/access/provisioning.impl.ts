@@ -46,7 +46,11 @@ const ensureProvisioned = FunctionImpl.make(
               (user) => user.tokenIdentifier === identity.tokenIdentifier,
             ),
           ),
-          Effect.map((user) => (user ? toProvisioningUser(user) : null)),
+          Effect.flatMap((user) =>
+            user === undefined
+              ? Effect.succeed(null)
+              : toProvisioningUser(user),
+          ),
           Effect.orDie,
         );
 
@@ -225,10 +229,10 @@ const toProvisioningUser = (user: {
   readonly status: "active" | "suspended" | "deleted";
   readonly createdAt: number;
   readonly updatedAt: number;
-}): UserProvisioningRow => {
+}): Effect.Effect<UserProvisioningRow> => {
   if (user.tokenIdentifier === undefined)
-    throw new Error("User token identifier backfill is incomplete");
-  return {
+    return Effect.dieMessage("User token identifier backfill is incomplete");
+  return Effect.succeed({
     _id: user._id,
     subject: user.subject,
     tokenIdentifier: user.tokenIdentifier,
@@ -239,7 +243,7 @@ const toProvisioningUser = (user: {
     status: user.status,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
-  };
+  });
 };
 
 export default GroupImpl.make(databaseSchema, provisioning).pipe(

@@ -37,6 +37,10 @@
       "types": "./src/publicSurface.ts",
       "default": "./src/publicSurface.ts"
     },
+    "./publicSurfaceRegistrations": {
+      "types": "./src/publicSurfaceRegistrations.ts",
+      "default": "./src/publicSurfaceRegistrations.ts"
+    },
     "./product-contract": {
       "types": "./src/productContract.ts",
       "default": "./src/productContract.ts"

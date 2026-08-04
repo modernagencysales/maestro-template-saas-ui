@@ -1,4 +1,4 @@
-import { internalMutationGeneric, internalQueryGeneric } from "convex/server";
+import { internalQueryGeneric } from "convex/server";
 import { type GenericId, v } from "convex/values";
 
 import {
@@ -20,39 +20,6 @@ export const issuerBoundTokenIdentifier = (issuer: string, subject: string) => {
   if (normalizedSubject === "") throw new Error("subject is required");
   return `${normalizedIssuer}|${normalizedSubject}`;
 };
-
-export const backfillTokenIdentifiers = internalMutationGeneric({
-  args: {
-    identities: v.array(
-      v.object({
-        userId: v.id("users"),
-        issuer: v.string(),
-        subject: v.string(),
-      }),
-    ),
-  },
-  returns: v.object({ updated: v.number() }),
-  handler: async (ctx, { identities }) => {
-    if (identities.length > 100)
-      throw new Error("backfill batch exceeds 100 users");
-    for (const identity of identities) {
-      const user = await ctx.db.get("users", identity.userId);
-      if (user === null || user.subject !== identity.subject)
-        throw new Error(`trusted subject mismatch for ${identity.userId}`);
-      const tokenIdentifier = issuerBoundTokenIdentifier(
-        identity.issuer,
-        identity.subject,
-      );
-      if (
-        user.tokenIdentifier !== undefined &&
-        user.tokenIdentifier !== tokenIdentifier
-      )
-        throw new Error(`token identifier mismatch for ${identity.userId}`);
-      await ctx.db.patch("users", identity.userId, { tokenIdentifier });
-    }
-    return { updated: identities.length };
-  },
-});
 
 export const sessionPrincipal = internalQueryGeneric({
   args: {},

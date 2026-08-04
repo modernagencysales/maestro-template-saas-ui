@@ -29,6 +29,7 @@ import type {
   ContractsLegacyBaseline,
   PublicSurface,
 } from "@maestro-template/template-core/publicSurface";
+import { publicSurfaceRegistrations } from "@maestro-template/template-core/publicSurfaceRegistrations";
 
 const root = resolve(".");
 const inventoryContractSpecs = await Promise.all(
@@ -299,7 +300,7 @@ const priorSurfaces = existsSync(publicInventoryTarget)
   : adoptLegacyPublicSurfaces(discoveredPublicAuthorities);
 const explicitSurfaces = manifestPublicSurfaces(inventoryManifest);
 const explicitAuthorityKeys = new Set(
-  explicitSurfaces.map((surface) =>
+  [...explicitSurfaces, ...publicSurfaceRegistrations].map((surface) =>
     JSON.stringify([
       surface.authority.kind,
       surface.authority.registrationLocator,
@@ -321,6 +322,7 @@ const registeredPublicSurfaces = [
       ),
   ),
   ...explicitSurfaces,
+  ...publicSurfaceRegistrations,
 ];
 const publicInventory = generatePublicSurfaceInventory({
   discovered: discoveredPublicAuthorities,

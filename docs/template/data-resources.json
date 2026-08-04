@@ -189,6 +189,23 @@
       "detail": "concepts is durable Knowledge Brain state governed by the canonical knowledge-brain lifecycle."
     },
     {
+      "id": "contractEvidence",
+      "system": "product-contracts",
+      "sourcePath": "packages/convex/confect/tables/contractEvidence.ts",
+      "tenantScope": "global",
+      "sensitivity": "restricted",
+      "pii": ["identity", "behavioral"],
+      "exportMode": "not-applicable",
+      "deleteMode": "delete",
+      "retention": "retain-audit-window",
+      "appendOnly": false,
+      "writePosture": "implemented",
+      "workspaceLifecycle": "excluded",
+      "writeAuthority": "packages/convex/confect/runtime/contractEvidence.ts",
+      "migrationRef": "docs/template/system-decisions/product-contracts.md#contract-evidence-lifecycle",
+      "detail": "Acceptance-only correlation evidence is stored only in the disposable backend, drained atomically after each scenario, and unavailable in production."
+    },
+    {
       "id": "contextPacks",
       "system": "knowledge-brain",
       "sourcePath": "packages/convex/confect/tables/contextPacks.ts",

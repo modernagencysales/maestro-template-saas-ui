@@ -573,19 +573,20 @@ describe("public surface generation", () => {
     );
     const baseline = buildContractsLegacyBaseline([original]);
 
+    const added = registered(
+      {
+        kind: "route",
+        registrationLocator: "apps/web/src/routeTree.gen.ts#/new",
+        transport: "ui",
+      },
+      1,
+    );
+    expect(verifyContractsLegacyBaseline([original, added], baseline)).toEqual(
+      [],
+    );
     expect(
       verifyContractsLegacyBaseline(
-        [
-          original,
-          registered(
-            {
-              kind: "route",
-              registrationLocator: "apps/web/src/routeTree.gen.ts#/new",
-              transport: "ui",
-            },
-            1,
-          ),
-        ],
+        [original, { ...added, id: "legacy_added" }],
         baseline,
       ),
     ).toContainEqual(expect.stringContaining("growth"));

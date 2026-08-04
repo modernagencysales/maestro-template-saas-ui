@@ -3,7 +3,11 @@
   "include": ["dependencies"],
   "workspaces": {
     ".": {
-      "entry": ["package.json"],
+      "entry": [
+        "package.json",
+        "features/support/**/*.ts",
+        "features/step_definitions/**/*.ts"
+      ],
       "project": []
     },
     "packages/convex": {

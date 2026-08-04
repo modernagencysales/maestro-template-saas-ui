@@ -111,6 +111,13 @@ evidence, and one-time promotion-action consumption. It consumes immutable
 Workflow Runtime evidence but does not own workflow execution, and its global
 release-control records are not workspace DSAR data.
 
+## Product Contracts
+
+Canonical ID: `product-contracts`. Reuse it for executable product-contract
+selection and verification, public-surface activation, runtime identity, and
+acceptance-only scenario correlation evidence. It verifies product behavior but
+does not own the product systems exercised by a contract.
+
 ## Introducing A System
 
 An introduction decision must state:

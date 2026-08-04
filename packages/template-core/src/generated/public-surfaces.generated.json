@@ -2599,6 +2599,16 @@
         "kind": "convex-function",
         "registrationLocator": "ops/knowledge:attachCitation"
       }
+    },
+    {
+      "id": "surface_contract_runtime_identity_cli",
+      "transport": "cli",
+      "coverageTag": "@covers_contract_runtime_identity_cli",
+      "authPolicyId": "auth_api_key_workspace_read",
+      "authority": {
+        "kind": "command",
+        "registrationLocator": "identity"
+      }
     }
   ]
 }

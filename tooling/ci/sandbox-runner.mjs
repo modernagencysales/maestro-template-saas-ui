@@ -45,7 +45,7 @@ try {
     throw new Error("controller dependency proxy bridge is unhealthy");
   if (action === "canary") {
     const direct = await fetch("https://registry.npmjs.org/", {
-      signal: AbortSignal.timeout(500),
+      signal: globalThis.AbortSignal.timeout(500),
     }).catch(() => undefined);
     if (direct)
       throw new Error("candidate direct egress canary unexpectedly succeeded");

@@ -397,6 +397,33 @@
       "decisionRef": "docs/template/system-catalog.md#data-lifecycle"
     },
     {
+      "id": "product-contracts",
+      "name": "Product Contracts",
+      "kind": "shared-primitive",
+      "lifecycle": "active",
+      "implementationStatus": "real",
+      "summary": "Owns executable product-contract compilation, runtime identity and scenario correlation evidence, and activation gating across public surfaces.",
+      "responsibilities": [
+        "compile and verify executable product contracts",
+        "bind runtime identity to scenario correlation evidence",
+        "gate public-surface activation"
+      ],
+      "aliases": [
+        "acceptance",
+        "contracts",
+        "cucumber",
+        "product contracts",
+        "runtime identity"
+      ],
+      "tables": ["contractEvidence"],
+      "canonicalEntrypoints": [
+        "tooling/acceptance",
+        "features/support",
+        "packages/convex/confect/runtime"
+      ],
+      "decisionRef": "docs/template/system-decisions/product-contracts.md"
+    },
+    {
       "id": "deployment-authority",
       "name": "Deployment Authority",
       "kind": "shared-primitive",
