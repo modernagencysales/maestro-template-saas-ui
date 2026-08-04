@@ -1,4 +1,5 @@
 import { readFile, writeFile } from "node:fs/promises";
+import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { isDirectRun } from "../quality/src/direct-run.mts";
 import {
@@ -264,6 +265,32 @@ export const resolveAcceptanceRun = (
       "protected controller must provide the immutable protected base SHA",
     );
   const protectedBaseSha = candidateProvidedSha;
+  const attestationPath = process.env.PROTECTED_CONTROLLER_ATTESTATION_FILE;
+  if (attestationPath === undefined)
+    throw new Error("protected controller attestation is required");
+  let attestation: {
+    baseSha?: string;
+    candidateCommit?: string;
+    origin?: string;
+    nonce?: string;
+  };
+  try {
+    attestation = JSON.parse(
+      readFileSync(attestationPath, "utf8"),
+    ) as typeof attestation;
+  } catch {
+    throw new Error("protected controller attestation is unreadable");
+  }
+  if (
+    attestation.baseSha !== protectedBaseSha ||
+    attestation.origin !== "protected-controller" ||
+    !attestation.nonce ||
+    (process.env.PROTECTED_CANDIDATE_COMMIT !== undefined &&
+      attestation.candidateCommit !== process.env.PROTECTED_CANDIDATE_COMMIT)
+  )
+    throw new Error(
+      "protected controller attestation does not bind this acceptance run",
+    );
   if (!/^[a-f0-9]{40}(?:[a-f0-9]{24})?$/u.test(protectedBaseSha))
     throw new Error("protected controller must provide an immutable base SHA");
   if (process.env.PROTECTED_CONTROLLER_ORIGIN !== "protected-controller")
