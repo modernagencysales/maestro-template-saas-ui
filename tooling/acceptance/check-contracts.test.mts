@@ -2,8 +2,9 @@ import { spawnSync } from "node:child_process";
 import { createHash, createHmac } from "node:crypto";
 import { existsSync } from "node:fs";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { createRequire } from "node:module";
 import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   CUCUMBER_CONFIGURATION_SOURCE,
   resolveAcceptanceRun,
@@ -13,6 +14,16 @@ import {
   validateCucumberPackageVersions,
   synchronizeAdmittedJourneys,
 } from "./check-contracts.mts";
+
+const { resolvePaths } = createRequire(import.meta.url)(
+  "@cucumber/cucumber/lib/paths/paths",
+) as {
+  resolvePaths: (
+    logger: { debug: (...values: unknown[]) => void },
+    cwd: string,
+    sources: { paths: string[] },
+  ) => Promise<{ unexpandedSourcePaths: string[] }>;
+};
 
 const protectedBaseSha = "a8405dd187645d6e2fa38f52a3ddc4aad15d72f3";
 const protectedPolicyPath =
@@ -140,10 +151,38 @@ describe("validateCucumberConfigurationSource", () => {
 });
 
 describe("resolveSelectedFeaturePaths", () => {
-  it("rejects Cucumber rerun-file arguments before launch", () => {
-    expect(() =>
-      resolveSelectedFeaturePaths("/controller", ["features/@rerun.feature"]),
-    ).toThrow(/rerun-file/u);
+  it("rejects the rerun-file syntax used by pinned Cucumber before launch", async () => {
+    const root = await mkdtemp(join(process.cwd(), ".cucumber-rerun-"));
+    const launch = vi.fn();
+    try {
+      await mkdir(join(root, "features"));
+      await Promise.all([
+        writeFile(
+          join(root, "features/@rerun.feature"),
+          "features/candidate.feature\n",
+        ),
+        writeFile(
+          join(root, "features/candidate.feature"),
+          "Feature: candidate\n  Scenario: must not launch\n    Then stop\n",
+        ),
+      ]);
+      const resolved = await resolvePaths({ debug: vi.fn() }, root, {
+        paths: ["features/@rerun.feature"],
+      });
+
+      expect(resolved.unexpandedSourcePaths).toEqual([
+        "features/candidate.feature",
+      ]);
+      expect(() => {
+        const paths = resolveSelectedFeaturePaths(root, [
+          "features/@rerun.feature",
+        ]);
+        launch(paths);
+      }).toThrow(/rerun-file/u);
+      expect(launch).not.toHaveBeenCalled();
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
   });
 
   it("resolves only exact canonical Feature paths", () => {

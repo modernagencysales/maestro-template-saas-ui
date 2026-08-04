@@ -1,5 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
+import * as productContract from "../../packages/template-core/src/productContract";
 import type { ContractInventory } from "./contract-inventory";
 import { selectContracts } from "./selection-manifest";
 
@@ -37,7 +38,16 @@ const pickle = (
   coverageTags: [],
   denialTags: [],
   crossSurface: false,
-  steps: [],
+  steps: [
+    {
+      key: `step_sha256:${key}` as `step_sha256:${string}`,
+      index: 0,
+      pickleStepType: "Action" as const,
+      type: "Action" as const,
+      text: `execute ${key}`,
+      astLocation: { line: 2, column: 5 },
+    },
+  ],
 });
 
 const inventory = (input: {
@@ -57,6 +67,7 @@ const inventory = (input: {
 
 describe("selectContracts", () => {
   it("selects complete admitted Features and their exact Pickles without compiling", () => {
+    const compile = vi.spyOn(productContract, "compileProductContractSource");
     const orders = source(
       "features/orders.feature",
       "journey_orders",
@@ -99,6 +110,11 @@ describe("selectContracts", () => {
     expect(selected.pickleKeys).toEqual([ordersFirst.key, ordersSecond.key]);
     expect(selected.sources).toEqual([orders]);
     expect(selected.pickles).toEqual([ordersFirst, ordersSecond]);
+    expect(selected.sources[0]).toBe(orders);
+    expect(selected.pickles[0]).toBe(ordersFirst);
+    expect(selected.pickles[1]).toBe(ordersSecond);
+    expect(selected.pickles[0]?.steps[0]?.key).toBe(ordersFirst.steps[0]?.key);
+    expect(compile).not.toHaveBeenCalled();
   });
 
   it("selects one complete admitted journey, never a partial Feature", () => {
