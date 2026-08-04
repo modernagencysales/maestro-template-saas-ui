@@ -263,6 +263,13 @@ const REVIEWED_ADDITIONAL_PATHS: readonly CustomerReleasePath[] = [
     upgrade: "replace",
   },
   {
+    path: "generated",
+    match: "subtree",
+    ownership: "generated",
+    action: "generate",
+    upgrade: "regenerate",
+  },
+  {
     path: "tooling/acceptance",
     match: "subtree",
     ownership: "template-owned",
