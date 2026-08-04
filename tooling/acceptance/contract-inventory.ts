@@ -464,16 +464,30 @@ export function compileContractInventory(input: {
         "show",
         `${input.protectedBaseSha}:${authPolicySourcePath}`,
       ]).toString("utf8");
-    } catch {
-      // Older protected-base fixtures may not carry the policy registry yet;
-      // surface IDs still provide a fail-closed comparison for those entries.
+    } catch (error) {
+      const changedPolicyId = candidateSurfaces.some((surface) => {
+        const previous = baseSurfaces.find((entry) => entry.id === surface.id);
+        return (
+          previous !== undefined &&
+          previous.authPolicyId !== surface.authPolicyId
+        );
+      });
+      if (changedPolicyId)
+        throw new Error(
+          `authoritative auth-policy material is unavailable from protected base: ${String(error)}`,
+        );
+      candidatePolicySource = undefined;
+      basePolicySource = undefined;
     }
-    deltas = authPolicyDeltas(
-      baseSurfaces,
-      candidateSurfaces,
-      readAuthPolicyRegistry(basePolicySource),
-      readAuthPolicyRegistry(candidatePolicySource),
-    );
+    const basePolicies = readAuthPolicyRegistry(basePolicySource);
+    const candidatePolicies = readAuthPolicyRegistry(candidatePolicySource);
+    if (basePolicies !== undefined && candidatePolicies !== undefined)
+      deltas = authPolicyDeltas(
+        baseSurfaces,
+        candidateSurfaces,
+        basePolicies,
+        candidatePolicies,
+      );
   }
   assertCoverage(candidate, candidateSurfaces);
   const sortedSources = [...candidate.sources].sort((left, right) =>

@@ -1,5 +1,4 @@
 import { readFile, writeFile } from "node:fs/promises";
-import { execFileSync } from "node:child_process";
 import { resolve } from "node:path";
 import { isDirectRun } from "../quality/src/direct-run.mts";
 import {
@@ -239,18 +238,14 @@ export const resolveAcceptanceRun = (
   readonly mode: "authoritative";
 } => {
   const candidateProvidedSha = process.env.PROTECTED_BASE_SHA;
-  const protectedBaseSha =
-    candidateProvidedSha ??
-    execFileSync("git", ["rev-parse", "origin/main"], {
-      cwd: root,
-      encoding: "utf8",
-    }).trim();
+  if (candidateProvidedSha === undefined)
+    throw new Error(
+      "protected controller must provide the immutable protected base SHA",
+    );
+  const protectedBaseSha = candidateProvidedSha;
   if (!/^[a-f0-9]{40}(?:[a-f0-9]{24})?$/u.test(protectedBaseSha))
     throw new Error("protected controller must provide an immutable base SHA");
-  if (
-    process.env.CI === "true" &&
-    process.env.PROTECTED_CONTROLLER_ORIGIN !== "protected-controller"
-  )
+  if (process.env.PROTECTED_CONTROLLER_ORIGIN !== "protected-controller")
     throw new Error(
       "authoritative acceptance requires a protected-controller origin marker",
     );

@@ -44,7 +44,7 @@ export const requireAdmittedOperation = (
   operationId: string,
   transport: "api" | "cli" | "mcp",
   emergencyDenied = false,
-): void => {
+): boolean => {
   const matches = publicSurfaces.filter(
     (surface) =>
       surface.transport === transport &&
@@ -57,6 +57,7 @@ export const requireAdmittedOperation = (
     );
   for (const surface of matches)
     requireAdmittedSurface(surface.id, emergencyDenied);
+  return true;
 };
 
 export const runAdmittedSurface = async <Result>(input: {

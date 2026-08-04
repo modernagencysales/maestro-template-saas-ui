@@ -10,6 +10,7 @@ import { DatabaseReader, DatabaseWriter } from "../_generated/services";
 import { roleAtLeast, type Role } from "../access/roles";
 import { requireWorkspaceAccess } from "../capabilities/_kit/workspaceAccess";
 import { requireAdmittedOperation } from "../capabilities/_kit/admissionGuard";
+import { applyFeatureFlagAfterAdmission } from "../capabilities/_kit/surfaces";
 import { ValidationFailed } from "../errors";
 import flags from "./flags.spec";
 
@@ -90,7 +91,7 @@ const evaluate = FunctionImpl.make(
       // The generated public-surface registry is the admission authority for
       // this operation; policy state may only further disable a permitted
       // operation.
-      requireAdmittedOperation("ops/flags:evaluate", "api");
+      const admitted = requireAdmittedOperation("ops/flags:evaluate", "api");
       const access = yield* unsafeAssumeClockProvided(
         requireWorkspaceAccess(workspaceId, "viewer"),
       );
@@ -102,7 +103,7 @@ const evaluate = FunctionImpl.make(
         .pipe(Effect.orDie);
       const policies = mergePolicies(workspaceId, overrides);
       const decisions = policies.map((policy) =>
-        evaluatePolicy(policy, access.role),
+        evaluatePolicy(policy, access.role, admitted),
       );
 
       return {
@@ -261,9 +262,13 @@ const toPolicyReturn = (policy: FeatureFlagPolicy) => ({
   updatedAt: policy.updatedAt,
 });
 
-const evaluatePolicy = (policy: FeatureFlagPolicy, role: Role) => {
+const evaluatePolicy = (
+  policy: FeatureFlagPolicy,
+  role: Role,
+  admitted: boolean,
+) => {
   const rolloutBucket = hashToBucket(`${policy.key}:${policy.workspaceId}`);
-  const enabled = policy.enabled;
+  const enabled = applyFeatureFlagAfterAdmission(admitted, policy.enabled);
 
   if (!enabled) {
     return decision(policy, false, "definition-disabled", rolloutBucket);
