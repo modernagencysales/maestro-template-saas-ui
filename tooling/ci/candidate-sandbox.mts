@@ -18,6 +18,10 @@ export function candidateSandboxArgv(input: {
 }): readonly string[] {
   const sourceWorkspace = input.sourceWorkspace ?? input.workspace;
   const runtime = input.runtime ?? "/controller/runtime";
+  const network =
+    process.env.DEPENDENCY_PROXY_NETWORK_MODE === "shared-proxy"
+      ? ["--share-net"]
+      : ["--unshare-net"];
   return [
     "bwrap",
     "--die-with-parent",
@@ -27,7 +31,7 @@ export function candidateSandboxArgv(input: {
     "--unshare-ipc",
     "--unshare-uts",
     "--unshare-cgroup",
-    "--unshare-net",
+    ...network,
     "--ro-bind",
     sourceWorkspace,
     "/source",
@@ -82,7 +86,7 @@ export function validateCandidateLockfile(input: {
   }
 }
 
-function main(): void {
+async function main(): Promise<void> {
   if (process.argv[2] !== "install") return;
   const workspace = process.cwd();
   const allowlist = JSON.parse(
@@ -101,6 +105,16 @@ function main(): void {
   if (process.platform !== "linux")
     throw new Error("candidate sandbox requires Linux Bubblewrap");
   assertCandidateDependencyProxyIsWired();
+  if (process.env.DEPENDENCY_PROXY_NETWORK_MODE !== "shared-proxy")
+    throw new Error(
+      "controller must provide a shared-proxy network namespace with egress policy",
+    );
+  const proxyUrl = process.env.DEPENDENCY_PROXY_URL ?? "http://127.0.0.1:4873";
+  const health = await fetch(new URL("/health", proxyUrl), {
+    signal: AbortSignal.timeout(2_000),
+  }).catch(() => undefined);
+  if (!health?.ok)
+    throw new Error("controller dependency proxy health check failed");
   const prefix = candidateSandboxArgv({ workspace });
   const [executable, ...sandboxArgs] = prefix;
   if (!executable) throw new Error("candidate sandbox command is empty");
@@ -136,4 +150,7 @@ function main(): void {
   if (install.status !== 0) process.exit(install.status ?? 1);
 }
 
-main();
+void main().catch((error: unknown) => {
+  console.error(error instanceof Error ? error.message : String(error));
+  process.exitCode = 1;
+});
