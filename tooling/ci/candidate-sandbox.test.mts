@@ -76,6 +76,12 @@ describe("candidate sandbox", () => {
     expect(() => assertCandidateDependencyProxyIsWired()).toThrow(
       /controller-local dependency proxy/u,
     );
-    expect(() => assertCandidateDependencyProxyIsWired(true)).not.toThrow();
+    expect(() =>
+      assertCandidateDependencyProxyIsWired({
+        wired: true,
+        networkMode: "shared-proxy",
+        egressPolicyDigest: `sha256:${"a".repeat(64)}`,
+      }),
+    ).not.toThrow();
   });
 });
