@@ -12,8 +12,10 @@ import {
   authDenyAll,
   authPolicies,
   compareAuthPolicyStrength,
+  resolveAuthPolicy,
   unknownAuthPolicyIds,
 } from "../confect/capabilities/_kit/authPolicies";
+import { apiKeyScopeValues } from "../confect/headless/auth";
 
 const surface = {
   id: "brain_pages_create_cli",
@@ -55,6 +57,14 @@ describe("public surface authority", () => {
   });
 
   it("reports unknown auth policies", () => {
+    const arbitraryPolicyId: `auth_${string}` = "auth_not_registered";
+    const resolved: AuthPolicy | undefined =
+      resolveAuthPolicy(arbitraryPolicyId);
+
+    expect(resolved).toBeUndefined();
+    expect(resolveAuthPolicy("auth_build_pack_approve")).toBe(
+      authPolicies.auth_build_pack_approve,
+    );
     expect(
       unknownAuthPolicyIds([
         surface,
@@ -169,16 +179,26 @@ describe("public surface authority", () => {
       ).not.toMatch(/same|stronger/u);
     }
 
-    const allScopes = authPolicies.auth_api_key_admin;
-    for (const scope of allScopes.requiredScopes) {
-      expect(
-        compareAuthPolicyStrength(allScopes, {
-          ...allScopes,
-          requiredScopes: allScopes.requiredScopes.filter(
-            (candidate) => candidate !== scope,
-          ),
-        }),
-      ).not.toMatch(/same|stronger/u);
+    for (let mask = 1; mask < 1 << apiKeyScopeValues.length; mask += 1) {
+      const requiredScopes = apiKeyScopeValues.filter(
+        (_, index) => (mask & (1 << index)) !== 0,
+      );
+      const base: AuthPolicy = {
+        ...authPolicies.auth_api_key_workspace_read,
+        requiredScopes,
+      };
+
+      for (const removed of requiredScopes) {
+        expect(
+          compareAuthPolicyStrength(base, {
+            ...base,
+            requiredScopes: requiredScopes.filter(
+              (candidate) => candidate !== removed,
+            ),
+          }),
+          `removing ${removed} from ${requiredScopes.join(",")}`,
+        ).not.toMatch(/same|stronger/u);
+      }
     }
   });
 });

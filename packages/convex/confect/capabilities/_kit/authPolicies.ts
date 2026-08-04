@@ -58,7 +58,7 @@ export const authDenyAll = policy({
   requiredScopes: [],
 });
 
-export const authPolicies = Object.freeze({
+const authPolicyEntries = Object.freeze({
   auth_deny_all: authDenyAll,
   auth_public: policy({
     id: "auth_public",
@@ -172,6 +172,16 @@ export const authPolicies = Object.freeze({
   }),
 } satisfies Readonly<Record<AuthPolicy["id"], AuthPolicy>>);
 
+export const authPolicies: Readonly<Record<AuthPolicy["id"], AuthPolicy>> &
+  typeof authPolicyEntries = authPolicyEntries;
+
+export const resolveAuthPolicy = (
+  id: AuthPolicy["id"],
+): AuthPolicy | undefined =>
+  Object.hasOwn(authPolicyEntries, id)
+    ? authPolicyEntries[id as keyof typeof authPolicyEntries]
+    : undefined;
+
 type Strength = "same" | "stronger" | "weaker" | "incomparable";
 
 const combineStrength = (parts: readonly Strength[]): Strength => {
@@ -211,16 +221,6 @@ const compareScopes = (
   base: readonly ApiKeyScopeType[],
   candidate: readonly ApiKeyScopeType[],
 ): Strength => {
-  const baseRequiresAdmin = base.includes("admin");
-  const candidateRequiresAdmin = candidate.includes("admin");
-  if (baseRequiresAdmin || candidateRequiresAdmin) {
-    return baseRequiresAdmin === candidateRequiresAdmin
-      ? "same"
-      : candidateRequiresAdmin
-        ? "stronger"
-        : "weaker";
-  }
-
   const baseSet = new Set(base);
   const candidateSet = new Set(candidate);
   const candidateIncludesBase = [...baseSet].every((scope) =>
@@ -230,13 +230,20 @@ const compareScopes = (
     baseSet.has(scope),
   );
 
-  return candidateIncludesBase && baseIncludesCandidate
-    ? "same"
-    : candidateIncludesBase
-      ? "stronger"
-      : baseIncludesCandidate
-        ? "weaker"
-        : "incomparable";
+  if (candidateIncludesBase && baseIncludesCandidate) return "same";
+  if (candidateIncludesBase) return "stronger";
+  if (baseIncludesCandidate) return "weaker";
+
+  const baseRequiresAdmin = base.includes("admin");
+  const candidateRequiresAdmin = candidate.includes("admin");
+  if (baseRequiresAdmin || candidateRequiresAdmin) {
+    return baseRequiresAdmin === candidateRequiresAdmin
+      ? "same"
+      : candidateRequiresAdmin
+        ? "stronger"
+        : "weaker";
+  }
+  return "incomparable";
 };
 
 export const compareAuthPolicyStrength = (
@@ -266,6 +273,6 @@ export const unknownAuthPolicyIds = (
     ...new Set(
       surfaces
         .map((surface) => surface.authPolicyId)
-        .filter((id) => !(id in authPolicies)),
+        .filter((id) => resolveAuthPolicy(id) === undefined),
     ),
   ].sort((left, right) => left.localeCompare(right));
