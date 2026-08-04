@@ -20,6 +20,13 @@ export type SerializableContractManifest = {
   readonly operationId: string;
   readonly kind: ContractFunctionKind;
   readonly surfaces: readonly ContractSurface[];
+  readonly authorizationBindings?: readonly {
+    readonly id: string;
+    readonly surface: Extract<ContractSurface, "api" | "cli" | "mcp" | "web">;
+    readonly coverageTag: `@covers_${string}`;
+    readonly activationJourneyId?: `journey_${string}`;
+    readonly authPolicyId?: `auth_${string}`;
+  }[];
   readonly typedErrors: readonly string[];
   readonly idempotent: boolean;
   readonly argsSchemaName: string;
@@ -52,6 +59,9 @@ export const collectContractManifest = (
     operationId: entry.manifest.operationId,
     kind: entry.manifest.kind,
     surfaces: entry.manifest.surfaces,
+    ...(entry.manifest.authorizationBindings === undefined
+      ? {}
+      : { authorizationBindings: entry.manifest.authorizationBindings }),
     typedErrors: entry.manifest.typedErrors,
     idempotent: entry.manifest.idempotent,
     argsSchemaName: entry.manifest.argsSchemaName,

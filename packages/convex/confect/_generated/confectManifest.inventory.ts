@@ -10,6 +10,32 @@ export const confectInventoryManifest = {
       operationId: "brain.pages.createMarkdown",
       kind: "mutation",
       surfaces: ["web", "api", "cli", "mcp"],
+      authorizationBindings: [
+        {
+          id: "brain_pages_create_web",
+          surface: "web",
+          coverageTag: "@covers_brain_pages_create_web",
+          authPolicyId: "auth_session_membership_editor",
+        },
+        {
+          id: "brain_pages_create_api",
+          surface: "api",
+          coverageTag: "@covers_brain_pages_create_api",
+          authPolicyId: "auth_api_key_workspace_write",
+        },
+        {
+          id: "brain_pages_create_cli",
+          surface: "cli",
+          coverageTag: "@covers_brain_pages_create_cli",
+          authPolicyId: "auth_api_key_workspace_write",
+        },
+        {
+          id: "brain_pages_create_mcp",
+          surface: "mcp",
+          coverageTag: "@covers_brain_pages_create_mcp",
+          authPolicyId: "auth_api_key_workspace_write",
+        },
+      ],
       typedErrors: [
         "Unauthorized",
         "MemberNotInWorkspace",

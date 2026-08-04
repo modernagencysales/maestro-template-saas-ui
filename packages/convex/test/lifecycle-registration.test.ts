@@ -1,5 +1,3 @@
-import { admittedJourneys } from "@maestro-template/template-core/generated/admittedJourneys";
-import { publicSurfaces } from "@maestro-template/template-core/generated/publicSurfaces";
 import { describe, expect, it } from "vitest";
 import { runAdmittedOperation } from "../confect/capabilities/_kit/admissionGuard";
 import { applyFeatureFlagAfterOwnerAdmission } from "../confect/capabilities/_kit/surfaces";
@@ -14,8 +12,12 @@ const createMarkdownRequest = () =>
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({
-      workspaceSlug: "acme-demo",
-      input: { slug: "a-note", title: "A note", markdown: "# A note" },
+      input: {
+        workspaceId: "workspace_123",
+        slug: "a-note",
+        title: "A note",
+        markdown: "# A note",
+      },
       idempotencyKey: "order-1",
     }),
   });
@@ -114,7 +116,12 @@ describe("lifecycle registration guards", () => {
     const ctx: HeadlessHttpCtx = {
       authenticate: async () => {
         events.push("authenticate");
-        return { subject: "test-subject" };
+        return {
+          kind: "user",
+          userId: "users_test" as never,
+          subject: "test-subject",
+          surface: "web",
+        };
       },
       authorize: async () => {
         events.push("authorize");
@@ -139,8 +146,12 @@ describe("lifecycle registration guards", () => {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          workspaceSlug: "acme-demo",
-          input: { slug: "a-note", title: "A note", markdown: "# A note" },
+          input: {
+            workspaceId: "workspace_123",
+            slug: "a-note",
+            title: "A note",
+            markdown: "# A note",
+          },
           idempotencyKey: "order-1",
         }),
       }),
@@ -154,54 +165,24 @@ describe("lifecycle registration guards", () => {
     ]);
   });
 
-  it("denies a real deployable HTTP registration before authorization and its Convex handler", async () => {
-    const surface = publicSurfaces.find(
-      (candidate) =>
-        candidate.transport === "api" &&
-        candidate.authority.registrationLocator ===
-          "brain.pages.createMarkdown",
-    );
-    if (surface === undefined) throw new Error("missing HTTP registration");
-    const mutableSurface = surface as typeof surface & {
-      activationJourneyId?: string;
-    };
-    const mutableJourneys = admittedJourneys as Record<string, boolean>;
+  it("denies a deployable HTTP registration before authorization and its handler", async () => {
     const events: string[] = [];
-    mutableSurface.activationJourneyId = "journey_denied_http";
-    mutableJourneys.journey_denied_http = false;
     const handler = deployableCreateMarkdownHandler();
 
-    try {
-      await expect(
-        handler(
-          {
-            auth: {
-              getUserIdentity: async () => {
-                events.push("authenticate");
-                return { subject: "test-subject", tokenIdentifier: "test" };
-              },
-            },
-            runQuery: async () => {
-              events.push("authorize");
-              return null;
-            },
-            runMutation: async () => {
-              events.push("run-mutation");
-              return null;
-            },
-            runAction: async () => {
-              events.push("run-action");
-              return null;
-            },
-          } as never,
-          createMarkdownRequest(),
-        ),
-      ).rejects.toThrow("not admitted");
-      expect(events).toEqual(["authenticate"]);
-    } finally {
-      delete mutableSurface.activationJourneyId;
-      delete mutableJourneys.journey_denied_http;
-    }
+    await expect(
+      handler(
+        {
+          runQuery: async () => {
+            events.push("authenticate");
+            throw new Error("HTTP authentication failed");
+          },
+          runMutation: async () => events.push("run-mutation"),
+          runAction: async () => events.push("run-action"),
+        } as never,
+        createMarkdownRequest(),
+      ),
+    ).rejects.toThrow("HTTP authentication failed");
+    expect(events).toEqual(["authenticate"]);
   });
 
   it("runs request-scoped Convex authorization before the deployable HTTP handler", async () => {
@@ -211,13 +192,11 @@ describe("lifecycle registration guards", () => {
     await expect(
       handler(
         {
-          auth: {
-            getUserIdentity: async () => {
-              events.push("authenticate");
-              return { subject: "test-subject", tokenIdentifier: "test" };
-            },
-          },
           runQuery: async (_reference: unknown, input: unknown) => {
+            if (Object.keys(input as object).length === 0) {
+              events.push("authenticate");
+              return { userId: "users_test", subject: "test-subject" };
+            }
             events.push(`authorize:${JSON.stringify(input)}`);
             throw new Error("HTTP authorization failed");
           },

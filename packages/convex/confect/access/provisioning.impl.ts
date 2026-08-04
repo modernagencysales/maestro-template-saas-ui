@@ -219,6 +219,7 @@ const ensureProvisioned = FunctionImpl.make(
 const toProvisioningUser = (user: {
   readonly _id: GenericId<"users">;
   readonly subject: string;
+  readonly tokenIdentifier: string;
   readonly email: string;
   readonly displayName?: string | undefined;
   readonly status: "active" | "suspended" | "deleted";
@@ -227,6 +228,7 @@ const toProvisioningUser = (user: {
 }): UserProvisioningRow => ({
   _id: user._id,
   subject: user.subject,
+  tokenIdentifier: user.tokenIdentifier,
   email: user.email,
   ...(user.displayName === undefined ? {} : { displayName: user.displayName }),
   status: user.status,

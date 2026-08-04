@@ -7,6 +7,7 @@ export const SurfacePolicy = Schema.Struct({
   api: Schema.Boolean,
   cli: Schema.Boolean,
   mcp: Schema.Boolean,
+  webhook: Schema.Boolean,
   workflow: Schema.Boolean,
   internal: Schema.Boolean,
 });
@@ -18,6 +19,7 @@ export const denyAllSurfaces: SurfacePolicy = {
   api: false,
   cli: false,
   mcp: false,
+  webhook: false,
   workflow: false,
   internal: false,
 };
@@ -47,6 +49,7 @@ export const allSurfaces = [
   "api",
   "cli",
   "mcp",
+  "webhook",
   "workflow",
   "internal",
 ] as const satisfies readonly SurfaceType[];

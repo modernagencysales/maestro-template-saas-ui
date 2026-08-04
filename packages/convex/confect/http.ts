@@ -12,12 +12,15 @@ import {
   verifyPostmarkBasicAuth,
 } from "./email/postmarkWebhook";
 import { handleDeployAuthorityHttpRequest } from "./deployAuthority/http";
-import {
-  executeHeadlessOperation,
-  type HeadlessExecutorRequest,
-} from "./manifest/executor";
+import { type HeadlessExecutorRequest } from "./manifest/executor";
 import { buildGeneratedOpenApiDocument } from "./manifest/openapi";
-import { runAdmittedOperation } from "./capabilities/_kit/admissionGuard";
+import { executeAuthorizedOperation } from "./capabilities/_kit/authorizedDispatch";
+import {
+  resolveAuthPolicy,
+  type AuthPolicy,
+} from "./capabilities/_kit/authPolicies";
+import type { Principal } from "./capabilities/_kit/principal";
+import { authenticateApiKey, type ApiKeyRow } from "./headless/auth";
 import {
   executorRequestFor,
   readJsonBody,
@@ -29,6 +32,24 @@ type ManifestFunction = (typeof confectManifest.functions)[number];
 const hasSurface = (entry: ManifestFunction, surface: string): boolean =>
   (entry.surfaces as readonly string[]).includes(surface);
 
+const authorizedSurfaceFor = (operationId: string, transport: "ui" | "api") => {
+  const operation = confectManifest.functions.find(
+    (candidate) => candidate.operationId === operationId,
+  );
+  return (
+    operation as typeof operation & {
+      readonly authorizationBindings?: readonly {
+        readonly id: string;
+        readonly surface: "api" | "cli" | "mcp" | "web";
+        readonly authPolicyId?: `auth_${string}`;
+      }[];
+    }
+  )?.authorizationBindings?.find(
+    (binding) =>
+      (binding.surface === "web" ? "ui" : binding.surface) === transport,
+  );
+};
+
 export type TemplateHttpRoute = {
   readonly path: string;
   readonly method: "GET" | "POST";
@@ -37,7 +58,11 @@ export type TemplateHttpRoute = {
 };
 
 export type HeadlessHttpCtx = {
-  readonly authenticate?: () => Promise<unknown>;
+  readonly authenticate?: (input: {
+    readonly authorization: string | undefined;
+    readonly policy: AuthPolicy;
+    readonly surface: "web" | "api";
+  }) => Promise<Principal>;
   readonly authorize?: (request: HeadlessExecutorRequest) => Promise<unknown>;
   readonly runQuery: (
     ref: unknown,
@@ -55,10 +80,11 @@ export type HeadlessHttpCtx = {
 
 const requireHttpAuthentication = async (
   ctx: HeadlessHttpCtx,
-): Promise<unknown> => {
+  input: Parameters<NonNullable<HeadlessHttpCtx["authenticate"]>>[0],
+): Promise<Principal> => {
   if (ctx.authenticate === undefined)
     throw new Error("HTTP authentication adapter is required");
-  return await ctx.authenticate();
+  return await ctx.authenticate(input);
 };
 
 const requireHttpAuthorization = async (
@@ -145,6 +171,18 @@ const httpAuthorizationQueryRef = makeFunctionReference<
   { readonly operationId: string; readonly workspaceId: string },
   null
 >("httpAuthorization:authorize");
+
+const httpSessionPrincipalQueryRef = makeFunctionReference<
+  "query",
+  Record<string, never>,
+  { readonly userId: string; readonly subject: string }
+>("httpAuthorization:sessionPrincipal");
+
+const apiKeyByHashQueryRef = makeFunctionReference<
+  "query",
+  { readonly keyHash: string },
+  ApiKeyRow | null
+>("httpAuthorization:apiKeyByHash");
 
 export const securityHeaders = {
   "content-security-policy":
@@ -258,23 +296,49 @@ const unsubscribeHtmlResponse = (html: string): Response =>
 const runTemplateApiOperation = async (
   ctx: HeadlessHttpCtx,
   request: HeadlessExecutorRequest,
-): Promise<unknown> =>
-  runAdmittedOperation({
-    operationId: request.operationId,
-    transport: "api",
-    authenticate: () => requireHttpAuthentication(ctx),
-    authorize: () => requireHttpAuthorization(ctx, request),
-    run: async () =>
-      executeHeadlessOperation(
-        {
-          refs: operationRefs,
-          runQuery: (ref, input) => ctx.runQuery(ref, input),
-          runMutation: (ref, input) => ctx.runMutation(ref, input),
-          runAction: (ref, input) => ctx.runAction(ref, input),
-        },
-        request,
-      ),
+  authorization: string | undefined,
+): Promise<unknown> => {
+  const transport = authorization?.match(/^Bearer\s+mtk_live_/iu)
+    ? "api"
+    : "ui";
+  const surface = authorizedSurfaceFor(request.operationId, transport);
+  const policy =
+    surface === undefined
+      ? undefined
+      : resolveAuthPolicy(surface.authPolicyId ?? "auth_deny_all");
+  if (surface === undefined || policy === undefined)
+    throw new Error("HTTP operation has no generated authorization surface");
+  const principal = await requireHttpAuthentication(ctx, {
+    authorization,
+    policy,
+    surface: transport === "ui" ? "web" : "api",
   });
+
+  return await executeAuthorizedOperation(
+    {
+      adapter: {
+        refs: operationRefs,
+        runQuery: (ref, input) => ctx.runQuery(ref, input),
+        runMutation: (ref, input) => ctx.runMutation(ref, input),
+        runAction: (ref, input) => ctx.runAction(ref, input),
+      },
+      authenticate: async () => principal,
+      authorize: async (verifiedPrincipal) =>
+        verifiedPrincipal.kind === "apiKey"
+          ? undefined
+          : requireHttpAuthorization(ctx, request),
+    },
+    {
+      surfaceId: surface.id,
+      operationId: request.operationId,
+      principal,
+      input: request.input,
+      ...(request.idempotencyKey === undefined
+        ? {}
+        : { idempotencyKey: request.idempotencyKey }),
+    },
+  );
+};
 
 const templateRouteForPath = (pathname: string): TemplateRouteMatch => {
   const apiEntry = confectManifest.functions.find(
@@ -514,7 +578,12 @@ const executeTemplateApiRoute = async (
 ): Promise<Response> => {
   const parsedBody = await readJsonBody(request);
   const response = parsedBody.ok
-    ? await responseForParsedTemplateApiBody(ctx, operationId, parsedBody.body)
+    ? await responseForParsedTemplateApiBody(
+        ctx,
+        operationId,
+        parsedBody.body,
+        request.headers.get("authorization") ?? undefined,
+      )
     : jsonResponse(parsedBody);
 
   return response;
@@ -524,10 +593,17 @@ const responseForParsedTemplateApiBody = async (
   ctx: HeadlessHttpCtx,
   operationId: string,
   body: TemplateApiRequestBody,
+  authorization?: string,
 ): Promise<Response> => {
   const executorRequest = executorRequestFor(operationId, body);
   const response = executorRequest.ok
-    ? jsonResponse(await runTemplateApiOperation(ctx, executorRequest.request))
+    ? jsonResponse(
+        await runTemplateApiOperation(
+          ctx,
+          executorRequest.request,
+          authorization,
+        ),
+      )
     : jsonResponse(executorRequest);
 
   return response;
@@ -580,10 +656,23 @@ const buildTemplateHttpRouter = () => {
   });
   const handler = httpActionGeneric(async (ctx, request) => {
     const headlessCtx: HeadlessHttpCtx = {
-      authenticate: async () => {
-        const identity = await ctx.auth.getUserIdentity();
-        if (identity === null) throw new Error("HTTP authentication failed");
-        return identity;
+      authenticate: async ({ authorization, policy, surface }) => {
+        if (policy.credential === "api-key")
+          return await authenticateApiKey({
+            authorization,
+            policy,
+            surface: "api",
+            nowMs: Date.now(),
+            loadByHash: (keyHash) =>
+              ctx.runQuery(apiKeyByHashQueryRef, { keyHash }),
+          });
+        const principal = await ctx.runQuery(httpSessionPrincipalQueryRef, {});
+        return {
+          kind: "user",
+          userId: principal.userId as never,
+          subject: principal.subject,
+          surface: "web",
+        };
       },
       authorize: async (operationRequest) => {
         const workspaceId = operationRequest.input.workspaceId;

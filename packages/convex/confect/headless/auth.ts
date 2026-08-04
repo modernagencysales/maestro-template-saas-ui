@@ -207,6 +207,7 @@ export const verifyApiKey = async (input: {
 /** Authenticate from the persisted key row; request input never selects tenant authority. */
 export const authenticateApiKey = async (input: {
   readonly authorization: string | undefined;
+  readonly surface: ApiKeyPrincipal["surface"];
   readonly policy: AuthPolicy;
   readonly nowMs: number;
   readonly loadByHash: (hash: string) => Promise<ApiKeyRow | null>;
@@ -237,9 +238,9 @@ export const authenticateApiKey = async (input: {
   }
   return {
     kind: "apiKey",
-    apiKeyId: row.id as ApiKeyPrincipal["apiKeyId"],
+    apiKeyId: row.principalId as ApiKeyPrincipal["apiKeyId"],
     workspaceId: row.workspaceId as ApiKeyPrincipal["workspaceId"],
     scopes: row.scopes,
-    surface: "api",
+    surface: input.surface,
   };
 };

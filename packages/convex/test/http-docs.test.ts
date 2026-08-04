@@ -13,7 +13,12 @@ const readJson = async (response: Response): Promise<unknown> =>
   JSON.parse(await response.text());
 
 const noopCtx: HeadlessHttpCtx = {
-  authenticate: async () => ({ subject: "test-subject" }),
+  authenticate: async () => ({
+    kind: "user",
+    userId: "users_test" as never,
+    subject: "test-subject",
+    surface: "web",
+  }),
   authorize: async () => undefined,
   runQuery: async () => {
     throw new Error("runQuery should not be called");
@@ -51,16 +56,19 @@ describe("template HTTP docs routes", () => {
         {
           path: "/api/openapi.json",
           method: "GET",
+          kind: "http-route",
           description: "Serves the generated OpenAPI 3.1 document.",
         },
         {
           path: "/api/docs",
           method: "GET",
+          kind: "http-route",
           description: "Serves the Scalar API documentation shell.",
         },
         {
           path: "/api/brain.pages.createMarkdown",
           method: "POST",
+          kind: "http-route",
           description: "Executes brain.pages.createMarkdown.",
         },
       ]),

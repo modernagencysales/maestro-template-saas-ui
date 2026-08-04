@@ -1,4 +1,4 @@
-import { internalQuery } from "./_generated/server";
+import { internalMutation, internalQuery } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 import { v } from "convex/values";
 
@@ -13,6 +13,71 @@ const minimumRoleByOperation = {
   "ops.email.previewBroadcast": "admin",
   "ops.email.dispatchBroadcast": "admin",
 } as const satisfies Readonly<Record<string, Role>>;
+
+export const issuerBoundTokenIdentifier = (issuer: string, subject: string) => {
+  const normalizedIssuer = issuer.trim();
+  const normalizedSubject = subject.trim();
+  if (normalizedIssuer === "") throw new Error("issuer is required");
+  if (normalizedSubject === "") throw new Error("subject is required");
+  return `${normalizedIssuer}|${normalizedSubject}`;
+};
+
+export const backfillTokenIdentifiers = internalMutation({
+  args: {
+    identities: v.array(
+      v.object({
+        userId: v.id("users"),
+        issuer: v.string(),
+        subject: v.string(),
+      }),
+    ),
+  },
+  handler: async (ctx, { identities }) => {
+    if (identities.length > 100)
+      throw new Error("backfill batch exceeds 100 users");
+    for (const identity of identities) {
+      const user = await ctx.db.get("users", identity.userId);
+      if (user === null || user.subject !== identity.subject)
+        throw new Error(`trusted subject mismatch for ${identity.userId}`);
+      const tokenIdentifier = issuerBoundTokenIdentifier(
+        identity.issuer,
+        identity.subject,
+      );
+      const current = (user as { readonly tokenIdentifier?: string })
+        .tokenIdentifier;
+      if (current !== undefined && current !== tokenIdentifier)
+        throw new Error(`token identifier mismatch for ${identity.userId}`);
+      await ctx.db.patch("users", identity.userId, { tokenIdentifier });
+    }
+    return { updated: identities.length };
+  },
+});
+
+export const sessionPrincipal = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (identity === null) throw new Error("HTTP authentication failed");
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_token_identifier", (q) =>
+        q.eq("tokenIdentifier", identity.tokenIdentifier),
+      )
+      .unique();
+    if (user === null || user.status !== "active")
+      throw new Error("HTTP authentication failed");
+    return { userId: user._id, subject: user.subject };
+  },
+});
+
+export const apiKeyByHash = internalQuery({
+  args: { keyHash: v.string() },
+  handler: async (ctx, { keyHash }) =>
+    await ctx.db
+      .query("apiKeys")
+      .withIndex("by_key_hash", (q) => q.eq("keyHash", keyHash))
+      .unique(),
+});
 
 export const authorize = internalQuery({
   args: { operationId: v.string(), workspaceId: v.string() },

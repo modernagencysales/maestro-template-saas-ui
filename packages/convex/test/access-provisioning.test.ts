@@ -31,6 +31,7 @@ describe("access provisioning", () => {
     const profile = Effect.runSync(
       extractIdentityProfile({
         subject: "workos|user_12345678",
+        tokenIdentifier: "https://issuer.example|workos|user_12345678",
         name: "Ada Lovelace",
         email: " ADA@Example.COM ",
         emailVerified: true,
@@ -39,6 +40,7 @@ describe("access provisioning", () => {
 
     expect(profile).toEqual({
       subject: "workos|user_12345678",
+      tokenIdentifier: "https://issuer.example|workos|user_12345678",
       displayName: "Ada Lovelace",
       email: "ada@example.com",
     });
@@ -55,6 +57,7 @@ describe("access provisioning", () => {
       Effect.flip(
         extractIdentityProfile({
           subject: "workos|user_12345678",
+          tokenIdentifier: "https://issuer.example|workos|user_12345678",
           name: "Ada",
           email: "not-an-email",
           emailVerified: true,
@@ -66,6 +69,7 @@ describe("access provisioning", () => {
       Effect.flip(
         extractIdentityProfile({
           subject: "workos|user_12345678",
+          tokenIdentifier: "https://issuer.example|workos|user_12345678",
           name: "Ada",
           email: "ada@example.com",
           emailVerified: false,
@@ -81,6 +85,7 @@ describe("access provisioning", () => {
     const result = buildProvisioningPlan({
       identity: {
         subject: "workos|user_12345678",
+        tokenIdentifier: "https://issuer.example|workos|user_12345678",
         displayName: "Ada Lovelace",
         email: "ada@example.com",
       },
@@ -96,6 +101,7 @@ describe("access provisioning", () => {
         action: "insert",
         value: {
           subject: "workos|user_12345678",
+          tokenIdentifier: "https://issuer.example|workos|user_12345678",
           email: "ada@example.com",
           displayName: "Ada Lovelace",
           status: "active",
@@ -155,6 +161,7 @@ describe("access provisioning", () => {
     const result = buildProvisioningPlan({
       identity: {
         subject: "workos|user_12345678",
+        tokenIdentifier: "https://issuer.example|workos|user_12345678",
         displayName: "Ada Lovelace",
         email: "ada@example.com",
       },
@@ -162,6 +169,7 @@ describe("access provisioning", () => {
         user: {
           _id: "users_1",
           subject: "workos|user_12345678",
+          tokenIdentifier: "https://issuer.example|workos|user_12345678",
           email: "ada@example.com",
           displayName: "Ada Lovelace",
           status: "active",
@@ -229,6 +237,7 @@ describe("access provisioning", () => {
     const result = buildProvisioningPlan({
       identity: {
         subject: "workos|user_12345678",
+        tokenIdentifier: "https://issuer.example|workos|user_12345678",
         displayName: "Ada Lovelace",
         email: "new@example.com",
       },
@@ -236,6 +245,7 @@ describe("access provisioning", () => {
         user: {
           _id: "users_1",
           subject: "workos|user_12345678",
+          tokenIdentifier: "https://issuer.example|workos|user_12345678",
           email: "old@example.com",
           displayName: "Ada Lovelace",
           status: "active",
@@ -326,6 +336,7 @@ describe("access provisioning", () => {
     const result = buildProvisioningPlan({
       identity: {
         subject: "workos|user_12345678",
+        tokenIdentifier: "https://issuer.example|workos|user_12345678",
         displayName: "Ada Lovelace",
         email: "ada@example.com",
       },
@@ -334,6 +345,7 @@ describe("access provisioning", () => {
         user: {
           _id: "users_1",
           subject: "workos|user_12345678",
+          tokenIdentifier: "https://issuer.example|workos|user_12345678",
           email: "ada@example.com",
           displayName: "Ada Lovelace",
           status: "suspended",

@@ -28,6 +28,7 @@ export type ContractFunctionManifest = {
   readonly kind: ContractFunctionKind;
   readonly surfaces: readonly ContractSurface[];
   readonly surfaceRegistrations?: readonly ContractSurfaceRegistration[];
+  readonly authorizationBindings?: readonly ContractSurfaceRegistration[];
   readonly typedErrors: readonly string[];
   readonly idempotent: boolean;
   readonly argsSchemaName: string;

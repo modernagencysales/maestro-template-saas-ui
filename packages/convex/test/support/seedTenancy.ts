@@ -22,6 +22,7 @@ export const seedTenancy = (
       .table("users")
       .insert({
         subject: "member-subject",
+        tokenIdentifier: "https://issuer.example|member-subject",
         email: "member@example.com",
         displayName: "Member",
         status: "active",
@@ -33,6 +34,7 @@ export const seedTenancy = (
       .table("users")
       .insert({
         subject: "outsider-subject",
+        tokenIdentifier: "https://issuer.example|outsider-subject",
         email: "outsider@example.com",
         displayName: "Outsider",
         status: "active",

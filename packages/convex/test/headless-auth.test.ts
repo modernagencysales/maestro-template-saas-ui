@@ -15,8 +15,6 @@ describe("headless API-key auth", () => {
       workspaceId: "workspace_123",
       name: "Reviewer CLI",
       scopes: ["workspace:read", "workflow:run"],
-      principalKind: "apiKey",
-      principalId: expect.stringMatching(/^api_key_/),
       createdByUserId: "user_123",
       nowMs: 1_000,
       randomBytes: () => new Uint8Array(32).fill(7),
@@ -86,6 +84,7 @@ describe("headless API-key auth", () => {
     await expect(
       authenticateApiKey({
         authorization: `Bearer ${created.displayKey}`,
+        surface: "mcp",
         policy: {
           id: "auth_api_key_workspace_read",
           credential: "api-key",
@@ -102,7 +101,42 @@ describe("headless API-key auth", () => {
       apiKeyId: created.row.id,
       workspaceId: "workspace_123",
       scopes: ["workspace:read"],
-      surface: "api",
+      surface: "mcp",
+    });
+  });
+
+  it("uses persisted principal identity and the requested CLI surface", async () => {
+    const created = await createApiKey({
+      workspaceId: "workspace_123",
+      name: "Reviewer CLI",
+      scopes: ["workspace:read"],
+      createdByUserId: "user_123",
+      nowMs: 1_000,
+      randomBytes: () => new Uint8Array(32).fill(12),
+    });
+
+    await expect(
+      authenticateApiKey({
+        authorization: `Bearer ${created.displayKey}`,
+        surface: "cli",
+        policy: {
+          id: "auth_api_key_workspace_read",
+          credential: "api-key",
+          principalKind: "apiKey",
+          tenantAuthority: "principal-workspace",
+          requiredScopes: ["workspace:read"],
+        },
+        nowMs: 2_000,
+        loadByHash: async () => ({
+          ...created.row,
+          id: "untrusted-legacy-id",
+          principalId: "apiKeys_persisted",
+        }),
+      }),
+    ).resolves.toMatchObject({
+      apiKeyId: "apiKeys_persisted",
+      workspaceId: "workspace_123",
+      surface: "cli",
     });
   });
 
