@@ -38,6 +38,8 @@ steps:
       NODE_OPTIONS: "--max-old-space-size=6144"
       GITHUB_TOKEN:
         from_secret: github_token
+      OPENROUTER_API_KEY:
+        from_secret: openrouter_api_key
     commands:
       - tooling/ci/firewall.sh
     depends_on:

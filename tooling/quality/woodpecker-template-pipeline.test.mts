@@ -45,6 +45,12 @@ describe("Woodpecker firewall and epoch pipelines", () => {
     expect(read(".woodpecker/epoch.yml")).toContain("role: factory-ci");
   });
 
+  it("binds the bounded AI review to a repository provider secret", () => {
+    const firewall = read(".woodpecker/firewall.yml");
+    expect(firewall).toContain("OPENROUTER_API_KEY:");
+    expect(firewall).toContain("from_secret: openrouter_api_key");
+  });
+
   it("bootstraps from the reviewed lockfile without an uninstalled proxy", () => {
     const setup = read("tooling/ci/setup.sh");
     expect(setup).toContain("candidate-sandbox.mts validate");
