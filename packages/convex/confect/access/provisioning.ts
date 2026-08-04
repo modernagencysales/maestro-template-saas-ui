@@ -19,6 +19,7 @@ export type IdentityClaims = {
 
 export type IdentityProfile = {
   readonly subject: string;
+  readonly tokenIdentifier: string;
   readonly displayName: string;
   readonly email: string;
 };
@@ -32,6 +33,7 @@ type DataClassification = "public" | "internal" | "confidential";
 export type UserProvisioningRow = {
   readonly _id: string;
   readonly subject: string;
+  readonly tokenIdentifier: string;
   readonly email: string;
   readonly displayName?: string | undefined;
   readonly status: UserStatus;
@@ -127,8 +129,14 @@ export const extractIdentityProfile = (
   claims: IdentityClaims | null,
 ): Effect.Effect<IdentityProfile, Unauthorized | ValidationFailed> =>
   Effect.gen(function* () {
-    const subject = claims?.subject ?? claims?.tokenIdentifier ?? null;
-    if (subject === null || subject.trim().length === 0) {
+    const subject = claims?.subject ?? null;
+    const tokenIdentifier = claims?.tokenIdentifier ?? null;
+    if (
+      subject === null ||
+      subject.trim().length === 0 ||
+      tokenIdentifier === null ||
+      tokenIdentifier.trim().length === 0
+    ) {
       return yield* new Unauthorized();
     }
 
@@ -143,6 +151,7 @@ export const extractIdentityProfile = (
     const displayName = claims?.name?.trim();
     return {
       subject: subject.trim(),
+      tokenIdentifier: tokenIdentifier.trim(),
       displayName:
         displayName !== undefined && displayName.length > 0
           ? displayName
@@ -267,6 +276,7 @@ const planUser = (
       action: "insert",
       value: {
         subject: identity.subject,
+        tokenIdentifier: identity.tokenIdentifier,
         email: identity.email,
         displayName: identity.displayName,
         status: "active",

@@ -37,11 +37,6 @@ const createMarkdownInputFields = [
   "markdown",
 ] as const satisfies readonly (keyof CreateMarkdownInputs)[];
 
-// Demo HTTP requests use the same reviewer-facing slug seeded in tenancy tests.
-const demoWorkspaceIdsBySlug = {
-  "acme-demo": "workspace_123",
-} as const satisfies Record<string, string>;
-
 const validationFailed = (message: string): TemplateHttpFailure => ({
   ok: false,
   error: {
@@ -49,11 +44,6 @@ const validationFailed = (message: string): TemplateHttpFailure => ({
     message,
   },
 });
-
-const workspaceSlugToId = (workspaceSlug: string): string | undefined =>
-  demoWorkspaceIdsBySlug[
-    workspaceSlug.trim() as keyof typeof demoWorkspaceIdsBySlug
-  ];
 
 export const readJsonBody = async (
   request: Request,
@@ -190,9 +180,7 @@ const createMarkdownWorkspaceId = (
 ): string | undefined =>
   typeof input.workspaceId === "string" && input.workspaceId.trim()
     ? input.workspaceId.trim()
-    : body.workspaceSlug === undefined
-      ? undefined
-      : workspaceSlugToId(body.workspaceSlug);
+    : undefined;
 
 const createMarkdownExecutorRequestWithWorkspace = (
   operationId: string,

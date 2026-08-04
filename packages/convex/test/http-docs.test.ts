@@ -347,8 +347,12 @@ describe("template HTTP docs routes", () => {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          workspaceSlug: "acme-demo",
-          input: { slug: "a-note", title: "A note", markdown: "# A note" },
+          input: {
+            workspaceId: "workspace_123",
+            slug: "a-note",
+            title: "A note",
+            markdown: "# A note",
+          },
           idempotencyKey: "brain-page-example-001",
         }),
       }),

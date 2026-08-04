@@ -38,7 +38,9 @@ const ensureProvisioned = FunctionImpl.make(
 
       const existingUser = yield* reader
         .table("users")
-        .index("by_subject", (q) => q.eq("subject", identity.subject))
+        .index("by_token_identifier", (q) =>
+          q.eq("tokenIdentifier", identity.tokenIdentifier),
+        )
         .first()
         .pipe(
           Effect.map(Option.getOrNull),

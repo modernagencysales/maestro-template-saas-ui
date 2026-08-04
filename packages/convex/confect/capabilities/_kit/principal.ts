@@ -6,6 +6,7 @@ export const Surface = Schema.Literals([
   "api",
   "cli",
   "mcp",
+  "webhook",
   "workflow",
   "internal",
 ]);
@@ -22,8 +23,16 @@ export const ApiKeyPrincipal = Schema.Struct({
   kind: Schema.Literal("apiKey"),
   apiKeyId: Id("apiKeys"),
   workspaceId: Id("workspaces"),
+  scopes: Schema.Array(Schema.String),
   surface: Schema.Literals(["api", "cli", "mcp"]),
 });
+
+export const AnonymousPrincipal = Schema.Struct({
+  kind: Schema.Literal("anonymous"),
+  surface: Schema.Literals(["web", "api"]),
+});
+
+export type AnonymousPrincipal = Schema.Schema.Type<typeof AnonymousPrincipal>;
 
 export const SystemPrincipal = Schema.Struct({
   kind: Schema.Literal("system"),
@@ -34,6 +43,7 @@ export const SystemPrincipal = Schema.Struct({
 export const Principal = Schema.Union([
   UserPrincipal,
   ApiKeyPrincipal,
+  AnonymousPrincipal,
   SystemPrincipal,
 ]);
 export type Principal = Schema.Schema.Type<typeof Principal>;

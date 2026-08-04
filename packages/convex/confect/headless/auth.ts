@@ -1,4 +1,6 @@
 import * as Schema from "effect/Schema";
+import type { AuthPolicy } from "../capabilities/_kit/authPolicies";
+import type { ApiKeyPrincipal } from "../capabilities/_kit/principal";
 
 import {
   base64UrlEncode,
@@ -26,6 +28,8 @@ export const NullableNumber = Schema.NullOr(Schema.Number);
 
 export const ApiKeyRow = Schema.Struct({
   id: Schema.String,
+  principalKind: Schema.Literal("apiKey"),
+  principalId: Schema.String,
   workspaceId: Schema.String,
   name: Schema.String,
   keyHash: Schema.String,
@@ -116,6 +120,8 @@ export const createApiKey = async (
   const keyHash = await sha256Base64Url(displayKey);
   const row: ApiKeyRow = {
     id: `api_key_${keyHash.slice(0, 16)}`,
+    principalKind: "apiKey",
+    principalId: `api_key_${keyHash.slice(0, 16)}`,
     workspaceId: input.workspaceId,
     name: input.name,
     keyHash,
@@ -195,5 +201,45 @@ export const verifyApiKey = async (input: {
     workspaceId: row.workspaceId,
     keyId: row.id,
     scopes: row.scopes,
+  };
+};
+
+/** Authenticate from the persisted key row; request input never selects tenant authority. */
+export const authenticateApiKey = async (input: {
+  readonly authorization: string | undefined;
+  readonly policy: AuthPolicy;
+  readonly nowMs: number;
+  readonly loadByHash: (hash: string) => Promise<ApiKeyRow | null>;
+}): Promise<ApiKeyPrincipal> => {
+  const presentedKey = parseBearerApiKey(input.authorization);
+  if (presentedKey instanceof HeadlessAuthError) throw presentedKey;
+  const keyHash = await sha256Base64Url(presentedKey);
+  const row = await input.loadByHash(keyHash);
+  if (row === null || !constantTimeEqual(row.keyHash, keyHash)) {
+    throw makeAuthError("API_KEY_NOT_FOUND", "API key was not found.");
+  }
+  if (row.status === "revoked" || row.revokedAt !== null) {
+    throw makeAuthError("API_KEY_REVOKED", "API key has been revoked.");
+  }
+  if (row.expiresAt !== null && row.expiresAt <= input.nowMs) {
+    throw makeAuthError("API_KEY_EXPIRED", "API key has expired.");
+  }
+  if (
+    input.policy.credential !== "api-key" ||
+    !input.policy.requiredScopes.every(
+      (scope) => row.scopes.includes(scope) || row.scopes.includes("admin"),
+    )
+  ) {
+    throw makeAuthError(
+      "API_KEY_FORBIDDEN",
+      "API key does not include the required scope.",
+    );
+  }
+  return {
+    kind: "apiKey",
+    apiKeyId: row.id as ApiKeyPrincipal["apiKeyId"],
+    workspaceId: row.workspaceId as ApiKeyPrincipal["workspaceId"],
+    scopes: row.scopes,
+    surface: "api",
   };
 };

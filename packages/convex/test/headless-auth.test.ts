@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import apiKeys from "../confect/tables/apiKeys";
 import {
   createApiKey,
+  authenticateApiKey,
   HeadlessAuthError,
   parseBearerApiKey,
   verifyApiKey,
@@ -14,6 +15,8 @@ describe("headless API-key auth", () => {
       workspaceId: "workspace_123",
       name: "Reviewer CLI",
       scopes: ["workspace:read", "workflow:run"],
+      principalKind: "apiKey",
+      principalId: expect.stringMatching(/^api_key_/),
       createdByUserId: "user_123",
       nowMs: 1_000,
       randomBytes: () => new Uint8Array(32).fill(7),
@@ -67,6 +70,39 @@ describe("headless API-key auth", () => {
       workspaceId: "workspace_123",
       keyId: created.row.id,
       scopes: ["workspace:read", "workflow:run"],
+    });
+  });
+
+  it("derives the complete API-key principal from the hashed stored row", async () => {
+    const created = await createApiKey({
+      workspaceId: "workspace_123",
+      name: "Reviewer CLI",
+      scopes: ["workspace:read"],
+      createdByUserId: "user_123",
+      nowMs: 1_000,
+      randomBytes: () => new Uint8Array(32).fill(10),
+    });
+
+    await expect(
+      authenticateApiKey({
+        authorization: `Bearer ${created.displayKey}`,
+        policy: {
+          id: "auth_api_key_workspace_read",
+          credential: "api-key",
+          principalKind: "apiKey",
+          tenantAuthority: "principal-workspace",
+          requiredScopes: ["workspace:read"],
+        },
+        nowMs: 2_000,
+        loadByHash: async (hash) =>
+          hash === created.row.keyHash ? created.row : null,
+      }),
+    ).resolves.toMatchObject({
+      kind: "apiKey",
+      apiKeyId: created.row.id,
+      workspaceId: "workspace_123",
+      scopes: ["workspace:read"],
+      surface: "api",
     });
   });
 

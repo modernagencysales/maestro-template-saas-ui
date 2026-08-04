@@ -40,6 +40,7 @@ const OptionalString = Schema.optional(Schema.String);
 
 export const UserRow = Schema.Struct({
   subject: Schema.String,
+  tokenIdentifier: Schema.String,
   email: Schema.String,
   displayName: OptionalString,
   status: UserStatus,

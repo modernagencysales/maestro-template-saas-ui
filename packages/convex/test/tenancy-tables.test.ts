@@ -25,7 +25,7 @@ describe("tenancy table contracts", () => {
 
   it("indexes users, organizations, memberships, and invitations", () => {
     expect(tenancyTables.users.indexes).toMatchObject({
-      by_subject: ["subject"],
+      by_token_identifier: ["tokenIdentifier"],
       by_email: ["email"],
     });
     expect(tenancyTables.organizations.indexes).toMatchObject({
@@ -58,6 +58,7 @@ describe("tenancy table contracts", () => {
     expect(
       Schema.decodeUnknownSync(UserRow)({
         subject: "workos_user_123",
+        tokenIdentifier: "https://issuer.example|workos_user_123",
         email: "person@example.com",
         displayName: "Person Example",
         status: "active",
