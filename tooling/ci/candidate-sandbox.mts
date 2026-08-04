@@ -61,11 +61,25 @@ export function candidateSandboxArgv(input: {
 }
 
 export function assertCandidateDependencyProxyIsWired(
-  wired = process.env.DEPENDENCY_PROXY_WIRED === "1",
+  input: {
+    readonly wired?: boolean;
+    readonly networkMode?: string;
+    readonly egressPolicyDigest?: string;
+  } = {},
 ): void {
-  if (!wired)
+  const wired = input.wired ?? process.env.DEPENDENCY_PROXY_WIRED === "1";
+  const networkMode =
+    input.networkMode ?? process.env.DEPENDENCY_PROXY_NETWORK_MODE;
+  const policyDigest =
+    input.egressPolicyDigest ??
+    process.env.DEPENDENCY_PROXY_EGRESS_POLICY_SHA256;
+  if (
+    !wired ||
+    networkMode !== "shared-proxy" ||
+    !/^sha256:[a-f0-9]{64}$/u.test(policyDigest ?? "")
+  )
     throw new Error(
-      "candidate install requires a controller-local dependency proxy wired into its network namespace",
+      "candidate install requires a controller-local dependency proxy and attested egress policy",
     );
 }
 
@@ -105,10 +119,6 @@ async function main(): Promise<void> {
   if (process.platform !== "linux")
     throw new Error("candidate sandbox requires Linux Bubblewrap");
   assertCandidateDependencyProxyIsWired();
-  if (process.env.DEPENDENCY_PROXY_NETWORK_MODE !== "shared-proxy")
-    throw new Error(
-      "controller must provide a shared-proxy network namespace with egress policy",
-    );
   const proxyUrl = process.env.DEPENDENCY_PROXY_URL ?? "http://127.0.0.1:4873";
   const health = await fetch(new URL("/health", proxyUrl), {
     signal: AbortSignal.timeout(2_000),

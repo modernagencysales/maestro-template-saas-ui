@@ -22,3 +22,15 @@ Never run an external confirmation from a candidate checkout. Observe the
 current protected `main`, review the journal and controller digest with a
 non-author owner, and execute the returned argv byte-for-byte from the protected
 operator environment.
+
+## Candidate dependency network
+
+The protected controller must start the allowlisted dependency proxy before
+launching the candidate and install an egress policy that denies every
+destination except that proxy. It passes `DEPENDENCY_PROXY_WIRED=1`,
+`DEPENDENCY_PROXY_NETWORK_MODE=shared-proxy`,
+`DEPENDENCY_PROXY_EGRESS_POLICY_SHA256=sha256:<64 hex>`, and a healthy
+`DEPENDENCY_PROXY_URL` into the controller-owned launcher. The candidate sandbox
+rejects missing or malformed attestations and performs a proxy health check
+before package resolution; it never treats the environment flag as a replacement
+for the controller's firewall/policy installation.
