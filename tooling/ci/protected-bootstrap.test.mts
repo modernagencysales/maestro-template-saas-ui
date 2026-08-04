@@ -1,10 +1,11 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
 import {
   digestProtectedDocuments,
+  createProtectedControllerHttpAdapter,
   executeProtectedTransition,
   loadProtectedTransitionJournal,
   normalizeProtectedExternalDocument,
@@ -17,6 +18,8 @@ import {
   type ProtectedExternalDocument,
   type ProtectedTransitionJournal,
 } from "./protected-bootstrap.mts";
+
+afterEach(() => vi.unstubAllEnvs());
 
 const sha = (value: string) => `sha256:${value.padEnd(64, "0")}` as const;
 
@@ -96,6 +99,18 @@ const journal: ProtectedTransitionJournal = {
 };
 
 describe("protected CI bootstrap", () => {
+  it("rejects controller resource paths that escape the configured origin", async () => {
+    vi.stubEnv("GITHUB_TOKEN", "test-token");
+    vi.stubEnv("WOODPECKER_TOKEN", "test-token");
+    vi.stubEnv("GITHUB_API_URL", "https://api.github.test");
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    const api = createProtectedControllerHttpAdapter();
+    await expect(
+      api.github.observe(document("github-ruleset", "//attacker.test/x", {})),
+    ).rejects.toThrow(/escaped its base origin/u);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
   it("rejects observations that are not bound to the protected trust root", () => {
     expect(verifyProtectedBootstrap(journal.observation)).toEqual([]);
     expect(
