@@ -94,8 +94,15 @@ export function planProtectedTransition(input: {
 } {
   const errors = verifyProtectedBootstrap(input.journal.observation);
   if (errors.length) throw new Error(errors.join("; "));
-  const fingerprint =
-    `protected_transition_sha256:${createHash("sha256").update(JSON.stringify(input)).digest("hex")}` as const;
+  const fingerprint = `protected_transition_sha256:${createHash("sha256")
+    .update(
+      JSON.stringify({
+        action: input.action,
+        journal: input.journal,
+        expectedLiveDigest: input.expectedLiveDigest,
+      }),
+    )
+    .digest("hex")}` as const;
   return {
     previewFingerprint: fingerprint,
     confirmationArgv: [
