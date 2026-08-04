@@ -249,6 +249,27 @@ const REVIEWED_ADDITIONAL_PATHS: readonly CustomerReleasePath[] = [
     upgrade: "replace",
   },
   {
+    path: "cucumber.cjs",
+    match: "exact",
+    ownership: "template-owned",
+    action: "copy",
+    upgrade: "replace",
+  },
+  {
+    path: "features",
+    match: "subtree",
+    ownership: "template-owned",
+    action: "copy",
+    upgrade: "replace",
+  },
+  {
+    path: "tooling/acceptance",
+    match: "subtree",
+    ownership: "template-owned",
+    action: "copy",
+    upgrade: "replace",
+  },
+  {
     path: ".claude/settings.json",
     match: "exact",
     ownership: "generated",
