@@ -354,6 +354,21 @@ describe("public surface generation", () => {
     );
   });
 
+  it("rejects hook-bearing object properties and conditional callees", () => {
+    const root = fixture({
+      "apps/web/src/features/object-alias.tsx": `
+        import { useTemplateMutation as useSave } from '../adapters/confect-state';
+        useSave(templateConfectRefs.notes.create);
+        const hooks = { run: useSave };
+        hooks.run?.(templateConfectRefs.notes.update);
+        (condition ? useSave : fallback)(templateConfectRefs.notes.delete);
+      `,
+    });
+    expect(() => discoverPublicAuthorities(root)).toThrow(
+      "UI hook alias could not be statically resolved",
+    );
+  });
+
   it("fetches the protected baseline Git object when a shallow checkout lacks it", () => {
     const calls: (readonly string[])[] = [];
     let showAttempts = 0;

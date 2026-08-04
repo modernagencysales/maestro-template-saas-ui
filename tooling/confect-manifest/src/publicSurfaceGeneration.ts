@@ -235,6 +235,26 @@ const uiActionAuthorities = (
     "useConfectAction",
   ]);
   const unresolvedHookAliases = new Set<string>();
+  const unresolvedObjectProperties = new Set<string>();
+  const propertyPath = (expression: ts.Expression): string | undefined => {
+    if (ts.isIdentifier(expression)) return expression.text;
+    if (ts.isPropertyAccessExpression(expression)) {
+      const parent = propertyPath(expression.expression);
+      return parent === undefined
+        ? undefined
+        : `${parent}.${expression.name.text}`;
+    }
+    return undefined;
+  };
+  const expressionHasHook = (expression: ts.Expression): boolean => {
+    let found = false;
+    const visitExpression = (node: ts.Node): void => {
+      if (ts.isIdentifier(node) && hookNames.has(node.text)) found = true;
+      ts.forEachChild(node, visitExpression);
+    };
+    visitExpression(expression);
+    return found;
+  };
   const collectAliases = (node: ts.Node): void => {
     const bindings = ts.isImportDeclaration(node)
       ? node.importClause?.namedBindings
@@ -267,6 +287,23 @@ const uiActionAuthorities = (
       )
     )
       unresolvedHookAliases.add(node.name.text);
+    if (
+      ts.isVariableDeclaration(node) &&
+      ts.isIdentifier(node.name) &&
+      node.initializer !== undefined &&
+      ts.isObjectLiteralExpression(node.initializer)
+    ) {
+      for (const property of node.initializer.properties) {
+        if (!ts.isPropertyAssignment(property)) continue;
+        const key =
+          ts.isIdentifier(property.name) ||
+          ts.isStringLiteralLike(property.name)
+            ? property.name.text
+            : undefined;
+        if (key !== undefined && expressionHasHook(property.initializer))
+          unresolvedObjectProperties.add(`${node.name.text}.${key}`);
+      }
+    }
     ts.forEachChild(node, collectAliases);
   };
   for (let pass = 0; pass < 4; pass += 1) collectAliases(sourceFile);
@@ -274,7 +311,13 @@ const uiActionAuthorities = (
     if (ts.isCallExpression(node)) {
       const name = callName(node.expression);
       const argument = node.arguments[0];
-      if (name !== undefined && unresolvedHookAliases.has(name))
+      const pathName = propertyPath(node.expression);
+      const staticHookCall = name !== undefined && hookNames.has(name);
+      if (
+        (name !== undefined && unresolvedHookAliases.has(name)) ||
+        (pathName !== undefined && unresolvedObjectProperties.has(pathName)) ||
+        (!staticHookCall && expressionHasHook(node.expression))
+      )
         throw new Error(
           `UI hook alias could not be statically resolved: ${relativePath(root, path)}#${name}`,
         );
