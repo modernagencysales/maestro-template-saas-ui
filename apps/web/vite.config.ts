@@ -6,6 +6,11 @@ import { defineConfig } from "vite";
 import { dependencyChunkName } from "./src/bundle-policy";
 
 export default defineConfig({
+  define: {
+    __MAESTRO_WEB_SOURCE_SHA__: JSON.stringify(
+      process.env.MAESTRO_PROTECTED_CHECKOUT_SHA ?? "unbuilt",
+    ),
+  },
   preview: { host: "127.0.0.1" },
   build: {
     rolldownOptions: {

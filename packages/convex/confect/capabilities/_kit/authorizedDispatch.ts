@@ -7,6 +7,11 @@ import { resolveAuthPolicy, type AuthPolicy } from "./authPolicies";
 import { requireAdmittedSurfaceFrom } from "./admissionGuard";
 import type { Principal } from "./principal";
 import {
+  appendContractEvidence,
+  type ContractEvidenceStore,
+} from "../../runtime/contractEvidence";
+import type { BackendRuntimeIdentity } from "../../runtime/identity";
+import {
   executeHeadlessOperation,
   type HeadlessExecutionAdapter,
   type HeadlessExecutorResult,
@@ -38,6 +43,15 @@ export type AuthorizedDispatchContext = {
     policy: AuthPolicy,
     request: AuthorizedOperationRequest,
   ) => Promise<void>;
+  /** Installed only by the protected local acceptance controller. */
+  readonly acceptanceEvidence?: {
+    readonly scenarioNonce: string;
+    readonly backend: BackendRuntimeIdentity;
+    readonly store: ContractEvidenceStore;
+    readonly principalDigest: (
+      principal: Principal,
+    ) => Promise<`sha256:${string}`>;
+  };
 };
 
 export const principalSurfaceFor = (
@@ -151,7 +165,7 @@ export const executeAuthorizedOperation = async (
     );
   }
   await ctx.authorize(principal, policy, verifiedRequest);
-  return await executeHeadlessOperation(ctx.adapter, {
+  const result = await executeHeadlessOperation(ctx.adapter, {
     operationId: request.operationId,
     surface: headlessSurfaceFor(principal.surface),
     input: request.input,
@@ -159,4 +173,18 @@ export const executeAuthorizedOperation = async (
       ? {}
       : { idempotencyKey: request.idempotencyKey }),
   });
+  if (
+    result.ok &&
+    request.correlationNonce !== undefined &&
+    ctx.acceptanceEvidence !== undefined
+  )
+    await appendContractEvidence(ctx.acceptanceEvidence.store, {
+      scenarioNonce: ctx.acceptanceEvidence.scenarioNonce,
+      correlationNonce: request.correlationNonce,
+      principalDigest: await ctx.acceptanceEvidence.principalDigest(principal),
+      surfaceId: surface.id,
+      transport: surface.transport,
+      backend: ctx.acceptanceEvidence.backend,
+    });
+  return result;
 };

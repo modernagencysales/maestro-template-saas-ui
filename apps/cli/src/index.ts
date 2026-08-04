@@ -28,6 +28,7 @@ const createRuntimeCliHandlers = (
 ) => {
   const httpCapabilityRunner = createHttpCapabilityRunner({ config, fetch });
   return createCliHandlers({
+    fetch,
     capability: {
       hasCapability: (capabilityId) => staticCliCapabilityIds.has(capabilityId),
       runCapability: (capabilityId, request) => {

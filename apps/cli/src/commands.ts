@@ -29,7 +29,15 @@ import { buildWorkflowPayloadForCli } from "./workflowReceipt";
 
 type CliCommandDependencies = {
   readonly capability: CliCapabilityResolver;
+  readonly fetch: typeof globalThis.fetch;
 };
+
+declare const __MAESTRO_CLI_SOURCE_SHA__: string;
+
+const cliSourceSha =
+  typeof __MAESTRO_CLI_SOURCE_SHA__ === "string"
+    ? __MAESTRO_CLI_SOURCE_SHA__
+    : "unbuilt";
 
 const providerModes = new Set<ProviderMode>(["fake", "test", "live"]);
 
@@ -250,8 +258,60 @@ const matchesIntegrationsReport = ({
 }: CliCommandContext): boolean =>
   command === "integrations" && subcommand === "report";
 
+const matchesIdentity = ({ command }: CliCommandContext): boolean =>
+  command === "identity";
+
+const isBackendIdentity = (
+  value: unknown,
+): value is {
+  readonly inputDigest: `sha256:${string}`;
+  readonly deploymentId: string;
+  readonly startNonce: string;
+} => {
+  if (value === null || typeof value !== "object" || Array.isArray(value))
+    return false;
+  const identity = value as Record<string, unknown>;
+  return (
+    Object.keys(identity).sort().join(",") ===
+      "deploymentId,inputDigest,startNonce" &&
+    typeof identity.deploymentId === "string" &&
+    identity.deploymentId.length > 0 &&
+    typeof identity.inputDigest === "string" &&
+    /^sha256:[0-9a-f]{64}$/u.test(identity.inputDigest) &&
+    typeof identity.startNonce === "string" &&
+    identity.startNonce.length > 0
+  );
+};
+
+const identityResult = async (
+  { argv }: CliCommandContext,
+  config: CliRuntimeConfig,
+  fetch: typeof globalThis.fetch,
+): Promise<CliResult> => {
+  if (argv.length !== 1)
+    return cliFailure("identity does not accept arguments.\n");
+  if (!config.apiBaseUrl || !config.apiKey)
+    return cliFailure(
+      "CLI identity requires MAESTRO_API_BASE_URL and MAESTRO_API_KEY.\n",
+    );
+  try {
+    const response = await fetch(
+      `${config.apiBaseUrl.replace(/\/+$/u, "")}/identity`,
+      { headers: { authorization: `Bearer ${config.apiKey}` } },
+    );
+    if (!response.ok) return cliFailure("CLI identity request failed.\n");
+    const backend: unknown = await response.json();
+    return isBackendIdentity(backend)
+      ? cliSuccess(formatJsonOutput({ sourceSha: cliSourceSha, backend }))
+      : cliFailure("CLI identity response was invalid.\n");
+  } catch {
+    return cliFailure("CLI identity request failed.\n");
+  }
+};
+
 export const createCliHandlers = ({
   capability,
+  fetch,
 }: CliCommandDependencies): readonly CliCommandHandler[] => [
   {
     matches: matchesHelp,
@@ -288,5 +348,9 @@ export const createCliHandlers = ({
   {
     matches: matchesIntegrationsReport,
     run: (context, config) => integrationsResult(context, config),
+  },
+  {
+    matches: matchesIdentity,
+    run: (context, config) => identityResult(context, config, fetch),
   },
 ];

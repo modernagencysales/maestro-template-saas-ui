@@ -17,6 +17,7 @@ import citations from "./tables/citations";
 import claims from "./tables/claims";
 import commerceRevocations from "./tables/commerceRevocations";
 import concepts from "./tables/concepts";
+import contractEvidence from "./tables/contractEvidence";
 import contextPacks from "./tables/contextPacks";
 import creditLedger from "./tables/creditLedger";
 import deployActionConsumptions from "./tables/deployActionConsumptions";
@@ -92,6 +93,7 @@ export default $defineSchema({
   claims: claims.tableDefinition,
   commerceRevocations: commerceRevocations.tableDefinition,
   concepts: concepts.tableDefinition,
+  contractEvidence: contractEvidence.tableDefinition,
   contextPacks: contextPacks.tableDefinition,
   creditLedger: creditLedger.tableDefinition,
   deployActionConsumptions: deployActionConsumptions.tableDefinition,

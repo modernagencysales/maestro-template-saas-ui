@@ -85,6 +85,47 @@ describe("authorized dispatch", () => {
     expect(calls).toEqual(["authenticate", "authorize", "handler"]);
   });
 
+  it("records controller-installed evidence only after an admitted handler succeeds", async () => {
+    const calls: string[] = [];
+    const result = await executeAuthorizedOperation(
+      {
+        surfaces,
+        journeys: {},
+        emergencyDenied: false,
+        adapter: {
+          refs: { "brain.pages.createMarkdown": "ref" },
+          runQuery: async () => undefined,
+          runMutation: async () => {
+            calls.push("handler");
+            return { id: "page_123" };
+          },
+          runAction: async () => undefined,
+        },
+        authenticate: async () => apiPrincipal,
+        authorize: async () => undefined,
+        acceptanceEvidence: {
+          scenarioNonce: "scenario-one",
+          backend: {
+            deploymentId: "deployment-one",
+            inputDigest: `sha256:${"a".repeat(64)}`,
+            startNonce: "server-start-one",
+          },
+          principalDigest: async () => `sha256:${"b".repeat(64)}`,
+          store: {
+            append: async (row) => {
+              calls.push(`evidence:${row.correlationNonce}`);
+            },
+            drain: async () => [],
+          },
+        },
+      },
+      { ...request(apiPrincipal), correlationNonce: "step-one" },
+    );
+
+    expect(result.ok).toBe(true);
+    expect(calls).toEqual(["handler", "evidence:step-one"]);
+  });
+
   it("binds the generated surface to its operation and transport", async () => {
     const handler = async () => {
       throw new Error("handler should not run");
