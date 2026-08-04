@@ -56,6 +56,11 @@ queue.
 
 ### Scope Guard
 
+Every disposable worktree, run root, and external journal path is resolved by
+the packet preflight (`mktemp`/operator state directory), recorded in that
+packet's journal, and passed to commands as an explicit value; the absolute
+paths shown in examples are illustrative names, never reusable authority.
+
 - This plan changes `maestro-template-saas-ui` first and consumes the sealed
   result in Maestro as one downstream pilot. It does not redesign Brain.
 - Woodpecker is the sole blocking CI authority. Qlty stays advisory under its
@@ -175,11 +180,11 @@ creating a second authority.
 
 ### Scope and release sequencing
 
-- B1 Build Pack review and R1 promotion modernization are follow-on
-  integrations, not prerequisites for the contract runtime, W1, C11b, or the
-  pilot. Their tasks remain specification-ready but are removed from the
-  critical dependency chain; D2 uses the existing release authority plus the
-  sealed controller/runtime identities.
+- B1 Build Pack review remains a follow-on integration. R1 promotion
+  modernization is required before P1 because its mutation IDs are part of the
+  36-case protected evidence; it is not a prerequisite for the contract runtime,
+  W1, or C11b. D2 consumes the clean post-D1 source and sealed
+  controller/runtime identities.
 - P1 is a non-default validation release; D1 runs after the protected Maestro
   pilot and before D2 so public alpha.3 is the sole-Cucumber topology. D2/M3/D3
   consume that clean post-D1 source.
@@ -502,31 +507,33 @@ The canonical public-authority key is the stable serialization of
 W0 protected/tokenless CI bootstrap
   -> C1 pinned Cucumber/config
   -> C2 public/auth authority
+  -> C3-pre normalized Confect inventory closure
   -> C3 exhaustive registrations/provenance
   -> C4 lifecycle compiler + darkness
+  -> C4b real-registration darkness/attestation
   -> C5 principal/auth repair
   -> C6 external CLI HTTP
   -> C7 exact contract inventory
   -> C8 strict Messages verifier
   -> C9 trusted observations/runtime identity
   -> C10 isolated controller/runtime
-  -> C11a assembling reference product
+  -> C11a assembling reference product (requires C4b)
   -> C12 mutation gauntlet
        -> F1 create/contracts-add
        -> F2 generator cleanup/provenance
        -> U1 existing-app audit upgrade
+       -> R1 immutable release manifests
        -> W1 protected Woodpecker cutover
-            -> C11b reference lifecycle/projection admission
+  -> C11b reference lifecycle/projection admission (after R1 and W1)
                  -> P1 immutable Brain pilot release
                       -> M-pre Maestro temporary protected-CI root
                       -> M0 Maestro contracts-audit install
                       -> M0b Maestro protected-CI source/canonical cutover
                       -> M1 Maestro Brain assembling slices
                       -> M2 Brain lifecycle/projection admission
-                           -> D1 old machinery deletion
+       -> D1 old machinery deletion
        -> B1 Build Pack human review (follow-on)
-       -> R1 immutable release manifests (follow-on)
-       -> D2 alpha.3 seal/tag
+  -> D2 alpha.3 seal/tag
                                                               -> M3 Maestro public-release upgrade
                                                                    -> D3 default switch
 ```
@@ -538,17 +545,17 @@ contracts. `W1` changes only the already protected controller's semantics
 through an overlapping context transition. `C11b` then admits the reference
 Feature already assembling on protected main. `P1` is explicitly a non-default
 validation release; `D1` deletes the old authority after the real pilot passes
-and before `D2` seals public alpha.3. `B1` and `R1` are follow-on integrations
-and are not release prerequisites. Before `M0` receives a pull-request event,
-`M-pre` installs and requires a temporary protected root from immutable Maestro
-main and revokes PR secret injection. `M0` installs the manifest-declared
-additive audit payload and preimage-bound integrations under that root; `M0b`
-ports only the required target wrappers and performs the canonical cutover
-before `M1`. `M2` contains only the lifecycle line plus exact generated
-projections. Any repair is another assembling slice before a fresh `M2`. `D2`
-seals and tags without changing the public default; `M3` upgrades the admitted
-Maestro pilot to that exact public release; `D3` switches the default only after
-remote-tag materialization and M3 acceptance.
+and before `D2` seals public alpha.3. `B1` is a follow-on integration; `R1` is
+required for the 36-case release evidence. Before `M0` receives a pull-request
+event, `M-pre` installs and requires a temporary protected root from immutable
+Maestro main and revokes PR secret injection. `M0` installs the
+manifest-declared additive audit payload and preimage-bound integrations under
+that root; `M0b` ports only the required target wrappers and performs the
+canonical cutover before `M1`. `M2` contains only the lifecycle line plus exact
+generated projections. Any repair is another assembling slice before a fresh
+`M2`. `D2` seals and tags without changing the public default; `M3` upgrades the
+admitted Maestro pilot to that exact public release; `D3` switches the default
+only after remote-tag materialization and M3 acceptance.
 
 ## Per-Task Completion Protocol
 
@@ -620,6 +627,10 @@ export type ProtectedBootstrapObservation = {
 
 export type ProtectedTransitionJournal = {
   readonly schemaVersion: 1;
+  readonly operationNonce: string;
+  readonly operatorIdentity: string;
+  readonly expiresAt: string;
+  readonly lockIdentity: string;
   readonly observation: ProtectedBootstrapObservation;
   readonly steps: readonly {
     readonly id: string;
@@ -627,6 +638,7 @@ export type ProtectedTransitionJournal = {
     readonly forwardPostimage?: readonly ProtectedExternalDocument[];
     readonly inverse?: readonly ProtectedInverseOperation[];
     readonly inverseAllowedOnlyFrom?: `sha256:${string}`;
+    readonly postReadBinding?: `sha256:${string}`;
   }[];
 };
 
@@ -784,7 +796,27 @@ export function planProtectedTransition(input: {
   rtk git commit -m "ci: bootstrap protected tokenless verification"
   ```
 
-- [ ] **Step 7: Establish the temporary trust floor before opening `W0`.** A
+- [ ] **Step 7: Build and install the pinned operator before establishing the
+      temporary trust floor.** From the clean W0 source commit, build the sole
+      controller image and operator with Node 22, record the image digest and
+      source-closure digest, and install the immutable operator entrypoint:
+
+  ```bash
+  rtk docker build --file tooling/ci/controller.Dockerfile --tag maestro/protected-controller:<source-sha> .
+  rtk docker inspect --format '{{index .RepoDigests 0}}' maestro/protected-controller:<source-sha>
+  rtk node --experimental-strip-types tooling/ci/protected-bootstrap.mts install-operator --image-digest <recorded-image-digest> --prefix /usr/local/bin/maestro-protected-bootstrap
+  ```
+
+  Resolve the protected base immediately before observe and persist it in the
+  journal (never hardcode an earlier plan baseline):
+
+  ```bash
+  rtk git ls-remote origin refs/heads/main
+  ```
+
+  Use the returned 40-character OID as `--base-oid` in the next step.
+
+- [ ] **Step 8: Establish the temporary trust floor before opening `W0`.** A
       non-author reviews the local source commit and built operator/controller
       digest. The operator CLI defaults to preview, reads GitHub/Woodpecker
       credentials only from BWS-backed environment, permits egress only to
@@ -792,7 +824,7 @@ export function planProtectedTransition(input: {
       journal, and returns an exact confirmation argv. Run:
 
   ```bash
-  rtk headless-bws-env exec sh -c 'exec rtk env WOODPECKER_SERVER=https://ci.maestrogtm.com WOODPECKER_TOKEN="$WOODPECKER_API_TOKEN" /usr/local/bin/maestro-protected-bootstrap observe --controller-image-digest <verified-controller-image-digest> --repository modernagencysales/maestro-template-saas-ui --base-ref main --base-oid 15d2269f2b22e3a52e3a98c481b7d69cb7fef12f --journal /Users/headless/.local/state/maestro-ci-transitions/maestro-template-W0.json'
+  rtk headless-bws-env exec sh -c 'exec rtk env WOODPECKER_SERVER=https://ci.maestrogtm.com WOODPECKER_TOKEN="$WOODPECKER_API_TOKEN" /usr/local/bin/maestro-protected-bootstrap observe --controller-image-digest <recorded-image-digest> --repository modernagencysales/maestro-template-saas-ui --base-ref main --base-oid <observed-protected-base-oid> --journal /Users/headless/.local/state/maestro-ci-transitions/maestro-template-W0.json'
     rtk headless-bws-env exec sh -c 'exec rtk env WOODPECKER_SERVER=https://ci.maestrogtm.com WOODPECKER_TOKEN="$WOODPECKER_API_TOKEN" /usr/local/bin/maestro-protected-bootstrap install-temporary --controller-image-digest <verified-controller-image-digest> --temporary-context ci/woodpecker/pr/protected-bootstrap --journal /Users/headless/.local/state/maestro-ci-transitions/maestro-template-W0.json'
   ```
 
@@ -809,14 +841,14 @@ export function planProtectedTransition(input: {
   select the root, see a secret, or post the context. A pre-state mismatch makes
   no write.
 
-- [ ] **Step 8: Open and merge `W0` under the temporary trust floor.** Require
+- [ ] **Step 9: Open and merge `W0` under the temporary trust floor.** Require
       current-head non-author owner approval and the server-side
       `protected-bootstrap` context; the retired secret-bearing PR producer is
       neither executed nor accepted. Merge while all other merges remain frozen,
       publish the controller image from that protected-main SHA, and append its
       immutable digest to the journal.
 
-- [ ] **Step 9: Perform the overlapping canonical cutover.** Observe the exact
+- [ ] **Step 10: Perform the overlapping canonical cutover.** Observe the exact
       temporary Woodpecker config and GitHub ruleset digests. Enable the new
       protected producer for `ci/woodpecker/pr/verify` while the temporary
       context remains required, and prove both on two fresh merge candidates
@@ -826,7 +858,7 @@ export function planProtectedTransition(input: {
       `verify --stage canonical-overlap`. Only then disable any remaining
       candidate-controlled producer.
 
-- [ ] **Step 10: Close or roll back with bidirectional compare-and-swap.** A
+- [ ] **Step 11: Close or roll back with bidirectional compare-and-swap.** A
       pre-write mismatch performs no write. On a failed post-read, apply an
       inverse only when live state exactly equals that step's recorded forward
       postimage; otherwise leave both checks required and stop for
@@ -1121,7 +1153,8 @@ any remaining UI/CLI/MCP/HTTP/workflow authority gaps are explicit C3 inputs.
 
 **Class:** `template-gap`  
 **PR:** `C3`  
-**Depends on:** `C2`
+**Depends on:** `C3-pre` (which itself depends on `C2` and supplies the
+committed normalized inventory sidecar)
 
 **Files:**
 
@@ -1138,6 +1171,19 @@ any remaining UI/CLI/MCP/HTTP/workflow authority gaps are explicit C3 inputs.
 - Modify: `tooling/confect-manifest/src/index.ts`
 - Modify: `packages/template-core/package.json`
 - Modify: `packages/convex/confect/http.ts`
+
+Create a checked-in read-input manifest at
+`tooling/confect-manifest/public-surface-inputs.json` listing the route tree,
+Confect sidecar, Convex exports, HTTP registrations, CLI/MCP/workflow
+registries, and UI mutation adapters with their protected-base digests. C3's
+generator must fail if any discovered input is absent from this manifest or if
+the manifest is changed without regenerating the projections.
+
+The inventory input is the committed
+`packages/convex/confect/_generated/confectManifest.inventory.ts` and its digest
+manifest from `C3-pre`; the runtime eight-operation `confectManifest.ts` is not
+an acceptable substitute.
+
 - Modify: `apps/web/src/navigation/reference-app-routes.ts`
 - Modify: `tooling/quality/check-system-topology.mts`
 - Modify: `tooling/quality/check-system-topology.test.mts`
@@ -1184,11 +1230,13 @@ export type ContractsLegacyBaseline = {
   Expected: FAIL because discovery/generation is absent.
 
 - [ ] **Step 3: Replace manual Confect imports with deterministic discovery.**
-      Recursively discover production `*.spec.ts` manifests, import them in
-      sorted repository-relative order under `tsx`, merge their schema
-      registries, and derive generated Convex ref locators. Delete the four
-      hardcoded spec imports and `generatedRefModules` map from `generate.ts`.
-      Duplicate operation IDs or missing refs remain fatal.
+      Recursively enumerate production `*.spec.ts` manifests and pass the sorted
+      path list to W0's `candidate-sandbox.mts inspect-manifests`; the sandbox
+      imports them in its empty environment and returns only a signed,
+      schema-validated registry plus source/digest manifest. The controller
+      consumes that bounded output and never imports candidate modules itself.
+      Delete the four hardcoded spec imports and `generatedRefModules` map from
+      `generate.ts`. Duplicate operation IDs or missing refs remain fatal.
 
 - [ ] **Step 4: Generate the bijection.** Parse the already generated route tree
       and Convex API declarations, import registered
@@ -1214,12 +1262,15 @@ export type ContractsLegacyBaseline = {
       content-addressed current surface set to
       `template-contracts-legacy-baseline.json`. The gate compares every
       candidate with this frozen file and rejects growth or authority-key
-      changes. Existing entries stay available and explicitly unadmitted; every
-      surface introduced after this commit needs contract/auth provenance and
-      darkness immediately. `F2` reduces the baseline to the generic platform
-      entries and `D1`, after `C11b` and the pilot, deletes the empty file and
-      enables full enforcement. Do not copy this migration baseline into a newly
-      created customer app.
+      changes. C3 only generates and reviews this baseline; it does not trust a
+      candidate-created baseline as an authoritative admission input. After C3
+      merges, C4 reads the protected-base baseline digest and enables growth/key
+      enforcement. Existing entries stay available and explicitly unadmitted;
+      every surface introduced after this commit needs contract/auth provenance
+      and darkness immediately. `F2` reduces the baseline to the generic
+      platform entries and `D1`, after `C11b` and the pilot, deletes the empty
+      file and enables full enforcement. Do not copy this migration baseline
+      into a newly created customer app.
 
 - [ ] **Step 7: Run generation and drift checks.**
 
@@ -1297,9 +1348,16 @@ export type ContractInventory = {
   }[];
 };
 
+export type ProtectedBaseAttestation = {
+  readonly baseSha: string;
+  readonly inventoryDigest: `sha256:${string}`;
+  readonly origin: "protected-controller";
+  readonly signature: string;
+};
+
 export function compileContractInventory(input: {
   readonly root: string;
-  readonly protectedBaseSha: string;
+  readonly protectedBase: ProtectedBaseAttestation;
   readonly mode: "authoritative" | "focused" | "static";
 }): ContractInventory;
 
@@ -1413,11 +1471,72 @@ verdict and remains forbidden.
 
 ---
 
+### Task 5a: Wire Lifecycle Darkness Into Real Registrations
+
+**Class:** `pattern-instance` **PR:** `C4b` **Depends on:** `C4`, and the C4
+controller-attestation implementation
+
+**Why this packet exists:** C4's pure compiler/guards are not sufficient until
+the real generated UI, HTTP, Convex, and feature-flag registrations invoke them.
+This packet closes that integration boundary without adding a second admission
+protocol.
+
+**Files:**
+
+- Modify: `apps/web/src/navigation/admitted-action.ts`
+- Modify: `packages/convex/confect/http.ts`
+- Modify: `packages/convex/confect/capabilities/_kit/admissionGuard.ts`
+- Modify: `packages/convex/confect/ops/flags.impl.ts`
+- Modify: `packages/template-core/src/generated/publicSurfaces.ts`
+- Modify: `packages/template-core/src/generated/public-surfaces.generated.json`
+- Create:
+  `packages/template-core/src/generated/activation-registration-manifest.json`
+- Create: `tooling/acceptance/fixtures/auth-policy/protected-base.json`
+- Create: `tooling/acceptance/fixtures/auth-policy/protected-base.digest`
+- Modify `tooling/acceptance/check-contracts.mts` and its tests for controller
+  attestation and real-registration darkness.
+- Add focused integration tests for one assembling UI action, HTTP operation,
+  raw Convex operation, and feature-flag owner, plus
+  `packages/template-core/src/generated/activation-registration-manifest.test.ts`.
+
+**Required behavior:**
+
+- Controller-issued attestation is the only authoritative base input; env-only
+  values and mutable `origin/main` are rejected.
+- Authenticated request/session construction precedes admission, which precedes
+  tenant/role/business authorization. A denied surface never reaches its
+  handler.
+- Every generated activation-owned UI/HTTP/Convex registration calls the same
+  guard. UI route/action registration omits assembling/suspended surfaces;
+  server dispatch rejects them before authorization. Feature flags compose the
+  owning surface's journey state, not one global legacy decision.
+- `no-admitted-contracts` is returned only after the generated registration
+  inventory proves every activation-owned surface is dark. Tests mutate a real
+  registration and require a red result.
+- Auth policy comparison reads protected-base material independently and fails
+  closed on missing/unparseable policy data; candidate policy code cannot supply
+  the base value.
+
+- [ ] **Step 1:** Add red tests for real UI, HTTP, Convex, flag, attestation,
+      request-order, and no-admitted registration cases.
+- [ ] **Step 2:** Wire the existing generated adapters/dispatch wrappers and run
+      the focused integration suite plus `check:auth-demo-bypass`.
+- [ ] **Step 3:** Run `acceptance:check` in both static and attested
+      authoritative modes; verify candidate env spoof and live-registration
+      mutations fail closed.
+- [ ] **Step 4:** Commit only this integration packet and record the exact
+      generated registration manifest/digests.
+
+**Unlock:** C5 may build on a lifecycle compiler whose darkness and protected
+base semantics are enforced by actual product entrypoints.
+
+---
+
 ### Task 6: Unify Verified Principals And Repair Tenant Identity
 
 **Class:** `pattern-instance`  
 **PR:** `C5`  
-**Depends on:** `C4`
+**Depends on:** `C4b`
 
 **Files:**
 
@@ -1431,8 +1550,9 @@ verdict and remains forbidden.
 - Modify: `packages/convex/confect/tables/users.ts`
 - Modify: `packages/convex/confect/headless/auth.ts`
 - Modify: `packages/convex/confect/tables/apiKeys.ts`
-- Modify generated: `packages/convex/confect/_generated/**`
-- Modify generated: `packages/convex/convex/_generated/**`
+- Modify generated files enumerated by
+  `tooling/acceptance/generated-output-manifest.json` (Confect and Convex
+  outputs only; the manifest records exact paths/digests).
 - Modify: `packages/convex/confect/manifest/executor.ts`
 - Modify: `packages/convex/confect/httpRequest.ts`
 - Modify: `packages/convex/confect/http.ts`
@@ -1769,13 +1889,12 @@ export type MessagesVerificationInput = {
   readonly expected: ContractInventory;
   readonly selection: SelectionManifest;
   readonly runtime: RuntimeManifest;
-  readonly ciTuple?: {
-    readonly repository: string;
-    readonly baseRef: string;
-    readonly baseOid: string;
-    readonly headOid: string;
-    readonly mergeGroupOid: string;
-  };
+  readonly authority:
+    | {
+        readonly mode: "authoritative";
+        readonly controllerContext: ControllerContext;
+      }
+    | { readonly mode: "focused" | "observation" };
   readonly ndjson: string;
 };
 
@@ -1783,7 +1902,7 @@ export type MessagesVerdict =
   | {
       readonly ok: true;
       readonly mode: "authoritative";
-      readonly ciTuple: MessagesVerificationInput["ciTuple"];
+      readonly ciTuple: ControllerContext["ciTuple"];
       readonly executedPickleKeys: readonly StablePickleKey[];
     }
   | {
@@ -1941,8 +2060,9 @@ real action/outcome and runtime identity observations remain required.
 - Create: `packages/convex/confect/runtime/identity.ts`
 - Create: `packages/convex/confect/runtime/identity.spec.ts`
 - Create: `packages/convex/confect/runtime/identity.impl.ts`
-- Modify generated: `packages/convex/confect/_generated/**`
-- Modify generated: `packages/convex/convex/_generated/**`
+- Modify generated files enumerated by
+  `tooling/acceptance/generated-output-manifest.json` (Confect and Convex
+  outputs only; the manifest records exact paths/digests).
 - Modify: `packages/convex/convex/schema.ts`
 - Modify: `packages/convex/confect/http.ts`
 - Create: `packages/convex/test/contract-evidence.test.ts`
@@ -2102,7 +2222,8 @@ agree on runtime identity. Process and trust isolation is still absent.
 - Create: `tooling/acceptance/runtime-target.template.json`
 - Create: `features/support/local-auth.ts`
 - Create: `tooling/acceptance/local-auth.test.ts`
-- Create: `tooling/acceptance/controller.Dockerfile`
+- Use the sole controller image root: `tooling/ci/controller.Dockerfile`
+  (created by W0; C10 only consumes its provisional lock).
 - Modify: `tooling/agent-pack/src/processSupervisor.ts`
 - Modify: `tooling/agent-pack/src/processSupervisor.test.ts`
 - Create: `apps/web/src/providers/auth-runtime.tsx`
@@ -2131,10 +2252,7 @@ export type AcceptanceRunRequest =
   | {
       readonly mode: "authoritative";
       readonly repositoryRoot: string;
-      readonly runtimeTarget: RuntimeTargetManifest;
-      readonly protectedBaseSha: string;
-      readonly ciTuple: NonNullable<MessagesVerificationInput["ciTuple"]>;
-      readonly controllerOrigin: "protected-controller";
+      readonly controllerContext: ControllerContext;
     }
   | {
       readonly mode: "focused" | "observation";
@@ -2161,12 +2279,12 @@ export type RuntimeTargetManifest = {
   readonly targetKind: "generated-template" | "unmanaged-existing-repository";
   readonly web: {
     readonly packageDir: string;
-    readonly buildAdapter: "template-web-v1" | "package-script-build";
+    readonly buildAdapter: "template-web-v1" | "package-script-build-v1";
     readonly artifactDir: string;
   };
   readonly cli: {
     readonly packageDir: string;
-    readonly buildAdapter: "template-cli-v1" | "package-script-build";
+    readonly buildAdapter: "template-cli-v1" | "package-script-build-v1";
     readonly executable: string;
   };
   readonly backend: {
@@ -2175,6 +2293,37 @@ export type RuntimeTargetManifest = {
     readonly sourceDir: string;
     readonly inputPaths: readonly string[];
   };
+};
+
+export type ControllerContext = {
+  readonly protectedBaseSha: string;
+  readonly protectedInventoryDigest: `sha256:${string}`;
+  readonly candidateSourceDigest: `sha256:${string}`;
+  readonly fixtureOverlayDigest: `sha256:${string}`;
+  readonly fixtureSupportRoot: string;
+  readonly runRoot: string;
+  readonly controllerImageDigest: `sha256:${string}`;
+  readonly buildManifestDigest: `sha256:${string}`;
+  readonly packageManager: {
+    readonly executable: string;
+    readonly version: string;
+    readonly digest: `sha256:${string}`;
+  };
+  readonly runtimeEpoch: string;
+  readonly handles: {
+    readonly mint: string;
+    readonly observe: string;
+    readonly drain: string;
+  };
+  readonly ciTuple: {
+    readonly repository: string;
+    readonly mergeGroupOid: string;
+    readonly pullRequestNumber: number;
+    readonly appId: string;
+    readonly context: string;
+    readonly candidateCommit: string;
+  };
+  readonly origin: "protected-controller";
 };
 
 export async function runAcceptance(
@@ -2368,7 +2517,7 @@ fixture and mutations.
 **Class:** `fixture-to-real`  
 **PR:** `C11a`
 
-**Depends on:** `C10`
+**Depends on:** `C4b`, `C5`, `C6`, and `C10`
 
 **Files:**
 
@@ -2380,6 +2529,8 @@ fixture and mutations.
 - Create: `features/step_definitions/platform_access.steps.ts`
 - Create: `tooling/acceptance/reference-app.ts`
 - Create: `tooling/acceptance/reference-app.test.ts`
+- Create: `tooling/acceptance/fixtures/reference-app/overlay.json`
+  (controller-owned, digest-locked)
 - Modify: `tooling/generators/src/blueprints/saasApplicationFactory.ts`
 - Modify: `tooling/generators/src/blueprints/saasApplication.test.ts`
 - Modify:
@@ -2927,8 +3078,9 @@ provenance, and structural fake output no longer masquerades as product proof.
 - Modify: `packages/convex/confect/buildPacks/maestro.impl.ts`
 - Modify: `packages/convex/confect/tables/buildPacks.ts`
 - Modify: `packages/convex/confect/tables/buildPackStages.ts`
-- Modify generated: `packages/convex/confect/_generated/**`
-- Modify generated: `packages/convex/convex/_generated/**`
+- Modify generated files enumerated by
+  `tooling/acceptance/generated-output-manifest.json` (Confect and Convex
+  outputs only; the manifest records exact paths/digests).
 - Modify: `packages/convex/test/build-pack-pipeline.test.ts`
 - Modify: `apps/web/src/features/public-funnel/build-pack/build-pack-storage.ts`
 - Modify:
@@ -3078,6 +3230,13 @@ export type ApproveBuildPackContractInput = {
 import type { ContractsLegacyBaseline } from "@maestro-template/template-core/publicSurface";
 
 export type ContractsAuditReleaseClosure = {
+  readonly targetPackageManager: {
+    readonly executable: string;
+    readonly version: string;
+    readonly digest: `sha256:${string}`;
+  };
+  readonly targetLockfileDigest: `sha256:${string}`;
+  readonly targetDependencyClosureDigest: `sha256:${string}`;
   readonly rootIntegrations: readonly {
     readonly path: string;
     readonly kind:
@@ -3415,9 +3574,10 @@ same immutable multi-component product.
 
 **Class:** `pattern-instance`  
 **PRs:** control source `W1a`, published-image lock/verify wiring `W1b`, then
-external protected cutover `W1c` **Depends on:** `C12`, and a green `C10`
-sandbox canary on the actual Woodpecker agent; `W0` remains the active protected
-authority throughout
+external protected cutover `W1c`
+
+**Depends on:** `C12`, and a green `C10` sandbox canary on the actual Woodpecker
+agent; `W0` remains the active protected authority throughout
 
 **Files:**
 
@@ -3657,7 +3817,11 @@ candidate with approved control code and no candidate secrets.
 
 **PR:** `C11b`
 
-**Depends on:** `W1` fully cut over on protected main
+**Depends on:** `C11a`, `C12`, `R1`, and `W1` fully cut over on protected main
+
+Also depends on the assembled `C11a` reference Feature and the complete `C12`
+gauntlet. `W1` may use `bootstrap-observation` only; this admission packet is
+the first normal protected run that must select at least one Pickle.
 
 **Files:**
 
@@ -3667,8 +3831,8 @@ candidate with approved control code and no candidate secrets.
 **Interfaces:**
 
 - Consumes: the assembling `@journey_platform_access` Feature from `C11a`, the
-  projection writer from `C4`, and the protected batch-one acceptance authority
-  cut over by `W1`.
+  projection writer and real-registration darkness from `C4b`, and the protected
+  batch-one acceptance authority cut over by `W1`.
 - Produces: the lifecycle-only admitted Feature and its byte-exact generated
   `admittedJourneys.ts` projection consumed by `P1` and every later protected
   acceptance run.
@@ -3720,8 +3884,9 @@ contract; the factory mutation fixture is no longer the only success path.
 **PR:** `P1`
 
 **Depends on:** `F1`, `F2`, `U1`, `W1`, and `C11b` merged on protected main,
-plus the green 33-case core gauntlet. `B1` and `R1` are follow-on integrations,
-not pilot prerequisites.
+plus the green 36-case gauntlet (core IDs 1–33 plus R1/W1 IDs 34–36). `B1` is a
+follow-on integration, not a pilot prerequisite; `R1` is required because its
+three mutation IDs are part of the protected release evidence.
 
 **Repository:** `maestro-template-saas-ui`
 
@@ -3732,7 +3897,7 @@ not pilot prerequisites.
 **Interfaces:**
 
 - Consumes: the current release sealer, immutable alpha.2 base, U1
-  contracts-audit projection, W1 controller-image lock, and protected 33-case
+  contracts-audit projection, W1 controller-image lock, and protected 36-case
   acceptance evidence.
 - Produces: the non-default pilot release directory, protected annotated
   `maestro-template-v0.2.0-alpha.3-pilot.1` tag, and sealed
@@ -4308,6 +4473,12 @@ any deletion on a weaker evidence set.
       candidate self-report, stale check, or tag annotation alone is
       insufficient.
 
+      Before deletion, compare the retained baseline authority-key set with
+          C11b's admitted per-entrypoint coverage (UI, CLI, auth, authorization,
+          tenant, and cross-surface). Any baseline key without an admitted proof,
+          or any admitted key absent from the baseline closure, fails the guard and
+          keeps the legacy baseline machinery in place.
+
 - [ ] **Step 2: Run red.**
 
   Run:
@@ -4370,7 +4541,8 @@ ready to seal from a clean source commit.
 **PR:** `D2`
 
 **Depends on:** merged `D1`, the protected annotated Maestro M2 evidence tag,
-and the green 36-case gauntlet. `B1` and `R1` are not release prerequisites.
+and the green 36-case gauntlet. `R1` is transitively required through `D1`; `B1`
+remains a follow-on integration.
 
 **Files:**
 
@@ -4609,9 +4781,9 @@ merge-candidate verdict can authorize admission.
 | Existing feature golden path is contract-bound               | F2                         |
 | Shared route actions cannot hide                             | C2, C3, C12                |
 | Exhaustive public inventory/raw bypass                       | C3, C4, C12                |
-| UI/server darkness                                           | C4, C11a, C11b             |
+| UI/server darkness                                           | C4, C4b, C11a, C11b        |
 | UI+CLI inventory requires cross-surface proof                | C4, C11a, M1, M2           |
-| Stacked slices; lifecycle/projection-only admission          | C4, W1, C11b, M1, M2       |
+| Stacked slices; lifecycle/projection-only admission          | C4, C4b, W1, C11b, M1, M2  |
 | Every Pickle/row/step/required hook executes once            | C7, C8, C9                 |
 | Exact Source/AST/step-definition equality                    | C7, C8                     |
 | UI and built CLI share backend/identity                      | C6, C9, C11a               |
