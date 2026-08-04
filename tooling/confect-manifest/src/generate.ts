@@ -304,7 +304,9 @@ const explicitAuthorityKeys = new Set(
     JSON.stringify([
       surface.authority.kind,
       surface.authority.registrationLocator,
-      surface.authority.actionDiscriminant ?? null,
+      "actionDiscriminant" in surface.authority
+        ? (surface.authority.actionDiscriminant ?? null)
+        : null,
       surface.transport,
     ]),
   ),

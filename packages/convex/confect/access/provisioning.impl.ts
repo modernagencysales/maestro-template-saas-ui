@@ -231,7 +231,9 @@ const toProvisioningUser = (user: {
   readonly updatedAt: number;
 }): Effect.Effect<UserProvisioningRow> => {
   if (user.tokenIdentifier === undefined)
-    return Effect.dieMessage("User token identifier backfill is incomplete");
+    return Effect.die(
+      new Error("User token identifier backfill is incomplete"),
+    );
   return Effect.succeed({
     _id: user._id,
     subject: user.subject,
