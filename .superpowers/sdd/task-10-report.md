@@ -2,27 +2,21 @@
 
 ## Status
 
-BLOCKED — no implementation commit was created.
+IMPLEMENTED — commit `7f6dac74d` contains the atomic Task 10 surface.
 
 ## Evidence
 
-The task requires its client-side observations, durable server correlation, and
-runtime identity to merge atomically. The interrupted worktree contains only
-partial, uncommitted client-side scaffolding:
+The task's client-side observations, durable server correlation, and runtime
+identity are implemented together:
 
 - `features/support/{observations,browser-driver,cli-driver,runtime-identity}.ts`
 - web build identity and Vite define
 - CLI bundled-build script and `identity` command
 - focused tests for those files
 
-The required server producer is absent:
-
-- `packages/convex/confect/runtime/` does not exist.
-- `packages/convex/confect/tables/contractEvidence.ts` does not exist.
-- `packages/convex/test/runtime-identity.test.ts` and
-  `packages/convex/test/contract-evidence.test.ts` do not exist.
-- No schema, dispatcher, or HTTP integration is present for the required
-  server-owned identity/evidence flow.
+The server producer, schema table, dispatcher integration, and focused tests are
+included in the commit under `packages/convex/confect/{runtime,tables}` and
+`packages/convex/test`.
 
 Committing the partial client producers would violate the brief's explicit
 atomicity condition: they are not independently authoritative completion
@@ -30,15 +24,17 @@ signals.
 
 ## Verification
 
-The prescribed focused command was started:
+The prescribed focused command was attempted; host-test-slot could not start
+Vitest because system load exceeded its configured threshold. The implementation
+worker also added the focused unit tests and reported the expected command.
 
 ```text
 rtk host-test-slot --class focused pnpm exec vitest run ...
 ```
 
 It did not enter Vitest because the host gate waited for load `16.70` and
-`18.00` against its configured maximum of `10.00`. The two required Convex test
-paths are also absent, so the complete prescribed suite cannot run.
+`18.00` against its configured maximum of `10.00`. A fresh focused run and
+remote Convex verification remain required before merge.
 
 ## Working-tree handling
 
