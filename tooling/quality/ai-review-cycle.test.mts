@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   findingFingerprint,
+  gateArgv,
   formatFreezeComment,
   freezeFindingSet,
   readReviewHistory,
@@ -21,6 +22,19 @@ const finding = (overrides: Partial<ReviewFinding> = {}): ReviewFinding => ({
 });
 
 describe("bounded AI review", () => {
+  it("executes reviewers from the trusted tree instead of candidate package scripts", () => {
+    expect(gateArgv("taste", "/trusted")).toEqual([
+      "--experimental-strip-types",
+      "--experimental-transform-types",
+      "/trusted/tooling/quality/taste.mts",
+    ]);
+    expect(gateArgv("contract-review", "/trusted")).toEqual([
+      "--experimental-strip-types",
+      "--experimental-transform-types",
+      "/trusted/tooling/quality/contract-review.mts",
+    ]);
+  });
+
   it("fingerprints ignore line drift but bind rubric clause path and issue", () => {
     expect(findingFingerprint(finding())).toBe(
       findingFingerprint(finding({ line: 40 })),

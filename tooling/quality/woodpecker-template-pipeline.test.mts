@@ -18,9 +18,12 @@ describe("Woodpecker firewall and epoch pipelines", () => {
   });
 
   it("keeps full verification out of the firewall and in the epoch", () => {
-    expect(read("tooling/ci/firewall.sh")).not.toContain("pnpm verify");
+    const firewall = read("tooling/ci/firewall.sh");
+    expect(firewall).not.toContain("pnpm verify");
+    expect(firewall).toContain("source tooling/ci/setup.sh");
+    expect(firewall).not.toContain("pnpm install --frozen-lockfile");
     expect(read("tooling/ci/epoch.sh")).toContain("pnpm verify");
-    expect(read("tooling/ci/firewall.sh")).toContain("pnpm review:bounded");
+    expect(read("tooling/ci/firewall.sh")).not.toContain("pnpm review:bounded");
     expect(read("tooling/ci/firewall.sh")).toContain(
       "pnpm check:qlty -- --diff",
     );
@@ -42,11 +45,40 @@ describe("Woodpecker firewall and epoch pipelines", () => {
     expect(read(".woodpecker/epoch.yml")).toContain("role: factory-ci");
   });
 
+  it("keeps provider secrets behind a trusted bounded-review step", () => {
+    const firewall = read(".woodpecker/firewall.yml");
+    expect(firewall).toContain("name: bounded-ai-review");
+    expect(firewall).toContain('git archive "origin/$${BASE_BRANCH}"');
+    expect(firewall).toContain(
+      'node --experimental-strip-types --experimental-transform-types "$TRUSTED_TREE/tooling/quality/ai-review-cycle.mts"',
+    );
+    expect(firewall).toContain(
+      'export CONTRACT_REVIEW_WORKTREE="$CI_WORKSPACE"',
+    );
+    expect(firewall).toContain('export TASTE_REVIEW_WORKTREE="$CI_WORKSPACE"');
+    expect(firewall).toContain("OPENROUTER_API_KEY:");
+    expect(firewall).toContain("from_secret: openrouter_api_key");
+    const candidateStep = firewall.slice(
+      firewall.indexOf("name: firewall"),
+      firewall.indexOf("name: bounded-ai-review"),
+    );
+    expect(candidateStep).not.toContain("GITHUB_TOKEN");
+    expect(candidateStep).not.toContain("OPENROUTER_API_KEY");
+  });
+
+  it("bootstraps from the reviewed lockfile without an uninstalled proxy", () => {
+    const setup = read("tooling/ci/setup.sh");
+    expect(setup).toContain("candidate-sandbox.mts validate");
+    expect(setup).toContain("pnpm fetch --frozen-lockfile --ignore-scripts");
+    expect(setup).toContain(
+      "pnpm install --offline --frozen-lockfile --ignore-scripts",
+    );
+    expect(setup).not.toContain("candidate-sandbox.mts install");
+  });
+
   it("keeps deploy guarded and all shell entrypoints executable", () => {
     const deployPipeline = read(".woodpecker/deploy.yml");
-    expect(deployPipeline).toContain(
-      'CI_PIPELINE_DEPLOY_TARGET == "staging"',
-    );
+    expect(deployPipeline).toContain('CI_PIPELINE_DEPLOY_TARGET == "staging"');
     expect(deployPipeline).toContain("source tooling/ci/setup.sh");
     expect(deployPipeline).not.toContain("corepack enable");
     for (const name of readdirSync(resolve(root, "tooling/ci")).filter((name) =>

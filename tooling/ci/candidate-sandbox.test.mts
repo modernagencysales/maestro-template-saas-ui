@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
 import {
   assertCandidateDependencyProxyIsWired,
   candidateEnvironment,
@@ -7,6 +8,21 @@ import {
 } from "./candidate-sandbox.mts";
 
 describe("candidate sandbox", () => {
+  it("admits every package already present in the protected main lockfile", () => {
+    const allowlist = JSON.parse(
+      readFileSync("tooling/ci/dependency-allowlist.json", "utf8"),
+    ) as { artifacts: Array<{ package: string }> };
+    expect(() =>
+      validateCandidateLockfile({
+        lockfile: readFileSync("pnpm-lock.yaml", "utf8"),
+        allowedPackages: new Set(
+          allowlist.artifacts.map((artifact) => artifact.package),
+        ),
+        hasPnpmfile: false,
+      }),
+    ).not.toThrow();
+  });
+
   it("starts empty and exposes no controller credential or host control path", () => {
     expect(candidateEnvironment()).toEqual({
       CI: "true",

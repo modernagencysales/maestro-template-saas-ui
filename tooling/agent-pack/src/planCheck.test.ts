@@ -2,11 +2,14 @@ import { describe, expect, it, vi } from "vitest";
 import { executeAgentPackCommand } from "./contracts.js";
 import { createPlanCheckCommand } from "./planCheck.js";
 import { createRepositoryContext } from "./repoContext.js";
+import { resolve } from "node:path";
 
 const context = {
   schemaVersion: 1 as const,
   invocation: "library" as const,
-  repo: createRepositoryContext({ cwd: process.cwd() }),
+  repo: createRepositoryContext({
+    cwd: resolve(import.meta.dirname, "../../.."),
+  }),
 };
 const plan = {
   feature: "agent-pack scaffold",

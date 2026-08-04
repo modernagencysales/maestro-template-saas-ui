@@ -346,8 +346,13 @@ async function gateOutput(
   script: "taste" | "contract-review",
 ): Promise<string> {
   try {
-    const result = await execFileAsync("pnpm", [script], {
+    const result = await execFileAsync(process.execPath, gateArgv(script), {
       encoding: "utf8",
+      env: {
+        ...process.env,
+        CONTRACT_REVIEW_WORKTREE: process.cwd(),
+        TASTE_REVIEW_WORKTREE: process.cwd(),
+      },
       maxBuffer: 10_000_000,
       timeout: 1_000_000,
     });
@@ -356,6 +361,21 @@ async function gateOutput(
     const failed = error as { stdout?: string; stderr?: string };
     return `${failed.stdout ?? ""}\n${failed.stderr ?? ""}`;
   }
+}
+
+export function gateArgv(
+  script: "taste" | "contract-review",
+  trustedRoot = new URL("../..", import.meta.url).pathname,
+): readonly string[] {
+  const entrypoint =
+    script === "taste"
+      ? "tooling/quality/taste.mts"
+      : "tooling/quality/contract-review.mts";
+  return [
+    "--experimental-strip-types",
+    "--experimental-transform-types",
+    resolve(trustedRoot, entrypoint),
+  ];
 }
 
 async function githubComments(

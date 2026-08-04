@@ -32,6 +32,20 @@ describe("check:ci-completeness", () => {
     expect(requirements).not.toContain(".github/workflows/quality.yml");
     expect(requirements).toContain("Justfile");
     expect(requirements).toContain("lefthook.yml");
+    expect(requirements).toContain("bounded-ai-review");
+    const firewallPipeline = descriptor.requirements.find(
+      ({ file }) => file === ".woodpecker/firewall.yml",
+    );
+    expect(firewallPipeline?.includes).toContain(
+      'git archive "origin/$${BASE_BRANCH}"',
+    );
+    expect(firewallPipeline?.includes).toContain(
+      'node --experimental-strip-types --experimental-transform-types "$TRUSTED_TREE/tooling/quality/ai-review-cycle.mts"',
+    );
+    const firewallScript = descriptor.requirements.find(
+      ({ file }) => file === "tooling/ci/firewall.sh",
+    );
+    expect(firewallScript?.includes).not.toContain("pnpm review:bounded");
   });
 
   it("rejects concatenated or duplicated host verification terms", () => {

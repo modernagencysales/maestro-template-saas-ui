@@ -4,11 +4,11 @@ Woodpecker's server-side controller is the only producer of
 `ci/woodpecker/pr/verify`. Candidate commits run without GitHub, BWS, deploy,
 provider, host-home, SSH-agent, Docker-socket, or controller-storage access.
 
-The controller image contains the reviewed dependency allowlist and launches
-`candidate-sandbox.mts` with Bubblewrap. Candidate lockfiles may select only
+The required firewall validates candidate lockfiles against the reviewed
+dependency allowlist, scrubs CI secrets, and performs a frozen, scriptless fetch
+inside Woodpecker's disposable container. Candidate lockfiles may select only
 artifacts already present in that allowlist; `.pnpmfile.cjs`, lifecycle scripts,
-unreviewed registry origins, redirects, private destinations, oversized
-responses, and unsafe archive entries fail before a build starts.
+and unreviewed package versions fail before a build starts.
 
 `protected-bootstrap.mts` is preview-first. Every transition binds its exact
 confirmation argv to the journal and live-state digest. The protected operator,
@@ -23,11 +23,11 @@ current protected `main`, review the journal and controller digest with a
 non-author owner, and execute the returned argv byte-for-byte from the protected
 operator environment.
 
-## Candidate dependency network
+## Optional hardened dependency network
 
-The protected controller must start the allowlisted dependency proxy before
-launching the candidate and install an egress policy that denies every
-destination except that proxy. It passes `DEPENDENCY_PROXY_WIRED=1`,
+When installed, a protected controller may start the allowlisted dependency
+proxy before launching the candidate and install an egress policy that denies
+every destination except that proxy. It passes `DEPENDENCY_PROXY_WIRED=1`,
 `DEPENDENCY_PROXY_NETWORK_MODE=shared-proxy`,
 `DEPENDENCY_PROXY_EGRESS_POLICY_SHA256=sha256:<64 hex>`, and a healthy
 `DEPENDENCY_PROXY_URL` into the controller-owned launcher. The candidate sandbox

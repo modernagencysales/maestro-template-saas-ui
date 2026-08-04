@@ -100,9 +100,7 @@ export function validateCandidateLockfile(input: {
   }
 }
 
-async function main(): Promise<void> {
-  if (process.argv[2] !== "install") return;
-  const workspace = process.cwd();
+function validateWorkspace(workspace: string): void {
   const allowlist = JSON.parse(
     readFileSync(
       new URL("./dependency-allowlist.json", import.meta.url),
@@ -116,6 +114,9 @@ async function main(): Promise<void> {
     allowedPackages: new Set(allowlist.artifacts.map((entry) => entry.package)),
     hasPnpmfile: existsSync(`${workspace}/.pnpmfile.cjs`),
   });
+}
+
+async function installCandidate(workspace: string): Promise<void> {
   if (process.platform !== "linux")
     throw new Error("candidate sandbox requires Linux Bubblewrap");
   assertCandidateDependencyProxyIsWired();
@@ -158,6 +159,14 @@ async function main(): Promise<void> {
     { stdio: "inherit" },
   );
   if (install.status !== 0) process.exit(install.status ?? 1);
+}
+
+async function main(): Promise<void> {
+  const mode = process.argv[2];
+  if (mode !== "install" && mode !== "validate") return;
+  const workspace = process.cwd();
+  validateWorkspace(workspace);
+  if (mode === "install") await installCandidate(workspace);
 }
 
 void main().catch((error: unknown) => {

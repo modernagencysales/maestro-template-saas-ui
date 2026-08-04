@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-pnpm install --frozen-lockfile
+source tooling/ci/setup.sh
 bash tooling/ci/install-gitleaks.sh
 bash tooling/ci/install-qlty.sh
 pnpm check:format
@@ -12,4 +12,3 @@ pnpm check:secret-canaries
 pnpm acceptance:check
 pnpm acceptance:features
 pnpm check:qlty -- --diff
-pnpm review:bounded
