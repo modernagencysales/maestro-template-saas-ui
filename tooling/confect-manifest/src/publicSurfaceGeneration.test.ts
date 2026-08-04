@@ -402,6 +402,7 @@ describe("public surface generation", () => {
       `
         import { useTemplateMutation as useSave } from '../adapters/confect-state';
         useSave(templateConfectRefs.notes.create);
+        const makeHooks = () => ({ run: useSave });
         makeHooks().run(templateConfectRefs.notes.archive);
       `,
     ]) {
@@ -412,6 +413,18 @@ describe("public surface generation", () => {
         "UI hook alias could not be statically resolved",
       );
     }
+  });
+
+  it("allows unrelated call-return member chains", () => {
+    const root = fixture({
+      "apps/web/src/features/structural-aliases.tsx": `
+        import { useTemplateMutation as useSave } from '../adapters/confect-state';
+        useSave(templateConfectRefs.notes.create);
+        client().close();
+        builder().execute();
+      `,
+    });
+    expect(() => discoverPublicAuthorities(root)).not.toThrow();
   });
 
   it("fetches the protected baseline Git object when a shallow checkout lacks it", () => {

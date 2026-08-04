@@ -235,6 +235,7 @@ const uiActionAuthorities = (
     "useConfectAction",
   ]);
   const unresolvedHookAliases = new Set<string>();
+  const hookFactoryNames = new Set<string>();
   const hookObjectRoots = new Set<string>();
   const unresolvedObjectProperties = new Set<string>();
   const propertyPath = (expression: ts.Expression): string | undefined => {
@@ -267,7 +268,7 @@ const uiActionAuthorities = (
       return expressionRoot(expression.expression);
     return undefined;
   };
-  const expressionHasHook = (expression: ts.Expression): boolean => {
+  const expressionHasHook = (expression: ts.Node): boolean => {
     let found = false;
     const visitExpression = (node: ts.Node): void => {
       if (ts.isIdentifier(node) && hookNames.has(node.text)) found = true;
@@ -277,6 +278,22 @@ const uiActionAuthorities = (
     return found;
   };
   const collectAliases = (node: ts.Node): void => {
+    if (
+      ts.isFunctionDeclaration(node) &&
+      node.name !== undefined &&
+      node.body !== undefined &&
+      expressionHasHook(node.body)
+    )
+      hookFactoryNames.add(node.name.text);
+    if (
+      ts.isVariableDeclaration(node) &&
+      ts.isIdentifier(node.name) &&
+      node.initializer !== undefined &&
+      (ts.isArrowFunction(node.initializer) ||
+        ts.isFunctionExpression(node.initializer)) &&
+      expressionHasHook(node.initializer.body)
+    )
+      hookFactoryNames.add(node.name.text);
     const bindings = ts.isImportDeclaration(node)
       ? node.importClause?.namedBindings
       : undefined;
@@ -375,27 +392,7 @@ const uiActionAuthorities = (
         (ts.isPropertyAccessExpression(callee) ||
           ts.isElementAccessExpression(callee)) &&
         ts.isCallExpression(callee.expression) &&
-        (ts.isElementAccessExpression(callee) ||
-          ![
-            "then",
-            "catch",
-            "finally",
-            "map",
-            "filter",
-            "flatMap",
-            "reduce",
-            "reduceRight",
-            "forEach",
-            "some",
-            "every",
-            "find",
-            "findIndex",
-            "includes",
-            "join",
-            "slice",
-          ].includes(callee.name.text)) &&
-        (expressionRoot(callee) === undefined ||
-          hookObjectRoots.has(expressionRoot(callee) ?? ""))
+        hookFactoryNames.has(callName(callee.expression.expression) ?? "")
       )
         throw new Error(
           `UI hook alias could not be statically resolved: ${relativePath(root, path)}#call-return`,
