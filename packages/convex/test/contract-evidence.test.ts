@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   appendContractEvidence,
   drainContractEvidence,
+  type ContractEvidence,
   type ContractEvidenceStore,
 } from "../confect/runtime/contractEvidence";
 
@@ -16,6 +17,7 @@ describe("contract evidence", () => {
   it("records one admitted success and drains it exactly once", async () => {
     const rows: unknown[] = [];
     const store: ContractEvidenceStore = {
+      runtimeMarker: "epoch-one",
       hasCorrelationNonce: async (scenarioNonce, correlationNonce) =>
         rows.some(
           (row) =>
@@ -28,7 +30,9 @@ describe("contract evidence", () => {
             (row as { readonly correlationNonce: string }).correlationNonce ===
               correlationNonce,
         ),
-      append: async (row) => rows.push(row),
+      append: async (row) => {
+        rows.push(row);
+      },
       drain: async (scenarioNonce) => {
         const drained = rows.filter(
           (row) =>
@@ -50,18 +54,18 @@ describe("contract evidence", () => {
       surfaceId: "surface_web",
       transport: "ui" as const,
       backend,
-    };
+    } satisfies ContractEvidence;
 
-    await appendContractEvidence(store, input);
-    await expect(appendContractEvidence(store, input)).rejects.toThrow(
-      /replayed correlation nonce/u,
-    );
-    await expect(drainContractEvidence(store, "scenario-one")).resolves.toEqual(
-      [expect.objectContaining(input)],
-    );
-    await expect(drainContractEvidence(store, "scenario-one")).resolves.toEqual(
-      [],
-    );
+    await appendContractEvidence(store, "epoch-one", input);
+    await expect(
+      appendContractEvidence(store, "epoch-one", input),
+    ).rejects.toThrow(/replayed correlation nonce/u);
+    await expect(
+      drainContractEvidence(store, "epoch-one", "scenario-one"),
+    ).resolves.toEqual([expect.objectContaining(input)]);
+    await expect(
+      drainContractEvidence(store, "epoch-one", "scenario-one"),
+    ).resolves.toEqual([]);
   });
 
   it("rejects rows outside the controller-installed acceptance runtime", async () => {
@@ -70,7 +74,7 @@ describe("contract evidence", () => {
       drain: async () => [],
     };
     await expect(
-      appendContractEvidence(store, {
+      appendContractEvidence(store, "epoch-one", {
         scenarioNonce: "scenario-one",
         correlationNonce: "step-one",
         principalDigest: `sha256:${"b".repeat(64)}`,
@@ -78,6 +82,6 @@ describe("contract evidence", () => {
         transport: "ui",
         backend,
       }),
-    ).resolves.toBeUndefined();
+    ).rejects.toThrow(/acceptance runtime marker/u);
   });
 });

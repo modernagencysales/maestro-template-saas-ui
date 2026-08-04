@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import * as observationModule from "../../features/support/observations";
 import { BrowserDriver } from "../../features/support/browser-driver";
 import { CliDriver } from "../../features/support/cli-driver";
+import { buildObservationEnvelope } from "../../features/support/world";
 
 const actionStep = "step_sha256:action";
 const outcomeStep = "step_sha256:outcome";
@@ -86,6 +87,90 @@ describe("trusted scenario observations", () => {
     expect(() => observations.finishStep("PASSED")).toThrow(
       /AfterStep|current stable step/u,
     );
+  });
+
+  it("builds the exact verifier envelope from drained server evidence", async () => {
+    const observations = new observationModule.ScenarioObservations();
+    observations.beginStep({
+      stepKey: actionStep,
+      kind: "action",
+      correlationNonce: "correlation-action",
+    });
+    observations.recordBoundary({
+      kind: "action",
+      surfaceId: "surface_web_action",
+      transport: "ui",
+    });
+    observations.finishStep("PASSED");
+    observations.beginStep({ stepKey: outcomeStep, kind: "outcome" });
+    observations.recordBoundary({
+      kind: "outcome",
+      surfaceId: "surface_web_outcome",
+      transport: "ui",
+    });
+    observations.finishStep("PASSED");
+    const backend = {
+      deploymentId: "deployment-one",
+      inputDigest: `sha256:${"a".repeat(64)}` as const,
+      startNonce: "server-start-one",
+    };
+
+    await expect(
+      buildObservationEnvelope({
+        runtime: {
+          pickleKey: "pickle_sha256:one",
+          checkoutSha: "checkout-one",
+          webArtifactDigest: `sha256:${"b".repeat(64)}`,
+          cliArtifactDigest: `sha256:${"c".repeat(64)}`,
+          webBuildSourceSha: "checkout-one",
+          cliBuildSourceSha: "checkout-one",
+          backends: { controller: backend, web: backend, cli: backend },
+          scenarioNonce: "scenario-one",
+          drainServerEvidence: async () => [
+            {
+              scenarioNonce: "scenario-one",
+              correlationNonce: "correlation-action",
+              principalDigest: `sha256:${"d".repeat(64)}`,
+              surfaceId: "surface_web_action",
+              transport: "ui",
+              backend,
+            },
+          ],
+        },
+        observations,
+      }),
+    ).resolves.toMatchObject({
+      schemaVersion: 1,
+      pickleKey: "pickle_sha256:one",
+      scenarioNonce: "scenario-one",
+      serverCorrelations: [
+        {
+          stepKey: actionStep,
+          actorPrincipalDigest: `sha256:${"d".repeat(64)}`,
+        },
+      ],
+      hooks: {
+        beforeStepKeys: [actionStep, outcomeStep],
+        afterStepKeys: [actionStep, outcomeStep],
+      },
+    });
+
+    await expect(
+      buildObservationEnvelope({
+        runtime: {
+          pickleKey: "pickle_sha256:one",
+          checkoutSha: "checkout-one",
+          webArtifactDigest: `sha256:${"b".repeat(64)}`,
+          cliArtifactDigest: `sha256:${"c".repeat(64)}`,
+          webBuildSourceSha: "checkout-one",
+          cliBuildSourceSha: "checkout-one",
+          backends: { controller: backend, web: backend, cli: backend },
+          scenarioNonce: "scenario-one",
+          drainServerEvidence: async () => [],
+        },
+        observations,
+      }),
+    ).rejects.toThrow(/server evidence/iu);
   });
 });
 

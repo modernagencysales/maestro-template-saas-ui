@@ -24,12 +24,8 @@ AfterStep(function (this: ContractWorld, step: ITestStepHookParameter) {
 });
 
 After(async function (this: ContractWorld) {
-  const hooks = this.observations.hookMarkers();
   await this.attach(
-    JSON.stringify({
-      observations: this.observations.snapshot(),
-      hooks,
-    }),
+    JSON.stringify(await this.observationEnvelope()),
     "application/json",
   );
 });

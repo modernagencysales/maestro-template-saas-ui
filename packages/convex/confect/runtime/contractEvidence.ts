@@ -13,6 +13,8 @@ export type ContractEvidence = {
 
 /** Persistence is injected so Convex owns rows; no process-local receipt exists. */
 export type ContractEvidenceStore = {
+  /** Secret marker installed with the disposable acceptance runtime. */
+  readonly runtimeMarker?: string;
   readonly hasCorrelationNonce?: (
     scenarioNonce: string,
     correlationNonce: string,
@@ -21,6 +23,18 @@ export type ContractEvidenceStore = {
   readonly drain: (
     scenarioNonce: string,
   ) => Promise<readonly ContractEvidence[]>;
+};
+
+const assertRuntimeMarker = (
+  store: ContractEvidenceStore,
+  runtimeMarker: string,
+): void => {
+  if (
+    runtimeMarker.trim() === "" ||
+    store.runtimeMarker === undefined ||
+    store.runtimeMarker !== runtimeMarker
+  )
+    throw new Error("Contract evidence acceptance runtime marker differs.");
 };
 
 const nonempty = (value: string, name: string): void => {
@@ -42,8 +56,10 @@ const validate = (input: ContractEvidence): void => {
 
 export const appendContractEvidence = async (
   store: ContractEvidenceStore,
+  runtimeMarker: string,
   input: ContractEvidence,
 ): Promise<void> => {
+  assertRuntimeMarker(store, runtimeMarker);
   validate(input);
   if (
     (await store.hasCorrelationNonce?.(
@@ -57,8 +73,10 @@ export const appendContractEvidence = async (
 
 export const drainContractEvidence = async (
   store: ContractEvidenceStore,
+  runtimeMarker: string,
   scenarioNonce: string,
 ): Promise<readonly ContractEvidence[]> => {
+  assertRuntimeMarker(store, runtimeMarker);
   nonempty(scenarioNonce, "scenario nonce");
   return await store.drain(scenarioNonce);
 };

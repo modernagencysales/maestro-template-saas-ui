@@ -15,11 +15,13 @@ import { handleDeployAuthorityHttpRequest } from "./deployAuthority/http";
 import { type HeadlessExecutorRequest } from "./manifest/executor";
 import { buildGeneratedOpenApiDocument } from "./manifest/openapi";
 import { executeAuthorizedOperation } from "./capabilities/_kit/authorizedDispatch";
+import type { AuthorizedDispatchContext } from "./capabilities/_kit/authorizedDispatch";
 import {
   resolveAuthPolicy,
   type AuthPolicy,
 } from "./capabilities/_kit/authPolicies";
 import type { Principal } from "./capabilities/_kit/principal";
+import type { BackendRuntimeIdentity } from "./runtime/identity";
 import {
   authenticateApiKey,
   HeadlessAuthError,
@@ -65,6 +67,8 @@ export type TemplateHttpRoute = {
 };
 
 export type HeadlessHttpCtx = {
+  readonly acceptanceEvidence?: AuthorizedDispatchContext["acceptanceEvidence"];
+  readonly readRuntimeIdentity?: () => Promise<BackendRuntimeIdentity>;
   readonly authenticate?: (input: {
     readonly authorization: string | undefined;
     readonly policy: AuthPolicy;
@@ -136,6 +140,7 @@ class TemplateHttpError extends Error {
 type TemplateRouteMatch =
   | { readonly kind: "openapi" }
   | { readonly kind: "docs" }
+  | { readonly kind: "identity" }
   | { readonly kind: "dodoWebhook" }
   | { readonly kind: "postmarkWebhook" }
   | { readonly kind: "emailUnsubscribe" }
@@ -149,6 +154,7 @@ type TemplateRouteMatch =
 const staticTemplateRoutes: Record<string, TemplateRouteMatch | undefined> = {
   "/api/openapi.json": { kind: "openapi" },
   "/api/docs": { kind: "docs" },
+  "/identity": { kind: "identity" },
   "/webhooks/dodo": { kind: "dodoWebhook" },
   "/webhooks/email/postmark": { kind: "postmarkWebhook" },
   "/email/unsubscribe": { kind: "emailUnsubscribe" },
@@ -394,6 +400,9 @@ const runTemplateApiOperation = async (
       authenticate: async () => principal,
       authorize: async (verifiedPrincipal) =>
         requireHttpAuthorization(ctx, request, verifiedPrincipal),
+      ...(ctx.acceptanceEvidence === undefined
+        ? {}
+        : { acceptanceEvidence: ctx.acceptanceEvidence }),
     },
     {
       surfaceId: surface.id,
@@ -447,6 +456,9 @@ const templateRouteResponse = async (
       break;
     case "docs":
       response = docsRouteResponse(request);
+      break;
+    case "identity":
+      response = await identityRouteResponse(ctx, request);
       break;
     case "dodoWebhook":
       response = await dodoWebhookRouteResponse(ctx, request);
@@ -636,6 +648,35 @@ const docsRouteResponse = (request: Request): Response =>
           message: "Only GET is supported for Scalar docs.",
         },
       });
+
+const identityRouteResponse = async (
+  ctx: HeadlessHttpCtx,
+  request: Request,
+): Promise<Response> => {
+  if (request.method !== "GET")
+    return jsonResponse(
+      {
+        ok: false,
+        error: { _tag: "MethodNotAllowed", message: "Only GET is supported." },
+      },
+      405,
+    );
+  const policy = resolveAuthPolicy("auth_api_key_workspace_read");
+  if (policy === undefined || ctx.readRuntimeIdentity === undefined)
+    return jsonResponse(
+      {
+        ok: false,
+        error: { _tag: "Internal", message: "Identity is unavailable." },
+      },
+      500,
+    );
+  await requireHttpAuthentication(ctx, {
+    authorization: request.headers.get("authorization") ?? undefined,
+    policy,
+    surface: "api",
+  });
+  return jsonResponse(await ctx.readRuntimeIdentity());
+};
 
 const operationRouteResponse = async (
   ctx: HeadlessHttpCtx,

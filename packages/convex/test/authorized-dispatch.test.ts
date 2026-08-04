@@ -104,6 +104,7 @@ describe("authorized dispatch", () => {
         authenticate: async () => apiPrincipal,
         authorize: async () => undefined,
         acceptanceEvidence: {
+          runtimeMarker: "epoch-one",
           scenarioNonce: "scenario-one",
           backend: {
             deploymentId: "deployment-one",
@@ -112,6 +113,7 @@ describe("authorized dispatch", () => {
           },
           principalDigest: async () => `sha256:${"b".repeat(64)}`,
           store: {
+            runtimeMarker: "epoch-one",
             append: async (row) => {
               calls.push(`evidence:${row.correlationNonce}`);
             },

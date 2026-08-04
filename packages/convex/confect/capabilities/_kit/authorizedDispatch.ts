@@ -45,6 +45,7 @@ export type AuthorizedDispatchContext = {
   ) => Promise<void>;
   /** Installed only by the protected local acceptance controller. */
   readonly acceptanceEvidence?: {
+    readonly runtimeMarker: string;
     readonly scenarioNonce: string;
     readonly backend: BackendRuntimeIdentity;
     readonly store: ContractEvidenceStore;
@@ -178,13 +179,18 @@ export const executeAuthorizedOperation = async (
     request.correlationNonce !== undefined &&
     ctx.acceptanceEvidence !== undefined
   )
-    await appendContractEvidence(ctx.acceptanceEvidence.store, {
-      scenarioNonce: ctx.acceptanceEvidence.scenarioNonce,
-      correlationNonce: request.correlationNonce,
-      principalDigest: await ctx.acceptanceEvidence.principalDigest(principal),
-      surfaceId: surface.id,
-      transport: surface.transport,
-      backend: ctx.acceptanceEvidence.backend,
-    });
+    await appendContractEvidence(
+      ctx.acceptanceEvidence.store,
+      ctx.acceptanceEvidence.runtimeMarker,
+      {
+        scenarioNonce: ctx.acceptanceEvidence.scenarioNonce,
+        correlationNonce: request.correlationNonce,
+        principalDigest:
+          await ctx.acceptanceEvidence.principalDigest(principal),
+        surfaceId: surface.id,
+        transport: surface.transport,
+        backend: ctx.acceptanceEvidence.backend,
+      },
+    );
   return result;
 };
