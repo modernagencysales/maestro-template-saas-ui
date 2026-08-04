@@ -234,6 +234,7 @@ const uiActionAuthorities = (
     "useConfectMutation",
     "useConfectAction",
   ]);
+  const unresolvedHookAliases = new Set<string>();
   const collectAliases = (node: ts.Node): void => {
     const bindings = ts.isImportDeclaration(node)
       ? node.importClause?.namedBindings
@@ -252,6 +253,20 @@ const uiActionAuthorities = (
       hookNames.has(node.initializer.text)
     )
       hookNames.add(node.name.text);
+    if (
+      ts.isVariableDeclaration(node) &&
+      ts.isIdentifier(node.name) &&
+      node.initializer !== undefined &&
+      !ts.isIdentifier(node.initializer) &&
+      !(
+        ts.isCallExpression(node.initializer) &&
+        hookNames.has(callName(node.initializer.expression) ?? "")
+      ) &&
+      [...hookNames].some((hook) =>
+        node.initializer!.getText(sourceFile).includes(hook),
+      )
+    )
+      unresolvedHookAliases.add(node.name.text);
     ts.forEachChild(node, collectAliases);
   };
   for (let pass = 0; pass < 4; pass += 1) collectAliases(sourceFile);
@@ -259,6 +274,10 @@ const uiActionAuthorities = (
     if (ts.isCallExpression(node)) {
       const name = callName(node.expression);
       const argument = node.arguments[0];
+      if (name !== undefined && unresolvedHookAliases.has(name))
+        throw new Error(
+          `UI hook alias could not be statically resolved: ${relativePath(root, path)}#${name}`,
+        );
       if (
         name !== undefined &&
         hookNames.has(name) &&
@@ -765,16 +784,50 @@ export const verifyLegacyBaselineTrustAnchor = (
         `legacy baseline trust anchor mismatch: expected ${expectedDigest}, got ${baseline.capturedFromInventoryDigest}`,
       ];
 
-const protectedLegacyBaselineDigest = (
+export type ProtectedGitRunner = (
+  args: readonly string[],
+  cwd: string,
+) => Buffer;
+
+const defaultProtectedGitRunner: ProtectedGitRunner = (args, cwd) =>
+  execFileSync("git", args, {
+    cwd,
+    encoding: "buffer",
+    stdio: ["ignore", "pipe", "ignore"],
+  });
+
+export const protectedLegacyBaselineDigest = (
   root: string,
+  runGit: ProtectedGitRunner = defaultProtectedGitRunner,
 ): `sha256:${string}` | undefined => {
-  for (const cwd of [root, process.cwd()]) {
+  for (const cwd of [...new Set([root, process.cwd()])]) {
+    let source: Buffer;
     try {
-      const source = execFileSync(
-        "git",
+      source = runGit(
         ["show", `${PROTECTED_BASELINE_COMMIT}:${PROTECTED_BASELINE_PATH}`],
-        { cwd, encoding: "buffer", stdio: ["ignore", "pipe", "ignore"] },
+        cwd,
       );
+    } catch {
+      try {
+        runGit(
+          [
+            "fetch",
+            "--no-tags",
+            "--depth=1",
+            "origin",
+            PROTECTED_BASELINE_COMMIT,
+          ],
+          cwd,
+        );
+        source = runGit(
+          ["show", `${PROTECTED_BASELINE_COMMIT}:${PROTECTED_BASELINE_PATH}`],
+          cwd,
+        );
+      } catch {
+        continue;
+      }
+    }
+    try {
       const parsed = JSON.parse(source.toString("utf8")) as {
         readonly capturedFromInventoryDigest?: unknown;
       };

@@ -11,6 +11,7 @@ import {
   generatePublicSurfaceInventory,
   verifyContractsLegacyBaseline,
   verifyLegacyBaselineTrustAnchor,
+  protectedLegacyBaselineDigest,
 } from "./publicSurfaceGeneration";
 
 const fixture = (files: Readonly<Record<string, string>>): string => {
@@ -337,6 +338,46 @@ describe("public surface generation", () => {
     expect(() => discoverPublicAuthorities(unresolvedHookAlias)).toThrow(
       "could not be statically resolved",
     );
+  });
+
+  it("rejects an unresolved UI alias even when the same file has a resolvable call", () => {
+    const root = fixture({
+      "apps/web/src/features/mixed.tsx": `
+        import { useTemplateMutation as useSave } from '../adapters/confect-state';
+        useSave(templateConfectRefs.notes.create);
+        const run = condition ? useSave : undefined;
+        run?.(templateConfectRefs.notes.update);
+      `,
+    });
+    expect(() => discoverPublicAuthorities(root)).toThrow(
+      "UI hook alias could not be statically resolved",
+    );
+  });
+
+  it("fetches the protected baseline Git object when a shallow checkout lacks it", () => {
+    const calls: (readonly string[])[] = [];
+    let showAttempts = 0;
+    const digest = protectedLegacyBaselineDigest("/tmp/shallow", (args) => {
+      calls.push(args);
+      if (args[0] === "show" && showAttempts++ === 0)
+        throw new Error("missing object");
+      return Buffer.from(
+        JSON.stringify({
+          capturedFromInventoryDigest:
+            "sha256:a5651112558862189a0782c9bad64a52e1a71795e532a7e62a41ad41a8de5b4e",
+        }),
+      );
+    });
+    expect(digest).toBe(
+      "sha256:a5651112558862189a0782c9bad64a52e1a71795e532a7e62a41ad41a8de5b4e",
+    );
+    expect(calls[1]).toEqual([
+      "fetch",
+      "--no-tags",
+      "--depth=1",
+      "origin",
+      "dd305838810a79583ce40c37ad2a86acf9238636",
+    ]);
   });
 
   it("rejects duplicate discoveries, ids, and authority registrations", () => {
