@@ -58,9 +58,12 @@ const featurePaths = (root: string): readonly string[] => {
         );
       if (entry.isDirectory())
         return visit(path, readdirSync(path, { withFileTypes: true }));
-      return entry.isFile() && entry.name.endsWith(".feature")
-        ? [repositoryPath(root, path)]
-        : [];
+      if (!entry.isFile() || !entry.name.endsWith(".feature")) return [];
+      if (entry.name.startsWith("@"))
+        throw new Error(
+          `contract source must not be a Cucumber rerun-file argument: ${repositoryPath(root, path)}`,
+        );
+      return [repositoryPath(root, path)];
     });
   return [...visit(start, entries)].sort((left, right) =>
     left.localeCompare(right),

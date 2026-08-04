@@ -7,6 +7,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   CUCUMBER_CONFIGURATION_SOURCE,
   resolveAcceptanceRun,
+  resolveSelectedFeaturePaths,
   verifyProtectedBaseFixture,
   validateCucumberConfigurationSource,
   validateCucumberPackageVersions,
@@ -135,6 +136,20 @@ describe("validateCucumberConfigurationSource", () => {
     expect(validateCucumberConfigurationSource(source)).toMatchObject({
       ok: false,
     });
+  });
+});
+
+describe("resolveSelectedFeaturePaths", () => {
+  it("rejects Cucumber rerun-file arguments before launch", () => {
+    expect(() =>
+      resolveSelectedFeaturePaths("/controller", ["features/@rerun.feature"]),
+    ).toThrow(/rerun-file/u);
+  });
+
+  it("resolves only exact canonical Feature paths", () => {
+    expect(
+      resolveSelectedFeaturePaths("/controller", ["features/orders.feature"]),
+    ).toEqual(["/controller/features/orders.feature"]);
   });
 });
 

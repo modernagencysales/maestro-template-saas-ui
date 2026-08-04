@@ -261,6 +261,21 @@ describe("compileContractInventory", () => {
     );
   });
 
+  it("rejects a Feature basename that Cucumber would treat as a rerun file", () => {
+    const repo = fixture({
+      candidate: {
+        "features/@rerun.feature": feature(
+          "journey_rerun",
+          "assembling",
+          scenario("@ui"),
+        ),
+      },
+    });
+    expect(() => compileContractInventory({ ...repo, mode: "static" })).toThrow(
+      /rerun-file/u,
+    );
+  });
+
   it("requires cross-surface proof only for exhaustive multi-transport owners", () => {
     const single = surface({
       id: "single_ui",

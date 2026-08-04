@@ -58,6 +58,31 @@ export function validateCucumberConfigurationSource(
   };
 }
 
+/** Cucumber treats an argument beginning with `@` as a rerun file, never a Feature. */
+export const resolveSelectedFeaturePaths = (
+  root: string,
+  paths: readonly string[],
+): readonly string[] =>
+  paths.map((path) => {
+    if (
+      !path.startsWith("features/") ||
+      !path.endsWith(".feature") ||
+      path.includes("\\") ||
+      path
+        .split("/")
+        .some((part) => part === "" || part === "." || part === "..")
+    )
+      throw new Error(`selected Feature path is not canonical: ${path}`);
+    if (path.slice(path.lastIndexOf("/") + 1).startsWith("@"))
+      throw new Error(
+        `selected Feature path is a Cucumber rerun-file argument: ${path}`,
+      );
+    const resolved = resolve(root, path);
+    if (relative(resolve(root), resolved).startsWith(".."))
+      throw new Error(`selected Feature path escapes controller root: ${path}`);
+    return resolved;
+  });
+
 const expectedVersions = {
   "@cucumber/cucumber": "13.2.0",
   "@cucumber/gherkin": "41.0.0",
