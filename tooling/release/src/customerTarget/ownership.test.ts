@@ -78,6 +78,7 @@ describe("customer ownership inventory", () => {
   });
 
   it.each([
+    [".factory/project.yaml", "template-owned", "copy"],
     [".claude/settings.json", "generated", "generate"],
     ["maestro-template.mjs", "template-owned", "copy"],
     ["apps/web/src/routes/index.tsx", "template-owned", "copy"],
