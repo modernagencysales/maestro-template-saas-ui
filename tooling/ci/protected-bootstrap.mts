@@ -399,6 +399,8 @@ export async function executeProtectedTransition(input: {
     const live = await observeDocument(input.api, document);
     if (live.sha256 !== document.sha256) {
       for (const entry of written.reverse()) {
+        const live = await observeDocument(input.api, entry);
+        if (live.sha256 !== entry.sha256) continue;
         const inverse = step.inverse?.find(
           (candidate) => candidate.resourcePath === entry.resourceId,
         );
