@@ -1,4 +1,17 @@
 #!/usr/bin/env bash
+
+dependency_install_mode() {
+  if [[ "${PROTECTED_CONTROLLER_RUNTIME:-}" == "1" ]]; then
+    echo controller
+  else
+    echo hosted
+  fi
+}
+
+if [[ "${1:-}" == "--print-install-mode" ]]; then
+  dependency_install_mode
+  exit 0
+fi
 # Shared Node.js + pnpm bootstrap. Sourced (not executed) by each step script
 # so PATH changes persist for subsequent commands.
 set -euo pipefail
@@ -127,6 +140,14 @@ for cache_path in .pnpm-store node_modules .turbo packages/convex/reports; do
   fi
 done
 
-run_without_ci_secrets node --experimental-strip-types tooling/ci/candidate-sandbox.mts install
+if [[ "$(dependency_install_mode)" == "controller" ]]; then
+  if [[ ! -x /controller/runtime/bin/node || ! -S /controller/proxy/dependency.sock ]]; then
+    echo "protected controller runtime or dependency proxy socket is unavailable" >&2
+    exit 1
+  fi
+  run_without_ci_secrets node --experimental-strip-types tooling/ci/candidate-sandbox.mts install
+else
+  run_without_ci_secrets CI=true pnpm install --frozen-lockfile --prefer-offline
+fi
 
 run_without_ci_secrets bash tooling/ci/seed-frozen-alpha2-store.sh

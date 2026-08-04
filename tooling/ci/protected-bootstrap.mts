@@ -56,8 +56,10 @@ export type ProtectedTransitionJournal = {
       readonly resourceId: string;
       readonly state:
         | "pending"
+        | "forward-intent"
         | "forward-written"
         | "forward-verified"
+        | "inverse-intent"
         | "inverse-written"
         | "inverse-verified";
     }[];
@@ -84,6 +86,7 @@ export type ProtectedControllerApi = {
 function httpEndpoint(input: {
   readonly baseUrl: string;
   readonly token: string;
+  readonly contractVersion?: string;
 }): ProtectedControllerEndpoint {
   const base = new URL(input.baseUrl);
   const testHttp =
@@ -114,6 +117,9 @@ function httpEndpoint(input: {
       headers: {
         accept: "application/json",
         authorization: `Bearer ${input.token}`,
+        ...(input.contractVersion
+          ? { "x-maestro-contract-version": input.contractVersion }
+          : {}),
         ...(method === "GET" || method === "DELETE"
           ? {}
           : { "content-type": "application/json" }),
@@ -121,7 +127,7 @@ function httpEndpoint(input: {
       body:
         method === "GET" || method === "DELETE"
           ? undefined
-          : JSON.stringify(document.canonicalBody),
+          : JSON.stringify(providerWriteBody(document)),
       signal: AbortSignal.timeout(15_000),
       redirect: "error",
     });
@@ -168,8 +174,33 @@ export function createProtectedControllerHttpAdapter(): ProtectedControllerApi {
     controller: httpEndpoint({
       baseUrl: controllerUrl,
       token: controllerToken,
+      contractVersion: controllerVersion,
     }),
   };
+}
+
+function providerWriteBody(
+  document: ProtectedExternalDocument,
+): Readonly<Record<string, unknown>> {
+  const body = document.canonicalBody;
+  if (document.kind === "github-ruleset")
+    return Object.fromEntries(
+      [
+        "name",
+        "target",
+        "enforcement",
+        "bypass_actors",
+        "conditions",
+        "rules",
+      ].flatMap((key) => (body[key] === undefined ? [] : [[key, body[key]]])),
+    );
+  if (document.kind === "woodpecker-repository")
+    return Object.fromEntries(
+      ["trusted", "config_file", "visibility"].flatMap((key) =>
+        body[key] === undefined ? [] : [[key, body[key]]],
+      ),
+    );
+  return body;
 }
 
 export function verifyProtectedBootstrap(
@@ -495,6 +526,13 @@ export async function executeProtectedTransition(input: {
       : input.journal.steps.find((entry) => entry.id === input.action);
   if (!step || !step.forwardPostimage?.length)
     throw new Error(`missing transition step for ${input.action}`);
+  if (
+    step.progress?.some(
+      (entry) =>
+        entry.state === "forward-intent" || entry.state === "inverse-intent",
+    )
+  )
+    throw new Error("transition has unresolved write intent; reconcile first");
   const plan = planProtectedTransition({
     action: input.action,
     journal: input.journal,
@@ -558,6 +596,8 @@ export async function executeProtectedTransition(input: {
         resourceId: inverse.resourcePath,
         canonicalBody: inverse.canonicalBody ?? {},
       });
+      state.state = "inverse-intent";
+      await input.persistJournal?.();
       await endpointFor(input.api, document).write({
         method: inverse.method,
         document,
@@ -594,6 +634,8 @@ export async function executeProtectedTransition(input: {
       if (!before || live.sha256 !== sanitizedDocument(before).sha256)
         throw new Error(`compare-and-swap drift for ${document.resourceId}`);
     }
+    state.state = "forward-intent";
+    await input.persistJournal?.();
     await endpointFor(input.api, document).write({
       method: forwardMethod(document),
       document,
@@ -630,8 +672,10 @@ function ensureStepProgress(
   resourceId: string;
   state:
     | "pending"
+    | "forward-intent"
     | "forward-written"
     | "forward-verified"
+    | "inverse-intent"
     | "inverse-written"
     | "inverse-verified";
 }> {
@@ -640,8 +684,10 @@ function ensureStepProgress(
       resourceId: string;
       state:
         | "pending"
+        | "forward-intent"
         | "forward-written"
         | "forward-verified"
+        | "inverse-intent"
         | "inverse-written"
         | "inverse-verified";
     }>;
@@ -651,6 +697,38 @@ function ensureStepProgress(
     state: defaultState,
   }));
   return mutable.progress;
+}
+
+export async function reconcileProtectedTransitionJournal(input: {
+  readonly journal: ProtectedTransitionJournal;
+  readonly api: ProtectedControllerApi;
+  readonly stepId: string;
+  readonly persistJournal?: () => void | Promise<void>;
+}): Promise<void> {
+  const step = input.journal.steps.find((entry) => entry.id === input.stepId);
+  if (!step?.forwardPostimage)
+    throw new Error(`missing transition step for ${input.stepId}`);
+  const progress = ensureStepProgress(step, "pending");
+  for (const state of progress) {
+    if (state.state !== "forward-intent" && state.state !== "inverse-intent")
+      continue;
+    const forward = step.forwardPostimage.find(
+      (entry) => entry.resourceId === state.resourceId,
+    );
+    const before = step.preimage.find(
+      (entry) => entry.resourceId === state.resourceId,
+    );
+    if (!forward || !before)
+      throw new Error(`missing recovery documents for ${state.resourceId}`);
+    const live = await observeDocument(input.api, forward);
+    if (live.sha256 === sanitizedDocument(forward).sha256)
+      state.state = "forward-verified";
+    else if (live.sha256 === sanitizedDocument(before).sha256)
+      state.state =
+        state.state === "inverse-intent" ? "inverse-verified" : "pending";
+    else throw new Error(`reconciliation drift for ${state.resourceId}`);
+    await input.persistJournal?.();
+  }
 }
 
 function expectedProtectedTransitionDocuments(input: {
@@ -818,17 +896,27 @@ function transitionStep(
   preimage: readonly ProtectedExternalDocument[],
   forwardPostimage: readonly ProtectedExternalDocument[],
 ): ProtectedTransitionJournal["steps"][number] {
+  const changed = forwardPostimage.flatMap((forward) => {
+    const before = preimage.find(
+      (entry) => entry.resourceId === forward.resourceId,
+    );
+    return before && before.sha256 !== forward.sha256
+      ? [{ before, forward }]
+      : [];
+  });
+  const changedPreimage = changed.map(({ before }) => before);
+  const changedPostimage = changed.map(({ forward }) => forward);
   return {
     id,
-    preimage,
-    forwardPostimage,
-    inverse: preimage.map((entry) => ({
+    preimage: changedPreimage,
+    forwardPostimage: changedPostimage,
+    inverse: changedPreimage.map((entry) => ({
       method: forwardMethod(entry),
       resourcePath: entry.resourceId,
       canonicalBody: entry.canonicalBody,
     })),
-    inverseAllowedOnlyFrom: digestProtectedDocuments(forwardPostimage),
-    progress: forwardPostimage.map((entry) => ({
+    inverseAllowedOnlyFrom: digestProtectedDocuments(changedPostimage),
+    progress: changedPostimage.map((entry) => ({
       resourceId: entry.resourceId,
       state: "pending" as const,
     })),
@@ -1066,6 +1154,35 @@ async function main(): Promise<void> {
         !journal.steps.some((entry) => entry.id === rollbackStep))
     )
       throw new Error("rollback requires a known --step");
+    const stepId = action === "rollback" ? rollbackStep : action;
+    const hasIntent = journal.steps
+      .find((entry) => entry.id === stepId)
+      ?.progress?.some(
+        (entry) =>
+          entry.state === "forward-intent" || entry.state === "inverse-intent",
+      );
+    let api: ProtectedControllerApi | undefined;
+    if (hasIntent) {
+      api = await protectedControllerApi();
+      await reconcileProtectedTransitionJournal({
+        journal,
+        api,
+        stepId: stepId!,
+        persistJournal: () =>
+          saveProtectedTransitionJournal(journalPath, journal),
+      });
+      const reconciledDigest = expectedProtectedTransitionDigest({
+        action: action as Parameters<
+          typeof planProtectedTransition
+        >[0]["action"],
+        journal,
+        stepId: rollbackStep,
+      });
+      if (reconciledDigest !== expectedLiveDigest)
+        throw new Error(
+          `journal reconciled after uncertain write; rerun with --expected-live-digest ${reconciledDigest}`,
+        );
+    }
     return runProtectedTransition({
       action: action as Parameters<typeof planProtectedTransition>[0]["action"],
       journal,
@@ -1073,7 +1190,8 @@ async function main(): Promise<void> {
       confirmation: flag("--confirm"),
       operatorIdentity: flag("--operator"),
       stepId: rollbackStep,
-      api: flag("--confirm") ? await protectedControllerApi() : undefined,
+      api:
+        api ?? (flag("--confirm") ? await protectedControllerApi() : undefined),
       journalPath,
     });
   });

@@ -1,5 +1,6 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { resolve } from "node:path";
+import { spawnSync } from "node:child_process";
 
 import { describe, expect, it } from "vitest";
 
@@ -56,6 +57,23 @@ describe("Woodpecker template pipeline", () => {
     const deployPipeline = read(".woodpecker/deploy.yml");
     expect(deployPipeline).toContain("source tooling/ci/setup.sh");
     expect(deployPipeline).not.toContain("corepack enable");
+  });
+
+  it("keeps bare hosted-agent setup independent of the protected controller", () => {
+    const setup = resolve(root, "tooling/ci/setup.sh");
+    const mode = (protectedRuntime: boolean) =>
+      spawnSync("bash", [setup, "--print-install-mode"], {
+        encoding: "utf8",
+        env: protectedRuntime ? { PROTECTED_CONTROLLER_RUNTIME: "1" } : {},
+      }).stdout.trim();
+    expect(mode(false)).toBe("hosted");
+    expect(mode(true)).toBe("controller");
+    expect(read("tooling/ci/setup.sh")).toContain(
+      "pnpm install --frozen-lockfile --prefer-offline",
+    );
+    expect(read("tooling/ci/setup.sh")).toContain(
+      "candidate-sandbox.mts install",
+    );
   });
 
   it("keeps candidate verification tokenless and Qlty advisory", () => {

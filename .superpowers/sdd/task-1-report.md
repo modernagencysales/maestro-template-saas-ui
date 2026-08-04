@@ -14,10 +14,11 @@ Closed the four latest W0 review blockers.
    separate `maestro.protected-ci/v1` controller contract, not an invented
    Woodpecker endpoint. Missing contract version/URL/token or malformed bodies
    fail before a write. Arbitrary adapter modules remain rejected.
-3. Every transition document records pending, forward-written, forward-verified,
-   inverse-written, or inverse-verified progress. The journal is atomically
-   persisted after each write/read. A restart test proves rollback from a mixed
-   state where GitHub was updated and Woodpecker had not been.
+3. Every transition document records pending, forward-intent, forward-written,
+   forward-verified, inverse-intent, inverse-written, or inverse-verified
+   progress. Intent is persisted before each write and every later read/write is
+   atomically saved. Restart tests prove mixed rollback and reconciliation when
+   a provider committed before the controller process died.
 4. The image entrypoint is a fixed dispatcher that orchestrates the embedded
    dependency proxy and sandbox. Its real canary creates an empty locked app,
    proves no environment inheritance, proves direct registry egress fails,
@@ -25,6 +26,9 @@ Closed the four latest W0 review blockers.
    offline install.
 
 The candidate network is always unshared. There is no `--share-net` mode.
+Ordinary hosted-agent setup retains the original secret-scrubbed pnpm install.
+It selects the sandbox only when `PROTECTED_CONTROLLER_RUNTIME=1` and the
+immutable runtime plus proxy socket are present.
 
 ## Files
 
@@ -35,6 +39,8 @@ The candidate network is always unshared. There is no `--share-net` mode.
 - `tooling/ci/controller-runtime.mjs`
 - `tooling/ci/controller.Dockerfile`
 - `tooling/ci/sandbox-runner.mjs`
+- `tooling/ci/setup.sh`
+- `tooling/quality/woodpecker-template-pipeline.test.mts`
 - `docs/template/protected-ci-bootstrap.md`
 
 The earlier dependency-proxy hardening remains in commit `a46f5f6a4`. The three
@@ -44,10 +50,10 @@ unrelated deleted Confect fixture files remain unstaged.
 
 ```text
 HOST_TEST_SLOT_ACTIVE=1 pnpm exec vitest run tooling/ci/protected-bootstrap.test.mts --maxWorkers=1 --no-file-parallelism --testTimeout=30000
-PASS: 1 file, 15 tests
+PASS: 1 file, 16 tests
 
 HOST_TEST_SLOT_ACTIVE=1 pnpm exec vitest run tooling/ci/candidate-sandbox.test.mts tooling/ci/dependency-proxy.test.mts tooling/quality/check-ci-completeness.test.mts tooling/quality/woodpecker-template-pipeline.test.mts --maxWorkers=1 --no-file-parallelism --testTimeout=30000
-PASS: 4 files, 26 tests
+PASS: 4 files, 27 tests
 
 pnpm exec tsc --noEmit --target ES2022 --module nodenext --moduleResolution nodenext --allowImportingTsExtensions --types node,vitest/globals --skipLibCheck <six W0 TypeScript files>
 PASS
@@ -66,13 +72,13 @@ PASS
 
 ```text
 docker build -f tooling/ci/controller.Dockerfile -t maestro-w0-controller:canary .
-PASS: local manifest list sha256:7444943921b8ab3875ab991d266ebfee31da99b78eeeda4092e5a5dcab4ede62
+PASS: local manifest list sha256:dbff087415157be8d913453956d7d069a07e44b7b76553b12bd1f1a3e98e5215
 
 docker run --rm --privileged maestro-w0-controller:canary canary
 PASS:
   dependency proxy listening on /controller/proxy/dependency.sock
   Already up to date
-  Done in 651ms using pnpm v10.12.1
+  Done in 328ms using pnpm v10.12.1
   protected controller canary passed
 ```
 

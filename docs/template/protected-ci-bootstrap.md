@@ -15,13 +15,14 @@ confirmation argv to the journal, live-state digest, operation nonce, operator
 identity, and expiry. Confirmations are single-use and updates hold an exclusive
 journal lock. Per-document pending/written/verified progress is saved after
 every external operation so a restarted process can resume or roll back a mixed
-partial write. The protected operator uses only its built-in fixed GitHub,
-Woodpecker, and versioned controller HTTP routes; it never loads a candidate
-adapter module. Keep the temporary and canonical contexts overlapped until two
-fresh merge candidates prove the canonical controller, then remove the temporary
-context with the same compare-and-swap journal. Qlty runs separately for 30
-seconds and is advisory for absence, findings, provider failure, process
-failure, and timeout.
+partial write. A pre-write intent closes the apply-then-crash window by
+re-reading the exact provider resource before recovery. The protected operator
+uses only its built-in fixed GitHub, Woodpecker, and versioned controller HTTP
+routes; it never loads a candidate adapter module. Keep the temporary and
+canonical contexts overlapped until two fresh merge candidates prove the
+canonical controller, then remove the temporary context with the same
+compare-and-swap journal. Qlty runs separately for 30 seconds and is advisory
+for absence, findings, provider failure, process failure, and timeout.
 
 Never run an external confirmation from a candidate checkout. Observe the
 current protected `main`, review the journal and controller digest with a
@@ -61,3 +62,8 @@ asserts the sandbox environment contains only its explicit variables, proves a
 direct registry request cannot escape the network namespace, and completes a
 proxy-backed fetch plus offline install. Run this on the Linux agent before
 publishing or accepting an image digest.
+
+Normal hosted-agent setup remains the secret-scrubbed frozen pnpm install.
+`setup.sh` selects the candidate sandbox only when
+`PROTECTED_CONTROLLER_RUNTIME=1`; that path additionally requires the immutable
+runtime executable and live controller proxy socket or fails closed.

@@ -14,6 +14,7 @@ import {
   normalizeProtectedExternalDocument,
   observeProtectedBootstrap,
   planProtectedTransition,
+  reconcileProtectedTransitionJournal,
   runProtectedTransition,
   saveProtectedTransitionJournal,
   verifyProtectedWorkflow,
@@ -652,10 +653,17 @@ describe("protected CI bootstrap", () => {
           }),
           expect.objectContaining({
             resourceId: second.resourceId,
-            state: "pending",
+            state: "forward-intent",
           }),
         ]),
       );
+      await reconcileProtectedTransitionJournal({
+        journal: restarted,
+        api: crashing,
+        stepId: "install-temporary",
+        persistJournal: () => saveProtectedTransitionJournal(path, restarted),
+      });
+      expect(restarted.steps[0]?.progress?.[1]?.state).toBe("pending");
       failSecond = false;
       const mixedDigest = expectedProtectedTransitionDigest({
         action: "rollback",
@@ -690,6 +698,68 @@ describe("protected CI bootstrap", () => {
     } finally {
       rmSync(directory, { recursive: true, force: true });
     }
+  });
+
+  it("reconciles an apply-then-crash write before allowing recovery", async () => {
+    const before = document(
+      "github-ruleset",
+      "/repos/modernagencysales/maestro-template-saas-ui/rulesets/1",
+      { required: "old" },
+    );
+    const after = document("github-ruleset", before.resourceId, {
+      required: "new",
+    });
+    const transition: ProtectedTransitionJournal = {
+      ...journal,
+      steps: [
+        {
+          id: "install-temporary",
+          preimage: [before],
+          forwardPostimage: [after],
+          inverse: [
+            {
+              method: "PUT",
+              resourcePath: before.resourceId,
+              canonicalBody: before.canonicalBody,
+            },
+          ],
+          inverseAllowedOnlyFrom: digestProtectedDocuments([after]),
+        },
+      ],
+    };
+    const controller = memoryController([before]);
+    const appliedWrite = controller.api.github.write;
+    const crashAfterApply: ProtectedControllerApi = {
+      ...controller.api,
+      github: {
+        ...controller.api.github,
+        write: async (input) => {
+          await appliedWrite(input);
+          throw new Error("crash after remote commit");
+        },
+      },
+    };
+    const expected = digestProtectedDocuments([before]);
+    await expect(
+      executeProtectedTransition({
+        action: "install-temporary",
+        journal: transition,
+        api: crashAfterApply,
+        expectedLiveDigest: expected,
+        confirmation: planProtectedTransition({
+          action: "install-temporary",
+          journal: transition,
+          expectedLiveDigest: expected,
+        }).previewFingerprint,
+      }),
+    ).rejects.toThrow(/crash after remote commit/u);
+    expect(transition.steps[0]?.progress?.[0]?.state).toBe("forward-intent");
+    await reconcileProtectedTransitionJournal({
+      journal: transition,
+      api: controller.api,
+      stepId: "install-temporary",
+    });
+    expect(transition.steps[0]?.progress?.[0]?.state).toBe("forward-verified");
   });
 
   it("durably journals both protected control planes, reloads after restart, and refuses inverse after an intervening write", async () => {
@@ -818,7 +888,13 @@ describe("protected CI bootstrap", () => {
     const state = new Map<string, Record<string, unknown>>([
       [
         `/repos/${repository}/rulesets/1`,
-        { name: "main protection", enforcement: "active", rules: [] },
+        {
+          id: 1,
+          source: repository,
+          name: "main protection",
+          enforcement: "active",
+          rules: [],
+        },
       ],
       [
         `/api/repos/${repository}`,
@@ -841,6 +917,11 @@ describe("protected CI bootstrap", () => {
         },
       ],
     ]);
+    const requests: Array<{
+      readonly method: string;
+      readonly path: string;
+      readonly body: Record<string, unknown>;
+    }> = [];
     const api = createServer(async (request, response) => {
       const path = request.url ?? "";
       if (request.method === "GET") {
@@ -855,9 +936,16 @@ describe("protected CI bootstrap", () => {
       }
       const chunks: Buffer[] = [];
       for await (const chunk of request) chunks.push(Buffer.from(chunk));
+      const body = chunks.length
+        ? (JSON.parse(Buffer.concat(chunks).toString()) as Record<
+            string,
+            unknown
+          >)
+        : {};
+      requests.push({ method: request.method ?? "", path, body });
       state.set(
         path,
-        chunks.length ? JSON.parse(Buffer.concat(chunks).toString()) : {},
+        path.startsWith("/v1/") ? body : { ...state.get(path), ...body },
       );
       response.setHeader("content-type", "application/json");
       response.end(JSON.stringify(state.get(path)));
@@ -951,6 +1039,12 @@ describe("protected CI bootstrap", () => {
         confirmation,
       );
       expect(applied.status, applied.stderr).toBe(0);
+      expect(
+        requests.find((entry) => entry.path.includes("/rulesets/1"))?.body,
+      ).not.toHaveProperty("id");
+      expect(
+        requests.find((entry) => entry.path.includes("/rulesets/1"))?.body,
+      ).not.toHaveProperty("source");
       const verified = await cli(
         "verify",
         "--journal",
