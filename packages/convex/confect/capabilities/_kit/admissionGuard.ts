@@ -104,24 +104,3 @@ export const runAdmittedOperation = async <Result>(input: {
   await input.authorize();
   return await input.run();
 };
-
-export type ActivationRegistration = {
-  readonly surfaceId: string;
-  readonly journeyId: `journey_${string}`;
-  readonly transport: PublicSurface["transport"];
-};
-
-export const assertNoAdmittedActivationOwnedRegistrations = (
-  registrations: readonly ActivationRegistration[],
-  journeys: Readonly<Record<string, boolean>>,
-): void => {
-  const active = registrations.filter(
-    (registration) => journeys[registration.journeyId] === true,
-  );
-  if (active.length > 0)
-    throw new SurfaceAdmissionDenied(
-      `activation-owned registrations are not dark: ${active
-        .map((registration) => registration.surfaceId)
-        .join(", ")}`,
-    );
-};

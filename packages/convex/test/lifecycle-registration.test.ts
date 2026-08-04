@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
-import {
-  assertNoAdmittedActivationOwnedRegistrations,
-  runAdmittedOperation,
-  type ActivationRegistration,
-} from "../confect/capabilities/_kit/admissionGuard";
+import { runAdmittedOperation } from "../confect/capabilities/_kit/admissionGuard";
 import { applyFeatureFlagAfterOwnerAdmission } from "../confect/capabilities/_kit/surfaces";
+import {
+  handleTemplateHttpRequest,
+  type HeadlessHttpCtx,
+} from "../confect/http";
 
 describe("lifecycle registration guards", () => {
   it("authenticates, admits, then authorizes before running a handler", async () => {
@@ -62,26 +62,6 @@ describe("lifecycle registration guards", () => {
     expect(events).toEqual(["authenticate"]);
   });
 
-  it("proves every activation-owned registration is dark for no-admitted", () => {
-    const registrations: readonly ActivationRegistration[] = [
-      {
-        surfaceId: "surface_flags",
-        journeyId: "journey_flags",
-        transport: "api",
-      },
-    ];
-    expect(() =>
-      assertNoAdmittedActivationOwnedRegistrations(registrations, {
-        journey_flags: false,
-      }),
-    ).not.toThrow();
-    expect(() =>
-      assertNoAdmittedActivationOwnedRegistrations(registrations, {
-        journey_flags: true,
-      }),
-    ).toThrow("surface_flags");
-  });
-
   it("uses each flag owner's journey instead of one global admission bit", () => {
     const journeys = { journey_flags: false, journey_other: true };
     expect(
@@ -100,5 +80,50 @@ describe("lifecycle registration guards", () => {
         { "template.workflow.liveRuns": "journey_other" },
       ),
     ).toBe(true);
+  });
+
+  it("runs the real HTTP adapter in auth, admission, authorization order", async () => {
+    const events: string[] = [];
+    const ctx: HeadlessHttpCtx = {
+      authenticate: async () => {
+        events.push("authenticate");
+        return { subject: "test-subject" };
+      },
+      authorize: async () => {
+        events.push("authorize");
+      },
+      runQuery: async () => {
+        events.push("run-query");
+        return null;
+      },
+      runMutation: async () => {
+        events.push("run-mutation");
+        return { id: "page_1" };
+      },
+      runAction: async () => {
+        events.push("run-action");
+        return null;
+      },
+    };
+
+    const response = await handleTemplateHttpRequest(
+      ctx,
+      new Request("https://template.local/api/brain.pages.createMarkdown", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          workspaceSlug: "acme-demo",
+          input: { slug: "a-note", title: "A note", markdown: "# A note" },
+          idempotencyKey: "order-1",
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(events.slice(0, 3)).toEqual([
+      "authenticate",
+      "authorize",
+      "run-mutation",
+    ]);
   });
 });

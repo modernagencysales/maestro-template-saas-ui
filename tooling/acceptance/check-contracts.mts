@@ -1,6 +1,7 @@
 import { readFile, writeFile } from "node:fs/promises";
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { readFileSync, realpathSync, statSync } from "node:fs";
+import { createHash, createHmac, timingSafeEqual } from "node:crypto";
+import { resolve, relative } from "node:path";
 import { isDirectRun } from "../quality/src/direct-run.mts";
 import {
   compileContractInventory,
@@ -153,6 +154,7 @@ async function main(): Promise<void> {
     return;
   }
   const run = resolveAcceptanceRun(process.cwd());
+  await verifyProtectedBaseFixture(process.cwd(), run.protectedBaseSha);
   const inventory = compileContractInventory(run);
   if (inventory.authPolicyDeltas.length > 0) {
     const candidateCommit = process.env.PROTECTED_CANDIDATE_COMMIT;
@@ -288,8 +290,108 @@ export const synchronizeAdmittedJourneys = async (input: {
   };
 };
 
+export const verifyProtectedBaseFixture = async (
+  root: string,
+  protectedBaseSha: string,
+): Promise<void> => {
+  const fixturePath = resolve(
+    root,
+    "tooling/acceptance/fixtures/auth-policy/protected-base.json",
+  );
+  const digestPath = resolve(
+    root,
+    "tooling/acceptance/fixtures/auth-policy/protected-base.digest",
+  );
+  const [fixture, digest] = await Promise.all([
+    readFile(fixturePath, "utf8"),
+    readFile(digestPath, "utf8"),
+  ]);
+  const expected = digest.trim().split(/\s+/u)[0];
+  if (expected !== createHash("sha256").update(fixture).digest("hex"))
+    throw new Error("protected-base auth-policy fixture digest is invalid");
+  let parsed: { baseCommit?: unknown };
+  try {
+    parsed = JSON.parse(fixture) as { baseCommit?: unknown };
+  } catch {
+    throw new Error("protected-base auth-policy fixture is unparseable");
+  }
+  if (parsed.baseCommit !== protectedBaseSha)
+    throw new Error(
+      "protected-base auth-policy fixture does not bind attested base",
+    );
+};
+
+const trustedControllerAttestationRoot =
+  "/var/run/maestro-protected-controller";
+
+type ControllerAttestation = {
+  readonly baseSha: string;
+  readonly candidateCommit?: string;
+  readonly origin: "protected-controller";
+  readonly nonce: string;
+  readonly issuedAt: number;
+  readonly expiresAt: number;
+  readonly signature: string;
+};
+
+const attestationPayload = (
+  attestation: Omit<ControllerAttestation, "signature">,
+) =>
+  JSON.stringify({
+    baseSha: attestation.baseSha,
+    candidateCommit: attestation.candidateCommit ?? null,
+    expiresAt: attestation.expiresAt,
+    issuedAt: attestation.issuedAt,
+    nonce: attestation.nonce,
+    origin: attestation.origin,
+  });
+
+export const verifyControllerAttestation = (
+  attestationPath: string,
+  trustedRoot = trustedControllerAttestationRoot,
+): ControllerAttestation => {
+  const root = realpathSync(trustedRoot);
+  const path = realpathSync(attestationPath);
+  if (relative(root, path).startsWith(".."))
+    throw new Error("controller attestation is outside the trusted root");
+  if ((statSync(path).mode & 0o022) !== 0)
+    throw new Error(
+      "controller attestation is writable outside the controller",
+    );
+  const attestation = JSON.parse(
+    readFileSync(path, "utf8"),
+  ) as Partial<ControllerAttestation>;
+  if (
+    typeof attestation.baseSha !== "string" ||
+    attestation.origin !== "protected-controller" ||
+    typeof attestation.nonce !== "string" ||
+    typeof attestation.issuedAt !== "number" ||
+    typeof attestation.expiresAt !== "number" ||
+    typeof attestation.signature !== "string" ||
+    attestation.expiresAt <= Date.now() ||
+    attestation.issuedAt > Date.now() ||
+    attestation.expiresAt - attestation.issuedAt > 300_000
+  )
+    throw new Error("protected controller attestation is invalid or expired");
+  const key = readFileSync(resolve(root, "attestation.key"), "utf8").trim();
+  const expected = createHmac("sha256", key)
+    .update(
+      attestationPayload(
+        attestation as Omit<ControllerAttestation, "signature">,
+      ),
+    )
+    .digest("hex");
+  if (
+    !/^[a-f0-9]{64}$/u.test(attestation.signature) ||
+    !timingSafeEqual(Buffer.from(expected), Buffer.from(attestation.signature))
+  )
+    throw new Error("protected controller attestation signature is invalid");
+  return attestation as ControllerAttestation;
+};
+
 export const resolveAcceptanceRun = (
   root: string,
+  trustedRoot = trustedControllerAttestationRoot,
 ): {
   readonly root: string;
   readonly protectedBaseSha: string;
@@ -302,33 +404,30 @@ export const resolveAcceptanceRun = (
   const attestationPath = process.env.PROTECTED_CONTROLLER_ATTESTATION_FILE;
   if (attestationPath === undefined)
     throw new Error("protected controller attestation is required");
-  let attestation: {
-    baseSha?: string;
-    candidateCommit?: string;
-    origin?: string;
-    nonce?: string;
-  };
   try {
-    attestation = JSON.parse(
-      readFileSync(attestationPath, "utf8"),
-    ) as typeof attestation;
+    const attestation = verifyControllerAttestation(
+      attestationPath,
+      trustedRoot,
+    );
+    if (
+      process.env.PROTECTED_CANDIDATE_COMMIT !== undefined &&
+      attestation.candidateCommit !== process.env.PROTECTED_CANDIDATE_COMMIT
+    )
+      throw new Error(
+        "protected controller attestation does not bind this acceptance run",
+      );
+    if (!/^[a-f0-9]{40}(?:[a-f0-9]{24})?$/u.test(attestation.baseSha))
+      throw new Error(
+        "protected controller must provide an immutable base SHA",
+      );
+    return {
+      root,
+      protectedBaseSha: attestation.baseSha,
+      mode: "authoritative",
+    };
   } catch {
     throw new Error("protected controller attestation is unreadable");
   }
-  const protectedBaseSha = attestation.baseSha;
-  if (
-    attestation.origin !== "protected-controller" ||
-    !attestation.nonce ||
-    protectedBaseSha === undefined ||
-    (process.env.PROTECTED_CANDIDATE_COMMIT !== undefined &&
-      attestation.candidateCommit !== process.env.PROTECTED_CANDIDATE_COMMIT)
-  )
-    throw new Error(
-      "protected controller attestation does not bind this acceptance run",
-    );
-  if (!/^[a-f0-9]{40}(?:[a-f0-9]{24})?$/u.test(protectedBaseSha))
-    throw new Error("protected controller must provide an immutable base SHA");
-  return { root, protectedBaseSha, mode: "authoritative" };
 };
 
 if (isDirectRun(import.meta.url)) {

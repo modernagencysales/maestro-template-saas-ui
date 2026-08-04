@@ -6,12 +6,12 @@ import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
 
 import databaseSchema from "../_generated/schema";
-import { DatabaseReader, DatabaseWriter } from "../_generated/services";
+import { Auth, DatabaseReader, DatabaseWriter } from "../_generated/services";
 import { roleAtLeast, type Role } from "../access/roles";
 import { requireWorkspaceAccess } from "../capabilities/_kit/workspaceAccess";
 import { requireAdmittedOperation } from "../capabilities/_kit/admissionGuard";
 import { applyFeatureFlagAfterOwnerAdmission } from "../capabilities/_kit/surfaces";
-import { ValidationFailed } from "../errors";
+import { Unauthorized, ValidationFailed } from "../errors";
 import flags from "./flags.spec";
 
 const defaultFeatureFlagPolicies = [
@@ -88,6 +88,10 @@ const evaluate = FunctionImpl.make(
   "evaluate",
   ({ workspaceId }) =>
     Effect.gen(function* () {
+      const auth = yield* Auth;
+      yield* auth.getUserIdentity.pipe(
+        Effect.mapError(() => new Unauthorized()),
+      );
       // The generated public-surface registry is the admission authority for
       // this operation; policy state may only further disable a permitted
       // operation.

@@ -53,6 +53,23 @@ export type HeadlessHttpCtx = {
   ) => Promise<unknown>;
 };
 
+const requireHttpAuthentication = async (
+  ctx: HeadlessHttpCtx,
+): Promise<unknown> => {
+  if (ctx.authenticate === undefined)
+    throw new Error("HTTP authentication adapter is required");
+  return await ctx.authenticate();
+};
+
+const requireHttpAuthorization = async (
+  ctx: HeadlessHttpCtx,
+  request: HeadlessExecutorRequest,
+): Promise<void> => {
+  if (ctx.authorize === undefined)
+    throw new Error("HTTP authorization adapter is required");
+  await ctx.authorize(request);
+};
+
 type TemplateRouteMatch =
   | { readonly kind: "openapi" }
   | { readonly kind: "docs" }
@@ -239,10 +256,8 @@ const runTemplateApiOperation = async (
   runAdmittedOperation({
     operationId: request.operationId,
     transport: "api",
-    authenticate: ctx.authenticate ?? (async () => undefined),
-    authorize: async () => {
-      await (ctx.authorize ?? (async () => undefined))(request);
-    },
+    authenticate: () => requireHttpAuthentication(ctx),
+    authorize: () => requireHttpAuthorization(ctx, request),
     run: async () =>
       executeHeadlessOperation(
         {
@@ -559,8 +574,15 @@ const buildTemplateHttpRouter = () => {
   });
   const handler = httpActionGeneric(async (ctx, request) => {
     const headlessCtx: HeadlessHttpCtx = {
-      authenticate: async () => undefined,
-      authorize: async () => undefined,
+      authenticate: async () => {
+        const identity = await ctx.auth.getUserIdentity();
+        if (identity === null) throw new Error("HTTP authentication failed");
+        return identity;
+      },
+      authorize: async () => {
+        const identity = await ctx.auth.getUserIdentity();
+        if (identity === null) throw new Error("HTTP authorization failed");
+      },
       runQuery: (ref, input) => ctx.runQuery(ref as never, input as never),
       runMutation: (ref, input) =>
         ctx.runMutation(ref as never, input as never),

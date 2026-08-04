@@ -1,4 +1,5 @@
 import { spawnSync } from "node:child_process";
+import { createHmac } from "node:crypto";
 import { existsSync } from "node:fs";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
@@ -514,33 +515,62 @@ it("accepts an attested immutable base and rejects candidate environment bases",
   temporaryRoots.push(fixtureRoot);
   const attestationPath = join(fixtureRoot, "attestation.json");
   const baseSha = "a".repeat(40);
+  const key = "controller-test-key";
+  await writeFile(join(fixtureRoot, "attestation.key"), key, { mode: 0o600 });
+  const issuedAt = Date.now();
+  const unsigned = {
+    baseSha,
+    origin: "protected-controller" as const,
+    nonce: "controller-nonce",
+    issuedAt,
+    expiresAt: issuedAt + 60_000,
+  };
   await writeFile(
     attestationPath,
     JSON.stringify({
-      baseSha,
-      origin: "protected-controller",
-      nonce: "controller-nonce",
+      ...unsigned,
+      signature: createHmac("sha256", key)
+        .update(
+          JSON.stringify({
+            baseSha,
+            candidateCommit: null,
+            expiresAt: unsigned.expiresAt,
+            issuedAt,
+            nonce: "controller-nonce",
+            origin: "protected-controller",
+          }),
+        )
+        .digest("hex"),
     }),
+    { mode: 0o600 },
   );
   const original = {
     attestation: process.env.PROTECTED_CONTROLLER_ATTESTATION_FILE,
     base: process.env.PROTECTED_BASE_SHA,
     origin: process.env.PROTECTED_CONTROLLER_ORIGIN,
   };
+  const spoofPath = join(fixtureRoot, "..", "spoof-attestation.json");
   process.env.PROTECTED_CONTROLLER_ATTESTATION_FILE = attestationPath;
   delete process.env.PROTECTED_BASE_SHA;
   delete process.env.PROTECTED_CONTROLLER_ORIGIN;
   try {
-    expect(resolveAcceptanceRun(fixtureRoot)).toEqual({
+    expect(resolveAcceptanceRun(fixtureRoot, fixtureRoot)).toEqual({
       root: fixtureRoot,
       protectedBaseSha: baseSha,
       mode: "authoritative",
     });
     process.env.PROTECTED_BASE_SHA = "origin/main";
-    expect(() => resolveAcceptanceRun(fixtureRoot)).toThrow(
+    expect(() => resolveAcceptanceRun(fixtureRoot, fixtureRoot)).toThrow(
       /candidate environment/u,
     );
+    await writeFile(spoofPath, JSON.stringify({ ...unsigned, signature: "x" }));
+    process.env.PROTECTED_CONTROLLER_ATTESTATION_FILE = spoofPath;
+    delete process.env.PROTECTED_BASE_SHA;
+    expect(() => resolveAcceptanceRun(fixtureRoot, fixtureRoot)).toThrow(
+      /unreadable|trusted root/u,
+    );
   } finally {
+    await rm(spoofPath, { force: true });
     if (original.attestation === undefined)
       delete process.env.PROTECTED_CONTROLLER_ATTESTATION_FILE;
     else

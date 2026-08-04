@@ -13,6 +13,8 @@ const readJson = async (response: Response): Promise<unknown> =>
   JSON.parse(await response.text());
 
 const noopCtx: HeadlessHttpCtx = {
+  authenticate: async () => ({ subject: "test-subject" }),
+  authorize: async () => undefined,
   runQuery: async () => {
     throw new Error("runQuery should not be called");
   },
