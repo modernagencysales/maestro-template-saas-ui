@@ -12,10 +12,48 @@ describe("candidate sandbox", () => {
       HOME: "/tmp/candidate-home",
       npm_config_registry: "http://dependency-proxy:4873",
     });
-    const argv = candidateSandboxArgv({ workspace: "/candidate" });
-    expect(argv).toContain("--unshare-net");
+    const argv = candidateSandboxArgv({
+      workspace: "/scratch/candidate",
+      sourceWorkspace: "/read-only/source",
+      runtime: "/controller/runtime",
+      dependencyProxy: "/controller/dependency-proxy",
+    });
+    expect(argv).toEqual(
+      expect.arrayContaining([
+        "--unshare-user",
+        "--unshare-pid",
+        "--unshare-ipc",
+        "--unshare-uts",
+        "--unshare-cgroup",
+        "--unshare-net",
+      ]),
+    );
+    expect(argv).not.toContain("--unshare-all");
+    expect(argv).not.toContain("--share-net");
+    expect(argv).toEqual(
+      expect.arrayContaining([
+        "--ro-bind",
+        "/read-only/source",
+        "/source",
+        "--bind",
+        "/scratch/candidate",
+        "/candidate",
+        "--ro-bind",
+        "/controller/runtime",
+        "/runtime",
+        "--ro-bind",
+        "/controller/dependency-proxy",
+        "/dependency-proxy",
+        "--rlimit-as",
+        "1073741824",
+        "--rlimit-cpu",
+        "300",
+        "--rlimit-nofile",
+        "1024",
+      ]),
+    );
     expect(argv.join(" ")).not.toMatch(
-      /GITHUB_TOKEN|BWS|CLOUDFLARE|SSH_AUTH_SOCK|docker\.sock|controller/u,
+      /GITHUB_TOKEN|BWS|CLOUDFLARE|SSH_AUTH_SOCK|docker\.sock/u,
     );
   });
 

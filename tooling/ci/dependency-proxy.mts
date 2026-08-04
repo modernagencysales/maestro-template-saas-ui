@@ -1,6 +1,10 @@
 import { createHash } from "node:crypto";
+import { lookup } from "node:dns/promises";
 import { readFileSync, writeFileSync } from "node:fs";
+import { createServer, type Server } from "node:http";
+import { request as httpsRequest } from "node:https";
 import { isIP } from "node:net";
+import { gunzipSync } from "node:zlib";
 
 export type DependencyArtifact = {
   readonly package: string;
@@ -49,6 +53,230 @@ export function validateAllowlistedArtifact(
   if (!found)
     throw new Error("artifact is not present in the protected allowlist");
   return found;
+}
+
+const MAX_ARTIFACT_BYTES = 64 * 1024 * 1024;
+
+type ControllerArtifactResponse = {
+  readonly status: number;
+  readonly headers: Readonly<Record<string, string | undefined>>;
+  readonly body: Uint8Array;
+};
+
+type ControllerArtifactFetch = {
+  readonly resolve?: (hostname: string) => Promise<readonly string[]>;
+  readonly request?: (input: {
+    readonly artifact: DependencyArtifact;
+    readonly address: string;
+    readonly maxBytes: number;
+  }) => Promise<ControllerArtifactResponse>;
+  readonly maxBytes?: number;
+};
+
+function isPublicRegistryAddress(address: string): boolean {
+  if (isIP(address) === 4) {
+    const octets = address.split(".").map(Number);
+    const [first, second] = octets;
+    return !(
+      first === 0 ||
+      first === 10 ||
+      first === 127 ||
+      first >= 224 ||
+      (first === 100 && second >= 64 && second <= 127) ||
+      (first === 169 && second === 254) ||
+      (first === 172 && second >= 16 && second <= 31) ||
+      (first === 192 && (second === 0 || second === 168)) ||
+      (first === 198 && (second === 18 || second === 19))
+    );
+  }
+  const normalized = address.toLowerCase();
+  return (
+    isIP(address) === 6 &&
+    normalized !== "::" &&
+    normalized !== "::1" &&
+    !normalized.startsWith("fc") &&
+    !normalized.startsWith("fd") &&
+    !normalized.startsWith("fe80:") &&
+    !normalized.startsWith("ff")
+  );
+}
+
+async function resolveRegistry(hostname: string): Promise<readonly string[]> {
+  return (await lookup(hostname, { all: true })).map(({ address }) => address);
+}
+
+async function requestPinnedArtifact(input: {
+  readonly artifact: DependencyArtifact;
+  readonly address: string;
+  readonly maxBytes: number;
+}): Promise<ControllerArtifactResponse> {
+  const url = assertSafeRegistryUrl(input.artifact.url);
+  return new Promise((resolve, reject) => {
+    const request = httpsRequest(
+      {
+        hostname: url.hostname,
+        method: "GET",
+        path: `${url.pathname}${url.search}`,
+        lookup: (_hostname, _options, callback) =>
+          callback(null, input.address, isIP(input.address)),
+        timeout: 30_000,
+      },
+      (response) => {
+        const chunks: Buffer[] = [];
+        let size = 0;
+        response.on("data", (chunk: Buffer) => {
+          size += chunk.byteLength;
+          if (size > input.maxBytes) {
+            request.destroy(
+              new Error("artifact exceeds controller byte limit"),
+            );
+            return;
+          }
+          chunks.push(chunk);
+        });
+        response.on("end", () =>
+          resolve({
+            status: response.statusCode ?? 0,
+            headers: Object.fromEntries(
+              Object.entries(response.headers).map(([key, value]) => [
+                key,
+                Array.isArray(value) ? value.join(",") : value,
+              ]),
+            ),
+            body: Buffer.concat(chunks),
+          }),
+        );
+        response.on("error", reject);
+      },
+    );
+    request.on("error", reject);
+    request.on("timeout", () =>
+      request.destroy(new Error("registry artifact fetch timed out")),
+    );
+    request.end();
+  });
+}
+
+/** Fetch once through a controller-pinned address before exposing an artifact. */
+export async function fetchControllerArtifact(
+  artifact: DependencyArtifact,
+  input: ControllerArtifactFetch = {},
+): Promise<Uint8Array> {
+  const url = assertSafeRegistryUrl(artifact.url);
+  const maxBytes = input.maxBytes ?? MAX_ARTIFACT_BYTES;
+  const addresses = await (input.resolve ?? resolveRegistry)(url.hostname);
+  const address = addresses.at(0);
+  if (!address || addresses.some((entry) => !isPublicRegistryAddress(entry)))
+    throw new Error("registry resolved to a private or non-public address");
+  const response = await (input.request ?? requestPinnedArtifact)({
+    artifact,
+    address,
+    maxBytes,
+  });
+  if (response.status >= 300 && response.status < 400)
+    throw new Error("registry artifact redirect is forbidden");
+  if (response.status !== 200)
+    throw new Error(`registry artifact fetch failed: ${response.status}`);
+  const contentLength = response.headers["content-length"];
+  if (!contentLength || !/^\d+$/u.test(contentLength))
+    throw new Error("registry artifact content-length is required");
+  const declaredBytes = Number(contentLength);
+  if (!Number.isSafeInteger(declaredBytes) || declaredBytes > maxBytes)
+    throw new Error("artifact exceeds controller byte limit");
+  if (response.body.byteLength !== declaredBytes)
+    throw new Error("registry artifact content length mismatch");
+  inspectArtifact(response.body, artifact.integrity, maxBytes);
+  return response.body;
+}
+
+/** Validate the complete compressed tarball before the proxy releases any bytes. */
+export function inspectArtifact(
+  bytes: Uint8Array,
+  integrity: string,
+  maxBytes = MAX_ARTIFACT_BYTES,
+): void {
+  if (bytes.byteLength > maxBytes)
+    throw new Error("artifact exceeds controller byte limit");
+  const actual = `sha512-${createHash("sha512").update(bytes).digest("base64")}`;
+  if (actual !== integrity)
+    throw new Error("artifact content integrity mismatch");
+  let tar: Buffer;
+  try {
+    tar = gunzipSync(bytes);
+  } catch {
+    throw new Error("artifact is not a gzip tarball");
+  }
+  for (let offset = 0; offset + 512 <= tar.length;) {
+    const header = tar.subarray(offset, offset + 512);
+    if (header.every((byte) => byte === 0)) break;
+    const name = [
+      header.subarray(345, 500).toString("utf8").replace(/\0.*$/u, ""),
+      header.subarray(0, 100).toString("utf8").replace(/\0.*$/u, ""),
+    ]
+      .filter(Boolean)
+      .join("/");
+    const type = String.fromCharCode(header[156] || 48);
+    try {
+      assertSafeArchiveEntry(
+        name,
+        type === "5"
+          ? "directory"
+          : type === "0" || type === "\0"
+            ? "file"
+            : "link",
+      );
+    } catch {
+      throw new Error(`unsafe archive entry: ${name} (${type})`);
+    }
+    const sizeText = header
+      .subarray(124, 136)
+      .toString("ascii")
+      .replace(/\0.*$/u, "")
+      .trim();
+    if (sizeText && !/^[0-7]+$/u.test(sizeText))
+      throw new Error("unsafe archive size");
+    const size = sizeText ? Number.parseInt(sizeText, 8) : 0;
+    if (!Number.isSafeInteger(size) || size < 0)
+      throw new Error("unsafe archive size");
+    const next = offset + 512 + Math.ceil(size / 512) * 512;
+    if (next > tar.length) throw new Error("truncated archive entry");
+    offset = next;
+  }
+}
+
+export function createDependencyProxy(input: {
+  readonly allowlist: DependencyAllowlist;
+  readonly fetchArtifact?: (
+    artifact: DependencyArtifact,
+  ) => Promise<Uint8Array>;
+  readonly maxBytes?: number;
+}): Server {
+  const fetchArtifact = input.fetchArtifact ?? fetchControllerArtifact;
+  return createServer(async (request, response) => {
+    try {
+      if (request.method !== "GET" || !request.url)
+        throw new Error("only GET artifact requests are allowed");
+      const url = `https://registry.npmjs.org${request.url}`;
+      const artifact = input.allowlist.artifacts.find(
+        (entry) => entry.url === url,
+      );
+      if (!artifact)
+        throw new Error("artifact is not present in the protected allowlist");
+      const bytes = await fetchArtifact(artifact);
+      inspectArtifact(bytes, artifact.integrity, input.maxBytes);
+      response.writeHead(200, {
+        "content-type": "application/octet-stream",
+        "content-length": String(bytes.byteLength),
+        "cache-control": "private, immutable",
+      });
+      response.end(bytes);
+    } catch (error) {
+      response.writeHead(403, { "content-type": "text/plain" });
+      response.end(
+        error instanceof Error ? error.message : "artifact rejected",
+      );
+    }
+  });
 }
 
 function tarballUrl(name: string, version: string): string {
