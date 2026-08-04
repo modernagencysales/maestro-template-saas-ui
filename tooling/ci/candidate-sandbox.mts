@@ -1,10 +1,13 @@
 import { existsSync, readFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 
-export function candidateEnvironment(): Readonly<Record<string, string>> {
+export function candidateEnvironment(
+  proxyUrl = process.env.DEPENDENCY_PROXY_URL ?? "http://127.0.0.1:4873",
+): Readonly<Record<string, string>> {
   return {
     CI: "true",
     HOME: "/tmp/candidate-home",
+    npm_config_registry: proxyUrl,
   };
 }
 
@@ -53,10 +56,13 @@ export function candidateSandboxArgv(input: {
   ];
 }
 
-export function assertCandidateDependencyProxyIsWired(): never {
-  throw new Error(
-    "candidate install requires a controller-local dependency proxy wired into its network namespace",
-  );
+export function assertCandidateDependencyProxyIsWired(
+  wired = process.env.DEPENDENCY_PROXY_WIRED === "1",
+): void {
+  if (!wired)
+    throw new Error(
+      "candidate install requires a controller-local dependency proxy wired into its network namespace",
+    );
 }
 
 export function validateCandidateLockfile(input: {

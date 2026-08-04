@@ -11,6 +11,7 @@ describe("candidate sandbox", () => {
     expect(candidateEnvironment()).toEqual({
       CI: "true",
       HOME: "/tmp/candidate-home",
+      npm_config_registry: "http://127.0.0.1:4873",
     });
     const argv = candidateSandboxArgv({
       workspace: "/scratch/candidate",
@@ -75,5 +76,6 @@ describe("candidate sandbox", () => {
     expect(() => assertCandidateDependencyProxyIsWired()).toThrow(
       /controller-local dependency proxy/u,
     );
+    expect(() => assertCandidateDependencyProxyIsWired(true)).not.toThrow();
   });
 });

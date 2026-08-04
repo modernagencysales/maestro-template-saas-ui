@@ -62,6 +62,75 @@ export type ProtectedControllerApi = {
 export type ProtectedControllerAdapterFactory = () =>
   ProtectedControllerApi | Promise<ProtectedControllerApi>;
 
+function httpEndpoint(input: {
+  readonly baseUrl: string;
+  readonly token: string;
+}): ProtectedControllerEndpoint {
+  const base = new URL(input.baseUrl);
+  if (base.protocol !== "https:")
+    throw new Error("protected controller endpoints require HTTPS");
+  const request = async (
+    method: ProtectedInverseOperation["method"] | "GET",
+    document: ProtectedExternalDocument,
+  ): Promise<ProtectedExternalDocument> => {
+    const path = document.resourceId.startsWith("/")
+      ? document.resourceId
+      : `/${document.resourceId}`;
+    const url = new URL(path, base);
+    const response = await fetch(url, {
+      method,
+      headers: {
+        accept: "application/json",
+        authorization: `Bearer ${input.token}`,
+        ...(method === "GET" || method === "DELETE"
+          ? {}
+          : { "content-type": "application/json" }),
+      },
+      body:
+        method === "GET" || method === "DELETE"
+          ? undefined
+          : JSON.stringify(document.canonicalBody),
+      signal: AbortSignal.timeout(15_000),
+      redirect: "error",
+    });
+    if (!response.ok)
+      throw new Error(
+        `protected controller ${method} ${path}: ${response.status}`,
+      );
+    const body =
+      method === "DELETE"
+        ? {}
+        : ((await response.json()) as Record<string, unknown>);
+    return sanitizedDocument({
+      ...document,
+      canonicalBody: body,
+    });
+  };
+  return {
+    observe: (document) => request("GET", document),
+    write: async ({ method, document }) => {
+      await request(method, document);
+    },
+  };
+}
+
+export function createProtectedControllerHttpAdapter(): ProtectedControllerApi {
+  const githubToken = process.env.GITHUB_TOKEN;
+  const woodpeckerToken = process.env.WOODPECKER_TOKEN;
+  if (!githubToken || !woodpeckerToken)
+    throw new Error("protected controller credentials are unavailable");
+  return {
+    github: httpEndpoint({
+      baseUrl: process.env.GITHUB_API_URL ?? "https://api.github.com",
+      token: githubToken,
+    }),
+    woodpecker: httpEndpoint({
+      baseUrl: process.env.WOODPECKER_SERVER ?? "https://ci.maestrogtm.com",
+      token: woodpeckerToken,
+    }),
+  };
+}
+
 export function verifyProtectedBootstrap(
   observation: ProtectedBootstrapObservation,
 ): readonly string[] {
@@ -307,6 +376,9 @@ export async function executeProtectedTransition(input: {
         throw new Error(
           `inverse has no forward document: ${inverse.resourcePath}`,
         );
+      const live = await observeDocument(input.api, forward);
+      if (live.sha256 !== sanitizedDocument(forward).sha256)
+        throw new Error(`compare-and-swap drift for ${forward.resourceId}`);
       const document = sanitizedDocument({
         ...forward,
         resourceId: inverse.resourcePath,
@@ -393,6 +465,8 @@ function jsonFlag<Value>(flagName: string): Value {
 async function protectedControllerApi(): Promise<ProtectedControllerApi> {
   const adapterModule =
     flag("--adapter-module") ?? process.env.PROTECTED_BOOTSTRAP_ADAPTER_MODULE;
+  if (!adapterModule && process.env.PROTECTED_CONTROLLER_HTTP === "1")
+    return createProtectedControllerHttpAdapter();
   if (!adapterModule)
     throw new Error(
       "protected controller adapter is required; candidate mode cannot access external writes",
