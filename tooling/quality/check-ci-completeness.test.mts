@@ -37,7 +37,7 @@ describe("check:ci-completeness", () => {
       ({ file }) => file === ".woodpecker/firewall.yml",
     );
     expect(firewallPipeline?.includes).toContain(
-      'git archive "origin/${BASE_BRANCH}"',
+      'git archive "origin/$${BASE_BRANCH}"',
     );
     const firewallScript = descriptor.requirements.find(
       ({ file }) => file === "tooling/ci/firewall.sh",

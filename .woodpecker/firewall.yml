@@ -55,7 +55,7 @@ steps:
         BASE_BRANCH="${CI_COMMIT_TARGET_BRANCH:-main}"
         TRUSTED_TREE="$(mktemp -d)"
         trap 'rm -rf "$TRUSTED_TREE"' EXIT
-        git archive "origin/${BASE_BRANCH}" AGENTS.md tooling/quality package.json pnpm-lock.yaml pnpm-workspace.yaml | tar -x -C "$TRUSTED_TREE"
+        git archive "origin/$${BASE_BRANCH}" AGENTS.md tooling/quality package.json pnpm-lock.yaml pnpm-workspace.yaml | tar -x -C "$TRUSTED_TREE"
         export CONTRACT_REVIEW_WORKTREE="$CI_WORKSPACE"
         export TASTE_REVIEW_WORKTREE="$CI_WORKSPACE"
         pnpm exec tsx "$TRUSTED_TREE/tooling/quality/ai-review-cycle.mts"

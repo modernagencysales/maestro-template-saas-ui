@@ -15,7 +15,7 @@ const checkDescriptorDefinitions = {
           "tooling/ci/ci-self-protection.sh",
           "tooling/ci/firewall.sh",
           "bounded-ai-review",
-          'git archive "origin/${BASE_BRANCH}"',
+          'git archive "origin/$${BASE_BRANCH}"',
           'pnpm exec tsx "$TRUSTED_TREE/tooling/quality/ai-review-cycle.mts"',
           "class: firewall",
           "depends_on:",

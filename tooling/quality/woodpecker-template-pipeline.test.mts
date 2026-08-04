@@ -48,7 +48,7 @@ describe("Woodpecker firewall and epoch pipelines", () => {
   it("keeps provider secrets behind a trusted bounded-review step", () => {
     const firewall = read(".woodpecker/firewall.yml");
     expect(firewall).toContain("name: bounded-ai-review");
-    expect(firewall).toContain('git archive "origin/${BASE_BRANCH}"');
+    expect(firewall).toContain('git archive "origin/$${BASE_BRANCH}"');
     expect(firewall).toContain(
       'pnpm exec tsx "$TRUSTED_TREE/tooling/quality/ai-review-cycle.mts"',
     );
