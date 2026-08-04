@@ -2,25 +2,29 @@
 
 ## Outcome
 
-Closed the reviewed W0 source blockers without changing the implementation plan.
-The protected candidate launcher no longer has a shared-network mode. It uses an
-unshared Bubblewrap network namespace and an immutable `socat` bridge to the
-controller dependency proxy's fixed Unix socket. Package fetch and offline
-install now run in one namespace so the tmpfs pnpm store survives.
+Closed the four latest W0 review blockers.
 
-The controller image now embeds the protected-bootstrap operator, the reviewed
-allowlist, and a minimal immutable node/pnpm/socat runtime. Its fixed entrypoint
-is `/controller/bin/protected-bootstrap`; arbitrary adapter modules are
-rejected.
+1. Bubblewrap now uses `--clearenv` and explicit `--setenv` entries only. The
+   immutable runner rejects every unexpected environment variable and an escaped
+   working directory. CPU/file limits use `prlimit`; Node heap is capped because
+   Bubblewrap 0.8 has no rlimit flags and Node cannot start Undici under a low
+   virtual-address limit.
+2. GitHub rulesets and Woodpecker repository metadata now have strict provider
+   response schemas. Protected producer/secret-reference state is explicitly a
+   separate `maestro.protected-ci/v1` controller contract, not an invented
+   Woodpecker endpoint. Missing contract version/URL/token or malformed bodies
+   fail before a write. Arbitrary adapter modules remain rejected.
+3. Every transition document records pending, forward-written, forward-verified,
+   inverse-written, or inverse-verified progress. The journal is atomically
+   persisted after each write/read. A restart test proves rollback from a mixed
+   state where GitHub was updated and Woodpecker had not been.
+4. The image entrypoint is a fixed dispatcher that orchestrates the embedded
+   dependency proxy and sandbox. Its real canary creates an empty locked app,
+   proves no environment inheritance, proves direct registry egress fails,
+   reaches only the Unix-socket proxy bridge, and completes pnpm fetch plus
+   offline install.
 
-The transition journal now records an operation nonce, operator identity,
-creation/expiry times, and consumed confirmations. Writes hold an exclusive
-lock, confirmations are replay rejected, journal writes are atomic and mode
-0600, and every preimage/postimage/post-read is bound to the observed
-repository. The CLI derives transition documents from typed repository flags and
-implements observe, install-temporary, enable-canonical, remove-temporary,
-verify, and named-step rollback. A child-process test drives observe -> install
--> verify -> rollback against fake GitHub/Woodpecker HTTP servers.
+The candidate network is always unshared. There is no `--share-net` mode.
 
 ## Files
 
@@ -28,58 +32,63 @@ verify, and named-step rollback. A child-process test drives observe -> install
 - `tooling/ci/protected-bootstrap.test.mts`
 - `tooling/ci/candidate-sandbox.mts`
 - `tooling/ci/candidate-sandbox.test.mts`
-- `tooling/ci/dependency-proxy.mts`
-- `tooling/ci/dependency-proxy.test.mts`
+- `tooling/ci/controller-runtime.mjs`
 - `tooling/ci/controller.Dockerfile`
 - `tooling/ci/sandbox-runner.mjs`
 - `docs/template/protected-ci-bootstrap.md`
 
-The pre-existing dependency-proxy public-address hardening was retained. The
-three unrelated deleted Confect fixture files were not staged.
+The earlier dependency-proxy hardening remains in commit `a46f5f6a4`. The three
+unrelated deleted Confect fixture files remain unstaged.
 
 ## Verification
 
 ```text
 HOST_TEST_SLOT_ACTIVE=1 pnpm exec vitest run tooling/ci/protected-bootstrap.test.mts --maxWorkers=1 --no-file-parallelism --testTimeout=30000
-PASS: 1 file, 13 tests
+PASS: 1 file, 15 tests
 
 HOST_TEST_SLOT_ACTIVE=1 pnpm exec vitest run tooling/ci/candidate-sandbox.test.mts tooling/ci/dependency-proxy.test.mts tooling/quality/check-ci-completeness.test.mts tooling/quality/woodpecker-template-pipeline.test.mts --maxWorkers=1 --no-file-parallelism --testTimeout=30000
 PASS: 4 files, 26 tests
 
-pnpm exec eslint <changed source/test files>
+pnpm exec tsc --noEmit --target ES2022 --module nodenext --moduleResolution nodenext --allowImportingTsExtensions --types node,vitest/globals --skipLibCheck <six W0 TypeScript files>
 PASS
 
-pnpm exec prettier --check <changed source/test/docs files>
+pnpm exec eslint <changed W0 source/test files>
+PASS
+
+pnpm exec prettier --check <changed W0 source/test/docs files>
 PASS
 
 git diff --check
 PASS
 ```
 
-Focused standalone TypeScript checking found and fixed the production readonly
-journal cast and a test allowlist type. Re-run after commit is recommended as
-part of review.
-
-## Bounded Docker canary
-
-Attempted twice:
+## Real controller image canary
 
 ```text
-docker build --progress=plain -f tooling/ci/controller.Dockerfile -t maestro-w0-controller:canary .
+docker build -f tooling/ci/controller.Dockerfile -t maestro-w0-controller:canary .
+PASS: local manifest list sha256:7444943921b8ab3875ab991d266ebfee31da99b78eeeda4092e5a5dcab4ede62
+
+docker run --rm --privileged maestro-w0-controller:canary canary
+PASS:
+  dependency proxy listening on /controller/proxy/dependency.sock
+  Already up to date
+  Done in 651ms using pnpm v10.12.1
+  protected controller canary passed
 ```
 
-The first attempt exposed and fixed an `ldd` header parsing bug. The second host
-build remained in the base package-install layer for more than one minute and
-was terminated by PID after the bounded attempt; no image was published and no
-real Bubblewrap install canary was claimed. The immutable argv/runtime tests
-fail closed, but the image must still be built and its actual candidate install
-run on the Linux Woodpecker agent before external trust-floor installation.
+OrbStack required `--privileged` to permit nested user/mount namespaces. The
+candidate itself still creates its own user, PID, IPC, UTS, cgroup, and network
+namespaces and receives only the immutable runtime, candidate workspace, proc,
+dev, tmpfs, and proxy socket directory. The production Woodpecker agent must run
+the same canary with its narrower native user-namespace policy before the image
+digest is published.
 
-## Remaining external concern
+## External cutover prerequisite
 
-The typed fake API test proves routing, compare-and-swap, restart, replay, and
-rollback behavior. The concrete server-side Woodpecker producer routes
-(`/api/repos/<owner>/<repo>/producer` and secret-reference representation) still
-need validation against the deployed protected controller/Woodpecker API before
-any external write. Do not install the temporary trust floor until that live,
-read-only observation and the Linux image canary both pass.
+Source behavior is deterministic and tested, but no external transition was
+performed. The deployed protected controller service must advertise and satisfy
+`maestro.protected-ci/v1` at the documented `/v1/repositories/...` resources.
+Read-only observe must pass against that deployment and the Woodpecker agent
+must pass the image canary before temporary trust-floor installation. The
+operator now fails closed instead of pretending unsupported Woodpecker producer
+routes exist.

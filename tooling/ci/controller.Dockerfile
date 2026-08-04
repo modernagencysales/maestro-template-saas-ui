@@ -10,9 +10,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends bubblewrap ca-c
 COPY tooling/ci/protected-bootstrap.mts /controller/protected-bootstrap.mts
 COPY tooling/ci/candidate-sandbox.mts tooling/ci/dependency-proxy.mts tooling/ci/dependency-allowlist.json /controller/
 COPY tooling/ci/sandbox-runner.mjs /controller/runtime/sandbox-runner.mjs
+COPY tooling/ci/controller-runtime.mjs /controller/bin/controller-runtime.mjs
 RUN printf '#!/bin/sh\nexec /usr/local/bin/node --experimental-strip-types /controller/protected-bootstrap.mts "$@"\n' > /controller/bin/protected-bootstrap \
-  && chmod 0555 /controller/bin/protected-bootstrap /controller/runtime/bin/node /controller/runtime/bin/socat \
+  && printf '#!/bin/sh\nexec /usr/local/bin/node /controller/bin/controller-runtime.mjs "$@"\n' > /controller/bin/controller-runtime \
+  && chmod 0555 /controller/bin/protected-bootstrap /controller/bin/controller-runtime /controller/bin/controller-runtime.mjs /controller/runtime/bin/node /controller/runtime/bin/socat \
   && chmod -R a-w /controller/runtime /controller/*.mts /controller/dependency-allowlist.json \
   && chown node:node /controller/proxy
 USER node
-ENTRYPOINT ["/controller/bin/protected-bootstrap"]
+ENTRYPOINT ["/controller/bin/controller-runtime"]

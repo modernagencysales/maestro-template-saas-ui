@@ -7,6 +7,7 @@ export function candidateEnvironment(
   return {
     CI: "true",
     HOME: "/tmp/candidate-home",
+    NODE_OPTIONS: "--max-old-space-size=768",
     npm_config_registry: proxyUrl,
   };
 }
@@ -19,9 +20,19 @@ export function candidateSandboxArgv(input: {
   const sourceWorkspace = input.sourceWorkspace ?? input.workspace;
   const runtime = input.runtime ?? "/controller/runtime";
   return [
+    "/usr/bin/prlimit",
+    "--cpu=300",
+    "--nofile=1024",
+    "--",
     "bwrap",
     "--die-with-parent",
     "--new-session",
+    "--clearenv",
+    ...Object.entries(candidateEnvironment()).flatMap(([name, value]) => [
+      "--setenv",
+      name,
+      value,
+    ]),
     "--unshare-user",
     "--unshare-pid",
     "--unshare-ipc",
@@ -57,12 +68,6 @@ export function candidateSandboxArgv(input: {
     "/proc",
     "--dev",
     "/dev",
-    "--rlimit-as",
-    "1073741824",
-    "--rlimit-cpu",
-    "300",
-    "--rlimit-nofile",
-    "1024",
     "--chdir",
     "/candidate",
   ];
@@ -85,13 +90,15 @@ export function assertCandidateDependencyProxyIsWired(
 }
 
 export function candidateInstallCommand(
-  action: "fetch" | "install",
+  action: "fetch" | "install" | "canary",
 ): readonly string[] {
   return ["/runtime/bin/node", "/runtime/sandbox-runner.mjs", action];
 }
 
-export function candidateInstallSequence(): readonly (readonly string[])[] {
-  return [candidateInstallCommand("install")];
+export function candidateInstallSequence(
+  action: "install" | "canary" = "install",
+): readonly (readonly string[])[] {
+  return [candidateInstallCommand(action)];
 }
 
 export function validateCandidateLockfile(input: {
@@ -112,7 +119,8 @@ export function validateCandidateLockfile(input: {
 }
 
 async function main(): Promise<void> {
-  if (process.argv[2] !== "install") return;
+  const action = process.argv[2];
+  if (action !== "install" && action !== "canary") return;
   const workspace = process.cwd();
   const allowlist = JSON.parse(
     readFileSync(
@@ -133,7 +141,7 @@ async function main(): Promise<void> {
   const prefix = candidateSandboxArgv({ workspace });
   const [executable, ...sandboxArgs] = prefix;
   if (!executable) throw new Error("candidate sandbox command is empty");
-  for (const command of candidateInstallSequence()) {
+  for (const command of candidateInstallSequence(action)) {
     const result = spawnSync(executable, [...sandboxArgs, "--", ...command], {
       stdio: "inherit",
     });

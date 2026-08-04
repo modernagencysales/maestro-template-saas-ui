@@ -9,6 +9,7 @@ import {
   digestProtectedDocuments,
   createProtectedControllerHttpAdapter,
   executeProtectedTransition,
+  expectedProtectedTransitionDigest,
   loadProtectedTransitionJournal,
   normalizeProtectedExternalDocument,
   observeProtectedBootstrap,
@@ -64,7 +65,7 @@ function memoryController(initial: readonly ProtectedExternalDocument[]): {
     },
   };
   return {
-    api: { github: endpoint, woodpecker: endpoint },
+    api: { github: endpoint, woodpecker: endpoint, controller: endpoint },
     documents,
     writes,
   };
@@ -111,6 +112,9 @@ describe("protected CI bootstrap", () => {
   it("rejects controller resource paths that escape the configured origin", async () => {
     vi.stubEnv("GITHUB_TOKEN", "test-token");
     vi.stubEnv("WOODPECKER_TOKEN", "test-token");
+    vi.stubEnv("PROTECTED_CONTROLLER_TOKEN", "test-token");
+    vi.stubEnv("PROTECTED_CONTROLLER_API_URL", "https://controller.test");
+    vi.stubEnv("PROTECTED_CONTROLLER_API_VERSION", "maestro.protected-ci/v1");
     vi.stubEnv("GITHUB_API_URL", "https://api.github.test");
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
@@ -273,18 +277,32 @@ describe("protected CI bootstrap", () => {
     const repository = "modernagencysales/maestro-template-saas-ui";
     const resources = [
       document("github-ruleset", `/repos/${repository}/rulesets/1`, {
-        required_status_checks: ["legacy"],
+        name: "main protection",
+        enforcement: "active",
+        rules: [],
       }),
       document("woodpecker-repository", `/api/repos/${repository}`, {
+        id: 42,
+        full_name: repository,
         trusted: false,
       }),
-      document("woodpecker-producer", `/api/repos/${repository}/producer`, {
-        context: "legacy",
-      }),
+      document(
+        "woodpecker-producer",
+        `/v1/repositories/${repository}/producer`,
+        {
+          schema_version: 1,
+          repository,
+          protected_contexts: ["legacy"],
+        },
+      ),
       document(
         "woodpecker-secret-reference",
-        `/api/repos/${repository}/secrets`,
-        { names: ["GITHUB_TOKEN"], pull_request_events: true },
+        `/v1/repositories/${repository}/secret-references`,
+        {
+          schema_version: 1,
+          repository,
+          references: [{ name: "GITHUB_TOKEN", events: ["pull_request"] }],
+        },
       ),
     ];
     const controller = memoryController(resources);
@@ -313,7 +331,7 @@ describe("protected CI bootstrap", () => {
         ...(step.forwardPostimage ?? []),
       ])
         expect(resource.resourceId).toMatch(
-          /^\/(?:repos|api\/repos)\/modernagencysales\/maestro-template-saas-ui(?:\/|$)/u,
+          /^\/(?:repos|api\/repos|v1\/repositories)\/modernagencysales\/maestro-template-saas-ui(?:\/|$)/u,
         );
 
     const temporary = built.steps[0]?.forwardPostimage ?? [];
@@ -326,6 +344,38 @@ describe("protected CI bootstrap", () => {
         api: controller.api,
       }),
     ).resolves.toBeUndefined();
+  });
+
+  it("fails closed when provider responses do not match authoritative schemas", async () => {
+    const repository = journal.observation.repository;
+    const malformed = memoryController([
+      document("github-ruleset", `/repos/${repository}/rulesets/1`, {}),
+      document("woodpecker-repository", `/api/repos/${repository}`, {}),
+      document(
+        "woodpecker-producer",
+        `/v1/repositories/${repository}/producer`,
+        {},
+      ),
+      document(
+        "woodpecker-secret-reference",
+        `/v1/repositories/${repository}/secret-references`,
+        {},
+      ),
+    ]);
+    await expect(
+      buildProtectedWorkflowJournal({
+        repository,
+        baseRef: "main",
+        protectedBaseOid: journal.observation.protectedBaseOid,
+        controllerImageDigest: journal.observation.controllerImageDigest,
+        appId: 123,
+        githubRulesetId: 1,
+        temporaryContext: journal.observation.temporaryContext,
+        operatorIdentity: journal.operatorIdentity,
+        expiresAt: journal.expiresAt,
+        api: malformed.api,
+      }),
+    ).rejects.toThrow(/provider contract/u);
   });
 
   it("permits an uncredentialed candidate preview but refuses a confirmed external write without an injected controller", async () => {
@@ -528,6 +578,120 @@ describe("protected CI bootstrap", () => {
     expect(controller.writes).toEqual([]);
   });
 
+  it("persists per-document progress and rolls back a mixed partial write after restart", async () => {
+    const first = document(
+      "github-ruleset",
+      "/repos/modernagencysales/maestro-template-saas-ui/rulesets/1",
+      { required: "old" },
+    );
+    const second = document(
+      "woodpecker-repository",
+      "/api/repos/modernagencysales/maestro-template-saas-ui",
+      { trusted: false },
+    );
+    const forward = [
+      document("github-ruleset", first.resourceId, { required: "new" }),
+      document("woodpecker-repository", second.resourceId, { trusted: true }),
+    ];
+    const transition: ProtectedTransitionJournal = {
+      ...journal,
+      steps: [
+        {
+          id: "install-temporary",
+          preimage: [first, second],
+          forwardPostimage: forward,
+          inverse: [first, second].map((entry) => ({
+            method: "PUT" as const,
+            resourcePath: entry.resourceId,
+            canonicalBody: entry.canonicalBody,
+          })),
+          inverseAllowedOnlyFrom: digestProtectedDocuments(forward),
+        },
+      ],
+    };
+    const controller = memoryController([first, second]);
+    const originalWrite = controller.api.woodpecker.write;
+    let failSecond = true;
+    const crashing: ProtectedControllerApi = {
+      github: controller.api.github,
+      controller: controller.api.controller,
+      woodpecker: {
+        ...controller.api.woodpecker,
+        write: async (input) => {
+          if (failSecond) throw new Error("simulated controller crash");
+          await originalWrite(input);
+        },
+      },
+    };
+    const directory = mkdtempSync(join(tmpdir(), "protected-partial-"));
+    const path = join(directory, "journal.json");
+    try {
+      saveProtectedTransitionJournal(path, transition);
+      const expected = digestProtectedDocuments([first, second]);
+      await expect(
+        executeProtectedTransition({
+          action: "install-temporary",
+          journal: transition,
+          api: crashing,
+          expectedLiveDigest: expected,
+          confirmation: planProtectedTransition({
+            action: "install-temporary",
+            journal: transition,
+            expectedLiveDigest: expected,
+          }).previewFingerprint,
+          persistJournal: () =>
+            saveProtectedTransitionJournal(path, transition),
+        }),
+      ).rejects.toThrow(/simulated controller crash/u);
+      const restarted = loadProtectedTransitionJournal(path);
+      expect(restarted.steps[0]?.progress).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            resourceId: first.resourceId,
+            state: "forward-verified",
+          }),
+          expect.objectContaining({
+            resourceId: second.resourceId,
+            state: "pending",
+          }),
+        ]),
+      );
+      failSecond = false;
+      const mixedDigest = expectedProtectedTransitionDigest({
+        action: "rollback",
+        journal: restarted,
+        stepId: "install-temporary",
+      });
+      await executeProtectedTransition({
+        action: "rollback",
+        stepId: "install-temporary",
+        journal: restarted,
+        api: crashing,
+        expectedLiveDigest: mixedDigest,
+        confirmation: planProtectedTransition({
+          action: "rollback",
+          stepId: "install-temporary",
+          journal: restarted,
+          expectedLiveDigest: mixedDigest,
+        }).previewFingerprint,
+        persistJournal: () => saveProtectedTransitionJournal(path, restarted),
+      });
+      expect(controller.documents.get(first.resourceId)?.sha256).toBe(
+        first.sha256,
+      );
+      expect(controller.documents.get(second.resourceId)?.sha256).toBe(
+        second.sha256,
+      );
+      expect(loadProtectedTransitionJournal(path).steps[0]?.progress).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ state: "inverse-verified" }),
+        ]),
+      );
+    } finally {
+      rmSync(directory, { recursive: true, force: true });
+    }
+  });
+
   it("durably journals both protected control planes, reloads after restart, and refuses inverse after an intervening write", async () => {
     const github = document(
       "github-ruleset",
@@ -539,7 +703,7 @@ describe("protected CI bootstrap", () => {
     );
     const woodpecker = document(
       "woodpecker-producer",
-      "/api/repos/modernagencysales/maestro-template-saas-ui/producer",
+      "/v1/repositories/modernagencysales/maestro-template-saas-ui/producer",
       {
         context: "ci/woodpecker/pr/protected-bootstrap",
       },
@@ -561,7 +725,7 @@ describe("protected CI bootstrap", () => {
       ),
       document(
         "woodpecker-producer",
-        "/api/repos/modernagencysales/maestro-template-saas-ui/producer",
+        "/v1/repositories/modernagencysales/maestro-template-saas-ui/producer",
         {
           context: "ci/woodpecker/pr/verify",
         },
@@ -611,7 +775,7 @@ describe("protected CI bootstrap", () => {
       });
       expect(controller.writes).toEqual([
         "PUT /repos/modernagencysales/maestro-template-saas-ui/rulesets/1",
-        "PUT /api/repos/modernagencysales/maestro-template-saas-ui/producer",
+        "PUT /v1/repositories/modernagencysales/maestro-template-saas-ui/producer",
       ]);
 
       controller.documents.set(
@@ -640,7 +804,7 @@ describe("protected CI bootstrap", () => {
       ).rejects.toThrow(/compare-and-swap drift/u);
       expect(controller.writes).toEqual([
         "PUT /repos/modernagencysales/maestro-template-saas-ui/rulesets/1",
-        "PUT /api/repos/modernagencysales/maestro-template-saas-ui/producer",
+        "PUT /v1/repositories/modernagencysales/maestro-template-saas-ui/producer",
       ]);
     } finally {
       rmSync(journalDirectory, { recursive: true, force: true });
@@ -654,13 +818,27 @@ describe("protected CI bootstrap", () => {
     const state = new Map<string, Record<string, unknown>>([
       [
         `/repos/${repository}/rulesets/1`,
-        { required_status_checks: ["legacy"] },
+        { name: "main protection", enforcement: "active", rules: [] },
       ],
-      [`/api/repos/${repository}`, { trusted: false }],
-      [`/api/repos/${repository}/producer`, { context: "legacy" }],
       [
-        `/api/repos/${repository}/secrets`,
-        { names: ["GITHUB_TOKEN"], pull_request_events: true },
+        `/api/repos/${repository}`,
+        { id: 42, full_name: repository, trusted: false },
+      ],
+      [
+        `/v1/repositories/${repository}/producer`,
+        {
+          schema_version: 1,
+          repository,
+          protected_contexts: ["legacy"],
+        },
+      ],
+      [
+        `/v1/repositories/${repository}/secret-references`,
+        {
+          schema_version: 1,
+          repository,
+          references: [{ name: "GITHUB_TOKEN", events: ["pull_request"] }],
+        },
       ],
     ]);
     const api = createServer(async (request, response) => {
@@ -706,8 +884,11 @@ describe("protected CI bootstrap", () => {
                 PROTECTED_BOOTSTRAP_TEST_HTTP: "1",
                 GITHUB_TOKEN: "github-test-token",
                 WOODPECKER_TOKEN: "woodpecker-test-token",
+                PROTECTED_CONTROLLER_TOKEN: "controller-test-token",
+                PROTECTED_CONTROLLER_API_VERSION: "maestro.protected-ci/v1",
                 GITHUB_API_URL: `http://127.0.0.1:${address.port}`,
                 WOODPECKER_SERVER: `http://127.0.0.1:${address.port}`,
+                PROTECTED_CONTROLLER_API_URL: `http://127.0.0.1:${address.port}`,
               },
               stdio: ["ignore", "pipe", "pipe"],
             },

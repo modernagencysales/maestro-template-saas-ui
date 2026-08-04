@@ -14,6 +14,7 @@ describe("candidate sandbox", () => {
     expect(candidateEnvironment()).toEqual({
       CI: "true",
       HOME: "/tmp/candidate-home",
+      NODE_OPTIONS: "--max-old-space-size=768",
       npm_config_registry: "http://127.0.0.1:4873",
     });
     const argv = candidateSandboxArgv({
@@ -23,6 +24,13 @@ describe("candidate sandbox", () => {
     });
     expect(argv).toEqual(
       expect.arrayContaining([
+        "--clearenv",
+        "--setenv",
+        "CI",
+        "true",
+        "--setenv",
+        "HOME",
+        "/tmp/candidate-home",
         "--unshare-user",
         "--unshare-pid",
         "--unshare-ipc",
@@ -38,6 +46,9 @@ describe("candidate sandbox", () => {
     );
     expect(argv).toEqual(
       expect.arrayContaining([
+        "/usr/bin/prlimit",
+        "--cpu=300",
+        "--nofile=1024",
         "--ro-bind",
         "/read-only/source",
         "/source",
@@ -47,12 +58,6 @@ describe("candidate sandbox", () => {
         "--ro-bind",
         "/controller/runtime",
         "/runtime",
-        "--rlimit-as",
-        "1073741824",
-        "--rlimit-cpu",
-        "300",
-        "--rlimit-nofile",
-        "1024",
       ]),
     );
     expect(argv).not.toContain("/dependency-proxy");
@@ -118,9 +123,18 @@ describe("candidate sandbox", () => {
     expect(dockerfile).toContain("/controller/runtime/bin/socat");
     expect(dockerfile).toContain("/controller/runtime/pnpm");
     expect(dockerfile).toContain(
-      'ENTRYPOINT ["/controller/bin/protected-bootstrap"]',
+      'ENTRYPOINT ["/controller/bin/controller-runtime"]',
     );
     expect(dockerfile).not.toMatch(/ENTRYPOINT .*candidate-sandbox/u);
     expect(dockerfile).not.toContain("--share-net");
+    const runtime = readFileSync(
+      new URL("./controller-runtime.mjs", import.meta.url),
+      "utf8",
+    );
+    expect(runtime).toContain('"candidate-install"');
+    expect(runtime).toContain('"canary"');
+    expect(runtime).toContain("dependency.sock");
+    expect(runtime).not.toMatch(/eval\(|import\(process/u);
+    expect(runtime).toContain("controller runtime rejected unknown action");
   });
 });

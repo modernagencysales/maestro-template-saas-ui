@@ -52,6 +52,15 @@ export type ProtectedTransitionJournal = {
     readonly forwardPostimage?: readonly ProtectedExternalDocument[];
     readonly inverse?: readonly ProtectedInverseOperation[];
     readonly inverseAllowedOnlyFrom?: Sha256;
+    readonly progress?: readonly {
+      readonly resourceId: string;
+      readonly state:
+        | "pending"
+        | "forward-written"
+        | "forward-verified"
+        | "inverse-written"
+        | "inverse-verified";
+    }[];
   }[];
 };
 
@@ -69,6 +78,7 @@ export type ProtectedControllerEndpoint = {
 export type ProtectedControllerApi = {
   readonly github: ProtectedControllerEndpoint;
   readonly woodpecker: ProtectedControllerEndpoint;
+  readonly controller: ProtectedControllerEndpoint;
 };
 
 function httpEndpoint(input: {
@@ -139,8 +149,13 @@ function httpEndpoint(input: {
 export function createProtectedControllerHttpAdapter(): ProtectedControllerApi {
   const githubToken = process.env.GITHUB_TOKEN;
   const woodpeckerToken = process.env.WOODPECKER_TOKEN;
-  if (!githubToken || !woodpeckerToken)
+  const controllerToken = process.env.PROTECTED_CONTROLLER_TOKEN;
+  const controllerUrl = process.env.PROTECTED_CONTROLLER_API_URL;
+  const controllerVersion = process.env.PROTECTED_CONTROLLER_API_VERSION;
+  if (!githubToken || !woodpeckerToken || !controllerToken || !controllerUrl)
     throw new Error("protected controller credentials are unavailable");
+  if (controllerVersion !== "maestro.protected-ci/v1")
+    throw new Error("unsupported protected controller API contract version");
   return {
     github: httpEndpoint({
       baseUrl: process.env.GITHUB_API_URL ?? "https://api.github.com",
@@ -149,6 +164,10 @@ export function createProtectedControllerHttpAdapter(): ProtectedControllerApi {
     woodpecker: httpEndpoint({
       baseUrl: process.env.WOODPECKER_SERVER ?? "https://ci.maestrogtm.com",
       token: woodpeckerToken,
+    }),
+    controller: httpEndpoint({
+      baseUrl: controllerUrl,
+      token: controllerToken,
     }),
   };
 }
@@ -293,10 +312,12 @@ function assertDocumentOperationBinding(
   const prefix =
     document.kind === "github-ruleset"
       ? `/repos/${observation.repository}/rulesets/`
-      : `/api/repos/${observation.repository}`;
+      : document.kind === "woodpecker-repository"
+        ? `/api/repos/${observation.repository}`
+        : `/v1/repositories/${observation.repository}/`;
   if (
     !document.resourceId.startsWith(prefix) ||
-    (document.kind !== "github-ruleset" &&
+    (document.kind === "woodpecker-repository" &&
       document.resourceId !== prefix &&
       !document.resourceId.startsWith(`${prefix}/`))
   )
@@ -389,7 +410,15 @@ function endpointFor(
     throw new Error(
       "protected controller adapter is required; candidate mode cannot access external writes",
     );
-  return document.kind === "github-ruleset" ? api.github : api.woodpecker;
+  if (document.kind === "github-ruleset") return api.github;
+  if (document.kind === "woodpecker-repository") return api.woodpecker;
+  return api.controller;
+}
+
+function forwardMethod(
+  document: ProtectedExternalDocument,
+): ProtectedInverseOperation["method"] {
+  return document.kind === "woodpecker-repository" ? "PATCH" : "PUT";
 }
 
 async function observeDocument(
@@ -453,6 +482,7 @@ export async function executeProtectedTransition(input: {
   readonly confirmation: string;
   readonly operatorIdentity?: string;
   readonly stepId?: string;
+  readonly persistJournal?: () => void | Promise<void>;
 }): Promise<void> {
   assertJournalOperationBinding(input.journal);
   const step =
@@ -475,14 +505,17 @@ export async function executeProtectedTransition(input: {
     throw new Error(
       "confirmation fingerprint does not match live-state preview",
     );
-  const expected = (
-    input.action === "rollback" ? step.forwardPostimage : step.preimage
-  ).map(sanitizedDocument);
+  const expected = expectedProtectedTransitionDocuments({
+    action: input.action,
+    journal: input.journal,
+    stepId: input.stepId,
+  });
   if (digestProtectedDocuments(expected) !== input.expectedLiveDigest)
     throw new Error("expected live digest does not match transition preimage");
   if (
     input.action === "rollback" &&
-    step.inverseAllowedOnlyFrom !== input.expectedLiveDigest
+    step.inverseAllowedOnlyFrom !==
+      digestProtectedDocuments(step.forwardPostimage.map(sanitizedDocument))
   )
     throw new Error(
       "inverse condition does not match the recorded forward postimage",
@@ -492,6 +525,11 @@ export async function executeProtectedTransition(input: {
     if (live.sha256 !== document.sha256)
       throw new Error(`compare-and-swap drift for ${document.resourceId}`);
   }
+  const progress = ensureStepProgress(
+    step,
+    input.action === "rollback" ? "forward-verified" : "pending",
+  );
+  await input.persistJournal?.();
   if (input.action === "rollback") {
     if (!step.inverse?.length)
       throw new Error(`missing inverse for ${step.id}`);
@@ -503,6 +541,15 @@ export async function executeProtectedTransition(input: {
         throw new Error(
           `inverse has no forward document: ${inverse.resourcePath}`,
         );
+      const state = progress.find(
+        (entry) => entry.resourceId === forward.resourceId,
+      );
+      if (!state) throw new Error(`missing progress for ${forward.resourceId}`);
+      if (state.state === "pending" || state.state === "inverse-verified") {
+        state.state = "inverse-verified";
+        await input.persistJournal?.();
+        continue;
+      }
       const live = await observeDocument(input.api, forward);
       if (live.sha256 !== sanitizedDocument(forward).sha256)
         throw new Error(`compare-and-swap drift for ${forward.resourceId}`);
@@ -515,35 +562,130 @@ export async function executeProtectedTransition(input: {
         method: inverse.method,
         document,
       });
+      state.state = "inverse-written";
+      await input.persistJournal?.();
+      const restored = await observeDocument(input.api, document);
+      if (restored.sha256 !== document.sha256)
+        throw new Error(
+          `inverse postimage mismatch for ${document.resourceId}`,
+        );
+      state.state = "inverse-verified";
+      await input.persistJournal?.();
     }
     return;
   }
-  const written: ProtectedExternalDocument[] = [];
   for (const forward of step.forwardPostimage) {
     const document = sanitizedDocument(forward);
-    await endpointFor(input.api, document).write({ method: "PUT", document });
-    written.push(document);
-    const live = await observeDocument(input.api, document);
-    if (live.sha256 !== document.sha256) {
-      for (const entry of written.reverse()) {
-        const live = await observeDocument(input.api, entry);
-        if (live.sha256 !== entry.sha256) continue;
-        const inverse = step.inverse?.find(
-          (candidate) => candidate.resourcePath === entry.resourceId,
-        );
-        if (!inverse) continue;
-        await endpointFor(input.api, entry).write({
-          method: inverse.method,
-          document: sanitizedDocument({
-            ...entry,
-            resourceId: inverse.resourcePath,
-            canonicalBody: inverse.canonicalBody ?? {},
-          }),
-        });
+    const state = progress.find(
+      (entry) => entry.resourceId === document.resourceId,
+    );
+    if (!state) throw new Error(`missing progress for ${document.resourceId}`);
+    if (state.state === "forward-verified") continue;
+    if (state.state === "forward-written") {
+      const live = await observeDocument(input.api, document);
+      if (live.sha256 === document.sha256) {
+        state.state = "forward-verified";
+        await input.persistJournal?.();
+        continue;
       }
-      throw new Error(`postimage mismatch for ${document.resourceId}`);
+      const before = step.preimage.find(
+        (entry) => entry.resourceId === document.resourceId,
+      );
+      if (!before || live.sha256 !== sanitizedDocument(before).sha256)
+        throw new Error(`compare-and-swap drift for ${document.resourceId}`);
     }
+    await endpointFor(input.api, document).write({
+      method: forwardMethod(document),
+      document,
+    });
+    state.state = "forward-written";
+    await input.persistJournal?.();
+    const live = await observeDocument(input.api, document);
+    if (live.sha256 !== document.sha256)
+      throw new Error(`postimage mismatch for ${document.resourceId}`);
+    state.state = "forward-verified";
+    await input.persistJournal?.();
   }
+}
+
+function transitionStepFor(input: {
+  readonly action:
+    "install-temporary" | "enable-canonical" | "remove-temporary" | "rollback";
+  readonly journal: ProtectedTransitionJournal;
+  readonly stepId?: string;
+}) {
+  return input.action === "rollback"
+    ? input.stepId
+      ? input.journal.steps.find((entry) => entry.id === input.stepId)
+      : [...input.journal.steps]
+          .reverse()
+          .find((entry) => entry.forwardPostimage?.length)
+    : input.journal.steps.find((entry) => entry.id === input.action);
+}
+
+function ensureStepProgress(
+  step: ProtectedTransitionJournal["steps"][number],
+  defaultState: "pending" | "forward-verified",
+): Array<{
+  resourceId: string;
+  state:
+    | "pending"
+    | "forward-written"
+    | "forward-verified"
+    | "inverse-written"
+    | "inverse-verified";
+}> {
+  const mutable = step as unknown as {
+    progress?: Array<{
+      resourceId: string;
+      state:
+        | "pending"
+        | "forward-written"
+        | "forward-verified"
+        | "inverse-written"
+        | "inverse-verified";
+    }>;
+  };
+  mutable.progress ??= (step.forwardPostimage ?? []).map((entry) => ({
+    resourceId: entry.resourceId,
+    state: defaultState,
+  }));
+  return mutable.progress;
+}
+
+function expectedProtectedTransitionDocuments(input: {
+  readonly action:
+    "install-temporary" | "enable-canonical" | "remove-temporary" | "rollback";
+  readonly journal: ProtectedTransitionJournal;
+  readonly stepId?: string;
+}): readonly ProtectedExternalDocument[] {
+  const step = transitionStepFor(input);
+  if (!step?.forwardPostimage?.length)
+    throw new Error(`missing transition step for ${input.action}`);
+  const states = new Map(
+    (step.progress ?? []).map((entry) => [entry.resourceId, entry.state]),
+  );
+  return step.forwardPostimage.map((forward) => {
+    const state =
+      states.get(forward.resourceId) ??
+      (input.action === "rollback" ? "forward-verified" : "pending");
+    const before = step.preimage.find(
+      (entry) => entry.resourceId === forward.resourceId,
+    );
+    if (!before) throw new Error(`missing preimage for ${forward.resourceId}`);
+    return state === "forward-written" || state === "forward-verified"
+      ? sanitizedDocument(forward)
+      : sanitizedDocument(before);
+  });
+}
+
+export function expectedProtectedTransitionDigest(input: {
+  readonly action:
+    "install-temporary" | "enable-canonical" | "remove-temporary" | "rollback";
+  readonly journal: ProtectedTransitionJournal;
+  readonly stepId?: string;
+}): Sha256 {
+  return digestProtectedDocuments(expectedProtectedTransitionDocuments(input));
 }
 
 export async function runProtectedTransition(input: {
@@ -583,6 +725,9 @@ export async function runProtectedTransition(input: {
   await executeProtectedTransition({
     ...input,
     confirmation: input.confirmation,
+    persistJournal: input.journalPath
+      ? () => saveProtectedTransitionJournal(input.journalPath!, input.journal)
+      : undefined,
   });
   (
     input.journal as unknown as { consumedConfirmations: string[] }
@@ -606,8 +751,11 @@ function workflowDocuments(input: {
         `/repos/${input.repository}/rulesets/${input.githubRulesetId}`,
       ],
       ["woodpecker-repository", `/api/repos/${input.repository}`],
-      ["woodpecker-producer", `/api/repos/${input.repository}/producer`],
-      ["woodpecker-secret-reference", `/api/repos/${input.repository}/secrets`],
+      ["woodpecker-producer", `/v1/repositories/${input.repository}/producer`],
+      [
+        "woodpecker-secret-reference",
+        `/v1/repositories/${input.repository}/secret-references`,
+      ],
     ];
   return resources.map(([kind, resourceId]) =>
     sanitizedDocument({
@@ -628,11 +776,21 @@ function workflowPostimage(
 ): readonly ProtectedExternalDocument[] {
   return documents.map((document) => {
     const body = { ...document.canonicalBody };
-    if (document.kind === "github-ruleset")
-      body.required_status_checks = input.contexts;
-    if (document.kind === "woodpecker-repository") {
-      body.trusted = true;
-      body.config_file = ".woodpecker/verify.yml";
+    if (document.kind === "github-ruleset") {
+      const rules = body.rules as Array<Record<string, unknown>>;
+      body.rules = [
+        ...rules.filter((rule) => rule.type !== "required_status_checks"),
+        {
+          type: "required_status_checks",
+          parameters: {
+            required_status_checks: input.contexts.map((context) => ({
+              context,
+              integration_id: input.observation.appId,
+            })),
+            strict_required_status_checks_policy: true,
+          },
+        },
+      ];
     }
     if (document.kind === "woodpecker-producer") {
       body.protected_contexts = input.contexts;
@@ -640,8 +798,17 @@ function workflowPostimage(
       body.protected_base_oid = input.observation.protectedBaseOid;
       body.github_app_id = input.observation.appId;
     }
-    if (document.kind === "woodpecker-secret-reference")
-      body.pull_request_events = false;
+    if (document.kind === "woodpecker-secret-reference") {
+      body.references = (
+        body.references as Array<{
+          readonly name: string;
+          readonly events: readonly string[];
+        }>
+      ).map((reference) => ({
+        ...reference,
+        events: reference.events.filter((event) => event !== "pull_request"),
+      }));
+    }
     return sanitizedDocument({ ...document, canonicalBody: body });
   });
 }
@@ -656,12 +823,58 @@ function transitionStep(
     preimage,
     forwardPostimage,
     inverse: preimage.map((entry) => ({
-      method: "PUT" as const,
+      method: forwardMethod(entry),
       resourcePath: entry.resourceId,
       canonicalBody: entry.canonicalBody,
     })),
     inverseAllowedOnlyFrom: digestProtectedDocuments(forwardPostimage),
+    progress: forwardPostimage.map((entry) => ({
+      resourceId: entry.resourceId,
+      state: "pending" as const,
+    })),
   };
+}
+
+function assertProviderContract(
+  repository: string,
+  document: ProtectedExternalDocument,
+): void {
+  const body = document.canonicalBody;
+  const valid = (() => {
+    if (document.kind === "github-ruleset")
+      return (
+        typeof body.name === "string" &&
+        typeof body.enforcement === "string" &&
+        Array.isArray(body.rules)
+      );
+    if (document.kind === "woodpecker-repository")
+      return (
+        Number.isSafeInteger(body.id) &&
+        body.full_name === repository &&
+        typeof body.trusted === "boolean"
+      );
+    if (document.kind === "woodpecker-producer")
+      return (
+        body.schema_version === 1 &&
+        body.repository === repository &&
+        Array.isArray(body.protected_contexts)
+      );
+    return (
+      body.schema_version === 1 &&
+      body.repository === repository &&
+      Array.isArray(body.references) &&
+      body.references.every(
+        (entry) =>
+          entry &&
+          typeof entry === "object" &&
+          typeof (entry as Record<string, unknown>).name === "string" &&
+          Array.isArray((entry as Record<string, unknown>).events) &&
+          !("value" in (entry as Record<string, unknown>)),
+      )
+    );
+  })();
+  if (!valid)
+    throw new Error(`provider contract rejected ${document.resourceId}`);
 }
 
 export async function buildProtectedWorkflowJournal(input: {
@@ -687,6 +900,8 @@ export async function buildProtectedWorkflowJournal(input: {
   const preimage = await Promise.all(
     workflowDocuments(input).map((entry) => observeDocument(input.api, entry)),
   );
+  for (const document of preimage)
+    assertProviderContract(input.repository, document);
   const github = preimage.find((entry) => entry.kind === "github-ruleset");
   const woodpecker = preimage.filter(
     (entry) => entry.kind !== "github-ruleset",
