@@ -384,6 +384,36 @@ describe("public surface generation", () => {
     );
   });
 
+  it("rejects spread, conditional, and call-return hook aliases", () => {
+    for (const body of [
+      `
+        import { useTemplateMutation as useSave } from '../adapters/confect-state';
+        useSave(templateConfectRefs.notes.create);
+        const hooks = { run: useSave };
+        const spread = { ...hooks };
+        spread.run(templateConfectRefs.notes.update);
+      `,
+      `
+        import { useTemplateMutation as useSave } from '../adapters/confect-state';
+        useSave(templateConfectRefs.notes.create);
+        const selected = condition ? useSave : fallback;
+        selected(templateConfectRefs.notes.delete);
+      `,
+      `
+        import { useTemplateMutation as useSave } from '../adapters/confect-state';
+        useSave(templateConfectRefs.notes.create);
+        makeHooks().run(templateConfectRefs.notes.archive);
+      `,
+    ]) {
+      const root = fixture({
+        "apps/web/src/features/structural-aliases.tsx": body,
+      });
+      expect(() => discoverPublicAuthorities(root)).toThrow(
+        "UI hook alias could not be statically resolved",
+      );
+    }
+  });
+
   it("fetches the protected baseline Git object when a shallow checkout lacks it", () => {
     const calls: (readonly string[])[] = [];
     let showAttempts = 0;

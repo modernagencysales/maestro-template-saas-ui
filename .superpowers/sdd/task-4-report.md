@@ -24,7 +24,7 @@ to `reference-app-routes.ts`.
 
 ## Verification
 
-- `pnpm check:confect-manifest`: 4 files / 27 tests passed, typecheck passed,
+- `pnpm check:confect-manifest`: 4 files / 28 tests passed, typecheck passed,
   generated runtime and inventory outputs fresh.
 - `pnpm check:system-topology`: passed (65 resources / 7 kinds).
 - `pnpm check:headless-surface-contract`: passed.

@@ -338,6 +338,72 @@ const uiActionAuthorities = (
     ts.forEachChild(node, collectAliases);
   };
   for (let pass = 0; pass < 4; pass += 1) collectAliases(sourceFile);
+  const expressionHasHookBearingAlias = (
+    expression: ts.Expression,
+  ): boolean => {
+    let found = false;
+    const visitExpression = (node: ts.Node): void => {
+      if (
+        ts.isIdentifier(node) &&
+        (hookNames.has(node.text) || hookObjectRoots.has(node.text))
+      )
+        found = true;
+      ts.forEachChild(node, visitExpression);
+    };
+    visitExpression(expression);
+    return found;
+  };
+  const rejectStructuralAliases = (node: ts.Node): void => {
+    if (ts.isObjectLiteralExpression(node)) {
+      for (const property of node.properties) {
+        if (
+          ts.isSpreadAssignment(property) &&
+          expressionHasHookBearingAlias(property.expression)
+        )
+          throw new Error(
+            `UI hook alias could not be statically resolved: ${relativePath(root, path)}#spread`,
+          );
+      }
+    }
+    if (ts.isConditionalExpression(node) && expressionHasHookBearingAlias(node))
+      throw new Error(
+        `UI hook alias could not be statically resolved: ${relativePath(root, path)}#conditional`,
+      );
+    if (ts.isCallExpression(node)) {
+      const callee = node.expression;
+      if (
+        (ts.isPropertyAccessExpression(callee) ||
+          ts.isElementAccessExpression(callee)) &&
+        ts.isCallExpression(callee.expression) &&
+        (ts.isElementAccessExpression(callee) ||
+          ![
+            "then",
+            "catch",
+            "finally",
+            "map",
+            "filter",
+            "flatMap",
+            "reduce",
+            "reduceRight",
+            "forEach",
+            "some",
+            "every",
+            "find",
+            "findIndex",
+            "includes",
+            "join",
+            "slice",
+          ].includes(callee.name.text)) &&
+        (expressionRoot(callee) === undefined ||
+          hookObjectRoots.has(expressionRoot(callee) ?? ""))
+      )
+        throw new Error(
+          `UI hook alias could not be statically resolved: ${relativePath(root, path)}#call-return`,
+        );
+    }
+    ts.forEachChild(node, rejectStructuralAliases);
+  };
+  rejectStructuralAliases(sourceFile);
   const visit = (node: ts.Node): void => {
     if (ts.isCallExpression(node)) {
       const name = callName(node.expression);
