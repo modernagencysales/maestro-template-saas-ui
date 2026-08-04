@@ -325,6 +325,9 @@ export const CURRENT_PRODUCT_JOURNEY_CLOSURE = [
 
 export const CUSTOMER_ROOT_SCRIPTS = [
   "maestro",
+  "acceptance:check",
+  "acceptance:features",
+  "acceptance:cucumber",
   "format",
   "check:format",
   "lint",
@@ -414,6 +417,7 @@ export const CUSTOMER_ROOT_SCRIPTS = [
   "check:qlty",
   "contract-review",
   "review:contract",
+  "review:bounded",
   "taste",
   "taste:eval",
   "verify",
@@ -1019,6 +1023,7 @@ const routeTree = (current: boolean): string => {
 
 export const buildSaasRegistrationProjections = (
   options: { readonly current?: boolean } = {},
+  // eslint-disable-next-line complexity -- this is a declarative file projection, not branching behavior
 ): readonly GeneratedFile[] => {
   const current = options.current ?? true;
   return [

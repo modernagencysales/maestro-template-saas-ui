@@ -159,12 +159,14 @@ const TEMPLATE_PREFIXES = [
   "docs/agent/",
   "docs/template/",
   "examples/generic-ai-ops/",
+  "features/",
   "patches/",
   "packages/",
   "schemas/",
   "scripts/",
   "tests/",
   "tooling/agent-pack/",
+  "tooling/acceptance/",
   "tooling/app-map/",
   "tooling/confect-manifest/",
   "tooling/convex-compat/",
@@ -176,6 +178,7 @@ const TEMPLATE_PREFIXES = [
 ] as const;
 
 const TEMPLATE_ROOT_FILES = new Set([
+  ".factory/project.yaml",
   ".gitignore",
   ".gitleaks.toml",
   ".npmrc",
@@ -183,6 +186,7 @@ const TEMPLATE_ROOT_FILES = new Set([
   ".prettierignore",
   ".prettierrc.json",
   "AGENTS.md",
+  "cucumber.cjs",
   "convex.json",
   "coverage-baseline.json",
   "dependency-cruiser.config.cjs",
