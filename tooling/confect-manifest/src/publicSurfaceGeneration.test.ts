@@ -427,6 +427,43 @@ describe("public surface generation", () => {
     expect(() => discoverPublicAuthorities(root)).not.toThrow();
   });
 
+  it("rejects array and destructuring hook aliases", () => {
+    for (const body of [
+      `
+        import { useTemplateMutation as useSave } from '../adapters/confect-state';
+        useSave(templateConfectRefs.notes.create);
+        const hooks = [useSave];
+        hooks[0](templateConfectRefs.notes.update);
+      `,
+      `
+        import { useTemplateMutation as useSave } from '../adapters/confect-state';
+        useSave(templateConfectRefs.notes.create);
+        const hooks = { run: useSave };
+        const { run } = hooks;
+        run(templateConfectRefs.notes.update);
+      `,
+    ]) {
+      const root = fixture({
+        "apps/web/src/features/structural-aliases.tsx": body,
+      });
+      expect(() => discoverPublicAuthorities(root)).toThrow(
+        "UI hook alias could not be statically resolved",
+      );
+    }
+  });
+
+  it("allows ordinary non-hook arrays", () => {
+    const root = fixture({
+      "apps/web/src/features/structural-aliases.tsx": `
+        import { useTemplateMutation as useSave } from '../adapters/confect-state';
+        useSave(templateConfectRefs.notes.create);
+        const values = [1, 2];
+        values[0].toString();
+      `,
+    });
+    expect(() => discoverPublicAuthorities(root)).not.toThrow();
+  });
+
   it("fetches the protected baseline Git object when a shallow checkout lacks it", () => {
     const calls: (readonly string[])[] = [];
     let showAttempts = 0;

@@ -238,6 +238,12 @@ const uiActionAuthorities = (
   const hookFactoryNames = new Set<string>();
   const hookObjectRoots = new Set<string>();
   const unresolvedObjectProperties = new Set<string>();
+  const bindingNames = (name: ts.BindingName): readonly string[] => {
+    if (ts.isIdentifier(name)) return [name.text];
+    return name.elements.flatMap((element) =>
+      ts.isOmittedExpression(element) ? [] : bindingNames(element.name),
+    );
+  };
   const propertyPath = (expression: ts.Expression): string | undefined => {
     if (ts.isIdentifier(expression)) return expression.text;
     if (ts.isPropertyAccessExpression(expression)) {
@@ -327,6 +333,17 @@ const uiActionAuthorities = (
       unresolvedHookAliases.add(node.name.text);
     if (
       ts.isVariableDeclaration(node) &&
+      !ts.isIdentifier(node.name) &&
+      node.initializer !== undefined &&
+      (expressionHasHook(node.initializer) ||
+        (ts.isIdentifier(node.initializer) &&
+          (unresolvedHookAliases.has(node.initializer.text) ||
+            hookObjectRoots.has(node.initializer.text))))
+    )
+      for (const name of bindingNames(node.name))
+        unresolvedHookAliases.add(name);
+    if (
+      ts.isVariableDeclaration(node) &&
       ts.isIdentifier(node.name) &&
       node.initializer !== undefined &&
       ts.isObjectLiteralExpression(node.initializer)
@@ -409,6 +426,8 @@ const uiActionAuthorities = (
       const staticHookCall = name !== undefined && hookNames.has(name);
       if (
         (name !== undefined && unresolvedHookAliases.has(name)) ||
+        (pathName !== undefined &&
+          unresolvedHookAliases.has(pathName.split(".")[0] ?? "")) ||
         (pathName !== undefined && unresolvedObjectProperties.has(pathName)) ||
         (expressionRoot(node.expression) !== undefined &&
           hookObjectRoots.has(expressionRoot(node.expression) ?? "")) ||
