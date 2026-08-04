@@ -15,8 +15,10 @@ import {
 } from "@cucumber/messages";
 
 export type ContractLifecycle = "assembling" | "admitted" | "suspended";
-export type StablePickleKey = `sha256:${string}`;
-export type StablePickleStepKey = `sha256:${string}`;
+export type StablePickleKey = `pickle_sha256:${string}`;
+export type StableStepKey = `step_sha256:${string}`;
+/** @deprecated use StableStepKey. */
+export type StablePickleStepKey = StableStepKey;
 export type ContractTransport = "ui" | "cli" | "api" | "mcp" | "webhook";
 
 export type ContractStepArgument =
@@ -29,16 +31,20 @@ export type ContractStepArgument =
     };
 
 export type ExpectedPickleStep = {
-  readonly key: StablePickleStepKey;
+  readonly key: StableStepKey;
   readonly index: number;
+  readonly pickleStepType: "Context" | "Action" | "Outcome" | "Unknown";
   readonly type: "Context" | "Action" | "Outcome" | "Unknown";
   readonly text: string;
   readonly argument?: ContractStepArgument;
   readonly astLocation: Required<Location>;
+  readonly argumentDigest?: `sha256:${string}`;
 };
 
 export type ExpectedPickle = {
   readonly key: StablePickleKey;
+  readonly sourceSha256: `sha256:${string}`;
+  readonly uri: string;
   readonly sourceUri: string;
   readonly journeyId: `journey_${string}`;
   readonly lifecycle: ContractLifecycle;
@@ -56,8 +62,10 @@ export type ExpectedPickle = {
 };
 
 export type ContractSource = {
+  readonly path: string;
   readonly uri: string;
-  readonly digest: `sha256:${string}`;
+  readonly bytes: string;
+  readonly sha256: `sha256:${string}`;
   readonly journeyId: `journey_${string}`;
   readonly lifecycle: ContractLifecycle;
   readonly featureName: string;
@@ -255,14 +263,16 @@ const projectPickle = (input: {
     rowId === undefined ? undefined : input.ast.rows.get(rowId);
   if (rowId !== undefined && examplesRowLocation === undefined)
     throw new Error(`Pickle ${input.pickle.name} has an unknown Examples row`);
-  const key = sha256(
+  const digest = sha256(
     canonicalJson({
-      sourceDigest: input.source.digest,
+      sourceDigest: input.source.sha256,
       uri: input.source.uri,
       scenarioLocation,
       examplesRowLocation: examplesRowLocation ?? null,
     }),
   );
+  const key =
+    `pickle_sha256:${digest.slice("sha256:".length)}` as StablePickleKey;
   const tags = input.pickle.tags.map((tag) => tag.name);
   const pickleTransports = transports.filter((transport) =>
     tags.includes(`@${transport}`),
@@ -301,13 +311,17 @@ const projectPickle = (input: {
       argument: argument ?? null,
       astLocation,
     };
+    const argumentDigest =
+      argument === undefined ? undefined : sha256(canonicalJson(argument));
     return {
-      key: sha256(canonicalJson(projection)),
+      key: `step_sha256:${sha256(canonicalJson(projection)).slice("sha256:".length)}` as StableStepKey,
       index,
+      pickleStepType: type,
       type,
       text: step.text,
       ...(argument === undefined ? {} : { argument }),
       astLocation,
+      ...(argumentDigest === undefined ? {} : { argumentDigest }),
     };
   });
   if (!steps.some((step) => step.type === PickleStepType.ACTION))
@@ -316,6 +330,8 @@ const projectPickle = (input: {
     throw new Error(`Pickle ${input.pickle.name} requires an Outcome step`);
   return {
     key,
+    sourceSha256: input.source.sha256,
+    uri: input.source.uri,
     sourceUri: input.source.uri,
     journeyId: input.source.journeyId,
     lifecycle: input.source.lifecycle,
@@ -372,7 +388,9 @@ export const compileProductContractSource = (input: {
   const identity = assertTagStructure(feature);
   const source: ContractSource = {
     uri,
-    digest: sha256(input.bytes),
+    path: uri,
+    bytes: data,
+    sha256: sha256(input.bytes),
     ...identity,
     featureName: feature.name,
     description: feature.description,

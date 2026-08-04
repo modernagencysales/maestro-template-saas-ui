@@ -38,6 +38,9 @@ before the security gate was implemented.
 Fresh final verification:
 
 - focused Vitest gate: 7 files, 111 tests passed;
+- follow-up contract-inventory/admission-authority gate: 2 files, 21 tests
+  passed, including unchanged-ID auth-policy weakening, zero-owned journey
+  rejection, and generated API locator admission;
 - `pnpm exec tsx tooling/acceptance/check-contracts.mts --write`: passed;
 - `pnpm acceptance:check`: passed with byte-exact projection and
   `no-admitted-contracts`;

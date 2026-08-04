@@ -10,6 +10,7 @@ import {
 } from "node:fs";
 import { dirname } from "node:path";
 import { isDeepStrictEqual } from "node:util";
+import { isDirectRun } from "../quality/src/direct-run.mts";
 
 type Sha256 = `sha256:${string}`;
 export type ProtectedBootstrapObservation = {
@@ -1263,7 +1264,9 @@ async function main(): Promise<void> {
   console.log(JSON.stringify(redact(result), null, 2));
 }
 
-void main().catch((error: unknown) => {
-  console.error(error instanceof Error ? error.message : String(error));
-  process.exitCode = 1;
-});
+if (isDirectRun(import.meta.url)) {
+  void main().catch((error: unknown) => {
+    console.error(error instanceof Error ? error.message : String(error));
+    process.exitCode = 1;
+  });
+}

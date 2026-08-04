@@ -342,6 +342,65 @@ describe("compileContractInventory", () => {
     },
   );
 
+  it("detects policy weakening under an unchanged policy ID from protected source", () => {
+    const source = feature(
+      "journey_policy_source",
+      "assembling",
+      scenario("@ui @covers_policy_source_ui"),
+    );
+    const policySource = (scopes: string): string => `
+      const policy = <T>(value: T): T => value;
+      const authPolicyEntries = Object.freeze({
+        auth_api_key_workspace_write: policy({
+          id: "auth_api_key_workspace_write",
+          credential: "api-key",
+          principalKind: "apiKey",
+          tenantAuthority: "principal-workspace",
+          requiredScopes: [${scopes}],
+        }),
+      });
+    `;
+    const repo = fixture({
+      base: {
+        "features/policy.feature": source,
+        "packages/convex/confect/capabilities/_kit/authPolicies.ts":
+          policySource('"workspace:write"'),
+      },
+      candidate: {
+        "features/policy.feature": source,
+        "packages/convex/confect/capabilities/_kit/authPolicies.ts":
+          policySource(""),
+      },
+      baseSurfaceEntries: [
+        surface({
+          id: "policy_source_ui",
+          transport: "ui",
+          journey: "journey_policy_source",
+          authPolicyId: "auth_api_key_workspace_write",
+        }),
+      ],
+      candidateSurfaceEntries: [
+        surface({
+          id: "policy_source_ui",
+          transport: "ui",
+          journey: "journey_policy_source",
+          authPolicyId: "auth_api_key_workspace_write",
+        }),
+      ],
+    });
+    expect(
+      compileContractInventory({ ...repo, mode: "authoritative" })
+        .authPolicyDeltas,
+    ).toEqual([
+      {
+        surfaceId: "policy_source_ui",
+        basePolicyId: "auth_api_key_workspace_write",
+        candidatePolicyId: "auth_api_key_workspace_write",
+        comparison: "weaker",
+      },
+    ]);
+  });
+
   it("allows surface retirement only from a suspended tombstone and preserves its prose", () => {
     const tombstone = feature(
       "journey_retired",
@@ -376,5 +435,21 @@ describe("compileContractInventory", () => {
     expect(() =>
       compileContractInventory({ ...rewritten, mode: "authoritative" }),
     ).toThrow(/retain its behavioral prose/u);
+  });
+
+  it("rejects an admitted journey with zero activation-owned surfaces", () => {
+    const repo = fixture({
+      candidate: {
+        "features/orphan.feature": feature(
+          "journey_orphan",
+          "admitted",
+          scenario("@ui @covers_shared_ui"),
+        ),
+      },
+      candidateSurfaceEntries: [surface({ id: "shared_ui", transport: "ui" })],
+    });
+    expect(() => compileContractInventory({ ...repo, mode: "static" })).toThrow(
+      /zero|without an activation-owned/u,
+    );
   });
 });

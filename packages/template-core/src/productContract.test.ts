@@ -106,7 +106,7 @@ Feature: Manage café orders
     expect(
       first.pickles
         .flatMap((pickle) => pickle.steps)
-        .every((step) => /^sha256:[a-f0-9]{64}$/u.test(step.key)),
+        .every((step) => /^step_sha256:[a-f0-9]{64}$/u.test(step.key)),
     ).toBe(true);
   });
 

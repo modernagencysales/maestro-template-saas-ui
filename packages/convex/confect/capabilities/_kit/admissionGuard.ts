@@ -37,20 +37,35 @@ export function requireAdmittedSurface(
   );
 }
 
+const authorityName = (locator: string): string =>
+  locator.replaceAll("/", ".").replaceAll(":", ".");
+
+export const requireAdmittedOperation = (
+  operationId: string,
+  transport: "api" | "cli" | "mcp",
+  emergencyDenied = false,
+): void => {
+  const matches = publicSurfaces.filter(
+    (surface) =>
+      surface.transport === transport &&
+      authorityName(surface.authority.registrationLocator) ===
+        authorityName(operationId),
+  );
+  if (matches.length === 0)
+    throw new SurfaceAdmissionDenied(
+      `unknown admitted ${transport} operation: ${operationId}`,
+    );
+  for (const surface of matches)
+    requireAdmittedSurface(surface.id, emergencyDenied);
+};
+
 export const runAdmittedSurface = async <Result>(input: {
   readonly surfaceId: string;
   readonly emergencyDenied: boolean;
   readonly authenticate: () => Promise<unknown>;
   readonly authorizeAndRun: () => Promise<Result>;
-  readonly surfaces?: readonly PublicSurface[];
-  readonly journeys?: Readonly<Record<string, boolean>>;
 }): Promise<Result> => {
   await input.authenticate();
-  requireAdmittedSurfaceFrom(
-    input.surfaceId,
-    input.emergencyDenied,
-    input.surfaces ?? publicSurfaces,
-    input.journeys ?? admittedJourneys,
-  );
+  requireAdmittedSurface(input.surfaceId, input.emergencyDenied);
   return await input.authorizeAndRun();
 };

@@ -1,10 +1,15 @@
 import { readFile, writeFile } from "node:fs/promises";
+import { execFileSync } from "node:child_process";
 import { resolve } from "node:path";
 import { isDirectRun } from "../quality/src/direct-run.mts";
 import {
   compileContractInventory,
   renderAdmittedJourneys,
 } from "./contract-inventory";
+import {
+  createProtectedControllerHttpAdapter,
+  observeSecurityCodeownerApproval,
+} from "../ci/protected-bootstrap.mts";
 
 export const CUCUMBER_CONFIGURATION_SOURCE = `module.exports = {
   default: {
@@ -145,9 +150,33 @@ async function main(): Promise<void> {
     process.exitCode = 1;
     return;
   }
+  const run = resolveAcceptanceRun(process.cwd());
+  const inventory = compileContractInventory(run);
+  if (inventory.authPolicyDeltas.length > 0) {
+    const candidateCommit = process.env.PROTECTED_CANDIDATE_COMMIT;
+    const pullRequestNumber = Number(process.env.PROTECTED_PR_NUMBER);
+    if (
+      candidateCommit === undefined ||
+      !Number.isSafeInteger(pullRequestNumber)
+    )
+      throw new Error(
+        "auth-policy weakening requires controller-provided candidate commit and pull request number",
+      );
+    const approval = await observeSecurityCodeownerApproval({
+      repository: process.env.PROTECTED_REPOSITORY ?? "",
+      pullRequestNumber,
+      candidateCommit,
+      api: createProtectedControllerHttpAdapter(),
+    });
+    if (approval.candidateCommit !== candidateCommit)
+      throw new Error(
+        "security approval is not bound to the current candidate commit",
+      );
+  }
   const projection = await synchronizeAdmittedJourneys({
     root: process.cwd(),
     write,
+    inventory,
   });
   console.log(
     `Cucumber contracts OK: ${Object.entries(versions.versions)
@@ -161,16 +190,19 @@ async function main(): Promise<void> {
 export const synchronizeAdmittedJourneys = async (input: {
   readonly root: string;
   readonly write: boolean;
+  readonly inventory?: ReturnType<typeof compileContractInventory>;
 }): Promise<{
   readonly status: "contracts-present" | "no-admitted-contracts";
   readonly admittedPickles: number;
   readonly wrote: boolean;
 }> => {
-  const inventory = compileContractInventory({
-    root: input.root,
-    protectedBaseSha: "",
-    mode: "static",
-  });
+  const inventory =
+    input.inventory ??
+    compileContractInventory({
+      root: input.root,
+      protectedBaseSha: "",
+      mode: "static",
+    });
   const expected = renderAdmittedJourneys(inventory);
   const path = resolve(
     input.root,
@@ -197,6 +229,37 @@ export const synchronizeAdmittedJourneys = async (input: {
     admittedPickles: inventory.admittedPickleKeys.length,
     wrote: input.write,
   };
+};
+
+export const resolveAcceptanceRun = (
+  root: string,
+): {
+  readonly root: string;
+  readonly protectedBaseSha: string;
+  readonly mode: "authoritative";
+} => {
+  const candidateProvidedSha = process.env.PROTECTED_BASE_SHA;
+  const protectedBaseSha =
+    candidateProvidedSha ??
+    execFileSync("git", ["rev-parse", "origin/main"], {
+      cwd: root,
+      encoding: "utf8",
+    }).trim();
+  if (!/^[a-f0-9]{40}(?:[a-f0-9]{24})?$/u.test(protectedBaseSha))
+    throw new Error("protected controller must provide an immutable base SHA");
+  if (
+    process.env.CI === "true" &&
+    process.env.PROTECTED_CONTROLLER_ORIGIN !== "protected-controller"
+  )
+    throw new Error(
+      "authoritative acceptance requires a protected-controller origin marker",
+    );
+  if (
+    candidateProvidedSha !== undefined &&
+    process.env.PROTECTED_CONTROLLER_ORIGIN !== "protected-controller"
+  )
+    throw new Error("candidate input cannot provide the protected base SHA");
+  return { root, protectedBaseSha, mode: "authoritative" };
 };
 
 if (isDirectRun(import.meta.url)) {

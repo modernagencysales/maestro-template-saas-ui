@@ -9,7 +9,7 @@ import databaseSchema from "../_generated/schema";
 import { DatabaseReader, DatabaseWriter } from "../_generated/services";
 import { roleAtLeast, type Role } from "../access/roles";
 import { requireWorkspaceAccess } from "../capabilities/_kit/workspaceAccess";
-import { applyFeatureFlagAfterAdmission } from "../capabilities/_kit/surfaces";
+import { requireAdmittedOperation } from "../capabilities/_kit/admissionGuard";
 import { ValidationFailed } from "../errors";
 import flags from "./flags.spec";
 
@@ -87,6 +87,10 @@ const evaluate = FunctionImpl.make(
   "evaluate",
   ({ workspaceId }) =>
     Effect.gen(function* () {
+      // The generated public-surface registry is the admission authority for
+      // this operation; policy state may only further disable a permitted
+      // operation.
+      requireAdmittedOperation("ops/flags:evaluate", "api");
       const access = yield* unsafeAssumeClockProvided(
         requireWorkspaceAccess(workspaceId, "viewer"),
       );
@@ -259,8 +263,7 @@ const toPolicyReturn = (policy: FeatureFlagPolicy) => ({
 
 const evaluatePolicy = (policy: FeatureFlagPolicy, role: Role) => {
   const rolloutBucket = hashToBucket(`${policy.key}:${policy.workspaceId}`);
-  // Admission is the outer authority. Existing policy state may only disable it.
-  const enabled = applyFeatureFlagAfterAdmission(true, policy.enabled);
+  const enabled = policy.enabled;
 
   if (!enabled) {
     return decision(policy, false, "definition-disabled", rolloutBucket);

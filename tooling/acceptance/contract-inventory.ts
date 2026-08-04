@@ -12,6 +12,7 @@ import type { PublicSurface } from "../../packages/template-core/src/publicSurfa
 import {
   compareAuthPolicyStrength,
   resolveAuthPolicy,
+  type AuthPolicy,
 } from "../../packages/convex/confect/capabilities/_kit/authPolicies";
 
 export type ContractInventory = {
@@ -212,6 +213,54 @@ const readSurfaceInventory = (
 
 const currentSurfacePath =
   "packages/template-core/src/generated/public-surfaces.generated.json";
+const authPolicySourcePath =
+  "packages/convex/confect/capabilities/_kit/authPolicies.ts";
+
+const parseAuthPolicyRegistry = (
+  source: string,
+): ReadonlyMap<string, AuthPolicy> => {
+  const policies = new Map<string, AuthPolicy>();
+  const blocks = source.matchAll(/policy\(\{([\s\S]*?)\n\s*\}\)/gu);
+  for (const match of blocks) {
+    const body = match[1];
+    if (body === undefined) continue;
+    const read = (name: string): string | undefined =>
+      body.match(new RegExp(`\\b${name}:\\s*"([^"]+)"`, "u"))?.[1];
+    const id = read("id");
+    const credential = read("credential");
+    const principalKind = read("principalKind");
+    const tenantAuthority = read("tenantAuthority");
+    const scopes = body.match(/requiredScopes:\s*\[([^\]]*)\]/u)?.[1] ?? "";
+    if (
+      id === undefined ||
+      credential === undefined ||
+      principalKind === undefined ||
+      tenantAuthority === undefined
+    )
+      continue;
+    const minimumRole = read("minimumRole");
+    policies.set(id, {
+      id: id as AuthPolicy["id"],
+      credential: credential as AuthPolicy["credential"],
+      principalKind: principalKind as AuthPolicy["principalKind"],
+      tenantAuthority: tenantAuthority as AuthPolicy["tenantAuthority"],
+      ...(minimumRole === undefined
+        ? {}
+        : {
+            minimumRole: minimumRole as NonNullable<AuthPolicy["minimumRole"]>,
+          }),
+      requiredScopes: [...scopes.matchAll(/"([^"]+)"/gu)].map(
+        (scope) => scope[1] as AuthPolicy["requiredScopes"][number],
+      ),
+    });
+  }
+  return policies;
+};
+
+const readAuthPolicyRegistry = (
+  source: string | undefined,
+): ReadonlyMap<string, AuthPolicy> | undefined =>
+  source === undefined ? undefined : parseAuthPolicyRegistry(source);
 
 const surfaceMaps = (surfaces: readonly PublicSurface[]) => {
   const byId = new Map<string, PublicSurface>();
@@ -266,6 +315,10 @@ const assertCoverage = (
     const owned = surfaces.filter(
       (surface) => surface.activationJourneyId === source.journeyId,
     );
+    if (owned.length === 0)
+      throw new Error(
+        `${source.journeyId} cannot be admitted without an activation-owned public surface`,
+      );
     for (const surface of owned) {
       const covering = candidate.pickles.filter(
         (pickle) =>
@@ -336,17 +389,24 @@ const assertCoverage = (
 const authPolicyDeltas = (
   base: readonly PublicSurface[],
   candidate: readonly PublicSurface[],
+  basePolicies?: ReadonlyMap<string, AuthPolicy>,
+  candidatePolicies?: ReadonlyMap<string, AuthPolicy>,
 ): ContractInventory["authPolicyDeltas"] => {
   const baseById = surfaceMaps(base).byId;
   return candidate.flatMap((surface) => {
     const previous = baseById.get(surface.id);
+    if (previous === undefined) return [];
     if (
-      previous === undefined ||
-      previous.authPolicyId === surface.authPolicyId
+      previous.authPolicyId === surface.authPolicyId &&
+      (basePolicies === undefined || candidatePolicies === undefined)
     )
       return [];
-    const basePolicy = resolveAuthPolicy(previous.authPolicyId);
-    const candidatePolicy = resolveAuthPolicy(surface.authPolicyId);
+    const basePolicy =
+      basePolicies?.get(previous.authPolicyId) ??
+      resolveAuthPolicy(previous.authPolicyId);
+    const candidatePolicy =
+      candidatePolicies?.get(surface.authPolicyId) ??
+      resolveAuthPolicy(surface.authPolicyId);
     if (basePolicy === undefined || candidatePolicy === undefined) return [];
     const comparison = compareAuthPolicyStrength(basePolicy, candidatePolicy);
     return comparison === "weaker" || comparison === "incomparable"
@@ -393,7 +453,27 @@ export function compileContractInventory(input: {
       ]),
       "protected base",
     );
-    deltas = authPolicyDeltas(baseSurfaces, candidateSurfaces);
+    let candidatePolicySource: string | undefined;
+    let basePolicySource: string | undefined;
+    try {
+      candidatePolicySource = readFileSync(
+        join(input.root, authPolicySourcePath),
+        "utf8",
+      );
+      basePolicySource = git(input.root, [
+        "show",
+        `${input.protectedBaseSha}:${authPolicySourcePath}`,
+      ]).toString("utf8");
+    } catch {
+      // Older protected-base fixtures may not carry the policy registry yet;
+      // surface IDs still provide a fail-closed comparison for those entries.
+    }
+    deltas = authPolicyDeltas(
+      baseSurfaces,
+      candidateSurfaces,
+      readAuthPolicyRegistry(basePolicySource),
+      readAuthPolicyRegistry(candidatePolicySource),
+    );
   }
   assertCoverage(candidate, candidateSurfaces);
   const sortedSources = [...candidate.sources].sort((left, right) =>

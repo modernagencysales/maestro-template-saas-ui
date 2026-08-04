@@ -17,6 +17,7 @@ import {
   type HeadlessExecutorRequest,
 } from "./manifest/executor";
 import { buildGeneratedOpenApiDocument } from "./manifest/openapi";
+import { requireAdmittedOperation } from "./capabilities/_kit/admissionGuard";
 import {
   executorRequestFor,
   readJsonBody,
@@ -232,7 +233,8 @@ const unsubscribeHtmlResponse = (html: string): Response =>
 const runTemplateApiOperation = async (
   ctx: HeadlessHttpCtx,
   request: HeadlessExecutorRequest,
-): Promise<unknown> =>
+): Promise<unknown> => (
+  requireAdmittedOperation(request.operationId, "api"),
   await executeHeadlessOperation(
     {
       refs: operationRefs,
@@ -241,7 +243,8 @@ const runTemplateApiOperation = async (
       runAction: (ref, input) => ctx.runAction(ref, input),
     },
     request,
-  );
+  )
+);
 
 const templateRouteForPath = (pathname: string): TemplateRouteMatch => {
   const apiEntry = confectManifest.functions.find(

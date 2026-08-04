@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import {
+  requireAdmittedOperation,
   requireAdmittedSurfaceFrom,
   runAdmittedSurface,
 } from "../confect/capabilities/_kit/admissionGuard";
@@ -36,14 +37,12 @@ describe("server admission guard", () => {
 
     await expect(
       runAdmittedSurface({
-        surfaceId: "assembling_action",
+        surfaceId: "missing",
         emergencyDenied: false,
         authenticate: async () => calls.push("authenticate"),
         authorizeAndRun: async () => calls.push("handler"),
-        surfaces,
-        journeys: { journey_draft: false },
       }),
-    ).rejects.toThrow(/not admitted/u);
+    ).rejects.toThrow(/unknown public surface/u);
     expect(calls).toEqual(["authenticate"]);
   });
 
@@ -69,6 +68,15 @@ describe("server admission guard", () => {
     expect(() =>
       requireAdmittedSurfaceFrom("missing", false, surfaces, {}),
     ).toThrow(/unknown public surface/u);
+  });
+
+  it("maps a registered API locator to the generated surface authority", () => {
+    expect(() =>
+      requireAdmittedOperation("ops/flags:evaluate", "api"),
+    ).not.toThrow();
+    expect(() =>
+      requireAdmittedOperation("not-a-registered-operation", "api"),
+    ).toThrow(/unknown admitted api operation/u);
   });
 
   it("evaluates feature flags after admission and never turns false admission true", () => {
