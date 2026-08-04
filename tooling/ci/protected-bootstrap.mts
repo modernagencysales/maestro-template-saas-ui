@@ -1,5 +1,7 @@
 import { createHash } from "node:crypto";
 import { readFileSync, writeFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 import { isDeepStrictEqual } from "node:util";
 
 type Sha256 = `sha256:${string}`;
@@ -56,6 +58,9 @@ export type ProtectedControllerApi = {
   readonly github: ProtectedControllerEndpoint;
   readonly woodpecker: ProtectedControllerEndpoint;
 };
+
+export type ProtectedControllerAdapterFactory = () =>
+  ProtectedControllerApi | Promise<ProtectedControllerApi>;
 
 export function verifyProtectedBootstrap(
   observation: ProtectedBootstrapObservation,
@@ -307,12 +312,29 @@ export async function executeProtectedTransition(input: {
     }
     return;
   }
+  const written: ProtectedExternalDocument[] = [];
   for (const forward of step.forwardPostimage) {
     const document = sanitizedDocument(forward);
     await endpointFor(input.api, document).write({ method: "PUT", document });
+    written.push(document);
     const live = await observeDocument(input.api, document);
-    if (live.sha256 !== document.sha256)
+    if (live.sha256 !== document.sha256) {
+      for (const entry of written.reverse()) {
+        const inverse = step.inverse?.find(
+          (candidate) => candidate.resourcePath === entry.resourceId,
+        );
+        if (!inverse) continue;
+        await endpointFor(input.api, entry).write({
+          method: inverse.method,
+          document: sanitizedDocument({
+            ...entry,
+            resourceId: inverse.resourcePath,
+            canonicalBody: inverse.canonicalBody ?? {},
+          }),
+        });
+      }
       throw new Error(`postimage mismatch for ${document.resourceId}`);
+    }
   }
 }
 
@@ -350,19 +372,54 @@ function redact(value: unknown): unknown {
   return sanitize(value);
 }
 
-async function main(): Promise<void> {
-  const action = process.argv[2];
-  if (!action || action === "freeze") return;
-  const value = (flag: string) => process.argv[process.argv.indexOf(flag) + 1];
-  const journalPath = value("--journal");
-  if (!journalPath) throw new Error("--journal is required");
-  if (action === "observe") {
+function flag(flagName: string): string | undefined {
+  const index = process.argv.indexOf(flagName);
+  return index === -1 ? undefined : process.argv[index + 1];
+}
+
+function jsonFlag<Value>(flagName: string): Value {
+  const value = flag(flagName);
+  if (!value) throw new Error(`${flagName} is required`);
+  return JSON.parse(value) as Value;
+}
+
+async function protectedControllerApi(): Promise<ProtectedControllerApi> {
+  const adapterModule =
+    flag("--adapter-module") ?? process.env.PROTECTED_BOOTSTRAP_ADAPTER_MODULE;
+  if (!adapterModule)
     throw new Error(
       "protected controller adapter is required; candidate mode cannot access external writes",
     );
+  const moduleUrl = adapterModule.startsWith("file:")
+    ? adapterModule
+    : pathToFileURL(resolve(adapterModule)).href;
+  const loaded = (await import(moduleUrl)) as {
+    readonly createProtectedControllerAdapter?: ProtectedControllerAdapterFactory;
+  };
+  if (typeof loaded.createProtectedControllerAdapter !== "function")
+    throw new Error(
+      "protected controller adapter must export createProtectedControllerAdapter",
+    );
+  return loaded.createProtectedControllerAdapter();
+}
+
+async function main(): Promise<void> {
+  const action = process.argv[2];
+  if (!action || action === "freeze") return;
+  const journalPath = flag("--journal");
+  if (!journalPath) throw new Error("--journal is required");
+  if (action === "observe") {
+    const journal = await observeProtectedBootstrap({
+      observation: jsonFlag<ProtectedBootstrapObservation>("--observation"),
+      documents: jsonFlag<readonly ProtectedExternalDocument[]>("--documents"),
+      api: await protectedControllerApi(),
+    });
+    saveProtectedTransitionJournal(journalPath, journal);
+    console.log(JSON.stringify(redact(journal), null, 2));
+    return;
   }
   const journal = loadProtectedTransitionJournal(journalPath);
-  const expectedLiveDigest = value("--expected-live-digest") as
+  const expectedLiveDigest = flag("--expected-live-digest") as
     Sha256 | undefined;
   if (!expectedLiveDigest)
     throw new Error("--expected-live-digest is required (compare-and-swap)");
@@ -370,7 +427,8 @@ async function main(): Promise<void> {
     action: action as Parameters<typeof planProtectedTransition>[0]["action"],
     journal,
     expectedLiveDigest,
-    confirmation: value("--confirm"),
+    confirmation: flag("--confirm"),
+    api: flag("--confirm") ? await protectedControllerApi() : undefined,
     journalPath,
   });
   console.log(JSON.stringify(redact(result), null, 2));
