@@ -917,6 +917,174 @@ describe("verifyMessages", () => {
     );
   });
 
+  test("rejects correlation nonce replay across Pickle attachments", () => {
+    const candidate = input();
+    const replayUri = `${fixtureRoot}/replay.feature`;
+    const replayKey = `pickle_sha256:${sha256(
+      JSON.stringify({
+        sourceDigest: expectedPickle.sourceSha256,
+        uri: replayUri,
+        scenarioLocation: expectedPickle.scenarioLocation,
+        examplesRowLocation: expectedPickle.examplesRowLocation,
+      }),
+    ).slice("sha256:".length)}` as const;
+    const replaySource = {
+      ...required(candidate.expected.sources[0], "expected Source"),
+      path: replayUri,
+      uri: replayUri,
+    };
+    const replayPickle = {
+      ...required(candidate.expected.pickles[0], "expected Pickle"),
+      key: replayKey,
+      uri: replayUri,
+      sourceUri: replayUri,
+      steps: expectedPickle.steps.map((step) => ({
+        ...step,
+        key: `step_sha256:${sha256(
+          JSON.stringify({
+            pickleKey: replayKey,
+            index: step.index,
+            type: step.type,
+            text: step.text,
+            argument: null,
+          }),
+        ).slice("sha256:".length)}` as const,
+      })),
+    };
+    candidate.expected = {
+      ...candidate.expected,
+      sources: [...candidate.expected.sources, replaySource],
+      pickles: [...candidate.expected.pickles, replayPickle],
+      admittedPickleKeys: [...candidate.expected.admittedPickleKeys, replayKey],
+    };
+    candidate.selection = {
+      ...candidate.selection,
+      sources: [...candidate.selection.sources, replaySource],
+      pickles: [...candidate.selection.pickles, replayPickle],
+      sourcePaths: [...candidate.selection.sourcePaths, replayUri],
+      pickleKeys: [...candidate.selection.pickleKeys, replayKey],
+    };
+    candidate.ndjson = mutated((envelopes) => {
+      const source = structuredClone(payload<JsonObject>(envelopes, "source"));
+      const document = structuredClone(
+        payload<JsonObject>(envelopes, "gherkinDocument"),
+      );
+      const pickle = structuredClone(payload<JsonObject>(envelopes, "pickle"));
+      const prefixIds = (value: unknown): void => {
+        if (Array.isArray(value)) {
+          value.forEach(prefixIds);
+          return;
+        }
+        if (value === null || typeof value !== "object") return;
+        for (const [key, child] of Object.entries(value)) {
+          if (
+            typeof child === "string" &&
+            (key === "id" || key.endsWith("Id"))
+          ) {
+            (value as JsonObject)[key] = `replay-${child}`;
+          } else if (Array.isArray(child) && key.endsWith("Ids")) {
+            (value as JsonObject)[key] = child.map((id) =>
+              typeof id === "string" ? `replay-${id}` : id,
+            );
+          } else {
+            prefixIds(child);
+          }
+        }
+      };
+      prefixIds(document);
+      prefixIds(pickle);
+      source.uri = replayUri;
+      document.uri = replayUri;
+      pickle.uri = replayUri;
+
+      const testCase = structuredClone(
+        payload<{
+          id: string;
+          pickleId: string;
+          testSteps: Array<{
+            id: string;
+            pickleStepId?: string;
+          }>;
+        }>(envelopes, "testCase"),
+      );
+      testCase.id = `replay-${testCase.id}`;
+      testCase.pickleId = pickle.id as string;
+      for (const step of testCase.testSteps) {
+        step.id = `replay-${step.id}`;
+        if (step.pickleStepId !== undefined)
+          step.pickleStepId = `replay-${step.pickleStepId}`;
+      }
+      const started = structuredClone(
+        payload<{ id: string; testCaseId: string }>(
+          envelopes,
+          "testCaseStarted",
+        ),
+      );
+      started.id = `replay-${started.id}`;
+      started.testCaseId = testCase.id;
+      const cloneStepEvent = (event: JsonObject): JsonObject => {
+        const cloned = structuredClone(event);
+        cloned.testCaseStartedId = started.id;
+        cloned.testStepId = `replay-${String(cloned.testStepId)}`;
+        return cloned;
+      };
+      const stepStarts = envelopes.flatMap((envelope) =>
+        "testStepStarted" in envelope
+          ? [cloneStepEvent(envelope.testStepStarted as JsonObject)]
+          : [],
+      );
+      const stepFinishes = envelopes.flatMap((envelope) =>
+        "testStepFinished" in envelope
+          ? [cloneStepEvent(envelope.testStepFinished as JsonObject)]
+          : [],
+      );
+      const finished = structuredClone(
+        payload<{ testCaseStartedId: string }>(envelopes, "testCaseFinished"),
+      );
+      finished.testCaseStartedId = started.id;
+      const replayAttachment = structuredClone(
+        payload<{
+          body: string;
+          testCaseStartedId: string;
+          testStepId: string;
+        }>(envelopes, "attachment"),
+      );
+      replayAttachment.testCaseStartedId = started.id;
+      replayAttachment.testStepId = `replay-${replayAttachment.testStepId}`;
+      const replayBody = JSON.parse(replayAttachment.body) as JsonObject;
+      replayBody.pickleKey = replayKey;
+      const observations = replayBody.observations as JsonObject[];
+      const correlations = replayBody.serverCorrelations as JsonObject[];
+      const hooks = replayBody.hooks as {
+        beforeStepKeys: string[];
+        afterStepKeys: string[];
+      };
+      for (const [index, step] of replayPickle.steps.entries()) {
+        required(observations[index], "replay observation").stepKey = step.key;
+        hooks.beforeStepKeys[index] = step.key;
+        hooks.afterStepKeys[index] = step.key;
+      }
+      required(correlations[0], "replay server correlation").stepKey = required(
+        replayPickle.steps[0],
+        "replay Action",
+      ).key;
+      replayAttachment.body = JSON.stringify(replayBody);
+
+      envelopes.push(
+        { source },
+        { gherkinDocument: document },
+        { pickle },
+        { testCase },
+        { testCaseStarted: started },
+        ...stepStarts.map((testStepStarted) => ({ testStepStarted })),
+        ...stepFinishes.map((testStepFinished) => ({ testStepFinished })),
+        { attachment: replayAttachment },
+        { testCaseFinished: finished },
+      );
+    });
+    reject(candidate, /correlation nonce/u);
+  });
+
   test("rejects extra and orphan run-hook events", () => {
     const cases: Array<[RegExp, (envelopes: JsonObject[]) => void]> = [
       [

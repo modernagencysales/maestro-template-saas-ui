@@ -969,6 +969,8 @@ const verify = (
       `TestCaseStarted ${start.id} protected After attachment`,
     );
   }
+  const actionCorrelationNonces = new Set<string>();
+  const correlatedNonces = new Set<string>();
   for (const attachment of attachments) {
     invariant(
       attachment.contentEncoding === "IDENTITY" &&
@@ -1121,7 +1123,6 @@ const verify = (
       observedSteps.size === observableSteps.length,
       "observations do not cover exact Action/Outcome steps",
     );
-    const actionCorrelationNonces = new Set<string>();
     for (const step of observableSteps) {
       const observation = observedSteps.get(step.key);
       invariant(
@@ -1167,7 +1168,6 @@ const verify = (
       "server correlations do not cover exact Action steps",
     );
     const correlatedStepKeys = new Set<string>();
-    const correlatedNonces = new Set<string>();
     for (const correlation of body.serverCorrelations) {
       exactKeys(
         correlation,

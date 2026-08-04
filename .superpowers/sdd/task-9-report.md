@@ -168,3 +168,24 @@ rtk proxy env HOST_TEST_MAX_LOAD_1M=30 host-test-slot --class focused pnpm exec 
 ```
 
 Observed: 1 file passed, 22 tests passed, 0 failed, exit 0.
+
+## Cross-Pickle nonce replay follow-up
+
+The final strict follow-up moves the Action-observation and server-correlation
+nonce registries to verifier-run scope. Two selected Pickles can no longer reuse
+an otherwise internally consistent correlation nonce across their separate
+protected After attachments.
+
+The regression mutation emits a fully linked second Source, GherkinDocument,
+Pickle, TestCase, attempt-zero execution, step event set, and protected After
+attachment while deliberately replaying the first Pickle's Action/server nonce.
+Against the pre-fix verifier, the focused test exited 1 because the mutated
+two-Pickle stream was incorrectly accepted.
+
+Fresh green focused evidence:
+
+```text
+rtk proxy env HOST_TEST_MAX_LOAD_1M=30 host-test-slot --class focused pnpm exec vitest run tooling/acceptance/verify-messages.test.mts
+```
+
+Observed: 1 file passed, 23 tests passed, 0 failed, exit 0.
