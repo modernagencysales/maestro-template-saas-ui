@@ -744,7 +744,8 @@ const completionRequirements = [
     requirement:
       "Core services, provider adapters, CI/CD gates, security posture, and coding rules are documented and enforced.",
     evidence: [
-      ".woodpecker/verify.yml",
+      ".woodpecker/firewall.yml",
+      ".woodpecker/epoch.yml",
       ".woodpecker/deploy.yml",
       "packages/integrations/src/index.ts",
       "packages/integrations/src/index.test.ts",

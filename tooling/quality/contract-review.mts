@@ -788,7 +788,8 @@ function readOptional(path: string): string {
 
 function gateConfig(): string {
   const files = [
-    ".woodpecker/verify.yml",
+    ".woodpecker/firewall.yml",
+    ".woodpecker/epoch.yml",
     ".woodpecker/deploy.yml",
     "tooling/ci/taste.sh",
     "tooling/ci/contract-review.sh",

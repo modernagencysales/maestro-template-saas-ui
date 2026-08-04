@@ -58,7 +58,8 @@ evidence strength, unavailable states, and receipt staleness; the underlying
 gate commands remain authoritative.
 
 Deterministic gates are authoritative in the required Woodpecker verification
-pipeline. AI review gates are manual under the current Woodpecker topology. When
+pipeline. The PR firewall runs bounded AI review: it freezes the first blocking
+set, permits at most two repair rounds, and escalates remaining findings. When
 invoked, they are additional review signals and must fail closed when provider
 auth or a parseable JSON/text verdict is missing.
 

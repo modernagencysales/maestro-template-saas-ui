@@ -9,15 +9,48 @@ const checkDescriptorDefinitions = {
     name: "check:ci-completeness",
     requirements: [
       {
-        file: ".woodpecker/verify.yml",
+        file: ".woodpecker/firewall.yml",
         includes: [
           "trusted-ci-policy",
           "tooling/ci/ci-self-protection.sh",
-          "tooling/ci/phase1.sh",
+          "tooling/ci/firewall.sh",
+          "class: firewall",
           "depends_on:",
         ],
         message:
-          "Woodpecker verification must route through trusted deterministic CI scripts",
+          "Woodpecker PR firewall must route through trusted deterministic CI scripts",
+      },
+      {
+        file: ".woodpecker/epoch.yml",
+        includes: ["class: epoch", "event: manual", "tooling/ci/epoch.sh"],
+        message: "Woodpecker full verification must run only as a manual epoch",
+      },
+      {
+        file: "tooling/ci/firewall.sh",
+        includes: [
+          "pnpm check:format",
+          "pnpm lint",
+          "pnpm typecheck",
+          "pnpm check:deps",
+          "pnpm check:layer-boundaries",
+          "pnpm check:secret-canaries",
+          "pnpm acceptance:check",
+          "pnpm acceptance:features",
+          "pnpm check:qlty -- --diff",
+          "pnpm review:bounded",
+        ],
+        absent: ["pnpm verify"],
+        message:
+          "PR firewall must stay fast while enforcing every shift-left gate",
+      },
+      {
+        file: "tooling/ci/epoch.sh",
+        includes: [
+          "FACTORY_EPOCH_SHA",
+          "pnpm check:qlty -- --all",
+          "pnpm verify",
+        ],
+        message: "manual epochs must bind exact SHA and run full verification",
       },
       {
         file: ".woodpecker/deploy.yml",

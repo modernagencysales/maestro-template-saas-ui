@@ -48,6 +48,7 @@ export default [
     files: [
       "tooling/quality/taste-review.mts",
       "tooling/quality/contract-review.mts",
+      "tooling/release/src/index.ts",
     ],
     rules: {
       complexity: "off",
