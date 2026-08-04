@@ -29,7 +29,7 @@ describe("check:ci-completeness", () => {
     expect(requirements).toContain("check:system-topology");
     expect(requirements).toContain("check:data-resources");
     expect(requirements).toContain("check:promotion-boundary");
-    expect(requirements).toContain(".github/workflows/quality.yml");
+    expect(requirements).not.toContain(".github/workflows/quality.yml");
     expect(requirements).toContain("Justfile");
     expect(requirements).toContain("lefthook.yml");
   });
@@ -83,6 +83,18 @@ describe("check:ci-completeness", () => {
     ].join(" && ");
     expect(validateRootVerifyHostTerms({ scripts: { verify } })).toContain(
       "package.json scripts.verify must not run pnpm check:product-journeys before repository adoption",
+    );
+  });
+
+  it("keeps Qlty advisory outside root verify", () => {
+    const verify = [
+      "pnpm check:config-drift",
+      "pnpm check:convex-ai-files",
+      "pnpm check:agent-pack",
+      "pnpm check:qlty",
+    ].join(" && ");
+    expect(validateRootVerifyHostTerms({ scripts: { verify } })).toContain(
+      "package.json scripts.verify must keep pnpm check:qlty advisory outside the root verdict",
     );
   });
 });

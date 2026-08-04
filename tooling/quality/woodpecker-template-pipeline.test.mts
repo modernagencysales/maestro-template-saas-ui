@@ -30,8 +30,8 @@ describe("Woodpecker template pipeline", () => {
       expect(read(path), path).not.toContain("BUILDKITE");
     }
 
-    expect(read(".github/workflows/quality.yml")).not.toContain(
-      ".buildkite/scripts/",
+    expect(existsSync(resolve(root, ".github/workflows/quality.yml"))).toBe(
+      false,
     );
   });
 
@@ -61,14 +61,12 @@ describe("Woodpecker template pipeline", () => {
     ).toHaveLength(3);
   });
 
-  it("binds one GitHub credential after secretless CI self-protection", () => {
+  it("keeps candidate verification tokenless and Qlty advisory", () => {
     const verifyPipeline = read(".woodpecker/verify.yml");
-    expect(
-      verifyPipeline.match(/GITHUB_TOKEN:\s*\n\s+from_secret: github_token/gmu),
-    ).toHaveLength(1);
-    expect(verifyPipeline.indexOf("trusted-ci-policy")).toBeLessThan(
-      verifyPipeline.indexOf("GITHUB_TOKEN:"),
-    );
+    expect(verifyPipeline).not.toContain("GITHUB_TOKEN");
+    expect(verifyPipeline).not.toContain("from_secret:");
+    expect(verifyPipeline).toContain("name: qlty-advisory");
+    expect(verifyPipeline).toContain("timeout 30s pnpm check:qlty || true");
   });
 
   it("documents AI review gates as manual under the current topology", () => {
