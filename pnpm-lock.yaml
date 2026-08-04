@@ -32,6 +32,9 @@ importers:
       "@cucumber/cucumber":
         specifier: 13.2.0
         version: 13.2.0
+      "@cucumber/cucumber-expressions":
+        specifier: 20.0.0
+        version: 20.0.0
       "@cucumber/messages":
         specifier: 34.0.1
         version: 34.0.1

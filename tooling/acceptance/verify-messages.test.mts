@@ -608,30 +608,82 @@ describe("verifyMessages", () => {
 
   test("rejects emitted Pickles outside the exact selection", () => {
     const candidate = input();
-    const selectedKey = expectedPickle.key.replace(
-      "pickle_sha256:",
-      "pickle_sha256:unselected-",
-    ) as typeof expectedPickle.key;
+    const unselectedUri = `${fixtureRoot}/unselected.feature`;
+    const unselectedKey = `pickle_sha256:${sha256(
+      JSON.stringify({
+        sourceDigest: expectedPickle.sourceSha256,
+        uri: unselectedUri,
+        scenarioLocation: expectedPickle.scenarioLocation,
+        examplesRowLocation: expectedPickle.examplesRowLocation,
+      }),
+    ).slice("sha256:".length)}` as const;
+    const unselectedSource = {
+      ...required(candidate.expected.sources[0], "expected Source"),
+      path: unselectedUri,
+      uri: unselectedUri,
+    };
+    const unselectedPickle = {
+      ...required(candidate.expected.pickles[0], "expected Pickle"),
+      key: unselectedKey,
+      uri: unselectedUri,
+      sourceUri: unselectedUri,
+      steps: expectedPickle.steps.map((step) => ({
+        ...step,
+        key: `step_sha256:${sha256(
+          JSON.stringify({
+            pickleKey: unselectedKey,
+            index: step.index,
+            type: step.type,
+            text: step.text,
+            argument: null,
+          }),
+        ).slice("sha256:".length)}` as const,
+      })),
+    };
     candidate.selection = {
       ...candidate.selection,
-      pickles: [
-        {
-          ...required(candidate.selection.pickles[0], "selected Pickle"),
-          key: selectedKey,
-        },
-      ],
-      pickleKeys: [selectedKey],
+      sources: [...candidate.selection.sources, unselectedSource],
+      sourcePaths: [...candidate.selection.sourcePaths, unselectedUri],
     };
     candidate.expected = {
       ...candidate.expected,
-      pickles: [
-        ...candidate.expected.pickles,
-        {
-          ...required(candidate.expected.pickles[0], "expected Pickle"),
-          key: selectedKey,
-        },
-      ],
+      sources: [...candidate.expected.sources, unselectedSource],
+      pickles: [...candidate.expected.pickles, unselectedPickle],
     };
+    candidate.ndjson = mutated((envelopes) => {
+      const source = structuredClone(payload<JsonObject>(envelopes, "source"));
+      const document = structuredClone(
+        payload<JsonObject>(envelopes, "gherkinDocument"),
+      );
+      const pickle = structuredClone(payload<JsonObject>(envelopes, "pickle"));
+      const prefixIds = (value: unknown): void => {
+        if (Array.isArray(value)) {
+          value.forEach(prefixIds);
+          return;
+        }
+        if (value === null || typeof value !== "object") return;
+        for (const [key, child] of Object.entries(value)) {
+          if (
+            typeof child === "string" &&
+            (key === "id" || key.endsWith("Id"))
+          ) {
+            (value as JsonObject)[key] = `unselected-${child}`;
+          } else if (Array.isArray(child) && key.endsWith("Ids")) {
+            (value as JsonObject)[key] = child.map((id) =>
+              typeof id === "string" ? `unselected-${id}` : id,
+            );
+          } else {
+            prefixIds(child);
+          }
+        }
+      };
+      prefixIds(document);
+      prefixIds(pickle);
+      source.uri = unselectedUri;
+      document.uri = unselectedUri;
+      pickle.uri = unselectedUri;
+      envelopes.push({ source }, { gherkinDocument: document }, { pickle });
+    });
     reject(candidate, /emitted Pickle selection/u);
   });
 
@@ -721,6 +773,56 @@ describe("verifyMessages", () => {
       );
   });
 
+  test("rejects coherent moved match groups and wrong parameter type names", () => {
+    const cases: Array<[RegExp, (argument: JsonObject) => void]> = [
+      [
+        /match argument/u,
+        (argument) => {
+          argument.group = { start: 0, value: "I" };
+        },
+      ],
+      [
+        /match argument/u,
+        (argument) => {
+          argument.parameterTypeName = "word";
+        },
+      ],
+    ];
+    for (const [finding, edit] of cases)
+      reject(
+        input(
+          mutated((envelopes) => {
+            const testCase = payload<{
+              testSteps: Array<{
+                stepMatchArgumentsLists?: Array<{
+                  stepMatchArguments: JsonObject[];
+                }>;
+              }>;
+            }>(envelopes, "testCase");
+            const step = required(
+              testCase.testSteps.find(
+                (value) => value.stepMatchArgumentsLists !== undefined,
+              ),
+              "matched TestStep",
+            );
+            edit(
+              required(
+                required(
+                  required(
+                    step.stepMatchArgumentsLists,
+                    "match argument lists",
+                  )[0],
+                  "match argument list",
+                ).stepMatchArguments[0],
+                "match argument",
+              ),
+            );
+          }),
+        ),
+        finding,
+      );
+  });
+
   test("rejects observation transports outside the Pickle contract", () => {
     reject(
       input(
@@ -736,6 +838,18 @@ describe("verifyMessages", () => {
       ),
       /transport/u,
     );
+  });
+
+  test("requires every expected Pickle transport to be observed", () => {
+    const candidate = input();
+    candidate.expected = {
+      ...candidate.expected,
+      pickles: candidate.expected.pickles.map((pickle) => ({
+        ...pickle,
+        transports: ["ui", "cli"],
+      })),
+    };
+    reject(candidate, /transport/u);
   });
 
   test("rejects duplicate per-step server correlations", () => {
@@ -787,17 +901,19 @@ describe("verifyMessages", () => {
               secondActionKey;
             required(observations[1], "second observation").kind = "action";
             required(observations[1], "second observation").correlationNonce =
-              "second-action-correlation";
+              required(observations[0], "first observation").correlationNonce;
             hooks.beforeStepKeys[1] = secondActionKey;
             hooks.afterStepKeys[1] = secondActionKey;
             const correlations = body.serverCorrelations as JsonObject[];
-            correlations.push(
-              structuredClone(required(correlations[0], "server correlation")),
+            const secondCorrelation = structuredClone(
+              required(correlations[0], "server correlation"),
             );
+            secondCorrelation.stepKey = secondActionKey;
+            correlations.push(secondCorrelation);
           });
         }),
       },
-      /server correlation/u,
+      /correlation nonce/u,
     );
   });
 

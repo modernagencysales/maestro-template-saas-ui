@@ -5,6 +5,7 @@ import { pathToFileURL } from "node:url";
 import {
   HookType,
   parseEnvelope,
+  StepDefinitionPatternType,
   TestStepResultStatus,
   type Envelope,
   type GherkinDocument,
@@ -16,6 +17,12 @@ import {
   type Tag,
   type TableRow,
 } from "@cucumber/messages";
+import {
+  ExpressionFactory,
+  ParameterType,
+  ParameterTypeRegistry,
+  type Group as ExpressionGroup,
+} from "@cucumber/cucumber-expressions";
 import Ajv2020 from "ajv/dist/2020.js";
 
 import type { StablePickleKey } from "../../packages/template-core/src/productContract";
@@ -337,6 +344,14 @@ const verifyMatchGroup = (
     verifyMatchGroup(child, text, context, { start, end });
 };
 
+const expressionGroup = (group: ExpressionGroup): JsonObject => ({
+  start: group.start,
+  value: group.value,
+  ...(group.children === undefined
+    ? {}
+    : { children: group.children.map(expressionGroup) }),
+});
+
 const assertJsonEqual = (
   actual: unknown,
   expected: unknown,
@@ -622,6 +637,22 @@ const verify = (
       ),
     ),
   );
+  const parameterTypes = new ParameterTypeRegistry();
+  for (const parameterType of values(envelopes, "parameterType")) {
+    if (parameterTypes.lookupByTypeName(parameterType.name) !== undefined)
+      continue;
+    parameterTypes.defineParameterType(
+      new ParameterType(
+        parameterType.name,
+        parameterType.regularExpressions,
+        String,
+        (value) => value,
+        parameterType.useForSnippets,
+        parameterType.preferForRegularExpressionMatch,
+      ),
+    );
+  }
+  const expressionFactory = new ExpressionFactory(parameterTypes);
   const runStarts = values(envelopes, "testRunStarted");
   const runStart = one(runStarts, "TestRunStarted");
   addId(runStart.id, "TestRunStarted");
@@ -670,8 +701,11 @@ const verify = (
         testStep.stepDefinitionIds.length === 1,
         `TestStep ${testStep.id} requires exactly one StepDefinition link`,
       );
+      const definition = stepDefinitions.get(
+        testStep.stepDefinitionIds[0] ?? "",
+      );
       invariant(
-        stepDefinitions.has(testStep.stepDefinitionIds[0] ?? ""),
+        definition !== undefined,
         `TestStep ${testStep.id} has unresolved StepDefinition link`,
       );
       invariant(
@@ -691,6 +725,35 @@ const verify = (
             `TestStep ${testStep.id}`,
           );
         }
+      let semanticArguments;
+      try {
+        semanticArguments = expressionFactory
+          .createExpression(
+            definition.pattern.type ===
+              StepDefinitionPatternType.CUCUMBER_EXPRESSION
+              ? definition.pattern.source
+              : new RegExp(definition.pattern.source, "u"),
+          )
+          .match(pickleStep.text);
+      } catch {
+        throw new Error(
+          `TestStep ${testStep.id} StepDefinition pattern is invalid`,
+        );
+      }
+      invariant(
+        semanticArguments !== null,
+        `TestStep ${testStep.id} StepDefinition does not match PickleStep text`,
+      );
+      assertJsonEqual(
+        testStep.stepMatchArgumentsLists[0]?.stepMatchArguments,
+        semanticArguments.map((argument) => ({
+          group: expressionGroup(argument.group),
+          ...(argument.getParameterType().name === undefined
+            ? {}
+            : { parameterTypeName: argument.getParameterType().name }),
+        })),
+        `TestStep ${testStep.id} match arguments differ from StepDefinition`,
+      );
     }
     const hookSteps = testCase.testSteps.filter(
       (step) => step.hookId !== undefined,
@@ -1009,6 +1072,7 @@ const verify = (
       "observations must be an array",
     );
     const observedSteps = new Map<string, JsonObject>();
+    const observedTransports = new Set<string>();
     for (const observation of body.observations) {
       invariant(
         observation !== null &&
@@ -1042,8 +1106,14 @@ const verify = (
         ),
         `observation transport ${value.transport} is not expected for ${expectedPickle.key}`,
       );
+      observedTransports.add(value.transport);
       observedSteps.set(value.stepKey, value);
     }
+    assertJsonEqual(
+      [...observedTransports].sort(),
+      [...new Set(expectedPickle.transports)].sort(),
+      `observation transport set for ${expectedPickle.key}`,
+    );
     const observableSteps = expectedPickle.steps.filter(
       (step) => step.type === "Action" || step.type === "Outcome",
     );
@@ -1051,17 +1121,24 @@ const verify = (
       observedSteps.size === observableSteps.length,
       "observations do not cover exact Action/Outcome steps",
     );
+    const actionCorrelationNonces = new Set<string>();
     for (const step of observableSteps) {
       const observation = observedSteps.get(step.key);
       invariant(
         observation?.kind === step.type.toLocaleLowerCase("en-US"),
         `observation kind differs for ${step.key}`,
       );
-      if (step.type === "Action")
+      if (step.type === "Action") {
         nonempty(
           observation?.correlationNonce,
           `Action observation correlation nonce ${step.key}`,
         );
+        invariant(
+          !actionCorrelationNonces.has(observation.correlationNonce),
+          `Action observation correlation nonce is reused for ${step.key}`,
+        );
+        actionCorrelationNonces.add(observation.correlationNonce);
+      }
     }
     exactKeys(
       body.hooks,
@@ -1090,6 +1167,7 @@ const verify = (
       "server correlations do not cover exact Action steps",
     );
     const correlatedStepKeys = new Set<string>();
+    const correlatedNonces = new Set<string>();
     for (const correlation of body.serverCorrelations) {
       exactKeys(
         correlation,
@@ -1110,6 +1188,12 @@ const verify = (
         `duplicate server correlation ${correlation.stepKey}`,
       );
       correlatedStepKeys.add(correlation.stepKey);
+      nonempty(correlation.correlationNonce, "server correlation nonce");
+      invariant(
+        !correlatedNonces.has(correlation.correlationNonce),
+        `server correlation nonce is reused for ${correlation.stepKey}`,
+      );
+      correlatedNonces.add(correlation.correlationNonce);
       const observation = observedSteps.get(correlation.stepKey as string);
       invariant(
         actionSteps.some((step) => step.key === correlation.stepKey) &&
@@ -1130,6 +1214,11 @@ const verify = (
       [...correlatedStepKeys].sort(),
       actionSteps.map((step) => step.key).sort(),
       "server correlation step coverage",
+    );
+    assertJsonEqual(
+      [...correlatedNonces].sort(),
+      [...actionCorrelationNonces].sort(),
+      "Action/server correlation nonce coverage",
     );
   }
 
