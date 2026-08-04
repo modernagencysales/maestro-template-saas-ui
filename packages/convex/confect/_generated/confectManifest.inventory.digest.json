@@ -1,0 +1,95 @@
+{
+  "schemaVersion": 1,
+  "generator": "pnpm confect:manifest",
+  "sourceSpecs": [
+    {
+      "path": "packages/convex/confect/brain/pages.spec.ts",
+      "sha256": "sha256:9748c6363cddf573f950ec31f4ed6633d5a9a7dbafc325195fbf479217b1a5aa"
+    },
+    {
+      "path": "packages/convex/confect/capabilities/_versions/publicationEcho/v1.spec.ts",
+      "sha256": "sha256:91a99bb98c090e83794bfcb99a6fdab5a7245f8346eba8d5e7818637fb7be17e"
+    },
+    {
+      "path": "packages/convex/confect/capabilities/sourceGroundedBrief.spec.ts",
+      "sha256": "sha256:e5473cfbebe3e1967c8eb9b0b2a80d09e270f7321ef4b28f1d13d39329843c68"
+    },
+    {
+      "path": "packages/convex/confect/ops/dataLifecycle.spec.ts",
+      "sha256": "sha256:09b05162a48835bb1daad4c3a581ce4e02ef270b67d3e87a1e7f7e31666810fc"
+    },
+    {
+      "path": "packages/convex/confect/ops/email.spec.ts",
+      "sha256": "sha256:6b18bb60b73840596dc44a6a804708a9759adb03b0732b15ca7c048a262f3ee2"
+    },
+    {
+      "path": "packages/convex/confect/workflowContracts/generateCompleteBuildPack.spec.ts",
+      "sha256": "sha256:c025e7f2726197de7c451a3e6cac89b6b232090feebbd1249c2dea264e5e5587"
+    },
+    {
+      "path": "packages/convex/confect/workflowContracts/publicationFixture.spec.ts",
+      "sha256": "sha256:b98f78cc204a75a6c1420ce0a9314fddb2cb6735d7eec2b30fd515ceb8d522c3"
+    }
+  ],
+  "runtimeOperationIds": [
+    "brain.pages.createMarkdown",
+    "brain.pages.list",
+    "capabilities.sourceGroundedBrief.run",
+    "capabilities.sourceGroundedBrief.runInternal",
+    "ops.dataLifecycle.createDsarRequest",
+    "ops.dataLifecycle.listDsarRequests",
+    "ops.email.dispatchBroadcast",
+    "ops.email.previewBroadcast"
+  ],
+  "inventoryOperationIds": [
+    "brain.pages.createMarkdown",
+    "brain.pages.list",
+    "capabilities._versions.publicationEcho.v1.run",
+    "capabilities.sourceGroundedBrief.run",
+    "capabilities.sourceGroundedBrief.runInternal",
+    "ops.dataLifecycle.createDsarRequest",
+    "ops.dataLifecycle.listDsarRequests",
+    "ops.email.dispatchBroadcast",
+    "ops.email.previewBroadcast",
+    "workflows.generateCompleteBuildPack.approve",
+    "workflows.generateCompleteBuildPack.start",
+    "workflows.generateCompleteBuildPack.status",
+    "workflows.publicationFixture.cancel",
+    "workflows.publicationFixture.cleanup",
+    "workflows.publicationFixture.list",
+    "workflows.publicationFixture.listByName",
+    "workflows.publicationFixture.listSteps",
+    "workflows.publicationFixture.restart",
+    "workflows.publicationFixture.sendEvent",
+    "workflows.publicationFixture.startInteractive",
+    "workflows.publicationFixture.startQueued",
+    "workflows.publicationFixture.status"
+  ],
+  "addedOperationIds": [
+    "capabilities._versions.publicationEcho.v1.run",
+    "workflows.generateCompleteBuildPack.approve",
+    "workflows.generateCompleteBuildPack.start",
+    "workflows.generateCompleteBuildPack.status",
+    "workflows.publicationFixture.cancel",
+    "workflows.publicationFixture.cleanup",
+    "workflows.publicationFixture.list",
+    "workflows.publicationFixture.listByName",
+    "workflows.publicationFixture.listSteps",
+    "workflows.publicationFixture.restart",
+    "workflows.publicationFixture.sendEvent",
+    "workflows.publicationFixture.startInteractive",
+    "workflows.publicationFixture.startQueued",
+    "workflows.publicationFixture.status"
+  ],
+  "removedOperationIds": [],
+  "outputs": [
+    {
+      "path": "packages/template-core/src/generated/confectManifest.ts",
+      "sha256": "sha256:49fb157ccdf8896401572d5b492f936d57657f20304fbff9b09b6e605d5f744e"
+    },
+    {
+      "path": "packages/convex/confect/_generated/confectManifest.inventory.ts",
+      "sha256": "sha256:9306db8f13bee0b0f8c6f839cb90dbfd28d8fcca2f89d155d613dfceb9229720"
+    }
+  ]
+}

@@ -1,5 +1,7 @@
+import { createHash } from "node:crypto";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 import { format } from "prettier";
 import {
   buildContractManifest,
@@ -7,7 +9,14 @@ import {
   duplicateOperationIds,
   mergeContractSchemaRegistries,
   missingSchemasForManifest,
+  type ContractFunctionManifest,
+  type ContractSchemaRegistry,
 } from "./index";
+import {
+  discoverReviewedContractSpecs,
+  generatedRefModuleForSpec,
+  missingGeneratedRefs,
+} from "./specClosure";
 import {
   manifest as sourceGroundedBriefManifest,
   schemaRegistry as sourceGroundedBriefSchemaRegistry,
@@ -24,6 +33,44 @@ import {
   manifest as emailManifest,
   schemaRegistry as emailSchemaRegistry,
 } from "../../../packages/convex/confect/ops/email.spec";
+
+const root = resolve(".");
+const inventoryContractSpecs = await Promise.all(
+  discoverReviewedContractSpecs(root).map(async (path) => {
+    const loaded = (await import(pathToFileURL(resolve(root, path)).href)) as {
+      readonly manifest?: readonly ContractFunctionManifest[];
+      readonly schemaRegistry?: ContractSchemaRegistry;
+    };
+    if (!Array.isArray(loaded.manifest) || loaded.schemaRegistry === undefined)
+      throw new Error(`Confect contract spec exports are invalid: ${path}`);
+    return {
+      path,
+      manifest: loaded.manifest,
+      schemaRegistry: loaded.schemaRegistry,
+    };
+  }),
+);
+
+const inventoryFunctions = inventoryContractSpecs.flatMap(
+  ({ manifest }) => manifest,
+);
+const inventorySchemaRegistry = mergeContractSchemaRegistries(
+  ...inventoryContractSpecs.map(({ schemaRegistry: registry }) => registry),
+);
+const inventoryDuplicateIds = duplicateOperationIds(inventoryFunctions);
+if (inventoryDuplicateIds.length > 0)
+  throw new Error(
+    `Confect inventory operation ids must be unique: ${inventoryDuplicateIds.join(", ")}`,
+  );
+const inventoryManifest = buildContractManifest(inventoryFunctions);
+const inventoryMissingSchemas = missingSchemasForManifest(
+  inventoryManifest,
+  inventorySchemaRegistry,
+);
+if (inventoryMissingSchemas.length > 0)
+  throw new Error(
+    `Confect inventory references schemas missing from registries: ${inventoryMissingSchemas.join(", ")}`,
+  );
 
 const functions = [
   ...brainPagesManifest,
@@ -68,34 +115,30 @@ if (missingSchemas.length > 0) {
   );
 }
 
-const generatedRefModules: Readonly<Record<string, string>> = {
-  "brain.pages": "packages/convex/convex/brain/pages.ts",
-  "capabilities.sourceGroundedBrief":
-    "packages/convex/convex/capabilities/sourceGroundedBrief.ts",
-  "ops.dataLifecycle": "packages/convex/convex/ops/dataLifecycle.ts",
-  "ops.email": "packages/convex/convex/ops/email.ts",
-};
+const specPathByOperationId = new Map(
+  inventoryContractSpecs.flatMap(({ path, manifest: specManifest }) =>
+    specManifest.map((entry) => [entry.operationId, path] as const),
+  ),
+);
+const missingRefs = missingGeneratedRefs(
+  root,
+  inventoryManifest.functions.map((entry) => {
+    const specPath = specPathByOperationId.get(entry.operationId);
+    if (specPath === undefined)
+      throw new Error(
+        `Confect operation has no source spec: ${entry.operationId}`,
+      );
+    return {
+      specPath,
+      operationId: entry.operationId,
+      name: entry.name,
+    };
+  }),
+);
 
-const escapeRegExp = (input: string): string =>
-  input.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
-const missingGeneratedRefs = manifest.functions.flatMap((entry) => {
-  const modulePath = generatedRefModules[entry.namespace];
-  if (modulePath === undefined) {
-    return [`${entry.operationId} (no generated ref module configured)`];
-  }
-
-  const moduleSource = readFileSync(resolve(modulePath), "utf8");
-  const exportPattern = new RegExp(
-    `export\\s+const\\s+${escapeRegExp(entry.name)}\\s*=`,
-  );
-
-  return exportPattern.test(moduleSource) ? [] : [entry.operationId];
-});
-
-if (missingGeneratedRefs.length > 0) {
+if (missingRefs.length > 0) {
   throw new Error(
-    `Confect manifest operations must have generated Convex refs. Run pnpm confect:codegen. Missing: ${missingGeneratedRefs.join(", ")}`,
+    `Confect manifest operations must have generated Convex refs. Run pnpm confect:codegen. Missing: ${missingRefs.join(", ")}`,
   );
 }
 
@@ -146,3 +189,80 @@ const generated = await format(
 );
 
 writeFileSync(target, generated);
+
+const sha256 = (value: string | Buffer): `sha256:${string}` =>
+  `sha256:${createHash("sha256").update(value).digest("hex")}`;
+const inventoryOperationIds = inventoryManifest.functions.map(
+  ({ operationId }) => operationId,
+);
+const runtimeOperationIds = manifest.functions.map(
+  ({ operationId }) => operationId,
+);
+const runtimeOperationIdSet = new Set(runtimeOperationIds);
+const inventoryOperationIdSet = new Set(inventoryOperationIds);
+const inventoryFunctionsWithProvenance = inventoryManifest.functions.map(
+  (entry) => {
+    const sourceSpec = specPathByOperationId.get(entry.operationId);
+    if (sourceSpec === undefined)
+      throw new Error(
+        `Confect inventory operation has no source spec: ${entry.operationId}`,
+      );
+    const modulePath = generatedRefModuleForSpec(sourceSpec)
+      .replace(/^packages\/convex\/convex\//u, "")
+      .replace(/\.ts$/u, "");
+    return {
+      ...entry,
+      sourceSpec,
+      generatedRefLocator: `${modulePath}:${entry.name}`,
+    };
+  },
+);
+const inventoryTarget = resolve(
+  "packages/convex/confect/_generated/confectManifest.inventory.ts",
+);
+const inventorySource = await format(
+  `/* Generated by pnpm confect:manifest for controller inventory only. Do not import from runtime code. */\n\nexport const confectInventoryManifest = ${JSON.stringify(
+    {
+      ...inventoryManifest,
+      functions: inventoryFunctionsWithProvenance,
+    },
+    null,
+    2,
+  )} as const;\n\nexport type ConfectInventoryManifest = typeof confectInventoryManifest;\n`,
+  { parser: "typescript" },
+);
+const inventoryDigestTarget = resolve(
+  "packages/convex/confect/_generated/confectManifest.inventory.digest.json",
+);
+const inventoryDigest = {
+  schemaVersion: 1,
+  generator: "pnpm confect:manifest",
+  sourceSpecs: inventoryContractSpecs.map(({ path }) => ({
+    path,
+    sha256: sha256(readFileSync(resolve(root, path))),
+  })),
+  runtimeOperationIds,
+  inventoryOperationIds,
+  addedOperationIds: inventoryOperationIds.filter(
+    (operationId) => !runtimeOperationIdSet.has(operationId),
+  ),
+  removedOperationIds: runtimeOperationIds.filter(
+    (operationId) => !inventoryOperationIdSet.has(operationId),
+  ),
+  outputs: [
+    {
+      path: "packages/template-core/src/generated/confectManifest.ts",
+      sha256: sha256(generated),
+    },
+    {
+      path: "packages/convex/confect/_generated/confectManifest.inventory.ts",
+      sha256: sha256(inventorySource),
+    },
+  ],
+} as const;
+mkdirSync(dirname(inventoryTarget), { recursive: true });
+writeFileSync(inventoryTarget, inventorySource);
+writeFileSync(
+  inventoryDigestTarget,
+  `${JSON.stringify(inventoryDigest, null, 2)}\n`,
+);
