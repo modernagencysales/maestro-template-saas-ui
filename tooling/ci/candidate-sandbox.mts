@@ -13,16 +13,36 @@ export function candidateEnvironment(
 
 export function candidateSandboxArgv(input: {
   readonly workspace: string;
+  readonly sourceWorkspace?: string;
+  readonly runtime?: string;
+  readonly dependencyProxy?: string;
 }): readonly string[] {
+  const sourceWorkspace = input.sourceWorkspace ?? input.workspace;
+  const runtime = input.runtime ?? "/controller/runtime";
+  const dependencyProxy =
+    input.dependencyProxy ?? "/controller/dependency-proxy";
   return [
     "bwrap",
     "--die-with-parent",
     "--new-session",
-    "--unshare-all",
+    "--unshare-user",
+    "--unshare-pid",
+    "--unshare-ipc",
+    "--unshare-uts",
+    "--unshare-cgroup",
     "--unshare-net",
     "--ro-bind",
+    sourceWorkspace,
+    "/source",
+    "--bind",
     input.workspace,
     "/candidate",
+    "--ro-bind",
+    runtime,
+    "/runtime",
+    "--ro-bind",
+    dependencyProxy,
+    "/dependency-proxy",
     "--tmpfs",
     "/tmp",
     "--dir",
@@ -31,6 +51,12 @@ export function candidateSandboxArgv(input: {
     "/proc",
     "--dev",
     "/dev",
+    "--rlimit-as",
+    "1073741824",
+    "--rlimit-cpu",
+    "300",
+    "--rlimit-nofile",
+    "1024",
     "--chdir",
     "/candidate",
   ];
