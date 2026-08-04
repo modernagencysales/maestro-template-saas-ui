@@ -309,7 +309,6 @@ const projectPickle = (input: {
       type,
       text: step.text,
       argument: argument ?? null,
-      astLocation,
     };
     const argumentDigest =
       argument === undefined ? undefined : sha256(canonicalJson(argument));
