@@ -242,6 +242,13 @@ function resolvePriorManifest(
 }
 const REVIEWED_ADDITIONAL_PATHS: readonly CustomerReleasePath[] = [
   {
+    path: ".factory/project.yaml",
+    match: "exact",
+    ownership: "template-owned",
+    action: "copy",
+    upgrade: "replace",
+  },
+  {
     path: ".claude/settings.json",
     match: "exact",
     ownership: "generated",
