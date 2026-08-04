@@ -371,7 +371,11 @@ export function gateArgv(
     script === "taste"
       ? "tooling/quality/taste.mts"
       : "tooling/quality/contract-review.mts";
-  return ["--experimental-strip-types", resolve(trustedRoot, entrypoint)];
+  return [
+    "--experimental-strip-types",
+    "--experimental-transform-types",
+    resolve(trustedRoot, entrypoint),
+  ];
 }
 
 async function githubComments(

@@ -25,10 +25,12 @@ describe("bounded AI review", () => {
   it("executes reviewers from the trusted tree instead of candidate package scripts", () => {
     expect(gateArgv("taste", "/trusted")).toEqual([
       "--experimental-strip-types",
+      "--experimental-transform-types",
       "/trusted/tooling/quality/taste.mts",
     ]);
     expect(gateArgv("contract-review", "/trusted")).toEqual([
       "--experimental-strip-types",
+      "--experimental-transform-types",
       "/trusted/tooling/quality/contract-review.mts",
     ]);
   });
