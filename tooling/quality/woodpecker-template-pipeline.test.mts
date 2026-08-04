@@ -23,7 +23,7 @@ describe("Woodpecker firewall and epoch pipelines", () => {
     expect(firewall).toContain("source tooling/ci/setup.sh");
     expect(firewall).not.toContain("pnpm install --frozen-lockfile");
     expect(read("tooling/ci/epoch.sh")).toContain("pnpm verify");
-    expect(read("tooling/ci/firewall.sh")).toContain("pnpm review:bounded");
+    expect(read("tooling/ci/firewall.sh")).not.toContain("pnpm review:bounded");
     expect(read("tooling/ci/firewall.sh")).toContain(
       "pnpm check:qlty -- --diff",
     );
@@ -45,10 +45,25 @@ describe("Woodpecker firewall and epoch pipelines", () => {
     expect(read(".woodpecker/epoch.yml")).toContain("role: factory-ci");
   });
 
-  it("binds the bounded AI review to a repository provider secret", () => {
+  it("keeps provider secrets behind a trusted bounded-review step", () => {
     const firewall = read(".woodpecker/firewall.yml");
+    expect(firewall).toContain("name: bounded-ai-review");
+    expect(firewall).toContain('git archive "origin/${BASE_BRANCH}"');
+    expect(firewall).toContain(
+      'pnpm exec tsx "$TRUSTED_TREE/tooling/quality/ai-review-cycle.mts"',
+    );
+    expect(firewall).toContain(
+      'export CONTRACT_REVIEW_WORKTREE="$CI_WORKSPACE"',
+    );
+    expect(firewall).toContain('export TASTE_REVIEW_WORKTREE="$CI_WORKSPACE"');
     expect(firewall).toContain("OPENROUTER_API_KEY:");
     expect(firewall).toContain("from_secret: openrouter_api_key");
+    const candidateStep = firewall.slice(
+      firewall.indexOf("name: firewall"),
+      firewall.indexOf("name: bounded-ai-review"),
+    );
+    expect(candidateStep).not.toContain("GITHUB_TOKEN");
+    expect(candidateStep).not.toContain("OPENROUTER_API_KEY");
   });
 
   it("bootstraps from the reviewed lockfile without an uninstalled proxy", () => {

@@ -12,4 +12,3 @@ pnpm check:secret-canaries
 pnpm acceptance:check
 pnpm acceptance:features
 pnpm check:qlty -- --diff
-pnpm review:bounded

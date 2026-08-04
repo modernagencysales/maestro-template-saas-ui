@@ -14,6 +14,9 @@ const checkDescriptorDefinitions = {
           "trusted-ci-policy",
           "tooling/ci/ci-self-protection.sh",
           "tooling/ci/firewall.sh",
+          "bounded-ai-review",
+          'git archive "origin/${BASE_BRANCH}"',
+          'pnpm exec tsx "$TRUSTED_TREE/tooling/quality/ai-review-cycle.mts"',
           "class: firewall",
           "depends_on:",
         ],
@@ -37,7 +40,6 @@ const checkDescriptorDefinitions = {
           "pnpm acceptance:check",
           "pnpm acceptance:features",
           "pnpm check:qlty -- --diff",
-          "pnpm review:bounded",
         ],
         absent: ["pnpm verify"],
         message:
