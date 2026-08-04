@@ -29,6 +29,19 @@ const scenario = (tags: string, name = "works"): string =>
 const surfaces = (entries: readonly Record<string, unknown>[]): string =>
   `${JSON.stringify({ surfaces: entries }, null, 2)}\n`;
 
+const canonicalAuthPolicies = `
+const policy = <T>(value: T): T => value;
+const authPolicyEntries = Object.freeze({
+  auth_deny_all: policy({ id: "auth_deny_all", credential: "deny-all", principalKind: "system", tenantAuthority: "none", requiredScopes: [] }),
+  auth_public: policy({ id: "auth_public", credential: "public", principalKind: "anonymous", tenantAuthority: "none", requiredScopes: [] }),
+  auth_owner_token: policy({ id: "auth_owner_token", credential: "owner-token", principalKind: "system", tenantAuthority: "none", requiredScopes: [] }),
+  auth_build_pack_approve: policy({ id: "auth_build_pack_approve", credential: "session", principalKind: "user", tenantAuthority: "membership", minimumRole: "owner", requiredScopes: [] }),
+  auth_session_membership_viewer: policy({ id: "auth_session_membership_viewer", credential: "session", principalKind: "user", tenantAuthority: "membership", minimumRole: "viewer", requiredScopes: [] }),
+  auth_api_key_workspace_read: policy({ id: "auth_api_key_workspace_read", credential: "api-key", principalKind: "apiKey", tenantAuthority: "principal-workspace", requiredScopes: ["workspace:read"] }),
+  auth_api_key_workspace_write: policy({ id: "auth_api_key_workspace_write", credential: "api-key", principalKind: "apiKey", tenantAuthority: "principal-workspace", requiredScopes: ["workspace:write"] }),
+});
+`;
+
 const surface = (input: {
   id: string;
   transport: "ui" | "cli";
@@ -69,6 +82,11 @@ const fixture = (input: {
     "packages/template-core/src/generated/public-surfaces.generated.json",
     surfaces(input.baseSurfaceEntries ?? input.surfaceEntries ?? []),
   );
+  write(
+    root,
+    "packages/convex/confect/capabilities/_kit/authPolicies.ts",
+    canonicalAuthPolicies,
+  );
   execFileSync("git", ["add", "."], { cwd: root });
   execFileSync(
     "git",
@@ -91,6 +109,11 @@ const fixture = (input: {
         input.baseSurfaceEntries ??
         [],
     ),
+  );
+  write(
+    root,
+    "packages/convex/confect/capabilities/_kit/authPolicies.ts",
+    canonicalAuthPolicies,
   );
   for (const [path, value] of Object.entries(input.candidate))
     write(root, path, value);
