@@ -204,6 +204,56 @@ creating a second authority.
   records Cucumber/node/platform versions, generator command, and source digest;
   regeneration must be byte-identical or the test fails.
 
+### Final Review Lock Addendum (2026-08-03)
+
+The final implementation-readiness pass closes these remaining decisions:
+
+- W0 operator observe/install/verify/rollback runs only from the pinned
+  controller image/Node artifact; never from `tsx` or a candidate checkout.
+  `tooling/ci/controller.Dockerfile` is the sole controller root. C10 must not
+  add a second Dockerfile; W1b publishes one image digest and source-closure
+  digest and C10 consumes its provisional lock.
+- Authoritative candidates always use an unshared network namespace and the
+  explicit dependency-proxy path; `--share-net` is forbidden and a direct-
+  egress canary is mandatory. Signing keys/admin sockets stay controller-only;
+  only read-only JWKS is proxied. Evidence drain requires a controller-minted,
+  single-use capability bound to epoch, run, and nonce, with a production test
+  proving no public writer exists.
+- Target/overlay inputs are opened no-follow, copied to an immutable snapshot,
+  rehashed immediately before launch, and rejected on hardlink/symlink/race
+  changes. External journals add operation nonce, operator identity, expiry,
+  exclusive locking, and post-read operation binding. Protected tag changes bind
+  the authorized creator and define an inverse/rollback step.
+- C10 adds a typed controller context containing protected inventory/source
+  digest, fixture overlay/support roots, run root, image/build-manifest digest,
+  package-manager executable/version/digest, runtime epoch, and mint/observe/
+  drain handles; candidate-supplied paths/manifests are rejected. C11a's overlay
+  is a typed `FixtureOverlayManifest`.
+- Only `bootstrap-observation` may return `static-no-admitted` with exit 0.
+  Focused, normal observation, authoritative, protected verify, release, and
+  merge reject zero selection with a diagnostic. W1's temporary overlap is the
+  sole exception and must be tested to stop passing after C11b. Cross-surface
+  coverage uses one trusted correlation/data handoff (or one Pickle with shared
+  scenario state), never two unrelated passing Pickles.
+- C9/C10 define one Cucumber 13 adapter for `TestCase`, `TestCaseStarted`,
+  `TestStep`, `BeforeStep`, `AfterStep`, and run hooks; it passes test-case,
+  step, and run IDs into `ContractWorld`. C8's golden stream uses a fixed
+  fixture RuntimeManifest and excludes live epochs/timestamps/backend IDs.
+- C12 mutations are discriminated by target (`fixture`, `acceptance-harness`,
+  `ci`, `release`) and each declares pristine input, operation, expected
+  finding, and gate. Core IDs remain 1–33; R1/W1 append 34–36.
+- Every packet stages an enumerated manifest. Generated directories in C9, B1,
+  and M0 require exact generator-output path/digest manifests and single-owner
+  packet assignments. M0's installed audit payload must include the exact
+  `check-contracts.mts` root command and digest invoked by M1d; M0/M1 generated
+  files have one declared owner and one expected postimage. B1 exports only via
+  `contracts add --spec <approved-spec-path>` and records argv/digest.
+- P1 consumes post-W1 36-case evidence (33 is core-only evidence). D2 has no B1
+  dependency; it consumes sealed source, W1 lock, and M2 evidence. U1 lists the
+  release sealer implementation/tests; R1 lists the mutation registry and
+  gauntlet files it changes. Release tags are signed protected annotated tags
+  (or a configured verified signer), with signer identity persisted.
+
 ## Program Invariants
 
 1. Checked-in UTF-8/LF `.feature` bytes are the only manually maintained
@@ -714,7 +764,8 @@ export function planProtectedTransition(input: {
   `rtk host-test-slot --class focused pnpm exec vitest run tooling/ci/protected-bootstrap.test.mts tooling/ci/candidate-sandbox.test.mts tooling/ci/dependency-proxy.test.mts tooling/quality/woodpecker-template-pipeline.test.mts tooling/quality/check-ci-completeness.test.mts`
 
   ```bash
-  rtk git add tooling/ci/protected-bootstrap.mts tooling/ci/protected-bootstrap.test.mts tooling/ci/candidate-sandbox.mts tooling/ci/candidate-sandbox.test.mts tooling/ci/dependency-proxy.mts tooling/ci/dependency-proxy.test.mts tooling/ci/dependency-allowlist.json tooling/ci/controller.Dockerfile tooling/ci/ci-self-protection.sh tooling/ci/phase1.sh tooling/ci/setup.sh .woodpecker/verify.yml .github/workflows/quality.yml .github/CODEOWNERS package.json tooling/quality/woodpecker-template-pipeline.test.mts tooling/quality/check-ci-completeness.mts tooling/quality/check-ci-completeness.test.mts docs/template/protected-ci-bootstrap.md
+  rtk git add tooling/ci/protected-bootstrap.mts tooling/ci/protected-bootstrap.test.mts tooling/ci/candidate-sandbox.mts tooling/ci/candidate-sandbox.test.mts tooling/ci/dependency-proxy.mts tooling/ci/dependency-proxy.test.mts tooling/ci/dependency-allowlist.json tooling/ci/controller.Dockerfile tooling/ci/ci-self-protection.sh tooling/ci/phase1.sh tooling/ci/setup.sh .woodpecker/verify.yml .github/CODEOWNERS package.json tooling/quality/woodpecker-template-pipeline.test.mts tooling/quality/check-ci-completeness.mts tooling/quality/check-ci-completeness.test.mts docs/template/protected-ci-bootstrap.md
+  rtk git add -u .github/workflows/quality.yml
   rtk git commit -m "ci: bootstrap protected tokenless verification"
   ```
 
@@ -726,8 +777,8 @@ export function planProtectedTransition(input: {
       journal, and returns an exact confirmation argv. Run:
 
   ```bash
-  rtk headless-bws-env exec sh -c 'exec rtk env WOODPECKER_SERVER=https://ci.maestrogtm.com WOODPECKER_TOKEN="$WOODPECKER_API_TOKEN" pnpm exec tsx tooling/ci/protected-bootstrap.mts observe --repository modernagencysales/maestro-template-saas-ui --base-ref main --base-oid 15d2269f2b22e3a52e3a98c481b7d69cb7fef12f --journal /Users/headless/.local/state/maestro-ci-transitions/maestro-template-W0.json'
-  rtk headless-bws-env exec sh -c 'exec rtk env WOODPECKER_SERVER=https://ci.maestrogtm.com WOODPECKER_TOKEN="$WOODPECKER_API_TOKEN" pnpm exec tsx tooling/ci/protected-bootstrap.mts install-temporary --temporary-context ci/woodpecker/pr/protected-bootstrap --journal /Users/headless/.local/state/maestro-ci-transitions/maestro-template-W0.json'
+  rtk headless-bws-env exec sh -c 'exec rtk env WOODPECKER_SERVER=https://ci.maestrogtm.com WOODPECKER_TOKEN="$WOODPECKER_API_TOKEN" /usr/local/bin/maestro-protected-bootstrap observe --controller-image-digest <verified-controller-image-digest> --repository modernagencysales/maestro-template-saas-ui --base-ref main --base-oid 15d2269f2b22e3a52e3a98c481b7d69cb7fef12f --journal /Users/headless/.local/state/maestro-ci-transitions/maestro-template-W0.json'
+    rtk headless-bws-env exec sh -c 'exec rtk env WOODPECKER_SERVER=https://ci.maestrogtm.com WOODPECKER_TOKEN="$WOODPECKER_API_TOKEN" /usr/local/bin/maestro-protected-bootstrap install-temporary --controller-image-digest <verified-controller-image-digest> --temporary-context ci/woodpecker/pr/protected-bootstrap --journal /Users/headless/.local/state/maestro-ci-transitions/maestro-template-W0.json'
   ```
 
   Review the preview, then execute its returned confirmation argv byte-for-byte.
@@ -2391,9 +2442,15 @@ repository platform Feature remains assembling.
 
 ```ts
 export type ContractMutation = {
-  readonly id: string;
-  readonly apply: (fixtureRoot: string) => Promise<void>;
+  readonly id: `mutation_${number}`;
+  readonly target: "fixture" | "acceptance-harness" | "ci" | "release";
+  readonly pristineInput: string;
+  readonly apply: (input: {
+    readonly root: string;
+    readonly target: ContractMutation["target"];
+  }) => Promise<void>;
   readonly expectedFinding: RegExp;
+  readonly gate: string;
 };
 
 export const contractMutations: readonly ContractMutation[];
@@ -4121,9 +4178,9 @@ natural-language completion contract across human UI and agent CLI.
 
 **PR:** `D1`
 
-**Depends on:** immutable `P1`, the green 36-case mutation gauntlet, and the
-protected annotated Maestro M2 evidence tag. Do not perform any deletion on a
-weaker evidence set.
+**Depends on:** immutable `P1`, merged `R1` and `W1`, the green 36-case mutation
+gauntlet, and the protected annotated Maestro M2 evidence tag. Do not perform
+any deletion on a weaker evidence set.
 
 **Files:**
 
@@ -4251,8 +4308,9 @@ and the green 36-case gauntlet. `B1` and `R1` are not release prerequisites.
 
 **Interfaces:**
 
-- Consumes: clean `D1` source, `B1` Build Pack review, W1 controller-image lock,
-  the 36-case gauntlet, and exact protected Maestro M2 evidence.
+- Consumes: clean `D1` source, W1 controller-image lock, the 36-case gauntlet,
+  and exact protected Maestro M2 evidence. B1 remains a follow-on integration
+  and is not a D2 input.
 - Produces: immutable `releases/v0.2.0-alpha.3/**`, protected annotated
   `maestro-template-v0.2.0-alpha.3`, and verified materialization facts consumed
   by `M3` and `D3`.
