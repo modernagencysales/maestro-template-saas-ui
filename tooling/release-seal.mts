@@ -346,6 +346,13 @@ const REVIEWED_ADDITIONAL_PATHS: readonly CustomerReleasePath[] = [
     upgrade: "remove",
   },
   {
+    path: "tooling/ci",
+    match: "subtree",
+    ownership: "factory-only",
+    action: "omit",
+    upgrade: "remove",
+  },
+  {
     path: "docs/agent",
     match: "subtree",
     ownership: "template-owned",
