@@ -77,6 +77,14 @@ function httpEndpoint(input: {
       ? document.resourceId
       : `/${document.resourceId}`;
     const url = new URL(path, base);
+    if (
+      url.origin !== base.origin ||
+      path.startsWith("//") ||
+      path.includes("\\")
+    )
+      throw new Error(
+        "protected controller resource path escaped its base origin",
+      );
     const response = await fetch(url, {
       method,
       headers: {
