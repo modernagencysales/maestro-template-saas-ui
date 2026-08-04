@@ -1516,6 +1516,14 @@ the real generated UI, HTTP, Convex, and feature-flag registrations invoke them.
 This packet closes that integration boundary without adding a second admission
 protocol.
 
+The current template baseline has zero activation-owned registrations: every
+checked-in public surface is legacy and remains available but unadmitted. C4b
+therefore wires the shared adapters and proves an empty registration inventory
+is fail-closed without inventing product behavior. C11a is the first packet
+allowed to add real activation-owned registrations; it must rerun C4b's exact
+UI/HTTP/Convex/flag ordering and darkness suite against those registrations
+before the reference journey can proceed.
+
 **Files:**
 
 - Modify: `apps/web/src/navigation/admitted-action.ts`
@@ -1530,8 +1538,9 @@ protocol.
 - Create: `tooling/acceptance/fixtures/auth-policy/protected-base.digest`
 - Modify `tooling/acceptance/check-contracts.mts` and its tests for controller
   attestation and real-registration darkness.
-- Add focused integration tests for one assembling UI action, HTTP operation,
-  raw Convex operation, and feature-flag owner, plus
+- Add focused integration tests for the empty activation inventory and one
+  synthetic registration fixture per UI/HTTP/Convex/flag adapter (the fixture is
+  not shipped product behavior), plus
   `packages/template-core/src/generated/activation-registration-manifest.test.ts`.
 
 **Required behavior:**
@@ -2592,6 +2601,11 @@ fixture and mutations.
 - Produces: the disposable admitted `@journey_template_records` reference
   fixture and the checked-in assembling `@journey_platform_access` Feature,
   steps, and generated-app test consumed by `C12` and `C11b`.
+
+Before handoff, C11a must regenerate the activation-registration manifest with
+its real UI/HTTP/Convex/flag entries and run the C4b ordering, darkness, and
+no-admitted mutation suite against those entries; an empty or metadata-only
+proof is insufficient once this task adds the first activation-owned surface.
 
 **Fixture overlay contract:**
 `tooling/acceptance/fixtures/reference-app/overlay.json` is controller-owned and
@@ -3911,10 +3925,10 @@ the first normal protected run that must select at least one Pickle.
   `rtk host-test-slot --class focused pnpm exec vitest run tooling/acceptance/contract-inventory.test.ts tooling/ci/mergeCandidate.test.mts`
 
       Expected: the classifier returns `admission`; removing the projection,
-          hand-editing it, or changing Feature prose/steps returns `invalid-mixed`.
-          The authoritative controller test also proves that a zero-admitted
-          protected base plus a nonzero admission candidate selects authoritative
-          mode, while a zero/zero candidate selects only bootstrap-observation.
+              hand-editing it, or changing Feature prose/steps returns `invalid-mixed`.
+              The authoritative controller test also proves that a zero-admitted
+              protected base plus a nonzero admission candidate selects authoritative
+              mode, while a zero/zero candidate selects only bootstrap-observation.
 
 - [ ] **Step 4: Commit and admit through batch-one merge queue.**
 
@@ -4540,10 +4554,10 @@ any deletion on a weaker evidence set.
       insufficient.
 
       Before deletion, compare the retained baseline authority-key set with
-                  C11b's admitted per-entrypoint coverage (UI, CLI, auth, authorization,
-                  tenant, and cross-surface). Any baseline key without an admitted proof,
-                  or any admitted key absent from the baseline closure, fails the guard and
-                  keeps the legacy baseline machinery in place.
+                      C11b's admitted per-entrypoint coverage (UI, CLI, auth, authorization,
+                      tenant, and cross-surface). Any baseline key without an admitted proof,
+                      or any admitted key absent from the baseline closure, fails the guard and
+                      keeps the legacy baseline machinery in place.
 
 - [ ] **Step 2: Run red.**
 
