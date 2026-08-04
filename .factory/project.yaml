@@ -1,0 +1,27 @@
+schema_version: 1
+quality:
+  required: [qlty]
+commands:
+  focused:
+    - id: cucumber
+      argv: [pnpm, acceptance:cucumber]
+      affected: ["features/**", "apps/**", "packages/**"]
+  broad:
+    - id: verify
+      argv: [pnpm, verify]
+      executor: maestro-worker
+      affected: ["**"]
+ci:
+  required_contexts: [ci/woodpecker/pr/firewall]
+contract_review:
+  affected:
+    [
+      ".factory/**",
+      ".woodpecker/**",
+      "tooling/quality/**",
+      "tooling/ci/**",
+      "package.json",
+      "pnpm-lock.yaml",
+    ]
+deployment:
+  proof_required: false
