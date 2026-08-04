@@ -39,6 +39,9 @@ describe("check:ci-completeness", () => {
     expect(firewallPipeline?.includes).toContain(
       'git archive "origin/$${BASE_BRANCH}"',
     );
+    expect(firewallPipeline?.includes).toContain(
+      'node --experimental-strip-types "$TRUSTED_TREE/tooling/quality/ai-review-cycle.mts"',
+    );
     const firewallScript = descriptor.requirements.find(
       ({ file }) => file === "tooling/ci/firewall.sh",
     );

@@ -346,7 +346,7 @@ async function gateOutput(
   script: "taste" | "contract-review",
 ): Promise<string> {
   try {
-    const result = await execFileAsync("pnpm", gateArgv(script), {
+    const result = await execFileAsync(process.execPath, gateArgv(script), {
       encoding: "utf8",
       env: {
         ...process.env,
@@ -371,7 +371,7 @@ export function gateArgv(
     script === "taste"
       ? "tooling/quality/taste.mts"
       : "tooling/quality/contract-review.mts";
-  return ["exec", "tsx", resolve(trustedRoot, entrypoint)];
+  return ["--experimental-strip-types", resolve(trustedRoot, entrypoint)];
 }
 
 async function githubComments(

@@ -16,7 +16,7 @@ const checkDescriptorDefinitions = {
           "tooling/ci/firewall.sh",
           "bounded-ai-review",
           'git archive "origin/$${BASE_BRANCH}"',
-          'pnpm exec tsx "$TRUSTED_TREE/tooling/quality/ai-review-cycle.mts"',
+          'node --experimental-strip-types "$TRUSTED_TREE/tooling/quality/ai-review-cycle.mts"',
           "class: firewall",
           "depends_on:",
         ],

@@ -50,7 +50,7 @@ describe("Woodpecker firewall and epoch pipelines", () => {
     expect(firewall).toContain("name: bounded-ai-review");
     expect(firewall).toContain('git archive "origin/$${BASE_BRANCH}"');
     expect(firewall).toContain(
-      'pnpm exec tsx "$TRUSTED_TREE/tooling/quality/ai-review-cycle.mts"',
+      'node --experimental-strip-types "$TRUSTED_TREE/tooling/quality/ai-review-cycle.mts"',
     );
     expect(firewall).toContain(
       'export CONTRACT_REVIEW_WORKTREE="$CI_WORKSPACE"',

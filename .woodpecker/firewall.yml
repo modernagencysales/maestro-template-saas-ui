@@ -58,7 +58,7 @@ steps:
         git archive "origin/$${BASE_BRANCH}" AGENTS.md tooling/quality package.json pnpm-lock.yaml pnpm-workspace.yaml | tar -x -C "$TRUSTED_TREE"
         export CONTRACT_REVIEW_WORKTREE="$CI_WORKSPACE"
         export TASTE_REVIEW_WORKTREE="$CI_WORKSPACE"
-        pnpm exec tsx "$TRUSTED_TREE/tooling/quality/ai-review-cycle.mts"
+        node --experimental-strip-types "$TRUSTED_TREE/tooling/quality/ai-review-cycle.mts"
     depends_on:
       - firewall
     failure: cancel

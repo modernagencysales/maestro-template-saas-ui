@@ -24,13 +24,11 @@ const finding = (overrides: Partial<ReviewFinding> = {}): ReviewFinding => ({
 describe("bounded AI review", () => {
   it("executes reviewers from the trusted tree instead of candidate package scripts", () => {
     expect(gateArgv("taste", "/trusted")).toEqual([
-      "exec",
-      "tsx",
+      "--experimental-strip-types",
       "/trusted/tooling/quality/taste.mts",
     ]);
     expect(gateArgv("contract-review", "/trusted")).toEqual([
-      "exec",
-      "tsx",
+      "--experimental-strip-types",
       "/trusted/tooling/quality/contract-review.mts",
     ]);
   });
