@@ -268,6 +268,35 @@ The final implementation-readiness pass closes these remaining decisions:
   release sealer implementation/tests; R1 lists the mutation registry and
   gauntlet files it changes. Release tags are signed protected annotated tags
   (or a configured verified signer), with signer identity persisted.
+
+### Final Review Lock Addendum: supply chain and resource bounds
+
+- The controller image is a trust root: every `FROM` image is pinned by digest,
+  the build runs in an isolated/reproducible builder, and W0/W1b verify a signed
+  registry signature/provenance (or an independently rebuilt matching digest)
+  before installing or locking the image. A mutable tag, unsigned image, or
+  unverifiable source closure fails closed.
+- C8/C10 Messages ingestion is bounded before parsing: maximum stream bytes,
+  envelope count, line/attachment size, total attachment bytes, wall-clock
+  timeout, and controller-disk quota are explicit constants in the controller
+  context. Exceeding any bound aborts the run and produces a failed verdict;
+  tests cover oversized lines, attachments, and never-ending streams.
+- The runtime dependency proxy is an allowlisted confused-deputy boundary.
+  Requests are limited to the controller-declared peer/port, HTTP method and
+  path, content type, request/response byte quotas, and approved lifecycle
+  operations. Candidate-controlled URLs, redirects, private/link-local targets,
+  alternate ports, and SSRF attempts are rejected; C10 includes canaries for
+  each rejection.
+- Controller attestation keys are controller-only (external KMS or an equivalent
+  protected secret store), identified by an allowlisted algorithm and key ID,
+  rotated with an overlap window, and revoked/zeroized after expiry or run
+  completion. Cross-run, stale-key, wrong-epoch, and forged-file replay tests
+  must fail before candidate execution.
+- Release and evidence tags require a signed protected annotated tag (or the
+  configured verified signer) whose signer identity, key ID, and signature
+  verification result are persisted and re-read. R1/D2 also bind verified
+  builder provenance or an independent rebuild digest to `ReleaseManifest`;
+  post-merge runner output alone is never sufficient evidence.
 - **C3 legacy discovery reality:** the current repository has no pre-existing
   `publicUiActions`/`publicCommands`/`publicTriggers` arrays, generated Convex
   API member list, or complete Confect surface-registration set. C3 must not
@@ -1157,11 +1186,15 @@ inventory over stale generated input.
   discovered by the generator are separate packets, not silently bundled.
 - Because the current runtime imports the eight-operation generated artifact,
   C3-pre must not replace it with the expanded 22-operation output. Emit the
-  normalized closure as a controller/inventory sidecar (for example
-  `packages/convex/confect/_generated/confectManifest.inventory.ts` plus its
-  digest manifest) and leave the runtime `confectManifest.ts` byte-identical. C3
-  consumes the sidecar; later runtime repair packets may promote entries only
-  with their own tests and source changes.
+  normalized closure as the controller/inventory sidecar
+  `packages/convex/confect/_generated/confectManifest.inventory.ts` and the
+  exact digest manifest
+  `tooling/confect-manifest/generated-output-manifest.json`. Both outputs are
+  schema-versioned, sorted, generated-only records containing operation IDs,
+  source refs, transports, and byte digests. Leave the runtime
+  `confectManifest.ts` byte-identical. C3 consumes the sidecar; later runtime
+  repair packets may promote entries only with their own tests and source
+  changes.
 - The packet records the exact before/after operation IDs and generated-file
   digests. It may not alter `features/`, lifecycle tags, or Cucumber support.
 
@@ -1175,6 +1208,12 @@ inventory over stale generated input.
 - [ ] **Step 3:** Run the existing Confect manifest tests and the generated
       output drift check twice from clean checkouts; both runs must produce the
       same digest and preserve runtime behavior tests.
+
+  Run: `rtk pnpm confect:manifest && rtk pnpm check:confect-manifest` Expected:
+  both runs produce byte-identical sidecar/digest outputs, preserve the
+  eight-operation runtime artifact, and report every before/after operation ID
+  and digest.
+
 - [ ] **Step 4:** Commit only the enumerated source/generated manifest delta.
 
 **Unlock:** C3 may consume a complete, deterministic Confect manifest closure;
@@ -1390,6 +1429,10 @@ export type ProtectedBaseAttestation = {
   readonly signature: string;
 };
 
+// `verifyControllerAttestation` is the W0-provided protected verifier consumed
+// by C4; `origin` and file paths are never trusted without signature, key ID,
+// expiry, nonce, and exact protected-base SHA validation.
+
 export function compileContractInventory(input: {
   readonly root: string;
   readonly protectedBase: ProtectedBaseAttestation;
@@ -1508,8 +1551,8 @@ verdict and remains forbidden.
 
 ### Task 5a: Wire Lifecycle Darkness Into Real Registrations
 
-**Class:** `pattern-instance` **PR:** `C4b` **Depends on:** `C4`, and the C4
-controller-attestation implementation
+**Class:** `pattern-instance` **PR:** `C4b` **Depends on:** `W0` and `C4`
+(including the W0-provided controller-attestation verifier)
 
 **Why this packet exists:** C4's pure compiler/guards are not sufficient until
 the real generated UI, HTTP, Convex, and feature-flag registrations invoke them.
@@ -1545,6 +1588,16 @@ before the reference journey can proceed.
 
 **Required behavior:**
 
+`activation-registration-manifest.json` is schema version `1` and contains
+sorted records
+`{ surfaceId, adapter: "ui"|"http"|"convex"|"flag", registrationPath, lifecycle, guardOrder, sourceDigest }`.
+The focused integration files are
+`packages/template-core/src/generated/activation-registration-manifest.test.ts`,
+`packages/convex/test/lifecycle-registration.test.ts`,
+`packages/convex/test/admission-guard.test.ts`, and
+`apps/web/src/navigation/admitted-action.test.ts`; each mutates one real
+registration and expects a named fail-closed finding.
+
 - Controller-issued attestation is the only authoritative base input; env-only
   values and mutable `origin/main` are rejected.
 - Authenticated request/session construction precedes admission, which precedes
@@ -1570,6 +1623,12 @@ before the reference journey can proceed.
       mutations fail closed.
 - [ ] **Step 4:** Commit only this integration packet and record the exact
       generated registration manifest/digests.
+
+  Run:
+  `rtk pnpm exec vitest run packages/template-core/src/generated/activation-registration-manifest.test.ts packages/convex/test/lifecycle-registration.test.ts packages/convex/test/admission-guard.test.ts apps/web/src/navigation/admitted-action.test.ts tooling/acceptance/check-contracts.test.mts`
+  Expected: PASS with zero admitted activation-owned registrations on the
+  template baseline; every synthetic or mutated UI/HTTP/Convex/flag registration
+  is rejected before its handler.
 
 **Unlock:** C5 may build on a lifecycle compiler whose darkness and protected
 base semantics are enforced by actual product entrypoints.
@@ -2323,19 +2382,23 @@ export type RuntimeTargetManifest = {
   readonly targetKind: "generated-template" | "unmanaged-existing-repository";
   readonly web: {
     readonly packageDir: string;
-    readonly buildAdapter: "template-web-v1" | "package-script-build-v1";
+    readonly buildAdapter: "template-web-v1";
     readonly artifactDir: string;
   };
   readonly cli: {
     readonly packageDir: string;
-    readonly buildAdapter: "template-cli-v1" | "package-script-build-v1";
+    readonly buildAdapter: "template-cli-v1";
     readonly executable: string;
   };
   readonly backend: {
     readonly adapter: "convex-local-v1";
     readonly packageDir: string;
     readonly sourceDir: string;
-    readonly inputPaths: readonly string[];
+    readonly inputManifest: readonly {
+      readonly path: string;
+      readonly kind: "regular-file";
+      readonly sha256: `sha256:${string}`;
+    }[];
   };
 };
 
@@ -2439,11 +2502,11 @@ delegated internally, but only the complete green task is mergeable.
       writable temp locations, and no controller mount. Resolution/fetch keeps
       using W0's empty-environment sandbox and protected proxy; candidate
       install/build then runs offline in that same sandbox. Validate the
-      controller-supplied `RuntimeTargetManifest` with exact keys, relative
-      non-traversing paths, and the two allowed CLI build-script names; the
-      candidate cannot supply command strings. The fixed `convex-local-v1`
-      adapter copies and hashes exactly `packageDir/package.json`, `sourceDir`,
-      every protected-manifest `inputPaths` entry, the root lockfile, and the
+      controller-supplied `RuntimeTargetManifest` with exact keys and relative
+      non-traversing paths; the candidate cannot supply command strings or
+      package-script build authority. The fixed `convex-local-v1` adapter copies
+      and hashes exactly `packageDir/package.json`, `sourceDir`, every
+      protected-manifest `inputManifest` entry, the root lockfile, and the
       lockfile-derived transitive workspace/package closure. It deploys that
       read-only copy with the sandbox's absolute locked Convex binary and one
       controller-owned argv/readiness/cleanup implementation; target scripts are
@@ -2465,8 +2528,10 @@ delegated internally, but only the complete green task is mergeable.
   `apps/web`, build `build`, artifact `apps/web/dist`; CLI package `apps/cli`,
   build `build:executable`, executable `apps/cli/dist/maestro.mjs`; backend
   adapter `convex-local-v1`, package `packages/convex`, source `convex`, and the
-  reviewed minimal Confect/Convex/package input-path closure. The Maestro audit
-  emits the same adapter with its independently reviewed input closure.
+  reviewed Confect/Convex/package input manifest with one path/digest record per
+  regular file. Check in the template and Maestro-shaped expected manifests;
+  omitted, extra, symlinked, or digest-drifted entries fail before build. The
+  Maestro audit emits the same adapter with its independently reviewed manifest.
 
 - [ ] **Step 5: Add the local issuer and private fixture control.** Use Node
       `crypto` to create an RSA key pair and Node `http` to serve loopback JWKS.
@@ -2580,6 +2645,10 @@ fixture and mutations.
 - Create: `features/step_definitions/platform_access.steps.ts`
 - Create: `tooling/acceptance/reference-app.ts`
 - Create: `tooling/acceptance/reference-app.test.ts`
+- Create: `tooling/acceptance/overlay.test.ts`
+- Modify:
+  `packages/template-core/src/generated/activation-registration-manifest.json`
+- Modify: `packages/template-core/src/generated/public-surfaces.generated.json`
 - Create: `tooling/acceptance/fixtures/reference-app/overlay.json`
   (controller-owned, digest-locked)
 - Modify: `tooling/generators/src/blueprints/saasApplicationFactory.ts`
@@ -2607,13 +2676,19 @@ its real UI/HTTP/Convex/flag entries and run the C4b ordering, darkness, and
 no-admitted mutation suite against those entries; an empty or metadata-only
 proof is insufficient once this task adds the first activation-owned surface.
 
+Required gate:
+`rtk pnpm exec vitest run packages/template-core/src/generated/activation-registration-manifest.test.ts packages/convex/test/lifecycle-registration.test.ts packages/convex/test/admission-guard.test.ts apps/web/src/navigation/admitted-action.test.ts tooling/acceptance/reference-app.test.ts`.
+
 **Fixture overlay contract:**
 `tooling/acceptance/fixtures/reference-app/overlay.json` is controller-owned and
 records each approved fixture source path, exact destination under the
 disposable run root, UTF-8/LF byte digest, and the protected
-support/step-definition root that receives it. Authoritative runs copy only this
-manifest; they never glob or import candidate support code. Focused local
-fixture runs may load these fixture steps only in observation mode.
+support/step-definition root that receives it. Its schema is:
+`{schemaVersion: 1, entries: [{source, destination, sha256, root: "support"|"steps"}]}`,
+sorted by destination; all paths are relative, regular files opened no-follow,
+and destination collisions or digest drift fail closed. Authoritative runs copy
+only this manifest; they never glob or import candidate support code. Focused
+local fixture runs may load these fixture steps only in observation mode.
 
 **Contract:** The disposable fixture Feature uses
 `@journey_template_records @admitted` only inside the explicitly
@@ -2667,6 +2742,11 @@ or customer-domain prose.
 
   Expected: FAIL only on the absent authenticated external CLI and cross-surface
   visibility. Existing configured-Convex UI persistence remains green.
+
+  Run:
+  `rtk pnpm exec vitest run tooling/acceptance/reference-app.test.ts tooling/acceptance/overlay.test.ts`
+  Expected: overlay integrity passes for the approved fixture and rejects a
+  candidate-owned support file, path collision, symlink, or changed digest.
 
 - [ ] **Step 4: Repair only the missing boundaries.** Preserve the existing
       configured-Convex UI create/read path, route its Save control through the
@@ -3779,9 +3859,11 @@ protected main.
       `bootstrap-observation` invocation to root `verify`, bound to the exact
       base/epoch expiry window. `W1a` leaves that wiring absent. After C11b
       lands, the controller switches the same root to authoritative
-      `pnpm     acceptance` and rejects bootstrap mode. Preserve W0's separate
-      30-second advisory Qlty step; no Qlty outcome joins blocking `verify`.
-      Implement and stage this delta only in Step 10.
+      `pnpm acceptance -- --controller-context <controller-context-file> --runtime-epoch <epoch> --image-lock <sealed-lock-digest>`
+      (argv minted only by the protected controller; candidate package scripts
+      cannot select mode, context, or epoch) and rejects bootstrap mode.
+      Preserve W0's separate 30-second advisory Qlty step; no Qlty outcome joins
+      blocking `verify`. Implement and stage this delta only in Step 10.
 
 - [ ] **Step 6: Verify every contract authority remains protected.** Extend and
       test the `W0` CODEOWNER coverage for `features/**`, `cucumber.cjs`,
@@ -3925,10 +4007,10 @@ the first normal protected run that must select at least one Pickle.
   `rtk host-test-slot --class focused pnpm exec vitest run tooling/acceptance/contract-inventory.test.ts tooling/ci/mergeCandidate.test.mts`
 
       Expected: the classifier returns `admission`; removing the projection,
-              hand-editing it, or changing Feature prose/steps returns `invalid-mixed`.
-              The authoritative controller test also proves that a zero-admitted
-              protected base plus a nonzero admission candidate selects authoritative
-              mode, while a zero/zero candidate selects only bootstrap-observation.
+                  hand-editing it, or changing Feature prose/steps returns `invalid-mixed`.
+                  The authoritative controller test also proves that a zero-admitted
+                  protected base plus a nonzero admission candidate selects authoritative
+                  mode, while a zero/zero candidate selects only bootstrap-observation.
 
 - [ ] **Step 4: Commit and admit through batch-one merge queue.**
 
@@ -4012,7 +4094,7 @@ or store release authority in pull-request prose.
   Run P1 through the protected merge queue. After the release bytes are on
   protected main, rerun the check against that commit, create an annotated tag
   with
-  `rtk git tag -a maestro-template-v0.2.0-alpha.3-pilot.1 <verified-protected-main-release-commit> -m "maestro template cucumber brain pilot"`,
+  `rtk maestro-protected-bootstrap sign-tag --name maestro-template-v0.2.0-alpha.3-pilot.1 --commit <verified-protected-main-release-commit> --message "maestro template cucumber brain pilot"`,
   then run
   `rtk git push origin refs/tags/maestro-template-v0.2.0-alpha.3-pilot.1`. Query
   the remote tag and peeled ref with
@@ -4477,7 +4559,7 @@ transports.
       tag, or a mismatched check blocks them.
 
   ```bash
-  rtk git tag -a maestro-product-contracts-brain-pilot-m2 <verified-M2-protected-main-commit> -m "maestro brain cucumber pilot M2: feature=<sha256> projection=<sha256>"
+  rtk maestro-protected-bootstrap sign-tag --name maestro-product-contracts-brain-pilot-m2 --commit <verified-M2-protected-main-commit> --message "maestro brain cucumber pilot M2: feature=<sha256> projection=<sha256>"
   rtk git push origin refs/tags/maestro-product-contracts-brain-pilot-m2
   rtk git ls-remote --tags origin maestro-product-contracts-brain-pilot-m2 'maestro-product-contracts-brain-pilot-m2^{}'
   ```
@@ -4554,10 +4636,10 @@ any deletion on a weaker evidence set.
       insufficient.
 
       Before deletion, compare the retained baseline authority-key set with
-                      C11b's admitted per-entrypoint coverage (UI, CLI, auth, authorization,
-                      tenant, and cross-surface). Any baseline key without an admitted proof,
-                      or any admitted key absent from the baseline closure, fails the guard and
-                      keeps the legacy baseline machinery in place.
+                          C11b's admitted per-entrypoint coverage (UI, CLI, auth, authorization,
+                          tenant, and cross-surface). Any baseline key without an admitted proof,
+                          or any admitted key absent from the baseline closure, fails the guard and
+                          keeps the legacy baseline machinery in place.
 
 - [ ] **Step 2: Run red.**
 
@@ -4666,6 +4748,15 @@ remains a follow-on integration.
       the factory-only reference acceptance overlay, and template-instance plus
       Maestro-shaped unmanaged contracts-audit fixtures.
 
+  Run:
+  `rtk pnpm exec vitest run apps/cli/src/factory/createRootIntegration.test.ts tooling/acceptance/reference-app.test.ts tooling/release/src/upgrade/repository.test.ts tooling/release/src/customerTarget/manifest.test.ts`
+  Expected: one- and multi-Feature creates preserve exact release bytes;
+  contracts-add requires and replays its confirmation argv; assembling entries
+  remain dark; zero-admitted output is rejected outside bootstrap observation;
+  the reference overlay passes only in its controller-owned target; and both
+  template-instance and Maestro-shaped unmanaged audit fixtures pass/reject
+  their documented boundaries.
+
 - [ ] **Step 4: Commit and verify only release bytes.**
 
   ```bash
@@ -4689,7 +4780,7 @@ remains a follow-on integration.
       protected main, run:
 
   ```bash
-  rtk git tag -a maestro-template-v0.2.0-alpha.3 <verified-protected-main-release-commit> -m "maestro template cucumber product contracts alpha.3"
+  rtk maestro-protected-bootstrap sign-tag --name maestro-template-v0.2.0-alpha.3 --commit <verified-protected-main-release-commit> --message "maestro template cucumber product contracts alpha.3"
   rtk git push origin refs/tags/maestro-template-v0.2.0-alpha.3
   rtk git ls-remote --tags origin maestro-template-v0.2.0-alpha.3 'maestro-template-v0.2.0-alpha.3^{}'
   ```
