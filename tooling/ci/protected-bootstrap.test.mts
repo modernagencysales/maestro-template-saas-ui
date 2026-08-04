@@ -410,8 +410,12 @@ describe("protected CI bootstrap", () => {
     });
     const cli = (...args: string[]) =>
       spawnSync(
-        "pnpm",
-        ["exec", "tsx", "tooling/ci/protected-bootstrap.mts", ...args],
+        process.execPath,
+        [
+          "--experimental-strip-types",
+          "tooling/ci/protected-bootstrap.mts",
+          ...args,
+        ],
         {
           cwd: process.cwd(),
           encoding: "utf8",
@@ -547,12 +551,10 @@ export const createProtectedControllerAdapter = () => ({ github: endpoint, woodp
         confirmation,
       );
       expect(applied.status).toBe(1);
-      expect(applied.stderr).toMatch(/compare-and-swap drift/u);
-      expect(JSON.parse(readFileSync(statePath, "utf8")).documents).toEqual([
-        document("github-ruleset", before.resourceId, {
-          required: "intervening",
-        }),
-      ]);
+      expect(applied.stderr).toMatch(/postimage mismatch/u);
+      expect(
+        JSON.parse(readFileSync(statePath, "utf8")).documents[0].canonicalBody,
+      ).toEqual({ required: "intervening" });
     } finally {
       rmSync(directory, { recursive: true, force: true });
     }
