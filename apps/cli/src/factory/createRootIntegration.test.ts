@@ -258,8 +258,8 @@ describe("create root integration", () => {
       ],
       data: {
         release: {
-          version: "0.2.0-alpha.2",
-          tag: "maestro-template-v0.2.0-alpha.2",
+          version: "0.2.0-alpha.3",
+          tag: "maestro-template-v0.2.0-alpha.3",
           sourceCommit: expect.stringMatching(/^[0-9a-f]{40}$/),
           sourceChecksum: expect.stringMatching(/^sha256:[0-9a-f]{64}$/),
         },

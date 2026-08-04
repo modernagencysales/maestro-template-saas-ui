@@ -54,7 +54,7 @@ export type ReleaseReadinessPlan = Readonly<{
   blueprintPath: string;
   publicDefaultAdvanceAllowed: boolean;
 }>;
-const CURRENT_PUBLIC_DEFAULT_VERSION = "0.2.0-alpha.2";
+const CURRENT_PUBLIC_DEFAULT_VERSION = "0.2.0-alpha.3";
 const root = realpathSync(fileURLToPath(new URL("../", import.meta.url)));
 const hash = (bytes: string | Buffer): string =>
   `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
@@ -794,6 +794,10 @@ async function build(args: Args): Promise<readonly Output[]> {
   let composition = blob(args.sourceCommit, compositionPath).toString("utf8");
   composition = composition
     .replace(
+      /const BASE_MANIFEST_PATH = "releases\/v[^/]+\/manifest\.json";/u,
+      `const BASE_MANIFEST_PATH = "${manifestPath}";`,
+    )
+    .replace(
       /const BASE_MANIFEST_CHECKSUM =\n {2}"sha256:[0-9a-f]{64}";/u,
       `const BASE_MANIFEST_CHECKSUM =\n  "${hash(manifestBytes)}";`,
     )
@@ -804,6 +808,18 @@ async function build(args: Args): Promise<readonly Output[]> {
     .replace(
       /const BASE_COMMIT = "[0-9a-f]{40}";/u,
       `const BASE_COMMIT = "${args.sourceCommit}";`,
+    )
+    .replace(
+      /const BASE_TAG = "maestro-template-v[^"]+";/u,
+      `const BASE_TAG = "${readiness.tag}";`,
+    )
+    .replace(
+      /releases\/v[^/]+\/blueprints\/saas-application\.json/u,
+      `${releaseRoot}/blueprints/saas-application.json`,
+    )
+    .replace(
+      /releases\/v[^/]+\/hardening\/saas-application\.json/u,
+      `${releaseRoot}/hardening/saas-application.json`,
     );
   outputs.push({ path: compositionPath, bytes: Buffer.from(composition) });
   return outputs;

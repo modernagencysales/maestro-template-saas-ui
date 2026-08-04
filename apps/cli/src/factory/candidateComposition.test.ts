@@ -19,7 +19,7 @@ import { buildSaasApplicationTargetPlan } from "@maestro-template/generators";
 import { buildCustomerOwnershipInventory } from "@maestro-template/release-tooling/customer-ownership";
 import { afterEach, describe, expect, it } from "vitest";
 import {
-  ALPHA_2_SOURCE,
+  CURRENT_PUBLIC_SOURCE,
   createCustomerCreateComposition,
   type CustomerCompositionSource,
 } from "./createComposition";
@@ -622,12 +622,12 @@ describe("candidate customer composition", () => {
     ]);
   }, 180_000);
 
-  it("keeps the zero-argument production composition on immutable alpha.2", () => {
-    expect(ALPHA_2_SOURCE).toMatchObject({
-      tag: "maestro-template-v0.2.0-alpha.2",
-      sourceCommit: "3aefd456354b344b9595bddc44fc0782240e2b7d",
+  it("keeps the zero-argument production composition on immutable alpha.3", () => {
+    expect(CURRENT_PUBLIC_SOURCE).toMatchObject({
+      tag: "maestro-template-v0.2.0-alpha.3",
+      sourceCommit: "9dc721978cc5ffa09f0736941950fb01ba4b7f94",
       manifestPath: expect.stringMatching(
-        /releases\/v0\.2\.0-alpha\.2\/manifest\.json$/u,
+        /releases\/v0\.2\.0-alpha\.3\/manifest\.json$/u,
       ),
     });
     expect(createCustomerCreateComposition().command).toBe("create");
