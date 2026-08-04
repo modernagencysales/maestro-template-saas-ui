@@ -547,9 +547,11 @@ export const createProtectedControllerAdapter = () => ({ github: endpoint, woodp
         confirmation,
       );
       expect(applied.status).toBe(1);
-      expect(applied.stderr).toMatch(/postimage mismatch/u);
+      expect(applied.stderr).toMatch(/compare-and-swap drift/u);
       expect(JSON.parse(readFileSync(statePath, "utf8")).documents).toEqual([
-        before,
+        document("github-ruleset", before.resourceId, {
+          required: "intervening",
+        }),
       ]);
     } finally {
       rmSync(directory, { recursive: true, force: true });
