@@ -62,3 +62,18 @@ export const applyFeatureFlagAfterAdmission = (
   admitted: boolean,
   featureFlagEnabled: boolean,
 ): boolean => admitted && featureFlagEnabled;
+
+export type FeatureFlagOwnerJourney = `journey_${string}`;
+
+export const applyFeatureFlagAfterOwnerAdmission = (
+  key: string,
+  featureFlagEnabled: boolean,
+  journeys: Readonly<Record<string, boolean>>,
+  owners: Readonly<Record<string, FeatureFlagOwnerJourney | undefined>>,
+): boolean => {
+  const owner = owners[key];
+  return applyFeatureFlagAfterAdmission(
+    owner === undefined || journeys[owner] === true,
+    featureFlagEnabled,
+  );
+};

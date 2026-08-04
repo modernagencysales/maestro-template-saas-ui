@@ -468,8 +468,8 @@ export function compileContractInventory(input: {
       ]),
       "protected base",
     );
-    let candidatePolicySource: string | undefined;
-    let basePolicySource: string | undefined;
+    let candidatePolicySource: string;
+    let basePolicySource: string;
     try {
       candidatePolicySource = readFileSync(
         join(input.root, authPolicySourcePath),
@@ -480,29 +480,25 @@ export function compileContractInventory(input: {
         `${input.protectedBaseSha}:${authPolicySourcePath}`,
       ]).toString("utf8");
     } catch (error) {
-      const changedPolicyId = candidateSurfaces.some((surface) => {
-        const previous = baseSurfaces.find((entry) => entry.id === surface.id);
-        return (
-          previous !== undefined &&
-          previous.authPolicyId !== surface.authPolicyId
-        );
-      });
-      if (changedPolicyId)
-        throw new Error(
-          `authoritative auth-policy material is unavailable from protected base: ${String(error)}`,
-        );
-      candidatePolicySource = undefined;
-      basePolicySource = undefined;
+      throw new Error(
+        `authoritative auth-policy material is unavailable from protected base: ${String(error)}`,
+      );
     }
     const basePolicies = readAuthPolicyRegistry(basePolicySource);
     const candidatePolicies = readAuthPolicyRegistry(candidatePolicySource);
-    if (basePolicies !== undefined && candidatePolicies !== undefined)
-      deltas = authPolicyDeltas(
-        baseSurfaces,
-        candidateSurfaces,
-        basePolicies,
-        candidatePolicies,
-      );
+    if (
+      basePolicies === undefined ||
+      candidatePolicies === undefined ||
+      basePolicies.size === 0 ||
+      candidatePolicies.size === 0
+    )
+      throw new Error("authoritative auth-policy material is unparseable");
+    deltas = authPolicyDeltas(
+      baseSurfaces,
+      candidateSurfaces,
+      basePolicies,
+      candidatePolicies,
+    );
   }
   assertCoverage(candidate, candidateSurfaces);
   const sortedSources = [...candidate.sources].sort((left, right) =>

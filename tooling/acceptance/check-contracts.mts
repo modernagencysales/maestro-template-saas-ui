@@ -220,6 +220,42 @@ export const synchronizeAdmittedJourneys = async (input: {
       throw new Error(
         "no-admitted projection cannot verify registration inventory",
       );
+    const expectedRegistrations = (
+      surfaces.surfaces as readonly PublicSurface[]
+    )
+      .filter((surface) => surface.activationJourneyId !== undefined)
+      .map((surface) => ({
+        surfaceId: surface.id,
+        journeyId: surface.activationJourneyId,
+        transport: surface.transport,
+        registrationLocator: surface.authority.registrationLocator,
+      }))
+      .sort((left, right) => left.surfaceId.localeCompare(right.surfaceId));
+    let manifest: unknown;
+    try {
+      manifest = JSON.parse(
+        await readFile(
+          resolve(
+            input.root,
+            "packages/template-core/src/generated/activation-registration-manifest.json",
+          ),
+          "utf8",
+        ),
+      );
+    } catch {
+      throw new Error(
+        "no-admitted projection cannot verify registration inventory",
+      );
+    }
+    if (
+      typeof manifest !== "object" ||
+      manifest === null ||
+      (manifest as { schemaVersion?: unknown }).schemaVersion !== 1 ||
+      !Array.isArray((manifest as { registrations?: unknown }).registrations) ||
+      JSON.stringify((manifest as { registrations: unknown }).registrations) !==
+        JSON.stringify(expectedRegistrations)
+    )
+      throw new Error("activation registration inventory drift");
     assertNoAdmittedActivationOwnedSurfaces(
       inventory.journeys,
       surfaces.surfaces as readonly PublicSurface[],
@@ -259,12 +295,10 @@ export const resolveAcceptanceRun = (
   readonly protectedBaseSha: string;
   readonly mode: "authoritative";
 } => {
-  const candidateProvidedSha = process.env.PROTECTED_BASE_SHA;
-  if (candidateProvidedSha === undefined)
+  if (process.env.PROTECTED_BASE_SHA !== undefined)
     throw new Error(
-      "protected controller must provide the immutable protected base SHA",
+      "candidate environment must not provide the protected base SHA",
     );
-  const protectedBaseSha = candidateProvidedSha;
   const attestationPath = process.env.PROTECTED_CONTROLLER_ATTESTATION_FILE;
   if (attestationPath === undefined)
     throw new Error("protected controller attestation is required");
@@ -281,10 +315,11 @@ export const resolveAcceptanceRun = (
   } catch {
     throw new Error("protected controller attestation is unreadable");
   }
+  const protectedBaseSha = attestation.baseSha;
   if (
-    attestation.baseSha !== protectedBaseSha ||
     attestation.origin !== "protected-controller" ||
     !attestation.nonce ||
+    protectedBaseSha === undefined ||
     (process.env.PROTECTED_CANDIDATE_COMMIT !== undefined &&
       attestation.candidateCommit !== process.env.PROTECTED_CANDIDATE_COMMIT)
   )
@@ -293,15 +328,6 @@ export const resolveAcceptanceRun = (
     );
   if (!/^[a-f0-9]{40}(?:[a-f0-9]{24})?$/u.test(protectedBaseSha))
     throw new Error("protected controller must provide an immutable base SHA");
-  if (process.env.PROTECTED_CONTROLLER_ORIGIN !== "protected-controller")
-    throw new Error(
-      "authoritative acceptance requires a protected-controller origin marker",
-    );
-  if (
-    candidateProvidedSha !== undefined &&
-    process.env.PROTECTED_CONTROLLER_ORIGIN !== "protected-controller"
-  )
-    throw new Error("candidate input cannot provide the protected base SHA");
   return { root, protectedBaseSha, mode: "authoritative" };
 };
 

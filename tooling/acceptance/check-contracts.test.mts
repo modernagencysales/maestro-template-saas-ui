@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   CUCUMBER_CONFIGURATION_SOURCE,
+  resolveAcceptanceRun,
   validateCucumberConfigurationSource,
   validateCucumberPackageVersions,
   synchronizeAdmittedJourneys,
@@ -374,6 +375,13 @@ it("writes only the byte-exact admitted-journey projection and rejects drift wit
     writeFile(
       join(
         fixtureRoot,
+        "packages/template-core/src/generated/activation-registration-manifest.json",
+      ),
+      '{"schemaVersion":1,"registrations":[]}\n',
+    ),
+    writeFile(
+      join(
+        fixtureRoot,
         "packages/template-core/src/generated/admittedJourneys.ts",
       ),
       "stale\n",
@@ -405,4 +413,142 @@ it("writes only the byte-exact admitted-journey projection and rejects drift wit
   expect(second).toEqual(first);
   expect(await readFile(path, "utf8")).toBe(bytes);
   expect(bytes).toContain('"journey_draft": false');
+});
+
+it("fails closed when the no-admitted projection has no registration inventory", async () => {
+  const fixtureRoot = await mkdtemp(
+    join(workspaceRoot, ".contract-registration-"),
+  );
+  temporaryRoots.push(fixtureRoot);
+  await Promise.all([
+    mkdir(join(fixtureRoot, "features"), { recursive: true }),
+    mkdir(join(fixtureRoot, "packages/template-core/src/generated"), {
+      recursive: true,
+    }),
+  ]);
+  await Promise.all([
+    writeFile(
+      join(fixtureRoot, "features/draft.feature"),
+      "@journey_draft @assembling\nFeature: Draft\n  @ui @covers_future\n  Scenario: Draft\n    When it runs\n    Then it works\n",
+    ),
+    writeFile(
+      join(
+        fixtureRoot,
+        "packages/template-core/src/generated/public-surfaces.generated.json",
+      ),
+      '{"surfaces":[]}\n',
+    ),
+    writeFile(
+      join(
+        fixtureRoot,
+        "packages/template-core/src/generated/admittedJourneys.ts",
+      ),
+      "stale\n",
+    ),
+  ]);
+
+  await expect(
+    synchronizeAdmittedJourneys({ root: fixtureRoot, write: true }),
+  ).rejects.toThrow(/registration inventory/u);
+});
+
+it("rejects an undeclared activation-owned generated registration", async () => {
+  const fixtureRoot = await mkdtemp(
+    join(workspaceRoot, ".contract-registration-mutation-"),
+  );
+  temporaryRoots.push(fixtureRoot);
+  await Promise.all([
+    mkdir(join(fixtureRoot, "features"), { recursive: true }),
+    mkdir(join(fixtureRoot, "packages/template-core/src/generated"), {
+      recursive: true,
+    }),
+  ]);
+  await Promise.all([
+    writeFile(
+      join(fixtureRoot, "features/draft.feature"),
+      "@journey_draft @assembling\nFeature: Draft\n  @ui @covers_draft\n  Scenario: Draft\n    When it runs\n    Then it works\n",
+    ),
+    writeFile(
+      join(
+        fixtureRoot,
+        "packages/template-core/src/generated/public-surfaces.generated.json",
+      ),
+      JSON.stringify({
+        surfaces: [
+          {
+            id: "draft_ui",
+            transport: "ui",
+            coverageTag: "@covers_draft",
+            activationJourneyId: "journey_draft",
+            authPolicyId: "auth_deny_all",
+            authority: { kind: "ui-action", registrationLocator: "draft" },
+          },
+        ],
+      }),
+    ),
+    writeFile(
+      join(
+        fixtureRoot,
+        "packages/template-core/src/generated/activation-registration-manifest.json",
+      ),
+      '{"schemaVersion":1,"registrations":[]}\n',
+    ),
+    writeFile(
+      join(
+        fixtureRoot,
+        "packages/template-core/src/generated/admittedJourneys.ts",
+      ),
+      "stale\n",
+    ),
+  ]);
+
+  await expect(
+    synchronizeAdmittedJourneys({ root: fixtureRoot, write: true }),
+  ).rejects.toThrow(/registration inventory drift/u);
+});
+
+it("accepts an attested immutable base and rejects candidate environment bases", async () => {
+  const fixtureRoot = await mkdtemp(
+    join(workspaceRoot, ".controller-attestation-"),
+  );
+  temporaryRoots.push(fixtureRoot);
+  const attestationPath = join(fixtureRoot, "attestation.json");
+  const baseSha = "a".repeat(40);
+  await writeFile(
+    attestationPath,
+    JSON.stringify({
+      baseSha,
+      origin: "protected-controller",
+      nonce: "controller-nonce",
+    }),
+  );
+  const original = {
+    attestation: process.env.PROTECTED_CONTROLLER_ATTESTATION_FILE,
+    base: process.env.PROTECTED_BASE_SHA,
+    origin: process.env.PROTECTED_CONTROLLER_ORIGIN,
+  };
+  process.env.PROTECTED_CONTROLLER_ATTESTATION_FILE = attestationPath;
+  delete process.env.PROTECTED_BASE_SHA;
+  delete process.env.PROTECTED_CONTROLLER_ORIGIN;
+  try {
+    expect(resolveAcceptanceRun(fixtureRoot)).toEqual({
+      root: fixtureRoot,
+      protectedBaseSha: baseSha,
+      mode: "authoritative",
+    });
+    process.env.PROTECTED_BASE_SHA = "origin/main";
+    expect(() => resolveAcceptanceRun(fixtureRoot)).toThrow(
+      /candidate environment/u,
+    );
+  } finally {
+    if (original.attestation === undefined)
+      delete process.env.PROTECTED_CONTROLLER_ATTESTATION_FILE;
+    else
+      process.env.PROTECTED_CONTROLLER_ATTESTATION_FILE = original.attestation;
+    if (original.base === undefined) delete process.env.PROTECTED_BASE_SHA;
+    else process.env.PROTECTED_BASE_SHA = original.base;
+    if (original.origin === undefined)
+      delete process.env.PROTECTED_CONTROLLER_ORIGIN;
+    else process.env.PROTECTED_CONTROLLER_ORIGIN = original.origin;
+  }
 });

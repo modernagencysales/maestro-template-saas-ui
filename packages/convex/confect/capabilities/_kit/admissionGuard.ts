@@ -70,3 +70,58 @@ export const runAdmittedSurface = async <Result>(input: {
   requireAdmittedSurface(input.surfaceId, input.emergencyDenied);
   return await input.authorizeAndRun();
 };
+
+export const runAdmittedOperation = async <Result>(input: {
+  readonly operationId: string;
+  readonly transport: "api" | "cli" | "mcp";
+  readonly emergencyDenied?: boolean;
+  readonly surfaces?: readonly PublicSurface[];
+  readonly journeys?: Readonly<Record<string, boolean>>;
+  readonly authenticate: () => Promise<unknown>;
+  readonly authorize: () => Promise<unknown>;
+  readonly run: () => Promise<Result>;
+}): Promise<Result> => {
+  await input.authenticate();
+  const surfaces = input.surfaces ?? publicSurfaces;
+  const journeys = input.journeys ?? admittedJourneys;
+  const matches = surfaces.filter(
+    (surface) =>
+      surface.transport === input.transport &&
+      authorityName(surface.authority.registrationLocator) ===
+        authorityName(input.operationId),
+  );
+  if (matches.length === 0)
+    throw new SurfaceAdmissionDenied(
+      `unknown admitted ${input.transport} operation: ${input.operationId}`,
+    );
+  for (const surface of matches)
+    requireAdmittedSurfaceFrom(
+      surface.id,
+      input.emergencyDenied ?? false,
+      surfaces,
+      journeys,
+    );
+  await input.authorize();
+  return await input.run();
+};
+
+export type ActivationRegistration = {
+  readonly surfaceId: string;
+  readonly journeyId: `journey_${string}`;
+  readonly transport: PublicSurface["transport"];
+};
+
+export const assertNoAdmittedActivationOwnedRegistrations = (
+  registrations: readonly ActivationRegistration[],
+  journeys: Readonly<Record<string, boolean>>,
+): void => {
+  const active = registrations.filter(
+    (registration) => journeys[registration.journeyId] === true,
+  );
+  if (active.length > 0)
+    throw new SurfaceAdmissionDenied(
+      `activation-owned registrations are not dark: ${active
+        .map((registration) => registration.surfaceId)
+        .join(", ")}`,
+    );
+};

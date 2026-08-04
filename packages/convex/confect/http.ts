@@ -17,7 +17,7 @@ import {
   type HeadlessExecutorRequest,
 } from "./manifest/executor";
 import { buildGeneratedOpenApiDocument } from "./manifest/openapi";
-import { requireAdmittedOperation } from "./capabilities/_kit/admissionGuard";
+import { runAdmittedOperation } from "./capabilities/_kit/admissionGuard";
 import {
   executorRequestFor,
   readJsonBody,
@@ -37,6 +37,8 @@ export type TemplateHttpRoute = {
 };
 
 export type HeadlessHttpCtx = {
+  readonly authenticate?: () => Promise<unknown>;
+  readonly authorize?: (request: HeadlessExecutorRequest) => Promise<unknown>;
   readonly runQuery: (
     ref: unknown,
     input: Record<string, unknown>,
@@ -233,18 +235,25 @@ const unsubscribeHtmlResponse = (html: string): Response =>
 const runTemplateApiOperation = async (
   ctx: HeadlessHttpCtx,
   request: HeadlessExecutorRequest,
-): Promise<unknown> => (
-  requireAdmittedOperation(request.operationId, "api"),
-  await executeHeadlessOperation(
-    {
-      refs: operationRefs,
-      runQuery: (ref, input) => ctx.runQuery(ref, input),
-      runMutation: (ref, input) => ctx.runMutation(ref, input),
-      runAction: (ref, input) => ctx.runAction(ref, input),
+): Promise<unknown> =>
+  runAdmittedOperation({
+    operationId: request.operationId,
+    transport: "api",
+    authenticate: ctx.authenticate ?? (async () => undefined),
+    authorize: async () => {
+      await (ctx.authorize ?? (async () => undefined))(request);
     },
-    request,
-  )
-);
+    run: async () =>
+      executeHeadlessOperation(
+        {
+          refs: operationRefs,
+          runQuery: (ref, input) => ctx.runQuery(ref, input),
+          runMutation: (ref, input) => ctx.runMutation(ref, input),
+          runAction: (ref, input) => ctx.runAction(ref, input),
+        },
+        request,
+      ),
+  });
 
 const templateRouteForPath = (pathname: string): TemplateRouteMatch => {
   const apiEntry = confectManifest.functions.find(
@@ -550,6 +559,8 @@ const buildTemplateHttpRouter = () => {
   });
   const handler = httpActionGeneric(async (ctx, request) => {
     const headlessCtx: HeadlessHttpCtx = {
+      authenticate: async () => undefined,
+      authorize: async () => undefined,
       runQuery: (ref, input) => ctx.runQuery(ref as never, input as never),
       runMutation: (ref, input) =>
         ctx.runMutation(ref as never, input as never),
