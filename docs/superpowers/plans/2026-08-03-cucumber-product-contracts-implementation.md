@@ -10,9 +10,8 @@ for Maestro-built products, execute every admitted contract against the built
 browser and built CLI on one real backend, and let only a strict protected
 Cucumber Messages verdict authorize the completion claim.
 
-**Approved design:**
-[`2026-08-02-cucumber-product-contracts-design.md`](../specs/2026-08-02-cucumber-product-contracts-design.md)
-at commit `795d94848fbb30e94c7ae3609dec565f597cd00e`.
+**Approved design:** immutable Git object
+`795d94848fbb30e94c7ae3609dec565f597cd00e:docs/superpowers/specs/2026-08-02-cucumber-product-contracts-design.md`.
 
 **Implementation safety amendments:** Runtime review against Cucumber 13.2.0
 found that configuration `require` arrays are additive and all source/support
@@ -20,9 +19,13 @@ paths share one `cwd`. This plan therefore deliberately narrows the design's
 `features/**/*.ts` support glob to the two protected support/step roots and runs
 Cucumber from a controller-owned overlay root; candidate TypeScript is never a
 support-code input. Official Hook/TestRunHook envelopes replace the design's
-custom ordinary-hook counters. These amendments are part of the contract for
-implementation and must be reflected in the next design revision without
-changing the immutable approved-design commit cited above.
+custom ordinary-hook counters. A scenario attachment derives run identity via
+`TestCase`, because v34's `Attachment.testRunStartedId` is deprecated and not
+emitted. Convex runtime identity/correlation uses a bounded acceptance-only
+table in the disposable backend rather than isolate-local memory; it is not a
+product receipt. These amendments are part of the contract for implementation
+and must be reflected in the next design revision without changing the immutable
+approved-design commit cited above.
 
 **Implementation baseline:** Start every implementation branch from protected
 `origin/main`. The repository snapshot used to write this plan was
@@ -230,7 +233,7 @@ export type ContractSource = {
 export type ExpectedStep = {
   readonly key: StableStepKey;
   readonly index: number;
-  readonly pickleStepType: "CONTEXT" | "ACTION" | "OUTCOME" | "UNKNOWN";
+  readonly pickleStepType: "Context" | "Action" | "Outcome" | "Unknown";
   readonly text: string;
   readonly argumentDigest?: `sha256:${string}`;
   readonly astLocation: { readonly line: number; readonly column: number };
@@ -349,7 +352,8 @@ W0 protected/tokenless CI bootstrap
                       -> M2 Brain lifecycle/projection admission
                       -> D1 old machinery deletion
        -> B1 Build Pack human review -----------------------> D2 alpha.3 seal/tag
-                                                              -> D3 default switch
+                                                              -> M3 Maestro public-release upgrade
+                                                                   -> D3 default switch
 ```
 
 `W0` first makes existing deterministic gates protected and candidate-tokenless.
@@ -366,7 +370,9 @@ preimage-bound integrations under that root; `M0b` ports only the required
 target wrappers and performs the canonical cutover before `M1`. `M2` contains
 only the lifecycle line plus exact generated projections. Any repair is another
 assembling slice before a fresh `M2`. `D2` seals and tags without changing the
-public default; `D3` switches the default only after remote-tag materialization.
+public default; `M3` upgrades the admitted Maestro pilot to that exact public
+release; `D3` switches the default only after remote-tag materialization and M3
+acceptance.
 
 ## Per-Task Completion Protocol
 
@@ -396,12 +402,18 @@ and complete Step 0's external temporary-root trust floor.
 
 - Create: `tooling/ci/protected-bootstrap.mts`
 - Create: `tooling/ci/protected-bootstrap.test.mts`
+- Create: `tooling/ci/candidate-sandbox.mts`
+- Create: `tooling/ci/candidate-sandbox.test.mts`
+- Create: `tooling/ci/dependency-proxy.mts`
+- Create: `tooling/ci/dependency-proxy.test.mts`
 - Create: `tooling/ci/controller.Dockerfile`
 - Modify: `tooling/ci/ci-self-protection.sh`
 - Modify: `tooling/ci/phase1.sh`
+- Modify: `tooling/ci/setup.sh`
 - Modify: `.woodpecker/verify.yml`
 - Delete: `.github/workflows/quality.yml`
 - Modify: `.github/CODEOWNERS`
+- Modify: `package.json`
 - Modify: `tooling/quality/woodpecker-template-pipeline.test.mts`
 - Modify: `tooling/quality/check-ci-completeness.mts`
 - Modify: `tooling/quality/check-ci-completeness.test.mts`
@@ -427,10 +439,28 @@ export type ProtectedTransitionJournal = {
   readonly observation: ProtectedBootstrapObservation;
   readonly steps: readonly {
     readonly id: string;
-    readonly preimageDigest: `sha256:${string}`;
-    readonly forwardPostimageDigest?: `sha256:${string}`;
+    readonly preimage: readonly ProtectedExternalDocument[];
+    readonly forwardPostimage?: readonly ProtectedExternalDocument[];
+    readonly inverse?: readonly ProtectedInverseOperation[];
     readonly inverseAllowedOnlyFrom?: `sha256:${string}`;
   }[];
+};
+
+export type ProtectedExternalDocument = {
+  readonly kind:
+    | "github-ruleset"
+    | "woodpecker-repository"
+    | "woodpecker-producer"
+    | "woodpecker-secret-reference";
+  readonly resourceId: string;
+  readonly canonicalBody: Readonly<Record<string, unknown>>;
+  readonly sha256: `sha256:${string}`;
+};
+
+export type ProtectedInverseOperation = {
+  readonly method: "PUT" | "PATCH" | "DELETE";
+  readonly resourcePath: string;
+  readonly canonicalBody?: Readonly<Record<string, unknown>>;
 };
 
 export function verifyProtectedBootstrap(
@@ -462,7 +492,12 @@ export function planProtectedTransition(input: {
       PR-head pipeline edit cannot select a protected root or post either
       protected context. Prove GitHub queries/status posting occur only in the
       controller and are bound to repository, base/head/merge-group OIDs and the
-      observed App ID.
+      observed App ID. Before any candidate install, run hostile
+      `.pnpmfile.cjs`, registry/tarball, redirect, private-address,
+      DNS-rebinding, oversized-response, traversal, symlink, and device-entry
+      canaries through the real dependency path. Require resolution/fetch
+      failure or containment, no controller mount/socket/secret access, and no
+      build start on a failed fetch.
 
 - [ ] **Step 2: Write red CODEOWNERS and transition tests.** Require future
       control paths (`features/**`, `cucumber.cjs`, `tooling/acceptance/**`,
@@ -480,12 +515,18 @@ export function planProtectedTransition(input: {
       the real `observe`, `install-temporary`, `enable-canonical`,
       `remove-temporary`, `verify`, and `rollback` CLI commands; require preview
       by default, exact confirmation argv, redacted journal output, and inverse
-      refusal after an intervening write.
+      refusal after an intervening write. Kill and restart the CLI after each
+      forward write and prove rollback can reconstruct its exact inverse from
+      the journal plus a live read alone. The journal stores canonical
+      GitHub/Woodpecker preimages, postimages, and inverse request bodies—not
+      merely digests—and secret mappings contain names/IDs/events only, never a
+      secret value. Also prove Qlty absence, findings, failure, and timeout are
+      advisory from this first protected root.
 
 - [ ] **Step 3: Run red.**
 
   Run:
-  `rtk host-test-slot --class focused pnpm exec vitest run tooling/ci/protected-bootstrap.test.mts tooling/quality/woodpecker-template-pipeline.test.mts tooling/quality/check-ci-completeness.test.mts`
+  `rtk host-test-slot --class focused pnpm exec vitest run tooling/ci/protected-bootstrap.test.mts tooling/ci/candidate-sandbox.test.mts tooling/ci/dependency-proxy.test.mts tooling/quality/woodpecker-template-pipeline.test.mts tooling/quality/check-ci-completeness.test.mts`
 
   Expected: FAIL because the checked-in PR-head verify still owns its pipeline
   and declares `GITHUB_TOKEN`; Step 0 prevents that producer from running while
@@ -496,9 +537,23 @@ export function planProtectedTransition(input: {
       Move GitHub/branch/review queries and status posting out of the candidate
       step, remove the secret mapping, delete the retired GitHub Actions PR
       workflow, and make the server-side root launch the resource-limited
-      candidate gate namespace from an immutable protected-base commit. Build
-      `tooling/ci/controller.Dockerfile` without application dependencies and
-      pin its published digest in Woodpecker repository/server state.
+      candidate gate namespace from an immutable protected-base commit. Move
+      `check:qlty` out of root blocking `verify`; run it in a distinct advisory
+      step capped at 30 seconds and ignore every Qlty process/provider outcome
+      while retaining its log. Replace baseline `setup.sh`'s host install with
+      the one shared `candidate-sandbox.mts`: lockfile validation,
+      `.pnpmfile.cjs`, `pnpm fetch --frozen-lockfile --ignore-scripts`, offline
+      install, and all package-manager hooks run in an empty-environment
+      Bubblewrap namespace with resource limits, no controller mount/socket, and
+      only the controller-owned dependency proxy. The proxy admits exact
+      protected-main registry origins and content digests and rejects
+      credentials, redirects, IP/private/link-local destinations, rebinding,
+      overflow, and unsafe archive entries. Task 11 extends this same launcher;
+      it does not create another sandbox. Keep the launcher/operator entrypoint
+      self-contained on Node 22 (`node --experimental-strip-types`) so a clean
+      release can establish its sandbox before installing candidate packages.
+      Build `tooling/ci/controller.Dockerfile` without application dependencies
+      and pin its published digest in Woodpecker repository/server state.
 
 - [ ] **Step 5: Add future-path and product-root ownership.** Extend the
       existing CODEOWNERS file with the exact roots from Step 2. Treat
@@ -515,10 +570,10 @@ export function planProtectedTransition(input: {
 - [ ] **Step 6: Run green and commit the source half.**
 
   Run:
-  `rtk host-test-slot --class focused pnpm exec vitest run tooling/ci/protected-bootstrap.test.mts tooling/quality/woodpecker-template-pipeline.test.mts tooling/quality/check-ci-completeness.test.mts`
+  `rtk host-test-slot --class focused pnpm exec vitest run tooling/ci/protected-bootstrap.test.mts tooling/ci/candidate-sandbox.test.mts tooling/ci/dependency-proxy.test.mts tooling/quality/woodpecker-template-pipeline.test.mts tooling/quality/check-ci-completeness.test.mts`
 
   ```bash
-  rtk git add tooling/ci/protected-bootstrap.mts tooling/ci/protected-bootstrap.test.mts tooling/ci/controller.Dockerfile tooling/ci/ci-self-protection.sh tooling/ci/phase1.sh .woodpecker/verify.yml .github/workflows/quality.yml .github/CODEOWNERS tooling/quality/woodpecker-template-pipeline.test.mts tooling/quality/check-ci-completeness.mts tooling/quality/check-ci-completeness.test.mts docs/template/protected-ci-bootstrap.md
+  rtk git add tooling/ci/protected-bootstrap.mts tooling/ci/protected-bootstrap.test.mts tooling/ci/candidate-sandbox.mts tooling/ci/candidate-sandbox.test.mts tooling/ci/dependency-proxy.mts tooling/ci/dependency-proxy.test.mts tooling/ci/controller.Dockerfile tooling/ci/ci-self-protection.sh tooling/ci/phase1.sh tooling/ci/setup.sh .woodpecker/verify.yml .github/workflows/quality.yml .github/CODEOWNERS package.json tooling/quality/woodpecker-template-pipeline.test.mts tooling/quality/check-ci-completeness.mts tooling/quality/check-ci-completeness.test.mts docs/template/protected-ci-bootstrap.md
   rtk git commit -m "ci: bootstrap protected tokenless verification"
   ```
 
@@ -537,8 +592,11 @@ export function planProtectedTransition(input: {
   Review the preview, then execute its returned confirmation argv byte-for-byte.
   It narrows/removes secret mappings from pull-request events, installs a
   server-side temporary root that ignores candidate `.woodpecker/**`,
-  materializes the immutable base's deterministic gate controls into read-only
-  controller storage, and requires `ci/woodpecker/pr/protected-bootstrap`. Run
+  materializes the reviewed W0 controller image plus the immutable base's
+  deterministic gate controls into read-only controller storage, resolves
+  candidate dependencies only through the protected sandbox/proxy, executes the
+  immutable base gate list with Qlty split into its advisory capped step, and
+  requires `ci/woodpecker/pr/protected-bootstrap`. Run
   `verify --stage temporary` against the same journal and a canary PR; prove a
   no-op candidate pipeline cannot select the root, see a secret, or post the
   context. A pre-state mismatch makes no write.
@@ -569,7 +627,9 @@ export function planProtectedTransition(input: {
       returned confirmation argv, and running `verify --stage canonical` against
       the same journal. `rollback --step <id>` is likewise preview-first and
       refuses unless live state equals the recorded forward postimage. Retain
-      preimage, forward postimage, and inverse condition in the run record.
+      canonical preimage, forward postimage, executable inverse, and inverse
+      condition in the run record so a fresh process can recover without hidden
+      in-memory state.
 
 **Unlock:** Candidate pull requests are tokenless, future trust/product paths
 require non-author review, and only a protected server-side root can produce the
@@ -699,7 +759,9 @@ contract is admitted by this task.
 
 **Class:** `pattern-instance`
 
-**PR:** `C2` **Depends on:** `C1`
+**PR:** `C2`
+
+**Depends on:** `C1`
 
 **Files:**
 
@@ -986,17 +1048,18 @@ export function requireAdmittedSurface(
       transport and coverage inheritance; Outline rows; at least one Action and
       one Outcome per Pickle using the compiled official `PickleStep.type`, not
       raw AST `keywordType`. Test `When/And/But/Then/And/But` so conjunctions
-      inherit ACTION or OUTCOME exactly; BOM, CRLF, path traversal/collision;
-      duplicate journeys; unresolved assembling coverage intent; resolved
-      admitted coverage; and the rule that an exhaustive UI+CLI inventory
-      requires UI, CLI, and `@cross-surface` Pickles while a single-surface
-      journey is valid only when inventory contains exactly one transport;
-      per-entrypoint positive/authentication/authorization/tenant denial; and
-      the closed transition matrix against an immutable protected-base fixture.
-      In the same one compiler suite, cover Scenario, Rule, Background, Scenario
-      Outline with two Examples blocks/multiple rows, interpolation, DataTable,
-      DocString/media type, Unicode, tag inheritance, exact ordered step
-      projections, and distinct stable keys for every example row.
+      inherit serialized `"Action"` or `"Outcome"` exactly; BOM, CRLF, path
+      traversal/collision; duplicate journeys; unresolved assembling coverage
+      intent; resolved admitted coverage; and the rule that an exhaustive UI+CLI
+      inventory requires UI, CLI, and `@cross-surface` Pickles while a
+      single-surface journey is valid only when inventory contains exactly one
+      transport; per-entrypoint positive/authentication/authorization/tenant
+      denial; and the closed transition matrix against an immutable
+      protected-base fixture. In the same one compiler suite, cover Scenario,
+      Rule, Background, Scenario Outline with two Examples blocks/multiple rows,
+      interpolation, DataTable, DocString/media type, Unicode, tag inheritance,
+      exact ordered step projections, and distinct stable keys for every example
+      row.
 
 - [ ] **Step 2: Run red.**
 
@@ -1063,7 +1126,14 @@ export function requireAdmittedSurface(
   Run:
   `rtk host-test-slot --class focused pnpm exec vitest run packages/template-core/src/productContract.test.ts tooling/acceptance/contract-inventory.test.ts tooling/acceptance/check-contracts.test.mts packages/convex/test/admission-guard.test.ts apps/web/src/navigation/admitted-action.test.ts`
 
+  Run: `rtk pnpm exec tsx tooling/acceptance/check-contracts.mts --write`
+
   Run: `rtk pnpm acceptance:check`
+
+  Expected: the writer creates the exact sorted
+  `packages/template-core/src/generated/admittedJourneys.ts`; the following
+  check proves a second generation is byte-identical and no projection drift
+  remains.
 
   Run: `rtk pnpm check:auth-demo-bypass`
 
@@ -1330,7 +1400,9 @@ pure local dispatcher remains until end-to-end proof is green.
 
 **Class:** `pattern-instance`
 
-**PR:** `C7` **Depends on:** `C6`
+**PR:** `C7`
+
+**Depends on:** `C6`
 
 **Files:**
 
@@ -1356,8 +1428,12 @@ export function selectContracts(input: {
       reconstructs a step key. Authoritative mode must equal the complete
       admitted Pickle set. Focused mode must equal the named nonempty journey
       set. Reject unknown focus, empty focus, duplicate normalized path,
-      traversal, and any supplied selector not derived from the inventory.
-      Include a Feature with admitted and unselected scenarios.
+      traversal, any Feature basename beginning with `@`, and any supplied
+      selector not derived from the inventory. Exercise the pinned Cucumber path
+      resolver to prove `@*` is treated as a rerun-file argument and therefore
+      fails before launch. Use two Features to test selected versus unselected
+      inventory; lifecycle and journey are Feature-level, so partial selection
+      inside one Feature is not a valid contract state.
 
 - [ ] **Step 2: Run red.**
 
@@ -1377,10 +1453,11 @@ export function selectContracts(input: {
       and stable Pickle keys. The protected launcher supplies those complete
       paths plus `--tags @admitted`; the verifier proves the resulting executed
       stable-key set equals the manifest through `TestCase.pickleId`. Cucumber
-      may emit unselected Pickle envelopes from a loaded Feature; they are valid
-      source inventory but cannot have an executed TestCase. Add a mixed Feature
-      fixture containing admitted and unselected scenarios. Shared config cannot
-      add paths/tags/name/shard/order.
+      may emit Pickle envelopes from separate unselected Features already in the
+      source inventory; they cannot have an executed TestCase. Every selected
+      Feature path must contribute its complete inherited-lifecycle Pickle set—
+      there is no partial-Feature selector. Shared config cannot add
+      paths/tags/name/shard/order.
 
 - [ ] **Step 5: Run green and commit.**
 
@@ -1410,6 +1487,9 @@ Cucumber.
 - Create: `tooling/acceptance/verify-messages.mts`
 - Create: `tooling/acceptance/verify-messages.test.mts`
 - Create: `tooling/acceptance/fixtures/messages/passing.feature`
+- Create: `tooling/acceptance/fixtures/messages/cucumber.cjs`
+- Create: `tooling/acceptance/fixtures/messages/passing.steps.ts`
+- Create: `tooling/acceptance/fixtures/messages/passing.support.ts`
 - Create: `tooling/acceptance/fixtures/messages/passing.ndjson`
 - Modify: `package.json`
 - Modify: `pnpm-lock.yaml`
@@ -1447,8 +1527,18 @@ export function verifyMessages(
 
 - [ ] **Step 1: Check in one genuine passing stream.** Generate `passing.ndjson`
       once with pinned `cucumber-js` from `passing.feature`, review it, and keep
-      it as protocol compatibility input. Its Source bytes must exactly equal
-      the committed Feature.
+      it as protocol compatibility input. The fixture-only config requires its
+      exact step and support files, the step performs a real in-fixture action,
+      and the protected After hook attaches the complete reviewed synthetic
+      observation envelope. Run exactly:
+
+  ```bash
+  rtk pnpm exec cucumber-js --config tooling/acceptance/fixtures/messages/cucumber.cjs tooling/acceptance/fixtures/messages/passing.feature --format message:tooling/acceptance/fixtures/messages/passing.ndjson
+  ```
+
+  Its Source bytes must exactly equal the committed Feature. The fixture config
+  is protocol-test input only and is never accepted by the protected runtime
+  config validator.
 
 - [ ] **Step 2: Write table-driven red mutations.** Starting from the passing
       stream, independently test `{}`, unknown payload, two payloads, invalid
@@ -1474,7 +1564,12 @@ export function verifyMessages(
 
 - [ ] **Step 4: Validate the bundled schema before using `parseEnvelope`.** Add
       the already-locked `ajv@8.18.0` as a direct root development dependency
-      and compile the pinned `@cucumber/messages/schema` with strict mode. For
+      and compile the pinned `@cucumber/messages/schema` with the draft 2020-12
+      entry point: `import Ajv2020 from "ajv/dist/2020.js"`, then load the
+      exported JSON from this `.mts` file with
+      `createRequire(import.meta.url)("@cucumber/messages/schema")`, and call
+      `new Ajv2020({ strict: true }).compile(messagesSchema)`. Do not use Ajv's
+      default draft-07 entry point; it cannot compile the bundled schema. For
       each nonblank line, parse raw JSON, require full schema validity plus an
       object with exactly one known Envelope payload key and no unknown own key,
       then call official `parseEnvelope` (which is only JSON parsing). Index
@@ -1500,16 +1595,19 @@ export function verifyMessages(
 - [ ] **Step 6: Validate the closed observation envelope.** Require exactly one
       attachment whose `testCaseStartedId` resolves to the selected
       TestCaseStarted -> TestCase -> Pickle chain, whose `testStepId` is that
-      TestCase's unique passing protected After hook, and whose
-      `testRunStartedId` matches the one pinned-v34 run. Require the declared
-      schema version, stable Pickle key, checkout and artifact identities, all
-      three independently observed backend identities, scenario nonce,
-      Action/Outcome step keys, exact BeforeStep/AfterStep markers for every
-      expected step, server correlations, and observed surface/transport pairs.
-      Reject swapped/replayed attachments, empty fields, and extra fields. The
-      committed protocol fixture carries reviewed synthetic values matching its
-      `RuntimeManifest`; `C9` replaces the fixture producer with trusted real
-      drivers.
+      TestCase's unique passing protected After hook, and whose TestCase's
+      `testRunStartedId` matches the one pinned-v34 run. Do not require the
+      deprecated, unused `Attachment.testRunStartedId`; derive run linkage only
+      through Attachment -> TestCaseStarted -> TestCase -> TestRunStarted and
+      reject a replay whose derived chain names another run. Require the
+      declared schema version, stable Pickle key, checkout and artifact
+      identities, all three independently observed backend identities, scenario
+      nonce, Action/Outcome step keys, exact BeforeStep/AfterStep markers for
+      every expected step, server correlations, and observed surface/transport
+      pairs. Reject swapped/replayed attachments, empty fields, and extra
+      fields. The committed protocol fixture carries reviewed synthetic values
+      matching its `RuntimeManifest`; `C9` replaces the fixture producer with
+      trusted real drivers.
 
 - [ ] **Step 7: Add the command and run green protocol tests.** Add
       `acceptance:verify-messages` as a direct verifier command used by the
@@ -1558,12 +1656,18 @@ real action/outcome and runtime identity observations remain required.
 - Modify: `pnpm-lock.yaml`
 - Modify: `packages/convex/confect/capabilities/_kit/authorizedDispatch.ts`
 - Modify: `packages/convex/test/authorized-dispatch.test.ts`
+- Create: `packages/convex/confect/tables/contractEvidence.ts`
+- Create: `packages/convex/confect/runtime/contractEvidence.ts`
+- Create: `packages/convex/confect/runtime/contractEvidence.spec.ts`
+- Create: `packages/convex/confect/runtime/contractEvidence.impl.ts`
 - Create: `packages/convex/confect/runtime/identity.ts`
 - Create: `packages/convex/confect/runtime/identity.spec.ts`
 - Create: `packages/convex/confect/runtime/identity.impl.ts`
 - Modify generated: `packages/convex/confect/_generated/**`
 - Modify generated: `packages/convex/convex/_generated/**`
+- Modify: `packages/convex/convex/schema.ts`
 - Modify: `packages/convex/confect/http.ts`
+- Create: `packages/convex/test/contract-evidence.test.ts`
 - Create: `packages/convex/test/runtime-identity.test.ts`
 - Modify: `tooling/acceptance/verify-messages.mts`
 - Modify: `tooling/acceptance/verify-messages.test.mts`
@@ -1595,22 +1699,27 @@ export class ContractWorld extends World<ContractWorldParameters> {
       prove plain Node still runs it with the compiled SHA unchanged even when
       the runtime SHA environment is altered. Make web, CLI, and controller
       independently observe backend deployment/input/start-nonce values; point
-      either surface at a second backend and require a mismatch.
+      either surface at a second backend and require a mismatch. Force an
+      isolate reset between backend initialization, product operation, and
+      evidence collection; the same server-generated start identity and exact
+      correlation must survive.
 
 - [ ] **Step 3: Run red.**
 
   Run:
-  `rtk host-test-slot --class focused pnpm exec vitest run tooling/acceptance/observations.test.ts tooling/acceptance/runtime-identity.test.ts apps/web/src/adapters/build-identity.test.ts packages/convex/test/runtime-identity.test.ts`
+  `rtk host-test-slot --class focused pnpm exec vitest run tooling/acceptance/observations.test.ts tooling/acceptance/runtime-identity.test.ts apps/web/src/adapters/build-identity.test.ts packages/convex/test/runtime-identity.test.ts packages/convex/test/contract-evidence.test.ts`
 
   Expected: FAIL because trusted drivers and identity surfaces are absent.
 
 - [ ] **Step 4: Implement one scenario observation set.** Browser methods use
       Playwright accessible roles/labels/text and record only after the
       interaction or actor-visible assertion resolves. CLI methods spawn the
-      built executable with `child_process`, an exact environment, no shell, and
-      credentials outside argv; they record only after exit/output assertions
-      resolve. Surface methods add the exact `(surfaceId, transport)`. There is
-      no page-object hierarchy or generic step DSL.
+      built executable through an injected launcher with an exact environment,
+      no shell, and credentials outside argv; Task 11 supplies the real sandbox
+      launcher, and no support step may call `child_process` directly. They
+      record only after exit/output assertions resolve. Surface methods add the
+      exact `(surfaceId, transport)`. There is no page-object hierarchy or
+      generic step DSL.
 
 - [ ] **Step 5: Bind hooks to expected steps.** `Before` allocates scenario
       adapters/nonce; `BeforeStep` resolves the current runtime PickleStep to
@@ -1632,7 +1741,9 @@ export class ContractWorld extends World<ContractWorldParameters> {
       emits `apps/cli/dist/maestro.meta.json` proving no runtime
       source/workspace import remains. The CLI `identity` command prints that
       compiled identity and its independently authenticated backend identity;
-      the backend creates its start nonce inside the runtime and returns
+      protected local bootstrap creates one server-generated start-identity
+      singleton inside the disposable backend and every identity read returns
+      that stored value; no module/process global owns it. The backend returns
       deployment/input identity. Hash the bundle plus its reviewed metafile as
       the complete CLI runtime closure, then execute it with source and
       workspace dependencies inaccessible. Controller artifact hashes remain
@@ -1640,17 +1751,23 @@ export class ContractWorld extends World<ContractWorldParameters> {
 
 - [ ] **Step 7: Add transient trusted server correlation.** Extend the one
       authorized dispatcher from `C5`, not each product handler. When an
-      authenticated admitted operation succeeds, append a bounded in-memory
-      acceptance-only record containing the controller-minted scenario and
-      per-step correlation nonces, server-derived principal digest, surface,
-      transport, and the backend's own runtime identity. The controller maps the
+      authenticated admitted operation succeeds, append a bounded
+      acceptance-only row containing the controller-minted scenario and per-step
+      correlation nonces, server-derived principal digest, surface, transport,
+      and the stored backend runtime identity. The controller maps the
       unguessable per-step nonce back to the stable step key; candidate request
-      JSON cannot name that key. The protected controller reads and clears those
-      records through its private local control path after each scenario; no
-      production route or durable receipt table is added. Require every Action
-      observation to have exactly one matching server record. Test hardcoded/
-      optimistic UI and CLI output, a dropped record, a replayed nonce, wrong
-      actor/surface, and an operation sent to a second backend.
+      JSON cannot name that key. An internal local-admin mutation atomically
+      reads and deletes the scenario's rows before the protected After hook
+      emits its attachment. Initialization, append, and drain all fail unless
+      the controller-installed acceptance runtime marker matches; there is no
+      public route, production writer, long-lived product receipt, or
+      module-memory dependency. The schema entry is empty and unreachable in
+      production and exists only so disposable local Convex isolates share
+      evidence deterministically. Require every Action observation to have
+      exactly one matching server row. Test hardcoded/optimistic UI and CLI
+      output, cold isolate replacement between operation and drain, a dropped
+      row, a replayed nonce, wrong actor/surface, and an operation sent to a
+      second backend.
 
 - [ ] **Step 8: Close verifier observation equality.** Require every expected
       Action and Outcome step key, every declared surface/transport pair, no
@@ -1667,13 +1784,13 @@ export class ContractWorld extends World<ContractWorldParameters> {
   Run on a connected codegen worker: `rtk pnpm convex:codegen`
 
   Run:
-  `rtk host-test-slot --class focused pnpm exec vitest run tooling/acceptance/observations.test.ts tooling/acceptance/runtime-identity.test.ts apps/web/src/adapters/build-identity.test.ts apps/cli/src/commands.test.ts packages/convex/test/runtime-identity.test.ts tooling/acceptance/verify-messages.test.mts`
+  `rtk host-test-slot --class focused pnpm exec vitest run tooling/acceptance/observations.test.ts tooling/acceptance/runtime-identity.test.ts apps/web/src/adapters/build-identity.test.ts apps/cli/src/commands.test.ts packages/convex/test/runtime-identity.test.ts packages/convex/test/contract-evidence.test.ts tooling/acceptance/verify-messages.test.mts`
 
   Run after commit on the remote worker:
   `rtk maestro-remote-test -- pnpm check:convex`
 
   ```bash
-  rtk git add features/support tooling/acceptance/observations.test.ts tooling/acceptance/runtime-identity.test.ts apps/web/src/adapters/build-identity.ts apps/web/src/adapters/build-identity.test.ts apps/web/vite.config.ts apps/cli/build-executable.mts apps/cli/package.json apps/cli/src/commands.ts apps/cli/src/commands.test.ts pnpm-lock.yaml packages/convex/confect/capabilities/_kit/authorizedDispatch.ts packages/convex/confect/runtime packages/convex/confect/http.ts packages/convex/confect/_generated packages/convex/convex/_generated packages/convex/test/authorized-dispatch.test.ts packages/convex/test/runtime-identity.test.ts tooling/acceptance/verify-messages.mts tooling/acceptance/verify-messages.test.mts
+  rtk git add features/support tooling/acceptance/observations.test.ts tooling/acceptance/runtime-identity.test.ts apps/web/src/adapters/build-identity.ts apps/web/src/adapters/build-identity.test.ts apps/web/vite.config.ts apps/cli/build-executable.mts apps/cli/package.json apps/cli/src/commands.ts apps/cli/src/commands.test.ts pnpm-lock.yaml packages/convex/confect/capabilities/_kit/authorizedDispatch.ts packages/convex/confect/tables/contractEvidence.ts packages/convex/confect/runtime packages/convex/confect/http.ts packages/convex/confect/_generated packages/convex/convex/_generated packages/convex/convex/schema.ts packages/convex/test/authorized-dispatch.test.ts packages/convex/test/runtime-identity.test.ts packages/convex/test/contract-evidence.test.ts tooling/acceptance/verify-messages.mts tooling/acceptance/verify-messages.test.mts
   rtk git commit -m "feat: observe real contract interactions"
   ```
 
@@ -1692,7 +1809,10 @@ agree on runtime identity. Process and trust isolation is still absent.
 
 - Create: `tooling/acceptance/run-acceptance.mts`
 - Create: `tooling/acceptance/run-acceptance.test.mts`
-- Create: `tooling/acceptance/sandbox.ts`
+- Modify: `tooling/ci/candidate-sandbox.mts`
+- Modify: `tooling/ci/candidate-sandbox.test.mts`
+- Modify: `tooling/ci/dependency-proxy.mts`
+- Modify: `tooling/ci/dependency-proxy.test.mts`
 - Create: `tooling/acceptance/sandbox.test.ts`
 - Create: `tooling/acceptance/runtime-target.ts`
 - Create: `tooling/acceptance/runtime-target.test.ts`
@@ -1750,7 +1870,12 @@ export type RuntimeTargetManifest = {
     readonly buildScript: "build:executable" | "build";
     readonly executable: string;
   };
-  readonly backend: { readonly packageDir: string };
+  readonly backend: {
+    readonly adapter: "convex-local-v1";
+    readonly packageDir: string;
+    readonly sourceDir: string;
+    readonly inputPaths: readonly string[];
+  };
 };
 
 export async function runAcceptance(
@@ -1765,11 +1890,14 @@ export function acceptanceExitCode(result: AcceptanceRunResult): 0 | 1;
       process groups, readiness, first-child failure, SIGINT/SIGTERM forwarding,
       timeout, and idempotent cleanup still work. Add an awaited
       `whileReady(signal)` body: race it against child exit and user signal,
-      return its value only after formatter closure, then terminate and await
-      all services. A body failure/signal is red, and cleanup failure overrides
-      an otherwise successful body. Preserve `base: "inherit"` and the existing
-      wait-for-child behavior for callers that omit `whileReady`; acceptance
-      always selects `empty` and supplies the awaited body.
+      return its captured Cucumber result only after formatter closure, then
+      terminate and await all services before the caller may verify Messages.
+      Add a barrier assertion that the verifier cannot start while any runtime
+      child or cleanup promise is unsettled. A body failure/signal is red, and
+      cleanup failure overrides an otherwise successful body. Preserve
+      `base: "inherit"` and the existing wait-for-child behavior for callers
+      that omit `whileReady`; acceptance always selects `empty` and supplies the
+      awaited body.
 
 - [ ] **Step 2: Write red sandbox canaries.** In a disposable fixture, prove a
       candidate cannot read representative GitHub/BWS/provider canaries, host
@@ -1783,7 +1911,13 @@ export function acceptanceExitCode(result: AcceptanceRunResult): 0 | 1;
       with a non-allowlisted registry/tarball origin, redirects and DNS
       rebinding attempts, an oversized dependency response, and a package
       archive with traversal/symlink/device entries. Prove resolution/fetch
-      fails closed or remains contained before any candidate build starts.
+      fails closed or remains contained before any candidate build starts. Run
+      the filesystem, controller-socket, metadata, and outbound-network probes
+      from the actual built CLI child and from page JavaScript in the actual
+      Playwright Chromium process, not only from a synthetic Bubblewrap child.
+      Add candidate `node_modules` copies of Cucumber, `tsx`, Gherkin, Messages,
+      and a support-file dependency with side effects; none may resolve or
+      execute in the controller.
 
 - [ ] **Step 3: Run red.**
 
@@ -1794,42 +1928,50 @@ export function acceptanceExitCode(result: AcceptanceRunResult): 0 | 1;
   absent.
 
 - [ ] **Step 4: Extend existing supervision and add the minimal sandbox.** Use
-      the existing spawner/readiness/signal/cleanup code. On Linux, the pinned
-      controller image invokes Bubblewrap with separate user/PID/mount/network
-      namespaces, read-only candidate source, bounded writable temp locations,
-      and no controller mount. Treat resolution as candidate execution:
-      `.pnpmfile.cjs` and `pnpm fetch --frozen-lockfile --ignore-scripts` run
-      inside that empty-environment, resource-limited build sandbox, never in
-      the status controller. Give fetch no controller mounts/sockets and only a
-      controller-owned dependency proxy whose protected configuration permits
-      HTTPS to the exact registry origins approved on protected main, rejects
-      candidate credentials, redirects, IP literals, private/link-local
-      addresses, and response overflow, and records content digests. Candidate
-      install/build then runs offline in the same sandbox. Validate the
+      the existing spawner/readiness/signal/cleanup code and extend W0's one
+      `candidate-sandbox.mts`; do not introduce an acceptance-only launcher. On
+      Linux, the pinned controller image invokes Bubblewrap with separate
+      user/PID/mount/network namespaces, read-only candidate source, bounded
+      writable temp locations, and no controller mount. Resolution/fetch keeps
+      using W0's empty-environment sandbox and protected proxy; candidate
+      install/build then runs offline in that same sandbox. Validate the
       controller-supplied `RuntimeTargetManifest` with exact keys, relative
       non-traversing paths, and the two allowed CLI build-script names; the
-      candidate cannot supply command strings. Copy only regular files from its
-      declared web, self-contained CLI executable, and backend outputs, reject
-      traversal/symlinks/devices, hash them, make the runtime copy read-only,
-      then launch all candidate runtime peers in one fresh private network
-      namespace with only loopback. A controller-owned fixed-port proxy joins
-      only that network namespace (not its mount/PID namespaces) and exposes
-      approved web/backend ports through controller-only Unix sockets; Cucumber
-      and Playwright use that proxy. The candidate cannot see either proxy
-      control socket or gain another outbound route.
+      candidate cannot supply command strings. The fixed `convex-local-v1`
+      adapter copies and hashes exactly `packageDir/package.json`, `sourceDir`,
+      every protected-manifest `inputPaths` entry, the root lockfile, and the
+      lockfile-derived transitive workspace/package closure. It deploys that
+      read-only copy with the sandbox's absolute locked Convex binary and one
+      controller-owned argv/readiness/cleanup implementation; target scripts are
+      never launch authority. Test the adapter against both the template package
+      (which has a build script) and the Maestro-shaped package (which has
+      none). Copy only regular files from the declared web artifact,
+      self-contained CLI executable, and closed backend input, reject
+      traversal/symlinks/devices, hash them, and make runtime copies read-only.
+      Launch web, backend, and every CLI invocation in one fresh private runtime
+      network namespace with loopback only. Launch Playwright's Chromium in that
+      network namespace but separate mount/PID namespaces, exposing only its
+      browser assets and the approved proxy—not controller files/sockets. A
+      controller-owned fixed-port proxy joins only the runtime network namespace
+      and exposes approved web/backend ports through controller-only Unix
+      sockets. The candidate cannot see either proxy control socket or gain
+      another outbound route.
 
   `runtime-target.template.json` is exact: generated-template; web package
   `apps/web`, build `build`, artifact `apps/web/dist`; CLI package `apps/cli`,
   build `build:executable`, executable `apps/cli/dist/maestro.mjs`; backend
-  package `packages/convex`.
+  adapter `convex-local-v1`, package `packages/convex`, source `convex`, and the
+  reviewed minimal Confect/Convex/package input-path closure. The Maestro audit
+  emits the same adapter with its independently reviewed input closure.
 
 - [ ] **Step 5: Add the local issuer and private fixture control.** Use Node
       `crypto` to create an RSA key pair and Node `http` to serve loopback JWKS.
       Mint short-lived issuer/audience/signature/expiry-validated tokens for
       synthetic actors. The private key and internal Convex bootstrap stay in
       the controller. Create users, workspaces, memberships, legitimate Given
-      records, and expiring API keys only through local admin/internal
-      invocation; expose no public bootstrap route.
+      records, expiring API keys, the backend start-identity singleton, and an
+      empty contract-evidence epoch only through local admin/internal
+      invocation; expose no public bootstrap or evidence route.
 
 - [ ] **Step 6: Keep acceptance auth out of production.** The controller
       overlays the protected `auth.acceptance.config.ts` only into the hashed
@@ -1838,38 +1980,53 @@ export function acceptanceExitCode(result: AcceptanceRunResult): 0 | 1;
       gates to prove production entrypoints cannot import/select the loopback
       issuer, synthetic token adapter, or bootstrap code. The normal root uses
       the production AuthKit-to- `ConvexProviderWithAuth` path, not
-      `fakeInitialAuth`. Apply the same production import/bundle prohibition to
-      transient correlation storage and its private controller read/clear path.
+      `fakeInitialAuth`. The contract-evidence table has no public function; its
+      writer and private drain both verify the controller-installed disposable
+      runtime epoch. Production bundle/config tests prove the local admin
+      bootstrap/drain adapter is absent and every attempted production read or
+      write fails closed.
 
 - [ ] **Step 7: Orchestrate the authoritative sequence.** Verify checkout SHA
       equals `mergeGroupOid`; compile inventory/selection; handle the explicit
-      zero case; fetch; sandbox install/build; copy/hash; start one local
-      Convex, built web preview, and built CLI; await web/CLI/Confect/backend
-      identity probes. Materialize a fresh controller- owned run root containing
-      the protected-base `cucumber.cjs`, support, and step-definition files;
+      zero case; fetch; sandbox install/build; copy/hash; start one local Convex
+      and built web preview; probe the built CLI through the sandbox; and await
+      web/CLI/Confect/backend identity probes. Materialize a fresh run root
+      below the immutable controller application root so protected support code
+      can resolve only its read-only controller `node_modules`; copy the
+      protected-base `cucumber.cjs`, support, and step-definition files there;
       overlay only selected candidate `.feature` bytes at identical
-      repository-relative paths. Set that root as Cucumber `cwd`, use its config
-      without CLI `--require`/`--import`, pass `--tags @admitted` and
-      `--format message:<controller path>`, and add a canary proving candidate
-      support code is never evaluated. Run Cucumber inside the supervisor's
-      awaited `whileReady(signal)` body while services remain alive. After its
-      formatter closes, require a normal code-zero exit, verify Messages/runtime
-      manifest, then terminate services; cleanup failure is final failure. A
-      valid passing Messages stream paired with exit 1 or a signal is failure. A
-      proposed control-plane delta runs only in a separately labeled observation
-      pass. Never use a candidate-owned command string to post status.
+      repository-relative paths. Before launch, resolve the absolute
+      `cucumber-js` binary, `tsx/cjs`, Cucumber, Gherkin, Messages, Playwright,
+      and every protected support dependency from the controller root; require
+      each path, version, and file digest to match the controller build manifest
+      (sealed as W1's image lock before cutover) and reject anything under the
+      candidate tree. Set the run root as Cucumber `cwd`, use its config without
+      CLI `--require`/`--import`, pass `--tags @admitted` and
+      `--format message:<controller path>`, invoke that absolute binary, and
+      require the emitted Meta implementation/runtime identity to match the
+      lock. Run Cucumber inside the supervisor's awaited `whileReady(signal)`
+      body while services remain alive. The protected After hook atomically
+      drains backend evidence and writes its attachment; after formatter closure
+      capture the normal code-zero result, terminate and await every
+      runtime/Chromium child, freeze the controller-owned evidence, and only
+      then invoke `verifyMessages`. Cleanup failure is final failure, and a test
+      asserts verification cannot begin early. A valid passing Messages stream
+      paired with exit 1 or a signal is failure. A proposed control-plane delta
+      runs only in a separately labeled observation pass. Never use a
+      candidate-owned command string to post status.
 
 - [ ] **Step 8: Add the three public developer commands.** Add
       `acceptance:focus`, `acceptance`, and the existing `acceptance:check` to
       root scripts/Justfile/gate definitions. `acceptance:focus --journey <id>`
       records a non-authoritative local checkout and must select a nonempty
-      journey. Root `verify` invokes authoritative acceptance through the
-      protected launcher in CI and the local alias outside CI; no new completion
-      badge is created. The executable entry point awaits `runAcceptance`, maps
-      only `verified` and the explicitly permitted static
-      `no-admitted-contracts` result to exit `0`, maps every red result, signal,
-      Cucumber/verifier exception, and cleanup failure to nonzero
-      `process.exitCode`, and catches top-level rejection.
+      journey. `C10` leaves root `verify` unchanged and the commands
+      observation-only; `W1` adds authoritative acceptance to blocking verify
+      only after the controller image is published and the protected semantic
+      cutover is proven. No new completion badge is created. The executable
+      entry point awaits `runAcceptance`, maps only `verified` and the
+      explicitly permitted static `no-admitted-contracts` result to exit `0`,
+      maps every red result, signal, Cucumber/verifier exception, and cleanup
+      failure to nonzero `process.exitCode`, and catches top-level rejection.
 
 - [ ] **Step 9: Run green unit and observation-mode canaries.**
 
@@ -1892,7 +2049,7 @@ export function acceptanceExitCode(result: AcceptanceRunResult): 0 | 1;
 - [ ] **Step 10: Commit without cutting over CI authority.**
 
   ```bash
-  rtk git add tooling/acceptance features/support/local-auth.ts tooling/agent-pack/src/processSupervisor.ts tooling/agent-pack/src/processSupervisor.test.ts apps/web/src/providers apps/web/src/routes/__root.tsx apps/web/vite.config.ts packages/convex/convex/auth.acceptance.config.ts tooling/quality/check-auth-demo-bypass.mts tooling/quality/check-auth-demo-bypass.test.mts tooling/quality/check-env-boundary.mts tooling/quality/check-env-boundary.test.mts package.json Justfile tooling/quality/src/check-definitions.mts
+  rtk git add tooling/acceptance tooling/ci/candidate-sandbox.mts tooling/ci/candidate-sandbox.test.mts tooling/ci/dependency-proxy.mts tooling/ci/dependency-proxy.test.mts features/support/local-auth.ts tooling/agent-pack/src/processSupervisor.ts tooling/agent-pack/src/processSupervisor.test.ts apps/web/src/providers apps/web/src/routes/__root.tsx apps/web/vite.config.ts packages/convex/convex/auth.acceptance.config.ts tooling/quality/check-auth-demo-bypass.mts tooling/quality/check-auth-demo-bypass.test.mts tooling/quality/check-env-boundary.mts tooling/quality/check-env-boundary.test.mts package.json Justfile tooling/quality/src/check-definitions.mts
   rtk git commit -m "feat: isolate secretless contract acceptance"
   ```
 
@@ -1929,6 +2086,15 @@ fixture and mutations.
   `examples/saas-application/seed/source/apps/web/src/features/records/records-surface.tsx`
 - Modify: `apps/cli/src/factory/candidateComposition.test.ts`
 - Modify: `apps/cli/src/factory/customerCliRuntime.test.ts`
+
+**Interfaces:**
+
+- Consumes: `runAcceptance`, `RuntimeTargetManifest`, the generated
+  public-surface authority, authenticated external CLI transport, and
+  acceptance-only backend identity/correlation from `C10` and its dependencies.
+- Produces: the disposable admitted `@journey_template_records` reference
+  fixture and the checked-in assembling `@journey_platform_access` Feature,
+  steps, and generated-app test consumed by `C12` and `C11b`.
 
 **Contract:** The disposable fixture Feature uses
 `@journey_template_records @admitted` only inside the explicitly
@@ -2028,7 +2194,7 @@ repository platform Feature remains assembling.
 - Modify: `Justfile`
 - Modify: `tooling/quality/src/check-definitions.mts`
 
-**Interface:**
+**Interfaces:**
 
 ```ts
 export type ContractMutation = {
@@ -2075,7 +2241,7 @@ export async function runContractMutationGauntlet(input: {
 | Add admitted Feature absent from base             | closed transition              |
 | Weaken tenant/role/scope metadata                 | auth strength comparison       |
 | Inject representative secret canary               | exact environment              |
-| Shadow trusted tool                               | sandbox mount/PATH             |
+| Shadow trusted tool or controller package         | sandbox mount/PATH/resolution  |
 | Open outbound runtime socket                      | network namespace              |
 | Candidate overwrites Messages/run manifest        | namespace ownership            |
 | Load candidate support code in controller         | controller-owned Cucumber root |
@@ -2590,16 +2756,12 @@ export type ApproveBuildPackContractInput = {
 import type { ContractsLegacyBaseline } from "@maestro-template/template-core/publicSurface";
 
 export type ContractsAuditReleaseClosure = {
-  readonly payloadPaths: readonly {
-    readonly path: string;
-    readonly sha256: `sha256:${string}`;
-  }[];
   readonly rootIntegrations: readonly {
     readonly path: string;
-    readonly kind: "json-merge" | "pnpm-lockfile" | "anchored-text";
+    readonly kind:
+      "json-merge" | "pnpm-lockfile" | "anchored-text" | "preimage-bound-patch";
     readonly patchSha256: `sha256:${string}`;
   }[];
-  readonly digest: `sha256:${string}`;
 };
 
 export type ContractsAuditUpgrade = {
@@ -2611,6 +2773,8 @@ export type ContractsAuditUpgrade = {
     readonly remoteTagObjectOid: string;
     readonly releaseRootCommit: string;
     readonly releaseManifestDigest: `sha256:${string}`;
+    readonly controllerImageLockSha256: `sha256:${string}`;
+    readonly controllerImageDigest: `sha256:${string}`;
   };
   readonly target: {
     readonly kind: "template-instance" | "unmanaged-existing-repository";
@@ -2639,22 +2803,30 @@ export type ContractsAuditUpgrade = {
       `legacy behavior unadmitted`; require contracts/darkness for every new
       surface; reject baseline growth, changed authority key under an old ID,
       removal without admitted coverage, hand-edited digest, and enforcement
-      while nonempty. Make the sealed customer-release manifest carry one exact
-      sorted `contractsAudit` path/digest closure derived from its existing
-      path-ownership graph. Payload paths must live under the reviewed
-      `.maestro/product-contracts/**` namespace and be additive. Root files are
-      represented only by structured integration recipes. Unknown, missing,
-      duplicate, factory-only, whole-template `package.json`/lockfile/Justfile,
-      or digest-mismatched entries fail sealing. Include a Maestro-shaped
-      unmanaged fixture with pnpm 9, its own scripts/dependencies/CI, and no
-      `template-instance.json`. Require the audit to derive exactly one web
-      package/artifact, CLI package/build script/bin, and backend package from
+      while nonempty. Derive the audit payload by filtering the sealed customer
+      manifest's existing `paths` plus `expectedHashes`; do not persist a second
+      path/hash list or sub-ledger digest under `contractsAudit`. The existing
+      release-manifest digest covers the derived projection and the genuinely
+      new structured root-integration recipes. Derived payload paths must live
+      under the reviewed `.maestro/product-contracts/**` namespace and be
+      additive. Root files are represented only by structured integration
+      recipes. Unknown, missing, duplicate, factory-only, whole-template
+      `package.json`/lockfile/Justfile, or digest-mismatched entries fail
+      sealing. Include a Maestro-shaped unmanaged fixture with pnpm 9, its own
+      scripts/dependencies/CI, and no `template-instance.json`. Require the
+      audit to derive exactly one web package/artifact, CLI package/build
+      script/bin, and closed `convex-local-v1` backend source/input closure from
       the release integration recipe plus target package metadata, emit the
       minimal runtime-target JSON, and reject ambiguous, missing, absolute, or
-      traversing paths and arbitrary command strings. Add the absent-root
-      non-default sealer cases before implementation: moved/missing base,
-      accidental composition output, dirty source, source/base role reversal,
-      and drifted check mode must all fail for their named reason.
+      traversing paths and arbitrary command strings. The same Maestro fixture
+      must receive exact preimage-bound integrations for compiled web identity,
+      acceptance auth alias/root provider, Convex acceptance issuer/bootstrap,
+      durable backend start identity/evidence, the shared headless transport
+      correlation seam, and built-CLI identity. Patch or anchor drift is a hard
+      preview failure, never a fuzzy rewrite. Add the absent-root non-default
+      sealer cases before implementation: moved/missing base, accidental
+      composition output, dirty source, source/base role reversal, and drifted
+      check mode must all fail for their named reason.
 
 - [ ] **Step 2: Write red staged/recovery tests.** Simulate collision, stale
       preimage, generator failure, static verification failure, process
@@ -2716,13 +2888,15 @@ export type ContractsAuditUpgrade = {
       `.maestro/contracts-legacy-baseline.json`; it records remote source/tag,
       target preimages/postimages, and recovery facts, so no second receipt or
       PR description binding exists. The structured root integration also adds
-      collision-free `acceptance:check`, `contracts:add`,
-      `contracts:surfaces:write`, and `contracts:surfaces:check` scripts and
-      emits a reviewed `.maestro/product-contracts/runtime-target.json`.
-      Generated template instances use the sealed default recipe; an unmanaged
-      target uses the uniquely matched reviewed recipe and package `bin`
-      metadata. The preview and baseline bind the emitted digest; it never adds
-      another upgrade or audit command layer.
+      collision-free `acceptance:check`, `acceptance`, `acceptance:focus`,
+      `contracts:add`, `contracts:surfaces:write`, and
+      `contracts:surfaces:check` scripts; it emits a reviewed
+      `.maestro/product-contracts/runtime-target.json` with the fixed
+      `convex-local-v1` adapter and exact backend input closure. Generated
+      template instances use the sealed default recipe; an unmanaged target uses
+      the uniquely matched reviewed recipe and package `bin` metadata. The
+      preview and baseline bind the emitted digest; it never adds another
+      upgrade or audit command layer.
 
 - [ ] **Step 6: Make reduction monotonic.** Subsequent upgrades may remove a
       baseline surface only when generated admitted coverage owns it. When the
@@ -2739,7 +2913,16 @@ export type ContractsAuditUpgrade = {
       reachable by immutable Git object lookup; it must not pre-seed the new
       directory, read bytes from a dirty worktree, or emit
       `apps/cli/src/factory/createComposition.ts` in non-default mode. Make the
-      already-red Step 1 sealer cases pass.
+      already-red Step 1 sealer cases pass. Add paired optional
+      `--validated-pilot-repository <owner/repo>` and
+      `--validated-pilot-tag <protected-annotated-tag>` inputs. The public
+      alpha.3 seal requires both; the protected sealer resolves the tag object,
+      peeled commit, content digests, merge tuple, and App-bound check itself
+      and persists those facts. The earlier pilot seal supplies neither.
+      Ordinary offline `--check` validates the persisted bytes without
+      credentials; `--verify-external` is a distinct read-only
+      protected-controller mode that re-queries GitHub/Woodpecker and is never
+      run in a candidate/test worker.
 
 - [ ] **Step 8: Run green and commit.**
 
@@ -2834,7 +3017,9 @@ export function digestReleaseManifest(
       hashing, all six required components, lowercase SHA-256 format, backend
       deployment identity, source SHA, duplicate/malformed fields, and byte
       changes in each component. V1 singular-artifact records remain readable
-      for audit but cannot authorize a V2 promotion.
+      for audit but cannot authorize a V2 promotion. Register the
+      `release-component-outside-manifest` mutation before implementation and
+      require the shared registry's red expected count to move from 33 to 34.
 
 - [ ] **Step 2: Write red authority-chain tests.** Readiness, approval,
       authorization, verdict, receipt, audit, census, checkpoint, and closure
@@ -2847,6 +3032,9 @@ export function digestReleaseManifest(
 
   Run:
   `rtk host-test-slot --class focused pnpm --dir tooling/release exec vitest run src/deploy/releaseManifest.test.ts src/deploy/fullChain.test.ts src/deploy/requirements.test.ts src/deploy/checkpoint.test.ts`
+
+  Run:
+  `rtk host-test-slot --class focused pnpm exec vitest run tooling/acceptance/mutation-gauntlet.test.mts`
 
   Expected: FAIL because the existing authority centers on one artifact hash.
 
@@ -2873,10 +3061,10 @@ export function digestReleaseManifest(
       placed in the list; candidate input cannot declare compatibility. It never
       clears emergency deny.
 
-- [ ] **Step 7: Append the release drift mutation.** Add
-      `release-component-outside-manifest` to the shared mutation registry.
-      Change one staged component after manifest creation and require
-      platform-observed digest mismatch. The registry now contains 26 cases.
+- [ ] **Step 7: Make the red release mutation pass.** Implement
+      `release-component-outside-manifest`: change one staged component after
+      manifest creation and require platform-observed digest mismatch. The
+      registry now contains 34 cases.
 
 - [ ] **Step 8: Run green and commit.**
 
@@ -2899,7 +3087,7 @@ same immutable multi-component product.
 ### Task 19: Cut Over The Protected Woodpecker Merge-Candidate Authority
 
 **Class:** `pattern-instance`  
-**PR:** `W1`  
+**PRs:** control source `W1a`, then published-image lock/verify wiring `W1b`
 **Depends on:** `R1`, `C12`, and a green `C10` sandbox canary on the actual
 Woodpecker agent; `W0` remains the active protected authority throughout
 
@@ -2907,6 +3095,7 @@ Woodpecker agent; `W0` remains the active protected authority throughout
 
 - Create: `tooling/ci/mergeCandidate.mts`
 - Create: `tooling/ci/mergeCandidate.test.mts`
+- Create: `tooling/acceptance/controller-image.lock.json`
 - Modify: `tooling/ci/ci-self-protection.sh`
 - Create: `tooling/ci/ci-self-protection.test.mts`
 - Modify: `tooling/ci/phase1.sh`
@@ -2950,6 +3139,16 @@ export function classifyCandidateDelta(input: {
   readonly basePaths: ReadonlyMap<string, Uint8Array>;
   readonly mergeGroupPaths: ReadonlyMap<string, Uint8Array>;
 }): CandidateDeltaClass;
+
+export type ControllerImageLock = {
+  readonly schemaVersion: 1;
+  readonly image: `${string}@sha256:${string}`;
+  readonly sourceCommit: string;
+  readonly dockerfileSha256: `sha256:${string}`;
+  readonly lockfileSha256: `sha256:${string}`;
+  readonly buildContextSha256: `sha256:${string}`;
+  readonly resolvedControllerPackages: Readonly<Record<string, string>>;
+};
 ```
 
 - [ ] **Step 1: Write red tuple/classifier tests.** Reject absent/wrong repo,
@@ -2962,7 +3161,12 @@ export function classifyCandidateDelta(input: {
       projection byte, Feature prose/scenario/tag other than lifecycle, or
       step/support change in the same candidate is `invalid-mixed`. Base
       movement reruns the tuple check; unchanged PR head retains its approval;
-      changed PR head requires fresh approval.
+      changed PR head requires fresh approval. Register
+      `candidate-pipeline-success-noop` and `mixed-admission-control-delta` in
+      the shared mutation test now, before their implementation, and require the
+      expected registry count to move from 34 to 36. Add red image-lock tests
+      for wrong source, Dockerfile, lockfile, build context, resolved package,
+      registry, and image digest.
 
 - [ ] **Step 2: Write red protected-semantics tests.** Preserve every `W0`
       tokenless/root/App assertion. Prove the active protected bootstrap root
@@ -2976,30 +3180,36 @@ export function classifyCandidateDelta(input: {
 - [ ] **Step 3: Run red.**
 
   Run:
-  `rtk host-test-slot --class focused pnpm exec vitest run tooling/ci/mergeCandidate.test.mts tooling/quality/woodpecker-template-pipeline.test.mts tooling/quality/check-ci-completeness.test.mts tooling/quality/check-config-drift.test.mts`
+  `rtk host-test-slot --class focused pnpm exec vitest run tooling/ci/mergeCandidate.test.mts tooling/quality/woodpecker-template-pipeline.test.mts tooling/quality/check-ci-completeness.test.mts tooling/quality/check-config-drift.test.mts tooling/acceptance/mutation-gauntlet.test.mts`
 
   Expected: FAIL because the `W0` protected root intentionally lacks Cucumber
   admission semantics and the merge-candidate classifier.
 
 - [ ] **Step 4: Land contract control code before changing protected
-      semantics.** Publish the reviewed acceptance `controller.Dockerfile` image
-      only after `W1` reaches protected main and record its immutable digest
-      beside the still-active `W0` digest in Woodpecker server state. The
-      observation run loads launcher, config, compiler, verifier, drivers, and
-      step/support adapters from protected base while reading candidate Feature
-      bytes and launching the merge-group product artifacts. A dedicated
-      control-plane PR runs its proposed adapters in a separate
-      non-authoritative observation pass; they become required authority only
-      after merge to protected main. The protected controller alone queries
-      GitHub approvals, branch protection, merge queue, app/context binding, and
-      posts status.
+      semantics.** `W1a` implements the image-lock schema/validator but does not
+      create the lock or add acceptance to root `verify`: the publishable image
+      does not exist until W1a is on protected main. The later `W1b` lock binds
+      registry/digest, W1a source commit, Dockerfile, lockfile, complete build
+      context, and every controller-resolved package version/digest. A post-read
+      must match the registry object before semantic cutover, and P1/D2 include
+      this lock in their sealed release closure. The observation run loads
+      launcher, config, compiler, verifier, drivers, and step/support adapters
+      from protected base while reading candidate Feature bytes and launching
+      the merge-group product artifacts. A dedicated control-plane PR runs its
+      proposed adapters in a separate non-authoritative observation pass; they
+      become required authority only after merge to protected main. The
+      protected controller alone queries GitHub approvals, branch protection,
+      merge queue, app/context binding, and posts status.
 
 - [ ] **Step 5: Extend the tokenless candidate run with acceptance.** Keep the
       `W0` sandbox and external GitHub queries unchanged, run deterministic
       gates plus candidate build/runtime inside it, and run protected-base
       Cucumber and verification in the controller. Return only bounded evidence
-      to controller storage. Run Qlty in a separate advisory step with a hard
-      30-second cap and remove `check:qlty` from root blocking `verify`.
+      to controller storage. In `W1b`, after the image lock is materialized and
+      its observation canary is valid, add authoritative `pnpm acceptance` to
+      root blocking `verify`. `W1a` leaves that wiring absent. Preserve W0's
+      separate 30-second advisory Qlty step; no Qlty outcome joins blocking
+      `verify`.
 
 - [ ] **Step 6: Verify every contract authority remains protected.** Extend and
       test the `W0` CODEOWNER coverage for `features/**`, `cucumber.cjs`,
@@ -3017,7 +3227,7 @@ export function classifyCandidateDelta(input: {
       normal GitHub pull requests, explicit base only for real code dependency,
       auto-merge/merge queue, and bottom-up order.
 
-- [ ] **Step 8: Append the two CI mutations.** Add
+- [ ] **Step 8: Make the two red CI mutations pass.** Implement
       `candidate-pipeline-success-noop` and `mixed-admission-control-delta`;
       require that the first cannot post the app-bound context and the second is
       rejected by the protected classifier. The registry now contains all 36
@@ -3033,13 +3243,27 @@ export function classifyCandidateDelta(input: {
   rtk git commit -m "ci: protect merge candidate contract verdict"
   ```
 
-- [ ] **Step 10: Merge source, then run the complete gauntlet and observation.**
-      Merge `W1` while the `W0` protected canonical rule remains active. From
-      its committed protected-main SHA, run on the remote worker:
-      `rtk maestro-remote-test -- pnpm test:mutation`.
+- [ ] **Step 10: Merge source, publish and lock the image, then observe.** Merge
+      `W1a` while the `W0` protected canonical rule remains active.
+      Build/publish the controller only from that protected-main commit and
+      post-read its registry digest; run its full
+      sandbox/package-resolution/runtime canary in non-required observation
+      mode. In a fresh `W1b` branch, create the CODEOWNED
+      `controller-image.lock.json` from that observation and change root
+      `verify` to include `pnpm acceptance`; change no Cucumber/runtime
+      implementation. Run the image-lock/config tests, commit, and merge W1b
+      under the still-active W0 protected root.
+
+  ```bash
+  rtk git add tooling/acceptance/controller-image.lock.json package.json
+  rtk git commit -m "ci: lock protected acceptance controller"
+  ```
+
+  From W1b's committed protected-main SHA, run on the remote worker:
+  `rtk maestro-remote-test -- pnpm test:mutation`.
 
   Run `protected-bootstrap.mts observe` for repository
-  `modernagencysales/maestro-template-saas-ui`, the literal merged W1
+  `modernagencysales/maestro-template-saas-ui`, the literal merged W1b
   40-character SHA, and journal
   `/Users/headless/.local/state/maestro-ci-transitions/maestro-template-W1.json`.
   Preview
@@ -3089,6 +3313,15 @@ candidate with approved control code and no candidate secrets.
 
 - Modify: `features/platform_access.feature`
 - Modify generated: `packages/template-core/src/generated/admittedJourneys.ts`
+
+**Interfaces:**
+
+- Consumes: the assembling `@journey_platform_access` Feature from `C11a`, the
+  projection writer from `C4`, and the protected batch-one acceptance authority
+  cut over by `W1`.
+- Produces: the lifecycle-only admitted Feature and its byte-exact generated
+  `admittedJourneys.ts` projection consumed by `P1` and every later protected
+  acceptance run.
 
 - [ ] **Step 1: Prove the immutable base is eligible.** From current protected
       main, require `features/platform_access.feature` to exist as assembling,
@@ -3146,6 +3379,15 @@ critical path.
 
 - Generate and add: `releases/v0.2.0-alpha.3-pilot.1/**`
 
+**Interfaces:**
+
+- Consumes: the current release sealer, immutable alpha.2 base, U1
+  contracts-audit projection, W1 controller-image lock, and protected 36-case
+  acceptance evidence.
+- Produces: the non-default pilot release directory, protected annotated
+  `maestro-template-v0.2.0-alpha.3-pilot.1` tag, and sealed
+  source/manifest/image facts consumed by Maestro `M0`.
+
 **Binding:** Reuse `ContractsAuditUpgrade.source`; do not create a pilot ledger
 or store release authority in pull-request prose.
 
@@ -3157,17 +3399,20 @@ or store release authority in pull-request prose.
 
 - [ ] **Step 2: Seal the non-default pilot version.** Run
       `rtk pnpm release:seal -- --version 0.2.0-alpha.3-pilot.1 --source-commit <recorded-40-character-source-sha> --base-version 0.2.0-alpha.2 --non-default`.
-      It must generate a materializable release with the exact contracts-audit
-      path/digest closure from `U1`. Do not change create composition or the
-      alpha.2 default.
+      It must generate a materializable release whose existing manifest digest
+      covers U1's derived contracts-audit projection/root integrations and the
+      exact CODEOWNED W1 controller-image lock. Re-read the registry digest and
+      reject any lock, source, Dockerfile, dependency, or build-context drift.
+      Do not change create composition or the alpha.2 default.
 
 - [ ] **Step 3: Verify the candidate before committing.**
 
   Run:
   `rtk host-test-slot --class focused pnpm exec vitest run tooling/release-seal.test.mts tooling/release/src/customerTarget/manifest.test.ts tooling/release/src/upgrade/repository.test.ts`
 
-  Expected: the release source, complete path hashes, contract-audit closure,
-  CLI compatibility, and source ancestry all match; a byte change is red.
+  Expected: the release source, complete path hashes, derived contract-audit
+  projection, root integrations, controller image lock, CLI compatibility, and
+  source ancestry all match; a byte change is red.
 
 - [ ] **Step 4: Commit and bind the immutable tag.**
 
@@ -3189,9 +3434,10 @@ or store release authority in pull-request prose.
   `rtk git ls-remote --tags origin maestro-template-v0.2.0-alpha.3-pilot.1 'maestro-template-v0.2.0-alpha.3-pilot.1^{}'`.
   Require two OIDs: the protected annotated tag object and the exact release
   commit. In a clean worktree detached at the peeled commit, verify the manifest
-  digest, contracts-audit closure, earlier source commit, and tag object again.
-  The protected tag ruleset rejects updates/deletion. `M0` persists all of these
-  facts in `ContractsAuditUpgrade.source` when its preview is applied.
+  digest, contracts-audit closure, controller image registry digest/source
+  closure, earlier source commit, and tag object again. The protected tag
+  ruleset rejects updates/deletion. `M0` persists all of these facts in
+  `ContractsAuditUpgrade.source` when its preview is applied.
 
 **Unlock:** Brain can adopt one exact release with one exact CLI and manifest;
 the pilot no longer depends on the final alpha.3 seal.
@@ -3206,8 +3452,8 @@ the pilot no longer depends on the final alpha.3 seal.
 then lifecycle/projection admission `M2`
 
 **Depends on:** immutable pilot release `P1`. The pilot validates that exact
-manifest before `D2` seals the public alpha.3 release; production adoption uses
-the resulting public release, not the pilot tag.
+manifest before `D2` seals the public alpha.3 release; Task 25 later upgrades
+the admitted pilot to that public release before the default switches.
 
 **Repository:** `/Users/headless/maestro`, from a clean isolated worktree based
 on its then-current protected `origin/main`. Do not use the existing dirty
@@ -3215,11 +3461,37 @@ checkout.
 
 **Files:**
 
-- Generate in `M0`: every exact additive path/digest in the immutable P1
-  manifest's `contractsAudit.payloadPaths`, all below
-  `.maestro/product-contracts/**`
+- Generate in `M0`: every exact additive path selected by filtering the
+  immutable P1 manifest's existing `paths` and `expectedHashes` for the derived
+  contracts-audit projection, all below `.maestro/product-contracts/**`
 - Modify through preimage-bound `M0` integration: `package.json`
 - Modify through preimage-bound `M0` integration: `pnpm-lock.yaml`
+- Modify through preimage-bound `M0` integration: `apps/web/vite.config.ts`
+- Modify through preimage-bound `M0` integration:
+  `apps/web/src/routes/__root.tsx`
+- Create through preimage-bound `M0` integration:
+  `apps/web/src/adapters/product-contract-build-identity.ts`
+- Create through preimage-bound `M0` integration:
+  `apps/web/src/providers/product-contract-auth-runtime.tsx`
+- Create through preimage-bound `M0` integration:
+  `apps/web/src/providers/product-contract-auth-runtime.acceptance.tsx`
+- Create through preimage-bound `M0` integration:
+  `packages/convex/convex/auth.acceptance.config.ts`
+- Modify through preimage-bound `M0` integration:
+  `packages/convex/convex/schema.ts`
+- Create through preimage-bound `M0` integration:
+  `packages/convex/convex/productContracts/runtimeIdentity.ts`
+- Create through preimage-bound `M0` integration:
+  `packages/convex/convex/productContracts/contractEvidence.ts`
+- Create through preimage-bound `M0` integration:
+  `packages/convex/convex/productContracts/bootstrap.ts`
+- Modify through preimage-bound `M0` integration:
+  `packages/convex/convex/adapters/headlessTransportExecution.ts`
+- Modify generated through `M0`: `packages/convex/convex/_generated/**`
+- Create through preimage-bound `M0` integration:
+  `tooling/maestro-cli/src/product-contract-identity.ts`
+- Modify through preimage-bound `M0` integration:
+  `tooling/maestro-cli/src/maestro.ts`
 - Create in `M0`: `.maestro/contracts-legacy-baseline.json`
 - Create through preimage-bound `M0` integration:
   `.maestro/product-contracts/runtime-target.json`
@@ -3258,6 +3530,17 @@ checkout.
 - Modify generated in `M1a` and `M2`:
   `.maestro/product-contracts/generated/admittedJourneys.ts`
 
+**Interfaces:**
+
+- Consumes: P1's verified `ContractsAuditUpgrade` payload and source facts, the
+  template's protected acceptance controller/target adapters, and Maestro's
+  existing Brain UI, CLI, auth, and Convex integration seams.
+- Produces: preimage-bound Maestro audit installation and CI cutover (`M0` and
+  `M0b`), one assembling Brain Feature implemented through UI/CLI slices
+  (`M1a`-`M1d`), the lifecycle/projection-only admission (`M2`), and protected
+  annotated `maestro-product-contracts-brain-pilot-m2` evidence consumed by
+  `D1`, `D2`, and `M3`.
+
 **Feature outcome:** An authorized member reviews call-backed client context,
 resolves a real conflict, activates the supported context, and produces a
 durable grounded content draft with resolvable citations. An authorized agent
@@ -3265,12 +3548,13 @@ can inspect or initiate the same outcome through the built CLI. Read-only,
 unauthenticated, and foreign-tenant actors are denied through their distinct
 transports.
 
-- [ ] **Step 0: Satisfy Maestro's plan-first intake rule.** Bind this pilot to a
-      concrete Brain Linear story, generate/review its required approved-plan
-      bundle with the repository's normal `story-to-spec` and `plan` commands,
-      and cite that immutable bundle in `M1a` through `M2`. If no suitable story
-      exists, the operator creates one before implementation; no product file
-      changes begin without the approved bundle.
+- [ ] **Step 0: Write the current Maestro Change brief.** Put the short brief in
+      the PR body or `docs/plans/`: outcome; canonical authorities changed;
+      prior art reused; owned paths; the exact Feature journey/scenario IDs;
+      positive and negative acceptance; verification; and rollback. Cite it in
+      `M0` through `M2`. Linear/Fabro are optional and the retired
+      `plan-required`, `pr-linear-link`, and `story-to-spec` artifacts are not
+      admission requirements.
 
 - [ ] **Step 1 (`M-pre`): Require a protected target root before `M0` runs.**
       From Maestro's then-current immutable protected-main commit (the planning
@@ -3291,7 +3575,9 @@ transports.
       equals that write's forward postimage. Otherwise keep the temporary check
       required and stop. Create and verify the clean detached P1 worktree at
       `/Users/headless/.worktrees/maestro-template-alpha3-pilot1`, install its
-      immutable locked toolchain without lifecycle scripts, then use its
+      immutable locked toolchain without lifecycle scripts through W0's
+      protected dependency sandbox/proxy, verify its sealed controller-image
+      lock against the registry, then use its
       `tooling/ci/protected-bootstrap.mts` to run `observe` for
       `modernagencysales/maestro` and journal
       `/Users/headless/.local/state/maestro-ci-transitions/maestro-M0.json`.
@@ -3309,35 +3595,41 @@ transports.
       status, then run the audit in preview mode:
 
   ```bash
-  rtk pnpm --dir /Users/headless/.worktrees/maestro-template-alpha3-pilot1 install --frozen-lockfile --ignore-scripts
+  rtk node --experimental-strip-types /Users/headless/.worktrees/maestro-template-alpha3-pilot1/tooling/ci/candidate-sandbox.mts install --candidate-root /Users/headless/.worktrees/maestro-template-alpha3-pilot1
   rtk git -C /Users/headless/.worktrees/maestro-template-alpha3-pilot1 status --short
   rtk pnpm --dir /Users/headless/.worktrees/maestro-template-alpha3-pilot1 exec tsx apps/cli/src/index.ts upgrade --contracts-audit --release-root /Users/headless/.worktrees/maestro-template-alpha3-pilot1 --to 0.2.0-alpha.3-pilot.1 --target-root /Users/headless/.worktrees/maestro-brain-grounded-content
   ```
 
   Expected before audit: status output is empty. Expected preview: additive
   payload only below `.maestro/product-contracts/**`; structured, preimage-bound
-  postimages for Maestro's existing `package.json` and pnpm 9 lockfile; no
+  postimages for Maestro's existing `package.json`, pnpm 9 lockfile,
+  Vite/root-auth seams, Convex acceptance config/schema/bootstrap/
+  identity/evidence, shared headless transport, and built-CLI identity; no
   template root manifest/lockfile/Justfile/Woodpecker replacement; and one exact
-  `confirmationArgv` containing the preview fingerprint. The reviewed runtime
-  target names web package `apps/web` with artifact `apps/web/dist`, CLI package
-  `tooling/maestro-cli` with build script `build` and executable
-  `tooling/maestro-cli/dist/maestro.js`, and backend package `packages/convex`;
-  no candidate command string is stored. Review the preview, then execute that
-  returned argv byte-for-byte. Do not append `--write` manually.
+  `confirmationArgv` containing the preview fingerprint. Every source patch and
+  new file must match the sealed P1 root-integration recipe and actual target
+  preimage; a stale anchor/preimage aborts without a partial apply. The reviewed
+  runtime target names web package `apps/web` with artifact `apps/web/dist`, CLI
+  package `tooling/maestro-cli` with build script `build` and executable
+  `tooling/maestro-cli/dist/maestro.js`, and backend adapter `convex-local-v1`
+  with package `packages/convex`, source `convex`, and its exact transitive
+  input closure; no candidate command string is stored. Review the preview, then
+  execute that returned argv byte-for-byte. Do not append `--write` manually.
 
   The transaction must recognize Maestro as `unmanaged-existing-repository`,
   avoid creating `template-instance.json`, keep every legacy surface enabled and
-  unadmitted, add collision-free `acceptance:check` and `contracts:add` scripts,
-  and record source/tag/preimage/postimage facts in the one baseline envelope.
-  Use the release controller's dependency-sandbox launcher to run target
-  `pnpm install --frozen-lockfile --ignore-scripts` and `pnpm acceptance:check`;
-  do not execute Maestro's candidate `.pnpmfile.cjs` in the operator or
-  status-controller namespace. Commit only the additive payload, exact
-  structured postimages, and baseline; merge `M0` under the already-required
-  `M-pre` context before `M0b`.
+  unadmitted, add collision-free `acceptance:check`, `acceptance`,
+  `acceptance:focus`, and `contracts:add` scripts, and record
+  source/tag/controller-lock/preimage/postimage facts in the one baseline
+  envelope. Use the release controller's dependency-sandbox launcher to run
+  target `pnpm install --frozen-lockfile --ignore-scripts` and
+  `pnpm acceptance:check`; do not execute Maestro's candidate `.pnpmfile.cjs` in
+  the operator or status-controller namespace. Commit only the additive payload,
+  exact structured postimages, and baseline; merge `M0` under the
+  already-required `M-pre` context before `M0b`.
 
   ```bash
-  rtk git add .maestro/product-contracts package.json pnpm-lock.yaml .maestro/contracts-legacy-baseline.json
+  rtk git add .maestro/product-contracts .maestro/contracts-legacy-baseline.json package.json pnpm-lock.yaml apps/web/vite.config.ts apps/web/src/routes/__root.tsx apps/web/src/adapters/product-contract-build-identity.ts apps/web/src/providers/product-contract-auth-runtime.tsx apps/web/src/providers/product-contract-auth-runtime.acceptance.tsx packages/convex/convex/auth.acceptance.config.ts packages/convex/convex/schema.ts packages/convex/convex/productContracts packages/convex/convex/adapters/headlessTransportExecution.ts packages/convex/convex/_generated tooling/maestro-cli/src/product-contract-identity.ts tooling/maestro-cli/src/maestro.ts
   rtk git commit -m "build: install cucumber contracts audit"
   ```
 
@@ -3357,9 +3649,14 @@ transports.
       package/lockfile, Brain UI/CLI/backend roots, `.woodpecker/**`,
       `tooling/ci/**`, and the control tests are explicitly protected; preserve
       the repository-wide default owner rule and prove at least one matching
-      write-enabled owner is not the PR author. Pin the exact P1 acceptance-
-      controller image digest in Maestro's Woodpecker server configuration; do
-      not copy template root CI files and do not edit `.buildkite/**`.
+      write-enabled owner is not the PR author. Read the exact P1 acceptance-
+      controller image only from its sealed CODEOWNED lock, verify registry,
+      source, Dockerfile, lockfile, dependency, and build-context digests, and
+      pin that image digest in Maestro's Woodpecker server configuration. Add a
+      tag ruleset protecting `maestro-product-contracts-brain-pilot-m2` from
+      update/deletion and restricting creation to the release actor; this gives
+      D1/D2 a stable cross-repository evidence ref. Do not copy template root CI
+      files and do not edit `.buildkite/**`.
 
   Run:
   `rtk host-test-slot --class focused pnpm exec tsx --test tooling/quality/check-self-hosted-ci.test.mts tooling/quality/check-ci-completeness.test.mts`
@@ -3423,8 +3720,12 @@ transports.
       stable surface/auth/activation metadata to the existing claim-review,
       accepted-source, and post-generation controls. Reuse current capabilities
       and durable citation substrate; do not add Brain tables. Wire real
-      accessible UI actions/outcomes and keep all newly activation-owned
-      controls absent while the journey is assembling.
+      accessible UI actions/outcomes. After each selected durable server
+      operation succeeds, route the M0 controller nonce through the shared
+      guarded contract-evidence writer; candidate JSON never supplies a stable
+      step key. Keep all newly activation-owned controls absent while the
+      journey is assembling. Force an isolate reset in the focused server test
+      and prove evidence still drains exactly once.
 
   Run `rtk pnpm contracts:surfaces:write`, then
   `rtk pnpm contracts:surfaces:check`; stage both exact generated public-surface
@@ -3440,8 +3741,10 @@ transports.
 - [ ] **Step 6 (`M1c`): Register and implement CLI authority while dark.** Add
       generated headless surfaces for context inspection and generation
       initiation, with API-key scopes, server-derived tenant, and the same
-      internal capability implementations as UI. Run
-      `rtk pnpm contracts:surfaces:write` and
+      internal capability implementations as UI. The M0
+      `headlessTransportExecution` integration records correlation only after
+      the registered operation succeeds; test wrong principal/surface, replay,
+      and cold-isolate drain. Run `rtk pnpm contracts:surfaces:write` and
       `rtk pnpm contracts:surfaces:check`, then run
       `rtk pnpm headless:contract:generate` and
       `rtk pnpm headless:contract:check`. Stage both public-surface projections
@@ -3504,6 +3807,23 @@ transports.
   rtk git commit -m "test: admit brain grounded content journey"
   ```
 
+- [ ] **Step 10: Bind the merged M2 evidence for the template release.** After
+      M2 merges, derive the exact protected-main commit, Feature digest,
+      generated admission-projection digest, merge-group tuple, check-run URL,
+      Woodpecker App ID, context, and successful conclusion from GitHub/
+      Woodpecker—not from the candidate. Create and push the protected annotated
+      tag `maestro-product-contracts-brain-pilot-m2` at that exact commit, with
+      the two content digests in its annotation, then query both tag-object and
+      peeled OIDs and re-read the app-bound check for the peeled commit. D1 and
+      D2 must independently re-observe these facts; tag drift, a lightweight
+      tag, or a mismatched check blocks them.
+
+  ```bash
+  rtk git tag -a maestro-product-contracts-brain-pilot-m2 <verified-M2-protected-main-commit> -m "maestro brain cucumber pilot M2: feature=<sha256> projection=<sha256>"
+  rtk git push origin refs/tags/maestro-product-contracts-brain-pilot-m2
+  rtk git ls-remote --tags origin maestro-product-contracts-brain-pilot-m2 'maestro-product-contracts-brain-pilot-m2^{}'
+  ```
+
 **Unlock:** The first real product—not the fixture—has a deterministic
 natural-language completion contract across human UI and agent CLI.
 
@@ -3515,8 +3835,9 @@ natural-language completion contract across human UI and agent CLI.
 
 **PR:** `D1`
 
-**Depends on:** immutable `P1`, the green 36-case mutation gauntlet, and merged
-Brain admission `M2`. Do not perform any deletion on a weaker evidence set.
+**Depends on:** immutable `P1`, the green 36-case mutation gauntlet, and the
+protected annotated Maestro M2 evidence tag. Do not perform any deletion on a
+weaker evidence set.
 
 **Files:**
 
@@ -3527,8 +3848,6 @@ Brain admission `M2`. Do not perform any deletion on a weaker evidence set.
   `docs/superpowers/specs/2026-08-01-product-journey-admission-design.md`
 - Delete:
   `docs/superpowers/plans/2026-08-01-product-journey-admission-and-brain-completion.md`
-- Modify:
-  `docs/superpowers/specs/2026-08-02-cucumber-product-contracts-design.md`
 - Modify: `package.json`
 - Modify: `pnpm-lock.yaml`
 - Modify: `tsconfig.json`
@@ -3552,6 +3871,14 @@ Brain admission `M2`. Do not perform any deletion on a weaker evidence set.
 - Modify: `docs/template/app-factory-guide.md`
 - Modify: `docs/template/customer-target-contract.md`
 
+**Interfaces:**
+
+- Consumes: the admitted reference contract, complete 36-case gauntlet, and
+  independently verified protected Maestro M2 evidence tag.
+- Produces: the active repository and release source closure with the custom
+  journey/fake-proof authorities removed, while preserving immutable historical
+  releases; this clean source is consumed by `D2`.
+
 - [ ] **Step 1: Write deletion guards red.** Assert no import/script/Just
       recipe, gate definition, generated projection, docs index, package
       reference, or release source references `product-journey`,
@@ -3560,7 +3887,13 @@ Brain admission `M2`. Do not perform any deletion on a weaker evidence set.
       capability execution. `template:add-feature` itself must remain as the
       contract-bound golden path. Immutable alpha.1/alpha.2 release bytes and
       historical `.superpowers` reports are explicit read-only scan exceptions,
-      not files to rewrite.
+      not files to rewrite. Before allowing deletion, independently resolve the
+      protected annotated `maestro-product-contracts-brain-pilot-m2` tag and
+      verify its tag-object/peeled OIDs, Feature and projection digests, exact
+      merge-group tuple, check-run URL, Woodpecker App ID/context, and
+      successful conclusion against the live Maestro repository. A branch name,
+      candidate self-report, stale check, or tag annotation alone is
+      insufficient.
 
 - [ ] **Step 2: Run red.**
 
@@ -3577,16 +3910,14 @@ Brain admission `M2`. Do not perform any deletion on a weaker evidence set.
       and Brain CLI acceptance prove `runCliAsync` over HTTP; retain local
       catalog/help behavior through the async dispatcher. Delete the now-empty
       template legacy baseline and enable full active-surface enforcement only
-      because `C11b` admitted every retained generic platform entry. Update the
-      August 2 design's link to the deleted August 1 file into the plain
-      immutable citation
-      `795d94848fbb30e94c7ae3609dec565f597cd00e:docs/superpowers/specs/2026-08-01-product-journey-admission-design.md`
-      so no active Markdown link breaks. Update the complete active-reference
-      closure listed above; do not modify immutable alpha.1/alpha.2 release
-      directories.
+      because `C11b` admitted every retained generic platform entry. The
+      approved August 2 design is an immutable Git citation and is absent from
+      the implementation baseline; do not add or edit it in D1. Update the
+      complete active-reference closure listed above; do not modify immutable
+      alpha.1/alpha.2 release directories.
 
   Run:
-  `rtk git grep -n -e product-journey -e check:product-journeys -e check-product-journeys -e doneState -e crud-proof -- ':!releases/v0.2.0-alpha.1/**' ':!releases/v0.2.0-alpha.2/**' ':!.superpowers/**' ':!docs/superpowers/specs/2026-08-02-cucumber-product-contracts-design.md' ':!docs/superpowers/plans/2026-08-03-cucumber-product-contracts-implementation.md'`
+  `rtk git grep -n -e product-journey -e check:product-journeys -e check-product-journeys -e doneState -e crud-proof -- ':!releases/v0.2.0-alpha.1/**' ':!releases/v0.2.0-alpha.2/**' ':!.superpowers/**' ':!docs/superpowers/plans/2026-08-03-cucumber-product-contracts-implementation.md'`
 
   Expected: no output. A hit adds that exact active file to `D1`; it never
   authorizes rewriting an immutable historical release.
@@ -3596,7 +3927,7 @@ Brain admission `M2`. Do not perform any deletion on a weaker evidence set.
       default composition in this pull request.
 
   ```bash
-  rtk git add -A packages/product-journey tooling/quality/check-product-journeys.mts tooling/quality/check-product-journeys.test.mts docs/superpowers/specs/2026-08-01-product-journey-admission-design.md docs/superpowers/plans/2026-08-01-product-journey-admission-and-brain-completion.md docs/superpowers/specs/2026-08-02-cucumber-product-contracts-design.md package.json pnpm-lock.yaml tsconfig.json Justfile tooling/quality/src/check-definitions.mts tooling/quality/src/diagnosticRegistry.test.mts tooling/quality/check-ci-completeness.mts tooling/quality/check-ci-completeness.test.mts tooling/quality/check-config-drift.test.mts tooling/generators/src/blueprints/saasRegistrationProjections.ts apps/cli/src/index.ts apps/cli/src/index.test.ts apps/cli/src/types.ts apps/cli/src/router.ts apps/cli/src/commands.ts apps/cli/src/factory/createRootIntegration.test.ts tooling/agent-pack/evals/walking-skeleton/verifier.ts tooling/agent-pack/evals/walking-skeleton/walking-skeleton.test.ts packages/template-core/src/generated/template-contracts-legacy-baseline.json docs/template/app-factory-guide.md docs/template/customer-target-contract.md
+  rtk git add -A packages/product-journey tooling/quality/check-product-journeys.mts tooling/quality/check-product-journeys.test.mts docs/superpowers/specs/2026-08-01-product-journey-admission-design.md docs/superpowers/plans/2026-08-01-product-journey-admission-and-brain-completion.md package.json pnpm-lock.yaml tsconfig.json Justfile tooling/quality/src/check-definitions.mts tooling/quality/src/diagnosticRegistry.test.mts tooling/quality/check-ci-completeness.mts tooling/quality/check-ci-completeness.test.mts tooling/quality/check-config-drift.test.mts tooling/generators/src/blueprints/saasRegistrationProjections.ts apps/cli/src/index.ts apps/cli/src/index.test.ts apps/cli/src/types.ts apps/cli/src/router.ts apps/cli/src/commands.ts apps/cli/src/factory/createRootIntegration.test.ts tooling/agent-pack/evals/walking-skeleton/verifier.ts tooling/agent-pack/evals/walking-skeleton/walking-skeleton.test.ts packages/template-core/src/generated/template-contracts-legacy-baseline.json docs/template/app-factory-guide.md docs/template/customer-target-contract.md
   rtk git commit -m "refactor: remove superseded journey machinery"
   ```
 
@@ -3625,26 +3956,40 @@ ready to seal from a clean source commit.
 
 **PR:** `D2`
 
-**Depends on:** merged `D1`, merged `B1`, merged Brain `M2`, and the green
-36-case gauntlet
+**Depends on:** merged `D1`, merged `B1`, the protected annotated Maestro M2
+evidence tag, and the green 36-case gauntlet
 
 **Files:**
 
 - Generate and add: `releases/v0.2.0-alpha.3/**`
 
+**Interfaces:**
+
+- Consumes: clean `D1` source, `B1` Build Pack review, W1 controller-image lock,
+  the 36-case gauntlet, and exact protected Maestro M2 evidence.
+- Produces: immutable `releases/v0.2.0-alpha.3/**`, protected annotated
+  `maestro-template-v0.2.0-alpha.3`, and verified materialization facts consumed
+  by `M3` and `D3`.
+
 - [ ] **Step 1: Freeze a clean non-default source.** Start from a new clean
       worktree at current protected main after every dependency. Record its
       40-character source SHA. Assert `releases/v0.2.0-alpha.3` is absent and
       `apps/cli/src/factory/createComposition.ts` still names alpha.2.
+      Independently re-resolve the Maestro evidence tag and bind its tag-object
+      OID, peeled M2 commit, Feature/projection digests, merge tuple, check-run
+      URL, Woodpecker App/context/result, and repository to the sealer input.
+      Re-read the W1 controller image lock and registry object as well.
 
 - [ ] **Step 2: Seal the absent root without changing the default.** Run
-      `rtk pnpm release:seal -- --version 0.2.0-alpha.3 --source-commit <recorded-40-character-source-sha> --base-version 0.2.0-alpha.2 --non-default`.
+      `rtk pnpm release:seal -- --version 0.2.0-alpha.3 --source-commit <recorded-40-character-source-sha> --base-version 0.2.0-alpha.2 --non-default --validated-pilot-repository modernagencysales/maestro --validated-pilot-tag maestro-product-contracts-brain-pilot-m2`.
       Alpha.2 supplies only the immutable comparison/migration base; the
       recorded clean source commit supplies alpha.3's blueprint, ownership
       graph, contracts-audit closure, and migration declaration. Verify the
       generated manifest contains Cucumber/config/auth/controller, public-
       surface, contracts-audit, upgrade, and release assets and contains no
-      custom journey/fake-proof machinery. The output set must contain only
+      custom journey/fake-proof machinery. Its release facts include the exact
+      controller-image source closure and Maestro M2 evidence; neither may come
+      from candidate prose or a branch ref. The output set must contain only
       `releases/v0.2.0-alpha.3/**`; alpha.2, the pilot, and create composition
       remain byte-identical.
 
@@ -3665,6 +4010,14 @@ ready to seal from a clean source commit.
   Run on the remote worker:
   `rtk maestro-remote-test -- pnpm release:seal -- --check --version 0.2.0-alpha.3 --source-commit <recorded-40-character-source-sha> --base-version 0.2.0-alpha.2 --non-default`
 
+  Run separately in the protected controller:
+  `rtk pnpm release:seal -- --verify-external --version 0.2.0-alpha.3 --validated-pilot-repository modernagencysales/maestro --validated-pilot-tag maestro-product-contracts-brain-pilot-m2`
+
+  Expected: offline check proves sealed-byte determinism; protected external
+  verification re-queries the controller registry object and Maestro evidence
+  tag/check run and fails on any OID, digest, App, tuple, context, or conclusion
+  drift.
+
 - [ ] **Step 5: Merge, annotate, push, and verify the remote tag.** Run `D2`
       through the protected merge queue. After the verified release commit is on
       protected main, run:
@@ -3678,21 +4031,96 @@ ready to seal from a clean source commit.
   Require the protected annotated tag-object OID and peeled release commit.
   Materialize an untouched customer target from a clean worktree detached at
   that peeled commit and verify archive, manifest, blueprint, source, and
-  contracts-audit digests. Tag drift, a lightweight tag, or any materialization
-  difference blocks `D3`; never move or reuse the tag.
+  derived contracts-audit path hashes. Tag drift, a lightweight tag, or any
+  materialization difference blocks `M3` and `D3`; never move or reuse the tag.
 
 **Unlock:** Alpha.3 is an immutable verified release, but alpha.2 remains the
 public create/quickstart default.
 
 ---
 
-### Task 25: Switch The Public Default After Tag Materialization
+### Task 25: Upgrade The Admitted Maestro Pilot To Public Alpha.3
+
+**Class:** `fixture-to-real`
+
+**PR:** `M3` in `/Users/headless/maestro`
+
+**Depends on:** remote protected annotated `D2` tag, untouched alpha.3
+materialization, and protected Maestro M2 evidence tag
+
+**Files:**
+
+- Modify only through the preimage-bound upgrade:
+  `.maestro/product-contracts/**`
+- Modify: `.maestro/contracts-legacy-baseline.json`
+- Modify only when the sealed alpha.3 recipe produces a real postimage change:
+  `package.json`
+- Modify only when the sealed alpha.3 recipe produces a real postimage change:
+  `pnpm-lock.yaml`
+
+**Interfaces:**
+
+- Consumes: the protected annotated alpha.3 tag and materialization, its
+  embedded M2 evidence, and the current protected Maestro M2 target preimage.
+- Produces: the bounded `ContractsAuditUpgrade.source` migration from pilot to
+  public alpha.3 and a protected green Maestro `M3` commit consumed by `D3`.
+
+- [ ] **Step 1: Write and run the upgrade preview red.** From a clean Maestro
+      worktree at the protected M2 commit, independently resolve the remote
+      alpha.3 tag-object and peeled commit, release manifest, controller image
+      lock/registry object, and embedded M2 evidence. Require that evidence to
+      equal the current target's protected M2 tag, Feature/projection digests,
+      and app-bound check. A pilot tag, moved/lightweight alpha.3 tag, stale
+      target preimage, changed Brain product file, or release that omits the M2
+      evidence must fail before staging.
+
+- [ ] **Step 2: Preview and apply only the sealed pilot-to-alpha.3 delta.** Use
+      a clean detached alpha.3 worktree and its self-contained W0 sandbox to
+      install the locked toolchain, then run the existing contracts-audit
+      upgrade against the clean Maestro target with `--to 0.2.0-alpha.3`. Review
+      the exact confirmation argv and execute it byte-for-byte. The transaction
+      may replace only namespaced audit payload, update the one baseline/source
+      envelope, and apply a package/lock postimage only when the sealed recipe
+      proves one. Runtime integration and Brain Feature/UI/CLI/ backend product
+      files must be byte-identical to M2; any unexpected root patch is a release
+      defect, not permission to widen M3.
+
+  ```bash
+  rtk node --experimental-strip-types /Users/headless/.worktrees/maestro-template-alpha3/tooling/ci/candidate-sandbox.mts install --candidate-root /Users/headless/.worktrees/maestro-template-alpha3
+  rtk pnpm --dir /Users/headless/.worktrees/maestro-template-alpha3 exec tsx apps/cli/src/index.ts upgrade --contracts-audit --release-root /Users/headless/.worktrees/maestro-template-alpha3 --to 0.2.0-alpha.3 --target-root /Users/headless/.worktrees/maestro-brain-alpha3
+  ```
+
+- [ ] **Step 3: Verify and commit the bounded upgrade.** Run
+      `rtk pnpm acceptance:check`, `rtk pnpm acceptance`, and the Maestro full
+      verify on `maestro-worker`. Require the admitted Brain UI, built CLI,
+      cross-surface, auth/tenant, runtime identity, and all older admitted
+      journeys to pass with the alpha.3 controller lock and source facts.
+
+  ```bash
+  rtk git add .maestro/product-contracts .maestro/contracts-legacy-baseline.json package.json pnpm-lock.yaml
+  rtk git commit -m "build: adopt cucumber product contracts alpha.3"
+  ```
+
+- [ ] **Step 4: Merge M3 through Maestro's protected batch-one queue.** The
+      exact M3 merge candidate must receive `ci/woodpecker/pr/verify` from the
+      recorded App; Qlty remains advisory. After merge, re-run protected
+      acceptance from current Maestro main and prove
+      `ContractsAuditUpgrade.source` names the public alpha.3 annotated tag,
+      peeled commit, manifest, and controller image—not the pilot release.
+
+**Unlock:** The real admitted product consumes the exact public release that is
+about to become the factory default.
+
+---
+
+### Task 26: Switch The Public Default After Tag Materialization
 
 **Class:** `pattern-instance`
 
 **PR:** `D3`
 
-**Depends on:** remote annotated `D2` tag and untouched materialization green
+**Depends on:** remote annotated `D2` tag, untouched materialization green, and
+protected Maestro `M3` green on public alpha.3
 
 **Files:**
 
@@ -3700,6 +4128,13 @@ public create/quickstart default.
 - Modify: `apps/cli/src/factory/createRootIntegration.test.ts`
 - Modify: `docs/template/app-factory-guide.md`
 - Modify: `docs/template/customer-target-contract.md`
+
+**Interfaces:**
+
+- Consumes: the protected annotated D2 tag/object/manifest checksums and the
+  protected Maestro M3 acceptance result against public alpha.3.
+- Produces: the four-file default-composition/documentation delta that points
+  new creates at the immutable alpha.3 release without changing release bytes.
 
 - [ ] **Step 1: Write the default-switch test red.** Bind expected version,
       remote tag-object OID, peeled commit, manifest checksum, and blueprint
@@ -3733,36 +4168,36 @@ public create/quickstart default.
 **Final evidence:** Net duplicate journey/fake-proof code is deleted; one
 official Cucumber execution chain proves behavior; new factory contracts begin
 assembling; existing apps migrate without darkness; Brain passes UI and built
-CLI; and only the app-bound Woodpecker merge-candidate verdict can authorize
-admission.
+CLI from the public alpha.3 release; and only the app-bound Woodpecker
+merge-candidate verdict can authorize admission.
 
 ## Spec-To-Task Traceability
 
-| Approved success criterion                                   | Proof PR/task(s)         |
-| ------------------------------------------------------------ | ------------------------ |
-| Feature is sole behavioral contract                          | C1, C7, F1, B1, D1       |
-| Create/contracts-add preserve assembling bytes               | F1                       |
-| Existing feature golden path is contract-bound               | F2                       |
-| Shared route actions cannot hide                             | C2, C3, C12              |
-| Exhaustive public inventory/raw bypass                       | C3, C4, C12              |
-| UI/server darkness                                           | C4, C11a, C11b           |
-| UI+CLI inventory requires cross-surface proof                | C4, C11a, M1, M2         |
-| Stacked slices; lifecycle/projection-only admission          | C4, W1, C11b, M1, M2     |
-| Every Pickle/row/step/required hook executes once            | C7, C8, C9               |
-| Exact Source/AST/step-definition equality                    | C7, C8                   |
-| UI and built CLI share backend/identity                      | C6, C9, C11a             |
-| Per-transport auth denial and protected-base strength        | C2, C4, C5, C11a, M1, M2 |
-| Caller tenant cannot authorize                               | C5, C11a, C12            |
-| Wrong exit/selection/retry/hook/protocol/runtime drift fails | C8, C9, C10, C12         |
-| Existing-app adoption is additive and recoverable            | U1, P1, M0               |
-| Candidate is secretless and cannot forge evidence/status     | W0, C10, C12, W1, M0b    |
-| App-bound exact merge-group tuple/approval                   | W0, W1, M0b              |
-| Staging tests/promotes one release manifest                  | R1                       |
-| Protected annotated tag and separate default switch          | U1, W1, P1, D2, D3       |
-| Build Pack human exact-byte provenance                       | B1                       |
-| Complete mutation gauntlet                                   | C12, R1, W1, P1, D2      |
-| Custom/fake machinery deleted after proof                    | F2, D1                   |
-| Real Brain UI/CLI journey                                    | M1, M2                   |
+| Approved success criterion                                   | Proof PR/task(s)           |
+| ------------------------------------------------------------ | -------------------------- |
+| Feature is sole behavioral contract                          | C1, C7, F1, B1, D1         |
+| Create/contracts-add preserve assembling bytes               | F1                         |
+| Existing feature golden path is contract-bound               | F2                         |
+| Shared route actions cannot hide                             | C2, C3, C12                |
+| Exhaustive public inventory/raw bypass                       | C3, C4, C12                |
+| UI/server darkness                                           | C4, C11a, C11b             |
+| UI+CLI inventory requires cross-surface proof                | C4, C11a, M1, M2           |
+| Stacked slices; lifecycle/projection-only admission          | C4, W1, C11b, M1, M2       |
+| Every Pickle/row/step/required hook executes once            | C7, C8, C9                 |
+| Exact Source/AST/step-definition equality                    | C7, C8                     |
+| UI and built CLI share backend/identity                      | C6, C9, C11a               |
+| Per-transport auth denial and protected-base strength        | C2, C4, C5, C11a, M1, M2   |
+| Caller tenant cannot authorize                               | C5, C11a, C12              |
+| Wrong exit/selection/retry/hook/protocol/runtime drift fails | C8, C9, C10, C12           |
+| Existing-app adoption is additive and recoverable            | U1, P1, M0, M3             |
+| Candidate is secretless and cannot forge evidence/status     | W0, C10, C12, W1, M0b      |
+| App-bound exact merge-group tuple/approval                   | W0, W1, M0b                |
+| Staging tests/promotes one release manifest                  | R1                         |
+| Protected annotated tag and separate default switch          | U1, W1, P1, M2, D2, M3, D3 |
+| Build Pack human exact-byte provenance                       | B1                         |
+| Complete mutation gauntlet                                   | C12, R1, W1, P1, D2        |
+| Custom/fake machinery deleted after proof                    | F2, D1                     |
+| Real Brain UI/CLI journey on public release                  | M1, M2, M3                 |
 
 ## Final Program Verification
 
@@ -3778,7 +4213,7 @@ rtk maestro-remote-test -- pnpm test:mutation
 rtk maestro-remote-test -- pnpm verify
 ```
 
-From the committed Maestro `M2` head, run separately:
+From the committed Maestro `M3` head, run separately:
 
 ```bash
 rtk maestro-remote-test -- pnpm acceptance:check
@@ -3798,10 +4233,15 @@ Then verify external state from the protected controller:
 - administrator/bypass actors are governed;
 - candidate jobs have no secrets and the sandbox canary passes;
 - the latest release manifest digest equals platform-observed web, CLI, backend,
-  schema/migration, runtime-config, and admission-policy identities.
+  schema/migration, runtime-config, and admission-policy identities;
+- the controller image registry digest/source closure equals the CODEOWNED lock
+  sealed into P1 and D2 and persisted by Maestro M3;
 - both pilot and alpha.3 remote refs resolve to protected annotated tag objects,
   their peeled commits and manifest digests match their persisted
   `ContractsAuditUpgrade.source`/release facts, and update/deletion is denied;
+- the protected Maestro M2 evidence tag resolves to the exact Feature/
+  projection digests and app-bound check recorded in D2, and M3's persisted
+  source names the public alpha.3 tag rather than the pilot;
 - the `D2` peeled commit materializes alpha.3 without changing the alpha.2
   default, while `D3` changes only the four declared composition/default-doc
   paths and leaves every alpha.3 release byte identical to `D2`.
