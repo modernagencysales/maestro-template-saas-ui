@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { spawnSync } from "node:child_process";
 import {
   digestProtectedDocuments,
   executeProtectedTransition,
@@ -393,6 +394,155 @@ describe("protected CI bootstrap", () => {
       ]);
     } finally {
       rmSync(journalDirectory, { recursive: true, force: true });
+    }
+  });
+
+  it("runs the protected CLI adapter path, reloads its journal, and rolls back a bad post-write read", () => {
+    const directory = mkdtempSync(join(tmpdir(), "protected-bootstrap-cli-"));
+    const statePath = join(directory, "state.json");
+    const journalPath = join(directory, "journal.json");
+    const adapterPath = join(directory, "adapter.mjs");
+    const before = document("github-ruleset", "rulesets/1", {
+      required: "old",
+    });
+    const forward = document("github-ruleset", "rulesets/1", {
+      required: "new",
+    });
+    const cli = (...args: string[]) =>
+      spawnSync(
+        "pnpm",
+        ["exec", "tsx", "tooling/ci/protected-bootstrap.mts", ...args],
+        {
+          cwd: process.cwd(),
+          encoding: "utf8",
+          env: { ...process.env, PROTECTED_BOOTSTRAP_TEST_STATE: statePath },
+        },
+      );
+    try {
+      writeFileSync(
+        statePath,
+        JSON.stringify({ documents: [before], mutateAfterWrite: false }),
+      );
+      writeFileSync(
+        adapterPath,
+        `import { readFileSync, writeFileSync } from "node:fs";
+const statePath = process.env.PROTECTED_BOOTSTRAP_TEST_STATE;
+const read = () => JSON.parse(readFileSync(statePath, "utf8"));
+const save = (state) => writeFileSync(statePath, JSON.stringify(state));
+const endpoint = {
+  async observe(document) {
+    const live = read().documents.find((entry) => entry.resourceId === document.resourceId);
+    if (!live) throw new Error("missing " + document.resourceId);
+    return live;
+  },
+  async write({ document }) {
+    const state = read();
+    const written = state.mutateAfterWrite && document.canonicalBody.required === "new"
+      ? { ...document, canonicalBody: { required: "intervening" } }
+      : document;
+    state.documents = state.documents.map((entry) =>
+      entry.resourceId === document.resourceId ? written : entry,
+    );
+    save(state);
+  },
+};
+export const createProtectedControllerAdapter = () => ({ github: endpoint, woodpecker: endpoint });
+`,
+      );
+
+      const observed = cli(
+        "observe",
+        "--journal",
+        journalPath,
+        "--adapter-module",
+        adapterPath,
+        "--observation",
+        JSON.stringify(journal.observation),
+        "--documents",
+        JSON.stringify([before]),
+      );
+      expect(observed.status, observed.stderr).toBe(0);
+      const observedJournal = loadProtectedTransitionJournal(journalPath);
+      const observedPreimage = firstStep(observedJournal).preimage;
+      const transition: ProtectedTransitionJournal = {
+        ...observedJournal,
+        steps: [
+          {
+            id: "install-temporary",
+            preimage: observedPreimage,
+            forwardPostimage: [forward],
+            inverse: [
+              {
+                method: "PUT",
+                resourcePath: before.resourceId,
+                canonicalBody: before.canonicalBody,
+              },
+            ],
+            inverseAllowedOnlyFrom: digestProtectedDocuments([forward]),
+          },
+        ],
+      };
+      saveProtectedTransitionJournal(journalPath, transition);
+      const expected = digestProtectedDocuments(observedPreimage);
+      const preview = cli(
+        "install-temporary",
+        "--journal",
+        journalPath,
+        "--adapter-module",
+        adapterPath,
+        "--expected-live-digest",
+        expected,
+      );
+      expect(preview.status, preview.stderr).toBe(0);
+      const confirmation = JSON.parse(preview.stdout).previewFingerprint;
+
+      writeFileSync(
+        statePath,
+        JSON.stringify({
+          documents: [
+            document("github-ruleset", before.resourceId, {
+              required: "drifted",
+            }),
+          ],
+          mutateAfterWrite: false,
+        }),
+      );
+      const drifted = cli(
+        "install-temporary",
+        "--journal",
+        journalPath,
+        "--adapter-module",
+        adapterPath,
+        "--expected-live-digest",
+        expected,
+        "--confirm",
+        confirmation,
+      );
+      expect(drifted.status).toBe(1);
+      expect(drifted.stderr).toMatch(/compare-and-swap drift/u);
+
+      writeFileSync(
+        statePath,
+        JSON.stringify({ documents: [before], mutateAfterWrite: true }),
+      );
+      const applied = cli(
+        "install-temporary",
+        "--journal",
+        journalPath,
+        "--adapter-module",
+        adapterPath,
+        "--expected-live-digest",
+        expected,
+        "--confirm",
+        confirmation,
+      );
+      expect(applied.status).toBe(1);
+      expect(applied.stderr).toMatch(/postimage mismatch/u);
+      expect(JSON.parse(readFileSync(statePath, "utf8")).documents).toEqual([
+        before,
+      ]);
+    } finally {
+      rmSync(directory, { recursive: true, force: true });
     }
   });
 });
