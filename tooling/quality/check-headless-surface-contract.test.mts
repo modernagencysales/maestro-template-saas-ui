@@ -192,6 +192,19 @@ describe("check:headless-surface-contract", () => {
     expect(missingHttpExecutorDispatch(source)).toBe(false);
   });
 
+  it("accepts generated HTTP refs through the authorized dispatcher", () => {
+    const source = `
+      const operationRefs = {
+        "brain.pages.createMarkdown": api.brain.pages.createMarkdown,
+      };
+      return executeAuthorizedOperation({
+        adapter: { refs: operationRefs, runMutation },
+      }, request);
+    `;
+
+    expect(missingHttpExecutorDispatch(source)).toBe(false);
+  });
+
   it("accepts API operation IDs mapped to a differently named generated ref", () => {
     const source = `
       const operationRefs = {
@@ -258,7 +271,8 @@ describe("check:headless-surface-contract", () => {
       };
 
       const operationId = staticCliOperationRefs[maybeId];
-      return runTemplateApiOperation(operationId, {});
+      const runner = createHttpCapabilityRunner({ config, fetch });
+      return runner(operationId, {});
     `;
 
     expect(
@@ -273,12 +287,29 @@ describe("check:headless-surface-contract", () => {
       };
 
       const operationRef = refFor(staticCliOperationRefs, maybeId);
-      return runTemplateApiOperation(operationRef, {});
+      const runner = createHttpCapabilityRunner({ config, fetch });
+      return runner(operationRef, {});
     `;
 
     expect(
       missingCliGeneratedRefUsage(["changesignal.overview.get"], source),
     ).toEqual([]);
+  });
+
+  it("accepts generated CLI refs dispatched only through the HTTP client", () => {
+    const source = `
+      export const staticCliOperationRefs = {
+        "brain.pages.createMarkdown": "brain.pages.createMarkdown",
+      };
+
+      const operationId = staticCliOperationRefs[capabilityId];
+      return createHttpCapabilityRunner({ config, fetch })(operationId, request);
+    `;
+
+    expect(
+      missingCliGeneratedRefUsage(["brain.pages.createMarkdown"], source),
+    ).toEqual([]);
+    expect(source).not.toContain("runTemplateApiOperation");
   });
 
   it("rejects CLI mappings with regex-compatible but wrong operation IDs", () => {

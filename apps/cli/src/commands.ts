@@ -97,7 +97,8 @@ const parseCapabilityRequest = (
     return cliFailure(`${parsedArgs.message}\n`);
   }
 
-  const { workspaceSlug, input, idempotencyKey } = parsedArgs.args;
+  const { workspaceSlug, input, idempotencyKey, correlationNonce } =
+    parsedArgs.args;
   if (
     workspaceSlug === undefined ||
     input === undefined ||
@@ -108,7 +109,12 @@ const parseCapabilityRequest = (
     );
   }
 
-  return { workspaceSlug, input, idempotencyKey };
+  return {
+    workspaceSlug,
+    input,
+    idempotencyKey,
+    ...(correlationNonce === undefined ? {} : { correlationNonce }),
+  };
 };
 
 const isCliResult = (

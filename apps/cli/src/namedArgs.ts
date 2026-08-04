@@ -2,6 +2,7 @@ export type CliNamedArgs = {
   readonly workspaceSlug?: string;
   readonly input?: Record<string, unknown>;
   readonly idempotencyKey?: string;
+  readonly correlationNonce?: string;
   readonly workflowId?: string;
   readonly mode?: string;
 };
@@ -69,6 +70,7 @@ const cliNamedArgKeys: Readonly<Record<string, keyof CliNamedArgs>> = {
   "--input": "input",
   "--idempotency": "idempotencyKey",
   "--idempotency-key": "idempotencyKey",
+  "--correlation-nonce": "correlationNonce",
   "--workflow": "workflowId",
   "--workflow-id": "workflowId",
   "--mode": "mode",

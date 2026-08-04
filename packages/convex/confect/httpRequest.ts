@@ -7,6 +7,7 @@ export type TemplateApiRequestBody = {
   readonly workspaceSlug?: string;
   readonly input?: Record<string, JsonValue>;
   readonly idempotencyKey?: string;
+  readonly correlationNonce?: string;
 };
 
 type TemplateHttpFailure = {
@@ -88,6 +89,9 @@ const templateApiRequestBodyFrom = (value: unknown): TemplateApiRequestBody => {
     ...(typeof value.idempotencyKey === "string"
       ? { idempotencyKey: value.idempotencyKey }
       : {}),
+    ...(typeof value.correlationNonce === "string"
+      ? { correlationNonce: value.correlationNonce }
+      : {}),
   };
 };
 
@@ -97,12 +101,29 @@ const isObjectRecord = (value: unknown): value is Record<string, unknown> =>
 export const executorRequestFor = (
   operationId: string,
   body: TemplateApiRequestBody,
+  authority?: {
+    readonly surface?: "api" | "cli";
+    readonly workspaceId?: string;
+  },
 ): ExecutorRequestResult => {
-  const input = body.input ?? {};
+  const callerInput = body.input ?? {};
+  const callerWorkspaceId = callerInput.workspaceId;
+  if (
+    authority?.workspaceId !== undefined &&
+    typeof callerWorkspaceId === "string" &&
+    callerWorkspaceId.trim() !== authority.workspaceId
+  )
+    return validationFailed(
+      "Caller workspace does not match principal authority.",
+    );
+  const input =
+    authority?.workspaceId === undefined
+      ? callerInput
+      : { ...callerInput, workspaceId: authority.workspaceId };
   const result =
     operationId === "brain.pages.createMarkdown"
-      ? createMarkdownExecutorRequest(operationId, body, input)
-      : genericExecutorRequest(operationId, body, input);
+      ? createMarkdownExecutorRequest(operationId, body, input, authority)
+      : genericExecutorRequest(operationId, body, input, authority?.surface);
 
   return result;
 };
@@ -111,15 +132,22 @@ const genericExecutorRequest = (
   operationId: string,
   body: TemplateApiRequestBody,
   input: Record<string, JsonValue>,
+  surface: "api" | "cli" = "api",
 ): ExecutorRequestResult => ({
   ok: true,
   request: {
     operationId,
-    surface: "api",
+    surface,
     input,
     ...(body.idempotencyKey === undefined
       ? {}
       : { idempotencyKey: body.idempotencyKey }),
+    ...(body.workspaceSlug === undefined
+      ? {}
+      : { workspaceSlug: body.workspaceSlug }),
+    ...(body.correlationNonce === undefined
+      ? {}
+      : { correlationNonce: body.correlationNonce }),
   },
 });
 
@@ -127,6 +155,7 @@ const createMarkdownExecutorRequest = (
   operationId: string,
   body: TemplateApiRequestBody,
   input: Record<string, JsonValue>,
+  authority?: { readonly surface?: "api" | "cli" },
 ): ExecutorRequestResult => {
   let result: ExecutorRequestResult | undefined =
     createMarkdownIdempotencyFailure(body);
@@ -136,6 +165,7 @@ const createMarkdownExecutorRequest = (
       operationId,
       body,
       input,
+      authority?.surface,
     );
   }
 
@@ -158,14 +188,16 @@ const createMarkdownExecutorRequestWithIdempotency = (
   operationId: string,
   body: TemplateApiRequestBody,
   input: Record<string, JsonValue>,
+  surface: "api" | "cli" = "api",
 ): ExecutorRequestResult => {
-  const workspaceId = createMarkdownWorkspaceId(body, input);
+  const workspaceId = createMarkdownWorkspaceId(input);
   const result: ExecutorRequestResult = workspaceId
     ? createMarkdownExecutorRequestWithWorkspace(
         operationId,
         body,
         input,
         workspaceId,
+        surface,
       )
     : validationFailed(
         "Operation brain.pages.createMarkdown requires input.workspaceId or a known workspaceSlug.",
@@ -175,7 +207,6 @@ const createMarkdownExecutorRequestWithIdempotency = (
 };
 
 const createMarkdownWorkspaceId = (
-  body: TemplateApiRequestBody,
   input: Record<string, JsonValue>,
 ): string | undefined =>
   typeof input.workspaceId === "string" && input.workspaceId.trim()
@@ -187,6 +218,7 @@ const createMarkdownExecutorRequestWithWorkspace = (
   body: TemplateApiRequestBody,
   input: Record<string, JsonValue>,
   workspaceId: string,
+  surface: "api" | "cli",
 ): ExecutorRequestResult => {
   const fields = requiredCreateMarkdownInputs(operationId, input);
   const result: ExecutorRequestResult = fields.ok
@@ -194,7 +226,7 @@ const createMarkdownExecutorRequestWithWorkspace = (
         ok: true,
         request: {
           operationId,
-          surface: "api",
+          surface,
           input: {
             workspaceId,
             ...fields.values,
@@ -202,6 +234,12 @@ const createMarkdownExecutorRequestWithWorkspace = (
           ...(body.idempotencyKey === undefined
             ? {}
             : { idempotencyKey: body.idempotencyKey }),
+          ...(body.workspaceSlug === undefined
+            ? {}
+            : { workspaceSlug: body.workspaceSlug }),
+          ...(body.correlationNonce === undefined
+            ? {}
+            : { correlationNonce: body.correlationNonce }),
         },
       }
     : fields;

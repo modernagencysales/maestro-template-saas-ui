@@ -20,7 +20,11 @@ import {
   type AuthPolicy,
 } from "./capabilities/_kit/authPolicies";
 import type { Principal } from "./capabilities/_kit/principal";
-import { authenticateApiKey, type PersistedApiKeyRow } from "./headless/auth";
+import {
+  authenticateApiKey,
+  HeadlessAuthError,
+  type PersistedApiKeyRow,
+} from "./headless/auth";
 import {
   executorRequestFor,
   readJsonBody,
@@ -89,8 +93,17 @@ const requireHttpAuthentication = async (
   input: Parameters<NonNullable<HeadlessHttpCtx["authenticate"]>>[0],
 ): Promise<Principal> => {
   if (ctx.authenticate === undefined)
-    throw new Error("HTTP authentication adapter is required");
-  return await ctx.authenticate(input);
+    throw new TemplateHttpError(401, "Unauthorized", "Authentication failed.");
+  try {
+    return await ctx.authenticate(input);
+  } catch (error) {
+    if (
+      error instanceof HeadlessAuthError &&
+      error.code === "API_KEY_FORBIDDEN"
+    )
+      throw new TemplateHttpError(403, "Forbidden", "Authorization failed.");
+    throw new TemplateHttpError(401, "Unauthorized", "Authentication failed.");
+  }
 };
 
 const requireHttpAuthorization = async (
@@ -99,9 +112,26 @@ const requireHttpAuthorization = async (
   principal: Principal,
 ): Promise<void> => {
   if (ctx.authorize === undefined)
-    throw new Error("HTTP authorization adapter is required");
-  await ctx.authorize(request, principal);
+    throw new TemplateHttpError(403, "Forbidden", "Authorization failed.");
+  try {
+    await ctx.authorize(request, principal);
+  } catch {
+    throw new TemplateHttpError(403, "Forbidden", "Authorization failed.");
+  }
 };
+
+type TemplateHttpErrorTag =
+  "Unauthorized" | "Forbidden" | "NotFound" | "ValidationFailed" | "Internal";
+
+class TemplateHttpError extends Error {
+  constructor(
+    readonly status: number,
+    readonly tag: TemplateHttpErrorTag,
+    message: string,
+  ) {
+    super(message);
+  }
+}
 
 type TemplateRouteMatch =
   | { readonly kind: "openapi" }
@@ -182,6 +212,7 @@ const httpAuthorizationQueryRef = makeFunctionReference<
   {
     readonly operationId: string;
     readonly workspaceId: string;
+    readonly workspaceSlug?: string;
     readonly principal:
       | { readonly kind: "user"; readonly userId: string }
       | { readonly kind: "apiKey"; readonly apiKeyId: string };
@@ -320,7 +351,8 @@ const unsubscribeHtmlResponse = (html: string): Response =>
 
 const runTemplateApiOperation = async (
   ctx: HeadlessHttpCtx,
-  request: HeadlessExecutorRequest,
+  operationId: string,
+  body: TemplateApiRequestBody,
   authorization: string | undefined,
   transport: "api" | "cli",
 ): Promise<unknown> => {
@@ -330,7 +362,7 @@ const runTemplateApiOperation = async (
       : authorization?.match(/^Bearer\s+mtk_live_/iu)
         ? "api"
         : "ui";
-  const surface = authorizedSurfaceFor(request.operationId, authTransport);
+  const surface = authorizedSurfaceFor(operationId, authTransport);
   const policy =
     surface === undefined
       ? undefined
@@ -342,6 +374,14 @@ const runTemplateApiOperation = async (
     policy,
     surface: authTransport === "ui" ? "web" : authTransport,
   });
+  const executorRequest = executorRequestFor(operationId, body, {
+    surface: transport,
+    ...(principal.kind === "apiKey"
+      ? { workspaceId: principal.workspaceId }
+      : {}),
+  });
+  if (!executorRequest.ok) return executorRequest;
+  const request = executorRequest.request;
 
   return await executeAuthorizedOperation(
     {
@@ -363,6 +403,9 @@ const runTemplateApiOperation = async (
       ...(request.idempotencyKey === undefined
         ? {}
         : { idempotencyKey: request.idempotencyKey }),
+      ...(request.correlationNonce === undefined
+        ? {}
+        : { correlationNonce: request.correlationNonce }),
     },
   );
 };
@@ -603,13 +646,16 @@ const operationRouteResponse = async (
   const response =
     request.method === "POST"
       ? await executeTemplateApiRoute(ctx, request, operationId, transport)
-      : jsonResponse({
-          ok: false,
-          error: {
-            _tag: "MethodNotAllowed",
-            message: `Only POST is supported for /api/${operationId}.`,
+      : jsonResponse(
+          {
+            ok: false,
+            error: {
+              _tag: "MethodNotAllowed",
+              message: `Only POST is supported for /${transport}/${operationId}.`,
+            },
           },
-        });
+          405,
+        );
 
   return response;
 };
@@ -629,7 +675,7 @@ const executeTemplateApiRoute = async (
         request.headers.get("authorization") ?? undefined,
         transport,
       )
-    : jsonResponse(parsedBody);
+    : jsonResponse(parsedBody, 422);
 
   return response;
 };
@@ -641,29 +687,58 @@ const responseForParsedTemplateApiBody = async (
   authorization?: string,
   transport: "api" | "cli" = "api",
 ): Promise<Response> => {
-  const executorRequest = executorRequestFor(operationId, body);
-  const response = executorRequest.ok
-    ? jsonResponse(
-        await runTemplateApiOperation(
-          ctx,
-          executorRequest.request,
-          authorization,
-          transport,
-        ),
-      )
-    : jsonResponse(executorRequest);
-
-  return response;
+  try {
+    const result = await runTemplateApiOperation(
+      ctx,
+      operationId,
+      body,
+      authorization,
+      transport,
+    );
+    const status =
+      typeof result === "object" &&
+      result !== null &&
+      "ok" in result &&
+      result.ok === false &&
+      "error" in result &&
+      typeof result.error === "object" &&
+      result.error !== null &&
+      "_tag" in result.error &&
+      result.error._tag === "NotFound"
+        ? 404
+        : typeof result === "object" &&
+            result !== null &&
+            "ok" in result &&
+            result.ok === false
+          ? 422
+          : 200;
+    return jsonResponse(result, status);
+  } catch (error) {
+    const failure =
+      error instanceof TemplateHttpError
+        ? error
+        : new TemplateHttpError(500, "Internal", "Unexpected internal error.");
+    return jsonResponse(
+      {
+        ok: false,
+        error: { _tag: failure.tag, message: failure.message },
+      },
+      failure.status,
+    );
+  }
 };
 
 const notFoundRouteResponse = (pathname: string): Response =>
-  jsonResponse({
-    ok: false,
-    error: {
-      _tag: "NotFound",
-      message: `Unknown template HTTP route: ${pathname}`,
+  jsonResponse(
+    {
+      ok: false,
+      error: {
+        _tag: "NotFound",
+        message: `Unknown template HTTP route: ${pathname}`,
+      },
     },
-  });
+    404,
+  );
 
 export const handleTemplateHttpRequest = async (
   ctx: HeadlessHttpCtx,
@@ -704,7 +779,8 @@ const buildTemplateHttpRouter = () => {
   const handler = httpActionGeneric(async (ctx, request) => {
     const headlessCtx: HeadlessHttpCtx = {
       authenticate: async ({ authorization, policy, surface }) => {
-        if (policy.credential === "api-key")
+        if (policy.credential === "api-key") {
+          if (surface === "web") throw new Error("API key surface mismatch");
           return await authenticateApiKey({
             authorization,
             policy,
@@ -713,6 +789,7 @@ const buildTemplateHttpRouter = () => {
             loadByHash: (keyHash) =>
               ctx.runQuery(apiKeyByHashQueryRef, { keyHash }),
           });
+        }
         const principal = await ctx.runQuery(httpSessionPrincipalQueryRef, {});
         return {
           kind: "user",
@@ -730,6 +807,9 @@ const buildTemplateHttpRouter = () => {
         await ctx.runQuery(httpAuthorizationQueryRef, {
           operationId: operationRequest.operationId,
           workspaceId,
+          ...(operationRequest.workspaceSlug === undefined
+            ? {}
+            : { workspaceSlug: operationRequest.workspaceSlug }),
           principal:
             principal.kind === "apiKey"
               ? { kind: "apiKey", apiKeyId: principal.apiKeyId }

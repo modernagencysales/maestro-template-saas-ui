@@ -30,7 +30,8 @@ export type CliCommandHandler = {
 
 export type CliCapabilityRequest = Required<
   Pick<CliNamedArgs, "workspaceSlug" | "input" | "idempotencyKey">
->;
+> &
+  Pick<CliNamedArgs, "correlationNonce">;
 
 export type CliCapabilityRunner = (
   capabilityId: string,

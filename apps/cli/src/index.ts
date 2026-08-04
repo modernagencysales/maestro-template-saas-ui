@@ -25,13 +25,19 @@ export const staticCliCapabilityIds: ReadonlySet<string> = new Set(
 const createRuntimeCliHandlers = (
   config: CliRuntimeConfig,
   fetch: typeof globalThis.fetch,
-) =>
-  createCliHandlers({
+) => {
+  const httpCapabilityRunner = createHttpCapabilityRunner({ config, fetch });
+  return createCliHandlers({
     capability: {
       hasCapability: (capabilityId) => staticCliCapabilityIds.has(capabilityId),
-      runCapability: createHttpCapabilityRunner({ config, fetch }),
+      runCapability: (capabilityId, request) => {
+        const operationId =
+          staticCliOperationRefs[capabilityId] ?? capabilityId;
+        return httpCapabilityRunner(operationId, request);
+      },
     },
   });
+};
 
 const cliHandlers = createRuntimeCliHandlers(
   emptyCliRuntimeConfig,

@@ -87,13 +87,17 @@ export const authorize = internalQueryGeneric({
   args: {
     operationId: v.string(),
     workspaceId: v.id("workspaces"),
+    workspaceSlug: v.optional(v.string()),
     principal: v.union(
       v.object({ kind: v.literal("user"), userId: v.id("users") }),
       v.object({ kind: v.literal("apiKey"), apiKeyId: v.id("apiKeys") }),
     ),
   },
   returns: v.null(),
-  handler: async (ctx, { operationId, workspaceId, principal }) => {
+  handler: async (
+    ctx,
+    { operationId, workspaceId, workspaceSlug, principal },
+  ) => {
     const minimumRole =
       minimumRoleByOperation[
         operationId as keyof typeof minimumRoleByOperation
@@ -122,6 +126,8 @@ export const authorize = internalQueryGeneric({
       throw new Error("HTTP authorization failed");
     const workspace = await ctx.db.get("workspaces", workspaceId);
     if (workspace === null) throw new Error("HTTP authorization failed");
+    if (workspaceSlug !== undefined && workspace.slug !== workspaceSlug)
+      throw new Error("HTTP authorization failed");
     const organizationId =
       workspace.organizationId as GenericId<"organizations">;
     const organization = await ctx.db.get("organizations", organizationId);

@@ -210,6 +210,19 @@ const isElementAccessOn = (
   ts.isIdentifier(expression.expression) &&
   expression.expression.text === objectName;
 
+const expressionUsesElementAccessOn = (
+  expression: ts.Expression,
+  objectName: string,
+): boolean => {
+  const unwrapped = unwrapExpression(expression);
+  return (
+    isElementAccessOn(unwrapped, objectName) ||
+    (ts.isBinaryExpression(unwrapped) &&
+      (expressionUsesElementAccessOn(unwrapped.left, objectName) ||
+        expressionUsesElementAccessOn(unwrapped.right, objectName)))
+  );
+};
+
 const callCount = (
   sourceFile: ts.SourceFile,
   predicate: (call: ts.CallExpression) => boolean,
@@ -238,15 +251,24 @@ export const missingCliGeneratedRefUsage = (
   operationIds: readonly string[],
   source: string,
 ): string[] => {
+  if (
+    source.includes("runTemplateApiOperation") ||
+    source.includes("@maestro-template/workflow-tooling")
+  )
+    return [...operationIds];
   const sourceFile = parseTypeScript(source);
   const mappings = objectMapping(sourceFile, "staticCliOperationRefs");
   const derivedRefs = new Set<string>();
+  const httpRunners = new Set<string>();
   const visitDerived = (node: ts.Node): void => {
     if (
       ts.isVariableDeclaration(node) &&
       ts.isIdentifier(node.name) &&
       node.initializer !== undefined &&
-      (isElementAccessOn(node.initializer, "staticCliOperationRefs") ||
+      (expressionUsesElementAccessOn(
+        node.initializer,
+        "staticCliOperationRefs",
+      ) ||
         (ts.isCallExpression(node.initializer) &&
           node.initializer.arguments.some(
             (argument) =>
@@ -255,20 +277,34 @@ export const missingCliGeneratedRefUsage = (
           )))
     )
       derivedRefs.add(node.name.text);
+    if (
+      ts.isVariableDeclaration(node) &&
+      ts.isIdentifier(node.name) &&
+      node.initializer !== undefined &&
+      ts.isCallExpression(node.initializer) &&
+      ts.isIdentifier(node.initializer.expression) &&
+      node.initializer.expression.text === "createHttpCapabilityRunner"
+    )
+      httpRunners.add(node.name.text);
     ts.forEachChild(node, visitDerived);
   };
   visitDerived(sourceFile);
   const usesGeneratedCliRefs =
-    callCount(
-      sourceFile,
-      (call) =>
-        ts.isIdentifier(call.expression) &&
-        call.expression.text === "runTemplateApiOperation" &&
+    callCount(sourceFile, (call) => {
+      const isHttpRunner =
+        (ts.isIdentifier(call.expression) &&
+          httpRunners.has(call.expression.text)) ||
+        (ts.isCallExpression(call.expression) &&
+          ts.isIdentifier(call.expression.expression) &&
+          call.expression.expression.text === "createHttpCapabilityRunner");
+      return (
+        isHttpRunner &&
         call.arguments[0] !== undefined &&
         (isElementAccessOn(call.arguments[0], "staticCliOperationRefs") ||
           (ts.isIdentifier(call.arguments[0]) &&
-            derivedRefs.has(call.arguments[0].text))),
-    ) > 0;
+            derivedRefs.has(call.arguments[0].text)))
+      );
+    }) > 0;
 
   return operationIds.filter((operationId) => {
     const ref = mappings.get(operationId);
@@ -322,7 +358,7 @@ export const missingMcpGeneratedRefUsage = (
 };
 
 export const missingHttpExecutorDispatch = (source: string): boolean =>
-  !/\bexecuteHeadlessOperation\s*\(/.test(source) ||
+  !/\bexecute(?:Headless|Authorized)Operation\s*\(/.test(source) ||
   !/\brefs\s*:\s*operationRefs\b/.test(source);
 
 export const missingRuntimeAdapterDispatch = (source: string): boolean =>
@@ -477,7 +513,7 @@ export const evaluateHeadlessSurfaceContract = async (
   }
   if (missingHttpExecutorDispatch(httpSource)) {
     failures.push(
-      "API HTTP dispatch must execute generated operationRefs through executeHeadlessOperation",
+      "API HTTP dispatch must execute generated operationRefs through the authorized executor",
     );
   }
   for (const operationId of cliMissingRefs) {

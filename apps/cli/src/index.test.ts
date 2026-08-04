@@ -430,6 +430,8 @@ describe("maestro-template CLI", () => {
         '{"slug":"cli-note","title":"CLI note","markdown":"# CLI note"}',
         "--idempotency-key",
         "cli-001",
+        "--correlation-nonce",
+        "corr-cli-001",
       ],
       {
         providerEnv: {},
@@ -456,6 +458,7 @@ describe("maestro-template CLI", () => {
         markdown: "# CLI note",
       },
       idempotencyKey: "cli-001",
+      correlationNonce: "corr-cli-001",
     });
   });
 

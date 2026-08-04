@@ -19,6 +19,8 @@ export type HeadlessExecutorRequest = {
   readonly surface: HeadlessSurface;
   readonly input: Record<string, JsonValue>;
   readonly idempotencyKey?: string;
+  readonly workspaceSlug?: string;
+  readonly correlationNonce?: string;
 };
 
 export type HeadlessFailureResult = {

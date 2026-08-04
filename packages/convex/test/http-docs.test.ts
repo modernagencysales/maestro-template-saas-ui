@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import templateHttp from "../confect/http";
 import { createEmailUnsubscribeToken } from "../confect/email/unsubscribeToken";
 import { buildGeneratedMcpTools } from "../confect/manifest/mcp";
+import { authenticateApiKey, createApiKey } from "../confect/headless/auth";
 import {
   type HeadlessHttpCtx,
   handleTemplateHttpRequest,
@@ -438,6 +439,168 @@ describe("template HTTP docs routes", () => {
         idempotencyKey: "openapi-envelope-001",
       },
     ]);
+  });
+
+  it("executes the real CLI envelope through auth, tenant checks, and dispatch", async () => {
+    const created = await createApiKey({
+      workspaceId: "workspaces_verified",
+      name: "CLI integration",
+      scopes: ["workspace:write"],
+      createdByUserId: "users_123",
+      nowMs: 1,
+      randomBytes: () => new Uint8Array(32).fill(7),
+    });
+    const authorized: unknown[] = [];
+    const dispatched: unknown[] = [];
+    const response = await handleTemplateHttpRequest(
+      {
+        ...noopCtx,
+        authenticate: async ({ authorization, policy, surface }) => {
+          if (surface === "web") throw new Error("API key surface mismatch");
+          return await authenticateApiKey({
+            authorization,
+            policy,
+            surface,
+            nowMs: 2,
+            loadByHash: async () => ({
+              ...created.row,
+              _id: "apiKeys_verified",
+            }),
+          });
+        },
+        authorize: async (request, principal) => {
+          authorized.push({ request, principal });
+        },
+        runMutation: async (ref, input) => {
+          dispatched.push([ref, input]);
+          return { id: "brainPage_cli" };
+        },
+      },
+      new Request("https://template.local/cli/brain.pages.createMarkdown", {
+        method: "POST",
+        headers: {
+          authorization: `Bearer ${created.displayKey}`,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          workspaceSlug: "acme-demo",
+          input: {
+            slug: "cli-note",
+            title: "CLI note",
+            markdown: "# CLI note",
+          },
+          idempotencyKey: "cli-envelope-001",
+          correlationNonce: "corr-cli-001",
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(await readJson(response)).toMatchObject({
+      ok: true,
+      result: { id: "brainPage_cli" },
+    });
+    expect(authorized).toEqual([
+      expect.objectContaining({
+        request: expect.objectContaining({
+          correlationNonce: "corr-cli-001",
+          input: expect.objectContaining({
+            workspaceId: "workspaces_verified",
+          }),
+        }),
+        principal: expect.objectContaining({
+          kind: "apiKey",
+          workspaceId: "workspaces_verified",
+          surface: "cli",
+        }),
+      }),
+    ]);
+    expect(dispatched).toEqual([
+      [
+        expect.anything(),
+        {
+          workspaceId: "workspaces_verified",
+          slug: "cli-note",
+          title: "CLI note",
+          markdown: "# CLI note",
+          idempotencyKey: "cli-envelope-001",
+        },
+      ],
+    ]);
+  });
+
+  it("maps CLI auth, tenant, route, and validation failures to HTTP statuses", async () => {
+    const baseRequest = (body: unknown, authorization = "Bearer key") =>
+      new Request("https://template.local/cli/brain.pages.createMarkdown", {
+        method: "POST",
+        headers: { authorization, "content-type": "application/json" },
+        body: JSON.stringify(body),
+      });
+    const body = {
+      workspaceSlug: "acme-demo",
+      input: { slug: "note", title: "Note", markdown: "# Note" },
+      idempotencyKey: "cli-status-001",
+    };
+    const unauthorized = await handleTemplateHttpRequest(
+      {
+        ...noopCtx,
+        authenticate: async () => {
+          throw new Error("HTTP authentication failed");
+        },
+      },
+      baseRequest(body, ""),
+    );
+    const forbidden = await handleTemplateHttpRequest(
+      {
+        ...noopCtx,
+        authenticate: async () => ({
+          kind: "apiKey",
+          apiKeyId: "apiKeys_123" as never,
+          workspaceId: "workspaces_verified" as never,
+          scopes: ["workspace:write"],
+          surface: "cli",
+        }),
+        authorize: async () => {
+          throw new Error("HTTP authorization failed");
+        },
+      },
+      baseRequest(body),
+    );
+    const validation = await handleTemplateHttpRequest(
+      noopCtx,
+      baseRequest({ ...body, idempotencyKey: "" }),
+    );
+    const missing = await handleTemplateHttpRequest(
+      noopCtx,
+      new Request("https://template.local/cli/not.real", { method: "POST" }),
+    );
+
+    expect(unauthorized.status).toBe(401);
+    expect(forbidden.status).toBe(403);
+    expect(missing.status).toBe(404);
+    expect(validation.status).toBe(422);
+    await expect(readJson(unauthorized)).resolves.toMatchObject({
+      ok: false,
+      error: { _tag: "Unauthorized" },
+    });
+    await expect(readJson(forbidden)).resolves.toMatchObject({
+      ok: false,
+      error: { _tag: "Forbidden" },
+    });
+  });
+
+  it("formats method errors with the matched CLI route", async () => {
+    const response = await handleTemplateHttpRequest(
+      noopCtx,
+      new Request("https://template.local/cli/brain.pages.createMarkdown"),
+    );
+
+    expect(response.status).toBe(405);
+    await expect(readJson(response)).resolves.toMatchObject({
+      error: {
+        message: "Only POST is supported for /cli/brain.pages.createMarkdown.",
+      },
+    });
   });
 
   it("fails closed when generated API request fields cannot be mapped", async () => {
