@@ -270,6 +270,13 @@ const REVIEWED_ADDITIONAL_PATHS: readonly CustomerReleasePath[] = [
     upgrade: "regenerate",
   },
   {
+    path: "maestro-template.mjs",
+    match: "exact",
+    ownership: "template-owned",
+    action: "copy",
+    upgrade: "replace",
+  },
+  {
     path: "tooling/acceptance",
     match: "subtree",
     ownership: "template-owned",
