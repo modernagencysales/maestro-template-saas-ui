@@ -35,7 +35,11 @@ describe("CLI runtime identity", () => {
       },
     });
     expect(fetch).toHaveBeenCalledOnce();
-    const request = new Request(...fetch.mock.calls[0]);
+    const [requestInput, requestInit] = fetch.mock.calls[0] ?? [];
+    const request = new Request(
+      requestInput as RequestInfo,
+      requestInit as RequestInit | undefined,
+    );
     expect(request.url).toBe("https://backend.example.test/identity");
     expect(request.method).toBe("GET");
     expect(request.headers.get("authorization")).toBe(
