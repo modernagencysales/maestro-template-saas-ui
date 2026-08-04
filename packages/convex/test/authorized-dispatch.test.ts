@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { executeAuthorizedOperation } from "../confect/capabilities/_kit/authorizedDispatch";
+import type { Principal } from "../confect/capabilities/_kit/principal";
 
 const surfaces = [
   {
@@ -71,6 +72,7 @@ describe("authorized dispatch", () => {
         },
         authenticate: async () => {
           calls.push("authenticate");
+          return apiPrincipal;
         },
         authorize: async () => {
           calls.push("authorize");
@@ -97,7 +99,7 @@ describe("authorized dispatch", () => {
         runMutation: handler,
         runAction: handler,
       },
-      authenticate: async () => undefined,
+      authenticate: async (principal: Principal) => principal,
       authorize: async () => undefined,
     };
 
@@ -132,6 +134,7 @@ describe("authorized dispatch", () => {
           },
           authenticate: async () => {
             calls.push("authenticate");
+            return apiPrincipal;
           },
           authorize: async () => {
             calls.push("authorize");
@@ -158,7 +161,7 @@ describe("authorized dispatch", () => {
         },
         runAction: async () => undefined,
       },
-      authenticate: async () => undefined,
+      authenticate: async (principal: Principal) => principal,
       authorize: async () => undefined,
     };
 
@@ -190,7 +193,7 @@ describe("authorized dispatch", () => {
             runMutation: async () => ({ id: "page_123" }),
             runAction: async () => ({ ok: true }),
           },
-          authenticate: async () => undefined,
+          authenticate: async () => apiPrincipal,
           authorize: async () => undefined,
         },
         {
@@ -204,5 +207,35 @@ describe("authorized dispatch", () => {
         message: "Caller workspace does not match principal authority.",
       },
     });
+  });
+
+  it("uses the authenticated principal instead of the caller claim", async () => {
+    const forgedPrincipal = {
+      ...apiPrincipal,
+      workspaceId: "workspaces_forged" as never,
+    };
+    const authorized: unknown[] = [];
+
+    await expect(
+      executeAuthorizedOperation(
+        {
+          surfaces,
+          journeys: {},
+          emergencyDenied: false,
+          adapter: {
+            refs: { "brain.pages.createMarkdown": "ref" },
+            runQuery: async () => undefined,
+            runMutation: async () => "page_123",
+            runAction: async () => undefined,
+          },
+          authenticate: async () => apiPrincipal,
+          authorize: async (principal) => {
+            authorized.push(principal);
+          },
+        },
+        request(forgedPrincipal),
+      ),
+    ).resolves.toMatchObject({ ok: true });
+    expect(authorized).toEqual([apiPrincipal]);
   });
 });

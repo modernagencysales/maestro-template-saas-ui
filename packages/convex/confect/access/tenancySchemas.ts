@@ -38,15 +38,24 @@ export const AccessAuditSubjectKind = Schema.Literals([
 const NullableNumber = Schema.NullOr(Schema.Number);
 const OptionalString = Schema.optional(Schema.String);
 
-export const UserRow = Schema.Struct({
+const UserRowFields = {
   subject: Schema.String,
-  tokenIdentifier: Schema.String,
   email: Schema.String,
   displayName: OptionalString,
   status: UserStatus,
   createdAt: Schema.Number,
   updatedAt: Schema.Number,
   deletedAt: Schema.optional(NullableNumber),
+} as const;
+
+export const UserRow = Schema.Struct({
+  ...UserRowFields,
+  tokenIdentifier: Schema.optional(Schema.String),
+});
+
+export const RequiredUserRow = Schema.Struct({
+  ...UserRowFields,
+  tokenIdentifier: Schema.String,
 });
 
 export const OrganizationRow = Schema.Struct({

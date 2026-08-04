@@ -214,7 +214,7 @@ describe("lifecycle registration guards", () => {
     ).rejects.toThrow("HTTP authorization failed");
     expect(events).toEqual([
       "authenticate",
-      'authorize:{"operationId":"brain.pages.createMarkdown","workspaceId":"workspace_123"}',
+      'authorize:{"operationId":"brain.pages.createMarkdown","workspaceId":"workspace_123","principal":{"kind":"user","userId":"users_test"}}',
     ]);
   });
 });

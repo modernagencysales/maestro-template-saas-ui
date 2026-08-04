@@ -1,7 +1,6 @@
 import type { GenericId } from "convex/values";
 import * as Clock from "effect/Clock";
 import * as Effect from "effect/Effect";
-import * as Option from "effect/Option";
 
 import {
   resolveEffectiveWorkspaceRole,
@@ -130,11 +129,17 @@ const loadActiveWorkspaceUser = Effect.gen(function* () {
   );
   const user = yield* reader
     .table("users")
-    .index("by_token_identifier", (q) =>
-      q.eq("tokenIdentifier", identity.tokenIdentifier),
-    )
-    .first()
-    .pipe(Effect.map(Option.getOrNull), Effect.orDie);
+    .index("by_subject", (q) => q.eq("subject", identity.subject))
+    .collect()
+    .pipe(
+      Effect.map(
+        (users) =>
+          users.find(
+            (user) => user.tokenIdentifier === identity.tokenIdentifier,
+          ) ?? null,
+      ),
+      Effect.orDie,
+    );
 
   return yield* requireActiveUser(user);
 });

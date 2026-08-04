@@ -20,7 +20,7 @@ import {
   type AuthPolicy,
 } from "./capabilities/_kit/authPolicies";
 import type { Principal } from "./capabilities/_kit/principal";
-import { authenticateApiKey, type ApiKeyRow } from "./headless/auth";
+import { authenticateApiKey, type PersistedApiKeyRow } from "./headless/auth";
 import {
   executorRequestFor,
   readJsonBody,
@@ -63,7 +63,10 @@ export type HeadlessHttpCtx = {
     readonly policy: AuthPolicy;
     readonly surface: "web" | "api";
   }) => Promise<Principal>;
-  readonly authorize?: (request: HeadlessExecutorRequest) => Promise<unknown>;
+  readonly authorize?: (
+    request: HeadlessExecutorRequest,
+    principal: Principal,
+  ) => Promise<unknown>;
   readonly runQuery: (
     ref: unknown,
     input: Record<string, unknown>,
@@ -90,10 +93,11 @@ const requireHttpAuthentication = async (
 const requireHttpAuthorization = async (
   ctx: HeadlessHttpCtx,
   request: HeadlessExecutorRequest,
+  principal: Principal,
 ): Promise<void> => {
   if (ctx.authorize === undefined)
     throw new Error("HTTP authorization adapter is required");
-  await ctx.authorize(request);
+  await ctx.authorize(request, principal);
 };
 
 type TemplateRouteMatch =
@@ -168,7 +172,13 @@ const unsubscribeMutationRef = makeFunctionReference<
 
 const httpAuthorizationQueryRef = makeFunctionReference<
   "query",
-  { readonly operationId: string; readonly workspaceId: string },
+  {
+    readonly operationId: string;
+    readonly workspaceId: string;
+    readonly principal:
+      | { readonly kind: "user"; readonly userId: string }
+      | { readonly kind: "apiKey"; readonly apiKeyId: string };
+  },
   null
 >("httpAuthorization:authorize");
 
@@ -181,7 +191,7 @@ const httpSessionPrincipalQueryRef = makeFunctionReference<
 const apiKeyByHashQueryRef = makeFunctionReference<
   "query",
   { readonly keyHash: string },
-  ApiKeyRow | null
+  PersistedApiKeyRow | null
 >("httpAuthorization:apiKeyByHash");
 
 export const securityHeaders = {
@@ -324,9 +334,7 @@ const runTemplateApiOperation = async (
       },
       authenticate: async () => principal,
       authorize: async (verifiedPrincipal) =>
-        verifiedPrincipal.kind === "apiKey"
-          ? undefined
-          : requireHttpAuthorization(ctx, request),
+        requireHttpAuthorization(ctx, request, verifiedPrincipal),
     },
     {
       surfaceId: surface.id,
@@ -674,13 +682,19 @@ const buildTemplateHttpRouter = () => {
           surface: "web",
         };
       },
-      authorize: async (operationRequest) => {
+      authorize: async (operationRequest, principal) => {
         const workspaceId = operationRequest.input.workspaceId;
         if (typeof workspaceId !== "string" || workspaceId.trim() === "")
           throw new Error("HTTP authorization requires a workspace target");
+        if (principal.kind !== "user" && principal.kind !== "apiKey")
+          throw new Error("HTTP principal is not authorized");
         await ctx.runQuery(httpAuthorizationQueryRef, {
           operationId: operationRequest.operationId,
           workspaceId,
+          principal:
+            principal.kind === "apiKey"
+              ? { kind: "apiKey", apiKeyId: principal.apiKeyId }
+              : { kind: "user", userId: principal.userId },
         });
       },
       runQuery: (ref, input) => ctx.runQuery(ref as never, input as never),

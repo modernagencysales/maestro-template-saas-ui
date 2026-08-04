@@ -38,15 +38,15 @@ const ensureProvisioned = FunctionImpl.make(
 
       const existingUser = yield* reader
         .table("users")
-        .index("by_token_identifier", (q) =>
-          q.eq("tokenIdentifier", identity.tokenIdentifier),
-        )
-        .first()
+        .index("by_subject", (q) => q.eq("subject", identity.subject))
+        .collect()
         .pipe(
-          Effect.map(Option.getOrNull),
-          Effect.map((user) =>
-            user === null ? null : toProvisioningUser(user),
+          Effect.map((users) =>
+            users.find(
+              (user) => user.tokenIdentifier === identity.tokenIdentifier,
+            ),
           ),
+          Effect.map((user) => (user ? toProvisioningUser(user) : null)),
           Effect.orDie,
         );
 
@@ -219,22 +219,28 @@ const ensureProvisioned = FunctionImpl.make(
 const toProvisioningUser = (user: {
   readonly _id: GenericId<"users">;
   readonly subject: string;
-  readonly tokenIdentifier: string;
+  readonly tokenIdentifier?: string | undefined;
   readonly email: string;
   readonly displayName?: string | undefined;
   readonly status: "active" | "suspended" | "deleted";
   readonly createdAt: number;
   readonly updatedAt: number;
-}): UserProvisioningRow => ({
-  _id: user._id,
-  subject: user.subject,
-  tokenIdentifier: user.tokenIdentifier,
-  email: user.email,
-  ...(user.displayName === undefined ? {} : { displayName: user.displayName }),
-  status: user.status,
-  createdAt: user.createdAt,
-  updatedAt: user.updatedAt,
-});
+}): UserProvisioningRow => {
+  if (user.tokenIdentifier === undefined)
+    throw new Error("User token identifier backfill is incomplete");
+  return {
+    _id: user._id,
+    subject: user.subject,
+    tokenIdentifier: user.tokenIdentifier,
+    email: user.email,
+    ...(user.displayName === undefined
+      ? {}
+      : { displayName: user.displayName }),
+    status: user.status,
+    createdAt: user.createdAt,
+    updatedAt: user.updatedAt,
+  };
+};
 
 export default GroupImpl.make(databaseSchema, provisioning).pipe(
   Layer.provide(ensureProvisioned),

@@ -1,7 +1,6 @@
 import type { GenericId } from "convex/values";
 import type * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
-import * as Option from "effect/Option";
 
 import type { WorkspaceMembersDoc } from "../_generated/docs";
 import { Auth, DatabaseReader } from "../_generated/services";
@@ -29,12 +28,15 @@ export const loadCurrentUser = (reader: Reader) =>
     );
     return yield* reader
       .table("users")
-      .index("by_token_identifier", (q) =>
-        q.eq("tokenIdentifier", identity.tokenIdentifier),
-      )
-      .first()
+      .index("by_subject", (q) => q.eq("subject", identity.subject))
+      .collect()
       .pipe(
-        Effect.map(Option.getOrNull),
+        Effect.map(
+          (users) =>
+            users.find(
+              (user) => user.tokenIdentifier === identity.tokenIdentifier,
+            ) ?? null,
+        ),
         Effect.flatMap((user) =>
           user === null
             ? Effect.fail(new Unauthorized())

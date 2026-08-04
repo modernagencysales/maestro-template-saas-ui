@@ -25,7 +25,11 @@ describe("tenancy table contracts", () => {
 
   it("indexes users, organizations, memberships, and invitations", () => {
     expect(tenancyTables.users.indexes).toMatchObject({
-      by_token_identifier: ["tokenIdentifier"],
+      by_subject: ["subject"],
+      by_token_identifier: {
+        fields: ["tokenIdentifier"],
+        staged: true,
+      },
       by_email: ["email"],
     });
     expect(tenancyTables.organizations.indexes).toMatchObject({

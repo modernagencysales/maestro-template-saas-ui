@@ -94,11 +94,13 @@ describe("headless API-key auth", () => {
         },
         nowMs: 2_000,
         loadByHash: async (hash) =>
-          hash === created.row.keyHash ? created.row : null,
+          hash === created.row.keyHash
+            ? { ...created.row, _id: "apiKeys_persisted" }
+            : null,
       }),
     ).resolves.toMatchObject({
       kind: "apiKey",
-      apiKeyId: created.row.id,
+      apiKeyId: "apiKeys_persisted",
       workspaceId: "workspace_123",
       scopes: ["workspace:read"],
       surface: "mcp",
@@ -129,6 +131,7 @@ describe("headless API-key auth", () => {
         nowMs: 2_000,
         loadByHash: async () => ({
           ...created.row,
+          _id: "apiKeys_persisted",
           id: "untrusted-legacy-id",
           principalId: "apiKeys_persisted",
         }),

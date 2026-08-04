@@ -44,6 +44,7 @@ export const ApiKeyRow = Schema.Struct({
 });
 
 export type ApiKeyRow = Schema.Schema.Type<typeof ApiKeyRow>;
+export type PersistedApiKeyRow = ApiKeyRow & { readonly _id: string };
 
 export type ApiKeyCreateInput = {
   readonly workspaceId: string;
@@ -210,7 +211,7 @@ export const authenticateApiKey = async (input: {
   readonly surface: ApiKeyPrincipal["surface"];
   readonly policy: AuthPolicy;
   readonly nowMs: number;
-  readonly loadByHash: (hash: string) => Promise<ApiKeyRow | null>;
+  readonly loadByHash: (hash: string) => Promise<PersistedApiKeyRow | null>;
 }): Promise<ApiKeyPrincipal> => {
   const presentedKey = parseBearerApiKey(input.authorization);
   if (presentedKey instanceof HeadlessAuthError) throw presentedKey;
@@ -238,7 +239,7 @@ export const authenticateApiKey = async (input: {
   }
   return {
     kind: "apiKey",
-    apiKeyId: row.principalId as ApiKeyPrincipal["apiKeyId"],
+    apiKeyId: row._id as ApiKeyPrincipal["apiKeyId"],
     workspaceId: row.workspaceId as ApiKeyPrincipal["workspaceId"],
     scopes: row.scopes,
     surface: input.surface,

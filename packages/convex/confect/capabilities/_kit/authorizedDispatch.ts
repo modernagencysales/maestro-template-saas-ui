@@ -32,7 +32,7 @@ export type AuthorizedDispatchContext = {
     principal: Principal,
     policy: AuthPolicy,
     request: AuthorizedOperationRequest,
-  ) => Promise<unknown>;
+  ) => Promise<Principal>;
   readonly authorize: (
     principal: Principal,
     policy: AuthPolicy,
@@ -114,21 +114,26 @@ export const executeAuthorizedOperation = async (
   );
   const surfaces = ctx.surfaces ?? (generatedSurface ? [generatedSurface] : []);
   const surface = surfaces.find(({ id }) => id === request.surfaceId);
-  const transport = publicTransportFor(request.principal.surface);
   const policy =
     surface === undefined ? undefined : resolveAuthPolicy(surface.authPolicyId);
   if (
     surface === undefined ||
     surface.authority.kind !== "convex-function" ||
     surface.authority.registrationLocator !== request.operationId ||
-    surface.transport !== transport ||
-    policy === undefined ||
-    !principalMatchesPolicy(request.principal, policy)
+    policy === undefined
   ) {
     return validationFailure("Operation is not authorized.");
   }
 
-  await ctx.authenticate(request.principal, policy, request);
+  const principal = await ctx.authenticate(request.principal, policy, request);
+  const transport = publicTransportFor(principal.surface);
+  if (
+    surface.transport !== transport ||
+    !principalMatchesPolicy(principal, policy)
+  ) {
+    return validationFailure("Operation is not authorized.");
+  }
+  const verifiedRequest = { ...request, principal };
   requireAdmittedSurfaceFrom(
     surface.id,
     ctx.emergencyDenied ?? false,
@@ -137,18 +142,18 @@ export const executeAuthorizedOperation = async (
   );
 
   if (
-    request.principal.kind === "apiKey" &&
+    principal.kind === "apiKey" &&
     typeof request.input.workspaceId === "string" &&
-    request.input.workspaceId !== request.principal.workspaceId
+    request.input.workspaceId !== principal.workspaceId
   ) {
     return validationFailure(
       "Caller workspace does not match principal authority.",
     );
   }
-  await ctx.authorize(request.principal, policy, request);
+  await ctx.authorize(principal, policy, verifiedRequest);
   return await executeHeadlessOperation(ctx.adapter, {
     operationId: request.operationId,
-    surface: headlessSurfaceFor(request.principal.surface),
+    surface: headlessSurfaceFor(principal.surface),
     input: request.input,
     ...(request.idempotencyKey === undefined
       ? {}

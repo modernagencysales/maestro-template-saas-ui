@@ -81,10 +81,14 @@ const loadActiveEditorUser = async (ctx: EditorAuthCtx) => {
   const user = requirePresent(
     await ctx.db
       .query("users")
-      .withIndex("by_token_identifier", (q) =>
-        q.eq("tokenIdentifier", identity.tokenIdentifier),
-      )
-      .unique(),
+      .withIndex("by_subject", (q) => q.eq("subject", identity.subject))
+      .take(2)
+      .then(
+        (users) =>
+          users.find(
+            (user) => user.tokenIdentifier === identity.tokenIdentifier,
+          ) ?? null,
+      ),
     "Editor sync requires a provisioned user.",
     "provisioned-user",
   );
