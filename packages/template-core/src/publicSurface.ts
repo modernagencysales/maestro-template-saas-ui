@@ -20,6 +20,15 @@ export type PublicSurface = {
   };
 };
 
+export type ContractsLegacyBaseline = {
+  readonly schemaVersion: 1;
+  readonly capturedFromInventoryDigest: `sha256:${string}`;
+  readonly surfaces: readonly {
+    readonly id: string;
+    readonly authorityKey: string;
+  }[];
+};
+
 const nonEmptyString = Schema.String.pipe(Schema.check(Schema.isMinLength(1)));
 const coverageTag = Schema.String.pipe(
   Schema.check(Schema.isPattern(/^@covers_.+$/u)),

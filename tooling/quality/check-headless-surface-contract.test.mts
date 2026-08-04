@@ -13,10 +13,19 @@ import {
   internalNamedOperationsWithClientSurfaces,
   missingMcpGeneratedRefUsage,
   missingRuntimeAdapterDispatch,
+  publicSurfaceContractFailures,
   missingTypedErrors,
 } from "./check-headless-surface-contract.mts";
 
 describe("check:headless-surface-contract", () => {
+  it("reports public authority inventory bypasses with their locator", () => {
+    expect(
+      publicSurfaceContractFailures([
+        'unregistered public authority: ["webhook","POST /webhooks/missing",null,"webhook"]',
+      ]),
+    ).toContainEqual(expect.stringContaining("POST /webhooks/missing"));
+  });
+
   it("passes and fails on its declared requirements", async () => {
     await expectDescriptorPassesAndFails(descriptor);
   });

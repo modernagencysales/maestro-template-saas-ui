@@ -13,6 +13,10 @@
       "types": "./src/generated/confectManifest.ts",
       "default": "./src/generated/confectManifest.ts"
     },
+    "./generated/publicSurfaces": {
+      "types": "./src/generated/publicSurfaces.ts",
+      "default": "./src/generated/publicSurfaces.ts"
+    },
     "./systemCatalog": {
       "types": "./src/systemCatalog.ts",
       "default": "./src/systemCatalog.ts"

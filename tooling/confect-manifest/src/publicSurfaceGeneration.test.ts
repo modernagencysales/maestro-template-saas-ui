@@ -1,0 +1,373 @@
+import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join } from "node:path";
+import { describe, expect, it } from "vitest";
+import type { PublicSurface } from "@maestro-template/template-core/publicSurface";
+import {
+  adoptLegacyPublicSurfaces,
+  buildContractsLegacyBaseline,
+  checkGeneratedPublicSurfaceInventory,
+  discoverPublicAuthorities,
+  generatePublicSurfaceInventory,
+  verifyContractsLegacyBaseline,
+} from "./publicSurfaceGeneration";
+
+const fixture = (files: Readonly<Record<string, string>>): string => {
+  const root = mkdtempSync(join(tmpdir(), "public-surfaces-"));
+  for (const [path, source] of Object.entries(files)) {
+    const target = join(root, path);
+    mkdirSync(dirname(target), { recursive: true });
+    writeFileSync(target, source);
+  }
+  return root;
+};
+
+const registered = (
+  authority: ReturnType<typeof discoverPublicAuthorities>[number],
+  index: number,
+): PublicSurface => ({
+  id: `surface_${String(index)}`,
+  transport: authority.transport,
+  coverageTag: `@covers_surface_${String(index)}`,
+  authPolicyId: "auth_deny_all",
+  authority: {
+    kind: authority.kind,
+    registrationLocator: authority.registrationLocator,
+    ...(authority.actionDiscriminant === undefined
+      ? {}
+      : { actionDiscriminant: authority.actionDiscriminant }),
+  },
+});
+
+describe("public surface generation", () => {
+  it("discovers every supported public registration mechanism", () => {
+    const root = fixture({
+      "apps/web/src/routeTree.gen.ts": `
+        export interface FileRoutesByFullPath {
+          '/': unknown
+          '/settings': unknown
+        }
+      `,
+      "apps/web/src/features/settings/actions.ts": `
+        const save = useTemplateMutation(templateConfectRefs.notes.create);
+      `,
+      "packages/convex/confect/_generated/confectManifest.inventory.ts": `
+        export const confectInventoryManifest = { functions: [{
+          operationId: "notes.create",
+          surfaces: ["web", "api", "cli", "mcp"]
+        }] } as const;
+      `,
+      "packages/template-core/src/generated/confectManifest.ts": `
+        export const confectManifest = { functions: [{
+          operationId: "notes.create",
+          surfaces: ["api"]
+        }] } as const;
+      `,
+      "packages/convex/convex/raw.ts": `
+        export const lookup = query({ args: {}, handler: () => null });
+      `,
+      "packages/convex/confect/rawLegacy.spec.ts": `
+        const lookup = FunctionSpec.publicQuery({ name: "lookup", args, returns });
+        export default GroupSpec.make().addFunction(lookup);
+      `,
+      "packages/convex/confect/http.ts": `
+        const templateHttpRoutes = [
+          { path: "/api/status", method: "GET", kind: "http-route" },
+          { path: "/webhooks/provider", method: "POST", kind: "webhook" },
+        ];
+        router.route({ path: "/deploy-authority/consume", method: "POST", handler });
+      `,
+      "apps/cli/src/commands.ts": `
+        const matchesProject = ({ command, subcommand }) =>
+          command === "project" &&
+          (subcommand === "archive" || subcommand === "restore");
+      `,
+      "apps/cli/src/factory/doctor.ts": `
+        export const doctor = { command: "doctor", run };
+      `,
+      "tooling/agent-pack/src/mcp/projection.ts": `
+        const TOOLS = [{ name: "maestro_verify", description: "Verify" }];
+      `,
+      "tooling/workflow/src/index.ts": `
+        const workflowRunMcpTool = { name: "template.workflow.run" };
+      `,
+      "packages/convex/confect/workflows/_generated/workflowRegistry.ts": `
+        export const workflowPublicationRegistry = definePublicationRegistry({
+          capabilities: [],
+          workflows: [nightlySyncRelease],
+        });
+      `,
+    });
+
+    const discovered = discoverPublicAuthorities(root);
+    expect(discovered).toHaveLength(19);
+    expect(discovered).toEqual(
+      expect.arrayContaining([
+        {
+          kind: "route",
+          registrationLocator: "apps/web/src/routeTree.gen.ts#/",
+          transport: "ui",
+        },
+        {
+          kind: "route",
+          registrationLocator: "apps/web/src/routeTree.gen.ts#/settings",
+          transport: "ui",
+        },
+        {
+          actionDiscriminant: "templateConfectRefs.notes.create",
+          kind: "ui-action",
+          registrationLocator: "apps/web/src/features/settings/actions.ts",
+          transport: "ui",
+        },
+        {
+          kind: "command",
+          registrationLocator: "project",
+          actionDiscriminant: "archive",
+          transport: "cli",
+        },
+        {
+          kind: "command",
+          registrationLocator: "project",
+          actionDiscriminant: "restore",
+          transport: "cli",
+        },
+        {
+          kind: "command",
+          registrationLocator: "doctor",
+          transport: "cli",
+        },
+        {
+          kind: "command",
+          registrationLocator: "maestro_verify",
+          transport: "mcp",
+        },
+        {
+          kind: "command",
+          registrationLocator: "template.workflow.run",
+          transport: "mcp",
+        },
+        {
+          kind: "convex-function",
+          registrationLocator: "notes.create",
+          transport: "api",
+        },
+        {
+          kind: "convex-function",
+          registrationLocator: "notes.create",
+          transport: "cli",
+        },
+        {
+          kind: "convex-function",
+          registrationLocator: "notes.create",
+          transport: "mcp",
+        },
+        {
+          kind: "convex-function",
+          registrationLocator: "notes.create",
+          transport: "ui",
+        },
+        {
+          kind: "http-route",
+          registrationLocator: "POST /api/notes.create",
+          transport: "api",
+        },
+        {
+          kind: "http-route",
+          registrationLocator: "POST /deploy-authority/consume",
+          transport: "api",
+        },
+        {
+          kind: "http-route",
+          registrationLocator: "GET /api/status",
+          transport: "api",
+        },
+        {
+          kind: "webhook",
+          registrationLocator: "POST /webhooks/provider",
+          transport: "webhook",
+        },
+        {
+          kind: "convex-function",
+          registrationLocator: "rawLegacy:lookup",
+          transport: "api",
+        },
+        {
+          kind: "convex-function",
+          registrationLocator: "raw:lookup",
+          transport: "api",
+        },
+        {
+          kind: "trigger",
+          registrationLocator: "nightlySyncRelease",
+          transport: "api",
+        },
+      ]),
+    );
+    expect(discovered).toEqual(
+      [...discovered].sort((left, right) =>
+        JSON.stringify(left).localeCompare(JSON.stringify(right)),
+      ),
+    );
+  });
+
+  it("requires an exact one-to-one discovered/registered mapping", () => {
+    const discovered = [
+      {
+        kind: "command" as const,
+        registrationLocator: "deploy",
+        actionDiscriminant: "preview",
+        transport: "cli" as const,
+      },
+      {
+        kind: "command" as const,
+        registrationLocator: "deploy",
+        actionDiscriminant: "apply",
+        transport: "cli" as const,
+      },
+    ];
+    const registrations = discovered.map(registered);
+
+    expect(
+      generatePublicSurfaceInventory({ discovered, registered: registrations }),
+    ).toEqual({ surfaces: registrations });
+    expect(() =>
+      generatePublicSurfaceInventory({
+        discovered,
+        registered: registrations.slice(0, 1),
+      }),
+    ).toThrow("unregistered public authority");
+    expect(() =>
+      generatePublicSurfaceInventory({
+        discovered: discovered.slice(0, 1),
+        registered: registrations,
+      }),
+    ).toThrow("registered surface has no discovered authority");
+  });
+
+  it("rejects duplicate discoveries, ids, and authority registrations", () => {
+    const authority = {
+      kind: "route" as const,
+      registrationLocator: "apps/web/src/routeTree.gen.ts#/",
+      transport: "ui" as const,
+    };
+    const surface = registered(authority, 0);
+
+    expect(() =>
+      generatePublicSurfaceInventory({
+        discovered: [authority, authority],
+        registered: [surface],
+      }),
+    ).toThrow("duplicate discovered public authority");
+    expect(() =>
+      generatePublicSurfaceInventory({
+        discovered: [authority],
+        registered: [surface, { ...surface, authPolicyId: "auth_other" }],
+      }),
+    ).toThrow("duplicate registered public authority");
+    expect(() =>
+      generatePublicSurfaceInventory({
+        discovered: [authority],
+        registered: [
+          surface,
+          {
+            ...surface,
+            authority: { ...surface.authority, registrationLocator: "other" },
+          },
+        ],
+      }),
+    ).toThrow("duplicate public surface id");
+  });
+
+  it("synthesizes a byte-stable one-time deny-all adoption baseline", () => {
+    const discovered = [
+      {
+        kind: "route" as const,
+        registrationLocator: "apps/web/src/routeTree.gen.ts#/settings",
+        transport: "ui" as const,
+      },
+      {
+        kind: "command" as const,
+        registrationLocator: "verify",
+        transport: "cli" as const,
+      },
+    ];
+    const first = adoptLegacyPublicSurfaces(discovered);
+    const second = adoptLegacyPublicSurfaces([...discovered].reverse());
+
+    expect(first).toEqual(second);
+    expect(first).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          authPolicyId: "auth_deny_all",
+          coverageTag: expect.stringMatching(/^@covers_legacy_[a-f0-9]{24}$/u),
+          id: expect.stringMatching(/^legacy_[a-f0-9]{24}$/u),
+        }),
+      ]),
+    );
+    const baseline = buildContractsLegacyBaseline(first);
+    expect(baseline.capturedFromInventoryDigest).toMatch(
+      /^sha256:[a-f0-9]{64}$/u,
+    );
+    expect(buildContractsLegacyBaseline(second)).toEqual(baseline);
+    expect(verifyContractsLegacyBaseline(first, baseline)).toEqual([]);
+  });
+
+  it("never extends or rewrites an existing legacy baseline", () => {
+    const original = registered(
+      {
+        kind: "route",
+        registrationLocator: "apps/web/src/routeTree.gen.ts#/",
+        transport: "ui",
+      },
+      0,
+    );
+    const baseline = buildContractsLegacyBaseline([original]);
+
+    expect(
+      verifyContractsLegacyBaseline(
+        [
+          original,
+          registered(
+            {
+              kind: "route",
+              registrationLocator: "apps/web/src/routeTree.gen.ts#/new",
+              transport: "ui",
+            },
+            1,
+          ),
+        ],
+        baseline,
+      ),
+    ).toContainEqual(expect.stringContaining("growth"));
+    expect(
+      verifyContractsLegacyBaseline(
+        [{ ...original, authPolicyId: "auth_other" }],
+        baseline,
+      ),
+    ).toContainEqual(expect.stringContaining("authority changed"));
+    expect(
+      verifyContractsLegacyBaseline(
+        [{ ...original, coverageTag: "@covers_changed" }],
+        baseline,
+      ),
+    ).toContainEqual(expect.stringContaining("inventory digest changed"));
+  });
+
+  it("reports a discovered locator omitted from the checked-in inventory", () => {
+    const root = fixture({
+      "apps/web/src/routeTree.gen.ts": `
+        export interface FileRoutesByFullPath {
+          '/missing': unknown
+        }
+      `,
+      "packages/template-core/src/generated/public-surfaces.generated.json":
+        JSON.stringify({ surfaces: [] }),
+      "packages/template-core/src/generated/template-contracts-legacy-baseline.json":
+        JSON.stringify(buildContractsLegacyBaseline([])),
+    });
+
+    expect(checkGeneratedPublicSurfaceInventory(root)).toContainEqual(
+      expect.stringContaining("apps/web/src/routeTree.gen.ts#/missing"),
+    );
+  });
+});

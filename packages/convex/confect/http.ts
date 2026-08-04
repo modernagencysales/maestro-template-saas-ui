@@ -31,6 +31,7 @@ const hasSurface = (entry: ManifestFunction, surface: string): boolean =>
 export type TemplateHttpRoute = {
   readonly path: string;
   readonly method: "GET" | "POST";
+  readonly kind: "http-route" | "webhook";
   readonly description: string;
 };
 
@@ -132,31 +133,37 @@ export const templateHttpRoutes = [
   {
     path: "/webhooks/dodo",
     method: "POST",
+    kind: "webhook",
     description: "Verifies and applies a Dodo payment webhook.",
   },
   {
     path: "/webhooks/email/postmark",
     method: "POST",
+    kind: "webhook",
     description: "Authenticates and normalizes a Postmark delivery event.",
   },
   {
     path: "/email/unsubscribe",
     method: "GET",
+    kind: "http-route",
     description: "Shows the email unsubscribe confirmation page.",
   },
   {
     path: "/email/unsubscribe",
     method: "POST",
+    kind: "http-route",
     description: "Applies a signed one-click marketing unsubscribe.",
   },
   {
     path: "/api/openapi.json",
     method: "GET",
+    kind: "http-route",
     description: "Serves the generated OpenAPI 3.1 document.",
   },
   {
     path: "/api/docs",
     method: "GET",
+    kind: "http-route",
     description: "Serves the Scalar API documentation shell.",
   },
   ...confectManifest.functions
@@ -164,6 +171,7 @@ export const templateHttpRoutes = [
     .map((entry) => ({
       path: `/api/${entry.operationId}`,
       method: "POST" as const,
+      kind: "http-route" as const,
       description: `Executes ${entry.operationId}.`,
     })),
 ] as const satisfies readonly TemplateHttpRoute[];

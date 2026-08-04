@@ -6,6 +6,9 @@ const targets = [
   "packages/template-core/src/generated/confectManifest.ts",
   "packages/convex/confect/_generated/confectManifest.inventory.ts",
   "packages/convex/confect/_generated/confectManifest.inventory.digest.json",
+  "packages/template-core/src/generated/public-surfaces.generated.json",
+  "packages/template-core/src/generated/publicSurfaces.ts",
+  "packages/template-core/src/generated/template-contracts-legacy-baseline.json",
 ].map((path) => resolve(path));
 const before = new Map(targets.map((target) => [target, readFileSync(target)]));
 

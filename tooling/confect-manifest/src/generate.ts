@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { format } from "prettier";
@@ -7,6 +7,7 @@ import {
   buildContractManifest,
   buildContractJsonSchemas,
   duplicateOperationIds,
+  manifestPublicSurfaces,
   mergeContractSchemaRegistries,
   missingSchemasForManifest,
   type ContractFunctionManifest,
@@ -18,21 +19,16 @@ import {
   missingGeneratedRefs,
 } from "./specClosure";
 import {
-  manifest as sourceGroundedBriefManifest,
-  schemaRegistry as sourceGroundedBriefSchemaRegistry,
-} from "../../../packages/convex/confect/capabilities/sourceGroundedBrief.spec";
-import {
-  manifest as brainPagesManifest,
-  schemaRegistry as brainPagesSchemaRegistry,
-} from "../../../packages/convex/confect/brain/pages.spec";
-import {
-  manifest as dataLifecycleManifest,
-  schemaRegistry as dataLifecycleSchemaRegistry,
-} from "../../../packages/convex/confect/ops/dataLifecycle.spec";
-import {
-  manifest as emailManifest,
-  schemaRegistry as emailSchemaRegistry,
-} from "../../../packages/convex/confect/ops/email.spec";
+  adoptLegacyPublicSurfaces,
+  buildContractsLegacyBaseline,
+  discoverPublicAuthorities,
+  generatePublicSurfaceInventory,
+  verifyContractsLegacyBaseline,
+} from "./publicSurfaceGeneration";
+import type {
+  ContractsLegacyBaseline,
+  PublicSurface,
+} from "@maestro-template/template-core/publicSurface";
 
 const root = resolve(".");
 const inventoryContractSpecs = await Promise.all(
@@ -72,17 +68,34 @@ if (inventoryMissingSchemas.length > 0)
     `Confect inventory references schemas missing from registries: ${inventoryMissingSchemas.join(", ")}`,
   );
 
-const functions = [
-  ...brainPagesManifest,
-  ...sourceGroundedBriefManifest,
-  ...dataLifecycleManifest,
-  ...emailManifest,
-];
-const schemaRegistry = mergeContractSchemaRegistries(
-  brainPagesSchemaRegistry,
-  sourceGroundedBriefSchemaRegistry,
-  dataLifecycleSchemaRegistry,
-  emailSchemaRegistry,
+const runtimeManifestPath = resolve(
+  "packages/template-core/src/generated/confectManifest.ts",
+);
+const currentRuntime = (await import(
+  pathToFileURL(runtimeManifestPath).href
+)) as {
+  readonly confectManifest: {
+    readonly functions: readonly { readonly operationId: string }[];
+  };
+};
+const runtimeOperationIdSetBeforeGeneration = new Set(
+  currentRuntime.confectManifest.functions.map(
+    ({ operationId }) => operationId,
+  ),
+);
+const functions = inventoryFunctions.filter(({ operationId }) =>
+  runtimeOperationIdSetBeforeGeneration.has(operationId),
+);
+const runtimeSchemaNames = new Set(
+  functions.flatMap(({ argsSchemaName, returnsSchemaName }) => [
+    argsSchemaName,
+    returnsSchemaName,
+  ]),
+);
+const schemaRegistry = Object.fromEntries(
+  Object.entries(inventorySchemaRegistry).filter(([name]) =>
+    runtimeSchemaNames.has(name),
+  ),
 );
 
 const duplicateIds = duplicateOperationIds(functions);
@@ -265,4 +278,79 @@ writeFileSync(inventoryTarget, inventorySource);
 writeFileSync(
   inventoryDigestTarget,
   `${JSON.stringify(inventoryDigest, null, 2)}\n`,
+);
+
+const publicInventoryTarget = resolve(
+  "packages/template-core/src/generated/public-surfaces.generated.json",
+);
+const publicProjectionTarget = resolve(
+  "packages/template-core/src/generated/publicSurfaces.ts",
+);
+const legacyBaselineTarget = resolve(
+  "packages/template-core/src/generated/template-contracts-legacy-baseline.json",
+);
+const discoveredPublicAuthorities = discoverPublicAuthorities(root);
+const priorSurfaces = existsSync(publicInventoryTarget)
+  ? (
+      JSON.parse(readFileSync(publicInventoryTarget, "utf8")) as {
+        readonly surfaces: readonly PublicSurface[];
+      }
+    ).surfaces
+  : adoptLegacyPublicSurfaces(discoveredPublicAuthorities);
+const explicitSurfaces = manifestPublicSurfaces(inventoryManifest);
+const explicitAuthorityKeys = new Set(
+  explicitSurfaces.map((surface) =>
+    JSON.stringify([
+      surface.authority.kind,
+      surface.authority.registrationLocator,
+      surface.authority.actionDiscriminant ?? null,
+      surface.transport,
+    ]),
+  ),
+);
+const registeredPublicSurfaces = [
+  ...priorSurfaces.filter(
+    (surface) =>
+      !explicitAuthorityKeys.has(
+        JSON.stringify([
+          surface.authority.kind,
+          surface.authority.registrationLocator,
+          surface.authority.actionDiscriminant ?? null,
+          surface.transport,
+        ]),
+      ),
+  ),
+  ...explicitSurfaces,
+];
+const publicInventory = generatePublicSurfaceInventory({
+  discovered: discoveredPublicAuthorities,
+  registered: registeredPublicSurfaces,
+});
+const legacyBaseline: ContractsLegacyBaseline = existsSync(legacyBaselineTarget)
+  ? (JSON.parse(
+      readFileSync(legacyBaselineTarget, "utf8"),
+    ) as ContractsLegacyBaseline)
+  : buildContractsLegacyBaseline(publicInventory.surfaces);
+const baselineFailures = verifyContractsLegacyBaseline(
+  publicInventory.surfaces,
+  legacyBaseline,
+);
+if (baselineFailures.length > 0)
+  throw new Error(
+    `Public surface legacy baseline changed: ${baselineFailures.join(", ")}`,
+  );
+
+const publicProjection = await format(
+  `/* Generated by pnpm confect:manifest. Do not edit by hand. */\n\nimport type { PublicSurface } from "../publicSurface";\n\nexport const publicSurfaces = ${JSON.stringify(publicInventory.surfaces, null, 2)} as const satisfies readonly PublicSurface[];\n`,
+  { parser: "typescript" },
+);
+mkdirSync(dirname(publicInventoryTarget), { recursive: true });
+writeFileSync(
+  publicInventoryTarget,
+  `${JSON.stringify(publicInventory, null, 2)}\n`,
+);
+writeFileSync(publicProjectionTarget, publicProjection);
+writeFileSync(
+  legacyBaselineTarget,
+  `${JSON.stringify(legacyBaseline, null, 2)}\n`,
 );

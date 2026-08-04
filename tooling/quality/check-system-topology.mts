@@ -9,6 +9,7 @@ import {
   parseSystemCatalog,
   type SystemCatalog,
 } from "@maestro-template/template-core/systemCatalog";
+import { checkGeneratedPublicSurfaceInventory } from "../confect-manifest/src/publicSurfaceGeneration";
 
 const ROOT = resolve(fileURLToPath(new URL("../..", import.meta.url)));
 const TOPOLOGY_PATH = "docs/template/product-topology.json";
@@ -19,6 +20,11 @@ export type ProductTopologyFinding = {
   readonly subject: string;
   readonly issue: string;
 };
+
+export const publicSurfaceTopologyFindings = (
+  failures: readonly string[],
+): readonly ProductTopologyFinding[] =>
+  failures.map((issue) => ({ subject: "public-surface-inventory", issue }));
 
 export type GeneratedResourceOwnership = {
   readonly path: string;
@@ -228,7 +234,12 @@ export const checkSystemTopology = (
   const topology = parseProductTopology(
     JSON.parse(readFileSync(join(root, TOPOLOGY_PATH), "utf8")) as unknown,
   );
-  return validateSystemTopology(systems, topology, repoFileSystem(root));
+  return [
+    ...validateSystemTopology(systems, topology, repoFileSystem(root)),
+    ...publicSurfaceTopologyFindings(
+      checkGeneratedPublicSurfaceInventory(root),
+    ),
+  ];
 };
 
 const main = (): void => {

@@ -5,8 +5,14 @@ import { confectManifest } from "../../packages/template-core/src/generated/conf
 import { descriptorFor } from "./src/check-definitions.mts";
 import { isDirectRun } from "./src/direct-run.mts";
 import { evaluateStaticCheck } from "./src/gate.mts";
+import { checkGeneratedPublicSurfaceInventory } from "../confect-manifest/src/publicSurfaceGeneration";
 
 export const descriptor = descriptorFor("headless-surface-contract");
+
+export const publicSurfaceContractFailures = (
+  failures: readonly string[],
+): readonly string[] =>
+  failures.map((failure) => `public surface inventory: ${failure}`);
 
 const externalSurfaces = ["api", "cli", "mcp"] as const;
 type ExternalSurface = (typeof externalSurfaces)[number];
@@ -368,7 +374,12 @@ export const evaluateHeadlessSurfaceContract = async (
   repoRoot: string,
 ): Promise<readonly string[]> => {
   const staticResult = await evaluateStaticCheck(repoRoot, descriptor);
-  const failures = [...staticResult.failures];
+  const failures = [
+    ...staticResult.failures,
+    ...publicSurfaceContractFailures(
+      checkGeneratedPublicSurfaceInventory(repoRoot),
+    ),
+  ];
   const operations =
     confectManifest.functions as readonly HeadlessManifestOperation[];
 

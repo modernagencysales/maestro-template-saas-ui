@@ -2,6 +2,8 @@ import * as JsonSchema from "effect/JsonSchema";
 import * as Schema from "effect/Schema";
 import type { PublicSurface } from "@maestro-template/template-core/publicSurface";
 
+export * from "./publicSurfaceGeneration";
+
 export type ContractFunctionKind = "query" | "mutation" | "action";
 export type ContractSurface =
   "api" | "cli" | "mcp" | "web" | "workflow" | "internal";

@@ -6,6 +6,7 @@ import { parseSystemCatalog } from "@maestro-template/template-core/systemCatalo
 import { describe, expect, it } from "vitest";
 import {
   checkSystemTopology,
+  publicSurfaceTopologyFindings,
   validateSystemTopology,
   type ProductTopologyFileSystem,
 } from "./check-system-topology.mts";
@@ -41,6 +42,17 @@ const fakeFileSystem = (options?: {
 };
 
 describe("check:system-topology", () => {
+  it("reports public authority inventory bypasses with their locator", () => {
+    expect(
+      publicSurfaceTopologyFindings([
+        'unregistered public authority: ["route","routeTree#/missing",null,"ui"]',
+      ]),
+    ).toContainEqual({
+      subject: "public-surface-inventory",
+      issue: expect.stringContaining("routeTree#/missing"),
+    });
+  });
+
   it("owns every discovered production resource", () => {
     expect(checkSystemTopology(ROOT)).toEqual([]);
   });

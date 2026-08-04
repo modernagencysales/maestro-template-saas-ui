@@ -1,0 +1,982 @@
+{
+  "schemaVersion": 1,
+  "capturedFromInventoryDigest": "sha256:57b5bc518d32d945babec871a2a5db852886816e6aa55de6abb2b0a3ea5f49aa",
+  "surfaces": [
+    {
+      "id": "legacy_0139ce508fad3a8d57d2fb33",
+      "authorityKey": "[\"route\",\"apps/web/src/routeTree.gen.ts#/evaluate\",null,\"ui\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_01fceed286cc08a4b4bd1754",
+      "authorityKey": "[\"http-route\",\"GET /api/docs\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_0298869f134c1486af8c8cfb",
+      "authorityKey": "[\"convex-function\",\"workflows.generateCompleteBuildPack.status\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_0303b58d70b40eeb724ce469",
+      "authorityKey": "[\"command\",\"maestro_verify\",null,\"mcp\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_038782f7b5c7d836102ee7c9",
+      "authorityKey": "[\"convex-function\",\"components/workflowDeadline/deadlines:beginReconcile\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_03d43dbc6b22f3cafc91c58c",
+      "authorityKey": "[\"convex-function\",\"workflows.publicationFixture.cancel\",null,\"ui\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_03fa087f4c3d504d19c8c20f",
+      "authorityKey": "[\"convex-function\",\"ops/transforms:runTransform\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_06bfd910849f4af68f64438d",
+      "authorityKey": "[\"convex-function\",\"brain.pages.createMarkdown\",null,\"mcp\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_07307f4d8e0ef9db299c8d28",
+      "authorityKey": "[\"convex-function\",\"components/workflowDeadline/deadlines:observe\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_07ae808376585f83332a8286",
+      "authorityKey": "[\"convex-function\",\"workflows.publicationFixture.status\",null,\"mcp\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_07b34e9c2f9b8615f0025e93",
+      "authorityKey": "[\"route\",\"apps/web/src/routeTree.gen.ts#/checkout/fake-hosted/$sessionId\",null,\"ui\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_07bffb4568eab7e611252c77",
+      "authorityKey": "[\"http-route\",\"GET /api/openapi.json\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_0a97ced5bec759d68c12e506",
+      "authorityKey": "[\"route\",\"apps/web/src/routeTree.gen.ts#/capabilities\",null,\"ui\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_0a9b1a863f71095a5646c658",
+      "authorityKey": "[\"convex-function\",\"ops/email:prepareBroadcast\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_0adc47b3d978c04bbc46350f",
+      "authorityKey": "[\"route\",\"apps/web/src/routeTree.gen.ts#/settings\",null,\"ui\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_0b6c12849e456786e488b8d0",
+      "authorityKey": "[\"convex-function\",\"commerce/checkout:create\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_0d2bc935fb202ecc108dd32c",
+      "authorityKey": "[\"convex-function\",\"workflows.publicationFixture.listSteps\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_0f410e5280f6ed8846398b57",
+      "authorityKey": "[\"command\",\"doctor\",null,\"cli\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_10ee7a11705aee92321b1379",
+      "authorityKey": "[\"convex-function\",\"ops/billing:grantEntitlement\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_1139653d99e88fb4ead127d6",
+      "authorityKey": "[\"convex-function\",\"workflows.publicationFixture.cleanup\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_124312c51b70a994aec1d112",
+      "authorityKey": "[\"convex-function\",\"ops/billing:recordUsage\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_139d18bfb4b3532a01a74f8c",
+      "authorityKey": "[\"convex-function\",\"workflows.publicationFixture.restart\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_152cbe5bc07fa6ec56bf2c07",
+      "authorityKey": "[\"convex-function\",\"workflows.publicationFixture.sendEvent\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_15df7cd0cf481579d8774d19",
+      "authorityKey": "[\"command\",\"operations\",\"get\",\"cli\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_16355bd8e4d6cd072b597ef7",
+      "authorityKey": "[\"convex-function\",\"workflowContracts/publicationFixture:cleanup\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_196a4bbc47348c695cdcbb6d",
+      "authorityKey": "[\"convex-function\",\"components/workflowDeadline/deadlines:prepareRetry\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_197c3ea822ae04463f81d3d2",
+      "authorityKey": "[\"http-route\",\"POST /api/ops.email.dispatchBroadcast\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_1a4c5305a0b1a459eda75ed6",
+      "authorityKey": "[\"route\",\"apps/web/src/routeTree.gen.ts#/sources\",null,\"ui\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_1e843e696be342ff65482d7c",
+      "authorityKey": "[\"http-route\",\"POST /api/ops.email.previewBroadcast\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_1f561832f6db7ac93478b8c0",
+      "authorityKey": "[\"convex-function\",\"agents/assistant:continueThread\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_1f6a2bcad3bf5734ba4647e5",
+      "authorityKey": "[\"convex-function\",\"access/invitations:cancel\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_207a9005e718a830e6c5dc89",
+      "authorityKey": "[\"convex-function\",\"ops.email.dispatchBroadcast\",null,\"mcp\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_21c12e4482b382cb75ef59c6",
+      "authorityKey": "[\"convex-function\",\"commerce/checkout:markReturned\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_21ed22fa6a0bea617b34e6fc",
+      "authorityKey": "[\"convex-function\",\"access/members:transferOwnership\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_22d54f0af757120cc9a13a9d",
+      "authorityKey": "[\"convex-function\",\"components/workflowDeadline/deadlines:prepare\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_240acf99caeb9a7c103f0221",
+      "authorityKey": "[\"route\",\"apps/web/src/routeTree.gen.ts#/checkout/return\",null,\"ui\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_25cbcc77e4bbe5ec5b5bd1ce",
+      "authorityKey": "[\"convex-function\",\"capabilities/manageEvaluationReport:getSharedEvaluationReport\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_2655009288a658c7151e1003",
+      "authorityKey": "[\"route\",\"apps/web/src/routeTree.gen.ts#/support\",null,\"ui\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_27f6df76ef5b554fc5ae6237",
+      "authorityKey": "[\"convex-function\",\"workflowContracts/publicationFixture:cancel\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_27f83853c6f4321179b8298b",
+      "authorityKey": "[\"convex-function\",\"ops/flags:evaluate\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_28a6942ed064bada67ada8a7",
+      "authorityKey": "[\"convex-function\",\"capabilities/manageEvaluationReport:manageEvaluationReport\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_28b999b7e9bee2124f883ea0",
+      "authorityKey": "[\"route\",\"apps/web/src/routeTree.gen.ts#/integrations\",null,\"ui\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_291d28eb3441c42d62947f89",
+      "authorityKey": "[\"convex-function\",\"workflows.generateCompleteBuildPack.start\",null,\"mcp\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_2c0cbe4c966a00899ae08974",
+      "authorityKey": "[\"webhook\",\"POST /webhooks/email/postmark\",null,\"webhook\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_2c71b4b655e182c49e30a6fd",
+      "authorityKey": "[\"command\",\"upgrade\",null,\"cli\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_2cf8dc3a7dbe39a00f99d73d",
+      "authorityKey": "[\"route\",\"apps/web/src/routeTree.gen.ts#/billing\",null,\"ui\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_2d8a9c9067526eb3411f1349",
+      "authorityKey": "[\"convex-function\",\"ops/transforms:getRun\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_2e69c2c2598889ccdbd37fb8",
+      "authorityKey": "[\"convex-function\",\"capabilities/manageEvaluationReport:requestReportEmailVerification\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_2ecfbe4c3b08252ca54182d2",
+      "authorityKey": "[\"convex-function\",\"agents/assistant:listThreadMessages\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_2f25e90bf511819e17eb5bdc",
+      "authorityKey": "[\"convex-function\",\"workflows.publicationFixture.cleanup\",null,\"ui\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_2f414f493da8e86b1cb7fb07",
+      "authorityKey": "[\"convex-function\",\"workflows.publicationFixture.listSteps\",null,\"mcp\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_2fe693c9a3728cfde2b204f7",
+      "authorityKey": "[\"trigger\",\"publicationEchoV1Release\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_302b39bd42a0df78c1821d07",
+      "authorityKey": "[\"convex-function\",\"access/invitations:decline\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_30d0d496c6b39281f2a47a07",
+      "authorityKey": "[\"convex-function\",\"workflows.publicationFixture.listByName\",null,\"mcp\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_34068b7bba808f403b525856",
+      "authorityKey": "[\"convex-function\",\"ops.email.previewBroadcast\",null,\"ui\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_34b8da6b12bf391c8794a3fc",
+      "authorityKey": "[\"convex-function\",\"capabilities.sourceGroundedBrief.run\",null,\"ui\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_3692da98943935c0a28223fb",
+      "authorityKey": "[\"ui-action\",\"apps/web/src/features/public-funnel/build-pack/build-pack-generating-route.tsx\",\"templateConfectRefs.public.buildPacks.packs.startPack\",\"ui\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_3808c850bfc451d0ec396739",
+      "authorityKey": "[\"route\",\"apps/web/src/routeTree.gen.ts#/workflows\",null,\"ui\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_391f6ec821c4cf3ce8928f90",
+      "authorityKey": "[\"convex-function\",\"commerce/checkout:status\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_3a81c9b6a0f99bdd013b8407",
+      "authorityKey": "[\"convex-function\",\"workflows.generateCompleteBuildPack.start\",null,\"ui\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_3b40bba931bd3ebb5c8cae34",
+      "authorityKey": "[\"convex-function\",\"workflows.publicationFixture.status\",null,\"ui\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_3b5790cb80e7219662c8a3ec",
+      "authorityKey": "[\"route\",\"apps/web/src/routeTree.gen.ts#/share/$token\",null,\"ui\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_3bf14745ddc98387d958efd8",
+      "authorityKey": "[\"ui-action\",\"apps/web/src/features/public-funnel/checkout/checkout-return-route.tsx\",\"templateConfectRefs.public.commerce.checkout.markReturned\",\"ui\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_3c6fdf641ca1cbdcc48c1727",
+      "authorityKey": "[\"convex-function\",\"workflows.generateCompleteBuildPack.start\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_3d1de6883eb5da04eddbaaef",
+      "authorityKey": "[\"convex-function\",\"capabilities/evaluateAppIdea:evaluateAppIdea\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_3dedfd62256ab1fddaca1739",
+      "authorityKey": "[\"convex-function\",\"workflows.generateCompleteBuildPack.approve\",null,\"ui\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_3e52282149a0c0435e185163",
+      "authorityKey": "[\"convex-function\",\"workflows.generateCompleteBuildPack.status\",null,\"cli\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_3f693ff61bd380c228a8efa7",
+      "authorityKey": "[\"convex-function\",\"workflows.publicationFixture.startInteractive\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_416196aaa9bdadb6c3d555a0",
+      "authorityKey": "[\"convex-function\",\"ops/actions:enqueueAction\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_419ced456d59b32c901b48de",
+      "authorityKey": "[\"convex-function\",\"ops/versioning:reconcile\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_425686acb7bfbe58c217b55b",
+      "authorityKey": "[\"command\",\"capability\",\"run\",\"cli\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_42884ec4ac0fc7a6e815b82d",
+      "authorityKey": "[\"convex-function\",\"workflows.publicationFixture.sendEvent\",null,\"ui\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_42c9d474f173766ed6595080",
+      "authorityKey": "[\"convex-function\",\"workflows.publicationFixture.list\",null,\"cli\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_44d40d65e7961b5a88714531",
+      "authorityKey": "[\"convex-function\",\"workflowContracts/publicationFixture:list\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_44de165b105883667ec60662",
+      "authorityKey": "[\"convex-function\",\"ops/actions:sendDigest\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_4732765e580964079e138d6b",
+      "authorityKey": "[\"convex-function\",\"workflowContracts/publicationFixture:listByName\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_479c1e2c5afa93f8510b2b54",
+      "authorityKey": "[\"convex-function\",\"buildPacks/packs:status\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_47fa8cd0b375a550aa380078",
+      "authorityKey": "[\"command\",\"add\",null,\"cli\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_4860934e9a4232557189ebba",
+      "authorityKey": "[\"command\",\"template.workflow.run\",null,\"mcp\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_4a6797e10803a6a8da608137",
+      "authorityKey": "[\"convex-function\",\"ops/actions:approveAction\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_4a683bb82ac285c02eeb9954",
+      "authorityKey": "[\"command\",\"--help\",null,\"cli\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_4a8388c39e8ccf95a970d0a5",
+      "authorityKey": "[\"convex-function\",\"workflows.generateCompleteBuildPack.approve\",null,\"cli\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_4b91b1a27a48793a55195c1d",
+      "authorityKey": "[\"convex-function\",\"ops/knowledge:upsertClaim\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_4b9fb4ea22c3694731e4e350",
+      "authorityKey": "[\"webhook\",\"POST /webhooks/dodo\",null,\"webhook\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_4f6f9a65f1d8ec1f76bedd4a",
+      "authorityKey": "[\"ui-action\",\"apps/web/src/features/notifications/notification-center-surface.tsx\",\"templateConfectRefs.public.ops.notifications.markRead\",\"ui\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_4ff91e3f8ecf7e44ce978218",
+      "authorityKey": "[\"convex-function\",\"workflowContracts/publicationFixture:listSteps\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_51d298fd0765154f3aeca588",
+      "authorityKey": "[\"convex-function\",\"workflows.publicationFixture.cancel\",null,\"cli\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_5697303a03b01cde50d0c0db",
+      "authorityKey": "[\"convex-function\",\"ops/transforms:projectTrustReceipt\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_584fe8c10f7c07ed4db27d83",
+      "authorityKey": "[\"convex-function\",\"ops/email:subscribe\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_5980ecbcbb7bc5dac4f52ec4",
+      "authorityKey": "[\"convex-function\",\"ops.email.previewBroadcast\",null,\"cli\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_59ab4475032c460980514a21",
+      "authorityKey": "[\"convex-function\",\"ops/versioning:restore\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_59c27a9f6302d58b1b72075c",
+      "authorityKey": "[\"convex-function\",\"workflows.generateCompleteBuildPack.approve\",null,\"mcp\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_5a044c9f8754a9cb6f551665",
+      "authorityKey": "[\"convex-function\",\"workflows.publicationFixture.status\",null,\"cli\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_5d98fe10062ea62e0ee34178",
+      "authorityKey": "[\"route\",\"apps/web/src/routeTree.gen.ts#/data-lifecycle\",null,\"ui\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_5df18fb82896701ccd9a4013",
+      "authorityKey": "[\"command\",\"describe\",null,\"cli\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_6096e75a94cb6752ad5013d4",
+      "authorityKey": "[\"convex-function\",\"workflows.publicationFixture.cleanup\",null,\"cli\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_62abba86342731873664297b",
+      "authorityKey": "[\"convex-function\",\"workflows.publicationFixture.listSteps\",null,\"cli\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_63de88ae79ba8f358e3196bc",
+      "authorityKey": "[\"convex-function\",\"workflows.publicationFixture.restart\",null,\"cli\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_64100893b319774fcb78b8a5",
+      "authorityKey": "[\"convex-function\",\"ops.dataLifecycle.listDsarRequests\",null,\"ui\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_641676a7acea340170bee8c5",
+      "authorityKey": "[\"convex-function\",\"ops/knowledge:getContextPack\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_64e49000f791d465afc3cde9",
+      "authorityKey": "[\"convex-function\",\"workflows.publicationFixture.sendEvent\",null,\"mcp\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_667206967520e5aeedd46aa0",
+      "authorityKey": "[\"route\",\"apps/web/src/routeTree.gen.ts#/privacy\",null,\"ui\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_67ba0ed082ff1cd415b28a18",
+      "authorityKey": "[\"convex-function\",\"ops.email.previewBroadcast\",null,\"mcp\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_67d165c753615d1fb04ab0e1",
+      "authorityKey": "[\"convex-function\",\"capabilities/manageEvaluationReport:listOwnedEvaluationReports\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_68f4c199a103712ad095b054",
+      "authorityKey": "[\"http-route\",\"GET /email/unsubscribe\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_6aec01f1f7025af365f76403",
+      "authorityKey": "[\"command\",\"api\",\"catalog\",\"cli\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_6bf384961bd8e9fc84c7d64f",
+      "authorityKey": "[\"convex-function\",\"access/invitations:accept\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_6de79b7000dff8bfd6e0a1a4",
+      "authorityKey": "[\"convex-function\",\"brain.pages.createMarkdown\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_6eb0e5c301dc225da895e22f",
+      "authorityKey": "[\"route\",\"apps/web/src/routeTree.gen.ts#/build-pack/$packId/generating\",null,\"ui\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_6f537ba8fffb762a1708e2f4",
+      "authorityKey": "[\"convex-function\",\"workflows.publicationFixture.list\",null,\"ui\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_6fa113c0f30f941a6327932a",
+      "authorityKey": "[\"convex-function\",\"workflows.publicationFixture.restart\",null,\"ui\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_6ff4328d100a8888c3d5abaa",
+      "authorityKey": "[\"convex-function\",\"workflows.publicationFixture.startQueued\",null,\"mcp\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_74eafe0cbd2d287f673de0ae",
+      "authorityKey": "[\"convex-function\",\"ops/actions:configureTrigger\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_759ed72e918390e347f6ca85",
+      "authorityKey": "[\"convex-function\",\"ops/coediting:createAnnotation\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_75e87b448e3dff3c62dc6851",
+      "authorityKey": "[\"convex-function\",\"components/workflowAdmission/admission:transition\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_763cd0c7ed7ab6b40b1dbc9a",
+      "authorityKey": "[\"convex-function\",\"workflows.publicationFixture.listByName\",null,\"cli\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_774c1ad6c744a7726c6de9fe",
+      "authorityKey": "[\"command\",\"maestro_preflight\",null,\"mcp\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_78327288fc4a03f66208fbdf",
+      "authorityKey": "[\"convex-function\",\"buildPacks/packs:getPack\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_78ce548a249844a41fd92bfc",
+      "authorityKey": "[\"route\",\"apps/web/src/routeTree.gen.ts#/verify-report\",null,\"ui\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_7993b1abfda2e3377debd34f",
+      "authorityKey": "[\"convex-function\",\"commerce/webhooks:applyDodo\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_79b2042784c9b9490d5e8fe0",
+      "authorityKey": "[\"command\",\"maestro_plan_check\",null,\"mcp\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_7a30d7139329636705056796",
+      "authorityKey": "[\"convex-function\",\"auth/workspaces:list\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_7c79b3360f20d4ff89334196",
+      "authorityKey": "[\"route\",\"apps/web/src/routeTree.gen.ts#/data-map\",null,\"ui\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_7c860c824701330e69a533dc",
+      "authorityKey": "[\"convex-function\",\"ops/versioning:latest\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_7c9132a5eb3efb29b05e8c8f",
+      "authorityKey": "[\"convex-function\",\"workflows.publicationFixture.cancel\",null,\"mcp\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_7d340319e2e5ef1f2f568da7",
+      "authorityKey": "[\"convex-function\",\"workflows.publicationFixture.list\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_7dc8955bc420a0dc5391d130",
+      "authorityKey": "[\"trigger\",\"publicationFixtureV1Release\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_7eea5ab8158943bce3f6e2ba",
+      "authorityKey": "[\"convex-function\",\"buildPacks/maestro:getOffer\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_7ef91d401c0a129b3d3e21a2",
+      "authorityKey": "[\"ui-action\",\"apps/web/src/features/public-funnel/intake/intake-view.tsx\",\"templateConfectRefs.public.capabilities.evaluateAppIdea.evaluateAppIdeaWithModel\",\"ui\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_7f89bba13389c36c0b18794a",
+      "authorityKey": "[\"convex-function\",\"ops/coediting:listDocuments\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_800a804b8e10a900fa230dd6",
+      "authorityKey": "[\"route\",\"apps/web/src/routeTree.gen.ts#/maestro/$packId\",null,\"ui\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_82222a82485dc6f4fb597f2f",
+      "authorityKey": "[\"convex-function\",\"workflows.publicationFixture.listByName\",null,\"ui\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_8245143a0b7be9945fbc1907",
+      "authorityKey": "[\"convex-function\",\"capabilities/manageEvaluationReport:consumeReportEmailVerification\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_8280e1ec52afb02aacead09f",
+      "authorityKey": "[\"command\",\"maestro_support_bundle_preview\",null,\"mcp\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_83eb268d15185cbf9a82d5c9",
+      "authorityKey": "[\"convex-function\",\"workflows.publicationFixture.cancel\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_84706048212e25f2b360d596",
+      "authorityKey": "[\"convex-function\",\"brain.pages.list\",null,\"ui\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_84c0476aead9037abc407c26",
+      "authorityKey": "[\"convex-function\",\"capabilities/manageEvaluationReport:getEvaluationReport\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_85e6c3cc3a1ba83f065f2214",
+      "authorityKey": "[\"ui-action\",\"apps/web/src/features/public-funnel/checkout/checkout-route.tsx\",\"templateConfectRefs.public.commerce.checkout.create\",\"ui\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_86bebbcd8a703a0e4b3bedfa",
+      "authorityKey": "[\"convex-function\",\"workflows.publicationFixture.list\",null,\"mcp\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_86c468408ff08b31febeaca8",
+      "authorityKey": "[\"convex-function\",\"workflows.publicationFixture.startInteractive\",null,\"ui\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_87128343023ddf1f9881fad7",
+      "authorityKey": "[\"route\",\"apps/web/src/routeTree.gen.ts#/\",null,\"ui\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_888a393f8882a76e52d75d2a",
+      "authorityKey": "[\"convex-function\",\"ops/flags:list\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_89d4e27631102ef1d61ddcc0",
+      "authorityKey": "[\"route\",\"apps/web/src/routeTree.gen.ts#/documents\",null,\"ui\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_8a79d72eec6160a626c97dc9",
+      "authorityKey": "[\"convex-function\",\"ops/notifications:list\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_8b440da464c168f4f8513ab3",
+      "authorityKey": "[\"convex-function\",\"capabilities/catalog:list\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_8bdaec5a10429a09ba93cfb5",
+      "authorityKey": "[\"route\",\"apps/web/src/routeTree.gen.ts#/checkout/$reportId\",null,\"ui\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_8e0cb8af49e99c8290851cc0",
+      "authorityKey": "[\"command\",\"maestro_app_map_impact\",null,\"mcp\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_931b6bf4758438461675a4ab",
+      "authorityKey": "[\"command\",\"start\",null,\"cli\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_9449b720f1d637904bec2a45",
+      "authorityKey": "[\"ui-action\",\"apps/web/src/features/public-funnel/build-pack/build-pack-generating-route.tsx\",\"templateConfectRefs.public.buildPacks.packs.retryFailedStage\",\"ui\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_9472be9fdde35e6a1d00af78",
+      "authorityKey": "[\"convex-function\",\"workflows.publicationFixture.restart\",null,\"mcp\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_9507b04037c0b74244c9cc61",
+      "authorityKey": "[\"command\",\"create\",null,\"cli\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_95671ac0f0f31141f01f5558",
+      "authorityKey": "[\"convex-function\",\"ops/notifications:markRead\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_9601269c768845d9e1ec50fc",
+      "authorityKey": "[\"convex-function\",\"ops/billing:checkSeat\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_97707b90fb22896cd03f41b1",
+      "authorityKey": "[\"convex-function\",\"workflows.publicationFixture.startQueued\",null,\"ui\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_98fc3a335bc8da61b672314c",
+      "authorityKey": "[\"convex-function\",\"workflowContracts/publicationFixture:restart\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_9ad127d368c5ace863d6aef5",
+      "authorityKey": "[\"convex-function\",\"ops/versioning:append\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_9b16482c2890e6cea9285dc9",
+      "authorityKey": "[\"convex-function\",\"components/workflowDeadline/deadlines:bind\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_9b5df56d1daab3df93a17d6a",
+      "authorityKey": "[\"route\",\"apps/web/src/routeTree.gen.ts#/health\",null,\"ui\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_9c02d1a12020d5b39a9c34ec",
+      "authorityKey": "[\"convex-function\",\"workflows.publicationFixture.sendEvent\",null,\"cli\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_9dae5df79735d00550e6cda6",
+      "authorityKey": "[\"command\",\"preflight\",null,\"cli\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_9ff2d8321c2ab6c23afbb2c3",
+      "authorityKey": "[\"convex-function\",\"demo/showcase:overview\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_a4ef009e46098704eb37344f",
+      "authorityKey": "[\"convex-function\",\"buildPacks/packs:retryFailedStage\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_a581d970e426b7de7d1b76c2",
+      "authorityKey": "[\"convex-function\",\"ops/coediting:appendVersion\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_a6c6a11c03ac9b316b3f56cf",
+      "authorityKey": "[\"route\",\"apps/web/src/routeTree.gen.ts#/brain\",null,\"ui\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_a8e7493519882a1ada83f47c",
+      "authorityKey": "[\"convex-function\",\"ops.email.dispatchBroadcast\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_ad1c793f4b0cb7b9210b06f7",
+      "authorityKey": "[\"command\",\"integrations\",\"report\",\"cli\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_aef1dc2085d40563b42806cb",
+      "authorityKey": "[\"convex-function\",\"ops/coediting:createDocument\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_afc208c7917412ea746c3962",
+      "authorityKey": "[\"command\",\"adopt\",null,\"cli\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_b122b24c6ec8f708b83b2973",
+      "authorityKey": "[\"convex-function\",\"ops/knowledge:upsertConcept\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_b2394560ddcdec08a05eca7a",
+      "authorityKey": "[\"command\",\"maestro_build_readiness\",null,\"mcp\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_b24419fcf71d824cdf03072b",
+      "authorityKey": "[\"command\",\"maestro_app_map\",null,\"mcp\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_b26a328d95f8c16ff18068f6",
+      "authorityKey": "[\"convex-function\",\"workflows.generateCompleteBuildPack.status\",null,\"ui\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_b3024d43c648abbdc71ef79a",
+      "authorityKey": "[\"command\",\"mcp\",\"tools\",\"cli\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_b3b26c172437cf5306fded90",
+      "authorityKey": "[\"command\",\"api\",\"openapi\",\"cli\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_b48bc7c3719eaac331eb9ad9",
+      "authorityKey": "[\"convex-function\",\"ops/knowledge:buildContextPack\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_b50e8ac306a6ace3b68573c2",
+      "authorityKey": "[\"convex-function\",\"access/invitations:create\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_b57fde869ccae87b12c3f49d",
+      "authorityKey": "[\"convex-function\",\"agents/assistant:startThread\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_b5a8f5c8dfbdc70dbcd69ef8",
+      "authorityKey": "[\"convex-function\",\"workflows.publicationFixture.listByName\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_b5c7ef77e1442c2c4abfddc0",
+      "authorityKey": "[\"convex-function\",\"workflows.generateCompleteBuildPack.approve\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_b64a8ffad5fa264d536fc957",
+      "authorityKey": "[\"command\",\"map\",null,\"cli\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_b6a30d0c8e60c46a526d11ef",
+      "authorityKey": "[\"http-route\",\"POST /api/brain.pages.createMarkdown\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_b6df775ab88d28362790cd5e",
+      "authorityKey": "[\"route\",\"apps/web/src/routeTree.gen.ts#/build-pack/$packId\",null,\"ui\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_b825c6cb4855e672ee947b7e",
+      "authorityKey": "[\"convex-function\",\"access/members:changeRole\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_b899d45384ab1bd675843ebf",
+      "authorityKey": "[\"convex-function\",\"workflows.publicationFixture.listSteps\",null,\"ui\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_b8c509851da6dca42cd7632f",
+      "authorityKey": "[\"convex-function\",\"brain.pages.createMarkdown\",null,\"ui\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_b90dc27ec64ef95ce057cb89",
+      "authorityKey": "[\"route\",\"apps/web/src/routeTree.gen.ts#/dashboard\",null,\"ui\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_ba231b3ecb8fcc9ea7733c51",
+      "authorityKey": "[\"route\",\"apps/web/src/routeTree.gen.ts#/analytics\",null,\"ui\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_bb6354030c027e77e7420929",
+      "authorityKey": "[\"convex-function\",\"ops/health:liveness\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_bc861de825680a4ce0b2da0c",
+      "authorityKey": "[\"convex-function\",\"capabilities/evaluateAppIdea:evaluateAppIdeaWithModel\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_bcede0f510e0ccde99aefa5c",
+      "authorityKey": "[\"convex-function\",\"workflows.publicationFixture.cleanup\",null,\"mcp\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_bd5d2b1a839411eaa38a1c8e",
+      "authorityKey": "[\"route\",\"apps/web/src/routeTree.gen.ts#/report/$evaluationId\",null,\"ui\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_beb27c1a5d96f709bb7e642d",
+      "authorityKey": "[\"convex-function\",\"ops/notifications:updatePreference\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_c09eaf11e7ecfaeb18841c7a",
+      "authorityKey": "[\"convex-function\",\"workflows.publicationFixture.startInteractive\",null,\"cli\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_c132f2d97cd2e0deb1f47be3",
+      "authorityKey": "[\"ui-action\",\"apps/web/src/features/public-funnel/report/report-library-route.tsx\",\"templateConfectRefs.public.capabilities.manageEvaluationReport.manageEvaluationReport\",\"ui\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_c3922348762254761dab9792",
+      "authorityKey": "[\"route\",\"apps/web/src/routeTree.gen.ts#/admin\",null,\"ui\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_c5a06b75947922e7fd73c4ae",
+      "authorityKey": "[\"convex-function\",\"ops.email.previewBroadcast\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_c7d5f24cc4bfd9de72056da4",
+      "authorityKey": "[\"route\",\"apps/web/src/routeTree.gen.ts#/runs\",null,\"ui\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_c7e198c36705d8f90fddccfb",
+      "authorityKey": "[\"command\",\"operations\",\"list\",\"cli\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_c7e5f4412f2a2ef3a96a4f24",
+      "authorityKey": "[\"convex-function\",\"access/provisioning:ensureProvisioned\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_c9028840292e802aefef3ea0",
+      "authorityKey": "[\"command\",\"workflow\",\"run\",\"cli\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_c99b561fd294de178c848f51",
+      "authorityKey": "[\"command\",\"help\",null,\"cli\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_cc53498972fb40aef0aed23d",
+      "authorityKey": "[\"command\",\"plan-check\",null,\"cli\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_cc95844614d7ee92dda2f9c6",
+      "authorityKey": "[\"command\",\"mcp\",\"call\",\"cli\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_cf01cede9f3375552d5127f3",
+      "authorityKey": "[\"route\",\"apps/web/src/routeTree.gen.ts#/api\",null,\"ui\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_d050382fec880f8adc65d23f",
+      "authorityKey": "[\"convex-function\",\"components/workflowAdmission/admission:bind\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_d31ca1882be796fec2fcb8a4",
+      "authorityKey": "[\"command\",\"impact\",null,\"cli\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_d359b3ccf8760bf51910626d",
+      "authorityKey": "[\"convex-function\",\"workflows.publicationFixture.startInteractive\",null,\"mcp\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_d3a0b0baa273c35e16b146c8",
+      "authorityKey": "[\"convex-function\",\"buildPacks/packs:startPack\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_d4741927893d11bd737ec803",
+      "authorityKey": "[\"ui-action\",\"apps/web/src/features/data-lifecycle/data-lifecycle-surface.tsx\",\"templateConfectRefs.public.ops.dataLifecycle.createDsarRequest\",\"ui\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_d4b5b605b8bc5978227b2d24",
+      "authorityKey": "[\"convex-function\",\"workflows/artifacts:get\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_d4c38ffa9ac699f7c2e95c33",
+      "authorityKey": "[\"convex-function\",\"ops.email.dispatchBroadcast\",null,\"ui\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_d557fef48946087a1c99b121",
+      "authorityKey": "[\"convex-function\",\"ops/transforms:registerDefinition\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_d5fb21f45961d01469f88672",
+      "authorityKey": "[\"route\",\"apps/web/src/routeTree.gen.ts#/agents\",null,\"ui\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_d60d80bb103f798b1c8beef8",
+      "authorityKey": "[\"ui-action\",\"apps/web/src/features/public-funnel/report/report-verification-route.tsx\",\"templateConfectRefs.public.capabilities.manageEvaluationReport.consumeReportEmailVerification\",\"ui\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_d703111a3896da83976c62b6",
+      "authorityKey": "[\"convex-function\",\"ops/versioning:markFreshness\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_d725da45937e28b01138307d",
+      "authorityKey": "[\"ui-action\",\"apps/web/src/features/public-funnel/report/report-revision-card.tsx\",\"templateConfectRefs.public.capabilities.manageEvaluationReport.reviseEvaluationReportWithModel\",\"ui\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_da4e6ca2443bff260d37074d",
+      "authorityKey": "[\"route\",\"apps/web/src/routeTree.gen.ts#/library\",null,\"ui\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_dd7e2bd5b96a6afe28ff5677",
+      "authorityKey": "[\"http-route\",\"POST /email/unsubscribe\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_de87fd799df5f7cc1ea07c92",
+      "authorityKey": "[\"convex-function\",\"workflows.generateCompleteBuildPack.status\",null,\"mcp\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_e035c162a0b2246af3887e4f",
+      "authorityKey": "[\"route\",\"apps/web/src/routeTree.gen.ts#/notifications\",null,\"ui\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_e13d51912156b318eefd9067",
+      "authorityKey": "[\"convex-function\",\"workflows.publicationFixture.startQueued\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_e2dfa3fb4d2222650f4b2a3e",
+      "authorityKey": "[\"command\",\"recipes\",null,\"cli\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_e5fef30f0428ef8ebc816e68",
+      "authorityKey": "[\"convex-function\",\"workflows.publicationFixture.startQueued\",null,\"cli\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_e657e4fe999e0903ce2ba195",
+      "authorityKey": "[\"convex-function\",\"capabilities/manageEvaluationReport:reviseEvaluationReportWithModel\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_e74d952d436a924031d9884d",
+      "authorityKey": "[\"convex-function\",\"workflows.generateCompleteBuildPack.start\",null,\"cli\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_e7a5b021332ae7d10017448b",
+      "authorityKey": "[\"convex-function\",\"capabilities/manageEvaluationReport:listEvaluationReportVersions\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_e7c29b7c1c22efc56137eb2a",
+      "authorityKey": "[\"convex-function\",\"brain.pages.createMarkdown\",null,\"cli\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_e7cd6294ae5ef66883249b55",
+      "authorityKey": "[\"command\",\"support-bundle\",null,\"cli\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_e9015d93b5bbacf92c62248b",
+      "authorityKey": "[\"route\",\"apps/web/src/routeTree.gen.ts#/terms\",null,\"ui\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_e9f6ba7ab6d2b31231e190a1",
+      "authorityKey": "[\"route\",\"apps/web/src/routeTree.gen.ts#/onboarding\",null,\"ui\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_ec6a66b6dc1f2e4ed03d10d2",
+      "authorityKey": "[\"http-route\",\"POST /deploy-authority/consume\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_ecc7dd07d743a97d508ee969",
+      "authorityKey": "[\"ui-action\",\"apps/web/src/features/public-funnel/report/report-ownership-card.tsx\",\"templateConfectRefs.public.capabilities.manageEvaluationReport.requestReportEmailVerification\",\"ui\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_eed682223b07afbb02c9a133",
+      "authorityKey": "[\"command\",\"scaffold\",null,\"cli\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_f32796fac71ee8e2095b6ac7",
+      "authorityKey": "[\"convex-function\",\"components/workflowAdmission/admission:reserve\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_f47c35b3ec2b809379a2999e",
+      "authorityKey": "[\"command\",\"maestro_scaffold_preview\",null,\"mcp\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_f624384fdbc88bf9b1bb3725",
+      "authorityKey": "[\"route\",\"apps/web/src/routeTree.gen.ts#/legal\",null,\"ui\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_f7074da30e7c7d84fdfb2d21",
+      "authorityKey": "[\"convex-function\",\"ops.dataLifecycle.createDsarRequest\",null,\"ui\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_f85542f5dae089d8ceb2cfd6",
+      "authorityKey": "[\"convex-function\",\"components/workflowDeadline/deadlines:completeReconcile\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_f8e7865c8ede7f2b17c4d38c",
+      "authorityKey": "[\"route\",\"apps/web/src/routeTree.gen.ts#/build-pack/$packId/\",null,\"ui\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_f8fe4014a72a86c125bb6b4f",
+      "authorityKey": "[\"convex-function\",\"access/members:remove\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_f9bd448a25ea5ec720ce9957",
+      "authorityKey": "[\"convex-function\",\"components/workflowDeadline/deadlines:current\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_fa733610f0914fb0f721be2f",
+      "authorityKey": "[\"convex-function\",\"ops.email.dispatchBroadcast\",null,\"cli\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_fb6e6cf0d91872f717e1f991",
+      "authorityKey": "[\"convex-function\",\"workflows.publicationFixture.status\",null,\"api\",\"auth_deny_all\"]"
+    },
+    {
+      "id": "legacy_fcad13561126711c118913b3",
+      "authorityKey": "[\"convex-function\",\"ops/knowledge:attachCitation\",null,\"api\",\"auth_deny_all\"]"
+    }
+  ]
+}
