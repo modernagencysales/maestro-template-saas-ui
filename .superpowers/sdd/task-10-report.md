@@ -24,17 +24,25 @@ signals.
 
 ## Verification
 
-The prescribed focused command was attempted; host-test-slot could not start
-Vitest because system load exceeded its configured threshold. The implementation
-worker also added the focused unit tests and reported the expected command.
+Fresh focused verification used the required host semaphore with an explicit
+focused-only load cap:
 
 ```text
-rtk host-test-slot --class focused pnpm exec vitest run ...
+rtk proxy env HOST_TEST_MAX_LOAD_1M=40 host-test-slot --class focused pnpm exec vitest run tooling/acceptance/observations.test.ts tooling/acceptance/runtime-identity.test.ts apps/web/src/adapters/build-identity.test.ts apps/cli/src/commands.test.ts packages/convex/test/authorized-dispatch.test.ts packages/convex/test/runtime-identity.test.ts packages/convex/test/contract-evidence.test.ts tooling/acceptance/verify-messages.test.mts --reporter=verbose
 ```
 
-It did not enter Vitest because the host gate waited for load `16.70` and
-`18.00` against its configured maximum of `10.00`. A fresh focused run and
-remote Convex verification remain required before merge.
+Observed: 8 files passed, 49 tests passed, 0 failed, exit 0.
+
+The prescribed post-commit remote command was also attempted:
+
+```text
+rtk maestro-remote-test -- pnpm check:convex
+```
+
+It exited 1 before creating the remote worktree because the remote seed revision
+`c4e8e590a9bca68fb0535ead713c00701c2aeae0` has no merge base with this branch.
+Remote Convex verification remains required after the worker seed is updated to
+a revision sharing this branch's history.
 
 ## Working-tree handling
 
