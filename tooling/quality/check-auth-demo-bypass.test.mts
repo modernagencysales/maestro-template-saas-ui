@@ -162,4 +162,24 @@ describe("check:auth-demo-bypass security posture scan", () => {
       },
     );
   });
+
+  it("rejects runtime code that reads generated admission outside the two guard adapters", async () => {
+    await withFixtureRepo(
+      {
+        ...safeFiles,
+        "apps/web/src/features/draft.ts": `
+          import { admittedJourneys } from "@maestro-template/template-core/generated/admittedJourneys";
+          export const enabled = admittedJourneys.journey_draft;
+        `,
+      },
+      async (repoRoot) => {
+        const result = await evaluateTemplateSecurityPosture(repoRoot);
+
+        expect(result.ok).toBe(false);
+        expect(result.failures.join("\n")).toContain(
+          "generated admission may only be read by",
+        );
+      },
+    );
+  });
 });

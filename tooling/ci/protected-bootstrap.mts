@@ -81,6 +81,11 @@ export type ProtectedControllerApi = {
   readonly github: ProtectedControllerEndpoint;
   readonly woodpecker: ProtectedControllerEndpoint;
   readonly controller: ProtectedControllerEndpoint;
+  readonly observeSecurityCodeownerApproval?: (input: {
+    readonly repository: string;
+    readonly pullRequestNumber: number;
+    readonly candidateCommit: string;
+  }) => Promise<Readonly<Record<string, unknown>>>;
 };
 
 function httpEndpoint(input: {
@@ -162,6 +167,11 @@ export function createProtectedControllerHttpAdapter(): ProtectedControllerApi {
     throw new Error("protected controller credentials are unavailable");
   if (controllerVersion !== "maestro.protected-ci/v1")
     throw new Error("unsupported protected controller API contract version");
+  const controller = httpEndpoint({
+    baseUrl: controllerUrl,
+    token: controllerToken,
+    contractVersion: controllerVersion,
+  });
   return {
     github: httpEndpoint({
       baseUrl: process.env.GITHUB_API_URL ?? "https://api.github.com",
@@ -171,11 +181,19 @@ export function createProtectedControllerHttpAdapter(): ProtectedControllerApi {
       baseUrl: process.env.WOODPECKER_SERVER ?? "https://ci.maestrogtm.com",
       token: woodpeckerToken,
     }),
-    controller: httpEndpoint({
-      baseUrl: controllerUrl,
-      token: controllerToken,
-      contractVersion: controllerVersion,
-    }),
+    controller,
+    observeSecurityCodeownerApproval: async (input) => {
+      const resourceId = `/v1/security-codeowner-approvals/${encodeURIComponent(input.repository)}/${input.pullRequestNumber}?candidate=${input.candidateCommit}`;
+      const observed = await controller.observe(
+        normalizeProtectedExternalDocument({
+          kind: "woodpecker-secret-reference",
+          resourceId,
+          canonicalBody: {},
+          sha256: `sha256:${"0".repeat(64)}`,
+        }),
+      );
+      return observed.canonicalBody;
+    },
   };
 }
 
@@ -467,6 +485,53 @@ async function observeDocument(
       "protected controller post-read operation binding mismatch",
     );
   return observed;
+}
+
+export async function observeSecurityCodeownerApproval(input: {
+  readonly repository: string;
+  readonly pullRequestNumber: number;
+  readonly candidateCommit: string;
+  readonly api?: ProtectedControllerApi;
+}): Promise<{
+  readonly repository: string;
+  readonly pullRequestNumber: number;
+  readonly candidateCommit: string;
+  readonly approver: string;
+}> {
+  if (!/^[a-f0-9]{40}$/u.test(input.candidateCommit))
+    throw new Error("security approval requires a full candidate commit OID");
+  if (
+    !Number.isSafeInteger(input.pullRequestNumber) ||
+    input.pullRequestNumber <= 0
+  )
+    throw new Error(
+      "security approval requires a positive pull request number",
+    );
+  const observe = input.api?.observeSecurityCodeownerApproval;
+  if (observe === undefined)
+    throw new Error(
+      "protected controller adapter is required; candidate input cannot assert security approval",
+    );
+  const body = await observe(input);
+  if (
+    body.repository !== input.repository ||
+    body.pullRequestNumber !== input.pullRequestNumber ||
+    body.candidateCommit !== input.candidateCommit ||
+    body.dedicatedAuthPolicyPr !== true ||
+    body.currentHeadApproved !== true ||
+    body.securityCodeownerApproved !== true ||
+    typeof body.approver !== "string" ||
+    body.approver.length === 0
+  )
+    throw new Error(
+      "auth-policy weakening requires a dedicated PR with current-head security CODEOWNER approval",
+    );
+  return {
+    repository: input.repository,
+    pullRequestNumber: input.pullRequestNumber,
+    candidateCommit: input.candidateCommit,
+    approver: body.approver,
+  };
 }
 
 /**
@@ -798,13 +863,13 @@ export async function runProtectedTransition(input: {
     throw new Error(
       "protected controller adapter is required; candidate mode cannot access external writes",
     );
-  if (input.journalPath)
-    saveProtectedTransitionJournal(input.journalPath, input.journal);
+  const journalPath = input.journalPath;
+  if (journalPath) saveProtectedTransitionJournal(journalPath, input.journal);
   await executeProtectedTransition({
     ...input,
     confirmation: input.confirmation,
-    persistJournal: input.journalPath
-      ? () => saveProtectedTransitionJournal(input.journalPath!, input.journal)
+    persistJournal: journalPath
+      ? () => saveProtectedTransitionJournal(journalPath, input.journal)
       : undefined,
   });
   (
@@ -813,8 +878,7 @@ export async function runProtectedTransition(input: {
     ...input.journal.consumedConfirmations,
     input.confirmation,
   ];
-  if (input.journalPath)
-    saveProtectedTransitionJournal(input.journalPath, input.journal);
+  if (journalPath) saveProtectedTransitionJournal(journalPath, input.journal);
   return { mode: "applied", ...plan };
 }
 
@@ -1155,6 +1219,7 @@ async function main(): Promise<void> {
     )
       throw new Error("rollback requires a known --step");
     const stepId = action === "rollback" ? rollbackStep : action;
+    if (stepId === undefined) throw new Error("transition step is required");
     const hasIntent = journal.steps
       .find((entry) => entry.id === stepId)
       ?.progress?.some(
@@ -1167,7 +1232,7 @@ async function main(): Promise<void> {
       await reconcileProtectedTransitionJournal({
         journal,
         api,
-        stepId: stepId!,
+        stepId,
         persistJournal: () =>
           saveProtectedTransitionJournal(journalPath, journal),
       });

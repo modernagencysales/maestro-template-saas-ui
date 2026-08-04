@@ -1,6 +1,10 @@
-import { readFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { isDirectRun } from "../quality/src/direct-run.mts";
+import {
+  compileContractInventory,
+  renderAdmittedJourneys,
+} from "./contract-inventory";
 
 export const CUCUMBER_CONFIGURATION_SOURCE = `module.exports = {
   default: {
@@ -118,6 +122,10 @@ export function validateCucumberPackageVersions(
 }
 
 async function main(): Promise<void> {
+  const args = process.argv.slice(2);
+  if (args.some((argument) => argument !== "--write") || args.length > 1)
+    throw new Error(`unsupported check-contracts arguments: ${args.join(" ")}`);
+  const write = args[0] === "--write";
   const [source, rootSource, templateCoreSource] = await Promise.all([
     readFile(resolve("cucumber.cjs"), "utf8"),
     readFile(resolve("package.json"), "utf8"),
@@ -137,14 +145,59 @@ async function main(): Promise<void> {
     process.exitCode = 1;
     return;
   }
+  const projection = await synchronizeAdmittedJourneys({
+    root: process.cwd(),
+    write,
+  });
   console.log(
     `Cucumber contracts OK: ${Object.entries(versions.versions)
       .map(([name, version]) => `${name}@${version}`)
       .join(
         ", ",
-      )}; keys=${Object.keys(configuration.value).join(",")}; require=${configuration.value.require.join(",")}`,
+      )}; keys=${Object.keys(configuration.value).join(",")}; require=${configuration.value.require.join(",")}; status=${projection.status}; admittedPickles=${projection.admittedPickles}`,
   );
 }
+
+export const synchronizeAdmittedJourneys = async (input: {
+  readonly root: string;
+  readonly write: boolean;
+}): Promise<{
+  readonly status: "contracts-present" | "no-admitted-contracts";
+  readonly admittedPickles: number;
+  readonly wrote: boolean;
+}> => {
+  const inventory = compileContractInventory({
+    root: input.root,
+    protectedBaseSha: "",
+    mode: "static",
+  });
+  const expected = renderAdmittedJourneys(inventory);
+  const path = resolve(
+    input.root,
+    "packages/template-core/src/generated/admittedJourneys.ts",
+  );
+  if (input.write) await writeFile(path, expected, "utf8");
+  else {
+    let actual: string;
+    try {
+      actual = await readFile(path, "utf8");
+    } catch {
+      throw new Error(`admitted journey projection drift: ${path} is missing`);
+    }
+    if (actual !== expected)
+      throw new Error(
+        "admitted journey projection drift; run pnpm exec tsx tooling/acceptance/check-contracts.mts --write",
+      );
+  }
+  return {
+    status:
+      inventory.admittedPickleKeys.length === 0
+        ? "no-admitted-contracts"
+        : "contracts-present",
+    admittedPickles: inventory.admittedPickleKeys.length,
+    wrote: input.write,
+  };
+};
 
 if (isDirectRun(import.meta.url)) {
   await main();

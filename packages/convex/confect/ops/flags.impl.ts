@@ -9,6 +9,7 @@ import databaseSchema from "../_generated/schema";
 import { DatabaseReader, DatabaseWriter } from "../_generated/services";
 import { roleAtLeast, type Role } from "../access/roles";
 import { requireWorkspaceAccess } from "../capabilities/_kit/workspaceAccess";
+import { applyFeatureFlagAfterAdmission } from "../capabilities/_kit/surfaces";
 import { ValidationFailed } from "../errors";
 import flags from "./flags.spec";
 
@@ -258,7 +259,8 @@ const toPolicyReturn = (policy: FeatureFlagPolicy) => ({
 
 const evaluatePolicy = (policy: FeatureFlagPolicy, role: Role) => {
   const rolloutBucket = hashToBucket(`${policy.key}:${policy.workspaceId}`);
-  const enabled = policy.enabled;
+  // Admission is the outer authority. Existing policy state may only disable it.
+  const enabled = applyFeatureFlagAfterAdmission(true, policy.enabled);
 
   if (!enabled) {
     return decision(policy, false, "definition-disabled", rolloutBucket);

@@ -108,6 +108,24 @@ function checkWorkspaceMemberGuards(
   return failures;
 }
 
+const admissionReaders = new Set([
+  "apps/web/src/navigation/admitted-action.ts",
+  "packages/convex/confect/capabilities/_kit/admissionGuard.ts",
+]);
+
+function checkAdmissionProjectionReaders(
+  files: readonly { readonly path: string; readonly content: string }[],
+): string[] {
+  return files.flatMap((file) =>
+    file.content.includes("generated/admittedJourneys") &&
+    !admissionReaders.has(file.path)
+      ? [
+          `${file.path}: generated admission may only be read by the UI registration and server admission guard adapters.`,
+        ]
+      : [],
+  );
+}
+
 function checkHttpFailClosedOrder(httpSource: string): string[] {
   const apiEntryIndex = httpSource.indexOf("const apiEntry");
   const operationIndex =
@@ -161,6 +179,7 @@ export async function evaluateTemplateSecurityPosture(
 
   failures.push(...checkAuthBypass(runtimeFiles));
   failures.push(...checkWorkspaceMemberGuards(runtimeFiles));
+  failures.push(...checkAdmissionProjectionReaders(runtimeFiles));
   failures.push(
     ...checkHttpFailClosedOrder(
       await readRepoFile(repoRoot, "packages/convex/confect/http.ts"),

@@ -12,6 +12,7 @@ import {
   expectedProtectedTransitionDigest,
   loadProtectedTransitionJournal,
   normalizeProtectedExternalDocument,
+  observeSecurityCodeownerApproval,
   observeProtectedBootstrap,
   planProtectedTransition,
   reconcileProtectedTransitionJournal,
@@ -110,6 +111,59 @@ const journal: ProtectedTransitionJournal = {
 };
 
 describe("protected CI bootstrap", () => {
+  it("accepts auth weakening only from a controller-observed current-head security approval", async () => {
+    const approval = {
+      repository: "modernagencysales/maestro-template-saas-ui",
+      pullRequestNumber: 42,
+      candidateCommit: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      dedicatedAuthPolicyPr: true,
+      currentHeadApproved: true,
+      securityCodeownerApproved: true,
+      approver: "security-owner@example.test",
+    } as const;
+    const controller = memoryController([]);
+    const approvedApi: ProtectedControllerApi = {
+      ...controller.api,
+      observeSecurityCodeownerApproval: async () => approval,
+    };
+
+    await expect(
+      observeSecurityCodeownerApproval({
+        repository: "modernagencysales/maestro-template-saas-ui",
+        pullRequestNumber: 42,
+        candidateCommit: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        api: approvedApi,
+      }),
+    ).resolves.toEqual({
+      repository: "modernagencysales/maestro-template-saas-ui",
+      pullRequestNumber: 42,
+      candidateCommit: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      approver: "security-owner@example.test",
+    });
+    await expect(
+      observeSecurityCodeownerApproval({
+        repository: "modernagencysales/maestro-template-saas-ui",
+        pullRequestNumber: 42,
+        candidateCommit: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      }),
+    ).rejects.toThrow(/protected controller adapter is required/u);
+
+    await expect(
+      observeSecurityCodeownerApproval({
+        repository: "modernagencysales/maestro-template-saas-ui",
+        pullRequestNumber: 42,
+        candidateCommit: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        api: {
+          ...controller.api,
+          observeSecurityCodeownerApproval: async () => ({
+            ...approval,
+            currentHeadApproved: false,
+          }),
+        },
+      }),
+    ).rejects.toThrow(/current-head security CODEOWNER approval/u);
+  });
+
   it("rejects controller resource paths that escape the configured origin", async () => {
     vi.stubEnv("GITHUB_TOKEN", "test-token");
     vi.stubEnv("WOODPECKER_TOKEN", "test-token");

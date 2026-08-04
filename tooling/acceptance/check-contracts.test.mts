@@ -1,12 +1,13 @@
 import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   CUCUMBER_CONFIGURATION_SOURCE,
   validateCucumberConfigurationSource,
   validateCucumberPackageVersions,
+  synchronizeAdmittedJourneys,
 } from "./check-contracts.mts";
 
 const validConfig = {
@@ -345,4 +346,63 @@ it("keeps configured support when CLI require is additive and never loads candid
   expect(existsSync(configuredMarker)).toBe(true);
   expect(existsSync(additiveMarker)).toBe(true);
   expect(existsSync(stolenMarker)).toBe(false);
+});
+
+it("writes only the byte-exact admitted-journey projection and rejects drift without --write", async () => {
+  const fixtureRoot = await mkdtemp(
+    join(workspaceRoot, ".contract-projection-"),
+  );
+  temporaryRoots.push(fixtureRoot);
+  await Promise.all([
+    mkdir(join(fixtureRoot, "features"), { recursive: true }),
+    mkdir(join(fixtureRoot, "packages/template-core/src/generated"), {
+      recursive: true,
+    }),
+  ]);
+  await Promise.all([
+    writeFile(
+      join(fixtureRoot, "features/draft.feature"),
+      "@journey_draft @assembling\nFeature: Draft\n  @ui @covers_future\n  Scenario: Draft\n    When it runs\n    Then it works\n",
+    ),
+    writeFile(
+      join(
+        fixtureRoot,
+        "packages/template-core/src/generated/public-surfaces.generated.json",
+      ),
+      '{"surfaces":[]}\n',
+    ),
+    writeFile(
+      join(
+        fixtureRoot,
+        "packages/template-core/src/generated/admittedJourneys.ts",
+      ),
+      "stale\n",
+    ),
+  ]);
+
+  await expect(
+    synchronizeAdmittedJourneys({ root: fixtureRoot, write: false }),
+  ).rejects.toThrow(/projection drift/u);
+  const first = await synchronizeAdmittedJourneys({
+    root: fixtureRoot,
+    write: true,
+  });
+  const path = join(
+    fixtureRoot,
+    "packages/template-core/src/generated/admittedJourneys.ts",
+  );
+  const bytes = await readFile(path, "utf8");
+  const second = await synchronizeAdmittedJourneys({
+    root: fixtureRoot,
+    write: true,
+  });
+
+  expect(first).toEqual({
+    status: "no-admitted-contracts",
+    admittedPickles: 0,
+    wrote: true,
+  });
+  expect(second).toEqual(first);
+  expect(await readFile(path, "utf8")).toBe(bytes);
+  expect(bytes).toContain('"journey_draft": false');
 });

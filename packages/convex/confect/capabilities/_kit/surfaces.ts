@@ -1,5 +1,6 @@
 import * as Schema from "effect/Schema";
 import { type Surface as SurfaceType } from "./principal";
+import type { PublicSurface } from "@maestro-template/template-core/publicSurface";
 
 export const SurfacePolicy = Schema.Struct({
   web: Schema.Boolean,
@@ -49,3 +50,15 @@ export const allSurfaces = [
   "workflow",
   "internal",
 ] as const satisfies readonly SurfaceType[];
+
+export const isActivationAdmitted = (
+  surface: PublicSurface,
+  journeys: Readonly<Record<string, boolean>>,
+): boolean =>
+  surface.activationJourneyId === undefined ||
+  journeys[surface.activationJourneyId] === true;
+
+export const applyFeatureFlagAfterAdmission = (
+  admitted: boolean,
+  featureFlagEnabled: boolean,
+): boolean => admitted && featureFlagEnabled;

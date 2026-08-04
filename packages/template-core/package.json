@@ -17,6 +17,10 @@
       "types": "./src/generated/publicSurfaces.ts",
       "default": "./src/generated/publicSurfaces.ts"
     },
+    "./generated/admittedJourneys": {
+      "types": "./src/generated/admittedJourneys.ts",
+      "default": "./src/generated/admittedJourneys.ts"
+    },
     "./systemCatalog": {
       "types": "./src/systemCatalog.ts",
       "default": "./src/systemCatalog.ts"
@@ -32,6 +36,10 @@
     "./publicSurface": {
       "types": "./src/publicSurface.ts",
       "default": "./src/publicSurface.ts"
+    },
+    "./product-contract": {
+      "types": "./src/productContract.ts",
+      "default": "./src/productContract.ts"
     },
     "./templateInstance": {
       "types": "./src/templateInstance/index.ts",
