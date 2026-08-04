@@ -135,8 +135,11 @@ creating a second authority.
 - W1's exception is an attested `bootstrap-observation` mode bound to one
   immutable protected-base SHA, one controller-issued epoch, and an expiry
   recorded in the transition journal; it may run only while the base inventory
-  has zero admitted Pickles. The controller flips the mode off as soon as C11b
-  lands and tests reject the same mode on a later base. Maestro M-pre/M0b use a
+  and candidate selection both have zero admitted Pickles. A lifecycle-only
+  admission candidate with a nonzero selected Pickle set runs authoritative even
+  when its protected base has zero admitted Pickles, allowing C11b/M2 to
+  establish the first admission. The controller flips the mode off after that
+  merge and tests reject the same mode on a later base. Maestro M-pre/M0b use a
   separately attested `target-bootstrap-observation` window with the same
   exact-base/expiry rules; neither window can authorize admission or release.
 - The authoritative runtime target is generated from the protected recipe and
@@ -689,6 +692,7 @@ export type ManifestInspectionResult = {
   readonly sourceDigest: `sha256:${string}`;
   readonly registryDigest: `sha256:${string}`;
   readonly operations: readonly Readonly<Record<string, unknown>>[];
+  readonly controllerAttestation: `cose:${string}`;
 };
 
 export function inspectCandidateManifests(input: {
@@ -696,6 +700,11 @@ export function inspectCandidateManifests(input: {
   readonly manifestPaths: readonly string[];
 }): ManifestInspectionResult;
 ```
+
+The sandbox returns unsigned bounded data; the protected controller validates
+the schema/source digest independently, then mints `controllerAttestation` over
+the result and run nonce. The sandbox never receives signing material. Replay,
+tamper, and cross-run-copy tests must fail before inventory generation.
 
 - [ ] **Step 0: Keep bootstrap development PR-free.** Freeze merges and develop
       Steps 1-6 in the isolated local worktree without opening a pull request or
@@ -3901,8 +3910,11 @@ the first normal protected run that must select at least one Pickle.
   Run:
   `rtk host-test-slot --class focused pnpm exec vitest run tooling/acceptance/contract-inventory.test.ts tooling/ci/mergeCandidate.test.mts`
 
-  Expected: the classifier returns `admission`; removing the projection,
-  hand-editing it, or changing Feature prose/steps returns `invalid-mixed`.
+      Expected: the classifier returns `admission`; removing the projection,
+          hand-editing it, or changing Feature prose/steps returns `invalid-mixed`.
+          The authoritative controller test also proves that a zero-admitted
+          protected base plus a nonzero admission candidate selects authoritative
+          mode, while a zero/zero candidate selects only bootstrap-observation.
 
 - [ ] **Step 4: Commit and admit through batch-one merge queue.**
 
@@ -4056,7 +4068,9 @@ checkout.
   `packages/convex/convex/productContracts/bootstrap.test.ts`
 - Modify through preimage-bound `M0` integration:
   `packages/convex/convex/adapters/headlessTransportExecution.ts`
-- Modify generated through `M0`: `packages/convex/convex/_generated/**`
+- Modify exact generated files listed in the sealed P1 output manifest and
+  copied into M0's `tooling/acceptance/generated-output-manifest.json`; each
+  path and digest is staged explicitly, never as a directory glob.
 - Create through preimage-bound `M0` integration:
   `tooling/maestro-cli/src/product-contract-identity.ts`
 - Create through preimage-bound `M0` integration:
@@ -4427,6 +4441,11 @@ transports.
   CLI, cross-surface, auth, tenant, runtime identity, exact Messages, and every
   older admitted journey pass for the exact merge-group tuple.
 
+  The M2 controller test asserts that this nonzero candidate selection runs in
+  authoritative mode even if the protected base has no admitted journey; after
+  the merge, `target-bootstrap-observation` is rejected for the same target base
+  and all subsequent runs require normal authoritative acceptance.
+
   ```bash
   rtk git add features/brain_grounded_content.feature .maestro/product-contracts/generated/admittedJourneys.ts
   rtk git commit -m "test: admit brain grounded content journey"
@@ -4521,10 +4540,10 @@ any deletion on a weaker evidence set.
       insufficient.
 
       Before deletion, compare the retained baseline authority-key set with
-              C11b's admitted per-entrypoint coverage (UI, CLI, auth, authorization,
-              tenant, and cross-surface). Any baseline key without an admitted proof,
-              or any admitted key absent from the baseline closure, fails the guard and
-              keeps the legacy baseline machinery in place.
+                  C11b's admitted per-entrypoint coverage (UI, CLI, auth, authorization,
+                  tenant, and cross-surface). Any baseline key without an admitted proof,
+                  or any admitted key absent from the baseline closure, fails the guard and
+                  keeps the legacy baseline machinery in place.
 
 - [ ] **Step 2: Run red.**
 
