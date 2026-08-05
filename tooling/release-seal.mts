@@ -55,7 +55,7 @@ export type ReleaseReadinessPlan = Readonly<{
   blueprintPath: string;
   publicDefaultAdvanceAllowed: boolean;
 }>;
-const CURRENT_PUBLIC_DEFAULT_VERSION = "0.2.0-alpha.3";
+const CURRENT_PUBLIC_DEFAULT_VERSION = "0.2.0-alpha.2";
 const root = realpathSync(fileURLToPath(new URL("../", import.meta.url)));
 const hash = (bytes: string | Buffer): string =>
   `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
@@ -698,7 +698,11 @@ async function build(args: Args): Promise<readonly Output[]> {
       .filter((operation) => operation.ownership === "template-owned")
       .map((operation) => [operation.path, operation]),
   );
-  const managed = new Set([...currentTemplate.keys(), ...oldKinds.keys()]);
+  const managed = new Set([
+    ...currentTemplate.keys(),
+    ...priorHashes.keys(),
+    ...oldKinds.keys(),
+  ]);
   const operations = [...managed].sort().flatMap((path) => {
     const afterHash = currentTemplate.get(path);
     const beforeHash = priorHashes.get(path);
