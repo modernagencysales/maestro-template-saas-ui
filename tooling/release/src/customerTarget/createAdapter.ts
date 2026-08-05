@@ -9,6 +9,7 @@ import {
 import {
   CustomerReleaseAdapterError,
   assertReviewedBlueprintTargetPlan,
+  blueprintTargetPlanDigest,
   failure,
   isObject,
   sha256,
@@ -34,6 +35,7 @@ export type {
   CustomerReleaseAdapterFacts,
   CustomerReleaseAdapterOptions,
 } from "./createAdapter.contract.js";
+export { blueprintTargetPlanDigest } from "./createAdapter.contract.js";
 
 export type CustomerCurrentAdapterOptions = CustomerReleaseAdapterOptions & {
   readonly blueprintId: string;

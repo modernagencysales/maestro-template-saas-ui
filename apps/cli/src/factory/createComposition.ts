@@ -1,9 +1,12 @@
 import { createCustomerCreateCommand } from "@maestro-template/agent-pack";
 import {
-  buildSaasApplicationAlpha2TargetPlan,
   buildSaasApplicationTargetPlan,
 } from "@maestro-template/generators";
-import { createCustomerReleaseAdapter } from "@maestro-template/release-tooling/customer-create";
+import {
+  blueprintTargetPlanDigest,
+  createCustomerReleaseAdapter,
+} from "@maestro-template/release-tooling/customer-create";
+import { readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -12,15 +15,13 @@ import { createCreateCliHandler } from "./create";
 const TRUSTED_REPOSITORY_ROOT = fileURLToPath(
   new URL("../../../../", import.meta.url),
 );
-const BASE_MANIFEST_PATH = "releases/v0.2.0-alpha.3/manifest.json";
+const BASE_MANIFEST_PATH = "releases/v0.2.0-alpha.2/manifest.json";
 const BASE_MANIFEST_CHECKSUM =
-  "sha256:0c94be1a7b2042c48263c0e0dbe5a6f18bf38d0f2a299dd00e924e5a16c497d8";
+  "sha256:e0f4bc649b0aef4ffc6c59bd53e50204963e395116b7165dc4a1de3bf258be11";
 const BASE_BLUEPRINT_CHECKSUM =
-  "sha256:5f3e9c22f1340641adb484cff62f96145c7a9a10f960c3a5c963f784a8e94813";
-const HARDENED_BLUEPRINT_CHECKSUM =
-  "sha256:52e8bb06ff821baf8980b67279e69089d028d19c55c365518d4410b5778849d9";
-const BASE_TAG = "maestro-template-v0.2.0-alpha.3";
-const BASE_COMMIT = "e7b2484ddec297908a551782656215fedd0fe90d";
+  "sha256:5b5b40f73b7373907590090872beab7f2143c70f1654463982b0dfe8918324d3";
+const BASE_TAG = "maestro-template-v0.2.0-alpha.2";
+const BASE_COMMIT = "3aefd456354b344b9595bddc44fc0782240e2b7d";
 
 export type CustomerCompositionSource = Readonly<{
   repositoryRoot: string;
@@ -42,14 +43,14 @@ export const CURRENT_PUBLIC_SOURCE = Object.freeze({
   sourceCommit: BASE_COMMIT,
   blueprintManifestPath: resolve(
     TRUSTED_REPOSITORY_ROOT,
-    "releases/v0.2.0-alpha.3/blueprints/saas-application.json",
+    "releases/v0.2.0-alpha.2/blueprints/saas-application.json",
   ),
   blueprintManifestChecksum: BASE_BLUEPRINT_CHECKSUM,
   blueprintAuthorityManifestPath: resolve(
     TRUSTED_REPOSITORY_ROOT,
-    "releases/v0.2.0-alpha.3/hardening/saas-application.json",
+    "releases/v0.2.0-alpha.2/blueprints/saas-application.json",
   ),
-  blueprintAuthorityManifestChecksum: HARDENED_BLUEPRINT_CHECKSUM,
+  blueprintAuthorityManifestChecksum: BASE_BLUEPRINT_CHECKSUM,
 }) satisfies CustomerCompositionSource;
 
 export function createCustomerCreateComposition(
@@ -59,15 +60,32 @@ export function createCustomerCreateComposition(
     readonly firstOutcome?: string;
   }) => ReturnType<
     typeof buildSaasApplicationTargetPlan
-  > = buildSaasApplicationAlpha2TargetPlan,
+  > = buildSaasApplicationTargetPlan,
 ) {
+  const authority = JSON.parse(
+    readFileSync(source.blueprintManifestPath, "utf8"),
+  ) as { readonly entries: readonly { readonly path: string; readonly replaces?: "copy" | "generate" }[] };
+  const replacements = new Map(
+    authority.entries.map(({ path, replaces }) => [path, replaces] as const),
+  );
   const release = createCustomerReleaseAdapter({
     ...source,
     homeRoot: homedir(),
   });
   const command = createCustomerCreateCommand({
-    blueprintTargetPlan: ({ name, outcome }) =>
-      buildBlueprintTargetPlan({ name, firstOutcome: outcome }),
+    blueprintTargetPlan: ({ name, outcome }) => {
+      const plan = buildBlueprintTargetPlan({ name, firstOutcome: outcome });
+      const entries = plan.entries.map((entry) => {
+        const { replaces: _replaces, ...rest } = entry;
+        const replaces = replacements.get(entry.path);
+        return replaces === undefined ? rest : { ...rest, replaces };
+      });
+      const composed = {
+        ...plan,
+        entries,
+      };
+      return { ...composed, digest: blueprintTargetPlanDigest(composed) };
+    },
     release: {
       prepare: (request) =>
         release.prepare({

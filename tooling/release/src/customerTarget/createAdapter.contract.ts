@@ -95,6 +95,17 @@ const targetEntryIdentity = (
   ...(entry.replaces === undefined ? {} : { replaces: entry.replaces }),
 });
 
+export const blueprintTargetPlanDigest = (value: BlueprintTargetPlan): string =>
+  sha256(
+    JSON.stringify({
+      schemaVersion: value.schemaVersion,
+      id: value.id,
+      provenance: value.provenance,
+      registrations: value.registrations,
+      entries: value.entries.map(targetEntryIdentity),
+    }),
+  );
+
 export function validateBlueprintTargetPlan(
   value: BlueprintTargetPlan,
 ): BlueprintTargetPlan {
@@ -134,14 +145,7 @@ export function validateBlueprintTargetPlan(
       "Blueprint target plan is incomplete or contains drift.",
     );
   }
-  const identity = {
-    schemaVersion: value.schemaVersion,
-    id: value.id,
-    provenance: value.provenance,
-    registrations: value.registrations,
-    entries: value.entries.map(targetEntryIdentity),
-  };
-  if (sha256(JSON.stringify(identity)) !== value.digest) {
+  if (blueprintTargetPlanDigest(value) !== value.digest) {
     throw new CustomerReleaseAdapterError(
       "release-unavailable",
       "Blueprint target plan digest does not match its exact operations.",

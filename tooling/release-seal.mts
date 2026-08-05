@@ -54,7 +54,7 @@ export type ReleaseReadinessPlan = Readonly<{
   blueprintPath: string;
   publicDefaultAdvanceAllowed: boolean;
 }>;
-const CURRENT_PUBLIC_DEFAULT_VERSION = "0.2.0-alpha.3";
+const CURRENT_PUBLIC_DEFAULT_VERSION = "0.2.0-alpha.2";
 const root = realpathSync(fileURLToPath(new URL("../", import.meta.url)));
 const hash = (bytes: string | Buffer): string =>
   `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
@@ -604,27 +604,6 @@ async function build(args: Args): Promise<readonly Output[]> {
   else assertOutputs(outputs);
 
   const reviewedSourcePaths = sourcePaths(args.sourceCommit);
-  const reviewedSourcePathSet = new Set(reviewedSourcePaths);
-  const blueprintValue = {
-    schemaVersion: plan.schemaVersion,
-    id: plan.id,
-    provenance: plan.provenance,
-    projectionSource: { sourceCommit: args.sourceCommit, assets },
-    registrations: plan.registrations,
-    parameterizedEntries: plan.parameterizedEntries,
-    entries: plan.entries.map((entry) => {
-      const value = Object.fromEntries(
-        Object.entries(entry).filter(([key]) => key !== "content"),
-      );
-      return reviewedSourcePathSet.has(entry.path) &&
-        classifyCustomerSourcePath(entry.path)?.action === "copy"
-        ? { ...value, replaces: "copy" }
-        : value;
-    }),
-  } as Json;
-  const blueprintBytes = await json(blueprintValue);
-  outputs.push({ path: blueprintPath, bytes: blueprintBytes });
-
   const additionalPaths = buildReviewedAdditionalPaths({
     value: current.additionalPaths,
     sourcePaths: reviewedSourcePaths,
@@ -639,6 +618,28 @@ async function build(args: Args): Promise<readonly Output[]> {
     exclusions,
     overrides: additionalPaths,
   });
+  const copiedSourcePaths = new Set(
+    inventory.filter(({ action }) => action === "copy").map(({ path }) => path),
+  );
+  const blueprintValue = {
+    schemaVersion: plan.schemaVersion,
+    id: plan.id,
+    provenance: plan.provenance,
+    projectionSource: { sourceCommit: args.sourceCommit, assets },
+    registrations: plan.registrations,
+    parameterizedEntries: plan.parameterizedEntries,
+    entries: plan.entries.map((entry) => {
+      const value = Object.fromEntries(
+        Object.entries(entry).filter(([key]) => key !== "content"),
+      );
+      return copiedSourcePaths.has(entry.path)
+        ? { ...value, replaces: "copy" }
+        : value;
+    }),
+  } as Json;
+  const blueprintBytes = await json(blueprintValue);
+  outputs.push({ path: blueprintPath, bytes: blueprintBytes });
+
   const currentTemplate = new Map(
     inventory
       .filter((entry) => entry.ownership === "template-owned")
@@ -819,7 +820,7 @@ async function build(args: Args): Promise<readonly Output[]> {
       `const BASE_TAG = "${readiness.tag}";`,
     )
     .replace(
-      /releases\/v[^/]+\/blueprints\/saas-application\.json/u,
+      /releases\/v[^/]+\/blueprints\/saas-application\.json/gu,
       `${releaseRoot}/blueprints/saas-application.json`,
     )
     .replace(
