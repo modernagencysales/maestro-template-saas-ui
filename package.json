@@ -113,7 +113,7 @@
     "check:unresolved-review-threads": "tsx tooling/quality/check-unresolved-review-threads.mts",
     "check:merge-conflicts": "tsx tooling/quality/check-merge-conflicts.mts",
     "check:qlty": "tsx tooling/quality/check-qlty.mts",
-    "acceptance:check": "tsx tooling/acceptance/check-contracts.mts",
+    "acceptance:check": "pnpm acceptance:features && cucumber-js --config cucumber.cjs --dry-run",
     "acceptance:features": "tsx tooling/acceptance/check-features.mts",
     "acceptance:cucumber": "cucumber-js --config cucumber.cjs",
     "contract-review": "tsx tooling/quality/contract-review.mts",

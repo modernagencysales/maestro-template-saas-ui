@@ -1,59 +1,63 @@
 import { describe, expect, it } from "vitest";
 import { compileFeatureContracts } from "./check-features.mts";
 
-const surfaces = ["lead-magnet-builder"];
-const valid = `@journey_custom-blueprint @assembling @covers_lead-magnet-builder
-Feature: Custom blueprint
-  Scenario: Visitor sees a composed blueprint
-    Given a qualified visitor
-    When they request a blueprint
-    Then the blueprint is visible
+const required = `@required
+Feature: Manage records
+  @cross_surface
+  Scenario: Create in the app and read from the CLI
+    When I create a record in the app
+    Then the CLI lists the record
 `;
 
 describe("static feature contracts", () => {
-  it("compiles journey identity and lifecycle", () => {
-    expect(compileFeatureContracts(valid, surfaces)).toMatchObject({
+  it("accepts required cross-surface and wip single-surface contracts", () => {
+    expect(compileFeatureContracts(required)).toEqual({
       ok: true,
-      journeys: [{ id: "custom-blueprint", lifecycle: "assembling" }],
+      findings: [],
     });
-  });
-
-  it("requires one journey tag", () => {
     expect(
       compileFeatureContracts(
-        valid.replace("@journey_custom-blueprint ", ""),
-        surfaces,
+        required.replace("@required", "@wip").replace("@cross_surface", "@ui"),
       ),
-    ).toMatchObject({
-      ok: false,
-      findings: [expect.stringMatching(/exactly one @journey_/)],
-    });
+    ).toEqual({ ok: true, findings: [] });
   });
 
-  it("requires one lifecycle tag", () => {
-    expect(
-      compileFeatureContracts(
-        valid.replace("@assembling", "@assembling @admitted"),
-        surfaces,
-      ),
-    ).toMatchObject({
-      ok: false,
-      findings: [expect.stringMatching(/exactly one lifecycle tag/)],
-    });
+  it("reports invalid Gherkin", () => {
+    expect(compileFeatureContracts("not gherkin").findings).toContainEqual(
+      expect.stringMatching(/^invalid Gherkin:/),
+    );
   });
 
-  it("rejects unknown public surfaces and implementation steps", () => {
+  it("requires exactly one feature lifecycle tag", () => {
+    expect(
+      compileFeatureContracts(required.replace("@required\n", "")).findings,
+    ).toContain("feature requires exactly one @wip or @required tag");
+    expect(
+      compileFeatureContracts(required.replace("@required", "@wip @required"))
+        .findings,
+    ).toContain("feature requires exactly one @wip or @required tag");
+  });
+
+  it("requires exactly one interaction tag on every scenario", () => {
+    expect(
+      compileFeatureContracts(required.replace("  @cross_surface\n", ""))
+        .findings,
+    ).toContain(
+      'scenario "Create in the app and read from the CLI" requires exactly one @ui, @cli, or @cross_surface tag',
+    );
     expect(
       compileFeatureContracts(
-        valid.replace("lead-magnet-builder", "database"),
-        surfaces,
+        required.replace("@cross_surface", "@cross_surface @ui"),
       ).findings,
-    ).toContainEqual(expect.stringMatching(/unknown public surface/));
+    ).toContain(
+      'scenario "Create in the app and read from the CLI" requires exactly one @ui, @cli, or @cross_surface tag',
+    );
+  });
+
+  it("requires a cross-surface scenario for required features", () => {
     expect(
-      compileFeatureContracts(
-        valid.replace("a qualified visitor", "the users database table"),
-        surfaces,
-      ).findings,
-    ).toContainEqual(expect.stringMatching(/implementation instruction/));
+      compileFeatureContracts(required.replace("@cross_surface", "@ui"))
+        .findings,
+    ).toContain("required feature requires a @cross_surface scenario");
   });
 });
