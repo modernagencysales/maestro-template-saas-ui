@@ -148,10 +148,20 @@ export const verifyApiKey = async (input: {
   readonly rows: readonly ApiKeyRow[];
   readonly nowMs: number;
   readonly requiredScope: ApiKeyScope;
+}): Promise<ApiKeyVerificationResult> =>
+  verifyApiKeyHash({
+    ...input,
+    presentedHash: await sha256Base64Url(input.presentedKey),
+  });
+
+export const verifyApiKeyHash = async (input: {
+  readonly presentedHash: string;
+  readonly rows: readonly ApiKeyRow[];
+  readonly nowMs: number;
+  readonly requiredScope: ApiKeyScope;
 }): Promise<ApiKeyVerificationResult> => {
-  const presentedHash = await sha256Base64Url(input.presentedKey);
   const row = input.rows.find((candidate) =>
-    constantTimeEqual(candidate.keyHash, presentedHash),
+    constantTimeEqual(candidate.keyHash, input.presentedHash),
   );
 
   if (!row) {

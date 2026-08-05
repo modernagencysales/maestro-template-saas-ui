@@ -66,10 +66,13 @@ const executableSourcePaths = [
   "packages/convex/confect/records.impl.ts",
   "apps/web/src/adapters/records/contract.ts",
   "apps/web/src/adapters/records/fake.ts",
+  "apps/web/src/adapters/records/http.ts",
   "apps/web/src/features/records/model.ts",
   "apps/web/src/features/records/records-surface.tsx",
   "apps/web/src/screens/records-screen.tsx",
   "apps/web/src/routes/_workspace.records.tsx",
+  "features/records.feature",
+  "features/step_definitions/records.steps.ts",
 ] as const;
 
 const executableSourceFiles = (): readonly GeneratedFile[] =>

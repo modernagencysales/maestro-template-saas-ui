@@ -88,7 +88,7 @@ const operationsResult = ({
     : cliFailure(`Unknown operation: ${target}\n`);
 };
 
-const parseCapabilityRequest = (
+export const parseCapabilityRequest = (
   argv: readonly string[],
 ): CliCapabilityRequest | CliResult => {
   const [, , , ...requestArgs] = argv;

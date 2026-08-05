@@ -374,6 +374,128 @@ describe("template HTTP docs routes", () => {
     ]);
   });
 
+  it("requires a bearer API key for records operations", async () => {
+    const response = await handleTemplateHttpRequest(
+      noopCtx,
+      new Request("https://template.local/api/records.list", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ workspaceSlug: "template-demo", input: {} }),
+      }),
+    );
+
+    expect(response.status).toBe(401);
+    expect(await readJson(response)).toEqual({
+      ok: false,
+      error: {
+        _tag: "Unauthorized",
+        code: "API_KEY_MISSING",
+        message: "Missing bearer API key.",
+      },
+    });
+  });
+
+  it("resolves a records actor before dispatching the operation", async () => {
+    const calls: Array<{ readonly input: Record<string, unknown> }> = [];
+    const response = await handleTemplateHttpRequest(
+      {
+        ...noopCtx,
+        runQuery: async (_ref, input) => {
+          calls.push({ input });
+          return "keyHash" in input
+            ? {
+                ok: true,
+                keyId: "api_key_contracts",
+                workspaceId: "workspace_contracts",
+                userId: "user_contracts",
+              }
+            : [
+                {
+                  _id: "record_contracts",
+                  workspaceId: "workspace_contracts",
+                  title: "Launch checklist",
+                  detail: "Created from the app",
+                  createdAt: 1,
+                  updatedAt: 1,
+                },
+              ];
+        },
+      },
+      new Request("https://template.local/api/records.list", {
+        method: "POST",
+        headers: {
+          authorization: "Bearer mtk_live_contracts",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          workspaceSlug: "template-demo",
+          input: {},
+          idempotencyKey: "contracts-list-1",
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(await readJson(response)).toMatchObject({
+      ok: true,
+      operationId: "records.list",
+      result: [{ title: "Launch checklist" }],
+    });
+    expect(calls).toEqual([
+      {
+        input: {
+          keyHash: expect.any(String),
+          workspaceSlug: "template-demo",
+          requiredScope: "workspace:read",
+          nowMs: expect.any(Number),
+        },
+      },
+      {
+        input: {
+          workspaceId: "workspace_contracts",
+          userId: "user_contracts",
+        },
+      },
+    ]);
+    expect(JSON.stringify(calls)).not.toContain("mtk_live_contracts");
+  });
+
+  it("rejects a key bound to another workspace before records dispatch", async () => {
+    let queryCount = 0;
+    const response = await handleTemplateHttpRequest(
+      {
+        ...noopCtx,
+        runQuery: async () => {
+          queryCount += 1;
+          return {
+            ok: false,
+            code: "API_KEY_WORKSPACE_MISMATCH",
+            message: "API key is bound to a different workspace.",
+          };
+        },
+      },
+      new Request("https://template.local/api/records.list", {
+        method: "POST",
+        headers: {
+          authorization: "Bearer mtk_live_contracts",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ workspaceSlug: "another-workspace", input: {} }),
+      }),
+    );
+
+    expect(response.status).toBe(403);
+    expect(queryCount).toBe(1);
+    expect(await readJson(response)).toEqual({
+      ok: false,
+      error: {
+        _tag: "Forbidden",
+        code: "API_KEY_WORKSPACE_MISMATCH",
+        message: "API key is bound to a different workspace.",
+      },
+    });
+  });
+
   it("executes the documented OpenAPI request envelope", async () => {
     const calls: unknown[] = [];
     const ctx: HeadlessHttpCtx = {

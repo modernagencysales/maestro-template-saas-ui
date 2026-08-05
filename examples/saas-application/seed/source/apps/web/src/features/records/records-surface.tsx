@@ -7,6 +7,7 @@ import type {
   SaaSRecord,
 } from "../../adapters/records/contract.js";
 import { createFakeRecordAdapter } from "../../adapters/records/fake.js";
+import { createHttpRecordAdapter } from "../../adapters/records/http.js";
 import {
   useTemplateMutation,
   useTemplateQuery,
@@ -19,13 +20,16 @@ type ListRecordsRef = typeof templateConfectRefs.public.records.list;
 type WorkspaceId = Ref.Args<ListRecordsRef>["workspaceId"];
 
 const sharedFakeAdapter = createFakeRecordAdapter();
+const sharedHttpAdapter = createHttpRecordAdapter();
 
 export function RecordsSurface({
   fakeAdapter = sharedFakeAdapter,
 }: {
   readonly fakeAdapter?: RecordAdapter;
 }) {
-  return isConvexConfigured() ? (
+  return import.meta.env.VITE_MAESTRO_CONTRACT_MODE === "1" ? (
+    <FakeRecordsSurface adapter={sharedHttpAdapter} />
+  ) : isConvexConfigured() ? (
     <LocalRecordsSurface />
   ) : (
     <FakeRecordsSurface adapter={fakeAdapter} />

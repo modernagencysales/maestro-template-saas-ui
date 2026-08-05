@@ -21,6 +21,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { runCliAsync } from "../index";
 import { CREATE_HELP } from "./create";
 import { createFactoryCliComposition } from "./composition";
+import { CURRENT_PUBLIC_SOURCE } from "./createComposition";
 
 const repoRoot = fileURLToPath(new URL("../../../../", import.meta.url));
 const execFileAsync = promisify(execFile);
@@ -34,12 +35,6 @@ const installedStoreDir = readFileSync(
 ).match(/^storeDir: (.+)$/m)?.[1];
 let taggedReleaseParent: string | undefined;
 let taggedReleaseRoot: string | undefined;
-const frozenAlpha2RuntimeSeam = [
-  "apps/cli/src/factory/createComposition.ts",
-  "tooling/generators/src/index.ts",
-  "tooling/generators/src/blueprints/alpha2SaasApplicationPlan.ts",
-  "tooling/generators/src/blueprints/customer/alpha2-plan.json.gz.b64",
-] as const;
 const applyCurrentSaasProjection = (
   root: string,
   options: { readonly name: string; readonly firstOutcome: string },
@@ -95,11 +90,11 @@ const taggedRepository = (): string => {
       stdio: "pipe",
     },
   );
-  for (const path of frozenAlpha2RuntimeSeam) {
-    const target = join(taggedReleaseRoot, path);
-    mkdirSync(dirname(target), { recursive: true });
-    writeFileSync(target, readFileSync(join(repoRoot, path)));
-  }
+  execFileSync(
+    "git",
+    ["checkout", "--quiet", "--detach", CURRENT_PUBLIC_SOURCE.tag],
+    { cwd: taggedReleaseRoot, stdio: "pipe" },
+  );
   execFileSync(
     "pnpm",
     ["install", "--offline", "--frozen-lockfile", "--ignore-scripts"],
@@ -538,11 +533,15 @@ describe("create root integration", () => {
       ),
     );
     expect(dirtyManifest.toString()).toContain('"records"');
-    execFileSync("pnpm", ["check:confect-manifest"], {
+    const manifestCheck = spawnSync("pnpm", ["check:confect-manifest"], {
       cwd: compileRoot,
-      stdio: "pipe",
+      encoding: "utf8",
       timeout: 30_000,
     });
+    expect(
+      manifestCheck.status,
+      `${manifestCheck.stdout}\n${manifestCheck.stderr}`,
+    ).toBe(0);
     expect(
       readFileSync(
         join(
@@ -710,6 +709,73 @@ describe("create root integration", () => {
     for (const { path, bytes } of preservedMaterialization)
       expect(readFileSync(join(targetRoot, path)), path).toEqual(bytes);
   }, 180_000);
+
+  it("executes the required records contract in a fresh current target", async () => {
+    const parent = mkdtempSync(join(tmpdir(), "maestro-contract-target-"));
+    temporaryRoots.push(parent);
+    const targetRoot = join(parent, "app");
+    const created = await runTaggedCli([
+      "create",
+      targetRoot,
+      "--name",
+      "Contract Prototype",
+      "--outcome",
+      "Create and review records",
+      "--demo-only",
+      "--write",
+      "--privacy-reviewed",
+      "--json",
+    ]);
+    expect(created.exitCode, `${created.stdout}\n${created.stderr}`).toBe(0);
+
+    applyCurrentSaasProjection(targetRoot, {
+      name: "Contract Prototype",
+      firstOutcome: "Create and review records",
+    });
+    for (const args of [
+      ["install", "--offline", "--frozen-lockfile", "--ignore-scripts"],
+      ["confect:codegen"],
+    ]) {
+      const result = spawnSync("pnpm", args, {
+        cwd: targetRoot,
+        encoding: "utf8",
+        timeout: 240_000,
+      });
+      expect(result.status, `${result.stdout}\n${result.stderr}`).toBe(0);
+    }
+
+    execFileSync("git", ["init", "--quiet"], { cwd: targetRoot });
+    execFileSync("git", ["add", "."], { cwd: targetRoot });
+    execFileSync(
+      "git",
+      [
+        "-c",
+        "user.name=Maestro Contracts",
+        "-c",
+        "user.email=contracts@template.local",
+        "commit",
+        "--no-verify",
+        "--quiet",
+        "-m",
+        "test fixture",
+      ],
+      { cwd: targetRoot },
+    );
+
+    const contracts = spawnSync(
+      "pnpm",
+      ["--silent", "acceptance:cucumber", "--tags", "@required"],
+      {
+        cwd: targetRoot,
+        encoding: "utf8",
+        timeout: 180_000,
+      },
+    );
+    expect(contracts.status, `${contracts.stdout}\n${contracts.stderr}`).toBe(
+      0,
+    );
+    expect(contracts.stdout).toContain("1 scenario (1 passed)");
+  }, 300_000);
 });
 
 function snapshotTargetBytes(root: string): Readonly<Record<string, string>> {

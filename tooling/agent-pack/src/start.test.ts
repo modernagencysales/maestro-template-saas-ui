@@ -127,7 +127,7 @@ describe("start command", () => {
       context,
     );
 
-    expect(dependencies.preflight).toHaveBeenCalledWith("test", context);
+    expect(dependencies.preflight).toHaveBeenCalledWith("fake", context);
     const specs = vi.mocked(dependencies.supervise).mock.calls[0]?.[0];
     expect(specs?.map(({ id }) => id)).toEqual(["convex", "confect", "web"]);
     expect(specs?.[0]).toMatchObject({
@@ -136,15 +136,16 @@ describe("start command", () => {
         "--dir",
         "packages/convex",
         "convex:dev",
-        "--",
-        "--local",
         "--local-cloud-port",
         "3210",
         "--local-site-port",
         "3211",
+        "--typecheck",
+        "disable",
       ],
       cwd: "/customer",
     });
+    expect(specs?.[0]?.environment?.set.CONVEX_AGENT_MODE).toBe("anonymous");
     expect(JSON.stringify(specs)).not.toContain("production");
   });
 
@@ -193,12 +194,12 @@ describe("start command", () => {
       "--dir",
       "packages/convex",
       "convex:dev",
-      "--",
-      "--local",
       "--local-cloud-port",
       "4210",
       "--local-site-port",
       "4211",
+      "--typecheck",
+      "disable",
     ]);
     expect(specs[2]?.args).toContain("6173");
     expect(specs[2]?.environment?.set.VITE_CONVEX_URL).toBe(

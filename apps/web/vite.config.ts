@@ -5,8 +5,24 @@ import { defineConfig } from "vite";
 
 import { dependencyChunkName } from "./src/bundle-policy";
 
+const contractsApiBaseUrl = process.env.MAESTRO_API_BASE_URL?.trim();
+const contractsApiKey = process.env.MAESTRO_API_KEY?.trim();
+
 export default defineConfig({
   preview: { host: "127.0.0.1" },
+  ...(contractsApiBaseUrl && contractsApiKey
+    ? {
+        server: {
+          proxy: {
+            "/__contracts": {
+              target: contractsApiBaseUrl,
+              headers: { authorization: `Bearer ${contractsApiKey}` },
+              rewrite: (path: string) => path.replace(/^\/__contracts/u, ""),
+            },
+          },
+        },
+      }
+    : {}),
   build: {
     rolldownOptions: {
       output: {

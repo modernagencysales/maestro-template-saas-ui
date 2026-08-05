@@ -22,6 +22,8 @@ import {
   readJsonBody,
   type TemplateApiRequestBody,
 } from "./httpRequest";
+import { parseBearerApiKey } from "./headless/auth";
+import { sha256Base64Url } from "./shared/tokenCrypto";
 
 type ManifestFunction = (typeof confectManifest.functions)[number];
 
@@ -64,7 +66,24 @@ const staticTemplateRoutes: Record<string, TemplateRouteMatch | undefined> = {
   "/webhooks/dodo": { kind: "dodoWebhook" },
   "/webhooks/email/postmark": { kind: "postmarkWebhook" },
   "/email/unsubscribe": { kind: "emailUnsubscribe" },
+  "/api/records.list": { kind: "operation", operationId: "records.list" },
+  "/api/records.read": { kind: "operation", operationId: "records.read" },
+  "/api/records.create": {
+    kind: "operation",
+    operationId: "records.create",
+  },
 };
+
+const recordOperationIds = [
+  "records.list",
+  "records.read",
+  "records.create",
+] as const;
+type RecordOperationId = (typeof recordOperationIds)[number];
+const isRecordOperation = (
+  operationId: string,
+): operationId is RecordOperationId =>
+  recordOperationIds.some((candidate) => candidate === operationId);
 
 const operationRefs = {
   "brain.pages.createMarkdown": api.brain.pages.createMarkdown,
@@ -159,13 +178,18 @@ export const templateHttpRoutes = [
     method: "GET",
     description: "Serves the Scalar API documentation shell.",
   },
-  ...confectManifest.functions
-    .filter((entry) => hasSurface(entry, "api"))
-    .map((entry) => ({
-      path: `/api/${entry.operationId}`,
-      method: "POST" as const,
-      description: `Executes ${entry.operationId}.`,
-    })),
+  ...[
+    ...new Set([
+      ...confectManifest.functions
+        .filter((entry) => hasSurface(entry, "api"))
+        .map(({ operationId }) => operationId),
+      ...recordOperationIds,
+    ]),
+  ].map((operationId) => ({
+    path: `/api/${operationId}`,
+    method: "POST" as const,
+    description: `Executes ${operationId}.`,
+  })),
 ] as const satisfies readonly TemplateHttpRoute[];
 
 const withSecurityHeaders = (
@@ -473,11 +497,122 @@ const executeTemplateApiRoute = async (
 ): Promise<Response> => {
   const parsedBody = await readJsonBody(request);
   const response = parsedBody.ok
-    ? await responseForParsedTemplateApiBody(ctx, operationId, parsedBody.body)
+    ? isRecordOperation(operationId)
+      ? await recordsApiResponse(ctx, request, operationId, parsedBody.body)
+      : await responseForParsedTemplateApiBody(
+          ctx,
+          operationId,
+          parsedBody.body,
+        )
     : jsonResponse(parsedBody);
 
   return response;
 };
+
+type RecordsActorResolution =
+  | {
+      readonly ok: true;
+      readonly keyId: string;
+      readonly workspaceId: string;
+      readonly userId: string;
+    }
+  | {
+      readonly ok: false;
+      readonly code: string;
+      readonly message: string;
+    };
+
+const resolveRecordsActorRef = makeFunctionReference<
+  "query",
+  {
+    readonly keyHash: string;
+    readonly workspaceSlug: string;
+    readonly requiredScope: "workspace:read" | "workspace:write";
+    readonly nowMs: number;
+  },
+  RecordsActorResolution
+>("headless/apiKeys:resolve");
+
+const recordActorRefs = {
+  "records.list": makeFunctionReference<"query">(
+    "records/records:listForActor",
+  ),
+  "records.read": makeFunctionReference<"query">(
+    "records/records:readForActor",
+  ),
+  "records.create": makeFunctionReference<"mutation">(
+    "records/records:createForActor",
+  ),
+} satisfies Record<RecordOperationId, unknown>;
+
+const recordsApiResponse = async (
+  ctx: HeadlessHttpCtx,
+  request: Request,
+  operationId: RecordOperationId,
+  body: TemplateApiRequestBody,
+): Promise<Response> => {
+  const presentedKey = parseBearerApiKey(
+    request.headers.get("authorization") ?? undefined,
+  );
+  if (typeof presentedKey !== "string") {
+    return recordsAuthFailure(presentedKey.code, presentedKey.message, 401);
+  }
+  const workspaceSlug = body.workspaceSlug?.trim();
+  if (!workspaceSlug) {
+    return jsonResponse(
+      {
+        ok: false,
+        error: {
+          _tag: "ValidationFailed",
+          message: "Records operations require workspaceSlug.",
+        },
+      },
+      400,
+    );
+  }
+
+  const actor = (await ctx.runQuery(resolveRecordsActorRef, {
+    keyHash: await sha256Base64Url(presentedKey),
+    workspaceSlug,
+    requiredScope:
+      operationId === "records.create" ? "workspace:write" : "workspace:read",
+    nowMs: Date.now(),
+  })) as RecordsActorResolution;
+  if (!actor.ok) {
+    const forbidden =
+      actor.code === "API_KEY_FORBIDDEN" ||
+      actor.code === "API_KEY_WORKSPACE_MISMATCH";
+    return recordsAuthFailure(actor.code, actor.message, forbidden ? 403 : 401);
+  }
+
+  const input = {
+    ...body.input,
+    workspaceId: actor.workspaceId,
+    userId: actor.userId,
+  };
+  const result =
+    operationId === "records.create"
+      ? await ctx.runMutation(recordActorRefs[operationId], input)
+      : await ctx.runQuery(recordActorRefs[operationId], input);
+  return jsonResponse({ ok: true, operationId, result });
+};
+
+const recordsAuthFailure = (
+  code: string,
+  message: string,
+  status: 401 | 403,
+): Response =>
+  jsonResponse(
+    {
+      ok: false,
+      error: {
+        _tag: status === 401 ? "Unauthorized" : "Forbidden",
+        code,
+        message,
+      },
+    },
+    status,
+  );
 
 const responseForParsedTemplateApiBody = async (
   ctx: HeadlessHttpCtx,
