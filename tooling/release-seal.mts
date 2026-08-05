@@ -55,7 +55,7 @@ export type ReleaseReadinessPlan = Readonly<{
   blueprintPath: string;
   publicDefaultAdvanceAllowed: boolean;
 }>;
-const CURRENT_PUBLIC_DEFAULT_VERSION = "0.2.0-alpha.3";
+const CURRENT_PUBLIC_DEFAULT_VERSION = "0.2.0-alpha.2";
 const root = realpathSync(fileURLToPath(new URL("../", import.meta.url)));
 const hash = (bytes: string | Buffer): string =>
   `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
@@ -567,7 +567,17 @@ export function buildReviewedAdditionalPaths(input: {
     sourcePaths: input.sourcePaths,
     protectedCustomerPaths: input.protectedCustomerPaths,
   });
-  const rules = [...configured, ...REVIEWED_ADDITIONAL_PATHS]
+  const rules = [
+    ...new Map(
+      [
+        ...configured,
+        ...REVIEWED_ADDITIONAL_PATHS,
+        ...CUSTOMER_OWNERSHIP_RULES.filter(
+          (entry) => entry.ownership === "factory-only",
+        ),
+      ].map((entry) => [`${entry.match}:${entry.path}`, entry] as const),
+    ).values(),
+  ]
     .filter((candidate) => {
       const inherited = input.basePaths.find(
         (entry) =>
@@ -575,6 +585,7 @@ export function buildReviewedAdditionalPaths(input: {
       );
       if (inherited === undefined) return true;
       if (JSON.stringify(inherited) === JSON.stringify(candidate)) return false;
+      if (candidate.ownership === "factory-only") return false;
       throw new Error(
         `Release additional path conflicts with inherited authority: ${candidate.match}:${candidate.path}`,
       );
