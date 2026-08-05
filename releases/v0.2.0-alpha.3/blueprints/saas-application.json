@@ -3,7 +3,7 @@
   "id": "saas-application",
   "provenance": "@maestro-template/generators/saas-application@1",
   "projectionSource": {
-    "sourceCommit": "a8063027f90d8ebe8b1f8bdc025bcc8794eb10a4",
+    "sourceCommit": "c8b37f2e9b84d358d2d6a6fc0c2fc9104ecd0350",
     "assets": [
       {
         "path": "base/apps/cli/src/factory/customerComposition.ts.txt",
@@ -59,7 +59,7 @@
       },
       {
         "path": "base/tooling/generators/src/customer-runtime.ts.txt",
-        "sha256": "sha256:295581ac54bf67f889c2de45587b1b3f0b73a759a9c3eee2bf7b45c46cfafe0b"
+        "sha256": "sha256:08d2262944e74c4c4d77c64c84d316c3ae067da9bb3cd26dd4d9b5cfcd9ac5b9"
       }
     ]
   },
@@ -940,7 +940,7 @@
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:8474e2e7e2a2db6eb4b4a97b44e112160cde112363ff10e16bb5597ef0bf5b36",
+      "sha256": "sha256:c4be11cf9a3aa2d7d43fff61467a833c6242dc6d4d27f956d09d6306924f4b0d",
       "replaces": "copy"
     },
     {
@@ -2611,7 +2611,7 @@
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:295581ac54bf67f889c2de45587b1b3f0b73a759a9c3eee2bf7b45c46cfafe0b",
+      "sha256": "sha256:08d2262944e74c4c4d77c64c84d316c3ae067da9bb3cd26dd4d9b5cfcd9ac5b9",
       "replaces": "copy"
     },
     {
@@ -2635,7 +2635,7 @@
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:e2fc335da6ee463789adf3c721982f7f4e3aeb4c728c2c782be96867fa61ad3b",
+      "sha256": "sha256:5f44c08bdbe59d79fee40fe85981f4b7239cea5437d2ff30239266118c33809a",
       "replaces": "copy"
     },
     {
