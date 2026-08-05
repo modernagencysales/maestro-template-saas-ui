@@ -997,7 +997,7 @@ export const buildTableFiles = (
     ? `
     title: Schema.String,
     detail: Schema.String,
-    status: Schema.Literal("planned", "active", "complete"),`
+    status: Schema.Literal(["planned", "active", "complete"]),`
     : "";
   const idImport =
     options.tenantScope === "global"

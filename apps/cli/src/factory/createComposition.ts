@@ -15,13 +15,13 @@ import { createCreateCliHandler } from "./create";
 const TRUSTED_REPOSITORY_ROOT = fileURLToPath(
   new URL("../../../../", import.meta.url),
 );
-const BASE_MANIFEST_PATH = "releases/v0.2.0-alpha.2/manifest.json";
+const BASE_MANIFEST_PATH = "releases/v0.2.0-alpha.3/manifest.json";
 const BASE_MANIFEST_CHECKSUM =
-  "sha256:e0f4bc649b0aef4ffc6c59bd53e50204963e395116b7165dc4a1de3bf258be11";
+  "sha256:980aae5999580a70e6bd3de70b0ba5448568abe19cbe4505cbf201b307c37200";
 const BASE_BLUEPRINT_CHECKSUM =
-  "sha256:5b5b40f73b7373907590090872beab7f2143c70f1654463982b0dfe8918324d3";
-const BASE_TAG = "maestro-template-v0.2.0-alpha.2";
-const BASE_COMMIT = "3aefd456354b344b9595bddc44fc0782240e2b7d";
+  "sha256:05a2d948cf85c6b988e34c54c7cd27459fbc25b1607577acc0b6f293c1f1a066";
+const BASE_TAG = "maestro-template-v0.2.0-alpha.3";
+const BASE_COMMIT = "62dd36dda65263dc72ae06f144418a76e359b6ba";
 
 export type CustomerCompositionSource = Readonly<{
   repositoryRoot: string;
@@ -43,12 +43,12 @@ export const CURRENT_PUBLIC_SOURCE = Object.freeze({
   sourceCommit: BASE_COMMIT,
   blueprintManifestPath: resolve(
     TRUSTED_REPOSITORY_ROOT,
-    "releases/v0.2.0-alpha.2/blueprints/saas-application.json",
+    "releases/v0.2.0-alpha.3/blueprints/saas-application.json",
   ),
   blueprintManifestChecksum: BASE_BLUEPRINT_CHECKSUM,
   blueprintAuthorityManifestPath: resolve(
     TRUSTED_REPOSITORY_ROOT,
-    "releases/v0.2.0-alpha.2/blueprints/saas-application.json",
+    "releases/v0.2.0-alpha.3/blueprints/saas-application.json",
   ),
   blueprintAuthorityManifestChecksum: BASE_BLUEPRINT_CHECKSUM,
 }) satisfies CustomerCompositionSource;

@@ -9,8 +9,8 @@
   "release": {
     "version": "0.2.0-alpha.3",
     "tag": "maestro-template-v0.2.0-alpha.3",
-    "sourceCommit": "a8063027f90d8ebe8b1f8bdc025bcc8794eb10a4",
-    "sourceChecksum": "sha256:043a6123ff5986cec6408e89f03001cbf8ba27be904dcdb5f3305dabdfec327d"
+    "sourceCommit": "62dd36dda65263dc72ae06f144418a76e359b6ba",
+    "sourceChecksum": "sha256:50f7a54e49c5442e6324964a054002e0ec8ac56da8f4ce738d645ebf57aac8aa"
   },
   "upgrade": {
     "schemaVersion": 1,
@@ -65,7 +65,7 @@
         "kind": "add",
         "path": "apps/cli/src/factory/candidateComposition.test.ts",
         "ownership": "template-owned",
-        "afterHash": "sha256:365cc5e92179df63e96e89e79ac59595446430fd3636bd3554032b0980d5d09f"
+        "afterHash": "sha256:5d0c56e4bb5083713174e7cb4c06cdce8f99cdf16a1cb64f37bbf5bfb0f81160"
       },
       {
         "id": "upgrade-modify-apps-cli-src-factory-create-ts",
@@ -4002,7 +4002,7 @@
         "path": "tooling/generators/src/customer-runtime.test.ts",
         "ownership": "template-owned",
         "beforeHash": "sha256:b09c3d29375f164b7d4650ff0cb25d580894954f81feab155fb59c31e7b08aa5",
-        "afterHash": "sha256:4b6bad694ed5b834da84127541579b5b1009a42b052307b9b524f7a4facf2291"
+        "afterHash": "sha256:90434916d747104f49d27cfd2a7b9874b69ed9ce380efa57ed9b61e3e81f8016"
       },
       {
         "id": "upgrade-modify-tooling-generators-src-customer-runtime-ts",
@@ -4010,14 +4010,14 @@
         "path": "tooling/generators/src/customer-runtime.ts",
         "ownership": "template-owned",
         "beforeHash": "sha256:dd3c504edd20dcaa4b726c7ac23c1fa6e75e07be47d412a8ce4342eae2c89ce4",
-        "afterHash": "sha256:295581ac54bf67f889c2de45587b1b3f0b73a759a9c3eee2bf7b45c46cfafe0b"
+        "afterHash": "sha256:840cf86fece8b591260b6cc6c46034846399bec5fbcfc672c38123af856ee7b7"
       },
       {
         "id": "upgrade-add-tooling-generators-src-feature-crud-ts",
         "kind": "add",
         "path": "tooling/generators/src/feature-crud.ts",
         "ownership": "template-owned",
-        "afterHash": "sha256:e2fc335da6ee463789adf3c721982f7f4e3aeb4c728c2c782be96867fa61ad3b"
+        "afterHash": "sha256:4cfc546bf76bb337522eb870f6be30cccf4589dfccdcbd3253c72e81db844af3"
       },
       {
         "id": "upgrade-add-tooling-generators-src-help-ts",
@@ -4488,6 +4488,13 @@
       "upgrade": "remove"
     },
     {
+      "path": "apps/web/src/public-routes.test.tsx",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
       "path": "apps/web/src/routes/build-pack.$packId.generating.tsx",
       "match": "exact",
       "ownership": "factory-only",
@@ -4621,6 +4628,489 @@
       "upgrade": "replace"
     },
     {
+      "path": "packages/app-idea-evaluator",
+      "match": "subtree",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "packages/convex/confect/_generated/registeredFunctions/buildPacks",
+      "match": "subtree",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "packages/convex/confect/_generated/registeredFunctions/capabilities/evaluateAppIdea.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "packages/convex/confect/_generated/registeredFunctions/capabilities/manageEvaluationReport.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "packages/convex/confect/_generated/registeredFunctions/commerce",
+      "match": "subtree",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "packages/convex/confect/_generated/registeredFunctions/workflowContracts/generateCompleteBuildPack.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "packages/convex/confect/_generated/tables/buildPackEntitlements.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "packages/convex/confect/_generated/tables/buildPackExports.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "packages/convex/confect/_generated/tables/buildPacks.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "packages/convex/confect/_generated/tables/buildPackStages.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "packages/convex/confect/_generated/tables/checkoutSessions.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "packages/convex/confect/_generated/tables/commerceRevocations.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "packages/convex/confect/_generated/tables/emailVerificationChallenges.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "packages/convex/confect/_generated/tables/evaluationAnswers.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "packages/convex/confect/_generated/tables/evaluationReports.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "packages/convex/confect/_generated/tables/evaluationReportVersions.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "packages/convex/confect/_generated/tables/evaluationSessions.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "packages/convex/confect/_generated/tables/evaluationShares.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "packages/convex/confect/_generated/tables/maestroCredits.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "packages/convex/confect/_generated/tables/modelReceipts.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "packages/convex/confect/_generated/tables/purchases.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "packages/convex/confect/_generated/tables/reportOwnerships.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "packages/convex/confect/_generated/tables/supportIncidents.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "packages/convex/confect/buildPacks",
+      "match": "subtree",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "packages/convex/confect/capabilities/evaluateAppIdea.domain.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "packages/convex/confect/capabilities/evaluateAppIdea.headless.json",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "packages/convex/confect/capabilities/evaluateAppIdea.impl.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "packages/convex/confect/capabilities/evaluateAppIdea.spec.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "packages/convex/confect/capabilities/evaluateAppIdea.test.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "packages/convex/confect/capabilities/manageEvaluationReport.domain.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "packages/convex/confect/capabilities/manageEvaluationReport.headless.json",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "packages/convex/confect/capabilities/manageEvaluationReport.impl.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "packages/convex/confect/capabilities/manageEvaluationReport.spec.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "packages/convex/confect/capabilities/manageEvaluationReport.test.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "packages/convex/confect/commerce",
+      "match": "subtree",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "packages/convex/confect/evaluator",
+      "match": "subtree",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "packages/convex/confect/tables/buildPackEntitlements.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "packages/convex/confect/tables/buildPackExports.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "packages/convex/confect/tables/buildPacks.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "packages/convex/confect/tables/buildPackStages.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "packages/convex/confect/tables/checkoutSessions.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "packages/convex/confect/tables/commerceRevocations.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "packages/convex/confect/tables/emailVerificationChallenges.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "packages/convex/confect/tables/evaluationAnswers.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "packages/convex/confect/tables/evaluationReports.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "packages/convex/confect/tables/evaluationReportVersions.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "packages/convex/confect/tables/evaluationSessions.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "packages/convex/confect/tables/evaluationShares.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "packages/convex/confect/tables/maestroCredits.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "packages/convex/confect/tables/modelReceipts.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "packages/convex/confect/tables/purchases.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "packages/convex/confect/tables/reportOwnerships.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "packages/convex/confect/tables/supportIncidents.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "packages/convex/confect/workflowContracts/generateCompleteBuildPack.impl.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "packages/convex/confect/workflowContracts/generateCompleteBuildPack.spec.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "packages/convex/confect/workflows/generateCompleteBuildPack.graph.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "packages/convex/convex/buildPacks",
+      "match": "subtree",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "packages/convex/convex/capabilities/evaluateAppIdea.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "packages/convex/convex/capabilities/manageEvaluationReport.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "packages/convex/convex/commerce",
+      "match": "subtree",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "packages/convex/convex/workflowContracts/generateCompleteBuildPack.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "packages/convex/convex/workflowRunners/generateCompleteBuildPack.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "packages/convex/test/app-idea-commerce-capabilities.test.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "packages/convex/test/app-idea-funnel-capabilities.test.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "packages/convex/test/app-idea-funnel-tables.test.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "packages/convex/test/build-pack-pipeline.test.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "packages/convex/test/evaluator-state.test.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "packages/convex/test/generateCompleteBuildPack.workflow.test.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "packages/convex/test/report-revision-capability.test.ts",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
       "path": "playwright.funnel.config.ts",
       "match": "exact",
       "ownership": "template-owned",
@@ -4640,11 +5130,18 @@
       "ownership": "factory-only",
       "action": "omit",
       "upgrade": "remove"
+    },
+    {
+      "path": "tooling/generators/src/blueprints/customer/alpha2-plan.json.gz.b64",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
     }
   ],
   "blueprintManifest": {
     "path": "blueprints/saas-application.json",
-    "sha256": "sha256:a80ee03b1b594ea900c06902f15588a98bff26426d399284dd39b4da7c9c1780"
+    "sha256": "sha256:05a2d948cf85c6b988e34c54c7cd27459fbc25b1607577acc0b6f293c1f1a066"
   },
   "migrationHandoff": {
     "required": false,
@@ -4656,10 +5153,10 @@
   },
   "upgradeImpact": {
     "path": "releases/v0.2.0-alpha.3/upgrade/app-map-input.json",
-    "sha256": "sha256:0d51dbeb5d733e1b3d49c77e1b00030057365df4e535e3b9eea5767c03480a79",
+    "sha256": "sha256:b0d1eb78742d7b24a20f241065d9959c04ae90bdeda99b21847393776353f525",
     "projection": {
       "path": "releases/v0.2.0-alpha.3/upgrade/app-map-impact.json",
-      "sha256": "sha256:c459657069b8537bc93918fe76ae5ff1412e00548d39629d7eecd034232c4b0a"
+      "sha256": "sha256:ee76a55aa2f74baeb30aa20fd8e0f82c70d23c9a6330e0e2bacbd33b05f68d9f"
     }
   }
 }
