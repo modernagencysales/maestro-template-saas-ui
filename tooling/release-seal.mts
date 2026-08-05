@@ -54,7 +54,7 @@ export type ReleaseReadinessPlan = Readonly<{
   blueprintPath: string;
   publicDefaultAdvanceAllowed: boolean;
 }>;
-const CURRENT_PUBLIC_DEFAULT_VERSION = "0.2.0-alpha.3";
+const CURRENT_PUBLIC_DEFAULT_VERSION = "0.2.0-alpha.2";
 const root = realpathSync(fileURLToPath(new URL("../", import.meta.url)));
 const hash = (bytes: string | Buffer): string =>
   `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
@@ -603,6 +603,8 @@ async function build(args: Args): Promise<readonly Output[]> {
   if (!args.check) apply(outputs);
   else assertOutputs(outputs);
 
+  const reviewedSourcePaths = sourcePaths(args.sourceCommit);
+  const reviewedSourcePathSet = new Set(reviewedSourcePaths);
   const blueprintValue = {
     schemaVersion: plan.schemaVersion,
     id: plan.id,
@@ -610,16 +612,19 @@ async function build(args: Args): Promise<readonly Output[]> {
     projectionSource: { sourceCommit: args.sourceCommit, assets },
     registrations: plan.registrations,
     parameterizedEntries: plan.parameterizedEntries,
-    entries: plan.entries.map((entry) =>
-      Object.fromEntries(
+    entries: plan.entries.map((entry) => {
+      const value = Object.fromEntries(
         Object.entries(entry).filter(([key]) => key !== "content"),
-      ),
-    ),
+      );
+      return reviewedSourcePathSet.has(entry.path) &&
+        classifyCustomerSourcePath(entry.path)?.action === "copy"
+        ? { ...value, replaces: "copy" }
+        : value;
+    }),
   } as Json;
   const blueprintBytes = await json(blueprintValue);
   outputs.push({ path: blueprintPath, bytes: blueprintBytes });
 
-  const reviewedSourcePaths = sourcePaths(args.sourceCommit);
   const additionalPaths = buildReviewedAdditionalPaths({
     value: current.additionalPaths,
     sourcePaths: reviewedSourcePaths,

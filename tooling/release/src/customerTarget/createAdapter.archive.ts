@@ -220,16 +220,19 @@ function resolveReleaseDefinitionAt(input: {
     requireBlueprintBinding: false,
     visited,
   });
-  const paths = [
-    ...(Array.isArray(base.manifest.paths) ? base.manifest.paths : []),
-    ...value.additionalPaths,
-  ];
+  const operations =
+    isRecord(value.upgrade) && Array.isArray(value.upgrade.operations)
+      ? value.upgrade.operations
+      : [];
+  const paths = composedReleasePaths(
+    (Array.isArray(base.manifest.paths) ? base.manifest.paths : []) as CustomerReleasePath[],
+    value.additionalPaths as CustomerReleasePath[],
+    operations,
+  );
   const expectedHashes = composedExpectedHashes(
     base.manifest.expectedHashes,
     paths,
-    isRecord(value.upgrade) && Array.isArray(value.upgrade.operations)
-      ? value.upgrade.operations
-      : [],
+    operations,
   );
   return {
     deriveExpectedHashes:
@@ -244,6 +247,34 @@ function resolveReleaseDefinitionAt(input: {
       expectedHashes,
     },
   };
+}
+
+export function composedReleasePaths(
+  base: readonly CustomerReleasePath[],
+  additional: readonly CustomerReleasePath[],
+  operations: readonly unknown[],
+): readonly CustomerReleasePath[] {
+  const deleted = new Set(
+    operations.flatMap((operation) =>
+      isRecord(operation) &&
+      operation.kind === "delete" &&
+      typeof operation.path === "string"
+        ? [operation.path]
+        : [],
+    ),
+  );
+  return [
+    ...base,
+    ...additional,
+  ].filter((entry) => entry.match !== "exact" || !deleted.has(entry.path)).concat(
+    [...deleted].map((path) => ({
+      path,
+      match: "exact" as const,
+      ownership: "factory-only" as const,
+      action: "omit" as const,
+      upgrade: "remove" as const,
+    })),
+  );
 }
 
 export function composedExpectedHashes(
