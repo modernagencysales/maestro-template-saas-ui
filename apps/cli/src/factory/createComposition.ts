@@ -13,6 +13,7 @@ import { createCreateCliHandler } from "./create";
 const TRUSTED_REPOSITORY_ROOT = fileURLToPath(
   new URL("../../../../", import.meta.url),
 );
+// Immutable release trust anchors: publishing a new sealed release updates these pins.
 const BASE_MANIFEST_PATH = "releases/v0.2.0-alpha.3/manifest.json";
 const BASE_MANIFEST_CHECKSUM =
   "sha256:762df464359e16160b3ddbc51b014406dbb2d7a37e79968425157484c011cf49";
@@ -44,6 +45,7 @@ export const CURRENT_PUBLIC_SOURCE = Object.freeze({
     "releases/v0.2.0-alpha.3/blueprints/saas-application.json",
   ),
   blueprintManifestChecksum: BASE_BLUEPRINT_CHECKSUM,
+  // Alpha.3 seals replacement directives in the blueprint manifest itself.
   blueprintAuthorityManifestPath: resolve(
     TRUSTED_REPOSITORY_ROOT,
     "releases/v0.2.0-alpha.3/blueprints/saas-application.json",

@@ -15,6 +15,7 @@ when:
 
 steps:
   - name: verify
+    # Secretless PR verification runs in this disposable, digest-pinned container.
     image: node:22.12.0-bookworm@sha256:0e910f435308c36ea60b4cfd7b80208044d77a074d16b768a81901ce938a62dc
     environment:
       CI: "true"

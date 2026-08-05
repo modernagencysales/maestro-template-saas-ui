@@ -173,6 +173,7 @@ export type FactoryMcpOverrides = {
   };
 };
 
+// This composition root only wires imported handlers and adapters; behavior stays in their modules.
 export function createFactoryCliComposition(
   readEnvironment: CompositionEnvironmentReader,
   overrides: FactoryMcpOverrides = {},
