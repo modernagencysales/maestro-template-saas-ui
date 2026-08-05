@@ -54,7 +54,7 @@ export type ReleaseReadinessPlan = Readonly<{
   blueprintPath: string;
   publicDefaultAdvanceAllowed: boolean;
 }>;
-const CURRENT_PUBLIC_DEFAULT_VERSION = "0.2.0-alpha.3";
+const CURRENT_PUBLIC_DEFAULT_VERSION = "0.2.0-alpha.2";
 const root = realpathSync(fileURLToPath(new URL("../", import.meta.url)));
 const hash = (bytes: string | Buffer): string =>
   `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
@@ -241,6 +241,29 @@ function resolvePriorManifest(
   };
 }
 const REVIEWED_ADDITIONAL_PATHS: readonly CustomerReleasePath[] = [
+  ...[
+    "apps/web/src/routes/build-pack.$packId.generating.tsx",
+    "apps/web/src/routes/build-pack.$packId.index.tsx",
+    "apps/web/src/routes/build-pack.$packId.tsx",
+    "apps/web/src/routes/checkout.$reportId.tsx",
+    "apps/web/src/routes/checkout.fake-hosted.$sessionId.tsx",
+    "apps/web/src/routes/checkout.return.tsx",
+    "apps/web/src/routes/evaluate.tsx",
+    "apps/web/src/routes/library.tsx",
+    "apps/web/src/routes/maestro.$packId.tsx",
+    "apps/web/src/routes/privacy.tsx",
+    "apps/web/src/routes/report.$evaluationId.tsx",
+    "apps/web/src/routes/share.$token.tsx",
+    "apps/web/src/routes/support.tsx",
+    "apps/web/src/routes/terms.tsx",
+    "apps/web/src/routes/verify-report.tsx",
+  ].map((path) => ({
+    path,
+    match: "exact" as const,
+    ownership: "factory-only" as const,
+    action: "omit" as const,
+    upgrade: "remove" as const,
+  })),
   {
     path: "apps/web/src/features/public-funnel",
     match: "subtree",
