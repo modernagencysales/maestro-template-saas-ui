@@ -22,6 +22,15 @@ describe("TanStack Start runtime contract", () => {
     expect(source).toContain('preview: { host: "127.0.0.1" }');
   });
 
+  it("uses non-streaming SSR so closed browsers cannot crash the dev server", () => {
+    const config = read("vite.config.ts");
+    const server = read("src/server.ts");
+
+    expect(config).toContain('server: { entry: "./src/server.ts" }');
+    expect(server).toContain("defaultRenderHandler");
+    expect(server).not.toContain("defaultStreamHandler");
+  });
+
   it("wires the router through Convex React Query and generated routeTree", () => {
     const source = read("src/router.tsx");
 

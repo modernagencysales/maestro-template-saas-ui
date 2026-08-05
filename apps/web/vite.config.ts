@@ -24,6 +24,7 @@ export default defineConfig({
   },
   plugins: [
     tanstackStart({
+      server: { entry: "./src/server.ts" },
       spa: {
         enabled: true,
         prerender: {

@@ -524,6 +524,7 @@ function buildTargetPlan(
     ["apps/cli/src/factory/recipes.ts", "copy"],
     ["apps/cli/src/factory/supportBundle.ts", "copy"],
     ["apps/web/package.json", "copy"],
+    ["apps/web/src/server.ts", "copy"],
     ["apps/web/vite.config.ts", "copy"],
     ["docs/template/agent-pack-privacy.md", "copy"],
     ["docs/template/preflight.md", "copy"],
