@@ -9,8 +9,8 @@
   "release": {
     "version": "0.2.0-alpha.3",
     "tag": "maestro-template-v0.2.0-alpha.3",
-    "sourceCommit": "3191f969cfd9bbaa5a143890dc9d6a875d5e2723",
-    "sourceChecksum": "sha256:338cf662c33eaa216025a90d42cc1e335dbc3337d9d8d7ccd6928c48bb756e28"
+    "sourceCommit": "2f57412a06557f3910f7cd972f83c47cd599726c",
+    "sourceChecksum": "sha256:2bd6c30a94201a881b5f3864c90e6d04d8a296da9a4c3026875cb30487e1cdda"
   },
   "upgrade": {
     "schemaVersion": 1,
@@ -65,7 +65,7 @@
         "kind": "add",
         "path": "apps/cli/src/factory/candidateComposition.test.ts",
         "ownership": "template-owned",
-        "afterHash": "sha256:0dfb583c3e7e7d3dba484eae0d837bda84a58d910aeb342a5f5ecffc5c4f07c4"
+        "afterHash": "sha256:50faf6d0cbd0fa5399f341874c5d0e1886fa4b7e21658cba359c35cd2c8da1a3"
       },
       {
         "id": "upgrade-modify-apps-cli-src-factory-create-ts",
@@ -4460,6 +4460,111 @@
       "upgrade": "remove"
     },
     {
+      "path": "apps/web/src/routes/build-pack.$packId.generating.tsx",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "apps/web/src/routes/build-pack.$packId.index.tsx",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "apps/web/src/routes/build-pack.$packId.tsx",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "apps/web/src/routes/checkout.$reportId.tsx",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "apps/web/src/routes/checkout.fake-hosted.$sessionId.tsx",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "apps/web/src/routes/checkout.return.tsx",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "apps/web/src/routes/evaluate.tsx",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "apps/web/src/routes/library.tsx",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "apps/web/src/routes/maestro.$packId.tsx",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "apps/web/src/routes/privacy.tsx",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "apps/web/src/routes/report.$evaluationId.tsx",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "apps/web/src/routes/share.$token.tsx",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "apps/web/src/routes/support.tsx",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "apps/web/src/routes/terms.tsx",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
+      "path": "apps/web/src/routes/verify-report.tsx",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
       "path": "cucumber.cjs",
       "match": "exact",
       "ownership": "template-owned",
@@ -4511,7 +4616,7 @@
   ],
   "blueprintManifest": {
     "path": "blueprints/saas-application.json",
-    "sha256": "sha256:2e69bb321615e374f950c58ab9c712979ca271d3aecae1b81dace0e8a528e6ab"
+    "sha256": "sha256:8f507371d26c351e72cc882c7d9ff1bfe36053335d99ddc25fddb108d377c455"
   },
   "migrationHandoff": {
     "required": false,
@@ -4523,10 +4628,10 @@
   },
   "upgradeImpact": {
     "path": "releases/v0.2.0-alpha.3/upgrade/app-map-input.json",
-    "sha256": "sha256:9235fa8cd1cdb9f07263d047319526d70b3de49c184235eaefb893eebdc3d03b",
+    "sha256": "sha256:25b51097a8c8da0686ecff5ca167368471cfae981fbd79e852fe4cd1ac32e2a6",
     "projection": {
       "path": "releases/v0.2.0-alpha.3/upgrade/app-map-impact.json",
-      "sha256": "sha256:52f7c09b84fb1956c9859ad01b74b9adc0519dacc55d73b3119db92a01acfe6d"
+      "sha256": "sha256:84c51790e5d039783ccf5cc28ff89224e2b484ab0bd6a38dfcfeb8c297613d2d"
     }
   }
 }
