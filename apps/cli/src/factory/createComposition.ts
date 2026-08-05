@@ -3,7 +3,6 @@ import { buildSaasApplicationTargetPlan } from "@maestro-template/generators";
 import {
   blueprintTargetPlanDigest,
   createCustomerReleaseAdapter,
-  type BlueprintTargetPlan,
 } from "@maestro-template/release-tooling/customer-create";
 import { readFileSync } from "node:fs";
 import { homedir } from "node:os";
@@ -56,6 +55,8 @@ type BlueprintTargetPlanBuilder = (options: {
   readonly name: string;
   readonly firstOutcome?: string;
 }) => BlueprintTargetPlan;
+
+type BlueprintTargetPlan = Parameters<typeof blueprintTargetPlanDigest>[0];
 
 type BlueprintReplacementAuthority = ReadonlyMap<
   string,

@@ -31,7 +31,6 @@ import {
 } from "./materialize.js";
 
 export type {
-  BlueprintTargetPlan,
   CustomerReleaseAdapterFacts,
   CustomerReleaseAdapterOptions,
 } from "./createAdapter.contract.js";
