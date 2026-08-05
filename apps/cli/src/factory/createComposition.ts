@@ -1,7 +1,5 @@
 import { createCustomerCreateCommand } from "@maestro-template/agent-pack";
-import {
-  buildSaasApplicationTargetPlan,
-} from "@maestro-template/generators";
+import { buildSaasApplicationTargetPlan } from "@maestro-template/generators";
 import {
   blueprintTargetPlanDigest,
   createCustomerReleaseAdapter,
@@ -64,7 +62,12 @@ export function createCustomerCreateComposition(
 ) {
   const authority = JSON.parse(
     readFileSync(source.blueprintManifestPath, "utf8"),
-  ) as { readonly entries: readonly { readonly path: string; readonly replaces?: "copy" | "generate" }[] };
+  ) as {
+    readonly entries: readonly {
+      readonly path: string;
+      readonly replaces?: "copy" | "generate";
+    }[];
+  };
   const replacements = new Map(
     authority.entries.map(({ path, replaces }) => [path, replaces] as const),
   );
@@ -76,7 +79,8 @@ export function createCustomerCreateComposition(
     blueprintTargetPlan: ({ name, outcome }) => {
       const plan = buildBlueprintTargetPlan({ name, firstOutcome: outcome });
       const entries = plan.entries.map((entry) => {
-        const { replaces: _replaces, ...rest } = entry;
+        const rest = { ...entry };
+        delete rest.replaces;
         const replaces = replacements.get(entry.path);
         return replaces === undefined ? rest : { ...rest, replaces };
       });
