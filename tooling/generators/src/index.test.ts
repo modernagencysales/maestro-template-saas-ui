@@ -2491,6 +2491,12 @@ describe("template app factory generators", () => {
     expect(generated).toContain(
       "Schema.Union([Unauthorized, ValidationFailed, Forbidden, NotFound])",
     );
+    expect(generated).toContain(
+      'FunctionSpec.publicMutation({ name: "remove"',
+    );
+    expect(generated).toContain(
+      'FunctionImpl.make(databaseSchema, group, "remove"',
+    );
     expect(feature).toContain('aria-label="AccountSignals title"');
     expect(feature).toContain("Delete accountSignals");
     expect(generated).not.toContain("Synthetic fixture");

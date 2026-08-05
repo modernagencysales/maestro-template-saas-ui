@@ -279,7 +279,7 @@ const list = FunctionSpec.publicQuery({ name: "list", args: () => Workspace, ret
 const read = FunctionSpec.publicQuery({ name: "read", args: () => Identity, returns: () => table.Doc, error: () => ErrorSchema });
 const create = FunctionSpec.publicMutation({ name: "create", args: () => Write, returns: () => table.Doc, error: () => ErrorSchema });
 const update = FunctionSpec.publicMutation({ name: "update", args: () => Update, returns: () => table.Doc, error: () => ErrorSchema });
-const remove = FunctionSpec.publicMutation({ name: "delete", args: () => Identity, returns: () => Schema.Boolean, error: () => ErrorSchema });
+const remove = FunctionSpec.publicMutation({ name: "remove", args: () => Identity, returns: () => Schema.Boolean, error: () => ErrorSchema });
 export default GroupSpec.make().addFunction(list).addFunction(read).addFunction(create).addFunction(update).addFunction(remove);
 `,
     },
@@ -321,7 +321,7 @@ const update = FunctionImpl.make(databaseSchema, group, "update", ({ workspaceId
   yield* writer.table("${name}").patch(id, { title: normalized, detail: detail.trim(), status, updatedAt }).pipe(Effect.orDie);
   return yield* find(workspaceId, id as never);
 }));
-const remove = FunctionImpl.make(databaseSchema, group, "delete", ({ workspaceId, id }) => Effect.gen(function* () {
+const remove = FunctionImpl.make(databaseSchema, group, "remove", ({ workspaceId, id }) => Effect.gen(function* () {
   yield* access(workspaceId, "editor"); yield* find(workspaceId, id as never); const writer = yield* DatabaseWriter;
   yield* writer.table("${name}").delete(id).pipe(Effect.orDie); return true;
 }));
