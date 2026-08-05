@@ -13,6 +13,7 @@ import { dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { format as formatWithPrettier } from "prettier";
 import {
+  CUSTOMER_OWNERSHIP_RULES,
   buildCustomerOwnershipInventory,
   classifyCustomerSourcePath,
 } from "./release/src/customerTarget/ownership.js";
@@ -54,7 +55,7 @@ export type ReleaseReadinessPlan = Readonly<{
   blueprintPath: string;
   publicDefaultAdvanceAllowed: boolean;
 }>;
-const CURRENT_PUBLIC_DEFAULT_VERSION = "0.2.0-alpha.3";
+const CURRENT_PUBLIC_DEFAULT_VERSION = "0.2.0-alpha.2";
 const root = realpathSync(fileURLToPath(new URL("../", import.meta.url)));
 const hash = (bytes: string | Buffer): string =>
   `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
@@ -647,9 +648,11 @@ async function build(args: Args): Promise<readonly Output[]> {
     protectedCustomerPaths: protectedCustomerSourcePaths,
     basePaths: prior.paths ?? [],
   });
-  const exclusions = [...(prior.paths ?? []), ...additionalPaths].filter(
-    (entry) => entry.ownership === "factory-only",
-  );
+  const exclusions = [
+    ...(prior.paths ?? []),
+    ...additionalPaths,
+    ...CUSTOMER_OWNERSHIP_RULES,
+  ].filter((entry) => entry.ownership === "factory-only");
   const inventory = buildReviewedOwnershipInventory({
     sourcePaths: reviewedSourcePaths,
     exclusions,
