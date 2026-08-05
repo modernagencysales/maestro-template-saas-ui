@@ -54,7 +54,7 @@ export type ReleaseReadinessPlan = Readonly<{
   blueprintPath: string;
   publicDefaultAdvanceAllowed: boolean;
 }>;
-const CURRENT_PUBLIC_DEFAULT_VERSION = "0.2.0-alpha.3";
+const CURRENT_PUBLIC_DEFAULT_VERSION = "0.2.0-alpha.2";
 const root = realpathSync(fileURLToPath(new URL("../", import.meta.url)));
 const hash = (bytes: string | Buffer): string =>
   `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
@@ -241,6 +241,20 @@ function resolvePriorManifest(
   };
 }
 const REVIEWED_ADDITIONAL_PATHS: readonly CustomerReleasePath[] = [
+  {
+    path: "apps/web/src/features/public-funnel",
+    match: "subtree",
+    ownership: "factory-only",
+    action: "omit",
+    upgrade: "remove",
+  },
+  {
+    path: "apps/web/src/providers/posthog.test.tsx",
+    match: "exact",
+    ownership: "factory-only",
+    action: "omit",
+    upgrade: "remove",
+  },
   {
     path: ".factory/project.yaml",
     match: "exact",
