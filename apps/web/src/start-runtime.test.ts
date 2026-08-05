@@ -26,7 +26,7 @@ describe("TanStack Start runtime contract", () => {
     const config = read("vite.config.ts");
     const server = read("src/server.ts");
 
-    expect(config).toContain('server: { entry: "./src/server.ts" }');
+    expect(config).toContain('server: { entry: "server.ts" }');
     expect(server).toContain("defaultRenderHandler");
     expect(server).not.toContain("defaultStreamHandler");
   });
