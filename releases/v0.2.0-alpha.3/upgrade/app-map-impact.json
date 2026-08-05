@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "kind": "reviewed-upgrade-impact-coverage",
   "baseRevision": "3aefd456354b344b9595bddc44fc0782240e2b7d",
-  "subjectRevision": "a8063027f90d8ebe8b1f8bdc025bcc8794eb10a4",
+  "subjectRevision": "6f7d01f158d922dd9e69069713a46c9ebab5235e",
   "structuralPaths": [
     "docs/template/data-resources.json",
     "docs/template/generated/provenance/add-capability/evaluateAppIdea.json",
@@ -58,6 +58,7 @@
     "apps/web/src/routes/dashboard.tsx",
     "apps/web/src/routes/index.tsx",
     "apps/web/src/sample/templateData.test.ts",
+    "apps/web/src/server.ts",
     "apps/web/src/shell-style-contract.test.ts",
     "apps/web/src/start-runtime.test.ts",
     "apps/web/vite.config.ts",
@@ -584,7 +585,7 @@
   "impact": {
     "schemaVersion": 1,
     "baseRevision": "3aefd456354b344b9595bddc44fc0782240e2b7d",
-    "subjectRevision": "a8063027f90d8ebe8b1f8bdc025bcc8794eb10a4",
+    "subjectRevision": "6f7d01f158d922dd9e69069713a46c9ebab5235e",
     "complete": true,
     "risk": "high",
     "changedPaths": [
