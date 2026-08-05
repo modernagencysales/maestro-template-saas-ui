@@ -22,6 +22,7 @@ describe("customer chassis Woodpecker admission", () => {
   it("keeps the decisive command closure explicit", () => {
     const script = read("tooling/ci/verify-chassis.sh");
     for (const command of [
+      "pnpm exec playwright install --with-deps chromium",
       "pnpm --dir tooling/agent-pack test:customer",
       "pnpm --dir tooling/generators test",
       "pnpm --dir tooling/release test",

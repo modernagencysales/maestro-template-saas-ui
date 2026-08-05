@@ -3,6 +3,7 @@ set -euo pipefail
 
 source tooling/ci/setup.sh
 
+pnpm exec playwright install --with-deps chromium
 pnpm --dir tooling/agent-pack test:customer
 pnpm --dir tooling/generators test
 pnpm --dir tooling/release test

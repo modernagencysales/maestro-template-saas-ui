@@ -20,6 +20,5 @@ steps:
       CI: "true"
       NODE_OPTIONS: "--max-old-space-size=6144"
     commands:
-      - pnpm exec playwright install --with-deps chromium
       - tooling/ci/verify-chassis.sh
     failure: cancel
