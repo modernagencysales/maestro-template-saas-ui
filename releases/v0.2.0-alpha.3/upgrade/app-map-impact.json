@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "kind": "reviewed-upgrade-impact-coverage",
   "baseRevision": "3aefd456354b344b9595bddc44fc0782240e2b7d",
-  "subjectRevision": "4da2c073d1a10db22f40aa56db2a95c88990c74a",
+  "subjectRevision": "a8063027f90d8ebe8b1f8bdc025bcc8794eb10a4",
   "structuralPaths": [
     "docs/template/data-resources.json",
     "docs/template/generated/provenance/add-capability/evaluateAppIdea.json",
@@ -15,10 +15,8 @@
     "pnpm-lock.yaml"
   ],
   "ownershipCoveredPaths": [
-    ".env.example",
     ".factory/project.yaml",
     "AGENTS.md",
-    "README.md",
     "agent-patterns/effect-confect.md",
     "apps/cli/package.json",
     "apps/cli/src/commands.ts",
@@ -72,7 +70,6 @@
     "docs/template/app-idea-funnel-operations.md",
     "docs/template/blueprints/saas-application.md",
     "docs/template/client-handoff-packet.md",
-    "docs/template/client-intake-questionnaire.md",
     "docs/template/client-intake-wizard.md",
     "docs/template/coding-standards.md",
     "docs/template/confect-effect-guide.md",
@@ -448,7 +445,6 @@
     "patches/@tanstack__start-plugin-core@1.171.18.patch",
     "playwright.funnel.config.ts",
     "pnpm-workspace.yaml",
-    "project.config.json",
     "scripts/_project-config.mjs",
     "scripts/_project-config.test.mjs",
     "scripts/bootstrap-preflight.mjs",
@@ -588,7 +584,7 @@
   "impact": {
     "schemaVersion": 1,
     "baseRevision": "3aefd456354b344b9595bddc44fc0782240e2b7d",
-    "subjectRevision": "4da2c073d1a10db22f40aa56db2a95c88990c74a",
+    "subjectRevision": "a8063027f90d8ebe8b1f8bdc025bcc8794eb10a4",
     "complete": true,
     "risk": "high",
     "changedPaths": [
