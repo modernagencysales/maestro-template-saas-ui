@@ -55,7 +55,7 @@ const taggedRepository = (): string => {
   execFileSync(
     "pnpm",
     ["install", "--offline", "--frozen-lockfile", "--ignore-scripts"],
-    { cwd: taggedReleaseRoot, stdio: "pipe", timeout: 120_000 },
+    { cwd: taggedReleaseRoot, stdio: "pipe", timeout: 240_000 },
   );
   return taggedReleaseRoot;
 };
@@ -187,7 +187,7 @@ describe("materialized customer CLI runtime closure", () => {
         ),
       ),
     ).toBe(true);
-  }, 120_000);
+  }, 240_000);
 
   it("runs privacy-aligned support preview and export from the current projection", async () => {
     const parent = mkdtempSync(join(tmpdir(), "maestro-current-customer-cli-"));

@@ -200,7 +200,6 @@ const TEMPLATE_ROOT_FILES = new Set([
   "pnpm-lock.yaml",
   "pnpm-workspace.yaml",
   "stryker.conf.mjs",
-  "tooling/release/__fixtures__/upgrade/provider-posture-v1-to-v2.contract.json",
   "tsconfig.base.json",
   "tsconfig.type-coverage.json",
   "turbo.json",

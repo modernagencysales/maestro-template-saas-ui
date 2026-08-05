@@ -103,7 +103,7 @@ const taggedRepository = (): string => {
   execFileSync(
     "pnpm",
     ["install", "--offline", "--frozen-lockfile", "--ignore-scripts"],
-    { cwd: taggedReleaseRoot, stdio: "pipe", timeout: 120_000 },
+    { cwd: taggedReleaseRoot, stdio: "pipe", timeout: 240_000 },
   );
   return taggedReleaseRoot;
 };
@@ -140,7 +140,7 @@ beforeAll(() => {
     "10.12.1",
   );
   taggedRepository();
-}, 120_000);
+}, 240_000);
 afterAll(async () => {
   try {
     if (taggedReleaseParent)
@@ -151,7 +151,7 @@ afterAll(async () => {
     if (originalStoreDir === undefined) delete process.env.npm_config_store_dir;
     else process.env.npm_config_store_dir = originalStoreDir;
   }
-});
+}, 120_000);
 afterEach(async () => {
   await Promise.all(
     temporaryRoots

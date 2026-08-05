@@ -103,8 +103,8 @@ describe("customer ownership inventory", () => {
     ],
     [
       "tooling/release/__fixtures__/upgrade/provider-posture-v1-to-v2.contract.json",
-      "template-owned",
-      "copy",
+      "factory-only",
+      "omit",
     ],
     ["docs/agent/host-projection-lifecycle.md", "template-owned", "copy"],
     ["docs/template/quickstart.md", "template-owned", "copy"],
