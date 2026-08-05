@@ -186,7 +186,7 @@ describe("customer generator runtime", () => {
         files: readonly { path: string; content: string }[];
       };
       expect(result.files[0]?.content).toContain(
-        'Schema.Literal(["planned", "active", "complete"])',
+        'Schema.Literals(["planned", "active", "complete"])',
       );
       expect(runCustomerGeneratorCli([...argv, "--write"], cwd).exitCode).toBe(
         0,
