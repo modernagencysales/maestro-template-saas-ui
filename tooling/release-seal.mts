@@ -55,7 +55,7 @@ export type ReleaseReadinessPlan = Readonly<{
   blueprintPath: string;
   publicDefaultAdvanceAllowed: boolean;
 }>;
-const CURRENT_PUBLIC_DEFAULT_VERSION = "0.2.0-alpha.3";
+const CURRENT_PUBLIC_DEFAULT_VERSION = "0.2.0-alpha.2";
 const root = realpathSync(fileURLToPath(new URL("../", import.meta.url)));
 const hash = (bytes: string | Buffer): string =>
   `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
@@ -690,7 +690,7 @@ async function build(args: Args): Promise<readonly Output[]> {
   const priorHashes = new Map<string, string>();
   for (const path of sourcePaths(prior.release.sourceCommit)) {
     const ownership = resolveCustomerReleasePath(prior.paths ?? [], path);
-    if (ownership?.action === "copy")
+    if (ownership?.ownership === "template-owned")
       priorHashes.set(path, hash(blob(prior.release.sourceCommit, path)));
   }
   const oldKinds = new Map(
