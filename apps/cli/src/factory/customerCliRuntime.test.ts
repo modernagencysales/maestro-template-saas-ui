@@ -721,9 +721,16 @@ describe("materialized customer CLI runtime closure", () => {
       "skills-lock.json",
       "packages/convex/convex/_generated/ai/ai-files.state.json",
       "packages/convex/convex/_generated/ai/guidelines.md",
-      "tooling/release/__fixtures__/upgrade/provider-posture-v1-to-v2.contract.json",
     ])
       expect(existsSync(join(target, path))).toBe(true);
+    expect(
+      existsSync(
+        join(
+          target,
+          "tooling/release/__fixtures__/upgrade/provider-posture-v1-to-v2.contract.json",
+        ),
+      ),
+    ).toBe(false);
     for (const skill of [
       "convex",
       "convex-create-component",
@@ -1011,13 +1018,13 @@ describe("materialized customer CLI runtime closure", () => {
         facts: {
           versions: {
             pack: expect.stringMatching(
-              /^release:0\.2\.0-alpha\.2@[0-9a-f]{40}$/,
+              /^release:0\.2\.0-alpha\.3@[0-9a-f]{40}$/,
             ),
             cli: expect.stringMatching(
-              /^release:0\.2\.0-alpha\.2@[0-9a-f]{40}$/,
+              /^release:0\.2\.0-alpha\.3@[0-9a-f]{40}$/,
             ),
             template: expect.stringMatching(
-              /^release:0\.2\.0-alpha\.2@[0-9a-f]{40}$/,
+              /^release:0\.2\.0-alpha\.3@[0-9a-f]{40}$/,
             ),
           },
           versionsCompatible: true,

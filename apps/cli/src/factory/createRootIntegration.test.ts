@@ -452,8 +452,8 @@ describe("create root integration", () => {
     expect(JSON.parse(result.stdout)).toMatchObject({ exitClass: "success" });
     const required = [
       "packages/convex/confect/tables/records.ts",
-      "packages/convex/confect/records.spec.ts",
-      "packages/convex/confect/records.impl.ts",
+      "packages/convex/confect/records/records.spec.ts",
+      "packages/convex/confect/records/records.impl.ts",
       "apps/web/src/adapters/records/contract.ts",
       "apps/web/src/adapters/records/fake.ts",
       "apps/web/src/features/records/records-surface.tsx",
