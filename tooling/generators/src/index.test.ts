@@ -1345,7 +1345,7 @@ describe("template app factory generators", () => {
     );
     expect(generated.files[0]?.content).toContain("title: Schema.String");
     expect(generated.files[0]?.content).toContain(
-      'status: Schema.Literal("planned", "active", "complete")',
+      'status: Schema.Literal(["planned", "active", "complete"])',
     );
 
     const systemCatalogFile = generated.files.find(
@@ -2490,6 +2490,9 @@ describe("template app factory generators", () => {
     expect(adapter).toContain("delete:");
     expect(generated).toContain(
       "Schema.Union([Unauthorized, ValidationFailed, Forbidden, NotFound])",
+    );
+    expect(generated).toContain(
+      'Schema.Literal(["planned", "active", "complete"])',
     );
     expect(generated).toContain(
       'FunctionSpec.publicMutation({ name: "remove"',

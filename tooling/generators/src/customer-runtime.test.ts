@@ -178,12 +178,16 @@ describe("customer generator runtime", () => {
         "delete",
         "--retention",
         "retain-until-workspace-delete",
+        "--business-entity",
       ];
       const preview = runCustomerGeneratorCli(argv, cwd);
       expect(preview.exitCode).toBe(0);
       const result = JSON.parse(preview.stdout) as {
         files: readonly { path: string; content: string }[];
       };
+      expect(result.files[0]?.content).toContain(
+        'Schema.Literal(["planned", "active", "complete"])',
+      );
       expect(runCustomerGeneratorCli([...argv, "--write"], cwd).exitCode).toBe(
         0,
       );
