@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "kind": "reviewed-upgrade-impact-coverage",
   "baseRevision": "3aefd456354b344b9595bddc44fc0782240e2b7d",
-  "subjectRevision": "a8063027f90d8ebe8b1f8bdc025bcc8794eb10a4",
+  "subjectRevision": "a4027feb8b5f24b8f9ebac6f69377440abaec3ec",
   "structuralPaths": [
     "docs/template/data-resources.json",
     "docs/template/generated/provenance/add-capability/evaluateAppIdea.json",
@@ -584,7 +584,7 @@
   "impact": {
     "schemaVersion": 1,
     "baseRevision": "3aefd456354b344b9595bddc44fc0782240e2b7d",
-    "subjectRevision": "a8063027f90d8ebe8b1f8bdc025bcc8794eb10a4",
+    "subjectRevision": "a4027feb8b5f24b8f9ebac6f69377440abaec3ec",
     "complete": true,
     "risk": "high",
     "changedPaths": [
