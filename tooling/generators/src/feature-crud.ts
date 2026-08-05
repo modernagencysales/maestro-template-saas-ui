@@ -274,7 +274,7 @@ const Workspace = Schema.Struct({ workspaceId: Id("workspaces") });
 const Identity = Schema.Struct({ workspaceId: Id("workspaces"), id: Id("${name}") });
 const Write = Schema.Struct({ workspaceId: Id("workspaces"), title: Schema.String, detail: Schema.String, status: Schema.Literal("planned", "active", "complete") });
 const Update = Schema.Struct({ workspaceId: Id("workspaces"), id: Id("${name}"), title: Schema.String, detail: Schema.String, status: Schema.Literal("planned", "active", "complete") });
-const ErrorSchema = Schema.Union(Unauthorized, ValidationFailed, Forbidden, NotFound);
+const ErrorSchema = Schema.Union([Unauthorized, ValidationFailed, Forbidden, NotFound]);
 const list = FunctionSpec.publicQuery({ name: "list", args: () => Workspace, returns: () => Schema.Array(table.Doc), error: () => ErrorSchema });
 const read = FunctionSpec.publicQuery({ name: "read", args: () => Identity, returns: () => table.Doc, error: () => ErrorSchema });
 const create = FunctionSpec.publicMutation({ name: "create", args: () => Write, returns: () => table.Doc, error: () => ErrorSchema });

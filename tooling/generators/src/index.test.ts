@@ -2488,6 +2488,9 @@ describe("template app factory generators", () => {
     expect(model).toContain('status: "success"');
     expect(adapter).toContain("createAccountSignalsAdapter");
     expect(adapter).toContain("delete:");
+    expect(generated).toContain(
+      "Schema.Union([Unauthorized, ValidationFailed, Forbidden, NotFound])",
+    );
     expect(feature).toContain('aria-label="AccountSignals title"');
     expect(feature).toContain("Delete accountSignals");
     expect(generated).not.toContain("Synthetic fixture");
