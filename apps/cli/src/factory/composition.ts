@@ -63,7 +63,7 @@ import { createPlanCheckCliHandler } from "./planCheck";
 import { createAppMapCliHandlers } from "./appMap";
 import { createAdoptCliHandler } from "./adopt";
 import { readBoundedAdoptionPacket } from "./adoptFileReader";
-import { createCustomerCreateComposition } from "./createComposition";
+import { loadCustomerCreateComposition } from "./createComposition";
 import { createProviderDoctorCliHandler } from "./doctor";
 import {
   projectCompositionEnvironment,
@@ -555,7 +555,7 @@ export function createFactoryCliComposition(
   });
   const handlers: readonly FactoryCliHandler[] = [
     ...createAppMapCliHandlers(),
-    createCustomerCreateComposition(),
+    loadCustomerCreateComposition(),
     createAdoptCliHandler({
       readFile: (root, path) =>
         readBoundedAdoptionPacket(

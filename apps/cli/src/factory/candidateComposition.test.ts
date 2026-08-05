@@ -21,6 +21,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   CURRENT_PUBLIC_SOURCE,
   createCustomerCreateComposition,
+  loadCustomerCreateComposition,
   type CustomerCompositionSource,
 } from "./createComposition";
 
@@ -328,7 +329,7 @@ describe("candidate customer composition", () => {
     const name = "Candidate Validation";
     const outcome = "Validate the exact candidate customer artifact";
     const fixture = buildCandidateReleaseFixture({ name, outcome });
-    const create = createCustomerCreateComposition(
+    const create = loadCustomerCreateComposition(
       fixture.source,
       buildSaasApplicationTargetPlan,
     );
@@ -630,6 +631,26 @@ describe("candidate customer composition", () => {
         /releases\/v0\.2\.0-alpha\.3\/manifest\.json$/u,
       ),
     });
-    expect(createCustomerCreateComposition().command).toBe("create");
+    expect(loadCustomerCreateComposition().command).toBe("create");
+  });
+
+  it("composes a command without reading release authority files", () => {
+    const missingAuthority = join(
+      tmpdir(),
+      "maestro-missing-blueprint-authority.json",
+    );
+    const source = {
+      ...CURRENT_PUBLIC_SOURCE,
+      blueprintManifestPath: missingAuthority,
+      blueprintAuthorityManifestPath: missingAuthority,
+    };
+
+    expect(
+      createCustomerCreateComposition(
+        source,
+        buildSaasApplicationTargetPlan,
+        new Map(),
+      ).command,
+    ).toBe("create");
   });
 });

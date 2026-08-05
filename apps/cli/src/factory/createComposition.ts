@@ -3,6 +3,7 @@ import { buildSaasApplicationTargetPlan } from "@maestro-template/generators";
 import {
   blueprintTargetPlanDigest,
   createCustomerReleaseAdapter,
+  type BlueprintTargetPlan,
 } from "@maestro-template/release-tooling/customer-create";
 import { readFileSync } from "node:fs";
 import { homedir } from "node:os";
@@ -51,26 +52,62 @@ export const CURRENT_PUBLIC_SOURCE = Object.freeze({
   blueprintAuthorityManifestChecksum: BASE_BLUEPRINT_CHECKSUM,
 }) satisfies CustomerCompositionSource;
 
-export function createCustomerCreateComposition(
-  source: CustomerCompositionSource = CURRENT_PUBLIC_SOURCE,
-  buildBlueprintTargetPlan: (options: {
-    readonly name: string;
-    readonly firstOutcome?: string;
-  }) => ReturnType<
-    typeof buildSaasApplicationTargetPlan
-  > = buildSaasApplicationTargetPlan,
-) {
+type BlueprintTargetPlanBuilder = (options: {
+  readonly name: string;
+  readonly firstOutcome?: string;
+}) => BlueprintTargetPlan;
+
+type BlueprintReplacementAuthority = ReadonlyMap<
+  string,
+  "copy" | "generate" | undefined
+>;
+
+function readBlueprintReplacementAuthority(
+  source: CustomerCompositionSource,
+): BlueprintReplacementAuthority {
   const authority = JSON.parse(
-    readFileSync(source.blueprintManifestPath, "utf8"),
+    readFileSync(source.blueprintAuthorityManifestPath, "utf8"),
   ) as {
     readonly entries: readonly {
       readonly path: string;
       readonly replaces?: "copy" | "generate";
     }[];
   };
-  const replacements = new Map(
+  return new Map(
     authority.entries.map(({ path, replaces }) => [path, replaces] as const),
   );
+}
+
+function applyReplacementAuthority(
+  plan: BlueprintTargetPlan,
+  replacements: BlueprintReplacementAuthority,
+): BlueprintTargetPlan {
+  const entries = plan.entries.map((entry) => {
+    const rest = { ...entry };
+    delete rest.replaces;
+    const replaces = replacements.get(entry.path);
+    return replaces === undefined ? rest : { ...rest, replaces };
+  });
+  const composed = { ...plan, entries };
+  return { ...composed, digest: blueprintTargetPlanDigest(composed) };
+}
+
+export function loadCustomerCreateComposition(
+  source: CustomerCompositionSource = CURRENT_PUBLIC_SOURCE,
+  buildBlueprintTargetPlan: BlueprintTargetPlanBuilder = buildSaasApplicationTargetPlan,
+) {
+  return createCustomerCreateComposition(
+    source,
+    buildBlueprintTargetPlan,
+    readBlueprintReplacementAuthority(source),
+  );
+}
+
+export function createCustomerCreateComposition(
+  source: CustomerCompositionSource,
+  buildBlueprintTargetPlan: BlueprintTargetPlanBuilder,
+  replacements: BlueprintReplacementAuthority,
+) {
   const release = createCustomerReleaseAdapter({
     ...source,
     homeRoot: homedir(),
@@ -78,17 +115,7 @@ export function createCustomerCreateComposition(
   const command = createCustomerCreateCommand({
     blueprintTargetPlan: ({ name, outcome }) => {
       const plan = buildBlueprintTargetPlan({ name, firstOutcome: outcome });
-      const entries = plan.entries.map((entry) => {
-        const rest = { ...entry };
-        delete rest.replaces;
-        const replaces = replacements.get(entry.path);
-        return replaces === undefined ? rest : { ...rest, replaces };
-      });
-      const composed = {
-        ...plan,
-        entries,
-      };
-      return { ...composed, digest: blueprintTargetPlanDigest(composed) };
+      return applyReplacementAuthority(plan, replacements);
     },
     release: {
       prepare: (request) =>
