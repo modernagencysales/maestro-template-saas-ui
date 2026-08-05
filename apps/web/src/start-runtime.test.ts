@@ -22,6 +22,15 @@ describe("TanStack Start runtime contract", () => {
     expect(source).toContain('preview: { host: "127.0.0.1" }');
   });
 
+  it("uses non-streaming SSR so closed browsers cannot crash the dev server", () => {
+    const config = read("vite.config.ts");
+    const server = read("src/server.ts");
+
+    expect(config).toContain('server: { entry: "server.ts" }');
+    expect(server).toContain("defaultRenderHandler");
+    expect(server).not.toContain("defaultStreamHandler");
+  });
+
   it("wires the router through Convex React Query and generated routeTree", () => {
     const source = read("src/router.tsx");
 
@@ -29,11 +38,11 @@ describe("TanStack Start runtime contract", () => {
     expect(source).toContain('from "@convex-dev/react-query"');
     expect(source).toContain('from "@tanstack/react-query"');
     expect(source).toContain('from "@tanstack/react-router"');
-    expect(source).toContain('from "@tanstack/react-router-ssr-query"');
+    expect(source).not.toContain('from "@tanstack/react-router-ssr-query"');
     expect(source).toContain('from "./routeTree.gen"');
     expect(source).toContain("new ConvexQueryClient");
     expect(source).toContain("new QueryClient");
-    expect(source).toContain("setupRouterSsrQueryIntegration");
+    expect(source).not.toContain("setupRouterSsrQueryIntegration");
     expect(source).toContain('defaultPreload: "intent"');
     expect(source).toContain("scrollRestoration: true");
   });

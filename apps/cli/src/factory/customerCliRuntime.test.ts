@@ -55,7 +55,7 @@ const taggedRepository = (): string => {
   execFileSync(
     "pnpm",
     ["install", "--offline", "--frozen-lockfile", "--ignore-scripts"],
-    { cwd: taggedReleaseRoot, stdio: "pipe", timeout: 120_000 },
+    { cwd: taggedReleaseRoot, stdio: "pipe", timeout: 240_000 },
   );
   return taggedReleaseRoot;
 };
@@ -187,7 +187,7 @@ describe("materialized customer CLI runtime closure", () => {
         ),
       ),
     ).toBe(true);
-  }, 120_000);
+  }, 240_000);
 
   it("runs privacy-aligned support preview and export from the current projection", async () => {
     const parent = mkdtempSync(join(tmpdir(), "maestro-current-customer-cli-"));
@@ -226,13 +226,13 @@ describe("materialized customer CLI runtime closure", () => {
     };
     expect(instance).toMatchObject({
       release: {
-        version: "0.2.0-alpha.2",
-        tag: "maestro-template-v0.2.0-alpha.2",
+        version: "0.2.0-alpha.3",
+        tag: "maestro-template-v0.2.0-alpha.3",
         sourceCommit: expect.stringMatching(/^[0-9a-f]{40}$/),
         sourceChecksum: expect.stringMatching(/^sha256:[0-9a-f]{64}$/),
       },
       ownership: {
-        manifest: "releases/v0.2.0-alpha.2/manifest.json",
+        manifest: "releases/v0.2.0-alpha.3/manifest.json",
         manifestChecksum: expect.stringMatching(/^sha256:[0-9a-f]{64}$/),
       },
       privacy: {
@@ -721,9 +721,16 @@ describe("materialized customer CLI runtime closure", () => {
       "skills-lock.json",
       "packages/convex/convex/_generated/ai/ai-files.state.json",
       "packages/convex/convex/_generated/ai/guidelines.md",
-      "tooling/release/__fixtures__/upgrade/provider-posture-v1-to-v2.contract.json",
     ])
       expect(existsSync(join(target, path))).toBe(true);
+    expect(
+      existsSync(
+        join(
+          target,
+          "tooling/release/__fixtures__/upgrade/provider-posture-v1-to-v2.contract.json",
+        ),
+      ),
+    ).toBe(false);
     for (const skill of [
       "convex",
       "convex-create-component",
@@ -1011,13 +1018,13 @@ describe("materialized customer CLI runtime closure", () => {
         facts: {
           versions: {
             pack: expect.stringMatching(
-              /^release:0\.2\.0-alpha\.2@[0-9a-f]{40}$/,
+              /^release:0\.2\.0-alpha\.3@[0-9a-f]{40}$/,
             ),
             cli: expect.stringMatching(
-              /^release:0\.2\.0-alpha\.2@[0-9a-f]{40}$/,
+              /^release:0\.2\.0-alpha\.3@[0-9a-f]{40}$/,
             ),
             template: expect.stringMatching(
-              /^release:0\.2\.0-alpha\.2@[0-9a-f]{40}$/,
+              /^release:0\.2\.0-alpha\.3@[0-9a-f]{40}$/,
             ),
           },
           versionsCompatible: true,

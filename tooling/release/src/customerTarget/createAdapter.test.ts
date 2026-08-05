@@ -12,6 +12,7 @@ import {
   createCustomerCurrentAdapter,
   createCustomerReleaseAdapter,
 } from "./createAdapter.js";
+import { composedReleasePaths } from "./createAdapter.archive.js";
 import {
   adapter,
   blueprintTargetPlan,
@@ -24,6 +25,32 @@ import {
 } from "./createAdapter.testFixtures.js";
 
 describe("customer release create adapter", () => {
+  it("turns composed release deletions into exact factory omissions", () => {
+    expect(
+      composedReleasePaths(
+        [
+          {
+            path: "retired.json",
+            match: "exact",
+            ownership: "template-owned",
+            action: "copy",
+            upgrade: "replace",
+          },
+        ],
+        [],
+        [{ kind: "delete", path: "retired.json" }],
+      ),
+    ).toEqual([
+      {
+        path: "retired.json",
+        match: "exact",
+        ownership: "factory-only",
+        action: "omit",
+        upgrade: "remove",
+      },
+    ]);
+  });
+
   it("binds exact current omission authority into preview and provenance", async () => {
     const fixture = taggedRelease();
     const options = {

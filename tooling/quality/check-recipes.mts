@@ -127,6 +127,7 @@ function checkGenerators(recipe: OutcomeRecipe, findings: string[]): void {
       "deleteMode",
       "retention",
       "appendOnly",
+      "businessEntity",
     ];
     const missing = required.filter(
       (argument) => table?.arguments[argument] === undefined,

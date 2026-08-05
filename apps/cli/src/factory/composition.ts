@@ -63,7 +63,7 @@ import { createPlanCheckCliHandler } from "./planCheck";
 import { createAppMapCliHandlers } from "./appMap";
 import { createAdoptCliHandler } from "./adopt";
 import { readBoundedAdoptionPacket } from "./adoptFileReader";
-import { createCustomerCreateComposition } from "./createComposition";
+import { loadCustomerCreateComposition as createCustomerCreateComposition } from "./createComposition";
 import { createProviderDoctorCliHandler } from "./doctor";
 import {
   projectCompositionEnvironment,
@@ -173,6 +173,7 @@ export type FactoryMcpOverrides = {
   };
 };
 
+// This composition root only wires imported handlers and adapters; behavior stays in their modules.
 export function createFactoryCliComposition(
   readEnvironment: CompositionEnvironmentReader,
   overrides: FactoryMcpOverrides = {},

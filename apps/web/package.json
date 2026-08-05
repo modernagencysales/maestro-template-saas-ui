@@ -10,6 +10,7 @@
     "preview": "vite preview --host 0.0.0.0",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run --passWithNoTests",
+    "test:runtime-longevity": "vitest run scripts/check-dev-runtime-longevity.test.mjs --maxWorkers=1 --no-file-parallelism",
     "test:bundle-budget": "vitest run scripts/check-client-bundle-budget.test.mjs --passWithNoTests"
   },
   "dependencies": {
@@ -35,7 +36,6 @@
     "@saas-ui/react": "3.0.0-next.51",
     "@tanstack/react-query": "5.101.0",
     "@tanstack/react-router": "1.170.16",
-    "@tanstack/react-router-ssr-query": "1.167.1",
     "@tanstack/react-start": "1.168.26",
     "@tiptap/core": "3.27.1",
     "@tiptap/pm": "3.27.1",

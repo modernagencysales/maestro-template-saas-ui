@@ -131,7 +131,13 @@ describe("release seal factory-only exclusions", () => {
           },
         ],
       }),
-    ).toEqual([expect.objectContaining({ path, ownership: "template-owned" })]);
+    ).toEqual([
+      expect.objectContaining({
+        path,
+        ownership: "factory-only",
+        action: "omit",
+      }),
+    ]);
   });
 
   it("classifies reviewed customer additions and omits reviewed factory files", () => {

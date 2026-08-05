@@ -13,6 +13,7 @@ import { dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { format as formatWithPrettier } from "prettier";
 import {
+  CUSTOMER_OWNERSHIP_RULES,
   buildCustomerOwnershipInventory,
   classifyCustomerSourcePath,
 } from "./release/src/customerTarget/ownership.js";
@@ -241,6 +242,92 @@ function resolvePriorManifest(
   };
 }
 const REVIEWED_ADDITIONAL_PATHS: readonly CustomerReleasePath[] = [
+  ...[
+    "apps/web/src/routes/build-pack.$packId.generating.tsx",
+    "apps/web/src/routes/build-pack.$packId.index.tsx",
+    "apps/web/src/routes/build-pack.$packId.tsx",
+    "apps/web/src/routes/checkout.$reportId.tsx",
+    "apps/web/src/routes/checkout.fake-hosted.$sessionId.tsx",
+    "apps/web/src/routes/checkout.return.tsx",
+    "apps/web/src/routes/evaluate.tsx",
+    "apps/web/src/routes/library.tsx",
+    "apps/web/src/routes/maestro.$packId.tsx",
+    "apps/web/src/routes/privacy.tsx",
+    "apps/web/src/routes/report.$evaluationId.tsx",
+    "apps/web/src/routes/share.$token.tsx",
+    "apps/web/src/routes/support.tsx",
+    "apps/web/src/routes/terms.tsx",
+    "apps/web/src/routes/verify-report.tsx",
+  ].map((path) => ({
+    path,
+    match: "exact" as const,
+    ownership: "factory-only" as const,
+    action: "omit" as const,
+    upgrade: "remove" as const,
+  })),
+  {
+    path: "apps/web/src/features/public-funnel",
+    match: "subtree",
+    ownership: "factory-only",
+    action: "omit",
+    upgrade: "remove",
+  },
+  {
+    path: "apps/web/src/providers/posthog.test.tsx",
+    match: "exact",
+    ownership: "factory-only",
+    action: "omit",
+    upgrade: "remove",
+  },
+  {
+    path: ".factory/project.yaml",
+    match: "exact",
+    ownership: "template-owned",
+    action: "copy",
+    upgrade: "replace",
+  },
+  {
+    path: "cucumber.cjs",
+    match: "exact",
+    ownership: "template-owned",
+    action: "copy",
+    upgrade: "replace",
+  },
+  {
+    path: "features",
+    match: "subtree",
+    ownership: "template-owned",
+    action: "copy",
+    upgrade: "replace",
+  },
+  {
+    path: "generated",
+    match: "subtree",
+    ownership: "generated",
+    action: "generate",
+    upgrade: "regenerate",
+  },
+  {
+    path: "maestro-template.mjs",
+    match: "exact",
+    ownership: "template-owned",
+    action: "copy",
+    upgrade: "replace",
+  },
+  {
+    path: "playwright.funnel.config.ts",
+    match: "exact",
+    ownership: "template-owned",
+    action: "copy",
+    upgrade: "replace",
+  },
+  {
+    path: "tooling/acceptance",
+    match: "subtree",
+    ownership: "template-owned",
+    action: "copy",
+    upgrade: "replace",
+  },
   {
     path: ".claude/settings.json",
     match: "exact",
@@ -275,6 +362,34 @@ const REVIEWED_ADDITIONAL_PATHS: readonly CustomerReleasePath[] = [
     action: "omit",
     upgrade: "remove",
   })),
+  {
+    path: ".superpowers",
+    match: "subtree",
+    ownership: "factory-only",
+    action: "omit",
+    upgrade: "remove",
+  },
+  {
+    path: ".woodpecker",
+    match: "subtree",
+    ownership: "factory-only",
+    action: "omit",
+    upgrade: "remove",
+  },
+  {
+    path: "docs/superpowers",
+    match: "subtree",
+    ownership: "factory-only",
+    action: "omit",
+    upgrade: "remove",
+  },
+  {
+    path: "tooling/ci",
+    match: "subtree",
+    ownership: "factory-only",
+    action: "omit",
+    upgrade: "remove",
+  },
   {
     path: "docs/agent",
     match: "subtree",
@@ -452,7 +567,17 @@ export function buildReviewedAdditionalPaths(input: {
     sourcePaths: input.sourcePaths,
     protectedCustomerPaths: input.protectedCustomerPaths,
   });
-  const rules = [...configured, ...REVIEWED_ADDITIONAL_PATHS]
+  const rules = [
+    ...new Map(
+      [
+        ...configured,
+        ...REVIEWED_ADDITIONAL_PATHS,
+        ...CUSTOMER_OWNERSHIP_RULES.filter(
+          (entry) => entry.ownership === "factory-only",
+        ),
+      ].map((entry) => [`${entry.match}:${entry.path}`, entry] as const),
+    ).values(),
+  ]
     .filter((candidate) => {
       const inherited = input.basePaths.find(
         (entry) =>
@@ -460,6 +585,7 @@ export function buildReviewedAdditionalPaths(input: {
       );
       if (inherited === undefined) return true;
       if (JSON.stringify(inherited) === JSON.stringify(candidate)) return false;
+      if (candidate.ownership === "factory-only") return false;
       throw new Error(
         `Release additional path conflicts with inherited authority: ${candidate.match}:${candidate.path}`,
       );
@@ -526,22 +652,6 @@ async function build(args: Args): Promise<readonly Output[]> {
   if (!args.check) apply(outputs);
   else assertOutputs(outputs);
 
-  const blueprintValue = {
-    schemaVersion: plan.schemaVersion,
-    id: plan.id,
-    provenance: plan.provenance,
-    projectionSource: { sourceCommit: args.sourceCommit, assets },
-    registrations: plan.registrations,
-    parameterizedEntries: plan.parameterizedEntries,
-    entries: plan.entries.map((entry) =>
-      Object.fromEntries(
-        Object.entries(entry).filter(([key]) => key !== "content"),
-      ),
-    ),
-  } as Json;
-  const blueprintBytes = await json(blueprintValue);
-  outputs.push({ path: blueprintPath, bytes: blueprintBytes });
-
   const reviewedSourcePaths = sourcePaths(args.sourceCommit);
   const additionalPaths = buildReviewedAdditionalPaths({
     value: current.additionalPaths,
@@ -549,14 +659,40 @@ async function build(args: Args): Promise<readonly Output[]> {
     protectedCustomerPaths: protectedCustomerSourcePaths,
     basePaths: prior.paths ?? [],
   });
-  const exclusions = [...(prior.paths ?? []), ...additionalPaths].filter(
-    (entry) => entry.ownership === "factory-only",
-  );
+  const exclusions = [
+    ...new Map(
+      [...(prior.paths ?? []), ...additionalPaths, ...CUSTOMER_OWNERSHIP_RULES]
+        .filter((entry) => entry.ownership === "factory-only")
+        .map((entry) => [`${entry.match}:${entry.path}`, entry] as const),
+    ).values(),
+  ];
   const inventory = buildReviewedOwnershipInventory({
     sourcePaths: reviewedSourcePaths,
     exclusions,
     overrides: additionalPaths,
   });
+  const copiedSourcePaths = new Set(
+    inventory.filter(({ action }) => action === "copy").map(({ path }) => path),
+  );
+  const blueprintValue = {
+    schemaVersion: plan.schemaVersion,
+    id: plan.id,
+    provenance: plan.provenance,
+    projectionSource: { sourceCommit: args.sourceCommit, assets },
+    registrations: plan.registrations,
+    parameterizedEntries: plan.parameterizedEntries,
+    entries: plan.entries.map((entry) => {
+      const value = Object.fromEntries(
+        Object.entries(entry).filter(([key]) => key !== "content"),
+      );
+      return copiedSourcePaths.has(entry.path)
+        ? { ...value, replaces: "copy" }
+        : value;
+    }),
+  } as Json;
+  const blueprintBytes = await json(blueprintValue);
+  outputs.push({ path: blueprintPath, bytes: blueprintBytes });
+
   const currentTemplate = new Map(
     inventory
       .filter((entry) => entry.ownership === "template-owned")
@@ -565,7 +701,7 @@ async function build(args: Args): Promise<readonly Output[]> {
   const priorHashes = new Map<string, string>();
   for (const path of sourcePaths(prior.release.sourceCommit)) {
     const ownership = resolveCustomerReleasePath(prior.paths ?? [], path);
-    if (ownership?.action === "copy")
+    if (ownership?.ownership === "template-owned")
       priorHashes.set(path, hash(blob(prior.release.sourceCommit, path)));
   }
   const oldKinds = new Map(
@@ -573,7 +709,11 @@ async function build(args: Args): Promise<readonly Output[]> {
       .filter((operation) => operation.ownership === "template-owned")
       .map((operation) => [operation.path, operation]),
   );
-  const managed = new Set([...currentTemplate.keys(), ...oldKinds.keys()]);
+  const managed = new Set([
+    ...currentTemplate.keys(),
+    ...priorHashes.keys(),
+    ...oldKinds.keys(),
+  ]);
   const operations = [...managed].sort().flatMap((path) => {
     const afterHash = currentTemplate.get(path);
     const beforeHash = priorHashes.get(path);
@@ -717,6 +857,10 @@ async function build(args: Args): Promise<readonly Output[]> {
   let composition = blob(args.sourceCommit, compositionPath).toString("utf8");
   composition = composition
     .replace(
+      /const BASE_MANIFEST_PATH = "releases\/v[^/]+\/manifest\.json";/u,
+      `const BASE_MANIFEST_PATH = "${manifestPath}";`,
+    )
+    .replace(
       /const BASE_MANIFEST_CHECKSUM =\n {2}"sha256:[0-9a-f]{64}";/u,
       `const BASE_MANIFEST_CHECKSUM =\n  "${hash(manifestBytes)}";`,
     )
@@ -727,6 +871,18 @@ async function build(args: Args): Promise<readonly Output[]> {
     .replace(
       /const BASE_COMMIT = "[0-9a-f]{40}";/u,
       `const BASE_COMMIT = "${args.sourceCommit}";`,
+    )
+    .replace(
+      /const BASE_TAG = "maestro-template-v[^"]+";/u,
+      `const BASE_TAG = "${readiness.tag}";`,
+    )
+    .replace(
+      /releases\/v[^/]+\/blueprints\/saas-application\.json/gu,
+      `${releaseRoot}/blueprints/saas-application.json`,
+    )
+    .replace(
+      /releases\/v[^/]+\/hardening\/saas-application\.json/u,
+      `${releaseRoot}/hardening/saas-application.json`,
     );
   outputs.push({ path: compositionPath, bytes: Buffer.from(composition) });
   return outputs;

@@ -34,6 +34,7 @@ export type {
   CustomerReleaseAdapterFacts,
   CustomerReleaseAdapterOptions,
 } from "./createAdapter.contract.js";
+export { blueprintTargetPlanDigest } from "./createAdapter.contract.js";
 
 export type CustomerCurrentAdapterOptions = CustomerReleaseAdapterOptions & {
   readonly blueprintId: string;
@@ -122,14 +123,14 @@ function createCustomerAdapter(
             resolved.sourceRoot,
             templateInstance,
           );
-          const materialization = materializationRequest(
+          const materialization = materializationRequest({
             options,
             request,
-            resolved,
+            resolvedRelease: resolved,
             manifest,
             generatedFiles,
             blueprint,
-          );
+          });
           const preview = previewCustomerTarget(materialization);
           const token = {};
           tokens.set(token, {
@@ -184,14 +185,14 @@ function createCustomerAdapter(
             resolved.sourceRoot,
             state.templateInstance,
           );
-          const request = materializationRequest(
+          const request = materializationRequest({
             options,
-            state.request,
-            resolved,
+            request: state.request,
+            resolvedRelease: resolved,
             manifest,
             generatedFiles,
             blueprint,
-          );
+          });
           const preview = previewCustomerTarget(request);
           if (preview.preflightFingerprint !== preflightFingerprint) {
             throw new CustomerReleaseAdapterError(
@@ -378,14 +379,21 @@ function generatedEntries(
   );
 }
 
-function materializationRequest(
-  options: CustomerReleaseAdapterOptions,
-  request: PrepareRequest,
-  resolvedRelease: ResolvedRelease,
-  manifest: CustomerReleaseManifest,
-  generatedFiles: Readonly<Record<string, Buffer>>,
-  blueprint: ReturnType<typeof validateBlueprintTargetPlan>,
-): CustomerMaterializationRequest {
+function materializationRequest({
+  options,
+  request,
+  resolvedRelease,
+  manifest,
+  generatedFiles,
+  blueprint,
+}: {
+  readonly options: CustomerReleaseAdapterOptions;
+  readonly request: PrepareRequest;
+  readonly resolvedRelease: ResolvedRelease;
+  readonly manifest: CustomerReleaseManifest;
+  readonly generatedFiles: Readonly<Record<string, Buffer>>;
+  readonly blueprint: ReturnType<typeof validateBlueprintTargetPlan>;
+}): CustomerMaterializationRequest {
   return {
     manifest,
     sourceRoot: resolvedRelease.sourceRoot,

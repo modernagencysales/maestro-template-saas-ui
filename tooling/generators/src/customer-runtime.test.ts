@@ -142,15 +142,16 @@ describe("customer generator runtime", () => {
     const result = JSON.parse(preview.stdout) as {
       files: readonly { path: string; content: string }[];
     };
-    const fixture = result.files.find(({ path }) =>
-      path.endsWith("/fixtures.ts"),
+    const adapter = result.files.find(({ path }) =>
+      path.endsWith("/adapter.ts"),
     )?.content;
-    expect(fixture).toContain(
-      "export const fakeCustomerReviewItem: CustomerReviewItem",
-    );
-    expect(fixture).toContain("draft: fakeCustomerReviewItem");
-    expect(fixture).toContain("item: fakeCustomerReviewItem");
-    expect(fixture).not.toContain("[0]!");
+    const generated = result.files.map(({ content }) => content).join("\n");
+    expect(adapter).toContain("createCustomerReviewAdapter");
+    expect(adapter).toContain("update:");
+    expect(adapter).toContain("delete:");
+    expect(generated).not.toContain("Synthetic fixture");
+    expect(generated).not.toContain('status: "accepted"');
+    expect(generated).not.toContain("Replace fake fixtures");
   });
 
   it("previews and writes an add-table lifecycle slice", () => {
@@ -177,12 +178,16 @@ describe("customer generator runtime", () => {
         "delete",
         "--retention",
         "retain-until-workspace-delete",
+        "--business-entity",
       ];
       const preview = runCustomerGeneratorCli(argv, cwd);
       expect(preview.exitCode).toBe(0);
       const result = JSON.parse(preview.stdout) as {
         files: readonly { path: string; content: string }[];
       };
+      expect(result.files[0]?.content).toContain(
+        'Schema.Literals(["planned", "active", "complete"])',
+      );
       expect(runCustomerGeneratorCli([...argv, "--write"], cwd).exitCode).toBe(
         0,
       );
@@ -280,7 +285,7 @@ describe("customer generator runtime", () => {
       });
       if (!reviewed.ok) throw new Error(reviewed.message);
       expect(
-        reviewed.output.files.find(({ path }) => path.endsWith("/fixtures.ts"))
+        reviewed.output.files.find(({ path }) => path.endsWith("/adapter.ts"))
           ?.content,
       ).not.toContain("[0]!");
     } finally {

@@ -78,6 +78,10 @@ describe("customer ownership inventory", () => {
   });
 
   it.each([
+    [".factory/project.yaml", "template-owned", "copy"],
+    ["cucumber.cjs", "template-owned", "copy"],
+    ["features/customer-onboarding.feature", "template-owned", "copy"],
+    ["tooling/acceptance/check-contracts.mts", "template-owned", "copy"],
     [".claude/settings.json", "generated", "generate"],
     ["maestro-template.mjs", "template-owned", "copy"],
     ["apps/web/src/routes/index.tsx", "template-owned", "copy"],
@@ -99,8 +103,8 @@ describe("customer ownership inventory", () => {
     ],
     [
       "tooling/release/__fixtures__/upgrade/provider-posture-v1-to-v2.contract.json",
-      "template-owned",
-      "copy",
+      "factory-only",
+      "omit",
     ],
     ["docs/agent/host-projection-lifecycle.md", "template-owned", "copy"],
     ["docs/template/quickstart.md", "template-owned", "copy"],

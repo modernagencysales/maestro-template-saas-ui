@@ -12,7 +12,8 @@ commands:
       executor: maestro-worker
       affected: ["**"]
 ci:
-  required_contexts: [ci/woodpecker/pr/firewall]
+  # Repository policy names deterministic verify as the sole merge authority; firewall/AI remains visible and advisory.
+  required_contexts: [ci/woodpecker/pr/verify]
 contract_review:
   affected:
     [

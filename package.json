@@ -11,6 +11,8 @@
     "check:effect-diagnostics": "effect-language-service diagnostics --project packages/convex/tsconfig.json --format github-actions --strict",
     "test": "turbo run test --filter=!@maestro-template/release-tooling --filter=!@maestro-template/agent-pack --filter=!@maestro-template/cli --filter=!@maestro-template/convex-compat && pnpm --dir tooling/agent-pack test && pnpm --dir apps/cli test && pnpm --dir tooling/convex-compat test && pnpm --dir packages/convex test:workflow-conformance && pnpm --dir apps/cli test:customer-cli-runtime && pnpm --dir apps/cli test:create-root-integration && pnpm --dir tooling/agent-pack test:privacy-no-network && pnpm --dir tooling/release test:unit && pnpm test:release-filesystem",
     "test:release-filesystem": "pnpm --dir tooling/release test:final-filesystem",
+    "test:runtime-longevity": "pnpm --dir apps/web test:runtime-longevity",
+    "test:chassis-ci": "vitest run tooling/ci/verify-chassis.test.mts --maxWorkers=1 --no-file-parallelism",
     "test:bootstrap": "node --test scripts/maestro-bootstrap.test.mjs",
     "test:tooling": "pnpm test:bootstrap && pnpm --dir tooling/quality test && pnpm --dir tooling/workflow test && pnpm --dir tooling/generators test && pnpm --dir tooling/evals test && pnpm --dir tooling/release test:unit",
     "test:app-map": "pnpm --dir tooling/app-map test",

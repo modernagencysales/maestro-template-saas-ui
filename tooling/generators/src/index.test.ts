@@ -1322,6 +1322,7 @@ describe("template app factory generators", () => {
       exportMode: "json",
       deleteMode: "delete",
       retention: "retain-until-workspace-delete",
+      businessEntity: true,
       description: "Stores source review decisions.",
     });
 
@@ -1341,6 +1342,10 @@ describe("template app factory generators", () => {
     );
     expect(generated.files[0]?.content).toContain(
       'workspaceId: Id("workspaces")',
+    );
+    expect(generated.files[0]?.content).toContain("title: Schema.String");
+    expect(generated.files[0]?.content).toContain(
+      'status: Schema.Literals(["planned", "active", "complete"])',
     );
 
     const systemCatalogFile = generated.files.find(
@@ -2431,9 +2436,13 @@ describe("template app factory generators", () => {
     const model = result.files.find(({ path }) =>
       path.endsWith("/accountSignals/model.ts"),
     )?.content;
-    const fixture = result.files.find(({ path }) =>
-      path.endsWith("/accountSignals/fixtures.ts"),
+    const adapter = result.files.find(({ path }) =>
+      path.endsWith("/accountSignals/adapter.ts"),
     )?.content;
+    const feature = result.files.find(({ path }) =>
+      path.endsWith("/accountSignals/account-signals-feature.tsx"),
+    )?.content;
+    const generated = result.files.map(({ content }) => content).join("\n");
     const route = result.files.find(({ path }) =>
       path.endsWith("/_workspace.account-signals.tsx"),
     )?.content;
@@ -2449,15 +2458,18 @@ describe("template app factory generators", () => {
         "packages/convex/confect/capabilities/accountSignals.impl.ts",
         "apps/web/src/features/accountSignals/contract.ts",
         "apps/web/src/features/accountSignals/model.ts",
-        "apps/web/src/features/accountSignals/fixtures.ts",
+        "apps/web/src/features/accountSignals/adapter.ts",
+        "apps/web/src/features/accountSignals/adapter.test.ts",
         "apps/web/src/features/accountSignals/account-signals-feature.tsx",
-        "apps/web/src/features/accountSignals/model.test.ts",
         "apps/web/src/screens/account-signals-screen.tsx",
         "apps/web/src/routes/_workspace.account-signals.tsx",
         "docs/template/generated/features/accountSignals.md",
       ]),
     );
     expect(contract).toContain('system: "knowledge-brain"');
+    expect(contract).toContain(
+      'export type AccountSignalsStatus = "planned" | "active" | "complete"',
+    );
     expect(contract).toContain('tenantScope: "workspace"');
     expect(contract).toContain('auth: "workspace-member"');
     expect(contract).toContain("audit");
@@ -2467,18 +2479,30 @@ describe("template app factory generators", () => {
     expect(contract).toContain("dataLifecycle");
     expect(model).toContain('status: "loading"');
     expect(model).toContain('status: "empty"');
-    expect(model).toContain('status: "ready"');
+    expect(model).toContain('status: "list"');
+    expect(model).toContain('status: "detail"');
+    expect(model).toContain('status: "create"');
     expect(model).toContain('status: "edit"');
-    expect(model).toContain('status: "skipped"');
     expect(model).toContain('status: "typed-error"');
     expect(model).toContain('status: "transport-error"');
     expect(model).toContain('status: "success"');
-    expect(fixture).toContain(
-      "export const fakeAccountSignalsItem: AccountSignalsItem",
+    expect(adapter).toContain("createAccountSignalsAdapter");
+    expect(adapter).toContain("delete:");
+    expect(generated).toContain(
+      "Schema.Union([Unauthorized, ValidationFailed, Forbidden, NotFound])",
     );
-    expect(fixture).toContain("draft: fakeAccountSignalsItem");
-    expect(fixture).toContain("item: fakeAccountSignalsItem");
-    expect(fixture).not.toContain("[0]!");
+    expect(generated).toContain(
+      'Schema.Literals(["planned", "active", "complete"])',
+    );
+    expect(generated).toContain('FunctionSpec.publicMutation({ name: "remove"');
+    expect(generated).toContain(
+      'FunctionImpl.make(databaseSchema, group, "remove"',
+    );
+    expect(feature).toContain('aria-label="AccountSignals title"');
+    expect(feature).toContain("Delete accountSignals");
+    expect(generated).not.toContain("Synthetic fixture");
+    expect(generated).not.toContain('status: "accepted"');
+    expect(generated).not.toContain("Replace fake fixtures");
     expect(route).toContain("AccountSignalsScreen");
     expect(route).not.toContain("Feature");
     expect(JSON.parse(provenance?.content ?? "{}")).toMatchObject({
