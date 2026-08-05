@@ -2494,9 +2494,7 @@ describe("template app factory generators", () => {
     expect(generated).toContain(
       'Schema.Literals(["planned", "active", "complete"])',
     );
-    expect(generated).toContain(
-      'FunctionSpec.publicMutation({ name: "remove"',
-    );
+    expect(generated).toContain('FunctionSpec.publicMutation({ name: "remove"');
     expect(generated).toContain(
       'FunctionImpl.make(databaseSchema, group, "remove"',
     );

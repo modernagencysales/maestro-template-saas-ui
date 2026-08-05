@@ -225,7 +225,9 @@ function resolveReleaseDefinitionAt(input: {
       ? value.upgrade.operations
       : [];
   const paths = composedReleasePaths(
-    (Array.isArray(base.manifest.paths) ? base.manifest.paths : []) as CustomerReleasePath[],
+    (Array.isArray(base.manifest.paths)
+      ? base.manifest.paths
+      : []) as CustomerReleasePath[],
     value.additionalPaths as CustomerReleasePath[],
     operations,
   );
@@ -263,18 +265,17 @@ export function composedReleasePaths(
         : [],
     ),
   );
-  return [
-    ...base,
-    ...additional,
-  ].filter((entry) => entry.match !== "exact" || !deleted.has(entry.path)).concat(
-    [...deleted].map((path) => ({
-      path,
-      match: "exact" as const,
-      ownership: "factory-only" as const,
-      action: "omit" as const,
-      upgrade: "remove" as const,
-    })),
-  );
+  return [...base, ...additional]
+    .filter((entry) => entry.match !== "exact" || !deleted.has(entry.path))
+    .concat(
+      [...deleted].map((path) => ({
+        path,
+        match: "exact" as const,
+        ownership: "factory-only" as const,
+        action: "omit" as const,
+        upgrade: "remove" as const,
+      })),
+    );
 }
 
 export function composedExpectedHashes(

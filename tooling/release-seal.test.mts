@@ -132,7 +132,11 @@ describe("release seal factory-only exclusions", () => {
         ],
       }),
     ).toEqual([
-      expect.objectContaining({ path, ownership: "factory-only", action: "omit" }),
+      expect.objectContaining({
+        path,
+        ownership: "factory-only",
+        action: "omit",
+      }),
     ]);
   });
 
