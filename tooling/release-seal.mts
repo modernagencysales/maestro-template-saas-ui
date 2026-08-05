@@ -649,10 +649,12 @@ async function build(args: Args): Promise<readonly Output[]> {
     basePaths: prior.paths ?? [],
   });
   const exclusions = [
-    ...(prior.paths ?? []),
-    ...additionalPaths,
-    ...CUSTOMER_OWNERSHIP_RULES,
-  ].filter((entry) => entry.ownership === "factory-only");
+    ...new Map(
+      [...(prior.paths ?? []), ...additionalPaths, ...CUSTOMER_OWNERSHIP_RULES]
+        .filter((entry) => entry.ownership === "factory-only")
+        .map((entry) => [`${entry.match}:${entry.path}`, entry] as const),
+    ).values(),
+  ];
   const inventory = buildReviewedOwnershipInventory({
     sourcePaths: reviewedSourcePaths,
     exclusions,
