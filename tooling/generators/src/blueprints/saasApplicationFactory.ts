@@ -199,6 +199,45 @@ const currentCustomerSourceProjections = (): readonly GeneratedFile[] =>
     content: currentCustomerSource(path),
   }));
 
+const currentContractFiles = (options: {
+  readonly name: string;
+  readonly firstOutcome?: string;
+}): readonly GeneratedFile[] => {
+  const name = options.name.trim() || "My App";
+  const firstOutcome = (
+    options.firstOutcome?.trim() || "Create and review records"
+  ).replace(/\s+/gu, " ");
+  return [
+    ...[
+      "apps/web/src/adapters/records/http.ts",
+      "features/records.feature",
+      "features/step_definitions/records.steps.ts",
+    ].map((path) => ({
+      path,
+      content: readFileSync(
+        new URL(
+          `../../../../examples/saas-application/seed/source/${path}`,
+          import.meta.url,
+        ),
+        "utf8",
+      ),
+    })),
+    {
+      path: "features/first-outcome.feature",
+      content: `@wip
+Feature: ${firstOutcome}
+  This is the first product promise for ${name}.
+
+  @cross_surface
+  Scenario: Deliver ${firstOutcome.toLowerCase()}
+    Given the product is ready
+    When the first outcome is completed
+    Then ${firstOutcome.toLowerCase()} is observable in the app and CLI
+`,
+    },
+  ];
+};
+
 const recordsFeatureProvenance = (): GeneratedFile => ({
   path: "docs/template/generated/provenance/add-feature/records.json",
   content: `${JSON.stringify(
@@ -279,6 +318,7 @@ export const buildFactorySaasApplicationFiles = (options: {
   readonly firstOutcome?: string;
 }): readonly GeneratedFile[] => [
   ...currentSaasApplicationFiles(options),
+  ...currentContractFiles(options),
   ...buildSaasRegistrationProjections(),
   ...currentCustomerSourceProjections(),
   recordsFeatureProvenance(),

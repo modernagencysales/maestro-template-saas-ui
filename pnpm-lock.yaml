@@ -422,8 +422,6 @@ importers:
 
   packages/observability: {}
 
-  packages/product-journey: {}
-
   packages/search: {}
 
   packages/storage: {}

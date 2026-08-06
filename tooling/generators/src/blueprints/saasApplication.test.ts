@@ -36,7 +36,7 @@ import { buildFactorySaasApplicationFiles } from "./saasApplicationFactory";
 import {
   CUSTOMER_ROOT_SCRIPTS,
   CURRENT_EMAIL_CLOSURE,
-  CURRENT_PRODUCT_JOURNEY_CLOSURE,
+  CURRENT_HEADLESS_CONTRACT_SOURCE_CLOSURE,
   CURRENT_SAAS_DEPLOY_AUTHORITY_SOURCE_CLOSURE,
   CURRENT_SAAS_DEPLOY_AUTHORITY_TABLE_CLOSURE,
   CURRENT_GENERATOR_GATE_SCRIPTS,
@@ -639,6 +639,13 @@ describe("saas application blueprint", () => {
     expect(
       plan.entries.find(({ path }) => path === "README.md")?.content,
     ).toContain('git commit -m "feat: add reviewed Maestro change"');
+    const agentInstructions = plan.entries.find(
+      ({ path }) => path === "AGENTS.md",
+    )?.content;
+    expect(agentInstructions).toContain("pnpm maestro -- contracts check");
+    expect(agentInstructions).toContain(
+      "pnpm maestro -- contracts test --required",
+    );
     const prettierIgnore = plan.entries.find(
       (entry) => entry.path === ".prettierignore",
     );
@@ -675,11 +682,30 @@ describe("saas application blueprint", () => {
       "examples/saas-application/seed/crud-scenario.json",
       "examples/saas-application/seed/records.json",
       "examples/saas-application/seed/workspace.json",
+      "features/first-outcome.feature",
       "generated/blueprints/saas-application/application-contract.json",
     ]);
     expect(buildSaasApplicationAlpha1TargetPlan().parameterizedEntries).toEqual(
       [],
     );
+  });
+
+  it("turns the requested first outcome into a draft product contract", () => {
+    const feature = buildSaasApplicationTargetPlan({
+      name: "Collections Desk",
+      firstOutcome: "Reconcile disputed invoices",
+    }).entries.find(({ path }) => path === "features/first-outcome.feature");
+
+    expect(feature?.content).toBe(`@wip
+Feature: Reconcile disputed invoices
+  This is the first product promise for Collections Desk.
+
+  @cross_surface
+  Scenario: Deliver reconcile disputed invoices
+    Given the product is ready
+    When the first outcome is completed
+    Then reconcile disputed invoices is observable in the app and CLI
+`);
   });
 
   it("projects each pre-existing workflow artifact schema binding once", () => {
@@ -720,7 +746,7 @@ describe("saas application blueprint", () => {
     const postAlphaCurrentPaths = new Set<string>([
       ...CURRENT_SAAS_DEPLOY_AUTHORITY_TABLE_CLOSURE,
       ...CURRENT_SAAS_DEPLOY_AUTHORITY_SOURCE_CLOSURE,
-      ...CURRENT_PRODUCT_JOURNEY_CLOSURE,
+      ...CURRENT_HEADLESS_CONTRACT_SOURCE_CLOSURE,
       "Justfile",
       "apps/cli/package.json",
       "apps/web/package.json",
@@ -988,14 +1014,90 @@ describe("saas application blueprint", () => {
     }
   });
 
-  it("keeps current support files out of the frozen alpha.1 plan", () => {
-    const paths = buildSaasApplicationAlpha1TargetPlan().entries.map(
-      ({ path }) => path,
+  it("keeps current contracts and support files out of frozen alpha.1", () => {
+    const historicalEntries = new Map(
+      buildSaasApplicationAlpha1TargetPlan().entries.map((entry) => [
+        entry.path,
+        entry.content,
+      ]),
     );
-    expect(paths).not.toContain("docs/template/agent-pack-privacy.md");
-    expect(paths).not.toContain("apps/cli/src/factory/supportBundle.ts");
-    expect(paths).not.toContain(
-      "tooling/agent-pack/src/privacy/supportBundle.ts",
+    const currentEntries = new Map(
+      buildSaasApplicationTargetPlan().entries.map((entry) => [
+        entry.path,
+        entry.content,
+      ]),
+    );
+    const currentOnlyPaths = [
+      ".npmrc",
+      "apps/cli/src/commands.ts",
+      "apps/cli/src/factory/contracts.ts",
+      "apps/web/src/adapters/records/http.ts",
+      "cucumber.cjs",
+      "features/first-outcome.feature",
+      "features/records.feature",
+      "features/step_definitions/records.steps.ts",
+      "packages/convex/confect/_generated/registeredFunctions/headless/apiKeys.ts",
+      "packages/convex/convex/headless/apiKeys.ts",
+      "tooling/acceptance/check-features.mts",
+    ];
+
+    for (const path of currentOnlyPaths) {
+      expect(currentEntries.has(path), `current target: ${path}`).toBe(true);
+      expect(historicalEntries.has(path), `alpha.1 target: ${path}`).toBe(
+        false,
+      );
+    }
+    expect(historicalEntries.has("docs/template/agent-pack-privacy.md")).toBe(
+      false,
+    );
+    expect(historicalEntries.has("apps/cli/src/factory/supportBundle.ts")).toBe(
+      false,
+    );
+    expect(
+      historicalEntries.has("tooling/agent-pack/src/privacy/supportBundle.ts"),
+    ).toBe(false);
+    const historicalPackage = JSON.parse(
+      historicalEntries.get("package.json") ?? "{}",
+    ) as { readonly scripts?: Readonly<Record<string, string>> };
+    const currentPackage = JSON.parse(
+      currentEntries.get("package.json") ?? "{}",
+    ) as { readonly scripts?: Readonly<Record<string, string>> };
+    expect(historicalPackage.scripts?.verify).not.toContain(
+      "contracts test --required",
+    );
+    expect(historicalPackage.scripts?.["acceptance:check"]).toBeUndefined();
+    expect(currentPackage.scripts?.verify).toContain(
+      "contracts test --required",
+    );
+  });
+
+  it("projects the complete Cucumber contract runtime and current rules", () => {
+    const entries = new Map(
+      buildSaasApplicationTargetPlan().entries.map((entry) => [
+        entry.path,
+        entry.content,
+      ]),
+    );
+
+    expect(entries.has("cucumber.cjs")).toBe(true);
+    expect(entries.has("tooling/acceptance/check-features.mts")).toBe(true);
+    expect(entries.get("docs/template/coding-standards.md")).toContain(
+      "exactly one `@wip` or `@required`",
+    );
+    expect(entries.get("docs/template/coding-standards.md")).not.toContain(
+      "@journey_",
+    );
+  });
+
+  it("runs required contracts from generated-customer verification", () => {
+    const projectedPackage = JSON.parse(
+      buildSaasApplicationTargetPlan().entries.find(
+        ({ path }) => path === "package.json",
+      )?.content ?? "{}",
+    ) as { readonly scripts?: Readonly<Record<string, string>> };
+
+    expect(projectedPackage.scripts?.verify).toContain(
+      "pnpm maestro -- contracts test --required",
     );
   });
 
@@ -1341,9 +1443,16 @@ describe("saas application blueprint", () => {
       "generated/blueprints/saas-application/application-contract.json",
       "generated/blueprints/saas-application/surface-contract.json",
       "generated/blueprints/saas-application/readiness.json",
+      "apps/web/src/adapters/records/http.ts",
+      "features/records.feature",
+      "features/step_definitions/records.steps.ts",
+      "features/first-outcome.feature",
       "README.md",
       "docs/template/agent-pack-privacy.md",
       "docs/template/preflight.md",
+      "docs/template/coding-standards.md",
+      "cucumber.cjs",
+      "tooling/acceptance/check-features.mts",
       "AGENTS.md",
       "docs/template/agent-worker-playbook.md",
       "docs/template/how-this-relates-to-maestro.md",
@@ -1363,7 +1472,9 @@ describe("saas application blueprint", () => {
       "packages/convex/package.json",
       "tooling/quality/check-convex-generation.mts",
       "apps/cli/src/factory/customerComposition.ts",
+      "apps/cli/src/factory/contracts.ts",
       "apps/cli/src/factory/mcp.ts",
+      "apps/cli/src/commands.ts",
       "apps/cli/src/index.ts",
       "tooling/agent-pack/package.json",
       "apps/cli/package.json",
@@ -1373,9 +1484,12 @@ describe("saas application blueprint", () => {
       "apps/cli/src/factory/recipeCatalog.ts",
       "apps/cli/src/factory/recipes.ts",
       "apps/cli/src/factory/supportBundle.ts",
+      ".npmrc",
       ".prettierignore",
       "package.json",
       "pnpm-lock.yaml",
+      "patches/@confect__cli@10.0.0-next.9.patch",
+      "patches/@tanstack__start-plugin-core@1.171.18.patch",
       "tooling/confect-manifest/tsconfig.json",
       "tooling/generators/package.json",
       "tooling/quality/package.json",
@@ -1413,9 +1527,9 @@ describe("saas application blueprint", () => {
       "packages/convex/confect/_generated/docs.ts",
       "packages/convex/confect/_generated/tables/workflowArtifacts.ts",
       ...CURRENT_EMAIL_CLOSURE,
+      ...CURRENT_HEADLESS_CONTRACT_SOURCE_CLOSURE,
       ...CURRENT_SAAS_DEPLOY_AUTHORITY_TABLE_CLOSURE,
       ...CURRENT_SAAS_DEPLOY_AUTHORITY_SOURCE_CLOSURE,
-      ...CURRENT_PRODUCT_JOURNEY_CLOSURE,
       "packages/convex/confect/tables/workflowArtifacts.ts",
       "packages/convex/confect/tables/workflowRuns.ts",
       "packages/convex/confect/tables/workflowStageRuns.ts",
@@ -1989,6 +2103,7 @@ describe("saas application blueprint", () => {
         "check:headless-surface-contract",
         "check:posthog-readiness",
         "check:auth-demo-bypass",
+        "maestro -- contracts test --required",
       ]
         .map((name) => `pnpm ${name}`)
         .join(" && "),

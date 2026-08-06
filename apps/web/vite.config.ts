@@ -8,6 +8,30 @@ import { dependencyChunkName } from "./src/bundle-policy";
 const contractsApiBaseUrl = process.env.MAESTRO_API_BASE_URL?.trim();
 const contractsApiKey = process.env.MAESTRO_API_KEY?.trim();
 
+const isSafeContractsApiBaseUrl = (value: string): boolean => {
+  try {
+    const url = new URL(value);
+    return (
+      url.protocol === "https:" ||
+      (url.protocol === "http:" &&
+        (url.hostname === "localhost" ||
+          url.hostname === "[::1]" ||
+          url.hostname === "::1" ||
+          /^127(?:\.\d{1,3}){3}$/u.test(url.hostname)))
+    );
+  } catch {
+    return false;
+  }
+};
+
+if (
+  contractsApiBaseUrl &&
+  contractsApiKey &&
+  !isSafeContractsApiBaseUrl(contractsApiBaseUrl)
+) {
+  throw new Error("MAESTRO_API_BASE_URL must use HTTPS or loopback HTTP.");
+}
+
 export default defineConfig({
   preview: { host: "127.0.0.1" },
   ...(contractsApiBaseUrl && contractsApiKey

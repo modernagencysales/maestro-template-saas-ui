@@ -33,6 +33,21 @@ preflight -> recipes/system lookup -> preview -> reviewed write
           -> start --mode fake
 ```
 
+## Product Contracts
+
+The natural-language contract under `features/` is the acceptance authority.
+For each promised journey:
+
+1. Run `pnpm maestro -- contracts add <journey>` or edit its Feature first.
+2. Run `pnpm maestro -- contracts check` while defining its step bindings.
+3. Implement the observable behavior through the real UI and CLI surfaces.
+4. Run `pnpm maestro -- contracts test <journey>` until the Feature passes.
+5. Change `@wip` to `@required` only when the promise is accepted, then run
+   `pnpm maestro -- contracts test --required` before delivery.
+
+Do not replace a Feature with a parallel journey manifest, evidence store, or
+source-code wording checker. Cucumber execution is the completion evidence.
+
 After the focused gates pass, review `git status --short` and commit the recipe
 transaction, including its receipt and generated provenance. Start reruns
 preflight and intentionally requires a clean target.

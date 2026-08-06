@@ -68,7 +68,6 @@
     "check:convex-compat": "pnpm test:convex-compat",
     "check:ci-completeness": "tsx tooling/quality/check-ci-completeness.mts",
     "check:config-drift": "tsx tooling/quality/check-config-drift.mts",
-    "check:product-journeys": "tsx tooling/quality/check-product-journeys.mts",
     "check:deps": "tsx tooling/quality/check-deps.mts",
     "check:knip": "knip --config knip.json",
     "check:route-tree": "tsx tooling/quality/check-route-tree.mts",

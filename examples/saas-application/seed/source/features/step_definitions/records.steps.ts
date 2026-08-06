@@ -6,18 +6,19 @@ import {
   When,
   setDefaultTimeout,
 } from "@cucumber/cucumber";
-import { chromium } from "@playwright/test";
 import {
-  execFile,
-  spawn,
-  type ChildProcessWithoutNullStreams,
-} from "node:child_process";
+  createNodeProcessSpawner,
+  type ManagedProcess,
+} from "@maestro-template/agent-pack";
+import { chromium } from "@playwright/test";
+import { execFile } from "node:child_process";
 import { createHash, randomBytes } from "node:crypto";
 import { createServer } from "node:net";
 
 setDefaultTimeout(60_000);
 
-let app: ChildProcessWithoutNullStreams | undefined;
+let app: ManagedProcess | undefined;
+let appExited = false;
 let apiKey = "";
 let apiBaseUrl = "";
 let webUrl = "";
@@ -106,42 +107,46 @@ BeforeAll(async () => {
     ],
     localConvexEnvironment(),
   );
-  app = spawn(
-    "pnpm",
-    [
-      "--silent",
-      "maestro",
-      "--",
-      "start",
-      "--mode",
-      "local",
-      "--web-port",
-      String(webPort),
-      "--convex-port",
-      String(convexPort),
-      "--convex-site-port",
-      String(convexSitePort),
-      "--readiness-port",
-      String(readinessPort),
-      "--details",
-    ],
+  app = await createNodeProcessSpawner(() => process.env).spawn(
     {
+      id: "contracts",
+      command: "pnpm",
+      args: [
+        "--silent",
+        "maestro",
+        "--",
+        "start",
+        "--mode",
+        "local",
+        "--web-port",
+        String(webPort),
+        "--convex-port",
+        String(convexPort),
+        "--convex-site-port",
+        String(convexSitePort),
+        "--readiness-port",
+        String(readinessPort),
+        "--details",
+      ],
       cwd: process.cwd(),
-      env: {
-        ...process.env,
-        MAESTRO_API_BASE_URL: apiBaseUrl,
-        MAESTRO_API_KEY: apiKey,
-        VITE_MAESTRO_CONTRACT_MODE: "1",
+      environment: {
+        remove: [],
+        set: {
+          MAESTRO_API_BASE_URL: apiBaseUrl,
+          MAESTRO_API_KEY: apiKey,
+          VITE_MAESTRO_CONTRACT_MODE: "1",
+        },
       },
     },
+    (_stream, line) => {
+      appOutput = `${appOutput}${line}\n`.slice(-20_000);
+    },
   );
-  const capture = (chunk: Buffer) => {
-    appOutput = `${appOutput}${chunk.toString("utf8")}`.slice(-20_000);
-  };
-  app.stdout.on("data", capture);
-  app.stderr.on("data", capture);
+  void app.completion.then(() => {
+    appExited = true;
+  });
   await eventually(async () => {
-    if (app && (app.exitCode !== null || app.signalCode !== null)) {
+    if (appExited) {
       throw new Error(
         `The local app exited before readiness.\n${appOutput.replaceAll(apiKey, "[redacted]")}`,
       );
@@ -156,18 +161,7 @@ BeforeAll(async () => {
 });
 
 AfterAll(async () => {
-  if (!app || app.exitCode !== null) return;
-  const runningApp = app;
-  runningApp.kill("SIGINT");
-  await Promise.race([
-    new Promise<void>((resolve) => runningApp.once("exit", () => resolve())),
-    new Promise<void>((resolve) =>
-      setTimeout(() => {
-        runningApp.kill("SIGKILL");
-        resolve();
-      }, 5_000),
-    ),
-  ]);
+  await app?.terminate("SIGINT");
 });
 
 Given("the contracts workspace is ready", async () => {

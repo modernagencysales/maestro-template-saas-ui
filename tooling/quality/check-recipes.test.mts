@@ -1,5 +1,6 @@
 import {
   cpSync,
+  mkdirSync,
   mkdtempSync,
   readFileSync,
   rmSync,
@@ -68,5 +69,10 @@ function makeFixture(): string {
   );
   cpSync(join(repoRoot, "package.json"), join(fixture, "package.json"));
   cpSync(join(repoRoot, "apps"), join(fixture, "apps"), { recursive: true });
+  mkdirSync(join(fixture, "tooling/generators"), { recursive: true });
+  cpSync(
+    join(repoRoot, "tooling/generators/package.json"),
+    join(fixture, "tooling/generators/package.json"),
+  );
   return fixture;
 }

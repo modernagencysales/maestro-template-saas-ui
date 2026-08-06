@@ -61,7 +61,7 @@ const applyCurrentSaasProjection = (
   })
     .trim()
     .split("\n")
-    .filter(Boolean);
+    .filter((path) => path && existsSync(join(repoRoot, path)));
   for (const { path, action } of buildCustomerOwnershipInventory(
     currentTrackedFiles,
   )) {
@@ -73,6 +73,16 @@ const applyCurrentSaasProjection = (
     mkdirSync(dirname(target), { recursive: true });
     writeFileSync(target, readFileSync(join(repoRoot, path)));
   }
+  for (const entry of buildSaasApplicationTargetPlan(options).entries) {
+    const target = join(root, entry.path);
+    mkdirSync(dirname(target), { recursive: true });
+    writeFileSync(target, entry.content);
+  }
+};
+const materializeCurrentSaasPlan = (
+  root: string,
+  options: { readonly name: string; readonly firstOutcome: string },
+): void => {
   for (const entry of buildSaasApplicationTargetPlan(options).entries) {
     const target = join(root, entry.path);
     mkdirSync(dirname(target), { recursive: true });
@@ -728,10 +738,13 @@ describe("create root integration", () => {
     ]);
     expect(created.exitCode, `${created.stdout}\n${created.stderr}`).toBe(0);
 
-    applyCurrentSaasProjection(targetRoot, {
+    materializeCurrentSaasPlan(targetRoot, {
       name: "Contract Prototype",
       firstOutcome: "Create and review records",
     });
+    expect(
+      readFileSync(join(targetRoot, "features/first-outcome.feature"), "utf8"),
+    ).toContain("@wip\nFeature: Create and review records");
     for (const args of [
       ["install", "--offline", "--frozen-lockfile", "--ignore-scripts"],
       ["confect:codegen"],
@@ -762,15 +775,74 @@ describe("create root integration", () => {
       { cwd: targetRoot },
     );
 
-    const contracts = spawnSync(
-      "pnpm",
-      ["--silent", "acceptance:cucumber", "--tags", "@required"],
-      {
-        cwd: targetRoot,
-        encoding: "utf8",
-        timeout: 180_000,
-      },
+    const contractArgs = [
+      "--silent",
+      "maestro",
+      "--",
+      "contracts",
+      "test",
+      "--required",
+    ];
+    const recordsSurface = join(
+      targetRoot,
+      "apps/web/src/features/records/records-surface.tsx",
     );
+    const originalSurface = readFileSync(recordsSurface, "utf8");
+    expect(originalSurface).toContain("Save record");
+    writeFileSync(
+      recordsSurface,
+      originalSurface.replace("Save record", "Save draft"),
+    );
+    execFileSync("git", ["add", recordsSurface], { cwd: targetRoot });
+    execFileSync(
+      "git",
+      [
+        "-c",
+        "user.name=Maestro Contracts",
+        "-c",
+        "user.email=contracts@template.local",
+        "commit",
+        "--no-verify",
+        "--quiet",
+        "-m",
+        "break visible contract",
+      ],
+      { cwd: targetRoot },
+    );
+    const mutation = spawnSync("pnpm", contractArgs, {
+      cwd: targetRoot,
+      encoding: "utf8",
+      timeout: 180_000,
+    });
+    expect(mutation.status).not.toBe(0);
+    expect(`${mutation.stdout}\n${mutation.stderr}`).toContain("Save record");
+
+    rmSync(join(targetRoot, ".convex"), { recursive: true, force: true });
+    writeFileSync(recordsSurface, originalSurface);
+    expect(
+      execFileSync("git", ["diff"], { cwd: targetRoot, encoding: "utf8" }),
+    ).not.toContain("mtk_live_");
+    execFileSync("git", ["add", "-u"], { cwd: targetRoot });
+    execFileSync(
+      "git",
+      [
+        "-c",
+        "user.name=Maestro Contracts",
+        "-c",
+        "user.email=contracts@template.local",
+        "commit",
+        "--no-verify",
+        "--quiet",
+        "-m",
+        "restore visible contract",
+      ],
+      { cwd: targetRoot },
+    );
+    const contracts = spawnSync("pnpm", contractArgs, {
+      cwd: targetRoot,
+      encoding: "utf8",
+      timeout: 180_000,
+    });
     expect(contracts.status, `${contracts.stdout}\n${contracts.stderr}`).toBe(
       0,
     );

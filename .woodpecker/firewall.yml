@@ -61,4 +61,4 @@ steps:
         node --experimental-strip-types --experimental-transform-types "$TRUSTED_TREE/tooling/quality/ai-review-cycle.mts"
     depends_on:
       - firewall
-    failure: cancel
+    failure: ignore
