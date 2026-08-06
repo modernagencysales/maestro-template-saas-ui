@@ -463,12 +463,13 @@ Triggered commands after a dependency change:
 | Provider/config       | env, provider, logging, secret, adapter tests                                         |
 | Route/UI              | route tree, layer/Effect boundaries, web typecheck, state/accessibility tests         |
 | Dependency            | metadata pins, Knip, inventory + human license review, OSV, allowlist, frozen install |
-| Frozen batch          | clean-head required Cucumber execution plus one `pnpm verify`                         |
+| Frozen customer batch | clean-head required Cucumber execution plus one `pnpm verify`                         |
 
 ## Frozen-Head Verification
 
-Run focused tests per task. Freeze a clean delivery head, record its SHA, then
-run the full required proof once:
+In a generated customer repository that contains accepted Features, run focused
+tests per task. Freeze a clean delivery head, record its SHA, then run the full
+required proof once:
 
     git diff --check
     git status --short
@@ -478,10 +479,15 @@ run the full required proof once:
 
 `pnpm verify` does not run required Cucumber Scenarios. The explicit contracts
 command above first validates required Feature shape and then executes
-`cucumber-js --tags @required`. The factory's PR `verify-chassis.sh` also does
-not execute those Scenarios; the delivery process must preserve this separate
-evidence until customer CI owns it. `check:generators` is a static descriptor
-check and is included in `pnpm verify`; it does not require live Convex codegen.
+`cucumber-js --tags @required`.
+
+The template/factory source repository has no root `features/` directory and
+must not run that customer command. Its separate projection evidence is the
+generator suite plus `apps/cli` create-root integration in
+`tooling/ci/verify-chassis.sh`; those tests materialize disposable customer
+targets and prove the emitted Feature/contract commands. `check:generators` is a
+static descriptor check included in factory `pnpm verify`; it does not require
+live Convex codegen.
 
 Use any host-specific semaphore or remote wrapper required by the enclosing
 `AGENTS.md`, not by this portable template document.
