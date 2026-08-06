@@ -22,6 +22,7 @@ let apiKey = "";
 let apiBaseUrl = "";
 let webUrl = "";
 let appOutput = "";
+let cliFailure = "";
 
 const localConvexEnvironment = () => {
   const environment = {
@@ -92,19 +93,19 @@ BeforeAll(async () => {
   apiKey = `mtk_live_${randomBytes(32).toString("base64url")}`;
   apiBaseUrl = `http://127.0.0.1:${convexSitePort}`;
   webUrl = `http://127.0.0.1:${webPort}`;
+  await run(["--silent", "exec", "convex", "init"], localConvexEnvironment());
   await run(
-    ["--silent", "exec", "convex", "init"],
+    [
+      "--silent",
+      "exec",
+      "convex",
+      "env",
+      "set",
+      "POSTHOG_PROJECT_TOKEN",
+      "phc_test_placeholder",
+    ],
     localConvexEnvironment(),
   );
-  await run([
-    "--silent",
-    "exec",
-    "convex",
-    "env",
-    "set",
-    "POSTHOG_PROJECT_TOKEN",
-    "phc_test_placeholder",
-  ], localConvexEnvironment());
   app = spawn(
     "pnpm",
     [
@@ -172,14 +173,17 @@ AfterAll(async () => {
 Given("the contracts workspace is ready", async () => {
   const keyHash = createHash("sha256").update(apiKey).digest("base64url");
   await eventually(async () => {
-    await run([
-      "--silent",
-      "exec",
-      "convex",
-      "run",
-      "headless/apiKeys:seedLocalContracts",
-      JSON.stringify({ keyHash }),
-    ], localConvexEnvironment());
+    await run(
+      [
+        "--silent",
+        "exec",
+        "convex",
+        "run",
+        "headless/apiKeys:seedLocalContracts",
+        JSON.stringify({ keyHash }),
+      ],
+      localConvexEnvironment(),
+    );
   });
 });
 
@@ -193,6 +197,140 @@ When("I create a record named {string} in the app", async (title: string) => {
     await page.getByLabel("Record detail").fill("Created by Cucumber.");
     await page.getByRole("button", { name: "Save record" }).click();
     await page.getByRole("heading", { name: title }).waitFor();
+  } finally {
+    await browser.close();
+  }
+});
+
+When("I create a record named {string} from the CLI", async (title: string) => {
+  await run(
+    [
+      "--silent",
+      "maestro",
+      "--",
+      "capability",
+      "run",
+      "records.create",
+      "--workspace",
+      "template-demo",
+      "--input",
+      JSON.stringify({ title, detail: "Created by Cucumber." }),
+      "--idempotency-key",
+      "contracts-create-cli",
+    ],
+    {
+      ...process.env,
+      MAESTRO_API_BASE_URL: apiBaseUrl,
+      MAESTRO_API_KEY: apiKey,
+    },
+  );
+});
+
+Then("the app shows a record named {string}", async (title: string) => {
+  const browser = await chromium.launch({ headless: true });
+  try {
+    const page = await browser.newPage();
+    await page.goto(`${webUrl}/records`);
+    await page.getByRole("button", { name: title }).waitFor();
+  } finally {
+    await browser.close();
+  }
+});
+
+When(
+  "I try to create a record named {string} without a CLI API key",
+  async (title: string) => {
+    cliFailure = "";
+    try {
+      await run(
+        [
+          "--silent",
+          "maestro",
+          "--",
+          "capability",
+          "run",
+          "records.create",
+          "--workspace",
+          "template-demo",
+          "--input",
+          JSON.stringify({ title, detail: "Created by Cucumber." }),
+          "--idempotency-key",
+          "contracts-create-without-key",
+        ],
+        {
+          ...process.env,
+          MAESTRO_API_BASE_URL: apiBaseUrl,
+          MAESTRO_API_KEY: "",
+        },
+      );
+    } catch (error) {
+      cliFailure = error instanceof Error ? error.message : String(error);
+      return;
+    }
+    throw new Error("The CLI accepted a record without an API key.");
+  },
+);
+
+Then("the CLI reports that an API key is required", () => {
+  if (!cliFailure.includes("API_KEY_MISSING")) {
+    throw new Error("The CLI did not report a missing API key.");
+  }
+});
+
+When(
+  "I try to create a record named {string} for another workspace",
+  async (title: string) => {
+    cliFailure = "";
+    try {
+      await run(
+        [
+          "--silent",
+          "maestro",
+          "--",
+          "capability",
+          "run",
+          "records.create",
+          "--workspace",
+          "another-workspace",
+          "--input",
+          JSON.stringify({ title, detail: "Created by Cucumber." }),
+          "--idempotency-key",
+          "contracts-create-other-workspace",
+        ],
+        {
+          ...process.env,
+          MAESTRO_API_BASE_URL: apiBaseUrl,
+          MAESTRO_API_KEY: apiKey,
+        },
+      );
+    } catch (error) {
+      cliFailure = error instanceof Error ? error.message : String(error);
+      return;
+    }
+    throw new Error(
+      "The CLI accepted a workspace-bound key for another workspace.",
+    );
+  },
+);
+
+Then(
+  "the CLI reports that the API key is bound to a different workspace",
+  () => {
+    if (!cliFailure.includes("API_KEY_WORKSPACE_MISMATCH")) {
+      throw new Error("The CLI did not report a workspace mismatch.");
+    }
+  },
+);
+
+Then("the app does not show {string}", async (title: string) => {
+  const browser = await chromium.launch({ headless: true });
+  try {
+    const page = await browser.newPage();
+    await page.goto(`${webUrl}/records`);
+    await page.getByRole("button", { name: "Create record" }).waitFor();
+    if ((await page.getByText(title, { exact: true }).count()) !== 0) {
+      throw new Error(`The app unexpectedly showed ${JSON.stringify(title)}.`);
+    }
   } finally {
     await browser.close();
   }

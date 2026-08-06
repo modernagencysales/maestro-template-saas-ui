@@ -774,7 +774,7 @@ describe("create root integration", () => {
     expect(contracts.status, `${contracts.stdout}\n${contracts.stderr}`).toBe(
       0,
     );
-    expect(contracts.stdout).toContain("1 scenario (1 passed)");
+    expect(contracts.stdout).toContain("4 scenarios (4 passed)");
   }, 300_000);
 });
 
