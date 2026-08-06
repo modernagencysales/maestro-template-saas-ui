@@ -98,6 +98,20 @@ function git(args: readonly string[], cwd: string): string {
   return result.stdout;
 }
 
+function hasHead(root: string): boolean {
+  const result = spawnSync(
+    "git",
+    ["rev-parse", "--verify", "--quiet", "HEAD"],
+    { cwd: root, encoding: "utf8" },
+  );
+  if (result.error !== undefined) throw result.error;
+  if (result.signal !== null)
+    throw new Error(`git terminated by ${result.signal}`);
+  if (result.status === 0) return true;
+  if (result.status === 1) return false;
+  throw new Error(result.stderr.trim() || "git rev-parse failed");
+}
+
 function renameField(value: string | undefined): string {
   if (value === undefined || value.length === 0) {
     throw new Error("malformed staged rename metadata");
@@ -183,6 +197,7 @@ export function readBlob(
   source: "HEAD" | "index",
   path: string,
 ): string | undefined {
+  if (source === "HEAD" && !hasHead(root)) return undefined;
   const literalPath = `:(literal)${path}`;
   const listing =
     source === "index"

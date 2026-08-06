@@ -134,4 +134,21 @@ describe("ESLint legacy-debt ratchet", () => {
       rmSync(root, { recursive: true, force: true });
     }
   });
+
+  it("uses an empty baseline before the first commit", () => {
+    const root = mkdtempSync(join(tmpdir(), "eslint-debt-unborn-"));
+    const path = "src/new.ts";
+    const code = "export const value = 1;\n";
+    try {
+      git(root, ["init", "--quiet"]);
+      mkdirSync(join(root, "src"));
+      writeFileSync(join(root, path), code);
+      git(root, ["add", "--", path]);
+
+      expect(readBlob(root, "HEAD", path)).toBeUndefined();
+      expect(readBlob(root, "index", path)).toBe(code);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
 });
