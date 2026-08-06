@@ -195,6 +195,14 @@ export const CURRENT_SAAS_DEPLOY_AUTHORITY_SOURCE_CLOSURE = [
   "packages/convex/test/deploy-authority.test.ts",
 ] as const;
 
+export const CURRENT_HEADLESS_CONTRACT_SOURCE_CLOSURE = [
+  "packages/convex/confect/_generated/registeredFunctions/headless/apiKeys.ts",
+  "packages/convex/confect/headless/apiKeys.impl.ts",
+  "packages/convex/confect/headless/apiKeys.spec.ts",
+  "packages/convex/confect/headless/auth.ts",
+  "packages/convex/convex/headless/apiKeys.ts",
+] as const;
+
 export const CURRENT_EMAIL_CLOSURE = [
   ".env.example",
   "apps/web/src/features/setup/setup-surface.ts",
@@ -304,25 +312,6 @@ const exclusionArguments = (
 const currentCustomerRootTestExclusions = (): string =>
   exclusionArguments(CURRENT_CUSTOMER_QUALITY_TEST_EXCLUSIONS);
 
-export const CURRENT_PRODUCT_JOURNEY_CLOSURE = [
-  "packages/product-journey/package.json",
-  "packages/product-journey/tsconfig.json",
-  "packages/product-journey/src/attestation.ts",
-  "packages/product-journey/src/contract-diff.ts",
-  "packages/product-journey/src/evidence.ts",
-  "packages/product-journey/src/graph.ts",
-  "packages/product-journey/src/index.ts",
-  "packages/product-journey/src/lease.ts",
-  "packages/product-journey/src/manifest.ts",
-  "packages/product-journey/src/ordering.ts",
-  "packages/product-journey/src/receipts.ts",
-  "packages/product-journey/src/redaction.ts",
-  "packages/product-journey/src/runner.ts",
-  "packages/product-journey/src/selection.ts",
-  "tooling/quality/check-product-journeys.mts",
-  "tooling/quality/src/check-definitions.mts",
-] as const;
-
 export const CUSTOMER_ROOT_SCRIPTS = [
   "maestro",
   "acceptance:check",
@@ -374,7 +363,6 @@ export const CUSTOMER_ROOT_SCRIPTS = [
   "check:convex-compat",
   "check:ci-completeness",
   "check:config-drift",
-  "check:product-journeys",
   "check:deps",
   "check:knip",
   "check:route-tree",
@@ -433,6 +421,7 @@ export const CUSTOMER_ROOT_SCRIPTS = [
 ] as const;
 
 const customerPackage = (current: boolean): string => {
+  if (!current) return releasedSource("package.json");
   const value = JSON.parse(source("package.json")) as {
     scripts: Record<string, string>;
   };
@@ -497,6 +486,7 @@ const customerPackage = (current: boolean): string => {
   ]
     .map((name) => `pnpm ${name}`)
     .join(" && ");
+  value.scripts.verify += " && pnpm maestro -- contracts test --required";
   for (const name of REMOVED_CUSTOMER_TEMPLATE_SCRIPTS) {
     if (
       !current ||
@@ -682,7 +672,8 @@ const customerAgentPackCheck = (): string => {
     '  console.log("Customer context, receipts, and MCP posture are valid.");',
   );
 };
-const customerCliEntry = (): string => {
+const customerCliEntry = (current: boolean): string => {
+  if (!current) return releasedSource("apps/cli/src/index.ts");
   let value = currentSource("apps/cli/src/index.ts");
   value = replace(
     value,
@@ -1043,6 +1034,18 @@ export const buildSaasRegistrationProjections = (
             content: currentPublicDocument("preflight.md"),
           },
           {
+            path: "docs/template/coding-standards.md",
+            content: currentPublicDocument("coding-standards.md"),
+          },
+          {
+            path: "cucumber.cjs",
+            content: currentSource("cucumber.cjs"),
+          },
+          {
+            path: "tooling/acceptance/check-features.mts",
+            content: currentSource("tooling/acceptance/check-features.mts"),
+          },
+          {
             path: "AGENTS.md",
             content: currentSource("AGENTS.md"),
           },
@@ -1128,19 +1131,31 @@ export const buildSaasRegistrationProjections = (
       path: "apps/cli/src/factory/customerComposition.ts",
       content: current
         ? currentSource("apps/cli/src/factory/customerComposition.ts")
-        : source("apps/cli/src/factory/customerComposition.ts"),
+        : releasedSource("apps/cli/src/factory/customerComposition.ts"),
     },
     ...(current
       ? [
+          {
+            path: "apps/cli/src/factory/contracts.ts",
+            content: currentSource("apps/cli/src/factory/contracts.ts"),
+          },
           {
             path: "apps/cli/src/factory/mcp.ts",
             content: currentSource("apps/cli/src/factory/mcp.ts"),
           },
         ]
       : []),
+    ...(current
+      ? [
+          {
+            path: "apps/cli/src/commands.ts",
+            content: currentSource("apps/cli/src/commands.ts"),
+          },
+        ]
+      : []),
     {
       path: "apps/cli/src/index.ts",
-      content: customerCliEntry(),
+      content: customerCliEntry(current),
     },
     ...(current
       ? [
@@ -1188,10 +1203,25 @@ export const buildSaasRegistrationProjections = (
           },
         ]
       : []),
+    ...(current ? [{ path: ".npmrc", content: currentSource(".npmrc") }] : []),
     { path: ".prettierignore", content: currentSource(".prettierignore") },
     { path: "package.json", content: customerPackage(current) },
     ...(current
       ? [{ path: "pnpm-lock.yaml", content: customerLockfile() }]
+      : []),
+    ...(current
+      ? [
+          {
+            path: "patches/@confect__cli@10.0.0-next.9.patch",
+            content: currentSource("patches/@confect__cli@10.0.0-next.9.patch"),
+          },
+          {
+            path: "patches/@tanstack__start-plugin-core@1.171.18.patch",
+            content: currentSource(
+              "patches/@tanstack__start-plugin-core@1.171.18.patch",
+            ),
+          },
+        ]
       : []),
     {
       path: "tooling/confect-manifest/tsconfig.json",
@@ -1281,9 +1311,9 @@ export const buildSaasRegistrationProjections = (
         ? ["packages/convex/confect/ops/dataResources.generated.ts"]
         : []),
       ...(current ? CURRENT_EMAIL_CLOSURE : []),
+      ...(current ? CURRENT_HEADLESS_CONTRACT_SOURCE_CLOSURE : []),
       ...(current ? CURRENT_SAAS_DEPLOY_AUTHORITY_TABLE_CLOSURE : []),
       ...(current ? CURRENT_SAAS_DEPLOY_AUTHORITY_SOURCE_CLOSURE : []),
-      ...(current ? CURRENT_PRODUCT_JOURNEY_CLOSURE : []),
       "packages/convex/confect/tables/workflowArtifacts.ts",
       "packages/convex/confect/tables/workflowRuns.ts",
       "packages/convex/confect/tables/workflowStageRuns.ts",

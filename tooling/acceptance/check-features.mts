@@ -2,26 +2,94 @@ import { readdirSync, readFileSync } from "node:fs";
 import { extname, join } from "node:path";
 import {
   AstBuilder,
+  dialects,
   GherkinClassicTokenMatcher,
   Parser,
 } from "@cucumber/gherkin";
-import { IdGenerator } from "@cucumber/messages";
+import { IdGenerator, type Feature, type Scenario } from "@cucumber/messages";
 
-type Journey = { readonly id: string; readonly lifecycle: string };
 type Result = {
   readonly ok: boolean;
-  readonly journeys: readonly Journey[];
   readonly findings: readonly string[];
 };
-const LIFECYCLES = new Set(["@assembling", "@admitted", "@suspended"]);
-const IMPLEMENTATION =
-  /(?:\b(?:database table|shell command|function named)\b|(?:^|\s)[./][\w/-]+\.[a-z]+\b)/iu;
 
-export function compileFeatureContracts(
-  source: string,
-  publicSurfaces: readonly string[],
-): Result {
-  const findings: string[] = [];
+type CompiledFeature = Result & {
+  readonly lifecycle?: "@wip" | "@required";
+  readonly scenarios: readonly {
+    readonly executableCaseCount: number;
+    readonly name: string;
+    readonly stepCount: number;
+  }[];
+};
+
+const LIFECYCLES = new Set(["@wip", "@required"]);
+const SURFACES = new Set(["@ui", "@cli", "@cross_surface"]);
+
+const scenariosUnder = (feature: Feature): readonly Scenario[] =>
+  feature.children.flatMap((child) => {
+    if (child.scenario !== undefined) return [child.scenario];
+    if (child.rule === undefined) return [];
+    return child.rule.children.flatMap((ruleChild) =>
+      ruleChild.scenario === undefined ? [] : [ruleChild.scenario],
+    );
+  });
+
+const lifecycleFindings = (count: number): readonly string[] =>
+  count === 1 ? [] : ["feature requires exactly one @wip or @required tag"];
+
+const scenarioSurfaceFindings = (
+  scenarios: readonly Scenario[],
+): readonly string[] =>
+  scenarios.flatMap((scenario) => {
+    const count = scenario.tags.filter(({ name }) => SURFACES.has(name)).length;
+    return count === 1
+      ? []
+      : [
+          `scenario ${JSON.stringify(scenario.name)} requires exactly one @ui, @cli, or @cross_surface tag`,
+        ];
+  });
+
+const executableCaseCount = (
+  scenario: Scenario,
+  outlineKeywords: readonly string[],
+): number =>
+  outlineKeywords.includes(scenario.keyword)
+    ? scenario.examples.reduce(
+        (count, examples) => count + examples.tableBody.length,
+        0,
+      )
+    : 1;
+
+const requiredFeatureFindings = (
+  lifecycle: string | undefined,
+  scenarios: readonly Scenario[],
+  outlineKeywords: readonly string[],
+): readonly string[] => {
+  if (lifecycle !== "@required") return [];
+  return [
+    ...(scenarios.some((scenario) =>
+      scenario.tags.some(({ name }) => name === "@cross_surface"),
+    )
+      ? []
+      : ["required feature requires a @cross_surface scenario"]),
+    ...scenarios
+      .filter(({ steps }) => steps.length === 0)
+      .map(
+        (scenario) =>
+          `required scenario ${JSON.stringify(scenario.name)} requires at least one step`,
+      ),
+    ...scenarios
+      .filter(
+        (scenario) => executableCaseCount(scenario, outlineKeywords) === 0,
+      )
+      .map(
+        (scenario) =>
+          `required scenario outline ${JSON.stringify(scenario.name)} requires at least one executable case`,
+      ),
+  ];
+};
+
+function compileFeature(source: string): CompiledFeature {
   let document;
   try {
     document = new Parser(
@@ -31,91 +99,79 @@ export function compileFeatureContracts(
   } catch (error) {
     return {
       ok: false,
-      journeys: [],
       findings: [
         `invalid Gherkin: ${error instanceof Error ? error.message : String(error)}`,
       ],
+      scenarios: [],
     };
   }
+
   const feature = document.feature;
   if (feature === undefined)
-    return { ok: false, journeys: [], findings: ["feature is required"] };
-  const tags = feature.tags.map(({ name }) => name);
-  const journeyTags = tags.filter((tag) => tag.startsWith("@journey_"));
-  const lifecycleTags = tags.filter((tag) => LIFECYCLES.has(tag));
-  findings.push(
-    ...tagFindings(tags, journeyTags, lifecycleTags, publicSurfaces),
-  );
-  findings.push(
-    ...scenarioFindings(
-      feature.children.flatMap((child) =>
-        child.scenario === undefined ? [] : [child.scenario],
-      ),
+    return { ok: false, findings: ["feature is required"], scenarios: [] };
+
+  const lifecycleTags = feature.tags.filter(({ name }) => LIFECYCLES.has(name));
+  const scenarios = scenariosUnder(feature);
+  const outlineKeywords = dialects[feature.language]?.scenarioOutline ?? [];
+  const findings = [
+    ...lifecycleFindings(lifecycleTags.length),
+    ...scenarioSurfaceFindings(scenarios),
+    ...requiredFeatureFindings(
+      lifecycleTags[0]?.name,
+      scenarios,
+      outlineKeywords,
+    ),
+  ];
+
+  return {
+    ok: findings.length === 0,
+    findings,
+    ...(lifecycleTags.length === 1
+      ? { lifecycle: lifecycleTags[0]?.name as "@wip" | "@required" }
+      : {}),
+    scenarios: scenarios.map((scenario) => ({
+      executableCaseCount: executableCaseCount(scenario, outlineKeywords),
+      name: scenario.name,
+      stepCount: scenario.steps.length,
+    })),
+  };
+}
+
+export function compileFeatureContracts(source: string): Result {
+  const { ok, findings } = compileFeature(source);
+  return { ok, findings };
+}
+
+export function compileFeatureContractSet(
+  sources: readonly string[],
+  options: {
+    readonly paths?: readonly string[];
+    readonly required?: boolean;
+  } = {},
+): Result {
+  const compiled = sources.map(compileFeature);
+  const findings = compiled.flatMap((feature, index) =>
+    feature.findings.map((finding) =>
+      options.paths?.[index] === undefined
+        ? finding
+        : `${options.paths[index]}: ${finding}`,
     ),
   );
-  const journey = journeyTags[0];
-  const lifecycle = lifecycleTags[0];
-  const journeys =
-    journey !== undefined && lifecycle !== undefined
-      ? [
-          {
-            id: journey.slice("@journey_".length),
-            lifecycle: lifecycle.slice(1),
-          },
-        ]
-      : [];
-  return { ok: findings.length === 0, journeys, findings };
-}
-
-function tagFindings(
-  tags: readonly string[],
-  journeyTags: readonly string[],
-  lifecycleTags: readonly string[],
-  publicSurfaces: readonly string[],
-): string[] {
-  const findings: string[] = [];
-  if (journeyTags.length !== 1)
-    findings.push("feature requires exactly one @journey_<kebab-id> tag");
-  if (lifecycleTags.length !== 1)
-    findings.push("feature requires exactly one lifecycle tag");
-  for (const tag of tags.filter((item) => item.startsWith("@covers_"))) {
-    if (!publicSurfaces.includes(tag.slice("@covers_".length)))
-      findings.push(`${tag} names an unknown public surface`);
-  }
-  const known = tags.filter(
-    (tag) =>
-      !tag.startsWith("@journey_") &&
-      !LIFECYCLES.has(tag) &&
-      !tag.startsWith("@covers_") &&
-      !/^@(transport|auth|denial)_/u.test(tag),
-  );
-  if (known.length > 0)
-    findings.push(`unknown feature tags: ${known.join(", ")}`);
-  return findings;
-}
-
-function scenarioFindings(
-  scenarios: readonly {
-    readonly steps: readonly {
-      readonly keyword: string;
-      readonly text: string;
-    }[];
-  }[],
-): string[] {
-  const findings: string[] = [];
   if (
-    !scenarios.some((scenario) =>
-      scenario.steps.some((step) => step.keyword.trim() === "Then"),
+    options.required === true &&
+    !compiled.some(
+      (feature) =>
+        feature.lifecycle === "@required" &&
+        feature.scenarios.some(
+          ({ executableCaseCount }) => executableCaseCount > 0,
+        ),
     )
-  )
-    findings.push("feature requires at least one observable scenario");
-  for (const step of scenarios.flatMap((scenario) => scenario.steps)) {
-    if (IMPLEMENTATION.test(step.text))
-      findings.push(
-        `implementation instruction is forbidden in step: ${step.text}`,
-      );
+  ) {
+    findings.push(
+      "required contract selection must include at least one scenario",
+    );
   }
-  return findings;
+  return { ok: findings.length === 0, findings };
 }
 
 function filesUnder(path: string): string[] {
@@ -134,22 +190,14 @@ function filesUnder(path: string): string[] {
 }
 
 function main(): void {
-  const topology = JSON.parse(
-    readFileSync("docs/template/product-topology.json", "utf8"),
-  ) as {
-    resources: Array<{ id: string; kind: string; surfaces: string[] }>;
-  };
-  const surfaces = topology.resources
-    .filter(
-      (resource) =>
-        resource.kind === "route" && resource.surfaces.includes("web"),
-    )
-    .map((resource) => resource.id.replace(/^route:/u, ""));
-  const findings = filesUnder("features").flatMap((file) =>
-    compileFeatureContracts(readFileSync(file, "utf8"), surfaces).findings.map(
-      (finding) => `${file}: ${finding}`,
-    ),
-  );
+  const files = filesUnder("features");
+  const findings = compileFeatureContractSet(
+    files.map((file) => readFileSync(file, "utf8")),
+    {
+      paths: files,
+      required: process.argv.slice(2).includes("--required"),
+    },
+  ).findings;
   if (findings.length > 0) {
     console.error(findings.join("\n"));
     process.exitCode = 1;

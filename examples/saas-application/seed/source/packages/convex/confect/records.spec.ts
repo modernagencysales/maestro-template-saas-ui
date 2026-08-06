@@ -32,6 +32,18 @@ const CreateArgs = Schema.Struct({
   title: Schema.String,
   detail: Schema.String,
 });
+const ActorWorkspaceArgs = Schema.Struct({
+  ...WorkspaceArgs.fields,
+  userId: Id("users"),
+});
+const ActorReadArgs = Schema.Struct({
+  ...ReadArgs.fields,
+  userId: Id("users"),
+});
+const ActorCreateArgs = Schema.Struct({
+  ...CreateArgs.fields,
+  userId: Id("users"),
+});
 
 const list = defineContractFunction(
   FunctionSpec.publicQuery({
@@ -111,6 +123,27 @@ const create = defineContractFunction(
   },
 );
 
+const listForActor = FunctionSpec.internalQuery({
+  name: "listForActor",
+  args: () => ActorWorkspaceArgs,
+  returns: () => Schema.Array(records.Doc),
+  error: () => ReadError,
+});
+
+const readForActor = FunctionSpec.internalQuery({
+  name: "readForActor",
+  args: () => ActorReadArgs,
+  returns: () => records.Doc,
+  error: () => ReadError,
+});
+
+const createForActor = FunctionSpec.internalMutation({
+  name: "createForActor",
+  args: () => ActorCreateArgs,
+  returns: () => records.Doc,
+  error: () => WriteError,
+});
+
 const contractFunctions = [list, read, create] as const;
 export const manifest = collectContractManifest(contractFunctions);
 export const schemaRegistry = collectContractSchemas(contractFunctions);
@@ -118,4 +151,7 @@ export const schemaRegistry = collectContractSchemas(contractFunctions);
 export default GroupSpec.make()
   .addFunction(list.spec)
   .addFunction(read.spec)
-  .addFunction(create.spec);
+  .addFunction(create.spec)
+  .addFunction(listForActor)
+  .addFunction(readForActor)
+  .addFunction(createForActor);

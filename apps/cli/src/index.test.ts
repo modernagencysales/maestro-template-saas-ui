@@ -1,7 +1,12 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { fileURLToPath } from "node:url";
 import { runReviewedGenerator } from "@maestro-template/generators";
-import { decodeCliRuntimeConfig, runCli, runCliAsync } from "./index";
+import {
+  decodeCliRuntimeConfig,
+  runCli,
+  runCliAsync,
+  runRemoteCapability,
+} from "./index";
 
 const repoRoot = fileURLToPath(new URL("../../../", import.meta.url));
 
@@ -20,6 +25,7 @@ describe("maestro-template CLI", () => {
       "preflight -> inspect -> preview -> write -> verify -> run",
     );
     expect(help).toContain("maestro recipes list|show <recipe-id>");
+    expect(help).toContain("maestro contracts add <journey>");
     expect(help).toContain("maestro add <outcome-or-recipe>");
     expect(help).toContain("maestro support-bundle");
     expect(help).toContain(
@@ -85,6 +91,134 @@ describe("maestro-template CLI", () => {
     const result = await runCliAsync(["describe"]);
     expect(result.exitCode).toBe(0);
     expect(JSON.parse(result.stdout)).toMatchObject({ valid: true });
+  });
+
+  it("runs capability requests through the configured app API", async () => {
+    let observedUrl = "";
+    let observedInit: RequestInit | undefined;
+    const result = await runRemoteCapability(
+      [
+        "capability",
+        "run",
+        "records.list",
+        "--workspace",
+        "template-demo",
+        "--input",
+        "{}",
+        "--idempotency-key",
+        "contracts-list-1",
+      ],
+      {
+        MAESTRO_API_BASE_URL: "http://127.0.0.1:3211",
+        MAESTRO_API_KEY: "mtk_live_contracts",
+      },
+      async (input, init) => {
+        observedUrl = String(input);
+        observedInit = init;
+        return new Response(
+          JSON.stringify({
+            ok: true,
+            operationId: "records.list",
+            result: [],
+          }),
+          { status: 200, headers: { "content-type": "application/json" } },
+        );
+      },
+    );
+
+    expect(result).toEqual({
+      exitCode: 0,
+      stdout:
+        '{\n  "ok": true,\n  "operationId": "records.list",\n  "result": []\n}\n',
+      stderr: "",
+    });
+    expect(observedUrl).toBe("http://127.0.0.1:3211/api/records.list");
+    expect(observedInit).toMatchObject({
+      method: "POST",
+      headers: {
+        authorization: "Bearer mtk_live_contracts",
+        "content-type": "application/json",
+      },
+    });
+    expect(JSON.parse(String(observedInit?.body))).toEqual({
+      workspaceSlug: "template-demo",
+      input: {},
+      idempotencyKey: "contracts-list-1",
+    });
+  });
+
+  it("accepts HTTPS capability endpoints", async () => {
+    let observedUrl = "";
+    const result = await runRemoteCapability(
+      [
+        "capability",
+        "run",
+        "records.list",
+        "--workspace",
+        "template-demo",
+        "--input",
+        "{}",
+        "--idempotency-key",
+        "contracts-list-https",
+      ],
+      {
+        MAESTRO_API_BASE_URL: "https://api.example.test/base",
+        MAESTRO_API_KEY: "contracts-test-key",
+      },
+      async (input) => {
+        observedUrl = String(input);
+        return new Response(JSON.stringify({ ok: true }), { status: 200 });
+      },
+    );
+
+    expect(result?.exitCode).toBe(0);
+    expect(observedUrl).toBe("https://api.example.test/base/api/records.list");
+  });
+
+  it.each(["http://api.example.test", "http://127.example.test"])(
+    "rejects non-loopback HTTP before forwarding the API key: %s",
+    async (baseUrl) => {
+      const request = vi.fn();
+      const result = await runRemoteCapability(
+        [
+          "capability",
+          "run",
+          "records.list",
+          "--workspace",
+          "template-demo",
+          "--input",
+          "{}",
+          "--idempotency-key",
+          "contracts-list-unsafe",
+        ],
+        {
+          MAESTRO_API_BASE_URL: baseUrl,
+          MAESTRO_API_KEY: "contracts-test-key",
+        },
+        request,
+      );
+
+      expect(result).toMatchObject({
+        exitCode: 1,
+        stderr: expect.stringContaining("HTTPS or loopback HTTP"),
+      });
+      expect(request).not.toHaveBeenCalled();
+    },
+  );
+
+  it("rejects unsafe Vite contract proxies before attaching the API key", async () => {
+    vi.stubEnv("MAESTRO_API_BASE_URL", "http://127.example.test");
+    vi.stubEnv("MAESTRO_API_KEY", "contracts-test-key");
+    vi.resetModules();
+
+    try {
+      await expect(vi.importActual("../../web/vite.config")).rejects.toThrow(
+        "HTTPS or loopback HTTP",
+      );
+    } finally {
+      vi.unstubAllEnvs();
+      vi.resetModules();
+    }
   });
 
   it("describes the shared workflow template", () => {

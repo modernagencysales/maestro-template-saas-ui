@@ -279,8 +279,9 @@ export const buildSaasApplicationFiles = (options: {
   const name = options.name.trim() || "My App";
   const slug = slugify(name);
   const workspaceId = `workspace_${slug.replaceAll("-", "_")}`;
-  const firstOutcome =
-    options.firstOutcome?.trim() || "Create and review records";
+  const firstOutcome = (
+    options.firstOutcome?.trim() || "Create and review records"
+  ).replace(/\s+/gu, " ");
   const operations = [
     { id: "records.list", kind: "query", workspaceScoped: true },
     { id: "records.read", kind: "query", workspaceScoped: true },
@@ -428,15 +429,20 @@ export const SAAS_APPLICATION_PARAMETERIZED_ENTRIES = [
   "examples/saas-application/seed/crud-scenario.json",
   "examples/saas-application/seed/records.json",
   "examples/saas-application/seed/workspace.json",
+  "features/first-outcome.feature",
   "generated/blueprints/saas-application/application-contract.json",
 ] as const;
 
 const SAAS_APPLICATION_ALPHA2_BASE_WRITE_REPLACEMENTS = [
   [".claude/settings.json", "generate"],
+  [".npmrc", "copy"],
   [".prettierignore", "copy"],
   ["agent-patterns/effect-confect.md", "copy"],
   ["AGENTS.md", "copy"],
   ["README.md", "copy"],
+  ["apps/cli/src/commands.ts", "copy"],
+  ["docs/template/coding-standards.md", "copy"],
+  ["packages/convex/confect/headless/auth.ts", "copy"],
   ["tooling/quality/src/check-definitions.mts", "copy"],
 ] as const;
 

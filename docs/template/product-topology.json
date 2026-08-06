@@ -602,6 +602,26 @@
       "lifecycle": "active"
     },
     {
+      "id": "headless:api-key-contract",
+      "kind": "headless",
+      "system": "access-and-tenancy",
+      "path": "packages/convex/confect/headless/apiKeys.spec.ts",
+      "responsibility": "declare workspace-bound API key capabilities",
+      "surfaces": ["api", "cli"],
+      "uses": [],
+      "lifecycle": "active"
+    },
+    {
+      "id": "headless:api-key-runtime",
+      "kind": "headless",
+      "system": "access-and-tenancy",
+      "path": "packages/convex/confect/headless/apiKeys.impl.ts",
+      "responsibility": "resolve and seed workspace-bound API keys",
+      "surfaces": ["api", "cli", "internal"],
+      "uses": [],
+      "lifecycle": "active"
+    },
+    {
       "id": "headless:deployment-authority",
       "kind": "headless",
       "system": "deployment-authority",

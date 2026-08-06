@@ -286,7 +286,7 @@ function invalidStartPorts(): AgentPackArgumentResult<StartInput> {
 }
 
 function preflightMode(mode: StartMode): PreflightMode {
-  return mode === "fake" ? "fake" : mode === "local" ? "test" : "live";
+  return mode === "dev" ? "live" : "fake";
 }
 
 function processPlan(
@@ -299,6 +299,7 @@ function processPlan(
   const isolated = isolatedConvexEnvironment(
     mode === "local" ? `http://127.0.0.1:${convexPort}` : "",
   );
+  const localBackend = isolatedConvexEnvironment("");
   const web: StartProcessSpec = {
     id: "web",
     command: "pnpm",
@@ -326,22 +327,25 @@ function processPlan(
           "--dir",
           "packages/convex",
           "convex:dev",
-          "--",
-          "--local",
           "--local-cloud-port",
           String(convexPort),
           "--local-site-port",
           String(convexSitePort),
+          "--typecheck",
+          "disable",
         ],
         cwd,
-        environment: isolatedConvexEnvironment(""),
+        environment: {
+          ...localBackend,
+          set: { ...localBackend.set, CONVEX_AGENT_MODE: "anonymous" },
+        },
       },
       {
         id: "confect",
         command: "pnpm",
         args: ["--dir", "packages/convex", "confect:dev"],
         cwd,
-        environment: isolatedConvexEnvironment(""),
+        environment: localBackend,
       },
       web,
     ];

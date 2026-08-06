@@ -18,7 +18,7 @@ describe("check:config-drift", () => {
         "check:system-topology",
         "check:data-resources",
         "check:promotion-boundary",
-        "check:product-journeys",
+        "acceptance:check",
       ]),
     );
   });

@@ -19,8 +19,9 @@
   Cucumber features, denial cases, focused tests, and conflict domains.
 - Quality targets must be package scripts and architecture rules must name
   mechanical entries in `docs/rule-coverage.md`; do not restate coding prose.
-- Each `.feature` has exactly one `@journey_<kebab-id>` and one lifecycle tag:
-  `@assembling`, `@admitted`, or `@suspended`.
+- Each `.feature` has exactly one `@wip` or `@required` lifecycle tag. Each
+  Scenario has exactly one `@ui`, `@cli`, or `@cross_surface` interaction tag; a
+  required Feature includes at least one cross-surface Scenario.
 - Gherkin describes observable behavior and denial cases, never shell commands,
   source paths, functions, or database tables.
 

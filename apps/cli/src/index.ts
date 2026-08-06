@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { runTemplateApiOperation } from "@maestro-template/workflow-tooling";
 import type { Readable, Writable } from "node:stream";
-import { createCliHandlers } from "./commands";
+import { createCliHandlers, parseCapabilityRequest } from "./commands";
 import { isCliDirectRun } from "./direct-run";
 import { createFactoryCliComposition } from "./factory/composition";
 import { dispatchFactoryCliCommand } from "./factory/router";
@@ -62,6 +62,97 @@ export const runCli = (
   config: CliRuntimeConfig = emptyCliRuntimeConfig,
 ): CliResult => dispatchCliCommand(cliHandlers, normalizeCliArgv(argv), config);
 
+type RemoteCapabilityFetch = (
+  input: string | URL | Request,
+  init?: RequestInit,
+) => Promise<Response>;
+
+const remoteCapabilityTarget = (
+  argv: readonly string[],
+  environment: NodeJS.ProcessEnv,
+): { readonly baseUrl: string; readonly operationId: string } | undefined => {
+  const baseUrl = environment.MAESTRO_API_BASE_URL?.trim();
+  return baseUrl &&
+    argv[0] === "capability" &&
+    argv[1] === "run" &&
+    argv[2] !== undefined
+    ? { baseUrl, operationId: argv[2] }
+    : undefined;
+};
+
+const isSafeRemoteApiBaseUrl = (value: string): boolean => {
+  try {
+    const url = new URL(value);
+    return (
+      url.protocol === "https:" ||
+      (url.protocol === "http:" &&
+        (url.hostname === "localhost" ||
+          url.hostname === "[::1]" ||
+          url.hostname === "::1" ||
+          /^127(?:\.\d{1,3}){3}$/u.test(url.hostname)))
+    );
+  } catch {
+    return false;
+  }
+};
+
+const remoteCapabilityResult = async (
+  response: Response,
+): Promise<CliResult> => {
+  let payload: unknown;
+  try {
+    payload = await response.json();
+  } catch {
+    return cliFailure("Remote capability response was not valid JSON.\n");
+  }
+  if (payload === null || typeof payload !== "object") {
+    return cliFailure("Remote capability response was not a JSON object.\n");
+  }
+  return {
+    exitCode: response.ok && "ok" in payload && payload.ok === true ? 0 : 1,
+    stdout: formatJsonOutput(payload),
+    stderr: "",
+  };
+};
+
+export const runRemoteCapability = async (
+  argv: readonly string[],
+  environment: NodeJS.ProcessEnv,
+  request: RemoteCapabilityFetch = fetch,
+): Promise<CliResult | undefined> => {
+  const target = remoteCapabilityTarget(argv, environment);
+  if (!target) return undefined;
+  if (!isSafeRemoteApiBaseUrl(target.baseUrl))
+    return cliFailure(
+      "MAESTRO_API_BASE_URL must use HTTPS or loopback HTTP.\n",
+    );
+
+  const parsed = parseCapabilityRequest(argv);
+  if ("exitCode" in parsed) return parsed;
+
+  try {
+    const response = await request(
+      new URL(
+        `api/${encodeURIComponent(target.operationId)}`,
+        `${target.baseUrl.replace(/\/+$/u, "")}/`,
+      ),
+      {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          ...(environment.MAESTRO_API_KEY
+            ? { authorization: `Bearer ${environment.MAESTRO_API_KEY}` }
+            : {}),
+        },
+        body: JSON.stringify(parsed),
+      },
+    );
+    return remoteCapabilityResult(response);
+  } catch {
+    return cliFailure("Remote capability request failed.\n");
+  }
+};
+
 export const runCliAsync = async (
   argv: readonly string[],
   config: CliRuntimeConfig = emptyCliRuntimeConfig,
@@ -76,7 +167,9 @@ export const runCliAsync = async (
       factoryCliComposition.handlers,
       normalized,
       cwd,
-    )) ?? dispatchCliCommand(cliHandlers, normalized, config)
+    )) ??
+    (await runRemoteCapability(normalized, process.env)) ??
+    dispatchCliCommand(cliHandlers, normalized, config)
   );
 };
 

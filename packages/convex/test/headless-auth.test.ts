@@ -5,6 +5,7 @@ import {
   HeadlessAuthError,
   parseBearerApiKey,
   verifyApiKey,
+  verifyApiKeyHash,
 } from "../confect/headless/auth";
 import { createHeadlessErrorEnvelope } from "../confect/headless/errorEnvelope";
 
@@ -67,6 +68,41 @@ describe("headless API-key auth", () => {
       workspaceId: "workspace_123",
       keyId: created.row.id,
       scopes: ["workspace:read", "workflow:run"],
+    });
+  });
+
+  it("verifies a server-derived hash without accepting the raw key", async () => {
+    const created = await createApiKey({
+      workspaceId: "workspace_123",
+      name: "Contract runner",
+      scopes: ["workspace:read", "workspace:write"],
+      createdByUserId: "user_123",
+      nowMs: 1_000,
+      randomBytes: () => new Uint8Array(32).fill(10),
+    });
+
+    await expect(
+      verifyApiKeyHash({
+        presentedHash: created.row.keyHash,
+        rows: [created.row],
+        nowMs: 2_000,
+        requiredScope: "workspace:write",
+      }),
+    ).resolves.toMatchObject({
+      ok: true,
+      workspaceId: "workspace_123",
+      keyId: created.row.id,
+    });
+    await expect(
+      verifyApiKeyHash({
+        presentedHash: created.displayKey,
+        rows: [created.row],
+        nowMs: 2_000,
+        requiredScope: "workspace:write",
+      }),
+    ).resolves.toMatchObject({
+      ok: false,
+      error: { code: "API_KEY_NOT_FOUND" },
     });
   });
 
