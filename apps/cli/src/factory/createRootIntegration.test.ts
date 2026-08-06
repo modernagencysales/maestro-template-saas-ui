@@ -742,6 +742,14 @@ describe("create root integration", () => {
       name: "Contract Prototype",
       firstOutcome: "Create and review records",
     });
+    const engineeringRulesPath = "docs/template/enforced-engineering-rules.md";
+    expect(readFileSync(join(targetRoot, engineeringRulesPath))).toEqual(
+      readFileSync(join(repoRoot, engineeringRulesPath)),
+    );
+    expect(readFileSync(join(targetRoot, "AGENTS.md"), "utf8")).toContain(
+      `[Enforced engineering rules](${engineeringRulesPath})`,
+    );
+    expect(existsSync(join(targetRoot, engineeringRulesPath))).toBe(true);
     expect(
       readFileSync(join(targetRoot, "features/first-outcome.feature"), "utf8"),
     ).toContain("@wip\nFeature: Create and review records");

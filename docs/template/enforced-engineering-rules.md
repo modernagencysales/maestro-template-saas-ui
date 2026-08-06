@@ -171,15 +171,17 @@ they are not pre-commit commands.
 Changed TypeScript authoring proof is:
 
     pnpm prettier --check <changed-files>
-    ESLINT_SHIFT_LEFT=1 pnpm eslint <changed-files>
+    pnpm eslint -- <changed-files>
+    pnpm tsx tooling/quality/check-eslint-debt-ratchet.mts <staged-files>
     pnpm typecheck
     pnpm check:effect-diagnostics
     pnpm check:types-coverage
 
-`ESLINT_SHIFT_LEFT=1` makes complexity 10, depth 4, and parameter count 5
-blocking for changed files. Pass only the task-owned changed TypeScript paths;
-repository-wide `pnpm lint` is not a substitute and can make unrelated legacy
-debt look like a task regression.
+The ratchet applies complexity 10, depth 4, and parameter count 5 to the staged
+blob and its `HEAD` baseline. New files must be clean; touched legacy files may
+only hold or reduce each file/rule debt vector. Pass only the task-owned changed
+TypeScript paths; repository-wide `pnpm lint` is not a substitute and can make
+unrelated legacy debt look like a task regression.
 
 ## Confect, Effect, And Workflow Rules
 
@@ -340,7 +342,7 @@ Triggered commands:
     pnpm --dir tooling/workflow test
     pnpm check:confect-manifest
 
-## Security, Privacy, Files, And Analytics
+## Security, Privacy, Files, And Derived Data
 
 The mechanically checked baseline is narrower than the product contract:
 
@@ -351,58 +353,41 @@ The mechanically checked baseline is narrower than the product contract:
   audit paths.
 - `check:auth-demo-bypass` is a shape pin, not a complete authorization proof.
 
-The remaining requirements below are conditional product requirements. When a
-slice introduces the named boundary, its plan must name focused behavioral and
-negative tests plus review against `docs/template/security.md`,
-`docs/template/security-threat-model.md`, `docs/template/data-lifecycle.md`, and
-`docs/template/data-map.md`. The five commands listed after this section do not,
-by themselves, prove every clause.
+Authentication and authorization, credentials or one-time tokens, file
+ingress/egress, provider calls, derived reporting data, identity-bearing reads,
+and exports are trust-boundary triggers. A slice that changes one must name
+focused behavioral and negative tests and review the canonical
+[security](./security.md), [threat model](./security-threat-model.md),
+[data lifecycle](./data-lifecycle.md), and [data map](./data-map.md)
+authorities. The commands below do not, by themselves, prove these requirements.
 
-- No runtime auth-bypass marker. Tenant-membership reads include a tenant guard;
-  HTTP dispatch fails closed; production source maps remain disabled.
-- Tenant, actor, subject, side, API-key scope, and resource ownership are
-  server-derived.
-- Raw keys, provider/webhook secrets, and credentials are never committed,
-  logged, attached to Cucumber output, put in client storage, or stored
-  unhashed. A claim invitation may carry its one-time token only in the URL
-  fragment: the landing code removes it synchronously with
-  `history.replaceState` before loading third-party resources and submits it in
-  an authorized request body. It never appears in the path, query, referrer,
-  telemetry, analytics, or attachment.
-- A deliberately authorized one-time TLS response may reveal a new key/token
-  with `Cache-Control: no-store`; it must never enter persistence, browser
-  history, telemetry, analytics, or attachments.
-- Uploads use a narrow authenticated capability. Before linking a Convex
-  `_storage` ID, query the system table and validate uploader/resource
-  ownership, size/type, and one-time intent. Raw downloads reauthorize every
-  request, use a verified MIME allowlist, force attachment disposition for
-  untrusted content, and send `X-Content-Type-Options: nosniff`.
-- Convex owns PII, raw source material/provider payloads, evidence indexes,
-  vectors, File Storage, and transactional state.
-- Analytical stores receive normalized non-authoritative facts only: no direct
-  PII, raw text, provider payload, or unrestricted property bag. External
-  subject IDs are HMAC-pseudonymized at the narrowest reporting scope that
-  supports the accepted journey; broader cross-campaign linkage requires a new
-  reviewed purpose.
-- Model-provider calls minimize/redact personal data, use an allowlisted
-  no-training/no-retention provider posture, and persist a non-content receipt
-  naming model/provider, policy and prompt hashes, data classes, and redaction
-  counts. If that posture cannot be proved, the live model path stays disabled.
-- Money facts include currency. Missing data lowers coverage; it never becomes
-  zero.
-- Browser tracking strips query/fragment from path/referrer, caps strings and
-  event-type cardinality, rejects unknown/PII-like properties, and never
-  fingerprints.
-- Attribution cookies are first-party and use `Secure`, `SameSite=Lax`,
-  `Path=/`, no `Domain`, and bounded `Max-Age`.
-- Identity-bearing PII reads require an explicit PII scope and an audit event.
-  Ordinary operators may add legal suppression, but only the privacy/admin
-  lifecycle authority may clear it with a new lawful basis and reason.
-- Exports are bounded, audited, and authorized. Sensitive CLI exports require an
-  explicit owner-only local output file and never print row data to stdout; UI
-  exports use an in-memory download. Do not create permanent public URLs.
-- Citation URLs strip fragments and non-allowlisted query parameters. Persist a
-  stable public locator/provider object ID, never a signed provider URL.
+- Fail closed at authentication and authorization boundaries. Derive tenant,
+  actor, subject, scope, and resource ownership server-side; keep production
+  source maps disabled.
+- Never commit, log, persist unhashed, expose to browser storage/history, or
+  attach raw credentials, tokens, or provider secrets. Explicit one-time secret
+  delivery uses an authorized no-store response and cannot enter telemetry.
+- Authenticate file ingress, validate ownership, intent, size, and type before
+  linking storage, and reauthorize every download. Untrusted downloads use a
+  verified MIME allowlist, attachment disposition, and `nosniff`.
+- Keep personal data, raw source/provider material, files, vectors, and
+  transactional state in the governed source of record. Derived stores receive
+  only minimized, normalized, non-authoritative facts with purpose-scoped
+  pseudonymous identifiers; wider correlation requires reviewed purpose.
+- Provider calls minimize and redact personal data, use an approved training and
+  retention posture, and record non-content provenance. Keep the live path
+  disabled when that posture cannot be proved.
+- Browser telemetry excludes URL query/fragment data, unknown or PII-like
+  properties, unrestricted strings, and fingerprinting. Client identifiers use
+  secure, first-party, bounded-lifetime storage.
+- Financial and analytical facts retain their required units, scope, and
+  provenance. Missing data remains missing; it is never silently converted to a
+  value.
+- Identity-bearing reads and exports are scoped, authorized, bounded, and
+  audited. Sensitive CLI output uses an owner-only file rather than stdout; UI
+  output is ephemeral, and permanent public URLs are forbidden.
+- Register every stored or derived data resource with tested export, retention,
+  suppression, and deletion behavior through the canonical lifecycle authority.
 - Gitleaks runs with redaction; fixtures use obvious short fake values.
 
 Triggered commands:

@@ -646,6 +646,47 @@ describe("saas application blueprint", () => {
     expect(agentInstructions).toContain(
       "pnpm maestro -- contracts test --required",
     );
+    const engineeringRulesPath = "docs/template/enforced-engineering-rules.md";
+    const engineeringRules = plan.entries.find(
+      ({ path }) => path === engineeringRulesPath,
+    );
+    expect(plan.registrations).toContain(engineeringRulesPath);
+    expect(engineeringRules).toMatchObject({
+      ownership: "generated",
+      action: "generate",
+      upgrade: "regenerate",
+      content: readFileSync(join(repoRoot, engineeringRulesPath), "utf8"),
+    });
+    expect(engineeringRules).not.toHaveProperty("replaces");
+
+    const ruleCoveragePath = "docs/rule-coverage.md";
+    const ruleCoverage = plan.entries.find(
+      ({ path }) => path === ruleCoveragePath,
+    );
+    expect(plan.registrations).toContain(ruleCoveragePath);
+    expect(ruleCoverage).toMatchObject({
+      ownership: "generated",
+      action: "generate",
+      upgrade: "regenerate",
+      replaces: "copy",
+      content: readFileSync(join(repoRoot, ruleCoveragePath), "utf8"),
+    });
+    expect(ruleCoverage).toMatchObject({
+      content: expect.stringContaining(
+        "[enforced engineering rules](./template/enforced-engineering-rules.md)",
+      ),
+    });
+    const eslintDebtRatchetPath =
+      "tooling/quality/check-eslint-debt-ratchet.mts";
+    expect(plan.registrations).toContain(eslintDebtRatchetPath);
+    expect(
+      plan.entries.find(({ path }) => path === eslintDebtRatchetPath),
+    ).toMatchObject({
+      ownership: "generated",
+      action: "generate",
+      upgrade: "regenerate",
+      content: readFileSync(join(repoRoot, eslintDebtRatchetPath), "utf8"),
+    });
     const prettierIgnore = plan.entries.find(
       (entry) => entry.path === ".prettierignore",
     );
@@ -752,6 +793,7 @@ Feature: Reconcile disputed invoices
       "apps/web/package.json",
       "apps/cli/src/factory/mcp.ts",
       "docs/template/data-resources.json",
+      "docs/template/enforced-engineering-rules.md",
       "docs/template/env-manifest.json",
       "docs/template/env-manifest.md",
       "docs/template/operations-runbook.md",
@@ -1039,6 +1081,7 @@ Feature: Reconcile disputed invoices
       "packages/convex/confect/_generated/registeredFunctions/headless/apiKeys.ts",
       "packages/convex/convex/headless/apiKeys.ts",
       "tooling/acceptance/check-features.mts",
+      "docs/template/enforced-engineering-rules.md",
     ];
 
     for (const path of currentOnlyPaths) {
@@ -1066,7 +1109,7 @@ Feature: Reconcile disputed invoices
       "contracts test --required",
     );
     expect(historicalPackage.scripts?.["acceptance:check"]).toBeUndefined();
-    expect(currentPackage.scripts?.verify).toContain(
+    expect(currentPackage.scripts?.verify).not.toContain(
       "contracts test --required",
     );
   });
@@ -1089,14 +1132,14 @@ Feature: Reconcile disputed invoices
     );
   });
 
-  it("runs required contracts from generated-customer verification", () => {
+  it("keeps required contracts separate from generated-customer verification", () => {
     const projectedPackage = JSON.parse(
       buildSaasApplicationTargetPlan().entries.find(
         ({ path }) => path === "package.json",
       )?.content ?? "{}",
     ) as { readonly scripts?: Readonly<Record<string, string>> };
 
-    expect(projectedPackage.scripts?.verify).toContain(
+    expect(projectedPackage.scripts?.verify).not.toContain(
       "pnpm maestro -- contracts test --required",
     );
   });
@@ -1602,6 +1645,8 @@ Feature: Reconcile disputed invoices
       "apps/web/src/routeRegistry.generated.ts",
       "Justfile",
       "apps/web/src/adapters/confect-generated-refs.test.ts",
+      "docs/rule-coverage.md",
+      "docs/template/enforced-engineering-rules.md",
       "docs/template/env-manifest.json",
       "docs/template/env-manifest.md",
       "docs/template/operations-runbook.md",
@@ -1615,6 +1660,7 @@ Feature: Reconcile disputed invoices
       "tooling/app-map/src/composition.ts",
       "tooling/app-map/src/schema.ts",
       "tooling/quality/src/env-manifest.test.mts",
+      "tooling/quality/check-eslint-debt-ratchet.mts",
       "docs/template/generated/provenance/add-feature/records.json",
     ]);
     expect(
@@ -2103,7 +2149,6 @@ Feature: Reconcile disputed invoices
         "check:headless-surface-contract",
         "check:posthog-readiness",
         "check:auth-demo-bypass",
-        "maestro -- contracts test --required",
       ]
         .map((name) => `pnpm ${name}`)
         .join(" && "),

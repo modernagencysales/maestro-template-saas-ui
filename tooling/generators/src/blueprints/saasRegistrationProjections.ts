@@ -486,7 +486,6 @@ const customerPackage = (current: boolean): string => {
   ]
     .map((name) => `pnpm ${name}`)
     .join(" && ");
-  value.scripts.verify += " && pnpm maestro -- contracts test --required";
   for (const name of REMOVED_CUSTOMER_TEMPLATE_SCRIPTS) {
     if (
       !current ||

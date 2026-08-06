@@ -9,6 +9,8 @@ import {
 const CURRENT_CUSTOMER_SOURCE_PROJECTIONS = [
   "Justfile",
   "apps/web/src/adapters/confect-generated-refs.test.ts",
+  "docs/rule-coverage.md",
+  "docs/template/enforced-engineering-rules.md",
   "docs/template/env-manifest.json",
   "docs/template/env-manifest.md",
   "docs/template/operations-runbook.md",
@@ -22,6 +24,7 @@ const CURRENT_CUSTOMER_SOURCE_PROJECTIONS = [
   "tooling/app-map/src/composition.ts",
   "tooling/app-map/src/schema.ts",
   "tooling/quality/src/env-manifest.test.mts",
+  "tooling/quality/check-eslint-debt-ratchet.mts",
 ] as const;
 
 const FACTORY_PRODUCT_TABLES = new Set<string>(CURRENT_FACTORY_PRODUCT_TABLES);

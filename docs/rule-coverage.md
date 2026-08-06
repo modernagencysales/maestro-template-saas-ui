@@ -1,7 +1,9 @@
 # Rule Coverage
 
 Every stated rule maps to the mechanism that enforces it. Enforcement tiers,
-strongest first:
+strongest first. For the agent-facing trigger index that explains when to run
+each proof, see
+[enforced engineering rules](./template/enforced-engineering-rules.md).
 
 - **mechanical** — a tool measures the code itself and fails the build.
 - **ai-judge** — an LLM gate reviews the diff against a pinned rubric in CI. The
