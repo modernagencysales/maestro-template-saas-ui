@@ -25,6 +25,11 @@ argv binds the write to exact `preflight_sha256:` and `scaffold_sha256:`
 fingerprints. A write must be followed by the focused gates named in the
 preview.
 
+Before authoring, read `docs/template/enforced-engineering-rules.md`. It is the
+agent-readable trigger index for Cucumber, Qlty thresholds, TypeScript/Effect,
+generated ownership, headless parity, lifecycle, dependency, and CI rules.
+Executable configuration remains authoritative when the summary and code differ.
+
 The supported customer loop is:
 
 ```text
@@ -259,6 +264,7 @@ This project vendors external repositories under `repos/`.
 
 - [Blueprint catalog](docs/template/blueprint-catalog.md)
 - [Canonical system catalog](docs/template/system-catalog.md)
+- [Enforced engineering rules](docs/template/enforced-engineering-rules.md)
 - [Product topology](docs/template/product-topology.md)
 - [Data resource catalog](docs/template/data-lifecycle.md)
 - [Sandbox and promotion boundary](docs/template/promotion-boundary.md)
