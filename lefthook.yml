@@ -15,7 +15,7 @@ pre-commit:
     lint-staged:
       glob: "*.{ts,tsx,mts,mjs,cjs}"
       run:
-        pnpm eslint {staged_files} && pnpm tsx
+        pnpm eslint -- {staged_files} && pnpm tsx
         tooling/quality/check-eslint-debt-ratchet.mts {staged_files}
     qlty-staged:
       glob: "*.{ts,tsx,mts,mjs,cjs,py,rs,go}"
