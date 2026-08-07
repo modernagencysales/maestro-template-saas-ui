@@ -388,11 +388,33 @@ describe("saas application blueprint", () => {
       generator: "add-feature",
       commandFamily: "template:add-feature",
       name: "records",
-      ownership: { system: "knowledge-brain", disposition: "extend" },
+      ownership: { system: "record-management", disposition: "extend" },
       generatedPaths: expect.arrayContaining([
         "apps/web/src/routes/_workspace.records.tsx",
       ]),
     });
+  });
+
+  it("retains topology ownership for projected customer runtime files", () => {
+    const entry = buildSaasApplicationTargetPlan().entries.find(
+      ({ path }) => path === "docs/template/product-topology.json",
+    );
+    if (!entry) throw new Error("missing projected product topology");
+    const topology = parseProductTopology(JSON.parse(entry.content));
+    for (const path of [
+      "packages/convex/confect/headless/apiKeys.impl.ts",
+      "packages/convex/confect/headless/apiKeys.spec.ts",
+      "packages/integrations/src/admaxxer.ts",
+      "packages/integrations/src/dodoCrypto.ts",
+      "packages/integrations/src/dodoWebhook.ts",
+      "packages/integrations/src/email.ts",
+      "packages/integrations/src/emailSetup.ts",
+      "packages/integrations/src/providerAdapter.ts",
+      "packages/integrations/src/providerRegistry.ts",
+    ])
+      expect(
+        topology.resources.some((resource) => resource.path === path),
+      ).toBe(true);
   });
 
   it("projects only the supported customer generator scripts", () => {
@@ -646,6 +668,58 @@ describe("saas application blueprint", () => {
     expect(agentInstructions).toContain(
       "pnpm maestro -- contracts test --required",
     );
+    const engineeringRulesPath = "docs/template/enforced-engineering-rules.md";
+    const engineeringRules = plan.entries.find(
+      ({ path }) => path === engineeringRulesPath,
+    );
+    expect(plan.registrations).toContain(engineeringRulesPath);
+    expect(engineeringRules).toMatchObject({
+      ownership: "generated",
+      action: "generate",
+      upgrade: "regenerate",
+      content: readFileSync(join(repoRoot, engineeringRulesPath), "utf8"),
+    });
+    expect(engineeringRules).not.toHaveProperty("replaces");
+
+    const qltyConfigPath = ".qlty/qlty.toml";
+    expect(plan.registrations).toContain(qltyConfigPath);
+    expect(
+      plan.entries.find(({ path }) => path === qltyConfigPath),
+    ).toMatchObject({
+      ownership: "generated",
+      action: "generate",
+      upgrade: "regenerate",
+      content: readFileSync(join(repoRoot, qltyConfigPath), "utf8"),
+    });
+
+    const ruleCoveragePath = "docs/rule-coverage.md";
+    const ruleCoverage = plan.entries.find(
+      ({ path }) => path === ruleCoveragePath,
+    );
+    expect(plan.registrations).toContain(ruleCoveragePath);
+    expect(ruleCoverage).toMatchObject({
+      ownership: "generated",
+      action: "generate",
+      upgrade: "regenerate",
+      replaces: "copy",
+      content: readFileSync(join(repoRoot, ruleCoveragePath), "utf8"),
+    });
+    expect(ruleCoverage).toMatchObject({
+      content: expect.stringContaining(
+        "[enforced engineering rules](./template/enforced-engineering-rules.md)",
+      ),
+    });
+    const eslintDebtRatchetPath =
+      "tooling/quality/check-eslint-debt-ratchet.mts";
+    expect(plan.registrations).toContain(eslintDebtRatchetPath);
+    expect(
+      plan.entries.find(({ path }) => path === eslintDebtRatchetPath),
+    ).toMatchObject({
+      ownership: "generated",
+      action: "generate",
+      upgrade: "regenerate",
+      content: readFileSync(join(repoRoot, eslintDebtRatchetPath), "utf8"),
+    });
     const prettierIgnore = plan.entries.find(
       (entry) => entry.path === ".prettierignore",
     );
@@ -751,7 +825,9 @@ Feature: Reconcile disputed invoices
       "apps/cli/package.json",
       "apps/web/package.json",
       "apps/cli/src/factory/mcp.ts",
+      ".qlty/qlty.toml",
       "docs/template/data-resources.json",
+      "docs/template/enforced-engineering-rules.md",
       "docs/template/env-manifest.json",
       "docs/template/env-manifest.md",
       "docs/template/operations-runbook.md",
@@ -1028,6 +1104,7 @@ Feature: Reconcile disputed invoices
       ]),
     );
     const currentOnlyPaths = [
+      ".qlty/qlty.toml",
       ".npmrc",
       "apps/cli/src/commands.ts",
       "apps/cli/src/factory/contracts.ts",
@@ -1039,6 +1116,7 @@ Feature: Reconcile disputed invoices
       "packages/convex/confect/_generated/registeredFunctions/headless/apiKeys.ts",
       "packages/convex/convex/headless/apiKeys.ts",
       "tooling/acceptance/check-features.mts",
+      "docs/template/enforced-engineering-rules.md",
     ];
 
     for (const path of currentOnlyPaths) {
@@ -1066,7 +1144,7 @@ Feature: Reconcile disputed invoices
       "contracts test --required",
     );
     expect(historicalPackage.scripts?.["acceptance:check"]).toBeUndefined();
-    expect(currentPackage.scripts?.verify).toContain(
+    expect(currentPackage.scripts?.verify).not.toContain(
       "contracts test --required",
     );
   });
@@ -1089,14 +1167,14 @@ Feature: Reconcile disputed invoices
     );
   });
 
-  it("runs required contracts from generated-customer verification", () => {
+  it("keeps required contracts separate from generated-customer verification", () => {
     const projectedPackage = JSON.parse(
       buildSaasApplicationTargetPlan().entries.find(
         ({ path }) => path === "package.json",
       )?.content ?? "{}",
     ) as { readonly scripts?: Readonly<Record<string, string>> };
 
-    expect(projectedPackage.scripts?.verify).toContain(
+    expect(projectedPackage.scripts?.verify).not.toContain(
       "pnpm maestro -- contracts test --required",
     );
   });
@@ -1601,7 +1679,10 @@ Feature: Reconcile disputed invoices
       "apps/web/src/routeTree.gen.ts",
       "apps/web/src/routeRegistry.generated.ts",
       "Justfile",
+      ".qlty/qlty.toml",
       "apps/web/src/adapters/confect-generated-refs.test.ts",
+      "docs/rule-coverage.md",
+      "docs/template/enforced-engineering-rules.md",
       "docs/template/env-manifest.json",
       "docs/template/env-manifest.md",
       "docs/template/operations-runbook.md",
@@ -1615,6 +1696,7 @@ Feature: Reconcile disputed invoices
       "tooling/app-map/src/composition.ts",
       "tooling/app-map/src/schema.ts",
       "tooling/quality/src/env-manifest.test.mts",
+      "tooling/quality/check-eslint-debt-ratchet.mts",
       "docs/template/generated/provenance/add-feature/records.json",
     ]);
     expect(
@@ -1635,11 +1717,10 @@ Feature: Reconcile disputed invoices
     expect(routeTree?.indexOf("'/_workspace/runs': {")).toBeLessThan(
       routeTree?.indexOf("'/_workspace/records': {") ?? -1,
     );
+    const lefthookInstallerPath = "tooling/quality/install-lefthook-if-git.mjs";
     expect(
-      first.find(
-        ({ path }) => path === "tooling/quality/install-lefthook-if-git.mjs",
-      )?.content,
-    ).toContain("/* global process */");
+      first.find(({ path }) => path === lefthookInstallerPath)?.content,
+    ).toBe(readFileSync(join(repoRoot, lefthookInstallerPath), "utf8"));
     expect(
       first.find(({ path }) => path === ".prettierignore")?.content,
     ).toContain(".maestro/");
@@ -1846,6 +1927,8 @@ Feature: Reconcile disputed invoices
     expect(recordsSurface).toContain(
       "templateConfectRefs.public.records.records.create",
     );
+    expect(recordsSurface).toContain("isContractMode()");
+    expect(recordsSurface).not.toContain("import.meta.env");
     expect(recordsSurface).not.toMatch(
       /templateConfectRefs\.public\.records\.(?:list|create)/u,
     );
@@ -2053,7 +2136,7 @@ Feature: Reconcile disputed invoices
       "turbo run test --filter='./packages/*' --filter=@maestro-template/web",
     );
     expect(root.scripts["test:tooling"]).toBe(
-      "pnpm test:bootstrap && pnpm --dir tooling/workflow test && pnpm --dir tooling/generators exec vitest run src/customer-runtime.test.ts src/templateInstanceMigration.test.ts src/workflow-publication-generation.test.ts src/workflow-release-commands.test.ts --maxWorkers=1 --no-file-parallelism",
+      "pnpm test:bootstrap && pnpm --dir tooling/workflow test",
     );
     for (const name of CURRENT_GENERATOR_GATE_SCRIPTS) {
       expect(root.scripts[name]).toContain(
@@ -2103,7 +2186,6 @@ Feature: Reconcile disputed invoices
         "check:headless-surface-contract",
         "check:posthog-readiness",
         "check:auth-demo-bypass",
-        "maestro -- contracts test --required",
       ]
         .map((name) => `pnpm ${name}`)
         .join(" && "),

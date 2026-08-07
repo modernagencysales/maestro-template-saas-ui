@@ -1,3 +1,6 @@
+export const CREATE_HELP =
+  'maestro create <target> --name "My App" --outcome "Track client requests" [--demo-only] [--write --privacy-reviewed] [--human|--details|--json]\n';
+
 const sharedHelp = Object.freeze({
   workflow:
     "maestro-template workflow run [--workflow <id>] [--workspace <slug>] [--idempotency-key <key>] [--mode <mode>] [--input <json>]\n",

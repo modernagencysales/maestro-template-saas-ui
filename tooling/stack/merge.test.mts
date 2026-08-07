@@ -70,7 +70,7 @@ function makeRunner(
   });
 }
 
-test("mergeStack mirrors statuses and merges after required checks are green", async () => {
+test("mergeStack merges after Woodpecker verification without posting a status", async () => {
   const run = makeRunner();
 
   const result = await mergeStack(run, [64], {
@@ -82,23 +82,19 @@ test("mergeStack mirrors statuses and merges after required checks are green", a
   const calls = vi
     .mocked(run)
     .mock.calls.map(([cmd, args]) => `${cmd} ${args.join(" ")}`);
-  const statusIndex = calls.findIndex((call) =>
-    call.includes("statuses/abc123"),
-  );
   const mergeIndex = calls.findIndex((call) => call.includes("pulls/64/merge"));
-  expect(statusIndex).toBeGreaterThan(-1);
-  expect(mergeIndex).toBeGreaterThan(statusIndex);
+  expect(calls.some((call) => call.includes("statuses/abc123"))).toBe(false);
+  expect(mergeIndex).toBeGreaterThan(-1);
 });
 
-test("mergeStack stabilizes churned required statuses after Woodpecker aggregate success", async () => {
+test("mergeStack ignores pending and failing advisory statuses after Woodpecker verification", async () => {
   const run = makeRunner({
     statuses: () => ({
       statuses: [
         { context: WOODPECKER_AGGREGATE_CHECK, state: "success" },
-        ...REQUIRED_CHECKS.map((context) => ({
-          context,
-          state: context === "verify" ? "success" : "pending",
-        })),
+        { context: "qlty", state: "pending" },
+        { context: "unresolved-review-threads", state: "failure" },
+        { context: "merge-conflict", state: "failure" },
       ],
     }),
   });
@@ -112,12 +108,9 @@ test("mergeStack stabilizes churned required statuses after Woodpecker aggregate
   const calls = vi
     .mocked(run)
     .mock.calls.map(([cmd, args]) => `${cmd} ${args.join(" ")}`);
-  const statusIndex = calls.findIndex((call) =>
-    call.includes("statuses/abc123"),
-  );
   const mergeIndex = calls.findIndex((call) => call.includes("pulls/64/merge"));
-  expect(statusIndex).toBeGreaterThan(-1);
-  expect(mergeIndex).toBeGreaterThan(statusIndex);
+  expect(calls.some((call) => call.includes("statuses/abc123"))).toBe(false);
+  expect(mergeIndex).toBeGreaterThan(-1);
 });
 
 test("mergeStack aborts on merge conflicts before setting statuses", async () => {
@@ -161,15 +154,12 @@ test("mergeStack does not wait for advisory plan-required", async () => {
   expect(result).toEqual({ ok: true, merged: [64] });
 });
 
-test("mergeStack does not stabilize churned statuses without Woodpecker aggregate success", async () => {
+test("mergeStack blocks while Woodpecker verification is pending", async () => {
   const run = makeRunner({
     statuses: () => ({
       statuses: [
         { context: WOODPECKER_AGGREGATE_CHECK, state: "pending" },
-        ...REQUIRED_CHECKS.map((context) => ({
-          context,
-          state: "pending",
-        })),
+        { context: "qlty", state: "success" },
       ],
     }),
   });
@@ -177,12 +167,12 @@ test("mergeStack does not stabilize churned statuses without Woodpecker aggregat
   const result = await mergeStack(run, [64], {
     nowMs: () => 0,
     sleepMs: async () => {},
+    appPinnedMaxWaitMs: 0,
   });
 
   expect(result).toEqual({
     ok: false,
-    reason:
-      "PR #64 not green: ci/woodpecker/pr/verify, qlty, unresolved-review-threads, merge-conflict",
+    reason: "PR #64: app-pinned checks did not pass within 2 minutes",
     merged: [],
   });
   expect(
@@ -194,13 +184,13 @@ test("mergeStack does not stabilize churned statuses without Woodpecker aggregat
   ).toBe(false);
 });
 
-test("mergeStack does not stabilize missing required statuses", async () => {
+test("mergeStack blocks when Woodpecker verification is missing", async () => {
   const run = makeRunner({
     statuses: () => ({
       statuses: [
-        { context: WOODPECKER_AGGREGATE_CHECK, state: "success" },
-        { context: "plan-required", state: "success" },
-        { context: "verify", state: "success" },
+        { context: "qlty", state: "success" },
+        { context: "unresolved-review-threads", state: "success" },
+        { context: "merge-conflict", state: "success" },
       ],
     }),
   });
@@ -208,11 +198,12 @@ test("mergeStack does not stabilize missing required statuses", async () => {
   const result = await mergeStack(run, [64], {
     nowMs: () => 0,
     sleepMs: async () => {},
+    appPinnedMaxWaitMs: 0,
   });
 
   expect(result).toEqual({
     ok: false,
-    reason: "PR #64 not green: qlty, unresolved-review-threads, merge-conflict",
+    reason: "PR #64: app-pinned checks did not pass within 2 minutes",
     merged: [],
   });
   expect(
@@ -224,7 +215,7 @@ test("mergeStack does not stabilize missing required statuses", async () => {
   ).toBe(false);
 });
 
-test("mergeStack does not stamp success over a failing required check", async () => {
+test("mergeStack blocks when Woodpecker verification fails", async () => {
   const run = makeRunner({
     statuses: () => ({
       statuses: REQUIRED_CHECKS.map((context) => ({
@@ -237,11 +228,12 @@ test("mergeStack does not stamp success over a failing required check", async ()
   const result = await mergeStack(run, [64], {
     nowMs: () => 0,
     sleepMs: async () => {},
+    appPinnedMaxWaitMs: 0,
   });
 
   expect(result).toEqual({
     ok: false,
-    reason: "PR #64 not green: ci/woodpecker/pr/verify",
+    reason: "PR #64: app-pinned checks did not pass within 2 minutes",
     merged: [],
   });
   expect(

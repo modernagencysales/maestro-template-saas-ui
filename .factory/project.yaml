@@ -1,6 +1,6 @@
 schema_version: 1
 quality:
-  required: [qlty]
+  required: []
 commands:
   focused:
     - id: cucumber

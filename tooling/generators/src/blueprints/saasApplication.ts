@@ -139,9 +139,18 @@ const recordGovernanceFiles = (): readonly GeneratedFile[] => {
     "deployAuthorityAuditEvents",
     ...retainedEmailTableIds,
   ]);
-  const retainedTopologyIds = new Set(
-    releasedTopology.resources.map(({ id }) => id),
-  );
+  const retainedTopologyIds = new Set([
+    ...releasedTopology.resources.map(({ id }) => id),
+    "headless:api-key-contract",
+    "headless:api-key-runtime",
+    "integration:admaxxer",
+    "integration:dodo-crypto",
+    "integration:dodo-webhook",
+    "integration:email",
+    "integration:email-setup",
+    "integration:provider-adapter",
+    "integration:provider-registry",
+  ]);
   const governedSystems = parseSystemCatalog({
     ...systems,
     systems: [
@@ -493,6 +502,7 @@ function buildTargetPlan(
           ["apps/web/src/adapters/confect-generated-refs.test.ts", "copy"],
           ["apps/web/src/providers/posthog.tsx", "copy"],
           ["apps/web/src/routes/index.tsx", "copy"],
+          ["docs/rule-coverage.md", "copy"],
           ["docs/template/env-manifest.json", "copy"],
           ["docs/template/env-manifest.md", "copy"],
           ["docs/template/operations-runbook.md", "copy"],
@@ -696,7 +706,10 @@ function buildTargetPlan(
     ...(current
       ? [
           "Justfile",
+          ".qlty/qlty.toml",
           "apps/web/src/adapters/confect-generated-refs.test.ts",
+          "docs/rule-coverage.md",
+          "docs/template/enforced-engineering-rules.md",
           "docs/template/env-manifest.json",
           "docs/template/env-manifest.md",
           "docs/template/operations-runbook.md",
@@ -708,6 +721,7 @@ function buildTargetPlan(
           "tooling/app-map/src/composition.ts",
           "tooling/app-map/src/schema.ts",
           "tooling/generators/src/crud-proof.test.ts",
+          "tooling/quality/check-eslint-debt-ratchet.mts",
           "tooling/quality/src/env-manifest.test.mts",
           "docs/template/generated/provenance/add-feature/records.json",
         ]
@@ -862,8 +876,11 @@ function buildTargetPlan(
   ] as const;
   const currentOnlyRegistrations = new Set([
     "docs/template/agent-pack-privacy.md",
+    "docs/rule-coverage.md",
+    "docs/template/enforced-engineering-rules.md",
     "apps/cli/src/factory/supportBundle.ts",
     "lefthook.yml",
+    "tooling/quality/check-eslint-debt-ratchet.mts",
     "scripts/pre-push-rubric.sh",
     "tooling/quality/contract-review-rubric.md",
     "tooling/quality/taste-review.mts",

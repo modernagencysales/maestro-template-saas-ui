@@ -8,7 +8,8 @@ describe("customer chassis Woodpecker admission", () => {
     const source = read(".woodpecker/verify.yml");
     expect(source).toContain("tooling/ci/verify-chassis.sh");
     expect(source).toContain("node:22.12.0-bookworm@sha256:");
-    expect(source).not.toMatch(/from_secret|^timeout:/mu);
+    expect(source).toContain("timeout: 60");
+    expect(source).not.toContain("from_secret");
     expect(source).toContain("- event: pull_request");
     expect(source.match(/^ {2}- name:/gmu)).toHaveLength(1);
   });

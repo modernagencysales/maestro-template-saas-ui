@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { resolveWebEnv, WebEnvConfigError } from "./env";
+import { isContractMode, resolveWebEnv, WebEnvConfigError } from "./env";
 
 describe("web environment", () => {
+  it("enables contract mode only for the explicit flag", () => {
+    expect(isContractMode({})).toBe(false);
+    expect(isContractMode({ VITE_MAESTRO_CONTRACT_MODE: "1" })).toBe(true);
+  });
+
   it("uses a fake-safe Convex fallback when no URL is configured", () => {
     expect(resolveWebEnv({})).toEqual({
       env: { VITE_CONVEX_URL: "https://example-template.convex.cloud" },

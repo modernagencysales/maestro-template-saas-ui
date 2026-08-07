@@ -23,6 +23,7 @@ const FACTORY_ONLY_PREFIXES = [
   ".superpowers/",
   ".vscode/",
   "agent-pack/",
+  "apps/cli/src/factory/",
   "apps/voice-relay/",
   "docs/design-intake/",
   "docs/migration/",
@@ -43,6 +44,7 @@ const FACTORY_ONLY_PREFIXES = [
   "releases/",
   "repos/",
   "tooling/evals/",
+  "tooling/generators/src/",
   "tooling/pr-backlog/",
   "tooling/release/",
   "tooling/stack/",
@@ -134,6 +136,38 @@ const FACTORY_ONLY_EXACT = new Set([
 ]);
 
 const FACTORY_ONLY_NESTED_PREFIXES = ["docs/template/extraction/"] as const;
+
+const CUSTOMER_GENERATOR_RUNTIME_FILES = [
+  "tooling/generators/src/blueprints/gtmImplementation.ts",
+  "tooling/generators/src/crud-proof.test.ts",
+  "tooling/generators/src/crud-proof.ts",
+  "tooling/generators/src/customer-cli.ts",
+  "tooling/generators/src/customer-dispatcher.ts",
+  "tooling/generators/src/customer-runtime.ts",
+  "tooling/generators/src/customer.ts",
+  "tooling/generators/src/direct-run.ts",
+  "tooling/generators/src/feature-crud.ts",
+  "tooling/generators/src/private-package.ts",
+  "tooling/generators/src/workflow-files.ts",
+  "tooling/generators/src/workflow-predeploy.ts",
+  "tooling/generators/src/workflow-release-commands.ts",
+  "tooling/generators/src/workflow-source-closure.ts",
+] as const;
+
+const CUSTOMER_CLI_FACTORY_RUNTIME_FILES = [
+  "apps/cli/src/factory/customerComposition.ts",
+  "apps/cli/src/factory/contracts.ts",
+  "apps/cli/src/factory/mcp.ts",
+  "apps/cli/src/factory/start.ts",
+  "apps/cli/src/factory/customerRecipes.ts",
+  "apps/cli/src/factory/recipeCatalog.ts",
+  "apps/cli/src/factory/recipes.ts",
+  "apps/cli/src/factory/supportBundle.ts",
+  "apps/cli/src/factory/environment.ts",
+  "apps/cli/src/factory/preflight.ts",
+  "apps/cli/src/factory/verify.ts",
+  "apps/cli/src/factory/router.ts",
+] as const;
 
 const CUSTOMER_EXTENSION_EXACT = new Set([
   ".env.example",
@@ -250,6 +284,12 @@ export const CUSTOMER_OWNERSHIP_RULES: readonly CustomerReleasePath[] = [
     rule(subtree(path), "subtree", "factory-only"),
   ),
   ...[...FACTORY_ONLY_EXACT].map((path) => rule(path, "exact", "factory-only")),
+  ...CUSTOMER_GENERATOR_RUNTIME_FILES.map((path) =>
+    rule(path, "exact", "template-owned"),
+  ),
+  ...CUSTOMER_CLI_FACTORY_RUNTIME_FILES.map((path) =>
+    rule(path, "exact", "template-owned"),
+  ),
   ...FACTORY_PRODUCT_TABLES.flatMap((table) => [
     rule(`packages/convex/confect/tables/${table}.ts`, "exact", "factory-only"),
     rule(

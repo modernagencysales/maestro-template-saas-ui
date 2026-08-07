@@ -270,4 +270,9 @@ pnpm check:data-resources
 ```
 
 Then commit the generated receipt and relevant provenance alongside the code.
-Use `pnpm verify` for the exhaustive handoff gate.
+For a frozen delivery head, run required journeys before verification:
+
+```bash
+pnpm maestro -- contracts test --required
+pnpm verify
+```

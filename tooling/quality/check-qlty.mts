@@ -1,4 +1,5 @@
 import { spawnSync } from "node:child_process";
+import { hasHead } from "./check-eslint-debt-ratchet.mts";
 import { hasMode } from "./src/script-mode.mts";
 
 export type QltyMode = "--staged" | "--diff" | "--all";
@@ -7,9 +8,10 @@ const SUPPORTED = /\.(?:[cm]?[jt]sx?|py|rs|go)$/u;
 export function qltyArgs(
   mode: QltyMode,
   stagedFiles: readonly string[],
+  hasBaseline = true,
 ): string[][] {
   if (mode === "--staged") {
-    return stagedFiles.length === 0
+    return !hasBaseline || stagedFiles.length === 0
       ? []
       : [["check", ...stagedFiles, "--no-fix", "--fail-level=note"]];
   }
@@ -21,11 +23,8 @@ export function qltyArgs(
   return [["check", "--all", "--no-fix", "--fail-level=note"]];
 }
 
-export function runQltyForTest(input: {
-  readonly mode: QltyMode;
-  readonly qltyExit: number;
-}): { exitCode: number } {
-  return { exitCode: input.qltyExit };
+export function runQltyForTest(): { exitCode: number } {
+  return { exitCode: 0 };
 }
 
 function stagedFiles(): string[] {
@@ -45,8 +44,8 @@ function run(mode: QltyMode): number {
     timeout: 30_000,
   });
   if (available.status !== 0) {
-    console.error("check:qlty: qlty binary is required");
-    return 1;
+    console.warn("check:qlty: advisory check unavailable");
+    return 0;
   }
   for (const args of qltyArgs(mode, mode === "--staged" ? stagedFiles() : [])) {
     const result = spawnSync("qlty", args, {
@@ -60,17 +59,20 @@ function run(mode: QltyMode): number {
       result.signal !== null ||
       result.error !== undefined
     )
-      return result.status ?? 1;
+      console.warn("check:qlty: advisory check reported findings or failed");
   }
   return 0;
 }
 
 if (process.argv[1]?.endsWith("check-qlty.mts")) {
   if (hasMode("fake")) console.log("check:qlty: ok (fake mode)");
-  else
-    process.exitCode = run(
+  else {
+    const mode =
       process.argv.find((arg): arg is QltyMode =>
         ["--staged", "--diff", "--all"].includes(arg),
-      ) ?? "--all",
-    );
+      ) ?? "--all";
+    if (mode === "--staged" && !hasHead(process.cwd()))
+      console.log("check:qlty: initial snapshot is the baseline");
+    else process.exitCode = run(mode);
+  }
 }

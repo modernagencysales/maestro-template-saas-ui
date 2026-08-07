@@ -76,7 +76,11 @@ describe("frontend platform routes", () => {
         `${item.path} should be backed by ${routeFileForPath(item.path)}`,
       ).toBe(true);
     }
-    expect(read("src/routes/index.tsx")).toContain("AppIdeaLanding");
+    expect(read("src/routes/index.tsx")).toContain(
+      existsSync(resolve(appRoot, "../../template-instance.json"))
+        ? "BusinessDashboardRoute"
+        : "AppIdeaLanding",
+    );
     expect(read("src/routes/dashboard.tsx")).toContain(
       "BusinessDashboardRoute",
     );

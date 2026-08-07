@@ -8,7 +8,10 @@ import {
 
 const CURRENT_CUSTOMER_SOURCE_PROJECTIONS = [
   "Justfile",
+  ".qlty/qlty.toml",
   "apps/web/src/adapters/confect-generated-refs.test.ts",
+  "docs/rule-coverage.md",
+  "docs/template/enforced-engineering-rules.md",
   "docs/template/env-manifest.json",
   "docs/template/env-manifest.md",
   "docs/template/operations-runbook.md",
@@ -22,6 +25,7 @@ const CURRENT_CUSTOMER_SOURCE_PROJECTIONS = [
   "tooling/app-map/src/composition.ts",
   "tooling/app-map/src/schema.ts",
   "tooling/quality/src/env-manifest.test.mts",
+  "tooling/quality/check-eslint-debt-ratchet.mts",
 ] as const;
 
 const FACTORY_PRODUCT_TABLES = new Set<string>(CURRENT_FACTORY_PRODUCT_TABLES);
@@ -245,7 +249,7 @@ const recordsFeatureProvenance = (): GeneratedFile => ({
       generator: "add-feature",
       commandFamily: "template:add-feature",
       name: "records",
-      ownership: { system: "knowledge-brain", disposition: "extend" },
+      ownership: { system: "record-management", disposition: "extend" },
       generatedPaths: [
         "packages/convex/confect/tables/records.ts",
         "packages/convex/confect/records/records.spec.ts",
@@ -305,10 +309,16 @@ const currentSaasApplicationFiles = (options: {
     return {
       ...file,
       path,
-      content: content.replaceAll(
-        search,
-        "templateConfectRefs.public.records.records.",
-      ),
+      content: content
+        .replaceAll(search, "templateConfectRefs.public.records.records.")
+        .replace(
+          'import { isConvexConfigured } from "../../env";',
+          'import { isContractMode, isConvexConfigured } from "../../env";',
+        )
+        .replace(
+          'import.meta.env.VITE_MAESTRO_CONTRACT_MODE === "1"',
+          "isContractMode()",
+        ),
     };
   });
 

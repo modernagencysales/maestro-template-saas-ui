@@ -13,9 +13,8 @@ import {
   type ProviderMode,
 } from "@maestro-template/integrations";
 import { parseNamedArgs } from "./namedArgs";
-import { CREATE_HELP } from "./factory/create";
 import { START_HELP } from "./factory/start";
-import { helpForSharedCommand } from "./help";
+import { CREATE_HELP, helpForSharedCommand } from "./help";
 import { cliFailure, cliSuccess, formatJsonOutput } from "./result";
 import type {
   CliCapabilityRequest,

@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 const read = (path: string): string => readFileSync(path, "utf8");
@@ -19,7 +19,11 @@ describe("Notion document block contract", () => {
     expect(blocks).toContain("NotionDocumentPage");
     expect(blocks).toContain("renderInlineMarkdown");
     expect(blocks).toContain("NotionDocumentDiagram");
-    expect(publicRootRoute).toContain("AppIdeaLanding");
+    expect(publicRootRoute).toContain(
+      existsSync("../../template-instance.json")
+        ? "BusinessDashboardRoute"
+        : "AppIdeaLanding",
+    );
     expect(dashboardRoute).toContain("BusinessDashboardRoute");
     for (const route of [publicRootRoute, dashboardRoute]) {
       expect(route).not.toContain("NotionDocumentPage");

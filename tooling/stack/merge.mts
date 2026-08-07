@@ -115,8 +115,7 @@ export async function mergeStack(
       };
     }
 
-    // 4. Wait for any app-pinned checks. This is usually a no-op while the
-    // launch-era process gates are advisory.
+    // 4. Wait for app-pinned checks; Woodpecker owns the merge authority.
     console.log("  waiting for app-pinned checks...");
     const pinned = await waitForAppPinnedChecks(
       run,
@@ -154,7 +153,7 @@ export async function mergeStack(
       );
     }
 
-    // 6. Mirror non-app-pinned statuses after authoritative Woodpecker evidence.
+    // 6. Mirror any non-app-pinned statuses after authoritative Woodpecker evidence.
     console.log("  setting statuses");
     ghSetStatuses(run, pr, "success", "All checks pass");
 

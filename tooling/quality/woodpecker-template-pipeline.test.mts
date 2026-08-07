@@ -29,11 +29,10 @@ describe("Woodpecker firewall and epoch pipelines", () => {
     );
   });
 
-  it("has no duplicate GitHub or legacy Woodpecker verification authority", () => {
+  it("has no duplicate GitHub verification authority", () => {
     expect(existsSync(resolve(root, ".github/workflows/quality.yml"))).toBe(
       false,
     );
-    expect(existsSync(resolve(root, ".woodpecker/verify.yml"))).toBe(false);
   });
 
   it("keeps the trusted policy first and exact runner classes", () => {

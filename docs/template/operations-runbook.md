@@ -91,17 +91,20 @@ when they are invoked manually.
 
 ## Main Branch Promotion Policy
 
-`main` is PR-only: block deletion and force pushes, require resolved
-conversations, and require the GitHub `Required quality / quality` status. Add
-Woodpecker contexts only after they are observed on a pull request; never invent
-a required context name, because that can deadlock the branch.
+`main` is PR-only: block deletion and force pushes, require GitHub's native
+resolved-conversation policy, and require only the observed
+`ci/woodpecker/pr/verify` context. Qlty, unresolved-review-thread reporting,
+merge-conflict reporting, AI, and firewall signals remain visible advisory
+evidence; they are not merge requirements. Never invent a required context name,
+because that can deadlock the branch.
 
 Enable repository auto-merge. Ordinary product PRs may merge automatically when
-the required status and conversations are green. Require code-owner review only
-for paths listed in `.github/CODEOWNERS`: architecture catalogs, durable
-schema/data contracts, security/access, generators/gates, CI, and deploy/release
-control. Do not restore a wildcard owner, which would turn every exploratory
-product change into a manual approval bottleneck.
+Woodpecker verification passes and GitHub's resolved-conversation policy is
+satisfied. Require code-owner review only for paths listed in
+`.github/CODEOWNERS`: architecture catalogs, durable schema/data contracts,
+security/access, generators/gates, CI, and deploy/release control. Do not
+restore a wildcard owner, which would turn every exploratory product change into
+a manual approval bottleneck.
 
 When changing the required workflow or rule, first push the workflow on a PR,
 observe the exact check context with `gh pr checks`, and only then update the

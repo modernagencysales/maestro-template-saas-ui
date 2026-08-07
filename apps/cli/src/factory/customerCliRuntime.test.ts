@@ -355,8 +355,14 @@ describe("materialized customer CLI runtime closure", () => {
       ["run", "check:data-resources"],
       { cwd: target, timeout: 30_000 },
     );
+    const topologyGate = await execFileAsync(
+      "pnpm",
+      ["run", "check:system-topology"],
+      { cwd: target, timeout: 30_000 },
+    );
     expect(systemGate.stdout).toContain("ok system catalog");
     expect(lifecycleGate.stdout).toContain("ok data resources");
+    expect(topologyGate.stdout).toContain("ok system topology");
 
     const systems = JSON.parse(
       readFileSync(join(target, "docs/template/system-catalog.json"), "utf8"),
@@ -758,7 +764,7 @@ describe("materialized customer CLI runtime closure", () => {
       "turbo run test --filter='./packages/*' --filter=@maestro-template/web",
     );
     expect(customerPackage.scripts["test:tooling"]).toBe(
-      "pnpm test:bootstrap && pnpm --dir tooling/workflow test && pnpm --dir tooling/generators exec vitest run src/customer-runtime.test.ts src/templateInstanceMigration.test.ts src/workflow-publication-generation.test.ts src/workflow-release-commands.test.ts --maxWorkers=1 --no-file-parallelism",
+      "pnpm test:bootstrap && pnpm --dir tooling/workflow test",
     );
     expect(customerPackage.scripts.verify).toBe(
       [

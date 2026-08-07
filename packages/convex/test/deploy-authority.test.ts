@@ -8,7 +8,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { makeFunctionReference } from "convex/server";
 import { convexTest } from "convex-test";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import convexSchema from "../confect/_generated/convexSchema";
 import { handleDeployAuthorityHttpRequest } from "../confect/deployAuthority/http";
 import {
@@ -359,6 +359,7 @@ const seedAuthority = async (
 
 describe("repo-owned durable deploy authority", () => {
   afterEach(() => {
+    vi.restoreAllMocks();
     if (initialPromotionAuthorityMode === undefined) {
       delete process.env.PROMOTION_AUTHORITY_MODE;
     } else {
@@ -592,10 +593,20 @@ describe("repo-owned durable deploy authority", () => {
 
   it("rotates one active issuer, blocks mixed-origin rotation, and exports hashed audit", async () => {
     process.env.PROMOTION_AUTHORITY_MODE = "authority";
+    vi.spyOn(Date, "now").mockReturnValue(now);
     const t = convexTest(convexSchema, modules);
-    const first = keys();
-    const second = keys();
-    const third = keys();
+    const issuer = (marker: string) => {
+      const publicKeySpki = marker.repeat(32);
+      return {
+        publicKeySpki,
+        publicKeyHash: `sha256:${createHash("sha256")
+          .update(publicKeySpki)
+          .digest("hex")}`,
+      };
+    };
+    const first = issuer("A");
+    const second = issuer("B");
+    const third = issuer("C");
     const actor = t.withIdentity(operatorIdentity);
     const sourceReceiptHash = "sha256:" + "9".repeat(64);
 
@@ -659,12 +670,18 @@ describe("repo-owned durable deploy authority", () => {
     expect(audit).toMatchObject({
       kind: "ok",
       audit: {
-        events: [
+        events: expect.arrayContaining([
           expect.objectContaining({ operation: "issuer-rotated" }),
           expect.objectContaining({ operation: "issuer-provisioned" }),
-        ],
+        ]),
       },
     });
+    if (audit.kind !== "ok") throw new Error("audit export was blocked");
+    const eventIds = audit.audit.events.map(
+      (event: { readonly eventId: string }) => event.eventId,
+    );
+    expect(eventIds).toHaveLength(2);
+    expect(eventIds).toEqual(eventIds.toSorted().reverse());
     expect(JSON.stringify(audit)).not.toContain("release-operator");
   });
 
