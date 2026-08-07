@@ -14,6 +14,7 @@ const execFileAsync = promisify(execFile);
 const offlinePnpmBin = "/private/tmp/maestro-pnpm-10-bin";
 const finalWebBuildAttempts = 4;
 const finalWebBuildRetryDelayMs = 1_000;
+const finalCompileGateConcurrency = 2;
 
 export function resolveBoundPreviewUrl(
   reportedUrl: string,
@@ -318,20 +319,46 @@ export async function runFinalCustomerCompileGates(
     throw commandFailure(error);
   }
   applyPrerenderRetryCompatibility(root);
-  for (const [command, args] of [
+  const compileCommands = [
     ["pnpm", ["--dir", "apps/cli", "typecheck"]],
     ["pnpm", ["--dir", "tooling/generators", "typecheck"]],
     ["pnpm", ["check:workflow-policy-snapshots"]],
     ["pnpm", ["check:workflow-principal-propagation"]],
     ["pnpm", ["--dir", "packages/convex", "typecheck"]],
     ["pnpm", ["--dir", "apps/web", "typecheck"]],
-  ] as const) {
-    await execFileAsync(command, args, {
-      cwd: root,
-      env,
-      maxBuffer: 10 * 1024 * 1024,
-    });
-  }
+  ] as const;
+  let nextCommand = 0;
+  const failures: { readonly index: number; readonly error: unknown }[] = [];
+  const runCompileCommands = async (): Promise<void> => {
+    while (nextCommand < compileCommands.length) {
+      const index = nextCommand;
+      nextCommand += 1;
+      const entry = compileCommands[index];
+      if (entry === undefined) return;
+      const [command, args] = entry;
+      try {
+        await execFileAsync(command, args, {
+          cwd: root,
+          env,
+          maxBuffer: 10 * 1024 * 1024,
+        });
+      } catch (error) {
+        failures.push({ index, error });
+      }
+    }
+  };
+  await Promise.all(
+    Array.from(
+      {
+        length: Math.min(finalCompileGateConcurrency, compileCommands.length),
+      },
+      runCompileCommands,
+    ),
+  );
+  const [firstFailure] = failures.sort(
+    (left, right) => left.index - right.index,
+  );
+  if (firstFailure !== undefined) throw firstFailure.error;
   await retryTransientPrerenderStartup(() =>
     execFileAsync("pnpm", ["--dir", "apps/web", "build"], {
       cwd: root,
