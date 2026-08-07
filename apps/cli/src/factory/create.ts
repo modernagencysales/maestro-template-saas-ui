@@ -75,11 +75,27 @@ function projectCreateResultForJson<Data extends AgentPackJsonValue>(
   };
 }
 
+type CreatePreviewJson = {
+  readonly [key: string]: AgentPackJsonValue;
+  readonly writes: readonly AgentPackJsonValue[];
+  readonly omissions: readonly AgentPackJsonValue[];
+  readonly collisions: readonly AgentPackJsonValue[];
+  readonly preflightFingerprint: string;
+  readonly totalBytes: number;
+};
+
+type CreateReleaseJson = {
+  readonly [key: string]: AgentPackJsonValue;
+  readonly ownershipManifest: string;
+  readonly ownershipManifestChecksum: string;
+};
+
 function hasCreatePreviewData(
   data: { readonly [key: string]: AgentPackJsonValue } | undefined,
 ): data is {
-  readonly preview: { readonly [key: string]: AgentPackJsonValue };
-  readonly release: { readonly [key: string]: AgentPackJsonValue };
+  readonly [key: string]: AgentPackJsonValue;
+  readonly preview: CreatePreviewJson;
+  readonly release: CreateReleaseJson;
 } {
   if (
     data === undefined ||
