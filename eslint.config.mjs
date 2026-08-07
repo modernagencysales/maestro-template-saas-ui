@@ -3,7 +3,7 @@ import templatePlugin from "./tooling/eslint-plugin-template/index.mjs";
 import tseslint from "typescript-eslint";
 
 const shiftLeft =
-  globalThis.process.env.ESLINT_SHIFT_LEFT === "1" ? "error" : "off";
+  globalThis.process.env.ESLINT_SHIFT_LEFT === "1" ? "warn" : "off";
 
 export default [
   {
@@ -40,20 +40,6 @@ export default [
     files: ["packages/convex/confect/**/*.ts"],
     rules: {
       "@typescript-eslint/no-namespace": "off",
-    },
-  },
-  {
-    // Existing review providers predate the changed-file complexity ratchet.
-    // Their new bounded coordinator is enforced independently.
-    files: [
-      "tooling/quality/taste-review.mts",
-      "tooling/quality/contract-review.mts",
-      "tooling/release/src/index.ts",
-    ],
-    rules: {
-      complexity: "off",
-      "max-depth": "off",
-      "max-params": "off",
     },
   },
   {

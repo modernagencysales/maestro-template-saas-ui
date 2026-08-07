@@ -689,7 +689,13 @@ function buildTargetPlan(
     "AGENTS.md",
     "agent-patterns/effect-confect.md",
     "docs/template/agent-pack-privacy.md",
-    ...(current ? ["apps/web/package.json"] : []),
+    ...(current
+      ? [
+          "apps/web/package.json",
+          "cucumber.cjs",
+          "tooling/acceptance/check-features.mts",
+        ]
+      : []),
     ...(current
       ? ["apps/web/src/providers/posthog.tsx", "apps/web/src/routes/index.tsx"]
       : []),

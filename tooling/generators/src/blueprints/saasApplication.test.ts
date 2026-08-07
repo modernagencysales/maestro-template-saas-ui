@@ -1865,6 +1865,36 @@ Feature: Reconcile disputed invoices
     expect(routeTree).not.toContain("BuildPackPackIdRouteImport");
   });
 
+  it("projects runnable Cucumber contracts into customer apps", () => {
+    const files = new Map(
+      buildFactorySaasApplicationFiles({ name: "My App" }).map((file) => [
+        file.path,
+        file.content,
+      ]),
+    );
+    for (const path of [
+      "cucumber.cjs",
+      "tooling/acceptance/check-features.mts",
+    ])
+      expect(files.has(path), path).toBe(true);
+    expect(files.has("tooling/acceptance/check-contracts.mts")).toBe(false);
+    const root = JSON.parse(files.get("package.json") ?? "{}") as {
+      readonly scripts: Readonly<Record<string, string>>;
+      readonly devDependencies: Readonly<Record<string, string>>;
+    };
+    expect(root.scripts).toMatchObject({
+      "acceptance:check":
+        "pnpm acceptance:features && cucumber-js --config cucumber.cjs --dry-run",
+      "acceptance:features": "tsx tooling/acceptance/check-features.mts",
+      "acceptance:cucumber": "cucumber-js --config cucumber.cjs",
+    });
+    expect(root.devDependencies).toMatchObject({
+      "@cucumber/cucumber": "13.2.0",
+      "@cucumber/gherkin": "41.0.0",
+      "@cucumber/messages": "34.0.1",
+    });
+  });
+
   it("projects a customer-only root script closure", () => {
     const files = buildFactorySaasApplicationFiles({ name: "My App" });
     for (const path of [
@@ -1982,6 +2012,7 @@ Feature: Reconcile disputed invoices
       "smoke:hosted:visual",
       "review:readiness",
       "review:completion",
+      "review:bounded",
       "deploy:doctor",
       "deploy:cloudflare",
       "convex:deploy",
