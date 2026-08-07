@@ -305,10 +305,17 @@ export type AgentGeneratorResult = {
   readonly pascalName: string;
   readonly system: string;
   readonly disposition: SystemGeneratorDisposition;
-  readonly surfaces: readonly ["web"];
+  readonly surfaces: readonly [];
   readonly headlessExposure: false;
   readonly files: readonly GeneratedFile[];
   readonly followUp: readonly string[];
+};
+
+export type AgentSeatGeneratorResult = Omit<
+  AgentGeneratorResult,
+  "surfaces"
+> & {
+  readonly surfaces: readonly ["web"];
 };
 
 export type PromotionGeneratorOptions = {
@@ -659,6 +666,7 @@ export const buildTemplateInstance = (options?: {
   readonly blueprint?: BlueprintId;
   readonly providerMode?: ProviderMode;
   readonly generatedAt?: string;
+  // eslint-disable-next-line complexity -- AP-008 tracks consolidating duplicated factory/runtime compatibility parsing.
 }): TemplateInstance => {
   const name = options?.name?.trim() || "Acme AI Operations";
   const blueprint = options?.blueprint ?? defaultBlueprintId;
@@ -712,6 +720,7 @@ export const buildTemplateInstance = (options?: {
   };
 };
 
+// eslint-disable-next-line complexity -- AP-008 tracks consolidating duplicated factory/runtime compatibility parsing.
 export const parseTemplateInstance = (raw: string): TemplateInstance => {
   const parsed = JSON.parse(raw) as Partial<TemplateInstance>;
 
@@ -1134,6 +1143,7 @@ export function buildTemplateQuickstart(
 export function buildTemplateQuickstart(
   options?: TemplateQuickstartOptions,
 ): TemplateQuickstart;
+// eslint-disable-next-line complexity -- AP-008 tracks splitting blueprint-specific quickstart projection.
 export function buildTemplateQuickstart(
   options?: TemplateQuickstartOptions,
 ): TemplateQuickstart {
@@ -1691,6 +1701,7 @@ export const buildTableFiles = (
     readonly systems?: SystemCatalog;
     readonly dataResources?: DataResourceCatalog;
   },
+  // eslint-disable-next-line complexity -- AP-008 tracks splitting durable-table projection metadata.
 ): TableGeneratorResult => {
   if (options.disposition !== "extend") {
     throw new RangeError("New durable tables must use --disposition extend");
@@ -1845,6 +1856,65 @@ query that proves the table is necessary before approving this decision.
 export const buildAgentFiles = (
   options: AgentGeneratorOptions,
 ): AgentGeneratorResult => {
+  const name = camelCase(options.name);
+  const pascalName = pascalCase(options.name);
+  const description =
+    options.description ??
+    `Generated ${name} agent declaration. Select a UI seat before adding surface behavior.`;
+  const followUp = [
+    "Select a UI seat before adding surface-specific behavior.",
+    "Review capability grants before adding model-call or provider-backed behavior.",
+  ] as const;
+  const files: readonly GeneratedFile[] = [
+    {
+      path: `packages/convex/confect/agents/${name}.ts`,
+      content: `export const ${name}Agent = {
+  id: "${name}",
+  system: "${options.system}",
+  disposition: "${options.disposition}",
+  systemDisposition: "${options.disposition}",
+  displayName: "${pascalName}",
+  description: ${JSON.stringify(description)},
+  surfaces: [],
+  capabilities: [],
+  headlessExposure: false,
+} as const;
+`,
+    },
+    {
+      path: `docs/template/generated/agents/${name}.md`,
+      content: `# ${pascalName} Agent
+
+${description}
+
+This declaration is surface-neutral. Use \`pnpm template:add-agent-seat\` to select a UI seat and generate its explicit runtime contract.
+
+- Canonical system: \`${options.system}\` (\`${options.disposition}\`)
+- Surfaces: none
+- Capabilities: none
+- Headless exposure: none
+`,
+    },
+  ];
+
+  return {
+    name,
+    pascalName,
+    system: options.system,
+    disposition: options.disposition,
+    surfaces: [],
+    headlessExposure: false,
+    files: withGeneratorProvenance("add-agent", name, files, {
+      system: options.system,
+      disposition: options.disposition,
+    }),
+    followUp,
+  };
+};
+
+export const buildAgentSeatFiles = (
+  options: AgentGeneratorOptions,
+): AgentSeatGeneratorResult => {
   const name = camelCase(options.name);
   const pascalName = pascalCase(options.name);
   const description =
@@ -2807,6 +2877,7 @@ const parseArgs = (
   readonly businessEntity: boolean;
   readonly write: boolean;
   readonly path: string;
+  // eslint-disable-next-line complexity -- AP-008 tracks splitting the legacy generator argv compatibility parser.
 } => {
   validateGeneratorArgv(argv);
   const [command] = argv;
@@ -2959,6 +3030,7 @@ export const runGeneratorCli = (
   readonly exitCode: 0 | 1;
   readonly stdout: string;
   readonly stderr: string;
+  // eslint-disable-next-line complexity -- AP-008 tracks splitting legacy generator command dispatch.
 } => {
   try {
     const cliArgv = argv.filter((argument) => argument !== "--");
@@ -3446,11 +3518,18 @@ export const runGeneratorCli = (
         };
       }
 
-      const result = buildAgentFiles({
-        name: args.name,
-        ...requireOwnership(),
-        ...(args.description ? { description: args.description } : {}),
-      });
+      const result =
+        args.command === "add-agent-seat"
+          ? buildAgentSeatFiles({
+              name: args.name,
+              ...requireOwnership(),
+              ...(args.description ? { description: args.description } : {}),
+            })
+          : buildAgentFiles({
+              name: args.name,
+              ...requireOwnership(),
+              ...(args.description ? { description: args.description } : {}),
+            });
 
       if (args.write) {
         writeGeneratedFiles(result.files, cwd);

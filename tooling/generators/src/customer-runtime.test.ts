@@ -14,6 +14,7 @@ import {
   runCustomerGeneratorCli,
   runReviewedGenerator,
 } from "./customer-dispatcher";
+import { buildAgentFiles } from "./customer-runtime";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../../..");
 
@@ -32,6 +33,25 @@ const seedCatalogs = (cwd: string): void => {
 };
 
 describe("customer generator runtime", () => {
+  it("builds a neutral agent declaration", () => {
+    const generated = buildAgentFiles({
+      name: "workflow architect",
+      system: "workflow-runtime",
+      disposition: "reuse",
+    });
+
+    expect(generated).toMatchObject({
+      name: "workflowArchitect",
+      surfaces: [],
+      headlessExposure: false,
+    });
+    expect(generated.files.map(({ path }) => path)).toEqual([
+      "packages/convex/confect/agents/workflowArchitect.ts",
+      "docs/template/generated/agents/workflowArchitect.md",
+      "docs/template/generated/provenance/add-agent/workflowArchitect.json",
+    ]);
+  });
+
   it("doctors the canonical versioned instance emitted by public create", () => {
     const cwd = mkdtempSync(join(tmpdir(), "maestro-customer-doctor-"));
     const instancePath = join(cwd, "template-instance.json");

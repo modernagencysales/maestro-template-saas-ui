@@ -6,6 +6,7 @@ import {
 } from "@maestro-template/template-core/systemCatalog";
 import {
   buildAgentFiles,
+  buildAgentSeatFiles,
   buildCapabilityFiles,
   buildCapabilityPromotionFiles,
   buildFeatureFiles,
@@ -135,6 +136,7 @@ const help = (command: CustomerCommand): CustomerCommandResult => ({
 export const runCustomerGeneratorCli = (
   argv: readonly string[],
   cwd = process.cwd(),
+  // eslint-disable-next-line complexity -- AP-008 tracks splitting projected customer command dispatch.
 ): CustomerCommandResult => {
   if (argv[0] === "--") return runCustomerGeneratorCli(argv.slice(1), cwd);
   try {
@@ -255,8 +257,9 @@ export const runCustomerGeneratorCli = (
         }),
       );
     if (command === "add-workflow") return finish(buildWorkflowFiles(common));
-    if (command === "add-agent" || command === "add-agent-seat")
-      return finish(buildAgentFiles(common));
+    if (command === "add-agent") return finish(buildAgentFiles(common));
+    if (command === "add-agent-seat")
+      return finish(buildAgentSeatFiles(common));
     if (command === "promote-capability")
       return finish(buildCapabilityPromotionFiles(common));
     if (command === "promote-workflow")
@@ -403,6 +406,7 @@ export const runReviewedGenerator = (request: {
   readonly args: Readonly<Record<string, unknown>>;
   readonly write: boolean;
   readonly cwd: string;
+  // eslint-disable-next-line complexity -- AP-008 tracks splitting reviewed generator descriptor dispatch.
 }) => {
   const descriptor = REVIEWED_GENERATOR_DESCRIPTORS.find(
     (item) => item.generatorId === request.generatorId,
