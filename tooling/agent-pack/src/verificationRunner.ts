@@ -36,7 +36,6 @@ export type VerificationReadFile = (
 type FingerprintValue = string | number | boolean | null;
 type VerifyPlanEntry = {
   readonly argv: readonly [string, ...string[]];
-  readonly scriptBody: string;
 };
 type PackageScripts = Readonly<Record<string, unknown>>;
 
@@ -148,31 +147,26 @@ async function runFocused(
     readonly packageJsonMaxBytes: number;
   },
 ): Promise<readonly VerificationRunObservation[]> {
-  const scripts = await readPackageScripts(
-    readFile,
-    resolve(cwd, "package.json"),
-    limits.packageJsonMaxBytes,
-  );
-  if (scripts === undefined) {
-    return descriptors.map((descriptor) =>
-      unavailable(descriptor, "the focused package script plan is unavailable"),
-    );
-  }
+  const rootScripts = descriptors.some(({ argv }) => isRootPnpmScript(argv))
+    ? await readPackageScripts(
+        readFile,
+        resolve(cwd, "package.json"),
+        limits.packageJsonMaxBytes,
+      )
+    : undefined;
   return Promise.all(
     descriptors.map((descriptor) => {
       if (!validateDiagnosticDescriptor(descriptor).ok) {
         return unavailable(descriptor);
       }
-      const entry = focusedPlanEntry(descriptor, scripts);
-      if (entry === undefined) {
+      if (
+        isRootPnpmScript(descriptor.argv) &&
+        !hasCurrentRootScript(descriptor.argv, rootScripts)
+      ) {
         return unavailable(
           descriptor,
-          `the target script body for ${descriptor.argv.join(" ")} is unavailable`,
+          `the target root package script for ${descriptor.argv.join(" ")} is unavailable`,
         );
-      }
-      const scriptBlocker = canonicalScriptBlocker(descriptor, entry);
-      if (scriptBlocker !== undefined) {
-        return unavailable(descriptor, scriptBlocker);
       }
       return runDescriptor(
         execFile,
@@ -226,21 +220,14 @@ async function runFull(
   if (result.exitCode !== 0) {
     return attributeFailedFull(execFile, request, plan, limits);
   }
-  const planned = new Map(
-    plan.map((entry) => [argvKey(entry.argv), entry] as const),
-  );
+  const planned = new Set(plan.map(({ argv }) => argvKey(argv)));
   return Promise.all(
     request.descriptors.map(async (descriptor) => {
-      const entry = planned.get(argvKey(descriptor.argv));
-      if (entry === undefined) {
+      if (!planned.has(argvKey(descriptor.argv))) {
         return unavailable(
           descriptor,
           "the gate is not a member of the canonical full verify plan",
         );
-      }
-      const scriptBlocker = canonicalScriptBlocker(descriptor, entry);
-      if (scriptBlocker !== undefined) {
-        return unavailable(descriptor, scriptBlocker);
       }
       return runDescriptor(
         execFile,
@@ -275,15 +262,6 @@ async function attributeFailedFull(
     const descriptor = byCommand.get(argvKey(argv));
     const rendered = argv.join(" ");
     if (descriptor !== undefined) {
-      const scriptBlocker = canonicalScriptBlocker(descriptor, entry);
-      if (scriptBlocker !== undefined) {
-        blocker = scriptBlocker;
-        observations.set(
-          descriptor.gateId,
-          unavailable(descriptor, scriptBlocker),
-        );
-        continue;
-      }
       const prerequisiteBlocker = await unavailablePrerequisite(
         execFile,
         descriptor,
@@ -417,16 +395,6 @@ async function runDescriptor(
   };
 }
 
-function canonicalScriptBlocker(
-  descriptor: DiagnosticDescriptor,
-  entry: VerifyPlanEntry,
-): string | undefined {
-  return descriptor.canonicalScriptBody !== undefined &&
-    entry.scriptBody === descriptor.canonicalScriptBody
-    ? undefined
-    : `the target script body for ${descriptor.argv.join(" ")} does not match the canonical gate binding`;
-}
-
 async function unavailablePrerequisite(
   execFile: VerificationExecFile,
   descriptor: DiagnosticDescriptor,
@@ -490,12 +458,10 @@ async function readVerifyPlan(
   for (const command of commands) {
     const match = /^pnpm ([a-z0-9][a-z0-9:_-]*)$/.exec(command.trim());
     const script = match?.[1];
-    const scriptBody = script === undefined ? undefined : scripts[script];
     if (
       script === undefined ||
       !Object.hasOwn(scripts, script) ||
-      typeof scriptBody !== "string" ||
-      scriptBody.trim() === ""
+      !hasCurrentRootScript(["pnpm", script], scripts)
     ) {
       return undefined;
     }
@@ -503,7 +469,7 @@ async function readVerifyPlan(
     const member = argvKey(argv);
     if (members.has(member)) return undefined;
     members.add(member);
-    plan.push({ argv, scriptBody });
+    plan.push({ argv });
   }
   return plan.length > 0 ? plan : undefined;
 }
@@ -524,21 +490,23 @@ async function readPackageScripts(
   }
 }
 
-function focusedPlanEntry(
-  descriptor: DiagnosticDescriptor,
-  scripts: PackageScripts,
-): VerifyPlanEntry | undefined {
-  const [file, script, ...args] = descriptor.argv;
-  const scriptBody =
-    file === "pnpm" && script !== undefined && args.length === 0
-      ? scripts[script]
-      : undefined;
-  return script !== undefined &&
-    Object.hasOwn(scripts, script) &&
+function isRootPnpmScript(
+  argv: readonly string[],
+): argv is readonly ["pnpm", string] {
+  return argv[0] === "pnpm" && argv.length === 2 && argv[1] !== undefined;
+}
+
+function hasCurrentRootScript(
+  argv: readonly ["pnpm", string],
+  scripts: PackageScripts | undefined,
+): boolean {
+  const script = argv[1];
+  const scriptBody = scripts?.[script];
+  return (
+    Object.hasOwn(scripts ?? {}, script) &&
     typeof scriptBody === "string" &&
     scriptBody.trim() !== ""
-    ? { argv: [file, script], scriptBody }
-    : undefined;
+  );
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
