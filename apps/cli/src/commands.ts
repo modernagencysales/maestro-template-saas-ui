@@ -51,7 +51,7 @@ const helpResult = (): CliResult =>
       "  maestro verify [--scope focused|full] [--changed <paths>] [--human|--details|--json]",
       "  maestro check [--mode fake|test|live] [--changed <paths>] [--human|--details|--json]",
       `  ${START_HELP.trim()}`,
-      "  maestro support-bundle [--output <path>] [--write --preview-fingerprint <fingerprint>] [--human|--details|--json]",
+      "  maestro support-bundle [--output <path>] [--write] [--human|--details|--json]",
       "",
       "Advanced factory and operator commands:",
       "  maestro plan-check --plan <manifest.json> [--human|--details|--json]",
