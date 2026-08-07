@@ -47,7 +47,7 @@ const SAFE_DOC =
   /^(?:docs|agent-patterns)\/[a-zA-Z0-9._/-]+\.md(?:#[a-z0-9-]+)?$/;
 const SAFE_SCRIPT = /^[a-z0-9][a-z0-9:_-]*$/;
 const UNSAFE_ARG = /[\s;&|`$<>*?{}[\]\\\n\r]/;
-const SHELL_EXECUTABLES = new Set(["bash", "sh", "zsh", "fish"]);
+const DIRECT_EXECUTABLES = new Set(["gitleaks"]);
 
 export function validateDiagnosticDescriptor(
   descriptor: DiagnosticDescriptor,
@@ -214,11 +214,7 @@ function isJustRecipe(
 }
 
 function isDirectExecutable(executable: string | undefined): boolean {
-  return (
-    executable !== undefined &&
-    !SHELL_EXECUTABLES.has(executable) &&
-    /^[a-z0-9][a-z0-9._-]*$/.test(executable)
-  );
+  return executable !== undefined && DIRECT_EXECUTABLES.has(executable);
 }
 
 export function defineDiagnosticRegistryProjection(
