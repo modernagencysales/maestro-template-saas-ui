@@ -371,6 +371,7 @@ describe("atomic recipe transaction", () => {
       ok: false,
       message: expect.stringMatching(/drifted after preview/),
     });
+    expect(existsSync(join(drift.root, ".maestro"))).toBe(false);
 
     const replay = fixture();
     await createNodeRecipeTransaction().apply(replay.request);

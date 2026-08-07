@@ -57,25 +57,9 @@ describe("recipe CLI", () => {
     });
   });
 
-  it("previews one closed executable plan and blocks unconfirmed writes", async () => {
+  it("previews one closed executable plan and returns a direct write rerun", async () => {
     const preview = await runCliAsync(
       ["add", "crud-business-entity", ...crudAnswers, "--json"],
-      undefined,
-      repoRoot,
-    );
-    const write = await runCliAsync(
-      [
-        "add",
-        "crud-business-entity",
-        ...crudAnswers,
-        "--write",
-        "--privacy-reviewed",
-        "--plan-fingerprint",
-        "recipe_plan_sha256:stale",
-        "--preflight-fingerprint",
-        "preflight_sha256:stale",
-        "--json",
-      ],
       undefined,
       repoRoot,
     );
@@ -94,16 +78,12 @@ describe("recipe CLI", () => {
           ]),
           fingerprint: expect.stringMatching(/^recipe_plan_sha256:/),
         },
-        confirmationCommand: expect.stringMatching(
-          /--write.*--privacy-reviewed.*--plan-fingerprint.*--preflight-fingerprint/,
-        ),
+        confirmationCommand: expect.stringMatching(/--write/),
       },
     });
-    expect(JSON.parse(write.stdout)).toMatchObject({
-      mutationPosture: "write",
-      exitClass: "blockedMutation",
-      diagnostics: [{ code: "AGENT_PACK_RECIPE_AUTHORITY_STALE" }],
-    });
+    expect(JSON.parse(preview.stdout).data.confirmationCommand).not.toMatch(
+      /privacy-reviewed|plan-fingerprint|preflight-fingerprint/,
+    );
   });
 
   it("returns adjacent recipes and a template-gap for unknown language", async () => {

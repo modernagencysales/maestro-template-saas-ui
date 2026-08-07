@@ -133,7 +133,9 @@ const dependencies = {
     inspect: async () => ({
       fingerprint: "preflight_sha256:fixture",
       safeToMutate: true,
-      cleanWorktree: true,
+      // Recipe-owned before hashes, rather than unrelated worktree state,
+      // are the write precondition.
+      cleanWorktree: false,
     }),
   },
   transaction: {
@@ -347,47 +349,24 @@ describe("recipe commands", () => {
     });
   });
 
-  it("requires exact preview authority before applying one transaction", async () => {
+  it("rebuilds the current plan and writes despite unrelated dirty worktree state", async () => {
     applied = 0;
+    const command = createAddRecipeCommand(dependencies);
     const preview = await executeAgentPackCommand(
-      createAddRecipeCommand(dependencies),
+      command,
       { query: "crud-business-entity", answers: { name: "Request" } },
       context,
     );
-    const previewData = preview.data as {
-      readonly plan: { readonly fingerprint: string };
-      readonly preflightFingerprint: string;
-    };
-    const stale = await executeAgentPackCommand(
-      createAddRecipeCommand(dependencies),
-      {
-        query: "crud-business-entity",
-        answers: { name: "Request" },
-        write: true,
-        privacyReviewed: true,
-        planFingerprint: "recipe_plan_sha256:stale",
-        preflightFingerprint: previewData.preflightFingerprint,
-      },
-      context,
-    );
-    expect(stale).toMatchObject({
-      mutationPosture: "write",
-      exitClass: "blockedMutation",
-      diagnostics: [{ code: "AGENT_PACK_RECIPE_AUTHORITY_STALE" }],
-    });
-    expect(applied).toBe(0);
     const written = await executeAgentPackCommand(
-      createAddRecipeCommand(dependencies),
+      command,
       {
         query: "crud-business-entity",
         answers: { name: "Request" },
         write: true,
-        privacyReviewed: true,
-        planFingerprint: previewData.plan.fingerprint,
-        preflightFingerprint: previewData.preflightFingerprint,
       },
       context,
     );
+    expect(preview).toMatchObject({ exitClass: "success" });
     expect(written).toMatchObject({
       mutationPosture: "write",
       exitClass: "success",
