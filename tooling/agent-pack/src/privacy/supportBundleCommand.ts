@@ -25,7 +25,6 @@ export const SUPPORT_BUNDLE_EXCLUSIONS = [
 export type SupportBundleCommandInput = {
   readonly output: string;
   readonly write: boolean;
-  readonly previewFingerprint?: string;
 };
 
 export type SupportBundleCommandData = {
@@ -88,15 +87,6 @@ export function createSupportBundleCommand(dependencies: {
           data: { ...data, exportedBytes: null },
         };
       }
-      if (input.previewFingerprint !== preview.previewFingerprint) {
-        return {
-          mutationPosture,
-          exitClass: "blockedMutation" as const,
-          summary: "Support bundle export refused a stale preview.",
-          diagnostics: [stalePreviewDiagnostic()],
-          data: { ...data, exportedBytes: null },
-        };
-      }
       try {
         const exported = await dependencies.exporter.export({
           repo: context.repo,
@@ -129,24 +119,12 @@ function decodeSupportBundleInput(
   if (value === null || typeof value !== "object" || Array.isArray(value))
     return invalidInput();
   const record = value as Record<string, unknown>;
-  if (
-    !Object.keys(record).every((key) =>
-      ["output", "write", "previewFingerprint"].includes(key),
-    )
-  ) {
+  if (!Object.keys(record).every((key) => ["output", "write"].includes(key))) {
     return invalidInput();
   }
   const output = record.output ?? DEFAULT_SUPPORT_BUNDLE_PATH;
   const write = record.write ?? false;
-  const previewFingerprint = record.previewFingerprint;
-  if (
-    !isValidSupportBundleOutput(output) ||
-    typeof write !== "boolean" ||
-    (write &&
-      (typeof previewFingerprint !== "string" ||
-        !/^support_preview_sha256:[0-9a-f]{64}$/.test(previewFingerprint))) ||
-    (!write && previewFingerprint !== undefined)
-  ) {
+  if (!isValidSupportBundleOutput(output) || typeof write !== "boolean") {
     return invalidInput();
   }
   return {
@@ -154,7 +132,6 @@ function decodeSupportBundleInput(
     args: {
       output,
       write,
-      ...(typeof previewFingerprint === "string" ? { previewFingerprint } : {}),
     },
   };
 }
@@ -167,10 +144,10 @@ function invalidInput(): AgentPackArgumentResult<SupportBundleCommandInput> {
         code: "AGENT_PACK_SUPPORT_BUNDLE_INVALID",
         severity: "error",
         message:
-          "Support bundle requires a bounded output and the exact preview fingerprint for --write.",
+          "Support bundle requires a bounded output and optional --write.",
         safeToContinue: false,
         nextAction:
-          "Preview the bundle, inspect it, then export that exact preview.",
+          "Choose a bounded output, then use --write to export it locally.",
         rerun: "pnpm maestro -- support-bundle --json",
       },
     ],
@@ -188,17 +165,6 @@ function sourceDiagnostic(error: unknown): AgentPackDiagnostic {
     safeToContinue: false,
     nextAction:
       "Repair the local diagnostic projection without adding raw paths, payloads, logs, environment values, or secrets.",
-    rerun: "pnpm maestro -- support-bundle --json",
-  };
-}
-
-function stalePreviewDiagnostic(): AgentPackDiagnostic {
-  return {
-    code: "AGENT_PACK_SUPPORT_BUNDLE_PREVIEW_CHANGED",
-    severity: "error",
-    message: "Support bundle facts changed after preview.",
-    safeToContinue: false,
-    nextAction: "Review a new preview before exporting it.",
     rerun: "pnpm maestro -- support-bundle --json",
   };
 }
