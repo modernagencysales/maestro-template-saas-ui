@@ -81,6 +81,12 @@ commands:
 - `pnpm check:secret-canaries`
 - package-specific Vitest suites
 
+For each task commit, run only the focused affected tests, narrow typecheck, and
+owned static gates. A delivery batch receives one full `pnpm verify` run on its
+immutable final head after integration and review. A changed head invalidates
+that evidence, and Woodpecker remains the only blocking full-verification
+authority.
+
 ## Handoff Notes
 
 Summaries should name files changed, commands run, provider posture, generated

@@ -184,9 +184,8 @@ Rules when replacing a fixture body:
   migration decision in the same change. Do not invent a parallel table family
   because its existing owner has a different noun.
 - Gate discipline: run the focused gates for what you changed before every
-  commit, and `just verify` before declaring any task done. Recipe names in the
-  Justfile are the canonical gate contract shared by local dev, CI, and agent
-  SOPs.
+  commit. Package scripts are the canonical gate contract shared by local dev,
+  CI, and agent SOPs.
 - Verification before completion: never claim done, fixed, or passing without
   pasting the passing command output. A red gate is a finding, not a blocker to
   route around — never edit a gate file to make red turn green.
@@ -200,6 +199,18 @@ Rules when replacing a fixture body:
   `docs/template/system-catalog.json` and run `pnpm check:system-catalog` in the
   same commit.
 
+## Delivery-Batch CI
+
+Tasks are implementation checkpoints, not release units. Commit per task and run
+the task's focused affected tests, narrow typecheck, and owned static gates. Do
+not run broad verification or create a PR merely because a task completed.
+
+A delivery batch is an independently mergeable product outcome. Run full
+required verification once on its immutable final head. A changed head
+invalidates prior evidence. Woodpecker verification for the current PR head is
+the only blocking full-verification authority; never copy or manufacture status
+across commits.
+
 ## Testing Doctrine
 
 - New behavior needs tests before implementation.
@@ -211,6 +222,10 @@ Rules when replacing a fixture body:
 pnpm test
 pnpm verify
 ```
+
+`pnpm verify` is the delivery-batch gate. Run it once after all tasks in the
+batch are integrated and reviewed, not after each task commit. Woodpecker is the
+blocking verdict authority.
 
 ## Provider And Secret Boundary
 
