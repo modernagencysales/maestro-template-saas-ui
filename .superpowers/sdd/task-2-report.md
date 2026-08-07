@@ -1,183 +1,103 @@
-# Task 2 report: graph validation, contract diff, and affected selection
+# Task 2 report: one quality command authority
 
 ## Implementation
 
-- Added deterministic graph/catalog diagnostics and the repository-facing
-  `ReleaseSurfaceInventory` contract.
-- Added contract-risk comparison for reduced actor, transport, receipt,
-  scenario, and negative-outcome coverage.
-- Added fail-safe affected-journey selection with transitive dependent
-  invalidation.
-- Registered `pnpm check:product-journeys` in package scripts, the canonical
-  Just recipes, static descriptor registry, config-drift pins, and the verify
-  chain.
-- Preserved Task 1's catalog-only dependency-cycle throw behavior while
-  inventory-aware validation returns sorted diagnostics.
-
-## Files
-
-- `packages/product-journey/src/graph.ts`
-- `packages/product-journey/src/contract-diff.ts`
-- `packages/product-journey/src/selection.ts`
-- `packages/product-journey/src/{graph,contract-diff,selection}.test.ts`
-- `tooling/quality/check-product-journeys.mts`
-- `tooling/quality/check-product-journeys.test.mts`
-- `tooling/quality/src/check-definitions.mts`
-- `tooling/quality/src/diagnosticRegistry.test.mts`
-- `packages/product-journey/src/{index,manifest}.ts`
-- `package.json`
-- `Justfile`
+- Removed `canonicalScriptBodies` and `canonicalScriptBody` from quality and
+  Agent Pack diagnostic descriptors.
+- Kept descriptor `argv` as command identity. Root `pnpm <script>` commands
+  resolve their current non-empty script from the root `package.json` at run
+  time; copied script text is never compared.
+- Direct executables and bounded `pnpm --dir <path> <script>` descriptors run
+  without a root script lookup. Shell executables and `pnpm exec`/`dlx` remain
+  rejected.
+- Removed the three package-command static pins that duplicated the removed
+  command bodies. Other static requirements were left unchanged.
+- Reworded successful static checks from `ok (pin-only)` to `ok`.
 
 ## TDD evidence
 
-RED:
+### RED
 
 ```text
-rtk pnpm exec vitest run packages/product-journey/src/graph.test.ts packages/product-journey/src/contract-diff.test.ts packages/product-journey/src/selection.test.ts tooling/quality/check-product-journeys.test.mts
-4 failed suites: missing graph, contract-diff, selection, and product-journey gate modules.
+rtk fnm exec --using=22.23.2 -- pnpm exec vitest run tooling/quality/src/diagnosticRegistry.test.mts
+1 failed: expected descriptor not to have property canonicalScriptBody;
+received tsx tooling/quality/check-ci-completeness.mts.
+
+rtk fnm exec --using=22.23.2 -- pnpm exec vitest run tooling/agent-pack/src/verificationRunner.test.ts
+9 failed: copied-body mismatches made current package scripts unavailable.
+
+rtk fnm exec --using=22.23.2 -- pnpm exec vitest run tooling/agent-pack/src/diagnostics.test.ts
+1 failed: direct executable descriptor was rejected.
+
+rtk fnm exec --using=22.23.2 -- pnpm exec vitest run tooling/agent-pack/src/diagnostics.test.ts
+1 failed: bash -lc true was accepted after direct-executable support was added.
 ```
 
-An additional RED test for unclassified release surfaces failed with
-`expected [] to deeply equal [ 'SURFACE_UNCLASSIFIED' ]` before the diagnostic
-was implemented.
-
-GREEN:
+### GREEN
 
 ```text
-rtk pnpm exec vitest run packages/product-journey/src tooling/quality/check-product-journeys.test.mts tooling/quality/src/diagnosticRegistry.test.mts
-6 files passed, 28 tests passed.
+rtk fnm exec --using=22.23.2 -- pnpm exec vitest run tooling/quality/src/gate.test.mts
+1 file passed, 3 tests passed.
 
-rtk pnpm --filter @maestro-template/product-journey typecheck
-TypeScript: No errors found.
+rtk fnm exec --using=22.23.2 -- pnpm exec vitest run tooling/quality/src/diagnosticRegistry.test.mts
+1 file passed, 6 tests passed.
 
-rtk pnpm check:product-journeys
-check:product-journeys: ok
+rtk fnm exec --using=22.23.2 -- pnpm exec vitest run tooling/agent-pack/src/verificationRunner.test.ts
+1 file passed, 24 tests passed.
 
-rtk pnpm check:config-drift
-check:config-drift: ok (pin-only)
+rtk fnm exec --using=22.23.2 -- pnpm exec vitest run tooling/agent-pack/src/diagnostics.test.ts
+1 file passed, 14 tests passed.
 
-rtk pnpm check:ci-completeness
+rtk fnm exec --using=22.23.2 -- pnpm --dir tooling/agent-pack typecheck
+pass
+
+rtk fnm exec --using=22.23.2 -- pnpm --dir tooling/quality typecheck
+pass
+
+rtk fnm exec --using=22.23.2 -- pnpm check:headless-surface-contract
+check:headless-surface-contract: ok
+
+rtk fnm exec --using=22.23.2 -- pnpm check:ci-completeness
 check:ci-completeness: ok
 ```
 
-`rtk git diff --check` also passed.
+`rtk git diff --check` passed. A source scan found no remaining
+`canonicalScriptBody`, `canonicalScriptBodies`, or `pin-only` production text.
+
+## Changed files
+
+- `tooling/quality/src/gate.mts`
+- `tooling/quality/src/gate.test.mts`
+- `tooling/quality/src/check-definitions.mts`
+- `tooling/quality/src/diagnosticRegistry.mts`
+- `tooling/quality/src/diagnosticRegistry.test.mts`
+- `tooling/agent-pack/src/verificationRunner.ts`
+- `tooling/agent-pack/src/verificationRunner.test.ts`
+- `tooling/agent-pack/src/diagnostics.ts`
+- `tooling/agent-pack/src/diagnostics.test.ts`
 
 ## Self-review
 
-- Diagnostics are closed-code, immutable, and stably sorted.
-- Unknown or unowned changed surfaces select the full catalog.
-- Receipt edges require exactly one producer and at least one assertion
-  consumer.
-- Dependency compatibility and invalidation are transitive.
-- The new verify term remains outside the protected
-  config-drift/Convex-AI/Agent-Pack adjacency.
+- Root package script availability is checked only for the root command kind;
+  direct and `pnpm --dir` argv are not misread as root script names.
+- Full-run membership and failed-run attribution use descriptor argv identity.
+- No Acceptance-owned headless/idempotency code or blueprint hot file changed.
+- No static requirement beyond the three command-body consumers was removed.
 
-## Concerns
+## Concern / deferred verification
 
-The canonical command no longer permits an empty initial catalog or inventory.
-It fails with `ADAPTER_MISSING` until repository adoption supplies the explicit
-adapter.
-
-## Review-finding fixes
-
-- Replaced the empty/no-op command input with a strict repository adapter and
-  descriptor contract. The descriptor names non-empty, readable catalog,
-  generated-inventory, merge-base, and journey-ID migration sources, and must
-  declare the complete closed scan-mechanism set.
-- Added stable fail-closed diagnostics for missing/unreadable/invalid adapters,
-  invalid manifests, unowned/unclassified surfaces, and governed baseline
-  contract changes. The CLI supports `--adapter` and `--repo-root` for focused
-  fixtures.
-- Removed `check:product-journeys` from root `verify` until Task 4 adoption,
-  while retaining the package script, static descriptor, config-drift pin, and
-  Just recipe. CI-completeness now rejects premature verify registration.
-- Expanded contract diffing to canonical SHA-256 structural identities for every
-  scenario instance and all scenario semantics, including duplicate classes,
-  interactions, terminal outcomes, receipts, forbidden bypasses,
-  fixture/assertion metadata, isolation/replay/retry, and deployed proof.
-- Added bidirectional entrypoint resolution, actual/generated legacy
-  reachability ratchets, and locale-independent code-point ordering.
-- Added generic surface-authority witnesses that derive minimum coverage and
-  release proof, plus a validated migration ledger that prevents journey
-  deletion/rename/split from resetting baseline state.
-
-### Review RED evidence
+The required combined semaphore suite was deferred because the host semaphore is
+overloaded, per controller direction. Controller remote testing should run this
+exact command:
 
 ```text
-rtk pnpm exec vitest run packages/product-journey/src/graph.test.ts packages/product-journey/src/contract-diff.test.ts packages/product-journey/src/selection.test.ts tooling/quality/check-product-journeys.test.mts tooling/quality/check-config-drift.test.mts tooling/quality/check-ci-completeness.test.mts
-18 failed, 16 passed. Expected failures covered reverse entrypoint ownership,
-legacy expansion, locale-sensitive ordering, scenario semantic/multiplicity
-changes, adapter failures, baseline comparison, and premature verify inclusion.
-
-rtk pnpm exec vitest run tooling/quality/check-product-journeys.test.mts tooling/quality/check-config-drift.test.mts tooling/quality/check-ci-completeness.test.mts
-5 failed, 15 passed. The absent/empty/unknown/unreadable descriptor and empty
-catalog/inventory bypasses still passed before descriptor validation.
-
-rtk pnpm exec vitest run packages/product-journey/src/graph.test.ts packages/product-journey/src/contract-diff.test.ts tooling/quality/check-product-journeys.test.mts
-7 failed, 29 passed. Surface authority derivation and protected journey-ID
-migration semantics were not yet implemented.
+rtk host-test-slot --class focused fnm exec --using=22.23.2 -- pnpm exec vitest run tooling/quality/src/gate.test.mts tooling/quality/src/diagnosticRegistry.test.mts tooling/agent-pack/src/verificationRunner.test.ts
 ```
 
-### Review GREEN evidence
+Per-file GREEN evidence and both required deterministic checks are recorded
+above.
 
-```text
-rtk pnpm exec vitest run packages/product-journey/src tooling/quality/check-product-journeys.test.mts tooling/quality/check-config-drift.test.mts tooling/quality/check-ci-completeness.test.mts tooling/quality/src/diagnosticRegistry.test.mts
-8 files passed, 66 tests passed. This includes fixture-backed CLI success and
-default CLI exit 1 with ADAPTER_MISSING.
-
-rtk pnpm --filter @maestro-template/product-journey typecheck
-TypeScript: No errors found.
-```
-
-### Task 4-owned adoption remainder
-
-Task 4 must install the real repository adapter and descriptor, generate and
-protect the complete catalog/surface-authority inventory and merge-base source,
-maintain the reviewed journey-ID migration ledger, then add the adapter-backed
-command to protected CI/root `verify`. Task 2 deliberately fails closed until
-those artifacts exist; it does not infer or ship placeholder repository data.
-
-## Second re-review closure
-
-Commit `a473d5d2` closes the four remaining technical blockers: source and
-merge-base digest binding, one-to-one authority ownership, protected migration
-approval plus continuity, and exact edge-specific producer/consumer witnesses.
-
-Fresh verification:
-
-```text
-rtk pnpm --dir packages/product-journey typecheck
-TypeScript: no errors.
-
-rtk host-test-slot --class focused pnpm exec vitest run packages/product-journey/src tooling/quality/check-product-journeys.test.mts tooling/quality/check-config-drift.test.mts tooling/quality/check-ci-completeness.test.mts tooling/quality/src/diagnosticRegistry.test.mts
-8 files passed, 71 tests passed.
-
-Targeted ESLint, Prettier, and git diff checks also passed.
-```
-
-## Final migration-approval closure
-
-The migration ledger and its approval artifact now form a closed, exact
-contract. Both bind the protected reviewer, approval scope and decision, reason,
-predecessor ID/version/full contract hash, exact successor IDs/full contract
-hashes, and opaque predecessor/successor attestation and lease continuity
-identities. The gate independently compares the declared hashes to the parsed
-baseline and current contracts. Generic, reusable, mismatched, or forged
-approvals fail with `ADAPTER_INVALID`; retirement fails closed until its
-continuity can be represented safely.
-
-TDD RED evidence covered generic artifact reuse, artifact/ledger mismatch,
-forged predecessor and successor hashes, and unsupported retirement. Each test
-failed with the expected missing-control result before implementation.
-
-Fresh GREEN evidence:
-
-```text
-rtk host-test-slot --class focused pnpm exec vitest run packages/product-journey/src tooling/quality/check-product-journeys.test.mts tooling/quality/check-config-drift.test.mts tooling/quality/check-ci-completeness.test.mts tooling/quality/src/diagnosticRegistry.test.mts
-8 files passed, 76 tests passed.
-
-rtk pnpm --dir packages/product-journey typecheck
-TypeScript: no errors.
-
-Targeted ESLint, Prettier, and git diff checks passed.
-```
+The pre-commit lint-staged hook also reports existing complexity/max-parameter
+findings in `verificationRunner.ts` and `diagnostics.ts`; the runner findings
+pre-date this change, while command-kind validation is covered by the focused
+tests and package typechecks above. The hook's format and Qlty stages passed.

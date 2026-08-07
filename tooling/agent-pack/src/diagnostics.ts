@@ -14,7 +14,6 @@ export type DiagnosticDescriptor = {
   readonly repairHint: string;
   readonly argv: readonly [string, ...string[]];
   readonly rerun: readonly [string, ...string[]];
-  readonly canonicalScriptBody?: string;
   readonly focusedPathPrefixes?: readonly string[];
   readonly defaultFocused?: boolean;
   readonly prerequisiteCheck?: readonly [string, ...string[]];
@@ -48,6 +47,7 @@ const SAFE_DOC =
   /^(?:docs|agent-patterns)\/[a-zA-Z0-9._/-]+\.md(?:#[a-z0-9-]+)?$/;
 const SAFE_SCRIPT = /^[a-z0-9][a-z0-9:_-]*$/;
 const UNSAFE_ARG = /[\s;&|`$<>*?{}[\]\\\n\r]/;
+const SHELL_EXECUTABLES = new Set(["bash", "sh", "zsh", "fish"]);
 
 export function validateDiagnosticDescriptor(
   descriptor: DiagnosticDescriptor,
@@ -135,7 +135,24 @@ function validateBoundedArgv(argv: readonly string[]): string | undefined {
   }
   const [executable, command] = argv;
   if (executable === "pnpm") {
+    if (command === "--dir") {
+      const [, , directory, script] = argv;
+      if (
+        directory === undefined ||
+        directory.startsWith("/") ||
+        directory.includes("..") ||
+        !/^[a-zA-Z0-9._/-]+$/.test(directory) ||
+        script === undefined ||
+        !SAFE_SCRIPT.test(script) ||
+        script === "exec" ||
+        script === "dlx"
+      ) {
+        return "pnpm --dir gate commands must name a bounded package path and script";
+      }
+      return undefined;
+    }
     if (
+      argv.length !== 2 ||
       command === undefined ||
       !SAFE_SCRIPT.test(command) ||
       !command.includes(":") ||
@@ -153,7 +170,11 @@ function validateBoundedArgv(argv: readonly string[]): string | undefined {
   ) {
     return undefined;
   }
-  return "gate commands must use a bounded pnpm script or Just recipe";
+  return executable !== undefined &&
+    !SHELL_EXECUTABLES.has(executable) &&
+    /^[a-z0-9][a-z0-9._-]*$/.test(executable)
+    ? undefined
+    : "gate commands must use a bounded executable, pnpm script, or Just recipe";
 }
 
 export function defineDiagnosticRegistryProjection(
