@@ -117,7 +117,6 @@
     "acceptance:cucumber": "cucumber-js --config cucumber.cjs",
     "contract-review": "tsx tooling/quality/contract-review.mts",
     "review:contract": "pnpm contract-review",
-    "review:bounded": "tsx tooling/quality/ai-review-cycle.mts",
     "taste": "tsx tooling/quality/taste.mts",
     "taste:eval": "tsx tooling/quality/taste-eval.mts",
     "smoke:web-static": "tsx tooling/release/src/index.ts smoke-web-static",

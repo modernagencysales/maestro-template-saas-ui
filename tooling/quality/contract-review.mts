@@ -17,12 +17,6 @@ import process from "node:process";
 import { isRateLimitStatus } from "./rate-limit.mts";
 import { isDirectRun } from "./src/direct-run.mts";
 import { hasMode, isCi } from "./src/script-mode.mts";
-import {
-  frozenVerificationPrompt,
-  parseFrozenJudgeOutput,
-  readFrozenFiles,
-  type FrozenFinding,
-} from "./ai-review-cycle.mts";
 
 const DEFAULT_OPENROUTER_MODEL = "deepseek/deepseek-v4-pro";
 const DEFAULT_OPENAI_MODEL = "gpt-5.5";
@@ -934,15 +928,6 @@ export async function callContractJudge(prompt: string): Promise<string> {
     }
     throw error;
   }
-}
-
-export async function verifyContractFindingSet(
-  findings: readonly FrozenFinding[],
-) {
-  const currentFiles = readFrozenFiles(REVIEW_ROOT, findings);
-  return parseFrozenJudgeOutput(
-    await callContractJudge(frozenVerificationPrompt(findings, currentFiles)),
-  );
 }
 
 function collectInputs(): ContractInputs {

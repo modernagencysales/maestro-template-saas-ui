@@ -32,16 +32,13 @@ describe("check:ci-completeness", () => {
     expect(requirements).not.toContain(".github/workflows/quality.yml");
     expect(requirements).toContain("Justfile");
     expect(requirements).toContain("lefthook.yml");
-    expect(requirements).toContain("bounded-ai-review");
+    expect(requirements).not.toContain("bounded-ai-review");
     const firewallPipeline = descriptor.requirements.find(
       ({ file }) => file === ".woodpecker/firewall.yml",
     );
-    expect(firewallPipeline?.includes).toContain(
-      'git archive "origin/$${BASE_BRANCH}"',
-    );
-    expect(firewallPipeline?.includes).toContain(
-      'node --experimental-strip-types --experimental-transform-types "$TRUSTED_TREE/tooling/quality/ai-review-cycle.mts"',
-    );
+    expect(firewallPipeline?.includes).toContain("trusted-ci-policy");
+    expect(firewallPipeline?.includes).toContain("tooling/ci/firewall.sh");
+    expect(firewallPipeline?.includes).not.toContain("ai-review-cycle.mts");
     const firewallScript = descriptor.requirements.find(
       ({ file }) => file === "tooling/ci/firewall.sh",
     );
