@@ -52,63 +52,69 @@ const SHELL_EXECUTABLES = new Set(["bash", "sh", "zsh", "fish"]);
 export function validateDiagnosticDescriptor(
   descriptor: DiagnosticDescriptor,
 ): DescriptorValidation {
+  const metadataError = validateDiagnosticMetadata(descriptor);
+  if (metadataError !== undefined) return { ok: false, reason: metadataError };
+  const commandError =
+    validateBoundedArgv(descriptor.argv) ??
+    validateBoundedArgv(descriptor.rerun);
+  if (commandError !== undefined) return { ok: false, reason: commandError };
+  const prerequisiteError = validatePrerequisite(descriptor.prerequisiteCheck);
+  if (prerequisiteError !== undefined)
+    return { ok: false, reason: prerequisiteError };
+  const focusedPathError = validateFocusedPaths(descriptor.focusedPathPrefixes);
+  if (focusedPathError !== undefined)
+    return { ok: false, reason: focusedPathError };
+  const semanticRuleError = validateSemanticRuleIds(descriptor.semanticRuleIds);
+  if (semanticRuleError !== undefined)
+    return { ok: false, reason: semanticRuleError };
+  return { ok: true };
+}
+
+function validateDiagnosticMetadata(
+  descriptor: DiagnosticDescriptor,
+): string | undefined {
   if (!SAFE_ID.test(descriptor.gateId)) {
-    return {
-      ok: false,
-      reason: "gateId must be a stable, path-safe identifier",
-    };
+    return "gateId must be a stable, path-safe identifier";
   }
   if (
     !SAFE_DOC.test(descriptor.canonicalDoc) ||
     descriptor.canonicalDoc.includes("..")
   ) {
-    return {
-      ok: false,
-      reason: "canonicalDoc must be a repository documentation path",
-    };
+    return "canonicalDoc must be a repository documentation path";
   }
-  if (UNSAFE_REPAIR.test(descriptor.repairHint)) {
-    return {
-      ok: false,
-      reason:
-        "repairHint must repair the invariant, never edit, disable, skip, or weaken a gate",
-    };
-  }
-  const commandError =
-    validateBoundedArgv(descriptor.argv) ??
-    validateBoundedArgv(descriptor.rerun);
-  if (commandError !== undefined) return { ok: false, reason: commandError };
-  if (descriptor.prerequisiteCheck !== undefined) {
-    const prerequisiteError = validatePrerequisiteArgv(
-      descriptor.prerequisiteCheck,
-    );
-    if (prerequisiteError !== undefined) {
-      return { ok: false, reason: prerequisiteError };
-    }
-  }
+  return UNSAFE_REPAIR.test(descriptor.repairHint)
+    ? "repairHint must repair the invariant, never edit, disable, skip, or weaken a gate"
+    : undefined;
+}
 
-  for (const prefix of descriptor.focusedPathPrefixes ?? []) {
-    if (
+function validatePrerequisite(
+  prerequisite: DiagnosticDescriptor["prerequisiteCheck"],
+): string | undefined {
+  return prerequisite === undefined
+    ? undefined
+    : validatePrerequisiteArgv(prerequisite);
+}
+
+function validateFocusedPaths(
+  prefixes: DiagnosticDescriptor["focusedPathPrefixes"],
+): string | undefined {
+  return (prefixes ?? []).some(
+    (prefix) =>
       prefix.length === 0 ||
       prefix.startsWith("/") ||
       prefix.includes("..") ||
-      UNSAFE_ARG.test(prefix.replace(/\/$/, ""))
-    ) {
-      return {
-        ok: false,
-        reason: "focused path prefixes must be bounded repository paths",
-      };
-    }
-  }
-  for (const semanticRuleId of descriptor.semanticRuleIds ?? []) {
-    if (!SAFE_SEMANTIC_RULE_ID.test(semanticRuleId)) {
-      return {
-        ok: false,
-        reason: "semantic rule ids must be stable, path-safe identifiers",
-      };
-    }
-  }
-  return { ok: true };
+      UNSAFE_ARG.test(prefix.replace(/\/$/, "")),
+  )
+    ? "focused path prefixes must be bounded repository paths"
+    : undefined;
+}
+
+function validateSemanticRuleIds(
+  semanticRuleIds: DiagnosticDescriptor["semanticRuleIds"],
+): string | undefined {
+  return (semanticRuleIds ?? []).every((id) => SAFE_SEMANTIC_RULE_ID.test(id))
+    ? undefined
+    : "semantic rule ids must be stable, path-safe identifiers";
 }
 
 function validatePrerequisiteArgv(argv: readonly string[]): string | undefined {
@@ -126,55 +132,93 @@ function validatePrerequisiteArgv(argv: readonly string[]): string | undefined {
 }
 
 function validateBoundedArgv(argv: readonly string[]): string | undefined {
-  if (
-    argv.length < 2 ||
-    argv.length > 12 ||
-    argv.some((argument) => UNSAFE_ARG.test(argument))
-  ) {
+  if (!isBoundedArgv(argv)) {
     return "gate commands must be bounded exact argv without shell syntax or globs";
   }
   const [executable, command] = argv;
-  if (executable === "pnpm") {
-    if (command === "--dir") {
-      const [, , directory, script] = argv;
-      if (
-        directory === undefined ||
-        directory.startsWith("/") ||
-        directory.includes("..") ||
-        !/^[a-zA-Z0-9._/-]+$/.test(directory) ||
-        script === undefined ||
-        !SAFE_SCRIPT.test(script) ||
-        script === "exec" ||
-        script === "dlx"
-      ) {
-        return "pnpm --dir gate commands must name a bounded package path and script";
-      }
-      return undefined;
-    }
-    if (
-      argv.length !== 2 ||
-      command === undefined ||
-      !SAFE_SCRIPT.test(command) ||
-      !command.includes(":") ||
-      command === "exec" ||
-      command === "dlx"
-    ) {
-      return "pnpm gate commands must name one bounded repository script";
-    }
+  if (executable === "pnpm") return validatePnpmArgv(argv, command);
+  if (isJustRecipe(executable, command)) {
     return undefined;
   }
-  if (
-    executable === "just" &&
-    command !== undefined &&
-    SAFE_SCRIPT.test(command)
-  ) {
-    return undefined;
-  }
-  return executable !== undefined &&
-    !SHELL_EXECUTABLES.has(executable) &&
-    /^[a-z0-9][a-z0-9._-]*$/.test(executable)
+  return isDirectExecutable(executable)
     ? undefined
     : "gate commands must use a bounded executable, pnpm script, or Just recipe";
+}
+
+function isBoundedArgv(argv: readonly string[]): boolean {
+  return (
+    argv.length >= 2 &&
+    argv.length <= 12 &&
+    !argv.some((argument) => UNSAFE_ARG.test(argument))
+  );
+}
+
+function validatePnpmArgv(
+  argv: readonly string[],
+  command: string | undefined,
+): string | undefined {
+  return command === "--dir"
+    ? validatePnpmDirectoryArgv(argv)
+    : isRootPnpmScript(argv, command)
+      ? undefined
+      : "pnpm gate commands must name one bounded repository script";
+}
+
+function validatePnpmDirectoryArgv(
+  argv: readonly string[],
+): string | undefined {
+  const [, , directory, script] = argv;
+  return isPackageDirectory(directory) && isPackageScript(script)
+    ? undefined
+    : "pnpm --dir gate commands must name a bounded package path and script";
+}
+
+function isPackageDirectory(directory: string | undefined): boolean {
+  return (
+    directory !== undefined &&
+    !directory.startsWith("/") &&
+    !directory.includes("..") &&
+    /^[a-zA-Z0-9._/-]+$/.test(directory)
+  );
+}
+
+function isPackageScript(script: string | undefined): boolean {
+  return (
+    script !== undefined && SAFE_SCRIPT.test(script) && !isPnpmEscape(script)
+  );
+}
+
+function isRootPnpmScript(
+  argv: readonly string[],
+  command: string | undefined,
+): boolean {
+  return (
+    argv.length === 2 &&
+    command !== undefined &&
+    command.includes(":") &&
+    isPackageScript(command)
+  );
+}
+
+function isPnpmEscape(command: string): boolean {
+  return command === "exec" || command === "dlx";
+}
+
+function isJustRecipe(
+  executable: string | undefined,
+  command: string | undefined,
+): boolean {
+  return (
+    executable === "just" && command !== undefined && SAFE_SCRIPT.test(command)
+  );
+}
+
+function isDirectExecutable(executable: string | undefined): boolean {
+  return (
+    executable !== undefined &&
+    !SHELL_EXECUTABLES.has(executable) &&
+    /^[a-z0-9][a-z0-9._-]*$/.test(executable)
+  );
 }
 
 export function defineDiagnosticRegistryProjection(
