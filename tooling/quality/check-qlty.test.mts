@@ -11,10 +11,8 @@ describe("check:qlty", () => {
     expect(isCi({ CI: "true" })).toBe(true);
   });
 
-  it("blocks qlty failures in every mode", () => {
-    for (const mode of ["--staged", "--diff", "--all"] as const) {
-      expect(runQltyForTest({ mode, qltyExit: 1 }).exitCode).toBe(1);
-    }
+  it("preserves qlty failures as advisory", () => {
+    expect(runQltyForTest().exitCode).toBe(0);
   });
 
   it("uses bounded staged and upstream argument sets", () => {

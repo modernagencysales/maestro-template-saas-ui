@@ -130,8 +130,8 @@ Qlty smells are block mode for new files and new rule/path pairs:
 Gitleaks and OSV also run in block mode. Qlty monitor scope is mixed: broad
 copied-source entries cover `releases/**` and `examples/**/seed/source/**`, and
 additional entries name existing rule/path pairs. New findings outside those
-scopes block the local command; findings inside them remain monitored. Do not
-widen monitor scope to land product code.
+scopes remain visible and advisory; deterministic ESLint and Woodpecker gates
+enforce the named thresholds. Do not widen monitor scope to hide product debt.
 
 Keep work below thresholds while authoring: use an input object before a sixth
 parameter, guard clauses or small pure helpers before a fifth nested branch, and
@@ -143,8 +143,8 @@ merely to silence a short domain-specific resemblance.
 
 The local wrapper gives each spawned Qlty subprocess 30 seconds. `--diff` runs
 `check` and `smells` separately, so the wrapper invocation can exceed 30
-seconds. Provider/runtime failure remains advisory to merge scheduling;
-deterministic Woodpecker evidence is authoritative.
+seconds. Findings and provider/runtime failures remain advisory to merge
+scheduling; deterministic Woodpecker evidence is authoritative.
 
 ## TypeScript, ESLint, Effect, And Formatting
 
