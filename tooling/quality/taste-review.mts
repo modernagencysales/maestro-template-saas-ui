@@ -18,12 +18,6 @@ import process from "node:process";
 
 import { isRateLimitStatus } from "./rate-limit.mts";
 import { hasMode, isCi } from "./src/script-mode.mts";
-import {
-  frozenVerificationPrompt,
-  parseFrozenJudgeOutput,
-  readFrozenFiles,
-  type FrozenFinding,
-} from "./ai-review-cycle.mts";
 
 const DEFAULT_OPENROUTER_MODEL = "deepseek/deepseek-v4-pro";
 const DEFAULT_OPENAI_MODEL = "gpt-5.5";
@@ -496,18 +490,6 @@ async function callJudgeText(
     }
     throw error;
   }
-}
-
-export async function verifyTasteFindingSet(
-  findings: readonly FrozenFinding[],
-) {
-  const currentFiles = readFrozenFiles(CANDIDATE_ROOT, findings);
-  return parseFrozenJudgeOutput(
-    await callJudgeText(
-      frozenVerificationPrompt(findings, currentFiles),
-      "You are a verification judge. Follow the user-supplied frozen-finding verification contract exactly and return only its JSON shape.",
-    ),
-  );
 }
 
 export function changedLinesBlock(

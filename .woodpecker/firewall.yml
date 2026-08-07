@@ -41,24 +41,3 @@ steps:
     depends_on:
       - trusted-ci-policy
     failure: cancel
-
-  - name: bounded-ai-review
-    image: node:22.12.0-bookworm@sha256:0e910f435308c36ea60b4cfd7b80208044d77a074d16b768a81901ce938a62dc
-    environment:
-      CI: "true"
-      GITHUB_TOKEN:
-        from_secret: github_token
-      OPENROUTER_API_KEY:
-        from_secret: openrouter_api_key
-    commands:
-      - |
-        BASE_BRANCH="${CI_COMMIT_TARGET_BRANCH:-main}"
-        TRUSTED_TREE="$(mktemp -d)"
-        trap 'rm -rf "$TRUSTED_TREE"' EXIT
-        git archive "origin/$${BASE_BRANCH}" AGENTS.md tooling/quality package.json pnpm-lock.yaml pnpm-workspace.yaml | tar -x -C "$TRUSTED_TREE"
-        export CONTRACT_REVIEW_WORKTREE="$CI_WORKSPACE"
-        export TASTE_REVIEW_WORKTREE="$CI_WORKSPACE"
-        node --experimental-strip-types --experimental-transform-types "$TRUSTED_TREE/tooling/quality/ai-review-cycle.mts"
-    depends_on:
-      - firewall
-    failure: ignore
