@@ -16,24 +16,28 @@ import {
   CURRENT_SAAS_DEPLOY_AUTHORITY_SOURCE_CLOSURE,
   CURRENT_SAAS_DEPLOY_AUTHORITY_TABLE_CLOSURE,
 } from "./saasRegistrationProjections";
+import {
+  selectsSaasApplicationPattern,
+  type SaasApplicationPatternId,
+  type SaasApplicationPatternSelection,
+} from "./saasApplicationPatterns";
 
 export const saasApplicationBlueprint = {
   id: "saas-application",
   label: "SaaS Application",
   summary:
-    "A neutral workspace-safe SaaS application with one renameable CRUD record slice and no required automation or live provider.",
-  domainNouns: ["workspace", "member", "record"],
-  sourceTypes: ["deterministic fixture"],
+    "A neutral workspace-safe SaaS application chassis with explicit optional product patterns and no required automation or live provider.",
+  domainNouns: ["workspace", "member"],
+  sourceTypes: [],
   defaultCapability: null,
   defaultWorkflow: null,
   defaultAgent: null,
   providerPosture: "fake-first",
   surfaces: ["web", "api", "cli"],
-  entity: "record",
+  entity: null,
   mandatorySystems: [
     "workspace tenancy",
-    "table CRUD",
-    "web route",
+    "deployment authority",
     "headless registry",
   ],
   automation: {
@@ -42,11 +46,10 @@ export const saasApplicationBlueprint = {
       "No automation is generated unless the workflow semantic ledger supports every exact primitive.",
   },
 } as const satisfies TemplateBlueprint & {
-  readonly entity: "record";
+  readonly entity: null;
   readonly mandatorySystems: readonly [
     "workspace tenancy",
-    "table CRUD",
-    "web route",
+    "deployment authority",
     "headless registry",
   ];
   readonly automation: {
@@ -100,7 +103,17 @@ const releasedBlueprintJson = (path: string): unknown =>
     ),
   ) as unknown;
 
-const recordGovernanceFiles = (): readonly GeneratedFile[] => {
+const governanceFiles = (
+  selection: SaasApplicationPatternSelection,
+): readonly GeneratedFile[] => {
+  const recordsSelected = selectsSaasApplicationPattern(
+    selection,
+    "records-example",
+  );
+  const workflowSelected = selectsSaasApplicationPattern(
+    selection,
+    "workflow-automation",
+  );
   const systems = parseSystemCatalog(
     repositoryJson("docs/template/system-catalog.json"),
   );
@@ -120,7 +133,9 @@ const recordGovernanceFiles = (): readonly GeneratedFile[] => {
     releasedBlueprintJson("docs/template/product-topology.json"),
   );
   const retainedSystemIds = new Set(
-    releasedSystems.systems.map(({ id }) => id),
+    releasedSystems.systems
+      .filter(({ id }) => workflowSelected || id !== "workflow-runtime")
+      .map(({ id }) => id),
   );
   const retainedEmailTableIds = [
     "emailCampaigns",
@@ -151,27 +166,32 @@ const recordGovernanceFiles = (): readonly GeneratedFile[] => {
           ...system,
           tables: system.tables.filter((table) => retainedTableIds.has(table)),
         })),
-      {
-        id: "record-management",
-        name: "Record Management",
-        kind: "product-system",
-        lifecycle: "active",
-        implementationStatus: "real",
-        summary:
-          "Owns the renameable workspace-scoped record CRUD slice shipped by the SaaS application blueprint.",
-        responsibilities: [
-          "create workspace records",
-          "list workspace records",
-          "read workspace record details",
-        ],
-        aliases: ["business records", "crud", "records"],
-        tables: ["records"],
-        canonicalEntrypoints: [
-          "packages/convex/confect/records.spec.ts",
-          "apps/web/src/routes/_workspace.records.tsx",
-        ],
-        decisionRef: "docs/template/system-decisions/record-management.md",
-      },
+      ...(recordsSelected
+        ? [
+            {
+              id: "record-management",
+              name: "Record Management",
+              kind: "product-system",
+              lifecycle: "active",
+              implementationStatus: "real",
+              summary:
+                "Owns the renameable workspace-scoped record CRUD slice shipped by the SaaS application blueprint.",
+              responsibilities: [
+                "create workspace records",
+                "list workspace records",
+                "read workspace record details",
+              ],
+              aliases: ["business records", "crud", "records"],
+              tables: ["records"],
+              canonicalEntrypoints: [
+                "packages/convex/confect/records.spec.ts",
+                "apps/web/src/routes/_workspace.records.tsx",
+              ],
+              decisionRef:
+                "docs/template/system-decisions/record-management.md",
+            },
+          ]
+        : []),
     ],
   });
   const governedDataResources = parseDataResourceCatalog({
@@ -180,41 +200,68 @@ const recordGovernanceFiles = (): readonly GeneratedFile[] => {
       ...dataResources.resources.filter(({ id }) =>
         retainedDataResourceIds.has(id),
       ),
-      {
-        id: "records",
-        system: "record-management",
-        sourcePath: "packages/convex/confect/tables/records.ts",
-        tenantScope: "workspace",
-        sensitivity: "internal",
-        pii: [],
-        exportMode: "json",
-        deleteMode: "delete",
-        retention: "retain-until-workspace-delete",
-        appendOnly: false,
-        writePosture: "implemented",
-        workspaceLifecycle: "managed",
-        writeAuthority: "packages/convex/confect/records.spec.ts",
-        migrationRef: "docs/template/schema-decisions/records.md",
-        detail:
-          "Records are workspace-owned application data exported as JSON and removed with the owning workspace.",
-      },
+      ...(recordsSelected
+        ? [
+            {
+              id: "records",
+              system: "record-management",
+              sourcePath: "packages/convex/confect/tables/records.ts",
+              tenantScope: "workspace",
+              sensitivity: "internal",
+              pii: [],
+              exportMode: "json",
+              deleteMode: "delete",
+              retention: "retain-until-workspace-delete",
+              appendOnly: false,
+              writePosture: "implemented",
+              workspaceLifecycle: "managed",
+              writeAuthority: "packages/convex/confect/records.spec.ts",
+              migrationRef: "docs/template/schema-decisions/records.md",
+              detail:
+                "Records are workspace-owned application data exported as JSON and removed with the owning workspace.",
+            },
+          ]
+        : []),
     ].sort((left, right) => left.id.localeCompare(right.id)),
   });
   const governedTopology = parseProductTopology({
     ...topology,
     resources: [
-      ...topology.resources.filter(({ id }) => retainedTopologyIds.has(id)),
-      {
-        id: "route:records",
-        kind: "route",
-        system: "record-management",
-        path: "apps/web/src/routes/_workspace.records.tsx",
-        responsibility:
-          "present workspace record create, list, and detail states",
-        surfaces: ["web"],
-        uses: ["access-and-tenancy"],
-        lifecycle: "active",
-      },
+      ...topology.resources
+        .filter(
+          ({ id, system }) =>
+            retainedTopologyIds.has(id) &&
+            (workflowSelected || system !== "workflow-runtime"),
+        )
+        .map((resource) =>
+          workflowSelected
+            ? resource
+            : {
+                ...resource,
+                ...(resource.uses
+                  ? {
+                      uses: resource.uses.filter(
+                        (system) => system !== "workflow-runtime",
+                      ),
+                    }
+                  : {}),
+              },
+        ),
+      ...(recordsSelected
+        ? [
+            {
+              id: "route:records",
+              kind: "route",
+              system: "record-management",
+              path: "apps/web/src/routes/_workspace.records.tsx",
+              responsibility:
+                "present workspace record create, list, and detail states",
+              surfaces: ["web"],
+              uses: ["access-and-tenancy"],
+              lifecycle: "active",
+            },
+          ]
+        : []),
     ],
   });
   return [
@@ -225,9 +272,11 @@ const recordGovernanceFiles = (): readonly GeneratedFile[] => {
       path: "packages/convex/confect/ops/dataResources.generated.ts",
       content: renderDataResourceRuntime(governedDataResources),
     },
-    {
-      path: "docs/template/system-decisions/record-management.md",
-      content: `# Record Management System Decision
+    ...(recordsSelected
+      ? [
+          {
+            path: "docs/template/system-decisions/record-management.md",
+            content: `# Record Management System Decision
 
 The SaaS application blueprint introduces \`record-management\` because no base
 template system owns generic customer business records. The system owns one
@@ -238,10 +287,10 @@ Keep this system when the starter noun is renamed. Extend it for adjacent CRUD
 behavior; introduce another system only when the new behavior has genuinely
 independent authority and lifecycle.
 `,
-    },
-    {
-      path: "docs/template/schema-decisions/records.md",
-      content: `# Records Schema Decision
+          },
+          {
+            path: "docs/template/schema-decisions/records.md",
+            content: `# Records Schema Decision
 
 Canonical system: \`record-management\`  
 Disposition: \`introduce\`  
@@ -261,7 +310,9 @@ Status: additive
 The table is new and requires no backfill. Rollback removes callers before the
 table and preserves workspace isolation throughout the compatibility window.
 `,
-    },
+          },
+        ]
+      : []),
   ];
 };
 
@@ -322,7 +373,9 @@ export const buildSaasApplicationFiles = (options: {
       read: { by: "created-id", expectedTitle: "First record" },
     }),
     ...executableSourceFiles(),
-    ...recordGovernanceFiles(),
+    ...governanceFiles({
+      patterns: ["records-example", "workflow-automation"],
+    }),
     jsonFile(
       "generated/blueprints/saas-application/application-contract.json",
       {
@@ -389,6 +442,159 @@ export const buildSaasApplicationFiles = (options: {
   ];
 };
 
+type CurrentSaasApplicationFileOptions = Readonly<{
+  name: string;
+  firstOutcome?: string;
+}> &
+  SaasApplicationPatternSelection;
+
+export const buildCurrentSaasApplicationChassisFiles = (
+  options: CurrentSaasApplicationFileOptions,
+  // eslint-disable-next-line complexity -- AP-008 tracks splitting the two canonical pattern metadata branches.
+): readonly GeneratedFile[] => {
+  const name = options.name.trim() || "My App";
+  const firstOutcome = (
+    options.firstOutcome?.trim() || "Deliver the first customer outcome"
+  ).replace(/\s+/gu, " ");
+  const recordsSelected = selectsSaasApplicationPattern(
+    options,
+    "records-example",
+  );
+  const workflowSelected = selectsSaasApplicationPattern(
+    options,
+    "workflow-automation",
+  );
+  const operations = recordsSelected
+    ? [
+        { id: "records.list", kind: "query", workspaceScoped: true },
+        { id: "records.read", kind: "query", workspaceScoped: true },
+        { id: "records.create", kind: "mutation", workspaceScoped: true },
+      ]
+    : [];
+
+  return [
+    jsonFile("examples/saas-application/seed/source.json", {
+      kind: "deterministic-fixture",
+      owner: "saas-application",
+      dataClassification: "public-synthetic",
+      provider: "none",
+      liveFallback: false,
+    }),
+    ...governanceFiles(options),
+    jsonFile(
+      "generated/blueprints/saas-application/application-contract.json",
+      {
+        schemaVersion: 1,
+        blueprint: "saas-application",
+        selectedPatterns: [...(options.patterns ?? [])].sort(),
+        personalization: { name, firstOutcome },
+        operations,
+        workflowRequired: false,
+        automation: workflowSelected
+          ? { status: "selected" }
+          : saasApplicationBlueprint.automation,
+        ...(recordsSelected
+          ? {
+              entity: {
+                singular: "record",
+                renameable: true,
+                tenantKey: "workspaceId",
+              },
+              primitive: "table-route-crud",
+              uiStates: [
+                "loading",
+                "empty",
+                "error",
+                "list",
+                "detail",
+                "create",
+              ],
+            }
+          : { entity: null, primitive: "product-chassis", uiStates: [] }),
+      },
+    ),
+    jsonFile("generated/blueprints/saas-application/surface-contract.json", {
+      schemaVersion: 1,
+      web: { operations: operations.map(({ id }) => id) },
+      headless: { operations: operations.map(({ id }) => id) },
+      providers: {
+        fake: {
+          status: "fake",
+          behavior: recordsSelected
+            ? "in-memory workspace-scoped records CRUD"
+            : "deterministic product chassis",
+          firstCreateRead: recordsSelected,
+        },
+        local: {
+          status: "seam",
+          behavior: "Confect refs over local Convex",
+          placeholderSuccess: false,
+        },
+        live: {
+          status: "unavailable",
+          behavior: "requires explicit provider and deployment review",
+          placeholderSuccess: false,
+        },
+      },
+    }),
+    jsonFile("generated/blueprints/saas-application/readiness.json", {
+      schemaVersion: 1,
+      selectedPatterns: [...(options.patterns ?? [])].sort(),
+      surfaces: [
+        { id: "workspace-membership", status: "real" },
+        ...(recordsSelected
+          ? [
+              { id: "fake-record-crud", status: "fake" },
+              { id: "local-convex-record-crud", status: "seam" },
+            ]
+          : []),
+        { id: "live-provider", status: "unavailable" },
+      ],
+      automation: workflowSelected
+        ? { status: "selected" }
+        : saasApplicationBlueprint.automation,
+      handoff:
+        "Every non-real surface remains labeled until its adapter and focused evidence replace the seam.",
+    }),
+  ];
+};
+
+export const buildCurrentRecordsExampleFiles = (options: {
+  readonly name: string;
+}): readonly GeneratedFile[] => {
+  const name = options.name.trim() || "My App";
+  const slug = slugify(name);
+  const workspaceId = `workspace_${slug.replaceAll("-", "_")}`;
+  return [
+    jsonFile("examples/saas-application/seed/workspace.json", {
+      id: workspaceId,
+      slug,
+      name: `${name} Workspace`,
+      memberRole: "owner",
+      synthetic: true,
+    }),
+    jsonFile("examples/saas-application/seed/records.json", [
+      {
+        id: "record_welcome",
+        workspaceId,
+        title: "Welcome record",
+        detail: "A deterministic fake record that can be renamed or deleted.",
+        synthetic: true,
+      },
+    ]),
+    jsonFile("examples/saas-application/seed/crud-scenario.json", {
+      workspaceId,
+      initial: { records: [] },
+      create: {
+        title: "First record",
+        detail: "Created in fake mode without provider setup.",
+      },
+      read: { by: "created-id", expectedTitle: "First record" },
+    }),
+    ...executableSourceFiles(),
+  ];
+};
+
 export type BlueprintTargetPlan = {
   readonly schemaVersion: 1;
   readonly id: "saas-application";
@@ -418,11 +624,19 @@ export type BlueprintTargetPlan = {
 type BlueprintTargetPlanOptions = {
   readonly name: string;
   readonly firstOutcome?: string;
+  readonly patterns?: readonly SaasApplicationPatternId[];
 };
 
 const canonicalTargetPlanOptions = {
   name: "SaaS Application",
+  firstOutcome: "Deliver the first customer outcome",
+  patterns: [],
+} as const satisfies BlueprintTargetPlanOptions;
+
+const historicalTargetPlanOptions = {
+  name: "SaaS Application",
   firstOutcome: "Create and review records",
+  patterns: [],
 } as const satisfies BlueprintTargetPlanOptions;
 
 export const SAAS_APPLICATION_PARAMETERIZED_ENTRIES = [
@@ -475,9 +689,10 @@ export function buildSaasApplicationAlpha1TargetPlan(
 ): BlueprintTargetPlan;
 export function buildSaasApplicationAlpha1TargetPlan(): BlueprintTargetPlan;
 export function buildSaasApplicationAlpha1TargetPlan(): BlueprintTargetPlan {
-  return buildTargetPlan(false, canonicalTargetPlanOptions);
+  return buildTargetPlan(false, historicalTargetPlanOptions);
 }
 
+// eslint-disable-next-line complexity -- AP-008 tracks extracting immutable/current entry metadata composition.
 function buildTargetPlan(
   current: boolean,
   options: BlueprintTargetPlanOptions,
@@ -503,7 +718,6 @@ function buildTargetPlan(
           ],
           ["packages/template-core/src/generated/confectManifest.ts", "copy"],
           ["packages/convex/test/shared-env.test.ts", "copy"],
-          ["scripts/pre-push-rubric.sh", "copy"],
           ["tooling/agent-pack/package.json", "copy"],
           ["tooling/agent-pack/src/nodeAdapters.test.ts", "copy"],
           ["tooling/app-map/src/composition.test.ts", "copy"],
@@ -731,7 +945,6 @@ function buildTargetPlan(
           "tooling/generators/src/private-package.ts",
           "examples/generic-ai-ops/template-package.json",
           "lefthook.yml",
-          "scripts/pre-push-rubric.sh",
           "tooling/quality/contract-review-rubric.md",
           "tooling/quality/taste-review.mts",
         ]
@@ -864,7 +1077,6 @@ function buildTargetPlan(
     "docs/template/agent-pack-privacy.md",
     "apps/cli/src/factory/supportBundle.ts",
     "lefthook.yml",
-    "scripts/pre-push-rubric.sh",
     "tooling/quality/contract-review-rubric.md",
     "tooling/quality/taste-review.mts",
     "tooling/agent-pack/src/mcp/protocol.ts",
@@ -882,11 +1094,14 @@ function buildTargetPlan(
     "tooling/agent-pack/src/privacy/nodeSupportBundleExporter.ts",
     "tooling/agent-pack/src/privacy/support-bundle.schema.json",
   ]);
-  const registrations = current
-    ? registrationsWithPrivacy
-    : registrationsWithPrivacy.filter(
-        (path) => !currentOnlyRegistrations.has(path),
-      );
+  const materializedPaths = new Set(entries.map(({ path }) => path));
+  const registrations = (
+    current
+      ? registrationsWithPrivacy
+      : registrationsWithPrivacy.filter(
+          (path) => !currentOnlyRegistrations.has(path),
+        )
+  ).filter((path) => materializedPaths.has(path));
   const identity = {
     schemaVersion: 1 as const,
     id: "saas-application" as const,
@@ -896,7 +1111,11 @@ function buildTargetPlan(
   };
   return {
     ...identity,
-    parameterizedEntries: current ? SAAS_APPLICATION_PARAMETERIZED_ENTRIES : [],
+    parameterizedEntries: current
+      ? SAAS_APPLICATION_PARAMETERIZED_ENTRIES.filter((path) =>
+          materializedPaths.has(path),
+        )
+      : [],
     entries,
     digest: sha256(JSON.stringify(identity)),
   };
@@ -913,18 +1132,18 @@ Blueprint: \`saas-application\`
 Create a separate customer target with the reviewed SaaS release, then start
 from that target so its personalized name and first outcome are available:
 
-\`pnpm maestro -- create ../my-app --name ${JSON.stringify(name)} --outcome "Create and review records" --write --privacy-reviewed\`
+\`pnpm maestro -- create ../my-app --name ${JSON.stringify(name)} --outcome "Deliver the first customer outcome" --write --privacy-reviewed\`
 
 \`pnpm --dir ../my-app maestro -- start --mode fake\`
 
-In the target, create a record, return to the list, and open its detail. The
-neutral \`record\` noun is intentionally renameable.
+The target begins as a neutral chassis. Implement its first product promise, or
+select a maintained example pattern when a concrete reference is useful.
 
 ## Readiness
 
-- \`real\`: workspace membership and shared web/headless operation IDs.
-- \`fake\`: deterministic in-memory record create/list/read.
-- \`seam\`: local Convex adapter through generated Confect refs; it never reports placeholder success.
+- \`real\`: workspace membership and deployment authority.
+- \`fake\`: deterministic local chassis behavior.
+- \`seam\`: explicitly selected local adapters; they never report placeholder success.
 - \`unavailable\`: live providers and workflow automation until separately reviewed.
 
 The base blueprint has no required workflow, agent, plugin, MCP server, live

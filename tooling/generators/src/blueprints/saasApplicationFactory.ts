@@ -1,6 +1,14 @@
 import type { GeneratedFile } from "../index";
 import { readFileSync } from "node:fs";
-import { buildSaasApplicationFiles } from "./saasApplication";
+import {
+  buildCurrentRecordsExampleFiles,
+  buildCurrentSaasApplicationChassisFiles,
+  buildSaasApplicationFiles,
+} from "./saasApplication";
+import {
+  selectsSaasApplicationPattern,
+  type SaasApplicationPatternSelection,
+} from "./saasApplicationPatterns";
 import {
   buildSaasRegistrationProjections,
   CURRENT_FACTORY_PRODUCT_TABLES,
@@ -33,6 +41,8 @@ const CURRENT_CUSTOMER_EMAIL_TABLES = [
 
 const currentCustomerSource = (
   path: (typeof CURRENT_CUSTOMER_SOURCE_PROJECTIONS)[number],
+  selection: SaasApplicationPatternSelection,
+  // eslint-disable-next-line complexity -- AP-008 tracks splitting path-specific compatibility projections.
 ): string => {
   let content = readFileSync(
     new URL(`../../../../${path}`, import.meta.url),
@@ -62,6 +72,23 @@ evals:
           "customer Justfile factory-only recipe marker is missing",
         );
       content = content.replace(recipe, "");
+    }
+    if (!selectsSaasApplicationPattern(selection, "workflow-automation")) {
+      for (const recipe of [
+        `test-workflow:
+    pnpm test:workflow
+
+`,
+        `check-workflow-semantics:
+    pnpm check:workflow-semantics
+
+`,
+        `check-workflow-fast:
+    pnpm check:workflow:fast
+
+`,
+      ])
+        content = content.replace(recipe, "");
     }
   }
   if (path === "tooling/generators/src/crud-proof.test.ts") {
@@ -163,6 +190,8 @@ evals:
         return (
           table === undefined ||
           (!FACTORY_PRODUCT_TABLES.has(table) &&
+            (selectsSaasApplicationPattern(selection, "workflow-automation") ||
+              !table.startsWith("workflow")) &&
             !CURRENT_CUSTOMER_EMAIL_TABLES.includes(
               table as (typeof CURRENT_CUSTOMER_EMAIL_TABLES)[number],
             ))
@@ -181,54 +210,70 @@ evals:
         "\n$1",
       )}\n$1"entitlements",`,
     );
-    const tableBoundary = /^(\s*)"transformBlocks",$/gmu;
-    const matches = [...content.matchAll(tableBoundary)];
-    if (matches.length !== 4)
-      throw new Error("customer Confect manifest table markers are missing");
-    content = content.replace(
-      tableBoundary,
-      '$1"records",\n$1"transformBlocks",',
-    );
+    if (selectsSaasApplicationPattern(selection, "records-example")) {
+      const tableBoundary = /^(\s*)"transformBlocks",$/gmu;
+      const matches = [...content.matchAll(tableBoundary)];
+      if (matches.length !== 4)
+        throw new Error("customer Confect manifest table markers are missing");
+      content = content.replace(
+        tableBoundary,
+        '$1"records",\n$1"transformBlocks",',
+      );
+    }
   }
   return content;
 };
 
-const currentCustomerSourceProjections = (): readonly GeneratedFile[] =>
-  CURRENT_CUSTOMER_SOURCE_PROJECTIONS.map((path) => ({
+const currentCustomerSourceProjections = (
+  selection: SaasApplicationPatternSelection,
+): readonly GeneratedFile[] =>
+  CURRENT_CUSTOMER_SOURCE_PROJECTIONS.filter(
+    (path) =>
+      (selectsSaasApplicationPattern(selection, "records-example") ||
+        path !== "tooling/generators/src/crud-proof.test.ts") &&
+      (selectsSaasApplicationPattern(selection, "workflow-automation") ||
+        !path.startsWith("packages/convex/confect/workflows/")),
+  ).map((path) => ({
     path,
-    content: currentCustomerSource(path),
+    content: currentCustomerSource(path, selection),
   }));
 
-const currentContractFiles = (options: {
-  readonly name: string;
-  readonly firstOutcome?: string;
-}): readonly GeneratedFile[] => {
+const currentContractFiles = (
+  options: {
+    readonly name: string;
+    readonly firstOutcome?: string;
+  } & SaasApplicationPatternSelection,
+): readonly GeneratedFile[] => {
   const name = options.name.trim() || "My App";
   const firstOutcome = (
-    options.firstOutcome?.trim() || "Create and review records"
+    options.firstOutcome?.trim() || "Deliver the first customer outcome"
   ).replace(/\s+/gu, " ");
   return [
-    ...[
-      "apps/web/src/adapters/records/http.ts",
-      "features/records.feature",
-      "features/step_definitions/records.steps.ts",
-    ].map((path) => ({
-      path,
-      content: readFileSync(
-        new URL(
-          `../../../../examples/saas-application/seed/source/${path}`,
-          import.meta.url,
-        ),
-        "utf8",
-      ),
-    })),
+    ...(selectsSaasApplicationPattern(options, "records-example")
+      ? [
+          "apps/web/src/adapters/records/http.ts",
+          "features/records.feature",
+          "features/step_definitions/records.steps.ts",
+          "features/support/contracts-runtime.test.ts",
+          "features/support/contracts-runtime.ts",
+          "features/support/contracts-world.ts",
+        ].map((path) => ({
+          path,
+          content: readFileSync(
+            new URL(
+              `../../../../examples/saas-application/seed/source/${path}`,
+              import.meta.url,
+            ),
+            "utf8",
+          ),
+        }))
+      : []),
     {
       path: "features/first-outcome.feature",
       content: `@wip
 Feature: ${firstOutcome}
   This is the first product promise for ${name}.
 
-  @cross_surface
   Scenario: Deliver ${firstOutcome.toLowerCase()}
     Given the product is ready
     When the first outcome is completed
@@ -259,6 +304,9 @@ const recordsFeatureProvenance = (): GeneratedFile => ({
         "apps/web/src/routes/_workspace.records.tsx",
         "features/records.feature",
         "features/step_definitions/records.steps.ts",
+        "features/support/contracts-runtime.test.ts",
+        "features/support/contracts-runtime.ts",
+        "features/support/contracts-world.ts",
       ],
     },
     null,
@@ -266,11 +314,18 @@ const recordsFeatureProvenance = (): GeneratedFile => ({
   )}\n`,
 });
 
-const currentSaasApplicationFiles = (options: {
-  readonly name: string;
-  readonly firstOutcome?: string;
-}): readonly GeneratedFile[] =>
-  buildSaasApplicationFiles(options).map((file) => {
+const currentSaasApplicationFiles = (
+  options: {
+    readonly name: string;
+    readonly firstOutcome?: string;
+  } & SaasApplicationPatternSelection,
+): readonly GeneratedFile[] =>
+  [
+    ...buildCurrentSaasApplicationChassisFiles(options),
+    ...(selectsSaasApplicationPattern(options, "records-example")
+      ? buildCurrentRecordsExampleFiles(options)
+      : []),
+  ].map((file) => {
     let content = file.content
       .replaceAll(
         "packages/convex/confect/records.spec.ts",
@@ -316,12 +371,15 @@ const currentSaasApplicationFiles = (options: {
 export const buildFactorySaasApplicationFiles = (options: {
   readonly name: string;
   readonly firstOutcome?: string;
+  readonly patterns?: SaasApplicationPatternSelection["patterns"];
 }): readonly GeneratedFile[] => [
   ...currentSaasApplicationFiles(options),
   ...currentContractFiles(options),
-  ...buildSaasRegistrationProjections(),
-  ...currentCustomerSourceProjections(),
-  recordsFeatureProvenance(),
+  ...buildSaasRegistrationProjections({ patterns: options.patterns }),
+  ...currentCustomerSourceProjections(options),
+  ...(selectsSaasApplicationPattern(options, "records-example")
+    ? [recordsFeatureProvenance()]
+    : []),
 ];
 
 /** Historical projection used only to reproduce the immutable alpha.1 plan. */
