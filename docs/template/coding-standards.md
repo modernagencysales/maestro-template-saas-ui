@@ -9,9 +9,9 @@
 - Prefer narrow interfaces and explicit return types at public boundaries.
 - Use Effect schemas for durable data, public args, returns, and typed errors.
 - Keep cyclomatic complexity at or below 10, nesting depth at or below 4, and
-  parameter count at or below 5. The staged-file ESLint ratchet enforces these
-  cheap checks without making untouched baseline debt block unrelated work; Qlty
-  owns broader diff smell detection.
+  parameter count at or below 5. Staged ESLint reports these quality thresholds
+  as advisory warnings; correctness and template architecture rules remain
+  blocking, and Qlty owns broader diff smell detection.
 
 ## Plans And Acceptance
 

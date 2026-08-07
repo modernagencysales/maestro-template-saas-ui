@@ -1015,7 +1015,6 @@ const routeTree = (current: boolean): string => {
 
 export const buildSaasRegistrationProjections = (
   options: { readonly current?: boolean } = {},
-  // eslint-disable-next-line complexity -- this is a declarative file projection, not branching behavior
 ): readonly GeneratedFile[] => {
   const current = options.current ?? true;
   return [
