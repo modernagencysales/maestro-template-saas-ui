@@ -1,44 +1,215 @@
 import {
+  appendFileSync,
   existsSync,
+  mkdirSync,
   mkdtempSync,
   readFileSync,
   rmSync,
   writeFileSync,
 } from "node:fs";
+import { createHash } from "node:crypto";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { execFileSync, spawn, spawnSync } from "node:child_process";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
+import {
+  createCustomerCreateComposition,
+  type CustomerCompositionSource,
+} from "../../../../apps/cli/src/factory/createComposition";
+import { buildSaasApplicationTargetPlan } from "../../../../tooling/generators/src/index";
+import { buildCustomerOwnershipInventory } from "../../../../tooling/release/src/customerTarget/ownership";
 import { NO_NETWORK_FACTORY_CASES } from "./networkPolicy.js";
 
 const repositoryRoot = resolve(import.meta.dirname, "../../../..");
 const fixtureRoot = mkdtempSync(join(tmpdir(), "maestro-no-network-"));
 const attemptsPath = join(fixtureRoot, "attempts.ndjson");
 const customerTarget = join(fixtureRoot, "customer-app");
-let taggedReleaseParent: string | undefined;
-let taggedReleaseRoot: string | undefined;
-const taggedRepository = (): string => {
-  if (taggedReleaseRoot) return taggedReleaseRoot;
-  taggedReleaseParent = mkdtempSync(join(tmpdir(), "maestro-tagged-release-"));
-  taggedReleaseRoot = join(taggedReleaseParent, "release");
+let candidateReleaseParent: string | undefined;
+const candidateRelease = (input: {
+  readonly name: string;
+  readonly outcome: string;
+}): {
+  readonly root: string;
+  readonly replacements: ReadonlyMap<string, "copy" | "generate" | undefined>;
+  readonly source: CustomerCompositionSource;
+} => {
+  candidateReleaseParent = mkdtempSync(
+    join(tmpdir(), "maestro-no-network-candidate-"),
+  );
+  const root = join(candidateReleaseParent, "release");
   execFileSync(
     "git",
-    ["clone", "--quiet", "--shared", repositoryRoot, taggedReleaseRoot],
+    ["clone", "--quiet", "--shared", "--no-tags", repositoryRoot, root],
     { stdio: "pipe" },
   );
-  execFileSync(
-    "git",
-    ["checkout", "--quiet", "--detach", "maestro-template-v0.2.0-alpha.2"],
-    { cwd: taggedReleaseRoot, stdio: "pipe" },
+  const authorityRoot = join(root, ".candidate-authority");
+  appendFileSync(join(root, ".git/info/exclude"), "\n.candidate-authority/\n");
+  mkdirSync(authorityRoot, { recursive: true });
+  const sourceCommit = git(root, ["rev-parse", "HEAD"]).trim();
+  const tag = "maestro-template-v0.2.0-alpha.3";
+  const plan = buildSaasApplicationTargetPlan({
+    name: input.name,
+    firstOutcome: input.outcome,
+  });
+  const blueprintOwnedPaths = new Set(
+    plan.entries
+      .filter((entry) => entry.replaces === undefined)
+      .map((entry) => entry.path),
   );
-  execFileSync(
-    "pnpm",
-    ["install", "--offline", "--frozen-lockfile", "--ignore-scripts"],
-    { cwd: taggedReleaseRoot, stdio: "pipe", timeout: 120_000 },
+  const sourcePaths = git(root, ["ls-tree", "-r", "--name-only", sourceCommit])
+    .trim()
+    .split("\n")
+    .filter(Boolean);
+  const paths = [
+    ...buildCustomerOwnershipInventory(sourcePaths).map((entry) =>
+      blueprintOwnedPaths.has(entry.path)
+        ? {
+            path: entry.path,
+            match: "exact" as const,
+            ownership: "factory-only" as const,
+            action: "omit" as const,
+            upgrade: "remove" as const,
+          }
+        : entry,
+    ),
+    {
+      path: "template-instance.json",
+      match: "exact" as const,
+      ownership: "generated" as const,
+      action: "generate" as const,
+      upgrade: "regenerate" as const,
+    },
+  ];
+  const manifest = {
+    $schema: "../../schemas/maestro-customer-release-manifest.schema.json",
+    schemaVersion: 1,
+    materializationStatus: "materializable",
+    release: {
+      version: "0.2.0-alpha.3",
+      tag,
+      sourceCommit,
+      sourceChecksum: hash(
+        git(root, ["archive", "--format=tar", sourceCommit]),
+      ),
+    },
+    compatibility: { cli: "0.2.x", agentPack: "0.2.x" },
+    paths,
+    expectedHashes: Object.fromEntries(
+      paths
+        .filter((entry) => entry.action === "copy" && entry.match === "exact")
+        .map((entry) => [
+          entry.path,
+          hash(readFileSync(join(root, entry.path))),
+        ]),
+    ),
+    extensionSeams: paths
+      .filter((entry) => entry.ownership === "customer-extension")
+      .map((entry) => ({
+        path: entry.path,
+        description: "No-network candidate customer extension seam.",
+      })),
+  };
+  const manifestPath = join(authorityRoot, "manifest.json");
+  const manifestBytes = writeJson(manifestPath, manifest);
+  const blueprint = {
+    schemaVersion: plan.schemaVersion,
+    id: plan.id,
+    provenance: plan.provenance,
+    registrations: plan.registrations,
+    parameterizedEntries: plan.parameterizedEntries,
+    entries: plan.entries.map((entry) => ({
+      path: entry.path,
+      ownership: entry.ownership,
+      action: entry.action,
+      upgrade: entry.upgrade,
+      sha256: entry.sha256,
+      ...(entry.replaces === undefined ? {} : { replaces: entry.replaces }),
+    })),
+  };
+  const blueprintManifestPath = join(authorityRoot, "blueprint.json");
+  const blueprintManifestBytes = writeJson(blueprintManifestPath, blueprint);
+  const blueprintAuthorityManifestPath = join(
+    authorityRoot,
+    "blueprint-authority.json",
   );
-  return taggedReleaseRoot;
+  const blueprintAuthorityManifestBytes = writeJson(
+    blueprintAuthorityManifestPath,
+    blueprint,
+  );
+  git(root, ["add", "--force", ".candidate-authority"]);
+  git(root, [
+    "-c",
+    "user.name=Maestro No-Network Fixture",
+    "-c",
+    "user.email=maestro-no-network-fixture@example.invalid",
+    "commit",
+    "--quiet",
+    "--no-verify",
+    "-m",
+    "test: seal no-network candidate authority",
+  ]);
+  git(root, ["tag", "-f", tag]);
+  return {
+    root,
+    replacements: new Map(
+      plan.entries.map(({ path, replaces }) => [path, replaces] as const),
+    ),
+    source: {
+      repositoryRoot: root,
+      manifestPath,
+      ownershipManifestChecksum: hash(manifestBytes),
+      tag,
+      sourceCommit,
+      blueprintManifestPath,
+      blueprintManifestChecksum: hash(blueprintManifestBytes),
+      blueprintAuthorityManifestPath,
+      blueprintAuthorityManifestChecksum: hash(blueprintAuthorityManifestBytes),
+    },
+  };
 };
+
+const git = (repository: string, args: readonly string[]): string =>
+  execFileSync("git", ["-C", repository, ...args], {
+    encoding: "utf8",
+    stdio: "pipe",
+  });
+
+const hash = (bytes: string | Buffer): `sha256:${string}` =>
+  `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
+
+const writeJson = (path: string, value: unknown): Buffer => {
+  const bytes = Buffer.from(`${JSON.stringify(value, null, 2)}\n`);
+  writeFileSync(path, bytes);
+  return bytes;
+};
+
+const createGeneratedCustomer = async (target: string) => {
+  const fixture = candidateRelease({
+    name: "No Network Support",
+    outcome: "Export reviewed local support facts",
+  });
+  const command = createCustomerCreateComposition(
+    fixture.source,
+    buildSaasApplicationTargetPlan,
+    fixture.replacements,
+  );
+  return command.run(
+    [
+      "create",
+      target,
+      "--name",
+      "No Network Support",
+      "--outcome",
+      "Export reviewed local support facts",
+      "--demo-only",
+      "--write",
+      "--json",
+    ],
+    fixture.root,
+  );
+};
+
 const planPath =
   "tooling/agent-pack/src/privacy/no-network-plan.fixture.json" as const;
 const interceptorPath = fileURLToPath(
@@ -62,8 +233,8 @@ beforeEach(() => writeFileSync(attemptsPath, ""));
 
 afterAll(() => {
   rmSync(fixtureRoot, { recursive: true, force: true });
-  if (taggedReleaseParent)
-    rmSync(taggedReleaseParent, { recursive: true, force: true });
+  if (candidateReleaseParent)
+    rmSync(candidateReleaseParent, { recursive: true, force: true });
 }, 120_000);
 
 describe("privacy no-network conformance", () => {
@@ -159,28 +330,8 @@ describe("privacy no-network conformance", () => {
 
   it("previews and exports a generated customer support bundle with no outbound attempts", async () => {
     const generatedTarget = join(fixtureRoot, "generated-support-customer");
-    const created = spawnSync(
-      "pnpm",
-      [
-        "maestro",
-        "--",
-        "create",
-        generatedTarget,
-        "--name",
-        "No Network Support",
-        "--outcome",
-        "Export reviewed local support facts",
-        "--demo-only",
-        "--write",
-        "--json",
-      ],
-      {
-        cwd: taggedRepository(),
-        encoding: "utf8",
-        timeout: 120_000,
-      },
-    );
-    expect(created.status, `${created.stdout}\n${created.stderr}`).toBe(0);
+    const created = await createGeneratedCustomer(generatedTarget);
+    expect(created.exitCode, `${created.stdout}\n${created.stderr}`).toBe(0);
     const installed = spawnSync(
       "pnpm",
       ["install", "--offline", "--frozen-lockfile", "--ignore-scripts"],
