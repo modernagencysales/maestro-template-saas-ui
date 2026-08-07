@@ -65,6 +65,11 @@ describe("diagnostic registry projection", () => {
   it.each([
     ["bash", "-lc", "pnpm test"],
     ["bash", "-lc", "true"],
+    ["dash", "-c", "id"],
+    ["cmd", "/c", "id"],
+    ["powershell", "-Command", "id"],
+    ["pwsh", "-Command", "id"],
+    ["python", "-c", "id"],
     ["pnpm", "test"],
     ["pnpm", "exec", "vitest"],
     ["pnpm", "check:*"],
