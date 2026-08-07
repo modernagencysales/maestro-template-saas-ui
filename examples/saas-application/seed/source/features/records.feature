@@ -1,4 +1,3 @@
-@required
 Feature: Manage workspace records
   A workspace member can manage the same records from the app and the CLI.
 
