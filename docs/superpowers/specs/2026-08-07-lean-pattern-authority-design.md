@@ -1,6 +1,6 @@
 # Lean Pattern Authority Design
 
-**Status:** Approved for planning
+**Status:** Self-reviewed and approved for planning
 
 ## Purpose
 
@@ -54,8 +54,23 @@ historical plans, examples, and Cucumber patterns remain available to agents.
 - Deployment, migration, rollback, and other destructive actions retain their
   existing confirmation and trust boundaries in this effort.
 - Package scripts are the executable command authority.
+- Repository-pinned formatter, linter, typechecker, test runner, and scanners
+  supply evidence; a host-global tool result is not accepted in their place.
 - No standing integrator or deterministic agent manager is added. Each lane is
   an independently mergeable PR based on current `origin/main`.
+
+## Existing Work Boundary
+
+The unmerged `codex/template-enforced-engineering-rules` branch already contains
+valuable work, including `docs/template/enforced-engineering-rules.md`, Qlty
+projection, and narrower generated-customer admission. It is not merged
+wholesale: parts of its generator and Cucumber guidance encode the fingerprint,
+clean-tree, surface-tag, and broad pre-push rules this design removes.
+
+Before implementing overlapping work, each lane compares its target files with
+commits `326a2761a` through `76c24a137`. It reuses coherent tests and content,
+updates them to this design, and leaves that branch and its current dirty change
+untouched. No second engineering-rules document is invented.
 
 ## Lane 1: Lean Customer Projection
 
@@ -121,8 +136,14 @@ as a non-overlapping sequence: component suites execute through one owner, not
 again through `test:tooling`, `test:workflow`, `test:pr-backlog`, and `evals`.
 
 Generated-target integration tests reuse one installed immutable target fixture
-within a suite. `maestro start` owns readiness. Cucumber shares the supervised
-process and browser per Feature, with a fresh browser context/page per Scenario.
+within a suite. `maestro start` owns readiness and reports the exact failed
+startup stage. One supervised product process serves a contract invocation;
+Cucumber may reuse a browser where safe and always creates a fresh browser
+context/page per Scenario.
+
+Each product Feature keeps two to five customer journeys. Parser, option,
+filesystem, validation, and edge-case matrices remain focused Vitest or Node
+tests rather than expanding Gherkin step libraries.
 
 Quality checks keep real tools and behavior tests. File-content pins are kept
 only when exact text is itself a compatibility contract. Runtime claims such as
@@ -137,6 +158,8 @@ matching prose or source fragments.
   unrelated customer's required contract.
 - Instrumented verification shows each owned suite runs once.
 - One fixture owns installation/codegen and one process owns readiness.
+- Readiness uses bounded observable polling and retains child output plus the
+  last readiness response; fixed sleeps are not health checks.
 - Factory generated-target integration still executes the tenant-isolation and
   missing-key denial journeys explicitly, without projecting them as an
   unrelated customer's required promise.
@@ -155,6 +178,10 @@ the sole mutation acknowledgement. The write recomputes and validates the plan
 against the current filesystem immediately before mutation. It refuses paths
 outside the target, protected-root writes, collisions, malformed input, and
 secret-bearing payloads.
+
+An unrelated dirty worktree does not block a reversible write. The command
+checks the paths it owns and refuses an owned-path collision or changed
+precondition instead of demanding repository-wide cleanliness.
 
 Remove plan, preflight, and preview fingerprint ceremony from ordinary create,
 add/recipe, scaffold, MCP configuration, support-bundle, and private-package
@@ -224,15 +251,22 @@ one canonical copy of agent guidance.
 
 ### Design
 
-Align `.nvmrc`, CI images, and package-manager metadata to a Node 22 patch that
-satisfies pnpm 10.12.1. CI running in a compatible Node image installs only
-missing pnpm; it does not reinstall Node with fnm.
+Align `.nvmrc`, CI images, and package-manager metadata on Node `22.23.2` with
+pnpm `10.12.1`. CI running in that compatible Node image installs only missing
+pnpm; it does not reinstall Node with fnm.
 
 Keep one canonical source for each projected skill or agent instruction. Host
 projections such as `.agents` and `.claude` are produced during bootstrap or
 install only if a fresh generated target can make them available before its
 first agent task. If that first-run proof fails, retain the committed projection
 and record why rather than deleting useful guidance.
+
+Promote the existing `docs/template/enforced-engineering-rules.md` into the
+canonical agent-readable trigger index. Update it to match this lean design,
+project it into generated customers, and keep exact Qlty thresholds, security
+rules, denial-test expectations, dependency rules, focused-check triggers, and
+Woodpecker/Qlty posture explicit. `docs/template/coding-standards.md` becomes a
+short entry point to that index instead of a competing rule authority.
 
 Verify `apps/voice-relay` and `tooling/pr-backlog` against imports, scripts,
 documentation, and release contents. Delete a workspace only when it is empty,
@@ -245,7 +279,11 @@ preserves shutdown and exit semantics.
 - A fresh checkout and fresh generated target install under the declared Node
   and pnpm versions.
 - CI setup does not reinstall an already compatible Node runtime.
+- Every worktree performs its own frozen dependency hydration from the shared
+  pnpm store; no worktree symlinks another checkout's `node_modules`.
 - A first-run agent can find every required skill and instruction.
+- Generated agents receive the enforced-engineering-rules trigger index and its
+  exact Qlty thresholds without inheriting factory-only CI commands.
 - Generated projections match their canonical source without checked-in drift.
 - Empty-workspace and dependency removals are backed by reference scans and
   focused bootstrap tests.
@@ -257,6 +295,11 @@ and opens one independently useful PR. Workers publish their branches directly.
 No lane waits for a standing integrator; where two lanes touch a shared
 manifest, the later PR rebases once on the merged authority and resolves the
 small mechanical overlap.
+
+Every worktree names its explicit base ref, handles the repository trust prompt
+as part of launch readiness, and hydrates dependencies locally from the shared
+store. A committed reversible checkpoint may use remote testing; workers do not
+hold coherent changes uncommitted while waiting for a local full-test slot.
 
 Each task commit runs focused affected tests. Each lane receives one independent
 whole-diff review and one full Woodpecker run on its immutable head. A changed
