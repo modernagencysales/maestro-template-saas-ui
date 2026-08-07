@@ -10,9 +10,9 @@ two. Results are collected and the lowest command-index failure is rethrown, so
 failure selection remains deterministic even when a later command settles first.
 
 Base: `8e76abdcec55359f2ab7b1a7763f72d52c6a4001` (`origin/main` when the
-worktree was created). Verified implementation tree before this report was
-added: `e96f1dc7cedfc9d1da50f115099090825c04f9db`. The final carrier commit is
-reported in the agent handoff because a commit cannot contain its own SHA.
+worktree was created). Final exact-head verification was run at
+`76602cf6f3dfc11a8219d2fe94a6f4b1e8ca71d5`; the subsequent report-only update
+does not change implementation or test files.
 
 ## Root cause and known-green comparison
 
@@ -82,10 +82,23 @@ suite: 78.34s
 wall: 79.66s
 ```
 
+The final fresh run of that same history-complete command at exact head
+`76602cf6f3dfc11a8219d2fe94a6f4b1e8ca71d5` also passed:
+
+```text
+2 tests passed
+audit: 100.160s
+suite: 101.72s
+wall: 102.69s
+```
+
 The unchanged base under the same command took 107.549 seconds for the audit and
-109.15 seconds wall time. The bounded scheduler recovered 29.806 seconds inside
-the test and restored roughly 42 seconds of timeout headroom without raising the
-timeout or removing a proof.
+109.15 seconds wall time. The two identical implementation runs varied by 22.417
+seconds in the audit (77.743s versus 100.160s), demonstrating the cold runner
+variance that made the serialized version unreliable. Even the slower final run
+retained 19.840 seconds inside the audit's 120-second test budget; the faster
+run retained 42.257 seconds. The bounded scheduler therefore restores meaningful
+timeout headroom without raising the timeout or removing a proof.
 
 Related checks:
 
