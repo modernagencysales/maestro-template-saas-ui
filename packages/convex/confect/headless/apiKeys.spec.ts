@@ -24,14 +24,28 @@ const AuthFailure = Schema.Struct({
   message: Schema.String,
 });
 
+const ContractsNamespace = Schema.String.check(
+  Schema.isPattern(/^contracts-[a-z0-9](?:[a-z0-9-]{0,38}[a-z0-9])?$/u),
+);
+
+const SeededContractsActor = Schema.Struct({
+  keyId: Schema.String,
+  workspaceId: Id("workspaces"),
+  userId: Id("users"),
+});
+
 const seedLocalContracts = FunctionSpec.internalMutation({
   name: "seedLocalContracts",
-  args: () => Schema.Struct({ keyHash: Schema.String }),
+  args: () =>
+    Schema.Struct({
+      namespace: ContractsNamespace,
+      primaryKeyHash: Schema.String,
+      observerKeyHash: Schema.String,
+    }),
   returns: () =>
     Schema.Struct({
-      keyId: Schema.String,
-      workspaceId: Id("workspaces"),
-      userId: Id("users"),
+      primary: SeededContractsActor,
+      observer: SeededContractsActor,
     }),
 });
 

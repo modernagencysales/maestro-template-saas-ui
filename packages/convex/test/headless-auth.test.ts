@@ -1,4 +1,11 @@
-import { describe, expect, it } from "vitest";
+import { TestConfect } from "@confect/test";
+import * as Effect from "effect/Effect";
+import * as Option from "effect/Option";
+import * as Schema from "effect/Schema";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { DatabaseReader } from "../confect/_generated/services";
+import refs from "../confect/_generated/refs";
+import databaseSchema from "../confect/_generated/schema";
 import apiKeys from "../confect/tables/apiKeys";
 import {
   createApiKey,
@@ -8,6 +15,22 @@ import {
   verifyApiKeyHash,
 } from "../confect/headless/auth";
 import { createHeadlessErrorEnvelope } from "../confect/headless/errorEnvelope";
+import { testConfectLayer } from "./support/confect";
+
+const seedLocalContracts = (args: {
+  readonly namespace: string;
+  readonly primaryKeyHash: string;
+  readonly observerKeyHash: string;
+}) =>
+  Effect.gen(function* () {
+    const confect = yield* TestConfect.TestConfect<typeof databaseSchema>();
+    return yield* confect.mutation(
+      refs.internal.headless.apiKeys.seedLocalContracts,
+      args,
+    );
+  }).pipe(Effect.provide(testConfectLayer()));
+
+afterEach(() => vi.unstubAllEnvs());
 
 describe("headless API-key auth", () => {
   it("creates display-once API keys and stores only a hash", async () => {
@@ -186,5 +209,110 @@ describe("headless API-key auth", () => {
       by_workspace: ["workspaceId"],
       by_workspace_status: ["workspaceId", "status"],
     });
+  });
+
+  it("refuses the local contracts fixture without its explicit test flag", async () => {
+    vi.stubEnv("MAESTRO_CONTRACT_TEST", "0");
+
+    await expect(
+      Effect.runPromise(
+        seedLocalContracts({
+          namespace: "contracts-flag-check",
+          primaryKeyHash: "primary-hash",
+          observerKeyHash: "observer-hash",
+        }),
+      ),
+    ).rejects.toThrow(/MAESTRO_CONTRACT_TEST/u);
+  });
+
+  it("rejects local contract namespaces outside the contracts prefix", async () => {
+    vi.stubEnv("MAESTRO_CONTRACT_TEST", "1");
+
+    await expect(
+      Effect.runPromise(
+        seedLocalContracts({
+          namespace: "customer-production",
+          primaryKeyHash: "primary-hash",
+          observerKeyHash: "observer-hash",
+        }),
+      ),
+    ).rejects.toThrow();
+  });
+
+  it("seeds two scoped actors and returns identifiers without key material", async () => {
+    vi.stubEnv("MAESTRO_CONTRACT_TEST", "1");
+    const primaryKeyHash = "primary-hash";
+    const observerKeyHash = "observer-hash";
+    const program = Effect.gen(function* () {
+      const confect = yield* TestConfect.TestConfect<typeof databaseSchema>();
+      const seeded = yield* confect.mutation(
+        refs.internal.headless.apiKeys.seedLocalContracts,
+        {
+          namespace: "contracts-scope-check",
+          primaryKeyHash,
+          observerKeyHash,
+        },
+      );
+      const rows = yield* confect.run(
+        Effect.gen(function* () {
+          const reader = yield* DatabaseReader;
+          const primary = yield* reader
+            .table("apiKeys")
+            .index("by_key_hash", (query) =>
+              query.eq("keyHash", primaryKeyHash),
+            )
+            .first()
+            .pipe(Effect.map(Option.getOrNull), Effect.orDie);
+          const observer = yield* reader
+            .table("apiKeys")
+            .index("by_key_hash", (query) =>
+              query.eq("keyHash", observerKeyHash),
+            )
+            .first()
+            .pipe(Effect.map(Option.getOrNull), Effect.orDie);
+          return {
+            primary: primary && {
+              workspaceId: String(primary.workspaceId),
+              scopes: [...primary.scopes],
+            },
+            observer: observer && {
+              workspaceId: String(observer.workspaceId),
+              scopes: [...observer.scopes],
+            },
+          };
+        }),
+        Schema.Struct({
+          primary: Schema.NullOr(
+            Schema.Struct({
+              workspaceId: Schema.String,
+              scopes: Schema.mutable(Schema.Array(Schema.String)),
+            }),
+          ),
+          observer: Schema.NullOr(
+            Schema.Struct({
+              workspaceId: Schema.String,
+              scopes: Schema.mutable(Schema.Array(Schema.String)),
+            }),
+          ),
+        }),
+      );
+      return { rows, seeded };
+    }).pipe(Effect.provide(testConfectLayer()));
+
+    const result = await Effect.runPromise(program);
+
+    expect(result.seeded.primary.workspaceId).not.toBe(
+      result.seeded.observer.workspaceId,
+    );
+    expect(result.rows.primary).toEqual({
+      workspaceId: result.seeded.primary.workspaceId,
+      scopes: ["workspace:read", "workspace:write"],
+    });
+    expect(result.rows.observer).toEqual({
+      workspaceId: result.seeded.observer.workspaceId,
+      scopes: ["workspace:read", "workspace:write"],
+    });
+    expect(JSON.stringify(result.seeded)).not.toContain(primaryKeyHash);
+    expect(JSON.stringify(result.seeded)).not.toContain(observerKeyHash);
   });
 });
