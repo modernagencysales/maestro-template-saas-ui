@@ -19,19 +19,22 @@ describe("customer chassis Woodpecker admission", () => {
     );
   });
 
-  it("keeps the decisive command closure explicit", () => {
+  it("reaches root verification once and keeps only extra chassis proof", () => {
     const script = read("tooling/ci/verify-chassis.sh");
-    for (const command of [
+    expect(script).toContain(
       "pnpm exec playwright install --with-deps chromium",
+    );
+    expect(script.match(/^pnpm verify$/gmu)).toHaveLength(1);
+    expect(script).toContain("pnpm --dir apps/web test:runtime-longevity");
+    for (const duplicate of [
       "pnpm --dir tooling/agent-pack test:customer",
       "pnpm --dir tooling/generators test",
       "pnpm --dir tooling/release test",
       "pnpm --dir apps/cli test:create-root-integration",
       "pnpm --dir apps/web typecheck",
       "pnpm --dir apps/web build",
-      "pnpm --dir apps/web test:runtime-longevity",
     ]) {
-      expect(script).toContain(command);
+      expect(script, duplicate).not.toContain(duplicate);
     }
   });
 });

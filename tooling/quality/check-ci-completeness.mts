@@ -17,6 +17,7 @@ const FOCUSED_ONLY_TERMS = [
   "pnpm test:workflow",
   "pnpm test:pr-backlog",
   "pnpm evals",
+  "pnpm check:app-map",
 ] as const;
 
 export function validateRootVerifyHostTerms(input: unknown): readonly string[] {
@@ -40,7 +41,7 @@ export function validateRootVerifyHostTerms(input: unknown): readonly string[] {
   findings.push(
     ...FOCUSED_ONLY_TERMS.filter((term) => terms.includes(term)).map(
       (term) =>
-        `package.json scripts.verify must not rerun focused alias ${term} after root test`,
+        `package.json scripts.verify must not rerun ${term} after root test`,
     ),
   );
   const indices = REQUIRED_HOST_VERIFY_TERMS.map((required) => {

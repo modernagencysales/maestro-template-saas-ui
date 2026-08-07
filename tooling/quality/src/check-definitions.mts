@@ -26,6 +26,30 @@ const checkDescriptorDefinitions = {
         message: "Woodpecker full verification must run only as a manual epoch",
       },
       {
+        file: ".woodpecker/verify.yml",
+        includes: [
+          "event: pull_request",
+          "node:22.12.0-bookworm@sha256:",
+          "tooling/ci/verify-chassis.sh",
+        ],
+        message:
+          "the required Woodpecker PR context must use the pinned verification chassis",
+      },
+      {
+        file: "tooling/ci/verify-chassis.sh",
+        includes: ["pnpm verify", "pnpm --dir apps/web test:runtime-longevity"],
+        absent: [
+          "pnpm --dir tooling/agent-pack test:customer",
+          "pnpm --dir tooling/generators test",
+          "pnpm --dir tooling/release test",
+          "pnpm --dir apps/cli test:create-root-integration",
+          "pnpm --dir apps/web typecheck",
+          "pnpm --dir apps/web build",
+        ],
+        message:
+          "the required Woodpecker PR context must reach root verification once without nested suite reruns",
+      },
+      {
         file: "tooling/ci/firewall.sh",
         includes: [
           "pnpm check:format",
@@ -188,13 +212,15 @@ const checkDescriptorDefinitions = {
           '"typecheck": "turbo run typecheck --concurrency=1"',
           '"test:release-filesystem"',
           '"test:app-map"',
-          '"check:app-map"',
+          '"check:agent-pack": "tsx tooling/agent-pack/src/syncSkills.ts && tsx tooling/quality/check-agent-pack.mts"',
+          '"check:app-map": "pnpm --dir tooling/app-map check"',
+          '"check:confect-manifest": "tsx tooling/confect-manifest/src/check.ts"',
           "--exclude apps/cli/src/factory/customerCliRuntime.test.ts",
           "--exclude apps/cli/src/factory/createRootIntegration.test.ts",
           "--exclude tooling/release/src/customerTarget/finalFilesystem.test.ts",
           "pnpm test:bootstrap && turbo run test --filter=!@maestro-template/release-tooling --filter=!@maestro-template/agent-pack --filter=!@maestro-template/cli --filter=!@maestro-template/convex-compat && pnpm --dir tooling/agent-pack test && pnpm --dir apps/cli test && pnpm --dir tooling/convex-compat test && pnpm --dir packages/convex test:workflow-conformance && pnpm --dir apps/cli test:customer-cli-runtime && pnpm --dir apps/cli test:create-root-integration && pnpm --dir tooling/agent-pack test:privacy-no-network && pnpm --dir tooling/release test:unit && pnpm test:release-filesystem",
           'pnpm --dir tooling/evals test && pnpm --dir tooling/release test:unit"',
-          "pnpm check:agent-pack && pnpm check:app-map && pnpm check:deps",
+          "pnpm check:agent-pack && pnpm check:deps",
           "pnpm check:schema-migration-notes && pnpm check:system-catalog && pnpm check:system-topology && pnpm check:data-resources && pnpm check:append-only-tables && pnpm check:promotion-boundary && pnpm check:layer-boundaries",
         ],
         message:
@@ -1080,8 +1106,8 @@ const checkDescriptorDefinitions = {
       },
       {
         file: "package.json",
-        includes: ["pnpm check:app-map"],
-        message: "Root verification must run the App Map gate",
+        includes: ['"check:app-map": "pnpm --dir tooling/app-map check"'],
+        message: "the focused App Map gate must remain available",
       },
     ],
   },

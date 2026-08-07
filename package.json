@@ -105,7 +105,7 @@
     "check:sbom-license": "tsx tooling/quality/check-sbom-license.mts",
     "check:headless-surface-contract": "tsx tooling/quality/check-headless-surface-contract.mts",
     "check:posthog-readiness": "tsx tooling/quality/check-posthog-readiness.mts",
-    "check:confect-manifest": "pnpm --dir tooling/confect-manifest test && pnpm --dir tooling/confect-manifest typecheck && tsx tooling/confect-manifest/src/check.ts",
+    "check:confect-manifest": "tsx tooling/confect-manifest/src/check.ts",
     "check:effectified-api-proof": "pnpm --dir tooling/effectified-api-proof typecheck",
     "check:auth-demo-bypass": "tsx tooling/quality/check-auth-demo-bypass.mts",
     "check:pr-health": "tsx tooling/quality/check-pr-health.mts",
@@ -130,7 +130,7 @@
     "check:deploy-authority": "tsx tooling/quality/check-deploy-authority.mts",
     "deploy:cloudflare": "VITE_CONVEX_URL=\"$(node scripts/_project-config.mjs get production convexUrl)\" pnpm build && pnpm smoke:web-static && tsx tooling/release/src/deploy/guardedDeploy.ts cloudflare",
     "test:mutation": "bash tooling/ci/mutation.sh",
-    "verify": "pnpm check:format && pnpm lint && pnpm typecheck && pnpm check:effect-diagnostics && pnpm test && pnpm build && pnpm check:ci-completeness && pnpm check:config-drift && pnpm check:convex-ai-files && pnpm check:agent-pack && pnpm check:app-map && pnpm check:deps && pnpm check:knip && pnpm check:route-tree && pnpm check:frontend-effect-boundary && pnpm check:env-boundary && pnpm check:provider-boundary && pnpm check:logging-boundary && pnpm check:access-audit-events && pnpm check:coverage-ratchet && pnpm check:types-coverage && pnpm check:gates && pnpm check:debt && pnpm check:generators && pnpm check:docs-freshness && pnpm check:generated-files && pnpm check:confect-effect-compat && pnpm check:confect-contracts && pnpm check:confect-compat && pnpm check:effectified-api-proof && pnpm check:workflow-semantics && pnpm check:workflow-graph-boundary && pnpm check:schema-migration-notes && pnpm check:system-catalog && pnpm check:system-topology && pnpm check:data-resources && pnpm check:append-only-tables && pnpm check:promotion-boundary && pnpm check:layer-boundaries && pnpm check:secret-canaries && pnpm check:sbom-license && pnpm check:confect-manifest && pnpm check:headless-surface-contract && pnpm check:posthog-readiness && pnpm check:auth-demo-bypass",
+    "verify": "pnpm check:format && pnpm lint && pnpm typecheck && pnpm check:effect-diagnostics && pnpm test && pnpm build && pnpm check:ci-completeness && pnpm check:config-drift && pnpm check:convex-ai-files && pnpm check:agent-pack && pnpm check:deps && pnpm check:knip && pnpm check:route-tree && pnpm check:frontend-effect-boundary && pnpm check:env-boundary && pnpm check:provider-boundary && pnpm check:logging-boundary && pnpm check:access-audit-events && pnpm check:coverage-ratchet && pnpm check:types-coverage && pnpm check:gates && pnpm check:debt && pnpm check:generators && pnpm check:docs-freshness && pnpm check:generated-files && pnpm check:confect-effect-compat && pnpm check:confect-contracts && pnpm check:confect-compat && pnpm check:effectified-api-proof && pnpm check:workflow-semantics && pnpm check:workflow-graph-boundary && pnpm check:schema-migration-notes && pnpm check:system-catalog && pnpm check:system-topology && pnpm check:data-resources && pnpm check:append-only-tables && pnpm check:promotion-boundary && pnpm check:layer-boundaries && pnpm check:secret-canaries && pnpm check:sbom-license && pnpm check:confect-manifest && pnpm check:headless-surface-contract && pnpm check:posthog-readiness && pnpm check:auth-demo-bypass",
     "coverage:update-baseline": "vitest run --coverage packages/template-core packages/integrations packages/search packages/storage packages/notifications packages/observability packages/convex tooling/quality tooling/workflow tooling/release tooling/generators tooling/stack apps/cli apps/web && tsx tooling/quality/check-coverage-ratchet.mts --update",
     "prepare": "lefthook install",
     "convex:codegen": "convex codegen",
@@ -138,7 +138,7 @@
     "convex:ai-files:install": "convex ai-files install",
     "convex:ai-files:status": "convex ai-files status",
     "check:convex-ai-files": "tsx tooling/quality/check-convex-ai-files.mts",
-    "check:agent-pack": "pnpm --dir tooling/agent-pack test && pnpm --dir tooling/agent-pack typecheck && tsx tooling/agent-pack/src/syncSkills.ts && pnpm check:convex-ai-files && tsx tooling/quality/check-agent-pack.mts",
+    "check:agent-pack": "tsx tooling/agent-pack/src/syncSkills.ts && tsx tooling/quality/check-agent-pack.mts",
     "check:app-map": "pnpm --dir tooling/app-map check"
   },
   "devDependencies": {
