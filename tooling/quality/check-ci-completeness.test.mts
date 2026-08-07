@@ -74,6 +74,40 @@ describe("check:ci-completeness", () => {
     );
   });
 
+  it("pins required-context reachability and unique nested checks", () => {
+    const verifyChassis = descriptor.requirements.find(
+      ({ file }) => file === "tooling/ci/verify-chassis.sh",
+    );
+    expect(verifyChassis?.includes).toEqual(
+      expect.arrayContaining([
+        "pnpm verify",
+        "pnpm --dir apps/web test:runtime-longevity",
+      ]),
+    );
+    expect(verifyChassis?.absent).toEqual(
+      expect.arrayContaining([
+        "pnpm --dir tooling/agent-pack test:customer",
+        "pnpm --dir tooling/generators test",
+        "pnpm --dir tooling/release test",
+        "pnpm --dir apps/cli test:create-root-integration",
+        "pnpm --dir apps/web typecheck",
+        "pnpm --dir apps/web build",
+      ]),
+    );
+
+    const rootPackage = descriptor.requirements.find(
+      ({ file, includes }) =>
+        file === "package.json" && includes?.includes('"verify"'),
+    );
+    expect(rootPackage?.includes).toEqual(
+      expect.arrayContaining([
+        '"check:agent-pack": "tsx tooling/agent-pack/src/syncSkills.ts && tsx tooling/quality/check-agent-pack.mts"',
+        '"check:app-map": "pnpm --dir tooling/app-map check"',
+        '"check:confect-manifest": "tsx tooling/confect-manifest/src/check.ts"',
+      ]),
+    );
+  });
+
   it("rejects concatenated or duplicated host verification terms", () => {
     const valid = [
       "pnpm check:ci-completeness",
@@ -142,13 +176,17 @@ describe("check:ci-completeness", () => {
     const verify = [
       "pnpm test",
       "pnpm test:workflow",
+      "pnpm check:app-map",
       "pnpm check:config-drift",
       "pnpm check:convex-ai-files",
       "pnpm check:agent-pack",
     ].join(" && ");
 
     expect(validateRootVerifyHostTerms({ scripts: { verify } })).toContain(
-      "package.json scripts.verify must not rerun focused alias pnpm test:workflow after root test",
+      "package.json scripts.verify must not rerun pnpm test:workflow after root test",
+    );
+    expect(validateRootVerifyHostTerms({ scripts: { verify } })).toContain(
+      "package.json scripts.verify must not rerun pnpm check:app-map after root test",
     );
   });
 });

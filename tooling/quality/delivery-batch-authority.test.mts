@@ -73,6 +73,34 @@ describe("deterministic suite ownership", () => {
     }
   });
 
+  it("keeps nested checks unique and focused scripts available", () => {
+    const packageJson = JSON.parse(read("package.json")) as {
+      scripts: Record<string, string>;
+    };
+
+    expect(packageJson.scripts["check:agent-pack"]).toBe(
+      "tsx tooling/agent-pack/src/syncSkills.ts && tsx tooling/quality/check-agent-pack.mts",
+    );
+    expect(packageJson.scripts["check:app-map"]).toBe(
+      "pnpm --dir tooling/app-map check",
+    );
+    expect(packageJson.scripts["check:confect-manifest"]).toBe(
+      "tsx tooling/confect-manifest/src/check.ts",
+    );
+    expect(packageJson.scripts.verify).toContain("pnpm check:agent-pack");
+    expect(packageJson.scripts.verify).toContain("pnpm check:confect-manifest");
+    expect(packageJson.scripts.verify).not.toContain("pnpm check:app-map");
+  });
+
+  it("connects the required Woodpecker context to root verify once", () => {
+    const pipeline = read(".woodpecker/verify.yml");
+    const chassis = read("tooling/ci/verify-chassis.sh");
+
+    expect(pipeline).toContain("tooling/ci/verify-chassis.sh");
+    expect(chassis.match(/^pnpm verify$/gmu)).toHaveLength(1);
+    expect(chassis).toContain("pnpm --dir apps/web test:runtime-longevity");
+  });
+
   it("keeps Qlty advisory and Gitleaks independently blocking in the firewall", () => {
     const firewall = read("tooling/ci/firewall.sh");
 
