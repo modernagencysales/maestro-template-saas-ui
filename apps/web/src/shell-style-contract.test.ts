@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
@@ -30,7 +30,11 @@ describe("Saas UI shell style contract", () => {
     const dashboard = read("src/routes/dashboard.tsx");
     const shell = read("src/saas-ui/business-shell.tsx");
 
-    expect(index).toContain("AppIdeaLanding");
+    expect(index).toContain(
+      existsSync(resolve(appRoot, "../../template-instance.json"))
+        ? "BusinessDashboardRoute"
+        : "AppIdeaLanding",
+    );
     expect(dashboard).toContain("BusinessDashboardRoute");
     expect(index).not.toContain("TemplateReferenceApp");
     expect(shell).toContain("@saas-ui/react");

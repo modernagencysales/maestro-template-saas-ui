@@ -22,6 +22,7 @@ import { runCliAsync } from "../index";
 import { CREATE_HELP } from "./create";
 import { createFactoryCliComposition } from "./composition";
 import { CURRENT_PUBLIC_SOURCE } from "./createComposition";
+import { CUSTOMER_PREFLIGHT_POLICY } from "./customerComposition";
 
 const repoRoot = fileURLToPath(new URL("../../../../", import.meta.url));
 const execFileAsync = promisify(execFile);
@@ -73,16 +74,6 @@ const applyCurrentSaasProjection = (
     mkdirSync(dirname(target), { recursive: true });
     writeFileSync(target, readFileSync(join(repoRoot, path)));
   }
-  for (const entry of buildSaasApplicationTargetPlan(options).entries) {
-    const target = join(root, entry.path);
-    mkdirSync(dirname(target), { recursive: true });
-    writeFileSync(target, entry.content);
-  }
-};
-const materializeCurrentSaasPlan = (
-  root: string,
-  options: { readonly name: string; readonly firstOutcome: string },
-): void => {
   for (const entry of buildSaasApplicationTargetPlan(options).entries) {
     const target = join(root, entry.path);
     mkdirSync(dirname(target), { recursive: true });
@@ -720,142 +711,162 @@ describe("create root integration", () => {
       expect(readFileSync(join(targetRoot, path)), path).toEqual(bytes);
   }, 180_000);
 
-  it("executes the required records contract in a fresh current target", async () => {
-    const parent = mkdtempSync(join(tmpdir(), "maestro-contract-target-"));
-    temporaryRoots.push(parent);
-    const targetRoot = join(parent, "app");
-    const created = await runTaggedCli([
-      "create",
-      targetRoot,
-      "--name",
-      "Contract Prototype",
-      "--outcome",
-      "Create and review records",
-      "--demo-only",
-      "--write",
-      "--privacy-reviewed",
-      "--json",
-    ]);
-    expect(created.exitCode, `${created.stdout}\n${created.stderr}`).toBe(0);
+  it(
+    "executes the required records contract in a fresh current target",
+    async () => {
+      const parent = mkdtempSync(join(tmpdir(), "maestro-contract-target-"));
+      temporaryRoots.push(parent);
+      const targetRoot = join(parent, "app");
+      const created = await runTaggedCli([
+        "create",
+        targetRoot,
+        "--name",
+        "Contract Prototype",
+        "--outcome",
+        "Create and review records",
+        "--demo-only",
+        "--write",
+        "--privacy-reviewed",
+        "--json",
+      ]);
+      expect(created.exitCode, `${created.stdout}\n${created.stderr}`).toBe(0);
 
-    materializeCurrentSaasPlan(targetRoot, {
-      name: "Contract Prototype",
-      firstOutcome: "Create and review records",
-    });
-    const engineeringRulesPath = "docs/template/enforced-engineering-rules.md";
-    expect(readFileSync(join(targetRoot, engineeringRulesPath))).toEqual(
-      readFileSync(join(repoRoot, engineeringRulesPath)),
-    );
-    expect(readFileSync(join(targetRoot, "AGENTS.md"), "utf8")).toContain(
-      `[Enforced engineering rules](${engineeringRulesPath})`,
-    );
-    expect(existsSync(join(targetRoot, engineeringRulesPath))).toBe(true);
-    expect(
-      readFileSync(join(targetRoot, "features/first-outcome.feature"), "utf8"),
-    ).toContain("@wip\nFeature: Create and review records");
-    for (const args of [
-      ["install", "--offline", "--frozen-lockfile", "--ignore-scripts"],
-      ["confect:codegen"],
-    ]) {
-      const result = spawnSync("pnpm", args, {
+      applyCurrentSaasProjection(targetRoot, {
+        name: "Contract Prototype",
+        firstOutcome: "Create and review records",
+      });
+      const engineeringRulesPath =
+        "docs/template/enforced-engineering-rules.md";
+      expect(readFileSync(join(targetRoot, engineeringRulesPath))).toEqual(
+        readFileSync(join(repoRoot, engineeringRulesPath)),
+      );
+      expect(readFileSync(join(targetRoot, "AGENTS.md"), "utf8")).toContain(
+        `[Enforced engineering rules](${engineeringRulesPath})`,
+      );
+      expect(existsSync(join(targetRoot, engineeringRulesPath))).toBe(true);
+      expect(
+        readFileSync(
+          join(targetRoot, "features/first-outcome.feature"),
+          "utf8",
+        ),
+      ).toContain("@wip\nFeature: Create and review records");
+      execFileSync("git", ["init", "--quiet"], { cwd: targetRoot });
+      for (const args of [
+        ["install", "--offline", "--frozen-lockfile"],
+        ["confect:codegen"],
+      ]) {
+        const result = spawnSync("pnpm", args, {
+          cwd: targetRoot,
+          encoding: "utf8",
+          timeout: 240_000,
+        });
+        expect(result.status, `${result.stdout}\n${result.stderr}`).toBe(0);
+      }
+
+      execFileSync("git", ["add", "."], { cwd: targetRoot });
+      expect(
+        execFileSync("git", ["ls-files", "node_modules"], {
+          cwd: targetRoot,
+          encoding: "utf8",
+        }),
+      ).toBe("");
+      execFileSync(
+        "git",
+        [
+          "-c",
+          "user.name=Maestro Contracts",
+          "-c",
+          "user.email=contracts@template.local",
+          "commit",
+          "--quiet",
+          "-m",
+          "test fixture",
+        ],
+        { cwd: targetRoot },
+      );
+      const verification = spawnSync("pnpm", ["verify"], {
         cwd: targetRoot,
         encoding: "utf8",
-        timeout: 240_000,
+        timeout: CUSTOMER_PREFLIGHT_POLICY.fullTimeoutMs,
       });
-      expect(result.status, `${result.stdout}\n${result.stderr}`).toBe(0);
-    }
+      expect(
+        verification.status,
+        `${verification.stdout}\n${verification.stderr}`,
+      ).toBe(0);
 
-    execFileSync("git", ["init", "--quiet"], { cwd: targetRoot });
-    execFileSync("git", ["add", "."], { cwd: targetRoot });
-    execFileSync(
-      "git",
-      [
-        "-c",
-        "user.name=Maestro Contracts",
-        "-c",
-        "user.email=contracts@template.local",
-        "commit",
-        "--no-verify",
-        "--quiet",
-        "-m",
-        "test fixture",
-      ],
-      { cwd: targetRoot },
-    );
+      const contractArgs = [
+        "--silent",
+        "maestro",
+        "--",
+        "contracts",
+        "test",
+        "--required",
+      ];
+      const recordsSurface = join(
+        targetRoot,
+        "apps/web/src/features/records/records-surface.tsx",
+      );
+      const originalSurface = readFileSync(recordsSurface, "utf8");
+      expect(originalSurface).toContain("Save record");
+      writeFileSync(
+        recordsSurface,
+        originalSurface.replace("Save record", "Save draft"),
+      );
+      execFileSync("git", ["add", recordsSurface], { cwd: targetRoot });
+      execFileSync(
+        "git",
+        [
+          "-c",
+          "user.name=Maestro Contracts",
+          "-c",
+          "user.email=contracts@template.local",
+          "commit",
+          "--quiet",
+          "-m",
+          "break visible contract",
+        ],
+        { cwd: targetRoot },
+      );
+      const mutation = spawnSync("pnpm", contractArgs, {
+        cwd: targetRoot,
+        encoding: "utf8",
+        timeout: 180_000,
+      });
+      expect(mutation.status).not.toBe(0);
+      expect(`${mutation.stdout}\n${mutation.stderr}`).toContain("Save record");
 
-    const contractArgs = [
-      "--silent",
-      "maestro",
-      "--",
-      "contracts",
-      "test",
-      "--required",
-    ];
-    const recordsSurface = join(
-      targetRoot,
-      "apps/web/src/features/records/records-surface.tsx",
-    );
-    const originalSurface = readFileSync(recordsSurface, "utf8");
-    expect(originalSurface).toContain("Save record");
-    writeFileSync(
-      recordsSurface,
-      originalSurface.replace("Save record", "Save draft"),
-    );
-    execFileSync("git", ["add", recordsSurface], { cwd: targetRoot });
-    execFileSync(
-      "git",
-      [
-        "-c",
-        "user.name=Maestro Contracts",
-        "-c",
-        "user.email=contracts@template.local",
-        "commit",
-        "--no-verify",
-        "--quiet",
-        "-m",
-        "break visible contract",
-      ],
-      { cwd: targetRoot },
-    );
-    const mutation = spawnSync("pnpm", contractArgs, {
-      cwd: targetRoot,
-      encoding: "utf8",
-      timeout: 180_000,
-    });
-    expect(mutation.status).not.toBe(0);
-    expect(`${mutation.stdout}\n${mutation.stderr}`).toContain("Save record");
-
-    rmSync(join(targetRoot, ".convex"), { recursive: true, force: true });
-    writeFileSync(recordsSurface, originalSurface);
-    expect(
-      execFileSync("git", ["diff"], { cwd: targetRoot, encoding: "utf8" }),
-    ).not.toContain("mtk_live_");
-    execFileSync("git", ["add", "-u"], { cwd: targetRoot });
-    execFileSync(
-      "git",
-      [
-        "-c",
-        "user.name=Maestro Contracts",
-        "-c",
-        "user.email=contracts@template.local",
-        "commit",
-        "--no-verify",
-        "--quiet",
-        "-m",
-        "restore visible contract",
-      ],
-      { cwd: targetRoot },
-    );
-    const contracts = spawnSync("pnpm", contractArgs, {
-      cwd: targetRoot,
-      encoding: "utf8",
-      timeout: 180_000,
-    });
-    expect(contracts.status, `${contracts.stdout}\n${contracts.stderr}`).toBe(
-      0,
-    );
-    expect(contracts.stdout).toContain("4 scenarios (4 passed)");
-  }, 300_000);
+      rmSync(join(targetRoot, ".convex"), { recursive: true, force: true });
+      writeFileSync(recordsSurface, originalSurface);
+      expect(
+        execFileSync("git", ["diff"], { cwd: targetRoot, encoding: "utf8" }),
+      ).not.toContain("mtk_live_");
+      execFileSync("git", ["add", "-u"], { cwd: targetRoot });
+      execFileSync(
+        "git",
+        [
+          "-c",
+          "user.name=Maestro Contracts",
+          "-c",
+          "user.email=contracts@template.local",
+          "commit",
+          "--quiet",
+          "-m",
+          "restore visible contract",
+        ],
+        { cwd: targetRoot },
+      );
+      const contracts = spawnSync("pnpm", contractArgs, {
+        cwd: targetRoot,
+        encoding: "utf8",
+        timeout: 180_000,
+      });
+      expect(contracts.status, `${contracts.stdout}\n${contracts.stderr}`).toBe(
+        0,
+      );
+      expect(contracts.stdout).toContain("4 scenarios (4 passed)");
+    },
+    CUSTOMER_PREFLIGHT_POLICY.fullTimeoutMs + 5 * 60_000,
+  );
 });
 
 function snapshotTargetBytes(root: string): Readonly<Record<string, string>> {

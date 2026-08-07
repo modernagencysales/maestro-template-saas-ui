@@ -1,4 +1,5 @@
 import { spawnSync } from "node:child_process";
+import { hasHead } from "./check-eslint-debt-ratchet.mts";
 import { hasMode } from "./src/script-mode.mts";
 
 export type QltyMode = "--staged" | "--diff" | "--all";
@@ -7,9 +8,10 @@ const SUPPORTED = /\.(?:[cm]?[jt]sx?|py|rs|go)$/u;
 export function qltyArgs(
   mode: QltyMode,
   stagedFiles: readonly string[],
+  hasBaseline = true,
 ): string[][] {
   if (mode === "--staged") {
-    return stagedFiles.length === 0
+    return !hasBaseline || stagedFiles.length === 0
       ? []
       : [["check", ...stagedFiles, "--no-fix", "--fail-level=note"]];
   }
@@ -67,10 +69,13 @@ function run(mode: QltyMode): number {
 
 if (process.argv[1]?.endsWith("check-qlty.mts")) {
   if (hasMode("fake")) console.log("check:qlty: ok (fake mode)");
-  else
-    process.exitCode = run(
+  else {
+    const mode =
       process.argv.find((arg): arg is QltyMode =>
         ["--staged", "--diff", "--all"].includes(arg),
-      ) ?? "--all",
-    );
+      ) ?? "--all";
+    if (mode === "--staged" && !hasHead(process.cwd()))
+      console.log("check:qlty: initial snapshot is the baseline");
+    else process.exitCode = run(mode);
+  }
 }

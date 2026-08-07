@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
@@ -72,7 +72,11 @@ describe("TanStack Start runtime contract", () => {
     const dashboard = read("src/routes/dashboard.tsx");
 
     expect(source).toContain('createFileRoute("/")');
-    expect(source).toContain("AppIdeaLanding");
+    expect(source).toContain(
+      existsSync(resolve(appRoot, "../../template-instance.json"))
+        ? "BusinessDashboardRoute"
+        : "AppIdeaLanding",
+    );
     expect(dashboard).toContain("BusinessDashboardRoute");
     expect(source).not.toContain("TemplateReferenceApp");
   });

@@ -21,6 +21,22 @@ const sourcePaths = execFileSync(
 )
   .trim()
   .split("\n");
+
+const CUSTOMER_FACTORY_RUNTIME_FILES = [
+  "apps/cli/src/factory/customerComposition.ts",
+  "apps/cli/src/factory/contracts.ts",
+  "apps/cli/src/factory/mcp.ts",
+  "apps/cli/src/factory/start.ts",
+  "apps/cli/src/factory/customerRecipes.ts",
+  "apps/cli/src/factory/recipeCatalog.ts",
+  "apps/cli/src/factory/recipes.ts",
+  "apps/cli/src/factory/supportBundle.ts",
+  "apps/cli/src/factory/environment.ts",
+  "apps/cli/src/factory/preflight.ts",
+  "apps/cli/src/factory/verify.ts",
+  "apps/cli/src/factory/router.ts",
+] as const;
+
 describe("customer ownership inventory", () => {
   it("pins exact vendored authorities outside customer workspaces", () => {
     const guidePath = resolve(repoRoot, "repos/README.md");
@@ -85,7 +101,7 @@ describe("customer ownership inventory", () => {
     [".claude/settings.json", "generated", "generate"],
     ["maestro-template.mjs", "template-owned", "copy"],
     ["apps/web/src/routes/index.tsx", "template-owned", "copy"],
-    ["tooling/generators/src/index.ts", "template-owned", "copy"],
+    ["tooling/generators/src/index.ts", "factory-only", "omit"],
     ["tooling/quality/check-generated-files.mts", "template-owned", "copy"],
     ["tooling/app-map/src/build.ts", "template-owned", "copy"],
     ["tooling/app-map/INTEGRATION_REQUEST.md", "factory-only", "omit"],
@@ -203,6 +219,61 @@ describe("customer ownership inventory", () => {
       ownership,
       action,
     });
+  });
+
+  it.each([
+    "tooling/generators/src/blueprints/gtmImplementation.ts",
+    "tooling/generators/src/crud-proof.test.ts",
+    "tooling/generators/src/crud-proof.ts",
+    "tooling/generators/src/customer-cli.ts",
+    "tooling/generators/src/customer-dispatcher.ts",
+    "tooling/generators/src/customer-runtime.ts",
+    "tooling/generators/src/customer.ts",
+    "tooling/generators/src/direct-run.ts",
+    "tooling/generators/src/feature-crud.ts",
+    "tooling/generators/src/private-package.ts",
+    "tooling/generators/src/workflow-files.ts",
+    "tooling/generators/src/workflow-predeploy.ts",
+    "tooling/generators/src/workflow-release-commands.ts",
+    "tooling/generators/src/workflow-source-closure.ts",
+  ])("keeps customer generator runtime %s template-owned", (path) => {
+    expect(classifyCustomerSourcePath(path)).toMatchObject({
+      ownership: "template-owned",
+      action: "copy",
+    });
+  });
+
+  it("keeps the generator package governed by the template", () => {
+    expect(
+      classifyCustomerSourcePath("tooling/generators/package.json"),
+    ).toMatchObject({ ownership: "template-owned", action: "copy" });
+  });
+
+  it("keeps only the customer CLI factory runtime closure", () => {
+    for (const path of CUSTOMER_FACTORY_RUNTIME_FILES) {
+      expect(classifyCustomerSourcePath(path)).toMatchObject({
+        ownership: "template-owned",
+        action: "copy",
+      });
+    }
+
+    const factoryOnlyPaths = sourcePaths.filter(
+      (path) =>
+        path.startsWith("apps/cli/src/factory/") &&
+        !CUSTOMER_FACTORY_RUNTIME_FILES.includes(
+          path as (typeof CUSTOMER_FACTORY_RUNTIME_FILES)[number],
+        ),
+    );
+    expect(factoryOnlyPaths).toContain("apps/cli/src/factory/adopt.ts");
+    expect(factoryOnlyPaths).toContain(
+      "apps/cli/src/factory/createRootIntegration.test.ts",
+    );
+    for (const path of factoryOnlyPaths) {
+      expect(classifyCustomerSourcePath(path)).toMatchObject({
+        ownership: "factory-only",
+        action: "omit",
+      });
+    }
   });
 
   it("binds the complete unpublished fixture to its declared hashes", () => {

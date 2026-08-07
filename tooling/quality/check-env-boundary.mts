@@ -19,6 +19,7 @@ const scannedRoots = ["apps", "packages"] as const;
 const allowedEnvBoundaryFiles = new Set([
   "apps/cli/src/index.ts",
   "apps/web/src/env.ts",
+  "apps/web/vite.config.ts",
   "packages/convex/confect/email/env.ts",
   "packages/convex/confect/shared/env.ts",
 ]);

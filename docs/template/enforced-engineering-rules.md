@@ -33,10 +33,9 @@ is shipped with it:
 - Product architecture, generator, Cucumber, type-safety, lifecycle, headless,
   security, and dependency requirements apply when the corresponding surface
   exists in the current checkout.
-- Factory hook, Qlty triage, Woodpecker, release, and protected dependency-proxy
-  details describe this source repository. Current customer ownership omits
-  `.woodpecker/`, `.qlty/`, and `tooling/ci/`; those controls do not become
-  customer enforcement until a reviewed customer-owned projection installs them.
+- Current generated customers receive Lefthook, the Qlty runner, and
+  `.qlty/qlty.toml`. `.woodpecker/` and `tooling/ci/` remain factory/host policy
+  rather than projected customer controls.
 - Run commands only when they exist in the current checkout. The current
   checkout's `AGENTS.md`, package scripts, and CI policy win over factory paths
   named here.
@@ -47,7 +46,7 @@ an execution plane. Qlty is required while authoring new code but remains
 advisory for merge scheduling under repository policy. A generated customer must
 install and activate its own CI/quality projection before claiming either the
 factory status or equivalent supply-chain coverage; current customer ownership
-does not include `.woodpecker/`, `.qlty/`, or `tooling/ci/`.
+does not include `.woodpecker/` or `tooling/ci/`.
 
 ## Required Generator Loop
 

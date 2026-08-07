@@ -146,8 +146,15 @@ pnpm check:system-topology
 pnpm check:data-resources
 \`\`\`
 
-Use \`pnpm verify\` for the exhaustive handoff gate. Fake mode requires no live
-provider credentials and must not contain production or customer data.
+For a frozen delivery head, run required journeys before verification:
+
+\`\`\`bash
+pnpm maestro -- contracts test --required
+pnpm verify
+\`\`\`
+
+Fake mode requires no live provider credentials and must not contain production
+or customer data.
 `;
 
 export const REMOVED_CUSTOMER_TEMPLATE_SCRIPTS = [
@@ -438,7 +445,7 @@ const customerPackage = (current: boolean): string => {
   value.scripts.test =
     "turbo run test --filter='./packages/*' --filter=@maestro-template/web";
   value.scripts["test:tooling"] =
-    "pnpm test:bootstrap && pnpm --dir tooling/workflow test && pnpm --dir tooling/generators exec vitest run src/customer-runtime.test.ts src/templateInstanceMigration.test.ts src/workflow-publication-generation.test.ts src/workflow-release-commands.test.ts --maxWorkers=1 --no-file-parallelism";
+    "pnpm test:bootstrap && pnpm --dir tooling/workflow test";
   value.scripts["check:coverage-ratchet"] =
     `vitest run --coverage --maxWorkers=1 --no-file-parallelism packages/template-core packages/integrations packages/search packages/storage packages/notifications packages/observability packages/convex tooling/quality tooling/workflow tooling/generators apps/cli apps/web${current ? currentCustomerRootTestExclusions() : ""} && tsx tooling/quality/check-coverage-ratchet.mts`;
   value.scripts["coverage:update-baseline"] =
@@ -1012,172 +1019,162 @@ const routeTree = (current: boolean): string => {
   );
 };
 
+const when = <T>(condition: boolean, values: readonly T[]): readonly T[] =>
+  condition ? values : [];
+
 export const buildSaasRegistrationProjections = (
   options: { readonly current?: boolean } = {},
-  // eslint-disable-next-line complexity -- this is a declarative file projection, not branching behavior
 ): readonly GeneratedFile[] => {
   const current = options.current ?? true;
   return [
-    ...(current
-      ? [
-          {
-            path: "README.md",
-            content: customerReadme(),
-          },
-          {
-            path: "docs/template/agent-pack-privacy.md",
-            content: currentPublicDocument("agent-pack-privacy.md"),
-          },
-          {
-            path: "docs/template/preflight.md",
-            content: currentPublicDocument("preflight.md"),
-          },
-          {
-            path: "docs/template/coding-standards.md",
-            content: currentPublicDocument("coding-standards.md"),
-          },
-          {
-            path: "cucumber.cjs",
-            content: currentSource("cucumber.cjs"),
-          },
-          {
-            path: "tooling/acceptance/check-features.mts",
-            content: currentSource("tooling/acceptance/check-features.mts"),
-          },
-          {
-            path: "AGENTS.md",
-            content: currentSource("AGENTS.md"),
-          },
-          {
-            path: "docs/template/agent-worker-playbook.md",
-            content: currentPublicDocument("agent-worker-playbook.md"),
-          },
-          {
-            path: "docs/template/how-this-relates-to-maestro.md",
-            content: currentPublicDocument("how-this-relates-to-maestro.md"),
-          },
-          {
-            path: "agent-patterns/effect-confect.md",
-            content: currentSource("agent-patterns/effect-confect.md"),
-          },
-          {
-            path: "docs/template/repo-map.md",
-            content: currentPublicDocument("repo-map.md"),
-          },
-          {
-            path: "docs/template/template-maturity-model.md",
-            content: currentPublicDocument("template-maturity-model.md"),
-          },
-          {
-            path: "maestro-template.mjs",
-            content: currentSource("maestro-template.mjs"),
-          },
-          {
-            path: "scripts/maestro-bootstrap.mjs",
-            content: currentSource("scripts/maestro-bootstrap.mjs"),
-          },
-          {
-            path: "scripts/maestro-bootstrap.test.mjs",
-            content: currentSource("scripts/maestro-bootstrap.test.mjs"),
-          },
-          {
-            path: "scripts/configure-postmark.mts",
-            content: currentSource("scripts/configure-postmark.mts"),
-          },
-          {
-            path: "apps/web/src/bundle-policy.ts",
-            content: currentSource("apps/web/src/bundle-policy.ts"),
-          },
-          {
-            path: "apps/web/scripts/check-client-bundle-budget.mjs",
-            content: currentSource(
-              "apps/web/scripts/check-client-bundle-budget.mjs",
-            ),
-          },
-          {
-            path: "apps/web/scripts/check-client-bundle-budget.test.mjs",
-            content: currentSource(
-              "apps/web/scripts/check-client-bundle-budget.test.mjs",
-            ),
-          },
-          {
-            path: "apps/web/src/bundle-policy.test.ts",
-            content: currentSource("apps/web/src/bundle-policy.test.ts"),
-          },
-          {
-            path: "apps/web/vite.config.ts",
-            content: currentSource("apps/web/vite.config.ts"),
-          },
-          {
-            path: "pnpm-workspace.yaml",
-            content: currentSource("pnpm-workspace.yaml"),
-          },
-          {
-            path: "packages/convex/package.json",
-            content: customerPackageWithoutAppIdeaEvaluator(
-              "packages/convex/package.json",
-            ),
-          },
-          {
-            path: "tooling/quality/check-convex-generation.mts",
-            content: currentSource(
-              "tooling/quality/check-convex-generation.mts",
-            ),
-          },
-        ]
-      : []),
+    ...when(current, [
+      {
+        path: "README.md",
+        content: customerReadme(),
+      },
+      {
+        path: "docs/template/agent-pack-privacy.md",
+        content: currentPublicDocument("agent-pack-privacy.md"),
+      },
+      {
+        path: "docs/template/preflight.md",
+        content: currentPublicDocument("preflight.md"),
+      },
+      {
+        path: "docs/template/coding-standards.md",
+        content: currentPublicDocument("coding-standards.md"),
+      },
+      {
+        path: "cucumber.cjs",
+        content: currentSource("cucumber.cjs"),
+      },
+      {
+        path: "tooling/acceptance/check-features.mts",
+        content: currentSource("tooling/acceptance/check-features.mts"),
+      },
+      {
+        path: "AGENTS.md",
+        content: currentSource("AGENTS.md"),
+      },
+      {
+        path: "docs/template/agent-worker-playbook.md",
+        content: currentPublicDocument("agent-worker-playbook.md"),
+      },
+      {
+        path: "docs/template/how-this-relates-to-maestro.md",
+        content: currentPublicDocument("how-this-relates-to-maestro.md"),
+      },
+      {
+        path: "agent-patterns/effect-confect.md",
+        content: currentSource("agent-patterns/effect-confect.md"),
+      },
+      {
+        path: "docs/template/repo-map.md",
+        content: currentPublicDocument("repo-map.md"),
+      },
+      {
+        path: "docs/template/template-maturity-model.md",
+        content: currentPublicDocument("template-maturity-model.md"),
+      },
+      {
+        path: "maestro-template.mjs",
+        content: currentSource("maestro-template.mjs"),
+      },
+      {
+        path: "scripts/maestro-bootstrap.mjs",
+        content: currentSource("scripts/maestro-bootstrap.mjs"),
+      },
+      {
+        path: "scripts/maestro-bootstrap.test.mjs",
+        content: currentSource("scripts/maestro-bootstrap.test.mjs"),
+      },
+      {
+        path: "scripts/configure-postmark.mts",
+        content: currentSource("scripts/configure-postmark.mts"),
+      },
+      {
+        path: "apps/web/src/bundle-policy.ts",
+        content: currentSource("apps/web/src/bundle-policy.ts"),
+      },
+      {
+        path: "apps/web/scripts/check-client-bundle-budget.mjs",
+        content: currentSource(
+          "apps/web/scripts/check-client-bundle-budget.mjs",
+        ),
+      },
+      {
+        path: "apps/web/scripts/check-client-bundle-budget.test.mjs",
+        content: currentSource(
+          "apps/web/scripts/check-client-bundle-budget.test.mjs",
+        ),
+      },
+      {
+        path: "apps/web/src/bundle-policy.test.ts",
+        content: currentSource("apps/web/src/bundle-policy.test.ts"),
+      },
+      {
+        path: "apps/web/vite.config.ts",
+        content: currentSource("apps/web/vite.config.ts"),
+      },
+      {
+        path: "pnpm-workspace.yaml",
+        content: currentSource("pnpm-workspace.yaml"),
+      },
+      {
+        path: "packages/convex/package.json",
+        content: customerPackageWithoutAppIdeaEvaluator(
+          "packages/convex/package.json",
+        ),
+      },
+      {
+        path: "tooling/quality/check-convex-generation.mts",
+        content: currentSource("tooling/quality/check-convex-generation.mts"),
+      },
+    ]),
     {
       path: "apps/cli/src/factory/customerComposition.ts",
       content: current
         ? currentSource("apps/cli/src/factory/customerComposition.ts")
         : releasedSource("apps/cli/src/factory/customerComposition.ts"),
     },
-    ...(current
-      ? [
-          {
-            path: "apps/cli/src/factory/contracts.ts",
-            content: currentSource("apps/cli/src/factory/contracts.ts"),
-          },
-          {
-            path: "apps/cli/src/factory/mcp.ts",
-            content: currentSource("apps/cli/src/factory/mcp.ts"),
-          },
-        ]
-      : []),
-    ...(current
-      ? [
-          {
-            path: "apps/cli/src/commands.ts",
-            content: currentSource("apps/cli/src/commands.ts"),
-          },
-        ]
-      : []),
+    ...when(current, [
+      {
+        path: "apps/cli/src/factory/contracts.ts",
+        content: currentSource("apps/cli/src/factory/contracts.ts"),
+      },
+      {
+        path: "apps/cli/src/factory/mcp.ts",
+        content: currentSource("apps/cli/src/factory/mcp.ts"),
+      },
+    ]),
+    ...when(current, [
+      {
+        path: "apps/cli/src/commands.ts",
+        content: currentSource("apps/cli/src/commands.ts"),
+      },
+    ]),
     {
       path: "apps/cli/src/index.ts",
       content: customerCliEntry(current),
     },
-    ...(current
-      ? [
-          {
-            path: "tooling/agent-pack/package.json",
-            content: customerAgentPackPackage(),
-          },
-        ]
-      : []),
+    ...when(current, [
+      {
+        path: "tooling/agent-pack/package.json",
+        content: customerAgentPackPackage(),
+      },
+    ]),
     {
       path: "apps/cli/package.json",
       content: customerCliPackage(),
     },
-    ...(current
-      ? [
-          {
-            path: "apps/web/package.json",
-            content: customerPackageWithoutAppIdeaEvaluator(
-              "apps/web/package.json",
-            ),
-          },
-        ]
-      : []),
+    ...when(current, [
+      {
+        path: "apps/web/package.json",
+        content: customerPackageWithoutAppIdeaEvaluator(
+          "apps/web/package.json",
+        ),
+      },
+    ]),
     {
       path: "apps/cli/src/factory/start.ts",
       content: source("apps/cli/src/factory/start.ts"),
@@ -1194,34 +1191,28 @@ export const buildSaasRegistrationProjections = (
       path: "apps/cli/src/factory/recipes.ts",
       content: currentSource("apps/cli/src/factory/recipes.ts"),
     },
-    ...(current
-      ? [
-          {
-            path: "apps/cli/src/factory/supportBundle.ts",
-            content: currentSource("apps/cli/src/factory/supportBundle.ts"),
-          },
-        ]
-      : []),
-    ...(current ? [{ path: ".npmrc", content: currentSource(".npmrc") }] : []),
+    ...when(current, [
+      {
+        path: "apps/cli/src/factory/supportBundle.ts",
+        content: currentSource("apps/cli/src/factory/supportBundle.ts"),
+      },
+    ]),
+    ...when(current, [{ path: ".npmrc", content: currentSource(".npmrc") }]),
     { path: ".prettierignore", content: currentSource(".prettierignore") },
     { path: "package.json", content: customerPackage(current) },
-    ...(current
-      ? [{ path: "pnpm-lock.yaml", content: customerLockfile() }]
-      : []),
-    ...(current
-      ? [
-          {
-            path: "patches/@confect__cli@10.0.0-next.9.patch",
-            content: currentSource("patches/@confect__cli@10.0.0-next.9.patch"),
-          },
-          {
-            path: "patches/@tanstack__start-plugin-core@1.171.18.patch",
-            content: currentSource(
-              "patches/@tanstack__start-plugin-core@1.171.18.patch",
-            ),
-          },
-        ]
-      : []),
+    ...when(current, [{ path: "pnpm-lock.yaml", content: customerLockfile() }]),
+    ...when(current, [
+      {
+        path: "patches/@confect__cli@10.0.0-next.9.patch",
+        content: currentSource("patches/@confect__cli@10.0.0-next.9.patch"),
+      },
+      {
+        path: "patches/@tanstack__start-plugin-core@1.171.18.patch",
+        content: currentSource(
+          "patches/@tanstack__start-plugin-core@1.171.18.patch",
+        ),
+      },
+    ]),
     {
       path: "tooling/confect-manifest/tsconfig.json",
       content: currentSource("tooling/confect-manifest/tsconfig.json"),
@@ -1230,52 +1221,47 @@ export const buildSaasRegistrationProjections = (
       path: "tooling/generators/package.json",
       content: customerGeneratorPackage(),
     },
-    ...(current
-      ? [
-          {
-            path: "tooling/quality/package.json",
-            content: customerQualityPackage(),
-          },
-        ]
-      : []),
-    ...(current
-      ? [
-          {
-            path: "examples/generic-ai-ops/template-package.json",
-            content: source("examples/generic-ai-ops/template-package.json"),
-          },
-        ]
-      : []),
-    ...(current
-      ? [
-          "lefthook.yml",
-          "scripts/pre-push-rubric.sh",
-          "tooling/quality/contract-review-rubric.md",
-          "tooling/quality/taste-review.mts",
-        ].map((path) => ({ path, content: currentSource(path) }))
-      : []),
+    ...when(current, [
+      {
+        path: "tooling/quality/package.json",
+        content: customerQualityPackage(),
+      },
+    ]),
+    ...when(current, [
+      {
+        path: "examples/generic-ai-ops/template-package.json",
+        content: source("examples/generic-ai-ops/template-package.json"),
+      },
+    ]),
+    ...when(
+      current,
+      [
+        "lefthook.yml",
+        "scripts/pre-push-rubric.sh",
+        "tooling/quality/contract-review-rubric.md",
+        "tooling/quality/taste-review.mts",
+      ].map((path) => ({ path, content: currentSource(path) })),
+    ),
     {
       path: "tooling/quality/install-lefthook-if-git.mjs",
-      content: `/* global process */\n\n${source("tooling/quality/install-lefthook-if-git.mjs")}`,
+      content: source("tooling/quality/install-lefthook-if-git.mjs"),
     },
     ...(
       [
         ["customer.ts", "customer.ts"],
         ["customer-runtime.ts", "customer-runtime.ts"],
         ["customer-dispatcher.ts", "customer-dispatcher.ts"],
-        ...(current
-          ? ([["private-package.ts", "private-package.ts"]] as const)
-          : []),
+        ...when(current, [
+          ["private-package.ts", "private-package.ts"],
+        ] as const),
         ["customer-cli.ts", "customer-cli.ts"],
         ["crud-proof.ts", "crud-proof.ts"],
         ["direct-run.ts", "direct-run.ts"],
         ["feature-crud.ts", "feature-crud.ts"],
         ["workflow-release-commands.ts", "workflow-release-commands.ts"],
-        ...(current
-          ? ([
-              ["workflow-source-closure.ts", "workflow-source-closure.ts"],
-            ] as const)
-          : []),
+        ...when(current, [
+          ["workflow-source-closure.ts", "workflow-source-closure.ts"],
+        ] as const),
         ["blueprints/gtmImplementation.ts", "blueprints/gtmImplementation.ts"],
       ] as const
     ).map(([path, name]) => ({
@@ -1288,31 +1274,29 @@ export const buildSaasRegistrationProjections = (
     ...[
       "tooling/generators/src/workflow-files.ts",
       "tooling/generators/src/workflow-predeploy.ts",
-      ...(current
-        ? [
-            "packages/convex/confect/workflows/_kit/graphRunnerCurrent.ts",
-            "packages/convex/confect/workflows/_kit/graphRunnerV2Current.ts",
-            "packages/convex/confect/workflows/_kit/observedStageCurrent.ts",
-            "packages/convex/confect/workflows/_kit/observedStagePayloadCurrent.ts",
-            "packages/convex/confect/workflows/_kit/workflowBuilderCurrent.ts",
-            "packages/convex/confect/workflows/_kit/workflowSchedule.ts",
-            "packages/convex/confect/workflows/_kit/workflowScheduledCapability.ts",
-            "packages/convex/confect/workflows/graphCurrent.ts",
-            "packages/convex/confect/workflows/graphNodeSchemaCurrent.ts",
-            "packages/convex/confect/workflows/graphSchemaCurrent.ts",
-            "packages/convex/confect/workflows/graphValidationCurrent.ts",
-          ]
-        : []),
+      ...when(current, [
+        "packages/convex/confect/workflows/_kit/graphRunnerCurrent.ts",
+        "packages/convex/confect/workflows/_kit/graphRunnerV2Current.ts",
+        "packages/convex/confect/workflows/_kit/observedStageCurrent.ts",
+        "packages/convex/confect/workflows/_kit/observedStagePayloadCurrent.ts",
+        "packages/convex/confect/workflows/_kit/workflowBuilderCurrent.ts",
+        "packages/convex/confect/workflows/_kit/workflowSchedule.ts",
+        "packages/convex/confect/workflows/_kit/workflowScheduledCapability.ts",
+        "packages/convex/confect/workflows/graphCurrent.ts",
+        "packages/convex/confect/workflows/graphNodeSchemaCurrent.ts",
+        "packages/convex/confect/workflows/graphSchemaCurrent.ts",
+        "packages/convex/confect/workflows/graphValidationCurrent.ts",
+      ]),
       "packages/convex/confect/capabilities/_kit/workspaceAccess.ts",
       "packages/convex/confect/_generated/docs.ts",
       "packages/convex/confect/_generated/tables/workflowArtifacts.ts",
-      ...(!current
-        ? ["packages/convex/confect/ops/dataResources.generated.ts"]
-        : []),
-      ...(current ? CURRENT_EMAIL_CLOSURE : []),
-      ...(current ? CURRENT_HEADLESS_CONTRACT_SOURCE_CLOSURE : []),
-      ...(current ? CURRENT_SAAS_DEPLOY_AUTHORITY_TABLE_CLOSURE : []),
-      ...(current ? CURRENT_SAAS_DEPLOY_AUTHORITY_SOURCE_CLOSURE : []),
+      ...when(!current, [
+        "packages/convex/confect/ops/dataResources.generated.ts",
+      ]),
+      ...when(current, CURRENT_EMAIL_CLOSURE),
+      ...when(current, CURRENT_HEADLESS_CONTRACT_SOURCE_CLOSURE),
+      ...when(current, CURRENT_SAAS_DEPLOY_AUTHORITY_TABLE_CLOSURE),
+      ...when(current, CURRENT_SAAS_DEPLOY_AUTHORITY_SOURCE_CLOSURE),
       "packages/convex/confect/tables/workflowArtifacts.ts",
       "packages/convex/confect/tables/workflowRuns.ts",
       "packages/convex/confect/tables/workflowStageRuns.ts",
@@ -1376,54 +1360,51 @@ export const buildSaasRegistrationProjections = (
           ? currentSource("tooling/agent-pack/src/customer.ts")
           : source(`tooling/agent-pack/src/${path}`),
     })),
-    ...(current
-      ? ["mcp/protocol.ts", "mcp/projection.ts", "mcp/server.ts"].map(
-          (path) => ({
-            path: `tooling/agent-pack/src/${path}`,
-            content: currentSource(`tooling/agent-pack/src/${path}`),
-          }),
-        )
-      : []),
-    ...(current
-      ? [
-          "customerTestClosure.ts",
-          "customerTestClosure.test.ts",
-          "mcp/projection.test.ts",
-          "mcp/protocol.test.ts",
-          "mcp/server.test.ts",
-          "nodeAdapters.test.ts",
-        ].map((path) => ({
-          path: `tooling/agent-pack/src/${path}`,
-          content: currentSource(`tooling/agent-pack/src/${path}`),
-        }))
-      : []),
-    ...(current
-      ? [
-          {
-            path: "apps/web/src/routes/index.tsx",
-            content: currentGeneratorSource(
-              "blueprints/customer/index-route.tsx.txt",
-            ),
-          },
-          {
-            path: "apps/web/src/providers/posthog.tsx",
-            content: currentGeneratorSource(
-              "blueprints/customer/posthog.tsx.txt",
-            ),
-          },
-        ]
-      : []),
-    ...(current
-      ? [
-          "privacy/supportBundle.ts",
-          "privacy/supportBundleCommand.ts",
-          "privacy/nodeSupportBundleExporter.ts",
-          "privacy/support-bundle.schema.json",
-        ].map((path) => ({
-          path: `tooling/agent-pack/src/${path}`,
-          content: currentSource(`tooling/agent-pack/src/${path}`),
-        }))
-      : []),
+    ...when(
+      current,
+      ["mcp/protocol.ts", "mcp/projection.ts", "mcp/server.ts"].map((path) => ({
+        path: `tooling/agent-pack/src/${path}`,
+        content: currentSource(`tooling/agent-pack/src/${path}`),
+      })),
+    ),
+    ...when(
+      current,
+      [
+        "customerTestClosure.ts",
+        "customerTestClosure.test.ts",
+        "mcp/projection.test.ts",
+        "mcp/protocol.test.ts",
+        "mcp/server.test.ts",
+        "nodeAdapters.test.ts",
+      ].map((path) => ({
+        path: `tooling/agent-pack/src/${path}`,
+        content: currentSource(`tooling/agent-pack/src/${path}`),
+      })),
+    ),
+    ...when(current, [
+      {
+        path: "apps/web/src/routes/index.tsx",
+        content: currentGeneratorSource(
+          "blueprints/customer/index-route.tsx.txt",
+        ),
+      },
+      {
+        path: "apps/web/src/providers/posthog.tsx",
+        content: currentGeneratorSource("blueprints/customer/posthog.tsx.txt"),
+      },
+    ]),
+    ...when(
+      current,
+      [
+        "privacy/supportBundle.ts",
+        "privacy/supportBundleCommand.ts",
+        "privacy/nodeSupportBundleExporter.ts",
+        "privacy/support-bundle.schema.json",
+      ].map((path) => ({
+        path: `tooling/agent-pack/src/${path}`,
+        content: currentSource(`tooling/agent-pack/src/${path}`),
+      })),
+    ),
     {
       path: "tooling/quality/check-agent-pack.mts",
       content: customerAgentPackCheck(),

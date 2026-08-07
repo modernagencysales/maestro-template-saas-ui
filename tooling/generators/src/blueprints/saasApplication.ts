@@ -139,9 +139,18 @@ const recordGovernanceFiles = (): readonly GeneratedFile[] => {
     "deployAuthorityAuditEvents",
     ...retainedEmailTableIds,
   ]);
-  const retainedTopologyIds = new Set(
-    releasedTopology.resources.map(({ id }) => id),
-  );
+  const retainedTopologyIds = new Set([
+    ...releasedTopology.resources.map(({ id }) => id),
+    "headless:api-key-contract",
+    "headless:api-key-runtime",
+    "integration:admaxxer",
+    "integration:dodo-crypto",
+    "integration:dodo-webhook",
+    "integration:email",
+    "integration:email-setup",
+    "integration:provider-adapter",
+    "integration:provider-registry",
+  ]);
   const governedSystems = parseSystemCatalog({
     ...systems,
     systems: [
@@ -697,6 +706,7 @@ function buildTargetPlan(
     ...(current
       ? [
           "Justfile",
+          ".qlty/qlty.toml",
           "apps/web/src/adapters/confect-generated-refs.test.ts",
           "docs/rule-coverage.md",
           "docs/template/enforced-engineering-rules.md",

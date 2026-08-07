@@ -16,35 +16,35 @@ test("refuses to restack while a required check is in progress", () => {
   expect(mayRestack({ "ci/woodpecker/pr/verify": null })).toBe(false); // null = in-flight/none yet
 });
 
-test("refuses to restack while a required status context is pending", () => {
-  expect(mayRestack({ qlty: "PENDING" })).toBe(false);
+test("allows restack while Qlty is pending", () => {
+  expect(mayRestack({ qlty: "PENDING" })).toBe(true);
 });
 
 test("ignores advisory plan-required while restacking", () => {
-  expect(mayRestack({ verify: "SUCCESS", "plan-required": "PENDING" })).toBe(
-    true,
-  );
+  expect(
+    mayRestack({
+      "ci/woodpecker/pr/verify": "SUCCESS",
+      "plan-required": "PENDING",
+    }),
+  ).toBe(true);
 });
 
 test("allows restack when all required checks have concluded", () => {
-  expect(mayRestack({ verify: "SUCCESS" })).toBe(true);
+  expect(mayRestack({ "ci/woodpecker/pr/verify": "SUCCESS" })).toBe(true);
 });
 
-test("sliceGreen requires SUCCESS on all required checks", () => {
+test("sliceGreen requires only successful Woodpecker verification", () => {
   expect(
     sliceGreen({
-      verify: "SUCCESS",
-      qlty: "SUCCESS",
       "ci/woodpecker/pr/verify": "SUCCESS",
-      "unresolved-review-threads": "SUCCESS",
-      "merge-conflict": "SUCCESS",
+      qlty: "PENDING",
+      "unresolved-review-threads": "FAILURE",
+      "merge-conflict": "FAILURE",
     }),
   ).toBe(true);
   expect(
     sliceGreen({
-      verify: "SUCCESS",
       qlty: "SUCCESS",
-      taste: null,
     }),
   ).toBe(false);
 });
@@ -67,7 +67,7 @@ test("syncStack fetches, checks affected PRs, then invokes Graphite sync/restack
       args[1] ===
         "repos/modernagencysales/maestro-template/commits/abc123/status"
     ) {
-      return '{"statuses":[{"context":"verify","state":"success"}]}';
+      return '{"statuses":[{"context":"ci/woodpecker/pr/verify","state":"success"}]}';
     }
     if (
       cmd === "gh" &&

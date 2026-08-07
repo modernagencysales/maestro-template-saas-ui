@@ -6,11 +6,11 @@ import {
   type AgentPackResult,
 } from "@maestro-template/agent-pack";
 import type { CliResult } from "../types";
+import { CREATE_HELP } from "../help";
 import { cliSuccess } from "../result";
 import { runAgentPackCommandAsCli, type FactoryCliRenderMode } from "./router";
 
-export const CREATE_HELP =
-  'maestro create <target> --name "My App" --outcome "Track client requests" [--demo-only] [--write --privacy-reviewed] [--human|--details|--json]\n';
+export { CREATE_HELP } from "../help";
 
 export function createCreateCliHandler<Args, Data extends AgentPackJsonValue>(
   command: AgentPackCommand<"create", Args, Data>,

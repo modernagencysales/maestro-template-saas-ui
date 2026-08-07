@@ -388,11 +388,33 @@ describe("saas application blueprint", () => {
       generator: "add-feature",
       commandFamily: "template:add-feature",
       name: "records",
-      ownership: { system: "knowledge-brain", disposition: "extend" },
+      ownership: { system: "record-management", disposition: "extend" },
       generatedPaths: expect.arrayContaining([
         "apps/web/src/routes/_workspace.records.tsx",
       ]),
     });
+  });
+
+  it("retains topology ownership for projected customer runtime files", () => {
+    const entry = buildSaasApplicationTargetPlan().entries.find(
+      ({ path }) => path === "docs/template/product-topology.json",
+    );
+    if (!entry) throw new Error("missing projected product topology");
+    const topology = parseProductTopology(JSON.parse(entry.content));
+    for (const path of [
+      "packages/convex/confect/headless/apiKeys.impl.ts",
+      "packages/convex/confect/headless/apiKeys.spec.ts",
+      "packages/integrations/src/admaxxer.ts",
+      "packages/integrations/src/dodoCrypto.ts",
+      "packages/integrations/src/dodoWebhook.ts",
+      "packages/integrations/src/email.ts",
+      "packages/integrations/src/emailSetup.ts",
+      "packages/integrations/src/providerAdapter.ts",
+      "packages/integrations/src/providerRegistry.ts",
+    ])
+      expect(
+        topology.resources.some((resource) => resource.path === path),
+      ).toBe(true);
   });
 
   it("projects only the supported customer generator scripts", () => {
@@ -659,6 +681,17 @@ describe("saas application blueprint", () => {
     });
     expect(engineeringRules).not.toHaveProperty("replaces");
 
+    const qltyConfigPath = ".qlty/qlty.toml";
+    expect(plan.registrations).toContain(qltyConfigPath);
+    expect(
+      plan.entries.find(({ path }) => path === qltyConfigPath),
+    ).toMatchObject({
+      ownership: "generated",
+      action: "generate",
+      upgrade: "regenerate",
+      content: readFileSync(join(repoRoot, qltyConfigPath), "utf8"),
+    });
+
     const ruleCoveragePath = "docs/rule-coverage.md";
     const ruleCoverage = plan.entries.find(
       ({ path }) => path === ruleCoveragePath,
@@ -792,6 +825,7 @@ Feature: Reconcile disputed invoices
       "apps/cli/package.json",
       "apps/web/package.json",
       "apps/cli/src/factory/mcp.ts",
+      ".qlty/qlty.toml",
       "docs/template/data-resources.json",
       "docs/template/enforced-engineering-rules.md",
       "docs/template/env-manifest.json",
@@ -1070,6 +1104,7 @@ Feature: Reconcile disputed invoices
       ]),
     );
     const currentOnlyPaths = [
+      ".qlty/qlty.toml",
       ".npmrc",
       "apps/cli/src/commands.ts",
       "apps/cli/src/factory/contracts.ts",
@@ -1644,6 +1679,7 @@ Feature: Reconcile disputed invoices
       "apps/web/src/routeTree.gen.ts",
       "apps/web/src/routeRegistry.generated.ts",
       "Justfile",
+      ".qlty/qlty.toml",
       "apps/web/src/adapters/confect-generated-refs.test.ts",
       "docs/rule-coverage.md",
       "docs/template/enforced-engineering-rules.md",
@@ -1681,11 +1717,10 @@ Feature: Reconcile disputed invoices
     expect(routeTree?.indexOf("'/_workspace/runs': {")).toBeLessThan(
       routeTree?.indexOf("'/_workspace/records': {") ?? -1,
     );
+    const lefthookInstallerPath = "tooling/quality/install-lefthook-if-git.mjs";
     expect(
-      first.find(
-        ({ path }) => path === "tooling/quality/install-lefthook-if-git.mjs",
-      )?.content,
-    ).toContain("/* global process */");
+      first.find(({ path }) => path === lefthookInstallerPath)?.content,
+    ).toBe(readFileSync(join(repoRoot, lefthookInstallerPath), "utf8"));
     expect(
       first.find(({ path }) => path === ".prettierignore")?.content,
     ).toContain(".maestro/");
@@ -1892,6 +1927,8 @@ Feature: Reconcile disputed invoices
     expect(recordsSurface).toContain(
       "templateConfectRefs.public.records.records.create",
     );
+    expect(recordsSurface).toContain("isContractMode()");
+    expect(recordsSurface).not.toContain("import.meta.env");
     expect(recordsSurface).not.toMatch(
       /templateConfectRefs\.public\.records\.(?:list|create)/u,
     );
@@ -2099,7 +2136,7 @@ Feature: Reconcile disputed invoices
       "turbo run test --filter='./packages/*' --filter=@maestro-template/web",
     );
     expect(root.scripts["test:tooling"]).toBe(
-      "pnpm test:bootstrap && pnpm --dir tooling/workflow test && pnpm --dir tooling/generators exec vitest run src/customer-runtime.test.ts src/templateInstanceMigration.test.ts src/workflow-publication-generation.test.ts src/workflow-release-commands.test.ts --maxWorkers=1 --no-file-parallelism",
+      "pnpm test:bootstrap && pnpm --dir tooling/workflow test",
     );
     for (const name of CURRENT_GENERATOR_GATE_SCRIPTS) {
       expect(root.scripts[name]).toContain(

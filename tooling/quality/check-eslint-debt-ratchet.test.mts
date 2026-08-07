@@ -8,9 +8,12 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { ESLint } from "eslint";
 import { describe, expect, it } from "vitest";
 import {
   compareDebt,
+  lintDebt,
   parseDebt,
   parseRenameMap,
   readBlob,
@@ -18,11 +21,56 @@ import {
   validateRepoPath,
 } from "./check-eslint-debt-ratchet.mts";
 
+const repositoryRoot = fileURLToPath(new URL("../..", import.meta.url));
+const ratchetPath = fileURLToPath(
+  new URL("./check-eslint-debt-ratchet.mts", import.meta.url),
+);
+const tsxPath = join(repositoryRoot, "node_modules/.bin/tsx");
+
 function git(cwd: string, args: readonly string[]): void {
   execFileSync("git", [...args], { cwd, stdio: "pipe" });
 }
 
 describe("ESLint legacy-debt ratchet", () => {
+  it("uses the staged initial snapshot as the baseline", () => {
+    const root = mkdtempSync(join(tmpdir(), "eslint-debt-initial-"));
+    const path = "src/legacy.ts";
+    try {
+      git(root, ["init", "--quiet"]);
+      mkdirSync(join(root, "src"));
+      writeFileSync(
+        join(root, "eslint.config.mjs"),
+        'export default [{ files: ["**/*.ts"] }];\n',
+      );
+      writeFileSync(
+        join(root, path),
+        "export const legacy = (a, b, c, d, e, f) => a;\n",
+      );
+      git(root, ["add", "--", "eslint.config.mjs", path]);
+
+      expect(() =>
+        execFileSync(tsxPath, [ratchetPath, path], {
+          cwd: root,
+          stdio: "pipe",
+        }),
+      ).not.toThrow();
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("treats an ESLint-ignored file as debt-free", async () => {
+    const eslint = new ESLint({ cwd: repositoryRoot });
+
+    await expect(
+      lintDebt(
+        eslint,
+        "export const generated = true;\n",
+        "apps/web/src/routeTree.gen.ts",
+      ),
+    ).resolves.toEqual({ complexity: [], "max-depth": [], "max-params": [] });
+  });
+
   it("passes unchanged, reduced, and removed debt", () => {
     expect(compareDebt([22, 14], [22, 14])).toEqual([]);
     expect(compareDebt([21, 14], [22, 14])).toEqual([]);

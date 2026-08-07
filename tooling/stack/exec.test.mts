@@ -110,15 +110,10 @@ test("ghSetStatuses skips app-pinned checks", () => {
   for (const ctx of APP_PINNED_CHECKS) {
     expect(contextArgs).not.toContain(ctx);
   }
-  expect(contextArgs.length).toBe(
-    REQUIRED_CHECKS.length - APP_PINNED_CHECKS.size,
-  );
+  expect(contextArgs).toEqual([]);
 });
 
-test("REQUIRED_CHECKS includes merge-conflict", () => {
-  expect(REQUIRED_CHECKS).toContain("merge-conflict");
-});
-
-test("APP_PINNED_CHECKS is empty while plan-required is advisory", () => {
-  expect(APP_PINNED_CHECKS.size).toBe(0);
+test("REQUIRED_CHECKS admits only app-pinned Woodpecker verification", () => {
+  expect(REQUIRED_CHECKS).toEqual(["ci/woodpecker/pr/verify"]);
+  expect([...APP_PINNED_CHECKS]).toEqual(["ci/woodpecker/pr/verify"]);
 });

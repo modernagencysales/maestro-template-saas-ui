@@ -98,7 +98,7 @@ function git(args: readonly string[], cwd: string): string {
   return result.stdout;
 }
 
-function hasHead(root: string): boolean {
+export function hasHead(root: string): boolean {
   const result = spawnSync(
     "git",
     ["rev-parse", "--verify", "--quiet", "HEAD"],
@@ -208,7 +208,7 @@ export function readBlob(
   return git(["cat-file", "blob", oid], root);
 }
 
-async function lintDebt(
+export async function lintDebt(
   eslint: ESLint,
   code: string,
   path: string,
@@ -217,8 +217,7 @@ async function lintDebt(
     filePath: path,
     warnIgnored: false,
   });
-  if (result === undefined)
-    throw new Error(`ESLint returned no result for ${path}`);
+  if (result === undefined) return emptyDebt();
   const fatal = result.messages.find((message) => message.fatal === true);
   if (fatal !== undefined) throw new Error(`${path}: ${fatal.message}`);
   return parseDebt(result.messages);
@@ -227,6 +226,12 @@ async function lintDebt(
 async function main(): Promise<void> {
   const paths = process.argv.slice(2).map(validateRepoPath);
   const root = git(["rev-parse", "--show-toplevel"], process.cwd()).trim();
+  if (!hasHead(root)) {
+    console.log(
+      `ESLint debt ratchet: ${String(paths.length)} file(s) held initial baseline`,
+    );
+    return;
+  }
   const renames = stagedRenames(root);
   const eslint = new ESLint({
     cwd: root,

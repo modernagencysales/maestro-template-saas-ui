@@ -26,4 +26,8 @@ describe("check:qlty", () => {
       ["smells", "--upstream", "origin/main"],
     ]);
   });
+
+  it("skips the initial staged snapshot without a baseline", () => {
+    expect(qltyArgs("--staged", ["apps/web/src/a.ts"], false)).toEqual([]);
+  });
 });
