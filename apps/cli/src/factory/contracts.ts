@@ -46,7 +46,6 @@ const addContract = (argv: readonly string[], cwd: string): CliResult => {
 Feature: ${title}
   Describe the promised outcome in business language.
 
-  @cross_surface
   Scenario: Complete ${words}
     Given the product is ready
     When the user completes ${words}
@@ -75,7 +74,7 @@ const testContracts = async (
   const target = argv[2];
   if (target === "--required") {
     const admission = await run(
-      ["--silent", "acceptance:features", "--required"],
+      ["--silent", "acceptance:required-selection"],
       cwd,
     );
     if (admission.exitCode !== 0) return admission;

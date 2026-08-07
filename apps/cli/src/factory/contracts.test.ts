@@ -32,7 +32,6 @@ describe("contracts CLI", () => {
 Feature: Onboard customer
   Describe the promised outcome in business language.
 
-  @cross_surface
   Scenario: Complete onboard customer
     Given the product is ready
     When the user completes onboard customer
@@ -81,7 +80,7 @@ Feature: Onboard customer
     expect(recorded).toEqual([
       ["--silent", "acceptance:cucumber"],
       ["--silent", "acceptance:cucumber", "features/onboard-customer.feature"],
-      ["--silent", "acceptance:features", "--required"],
+      ["--silent", "acceptance:required-selection"],
       ["--silent", "acceptance:cucumber", "--tags", "@required"],
     ]);
   });
@@ -104,8 +103,6 @@ Feature: Onboard customer
     );
 
     expect(result).toMatchObject({ exitCode: 1 });
-    expect(recorded).toEqual([
-      ["--silent", "acceptance:features", "--required"],
-    ]);
+    expect(recorded).toEqual([["--silent", "acceptance:required-selection"]]);
   });
 });
