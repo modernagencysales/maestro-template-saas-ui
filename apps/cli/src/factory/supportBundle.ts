@@ -79,7 +79,7 @@ function parseSupportBundleCli(argv: readonly string[]): {
           ...(output === undefined ? {} : { output }),
           write,
         }
-      : {},
+      : { invalid: true },
     renderMode,
   };
 }
