@@ -172,7 +172,6 @@ describe("privacy no-network conformance", () => {
         "Export reviewed local support facts",
         "--demo-only",
         "--write",
-        "--privacy-reviewed",
         "--json",
       ],
       {
@@ -216,8 +215,6 @@ describe("privacy no-network conformance", () => {
     const exported = await traceGeneratedSupportBundle(generatedTarget, [
       "support-bundle",
       "--write",
-      "--preview-fingerprint",
-      previewResult.data.previewFingerprint,
       "--json",
     ]);
     expect(JSON.parse(exported.stdout)).toMatchObject({
@@ -303,8 +300,10 @@ function parseCliResult(stdout: string): Record<string, unknown> {
     const character = stdout[index];
     if (quoted) {
       if (escaped) escaped = false;
-      else if (character === "\\") escaped = true;
-      else if (character === '"') quoted = false;
+      else {
+        escaped = character === "\\";
+        if (character === '"') quoted = false;
+      }
       continue;
     }
     if (character === '"') quoted = true;

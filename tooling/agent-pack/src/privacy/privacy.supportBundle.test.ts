@@ -192,7 +192,7 @@ describe("support bundle privacy contract", () => {
     );
   });
 
-  it("previews by default and requires the exact preview before export", async () => {
+  it("previews by default and writes from current source facts", async () => {
     const targetRoot = root();
     const exporter = { export: vi.fn(async () => ({ bytes: 1_024 })) };
     const command = createSupportBundleCommand({
@@ -223,30 +223,50 @@ describe("support bundle privacy contract", () => {
     });
     expect(exporter.export).not.toHaveBeenCalled();
 
-    const missingPreview = await executeAgentPackCommand(
-      command,
-      { write: true },
-      context,
-    );
-    expect(missingPreview.exitClass).toBe("invalidInvocation");
-    expect(exporter.export).not.toHaveBeenCalled();
-
-    if (preview.data === null)
-      throw new Error("Expected support preview data.");
     const exported = await executeAgentPackCommand(
       command,
-      {
-        write: true,
-        previewFingerprint: preview.data.previewFingerprint,
-      },
+      { output: ".maestro/support/report.json", write: true },
       context,
     );
     expect(exported).toMatchObject({
       mutationPosture: "write",
       exitClass: "success",
-      data: { write: true, exportedBytes: 1_024 },
+      data: {
+        output: ".maestro/support/report.json",
+        write: true,
+        exportedBytes: 1_024,
+      },
     });
     expect(exporter.export).toHaveBeenCalledOnce();
+  });
+
+  it("refuses an ancestor swap after recomputing current source facts", async () => {
+    const targetRoot = root();
+    const outside = root();
+    const movedMaestro = join(targetRoot, ".maestro-opened");
+    const command = createSupportBundleCommand({
+      load: vi.fn(async () => source()),
+      exporter: createNodeSupportBundleExporter({
+        maxBytes: 128 * 1024,
+        afterMaestroOpen: (maestroDirectory) => {
+          renameSync(maestroDirectory, movedMaestro);
+          symlinkSync(outside, maestroDirectory);
+        },
+      }),
+    });
+
+    const swapped = await executeAgentPackCommand(
+      command,
+      { write: true },
+      {
+        schemaVersion: AGENT_PACK_EXECUTION_CONTEXT_VERSION,
+        invocation: "library",
+        repo: createRepositoryContext({ cwd: targetRoot }),
+      },
+    );
+
+    expect(swapped.exitClass).not.toBe("success");
+    expect(existsSync(join(outside, "support"))).toBe(false);
   });
 
   it("writes one private local file and refuses symlinked support paths", async () => {
