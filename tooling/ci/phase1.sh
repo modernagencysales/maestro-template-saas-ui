@@ -20,13 +20,4 @@ fi
 export PATH="${HOME}/.local/bin:${PATH}"
 
 pnpm verify
-pnpm check:system-catalog
-pnpm check:system-topology
-pnpm check:data-resources
-pnpm check:append-only-tables
-pnpm check:promotion-boundary
-pnpm check:workflow-semantics
-pnpm check:convex-ai-files
-pnpm check:agent-pack
-pnpm check:app-map
 pnpm template:workflow-output-smoke

@@ -43,6 +43,35 @@ describe("check:ci-completeness", () => {
       ({ file }) => file === "tooling/ci/firewall.sh",
     );
     expect(firewallScript?.includes).not.toContain("pnpm review:bounded");
+    expect(firewallScript?.includes).toContain(
+      "if ! bash tooling/ci/install-qlty.sh",
+    );
+    expect(firewallScript?.includes).not.toContain("pnpm acceptance:check");
+    expect(firewallScript?.includes).not.toContain("pnpm acceptance:features");
+
+    const hook = descriptor.requirements.find(
+      ({ file }) => file === "lefthook.yml",
+    );
+    expect(hook?.includes).toEqual(
+      expect.arrayContaining([
+        "pnpm prettier --write {staged_files}",
+        "ESLINT_SHIFT_LEFT=1 pnpm eslint {staged_files}",
+        "pnpm check:qlty -- --staged",
+      ]),
+    );
+    expect(hook?.absent).toEqual(
+      expect.arrayContaining([
+        "pre-push-rubric.sh",
+        "pnpm typecheck",
+        "pnpm test",
+        "check:workflow",
+        "check:system",
+        "check:data-resources",
+        "check:promotion-boundary",
+        "acceptance:",
+        "cucumber",
+      ]),
+    );
   });
 
   it("rejects concatenated or duplicated host verification terms", () => {
@@ -106,6 +135,20 @@ describe("check:ci-completeness", () => {
     ].join(" && ");
     expect(validateRootVerifyHostTerms({ scripts: { verify } })).toContain(
       "package.json scripts.verify must keep pnpm check:qlty advisory outside the root verdict",
+    );
+  });
+
+  it("keeps focused workspace aliases out of root verify", () => {
+    const verify = [
+      "pnpm test",
+      "pnpm test:workflow",
+      "pnpm check:config-drift",
+      "pnpm check:convex-ai-files",
+      "pnpm check:agent-pack",
+    ].join(" && ");
+
+    expect(validateRootVerifyHostTerms({ scripts: { verify } })).toContain(
+      "package.json scripts.verify must not rerun focused alias pnpm test:workflow after root test",
     );
   });
 });

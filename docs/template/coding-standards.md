@@ -67,6 +67,9 @@ atomic transaction.
 
 - Source-text-only tests are not behavior proof.
 - New behavior gets focused tests before implementation.
+- Run focused affected checks for each task commit. Run full `pnpm verify` once
+  for the integrated delivery batch on its immutable final head; Woodpecker is
+  the only blocking full-verification authority.
 - Capability tests cover auth first, role denial, cross-workspace denial,
   invalid input, typed error, idempotency, and side-effect ordering.
 - Frontend adapter tests cover loading, empty, ready, mutation success, typed

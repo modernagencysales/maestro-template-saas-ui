@@ -12,6 +12,13 @@ const REQUIRED_HOST_VERIFY_TERMS = [
   "pnpm check:agent-pack",
 ] as const;
 
+const FOCUSED_ONLY_TERMS = [
+  "pnpm test:tooling",
+  "pnpm test:workflow",
+  "pnpm test:pr-backlog",
+  "pnpm evals",
+] as const;
+
 export function validateRootVerifyHostTerms(input: unknown): readonly string[] {
   const root = record(input, "package.json");
   const scripts = record(root.scripts, "package.json scripts");
@@ -30,6 +37,12 @@ export function validateRootVerifyHostTerms(input: unknown): readonly string[] {
       "package.json scripts.verify must keep pnpm check:qlty advisory outside the root verdict",
     );
   }
+  findings.push(
+    ...FOCUSED_ONLY_TERMS.filter((term) => terms.includes(term)).map(
+      (term) =>
+        `package.json scripts.verify must not rerun focused alias ${term} after root test`,
+    ),
+  );
   const indices = REQUIRED_HOST_VERIFY_TERMS.map((required) => {
     const matches = terms.flatMap((term, index) =>
       term === required ? [index] : [],
