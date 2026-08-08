@@ -454,8 +454,15 @@ async function bootContractsRuntime(
           );
           break;
         } catch (error) {
+          ensureRunning();
           if (Date.now() >= deadline) throw error;
-          await delay(retryDelayMs);
+          await Promise.race([
+            delay(retryDelayMs),
+            resources.cancelled.then(() => {
+              throw new Error("Contracts runtime was stopped.");
+            }),
+          ]);
+          ensureRunning();
         }
       }
       const seeded = parseSeedResult(seedOutput);
@@ -601,7 +608,9 @@ function nodeDependencies(): ContractsRuntimeDependencies {
   };
 }
 
-async function spawnManagedCommand(spec: AppSpec): Promise<ManagedCommand> {
+export async function spawnManagedCommand(
+  spec: AppSpec,
+): Promise<ManagedCommand> {
   let stdout = "";
   let stderr = "";
   const process = await spawnManagedProcess(spec, (stream, line) => {
@@ -637,8 +646,7 @@ async function spawnManagedProcess(
     readonly code: number | null;
     readonly signal: string | null;
   }>((resolve) => {
-    child.once("error", () => resolve({ code: null, signal: null }));
-    child.once("exit", (code, signal) => resolve({ code, signal }));
+    child.once("close", (code, signal) => resolve({ code, signal }));
   });
   pipeLines(child.stdout, (line) => output("stdout", line));
   pipeLines(child.stderr, (line) => output("stderr", line));

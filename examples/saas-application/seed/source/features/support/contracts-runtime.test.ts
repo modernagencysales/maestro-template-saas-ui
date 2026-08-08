@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import {
   createContractsRuntimeController,
+  spawnManagedCommand,
   type ContractsRuntimeDependencies,
 } from "./contracts-runtime";
 
@@ -23,11 +24,16 @@ const commandKind = (args: readonly string[]) => {
   return "setup";
 };
 
+const failedSeedExitCode = (failed: boolean | undefined) => (failed ? 1 : 0);
+
 function harness(options?: {
   readonly exitBeforeReady?: boolean;
   readonly hangCommand?: "setup" | "seed" | "cli";
   readonly cliDiagnostics?: boolean;
   readonly commandTimeoutMs?: number;
+  readonly seedFailure?: boolean;
+  readonly retryDelayMs?: number;
+  readonly seedTimeoutMs?: number;
 }) {
   const environments: NodeJS.ProcessEnv[] = [];
   const terminate = vi.fn(async () => undefined);
@@ -74,6 +80,7 @@ function harness(options?: {
             userId: `${input.namespace}-observer-user`,
           },
         });
+        code = failedSeedExitCode(options?.seedFailure);
       }
       if (kind === "cli" && options?.cliDiagnostics) {
         code = 1;
@@ -121,9 +128,9 @@ function harness(options?: {
     runCommand,
     spawnApp,
     commandTimeoutMs: options?.commandTimeoutMs ?? 20,
-    seedTimeoutMs: 50,
+    seedTimeoutMs: options?.seedTimeoutMs ?? 50,
     readinessTimeoutMs: 50,
-    retryDelayMs: 1,
+    retryDelayMs: options?.retryDelayMs ?? 1,
   };
   return {
     closeBrowser,
@@ -225,6 +232,59 @@ describe("contracts runtime", () => {
 
     expect(test.terminateCommand).toHaveBeenCalled();
     await controller.stop();
+  });
+
+  it("stops a failed seed before its next retry delay", async () => {
+    const test = harness({
+      seedFailure: true,
+      retryDelayMs: 10_000,
+      seedTimeoutMs: 20_000,
+    });
+    const controller = createContractsRuntimeController(test.dependencies);
+    const runtime = await controller.start();
+    const provisioning = runtime
+      .provisionScenario()
+      .catch((error: unknown) => error);
+    const seedAttempts = () =>
+      vi
+        .mocked(test.dependencies.runCommand)
+        .mock.calls.filter(([args]) => commandKind(args) === "seed").length;
+    await vi.waitFor(() => expect(seedAttempts()).toBe(1));
+
+    await controller.stop();
+    const result = await Promise.race([
+      provisioning,
+      new Promise<"still-pending">((resolve) => {
+        setTimeout(() => resolve("still-pending"), 100);
+      }),
+    ]);
+
+    expect(result).toBeInstanceOf(Error);
+    expect(String(result)).toContain("stopped");
+    expect(seedAttempts()).toBe(1);
+  });
+
+  it("waits for command streams to close before snapshotting output", async () => {
+    const script = `
+      const { spawn } = require("node:child_process");
+      spawn(process.execPath, ["-e", "setTimeout(() => process.stdout.write('late\\\\n'), 30)"], {
+        detached: true,
+        stdio: ["ignore", process.stdout, process.stderr],
+      }).unref();
+      process.stdout.write("early\\n");
+    `;
+
+    const command = await spawnManagedCommand({
+      command: process.execPath,
+      args: ["-e", script],
+      cwd: process.cwd(),
+      environment: process.env,
+    });
+    const result = await command.completion;
+
+    expect(result.stdout).toContain("early\n");
+    expect(result.stdout).toContain("late\n");
+    await expect(command.terminate("SIGINT")).resolves.toBeUndefined();
   });
 
   it("bounds and terminates a hung CLI command", async () => {

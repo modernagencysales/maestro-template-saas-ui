@@ -40,6 +40,42 @@ const requireCliAccess = (
 };
 
 describe("contracts World lifecycle", () => {
+  it("resets partial setup without masking the setup error when close fails", async () => {
+    const setupError = new Error("authorization failed");
+    const closeError = new Error("context close failed");
+    const close = vi.fn(async () => {
+      throw closeError;
+    });
+    const world: ContractsWorldState = {
+      context: undefined,
+      page: undefined,
+      scenario: undefined,
+      cliFailure: "leaked failure",
+    };
+    const runtime = {
+      browser: {
+        newContext: vi.fn(async () => ({ close }) as unknown as BrowserContext),
+      },
+      provisionScenario: vi.fn(async () => scenarioFor(1)),
+      authorizeBrowserContext: vi.fn(async () => {
+        throw setupError;
+      }),
+    } as unknown as ContractsRuntime;
+
+    const failure = await prepareContractsScenario(world, runtime).catch(
+      (error: unknown) => error,
+    );
+
+    expect(failure).toBe(setupError);
+    expect(close).toHaveBeenCalledOnce();
+    expect(world).toEqual({
+      context: undefined,
+      page: undefined,
+      scenario: undefined,
+      cliFailure: "",
+    });
+  });
+
   it("runs all four journeys in changed order with fresh isolated pages", async () => {
     const contexts: BrowserContext[] = [];
     const pages: Page[] = [];

@@ -13,6 +13,13 @@ export type ContractsWorldState = {
   cliFailure: string;
 };
 
+const resetContractsScenario = (world: ContractsWorldState) => {
+  world.context = undefined;
+  world.page = undefined;
+  world.scenario = undefined;
+  world.cliFailure = "";
+};
+
 export const prepareContractsScenario = async (
   world: ContractsWorldState,
   runtime: ContractsRuntime = contractsRuntime(),
@@ -24,9 +31,13 @@ export const prepareContractsScenario = async (
     await runtime.authorizeBrowserContext(world.scenario, world.context);
     world.page = await world.context.newPage();
   } catch (error) {
-    await world.context.close();
-    world.context = undefined;
-    world.scenario = undefined;
+    try {
+      await world.context.close();
+    } catch {
+      // Preserve the setup failure as the actionable Scenario error.
+    } finally {
+      resetContractsScenario(world);
+    }
     throw error;
   }
 };
@@ -35,10 +46,7 @@ export const cleanupContractsScenario = async (world: ContractsWorldState) => {
   try {
     await world.context?.close();
   } finally {
-    world.context = undefined;
-    world.page = undefined;
-    world.scenario = undefined;
-    world.cliFailure = "";
+    resetContractsScenario(world);
   }
 };
 
