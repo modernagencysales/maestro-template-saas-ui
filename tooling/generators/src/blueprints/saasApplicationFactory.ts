@@ -1,4 +1,5 @@
 import type { GeneratedFile } from "../index";
+import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import {
   buildCurrentRecordsExampleFiles,
@@ -272,6 +273,119 @@ const recordsFeatureProvenance = (): GeneratedFile => ({
   )}\n`,
 });
 
+const neutralWorkflowCommandReplacements: Readonly<
+  Record<string, readonly (readonly [string, string])[]>
+> = {
+  ".agents/skills/maestro/references/workflow-authoring.md": [
+    [
+      "Run\n`pnpm check:workflow:fast` before broader verification.",
+      "Select the\n`workflow-automation` pattern before authoring workflow graphs.",
+    ],
+  ],
+  "AGENTS.md": [
+    [
+      "- Run `pnpm check:workflow:fast` while authoring. Semantic diagnostics include a\n  stable rule id, reason, repair, and rerun command. The generated support\n  ledger is\n  [workflow-semantics.md](docs/template/generated/workflow-semantics.md).\n",
+      "- Select the `workflow-automation` pattern before authoring workflows.\n",
+    ],
+  ],
+  "docs/template/agent-worker-playbook.md": [
+    ["- `pnpm check:workflow-graph-boundary`\n", ""],
+  ],
+  "tooling/generators/src/customer-dispatcher.ts": [
+    [
+      'focusedGates: ["pnpm check:workflow-graph-boundary"],',
+      'focusedGates: ["pnpm check:confect-contracts"],',
+    ],
+  ],
+  "tooling/generators/src/customer-runtime.ts": [
+    ['  "pnpm check:workflow-graph-boundary",\n', ""],
+    [
+      "5. Run \\`pnpm confect:codegen\\`, \\`pnpm check:workflow-graph-boundary\\`, and focused workflow tests.",
+      "5. Run \\`pnpm confect:codegen\\` and focused workflow tests after selecting workflow automation.",
+    ],
+    [
+      '"Run pnpm check:workflow-graph-boundary and focused workflow tests.",',
+      '"Select workflow automation before running focused workflow tests.",',
+    ],
+  ],
+  "tooling/generators/src/private-package.ts": [
+    ['            "pnpm check:workflow-graph-boundary",\n', ""],
+  ],
+};
+
+const projectWorkflowCommandReferences = (
+  files: readonly GeneratedFile[],
+  selection: SaasApplicationPatternSelection,
+): readonly GeneratedFile[] => {
+  if (selectsSaasApplicationPattern(selection, "workflow-automation"))
+    return files;
+  const projected = files.map((file) => {
+    const replacements = neutralWorkflowCommandReplacements[file.path];
+    if (replacements === undefined) return file;
+    let content = file.content;
+    for (const [search, replacement] of replacements) {
+      if (!content.includes(search))
+        throw new Error(
+          `Neutral workflow command projection marker is missing: ${file.path}`,
+        );
+      content = content.replace(search, replacement);
+    }
+    return { ...file, content };
+  });
+  const managedPath = ".agents/skills/maestro/references/workflow-authoring.md";
+  const managed = projected.find(({ path }) => path === managedPath);
+  const manifestPath = "docs/template/customer-context.manifest.json";
+  const manifestFile = projected.find(({ path }) => path === manifestPath);
+  if (managed === undefined || manifestFile === undefined)
+    throw new Error("Neutral workflow customer-context projection is missing.");
+  const manifest = JSON.parse(manifestFile.content) as {
+    readonly schemaVersion: number;
+    readonly files: readonly {
+      readonly path: string;
+      readonly sha256: string;
+      readonly validation?: string;
+    }[];
+  };
+  let synchronized = false;
+  const manifestContent = `${JSON.stringify(
+    {
+      ...manifest,
+      files: manifest.files.map((file) => {
+        if (file.path !== managedPath) return file;
+        synchronized = true;
+        return {
+          ...file,
+          sha256: `sha256:${createHash("sha256")
+            .update(managed.content)
+            .digest("hex")}`,
+        };
+      }),
+    },
+    null,
+    2,
+  )}\n`;
+  if (!synchronized)
+    throw new Error("Neutral workflow customer-context entry is missing.");
+  const manifestChecksum = `sha256:${createHash("sha256")
+    .update(manifestContent)
+    .digest("hex")}`;
+  const checkerPath = "tooling/quality/check-customer-context.mts";
+  const checker = projected.find(({ path }) => path === checkerPath);
+  const checksumMarker = /const MANIFEST_SHA256 =\n {2}"sha256:[a-f0-9]{64}";/u;
+  if (checker === undefined || !checksumMarker.test(checker.content))
+    throw new Error("Neutral workflow customer-context checker is missing.");
+  const checkerContent = checker.content.replace(
+    checksumMarker,
+    `const MANIFEST_SHA256 =\n  "${manifestChecksum}";`,
+  );
+  return projected.map((file) => {
+    if (file.path === manifestPath)
+      return { ...file, content: manifestContent };
+    if (file.path === checkerPath) return { ...file, content: checkerContent };
+    return file;
+  });
+};
+
 const currentSaasApplicationFiles = (
   options: {
     readonly name: string;
@@ -330,15 +444,19 @@ export const buildFactorySaasApplicationFiles = (options: {
   readonly name: string;
   readonly firstOutcome?: string;
   readonly patterns?: SaasApplicationPatternSelection["patterns"];
-}): readonly GeneratedFile[] => [
-  ...currentSaasApplicationFiles(options),
-  ...currentContractFiles(options),
-  ...buildSaasRegistrationProjections({ patterns: options.patterns }),
-  ...currentCustomerSourceProjections(options),
-  ...(selectsSaasApplicationPattern(options, "records-example")
-    ? [recordsFeatureProvenance()]
-    : []),
-];
+}): readonly GeneratedFile[] =>
+  projectWorkflowCommandReferences(
+    [
+      ...currentSaasApplicationFiles(options),
+      ...currentContractFiles(options),
+      ...buildSaasRegistrationProjections({ patterns: options.patterns }),
+      ...currentCustomerSourceProjections(options),
+      ...(selectsSaasApplicationPattern(options, "records-example")
+        ? [recordsFeatureProvenance()]
+        : []),
+    ],
+    options,
+  );
 
 /** Historical projection used only to reproduce the immutable alpha.1 plan. */
 export const buildAlpha1SaasApplicationFiles = (options: {

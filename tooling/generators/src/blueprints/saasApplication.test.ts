@@ -1373,33 +1373,38 @@ Feature: Reconcile disputed invoices
 
   it("documents workflow checks only when their scripts are emitted", () => {
     const projection = (patterns: readonly "workflow-automation"[] = []) => {
+      const projectedEntries = buildSaasApplicationTargetPlan({
+        name: "Workflow Docs",
+        patterns,
+      }).entries;
       const entries = new Map(
-        buildSaasApplicationTargetPlan({
-          name: "Workflow Docs",
-          patterns,
-        }).entries.map((entry) => [entry.path, entry.content]),
+        projectedEntries.map((entry) => [entry.path, entry.content]),
       );
       const root = JSON.parse(entries.get("package.json") ?? "{}") as {
         readonly scripts?: Readonly<Record<string, string>>;
       };
-      const rules = entries.get("docs/template/enforced-engineering-rules.md");
-      const commands = [
-        ...(rules?.matchAll(/`pnpm (check:workflow[^`\s]*)`/gu) ?? []),
-      ].flatMap((match) => (match[1] === undefined ? [] : [match[1]]));
-      return { commands, scripts: root.scripts ?? {} };
+      const references = projectedEntries.flatMap(({ path, content }) =>
+        [...content.matchAll(/pnpm (check:workflow[^\s`"',&)\\]+)/gu)].flatMap(
+          (match) =>
+            match[1] === undefined ? [] : [{ command: match[1], path }],
+        ),
+      );
+      return { references, scripts: root.scripts ?? {} };
     };
 
     const neutral = projection();
     const selected = projection(["workflow-automation"]);
 
-    expect(neutral.commands).toEqual([]);
-    expect(selected.commands).toEqual([
-      "check:workflow:fast",
-      "check:workflow-semantics",
-      "check:workflow-graph-boundary",
-    ]);
-    for (const command of selected.commands) {
-      expect(selected.scripts[command]).toBeDefined();
+    expect(neutral.references).toEqual([]);
+    expect(selected.references.map(({ command }) => command)).toEqual(
+      expect.arrayContaining([
+        "check:workflow:fast",
+        "check:workflow-semantics",
+        "check:workflow-graph-boundary",
+      ]),
+    );
+    for (const { command, path } of selected.references) {
+      expect(selected.scripts[command], `${path} -> ${command}`).toBeDefined();
     }
   });
 
