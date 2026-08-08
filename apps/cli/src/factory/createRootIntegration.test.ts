@@ -37,8 +37,14 @@ let taggedReleaseParent: string | undefined;
 let taggedReleaseRoot: string | undefined;
 const applyCurrentSaasProjection = (
   root: string,
-  options: { readonly name: string; readonly firstOutcome: string },
+  options: {
+    readonly name: string;
+    readonly firstOutcome: string;
+    readonly patterns?: readonly ("records-example" | "workflow-automation")[];
+  },
 ): void => {
+  const plan = buildSaasApplicationTargetPlan(options);
+  const projectedPaths = new Set(plan.entries.map((entry) => entry.path));
   const targetLocalPaths = new Set([
     ".maestro-create-journal.json",
     "template-instance.json",
@@ -66,24 +72,14 @@ const applyCurrentSaasProjection = (
     currentTrackedFiles,
   )) {
     const target = join(root, path);
-    if (action === "omit") {
+    if (action === "omit" || !projectedPaths.has(path)) {
       rmSync(target, { force: true });
       continue;
     }
     mkdirSync(dirname(target), { recursive: true });
     writeFileSync(target, readFileSync(join(repoRoot, path)));
   }
-  for (const entry of buildSaasApplicationTargetPlan(options).entries) {
-    const target = join(root, entry.path);
-    mkdirSync(dirname(target), { recursive: true });
-    writeFileSync(target, entry.content);
-  }
-};
-const materializeCurrentSaasPlan = (
-  root: string,
-  options: { readonly name: string; readonly firstOutcome: string },
-): void => {
-  for (const entry of buildSaasApplicationTargetPlan(options).entries) {
+  for (const entry of plan.entries) {
     const target = join(root, entry.path);
     mkdirSync(dirname(target), { recursive: true });
     writeFileSync(target, entry.content);
@@ -503,6 +499,7 @@ describe("create root integration", () => {
     const projectionOptions = {
       name: "My App",
       firstOutcome: "Create and review records",
+      patterns: ["records-example", "workflow-automation"],
     } as const;
     applyCurrentSaasProjection(compileRoot, projectionOptions);
     expect(
@@ -720,7 +717,7 @@ describe("create root integration", () => {
       expect(readFileSync(join(targetRoot, path)), path).toEqual(bytes);
   }, 180_000);
 
-  it("executes the required records contract in a fresh current target", async () => {
+  it("keeps a fresh neutral target red until a required journey is admitted", async () => {
     const parent = mkdtempSync(join(tmpdir(), "maestro-contract-target-"));
     temporaryRoots.push(parent);
     const targetRoot = join(parent, "app");
@@ -738,13 +735,29 @@ describe("create root integration", () => {
     ]);
     expect(created.exitCode, `${created.stdout}\n${created.stderr}`).toBe(0);
 
-    materializeCurrentSaasPlan(targetRoot, {
+    applyCurrentSaasProjection(targetRoot, {
       name: "Contract Prototype",
       firstOutcome: "Create and review records",
     });
     expect(
       readFileSync(join(targetRoot, "features/first-outcome.feature"), "utf8"),
     ).toContain("@wip\nFeature: Create and review records");
+    for (const path of [
+      "features/records.feature",
+      "apps/web/src/features/records/records-surface.tsx",
+      "apps/web/src/screens/records-screen.tsx",
+      "apps/web/src/routes/_workspace.records.tsx",
+      "tooling/workflow/package.json",
+    ])
+      expect(existsSync(join(targetRoot, path)), path).toBe(false);
+    expect(
+      existsSync(
+        join(
+          repoRoot,
+          "examples/saas-application/seed/source/features/records.feature",
+        ),
+      ),
+    ).toBe(true);
     for (const args of [
       ["install", "--offline", "--frozen-lockfile", "--ignore-scripts"],
       ["confect:codegen"],
@@ -783,66 +796,81 @@ describe("create root integration", () => {
       "test",
       "--required",
     ];
-    const recordsSurface = join(
-      targetRoot,
-      "apps/web/src/features/records/records-surface.tsx",
-    );
-    const originalSurface = readFileSync(recordsSurface, "utf8");
-    expect(originalSurface).toContain("Save record");
-    writeFileSync(
-      recordsSurface,
-      originalSurface.replace("Save record", "Save draft"),
-    );
-    execFileSync("git", ["add", recordsSurface], { cwd: targetRoot });
-    execFileSync(
-      "git",
-      [
-        "-c",
-        "user.name=Maestro Contracts",
-        "-c",
-        "user.email=contracts@template.local",
-        "commit",
-        "--no-verify",
-        "--quiet",
-        "-m",
-        "break visible contract",
-      ],
-      { cwd: targetRoot },
-    );
-    const mutation = spawnSync("pnpm", contractArgs, {
-      cwd: targetRoot,
-      encoding: "utf8",
-      timeout: 180_000,
-    });
-    expect(mutation.status).not.toBe(0);
-    expect(`${mutation.stdout}\n${mutation.stderr}`).toContain("Save record");
-
-    rmSync(join(targetRoot, ".convex"), { recursive: true, force: true });
-    writeFileSync(recordsSurface, originalSurface);
-    expect(
-      execFileSync("git", ["diff"], { cwd: targetRoot, encoding: "utf8" }),
-    ).not.toContain("mtk_live_");
-    execFileSync("git", ["add", "-u"], { cwd: targetRoot });
-    execFileSync(
-      "git",
-      [
-        "-c",
-        "user.name=Maestro Contracts",
-        "-c",
-        "user.email=contracts@template.local",
-        "commit",
-        "--no-verify",
-        "--quiet",
-        "-m",
-        "restore visible contract",
-      ],
-      { cwd: targetRoot },
-    );
     const contracts = spawnSync("pnpm", contractArgs, {
       cwd: targetRoot,
       encoding: "utf8",
       timeout: 180_000,
     });
+    expect(
+      contracts.status,
+      `${contracts.stdout}\n${contracts.stderr}`,
+    ).not.toBe(0);
+    expect(`${contracts.stdout}\n${contracts.stderr}`).toContain(
+      "@required must select at least one Cucumber Scenario before delivery.",
+    );
+  }, 300_000);
+
+  it("executes the selected records example by journey name", async () => {
+    const parent = mkdtempSync(join(tmpdir(), "maestro-records-contract-"));
+    temporaryRoots.push(parent);
+    const targetRoot = join(parent, "app");
+    const created = await runTaggedCli([
+      "create",
+      targetRoot,
+      "--name",
+      "Records Example",
+      "--outcome",
+      "Create and review records",
+      "--demo-only",
+      "--write",
+      "--privacy-reviewed",
+      "--json",
+    ]);
+    expect(created.exitCode, `${created.stdout}\n${created.stderr}`).toBe(0);
+
+    applyCurrentSaasProjection(targetRoot, {
+      name: "Records Example",
+      firstOutcome: "Create and review records",
+      patterns: ["records-example"],
+    });
+    expect(
+      readFileSync(join(targetRoot, "features/records.feature"), "utf8"),
+    ).not.toContain("@required");
+    for (const args of [
+      ["install", "--offline", "--frozen-lockfile", "--ignore-scripts"],
+      ["confect:codegen"],
+    ]) {
+      const result = spawnSync("pnpm", args, {
+        cwd: targetRoot,
+        encoding: "utf8",
+        timeout: 240_000,
+      });
+      expect(result.status, `${result.stdout}\n${result.stderr}`).toBe(0);
+    }
+
+    execFileSync("git", ["init", "--quiet"], { cwd: targetRoot });
+    execFileSync("git", ["add", "."], { cwd: targetRoot });
+    execFileSync(
+      "git",
+      [
+        "-c",
+        "user.name=Maestro Contracts",
+        "-c",
+        "user.email=contracts@template.local",
+        "commit",
+        "--no-verify",
+        "--quiet",
+        "-m",
+        "records example fixture",
+      ],
+      { cwd: targetRoot },
+    );
+
+    const contracts = spawnSync(
+      "pnpm",
+      ["--silent", "maestro", "--", "contracts", "test", "records"],
+      { cwd: targetRoot, encoding: "utf8", timeout: 180_000 },
+    );
     expect(contracts.status, `${contracts.stdout}\n${contracts.stderr}`).toBe(
       0,
     );
