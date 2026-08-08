@@ -178,7 +178,6 @@ beforeAll(() => {
   expect(execFileSync("pnpm", ["--version"], { encoding: "utf8" }).trim()).toBe(
     "10.12.1",
   );
-  taggedRepository();
 }, 240_000);
 afterAll(async () => {
   try {
