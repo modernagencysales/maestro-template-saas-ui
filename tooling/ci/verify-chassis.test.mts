@@ -29,11 +29,16 @@ describe("customer chassis Woodpecker admission", () => {
     const gitleaksInstall = script.indexOf(
       "bash tooling/ci/install-gitleaks.sh",
     );
+    const installedToolPath = script.indexOf(
+      'export PATH="${HOME}/.local/bin:${PATH}"',
+    );
     const verify = script.indexOf("pnpm verify");
     expect(gitleaksInstall).toBeGreaterThan(
       script.indexOf("source tooling/ci/setup.sh"),
     );
     expect(gitleaksInstall).toBeLessThan(verify);
+    expect(installedToolPath).toBeGreaterThan(gitleaksInstall);
+    expect(installedToolPath).toBeLessThan(verify);
     expect(
       script.match(/^bash tooling\/ci\/install-gitleaks\.sh$/gmu),
     ).toHaveLength(1);

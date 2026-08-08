@@ -39,6 +39,7 @@ const checkDescriptorDefinitions = {
         file: "tooling/ci/verify-chassis.sh",
         includes: [
           "bash tooling/ci/install-gitleaks.sh",
+          'export PATH="${HOME}/.local/bin:${PATH}"',
           "pnpm verify",
           "pnpm --dir apps/web test:runtime-longevity",
         ],
