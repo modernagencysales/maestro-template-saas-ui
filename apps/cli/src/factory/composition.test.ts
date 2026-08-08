@@ -18,7 +18,7 @@ import {
   writeFile,
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { delimiter, join } from "node:path";
+import { delimiter, dirname, join } from "node:path";
 import { PassThrough, Readable } from "node:stream";
 import { fileURLToPath } from "node:url";
 import {
@@ -456,9 +456,13 @@ describe("factory CLI composition", () => {
     onTestFinished(() => rm(isolatedBin, { recursive: true, force: true }));
     const environment = {
       ...process.env,
-      PATH: [isolatedBin, dirname(process.execPath), "/usr/bin", "/bin"].join(
-        delimiter,
-      ),
+      PATH: [
+        isolatedBin,
+        dirname(pnpmExecutable),
+        dirname(process.execPath),
+        "/usr/bin",
+        "/bin",
+      ].join(delimiter),
     };
     const expectedGateIds = [
       "gates",
