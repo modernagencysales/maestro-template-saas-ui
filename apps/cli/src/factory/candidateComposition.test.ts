@@ -139,6 +139,9 @@ const buildCandidateReleaseFixture = (
       firstOutcome: input.outcome,
     }).entries.map((entry) => entry.path),
   );
+  const workflowSelected = materializedPaths.has(
+    "tooling/workflow/package.json",
+  );
   const blueprintOwnedPaths = new Set(
     plan.entries
       .filter((entry) => entry.replaces === undefined)
@@ -148,7 +151,10 @@ const buildCandidateReleaseFixture = (
     ...buildCustomerOwnershipInventory(sourcePaths).map((entry) =>
       blueprintOwnedPaths.has(entry.path) ||
       (optionalPatternPaths.has(entry.path) &&
-        !materializedPaths.has(entry.path))
+        !materializedPaths.has(entry.path)) ||
+      (!workflowSelected &&
+        (entry.path.startsWith("tooling/workflow/") ||
+          entry.path.startsWith("packages/convex/confect/workflows/")))
         ? {
             path: entry.path,
             match: "exact" as const,
@@ -378,10 +384,10 @@ describe("candidate customer composition", () => {
     ])
       expect(files, path).not.toContain(path);
     expect(
-      files.some((path) =>
+      files.filter((path) =>
         path.startsWith("packages/convex/confect/workflows/"),
       ),
-    ).toBe(false);
+    ).toEqual([]);
     expect(files).toContain("packages/convex/confect/deployAuthority/store.ts");
     expect(
       existsSync(
