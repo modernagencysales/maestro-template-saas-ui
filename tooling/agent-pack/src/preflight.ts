@@ -509,7 +509,7 @@ function diagnostic(
 
 function worksNow(facts: PreflightFacts): string {
   if (facts.app.providerMode === "fake")
-    return "What works now: the app uses sample data saved locally.";
+    return "What works now: the app uses deterministic in-memory sample data.";
   return `What works now: the app uses a connected ${facts.app.providerMode === "test" ? "test account" : "live account"}.`;
 }
 

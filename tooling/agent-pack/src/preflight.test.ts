@@ -140,7 +140,8 @@ describe("agent-pack preflight", () => {
       data: {
         fingerprint: fingerprintPreflight(context.repo, facts),
         safeToMutate: true,
-        worksNow: "What works now: the app uses sample data saved locally.",
+        worksNow:
+          "What works now: the app uses deterministic in-memory sample data.",
         demoOnly:
           "What is demo-only: provider-backed actions still use sample data.",
         nextAction: "pnpm maestro -- check",
@@ -274,7 +275,6 @@ describe("agent-pack preflight", () => {
       data: { safeToMutate: true },
     });
   });
-
   it("does not require workflow semantics when no workflow module is selected", async () => {
     const facts = readyFacts();
     const result = await executeAgentPackCommand(
