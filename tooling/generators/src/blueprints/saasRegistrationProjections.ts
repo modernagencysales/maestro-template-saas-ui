@@ -29,6 +29,15 @@ const currentPublicDocument = (path: string): string =>
     "utf8",
   );
 
+const customerEngineeringRules = (workflowSelected: boolean): string => {
+  const rules = currentPublicDocument("enforced-engineering-rules.md");
+  if (workflowSelected) return rules;
+  return rules
+    .split("\n")
+    .filter((line) => !line.startsWith("| Workflow "))
+    .join("\n");
+};
+
 const currentSource = (path: string): string => {
   const url = new URL(`../../../../${path}`, import.meta.url);
   return existsSync(url) ? readFileSync(url, "utf8") : releasedSource(path);
@@ -1351,7 +1360,7 @@ export const buildSaasRegistrationProjections = (
           },
           {
             path: "docs/template/enforced-engineering-rules.md",
-            content: currentPublicDocument("enforced-engineering-rules.md"),
+            content: customerEngineeringRules(workflowSelected),
           },
           ...(workflowSelected
             ? [
