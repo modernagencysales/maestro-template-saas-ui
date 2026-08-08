@@ -118,7 +118,10 @@ describe("check:ci-completeness", () => {
   });
 
   it("assigns every protected path to the verified write-enabled operator", () => {
-    const rules = readFileSync(".github/CODEOWNERS", "utf8")
+    const rules = readFileSync(
+      new URL("../../.github/CODEOWNERS", import.meta.url),
+      "utf8",
+    )
       .split("\n")
       .map((line) => line.trim())
       .filter((line) => line !== "" && !line.startsWith("#"));
