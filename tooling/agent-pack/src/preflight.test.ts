@@ -18,7 +18,7 @@ const readyFacts = (): PreflightFacts => ({
     os: "linux",
     architecture: "x64",
     osSupported: true,
-    node: { current: "22.12.0", required: "22.12.0", supported: true },
+    node: { current: "22.23.2", required: "22.23.2", supported: true },
     pnpm: { current: "10.12.1", required: "10.12.1", supported: true },
     corepack: "ready",
     git: {
@@ -116,7 +116,8 @@ describe("agent-pack preflight", () => {
       data: {
         fingerprint: fingerprintPreflight(context.repo, facts),
         safeToMutate: true,
-        worksNow: "What works now: the app uses sample data saved locally.",
+        worksNow:
+          "What works now: the app uses deterministic in-memory sample data.",
         demoOnly:
           "What is demo-only: provider-backed actions still use sample data.",
         nextAction: "pnpm maestro -- check",
@@ -229,6 +230,58 @@ describe("agent-pack preflight", () => {
         exitClass: "success",
         data: { safeToMutate: true },
       });
+    },
+  );
+
+  it("does not require workflow semantics when no workflow module is selected", async () => {
+    const facts = readyFacts();
+    const result = await executeAgentPackCommand(
+      createPreflightCommand({
+        inspect: async () => ({
+          ...facts,
+          workflow: {
+            ...facts.workflow,
+            status: "unsupported",
+            publishedDrift: true,
+          },
+          app: { ...facts.app, modules: ["brain"] },
+        }),
+      }),
+      { mode: "fake" },
+      context,
+    );
+
+    expect(result.exitClass).toBe("success");
+    expect(result.diagnostics).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: "AGENT_PACK_WORKFLOW_UNSAFE" }),
+      ]),
+    );
+  });
+
+  it.each([
+    ["unsupported status", { status: "unsupported" as const }],
+    ["published drift", { publishedDrift: true }],
+  ])(
+    "requires safe workflow semantics for selected workflows with %s",
+    async (_label, workflowOverride) => {
+      const facts = readyFacts();
+      const result = await executeAgentPackCommand(
+        createPreflightCommand({
+          inspect: async () => ({
+            ...facts,
+            workflow: { ...facts.workflow, ...workflowOverride },
+          }),
+        }),
+        { mode: "fake" },
+        context,
+      );
+
+      expect(result.diagnostics).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ code: "AGENT_PACK_WORKFLOW_UNSAFE" }),
+        ]),
+      );
     },
   );
 

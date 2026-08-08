@@ -64,7 +64,6 @@
   workflow inspection.
 - `apps/cli`: typed CLI projection over generated Confect manifest metadata and
   generated refs.
-- `apps/voice-relay`: optional capture/voice relay app.
 
 ## Packages
 
@@ -108,7 +107,6 @@
   private-package import, and upgrade.
 - `tooling/evals`: prompt and source-grounding evaluation fixtures.
 - `tooling/release`: deploy, smoke, rollback, and backup/restore helpers.
-- `tooling/pr-backlog`: PR sweep and backlog tooling.
 
 ## Generated Directories
 

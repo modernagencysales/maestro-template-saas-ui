@@ -105,10 +105,7 @@ describe("Node Agent Pack adapters", () => {
         JSON.stringify({ private: true }),
       ],
       ["/template/package.json", JSON.stringify({ private: true })],
-      [
-        "/repo/agent-pack/generated/codex/.agents/skills/maestro/SKILL.md",
-        "managed skill\n",
-      ],
+      ["/repo/agent-pack/skills/maestro/SKILL.md", "managed skill\n"],
       ["/repo/.agents/skills/maestro/SKILL.md", "managed skill\n"],
       ["/repo/template-instance.json", '{"name":"Fixture"}'],
     ]);
@@ -116,7 +113,7 @@ describe("Node Agent Pack adapters", () => {
       "/repo",
       "/template",
       "/repo/node_modules",
-      "/repo/agent-pack/generated/codex/.agents/skills/maestro",
+      "/repo/agent-pack/skills/maestro",
       "/repo/.agents/skills/maestro/SKILL.md",
       ...files.keys(),
     ]);
@@ -190,12 +187,13 @@ describe("Node Agent Pack adapters", () => {
         stderr: "",
       };
     });
+    let currentNodeVersion = "v22.23.2";
     const runtime = createNodePreflightRuntimeReader({
       fs,
       execFile: execute,
       platform: () => "linux",
       architecture: () => "x64",
-      nodeVersion: () => "v22.20.0",
+      nodeVersion: () => currentNodeVersion,
       environment: () => ({
         CONVEX_DEPLOYMENT: "secret-deployment-value",
         EMPTY_VALUE: "",
@@ -215,10 +213,14 @@ describe("Node Agent Pack adapters", () => {
           status: "unsupported",
         },
       ],
-      publishedWorkflowRuleIds: ["WF-DATE", "WF-INTL", "WF-CRYPTO"],
+      publishedWorkflowRuleIds: [
+        "WF-DATE",
+        "WF-INTL",
+        "WF-CRYPTO",
+        "WF-MISSING",
+      ],
       policy: {
         supportedPlatforms: ["linux", "darwin", "win32"],
-        supportedNodeMajors: [22],
         supportedPnpmVersions: ["9.15.4"],
         minimumGitVersion: "2.31.0",
         minimumDiskBytes: 1_000_000,
@@ -234,7 +236,11 @@ describe("Node Agent Pack adapters", () => {
         os: "linux",
         architecture: "x64",
         osSupported: true,
-        node: { current: "22.20.0", required: "major 22", supported: true },
+        node: {
+          current: "22.23.2",
+          required: "^22.23.2 || ^24.0.0 || >=26.0.0",
+          supported: true,
+        },
         pnpm: { current: "10.12.1", required: "10.12.1", supported: true },
         corepack: "ready",
         git: { current: "2.50.0", supported: true, worktree: true },
@@ -269,12 +275,13 @@ describe("Node Agent Pack adapters", () => {
         effect: "3.21.4",
       },
       workflow: {
-        status: "restricted",
+        status: "unsupported",
         accepted: ["Date.now"],
         restricted: ["Intl"],
         unsupported: ["crypto"],
-        publishedDrift: false,
+        publishedDrift: true,
       },
+      versionsCompatible: true,
       availableEnvironmentNames: ["CONVEX_DEPLOYMENT"],
       templateInstanceText: '{"name":"Fixture"}',
       observedAt: "2026-07-25T12:00:00.000Z",
@@ -290,6 +297,23 @@ describe("Node Agent Pack adapters", () => {
       expect.arrayContaining([expect.stringContaining("secret")]),
       expect.anything(),
     );
+
+    for (const [version, supported] of [
+      ["v22.23.1", false],
+      ["v22.23.2", true],
+      ["v24.0.0", true],
+      ["v25.0.0", false],
+      ["v26.0.0", true],
+      ["v27.1.0", true],
+    ] as const) {
+      currentNodeVersion = version;
+      await expect(
+        runtime.inspect({ mode: "fake" }, repo),
+      ).resolves.toMatchObject({
+        host: { node: { current: version.slice(1), supported } },
+      });
+    }
+    currentNodeVersion = "v22.23.2";
 
     files.set(
       "/repo/.agents/skills/maestro/SKILL.md",
@@ -384,7 +408,6 @@ describe("Node Agent Pack adapters", () => {
       environment: () => ({}),
       policy: {
         supportedPlatforms: [process.platform],
-        supportedNodeMajors: [Number(process.versions.node.split(".")[0])],
         minimumGitVersion: "2.31.0",
         minimumDiskBytes: 0,
         requiredPorts: [],
@@ -508,12 +531,12 @@ describe("Node Agent Pack adapters", () => {
     const runtime = createNodePreflightRuntimeReader({
       fs: nodePreflightFileSystem,
       execFile: execute,
+      nodeVersion: () => "v22.23.2",
       workflowRules: [],
       publishedWorkflowRuleIds: [],
       environment: () => ({}),
       policy: {
         supportedPlatforms: [process.platform],
-        supportedNodeMajors: [Number(process.versions.node.split(".")[0])],
         minimumGitVersion: "2.31.0",
         minimumDiskBytes: 0,
         requiredPorts: [],
@@ -547,6 +570,40 @@ describe("Node Agent Pack adapters", () => {
       versionsCompatible: false,
     });
     await writeFile(join(root, "template-instance.json"), templateInstance());
+
+    await writeFile(
+      join(root, "docs/template/customer-context.manifest.json"),
+      JSON.stringify({
+        schemaVersion: 1,
+        files: [
+          {
+            path: ".agents/skills/maestro/SKILL.md",
+            sha256: `sha256:${skillHash}`,
+          },
+          {
+            path: ".agents/skills/maestro/references/host-safety.md",
+            sha256: 42,
+          },
+        ],
+      }),
+    );
+    await expect(
+      runtime.inspect({ mode: "fake" }, repo),
+    ).resolves.toMatchObject({
+      repository: { hostIntegration: "stale" },
+    });
+    await writeFile(
+      join(root, "docs/template/customer-context.manifest.json"),
+      JSON.stringify({
+        schemaVersion: 1,
+        files: [
+          {
+            path: ".agents/skills/maestro/SKILL.md",
+            sha256: `sha256:${skillHash}`,
+          },
+        ],
+      }),
+    );
 
     await writeFile(
       join(root, ".agents/skills/maestro/SKILL.md"),
