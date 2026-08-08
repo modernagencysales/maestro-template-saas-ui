@@ -923,13 +923,15 @@ describe("create root integration", () => {
       { cwd: targetRoot },
     );
 
-    const contracts = spawnSync(
+    const contracts = await execFileAsync(
       "pnpm",
       ["--silent", "maestro", "--", "contracts", "test", "records"],
-      { cwd: targetRoot, encoding: "utf8", timeout: 180_000 },
-    );
-    expect(contracts.status, `${contracts.stdout}\n${contracts.stderr}`).toBe(
-      0,
+      {
+        cwd: targetRoot,
+        encoding: "utf8",
+        timeout: 180_000,
+        maxBuffer: 10 * 1024 * 1024,
+      },
     );
     expect(contracts.stdout).toContain("4 scenarios (4 passed)");
   }, 300_000);
