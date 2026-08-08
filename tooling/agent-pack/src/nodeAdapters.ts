@@ -369,7 +369,6 @@ export function createNodePreflightRuntimeReader(input: {
           osSupported: input.policy.supportedPlatforms.includes(os),
           packageVersionsBound,
           pnpmSupported,
-          publishedDrift: workflow.publishedDrift,
           worktreeSupported,
         }),
         versions,
@@ -599,7 +598,6 @@ function compatibleVersions(input: {
   readonly osSupported: boolean;
   readonly packageVersionsBound: boolean;
   readonly pnpmSupported: boolean;
-  readonly publishedDrift: boolean;
   readonly worktreeSupported: boolean;
 }): boolean {
   return (
@@ -609,8 +607,7 @@ function compatibleVersions(input: {
     input.gitVersion.exitCode === 0 &&
     input.gitVersionSupported &&
     input.worktreeSupported &&
-    input.packageVersionsBound &&
-    !input.publishedDrift
+    input.packageVersionsBound
   );
 }
 
