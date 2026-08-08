@@ -253,8 +253,9 @@ const currentContractFiles = (
       ? [
           "apps/web/src/adapters/records/http.ts",
           "features/records.feature",
+          "features/step_definitions/records.journeys.ts",
           "features/step_definitions/records.steps.ts",
-          "features/support/contracts-runtime.test.ts",
+          "features/support/contracts-scenario.ts",
           "features/support/contracts-runtime.ts",
           "features/support/contracts-world.ts",
         ].map((path) => ({
@@ -303,8 +304,9 @@ const recordsFeatureProvenance = (): GeneratedFile => ({
         "apps/web/src/screens/records-screen.tsx",
         "apps/web/src/routes/_workspace.records.tsx",
         "features/records.feature",
+        "features/step_definitions/records.journeys.ts",
         "features/step_definitions/records.steps.ts",
-        "features/support/contracts-runtime.test.ts",
+        "features/support/contracts-scenario.ts",
         "features/support/contracts-runtime.ts",
         "features/support/contracts-world.ts",
       ],

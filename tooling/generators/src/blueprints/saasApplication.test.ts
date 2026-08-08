@@ -149,6 +149,18 @@ describe("saas application blueprint", () => {
       true,
     );
     expect(records.has("tooling/workflow/package.json")).toBe(false);
+    for (const path of [
+      "features/step_definitions/records.journeys.ts",
+      "features/support/contracts-scenario.ts",
+      "features/support/contracts-world.ts",
+      "features/support/contracts-runtime.ts",
+    ])
+      expect(records.has(path), path).toBe(true);
+    for (const path of [
+      "features/support/contracts-runtime.test.ts",
+      "features/support/contracts-world.test.ts",
+    ])
+      expect(records.has(path), path).toBe(false);
 
     const workflow = paths(["workflow-automation"]);
     expect(workflow.has("features/records.feature")).toBe(false);
@@ -1697,7 +1709,9 @@ Feature: Reconcile disputed invoices
       "apps/web/src/routes/_workspace.records.tsx",
       "apps/web/src/adapters/records/http.ts",
       "features/records.feature",
+      "features/step_definitions/records.journeys.ts",
       "features/step_definitions/records.steps.ts",
+      "features/support/contracts-scenario.ts",
       "features/support/contracts-runtime.ts",
       "features/support/contracts-world.ts",
       "features/first-outcome.feature",
