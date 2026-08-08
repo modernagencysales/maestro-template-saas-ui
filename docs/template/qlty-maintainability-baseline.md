@@ -1,7 +1,7 @@
 # Qlty maintainability baseline
 
 Status: monitored debt from the initial Agent Pack import; new debt remains
-blocking.
+visible through advisory Qlty reporting.
 
 PR #5 introduces the productized Agent Pack as a 480-commit import against the
 pre-productization `main` branch. Qlty Cloud caps its PR summary at 100 issues;
@@ -20,13 +20,15 @@ findings:
 | `similar-code`        |       24 |                      14 |
 
 Thirteen findings are in immutable release payloads or generated example seed
-source. Those copied artifacts are monitored for maintainability while gitleaks
-and osv-scanner remain blocking.
+source. Those copied artifacts are monitored for maintainability. Gitleaks also
+runs through the independent deterministic secret gate; Qlty-hosted OSV output
+remains advisory.
 
 Qlty does not expose a repository-owned fingerprint baseline. The exact runtime
 rule/path pairs present in this capture therefore use `set.mode = "monitor"` in
-`.qlty/qlty.toml`. Global smell mode remains `block`, so any rule appearing in a
-new path still fails the gate. The entries are a debt ledger, not an exemption
+`.qlty/qlty.toml`. Global smell mode remains `block` inside Qlty so a rule in a
+new path is emitted at finding severity; the repository wrapper still exits
+successfully after reporting it. The entries are a debt ledger, not an exemption
 for neighboring code.
 
 ## Deployment-authority launch ledger
@@ -43,7 +45,7 @@ explicit launch debt while authorization behavior is kept stable.
 Remove each pair as soon as a behavior-preserving extraction brings that rule
 below its configured threshold. Proof requires the focused deployment-authority
 tests, the configuration-drift tests for `_project-config.mjs`, and the commands
-in the removal contract below. New rules or neighboring paths remain blocking.
+in the removal contract below. New rules or neighboring paths remain visible.
 
 ## Removal contract
 
