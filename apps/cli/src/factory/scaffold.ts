@@ -10,7 +10,7 @@ import { runAgentPackCommandAsCli, type FactoryCliRenderMode } from "./router";
 
 export const SCAFFOLD_HELP =
   [
-    "maestro scaffold --generator <id> --args <json-object> [--write --preflight-fingerprint <preflight_sha256:...> --preview-fingerprint <scaffold_sha256:...>]",
+    "maestro scaffold --generator <id> --args <json-object> [--write]",
     "  [--workflow-rule <id>] [--workflow-alternative <id>=<exact-ledger-repair>]",
     "  [--workflow-adr <id>=<docs/template/adr/NNNN-name.md>] [--human|--details|--json]",
   ].join("\n") + "\n";
@@ -49,102 +49,127 @@ function parseScaffoldCli(argv: readonly string[]): {
   readonly input: unknown;
   readonly renderMode: FactoryCliRenderMode;
 } {
-  let generatorId: string | undefined;
-  let args: Record<string, AgentPackJsonValue> | undefined;
-  let write = false;
-  let writeSeen = false;
-  let preflightFingerprint: string | undefined;
-  let previewFingerprint: string | undefined;
-  const workflowRuleIds: string[] = [];
-  const workflowResolutions: (
-    | {
-        readonly kind: "declared-alternative";
-        readonly ruleId: string;
-        readonly alternative: string;
-      }
-    | {
-        readonly kind: "reviewed-adr";
-        readonly ruleId: string;
-        readonly adrRef: string;
-      }
-  )[] = [];
-  let renderMode: FactoryCliRenderMode = "human";
-  let renderSeen = false;
-  let valid = true;
+  const state = scaffoldCliState();
   for (let index = 0; index < argv.length; index += 1) {
     const token = argv[index];
-    if (token === "--write") {
-      if (writeSeen) valid = false;
-      write = true;
-      writeSeen = true;
-      continue;
-    }
-    const selected = renderModeFor(token);
-    if (selected !== undefined) {
-      if (renderSeen) valid = false;
-      renderMode = selected;
-      renderSeen = true;
-      continue;
-    }
+    if (applyScaffoldFlag(state, token)) continue;
     const value = argv[index + 1];
     if (value === undefined || value.startsWith("--")) {
-      valid = false;
+      state.valid = false;
       continue;
     }
     index += 1;
-    if (token === "--generator" && generatorId === undefined)
-      generatorId = value;
-    else if (token === "--args" && args === undefined)
-      args = parseJsonRecord(value);
-    else if (
-      token === "--preflight-fingerprint" &&
-      preflightFingerprint === undefined
-    )
-      preflightFingerprint = value;
-    else if (
-      token === "--preview-fingerprint" &&
-      previewFingerprint === undefined
-    )
-      previewFingerprint = value;
-    else if (token === "--workflow-rule" && !workflowRuleIds.includes(value))
-      workflowRuleIds.push(value);
-    else if (token === "--workflow-alternative") {
-      const pair = splitPair(value);
-      if (pair === undefined) valid = false;
-      else
-        workflowResolutions.push({
-          kind: "declared-alternative",
-          ruleId: pair[0],
-          alternative: pair[1],
-        });
-    } else if (token === "--workflow-adr") {
-      const pair = splitPair(value);
-      if (pair === undefined) valid = false;
-      else
-        workflowResolutions.push({
-          kind: "reviewed-adr",
-          ruleId: pair[0],
-          adrRef: pair[1],
-        });
-    } else valid = false;
+    state.valid = applyScaffoldValue(state, token, value) && state.valid;
   }
-  if (generatorId === undefined || args === undefined) valid = false;
+  if (state.generatorId === undefined || state.args === undefined)
+    state.valid = false;
   return {
-    input: valid
+    input: state.valid
       ? {
-          generatorId,
-          args,
-          write,
-          ...(preflightFingerprint === undefined
-            ? {}
-            : { preflightFingerprint }),
-          ...(previewFingerprint === undefined ? {} : { previewFingerprint }),
-          workflowRuleIds,
-          workflowResolutions,
+          generatorId: state.generatorId,
+          args: state.args,
+          write: state.write,
+          workflowRuleIds: state.workflowRuleIds,
+          workflowResolutions: state.workflowResolutions,
         }
       : {},
-    renderMode,
+    renderMode: state.renderMode,
   };
+}
+
+type ScaffoldCliState = {
+  generatorId: string | undefined;
+  args: Record<string, AgentPackJsonValue> | undefined;
+  write: boolean;
+  writeSeen: boolean;
+  workflowRuleIds: string[];
+  workflowResolutions: WorkflowResolution[];
+  renderMode: FactoryCliRenderMode;
+  renderSeen: boolean;
+  valid: boolean;
+};
+
+type WorkflowResolution =
+  | {
+      readonly kind: "declared-alternative";
+      readonly ruleId: string;
+      readonly alternative: string;
+    }
+  | {
+      readonly kind: "reviewed-adr";
+      readonly ruleId: string;
+      readonly adrRef: string;
+    };
+
+function scaffoldCliState(): ScaffoldCliState {
+  return {
+    generatorId: undefined,
+    args: undefined,
+    write: false,
+    writeSeen: false,
+    workflowRuleIds: [],
+    workflowResolutions: [],
+    renderMode: "human",
+    renderSeen: false,
+    valid: true,
+  };
+}
+
+function applyScaffoldFlag(state: ScaffoldCliState, token: string | undefined) {
+  if (token === "--write") {
+    state.valid = !state.writeSeen && state.valid;
+    state.write = true;
+    state.writeSeen = true;
+    return true;
+  }
+  const renderMode = renderModeFor(token);
+  if (renderMode === undefined) return false;
+  state.valid = !state.renderSeen && state.valid;
+  state.renderMode = renderMode;
+  state.renderSeen = true;
+  return true;
+}
+
+function applyScaffoldValue(
+  state: ScaffoldCliState,
+  token: string | undefined,
+  value: string,
+): boolean {
+  switch (token) {
+    case "--generator":
+      if (state.generatorId !== undefined) return false;
+      state.generatorId = value;
+      return true;
+    case "--args":
+      if (state.args !== undefined) return false;
+      state.args = parseJsonRecord(value);
+      return state.args !== undefined;
+    case "--workflow-rule":
+      if (!state.workflowRuleIds.includes(value))
+        state.workflowRuleIds.push(value);
+      return true;
+    case "--workflow-alternative":
+      return appendWorkflowResolution(state, value, "declared-alternative");
+    case "--workflow-adr":
+      return appendWorkflowResolution(state, value, "reviewed-adr");
+    default:
+      return false;
+  }
+}
+
+function appendWorkflowResolution(
+  state: ScaffoldCliState,
+  value: string,
+  kind: WorkflowResolution["kind"],
+): boolean {
+  const pair = splitPair(value);
+  if (pair === undefined) return false;
+  state.workflowResolutions.push(
+    kind === "declared-alternative"
+      ? { kind, ruleId: pair[0], alternative: pair[1] }
+      : { kind, ruleId: pair[0], adrRef: pair[1] },
+  );
+  return true;
 }
 
 function parseJsonRecord(

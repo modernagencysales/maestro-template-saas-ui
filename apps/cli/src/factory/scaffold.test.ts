@@ -1,6 +1,5 @@
 import {
   createScaffoldCommand,
-  fingerprintScaffoldPreview,
   type ScaffoldDependencies,
   type ScaffoldGeneratorRequest,
   type ScaffoldGeneratorOutput,
@@ -17,11 +16,6 @@ const output: ScaffoldGeneratorOutput = {
   codegen: [],
   focusedGates: [],
 };
-const previewFingerprint = fingerprintScaffoldPreview(
-  { generatorId: "add-capability", args: { name: "exact" } },
-  output,
-);
-
 function dependencies(
   preflight: {
     safeToMutate: boolean;
@@ -29,10 +23,14 @@ function dependencies(
     fingerprint: string;
   },
   collisions: readonly string[] = [],
+  writeCollisions: readonly string[] = [],
 ) {
   const run = vi.fn(async ({ write }: ScaffoldGeneratorRequest) => ({
     ok: true as const,
-    output: { ...output, collisions: write ? [] : collisions },
+    output: {
+      ...output,
+      collisions: write ? writeCollisions : collisions,
+    },
   }));
   const value: ScaffoldDependencies = {
     generators: { resolve: () => ({ supported: true }), run },
@@ -42,104 +40,94 @@ function dependencies(
   return { value, run };
 }
 
-const writeArgv = (fingerprint?: string) => [
+const writeArgv = [
   "scaffold",
   "--generator",
   "add-capability",
   "--args",
   '{"name":"exact"}',
   "--write",
-  "--preview-fingerprint",
-  previewFingerprint,
-  ...(fingerprint === undefined
-    ? []
-    : ["--preflight-fingerprint", fingerprint]),
   "--json",
 ];
 
 describe("scaffold CLI adapter", () => {
-  it.each([
-    [
-      "dirty",
-      {
-        safeToMutate: true,
-        cleanWorktree: false,
-        fingerprint: "preflight_sha256:ok",
-      },
-      [],
-      "preflight_sha256:ok",
-    ],
-    [
-      "collision",
-      {
-        safeToMutate: true,
-        cleanWorktree: true,
-        fingerprint: "preflight_sha256:ok",
-      },
-      ["generated/exact.ts"],
-      "preflight_sha256:ok",
-    ],
-    [
-      "stale",
-      {
-        safeToMutate: true,
-        cleanWorktree: true,
-        fingerprint: "preflight_sha256:new",
-      },
-      [],
-      "preflight_sha256:old",
-    ],
-    [
-      "missing",
-      {
-        safeToMutate: true,
-        cleanWorktree: true,
-        fingerprint: "preflight_sha256:ok",
-      },
-      [],
-      undefined,
-    ],
-    [
-      "blocking",
-      {
-        safeToMutate: false,
-        cleanWorktree: true,
-        fingerprint: "preflight_sha256:ok",
-      },
-      [],
-      "preflight_sha256:ok",
-    ],
-  ] as const)(
-    "never writes for %s preflight evidence",
-    async (_case, preflight, collisions, fingerprint) => {
-      const fixture = dependencies(preflight, collisions);
-      const result = await runScaffoldCli(
-        createScaffoldCommand(fixture.value),
-        writeArgv(fingerprint),
-        "/fixture",
-      );
-      expect(result.exitCode).not.toBe(0);
-      expect(fixture.run.mock.calls.some(([request]) => request.write)).toBe(
-        false,
-      );
-    },
-  );
-
-  it("writes with a matching clean fingerprint", async () => {
+  it("writes despite unrelated worktree changes", async () => {
     const fixture = dependencies({
       safeToMutate: true,
-      cleanWorktree: true,
+      cleanWorktree: false,
       fingerprint: "preflight_sha256:ok",
     });
     const result = await runScaffoldCli(
       createScaffoldCommand(fixture.value),
-      writeArgv("preflight_sha256:ok"),
+      writeArgv,
       "/fixture",
     );
     expect(result.exitCode).toBe(0);
     expect(fixture.run.mock.calls.map(([request]) => request.write)).toEqual([
       false,
       true,
+    ]);
+  });
+
+  it("refuses an owned collision found by the write-time recomputation", async () => {
+    const fixture = dependencies(
+      {
+        safeToMutate: true,
+        cleanWorktree: false,
+        fingerprint: "preflight_sha256:ok",
+      },
+      [],
+      ["generated/exact.ts"],
+    );
+    const result = await runScaffoldCli(
+      createScaffoldCommand(fixture.value),
+      writeArgv,
+      "/fixture",
+    );
+
+    expect(result.exitCode).not.toBe(0);
+    expect(fixture.run.mock.calls.map(([request]) => request.write)).toEqual([
+      false,
+      true,
+    ]);
+  });
+
+  it("refuses an initial owned collision before write-time recomputation", async () => {
+    const fixture = dependencies(
+      {
+        safeToMutate: true,
+        cleanWorktree: false,
+        fingerprint: "preflight_sha256:ok",
+      },
+      ["generated/exact.ts"],
+    );
+    const result = await runScaffoldCli(
+      createScaffoldCommand(fixture.value),
+      writeArgv,
+      "/fixture",
+    );
+
+    expect(result.exitCode).not.toBe(0);
+    expect(fixture.run.mock.calls.map(([request]) => request.write)).toEqual([
+      false,
+    ]);
+  });
+
+  it("refuses an unsafe preflight before write-time recomputation", async () => {
+    const fixture = dependencies({
+      safeToMutate: false,
+      cleanWorktree: false,
+      fingerprint: "preflight_sha256:ok",
+    });
+    const result = await runScaffoldCli(
+      createScaffoldCommand(fixture.value),
+      writeArgv,
+      "/fixture",
+    );
+
+    expect(result.exitCode).not.toBe(0);
+    expect(fixture.run.mock.calls.map(([request]) => request.write)).toEqual([
+      false,
     ]);
   });
 
@@ -154,6 +142,33 @@ describe("scaffold CLI adapter", () => {
       ["scaffold", "--generator", "add-capability", "--args", "[]", "--json"],
       "/fixture",
     );
+    expect(result.exitCode).toBe(2);
+    expect(fixture.run).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["duplicate write", [...writeArgv, "--write"]],
+    [
+      "removed fingerprint flag",
+      [...writeArgv, "--preview-fingerprint", "scaffold_sha256:removed"],
+    ],
+    ["duplicate render mode", [...writeArgv, "--human"]],
+    [
+      "invalid workflow resolution",
+      [...writeArgv, "--workflow-adr", "WF-STEP-ACTION="],
+    ],
+  ])("fails closed for %s", async (_case, argv) => {
+    const fixture = dependencies({
+      safeToMutate: true,
+      cleanWorktree: true,
+      fingerprint: "preflight_sha256:ok",
+    });
+    const result = await runScaffoldCli(
+      createScaffoldCommand(fixture.value),
+      argv,
+      "/fixture",
+    );
+
     expect(result.exitCode).toBe(2);
     expect(fixture.run).not.toHaveBeenCalled();
   });
