@@ -53,4 +53,4 @@ to reuse/extend the existing slice or choose a deliberately reviewed name.
 - `pnpm check:data-resources`
 - `pnpm check:promotion-boundary`
 - `pnpm check:layer-boundaries`
-- `just verify`
+- `pnpm verify`

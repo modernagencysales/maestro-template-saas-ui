@@ -72,11 +72,6 @@ export const NO_NETWORK_FACTORY_CASES: readonly NoNetworkFactoryCase[] = [
     ],
   },
   {
-    id: "plan-check-local",
-    command: "plan-check",
-    argv: ["plan-check", "--plan", "<PLAN_PATH>", "--json"],
-  },
-  {
     id: "scaffold-preview",
     command: "scaffold",
     argv: [

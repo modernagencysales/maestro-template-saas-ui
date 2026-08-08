@@ -45,7 +45,6 @@ const FACTORY_ONLY_PREFIXES = [
   "tooling/evals/",
   "tooling/pr-backlog/",
   "tooling/release/",
-  "tooling/stack/",
 ] as const;
 
 const FACTORY_PRODUCT_TABLES = [
@@ -144,7 +143,6 @@ const CUSTOMER_EXTENSION_EXACT = new Set([
 
 const GENERATED_EXACT = new Set([
   ".claude/settings.json",
-  "Justfile",
   "package.json",
   "tsconfig.json",
   "apps/web/src/routeTree.gen.ts",

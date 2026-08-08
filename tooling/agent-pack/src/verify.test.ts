@@ -399,10 +399,10 @@ describe("agent-pack verification command", () => {
           diagnostic: {
             code: "AGENT_PACK_FULL_VERIFY_FAILED",
             severity: "error",
-            message: "just verify failed after attribution.",
+            message: "pnpm verify failed after attribution.",
             safeToContinue: false,
             nextAction: "Repair the owning invariant.",
-            rerun: "just verify",
+            rerun: "pnpm verify",
           },
         },
       ]),

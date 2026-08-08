@@ -326,7 +326,7 @@ describe("execFile verification runner", () => {
       descriptors,
     });
 
-    expect(execFile).toHaveBeenCalledWith("just", ["verify"], {
+    expect(execFile).toHaveBeenCalledWith("pnpm", ["verify"], {
       cwd: "/repo",
       timeoutMs: 10_000,
       maxBufferBytes: 64_000,
@@ -370,7 +370,7 @@ describe("execFile verification runner", () => {
       { gateId: "agent-pack", status: "pass" },
     ]);
     expect(execute.mock.calls.map(([file, args]) => [file, ...args])).toEqual([
-      ["just", "verify"],
+      ["pnpm", "verify"],
       ["pnpm", "check:agent-pack"],
     ]);
   });
@@ -446,7 +446,8 @@ describe("execFile verification runner", () => {
 
   it("attributes a failed full run until the exact causal blocker", async () => {
     const execute = vi.fn<VerificationExecFile>(async (file, args) => {
-      if (file === "just") return { exitCode: 1, stdout: "", stderr: "" };
+      if (file === "pnpm" && args[0] === "verify")
+        return { exitCode: 1, stdout: "", stderr: "" };
       if (args[0] === "check:agent-pack") {
         return { exitCode: 0, stdout: "", stderr: "" };
       }
@@ -470,7 +471,7 @@ describe("execFile verification runner", () => {
       },
     ]);
     expect(execute.mock.calls.map(([file, args]) => [file, ...args])).toEqual([
-      ["just", "verify"],
+      ["pnpm", "verify"],
       ["pnpm", "check:agent-pack"],
       ["pnpm", "taste:eval"],
     ]);
@@ -484,7 +485,8 @@ describe("execFile verification runner", () => {
       rerun: ["pnpm", "check:types"] as const,
     };
     const execute = vi.fn<VerificationExecFile>(async (file, args) => {
-      if (file === "just") return { exitCode: 1, stdout: "", stderr: "" };
+      if (file === "pnpm" && args[0] === "verify")
+        return { exitCode: 1, stdout: "", stderr: "" };
       if (args[0] === "check:agent-pack") {
         return { exitCode: 0, stdout: "", stderr: "" };
       }
@@ -512,7 +514,7 @@ describe("execFile verification runner", () => {
       },
       {
         gateId: "maestro/full-verify",
-        diagnostic: { rerun: "just verify" },
+        diagnostic: { rerun: "pnpm verify" },
       },
     ]);
   });
@@ -570,7 +572,7 @@ describe("execFile verification runner", () => {
     ).toEqual([repo, otherRepo]);
     expect(
       execFile.mock.calls
-        .filter(([file]) => file === "just")
+        .filter(([file, args]) => file === "pnpm" && args[0] === "verify")
         .map(([, , options]) => options.cwd),
     ).toEqual(["/repo", "/other-repo"]);
   });

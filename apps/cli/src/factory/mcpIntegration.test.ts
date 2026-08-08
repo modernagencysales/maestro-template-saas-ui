@@ -19,7 +19,6 @@ describe("root MCP composition", () => {
       frame.result.tools.map(({ name }: { name: string }) => name),
     ).toEqual([
       "maestro_preflight",
-      "maestro_plan_check",
       "maestro_scaffold_preview",
       "maestro_support_bundle_preview",
       "maestro_verify",

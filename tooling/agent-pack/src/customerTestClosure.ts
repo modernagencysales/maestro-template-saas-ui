@@ -8,7 +8,6 @@ export const AGENT_PACK_CUSTOMER_TEST_PATHS = [
   "tooling/agent-pack/src/mcp/protocol.test.ts",
   "tooling/agent-pack/src/mcp/server.test.ts",
   "tooling/agent-pack/src/nodeAdapters.test.ts",
-  "tooling/agent-pack/src/planCheck.test.ts",
   "tooling/agent-pack/src/ports.test.ts",
   "tooling/agent-pack/src/preflight.test.ts",
   "tooling/agent-pack/src/preflightProbe.test.ts",

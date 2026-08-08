@@ -70,6 +70,7 @@ describe("diagnostic registry projection", () => {
     ["powershell", "-Command", "id"],
     ["pwsh", "-Command", "id"],
     ["python", "-c", "id"],
+    ["just", "verify"],
     ["pnpm", "test"],
     ["pnpm", "exec", "vitest"],
     ["pnpm", "check:*"],

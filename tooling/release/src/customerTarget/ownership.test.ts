@@ -77,6 +77,13 @@ describe("customer ownership inventory", () => {
     ).toThrow("Unclassified customer release source path");
   });
 
+  it("does not retain removed Just or stack-tooling ownership", () => {
+    expect(classifyCustomerSourcePath("Justfile")).toBeUndefined();
+    expect(
+      classifyCustomerSourcePath("tooling/stack/package.json"),
+    ).toBeUndefined();
+  });
+
   it.each([
     [".factory/project.yaml", "template-owned", "copy"],
     ["cucumber.cjs", "template-owned", "copy"],

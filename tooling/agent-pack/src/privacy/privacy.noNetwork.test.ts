@@ -249,7 +249,6 @@ describe("privacy no-network conformance", () => {
       "preflight",
       "verify",
       "check",
-      "plan-check",
       "scaffold",
       "support-bundle",
     ]);
@@ -296,29 +295,36 @@ function readAttempts(): unknown[] {
 function parseCliResult(stdout: string): Record<string, unknown> {
   const start = stdout.indexOf('{\n  "schemaVersion"');
   if (start < 0) throw new Error(`CLI result JSON is missing:\n${stdout}`);
-  let depth = 0;
-  let quoted = false;
-  let escaped = false;
+  const state = { depth: 0, quoted: false, escaped: false };
   for (let index = start; index < stdout.length; index += 1) {
-    const character = stdout[index];
-    if (quoted) {
-      if (escaped) escaped = false;
-      else if (character === "\\") escaped = true;
-      else if (character === '"') quoted = false;
-      continue;
-    }
-    if (character === '"') quoted = true;
-    else if (character === "{") depth += 1;
-    else if (character === "}") {
-      depth -= 1;
-      if (depth === 0)
-        return JSON.parse(stdout.slice(start, index + 1)) as Record<
-          string,
-          unknown
-        >;
-    }
+    if (advanceJsonScan(state, stdout[index]))
+      return JSON.parse(stdout.slice(start, index + 1)) as Record<
+        string,
+        unknown
+      >;
   }
   throw new Error(`CLI result JSON is incomplete:\n${stdout}`);
+}
+
+function advanceJsonScan(
+  state: { depth: number; quoted: boolean; escaped: boolean },
+  character: string,
+): boolean {
+  if (state.quoted) return advanceQuotedJsonScan(state, character);
+  if (character === '"') state.quoted = true;
+  else if (character === "{") state.depth += 1;
+  else if (character === "}") state.depth -= 1;
+  return character === "}" && state.depth === 0;
+}
+
+function advanceQuotedJsonScan(
+  state: { quoted: boolean; escaped: boolean },
+  character: string,
+): false {
+  if (state.escaped) state.escaped = false;
+  else if (character === "\\") state.escaped = true;
+  else if (character === '"') state.quoted = false;
+  return false;
 }
 
 function externalSyscallLines(trace: string): readonly string[] {

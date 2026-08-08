@@ -30,7 +30,7 @@ describe("privacy boundary canaries", () => {
       data: { ok: true },
     }));
     const command = (
-      id: "preflight" | "plan-check" | "scaffold" | "support-bundle" | "verify",
+      id: "preflight" | "scaffold" | "support-bundle" | "verify",
     ) =>
       defineAgentPackCommand({
         id,
@@ -45,7 +45,6 @@ describe("privacy boundary canaries", () => {
     const projection = createMaestroMcpProjection(
       {
         preflight: command("preflight"),
-        planCheck: command("plan-check"),
         scaffold: command("scaffold"),
         supportBundle: command("support-bundle"),
         verify: command("verify"),

@@ -36,12 +36,6 @@ const TOOLS = [
     }),
   },
   {
-    name: "maestro_plan_check",
-    description:
-      "Validate one declared stack plan without planning or repair generation.",
-    inputSchema: closedSchema({ plan: { type: "object" } }, ["plan"]),
-  },
-  {
     name: "maestro_scaffold_preview",
     description:
       "Preview exact reviewed generator output without writing files.",
@@ -75,8 +69,6 @@ const TOOLS = [
 type Commands<
   PArgs,
   PData extends AgentPackJsonValue,
-  LArgs,
-  LData extends AgentPackJsonValue,
   SArgs,
   SData extends AgentPackJsonValue,
   BArgs,
@@ -85,7 +77,6 @@ type Commands<
   VData extends AgentPackJsonValue,
 > = {
   readonly preflight?: AgentPackCommand<"preflight", PArgs, PData>;
-  readonly planCheck?: AgentPackCommand<"plan-check", LArgs, LData>;
   readonly scaffold?: AgentPackCommand<"scaffold", SArgs, SData>;
   readonly supportBundle?: AgentPackCommand<"support-bundle", BArgs, BData>;
   readonly verify?: AgentPackCommand<"verify", VArgs, VData>;
@@ -93,7 +84,6 @@ type Commands<
 
 const toolCommandKeys = {
   maestro_preflight: "preflight",
-  maestro_plan_check: "planCheck",
   maestro_scaffold_preview: "scaffold",
   maestro_support_bundle_preview: "supportBundle",
   maestro_verify: "verify",
@@ -102,8 +92,6 @@ const toolCommandKeys = {
 export function createMaestroMcpProjection<
   PArgs,
   PData extends AgentPackJsonValue,
-  LArgs,
-  LData extends AgentPackJsonValue,
   SArgs,
   SData extends AgentPackJsonValue,
   BArgs,
@@ -111,18 +99,7 @@ export function createMaestroMcpProjection<
   VArgs,
   VData extends AgentPackJsonValue,
 >(
-  commands: Commands<
-    PArgs,
-    PData,
-    LArgs,
-    LData,
-    SArgs,
-    SData,
-    BArgs,
-    BData,
-    VArgs,
-    VData
-  >,
+  commands: Commands<PArgs, PData, SArgs, SData, BArgs, BData, VArgs, VData>,
   repo: RepositoryContext,
 ): MaestroMcpProjection {
   const context = {
@@ -148,57 +125,42 @@ export function createMaestroMcpProjection<
       const decoded = decodeToolInput(name, args);
       if (!decoded.ok)
         return toolError("MCP_INVALID_ARGUMENT", decoded.message);
-      if (name === "maestro_preflight" && commands.preflight !== undefined) {
-        return projectResult(
-          await executeAgentPackCommand(
-            commands.preflight,
-            decoded.input,
-            context,
-          ),
-        );
+      switch (name) {
+        case "maestro_preflight":
+          return projectResult(
+            await executeAgentPackCommand(
+              requiredProjectedCommand(commands.preflight),
+              decoded.input,
+              context,
+            ),
+          );
+        case "maestro_scaffold_preview":
+          return projectResult(
+            await executeAgentPackCommand(
+              requiredProjectedCommand(commands.scaffold),
+              decoded.input,
+              context,
+            ),
+          );
+        case "maestro_support_bundle_preview":
+          return projectResult(
+            await executeAgentPackCommand(
+              requiredProjectedCommand(commands.supportBundle),
+              decoded.input,
+              context,
+            ),
+          );
+        case "maestro_verify":
+          return projectResult(
+            await executeAgentPackCommand(
+              requiredProjectedCommand(commands.verify),
+              decoded.input,
+              context,
+            ),
+          );
+        default:
+          return toolError("MCP_UNKNOWN_TOOL", "Unknown Maestro MCP tool.");
       }
-      if (name === "maestro_plan_check" && commands.planCheck !== undefined) {
-        return projectResult(
-          await executeAgentPackCommand(
-            commands.planCheck,
-            decoded.input,
-            context,
-          ),
-        );
-      }
-      if (
-        name === "maestro_scaffold_preview" &&
-        commands.scaffold !== undefined
-      ) {
-        return projectResult(
-          await executeAgentPackCommand(
-            commands.scaffold,
-            decoded.input,
-            context,
-          ),
-        );
-      }
-      if (
-        name === "maestro_support_bundle_preview" &&
-        commands.supportBundle !== undefined
-      ) {
-        return projectResult(
-          await executeAgentPackCommand(
-            commands.supportBundle,
-            decoded.input,
-            context,
-          ),
-        );
-      }
-      if (name === "maestro_verify" && commands.verify !== undefined)
-        return projectResult(
-          await executeAgentPackCommand(
-            commands.verify,
-            decoded.input,
-            context,
-          ),
-        );
-      return toolError("MCP_UNKNOWN_TOOL", "Unknown Maestro MCP tool.");
     },
   };
 }
@@ -212,67 +174,98 @@ function decodeToolInput(
       readonly ok: false;
       readonly message: string;
     } {
-  if (name === "maestro_preflight") {
-    if (
-      !hasOnly(args, ["mode"]) ||
-      (args.mode !== undefined && args.mode !== "fake" && args.mode !== "test")
-    ) {
-      return invalidArguments();
-    }
-    return { ok: true, input: { mode: args.mode ?? "fake" } };
+  switch (name) {
+    case "maestro_preflight":
+      return decodePreflightInput(args);
+    case "maestro_scaffold_preview":
+      return decodeScaffoldInput(args);
+    case "maestro_support_bundle_preview":
+      return decodeSupportBundleInput(args);
+    default:
+      return decodeVerifyInput(args);
   }
-  if (name === "maestro_plan_check") {
-    return hasOnly(args, ["plan"]) && isRecord(args.plan)
-      ? { ok: true, input: { plan: args.plan } }
-      : invalidArguments();
-  }
-  if (name === "maestro_scaffold_preview") {
-    if (
-      !hasOnly(args, [
-        "generatorId",
-        "args",
-        "workflowRuleIds",
-        "workflowResolutions",
-      ]) ||
-      typeof args.generatorId !== "string" ||
-      !isJsonRecord(args.args) ||
-      (args.workflowRuleIds !== undefined &&
-        !stringArray(args.workflowRuleIds)) ||
-      (args.workflowResolutions !== undefined &&
-        !Array.isArray(args.workflowResolutions))
-    )
-      return invalidArguments();
-    return {
-      ok: true,
-      input: {
-        generatorId: args.generatorId,
-        args: args.args,
-        write: false,
-        workflowRuleIds: args.workflowRuleIds ?? [],
-        workflowResolutions: args.workflowResolutions ?? [],
-      },
-    };
-  }
-  if (name === "maestro_support_bundle_preview") {
-    return hasOnly(args, [])
-      ? { ok: true, input: { write: false } }
-      : invalidArguments();
-  }
+}
+
+function decodePreflightInput(args: Readonly<Record<string, unknown>>) {
   if (
-    !hasOnly(args, ["scope", "changed"]) ||
-    (args.scope !== undefined &&
-      args.scope !== "focused" &&
-      args.scope !== "full") ||
-    (args.changed !== undefined && !stringArray(args.changed)) ||
-    (args.scope === "full" &&
-      Array.isArray(args.changed) &&
-      args.changed.length > 0)
+    !hasOnly(args, ["mode"]) ||
+    (args.mode !== undefined && args.mode !== "fake" && args.mode !== "test")
+  ) {
+    return invalidArguments();
+  }
+  return { ok: true as const, input: { mode: args.mode ?? "fake" } };
+}
+
+function decodeScaffoldInput(args: Readonly<Record<string, unknown>>) {
+  if (
+    !hasOnly(args, [
+      "generatorId",
+      "args",
+      "workflowRuleIds",
+      "workflowResolutions",
+    ]) ||
+    typeof args.generatorId !== "string" ||
+    !isJsonRecord(args.args) ||
+    (args.workflowRuleIds !== undefined &&
+      !stringArray(args.workflowRuleIds)) ||
+    (args.workflowResolutions !== undefined &&
+      !Array.isArray(args.workflowResolutions))
   )
     return invalidArguments();
   return {
-    ok: true,
+    ok: true as const,
+    input: {
+      generatorId: args.generatorId,
+      args: args.args,
+      write: false,
+      workflowRuleIds: args.workflowRuleIds ?? [],
+      workflowResolutions: args.workflowResolutions ?? [],
+    },
+  };
+}
+
+function decodeSupportBundleInput(args: Readonly<Record<string, unknown>>) {
+  return hasOnly(args, [])
+    ? { ok: true as const, input: { write: false } }
+    : invalidArguments();
+}
+
+function decodeVerifyInput(args: Readonly<Record<string, unknown>>) {
+  if (
+    !hasOnly(args, ["scope", "changed"]) ||
+    hasInvalidVerifyScope(args.scope) ||
+    hasInvalidChangedPaths(args.changed) ||
+    hasChangedPathsForFullScope(args.scope, args.changed)
+  )
+    return invalidArguments();
+  return {
+    ok: true as const,
     input: { scope: args.scope ?? "focused", changed: args.changed ?? [] },
   };
+}
+
+function hasInvalidVerifyScope(scope: unknown): boolean {
+  return scope !== undefined && scope !== "focused" && scope !== "full";
+}
+
+function hasInvalidChangedPaths(changed: unknown): boolean {
+  return changed !== undefined && !stringArray(changed);
+}
+
+function hasChangedPathsForFullScope(
+  scope: unknown,
+  changed: unknown,
+): boolean {
+  return scope === "full" && Array.isArray(changed) && changed.length > 0;
+}
+
+function requiredProjectedCommand<Command>(
+  command: Command | undefined,
+): Command {
+  if (command === undefined) {
+    throw new Error("projected MCP command is unavailable");
+  }
+  return command;
 }
 
 function projectResult(result: unknown): MaestroMcpToolResult {

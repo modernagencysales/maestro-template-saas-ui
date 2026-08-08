@@ -12,7 +12,6 @@ import {
   createNodePreflightRuntimeReader,
   createConvexDoctorAdapter,
   createProviderDoctorCommand,
-  createPlanCheckCommand,
   createPreflightCommand,
   createAddRecipeCommand,
   createRecipesCommand,
@@ -50,16 +49,10 @@ import {
   runReviewedGenerator,
 } from "@maestro-template/generators";
 import { defineQualityDiagnosticRegistryProjection } from "@maestro-template/quality-tooling";
-import {
-  readReviewedAdrRefs,
-  validatePlan,
-} from "@maestro-template/stack-tooling";
 import { WORKFLOW_SEMANTICS } from "@maestro-template/template-core/workflow-semantics";
-import { existsSync, lstatSync, readFileSync } from "node:fs";
+import { existsSync, lstatSync, readdirSync, readFileSync } from "node:fs";
 import { open } from "node:fs/promises";
 import { isAbsolute, resolve, win32 } from "node:path";
-import { pathToFileURL } from "node:url";
-import { createPlanCheckCliHandler } from "./planCheck";
 import { createAppMapCliHandlers } from "./appMap";
 import { createAdoptCliHandler } from "./adopt";
 import { readBoundedAdoptionPacket } from "./adoptFileReader";
@@ -156,6 +149,22 @@ const convexMcpProfiles = parseConvexMcpProfiles(
     ),
   ) as unknown,
 );
+
+const readAcceptedAdrRefs = (sourceRoot: string): ReadonlySet<string> => {
+  const directory = resolve(sourceRoot, "docs/template/adr");
+  return new Set(
+    readdirSync(directory, { withFileTypes: true })
+      .filter(
+        (entry) => entry.isFile() && /^\d{4}-[a-z0-9-]+\.md$/u.test(entry.name),
+      )
+      .filter((entry) =>
+        /^## Status\s+Accepted\.\s*$/mu.test(
+          readFileSync(resolve(directory, entry.name), "utf8"),
+        ),
+      )
+      .map((entry) => `docs/template/adr/${entry.name}`),
+  );
+};
 
 export {
   projectCompositionEnvironment,
@@ -271,14 +280,6 @@ export function createFactoryCliComposition(
     receiptWriter,
   });
   const check = createCheckCommand({ preflight, verify });
-  const planCheck = createPlanCheckCommand({
-    validate: (plan, repo) =>
-      validatePlan(plan, {
-        reviewedAdrRefs: readReviewedAdrRefs(
-          pathToFileURL(`${repo.sourceRoot}/`),
-        ),
-      }),
-  });
   const inspectPreflightResult = async (
     repo: AgentPackExecutionContext["repo"],
   ) =>
@@ -356,8 +357,7 @@ export function createFactoryCliComposition(
         status,
         repair,
       })),
-      reviewedAdrRefs: (repo) =>
-        readReviewedAdrRefs(pathToFileURL(`${repo.sourceRoot}/`)),
+      reviewedAdrRefs: (repo) => readAcceptedAdrRefs(repo.sourceRoot),
     },
   });
   const recipeDependencies = {
@@ -533,7 +533,6 @@ export function createFactoryCliComposition(
     const baseProjection = createMaestroMcpProjection(
       {
         preflight,
-        planCheck,
         scaffold,
         supportBundle,
         verify: readOnlyVerify,
@@ -572,7 +571,6 @@ export function createFactoryCliComposition(
     createVerifyCliHandler(verify),
     createReceiptExportCliHandler(verifyExport),
     createVerifyCliHandler(check),
-    createPlanCheckCliHandler(planCheck),
     createScaffoldCliHandler(scaffold),
     createSupportBundleCliHandler(supportBundle),
     createUpgradeCliHandler(),

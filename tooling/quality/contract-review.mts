@@ -46,7 +46,7 @@ function supportsOpenAITemperature(model: string): boolean {
 const PRODUCT_SOURCE = /^(packages|apps)\/.*\.(ts|tsx)$/;
 const PRODUCT_TEST = /^(packages|apps)\/.*(\.(test|spec)\.|\/__tests__\/)/;
 const META_GATE =
-  /^(\.github\/workflows\/|\.woodpecker\/|tooling\/(ci|quality|generators|workflow)\/|dependency-cruiser\.config\.cjs|eslint\.config\.mjs|Justfile$|package\.json$)/;
+  /^(\.github\/workflows\/|\.woodpecker\/|tooling\/(ci|quality|generators|workflow)\/|dependency-cruiser\.config\.cjs|eslint\.config\.mjs|package\.json$)/;
 const CONTRACT_DOC = /^(AGENTS\.md|CLAUDE\.md|docs\/)/;
 const TEST_OR_GENERATED = /\.(test|spec)\.|\/__tests__\/|\/_generated\//;
 

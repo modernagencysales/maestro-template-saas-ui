@@ -30,7 +30,6 @@
     "apps/cli/src/direct-run.test.ts",
     "apps/cli/src/factory/createComposition.ts",
     "apps/cli/src/factory/create.test.ts",
-    "apps/cli/src/factory/planCheck.test.ts",
     "apps/cli/src/factory/preflight.test.ts",
     "apps/cli/src/factory/router.test.ts",
     "apps/cli/src/factory/scaffold.test.ts",

@@ -125,9 +125,6 @@ importers:
       "@maestro-template/release-tooling":
         specifier: workspace:*
         version: link:../../tooling/release
-      "@maestro-template/stack-tooling":
-        specifier: workspace:*
-        version: link:../../tooling/stack
       "@maestro-template/template-core":
         specifier: workspace:*
         version: link:../../packages/template-core
@@ -618,8 +615,6 @@ importers:
       ajv:
         specifier: 8.18.0
         version: 8.18.0
-
-  tooling/stack: {}
 
   tooling/workflow:
     dependencies:

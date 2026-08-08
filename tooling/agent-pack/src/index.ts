@@ -17,7 +17,6 @@ export * from "./providers/convex.js";
 export * from "./providers/doctor.js";
 export * from "./readiness/index.js";
 export * from "./verificationRunner.js";
-export * from "./planCheck.js";
 export * from "./scaffold.js";
 export * from "./create.js";
 export * from "./ports.js";

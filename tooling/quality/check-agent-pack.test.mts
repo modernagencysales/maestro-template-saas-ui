@@ -59,6 +59,28 @@ describe("check:agent-pack", () => {
     );
   });
 
+  it("rejects reintroduced Just and stack authorities", async () => {
+    const fixtureRoot = await integratedFixture();
+    const cliPackagePath = join(fixtureRoot, "apps/cli/package.json");
+    const cliPackage = JSON.parse(await readFile(cliPackagePath, "utf8"));
+    cliPackage.dependencies["@maestro-template/stack-tooling"] = "workspace:*";
+    await writeFile(cliPackagePath, JSON.stringify(cliPackage));
+    await writeFile(
+      join(fixtureRoot, "Justfile"),
+      "verify:\n    pnpm verify\n",
+    );
+    await mkdir(join(fixtureRoot, "tooling/stack"), { recursive: true });
+    await writeFile(join(fixtureRoot, "tooling/stack/package.json"), "{}\n");
+
+    await expect(checkAgentPack(fixtureRoot)).resolves.toEqual(
+      expect.arrayContaining([
+        "factory-wiring:cli-agent-pack-dependency",
+        "factory-wiring:obsolete-just-authority",
+        "factory-wiring:obsolete-stack-authority",
+      ]),
+    );
+  });
+
   it("rejects a factory adapter that bypasses the shared executor", async () => {
     const fixtureRoot = await integratedFixture();
     await writeFile(
@@ -322,7 +344,6 @@ async function integratedFixture(): Promise<string> {
     { recursive: true },
   );
   await cp(join(repoRoot, "package.json"), join(fixtureRoot, "package.json"));
-  await cp(join(repoRoot, "Justfile"), join(fixtureRoot, "Justfile"));
   await mkdir(join(fixtureRoot, ".codex"), { recursive: true });
   await cp(
     join(repoRoot, ".codex/config.toml"),
@@ -350,7 +371,6 @@ async function integratedFixture(): Promise<string> {
     join(fixtureRoot, "apps/cli/src/factory/start.ts"),
   );
   await mkdir(join(fixtureRoot, "tooling/agent-pack/src"), { recursive: true });
-  await mkdir(join(fixtureRoot, "tooling/stack"), { recursive: true });
   await cp(
     join(repoRoot, "tooling/agent-pack/package.json"),
     join(fixtureRoot, "tooling/agent-pack/package.json"),
@@ -358,10 +378,6 @@ async function integratedFixture(): Promise<string> {
   await cp(
     join(repoRoot, "tooling/agent-pack/src/index.ts"),
     join(fixtureRoot, "tooling/agent-pack/src/index.ts"),
-  );
-  await cp(
-    join(repoRoot, "tooling/stack/package.json"),
-    join(fixtureRoot, "tooling/stack/package.json"),
   );
   await mkdir(join(fixtureRoot, "schemas"), { recursive: true });
   await cp(
