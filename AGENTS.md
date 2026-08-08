@@ -245,7 +245,6 @@ assuming success.
 
 - `apps/web`: reference app.
 - `apps/cli`: headless CLI.
-- `apps/voice-relay`: optional voice/capture relay.
 - `packages/convex`: Confect/Convex backend.
 - `packages/ui`: UI primitives and blocks.
 - `packages/workflow-ui`: React Flow workflow builder.
