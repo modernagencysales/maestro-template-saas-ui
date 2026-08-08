@@ -202,7 +202,11 @@ export const runCustomerGeneratorCli = (
       const rejectedFlag = [
         "--preflight-fingerprint",
         "--privacy-reviewed",
-      ].find((flag) => cliArgv.includes(flag));
+      ].find((flag) =>
+        cliArgv.some(
+          (argument) => argument === flag || argument.startsWith(`${flag}=`),
+        ),
+      );
       if (rejectedFlag)
         throw new Error(
           `Private-package import does not accept ${rejectedFlag}`,

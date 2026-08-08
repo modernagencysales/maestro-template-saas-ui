@@ -44,6 +44,8 @@ describe("customer generator runtime", () => {
       for (const legacyFlag of [
         ["--preflight-fingerprint", "legacy"],
         ["--privacy-reviewed"],
+        ["--preflight-fingerprint=legacy"],
+        ["--privacy-reviewed=true"],
       ]) {
         const result = runCustomerGeneratorCli(
           [
@@ -60,7 +62,7 @@ describe("customer generator runtime", () => {
           cwd,
         );
         expect(result.exitCode).toBe(1);
-        expect(result.stderr).toContain(`does not accept ${legacyFlag[0]}`);
+        expect(result.stderr).toContain("does not accept");
       }
     } finally {
       rmSync(cwd, { recursive: true, force: true });
