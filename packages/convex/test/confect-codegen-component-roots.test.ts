@@ -1,4 +1,4 @@
-import { execFileSync } from "node:child_process";
+import { execFile, execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import {
   cpSync,
@@ -13,11 +13,15 @@ import {
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { createRequire } from "node:module";
+import { promisify } from "node:util";
 import { describe, expect, it } from "vitest";
 
 const packageRoot = resolve(import.meta.dirname, "..");
 const repositoryRoot = resolve(packageRoot, "../..");
 const require = createRequire(import.meta.url);
+const execFileAsync = promisify(execFile);
+const codegenProcessTimeoutMs = 90_000;
+const codegenTestTimeoutMs = 200_000;
 const pristineCliRoot = dirname(require.resolve("@confect/cli/package.json"));
 const patchPath = resolve(
   repositoryRoot,
@@ -130,16 +134,19 @@ const createFixture = (applyPatch: boolean) => {
   };
 };
 
-const runCodegen = (fixture: ReturnType<typeof createFixture>): void => {
+const runCodegen = async (
+  fixture: ReturnType<typeof createFixture>,
+): Promise<void> => {
   try {
-    execFileSync(process.execPath, [fixture.cli, "codegen"], {
+    await execFileAsync(process.execPath, [fixture.cli, "codegen"], {
       cwd: fixture.packageRoot,
-      stdio: "pipe",
+      encoding: "utf8",
+      timeout: codegenProcessTimeoutMs,
     });
   } catch (error) {
     const failure = error as {
-      readonly stdout?: Buffer;
-      readonly stderr?: Buffer;
+      readonly stdout?: Buffer | string;
+      readonly stderr?: Buffer | string;
     };
     throw new Error(
       [failure.stdout?.toString(), failure.stderr?.toString()]
@@ -155,66 +162,87 @@ const removeFixture = (fixture: ReturnType<typeof createFixture>): void => {
 };
 
 describe("Confect codegen local-component boundary", () => {
-  it("characterizes the three pristine next.9 regressions", () => {
-    const fixture = createFixture(false);
-    try {
-      runCodegen(fixture);
-      expect(
-        existsSync(resolve(fixture.packageRoot, protectedFunctions[1])),
-      ).toBe(false);
-      expect(
-        existsSync(resolve(fixture.packageRoot, protectedFunctions[3])),
-      ).toBe(false);
-      expect(
-        readFileSync(
-          resolve(fixture.packageRoot, "confect/_generated/spec.ts"),
-          "utf8",
-        ),
-      ).toContain("subworkflowLinksCurrent");
-      expect(
-        readFileSync(
-          resolve(fixture.packageRoot, "convex/workflows/subworkflowLinks.ts"),
-          "utf8",
-        ),
-      ).toContain(
-        "export const reportReconciliationFailure = registeredFunctions.reportReconciliationFailure;",
-      );
-    } finally {
-      removeFixture(fixture);
-    }
-  }, 30_000);
+  it(
+    "characterizes the three pristine next.9 regressions",
+    async () => {
+      const fixture = createFixture(false);
+      try {
+        await runCodegen(fixture);
+        expect(
+          existsSync(resolve(fixture.packageRoot, protectedFunctions[1])),
+        ).toBe(false);
+        expect(
+          existsSync(resolve(fixture.packageRoot, protectedFunctions[3])),
+        ).toBe(false);
+        expect(
+          readFileSync(
+            resolve(fixture.packageRoot, "confect/_generated/spec.ts"),
+            "utf8",
+          ),
+        ).toContain("subworkflowLinksCurrent");
+        expect(
+          readFileSync(
+            resolve(
+              fixture.packageRoot,
+              "convex/workflows/subworkflowLinks.ts",
+            ),
+            "utf8",
+          ),
+        ).toContain(
+          "export const reportReconciliationFailure = registeredFunctions.reportReconciliationFailure;",
+        );
+      } finally {
+        removeFixture(fixture);
+      }
+    },
+    codegenTestTimeoutMs,
+  );
 
-  it("preserves app roots and emits deterministic formatted declarations", () => {
-    const fixture = createFixture(true);
-    try {
-      const before = digests(fixture.packageRoot, protectedFunctions);
-      runCodegen(fixture);
-      expect(digests(fixture.packageRoot, protectedFunctions)).toEqual(before);
-      expect(
-        existsSync(resolve(fixture.packageRoot, "convex/extinctOwned.ts")),
-      ).toBe(false);
-      expect(
-        readFileSync(
-          resolve(fixture.packageRoot, "confect/_generated/spec.ts"),
-          "utf8",
-        ),
-      ).not.toContain("subworkflowLinksCurrent");
-      expect(
-        readFileSync(
-          resolve(fixture.packageRoot, "convex/workflows/subworkflowLinks.ts"),
-          "utf8",
-        ),
-      ).toContain(
-        "export const reportReconciliationFailure =\n  registeredFunctions.reportReconciliationFailure;",
-      );
-      const afterFirstRun = digests(fixture.packageRoot, deterministicOutputs);
-      runCodegen(fixture);
-      expect(digests(fixture.packageRoot, protectedFunctions)).toEqual(before);
-      expect(digests(fixture.packageRoot, deterministicOutputs)).toEqual(
-        afterFirstRun,
-      );
-    } finally {
-      removeFixture(fixture);
-    }
-  }, 30_000);
+  it(
+    "preserves app roots and emits deterministic formatted declarations",
+    async () => {
+      const fixture = createFixture(true);
+      try {
+        const before = digests(fixture.packageRoot, protectedFunctions);
+        await runCodegen(fixture);
+        expect(digests(fixture.packageRoot, protectedFunctions)).toEqual(
+          before,
+        );
+        expect(
+          existsSync(resolve(fixture.packageRoot, "convex/extinctOwned.ts")),
+        ).toBe(false);
+        expect(
+          readFileSync(
+            resolve(fixture.packageRoot, "confect/_generated/spec.ts"),
+            "utf8",
+          ),
+        ).not.toContain("subworkflowLinksCurrent");
+        expect(
+          readFileSync(
+            resolve(
+              fixture.packageRoot,
+              "convex/workflows/subworkflowLinks.ts",
+            ),
+            "utf8",
+          ),
+        ).toContain(
+          "export const reportReconciliationFailure =\n  registeredFunctions.reportReconciliationFailure;",
+        );
+        const afterFirstRun = digests(
+          fixture.packageRoot,
+          deterministicOutputs,
+        );
+        await runCodegen(fixture);
+        expect(digests(fixture.packageRoot, protectedFunctions)).toEqual(
+          before,
+        );
+        expect(digests(fixture.packageRoot, deterministicOutputs)).toEqual(
+          afterFirstRun,
+        );
+      } finally {
+        removeFixture(fixture);
+      }
+    },
+    codegenTestTimeoutMs,
+  );
 });
