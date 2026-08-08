@@ -531,6 +531,7 @@ describe("Node Agent Pack adapters", () => {
     const runtime = createNodePreflightRuntimeReader({
       fs: nodePreflightFileSystem,
       execFile: execute,
+      nodeVersion: () => "v22.23.2",
       workflowRules: [],
       publishedWorkflowRuleIds: [],
       environment: () => ({}),
