@@ -4,6 +4,7 @@ import {
   createNodeRecipeTransaction,
   createRecipesCommand,
   executeAgentPackCommand,
+  isMutationBlockingPreflightCode,
   sha256RecipeBytes,
   type AgentPackExecutionContext,
   type createPreflightCommand,
@@ -35,27 +36,14 @@ const inspectRecipePreflight = async (
   if (result.data === null) {
     return {
       fingerprint: "recipe_preflight_sha256:unavailable",
-      safeToMutate: false,
-      cleanWorktree: false,
+      blockingCodes: ["AGENT_PACK_PREFLIGHT_UNAVAILABLE"],
     };
   }
-  const { facts } = result.data;
-  const stableMutationEvidence = {
-    repo,
-    host: facts.host,
-    prerequisites: { dependencies: facts.prerequisites.dependencies },
-    repository: facts.repository,
-    versionsCompatible: facts.versionsCompatible,
-    versions: facts.versions,
-    workflow: facts.workflow,
-    app: facts.app,
-  };
   return {
-    fingerprint: `recipe_preflight_${sha256RecipeBytes(
-      JSON.stringify(stableMutationEvidence),
-    )}`,
-    safeToMutate: result.data.safeToMutate,
-    cleanWorktree: facts.repository.dirty === false,
+    fingerprint: result.data.fingerprint,
+    blockingCodes: result.diagnostics
+      .map(({ code }) => code)
+      .filter(isMutationBlockingPreflightCode),
   };
 };
 

@@ -127,8 +127,7 @@ export type RecipeCommandDependencies = {
   readonly preflight?: {
     readonly inspect: (repo: RepositoryContext) => Promise<{
       readonly fingerprint: string;
-      readonly safeToMutate: boolean;
-      readonly cleanWorktree: boolean;
+      readonly blockingCodes: readonly string[];
     }>;
   };
   readonly transaction?: {
@@ -148,9 +147,6 @@ type AddRecipeInput = {
   readonly query: string;
   readonly answers: Readonly<Record<string, string | boolean>>;
   readonly write: boolean;
-  readonly privacyReviewed: boolean;
-  readonly planFingerprint?: string;
-  readonly preflightFingerprint?: string;
 };
 type RecipeSummary = {
   readonly id: string;
@@ -259,14 +255,7 @@ export function createAddRecipeCommand(
         );
       const data = {
         ...planData,
-        confirmationCommand: addRerun(
-          {
-            ...input,
-            planFingerprint: plan.fingerprint,
-            preflightFingerprint: preflight.fingerprint,
-          },
-          true,
-        ),
+        confirmationCommand: addRerun(input, true),
       };
       if (!input.write)
         return {
@@ -276,26 +265,13 @@ export function createAddRecipeCommand(
           diagnostics: [],
           data,
         };
-      if (!input.privacyReviewed)
+      const preflightBlocker = preflight.blockingCodes[0];
+      if (preflightBlocker !== undefined)
         return blocked(
           mutationPosture,
-          "AGENT_PACK_RECIPE_PRIVACY_REVIEW_REQUIRED",
-          "Recipe writes require the existing privacy review acknowledgement.",
-          "Review the recipe operations and privacy posture, then pass --privacy-reviewed.",
-          data.confirmationCommand,
-          data,
-        );
-      if (
-        input.planFingerprint !== plan.fingerprint ||
-        input.preflightFingerprint !== preflight.fingerprint ||
-        !preflight.safeToMutate ||
-        !preflight.cleanWorktree
-      )
-        return blocked(
-          mutationPosture,
-          "AGENT_PACK_RECIPE_AUTHORITY_STALE",
-          "The reviewed plan or clean preflight fingerprint is missing, blocking, or changed.",
-          "Preview again and run the returned confirmation command against the unchanged clean target.",
+          preflightBlocker,
+          `Recipe write remains blocked by preflight denial ${preflightBlocker}.`,
+          "Resolve the reported preflight denial, then rerun the direct recipe write.",
           addRerun(input, false),
           data,
         );
@@ -554,19 +530,11 @@ function validateAnswers(
 function decodeAddRecipeInput(
   value: unknown,
 ): AgentPackArgumentResult<AddRecipeInput> {
-  const keys = [
-    "query",
-    "answers",
-    "write",
-    "privacyReviewed",
-    "planFingerprint",
-    "preflightFingerprint",
-  ];
+  const keys = ["query", "answers", "write"];
   if (!isRecord(value) || !onlyKeys(value, keys))
     return invalid("add", "Provide one reviewed outcome or recipe id.");
   const answers = value.answers ?? {};
   const write = value.write ?? false;
-  const privacyReviewed = value.privacyReviewed ?? false;
   if (
     typeof value.query !== "string" ||
     value.query.trim() === "" ||
@@ -574,20 +542,11 @@ function decodeAddRecipeInput(
     Object.values(answers).some(
       (answer) => typeof answer !== "string" && typeof answer !== "boolean",
     ) ||
-    typeof write !== "boolean" ||
-    typeof privacyReviewed !== "boolean" ||
-    (value.planFingerprint !== undefined &&
-      typeof value.planFingerprint !== "string") ||
-    (value.preflightFingerprint !== undefined &&
-      typeof value.preflightFingerprint !== "string") ||
-    (!write &&
-      (privacyReviewed ||
-        value.planFingerprint !== undefined ||
-        value.preflightFingerprint !== undefined))
+    typeof write !== "boolean"
   )
     return invalid(
       "add",
-      "Preview answers first; writes require --write, --privacy-reviewed, and both returned fingerprints.",
+      "Provide one reviewed outcome or recipe id and use --write only for mutation.",
     );
   return {
     ok: true,
@@ -595,13 +554,6 @@ function decodeAddRecipeInput(
       query: value.query,
       answers: answers as Record<string, string | boolean>,
       write,
-      privacyReviewed,
-      ...(typeof value.planFingerprint === "string"
-        ? { planFingerprint: value.planFingerprint }
-        : {}),
-      ...(typeof value.preflightFingerprint === "string"
-        ? { preflightFingerprint: value.preflightFingerprint }
-        : {}),
     },
   };
 }
@@ -657,11 +609,7 @@ function addRerun(input: AddRecipeInput, write: boolean): string {
     .sort(([left], [right]) => left.localeCompare(right))
     .flatMap(([id, value]) => ["--answer", `${id}=${String(value)}`]);
   if (write) {
-    args.push("--write", "--privacy-reviewed");
-    if (input.planFingerprint)
-      args.push("--plan-fingerprint", input.planFingerprint);
-    if (input.preflightFingerprint)
-      args.push("--preflight-fingerprint", input.preflightFingerprint);
+    args.push("--write");
   }
   return [
     "pnpm maestro -- add",

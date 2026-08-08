@@ -47,7 +47,7 @@ const helpResult = (): CliResult =>
       "  maestro preflight [--mode fake|test|live] [--details|--json]",
       "  maestro recipes list|show <recipe-id> [--human|--details|--json]",
       "  maestro contracts add <journey> | check | test [journey|--required]",
-      "  maestro add <outcome-or-recipe> [--answer <question>=<value>] [--write --privacy-reviewed --plan-fingerprint <fingerprint> --preflight-fingerprint <fingerprint>] [--human|--details|--json]",
+      "  maestro add <outcome-or-recipe> [--answer <question>=<value>] [--write] [--human|--details|--json]",
       "  maestro verify [--scope focused|full] [--changed <paths>] [--human|--details|--json]",
       "  maestro check [--mode fake|test|live] [--changed <paths>] [--human|--details|--json]",
       `  ${START_HELP.trim()}`,

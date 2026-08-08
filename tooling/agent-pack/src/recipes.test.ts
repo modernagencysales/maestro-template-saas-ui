@@ -132,10 +132,7 @@ const dependencies = {
   preflight: {
     inspect: async () => ({
       fingerprint: "preflight_sha256:fixture",
-      safeToMutate: true,
-      // Recipe-owned before hashes, rather than unrelated worktree state,
-      // are the write precondition.
-      cleanWorktree: false,
+      blockingCodes: [],
     }),
   },
   transaction: {
@@ -180,11 +177,12 @@ describe("recipe commands", () => {
           ],
         },
         preflightFingerprint: "preflight_sha256:fixture",
-        confirmationCommand: expect.stringMatching(
-          /--write.*--privacy-reviewed.*--plan-fingerprint.*--preflight-fingerprint/,
-        ),
+        confirmationCommand: expect.stringMatching(/--write/),
       },
     });
+    expect(JSON.stringify(result.data)).not.toMatch(
+      /privacy-reviewed|plan-fingerprint|preflight-fingerprint/,
+    );
     expect(JSON.stringify(result)).not.toMatch(
       /choose (a|an) (database|framework|architecture|provider)/i,
     );
@@ -351,12 +349,50 @@ describe("recipe commands", () => {
 
   it("rebuilds the current plan and writes despite unrelated dirty worktree state", async () => {
     applied = 0;
-    const command = createAddRecipeCommand(dependencies);
+    let currentBeforeSha256 = "sha256:before-preview";
+    let appliedBeforeSha256: string | null | undefined;
+    const command = createAddRecipeCommand({
+      ...dependencies,
+      generators: {
+        ...dependencies.generators,
+        preview: async () => ({
+          ok: true as const,
+          output: {
+            files: [
+              {
+                path: "apps/web/src/features/request.ts",
+                content: "export const request = true;\n",
+                beforeSha256: currentBeforeSha256,
+              },
+            ],
+            provenancePaths: [],
+            collisions: [],
+            semanticRuleIds: [],
+            manualFollowUp: [],
+            codegen: [
+              "pnpm confect:codegen",
+              "pnpm confect:manifest",
+              "pnpm format",
+              "pnpm --dir apps/web build",
+            ],
+            focusedGates: ["pnpm --dir apps/web typecheck"],
+          },
+        }),
+      },
+      transaction: {
+        apply: async ({ plan }) => {
+          applied += 1;
+          appliedBeforeSha256 = plan.operations[0]?.beforeSha256;
+          return { ok: true as const, receipt };
+        },
+      },
+    });
     const preview = await executeAgentPackCommand(
       command,
       { query: "crud-business-entity", answers: { name: "Request" } },
       context,
     );
+    currentBeforeSha256 = "sha256:before-write";
     const written = await executeAgentPackCommand(
       command,
       {
@@ -383,5 +419,6 @@ describe("recipe commands", () => {
     });
     expect(written.data).not.toHaveProperty("confirmationCommand");
     expect(applied).toBe(1);
+    expect(appliedBeforeSha256).toBe("sha256:before-write");
   });
 });
