@@ -150,7 +150,9 @@ const governanceFiles = (
     ...retainedEmailTableIds,
   ]);
   const retainedDataResourceIds = new Set([
-    ...releasedDataResources.resources.map(({ id }) => id),
+    ...releasedDataResources.resources
+      .filter(({ system }) => workflowSelected || system !== "workflow-runtime")
+      .map(({ id }) => id),
     "deployAuthorityAuditEvents",
     ...retainedEmailTableIds,
   ]);

@@ -186,6 +186,28 @@ describe("saas application blueprint", () => {
     ).toBe(true);
   });
 
+  it("projects workflow data resources only when workflow is selected", () => {
+    const resources = (patterns: readonly "workflow-automation"[] = []) => {
+      const entry = buildSaasApplicationTargetPlan({
+        name: "Workflow Governance",
+        patterns,
+      }).entries.find(
+        ({ path }) => path === "docs/template/data-resources.json",
+      );
+      if (!entry) throw new Error("missing projected data-resource catalog");
+      return parseDataResourceCatalog(JSON.parse(entry.content)).resources;
+    };
+
+    expect(
+      resources().filter(({ system }) => system === "workflow-runtime"),
+    ).toEqual([]);
+    expect(
+      resources(["workflow-automation"]).some(
+        ({ system }) => system === "workflow-runtime",
+      ),
+    ).toBe(true);
+  });
+
   it("derives scripts and lockfile importers from materialized patterns", () => {
     const buildSelected = buildSaasApplicationTargetPlan as (options: {
       readonly name: string;
