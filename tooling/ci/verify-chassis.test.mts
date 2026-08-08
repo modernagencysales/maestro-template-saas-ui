@@ -24,6 +24,18 @@ describe("customer chassis Woodpecker admission", () => {
     expect(script).toContain(
       "pnpm exec playwright install --with-deps chromium",
     );
+    const gitleaksInstall = script.indexOf(
+      "bash tooling/ci/install-gitleaks.sh",
+    );
+    const verify = script.indexOf("pnpm verify");
+    expect(gitleaksInstall).toBeGreaterThan(
+      script.indexOf("source tooling/ci/setup.sh"),
+    );
+    expect(gitleaksInstall).toBeLessThan(verify);
+    expect(
+      script.match(/^bash tooling\/ci\/install-gitleaks\.sh$/gmu),
+    ).toHaveLength(1);
+    expect(script).not.toContain("install-gitleaks.sh || true");
     expect(script.match(/^pnpm verify$/gmu)).toHaveLength(1);
     expect(script).toContain("pnpm --dir apps/web test:runtime-longevity");
     for (const duplicate of [

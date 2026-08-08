@@ -37,8 +37,14 @@ const checkDescriptorDefinitions = {
       },
       {
         file: "tooling/ci/verify-chassis.sh",
-        includes: ["pnpm verify", "pnpm --dir apps/web test:runtime-longevity"],
+        includes: [
+          "bash tooling/ci/install-gitleaks.sh",
+          "pnpm verify",
+          "pnpm --dir apps/web test:runtime-longevity",
+        ],
         absent: [
+          "install-gitleaks.sh || true",
+          "if ! bash tooling/ci/install-gitleaks.sh",
           "pnpm --dir tooling/agent-pack test:customer",
           "pnpm --dir tooling/generators test",
           "pnpm --dir tooling/release test",

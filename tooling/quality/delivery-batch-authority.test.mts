@@ -97,6 +97,14 @@ describe("deterministic suite ownership", () => {
     const chassis = read("tooling/ci/verify-chassis.sh");
 
     expect(pipeline).toContain("tooling/ci/verify-chassis.sh");
+    const gitleaksInstall = chassis.indexOf(
+      "bash tooling/ci/install-gitleaks.sh",
+    );
+    expect(gitleaksInstall).toBeGreaterThan(
+      chassis.indexOf("source tooling/ci/setup.sh"),
+    );
+    expect(gitleaksInstall).toBeLessThan(chassis.indexOf("pnpm verify"));
+    expect(chassis).not.toContain("install-gitleaks.sh || true");
     expect(chassis.match(/^pnpm verify$/gmu)).toHaveLength(1);
     expect(chassis).toContain("pnpm --dir apps/web test:runtime-longevity");
   });
