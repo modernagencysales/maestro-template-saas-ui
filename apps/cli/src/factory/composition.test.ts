@@ -18,7 +18,7 @@ import {
   writeFile,
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { delimiter, dirname, join } from "node:path";
+import { delimiter, join } from "node:path";
 import { PassThrough, Readable } from "node:stream";
 import { fileURLToPath } from "node:url";
 import {
@@ -407,27 +407,18 @@ describe("factory CLI composition", () => {
     }
   }, 60_000);
 
-  it("keeps the canonical gate unavailable in real CLI and MCP processes when gitleaks is absent", async () => {
+  it("keeps the canonical gate unavailable in real CLI and MCP processes when gitleaks is unavailable", async () => {
     const pnpmExecutable = execFileSync("which", ["pnpm"], {
       encoding: "utf8",
     }).trim();
     const isolatedBin = await mkdtemp(join(tmpdir(), "maestro-no-gitleaks-"));
-    const isolatedPnpm = join(isolatedBin, "pnpm");
-    await writeFile(
-      isolatedPnpm,
-      `#!/bin/sh\nexec ${JSON.stringify(pnpmExecutable)} "$@"\n`,
-    );
-    await chmod(isolatedPnpm, 0o755);
+    const unavailableGitleaks = join(isolatedBin, "gitleaks");
+    await writeFile(unavailableGitleaks, "#!/bin/sh\nexit 127\n");
+    await chmod(unavailableGitleaks, 0o755);
     onTestFinished(() => rm(isolatedBin, { recursive: true, force: true }));
     const environment = {
       ...process.env,
-      PATH: [
-        isolatedBin,
-        dirname(process.execPath),
-        "/usr/local/bin",
-        "/usr/bin",
-        "/bin",
-      ].join(delimiter),
+      PATH: [isolatedBin, process.env.PATH ?? ""].join(delimiter),
     };
     const expectedGateIds = [
       "gates",
@@ -448,6 +439,7 @@ describe("factory CLI composition", () => {
       },
     );
     expect(cli.error).toBeUndefined();
+    expect(cli.stdout, cli.stderr).not.toBe("");
     const cliPayload = JSON.parse(cli.stdout);
     expect(
       cliPayload.data.receipt.gates.map(
