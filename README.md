@@ -116,9 +116,9 @@ pnpm maestro -- start --mode fake
 
 Open the URL printed after `/health` becomes ready. The default generated
 starter is a neutral, workspace-safe chassis with a draft `@wip` first-outcome
-contract. It does not create a product table, record-management system, or
-route for you; choose the first useful noun and add its reviewed product slice
-before promoting that outcome.
+contract. It does not create a product table, record-management system, or route
+for you; choose the first useful noun and add its reviewed product slice before
+promoting that outcome.
 
 For scripts and JSON consumers, use the repository-owned launcher so package
 manager banners never share stdout with the result:

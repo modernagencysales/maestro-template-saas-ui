@@ -131,10 +131,10 @@ pnpm template:systems -- --query workspace
 ```
 
 The default starter is a neutral chassis with a draft `@wip` first-outcome
-contract. It deliberately contains no product entity, record-management
-system, `records` table, or `/records` route. System lookup is part of the
-method: identify the reviewed owner for the first real domain before adding a
-product slice.
+contract. It deliberately contains no product entity, record-management system,
+`records` table, or `/records` route. System lookup is part of the method:
+identify the reviewed owner for the first real domain before adding a product
+slice.
 
 Useful inspection files are:
 
