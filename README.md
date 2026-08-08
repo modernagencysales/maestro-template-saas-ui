@@ -110,13 +110,15 @@ After following those commands:
 ```bash
 cd ../launch-tracker
 pnpm maestro -- recipes list
-pnpm template:systems -- --query records
+pnpm template:systems -- --query workspace
 pnpm maestro -- start --mode fake
 ```
 
-Open the URL printed after `/health` becomes ready. The generated starter has a
-workspace-owned record flow with loading, empty, error, list, detail, and create
-states. Rename `record` to the first useful noun in your product.
+Open the URL printed after `/health` becomes ready. The default generated
+starter is a neutral, workspace-safe chassis with a draft `@wip` first-outcome
+contract. It does not create a product table, record-management system, or
+route for you; choose the first useful noun and add its reviewed product slice
+before promoting that outcome.
 
 For scripts and JSON consumers, use the repository-owned launcher so package
 manager banners never share stdout with the result:
@@ -167,19 +169,14 @@ orient -> preview -> review -> write -> verify -> commit -> run
 5. Focused gates prove the affected contract before the app is started.
 6. Review and commit the verified change; start requires a clean target.
 
-For example, preview a second workspace-owned entity:
+For a product entity, first use the system catalog to identify the reviewed
+owner for that domain, then preview the matching recipe. The default chassis
+does not supply a `record-management` owner; `records-example` is an internal
+optional reference composition rather than a create CLI option.
 
 ```bash
-pnpm maestro -- add crud-business-entity \
-  --answer entityName=Milestone \
-  --answer canonicalOwner=record-management \
-  --answer tenantScope=workspace \
-  --answer sensitivity=internal \
-  --answer pii=none \
-  --answer exportMode=json \
-  --answer deleteMode=delete \
-  --answer retention=retain-until-workspace-delete \
-  --answer appendOnly=false
+pnpm maestro -- recipes show crud-business-entity
+pnpm template:systems -- --query "your-domain-noun"
 ```
 
 The preview prints the exact confirmation command with its plan and preflight
