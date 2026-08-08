@@ -31,7 +31,6 @@ describe("factory Node Agent Pack adapter authority", () => {
       environment: () => ({}),
       policy: {
         supportedPlatforms: [process.platform],
-        supportedNodeMajors: [Number(process.versions.node.split(".")[0])],
         minimumGitVersion: "2.31.0",
         minimumDiskBytes: 0,
         requiredPorts: [],

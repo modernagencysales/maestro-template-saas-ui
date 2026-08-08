@@ -101,7 +101,6 @@ export function isUnsafeReviewedGeneratorPath(filePath: string): boolean {
 
 export const FACTORY_EXECUTION_POLICY = Object.freeze({
   supportedPlatforms: ["linux", "darwin", "win32"],
-  supportedNodeMajors: [22],
   minimumGitVersion: "2.31.0",
   minimumDiskBytes: 512 * 1024 * 1024,
   requiredPorts: [],
