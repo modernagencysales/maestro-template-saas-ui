@@ -546,6 +546,40 @@ describe("Node Agent Pack adapters", () => {
     await writeFile(join(root, "template-instance.json"), templateInstance());
 
     await writeFile(
+      join(root, "docs/template/customer-context.manifest.json"),
+      JSON.stringify({
+        schemaVersion: 1,
+        files: [
+          {
+            path: ".agents/skills/maestro/SKILL.md",
+            sha256: `sha256:${skillHash}`,
+          },
+          {
+            path: ".agents/skills/maestro/references/host-safety.md",
+            sha256: 42,
+          },
+        ],
+      }),
+    );
+    await expect(
+      runtime.inspect({ mode: "fake" }, repo),
+    ).resolves.toMatchObject({
+      repository: { hostIntegration: "stale" },
+    });
+    await writeFile(
+      join(root, "docs/template/customer-context.manifest.json"),
+      JSON.stringify({
+        schemaVersion: 1,
+        files: [
+          {
+            path: ".agents/skills/maestro/SKILL.md",
+            sha256: `sha256:${skillHash}`,
+          },
+        ],
+      }),
+    );
+
+    await writeFile(
       join(root, ".agents/skills/maestro/SKILL.md"),
       "locally modified packaged skill\n",
     );

@@ -1,4 +1,11 @@
-import { cp, mkdtemp, readFile, writeFile } from "node:fs/promises";
+import {
+  cp,
+  mkdtemp,
+  readFile,
+  readdir,
+  stat,
+  writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -66,13 +73,31 @@ describe("canonical Maestro skill projections", () => {
   });
 
   it("does not synchronize the removed Codex compatibility projection", async () => {
+    const sourceRoot = join(repoRoot, "tooling/agent-pack/src");
     const sources = await Promise.all(
-      ["syncSkills.ts", "nodeAdapters.ts"].map((file) =>
-        readFile(join(repoRoot, "tooling/agent-pack/src", file), "utf8"),
-      ),
+      (await readdir(sourceRoot, { recursive: true }))
+        .filter((file) => file.endsWith(".ts") && !file.endsWith(".test.ts"))
+        .map((file) => readFile(join(sourceRoot, file), "utf8")),
     );
     expect(sources.join("\n")).not.toContain(
       "agent-pack/generated/codex/.agents/skills/maestro",
     );
+    const compatibilityRoot = join(
+      repoRoot,
+      "agent-pack/generated/codex/.agents/skills/maestro",
+    );
+    const compatibilityEntries = await readdir(compatibilityRoot, {
+      recursive: true,
+    }).catch((error: NodeJS.ErrnoException) => {
+      if (error.code === "ENOENT") return [];
+      throw error;
+    });
+    const compatibilityFiles = [];
+    for (const entry of compatibilityEntries) {
+      if ((await stat(join(compatibilityRoot, entry))).isFile()) {
+        compatibilityFiles.push(entry);
+      }
+    }
+    expect(compatibilityFiles).toEqual([]);
   });
 });
