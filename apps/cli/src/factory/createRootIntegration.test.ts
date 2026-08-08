@@ -482,7 +482,6 @@ describe("create root integration", () => {
       "Create and review records",
       "--demo-only",
       "--write",
-      "--privacy-reviewed",
       "--json",
     ]);
     expect(result.exitCode, `${result.stdout}\n${result.stderr}`).toBe(0);
