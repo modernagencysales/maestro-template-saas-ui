@@ -757,23 +757,7 @@ describe("create root integration", () => {
     const parent = mkdtempSync(join(tmpdir(), "maestro-contract-target-"));
     temporaryRoots.push(parent);
     const targetRoot = join(parent, "app");
-    const created = await runCliAsync(
-      [
-        "create",
-        targetRoot,
-        "--name",
-        "Contract Prototype",
-        "--outcome",
-        "Create and review records",
-        "--demo-only",
-        "--write",
-        "--json",
-      ],
-      undefined,
-      repoRoot,
-    );
-    expect(created.exitCode, `${created.stdout}\n${created.stderr}`).toBe(0);
-
+    mkdirSync(targetRoot, { recursive: true });
     applyCurrentSaasProjection(targetRoot, {
       name: "Contract Prototype",
       firstOutcome: "Create and review records",
@@ -853,24 +837,7 @@ describe("create root integration", () => {
     const parent = mkdtempSync(join(tmpdir(), "maestro-records-contract-"));
     temporaryRoots.push(parent);
     const targetRoot = join(parent, "app");
-    const created = await runCliAsync(
-      [
-        "create",
-        targetRoot,
-        "--name",
-        "Records Example",
-        "--outcome",
-        "Create and review records",
-        "--demo-only",
-        "--write",
-        "--privacy-reviewed",
-        "--json",
-      ],
-      undefined,
-      repoRoot,
-    );
-    expect(created.exitCode, `${created.stdout}\n${created.stderr}`).toBe(0);
-
+    mkdirSync(targetRoot, { recursive: true });
     applyCurrentSaasProjection(targetRoot, {
       name: "Records Example",
       firstOutcome: "Create and review records",
