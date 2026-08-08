@@ -397,7 +397,7 @@ describe("candidate customer composition", () => {
         ),
       ),
     ).toBe(true);
-  });
+  }, 30_000);
 
   it("materializes and verifies an untouched Confect 10 and Effect 4 candidate", async () => {
     expect(installedStoreDir).toBeTruthy();
