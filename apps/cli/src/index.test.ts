@@ -33,6 +33,10 @@ describe("maestro-template CLI", () => {
     );
     expect(help).toContain("maestro mcp\n");
     expect(help).toContain("maestro mcp configure --host <claude-code|codex>");
+    expect(help).toContain(
+      "maestro scaffold --generator <id> --args <json-object> [--write]",
+    );
+    expect(help).not.toContain("--preflight-fingerprint");
     await expect(runCliAsync(["scaffold", "--help"])).resolves.toMatchObject({
       exitCode: 0,
       stdout: expect.stringContaining(
