@@ -460,13 +460,9 @@ describe("factory CLI composition", () => {
     onTestFinished(() => rm(isolatedBin, { recursive: true, force: true }));
     const environment = {
       ...process.env,
-      PATH: [
-        isolatedBin,
-        dirname(process.execPath),
-        "/usr/local/bin",
-        "/usr/bin",
-        "/bin",
-      ].join(delimiter),
+      PATH: [isolatedBin, dirname(process.execPath), "/usr/bin", "/bin"].join(
+        delimiter,
+      ),
     };
     const expectedGateIds = [
       "gates",
