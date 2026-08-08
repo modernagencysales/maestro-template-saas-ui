@@ -76,7 +76,7 @@ it("preserves pnpm child failure diagnostics", () => {
 
 it("approves isolated Vitest builds through pnpm 11 workspace settings", () => {
   expect(compatibilityWorkspace()).toBe(
-    "packages: []\nonlyBuiltDependencies:\n  - esbuild\n",
+    "packages: []\nallowBuilds:\n  esbuild: true\n",
   );
 });
 
@@ -117,7 +117,7 @@ const compatibilityPackage = (set: CompatibilitySet) => ({
 });
 
 const compatibilityWorkspace = (): string =>
-  "packages: []\nonlyBuiltDependencies:\n  - esbuild\n";
+  "packages: []\nallowBuilds:\n  esbuild: true\n";
 
 describe("isolated Workpool compatibility behavior", () => {
   beforeAll(async () => {
