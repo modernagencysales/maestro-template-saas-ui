@@ -253,7 +253,7 @@ async function runFull(
         timeoutMs: limits.fullTimeoutMs,
         maxBufferBytes: limits.maxBufferBytes,
       },
-      { file: "just", args: ["verify"] },
+      { file: "pnpm", args: ["verify"] },
     ),
   ]);
   if (!plan) {
@@ -266,7 +266,7 @@ async function runFull(
   }
   if (result?.exitCode === null || result === undefined) {
     return request.descriptors.map((descriptor) =>
-      unavailable(descriptor, "just verify was unavailable"),
+      unavailable(descriptor, "pnpm verify was unavailable"),
     );
   }
   if (result.exitCode !== 0) {
@@ -437,7 +437,7 @@ function unavailableFullReason(
 ): string {
   if (blocker !== undefined) return `blocked by ${blocker}`;
   return plan.some(({ argv }) => argvKey(argv) === argvKey(descriptor.argv))
-    ? "just verify failed although its exact attribution replay passed"
+    ? "pnpm verify failed although its exact attribution replay passed"
     : "the gate is not a member of the canonical full verify plan";
 }
 
@@ -449,18 +449,18 @@ function fullVerifyFailure(
   return {
     gateId: "maestro/full-verify",
     status: "fail",
-    message: `just verify exited with code; deterministic attribution${stopped}.`,
+    message: `pnpm verify exited with code; deterministic attribution${stopped}.`,
     diagnostic: {
       code: "AGENT_PACK_FULL_VERIFY_FAILED",
       severity: "error",
       message:
         blocker === undefined
-          ? "just verify failed although every attributable command passed on replay."
-          : `just verify failed; deterministic attribution stopped at ${blocker}.`,
+          ? "pnpm verify failed although every attributable command passed on replay."
+          : `pnpm verify failed; deterministic attribution stopped at ${blocker}.`,
       safeToContinue: false,
       nextAction:
         "Repair the reported invariant in its owning source; do not edit or weaken a gate.",
-      rerun: "just verify",
+      rerun: "pnpm verify",
     },
   };
 }

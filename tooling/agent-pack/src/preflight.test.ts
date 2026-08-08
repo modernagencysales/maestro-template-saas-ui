@@ -77,7 +77,7 @@ const readyFacts = (): PreflightFacts => ({
   indexes: {
     systems: "docs/template/system-catalog.json",
     generators: "tooling/generators/src/index.ts",
-    recipes: "Justfile",
+    recipes: "package.json",
     documentation: "docs/template",
   },
   claimLevels: ["fake", "local", "dev", "preview", "staging", "production"],

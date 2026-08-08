@@ -5,44 +5,30 @@ export async function factoryWiringFindings(
   repoRoot: string,
 ): Promise<readonly string[]> {
   const findings: string[] = [];
-  const [rootPackage, cliPackage, agentPackPackage, stackPackage] =
-    await Promise.all([
-      readJson(join(repoRoot, "package.json")),
-      readJson(join(repoRoot, "apps/cli/package.json")),
-      readJson(join(repoRoot, "tooling/agent-pack/package.json")),
-      readJson(join(repoRoot, "tooling/stack/package.json")),
-    ]);
-  if (record(rootPackage.scripts).maestro !== "tsx apps/cli/src/index.ts") {
+  const [rootPackage, cliPackage, agentPackPackage] = await Promise.all([
+    readJson(join(repoRoot, "package.json")),
+    readJson(join(repoRoot, "apps/cli/package.json")),
+    readJson(join(repoRoot, "tooling/agent-pack/package.json")),
+  ]);
+  if (hasInvalidRootScript(rootPackage)) {
     findings.push("factory-wiring:root-maestro-script");
   }
-  const cliBins = record(cliPackage.bin);
-  if (
-    cliBins.maestro !== "src/index.ts" ||
-    cliBins["maestro-template"] !== "src/index.ts"
-  ) {
+  if (hasInvalidCliBins(cliPackage)) {
     findings.push("factory-wiring:cli-binaries");
   }
-  const dependencies = record(cliPackage.dependencies);
-  if (
-    dependencies["@maestro-template/agent-pack"] !== "workspace:*" ||
-    dependencies["@maestro-template/generators"] !== "workspace:*" ||
-    dependencies["@maestro-template/release-tooling"] !== "workspace:*" ||
-    dependencies["@maestro-template/stack-tooling"] !== "workspace:*"
-  ) {
+  if (hasInvalidCliDependencies(cliPackage)) {
     findings.push("factory-wiring:cli-agent-pack-dependency");
   }
-  if (
-    stackPackage.main !== "index.mts" ||
-    stackPackage.types !== "index.mts" ||
-    record(stackPackage.exports)["."] !== "./index.mts"
-  ) {
-    findings.push("factory-wiring:stack-exports");
+  if ((await optionalText(join(repoRoot, "Justfile"))) !== undefined) {
+    findings.push("factory-wiring:obsolete-just-authority");
   }
   if (
-    agentPackPackage.main !== "src/index.ts" ||
-    agentPackPackage.types !== "src/index.ts" ||
-    record(agentPackPackage.exports)["."] !== "./src/index.ts"
+    (await optionalText(join(repoRoot, "tooling/stack/package.json"))) !==
+    undefined
   ) {
+    findings.push("factory-wiring:obsolete-stack-authority");
+  }
+  if (hasInvalidAgentPackExports(agentPackPackage)) {
     findings.push("factory-wiring:agent-pack-exports");
   }
   const barrel = await optionalText(
@@ -62,67 +48,89 @@ export async function factoryWiringFindings(
     join(repoRoot, "apps/cli/src/factory/start.ts"),
   );
   if (
-    !includesAll(cliIndex, [
-      'import { createFactoryCliComposition } from "./factory/composition";',
-      "const factoryCliComposition = createFactoryCliComposition(() => process.env);",
-      "export const runCliAsync",
-      "dispatchFactoryCliCommand(\n      factoryCliComposition.handlers,",
-      'normalized.length === 1 && normalized[0] === "mcp"',
-      "factoryCliComposition.mcp.serve(streams)",
-      'normalized[0] === "mcp" && normalized[1] === "configure"',
-      "factoryCliComposition.mcpConfigure.run(normalized.slice(1), cwd)",
-    ]) ||
-    !includesAll(factoryRouter, [
-      "executeAgentPackCommand",
-      "renderAgentPackResult",
-      "exitCodeFor",
-      "createFactoryCliHandler",
-      "handlers: readonly FactoryCliHandler[]",
-      "const handler = handlers.find",
-    ]) ||
-    !includesAll(factoryComposition, [
-      "const execFile = createNodeExecFileAdapter();",
-      "export function createFactoryCliComposition(",
-      "overrides: FactoryMcpOverrides = {},",
-      "runtime: createNodePreflightRuntimeReader({\n        fs: nodePreflightFileSystem,\n        execFile,",
-      "environment: readEnvironment,",
-      "const descriptors = defineQualityDiagnosticRegistryProjection(\n  defineDiagnosticRegistryProjection,\n);",
-      "const verificationRunner = createExecFileVerificationRunner({\n    execFile,",
-      "projectCompositionEnvironment(repo, readEnvironment)",
-      "createCustomerCreateComposition()",
-      "overrides.start?.log ?? ((line) => process.stderr.write(`${line}\\n`))",
-      "createComposedStartCommand({",
-      "createNodeBuildReadinessSurface({",
-      "const receiptWriter = createNodeVerificationReceiptWriter({",
-      "writer: receiptWriter,",
-      "const readOnlyVerify = createVerifyCommand({",
-      "verify: readOnlyVerify,",
-      "receiptWriter,",
-      "createStartCliHandler(start, startOutput)",
-      "parseStartTargetInstance(raw, parseTemplateInstance",
-      "createPreflightCliHandler(preflight)",
-      "createVerifyCliHandler(verify)",
-      "createVerifyCliHandler(check)",
-      "createPlanCheckCliHandler(planCheck)",
-      "createScaffoldCliHandler(scaffold)",
-      "createPlanCheckCommand({",
-      "createScaffoldCommand({",
-      "createMaestroMcpProjection(",
-      "createMaestroMcpServer(projection)",
-      "createMcpConfigureCommand({",
-      "createRepositoryLocalMcpConfigurationStore({ execFile })",
-      "readInstalledConvexMcpInventory({",
-      "return Object.freeze({\n    handlers,",
-      "mcp,\n    mcpConfigure,",
-    ]) ||
-    !includesAll(factoryStart, [
-      "new AsyncLocalStorage<FactoryCliRenderMode>()",
-      'renderMode.getStore() !== "json"',
-      "output?.run(parsed.renderMode, execute) ?? execute()",
-      "readiness: { wait: waitForStartReadiness }",
-      "supervise: (specs, readiness)",
-      "readiness,",
-    ]) ||
+    hasInvalidCompositionWiring(
+      cliIndex,
+      factoryRouter,
+      factoryComposition,
+      factoryStart,
+    )
+  ) {
+    findings.push("factory-wiring:shared-executor-adapter");
+  }
+  return findings;
+}
+
+function hasInvalidRootScript(rootPackage: Record<string, unknown>): boolean {
+  return record(rootPackage.scripts).maestro !== "tsx apps/cli/src/index.ts";
+}
+
+function hasInvalidCliBins(cliPackage: Record<string, unknown>): boolean {
+  const cliBins = record(cliPackage.bin);
+  return (
+    cliBins.maestro !== "src/index.ts" ||
+    cliBins["maestro-template"] !== "src/index.ts"
+  );
+}
+
+function hasInvalidCliDependencies(
+  cliPackage: Record<string, unknown>,
+): boolean {
+  const dependencies = record(cliPackage.dependencies);
+  return (
+    dependencies["@maestro-template/agent-pack"] !== "workspace:*" ||
+    dependencies["@maestro-template/generators"] !== "workspace:*" ||
+    dependencies["@maestro-template/release-tooling"] !== "workspace:*" ||
+    "@maestro-template/stack-tooling" in dependencies
+  );
+}
+
+function hasInvalidAgentPackExports(
+  agentPackPackage: Record<string, unknown>,
+): boolean {
+  return (
+    agentPackPackage.main !== "src/index.ts" ||
+    agentPackPackage.types !== "src/index.ts" ||
+    record(agentPackPackage.exports)["."] !== "./src/index.ts"
+  );
+}
+
+function hasInvalidCompositionWiring(
+  cliIndex: string | undefined,
+  factoryRouter: string | undefined,
+  factoryComposition: string | undefined,
+  factoryStart: string | undefined,
+): boolean {
+  return (
+    hasMissingCompositionSource(
+      cliIndex,
+      factoryRouter,
+      factoryComposition,
+      factoryStart,
+    ) ||
+    hasInvalidCompositionCounts(cliIndex, factoryComposition) ||
+    hasUnsafeCompositionSource(factoryComposition)
+  );
+}
+
+function hasMissingCompositionSource(
+  cliIndex: string | undefined,
+  factoryRouter: string | undefined,
+  factoryComposition: string | undefined,
+  factoryStart: string | undefined,
+): boolean {
+  return (
+    !includesAll(cliIndex, REQUIRED_CLI_INDEX_SOURCE) ||
+    !includesAll(factoryRouter, REQUIRED_FACTORY_ROUTER_SOURCE) ||
+    !includesAll(factoryComposition, REQUIRED_FACTORY_COMPOSITION_SOURCE) ||
+    !includesAll(factoryStart, REQUIRED_FACTORY_START_SOURCE)
+  );
+}
+
+function hasInvalidCompositionCounts(
+  cliIndex: string | undefined,
+  factoryComposition: string | undefined,
+): boolean {
+  return (
     countOccurrences(cliIndex, "createFactoryCliComposition(") !== 1 ||
     countOccurrences(factoryComposition, "createFactoryCliComposition(") !==
       1 ||
@@ -132,21 +140,84 @@ export async function factoryWiringFindings(
     countOccurrences(
       factoryComposition,
       "createNodeVerificationReceiptWriter(",
-    ) !== 1 ||
-    factoryComposition?.includes("process.env") === true ||
-    factoryComposition?.includes("export const factoryCliComposition") === true
-  ) {
-    findings.push("factory-wiring:shared-executor-adapter");
-  }
-  const justfile = await optionalText(join(repoRoot, "Justfile"));
-  if (
-    justfile === undefined ||
-    !justfile.includes("check-agent-pack:\n    pnpm check:agent-pack")
-  ) {
-    findings.push("factory-wiring:just-recipe");
-  }
-  return findings;
+    ) !== 1
+  );
 }
+
+function hasUnsafeCompositionSource(
+  factoryComposition: string | undefined,
+): boolean {
+  return (
+    factoryComposition?.includes("process.env") === true ||
+    factoryComposition?.includes("export const factoryCliComposition") ===
+      true ||
+    factoryComposition?.includes("createPlanCheck") === true ||
+    factoryComposition?.includes("planCheck") === true
+  );
+}
+
+const REQUIRED_CLI_INDEX_SOURCE = [
+  'import { createFactoryCliComposition } from "./factory/composition";',
+  "const factoryCliComposition = createFactoryCliComposition(() => process.env);",
+  "export const runCliAsync",
+  "dispatchFactoryCliCommand(\n      factoryCliComposition.handlers,",
+  'normalized.length === 1 && normalized[0] === "mcp"',
+  "factoryCliComposition.mcp.serve(streams)",
+  'normalized[0] === "mcp" && normalized[1] === "configure"',
+  "factoryCliComposition.mcpConfigure.run(normalized.slice(1), cwd)",
+] as const;
+
+const REQUIRED_FACTORY_ROUTER_SOURCE = [
+  "executeAgentPackCommand",
+  "renderAgentPackResult",
+  "exitCodeFor",
+  "createFactoryCliHandler",
+  "handlers: readonly FactoryCliHandler[]",
+  "const handler = handlers.find",
+] as const;
+
+const REQUIRED_FACTORY_COMPOSITION_SOURCE = [
+  "const execFile = createNodeExecFileAdapter();",
+  "export function createFactoryCliComposition(",
+  "overrides: FactoryMcpOverrides = {},",
+  "runtime: createNodePreflightRuntimeReader({\n        fs: nodePreflightFileSystem,\n        execFile,",
+  "environment: readEnvironment,",
+  "const descriptors = defineQualityDiagnosticRegistryProjection(\n  defineDiagnosticRegistryProjection,\n);",
+  "const verificationRunner = createExecFileVerificationRunner({\n    execFile,",
+  "projectCompositionEnvironment(repo, readEnvironment)",
+  "createCustomerCreateComposition()",
+  "overrides.start?.log ?? ((line) => process.stderr.write(`${line}\\n`))",
+  "createComposedStartCommand({",
+  "createNodeBuildReadinessSurface({",
+  "const receiptWriter = createNodeVerificationReceiptWriter({",
+  "writer: receiptWriter,",
+  "const readOnlyVerify = createVerifyCommand({",
+  "verify: readOnlyVerify,",
+  "receiptWriter,",
+  "createStartCliHandler(start, startOutput)",
+  "parseStartTargetInstance(raw, parseTemplateInstance",
+  "createPreflightCliHandler(preflight)",
+  "createVerifyCliHandler(verify)",
+  "createVerifyCliHandler(check)",
+  "createScaffoldCliHandler(scaffold)",
+  "createScaffoldCommand({",
+  "createMaestroMcpProjection(",
+  "createMaestroMcpServer(projection)",
+  "createMcpConfigureCommand({",
+  "createRepositoryLocalMcpConfigurationStore({ execFile })",
+  "readInstalledConvexMcpInventory({",
+  "return Object.freeze({\n    handlers,",
+  "mcp,\n    mcpConfigure,",
+] as const;
+
+const REQUIRED_FACTORY_START_SOURCE = [
+  "new AsyncLocalStorage<FactoryCliRenderMode>()",
+  'renderMode.getStore() !== "json"',
+  "output?.run(parsed.renderMode, execute) ?? execute()",
+  "readiness: { wait: waitForStartReadiness }",
+  "supervise: (specs, readiness)",
+  "readiness,",
+] as const;
 
 function expectedAgentPackBarrel(): string {
   return [
@@ -169,7 +240,6 @@ function expectedAgentPackBarrel(): string {
     'export * from "./providers/doctor.js";',
     'export * from "./readiness/index.js";',
     'export * from "./verificationRunner.js";',
-    'export * from "./planCheck.js";',
     'export * from "./scaffold.js";',
     'export * from "./create.js";',
     'export * from "./ports.js";',

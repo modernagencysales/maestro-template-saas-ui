@@ -34,7 +34,7 @@ const jsonFilesUnder = (path: string): readonly string[] => {
 
 const stackPlanPaths = (args: readonly string[]): readonly string[] => {
   if (args.length > 0) return args.flatMap(jsonFilesUnder);
-  return jsonFilesUnder("tooling/stack/__fixtures__");
+  return [];
 };
 
 const workKind = (value: unknown): WorkKind | undefined =>

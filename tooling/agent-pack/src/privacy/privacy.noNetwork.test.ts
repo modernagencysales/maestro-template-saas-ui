@@ -26,6 +26,15 @@ const fixtureRoot = mkdtempSync(join(tmpdir(), "maestro-no-network-"));
 const attemptsPath = join(fixtureRoot, "attempts.ndjson");
 const customerTarget = join(fixtureRoot, "customer-app");
 let candidateReleaseParent: string | undefined;
+const isWorkflowPatternPath = (path: string): boolean =>
+  [
+    "tooling/workflow/",
+    "packages/convex/confect/workflows/",
+    "packages/convex/confect/workflowContracts/",
+    "packages/convex/confect/workflowRunners/",
+    "packages/convex/confect/tables/workflow",
+    "packages/convex/confect/demo/showcase.",
+  ].some((prefix) => path.startsWith(prefix));
 const candidateRelease = (input: {
   readonly name: string;
   readonly outcome: string;
@@ -52,6 +61,14 @@ const candidateRelease = (input: {
     name: input.name,
     firstOutcome: input.outcome,
   });
+  const materializedPaths = new Set(plan.entries.map((entry) => entry.path));
+  const optionalPatternPaths = new Set(
+    buildSaasApplicationTargetPlan({
+      name: input.name,
+      firstOutcome: input.outcome,
+      patterns: ["records-example", "workflow-automation"],
+    }).entries.map((entry) => entry.path),
+  );
   const blueprintOwnedPaths = new Set(
     plan.entries
       .filter((entry) => entry.replaces === undefined)
@@ -63,7 +80,10 @@ const candidateRelease = (input: {
     .filter(Boolean);
   const paths = [
     ...buildCustomerOwnershipInventory(sourcePaths).map((entry) =>
-      blueprintOwnedPaths.has(entry.path)
+      blueprintOwnedPaths.has(entry.path) ||
+      (optionalPatternPaths.has(entry.path) &&
+        !materializedPaths.has(entry.path)) ||
+      isWorkflowPatternPath(entry.path)
         ? {
             path: entry.path,
             match: "exact" as const,
@@ -401,7 +421,6 @@ describe("privacy no-network conformance", () => {
       "preflight",
       "verify",
       "check",
-      "plan-check",
       "scaffold",
       "support-bundle",
     ]);
@@ -448,31 +467,36 @@ function readAttempts(): unknown[] {
 function parseCliResult(stdout: string): Record<string, unknown> {
   const start = stdout.indexOf('{\n  "schemaVersion"');
   if (start < 0) throw new Error(`CLI result JSON is missing:\n${stdout}`);
-  let depth = 0;
-  let quoted = false;
-  let escaped = false;
+  const state = { depth: 0, quoted: false, escaped: false };
   for (let index = start; index < stdout.length; index += 1) {
-    const character = stdout[index];
-    if (quoted) {
-      if (escaped) escaped = false;
-      else {
-        escaped = character === "\\";
-        if (character === '"') quoted = false;
-      }
-      continue;
-    }
-    if (character === '"') quoted = true;
-    else if (character === "{") depth += 1;
-    else if (character === "}") {
-      depth -= 1;
-      if (depth === 0)
-        return JSON.parse(stdout.slice(start, index + 1)) as Record<
-          string,
-          unknown
-        >;
-    }
+    if (advanceJsonScan(state, stdout[index]))
+      return JSON.parse(stdout.slice(start, index + 1)) as Record<
+        string,
+        unknown
+      >;
   }
   throw new Error(`CLI result JSON is incomplete:\n${stdout}`);
+}
+
+function advanceJsonScan(
+  state: { depth: number; quoted: boolean; escaped: boolean },
+  character: string,
+): boolean {
+  if (state.quoted) return advanceQuotedJsonScan(state, character);
+  if (character === '"') state.quoted = true;
+  else if (character === "{") state.depth += 1;
+  else if (character === "}") state.depth -= 1;
+  return character === "}" && state.depth === 0;
+}
+
+function advanceQuotedJsonScan(
+  state: { quoted: boolean; escaped: boolean },
+  character: string,
+): false {
+  if (state.escaped) state.escaped = false;
+  else if (character === "\\") state.escaped = true;
+  else if (character === '"') state.quoted = false;
+  return false;
 }
 
 function externalSyscallLines(trace: string): readonly string[] {

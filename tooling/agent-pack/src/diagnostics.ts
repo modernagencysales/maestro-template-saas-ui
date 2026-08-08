@@ -137,12 +137,9 @@ function validateBoundedArgv(argv: readonly string[]): string | undefined {
   }
   const [executable, command] = argv;
   if (executable === "pnpm") return validatePnpmArgv(argv, command);
-  if (isJustRecipe(executable, command)) {
-    return undefined;
-  }
   return isDirectExecutable(executable)
     ? undefined
-    : "gate commands must use a bounded executable, pnpm script, or Just recipe";
+    : "gate commands must use a bounded executable or pnpm script";
 }
 
 function isBoundedArgv(argv: readonly string[]): boolean {
@@ -202,15 +199,6 @@ function isRootPnpmScript(
 
 function isPnpmEscape(command: string): boolean {
   return command === "exec" || command === "dlx";
-}
-
-function isJustRecipe(
-  executable: string | undefined,
-  command: string | undefined,
-): boolean {
-  return (
-    executable === "just" && command !== undefined && SAFE_SCRIPT.test(command)
-  );
 }
 
 function isDirectExecutable(executable: string | undefined): boolean {

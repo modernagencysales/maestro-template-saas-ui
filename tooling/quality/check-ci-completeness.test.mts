@@ -30,7 +30,7 @@ describe("check:ci-completeness", () => {
     expect(requirements).toContain("check:data-resources");
     expect(requirements).toContain("check:promotion-boundary");
     expect(requirements).not.toContain(".github/workflows/quality.yml");
-    expect(requirements).toContain("Justfile");
+    expect(requirements).not.toContain("Justfile");
     expect(requirements).toContain("lefthook.yml");
     expect(requirements).not.toContain("bounded-ai-review");
     const firewallPipeline = descriptor.requirements.find(

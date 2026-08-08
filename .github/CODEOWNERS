@@ -28,7 +28,6 @@
 /.buildkite/                   @kimprobably
 /tooling/quality/              @kimprobably
 /tooling/generators/           @kimprobably
-/Justfile                      @kimprobably
 /AGENTS.md                     @kimprobably
 /docs/template/system-catalog* @kimprobably
 /docs/template/product-topology* @kimprobably

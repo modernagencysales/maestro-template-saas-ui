@@ -158,8 +158,8 @@ Rules when replacing a fixture body:
   follow-up gates from the matching `docs/template/how-to-add-*` playbook.
 - `template-gap` names the missing pattern, a template backlog reference, and
   the proposed promotion/import path. A gap is a template finding, not a waiver.
-- Use `docs/template/app-factory-guide.md` for the generator flow and
-  `pnpm stack:check` for deterministic plan-shape validation.
+- Use `docs/template/app-factory-guide.md` for the generator flow and the
+  focused package scripts named by the selected work package.
 
 - Scaffold first: when a `pnpm template:*` generator covers the module kind,
   preview its reviewed scaffold equivalent and use the exact confirmation argv

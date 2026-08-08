@@ -30,6 +30,7 @@ import {
 } from "./composition";
 import { recipePreflightBlockingCodes } from "./customerRecipes";
 import { CUSTOMER_PREFLIGHT_POLICY } from "./customerComposition";
+import type { FactoryCliHandler } from "./router";
 import { START_HELP } from "./start";
 
 const factoryCliComposition = createFactoryCliComposition(() => ({}));
@@ -81,6 +82,15 @@ async function targetFiles(root: string): Promise<readonly string[]> {
       return `${path}:file:${hash}`;
     }),
   );
+}
+
+async function runHandlerJson(
+  handler: FactoryCliHandler | undefined,
+  argv: readonly string[],
+  root: string,
+) {
+  if (!handler) throw new Error(`missing factory CLI handler: ${argv[0]}`);
+  return JSON.parse((await handler.run(argv, root)).stdout);
 }
 
 async function expectOnlyVerificationReceiptAdded(
@@ -158,7 +168,7 @@ async function configuredGitTarget(): Promise<string> {
 }
 
 describe("factory CLI composition", () => {
-  it("binds one explicit policy to canonical readers and sixteen commands", () => {
+  it("binds one explicit policy to canonical readers and fifteen commands", () => {
     expect(
       factoryCliComposition.handlers.map(({ command }) => command),
     ).toEqual([
@@ -174,7 +184,6 @@ describe("factory CLI composition", () => {
       "verify",
       "verify-export",
       "check",
-      "plan-check",
       "scaffold",
       "support-bundle",
       "upgrade",
@@ -232,7 +241,7 @@ describe("factory CLI composition", () => {
 
   it("imports generator and quality sources without running either CLI", () => {
     expect(process.exitCode).toBeUndefined();
-    expect(factoryCliComposition.handlers).toHaveLength(16);
+    expect(factoryCliComposition.handlers).toHaveLength(15);
   });
 
   it("rejects absolute and parent-traversing reviewed generator paths", () => {
@@ -543,21 +552,27 @@ describe("factory CLI composition", () => {
     const verify = composition.handlers.find(
       ({ command }) => command === "verify",
     );
-    const firstPreflight = JSON.parse(
-      (await preflight?.run(["preflight", "--mode", "test", "--json"], root))
-        ?.stdout ?? "null",
+    const firstPreflight = await runHandlerJson(
+      preflight,
+      ["preflight", "--mode", "test", "--json"],
+      root,
     );
-    const firstVerify = JSON.parse(
-      (await verify?.run(["verify", "--json"], root))?.stdout ?? "null",
+    const firstVerify = await runHandlerJson(
+      verify,
+      ["verify", "--json"],
+      root,
     );
 
     deployment = "test:account-two-secret";
-    const secondPreflight = JSON.parse(
-      (await preflight?.run(["preflight", "--mode", "test", "--json"], root))
-        ?.stdout ?? "null",
+    const secondPreflight = await runHandlerJson(
+      preflight,
+      ["preflight", "--mode", "test", "--json"],
+      root,
     );
-    const secondVerify = JSON.parse(
-      (await verify?.run(["verify", "--json"], root))?.stdout ?? "null",
+    const secondVerify = await runHandlerJson(
+      verify,
+      ["verify", "--json"],
+      root,
     );
     expect(firstPreflight.data, JSON.stringify(firstPreflight)).not.toBeNull();
     expect(

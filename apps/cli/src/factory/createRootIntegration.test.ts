@@ -249,7 +249,6 @@ describe("create root integration", () => {
       "verify",
       "verify-export",
       "check",
-      "plan-check",
       "scaffold",
       "support-bundle",
       "upgrade",

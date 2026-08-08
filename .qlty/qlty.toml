@@ -168,7 +168,6 @@ match.file_patterns = [
   "apps/cli/src/factory/doctor.ts",
   "apps/cli/src/factory/environment.ts",
   "apps/cli/src/factory/mcpConfigure.ts",
-  "apps/cli/src/factory/planCheck.ts",
   "apps/cli/src/factory/preflight.ts",
   "apps/cli/src/factory/recipes.ts",
   "apps/cli/src/factory/scaffold.ts",
