@@ -174,7 +174,12 @@ describe("saas application blueprint", () => {
         readonly scripts?: Readonly<Record<string, string>>;
       };
       const lock = parseYaml(entries.get("pnpm-lock.yaml") ?? "") as {
-        readonly importers?: Readonly<Record<string, unknown>>;
+        readonly importers?: Readonly<
+          Record<
+            string,
+            { readonly dependencies?: Readonly<Record<string, unknown>> }
+          >
+        >;
       };
       const contract = JSON.parse(
         entries.get(
@@ -184,10 +189,25 @@ describe("saas application blueprint", () => {
       const convexPackage = JSON.parse(
         entries.get("packages/convex/package.json") ?? "{}",
       ) as { readonly dependencies?: Readonly<Record<string, string>> };
+      const cliPackage = JSON.parse(
+        entries.get("apps/cli/package.json") ?? "{}",
+      ) as { readonly dependencies?: Readonly<Record<string, string>> };
+      const webPackage = JSON.parse(
+        entries.get("apps/web/package.json") ?? "{}",
+      ) as { readonly dependencies?: Readonly<Record<string, string>> };
       const systems = parseSystemCatalog(
         JSON.parse(entries.get("docs/template/system-catalog.json") ?? "{}"),
       );
-      return { root, lock, contract, convexPackage, systems, entries };
+      return {
+        root,
+        lock,
+        contract,
+        convexPackage,
+        cliPackage,
+        webPackage,
+        systems,
+        entries,
+      };
     };
 
     const neutral = metadata();
@@ -204,6 +224,18 @@ describe("saas application blueprint", () => {
     expect(neutral.convexPackage.dependencies).not.toHaveProperty(
       "@convex-dev/workflow",
     );
+    for (const packageJson of [
+      neutral.cliPackage,
+      neutral.webPackage,
+      neutral.convexPackage,
+    ])
+      expect(packageJson.dependencies).not.toHaveProperty(
+        "@maestro-template/workflow-tooling",
+      );
+    for (const importer of ["apps/cli", "apps/web", "packages/convex"])
+      expect(
+        neutral.lock.importers?.[importer]?.dependencies,
+      ).not.toHaveProperty("@maestro-template/workflow-tooling");
     expect(
       neutral.systems.systems.some(({ id }) => id === "workflow-runtime"),
     ).toBe(false);

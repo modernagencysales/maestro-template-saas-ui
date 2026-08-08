@@ -576,11 +576,16 @@ const customerGeneratorPackage = (): string => {
   return `${JSON.stringify(value, null, 2)}\n`;
 };
 
-const customerPackageWithoutAppIdeaEvaluator = (path: string): string => {
+const customerPackageWithoutOptionalPatterns = (
+  path: string,
+  selection: SaasApplicationPatternSelection,
+): string => {
   const value = JSON.parse(currentSource(path)) as {
     dependencies: Record<string, string>;
   };
   delete value.dependencies["@maestro-template/app-idea-evaluator"];
+  if (!selectsSaasApplicationPattern(selection, "workflow-automation"))
+    delete value.dependencies["@maestro-template/workflow-tooling"];
   return `${JSON.stringify(value, null, 2)}\n`;
 };
 
@@ -591,8 +596,10 @@ const customerConvexPackage = (
     dependencies: Record<string, string>;
   };
   delete value.dependencies["@maestro-template/app-idea-evaluator"];
-  if (!selectsSaasApplicationPattern(selection, "workflow-automation"))
+  if (!selectsSaasApplicationPattern(selection, "workflow-automation")) {
     delete value.dependencies["@convex-dev/workflow"];
+    delete value.dependencies["@maestro-template/workflow-tooling"];
+  }
   return `${JSON.stringify(value, null, 2)}\n`;
 };
 
@@ -624,12 +631,16 @@ const customerQualityPackage = (): string => {
   return `${JSON.stringify(value, null, 2)}\n`;
 };
 
-const customerCliPackage = (): string => {
+const customerCliPackage = (
+  selection: SaasApplicationPatternSelection,
+): string => {
   const value = JSON.parse(source("apps/cli/package.json")) as {
     dependencies: Record<string, string>;
   };
   delete value.dependencies["@maestro-template/release-tooling"];
   delete value.dependencies["@maestro-template/stack-tooling"];
+  if (!selectsSaasApplicationPattern(selection, "workflow-automation"))
+    delete value.dependencies["@maestro-template/workflow-tooling"];
   return `${JSON.stringify(value, null, 2)}\n`;
 };
 
@@ -731,6 +742,13 @@ const customerLockfile = (
       "packages/convex",
       "@convex-dev/workflow",
     );
+  if (!selectsSaasApplicationPattern(selection, "workflow-automation"))
+    for (const importer of ["apps/cli", "apps/web", "packages/convex"])
+      value = removeLockfileImporterDependencyByName(
+        value,
+        importer,
+        "@maestro-template/workflow-tooling",
+      );
   value = removeLockfileImporterDependency(
     value,
     "packages/convex",
@@ -1399,14 +1417,15 @@ export const buildSaasRegistrationProjections = (
       : []),
     {
       path: "apps/cli/package.json",
-      content: customerCliPackage(),
+      content: customerCliPackage(options),
     },
     ...(current
       ? [
           {
             path: "apps/web/package.json",
-            content: customerPackageWithoutAppIdeaEvaluator(
+            content: customerPackageWithoutOptionalPatterns(
               "apps/web/package.json",
+              options,
             ),
           },
         ]
