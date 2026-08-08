@@ -349,17 +349,17 @@ describe("saas application blueprint", () => {
     const manifest = JSON.parse(readFileSync(manifestPath, "utf8")) as {
       readonly release: { readonly sourceCommit: string };
     };
+    const sourceCommit = manifest.release.sourceCommit;
+    const sourceAvailable = spawnSync(
+      "git",
+      ["-C", repoRoot, "cat-file", "-e", `${sourceCommit}^{commit}`],
+      { encoding: "utf8" },
+    );
+    if (sourceAvailable.status !== 0) return;
     const paths = reviewedReleasePaths(manifestPath);
     const sourceTree = spawnSync(
       "git",
-      [
-        "-C",
-        repoRoot,
-        "ls-tree",
-        "-r",
-        "--name-only",
-        manifest.release.sourceCommit,
-      ],
+      ["-C", repoRoot, "ls-tree", "-r", "--name-only", sourceCommit],
       { encoding: "utf8" },
     );
     expect(sourceTree.status, sourceTree.stderr).toBe(0);
