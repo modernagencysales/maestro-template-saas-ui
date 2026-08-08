@@ -1133,10 +1133,6 @@ function versionsBoundToOneAuthority(
   versions: PreflightRuntimeSnapshot["versions"],
 ): boolean {
   const authority = versions.pack;
-  const optionalWorkflowVersions = [versions.workflow, versions.workpool];
-  const workflowVersionsCompatible =
-    optionalWorkflowVersions.every((version) => version === "unavailable") ||
-    optionalWorkflowVersions.every((version) => version !== "unavailable");
   const immutableAuthority =
     /^git:[0-9a-f]{40}$/.test(authority) ||
     /^release:[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?@[0-9a-f]{40}$/.test(
@@ -1146,10 +1142,12 @@ function versionsBoundToOneAuthority(
     immutableAuthority &&
     versions.cli === authority &&
     versions.template === authority &&
-    workflowVersionsCompatible &&
-    [versions.convex, versions.confect, versions.effect].every(
-      (version) => version !== "unavailable",
-    )
+    [
+      versions.convex,
+      versions.workpool,
+      versions.confect,
+      versions.effect,
+    ].every((version) => version !== "unavailable")
   );
 }
 
