@@ -90,8 +90,14 @@ const isWorkflowPatternPath = (path: string): boolean =>
     "packages/convex/confect/workflows/",
     "packages/convex/confect/workflowContracts/",
     "packages/convex/confect/workflowRunners/",
+    "packages/convex/confect/_generated/registeredFunctions/workflow",
+    "packages/convex/confect/_generated/tables/workflow",
     "packages/convex/confect/tables/workflow",
     "packages/convex/confect/demo/showcase.",
+    "packages/convex/convex/components/workflow",
+    "packages/convex/convex/workflows/",
+    "packages/convex/convex/workflowContracts/",
+    "packages/convex/convex/workflowRunners/",
   ].some((prefix) => path.startsWith(prefix));
 
 const buildCandidateReleaseFixture = (

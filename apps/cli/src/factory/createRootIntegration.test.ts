@@ -41,8 +41,14 @@ const isWorkflowPatternPath = (path: string): boolean =>
     "packages/convex/confect/workflows/",
     "packages/convex/confect/workflowContracts/",
     "packages/convex/confect/workflowRunners/",
+    "packages/convex/confect/_generated/registeredFunctions/workflow",
+    "packages/convex/confect/_generated/tables/workflow",
     "packages/convex/confect/tables/workflow",
     "packages/convex/confect/demo/showcase.",
+    "packages/convex/convex/components/workflow",
+    "packages/convex/convex/workflows/",
+    "packages/convex/convex/workflowContracts/",
+    "packages/convex/convex/workflowRunners/",
   ].some((prefix) => path.startsWith(prefix));
 
 const shouldOmitCurrentProjectionPath = (input: {
@@ -121,6 +127,25 @@ const applyCurrentSaasProjection = (
     const target = join(root, entry.path);
     mkdirSync(dirname(target), { recursive: true });
     writeFileSync(target, entry.content);
+  }
+  const instancePath = join(root, "template-instance.json");
+  if (!existsSync(instancePath)) {
+    writeFileSync(
+      instancePath,
+      `${JSON.stringify(
+        {
+          schemaVersion: 1,
+          blueprint: { id: "saas-application" },
+          personalization: {
+            name: options.name,
+            firstOutcome: options.firstOutcome,
+            demoOnly: true,
+          },
+        },
+        null,
+        2,
+      )}\n`,
+    );
   }
 };
 const taggedRepository = (): string => {
@@ -842,6 +867,18 @@ describe("create root integration", () => {
       patterns: ["records-example"],
     });
     expect(
+      JSON.parse(
+        readFileSync(join(targetRoot, "template-instance.json"), "utf8"),
+      ),
+    ).toMatchObject({
+      blueprint: { id: "saas-application" },
+      personalization: {
+        name: "Records Example",
+        firstOutcome: "Create and review records",
+        demoOnly: true,
+      },
+    });
+    expect(
       readFileSync(join(targetRoot, "features/records.feature"), "utf8"),
     ).not.toContain("@required");
     for (const path of [
@@ -851,6 +888,12 @@ describe("create root integration", () => {
       "features/support/contracts-world.ts",
     ])
       expect(existsSync(join(targetRoot, path)), path).toBe(true);
+    for (const path of [
+      "packages/convex/confect/_generated/registeredFunctions/workflows/subworkflowLinksCurrent.ts",
+      "packages/convex/convex/components/workflowDeadline/convex.config.ts",
+      "packages/convex/convex/workflows/deadlinesCurrent.ts",
+    ])
+      expect(existsSync(join(targetRoot, path)), path).toBe(false);
     for (const args of [
       ["install", "--offline", "--frozen-lockfile", "--ignore-scripts"],
       ["confect:codegen"],
