@@ -77,7 +77,7 @@ const candidateRelease = (input: {
   const sourcePaths = git(root, ["ls-tree", "-r", "--name-only", sourceCommit])
     .trim()
     .split("\n")
-    .filter(Boolean);
+    .filter((path) => path && existsSync(join(repositoryRoot, path)));
   const paths = [
     ...buildCustomerOwnershipInventory(sourcePaths).map((entry) =>
       blueprintOwnedPaths.has(entry.path) ||
@@ -356,6 +356,9 @@ describe("privacy no-network conformance", () => {
     const generatedTarget = join(fixtureRoot, "generated-support-customer");
     const created = await createGeneratedCustomer(generatedTarget);
     expect(created.exitCode, `${created.stdout}\n${created.stderr}`).toBe(0);
+    expect(
+      existsSync(join(generatedTarget, "tooling/workflow/package.json")),
+    ).toBe(false);
     const installed = spawnSync(
       "pnpm",
       ["install", "--offline", "--frozen-lockfile", "--ignore-scripts"],

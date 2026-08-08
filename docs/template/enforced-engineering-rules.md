@@ -80,6 +80,12 @@ full-batch/frozen-delivery check, not the default proof for every small task.
 
 - Derive tenant, actor, subject, and scope from authenticated server-side
   identity; never trust caller-supplied tenant identity.
+- Treat workspace guards and cross-workspace authorization coverage as required
+  whenever a surface reads or writes tenant-scoped data.
+- Keep invalid test fixtures honest: do not use type escapes or casts to make an
+  impossible production value appear valid.
+- Keep prompt and model-policy boundaries explicit; a model may propose work,
+  but it does not receive ambient authority to change deployment or data policy.
 - Keep provider SDKs in adapters, runtime configuration in typed boundaries, and
   product logs behind redacted observability seams.
 - Keep public Confect boundaries typed; expected failures are typed values, not

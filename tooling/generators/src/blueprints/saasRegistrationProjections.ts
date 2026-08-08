@@ -807,12 +807,6 @@ const customerLockfile = (
   );
   value = removeLockfileImporterDependency(
     value,
-    "apps/cli",
-    "apps/voice-relay",
-    '      "@maestro-template/stack-tooling":\n        specifier: workspace:*\n        version: link:../../tooling/stack\n',
-  );
-  value = removeLockfileImporterDependency(
-    value,
     "tooling/generators",
     "tooling/pr-backlog",
     '      "@maestro-template/release-tooling":\n        specifier: workspace:*\n        version: link:../release\n',
