@@ -184,6 +184,29 @@ describe("contracts runtime", () => {
     await controller.stop();
   });
 
+  it("settles startup by its deadline when acquired-resource cleanup hangs", async () => {
+    const test = harness({
+      deferCleanup: true,
+      exitBeforeReady: true,
+      startupTimeoutMs: 10,
+    });
+    const controller = createContractsRuntimeController(test.dependencies);
+
+    const result = await Promise.race([
+      controller.start().catch((error: unknown) => error),
+      new Promise<"still-pending">((resolve) => {
+        setTimeout(() => resolve("still-pending"), 100);
+      }),
+    ]);
+
+    expect(result).toBeInstanceOf(Error);
+    expect(String(result)).toContain("startup timed out");
+    expect(test.terminate).toHaveBeenCalledOnce();
+    expect(test.closeBrowser).toHaveBeenCalledOnce();
+    test.releaseCleanup();
+    await controller.stop();
+  });
+
   it("memoizes cleanup while failed startup and stop overlap", async () => {
     const test = harness({ deferCleanup: true, exitBeforeReady: true });
     const controller = createContractsRuntimeController(test.dependencies);

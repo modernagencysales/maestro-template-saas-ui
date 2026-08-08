@@ -141,10 +141,17 @@ const withTimeout = async <Value>(
   operation: Promise<Value>,
   milliseconds: number,
   message: () => string,
+  onTimeout?: () => void,
 ): Promise<Value> => {
   let timer: NodeJS.Timeout | undefined;
   const deadline = new Promise<never>((_, reject) => {
-    timer = setTimeout(() => reject(new Error(message())), milliseconds);
+    timer = setTimeout(() => {
+      try {
+        onTimeout?.();
+      } finally {
+        reject(new Error(message()));
+      }
+    }, milliseconds);
     timer.unref();
   });
   try {
@@ -204,13 +211,9 @@ export function createContractsRuntimeController(
     if (starting !== undefined) return starting;
     const owned = createRuntimeResources();
     resources = owned;
-    const attempt = (async () => {
+    const startup = (async () => {
       try {
-        const runtime = await withTimeout(
-          bootContractsRuntime(dependencies, owned),
-          dependencies.startupTimeoutMs ?? CONTRACTS_RUNTIME_STARTUP_TIMEOUT_MS,
-          () => "Contracts runtime startup timed out.",
-        );
+        const runtime = await bootContractsRuntime(dependencies, owned);
         if (owned.stopping) throw new Error("Contracts runtime was stopped.");
         active = runtime;
         return runtime;
@@ -228,6 +231,16 @@ export function createContractsRuntimeController(
         throw new Error(`${String(error)}${cleanupContext}`);
       }
     })();
+    const attempt = withTimeout(
+      startup,
+      dependencies.startupTimeoutMs ?? CONTRACTS_RUNTIME_STARTUP_TIMEOUT_MS,
+      () => "Contracts runtime startup timed out.",
+      () => {
+        owned.stopping = true;
+        owned.cancel();
+        void cleanupResources(owned).catch(() => undefined);
+      },
+    );
     starting = attempt;
     void attempt.then(
       () => {
