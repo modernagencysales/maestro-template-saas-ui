@@ -845,6 +845,13 @@ describe("create root integration", () => {
     expect(
       readFileSync(join(targetRoot, "features/records.feature"), "utf8"),
     ).not.toContain("@required");
+    for (const path of [
+      "features/step_definitions/records.journeys.ts",
+      "features/support/contracts-scenario.ts",
+      "features/support/contracts-runtime.ts",
+      "features/support/contracts-world.ts",
+    ])
+      expect(existsSync(join(targetRoot, path)), path).toBe(true);
     for (const args of [
       ["install", "--offline", "--frozen-lockfile", "--ignore-scripts"],
       ["confect:codegen"],
@@ -856,7 +863,6 @@ describe("create root integration", () => {
       });
       expect(result.status, `${result.stdout}\n${result.stderr}`).toBe(0);
     }
-
     execFileSync("git", ["init", "--quiet"], { cwd: targetRoot });
     execFileSync("git", ["add", "."], { cwd: targetRoot });
     execFileSync(
