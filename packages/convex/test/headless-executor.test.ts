@@ -1,9 +1,32 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { confectManifest } from "@maestro-template/template-core/generated/confectManifest";
 import {
   executeHeadlessOperation,
   findHeadlessOperation,
   type HeadlessExecutionAdapter,
+  type HeadlessSurface,
 } from "../confect/manifest/executor";
+
+const externalSurfaces = ["api", "cli", "mcp"] as const;
+
+const guardedWrites = confectManifest.functions.filter(
+  (operation) =>
+    operation.idempotent === false &&
+    (operation.kind === "mutation" || operation.kind === "action") &&
+    operation.surfaces.some((surface) =>
+      externalSurfaces.includes(surface as HeadlessSurface),
+    ),
+);
+
+const firstExternalSurface = (operation: (typeof guardedWrites)[number]) => {
+  const surface = operation.surfaces.find((candidate) =>
+    externalSurfaces.includes(candidate as HeadlessSurface),
+  );
+  if (surface === undefined) {
+    throw new Error(`${operation.operationId} has no external surface.`);
+  }
+  return surface as HeadlessSurface;
+};
 
 const createAdapter = (
   overrides: Partial<HeadlessExecutionAdapter> = {},
@@ -60,6 +83,31 @@ describe("headless executor", () => {
       },
     });
   });
+
+  it.each(guardedWrites)(
+    "rejects missing idempotency for $operationId",
+    async (operation) => {
+      const dispatched = vi.fn(async () => ({ id: "unexpected" }));
+      const result = await executeHeadlessOperation(
+        createAdapter({
+          refs: { [operation.operationId]: `${operation.operationId}.ref` },
+          runMutation: dispatched,
+          runAction: dispatched,
+        }),
+        {
+          operationId: operation.operationId,
+          surface: firstExternalSurface(operation),
+          input: {},
+        },
+      );
+
+      expect(dispatched).not.toHaveBeenCalled();
+      expect(result).toMatchObject({
+        ok: false,
+        error: { _tag: "ValidationFailed" },
+      });
+    },
+  );
 
   it("rejects padded and non-URL-safe idempotency keys before dispatch", async () => {
     const adapter = createAdapter({

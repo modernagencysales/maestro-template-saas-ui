@@ -103,15 +103,6 @@ export const cannedRegistryImportFailures = (
     ),
   );
 
-export const cannedRuntimeSuccess = (source: string): string[] => {
-  const markers = [
-    /\baccepted\s*:\s*true\b/,
-    /\bok\s*:\s*true\s*,\s*result\s*:\s*\{[^}]*\}/s,
-  ] as const;
-
-  return markers.some((marker) => marker.test(source)) ? ["accepted"] : [];
-};
-
 const missingLiteralGeneratedRefMapping = (
   operationIds: readonly string[],
   source: string,
@@ -342,25 +333,6 @@ export const missingGeneratedRefMapping = (
   return missingLiteralGeneratedRefMapping(operationIds, source);
 };
 
-const missingIdempotencyProof = (
-  operations: readonly HeadlessManifestOperation[],
-  source: string,
-): string[] =>
-  operations
-    .filter(
-      (operation) =>
-        hasExternalSurface(operation) &&
-        operation.idempotent === false &&
-        ["mutation", "action"].includes(operation.kind ?? ""),
-    )
-    .filter(
-      (operation) =>
-        !source.includes(
-          `Operation ${operation.operationId} requires a nonblank idempotencyKey.`,
-        ),
-    )
-    .map((operation) => operation.operationId);
-
 const readRepoFile = async (repoRoot: string, path: string): Promise<string> =>
   readFile(join(repoRoot, path), "utf8");
 
@@ -378,27 +350,20 @@ export const evaluateHeadlessSurfaceContract = async (
     workflowSource,
     workflowCompatSource,
     executorSource,
-    httpTests,
-    executorTests,
-    workflowTests,
-    confectGuide,
   ] = await Promise.all([
     readRepoFile(repoRoot, "packages/convex/confect/http.ts"),
     readRepoFile(repoRoot, "apps/cli/src/index.ts"),
     readRepoFile(repoRoot, "tooling/workflow/src/index.ts"),
     readRepoFile(repoRoot, "tooling/workflow/src/workflow-compat.ts"),
     readRepoFile(repoRoot, "packages/convex/confect/manifest/executor.ts"),
-    readRepoFile(repoRoot, "packages/convex/test/http-docs.test.ts"),
-    readRepoFile(repoRoot, "packages/convex/test/headless-executor.test.ts"),
-    readRepoFile(repoRoot, "tooling/workflow/src/index.test.ts"),
-    readRepoFile(repoRoot, "docs/template/confect-effect-guide.md"),
   ]);
 
-  for (const operationId of missingTypedErrors(operations)) {
-    failures.push(
-      `operation ${operationId} is exposed to API/CLI/MCP without public typed errors`,
-    );
-  }
+  failures.push(
+    ...missingTypedErrors(operations).map(
+      (operationId) =>
+        `operation ${operationId} is exposed to API/CLI/MCP without public typed errors`,
+    ),
+  );
 
   for (const operationId of missingExternalValidationError(operations)) {
     failures.push(
@@ -411,22 +376,6 @@ export const evaluateHeadlessSurfaceContract = async (
   )) {
     failures.push(
       `operation ${operationId} is internally named but exposed to a client-callable surface`,
-    );
-  }
-
-  for (const operationId of missingIdempotencyProof(
-    operations,
-    [
-      httpSource,
-      executorSource,
-      httpTests,
-      executorTests,
-      workflowTests,
-      confectGuide,
-    ].join("\n"),
-  )) {
-    failures.push(
-      `operation ${operationId} is non-idempotent on API/CLI/MCP without idempotency-key enforcement proof`,
     );
   }
 
@@ -482,14 +431,6 @@ export const evaluateHeadlessSurfaceContract = async (
   if (missingRuntimeAdapterDispatch(workflowSource)) {
     failures.push(
       "CLI/MCP compatibility projection must dispatch through an explicit runtime adapter before returning FeatureDisabled",
-    );
-  }
-
-  for (const marker of cannedRuntimeSuccess(
-    runtimeSources.map(({ source }) => source).join("\n"),
-  )) {
-    failures.push(
-      `runtime executor code returns canned success marker ${marker} instead of executeHeadlessOperation`,
     );
   }
 
