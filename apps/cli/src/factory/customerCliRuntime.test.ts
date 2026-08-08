@@ -203,7 +203,6 @@ describe("materialized customer CLI runtime closure", () => {
       "Inspect local support facts",
       "--demo-only",
       "--write",
-      "--privacy-reviewed",
       "--json",
     ]);
     expect(created.exitCode, `${created.stdout}\n${created.stderr}`).toBe(0);
@@ -277,7 +276,6 @@ describe("materialized customer CLI runtime closure", () => {
     expect(preview.status, preview.stderr).toBe(0);
     const previewResult = JSON.parse(preview.stdout) as {
       readonly data: {
-        readonly previewFingerprint: string;
         readonly bundle: { readonly versions: { readonly agentPack: string } };
       };
     };
@@ -286,16 +284,7 @@ describe("materialized customer CLI runtime closure", () => {
 
     const exported = spawnSync(
       "pnpm",
-      [
-        "--silent",
-        "maestro",
-        "--",
-        "support-bundle",
-        "--write",
-        "--preview-fingerprint",
-        previewResult.data.previewFingerprint,
-        "--json",
-      ],
+      ["--silent", "maestro", "--", "support-bundle", "--write", "--json"],
       { cwd: target, encoding: "utf8", timeout: 30_000 },
     );
     expect(exported.status, exported.stderr).toBe(0);
@@ -325,7 +314,6 @@ describe("materialized customer CLI runtime closure", () => {
       "Track one governed record",
       "--demo-only",
       "--write",
-      "--privacy-reviewed",
       "--json",
     ]);
     expect(created.exitCode, `${created.stdout}\n${created.stderr}`).toBe(0);
@@ -391,7 +379,6 @@ describe("materialized customer CLI runtime closure", () => {
       "Review a generic private package",
       "--demo-only",
       "--write",
-      "--privacy-reviewed",
       "--json",
     ]);
     expect(created.exitCode, `${created.stdout}\n${created.stderr}`).toBe(0);
@@ -573,7 +560,6 @@ describe("materialized customer CLI runtime closure", () => {
       "Track one customer request",
       "--demo-only",
       "--write",
-      "--privacy-reviewed",
       "--json",
     ]);
     expect(created.exitCode, `${created.stdout}\n${created.stderr}`).toBe(0);
@@ -894,7 +880,7 @@ describe("materialized customer CLI runtime closure", () => {
     expect(JSON.parse(addPreview.stdout)).toMatchObject({
       exitClass: "success",
       data: {
-        confirmationCommand: expect.stringContaining("--privacy-reviewed"),
+        confirmationCommand: expect.stringContaining("--write"),
       },
     });
     const claudeSettings = join(target, ".claude/settings.json");
