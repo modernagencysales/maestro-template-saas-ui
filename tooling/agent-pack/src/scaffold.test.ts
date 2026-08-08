@@ -84,6 +84,21 @@ describe("scaffold command", () => {
     );
   });
 
+  it("does not discover reviewed ADRs without workflow rules", async () => {
+    const reviewedAdrRefs = vi.fn(() => new Set<string>());
+    await executeAgentPackCommand(
+      createScaffoldCommand(
+        dependencies({
+          workflow: { semantics: [], reviewedAdrRefs },
+        }),
+      ),
+      { generatorId: "add-capability", args },
+      context,
+    );
+
+    expect(reviewedAdrRefs).not.toHaveBeenCalled();
+  });
+
   it("writes despite unrelated worktree changes", async () => {
     const events: string[] = [];
     const run = vi.fn(async (request) => {
