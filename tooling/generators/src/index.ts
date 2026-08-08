@@ -2748,7 +2748,6 @@ const valueFlags = new Set([
   "--to",
   "--version",
   "--fixture",
-  "--preflight-fingerprint",
 ]);
 const booleanFlags = new Set([
   "--append-only",
@@ -2789,7 +2788,6 @@ const parseArgs = (
   readonly to: string | undefined;
   readonly version: string | undefined;
   readonly fixture: string | undefined;
-  readonly preflightFingerprint: string | undefined;
   readonly mode: ProviderMode;
   readonly exposure: "web" | "workflow" | "headless";
   readonly description: string | undefined;
@@ -2830,7 +2828,6 @@ const parseArgs = (
   const toIndex = argv.indexOf("--to");
   const versionIndex = argv.indexOf("--version");
   const fixtureIndex = argv.indexOf("--fixture");
-  const preflightFingerprintIndex = argv.indexOf("--preflight-fingerprint");
   const mode = modeIndex >= 0 ? argv[modeIndex + 1] : undefined;
   const blueprint =
     blueprintIndex >= 0 ? argv[blueprintIndex + 1] : defaultBlueprintId;
@@ -2922,10 +2919,6 @@ const parseArgs = (
     to: toIndex >= 0 ? argv[toIndex + 1] : undefined,
     version: versionIndex >= 0 ? argv[versionIndex + 1] : undefined,
     fixture: fixtureIndex >= 0 ? argv[fixtureIndex + 1] : undefined,
-    preflightFingerprint:
-      preflightFingerprintIndex >= 0
-        ? argv[preflightFingerprintIndex + 1]
-        : undefined,
     mode: (mode ?? "fake") as ProviderMode,
     exposure: exposure as "web" | "workflow" | "headless",
     description: descriptionIndex >= 0 ? argv[descriptionIndex + 1] : undefined,
@@ -3034,7 +3027,7 @@ export const runGeneratorCli = (
             "template:promote-workflow --name <name> --system <canonical-id> --disposition reuse|extend [--description <text>] [--write]",
             "template:upgrade --from <client-version> --to <template-version> --path <reviewed-input.json>",
             "template:private-package:dry-run --fixture <path> --system <canonical-id> --disposition reuse|extend",
-            "template:private-package:import --fixture <path> --system <canonical-id> --disposition reuse|extend --write --preflight-fingerprint <private_package_sha256:...>",
+            "template:private-package:import --fixture <path> --system <canonical-id> --disposition reuse|extend --write",
           ].join("\n") + "\n",
         stderr: "",
       };
@@ -3603,9 +3596,6 @@ export const runGeneratorCli = (
         ...requireOwnership(),
         mode: args.command === "private-package:import" ? "import" : "dry-run",
         write: args.write,
-        ...(args.preflightFingerprint === undefined
-          ? {}
-          : { preflightFingerprint: args.preflightFingerprint }),
       });
 
       return {

@@ -2228,7 +2228,7 @@ describe("template app factory generators", () => {
     }
   });
 
-  it("imports the exact reviewed private package plan through the root CLI", () => {
+  it("imports a recomputed private package plan through the root CLI", () => {
     const cwd = mkdtempSync(join(tmpdir(), "maestro-template-private-import-"));
     const fixture = join(cwd, "fixtures/generic-ai-ops");
 
@@ -2253,22 +2253,6 @@ describe("template app factory generators", () => {
           "knowledge-brain",
           "--disposition",
           "extend",
-        ],
-        cwd,
-      );
-      const preview = JSON.parse(dryRun.stdout) as {
-        readonly previewFingerprint: string;
-      };
-      const unconfirmed = runGeneratorCli(
-        [
-          "private-package:import",
-          "--fixture",
-          "fixtures/generic-ai-ops",
-          "--system",
-          "knowledge-brain",
-          "--disposition",
-          "extend",
-          "--write",
         ],
         cwd,
       );
@@ -2300,12 +2284,11 @@ describe("template app factory generators", () => {
           readsSecrets: false,
           productionRegistrations: false,
         },
-        previewFingerprint: expect.stringMatching(
-          /^private_package_sha256:[0-9a-f]{64}$/,
-        ),
       });
-      expect(unconfirmed.exitCode).toBe(1);
-      expect(unconfirmed.stderr).toContain("fingerprint mismatch");
+      expect(JSON.parse(dryRun.stdout)).toMatchObject({
+        confirmationCommand:
+          'pnpm template:private-package:import -- --fixture "fixtures/generic-ai-ops" --system "knowledge-brain" --disposition extend --write',
+      });
       expect(existsSync(planPath)).toBe(false);
       const imported = runGeneratorCli(
         [
@@ -2317,8 +2300,6 @@ describe("template app factory generators", () => {
           "--disposition",
           "extend",
           "--write",
-          "--preflight-fingerprint",
-          preview.previewFingerprint,
         ],
         cwd,
       );

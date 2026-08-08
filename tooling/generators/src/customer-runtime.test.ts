@@ -32,6 +32,41 @@ const seedCatalogs = (cwd: string): void => {
 };
 
 describe("customer generator runtime", () => {
+  it("rejects legacy private-package acknowledgement flags", () => {
+    const cwd = mkdtempSync(join(tmpdir(), "maestro-customer-private-"));
+    const fixture = join(cwd, "examples/generic-ai-ops");
+    try {
+      mkdirSync(fixture, { recursive: true });
+      writeFileSync(
+        join(fixture, "template-package.json"),
+        `${JSON.stringify({ name: "generic-ai-ops" })}\n`,
+      );
+      for (const legacyFlag of [
+        ["--preflight-fingerprint", "legacy"],
+        ["--privacy-reviewed"],
+      ]) {
+        const result = runCustomerGeneratorCli(
+          [
+            "private-package:import",
+            "--fixture",
+            "examples/generic-ai-ops",
+            "--system",
+            "knowledge-brain",
+            "--disposition",
+            "extend",
+            "--write",
+            ...legacyFlag,
+          ],
+          cwd,
+        );
+        expect(result.exitCode).toBe(1);
+        expect(result.stderr).toContain(`does not accept ${legacyFlag[0]}`);
+      }
+    } finally {
+      rmSync(cwd, { recursive: true, force: true });
+    }
+  });
+
   it("doctors the canonical versioned instance emitted by public create", () => {
     const cwd = mkdtempSync(join(tmpdir(), "maestro-customer-doctor-"));
     const instancePath = join(cwd, "template-instance.json");

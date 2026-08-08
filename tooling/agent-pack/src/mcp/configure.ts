@@ -224,7 +224,8 @@ function decodeConfigureArgs(
     typeof remove !== "boolean" ||
     typeof privacyReviewed !== "boolean" ||
     (write && remove) ||
-    (remove && input.profile !== undefined) ||
+    (remove &&
+      ("profile" in input || "write" in input || "privacyReviewed" in input)) ||
     (write && !privacyReviewed) ||
     (!write && privacyReviewed)
   ) {

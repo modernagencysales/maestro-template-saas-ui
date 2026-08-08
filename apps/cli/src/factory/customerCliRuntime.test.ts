@@ -461,7 +461,6 @@ describe("materialized customer CLI runtime closure", () => {
         readonly readsSecrets: boolean;
         readonly productionRegistrations: boolean;
       };
-      readonly previewFingerprint: string;
       readonly confirmationCommand: string;
     };
     expect(preview).toMatchObject({
@@ -472,11 +471,10 @@ describe("materialized customer CLI runtime closure", () => {
         readsSecrets: false,
         productionRegistrations: false,
       },
-      previewFingerprint: expect.stringMatching(
-        /^private_package_sha256:[0-9a-f]{64}$/,
-      ),
     });
-    expect(preview.confirmationCommand).toContain(preview.previewFingerprint);
+    expect(preview.confirmationCommand).toBe(
+      'pnpm template:private-package:import -- --fixture "examples/generic-ai-ops" --system "knowledge-brain" --disposition extend --write',
+    );
     expect(JSON.stringify(preview)).not.toContain("workspace_demo");
     for (const file of preview.files)
       expect(existsSync(join(target, file.path))).toBe(false);
@@ -487,20 +485,9 @@ describe("materialized customer CLI runtime closure", () => {
       }),
     ).toBe("");
 
-    const unconfirmed = command("template:private-package:import", [
-      ...args,
-      "--write",
-    ]);
-    expect(unconfirmed.status).not.toBe(0);
-    expect(unconfirmed.stderr).toContain("fingerprint mismatch");
-    for (const file of preview.files)
-      expect(existsSync(join(target, file.path))).toBe(false);
-
     const imported = command("template:private-package:import", [
       ...args,
       "--write",
-      "--preflight-fingerprint",
-      preview.previewFingerprint,
     ]);
     expect(imported.status, imported.stderr).toBe(0);
     for (const file of preview.files)
@@ -516,7 +503,6 @@ describe("materialized customer CLI runtime closure", () => {
     expect(collisionPreview.status, collisionPreview.stderr).toBe(0);
     const collisionPlan = JSON.parse(collisionPreview.stdout) as {
       readonly collisions: readonly string[];
-      readonly previewFingerprint: string;
     };
     expect(collisionPlan.collisions).toEqual(
       preview.files.map(({ path }) => path),
@@ -528,8 +514,6 @@ describe("materialized customer CLI runtime closure", () => {
     const collisionImport = command("template:private-package:import", [
       ...args,
       "--write",
-      "--preflight-fingerprint",
-      collisionPlan.previewFingerprint,
     ]);
     expect(collisionImport.status).not.toBe(0);
     expect(collisionImport.stderr).toContain("Refusing to overwrite");

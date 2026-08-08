@@ -116,7 +116,7 @@ const customerCommandHelp = {
   "private-package:dry-run":
     "template:private-package:dry-run --fixture <path> --system <canonical-id> --disposition reuse|extend",
   "private-package:import":
-    "template:private-package:import --fixture <path> --system <canonical-id> --disposition reuse|extend --write --preflight-fingerprint <private_package_sha256:...>",
+    "template:private-package:import --fixture <path> --system <canonical-id> --disposition reuse|extend --write",
   doctor:
     "template:doctor [--mode fake|test|live] [--path <template-instance.json>]",
   systems:
@@ -199,13 +199,17 @@ export const runCustomerGeneratorCli = (
       command === "private-package:dry-run" ||
       command === "private-package:import"
     ) {
+      const rejectedFlag = [
+        "--preflight-fingerprint",
+        "--privacy-reviewed",
+      ].find((flag) => cliArgv.includes(flag));
+      if (rejectedFlag)
+        throw new Error(
+          `Private-package import does not accept ${rejectedFlag}`,
+        );
       const fixture = valueAfter(cliArgv, "--fixture");
       if (!fixture)
         throw new Error(`Missing required --fixture for ${command}`);
-      const preflightFingerprint = valueAfter(
-        cliArgv,
-        "--preflight-fingerprint",
-      );
       return json(
         executePrivatePackagePlan({
           fixturePath: resolve(cwd, fixture),
@@ -214,9 +218,6 @@ export const runCustomerGeneratorCli = (
           ...ownership(cliArgv),
           mode: command === "private-package:import" ? "import" : "dry-run",
           write,
-          ...(preflightFingerprint === undefined
-            ? {}
-            : { preflightFingerprint }),
         }),
       );
     }
