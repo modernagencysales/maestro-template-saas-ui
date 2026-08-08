@@ -125,7 +125,10 @@ export type RecipeCommandDependencies = {
     >;
   };
   readonly preflight?: {
-    readonly inspect: (repo: RepositoryContext) => Promise<{
+    readonly inspect: (
+      repo: RepositoryContext,
+      plan: RecipeExecutionPlan,
+    ) => Promise<{
       readonly fingerprint: string;
       readonly blockingCodes: readonly string[];
     }>;
@@ -237,8 +240,8 @@ export function createAddRecipeCommand(
           addRerun(input, false),
           baseData,
         );
-      const preflight = await dependencies.preflight.inspect(context.repo);
       const plan = planResult.plan;
+      const preflight = await dependencies.preflight.inspect(context.repo, plan);
       const planData = {
         ...baseData,
         plan,
@@ -265,12 +268,11 @@ export function createAddRecipeCommand(
           diagnostics: [],
           data,
         };
-      const preflightBlocker = preflight.blockingCodes[0];
-      if (preflightBlocker !== undefined)
+      if (preflight.blockingCodes.length > 0)
         return blocked(
           mutationPosture,
-          preflightBlocker,
-          `Recipe write remains blocked by preflight denial ${preflightBlocker}.`,
+          preflight.blockingCodes,
+          `Recipe write remains blocked by preflight denials ${preflight.blockingCodes.join(", ")}.`,
           "Resolve the reported preflight denial, then rerun the direct recipe write.",
           addRerun(input, false),
           data,
@@ -575,12 +577,13 @@ function decodeRecipesInput(
 
 function blocked(
   mutationPosture: "preview" | "write",
-  code: string,
+  code: string | readonly string[],
   message: string,
   nextAction: string,
   rerun: string,
   data: AgentPackJsonValue,
 ) {
+  const codes = typeof code === "string" ? [code] : code;
   return {
     mutationPosture,
     exitClass:
@@ -591,16 +594,14 @@ function blocked(
       mutationPosture === "write"
         ? "Recipe write was blocked."
         : "Recipe preview found blocking findings.",
-    diagnostics: [
-      {
-        code,
+    diagnostics: codes.map((blockingCode) => ({
+        code: blockingCode,
         severity: "error" as const,
         message,
         safeToContinue: mutationPosture === "preview",
         nextAction,
         rerun,
-      },
-    ],
+      })),
     data,
   };
 }

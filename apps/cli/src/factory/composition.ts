@@ -77,6 +77,7 @@ import { createMcpConfigureCliAdapter } from "./mcpConfigure";
 import { createPreflightCliHandler } from "./preflight";
 import { loadRecipeCatalogProjection } from "./recipeCatalog";
 import { createRecipeCliHandlers } from "./recipes";
+import { recipePreflightBlockingCodes } from "./customerRecipes";
 import { createScaffoldCliHandler } from "./scaffold";
 import { createSupportBundleCliHandler } from "./supportBundle";
 import {
@@ -310,6 +311,7 @@ export function createFactoryCliComposition(
   };
   const inspectRecipePreflight = async (
     repo: AgentPackExecutionContext["repo"],
+    plan: import("@maestro-template/agent-pack").RecipeExecutionPlan,
   ) => {
     const result = await inspectPreflightResult(repo);
     if (result.data === null)
@@ -319,9 +321,13 @@ export function createFactoryCliComposition(
       };
     return {
       fingerprint: result.data.fingerprint,
-      blockingCodes: result.diagnostics
-        .map(({ code }) => code)
-        .filter(isMutationBlockingPreflightCode),
+      blockingCodes: recipePreflightBlockingCodes(
+        result.diagnostics
+          .map(({ code }) => code)
+          .filter(isMutationBlockingPreflightCode),
+        result.data.facts.repository.collisions,
+        plan,
+      ),
     };
   };
   const scaffold = createScaffoldCommand({
