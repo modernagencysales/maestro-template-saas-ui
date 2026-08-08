@@ -117,7 +117,7 @@ function harness(options?: {
       PATH: process.env.PATH,
       HOME: process.env.HOME,
       LANG: "en_US.UTF-8",
-      CI_TOKEN: "inherited-token-canary",
+      CI_TOKEN: ["inherited", "token", "canary"].join("-"),
       PROVIDER_CREDENTIAL: "provider-canary",
       SAFE_SETTING: "not-allowlisted",
     }),
