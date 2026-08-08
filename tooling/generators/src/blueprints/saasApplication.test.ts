@@ -1485,6 +1485,9 @@ Feature: Reconcile disputed invoices
     delete expectedWebManifest.dependencies[
       "@maestro-template/app-idea-evaluator"
     ];
+    delete expectedWebManifest.dependencies[
+      "@maestro-template/workflow-tooling"
+    ];
     expect(webManifest?.content).toBe(
       `${JSON.stringify(expectedWebManifest, null, 2)}\n`,
     );
