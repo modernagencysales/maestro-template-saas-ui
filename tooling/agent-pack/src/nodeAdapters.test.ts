@@ -187,12 +187,13 @@ describe("Node Agent Pack adapters", () => {
         stderr: "",
       };
     });
+    let currentNodeVersion = "v22.23.2";
     const runtime = createNodePreflightRuntimeReader({
       fs,
       execFile: execute,
       platform: () => "linux",
       architecture: () => "x64",
-      nodeVersion: () => "v22.20.0",
+      nodeVersion: () => currentNodeVersion,
       environment: () => ({
         CONVEX_DEPLOYMENT: "secret-deployment-value",
         EMPTY_VALUE: "",
@@ -220,7 +221,6 @@ describe("Node Agent Pack adapters", () => {
       ],
       policy: {
         supportedPlatforms: ["linux", "darwin", "win32"],
-        supportedNodeMajors: [22],
         supportedPnpmVersions: ["9.15.4"],
         minimumGitVersion: "2.31.0",
         minimumDiskBytes: 1_000_000,
@@ -236,7 +236,11 @@ describe("Node Agent Pack adapters", () => {
         os: "linux",
         architecture: "x64",
         osSupported: true,
-        node: { current: "22.20.0", required: "major 22", supported: true },
+        node: {
+          current: "22.23.2",
+          required: "^22.23.2 || ^24.0.0 || >=26.0.0",
+          supported: true,
+        },
         pnpm: { current: "10.12.1", required: "10.12.1", supported: true },
         corepack: "ready",
         git: { current: "2.50.0", supported: true, worktree: true },
@@ -293,6 +297,23 @@ describe("Node Agent Pack adapters", () => {
       expect.arrayContaining([expect.stringContaining("secret")]),
       expect.anything(),
     );
+
+    for (const [version, supported] of [
+      ["v22.23.1", false],
+      ["v22.23.2", true],
+      ["v24.0.0", true],
+      ["v25.0.0", false],
+      ["v26.0.0", true],
+      ["v27.1.0", true],
+    ] as const) {
+      currentNodeVersion = version;
+      await expect(
+        runtime.inspect({ mode: "fake" }, repo),
+      ).resolves.toMatchObject({
+        host: { node: { current: version.slice(1), supported } },
+      });
+    }
+    currentNodeVersion = "v22.23.2";
 
     files.set(
       "/repo/.agents/skills/maestro/SKILL.md",
@@ -387,7 +408,6 @@ describe("Node Agent Pack adapters", () => {
       environment: () => ({}),
       policy: {
         supportedPlatforms: [process.platform],
-        supportedNodeMajors: [Number(process.versions.node.split(".")[0])],
         minimumGitVersion: "2.31.0",
         minimumDiskBytes: 0,
         requiredPorts: [],
@@ -516,7 +536,6 @@ describe("Node Agent Pack adapters", () => {
       environment: () => ({}),
       policy: {
         supportedPlatforms: [process.platform],
-        supportedNodeMajors: [Number(process.versions.node.split(".")[0])],
         minimumGitVersion: "2.31.0",
         minimumDiskBytes: 0,
         requiredPorts: [],

@@ -196,7 +196,6 @@ describe("factory CLI composition", () => {
     );
     expect(FACTORY_EXECUTION_POLICY).toMatchObject({
       supportedPlatforms: ["linux", "darwin", "win32"],
-      supportedNodeMajors: [22],
       requiredPorts: [],
       packageJsonMaxBytes: 256 * 1024,
     });
