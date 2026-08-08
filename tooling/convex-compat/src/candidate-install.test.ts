@@ -74,10 +74,10 @@ it("preserves pnpm child failure diagnostics", () => {
   );
 });
 
-it("approves the isolated Vitest esbuild dependency", () => {
-  expect(compatibilityPackage(compatibilitySets[0])).toMatchObject({
-    pnpm: { onlyBuiltDependencies: ["esbuild"] },
-  });
+it("approves isolated Vitest builds through pnpm 11 workspace settings", () => {
+  expect(compatibilityWorkspace()).toBe(
+    "packages: []\nonlyBuiltDependencies:\n  - esbuild\n",
+  );
 });
 
 const runPnpm = (root: string, ...args: readonly string[]): string =>
@@ -114,10 +114,10 @@ const compatibilityPackage = (set: CompatibilitySet) => ({
   devDependencies: {
     vitest: "3.2.6",
   },
-  pnpm: {
-    onlyBuiltDependencies: ["esbuild"],
-  },
 });
+
+const compatibilityWorkspace = (): string =>
+  "packages: []\nonlyBuiltDependencies:\n  - esbuild\n";
 
 describe("isolated Workpool compatibility behavior", () => {
   beforeAll(async () => {
@@ -130,18 +130,12 @@ describe("isolated Workpool compatibility behavior", () => {
         join(root, "package.json"),
         JSON.stringify(compatibilityPackage(set)),
       );
-      await runPnpmAsync(
-        root,
-        "install",
-        "--ignore-workspace",
-        "--lockfile-only",
+      writeFileSync(
+        join(root, "pnpm-workspace.yaml"),
+        compatibilityWorkspace(),
       );
-      await runPnpmAsync(
-        root,
-        "install",
-        "--ignore-workspace",
-        "--frozen-lockfile",
-      );
+      await runPnpmAsync(root, "install", "--lockfile-only");
+      await runPnpmAsync(root, "install", "--frozen-lockfile");
 
       cpSync(
         join(root, "node_modules/@convex-dev/workpool/src"),
