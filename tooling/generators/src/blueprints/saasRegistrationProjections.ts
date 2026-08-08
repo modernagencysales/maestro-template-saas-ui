@@ -703,21 +703,34 @@ const removeLockfileImporterDependencyByName = (
   importerPath: string,
   dependency: string,
 ): string => {
-  const importerStart = value.indexOf(`  ${importerPath}:`);
+  const importerMarker = `  ${importerPath}:`;
+  const importerStart = value.indexOf(importerMarker);
+  const importerBodyStart = importerStart + importerMarker.length;
+  const nextImporter = /^ {2}\S.*$/gmu.exec(value.slice(importerBodyStart));
+  const packages = value.indexOf("\npackages:", importerStart);
+  const importerEnd =
+    nextImporter === null ? packages : importerBodyStart + nextImporter.index;
   const dependencyStart = value.indexOf(
     `      "${dependency}":`,
     importerStart,
   );
-  if (importerStart < 0 || dependencyStart < importerStart)
+  if (
+    importerStart < 0 ||
+    importerEnd <= importerStart ||
+    dependencyStart < importerStart ||
+    dependencyStart >= importerEnd
+  )
     throw new Error(
       `Customer lockfile dependency is missing: ${importerPath} -> ${dependency}`,
     );
-  const nextDependency = value.indexOf('\n      "', dependencyStart + 1);
-  if (nextDependency < 0)
-    throw new Error(
-      `Customer lockfile dependency end is missing: ${importerPath} -> ${dependency}`,
-    );
-  return `${value.slice(0, dependencyStart)}${value.slice(nextDependency + 1)}`;
+  const nextDependency = /^ {6}\S.*$/gmu.exec(
+    value.slice(dependencyStart + 1, importerEnd),
+  );
+  const dependencyEnd =
+    nextDependency === null
+      ? importerEnd
+      : dependencyStart + 1 + nextDependency.index;
+  return `${value.slice(0, dependencyStart)}${value.slice(dependencyEnd)}`;
 };
 
 const customerLockfile = (
