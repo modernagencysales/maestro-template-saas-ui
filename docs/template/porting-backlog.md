@@ -778,7 +778,8 @@ Convex component wiring (M).
 135. **Voice relay WebSocket server** — MED — stub. `apps/voice-relay/src/*`
      (`server.ts`, `relaySession.ts`, `relayBridge.ts`, `wsAdapter.ts`,
      `transcriptionAvailability.ts`). Real self-contained voice seam. Template's
-     `apps/voice-relay` is a single placeholder.
+     empty placeholder was removed; this remains a future selectable pattern,
+     not a current implementation.
 136. **Browser voice / live-call capture** — MED — no.
      `apps/web/src/features/talk/{browser-talk-recorder,browser-content-call-*, live-transcript-panel,live-content-call-cockpit}.*`.
      Mic capture + live transcript cockpit that pairs with the relay server.
