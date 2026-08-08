@@ -127,13 +127,14 @@ boundary, and the difference between the concise, detailed, and JSON views.
 cd ../launch-tracker
 pnpm maestro -- recipes list
 pnpm maestro -- recipes show crud-business-entity
-pnpm template:systems -- --query records
+pnpm template:systems -- --query workspace
 ```
 
-The starter already contains the canonical `record-management` system, one
-workspace-owned `records` table, lifecycle metadata, and the `/records` route.
-System lookup is part of the method: reuse or extend an existing owner instead
-of introducing another subsystem with a different noun.
+The default starter is a neutral chassis with a draft `@wip` first-outcome
+contract. It deliberately contains no product entity, record-management
+system, `records` table, or `/records` route. System lookup is part of the
+method: identify the reviewed owner for the first real domain before adding a
+product slice.
 
 Useful inspection files are:
 
@@ -146,29 +147,25 @@ Useful inspection files are:
   posture.
 - `AGENTS.md` — rules for agents working in the generated app.
 
-## 4. Preview a second business entity
+## 4. Plan the first business entity
 
-This example adds a `Milestone` table and visible slice under the existing
-record-management authority:
+The default chassis does not provide a ready-made CRUD owner. Keep the first
+outcome as `@wip` until its product noun, tenancy, lifecycle, and canonical
+owner are reviewed. Then choose the matching recipe and use the system catalog
+to confirm that owner before supplying its exact name to the recipe.
 
 ```bash
-pnpm maestro -- add crud-business-entity \
-  --answer entityName=Milestone \
-  --answer canonicalOwner=record-management \
-  --answer tenantScope=workspace \
-  --answer sensitivity=internal \
-  --answer pii=none \
-  --answer exportMode=json \
-  --answer deleteMode=delete \
-  --answer retention=retain-until-workspace-delete \
-  --answer appendOnly=false
+pnpm maestro -- recipes show crud-business-entity
+pnpm template:systems -- --query "your-domain-noun"
 ```
 
-The default is a non-mutating preview. It prints an exact confirmation command
-containing the reviewed plan fingerprint and clean-preflight fingerprint. Copy
-that command unchanged to write. The write re-previews every generator, stages
-all files, refuses collisions or changed evidence, and retains a recovery
-journal and receipt under `.maestro/recipe-transactions/`.
+`records-example` remains an internal optional reference composition with its
+own record flow and `/records` route; it is not selected by the create CLI. The
+default recipe path is non-mutating until its reviewed preview prints an exact
+confirmation command. Copy that command unchanged to write. The write
+re-previews every generator, stages all files, refuses collisions or changed
+evidence, and retains a recovery journal and receipt under
+`.maestro/recipe-transactions/`.
 
 If you only want to understand the machine contract, add `--json`. If you want
 all diagnostics and context facts, add `--details`.
@@ -224,9 +221,10 @@ Use `--mode local` only for the reviewed local Convex stack and `--mode dev`
 only with an authenticated personal development deployment. See
 [Start Modes](./start-modes.md).
 
-The first app proof is simple: open `/records`, create a record, return to the
-list, and open its detail. Verify loading, empty, error, list, detail, and
-create states. The neutral `record` noun is meant to be renamed.
+The first app proof is that the neutral chassis starts cleanly in fake mode and
+continues to label its unimplemented first outcome as `@wip`. After a reviewed
+product slice is added, exercise that slice's promised loading, empty, error,
+read, edit, and mutation states before promoting its contract.
 
 ## The method in one page
 
