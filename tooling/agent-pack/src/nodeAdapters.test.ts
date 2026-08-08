@@ -105,10 +105,7 @@ describe("Node Agent Pack adapters", () => {
         JSON.stringify({ private: true }),
       ],
       ["/template/package.json", JSON.stringify({ private: true })],
-      [
-        "/repo/agent-pack/generated/codex/.agents/skills/maestro/SKILL.md",
-        "managed skill\n",
-      ],
+      ["/repo/agent-pack/skills/maestro/SKILL.md", "managed skill\n"],
       ["/repo/.agents/skills/maestro/SKILL.md", "managed skill\n"],
       ["/repo/template-instance.json", '{"name":"Fixture"}'],
     ]);
@@ -116,7 +113,7 @@ describe("Node Agent Pack adapters", () => {
       "/repo",
       "/template",
       "/repo/node_modules",
-      "/repo/agent-pack/generated/codex/.agents/skills/maestro",
+      "/repo/agent-pack/skills/maestro",
       "/repo/.agents/skills/maestro/SKILL.md",
       ...files.keys(),
     ]);
