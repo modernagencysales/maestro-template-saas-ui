@@ -25,6 +25,9 @@ export async function checkSkillProjections(
   const canonicalRoot = join(repoRoot, CANONICAL);
   const canonical = await fileHashes(canonicalRoot);
   const findings: string[] = [];
+  if (!canonical.has("SKILL.md")) {
+    findings.push(`missing:${CANONICAL}/SKILL.md`);
+  }
 
   for (const projection of PLUGIN_PROJECTIONS) {
     const projected = await fileHashes(join(repoRoot, projection));
