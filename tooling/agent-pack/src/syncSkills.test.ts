@@ -1,5 +1,6 @@
 import {
   cp,
+  mkdir,
   mkdtemp,
   readFile,
   readdir,
@@ -11,6 +12,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
+  checkAllSkillProjections,
   checkRootSkillProjections,
   checkSkillProjections,
   syncSkillProjections,
@@ -37,6 +39,25 @@ describe("canonical Maestro skill projections", () => {
 
     await expect(checkSkillProjections(fixtureRoot)).resolves.toContain(
       "drift:agent-pack/plugins/maestro/skills/maestro/SKILL.md",
+    );
+  });
+
+  it("checks the committed Codex projection through the script boundary", async () => {
+    const fixtureRoot = await mkdtemp(join(tmpdir(), "maestro-root-drift-"));
+    await cp(join(repoRoot, "agent-pack"), join(fixtureRoot, "agent-pack"), {
+      recursive: true,
+    });
+    await mkdir(join(fixtureRoot, ".agents/skills"), { recursive: true });
+    await cp(
+      join(fixtureRoot, "agent-pack/skills/maestro"),
+      join(fixtureRoot, ".agents/skills/maestro"),
+      { recursive: true },
+    );
+    const projection = join(fixtureRoot, ".agents/skills/maestro/SKILL.md");
+    await writeFile(projection, `${await readFile(projection, "utf8")}drift\n`);
+
+    await expect(checkAllSkillProjections(fixtureRoot)).resolves.toContain(
+      "drift:.agents/skills/maestro/SKILL.md",
     );
   });
 

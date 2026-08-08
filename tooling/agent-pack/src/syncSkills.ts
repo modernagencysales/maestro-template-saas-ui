@@ -74,6 +74,16 @@ export async function checkRootSkillProjections(
   return findings;
 }
 
+export async function checkAllSkillProjections(
+  repoRoot: string,
+): Promise<readonly string[]> {
+  const [plugin, root] = await Promise.all([
+    checkSkillProjections(repoRoot),
+    checkRootSkillProjections(repoRoot),
+  ]);
+  return [...plugin, ...root];
+}
+
 async function fileHashes(root: string): Promise<ReadonlyMap<string, string>> {
   const hashes = new Map<string, string>();
   for (const path of await filesUnder(root)) {
@@ -116,7 +126,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     await syncSkillProjections(repoRoot);
     console.log("Maestro skill projections synchronized.");
   } else {
-    const findings = await checkSkillProjections(repoRoot);
+    const findings = await checkAllSkillProjections(repoRoot);
     if (findings.length > 0) {
       console.error(findings.join("\n"));
       process.exit(1);
