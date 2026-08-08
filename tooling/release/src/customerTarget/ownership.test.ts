@@ -123,7 +123,6 @@ describe("customer ownership inventory", () => {
     ["docs/template/porting-backlog.md", "factory-only", "omit"],
     ["repos/effect/package.json", "factory-only", "omit"],
     ["tooling/evals/package.json", "factory-only", "omit"],
-    ["apps/voice-relay/package.json", "factory-only", "omit"],
     ["examples/gtm-implementation/README.md", "factory-only", "omit"],
     ["examples/saas-application/seed/workspace.json", "factory-only", "omit"],
     ["packages/app-idea-evaluator/package.json", "factory-only", "omit"],

@@ -23,7 +23,6 @@ const FACTORY_ONLY_PREFIXES = [
   ".superpowers/",
   ".vscode/",
   "agent-pack/",
-  "apps/voice-relay/",
   "docs/design-intake/",
   "docs/migration/",
   "docs/superpowers/",
@@ -43,7 +42,6 @@ const FACTORY_ONLY_PREFIXES = [
   "releases/",
   "repos/",
   "tooling/evals/",
-  "tooling/pr-backlog/",
   "tooling/release/",
 ] as const;
 

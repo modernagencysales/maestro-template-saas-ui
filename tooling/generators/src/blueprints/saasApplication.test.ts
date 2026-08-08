@@ -652,7 +652,7 @@ describe("saas application blueprint", () => {
       expect(endIndex).toBeGreaterThan(startIndex);
       return lockfile.content.slice(startIndex, endIndex);
     };
-    const cliImporter = importer("  apps/cli:", "  apps/voice-relay:");
+    const cliImporter = importer("  apps/cli:", "  apps/web:");
     const webImporter = importer(
       "  apps/web:",
       "  packages/app-idea-evaluator:",
@@ -663,7 +663,7 @@ describe("saas application blueprint", () => {
     );
     const generatorImporter = importer(
       "  tooling/generators:",
-      "  tooling/pr-backlog:",
+      "  tooling/quality:",
     );
     const integrationsImporter = importer(
       "  packages/integrations:",

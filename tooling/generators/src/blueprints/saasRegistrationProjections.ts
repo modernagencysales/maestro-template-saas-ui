@@ -794,19 +794,19 @@ const customerLockfile = (
   value = removeLockfileImporterDependency(
     value,
     "tooling/generators",
-    "tooling/pr-backlog",
+    "tooling/quality",
     appIdeaEvaluatorFromRoot,
   );
   value = removeLockfileImporterDependency(
     value,
     "apps/cli",
-    "apps/voice-relay",
+    "apps/web",
     '      "@maestro-template/release-tooling":\n        specifier: workspace:*\n        version: link:../../tooling/release\n',
   );
   value = removeLockfileImporterDependency(
     value,
     "tooling/generators",
-    "tooling/pr-backlog",
+    "tooling/quality",
     '      "@maestro-template/release-tooling":\n        specifier: workspace:*\n        version: link:../release\n',
   );
   if (
