@@ -4,14 +4,14 @@ import { dirname, join, relative } from "node:path";
 import process from "node:process";
 
 const CANONICAL = "agent-pack/skills/maestro";
-const PROJECTIONS = [
+const PLUGIN_PROJECTIONS = [
   "agent-pack/plugins/maestro/skills/maestro",
-  "agent-pack/generated/codex/.agents/skills/maestro",
 ] as const;
+const ROOT_SKILL_PROJECTIONS = [".agents/skills/maestro"] as const;
 
 export async function syncSkillProjections(repoRoot: string): Promise<void> {
   const source = join(repoRoot, CANONICAL);
-  for (const projection of PROJECTIONS) {
+  for (const projection of [...PLUGIN_PROJECTIONS, ...ROOT_SKILL_PROJECTIONS]) {
     const target = join(repoRoot, projection);
     await rm(target, { force: true, recursive: true });
     await mkdir(dirname(target), { recursive: true });
@@ -31,7 +31,7 @@ export async function checkSkillProjections(
   const canonical = await fileHashes(canonicalRoot);
   const findings: string[] = [];
 
-  for (const projection of PROJECTIONS) {
+  for (const projection of PLUGIN_PROJECTIONS) {
     const projected = await fileHashes(join(repoRoot, projection));
     for (const [path, hash] of canonical) {
       if (!projected.has(path)) findings.push(`missing:${projection}/${path}`);
@@ -50,7 +50,7 @@ export async function checkRootSkillProjections(
 ): Promise<readonly string[]> {
   const mappings = [
     {
-      source: "agent-pack/generated/codex/.agents/skills/maestro",
+      source: CANONICAL,
       target: ".agents/skills/maestro",
     },
     {
