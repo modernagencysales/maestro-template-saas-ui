@@ -298,6 +298,40 @@ describe("Node Agent Pack adapters", () => {
       expect.anything(),
     );
 
+    const convexManifest = files.get("/repo/packages/convex/package.json");
+    expect(convexManifest).toBeDefined();
+    files.set(
+      "/repo/packages/convex/package.json",
+      JSON.stringify({
+        dependencies: {
+          convex: "1.42.1",
+          "@confect/core": "9.1.5",
+          effect: "3.21.4",
+        },
+      }),
+    );
+    await expect(
+      runtime.inspect({ mode: "fake" }, repo),
+    ).resolves.toMatchObject({
+      versions: { workflow: "unavailable", workpool: "unavailable" },
+      versionsCompatible: true,
+    });
+    files.set(
+      "/repo/packages/convex/package.json",
+      JSON.stringify({
+        dependencies: {
+          convex: "1.42.1",
+          "@convex-dev/workflow": "0.4.4",
+          "@confect/core": "9.1.5",
+          effect: "3.21.4",
+        },
+      }),
+    );
+    await expect(
+      runtime.inspect({ mode: "fake" }, repo),
+    ).resolves.toMatchObject({ versionsCompatible: false });
+    files.set("/repo/packages/convex/package.json", convexManifest ?? "{}");
+
     for (const [version, supported] of [
       ["v22.23.1", false],
       ["v22.23.2", true],
