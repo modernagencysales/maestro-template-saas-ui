@@ -4,6 +4,7 @@ import {
   mkdtempSync,
   readFileSync,
   rmSync,
+  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -27,7 +28,10 @@ const fixture = () => {
       docs: ["README.md"],
     })}\n`,
   );
-  writeFileSync(join(fixturePath, "seed/secret.txt"), "must-not-be-read\n");
+  writeFileSync(
+    join(fixturePath, "seed/secret.txt"),
+    "customer-secret-canary-abc123\n",
+  );
   return { root, fixturePath };
 };
 
@@ -40,7 +44,7 @@ const request = (root: string, fixturePath: string) => ({
 });
 
 describe("customer-safe private package import", () => {
-  it("previews bounded privacy, collisions, fingerprint, and exact confirmation", () => {
+  it("previews bounded privacy, collisions, and the write-only confirmation", () => {
     const { root, fixturePath } = fixture();
     try {
       const plan = buildPrivatePackagePlan(request(root, fixturePath));
@@ -54,32 +58,39 @@ describe("customer-safe private package import", () => {
           readsSecrets: false,
           productionRegistrations: false,
         },
-        previewFingerprint: expect.stringMatching(
-          /^private_package_sha256:[0-9a-f]{64}$/,
-        ),
       });
-      expect(plan.confirmationCommand).toContain(
-        `--preflight-fingerprint ${plan.previewFingerprint}`,
+      expect(plan.confirmationCommand).toBe(
+        'pnpm template:private-package:import -- --fixture "examples/generic-ai-ops" --system "knowledge-brain" --disposition extend --write',
       );
       expect(existsSync(join(root, "private-packages"))).toBe(false);
-      expect(JSON.stringify(plan)).not.toContain("must-not-be-read");
+      expect(JSON.stringify(plan)).not.toContain("customer-secret-canary");
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
   });
 
-  it("requires the exact reviewed fingerprint before writing", () => {
+  it("recomputes the plan immediately before a write", () => {
     const { root, fixturePath } = fixture();
     try {
-      expect(() =>
-        executePrivatePackagePlan({
-          ...request(root, fixturePath),
-          mode: "import",
-          write: true,
-          preflightFingerprint: "private_package_sha256:stale",
+      buildPrivatePackagePlan(request(root, fixturePath));
+      writeFileSync(
+        join(fixturePath, "template-package.json"),
+        `${JSON.stringify({
+          name: "generic-ai-ops",
+          capabilities: ["summarizeSource", "draftPlan"],
+          workflows: ["sourceGroundedPlan"],
+        })}\n`,
+      );
+      const imported = executePrivatePackagePlan({
+        ...request(root, fixturePath),
+        mode: "import",
+        write: true,
+      });
+      expect(imported.files).toContainEqual(
+        expect.objectContaining({
+          path: "private-packages/generic-ai-ops/src/capabilities/draftPlan/draftPlan.contract.json",
         }),
-      ).toThrow("fingerprint mismatch");
-      expect(existsSync(join(root, "private-packages"))).toBe(false);
+      );
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
@@ -88,12 +99,10 @@ describe("customer-safe private package import", () => {
   it("writes exactly the reviewed files after confirmation", () => {
     const { root, fixturePath } = fixture();
     try {
-      const preview = buildPrivatePackagePlan(request(root, fixturePath));
       const imported = executePrivatePackagePlan({
         ...request(root, fixturePath),
         mode: "import",
         write: true,
-        preflightFingerprint: preview.previewFingerprint,
       });
       for (const file of imported.files) {
         expect(readFileSync(join(root, file.path), "utf8")).toBe(file.content);
@@ -121,10 +130,92 @@ describe("customer-safe private package import", () => {
           ...request(root, fixturePath),
           mode: "import",
           write: true,
-          preflightFingerprint: preview.previewFingerprint,
         }),
       ).toThrow("Refusing to overwrite");
       expect(readFileSync(occupied, "utf8")).toBe("customer-owned\n");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("refuses a malformed manifest before writing", () => {
+    const { root, fixturePath } = fixture();
+    try {
+      writeFileSync(join(fixturePath, "template-package.json"), "{ bad json\n");
+      const plan = buildPrivatePackagePlan(request(root, fixturePath));
+      expect(plan).toMatchObject({ ok: false });
+      expect(() =>
+        executePrivatePackagePlan({
+          ...request(root, fixturePath),
+          mode: "import",
+          write: true,
+        }),
+      ).toThrow("not safe to write");
+      expect(existsSync(join(root, "private-packages"))).toBe(false);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("refuses traversal declarations before writing", () => {
+    const { root, fixturePath } = fixture();
+    try {
+      writeFileSync(
+        join(fixturePath, "template-package.json"),
+        `${JSON.stringify({
+          name: "generic-ai-ops",
+          capabilities: ["../escape"],
+        })}\n`,
+      );
+      const plan = buildPrivatePackagePlan(request(root, fixturePath));
+      expect(plan).toMatchObject({ ok: false });
+      expect(() =>
+        executePrivatePackagePlan({
+          ...request(root, fixturePath),
+          mode: "import",
+          write: true,
+        }),
+      ).toThrow("not safe to write");
+      expect(existsSync(join(root, "private-packages"))).toBe(false);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("refuses a symlinked target ancestor before writing", () => {
+    const { root, fixturePath } = fixture();
+    const outside = mkdtempSync(join(tmpdir(), "maestro-private-outside-"));
+    try {
+      symlinkSync(outside, join(root, "private-packages"));
+      expect(() =>
+        executePrivatePackagePlan({
+          ...request(root, fixturePath),
+          mode: "import",
+          write: true,
+        }),
+      ).toThrow("symlinked target ancestor");
+      expect(existsSync(join(outside, "generic-ai-ops"))).toBe(false);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+      rmSync(outside, { recursive: true, force: true });
+    }
+  });
+
+  it("reports newly created paths if an exclusive write fails mid-import", () => {
+    const { root, fixturePath } = fixture();
+    try {
+      const blocked = join(root, "private-packages/generic-ai-ops/src");
+      mkdirSync(dirname(blocked), { recursive: true });
+      writeFileSync(blocked, "blocked\n");
+      expect(() =>
+        executePrivatePackagePlan({
+          ...request(root, fixturePath),
+          mode: "import",
+          write: true,
+        }),
+      ).toThrow(
+        "newly created paths: private-packages/generic-ai-ops/package-plan.json, private-packages/generic-ai-ops/README.md",
+      );
     } finally {
       rmSync(root, { recursive: true, force: true });
     }

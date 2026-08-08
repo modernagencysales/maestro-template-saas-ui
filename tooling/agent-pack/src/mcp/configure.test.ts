@@ -136,6 +136,20 @@ describe("MCP configure lifecycle", () => {
     expect(store.apply).not.toHaveBeenCalled();
   });
 
+  it("refuses a privacy acknowledgement without a write", async () => {
+    const store = inertStore();
+    const { command } = await fixture(store);
+    const result = await executeAgentPackCommand(
+      command,
+      { host: "codex", privacyReviewed: true },
+      context,
+    );
+
+    expect(result.exitClass).toBe("invalidInvocation");
+    expect(store.apply).not.toHaveBeenCalled();
+    expect(store.remove).not.toHaveBeenCalled();
+  });
+
   it("removes only the exact receipt-owned local registration", async () => {
     const store = inertStore();
     store.remove.mockResolvedValueOnce({ status: "removed" });
@@ -194,6 +208,10 @@ describe("MCP configure lifecycle", () => {
       { host: "codex", write: true, privacyReviewed: true, remove: true },
     ],
     ["remove profile", { host: "codex", remove: true, profile: "inspect" }],
+    [
+      "remove write or privacy flags",
+      { host: "codex", remove: true, write: false, privacyReviewed: false },
+    ],
     ["arbitrary path", { host: "codex", path: "/tmp/config" }],
     ["arbitrary command", { host: "codex", command: "convex" }],
     ["unknown host", { host: "other" }],

@@ -86,6 +86,10 @@ describe("MCP configure CLI adapter", () => {
       ["configure", "--host", "codex", "--privacy-reviewed"],
     ],
     [
+      "remove plus privacy review",
+      ["configure", "--host", "codex", "--remove", "--privacy-reviewed"],
+    ],
+    [
       "remove plus profile",
       ["configure", "--host", "codex", "--remove", "--profile", "inspect"],
     ],
