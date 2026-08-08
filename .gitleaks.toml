@@ -3,6 +3,7 @@ title = "maestro-template secret scan"
 [[allowlists]]
 description = "Dependency, generated build, and vendored reference trees are not source secrets."
 paths = [
+  '''(^|/)\.git/''',
   '''(^|/)node_modules/''',
   '''(^|/)dist/''',
   '''(^|/)repos/''',

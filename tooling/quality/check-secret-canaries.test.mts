@@ -1,4 +1,4 @@
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { execFileSync } from "node:child_process";
@@ -42,5 +42,27 @@ describe("check:secret-canaries", () => {
     if (!failed) {
       throw new Error("gitleaks did not detect the fake secret canary");
     }
+  });
+
+  it("excludes packed Git metadata from the no-git working-tree scan", () => {
+    const dir = mkdtempSync(join(tmpdir(), "maestro-template-gitleaks-git-"));
+    const packDir = join(dir, ".git", "objects", "pack");
+    mkdirSync(packDir, { recursive: true });
+    const envName = "SERVICE" + "_API_KEY";
+    const fakeValue = "abcdefghijklmnopqrstuvwxyz" + "123456";
+    writeFileSync(join(packDir, "fixture.pack"), `${envName}="${fakeValue}"\n`);
+    writeFileSync(join(dir, "source.ts"), "export const clean = true;\n");
+
+    expect(() =>
+      execFileSync("gitleaks", [
+        "detect",
+        "--config",
+        fileURLToPath(new URL("../../.gitleaks.toml", import.meta.url)),
+        "--no-git",
+        "--redact",
+        "--source",
+        dir,
+      ]),
+    ).not.toThrow();
   });
 });
