@@ -29,10 +29,19 @@ import {
   projectCompositionProviderPosture,
 } from "./composition";
 import { CUSTOMER_PREFLIGHT_POLICY } from "./customerComposition";
+import type { FactoryCliHandler } from "./router";
 import { START_HELP } from "./start";
 
 const factoryCliComposition = createFactoryCliComposition(() => ({}));
 const repositoryRoot = fileURLToPath(new URL("../../../../", import.meta.url));
+
+async function runJson(
+  handler: FactoryCliHandler | undefined,
+  args: readonly string[],
+  root: string,
+): Promise<ReturnType<typeof JSON.parse>> {
+  return JSON.parse((await handler?.run(args, root))?.stdout ?? "null");
+}
 
 it("accepts only the repository-declared pnpm in customer preflight", () => {
   expect(CUSTOMER_PREFLIGHT_POLICY.supportedPnpmVersions).toEqual([]);
@@ -186,7 +195,6 @@ describe("factory CLI composition", () => {
     );
     expect(FACTORY_EXECUTION_POLICY).toMatchObject({
       supportedPlatforms: ["linux", "darwin", "win32"],
-      supportedNodeMajors: [22],
       requiredPorts: [],
       packageJsonMaxBytes: 256 * 1024,
     });
@@ -505,22 +513,20 @@ describe("factory CLI composition", () => {
     const verify = composition.handlers.find(
       ({ command }) => command === "verify",
     );
-    const firstPreflight = JSON.parse(
-      (await preflight?.run(["preflight", "--mode", "test", "--json"], root))
-        ?.stdout ?? "null",
+    const firstPreflight = await runJson(
+      preflight,
+      ["preflight", "--mode", "test", "--json"],
+      root,
     );
-    const firstVerify = JSON.parse(
-      (await verify?.run(["verify", "--json"], root))?.stdout ?? "null",
-    );
+    const firstVerify = await runJson(verify, ["verify", "--json"], root);
 
     deployment = "test:account-two-secret";
-    const secondPreflight = JSON.parse(
-      (await preflight?.run(["preflight", "--mode", "test", "--json"], root))
-        ?.stdout ?? "null",
+    const secondPreflight = await runJson(
+      preflight,
+      ["preflight", "--mode", "test", "--json"],
+      root,
     );
-    const secondVerify = JSON.parse(
-      (await verify?.run(["verify", "--json"], root))?.stdout ?? "null",
-    );
+    const secondVerify = await runJson(verify, ["verify", "--json"], root);
     expect(firstPreflight.data, JSON.stringify(firstPreflight)).not.toBeNull();
     expect(
       secondPreflight.data,

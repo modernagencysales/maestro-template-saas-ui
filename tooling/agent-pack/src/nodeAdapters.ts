@@ -39,6 +39,8 @@ type NodeExecOptions = {
 
 type PackageManifest = Record<string, unknown> | undefined;
 
+const NODE_ENGINE_RANGE = "^22.23.2 || ^24.0.0 || >=26.0.0";
+
 function execExitCode(error: NodeExecError | null): number | null {
   if (error === null) return 0;
   if (
@@ -157,7 +159,6 @@ export type WorkflowProjectionRule = {
 
 export type NodePreflightPolicy = {
   readonly supportedPlatforms: readonly string[];
-  readonly supportedNodeMajors: readonly number[];
   readonly supportedPnpmVersions?: readonly string[];
   readonly minimumGitVersion: string;
   readonly minimumDiskBytes: number;
@@ -264,7 +265,6 @@ export function createNodePreflightRuntimeReader(input: {
       ]);
 
       const currentNode = nodeVersion().replace(/^v/, "");
-      const currentNodeMajor = numericPrefix(currentNode);
       const currentPnpm = successfulText(pnpm) ?? "unavailable";
       const requiredPnpm = packageManagerVersion(rootManifest);
       const currentGit =
@@ -295,10 +295,7 @@ export function createNodePreflightRuntimeReader(input: {
         input.workflowRules,
         input.publishedWorkflowRuleIds,
       );
-      const nodeSupported = supportedNode(
-        currentNodeMajor,
-        input.policy.supportedNodeMajors,
-      );
+      const nodeSupported = supportedNode(currentNode);
       const pnpmSupported = supportedPnpm(
         currentPnpm,
         requiredPnpm,
@@ -408,11 +405,12 @@ function networkObservation(
       ]);
 }
 
-function supportedNode(
-  currentMajor: number | undefined,
-  supportedMajors: readonly number[],
-): boolean {
-  return currentMajor !== undefined && supportedMajors.includes(currentMajor);
+function supportedNode(version: string): boolean {
+  const match = /^(\d+)\.(\d+)\.(\d+)$/.exec(version);
+  if (match === null) return false;
+  const major = Number(match[1]);
+  if (major === 22) return versionAtLeast(version, "22.23.2");
+  return major === 24 || major >= 26;
 }
 
 function supportedPnpm(
@@ -497,7 +495,7 @@ function hostSnapshot(input: {
     osSupported: input.policy.supportedPlatforms.includes(input.os),
     node: {
       current: input.currentNode,
-      required: `major ${input.policy.supportedNodeMajors.join(" or ")}`,
+      required: NODE_ENGINE_RANGE,
       supported: input.nodeSupported,
     },
     pnpm: {
@@ -667,14 +665,10 @@ function validatePolicy(policy: NodePreflightPolicy): void {
   const positive = [policy.metadataTimeoutMs, policy.maxBufferBytes];
   if (
     policy.supportedPlatforms.length === 0 ||
-    policy.supportedNodeMajors.length === 0 ||
     !/^\d+\.\d+(?:\.\d+)?$/.test(policy.minimumGitVersion) ||
     !positive.every((value) => Number.isSafeInteger(value) && value > 0) ||
     !Number.isSafeInteger(policy.minimumDiskBytes) ||
     policy.minimumDiskBytes < 0 ||
-    !policy.supportedNodeMajors.every(
-      (major) => Number.isSafeInteger(major) && major > 0,
-    ) ||
     !policy.requiredPorts.every(
       (port) => Number.isSafeInteger(port) && port > 0 && port <= 65_535,
     )
@@ -1200,11 +1194,6 @@ async function canonicalPath(
   } catch {
     return resolve(path);
   }
-}
-
-function numericPrefix(version: string): number | undefined {
-  const value = Number.parseInt(version.match(/^\d+/)?.[0] ?? "", 10);
-  return Number.isSafeInteger(value) ? value : undefined;
 }
 
 function versionAtLeast(current: string, minimum: string): boolean {
