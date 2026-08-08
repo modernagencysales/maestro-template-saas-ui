@@ -28,6 +28,7 @@ import {
   projectCompositionEnvironment,
   projectCompositionProviderPosture,
 } from "./composition";
+import { recipePreflightBlockingCodes } from "./customerRecipes";
 import { CUSTOMER_PREFLIGHT_POLICY } from "./customerComposition";
 import { START_HELP } from "./start";
 
@@ -190,6 +191,43 @@ describe("factory CLI composition", () => {
       requiredPorts: [],
       packageJsonMaxBytes: 256 * 1024,
     });
+  });
+
+  it("keeps real same-root dirty paths out of an unrelated recipe plan", async () => {
+    const root = await configuredGitTarget();
+    await writeFile(join(root, "unrelated.md"), "dirty\n");
+    const preflight = createFactoryCliComposition(() => ({})).handlers.find(
+      ({ command }) => command === "preflight",
+    );
+    const result = JSON.parse(
+      (await preflight?.run(["preflight", "--mode", "fake", "--json"], root))
+        ?.stdout ?? "null",
+    ) as {
+      readonly diagnostics: readonly { readonly code: string }[];
+      readonly data: {
+        readonly facts: {
+          readonly repository: { readonly collisions: readonly string[] };
+        };
+      };
+    };
+    const codes = result.diagnostics.map(({ code }) => code);
+
+    expect(codes).toContain("AGENT_PACK_DIRTY_OVERLAP");
+    expect(result.data.facts.repository.collisions).toContain("unrelated.md");
+    expect(
+      recipePreflightBlockingCodes(
+        codes,
+        result.data.facts.repository.collisions,
+        { operations: [{ path: "apps/web/src/owned.ts" }] },
+      ),
+    ).not.toContain("AGENT_PACK_DIRTY_OVERLAP");
+    expect(
+      recipePreflightBlockingCodes(
+        codes,
+        result.data.facts.repository.collisions,
+        { operations: [{ path: "unrelated.md" }] },
+      ),
+    ).toContain("AGENT_PACK_DIRTY_OVERLAP");
   });
 
   it("imports generator and quality sources without running either CLI", () => {
