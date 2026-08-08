@@ -23,6 +23,11 @@ export async function checkSkillProjections(
   repoRoot: string,
 ): Promise<readonly string[]> {
   const canonicalRoot = join(repoRoot, CANONICAL);
+  try {
+    await readFile(join(canonicalRoot, "SKILL.md"));
+  } catch {
+    return ["missing:agent-pack/skills/maestro/SKILL.md"];
+  }
   const canonical = await fileHashes(canonicalRoot);
   const findings: string[] = [];
 
