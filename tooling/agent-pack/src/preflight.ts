@@ -248,14 +248,9 @@ function preflightDiagnostics(
   const diagnostics: AgentPackDiagnostic[] = [];
   const add = (
     condition: boolean,
-    code: string,
-    message: string,
-    safe: boolean,
-    nextAction: string,
-    rerun: string,
+    ...args: Parameters<typeof diagnostic>
   ): void => {
-    if (condition)
-      diagnostics.push(diagnostic(code, message, safe, nextAction, rerun));
+    if (condition) diagnostics.push(diagnostic(...args));
   };
   add(
     !facts.host.osSupported,
@@ -408,7 +403,9 @@ function preflightDiagnostics(
     "pnpm maestro -- preflight --details",
   );
   add(
-    facts.workflow.status === "unsupported" || facts.workflow.publishedDrift,
+    facts.app.modules.includes("workflows") &&
+      (facts.workflow.status === "unsupported" ||
+        facts.workflow.publishedDrift),
     "AGENT_PACK_WORKFLOW_UNSAFE",
     "Workflow semantics are unsupported or differ from the published ledger.",
     false,

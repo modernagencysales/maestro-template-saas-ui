@@ -275,6 +275,58 @@ describe("agent-pack preflight", () => {
     });
   });
 
+  it("does not require workflow semantics when no workflow module is selected", async () => {
+    const facts = readyFacts();
+    const result = await executeAgentPackCommand(
+      createPreflightCommand({
+        inspect: async () => ({
+          ...facts,
+          workflow: {
+            ...facts.workflow,
+            status: "unsupported",
+            publishedDrift: true,
+          },
+          app: { ...facts.app, modules: ["brain"] },
+        }),
+      }),
+      { mode: "fake" },
+      context,
+    );
+
+    expect(result.exitClass).toBe("success");
+    expect(result.diagnostics).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: "AGENT_PACK_WORKFLOW_UNSAFE" }),
+      ]),
+    );
+  });
+
+  it.each([
+    ["unsupported status", { status: "unsupported" as const }],
+    ["published drift", { publishedDrift: true }],
+  ])(
+    "requires safe workflow semantics for selected workflows with %s",
+    async (_label, workflowOverride) => {
+      const facts = readyFacts();
+      const result = await executeAgentPackCommand(
+        createPreflightCommand({
+          inspect: async () => ({
+            ...facts,
+            workflow: { ...facts.workflow, ...workflowOverride },
+          }),
+        }),
+        { mode: "fake" },
+        context,
+      );
+
+      expect(result.diagnostics).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ code: "AGENT_PACK_WORKFLOW_UNSAFE" }),
+        ]),
+      );
+    },
+  );
+
   it.each([
     [
       "unsupported OS",
