@@ -40,6 +40,14 @@ describe("canonical Maestro skill projections", () => {
     );
   });
 
+  it("fails closed when the canonical Maestro skill is missing", async () => {
+    const fixtureRoot = await mkdtemp(join(tmpdir(), "maestro-skill-missing-"));
+
+    await expect(checkSkillProjections(fixtureRoot)).resolves.toContain(
+      "missing:agent-pack/skills/maestro/SKILL.md",
+    );
+  });
+
   it("regenerates the Claude and committed Codex projections from the canonical source", async () => {
     const fixtureRoot = await mkdtemp(join(tmpdir(), "maestro-skill-sync-"));
     await cp(join(repoRoot, "agent-pack"), join(fixtureRoot, "agent-pack"), {
