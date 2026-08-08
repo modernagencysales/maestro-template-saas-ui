@@ -79,7 +79,11 @@ describe("recipe CLI", () => {
           ok: true as const,
           output: {
             files: [
-              { path: "apps/web/src/fixture.ts", content: "fixture\n", beforeSha256: null },
+              {
+                path: "apps/web/src/fixture.ts",
+                content: "fixture\n",
+                beforeSha256: null,
+              },
             ],
             provenancePaths: [],
             collisions: [],

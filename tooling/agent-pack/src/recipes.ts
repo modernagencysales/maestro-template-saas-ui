@@ -167,156 +167,304 @@ export function createAddRecipeCommand(
     decode: decodeAddRecipeInput,
     mutationPosture: ({ write }) => (write ? "write" : "preview"),
     execute: async (input, context) => {
-      const mutationPosture = input.write
-        ? ("write" as const)
-        : ("preview" as const);
+      const mutationPosture = input.write ? "write" : "preview";
       const resolution = (await dependencies.load(context.repo)).resolve(
         input.query,
       );
       if (resolution.kind === "template-gap")
-        return {
-          mutationPosture,
-          exitClass: "findings" as const,
-          summary: "No reviewed recipe exactly matches this outcome.",
-          diagnostics: [templateGapDiagnostic(input.query)],
-          data: {
-            kind: "template-gap",
-            query: resolution.query,
-            adjacent: resolution.adjacent.map(summary),
-            backlogRef: resolution.backlogRef,
-          },
-        };
-      const recipe = resolution.recipe;
-      const baseData = {
-        kind: "recipe" as const,
-        recipe: recipe.document,
-        answers: input.answers,
-        questions: recipe.questions,
-        generatorPreviews: recipe.generatorPreviews,
-      };
-      if (recipe.availability !== "available")
-        return {
-          mutationPosture,
-          exitClass: "unavailableDependency" as const,
-          summary: `Recipe ${recipe.id} is honestly unavailable.`,
-          diagnostics: [unavailableDiagnostic(recipe)],
-          data: baseData,
-        };
-      const answers = validateAnswers(recipe.questions, input.answers);
-      if (!answers.ok)
-        return blocked(
-          mutationPosture,
-          "AGENT_PACK_RECIPE_ANSWERS_INCOMPLETE",
-          answers.message,
-          "Answer every consequential recipe question with an explicit reviewed value.",
-          addRerun(input, false),
-          baseData,
-        );
-      if (
-        !recipe.execution ||
-        !dependencies.generators ||
-        !dependencies.preflight
-      )
-        return blocked(
-          mutationPosture,
-          "AGENT_PACK_RECIPE_EXECUTION_UNAVAILABLE",
-          `Recipe ${recipe.id} has no installed executable binding.`,
-          "Use the preview only or install a release that carries the reviewed execution contract.",
-          `pnpm maestro -- recipes show ${recipe.id} --json`,
-          baseData,
-        );
-      const planResult = await buildPlan(
-        recipe,
-        input.answers,
+        return templateGapResult(input, resolution, mutationPosture);
+      return executeResolvedRecipe(
+        dependencies,
+        input,
         context.repo,
-        dependencies.generators,
+        resolution.recipe,
+        mutationPosture,
       );
-      if (!planResult.ok)
-        return blocked(
-          mutationPosture,
-          planResult.code,
-          planResult.message,
-          planResult.nextAction,
-          addRerun(input, false),
-          baseData,
-        );
-      const plan = planResult.plan;
-      const preflight = await dependencies.preflight.inspect(context.repo, plan);
-      const planData = {
-        ...baseData,
-        plan,
-        preflightFingerprint: preflight.fingerprint,
-      };
-      if (plan.collisions.length > 0)
-        return blocked(
-          mutationPosture,
-          "AGENT_PACK_RECIPE_COLLISION",
-          `Recipe paths collide with customer-owned files: ${plan.collisions.join(", ")}.`,
-          "Choose a reviewed new entity name or extend the existing slice deliberately.",
-          addRerun(input, false),
-          planData,
-        );
-      const data = {
-        ...planData,
-        confirmationCommand: addRerun(input, true),
-      };
-      if (!input.write)
-        return {
-          mutationPosture,
-          exitClass: "success" as const,
-          summary: `Previewed executable recipe ${recipe.id}; no files were changed.`,
-          diagnostics: [],
-          data,
-        };
-      if (preflight.blockingCodes.length > 0)
-        return blocked(
-          mutationPosture,
-          preflight.blockingCodes,
-          `Recipe write remains blocked by preflight denials ${preflight.blockingCodes.join(", ")}.`,
-          "Resolve the reported preflight denial, then rerun the direct recipe write.",
-          addRerun(input, false),
-          data,
-        );
-      if (!dependencies.transaction)
-        return blocked(
-          mutationPosture,
-          "AGENT_PACK_RECIPE_TRANSACTION_UNAVAILABLE",
-          "Atomic recipe materialization is unavailable.",
-          "Install the journaled recipe transaction adapter; do not invoke generators sequentially.",
-          addRerun(input, false),
-          data,
-        );
-      const answersSha256 = sha256(stableJson(input.answers));
-      const applied = await dependencies.transaction.apply({
-        repo: context.repo,
-        plan,
-        preflightFingerprint: preflight.fingerprint,
-        answersSha256,
-      });
-      return applied.ok
-        ? {
-            mutationPosture,
-            exitClass: "success" as const,
-            summary: `Applied recipe ${recipe.id} atomically.`,
-            diagnostics: [],
-            data: {
-              ...planData,
-              receipt: applied.receipt,
-              followUpActions: [...plan.codegen, ...plan.focusedGates].map(
-                (command) => ({ command }),
-              ),
-            },
-          }
-        : blocked(
-            mutationPosture,
-            "AGENT_PACK_RECIPE_TRANSACTION_FAILED",
-            applied.message,
-            "Inspect the retained transaction journal, repair the target, and preview again.",
-            addRerun(input, false),
-            data,
-          );
     },
   });
+}
+
+type RecipeMutationPosture = "preview" | "write";
+type TemplateGapResolution = Extract<
+  ReturnType<RecipeCatalogProjection["resolve"]>,
+  { readonly kind: "template-gap" }
+>;
+
+function templateGapResult(
+  input: AddRecipeInput,
+  resolution: TemplateGapResolution,
+  mutationPosture: RecipeMutationPosture,
+) {
+  return {
+    mutationPosture,
+    exitClass: "findings" as const,
+    summary: "No reviewed recipe exactly matches this outcome.",
+    diagnostics: [templateGapDiagnostic(input.query)],
+    data: {
+      kind: "template-gap",
+      query: resolution.query,
+      adjacent: resolution.adjacent.map(summary),
+      backlogRef: resolution.backlogRef,
+    },
+  };
+}
+
+async function executeResolvedRecipe(
+  dependencies: RecipeCommandDependencies,
+  input: AddRecipeInput,
+  repo: RepositoryContext,
+  recipe: RecipeCommandProjection,
+  mutationPosture: RecipeMutationPosture,
+) {
+  const baseData = recipeBaseData(recipe, input.answers);
+  if (recipe.availability !== "available")
+    return {
+      mutationPosture,
+      exitClass: "unavailableDependency" as const,
+      summary: `Recipe ${recipe.id} is honestly unavailable.`,
+      diagnostics: [unavailableDiagnostic(recipe)],
+      data: baseData,
+    };
+  const answers = validateAnswers(recipe.questions, input.answers);
+  if (!answers.ok)
+    return blocked(mutationPosture, {
+      code: "AGENT_PACK_RECIPE_ANSWERS_INCOMPLETE",
+      message: answers.message,
+      nextAction:
+        "Answer every consequential recipe question with an explicit reviewed value.",
+      rerun: addRerun(input, false),
+      data: baseData,
+    });
+  if (!recipe.execution || !dependencies.generators || !dependencies.preflight)
+    return blocked(mutationPosture, {
+      code: "AGENT_PACK_RECIPE_EXECUTION_UNAVAILABLE",
+      message: `Recipe ${recipe.id} has no installed executable binding.`,
+      nextAction:
+        "Use the preview only or install a release that carries the reviewed execution contract.",
+      rerun: `pnpm maestro -- recipes show ${recipe.id} --json`,
+      data: baseData,
+    });
+  const planResult = await buildPlan(
+    recipe,
+    input.answers,
+    repo,
+    dependencies.generators,
+  );
+  if (!planResult.ok)
+    return blocked(mutationPosture, {
+      code: planResult.code,
+      message: planResult.message,
+      nextAction: planResult.nextAction,
+      rerun: addRerun(input, false),
+      data: baseData,
+    });
+  const plan = planResult.plan;
+  const preflight = await dependencies.preflight.inspect(repo, plan);
+  const planData = {
+    ...baseData,
+    plan,
+    preflightFingerprint: preflight.fingerprint,
+  };
+  if (plan.collisions.length > 0)
+    return blocked(mutationPosture, {
+      code: "AGENT_PACK_RECIPE_COLLISION",
+      message: `Recipe paths collide with customer-owned files: ${plan.collisions.join(", ")}.`,
+      nextAction:
+        "Choose a reviewed new entity name or extend the existing slice deliberately.",
+      rerun: addRerun(input, false),
+      data: planData,
+    });
+  const data = { ...planData, confirmationCommand: addRerun(input, true) };
+  if (!input.write)
+    return {
+      mutationPosture,
+      exitClass: "success" as const,
+      summary: `Previewed executable recipe ${recipe.id}; no files were changed.`,
+      diagnostics: [],
+      data,
+    };
+  return applyRecipePlan({
+    dependencies,
+    input,
+    repo,
+    recipe,
+    plan,
+    preflight,
+  });
+}
+
+function recipeBaseData(
+  recipe: RecipeCommandProjection,
+  answers: Readonly<Record<string, string | boolean>>,
+) {
+  return {
+    kind: "recipe" as const,
+    recipe: recipe.document,
+    answers,
+    questions: recipe.questions,
+    generatorPreviews: recipe.generatorPreviews,
+  };
+}
+
+type RecipePreflight = Awaited<
+  ReturnType<NonNullable<RecipeCommandDependencies["preflight"]>["inspect"]>
+>;
+
+async function applyRecipePlan(input: {
+  readonly dependencies: RecipeCommandDependencies;
+  readonly input: AddRecipeInput;
+  readonly repo: RepositoryContext;
+  readonly recipe: RecipeCommandProjection;
+  readonly plan: RecipeExecutionPlan;
+  readonly preflight: RecipePreflight;
+}) {
+  const { dependencies, recipe, plan, preflight, repo } = input;
+  const planData = {
+    ...recipeBaseData(recipe, input.input.answers),
+    plan,
+    preflightFingerprint: preflight.fingerprint,
+  };
+  const data = {
+    ...planData,
+    confirmationCommand: addRerun(input.input, true),
+  };
+  if (preflight.blockingCodes.length > 0)
+    return blocked("write", {
+      code: preflight.blockingCodes,
+      message: `Recipe write remains blocked by preflight denials ${preflight.blockingCodes.join(", ")}.`,
+      nextAction:
+        "Resolve the reported preflight denial, then rerun the direct recipe write.",
+      rerun: addRerun(input.input, false),
+      data,
+    });
+  if (!dependencies.transaction)
+    return blocked("write", {
+      code: "AGENT_PACK_RECIPE_TRANSACTION_UNAVAILABLE",
+      message: "Atomic recipe materialization is unavailable.",
+      nextAction:
+        "Install the journaled recipe transaction adapter; do not invoke generators sequentially.",
+      rerun: addRerun(input.input, false),
+      data,
+    });
+  const applied = await dependencies.transaction.apply({
+    repo,
+    plan,
+    preflightFingerprint: preflight.fingerprint,
+    answersSha256: sha256(stableJson(input.input.answers)),
+  });
+  if (!applied.ok)
+    return blocked("write", {
+      code: "AGENT_PACK_RECIPE_TRANSACTION_FAILED",
+      message: applied.message,
+      nextAction:
+        "Inspect the retained transaction journal, repair the target, and preview again.",
+      rerun: addRerun(input.input, false),
+      data,
+    });
+  return {
+    mutationPosture: "write" as const,
+    exitClass: "success" as const,
+    summary: `Applied recipe ${recipe.id} atomically.`,
+    diagnostics: [],
+    data: {
+      ...planData,
+      receipt: applied.receipt,
+      followUpActions: [...plan.codegen, ...plan.focusedGates].map(
+        (command) => ({
+          command,
+        }),
+      ),
+    },
+  };
+}
+
+type PlanBuildFailure = {
+  readonly ok: false;
+  readonly code: string;
+  readonly message: string;
+  readonly nextAction: string;
+};
+type PlanBuildResult =
+  { readonly ok: true; readonly plan: RecipeExecutionPlan } | PlanBuildFailure;
+type PlanAccumulator = {
+  readonly steps: RecipeExecutionPlan["steps"][number][];
+  readonly operations: RecipeOperation[];
+  readonly collisions: Set<string>;
+  readonly provenance: Set<string>;
+  readonly semanticRules: Set<string>;
+  readonly codegen: Set<string>;
+  readonly focusedGates: Set<string>;
+  readonly paths: Set<string>;
+};
+type RecipeStep = RecipeExecutionProjection["steps"][number];
+
+const planFailure = (
+  code: string,
+  message: string,
+  nextAction: string,
+): PlanBuildFailure => ({ ok: false, code, message, nextAction });
+
+function bindStepArguments(
+  step: RecipeStep,
+  answers: Readonly<Record<string, string | boolean>>,
+):
+  | { readonly ok: true; readonly args: Record<string, string | boolean> }
+  | PlanBuildFailure {
+  const args: Record<string, string | boolean> = {};
+  for (const [name, binding] of Object.entries(step.arguments)) {
+    const value =
+      binding.source === "literal" ? binding.value : answers[binding.answerId];
+    if (value === undefined)
+      return planFailure(
+        "AGENT_PACK_RECIPE_BINDING_INVALID",
+        `Recipe step ${step.id} cannot resolve answer ${binding.source === "answer" ? binding.answerId : name}.`,
+        "Repair the versioned recipe answer binding; do not infer a value.",
+      );
+    args[name] = value;
+  }
+  return { ok: true, args };
+}
+
+function collectPreviewMetadata(
+  accumulator: PlanAccumulator,
+  output: RecipeGeneratorOutput,
+): void {
+  for (const collision of output.collisions)
+    accumulator.collisions.add(collision);
+  for (const path of output.provenancePaths) accumulator.provenance.add(path);
+  for (const id of output.semanticRuleIds) accumulator.semanticRules.add(id);
+  for (const command of output.codegen) accumulator.codegen.add(command);
+  for (const gate of output.focusedGates) accumulator.focusedGates.add(gate);
+}
+
+function collectPreviewOperations(
+  accumulator: PlanAccumulator,
+  step: RecipeStep,
+  output: RecipeGeneratorOutput,
+): PlanBuildFailure | undefined {
+  for (const file of output.files) {
+    if (!safeRelativePath(file.path))
+      return planFailure(
+        "AGENT_PACK_RECIPE_PATH_ESCAPE",
+        `Recipe generator emitted unsafe path ${JSON.stringify(file.path)}.`,
+        "Repair the canonical generator; do not write this plan.",
+      );
+    if (accumulator.paths.has(file.path))
+      return planFailure(
+        "AGENT_PACK_RECIPE_PLAN_CONFLICT",
+        `Recipe generators both own ${file.path}.`,
+        "Review one canonical owner for every generated operation.",
+      );
+    accumulator.paths.add(file.path);
+    accumulator.operations.push({
+      path: file.path,
+      content: file.content,
+      contentSha256: sha256(file.content),
+      beforeSha256: file.beforeSha256,
+      generatorStepId: step.id,
+    });
+  }
+  return undefined;
 }
 
 async function buildPlan(
@@ -324,99 +472,51 @@ async function buildPlan(
   answers: Readonly<Record<string, string | boolean>>,
   repo: RepositoryContext,
   generators: NonNullable<RecipeCommandDependencies["generators"]>,
-): Promise<
-  | { readonly ok: true; readonly plan: RecipeExecutionPlan }
-  | {
-      readonly ok: false;
-      readonly code: string;
-      readonly message: string;
-      readonly nextAction: string;
-    }
-> {
-  const steps: RecipeExecutionPlan["steps"][number][] = [];
-  const operations: RecipeOperation[] = [];
-  const collisions = new Set<string>();
-  const provenance = new Set<string>();
-  const semanticRules = new Set<string>();
-  const codegen = new Set<string>();
-  const focusedGates = new Set<string>();
-  const paths = new Set<string>();
+): Promise<PlanBuildResult> {
+  const accumulator: PlanAccumulator = {
+    steps: [],
+    operations: [],
+    collisions: new Set(),
+    provenance: new Set(),
+    semanticRules: new Set(),
+    codegen: new Set(),
+    focusedGates: new Set(),
+    paths: new Set(),
+  };
   for (const step of recipe.execution?.steps ?? []) {
     const resolution = generators.resolve(step.generatorId);
     if (!resolution.supported)
-      return {
-        ok: false,
-        code: "AGENT_PACK_RECIPE_GENERATOR_UNREVIEWED",
-        message: `Recipe step ${step.id} names unreviewed generator ${step.generatorId}.`,
-        nextAction:
-          "Use only a generator registered by the canonical reviewed dispatcher.",
-      };
-    const args: Record<string, string | boolean> = {};
-    for (const [name, binding] of Object.entries(step.arguments)) {
-      const value =
-        binding.source === "literal"
-          ? binding.value
-          : answers[binding.answerId];
-      if (value === undefined)
-        return {
-          ok: false,
-          code: "AGENT_PACK_RECIPE_BINDING_INVALID",
-          message: `Recipe step ${step.id} cannot resolve answer ${binding.source === "answer" ? binding.answerId : name}.`,
-          nextAction:
-            "Repair the versioned recipe answer binding; do not infer a value.",
-        };
-      args[name] = value;
-    }
+      return planFailure(
+        "AGENT_PACK_RECIPE_GENERATOR_UNREVIEWED",
+        `Recipe step ${step.id} names unreviewed generator ${step.generatorId}.`,
+        "Use only a generator registered by the canonical reviewed dispatcher.",
+      );
+    const binding = bindStepArguments(step, answers);
+    if (!binding.ok) return binding;
     const preview = await generators.preview({
       generatorId: step.generatorId,
-      args,
+      args: binding.args,
       repo,
     });
     if (!preview.ok)
-      return {
-        ok: false,
-        code: "AGENT_PACK_RECIPE_GENERATOR_UNAVAILABLE",
-        message: preview.message,
-        nextAction:
-          "Repair the reviewed generator inputs and preview the recipe again.",
-      };
-    steps.push({
+      return planFailure(
+        "AGENT_PACK_RECIPE_GENERATOR_UNAVAILABLE",
+        preview.message,
+        "Repair the reviewed generator inputs and preview the recipe again.",
+      );
+    accumulator.steps.push({
       id: step.id,
       generatorId: step.generatorId,
-      args,
+      args: binding.args,
       generatorVersion: resolution.version,
     });
-    for (const collision of preview.output.collisions)
-      collisions.add(collision);
-    for (const path of preview.output.provenancePaths) provenance.add(path);
-    for (const id of preview.output.semanticRuleIds) semanticRules.add(id);
-    for (const command of preview.output.codegen) codegen.add(command);
-    for (const gate of preview.output.focusedGates) focusedGates.add(gate);
-    for (const file of preview.output.files) {
-      if (!safeRelativePath(file.path))
-        return {
-          ok: false,
-          code: "AGENT_PACK_RECIPE_PATH_ESCAPE",
-          message: `Recipe generator emitted unsafe path ${JSON.stringify(file.path)}.`,
-          nextAction: "Repair the canonical generator; do not write this plan.",
-        };
-      if (paths.has(file.path))
-        return {
-          ok: false,
-          code: "AGENT_PACK_RECIPE_PLAN_CONFLICT",
-          message: `Recipe generators both own ${file.path}.`,
-          nextAction:
-            "Review one canonical owner for every generated operation.",
-        };
-      paths.add(file.path);
-      operations.push({
-        path: file.path,
-        content: file.content,
-        contentSha256: sha256(file.content),
-        beforeSha256: file.beforeSha256,
-        generatorStepId: step.id,
-      });
-    }
+    collectPreviewMetadata(accumulator, preview.output);
+    const operationFailure = collectPreviewOperations(
+      accumulator,
+      step,
+      preview.output,
+    );
+    if (operationFailure) return operationFailure;
   }
   const unsigned = {
     schemaVersion: 1 as const,
@@ -424,13 +524,13 @@ async function buildPlan(
     recipeSchemaVersion: recipe.schemaVersion,
     recipeExecutionVersion: recipe.execution?.version ?? 0,
     targetRoot: repo.targetRoot,
-    steps,
-    operations,
-    collisions: [...collisions].sort(),
-    provenancePaths: [...provenance].sort(),
-    semanticRuleIds: [...semanticRules].sort(),
-    codegen: [...codegen],
-    focusedGates: [...focusedGates].sort(),
+    steps: accumulator.steps,
+    operations: accumulator.operations,
+    collisions: [...accumulator.collisions].sort(),
+    provenancePaths: [...accumulator.provenance].sort(),
+    semanticRuleIds: [...accumulator.semanticRules].sort(),
+    codegen: [...accumulator.codegen],
+    focusedGates: [...accumulator.focusedGates].sort(),
   };
   return {
     ok: true,
@@ -507,19 +607,7 @@ function validateAnswers(
   const invalid: string[] = [];
   for (const question of questions) {
     const answer = answers[question.id];
-    if (answer === undefined) invalid.push(question.id);
-    else if (question.answerKind === "boolean" && typeof answer !== "boolean")
-      invalid.push(question.id);
-    else if (
-      question.answerKind !== "boolean" &&
-      (typeof answer !== "string" || answer.trim() === "")
-    )
-      invalid.push(question.id);
-    else if (
-      question.answerKind === "choice" &&
-      !question.choices?.includes(String(answer))
-    )
-      invalid.push(question.id);
+    if (!validAnswer(question, answer)) invalid.push(question.id);
   }
   return invalid.length
     ? {
@@ -527,6 +615,19 @@ function validateAnswers(
         message: `Missing or invalid recipe answers: ${invalid.join(", ")}.`,
       }
     : { ok: true };
+}
+
+function validAnswer(
+  question: RecipeQuestionProjection,
+  answer: string | boolean | undefined,
+): boolean {
+  if (answer === undefined) return false;
+  if (question.answerKind === "boolean") return typeof answer === "boolean";
+  if (typeof answer !== "string" || answer.trim() === "") return false;
+  return (
+    question.answerKind !== "choice" ||
+    question.choices?.includes(answer) === true
+  );
 }
 
 function decodeAddRecipeInput(
@@ -576,14 +677,17 @@ function decodeRecipesInput(
 }
 
 function blocked(
-  mutationPosture: "preview" | "write",
-  code: string | readonly string[],
-  message: string,
-  nextAction: string,
-  rerun: string,
-  data: AgentPackJsonValue,
+  mutationPosture: RecipeMutationPosture,
+  finding: {
+    readonly code: string | readonly string[];
+    readonly message: string;
+    readonly nextAction: string;
+    readonly rerun: string;
+    readonly data: AgentPackJsonValue;
+  },
 ) {
-  const codes = typeof code === "string" ? [code] : code;
+  const codes =
+    typeof finding.code === "string" ? [finding.code] : finding.code;
   return {
     mutationPosture,
     exitClass:
@@ -595,14 +699,14 @@ function blocked(
         ? "Recipe write was blocked."
         : "Recipe preview found blocking findings.",
     diagnostics: codes.map((blockingCode) => ({
-        code: blockingCode,
-        severity: "error" as const,
-        message,
-        safeToContinue: mutationPosture === "preview",
-        nextAction,
-        rerun,
-      })),
-    data,
+      code: blockingCode,
+      severity: "error" as const,
+      message: finding.message,
+      safeToContinue: mutationPosture === "preview",
+      nextAction: finding.nextAction,
+      rerun: finding.rerun,
+    })),
+    data: finding.data,
   };
 }
 function addRerun(input: AddRecipeInput, write: boolean): string {
