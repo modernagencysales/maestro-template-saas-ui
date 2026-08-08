@@ -90,7 +90,11 @@ const candidateRelease = (input: {
       tag,
       sourceCommit,
       sourceChecksum: hash(
-        git(root, ["archive", "--format=tar", sourceCommit]),
+        execFileSync(
+          "git",
+          ["-C", root, "archive", "--format=tar", sourceCommit],
+          { maxBuffer: 512 * 1024 * 1024 },
+        ),
       ),
     },
     compatibility: { cli: "0.2.x", agentPack: "0.2.x" },
