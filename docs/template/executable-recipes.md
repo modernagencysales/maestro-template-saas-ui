@@ -49,13 +49,11 @@ Preview is non-mutating. Human output prints the exact confirmation command;
 JSON output exposes the same value at `data.confirmationCommand`. It contains:
 
 - all reviewed answers;
-- `--write` and `--privacy-reviewed`;
-- the exact `recipe_plan_sha256:...` plan fingerprint;
-- the exact `recipe_preflight_sha256:...` clean-target fingerprint.
+- `--write`.
 
-Copy that command unchanged. You do not need to construct or understand the
-fingerprints. If any relevant fact changes, the write refuses and asks for a new
-preview.
+Copy that command unchanged. The write recomputes the reviewed generator plan
+and clean-target preflight before changing files. If any relevant fact changes,
+the write refuses and asks for a new preview.
 
 ## What the write guarantees
 

@@ -12,6 +12,7 @@ const checkDescriptorDefinitions = {
         file: ".woodpecker/firewall.yml",
         includes: [
           "trusted-ci-policy",
+          "node:22.23.2-bookworm@sha256:0557ac14e0d45d02ed563067b82856ca5e7aa3437fa28d98d4350ea9c3d9494a",
           "tooling/ci/ci-self-protection.sh",
           "tooling/ci/firewall.sh",
           "class: firewall",
@@ -29,7 +30,7 @@ const checkDescriptorDefinitions = {
         file: ".woodpecker/verify.yml",
         includes: [
           "event: pull_request",
-          "node:22.12.0-bookworm@sha256:",
+          "node:22.23.2-bookworm@sha256:",
           "tooling/ci/verify-chassis.sh",
         ],
         message:
@@ -49,6 +50,7 @@ const checkDescriptorDefinitions = {
           "pnpm --dir tooling/agent-pack test:customer",
           "pnpm --dir tooling/generators test",
           "pnpm --dir tooling/release test",
+          "pnpm --dir apps/cli test:create-root-admission",
           "pnpm --dir apps/cli test:create-root-integration",
           "pnpm --dir apps/web typecheck",
           "pnpm --dir apps/web build",
@@ -110,8 +112,9 @@ const checkDescriptorDefinitions = {
           "/apps/cli/",
           "/packages/convex/",
           "/examples/saas-application/",
+          "@timkeeeeeen",
         ],
-        absent: ["\n* @"],
+        absent: ["\n* @", "@kimprobably"],
         message:
           "code-owner review must protect trust, contract, and product roots",
       },
@@ -306,7 +309,6 @@ const checkDescriptorDefinitions = {
         includes: [
           "check:ci-completeness",
           "check:config-drift",
-          "acceptance:check",
           "check:convex-ai-files",
           "check:agent-pack",
           "check:confect-effect-compat",

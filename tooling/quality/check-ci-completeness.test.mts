@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { expectDescriptorPassesAndFails } from "./src/check-test-helpers.mts";
 import {
@@ -36,9 +37,13 @@ describe("check:ci-completeness", () => {
     const firewallPipeline = descriptor.requirements.find(
       ({ file }) => file === ".woodpecker/firewall.yml",
     );
-    expect(firewallPipeline?.includes).toContain("trusted-ci-policy");
-    expect(firewallPipeline?.includes).toContain("tooling/ci/firewall.sh");
-    expect(firewallPipeline?.includes).not.toContain("ai-review-cycle.mts");
+    const firewallIncludes = firewallPipeline?.includes;
+    expect(firewallIncludes).toContain("trusted-ci-policy");
+    expect(firewallIncludes).toContain(
+      "node:22.23.2-bookworm@sha256:0557ac14e0d45d02ed563067b82856ca5e7aa3437fa28d98d4350ea9c3d9494a",
+    );
+    expect(firewallIncludes).toContain("tooling/ci/firewall.sh");
+    expect(firewallIncludes).not.toContain("ai-review-cycle.mts");
     const firewallScript = descriptor.requirements.find(
       ({ file }) => file === "tooling/ci/firewall.sh",
     );
@@ -92,6 +97,7 @@ describe("check:ci-completeness", () => {
         "pnpm --dir tooling/agent-pack test:customer",
         "pnpm --dir tooling/generators test",
         "pnpm --dir tooling/release test",
+        "pnpm --dir apps/cli test:create-root-admission",
         "pnpm --dir apps/cli test:create-root-integration",
         "pnpm --dir apps/web typecheck",
         "pnpm --dir apps/web build",
@@ -109,6 +115,17 @@ describe("check:ci-completeness", () => {
         '"check:confect-manifest": "tsx tooling/confect-manifest/src/check.ts"',
       ]),
     );
+  });
+
+  it("assigns every protected path to the verified write-enabled operator", () => {
+    const rules = readFileSync(".github/CODEOWNERS", "utf8")
+      .split("\n")
+      .map((line) => line.trim())
+      .filter((line) => line !== "" && !line.startsWith("#"));
+
+    expect(rules.length).toBeGreaterThan(0);
+    expect(rules.every((rule) => rule.endsWith(" @timkeeeeeen"))).toBe(true);
+    expect(rules.join("\n")).not.toContain("@kimprobably");
   });
 
   it("rejects concatenated or duplicated host verification terms", () => {

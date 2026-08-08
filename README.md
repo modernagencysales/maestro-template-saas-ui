@@ -97,8 +97,7 @@ pnpm maestro -- create ../launch-tracker \
   --name "Launch Tracker" \
   --outcome "Track launch tasks and blockers" \
   --demo-only \
-  --write \
-  --privacy-reviewed
+  --write
 ```
 
 Create prints the remaining copy/paste commands: initialize Git, install the

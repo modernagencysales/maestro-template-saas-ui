@@ -54,7 +54,7 @@ const helpResult = (): CliResult =>
       "  maestro support-bundle [--output <path>] [--write] [--human|--details|--json]",
       "",
       "Advanced factory and operator commands:",
-      "  maestro scaffold --generator <id> --args <json-object> [--write --preflight-fingerprint <fingerprint>] [--human|--details|--json]",
+      "  maestro scaffold --generator <id> --args <json-object> [--write] [--human|--details|--json]",
       "  maestro doctor <provider> --environment fake|local|dev|preview|staging [--human|--details|--json]",
       "  maestro adopt preflight|work-package ... (dry-run only)",
       "  maestro mcp",

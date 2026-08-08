@@ -44,12 +44,12 @@ describe("customer chassis Woodpecker admission", () => {
     ).toHaveLength(1);
     expect(script).not.toContain("install-gitleaks.sh || true");
     expect(script.match(/^pnpm verify$/gmu)).toHaveLength(1);
-    expect(script).toContain("pnpm --dir apps/cli test:create-root-admission");
     expect(script).toContain("pnpm --dir apps/web test:runtime-longevity");
     for (const duplicate of [
       "pnpm --dir tooling/agent-pack test:customer",
       "pnpm --dir tooling/generators test",
       "pnpm --dir tooling/release test",
+      "pnpm --dir apps/cli test:create-root-admission",
       "pnpm --dir apps/cli test:create-root-integration",
       "pnpm --dir apps/web typecheck",
       "pnpm --dir apps/web build",

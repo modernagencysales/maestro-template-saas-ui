@@ -1130,7 +1130,7 @@ Blueprint: \`saas-application\`
 Create a separate customer target with the reviewed SaaS release, then start
 from that target so its personalized name and first outcome are available:
 
-\`pnpm maestro -- create ../my-app --name ${JSON.stringify(name)} --outcome "Deliver the first customer outcome" --write --privacy-reviewed\`
+\`pnpm maestro -- create ../my-app --name ${JSON.stringify(name)} --outcome "Deliver the first customer outcome" --write\`
 
 \`pnpm --dir ../my-app maestro -- start --mode fake\`
 
