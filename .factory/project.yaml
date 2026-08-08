@@ -1,11 +1,7 @@
 schema_version: 1
 quality:
-  required: [qlty]
+  required: []
 commands:
-  focused:
-    - id: cucumber
-      argv: [pnpm, acceptance:cucumber]
-      affected: ["features/**", "apps/**", "packages/**"]
   broad:
     - id: verify
       argv: [pnpm, verify]

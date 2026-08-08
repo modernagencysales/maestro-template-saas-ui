@@ -340,6 +340,8 @@ describe("deploy authority self-protection", () => {
 
   it("pins the secretless self-protection verifier outside PR-head scripts", () => {
     const base = fixture();
+    const nodeImage =
+      "node:22.23.2-bookworm@sha256:0557ac14e0d45d02ed563067b82856ca5e7aa3437fa28d98d4350ea9c3d9494a";
     const selfProtectionCommand =
       /- name: trusted-ci-policy[\s\S]*?commands:\n {6}- \|\n(?<body>[\s\S]*?)\n {4}failure:/u.exec(
         base.pipeline,
@@ -363,7 +365,9 @@ describe("deploy authority self-protection", () => {
     expect(base.pipeline).not.toContain(
       'pnpm exec tsx "$TRUSTED_VERIFIER_PATH"',
     );
-    expect(base.pipeline).toContain('[[ "$(node --version)" == "v22.12.0" ]]');
+    expect(base.pipeline.split(nodeImage)).toHaveLength(6);
+    expect(base.pipeline).not.toContain("node:22.12.0-bookworm");
+    expect(base.pipeline).toContain('[[ "$(node --version)" == "v22.23.2" ]]');
     expect(base.pipeline).toContain("export npm_config_ignore_scripts=true");
     expect(base.pipeline).toContain("unset npm_config_ignore_scripts");
     for (const pipeline of [
@@ -379,7 +383,8 @@ describe("deploy authority self-protection", () => {
         'node --experimental-strip-types "$TRUSTED_VERIFIER_PATH"',
         'pnpm exec tsx "$TRUSTED_VERIFIER_PATH"',
       ),
-      base.pipeline.replace("v22.12.0", "v22.11.0"),
+      base.pipeline.replace(nodeImage, "node:22.12.0-bookworm@sha256:stale"),
+      base.pipeline.replace("v22.23.2", "v22.11.0"),
       base.pipeline.replace("export npm_config_ignore_scripts=true", "true"),
       base.pipeline.replace("unset npm_config_ignore_scripts", "true"),
       base.pipeline.replace(

@@ -18,7 +18,7 @@ when:
 
 steps:
   - name: trusted-ci-policy
-    image: node:22.12.0-bookworm@sha256:0e910f435308c36ea60b4cfd7b80208044d77a074d16b768a81901ce938a62dc
+    image: node:22.23.2-bookworm@sha256:0557ac14e0d45d02ed563067b82856ca5e7aa3437fa28d98d4350ea9c3d9494a
     environment:
       TRUSTED_CI_SELF_PROTECTION_COMMIT:
         from_secret: trusted_ci_self_protection_commit
@@ -44,7 +44,7 @@ steps:
         git show "$TRUSTED_CI_SELF_PROTECTION_COMMIT:tooling/ci/ci-self-protection.sh" > "$TRUSTED_SELF_PROTECTION_PATH"
         export npm_config_ignore_scripts=true
         source "$TRUSTED_SETUP_PATH"
-        [[ "$(node --version)" == "v22.12.0" ]]
+        [[ "$(node --version)" == "v22.23.2" ]]
         node --experimental-strip-types "$TRUSTED_VERIFIER_PATH"
         TEMPLATE_CI_SETUP=skip bash "$TRUSTED_SELF_PROTECTION_PATH"
         unset npm_config_ignore_scripts
@@ -52,7 +52,7 @@ steps:
     failure: cancel
 
   - name: staging-authority-preflight
-    image: node:22.12.0-bookworm@sha256:0e910f435308c36ea60b4cfd7b80208044d77a074d16b768a81901ce938a62dc
+    image: node:22.23.2-bookworm@sha256:0557ac14e0d45d02ed563067b82856ca5e7aa3437fa28d98d4350ea9c3d9494a
     environment:
       PROMOTION_AUTHORITY_ENDPOINT:
         from_secret: promotion_authority_endpoint
@@ -81,7 +81,7 @@ steps:
     failure: cancel
 
   - name: staging-deploy
-    image: node:22.12.0-bookworm@sha256:0e910f435308c36ea60b4cfd7b80208044d77a074d16b768a81901ce938a62dc
+    image: node:22.23.2-bookworm@sha256:0557ac14e0d45d02ed563067b82856ca5e7aa3437fa28d98d4350ea9c3d9494a
     environment:
       PROMOTION_AUTHORITY_ENDPOINT:
         from_secret: promotion_authority_endpoint
@@ -118,7 +118,7 @@ steps:
     failure: cancel
 
   - name: production-authority-preflight
-    image: node:22.12.0-bookworm@sha256:0e910f435308c36ea60b4cfd7b80208044d77a074d16b768a81901ce938a62dc
+    image: node:22.23.2-bookworm@sha256:0557ac14e0d45d02ed563067b82856ca5e7aa3437fa28d98d4350ea9c3d9494a
     environment:
       PROMOTION_AUTHORITY_ENDPOINT:
         from_secret: promotion_authority_endpoint
@@ -147,7 +147,7 @@ steps:
     failure: cancel
 
   - name: production-promote
-    image: node:22.12.0-bookworm@sha256:0e910f435308c36ea60b4cfd7b80208044d77a074d16b768a81901ce938a62dc
+    image: node:22.23.2-bookworm@sha256:0557ac14e0d45d02ed563067b82856ca5e7aa3437fa28d98d4350ea9c3d9494a
     environment:
       PROMOTION_AUTHORITY_ENDPOINT:
         from_secret: promotion_authority_endpoint

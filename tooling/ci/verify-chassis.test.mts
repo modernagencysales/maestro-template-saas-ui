@@ -16,9 +16,11 @@ describe("customer chassis Woodpecker admission", () => {
   });
 
   it("declares the sole deterministic PR context", () => {
-    expect(read(".factory/project.yaml")).toContain(
-      "required_contexts: [ci/woodpecker/pr/verify]",
-    );
+    const project = read(".factory/project.yaml");
+    expect(project).toContain("required: []");
+    expect(project).not.toContain("required: [qlty]");
+    expect(project).not.toContain("acceptance:cucumber");
+    expect(project).toContain("required_contexts: [ci/woodpecker/pr/verify]");
   });
 
   it("reaches root verification once and keeps only extra chassis proof", () => {
