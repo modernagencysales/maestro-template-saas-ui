@@ -143,6 +143,16 @@ const blockedCodes = new Set([
   "AGENT_PACK_PROVIDER_MISSING",
 ]);
 
+/** Concrete preflight denials that prohibit a local mutation. */
+export const mutationBlockingPreflightCodes = [
+  ...unavailableCodes,
+  ...blockedCodes,
+] as const;
+export const isMutationBlockingPreflightCode = (code: string): boolean =>
+  mutationBlockingPreflightCodes.includes(
+    code as (typeof mutationBlockingPreflightCodes)[number],
+  );
+
 export function createPreflightCommand(probe: PreflightProbe) {
   return defineAgentPackCommand({
     id: "preflight",
@@ -158,8 +168,8 @@ export function createPreflightCommand(probe: PreflightProbe) {
         ? inspected.fingerprintBinding
         : "environment_binding_sha256:unavailable";
       const diagnostics = preflightDiagnostics(facts, input.mode);
-      const safeToMutate = !diagnostics.some(
-        ({ code }) => unavailableCodes.has(code) || blockedCodes.has(code),
+      const safeToMutate = !diagnostics.some(({ code }) =>
+        isMutationBlockingPreflightCode(code),
       );
       return {
         mutationPosture: "read-only",
