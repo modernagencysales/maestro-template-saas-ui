@@ -74,6 +74,12 @@ it("preserves pnpm child failure diagnostics", () => {
   );
 });
 
+it("approves the isolated Vitest esbuild dependency", () => {
+  expect(compatibilityPackage(compatibilitySets[0])).toMatchObject({
+    pnpm: { onlyBuiltDependencies: ["esbuild"] },
+  });
+});
+
 const runPnpm = (root: string, ...args: readonly string[]): string =>
   execFileSync("pnpm", [...args], {
     cwd: root,
@@ -95,6 +101,24 @@ const runPnpmAsync = async (
   }
 };
 
+const compatibilityPackage = (set: CompatibilitySet) => ({
+  name: `maestro-workpool-${set.workpool}-proof`,
+  private: true,
+  dependencies: {
+    "@convex-dev/workflow": set.workflow,
+    "@convex-dev/workpool": set.workpool,
+    convex: set.convex,
+    "convex-helpers": "0.1.111",
+    "convex-test": "0.0.54",
+  },
+  devDependencies: {
+    vitest: "3.2.6",
+  },
+  pnpm: {
+    onlyBuiltDependencies: ["esbuild"],
+  },
+});
+
 describe("isolated Workpool compatibility behavior", () => {
   beforeAll(async () => {
     for (const set of compatibilitySets) {
@@ -104,20 +128,7 @@ describe("isolated Workpool compatibility behavior", () => {
       installations.set(set.name, root);
       writeFileSync(
         join(root, "package.json"),
-        JSON.stringify({
-          name: `maestro-workpool-${set.workpool}-proof`,
-          private: true,
-          dependencies: {
-            "@convex-dev/workflow": set.workflow,
-            "@convex-dev/workpool": set.workpool,
-            convex: set.convex,
-            "convex-helpers": "0.1.111",
-            "convex-test": "0.0.54",
-          },
-          devDependencies: {
-            vitest: "3.2.6",
-          },
-        }),
+        JSON.stringify(compatibilityPackage(set)),
       );
       await runPnpmAsync(
         root,
