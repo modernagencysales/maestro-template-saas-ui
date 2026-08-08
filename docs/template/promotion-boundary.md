@@ -41,7 +41,9 @@ Promotion is a re-scaffold, not an import or directory move:
 4. If durable data is needed, use `template:add-table` with its complete
    lifecycle posture. Never copy a schema registration out of the sandbox.
 5. Run the generated focused tests, `pnpm check:promotion-boundary`,
-   `pnpm check:system-topology`, `pnpm check:data-resources`, and `pnpm verify`.
+   `pnpm check:system-topology`, and `pnpm check:data-resources`. Defer
+   `pnpm verify` to the delivery batch: run it once on the immutable final head,
+   with Woodpecker as the blocking verification authority.
 6. Request contract review for overlapping responsibilities and authority.
 
 Private-package imports follow the same rule. Dry-run and import commands

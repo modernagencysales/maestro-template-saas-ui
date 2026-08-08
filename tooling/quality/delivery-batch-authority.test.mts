@@ -60,6 +60,21 @@ describe("delivery-batch instructions", () => {
       expect(instructions).toContain("woodpecker");
     },
   );
+
+  it.each([
+    "docs/template/how-to-add-frontend-route.md",
+    "docs/template/promotion-boundary.md",
+  ])(
+    "keeps focused checks local and defers verify to Woodpecker in %s",
+    (path) => {
+      const instructions = read(path).toLowerCase();
+
+      expect(instructions).toContain("focused");
+      expect(instructions).toContain("pnpm verify");
+      expect(instructions).toMatch(/delivery\s+batch/u);
+      expect(instructions).toContain("woodpecker");
+    },
+  );
 });
 
 describe("deterministic suite ownership", () => {
