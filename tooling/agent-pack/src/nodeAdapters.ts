@@ -877,23 +877,20 @@ function isManagedManifest(
 
 function isManagedManifestEntry(
   value: unknown,
-): value is { readonly path: string; readonly sha256: string } {
-  return (
-    isRecord(value) &&
-    typeof value.path === "string" &&
-    typeof value.sha256 === "string"
-  );
+): value is { readonly path: string; readonly sha256?: unknown } {
+  return isRecord(value) && typeof value.path === "string";
 }
 
 function validManagedManifestHash(
-  hash: string,
+  hash: unknown,
   path: string,
   hashes: ReadonlyMap<string, string>,
-): boolean {
+): hash is string {
   return (
     path.length > 0 &&
     !path.startsWith("/") &&
     !path.split("/").includes("..") &&
+    typeof hash === "string" &&
     /^sha256:[0-9a-f]{64}$/.test(hash) &&
     !hashes.has(path)
   );
