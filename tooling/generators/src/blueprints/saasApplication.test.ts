@@ -476,7 +476,6 @@ describe("saas application blueprint", () => {
     const operationsRunbook = entries.get(
       "docs/template/operations-runbook.md",
     );
-    const justfile = entries.get("Justfile");
     const appMapComposition = entries.get("tooling/app-map/src/composition.ts");
     const appMapCompositionTest = entries.get(
       "tooling/app-map/src/composition.test.ts",
@@ -550,15 +549,6 @@ describe("saas application blueprint", () => {
     expect(appMapSchema?.content).toMatch(
       /"generator-provenance-facts"[\s\S]*?ownershipTargets:\s*\[[^\]]*"route"[^\]]*\]/u,
     );
-    expect(justfile).toMatchObject({ replaces: "generate" });
-    expect(justfile?.content).not.toContain("test-pr-backlog:");
-    expect(justfile?.content).not.toContain("evals:");
-    expect(justfile?.content).not.toContain("check-workflow-output-smoke:");
-    expect(justfile?.content).not.toContain("mutation:");
-    const customerScripts = root.scripts ?? {};
-    for (const match of justfile?.content.matchAll(/^\s+pnpm ([^\s;&]+)/gmu) ??
-      [])
-      expect(customerScripts, match[1]).toHaveProperty(match[1] as string);
   });
 
   it("projects canonical ownership provenance for the records vertical", () => {
@@ -987,7 +977,6 @@ Feature: Reconcile disputed invoices
       ...CURRENT_SAAS_DEPLOY_AUTHORITY_TABLE_CLOSURE,
       ...CURRENT_SAAS_DEPLOY_AUTHORITY_SOURCE_CLOSURE,
       ...CURRENT_HEADLESS_CONTRACT_SOURCE_CLOSURE,
-      "Justfile",
       "apps/cli/package.json",
       "apps/web/package.json",
       "apps/cli/src/factory/mcp.ts",
@@ -1870,7 +1859,6 @@ Feature: Reconcile disputed invoices
       "packages/convex/convex/records/records.ts",
       "apps/web/src/routeTree.gen.ts",
       "apps/web/src/routeRegistry.generated.ts",
-      "Justfile",
       "apps/web/src/adapters/confect-generated-refs.test.ts",
       "docs/template/env-manifest.json",
       "docs/template/env-manifest.md",

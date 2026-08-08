@@ -15,7 +15,6 @@ import {
 } from "./saasRegistrationProjections";
 
 const CURRENT_CUSTOMER_SOURCE_PROJECTIONS = [
-  "Justfile",
   "apps/web/src/adapters/confect-generated-refs.test.ts",
   "docs/template/env-manifest.json",
   "docs/template/env-manifest.md",
@@ -48,49 +47,6 @@ const currentCustomerSource = (
     new URL(`../../../../${path}`, import.meta.url),
     "utf8",
   );
-  if (path === "Justfile") {
-    const factoryOnlyRecipes = [
-      `test-pr-backlog:
-    pnpm test:pr-backlog
-
-evals:
-    pnpm evals
-
-`,
-      `check-workflow-output-smoke:
-    pnpm template:workflow-output-smoke
-
-`,
-      `mutation:
-    bash tooling/ci/mutation.sh
-
-`,
-    ] as const;
-    for (const recipe of factoryOnlyRecipes) {
-      if (!content.includes(recipe))
-        throw new Error(
-          "customer Justfile factory-only recipe marker is missing",
-        );
-      content = content.replace(recipe, "");
-    }
-    if (!selectsSaasApplicationPattern(selection, "workflow-automation")) {
-      for (const recipe of [
-        `test-workflow:
-    pnpm test:workflow
-
-`,
-        `check-workflow-semantics:
-    pnpm check:workflow-semantics
-
-`,
-        `check-workflow-fast:
-    pnpm check:workflow:fast
-
-`,
-      ])
-        content = content.replace(recipe, "");
-    }
-  }
   if (path === "tooling/generators/src/crud-proof.test.ts") {
     const factoryFixture =
       "examples/saas-application/seed/source/apps/web/src/adapters/records/fake.ts";
