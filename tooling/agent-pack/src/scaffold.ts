@@ -333,9 +333,8 @@ function workflowRestrictions(
   repo: RepositoryContext,
 ): readonly WorkflowScaffoldRestriction[] {
   const rules = new Map(authority.semantics.map((rule) => [rule.id, rule]));
-  const reviewedAdrRefs = authority.reviewedAdrRefs(repo);
   return ruleIds.flatMap((ruleId) =>
-    workflowRestriction(ruleId, resolutions, rules, reviewedAdrRefs),
+    workflowRestriction(ruleId, resolutions, rules, authority, repo),
   );
 }
 
@@ -343,29 +342,28 @@ function workflowRestriction(
   ruleId: string,
   resolutions: readonly WorkflowResolution[],
   rules: ReadonlyMap<string, WorkflowSemanticProjection>,
-  reviewedAdrRefs: ReadonlySet<string>,
+  authority: ScaffoldDependencies["workflow"],
+  repo: RepositoryContext,
 ): readonly WorkflowScaffoldRestriction[] {
   const rule = rules.get(ruleId);
   if (rule?.status === "supported") return [];
   const matching = resolutions.filter(
     (resolution) => resolution.ruleId === ruleId,
   );
-  if (hasReviewedResolution(rule, matching, reviewedAdrRefs)) return [];
+  if (hasReviewedResolution(rule, matching, authority, repo)) return [];
   return [unresolvedRestriction(ruleId, rule, matching)];
 }
 
 function hasReviewedResolution(
   rule: WorkflowSemanticProjection | undefined,
   matching: readonly WorkflowResolution[],
-  reviewedAdrRefs: ReadonlySet<string>,
+  authority: ScaffoldDependencies["workflow"],
+  repo: RepositoryContext,
 ): boolean {
   const selection = matching[0];
-  return (
-    rule !== undefined &&
-    matching.length === 1 &&
-    selection !== undefined &&
-    resolutionIsReviewed(selection, rule, reviewedAdrRefs)
-  );
+  if (rule === undefined || matching.length !== 1 || selection === undefined)
+    return false;
+  return resolutionIsReviewed(selection, rule, authority.reviewedAdrRefs(repo));
 }
 
 function unresolvedRestriction(
