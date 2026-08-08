@@ -17,6 +17,7 @@ import { promisify } from "node:util";
 import { buildSaasApplicationTargetPlan } from "@maestro-template/generators";
 import { buildCustomerOwnershipInventory } from "@maestro-template/release-tooling/customer-ownership";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
+import { CURRENT_PUBLIC_SOURCE } from "./createComposition";
 
 const temporaryRoots: string[] = [];
 const execFileAsync = promisify(execFile);
@@ -32,12 +33,6 @@ const installedStoreDir = readFileSync(
 ).match(/^storeDir: (.+)$/m)?.[1];
 let taggedReleaseParent: string | undefined;
 let taggedReleaseRoot: string | undefined;
-const frozenAlpha2RuntimeSeam = [
-  "apps/cli/src/factory/createComposition.ts",
-  "tooling/generators/src/index.ts",
-  "tooling/generators/src/blueprints/alpha2SaasApplicationPlan.ts",
-  "tooling/generators/src/blueprints/customer/alpha2-plan.json.gz.b64",
-] as const;
 const taggedRepository = (): string => {
   if (taggedReleaseRoot) return taggedReleaseRoot;
   taggedReleaseParent = mkdtempSync(join(tmpdir(), "maestro-tagged-release-"));
@@ -47,11 +42,11 @@ const taggedRepository = (): string => {
     ["clone", "--quiet", "--shared", repositoryRoot, taggedReleaseRoot],
     { stdio: "pipe" },
   );
-  for (const path of frozenAlpha2RuntimeSeam) {
-    const target = join(taggedReleaseRoot, path);
-    mkdirSync(dirname(target), { recursive: true });
-    writeFileSync(target, readFileSync(join(repositoryRoot, path)));
-  }
+  execFileSync(
+    "git",
+    ["checkout", "--quiet", "--detach", CURRENT_PUBLIC_SOURCE.tag],
+    { cwd: taggedReleaseRoot, stdio: "pipe", timeout: 120_000 },
+  );
   execFileSync(
     "pnpm",
     ["install", "--offline", "--frozen-lockfile", "--ignore-scripts"],
@@ -174,11 +169,14 @@ describe("materialized customer CLI runtime closure", () => {
     expect(existsSync(configuredTmpdir)).toBe(true);
   });
 
-  it("installs the frozen release seam on the current workspace closure", () => {
+  it("installs the reviewed immutable customer release", () => {
     const releaseRoot = taggedRepository();
-    expect(readFileSync(join(releaseRoot, "pnpm-lock.yaml"))).toEqual(
-      readFileSync(join(repositoryRoot, "pnpm-lock.yaml")),
-    );
+    expect(
+      execFileSync("git", ["describe", "--tags", "--exact-match"], {
+        cwd: releaseRoot,
+        encoding: "utf8",
+      }).trim(),
+    ).toBe(CURRENT_PUBLIC_SOURCE.tag);
     expect(
       existsSync(
         join(
@@ -203,6 +201,7 @@ describe("materialized customer CLI runtime closure", () => {
       "Inspect local support facts",
       "--demo-only",
       "--write",
+      "--privacy-reviewed",
       "--json",
     ]);
     expect(created.exitCode, `${created.stdout}\n${created.stderr}`).toBe(0);
@@ -314,6 +313,7 @@ describe("materialized customer CLI runtime closure", () => {
       "Track one governed record",
       "--demo-only",
       "--write",
+      "--privacy-reviewed",
       "--json",
     ]);
     expect(created.exitCode, `${created.stdout}\n${created.stderr}`).toBe(0);
@@ -379,6 +379,7 @@ describe("materialized customer CLI runtime closure", () => {
       "Review a generic private package",
       "--demo-only",
       "--write",
+      "--privacy-reviewed",
       "--json",
     ]);
     expect(created.exitCode, `${created.stdout}\n${created.stderr}`).toBe(0);
@@ -560,6 +561,7 @@ describe("materialized customer CLI runtime closure", () => {
       "Track one customer request",
       "--demo-only",
       "--write",
+      "--privacy-reviewed",
       "--json",
     ]);
     expect(created.exitCode, `${created.stdout}\n${created.stderr}`).toBe(0);
