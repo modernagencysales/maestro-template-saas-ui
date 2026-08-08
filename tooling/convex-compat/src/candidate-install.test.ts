@@ -39,6 +39,41 @@ const installations = new Map<CompatibilitySet["name"], string>();
 const repoRoot = resolve(import.meta.dirname, "../../..");
 const execFileAsync = promisify(execFile);
 
+const diagnosticText = (value: unknown): string => {
+  if (typeof value === "string") return value.trimEnd();
+  if (Buffer.isBuffer(value)) return value.toString("utf8").trimEnd();
+  return "(none)";
+};
+
+const pnpmFailureMessage = (error: unknown): string => {
+  const failure = error as {
+    readonly code?: number | string | null;
+    readonly signal?: NodeJS.Signals | null;
+    readonly stdout?: unknown;
+    readonly stderr?: unknown;
+  };
+  return [
+    `pnpm failed (code=${failure.code ?? "unknown"}, signal=${failure.signal ?? "none"})`,
+    "stdout:",
+    diagnosticText(failure.stdout),
+    "stderr:",
+    diagnosticText(failure.stderr),
+  ].join("\n");
+};
+
+it("preserves pnpm child failure diagnostics", () => {
+  expect(
+    pnpmFailureMessage({
+      code: 1,
+      signal: null,
+      stdout: "captured stdout",
+      stderr: "captured stderr",
+    }),
+  ).toBe(
+    "pnpm failed (code=1, signal=none)\nstdout:\ncaptured stdout\nstderr:\ncaptured stderr",
+  );
+});
+
 const runPnpm = (root: string, ...args: readonly string[]): string =>
   execFileSync("pnpm", [...args], {
     cwd: root,
@@ -50,10 +85,14 @@ const runPnpmAsync = async (
   root: string,
   ...args: readonly string[]
 ): Promise<void> => {
-  await execFileAsync("pnpm", [...args], {
-    cwd: root,
-    encoding: "utf8",
-  });
+  try {
+    await execFileAsync("pnpm", [...args], {
+      cwd: root,
+      encoding: "utf8",
+    });
+  } catch (error) {
+    throw new Error(pnpmFailureMessage(error), { cause: error });
+  }
 };
 
 describe("isolated Workpool compatibility behavior", () => {
