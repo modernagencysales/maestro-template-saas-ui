@@ -408,6 +408,11 @@ const checkDescriptorDefinitions = {
         includes: ["entry", "project"],
         message: "knip must have a real workspace-aware config",
       },
+      {
+        file: "package.json",
+        includes: ["knip --config knip.json"],
+        message: "check:knip must invoke the real knip CLI",
+      },
     ],
   },
   "route-tree": {
@@ -457,6 +462,15 @@ const checkDescriptorDefinitions = {
   "types-coverage": {
     name: "check:types-coverage",
     requirements: [
+      {
+        file: "package.json",
+        includes: [
+          "--max-old-space-size=8192",
+          "type-coverage --project tsconfig.type-coverage.json --at-least 99.7",
+        ],
+        message:
+          "check:types-coverage must invoke type-coverage with an explicit threshold",
+      },
       {
         file: "tsconfig.base.json",
         includes: [
@@ -773,6 +787,12 @@ const checkDescriptorDefinitions = {
         file: "dependency-cruiser.config.cjs",
         includes: ["forbidden", "from", "to"],
         message: "dependency-cruiser config must enforce layer boundaries",
+      },
+      {
+        file: "package.json",
+        includes: ["depcruise --config dependency-cruiser.config.cjs"],
+        message:
+          "check:layer-boundaries must invoke dependency-cruiser instead of a placeholder check",
       },
     ],
   },
@@ -1220,7 +1240,7 @@ export const checkDescriptors = defineRegisteredStaticCheckDescriptors(
         "packages/convex/confect",
         "tooling/quality/check-append-only-tables.mts",
         "tooling/quality/check-append-only-tables.test.mts",
-        "tooling/ci/phase1.sh",
+        "package.json",
       ],
     },
     deps: { evidenceClass: "static" },
