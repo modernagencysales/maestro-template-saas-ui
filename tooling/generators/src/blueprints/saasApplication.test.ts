@@ -2323,7 +2323,7 @@ Feature: Reconcile disputed invoices
       "tsx tooling/generators/src/customer-cli.ts smoke",
     );
     expect(root.scripts.test).toBe(
-      "turbo run test --filter='./packages/*' --filter=@maestro-template/web",
+      "turbo run test --filter='./packages/*' --filter=@maestro-template/web && pnpm test:tooling",
     );
     expect(root.scripts["test:tooling"]).toBe(
       "pnpm test:bootstrap && pnpm --dir tooling/workflow test && pnpm --dir tooling/generators exec vitest run src/customer-runtime.test.ts src/templateInstanceMigration.test.ts src/workflow-publication-generation.test.ts src/workflow-release-commands.test.ts --maxWorkers=1 --no-file-parallelism",
@@ -2347,7 +2347,6 @@ Feature: Reconcile disputed invoices
         "typecheck",
         "check:effect-diagnostics",
         "test",
-        "test:tooling",
         "build",
         "check:convex-ai-files",
         "check:agent-pack",

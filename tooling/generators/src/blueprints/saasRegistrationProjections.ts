@@ -497,7 +497,7 @@ const customerPackage = (
     }),
   );
   value.scripts.test =
-    "turbo run test --filter='./packages/*' --filter=@maestro-template/web";
+    "turbo run test --filter='./packages/*' --filter=@maestro-template/web && pnpm test:tooling";
   value.scripts["test:tooling"] = workflowSelected
     ? "pnpm test:bootstrap && pnpm --dir tooling/workflow test && pnpm --dir tooling/generators exec vitest run src/customer-runtime.test.ts src/templateInstanceMigration.test.ts src/workflow-publication-generation.test.ts src/workflow-release-commands.test.ts --maxWorkers=1 --no-file-parallelism"
     : "pnpm test:bootstrap && pnpm --dir tooling/generators exec vitest run src/customer-runtime.test.ts src/templateInstanceMigration.test.ts --maxWorkers=1 --no-file-parallelism";
@@ -516,7 +516,6 @@ const customerPackage = (
     "typecheck",
     "check:effect-diagnostics",
     "test",
-    "test:tooling",
     "build",
     "check:convex-ai-files",
     "check:agent-pack",
