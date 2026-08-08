@@ -331,7 +331,7 @@ async function integratedFixture(): Promise<string> {
   });
   await mkdir(join(fixtureRoot, ".agents/skills"), { recursive: true });
   await cp(
-    join(fixtureRoot, "agent-pack/skills/maestro"),
+    join(fixtureRoot, "agent-pack/generated/codex/.agents/skills/maestro"),
     join(fixtureRoot, ".agents/skills/maestro"),
     { recursive: true },
   );

@@ -47,10 +47,10 @@ minimum version; later versions must preserve equivalent discovery.
    Codex-specific MCP declaration with no `cwd`; Codex therefore launches it
    from the project selected by `-C`, never from the plugin cache.
 
-The root `.agents/skills/maestro` directory is synchronized directly from the
-canonical `agent-pack/skills/maestro` source. Edit only that source and run the
+The root `.agents/skills/maestro` directory is generated from
+`agent-pack/skills/maestro`. Edit only the canonical source and run the
 repository skill synchronization command; the drift gate rejects a
-hand-maintained root copy.
+hand-maintained second copy.
 
 ## Optional temporary-home validation
 

@@ -14,11 +14,10 @@ if [[ "${CI:-}" != "true" ]] && command -v pnpm &>/dev/null; then
   return 0
 fi
 
-# Prefer a compatible Node already present on container runners. Bare runners
-# fall back to fnm, which reads .nvmrc automatically. When fnm is not prebaked,
-# install its pinned release archive with a checked SHA-256; never execute remote
-# installers from PR-controlled scripts.
-NODE_ENGINE_RANGE="^22.23.2 || ^24.0.0 || >=26.0.0"
+# Node.js via fnm (fast, reads .nvmrc automatically).
+# CI images may prebake the exact fnm version. When they do not, install the
+# pinned release archive with a checked SHA-256; never execute remote installers
+# from PR-controlled scripts.
 FNM_VERSION="1.38.1"
 FNM_LINUX_ZIP_SHA256="b69e5c9a05c1e17e4a7de9a17df14ba430d049f2591af791a6f850a170296069"
 FNM_LINUX_ZIP_URL="https://github.com/Schniz/fnm/releases/download/v${FNM_VERSION}/fnm-linux.zip"
@@ -58,31 +57,11 @@ install_pinned_fnm() {
   export PATH="$install_dir:$PATH"
 }
 
-node_version_is_compatible() {
-  local version="${1#v}"
-  if [[ ! "$version" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
-    return 1
-  fi
-  local major="${BASH_REMATCH[1]}"
-  local minor="${BASH_REMATCH[2]}"
-  local patch="${BASH_REMATCH[3]}"
-  if ((major == 22)); then
-    ((minor > 23 || (minor == 23 && patch >= 2)))
-  elif ((major == 24)); then
-    return 0
-  else
-    ((major >= 26))
-  fi
-}
+if ! command -v fnm &>/dev/null && ! { command -v node &>/dev/null && command -v pnpm &>/dev/null; }; then
+  install_pinned_fnm
+fi
 
-node_is_compatible() {
-  command -v node &>/dev/null && node_version_is_compatible "$(node --version)"
-}
-
-if ! node_is_compatible; then
-  if ! command -v fnm &>/dev/null; then
-    install_pinned_fnm
-  fi
+if command -v fnm &>/dev/null; then
   if ! fnm --version | grep -Eq "(^| )${FNM_VERSION}($| )"; then
     echo "fnm version mismatch; expected $FNM_VERSION, got: $(fnm --version)" >&2
     exit 1
@@ -90,12 +69,11 @@ if ! node_is_compatible; then
   eval "$(fnm env --shell bash)"
   fnm install
   fnm use
-  if ! node_is_compatible; then
-    echo "fnm failed to provide Node ${NODE_ENGINE_RANGE}; got: $(node --version 2>/dev/null || echo missing)" >&2
-    exit 1
-  fi
+elif command -v node &>/dev/null && command -v pnpm &>/dev/null; then
+  echo "fnm $FNM_VERSION not present; using preinstalled node $(node --version) and pnpm $(pnpm --version)."
 else
-  echo "Using compatible preinstalled node $(node --version)."
+  echo "fnm $FNM_VERSION or preinstalled node+pnpm must be present on the CI image; refusing unchecked remote installer." >&2
+  exit 1
 fi
 
 # pnpm: checksum-pinned standalone binary. Corepack verifies downloads against

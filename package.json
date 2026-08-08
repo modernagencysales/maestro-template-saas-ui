@@ -18,6 +18,7 @@
     "test:app-map": "pnpm --dir tooling/app-map test",
     "test:workflow": "pnpm --dir tooling/workflow test",
     "test:convex-compat": "pnpm --dir tooling/convex-compat test",
+    "test:pr-backlog": "pnpm --dir tooling/pr-backlog test",
     "evals": "pnpm --dir tooling/evals test",
     "evals:agent-pack": "tsx tooling/agent-pack/evals/walking-skeleton/cli.ts",
     "build": "turbo run build",

@@ -19,7 +19,7 @@ const readyFacts = (): PreflightFacts => ({
     os: "linux",
     architecture: "x64",
     osSupported: true,
-    node: { current: "22.23.2", required: "22.23.2", supported: true },
+    node: { current: "22.12.0", required: "22.12.0", supported: true },
     pnpm: { current: "10.12.1", required: "10.12.1", supported: true },
     corepack: "ready",
     git: {
