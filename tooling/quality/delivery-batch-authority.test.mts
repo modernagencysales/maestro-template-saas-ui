@@ -37,6 +37,14 @@ describe("local hook authority", () => {
 });
 
 describe("delivery-batch instructions", () => {
+  it("does not advertise removed stack planning authority", () => {
+    const planningSkill = read(".claude/skills/planning/SKILL.md");
+
+    expect(planningSkill).not.toMatch(
+      /stack:|tooling\/stack|Graphite|Justfile|plan-check/u,
+    );
+  });
+
   it.each([
     "AGENTS.md",
     "docs/template/agent-worker-playbook.md",
