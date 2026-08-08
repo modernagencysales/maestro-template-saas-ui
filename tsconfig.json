@@ -4,7 +4,6 @@
   "references": [
     { "path": "./apps/web" },
     { "path": "./apps/cli" },
-    { "path": "./apps/voice-relay" },
     { "path": "./packages/convex" },
     { "path": "./packages/editor-core" },
     { "path": "./packages/editor-react" },
@@ -21,7 +20,6 @@
     { "path": "./tooling/quality" },
     { "path": "./tooling/generators" },
     { "path": "./tooling/evals" },
-    { "path": "./tooling/release" },
-    { "path": "./tooling/pr-backlog" }
+    { "path": "./tooling/release" }
   ]
 }
