@@ -5,10 +5,16 @@ import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
 
+import { env } from "../../convex/_generated/server";
 import databaseSchema from "../_generated/schema";
 import { DatabaseReader, DatabaseWriter } from "../_generated/services";
 import apiKeys from "./apiKeys.spec";
 import { verifyApiKeyHash } from "./auth";
+
+const scopesForContractsRole = (role: "primary" | "observer") =>
+  role === "primary"
+    ? (["workspace:read", "workspace:write"] as const)
+    : (["workspace:read"] as const);
 
 const seedLocalContracts = FunctionImpl.make(
   databaseSchema,
@@ -16,7 +22,7 @@ const seedLocalContracts = FunctionImpl.make(
   "seedLocalContracts",
   ({ namespace, primaryKeyHash, observerKeyHash }) =>
     Effect.gen(function* () {
-      if (process.env.MAESTRO_CONTRACT_TEST !== "1") {
+      if (env.MAESTRO_CONTRACT_TEST !== "1") {
         return yield* Effect.die(
           new Error("seedLocalContracts requires MAESTRO_CONTRACT_TEST=1."),
         );
@@ -28,6 +34,7 @@ const seedLocalContracts = FunctionImpl.make(
 
       const seedActor = (role: "primary" | "observer", keyHash: string) =>
         Effect.gen(function* () {
+          const scopes = scopesForContractsRole(role);
           const slug = `${namespace}-${role}`;
           const subject = `contracts:${namespace}:${role}`;
           const keyId = `api_key_${namespace}_${role}`;
@@ -152,7 +159,7 @@ const seedLocalContracts = FunctionImpl.make(
               .table("apiKeys")
               .patch(existingKey._id, {
                 keyHash,
-                scopes: ["workspace:read", "workspace:write"],
+                scopes,
                 status: "active",
                 createdByUserId: userId,
                 expiresAt: null,
@@ -168,7 +175,7 @@ const seedLocalContracts = FunctionImpl.make(
                 name: `Local contracts ${role}`,
                 keyHash,
                 displayPrefix: "contracts",
-                scopes: ["workspace:read", "workspace:write"],
+                scopes,
                 status: "active",
                 createdByUserId: userId,
                 createdAt: now,

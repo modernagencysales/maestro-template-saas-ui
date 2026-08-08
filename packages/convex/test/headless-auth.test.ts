@@ -1,4 +1,5 @@
 import { TestConfect } from "@confect/test";
+import { createHash } from "node:crypto";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
@@ -29,6 +30,9 @@ const seedLocalContracts = (args: {
       args,
     );
   }).pipe(Effect.provide(testConfectLayer()));
+
+const sha256 = (value: string) =>
+  createHash("sha256").update(value).digest("base64url");
 
 afterEach(() => vi.unstubAllEnvs());
 
@@ -218,8 +222,8 @@ describe("headless API-key auth", () => {
       Effect.runPromise(
         seedLocalContracts({
           namespace: "contracts-flag-check",
-          primaryKeyHash: "primary-hash",
-          observerKeyHash: "observer-hash",
+          primaryKeyHash: sha256("primary-key"),
+          observerKeyHash: sha256("observer-key"),
         }),
       ),
     ).rejects.toThrow(/MAESTRO_CONTRACT_TEST/u);
@@ -232,8 +236,26 @@ describe("headless API-key auth", () => {
       Effect.runPromise(
         seedLocalContracts({
           namespace: "customer-production",
-          primaryKeyHash: "primary-hash",
-          observerKeyHash: "observer-hash",
+          primaryKeyHash: sha256("primary-key"),
+          observerKeyHash: sha256("observer-key"),
+        }),
+      ),
+    ).rejects.toThrow();
+  });
+
+  it.each([
+    ["plaintext", "primary-key"],
+    ["wrong length", "abc123_-"],
+    ["non-base64url", `${"a".repeat(42)}+`],
+  ])("rejects %s contract key hashes", async (_label, primaryKeyHash) => {
+    vi.stubEnv("MAESTRO_CONTRACT_TEST", "1");
+
+    await expect(
+      Effect.runPromise(
+        seedLocalContracts({
+          namespace: "contracts-hash-check",
+          primaryKeyHash,
+          observerKeyHash: sha256("observer-key"),
         }),
       ),
     ).rejects.toThrow();
@@ -241,8 +263,8 @@ describe("headless API-key auth", () => {
 
   it("seeds two scoped actors and returns identifiers without key material", async () => {
     vi.stubEnv("MAESTRO_CONTRACT_TEST", "1");
-    const primaryKeyHash = "primary-hash";
-    const observerKeyHash = "observer-hash";
+    const primaryKeyHash = sha256("primary-key");
+    const observerKeyHash = sha256("observer-key");
     const program = Effect.gen(function* () {
       const confect = yield* TestConfect.TestConfect<typeof databaseSchema>();
       const seeded = yield* confect.mutation(
@@ -310,7 +332,7 @@ describe("headless API-key auth", () => {
     });
     expect(result.rows.observer).toEqual({
       workspaceId: result.seeded.observer.workspaceId,
-      scopes: ["workspace:read", "workspace:write"],
+      scopes: ["workspace:read"],
     });
     expect(JSON.stringify(result.seeded)).not.toContain(primaryKeyHash);
     expect(JSON.stringify(result.seeded)).not.toContain(observerKeyHash);

@@ -1,5 +1,5 @@
 import { chromium, type Browser, type BrowserContext } from "@playwright/test";
-import { execFile, spawn } from "node:child_process";
+import { spawn } from "node:child_process";
 import { createHash, randomBytes } from "node:crypto";
 import { createServer } from "node:net";
 
@@ -47,6 +47,25 @@ type ManagedProcess = {
   readonly terminate: (signal: NodeJS.Signals) => Promise<void>;
 };
 
+type ManagedCommand = {
+  readonly completion: Promise<{
+    readonly code: number | null;
+    readonly signal: string | null;
+    readonly stdout: string;
+    readonly stderr: string;
+  }>;
+  readonly terminate: (signal: NodeJS.Signals) => Promise<void>;
+};
+
+type RuntimeResources = {
+  readonly commands: Set<ManagedCommand>;
+  readonly cancelled: Promise<void>;
+  readonly cancel: () => void;
+  app: ManagedProcess | undefined;
+  browser: Browser | undefined;
+  stopping: boolean;
+};
+
 export type ContractsRuntimeDependencies = {
   readonly cwd: string;
   readonly environment: () => NodeJS.ProcessEnv;
@@ -56,12 +75,16 @@ export type ContractsRuntimeDependencies = {
   readonly runCommand: (
     args: readonly string[],
     environment: NodeJS.ProcessEnv,
-  ) => Promise<string>;
+  ) => Promise<ManagedCommand>;
   readonly spawnApp: (
     spec: AppSpec,
     output: (stream: "stdout" | "stderr", line: string) => void,
   ) => Promise<ManagedProcess>;
   readonly fetch?: typeof globalThis.fetch;
+  readonly commandTimeoutMs?: number;
+  readonly seedTimeoutMs?: number;
+  readonly readinessTimeoutMs?: number;
+  readonly retryDelayMs?: number;
 };
 
 const allowedEnvironmentNames = new Set([
@@ -137,23 +160,18 @@ export function createContractsRuntimeController(
   dependencies: ContractsRuntimeDependencies = nodeDependencies(),
 ) {
   let active: ContractsRuntime | undefined;
-  let activeApp: ManagedProcess | undefined;
   let starting: Promise<ContractsRuntime> | undefined;
   let stopping: Promise<void> | undefined;
+  let resources: RuntimeResources | undefined;
 
   const start = (): Promise<ContractsRuntime> => {
     if (active !== undefined) return Promise.resolve(active);
     if (starting !== undefined) return starting;
-    starting = bootContractsRuntime(dependencies).then(
-      ({ app, runtime }) => {
-        active = runtime;
-        activeApp = app;
-        return runtime;
-      },
-      (error: unknown) => {
-        throw error;
-      },
-    );
+    resources = createRuntimeResources();
+    starting = bootContractsRuntime(dependencies, resources).then((runtime) => {
+      active = runtime;
+      return runtime;
+    });
     void starting.then(
       () => {
         starting = undefined;
@@ -168,17 +186,20 @@ export function createContractsRuntimeController(
   const stop = (): Promise<void> => {
     if (stopping !== undefined) return stopping;
     stopping = (async () => {
+      const owned = resources;
+      if (owned !== undefined) {
+        owned.stopping = true;
+        owned.cancel();
+        await cleanupResources(owned);
+      }
       if (starting !== undefined) await starting.catch(() => undefined);
       const runtime = active;
-      const app = activeApp;
       active = undefined;
-      activeApp = undefined;
-      const cleanup = await Promise.allSettled([
-        app?.terminate("SIGINT"),
-        runtime?.browser.close(),
-      ]);
-      if (cleanup.some((result) => result.status === "rejected")) {
-        throw new Error("Contracts runtime cleanup failed.");
+      if (owned !== undefined) {
+        await cleanupResources(owned);
+        resources = undefined;
+      } else if (runtime !== undefined) {
+        await runtime.browser.close();
       }
     })().finally(() => {
       stopping = undefined;
@@ -200,6 +221,7 @@ export function createContractsRuntimeController(
 
 async function bootContractsRuntime(
   dependencies: ContractsRuntimeDependencies,
+  resources: RuntimeResources,
 ) {
   const secrets = new Set<string>();
   const redact = (input: unknown): string => {
@@ -207,12 +229,24 @@ async function bootContractsRuntime(
     for (const secret of secrets) {
       if (secret !== "") safe = safe.replaceAll(secret, "[REDACTED]");
     }
-    return safe
+    safe = safe
+      .replace(
+        /(\b(?:authorization|set-cookie|cookie)\s*:\s*)[^\r\n]+/giu,
+        "$1[REDACTED]",
+      )
       .replace(/(Bearer\s+)[^\s]+/giu, "$1[REDACTED]")
       .replace(
-        /\b([A-Z0-9_]*(?:TOKEN|API_KEY|DEPLOY_KEY|SECRET|PASSWORD|COOKIE|CREDENTIAL)[A-Z0-9_]*)=\S+/giu,
-        "$1=[REDACTED]",
+        /((?:["']?[A-Z0-9_-]{0,64}(?:TOKEN|API[_-]?KEY|DEPLOY[_-]?KEY|SECRET|PASSWORD|COOKIE|CREDENTIAL)[A-Z0-9_-]{0,64}["']?)\s*[:=]\s*)("[^"]*"|'[^']*'|[^\s,;]+)/giu,
+        (_match, prefix: string, value: string) => {
+          const quote = value.startsWith('"')
+            ? '"'
+            : value.startsWith("'")
+              ? "'"
+              : "";
+          return `${prefix}${quote}[REDACTED]${quote}`;
+        },
       );
+    return safe.slice(-19_900);
   };
   const inherited = minimalEnvironment(dependencies.environment());
   const localEnvironment = {
@@ -230,22 +264,58 @@ async function bootContractsRuntime(
     ]);
   const apiBaseUrl = `http://127.0.0.1:${convexSitePort}`;
   const expectedWebUrl = `http://127.0.0.1:${webPort}`;
-  let browser: Browser | undefined;
-  let app: ManagedProcess | undefined;
   let output = "";
   let announcedWebUrl = "";
-  let announceReady!: () => void;
+  let announceReady: (() => void) | undefined;
   const readyAnnouncement = new Promise<void>((resolve) => {
     announceReady = resolve;
   });
   const safeOutput = () => output;
+  const ensureRunning = () => {
+    if (resources.stopping) throw new Error("Contracts runtime was stopped.");
+  };
+  const executeCommand = async (
+    args: readonly string[],
+    environment: NodeJS.ProcessEnv,
+    timeoutMs: number,
+  ) => {
+    ensureRunning();
+    const command = await dependencies.runCommand(args, environment);
+    resources.commands.add(command);
+    try {
+      ensureRunning();
+      const result = await Promise.race([
+        command.completion,
+        resources.cancelled.then(() => {
+          throw new Error("Contracts runtime was stopped.");
+        }),
+        timeoutAfter(timeoutMs, () => "Contracts command timed out."),
+      ]);
+      if (result.code !== 0) {
+        throw new Error(
+          `Contracts command failed (${result.code ?? result.signal ?? "unknown"}).\n${result.stdout}\n${result.stderr}`,
+        );
+      }
+      return redact(result.stdout);
+    } catch (error) {
+      await command.terminate("SIGINT");
+      throw new Error(redact(error));
+    } finally {
+      resources.commands.delete(command);
+    }
+  };
+  const commandTimeoutMs = dependencies.commandTimeoutMs ?? 30_000;
+  const seedTimeoutMs = dependencies.seedTimeoutMs ?? 30_000;
+  const readinessTimeoutMs = dependencies.readinessTimeoutMs ?? 30_000;
+  const retryDelayMs = dependencies.retryDelayMs ?? 250;
 
   try {
-    await dependencies.runCommand(
+    await executeCommand(
       ["--silent", "exec", "convex", "init"],
       localEnvironment,
+      commandTimeoutMs,
     );
-    await dependencies.runCommand(
+    await executeCommand(
       [
         "--silent",
         "exec",
@@ -256,8 +326,9 @@ async function bootContractsRuntime(
         "1",
       ],
       localEnvironment,
+      commandTimeoutMs,
     );
-    await dependencies.runCommand(
+    await executeCommand(
       [
         "--silent",
         "exec",
@@ -268,9 +339,12 @@ async function bootContractsRuntime(
         "phc_test_placeholder",
       ],
       localEnvironment,
+      commandTimeoutMs,
     );
-    browser = await dependencies.launchBrowser(inherited);
-    app = await dependencies.spawnApp(
+    const browser = await dependencies.launchBrowser(inherited);
+    resources.browser = browser;
+    ensureRunning();
+    const app = await dependencies.spawnApp(
       {
         command: "pnpm",
         args: [
@@ -299,10 +373,12 @@ async function bootContractsRuntime(
         const match = /^\[maestro\] URL:\s+(\S+)\s*$/u.exec(safeLine);
         if (match?.[1]) {
           announcedWebUrl = match[1];
-          announceReady();
+          announceReady?.();
         }
       },
     );
+    resources.app = app;
+    ensureRunning();
     await Promise.race([
       readyAnnouncement,
       app.completion.then(() => {
@@ -310,8 +386,11 @@ async function bootContractsRuntime(
           `maestro start exited before readiness\n${safeOutput()}`,
         );
       }),
+      resources.cancelled.then(() => {
+        throw new Error("Contracts runtime was stopped.");
+      }),
       timeoutAfter(
-        30_000,
+        readinessTimeoutMs,
         () => `maestro start did not announce readiness\n${safeOutput()}`,
       ),
     ]);
@@ -329,9 +408,10 @@ async function bootContractsRuntime(
     const runCommand = async (
       args: readonly string[],
       environment: NodeJS.ProcessEnv,
+      timeoutMs = commandTimeoutMs,
     ) => {
       try {
-        return redact(await dependencies.runCommand(args, environment));
+        return await executeCommand(args, environment, timeoutMs);
       } catch (error) {
         throw new Error(redact(error));
       }
@@ -362,15 +442,20 @@ async function bootContractsRuntime(
         "headless/apiKeys:seedLocalContracts",
         JSON.stringify({ namespace, primaryKeyHash, observerKeyHash }),
       ];
-      const deadline = Date.now() + 30_000;
+      const deadline = Date.now() + seedTimeoutMs;
       let seedOutput = "";
       while (true) {
         try {
-          seedOutput = await runCommand(seedArgs, localEnvironment);
+          const remaining = Math.max(1, deadline - Date.now());
+          seedOutput = await runCommand(
+            seedArgs,
+            localEnvironment,
+            Math.min(commandTimeoutMs, remaining),
+          );
           break;
         } catch (error) {
           if (Date.now() >= deadline) throw error;
-          await delay(250);
+          await delay(retryDelayMs);
         }
       }
       const seeded = parseSeedResult(seedOutput);
@@ -444,11 +529,43 @@ async function bootContractsRuntime(
         });
       },
     };
-    return { app, runtime };
+    return runtime;
   } catch (error) {
-    await Promise.allSettled([app?.terminate("SIGINT"), browser?.close()]);
+    await cleanupResources(resources);
     throw new Error(redact(error));
   }
+}
+
+async function cleanupResources(resources: RuntimeResources) {
+  const commands = [...resources.commands];
+  const app = resources.app;
+  const browser = resources.browser;
+  resources.commands.clear();
+  resources.app = undefined;
+  resources.browser = undefined;
+  const cleanup = await Promise.allSettled([
+    ...commands.map((command) => command.terminate("SIGINT")),
+    app?.terminate("SIGINT"),
+    browser?.close(),
+  ]);
+  if (cleanup.some((result) => result.status === "rejected")) {
+    throw new Error("Contracts runtime cleanup failed.");
+  }
+}
+
+function createRuntimeResources(): RuntimeResources {
+  let cancel: () => void = () => undefined;
+  const cancelled = new Promise<void>((resolve) => {
+    cancel = resolve;
+  });
+  return {
+    commands: new Set(),
+    cancelled,
+    cancel,
+    app: undefined,
+    browser: undefined,
+    stopping: false,
+  };
 }
 
 function nodeDependencies(): ContractsRuntimeDependencies {
@@ -474,21 +591,30 @@ function nodeDependencies(): ContractsRuntimeDependencies {
       chromium.launch({ headless: true, env: stringEnvironment(environment) }),
     randomBytes: (size) => randomBytes(size),
     runCommand: (args, environment) =>
-      new Promise<string>((resolve, reject) => {
-        execFile(
-          "pnpm",
-          [...args],
-          { cwd, env: environment, encoding: "utf8" },
-          (error, stdout, stderr) => {
-            if (error) {
-              reject(new Error(`${error.message}\n${stdout}\n${stderr}`));
-              return;
-            }
-            resolve(stdout);
-          },
-        );
+      spawnManagedCommand({
+        command: "pnpm",
+        args,
+        cwd,
+        environment,
       }),
     spawnApp: (spec, output) => spawnManagedProcess(spec, output),
+  };
+}
+
+async function spawnManagedCommand(spec: AppSpec): Promise<ManagedCommand> {
+  let stdout = "";
+  let stderr = "";
+  const process = await spawnManagedProcess(spec, (stream, line) => {
+    if (stream === "stdout") stdout = `${stdout}${line}\n`.slice(-20_000);
+    else stderr = `${stderr}${line}\n`.slice(-20_000);
+  });
+  return {
+    completion: process.completion.then((result) => ({
+      ...result,
+      stdout,
+      stderr,
+    })),
+    terminate: process.terminate,
   };
 }
 
@@ -543,6 +669,14 @@ async function spawnManagedProcess(
       ]);
       if (!stopped && child.exitCode === null && child.signalCode === null) {
         signalTree("SIGKILL");
+        const killed = await Promise.race([
+          completion.then(() => true),
+          new Promise<false>((resolve) => {
+            const timer = setTimeout(() => resolve(false), 2_000);
+            timer.unref();
+          }),
+        ]);
+        if (!killed) throw new Error("Child process did not terminate.");
       }
     },
   };

@@ -28,6 +28,10 @@ const ContractsNamespace = Schema.String.check(
   Schema.isPattern(/^contracts-[a-z0-9](?:[a-z0-9-]{0,38}[a-z0-9])?$/u),
 );
 
+const Sha256Base64Url = Schema.String.check(
+  Schema.isPattern(/^[A-Za-z0-9_-]{43}$/u),
+);
+
 const SeededContractsActor = Schema.Struct({
   keyId: Schema.String,
   workspaceId: Id("workspaces"),
@@ -39,8 +43,8 @@ const seedLocalContracts = FunctionSpec.internalMutation({
   args: () =>
     Schema.Struct({
       namespace: ContractsNamespace,
-      primaryKeyHash: Schema.String,
-      observerKeyHash: Schema.String,
+      primaryKeyHash: Sha256Base64Url,
+      observerKeyHash: Sha256Base64Url,
     }),
   returns: () =>
     Schema.Struct({

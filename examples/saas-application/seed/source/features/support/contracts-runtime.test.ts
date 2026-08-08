@@ -10,9 +10,28 @@ const pending = new Promise<{ readonly code: number; readonly signal: null }>(
   () => undefined,
 );
 
-function harness(options?: { readonly exitBeforeReady?: boolean }) {
+const pendingCommand = new Promise<{
+  readonly code: number | null;
+  readonly signal: string | null;
+  readonly stdout: string;
+  readonly stderr: string;
+}>(() => undefined);
+
+const commandKind = (args: readonly string[]) => {
+  if (args.includes("headless/apiKeys:seedLocalContracts")) return "seed";
+  if (args.includes("maestro")) return "cli";
+  return "setup";
+};
+
+function harness(options?: {
+  readonly exitBeforeReady?: boolean;
+  readonly hangCommand?: "setup" | "seed" | "cli";
+  readonly cliDiagnostics?: boolean;
+  readonly commandTimeoutMs?: number;
+}) {
   const environments: NodeJS.ProcessEnv[] = [];
   const terminate = vi.fn(async () => undefined);
+  const terminateCommand = vi.fn(async () => undefined);
   const closeBrowser = vi.fn(async () => undefined);
   const fetchRequest = vi.fn<typeof globalThis.fetch>(async (...args) => {
     void args;
@@ -32,11 +51,18 @@ function harness(options?: { readonly exitBeforeReady?: boolean }) {
   const runCommand: ContractsRuntimeDependencies["runCommand"] = vi.fn(
     async (args, environment) => {
       environments.push(environment);
-      if (args.includes("headless/apiKeys:seedLocalContracts")) {
+      const kind = commandKind(args);
+      if (options?.hangCommand === kind) {
+        return { completion: pendingCommand, terminate: terminateCommand };
+      }
+      let stdout = "";
+      let stderr = "";
+      let code = 0;
+      if (kind === "seed") {
         const input = JSON.parse(args.at(-1) ?? "{}") as {
           readonly namespace: string;
         };
-        return JSON.stringify({
+        stdout = JSON.stringify({
           primary: {
             keyId: `${input.namespace}-primary-key`,
             workspaceId: `${input.namespace}-primary-workspace`,
@@ -49,10 +75,16 @@ function harness(options?: { readonly exitBeforeReady?: boolean }) {
           },
         });
       }
-      if (args.includes("capability")) {
-        return `TOKEN=child-output ${environment.MAESTRO_API_KEY}`;
+      if (kind === "cli" && options?.cliDiagnostics) {
+        code = 1;
+        stderr = `${"x".repeat(25_000)}\nTOKEN: token-canary\n{"apiKey":"json-canary","secret": "secret-canary"}\nAuthorization: Bearer bearer-canary\nSet-Cookie: session=cookie-canary; Path=/`;
+      } else if (kind === "cli") {
+        stdout = `TOKEN=child-output ${environment.MAESTRO_API_KEY}`;
       }
-      return "";
+      return {
+        completion: Promise.resolve({ code, signal: null, stdout, stderr }),
+        terminate: terminateCommand,
+      };
     },
   );
   const spawnApp: ContractsRuntimeDependencies["spawnApp"] = vi.fn(
@@ -88,6 +120,10 @@ function harness(options?: { readonly exitBeforeReady?: boolean }) {
     randomBytes: (size) => new Uint8Array(size).fill(++random),
     runCommand,
     spawnApp,
+    commandTimeoutMs: options?.commandTimeoutMs ?? 20,
+    seedTimeoutMs: 50,
+    readinessTimeoutMs: 50,
+    retryDelayMs: 1,
   };
   return {
     closeBrowser,
@@ -97,6 +133,7 @@ function harness(options?: { readonly exitBeforeReady?: boolean }) {
     launchBrowser,
     spawnApp,
     terminate,
+    terminateCommand,
   };
 }
 
@@ -166,6 +203,81 @@ describe("contracts runtime", () => {
     expect(String(failure)).not.toContain("also-secret");
     expect(test.terminate).toHaveBeenCalledTimes(1);
     expect(test.closeBrowser).toHaveBeenCalledTimes(1);
+  });
+
+  it("bounds and terminates a hung startup command", async () => {
+    const test = harness({ hangCommand: "setup" });
+    const controller = createContractsRuntimeController(test.dependencies);
+
+    await expect(controller.start()).rejects.toThrow(/timed out/u);
+
+    expect(test.terminateCommand).toHaveBeenCalled();
+    expect(test.launchBrowser).not.toHaveBeenCalled();
+    await controller.stop();
+  });
+
+  it("bounds and terminates hung seed attempts", async () => {
+    const test = harness({ hangCommand: "seed" });
+    const controller = createContractsRuntimeController(test.dependencies);
+    const runtime = await controller.start();
+
+    await expect(runtime.provisionScenario()).rejects.toThrow(/timed out/u);
+
+    expect(test.terminateCommand).toHaveBeenCalled();
+    await controller.stop();
+  });
+
+  it("bounds and terminates a hung CLI command", async () => {
+    const test = harness({ hangCommand: "cli" });
+    const controller = createContractsRuntimeController(test.dependencies);
+    const runtime = await controller.start();
+    const scenario = await runtime.provisionScenario();
+
+    await expect(
+      runtime.runCli(scenario, ["capability", "run", "records.list"]),
+    ).rejects.toThrow(/timed out/u);
+
+    expect(test.terminateCommand).toHaveBeenCalled();
+    await controller.stop();
+  });
+
+  it("aborts a tracked startup command when stopped", async () => {
+    const test = harness({ hangCommand: "setup", commandTimeoutMs: 10_000 });
+    const controller = createContractsRuntimeController(test.dependencies);
+
+    const starting = controller.start();
+    await vi.waitFor(() =>
+      expect(test.dependencies.runCommand).toHaveBeenCalled(),
+    );
+    await controller.stop();
+
+    await expect(starting).rejects.toThrow();
+    expect(test.terminateCommand).toHaveBeenCalled();
+  });
+
+  it("redacts realistic secret diagnostics and bounds retained output", async () => {
+    const test = harness({ cliDiagnostics: true });
+    const controller = createContractsRuntimeController(test.dependencies);
+    const runtime = await controller.start();
+    const scenario = await runtime.provisionScenario();
+
+    const failure = await runtime
+      .runCli(scenario, ["capability", "run", "records.list"])
+      .catch((error: unknown) => error);
+    const diagnostic = String(failure);
+
+    for (const canary of [
+      "token-canary",
+      "json-canary",
+      "secret-canary",
+      "bearer-canary",
+      "cookie-canary",
+    ]) {
+      expect(diagnostic).not.toContain(canary);
+    }
+    expect(diagnostic).toContain("[REDACTED]");
+    expect(diagnostic.length).toBeLessThanOrEqual(20_000);
+    await controller.stop();
   });
 
   it("routes browser contract requests through scenario credentials", async () => {
