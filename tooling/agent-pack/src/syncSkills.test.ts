@@ -66,9 +66,12 @@ describe("canonical Maestro skill projections", () => {
   });
 
   it("does not synchronize the removed Codex compatibility projection", async () => {
-    await expect(
-      readFile(join(repoRoot, "tooling/agent-pack/src/syncSkills.ts"), "utf8"),
-    ).resolves.not.toContain(
+    const sources = await Promise.all(
+      ["syncSkills.ts", "nodeAdapters.ts"].map((file) =>
+        readFile(join(repoRoot, "tooling/agent-pack/src", file), "utf8"),
+      ),
+    );
+    expect(sources.join("\n")).not.toContain(
       "agent-pack/generated/codex/.agents/skills/maestro",
     );
   });
