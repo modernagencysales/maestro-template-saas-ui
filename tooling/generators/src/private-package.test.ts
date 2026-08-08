@@ -201,6 +201,55 @@ describe("customer-safe private package import", () => {
     }
   });
 
+  it("refuses a dangling final destination before writing", () => {
+    const { root, fixturePath } = fixture();
+    try {
+      const destination = join(
+        root,
+        "private-packages/generic-ai-ops/package-plan.json",
+      );
+      mkdirSync(dirname(destination), { recursive: true });
+      symlinkSync(join(root, "missing-package-plan.json"), destination);
+      expect(() =>
+        executePrivatePackagePlan({
+          ...request(root, fixturePath),
+          mode: "import",
+          write: true,
+        }),
+      ).toThrow("Refusing to overwrite");
+      expect(
+        existsSync(join(root, "private-packages/generic-ai-ops/README.md")),
+      ).toBe(false);
+      expect(existsSync(join(root, "docs/template/generated/provenance"))).toBe(
+        false,
+      );
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("refuses a dangling target ancestor before writing", () => {
+    const { root, fixturePath } = fixture();
+    try {
+      symlinkSync(
+        join(root, "missing-private-packages"),
+        join(root, "private-packages"),
+      );
+      expect(() =>
+        executePrivatePackagePlan({
+          ...request(root, fixturePath),
+          mode: "import",
+          write: true,
+        }),
+      ).toThrow("symlinked target ancestor");
+      expect(existsSync(join(root, "docs/template/generated/provenance"))).toBe(
+        false,
+      );
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
   it("reports newly created paths if an exclusive write fails mid-import", () => {
     const { root, fixturePath } = fixture();
     try {

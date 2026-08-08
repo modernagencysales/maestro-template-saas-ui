@@ -1,10 +1,4 @@
-import {
-  existsSync,
-  lstatSync,
-  mkdirSync,
-  readFileSync,
-  writeFileSync,
-} from "node:fs";
+import { lstatSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import {
   basename,
   dirname,
@@ -74,6 +68,21 @@ const camelCase = (value: string): string => {
   return `${pascal[0]?.toLowerCase() ?? "g"}${pascal.slice(1)}`;
 };
 
+const pathStatus = (path: string) => {
+  try {
+    return lstatSync(path, { throwIfNoEntry: false });
+  } catch (error) {
+    if (
+      error &&
+      typeof error === "object" &&
+      "code" in error &&
+      (error.code === "ENOENT" || error.code === "ENOTDIR")
+    )
+      return undefined;
+    throw error;
+  }
+};
+
 const manifestAt = (
   fixturePath: string,
 ): {
@@ -81,7 +90,7 @@ const manifestAt = (
   readonly error: string | undefined;
 } => {
   const path = resolve(fixturePath, "template-package.json");
-  if (!existsSync(path)) return { manifest: undefined, error: undefined };
+  if (!pathStatus(path)) return { manifest: undefined, error: undefined };
   try {
     const value: unknown = JSON.parse(readFileSync(path, "utf8"));
     if (!isPrivatePackageManifest(value))
@@ -352,7 +361,7 @@ Generated from the reviewed manifest at \`${options.fixturePath}\`. Seed files a
   const collisions = targetRoot
     ? files
         .map(({ path }) => path)
-        .filter((path) => existsSync(resolve(targetRoot, path)))
+        .filter((path) => pathStatus(resolve(targetRoot, path)) !== undefined)
     : [];
   const privacy = {
     reads: ["template-package.json"],
@@ -408,13 +417,13 @@ const assertSafeDestinations = (
         `Private-package destination is under a protected root: ${file.path}`,
       );
     let ancestor = targetRoot;
-    if (existsSync(ancestor) && lstatSync(ancestor).isSymbolicLink())
+    if (pathStatus(ancestor)?.isSymbolicLink())
       throw new Error(`Refusing symlinked target ancestor: ${ancestor}`);
     for (const segment of relative(targetRoot, destination)
       .split(sep)
       .slice(0, -1)) {
       ancestor = resolve(ancestor, segment);
-      if (existsSync(ancestor) && lstatSync(ancestor).isSymbolicLink())
+      if (pathStatus(ancestor)?.isSymbolicLink())
         throw new Error(`Refusing symlinked target ancestor: ${ancestor}`);
     }
   }
