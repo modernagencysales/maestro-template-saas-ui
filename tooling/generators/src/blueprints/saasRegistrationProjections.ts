@@ -663,7 +663,6 @@ const customerCliPackage = (
     dependencies: Record<string, string>;
   };
   delete value.dependencies["@maestro-template/release-tooling"];
-  delete value.dependencies["@maestro-template/stack-tooling"];
   if (!selectsSaasApplicationPattern(selection, "workflow-automation"))
     delete value.dependencies["@maestro-template/workflow-tooling"];
   return `${JSON.stringify(value, null, 2)}\n`;
