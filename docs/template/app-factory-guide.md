@@ -67,13 +67,10 @@ runtime lifecycle projection agree.
 All `maestro add` and `template:*` generators preview by default. Preview should
 name exact files, collisions, ownership, provenance, and follow-up gates.
 
-The reviewed scaffold preview returns `privacy`, an exact `scaffold_sha256:`
-fingerprint, and a structured `confirmation.argv` containing that fingerprint
-plus the observed `preflight_sha256:` fingerprint. The fingerprint covers the
-arguments and every consequential output field, including generated file bytes,
-collisions, codegen, and focused gates. Run the argv unchanged; a missing or
-changed fingerprint blocks the write before any generator write call. Preview
-output exposes secret names only and remains classified `review-required`.
+Review the preview, then rerun the same command with `--write`. The write
+recomputes the plan from the current filesystem and refuses new collisions or
+drift before changing files. Preview output exposes secret names only and
+remains classified `review-required`.
 
 ### 5. Prove the affected contract
 
@@ -137,10 +134,9 @@ pnpm template:add-workflow -- --name milestoneReview --system record-management 
 pnpm template:add-agent -- --name launchCoordinator --system record-management --disposition extend
 ```
 
-Direct commands preview their compatible output and point to a structured
-reviewed-scaffold equivalent. For consequential writes, use that reviewed
-scaffold route and its exact confirmation argv rather than appending `--write`
-to the direct command. Backend generators require a canonical `--system` and
+Direct commands preview their compatible output and point to the matching
+reviewed-scaffold route. Review that route's plan, then rerun it with `--write`.
+Backend generators require a canonical `--system` and
 `--disposition reuse|extend` and write provenance for both.
 
 Factory maintainers can use `template:quickstart` to preview the broader

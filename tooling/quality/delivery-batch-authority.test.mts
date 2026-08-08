@@ -37,6 +37,21 @@ describe("local hook authority", () => {
 });
 
 describe("delivery-batch instructions", () => {
+  it.each([
+    "docs/template/app-factory-guide.md",
+    "docs/template/generator-output-contract.md",
+  ])(
+    "documents reversible generator writes without stale fingerprints in %s",
+    (path) => {
+      const instructions = read(path);
+
+      expect(instructions).toContain("--write");
+      expect(instructions).not.toMatch(
+        /scaffold_sha256:|preflight_sha256:|confirmation\.argv/u,
+      );
+    },
+  );
+
   it("does not advertise removed stack planning authority", () => {
     const planningSkill = read(".claude/skills/planning/SKILL.md");
 

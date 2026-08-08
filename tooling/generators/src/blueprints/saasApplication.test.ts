@@ -112,6 +112,22 @@ const reviewedBaseWrite = (
   return rule?.action === "copy" && sourcePaths.has(path) ? "copy" : undefined;
 };
 
+const verifyReferences = (scripts: Readonly<Record<string, string>>) =>
+  (scripts.verify ?? "")
+    .split(" && ")
+    .map((command) => /^pnpm (\S+)/u.exec(command)?.[1])
+    .filter((name): name is string => name !== undefined);
+
+const expectVerifyReferencesResolve = (
+  scripts: Readonly<Record<string, string>> | undefined,
+) => {
+  expect(scripts).toBeDefined();
+  const available = scripts ?? {};
+  expect(
+    verifyReferences(available).filter((name) => available[name] === undefined),
+  ).toEqual([]);
+};
+
 describe("saas application blueprint", () => {
   it("projects only explicitly selected product patterns", () => {
     const buildSelected = buildSaasApplicationTargetPlan as (options: {
@@ -232,6 +248,7 @@ describe("saas application blueprint", () => {
       "check:workflow-principal-propagation",
     ])
       expect(neutral.root.scripts).not.toHaveProperty(script);
+    expectVerifyReferencesResolve(neutral.root.scripts);
     expect(neutral.lock.importers).not.toHaveProperty("tooling/workflow");
     expect(neutral.entries.get("apps/cli/src/headlessRegistry.ts")).toContain(
       "Workflow automation pattern is not selected.",
@@ -280,6 +297,7 @@ describe("saas application blueprint", () => {
     const workflow = metadata(["workflow-automation"]);
     expect(workflow.contract.selectedPatterns).toEqual(["workflow-automation"]);
     expect(workflow.root.scripts).toHaveProperty("test:workflow");
+    expectVerifyReferencesResolve(workflow.root.scripts);
     expect(workflow.lock.importers).toHaveProperty("tooling/workflow");
     expect(workflow.entries.has("apps/cli/src/headlessRegistry.ts")).toBe(
       false,

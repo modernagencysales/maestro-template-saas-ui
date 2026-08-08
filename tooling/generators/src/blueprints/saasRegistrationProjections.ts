@@ -545,6 +545,7 @@ const customerPackage = (
     "check:posthog-readiness",
     "check:auth-demo-bypass",
   ]
+    .filter((name) => workflowSelected || !WORKFLOW_CUSTOMER_SCRIPTS.has(name))
     .map((name) => `pnpm ${name}`)
     .join(" && ");
   value.scripts.verify += " && pnpm maestro -- contracts test --required";
