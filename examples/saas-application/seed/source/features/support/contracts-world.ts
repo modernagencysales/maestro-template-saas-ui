@@ -8,6 +8,7 @@ import {
   World,
 } from "@cucumber/cucumber";
 import {
+  CONTRACTS_HOOK_TIMEOUT_MS,
   startContractsRuntime,
   stopContractsRuntime,
 } from "./contracts-runtime";
@@ -19,7 +20,7 @@ import {
 
 export { requirePage, requireScenario } from "./contracts-scenario";
 
-setDefaultTimeout(60_000);
+setDefaultTimeout(CONTRACTS_HOOK_TIMEOUT_MS);
 
 export class ContractsWorld extends World implements ContractsWorldState {
   context: ContractsWorldState["context"];

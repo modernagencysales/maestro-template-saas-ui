@@ -2,6 +2,8 @@ import type { Browser, BrowserContext, Route } from "@playwright/test";
 import { describe, expect, it, vi } from "vitest";
 
 import {
+  CONTRACTS_HOOK_TIMEOUT_MS,
+  CONTRACTS_RUNTIME_STARTUP_TIMEOUT_MS,
   createContractsRuntimeController,
   spawnManagedCommand,
   type ContractsRuntimeDependencies,
@@ -27,18 +29,28 @@ const commandKind = (args: readonly string[]) => {
 const failedSeedExitCode = (failed: boolean | undefined) => (failed ? 1 : 0);
 
 function harness(options?: {
+  readonly deferCleanup?: boolean;
   readonly exitBeforeReady?: boolean;
+  readonly hangBrowser?: boolean;
   readonly hangCommand?: "setup" | "seed" | "cli";
   readonly cliDiagnostics?: boolean;
   readonly commandTimeoutMs?: number;
   readonly seedFailure?: boolean;
+  readonly startupTimeoutMs?: number;
   readonly retryDelayMs?: number;
   readonly seedTimeoutMs?: number;
 }) {
   const environments: NodeJS.ProcessEnv[] = [];
-  const terminate = vi.fn(async () => undefined);
+  let releaseCleanup = () => undefined;
+  const cleanupReleased = new Promise<void>((resolve) => {
+    releaseCleanup = resolve;
+  });
+  const awaitCleanupRelease = async () => {
+    if (options?.deferCleanup) await cleanupReleased;
+  };
+  const terminate = vi.fn(awaitCleanupRelease);
   const terminateCommand = vi.fn(async () => undefined);
-  const closeBrowser = vi.fn(async () => undefined);
+  const closeBrowser = vi.fn(awaitCleanupRelease);
   const fetchRequest = vi.fn<typeof globalThis.fetch>(async (...args) => {
     void args;
     return new Response(JSON.stringify({ ok: true, result: [] }), {
@@ -48,6 +60,9 @@ function harness(options?: {
   const launchBrowser: ContractsRuntimeDependencies["launchBrowser"] = vi.fn(
     async (environment) => {
       environments.push(environment);
+      if (options?.hangBrowser) {
+        return await new Promise<Browser>(() => undefined);
+      }
       return {
         close: closeBrowser,
         newContext: vi.fn(),
@@ -128,6 +143,7 @@ function harness(options?: {
     runCommand,
     spawnApp,
     commandTimeoutMs: options?.commandTimeoutMs ?? 20,
+    startupTimeoutMs: options?.startupTimeoutMs,
     seedTimeoutMs: options?.seedTimeoutMs ?? 50,
     readinessTimeoutMs: 50,
     retryDelayMs: options?.retryDelayMs ?? 1,
@@ -138,6 +154,7 @@ function harness(options?: {
     environments,
     fetchRequest,
     launchBrowser,
+    releaseCleanup,
     spawnApp,
     terminate,
     terminateCommand,
@@ -145,6 +162,43 @@ function harness(options?: {
 }
 
 describe("contracts runtime", () => {
+  it("keeps the Cucumber hook deadline above the controller startup deadline", () => {
+    expect(CONTRACTS_HOOK_TIMEOUT_MS).toBeGreaterThan(
+      CONTRACTS_RUNTIME_STARTUP_TIMEOUT_MS,
+    );
+  });
+
+  it("bounds the entire controller-owned startup", async () => {
+    const test = harness({ hangBrowser: true, startupTimeoutMs: 10 });
+    const controller = createContractsRuntimeController(test.dependencies);
+
+    const result = await Promise.race([
+      controller.start().catch((error: unknown) => error),
+      new Promise<"still-pending">((resolve) => {
+        setTimeout(() => resolve("still-pending"), 100);
+      }),
+    ]);
+
+    expect(result).toBeInstanceOf(Error);
+    expect(String(result)).toContain("startup timed out");
+    await controller.stop();
+  });
+
+  it("memoizes cleanup while failed startup and stop overlap", async () => {
+    const test = harness({ deferCleanup: true, exitBeforeReady: true });
+    const controller = createContractsRuntimeController(test.dependencies);
+    const starting = controller.start().catch((error: unknown) => error);
+    await vi.waitFor(() => expect(test.terminate).toHaveBeenCalledOnce());
+
+    const stopping = controller.stop();
+    await new Promise<void>((resolve) => queueMicrotask(resolve));
+
+    expect(test.terminate).toHaveBeenCalledOnce();
+    expect(test.closeBrowser).toHaveBeenCalledOnce();
+    test.releaseCleanup();
+    await Promise.all([starting, stopping]);
+  });
+
   it("owns one process and browser while provisioning isolated scenarios", async () => {
     const test = harness();
     const controller = createContractsRuntimeController(test.dependencies);

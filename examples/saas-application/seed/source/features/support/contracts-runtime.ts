@@ -62,6 +62,7 @@ type RuntimeResources = {
   readonly commandTerminations: Map<ManagedCommand, Promise<void>>;
   readonly cancelled: Promise<void>;
   readonly cancel: () => void;
+  cleanup: Promise<void> | undefined;
   app: ManagedProcess | undefined;
   browser: Browser | undefined;
   stopping: boolean;
@@ -83,10 +84,14 @@ export type ContractsRuntimeDependencies = {
   ) => Promise<ManagedProcess>;
   readonly fetch?: typeof globalThis.fetch;
   readonly commandTimeoutMs?: number;
+  readonly startupTimeoutMs?: number;
   readonly seedTimeoutMs?: number;
   readonly readinessTimeoutMs?: number;
   readonly retryDelayMs?: number;
 };
+
+export const CONTRACTS_RUNTIME_STARTUP_TIMEOUT_MS = 120_000;
+export const CONTRACTS_HOOK_TIMEOUT_MS = 150_000;
 
 const allowedEnvironmentNames = new Set([
   "CI",
@@ -131,6 +136,23 @@ const timeoutAfter = (milliseconds: number, message: () => string) =>
     const timer = setTimeout(() => reject(new Error(message())), milliseconds);
     timer.unref();
   });
+
+const withTimeout = async <Value>(
+  operation: Promise<Value>,
+  milliseconds: number,
+  message: () => string,
+): Promise<Value> => {
+  let timer: NodeJS.Timeout | undefined;
+  const deadline = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(message())), milliseconds);
+    timer.unref();
+  });
+  try {
+    return await Promise.race([operation, deadline]);
+  } finally {
+    if (timer !== undefined) clearTimeout(timer);
+  }
+};
 
 const delay = (milliseconds: number) =>
   new Promise<void>((resolve) => {
@@ -180,20 +202,42 @@ export function createContractsRuntimeController(
   const start = (): Promise<ContractsRuntime> => {
     if (active !== undefined) return Promise.resolve(active);
     if (starting !== undefined) return starting;
-    resources = createRuntimeResources();
-    starting = bootContractsRuntime(dependencies, resources).then((runtime) => {
-      active = runtime;
-      return runtime;
-    });
-    void starting.then(
+    const owned = createRuntimeResources();
+    resources = owned;
+    const attempt = (async () => {
+      try {
+        const runtime = await withTimeout(
+          bootContractsRuntime(dependencies, owned),
+          dependencies.startupTimeoutMs ?? CONTRACTS_RUNTIME_STARTUP_TIMEOUT_MS,
+          () => "Contracts runtime startup timed out.",
+        );
+        if (owned.stopping) throw new Error("Contracts runtime was stopped.");
+        active = runtime;
+        return runtime;
+      } catch (error) {
+        owned.stopping = true;
+        owned.cancel();
+        let cleanupFailure: unknown;
+        try {
+          await cleanupResources(owned);
+        } catch (cleanupError) {
+          cleanupFailure = cleanupError;
+        }
+        const cleanupContext =
+          cleanupFailure === undefined ? "" : `\n${String(cleanupFailure)}`;
+        throw new Error(`${String(error)}${cleanupContext}`);
+      }
+    })();
+    starting = attempt;
+    void attempt.then(
       () => {
-        starting = undefined;
+        if (starting === attempt) starting = undefined;
       },
       () => {
-        starting = undefined;
+        if (starting === attempt) starting = undefined;
       },
     );
-    return starting;
+    return attempt;
   };
 
   const stop = (): Promise<void> => {
@@ -355,6 +399,10 @@ async function bootContractsRuntime(
       commandTimeoutMs,
     );
     const browser = await dependencies.launchBrowser(inherited);
+    if (resources.stopping) {
+      await browser.close();
+      throw new Error("Contracts runtime was stopped.");
+    }
     resources.browser = browser;
     ensureRunning();
     const app = await dependencies.spawnApp(
@@ -390,6 +438,10 @@ async function bootContractsRuntime(
         }
       },
     );
+    if (resources.stopping) {
+      await app.terminate("SIGINT");
+      throw new Error("Contracts runtime was stopped.");
+    }
     resources.app = app;
     ensureRunning();
     await Promise.race([
@@ -551,19 +603,18 @@ async function bootContractsRuntime(
     };
     return runtime;
   } catch (error) {
-    let cleanupFailure: unknown;
-    try {
-      await cleanupResources(resources);
-    } catch (cleanupError) {
-      cleanupFailure = cleanupError;
-    }
-    const cleanupContext =
-      cleanupFailure === undefined ? "" : `\n${redact(cleanupFailure)}`;
-    throw new Error(redact(`${redact(error)}${cleanupContext}`));
+    throw new Error(redact(error));
   }
 }
 
-async function cleanupResources(resources: RuntimeResources) {
+function cleanupResources(resources: RuntimeResources): Promise<void> {
+  if (resources.cleanup !== undefined) return resources.cleanup;
+  const cleanup = performCleanup(resources);
+  resources.cleanup = cleanup;
+  return cleanup;
+}
+
+async function performCleanup(resources: RuntimeResources) {
   const commands = [...resources.commands];
   const app = resources.app;
   const browser = resources.browser;
@@ -640,6 +691,7 @@ function createRuntimeResources(): RuntimeResources {
     commandTerminations: new Map(),
     cancelled,
     cancel,
+    cleanup: undefined,
     app: undefined,
     browser: undefined,
     stopping: false,
