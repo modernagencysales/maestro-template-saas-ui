@@ -132,6 +132,13 @@ const buildCandidateReleaseFixture = (
     name: input.name,
     firstOutcome: input.outcome,
   });
+  const materializedPaths = new Set(plan.entries.map((entry) => entry.path));
+  const optionalPatternPaths = new Set(
+    buildSelectedSaasPlan({
+      name: input.name,
+      firstOutcome: input.outcome,
+    }).entries.map((entry) => entry.path),
+  );
   const blueprintOwnedPaths = new Set(
     plan.entries
       .filter((entry) => entry.replaces === undefined)
@@ -139,7 +146,9 @@ const buildCandidateReleaseFixture = (
   );
   const paths = [
     ...buildCustomerOwnershipInventory(sourcePaths).map((entry) =>
-      blueprintOwnedPaths.has(entry.path)
+      blueprintOwnedPaths.has(entry.path) ||
+      (optionalPatternPaths.has(entry.path) &&
+        !materializedPaths.has(entry.path))
         ? {
             path: entry.path,
             match: "exact" as const,
@@ -644,7 +653,7 @@ describe("candidate customer composition", () => {
     // it against the materialized dependency/schema set before checking it.
     await runCandidatePnpm(fixture.targetRoot, ["confect:manifest"]);
     const generatedManifestBefore = readFileSync(generatedManifestPath, "utf8");
-    const plannedManifest = buildSaasApplicationTargetPlan({
+    const plannedManifest = buildSelectedSaasPlan({
       name,
       firstOutcome: outcome,
     }).entries.find(
