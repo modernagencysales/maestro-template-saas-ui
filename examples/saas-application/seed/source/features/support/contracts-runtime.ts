@@ -59,6 +59,7 @@ type ManagedCommand = {
 
 type RuntimeResources = {
   readonly commands: Set<ManagedCommand>;
+  readonly commandTerminations: Map<ManagedCommand, Promise<void>>;
   readonly cancelled: Promise<void>;
   readonly cancel: () => void;
   app: ManagedProcess | undefined;
@@ -93,6 +94,19 @@ const allowedEnvironmentNames = new Set([
   "HOME",
   "LANG",
   "LANGUAGE",
+  "LC_ADDRESS",
+  "LC_ALL",
+  "LC_COLLATE",
+  "LC_CTYPE",
+  "LC_IDENTIFICATION",
+  "LC_MEASUREMENT",
+  "LC_MESSAGES",
+  "LC_MONETARY",
+  "LC_NAME",
+  "LC_NUMERIC",
+  "LC_PAPER",
+  "LC_TELEPHONE",
+  "LC_TIME",
   "LOGNAME",
   "NO_COLOR",
   "PATH",
@@ -108,8 +122,7 @@ const minimalEnvironment = (source: NodeJS.ProcessEnv): NodeJS.ProcessEnv =>
   Object.fromEntries(
     Object.entries(source).filter(
       ([name, value]) =>
-        value !== undefined &&
-        (allowedEnvironmentNames.has(name) || name.startsWith("LC_")),
+        value !== undefined && allowedEnvironmentNames.has(name),
     ),
   );
 
@@ -296,12 +309,12 @@ async function bootContractsRuntime(
           `Contracts command failed (${result.code ?? result.signal ?? "unknown"}).\n${result.stdout}\n${result.stderr}`,
         );
       }
+      resources.commands.delete(command);
       return redact(result.stdout);
     } catch (error) {
-      await command.terminate("SIGINT");
-      throw new Error(redact(error));
-    } finally {
+      await terminateTrackedCommand(resources, command);
       resources.commands.delete(command);
+      throw new Error(redact(error));
     }
   };
   const commandTimeoutMs = dependencies.commandTimeoutMs ?? 30_000;
@@ -538,8 +551,15 @@ async function bootContractsRuntime(
     };
     return runtime;
   } catch (error) {
-    await cleanupResources(resources);
-    throw new Error(redact(error));
+    let cleanupFailure: unknown;
+    try {
+      await cleanupResources(resources);
+    } catch (cleanupError) {
+      cleanupFailure = cleanupError;
+    }
+    const cleanupContext =
+      cleanupFailure === undefined ? "" : `\n${redact(cleanupFailure)}`;
+    throw new Error(redact(`${redact(error)}${cleanupContext}`));
   }
 }
 
@@ -547,17 +567,67 @@ async function cleanupResources(resources: RuntimeResources) {
   const commands = [...resources.commands];
   const app = resources.app;
   const browser = resources.browser;
-  resources.commands.clear();
-  resources.app = undefined;
-  resources.browser = undefined;
-  const cleanup = await Promise.allSettled([
-    ...commands.map((command) => command.terminate("SIGINT")),
-    app?.terminate("SIGINT"),
-    browser?.close(),
-  ]);
-  if (cleanup.some((result) => result.status === "rejected")) {
-    throw new Error("Contracts runtime cleanup failed.");
+  const targets: Array<{
+    readonly label: string;
+    readonly cleanup: () => Promise<void>;
+    readonly clear: () => void;
+  }> = commands.map((command) => ({
+    label: "command process",
+    cleanup: () => terminateTrackedCommand(resources, command),
+    clear: () => resources.commands.delete(command),
+  }));
+  if (app !== undefined) {
+    targets.push({
+      label: "app process",
+      cleanup: () => app.terminate("SIGINT"),
+      clear: () => {
+        if (resources.app === app) resources.app = undefined;
+      },
+    });
   }
+  if (browser !== undefined) {
+    targets.push({
+      label: "browser",
+      cleanup: () => browser.close(),
+      clear: () => {
+        if (resources.browser === browser) resources.browser = undefined;
+      },
+    });
+  }
+  const cleanup = await Promise.allSettled(
+    targets.map((target) => target.cleanup()),
+  );
+  const failedLabels: string[] = [];
+  for (const [index, result] of cleanup.entries()) {
+    const target = targets[index];
+    if (target === undefined) continue;
+    if (result.status === "fulfilled") target.clear();
+    else failedLabels.push(target.label);
+  }
+  if (failedLabels.length > 0) {
+    throw new Error(
+      `Contracts runtime cleanup failed: ${failedLabels
+        .map((label) => `${label} cleanup failed`)
+        .join(", ")}.`,
+    );
+  }
+}
+
+function terminateTrackedCommand(
+  resources: RuntimeResources,
+  command: ManagedCommand,
+) {
+  const inFlight = resources.commandTerminations.get(command);
+  if (inFlight !== undefined) return inFlight;
+  const attempt = Promise.resolve().then(() => command.terminate("SIGINT"));
+  resources.commandTerminations.set(command, attempt);
+  const clearAttempt = () => {
+    if (resources.commandTerminations.get(command) === attempt) {
+      resources.commandTerminations.delete(command);
+    }
+  };
+  void attempt.then(clearAttempt, clearAttempt);
+  return attempt;
 }
 
 function createRuntimeResources(): RuntimeResources {
@@ -567,6 +637,7 @@ function createRuntimeResources(): RuntimeResources {
   });
   return {
     commands: new Set(),
+    commandTerminations: new Map(),
     cancelled,
     cancel,
     app: undefined,

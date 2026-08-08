@@ -20,6 +20,12 @@ describe("check:headless-surface-contract", () => {
     await expectDescriptorPassesAndFails(descriptor);
   });
 
+  it("does not pin the removed canned runtime source proof", () => {
+    expect(
+      descriptor.requirements.flatMap(({ includes }) => includes),
+    ).not.toContain("cannedRuntimeSuccess");
+  });
+
   it("reports exposed manifest operations without typed errors", () => {
     expect(
       missingTypedErrors([

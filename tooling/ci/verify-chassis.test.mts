@@ -37,6 +37,7 @@ describe("customer chassis Woodpecker admission", () => {
     ).toHaveLength(1);
     expect(script).not.toContain("install-gitleaks.sh || true");
     expect(script.match(/^pnpm verify$/gmu)).toHaveLength(1);
+    expect(script).toContain("pnpm --dir apps/cli test:create-root-admission");
     expect(script).toContain("pnpm --dir apps/web test:runtime-longevity");
     for (const duplicate of [
       "pnpm --dir tooling/agent-pack test:customer",
@@ -48,5 +49,14 @@ describe("customer chassis Woodpecker admission", () => {
     ]) {
       expect(script, duplicate).not.toContain(duplicate);
     }
+  });
+
+  it("binds admission to the selected four-journey records example", () => {
+    const packageJson = JSON.parse(read("apps/cli/package.json")) as {
+      readonly scripts: Readonly<Record<string, string>>;
+    };
+    expect(packageJson.scripts["test:create-root-admission"]).toBe(
+      "vitest run src/factory/createRootIntegration.test.ts -t 'executes the selected records example by journey name' --maxWorkers=1 --no-file-parallelism",
+    );
   });
 });

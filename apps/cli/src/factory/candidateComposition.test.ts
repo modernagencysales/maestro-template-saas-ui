@@ -84,6 +84,16 @@ const buildSelectedSaasPlan: SaasPlanBuilder = (options) =>
     patterns: ["records-example", "workflow-automation"],
   });
 
+const isWorkflowPatternPath = (path: string): boolean =>
+  [
+    "tooling/workflow/",
+    "packages/convex/confect/workflows/",
+    "packages/convex/confect/workflowContracts/",
+    "packages/convex/confect/workflowRunners/",
+    "packages/convex/confect/tables/workflow",
+    "packages/convex/confect/demo/showcase.",
+  ].some((prefix) => path.startsWith(prefix));
+
 const buildCandidateReleaseFixture = (
   input: {
     readonly name: string;
@@ -152,9 +162,7 @@ const buildCandidateReleaseFixture = (
       blueprintOwnedPaths.has(entry.path) ||
       (optionalPatternPaths.has(entry.path) &&
         !materializedPaths.has(entry.path)) ||
-      (!workflowSelected &&
-        (entry.path.startsWith("tooling/workflow/") ||
-          entry.path.startsWith("packages/convex/confect/workflows/")))
+      (!workflowSelected && isWorkflowPatternPath(entry.path))
         ? {
             path: entry.path,
             match: "exact" as const,
@@ -383,11 +391,7 @@ describe("candidate customer composition", () => {
       "tooling/workflow/package.json",
     ])
       expect(files, path).not.toContain(path);
-    expect(
-      files.filter((path) =>
-        path.startsWith("packages/convex/confect/workflows/"),
-      ),
-    ).toEqual([]);
+    expect(files.filter(isWorkflowPatternPath)).toEqual([]);
     expect(files).toContain("packages/convex/confect/deployAuthority/store.ts");
     expect(
       existsSync(

@@ -1,7 +1,7 @@
-import type { runTemplateWorkflow } from "@maestro-template/workflow-tooling";
+import type { WorkflowRunReceipt } from "@maestro-template/template-core";
 import type { CliNamedArgs } from "./namedArgs";
 
-type WorkflowReceipt = ReturnType<typeof runTemplateWorkflow>;
+type WorkflowReceipt = WorkflowRunReceipt;
 
 const applyStringArg = (
   payload: Record<string, unknown>,

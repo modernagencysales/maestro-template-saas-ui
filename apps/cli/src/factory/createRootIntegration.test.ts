@@ -35,6 +35,28 @@ const installedStoreDir = readFileSync(
 ).match(/^storeDir: (.+)$/m)?.[1];
 let taggedReleaseParent: string | undefined;
 let taggedReleaseRoot: string | undefined;
+const isWorkflowPatternPath = (path: string): boolean =>
+  [
+    "tooling/workflow/",
+    "packages/convex/confect/workflows/",
+    "packages/convex/confect/workflowContracts/",
+    "packages/convex/confect/workflowRunners/",
+    "packages/convex/confect/tables/workflow",
+    "packages/convex/confect/demo/showcase.",
+  ].some((prefix) => path.startsWith(prefix));
+
+const shouldOmitCurrentProjectionPath = (input: {
+  readonly action: "copy" | "generate" | "omit" | "preserve";
+  readonly path: string;
+  readonly optionalPatternPaths: ReadonlySet<string>;
+  readonly projectedPaths: ReadonlySet<string>;
+  readonly workflowSelected: boolean;
+}): boolean =>
+  input.action === "omit" ||
+  (input.optionalPatternPaths.has(input.path) &&
+    !input.projectedPaths.has(input.path)) ||
+  (!input.workflowSelected && isWorkflowPatternPath(input.path));
+
 const applyCurrentSaasProjection = (
   root: string,
   options: {
@@ -45,6 +67,14 @@ const applyCurrentSaasProjection = (
 ): void => {
   const plan = buildSaasApplicationTargetPlan(options);
   const projectedPaths = new Set(plan.entries.map((entry) => entry.path));
+  const optionalPatternPaths = new Set(
+    buildSaasApplicationTargetPlan({
+      ...options,
+      patterns: ["records-example", "workflow-automation"],
+    }).entries.map((entry) => entry.path),
+  );
+  const workflowSelected =
+    options.patterns?.includes("workflow-automation") === true;
   const targetLocalPaths = new Set([
     ".maestro-create-journal.json",
     "template-instance.json",
@@ -72,7 +102,15 @@ const applyCurrentSaasProjection = (
     currentTrackedFiles,
   )) {
     const target = join(root, path);
-    if (action === "omit" || !projectedPaths.has(path)) {
+    if (
+      shouldOmitCurrentProjectionPath({
+        action,
+        path,
+        optionalPatternPaths,
+        projectedPaths,
+        workflowSelected,
+      })
+    ) {
       rmSync(target, { force: true });
       continue;
     }

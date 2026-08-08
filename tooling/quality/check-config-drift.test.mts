@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { expectDescriptorPassesAndFails } from "./src/check-test-helpers.mts";
 import { descriptor } from "./check-config-drift.mts";
@@ -21,5 +22,20 @@ describe("check:config-drift", () => {
         "acceptance:check",
       ]),
     );
+  });
+
+  it("uses native Cucumber authority without direct parser dependencies", () => {
+    const root = JSON.parse(
+      readFileSync(new URL("../../package.json", import.meta.url), "utf8"),
+    ) as {
+      readonly scripts: Readonly<Record<string, string>>;
+      readonly devDependencies: Readonly<Record<string, string>>;
+    };
+    expect(root.scripts).not.toHaveProperty("acceptance:features");
+    expect(root.scripts["acceptance:check"]).toBe(
+      "pnpm acceptance:syntax && cucumber-js --config cucumber.cjs --dry-run --tags @required",
+    );
+    expect(root.devDependencies).not.toHaveProperty("@cucumber/gherkin");
+    expect(root.devDependencies).not.toHaveProperty("@cucumber/messages");
   });
 });

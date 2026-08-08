@@ -32,12 +32,6 @@ importers:
       "@cucumber/cucumber":
         specifier: 13.2.0
         version: 13.2.0
-      "@cucumber/gherkin":
-        specifier: 41.0.0
-        version: 41.0.0
-      "@cucumber/messages":
-        specifier: 34.0.1
-        version: 34.0.1
       "@effect/language-service":
         specifier: 0.87.1
         version: 0.87.1

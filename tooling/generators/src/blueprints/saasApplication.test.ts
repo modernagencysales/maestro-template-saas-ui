@@ -221,6 +221,22 @@ describe("saas application blueprint", () => {
     ])
       expect(neutral.root.scripts).not.toHaveProperty(script);
     expect(neutral.lock.importers).not.toHaveProperty("tooling/workflow");
+    expect(neutral.entries.get("apps/cli/src/headlessRegistry.ts")).toContain(
+      "Workflow automation pattern is not selected.",
+    );
+    for (const path of ["apps/cli/src/index.ts", "apps/cli/src/commands.ts"])
+      expect(neutral.entries.get(path), path).toContain(
+        'from "./headlessRegistry";',
+      );
+    expect(
+      neutral.entries.get("tooling/generators/src/customer-runtime.ts"),
+    ).not.toContain('from "./workflow-files"');
+    expect(
+      neutral.entries.get("tooling/generators/src/customer-runtime.ts"),
+    ).toContain("Workflow automation pattern is not selected.");
+    expect(
+      neutral.entries.has("tooling/generators/src/workflow-files.ts"),
+    ).toBe(false);
     expect(neutral.convexPackage.dependencies).not.toHaveProperty(
       "@convex-dev/workflow",
     );
@@ -253,6 +269,16 @@ describe("saas application blueprint", () => {
     expect(workflow.contract.selectedPatterns).toEqual(["workflow-automation"]);
     expect(workflow.root.scripts).toHaveProperty("test:workflow");
     expect(workflow.lock.importers).toHaveProperty("tooling/workflow");
+    expect(workflow.entries.has("apps/cli/src/headlessRegistry.ts")).toBe(
+      false,
+    );
+    for (const path of ["apps/cli/src/index.ts", "apps/cli/src/commands.ts"])
+      expect(workflow.entries.get(path), path).toContain(
+        'from "@maestro-template/workflow-tooling";',
+      );
+    expect(
+      workflow.entries.get("tooling/generators/src/customer-runtime.ts"),
+    ).toContain('from "./workflow-files"');
     expect(workflow.convexPackage.dependencies).toHaveProperty(
       "@convex-dev/workflow",
     );
@@ -1672,7 +1698,6 @@ Feature: Reconcile disputed invoices
       "apps/web/src/adapters/records/http.ts",
       "features/records.feature",
       "features/step_definitions/records.steps.ts",
-      "features/support/contracts-runtime.test.ts",
       "features/support/contracts-runtime.ts",
       "features/support/contracts-world.ts",
       "features/first-outcome.feature",

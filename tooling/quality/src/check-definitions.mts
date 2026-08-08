@@ -842,7 +842,6 @@ const checkDescriptorDefinitions = {
         includes: [
           "missingTypedErrors",
           "cannedRegistryImport",
-          "cannedRuntimeSuccess",
           "missingGeneratedRefMapping",
           "evaluateHeadlessSurfaceContract",
         ],

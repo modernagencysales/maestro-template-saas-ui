@@ -38,6 +38,31 @@ const source = (path: string): string => currentSource(path);
 const currentGeneratorSource = (path: string): string =>
   readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
 
+const customerRuntimeSource = (
+  current: boolean,
+  selection: SaasApplicationPatternSelection,
+): string => {
+  const value = current
+    ? currentGeneratorSource("customer-runtime.ts")
+    : source("tooling/generators/src/customer-runtime.ts");
+  return current &&
+    !selectsSaasApplicationPattern(selection, "workflow-automation")
+    ? replace(
+        value,
+        'export { buildWorkflowFiles } from "./workflow-files";\n',
+        [
+          "export const buildWorkflowFiles = (",
+          "  options: WorkflowGeneratorOptions,",
+          "): WorkflowGeneratorResult => {",
+          "  void options;",
+          '  throw new Error("Workflow automation pattern is not selected.");',
+          "};",
+          "",
+        ].join("\n"),
+      )
+    : value;
+};
+
 export const CURRENT_FACTORY_PRODUCT_TABLES = [
   "buildPackEntitlements",
   "buildPackExports",
@@ -825,9 +850,50 @@ const customerAgentPackCheck = (): string => {
     '  console.log("Customer context, receipts, and MCP posture are valid.");',
   );
 };
-const customerCliEntry = (current: boolean): string => {
+const customerCliModuleSource = (
+  path: "apps/cli/src/commands.ts" | "apps/cli/src/index.ts",
+  selection: SaasApplicationPatternSelection,
+): string => {
+  const value = currentSource(path);
+  return selectsSaasApplicationPattern(selection, "workflow-automation")
+    ? value
+    : replace(
+        value,
+        'from "@maestro-template/workflow-tooling";',
+        'from "./headlessRegistry";',
+      );
+};
+
+const neutralHeadlessRegistrySource = (): string => {
+  let value = currentSource("tooling/workflow/src/index.ts");
+  value = replace(
+    value,
+    'import {\n  describeDefaultWorkflow,\n  describeWorkflowRegistry,\n  runDefaultWorkflow,\n  runWorkflowRegistry,\n} from "./workflow-compat";\n',
+    "",
+  );
+  value = replace(
+    value,
+    "export const describeWorkflowTemplate = (registry?: TemplateRegistry) =>\n  registry === undefined\n    ? describeDefaultWorkflow(\n        confectManifest.functions.length,\n        buildHeadlessOperations().length,\n      )\n    : describeWorkflowRegistry(\n        registry,\n        confectManifest.functions.length,\n        buildHeadlessOperations(registry).length,\n      );",
+    'export const describeWorkflowTemplate = (registry?: TemplateRegistry) => {\n  void registry;\n  return {\n    id: "workflow-automation",\n    status: "unavailable",\n    contractFunctions: confectManifest.functions.length,\n    headlessOperations: buildHeadlessOperations().length,\n  } as const;\n};',
+  );
+  value = replace(
+    value,
+    'const workflowRunMcpTool: McpToolEntry = {\n  name: "template.workflow.run",\n  description: "Run the template workflow compatibility adapter.",\n  inputSchema: {\n    type: "object",\n    additionalProperties: false,\n  },\n  typedErrors: [],\n};\n\nexport const buildMcpTools = (\n  registry?: TemplateRegistry,\n): readonly McpToolEntry[] => [\n  ...buildGeneratedMcpTools(registry),\n  workflowRunMcpTool,\n];\n\nexport const runTemplateWorkflow = (\n  registry?: TemplateRegistry,\n): WorkflowRunReceipt =>\n  registry === undefined ? runDefaultWorkflow() : runWorkflowRegistry(registry);',
+    'export const buildMcpTools = buildGeneratedMcpTools;\n\nexport const runTemplateWorkflow = (): WorkflowRunReceipt => {\n  throw new Error("Workflow automation pattern is not selected.");\n};',
+  );
+  return replace(
+    value,
+    "  if (toolName === workflowRunMcpTool.name) {\n    return mcpText(runTemplateWorkflow(registry));\n  }\n\n",
+    "",
+  );
+};
+
+const customerCliEntry = (
+  current: boolean,
+  selection: SaasApplicationPatternSelection,
+): string => {
   if (!current) return releasedSource("apps/cli/src/index.ts");
-  let value = currentSource("apps/cli/src/index.ts");
+  let value = customerCliModuleSource("apps/cli/src/index.ts", selection);
   value = replace(
     value,
     'import { createFactoryCliComposition } from "./factory/composition";',
@@ -1412,13 +1478,24 @@ export const buildSaasRegistrationProjections = (
       ? [
           {
             path: "apps/cli/src/commands.ts",
-            content: currentSource("apps/cli/src/commands.ts"),
+            content: customerCliModuleSource(
+              "apps/cli/src/commands.ts",
+              options,
+            ),
           },
+          ...(!workflowSelected
+            ? [
+                {
+                  path: "apps/cli/src/headlessRegistry.ts",
+                  content: neutralHeadlessRegistrySource(),
+                },
+              ]
+            : []),
         ]
       : []),
     {
       path: "apps/cli/src/index.ts",
-      content: customerCliEntry(current),
+      content: customerCliEntry(current, options),
     },
     ...(current
       ? [
@@ -1547,7 +1624,9 @@ export const buildSaasRegistrationProjections = (
       content:
         name === "workflow-source-closure.ts"
           ? currentGeneratorSource(name)
-          : source(`tooling/generators/src/${name}`),
+          : name === "customer-runtime.ts"
+            ? customerRuntimeSource(current, options)
+            : source(`tooling/generators/src/${name}`),
     })),
     ...[
       ...(workflowSelected
