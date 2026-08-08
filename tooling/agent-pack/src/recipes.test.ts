@@ -6,6 +6,7 @@ import {
   type RecipeCatalogProjection,
   type RecipeCommandProjection,
 } from "./recipes.js";
+import { mutationBlockingPreflightCodes } from "./preflight.js";
 import { createRepositoryContext } from "./repoContext.js";
 
 const context = {
@@ -420,5 +421,32 @@ describe("recipe commands", () => {
     expect(written.data).not.toHaveProperty("confirmationCommand");
     expect(applied).toBe(1);
     expect(appliedBeforeSha256).toBe("sha256:before-write");
+  });
+
+  it("reports every concurrent retained preflight denial before applying", async () => {
+    applied = 0;
+    const result = await executeAgentPackCommand(
+      createAddRecipeCommand({
+        ...dependencies,
+        preflight: {
+          inspect: async () => ({
+            fingerprint: "preflight_sha256:blocked",
+            blockingCodes: mutationBlockingPreflightCodes,
+          }),
+        },
+      }),
+      {
+        query: "crud-business-entity",
+        answers: { name: "Request" },
+        write: true,
+      },
+      context,
+    );
+
+    expect(result).toMatchObject({ exitClass: "blockedMutation" });
+    expect(result.diagnostics.map(({ code }) => code)).toEqual(
+      mutationBlockingPreflightCodes,
+    );
+    expect(applied).toBe(0);
   });
 });
