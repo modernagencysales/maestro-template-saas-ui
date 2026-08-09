@@ -85,6 +85,7 @@ const applyCurrentSaasProjection = (
     ".maestro-create-journal.json",
     "template-instance.json",
   ]);
+  rmSync(join(root, "Justfile"), { force: true });
   const existingPaths = Object.keys(snapshotTargetBytes(root)).filter(
     (path) => !targetLocalPaths.has(path),
   );
@@ -403,6 +404,7 @@ describe("create root integration", () => {
         request.firstOutcome,
         "--demo-only",
         "--write",
+        "--privacy-reviewed",
         "--json",
       ]);
       expect(result.exitCode, result.stderr).toBe(0);
@@ -506,6 +508,7 @@ describe("create root integration", () => {
       "Create and review records",
       "--demo-only",
       "--write",
+      "--privacy-reviewed",
       "--json",
     ]);
     expect(result.exitCode, `${result.stdout}\n${result.stderr}`).toBe(0);
@@ -561,6 +564,7 @@ describe("create root integration", () => {
       patterns: ["records-example", "workflow-automation"],
     } as const;
     applyCurrentSaasProjection(compileRoot, projectionOptions);
+    expect(existsSync(join(compileRoot, "Justfile"))).toBe(false);
     expect(
       existsSync(join(compileRoot, "packages/convex/confect/records.spec.ts")),
     ).toBe(false);
@@ -923,7 +927,7 @@ describe("create root integration", () => {
       { cwd: targetRoot },
     );
 
-    const contracts = await execFileAsync(
+    const contracts = spawnSync(
       "pnpm",
       ["--silent", "maestro", "--", "contracts", "test", "records"],
       {
@@ -932,6 +936,9 @@ describe("create root integration", () => {
         timeout: 180_000,
         maxBuffer: 10 * 1024 * 1024,
       },
+    );
+    expect(contracts.status, `${contracts.stdout}\n${contracts.stderr}`).toBe(
+      0,
     );
     expect(contracts.stdout).toContain("4 scenarios (4 passed)");
   }, 300_000);
