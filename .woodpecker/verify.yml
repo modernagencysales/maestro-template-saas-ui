@@ -21,5 +21,7 @@ steps:
       CI: "true"
       NODE_OPTIONS: "--max-old-space-size=6144"
     commands:
+      - apt-get update
+      - apt-get install -y --no-install-recommends strace
       - tooling/ci/verify-chassis.sh
     failure: cancel

@@ -15,6 +15,19 @@ describe("customer chassis Woodpecker admission", () => {
     expect(source.match(/^ {2}- name:/gmu)).toHaveLength(1);
   });
 
+  it("provisions the syscall tracer before privacy verification", () => {
+    const source = read(".woodpecker/verify.yml");
+    const install = source.indexOf(
+      "apt-get install -y --no-install-recommends strace",
+    );
+
+    expect(source).toContain("apt-get update");
+    expect(install).toBeGreaterThan(source.indexOf("commands:"));
+    expect(install).toBeLessThan(
+      source.indexOf("tooling/ci/verify-chassis.sh"),
+    );
+  });
+
   it("declares the sole deterministic PR context", () => {
     const project = read(".factory/project.yaml");
     expect(project).toContain("required: []");
