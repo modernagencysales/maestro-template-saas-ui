@@ -122,8 +122,8 @@ const seedLocalContracts = FunctionImpl.make(
 
           const workspaceMembership = yield* reader
             .table("workspaceMembers")
-            .index("by_workspace_user", (query) =>
-              query.eq("workspaceId", workspaceId).eq("userId", userId),
+            .index("by_workspace_user", (q) =>
+              q.eq("workspaceId", workspaceId).eq("userId", userId),
             )
             .first()
             .pipe(Effect.map(Option.getOrNull), Effect.orDie);
