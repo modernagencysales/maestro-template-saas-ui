@@ -25,6 +25,7 @@ import { CURRENT_PUBLIC_SOURCE } from "./createComposition";
 
 const repoRoot = fileURLToPath(new URL("../../../../", import.meta.url));
 const execFileAsync = promisify(execFile);
+const generatedCommandTimeoutMs = 90_000;
 const temporaryRoots: string[] = [];
 const originalPath = process.env.PATH;
 const originalStoreDir = process.env.npm_config_store_dir;
@@ -50,6 +51,39 @@ const isWorkflowPatternPath = (path: string): boolean =>
     "packages/convex/convex/workflowContracts/",
     "packages/convex/convex/workflowRunners/",
   ].some((prefix) => path.startsWith(prefix));
+
+const runGeneratedPnpm = (
+  cwd: string,
+  args: readonly string[],
+): Promise<{
+  readonly status: number | null;
+  readonly stdout: string;
+  readonly stderr: string;
+}> =>
+  new Promise((resolveRun) => {
+    execFile(
+      "pnpm",
+      args,
+      {
+        cwd,
+        encoding: "utf8",
+        maxBuffer: 10 * 1024 * 1024,
+        timeout: generatedCommandTimeoutMs,
+      },
+      (error, stdout, stderr) => {
+        resolveRun({
+          status:
+            error === null
+              ? 0
+              : typeof error.code === "number"
+                ? error.code
+                : null,
+          stdout,
+          stderr: `${stderr}${error?.message ?? ""}`,
+        });
+      },
+    );
+  });
 
 const shouldOmitCurrentProjectionPath = (input: {
   readonly action: "copy" | "generate" | "omit" | "preserve";
@@ -586,16 +620,10 @@ describe("create root integration", () => {
       { cwd: compileRoot, encoding: "utf8", timeout: 120_000 },
     );
     expect(`${install.stdout}\n${install.stderr}`).not.toContain("ERR_PNPM");
-    execFileSync("pnpm", ["confect:codegen"], {
-      cwd: compileRoot,
-      stdio: "pipe",
-      timeout: 30_000,
-    });
-    execFileSync("pnpm", ["confect:manifest"], {
-      cwd: compileRoot,
-      stdio: "pipe",
-      timeout: 30_000,
-    });
+    for (const args of [["confect:codegen"], ["confect:manifest"]] as const) {
+      const result = await runGeneratedPnpm(compileRoot, args);
+      expect(result.status, `${result.stdout}\n${result.stderr}`).toBe(0);
+    }
     const dirtyManifest = readFileSync(
       join(
         compileRoot,
@@ -603,11 +631,9 @@ describe("create root integration", () => {
       ),
     );
     expect(dirtyManifest.toString()).toContain('"records"');
-    const manifestCheck = spawnSync("pnpm", ["check:confect-manifest"], {
-      cwd: compileRoot,
-      encoding: "utf8",
-      timeout: 30_000,
-    });
+    const manifestCheck = await runGeneratedPnpm(compileRoot, [
+      "check:confect-manifest",
+    ]);
     expect(
       manifestCheck.status,
       `${manifestCheck.stdout}\n${manifestCheck.stderr}`,
